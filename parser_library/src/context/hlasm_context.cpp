@@ -33,11 +33,13 @@ const code_scope* hlasm_context::curr_scope() const { return &scope_stack_.back(
 
 hlasm_context::instruction_storage hlasm_context::init_instruction_map(id_storage& ids)
 {
+    instruction in = instruction(system_architecture::UNI);
+
     hlasm_context::instruction_storage instr_map;
-    for (const auto& instr : instruction::all_machine_instructions())
+    for (const auto& instr_ref : instruction::all_machine_instructions())
     {
-        auto id = ids.add(std::string(instr.name()));
-        instr_map.emplace(id, &instr);
+        auto id = ids.add(std::string(instr_ref.get().name()));
+        instr_map.emplace(id, &instr_ref.get());
     }
     for (const auto& instr : instruction::all_assembler_instructions())
     {
@@ -49,11 +51,12 @@ hlasm_context::instruction_storage hlasm_context::init_instruction_map(id_storag
         auto id = ids.add(std::string(instr.name()));
         instr_map.emplace(id, &instr);
     }
-    for (const auto& instr : instruction::all_mnemonic_codes())
+    for (const auto& instr_ref : instruction::all_mnemonic_codes())
     {
-        auto id = ids.add(std::string(instr.name()));
-        instr_map.emplace(id, &instr);
+        auto id = ids.add(std::string(instr_ref.get().name()));
+        instr_map.emplace(id, &instr_ref.get());
     }
+
     return instr_map;
 }
 

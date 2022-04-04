@@ -362,9 +362,85 @@ public:
     constexpr auto operandless() const { return m_operandless; }
 };
 
+enum class system_architecture
+{
+    ZS1 = 1,
+    ZS2,
+    ZS3,
+    ZS4,
+    ZS5,
+    ZS6,
+    ZS7,
+    ZS8,
+    ZS9,
+    UNKNOWN = 16,
+    UNI,
+    DOS,
+    _370,
+    XA,
+    ESA
+};
+
+//constexpr system_architecture operator|(system_architecture a, system_architecture b)
+//{
+//    return static_cast<system_architecture>(static_cast<int>(a) | static_cast<int>(b));
+//}
+
+// constexpr bool operator==(system_architecture a, system_architecture b)
+//{
+//     return static_cast<int>(a) == static_cast<int>(b);
+// }
+
+enum class supported_system
+{
+    NO_ZS_SUPPORT = 0,
+    SINCE_ZS1 = 1,
+    SINCE_ZS2,
+    SINCE_ZS3,
+    SINCE_ZS4,
+    SINCE_ZS5,
+    SINCE_ZS6,
+    SINCE_ZS7,
+    SINCE_ZS8,
+    SINCE_ZS9,
+    UNKNOWN = 16,
+    UNI = 1 << 5,
+    DOS = 1 << 6,
+    _370 = 1 << 7,
+    XA = 1 << 8,
+    ESA = 1 << 9,
+};
+
+constexpr supported_system operator|(supported_system a, supported_system b)
+{
+    return static_cast<supported_system>(static_cast<int>(a) | static_cast<int>(b));
+}
+
+constexpr supported_system operator&(supported_system a, supported_system b)
+{
+    return static_cast<supported_system>(static_cast<int>(a) & static_cast<int>(b));
+}
+
+constexpr supported_system operator&(supported_system a, size_t b)
+{
+    return static_cast<supported_system>(static_cast<int>(a) & static_cast<int>(b));
+}
+
+constexpr bool operator==(supported_system a, supported_system b)
+{
+    return static_cast<int>(a) == static_cast<int>(b);
+}
+
+constexpr bool operator<=(supported_system a, system_architecture b)
+{
+    return static_cast<int>(a) <= static_cast<int>(b);
+}
+
 // representation of mnemonic codes for machine instructions
 class mnemonic_code
 {
+    inline_string<9> m_name;
+
     const machine_instruction* m_instruction;
 
     // first goes place, then value
@@ -373,7 +449,6 @@ class mnemonic_code
 
     reladdr_transform_mask m_reladdr_mask;
 
-    inline_string<9> m_name;
 
     // Generates a bitmask for an arbitrary mnemonic indicating which operands
     // are of the RI type (and therefore are modified by transform_reloc_imm_operands)
@@ -410,11 +485,11 @@ public:
     constexpr mnemonic_code(std::string_view name,
         const machine_instruction* instr,
         std::initializer_list<const std::pair<unsigned char, unsigned char>> replaced)
-        : m_instruction(instr)
+        : m_name(name)
+        , m_instruction(instr)
         , m_replaced {}
         , m_replaced_count((unsigned char)replaced.size())
         , m_reladdr_mask(generate_reladdr_bitmask(instr, replaced))
-        , m_name(name)
     {
         assert(replaced.size() <= m_replaced.size());
         size_t i = 0;
@@ -469,7 +544,13 @@ public:
 // static class holding string names of instructions with theirs additional info
 class instruction
 {
+    system_architecture m_arch;
+
 public:
+    static std::vector<std::reference_wrapper<const machine_instruction>> m_machine_instructions;
+    static std::vector<std::reference_wrapper<const mnemonic_code>> m_mnemonic_codes;
+    instruction(system_architecture arch);
+
     /*
     min_operands - minimal number of operands, non-negative integer, always defined
     max_operands - if not defined (can be infinite), value is -1, otherwise a non-negative integer
@@ -485,13 +566,16 @@ public:
 
     static const machine_instruction& get_machine_instructions(std::string_view name);
     static const machine_instruction* find_machine_instructions(std::string_view name);
-    static std::span<const machine_instruction> all_machine_instructions();
+    static std::span<std::reference_wrapper<const machine_instruction>> all_machine_instructions();
 
     static const mnemonic_code& get_mnemonic_codes(std::string_view name);
     static const mnemonic_code* find_mnemonic_codes(std::string_view name);
-    static std::span<const mnemonic_code> all_mnemonic_codes();
+    static std::span<std::reference_wrapper<const mnemonic_code>> all_mnemonic_codes();
 
     static std::string_view mach_format_to_string(mach_format);
+
+private:
+    bool is_instruction_supported(supported_system supported_systems);
 };
 
 } // namespace hlasm_plugin::parser_library::context

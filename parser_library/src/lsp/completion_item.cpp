@@ -39,8 +39,10 @@ const std::set<completion_item_s, completion_item_s::label_comparer> completion_
         std::set<completion_item_s, completion_item_s::label_comparer> result;
 
 
-        for (const auto& machine_instr : instruction::all_machine_instructions())
+        for (const auto& machine_instr_ref : instruction::all_machine_instructions())
         {
+            const auto& machine_instr = machine_instr_ref.get();
+
             std::stringstream doc_ss(" ");
             std::stringstream detail_ss(""); // operands used for hover - e.g. V,D12U(X,B)[,M]
             std::stringstream autocomplete(""); // operands used for autocomplete - e.g. V,D12U(X,B) [,M]
@@ -116,8 +118,9 @@ const std::set<completion_item_s, completion_item_s::label_comparer> completion_
                 completion_item_kind::asm_instr);
         }
 
-        for (const auto& mnemonic_instr : instruction::all_mnemonic_codes())
+        for (const auto& mnemonic_instr_ref : instruction::all_mnemonic_codes())
         {
+            const auto& mnemonic_instr = mnemonic_instr_ref.get();
             std::stringstream doc_ss(" ");
             std::stringstream detail_ss("");
             std::stringstream subs_ops_mnems(" ");
