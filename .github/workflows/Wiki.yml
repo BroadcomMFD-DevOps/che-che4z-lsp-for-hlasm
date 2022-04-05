@@ -31,4 +31,4 @@ jobs:
         with:
           path: "docs"
         env:
-          GH_PERSONAL_ACCESS_TOKEN: ${{ secrets.WIKI_TOKEN }}
+          GH_PERSONAL_ACCESS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
