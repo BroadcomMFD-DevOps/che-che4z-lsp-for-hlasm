@@ -20,10 +20,32 @@
 // This file contains assembler compiler options definitions.
 
 namespace hlasm_plugin::parser_library {
+enum class system_architecture
+{
+    ZS1 = 1,
+    ZS2,
+    ZS3,
+    ZS4,
+    ZS5,
+    ZS6,
+    ZS7,
+    ZS8,
+    ZS9,
+    UNKNOWN = 16,
+    UNI,
+    DOS,
+    _370,
+    XA,
+    ESA
+};
+
 struct asm_option
 {
     std::string sysparm;
     std::string profile;
+
+    static const system_architecture arch_default = system_architecture::UNI;
+    system_architecture arch = arch_default;
 
     static const std::string system_id_default;
     std::string system_id = system_id_default;

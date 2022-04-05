@@ -37,7 +37,7 @@ TEST(processor_group, assembler_options)
 }
 
 TEST(processor_group, preprocessor_options)
-{
+    {
     constexpr auto cics = [](auto... p) { return preprocessor_options(cics_preprocessor_options(std::move(p)...)); };
     constexpr auto db2 = [](auto... p) { return preprocessor_options(db2_preprocessor_options(std::move(p)...)); };
 
@@ -51,4 +51,83 @@ TEST(processor_group, preprocessor_options)
     EXPECT_EQ(pp_options(config::cics_preprocessor { .prolog = false }), cics(false, true, false));
     EXPECT_EQ(pp_options(config::cics_preprocessor { .epilog = false }), cics(true, false, false));
     EXPECT_EQ(pp_options(config::cics_preprocessor { .prolog = false, .leasm = true }), cics(false, true, true));
+}
+
+class processor_group_test : public diagnosable_impl, public testing::Test
+{
+public:
+    void collect_diags() const override {}
+};
+
+TEST_F(processor_group_test, asm_options_arch_valid)
+{
+    std::string grp_name = "Group";
+    config::assembler_options asm_opts;
+    asm_opts.system_architecture = "UNI";
+
+    const auto cases = {
+        std::make_pair("ZS1", system_architecture::ZS1),
+        std::make_pair("ZS2", system_architecture::ZS2),
+        std::make_pair("ZS3", system_architecture::ZS3),
+        std::make_pair("ZS4", system_architecture::ZS4),
+        std::make_pair("ZS5", system_architecture::ZS5),
+        std::make_pair("ZS6", system_architecture::ZS6),
+        std::make_pair("ZS7", system_architecture::ZS7),
+        std::make_pair("ZS8", system_architecture::ZS8),
+        std::make_pair("ZS9", system_architecture::ZS9),
+        std::make_pair("UNI", system_architecture::UNI),
+        std::make_pair("DOS", system_architecture::DOS),
+        std::make_pair("370", system_architecture::_370),
+        std::make_pair("XA", system_architecture::XA),
+        std::make_pair("ESA", system_architecture::ESA),
+        std::make_pair("", system_architecture::UNI),
+    };
+
+    for (const auto& [input, expected] : cases)
+    {
+        diags().clear();
+
+        asm_opts.system_architecture = input;
+        workspaces::processor_group proc_group("Group", "", asm_opts, {});
+
+        auto arch = proc_group.asm_options().arch;
+
+        collect_diags_from_child(proc_group);
+        EXPECT_EQ(diags().size(), (size_t)0);
+
+        EXPECT_EQ(arch, expected);
+    }
+}
+
+TEST_F(processor_group_test, asm_options_arch_invalid)
+{
+    std::string grp_name = "Group";
+    config::assembler_options asm_opts;
+    asm_opts.system_architecture = "UNI";
+
+    const auto cases = {
+        std::make_pair("klgadh", system_architecture::UNI),
+        std::make_pair("ZS5ZS6", system_architecture::UNI),
+        std::make_pair("ZS0", system_architecture::UNI),
+        std::make_pair("ZS10", system_architecture::UNI),
+        std::make_pair("ZS11", system_architecture::UNI),
+        std::make_pair("ZS20", system_architecture::UNI),
+        std::make_pair("ZS21", system_architecture::UNI),
+    };
+
+    for (const auto& [input, expected] : cases)
+    {
+        diags().clear();
+
+        asm_opts.system_architecture = input;
+        workspaces::processor_group proc_group("Group", "", asm_opts, {});
+
+        auto arch = proc_group.asm_options().arch;
+
+        collect_diags_from_child(proc_group);
+        EXPECT_EQ(diags().size(), (size_t)1);
+        EXPECT_TRUE(matches_message_codes(diags(), { "W006" }));
+
+        EXPECT_EQ(arch, expected);
+    }
 }

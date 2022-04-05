@@ -44,7 +44,7 @@ workspace::workspace(const ws_uri& uri,
     , uri_(uri)
     , file_manager_(file_manager)
     , fm_vfm_(file_manager_)
-    , implicit_proc_grp("pg_implicit", {}, {})
+    , implicit_proc_grp("pg_implicit", "", {}, {})
     , ws_path_(uri)
     , global_config_(global_config)
 {
@@ -502,9 +502,10 @@ bool workspace::load_and_process_config()
 
     config::pgm_conf pgm_config;
     config::proc_grps proc_groups;
+    file_ptr proc_grps_file;
     file_ptr pgm_conf_file;
 
-    bool load_ok = load_config(proc_groups, pgm_config, pgm_conf_file);
+    bool load_ok = load_config(proc_groups, pgm_config, proc_grps_file, pgm_conf_file);
     if (!load_ok)
         return false;
 
@@ -529,7 +530,7 @@ bool workspace::load_and_process_config()
     // process processor groups
     for (auto& pg : proc_groups.pgroups)
     {
-        processor_group prc_grp(pg.name, pg.asm_options, pg.preprocessor);
+        processor_group prc_grp(pg.name, proc_grps_file->get_file_name(), pg.asm_options, pg.preprocessor);
 
         for (const auto& lib : pg.libs)
         {
@@ -587,12 +588,13 @@ bool workspace::load_and_process_config()
 
     return true;
 }
-bool workspace::load_config(config::proc_grps& proc_groups, config::pgm_conf& pgm_config, file_ptr& pgm_conf_file)
+bool workspace::load_config(
+    config::proc_grps& proc_groups, config::pgm_conf& pgm_config, file_ptr& proc_grps_file, file_ptr& pgm_conf_file)
 {
     std::filesystem::path hlasm_base = utils::path::join(uri_, HLASM_PLUGIN_FOLDER);
 
     // proc_grps.json parse
-    file_ptr proc_grps_file = file_manager_.add_file(utils::path::join(hlasm_base, FILENAME_PROC_GRPS).string());
+    proc_grps_file = file_manager_.add_file(utils::path::join(hlasm_base, FILENAME_PROC_GRPS).string());
 
     if (proc_grps_file->update_and_get_bad())
         return false;

@@ -28,6 +28,8 @@
 #include "checking/instr_operand.h"
 #include "diagnostic.h"
 #include "id_storage.h"
+#include "compiler_options.h"
+
 namespace hlasm_plugin::parser_library::context {
 
 // all mach_format types for operands of machine instructions:
@@ -362,24 +364,7 @@ public:
     constexpr auto operandless() const { return m_operandless; }
 };
 
-enum class system_architecture
-{
-    ZS1 = 1,
-    ZS2,
-    ZS3,
-    ZS4,
-    ZS5,
-    ZS6,
-    ZS7,
-    ZS8,
-    ZS9,
-    UNKNOWN = 16,
-    UNI,
-    DOS,
-    _370,
-    XA,
-    ESA
-};
+
 
 //constexpr system_architecture operator|(system_architecture a, system_architecture b)
 //{
