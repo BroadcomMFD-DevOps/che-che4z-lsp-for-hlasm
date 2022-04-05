@@ -26,9 +26,9 @@
 #include <string>
 
 #include "checking/instr_operand.h"
+#include "compiler_options.h"
 #include "diagnostic.h"
 #include "id_storage.h"
-#include "compiler_options.h"
 
 namespace hlasm_plugin::parser_library::context {
 
@@ -366,10 +366,10 @@ public:
 
 
 
-//constexpr system_architecture operator|(system_architecture a, system_architecture b)
+// constexpr system_architecture operator|(system_architecture a, system_architecture b)
 //{
-//    return static_cast<system_architecture>(static_cast<int>(a) | static_cast<int>(b));
-//}
+//     return static_cast<system_architecture>(static_cast<int>(a) | static_cast<int>(b));
+// }
 
 // constexpr bool operator==(system_architecture a, system_architecture b)
 //{
@@ -411,10 +411,7 @@ constexpr supported_system operator&(supported_system a, size_t b)
     return static_cast<supported_system>(static_cast<int>(a) & static_cast<int>(b));
 }
 
-constexpr bool operator==(supported_system a, supported_system b)
-{
-    return static_cast<int>(a) == static_cast<int>(b);
-}
+constexpr bool operator==(supported_system a, supported_system b) { return static_cast<int>(a) == static_cast<int>(b); }
 
 constexpr bool operator<=(supported_system a, system_architecture b)
 {

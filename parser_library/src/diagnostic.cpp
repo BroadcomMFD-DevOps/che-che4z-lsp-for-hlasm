@@ -2411,55 +2411,59 @@ diagnostic_op diagnostic_op::error_U006_duplicate_base_specified(const range& ra
     return diagnostic_op(diagnostic_severity::error, "U006", "Base registers must be distinct.", range);
 }
 
-diagnostic_s diagnostic_s::error_W002(std::string_view ws_uri, std::string_view ws_name)
+diagnostic_s diagnostic_s::error_W0002(std::string_view ws_uri, std::string_view ws_name)
 {
     return diagnostic_s(std::string(ws_uri),
         {},
         diagnostic_severity::error,
-        "W002",
+        "W0002",
         concat("The configuration file proc_grps for workspace ", ws_name, " is malformed."),
         {});
 }
 
-diagnostic_s diagnostic_s::error_W003(std::string_view file_name, std::string_view ws_name)
+diagnostic_s diagnostic_s::error_W0003(std::string_view file_name, std::string_view ws_name)
 {
     return diagnostic_s(std::string(file_name),
         {},
         diagnostic_severity::error,
-        "W003",
+        "W0003",
         concat("The configuration file pgm_conf for workspace ", ws_name, " is malformed."),
         {});
 }
 
-diagnostic_s diagnostic_s::error_W004(std::string_view file_name, std::string_view ws_name)
+diagnostic_s diagnostic_s::error_W0004(std::string_view file_name, std::string_view ws_name)
 {
     return diagnostic_s(std::string(file_name),
         {},
         diagnostic_severity::warning,
-        "W004",
+        "W0004",
         concat("The configuration file pgm_conf for workspace ",
             ws_name,
             " refers to a processor group, that is not defined in proc_grps"),
         {});
 }
 
-diagnostic_s diagnostic_s::error_W005(std::string_view file_name, std::string_view proc_group)
+diagnostic_s diagnostic_s::error_W0005(std::string_view file_name, std::string_view proc_group)
 {
     return diagnostic_s(std::string(file_name),
         {},
         diagnostic_severity::warning,
-        "W005",
+        "W0005",
         concat("The processor group '", proc_group, "' from '", file_name, "' defines invalid assembler options."),
         {});
 }
 
-diagnostic_s diagnostic_s::error_W006(std::string_view file_name, std::string_view proc_group)
+diagnostic_s diagnostic_s::error_W0006(std::string_view file_name, std::string_view proc_group)
 {
     return diagnostic_s(std::string(file_name),
         {},
         diagnostic_severity::warning,
-        "W006",
-        concat("The processor group '", proc_group, "' from '", file_name, "' refers to invalid system architecture. Using value UNI as default."),
+        "W0006",
+        concat("The processor group '",
+            proc_group,
+            "' from '",
+            file_name,
+            "' refers to invalid system architecture. Using value UNI as default."),
         {});
 }
 

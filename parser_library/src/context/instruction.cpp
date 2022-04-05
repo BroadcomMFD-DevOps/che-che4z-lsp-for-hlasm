@@ -238,12 +238,12 @@ const ca_instruction* instruction::find_ca_instructions(std::string_view name)
 }
 #endif
 
- const ca_instruction& instruction::get_ca_instructions(std::string_view name)
+const ca_instruction& instruction::get_ca_instructions(std::string_view name)
 {
-     auto result = find_ca_instructions(name);
-     assert(result);
-     return *result;
- }
+    auto result = find_ca_instructions(name);
+    assert(result);
+    return *result;
+}
 
 std::span<const ca_instruction> instruction::all_ca_instructions() { return ca_instructions; }
 
@@ -510,8 +510,6 @@ constexpr auto VRV_3 = instruction_format_definition_factory<mach_format::VRV, v
 constexpr auto VRX_3 = instruction_format_definition_factory<mach_format::VRX, vec_reg_5_U, dxb_12_4x4_U, mask_4_U>::def();
 constexpr auto VRX_3_opt = instruction_format_definition_factory<mach_format::VRX, vec_reg_5_U, dxb_12_4x4_U, mask_4_U_opt>::def();
 constexpr auto VSI_3 = instruction_format_definition_factory<mach_format::VSI, vec_reg_5_U, db_12_4_U, imm_8_U>::def();
-// clang-format on
-
 
 constexpr std::pair<machine_instruction, supported_system> machine_instructions[] = {
     { { "A", RX_a_2_ux, 510 }, { supported_system::UNI | supported_system::ESA | supported_system::XA | supported_system::_370 | supported_system::DOS | supported_system::SINCE_ZS1 } }, 
@@ -1864,6 +1862,7 @@ constexpr std::pair<machine_instruction, supported_system> machine_instructions[
     { { "XY", RXY_a_2, 738 }, { supported_system::UNI | supported_system::SINCE_ZS2 } }, 
     { { "ZAP", SS_b_2, 928 }, { supported_system::UNI | supported_system::ESA | supported_system::XA | supported_system::_370 | supported_system::DOS | supported_system::SINCE_ZS1 } }, 
 };
+// clang-format on
 
 #ifdef __cpp_lib_ranges
 static_assert(std::ranges::is_sorted(machine_instructions, {}, &machine_instruction::name));

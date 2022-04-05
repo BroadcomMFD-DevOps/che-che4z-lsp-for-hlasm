@@ -17,9 +17,9 @@
 
 #include "compiler_options.h"
 #include "diagnosable_impl.h"
+#include "file_manager.h"
 #include "library.h"
 #include "preprocessor_options.h"
-#include "file_manager.h"
 
 namespace hlasm_plugin::parser_library::config {
 struct assembler_options;

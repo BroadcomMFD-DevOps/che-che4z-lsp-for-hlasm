@@ -126,7 +126,7 @@ TEST_F(processor_group_test, asm_options_arch_invalid)
 
         collect_diags_from_child(proc_group);
         EXPECT_EQ(diags().size(), (size_t)1);
-        EXPECT_TRUE(matches_message_codes(diags(), { "W006" }));
+        EXPECT_TRUE(matches_message_codes(diags(), { "W0006" }));
 
         EXPECT_EQ(arch, expected);
     }

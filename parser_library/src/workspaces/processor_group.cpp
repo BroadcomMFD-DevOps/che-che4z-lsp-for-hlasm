@@ -74,7 +74,7 @@ system_architecture processor_group::find_system_architecture(std::string_view a
         });
     if (it == std::end(sys_arch_translator) || it->first != arch)
     {
-        add_diagnostic(diagnostic_s::error_W006(pg_file_name_, pg_name_));
+        add_diagnostic(diagnostic_s::error_W0006(pg_file_name_, pg_name_));
         return asm_option::arch_default;
     }
 

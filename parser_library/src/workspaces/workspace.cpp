@@ -582,7 +582,7 @@ bool workspace::load_and_process_config()
         }
         else
         {
-            config_diags_.push_back(diagnostic_s::error_W004(pgm_conf_file->get_file_name(), name_));
+            config_diags_.push_back(diagnostic_s::error_W0004(pgm_conf_file->get_file_name(), name_));
         }
     }
 
@@ -606,15 +606,15 @@ bool workspace::load_config(
         for (const auto& pg : proc_groups.pgroups)
         {
             if (!pg.asm_options.valid())
-                config_diags_.push_back(diagnostic_s::error_W005(proc_grps_file->get_file_name(), pg.name));
+                config_diags_.push_back(diagnostic_s::error_W0005(proc_grps_file->get_file_name(), pg.name));
             if (!pg.preprocessor.valid())
-                config_diags_.push_back(diagnostic_s::error_W006(proc_grps_file->get_file_name(), pg.name));
+                config_diags_.push_back(diagnostic_s::error_W0006(proc_grps_file->get_file_name(), pg.name));
         }
     }
     catch (const nlohmann::json::exception&)
     {
         // could not load proc_grps
-        config_diags_.push_back(diagnostic_s::error_W002(proc_grps_file->get_file_name(), name_));
+        config_diags_.push_back(diagnostic_s::error_W0002(proc_grps_file->get_file_name(), name_));
         return false;
     }
 
@@ -632,7 +632,7 @@ bool workspace::load_config(
     }
     catch (const nlohmann::json::exception&)
     {
-        config_diags_.push_back(diagnostic_s::error_W003(pgm_conf_file->get_file_name(), name_));
+        config_diags_.push_back(diagnostic_s::error_W0003(pgm_conf_file->get_file_name(), name_));
         return false;
     }
 
