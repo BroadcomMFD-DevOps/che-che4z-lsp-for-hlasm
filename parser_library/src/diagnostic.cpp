@@ -2416,7 +2416,7 @@ diagnostic_s diagnostic_s::error_W002(std::string_view ws_uri, std::string_view 
     return diagnostic_s(std::string(ws_uri),
         {},
         diagnostic_severity::error,
-        "W0002",
+        "W002",
         concat("The configuration file proc_grps for workspace ", ws_name, " is malformed."),
         {});
 }
@@ -2426,7 +2426,7 @@ diagnostic_s diagnostic_s::error_W003(std::string_view file_name, std::string_vi
     return diagnostic_s(std::string(file_name),
         {},
         diagnostic_severity::error,
-        "W0003",
+        "W003",
         concat("The configuration file pgm_conf for workspace ", ws_name, " is malformed."),
         {});
 }
@@ -2436,7 +2436,7 @@ diagnostic_s diagnostic_s::error_W004(std::string_view file_name, std::string_vi
     return diagnostic_s(std::string(file_name),
         {},
         diagnostic_severity::warning,
-        "W0004",
+        "W004",
         concat("The configuration file pgm_conf for workspace ",
             ws_name,
             " refers to a processor group, that is not defined in proc_grps"),
@@ -2448,7 +2448,7 @@ diagnostic_s diagnostic_s::error_W005(std::string_view file_name, std::string_vi
     return diagnostic_s(std::string(file_name),
         {},
         diagnostic_severity::warning,
-        "W0005",
+        "W005",
         concat("The processor group '", proc_group, "' from '", file_name, "' defines invalid assembler options."),
         {});
 }
@@ -2458,8 +2458,8 @@ diagnostic_s diagnostic_s::error_W006(std::string_view file_name, std::string_vi
     return diagnostic_s(std::string(file_name),
         {},
         diagnostic_severity::warning,
-        "W0006",
-        concat("The processor group '", proc_group, "' from '", file_name, "' defines invalid preprocessor options."),
+        "W006",
+        concat("The processor group '", proc_group, "' from '", file_name, "' refers to invalid system architecture. Using value UNI as default."),
         {});
 }
 

@@ -812,6 +812,8 @@ public:
     static diagnostic_s error_W004(std::string_view file_name, std::string_view ws_name);
 
     static diagnostic_s error_W005(std::string_view file_name, std::string_view proc_group);
+    
+    static diagnostic_s error_W006(std::string_view file_name, std::string_view proc_group);
 
     static diagnostic_s error_W006(std::string_view file_name, std::string_view proc_group);
 
