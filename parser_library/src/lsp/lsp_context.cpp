@@ -507,6 +507,7 @@ void lsp_context::add_file(file_info file_i)
 
 lsp_context::lsp_context(std::shared_ptr<context::hlasm_context> h_ctx)
     : hlasm_ctx_(std::move(h_ctx))
+    , instr_completions_items_(instruction_completion_items(hlasm_ctx_))
 {}
 
 void lsp_context::add_copy(context::copy_member_ptr copy, text_data_ref_t text_data)
@@ -768,8 +769,7 @@ std::string lsp_context::get_macro_documentation(const macro_info& m) const
 
 completion_list_s lsp_context::complete_instr(const file_info&, position) const
 {
-    completion_list_s result(completion_item_s::instruction_completion_items_.begin(),
-        completion_item_s::instruction_completion_items_.end());
+    completion_list_s result(instr_completions_items_.data.begin(), instr_completions_items_.data.end());
 
     for (const auto& [_, macro_i] : macros_)
     {
@@ -907,8 +907,8 @@ hover_result lsp_context::find_hover(const symbol_occurence& occ, macro_info_ptr
             }
             else
             {
-                auto it = completion_item_s::instruction_completion_items_.find(*occ.name);
-                if (it == completion_item_s::instruction_completion_items_.end())
+                auto it = instr_completions_items_.data.find(*occ.name);
+                if (it == instr_completions_items_.data.end())
                     return "";
                 return it->detail + "  \n" + it->documentation;
             }

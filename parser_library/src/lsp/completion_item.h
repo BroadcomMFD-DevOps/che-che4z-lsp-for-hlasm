@@ -19,6 +19,7 @@
 #include <string>
 #include <vector>
 
+#include "context/hlasm_context.h"
 #include "protocol.h"
 
 namespace hlasm_plugin::parser_library::lsp {
@@ -59,11 +60,15 @@ public:
             return l.label < r;
         }
     };
-
-    static const std::set<completion_item_s, label_comparer> instruction_completion_items_;
 };
 
 bool operator==(const completion_item_s& lhs, const completion_item_s& rhs);
+
+struct instruction_completion_items
+{
+    instruction_completion_items(std::shared_ptr<context::hlasm_context> h_ctx);
+    const std::set<completion_item_s, completion_item_s::label_comparer> data;
+};
 
 } // namespace hlasm_plugin::parser_library::lsp
 

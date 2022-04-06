@@ -2316,40 +2316,40 @@ std::unordered_map<std::string, const std::set<system_architecture>> mnemonics_c
 // clang-format on
 
 namespace {
-struct instruction_set_params
+struct instruction_set_compatibility_params
 {
     system_architecture arch;
 
-    static instruction_set_params set_arch(system_architecture architecture)
+    static instruction_set_compatibility_params set_arch(system_architecture architecture)
     {
-        instruction_set_params params;
+        instruction_set_compatibility_params params;
         params.arch = architecture;
 
         return params;
     }
 };
 
-class instruction_set_fixture : public ::testing::TestWithParam<instruction_set_params>
+class instruction_set_fixture : public ::testing::TestWithParam<instruction_set_compatibility_params>
 {};
 
 } // namespace
 
 INSTANTIATE_TEST_SUITE_P(instruction_test,
     instruction_set_fixture,
-    ::testing::Values(instruction_set_params::set_arch(system_architecture::ZS1),
-        instruction_set_params::set_arch(system_architecture::ZS2),
-        instruction_set_params::set_arch(system_architecture::ZS3),
-        instruction_set_params::set_arch(system_architecture::ZS4),
-        instruction_set_params::set_arch(system_architecture::ZS5),
-        instruction_set_params::set_arch(system_architecture::ZS6),
-        instruction_set_params::set_arch(system_architecture::ZS7),
-        instruction_set_params::set_arch(system_architecture::ZS8),
-        instruction_set_params::set_arch(system_architecture::ZS9),
-        instruction_set_params::set_arch(system_architecture::UNI),
-        instruction_set_params::set_arch(system_architecture::DOS),
-        instruction_set_params::set_arch(system_architecture::_370),
-        instruction_set_params::set_arch(system_architecture::XA),
-        instruction_set_params::set_arch(system_architecture::ESA)));
+    ::testing::Values(instruction_set_compatibility_params::set_arch(system_architecture::ZS1),
+        instruction_set_compatibility_params::set_arch(system_architecture::ZS2),
+        instruction_set_compatibility_params::set_arch(system_architecture::ZS3),
+        instruction_set_compatibility_params::set_arch(system_architecture::ZS4),
+        instruction_set_compatibility_params::set_arch(system_architecture::ZS5),
+        instruction_set_compatibility_params::set_arch(system_architecture::ZS6),
+        instruction_set_compatibility_params::set_arch(system_architecture::ZS7),
+        instruction_set_compatibility_params::set_arch(system_architecture::ZS8),
+        instruction_set_compatibility_params::set_arch(system_architecture::ZS9),
+        instruction_set_compatibility_params::set_arch(system_architecture::UNI),
+        instruction_set_compatibility_params::set_arch(system_architecture::DOS),
+        instruction_set_compatibility_params::set_arch(system_architecture::_370),
+        instruction_set_compatibility_params::set_arch(system_architecture::XA),
+        instruction_set_compatibility_params::set_arch(system_architecture::ESA)));
 
 TEST_P(instruction_set_fixture, machine_instructions)
 {
@@ -2461,7 +2461,7 @@ struct test_case
 };
 } // namespace
 
-TEST_F(instruction_set_fixture, macro_mi_same_name_OC_definition)
+TEST_F(instruction_set_fixture, macro_mi_same_name_inline_definition)
 {
     std::string input = R"(
         MACRO
@@ -2497,13 +2497,11 @@ TEST_F(instruction_set_fixture, macro_mi_same_name_linked_definition)
 )";
 
     std::string macro =
-        R"(
-        MACRO
+        R"( MACRO
         SAM31
         GBLA &VAR
 &VAR    SETA   2        
         MEND
-        
 )";
 
     test_case cases[] = { { system_architecture::_370, 2 }, { system_architecture::ZS5, 0 } };
@@ -2521,11 +2519,11 @@ TEST_F(instruction_set_fixture, macro_mi_same_name_linked_definition)
     }
 }
 
-TEST_F(instruction_set_fixture, macro_mi_same_name_OC_and_linked_definition)
+TEST_F(instruction_set_fixture, macro_mi_same_name_inline_and_linked_definition)
 {
     std::string input = R"(
         MACRO
-        RISBHGZ
+        SAM31
         GBLA &VAR
 &VAR    SETA   1        
         MEND
@@ -2536,13 +2534,11 @@ TEST_F(instruction_set_fixture, macro_mi_same_name_OC_and_linked_definition)
 )";
 
     std::string macro =
-        R"(
-        MACRO
+        R"( MACRO
         SAM31
         GBLA &VAR
 &VAR    SETA   2        
         MEND
-        
 )";
 
     test_case cases[] = { { system_architecture::_370, 1 }, { system_architecture::ZS5, 1 } };
