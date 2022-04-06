@@ -15,6 +15,7 @@
 #include "processor_group.h"
 
 #include <algorithm>
+#include <array>
 
 #include "config/proc_grps.h"
 
@@ -34,26 +35,27 @@ struct translate_pp_options
     }
 };
 
-constexpr std::pair<std::string_view, const system_architecture> sys_arch_translator[] = {
-    { "370", system_architecture::_370 },
-    { "DOS", system_architecture::DOS },
-    { "ESA", system_architecture::ESA },
-    { "UNI", system_architecture::UNI },
-    { "XA", system_architecture::XA },
-    { "ZS1", system_architecture::ZS1 },
-    { "ZS2", system_architecture::ZS2 },
-    { "ZS3", system_architecture::ZS3 },
-    { "ZS4", system_architecture::ZS4 },
-    { "ZS5", system_architecture::ZS5 },
-    { "ZS6", system_architecture::ZS6 },
-    { "ZS7", system_architecture::ZS7 },
-    { "ZS8", system_architecture::ZS8 },
-    { "ZS9", system_architecture::ZS9 },
-};
+constexpr auto sys_arch_translator = []() {
+    constexpr std::array sys_arch_equivalents { std::make_pair(std::string_view("ZS1"), system_architecture::ZS1),
+        std::make_pair(std::string_view("ZS2"), system_architecture::ZS2),
+        std::make_pair(std::string_view("ZS3"), system_architecture::ZS3),
+        std::make_pair(std::string_view("ZS4"), system_architecture::ZS4),
+        std::make_pair(std::string_view("ZS5"), system_architecture::ZS5),
+        std::make_pair(std::string_view("ZS6"), system_architecture::ZS6),
+        std::make_pair(std::string_view("ZS7"), system_architecture::ZS7),
+        std::make_pair(std::string_view("ZS8"), system_architecture::ZS8),
+        std::make_pair(std::string_view("ZS9"), system_architecture::ZS9),
+        std::make_pair(std::string_view("UNI"), system_architecture::UNI),
+        std::make_pair(std::string_view("DOS"), system_architecture::DOS),
+        std::make_pair(std::string_view("370"), system_architecture::_370),
+        std::make_pair(std::string_view("XA"), system_architecture::XA),
+        std::make_pair(std::string_view("ESA"), system_architecture::ESA) };
 
-static_assert(std::is_sorted(std::begin(sys_arch_translator),
-    std::end(sys_arch_translator),
-    [](const auto& l, const auto& r) { return l.first < r.first; }));
+    auto temp = sys_arch_equivalents;
+    std::sort(std::begin(temp), std::end(temp), [](const auto& l, const auto& r) { return l.first < r.first; });
+    return temp;
+}();
+
 } // namespace
 
 processor_group::processor_group(const std::string& pg_name,
