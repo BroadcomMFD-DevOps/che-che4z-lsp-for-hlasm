@@ -297,7 +297,6 @@ class machine_instruction
 
     mach_format m_format;
     char m_size_in_bits;
-    unsigned short m_page_no;
 
     reladdr_transform_mask m_reladdr_mask;
     unsigned char m_optional_op_count;
@@ -306,14 +305,11 @@ class machine_instruction
     const checking::machine_operand_format* m_operands;
 
 public:
-    constexpr machine_instruction(std::string_view name,
-        mach_format format,
-        std::span<const checking::machine_operand_format> operands,
-        unsigned short page_no)
+    constexpr machine_instruction(
+        std::string_view name, mach_format format, std::span<const checking::machine_operand_format> operands)
         : m_name(name)
         , m_format(format)
         , m_size_in_bits(get_length_by_format(format))
-        , m_page_no(page_no)
         , m_reladdr_mask(generate_reladdr_bitmask(operands))
 #ifdef __cpp_lib_ranges
         , m_optional_op_count(
@@ -327,13 +323,12 @@ public:
     {
         assert(operands.size() <= std::numeric_limits<decltype(m_operand_len)>::max());
     }
-    constexpr machine_instruction(std::string_view name, instruction_format_definition ifd, unsigned short page_no)
-        : machine_instruction(name, ifd.format, ifd.op_format, page_no)
+    constexpr machine_instruction(std::string_view name, instruction_format_definition ifd)
+        : machine_instruction(name, ifd.format, ifd.op_format)
     {}
 
     constexpr std::string_view name() const { return m_name.to_string_view(); }
     mach_format format() const { return m_format; }
-    constexpr size_t page_no() const { return m_page_no; }
     constexpr size_t size_in_bits() const { return m_size_in_bits; }
     constexpr reladdr_transform_mask reladdr_mask() const { return m_reladdr_mask; }
     constexpr std::span<const checking::machine_operand_format> operands() const
@@ -426,7 +421,7 @@ class mnemonic_code
     const machine_instruction* m_instruction;
 
     // first goes place, then value
-    std::array<std::pair<unsigned char, unsigned char>, 3> m_replaced;
+    std::array<std::pair<size_t, size_t>, 3> m_replaced;
     unsigned char m_replaced_count;
 
     reladdr_transform_mask m_reladdr_mask;
@@ -434,8 +429,8 @@ class mnemonic_code
 
     // Generates a bitmask for an arbitrary mnemonic indicating which operands
     // are of the RI type (and therefore are modified by transform_reloc_imm_operands)
-    static constexpr unsigned char generate_reladdr_bitmask(const machine_instruction* instruction,
-        std::initializer_list<const std::pair<unsigned char, unsigned char>> replaced)
+    static constexpr unsigned char generate_reladdr_bitmask(
+        const machine_instruction* instruction, std::initializer_list<const std::pair<size_t, size_t>> replaced)
     {
         unsigned char result = 0;
 
@@ -466,7 +461,7 @@ class mnemonic_code
 public:
     constexpr mnemonic_code(std::string_view name,
         const machine_instruction* instr,
-        std::initializer_list<const std::pair<unsigned char, unsigned char>> replaced)
+        std::initializer_list<const std::pair<size_t, size_t>> replaced)
         : m_name(name)
         , m_instruction(instr)
         , m_replaced {}
@@ -480,7 +475,7 @@ public:
     };
 
     constexpr const machine_instruction* instruction() const { return m_instruction; }
-    constexpr std::span<const std::pair<unsigned char, unsigned char>> replaced_operands() const
+    constexpr std::span<const std::pair<size_t, size_t>> replaced_operands() const
     {
         return { m_replaced.data(), m_replaced_count };
     }
