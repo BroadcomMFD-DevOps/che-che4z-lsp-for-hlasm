@@ -15,6 +15,7 @@
 #include "gtest/gtest.h"
 
 #include "../common_testing.h"
+#include "../mock_parse_lib_provider.h"
 #include "context/instruction.h"
 
 // clang-format off
@@ -2312,9 +2313,9 @@ std::unordered_map<std::string, const std::set<system_architecture>> mnemonics_c
 { "XLHR", { {system_architecture::UNI }, { system_architecture::ZS9 }, { system_architecture::ZS8 }, { system_architecture::ZS7 }, { system_architecture::ZS6 }, { system_architecture::ZS5 } } },
 };
 }
-// clang-format off
+// clang-format on
 
-namespace{
+namespace {
 struct instruction_set_params
 {
     system_architecture arch;
@@ -2331,9 +2332,9 @@ struct instruction_set_params
 class instruction_set_fixture : public ::testing::TestWithParam<instruction_set_params>
 {};
 
-}
+} // namespace
 
-INSTANTIATE_TEST_SUITE_P(instruction,
+INSTANTIATE_TEST_SUITE_P(instruction_test,
     instruction_set_fixture,
     ::testing::Values(instruction_set_params::set_arch(system_architecture::ZS1),
         instruction_set_params::set_arch(system_architecture::ZS2),
@@ -2348,8 +2349,7 @@ INSTANTIATE_TEST_SUITE_P(instruction,
         instruction_set_params::set_arch(system_architecture::DOS),
         instruction_set_params::set_arch(system_architecture::_370),
         instruction_set_params::set_arch(system_architecture::XA),
-        instruction_set_params::set_arch(system_architecture::ESA)
-        ));
+        instruction_set_params::set_arch(system_architecture::ESA)));
 
 TEST_P(instruction_set_fixture, machine_instructions)
 {
@@ -2358,7 +2358,7 @@ TEST_P(instruction_set_fixture, machine_instructions)
 
     instruction instruction_sets = instruction(arch);
     const auto& instructions = instruction_sets.all_machine_instructions();
-    
+
     for (const auto& instruction : instructions)
     {
         auto it = machine_instruction_compatibility.find(std::string(instruction.get().name()));
@@ -2368,18 +2368,18 @@ TEST_P(instruction_set_fixture, machine_instructions)
             ASSERT_TRUE(false);
         }
 
-        if (it->second.find(arch) == it->second.end() && it->second.find(arch_unknown) == it->second.end()) {
+        if (it->second.find(arch) == it->second.end() && it->second.find(arch_unknown) == it->second.end())
+        {
             ASSERT_TRUE(false);
         }
-
     }
 
     size_t count = 0;
     for (const auto& instruction : machine_instruction_compatibility)
     {
-        if (instruction.second.find(arch) != instruction.second.end() || (instruction.second.find(arch_unknown) != instruction.second.end()))
+        if (instruction.second.find(arch) != instruction.second.end()
+            || (instruction.second.find(arch_unknown) != instruction.second.end()))
         {
-
             count++;
         }
     }
@@ -2395,8 +2395,9 @@ TEST_P(instruction_set_fixture, machine_instructions)
 
         for (const auto& item : machine_instruction_compatibility)
         {
-            if (item.second.find(arch) != item.second.end() || item.second.find(system_architecture::UNKNOWN) != item.second.end())
-            EXPECT_TRUE(0) << item.first;
+            if (item.second.find(arch) != item.second.end()
+                || item.second.find(system_architecture::UNKNOWN) != item.second.end())
+                EXPECT_TRUE(0) << item.first;
         }
     }
 }
@@ -2408,7 +2409,7 @@ TEST_P(instruction_set_fixture, mnemonics)
 
     instruction instruction_sets = instruction(arch);
     const auto& mnemonics = instruction_sets.all_mnemonic_codes();
-    
+
     for (const auto& mnemonic : mnemonics)
     {
         auto it = mnemonics_compatibility.find(std::string(mnemonic.get().name()));
@@ -2418,18 +2419,18 @@ TEST_P(instruction_set_fixture, mnemonics)
             ASSERT_TRUE(false);
         }
 
-        if (it->second.find(arch) == it->second.end() && it->second.find(arch_unknown) == it->second.end()) {
+        if (it->second.find(arch) == it->second.end() && it->second.find(arch_unknown) == it->second.end())
+        {
             ASSERT_TRUE(false);
         }
-
     }
 
     size_t count = 0;
     for (const auto& mnemonic : mnemonics_compatibility)
     {
-        if (mnemonic.second.find(arch) != mnemonic.second.end() || (mnemonic.second.find(arch_unknown) != mnemonic.second.end()))
+        if (mnemonic.second.find(arch) != mnemonic.second.end()
+            || (mnemonic.second.find(arch_unknown) != mnemonic.second.end()))
         {
-
             count++;
         }
     }
@@ -2445,57 +2446,116 @@ TEST_P(instruction_set_fixture, mnemonics)
 
         for (const auto& item : mnemonics_compatibility)
         {
-            if (item.second.find(arch) != item.second.end() || item.second.find(system_architecture::UNKNOWN) != item.second.end())
-            EXPECT_TRUE(0) << item.first;
+            if (item.second.find(arch) != item.second.end()
+                || item.second.find(system_architecture::UNKNOWN) != item.second.end())
+                EXPECT_TRUE(0) << item.first;
         }
     }
 }
-TEST(instruction, zs9_set)
+
+namespace {
+struct test_case
 {
-    system_architecture arch = system_architecture::ZS9;
-    system_architecture arch_unknown = system_architecture::UNKNOWN;
+    system_architecture arch;
+    int expected_var_value;
+};
+} // namespace
 
-    instruction instruction_sets = instruction(system_architecture::ZS9);
-    const auto& mnemonics = instruction_sets.all_mnemonic_codes();
-    
-    for (const auto& mnemonic : mnemonics)
+TEST_F(instruction_set_fixture, macro_mi_same_name_OC_definition)
+{
+    std::string input = R"(
+        MACRO
+        SAM31
+        GBLA &VAR
+&VAR    SETA   1        
+        MEND
+        
+        GBLA &VAR
+&VAR    SETA   0    
+        SAM31
+)";
+
+    test_case cases[] = { { system_architecture::_370, 1 }, { system_architecture::ZS5, 1 } };
+
+    for (const auto& c : cases)
     {
-        auto it = mnemonics_compatibility.find(std::string(mnemonic.get().name()));
+        analyzer a(input, analyzer_options { asm_option { "", "", c.arch } });
+        a.analyze();
+        a.collect_diags();
+        EXPECT_EQ(a.diags().size(), 0);
 
-        if (it == mnemonics_compatibility.end())
-        {
-            ASSERT_TRUE(false);
-        }
-
-        if (it->second.find(arch) == it->second.end() && it->second.find(arch_unknown) == it->second.end()) {
-            ASSERT_TRUE(false);
-        }
-
+        EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "VAR"), c.expected_var_value);
     }
+}
 
-    size_t count = 0;
-    for (const auto& mnemonic : mnemonics_compatibility)
+TEST_F(instruction_set_fixture, macro_mi_same_name_linked_definition)
+{
+    std::string input = R"(
+        GBLA &VAR
+&VAR    SETA   0    
+        SAM31
+)";
+
+    std::string macro =
+        R"(
+        MACRO
+        SAM31
+        GBLA &VAR
+&VAR    SETA   2        
+        MEND
+        
+)";
+
+    test_case cases[] = { { system_architecture::_370, 2 }, { system_architecture::ZS5, 0 } };
+
+    mock_parse_lib_provider lib_provider { { "SAM31", macro } };
+
+    for (const auto& c : cases)
     {
-        if (mnemonic.second.find(arch) != mnemonic.second.end() || (mnemonic.second.find(arch_unknown) != mnemonic.second.end()))
-        {
+        analyzer a(input, analyzer_options { asm_option { "", "", c.arch }, &lib_provider });
+        a.analyze();
+        a.collect_diags();
+        EXPECT_EQ(a.diags().size(), 0);
 
-            count++;
-        }
+        EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "VAR"), c.expected_var_value);
     }
+}
 
-    EXPECT_EQ(count, mnemonics.size());
+TEST_F(instruction_set_fixture, macro_mi_same_name_OC_and_linked_definition)
+{
+    std::string input = R"(
+        MACRO
+        RISBHGZ
+        GBLA &VAR
+&VAR    SETA   1        
+        MEND
 
-    if (count != mnemonics.size())
+        GBLA &VAR
+&VAR    SETA   0    
+        SAM31
+)";
+
+    std::string macro =
+        R"(
+        MACRO
+        SAM31
+        GBLA &VAR
+&VAR    SETA   2        
+        MEND
+        
+)";
+
+    test_case cases[] = { { system_architecture::_370, 1 }, { system_architecture::ZS5, 1 } };
+
+    mock_parse_lib_provider lib_provider { { "SAM31", macro } };
+
+    for (const auto& c : cases)
     {
-        for (const auto& item : mnemonics)
-        {
-            EXPECT_TRUE(0) << item.get().name();
-        }
+        analyzer a(input, analyzer_options { asm_option { "", "", c.arch }, &lib_provider });
+        a.analyze();
+        a.collect_diags();
+        EXPECT_EQ(a.diags().size(), 0);
 
-        for (const auto& item : mnemonics_compatibility)
-        {
-            if (item.second.find(arch) != item.second.end() || item.second.find(system_architecture::UNKNOWN) != item.second.end())
-            EXPECT_TRUE(0) << item.first;
-        }
+        EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "VAR"), c.expected_var_value);
     }
 }
