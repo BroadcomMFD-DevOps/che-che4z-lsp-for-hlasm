@@ -323,3 +323,33 @@ TEST(mach_instr_processing, literals_with_index_register)
 
     ASSERT_TRUE(a.diags().empty());
 }
+
+TEST(mach_instr_processing, mach_expr_limits)
+{
+    std::string input(R"(
+    LARL   0,-2147483648+*+2147483647+1
+    LARL   0,*+-2147483648+2147483647+1
+    LARL   0,*+++++2
+    LARL   0,*-----2
+    LARL   0,*-+-+-2
+)");
+
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(a.diags().empty());
+}
+
+TEST(mach_instr_processing, mach_expr_out_of_bounds)
+{
+    std::string input(R"(
+    LARL   0,*-2147483648+2147483647+1
+)");
+
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "CE007" }));
+}
