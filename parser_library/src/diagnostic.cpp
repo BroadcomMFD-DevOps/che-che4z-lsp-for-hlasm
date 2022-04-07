@@ -2099,7 +2099,7 @@ diagnostic_op diagnostic_op::error_E076(const range& range)
 
 diagnostic_op diagnostic_op::error_E077(const range& range)
 {
-    return diagnostic_op(diagnostic_severity::error, "E077", "Instruction count limit reached", range);
+    return diagnostic_op(diagnostic_severity::error, "E077", "Statement count limit reached", range);
 }
 
 diagnostic_op diagnostic_op::warning_W010(std::string_view message, const range& range)
