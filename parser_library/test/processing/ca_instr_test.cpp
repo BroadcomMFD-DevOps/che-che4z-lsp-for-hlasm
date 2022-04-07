@@ -387,7 +387,7 @@ TEST(ACTR, infinite_ACTR)
  LR 1,1
  AGO .A
 )");
-    analyzer a(input, analyzer_options(asm_option { .instruction_limit = 10000 }));
+    analyzer a(input, analyzer_options(asm_option { .statement_count_limit = 10000 }));
     a.analyze();
 
     a.collect_diags();

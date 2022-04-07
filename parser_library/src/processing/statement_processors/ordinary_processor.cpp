@@ -273,7 +273,7 @@ void ordinary_processor::check_postponed_statements(
 
 bool ordinary_processor::check_fatals(range line_range)
 {
-    if (!hlasm_ctx.next_instruction())
+    if (!hlasm_ctx.next_statement())
     {
         add_diagnostic(diagnostic_op::error_E077(line_range));
         finished_flag_ = true;

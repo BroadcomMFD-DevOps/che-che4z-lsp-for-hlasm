@@ -320,7 +320,7 @@ hlasm_context::hlasm_context(std::string file_name, asm_option asm_options, std:
     , instruction_map_(init_instruction_map(*ids_))
     , m_usings(std::make_unique<using_collection>())
     , m_active_usings(1, m_usings->remove_all())
-    , m_instructions_remaining(asm_options_.instruction_limit)
+    , m_statements_remaining(asm_options_.statement_count_limit)
     , ord_ctx(*ids_, *this)
 {
     add_global_system_vars(scope_stack_.emplace_back());

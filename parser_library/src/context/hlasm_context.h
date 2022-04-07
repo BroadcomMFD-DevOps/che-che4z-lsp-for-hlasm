@@ -100,7 +100,7 @@ class hlasm_context
     std::unique_ptr<using_collection> m_usings;
     std::vector<index_t<using_collection>> m_active_usings;
 
-    long long m_instructions_remaining;
+    long long m_statements_remaining;
 
 public:
     hlasm_context(std::string file_name = "",
@@ -317,7 +317,7 @@ public:
     using name_result = std::pair<bool, context::id_index>;
     name_result try_get_symbol_name(const std::string& symbol);
 
-    bool next_instruction() { return --m_instructions_remaining >= 0; }
+    bool next_statement() { return --m_statements_remaining >= 0; }
 };
 
 bool test_symbol_for_read(
