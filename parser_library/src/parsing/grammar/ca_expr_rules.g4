@@ -225,12 +225,12 @@ var_symbol returns [vs_ptr vs]
 	:
 	AMPERSAND
 	(
-		id_no_dot tmp=subscript
+		vs_id tmp=subscript
 		{
-			auto id = $id_no_dot.name;
+			auto id = $vs_id.name;
 			auto r = provider.get_range( $AMPERSAND,$tmp.ctx->getStop());
 			$vs = std::make_unique<basic_variable_symbol>(id, std::move($tmp.value), r);
-			collector.add_hl_symbol(token_info(provider.get_range( $AMPERSAND, $id_no_dot.ctx->getStop()),hl_scopes::var_symbol));
+			collector.add_hl_symbol(token_info(provider.get_range( $AMPERSAND, $vs_id.ctx->getStop()),hl_scopes::var_symbol));
 		}
 		|
 		lpar (clc=created_set_body)? rpar subscript
@@ -265,6 +265,30 @@ data_attribute_value returns [std::variant<context::id_index, semantics::vs_ptr,
 		$value = $id.name;
 	};
 
+vs_id returns [id_index name = id_storage::empty_id]
+	: ORDSYMBOL
+	{
+		std::string text = $ORDSYMBOL->getText();
+		auto first = $ORDSYMBOL;
+		auto last = first;
+	}
+	(
+		NUM
+		{
+			text += $NUM->getText();
+			last = $NUM;
+		}
+		|
+		ORDSYMBOL
+		{
+			text += $ORDSYMBOL->getText();
+			last = $ORDSYMBOL;
+		}
+	)*
+	{
+		$name = parse_identifier(text, provider.get_range(first, last));
+	};
+
 var_def returns [vs_ptr vs]
 	: var_def_name var_def_substr
 	{
@@ -281,7 +305,7 @@ var_def returns [vs_ptr vs]
 var_def_name returns [id_index name, concat_chain created_name]
 	: AMPERSAND?
 	(
-		id_no_dot								{$name = $id_no_dot.name; }
+		vs_id									{$name = $vs_id.name;}
 		|
 		lpar clc=created_set_body rpar			{$created_name = std::move($clc.concat_list);}
 	);
