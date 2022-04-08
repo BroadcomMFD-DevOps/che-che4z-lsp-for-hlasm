@@ -29,7 +29,6 @@ using completion_list_s = std::vector<completion_item_s>;
 // representation of completion item based on LSP
 struct completion_item_s
 {
-public:
     // contents directly passed via the contrusctor
     completion_item_s(std::string label,
         std::string detail,
@@ -66,8 +65,11 @@ bool operator==(const completion_item_s& lhs, const completion_item_s& rhs);
 
 struct instruction_completion_items
 {
-    instruction_completion_items(std::shared_ptr<context::hlasm_context> h_ctx);
-    const std::set<completion_item_s, completion_item_s::label_comparer> data;
+    using storage = std::set<completion_item_s, completion_item_s::label_comparer>;
+
+    instruction_completion_items(
+        const std::unordered_map<context::id_index, context::opcode_t::opcode_variant>& instr_map);
+    const storage& data;
 };
 
 } // namespace hlasm_plugin::parser_library::lsp

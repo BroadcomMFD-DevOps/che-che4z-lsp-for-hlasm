@@ -359,18 +359,6 @@ public:
     constexpr auto operandless() const { return m_operandless; }
 };
 
-
-
-// constexpr system_architecture operator|(system_architecture a, system_architecture b)
-//{
-//     return static_cast<system_architecture>(static_cast<int>(a) | static_cast<int>(b));
-// }
-
-// constexpr bool operator==(system_architecture a, system_architecture b)
-//{
-//     return static_cast<int>(a) == static_cast<int>(b);
-// }
-
 enum class supported_system
 {
     NO_ZS_SUPPORT = 0,
