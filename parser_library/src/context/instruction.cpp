@@ -1865,21 +1865,23 @@ constexpr std::pair<machine_instruction, supported_system> machine_instructions[
 // clang-format on
 
 #ifdef __cpp_lib_ranges
-static_assert(std::ranges::is_sorted(machine_instructions, {}, &machine_instruction::name));
+static_assert(std::ranges::is_sorted(machine_instructions, {}, [](const auto& instr) { return instr.first.name(); }));
 
 const machine_instruction* instruction::find_machine_instructions(std::string_view name)
 {
-    auto it = std::ranges::lower_bound(machine_instructions, name, {}, &machine_instruction::name);
-    if (it == std::ranges::end(machine_instructions) || it->name() != name)
+    auto it = std::ranges::lower_bound(m_machine_instructions, name, {}, &machine_instruction::name);
+    if (it == std::ranges::end(m_machine_instructions) || it->get().name() != name)
         return nullptr;
-    return &*it;
+    return &it->get();
 }
 
 constexpr const machine_instruction* find_mi(std::string_view name)
 {
-    auto it = std::ranges::lower_bound(machine_instructions, name, {}, &machine_instruction::name);
-    assert(it != std::ranges::end(machine_instructions) && it->name() == name);
-    return &*it;
+    auto it =
+        std::ranges::lower_bound(machine_instructions, name, {}, [](const auto& instr) { return instr.first.name(); });
+
+    assert(it != std::ranges::end(machine_instructions) && it->first.name() == name);
+    return &it->first;
 }
 #else
 static_assert(std::is_sorted(std::begin(machine_instructions),
@@ -3037,15 +3039,15 @@ constexpr std::pair<mnemonic_code, supported_system> mnemonic_codes[] = {
 // clang-format on
 
 #ifdef __cpp_lib_ranges
-static_assert(
-    std::ranges::is_sorted(mnemonic_codes, {}, [](const auto& mnemonic) { return mnemonic.first.name; })); // todo
+
+static_assert(std::ranges::is_sorted(mnemonic_codes, {}, [](const auto& code) { return code.first.name(); }));
 
 const mnemonic_code* instruction::find_mnemonic_codes(std::string_view name)
 {
     auto it = std::ranges::lower_bound(m_mnemonic_codes, name, {}, &mnemonic_code::name);
-    if (it == std::ranges::end(m_mnemonic_codes) || it->name() != name)
+    if (it == std::ranges::end(m_mnemonic_codes) || it->get().name() != name)
         return nullptr;
-    return &*it;
+    return &it->get();
 }
 #else
 static_assert(std::is_sorted(std::begin(mnemonic_codes), std::end(mnemonic_codes), [](const auto& l, const auto& r) {
@@ -3072,7 +3074,8 @@ const mnemonic_code& instruction::get_mnemonic_codes(std::string_view name)
 }
 std::span<std::reference_wrapper<const mnemonic_code>> instruction::all_mnemonic_codes() { return m_mnemonic_codes; }
 
-std::vector<std::reference_wrapper<const machine_instruction>> instruction::m_machine_instructions = {};  // todo is this needed?
+std::vector<std::reference_wrapper<const machine_instruction>>
+    instruction::m_machine_instructions = {}; // todo is this needed?
 std::vector<std::reference_wrapper<const mnemonic_code>> instruction::m_mnemonic_codes = {};
 
 instruction::instruction(system_architecture arch)
