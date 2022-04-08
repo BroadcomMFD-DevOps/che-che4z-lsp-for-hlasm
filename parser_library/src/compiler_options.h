@@ -22,21 +22,21 @@
 namespace hlasm_plugin::parser_library {
 enum class system_architecture
 {
-    ZS1 = 1,
-    ZS2,
-    ZS3,
-    ZS4,
-    ZS5,
-    ZS6,
-    ZS7,
-    ZS8,
-    ZS9,
-    UNKNOWN = 16,
+    ZOP = 1,
+    YOP,
+    Z9,
+    Z10,
+    Z11,
+    Z12,
+    Z13,
+    Z14,
+    Z15,
     UNI,
     DOS,
     _370,
     XA,
-    ESA
+    ESA,
+    UNKNOWN // todo rename to general?
 };
 
 struct asm_option

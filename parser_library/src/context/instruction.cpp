@@ -1894,7 +1894,7 @@ const machine_instruction* instruction::find_machine_instructions(std::string_vi
         });
     if (it == std::end(m_machine_instructions) || it->get().name() != name)
         return nullptr;
-    return &(it->get());
+    return &it->get();
 }
 
 constexpr const machine_instruction* find_mi(std::string_view name)
@@ -1904,7 +1904,7 @@ constexpr const machine_instruction* find_mi(std::string_view name)
             return l.first.name() < r;
         });
     assert(it != std::end(machine_instructions) && it->first.name() == name);
-    return &(it->first);
+    return &it->first;
 }
 #endif
 
@@ -3060,7 +3060,7 @@ const mnemonic_code* instruction::find_mnemonic_codes(std::string_view name)
         });
     if (it == std::end(m_mnemonic_codes) || it->get().name() != name)
         return nullptr;
-    return &(it->get());
+    return &it->get();
 }
 #endif
 
@@ -3072,13 +3072,13 @@ const mnemonic_code& instruction::get_mnemonic_codes(std::string_view name)
 }
 std::span<std::reference_wrapper<const mnemonic_code>> instruction::all_mnemonic_codes() { return m_mnemonic_codes; }
 
-std::vector<std::reference_wrapper<const machine_instruction>> instruction::m_machine_instructions = {};
+std::vector<std::reference_wrapper<const machine_instruction>> instruction::m_machine_instructions = {};  // todo is this needed?
 std::vector<std::reference_wrapper<const mnemonic_code>> instruction::m_mnemonic_codes = {};
 
 instruction::instruction(system_architecture arch)
     : m_arch(arch)
 {
-    m_mnemonic_codes.clear();
+    m_mnemonic_codes.clear(); // todo is this needed?
     for (const auto& mnemonic : mnemonic_codes)
     {
         if (is_instruction_supported(mnemonic.second))
@@ -3121,47 +3121,18 @@ bool instruction::is_instruction_supported(supported_system instruction_support)
         case system_architecture::ESA: {
             return (instruction_support & supported_system::ESA) == supported_system::ESA;
         }
-        case system_architecture::ZS1:
-        case system_architecture::ZS2:
-        case system_architecture::ZS3:
-        case system_architecture::ZS4:
-        case system_architecture::ZS5:
-        case system_architecture::ZS6:
-        case system_architecture::ZS7:
-        case system_architecture::ZS8:
-        case system_architecture::ZS9: {
-            size_t zs_arch_mask = 0x0F;
-            instruction_support = instruction_support & zs_arch_mask;
-
+        case system_architecture::ZOP:
+        case system_architecture::YOP:
+        case system_architecture::Z9:
+        case system_architecture::Z10:
+        case system_architecture::Z11:
+        case system_architecture::Z12:
+        case system_architecture::Z13:
+        case system_architecture::Z14:
+        case system_architecture::Z15: {
+            instruction_support = instruction_support & 0x0F; // Get the lower bytes representing ZS architecture
             return instruction_support == supported_system::NO_ZS_SUPPORT ? false : instruction_support <= m_arch;
         }
-        // case system_architecture::ZS1: {
-        //     return (instruction_support & supported_system::SINCE_ZS1) == supported_system::SINCE_ZS1;
-        // }
-        // case system_architecture::ZS2: {
-        //     return (instruction_support & supported_system::SINCE_ZS2) == supported_system::SINCE_ZS2;
-        // }
-        // case system_architecture::ZS3: {
-        //     return (instruction_support & supported_system::SINCE_ZS3) == supported_system::SINCE_ZS3;
-        // }
-        // case system_architecture::ZS4: {
-        //     return (instruction_support & supported_system::SINCE_ZS4) == supported_system::SINCE_ZS4;
-        // }
-        // case system_architecture::ZS5: {
-        //     return (instruction_support & supported_system::SINCE_ZS5) == supported_system::SINCE_ZS5;
-        // }
-        // case system_architecture::ZS6: {
-        //     return (instruction_support & supported_system::SINCE_ZS6) == supported_system::SINCE_ZS6;
-        // }
-        // case system_architecture::ZS7: {
-        //     return (instruction_support & supported_system::SINCE_ZS7) == supported_system::SINCE_ZS7;
-        // }
-        // case system_architecture::ZS8: {
-        //     return (instruction_support & supported_system::SINCE_ZS8) == supported_system::SINCE_ZS8;
-        // }
-        // case system_architecture::ZS9: {
-        //     return (instruction_support & supported_system::SINCE_ZS9) == supported_system::SINCE_ZS9;
-        // }
         default:
             return false;
     }

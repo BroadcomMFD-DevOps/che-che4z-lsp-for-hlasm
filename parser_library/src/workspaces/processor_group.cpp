@@ -36,24 +36,34 @@ struct translate_pp_options
 };
 
 constexpr auto sys_arch_translator = []() {
-    constexpr std::array sys_arch_equivalents { std::make_pair(std::string_view("ZS1"), system_architecture::ZS1),
-        std::make_pair(std::string_view("ZS2"), system_architecture::ZS2),
-        std::make_pair(std::string_view("ZS3"), system_architecture::ZS3),
-        std::make_pair(std::string_view("ZS4"), system_architecture::ZS4),
-        std::make_pair(std::string_view("ZS5"), system_architecture::ZS5),
-        std::make_pair(std::string_view("ZS6"), system_architecture::ZS6),
-        std::make_pair(std::string_view("ZS7"), system_architecture::ZS7),
-        std::make_pair(std::string_view("ZS8"), system_architecture::ZS8),
-        std::make_pair(std::string_view("ZS9"), system_architecture::ZS9),
+    constexpr std::array sys_arch_equivalents { 
+        std::make_pair(std::string_view("ZOP"), system_architecture::ZOP),
+        std::make_pair(std::string_view("ZS1"), system_architecture::ZOP),
+        std::make_pair(std::string_view("YOP"), system_architecture::YOP),
+        std::make_pair(std::string_view("ZS2"), system_architecture::YOP),
+        std::make_pair(std::string_view("Z9"), system_architecture::Z9),
+        std::make_pair(std::string_view("ZS3"), system_architecture::Z9),
+        std::make_pair(std::string_view("Z10"), system_architecture::Z10),
+        std::make_pair(std::string_view("ZS4"), system_architecture::Z10),
+        std::make_pair(std::string_view("Z11"), system_architecture::Z11),
+        std::make_pair(std::string_view("ZS5"), system_architecture::Z11),
+        std::make_pair(std::string_view("Z12"), system_architecture::Z12),
+        std::make_pair(std::string_view("ZS6"), system_architecture::Z12),
+        std::make_pair(std::string_view("Z13"), system_architecture::Z13),
+        std::make_pair(std::string_view("ZS7"), system_architecture::Z13),
+        std::make_pair(std::string_view("Z14"), system_architecture::Z14),
+        std::make_pair(std::string_view("ZS8"), system_architecture::Z14),
+        std::make_pair(std::string_view("Z15"), system_architecture::Z15),
+        std::make_pair(std::string_view("ZS9"), system_architecture::Z15),
         std::make_pair(std::string_view("UNI"), system_architecture::UNI),
         std::make_pair(std::string_view("DOS"), system_architecture::DOS),
         std::make_pair(std::string_view("370"), system_architecture::_370),
         std::make_pair(std::string_view("XA"), system_architecture::XA),
         std::make_pair(std::string_view("ESA"), system_architecture::ESA) };
 
-    auto temp = sys_arch_equivalents;
-    std::sort(std::begin(temp), std::end(temp), [](const auto& l, const auto& r) { return l.first < r.first; });
-    return temp;
+    auto sorted_equivalents = sys_arch_equivalents;
+    std::sort(std::begin(sorted_equivalents), std::end(sorted_equivalents), [](const auto& l, const auto& r) { return l.first < r.first; });
+    return sorted_equivalents;
 }();
 
 } // namespace

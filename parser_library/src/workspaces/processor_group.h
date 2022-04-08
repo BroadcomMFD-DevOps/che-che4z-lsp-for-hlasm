@@ -55,7 +55,6 @@ private:
     std::string_view pg_file_name_;
     asm_option asm_opts_;
     preprocessor_options prep_opts_;
-    diagnostic_container config_diags_;
 
     system_architecture find_system_architecture(std::string_view arch);
     asm_option translate_assembler_options(const config::assembler_options& asm_options);

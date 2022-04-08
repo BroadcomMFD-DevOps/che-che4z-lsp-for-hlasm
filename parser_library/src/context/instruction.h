@@ -371,12 +371,12 @@ enum class supported_system
     SINCE_ZS7,
     SINCE_ZS8,
     SINCE_ZS9,
-    UNKNOWN = 16,
     UNI = 1 << 5,
     DOS = 1 << 6,
     _370 = 1 << 7,
     XA = 1 << 8,
     ESA = 1 << 9,
+    UNKNOWN = 1 << 10
 };
 
 constexpr supported_system operator|(supported_system a, supported_system b)
@@ -393,8 +393,6 @@ constexpr supported_system operator&(supported_system a, size_t b)
 {
     return static_cast<supported_system>(static_cast<int>(a) & static_cast<int>(b));
 }
-
-constexpr bool operator==(supported_system a, supported_system b) { return static_cast<int>(a) == static_cast<int>(b); }
 
 constexpr bool operator<=(supported_system a, system_architecture b)
 {

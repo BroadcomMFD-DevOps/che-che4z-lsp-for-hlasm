@@ -251,8 +251,7 @@ struct instruction_visitor
     };
     void operator()(const context::machine_instruction* mach_instr) { process_machine_instruction(mach_instr, items); };
     void operator()(const context::mnemonic_code* mne_code) { process_mnemonic_code(mne_code, items); };
-    void operator()(context::macro_def_ptr) { /* Do nothing */ };
-    void operator()(std::monostate) { /* Do nothing */ };
+    void operator()(auto) { /* Do nothing */ };
 
     std::set<completion_item_s, completion_item_s::label_comparer>& items;
 };
