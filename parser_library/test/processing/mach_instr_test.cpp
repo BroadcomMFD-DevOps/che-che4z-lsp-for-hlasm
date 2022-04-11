@@ -235,8 +235,8 @@ TEST(mach_instr_processing, rel_addr_bitmask)
              { "BPRP", 0x60 },
          })
     {
-        context::instruction instruction_set(system_architecture::UNI);
-        EXPECT_EQ(instruction_set.get_machine_instructions(instr).reladdr_mask().mask(), expected) << instr;
+        context::instruction_sets instructions(system_architecture::UNI);
+        EXPECT_EQ(instructions.get_machine_instructions(instr).reladdr_mask().mask(), expected) << instr;
     }
 
     for (const auto& [instr, expected] : std::initializer_list<std::pair<std::string, int>> {
@@ -245,8 +245,8 @@ TEST(mach_instr_processing, rel_addr_bitmask)
              { "JNE", 0x80 },
          })
     {
-        context::instruction instruction_set(system_architecture::UNI);
-        EXPECT_EQ(instruction_set.get_mnemonic_codes(instr).reladdr_mask().mask(), expected) << instr;
+        context::instruction_sets instructions(system_architecture::UNI);
+        EXPECT_EQ(instructions.get_mnemonic_codes(instr).reladdr_mask().mask(), expected) << instr;
     }
 }
 
@@ -260,8 +260,8 @@ TEST(mach_instr_processing, instr_size)
              { "DC", 1 },
          })
     {
-        auto instruction_set = context::instruction(system_architecture::UNI);
-        EXPECT_EQ(processing::processing_status_cache_key::generate_loctr_len(&instr, instruction_set), expected)
+        context::instruction_sets instructions(system_architecture::UNI);
+        EXPECT_EQ(processing::processing_status_cache_key::generate_loctr_len(&instr, instructions), expected)
             << instr;
     }
 }

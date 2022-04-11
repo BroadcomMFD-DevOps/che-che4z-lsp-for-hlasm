@@ -24,8 +24,8 @@ using namespace hlasm_plugin::parser_library::checking;
 namespace {
 const auto& get_mi(std::string_view arg)
 {
-    hlasm_plugin::parser_library::context::instruction instruction_set(system_architecture::UNI);
-    return instruction_set.get_machine_instructions(arg);
+    hlasm_plugin::parser_library::context::instruction_sets instructions(system_architecture::UNI);
+    return instructions.get_machine_instructions(arg);
 }
 one_operand op_val_0 { 0 };
 one_operand op_val_1 { 1 };

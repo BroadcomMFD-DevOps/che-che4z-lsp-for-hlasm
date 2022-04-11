@@ -89,7 +89,7 @@ void process_machine_instruction(
         }
     }
     doc_ss << "Machine instruction " << std::endl
-           << "Instruction format: " << context::instruction::mach_format_to_string(machine_instr->format());
+           << "Instruction format: " << context::instruction_sets::mach_format_to_string(machine_instr->format());
     items.emplace(std::string(machine_instr->name()),
         "Operands: " + detail_ss.str(),
         autocomplete.str(),
@@ -219,7 +219,7 @@ void process_mnemonic_code(const context::mnemonic_code* mnemonic_instr, instruc
     doc_ss << "Mnemonic code for " << mnemonic_instr->instruction()->name() << " instruction" << std::endl
            << "Substituted operands: " << subs_ops_mnems.str() << std::endl
            << "Instruction format: "
-           << context::instruction::mach_format_to_string(mnemonic_instr->instruction()->format());
+           << context::instruction_sets::mach_format_to_string(mnemonic_instr->instruction()->format());
     items.emplace(std::string(mnemonic_instr->name()),
         detail_ss.str(),
         std::string(mnemonic_instr->name()) + "   " + subs_ops_nomnems.str(),

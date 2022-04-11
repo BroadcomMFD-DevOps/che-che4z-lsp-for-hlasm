@@ -33,7 +33,7 @@ class mach_expression;
 } // namespace hlasm_plugin::parser_library::expressions
 namespace hlasm_plugin::parser_library::context {
 class using_collection;
-class instruction;
+class instruction_sets;
 } // namespace hlasm_plugin::parser_library::context
 
 namespace hlasm_plugin::parser_library::context {
@@ -78,11 +78,11 @@ class hlasm_context
     asm_option asm_options_;
     static constexpr alignment sectalgn = doubleword;
 
-    // Instruction
-    std::unique_ptr<instruction> m_instruction_set;
+    // instructions divided by their designations
+    std::unique_ptr<instruction_sets> m_instruction_sets;
 
     // map of all instructions in HLASM
-    const instruction_storage instruction_map_;
+    const instruction_storage m_instruction_map;
     instruction_storage init_instruction_map(id_storage& ids);
 
     // value of system variable SYSNDX
@@ -160,11 +160,11 @@ public:
     id_storage& ids();
     std::shared_ptr<id_storage> ids_ptr();
 
-    // Available instructions
-    const instruction& instruction_set() const;
-
-    // map of instructions
+    // map of all instructions
     const instruction_storage& instruction_map() const;
+
+    // Available instructions divided by their designations
+    const instruction_sets& instruction_sets() const;
 
     // field that accessed ordinary assembly context
     ordinary_assembly_context ord_ctx;

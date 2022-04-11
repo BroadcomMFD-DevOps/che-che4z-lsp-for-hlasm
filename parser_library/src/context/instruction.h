@@ -464,14 +464,14 @@ public:
     constexpr auto description() const { return m_description; }
 };
 
-// static class holding string names of instructions with theirs additional info
-class instruction
+// class holding details of available instructions in their respective sets
+class instruction_sets
 {
     std::vector<std::reference_wrapper<const machine_instruction>> m_machine_instructions;
     std::vector<std::reference_wrapper<const mnemonic_code>> m_mnemonic_codes;
 
 public:
-    instruction(system_architecture arch);
+    instruction_sets(system_architecture arch);
 
     /*
     min_operands - minimal number of operands, non-negative integer, always defined

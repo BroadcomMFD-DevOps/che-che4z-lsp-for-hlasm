@@ -131,8 +131,8 @@ const std::map<std::string_view, std::unique_ptr<assembler_instruction>> assembl
         return result;
     }();
 
-machine_checker::machine_checker(const context::instruction& instruction_set)
-    : m_instruction_set(instruction_set)
+machine_checker::machine_checker(const context::instruction_sets& instructions)
+    : m_instructions(instructions)
 {}
 
 bool machine_checker::check(std::string_view instruction_name,
@@ -150,11 +150,10 @@ bool machine_checker::check(std::string_view instruction_name,
     auto mach_name = instruction_name;
 
     // instruction is a mnemonic instruction
-    if (auto m = m_instruction_set.find_mnemonic_codes(instruction_name))
+    if (auto m = m_instructions.find_mnemonic_codes(instruction_name))
         mach_name = m->instruction()->name();
 
-    return m_instruction_set.get_machine_instructions(mach_name).check(
-        instruction_name, ops, stmt_range, add_diagnostic);
+    return m_instructions.get_machine_instructions(mach_name).check(instruction_name, ops, stmt_range, add_diagnostic);
 }
 
 } // namespace hlasm_plugin::parser_library::checking

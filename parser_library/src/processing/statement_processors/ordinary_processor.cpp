@@ -257,7 +257,7 @@ void ordinary_processor::check_postponed_statements(
                 mach_proc_.check(*rs,
                     stmt->location_stack(),
                     dep_solver,
-                    checking::machine_checker(hlasm_ctx.instruction_set()),
+                    checking::machine_checker(hlasm_ctx.instruction_sets()),
                     *this);
                 break;
 

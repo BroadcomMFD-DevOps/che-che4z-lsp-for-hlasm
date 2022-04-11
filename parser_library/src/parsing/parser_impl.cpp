@@ -122,7 +122,7 @@ context::id_index parser_impl::parse_identifier(std::string value, range id_rang
 size_t parser_impl::get_loctr_len() const
 {
     auto [_, opcode] = *proc_status;
-    return processing::processing_status_cache_key::generate_loctr_len(opcode.value, hlasm_ctx->instruction_set());
+    return processing::processing_status_cache_key::generate_loctr_len(opcode.value, hlasm_ctx->instruction_sets());
 }
 
 bool parser_impl::loctr_len_allowed(const std::string& attr) const

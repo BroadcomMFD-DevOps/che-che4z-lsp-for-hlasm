@@ -2316,50 +2316,50 @@ std::unordered_map<std::string, const std::set<system_architecture>> mnemonics_c
 // clang-format on
 
 namespace {
-struct instruction_set_compatibility_params
+struct instruction_sets_compatibility_params
 {
     system_architecture arch;
 
-    static instruction_set_compatibility_params set_arch(system_architecture architecture)
+    static instruction_sets_compatibility_params set_arch(system_architecture architecture)
     {
-        instruction_set_compatibility_params params;
+        instruction_sets_compatibility_params params;
         params.arch = architecture;
 
         return params;
     }
 };
 
-class instruction_set_fixture : public ::testing::TestWithParam<instruction_set_compatibility_params>
+class instruction_sets_fixture : public ::testing::TestWithParam<instruction_sets_compatibility_params>
 {};
 
 } // namespace
 
 INSTANTIATE_TEST_SUITE_P(instruction_test,
-    instruction_set_fixture,
-    ::testing::Values(instruction_set_compatibility_params::set_arch(system_architecture::ZOP),
-        instruction_set_compatibility_params::set_arch(system_architecture::YOP),
-        instruction_set_compatibility_params::set_arch(system_architecture::Z9),
-        instruction_set_compatibility_params::set_arch(system_architecture::Z10),
-        instruction_set_compatibility_params::set_arch(system_architecture::Z11),
-        instruction_set_compatibility_params::set_arch(system_architecture::Z12),
-        instruction_set_compatibility_params::set_arch(system_architecture::Z13),
-        instruction_set_compatibility_params::set_arch(system_architecture::Z14),
-        instruction_set_compatibility_params::set_arch(system_architecture::Z15),
-        instruction_set_compatibility_params::set_arch(system_architecture::UNI),
-        instruction_set_compatibility_params::set_arch(system_architecture::DOS),
-        instruction_set_compatibility_params::set_arch(system_architecture::_370),
-        instruction_set_compatibility_params::set_arch(system_architecture::XA),
-        instruction_set_compatibility_params::set_arch(system_architecture::ESA)));
+    instruction_sets_fixture,
+    ::testing::Values(instruction_sets_compatibility_params::set_arch(system_architecture::ZOP),
+        instruction_sets_compatibility_params::set_arch(system_architecture::YOP),
+        instruction_sets_compatibility_params::set_arch(system_architecture::Z9),
+        instruction_sets_compatibility_params::set_arch(system_architecture::Z10),
+        instruction_sets_compatibility_params::set_arch(system_architecture::Z11),
+        instruction_sets_compatibility_params::set_arch(system_architecture::Z12),
+        instruction_sets_compatibility_params::set_arch(system_architecture::Z13),
+        instruction_sets_compatibility_params::set_arch(system_architecture::Z14),
+        instruction_sets_compatibility_params::set_arch(system_architecture::Z15),
+        instruction_sets_compatibility_params::set_arch(system_architecture::UNI),
+        instruction_sets_compatibility_params::set_arch(system_architecture::DOS),
+        instruction_sets_compatibility_params::set_arch(system_architecture::_370),
+        instruction_sets_compatibility_params::set_arch(system_architecture::XA),
+        instruction_sets_compatibility_params::set_arch(system_architecture::ESA)));
 
-TEST_P(instruction_set_fixture, machine_instructions)
+TEST_P(instruction_sets_fixture, machine_instructions)
 {
     system_architecture arch = GetParam().arch;
     system_architecture arch_unknown = system_architecture::UNKNOWN;
 
-    instruction instruction_sets = instruction(arch);
-    const auto& instructions = instruction_sets.all_machine_instructions();
+    instruction_sets instructions = instruction_sets(arch);
+    const auto& mi_instructions = instructions.all_machine_instructions();
 
-    for (const auto& instruction : instructions)
+    for (const auto& instruction : mi_instructions)
     {
         auto it = machine_instruction_compatibility.find(std::string(instruction.get().name()));
 
@@ -2384,11 +2384,11 @@ TEST_P(instruction_set_fixture, machine_instructions)
         }
     }
 
-    EXPECT_EQ(count, instructions.size());
+    EXPECT_EQ(count, mi_instructions.size());
 
-    if (count != instructions.size())
+    if (count != mi_instructions.size())
     {
-        for (const auto& item : instructions)
+        for (const auto& item : mi_instructions)
         {
             EXPECT_TRUE(0) << item.get().name();
         }
@@ -2402,13 +2402,13 @@ TEST_P(instruction_set_fixture, machine_instructions)
     }
 }
 
-TEST_P(instruction_set_fixture, mnemonics)
+TEST_P(instruction_sets_fixture, mnemonics)
 {
     system_architecture arch = GetParam().arch;
     system_architecture arch_unknown = system_architecture::UNKNOWN;
 
-    instruction instruction_sets = instruction(arch);
-    const auto& mnemonics = instruction_sets.all_mnemonic_codes();
+    instruction_sets instructions = instruction_sets(arch);
+    const auto& mnemonics = instructions.all_mnemonic_codes();
 
     for (const auto& mnemonic : mnemonics)
     {
@@ -2461,7 +2461,7 @@ struct test_case
 };
 } // namespace
 
-TEST_F(instruction_set_fixture, macro_mi_same_name_inline_definition)
+TEST_F(instruction_sets_fixture, macro_mi_same_name_inline_definition)
 {
     std::string input = R"(
         MACRO
@@ -2488,7 +2488,7 @@ TEST_F(instruction_set_fixture, macro_mi_same_name_inline_definition)
     }
 }
 
-TEST_F(instruction_set_fixture, macro_mi_same_name_linked_definition)
+TEST_F(instruction_sets_fixture, macro_mi_same_name_linked_definition)
 {
     std::string input = R"(
         GBLA &VAR
@@ -2519,7 +2519,7 @@ TEST_F(instruction_set_fixture, macro_mi_same_name_linked_definition)
     }
 }
 
-TEST_F(instruction_set_fixture, macro_mi_same_name_inline_and_linked_definition)
+TEST_F(instruction_sets_fixture, macro_mi_same_name_inline_and_linked_definition)
 {
     std::string input = R"(
         MACRO

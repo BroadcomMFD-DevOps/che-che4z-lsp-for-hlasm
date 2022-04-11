@@ -151,7 +151,7 @@ statement_fields_parser::parse_result statement_fields_parser::parse_operand_fie
                 break;
             case processing::processing_form::MACH:
                 line = std::move(h.parser->op_rem_body_mach_r()->line);
-                transform_reloc_imm_operands(line.operands, opcode.value, m_hlasm_ctx->instruction_set());
+                transform_reloc_imm_operands(line.operands, opcode.value, m_hlasm_ctx->instruction_sets());
                 literals = h.parser->get_collector().take_literals();
                 break;
             case processing::processing_form::DAT:

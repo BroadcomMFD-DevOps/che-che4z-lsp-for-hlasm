@@ -34,22 +34,22 @@ const code_scope* hlasm_context::curr_scope() const { return &scope_stack_.back(
 hlasm_context::instruction_storage hlasm_context::init_instruction_map(id_storage& ids)
 {
     hlasm_context::instruction_storage instr_map;
-    for (const auto& instr_ref : instruction_set().all_machine_instructions())
+    for (const auto& instr_ref : instruction_sets().all_machine_instructions())
     {
         auto id = ids.add(std::string(instr_ref.get().name()));
         instr_map.emplace(id, &instr_ref.get());
     }
-    for (const auto& instr : instruction_set().all_assembler_instructions())
+    for (const auto& instr : instruction_sets().all_assembler_instructions())
     {
         auto id = ids.add(std::string(instr.name()));
         instr_map.emplace(id, &instr);
     }
-    for (const auto& instr : instruction_set().all_ca_instructions())
+    for (const auto& instr : instruction_sets().all_ca_instructions())
     {
         auto id = ids.add(std::string(instr.name()));
         instr_map.emplace(id, &instr);
     }
-    for (const auto& instr_ref : instruction_set().all_mnemonic_codes())
+    for (const auto& instr_ref : instruction_sets().all_mnemonic_codes())
     {
         auto id = ids.add(std::string(instr_ref.get().name()));
         instr_map.emplace(id, &instr_ref.get());
@@ -311,15 +311,15 @@ void hlasm_context::add_global_system_vars(code_scope& scope)
 
 bool hlasm_context::is_opcode(id_index symbol) const
 {
-    return macros_.find(symbol) != macros_.end() || instruction_map_.find(symbol) != instruction_map_.end();
+    return macros_.find(symbol) != macros_.end() || m_instruction_map.find(symbol) != m_instruction_map.end();
 }
 
 hlasm_context::hlasm_context(std::string file_name, asm_option asm_options, std::shared_ptr<id_storage> init_ids)
     : ids_(std::move(init_ids))
     , opencode_file_name_(file_name)
     , asm_options_(std::move(asm_options))
-    , m_instruction_set(std::make_unique<instruction>(asm_options_.arch))
-    , instruction_map_(init_instruction_map(*ids_))
+    , m_instruction_sets(std::make_unique<context::instruction_sets>(asm_options_.arch))
+    , m_instruction_map(init_instruction_map(*ids_))
     , m_usings(std::make_unique<using_collection>())
     , m_active_usings(1, m_usings->remove_all())
     , m_statements_remaining(asm_options_.statement_count_limit)
@@ -407,13 +407,13 @@ id_storage& hlasm_context::ids() { return *ids_; }
 
 std::shared_ptr<id_storage> hlasm_context::ids_ptr() { return ids_; }
 
-const instruction& hlasm_context::instruction_set() const
-{
-    assert(m_instruction_set);
-    return *m_instruction_set;
-};
+const hlasm_context::instruction_storage& hlasm_context::instruction_map() const { return m_instruction_map; }
 
-const hlasm_context::instruction_storage& hlasm_context::instruction_map() const { return instruction_map_; }
+const instruction_sets& hlasm_context::instruction_sets() const
+{
+    assert(m_instruction_sets);
+    return *m_instruction_sets;
+};
 
 processing_stack_t hlasm_context::processing_stack() const
 {
@@ -601,7 +601,7 @@ void hlasm_context::add_mnemonic(id_index mnemo, id_index op_code)
 
         if (auto mac_it = macros_.find(op_code); mac_it != macros_.end())
             value.opcode_detail = mac_it->second;
-        else if (auto instr_it = instruction_map_.find(op_code); instr_it != instruction_map_.end())
+        else if (auto instr_it = m_instruction_map.find(op_code); instr_it != m_instruction_map.end())
             value.opcode_detail = instr_it->second;
         else
             throw std::invalid_argument("undefined operation code");
@@ -627,7 +627,7 @@ opcode_t hlasm_context::get_operation_code(id_index symbol) const
 
     if (auto mac_it = macros_.find(symbol); mac_it != macros_.end())
         value = opcode_t { symbol, mac_it->second };
-    else if (auto instr_it = instruction_map_.find(symbol); instr_it != instruction_map_.end())
+    else if (auto instr_it = m_instruction_map.find(symbol); instr_it != m_instruction_map.end())
         value = opcode_t { symbol, instr_it->second };
 
     return value;
@@ -745,14 +745,10 @@ struct opcode_attr_visitor
 
 C_t hlasm_context::get_opcode_attr(id_index symbol)
 {
-    auto it = instruction_map_.find(symbol);
-
-    auto mac_it = macros_.find(symbol);
-
-    if (mac_it != macros_.end())
+    if (auto it = macros_.find(symbol); it != macros_.end())
         return "M";
 
-    if (it != instruction_map_.end())
+    if (auto it = m_instruction_map.find(symbol); it != m_instruction_map.end())
     {
         auto& [opcode, detail] = *it;
         return std::visit(opcode_attr_visitor(), detail);
