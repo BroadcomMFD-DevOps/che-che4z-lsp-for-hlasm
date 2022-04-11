@@ -1077,3 +1077,76 @@ TEST(mnote, substitution_both)
     EXPECT_EQ(d.message, "test message");
     EXPECT_EQ(d.severity, diagnostic_severity::error);
 }
+
+TEST(mnote, empty_first_arg)
+{
+    std::string input = R"(
+    MNOTE ,'test message'
+)";
+
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    ASSERT_EQ(a.diags().size(), (size_t)1);
+
+    const auto& d = a.diags()[0];
+    EXPECT_EQ(d.code, "MNOTE");
+    EXPECT_EQ(d.message, "test message");
+    EXPECT_EQ(d.severity, diagnostic_severity::info);
+}
+
+TEST(mnote, three_args)
+{
+    std::string input = R"(
+    MNOTE ,'test message',
+)";
+
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "A012" }));
+}
+
+TEST(mnote, emtpy_second)
+{
+    std::string input = R"(
+    MNOTE 0,
+)";
+
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "MNOTE", "A300" }));
+}
+
+TEST(mnote, missing_quotes)
+{
+    std::string input = R"(
+    MNOTE 0,test
+)";
+
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "MNOTE", "A300" }));
+}
+
+TEST(mnote, non_utf8_characters)
+{
+    std::string input = R"(
+&C  SETC X2C('FFFF')
+    MNOTE 0,'&C'
+)";
+
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    ASSERT_TRUE(matches_message_codes(a.diags(), { "MNOTE" }));
+    const auto& msg = a.diags()[0].message;
+    EXPECT_TRUE(std::all_of(msg.begin(), msg.end(), [](unsigned char c) { return std::isprint(c); }));
+}
