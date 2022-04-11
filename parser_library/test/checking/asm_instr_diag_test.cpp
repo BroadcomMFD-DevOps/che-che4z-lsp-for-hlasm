@@ -1003,10 +1003,10 @@ class mnote_fixture : public ::testing::TestWithParam<mnote_test>
 
 INSTANTIATE_TEST_SUITE_P(mnote,
     mnote_fixture,
-    ::testing::Values(mnote_test { -2, "test", diagnostic_severity::info },
-        mnote_test { -1, "test", diagnostic_severity::info },
-        mnote_test { 0, "test", diagnostic_severity::info },
-        mnote_test { 1, "test", diagnostic_severity::info },
+    ::testing::Values(mnote_test { -2, "test", diagnostic_severity::hint },
+        mnote_test { -1, "test", diagnostic_severity::hint },
+        mnote_test { 0, "test", diagnostic_severity::hint },
+        mnote_test { 1, "test", diagnostic_severity::hint },
         mnote_test { 2, "test", diagnostic_severity::info },
         mnote_test { 3, "test", diagnostic_severity::info },
         mnote_test { 4, "test", diagnostic_severity::warning },
@@ -1093,7 +1093,7 @@ TEST(mnote, empty_first_arg)
     const auto& d = a.diags()[0];
     EXPECT_EQ(d.code, "MNOTE");
     EXPECT_EQ(d.message, "test message");
-    EXPECT_EQ(d.severity, diagnostic_severity::info);
+    EXPECT_EQ(d.severity, diagnostic_severity::hint);
 }
 
 TEST(mnote, three_args)
@@ -1109,7 +1109,7 @@ TEST(mnote, three_args)
     EXPECT_TRUE(matches_message_codes(a.diags(), { "A012" }));
 }
 
-TEST(mnote, emtpy_second)
+TEST(mnote, emtpy_second_arg)
 {
     std::string input = R"(
     MNOTE 0,

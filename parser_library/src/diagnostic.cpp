@@ -2416,8 +2416,10 @@ diagnostic_op diagnostic_op::mnote_diagnostic(unsigned level, std::string_view m
 {
     const auto lvl = level >= 8 ? diagnostic_severity::error
         : level >= 4            ? diagnostic_severity::warning
-                                : diagnostic_severity::info;
-    return diagnostic_op(lvl, "MNOTE", std::string(message), range);
+        : level >= 2            ? diagnostic_severity::info
+                                : diagnostic_severity::hint;
+    const auto tag = level >= 2 ? diagnostic_tag::none : diagnostic_tag::unnecessary;
+    return diagnostic_op(lvl, "MNOTE", std::string(message), range, tag);
 }
 
 diagnostic_s diagnostic_s::error_W0002(std::string_view ws_uri, std::string_view ws_name)
@@ -2427,7 +2429,8 @@ diagnostic_s diagnostic_s::error_W0002(std::string_view ws_uri, std::string_view
         diagnostic_severity::error,
         "W0002",
         concat("The configuration file proc_grps for workspace ", ws_name, " is malformed."),
-        {});
+        {},
+        diagnostic_tag::none);
 }
 
 diagnostic_s diagnostic_s::error_W0003(std::string_view file_name, std::string_view ws_name)
@@ -2437,7 +2440,8 @@ diagnostic_s diagnostic_s::error_W0003(std::string_view file_name, std::string_v
         diagnostic_severity::error,
         "W0003",
         concat("The configuration file pgm_conf for workspace ", ws_name, " is malformed."),
-        {});
+        {},
+        diagnostic_tag::none);
 }
 
 diagnostic_s diagnostic_s::error_W0004(std::string_view file_name, std::string_view ws_name)
@@ -2449,7 +2453,8 @@ diagnostic_s diagnostic_s::error_W0004(std::string_view file_name, std::string_v
         concat("The configuration file pgm_conf for workspace ",
             ws_name,
             " refers to a processor group, that is not defined in proc_grps"),
-        {});
+        {},
+        diagnostic_tag::none);
 }
 
 diagnostic_s diagnostic_s::error_W0005(std::string_view file_name, std::string_view proc_group)
@@ -2459,7 +2464,8 @@ diagnostic_s diagnostic_s::error_W0005(std::string_view file_name, std::string_v
         diagnostic_severity::warning,
         "W0005",
         concat("The processor group '", proc_group, "' from '", file_name, "' defines invalid assembler options."),
-        {});
+        {},
+        diagnostic_tag::none);
 }
 
 diagnostic_s diagnostic_s::error_W0006(std::string_view file_name, std::string_view proc_group)
@@ -2469,7 +2475,8 @@ diagnostic_s diagnostic_s::error_W0006(std::string_view file_name, std::string_v
         diagnostic_severity::warning,
         "W0006",
         concat("The processor group '", proc_group, "' from '", file_name, "' defines invalid preprocessor options."),
-        {});
+        {},
+        diagnostic_tag::none);
 }
 
 diagnostic_s diagnostic_s::error_W0007(std::string_view file_name, std::string_view proc_group)
@@ -2506,7 +2513,8 @@ diagnostic_s diagnostic_s::warning_L0003(std::string_view path)
         concat("Macros from library '",
             path,
             "' were selected by a deprecated mechanism to specify file extensions (alwaysRecognize in pgm_conf.json)."),
-        {});
+        {},
+        diagnostic_tag::none);
 }
 
 diagnostic_s diagnostic_s::warning_L0004(std::string_view path, std::string_view macro_name)
@@ -2516,7 +2524,8 @@ diagnostic_s diagnostic_s::warning_L0004(std::string_view path, std::string_view
         diagnostic_severity::warning,
         "L0004",
         concat("Library '", path, "' contains multiple definitions of the macro '", macro_name, "'."),
-        {});
+        {},
+        diagnostic_tag::none);
 }
 
 diagnostic_s diagnostic_s::warning_L0005(std::string_view pattern, size_t limit)
@@ -2526,7 +2535,8 @@ diagnostic_s diagnostic_s::warning_L0005(std::string_view pattern, size_t limit)
         diagnostic_severity::warning,
         "L0005",
         concat("Limit of ", limit, " directories was reached while evaluating library pattern '", pattern, "'."),
-        {});
+        {},
+        diagnostic_tag::none);
 }
 
 diagnostic_op diagnostic_op::error_S100(std::string_view message, const range& range)

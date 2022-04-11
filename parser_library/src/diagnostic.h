@@ -105,13 +105,20 @@ struct diagnostic_op
     std::string code;
     std::string message;
     range diag_range;
+    diagnostic_tag tag;
+
     diagnostic_op() = default;
 
-    diagnostic_op(diagnostic_severity severity, std::string code, std::string message, range diag_range = {})
+    diagnostic_op(diagnostic_severity severity,
+        std::string code,
+        std::string message,
+        range diag_range = {},
+        diagnostic_tag tag = diagnostic_tag::none)
         : severity(severity)
         , code(std::move(code))
         , message(std::move(message))
-        , diag_range(std::move(diag_range)) {};
+        , diag_range(std::move(diag_range))
+        , tag(tag) {};
 
     static diagnostic_op error_I999(std::string_view instr_name, const range& range);
 
@@ -756,7 +763,8 @@ public:
         diagnostic_severity severity,
         std::string code,
         std::string message,
-        std::vector<diagnostic_related_info_s> related)
+        std::vector<diagnostic_related_info_s> related,
+        diagnostic_tag tag)
         : file_name(std::move(file_name))
         , diag_range(range)
         , severity(severity)
@@ -764,6 +772,7 @@ public:
         , source("HLASM Plugin")
         , message(std::move(message))
         , related(std::move(related))
+        , tag(tag)
     {}
     diagnostic_s(std::string file_name, diagnostic_op diag_op)
         : file_name(std::move(file_name))
@@ -772,6 +781,7 @@ public:
         , code(std::move(diag_op.code))
         , source("HLASM Plugin")
         , message(std::move(diag_op.message))
+        , tag(diag_op.tag)
     {}
     diagnostic_s(diagnostic_op diag_op)
         : diag_range(std::move(diag_op.diag_range))
@@ -779,6 +789,7 @@ public:
         , code(std::move(diag_op.code))
         , source("HLASM Plugin")
         , message(std::move(diag_op.message))
+        , tag(diag_op.tag)
     {}
 
 
@@ -789,6 +800,7 @@ public:
     std::string source;
     std::string message;
     std::vector<diagnostic_related_info_s> related;
+    diagnostic_tag tag = diagnostic_tag::none;
 
     /*
     Lxxxx - local library messages
