@@ -359,46 +359,6 @@ public:
     constexpr auto operandless() const { return m_operandless; }
 };
 
-enum class supported_system
-{
-    NO_Z_SUPPORT = 0,
-    SINCE_ZOP = 1,
-    SINCE_YOP,
-    SINCE_Z9,
-    SINCE_Z10,
-    SINCE_Z11,
-    SINCE_Z12,
-    SINCE_Z13,
-    SINCE_Z14,
-    SINCE_Z15,
-    UNI = 1 << 5,
-    DOS = 1 << 6,
-    _370 = 1 << 7,
-    XA = 1 << 8,
-    ESA = 1 << 9,
-    UNKNOWN = 1 << 10
-};
-
-constexpr supported_system operator|(supported_system a, supported_system b)
-{
-    return static_cast<supported_system>(static_cast<int>(a) | static_cast<int>(b));
-}
-
-constexpr supported_system operator&(supported_system a, supported_system b)
-{
-    return static_cast<supported_system>(static_cast<int>(a) & static_cast<int>(b));
-}
-
-constexpr supported_system operator&(supported_system a, size_t b)
-{
-    return static_cast<supported_system>(static_cast<int>(a) & static_cast<int>(b));
-}
-
-constexpr bool operator<=(supported_system a, system_architecture b)
-{
-    return static_cast<int>(a) <= static_cast<int>(b);
-}
-
 // representation of mnemonic codes for machine instructions
 class mnemonic_code
 {
@@ -507,11 +467,10 @@ public:
 // static class holding string names of instructions with theirs additional info
 class instruction
 {
-    system_architecture m_arch;
+    std::vector<std::reference_wrapper<const machine_instruction>> m_machine_instructions;
+    std::vector<std::reference_wrapper<const mnemonic_code>> m_mnemonic_codes;
 
 public:
-    static std::vector<std::reference_wrapper<const machine_instruction>> m_machine_instructions;
-    static std::vector<std::reference_wrapper<const mnemonic_code>> m_mnemonic_codes;
     instruction(system_architecture arch);
 
     /*
@@ -519,26 +478,23 @@ public:
     max_operands - if not defined (can be infinite), value is -1, otherwise a non-negative integer
     */
 
-    static const ca_instruction& get_ca_instructions(std::string_view name);
-    static const ca_instruction* find_ca_instructions(std::string_view name);
-    static std::span<const ca_instruction> all_ca_instructions();
+    const ca_instruction& get_ca_instructions(std::string_view name); // todo not used
+    const ca_instruction* find_ca_instructions(std::string_view name); // todo not used
+    std::span<const ca_instruction> all_ca_instructions();
 
-    static const assembler_instruction& get_assembler_instructions(std::string_view name);
-    static const assembler_instruction* find_assembler_instructions(std::string_view name);
-    static std::span<const assembler_instruction> all_assembler_instructions();
+    const assembler_instruction& get_assembler_instructions(std::string_view name);
+    const assembler_instruction* find_assembler_instructions(std::string_view name);
+    std::span<const assembler_instruction> all_assembler_instructions();
 
-    static const machine_instruction& get_machine_instructions(std::string_view name);
-    static const machine_instruction* find_machine_instructions(std::string_view name);
-    static std::span<std::reference_wrapper<const machine_instruction>> all_machine_instructions();
+    const machine_instruction& get_machine_instructions(std::string_view name);
+    const machine_instruction* find_machine_instructions(std::string_view name);
+    std::span<std::reference_wrapper<const machine_instruction>> all_machine_instructions();
 
-    static const mnemonic_code& get_mnemonic_codes(std::string_view name);
-    static const mnemonic_code* find_mnemonic_codes(std::string_view name);
-    static std::span<std::reference_wrapper<const mnemonic_code>> all_mnemonic_codes();
+    const mnemonic_code& get_mnemonic_codes(std::string_view name);
+    const mnemonic_code* find_mnemonic_codes(std::string_view name);
+    std::span<std::reference_wrapper<const mnemonic_code>> all_mnemonic_codes();
 
     static std::string_view mach_format_to_string(mach_format);
-
-private:
-    bool is_instruction_supported(supported_system supported_systems);
 };
 
 } // namespace hlasm_plugin::parser_library::context

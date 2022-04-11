@@ -15,11 +15,16 @@
 #ifndef PROCESSING_OP_CODE_H
 #define PROCESSING_OP_CODE_H
 
+#include <memory>
 #include <utility>
 
 #include "context/id_storage.h"
 #include "context/instruction_type.h"
 #include "processing_format.h"
+
+namespace hlasm_plugin::parser_library::context {
+class instruction;
+}
 
 namespace hlasm_plugin::parser_library::processing {
 
@@ -56,9 +61,11 @@ public:
     }
     friend bool operator!=(processing_status_cache_key l, processing_status_cache_key r) { return !(l == r); }
 
-    explicit processing_status_cache_key(const processing_status& s);
+    explicit processing_status_cache_key(const processing_status& s,
+        std::shared_ptr<hlasm_plugin::parser_library::context::instruction> instruction_set);
 
-    static unsigned char generate_loctr_len(context::id_index id);
+    static unsigned char generate_loctr_len(
+        context::id_index id, std::shared_ptr<hlasm_plugin::parser_library::context::instruction> instruction_set);
 };
 
 } // namespace hlasm_plugin::parser_library::processing

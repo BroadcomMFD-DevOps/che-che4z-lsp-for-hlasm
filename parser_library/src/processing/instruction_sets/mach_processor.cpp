@@ -38,11 +38,13 @@ void mach_processor::process(std::shared_ptr<const processing::resolved_statemen
 
     auto loctr = hlasm_ctx.ord_ctx.align(context::halfword);
 
-    const auto& mach_instr = [](const std::string& name) {
-        if (auto mnemonic = context::instruction::find_mnemonic_codes(name))
+    const auto& mach_instr = [instruction_set = hlasm_ctx.instruction_set()](const std::string& name) {
+        assert(instruction_set);
+
+        if (auto mnemonic = instruction_set->find_mnemonic_codes(name))
             return *mnemonic->instruction();
         else
-            return context::instruction::get_machine_instructions(name);
+            return instruction_set->get_machine_instructions(name);
     }(*stmt->opcode_ref().value);
 
     auto label_name = find_label_symbol(rebuilt_stmt);

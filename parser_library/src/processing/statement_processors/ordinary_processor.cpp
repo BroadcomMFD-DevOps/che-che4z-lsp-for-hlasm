@@ -244,7 +244,7 @@ void ordinary_processor::check_postponed_statements(
     const std::vector<std::pair<context::post_stmt_ptr, context::dependency_evaluation_context>>& stmts)
 {
     static const checking::assembler_checker asm_checker;
-    static const checking::machine_checker mach_checker;
+    static const checking::machine_checker mach_checker(hlasm_ctx.instruction_set());
 
     for (const auto& [stmt, dep_ctx] : stmts)
     {
@@ -257,11 +257,11 @@ void ordinary_processor::check_postponed_statements(
         switch (rs->opcode_ref().type)
         {
             case hlasm_plugin::parser_library::context::instruction_type::MACH:
-                low_language_processor::check(*rs, stmt->location_stack(), dep_solver, mach_checker, *this);
+                mach_proc_.check(*rs, stmt->location_stack(), dep_solver, mach_checker, *this);
                 break;
 
             case hlasm_plugin::parser_library::context::instruction_type::ASM:
-                low_language_processor::check(*rs, stmt->location_stack(), dep_solver, asm_checker, *this);
+                asm_proc_.check(*rs, stmt->location_stack(), dep_solver, asm_checker, *this);
                 break;
 
             default:

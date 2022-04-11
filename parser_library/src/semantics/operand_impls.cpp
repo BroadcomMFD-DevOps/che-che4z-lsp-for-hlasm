@@ -785,18 +785,20 @@ struct request_halfword_alignment final : public expressions::mach_expr_visitor
     void visit(const expressions::mach_expr_literal& expr) override { expr.referenced_by_reladdr(); }
 };
 
-void transform_reloc_imm_operands(semantics::operand_list& op_list, context::id_index instruction)
+void transform_reloc_imm_operands(semantics::operand_list& op_list,
+    context::id_index instruction,
+    std::shared_ptr<context::instruction> instruction_set)
 {
-    if (instruction->empty())
+    if (instruction->empty() || !instruction)
         return;
 
     unsigned char mask = 0;
     decltype(mask) top_bit = 1 << (std::numeric_limits<decltype(mask)>::digits - 1);
 
-    if (auto mnem_tmp = context::instruction::find_mnemonic_codes(*instruction))
+    if (auto mnem_tmp = instruction_set->find_mnemonic_codes(*instruction))
         mask = mnem_tmp->reladdr_mask().mask();
     else
-        mask = context::instruction::get_machine_instructions(*instruction).reladdr_mask().mask();
+        mask = instruction_set->get_machine_instructions(*instruction).reladdr_mask().mask();
 
     for (const auto& operand : op_list)
     {

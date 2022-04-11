@@ -16,6 +16,7 @@
 
 #include "analyzer.h"
 #include "checking/instruction_checker.h"
+#include "context/instruction.h"
 
 using namespace hlasm_plugin::parser_library;
 using namespace hlasm_plugin::parser_library::checking;
@@ -23,7 +24,8 @@ using namespace hlasm_plugin::parser_library::checking;
 namespace {
 const auto& get_mi(std::string_view arg)
 {
-    return hlasm_plugin::parser_library::context::instruction::get_machine_instructions(arg);
+    hlasm_plugin::parser_library::context::instruction instruction_set(system_architecture::UNI);
+    return instruction_set.get_machine_instructions(arg);
 }
 one_operand op_val_0 { 0 };
 one_operand op_val_1 { 1 };

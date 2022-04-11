@@ -36,8 +36,7 @@ struct translate_pp_options
 };
 
 constexpr auto sys_arch_translator = []() {
-    constexpr std::array sys_arch_equivalents { 
-        std::make_pair(std::string_view("ZOP"), system_architecture::ZOP),
+    constexpr std::array sys_arch_equivalents { std::make_pair(std::string_view("ZOP"), system_architecture::ZOP),
         std::make_pair(std::string_view("ZS1"), system_architecture::ZOP),
         std::make_pair(std::string_view("YOP"), system_architecture::YOP),
         std::make_pair(std::string_view("ZS2"), system_architecture::YOP),
@@ -62,7 +61,9 @@ constexpr auto sys_arch_translator = []() {
         std::make_pair(std::string_view("ESA"), system_architecture::ESA) };
 
     auto sorted_equivalents = sys_arch_equivalents;
-    std::sort(std::begin(sorted_equivalents), std::end(sorted_equivalents), [](const auto& l, const auto& r) { return l.first < r.first; });
+    std::sort(std::begin(sorted_equivalents), std::end(sorted_equivalents), [](const auto& l, const auto& r) {
+        return l.first < r.first;
+    });
     return sorted_equivalents;
 }();
 

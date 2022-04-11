@@ -123,7 +123,7 @@ void members_statement_provider::fill_cache(
         reparsed_stmt.stmt = std::make_shared<semantics::statement_si_defer_done>(
             def_impl, std::move(op), std::move(rem), std::move(lits));
     }
-    cache.insert(processing_status_cache_key(status), std::move(reparsed_stmt));
+    cache.insert(processing_status_cache_key(status, ctx.hlasm_ctx->instruction_set()), std::move(reparsed_stmt));
 }
 
 context::shared_stmt_ptr members_statement_provider::preprocess_deferred(
@@ -136,7 +136,7 @@ context::shared_stmt_ptr members_statement_provider::preprocess_deferred(
     if (status.first.form == processing_form::DEFERRED)
         return cache.get_base();
 
-    processing_status_cache_key key(status);
+    processing_status_cache_key key(status, ctx.hlasm_ctx->instruction_set());
 
     if (!cache.contains(key))
         fill_cache(cache, def_stmt, status);

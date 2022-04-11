@@ -33,6 +33,7 @@ class mach_expression;
 } // namespace hlasm_plugin::parser_library::expressions
 namespace hlasm_plugin::parser_library::context {
 class using_collection;
+class instruction;
 } // namespace hlasm_plugin::parser_library::context
 
 namespace hlasm_plugin::parser_library::context {
@@ -77,7 +78,10 @@ class hlasm_context
     asm_option asm_options_;
     static constexpr alignment sectalgn = doubleword;
 
-    // map of all instruction in HLASM
+    // Instruction
+    std::shared_ptr<instruction> m_instruction_set; // todo make std::shared_ptr<const instruction>
+
+    // map of all instructions in HLASM
     const instruction_storage instruction_map_;
     instruction_storage init_instruction_map(id_storage& ids);
 
@@ -155,6 +159,9 @@ public:
     // index storage
     id_storage& ids();
     std::shared_ptr<id_storage> ids_ptr();
+
+    // Available instructions
+    std::shared_ptr<instruction> instruction_set();
 
     // map of instructions
     const instruction_storage& instruction_map() const;

@@ -21,6 +21,55 @@ using namespace hlasm_plugin::parser_library::context;
 using namespace hlasm_plugin::parser_library::checking;
 using namespace hlasm_plugin::parser_library;
 
+namespace {
+// Determines in which systems is the instruction supported
+// First Byte determines instruction support since a specific iteretion of Z system
+// Other bits determing instruction support in other systems
+// Example: 0010 1010 0101:
+//  -   0010 xxxx xxxx -> Instruction supported on ESA systems
+//  -   xxxx 1010 xxxx -> Instruction supported on 370 systems and is also part of universal instruction set
+//  -   xxxx xxxx 0101 -> Instruction supported since Z12 systems up to now
+enum class supported_system
+{
+    NO_Z_SUPPORT = 0,
+    SINCE_ZOP = 1,
+    SINCE_YOP,
+    SINCE_Z9,
+    SINCE_Z10,
+    SINCE_Z11,
+    SINCE_Z12,
+    SINCE_Z13,
+    SINCE_Z14,
+    SINCE_Z15,
+    UNI = 1 << 5,
+    DOS = 1 << 6,
+    _370 = 1 << 7,
+    XA = 1 << 8,
+    ESA = 1 << 9,
+    UNKNOWN = 1 << 10
+};
+
+constexpr supported_system operator|(supported_system a, supported_system b)
+{
+    return static_cast<supported_system>(static_cast<int>(a) | static_cast<int>(b));
+}
+
+constexpr supported_system operator&(supported_system a, supported_system b)
+{
+    return static_cast<supported_system>(static_cast<int>(a) & static_cast<int>(b));
+}
+
+constexpr supported_system operator&(supported_system a, size_t b)
+{
+    return static_cast<supported_system>(static_cast<int>(a) & static_cast<int>(b));
+}
+
+constexpr bool operator<=(supported_system a, system_architecture b)
+{
+    return static_cast<int>(a) <= static_cast<int>(b);
+}
+} // namespace
+
 std::string_view instruction::mach_format_to_string(mach_format f)
 {
     switch (f)
@@ -3074,40 +3123,16 @@ const mnemonic_code& instruction::get_mnemonic_codes(std::string_view name)
 }
 std::span<std::reference_wrapper<const mnemonic_code>> instruction::all_mnemonic_codes() { return m_mnemonic_codes; }
 
-std::vector<std::reference_wrapper<const machine_instruction>>
-    instruction::m_machine_instructions = {}; // todo is this needed?
-std::vector<std::reference_wrapper<const mnemonic_code>> instruction::m_mnemonic_codes = {};
 
-instruction::instruction(system_architecture arch)
-    : m_arch(arch)
-{
-    m_mnemonic_codes.clear(); // todo is this needed?
-    for (const auto& mnemonic : mnemonic_codes)
-    {
-        if (is_instruction_supported(mnemonic.second))
-        {
-            m_mnemonic_codes.push_back(mnemonic.first);
-        }
-    }
-
-    m_machine_instructions.clear();
-    for (const auto& mi : machine_instructions)
-    {
-        if (is_instruction_supported(mi.second))
-        {
-            m_machine_instructions.push_back(mi.first);
-        }
-    }
-}
-
-bool instruction::is_instruction_supported(supported_system instruction_support)
+namespace {
+bool is_instruction_supported(supported_system instruction_support, system_architecture active_system_arch)
 {
     if ((instruction_support & supported_system::UNKNOWN) == supported_system::UNKNOWN)
     {
         return true;
     }
 
-    switch (m_arch)
+    switch (active_system_arch)
     {
         case system_architecture::UNI: {
             return (instruction_support & supported_system::UNI) == supported_system::UNI;
@@ -3134,9 +3159,33 @@ bool instruction::is_instruction_supported(supported_system instruction_support)
         case system_architecture::Z14:
         case system_architecture::Z15: {
             instruction_support = instruction_support & 0x0F; // Get the lower bytes representing Z architecture
-            return instruction_support == supported_system::NO_Z_SUPPORT ? false : instruction_support <= m_arch;
+            return instruction_support == supported_system::NO_Z_SUPPORT ? false
+                                                                         : instruction_support <= active_system_arch;
         }
         default:
             return false;
     }
 }
+
+template<typename INSTRUCTION_TYPE, typename COMPLETE_INSTRUCTION_SET>
+std::vector<std::reference_wrapper<const INSTRUCTION_TYPE>> get_active_instructions(
+    system_architecture active_system_arch, COMPLETE_INSTRUCTION_SET& all_instructions)
+{
+    std::vector<std::reference_wrapper<const INSTRUCTION_TYPE>> active_instructions;
+
+    for (const auto& instruction : all_instructions)
+    {
+        if (is_instruction_supported(instruction.second, active_system_arch))
+        {
+            active_instructions.push_back(instruction.first);
+        }
+    }
+
+    return active_instructions;
+}
+} // namespace
+
+instruction::instruction(system_architecture arch)
+    : m_machine_instructions(get_active_instructions<machine_instruction>(arch, machine_instructions))
+    , m_mnemonic_codes(get_active_instructions<mnemonic_code>(arch, mnemonic_codes))
+{}
