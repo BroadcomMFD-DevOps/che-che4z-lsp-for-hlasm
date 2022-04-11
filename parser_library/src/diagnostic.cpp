@@ -17,6 +17,7 @@
 #include <string>
 #include <string_view>
 #include <type_traits>
+#include <utility>
 
 namespace hlasm_plugin::parser_library {
 
@@ -32,7 +33,7 @@ struct concat_helper
 
     size_t len(std::string_view t) const { return t.size(); }
     template<typename T>
-    std::enable_if_t<!std::is_convertible_v<T&&, std::string_view>, size_t> len(T&&) const
+    std::enable_if_t<!std::is_convertible_v<T&&, std::string_view>, size_t> len(const T&) const
     {
         return 8; // arbitrary estimate for the length of the stringified argument (typically small numbers)
     }
@@ -45,7 +46,7 @@ std::string concat(Args&&... args)
 
     concat_helper h;
 
-    result.reserve((... + h.len(std::forward<Args>(args))));
+    result.reserve((... + h.len(std::as_const(args))));
 
     (h(result, std::forward<Args>(args)), ...);
 
@@ -2409,6 +2410,14 @@ diagnostic_op diagnostic_op::error_U005_invalid_range(
 diagnostic_op diagnostic_op::error_U006_duplicate_base_specified(const range& range)
 {
     return diagnostic_op(diagnostic_severity::error, "U006", "Base registers must be distinct.", range);
+}
+
+diagnostic_op diagnostic_op::mnote_diagnostic(unsigned level, std::string_view message, const range& range)
+{
+    const auto lvl = level >= 8 ? diagnostic_severity::error
+        : level >= 4            ? diagnostic_severity::warning
+                                : diagnostic_severity::info;
+    return diagnostic_op(lvl, "MNOTE", std::string(message), range);
 }
 
 diagnostic_s diagnostic_s::error_W0002(std::string_view ws_uri, std::string_view ws_name)

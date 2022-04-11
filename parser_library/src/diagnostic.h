@@ -708,6 +708,8 @@ struct diagnostic_op
         int e_off);
 
     static diagnostic_op error_U006_duplicate_base_specified(const range& range);
+
+    static diagnostic_op mnote_diagnostic(unsigned level, std::string_view message, const range& range);
 };
 
 struct range_uri_s
