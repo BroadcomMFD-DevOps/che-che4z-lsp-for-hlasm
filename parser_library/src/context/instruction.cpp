@@ -294,7 +294,7 @@ const ca_instruction& instruction::get_ca_instructions(std::string_view name)
     return *result;
 }
 
-std::span<const ca_instruction> instruction::all_ca_instructions() { return ca_instructions; }
+std::span<const ca_instruction> instruction::all_ca_instructions() const { return ca_instructions; }
 
 constexpr assembler_instruction assembler_instructions[] = {
     { "*PROCESS", 1, -1, false, "" }, // TO DO
@@ -365,7 +365,7 @@ static_assert(std::is_sorted(std::begin(assembler_instructions),
     std::end(assembler_instructions),
     [](const auto& l, const auto& r) { return l.name() < r.name(); }));
 
-const assembler_instruction* instruction::find_assembler_instructions(std::string_view instr)
+const assembler_instruction* instruction::find_assembler_instructions(std::string_view instr) const
 {
     auto it = std::lower_bound(
         std::begin(assembler_instructions), std::end(assembler_instructions), instr, [](const auto& l, const auto& r) {
@@ -377,14 +377,17 @@ const assembler_instruction* instruction::find_assembler_instructions(std::strin
 }
 #endif
 
-const assembler_instruction& instruction::get_assembler_instructions(std::string_view instr)
+const assembler_instruction& instruction::get_assembler_instructions(std::string_view instr) const
 {
     auto result = find_assembler_instructions(instr);
     assert(result);
     return *result;
 }
 
-std::span<const assembler_instruction> instruction::all_assembler_instructions() { return assembler_instructions; }
+std::span<const assembler_instruction> instruction::all_assembler_instructions() const
+{
+    return assembler_instructions;
+}
 
 bool hlasm_plugin::parser_library::context::machine_instruction::check_nth_operand(
     size_t place, const checking::machine_operand* operand)
@@ -1937,7 +1940,7 @@ static_assert(std::is_sorted(std::begin(machine_instructions),
     std::end(machine_instructions),
     [](const auto& l, const auto& r) { return l.first.name() < r.first.name(); }));
 
-const machine_instruction* instruction::find_machine_instructions(std::string_view name)
+const machine_instruction* instruction::find_machine_instructions(std::string_view name) const
 {
     auto it = std::lower_bound(
         std::begin(m_machine_instructions), std::end(m_machine_instructions), name, [](const auto& l, const auto& r) {
@@ -1959,14 +1962,14 @@ constexpr const machine_instruction* find_mi(std::string_view name)
 }
 #endif
 
-const machine_instruction& instruction::get_machine_instructions(std::string_view name)
+const machine_instruction& instruction::get_machine_instructions(std::string_view name) const
 {
     auto mi = find_machine_instructions(name);
     assert(mi);
     return *mi;
 }
 
-std::span<std::reference_wrapper<const machine_instruction>> instruction::all_machine_instructions()
+std::span<const std::reference_wrapper<const machine_instruction>> instruction::all_machine_instructions() const
 {
     return m_machine_instructions;
 }
@@ -3103,7 +3106,7 @@ static_assert(std::is_sorted(std::begin(mnemonic_codes), std::end(mnemonic_codes
     return l.first.name() < r.first.name();
 }));
 
-const mnemonic_code* instruction::find_mnemonic_codes(std::string_view name)
+const mnemonic_code* instruction::find_mnemonic_codes(std::string_view name) const
 {
     auto it = std::lower_bound(
         std::begin(m_mnemonic_codes), std::end(m_mnemonic_codes), name, [](const auto& l, const auto& r) {
@@ -3115,14 +3118,17 @@ const mnemonic_code* instruction::find_mnemonic_codes(std::string_view name)
 }
 #endif
 
-const mnemonic_code& instruction::get_mnemonic_codes(std::string_view name)
+const mnemonic_code& instruction::get_mnemonic_codes(std::string_view name) const
 {
     auto result = find_mnemonic_codes(name);
     assert(result);
     return *result;
 }
-std::span<std::reference_wrapper<const mnemonic_code>> instruction::all_mnemonic_codes() { return m_mnemonic_codes; }
 
+std::span<const std::reference_wrapper<const mnemonic_code>> instruction::all_mnemonic_codes() const
+{
+    return m_mnemonic_codes;
+}
 
 namespace {
 bool is_instruction_supported(supported_system instruction_support, system_architecture active_system_arch)

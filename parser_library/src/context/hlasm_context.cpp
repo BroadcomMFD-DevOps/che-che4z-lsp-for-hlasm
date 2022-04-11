@@ -33,25 +33,23 @@ const code_scope* hlasm_context::curr_scope() const { return &scope_stack_.back(
 
 hlasm_context::instruction_storage hlasm_context::init_instruction_map(id_storage& ids)
 {
-    assert(m_instruction_set);
-
     hlasm_context::instruction_storage instr_map;
-    for (const auto& instr_ref : m_instruction_set->all_machine_instructions())
+    for (const auto& instr_ref : instruction_set().all_machine_instructions())
     {
         auto id = ids.add(std::string(instr_ref.get().name()));
         instr_map.emplace(id, &instr_ref.get());
     }
-    for (const auto& instr : m_instruction_set->all_assembler_instructions())
+    for (const auto& instr : instruction_set().all_assembler_instructions())
     {
         auto id = ids.add(std::string(instr.name()));
         instr_map.emplace(id, &instr);
     }
-    for (const auto& instr : m_instruction_set->all_ca_instructions())
+    for (const auto& instr : instruction_set().all_ca_instructions())
     {
         auto id = ids.add(std::string(instr.name()));
         instr_map.emplace(id, &instr);
     }
-    for (const auto& instr_ref : m_instruction_set->all_mnemonic_codes())
+    for (const auto& instr_ref : instruction_set().all_mnemonic_codes())
     {
         auto id = ids.add(std::string(instr_ref.get().name()));
         instr_map.emplace(id, &instr_ref.get());
@@ -320,7 +318,7 @@ hlasm_context::hlasm_context(std::string file_name, asm_option asm_options, std:
     : ids_(std::move(init_ids))
     , opencode_file_name_(file_name)
     , asm_options_(std::move(asm_options))
-    , m_instruction_set(std::make_shared<instruction>(asm_options_.arch))
+    , m_instruction_set(std::make_unique<instruction>(asm_options_.arch))
     , instruction_map_(init_instruction_map(*ids_))
     , m_usings(std::make_unique<using_collection>())
     , m_active_usings(1, m_usings->remove_all())
@@ -409,7 +407,11 @@ id_storage& hlasm_context::ids() { return *ids_; }
 
 std::shared_ptr<id_storage> hlasm_context::ids_ptr() { return ids_; }
 
-std::shared_ptr<instruction> hlasm_context::instruction_set() { return m_instruction_set; };
+const instruction& hlasm_context::instruction_set() const
+{
+    assert(m_instruction_set);
+    return *m_instruction_set;
+};
 
 const hlasm_context::instruction_storage& hlasm_context::instruction_map() const { return instruction_map_; }
 

@@ -92,9 +92,8 @@ struct join_operands_result
 };
 
 join_operands_result join_operands(const operand_list&);
-void transform_reloc_imm_operands(semantics::operand_list& op_list,
-    context::id_index instruction,
-    std::shared_ptr<context::instruction> instruction_set);
+void transform_reloc_imm_operands(
+    semantics::operand_list& op_list, context::id_index instruction, const context::instruction& instruction_set);
 
 } // namespace hlasm_plugin::parser_library::semantics
 

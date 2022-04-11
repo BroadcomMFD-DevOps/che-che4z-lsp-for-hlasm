@@ -79,7 +79,7 @@ class hlasm_context
     static constexpr alignment sectalgn = doubleword;
 
     // Instruction
-    std::shared_ptr<instruction> m_instruction_set; // todo make std::shared_ptr<const instruction>
+    std::unique_ptr<instruction> m_instruction_set;
 
     // map of all instructions in HLASM
     const instruction_storage instruction_map_;
@@ -161,7 +161,7 @@ public:
     std::shared_ptr<id_storage> ids_ptr();
 
     // Available instructions
-    std::shared_ptr<instruction> instruction_set();
+    const instruction& instruction_set() const;
 
     // map of instructions
     const instruction_storage& instruction_map() const;

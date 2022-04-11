@@ -480,19 +480,19 @@ public:
 
     const ca_instruction& get_ca_instructions(std::string_view name); // todo not used
     const ca_instruction* find_ca_instructions(std::string_view name); // todo not used
-    std::span<const ca_instruction> all_ca_instructions();
+    std::span<const ca_instruction> all_ca_instructions() const;
 
-    const assembler_instruction& get_assembler_instructions(std::string_view name);
-    const assembler_instruction* find_assembler_instructions(std::string_view name);
-    std::span<const assembler_instruction> all_assembler_instructions();
+    const assembler_instruction& get_assembler_instructions(std::string_view name) const;
+    const assembler_instruction* find_assembler_instructions(std::string_view name) const;
+    std::span<const assembler_instruction> all_assembler_instructions() const;
 
-    const machine_instruction& get_machine_instructions(std::string_view name);
-    const machine_instruction* find_machine_instructions(std::string_view name);
-    std::span<std::reference_wrapper<const machine_instruction>> all_machine_instructions();
+    const machine_instruction& get_machine_instructions(std::string_view name) const;
+    const machine_instruction* find_machine_instructions(std::string_view name) const;
+    std::span<const std::reference_wrapper<const machine_instruction>> all_machine_instructions() const;
 
-    const mnemonic_code& get_mnemonic_codes(std::string_view name);
-    const mnemonic_code* find_mnemonic_codes(std::string_view name);
-    std::span<std::reference_wrapper<const mnemonic_code>> all_mnemonic_codes();
+    const mnemonic_code& get_mnemonic_codes(std::string_view name) const;
+    const mnemonic_code* find_mnemonic_codes(std::string_view name) const;
+    std::span<const std::reference_wrapper<const mnemonic_code>> all_mnemonic_codes() const;
 
     static std::string_view mach_format_to_string(mach_format);
 };

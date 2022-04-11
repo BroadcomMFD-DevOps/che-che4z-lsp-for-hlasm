@@ -61,11 +61,11 @@ public:
     }
     friend bool operator!=(processing_status_cache_key l, processing_status_cache_key r) { return !(l == r); }
 
-    explicit processing_status_cache_key(const processing_status& s,
-        std::shared_ptr<hlasm_plugin::parser_library::context::instruction> instruction_set);
+    explicit processing_status_cache_key(
+        const processing_status& s, const hlasm_plugin::parser_library::context::instruction& instruction_set);
 
     static unsigned char generate_loctr_len(
-        context::id_index id, std::shared_ptr<hlasm_plugin::parser_library::context::instruction> instruction_set);
+        context::id_index id, const hlasm_plugin::parser_library::context::instruction& instruction_set);
 };
 
 } // namespace hlasm_plugin::parser_library::processing

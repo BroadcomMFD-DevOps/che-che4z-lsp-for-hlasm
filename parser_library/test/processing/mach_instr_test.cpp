@@ -260,7 +260,7 @@ TEST(mach_instr_processing, instr_size)
              { "DC", 1 },
          })
     {
-        auto instruction_set = std::make_shared<context::instruction>(system_architecture::UNI);
+        auto instruction_set = context::instruction(system_architecture::UNI);
         EXPECT_EQ(processing::processing_status_cache_key::generate_loctr_len(&instr, instruction_set), expected)
             << instr;
     }
