@@ -1751,7 +1751,7 @@ diagnostic_op diagnostic_op::warn_M136(const range& range)
 }
 
 diagnostic_op diagnostic_op::error_optional_number_of_operands(
-    std::string_view instr_name, int optional_no, int operands_no, const range& range)
+    std::string_view instr_name, size_t optional_no, size_t operands_no, const range& range)
 {
     if (optional_no == 0)
         return error_M000(instr_name, operands_no, range);
@@ -1762,7 +1762,7 @@ diagnostic_op diagnostic_op::error_optional_number_of_operands(
 }
 
 diagnostic_op hlasm_plugin::parser_library::diagnostic_op::error_M000(
-    std::string_view instr_name, int number, const range& range)
+    std::string_view instr_name, size_t number, const range& range)
 {
     return diagnostic_op(diagnostic_severity::error,
         "M000",
@@ -1770,7 +1770,7 @@ diagnostic_op hlasm_plugin::parser_library::diagnostic_op::error_M000(
         range);
 }
 
-diagnostic_op diagnostic_op::error_M001(std::string_view instr_name, int one, int two, const range& range)
+diagnostic_op diagnostic_op::error_M001(std::string_view instr_name, size_t one, size_t two, const range& range)
 {
     return diagnostic_op(diagnostic_severity::error,
         "M001",
@@ -1791,7 +1791,7 @@ diagnostic_op hlasm_plugin::parser_library::diagnostic_op::error_M010(std::strin
         range);
 }
 
-diagnostic_op diagnostic_op::error_M002(std::string_view instr_name, int one, int two, const range& range)
+diagnostic_op diagnostic_op::error_M002(std::string_view instr_name, size_t one, size_t two, const range& range)
 {
     return diagnostic_op(diagnostic_severity::error,
         "M002",

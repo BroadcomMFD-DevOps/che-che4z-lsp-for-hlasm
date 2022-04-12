@@ -363,7 +363,6 @@ public:
 class mnemonic_code
 {
     inline_string<9> m_name;
-
     const machine_instruction* m_instruction;
 
     // first goes place, then value
@@ -371,7 +370,6 @@ class mnemonic_code
     unsigned char m_replaced_count;
 
     reladdr_transform_mask m_reladdr_mask;
-
 
     // Generates a bitmask for an arbitrary mnemonic indicating which operands
     // are of the RI type (and therefore are modified by transform_reloc_imm_operands)
@@ -478,8 +476,8 @@ public:
     max_operands - if not defined (can be infinite), value is -1, otherwise a non-negative integer
     */
 
-    const ca_instruction& get_ca_instructions(std::string_view name); // todo not used
-    const ca_instruction* find_ca_instructions(std::string_view name); // todo not used
+    const ca_instruction& get_ca_instructions(std::string_view name) const;
+    const ca_instruction* find_ca_instructions(std::string_view name) const;
     std::span<const ca_instruction> all_ca_instructions() const;
 
     const assembler_instruction& get_assembler_instructions(std::string_view name) const;

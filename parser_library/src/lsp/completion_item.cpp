@@ -34,21 +34,18 @@ completion_item_s::completion_item_s(std::string label,
 
 namespace {
 void process_machine_instruction(
-    const context::machine_instruction* machine_instr, instruction_completion_items::storage& items)
+    const context::machine_instruction& machine_instr, instruction_completion_items::storage& items)
 {
-    if (machine_instr == nullptr)
-        return;
-
     std::stringstream doc_ss(" ");
     std::stringstream detail_ss(""); // operands used for hover - e.g. V,D12U(X,B)[,M]
     std::stringstream autocomplete(""); // operands used for autocomplete - e.g. V,D12U(X,B) [,M]
 
-    autocomplete << machine_instr->name() << "   ";
+    autocomplete << machine_instr.name() << "   ";
 
-    for (size_t i = 0; i < machine_instr->operands().size(); i++)
+    for (size_t i = 0; i < machine_instr.operands().size(); i++)
     {
-        const auto& op = machine_instr->operands()[i];
-        if (machine_instr->optional_operand_count() == 1 && machine_instr->operands().size() - i == 1)
+        const auto& op = machine_instr.operands()[i];
+        if (machine_instr.optional_operand_count() == 1 && machine_instr.operands().size() - i == 1)
         {
             autocomplete << " [";
             detail_ss << "[";
@@ -60,7 +57,7 @@ void process_machine_instruction(
             detail_ss << op.to_string() << "]";
             autocomplete << op.to_string() << "]";
         }
-        else if (machine_instr->optional_operand_count() == 2 && machine_instr->operands().size() - i == 2)
+        else if (machine_instr.optional_operand_count() == 2 && machine_instr.operands().size() - i == 2)
         {
             autocomplete << " [";
             detail_ss << "[";
@@ -72,7 +69,7 @@ void process_machine_instruction(
             detail_ss << op.to_string() << "]";
             autocomplete << op.to_string() << "[,";
         }
-        else if (machine_instr->optional_operand_count() == 2 && machine_instr->operands().size() - i == 1)
+        else if (machine_instr.optional_operand_count() == 2 && machine_instr.operands().size() - i == 1)
         {
             detail_ss << op.to_string() << "]]";
             autocomplete << op.to_string() << "]]";
@@ -89,8 +86,8 @@ void process_machine_instruction(
         }
     }
     doc_ss << "Machine instruction " << std::endl
-           << "Instruction format: " << context::instruction_sets::mach_format_to_string(machine_instr->format());
-    items.emplace(std::string(machine_instr->name()),
+           << "Instruction format: " << context::instruction_sets::mach_format_to_string(machine_instr.format());
+    items.emplace(std::string(machine_instr.name()),
         "Operands: " + detail_ss.str(),
         autocomplete.str(),
         doc_ss.str(),
@@ -98,31 +95,22 @@ void process_machine_instruction(
 }
 
 void process_assembler_instruction(
-    const context::assembler_instruction* asm_instr, instruction_completion_items::storage& items)
+    const context::assembler_instruction& asm_instr, instruction_completion_items::storage& items)
 {
-    if (asm_instr == nullptr)
-        return;
-
     std::stringstream doc_ss(" ");
     std::stringstream detail_ss("");
 
-    // int min_op = asm_instr.second.min_operands;
-    // int max_op = asm_instr.second.max_operands;
-
-    detail_ss << asm_instr->name() << "   " << asm_instr->description();
+    detail_ss << asm_instr.name() << "   " << asm_instr.description();
     doc_ss << "Assembler instruction";
-    items.emplace(std::string(asm_instr->name()),
+    items.emplace(std::string(asm_instr.name()),
         detail_ss.str(),
-        std::string(asm_instr->name()) + "   " /*+ description*/,
+        std::string(asm_instr.name()) + "   " /*+ description*/,
         doc_ss.str(),
         completion_item_kind::asm_instr);
 }
 
-void process_mnemonic_code(const context::mnemonic_code* mnemonic_instr, instruction_completion_items::storage& items)
+void process_mnemonic_code(const context::mnemonic_code& mnemonic_instr, instruction_completion_items::storage& items)
 {
-    if (mnemonic_instr == nullptr)
-        return;
-
     std::stringstream doc_ss(" ");
     std::stringstream detail_ss("");
     std::stringstream subs_ops_mnems(" ");
@@ -131,13 +119,13 @@ void process_mnemonic_code(const context::mnemonic_code* mnemonic_instr, instruc
     // get mnemonic operands
     size_t iter_over_mnem = 0;
 
-    const auto& mach_operands = mnemonic_instr->instruction()->operands();
-    auto no_optional = mnemonic_instr->instruction()->optional_operand_count();
+    const auto& mach_operands = mnemonic_instr.instruction()->operands();
+    auto no_optional = mnemonic_instr.instruction()->optional_operand_count();
     bool first = true;
     std::vector<std::string> mnemonic_with_operand_ommited = { "VNOT", "NOTR", "NOTGR" };
 
 
-    auto replaces = mnemonic_instr->replaced_operands();
+    auto replaces = mnemonic_instr.replaced_operands();
 
     for (size_t i = 0; i < mach_operands.size(); i++)
     {
@@ -161,7 +149,7 @@ void process_mnemonic_code(const context::mnemonic_code* mnemonic_instr, instruc
                     subs_ops_mnems << ",";
                 if (std::find(mnemonic_with_operand_ommited.begin(),
                         mnemonic_with_operand_ommited.end(),
-                        mnemonic_instr->name())
+                        mnemonic_instr.name())
                     != mnemonic_with_operand_ommited.end())
                 {
                     subs_ops_mnems << mach_operands[i - 1].to_string();
@@ -216,25 +204,22 @@ void process_mnemonic_code(const context::mnemonic_code* mnemonic_instr, instruc
         first = false;
     }
     detail_ss << "Operands: " + subs_ops_nomnems.str();
-    doc_ss << "Mnemonic code for " << mnemonic_instr->instruction()->name() << " instruction" << std::endl
+    doc_ss << "Mnemonic code for " << mnemonic_instr.instruction()->name() << " instruction" << std::endl
            << "Substituted operands: " << subs_ops_mnems.str() << std::endl
            << "Instruction format: "
-           << context::instruction_sets::mach_format_to_string(mnemonic_instr->instruction()->format());
-    items.emplace(std::string(mnemonic_instr->name()),
+           << context::instruction_sets::mach_format_to_string(mnemonic_instr.instruction()->format());
+    items.emplace(std::string(mnemonic_instr.name()),
         detail_ss.str(),
-        std::string(mnemonic_instr->name()) + "   " + subs_ops_nomnems.str(),
+        std::string(mnemonic_instr.name()) + "   " + subs_ops_nomnems.str(),
         doc_ss.str(),
         completion_item_kind::mach_instr);
 }
 
-void process_ca_instruction(const context::ca_instruction* ca_instr, instruction_completion_items::storage& items)
+void process_ca_instruction(const context::ca_instruction& ca_instr, instruction_completion_items::storage& items)
 {
-    if (ca_instr == nullptr)
-        return;
-
-    items.emplace(std::string(ca_instr->name()),
+    items.emplace(std::string(ca_instr.name()),
         "",
-        std::string(ca_instr->name()),
+        std::string(ca_instr.name()),
         "Conditional Assembly",
         completion_item_kind::ca_instr);
 }
@@ -244,13 +229,26 @@ struct instruction_visitor
     instruction_visitor(instruction_completion_items::storage& items)
         : items(items) {};
 
-    void operator()(const context::ca_instruction* ca_instr) { process_ca_instruction(ca_instr, items); };
+    void operator()(const context::ca_instruction* ca_instr)
+    {
+        if (ca_instr)
+            process_ca_instruction(*ca_instr, items);
+    };
     void operator()(const context::assembler_instruction* asm_instr)
     {
-        process_assembler_instruction(asm_instr, items);
+        if (asm_instr)
+            process_assembler_instruction(*asm_instr, items);
     };
-    void operator()(const context::machine_instruction* mach_instr) { process_machine_instruction(mach_instr, items); };
-    void operator()(const context::mnemonic_code* mne_code) { process_mnemonic_code(mne_code, items); };
+    void operator()(const context::machine_instruction* mach_instr)
+    {
+        if (mach_instr)
+            process_machine_instruction(*mach_instr, items);
+    };
+    void operator()(const context::mnemonic_code* mne_code)
+    {
+        if (mne_code)
+            process_mnemonic_code(*mne_code, items);
+    };
     void operator()(auto) { /* Do nothing */ };
 
     std::set<completion_item_s, completion_item_s::label_comparer>& items;

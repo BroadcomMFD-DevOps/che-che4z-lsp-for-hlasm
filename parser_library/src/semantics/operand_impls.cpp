@@ -788,7 +788,7 @@ struct request_halfword_alignment final : public expressions::mach_expr_visitor
 void transform_reloc_imm_operands(
     semantics::operand_list& op_list, context::id_index instruction, const context::instruction_sets& instructions)
 {
-    if (instruction->empty() || !instruction)
+    if (instruction->empty())
         return;
 
     unsigned char mask = 0;

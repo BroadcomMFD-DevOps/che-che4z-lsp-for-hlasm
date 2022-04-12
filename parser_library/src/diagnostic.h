@@ -407,11 +407,11 @@ struct diagnostic_op
 
     static bool is_error(const diagnostic_op& diag);
 
-    static diagnostic_op error_M000(std::string_view instr_name, int number, const range& range);
+    static diagnostic_op error_M000(std::string_view instr_name, size_t number, const range& range);
 
-    static diagnostic_op error_M001(std::string_view instr_name, int one, int two, const range& range);
+    static diagnostic_op error_M001(std::string_view instr_name, size_t one, size_t two, const range& range);
 
-    static diagnostic_op error_M002(std::string_view instr_name, int one, int two, const range& range);
+    static diagnostic_op error_M002(std::string_view instr_name, size_t one, size_t two, const range& range);
 
     static diagnostic_op error_M003(std::string_view instr_name, const range& range);
 
@@ -497,7 +497,7 @@ struct diagnostic_op
     static diagnostic_op warn_M136(const range& range);
 
     static diagnostic_op error_optional_number_of_operands(
-        std::string_view instr_name, int optional_no, int operands_no, const range& range);
+        std::string_view instr_name, size_t optional_no, size_t operands_no, const range& range);
 
     static diagnostic_op error_M010(std::string_view instr_name, const range& range);
 

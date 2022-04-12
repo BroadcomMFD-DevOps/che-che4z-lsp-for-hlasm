@@ -41,20 +41,20 @@ public:
 
     void add_library(std::unique_ptr<library> library);
 
-    const std::string& name() const { return pg_name_; }
+    const std::string& name() const { return m_pg_name; }
 
-    const std::vector<std::unique_ptr<library>>& libraries() const { return libs_; }
+    const std::vector<std::unique_ptr<library>>& libraries() const { return m_libs; }
 
-    const asm_option& asm_options() const { return asm_opts_; }
+    const asm_option& asm_options() const { return m_asm_opts; }
 
-    const preprocessor_options& preprocessor() const { return prep_opts_; }
+    const preprocessor_options& preprocessor() const { return m_prep_opts; }
 
 private:
-    std::vector<std::unique_ptr<library>> libs_;
-    std::string pg_name_;
-    std::string_view pg_file_name_;
-    asm_option asm_opts_;
-    preprocessor_options prep_opts_;
+    std::vector<std::unique_ptr<library>> m_libs;
+    std::string m_pg_name;
+    std::string_view m_pg_file_name;
+    asm_option m_asm_opts;
+    preprocessor_options m_prep_opts;
 
     system_architecture find_system_architecture(std::string_view arch);
     asm_option translate_assembler_options(const config::assembler_options& asm_options);

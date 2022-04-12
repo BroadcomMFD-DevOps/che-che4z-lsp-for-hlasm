@@ -73,10 +73,10 @@ processor_group::processor_group(const std::string& pg_name,
     std::string_view pg_file_name,
     const config::assembler_options& asm_options,
     const config::preprocessor_options& pp)
-    : pg_name_(pg_name)
-    , pg_file_name_(pg_file_name)
-    , asm_opts_(translate_assembler_options(asm_options))
-    , prep_opts_(std::visit(translate_pp_options {}, pp.options))
+    : m_pg_name(pg_name)
+    , m_pg_file_name(pg_file_name)
+    , m_asm_opts(translate_assembler_options(asm_options))
+    , m_prep_opts(std::visit(translate_pp_options {}, pp.options))
 {}
 
 system_architecture processor_group::find_system_architecture(std::string_view arch)
@@ -87,7 +87,7 @@ system_architecture processor_group::find_system_architecture(std::string_view a
         });
     if (it == std::end(sys_arch_translator) || it->first != arch)
     {
-        add_diagnostic(diagnostic_s::error_W0006(pg_file_name_, pg_name_));
+        add_diagnostic(diagnostic_s::error_W0006(m_pg_file_name, m_pg_name));
         return asm_option::arch_default;
     }
 
@@ -107,12 +107,12 @@ asm_option processor_group::translate_assembler_options(const config::assembler_
 
 void processor_group::collect_diags() const
 {
-    for (auto&& lib : libs_)
+    for (auto&& lib : m_libs)
     {
         collect_diags_from_child(*lib);
     }
 }
 
-void processor_group::add_library(std::unique_ptr<library> library) { libs_.push_back(std::move(library)); }
+void processor_group::add_library(std::unique_ptr<library> library) { m_libs.push_back(std::move(library)); }
 
 } // namespace hlasm_plugin::parser_library::workspaces

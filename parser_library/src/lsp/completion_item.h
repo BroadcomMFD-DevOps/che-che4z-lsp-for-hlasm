@@ -29,7 +29,7 @@ using completion_list_s = std::vector<completion_item_s>;
 // representation of completion item based on LSP
 struct completion_item_s
 {
-    // contents directly passed via the contrusctor
+    // contents directly passed via the constructor
     completion_item_s(std::string label,
         std::string detail,
         std::string insert_text,

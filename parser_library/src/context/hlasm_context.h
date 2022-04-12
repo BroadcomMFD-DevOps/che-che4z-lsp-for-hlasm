@@ -163,7 +163,7 @@ public:
     // map of all instructions
     const instruction_storage& instruction_map() const;
 
-    // Available instructions divided by their designations
+    // available instructions divided by their designations
     const instruction_sets& instruction_sets() const;
 
     // field that accessed ordinary assembly context
@@ -199,7 +199,7 @@ public:
     void remove_mnemonic(id_index mnemo);
     const opcode_map& opcode_mnemo_storage() const;
 
-    // checks wheter the symbol is an operation code (is a valid instruction or a mnemonic)
+    // checks whether the symbol is an operation code (is a valid instruction or a mnemonic)
     opcode_t get_operation_code(id_index symbol) const;
 
     // get data attribute value of variable symbol

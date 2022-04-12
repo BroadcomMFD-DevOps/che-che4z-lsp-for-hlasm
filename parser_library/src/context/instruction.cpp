@@ -23,8 +23,8 @@ using namespace hlasm_plugin::parser_library;
 
 namespace {
 // Determines in which systems is the instruction supported
-// First Byte determines instruction support since a specific iteretion of Z system
-// Other bits determing instruction support in other systems
+// First Byte determines instruction support since a specific iteration of the Z system
+// Other bits determine instruction support in other systems
 // Example: 0010 1010 0101:
 //  -   0010 xxxx xxxx -> Instruction supported on ESA systems
 //  -   xxxx 1010 xxxx -> Instruction supported on 370 systems and is also part of universal instruction set
@@ -274,7 +274,7 @@ static_assert(std::is_sorted(std::begin(ca_instructions), std::end(ca_instructio
     return l.name() < r.name();
 }));
 
-const ca_instruction* instruction_sets::find_ca_instructions(std::string_view name)
+const ca_instruction* instruction_sets::find_ca_instructions(std::string_view name) const
 {
     auto it = std::lower_bound(
         std::begin(ca_instructions), std::end(ca_instructions), name, [](const auto& l, const auto& r) {
@@ -287,7 +287,7 @@ const ca_instruction* instruction_sets::find_ca_instructions(std::string_view na
 }
 #endif
 
-const ca_instruction& instruction_sets::get_ca_instructions(std::string_view name)
+const ca_instruction& instruction_sets::get_ca_instructions(std::string_view name) const
 {
     auto result = find_ca_instructions(name);
     assert(result);
@@ -3164,7 +3164,7 @@ bool is_instruction_supported(supported_system instruction_support, system_archi
         case system_architecture::Z13:
         case system_architecture::Z14:
         case system_architecture::Z15: {
-            instruction_support = instruction_support & 0x0F; // Get the lower bytes representing Z architecture
+            instruction_support = instruction_support & 0x0F; // Get the lower bits representing the Z architecture
             return instruction_support == supported_system::NO_Z_SUPPORT ? false
                                                                          : instruction_support <= active_system_arch;
         }

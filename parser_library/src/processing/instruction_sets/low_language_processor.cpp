@@ -239,7 +239,7 @@ low_language_processor::transform_result low_language_processor::transform_mnemo
     {
         auto curr_diag = diagnostic_op::error_optional_number_of_operands(instr_name,
             curr_instr->optional_operand_count(),
-            (int)curr_instr->operands().size() - (int)replaced.size(),
+            curr_instr->operands().size() - replaced.size(),
             stmt.stmt_range_ref());
 
         add_diagnostic(curr_diag);
