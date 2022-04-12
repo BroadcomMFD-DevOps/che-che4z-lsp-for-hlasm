@@ -20,111 +20,109 @@ using namespace hlasm_plugin::parser_library;
 using namespace hlasm_plugin::parser_library::context;
 using namespace hlasm_plugin::parser_library::semantics;
 
-// tests for
-// variable substitution for model statements
-// concatenation of multiple substitutions
-// CA instructions
+// Tests for variable substitution for model statements concatenation of multiple substitutions CA instructions
+// Some inputs are deliberately not written in uppercase to also verify case-insensitivity
 
 TEST(var_subs, gbl_instr_only)
 {
-    std::string input("   GBLA VAR");
+    std::string input("   gbla var");
     analyzer a(input);
     a.analyze();
 
-    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "VAR"), 0);
+    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "var"), 0);
 }
 
 TEST(var_subs, lcl_instr_only)
 {
-    std::string input("   LCLA VAR");
+    std::string input("   lcla var");
     analyzer a(input);
     a.analyze();
 
-    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "VAR"), 0);
+    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "var"), 0);
 }
 
 TEST(var_subs, gbl_instr_more)
 {
-    std::string input("   GBLA VAR,VAR2,VAR3");
+    std::string input("   gbla var,var2,var3");
     analyzer a(input);
     a.analyze();
 
-    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "VAR"), 0);
-    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "VAR2"), 0);
-    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "VAR3"), 0);
+    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "var"), 0);
+    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "var2"), 0);
+    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "var3"), 0);
 }
 
 TEST(var_subs, lcl_instr_more)
 {
-    std::string input("   LCLA VAR,VAR2,VAR3");
+    std::string input("   lcla var,var2,var3");
     analyzer a(input);
     a.analyze();
 
-    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "VAR"), 0);
-    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "VAR2"), 0);
-    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "VAR3"), 0);
+    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "var"), 0);
+    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "var2"), 0);
+    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "var3"), 0);
 }
 
 TEST(var_subs, big_arrays)
 {
     std::string input = R"(
-    LCLC &LARR(100000000)
-    GBLC &GARR(100000000)
+    lclc &larr(100000000)
+    gblc &garr(100000000)
 )";
     analyzer a(input);
     a.analyze();
 
-    EXPECT_EQ(get_var_vector<C_t>(a.hlasm_ctx(), "LARR")->size(), 0);
-    EXPECT_EQ(get_var_vector<C_t>(a.hlasm_ctx(), "GARR")->size(), 0);
+    EXPECT_EQ(get_var_vector<C_t>(a.hlasm_ctx(), "larr")->size(), 0);
+    EXPECT_EQ(get_var_vector<C_t>(a.hlasm_ctx(), "garr")->size(), 0);
 }
 
 TEST(var_subs, set_to_var)
 {
-    std::string input("&VAR SETA 3");
+    std::string input("&var seta 3");
     analyzer a(input);
     a.analyze();
 
-    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "VAR"), 3);
+    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "var"), 3);
 }
 
 TEST(var_subs, set_to_var_idx)
 {
-    std::string input("&VAR(2) SETA 3");
+    std::string input("&var(2) seta 3");
     analyzer a(input);
     a.analyze();
 
     std::unordered_map<size_t, A_t> expected = { { 1, 3 } };
-    EXPECT_THAT(*get_var_vector_map<A_t>(a.hlasm_ctx(), "VAR"), ::testing::ContainerEq(expected));
+    EXPECT_EQ(get_var_vector_map<A_t>(a.hlasm_ctx(), "var"), expected);
 }
 
 TEST(var_subs, set_to_var_idx_many)
 {
-    std::string input("&VAR(2) SETA 3,4,5");
+    std::string input("&var(2) seta 3,4,5");
     analyzer a(input);
     a.analyze();
 
     std::unordered_map<size_t, A_t> expected = { { 1, 3 }, { 2, 4 }, { 3, 5 } };
-    EXPECT_THAT(*get_var_vector_map<A_t>(a.hlasm_ctx(), "VAR"), ::testing::ContainerEq(expected));
+    EXPECT_EQ(get_var_vector_map<A_t>(a.hlasm_ctx(), "var"), expected);
 }
 
 TEST(var_subs, var_sym_reset)
 {
     std::string input = R"(
-&VAR SETC 'avc'   
-&VAR SETC 'XXX'
+&var setc 'avc'   
+&var setc 'XXX'
 )";
     analyzer a(input);
     a.analyze();
 
-    EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "VAR"), "XXX");
+    EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "var"), "XXX");
 }
 
 TEST(var_subs, created_set_sym)
 {
     std::string input = R"(
-&VAR SETC 'avc'   
-&VAR2 SETB 0  
-&(ab&VAR.cd&VAR2) SETA 11
+&var setc 'avc'   
+&var2 setb 0  
+&(ab&var.cd&var2) seta 11
 )";
     analyzer a(input);
     a.analyze();
@@ -135,8 +133,8 @@ TEST(var_subs, created_set_sym)
 TEST(var_subs, instruction_substitution_space_at_end)
 {
     std::string input = R"(
-&VAR SETC 'LR '   
-     &VAR 1,1
+&var setc 'lr '   
+     &var 1,1
 )";
     analyzer a(input);
     a.analyze();
@@ -148,8 +146,8 @@ TEST(var_subs, instruction_substitution_space_at_end)
 TEST(var_subs, instruction_substitution_space_in_middle)
 {
     std::string input = R"(
-&VAR SETC 'LR 1,1'   
-     &VAR 
+&var setc 'lr 1,1'   
+     &var 
 )";
     analyzer a(input);
     a.analyze();
@@ -161,113 +159,113 @@ TEST(var_subs, instruction_substitution_space_in_middle)
 TEST(var_concatenation, concatenated_string_dot_last)
 {
     std::string input = R"(
-&VAR SETC 'avc'   
-&VAR2 SETC '&VAR.'
+&var setc 'avc'   
+&var2 setc '&var.'
 )";
     analyzer a(input);
     a.analyze();
 
-    EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "VAR2"), "avc");
+    EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "var2"), "avc");
 }
 
 TEST(var_concatenation, concatenated_string_dot)
 {
     std::string input = R"(
-&VAR SETC 'avc'   
-&VAR2 SETC '&VAR.-get'
+&var setc 'avc'   
+&var2 setc '&var.-get'
 )";
     analyzer a(input);
     a.analyze();
 
-    EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "VAR2"), "avc-get");
+    EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "var2"), "avc-get");
 }
 
 TEST(var_concatenation, concatenated_string_double_dot)
 {
     std::string input = R"(
-&VAR SETC 'avc'   
-&VAR2 SETC '&VAR..'
+&var setc 'avc'   
+&var2 setc '&var..'
 )";
     analyzer a(input);
     a.analyze();
 
-    EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "VAR2"), "avc.");
+    EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "var2"), "avc.");
 }
 
 TEST(AGO, extended)
 {
     std::string input(R"(
  AGO (2).a,.b,.c
-.A ANOP   
-&VAR1 SETB 0
-.B ANOP
-&VAR2 SETB 0
-.C ANOP
-&VAR3 SETB 0
+.a anop   
+&var1 setb 0
+.b anop
+&var2 setb 0
+.c anop
+&var3 setb 0
 )");
     analyzer a(input);
     a.analyze();
 
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "VAR1"), std::nullopt);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "VAR2"), false);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "VAR3"), false);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "var1"), std::nullopt);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "var2"), false);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "var3"), false);
 }
 
 TEST(AGO, extended_fail)
 {
     std::string input(R"(
  AGO (8).a,.b,.c
-.A ANOP   
-&VAR1 SETB 0
-.B ANOP
-&VAR2 SETB 0
-.C ANOP
-&VAR3 SETB 0
+.a anop   
+&var1 setb 0
+.b anop
+&var2 setb 0
+.c anop
+&var3 setb 0
 )");
     analyzer a(input);
     a.analyze();
 
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "VAR1"), false);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "VAR2"), false);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "VAR3"), false);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "var1"), false);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "var2"), false);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "var3"), false);
 }
 
 TEST(AIF, extended)
 {
     std::string input(R"(
  AIF (0).a,(1).b,(1).c
-.A ANOP   
-&VAR1 SETB 0
-.B ANOP
-&VAR2 SETB 0
-.C ANOP
-&VAR3 SETB 0
+.a anop   
+&var1 setb 0
+.b anop
+&var2 setb 0
+.c anop
+&var3 setb 0
 )");
     analyzer a(input);
     a.analyze();
 
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "VAR1"), std::nullopt);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "VAR2"), false);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "VAR3"), false);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "var1"), std::nullopt);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "var2"), false);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "var3"), false);
 }
 
 TEST(AIF, extended_fail)
 {
     std::string input(R"(
  AIF (0).a,(0).b,(0).c
-.A ANOP   
-&VAR1 SETB 0
-.B ANOP
-&VAR2 SETB 0
-.C ANOP
-&VAR3 SETB 0
+.a anop   
+&var1 setb 0
+.b anop
+&var2 setb 0
+.c anop
+&var3 setb 0
 )");
     analyzer a(input);
     a.analyze();
 
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "VAR1"), false);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "VAR2"), false);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "VAR3"), false);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "var1"), false);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "var2"), false);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "var3"), false);
 }
 
 TEST(ACTR, exceeded)
