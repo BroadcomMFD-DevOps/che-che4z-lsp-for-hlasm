@@ -17,14 +17,14 @@ parser grammar macro_operand_rules;
 
 
 mac_op returns [operand_ptr op]
-	: mac_preproc
+	: mac_preproc[true]
 	{
 		$op = std::make_unique<macro_operand_string>($mac_preproc.collected_text,provider.get_range($mac_preproc.ctx));
 	}
 	|;
 
 mac_op_o returns [operand_ptr op] 
-	: mac_entry?
+	: mac_entry[true]?
 	{
 		if($mac_entry.ctx)
 			$op = std::make_unique<macro_operand_chain>(std::move($mac_entry.chain),provider.get_range($mac_entry.ctx));
@@ -37,7 +37,7 @@ macro_ops returns [operand_list list]
 
 
 
-mac_preproc returns [std::string collected_text]
+mac_preproc [bool top_level] returns [std::string collected_text]
 	: 
 	(
 		asterisk												{$collected_text += "*";}
@@ -95,7 +95,7 @@ mac_preproc returns [std::string collected_text]
 			CONTINUATION
 		)*
 		(
-			mac_preproc											{$collected_text += $mac_preproc.collected_text;}
+			mac_preproc[false]									{$collected_text += $mac_preproc.collected_text;}
 			(
 				comma											{$collected_text += ",";}
 			)+
@@ -105,23 +105,30 @@ mac_preproc returns [std::string collected_text]
 			)?
 		)*
 		(
-			mac_preproc											{$collected_text += $mac_preproc.collected_text;}
+			mac_preproc[false]									{$collected_text += $mac_preproc.collected_text;}
 		)?
 		rpar													{$collected_text += ")";}
-		| attr													{$collected_text += "'";}
 		|
-		ap1=APOSTROPHE											{$collected_text += "'";}
 		(
-			string_ch_v											{$collected_text += $string_ch_v.text;}
+			(
+				ap1=APOSTROPHE
+				|
+				{!is_previous_attribute_consuming($top_level)}? ap1=ATTR
+			)														{$collected_text += "'";}
+			(
+				string_ch_v											{$collected_text += $string_ch_v.text;}
+				|
+				CONTINUATION
+			)*?
+			ap2=(APOSTROPHE|ATTR)									{$collected_text += "'";}
 			|
-			CONTINUATION
-		)*?
-		ap2=(APOSTROPHE|ATTR)									{$collected_text += "'";}
+			attr													{$collected_text += "'";}
+		)
 		| CONTINUATION
 	)+
 	;
 
-mac_entry returns [concat_chain chain]
+mac_entry [bool top_level = true] returns [concat_chain chain]
 	: 
 	(
 		asterisk		{$chain.push_back(std::make_unique<char_str_conc>("*", provider.get_range($asterisk.ctx)));}
@@ -174,7 +181,7 @@ mac_entry returns [concat_chain chain]
 			}
 		)*
 		(
-			mac_entry
+			mac_entry[false]
 			{
 				sublist.push_back(std::move($mac_entry.chain));
 			}
@@ -190,7 +197,7 @@ mac_entry returns [concat_chain chain]
 			}
 		)*
 		(
-			mac_entry
+			mac_entry[false]
 			{
 				sublist.push_back(std::move($mac_entry.chain));
 				pending_empty = false;
@@ -204,22 +211,29 @@ mac_entry returns [concat_chain chain]
 			$chain.push_back(std::make_unique<sublist_conc>(std::move(sublist)));
 		}
 		rpar
-		| attr		{$chain.push_back(std::make_unique<char_str_conc>("'", provider.get_range($attr.ctx)));}
 		|
-		ap1=APOSTROPHE
-		{
-			$chain.push_back(std::make_unique<char_str_conc>("'", provider.get_range($ap1)));
-		}
 		(
-			string_ch_v
+			(
+				ap1=APOSTROPHE
+				|
+				{!is_previous_attribute_consuming($top_level)}? ap1=ATTR
+			)
 			{
-				$chain.push_back(std::make_unique<char_str_conc>($string_ch_v.text, provider.get_range($string_ch_v.ctx)));
+				$chain.push_back(std::make_unique<char_str_conc>("'", provider.get_range($ap1)));
 			}
-		)*?
-		ap2=(APOSTROPHE|ATTR)
-		{
-			$chain.push_back(std::make_unique<char_str_conc>("'", provider.get_range($ap2)));
-			collector.add_hl_symbol(token_info(provider.get_range($ap1,$ap2),hl_scopes::string)); 
-		}
+			(
+				string_ch_v
+				{
+					$chain.push_back(std::make_unique<char_str_conc>($string_ch_v.text, provider.get_range($string_ch_v.ctx)));
+				}
+			)*?
+			ap2=(APOSTROPHE|ATTR)
+			{
+				$chain.push_back(std::make_unique<char_str_conc>("'", provider.get_range($ap2)));
+				collector.add_hl_symbol(token_info(provider.get_range($ap1,$ap2),hl_scopes::string)); 
+			}
+			|
+			attr		{$chain.push_back(std::make_unique<char_str_conc>("'", provider.get_range($attr.ctx)));}
+		)
 	)+
 	;
