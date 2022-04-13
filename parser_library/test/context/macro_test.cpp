@@ -754,7 +754,7 @@ TEST(macro, macro_call_reparse_range)
     a.collect_diags();
 
     ASSERT_EQ(a.diags().size(), 1U);
-    EXPECT_EQ(a.diags()[0].code, "S0003");
+    EXPECT_EQ(a.diags()[0].code, "S0011");
     EXPECT_EQ(a.diags()[0].diag_range, range({ 6, 16 }, { 6, 16 }));
 }
 
