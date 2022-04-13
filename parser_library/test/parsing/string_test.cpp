@@ -152,7 +152,7 @@ TEST(parser, preserve_structured_parameter)
      MACRO
      MAC2
      GBLC  &PAR
-&PAR SETC  '&SYSLIST(1)'
+&PAR SETC  '&SYSLIST(1,1)'
      MEND
 
      MACRO

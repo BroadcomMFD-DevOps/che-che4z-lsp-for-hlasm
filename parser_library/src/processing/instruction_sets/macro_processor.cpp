@@ -41,14 +41,15 @@ void macro_processor::process(std::shared_ptr<const processing::resolved_stateme
     hlasm_ctx.enter_macro(stmt->opcode_ref().value, std::move(args.name_param), std::move(args.symbolic_params));
 }
 
-bool is_data_def(unsigned char c)
+bool is_consuming_data_def(unsigned char c)
 {
     c = (char)toupper(c);
-    return c == 'L' || c == 'I' || c == 'S' || c == 'T' || c == 'D' || c == 'O' || c == 'N' || c == 'K';
+    return c == 'L' || c == 'I' || c == 'S' || c == 'T';
 }
 
 std::unique_ptr<context::macro_param_data_single> find_single_macro_param(const std::string& data, size_t& start)
 {
+    // always called in nested configuration
     size_t begin = start;
 
     while (true)
@@ -76,7 +77,7 @@ std::unique_ptr<context::macro_param_data_single> find_single_macro_param(const 
         }
         else if (data[start] == '\'')
         {
-            if (start > 0 && is_data_def(data[start - 1]))
+            if (start > 0 && is_consuming_data_def(data[start - 1]))
             {
                 ++start;
                 continue;
