@@ -20,12 +20,12 @@
 
 // clang-format off
 namespace {
-std::unordered_map<std::string, const std::set<system_architecture>> machine_instruction_compatibility = {
+std::unordered_map<std::string, const std::set<system_architecture>> machine_instruction_compatibility_matrix = {
 { "A", { {system_architecture::UNI }, { system_architecture::Z15 }, { system_architecture::Z14 }, { system_architecture::Z13 }, { system_architecture::Z12 }, { system_architecture::Z11 }, { system_architecture::Z10 }, { system_architecture::Z9 }, { system_architecture::YOP }, { system_architecture::ZOP }, { system_architecture::ESA }, { system_architecture::XA }, { system_architecture::_370 }, { system_architecture::DOS } } },
 { "AD", { {system_architecture::UNI }, { system_architecture::Z15 }, { system_architecture::Z14 }, { system_architecture::Z13 }, { system_architecture::Z12 }, { system_architecture::Z11 }, { system_architecture::Z10 }, { system_architecture::Z9 }, { system_architecture::YOP }, { system_architecture::ZOP }, { system_architecture::ESA }, { system_architecture::XA }, { system_architecture::_370 }, { system_architecture::DOS } } },
 { "ADB", { {system_architecture::UNI }, { system_architecture::Z15 }, { system_architecture::Z14 }, { system_architecture::Z13 }, { system_architecture::Z12 }, { system_architecture::Z11 }, { system_architecture::Z10 }, { system_architecture::Z9 }, { system_architecture::YOP }, { system_architecture::ZOP }, { system_architecture::ESA } } },
 { "ADBR", { {system_architecture::UNI }, { system_architecture::Z15 }, { system_architecture::Z14 }, { system_architecture::Z13 }, { system_architecture::Z12 }, { system_architecture::Z11 }, { system_architecture::Z10 }, { system_architecture::Z9 }, { system_architecture::YOP }, { system_architecture::ZOP }, { system_architecture::ESA } } },
-{ "ADDFRR", { {system_architecture::UNKNOWN } } },
+{ "ADDFRR", { {system_architecture::ESA }, {system_architecture::XA } } },
 { "ADR", { {system_architecture::UNI }, { system_architecture::Z15 }, { system_architecture::Z14 }, { system_architecture::Z13 }, { system_architecture::Z12 }, { system_architecture::Z11 }, { system_architecture::Z10 }, { system_architecture::Z9 }, { system_architecture::YOP }, { system_architecture::ZOP }, { system_architecture::ESA }, { system_architecture::XA }, { system_architecture::_370 }, { system_architecture::DOS } } },
 { "ADTR", { {system_architecture::UNI }, { system_architecture::Z15 }, { system_architecture::Z14 }, { system_architecture::Z13 }, { system_architecture::Z12 }, { system_architecture::Z11 }, { system_architecture::Z10 }, { system_architecture::Z9 } } },
 { "ADTRA", { {system_architecture::UNI }, { system_architecture::Z15 }, { system_architecture::Z14 }, { system_architecture::Z13 }, { system_architecture::Z12 }, { system_architecture::Z11 } } },
@@ -805,8 +805,8 @@ std::unordered_map<std::string, const std::set<system_architecture>> machine_ins
 { "PFDRL", { {system_architecture::UNI }, { system_architecture::Z15 }, { system_architecture::Z14 }, { system_architecture::Z13 }, { system_architecture::Z12 }, { system_architecture::Z11 }, { system_architecture::Z10 } } },
 { "PFMF", { {system_architecture::UNI }, { system_architecture::Z15 }, { system_architecture::Z14 }, { system_architecture::Z13 }, { system_architecture::Z12 }, { system_architecture::Z11 }, { system_architecture::Z10 } } },
 { "PFPO", { {system_architecture::UNI }, { system_architecture::Z15 }, { system_architecture::Z14 }, { system_architecture::Z13 }, { system_architecture::Z12 }, { system_architecture::Z11 }, { system_architecture::Z10 }, { system_architecture::Z9 } } },
-{ "PGIN", { {system_architecture::UNKNOWN } } },
-{ "PGOUT", { {system_architecture::UNKNOWN } } },
+{ "PGIN", { {system_architecture::UNI }, { system_architecture::Z15 }, { system_architecture::Z14 }, { system_architecture::Z13 }, { system_architecture::Z12 }, { system_architecture::Z11 }, { system_architecture::Z10 }, { system_architecture::Z9 }, { system_architecture::YOP }, { system_architecture::ZOP }, { system_architecture::ESA } } },
+{ "PGOUT", { {system_architecture::UNI }, { system_architecture::Z15 }, { system_architecture::Z14 }, { system_architecture::Z13 }, { system_architecture::Z12 }, { system_architecture::Z11 }, { system_architecture::Z10 }, { system_architecture::Z9 }, { system_architecture::YOP }, { system_architecture::ZOP }, { system_architecture::ESA } } },
 { "PKA", { {system_architecture::UNI }, { system_architecture::Z15 }, { system_architecture::Z14 }, { system_architecture::Z13 }, { system_architecture::Z12 }, { system_architecture::Z11 }, { system_architecture::Z10 }, { system_architecture::Z9 }, { system_architecture::YOP }, { system_architecture::ZOP } } },
 { "PKU", { {system_architecture::UNI }, { system_architecture::Z15 }, { system_architecture::Z14 }, { system_architecture::Z13 }, { system_architecture::Z12 }, { system_architecture::Z11 }, { system_architecture::Z10 }, { system_architecture::Z9 }, { system_architecture::YOP }, { system_architecture::ZOP } } },
 { "PLO", { {system_architecture::UNI }, { system_architecture::Z15 }, { system_architecture::Z14 }, { system_architecture::Z13 }, { system_architecture::Z12 }, { system_architecture::Z11 }, { system_architecture::Z10 }, { system_architecture::Z9 }, { system_architecture::YOP }, { system_architecture::ZOP }, { system_architecture::ESA } } },
@@ -1372,7 +1372,7 @@ std::unordered_map<std::string, const std::set<system_architecture>> machine_ins
 { "ZAP", { {system_architecture::UNI }, { system_architecture::Z15 }, { system_architecture::Z14 }, { system_architecture::Z13 }, { system_architecture::Z12 }, { system_architecture::Z11 }, { system_architecture::Z10 }, { system_architecture::Z9 }, { system_architecture::YOP }, { system_architecture::ZOP }, { system_architecture::ESA }, { system_architecture::XA }, { system_architecture::_370 }, { system_architecture::DOS } } },
 };
 
-std::unordered_map<std::string, const std::set<system_architecture>> mnemonics_compatibility = {
+std::unordered_map<std::string, const std::set<system_architecture>> mnemonics_compatibility_matrix = {
 { "B", { {system_architecture::UNI }, { system_architecture::Z15 }, { system_architecture::Z14 }, { system_architecture::Z13 }, { system_architecture::Z12 }, { system_architecture::Z11 }, { system_architecture::Z10 }, { system_architecture::Z9 }, { system_architecture::YOP }, { system_architecture::ZOP }, { system_architecture::ESA }, { system_architecture::XA }, { system_architecture::_370 }, { system_architecture::DOS } } },
 { "BE", { {system_architecture::UNI }, { system_architecture::Z15 }, { system_architecture::Z14 }, { system_architecture::Z13 }, { system_architecture::Z12 }, { system_architecture::Z11 }, { system_architecture::Z10 }, { system_architecture::Z9 }, { system_architecture::YOP }, { system_architecture::ZOP }, { system_architecture::ESA }, { system_architecture::XA }, { system_architecture::_370 }, { system_architecture::DOS } } },
 { "BER", { {system_architecture::UNI }, { system_architecture::Z15 }, { system_architecture::Z14 }, { system_architecture::Z13 }, { system_architecture::Z12 }, { system_architecture::Z11 }, { system_architecture::Z10 }, { system_architecture::Z9 }, { system_architecture::YOP }, { system_architecture::ZOP }, { system_architecture::ESA }, { system_architecture::XA }, { system_architecture::_370 }, { system_architecture::DOS } } },
@@ -1923,8 +1923,8 @@ std::unordered_map<std::string, const std::set<system_architecture>> mnemonics_c
 { "VFEEBS", { {system_architecture::UNI }, { system_architecture::Z15 }, { system_architecture::Z14 }, { system_architecture::Z13 } } },
 { "VFEEF", { {system_architecture::UNI }, { system_architecture::Z15 }, { system_architecture::Z14 }, { system_architecture::Z13 } } },
 { "VFEEFS", { {system_architecture::UNI }, { system_architecture::Z15 }, { system_architecture::Z14 }, { system_architecture::Z13 } } },
-{ "VFEEGS", { {system_architecture::UNKNOWN } } },
 { "VFEEH", { {system_architecture::UNI }, { system_architecture::Z15 }, { system_architecture::Z14 }, { system_architecture::Z13 } } },
+{ "VFEEHS", { {system_architecture::UNI }, { system_architecture::Z15 }, { system_architecture::Z14 }, { system_architecture::Z13 } } },
 { "VFEEZB", { {system_architecture::UNI }, { system_architecture::Z15 }, { system_architecture::Z14 }, { system_architecture::Z13 } } },
 { "VFEEZBS", { {system_architecture::UNI }, { system_architecture::Z15 }, { system_architecture::Z14 }, { system_architecture::Z13 } } },
 { "VFEEZF", { {system_architecture::UNI }, { system_architecture::Z15 }, { system_architecture::Z14 }, { system_architecture::Z13 } } },
@@ -2195,7 +2195,7 @@ std::unordered_map<std::string, const std::set<system_architecture>> mnemonics_c
 { "VUPLF", { {system_architecture::UNI }, { system_architecture::Z15 }, { system_architecture::Z14 }, { system_architecture::Z13 } } },
 { "VUPLHB", { {system_architecture::UNI }, { system_architecture::Z15 }, { system_architecture::Z14 }, { system_architecture::Z13 } } },
 { "VUPLHF", { {system_architecture::UNI }, { system_architecture::Z15 }, { system_architecture::Z14 }, { system_architecture::Z13 } } },
-{ "VUPLHG", { {system_architecture::UNKNOWN } } },
+{ "VUPLHH", { {system_architecture::UNI }, { system_architecture::Z15 }, { system_architecture::Z14 }, { system_architecture::Z13 } } },
 { "VUPLHW", { {system_architecture::UNI }, { system_architecture::Z15 }, { system_architecture::Z14 }, { system_architecture::Z13 } } },
 { "VUPLLB", { {system_architecture::UNI }, { system_architecture::Z15 }, { system_architecture::Z14 }, { system_architecture::Z13 } } },
 { "VUPLLF", { {system_architecture::UNI }, { system_architecture::Z15 }, { system_architecture::Z14 }, { system_architecture::Z13 } } },
@@ -2351,106 +2351,49 @@ INSTANTIATE_TEST_SUITE_P(instruction_test,
         instruction_sets_compatibility_params::set_arch(system_architecture::XA),
         instruction_sets_compatibility_params::set_arch(system_architecture::ESA)));
 
+namespace {
+template<typename INSTRUCTION_SET, typename COMPATIBILITY_MATRIX>
+void check_instruction_compatibility(
+    INSTRUCTION_SET instructions, COMPATIBILITY_MATRIX instruction_matrix, system_architecture arch)
+{
+    for (const auto& instruction : instructions)
+    {
+        auto it = instruction_matrix.find(std::string(instruction.get().name()));
+        ASSERT_FALSE(it == instruction_matrix.end()) << std::string(instruction.get().name());
+        EXPECT_FALSE(it->second.find(arch) == it->second.end()) << std::string(instruction.get().name());
+    }
+
+    size_t count = 0;
+    for (const auto& instruction : instruction_matrix)
+    {
+        if (instruction.second.find(arch) != instruction.second.end())
+        {
+            count++;
+        }
+    }
+
+    EXPECT_EQ(count, instructions.size());
+}
+} // namespace
+
 TEST_P(instruction_sets_fixture, machine_instructions)
 {
     system_architecture arch = GetParam().arch;
-    system_architecture arch_unknown = system_architecture::UNKNOWN;
 
     instruction_sets instructions = instruction_sets(arch);
     const auto& mi_instructions = instructions.all_machine_instructions();
 
-    for (const auto& instruction : mi_instructions)
-    {
-        auto it = machine_instruction_compatibility.find(std::string(instruction.get().name()));
-
-        if (it == machine_instruction_compatibility.end())
-        {
-            ASSERT_TRUE(false);
-        }
-
-        if (it->second.find(arch) == it->second.end() && it->second.find(arch_unknown) == it->second.end())
-        {
-            ASSERT_TRUE(false);
-        }
-    }
-
-    size_t count = 0;
-    for (const auto& instruction : machine_instruction_compatibility)
-    {
-        if (instruction.second.find(arch) != instruction.second.end()
-            || (instruction.second.find(arch_unknown) != instruction.second.end()))
-        {
-            count++;
-        }
-    }
-
-    EXPECT_EQ(count, mi_instructions.size());
-
-    if (count != mi_instructions.size())
-    {
-        for (const auto& item : mi_instructions)
-        {
-            EXPECT_TRUE(0) << item.get().name();
-        }
-
-        for (const auto& item : machine_instruction_compatibility)
-        {
-            if (item.second.find(arch) != item.second.end()
-                || item.second.find(system_architecture::UNKNOWN) != item.second.end())
-                EXPECT_TRUE(0) << item.first;
-        }
-    }
+    check_instruction_compatibility(mi_instructions, machine_instruction_compatibility_matrix, arch);
 }
 
-TEST_P(instruction_sets_fixture, mnemonics)
+TEST_P(instruction_sets_fixture, mnemonic_codes)
 {
     system_architecture arch = GetParam().arch;
-    system_architecture arch_unknown = system_architecture::UNKNOWN;
 
     instruction_sets instructions = instruction_sets(arch);
     const auto& mnemonics = instructions.all_mnemonic_codes();
 
-    for (const auto& mnemonic : mnemonics)
-    {
-        auto it = mnemonics_compatibility.find(std::string(mnemonic.get().name()));
-
-        if (it == mnemonics_compatibility.end())
-        {
-            ASSERT_TRUE(false);
-        }
-
-        if (it->second.find(arch) == it->second.end() && it->second.find(arch_unknown) == it->second.end())
-        {
-            ASSERT_TRUE(false);
-        }
-    }
-
-    size_t count = 0;
-    for (const auto& mnemonic : mnemonics_compatibility)
-    {
-        if (mnemonic.second.find(arch) != mnemonic.second.end()
-            || (mnemonic.second.find(arch_unknown) != mnemonic.second.end()))
-        {
-            count++;
-        }
-    }
-
-    EXPECT_EQ(count, mnemonics.size());
-
-    if (count != mnemonics.size())
-    {
-        for (const auto& item : mnemonics)
-        {
-            EXPECT_TRUE(0) << item.get().name();
-        }
-
-        for (const auto& item : mnemonics_compatibility)
-        {
-            if (item.second.find(arch) != item.second.end()
-                || item.second.find(system_architecture::UNKNOWN) != item.second.end())
-                EXPECT_TRUE(0) << item.first;
-        }
-    }
+    check_instruction_compatibility(mnemonics, mnemonics_compatibility_matrix, arch);
 }
 
 namespace {
@@ -2461,7 +2404,7 @@ struct test_case
 };
 } // namespace
 
-TEST_F(instruction_sets_fixture, macro_mi_same_name_inline_definition)
+TEST_F(instruction_sets_fixture, identical_macro_name_inline_definition)
 {
     std::string input = R"(
         MACRO
@@ -2488,7 +2431,7 @@ TEST_F(instruction_sets_fixture, macro_mi_same_name_inline_definition)
     }
 }
 
-TEST_F(instruction_sets_fixture, macro_mi_same_name_linked_definition)
+TEST_F(instruction_sets_fixture, identical_macro_name_linked_definition)
 {
     std::string input = R"(
         GBLA &VAR
@@ -2519,7 +2462,7 @@ TEST_F(instruction_sets_fixture, macro_mi_same_name_linked_definition)
     }
 }
 
-TEST_F(instruction_sets_fixture, macro_mi_same_name_inline_and_linked_definition)
+TEST_F(instruction_sets_fixture,identical_macro_name_inline_and_linked_definition)
 {
     std::string input = R"(
         MACRO

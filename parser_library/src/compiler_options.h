@@ -31,12 +31,11 @@ enum class system_architecture
     Z13,
     Z14,
     Z15,
-    UNI,
-    DOS,
-    _370,
-    XA,
     ESA,
-    UNKNOWN // todo rename to general?
+    XA,
+    _370,
+    DOS,
+    UNI
 };
 
 struct asm_option

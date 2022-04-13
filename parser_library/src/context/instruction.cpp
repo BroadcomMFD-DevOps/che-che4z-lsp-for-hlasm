@@ -41,12 +41,11 @@ enum class supported_system
     SINCE_Z13,
     SINCE_Z14,
     SINCE_Z15,
-    UNI = 1 << 5,
-    DOS = 1 << 6,
+    ESA = 1 << 5,
+    XA = 1 << 6,
     _370 = 1 << 7,
-    XA = 1 << 8,
-    ESA = 1 << 9,
-    UNKNOWN = 1 << 10
+    DOS = 1 << 8,
+    UNI = 1 << 9
 };
 
 constexpr supported_system operator|(supported_system a, supported_system b)
@@ -568,7 +567,7 @@ constexpr std::pair<machine_instruction, supported_system> machine_instructions[
     { { "AD", RX_a_2_ux }, { supported_system::UNI | supported_system::ESA | supported_system::XA | supported_system::_370 | supported_system::DOS | supported_system::SINCE_ZOP } }, 
     { { "ADB", RXE_2 }, { supported_system::UNI | supported_system::ESA | supported_system::SINCE_ZOP } }, 
     { { "ADBR", RRE_2 }, { supported_system::UNI | supported_system::ESA | supported_system::SINCE_ZOP } }, 
-    { { "ADDFRR", RRE_2 }, { supported_system::UNKNOWN } }, 
+    { { "ADDFRR", RRE_2 }, { supported_system::ESA | supported_system::XA } }, 
     { { "ADR", RR_2 }, { supported_system::UNI | supported_system::ESA | supported_system::XA | supported_system::_370 | supported_system::DOS | supported_system::SINCE_ZOP } }, 
     { { "ADTR", RRF_a_3 }, { supported_system::UNI | supported_system::SINCE_Z9 } }, 
     { { "ADTRA", RRF_a_4 }, { supported_system::UNI | supported_system::SINCE_Z11 } }, 
@@ -1348,8 +1347,8 @@ constexpr std::pair<machine_instruction, supported_system> machine_instructions[
     { { "PFDRL", RIL_c_2 }, { supported_system::UNI | supported_system::SINCE_Z10 } }, 
     { { "PFMF", RRE_2 }, { supported_system::UNI | supported_system::SINCE_Z10 } }, 
     { { "PFPO", E_0 }, { supported_system::UNI | supported_system::SINCE_Z9 } }, 
-    { { "PGIN", RRE_2 }, { supported_system::UNKNOWN } }, 
-    { { "PGOUT", RRE_2 }, { supported_system::UNKNOWN } }, 
+    { { "PGIN", RRE_2 }, { supported_system::UNI | supported_system::ESA | supported_system::SINCE_ZOP } }, 
+    { { "PGOUT", RRE_2 }, { supported_system::UNI | supported_system::ESA | supported_system::SINCE_ZOP } }, 
     { { "PKA", SS_f_2 }, { supported_system::UNI | supported_system::SINCE_ZOP } }, 
     { { "PKU", SS_f_2 }, { supported_system::UNI | supported_system::SINCE_ZOP } }, 
     { { "PLO", SS_e_4_br }, { supported_system::UNI | supported_system::ESA | supported_system::SINCE_ZOP } }, 
@@ -2699,8 +2698,8 @@ constexpr std::pair<mnemonic_code, supported_system> mnemonic_codes[] = {
     { { "VFEEBS", mi_VFEE, { { 3, 0 }, { 4, 1 } } }, { supported_system::UNI | supported_system::SINCE_Z13 } }, 
     { { "VFEEF", mi_VFEE, { { 3, 2 } } }, { supported_system::UNI | supported_system::SINCE_Z13 } }, 
     { { "VFEEFS", mi_VFEE, { { 3, 2 }, { 4, 1 } } }, { supported_system::UNI | supported_system::SINCE_Z13 } }, 
-    { { "VFEEGS", mi_VFEE, { { 3, 1 }, { 4, 1 } } }, { supported_system::UNKNOWN } }, 
     { { "VFEEH", mi_VFEE, { { 3, 1 } } }, { supported_system::UNI | supported_system::SINCE_Z13 } }, 
+    { { "VFEEHS", mi_VFEE, { { 3, 1 } } }, { supported_system::UNI | supported_system::SINCE_Z13 } }, 
     { { "VFEEZB", mi_VFEE, { { 3, 0 }, { 4, 2 } } }, { supported_system::UNI | supported_system::SINCE_Z13 } }, 
     { { "VFEEZBS", mi_VFEE, { { 3, 0 }, { 4, 3 } } }, { supported_system::UNI | supported_system::SINCE_Z13 } }, 
     { { "VFEEZF", mi_VFEE, { { 3, 2 }, { 4, 2 } } }, { supported_system::UNI | supported_system::SINCE_Z13 } }, 
@@ -2971,7 +2970,7 @@ constexpr std::pair<mnemonic_code, supported_system> mnemonic_codes[] = {
     { { "VUPLF", mi_VUPL, { { 2, 2 } } }, { supported_system::UNI | supported_system::SINCE_Z13 } }, 
     { { "VUPLHB", mi_VUPLH, { { 2, 0 } } }, { supported_system::UNI | supported_system::SINCE_Z13 } }, 
     { { "VUPLHF", mi_VUPLH, { { 2, 2 } } }, { supported_system::UNI | supported_system::SINCE_Z13 } }, 
-    { { "VUPLHG", mi_VUPLH, { { 2, 1 } } }, { supported_system::UNKNOWN } }, 
+    { { "VUPLHH", mi_VUPLH, { { 2, 1 } } }, { supported_system::UNI | supported_system::SINCE_Z13 } }, 
     { { "VUPLHW", mi_VUPL, { { 2, 1 } } }, { supported_system::UNI | supported_system::SINCE_Z13 } }, 
     { { "VUPLLB", mi_VUPLL, { { 2, 0 } } }, { supported_system::UNI | supported_system::SINCE_Z13 } }, 
     { { "VUPLLF", mi_VUPLL, { { 2, 2 } } }, { supported_system::UNI | supported_system::SINCE_Z13 } }, 
@@ -3133,11 +3132,6 @@ std::span<const std::reference_wrapper<const mnemonic_code>> instruction_sets::a
 namespace {
 bool is_instruction_supported(supported_system instruction_support, system_architecture active_system_arch)
 {
-    if ((instruction_support & supported_system::UNKNOWN) == supported_system::UNKNOWN)
-    {
-        return true;
-    }
-
     switch (active_system_arch)
     {
         case system_architecture::UNI: {
