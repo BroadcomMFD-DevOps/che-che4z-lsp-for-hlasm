@@ -34,22 +34,22 @@ const code_scope* hlasm_context::curr_scope() const { return &scope_stack_.back(
 hlasm_context::instruction_storage hlasm_context::init_instruction_map(id_storage& ids)
 {
     hlasm_context::instruction_storage instr_map;
-    for (const auto& instr_ref : instruction_sets().all_machine_instructions())
+    for (const auto& instr_ref : get_instruction_sets().all_machine_instructions())
     {
         auto id = ids.add(std::string(instr_ref.get().name()));
         instr_map.emplace(id, &instr_ref.get());
     }
-    for (const auto& instr : instruction_sets().all_assembler_instructions())
+    for (const auto& instr : get_instruction_sets().all_assembler_instructions())
     {
         auto id = ids.add(std::string(instr.name()));
         instr_map.emplace(id, &instr);
     }
-    for (const auto& instr : instruction_sets().all_ca_instructions())
+    for (const auto& instr : get_instruction_sets().all_ca_instructions())
     {
         auto id = ids.add(std::string(instr.name()));
         instr_map.emplace(id, &instr);
     }
-    for (const auto& instr_ref : instruction_sets().all_mnemonic_codes())
+    for (const auto& instr_ref : get_instruction_sets().all_mnemonic_codes())
     {
         auto id = ids.add(std::string(instr_ref.get().name()));
         instr_map.emplace(id, &instr_ref.get());
@@ -407,9 +407,9 @@ id_storage& hlasm_context::ids() { return *ids_; }
 
 std::shared_ptr<id_storage> hlasm_context::ids_ptr() { return ids_; }
 
-const hlasm_context::instruction_storage& hlasm_context::instruction_map() const { return m_instruction_map; }
+const hlasm_context::instruction_storage& hlasm_context::get_instruction_map() const { return m_instruction_map; }
 
-const instruction_sets& hlasm_context::instruction_sets() const
+const instruction_sets& hlasm_context::get_instruction_sets() const
 {
     assert(m_instruction_sets);
     return *m_instruction_sets;

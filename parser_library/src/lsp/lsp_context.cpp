@@ -507,7 +507,7 @@ void lsp_context::add_file(file_info file_i)
 
 lsp_context::lsp_context(std::shared_ptr<context::hlasm_context> h_ctx)
     : m_hlasm_ctx(std::move(h_ctx))
-    , m_instr_completions_items(instruction_completion_items(m_hlasm_ctx->instruction_map()))
+    , m_instr_completions_items(instruction_completion_items(m_hlasm_ctx->get_instruction_map()))
 {}
 
 void lsp_context::add_copy(context::copy_member_ptr copy, text_data_ref_t text_data)

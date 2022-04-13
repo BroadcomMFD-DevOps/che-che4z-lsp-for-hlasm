@@ -259,7 +259,7 @@ void lookahead_processor::assign_section_attributes(context::id_index symbol_nam
 
 void lookahead_processor::assign_machine_attributes(context::id_index symbol_name, const resolved_statement& statement)
 {
-    const auto& instr = [&instructions = hlasm_ctx.instruction_sets()](const std::string& opcode) {
+    const auto& instr = [&instructions = hlasm_ctx.get_instruction_sets()](const std::string& opcode) {
         if (auto mnemonic = instructions.find_mnemonic_codes(opcode))
             return *mnemonic->instruction();
         else

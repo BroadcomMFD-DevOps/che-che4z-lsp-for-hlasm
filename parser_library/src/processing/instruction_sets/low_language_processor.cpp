@@ -225,7 +225,7 @@ low_language_processor::transform_result low_language_processor::transform_mnemo
     // the name of the instruction (mnemonic) obtained from the user
     const auto& instr_name = *stmt.opcode_ref().value;
     // the associated mnemonic structure with the given name
-    const auto& mnemonic = hlasm_ctx.instruction_sets().get_mnemonic_codes(instr_name);
+    const auto& mnemonic = hlasm_ctx.get_instruction_sets().get_mnemonic_codes(instr_name);
     // the machine instruction structure associated with the given instruction name
     auto curr_instr = mnemonic.instruction();
 
@@ -319,7 +319,7 @@ checking::check_op_ptr low_language_processor::get_check_op(const semantics::ope
 
     const auto& ev_op = dynamic_cast<const semantics::evaluable_operand&>(*op);
 
-    auto tmp = hlasm_ctx.instruction_sets().find_assembler_instructions(*stmt.opcode_ref().value);
+    auto tmp = hlasm_ctx.get_instruction_sets().find_assembler_instructions(*stmt.opcode_ref().value);
     const bool can_have_ord_syms = tmp ? tmp->has_ord_symbols() : true;
     const bool postpone_dependencies = tmp ? tmp->postpone_dependencies() : false;
 
@@ -339,8 +339,9 @@ checking::check_op_ptr low_language_processor::get_check_op(const semantics::ope
         // TODO: this is less than ideal, we should probably create operand structures
         // with the correct "type" while parsing and reject incompatible arguments
         // early when the syntax is incompatible
-        const auto* instr = mnemonic ? mnemonic->instruction()
-                                     : &hlasm_ctx.instruction_sets().get_machine_instructions(*stmt.opcode_ref().value);
+        const auto* instr = mnemonic
+            ? mnemonic->instruction()
+            : &hlasm_ctx.get_instruction_sets().get_machine_instructions(*stmt.opcode_ref().value);
         if (op_position < instr->operands().size())
         {
             uniq = mach_op->get_operand_value(dep_solver, instr->operands()[op_position], diags);
@@ -373,7 +374,7 @@ bool low_language_processor::check(const resolved_statement& stmt,
 
     std::string_view instruction_name = *stmt.opcode_ref().value;
 
-    if (auto mnem_tmp = hlasm_ctx.instruction_sets().find_mnemonic_codes(instruction_name))
+    if (auto mnem_tmp = hlasm_ctx.get_instruction_sets().find_mnemonic_codes(instruction_name))
     {
         operand_vector = transform_mnemonic(stmt, dep_solver, collector);
     }

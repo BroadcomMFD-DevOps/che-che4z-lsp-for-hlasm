@@ -38,7 +38,7 @@ void mach_processor::process(std::shared_ptr<const processing::resolved_statemen
 
     auto loctr = hlasm_ctx.ord_ctx.align(context::halfword);
 
-    const auto& mach_instr = [&instructions = hlasm_ctx.instruction_sets()](const std::string& name) {
+    const auto& mach_instr = [&instructions = hlasm_ctx.get_instruction_sets()](const std::string& name) {
         if (auto mnemonic = instructions.find_mnemonic_codes(name))
             return *mnemonic->instruction();
         else

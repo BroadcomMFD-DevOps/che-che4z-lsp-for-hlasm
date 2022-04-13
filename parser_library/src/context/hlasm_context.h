@@ -161,10 +161,10 @@ public:
     std::shared_ptr<id_storage> ids_ptr();
 
     // map of all instructions
-    const instruction_storage& instruction_map() const;
+    const instruction_storage& get_instruction_map() const;
 
     // available instructions divided by their designations
-    const instruction_sets& instruction_sets() const;
+    const instruction_sets& get_instruction_sets() const;
 
     // field that accessed ordinary assembly context
     ordinary_assembly_context ord_ctx;
