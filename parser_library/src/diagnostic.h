@@ -815,7 +815,7 @@ public:
 
     static diagnostic_s error_W0006(std::string_view file_name, std::string_view proc_group);
 
-    static diagnostic_s error_W006(std::string_view file_name, std::string_view proc_group);
+    static diagnostic_s error_W0007(std::string_view file_name, std::string_view proc_group);
 
     /*
     E01x - wrong format

@@ -2462,7 +2462,7 @@ TEST_F(instruction_sets_fixture, identical_macro_name_linked_definition)
     }
 }
 
-TEST_F(instruction_sets_fixture,identical_macro_name_inline_and_linked_definition)
+TEST_F(instruction_sets_fixture, identical_macro_name_inline_and_linked_definition)
 {
     std::string input = R"(
         MACRO

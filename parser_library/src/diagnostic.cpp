@@ -55,7 +55,7 @@ std::string concat(Args&&... args)
 
 // diagnostic_op errors
 
-// asembler instruction errors
+// assembler instruction errors
 
 diagnostic_op diagnostic_op::error_I999(std::string_view instr_name, const range& range)
 {
@@ -506,7 +506,7 @@ diagnostic_op diagnostic_op::error_A133_EQU_len_att_format(const range& range)
     return diagnostic_op(diagnostic_severity::error,
         "A133",
         "Error at EQU instruction: operand representing length attribute value must either be an absolute value in the "
-        "range 0 throught 65535 or must be omitted",
+        "range 0 through 65535 or must be omitted",
         range);
 }
 
@@ -515,7 +515,7 @@ diagnostic_op diagnostic_op::error_A134_EQU_type_att_format(const range& range)
     return diagnostic_op(diagnostic_severity::error,
         "A134",
         "Error at EQU instruction: operand representing type attribute value must either be an absolute value in the "
-        "range 0 throught 255 or must be omitted",
+        "range 0 through 255 or must be omitted",
         range);
 }
 
@@ -1243,7 +1243,7 @@ diagnostic_op diagnostic_op::warning_A243_END_expr_format(const range& range)
 {
     return diagnostic_op(diagnostic_severity::warning,
         "A243",
-        "First operand must either be an expresison or the operand must be omitted",
+        "First operand must either be an expression or the operand must be omitted",
         range);
 }
 
@@ -1903,7 +1903,7 @@ diagnostic_op diagnostic_op::error_E033(const range& range)
 
 diagnostic_op diagnostic_op::error_E042(const range& range)
 {
-    return diagnostic_op(diagnostic_severity::error, "E042", "Macro name ommited - ASPACE instead", range);
+    return diagnostic_op(diagnostic_severity::error, "E042", "Macro name omitted - ASPACE instead", range);
 }
 
 diagnostic_op diagnostic_op::error_E043(const range& range)
@@ -2067,7 +2067,7 @@ diagnostic_op diagnostic_op::error_E071(const range& range)
 
 diagnostic_op diagnostic_op::error_E072(const range& range)
 {
-    return diagnostic_op(diagnostic_severity::error, "E072", "SYSNDX limit reached, macro call supressed.", range);
+    return diagnostic_op(diagnostic_severity::error, "E072", "SYSNDX limit reached, macro call suppressed.", range);
 }
 
 diagnostic_op diagnostic_op::error_E073(const range& range)
@@ -2459,6 +2459,16 @@ diagnostic_s diagnostic_s::error_W0006(std::string_view file_name, std::string_v
         {},
         diagnostic_severity::warning,
         "W0006",
+        concat("The processor group '", proc_group, "' from '", file_name, "' defines invalid preprocessor options."),
+        {});
+}
+
+diagnostic_s diagnostic_s::error_W0007(std::string_view file_name, std::string_view proc_group)
+{
+    return diagnostic_s(std::string(file_name),
+        {},
+        diagnostic_severity::warning,
+        "W0007",
         concat("The processor group '",
             proc_group,
             "' from '",

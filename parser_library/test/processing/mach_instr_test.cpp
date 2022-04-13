@@ -261,8 +261,7 @@ TEST(mach_instr_processing, instr_size)
          })
     {
         context::instruction_sets instructions(system_architecture::UNI);
-        EXPECT_EQ(processing::processing_status_cache_key::generate_loctr_len(&instr, instructions), expected)
-            << instr;
+        EXPECT_EQ(processing::processing_status_cache_key::generate_loctr_len(&instr, instructions), expected) << instr;
     }
 }
 

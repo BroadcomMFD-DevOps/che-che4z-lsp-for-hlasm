@@ -21,10 +21,10 @@
 using namespace hlasm_plugin::parser_library;
 using namespace hlasm_plugin::parser_library::workspaces;
 
-auto asm_options(config::assembler_options o) { return processor_group("", std::move(o), {}).asm_options(); }
+auto asm_options(config::assembler_options o) { return processor_group("", "", std::move(o), {}).asm_options(); }
 auto pp_options(decltype(config::preprocessor_options::options) o)
 {
-    return processor_group("", {}, config::preprocessor_options { .options = std::move(o) }).preprocessor();
+    return processor_group("", "", {}, config::preprocessor_options { .options = std::move(o) }).preprocessor();
 }
 
 TEST(processor_group, assembler_options)
@@ -37,7 +37,7 @@ TEST(processor_group, assembler_options)
 }
 
 TEST(processor_group, preprocessor_options)
-    {
+{
     constexpr auto cics = [](auto... p) { return preprocessor_options(cics_preprocessor_options(std::move(p)...)); };
     constexpr auto db2 = [](auto... p) { return preprocessor_options(db2_preprocessor_options(std::move(p)...)); };
 
