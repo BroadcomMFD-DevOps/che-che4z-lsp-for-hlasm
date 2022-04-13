@@ -203,13 +203,13 @@ op_rem_body_alt_mac returns [op_rem line]
 	(
 		(
 			mac_op
+			comma
 			{
 				if ($mac_op.ctx && $mac_op.op)
 					$line.operands.push_back(std::move($mac_op.op));
 				else
 					$line.operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range($comma.ctx->getStart())));
 			}
-			comma
 		)+
 		r1=remark_o
 		{
@@ -219,20 +219,20 @@ op_rem_body_alt_mac returns [op_rem line]
 	)*
 	(
 		mac_op
+		comma
 		{
 			if ($mac_op.ctx && $mac_op.op)
 				$line.operands.push_back(std::move($mac_op.op));
 			else
 				$line.operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range($comma.ctx->getStart())));
 		}
-		comma
 	)*
 	mac_op
 	{
 		if ($mac_op.ctx && $mac_op.op)
 			$line.operands.push_back(std::move($mac_op.op));
 		else
-			$line.operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range($comma.ctx->getStart())));
+			$line.operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range($mac_op.ctx->getStart())));
 	}
 	last_remark=remark_o
 	{

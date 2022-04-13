@@ -211,9 +211,8 @@ bool parser_impl::ALIAS()
     return opcode.type == instruction_type::ASM && opcode.value == hlasm_ctx->ids().well_known.ALIAS;
 }
 
-bool parser_impl::is_previous_attribute_consuming(bool top_level)
+bool parser_impl::is_previous_attribute_consuming(bool top_level, antlr4::Token* token)
 {
-    auto token = input.LT(-1);
     if (!token)
         return false;
 

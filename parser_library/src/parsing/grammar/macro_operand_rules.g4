@@ -109,21 +109,24 @@ mac_preproc [bool top_level] returns [std::string collected_text]
 		)?
 		rpar													{$collected_text += ")";}
 		|
+		ap1=APOSTROPHE											{$collected_text += "'";}
 		(
+			string_ch_v											{$collected_text += $string_ch_v.text;}
+			|
+			CONTINUATION
+		)*?
+		ap2=(APOSTROPHE|ATTR)									{$collected_text += "'";}
+		|
+		attr													{$collected_text += "'";}
+		(
+			{!is_previous_attribute_consuming($top_level, _input->LT(-2))}?
 			(
-				ap1=APOSTROPHE
-				|
-				{!is_previous_attribute_consuming($top_level)}? ap1=ATTR
-			)														{$collected_text += "'";}
-			(
-				string_ch_v											{$collected_text += $string_ch_v.text;}
+				string_ch_v									{$collected_text += $string_ch_v.text;}
 				|
 				CONTINUATION
 			)*?
-			ap2=(APOSTROPHE|ATTR)									{$collected_text += "'";}
-			|
-			attr													{$collected_text += "'";}
-		)
+			ap2=(APOSTROPHE|ATTR)							{$collected_text += "'";}
+		)?
 		| CONTINUATION
 	)+
 	;
@@ -212,15 +215,29 @@ mac_entry [bool top_level = true] returns [concat_chain chain]
 		}
 		rpar
 		|
+		ap1=APOSTROPHE
+		{
+			$chain.push_back(std::make_unique<char_str_conc>("'", provider.get_range($ap1)));
+		}
 		(
-			(
-				ap1=APOSTROPHE
-				|
-				{!is_previous_attribute_consuming($top_level)}? ap1=ATTR
-			)
+			string_ch_v
 			{
-				$chain.push_back(std::make_unique<char_str_conc>("'", provider.get_range($ap1)));
+				$chain.push_back(std::make_unique<char_str_conc>($string_ch_v.text, provider.get_range($string_ch_v.ctx)));
 			}
+		)*?
+		ap2=(APOSTROPHE|ATTR)
+		{
+			$chain.push_back(std::make_unique<char_str_conc>("'", provider.get_range($ap2)));
+			collector.add_hl_symbol(token_info(provider.get_range($ap1,$ap2),hl_scopes::string));
+		}
+		|
+		ap1=ATTR
+		{
+			$chain.push_back(std::make_unique<char_str_conc>("'", provider.get_range($ap1)));
+			bool attribute = true;
+		}
+		(
+			{!is_previous_attribute_consuming($top_level, _input->LT(-2))}?
 			(
 				string_ch_v
 				{
@@ -230,10 +247,13 @@ mac_entry [bool top_level = true] returns [concat_chain chain]
 			ap2=(APOSTROPHE|ATTR)
 			{
 				$chain.push_back(std::make_unique<char_str_conc>("'", provider.get_range($ap2)));
-				collector.add_hl_symbol(token_info(provider.get_range($ap1,$ap2),hl_scopes::string)); 
+				collector.add_hl_symbol(token_info(provider.get_range($ap1,$ap2),hl_scopes::string));
+				attribute = false;
 			}
-			|
-			attr		{$chain.push_back(std::make_unique<char_str_conc>("'", provider.get_range($attr.ctx)));}
-		)
+		)?
+		{
+			if (attribute)
+				collector.add_hl_symbol(token_info(provider.get_range($ap1),hl_scopes::operator_symbol));
+		}
 	)+
 	;
