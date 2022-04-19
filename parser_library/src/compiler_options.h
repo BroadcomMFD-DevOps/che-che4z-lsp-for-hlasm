@@ -16,28 +16,11 @@
 #define HLASMPARSER_PARSERLIBRARY_COMPILER_OPTIONS_H
 
 #include <string>
+#include <system_architecture.h>
 
 // This file contains assembler compiler options definitions.
 
 namespace hlasm_plugin::parser_library {
-enum class system_architecture
-{
-    ZOP = 1,
-    YOP,
-    Z9,
-    Z10,
-    Z11,
-    Z12,
-    Z13,
-    Z14,
-    Z15,
-    ESA,
-    XA,
-    _370,
-    DOS,
-    UNI
-};
-
 struct asm_option
 {
     std::string sysparm;

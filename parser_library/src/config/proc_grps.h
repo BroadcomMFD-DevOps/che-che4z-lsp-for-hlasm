@@ -37,10 +37,13 @@ struct assembler_options
 {
     std::string sysparm;
     std::string profile;
-    std::string system_architecture;
+    std::string optable;
     std::string system_id;
 
-    bool valid() const noexcept { return sysparm.size() < 256; }
+    bool optable_valid() const noexcept { return optable.size() == 0 || (optable.size() >= 2 && optable.size() <= 3); }
+
+
+    bool valid() const noexcept { return sysparm.size() < 256 && optable_valid(); }
 };
 void to_json(nlohmann::json& j, const assembler_options& p);
 void from_json(const nlohmann::json& j, assembler_options& p);

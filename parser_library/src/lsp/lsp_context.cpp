@@ -507,7 +507,6 @@ void lsp_context::add_file(file_info file_i)
 
 lsp_context::lsp_context(std::shared_ptr<context::hlasm_context> h_ctx)
     : m_hlasm_ctx(std::move(h_ctx))
-    , m_instr_completions_items(instruction_completion_items(m_hlasm_ctx->get_instruction_map()))
 {}
 
 void lsp_context::add_copy(context::copy_member_ptr copy, text_data_ref_t text_data)
@@ -769,7 +768,19 @@ std::string lsp_context::get_macro_documentation(const macro_info& m) const
 
 completion_list_s lsp_context::complete_instr(const file_info&, position) const
 {
-    completion_list_s result(m_instr_completions_items.data.begin(), m_instr_completions_items.data.end());
+    completion_list_s result;
+
+    // Store only active instructions
+    for (const auto& instr : completion_item_s::m_instruction_completion_items)
+    {
+        auto id = m_hlasm_ctx->ids().find(instr.label);
+
+        auto it = m_hlasm_ctx->get_instruction_map().find(id);
+        if (it != m_hlasm_ctx->get_instruction_map().end())
+        {
+            result.emplace_back(instr);
+        }
+    }
 
     for (const auto& [_, macro_i] : m_macros)
     {
@@ -907,8 +918,8 @@ hover_result lsp_context::find_hover(const symbol_occurence& occ, macro_info_ptr
             }
             else
             {
-                auto it = m_instr_completions_items.data.find(*occ.name);
-                if (it == m_instr_completions_items.data.end())
+                auto it = completion_item_s::m_instruction_completion_items.find(*occ.name);
+                if (it == completion_item_s::m_instruction_completion_items.end())
                     return "";
                 return it->detail + "  \n" + it->documentation;
             }

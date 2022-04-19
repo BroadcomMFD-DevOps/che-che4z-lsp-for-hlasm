@@ -33,8 +33,8 @@ completion_item_s::completion_item_s(std::string label,
 {}
 
 namespace {
-void process_machine_instruction(
-    const context::machine_instruction& machine_instr, instruction_completion_items::storage& items)
+void process_machine_instruction(const context::machine_instruction& machine_instr,
+    std::set<completion_item_s, completion_item_s::label_comparer>& items)
 {
     std::stringstream doc_ss(" ");
     std::stringstream detail_ss(""); // operands used for hover - e.g. V,D12U(X,B)[,M]
@@ -94,8 +94,8 @@ void process_machine_instruction(
         completion_item_kind::mach_instr);
 }
 
-void process_assembler_instruction(
-    const context::assembler_instruction& asm_instr, instruction_completion_items::storage& items)
+void process_assembler_instruction(const context::assembler_instruction& asm_instr,
+    std::set<completion_item_s, completion_item_s::label_comparer>& items)
 {
     std::stringstream doc_ss(" ");
     std::stringstream detail_ss("");
@@ -109,7 +109,8 @@ void process_assembler_instruction(
         completion_item_kind::asm_instr);
 }
 
-void process_mnemonic_code(const context::mnemonic_code& mnemonic_instr, instruction_completion_items::storage& items)
+void process_mnemonic_code(
+    const context::mnemonic_code& mnemonic_instr, std::set<completion_item_s, completion_item_s::label_comparer>& items)
 {
     std::stringstream doc_ss(" ");
     std::stringstream detail_ss("");
@@ -215,7 +216,8 @@ void process_mnemonic_code(const context::mnemonic_code& mnemonic_instr, instruc
         completion_item_kind::mach_instr);
 }
 
-void process_ca_instruction(const context::ca_instruction& ca_instr, instruction_completion_items::storage& items)
+void process_ca_instruction(
+    const context::ca_instruction& ca_instr, std::set<completion_item_s, completion_item_s::label_comparer>& items)
 {
     items.emplace(std::string(ca_instr.name()),
         "",
@@ -224,66 +226,34 @@ void process_ca_instruction(const context::ca_instruction& ca_instr, instruction
         completion_item_kind::ca_instr);
 }
 
-struct instruction_visitor
-{
-    instruction_visitor(instruction_completion_items::storage& items)
-        : items(items) {};
-
-    void operator()(const context::ca_instruction* ca_instr)
-    {
-        if (ca_instr)
-            process_ca_instruction(*ca_instr, items);
-    };
-    void operator()(const context::assembler_instruction* asm_instr)
-    {
-        if (asm_instr)
-            process_assembler_instruction(*asm_instr, items);
-    };
-    void operator()(const context::machine_instruction* mach_instr)
-    {
-        if (mach_instr)
-            process_machine_instruction(*mach_instr, items);
-    };
-    void operator()(const context::mnemonic_code* mne_code)
-    {
-        if (mne_code)
-            process_mnemonic_code(*mne_code, items);
-    };
-    void operator()(auto) { /* Do nothing */ };
-
-    std::set<completion_item_s, completion_item_s::label_comparer>& items;
-};
-
-
-const instruction_completion_items::storage& get_completion_items(
-    const std::unordered_map<context::id_index, context::opcode_t::opcode_variant>& instr_map)
-{
-    using namespace context;
-
-    static instruction_completion_items::storage items;
-
-    if (!items.empty())
-    {
-        return items;
-    }
-
-    auto visitor = instruction_visitor { items };
-
-    for (const auto& [key, val] : instr_map)
-    {
-        std::visit(visitor, val);
-    }
-
-    return items;
-}
 } // namespace
 
-instruction_completion_items::instruction_completion_items(
-    const std::unordered_map<context::id_index, context::opcode_t::opcode_variant>& instr_map)
-    : data([&instr_map = instr_map]() -> const instruction_completion_items::storage& {
-        return get_completion_items(instr_map);
-    }())
-{}
+const std::set<completion_item_s, completion_item_s::label_comparer> completion_item_s::m_instruction_completion_items =
+    [] {
+        std::set<completion_item_s, completion_item_s::label_comparer> result;
+
+        for (const auto& instr : context::instruction_sets::all_ca_instructions2())
+        {
+            process_ca_instruction(instr, result);
+        }
+
+        for (const auto& instr : context::instruction_sets::all_assembler_instructions2())
+        {
+            process_assembler_instruction(instr, result);
+        }
+
+        for (const auto& instr : context::instruction_sets::all_machine_instructions2())
+        {
+            process_machine_instruction(instr, result);
+        }
+
+        for (const auto& instr : context::instruction_sets::all_mnemonic_codes2())
+        {
+            process_mnemonic_code(instr, result);
+        }
+
+        return result;
+    }();
 
 bool operator==(const completion_item_s& lhs, const completion_item_s& rhs)
 {

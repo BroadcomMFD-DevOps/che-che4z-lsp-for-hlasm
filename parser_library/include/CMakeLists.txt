@@ -18,5 +18,6 @@ target_sources(parser_library PUBLIC
 	protocol.h
 	range.h
 	sequence.h
+	system_architecture.h
 	workspace_manager.h
 )

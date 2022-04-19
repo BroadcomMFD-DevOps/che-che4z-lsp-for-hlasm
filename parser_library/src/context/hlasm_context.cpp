@@ -31,28 +31,74 @@ code_scope* hlasm_context::curr_scope() { return &scope_stack_.back(); }
 
 const code_scope* hlasm_context::curr_scope() const { return &scope_stack_.back(); }
 
-hlasm_context::instruction_storage hlasm_context::init_instruction_map(id_storage& ids)
+namespace {
+bool instruction_available(supported_system instruction_support, system_architecture active_system_arch)
+{
+    switch (active_system_arch)
+    {
+        case system_architecture::UNI: {
+            return (instruction_support & supported_system::UNI) == supported_system::UNI;
+        }
+        case system_architecture::DOS: {
+            return (instruction_support & supported_system::DOS) == supported_system::DOS;
+        }
+        case system_architecture::_370: {
+            return (instruction_support & supported_system::_370) == supported_system::_370;
+        }
+        case system_architecture::XA: {
+            return (instruction_support & supported_system::XA) == supported_system::XA;
+        }
+        case system_architecture::ESA: {
+            return (instruction_support & supported_system::ESA) == supported_system::ESA;
+        }
+        case system_architecture::ZOP:
+        case system_architecture::YOP:
+        case system_architecture::Z9:
+        case system_architecture::Z10:
+        case system_architecture::Z11:
+        case system_architecture::Z12:
+        case system_architecture::Z13:
+        case system_architecture::Z14:
+        case system_architecture::Z15: {
+            instruction_support = instruction_support & 0x0F; // Get the lower bits representing the Z architecture
+            return instruction_support == supported_system::NO_Z_SUPPORT ? false
+                                                                         : instruction_support <= active_system_arch;
+        }
+        default:
+            return false;
+    }
+}
+} // namespace
+
+hlasm_context::instruction_storage hlasm_context::init_instruction_map(
+    id_storage& ids, system_architecture active_system_arch)
 {
     hlasm_context::instruction_storage instr_map;
-    for (const auto& instr_ref : get_instruction_sets().all_machine_instructions())
+    for (const auto& instr : context::instruction_sets::all_machine_instructions2())
     {
-        auto id = ids.add(std::string(instr_ref.get().name()));
-        instr_map.emplace(id, &instr_ref.get());
+        if (!instruction_available(instr.system_support(), active_system_arch))
+            continue;
+
+        auto id = ids.add(std::string(instr.name()));
+        instr_map.emplace(id, &instr);
     }
-    for (const auto& instr : get_instruction_sets().all_assembler_instructions())
+    for (const auto& instr : context::instruction_sets::all_assembler_instructions2())
     {
         auto id = ids.add(std::string(instr.name()));
         instr_map.emplace(id, &instr);
     }
-    for (const auto& instr : get_instruction_sets().all_ca_instructions())
+    for (const auto& instr : context::instruction_sets::all_ca_instructions2())
     {
         auto id = ids.add(std::string(instr.name()));
         instr_map.emplace(id, &instr);
     }
-    for (const auto& instr_ref : get_instruction_sets().all_mnemonic_codes())
+    for (const auto& instr : context::instruction_sets::all_mnemonic_codes2())
     {
-        auto id = ids.add(std::string(instr_ref.get().name()));
-        instr_map.emplace(id, &instr_ref.get());
+        if (!instruction_available(instr.system_support(), active_system_arch))
+            continue;
+
+        auto id = ids.add(std::string(instr.name()));
+        instr_map.emplace(id, &instr);
     }
 
     return instr_map;
@@ -319,7 +365,7 @@ hlasm_context::hlasm_context(std::string file_name, asm_option asm_options, std:
     , opencode_file_name_(file_name)
     , asm_options_(std::move(asm_options))
     , m_instruction_sets(std::make_unique<context::instruction_sets>(asm_options_.arch))
-    , m_instruction_map(init_instruction_map(*ids_))
+    , m_instruction_map(init_instruction_map(*ids_, asm_options_.arch))
     , m_usings(std::make_unique<using_collection>())
     , m_active_usings(1, m_usings->remove_all())
     , m_statements_remaining(asm_options_.statement_count_limit)

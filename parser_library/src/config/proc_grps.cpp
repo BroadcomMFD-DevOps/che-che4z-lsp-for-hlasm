@@ -43,12 +43,12 @@ void from_json(const nlohmann::json& j, library& p)
 void to_json(nlohmann::json& j, const assembler_options& p)
 {
     j = nlohmann::json::object();
+    if (p.optable.size())
+        j["OPTABLE"] = p.optable;
     if (p.profile.size())
         j["PROFILE"] = p.profile;
     if (p.sysparm.size())
         j["SYSPARM"] = p.sysparm;
-    if (p.system_architecture.size())
-        j["SYSTEM_ARCH"] = p.system_architecture;
     if (p.system_id.size())
         j["SYSTEM_ID"] = p.system_id;
 }
@@ -57,12 +57,12 @@ void from_json(const nlohmann::json& j, assembler_options& p)
     if (!j.is_object())
         throw nlohmann::json::other_error::create(501, "asm_options must be an object.");
 
+    if (auto it = j.find("OPTABLE"); it != j.end())
+        it->get_to(p.optable);
     if (auto it = j.find("PROFILE"); it != j.end())
         it->get_to(p.profile);
     if (auto it = j.find("SYSPARM"); it != j.end())
         it->get_to(p.sysparm);
-    if (auto it = j.find("SYSTEM_ARCH"); it != j.end())
-        it->get_to(p.system_architecture);
     if (auto it = j.find("SYSTEM_ID"); it != j.end())
         it->get_to(p.system_id);
 }

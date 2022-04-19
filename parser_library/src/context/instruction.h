@@ -26,11 +26,57 @@
 #include <string>
 
 #include "checking/instr_operand.h"
-#include "compiler_options.h"
 #include "diagnostic.h"
 #include "id_storage.h"
+#include "system_architecture.h"
 
 namespace hlasm_plugin::parser_library::context {
+
+// Determines in which systems is the instruction supported
+// First Byte determines instruction support since a specific iteration of the Z system
+// Other bits determine instruction support in other systems
+// Example: 0010 1010 0101:
+//  -   0010 xxxx xxxx -> Instruction supported on ESA systems
+//  -   xxxx 1010 xxxx -> Instruction supported on 370 systems and is also part of universal instruction set
+//  -   xxxx xxxx 0101 -> Instruction supported since Z12 systems up to now
+enum class supported_system : unsigned short
+{
+    NO_Z_SUPPORT = 0,
+    SINCE_ZOP = 1,
+    SINCE_YOP,
+    SINCE_Z9,
+    SINCE_Z10,
+    SINCE_Z11,
+    SINCE_Z12,
+    SINCE_Z13,
+    SINCE_Z14,
+    SINCE_Z15,
+    ESA = 1 << 5,
+    XA = 1 << 6,
+    _370 = 1 << 7,
+    DOS = 1 << 8,
+    UNI = 1 << 9
+};
+
+constexpr supported_system operator|(supported_system a, supported_system b)
+{
+    return static_cast<supported_system>(static_cast<int>(a) | static_cast<int>(b));
+}
+
+constexpr supported_system operator&(supported_system a, supported_system b)
+{
+    return static_cast<supported_system>(static_cast<int>(a) & static_cast<int>(b));
+}
+
+constexpr supported_system operator&(supported_system a, size_t b)
+{
+    return static_cast<supported_system>(static_cast<int>(a) & static_cast<int>(b));
+}
+
+constexpr bool operator<=(supported_system a, system_architecture b)
+{
+    return static_cast<int>(a) <= static_cast<int>(b);
+}
 
 // all mach_format types for operands of machine instructions:
 // formats with length 16 are arranged in range (0,2),formats with length 32 are arranged in range(3,20),formats with
@@ -297,6 +343,7 @@ class machine_instruction
 
     mach_format m_format;
     char m_size_in_bits;
+    unsigned short m_page_no;
 
     reladdr_transform_mask m_reladdr_mask;
     unsigned char m_optional_op_count;
@@ -304,12 +351,18 @@ class machine_instruction
 
     const checking::machine_operand_format* m_operands;
 
+    supported_system m_system_support;
+
 public:
-    constexpr machine_instruction(
-        std::string_view name, mach_format format, std::span<const checking::machine_operand_format> operands)
+    constexpr machine_instruction(std::string_view name,
+        mach_format format,
+        std::span<const checking::machine_operand_format> operands,
+        unsigned short page_no,
+        supported_system system_support)
         : m_name(name)
         , m_format(format)
         , m_size_in_bits(get_length_by_format(format))
+        , m_page_no(page_no)
         , m_reladdr_mask(generate_reladdr_bitmask(operands))
 #ifdef __cpp_lib_ranges
         , m_optional_op_count(
@@ -320,11 +373,15 @@ public:
 #endif
         , m_operand_len((unsigned char)operands.size())
         , m_operands(operands.data())
+        , m_system_support(system_support)
     {
         assert(operands.size() <= std::numeric_limits<decltype(m_operand_len)>::max());
     }
-    constexpr machine_instruction(std::string_view name, instruction_format_definition ifd)
-        : machine_instruction(name, ifd.format, ifd.op_format)
+    constexpr machine_instruction(std::string_view name,
+        instruction_format_definition ifd,
+        unsigned short page_no,
+        supported_system system_support)
+        : machine_instruction(name, ifd.format, ifd.op_format, page_no, system_support)
     {}
 
     constexpr std::string_view name() const { return m_name.to_string_view(); }
@@ -336,6 +393,7 @@ public:
         return std::span<const checking::machine_operand_format>(m_operands, m_operand_len);
     }
     constexpr size_t optional_operand_count() const { return m_optional_op_count; }
+    constexpr supported_system system_support() const { return m_system_support; };
 
     bool check_nth_operand(size_t place, const checking::machine_operand* operand);
     bool check(std::string_view name_of_instruction,
@@ -362,19 +420,22 @@ public:
 // representation of mnemonic codes for machine instructions
 class mnemonic_code
 {
-    inline_string<9> m_name;
     const machine_instruction* m_instruction;
 
     // first goes place, then value
-    std::array<std::pair<size_t, size_t>, 3> m_replaced;
+    std::array<std::pair<unsigned char, unsigned char>, 3> m_replaced;
     unsigned char m_replaced_count;
 
     reladdr_transform_mask m_reladdr_mask;
 
+    supported_system m_system_support;
+
+    inline_string<9> m_name;
+
     // Generates a bitmask for an arbitrary mnemonic indicating which operands
     // are of the RI type (and therefore are modified by transform_reloc_imm_operands)
-    static constexpr unsigned char generate_reladdr_bitmask(
-        const machine_instruction* instruction, std::initializer_list<const std::pair<size_t, size_t>> replaced)
+    static constexpr unsigned char generate_reladdr_bitmask(const machine_instruction* instruction,
+        std::initializer_list<const std::pair<unsigned char, unsigned char>> replaced)
     {
         unsigned char result = 0;
 
@@ -405,12 +466,14 @@ class mnemonic_code
 public:
     constexpr mnemonic_code(std::string_view name,
         const machine_instruction* instr,
-        std::initializer_list<const std::pair<size_t, size_t>> replaced)
+        std::initializer_list<const std::pair<unsigned char, unsigned char>> replaced,
+        supported_system system_support)
         : m_name(name)
         , m_instruction(instr)
         , m_replaced {}
         , m_replaced_count((unsigned char)replaced.size())
         , m_reladdr_mask(generate_reladdr_bitmask(instr, replaced))
+        , m_system_support(system_support)
     {
         assert(replaced.size() <= m_replaced.size());
         size_t i = 0;
@@ -419,7 +482,7 @@ public:
     };
 
     constexpr const machine_instruction* instruction() const { return m_instruction; }
-    constexpr std::span<const std::pair<size_t, size_t>> replaced_operands() const
+    constexpr std::span<const std::pair<unsigned char, unsigned char>> replaced_operands() const
     {
         return { m_replaced.data(), m_replaced_count };
     }
@@ -429,6 +492,7 @@ public:
     }
     constexpr reladdr_transform_mask reladdr_mask() const { return m_reladdr_mask; }
     constexpr std::string_view name() const { return m_name.to_string_view(); }
+    constexpr supported_system system_support() const { return m_system_support; };
 };
 
 // machine instruction common representation
@@ -479,18 +543,25 @@ public:
     const ca_instruction& get_ca_instructions(std::string_view name) const;
     const ca_instruction* find_ca_instructions(std::string_view name) const;
     std::span<const ca_instruction> all_ca_instructions() const;
+    static std::span<const ca_instruction> all_ca_instructions2();
 
     const assembler_instruction& get_assembler_instructions(std::string_view name) const;
     const assembler_instruction* find_assembler_instructions(std::string_view name) const;
     std::span<const assembler_instruction> all_assembler_instructions() const;
+    static std::span<const assembler_instruction> all_assembler_instructions2();
 
     const machine_instruction& get_machine_instructions(std::string_view name) const;
+    static const machine_instruction& get_machine_instructions2(std::string_view name);
     const machine_instruction* find_machine_instructions(std::string_view name) const;
+    static const machine_instruction* find_machine_instructions2(std::string_view name);
     std::span<const std::reference_wrapper<const machine_instruction>> all_machine_instructions() const;
+    static std::span<const machine_instruction> all_machine_instructions2();
 
     const mnemonic_code& get_mnemonic_codes(std::string_view name) const;
     const mnemonic_code* find_mnemonic_codes(std::string_view name) const;
+    static const mnemonic_code* find_mnemonic_codes2(std::string_view name);
     std::span<const std::reference_wrapper<const mnemonic_code>> all_mnemonic_codes() const;
+    static std::span<const mnemonic_code> all_mnemonic_codes2();
 
     static std::string_view mach_format_to_string(mach_format);
 };

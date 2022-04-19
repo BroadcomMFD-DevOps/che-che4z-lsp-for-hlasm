@@ -63,7 +63,7 @@ TEST_F(processor_group_test, asm_options_arch_valid)
 {
     std::string grp_name = "Group";
     config::assembler_options asm_opts;
-    asm_opts.system_architecture = "UNI";
+    asm_opts.optable = "UNI";
 
     const auto cases = {
         std::make_pair("ZOP", system_architecture::ZOP),
@@ -96,7 +96,7 @@ TEST_F(processor_group_test, asm_options_arch_valid)
     {
         diags().clear();
 
-        asm_opts.system_architecture = input;
+        asm_opts.optable = input;
         workspaces::processor_group proc_group("Group", "", asm_opts, {});
 
         auto arch = proc_group.asm_options().arch;
@@ -112,7 +112,7 @@ TEST_F(processor_group_test, asm_options_arch_invalid)
 {
     std::string grp_name = "Group";
     config::assembler_options asm_opts;
-    asm_opts.system_architecture = "UNI";
+    asm_opts.optable = "UNI";
 
     const auto cases = {
         std::make_pair("klgadh", system_architecture::UNI),
@@ -125,7 +125,7 @@ TEST_F(processor_group_test, asm_options_arch_invalid)
     {
         diags().clear();
 
-        asm_opts.system_architecture = input;
+        asm_opts.optable = input;
         workspaces::processor_group proc_group("Group", "", asm_opts, {});
 
         auto arch = proc_group.asm_options().arch;

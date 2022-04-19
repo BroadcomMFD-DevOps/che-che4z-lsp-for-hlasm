@@ -2404,7 +2404,7 @@ struct test_case
 };
 } // namespace
 
-TEST_F(instruction_sets_fixture, identical_macro_name_inline_definition)
+TEST(instruction_sets_fixture, identical_macro_name_inline_definition)
 {
     std::string input = R"(
         MACRO
@@ -2431,7 +2431,7 @@ TEST_F(instruction_sets_fixture, identical_macro_name_inline_definition)
     }
 }
 
-TEST_F(instruction_sets_fixture, identical_macro_name_linked_definition)
+TEST(instruction_sets_fixture, identical_macro_name_linked_definition)
 {
     std::string input = R"(
         GBLA &VAR
@@ -2462,7 +2462,7 @@ TEST_F(instruction_sets_fixture, identical_macro_name_linked_definition)
     }
 }
 
-TEST_F(instruction_sets_fixture, identical_macro_name_inline_and_linked_definition)
+TEST(instruction_sets_fixture, identical_macro_name_inline_and_linked_definition)
 {
     std::string input = R"(
         MACRO

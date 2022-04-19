@@ -59,18 +59,11 @@ struct completion_item_s
             return l.label < r;
         }
     };
+
+    static const std::set<completion_item_s, label_comparer> m_instruction_completion_items;
 };
 
 bool operator==(const completion_item_s& lhs, const completion_item_s& rhs);
-
-struct instruction_completion_items
-{
-    using storage = std::set<completion_item_s, completion_item_s::label_comparer>;
-
-    instruction_completion_items(
-        const std::unordered_map<context::id_index, context::opcode_t::opcode_variant>& instr_map);
-    const storage& data;
-};
 
 } // namespace hlasm_plugin::parser_library::lsp
 

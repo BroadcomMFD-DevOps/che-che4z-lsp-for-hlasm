@@ -254,11 +254,7 @@ void ordinary_processor::check_postponed_statements(
         switch (rs->opcode_ref().type)
         {
             case hlasm_plugin::parser_library::context::instruction_type::MACH:
-                mach_proc_.check(*rs,
-                    stmt->location_stack(),
-                    dep_solver,
-                    checking::machine_checker(hlasm_ctx.get_instruction_sets()),
-                    *this);
+                mach_proc_.check(*rs, stmt->location_stack(), dep_solver, checking::machine_checker(), *this);
                 break;
 
             case hlasm_plugin::parser_library::context::instruction_type::ASM:

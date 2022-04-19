@@ -51,10 +51,8 @@ public:
 // derived checker for machine instructions
 class machine_checker final : public instruction_checker
 {
-    const context::instruction_sets& m_instructions;
-
 public:
-    machine_checker(const context::instruction_sets& instructions);
+    machine_checker();
 
     bool check(std::string_view instruction_name,
         const std::vector<const operand*>& operand_vector,

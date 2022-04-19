@@ -35,37 +35,40 @@ struct translate_pp_options
     }
 };
 
-constexpr auto sys_arch_translator = []() {
-    constexpr std::array sys_arch_equivalents { std::make_pair(std::string_view("ZOP"), system_architecture::ZOP),
-        std::make_pair(std::string_view("ZS1"), system_architecture::ZOP),
-        std::make_pair(std::string_view("YOP"), system_architecture::YOP),
-        std::make_pair(std::string_view("ZS2"), system_architecture::YOP),
-        std::make_pair(std::string_view("Z9"), system_architecture::Z9),
-        std::make_pair(std::string_view("ZS3"), system_architecture::Z9),
-        std::make_pair(std::string_view("Z10"), system_architecture::Z10),
-        std::make_pair(std::string_view("ZS4"), system_architecture::Z10),
-        std::make_pair(std::string_view("Z11"), system_architecture::Z11),
-        std::make_pair(std::string_view("ZS5"), system_architecture::Z11),
-        std::make_pair(std::string_view("Z12"), system_architecture::Z12),
-        std::make_pair(std::string_view("ZS6"), system_architecture::Z12),
-        std::make_pair(std::string_view("Z13"), system_architecture::Z13),
-        std::make_pair(std::string_view("ZS7"), system_architecture::Z13),
-        std::make_pair(std::string_view("Z14"), system_architecture::Z14),
-        std::make_pair(std::string_view("ZS8"), system_architecture::Z14),
-        std::make_pair(std::string_view("Z15"), system_architecture::Z15),
-        std::make_pair(std::string_view("ZS9"), system_architecture::Z15),
-        std::make_pair(std::string_view("UNI"), system_architecture::UNI),
-        std::make_pair(std::string_view("DOS"), system_architecture::DOS),
-        std::make_pair(std::string_view("370"), system_architecture::_370),
-        std::make_pair(std::string_view("XA"), system_architecture::XA),
-        std::make_pair(std::string_view("ESA"), system_architecture::ESA) };
+constexpr std::pair<std::string_view, system_architecture> sys_arch_translator[] = {
+    { std::string_view("370"), system_architecture::_370 },
+    { std::string_view("DOS"), system_architecture::DOS },
+    { std::string_view("ESA"), system_architecture::ESA },
+    { std::string_view("UNI"), system_architecture::UNI },
+    { std::string_view("XA"), system_architecture::XA },
+    { std::string_view("YOP"), system_architecture::YOP },
+    { std::string_view("Z10"), system_architecture::Z10 },
+    { std::string_view("Z11"), system_architecture::Z11 },
+    { std::string_view("Z12"), system_architecture::Z12 },
+    { std::string_view("Z13"), system_architecture::Z13 },
+    { std::string_view("Z14"), system_architecture::Z14 },
+    { std::string_view("Z15"), system_architecture::Z15 },
+    { std::string_view("Z9"), system_architecture::Z9 },
+    { std::string_view("ZOP"), system_architecture::ZOP },
+    { std::string_view("ZS1"), system_architecture::ZOP },
+    { std::string_view("ZS2"), system_architecture::YOP },
+    { std::string_view("ZS3"), system_architecture::Z9 },
+    { std::string_view("ZS4"), system_architecture::Z10 },
+    { std::string_view("ZS5"), system_architecture::Z11 },
+    { std::string_view("ZS6"), system_architecture::Z12 },
+    { std::string_view("ZS7"), system_architecture::Z13 },
+    { std::string_view("ZS8"), system_architecture::Z14 },
+    { std::string_view("ZS9"), system_architecture::Z15 },
+};
 
-    auto sorted_equivalents = sys_arch_equivalents;
-    std::sort(std::begin(sorted_equivalents), std::end(sorted_equivalents), [](const auto& l, const auto& r) {
-        return l.first < r.first;
-    });
-    return sorted_equivalents;
-}();
+#if __cpp_lib_ranges
+static_assert(
+    std::ranges::is_sorted(sys_arch_translator, {}, &std::pair<std::string_view, system_architecture>::first));
+#else
+static_assert(std::is_sorted(std::begin(sys_arch_translator),
+    std::end(sys_arch_translator),
+    [](const auto& l, const auto& r) { return l.first < r.first; }));
+#endif
 
 } // namespace
 
@@ -99,8 +102,7 @@ asm_option processor_group::translate_assembler_options(const config::assembler_
     return asm_option {
         asm_options.sysparm,
         asm_options.profile,
-        asm_options.system_architecture.empty() ? asm_option::arch_default
-                                                : find_system_architecture(asm_options.system_architecture),
+        asm_options.optable.empty() ? asm_option::arch_default : find_system_architecture(asm_options.optable),
         asm_options.system_id.empty() ? asm_option::system_id_default : asm_options.system_id,
     };
 }

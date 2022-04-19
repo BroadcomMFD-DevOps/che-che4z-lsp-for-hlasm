@@ -32,8 +32,6 @@ class lsp_context final : public feature_provider
 
     std::shared_ptr<context::hlasm_context> m_hlasm_ctx;
 
-    instruction_completion_items m_instr_completions_items;
-
     struct document_symbol_cache
     {
         std::unordered_map<std::string, std::vector<std::pair<symbol_occurence, std::vector<context::id_index>>>>
