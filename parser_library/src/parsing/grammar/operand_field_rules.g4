@@ -197,10 +197,6 @@ op_rem_body_alt_mac returns [op_rem line]
 	:
 	{enable_continuation();}
 	(
-		SPACE*
-		CONTINUATION
-	)*
-	(
 		(
 			mac_op
 			comma

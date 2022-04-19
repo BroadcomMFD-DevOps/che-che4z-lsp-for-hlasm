@@ -53,24 +53,25 @@ mac_preproc [bool top_level] returns [std::string collected_text]
 		| ORDSYMBOL												{$collected_text += $ORDSYMBOL.text; collector.add_hl_symbol(token_info(provider.get_range($ORDSYMBOL), hl_scopes::operand));}
 		| dot													{$collected_text += ".";}
 		| AMPERSAND
+		CONTINUATION?
 		(
-			CONTINUATION?
 			ORDSYMBOL
 			{
 				auto name = $ORDSYMBOL->getText();
 			}
 			(
 				CONTINUATION?
-				ORDSYMBOL
-				{
-					name += $ORDSYMBOL->getText();
-				}
-				|
-				CONTINUATION?
-				NUM
-				{
-					name += $NUM->getText();
-				}
+				(
+					ORDSYMBOL
+					{
+						name += $ORDSYMBOL->getText();
+					}
+					|
+					NUM
+					{
+						name += $NUM->getText();
+					}
+				)
 			)*
 			{
 				$collected_text += "&";
@@ -78,7 +79,6 @@ mac_preproc [bool top_level] returns [std::string collected_text]
 				collector.add_hl_symbol(token_info(provider.get_range($AMPERSAND,_input->LT(-1)),hl_scopes::var_symbol));
 			}
 			|
-			CONTINUATION?
 			lpar												{$collected_text += "&(";}
 			(
 				created_set_body								{$collected_text += $created_set_body.text;}
@@ -87,7 +87,6 @@ mac_preproc [bool top_level] returns [std::string collected_text]
 			)*
 			rpar												{$collected_text += ")";}
 			|
-			CONTINUATION?
 			AMPERSAND											{$collected_text += "&&";}
 		)
 		|
@@ -115,23 +114,79 @@ mac_preproc [bool top_level] returns [std::string collected_text]
 		|
 		ap1=APOSTROPHE											{$collected_text += "'";}
 		(
-			string_ch_v											{$collected_text += $string_ch_v.text;}
-			|
-			CONTINUATION
-		)*?
+			mac_preproc_inner[$top_level]						{$collected_text += $mac_preproc_inner.collected_text;}
+		)?
 		ap2=(APOSTROPHE|ATTR)									{$collected_text += "'";}
 		|
 		attr													{$collected_text += "'";}
 		(
 			{!is_previous_attribute_consuming($top_level, _input->LT(-2))}?
 			(
-				string_ch_v									{$collected_text += $string_ch_v.text;}
-				|
-				CONTINUATION
-			)*?
-			ap2=(APOSTROPHE|ATTR)							{$collected_text += "'";}
+				mac_preproc_inner[$top_level]					{$collected_text += $mac_preproc_inner.collected_text;}
+			)?
+			ap2=(APOSTROPHE|ATTR)								{$collected_text += "'";}
 		)?
 		| CONTINUATION
+	)+
+	;
+mac_preproc_inner [bool top_level] returns [std::string collected_text]
+	: 
+	(
+		asterisk												{$collected_text += "*";}
+		| minus													{$collected_text += "-";}
+		| plus													{$collected_text += "+";}
+		| LT													{$collected_text += "<";}
+		| GT													{$collected_text += ">";}
+		| slash													{$collected_text += "/";}
+		| equals												{$collected_text += "=";}
+		| VERTICAL												{$collected_text += "|";}
+		| IDENTIFIER											{$collected_text += $IDENTIFIER.text;}
+		| NUM													{$collected_text += $NUM.text;}
+		| ORDSYMBOL												{$collected_text += $ORDSYMBOL.text;}
+		| dot													{$collected_text += ".";}
+		| AMPERSAND
+		CONTINUATION?
+		(
+			ORDSYMBOL
+			{
+				auto name = $ORDSYMBOL->getText();
+			}
+			(
+				CONTINUATION?
+				(
+					ORDSYMBOL
+					{
+						name += $ORDSYMBOL->getText();
+					}
+					|
+					NUM
+					{
+						name += $NUM->getText();
+					}
+				)
+			)*
+			{
+				$collected_text += "&";
+				$collected_text += name;
+				collector.add_hl_symbol(token_info(provider.get_range($AMPERSAND,_input->LT(-1)),hl_scopes::var_symbol));
+			}
+			|
+			lpar												{$collected_text += "&(";}
+			(
+				created_set_body								{$collected_text += $created_set_body.text;}
+				|
+				CONTINUATION
+			)*
+			rpar												{$collected_text += ")";}
+			|
+			AMPERSAND											{$collected_text += "&&";}
+		)
+		| lpar													{$collected_text += "(";}
+		| comma													{$collected_text += ",";}
+		| rpar													{$collected_text += ")";}
+		| (APOSTROPHE|ATTR) (APOSTROPHE|ATTR)					{$collected_text += "''";}
+		| CONTINUATION
+		| SPACE													{$collected_text += $SPACE.text;}
 	)+
 	;
 

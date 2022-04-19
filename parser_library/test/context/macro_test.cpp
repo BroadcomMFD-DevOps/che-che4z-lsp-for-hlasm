@@ -909,3 +909,36 @@ TEST(macro, operand_string_substitution)
     EXPECT_TRUE(a.diags().empty());
     EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "VAR"), "'test string ABC'");
 }
+
+TEST(macro, operand_string_substitution_continuation)
+{
+    for (int i = 0; i < 256; ++i)
+    {
+        std::string input = R"(
+        MACRO
+        MAC  &PAR
+        GBLC &VAR
+&VAR    SETC '&PAR'
+        MEND
+
+        GBLC &VAR
+&AAA(1) SETC 'ABC'
+)";
+        std::string suffix_ = " MAC " + std::string(i, ' ') + "'test string &(AAA)(1)'";
+        std::string_view suffix = suffix_;
+        size_t limit = 71;
+        while (suffix.size() > limit)
+        {
+            input.append(suffix.substr(0, limit)).append("X\n               ");
+            suffix.remove_prefix(limit);
+            limit = 71 - 15;
+        }
+        input += std::move(suffix);
+        analyzer a(input);
+        a.analyze();
+        a.collect_diags();
+
+        EXPECT_TRUE(a.diags().empty()) << i;
+        EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "VAR"), "'test string ABC'") << i;
+    }
+}
