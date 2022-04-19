@@ -15,16 +15,11 @@
 #ifndef PROCESSING_OP_CODE_H
 #define PROCESSING_OP_CODE_H
 
-#include <memory>
 #include <utility>
 
 #include "context/id_storage.h"
 #include "context/instruction_type.h"
 #include "processing_format.h"
-
-namespace hlasm_plugin::parser_library::context {
-class instruction_sets;
-}
 
 namespace hlasm_plugin::parser_library::processing {
 

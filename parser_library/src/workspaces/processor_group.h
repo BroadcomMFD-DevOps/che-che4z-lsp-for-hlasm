@@ -52,12 +52,11 @@ public:
 private:
     std::vector<std::unique_ptr<library>> m_libs;
     std::string m_pg_name;
-    std::string_view m_pg_file_name;
     asm_option m_asm_opts;
     preprocessor_options m_prep_opts;
 
-    system_architecture find_system_architecture(std::string_view arch);
-    asm_option translate_assembler_options(const config::assembler_options& asm_options);
+    system_architecture find_system_architecture(std::string_view arch, std::string_view pg_file_name);
+    asm_option translate_assembler_options(const config::assembler_options& asm_options, std::string_view pg_file_name);
 };
 } // namespace hlasm_plugin::parser_library::workspaces
 #endif // !HLASMPLUGIN_PARSERLIBRARY_PROCESSOR_GROUP_H

@@ -60,7 +60,27 @@ enum class supported_system : unsigned short
 
 constexpr supported_system operator|(supported_system a, supported_system b)
 {
-    return static_cast<supported_system>(static_cast<int>(a) | static_cast<int>(b));
+    auto a_conv = static_cast<int>(a);
+    auto b_conv = static_cast<int>(b);
+    auto since_z = static_cast<int>(supported_system::NO_Z_SUPPORT);
+    const int since_z_mask = 0x0F;
+
+    // Get the value of SINCE_Zxx bits
+    if ((a_conv & since_z_mask) > 0 && (b_conv & since_z_mask) > 0)
+    {
+        since_z = std::min(a_conv & since_z_mask, b_conv & since_z_mask);
+    }
+    else
+    {
+        since_z = std::max(a_conv & since_z_mask, b_conv & since_z_mask);
+    }
+
+    // OR the two values and zero out the SINCE_Z bits
+    auto res = a_conv | b_conv;
+    res &= ~since_z_mask;
+
+    // OR the result with the retrieved SINCE_Z bits
+    return static_cast<supported_system>(res | since_z);
 }
 
 constexpr supported_system operator&(supported_system a, supported_system b)
@@ -529,9 +549,6 @@ public:
 // class holding details of available instructions in their respective sets
 class instruction_sets
 {
-    std::vector<std::reference_wrapper<const machine_instruction>> m_machine_instructions;
-    std::vector<std::reference_wrapper<const mnemonic_code>> m_mnemonic_codes;
-
 public:
     instruction_sets(system_architecture arch);
 
@@ -542,26 +559,19 @@ public:
 
     const ca_instruction& get_ca_instructions(std::string_view name) const;
     const ca_instruction* find_ca_instructions(std::string_view name) const;
-    std::span<const ca_instruction> all_ca_instructions() const;
-    static std::span<const ca_instruction> all_ca_instructions2();
+    static std::span<const ca_instruction> all_ca_instructions();
 
-    const assembler_instruction& get_assembler_instructions(std::string_view name) const;
-    const assembler_instruction* find_assembler_instructions(std::string_view name) const;
-    std::span<const assembler_instruction> all_assembler_instructions() const;
-    static std::span<const assembler_instruction> all_assembler_instructions2();
+    static const assembler_instruction& get_assembler_instructions(std::string_view name);
+    static const assembler_instruction* find_assembler_instructions(std::string_view name);
+    static std::span<const assembler_instruction> all_assembler_instructions();
 
-    const machine_instruction& get_machine_instructions(std::string_view name) const;
-    static const machine_instruction& get_machine_instructions2(std::string_view name);
-    const machine_instruction* find_machine_instructions(std::string_view name) const;
-    static const machine_instruction* find_machine_instructions2(std::string_view name);
-    std::span<const std::reference_wrapper<const machine_instruction>> all_machine_instructions() const;
-    static std::span<const machine_instruction> all_machine_instructions2();
+    static const machine_instruction& get_machine_instructions(std::string_view name);
+    static const machine_instruction* find_machine_instructions(std::string_view name);
+    static std::span<const machine_instruction> all_machine_instructions();
 
-    const mnemonic_code& get_mnemonic_codes(std::string_view name) const;
-    const mnemonic_code* find_mnemonic_codes(std::string_view name) const;
-    static const mnemonic_code* find_mnemonic_codes2(std::string_view name);
-    std::span<const std::reference_wrapper<const mnemonic_code>> all_mnemonic_codes() const;
-    static std::span<const mnemonic_code> all_mnemonic_codes2();
+    static const mnemonic_code& get_mnemonic_codes(std::string_view name);
+    static const mnemonic_code* find_mnemonic_codes(std::string_view name);
+    static std::span<const mnemonic_code> all_mnemonic_codes();
 
     static std::string_view mach_format_to_string(mach_format);
 };

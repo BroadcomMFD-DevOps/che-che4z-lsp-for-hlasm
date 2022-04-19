@@ -235,8 +235,7 @@ TEST(mach_instr_processing, rel_addr_bitmask)
              { "BPRP", 0x60 },
          })
     {
-        context::instruction_sets instructions(system_architecture::UNI);
-        EXPECT_EQ(instructions.get_machine_instructions(instr).reladdr_mask().mask(), expected) << instr;
+        EXPECT_EQ(context::instruction_sets::get_machine_instructions(instr).reladdr_mask().mask(), expected) << instr;
     }
 
     for (const auto& [instr, expected] : std::initializer_list<std::pair<std::string, int>> {
@@ -245,8 +244,7 @@ TEST(mach_instr_processing, rel_addr_bitmask)
              { "JNE", 0x80 },
          })
     {
-        context::instruction_sets instructions(system_architecture::UNI);
-        EXPECT_EQ(instructions.get_mnemonic_codes(instr).reladdr_mask().mask(), expected) << instr;
+        EXPECT_EQ(context::instruction_sets::get_mnemonic_codes(instr).reladdr_mask().mask(), expected) << instr;
     }
 }
 

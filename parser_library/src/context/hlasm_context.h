@@ -33,7 +33,6 @@ class mach_expression;
 } // namespace hlasm_plugin::parser_library::expressions
 namespace hlasm_plugin::parser_library::context {
 class using_collection;
-class instruction_sets;
 } // namespace hlasm_plugin::parser_library::context
 
 namespace hlasm_plugin::parser_library::context {
@@ -77,9 +76,6 @@ class hlasm_context
     // Compiler options
     asm_option asm_options_;
     static constexpr alignment sectalgn = doubleword;
-
-    // instructions divided by their designations
-    std::unique_ptr<instruction_sets> m_instruction_sets;
 
     // map of all instructions in HLASM
     const instruction_storage m_instruction_map;
@@ -162,9 +158,6 @@ public:
 
     // map of all instructions
     const instruction_storage& get_instruction_map() const;
-
-    // available instructions divided by their designations
-    const instruction_sets& get_instruction_sets() const;
 
     // field that accessed ordinary assembly context
     ordinary_assembly_context ord_ctx;

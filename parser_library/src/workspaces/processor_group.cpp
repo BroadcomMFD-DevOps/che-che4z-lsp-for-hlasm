@@ -77,12 +77,11 @@ processor_group::processor_group(const std::string& pg_name,
     const config::assembler_options& asm_options,
     const config::preprocessor_options& pp)
     : m_pg_name(pg_name)
-    , m_pg_file_name(pg_file_name)
-    , m_asm_opts(translate_assembler_options(asm_options))
+    , m_asm_opts(translate_assembler_options(asm_options, pg_file_name))
     , m_prep_opts(std::visit(translate_pp_options {}, pp.options))
 {}
 
-system_architecture processor_group::find_system_architecture(std::string_view arch)
+system_architecture processor_group::find_system_architecture(std::string_view arch, std::string_view pg_file_name)
 {
     auto it = std::lower_bound(
         std::begin(sys_arch_translator), std::end(sys_arch_translator), arch, [](const auto& l, const auto& r) {
@@ -90,19 +89,21 @@ system_architecture processor_group::find_system_architecture(std::string_view a
         });
     if (it == std::end(sys_arch_translator) || it->first != arch)
     {
-        add_diagnostic(diagnostic_s::error_W0006(m_pg_file_name, m_pg_name));
+        add_diagnostic(diagnostic_s::error_W0007(pg_file_name, m_pg_name));
         return asm_option::arch_default;
     }
 
     return it->second;
 }
 
-asm_option processor_group::translate_assembler_options(const config::assembler_options& asm_options)
+asm_option processor_group::translate_assembler_options(
+    const config::assembler_options& asm_options, std::string_view pg_file_name)
 {
     return asm_option {
         asm_options.sysparm,
         asm_options.profile,
-        asm_options.optable.empty() ? asm_option::arch_default : find_system_architecture(asm_options.optable),
+        asm_options.optable.empty() ? asm_option::arch_default
+                                    : find_system_architecture(asm_options.optable, pg_file_name),
         asm_options.system_id.empty() ? asm_option::system_id_default : asm_options.system_id,
     };
 }

@@ -232,22 +232,22 @@ const std::set<completion_item_s, completion_item_s::label_comparer> completion_
     [] {
         std::set<completion_item_s, completion_item_s::label_comparer> result;
 
-        for (const auto& instr : context::instruction_sets::all_ca_instructions2())
+        for (const auto& instr : context::instruction_sets::all_ca_instructions())
         {
             process_ca_instruction(instr, result);
         }
 
-        for (const auto& instr : context::instruction_sets::all_assembler_instructions2())
+        for (const auto& instr : context::instruction_sets::all_assembler_instructions())
         {
             process_assembler_instruction(instr, result);
         }
 
-        for (const auto& instr : context::instruction_sets::all_machine_instructions2())
+        for (const auto& instr : context::instruction_sets::all_machine_instructions())
         {
             process_machine_instruction(instr, result);
         }
 
-        for (const auto& instr : context::instruction_sets::all_mnemonic_codes2())
+        for (const auto& instr : context::instruction_sets::all_mnemonic_codes())
         {
             process_mnemonic_code(instr, result);
         }

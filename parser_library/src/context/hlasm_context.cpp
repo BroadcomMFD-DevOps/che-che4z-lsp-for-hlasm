@@ -74,7 +74,7 @@ hlasm_context::instruction_storage hlasm_context::init_instruction_map(
     id_storage& ids, system_architecture active_system_arch)
 {
     hlasm_context::instruction_storage instr_map;
-    for (const auto& instr : context::instruction_sets::all_machine_instructions2())
+    for (const auto& instr : context::instruction_sets::all_machine_instructions())
     {
         if (!instruction_available(instr.system_support(), active_system_arch))
             continue;
@@ -82,17 +82,17 @@ hlasm_context::instruction_storage hlasm_context::init_instruction_map(
         auto id = ids.add(std::string(instr.name()));
         instr_map.emplace(id, &instr);
     }
-    for (const auto& instr : context::instruction_sets::all_assembler_instructions2())
+    for (const auto& instr : context::instruction_sets::all_assembler_instructions())
     {
         auto id = ids.add(std::string(instr.name()));
         instr_map.emplace(id, &instr);
     }
-    for (const auto& instr : context::instruction_sets::all_ca_instructions2())
+    for (const auto& instr : context::instruction_sets::all_ca_instructions())
     {
         auto id = ids.add(std::string(instr.name()));
         instr_map.emplace(id, &instr);
     }
-    for (const auto& instr : context::instruction_sets::all_mnemonic_codes2())
+    for (const auto& instr : context::instruction_sets::all_mnemonic_codes())
     {
         if (!instruction_available(instr.system_support(), active_system_arch))
             continue;
@@ -364,7 +364,6 @@ hlasm_context::hlasm_context(std::string file_name, asm_option asm_options, std:
     : ids_(std::move(init_ids))
     , opencode_file_name_(file_name)
     , asm_options_(std::move(asm_options))
-    , m_instruction_sets(std::make_unique<context::instruction_sets>(asm_options_.arch))
     , m_instruction_map(init_instruction_map(*ids_, asm_options_.arch))
     , m_usings(std::make_unique<using_collection>())
     , m_active_usings(1, m_usings->remove_all())
@@ -454,12 +453,6 @@ id_storage& hlasm_context::ids() { return *ids_; }
 std::shared_ptr<id_storage> hlasm_context::ids_ptr() { return ids_; }
 
 const hlasm_context::instruction_storage& hlasm_context::get_instruction_map() const { return m_instruction_map; }
-
-const instruction_sets& hlasm_context::get_instruction_sets() const
-{
-    assert(m_instruction_sets);
-    return *m_instruction_sets;
-};
 
 processing_stack_t hlasm_context::processing_stack() const
 {
