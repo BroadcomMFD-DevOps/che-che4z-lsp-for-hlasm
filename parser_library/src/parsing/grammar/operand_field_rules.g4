@@ -230,6 +230,7 @@ op_rem_body_alt_mac returns [op_rem line]
 		else
 			$line.operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range($mac_op.ctx->getStart())));
 	}
+	{disable_continuation();}
 	last_remark=remark_o
 	{
 		if ($last_remark.value)

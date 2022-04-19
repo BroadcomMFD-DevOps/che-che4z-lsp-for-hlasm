@@ -942,3 +942,45 @@ TEST(macro, operand_string_substitution_continuation)
         EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "VAR"), "'test string ABC'") << i;
     }
 }
+
+TEST(macro, pass_empty_operand_components)
+{
+    std::string input = R"(
+        MACRO
+        MAC2 &PAR=
+        GBLA &VAR
+&VAR    SETA N'&PAR
+        MEND
+
+        MACRO
+        MAC  &PAR=
+        MAC2 PAR=&PAR
+        MEND
+
+        GBLA &VAR
+        MAC  PAR=(E,)
+)";
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(a.diags().empty());
+    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "VAR"), 2);
+}
+
+TEST(macro, multiline_comment)
+{
+    std::string input = R"(
+        MACRO
+        MAC  &PAR=
+        MEND
+
+        MAC  PAR='test'                                        comment X
+                                                               comment
+)";
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(a.diags().empty());
+}
