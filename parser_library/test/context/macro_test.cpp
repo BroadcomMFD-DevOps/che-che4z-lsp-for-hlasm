@@ -889,3 +889,23 @@ ALIAS    OPSYN SAM64
 
     EXPECT_TRUE(a.diags().empty());
 }
+
+TEST(macro, operand_string_substitution)
+{
+    std::string input = R"(
+        MACRO
+        MAC  &PAR
+        GBLC &VAR
+&VAR    SETC '&PAR'
+        MEND
+
+        GBLC &VAR
+        MAC  'test string &SYSPARM'
+)";
+    analyzer a(input, analyzer_options(asm_option { .sysparm = "ABC" }));
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(a.diags().empty());
+    EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "VAR"), "'test string ABC'");
+}

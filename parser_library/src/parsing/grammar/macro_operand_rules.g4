@@ -54,6 +54,7 @@ mac_preproc [bool top_level] returns [std::string collected_text]
 		| dot													{$collected_text += ".";}
 		| AMPERSAND
 		(
+			CONTINUATION?
 			ORDSYMBOL
 			{
 				auto name = $ORDSYMBOL->getText();
@@ -65,6 +66,7 @@ mac_preproc [bool top_level] returns [std::string collected_text]
 					name += $ORDSYMBOL->getText();
 				}
 				|
+				CONTINUATION?
 				NUM
 				{
 					name += $NUM->getText();
@@ -76,12 +78,13 @@ mac_preproc [bool top_level] returns [std::string collected_text]
 				collector.add_hl_symbol(token_info(provider.get_range($AMPERSAND,_input->LT(-1)),hl_scopes::var_symbol));
 			}
 			|
+			CONTINUATION?
 			lpar												{$collected_text += "&(";}
 			(
 				created_set_body								{$collected_text += $created_set_body.text;}
 				|
 				CONTINUATION
-			)?
+			)*
 			rpar												{$collected_text += ")";}
 			|
 			CONTINUATION?
@@ -97,6 +100,7 @@ mac_preproc [bool top_level] returns [std::string collected_text]
 		(
 			mac_preproc[false]									{$collected_text += $mac_preproc.collected_text;}
 			(
+				CONTINUATION?
 				comma											{$collected_text += ",";}
 			)+
 			(
@@ -222,7 +226,8 @@ mac_entry [bool top_level = true] returns [concat_chain chain]
 		(
 			string_ch_v
 			{
-				$chain.push_back(std::make_unique<char_str_conc>($string_ch_v.text, provider.get_range($string_ch_v.ctx)));
+				if (auto& p = $string_ch_v.point; p)
+					$chain.push_back(std::move(p));
 			}
 		)*?
 		ap2=(APOSTROPHE|ATTR)
@@ -241,7 +246,8 @@ mac_entry [bool top_level = true] returns [concat_chain chain]
 			(
 				string_ch_v
 				{
-					$chain.push_back(std::make_unique<char_str_conc>($string_ch_v.text, provider.get_range($string_ch_v.ctx)));
+					if (auto& p = $string_ch_v.point; p)
+						$chain.push_back(std::move(p));
 				}
 			)*?
 			ap2=(APOSTROPHE|ATTR)
