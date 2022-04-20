@@ -187,7 +187,6 @@ mac_preproc_inner [bool top_level] returns [std::string collected_text]
 		| lpar													{$collected_text += "(";}
 		| comma													{$collected_text += ",";}
 		| rpar													{$collected_text += ")";}
-		| (APOSTROPHE|ATTR) (APOSTROPHE|ATTR)					{$collected_text += "''";}
 		| CONTINUATION
 		| SPACE													{$collected_text += $SPACE.text;}
 	)+
