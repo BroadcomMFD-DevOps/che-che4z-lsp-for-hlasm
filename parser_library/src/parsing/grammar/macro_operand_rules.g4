@@ -93,22 +93,25 @@ mac_preproc [bool top_level] returns [std::string collected_text]
 		lpar													{$collected_text += "(";}
 		(
 			comma												{$collected_text += ",";}
-			|
-			CONTINUATION
-		)*
-		(
-			mac_preproc[false]									{$collected_text += $mac_preproc.collected_text;}
-			(
-				CONTINUATION?
-				comma											{$collected_text += ",";}
-			)+
 			(
 				SPACE
-				remark CONTINUATION
+				remark
 			)?
+			CONTINUATION?
 		)*
 		(
 			mac_preproc[false]									{$collected_text += $mac_preproc.collected_text;}
+			(
+				comma											{$collected_text += ",";}
+				(
+					SPACE
+					remark
+					CONTINUATION
+				)?
+				(
+					mac_preproc[false]							{$collected_text += $mac_preproc.collected_text;}
+				)?
+			)*
 		)?
 		rpar													{$collected_text += ")";}
 		|
@@ -246,24 +249,27 @@ mac_entry [bool top_level = true] returns [concat_chain chain]
 			mac_entry[false]
 			{
 				sublist.push_back(std::move($mac_entry.chain));
-			}
-			comma
+				pending_empty = false;
+			}			
 			(
 				comma
+				(
+					comma
+					{
+						sublist.emplace_back();
+					}
+				)*
 				{
-					sublist.emplace_back();
+					pending_empty = true;
 				}
+				(
+					mac_entry[false]
+					{
+						sublist.push_back(std::move($mac_entry.chain));
+						pending_empty = false;
+					}
+				)?
 			)*
-			{
-				pending_empty = true;
-			}
-		)*
-		(
-			mac_entry[false]
-			{
-				sublist.push_back(std::move($mac_entry.chain));
-				pending_empty = false;
-			}
 		)?
 		{
 			if (pending_empty)

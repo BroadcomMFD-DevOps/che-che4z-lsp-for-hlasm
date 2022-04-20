@@ -984,3 +984,24 @@ TEST(macro, multiline_comment)
 
     EXPECT_TRUE(a.diags().empty());
 }
+
+TEST(macro, attribute_string_combo)
+{
+    std::string input = R"(
+        MACRO
+        MAC  
+TEST    EQU  &SYSLIST(1,2)
+        MEND
+
+LABEL   DS   A
+
+        MAC  (0,l'LABEL),'-',(l'LABEL,0),                              X
+               '-'
+)";
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(a.diags().empty());
+    EXPECT_EQ(get_symbol_abs(a.hlasm_ctx(), "TEST"), 4);
+}
