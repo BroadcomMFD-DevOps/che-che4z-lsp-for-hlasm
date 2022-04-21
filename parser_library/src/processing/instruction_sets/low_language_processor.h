@@ -26,7 +26,7 @@ namespace hlasm_plugin::parser_library::processing {
 class low_language_processor : public instruction_processor, public context::loctr_dependency_resolver
 {
 public:
-    bool check(const resolved_statement& stmt,
+    static bool check(const resolved_statement& stmt,
         const context::processing_stack_t& processing_stack,
         context::dependency_solver& dep_solver,
         const checking::instruction_checker& checker,
@@ -87,13 +87,13 @@ private:
 
     using transform_result = std::optional<std::vector<checking::check_op_ptr>>;
     // transform semantic operands to checking operands - machine mnemonics instructions
-    transform_result transform_mnemonic(
+    static transform_result transform_mnemonic(
         const resolved_statement& stmt, context::dependency_solver& dep_solver, diagnostic_collector collector);
     // transform semantic operands to checking operands - default machine instructions
-    transform_result transform_default(
+    static transform_result transform_default(
         const resolved_statement& stmt, context::dependency_solver& dep_solver, diagnostic_collector collector);
 
-    checking::check_op_ptr get_check_op(const semantics::operand* op,
+    static checking::check_op_ptr get_check_op(const semantics::operand* op,
         context::dependency_solver& dep_solver,
         diagnostic_collector collector,
         const resolved_statement& stmt,

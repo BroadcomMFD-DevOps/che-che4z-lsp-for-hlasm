@@ -28,7 +28,7 @@
 #include "checking/instr_operand.h"
 #include "diagnostic.h"
 #include "id_storage.h"
-#include "system_architecture.h"
+#include "instruction_set_version.h"
 
 namespace hlasm_plugin::parser_library::context {
 
@@ -41,6 +41,7 @@ namespace hlasm_plugin::parser_library::context {
 //  -   xxxx xxxx 0101 -> Instruction supported since Z12 systems up to now
 enum class supported_system : unsigned short
 {
+    NO_SUPPORT = 0,
     NO_Z_SUPPORT = 0,
     SINCE_ZOP = 1,
     SINCE_YOP,
@@ -58,6 +59,8 @@ enum class supported_system : unsigned short
     UNI = 1 << 9
 };
 
+// Simple OR of supported_system values can have illogical results for SINCE_xxx bits
+// Goal is to give the results more sense (e.g. SINCE_Z10 | SINCE_Z11 should result in SINCE_Z10).
 constexpr supported_system operator|(supported_system a, supported_system b)
 {
     auto a_conv = static_cast<int>(a);
@@ -65,8 +68,9 @@ constexpr supported_system operator|(supported_system a, supported_system b)
     auto since_z = static_cast<int>(supported_system::NO_Z_SUPPORT);
     const int since_z_mask = 0x0F;
 
-    // Get the value of SINCE_Zxx bits
-    if ((a_conv & since_z_mask) > 0 && (b_conv & since_z_mask) > 0)
+    // Get the value of SINCE_xxx bits
+    if ((a_conv & since_z_mask) != static_cast<int>(supported_system::NO_Z_SUPPORT)
+        && (b_conv & since_z_mask) != static_cast<int>(supported_system::NO_Z_SUPPORT))
     {
         since_z = std::min(a_conv & since_z_mask, b_conv & since_z_mask);
     }
@@ -75,17 +79,36 @@ constexpr supported_system operator|(supported_system a, supported_system b)
         since_z = std::max(a_conv & since_z_mask, b_conv & since_z_mask);
     }
 
-    // OR the two values and zero out the SINCE_Z bits
+    // OR the two values and zero out the SINCE_xxx bits
     auto res = a_conv | b_conv;
     res &= ~since_z_mask;
 
-    // OR the result with the retrieved SINCE_Z bits
+    // OR the result with the retrieved SINCE_xxx bits
     return static_cast<supported_system>(res | since_z);
 }
 
+// Simple AND of supported_system values can have illogical results for SINCE_xxx bits
+// Goal is to give the results more sense (e.g. SINCE_Z10 & SINCE_Z11 should result in SINCE_Z11).
 constexpr supported_system operator&(supported_system a, supported_system b)
 {
-    return static_cast<supported_system>(static_cast<int>(a) & static_cast<int>(b));
+    auto a_conv = static_cast<int>(a);
+    auto b_conv = static_cast<int>(b);
+    auto since_z = static_cast<int>(supported_system::NO_Z_SUPPORT);
+    const int since_z_mask = 0x0F;
+
+    // Get the value of SINCE_xxx bits
+    if ((a_conv & since_z_mask) != static_cast<int>(supported_system::NO_Z_SUPPORT)
+        && (b_conv & since_z_mask) != static_cast<int>(supported_system::NO_Z_SUPPORT))
+    {
+        since_z = std::max(a_conv & since_z_mask, b_conv & since_z_mask);
+    }
+
+    // AND the two values and zero out the SINCE_xxx bits
+    auto res = a_conv & b_conv;
+    res &= ~since_z_mask;
+
+    // OR the result with the retrieved SINCE_xxx bits
+    return static_cast<supported_system>(res | since_z);
 }
 
 constexpr supported_system operator&(supported_system a, size_t b)
@@ -93,7 +116,7 @@ constexpr supported_system operator&(supported_system a, size_t b)
     return static_cast<supported_system>(static_cast<int>(a) & static_cast<int>(b));
 }
 
-constexpr bool operator<=(supported_system a, system_architecture b)
+constexpr bool operator<=(supported_system a, instruction_set_version b)
 {
     return static_cast<int>(a) <= static_cast<int>(b);
 }
@@ -547,18 +570,16 @@ public:
 };
 
 // class holding details of available instructions in their respective sets
-class instruction_sets
+class instruction
 {
 public:
-    instruction_sets(system_architecture arch);
-
     /*
     min_operands - minimal number of operands, non-negative integer, always defined
     max_operands - if not defined (can be infinite), value is -1, otherwise a non-negative integer
     */
 
-    const ca_instruction& get_ca_instructions(std::string_view name) const;
-    const ca_instruction* find_ca_instructions(std::string_view name) const;
+    static const ca_instruction& get_ca_instructions(std::string_view name);
+    static const ca_instruction* find_ca_instructions(std::string_view name);
     static std::span<const ca_instruction> all_ca_instructions();
 
     static const assembler_instruction& get_assembler_instructions(std::string_view name);

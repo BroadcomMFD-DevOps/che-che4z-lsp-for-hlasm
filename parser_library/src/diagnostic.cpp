@@ -2473,7 +2473,7 @@ diagnostic_s diagnostic_s::error_W0007(std::string_view file_name, std::string_v
             proc_group,
             "' from '",
             file_name,
-            "' refers to invalid system architecture. Using value UNI as default."),
+            "' refers to invalid OPTABLE value. Using value UNI as default."),
         {});
 }
 

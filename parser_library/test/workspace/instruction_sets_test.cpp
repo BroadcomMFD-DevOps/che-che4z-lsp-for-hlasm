@@ -134,14 +134,15 @@ public:
     list_directory_result list_directory_files(const std::string& path) override
     {
         if (path == "lib/" || path == "lib\\")
-            return { { { "SAM31", "SAM31" } },
-                hlasm_plugin::utils::path::list_directory_rc::done };
+            return { { { "SAM31", "SAM31" } }, hlasm_plugin::utils::path::list_directory_rc::done };
 
         return { {}, hlasm_plugin::utils::path::list_directory_rc::not_exists };
     }
 };
 
-void change_instruction_set(const range& change_range, const std::string& process_group, file_manager& fm, workspace& ws) {
+void change_instruction_set(
+    const range& change_range, const std::string& process_group, file_manager& fm, workspace& ws)
+{
     std::vector<document_change> changes;
     changes.push_back(document_change({ change_range }, process_group.c_str(), process_group.size()));
 

@@ -130,8 +130,6 @@ const std::map<std::string_view, std::unique_ptr<assembler_instruction>> assembl
         return result;
     }();
 
-machine_checker::machine_checker() {}
-
 bool machine_checker::check(std::string_view instruction_name,
     const std::vector<const operand*>& operand_vector,
     const range& stmt_range,
@@ -147,10 +145,10 @@ bool machine_checker::check(std::string_view instruction_name,
     auto mach_name = instruction_name;
 
     // instruction is a mnemonic instruction
-    if (auto m = context::instruction_sets::find_mnemonic_codes(instruction_name))
+    if (auto m = context::instruction::find_mnemonic_codes(instruction_name))
         mach_name = m->instruction()->name();
 
-    return context::instruction_sets::get_machine_instructions(mach_name).check(
+    return context::instruction::get_machine_instructions(mach_name).check(
         instruction_name, ops, stmt_range, add_diagnostic);
 }
 

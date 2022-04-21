@@ -775,8 +775,8 @@ completion_list_s lsp_context::complete_instr(const file_info&, position) const
     {
         auto id = m_hlasm_ctx->ids().find(instr.label);
 
-        auto it = m_hlasm_ctx->get_instruction_map().find(id);
-        if (it != m_hlasm_ctx->get_instruction_map().end())
+        auto it = m_hlasm_ctx->instruction_map().find(id);
+        if (it != m_hlasm_ctx->instruction_map().end())
         {
             result.emplace_back(instr);
         }

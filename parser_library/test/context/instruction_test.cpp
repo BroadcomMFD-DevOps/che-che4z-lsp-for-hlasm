@@ -19,38 +19,38 @@
 #include "context/instruction.h"
 
 // clang-format off
-std::unordered_map<std::string, const std::set<system_architecture>> instruction_compatibility_matrix = {
-    { "ADDFRR", { {system_architecture::ESA }, {system_architecture::XA } } },
-    { "VACD", { {system_architecture::ESA }, { system_architecture::XA }, { system_architecture::_370 } } },
-    { "CLRCH", { {system_architecture::UNI }, { system_architecture::_370 } } },
-    { "CLRIO", { {system_architecture::UNI }, { system_architecture::_370 }, { system_architecture::DOS } } },
-    { "DFLTCC", { {system_architecture::UNI }, { system_architecture::Z15 } } },
-    { "VLER", { {system_architecture::UNI }, { system_architecture::Z15 }, { system_architecture::ESA }, { system_architecture::XA }, { system_architecture::_370 } } },
-    { "AGH", { {system_architecture::UNI }, { system_architecture::Z15 }, { system_architecture::Z14 } } },
-    { "CDPT", { {system_architecture::UNI }, { system_architecture::Z15 }, { system_architecture::Z14 }, { system_architecture::Z13 } } },
-    { "VA", { {system_architecture::UNI }, { system_architecture::Z15 }, { system_architecture::Z14 }, { system_architecture::Z13 }, { system_architecture::ESA }, { system_architecture::XA }, { system_architecture::_370 } } },
-    { "BPP", { {system_architecture::UNI }, { system_architecture::Z15 }, { system_architecture::Z14 }, { system_architecture::Z13 }, { system_architecture::Z12 } } },
-    { "ADTRA", { {system_architecture::UNI }, { system_architecture::Z15 }, { system_architecture::Z14 }, { system_architecture::Z13 }, { system_architecture::Z12 }, { system_architecture::Z11 } } },
-    { "AGSI", { {system_architecture::UNI }, { system_architecture::Z15 }, { system_architecture::Z14 }, { system_architecture::Z13 }, { system_architecture::Z12 }, { system_architecture::Z11 }, { system_architecture::Z10 } } },
-    { "ADTR", { {system_architecture::UNI }, { system_architecture::Z15 }, { system_architecture::Z14 }, { system_architecture::Z13 }, { system_architecture::Z12 }, { system_architecture::Z11 }, { system_architecture::Z10 }, { system_architecture::Z9 } } },
-    { "CDSY", { {system_architecture::UNI }, { system_architecture::Z15 }, { system_architecture::Z14 }, { system_architecture::Z13 }, { system_architecture::Z12 }, { system_architecture::Z11 }, { system_architecture::Z10 }, { system_architecture::Z9 }, { system_architecture::YOP } } },
-    { "AG", { {system_architecture::UNI }, { system_architecture::Z15 }, { system_architecture::Z14 }, { system_architecture::Z13 }, { system_architecture::Z12 }, { system_architecture::Z11 }, { system_architecture::Z10 }, { system_architecture::Z9 }, { system_architecture::YOP }, { system_architecture::ZOP } } },
-    { "ADB", { {system_architecture::UNI }, { system_architecture::Z15 }, { system_architecture::Z14 }, { system_architecture::Z13 }, { system_architecture::Z12 }, { system_architecture::Z11 }, { system_architecture::Z10 }, { system_architecture::Z9 }, { system_architecture::YOP }, { system_architecture::ZOP }, { system_architecture::ESA } } },
-    { "BASSM", { {system_architecture::UNI }, { system_architecture::Z15 }, { system_architecture::Z14 }, { system_architecture::Z13 }, { system_architecture::Z12 }, { system_architecture::Z11 }, { system_architecture::Z10 }, { system_architecture::Z9 }, { system_architecture::YOP }, { system_architecture::ZOP }, { system_architecture::ESA }, { system_architecture::XA } } },
-    { "BAS", { {system_architecture::UNI }, { system_architecture::Z15 }, { system_architecture::Z14 }, { system_architecture::Z13 }, { system_architecture::Z12 }, { system_architecture::Z11 }, { system_architecture::Z10 }, { system_architecture::Z9 }, { system_architecture::YOP }, { system_architecture::ZOP }, { system_architecture::ESA }, { system_architecture::XA }, { system_architecture::_370 } } },
-    { "A", { {system_architecture::UNI }, { system_architecture::Z15 }, { system_architecture::Z14 }, { system_architecture::Z13 }, { system_architecture::Z12 }, { system_architecture::Z11 }, { system_architecture::Z10 }, { system_architecture::Z9 }, { system_architecture::YOP }, { system_architecture::ZOP }, { system_architecture::ESA }, { system_architecture::XA }, { system_architecture::_370 }, { system_architecture::DOS } } },
+std::unordered_map<std::string, const std::set<instruction_set_version>> instruction_compatibility_matrix = {
+    { "ADDFRR", { {instruction_set_version::ESA }, {instruction_set_version::XA } } },
+    { "VACD", { {instruction_set_version::ESA }, { instruction_set_version::XA }, { instruction_set_version::_370 } } },
+    { "CLRCH", { {instruction_set_version::UNI }, { instruction_set_version::_370 } } },
+    { "CLRIO", { {instruction_set_version::UNI }, { instruction_set_version::_370 }, { instruction_set_version::DOS } } },
+    { "DFLTCC", { {instruction_set_version::UNI }, { instruction_set_version::Z15 } } },
+    { "VLER", { {instruction_set_version::UNI }, { instruction_set_version::Z15 }, { instruction_set_version::ESA }, { instruction_set_version::XA }, { instruction_set_version::_370 } } },
+    { "AGH", { {instruction_set_version::UNI }, { instruction_set_version::Z15 }, { instruction_set_version::Z14 } } },
+    { "CDPT", { {instruction_set_version::UNI }, { instruction_set_version::Z15 }, { instruction_set_version::Z14 }, { instruction_set_version::Z13 } } },
+    { "VA", { {instruction_set_version::UNI }, { instruction_set_version::Z15 }, { instruction_set_version::Z14 }, { instruction_set_version::Z13 }, { instruction_set_version::ESA }, { instruction_set_version::XA }, { instruction_set_version::_370 } } },
+    { "BPP", { {instruction_set_version::UNI }, { instruction_set_version::Z15 }, { instruction_set_version::Z14 }, { instruction_set_version::Z13 }, { instruction_set_version::Z12 } } },
+    { "ADTRA", { {instruction_set_version::UNI }, { instruction_set_version::Z15 }, { instruction_set_version::Z14 }, { instruction_set_version::Z13 }, { instruction_set_version::Z12 }, { instruction_set_version::Z11 } } },
+    { "AGSI", { {instruction_set_version::UNI }, { instruction_set_version::Z15 }, { instruction_set_version::Z14 }, { instruction_set_version::Z13 }, { instruction_set_version::Z12 }, { instruction_set_version::Z11 }, { instruction_set_version::Z10 } } },
+    { "ADTR", { {instruction_set_version::UNI }, { instruction_set_version::Z15 }, { instruction_set_version::Z14 }, { instruction_set_version::Z13 }, { instruction_set_version::Z12 }, { instruction_set_version::Z11 }, { instruction_set_version::Z10 }, { instruction_set_version::Z9 } } },
+    { "CDSY", { {instruction_set_version::UNI }, { instruction_set_version::Z15 }, { instruction_set_version::Z14 }, { instruction_set_version::Z13 }, { instruction_set_version::Z12 }, { instruction_set_version::Z11 }, { instruction_set_version::Z10 }, { instruction_set_version::Z9 }, { instruction_set_version::YOP } } },
+    { "AG", { {instruction_set_version::UNI }, { instruction_set_version::Z15 }, { instruction_set_version::Z14 }, { instruction_set_version::Z13 }, { instruction_set_version::Z12 }, { instruction_set_version::Z11 }, { instruction_set_version::Z10 }, { instruction_set_version::Z9 }, { instruction_set_version::YOP }, { instruction_set_version::ZOP } } },
+    { "ADB", { {instruction_set_version::UNI }, { instruction_set_version::Z15 }, { instruction_set_version::Z14 }, { instruction_set_version::Z13 }, { instruction_set_version::Z12 }, { instruction_set_version::Z11 }, { instruction_set_version::Z10 }, { instruction_set_version::Z9 }, { instruction_set_version::YOP }, { instruction_set_version::ZOP }, { instruction_set_version::ESA } } },
+    { "BASSM", { {instruction_set_version::UNI }, { instruction_set_version::Z15 }, { instruction_set_version::Z14 }, { instruction_set_version::Z13 }, { instruction_set_version::Z12 }, { instruction_set_version::Z11 }, { instruction_set_version::Z10 }, { instruction_set_version::Z9 }, { instruction_set_version::YOP }, { instruction_set_version::ZOP }, { instruction_set_version::ESA }, { instruction_set_version::XA } } },
+    { "BAS", { {instruction_set_version::UNI }, { instruction_set_version::Z15 }, { instruction_set_version::Z14 }, { instruction_set_version::Z13 }, { instruction_set_version::Z12 }, { instruction_set_version::Z11 }, { instruction_set_version::Z10 }, { instruction_set_version::Z9 }, { instruction_set_version::YOP }, { instruction_set_version::ZOP }, { instruction_set_version::ESA }, { instruction_set_version::XA }, { instruction_set_version::_370 } } },
+    { "A", { {instruction_set_version::UNI }, { instruction_set_version::Z15 }, { instruction_set_version::Z14 }, { instruction_set_version::Z13 }, { instruction_set_version::Z12 }, { instruction_set_version::Z11 }, { instruction_set_version::Z10 }, { instruction_set_version::Z9 }, { instruction_set_version::YOP }, { instruction_set_version::ZOP }, { instruction_set_version::ESA }, { instruction_set_version::XA }, { instruction_set_version::_370 }, { instruction_set_version::DOS } } },
 };
 // clang-format on
 
 namespace {
 struct instruction_sets_compatibility_params
 {
-    system_architecture arch;
+    instruction_set_version instr_set;
 
-    static instruction_sets_compatibility_params set_arch(system_architecture architecture)
+    static instruction_sets_compatibility_params set_instr_set(instruction_set_version instr_set)
     {
-        instruction_sets_compatibility_params params;
-        params.arch = architecture;
+        instruction_sets_compatibility_params params {};
+        params.instr_set = instr_set;
 
         return params;
     }
@@ -63,32 +63,32 @@ class instruction_sets_fixture : public ::testing::TestWithParam<instruction_set
 
 INSTANTIATE_TEST_SUITE_P(instruction_test,
     instruction_sets_fixture,
-    ::testing::Values(instruction_sets_compatibility_params::set_arch(system_architecture::ZOP),
-        instruction_sets_compatibility_params::set_arch(system_architecture::YOP),
-        instruction_sets_compatibility_params::set_arch(system_architecture::Z9),
-        instruction_sets_compatibility_params::set_arch(system_architecture::Z10),
-        instruction_sets_compatibility_params::set_arch(system_architecture::Z11),
-        instruction_sets_compatibility_params::set_arch(system_architecture::Z12),
-        instruction_sets_compatibility_params::set_arch(system_architecture::Z13),
-        instruction_sets_compatibility_params::set_arch(system_architecture::Z14),
-        instruction_sets_compatibility_params::set_arch(system_architecture::Z15),
-        instruction_sets_compatibility_params::set_arch(system_architecture::UNI),
-        instruction_sets_compatibility_params::set_arch(system_architecture::DOS),
-        instruction_sets_compatibility_params::set_arch(system_architecture::_370),
-        instruction_sets_compatibility_params::set_arch(system_architecture::XA),
-        instruction_sets_compatibility_params::set_arch(system_architecture::ESA)));
+    ::testing::Values(instruction_sets_compatibility_params::set_instr_set(instruction_set_version::ZOP),
+        instruction_sets_compatibility_params::set_instr_set(instruction_set_version::YOP),
+        instruction_sets_compatibility_params::set_instr_set(instruction_set_version::Z9),
+        instruction_sets_compatibility_params::set_instr_set(instruction_set_version::Z10),
+        instruction_sets_compatibility_params::set_instr_set(instruction_set_version::Z11),
+        instruction_sets_compatibility_params::set_instr_set(instruction_set_version::Z12),
+        instruction_sets_compatibility_params::set_instr_set(instruction_set_version::Z13),
+        instruction_sets_compatibility_params::set_instr_set(instruction_set_version::Z14),
+        instruction_sets_compatibility_params::set_instr_set(instruction_set_version::Z15),
+        instruction_sets_compatibility_params::set_instr_set(instruction_set_version::UNI),
+        instruction_sets_compatibility_params::set_instr_set(instruction_set_version::DOS),
+        instruction_sets_compatibility_params::set_instr_set(instruction_set_version::_370),
+        instruction_sets_compatibility_params::set_instr_set(instruction_set_version::XA),
+        instruction_sets_compatibility_params::set_instr_set(instruction_set_version::ESA)));
 
 TEST_P(instruction_sets_fixture, instruction_set_loading)
 {
-    auto arch = GetParam().arch;
+    auto instr_set = GetParam().instr_set;
     std::string dummy_input;
-    analyzer a(dummy_input, analyzer_options { asm_option { "", "", arch } });
+    analyzer a(dummy_input, analyzer_options { asm_option { "", "", instr_set } });
 
     for (const auto& instr : instruction_compatibility_matrix)
     {
         auto id = a.hlasm_ctx().ids().find(instr.first);
 
-        if (instr.second.find(arch) == instr.second.end())
+        if (instr.second.find(instr_set) == instr.second.end())
         {
             EXPECT_TRUE(id == nullptr);
         }
@@ -102,7 +102,7 @@ TEST_P(instruction_sets_fixture, instruction_set_loading)
 namespace {
 struct test_case
 {
-    system_architecture arch;
+    instruction_set_version instr_set;
     int expected_var_value;
 };
 } // namespace
@@ -121,11 +121,11 @@ TEST(instruction_sets_fixture, identical_macro_name_inline_definition)
         SAM31
 )";
 
-    test_case cases[] = { { system_architecture::_370, 1 }, { system_architecture::Z11, 1 } };
+    test_case cases[] = { { instruction_set_version::_370, 1 }, { instruction_set_version::Z11, 1 } };
 
     for (const auto& c : cases)
     {
-        analyzer a(input, analyzer_options { asm_option { "", "", c.arch } });
+        analyzer a(input, analyzer_options { asm_option { "", "", c.instr_set } });
         a.analyze();
         a.collect_diags();
         EXPECT_EQ(a.diags().size(), 0);
@@ -150,13 +150,13 @@ TEST(instruction_sets_fixture, identical_macro_name_linked_definition)
         MEND
 )";
 
-    test_case cases[] = { { system_architecture::_370, 2 }, { system_architecture::Z11, 0 } };
+    test_case cases[] = { { instruction_set_version::_370, 2 }, { instruction_set_version::Z11, 0 } };
 
     mock_parse_lib_provider lib_provider { { "SAM31", macro } };
 
     for (const auto& c : cases)
     {
-        analyzer a(input, analyzer_options { asm_option { "", "", c.arch }, &lib_provider });
+        analyzer a(input, analyzer_options { asm_option { "", "", c.instr_set }, &lib_provider });
         a.analyze();
         a.collect_diags();
         EXPECT_EQ(a.diags().size(), 0);
@@ -187,17 +187,36 @@ TEST(instruction_sets_fixture, identical_macro_name_inline_and_linked_definition
         MEND
 )";
 
-    test_case cases[] = { { system_architecture::_370, 1 }, { system_architecture::Z11, 1 } };
+    test_case cases[] = { { instruction_set_version::_370, 1 }, { instruction_set_version::Z11, 1 } };
 
     mock_parse_lib_provider lib_provider { { "SAM31", macro } };
 
     for (const auto& c : cases)
     {
-        analyzer a(input, analyzer_options { asm_option { "", "", c.arch }, &lib_provider });
+        analyzer a(input, analyzer_options { asm_option { "", "", c.instr_set }, &lib_provider });
         a.analyze();
         a.collect_diags();
         EXPECT_EQ(a.diags().size(), 0);
 
         EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "VAR"), c.expected_var_value);
     }
+}
+
+TEST(instruction_sets_fixture, supported_system_or)
+{
+    EXPECT_EQ(supported_system::NO_Z_SUPPORT | supported_system::NO_Z_SUPPORT, supported_system::NO_Z_SUPPORT);
+    EXPECT_EQ(supported_system::SINCE_Z10 | supported_system::NO_Z_SUPPORT, supported_system::SINCE_Z10);
+    EXPECT_EQ(supported_system::SINCE_Z10 | supported_system::SINCE_Z11, supported_system::SINCE_Z10);
+    EXPECT_EQ(supported_system::XA | supported_system::XA, supported_system::XA);
+    EXPECT_EQ(supported_system::XA | supported_system::UNI | supported_system::SINCE_Z10 | supported_system::SINCE_Z11,
+        supported_system::XA | supported_system::UNI | supported_system::SINCE_Z10);
+}
+
+TEST(instruction_sets_fixture, supported_system_and)
+{
+    EXPECT_EQ(supported_system::NO_Z_SUPPORT & supported_system::NO_Z_SUPPORT, supported_system::NO_Z_SUPPORT);
+    EXPECT_EQ(supported_system::SINCE_Z10 & supported_system::NO_Z_SUPPORT, supported_system::NO_Z_SUPPORT);
+    EXPECT_EQ(supported_system::SINCE_Z10 & supported_system::SINCE_Z11, supported_system::SINCE_Z11);
+    EXPECT_EQ(supported_system::XA & supported_system::XA, supported_system::XA);
+    EXPECT_EQ(supported_system::XA & supported_system::SINCE_Z10, supported_system::NO_SUPPORT);
 }

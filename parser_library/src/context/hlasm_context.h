@@ -77,9 +77,9 @@ class hlasm_context
     asm_option asm_options_;
     static constexpr alignment sectalgn = doubleword;
 
-    // map of all instructions in HLASM
+    // map of active instructions in HLASM
     const instruction_storage m_instruction_map;
-    instruction_storage init_instruction_map(id_storage& ids, system_architecture active_system_arch);
+    instruction_storage init_instruction_map(id_storage& ids, instruction_set_version active_instr_set);
 
     // value of system variable SYSNDX
     unsigned long SYSNDX_ = 1;
@@ -157,7 +157,7 @@ public:
     std::shared_ptr<id_storage> ids_ptr();
 
     // map of all instructions
-    const instruction_storage& get_instruction_map() const;
+    const instruction_storage& instruction_map() const;
 
     // field that accessed ordinary assembly context
     ordinary_assembly_context ord_ctx;

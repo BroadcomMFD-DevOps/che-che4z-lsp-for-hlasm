@@ -15,7 +15,7 @@
 #include "gtest/gtest.h"
 
 #include "analyzer_fixture.h"
-#include "system_architecture.h"
+#include "instruction_set_version.h"
 
 using namespace hlasm_plugin::parser_library;
 using namespace hlasm_plugin::parser_library::lsp;
@@ -34,21 +34,23 @@ struct lsp_context_instr : public ::testing::Test
 
     lsp_context_instr() = default;
 
-    std::unique_ptr<analyzer> new_analyzer(system_architecture sys_arch = system_architecture::Z15)
+    std::unique_ptr<analyzer> new_analyzer(instruction_set_version instr_set = instruction_set_version::Z15)
     {
         auto a = std::make_unique<analyzer>(input,
-            analyzer_options {
-                opencode_file_name, &workspaces::empty_parse_lib_provider::instance, asm_option { "", "", sys_arch } });
+            analyzer_options { opencode_file_name,
+                &workspaces::empty_parse_lib_provider::instance,
+                asm_option { "", "", instr_set } });
 
         a->analyze();
         return a;
     }
 
-    lsp::completion_list_s get_completion_list(system_architecture sys_arch)
+    lsp::completion_list_s get_completion_list(instruction_set_version instr_set)
     {
         analyzer a(input,
-            analyzer_options {
-                opencode_file_name, &workspaces::empty_parse_lib_provider::instance, asm_option { "", "", sys_arch } });
+            analyzer_options { opencode_file_name,
+                &workspaces::empty_parse_lib_provider::instance,
+                asm_option { "", "", instr_set } });
 
         a.analyze();
 
@@ -62,7 +64,7 @@ auto label_addfrr_compare = [](const auto& item) { return item.label == "ADDFRR"
 }
 TEST_F(lsp_context_instr, ADDFRR_not_loaded)
 {
-    auto comp_list = get_completion_list(system_architecture::Z15);
+    auto comp_list = get_completion_list(instruction_set_version::Z15);
 
     auto result = std::none_of(comp_list.begin(), comp_list.end(), label_addfrr_compare);
 
@@ -71,16 +73,16 @@ TEST_F(lsp_context_instr, ADDFRR_not_loaded)
 
 TEST_F(lsp_context_instr, ADDFRR_loaded)
 {
-    auto comp_list = get_completion_list(system_architecture::XA);
+    auto comp_list = get_completion_list(instruction_set_version::XA);
 
     auto result = std::any_of(comp_list.begin(), comp_list.end(), label_addfrr_compare);
 
     EXPECT_TRUE(result);
 }
-TEST_F(lsp_context_instr, ADDFRR_loaded_changed_arch)
+TEST_F(lsp_context_instr, ADDFRR_loaded_changed_instr_set)
 {
-    auto comp_list_z15 = get_completion_list(system_architecture::Z15);
-    auto comp_list_xa = get_completion_list(system_architecture::XA);
+    auto comp_list_z15 = get_completion_list(instruction_set_version::Z15);
+    auto comp_list_xa = get_completion_list(instruction_set_version::XA);
 
     auto result_z15 = std::none_of(comp_list_z15.begin(), comp_list_z15.end(), label_addfrr_compare);
 

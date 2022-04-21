@@ -16,7 +16,8 @@
 #define HLASMPARSER_PARSERLIBRARY_COMPILER_OPTIONS_H
 
 #include <string>
-#include <system_architecture.h>
+
+#include "instruction_set_version.h"
 
 // This file contains assembler compiler options definitions.
 
@@ -26,8 +27,8 @@ struct asm_option
     std::string sysparm;
     std::string profile;
 
-    static const system_architecture arch_default = system_architecture::UNI;
-    system_architecture arch = arch_default;
+    static const instruction_set_version instr_set_default = instruction_set_version::UNI;
+    instruction_set_version instr_set = instr_set_default;
 
     static const std::string system_id_default;
     std::string system_id = system_id_default;

@@ -59,37 +59,37 @@ public:
     void collect_diags() const override {}
 };
 
-TEST_F(processor_group_test, asm_options_arch_valid)
+TEST_F(processor_group_test, asm_options_optable_valid)
 {
     std::string grp_name = "Group";
     config::assembler_options asm_opts;
     asm_opts.optable = "UNI";
 
     const auto cases = {
-        std::make_pair("ZOP", system_architecture::ZOP),
-        std::make_pair("ZS1", system_architecture::ZOP),
-        std::make_pair("YOP", system_architecture::YOP),
-        std::make_pair("ZS2", system_architecture::YOP),
-        std::make_pair("Z9", system_architecture::Z9),
-        std::make_pair("ZS3", system_architecture::Z9),
-        std::make_pair("Z10", system_architecture::Z10),
-        std::make_pair("ZS4", system_architecture::Z10),
-        std::make_pair("Z11", system_architecture::Z11),
-        std::make_pair("ZS5", system_architecture::Z11),
-        std::make_pair("Z12", system_architecture::Z12),
-        std::make_pair("ZS6", system_architecture::Z12),
-        std::make_pair("Z13", system_architecture::Z13),
-        std::make_pair("ZS7", system_architecture::Z13),
-        std::make_pair("Z14", system_architecture::Z14),
-        std::make_pair("ZS8", system_architecture::Z14),
-        std::make_pair("Z15", system_architecture::Z15),
-        std::make_pair("ZS9", system_architecture::Z15),
-        std::make_pair("UNI", system_architecture::UNI),
-        std::make_pair("DOS", system_architecture::DOS),
-        std::make_pair("370", system_architecture::_370),
-        std::make_pair("XA", system_architecture::XA),
-        std::make_pair("ESA", system_architecture::ESA),
-        std::make_pair("", system_architecture::UNI),
+        std::make_pair("ZOP", instruction_set_version::ZOP),
+        std::make_pair("ZS1", instruction_set_version::ZOP),
+        std::make_pair("YOP", instruction_set_version::YOP),
+        std::make_pair("ZS2", instruction_set_version::YOP),
+        std::make_pair("Z9", instruction_set_version::Z9),
+        std::make_pair("ZS3", instruction_set_version::Z9),
+        std::make_pair("Z10", instruction_set_version::Z10),
+        std::make_pair("ZS4", instruction_set_version::Z10),
+        std::make_pair("Z11", instruction_set_version::Z11),
+        std::make_pair("ZS5", instruction_set_version::Z11),
+        std::make_pair("Z12", instruction_set_version::Z12),
+        std::make_pair("ZS6", instruction_set_version::Z12),
+        std::make_pair("Z13", instruction_set_version::Z13),
+        std::make_pair("ZS7", instruction_set_version::Z13),
+        std::make_pair("Z14", instruction_set_version::Z14),
+        std::make_pair("ZS8", instruction_set_version::Z14),
+        std::make_pair("Z15", instruction_set_version::Z15),
+        std::make_pair("ZS9", instruction_set_version::Z15),
+        std::make_pair("UNI", instruction_set_version::UNI),
+        std::make_pair("DOS", instruction_set_version::DOS),
+        std::make_pair("370", instruction_set_version::_370),
+        std::make_pair("XA", instruction_set_version::XA),
+        std::make_pair("ESA", instruction_set_version::ESA),
+        std::make_pair("", instruction_set_version::UNI),
     };
 
     for (const auto& [input, expected] : cases)
@@ -99,26 +99,26 @@ TEST_F(processor_group_test, asm_options_arch_valid)
         asm_opts.optable = input;
         workspaces::processor_group proc_group("Group", "", asm_opts, {});
 
-        auto arch = proc_group.asm_options().arch;
+        auto instr_set = proc_group.asm_options().instr_set;
 
         collect_diags_from_child(proc_group);
         EXPECT_EQ(diags().size(), (size_t)0);
 
-        EXPECT_EQ(arch, expected);
+        EXPECT_EQ(instr_set, expected);
     }
 }
 
-TEST_F(processor_group_test, asm_options_arch_invalid)
+TEST_F(processor_group_test, asm_options_optable_invalid)
 {
     std::string grp_name = "Group";
     config::assembler_options asm_opts;
     asm_opts.optable = "UNI";
 
     const auto cases = {
-        std::make_pair("klgadh", system_architecture::UNI),
-        std::make_pair("ZS5ZS6", system_architecture::UNI),
-        std::make_pair("ZS0", system_architecture::UNI),
-        std::make_pair("Z8", system_architecture::UNI),
+        std::make_pair("klgadh", instruction_set_version::UNI),
+        std::make_pair("ZS5ZS6", instruction_set_version::UNI),
+        std::make_pair("ZS0", instruction_set_version::UNI),
+        std::make_pair("Z8", instruction_set_version::UNI),
     };
 
     for (const auto& [input, expected] : cases)
@@ -128,12 +128,12 @@ TEST_F(processor_group_test, asm_options_arch_invalid)
         asm_opts.optable = input;
         workspaces::processor_group proc_group("Group", "", asm_opts, {});
 
-        auto arch = proc_group.asm_options().arch;
+        auto instr_set = proc_group.asm_options().instr_set;
 
         collect_diags_from_child(proc_group);
         EXPECT_EQ(diags().size(), (size_t)1);
         EXPECT_TRUE(matches_message_codes(diags(), { "W0007" }));
 
-        EXPECT_EQ(arch, expected);
+        EXPECT_EQ(instr_set, expected);
     }
 }

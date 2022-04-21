@@ -12,14 +12,14 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
-#ifndef HLASMPARSER_PARSERLIBRARY_SYSTEM_ARCHITECTURE_H
-#define HLASMPARSER_PARSERLIBRARY_SYSTEM_ARCHITECTURE_H
+#ifndef HLASMPARSER_PARSERLIBRARY_INSTRUCTION_SET_VERSION_H
+#define HLASMPARSER_PARSERLIBRARY_INSTRUCTION_SET_VERSION_H
 
 #include <string>
 
-// This file system architecture versions
+// Available instruction sets versions
 namespace hlasm_plugin::parser_library {
-enum class system_architecture
+enum class instruction_set_version
 {
     ZOP = 1,
     YOP,

@@ -86,7 +86,7 @@ void process_machine_instruction(const context::machine_instruction& machine_ins
         }
     }
     doc_ss << "Machine instruction " << std::endl
-           << "Instruction format: " << context::instruction_sets::mach_format_to_string(machine_instr.format());
+           << "Instruction format: " << context::instruction::mach_format_to_string(machine_instr.format());
     items.emplace(std::string(machine_instr.name()),
         "Operands: " + detail_ss.str(),
         autocomplete.str(),
@@ -208,7 +208,7 @@ void process_mnemonic_code(
     doc_ss << "Mnemonic code for " << mnemonic_instr.instruction()->name() << " instruction" << std::endl
            << "Substituted operands: " << subs_ops_mnems.str() << std::endl
            << "Instruction format: "
-           << context::instruction_sets::mach_format_to_string(mnemonic_instr.instruction()->format());
+           << context::instruction::mach_format_to_string(mnemonic_instr.instruction()->format());
     items.emplace(std::string(mnemonic_instr.name()),
         detail_ss.str(),
         std::string(mnemonic_instr.name()) + "   " + subs_ops_nomnems.str(),
@@ -232,22 +232,22 @@ const std::set<completion_item_s, completion_item_s::label_comparer> completion_
     [] {
         std::set<completion_item_s, completion_item_s::label_comparer> result;
 
-        for (const auto& instr : context::instruction_sets::all_ca_instructions())
+        for (const auto& instr : context::instruction::all_ca_instructions())
         {
             process_ca_instruction(instr, result);
         }
 
-        for (const auto& instr : context::instruction_sets::all_assembler_instructions())
+        for (const auto& instr : context::instruction::all_assembler_instructions())
         {
             process_assembler_instruction(instr, result);
         }
 
-        for (const auto& instr : context::instruction_sets::all_machine_instructions())
+        for (const auto& instr : context::instruction::all_machine_instructions())
         {
             process_machine_instruction(instr, result);
         }
 
-        for (const auto& instr : context::instruction_sets::all_mnemonic_codes())
+        for (const auto& instr : context::instruction::all_mnemonic_codes())
         {
             process_mnemonic_code(instr, result);
         }

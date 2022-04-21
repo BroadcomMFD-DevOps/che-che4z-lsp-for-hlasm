@@ -52,8 +52,6 @@ public:
 class machine_checker final : public instruction_checker
 {
 public:
-    machine_checker();
-
     bool check(std::string_view instruction_name,
         const std::vector<const operand*>& operand_vector,
         const range& stmt_range,

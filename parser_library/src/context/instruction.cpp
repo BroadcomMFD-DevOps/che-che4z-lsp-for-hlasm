@@ -45,7 +45,7 @@ constexpr auto UNI_SINCE_ZOP = supported_system::UNI | supported_system::SINCE_Z
 } // namespace
 // clang-format on
 
-std::string_view instruction_sets::mach_format_to_string(mach_format f)
+std::string_view instruction::mach_format_to_string(mach_format f)
 {
     switch (f)
     {
@@ -236,7 +236,7 @@ constexpr ca_instruction ca_instructions[] = {
 #if __cpp_lib_ranges
 static_assert(std::ranges::is_sorted(ca_instructions, {}, &ca_instruction::name));
 
-const ca_instruction* instruction_sets::find_ca_instructions(std::string_view name) const
+const ca_instruction* instruction::find_ca_instructions(std::string_view name)
 {
     auto it = std::ranges::lower_bound(ca_instructions, name, {}, &ca_instruction::name);
 
@@ -249,7 +249,7 @@ static_assert(std::is_sorted(std::begin(ca_instructions), std::end(ca_instructio
     return l.name() < r.name();
 }));
 
-const ca_instruction* instruction_sets::find_ca_instructions(std::string_view name) const
+const ca_instruction* instruction::find_ca_instructions(std::string_view name)
 {
     auto it = std::lower_bound(
         std::begin(ca_instructions), std::end(ca_instructions), name, [](const auto& l, const auto& r) {
@@ -262,14 +262,14 @@ const ca_instruction* instruction_sets::find_ca_instructions(std::string_view na
 }
 #endif
 
-const ca_instruction& instruction_sets::get_ca_instructions(std::string_view name) const
+const ca_instruction& instruction::get_ca_instructions(std::string_view name)
 {
     auto result = find_ca_instructions(name);
     assert(result);
     return *result;
 }
 
-std::span<const ca_instruction> instruction_sets::all_ca_instructions() { return ca_instructions; }
+std::span<const ca_instruction> instruction::all_ca_instructions() { return ca_instructions; }
 
 constexpr assembler_instruction assembler_instructions[] = {
     { "*PROCESS", 1, -1, false, "" }, // TO DO
@@ -328,7 +328,7 @@ constexpr assembler_instruction assembler_instructions[] = {
 #ifdef __cpp_lib_ranges
 static_assert(std::ranges::is_sorted(assembler_instructions, {}, &assembler_instruction::name));
 
-const assembler_instruction* instruction_sets::find_assembler_instructions(std::string_view instr)
+const assembler_instruction* instruction::find_assembler_instructions(std::string_view instr)
 {
     auto it = std::ranges::lower_bound(assembler_instructions, instr, {}, &assembler_instruction::name);
     if (it == std::ranges::end(assembler_instructions) || it->name() != instr)
@@ -340,7 +340,7 @@ static_assert(std::is_sorted(std::begin(assembler_instructions),
     std::end(assembler_instructions),
     [](const auto& l, const auto& r) { return l.name() < r.name(); }));
 
-const assembler_instruction* instruction_sets::find_assembler_instructions(std::string_view instr)
+const assembler_instruction* instruction::find_assembler_instructions(std::string_view instr)
 {
     auto it = std::lower_bound(
         std::begin(assembler_instructions), std::end(assembler_instructions), instr, [](const auto& l, const auto& r) {
@@ -352,14 +352,14 @@ const assembler_instruction* instruction_sets::find_assembler_instructions(std::
 }
 #endif
 
-const assembler_instruction& instruction_sets::get_assembler_instructions(std::string_view instr)
+const assembler_instruction& instruction::get_assembler_instructions(std::string_view instr)
 {
     auto result = find_assembler_instructions(instr);
     assert(result);
     return *result;
 }
 
-std::span<const assembler_instruction> instruction_sets::all_assembler_instructions() { return assembler_instructions; }
+std::span<const assembler_instruction> instruction::all_assembler_instructions() { return assembler_instructions; }
 
 bool hlasm_plugin::parser_library::context::machine_instruction::check_nth_operand(
     size_t place, const checking::machine_operand* operand)
@@ -1891,12 +1891,12 @@ constexpr machine_instruction machine_instructions[] = {
 #ifdef __cpp_lib_ranges
 static_assert(std::ranges::is_sorted(machine_instructions, {}, &machine_instruction::name));
 
-const machine_instruction* instruction_sets::find_machine_instructions(std::string_view name) const
+const machine_instruction* instruction::find_machine_instructions(std::string_view name)
 {
-    auto it = std::ranges::lower_bound(m_machine_instructions, name, {}, &machine_instruction::name);
-    if (it == std::ranges::end(m_machine_instructions) || it->get().name() != name)
+    auto it = std::ranges::lower_bound(machine_instructions, name, {}, &machine_instruction::name);
+    if (it == std::ranges::end(machine_instructions) || it->name() != name)
         return nullptr;
-    return &it->get();
+    return &*it;
 }
 
 constexpr const machine_instruction* find_mi(std::string_view name)
@@ -1911,7 +1911,7 @@ static_assert(std::is_sorted(std::begin(machine_instructions),
     std::end(machine_instructions),
     [](const auto& l, const auto& r) { return l.name() < r.name(); }));
 
-const machine_instruction* instruction_sets::find_machine_instructions(std::string_view name)
+const machine_instruction* instruction::find_machine_instructions(std::string_view name)
 {
     auto it = std::lower_bound(
         std::begin(machine_instructions), std::end(machine_instructions), name, [](const auto& l, const auto& r) {
@@ -1933,14 +1933,14 @@ constexpr const machine_instruction* find_mi(std::string_view name)
 }
 #endif
 
-const machine_instruction& instruction_sets::get_machine_instructions(std::string_view name)
+const machine_instruction& instruction::get_machine_instructions(std::string_view name)
 {
     auto mi = find_machine_instructions(name);
     assert(mi);
     return *mi;
 }
 
-std::span<const machine_instruction> instruction_sets::all_machine_instructions() { return machine_instructions; }
+std::span<const machine_instruction> instruction::all_machine_instructions() { return machine_instructions; }
 
 constexpr auto mi_BC = find_mi("BC");
 constexpr auto mi_BCR = find_mi("BCR");
@@ -3059,19 +3059,19 @@ constexpr mnemonic_code mnemonic_codes[] = {
 #ifdef __cpp_lib_ranges
 static_assert(std::ranges::is_sorted(mnemonic_codes, {}, &mnemonic_code::name));
 
-const mnemonic_code* instruction_sets::find_mnemonic_codes(std::string_view name) const
+const mnemonic_code* instruction::find_mnemonic_codes(std::string_view name)
 {
-    auto it = std::ranges::lower_bound(m_mnemonic_codes, name, {}, &mnemonic_code::name);
-    if (it == std::ranges::end(m_mnemonic_codes) || it->get().name() != name)
+    auto it = std::ranges::lower_bound(mnemonic_codes, name, {}, &mnemonic_code::name);
+    if (it == std::ranges::end(mnemonic_codes) || it->name() != name)
         return nullptr;
-    return &it->get();
+    return &*it;
 }
 #else
 static_assert(std::is_sorted(std::begin(mnemonic_codes), std::end(mnemonic_codes), [](const auto& l, const auto& r) {
     return l.name() < r.name();
 }));
 
-const mnemonic_code* instruction_sets::find_mnemonic_codes(std::string_view name)
+const mnemonic_code* instruction::find_mnemonic_codes(std::string_view name)
 {
     auto it =
         std::lower_bound(std::begin(mnemonic_codes), std::end(mnemonic_codes), name, [](const auto& l, const auto& r) {
@@ -3083,11 +3083,11 @@ const mnemonic_code* instruction_sets::find_mnemonic_codes(std::string_view name
 }
 #endif
 
-const mnemonic_code& instruction_sets::get_mnemonic_codes(std::string_view name)
+const mnemonic_code& instruction::get_mnemonic_codes(std::string_view name)
 {
     auto result = find_mnemonic_codes(name);
     assert(result);
     return *result;
 }
 
-std::span<const mnemonic_code> instruction_sets::all_mnemonic_codes() { return mnemonic_codes; }
+std::span<const mnemonic_code> instruction::all_mnemonic_codes() { return mnemonic_codes; }
