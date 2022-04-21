@@ -216,8 +216,9 @@ TEST(proc_grps, assembler_options_validate)
         std::make_pair(assembler_options { "SYSPARM" }, true),
         std::make_pair(assembler_options { std::string(255, 'A') }, true),
         std::make_pair(assembler_options { std::string(256, 'A') }, false),
+        std::make_pair(assembler_options { "", "", "" }, true),
+        std::make_pair(assembler_options { "", "", "UNI" }, true),
         std::make_pair(assembler_options { "", "", "A" }, false),
-        std::make_pair(assembler_options { "", "", std::string(4, 'A') }, false),
     };
 
     for (const auto& [input, expected] : cases)

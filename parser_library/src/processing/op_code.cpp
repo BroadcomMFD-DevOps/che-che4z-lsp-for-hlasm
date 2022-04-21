@@ -14,8 +14,6 @@
 
 #include "op_code.h"
 
-#include <assert.h>
-
 #include "context/instruction.h"
 
 namespace hlasm_plugin::parser_library::processing {

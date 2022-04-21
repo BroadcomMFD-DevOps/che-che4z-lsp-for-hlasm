@@ -75,7 +75,7 @@ hlasm_context::instruction_storage hlasm_context::init_instruction_map(
     id_storage& ids, instruction_set_version active_instr_set)
 {
     hlasm_context::instruction_storage instr_map;
-    for (const auto& instr : context::instruction::all_machine_instructions())
+    for (const auto& instr : instruction::all_machine_instructions())
     {
         if (!instruction_available(instr.system_support(), active_instr_set))
             continue;
@@ -83,17 +83,17 @@ hlasm_context::instruction_storage hlasm_context::init_instruction_map(
         auto id = ids.add(std::string(instr.name()));
         instr_map.emplace(id, &instr);
     }
-    for (const auto& instr : context::instruction::all_assembler_instructions())
+    for (const auto& instr : instruction::all_assembler_instructions())
     {
         auto id = ids.add(std::string(instr.name()));
         instr_map.emplace(id, &instr);
     }
-    for (const auto& instr : context::instruction::all_ca_instructions())
+    for (const auto& instr : instruction::all_ca_instructions())
     {
         auto id = ids.add(std::string(instr.name()));
         instr_map.emplace(id, &instr);
     }
-    for (const auto& instr : context::instruction::all_mnemonic_codes())
+    for (const auto& instr : instruction::all_mnemonic_codes())
     {
         if (!instruction_available(instr.system_support(), active_instr_set))
             continue;

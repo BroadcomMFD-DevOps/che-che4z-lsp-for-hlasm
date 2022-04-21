@@ -477,8 +477,8 @@ class mnemonic_code
 
     // Generates a bitmask for an arbitrary mnemonic indicating which operands
     // are of the RI type (and therefore are modified by transform_reloc_imm_operands)
-    static constexpr unsigned char generate_reladdr_bitmask(const machine_instruction* instruction,
-        std::initializer_list<const std::pair<unsigned char, unsigned char>> replaced)
+    static constexpr unsigned char generate_reladdr_bitmask(
+        const machine_instruction* instruction, std::initializer_list<const std::pair<int, int>> replaced)
     {
         unsigned char result = 0;
 
@@ -509,7 +509,7 @@ class mnemonic_code
 public:
     constexpr mnemonic_code(std::string_view name,
         const machine_instruction* instr,
-        std::initializer_list<const std::pair<unsigned char, unsigned char>> replaced,
+        std::initializer_list<const std::pair<int, int>> replaced,
         supported_system system_support)
         : m_instruction(instr)
         , m_replaced {}
@@ -521,7 +521,7 @@ public:
         assert(replaced.size() <= m_replaced.size());
         size_t i = 0;
         for (const auto& r : replaced)
-            m_replaced[i++] = r;
+            m_replaced[i++] = std::make_pair(static_cast<unsigned char>(r.first), static_cast<unsigned char>(r.second));
     };
 
     constexpr const machine_instruction* instruction() const { return m_instruction; }
@@ -569,7 +569,7 @@ public:
     constexpr auto description() const { return m_description; }
 };
 
-// class holding details of available instructions in their respective sets
+// static class holding string names of instructions with theirs additional info
 class instruction
 {
 public:

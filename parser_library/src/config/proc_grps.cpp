@@ -14,6 +14,7 @@
 
 #include "proc_grps.h"
 
+#include "instruction_set_version.h"
 #include "nlohmann/json.hpp"
 
 namespace hlasm_plugin::parser_library::config {
@@ -218,6 +219,18 @@ void from_json(const nlohmann::json& j, proc_grps& p)
     if (auto it = j.find("macro_extensions"); it != j.end())
         it->get_to(p.macro_extensions);
 }
+
+namespace {
+bool optable_valid(std::string_view optable) noexcept
+{
+    return optable.size() == 0
+        || std::any_of(std::begin(instr_set_version_equivalents),
+            std::end(instr_set_version_equivalents),
+            [optable](auto item) { return optable == std::string_view(item.first); });
+}
+} // namespace
+
+bool assembler_options::valid() const noexcept { return sysparm.size() < 256 && optable_valid(optable); }
 
 namespace {
 struct preprocessor_validator

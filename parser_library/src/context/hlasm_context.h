@@ -156,7 +156,7 @@ public:
     id_storage& ids();
     std::shared_ptr<id_storage> ids_ptr();
 
-    // map of all instructions
+    // map of active instructions
     const instruction_storage& instruction_map() const;
 
     // field that accessed ordinary assembly context

@@ -1887,7 +1887,6 @@ constexpr machine_instruction machine_instructions[] = {
     { "XY", RXY_a_2, 738, UNI_SINCE_YOP },
     { "ZAP", SS_b_2, 928, UNI_ESA_XA_370_DOS_SINCE_ZOP },
 };
-
 #ifdef __cpp_lib_ranges
 static_assert(std::ranges::is_sorted(machine_instructions, {}, &machine_instruction::name));
 
@@ -1902,7 +1901,6 @@ const machine_instruction* instruction::find_machine_instructions(std::string_vi
 constexpr const machine_instruction* find_mi(std::string_view name)
 {
     auto it = std::ranges::lower_bound(machine_instructions, name, {}, &machine_instruction::name);
-
     assert(it != std::ranges::end(machine_instructions) && it->name() == name);
     return &*it;
 }
