@@ -332,3 +332,50 @@ TEST(highlighting, single_chars)
 
     EXPECT_EQ(tokens, expected);
 }
+
+TEST(highlighting, multiline_macro_param)
+{
+    const std::string contents = R"(
+        MACRO
+        MAC
+        MEND
+
+        MAC  (L1,                      comment                        X
+              L2,                      comment                        X
+              L3,                      comment                        X
+              L4)                      comment                        
+)";
+    analyzer a(contents, analyzer_options { collect_highlighting_info::yes });
+    a.analyze();
+    const auto& tokens = a.source_processor().semantic_tokens();
+    semantics::lines_info expected = {
+        token_info({ { 1, 8 }, { 1, 13 } }, hl_scopes::instruction),
+        token_info({ { 2, 8 }, { 2, 11 } }, hl_scopes::instruction),
+        token_info({ { 3, 8 }, { 3, 12 } }, hl_scopes::instruction),
+
+        token_info({ { 5, 8 }, { 5, 11 } }, hl_scopes::instruction),
+
+        token_info({ { 5, 13 }, { 5, 14 } }, hl_scopes::operator_symbol),
+
+        token_info({ { 5, 14 }, { 5, 16 } }, hl_scopes::operand),
+        token_info({ { 5, 16 }, { 5, 17 } }, hl_scopes::operator_symbol),
+        token_info({ { 5, 39 }, { 5, 71 } }, hl_scopes::remark),
+        token_info({ { 5, 71 }, { 5, 72 } }, hl_scopes::continuation),
+
+        token_info({ { 6, 14 }, { 6, 16 } }, hl_scopes::operand),
+        token_info({ { 6, 16 }, { 6, 17 } }, hl_scopes::operator_symbol),
+        token_info({ { 6, 39 }, { 6, 71 } }, hl_scopes::remark),
+        token_info({ { 6, 71 }, { 6, 72 } }, hl_scopes::continuation),
+
+        token_info({ { 7, 14 }, { 7, 16 } }, hl_scopes::operand),
+        token_info({ { 7, 16 }, { 7, 17 } }, hl_scopes::operator_symbol),
+        token_info({ { 7, 39 }, { 7, 71 } }, hl_scopes::remark),
+        token_info({ { 7, 71 }, { 7, 72 } }, hl_scopes::continuation),
+
+        token_info({ { 8, 14 }, { 8, 16 } }, hl_scopes::operand),
+        token_info({ { 8, 16 }, { 8, 17 } }, hl_scopes::operator_symbol),
+        token_info({ { 8, 39 }, { 8, 71 } }, hl_scopes::remark),
+    };
+
+    EXPECT_EQ(tokens, expected);
+}
