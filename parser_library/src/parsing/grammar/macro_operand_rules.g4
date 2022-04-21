@@ -20,8 +20,7 @@ mac_op returns [operand_ptr op]
 	: mac_preproc[true]
 	{
 		$op = std::make_unique<macro_operand_string>($mac_preproc.collected_text,provider.get_range($mac_preproc.ctx));
-	}
-	|;
+	};
 
 mac_op_o returns [operand_ptr op] 
 	: mac_entry[true]?
@@ -38,7 +37,98 @@ macro_ops returns [operand_list list]
 
 
 mac_preproc [bool top_level] returns [std::string collected_text]
-	: 
+	:
+	(
+		asterisk												{$collected_text += "*";}
+		| minus													{$collected_text += "-";}
+		| plus													{$collected_text += "+";}
+		| LT													{$collected_text += "<";}
+		| GT													{$collected_text += ">";}
+		| slash													{$collected_text += "/";}
+		| equals												{$collected_text += "=";}
+		| VERTICAL												{$collected_text += "|";}
+		| IDENTIFIER											{$collected_text += $IDENTIFIER.text; collector.add_hl_symbol(token_info(provider.get_range($IDENTIFIER), hl_scopes::operand));}
+		| NUM													{$collected_text += $NUM.text; collector.add_hl_symbol(token_info(provider.get_range($NUM), hl_scopes::operand));}
+		| ORDSYMBOL												{$collected_text += $ORDSYMBOL.text; collector.add_hl_symbol(token_info(provider.get_range($ORDSYMBOL), hl_scopes::operand));}
+		| dot													{$collected_text += ".";}
+		| AMPERSAND
+		CONTINUATION?
+		(
+			ORDSYMBOL
+			{
+				auto name = $ORDSYMBOL->getText();
+			}
+			(
+				CONTINUATION?
+				(
+					ORDSYMBOL
+					{
+						name += $ORDSYMBOL->getText();
+					}
+					|
+					NUM
+					{
+						name += $NUM->getText();
+					}
+				)
+			)*
+			{
+				$collected_text += "&";
+				$collected_text += name;
+				collector.add_hl_symbol(token_info(provider.get_range($AMPERSAND,_input->LT(-1)),hl_scopes::var_symbol));
+			}
+			|
+			lpar												{$collected_text += "&(";}
+			(
+				created_set_body								{$collected_text += $created_set_body.text;}
+				|
+				CONTINUATION
+			)*
+			rpar												{$collected_text += ")";}
+			|
+			AMPERSAND											{$collected_text += "&&";}
+		)
+		|
+		lpar													{$collected_text += "(";}
+		(
+			comma												{$collected_text += ",";}
+			(
+				SPACE
+				remark
+			)?
+			CONTINUATION?
+		)*
+		(
+			mac_preproc[false]									{$collected_text += $mac_preproc.collected_text;}
+			(
+				comma											{$collected_text += ",";}
+				(
+					SPACE
+					remark
+					CONTINUATION
+				)?
+				(
+					mac_preproc[false]							{$collected_text += $mac_preproc.collected_text;}
+				)?
+			)*
+		)?
+		rpar													{$collected_text += ")";}
+		|
+		ap1=APOSTROPHE											{$collected_text += "'";}
+		(
+			mac_preproc_inner[$top_level]						{$collected_text += $mac_preproc_inner.collected_text;}
+		)?
+		ap2=(APOSTROPHE|ATTR)									{$collected_text += "'";}
+		|
+		attr													{$collected_text += "'";}
+		(
+			{!is_previous_attribute_consuming($top_level, _input->LT(-2))}?
+			(
+				mac_preproc_inner[$top_level]					{$collected_text += $mac_preproc_inner.collected_text;}
+			)?
+			ap2=(APOSTROPHE|ATTR)								{$collected_text += "'";}
+		)?
+	)
 	(
 		asterisk												{$collected_text += "*";}
 		| minus													{$collected_text += "-";}
@@ -130,7 +220,7 @@ mac_preproc [bool top_level] returns [std::string collected_text]
 			ap2=(APOSTROPHE|ATTR)								{$collected_text += "'";}
 		)?
 		| CONTINUATION
-	)+
+	)*
 	;
 mac_preproc_inner [bool top_level] returns [std::string collected_text]
 	: 

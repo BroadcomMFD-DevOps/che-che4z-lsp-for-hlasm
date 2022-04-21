@@ -754,7 +754,7 @@ TEST(macro, macro_call_reparse_range)
     a.collect_diags();
 
     ASSERT_EQ(a.diags().size(), 1U);
-    EXPECT_EQ(a.diags()[0].code, "S0011");
+    EXPECT_EQ(a.diags()[0].code, "S0003");
     EXPECT_EQ(a.diags()[0].diag_range, range({ 6, 16 }, { 6, 16 }));
 }
 
@@ -985,6 +985,26 @@ TEST(macro, multiline_comment)
     EXPECT_TRUE(a.diags().empty());
 }
 
+TEST(macro, attribute_and_multiline_comment)
+{
+    std::string input = R"(
+        MACRO
+        MAC  &F,&L
+TEST    EQU  L'&F-&L
+        MEND
+LABEL   DS   CL80
+
+        MAC  LABEL,L'LABEL                                     comment X
+                                                               comment
+)";
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(a.diags().empty());
+    EXPECT_EQ(get_symbol_abs(a.hlasm_ctx(), "TEST"), 0);
+}
+
 TEST(macro, attribute_string_combo)
 {
     std::string input = R"(
@@ -1004,4 +1024,20 @@ LABEL   DS   A
 
     EXPECT_TRUE(a.diags().empty());
     EXPECT_EQ(get_symbol_abs(a.hlasm_ctx(), "TEST"), 4);
+}
+
+TEST(macro, empty_parms)
+{
+    std::string input = R"(
+        MACRO
+        MAC  &PAR1,&PAR2,&PAR3
+        MEND
+
+        MAC  ,A,B
+)";
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(a.diags().empty());
 }

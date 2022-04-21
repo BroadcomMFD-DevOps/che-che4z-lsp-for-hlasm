@@ -210,7 +210,7 @@ TEST(parser, invalid_macro_param_alternative)
 
     std::vector<diagnostic_op>& diags = diag_container.diags;
     ASSERT_EQ(diags.size(), 1U);
-    EXPECT_EQ(diags[0].code, "S0011");
+    EXPECT_EQ(diags[0].code, "S0003");
 
     range expected_range = { { 1, 16 }, { 1, 16 } };
     EXPECT_EQ(diags[0].diag_range, expected_range);

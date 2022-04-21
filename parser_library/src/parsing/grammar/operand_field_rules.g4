@@ -196,46 +196,71 @@ op_rem_body_mac returns [op_rem line, range line_range]
 op_rem_body_alt_mac returns [op_rem line]
 	:
 	{enable_continuation();}
+	CONTINUATION?
 	(
-		(
-			mac_op
-			comma
-			{
-				if ($mac_op.ctx && $mac_op.op)
-					$line.operands.push_back(std::move($mac_op.op));
-				else
-					$line.operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range($comma.ctx->getStart())));
-			}
-		)+
-		r1=remark_o
+		comma
 		{
-			if($r1.value) $line.remarks.push_back(std::move(*$r1.value));
+			$line.operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range($comma.ctx->getStart())));
 		}
-		CONTINUATION
+		(
+			remark_eol
+			{
+				if ($remark_eol.value)
+					$line.remarks.push_back(std::move(*$remark_eol.value));
+			}
+		)?
 	)*
 	(
 		mac_op
-		comma
 		{
 			if ($mac_op.ctx && $mac_op.op)
 				$line.operands.push_back(std::move($mac_op.op));
 			else
-				$line.operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range($comma.ctx->getStart())));
+				$line.operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range($mac_op.ctx->getStart())));
 		}
+		(
+			comma
+			(
+				comma
+				{
+					$line.operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range($comma.ctx->getStart())));
+				}
+			)*
+			(
+				mac_op
+				{
+					if ($mac_op.ctx && $mac_op.op)
+						$line.operands.push_back(std::move($mac_op.op));
+					else
+						$line.operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range($comma.ctx->getStart())));
+				}
+				|
+				remark_eol
+				{
+					if ($remark_eol.value)
+						$line.remarks.push_back(std::move(*$remark_eol.value));
+				}
+			)
+		)*
 	)*
-	mac_op
-	{
-		if ($mac_op.ctx && $mac_op.op)
-			$line.operands.push_back(std::move($mac_op.op));
-		else
-			$line.operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range($mac_op.ctx->getStart())));
-	}
-	{disable_continuation();}
-	last_remark=remark_o
-	{
-		if ($last_remark.value)
-			$line.remarks.push_back(std::move(*$last_remark.value));
-	}
+	(
+		remark_eol
+		{
+			if ($remark_eol.value)
+				$line.remarks.push_back(std::move(*$remark_eol.value));
+		}
+		(
+			remark_non_empty
+			{
+				$line.remarks.push_back(provider.get_range($remark_non_empty.ctx));
+			}
+			(
+				CONTINUATION
+				|
+				EOF
+			)
+		)*
+	)
 	;
 	finally
 	{disable_continuation();}
