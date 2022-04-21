@@ -488,12 +488,12 @@ public:
         const machine_instruction* instr,
         std::initializer_list<const std::pair<unsigned char, unsigned char>> replaced,
         supported_system system_support)
-        : m_name(name)
-        , m_instruction(instr)
+        : m_instruction(instr)
         , m_replaced {}
         , m_replaced_count((unsigned char)replaced.size())
         , m_reladdr_mask(generate_reladdr_bitmask(instr, replaced))
         , m_system_support(system_support)
+        , m_name(name)
     {
         assert(replaced.size() <= m_replaced.size());
         size_t i = 0;

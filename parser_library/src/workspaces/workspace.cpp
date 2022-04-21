@@ -150,37 +150,52 @@ const processor_group& workspace::get_proc_grp_by_program(const std::string& fil
 
 const ws_uri& workspace::uri() { return uri_; }
 
+bool workspace::is_config_file(const std::string& file_uri)
+{
+    std::filesystem::path file_path(file_uri);
+
+    return utils::path::equal(file_path, proc_grps_path_) || utils::path::equal(file_path, pgm_conf_path_);
+}
+
+workspace_file_info workspace::parse_config_file()
+{
+    workspace_file_info ws_file_info;
+
+    if (load_and_process_config())
+    {
+        // Reparse every opened file when configuration is changed
+        for (const auto& fname : opened_files_)
+        {
+            auto found = file_manager_.find_processor_file(fname);
+            if (found)
+                found->parse(*this, get_asm_options(fname), get_preprocessor_options(fname), &fm_vfm_);
+        }
+
+        for (const auto& fname : dependants_)
+        {
+            auto found = file_manager_.find_processor_file(fname);
+            if (found)
+                filter_and_close_dependencies_(found->files_to_close(), found);
+        }
+    }
+    ws_file_info.config_parsing = true;
+    return ws_file_info;
+}
+
 workspace_file_info workspace::parse_file(const std::string& file_uri)
 {
     workspace_file_info ws_file_info;
 
-    std::filesystem::path file_path(file_uri);
-    // add support for hlasm to vscode (auto detection??) and do the decision based on languageid
-    if (utils::path::equal(file_path, proc_grps_path_) || utils::path::equal(file_path, pgm_conf_path_))
+    // TODO: add support for hlasm to vscode (auto detection??) and do the decision based on languageid
+    if (is_config_file(file_uri))
     {
-        if (load_and_process_config())
-        {
-            for (auto fname : dependants_)
-            {
-                auto found = file_manager_.find_processor_file(fname);
-                if (found)
-                    found->parse(*this, get_asm_options(fname), get_preprocessor_options(fname), &fm_vfm_);
-            }
-
-            for (auto fname : dependants_)
-            {
-                auto found = file_manager_.find_processor_file(fname);
-                if (found)
-                    filter_and_close_dependencies_(found->files_to_close(), found);
-            }
-        }
-        ws_file_info.config_parsing = true;
-        return ws_file_info;
+        return parse_config_file();
     }
-    // what about removing files??? what if depentands_ points to not existing file?
+
+    // TODO: what about removing files??? what if depentands_ points to not existing file?
     std::vector<processor_file_ptr> files_to_parse;
 
-    for (auto fname : dependants_)
+    for (const auto& fname : dependants_)
     {
         auto f = file_manager_.find_processor_file(fname);
         if (!f)
@@ -202,12 +217,11 @@ workspace_file_info workspace::parse_file(const std::string& file_uri)
             files_to_parse.push_back(f);
     }
 
-    for (auto f : files_to_parse)
+    for (const auto& f : files_to_parse)
     {
         f->parse(*this, get_asm_options(f->get_file_name()), get_preprocessor_options(f->get_file_name()), &fm_vfm_);
         if (!f->dependencies().empty())
             dependants_.insert(f->get_file_name());
-
 
         // if there is no processor group assigned to the program, delete diagnostics that may have been created
         if (cancel_ && cancel_->load()) // skip, if parsing was cancelled using the cancellation token
@@ -226,7 +240,7 @@ workspace_file_info workspace::parse_file(const std::string& file_uri)
     }
 
     // second check after all dependants are there to close all files that used to be dependencies
-    for (auto f : files_to_parse)
+    for (const auto& f : files_to_parse)
         filter_and_close_dependencies_(f->files_to_close(), f);
 
     return ws_file_info;
@@ -243,11 +257,20 @@ void workspace::refresh_libraries()
     }
 }
 
-workspace_file_info workspace::did_open_file(const std::string& file_uri) { return parse_file(file_uri); }
+workspace_file_info workspace::did_open_file(const std::string& file_uri)
+{
+    if (!is_config_file(file_uri))
+        opened_files_.emplace(file_uri);
+
+    return parse_file(file_uri);
+}
 
 void workspace::did_close_file(const std::string& file_uri)
 {
     diag_suppress_notified_[file_uri] = false;
+
+    opened_files_.erase(file_uri);
+
     // first check whether the file is a dependency
     // if so, simply close it, no other action is needed
     if (is_dependency_(file_uri))
