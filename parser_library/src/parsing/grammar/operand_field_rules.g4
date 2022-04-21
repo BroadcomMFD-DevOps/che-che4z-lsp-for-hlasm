@@ -213,10 +213,16 @@ op_rem_body_alt_mac returns [op_rem line]
 	(
 		mac_op
 		{
-			if ($mac_op.ctx && $mac_op.op)
+			if ($mac_op.op)
 				$line.operands.push_back(std::move($mac_op.op));
 			else
 				$line.operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range($mac_op.ctx->getStart())));
+
+			{
+				auto& t_remarks = $line.remarks;
+				auto& s_remarks = $mac_op.remarks;
+				t_remarks.insert(t_remarks.end(), s_remarks.begin(), s_remarks.end());
+			}
 		}
 		(
 			comma
@@ -229,10 +235,15 @@ op_rem_body_alt_mac returns [op_rem line]
 			(
 				mac_op
 				{
-					if ($mac_op.ctx && $mac_op.op)
+					if ($mac_op.op)
 						$line.operands.push_back(std::move($mac_op.op));
 					else
 						$line.operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range($comma.ctx->getStart())));
+					{
+						auto& t_remarks = $line.remarks;
+						auto& s_remarks = $mac_op.remarks;
+						t_remarks.insert(t_remarks.end(), s_remarks.begin(), s_remarks.end());
+					}
 				}
 				|
 				remark_eol

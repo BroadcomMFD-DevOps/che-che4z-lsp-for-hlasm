@@ -340,14 +340,21 @@ TEST(highlighting, multiline_macro_param)
         MAC
         MEND
 
-        MAC  (L1,                      comment                        X
-              L2,                      comment                        X
-              L3,                      comment                        X
-              L4)                      comment                        
+        MAC   (L1,                     comment                         X
+               L2,                     comment                         X
+               L3,                     comment                         X
+               L4)                     comment                         
 )";
     analyzer a(contents, analyzer_options { collect_highlighting_info::yes });
     a.analyze();
-    const auto& tokens = a.source_processor().semantic_tokens();
+    a.collect_diags();
+
+    EXPECT_TRUE(a.diags().empty());
+
+    auto tokens = a.source_processor().semantic_tokens();
+    std::sort(tokens.begin(), tokens.end(), [](const auto& l, const auto& r) {
+        return position::min(l.token_range.start, r.token_range.start) != r.token_range.start;
+    });
     semantics::lines_info expected = {
         token_info({ { 1, 8 }, { 1, 13 } }, hl_scopes::instruction),
         token_info({ { 2, 8 }, { 2, 11 } }, hl_scopes::instruction),
@@ -355,25 +362,31 @@ TEST(highlighting, multiline_macro_param)
 
         token_info({ { 5, 8 }, { 5, 11 } }, hl_scopes::instruction),
 
-        token_info({ { 5, 13 }, { 5, 14 } }, hl_scopes::operator_symbol),
+        token_info({ { 5, 14 }, { 5, 15 } }, hl_scopes::operator_symbol),
 
-        token_info({ { 5, 14 }, { 5, 16 } }, hl_scopes::operand),
-        token_info({ { 5, 16 }, { 5, 17 } }, hl_scopes::operator_symbol),
+        token_info({ { 5, 15 }, { 5, 17 } }, hl_scopes::operand),
+        token_info({ { 5, 17 }, { 5, 18 } }, hl_scopes::operator_symbol),
         token_info({ { 5, 39 }, { 5, 71 } }, hl_scopes::remark),
+
         token_info({ { 5, 71 }, { 5, 72 } }, hl_scopes::continuation),
+        token_info({ { 6, 0 }, { 6, 16 } }, hl_scopes::ignored),
 
-        token_info({ { 6, 14 }, { 6, 16 } }, hl_scopes::operand),
-        token_info({ { 6, 16 }, { 6, 17 } }, hl_scopes::operator_symbol),
+        token_info({ { 6, 15 }, { 6, 17 } }, hl_scopes::operand),
+        token_info({ { 6, 17 }, { 6, 18 } }, hl_scopes::operator_symbol),
         token_info({ { 6, 39 }, { 6, 71 } }, hl_scopes::remark),
+
         token_info({ { 6, 71 }, { 6, 72 } }, hl_scopes::continuation),
+        token_info({ { 7, 0 }, { 7, 16 } }, hl_scopes::ignored),
 
-        token_info({ { 7, 14 }, { 7, 16 } }, hl_scopes::operand),
-        token_info({ { 7, 16 }, { 7, 17 } }, hl_scopes::operator_symbol),
+        token_info({ { 7, 15 }, { 7, 17 } }, hl_scopes::operand),
+        token_info({ { 7, 17 }, { 7, 18 } }, hl_scopes::operator_symbol),
         token_info({ { 7, 39 }, { 7, 71 } }, hl_scopes::remark),
-        token_info({ { 7, 71 }, { 7, 72 } }, hl_scopes::continuation),
 
-        token_info({ { 8, 14 }, { 8, 16 } }, hl_scopes::operand),
-        token_info({ { 8, 16 }, { 8, 17 } }, hl_scopes::operator_symbol),
+        token_info({ { 7, 71 }, { 7, 72 } }, hl_scopes::continuation),
+        token_info({ { 8, 0 }, { 8, 16 } }, hl_scopes::ignored),
+
+        token_info({ { 8, 15 }, { 8, 17 } }, hl_scopes::operand),
+        token_info({ { 8, 17 }, { 8, 18 } }, hl_scopes::operator_symbol),
         token_info({ { 8, 39 }, { 8, 71 } }, hl_scopes::remark),
     };
 

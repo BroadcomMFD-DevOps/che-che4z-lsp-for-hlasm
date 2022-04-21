@@ -16,10 +16,11 @@
 parser grammar macro_operand_rules; 
 
 
-mac_op returns [operand_ptr op]
+mac_op returns [operand_ptr op, std::vector<range> remarks]
 	: mac_preproc[true]
 	{
 		$op = std::make_unique<macro_operand_string>($mac_preproc.collected_text,provider.get_range($mac_preproc.ctx));
+		$remarks = std::move($mac_preproc.remarks);
 	};
 
 mac_op_o returns [operand_ptr op] 
@@ -36,7 +37,7 @@ macro_ops returns [operand_list list]
 
 
 
-mac_preproc [bool top_level] returns [std::string collected_text]
+mac_preproc [bool top_level] returns [std::string collected_text, std::vector<range> remarks]
 	:
 	(
 		asterisk												{$collected_text += "*";}
@@ -47,9 +48,9 @@ mac_preproc [bool top_level] returns [std::string collected_text]
 		| slash													{$collected_text += "/";}
 		| equals												{$collected_text += "=";}
 		| VERTICAL												{$collected_text += "|";}
-		| IDENTIFIER											{$collected_text += $IDENTIFIER.text; collector.add_hl_symbol(token_info(provider.get_range($IDENTIFIER), hl_scopes::operand));}
-		| NUM													{$collected_text += $NUM.text; collector.add_hl_symbol(token_info(provider.get_range($NUM), hl_scopes::operand));}
-		| ORDSYMBOL												{$collected_text += $ORDSYMBOL.text; collector.add_hl_symbol(token_info(provider.get_range($ORDSYMBOL), hl_scopes::operand));}
+		| IDENTIFIER											{$collected_text += $IDENTIFIER.text;}
+		| NUM													{$collected_text += $NUM.text;}
+		| ORDSYMBOL												{$collected_text += $ORDSYMBOL.text;}
 		| dot													{$collected_text += ".";}
 		| AMPERSAND
 		CONTINUATION?
@@ -75,7 +76,6 @@ mac_preproc [bool top_level] returns [std::string collected_text]
 			{
 				$collected_text += "&";
 				$collected_text += name;
-				collector.add_hl_symbol(token_info(provider.get_range($AMPERSAND,_input->LT(-1)),hl_scopes::var_symbol));
 			}
 			|
 			lpar												{$collected_text += "&(";}
@@ -95,111 +95,50 @@ mac_preproc [bool top_level] returns [std::string collected_text]
 			(
 				SPACE
 				remark
-			)?
-			CONTINUATION?
-		)*
-		(
-			mac_preproc[false]									{$collected_text += $mac_preproc.collected_text;}
-			(
-				comma											{$collected_text += ",";}
+				{
+					$remarks.push_back(provider.get_range($remark.ctx));
+				}
 				(
-					SPACE
-					remark
 					CONTINUATION
-				)?
-				(
-					mac_preproc[false]							{$collected_text += $mac_preproc.collected_text;}
-				)?
-			)*
-		)?
-		rpar													{$collected_text += ")";}
-		|
-		ap1=APOSTROPHE											{$collected_text += "'";}
-		(
-			mac_preproc_inner[$top_level]						{$collected_text += $mac_preproc_inner.collected_text;}
-		)?
-		ap2=(APOSTROPHE|ATTR)									{$collected_text += "'";}
-		|
-		attr													{$collected_text += "'";}
-		(
-			{!is_previous_attribute_consuming($top_level, _input->LT(-2))}?
-			(
-				mac_preproc_inner[$top_level]					{$collected_text += $mac_preproc_inner.collected_text;}
-			)?
-			ap2=(APOSTROPHE|ATTR)								{$collected_text += "'";}
-		)?
-	)
-	(
-		asterisk												{$collected_text += "*";}
-		| minus													{$collected_text += "-";}
-		| plus													{$collected_text += "+";}
-		| LT													{$collected_text += "<";}
-		| GT													{$collected_text += ">";}
-		| slash													{$collected_text += "/";}
-		| equals												{$collected_text += "=";}
-		| VERTICAL												{$collected_text += "|";}
-		| IDENTIFIER											{$collected_text += $IDENTIFIER.text; collector.add_hl_symbol(token_info(provider.get_range($IDENTIFIER), hl_scopes::operand));}
-		| NUM													{$collected_text += $NUM.text; collector.add_hl_symbol(token_info(provider.get_range($NUM), hl_scopes::operand));}
-		| ORDSYMBOL												{$collected_text += $ORDSYMBOL.text; collector.add_hl_symbol(token_info(provider.get_range($ORDSYMBOL), hl_scopes::operand));}
-		| dot													{$collected_text += ".";}
-		| AMPERSAND
-		CONTINUATION?
-		(
-			ORDSYMBOL
-			{
-				auto name = $ORDSYMBOL->getText();
-			}
-			(
-				CONTINUATION?
-				(
-					ORDSYMBOL
-					{
-						name += $ORDSYMBOL->getText();
-					}
 					|
-					NUM
-					{
-						name += $NUM->getText();
-					}
+					EOF
 				)
-			)*
-			{
-				$collected_text += "&";
-				$collected_text += name;
-				collector.add_hl_symbol(token_info(provider.get_range($AMPERSAND,_input->LT(-1)),hl_scopes::var_symbol));
-			}
-			|
-			lpar												{$collected_text += "&(";}
-			(
-				created_set_body								{$collected_text += $created_set_body.text;}
-				|
-				CONTINUATION
-			)*
-			rpar												{$collected_text += ")";}
-			|
-			AMPERSAND											{$collected_text += "&&";}
-		)
-		|
-		lpar													{$collected_text += "(";}
-		(
-			comma												{$collected_text += ",";}
-			(
-				SPACE
-				remark
 			)?
-			CONTINUATION?
 		)*
 		(
-			mac_preproc[false]									{$collected_text += $mac_preproc.collected_text;}
+			mac_preproc[false]
+			{
+				$collected_text += $mac_preproc.collected_text;
+				{
+					auto& t_remarks = $remarks;
+					auto& s_remarks = $mac_preproc.remarks;
+					t_remarks.insert(t_remarks.end(), s_remarks.begin(), s_remarks.end());
+				}
+			}
 			(
 				comma											{$collected_text += ",";}
 				(
 					SPACE
 					remark
-					CONTINUATION
+					{
+						$remarks.push_back(provider.get_range($remark.ctx));
+					}
+					(
+						CONTINUATION
+						|
+						EOF
+					)
 				)?
 				(
-					mac_preproc[false]							{$collected_text += $mac_preproc.collected_text;}
+					mac_preproc[false]
+					{
+						$collected_text += $mac_preproc.collected_text;
+						{
+							auto& t_remarks = $remarks;
+							auto& s_remarks = $mac_preproc.remarks;
+							t_remarks.insert(t_remarks.end(), s_remarks.begin(), s_remarks.end());
+						}
+					}
 				)?
 			)*
 		)?
@@ -220,7 +159,7 @@ mac_preproc [bool top_level] returns [std::string collected_text]
 			ap2=(APOSTROPHE|ATTR)								{$collected_text += "'";}
 		)?
 		| CONTINUATION
-	)*
+	)+
 	;
 mac_preproc_inner [bool top_level] returns [std::string collected_text]
 	: 
@@ -261,7 +200,6 @@ mac_preproc_inner [bool top_level] returns [std::string collected_text]
 			{
 				$collected_text += "&";
 				$collected_text += name;
-				collector.add_hl_symbol(token_info(provider.get_range($AMPERSAND,_input->LT(-1)),hl_scopes::var_symbol));
 			}
 			|
 			lpar												{$collected_text += "&(";}
@@ -293,8 +231,18 @@ mac_entry [bool top_level = true] returns [concat_chain chain]
 		| slash			{$chain.push_back(std::make_unique<char_str_conc>("/", provider.get_range($slash.ctx)));}
 		| equals		{$chain.push_back(std::make_unique<equals_conc>());}
 		| VERTICAL		{$chain.push_back(std::make_unique<char_str_conc>("|", provider.get_range($VERTICAL)));}
-		| IDENTIFIER	{$chain.push_back(std::make_unique<char_str_conc>($IDENTIFIER.text, provider.get_range($IDENTIFIER)));}
-		| NUM			{$chain.push_back(std::make_unique<char_str_conc>($NUM.text, provider.get_range($NUM)));}
+		| IDENTIFIER
+		{
+			auto r = provider.get_range($IDENTIFIER);
+			$chain.push_back(std::make_unique<char_str_conc>($IDENTIFIER.text, r));
+			collector.add_hl_symbol(token_info(r, hl_scopes::operand));
+		}
+		| NUM
+		{
+			auto r = provider.get_range($NUM);
+			$chain.push_back(std::make_unique<char_str_conc>($NUM.text, r));
+			collector.add_hl_symbol(token_info(r, hl_scopes::operand));
+		}
 		| ORDSYMBOL
 		{
 			auto r = provider.get_range($ORDSYMBOL);
@@ -309,11 +257,13 @@ mac_entry [bool top_level = true] returns [concat_chain chain]
 				auto id = $vs_id.name;
 				auto r = provider.get_range( $AMPERSAND,$tmp.ctx->getStop());
 				$chain.push_back(std::make_unique<var_sym_conc>(std::make_unique<basic_variable_symbol>(id, std::move($tmp.value), r)));
+				collector.add_hl_symbol(token_info(provider.get_range($AMPERSAND, $vs_id.ctx->getStop()),hl_scopes::var_symbol));
 			}
 			|
 			lpar (clc=created_set_body)? rpar subscript
 			{
 				$chain.push_back(std::make_unique<var_sym_conc>(std::make_unique<created_variable_symbol>($clc.ctx ? std::move($clc.concat_list) : concat_chain{},std::move($subscript.value),provider.get_range($AMPERSAND,$subscript.ctx->getStop()))));
+				collector.add_hl_symbol(token_info(provider.get_range($AMPERSAND),hl_scopes::var_symbol));
 			}
 			|
 			AMPERSAND

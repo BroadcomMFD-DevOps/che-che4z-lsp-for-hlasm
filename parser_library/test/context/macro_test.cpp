@@ -943,6 +943,34 @@ TEST(macro, operand_string_substitution_continuation)
     }
 }
 
+TEST(macro, operand_sublist_continuation)
+{
+    for (int i = 0; i < 256; ++i)
+    {
+        std::string input = R"(
+        MACRO
+        MAC
+        MEND
+)";
+        std::string suffix_ =
+            " MAC " + std::string(i, ' ') + "(" + std::string(i / 2, 'J') + "," + std::string(i / 2, 'K') + ")";
+        std::string_view suffix = suffix_;
+        size_t limit = 71;
+        while (suffix.size() > limit)
+        {
+            input.append(suffix.substr(0, limit)).append("X\n               ");
+            suffix.remove_prefix(limit);
+            limit = 71 - 15;
+        }
+        input += std::move(suffix);
+        analyzer a(input);
+        a.analyze();
+        a.collect_diags();
+
+        ASSERT_TRUE(a.diags().empty()) << i;
+    }
+}
+
 TEST(macro, pass_empty_operand_components)
 {
     std::string input = R"(
