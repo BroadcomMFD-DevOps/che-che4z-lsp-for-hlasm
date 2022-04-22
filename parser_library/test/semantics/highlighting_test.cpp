@@ -205,7 +205,7 @@ TEST(highlighting, macro_alternative_continuation)
         token_info({ { 3, 1 }, { 3, 5 } }, hl_scopes::instruction),
         token_info({ { 4, 1 }, { 4, 4 } }, hl_scopes::instruction),
         token_info({ { 4, 5 }, { 4, 8 } }, hl_scopes::operand),
-        token_info({ { 4, 8 }, { 4, 71 } }, hl_scopes::operator_symbol),
+        token_info({ { 4, 8 }, { 4, 9 } }, hl_scopes::operator_symbol),
         token_info({ { 4, 10 }, { 4, 71 } }, hl_scopes::remark),
         token_info({ { 4, 71 }, { 4, 72 } }, hl_scopes::continuation),
         token_info({ { 5, 0 }, { 5, 15 } }, hl_scopes::ignored),
@@ -369,21 +369,21 @@ TEST(highlighting, multiline_macro_param)
         token_info({ { 5, 39 }, { 5, 71 } }, hl_scopes::remark),
 
         token_info({ { 5, 71 }, { 5, 72 } }, hl_scopes::continuation),
-        token_info({ { 6, 0 }, { 6, 16 } }, hl_scopes::ignored),
+        token_info({ { 6, 0 }, { 6, 15 } }, hl_scopes::ignored),
 
         token_info({ { 6, 15 }, { 6, 17 } }, hl_scopes::operand),
         token_info({ { 6, 17 }, { 6, 18 } }, hl_scopes::operator_symbol),
         token_info({ { 6, 39 }, { 6, 71 } }, hl_scopes::remark),
 
         token_info({ { 6, 71 }, { 6, 72 } }, hl_scopes::continuation),
-        token_info({ { 7, 0 }, { 7, 16 } }, hl_scopes::ignored),
+        token_info({ { 7, 0 }, { 7, 15 } }, hl_scopes::ignored),
 
         token_info({ { 7, 15 }, { 7, 17 } }, hl_scopes::operand),
         token_info({ { 7, 17 }, { 7, 18 } }, hl_scopes::operator_symbol),
         token_info({ { 7, 39 }, { 7, 71 } }, hl_scopes::remark),
 
         token_info({ { 7, 71 }, { 7, 72 } }, hl_scopes::continuation),
-        token_info({ { 8, 0 }, { 8, 16 } }, hl_scopes::ignored),
+        token_info({ { 8, 0 }, { 8, 15 } }, hl_scopes::ignored),
 
         token_info({ { 8, 15 }, { 8, 17 } }, hl_scopes::operand),
         token_info({ { 8, 17 }, { 8, 18 } }, hl_scopes::operator_symbol),

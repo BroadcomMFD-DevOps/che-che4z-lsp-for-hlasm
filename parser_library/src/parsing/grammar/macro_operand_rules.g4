@@ -16,11 +16,10 @@
 parser grammar macro_operand_rules; 
 
 
-mac_op returns [operand_ptr op, std::vector<range> remarks]
-	: mac_preproc[true]
+mac_op[int* paren_count] returns [operand_ptr op]
+	: mac_preproc[$paren_count]
 	{
-		$op = std::make_unique<macro_operand_string>($mac_preproc.collected_text,provider.get_range($mac_preproc.ctx));
-		$remarks = std::move($mac_preproc.remarks);
+		$op = std::make_unique<macro_operand_string>($mac_preproc.ctx->getText(),provider.get_range($mac_preproc.ctx));
 	};
 
 mac_op_o returns [operand_ptr op] 
@@ -35,188 +34,44 @@ mac_op_o returns [operand_ptr op]
 macro_ops returns [operand_list list] 
 	: mac_op_o  {$list.push_back(std::move($mac_op_o.op));} (comma mac_op_o {$list.push_back(std::move($mac_op_o.op));})* EOF;
 
-
-
-mac_preproc [bool top_level] returns [std::string collected_text, std::vector<range> remarks]
+mac_preproc[int* paren_count]
 	:
 	(
-		asterisk												{$collected_text += "*";}
-		| minus													{$collected_text += "-";}
-		| plus													{$collected_text += "+";}
-		| LT													{$collected_text += "<";}
-		| GT													{$collected_text += ">";}
-		| slash													{$collected_text += "/";}
-		| equals												{$collected_text += "=";}
-		| VERTICAL												{$collected_text += "|";}
-		| IDENTIFIER											{$collected_text += $IDENTIFIER.text;}
-		| NUM													{$collected_text += $NUM.text;}
-		| ORDSYMBOL												{$collected_text += $ORDSYMBOL.text;}
-		| dot													{$collected_text += ".";}
+		ASTERISK
+		| MINUS
+		| PLUS
+		| LT
+		| GT
+		| SLASH
+		| EQUALS
+		| VERTICAL
+		| IDENTIFIER
+		| NUM
+		| ORDSYMBOL
+		| DOT
 		| AMPERSAND
-		CONTINUATION?
 		(
-			ORDSYMBOL
-			{
-				auto name = $ORDSYMBOL->getText();
-			}
-			(
-				CONTINUATION?
-				(
-					ORDSYMBOL
-					{
-						name += $ORDSYMBOL->getText();
-					}
-					|
-					NUM
-					{
-						name += $NUM->getText();
-					}
-				)
-			)*
-			{
-				$collected_text += "&";
-				$collected_text += name;
-			}
+			ORDSYMBOL (ORDSYMBOL|NUM)*
 			|
-			lpar												{$collected_text += "&(";}
-			(
-				created_set_body								{$collected_text += $created_set_body.text;}
-				|
-				CONTINUATION
-			)*
-			rpar												{$collected_text += ")";}
+			LPAR {++*$paren_count;}
 			|
-			AMPERSAND											{$collected_text += "&&";}
+			AMPERSAND
 		)
 		|
-		lpar													{$collected_text += "(";}
-		(
-			comma												{$collected_text += ",";}
-			(
-				SPACE
-				remark
-				{
-					$remarks.push_back(provider.get_range($remark.ctx));
-				}
-				(
-					CONTINUATION
-					|
-					EOF
-				)
-			)?
-		)*
-		(
-			mac_preproc[false]
-			{
-				$collected_text += $mac_preproc.collected_text;
-				{
-					auto& t_remarks = $remarks;
-					auto& s_remarks = $mac_preproc.remarks;
-					t_remarks.insert(t_remarks.end(), s_remarks.begin(), s_remarks.end());
-				}
-			}
-			(
-				comma											{$collected_text += ",";}
-				(
-					SPACE
-					remark
-					{
-						$remarks.push_back(provider.get_range($remark.ctx));
-					}
-					(
-						CONTINUATION
-						|
-						EOF
-					)
-				)?
-				(
-					mac_preproc[false]
-					{
-						$collected_text += $mac_preproc.collected_text;
-						{
-							auto& t_remarks = $remarks;
-							auto& s_remarks = $mac_preproc.remarks;
-							t_remarks.insert(t_remarks.end(), s_remarks.begin(), s_remarks.end());
-						}
-					}
-				)?
-			)*
-		)?
-		rpar													{$collected_text += ")";}
+		LPAR {++*$paren_count;}
 		|
-		ap1=APOSTROPHE											{$collected_text += "'";}
-		(
-			mac_preproc_inner[$top_level]						{$collected_text += $mac_preproc_inner.collected_text;}
-		)?
-		ap2=(APOSTROPHE|ATTR)									{$collected_text += "'";}
+		RPAR {--*$paren_count;}
 		|
-		attr													{$collected_text += "'";}
+		APOSTROPHE
+		(~(APOSTROPHE|ATTR|CONTINUATION))*
+		(APOSTROPHE|ATTR)
+		|
+		ATTR
 		(
-			{!is_previous_attribute_consuming($top_level, _input->LT(-2))}?
-			(
-				mac_preproc_inner[$top_level]					{$collected_text += $mac_preproc_inner.collected_text;}
-			)?
-			ap2=(APOSTROPHE|ATTR)								{$collected_text += "'";}
+			{!is_previous_attribute_consuming(*$paren_count == 0, _input->LT(-2))}?
+			(~(APOSTROPHE|ATTR|CONTINUATION))*
+			(APOSTROPHE|ATTR)
 		)?
-		| CONTINUATION
-	)+
-	;
-mac_preproc_inner [bool top_level] returns [std::string collected_text]
-	: 
-	(
-		asterisk												{$collected_text += "*";}
-		| minus													{$collected_text += "-";}
-		| plus													{$collected_text += "+";}
-		| LT													{$collected_text += "<";}
-		| GT													{$collected_text += ">";}
-		| slash													{$collected_text += "/";}
-		| equals												{$collected_text += "=";}
-		| VERTICAL												{$collected_text += "|";}
-		| IDENTIFIER											{$collected_text += $IDENTIFIER.text;}
-		| NUM													{$collected_text += $NUM.text;}
-		| ORDSYMBOL												{$collected_text += $ORDSYMBOL.text;}
-		| dot													{$collected_text += ".";}
-		| AMPERSAND
-		CONTINUATION?
-		(
-			ORDSYMBOL
-			{
-				auto name = $ORDSYMBOL->getText();
-			}
-			(
-				CONTINUATION?
-				(
-					ORDSYMBOL
-					{
-						name += $ORDSYMBOL->getText();
-					}
-					|
-					NUM
-					{
-						name += $NUM->getText();
-					}
-				)
-			)*
-			{
-				$collected_text += "&";
-				$collected_text += name;
-			}
-			|
-			lpar												{$collected_text += "&(";}
-			(
-				created_set_body								{$collected_text += $created_set_body.text;}
-				|
-				CONTINUATION
-			)*
-			rpar												{$collected_text += ")";}
-			|
-			AMPERSAND											{$collected_text += "&&";}
-		)
-		| lpar													{$collected_text += "(";}
-		| comma													{$collected_text += ",";}
-		| rpar													{$collected_text += ")";}
-		| CONTINUATION
-		| SPACE													{$collected_text += $SPACE.text;}
 	)+
 	;
 

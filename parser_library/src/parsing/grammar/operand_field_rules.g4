@@ -195,103 +195,36 @@ op_rem_body_mac returns [op_rem line, range line_range]
 
 op_rem_body_alt_mac returns [op_rem line]
 	:
-	{enable_continuation();}
 	{
-		antlr4::Token* pending_empty = nullptr;
+		int paren_count = 0;
 	}
-	CONTINUATION?
 	(
-		comma
-		{
-			$line.operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range($comma.ctx->getStart())));
-			pending_empty = _input->LT(1);
-		}
 		(
-			remark_eol
+			mac_op[&paren_count]? comma
 			{
-				if ($remark_eol.value)
-					$line.remarks.push_back(std::move(*$remark_eol.value));
+				if ($mac_op.ctx && $mac_op.op)
+					$line.operands.push_back(std::move($mac_op.op));
+				$line.operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_range($comma.ctx->getStart())));
+			}
+		)+
+		{enable_continuation();}
+		(
+			r1=remark_o CONTINUATION
+			{
+				if($r1.value) $line.remarks.push_back(std::move(*$r1.value));
 			}
 		)?
+		{disable_continuation();}
 	)*
 	(
-		mac_op
+		last_mac_op=mac_op[&paren_count]? last_remark=remark_o
 		{
-			pending_empty = nullptr;
-			if ($mac_op.op)
-				$line.operands.push_back(std::move($mac_op.op));
-			else
-				$line.operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range($mac_op.ctx->getStart())));
-
-			{
-				auto& t_remarks = $line.remarks;
-				auto& s_remarks = $mac_op.remarks;
-				t_remarks.insert(t_remarks.end(), s_remarks.begin(), s_remarks.end());
-			}
+			if ($last_mac_op.ctx && $last_mac_op.op)
+				$line.operands.push_back(std::move($last_mac_op.op));
+			if ($last_remark.value)
+				$line.remarks.push_back(std::move(*$last_remark.value));
 		}
-		(
-			comma
-			{
-				if (pending_empty)
-					$line.operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range(pending_empty)));
-				pending_empty = _input->LT(1);
-			}
-			(
-				comma
-				{
-					$line.operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range($comma.ctx->getStart())));
-					pending_empty = _input->LT(1);
-				}
-			)*
-			(
-				mac_op
-				{
-					pending_empty = nullptr;
-					if ($mac_op.op)
-						$line.operands.push_back(std::move($mac_op.op));
-					else
-						$line.operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range($comma.ctx->getStart())));
-					{
-						auto& t_remarks = $line.remarks;
-						auto& s_remarks = $mac_op.remarks;
-						t_remarks.insert(t_remarks.end(), s_remarks.begin(), s_remarks.end());
-					}
-				}
-				|
-				{
-					pending_empty = _input->LT(1);
-				}
-				remark_eol
-				{
-					if ($remark_eol.value)
-						$line.remarks.push_back(std::move(*$remark_eol.value));
-				}
-			)
-		)*
-	)*
-	{
-		if (pending_empty)
-			$line.operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range(pending_empty)));
-	}
-	(
-		remark_eol
-		{
-			if ($remark_eol.value)
-				$line.remarks.push_back(std::move(*$remark_eol.value));
-		}
-		(
-			remark_non_empty
-			{
-				$line.remarks.push_back(provider.get_range($remark_non_empty.ctx));
-			}
-			(
-				CONTINUATION
-				|
-				EOF
-			)
-		)*
-	)
-	;
+	);
 	finally
 	{disable_continuation();}
 

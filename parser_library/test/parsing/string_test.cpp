@@ -105,7 +105,7 @@ TEST(parser, no_ending_apostrophe)
     a.analyze();
     a.collect_diags();
 
-    EXPECT_TRUE(matches_message_codes(a.diags(), { "S0003" }));
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "S0005" }));
 }
 
 TEST(parser, no_ending_apostrophe_2)
@@ -139,7 +139,7 @@ TEST(parser, incomplete_string)
     a.analyze();
     a.collect_diags();
 
-    EXPECT_TRUE(matches_message_codes(a.diags(), { "S0003" }));
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "S0005" }));
 
     auto par_value = get_var_value<C_t>(a.hlasm_ctx(), "PAR");
     ASSERT_TRUE(par_value.has_value());
