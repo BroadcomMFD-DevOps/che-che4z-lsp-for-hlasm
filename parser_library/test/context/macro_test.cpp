@@ -1069,3 +1069,27 @@ TEST(macro, empty_parms)
 
     EXPECT_TRUE(a.diags().empty());
 }
+
+TEST(macro, empty_parms_after_continuation)
+{
+    std::string input = R"(
+        MACRO
+        MAC  &PAR1,&PAR2,&PAR3
+        GBLB &RESULT
+        AIF  ('&PAR2' NE '').SKIP
+&RESULT SETB 1
+.SKIP   ANOP ,
+        MEND
+
+        GBLB &RESULT
+
+        MAC    A,                                                      X
+               ,B
+)";
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(a.diags().empty());
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "RESULT"), true);
+}
