@@ -196,11 +196,15 @@ op_rem_body_mac returns [op_rem line, range line_range]
 op_rem_body_alt_mac returns [op_rem line]
 	:
 	{enable_continuation();}
+	{
+		antlr4::Token* pending_empty = nullptr;
+	}
 	CONTINUATION?
 	(
 		comma
 		{
 			$line.operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range($comma.ctx->getStart())));
+			pending_empty = _input->LT(1);
 		}
 		(
 			remark_eol
@@ -213,6 +217,7 @@ op_rem_body_alt_mac returns [op_rem line]
 	(
 		mac_op
 		{
+			pending_empty = nullptr;
 			if ($mac_op.op)
 				$line.operands.push_back(std::move($mac_op.op));
 			else
@@ -226,15 +231,22 @@ op_rem_body_alt_mac returns [op_rem line]
 		}
 		(
 			comma
+			{
+				if (pending_empty)
+					$line.operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range(pending_empty)));
+				pending_empty = _input->LT(1);
+			}
 			(
 				comma
 				{
 					$line.operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range($comma.ctx->getStart())));
+					pending_empty = _input->LT(1);
 				}
 			)*
 			(
 				mac_op
 				{
+					pending_empty = nullptr;
 					if ($mac_op.op)
 						$line.operands.push_back(std::move($mac_op.op));
 					else
@@ -246,6 +258,9 @@ op_rem_body_alt_mac returns [op_rem line]
 					}
 				}
 				|
+				{
+					pending_empty = _input->LT(1);
+				}
 				remark_eol
 				{
 					if ($remark_eol.value)
@@ -254,6 +269,10 @@ op_rem_body_alt_mac returns [op_rem line]
 			)
 		)*
 	)*
+	{
+		if (pending_empty)
+			$line.operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range(pending_empty)));
+	}
 	(
 		remark_eol
 		{

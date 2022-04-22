@@ -1093,3 +1093,41 @@ TEST(macro, empty_parms_after_continuation)
     EXPECT_TRUE(a.diags().empty());
     EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "RESULT"), true);
 }
+
+TEST(macro, syslist_size)
+{
+    using namespace std::string_literals;
+
+    std::string input = R"(
+     MACRO
+&L   MAC
+&A   SETA N'&SYSLIST
+&L   EQU  &A
+     MEND
+T0   MAC
+T1   MAC 
+T2   MAC A 
+T3   MAC A,
+T4   MAC A, 
+T5   MAC ,A
+T6   MAC ,A 
+T7   MAC ,
+T8   MAC , 
+T9   MAC ,,
+T10  MAC ,, 
+T11  MAC ,, A
+     END
+)";
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(a.diags().empty());
+
+    auto expected = { 0, 0, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3 };
+
+    for (size_t i = 0; i < expected.size(); ++i)
+    {
+        EXPECT_EQ(get_symbol_abs(a.hlasm_ctx(), std::string("T") + std::to_string(i)), expected.begin()[i]) << i;
+    }
+}
