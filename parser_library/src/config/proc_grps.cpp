@@ -223,10 +223,15 @@ void from_json(const nlohmann::json& j, proc_grps& p)
 namespace {
 bool optable_valid(std::string_view optable) noexcept
 {
+#ifdef __cpp_lib_ranges
+    return optable.size() == 0
+        || std::ranges::any_of(instr_set_version_equivalents, [optable](auto item) { return optable == item.first; });
+#else
     return optable.size() == 0
         || std::any_of(std::begin(instr_set_version_equivalents),
             std::end(instr_set_version_equivalents),
-            [optable](auto item) { return optable == std::string_view(item.first); });
+            [optable](auto item) { return optable == item.first; });
+#endif
 }
 } // namespace
 

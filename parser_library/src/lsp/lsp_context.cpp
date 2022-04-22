@@ -770,7 +770,7 @@ completion_list_s lsp_context::complete_instr(const file_info&, position) const
 {
     completion_list_s result;
 
-    // Store only active instructions
+    // Store only instructions from the currently active instruction set
     for (const auto& instr : completion_item_s::m_instruction_completion_items)
     {
         auto id = m_hlasm_ctx->ids().find(instr.label);
@@ -872,10 +872,18 @@ std::optional<location> lsp_context::find_definition_location(
             break;
         }
         case lsp::occurence_kind::COPY_OP: {
+#ifdef __cpp_lib_ranges
+            auto copy = std::ranges::find_if(m_files, [&](const auto& f) {
+                return f.second->type == file_type::COPY
+                    && std::get<context::copy_member_ptr>(f.second->owner)->name == occ.name;
+            });
+#else
             auto copy = std::find_if(m_files.begin(), m_files.end(), [&](const auto& f) {
                 return f.second->type == file_type::COPY
                     && std::get<context::copy_member_ptr>(f.second->owner)->name == occ.name;
             });
+#endif
+
             if (copy != m_files.end())
                 return std::get<context::copy_member_ptr>(copy->second->owner)->definition_location;
             break;

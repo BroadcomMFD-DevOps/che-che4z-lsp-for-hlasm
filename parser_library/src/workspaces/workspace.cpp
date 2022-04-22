@@ -150,7 +150,7 @@ const processor_group& workspace::get_proc_grp_by_program(const std::string& fil
 
 const ws_uri& workspace::uri() { return uri_; }
 
-bool workspace::is_config_file(const std::string& file_uri)
+bool workspace::is_config_file(const std::string& file_uri) const
 {
     std::filesystem::path file_path(file_uri);
 

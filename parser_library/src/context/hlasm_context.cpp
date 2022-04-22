@@ -358,7 +358,7 @@ void hlasm_context::add_global_system_vars(code_scope& scope)
 
 bool hlasm_context::is_opcode(id_index symbol) const
 {
-    return macros_.find(symbol) != macros_.end() || m_instruction_map.find(symbol) != m_instruction_map.end();
+    return macros_.contains(symbol) || m_instruction_map.contains(symbol);
 }
 
 hlasm_context::hlasm_context(std::string file_name, asm_option asm_options, std::shared_ptr<id_storage> init_ids)

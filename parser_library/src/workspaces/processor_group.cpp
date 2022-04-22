@@ -42,12 +42,18 @@ processor_group::processor_group(const std::string& pg_name,
     , m_prep_opts(std::visit(translate_pp_options {}, pp.options))
 {}
 
-instruction_set_version processor_group::find_instruction_set(std::string_view optable, std::string_view pg_file_name)
+instruction_set_version processor_group::find_instruction_set(
+    std::string_view optable, std::string_view pg_file_name) const
 {
+#ifdef __cpp_lib_ranges
+    auto it = std::ranges::lower_bound(
+        instr_set_version_equivalents, optable, {}, [](const auto& instr) { return instr.first; });
+#else
     auto it = std::lower_bound(std::begin(instr_set_version_equivalents),
         std::end(instr_set_version_equivalents),
         optable,
         [](const auto& l, const auto& r) { return l.first < r; });
+#endif
 
     if (it == std::end(instr_set_version_equivalents) || it->first != optable)
     {

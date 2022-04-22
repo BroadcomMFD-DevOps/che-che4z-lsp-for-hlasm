@@ -79,7 +79,7 @@ class hlasm_context
 
     // map of active instructions in HLASM
     const instruction_storage m_instruction_map;
-    instruction_storage init_instruction_map(id_storage& ids, instruction_set_version active_instr_set);
+    static instruction_storage init_instruction_map(id_storage& ids, instruction_set_version active_instr_set);
 
     // value of system variable SYSNDX
     unsigned long SYSNDX_ = 1;

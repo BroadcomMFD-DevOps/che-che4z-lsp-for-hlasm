@@ -27,7 +27,7 @@ struct asm_option
     std::string sysparm;
     std::string profile;
 
-    static const instruction_set_version instr_set_default = instruction_set_version::UNI;
+    static constexpr instruction_set_version instr_set_default = instruction_set_version::UNI;
     instruction_set_version instr_set = instr_set_default;
 
     static const std::string system_id_default;

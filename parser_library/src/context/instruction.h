@@ -44,14 +44,14 @@ enum class supported_system : unsigned short
     NO_SUPPORT = 0,
     NO_Z_SUPPORT = 0,
     SINCE_ZOP = 1,
-    SINCE_YOP,
-    SINCE_Z9,
-    SINCE_Z10,
-    SINCE_Z11,
-    SINCE_Z12,
-    SINCE_Z13,
-    SINCE_Z14,
-    SINCE_Z15,
+    SINCE_YOP = 2,
+    SINCE_Z9 = 3,
+    SINCE_Z10 = 4,
+    SINCE_Z11 = 5,
+    SINCE_Z12 = 6,
+    SINCE_Z13 = 7,
+    SINCE_Z14 = 8,
+    SINCE_Z15 = 9,
     ESA = 1 << 5,
     XA = 1 << 6,
     _370 = 1 << 7,
@@ -350,6 +350,14 @@ struct instruction_format_definition
 // machine instruction representation for checking
 class machine_instruction
 {
+    enum class size_identifier : unsigned char
+    {
+        LENGTH_0 = 0,
+        LENGTH_16,
+        LENGTH_32,
+        LENGTH_48,
+    };
+
     // Generates a bitmask for an arbitrary machine instruction indicating which operands
     // are of the RI type (and therefore are modified by transform_reloc_imm_operands)
     static constexpr unsigned char generate_reladdr_bitmask(std::span<const checking::machine_operand_format> operands)
@@ -374,27 +382,27 @@ class machine_instruction
     {
         auto interval = (int)(instruction_format);
         if (interval >= (int)mach_format::length_48)
-            return 48;
+            return static_cast<char>(size_identifier::LENGTH_48);
         if (interval >= (int)mach_format::length_32)
-            return 32;
+            return static_cast<char>(size_identifier::LENGTH_32);
         if (interval >= (int)mach_format::length_16)
-            return 16;
-        return 0;
+            return static_cast<char>(size_identifier::LENGTH_16);
+        return static_cast<char>(size_identifier::LENGTH_0);
     }
 
     inline_string<7> m_name;
 
-    mach_format m_format;
-    char m_size_in_bits;
-    unsigned short m_page_no;
+    unsigned short m_size_identifier : 2, m_page_no : 14; // size is only 16,32,48 bits i.e. 0x10,0x20,0x30 (low nibble
+                                                          // is always zero), PoP has less than 16k pages
 
+    supported_system m_system_support;
+
+    mach_format m_format;
     reladdr_transform_mask m_reladdr_mask;
     unsigned char m_optional_op_count;
     unsigned char m_operand_len;
 
     const checking::machine_operand_format* m_operands;
-
-    supported_system m_system_support;
 
 public:
     constexpr machine_instruction(std::string_view name,
@@ -403,9 +411,10 @@ public:
         unsigned short page_no,
         supported_system system_support)
         : m_name(name)
-        , m_format(format)
-        , m_size_in_bits(get_length_by_format(format))
+        , m_size_identifier(get_length_by_format(format))
         , m_page_no(page_no)
+        , m_system_support(system_support)
+        , m_format(format)
         , m_reladdr_mask(generate_reladdr_bitmask(operands))
 #ifdef __cpp_lib_ranges
         , m_optional_op_count(
@@ -416,7 +425,6 @@ public:
 #endif
         , m_operand_len((unsigned char)operands.size())
         , m_operands(operands.data())
-        , m_system_support(system_support)
     {
         assert(operands.size() <= std::numeric_limits<decltype(m_operand_len)>::max());
     }
@@ -429,7 +437,20 @@ public:
 
     constexpr std::string_view name() const { return m_name.to_string_view(); }
     mach_format format() const { return m_format; }
-    constexpr size_t size_in_bits() const { return m_size_in_bits; }
+    constexpr size_t size_in_bits() const
+    {
+        switch (static_cast<size_identifier>(m_size_identifier))
+        {
+            case size_identifier::LENGTH_0:
+                return 0;
+            case size_identifier::LENGTH_16:
+                return 16;
+            case size_identifier::LENGTH_32:
+                return 32;
+            default:
+                return 48;
+        };
+    }
     constexpr reladdr_transform_mask reladdr_mask() const { return m_reladdr_mask; }
     constexpr std::span<const checking::machine_operand_format> operands() const
     {
@@ -519,9 +540,11 @@ public:
         , m_name(name)
     {
         assert(replaced.size() <= m_replaced.size());
-        size_t i = 0;
-        for (const auto& r : replaced)
-            m_replaced[i++] = std::make_pair(static_cast<unsigned char>(r.first), static_cast<unsigned char>(r.second));
+        for (size_t i = 0; const auto& [a, b] : replaced)
+        {
+            m_replaced[i] = std::make_pair(static_cast<unsigned char>(a), static_cast<unsigned char>(b));
+            i++;
+        }
     };
 
     constexpr const machine_instruction* instruction() const { return m_instruction; }

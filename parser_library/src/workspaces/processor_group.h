@@ -55,7 +55,7 @@ private:
     asm_option m_asm_opts;
     preprocessor_options m_prep_opts;
 
-    instruction_set_version find_instruction_set(std::string_view optable, std::string_view pg_file_name);
+    instruction_set_version find_instruction_set(std::string_view optable, std::string_view pg_file_name) const;
     asm_option translate_assembler_options(const config::assembler_options& asm_options, std::string_view pg_file_name);
 };
 } // namespace hlasm_plugin::parser_library::workspaces
