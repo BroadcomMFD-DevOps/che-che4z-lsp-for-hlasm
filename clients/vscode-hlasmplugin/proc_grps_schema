@@ -52,36 +52,30 @@
                         "OPTABLE": {
                           "type": "string",
                           "description": "Specifies the instruction set to use.",
-                          "anyOf": [
-                            {
-                              "type": "string",
-                              "description": "OPTABLE value",
-                              "enum": [
-                                "UNI",
-                                "DOS",
-                                "370",
-                                "XA",
-                                "ESA",
-                                "ZOP",
-                                "ZS1",
-                                "YOP",
-                                "ZS2",
-                                "Z9",
-                                "ZS3",
-                                "Z10",
-                                "ZS4",
-                                "Z11",
-                                "ZS5",
-                                "Z12",
-                                "ZS6",
-                                "Z13",
-                                "ZS7",
-                                "Z14",
-                                "ZS8",
-                                "Z15",
-                                "ZS9"
-                              ]
-                            }
+                          "enum": [
+                            "UNI",
+                            "DOS",
+                            "370",
+                            "XA",
+                            "ESA",
+                            "ZOP",
+                            "ZS1",
+                            "YOP",
+                            "ZS2",
+                            "Z9",
+                            "ZS3",
+                            "Z10",
+                            "ZS4",
+                            "Z11",
+                            "ZS5",
+                            "Z12",
+                            "ZS6",
+                            "Z13",
+                            "ZS7",
+                            "Z14",
+                            "ZS8",
+                            "Z15",
+                            "ZS9"
                           ]
                         },
                         "SYSPARM": {
