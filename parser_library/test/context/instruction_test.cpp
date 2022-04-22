@@ -90,11 +90,11 @@ TEST_P(instruction_sets_fixture, instruction_set_loading)
 
         if (instr.second.find(instr_set) == instr.second.end())
         {
-            EXPECT_TRUE(id == nullptr);
+            EXPECT_TRUE(id == nullptr) << "For instructions: " << instr.first;
         }
         else
         {
-            EXPECT_TRUE(id != nullptr);
+            EXPECT_TRUE(id != nullptr) << "For instructions: " << instr.first;
         }
     }
 }
@@ -200,23 +200,4 @@ TEST(instruction_sets_fixture, identical_macro_name_inline_and_linked_definition
 
         EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "VAR"), c.expected_var_value);
     }
-}
-
-TEST(instruction_sets_fixture, supported_system_or)
-{
-    EXPECT_EQ(supported_system::NO_Z_SUPPORT | supported_system::NO_Z_SUPPORT, supported_system::NO_Z_SUPPORT);
-    EXPECT_EQ(supported_system::SINCE_Z10 | supported_system::NO_Z_SUPPORT, supported_system::SINCE_Z10);
-    EXPECT_EQ(supported_system::SINCE_Z10 | supported_system::SINCE_Z11, supported_system::SINCE_Z10);
-    EXPECT_EQ(supported_system::XA | supported_system::XA, supported_system::XA);
-    EXPECT_EQ(supported_system::XA | supported_system::UNI | supported_system::SINCE_Z10 | supported_system::SINCE_Z11,
-        supported_system::XA | supported_system::UNI | supported_system::SINCE_Z10);
-}
-
-TEST(instruction_sets_fixture, supported_system_and)
-{
-    EXPECT_EQ(supported_system::NO_Z_SUPPORT & supported_system::NO_Z_SUPPORT, supported_system::NO_Z_SUPPORT);
-    EXPECT_EQ(supported_system::SINCE_Z10 & supported_system::NO_Z_SUPPORT, supported_system::NO_Z_SUPPORT);
-    EXPECT_EQ(supported_system::SINCE_Z10 & supported_system::SINCE_Z11, supported_system::SINCE_Z11);
-    EXPECT_EQ(supported_system::XA & supported_system::XA, supported_system::XA);
-    EXPECT_EQ(supported_system::XA & supported_system::SINCE_Z10, supported_system::NO_SUPPORT);
 }

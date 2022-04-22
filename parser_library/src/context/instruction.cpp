@@ -21,29 +21,67 @@ using namespace hlasm_plugin::parser_library::context;
 using namespace hlasm_plugin::parser_library::checking;
 using namespace hlasm_plugin::parser_library;
 
-// clang-format off
 namespace {
-constexpr auto ESA_XA = supported_system::ESA | supported_system::XA;
-constexpr auto ESA_XA_370 = supported_system::ESA | supported_system::XA | supported_system::_370;
-constexpr auto UNI_370 = supported_system::UNI | supported_system::_370;
-constexpr auto UNI_370_DOS = supported_system::UNI | supported_system::_370 | supported_system::DOS;
-constexpr auto UNI_ESA_SINCE_ZOP = supported_system::UNI | supported_system::ESA | supported_system::SINCE_ZOP;
-constexpr auto UNI_ESA_XA_370_DOS_SINCE_ZOP = supported_system::UNI | supported_system::ESA | supported_system::XA | supported_system::_370 | supported_system::DOS | supported_system::SINCE_ZOP;
-constexpr auto UNI_ESA_XA_370_SINCE_Z13 = supported_system::UNI | supported_system::ESA | supported_system::XA | supported_system::_370 | supported_system::SINCE_Z13;
-constexpr auto UNI_ESA_XA_370_SINCE_Z15 = supported_system::UNI | supported_system::ESA | supported_system::XA | supported_system::_370 | supported_system::SINCE_Z15;
-constexpr auto UNI_ESA_XA_370_SINCE_ZOP = supported_system::UNI | supported_system::ESA | supported_system::XA | supported_system::_370 | supported_system::SINCE_ZOP;
-constexpr auto UNI_ESA_XA_SINCE_ZOP = supported_system::UNI | supported_system::ESA | supported_system::XA | supported_system::SINCE_ZOP;
-constexpr auto UNI_SINCE_YOP = supported_system::UNI | supported_system::SINCE_YOP;
-constexpr auto UNI_SINCE_Z10 = supported_system::UNI | supported_system::SINCE_Z10;
-constexpr auto UNI_SINCE_Z11 = supported_system::UNI | supported_system::SINCE_Z11;
-constexpr auto UNI_SINCE_Z12 = supported_system::UNI | supported_system::SINCE_Z12;
-constexpr auto UNI_SINCE_Z13 = supported_system::UNI | supported_system::SINCE_Z13;
-constexpr auto UNI_SINCE_Z14 = supported_system::UNI | supported_system::SINCE_Z14;
-constexpr auto UNI_SINCE_Z15 = supported_system::UNI | supported_system::SINCE_Z15;
-constexpr auto UNI_SINCE_Z9 = supported_system::UNI | supported_system::SINCE_Z9;
-constexpr auto UNI_SINCE_ZOP = supported_system::UNI | supported_system::SINCE_ZOP;
-} // namespace
+constexpr instruction_set_affiliation operator|(instruction_set_affiliation a, instruction_set_affiliation b)
+{
+    instruction_set_affiliation result {};
+
+    // Get the value of SINCE_xxx bits
+    if (a.z_arch > 0 && b.z_arch > 0)
+    {
+        result.z_arch = std::min(a.z_arch, b.z_arch);
+    }
+    else
+    {
+        result.z_arch = std::max(a.z_arch, b.z_arch);
+    }
+
+    result.esa = a.esa | b.esa;
+    result.xa = a.xa | b.xa;
+    result._370 = a._370 | b._370;
+    result.dos = a.dos | b.dos;
+    result.uni = a.uni | b.uni;
+
+    return result;
+}
+
+// clang-format off
+constexpr auto SINCE_ZOP = instruction_set_affiliation{1};
+constexpr auto SINCE_YOP = instruction_set_affiliation{2};
+constexpr auto SINCE_Z9  = instruction_set_affiliation{3};
+constexpr auto SINCE_Z10 = instruction_set_affiliation{4};
+constexpr auto SINCE_Z11 = instruction_set_affiliation{5};
+constexpr auto SINCE_Z12 = instruction_set_affiliation{6};
+constexpr auto SINCE_Z13 = instruction_set_affiliation{7};
+constexpr auto SINCE_Z14 = instruction_set_affiliation{8};
+constexpr auto SINCE_Z15 = instruction_set_affiliation{9};
+constexpr auto ESA       = instruction_set_affiliation{0, 1, 0, 0, 0, 0};
+constexpr auto XA        = instruction_set_affiliation{0, 0, 1, 0, 0, 0};
+constexpr auto _370      = instruction_set_affiliation{0, 0, 0, 1, 0, 0};
+constexpr auto DOS       = instruction_set_affiliation{0, 0, 0, 0, 1, 0};
+constexpr auto UNI       = instruction_set_affiliation{0, 0, 0, 0, 0, 1};
+
+constexpr auto ESA_XA                       = ESA | XA;
+constexpr auto ESA_XA_370                   = ESA | XA | _370;
+constexpr auto UNI_370                      = UNI | _370;
+constexpr auto UNI_370_DOS                  = UNI | _370 | DOS;
+constexpr auto UNI_ESA_SINCE_ZOP            = UNI | ESA | SINCE_ZOP;
+constexpr auto UNI_ESA_XA_370_DOS_SINCE_ZOP = UNI | ESA | XA | _370 | DOS | SINCE_ZOP;
+constexpr auto UNI_ESA_XA_370_SINCE_Z13     = UNI | ESA | XA | _370 | SINCE_Z13;
+constexpr auto UNI_ESA_XA_370_SINCE_Z15     = UNI | ESA | XA | _370 | SINCE_Z15;
+constexpr auto UNI_ESA_XA_370_SINCE_ZOP     = UNI | ESA | XA | _370 | SINCE_ZOP;
+constexpr auto UNI_ESA_XA_SINCE_ZOP         = UNI | ESA | XA | SINCE_ZOP;
+constexpr auto UNI_SINCE_YOP                = UNI | SINCE_YOP;
+constexpr auto UNI_SINCE_Z10                = UNI | SINCE_Z10;
+constexpr auto UNI_SINCE_Z11                = UNI | SINCE_Z11;
+constexpr auto UNI_SINCE_Z12                = UNI | SINCE_Z12;
+constexpr auto UNI_SINCE_Z13                = UNI | SINCE_Z13;
+constexpr auto UNI_SINCE_Z14                = UNI | SINCE_Z14;
+constexpr auto UNI_SINCE_Z15                = UNI | SINCE_Z15;
+constexpr auto UNI_SINCE_Z9                 = UNI | SINCE_Z9;
+constexpr auto UNI_SINCE_ZOP                = UNI | SINCE_ZOP;
 // clang-format on
+} // namespace
 
 std::string_view instruction::mach_format_to_string(mach_format f)
 {

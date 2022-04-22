@@ -32,94 +32,15 @@
 
 namespace hlasm_plugin::parser_library::context {
 
-// Determines in which systems is the instruction supported
-// First Byte determines instruction support since a specific iteration of the Z system
-// Other bits determine instruction support in other systems
-// Example: 0010 1010 0101:
-//  -   0010 xxxx xxxx -> Instruction supported on ESA systems
-//  -   xxxx 1010 xxxx -> Instruction supported on 370 systems and is also part of universal instruction set
-//  -   xxxx xxxx 0101 -> Instruction supported since Z12 systems up to now
-enum class supported_system : unsigned short
+struct instruction_set_affiliation
 {
-    NO_SUPPORT = 0,
-    NO_Z_SUPPORT = 0,
-    SINCE_ZOP = 1,
-    SINCE_YOP = 2,
-    SINCE_Z9 = 3,
-    SINCE_Z10 = 4,
-    SINCE_Z11 = 5,
-    SINCE_Z12 = 6,
-    SINCE_Z13 = 7,
-    SINCE_Z14 = 8,
-    SINCE_Z15 = 9,
-    ESA = 1 << 5,
-    XA = 1 << 6,
-    _370 = 1 << 7,
-    DOS = 1 << 8,
-    UNI = 1 << 9
+    uint16_t z_arch : 4;
+    uint16_t esa : 1;
+    uint16_t xa : 1;
+    uint16_t _370 : 1;
+    uint16_t dos : 1;
+    uint16_t uni : 1;
 };
-
-// Simple OR of supported_system values can have illogical results for SINCE_xxx bits
-// Goal is to give the results more sense (e.g. SINCE_Z10 | SINCE_Z11 should result in SINCE_Z10).
-constexpr supported_system operator|(supported_system a, supported_system b)
-{
-    auto a_conv = static_cast<int>(a);
-    auto b_conv = static_cast<int>(b);
-    auto since_z = static_cast<int>(supported_system::NO_Z_SUPPORT);
-    const int since_z_mask = 0x0F;
-
-    // Get the value of SINCE_xxx bits
-    if ((a_conv & since_z_mask) != static_cast<int>(supported_system::NO_Z_SUPPORT)
-        && (b_conv & since_z_mask) != static_cast<int>(supported_system::NO_Z_SUPPORT))
-    {
-        since_z = std::min(a_conv & since_z_mask, b_conv & since_z_mask);
-    }
-    else
-    {
-        since_z = std::max(a_conv & since_z_mask, b_conv & since_z_mask);
-    }
-
-    // OR the two values and zero out the SINCE_xxx bits
-    auto res = a_conv | b_conv;
-    res &= ~since_z_mask;
-
-    // OR the result with the retrieved SINCE_xxx bits
-    return static_cast<supported_system>(res | since_z);
-}
-
-// Simple AND of supported_system values can have illogical results for SINCE_xxx bits
-// Goal is to give the results more sense (e.g. SINCE_Z10 & SINCE_Z11 should result in SINCE_Z11).
-constexpr supported_system operator&(supported_system a, supported_system b)
-{
-    auto a_conv = static_cast<int>(a);
-    auto b_conv = static_cast<int>(b);
-    auto since_z = static_cast<int>(supported_system::NO_Z_SUPPORT);
-    const int since_z_mask = 0x0F;
-
-    // Get the value of SINCE_xxx bits
-    if ((a_conv & since_z_mask) != static_cast<int>(supported_system::NO_Z_SUPPORT)
-        && (b_conv & since_z_mask) != static_cast<int>(supported_system::NO_Z_SUPPORT))
-    {
-        since_z = std::max(a_conv & since_z_mask, b_conv & since_z_mask);
-    }
-
-    // AND the two values and zero out the SINCE_xxx bits
-    auto res = a_conv & b_conv;
-    res &= ~since_z_mask;
-
-    // OR the result with the retrieved SINCE_xxx bits
-    return static_cast<supported_system>(res | since_z);
-}
-
-constexpr supported_system operator&(supported_system a, size_t b)
-{
-    return static_cast<supported_system>(static_cast<int>(a) & static_cast<int>(b));
-}
-
-constexpr bool operator<=(supported_system a, instruction_set_version b)
-{
-    return static_cast<int>(a) <= static_cast<int>(b);
-}
 
 // all mach_format types for operands of machine instructions:
 // formats with length 16 are arranged in range (0,2),formats with length 32 are arranged in range(3,20),formats with
@@ -395,7 +316,7 @@ class machine_instruction
     unsigned short m_size_identifier : 2, m_page_no : 14; // size is only 16,32,48 bits i.e. 0x10,0x20,0x30 (low nibble
                                                           // is always zero), PoP has less than 16k pages
 
-    supported_system m_system_support;
+    instruction_set_affiliation m_instr_set_affiliation;
 
     mach_format m_format;
     reladdr_transform_mask m_reladdr_mask;
@@ -409,11 +330,11 @@ public:
         mach_format format,
         std::span<const checking::machine_operand_format> operands,
         unsigned short page_no,
-        supported_system system_support)
+        instruction_set_affiliation instr_set_affiliation)
         : m_name(name)
         , m_size_identifier(get_length_by_format(format))
         , m_page_no(page_no)
-        , m_system_support(system_support)
+        , m_instr_set_affiliation(instr_set_affiliation)
         , m_format(format)
         , m_reladdr_mask(generate_reladdr_bitmask(operands))
 #ifdef __cpp_lib_ranges
@@ -431,8 +352,8 @@ public:
     constexpr machine_instruction(std::string_view name,
         instruction_format_definition ifd,
         unsigned short page_no,
-        supported_system system_support)
-        : machine_instruction(name, ifd.format, ifd.op_format, page_no, system_support)
+        instruction_set_affiliation instr_set_affiliation)
+        : machine_instruction(name, ifd.format, ifd.op_format, page_no, instr_set_affiliation)
     {}
 
     constexpr std::string_view name() const { return m_name.to_string_view(); }
@@ -457,7 +378,7 @@ public:
         return std::span<const checking::machine_operand_format>(m_operands, m_operand_len);
     }
     constexpr size_t optional_operand_count() const { return m_optional_op_count; }
-    constexpr supported_system system_support() const { return m_system_support; };
+    constexpr const instruction_set_affiliation& instr_set_affiliation() const { return m_instr_set_affiliation; };
 
     bool check_nth_operand(size_t place, const checking::machine_operand* operand);
     bool check(std::string_view name_of_instruction,
@@ -492,7 +413,7 @@ class mnemonic_code
 
     reladdr_transform_mask m_reladdr_mask;
 
-    supported_system m_system_support;
+    instruction_set_affiliation m_instr_set_affiliation;
 
     inline_string<9> m_name;
 
@@ -531,12 +452,12 @@ public:
     constexpr mnemonic_code(std::string_view name,
         const machine_instruction* instr,
         std::initializer_list<const std::pair<int, int>> replaced,
-        supported_system system_support)
+        instruction_set_affiliation instr_set_affiliation)
         : m_instruction(instr)
         , m_replaced {}
         , m_replaced_count((unsigned char)replaced.size())
         , m_reladdr_mask(generate_reladdr_bitmask(instr, replaced))
-        , m_system_support(system_support)
+        , m_instr_set_affiliation(instr_set_affiliation)
         , m_name(name)
     {
         assert(replaced.size() <= m_replaced.size());
@@ -558,7 +479,7 @@ public:
     }
     constexpr reladdr_transform_mask reladdr_mask() const { return m_reladdr_mask; }
     constexpr std::string_view name() const { return m_name.to_string_view(); }
-    constexpr supported_system system_support() const { return m_system_support; };
+    constexpr const instruction_set_affiliation& instr_set_affiliation() const { return m_instr_set_affiliation; };
 };
 
 // machine instruction common representation

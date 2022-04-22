@@ -32,24 +32,24 @@ code_scope* hlasm_context::curr_scope() { return &scope_stack_.back(); }
 const code_scope* hlasm_context::curr_scope() const { return &scope_stack_.back(); }
 
 namespace {
-bool instruction_available(supported_system instruction_support, instruction_set_version active_instr_set)
+bool instruction_available(instruction_set_affiliation instr_set_affiliation, instruction_set_version active_instr_set)
 {
     switch (active_instr_set)
     {
         case instruction_set_version::UNI: {
-            return (instruction_support & supported_system::UNI) == supported_system::UNI;
+            return instr_set_affiliation.uni;
         }
         case instruction_set_version::DOS: {
-            return (instruction_support & supported_system::DOS) == supported_system::DOS;
+            return instr_set_affiliation.dos;
         }
         case instruction_set_version::_370: {
-            return (instruction_support & supported_system::_370) == supported_system::_370;
+            return instr_set_affiliation._370;
         }
         case instruction_set_version::XA: {
-            return (instruction_support & supported_system::XA) == supported_system::XA;
+            return instr_set_affiliation.xa;
         }
         case instruction_set_version::ESA: {
-            return (instruction_support & supported_system::ESA) == supported_system::ESA;
+            return instr_set_affiliation.esa;
         }
         case instruction_set_version::ZOP:
         case instruction_set_version::YOP:
@@ -60,10 +60,9 @@ bool instruction_available(supported_system instruction_support, instruction_set
         case instruction_set_version::Z13:
         case instruction_set_version::Z14:
         case instruction_set_version::Z15: {
-            instruction_support =
-                instruction_support & 0x0F; // Get the lower bits representing the Z architecture instruction sets
-            return instruction_support == supported_system::NO_Z_SUPPORT ? false
-                                                                         : instruction_support <= active_instr_set;
+            return instr_set_affiliation.z_arch == 0
+                ? false
+                : instr_set_affiliation.z_arch <= static_cast<uint16_t>(active_instr_set);
         }
         default:
             return false;
@@ -77,7 +76,7 @@ hlasm_context::instruction_storage hlasm_context::init_instruction_map(
     hlasm_context::instruction_storage instr_map;
     for (const auto& instr : instruction::all_machine_instructions())
     {
-        if (!instruction_available(instr.system_support(), active_instr_set))
+        if (!instruction_available(instr.instr_set_affiliation(), active_instr_set))
             continue;
 
         auto id = ids.add(std::string(instr.name()));
@@ -95,7 +94,7 @@ hlasm_context::instruction_storage hlasm_context::init_instruction_map(
     }
     for (const auto& instr : instruction::all_mnemonic_codes())
     {
-        if (!instruction_available(instr.system_support(), active_instr_set))
+        if (!instruction_available(instr.instr_set_affiliation(), active_instr_set))
             continue;
 
         auto id = ids.add(std::string(instr.name()));
