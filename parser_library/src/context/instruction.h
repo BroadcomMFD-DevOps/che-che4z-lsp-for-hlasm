@@ -384,7 +384,7 @@ public:
                 return 32;
             default:
                 return 48;
-        };
+        }
     }
     constexpr reladdr_transform_mask reladdr_mask() const { return m_reladdr_mask; }
     constexpr std::span<const checking::machine_operand_format> operands() const

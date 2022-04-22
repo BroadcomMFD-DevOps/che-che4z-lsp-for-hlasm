@@ -41,21 +41,16 @@ bool instruction_available(instruction_set_affiliation instr_set_affiliation, in
 {
     switch (active_instr_set)
     {
-        case instruction_set_version::UNI: {
+        case instruction_set_version::UNI:
             return instr_set_affiliation.uni;
-        }
-        case instruction_set_version::DOS: {
+        case instruction_set_version::DOS:
             return instr_set_affiliation.dos;
-        }
-        case instruction_set_version::_370: {
+        case instruction_set_version::_370:
             return instr_set_affiliation._370;
-        }
-        case instruction_set_version::XA: {
+        case instruction_set_version::XA:
             return instr_set_affiliation.xa;
-        }
-        case instruction_set_version::ESA: {
+        case instruction_set_version::ESA:
             return instr_set_affiliation.esa;
-        }
         case instruction_set_version::ZOP:
         case instruction_set_version::YOP:
         case instruction_set_version::Z9:
@@ -64,11 +59,10 @@ bool instruction_available(instruction_set_affiliation instr_set_affiliation, in
         case instruction_set_version::Z12:
         case instruction_set_version::Z13:
         case instruction_set_version::Z14:
-        case instruction_set_version::Z15: {
+        case instruction_set_version::Z15:
             return instr_set_affiliation.z_arch == z_arch_affiliation::NO_AFFILIATION
                 ? false
                 : instr_set_affiliation.z_arch <= active_instr_set;
-        }
         default:
             return false;
     }

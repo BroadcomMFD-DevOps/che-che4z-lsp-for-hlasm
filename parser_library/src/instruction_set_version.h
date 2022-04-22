@@ -16,6 +16,7 @@
 #define HLASMPARSER_PARSERLIBRARY_INSTRUCTION_SET_VERSION_H
 
 #include <algorithm>
+#include <array>
 #include <string>
 
 // Available instruction sets versions
@@ -38,7 +39,7 @@ enum class instruction_set_version
     UNI
 };
 
-constexpr std::pair<std::string_view, instruction_set_version> instr_set_version_equivalents[] = {
+constexpr std::array<std::pair<std::string_view, instruction_set_version>, 23> instr_set_version_equivalents = { {
     { std::string_view("370"), instruction_set_version::_370 },
     { std::string_view("DOS"), instruction_set_version::DOS },
     { std::string_view("ESA"), instruction_set_version::ESA },
@@ -62,7 +63,7 @@ constexpr std::pair<std::string_view, instruction_set_version> instr_set_version
     { std::string_view("ZS7"), instruction_set_version::Z13 },
     { std::string_view("ZS8"), instruction_set_version::Z14 },
     { std::string_view("ZS9"), instruction_set_version::Z15 },
-};
+} };
 
 #if __cpp_lib_ranges
 static_assert(std::ranges::is_sorted(

@@ -65,7 +65,7 @@ instruction_set_version processor_group::find_instruction_set(
 }
 
 asm_option processor_group::translate_assembler_options(
-    const config::assembler_options& asm_options, std::string_view pg_file_name)
+    const config::assembler_options& asm_options, std::string_view pg_file_name) const
 {
     return asm_option {
         asm_options.sysparm,
