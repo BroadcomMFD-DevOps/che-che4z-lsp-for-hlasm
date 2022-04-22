@@ -32,6 +32,11 @@ code_scope* hlasm_context::curr_scope() { return &scope_stack_.back(); }
 const code_scope* hlasm_context::curr_scope() const { return &scope_stack_.back(); }
 
 namespace {
+constexpr bool operator<=(z_arch_affiliation z_affil, instruction_set_version instr_set)
+{
+    return static_cast<uint16_t>(z_affil) <= static_cast<uint16_t>(instr_set);
+}
+
 bool instruction_available(instruction_set_affiliation instr_set_affiliation, instruction_set_version active_instr_set)
 {
     switch (active_instr_set)
@@ -60,9 +65,9 @@ bool instruction_available(instruction_set_affiliation instr_set_affiliation, in
         case instruction_set_version::Z13:
         case instruction_set_version::Z14:
         case instruction_set_version::Z15: {
-            return instr_set_affiliation.z_arch == 0
+            return instr_set_affiliation.z_arch == z_arch_affiliation::NO_AFFILIATION
                 ? false
-                : instr_set_affiliation.z_arch <= static_cast<uint16_t>(active_instr_set);
+                : instr_set_affiliation.z_arch <= active_instr_set;
         }
         default:
             return false;

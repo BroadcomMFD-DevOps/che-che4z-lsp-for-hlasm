@@ -32,9 +32,23 @@
 
 namespace hlasm_plugin::parser_library::context {
 
+enum class z_arch_affiliation : uint16_t
+{
+    NO_AFFILIATION = 0,
+    SINCE_ZOP,
+    SINCE_YOP,
+    SINCE_Z9,
+    SINCE_Z10,
+    SINCE_Z11,
+    SINCE_Z12,
+    SINCE_Z13,
+    SINCE_Z14,
+    SINCE_Z15,
+};
+
 struct instruction_set_affiliation
 {
-    uint16_t z_arch : 4;
+    z_arch_affiliation z_arch : 4;
     uint16_t esa : 1;
     uint16_t xa : 1;
     uint16_t _370 : 1;
@@ -301,20 +315,20 @@ class machine_instruction
 
     static constexpr char get_length_by_format(mach_format instruction_format)
     {
-        auto interval = (int)(instruction_format);
-        if (interval >= (int)mach_format::length_48)
+        auto interval = static_cast<int>(instruction_format);
+        if (interval >= static_cast<int>(mach_format::length_48))
             return static_cast<char>(size_identifier::LENGTH_48);
-        if (interval >= (int)mach_format::length_32)
+        if (interval >= static_cast<int>(mach_format::length_32))
             return static_cast<char>(size_identifier::LENGTH_32);
-        if (interval >= (int)mach_format::length_16)
+        if (interval >= static_cast<int>(mach_format::length_16))
             return static_cast<char>(size_identifier::LENGTH_16);
         return static_cast<char>(size_identifier::LENGTH_0);
     }
 
     inline_string<7> m_name;
 
-    unsigned short m_size_identifier : 2, m_page_no : 14; // size is only 16,32,48 bits i.e. 0x10,0x20,0x30 (low nibble
-                                                          // is always zero), PoP has less than 16k pages
+    unsigned short m_size_identifier : 2; // Size is only 16,32,48 bits i.e. 0x10,0x20,0x30 (low nibble is always zero)
+    unsigned short m_page_no : 14; // PoP has less than 16k pages
 
     instruction_set_affiliation m_instr_set_affiliation;
 
