@@ -2490,7 +2490,8 @@ diagnostic_s diagnostic_s::error_W0007(std::string_view file_name, std::string_v
             "' from '",
             file_name,
             "' refers to invalid OPTABLE value. Using value UNI as default."),
-        {});
+        {},
+        diagnostic_tag::none);
 }
 
 diagnostic_s diagnostic_s::error_L0001(std::string_view path)
