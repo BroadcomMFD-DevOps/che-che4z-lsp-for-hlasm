@@ -58,7 +58,7 @@ TEST(proc_grps, assembler_options_read)
         std::make_pair(R"({"GOFF":true})"_json, assembler_options { "", "", "", "", true }),
         std::make_pair(R"({"XOBJECT":true})"_json, assembler_options { "", "", "", "", false, true }),
         std::make_pair(
-            R"({"PROFILE":"MAC","SYSPARM":"TESTPARM","OPTABLE":"ZS9","SYSTEM_ID":"VSE","GOFF":true,"XOBJECT":false})"_json,
+            R"({"GOFF":true,"PROFILE":"MAC","SYSPARM":"TESTPARM","OPTABLE":"ZS9","SYSTEM_ID":"VSE","XOBJECT":false})"_json,
             assembler_options { "TESTPARM", "MAC", "ZS9", "VSE", true, false }),
     };
 
