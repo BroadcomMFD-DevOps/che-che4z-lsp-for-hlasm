@@ -82,8 +82,7 @@ TEST(proc_grps, assembler_options_write)
         std::make_pair(R"({"OPTABLE":"ZS9"})"_json, assembler_options { "", "", "ZS9" }),
         std::make_pair(R"({"SYSTEM_ID":"VSE"})"_json, assembler_options { "", "", "", "VSE" }),
         std::make_pair(R"({"GOFF":true})"_json, assembler_options { "", "", "", "", true }),
-        std::make_pair(
-            R"({"GOFF":true,"PROFILE":"MAC","SYSPARM":"TESTPARM","OPTABLE":"ZS9","SYSTEM_ID":"VSE"})"_json,
+        std::make_pair(R"({"GOFF":true,"PROFILE":"MAC","SYSPARM":"TESTPARM","OPTABLE":"ZS9","SYSTEM_ID":"VSE"})"_json,
             assembler_options { "TESTPARM", "MAC", "ZS9", "VSE", true }),
     };
 
