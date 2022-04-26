@@ -84,6 +84,10 @@ suite('Integration Test Suite', () => {
 		const movePosition = new vscode.Position(7, 2);
 		editor.selection = new vscode.Selection(movePosition, movePosition);
 
+		const completionList : vscode.CompletionList = await vscode.commands.executeCommand('vscode.executeCompletionItemProvider', editor.document.uri, movePosition);
+		const result = completionList.items.filter(complItem => complItem.label.toString().startsWith('L'));
+		assert.ok(result.length === 289, 'Wrong number of suggestion result. Expected 289 got ' + result.length);
+
 		await vscode.commands.executeCommand('editor.action.triggerSuggest');
 		await sleep(1000);
 
@@ -105,6 +109,11 @@ suite('Integration Test Suite', () => {
 		});
 		const movePosition = new vscode.Position(8, 1);
 		editor.selection = new vscode.Selection(movePosition, movePosition);
+
+		const completionList : vscode.CompletionList = await vscode.commands.executeCommand('vscode.executeCompletionItemProvider', editor.document.uri, movePosition);
+		assert.ok(completionList.items.length === 2, 'Wrong number of suggestion result. Expected 2 got ' + completionList.items.length);
+		assert.ok(completionList.items[0].label.toString() === '&VAR', 'Wrong first completion item. Expected &VAR got ' + completionList.items[0].label.toString());
+		assert.ok(completionList.items[1].label.toString() === '&VAR2', 'Wrong second completion item. Expected &VAR2 got ' + completionList.items[1].label.toString());
 
 		await vscode.commands.executeCommand('editor.action.triggerSuggest');
 		await sleep(1000);
