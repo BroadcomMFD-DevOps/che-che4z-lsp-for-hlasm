@@ -72,7 +72,7 @@ asm_option processor_group::translate_assembler_options(
         .instr_set = asm_options.optable.empty() ? asm_option::instr_set_default
                                                  : find_instruction_set(asm_options.optable, pg_file_name),
         .system_id = asm_options.system_id.empty() ? asm_option::system_id_default : asm_options.system_id,
-        .sysopt_xobject = asm_options.goff || asm_options.xobject };
+        .sysopt_xobject = asm_options.goff };
 }
 
 void processor_group::collect_diags() const

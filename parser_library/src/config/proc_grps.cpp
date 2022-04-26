@@ -45,7 +45,9 @@ void to_json(nlohmann::json& j, const assembler_options& p)
 {
     j = nlohmann::json::object();
     if (p.goff)
-        j["GOFF"] = p.goff;
+    {
+        j["GOFF"] = p.goff; // GOFF and XOBJECTS are synonyms
+    }
     if (p.optable.size())
         j["OPTABLE"] = p.optable;
     if (p.profile.size())
@@ -54,16 +56,32 @@ void to_json(nlohmann::json& j, const assembler_options& p)
         j["SYSPARM"] = p.sysparm;
     if (p.system_id.size())
         j["SYSTEM_ID"] = p.system_id;
-    if (p.xobject)
-        j["XOBJECT"] = p.xobject;
 }
+
+namespace {
+bool get_goff_from_json(const nlohmann::json& j)
+{
+    bool goff = false;
+    bool xobject = false;
+
+    if (auto it = j.find("GOFF"); it != j.end())
+        it->get_to(goff);
+
+    if (auto it = j.find("XOBJECT"); it != j.end())
+    {
+        it->get_to(xobject);
+    }
+
+    return goff || xobject; // GOFF and XOBJECTS are synonyms
+}
+} // namespace
+
 void from_json(const nlohmann::json& j, assembler_options& p)
 {
     if (!j.is_object())
         throw nlohmann::json::other_error::create(501, "asm_options must be an object.");
 
-    if (auto it = j.find("GOFF"); it != j.end())
-        it->get_to(p.goff);
+    p.goff = get_goff_from_json(j);
     if (auto it = j.find("OPTABLE"); it != j.end())
         it->get_to(p.optable);
     if (auto it = j.find("PROFILE"); it != j.end())
@@ -72,8 +90,6 @@ void from_json(const nlohmann::json& j, assembler_options& p)
         it->get_to(p.sysparm);
     if (auto it = j.find("SYSTEM_ID"); it != j.end())
         it->get_to(p.system_id);
-    if (auto it = j.find("XOBJECT"); it != j.end())
-        it->get_to(p.xobject);
 }
 
 void to_json(nlohmann::json& j, const db2_preprocessor& v)

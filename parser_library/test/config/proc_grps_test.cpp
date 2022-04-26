@@ -56,10 +56,10 @@ TEST(proc_grps, assembler_options_read)
         std::make_pair(R"({"OPTABLE":"ZS9"})"_json, assembler_options { "", "", "ZS9" }),
         std::make_pair(R"({"SYSTEM_ID":"VSE"})"_json, assembler_options { "", "", "", "VSE" }),
         std::make_pair(R"({"GOFF":true})"_json, assembler_options { "", "", "", "", true }),
-        std::make_pair(R"({"XOBJECT":true})"_json, assembler_options { "", "", "", "", false, true }),
+        std::make_pair(R"({"XOBJECT":true})"_json, assembler_options { "", "", "", "", true }),
         std::make_pair(
             R"({"GOFF":true,"PROFILE":"MAC","SYSPARM":"TESTPARM","OPTABLE":"ZS9","SYSTEM_ID":"VSE","XOBJECT":false})"_json,
-            assembler_options { "TESTPARM", "MAC", "ZS9", "VSE", true, false }),
+            assembler_options { "TESTPARM", "MAC", "ZS9", "VSE", true }),
     };
 
     for (const auto& [input, expected] : cases)
@@ -70,7 +70,6 @@ TEST(proc_grps, assembler_options_read)
         EXPECT_EQ(ao.optable, expected.optable);
         EXPECT_EQ(ao.system_id, expected.system_id);
         EXPECT_EQ(ao.goff, expected.goff);
-        EXPECT_EQ(ao.xobject, expected.xobject);
     }
 }
 
@@ -83,10 +82,9 @@ TEST(proc_grps, assembler_options_write)
         std::make_pair(R"({"OPTABLE":"ZS9"})"_json, assembler_options { "", "", "ZS9" }),
         std::make_pair(R"({"SYSTEM_ID":"VSE"})"_json, assembler_options { "", "", "", "VSE" }),
         std::make_pair(R"({"GOFF":true})"_json, assembler_options { "", "", "", "", true }),
-        std::make_pair(R"({"XOBJECT":true})"_json, assembler_options { "", "", "", "", false, true }),
         std::make_pair(
-            R"({"GOFF":true,"PROFILE":"MAC","SYSPARM":"TESTPARM","OPTABLE":"ZS9","SYSTEM_ID":"VSE","XOBJECT":true})"_json,
-            assembler_options { "TESTPARM", "MAC", "ZS9", "VSE", true, true }),
+            R"({"GOFF":true,"PROFILE":"MAC","SYSPARM":"TESTPARM","OPTABLE":"ZS9","SYSTEM_ID":"VSE"})"_json,
+            assembler_options { "TESTPARM", "MAC", "ZS9", "VSE", true }),
     };
 
     for (const auto& [expected, input] : cases)
@@ -227,10 +225,8 @@ TEST(proc_grps, assembler_options_validate)
         std::make_pair(assembler_options { "", "", "" }, true),
         std::make_pair(assembler_options { "", "", "UNI" }, true),
         std::make_pair(assembler_options { "", "", "A" }, false),
-        std::make_pair(assembler_options { "", "", "", "", false, false }, true),
-        std::make_pair(assembler_options { "", "", "", "", true, false }, true),
-        std::make_pair(assembler_options { "", "", "", "", false, true }, true),
-        std::make_pair(assembler_options { "", "", "", "", true, true }, true),
+        std::make_pair(assembler_options { "", "", "", "", false }, true),
+        std::make_pair(assembler_options { "", "", "", "", true }, true),
     };
 
     for (const auto& [input, expected] : cases)

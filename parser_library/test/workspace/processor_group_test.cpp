@@ -38,10 +38,6 @@ TEST(processor_group, assembler_options)
     EXPECT_EQ(asm_options({}).sysopt_rent, asm_option::sysopt_rent_default);
     EXPECT_EQ(asm_options({ .goff = true }).sysopt_xobject, true);
     EXPECT_EQ(asm_options({ .goff = false }).sysopt_xobject, false);
-    EXPECT_EQ(asm_options({ .xobject = true }).sysopt_xobject, true);
-    EXPECT_EQ(asm_options({ .xobject = false }).sysopt_xobject, false);
-    EXPECT_EQ(asm_options({ .goff = true, .xobject = false }).sysopt_xobject, true);
-    EXPECT_EQ(asm_options({ .goff = false, .xobject = true }).sysopt_xobject, true);
     EXPECT_EQ(asm_options({}).sysopt_xobject, asm_option::sysopt_xobject_default);
 }
 
