@@ -24,6 +24,7 @@
 #include "expressions/mach_expr_term.h"
 #include "expressions/mach_expr_visitor.h"
 #include "postponed_statement_impl.h"
+#include "utils/utf8text.h"
 
 namespace hlasm_plugin::parser_library::processing {
 
@@ -1250,22 +1251,9 @@ void asm_processor::process_MNOTE(rebuilt_statement stmt)
         add_diagnostic(diagnostic_op::error_A118_MNOTE_operands_size(r));
     }
 
-    // TODO: UTF-8 support
     std::string sanitized;
     sanitized.reserve(text.size());
-    for (unsigned char c : text)
-    {
-        if (std::isprint(c))
-            sanitized.push_back(c);
-        else
-        {
-            static constexpr const auto* hex_digits = "0123456789ABCDEF";
-            sanitized.push_back('<');
-            sanitized.push_back(hex_digits[c >> 4 & 0xf]);
-            sanitized.push_back(hex_digits[c >> 0 & 0xf]);
-            sanitized.push_back('>');
-        }
-    }
+    utils::append_utf8_sanitized(sanitized, text);
 
     add_diagnostic(diagnostic_op::mnote_diagnostic(level.value(), sanitized, r));
 }

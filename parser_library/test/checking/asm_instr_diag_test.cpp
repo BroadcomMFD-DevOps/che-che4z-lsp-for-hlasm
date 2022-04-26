@@ -1135,10 +1135,10 @@ TEST(mnote, missing_quotes)
     EXPECT_TRUE(matches_message_codes(a.diags(), { "MNOTE", "A300" }));
 }
 
-TEST(mnote, non_utf8_characters)
+TEST(mnote, nonprintable_characters)
 {
     std::string input = R"(
-&C  SETC X2C('FFFF')
+&C  SETC X2C('0101')
     MNOTE 0,'&C'
 )";
 
@@ -1147,6 +1147,5 @@ TEST(mnote, non_utf8_characters)
     a.collect_diags();
 
     ASSERT_TRUE(matches_message_codes(a.diags(), { "MNOTE" }));
-    const auto& msg = a.diags()[0].message;
-    EXPECT_TRUE(std::all_of(msg.begin(), msg.end(), [](unsigned char c) { return std::isprint(c); }));
+    EXPECT_EQ(a.diags()[0].message, "<01><01>");
 }

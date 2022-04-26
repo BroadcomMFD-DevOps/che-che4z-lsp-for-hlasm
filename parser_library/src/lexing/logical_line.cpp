@@ -14,6 +14,8 @@
 
 #include "logical_line.h"
 
+#include "utils/utf8text.h"
+
 namespace hlasm_plugin::parser_library::lexing {
 std::pair<std::string_view, logical_line_segment_eol> extract_line(std::string_view& input)
 {
@@ -64,7 +66,7 @@ std::pair<size_t, size_t> substr_step(std::string_view& s, size_t& chars)
             continue;
         }
 
-        const auto cs = utf8_prefix_sizes[c];
+        const auto cs = utils::utf8_prefix_sizes[c];
         if constexpr (validate)
         {
             if (!cs.utf8 || s.size() < cs.utf8)
