@@ -69,9 +69,9 @@ std::pair<size_t, size_t> substr_step(std::string_view& s, size_t& chars)
         const auto cs = utils::utf8_prefix_sizes[c];
         if constexpr (validate)
         {
-            if (!cs.utf8 || s.size() < cs.utf8)
+            if (cs.utf8 < 2 || s.size() < cs.utf8 || !utils::utf8_valid_multibyte_prefix(s[0], s[1]))
                 throw hlasm_plugin::parser_library::lexing::utf8_error();
-            for (const auto* p = s.data() + 1; p != s.data() + cs.utf8; ++p)
+            for (const auto* p = s.data() + 2; p != s.data() + cs.utf8; ++p)
                 if ((*p & 0xc0) != 0x80)
                     throw hlasm_plugin::parser_library::lexing::utf8_error();
         }

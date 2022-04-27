@@ -30,21 +30,19 @@ struct char_size
 };
 
 // Map first byte of UTF-8 encoded Unicode character to char_size
-constexpr const auto utf8_prefix_sizes = []() {
-    std::array<char_size, 256> sizes = {};
-    static_assert(std::numeric_limits<unsigned char>::max() < sizes.size());
-    for (int i = 0b0000'0000; i <= 0b0111'1111; ++i)
-        sizes[i] = { 1, 1 };
-    for (int i = 0b1100'0000; i <= 0b1101'1111; ++i)
-        sizes[i] = { 2, 1 };
-    for (int i = 0b1110'0000; i <= 0b1110'1111; ++i)
-        sizes[i] = { 3, 1 };
-    for (int i = 0b1111'0000; i <= 0b1111'0111; ++i)
-        sizes[i] = { 4, 2 };
-    return sizes;
-}();
+extern constinit const std::array<char_size, 256> utf8_prefix_sizes;
 
 constexpr const char substitute_character = 0x1a;
+
+extern constinit const std::array<unsigned char, 128> utf8_valid_multibyte_prefix_table;
+
+constexpr bool utf8_valid_multibyte_prefix(unsigned char first, unsigned char second)
+{
+    if (first < 0xc0)
+        return false;
+    int bitid = (first - 0xC0) << 4 | second >> 4;
+    return utf8_valid_multibyte_prefix_table[bitid / 8] & (0x80 >> bitid % 8);
+}
 
 void append_utf8_sanitized(std::string& result, std::string_view str);
 } // namespace hlasm_plugin::utils
