@@ -57,7 +57,7 @@ TEST(utf8, substr_with_validate)
     }
 }
 
-TEST(utf8, extra_validation)
+TEST(utf8, multibyte_validation)
 {
     using namespace hlasm_plugin::utils;
     for (const auto [f, s, e] : std::initializer_list<std::tuple<unsigned char, unsigned char, bool>> {
