@@ -36,7 +36,7 @@ constexpr const char substitute_character = 0x1a;
 
 extern constinit const std::array<unsigned char, 128> utf8_valid_multibyte_prefix_table;
 
-constexpr bool utf8_valid_multibyte_prefix(unsigned char first, unsigned char second)
+inline bool utf8_valid_multibyte_prefix(unsigned char first, unsigned char second)
 {
     if (first < 0xc0)
         return false;
