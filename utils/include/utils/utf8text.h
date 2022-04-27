@@ -40,7 +40,7 @@ inline bool utf8_valid_multibyte_prefix(unsigned char first, unsigned char secon
 {
     if (first < 0xc0)
         return false;
-    int bitid = (first - 0xC0) << 4 | second >> 4;
+    unsigned bitid = (first - 0xC0) << 4 | second >> 4;
     return utf8_valid_multibyte_prefix_table[bitid / 8] & (0x80 >> bitid % 8);
 }
 

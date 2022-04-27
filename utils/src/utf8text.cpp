@@ -90,10 +90,10 @@ void append_utf8_sanitized(std::string& result, std::string_view str)
         static constexpr char hex_digits[] = "0123456789ABCDEF";
 
         // 0x00-0x1F, 0x7F, 0x8D-0x9F, not characters and invalid sequences
-        result.append(1, '<');
-        result.append(1, hex_digits[(c >> 4) & 0xf]);
-        result.append(1, hex_digits[(c >> 0) & 0xf]);
-        result.append(1, '>');
+        result.push_back('<');
+        result.push_back(hex_digits[(c >> 4) & 0xf]);
+        result.push_back(hex_digits[(c >> 0) & 0xf]);
+        result.push_back('>');
 
         ++it;
     }
