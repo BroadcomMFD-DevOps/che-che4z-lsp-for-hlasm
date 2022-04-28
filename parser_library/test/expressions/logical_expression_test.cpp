@@ -273,3 +273,25 @@ TEST(logical_expressions, parenthesis_around_expressions)
     EXPECT_EQ(diags.size(), (size_t)2);
     EXPECT_TRUE(std::all_of(diags.begin(), diags.end(), [](const auto& d) { return d.code == "CE016"; }));
 }
+
+TEST(logical_expressions, operator_precedence)
+{
+    std::string input =
+        R"(
+        MACRO
+        TEST    &A,&B 
+        AIF     (&A EQ 0 OR &A EQ 1 AND &B EQ 1).END    
+        MNOTE   8,'ERROR'
+.END    ANOP
+        MEND
+
+        TEST    0,0
+        TEST    0,1
+        TEST    1,1
+)";
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(a.diags().empty());
+}
