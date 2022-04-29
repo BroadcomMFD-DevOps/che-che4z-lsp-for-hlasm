@@ -49,7 +49,7 @@ export async function insertString(editor: vscode.TextEditor, position: vscode.P
     const str_split = str.split('\n');
     const lines = str_split.length;
 
-    const movePosition = new vscode.Position(position.line + lines - 1, lines == 1 ? position.character + str.length : str_split[lines].length );
+    const movePosition = new vscode.Position(position.line + lines - 1, lines == 1 ? position.character + str.length : str_split[lines].length);
     editor.selection = new vscode.Selection(movePosition, movePosition);
 
     return movePosition;
