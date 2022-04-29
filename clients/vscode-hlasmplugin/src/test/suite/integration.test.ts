@@ -15,48 +15,28 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as path from 'path';
+import * as helper from './testHelper';
 
 suite('Integration Test Suite', () => {
-	const workspacePath = vscode.workspace.workspaceFolders[0].uri.fsPath;
-
 	const workspace_file = 'open';
-	const get_editor = () => {
-		const editor = vscode.window.activeTextEditor;
-		assert.equal(editor.document.uri.fsPath, path.join(vscode.workspace.workspaceFolders[0].uri.fsPath, workspace_file));
-
-		return editor;
-	}
-	const sleep = (ms: number) => {
-		return new Promise((resolve) => { setTimeout(resolve, ms) });
-	};
+	let editor : vscode.TextEditor;
 
 	suiteSetup(async function () {
 		this.timeout(30000);
-		// 'open' should be in workspace
-		const files = await vscode.workspace.findFiles(workspace_file);
-
-		assert.ok(files && files[0]);
-		const file = files[0];
-
-		// open the file
-		const document = await vscode.workspace.openTextDocument(file);
-
-		await vscode.window.showTextDocument(document);
+		
+		await helper.showDocument(workspace_file);
+		editor = helper.get_editor(workspace_file);
 	});
 
 	// open 'open' file, should be recognized as hlasm
 	test('HLASM file open test', async () => {
-		const editor = get_editor();
-
 		// setting a language takes a while but shouldn't take longer than a second
-		await sleep(1000);
+		await helper.sleep(1000);
 		assert.ok(editor.document.languageId === 'hlasm');
 	}).timeout(10000).slow(4000);
 
 	// change 'open' file to create diagnostic
 	test('Diagnostic test', async () => {
-		const editor = get_editor();
-
 		// register callback to check for the correctness of the diagnostic
 		const diagnostic_event = new Promise<[vscode.Uri, vscode.Diagnostic[]][]>((resolve, reject) => {
 			const listener = vscode.languages.onDidChangeDiagnostics((_) => {
@@ -77,22 +57,13 @@ suite('Integration Test Suite', () => {
 
 	// test completion for instructions
 	test('Completion Instructions test', async () => {
-		const editor = get_editor();
-		await editor.edit(edit => {
-			edit.insert(new vscode.Position(7, 1), 'L');
-		});
-		const movePosition = new vscode.Position(7, 2);
-		editor.selection = new vscode.Selection(movePosition, movePosition);
-
-		const completionList : vscode.CompletionList = await vscode.commands.executeCommand('vscode.executeCompletionItemProvider', editor.document.uri, movePosition);
-		const result = completionList.items.filter(complItem => complItem.label.toString().startsWith('L'));
-		assert.ok(result.length === 289, 'Wrong number of suggestion result. Expected 289 got ' + result.length);
-
+		await helper.insertString(editor, new vscode.Position(7,1), 'L');
+		
 		await vscode.commands.executeCommand('editor.action.triggerSuggest');
-		await sleep(1000);
+		await helper.sleep(1000);
 
 		await vscode.commands.executeCommand('acceptSelectedSuggestion');
-		await sleep(1000);
+		await helper.sleep(1000);
 
 		const text = editor.document.getText();
 		const acceptedLine = text.split('\n')[7];
@@ -102,24 +73,13 @@ suite('Integration Test Suite', () => {
 
 	// test completion for variable symbols
 	test('Completion Variable symbol test', async () => {
-		const editor = get_editor();
-		// add '&' to simulate start of a variable symbol
-		await editor.edit(edit => {
-			edit.insert(new vscode.Position(8, 0), '&');
-		});
-		const movePosition = new vscode.Position(8, 1);
-		editor.selection = new vscode.Selection(movePosition, movePosition);
-
-		const completionList : vscode.CompletionList = await vscode.commands.executeCommand('vscode.executeCompletionItemProvider', editor.document.uri, movePosition);
-		assert.ok(completionList.items.length === 2, 'Wrong number of suggestion result. Expected 2 got ' + completionList.items.length);
-		assert.ok(completionList.items[0].label.toString() === '&VAR', 'Wrong first completion item. Expected &VAR got ' + completionList.items[0].label.toString());
-		assert.ok(completionList.items[1].label.toString() === '&VAR2', 'Wrong second completion item. Expected &VAR2 got ' + completionList.items[1].label.toString());
+		await helper.insertString(editor, new vscode.Position(8,0), '&');
 
 		await vscode.commands.executeCommand('editor.action.triggerSuggest');
-		await sleep(1000);
+		await helper.sleep(1000);
 
 		await vscode.commands.executeCommand('acceptSelectedSuggestion')
-		await sleep(1000);
+		await helper.sleep(1000);
 
 		const text = editor.document.getText();
 		const acceptedLine = text.split('\n')[8];
@@ -129,7 +89,6 @@ suite('Integration Test Suite', () => {
 
 	// go to definition for ordinary symbol
 	test('Definition Ordinary symbol test', async () => {
-		const editor = get_editor();
 		const result: vscode.Location[] = await vscode.commands.executeCommand('vscode.executeDefinitionProvider', editor.document.uri, new vscode.Position(1, 7));
 
 		assert.ok(result.length == 1
@@ -140,7 +99,6 @@ suite('Integration Test Suite', () => {
 
 	// hover for variable symbol
 	test('Hover Variable symbol test', async () => {
-		const editor = get_editor();
 		const result: vscode.Hover[] = await vscode.commands.executeCommand('vscode.executeHoverProvider', editor.document.uri, new vscode.Position(6, 8));
 
 		assert.ok(result.length == 1
@@ -150,10 +108,9 @@ suite('Integration Test Suite', () => {
 
 	// go to definition for macros
 	test('Definition Macro test', async () => {
-		const editor = get_editor();
 		const result: vscode.Location[] = await vscode.commands.executeCommand('vscode.executeDefinitionProvider', editor.document.uri, new vscode.Position(6, 2));
 		assert.ok(result.length == 1
-			&& result[0].uri.fsPath == path.join(workspacePath, 'libs', 'mac.asm')
+			&& result[0].uri.fsPath == path.join(helper.getWorkspacePath(), 'libs', 'mac.asm')
 			&& result[0].range.start.line == 1
 			&& result[0].range.start.character == 4, 'Wrong macro definition location');
 	}).timeout(10000).slow(1000);
@@ -174,11 +131,11 @@ suite('Integration Test Suite', () => {
 		const session = await session_started_event;
 
 		// wait a second to let the debug session complete
-		await sleep(1000);
+		await helper.sleep(1000);
 		// step over once
 		await vscode.commands.executeCommand('workbench.action.debug.stepOver');
 		// wait 1 more second to let step over take place
-		await sleep(1000);
+		await helper.sleep(1000);
 		// then check for VAR2 variable
 		const scopesResult = await session.customRequest('scopes', { frameId: 0 });
 
@@ -206,7 +163,7 @@ suite('Integration Test Suite', () => {
 
 		await vscode.window.showTextDocument(document);
 
-		await sleep(2000);
+		await helper.sleep(2000);
 
 		const allDiags = vscode.languages.getDiagnostics();
 		const patternDiags = allDiags.find(pair => pair[0].path.endsWith("test_pattern.hlasm"))
