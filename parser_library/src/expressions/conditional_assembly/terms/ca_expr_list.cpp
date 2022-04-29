@@ -15,6 +15,7 @@
 #include "ca_expr_list.h"
 
 #include <cassert>
+#include <stack>
 
 #include "../ca_operator_binary.h"
 #include "../ca_operator_unary.h"
@@ -113,36 +114,161 @@ void ca_expr_list::unknown_functions_to_operators()
 template<typename T>
 void ca_expr_list::resolve(diagnostic_op_consumer& diags)
 {
-    if (expr_list.empty())
+    struct term_entry
+    {
+        ca_expr_ptr term;
+        size_t i;
+    };
+    struct op_entry
+    {
+        size_t i;
+        ca_expr_ops op_type;
+        int priority;
+        bool binary;
+        bool right_assoc;
+        range r;
+    };
+    using expr_policy = typename ca_expr_traits<T>::policy_t;
+
+    std::stack<term_entry> terms;
+    std::stack<op_entry> op_stack;
+
+    const auto reduce_stack = [&terms, &op_stack, &diags]() {
+        auto op = std::move(op_stack.top());
+        op_stack.pop();
+        if (terms.size() < 1 + op.binary)
+        {
+            diags.add_diagnostic(diagnostic_op::error_CE003(range(terms.size() < op.binary ? op.r.start : op.r.end)));
+            return false;
+        }
+        if (op.binary)
+        {
+            auto right = std::move(terms.top());
+            terms.pop();
+            auto left = std::move(terms.top());
+            terms.pop();
+
+            if (left.i > op.i)
+            {
+                diags.add_diagnostic(diagnostic_op::error_CE003(range(op.r.start)));
+                return false;
+            }
+            if (right.i < op.i)
+            {
+                diags.add_diagnostic(diagnostic_op::error_CE003(range(op.r.end)));
+                return false;
+            }
+
+            terms.push({
+                std::make_unique<ca_function_binary_operator>(std::move(left.term),
+                    std::move(right.term),
+                    op.op_type,
+                    context::object_traits<T>::type_enum,
+                    op.r),
+                left.i,
+            });
+        }
+        else
+        {
+            auto right = std::move(terms.top());
+            terms.pop();
+
+            if (right.i < op.i)
+            {
+                diags.add_diagnostic(diagnostic_op::error_CE003(range(op.r.end)));
+                return false;
+            }
+
+            terms.push({
+                std::make_unique<ca_function_unary_operator>(
+                    std::move(right.term), op.op_type, expr_policy::set_type, op.r),
+                op.i,
+            });
+        }
+        return true;
+    };
+
+    auto i = (size_t)-1;
+    bool prefer_next_term = true;
+    bool last_was_terminal = false;
+    for (auto& curr_expr : expr_list)
+    {
+        ++i;
+        // is unary op
+        if (is_symbol(curr_expr))
+        {
+            const auto& symbol = get_symbol(curr_expr);
+            auto op_type_var = expr_policy::get_operator_properties(symbol);
+            if (std::holds_alternative<std::monostate>(op_type_var))
+            {
+                // fallback to term
+            }
+            else if (!prefer_next_term && std::holds_alternative<invalid_by_policy>(op_type_var))
+            {
+                diags.add_diagnostic(diagnostic_op::error_CE002(symbol, curr_expr->expr_range));
+                expr_list.clear();
+                return;
+            }
+            else if (const auto& op_type = std::get<ca_expr_op>(op_type_var); !(prefer_next_term && op_type.binary))
+            {
+                while (!op_stack.empty())
+                {
+                    if (op_stack.top().priority > op_type.priority)
+                        break;
+                    if (op_stack.top().priority == op_type.priority && op_type.right_assoc)
+                        break;
+                    if (!reduce_stack())
+                    {
+                        expr_list.clear();
+                        return;
+                    }
+                }
+                op_stack.push({
+                    i,
+                    op_type.op,
+                    op_type.priority,
+                    op_type.binary,
+                    op_type.right_assoc,
+                    curr_expr->expr_range,
+                });
+                if (op_type.requires_terms && !last_was_terminal)
+                {
+                    diags.add_diagnostic(diagnostic_op::error_CE003(range(curr_expr->expr_range.start)));
+                    expr_list.clear();
+                    return;
+                }
+                prefer_next_term = op_type.binary || op_type.requires_terms;
+                last_was_terminal = false;
+                continue;
+            }
+        }
+        terms.push({ std::move(curr_expr), i });
+        prefer_next_term = false;
+        last_was_terminal = true;
+    }
+
+    while (!op_stack.empty())
+    {
+        if (!reduce_stack())
+        {
+            expr_list.clear();
+            return;
+        }
+    }
+    if (terms.empty())
     {
         diags.add_diagnostic(diagnostic_op::error_CE003(expr_range));
-        return;
-    }
-
-    size_t it = 0;
-    bool err = false;
-
-    ca_expr_ptr final_expr = retrieve_term<typename ca_expr_traits<T>::policy_t>(it, 0, diags);
-    err |= final_expr == nullptr;
-
-    while (it != expr_list.size() && !err)
-    {
-        auto op_range = expr_list[it]->expr_range;
-
-        auto [prio, op_type] = retrieve_binary_operator<typename ca_expr_traits<T>::policy_t>(it, err, diags);
-
-        auto r_expr = retrieve_term<typename ca_expr_traits<T>::policy_t>(++it, prio, diags);
-        err |= r_expr == nullptr;
-
-        final_expr = std::make_unique<ca_function_binary_operator>(
-            std::move(final_expr), std::move(r_expr), op_type, context::object_traits<T>::type_enum, op_range);
-    }
-
-    if (err)
-    {
         expr_list.clear();
         return;
     }
+    if (terms.size() > 1)
+    {
+        diags.add_diagnostic(diagnostic_op::error_CE001(range(terms.top().term->expr_range)));
+        expr_list.clear();
+        return;
+    }
+
+    ca_expr_ptr final_expr = std::move(terms.top().term);
 
     // resolve created tree
     final_expr->resolve_expression_tree(context::object_traits<T>::type_enum, diags);
@@ -150,95 +276,6 @@ void ca_expr_list::resolve(diagnostic_op_consumer& diags)
     // move resolved tree to the front of the array
     expr_list.clear();
     expr_list.emplace_back(std::move(final_expr));
-}
-
-template<typename EXPR_POLICY>
-ca_expr_ptr ca_expr_list::retrieve_term(size_t& it, int priority, diagnostic_op_consumer& diags)
-{
-    // list is exhausted
-    if (it == expr_list.size())
-    {
-        auto r = expr_list[it - 1]->expr_range;
-        r.start = r.end;
-        r.end.column++;
-        diags.add_diagnostic(diagnostic_op::error_CE003(r));
-        return nullptr;
-    }
-
-    // first possible term
-    auto& curr_expr = expr_list[it];
-
-    // is unary op
-    if (is_symbol(curr_expr))
-    {
-        if (auto op_type = EXPR_POLICY::get_operator(get_symbol(curr_expr)); EXPR_POLICY::is_unary(op_type))
-        {
-            auto new_expr = retrieve_term<EXPR_POLICY>(++it, EXPR_POLICY::get_priority(op_type), diags);
-            if (!new_expr)
-                return nullptr;
-
-            return std::make_unique<ca_function_unary_operator>(
-                std::move(new_expr), op_type, EXPR_POLICY::set_type, curr_expr->expr_range);
-        }
-    }
-
-    // is only term
-    if (it + 1 == expr_list.size())
-        return std::move(expr_list[it++]);
-
-    // tries to get binary operator
-    auto op_it = ++it;
-    auto op_range = expr_list[op_it]->expr_range;
-    bool err = false;
-
-    auto [op_prio, op_type] = retrieve_binary_operator<EXPR_POLICY>(op_it, err, diags);
-    if (err)
-        return nullptr;
-
-    // if operator is of lower priority than the calling operator, finish
-    if (op_prio >= priority)
-        return std::move(curr_expr);
-    else
-        it = op_it;
-
-    auto right_expr = retrieve_term<EXPR_POLICY>(++it, op_prio, diags);
-    if (!right_expr)
-        return nullptr;
-
-    return std::make_unique<ca_function_binary_operator>(
-        std::move(curr_expr), std::move(right_expr), op_type, EXPR_POLICY::set_type, op_range);
-}
-
-template<typename EXPR_POLICY>
-std::pair<int, ca_expr_ops> ca_expr_list::retrieve_binary_operator(size_t& it, bool& err, diagnostic_op_consumer& diags)
-{
-    const auto& op = expr_list[it];
-
-    if (!is_symbol(op))
-    {
-        diags.add_diagnostic(diagnostic_op::error_CE001(expr_range));
-        err = true;
-        return std::make_pair(0, ca_expr_ops::UNKNOWN);
-    }
-    else if (!EXPR_POLICY::is_operator(EXPR_POLICY::get_operator(get_symbol(op))))
-    {
-        diags.add_diagnostic(diagnostic_op::error_CE002(get_symbol(op), expr_range));
-        err = true;
-        return std::make_pair(0, ca_expr_ops::UNKNOWN);
-    }
-
-    ca_expr_ops op_type = EXPR_POLICY::get_operator(get_symbol(expr_list[it]));
-
-    if (EXPR_POLICY::multiple_words(op_type) && it + 1 < expr_list.size() && is_symbol(expr_list[it + 1])
-        && get_symbol(expr_list[it + 1]) == "NOT")
-    {
-        op_type = EXPR_POLICY::get_operator(get_symbol(expr_list[it]) + "_NOT");
-        ++it;
-    }
-
-    auto op_prio = EXPR_POLICY::get_priority(op_type);
-
-    return std::make_pair(op_prio, op_type);
 }
 
 } // namespace hlasm_plugin::parser_library::expressions

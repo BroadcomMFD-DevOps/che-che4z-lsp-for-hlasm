@@ -276,8 +276,15 @@ TEST(logical_expressions, parenthesis_around_expressions)
 
 TEST(logical_expressions, operator_precedence)
 {
-    std::string input =
-        R"(
+    for (const auto& [args, expected] : std::initializer_list<std::pair<std::string, bool>> {
+             { "0,0", true },
+             { "0,1", true },
+             { "1,0", false },
+             { "1,1", true },
+         })
+    {
+        std::string input =
+            R"(
         MACRO
         TEST    &A,&B 
         AIF     (&A EQ 0 OR &A EQ 1 AND &B EQ 1).END    
@@ -285,13 +292,12 @@ TEST(logical_expressions, operator_precedence)
 .END    ANOP
         MEND
 
-        TEST    0,0
-        TEST    0,1
-        TEST    1,1
-)";
-    analyzer a(input);
-    a.analyze();
-    a.collect_diags();
+        TEST    )"
+            + args;
+        analyzer a(input);
+        a.analyze();
+        a.collect_diags();
 
-    EXPECT_TRUE(a.diags().empty());
+        EXPECT_EQ(a.diags().empty(), expected) << args;
+    }
 }
