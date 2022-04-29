@@ -15,15 +15,13 @@ import * as assert from 'assert';
 import * as vscode from "vscode";
 import * as path from 'path';
 
-const workspacePath = vscode.workspace.workspaceFolders[0].uri.fsPath;
-
 export function getWorkspacePath(): string {
-    return workspacePath;
+    return vscode.workspace.workspaceFolders[0].uri.fsPath;;
 }
 
 export function get_editor(workspace_file: string): vscode.TextEditor {
     const editor = vscode.window.activeTextEditor;
-    assert.equal(editor.document.uri.fsPath, path.join(workspacePath, workspace_file));
+    assert.equal(editor.document.uri.fsPath, path.join(getWorkspacePath(), workspace_file));
 
     return editor;
 }
