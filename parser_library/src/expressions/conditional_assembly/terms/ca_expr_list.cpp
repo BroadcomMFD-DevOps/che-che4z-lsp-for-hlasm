@@ -111,29 +111,80 @@ void ca_expr_list::unknown_functions_to_operators()
     }
 }
 
-template<typename T>
-void ca_expr_list::resolve(diagnostic_op_consumer& diags)
+namespace {
+
+struct term_entry
 {
-    struct term_entry
-    {
-        ca_expr_ptr term;
-        size_t i;
-    };
-    struct op_entry
-    {
-        size_t i;
-        ca_expr_ops op_type;
-        int priority;
-        bool binary;
-        bool right_assoc;
-        range r;
-    };
+    ca_expr_ptr term;
+    size_t i;
+};
+struct op_entry
+{
+    size_t i;
+    ca_expr_ops op_type;
+    int priority;
+    bool binary;
+    bool right_assoc;
+    range r;
+};
+
+template<typename T>
+struct resolve_stacks
+{
     using expr_policy = typename ca_expr_traits<T>::policy_t;
 
     std::stack<term_entry> terms;
     std::stack<op_entry> op_stack;
 
-    const auto reduce_stack = [&terms, &op_stack, &diags]() {
+    void push_term(term_entry t) { terms.push(std::move(t)); }
+    void push_op(op_entry op) { op_stack.push(std::move(op)); }
+
+    bool reduce_binary(const op_entry& op, diagnostic_op_consumer& diags)
+    {
+        auto right = std::move(terms.top());
+        terms.pop();
+        auto left = std::move(terms.top());
+        terms.pop();
+
+        if (left.i > op.i)
+        {
+            diags.add_diagnostic(diagnostic_op::error_CE003(range(op.r.start)));
+            return false;
+        }
+        if (right.i < op.i)
+        {
+            diags.add_diagnostic(diagnostic_op::error_CE003(range(op.r.end)));
+            return false;
+        }
+
+        terms.push({
+            std::make_unique<ca_function_binary_operator>(
+                std::move(left.term), std::move(right.term), op.op_type, context::object_traits<T>::type_enum, op.r),
+            left.i,
+        });
+        return true;
+    }
+    bool reduce_unary(const op_entry& op, diagnostic_op_consumer& diags)
+    {
+        auto right = std::move(terms.top());
+        terms.pop();
+
+        if (right.i < op.i)
+        {
+            diags.add_diagnostic(diagnostic_op::error_CE003(range(op.r.end)));
+            return false;
+        }
+
+        terms.push({
+            std::make_unique<ca_function_unary_operator>(
+                std::move(right.term), op.op_type, expr_policy::set_type, op.r),
+            op.i,
+        });
+        return true;
+    }
+
+    bool reduce_stack_entry(diagnostic_op_consumer& diags)
+    {
         auto op = std::move(op_stack.top());
         op_stack.pop();
         if (terms.size() < 1 + op.binary)
@@ -141,52 +192,42 @@ void ca_expr_list::resolve(diagnostic_op_consumer& diags)
             diags.add_diagnostic(diagnostic_op::error_CE003(range(terms.size() < op.binary ? op.r.start : op.r.end)));
             return false;
         }
-        if (op.binary)
+        return op.binary ? reduce_binary(op, diags) : reduce_unary(op, diags);
+    }
+
+    bool reduce_stack(diagnostic_op_consumer& diags, int prio_limit, bool right_assoc)
+    {
+        while (!op_stack.empty())
         {
-            auto right = std::move(terms.top());
-            terms.pop();
-            auto left = std::move(terms.top());
-            terms.pop();
-
-            if (left.i > op.i)
-            {
-                diags.add_diagnostic(diagnostic_op::error_CE003(range(op.r.start)));
+            if (op_stack.top().priority > prio_limit)
+                break;
+            if (op_stack.top().priority == prio_limit && right_assoc)
+                break;
+            if (!reduce_stack_entry(diags))
                 return false;
-            }
-            if (right.i < op.i)
-            {
-                diags.add_diagnostic(diagnostic_op::error_CE003(range(op.r.end)));
-                return false;
-            }
-
-            terms.push({
-                std::make_unique<ca_function_binary_operator>(std::move(left.term),
-                    std::move(right.term),
-                    op.op_type,
-                    context::object_traits<T>::type_enum,
-                    op.r),
-                left.i,
-            });
-        }
-        else
-        {
-            auto right = std::move(terms.top());
-            terms.pop();
-
-            if (right.i < op.i)
-            {
-                diags.add_diagnostic(diagnostic_op::error_CE003(range(op.r.end)));
-                return false;
-            }
-
-            terms.push({
-                std::make_unique<ca_function_unary_operator>(
-                    std::move(right.term), op.op_type, expr_policy::set_type, op.r),
-                op.i,
-            });
         }
         return true;
-    };
+    }
+
+    bool reduce_stack_all(diagnostic_op_consumer& diags)
+    {
+        while (!op_stack.empty())
+        {
+            if (!reduce_stack_entry(diags))
+                return false;
+        }
+        return true;
+    }
+};
+
+} // namespace
+
+template<typename T>
+void ca_expr_list::resolve(diagnostic_op_consumer& diags)
+{
+    using expr_policy = typename ca_expr_traits<T>::policy_t;
+
+    resolve_stacks<T> stacks;
 
     auto i = (size_t)-1;
     bool prefer_next_term = true;
@@ -211,19 +252,12 @@ void ca_expr_list::resolve(diagnostic_op_consumer& diags)
             }
             else if (const auto& op_type = std::get<ca_expr_op>(op_type_var); !(prefer_next_term && op_type.binary))
             {
-                while (!op_stack.empty())
+                if (!stacks.reduce_stack(diags, op_type.priority, op_type.right_assoc))
                 {
-                    if (op_stack.top().priority > op_type.priority)
-                        break;
-                    if (op_stack.top().priority == op_type.priority && op_type.right_assoc)
-                        break;
-                    if (!reduce_stack())
-                    {
-                        expr_list.clear();
-                        return;
-                    }
+                    expr_list.clear();
+                    return;
                 }
-                op_stack.push({
+                stacks.push_op({
                     i,
                     op_type.op,
                     op_type.priority,
@@ -242,33 +276,30 @@ void ca_expr_list::resolve(diagnostic_op_consumer& diags)
                 continue;
             }
         }
-        terms.push({ std::move(curr_expr), i });
+        stacks.push_term({ std::move(curr_expr), i });
         prefer_next_term = false;
         last_was_terminal = true;
     }
 
-    while (!op_stack.empty())
+    if (!stacks.reduce_stack_all(diags))
     {
-        if (!reduce_stack())
-        {
-            expr_list.clear();
-            return;
-        }
+        expr_list.clear();
+        return;
     }
-    if (terms.empty())
+    if (stacks.terms.empty())
     {
         diags.add_diagnostic(diagnostic_op::error_CE003(expr_range));
         expr_list.clear();
         return;
     }
-    if (terms.size() > 1)
+    if (stacks.terms.size() > 1)
     {
-        diags.add_diagnostic(diagnostic_op::error_CE001(range(terms.top().term->expr_range)));
+        diags.add_diagnostic(diagnostic_op::error_CE001(range(stacks.terms.top().term->expr_range)));
         expr_list.clear();
         return;
     }
 
-    ca_expr_ptr final_expr = std::move(terms.top().term);
+    ca_expr_ptr final_expr = std::move(stacks.terms.top().term);
 
     // resolve created tree
     final_expr->resolve_expression_tree(context::object_traits<T>::type_enum, diags);
