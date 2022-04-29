@@ -117,6 +117,7 @@ struct term_entry
 {
     ca_expr_ptr term;
     size_t i;
+    bool simple_term;
 };
 struct op_entry
 {
@@ -125,6 +126,7 @@ struct op_entry
     int priority;
     bool binary;
     bool right_assoc;
+    bool requires_terms;
     range r;
 };
 
@@ -146,12 +148,12 @@ struct resolve_stacks
         auto left = std::move(terms.top());
         terms.pop();
 
-        if (left.i > op.i)
+        if (op.requires_terms && !left.simple_term || left.i > op.i)
         {
             diags.add_diagnostic(diagnostic_op::error_CE003(range(op.r.start)));
             return false;
         }
-        if (right.i < op.i)
+        if (op.requires_terms && !right.simple_term || right.i < op.i)
         {
             diags.add_diagnostic(diagnostic_op::error_CE003(range(op.r.end)));
             return false;
@@ -161,6 +163,7 @@ struct resolve_stacks
             std::make_unique<ca_function_binary_operator>(
                 std::move(left.term), std::move(right.term), op.op_type, context::object_traits<T>::type_enum, op.r),
             left.i,
+            false,
         });
         return true;
     }
@@ -179,6 +182,7 @@ struct resolve_stacks
             std::make_unique<ca_function_unary_operator>(
                 std::move(right.term), op.op_type, expr_policy::set_type, op.r),
             op.i,
+            false,
         });
         return true;
     }
@@ -263,6 +267,7 @@ void ca_expr_list::resolve(diagnostic_op_consumer& diags)
                     op_type.priority,
                     op_type.binary,
                     op_type.right_assoc,
+                    op_type.requires_terms,
                     curr_expr->expr_range,
                 });
                 if (op_type.requires_terms && !last_was_terminal)
@@ -276,7 +281,7 @@ void ca_expr_list::resolve(diagnostic_op_consumer& diags)
                 continue;
             }
         }
-        stacks.push_term({ std::move(curr_expr), i });
+        stacks.push_term({ std::move(curr_expr), i, true });
         prefer_next_term = false;
         last_was_terminal = true;
     }
