@@ -312,9 +312,38 @@ AAA EQU 1
 )";
     analyzer a(input);
     a.analyze();
-
     a.collect_diags();
-    const auto& diags = a.diags();
-    EXPECT_TRUE(diags.empty());
+
+    EXPECT_TRUE(a.diags().empty());
     EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B"), true);
+}
+
+TEST(logical_expressions, type_mismatch_1)
+{
+    std::string input =
+        R"(
+AAA EQU 1
+&T SETC 'AAA'
+&B SETB (&T EQ '&T')
+)";
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "CE004" }));
+}
+
+TEST(logical_expressions, type_mismatch_2)
+{
+    std::string input =
+        R"(
+AAA EQU 1
+&T SETC 'AAA'
+&B SETB ('&T' EQ &T)
+)";
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "CE004" }));
 }
