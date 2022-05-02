@@ -91,6 +91,8 @@ context::SET_t ca_var_sym::convert_return_types(
                     return false;
 
             case context::SET_t_enum::C_TYPE:
+                // this conversion request indicates that the variable was used without the mandatory quotes around it
+                add_diags(diagnostic_op::error_CE017_character_expression_expected);
                 return retval;
             default:
                 return context::SET_t(expr_kind);
@@ -98,11 +100,11 @@ context::SET_t ca_var_sym::convert_return_types(
     }
     else if (retval.type == context::SET_t_enum::B_TYPE && type == context::SET_t_enum::A_TYPE)
     {
-        retval.type = context::SET_t_enum::A_TYPE;
+        retval = context::SET_t(retval.access_b() ? 1 : 0);
     }
     else if (retval.type == context::SET_t_enum::A_TYPE && type == context::SET_t_enum::B_TYPE)
     {
-        retval.type = context::SET_t_enum::B_TYPE;
+        retval = context::SET_t(!!retval.access_a());
     }
     return retval;
 }

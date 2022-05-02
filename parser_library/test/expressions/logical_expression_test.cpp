@@ -345,5 +345,20 @@ AAA EQU 1
     a.analyze();
     a.collect_diags();
 
-    EXPECT_TRUE(matches_message_codes(a.diags(), { "CE004" }));
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "CE017" }));
+}
+
+TEST(logical_expressions, simple_string_equality)
+{
+    std::string input =
+        R"(
+&T SETC 'AAA'
+&B SETB ('&T' EQ '&T')
+)";
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(a.diags().empty());
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B"), true);
 }
