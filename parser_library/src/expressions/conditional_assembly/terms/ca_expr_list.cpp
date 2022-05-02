@@ -167,12 +167,13 @@ struct resolve_stacks
         });
         return true;
     }
+
     bool reduce_unary(const op_entry& op, diagnostic_op_consumer& diags)
     {
         auto right = std::move(terms.top());
         terms.pop();
 
-        if (right.i < op.i)
+        if (op.requires_terms && !right.simple_term || right.i < op.i)
         {
             diags.add_diagnostic(diagnostic_op::error_CE003(range(op.r.end)));
             return false;
@@ -239,7 +240,6 @@ void ca_expr_list::resolve(diagnostic_op_consumer& diags)
     for (auto& curr_expr : expr_list)
     {
         ++i;
-        // is unary op
         if (is_symbol(curr_expr))
         {
             const auto& symbol = get_symbol(curr_expr);
@@ -248,14 +248,26 @@ void ca_expr_list::resolve(diagnostic_op_consumer& diags)
             {
                 // fallback to term
             }
-            else if (!prefer_next_term && std::holds_alternative<invalid_by_policy>(op_type_var))
+            else if (std::holds_alternative<invalid_by_policy>(op_type_var))
             {
-                diags.add_diagnostic(diagnostic_op::error_CE002(symbol, curr_expr->expr_range));
-                expr_list.clear();
-                return;
+                if (!prefer_next_term)
+                {
+                    diags.add_diagnostic(diagnostic_op::error_CE002(symbol, curr_expr->expr_range));
+                    expr_list.clear();
+                    return;
+                }
+                // fallback to term
             }
-            else if (const auto& op_type = std::get<ca_expr_op>(op_type_var); !(prefer_next_term && op_type.binary))
+            else if (const auto& op_type = std::get<ca_expr_op>(op_type_var);
+                     !(prefer_next_term && op_type.binary)) // ... AND AND is interpreted as AND term,
+                                                            // ... AND NOT ... is apparently not
             {
+                if (op_type.requires_terms && !last_was_terminal)
+                {
+                    diags.add_diagnostic(diagnostic_op::error_CE003(range(curr_expr->expr_range.start)));
+                    expr_list.clear();
+                    return;
+                }
                 if (!stacks.reduce_stack(diags, op_type.priority, op_type.right_assoc))
                 {
                     expr_list.clear();
@@ -270,12 +282,6 @@ void ca_expr_list::resolve(diagnostic_op_consumer& diags)
                     op_type.requires_terms,
                     curr_expr->expr_range,
                 });
-                if (op_type.requires_terms && !last_was_terminal)
-                {
-                    diags.add_diagnostic(diagnostic_op::error_CE003(range(curr_expr->expr_range.start)));
-                    expr_list.clear();
-                    return;
-                }
                 prefer_next_term = op_type.binary || op_type.requires_terms;
                 last_was_terminal = false;
                 continue;
