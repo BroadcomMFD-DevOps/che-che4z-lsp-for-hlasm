@@ -301,3 +301,20 @@ TEST(logical_expressions, operator_precedence)
         EXPECT_EQ(a.diags().empty(), expected) << args;
     }
 }
+
+TEST(logical_expressions, symbol_after_substitution)
+{
+    std::string input =
+        R"(
+AAA EQU 1
+&T SETC 'AAA'
+&B SETB (&T EQ &T)
+)";
+    analyzer a(input);
+    a.analyze();
+
+    a.collect_diags();
+    const auto& diags = a.diags();
+    EXPECT_TRUE(diags.empty());
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B"), true);
+}

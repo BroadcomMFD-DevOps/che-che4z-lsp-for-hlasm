@@ -79,14 +79,14 @@ context::SET_t ca_var_sym::convert_return_types(
             case context::SET_t_enum::A_TYPE:
                 // empty string is convertible to 0, but it is not a self-def term
                 if (const auto& val_c = retval.access_c(); val_c.size())
-                    return ca_constant::self_defining_term(val_c, add_diags);
+                    return ca_constant::self_defining_term_or_abs_symbol(val_c, eval_ctx, expr_range);
                 else
                     return 0;
 
             case context::SET_t_enum::B_TYPE:
                 // empty string is convertible to false, but it is not a self-def term
                 if (const auto& val_c = retval.access_c(); val_c.size())
-                    return !!ca_constant::self_defining_term(val_c, add_diags);
+                    return !!ca_constant::self_defining_term_or_abs_symbol(val_c, eval_ctx, expr_range);
                 else
                     return false;
 
