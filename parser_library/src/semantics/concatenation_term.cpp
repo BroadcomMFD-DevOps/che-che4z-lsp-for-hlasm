@@ -94,8 +94,8 @@ std::string sublist_conc::evaluate(const expressions::evaluation_context& eval_c
 
 void sublist_conc::resolve(diagnostic_op_consumer& diag)
 {
-    for (auto& l : list)
-        for (auto& e : l)
+    for (const auto& l : list)
+        for (const auto& e : l)
             e->resolve(diag);
 }
 

@@ -244,8 +244,6 @@ size_t file_impl::index_from_position(const std::string& text, const std::vector
     {
         if (!utf8_one_byte_begin(text[i]))
         {
-            char width;
-            char utf16_width;
             const auto cs = utils::utf8_prefix_sizes[(unsigned char)text[i]];
 
             if (!cs.utf8)

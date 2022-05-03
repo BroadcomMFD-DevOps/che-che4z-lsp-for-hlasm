@@ -99,7 +99,7 @@ context::SET_t variable_symbol::evaluate(const expressions::evaluation_context& 
 
 void variable_symbol::resolve(diagnostic_op_consumer& diag)
 {
-    for (auto& v : subscript)
+    for (const auto& v : subscript)
         v->resolve_expression_tree(context::SET_t_enum::A_TYPE, diag);
 }
 
