@@ -53,8 +53,11 @@ undef_sym_set ca_var_sym::get_undefined_attributed_symbols(const evaluation_cont
     return get_undefined_attributed_symbols_vs(symbol, eval_ctx);
 }
 
-void ca_var_sym::resolve_expression_tree(context::SET_t_enum kind, diagnostic_op_consumer&)
+void ca_var_sym::resolve_expression_tree(context::SET_t_enum kind, diagnostic_op_consumer& diags)
 {
+    // this conversion request indicates that the variable was used without the mandatory quotes around it
+    if (kind == context::SET_t_enum::C_TYPE)
+        diags.add_diagnostic(diagnostic_op::error_CE017_character_expression_expected(expr_range));
     expr_kind = kind;
     resolve_expression_tree_vs(symbol);
 }
@@ -91,8 +94,6 @@ context::SET_t ca_var_sym::convert_return_types(
                     return false;
 
             case context::SET_t_enum::C_TYPE:
-                // this conversion request indicates that the variable was used without the mandatory quotes around it
-                add_diags(diagnostic_op::error_CE017_character_expression_expected);
                 return retval;
             default:
                 return context::SET_t(expr_kind);
