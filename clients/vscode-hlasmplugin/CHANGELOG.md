@@ -22,7 +22,6 @@
 - Empty operands ignored by the SETx instructions
 - Incorrect operator precedence in conditional assembly expressions
 - Incomplete conditional assembly expression evaluation
-- Duplicate diagnostics in conditional assembly statements
 
 ## [1.1.0](https://github.com/eclipse/che-che4z-lsp-for-hlasm/compare/1.0.0...1.1.0) (2022-03-29)
 
