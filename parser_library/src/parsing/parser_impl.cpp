@@ -185,6 +185,16 @@ void parser_impl::resolve_expression(expressions::ca_expr_ptr& expr) const
     }
 }
 
+void parser_impl::resolve_concat_chain(const semantics::concat_chain& chain) const
+{
+    diagnostic_consumer_transform diags([this](diagnostic_op d) {
+        if (diagnoser_)
+            diagnoser_->add_diagnostic(std::move(d));
+    });
+    for (const auto& e : chain)
+        e->resolve(diags);
+}
+
 bool parser_impl::MACH()
 {
     auto& [format, _] = *proc_status;
