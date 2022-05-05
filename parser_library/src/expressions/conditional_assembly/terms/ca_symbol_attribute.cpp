@@ -20,7 +20,12 @@
 #include "ebcdic_encoding.h"
 #include "expressions/conditional_assembly/ca_expr_visitor.h"
 #include "expressions/evaluation_context.h"
+#include "hlasmparser.h"
 #include "lexing/lexer.h"
+#include "lexing/token_stream.h"
+#include "parsing/parser_impl.h"
+#include "processing/op_code.h"
+#include "semantics/range_provider.h"
 #include "semantics/statement_fields.h"
 
 namespace hlasm_plugin::parser_library::expressions {
@@ -240,27 +245,26 @@ context::SET_t ca_symbol_attribute::evaluate_ordsym(context::id_index name, cons
 context::SET_t ca_symbol_attribute::evaluate_literal(
     const semantics::literal_si& lit, const evaluation_context& eval_ctx) const
 {
-    context::ordinary_assembly_dependency_solver solver(
-        eval_ctx.hlasm_ctx.ord_ctx, eval_ctx.hlasm_ctx.ord_ctx.align(context::no_align));
+    context::ordinary_assembly_dependency_solver solver(eval_ctx.hlasm_ctx.ord_ctx, context::address());
 
     if (attribute == context::data_attr_kind::D)
-        return false;
-    else if (attribute == context::data_attr_kind::O)
     {
-        eval_ctx.diags.add_diagnostic(diagnostic_op::error_E066(expr_range));
-        return {};
+        if (lit->get_dd().references_loctr)
+            return false;
+        return eval_ctx.hlasm_ctx.ids().find(lit->get_text()) != nullptr;
     }
-    else if (attribute == context::data_attr_kind::T)
-    {
+
+    // remembmer that other than D' reference was made
+    if (!lit->get_dd().references_loctr)
+        eval_ctx.hlasm_ctx.ids().add(lit->get_text());
+
+    if (attribute == context::data_attr_kind::O)
         return "U";
-    }
+    else if (attribute == context::data_attr_kind::T)
+        return std::string { lit->get_dd().get_type_attribute() };
     else
     {
-        context::symbol_attributes attrs(context::symbol_origin::DAT,
-            ebcdic_encoding::a2e[(unsigned char)lit->get_dd().get_type_attribute()],
-            lit->get_dd().get_length_attribute(solver, eval_ctx.diags),
-            lit->get_dd().get_scale_attribute(solver, eval_ctx.diags),
-            lit->get_dd().get_integer_attribute(solver, eval_ctx.diags));
+        context::symbol_attributes attrs = lit->get_dd().get_symbol_attributes(solver, eval_ctx.diags);
         if ((attribute == context::data_attr_kind::S || attribute == context::data_attr_kind::I)
             && !attrs.can_have_SI_attr())
         {
@@ -335,8 +339,12 @@ context::SET_t ca_symbol_attribute::evaluate_substituted(context::id_index var_n
         return context::symbol_attributes::default_ca_value(attribute);
     }
 
-    auto [valid, ord_name] =
-        eval_ctx.hlasm_ctx.try_get_symbol_name(try_extract_leading_symbol(substituted_name.access_c()));
+    const auto& text = substituted_name.access_c();
+
+    if (!text.empty() && text.starts_with('='))
+        return evaluate_substituted_literal(text, var_range, eval_ctx);
+
+    auto [valid, ord_name] = eval_ctx.hlasm_ctx.try_get_symbol_name(try_extract_leading_symbol(text));
 
     if (!valid)
     {
@@ -346,6 +354,46 @@ context::SET_t ca_symbol_attribute::evaluate_substituted(context::id_index var_n
     }
     else
         return evaluate_ordsym(ord_name, eval_ctx);
+}
+
+context::SET_t ca_symbol_attribute::evaluate_substituted_literal(
+    const std::string& text, range var_range, const evaluation_context& eval_ctx) const
+{
+    // TODO: new statistic???
+    // m_hlasm_ctx->metrics.reparsed_statements++;
+
+    diagnostic_consumer_transform add_diag_subst([&text, &eval_ctx](diagnostic_op diag) {
+        diag.message = diagnostic_decorate_message(text, diag.message);
+        eval_ctx.diags.add_diagnostic(std::move(diag));
+    });
+    auto h = parsing::parser_holder::create(nullptr, &eval_ctx.hlasm_ctx, &add_diag_subst);
+
+    h->input->reset(text);
+
+    h->lex->reset();
+    h->lex->set_file_offset(var_range.start);
+    h->lex->set_unlimited_line(true);
+
+    h->stream->reset();
+
+    h->parser->reinitialize(&eval_ctx.hlasm_ctx,
+        semantics::range_provider(var_range, semantics::adjusting_state::SUBSTITUTION),
+        processing::processing_status(processing::processing_format(processing::processing_kind::ORDINARY,
+                                          processing::processing_form::CA,
+                                          processing::operand_occurence::ABSENT),
+            processing::op_code()),
+        &add_diag_subst);
+
+    h->parser->reset();
+
+    h->parser->get_collector().prepare_for_next_statement();
+
+    auto literal_context = h->parser->literal_reparse();
+
+    if (literal_context->value)
+        return evaluate_literal(literal_context->value, eval_ctx);
+    else
+        return context::symbol_attributes::default_ca_value(attribute);
 }
 
 } // namespace hlasm_plugin::parser_library::expressions

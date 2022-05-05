@@ -719,6 +719,8 @@ struct diagnostic_op
     static diagnostic_op mnote_diagnostic(unsigned level, std::string_view message, const range& range);
 };
 
+std::string diagnostic_decorate_message(const std::string& field, const std::string& message);
+
 struct range_uri_s
 {
     range_uri_s() {};
