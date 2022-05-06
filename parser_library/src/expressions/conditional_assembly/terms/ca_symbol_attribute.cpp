@@ -15,6 +15,7 @@
 #include "ca_symbol_attribute.h"
 
 #include "ca_var_sym.h"
+#include "context/literal_pool.h"
 #include "context/ordinary_assembly/dependable.h"
 #include "context/ordinary_assembly/ordinary_assembly_dependency_solver.h"
 #include "ebcdic_encoding.h"
@@ -245,18 +246,12 @@ context::SET_t ca_symbol_attribute::evaluate_ordsym(context::id_index name, cons
 context::SET_t ca_symbol_attribute::evaluate_literal(
     const semantics::literal_si& lit, const evaluation_context& eval_ctx) const
 {
-    context::ordinary_assembly_dependency_solver solver(eval_ctx.hlasm_ctx.ord_ctx, context::address());
+    auto& literals = eval_ctx.hlasm_ctx.ord_ctx.literals();
 
     if (attribute == context::data_attr_kind::D)
-    {
-        if (lit->get_dd().references_loctr)
-            return false;
-        return eval_ctx.hlasm_ctx.ids().find(lit->get_text()) != nullptr;
-    }
+        return literals.defined_for_ca_expr(std::shared_ptr<const expressions::data_definition>(lit, &lit->get_dd()));
 
-    // remembmer that other than D' reference was made
-    if (!lit->get_dd().references_loctr)
-        eval_ctx.hlasm_ctx.ids().add(lit->get_text());
+    literals.mentioned_in_ca_expr(std::shared_ptr<const expressions::data_definition>(lit, &lit->get_dd()));
 
     if (attribute == context::data_attr_kind::O)
         return "U";
@@ -264,6 +259,7 @@ context::SET_t ca_symbol_attribute::evaluate_literal(
         return std::string { lit->get_dd().get_type_attribute() };
     else
     {
+        context::ordinary_assembly_dependency_solver solver(eval_ctx.hlasm_ctx.ord_ctx, context::address());
         context::symbol_attributes attrs = lit->get_dd().get_symbol_attributes(solver, eval_ctx.diags);
         if ((attribute == context::data_attr_kind::S || attribute == context::data_attr_kind::I)
             && !attrs.can_have_SI_attr())

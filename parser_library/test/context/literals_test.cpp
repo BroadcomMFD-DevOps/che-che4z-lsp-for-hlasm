@@ -617,3 +617,19 @@ TEST(literals, in_ca_expr_previously_mentioned)
 
     EXPECT_EQ(get_var_value<context::B_t>(a.hlasm_ctx(), "D"), true);
 }
+
+TEST(literals, undefined_after_loctr)
+{
+    std::string input = R"(
+    LARL 0,=A(0)
+    LTORG
+&D  SETB (D'=A(0))
+)";
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(a.diags().empty());
+
+    EXPECT_EQ(get_var_value<context::B_t>(a.hlasm_ctx(), "D"), false);
+}
