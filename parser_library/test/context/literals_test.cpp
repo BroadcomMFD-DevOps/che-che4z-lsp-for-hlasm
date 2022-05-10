@@ -633,3 +633,30 @@ TEST(literals, undefined_after_loctr)
 
     EXPECT_EQ(get_var_value<context::B_t>(a.hlasm_ctx(), "D"), false);
 }
+
+TEST(literals, suppress_messages_from_DTO_attributes)
+{
+    std::string input = R"(
+        MACRO
+        MAC   &T=
+        GBLB  &XD
+        GBLC  &XT,&XO
+&XD     SETB  (D'&T)
+&XT     SETC  T'&T
+&XO     SETC  O'&T
+        MEND
+
+        GBLB  &XD
+        GBLC  &XT,&XO
+        MAC   T==
+)";
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(a.diags().empty());
+
+    EXPECT_EQ(get_var_value<context::B_t>(a.hlasm_ctx(), "XD"), false);
+    EXPECT_EQ(get_var_value<context::C_t>(a.hlasm_ctx(), "XT"), "U");
+    EXPECT_EQ(get_var_value<context::C_t>(a.hlasm_ctx(), "XO"), "U");
+}

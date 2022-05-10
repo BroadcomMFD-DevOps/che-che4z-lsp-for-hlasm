@@ -358,7 +358,14 @@ context::SET_t ca_symbol_attribute::evaluate_substituted_literal(
     // TODO: new statistic???
     // m_hlasm_ctx->metrics.reparsed_statements++;
 
-    diagnostic_consumer_transform add_diag_subst([&text, &eval_ctx](diagnostic_op diag) {
+    // error production is suppressed when evaluating D', T' and O' attributes
+    using attr_kind = context::data_attr_kind;
+    const bool suppress = attribute == attr_kind::T || attribute == attr_kind::D || attribute == attr_kind::O;
+    bool error = false;
+    diagnostic_consumer_transform add_diag_subst([&text, &eval_ctx, suppress, &error](diagnostic_op diag) {
+        error = true;
+        if (suppress)
+            return;
         diag.message = diagnostic_decorate_message(text, diag.message);
         eval_ctx.diags.add_diagnostic(std::move(diag));
     });
@@ -386,7 +393,7 @@ context::SET_t ca_symbol_attribute::evaluate_substituted_literal(
 
     auto literal_context = h->parser->literal_reparse();
 
-    if (literal_context->value)
+    if (!error && literal_context->value)
         return evaluate_literal(literal_context->value, eval_ctx);
     else
         return context::symbol_attributes::default_ca_value(attribute);
