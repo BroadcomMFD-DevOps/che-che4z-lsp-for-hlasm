@@ -62,7 +62,7 @@ class literal_pool
             , loctr(std::move(loctr))
             , stack(std::move(stack))
         {}
-        literal_details(ca_only_literal)
+        explicit literal_details(ca_only_literal)
             : ca_expr_only(true)
         {}
     };

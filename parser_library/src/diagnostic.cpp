@@ -2531,7 +2531,7 @@ diagnostic_op diagnostic_op::error_S100(std::string_view message, const range& r
 {
     return diagnostic_op(diagnostic_severity::error, "S100", concat("Long ordinary symbol name - ", message), range);
 }
-std::string diagnostic_decorate_message(const std::string& field, const std::string& message)
+std::string diagnostic_decorate_message(std::string_view field, std::string_view message)
 {
     static const std::string_view prefix = "While evaluating the result of substitution '";
     static const std::string_view arrow = "' => ";

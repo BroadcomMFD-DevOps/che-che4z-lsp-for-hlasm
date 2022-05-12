@@ -80,7 +80,7 @@ bool literal_pool::defined_for_ca_expr(std::shared_ptr<const expressions::data_d
     if (dd->references_loctr)
         return false;
 
-    return m_literals.count(literal_id { current_generation(), 0, std::move(dd) });
+    return m_literals.contains(literal_id { current_generation(), 0, std::move(dd) });
 }
 
 void literal_pool::mentioned_in_ca_expr(std::shared_ptr<const expressions::data_definition> dd)
