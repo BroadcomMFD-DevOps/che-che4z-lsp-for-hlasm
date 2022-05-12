@@ -355,9 +355,6 @@ context::SET_t ca_symbol_attribute::evaluate_substituted(context::id_index var_n
 context::SET_t ca_symbol_attribute::evaluate_substituted_literal(
     const std::string& text, range var_range, const evaluation_context& eval_ctx) const
 {
-    // TODO: new statistic???
-    // m_hlasm_ctx->metrics.reparsed_statements++;
-
     // error production is suppressed when evaluating D', T' and O' attributes
     using attr_kind = context::data_attr_kind;
     const bool suppress = attribute == attr_kind::T || attribute == attr_kind::D || attribute == attr_kind::O;
