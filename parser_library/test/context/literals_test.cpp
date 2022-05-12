@@ -618,7 +618,7 @@ TEST(literals, in_ca_expr_previously_mentioned)
     EXPECT_EQ(get_var_value<context::B_t>(a.hlasm_ctx(), "D"), true);
 }
 
-TEST(literals, undefined_after_loctr)
+TEST(literals, undefined_after_ltorg)
 {
     std::string input = R"(
     LARL 0,=A(0)
