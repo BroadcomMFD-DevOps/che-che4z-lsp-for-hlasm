@@ -15,9 +15,11 @@
 #include "lsp_context.h"
 
 #include <cassert>
+#include <limits>
 #include <regex>
 #include <sstream>
 #include <string_view>
+#include <type_traits>
 #include <unordered_map>
 
 #include "context/instruction.h"
@@ -26,6 +28,29 @@
 
 namespace hlasm_plugin::parser_library::lsp {
 namespace {
+
+template</*std::integral*/ typename T>
+std::string& append_hex_and_dec(std::string& t, T value)
+{
+    using UT = std::make_unsigned_t<T>;
+    char buffer[(std::numeric_limits<UT>::digits + 3) / 4];
+    char* p = std::end(buffer);
+    auto convert = (UT)value;
+
+    do
+    {
+        *--p = "0123456789ABCDEF"[convert & 0xf];
+        convert >>= 4;
+    } while (convert);
+
+    t.append("X'");
+    t.append(p, std::end(buffer));
+    t.append("'");
+    t.push_back(' ');
+    t.append("(").append(std::to_string(value)).append(")");
+    return t;
+}
+
 hover_result hover_text(const context::symbol& sym)
 {
     if (sym.value().value_kind() == context::symbol_value_kind::UNDEF)
@@ -34,18 +59,33 @@ hover_result hover_text(const context::symbol& sym)
 
     if (sym.value().value_kind() == context::symbol_value_kind::ABS)
     {
-        markdown.append(std::to_string(sym.value().get_abs()));
+        append_hex_and_dec(markdown, sym.value().get_abs());
         markdown.append("\n\n---\n\nAbsolute Symbol\n\n---\n\n");
     }
     else if (sym.value().value_kind() == context::symbol_value_kind::RELOC)
     {
-        markdown.append(sym.value().get_reloc().to_string()); // move to_string method from that class to this class
+        const auto& reloc = sym.value().get_reloc();
+        for (const auto& b : reloc.bases())
+        {
+            if (*b.first.owner->name == "" || b.second == 0)
+                continue;
+            if (b.second > 1)
+                markdown.append(std::to_string(b.second)).append("*");
+            if (b.first.qualifier)
+                markdown.append(*b.first.qualifier).append(".");
+            markdown.append(*b.first.owner->name).append(" + ");
+        }
+        append_hex_and_dec(markdown, reloc.offset());
         markdown.append("\n\n---\n\nRelocatable Symbol\n\n---\n\n");
     }
 
     const auto& attrs = sym.attributes();
     if (attrs.is_defined(context::data_attr_kind::L))
-        markdown.append("L: " + std::to_string(attrs.length()) + "  \n");
+    {
+        markdown.append("L: ");
+        append_hex_and_dec(markdown, attrs.length());
+        markdown.append("  \n");
+    }
     if (attrs.is_defined(context::data_attr_kind::I))
         markdown.append("I: " + std::to_string(attrs.integer()) + "  \n");
     if (attrs.is_defined(context::data_attr_kind::S))

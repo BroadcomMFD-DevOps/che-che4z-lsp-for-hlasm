@@ -65,7 +65,7 @@ TEST_F(lsp_context_ord_symbol, hover)
     auto res = a.context().lsp_ctx->hover(opencode_file_name, { 1, 5 });
 
 
-    EXPECT_EQ(res, R"(1
+    EXPECT_EQ(res, R"(X'1' (1)
 
 ---
 
@@ -73,7 +73,7 @@ Absolute Symbol
 
 ---
 
-L: 1  
+L: X'1' (1)  
 T: U  
 )");
 }
