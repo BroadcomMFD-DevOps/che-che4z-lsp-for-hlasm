@@ -795,3 +795,29 @@ TEST(data_attributes, expression_without_spaces)
     EXPECT_EQ(get_symbol_abs(a.hlasm_ctx(), "D"), 1);
     EXPECT_EQ(get_symbol_abs(a.hlasm_ctx(), "B"), 1);
 }
+
+TEST(data_attributes, attribute_after_paren)
+{
+    std::string input = R"(
+    MACRO
+    MAC2 &P
+    GBLB &X
+&X  SETB (&P)
+    MEND
+    MACRO
+    MAC
+    MAC2 &SYSLIST(N'&SYSLIST)
+    MEND
+
+    GBLB &X
+    MAC  1
+)";
+
+    analyzer a(input);
+    a.analyze();
+
+    a.collect_diags();
+    EXPECT_TRUE(a.diags().empty());
+
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "X"), false);
+}
