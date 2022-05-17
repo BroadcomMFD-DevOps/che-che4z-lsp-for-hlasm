@@ -64,17 +64,28 @@ hover_result hover_text(const context::symbol& sym)
     }
     else if (sym.value().value_kind() == context::symbol_value_kind::RELOC)
     {
+        bool first = true;
         const auto& reloc = sym.value().get_reloc();
         for (const auto& [base, d] : reloc.bases())
         {
             if (*base.owner->name == "" || d == 0)
                 continue;
-            if (d != 1)
-                markdown.append(std::to_string(d)).append("*");
+
+            bool was_first = std::exchange(first, false);
+            if (d < 0)
+                markdown.append(was_first ? "-" : " - ");
+            else if (!was_first)
+                markdown.append(" + ");
+
+            if (d != 1 && d != -1)
+                markdown.append(std::to_string(-(unsigned)d)).append("*");
+
             if (base.qualifier)
                 markdown.append(*base.qualifier).append(".");
-            markdown.append(*base.owner->name).append(" + ");
+            markdown.append(*base.owner->name);
         }
+        if (!first)
+            markdown.append(" + ");
         append_hex_and_dec(markdown, reloc.offset());
         markdown.append("\n\n---\n\nRelocatable Symbol\n\n---\n\n");
     }
