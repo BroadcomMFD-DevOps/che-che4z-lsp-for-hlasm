@@ -77,3 +77,31 @@ L: X'1' (1)
 T: U  
 )");
 }
+
+TEST(lsp_context_ord_symbol, hover_reloc)
+{
+    std::string input = R"(
+C  CSECT
+   DS  C
+R  DS  H
+)";
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(a.diags().empty());
+
+    auto res = a.context().lsp_ctx->hover("", { 5, 0 });
+
+    EXPECT_EQ(res, R"(C + X'2' (2)
+
+---
+
+Relocatable Symbol
+
+---
+
+L: X'2' (2)  
+T: H  
+)");
+}

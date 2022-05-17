@@ -65,15 +65,15 @@ hover_result hover_text(const context::symbol& sym)
     else if (sym.value().value_kind() == context::symbol_value_kind::RELOC)
     {
         const auto& reloc = sym.value().get_reloc();
-        for (const auto& b : reloc.bases())
+        for (const auto& [base, d] : reloc.bases())
         {
-            if (*b.first.owner->name == "" || b.second == 0)
+            if (*base.owner->name == "" || d == 0)
                 continue;
-            if (b.second > 1)
-                markdown.append(std::to_string(b.second)).append("*");
-            if (b.first.qualifier)
-                markdown.append(*b.first.qualifier).append(".");
-            markdown.append(*b.first.owner->name).append(" + ");
+            if (d != 1)
+                markdown.append(std::to_string(d)).append("*");
+            if (base.qualifier)
+                markdown.append(*base.qualifier).append(".");
+            markdown.append(*base.owner->name).append(" + ");
         }
         append_hex_and_dec(markdown, reloc.offset());
         markdown.append("\n\n---\n\nRelocatable Symbol\n\n---\n\n");
