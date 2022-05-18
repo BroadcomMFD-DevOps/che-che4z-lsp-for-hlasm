@@ -819,5 +819,5 @@ TEST(data_attributes, attribute_after_paren)
     a.collect_diags();
     EXPECT_TRUE(a.diags().empty());
 
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "X"), false);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "X"), true);
 }

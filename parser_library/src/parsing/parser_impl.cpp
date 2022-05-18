@@ -225,7 +225,7 @@ bool parser_impl::is_previous_attribute_consuming(bool top_level, const antlr4::
         return false;
 
     auto text = token->getText();
-    if (text.empty() || text.size() >= 2 && std::isalpha((unsigned char)text[text.size() - 2]))
+    if (text.size() != 1)
         return false;
 
     auto tmp = std::toupper((unsigned char)text.back());

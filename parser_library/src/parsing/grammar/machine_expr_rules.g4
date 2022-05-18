@@ -142,7 +142,7 @@ literal_internal returns [std::optional<data_definition> value]
 	};
 
 mach_data_attribute returns [data_attr_kind attribute, std::variant<std::monostate, std::pair<id_index,id_index>, std::unique_ptr<mach_expr_literal>, int> data, range symbol_rng]
-	: ORDSYMBOL (attr|apostrophe_as_attr) {auto lit_restore = enable_literals();}
+	: ORDSYMBOL attr {auto lit_restore = enable_literals();}
 	{
 		collector.add_hl_symbol(token_info(provider.get_range($ORDSYMBOL), hl_scopes::data_attr_type));
 		$attribute = get_attribute($ORDSYMBOL->getText());

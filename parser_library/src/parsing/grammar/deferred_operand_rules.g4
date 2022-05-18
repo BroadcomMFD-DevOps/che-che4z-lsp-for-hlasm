@@ -32,7 +32,7 @@ deferred_entry returns [std::vector<vs_ptr> vs]
 	| rpar
 	| attr
 	|
-	ap1=APOSTROPHE
+	ap1=(APOSTROPHE|ATTR)
 	{disable_ca_string();}
 	(
 		(APOSTROPHE|ATTR) (APOSTROPHE|ATTR)
