@@ -81,7 +81,7 @@ term returns [ca_expr_ptr ca_expr]
 		collector.add_hl_symbol(token_info(r, hl_scopes::string));
 		$ca_expr = std::move($ca_string.ca_expr);
 	}
-	| {is_data_attr()}? data_attribute
+	| data_attribute
 	{
 		auto r = provider.get_range($data_attribute.ctx);
 		auto val_range = $data_attribute.value_range;

@@ -68,7 +68,7 @@ mach_term returns [mach_expr_ptr m_e]
 	{
 		$m_e = std::make_unique<mach_expr_location_counter>( provider.get_range( $mach_location_counter.ctx));
 	}
-	| {is_data_attr()}? mach_data_attribute
+	| mach_data_attribute
 	{
 		auto rng = provider.get_range($mach_data_attribute.ctx);
 		auto attr = $mach_data_attribute.attribute;
