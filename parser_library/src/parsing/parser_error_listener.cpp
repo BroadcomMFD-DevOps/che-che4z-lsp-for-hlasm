@@ -136,16 +136,28 @@ void parser_error_listener_base::syntaxError(
         auto start_token = excp.getStartToken();
         int start_index = (int)start_token->getTokenIndex();
 
-        if (auto ctx = dynamic_cast<const antlr4::ParserRuleContext*>(excp.getCtx()); ctx)
-        {
-            if (auto first = ctx->getStart())
+        auto alternate_start_index = [](auto ctx) {
+            while (ctx)
             {
-                if (auto idx = (int)first->getStartIndex(); idx != -1 && idx < start_index)
-                    start_index = idx;
+                auto first = ctx->getStart();
+                if (!first)
+                    return -1;
+
+                if (first->getType() == antlr4::Token::EOF)
+                {
+                    ctx = dynamic_cast<const antlr4::ParserRuleContext*>(ctx->parent);
+                    continue;
+                }
+                return (int)first->getTokenIndex();
             }
-        }
+        }(dynamic_cast<const antlr4::ParserRuleContext*>(excp.getCtx()));
 
         // find first eoln
+
+        if (alternate_start_index != -1 && alternate_start_index < start_index)
+        {
+            start_index = alternate_start_index;
+        }
 
         auto first_symbol_type = input_stream->get(start_index)->getType();
 
