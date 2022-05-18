@@ -141,7 +141,7 @@ void parser_error_listener_base::syntaxError(
             {
                 auto first = ctx->getStart();
                 if (!first)
-                    return -1;
+                    break;
 
                 if (first->getType() == antlr4::Token::EOF)
                 {
@@ -150,6 +150,7 @@ void parser_error_listener_base::syntaxError(
                 }
                 return (int)first->getTokenIndex();
             }
+            return -1;
         }(dynamic_cast<const antlr4::ParserRuleContext*>(excp.getCtx()));
 
         // find first eoln
