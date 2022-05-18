@@ -383,12 +383,10 @@ TEST(ainsert, grammar_invalid_string)
 
 /*
 Original valid strings:
-    AINSERT '&&C1   SETC ''C''''''.''&&SYSLIST(N''&&SYSLIST)''(1,1).'''x
+    AINSERT '&&C    SETC ''C''''''.''&&SYSLIST(N''&&SYSLIST)''(1,1).'''x
                '''''''''',BACK
-    AINSERT '&&C2   SETC  ''C''''''.''&SYSLIST(N'&SYSLIST)''(1,1).'''''x
-               '''''''',BACK
 */
-TEST(ainsert, grammar_non_matching_apostrophes_by_two)
+TEST(ainsert, grammar_non_matching_apostrophes_by_two_01)
 {
     std::string input = R"(
     MACRO
@@ -396,33 +394,53 @@ TEST(ainsert, grammar_non_matching_apostrophes_by_two)
 
     AINSERT '       MACRO',BACK
     AINSERT '       MAC_GEN',BACK
-    AINSERT '&&C1   SETC ''C''''''.''&&SYSLIST(N''&&SYSLIST)''(1,1).'''x
+    AINSERT '&&C    SETC ''C''''''.''&&SYSLIST(N''&&SYSLIST)''(1,1).'''x
                '''''''',BACK
     AINSERT '       MEND',BACK
 
-    AINSERT '&&C2   SETC  ''C''''''.''&SYSLIST(N'&SYSLIST)''(1,1).'''''x
+    MEND
+    
+    MAC 1,2,3,4,5
+    MAC_GEN 6,7,8,9
+)";
+
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "E022" }));
+}
+
+/*
+Original valid strings:
+    AINSERT '&&C    SETC  ''C''''''.''&SYSLIST(N'&SYSLIST)''(1,1).'''''x
+               '''''''',BACK
+*/
+TEST(ainsert, grammar_non_matching_apostrophes_by_two_02)
+{
+    std::string input = R"(
+    MACRO
+    MAC
+
+    AINSERT '&&C    SETC  ''C''''''.''&SYSLIST(N'&SYSLIST)''(1,1).'''''x
                '''''',BACK
     
     MEND
     
     MAC 1,2,3,4,5
-    MAC_GEN 6,7,8,9
 )";
 
     analyzer a(input);
     a.analyze();
     a.collect_diags();
-    EXPECT_TRUE(matches_message_codes(a.diags(), { "E022", "E022" }));
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "E022" }));
 }
 
 /*
 Original valid strings:
-    AINSERT '&&C1   SETC ''C''''''.''&&SYSLIST(N''&&SYSLIST)''(1,1).'''x
+    AINSERT '&&C    SETC ''C''''''.''&&SYSLIST(N''&&SYSLIST)''(1,1).'''x
                '''''''''',BACK
-    AINSERT '&&C2   SETC  ''C''''''.''&SYSLIST(N'&SYSLIST)''(1,1).'''''x
-               '''''''',BACK
 */
-TEST(ainsert, grammar_non_matching_apostrophes_by_one)
+TEST(ainsert, grammar_non_matching_apostrophes_by_one_01)
 {
     std::string input = R"(
     MACRO
@@ -430,12 +448,9 @@ TEST(ainsert, grammar_non_matching_apostrophes_by_one)
 
     AINSERT '       MACRO',BACK
     AINSERT '       MAC_GEN',BACK
-    AINSERT '&&C1   SETC ''C''''''.''&&SYSLIST(N''&&SYSLIST)''(1,1).'''x
+    AINSERT '&&C    SETC ''C''''''.''&&SYSLIST(N''&&SYSLIST)''(1,1).'''x
                ''''''''''',BACK
     AINSERT '       MEND',BACK
-
-    AINSERT '&&C2   SETC  ''C''''''.''&SYSLIST(N'&SYSLIST)''(1,1).'''''x
-               ''''''''',BACK
 
     MEND
     
@@ -447,5 +462,31 @@ TEST(ainsert, grammar_non_matching_apostrophes_by_one)
     a.analyze();
     a.collect_diags();
 
-    EXPECT_TRUE(matches_message_codes(a.diags(), { "A011", "S0002", "S0005", "S0003", "A011", "E076", "E076" }));
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "A011", "S0002", "S0005" }));
+}
+
+/*
+Original valid strings:
+    AINSERT '&&C    SETC  ''C''''''.''&SYSLIST(N'&SYSLIST)''(1,1).'''''x
+               '''''''',BACK
+*/
+TEST(ainsert, grammar_non_matching_apostrophes_by_one_02)
+{
+    std::string input = R"(
+    MACRO
+    MAC
+
+    AINSERT '&&C    SETC  ''C''''''.''&SYSLIST(N'&SYSLIST)''(1,1).'''''x
+               ''''''''',BACK
+
+    MEND
+    
+    MAC 1,2,3,4,5
+)";
+
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "S0003", "A011", "E076", "E076" }));
 }
