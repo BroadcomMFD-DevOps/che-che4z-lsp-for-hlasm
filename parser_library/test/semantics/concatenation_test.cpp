@@ -114,6 +114,24 @@ TEST(concatenation, with_dots)
     EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "A"), "  ");
 }
 
+TEST(concatenation, with_functions)
+{
+    std::string input = R"(
+&X SETC 'x'
+&A SETC ' '.UPPER('&X')
+&B SETC UPPER('&X').' '
+&C SETC ' '.UPPER('&X').' '
+)";
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(a.diags().empty());
+    EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "A"), " X");
+    EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "B"), "X ");
+    EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "C"), " X ");
+}
+
 TEST(concatenation, no_dots_without_subscript)
 {
     std::string input = R"(
