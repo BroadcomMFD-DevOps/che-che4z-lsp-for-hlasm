@@ -31,15 +31,16 @@ expr returns [ca_expr_ptr ca_expr]
 					$ca_expr = std::make_unique<ca_basic_binary_operator<ca_sub>>(std::move($ca_expr), std::move($next.ca_expr), r);
 				$plus.ctx = nullptr;
 			}
-		)*
+		)+
 		|
 		(
-			dot next=expr_s
+			dot term
 			{
-				auto r = provider.get_range($begin.ctx->getStart(), $next.ctx->getStop());
-				$ca_expr = std::make_unique<ca_basic_binary_operator<ca_conc>>(std::move($ca_expr), std::move($next.ca_expr), r);
+				auto r = provider.get_range($begin.ctx->getStart(), $term.ctx->getStop());
+				$ca_expr = std::make_unique<ca_basic_binary_operator<ca_conc>>(std::move($ca_expr), std::move($term.ca_expr), r);
 			}
-		)*
+		)+
+		|
 	);
 	finally
 	{if (!$ca_expr) $ca_expr = std::make_unique<ca_constant>(0, provider.get_range(_localctx));}
