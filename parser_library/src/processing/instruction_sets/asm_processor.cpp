@@ -1269,8 +1269,6 @@ void asm_processor::process_CXD(rebuilt_statement stmt)
     {
         if (!hlasm_ctx.ord_ctx.symbol_defined(label))
         {
-            context::symbol_attributes::type_attr type = 'A'_ebcdic;
-
             create_symbol(stmt.stmt_range_ref(),
                 label,
                 loctr,

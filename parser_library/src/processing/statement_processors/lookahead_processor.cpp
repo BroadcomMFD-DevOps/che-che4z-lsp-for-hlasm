@@ -285,7 +285,7 @@ void lookahead_processor::assign_assembler_attributes(
         register_attr_ref(symbol_name, context::symbol_attributes(context::symbol_origin::MACH, 'M'_ebcdic));
 }
 
-void lookahead_processor::assign_cxd_attributes(context::id_index symbol_name, const resolved_statement& statement)
+void lookahead_processor::assign_cxd_attributes(context::id_index symbol_name, const resolved_statement&)
 {
     register_attr_ref(symbol_name, context::symbol_attributes(context::symbol_origin::ASM, 'A'_ebcdic, 4));
 }
