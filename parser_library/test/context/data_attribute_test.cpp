@@ -821,3 +821,49 @@ TEST(data_attributes, attribute_after_paren)
 
     EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "X"), true);
 }
+
+TEST(data_attributes, variable_type)
+{
+    std::string input = R"(
+         MACRO
+&L       MAC   &E
+         GBLA  &I
+         GBLC  &RES(1)
+&I       SETA  &I+1
+&C       SETC  (UPPER '&E')
+&R(1)    SETC  T'&L,T'&E,T'&C
+&TEXT    SETC  DOUBLE('&L')
+&RES(&I) SETC '&TEXT = &R(1) &R(2) &R(3)'
+         MEND
+
+         GBLC  &RES(1)
+A        MAC   A
+A        EQU   1
+A        MAC   A
+$        MAC   $
+3        MAC   3
+_        MAC   _
+A_       MAC   A_
+=        MAC   =
+* TODO: not supported because of outstanding label parsing issue
+* =C' '    MAC   =C' '
+         END
+)";
+
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(a.diags().empty());
+
+    EXPECT_EQ(get_var_vector<C_t>(a.hlasm_ctx(), "RES"),
+        std::vector<std::string>({
+            "A = M M M",
+            "A = U U U",
+            "$ = M M M",
+            "3 = N N N",
+            "_ = M M M",
+            "A_ = M M M",
+            "= = M M M",
+        }));
+}
