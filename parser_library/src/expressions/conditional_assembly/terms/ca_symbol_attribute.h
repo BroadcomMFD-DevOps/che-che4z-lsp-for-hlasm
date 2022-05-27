@@ -66,7 +66,7 @@ private:
         range var_range,
         const evaluation_context& eval_ctx) const;
     context::SET_t evaluate_literal(const semantics::literal_si& lit, const evaluation_context& eval_ctx) const;
-    context::SET_t evaluate_substituted_literal(
+    semantics::literal_si reparse_substituted_literal(
         const std::string& text, range var_range, const evaluation_context& eval_ctx) const;
 };
 

@@ -18,6 +18,7 @@
 #include "context/literal_pool.h"
 #include "context/ordinary_assembly/dependable.h"
 #include "context/ordinary_assembly/ordinary_assembly_dependency_solver.h"
+#include "diagnostic_consumer.h"
 #include "ebcdic_encoding.h"
 #include "expressions/conditional_assembly/ca_expr_visitor.h"
 #include "expressions/evaluation_context.h"
@@ -28,6 +29,7 @@
 #include "processing/op_code.h"
 #include "semantics/range_provider.h"
 #include "semantics/statement_fields.h"
+#include "utils/similar.h"
 
 namespace hlasm_plugin::parser_library::expressions {
 
@@ -208,6 +210,22 @@ context::SET_t ca_symbol_attribute::retrieve_value(
     return eval_ctx.hlasm_ctx.get_attribute_value_ord(attribute, ord_symbol);
 }
 
+bool iequals(std::string_view l, std::string_view r)
+{
+    return std::equal(l.begin(), l.end(), r.begin(), r.end(), [](unsigned char lc, unsigned char rc) {
+        return std::toupper(lc) == std::toupper(rc);
+    });
+}
+
+context::C_t get_current_macro_name_field(const context::hlasm_context& ctx)
+{
+    const auto& scope = ctx.current_scope();
+
+    if (!scope.is_in_macro())
+        return {};
+    return scope.this_macro->named_params.at(ctx.ids().well_known.SYSLIST)->get_data({ 0 })->get_value();
+}
+
 context::SET_t ca_symbol_attribute::evaluate_ordsym(context::id_index name, const evaluation_context& eval_ctx) const
 {
     if (context::symbol_attributes::is_ordinary_attribute(attribute))
@@ -215,7 +233,21 @@ context::SET_t ca_symbol_attribute::evaluate_ordsym(context::id_index name, cons
         const context::symbol* ord_symbol = eval_ctx.hlasm_ctx.ord_ctx.get_symbol(name);
 
         if (!ord_symbol)
+        {
+            if (attribute == context::data_attr_kind::T)
+            {
+                // it is not an ordinary symbol, but it could be
+                //
+                // Just to make clear what is going on here
+                // This special 'M' behavior is triggerred ONLY
+                // when the tested symbol is equal to the name field on the macro call
+                const auto& name_field = get_current_macro_name_field(eval_ctx.hlasm_ctx);
+                if (!name_field.empty() && iequals(*name, name_field))
+                    return "M";
+            }
+
             ord_symbol = eval_ctx.hlasm_ctx.ord_ctx.get_symbol_reference(name);
+        }
 
         return retrieve_value(ord_symbol, eval_ctx);
     }
@@ -242,15 +274,34 @@ context::SET_t ca_symbol_attribute::evaluate_literal(
 {
     auto& literals = eval_ctx.hlasm_ctx.ord_ctx.literals();
 
+    bool defined =
+        literals.defined_for_ca_expr(std::shared_ptr<const expressions::data_definition>(lit, &lit->get_dd()));
     if (attribute == context::data_attr_kind::D)
-        return literals.defined_for_ca_expr(std::shared_ptr<const expressions::data_definition>(lit, &lit->get_dd()));
+        return defined;
 
-    literals.mentioned_in_ca_expr(std::shared_ptr<const expressions::data_definition>(lit, &lit->get_dd()));
+    if (!eval_ctx.hlasm_ctx.current_scope().is_in_macro())
+        literals.mentioned_in_ca_expr(std::shared_ptr<const expressions::data_definition>(lit, &lit->get_dd()));
 
     if (attribute == context::data_attr_kind::O)
         return "U";
     else if (attribute == context::data_attr_kind::T)
+    {
+        if (!defined)
+        {
+            auto name_field = get_current_macro_name_field(eval_ctx.hlasm_ctx);
+            if (name_field == lit->get_text())
+                return "M";
+
+            // all literals have the form =XY that can be trivially compared
+            diagnostic_consumer_transform drop_diags([](diagnostic_op) {});
+            if (iequals(name_field.substr(0, 3), lit->get_text().substr(0, 3))
+                && utils::is_similar(lit,
+                    reparse_substituted_literal(
+                        name_field, lit->get_range(), { eval_ctx.hlasm_ctx, eval_ctx.lib_provider, drop_diags })))
+                return "M";
+        }
         return std::string { lit->get_dd().get_type_attribute() };
+    }
     else
     {
         context::ordinary_assembly_dependency_solver solver(eval_ctx.hlasm_ctx.ord_ctx, context::address());
@@ -381,7 +432,14 @@ context::SET_t ca_symbol_attribute::evaluate_substituted(context::id_index var_n
     const auto& text = substituted_name.access_c();
 
     if (!text.empty() && text.starts_with('='))
-        return evaluate_substituted_literal(text, var_range, eval_ctx);
+    {
+        if (auto lit = reparse_substituted_literal(text, var_range, eval_ctx))
+            return evaluate_literal(std::move(lit), eval_ctx);
+        else if (iequals(text, get_current_macro_name_field(eval_ctx.hlasm_ctx)))
+            return "M";
+        else
+            return context::symbol_attributes::default_ca_value(attribute);
+    }
 
     auto [valid, ord_name] = eval_ctx.hlasm_ctx.try_get_symbol_name(try_extract_leading_symbol(text));
 
@@ -395,7 +453,7 @@ context::SET_t ca_symbol_attribute::evaluate_substituted(context::id_index var_n
         return evaluate_ordsym(ord_name, eval_ctx);
 }
 
-context::SET_t ca_symbol_attribute::evaluate_substituted_literal(
+semantics::literal_si ca_symbol_attribute::reparse_substituted_literal(
     const std::string& text, range var_range, const evaluation_context& eval_ctx) const
 {
     // error production is suppressed when evaluating D', T' and O' attributes
@@ -433,10 +491,10 @@ context::SET_t ca_symbol_attribute::evaluate_substituted_literal(
 
     auto literal_context = h->parser->literal_reparse();
 
-    if (!error && literal_context->value)
-        return evaluate_literal(literal_context->value, eval_ctx);
-    else
-        return context::symbol_attributes::default_ca_value(attribute);
+    if (!error)
+        return std::move(literal_context->value);
+
+    return {};
 }
 
 } // namespace hlasm_plugin::parser_library::expressions
