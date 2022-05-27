@@ -824,6 +824,9 @@ TEST(data_attributes, attribute_after_paren)
 
 TEST(data_attributes, variable_type)
 {
+    // Just to make clear what is going on here
+    // This special 'M' behavior is triggerred ONLY
+    // when the tested symbol is equal to the name field on the macro call
     std::string input = R"(
          MACRO
 &L       MAC   &E
@@ -847,6 +850,9 @@ A_       MAC   A_
 =        MAC   =
 * TODO: not supported because of outstanding label parsing issue
 * =C' '    MAC   =C' '
+* =C'a'    MAC   =C'A'
+=A(0)    MAC   =A(0)
+=A(0)    MAC   =A(0+0)
          END
 )";
 
@@ -865,5 +871,34 @@ A_       MAC   A_
             "_ = M M M",
             "A_ = M M M",
             "= = M M M",
+            /* TODO "=C' ' = M M M", */
+            /* TODO "=C'a' = C M M", */
+            "=A(0) = M M M",
+            "=A(0) = M A A",
         }));
+}
+
+TEST(data_attributes, delayed_literal_definition)
+{
+    std::string input = R"(
+         MACRO
+&L       MAC
+         GBLB &B
+         GBLC &C
+&C       SETC T'&L
+&B       SETB (D'&L)
+         MEND
+         GBLB &B
+         GBLC &C
+=A(0)    MAC
+)";
+
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(a.diags().empty());
+
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B"), false);
+    EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "C"), "M");
 }
