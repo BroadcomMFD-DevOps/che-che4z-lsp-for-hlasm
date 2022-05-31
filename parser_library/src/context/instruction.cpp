@@ -647,7 +647,7 @@ constexpr machine_instruction machine_instructions[] = {
     { "BALR", RR_2, 519, UNI_ESA_XA_370_DOS_SINCE_ZOP },
     { "BAS", RX_a_2_ux, 520, UNI_ESA_XA_370_SINCE_ZOP },
     { "BASR", RR_2, 520, UNI_ESA_XA_370_SINCE_ZOP },
-    { "BASSM", RX_a_2, 520, UNI_ESA_XA_SINCE_ZOP },
+    { "BASSM", RR_2, 520, UNI_ESA_XA_SINCE_ZOP },
     { "BC", RX_b_2, 524, UNI_ESA_XA_370_DOS_SINCE_ZOP },
     { "BCR", RR_2_m, 524, UNI_ESA_XA_370_DOS_SINCE_ZOP },
     { "BCT", RX_a_2_ux, 525, UNI_ESA_XA_370_DOS_SINCE_ZOP },
