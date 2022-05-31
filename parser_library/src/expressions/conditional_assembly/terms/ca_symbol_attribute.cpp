@@ -292,9 +292,9 @@ context::SET_t ca_symbol_attribute::evaluate_literal(
             if (name_field == lit->get_text())
                 return "M";
 
-            // all literals have the form =XY that can be trivially compared
             diagnostic_consumer_transform drop_diags([](diagnostic_op) {});
-            if (iequals(name_field.substr(0, 3), lit->get_text().substr(0, 3))
+            // all literals have the form =XY that can be trivially compared
+            if (iequals(std::string_view(name_field).substr(0, 3), std::string_view(lit->get_text()).substr(0, 3))
                 && utils::is_similar(lit,
                     reparse_substituted_literal(
                         name_field, lit->get_range(), { eval_ctx.hlasm_ctx, eval_ctx.lib_provider, drop_diags })))
@@ -387,14 +387,12 @@ context::SET_t ca_symbol_attribute::evaluate_varsym(
 
             var_value = expressions::ca_symbol_attribute::try_extract_leading_symbol(var_value);
 
-            auto res = expressions::ca_constant::try_self_defining_term(var_value);
-            if (res)
+            if (auto res = expressions::ca_constant::try_self_defining_term(var_value))
                 return "N";
 
             auto symbol_name = eval_ctx.hlasm_ctx.ids().add(std::move(var_value));
-            auto tmp_symbol = eval_ctx.hlasm_ctx.ord_ctx.get_symbol(symbol_name);
 
-            if (tmp_symbol)
+            if (auto tmp_symbol = eval_ctx.hlasm_ctx.ord_ctx.get_symbol(symbol_name))
                 return std::string { (char)ebcdic_encoding::e2a[tmp_symbol->attributes().type()] };
 
             return evaluate_substituted(
@@ -434,7 +432,7 @@ context::SET_t ca_symbol_attribute::evaluate_substituted(context::id_index var_n
     if (!text.empty() && text.starts_with('='))
     {
         if (auto lit = reparse_substituted_literal(text, var_range, eval_ctx))
-            return evaluate_literal(std::move(lit), eval_ctx);
+            return evaluate_literal(lit, eval_ctx);
         else if (iequals(text, get_current_macro_name_field(eval_ctx.hlasm_ctx)))
             return "M";
         else
