@@ -112,13 +112,13 @@ void library_local::load_files()
             break;
         case hlasm_plugin::utils::path::list_directory_rc::not_exists:
             if (!optional_)
-                add_diagnostic(diagnostic_s::error_L0002(lib_loc_.get_uri()));
+                add_diagnostic(diagnostic_s::error_L0002(lib_loc_.to_presentable()));
             break;
         case hlasm_plugin::utils::path::list_directory_rc::not_a_directory:
-            add_diagnostic(diagnostic_s::error_L0002(lib_loc_.get_uri()));
+            add_diagnostic(diagnostic_s::error_L0002(lib_loc_.to_presentable()));
             break;
         case hlasm_plugin::utils::path::list_directory_rc::other_failure:
-            add_diagnostic(diagnostic_s::error_L0001(lib_loc_.get_uri()));
+            add_diagnostic(diagnostic_s::error_L0001(lib_loc_.to_presentable()));
             break;
     }
 
@@ -145,8 +145,8 @@ void library_local::load_files()
             const auto [_, inserted] = files_.try_emplace(context::to_upper_copy(std::string(filename)), file.second);
             // TODO: the stored value is a full path, yet we try to interpret it as a relative one later on
             if (!inserted)
-                add_diagnostic(
-                    diagnostic_s::warning_L0004(lib_loc_.get_uri(), context::to_upper_copy(std::string(filename))));
+                add_diagnostic(diagnostic_s::warning_L0004(
+                    lib_loc_.to_presentable(), context::to_upper_copy(std::string(filename))));
 
             if (extension.size())
                 extension_removed = true;
@@ -154,7 +154,7 @@ void library_local::load_files()
         }
     }
     if (extension_removed && extensions_from_deprecated_source)
-        add_diagnostic(diagnostic_s::warning_L0003(lib_loc_.get_uri()));
+        add_diagnostic(diagnostic_s::warning_L0003(lib_loc_.to_presentable()));
 
     files_loaded_ = true;
 }

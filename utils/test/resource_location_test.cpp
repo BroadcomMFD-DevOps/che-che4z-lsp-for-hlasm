@@ -19,6 +19,7 @@
 
 using namespace hlasm_plugin::utils::platform;
 using namespace hlasm_plugin::utils::resource;
+
 TEST(resource_location, empty_uri)
 {
     resource_location res("");

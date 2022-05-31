@@ -20,7 +20,7 @@
 using namespace hlasm_plugin::utils::platform;
 using namespace hlasm_plugin::utils::path;
 
-TEST(resource_location, uri_to_path)
+TEST(path_conversions, uri_to_path)
 {
     if (is_windows())
     {
@@ -34,7 +34,7 @@ TEST(resource_location, uri_to_path)
     }
 }
 
-TEST(resource_location, path_to_uri)
+TEST(path_conversions, path_to_uri)
 {
     if (is_windows())
     {

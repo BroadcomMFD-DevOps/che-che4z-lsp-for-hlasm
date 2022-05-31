@@ -39,9 +39,7 @@ add_subdirectory(lsp)
 add_subdirectory(parsing)
 add_subdirectory(processing)
 add_subdirectory(semantics)
-add_subdirectory(utils)
 add_subdirectory(workspace)
-
 
 if(MSVC)
 	target_compile_options(library_test PRIVATE /bigobj)

@@ -10,6 +10,8 @@
 # Contributors:
 #   Broadcom, Inc. - initial API and implementation
 
+include(GoogleTest)
+
 add_library(hlasm_utils STATIC EXCLUDE_FROM_ALL)
 
 target_include_directories(hlasm_utils PUBLIC include)
@@ -19,3 +21,7 @@ add_subdirectory(src)
 
 # link executable with libraries
 target_link_libraries(hlasm_utils network-uri)
+
+if(BUILD_TESTING)
+	add_subdirectory(test)
+endif()

@@ -623,7 +623,7 @@ bool workspace::load_and_process_config()
         }
         else
         {
-            config_diags_.push_back(diagnostic_s::error_W0004(pgm_conf_file->get_location().get_uri(), name_));
+            config_diags_.push_back(diagnostic_s::error_W0004(pgm_conf_file->get_location().to_presentable(), name_));
         }
     }
 
@@ -647,16 +647,17 @@ bool workspace::load_config(
         for (const auto& pg : proc_groups.pgroups)
         {
             if (!pg.asm_options.valid())
-                config_diags_.push_back(
-                    diagnostic_s::error_W0005(proc_grps_file->get_location().get_uri(), pg.name, "processor group"));
+                config_diags_.push_back(diagnostic_s::error_W0005(
+                    proc_grps_file->get_location().to_presentable(), pg.name, "processor group"));
             if (!pg.preprocessor.valid())
-                config_diags_.push_back(diagnostic_s::error_W0006(proc_grps_file->get_location().get_uri(), pg.name));
+                config_diags_.push_back(
+                    diagnostic_s::error_W0006(proc_grps_file->get_location().to_presentable(), pg.name));
         }
     }
     catch (const nlohmann::json::exception&)
     {
         // could not load proc_grps
-        config_diags_.push_back(diagnostic_s::error_W0002(proc_grps_file->get_location().get_uri(), name_));
+        config_diags_.push_back(diagnostic_s::error_W0002(proc_grps_file->get_location().to_presentable(), name_));
         return false;
     }
 
@@ -673,14 +674,14 @@ bool workspace::load_config(
         {
             if (!pgm.opts.valid())
                 config_diags_.push_back(
-                    diagnostic_s::error_W0005(pgm_conf_file->get_location().get_uri(), pgm.program, "program"));
+                    diagnostic_s::error_W0005(pgm_conf_file->get_location().to_presentable(), pgm.program, "program"));
         }
         exact_pgm_conf_.clear();
         regex_pgm_conf_.clear();
     }
     catch (const nlohmann::json::exception&)
     {
-        config_diags_.push_back(diagnostic_s::error_W0003(pgm_conf_file->get_location().get_uri(), name_));
+        config_diags_.push_back(diagnostic_s::error_W0003(pgm_conf_file->get_location().to_presentable(), name_));
         return false;
     }
 

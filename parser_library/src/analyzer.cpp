@@ -79,7 +79,7 @@ analyzer::analyzer(const std::string& text, analyzer_options opts)
 
                         auto result = libs->get_library(std::string(library), program, res_loc);
 
-                        if (res_loc.has_value() && !res_loc.value().get_uri().empty())
+                        if (res_loc.has_value())
                             ctx.hlasm_ctx->add_preprocessor_dependency(res_loc.value());
 
                         return result;
