@@ -344,7 +344,7 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordin
     return result;
 }
 
-std::string generate_virtual_file_name(virtual_file_id id, std::string_view name)
+utils::resource::resource_location generate_virtual_file_name(virtual_file_id id, std::string_view name)
 {
     std::string result;
     if (id)
@@ -355,7 +355,7 @@ std::string generate_virtual_file_name(virtual_file_id id, std::string_view name
     }
     result += name;
     result += ".hlasm";
-    return result;
+    return utils::resource::resource_location(std::move(result));
 }
 
 bool opencode_provider::try_running_preprocessor()

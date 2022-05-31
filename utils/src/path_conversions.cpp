@@ -23,24 +23,12 @@
 
 namespace hlasm_plugin::utils::path {
 
-namespace {
-const std::string untitled = "untitled";
-const std::string hlasm = "hlasm";
-} // namespace
-
 std::string uri_to_path(const std::string& uri)
 {
     try
     {
         network::uri u(uri);
 
-        // vscode sometimes sends us uri in form 'untitled:Untitled-1',
-        // when user opens new file that is not saved to disk yet
-        if (!u.scheme().compare(untitled))
-            return uri;
-        // There is a hlasm specific schema - don't convert to path
-        if (!u.scheme().compare(hlasm))
-            return uri;
         if (u.scheme().compare("file"))
             return "";
         if (!u.has_path())

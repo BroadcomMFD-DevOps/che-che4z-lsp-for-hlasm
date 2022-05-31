@@ -18,7 +18,7 @@
 using namespace hlasm_plugin::utils::resource;
 
 // test for COPY instruction
-// various cases of instruction occurence in the source
+// various cases of instruction occurrence in the source
 namespace {
 mock_parse_lib_provider create_copy_mock()
 {
@@ -182,6 +182,18 @@ void check_related_diag(const hlasm_plugin::parser_library::diagnostic_related_i
     EXPECT_EQ(diag.location.uri, expected_file.get_uri());
 }
 
+analyzer get_analyzer(const std::string& input)
+{
+    static auto lib_provider = create_copy_mock();
+    return analyzer(input, analyzer_options { &lib_provider });
+}
+
+analyzer get_analyzer(const std::string& input, std::string_view resource_loc)
+{
+    static auto lib_provider = create_copy_mock();
+    return analyzer(input, analyzer_options { resource_location(resource_loc), &lib_provider });
+}
+
 } // namespace
 TEST(copy, copy_enter_fail)
 {
@@ -190,8 +202,7 @@ TEST(copy, copy_enter_fail)
  COPY A+1
  COPY UNKNOWN
 )";
-    auto lib_provider = create_copy_mock();
-    analyzer a(input, analyzer_options { &lib_provider });
+    auto a = get_analyzer(input);
     a.analyze();
 
     a.collect_diags();
@@ -208,8 +219,7 @@ TEST(copy, copy_enter_success)
         R"(
  COPY COPYR
 )";
-    auto lib_provider = create_copy_mock();
-    analyzer a(input, analyzer_options { &lib_provider });
+    auto a = get_analyzer(input);
     a.analyze();
 
     a.collect_diags();
@@ -229,8 +239,7 @@ TEST(copy, copy_enter_diag_test)
         R"(
  COPY COPYD
 )";
-    auto lib_provider = create_copy_mock();
-    analyzer a(input, analyzer_options { "start", &lib_provider });
+    auto a = get_analyzer(input, "start");
     a.analyze();
 
     a.collect_diags();
@@ -255,8 +264,7 @@ TEST(copy, copy_jump)
  COPY COPYF
  AIF (&VAR LT 4).A
 )";
-    auto lib_provider = create_copy_mock();
-    analyzer a(input, analyzer_options { &lib_provider });
+    auto a = get_analyzer(input);
     a.analyze();
 
     a.collect_diags();
@@ -296,8 +304,7 @@ TEST(copy, copy_twice)
  COPY COPYR
  COPY COPYR
 )";
-    auto lib_provider = create_copy_mock();
-    analyzer a(input, analyzer_options { &lib_provider });
+    auto a = get_analyzer(input);
     a.analyze();
 
     a.collect_diags();
@@ -315,8 +322,7 @@ TEST(copy, macro_call_from_copy_enter)
  M1
  M2
 )";
-    auto lib_provider = create_copy_mock();
-    analyzer a(input, analyzer_options { &lib_provider });
+    auto a = get_analyzer(input);
     a.analyze();
 
     a.collect_diags();
@@ -341,8 +347,7 @@ TEST(copy, copy_enter_from_macro_call)
 
  M
 )";
-    auto lib_provider = create_copy_mock();
-    analyzer a(input, analyzer_options { "start", &lib_provider });
+    auto a = get_analyzer(input, "start");
     a.analyze();
 
     a.collect_diags();
@@ -378,8 +383,7 @@ TEST(copy, copy_enter_from_lookahead)
 &V SETA &V+1
  
 )";
-    auto lib_provider = create_copy_mock();
-    analyzer a(input, analyzer_options { "start", &lib_provider });
+    auto a = get_analyzer(input, "start");
     a.analyze();
 
     a.collect_diags();
@@ -402,8 +406,7 @@ TEST(copy, nested_macro_copy_call)
  COPY COPYN
  
 )";
-    auto lib_provider = create_copy_mock();
-    analyzer a(input, analyzer_options { &lib_provider });
+    auto a = get_analyzer(input);
     a.analyze();
 
     a.collect_diags();
@@ -433,8 +436,7 @@ TEST(copy, macro_from_copy_call)
  M
  
 )";
-    auto lib_provider = create_copy_mock();
-    analyzer a(input, analyzer_options { "start", &lib_provider });
+    auto a = get_analyzer(input, "start");
     a.analyze();
 
     a.collect_diags();
@@ -459,8 +461,7 @@ TEST(copy, inner_copy_jump)
  LR
  
 )";
-    auto lib_provider = create_copy_mock();
-    analyzer a(input, analyzer_options { &lib_provider });
+    auto a = get_analyzer(input);
     a.analyze();
 
     a.collect_diags();
@@ -477,8 +478,7 @@ TEST(copy, jump_from_copy_fail)
         R"(
  COPY COPYJF
 )";
-    auto lib_provider = create_copy_mock();
-    analyzer a(input, analyzer_options { "start", &lib_provider });
+    auto a = get_analyzer(input, "start");
     a.analyze();
 
     a.collect_diags();
@@ -508,8 +508,7 @@ TEST(copy, jump_in_macro_from_copy_fail)
 
  m
 )";
-    auto lib_provider = create_copy_mock();
-    analyzer a(input, analyzer_options { "start", &lib_provider });
+    auto a = get_analyzer(input, "start");
     a.analyze();
 
     a.collect_diags();
@@ -537,8 +536,7 @@ TEST(copy, macro_nested_diagnostics)
  
  MAC  
 )";
-    auto lib_provider = create_copy_mock();
-    analyzer a(input, analyzer_options { "start", &lib_provider });
+    auto a = get_analyzer(input, "start");
     a.analyze();
 
     a.collect_diags();
@@ -563,8 +561,7 @@ TEST(copy, copy_call_with_jump_before_comment)
 ***
  ANOP
 )";
-    auto lib_provider = create_copy_mock();
-    analyzer a(input, analyzer_options { "start", &lib_provider });
+    auto a = get_analyzer(input, "start");
     a.analyze();
 
     a.collect_diags();
@@ -589,8 +586,7 @@ TEST(copy, copy_empty_file)
  COPY EMPTY
  MEND
 )";
-    auto lib_provider = create_copy_mock();
-    analyzer a(input, analyzer_options { "start", &lib_provider });
+    auto a = get_analyzer(input, "start");
     a.analyze();
 
     a.collect_diags();

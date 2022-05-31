@@ -322,7 +322,7 @@ public:
 
     parse_result parse_library(const std::string& library, analyzing_context ctx, library_data data) override
     {
-        std::shared_ptr<processor> found = get_file_manager().add_processor_file(library);
+        std::shared_ptr<processor> found = get_file_manager().add_processor_file(resource_location(library));
         if (found)
             return found->parse_no_lsp_update(*this, std::move(ctx), data);
 
@@ -941,7 +941,7 @@ TEST(debugger, ainsert)
     } };
 
     step_over_by(3, d, m, exp_frames, 12);
-    step_into(d, m, exp_frames, 2, "MACRO", std::string("hlasm://0/AINSERT:1.hlasm"));
+    step_into(d, m, exp_frames, 2, "MACRO", resource_location("hlasm://0/AINSERT:1.hlasm"));
     exp_frame_vars.insert(exp_frame_vars.begin(), frame_vars_ignore_sys_vars({}, {}, {}));
 
     EXPECT_TRUE(check_step(d, exp_frames, exp_frame_vars));

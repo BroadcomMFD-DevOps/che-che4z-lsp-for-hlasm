@@ -32,7 +32,8 @@ struct location
     {}
 
     const std::string& get_uri() const { return resource_loc.get_uri(); }
-    bool operator==(const location& oth) const { return pos == oth.pos && resource_loc == oth.resource_loc; }
+    auto operator<=>(const location& oth) const noexcept = default;
+
     position pos;
     utils::resource::resource_location resource_loc;
 };

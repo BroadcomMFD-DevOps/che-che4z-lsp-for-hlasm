@@ -56,7 +56,9 @@ public:
 
     void add_workspace(std::string name, std::string uri)
     {
-        auto ws = workspaces_.emplace(name, workspaces::workspace(uri, name, file_manager_, global_config_, cancel_));
+        auto ws = workspaces_.emplace(name,
+            workspaces::workspace(
+                utils::resource::resource_location(std::move(uri)), name, file_manager_, global_config_, cancel_));
         ws.first->second.set_message_consumer(message_consumer_);
         ws.first->second.open();
 
@@ -150,13 +152,15 @@ public:
     location definition_result;
     position_uri definition(const std::string& document_uri, const position pos)
     {
+        auto doc_loc = utils::resource::resource_location(document_uri);
+
         if (cancel_ && *cancel_)
         {
-            definition_result = { pos, document_uri };
+            definition_result = { pos, doc_loc };
             return position_uri(definition_result);
         }
 
-        definition_result = ws_path_match(document_uri).definition(document_uri, pos);
+        definition_result = ws_path_match(document_uri).definition(std::move(doc_loc), pos);
 
         return position_uri(definition_result);
     }
@@ -167,7 +171,8 @@ public:
         if (cancel_ && *cancel_)
             return {};
 
-        references_result = ws_path_match(document_uri).references(document_uri, pos);
+        references_result =
+            ws_path_match(document_uri).references(utils::resource::resource_location(document_uri), pos);
 
         return { references_result.data(), references_result.size() };
     }
@@ -178,7 +183,7 @@ public:
         if (cancel_ && *cancel_)
             return "";
 
-        hover_result = ws_path_match(document_uri).hover(document_uri, pos);
+        hover_result = ws_path_match(document_uri).hover(utils::resource::resource_location(document_uri), pos);
 
         return hover_result;
     }
@@ -193,7 +198,9 @@ public:
         if (cancel_ && *cancel_)
             return completion_list { nullptr, 0 };
 
-        completion_result = ws_path_match(document_uri).completion(document_uri, pos, trigger_char, trigger_kind);
+        completion_result =
+            ws_path_match(document_uri)
+                .completion(utils::resource::resource_location(document_uri), pos, trigger_char, trigger_kind);
 
         return completion_list(completion_result.data(), completion_result.size());
     }
@@ -204,7 +211,8 @@ public:
         if (cancel_ && *cancel_)
             return document_symbol_list { nullptr, 0 };
 
-        document_symbol_result = ws_path_match(document_uri).document_symbol(document_uri, limit);
+        document_symbol_result =
+            ws_path_match(document_uri).document_symbol(utils::resource::resource_location(document_uri), limit);
 
         return document_symbol_list(document_symbol_result.data(), document_symbol_result.size());
     }

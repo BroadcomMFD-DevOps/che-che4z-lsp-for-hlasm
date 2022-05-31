@@ -101,7 +101,7 @@ std::string sam31_macro = R"( MACRO
         MEND)";
 
 const char* sam31_macro_path = is_windows() ? "lib\\SAM31" : "lib/SAM31";
-std::string hlasmplugin_folder = "/.hlasmplugin";
+std::string hlasmplugin_folder = ".hlasmplugin";
 
 resource_location proc_grps_loc(hlasmplugin_folder + "/proc_grps.json");
 resource_location pgm_conf_loc(hlasmplugin_folder + "/pgm_conf.json");
@@ -141,8 +141,9 @@ public:
     list_directory_result list_directory_files(
         const hlasm_plugin::utils::resource::resource_location& location) override
     {
-        if (location == "lib/" || location == "lib\\")
-            return { { { "SAM31", sam31_macro_path } }, hlasm_plugin::utils::path::list_directory_rc::done };
+        if (location == resource_location("lib/") || location == resource_location("lib\\"))
+            return { { { "SAM31", resource_location(sam31_macro_path) } },
+                hlasm_plugin::utils::path::list_directory_rc::done };
 
         return { {}, hlasm_plugin::utils::path::list_directory_rc::not_exists };
     }

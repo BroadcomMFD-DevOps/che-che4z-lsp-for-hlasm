@@ -47,42 +47,42 @@ struct lsp_context_nested_macro : public analyzer_fixture
 
 TEST_F(lsp_context_nested_macro, definition_nested)
 {
-    location res = a.context().lsp_ctx->definition(opencode_file, { 8, 15 });
-    check_location_with_position(res, opencode_file, 7, 16);
+    location res = a.context().lsp_ctx->definition(opencode_loc, { 8, 15 });
+    check_location_with_position(res, opencode_loc, 7, 16);
 }
 
 TEST_F(lsp_context_nested_macro, references_inner_var)
 {
-    auto res = a.context().lsp_ctx->references(opencode_file, { 8, 15 });
+    auto res = a.context().lsp_ctx->references(opencode_loc, { 8, 15 });
 
     ASSERT_EQ(res.size(), 2U);
 
-    check_location_with_position(res[0], opencode_file, 7, 16);
-    check_location_with_position(res[1], opencode_file, 8, 14);
+    check_location_with_position(res[0], opencode_loc, 7, 16);
+    check_location_with_position(res[1], opencode_loc, 8, 14);
 }
 
 TEST_F(lsp_context_nested_macro, references_inner_macro_param)
 {
-    auto res = a.context().lsp_ctx->references(opencode_file, { 8, 20 });
+    auto res = a.context().lsp_ctx->references(opencode_loc, { 8, 20 });
 
     ASSERT_EQ(res.size(), 2U);
 
-    check_location_with_position(res[0], opencode_file, 6, 16);
-    check_location_with_position(res[1], opencode_file, 8, 19);
+    check_location_with_position(res[0], opencode_loc, 6, 16);
+    check_location_with_position(res[1], opencode_loc, 8, 19);
 }
 
 TEST_F(lsp_context_nested_macro, definition_outer)
 {
-    location res = a.context().lsp_ctx->definition(opencode_file, { 10, 11 });
-    check_location_with_position(res, opencode_file, 3, 12);
+    location res = a.context().lsp_ctx->definition(opencode_loc, { 10, 11 });
+    check_location_with_position(res, opencode_loc, 3, 12);
 }
 
 TEST_F(lsp_context_nested_macro, references_outer)
 {
-    auto res = a.context().lsp_ctx->references(opencode_file, { 10, 11 });
+    auto res = a.context().lsp_ctx->references(opencode_loc, { 10, 11 });
 
     ASSERT_EQ(res.size(), 2U);
 
-    check_location_with_position(res[0], opencode_file, 3, 12);
-    check_location_with_position(res[1], opencode_file, 10, 10);
+    check_location_with_position(res[0], opencode_loc, 3, 12);
+    check_location_with_position(res[1], opencode_loc, 10, 10);
 }

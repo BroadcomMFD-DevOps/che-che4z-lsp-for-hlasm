@@ -17,6 +17,7 @@
 #include <map>
 
 #include "processor_file_impl.h"
+#include "utils/content_loader.h"
 #include "utils/path.h"
 #include "utils/path_conversions.h"
 #include "utils/platform.h"
@@ -34,8 +35,8 @@ void file_manager_impl::collect_diags() const
 file_ptr file_manager_impl::add_file(const file_location& file)
 {
     std::lock_guard guard(files_mutex);
-    auto ret = files_.emplace(file, std::make_shared<file_impl>(file));
-    return ret.first->second;
+    auto [ret, _] = files_.try_emplace(file, std::make_shared<file_impl>(file));
+    return ret->second;
 }
 
 processor_file_ptr file_manager_impl::change_into_processor_file_if_not_already_(std::shared_ptr<file_impl>& to_change)
@@ -58,7 +59,7 @@ processor_file_ptr file_manager_impl::add_processor_file(const file_location& fi
     if (ret == files_.end())
     {
         auto ptr = std::make_shared<processor_file_impl>(file, *this, cancel_);
-        files_.emplace(file, ptr);
+        files_.try_emplace(file, ptr);
         return ptr;
     }
     else
@@ -109,14 +110,7 @@ processor_file_ptr file_manager_impl::find_processor_file(const utils::resource:
 
 list_directory_result file_manager_impl::list_directory_files(const utils::resource::resource_location& directory)
 {
-    std::filesystem::path lib_p(directory.get_path());
-    list_directory_result result;
-
-    result.second = utils::path::list_directory_regular_files(lib_p, [&result](const std::filesystem::path& f) {
-        result.first[utils::path::filename(f).string()] =
-            utils::resource::resource_location(utils::path::path_to_uri(utils::path::absolute(f).string()));
-    });
-    return result;
+    return utils::resource::list_directory_files(directory);
 }
 
 void file_manager_impl::prepare_file_for_change_(std::shared_ptr<file_impl>& file)

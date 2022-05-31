@@ -133,7 +133,7 @@ public:
         std::string_view source, workspaces::workspace& workspace, bool stop_on_entry, parse_lib_provider* lib_provider)
     {
         // TODO: check if already running???
-        auto open_code = workspace.get_processor_file(source);
+        auto open_code = workspace.get_processor_file(utils::resource::resource_location(source));
         opencode_source_uri_ = open_code->get_location().get_uri();
         stop_on_next_stmt_ = stop_on_entry;
 
@@ -447,13 +447,13 @@ void debugger::continue_debug() { pimpl->continue_debug(); }
 
 void debugger::breakpoints(sequence<char> source, sequence<breakpoint> bps)
 {
-    pimpl->breakpoints(std::string_view(source), std::vector<breakpoint>(bps));
+    pimpl->breakpoints(utils::resource::resource_location(std::string(source)), std::vector<breakpoint>(bps));
 }
 breakpoints_t debugger::breakpoints(sequence<char> source) const
 {
     breakpoints_t result;
 
-    result.pimpl->m_breakpoints = pimpl->breakpoints(std::string_view(source));
+    result.pimpl->m_breakpoints = pimpl->breakpoints(utils::resource::resource_location(std::string(source)));
 
 
     return result;

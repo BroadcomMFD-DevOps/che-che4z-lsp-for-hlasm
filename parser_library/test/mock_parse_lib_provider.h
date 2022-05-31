@@ -41,7 +41,8 @@ public:
         if (it == m_files.end())
             return false;
 
-        auto a = std::make_unique<analyzer>(it->second, analyzer_options { library, this, std::move(ctx), data });
+        auto a = std::make_unique<analyzer>(it->second,
+            analyzer_options { hlasm_plugin::utils::resource::resource_location(library), this, std::move(ctx), data });
         a->analyze();
         a->collect_diags();
         analyzers[library] = std::move(a);
@@ -65,7 +66,7 @@ public:
             return std::nullopt;
         }
 
-        lib_location = library;
+        lib_location = utils::resource::resource_location(library);
         return it->second;
     }
 };

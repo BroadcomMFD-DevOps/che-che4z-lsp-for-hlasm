@@ -60,7 +60,7 @@ workspace::workspace(const utils::resource::resource_location& location,
 {}
 
 workspace::workspace(file_manager& file_manager, const lib_config& global_config, std::atomic<bool>* cancel)
-    : workspace("", file_manager, global_config, cancel)
+    : workspace(utils::resource::resource_location(""), file_manager, global_config, cancel)
 {
     opened_ = true;
 }
@@ -513,7 +513,8 @@ void workspace::find_and_add_libs(
             continue;
 
         if (std::regex_match(path, path_validator))
-            prc_grp.add_library(std::make_unique<library_local>(file_manager_, path, opts));
+            prc_grp.add_library(
+                std::make_unique<library_local>(file_manager_, utils::resource::resource_location(path), opts));
 
         auto rc = utils::path::list_directory_subdirs_and_symlinks(
             path, [&processed_canonical_paths, &dirs_to_search](const auto& path) {
@@ -598,7 +599,8 @@ bool workspace::load_and_process_config()
 
             auto path_string = lib_path.string();
             if (auto asterisk = path_string.find('*'); asterisk == std::string::npos)
-                prc_grp.add_library(std::make_unique<library_local>(file_manager_, path_string, std::move(opts)));
+                prc_grp.add_library(std::make_unique<library_local>(
+                    file_manager_, utils::resource::resource_location(path_string), std::move(opts)));
             else
                 find_and_add_libs(
                     path_string.substr(0, path_string.find_last_of("/\\", asterisk)), path_string, prc_grp, opts);

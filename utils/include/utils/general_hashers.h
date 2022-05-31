@@ -12,6 +12,9 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
+#ifndef HLASMPLUGIN_UTILS_GENERAL_HASHERS_H
+#define HLASMPLUGIN_UTILS_GENERAL_HASHERS_H
+
 namespace hlasm_plugin::utils::hashers {
 struct string_hasher
 {
@@ -24,3 +27,5 @@ struct string_hasher
     }
 };
 } // namespace hlasm_plugin::utils::hashers
+
+#endif

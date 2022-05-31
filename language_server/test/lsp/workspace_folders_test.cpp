@@ -65,7 +65,6 @@ TEST(workspace_folders, did_change_workspace_folders)
     notifs["workspace/didChangeWorkspaceFolders"].handler("", params3);
 }
 
-// todo ???
 TEST(workspace_folders, did_change_watchedfiles_invalid_uri)
 {
     test::ws_mngr_mock ws_mngr;
@@ -77,6 +76,8 @@ TEST(workspace_folders, did_change_watchedfiles_invalid_uri)
     f.register_methods(notifs);
     notifs["workspace/didChangeWatchedFiles"].handler(
         "", R"({"changes":[{"uri":"user_storage:/user/storage/layout","type":2}, {"uri":"file:///file_name"}]})"_json);
+
+    // If server didn't crash - hurray!
 }
 
 TEST(workspace_folders, initialize_folders)

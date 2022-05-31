@@ -46,11 +46,10 @@ const std::string& file_impl::get_text()
 
 void file_impl::load_text()
 {
-    auto loaded_text = utils::resource::load_text(file_location_);
-    if (loaded_text.has_value())
+    if (auto loaded_text = utils::resource::load_text(file_location_); loaded_text.has_value())
     {
-        text_ = utils::replace_non_utf8_chars(text_);
         text_ = std::move(loaded_text.value());
+        text_ = utils::replace_non_utf8_chars(text_);
         up_to_date_ = true;
         bad_ = false;
         return;
@@ -59,9 +58,8 @@ void file_impl::load_text()
     text_ = "";
     up_to_date_ = false;
     bad_ = true;
-    // todo
-    // add_diagnostic(diagnostic_s{file_name_, {}, diagnostic_severity::error,
-    //	"W0001", "HLASM plugin", "Could not open file" + file_name_, {} });
+
+    add_diagnostic(diagnostic_s::error_W0001(file_location_.to_presentable()));
 }
 
 // adds positions of newlines into vector 'lines'
@@ -119,7 +117,7 @@ void file_impl::did_open(std::string new_text, version_t version)
 bool file_impl::get_lsp_editing() { return editing_; }
 
 
-// applies a change to the text and updates line begginings
+// applies a change to the text and updates line beginnings
 void file_impl::did_change(range range, std::string new_text)
 {
     size_t range_end_line = (size_t)range.end.line;

@@ -49,7 +49,7 @@ enum class file_is_opencode : bool
 
 class analyzer_options
 {
-    utils::resource::resource_location file_loc = "";
+    utils::resource::resource_location file_loc = utils::resource::resource_location("");
     workspaces::parse_lib_provider* lib_provider = nullptr;
     std::variant<asm_option, analyzing_context> ctx_source;
     workspaces::library_data library_data = { processing::processing_kind::ORDINARY, context::id_storage::empty_id };

@@ -35,4 +35,11 @@ std::optional<std::string> load_text(const resource_location& res_loc)
     return cl.load_text(res_loc);
 };
 
+list_directory_result list_directory_files(const utils::resource::resource_location& directory_loc)
+{
+    const auto& cl = get_content_loader();
+
+    return cl.list_directory_files(directory_loc);
+}
+
 } // namespace hlasm_plugin::utils::resource

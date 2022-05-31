@@ -103,7 +103,7 @@ class hlasm_context
     long long m_statements_remaining;
 
 public:
-    hlasm_context(utils::resource::resource_location file_loc = "",
+    hlasm_context(utils::resource::resource_location file_loc = utils::resource::resource_location(""),
         asm_option asm_opts = {},
         std::shared_ptr<id_storage> init_ids = std::make_shared<id_storage>());
     ~hlasm_context();

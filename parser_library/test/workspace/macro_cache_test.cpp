@@ -43,20 +43,24 @@ struct file_manager_cache_test_mock : public file_manager_impl, public parse_lib
 
     auto& add_macro_or_copy(std::string file_name, std::string text)
     {
-        auto file = std::make_shared<file_with_text>(file_name, text, *this);
+        auto file_loc = resource_location(file_name);
+
+        auto file = std::make_shared<file_with_text>(file_loc, text, *this);
 
         auto [it, succ] = files_by_library_.emplace(file_name.substr(lib_prefix_length),
             std::pair<std::shared_ptr<file_with_text>, macro_cache>(
                 std::piecewise_construct, std::forward_as_tuple(file), std::forward_as_tuple(*this, *file)));
-        files_by_location_.emplace(std::move(file_name), file);
+        files_by_location_.emplace(std::move(file_loc), file);
 
         return it->second;
     }
 
     auto add_opencode(std::string file_name, std::string text)
     {
-        auto file = std::make_shared<file_with_text>(file_name, text, *this);
-        files_by_location_.emplace(std::move(file_name), file);
+        auto file_loc = resource_location(file_name);
+
+        auto file = std::make_shared<file_with_text>(file_loc, text, *this);
+        files_by_location_.emplace(std::move(file_loc), file);
         return file;
     }
 
@@ -107,7 +111,8 @@ struct file_manager_cache_test_mock : public file_manager_impl, public parse_lib
 
 analyzing_context create_analyzing_context(std::string file_name, std::shared_ptr<context::id_storage> ids)
 {
-    auto hlasm_ctx = std::make_shared<context::hlasm_context>(std::move(file_name), asm_option(), std::move(ids));
+    auto hlasm_ctx =
+        std::make_shared<context::hlasm_context>(resource_location(file_name), asm_option(), std::move(ids));
     analyzing_context new_ctx {
         hlasm_ctx,
         std::make_shared<lsp::lsp_context>(hlasm_ctx),
@@ -123,12 +128,14 @@ analyzing_context create_analyzing_context(std::string file_name, std::shared_pt
 TEST(macro_cache_test, copy_from_macro)
 {
     std::string opencode_file_name = "opencode";
+    auto opencode_file_loc = resource_location(opencode_file_name);
     std::string opencode_text =
         R"(
        MAC 1
 
 )";
     std::string macro_file_name = "lib/MAC";
+    auto macro_file_loc = resource_location(macro_file_name);
     std::string macro_text =
         R"( MACRO
        MAC &PARAM
@@ -136,13 +143,14 @@ TEST(macro_cache_test, copy_from_macro)
        MEND
 )";
     std::string copyfile_file_name = "lib/COPYFILE";
+    auto copyfile_file_loc = resource_location(copyfile_file_name);
     std::string copyfile_text =
         R"(
        LR 15,1
 )";
 
     file_manager_cache_test_mock file_mngr;
-    // file_mngr.add_macro_or_copy()
+
     auto opencode = file_mngr.add_opencode(opencode_file_name, opencode_text);
     auto& [macro, macro_c] = file_mngr.add_macro_or_copy(macro_file_name, macro_text);
     auto& [copyfile, copy_c] = file_mngr.add_macro_or_copy(copyfile_file_name, copyfile_text);
@@ -158,7 +166,7 @@ TEST(macro_cache_test, copy_from_macro)
     analyzing_context new_ctx = create_analyzing_context(opencode_file_name, file_mngr.hlasm_ctx->ids_ptr());
 
 
-    macro_cache_key macro_key { opencode_file_name, { processing::processing_kind::MACRO, macro_id }, {} };
+    macro_cache_key macro_key { opencode_file_loc, { processing::processing_kind::MACRO, macro_id }, {} };
 
 
     EXPECT_TRUE(macro_c.load_from_cache(macro_key, new_ctx));
@@ -172,7 +180,7 @@ TEST(macro_cache_test, copy_from_macro)
 
     analyzing_context ctx_macro_changed = create_analyzing_context(opencode_file_name, new_ctx.hlasm_ctx->ids_ptr());
 
-    macro_cache_key copy_key { opencode_file_name, { processing::processing_kind::COPY, copy_id }, {} };
+    macro_cache_key copy_key { opencode_file_loc, { processing::processing_kind::COPY, copy_id }, {} };
     // After macro change, copy should still be cached
     EXPECT_TRUE(copy_c.load_from_cache(copy_key, ctx_macro_changed));
     EXPECT_NE(ctx_macro_changed.hlasm_ctx->get_copy_member(copy_id), nullptr);
@@ -194,6 +202,7 @@ TEST(macro_cache_test, copy_from_macro)
 TEST(macro_cache_test, opsyn_change)
 {
     std::string opencode_file_name = "opencode";
+    auto opencode_file_loc = resource_location("opencode");
     std::string opencode_text =
         R"(
 SETA   OPSYN LR
@@ -218,7 +227,7 @@ SETA   OPSYN LR
     auto macro_id = file_mngr.hlasm_ctx->ids().add("MAC");
     auto ids = file_mngr.hlasm_ctx->ids_ptr();
 
-    macro_cache_key macro_key_one_opsyn { opencode_file_name,
+    macro_cache_key macro_key_one_opsyn { opencode_file_loc,
         { processing::processing_kind::MACRO, macro_id },
         { cached_opsyn_mnemo { ids->well_known.SETA, ids->add("LR"), false } } };
 
@@ -226,7 +235,7 @@ SETA   OPSYN LR
     analyzing_context new_ctx = create_analyzing_context(opencode_file_name, ids);
 
 
-    macro_cache_key macro_key { opencode_file_name, { processing::processing_kind::MACRO, macro_id }, {} };
+    macro_cache_key macro_key { opencode_file_loc, { processing::processing_kind::MACRO, macro_id }, {} };
     EXPECT_FALSE(macro_c.load_from_cache(macro_key, new_ctx));
     EXPECT_TRUE(macro_c.load_from_cache(macro_key_one_opsyn, new_ctx));
 
@@ -252,6 +261,8 @@ SETA   OPSYN LR
 TEST(macro_cache_test, empty_macro)
 {
     std::string opencode_file_name = "opencode";
+    auto opencode_file_loc = resource_location("opencode");
+
     // This tests a caveat where parse_library is called twice for the same macro, if the macro is not defined in its
     // file.
     std::string opencode_text = R"(
@@ -270,7 +281,7 @@ TEST(macro_cache_test, empty_macro)
 
     analyzing_context new_ctx = create_analyzing_context(opencode_file_name, file_mngr.hlasm_ctx->ids_ptr());
 
-    macro_cache_key macro_key { opencode_file_name, { processing::processing_kind::MACRO, macro_id }, {} };
+    macro_cache_key macro_key { opencode_file_loc, { processing::processing_kind::MACRO, macro_id }, {} };
     EXPECT_TRUE(macro_c.load_from_cache(macro_key, new_ctx));
     EXPECT_EQ(new_ctx.hlasm_ctx->macros().count(macro_id), 0U);
 }
@@ -325,7 +336,7 @@ std::optional<diagnostic_s> find_diag_with_filename(
 
 TEST(macro_cache_test, overwrite_by_inline)
 {
-    resource_location opencode_file_loc = "opencode";
+    auto opencode_file_loc = resource_location("opencode");
     std::string opencode_text =
         R"(
        MAC
@@ -337,7 +348,7 @@ TEST(macro_cache_test, overwrite_by_inline)
        
        MAC
 )";
-    resource_location macro_file_loc = "MAC";
+    auto macro_file_loc = resource_location("MAC");
     std::string macro_text =
         R"( MACRO
        MAC
@@ -371,6 +382,7 @@ TEST(macro_cache_test, overwrite_by_inline)
 TEST(macro_cache_test, inline_depends_on_copy)
 {
     std::string opencode_file_name = "opencode";
+    auto opencode_file_loc = resource_location("opencode");
     std::string opencode_text =
         R"(
        MACRO 
@@ -397,7 +409,7 @@ TEST(macro_cache_test, inline_depends_on_copy)
     analyzing_context new_ctx = create_analyzing_context(opencode_file_name, file_mngr.hlasm_ctx->ids_ptr());
 
 
-    macro_cache_key copy_key { opencode_file_name, { processing::processing_kind::COPY, copy_id }, {} };
+    macro_cache_key copy_key { opencode_file_loc, { processing::processing_kind::COPY, copy_id }, {} };
     EXPECT_TRUE(copy_c.load_from_cache(copy_key, new_ctx));
 
     copyfile->did_change({ { 0, 4 }, { 0, 5 } }, "16");

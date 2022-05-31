@@ -25,7 +25,7 @@ using namespace hlasm_plugin::utils::resource;
 struct lsp_context_copy_in_macro : public ::testing::Test
 {
     const static inline std::string opencode_file_name = "source";
-    const static inline resource_location opencode_file_loc = opencode_file_name;
+    const static inline auto opencode_file_loc = resource_location(opencode_file_name);
     const static inline std::string opencode =
         R"(
        MAC 1
@@ -37,7 +37,7 @@ struct lsp_context_copy_in_macro : public ::testing::Test
        COPY NOTEXIST
 )";
     const static inline std::string macro_file_name = "MAC";
-    const static inline resource_location macro_file_loc = macro_file_name;
+    const static inline auto macro_file_loc = resource_location(macro_file_name);
     const static inline std::string macro =
         R"( MACRO
        MAC &PARAM
@@ -49,7 +49,7 @@ SYM    LR &VAR,1
        MEND
 )";
     const static inline std::string copyfile_file_name = "COPYFILE";
-    const static inline resource_location copyfile_file_loc = copyfile_file_name;
+    const static inline resource_location copyfile_file_loc = resource_location(copyfile_file_name);
     const static inline std::string copyfile =
         R"(
        
@@ -66,7 +66,7 @@ SYM    LR &VAR,1
 
     void SetUp() override
     {
-        a = std::make_unique<analyzer>(opencode, analyzer_options { opencode_file_name, &lib_prov_instance });
+        a = std::make_unique<analyzer>(opencode, analyzer_options { opencode_file_loc, &lib_prov_instance });
         a->analyze();
     }
 };

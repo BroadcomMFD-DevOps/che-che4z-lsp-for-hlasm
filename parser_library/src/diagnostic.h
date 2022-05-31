@@ -821,6 +821,8 @@ public:
 
     static diagnostic_s warning_L0005(std::string_view pattern, size_t limit);
 
+    static diagnostic_s error_W0001(std::string_view file_name);
+
     static diagnostic_s error_W0002(std::string_view file_name, std::string_view ws_name);
 
     static diagnostic_s error_W0003(std::string_view file_name, std::string_view ws_name);

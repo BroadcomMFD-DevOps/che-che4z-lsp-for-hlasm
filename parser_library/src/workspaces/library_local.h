@@ -63,7 +63,8 @@ private:
     file_manager& file_manager_;
 
     utils::resource::resource_location lib_loc_;
-    std::unordered_map<std::string, utils::resource::resource_location> files_;
+    std::unordered_map<std::string, utils::resource::resource_location, utils::hashers::string_hasher, std::equal_to<>>
+        files_;
     std::vector<std::string> extensions_;
     // indicates whether load_files function was called (not whether it was successful)
     bool files_loaded_ = false;

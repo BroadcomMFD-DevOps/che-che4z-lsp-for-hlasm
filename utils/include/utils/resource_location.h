@@ -24,10 +24,10 @@ namespace hlasm_plugin::utils::resource {
 class resource_location
 {
 public:
-    resource_location() = default;
-    resource_location(std::string uri);
-    resource_location(std::string_view uri);
-    resource_location(const char* uri);
+    explicit resource_location() = default;
+    explicit resource_location(std::string uri);
+    explicit resource_location(std::string_view uri);
+    explicit resource_location(const char* uri);
 
     resource_location(const resource_location&) = default;
     resource_location& operator=(const resource_location&) = default;
@@ -37,9 +37,9 @@ public:
 
     const std::string& get_uri() const;
     std::string get_path() const;
-    std::string to_presentable() const;
+    std::string to_presentable(bool human_readable_only = true) const;
 
-    static resource_location join(const resource_location& rl, std::string relative_path);
+    static resource_location join(const resource_location& rl, std::string_view relative_path);
 
     std::strong_ordering operator<=>(const resource_location& rl) const noexcept = default;
 

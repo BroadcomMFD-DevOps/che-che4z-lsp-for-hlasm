@@ -16,6 +16,8 @@
 
 #include <fstream>
 
+#include "utils/path.h"
+#include "utils/path_conversions.h"
 #include "utils/utf8text.h"
 
 namespace hlasm_plugin::utils::resource {
@@ -27,18 +29,44 @@ std::optional<std::string> filesystem_content_loader::load_text(const resource_l
 
     if (fin)
     {
-        fin.seekg(0, std::ios::end);
-        text.resize((size_t)fin.tellg());
-        fin.seekg(0, std::ios::beg);
-        fin.read(&text[0], text.size());
-        fin.close();
+        try
+        {
+            fin.seekg(0, std::ios::end);
+            auto file_size = fin.tellg();
 
-        return text;
+            if (file_size == -1)
+                return std::nullopt;
+
+            text.resize(file_size);
+            fin.seekg(0, std::ios::beg);
+            fin.read(&text[0], text.size());
+            fin.close();
+
+            return text;
+        }
+        catch (const std::exception&)
+        {
+            return std::nullopt;
+        }
     }
     else
     {
         return std::nullopt;
     }
+}
+
+list_directory_result filesystem_content_loader::list_directory_files(
+    const utils::resource::resource_location& directory_loc) const
+{
+    std::filesystem::path lib_p(directory_loc.get_path());
+    list_directory_result result;
+
+    result.second = utils::path::list_directory_regular_files(lib_p, [&result](const std::filesystem::path& f) {
+        result.first[utils::path::filename(f).string()] =
+            utils::resource::resource_location(utils::path::path_to_uri(utils::path::absolute(f).string()));
+    });
+
+    return result;
 }
 
 } // namespace hlasm_plugin::utils::resource

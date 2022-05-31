@@ -20,8 +20,8 @@
 #include "utils/path.h"
 #include "utils/resource_location.h"
 
-inline auto pgm_conf_name = hlasm_plugin::utils::resource::resource_location("/.hlasmplugin/pgm_conf.json");
-inline auto proc_grps_name = hlasm_plugin::utils::resource::resource_location("/.hlasmplugin/proc_grps.json");
+inline auto pgm_conf_name = hlasm_plugin::utils::resource::resource_location(".hlasmplugin/pgm_conf.json");
+inline auto proc_grps_name = hlasm_plugin::utils::resource::resource_location(".hlasmplugin/proc_grps.json");
 inline std::string empty_pgm_conf = R"({ "pgms": []})";
 inline std::string empty_proc_grps = R"({ "pgroups": []})";
 

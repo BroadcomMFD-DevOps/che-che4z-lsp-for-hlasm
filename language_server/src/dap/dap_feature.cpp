@@ -50,7 +50,8 @@ std::string client_conformant_path(const std::string& uri, path_format client_pa
     if (client_path_format == path_format::URI)
         return uri;
 
-    return hlasm_plugin::utils::path::uri_to_path(uri);
+    auto generated_path = hlasm_plugin::utils::path::uri_to_path(uri);
+    return generated_path.empty() ? uri : generated_path;
 }
 
 constexpr const int THREAD_ID = 1;

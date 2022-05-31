@@ -92,7 +92,7 @@ void lsp_analyzer::macrodef_finished(context::macro_def_ptr macrodef, macrodef_p
         macro_occurences_[macro_file].emplace_back(macrodef->id, macrodef, result.prototype.macro_name_range);
 
         auto m_i = std::make_shared<lsp::macro_info>(result.external,
-            location(result.prototype.macro_name_range.start, macro_file.get_uri()),
+            location(result.prototype.macro_name_range.start, macro_file),
             std::move(macrodef),
             std::move(result.variable_symbols),
             std::move(result.file_scopes),

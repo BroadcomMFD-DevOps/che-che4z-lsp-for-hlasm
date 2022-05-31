@@ -64,7 +64,7 @@ dissected_uri dissect_uri(const std::string& uri)
     {
         network::uri u(uri);
 
-        if (!u.scheme().compare("file") && (!u.has_authority() || u.authority().to_string() == ""))
+        if ((u.has_scheme() && !u.scheme().compare("file")) && (!u.has_authority() || u.authority().to_string() == ""))
         {
             ret.path = get_file_path(u);
             return ret;
@@ -105,7 +105,7 @@ const std::string& resource_location::get_uri() const { return m_uri; }
 
 std::string resource_location::get_path() const { return m_uri.size() != 0 ? utils::path::uri_to_path(m_uri) : m_uri; }
 
-std::string resource_location::to_presentable() const
+std::string resource_location::to_presentable(bool human_readable_only) const
 {
     dissected_uri dis_uri = dissect_uri(m_uri);
     std::string s = "";
@@ -121,12 +121,23 @@ std::string resource_location::to_presentable() const
     if (dis_uri.fragment.has_value())
         s.append("Fragment: ").append(dis_uri.fragment.value()).append("\n");
 
-    return s.append("Raw URI: ").append(m_uri);
+    if (!human_readable_only)
+        s.append("Raw URI: ").append(m_uri);
+
+    if (s.ends_with("\n"))
+        return s.substr(0, s.size() - 1);
+
+    return s;
 }
 
-resource_location resource_location::join(const resource_location& rl, std::string relative_path)
+resource_location resource_location::join(const resource_location& rl, std::string_view relative_path)
 {
-    return resource_location(rl.get_uri() + "/" + relative_path);
+    std::string uri = rl.get_uri();
+
+    if (!rl.m_uri.empty() && rl.m_uri.back() != '/')
+        return resource_location(uri.append("/").append(relative_path));
+
+    return resource_location(uri.append(relative_path));
 }
 
 std::size_t resource_location_hasher::operator()(const resource_location& rl) const
