@@ -40,7 +40,7 @@ diagnostic_s add_stack_details(diagnostic_op diagnostic, context::processing_sta
     for (auto frame = ++stack.rbegin(); frame != stack.rend(); ++frame)
     {
         auto file_uri = std::string(frame->proc_location.get_uri());
-        auto message = "While compiling " + frame->proc_location.to_presentable() + '('
+        auto message = "While compiling " + frame->proc_location.resource_loc.to_presentable() + '('
             + std::to_string(frame->proc_location.pos.line + 1) + ")";
         diag.related.emplace_back(
             range_uri_s(std::move(file_uri), range(frame->proc_location.pos, frame->proc_location.pos)),

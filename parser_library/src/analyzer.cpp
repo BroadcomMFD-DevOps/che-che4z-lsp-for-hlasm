@@ -77,7 +77,7 @@ analyzer::analyzer(const std::string& text, analyzer_options opts)
                     [libs = &opts.get_lib_provider(), program = opts.file_loc, &ctx = ctx_](std::string_view library) {
                         std::optional<utils::resource::resource_location> res_loc;
 
-                        auto result = libs->get_library(std::string(library), program, &res_loc);
+                        auto result = libs->get_library(std::string(library), program, res_loc);
 
                         if (res_loc.has_value() && !res_loc.value().get_uri().empty())
                             ctx.hlasm_ctx->add_preprocessor_dependency(res_loc.value());

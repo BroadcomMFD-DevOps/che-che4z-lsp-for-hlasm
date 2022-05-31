@@ -15,6 +15,7 @@
 #ifndef HLASMPLUGIN_UTILS_RESOURCE_LOCATION_H
 #define HLASMPLUGIN_UTILS_RESOURCE_LOCATION_H
 
+#include <compare>
 #include <optional>
 #include <string>
 
@@ -40,7 +41,7 @@ public:
 
     static resource_location join(const resource_location& rl, std::string relative_path);
 
-    auto operator<=>(const resource_location& rl) const noexcept = default;
+    std::strong_ordering operator<=>(const resource_location& rl) const noexcept = default;
 
 private:
     std::string m_uri;

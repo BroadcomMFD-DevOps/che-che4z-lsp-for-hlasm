@@ -768,7 +768,7 @@ bool workspace::has_library(const std::string& library, const utils::resource::r
 
 std::optional<std::string> workspace::get_library(const std::string& library,
     const utils::resource::resource_location& program,
-    std::optional<utils::resource::resource_location>* location) const
+    std::optional<utils::resource::resource_location>& location) const
 {
     auto& proc_grp = get_proc_grp_by_program(program);
     for (auto&& lib : proc_grp.libraries())
@@ -781,9 +781,7 @@ std::optional<std::string> workspace::get_library(const std::string& library,
         if (!f) // for now
             return std::nullopt;
 
-        if (location)
-            *location = f->get_location();
-
+        location = f->get_location();
         return f->get_text();
     }
     return std::nullopt;

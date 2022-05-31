@@ -49,6 +49,7 @@ void file_impl::load_text()
     auto loaded_text = utils::resource::load_text(file_location_);
     if (loaded_text.has_value())
     {
+        text_ = utils::replace_non_utf8_chars(text_);
         text_ = std::move(loaded_text.value());
         up_to_date_ = true;
         bad_ = false;

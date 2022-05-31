@@ -511,7 +511,7 @@ location hlasm_context::current_statement_location() const
         {
             const auto& member = source_stack_.back().copy_stack.back();
 
-            return location(member.current_statement_position(), member.definition_location()->get_uri());
+            return location(member.current_statement_position(), member.definition_location()->resource_loc);
         }
         else
             return source_stack_.back().current_instruction;

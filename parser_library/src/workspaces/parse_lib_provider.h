@@ -41,7 +41,7 @@ public:
 
     virtual std::optional<std::string> get_library(const std::string& library,
         const utils::resource::resource_location& program,
-        std::optional<utils::resource::resource_location>* file_loc) const = 0;
+        std::optional<utils::resource::resource_location>& lib_location) const = 0;
 
 protected:
     ~parse_lib_provider() = default;
@@ -55,8 +55,9 @@ public:
     bool has_library(const std::string&, const utils::resource::resource_location&) const override { return false; };
     std::optional<std::string> get_library(const std::string&,
         const utils::resource::resource_location&,
-        std::optional<utils::resource::resource_location>*) const override
+        std::optional<utils::resource::resource_location>& lib_location) const override
     {
+        lib_location = std::nullopt;
         return std::nullopt;
     }
 

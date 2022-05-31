@@ -56,15 +56,16 @@ public:
 
     std::optional<std::string> get_library(const std::string& library,
         const utils::resource::resource_location&,
-        std::optional<utils::resource::resource_location>* location) const override
+        std::optional<utils::resource::resource_location>& lib_location) const override
     {
         auto it = m_files.find(library);
         if (it == m_files.end())
+        {
+            lib_location = std::nullopt;
             return std::nullopt;
+        }
 
-        if (location)
-            *location = library;
-
+        lib_location = library;
         return it->second;
     }
 };

@@ -33,8 +33,6 @@ std::optional<std::string> filesystem_content_loader::load_text(const resource_l
         fin.read(&text[0], text.size());
         fin.close();
 
-        text = replace_non_utf8_chars(text);
-
         return text;
     }
     else
