@@ -34,7 +34,7 @@ inline void PrintTo(const lines_info& tokens, std::ostream* os)
 } // namespace std
 
 namespace {
-auto source_file_loc = resource_location("file_name");
+const auto source_file_loc = resource_location("file_name");
 }
 
 TEST(highlighting, simple)

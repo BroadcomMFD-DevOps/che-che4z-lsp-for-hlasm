@@ -155,6 +155,11 @@ private:
     void find_and_add_libs(
         std::string root, const std::string& path_pattern, processor_group& prc_grp, const library_local_options& opts);
 
+    void process_processor_group(
+        const config::processor_group& pg, const config::proc_grps& proc_groups, const config::pgm_conf& pgm_config);
+
+    void process_program(const config::program_mapping& pgm, const file_ptr& pgm_conf_file);
+
     bool is_config_file(const utils::resource::resource_location& file_location) const;
     workspace_file_info parse_config_file();
 

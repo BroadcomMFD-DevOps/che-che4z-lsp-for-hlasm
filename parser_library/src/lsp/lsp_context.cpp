@@ -502,6 +502,32 @@ void lsp_context::document_symbol_opencode_var_seq_symbol_aux(document_symbol_li
     }
 }
 
+void lsp_context::document_symbol_other(document_symbol_list_s& result,
+    const utils::resource::resource_location& document_loc,
+    long long& limit,
+    document_symbol_cache& cache) const
+{
+    std::unordered_map<std::string_view, utils::resource::resource_location> name_to_location;
+    for (const auto& [def, info] : m_macros)
+        name_to_location.insert_or_assign(*def->id, info->definition_location.resource_loc);
+    for (const auto& [def, info] : m_hlasm_ctx->copy_members())
+        name_to_location.insert_or_assign(*info->name, info->definition_location.resource_loc);
+
+    document_symbol_opencode_ord_symbol(result, limit);
+    document_symbol_opencode_var_seq_symbol_aux(result, name_to_location, limit, cache);
+
+    for (const auto& sym : m_opencode->variable_definitions)
+    {
+        if (limit <= 0)
+            break;
+        if (!belongs_to_copyfile(document_loc, sym.def_position, sym.name))
+        {
+            result.emplace_back(*sym.name, document_symbol_kind::VAR, range(sym.def_position));
+            --limit;
+        }
+    }
+}
+
 document_symbol_list_s lsp_context::document_symbol(
     const utils::resource::resource_location& document_loc, long long limit) const
 {
@@ -522,28 +548,9 @@ document_symbol_list_s lsp_context::document_symbol(
             document_symbol_copy(result, file->second->get_occurences(), document_loc, std::nullopt, limit);
             break;
 
-        default: {
-            std::unordered_map<std::string_view, utils::resource::resource_location> name_to_location;
-            for (const auto& [def, info] : m_macros)
-                name_to_location.insert_or_assign(*def->id, info->definition_location.resource_loc);
-            for (const auto& [def, info] : m_hlasm_ctx->copy_members())
-                name_to_location.insert_or_assign(*info->name, info->definition_location.resource_loc);
-
-            document_symbol_opencode_ord_symbol(result, limit);
-            document_symbol_opencode_var_seq_symbol_aux(result, name_to_location, limit, cache);
-
-            for (const auto& sym : m_opencode->variable_definitions)
-            {
-                if (limit <= 0)
-                    break;
-                if (!belongs_to_copyfile(document_loc, sym.def_position, sym.name))
-                {
-                    result.emplace_back(*sym.name, document_symbol_kind::VAR, range(sym.def_position));
-                    --limit;
-                }
-            }
+        default:
+            document_symbol_other(result, document_loc, limit, cache);
             break;
-        }
     }
     if (limit <= 0)
         result.emplace(result.begin(), "Outline may be truncated", document_symbol_kind::DUMMY, range());

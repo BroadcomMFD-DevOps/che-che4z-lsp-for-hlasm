@@ -19,6 +19,7 @@
 #include "gtest/gtest.h"
 
 #include "empty_configs.h"
+#include "utils/content_loader.h"
 #include "utils/platform.h"
 #include "utils/resource_location.h"
 #include "workspaces/file_impl.h"
@@ -178,7 +179,7 @@ class file_manager_proc_grps_test : public file_manager_impl
 public:
     file_ptr add_file(const resource_location& location) override
     {
-        if (location.get_path().ends_with("proc_grps.json"))
+        if (hlasm_plugin::utils::resource::filename(location) == "proc_grps.json")
             return proc_grps;
         else
             return pgm_conf;

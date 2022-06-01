@@ -24,39 +24,74 @@
 #include "utils/platform.h"
 
 namespace hlasm_plugin::utils::resource {
-
+namespace {
 struct dissected_uri
 {
     std::optional<std::string> scheme = std::nullopt;
+    std::optional<std::string> host = std::nullopt;
     std::optional<std::string> auth = std::nullopt;
     std::optional<std::string> path = std::nullopt;
     std::optional<std::string> query = std::nullopt;
     std::optional<std::string> fragment = std::nullopt;
 };
 
-std::string get_file_path(const network::uri& u)
+std::string format_path(std::string hostname, std::string path)
 {
-    if (!u.has_path())
-        return "";
-
-    network::string_view path = u.path();
-
-    if (utils::platform::is_windows())
+    if (!hostname.empty())
     {
-        // we get path always beginning with / on windows, e.g. /c:/Users/path
-        path.remove_prefix(1);
+        // Append "//" if there is any hostname and erase leading "/" from path as it messes with join
+        hostname.insert(0, "//");
+
+        if (!path.empty() && path[0] == '/')
+            path = path.substr(1, path.size() - 1);
     }
 
-    std::string auth_path = path.to_string();
-    if (utils::platform::is_windows())
-    {
-        auth_path[0] = (char)tolower((unsigned char)auth_path[0]);
-    }
+    std::string s = utils::path::lexically_normal(utils::path::join(hostname, path)).string();
 
-    return utils::path::lexically_normal(network::detail::decode(auth_path)).string();
+    if (utils::platform::is_windows() && !s.empty() && hostname.empty())
+        // If this is a local Windows folder, we get path beginning with / (e.g. /c:/Users/path)
+        s.erase(0, 1);
+
+    if (!utils::platform::is_windows() && !hostname.empty())
+        // We need to add one more "/" on non-Windows machines if there is a hostname
+        s.insert(0, "/");
+
+    return network::detail::decode(s);
 }
 
-dissected_uri dissect_uri(const std::string& uri)
+std::string to_presentable_internal(const dissected_uri& dis_uri)
+{
+    std::string s;
+    if (dis_uri.scheme.has_value())
+        s.append(dis_uri.scheme.value()).append("://");
+    if (dis_uri.host.has_value())
+        s.append(dis_uri.host.value());
+    if (dis_uri.path.has_value())
+        s.append(dis_uri.path.value());
+
+    return s;
+}
+
+std::string to_presentable_internal_debug(const dissected_uri& dis_uri, std::string_view raw_uri)
+{
+    std::string s;
+    if (dis_uri.scheme.has_value())
+        s.append("Scheme: ").append(dis_uri.scheme.value()).append("\n");
+    if (dis_uri.auth.has_value())
+        s.append("Authority: ").append(dis_uri.auth.value()).append("\n");
+    if (dis_uri.path.has_value())
+        s.append("Path: ").append(dis_uri.path.value()).append("\n");
+    if (dis_uri.query.has_value())
+        s.append("Query: ").append(dis_uri.query.value()).append("\n");
+    if (dis_uri.fragment.has_value())
+        s.append("Fragment: ").append(dis_uri.fragment.value()).append("\n");
+
+    s.append("Raw URI: ").append(raw_uri);
+
+    return s;
+}
+
+dissected_uri dissect_uri(const std::string& uri, bool human_readable_only)
 {
     dissected_uri ret;
 
@@ -64,23 +99,37 @@ dissected_uri dissect_uri(const std::string& uri)
     {
         network::uri u(uri);
 
-        if (u.has_scheme() && u.scheme().to_string() == "file"
-            && (!u.has_authority() || u.authority().to_string() == ""))
+        if (u.has_scheme() && u.scheme().to_string() == "file")
         {
-            ret.path = get_file_path(u);
+            std::string h;
+            std::string p;
+
+            if (u.has_host() && !u.host().empty())
+                h = u.host().to_string();
+
+            if (u.has_path())
+                p = u.path().to_string();
+
+            ret.path = format_path(h, p);
             return ret;
         }
 
         if (u.has_scheme())
             ret.scheme = u.scheme().to_string();
-        if (u.has_authority())
-            ret.auth = u.authority().to_string();
+        if (u.has_host())
+            ret.host = u.host().to_string();
         if (u.has_path())
             ret.path = u.path().to_string();
-        if (u.has_query())
-            ret.query = u.query().to_string();
-        if (u.has_fragment())
-            ret.fragment = u.fragment().to_string();
+
+        if (!human_readable_only)
+        {
+            if (u.has_authority())
+                ret.auth = u.authority().to_string();
+            if (u.has_query())
+                ret.query = u.query().to_string();
+            if (u.has_fragment())
+                ret.fragment = u.fragment().to_string();
+        }
 
         return ret;
     }
@@ -89,6 +138,7 @@ dissected_uri dissect_uri(const std::string& uri)
         return ret;
     }
 }
+} // namespace
 
 resource_location::resource_location(std::string uri)
     : m_uri(std::move(uri))
@@ -108,27 +158,12 @@ std::string resource_location::get_path() const { return m_uri.size() != 0 ? uti
 
 std::string resource_location::to_presentable(bool human_readable_only) const
 {
-    dissected_uri dis_uri = dissect_uri(m_uri);
-    std::string s = "";
+    dissected_uri dis_uri = dissect_uri(m_uri, human_readable_only);
 
-    if (dis_uri.scheme.has_value())
-        s.append("Scheme: ").append(dis_uri.scheme.value()).append("\n");
-    if (dis_uri.auth.has_value())
-        s.append("Authority: ").append(dis_uri.auth.value()).append("\n");
-    if (dis_uri.path.has_value())
-        s.append("Path: ").append(dis_uri.path.value()).append("\n");
-    if (dis_uri.query.has_value())
-        s.append("Query: ").append(dis_uri.query.value()).append("\n");
-    if (dis_uri.fragment.has_value())
-        s.append("Fragment: ").append(dis_uri.fragment.value()).append("\n");
-
-    if (!human_readable_only)
-        s.append("Raw URI: ").append(m_uri);
-
-    if (s.ends_with("\n"))
-        return s.substr(0, s.size() - 1);
-
-    return s;
+    if (human_readable_only)
+        return to_presentable_internal(dis_uri);
+    else
+        return to_presentable_internal_debug(dis_uri, m_uri);
 }
 
 resource_location resource_location::join(const resource_location& rl, std::string_view relative_path)

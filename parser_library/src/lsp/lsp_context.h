@@ -90,6 +90,11 @@ private:
         const utils::resource::resource_location& document_loc,
         std::optional<range> r,
         long long& limit) const;
+    void document_symbol_other(document_symbol_list_s& result,
+        const utils::resource::resource_location& document_loc,
+        long long& limit,
+        document_symbol_cache& cache) const;
+
     const std::vector<std::pair<symbol_occurence, std::vector<context::id_index>>>& copy_occurences(
         const utils::resource::resource_location& document_loc, document_symbol_cache& cache) const;
     void modify_with_copy(document_symbol_list_s& modified,

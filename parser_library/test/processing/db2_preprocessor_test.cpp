@@ -24,9 +24,9 @@ using namespace hlasm_plugin::parser_library::processing;
 using namespace hlasm_plugin::utils::resource;
 
 namespace {
-auto copy1_loc = resource_location("COPY1");
-auto copy2_loc = resource_location("COPY2");
-auto member_loc = resource_location("MEMBER");
+const auto copy1_loc = resource_location("COPY1");
+const auto copy2_loc = resource_location("COPY2");
+const auto member_loc = resource_location("MEMBER");
 } // namespace
 TEST(db2_preprocessor, first_line)
 {

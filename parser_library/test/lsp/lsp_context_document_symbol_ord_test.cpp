@@ -21,7 +21,7 @@ using namespace hlasm_plugin::parser_library::lsp;
 using namespace hlasm_plugin::utils::resource;
 
 namespace {
-auto empty_loc = resource_location("");
+const auto empty_loc = resource_location("");
 }
 
 TEST(lsp_context_document_symbol, ord_sect_1)

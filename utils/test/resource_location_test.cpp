@@ -68,23 +68,17 @@ TEST(resource_location, to_presentable_file_scheme_hostname)
 {
     if (is_windows())
     {
-        std::string expected = R"(Scheme: file
-Authority: hostname
-Path: /Public/folder%20With%20spaces/filE%20nAme
-Raw URI: file://hostname/Public/folder%20With%20spaces/filE%20nAme)";
+        std::string expected = "\\\\hostname\\Public\\folder With spaces\\filE nAme";
 
         resource_location res("file://hostname/Public/folder%20With%20spaces/filE%20nAme");
-        EXPECT_EQ(res.to_presentable(false), expected);
+        EXPECT_EQ(res.to_presentable(), expected);
     }
     else
     {
-        std::string expected = R"(Scheme: file
-Authority: hostname
-Path: /home/user/folder%20With%20spaces/filE%20nAme
-Raw URI: file://hostname/home/user/folder%20With%20spaces/filE%20nAme)";
+        std::string expected = "//hostname/home/user/folder With spaces/filE nAme";
 
         resource_location res("file://hostname/home/user/folder%20With%20spaces/filE%20nAme");
-        EXPECT_EQ(res.to_presentable(false), expected);
+        EXPECT_EQ(res.to_presentable(), expected);
     }
 }
 
@@ -92,18 +86,26 @@ TEST(resource_location, to_presentable_file_scheme_localhost)
 {
     if (is_windows())
     {
-        std::string expected = R"(Path: c:\Public\folder With spaces\filE nAme)";
+        std::string expected = "c:\\Public\\folder With spaces\\filE nAme";
 
         resource_location res("file:///c%3A/Public/folder%20With%20spaces/filE%20nAme");
         EXPECT_EQ(res.to_presentable(), expected);
     }
     else
     {
-        std::string expected = R"(Path: /home/user/folder With spaces/filE nAme)";
+        std::string expected = "/home/user/folder With spaces/filE nAme";
 
         resource_location res("file:///home/user/folder%20With%20spaces/filE%20nAme");
         EXPECT_EQ(res.to_presentable(), expected);
     }
+}
+
+TEST(resource_location, to_presentable_other_schemes)
+{
+    std::string expected = "aaa://c%3A/Public/folder%20With%20spaces/filE%20nAme";
+
+    resource_location res("aaa://c%3A/Public/folder%20With%20spaces/filE%20nAme");
+    EXPECT_EQ(res.to_presentable(), expected);
 }
 
 TEST(resource_location, to_presentable_file_scheme_debug)
@@ -126,16 +128,17 @@ Raw URI: file:///home/user/folder%20With%20spaces/filE%20nAme)";
     }
 }
 
-TEST(resource_location, to_presentable_other_schemes_full)
+TEST(resource_location, to_presentable_other_schemes_full_debug)
 {
     std::string expected = R"(Scheme: aaa
 Authority: user::pass@127.0.0.1:1234
 Path: /path/to/resource
 Query: fileset=sources
-Fragment: pgm)";
+Fragment: pgm
+Raw URI: aaa://user::pass@127.0.0.1:1234/path/to/resource?fileset=sources#pgm)";
 
     resource_location res("aaa://user::pass@127.0.0.1:1234/path/to/resource?fileset=sources#pgm");
-    EXPECT_EQ(res.to_presentable(), expected);
+    EXPECT_EQ(res.to_presentable(false), expected);
 }
 
 TEST(resource_location, join)

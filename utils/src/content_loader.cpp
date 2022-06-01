@@ -42,4 +42,11 @@ list_directory_result list_directory_files(const utils::resource::resource_locat
     return cl.list_directory_files(directory_loc);
 }
 
+std::string filename(const utils::resource::resource_location& res_loc)
+{
+    const auto& cl = get_content_loader();
+
+    return cl.filename(res_loc);
+}
+
 } // namespace hlasm_plugin::utils::resource

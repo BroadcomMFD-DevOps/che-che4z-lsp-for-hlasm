@@ -22,10 +22,10 @@ using namespace hlasm_plugin::parser_library::lsp;
 using namespace hlasm_plugin::utils::resource;
 
 namespace {
-auto empty_loc = resource_location("");
-auto mac1_loc = resource_location("MAC1");
-auto mac2_loc = resource_location("MAC2");
-auto cpyfile1_loc = resource_location("COPYFILE1");
+const auto empty_loc = resource_location("");
+const auto mac1_loc = resource_location("MAC1");
+const auto mac2_loc = resource_location("MAC2");
+const auto cpyfile1_loc = resource_location("COPYFILE1");
 } // namespace
 
 TEST(lsp_context_document_symbol_var_seq, 1)

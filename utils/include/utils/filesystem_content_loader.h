@@ -30,6 +30,7 @@ public:
 
     std::optional<std::string> load_text(const resource_location& resource) const;
     list_directory_result list_directory_files(const utils::resource::resource_location& directory_loc) const;
+    std::string filename(const utils::resource::resource_location& res_loc) const;
 };
 
 } // namespace hlasm_plugin::utils::resource

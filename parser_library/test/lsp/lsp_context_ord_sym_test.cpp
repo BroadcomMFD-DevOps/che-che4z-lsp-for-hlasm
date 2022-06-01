@@ -35,7 +35,7 @@ R1 EQU 1
 };
 
 namespace {
-auto empty_loc = hlasm_plugin::utils::resource::resource_location("");
+const auto empty_loc = hlasm_plugin::utils::resource::resource_location("");
 }
 
 TEST_F(lsp_context_ord_symbol, document_symbol)

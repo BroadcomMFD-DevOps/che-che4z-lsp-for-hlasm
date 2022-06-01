@@ -533,11 +533,96 @@ void workspace::find_and_add_libs(
     }
 }
 
-// open config files and parse them
-bool workspace::load_and_process_config()
+namespace {
+std::vector<std::string> get_macro_extensions_compatibility_list(const config::pgm_conf& pgm_config)
+{
+    // Extract extension list for compatibility reasons
+    std::vector<std::string> macro_extensions_compatibility_list;
+    for (const auto& wildcard : pgm_config.always_recognize)
+    {
+        std::string_view wc(wildcard);
+        if (const auto ext_pattern = wc.rfind("*."); ext_pattern != std::string_view::npos)
+        {
+            wc.remove_prefix(ext_pattern + 1);
+            macro_extensions_compatibility_list.push_back(std::string(wc));
+        }
+    }
+
+    std::sort(macro_extensions_compatibility_list.begin(), macro_extensions_compatibility_list.end());
+
+    macro_extensions_compatibility_list.erase(
+        std::unique(macro_extensions_compatibility_list.begin(), macro_extensions_compatibility_list.end()),
+        macro_extensions_compatibility_list.end());
+
+    return macro_extensions_compatibility_list;
+}
+} // namespace
+
+void workspace::process_processor_group(
+    const config::processor_group& pg, const config::proc_grps& proc_groups, const config::pgm_conf& pgm_config)
 {
     std::filesystem::path ws_path(location_.get_path());
 
+    processor_group prc_grp(pg.name, pg.asm_options, pg.preprocessor);
+
+    for (const auto& lib : pg.libs)
+    {
+        std::filesystem::path lib_path = [&path = lib.path]() {
+            if (!path.empty())
+                return utils::path::join(path, "");
+            return std::filesystem::path {};
+        }();
+        if (!utils::path::is_absolute(lib_path))
+            lib_path = utils::path::join(ws_path, lib_path);
+        lib_path = utils::path::lexically_normal(lib_path);
+
+        library_local_options opts;
+        opts.optional_library = lib.optional;
+        if (!lib.macro_extensions.empty())
+            opts.extensions = lib.macro_extensions;
+        else if (!proc_groups.macro_extensions.empty())
+            opts.extensions = proc_groups.macro_extensions;
+        else if (auto macro_extensions_compatibility_list = get_macro_extensions_compatibility_list(pgm_config);
+                 !macro_extensions_compatibility_list.empty())
+        {
+            opts.extensions = macro_extensions_compatibility_list;
+            opts.extensions_from_deprecated_source = true;
+        }
+
+        auto path_string = lib_path.string();
+        if (auto asterisk = path_string.find('*'); asterisk == std::string::npos)
+            prc_grp.add_library(std::make_unique<library_local>(
+                file_manager_, utils::resource::resource_location(path_string), std::move(opts)));
+        else
+            find_and_add_libs(
+                path_string.substr(0, path_string.find_last_of("/\\", asterisk)), path_string, prc_grp, opts);
+    }
+
+    add_proc_grp(std::move(prc_grp));
+}
+
+void workspace::process_program(const config::program_mapping& pgm, const file_ptr& pgm_conf_file)
+{
+    if (proc_grps_.find(pgm.pgroup) != proc_grps_.end())
+    {
+        std::string pgm_name = pgm.program;
+        if (utils::platform::is_windows())
+            std::replace(pgm_name.begin(), pgm_name.end(), '/', '\\');
+
+        if (!is_wildcard(pgm_name))
+            exact_pgm_conf_.emplace(pgm_name, program { pgm_name, pgm.pgroup, pgm.opts });
+        else
+            regex_pgm_conf_.push_back({ program { pgm_name, pgm.pgroup, pgm.opts }, wildcard2regex(pgm_name) });
+    }
+    else
+    {
+        config_diags_.push_back(diagnostic_s::error_W0004(pgm_conf_file->get_location().to_presentable(), name_));
+    }
+}
+
+// open config files and parse them
+bool workspace::load_and_process_config()
+{
     config_diags_.clear();
 
     opened_ = true;
@@ -551,82 +636,18 @@ bool workspace::load_and_process_config()
     if (!load_ok)
         return false;
 
-    // Extract extension list for compatibility reasons
-    std::vector<std::string> macro_extensions_compatibility_list;
-    for (const auto& wildcard : pgm_config.always_recognize)
-    {
-        std::string_view wc(wildcard);
-        if (const auto ext_pattern = wc.rfind("*."); ext_pattern != std::string_view::npos)
-        {
-            wc.remove_prefix(ext_pattern + 1);
-            macro_extensions_compatibility_list.push_back(std::string(wc));
-        }
-    }
-    std::sort(macro_extensions_compatibility_list.begin(), macro_extensions_compatibility_list.end());
-    macro_extensions_compatibility_list.erase(
-        std::unique(macro_extensions_compatibility_list.begin(), macro_extensions_compatibility_list.end()),
-        macro_extensions_compatibility_list.end());
-
     local_config_ = lib_config::load_from_pgm_config(pgm_config);
 
     // process processor groups
     for (auto& pg : proc_groups.pgroups)
     {
-        processor_group prc_grp(pg.name, pg.asm_options, pg.preprocessor);
-
-        for (const auto& lib : pg.libs)
-        {
-            std::filesystem::path lib_path = [&path = lib.path]() {
-                if (!path.empty())
-                    return utils::path::join(path, "");
-                return std::filesystem::path {};
-            }();
-            if (!utils::path::is_absolute(lib_path))
-                lib_path = utils::path::join(ws_path, lib_path);
-            lib_path = utils::path::lexically_normal(lib_path);
-
-            library_local_options opts;
-            opts.optional_library = lib.optional;
-            if (!lib.macro_extensions.empty())
-                opts.extensions = lib.macro_extensions;
-            else if (!proc_groups.macro_extensions.empty())
-                opts.extensions = proc_groups.macro_extensions;
-            else if (!macro_extensions_compatibility_list.empty())
-            {
-                opts.extensions = macro_extensions_compatibility_list;
-                opts.extensions_from_deprecated_source = true;
-            }
-
-            auto path_string = lib_path.string();
-            if (auto asterisk = path_string.find('*'); asterisk == std::string::npos)
-                prc_grp.add_library(std::make_unique<library_local>(
-                    file_manager_, utils::resource::resource_location(path_string), std::move(opts)));
-            else
-                find_and_add_libs(
-                    path_string.substr(0, path_string.find_last_of("/\\", asterisk)), path_string, prc_grp, opts);
-        }
-
-        add_proc_grp(std::move(prc_grp));
+        process_processor_group(pg, proc_groups, pgm_config);
     }
 
     // process programs
     for (auto& pgm : pgm_config.pgms)
     {
-        if (proc_grps_.find(pgm.pgroup) != proc_grps_.end())
-        {
-            std::string pgm_name = pgm.program;
-            if (utils::platform::is_windows())
-                std::replace(pgm_name.begin(), pgm_name.end(), '/', '\\');
-
-            if (!is_wildcard(pgm_name))
-                exact_pgm_conf_.emplace(pgm_name, program { pgm_name, pgm.pgroup, pgm.opts });
-            else
-                regex_pgm_conf_.push_back({ program { pgm_name, pgm.pgroup, pgm.opts }, wildcard2regex(pgm_name) });
-        }
-        else
-        {
-            config_diags_.push_back(diagnostic_s::error_W0004(pgm_conf_file->get_location().to_presentable(), name_));
-        }
+        process_program(pgm, pgm_conf_file);
     }
 
     return true;

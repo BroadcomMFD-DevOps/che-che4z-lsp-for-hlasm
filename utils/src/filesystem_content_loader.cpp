@@ -69,4 +69,9 @@ list_directory_result filesystem_content_loader::list_directory_files(
     return result;
 }
 
+std::string filesystem_content_loader::filename(const utils::resource::resource_location& res_loc) const
+{
+    return std::filesystem::path(res_loc.get_path()).filename().string();
+}
+
 } // namespace hlasm_plugin::utils::resource
