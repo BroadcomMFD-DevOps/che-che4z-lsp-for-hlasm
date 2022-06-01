@@ -101,11 +101,11 @@ std::string sam31_macro = R"( MACRO
         MEND)";
 
 const char* sam31_macro_path = is_windows() ? "lib\\SAM31" : "lib/SAM31";
-std::string hlasmplugin_folder = ".hlasmplugin";
+const std::string hlasmplugin_folder = ".hlasmplugin";
 
-resource_location proc_grps_loc(hlasmplugin_folder + "/proc_grps.json");
-resource_location pgm_conf_loc(hlasmplugin_folder + "/pgm_conf.json");
-resource_location source_loc("source");
+const resource_location proc_grps_loc(hlasmplugin_folder + "/proc_grps.json");
+const resource_location pgm_conf_loc(hlasmplugin_folder + "/pgm_conf.json");
+const resource_location source_loc("source");
 
 enum class file_manager_opt_variant
 {

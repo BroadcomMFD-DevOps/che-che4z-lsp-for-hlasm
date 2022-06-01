@@ -41,7 +41,7 @@ std::string one_proc_grps = R"(
 }
 )";
 
-auto file_loc = resource_location("a_file");
+const auto file_loc = resource_location("a_file");
 
 TEST(diags_suppress, no_suppress)
 {

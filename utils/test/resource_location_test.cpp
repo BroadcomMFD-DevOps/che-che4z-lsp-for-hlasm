@@ -64,6 +64,14 @@ TEST(resource_location, non_file_uri)
     EXPECT_EQ(res.get_path(), "");
 }
 
+TEST(resource_location, to_presentable_untitled_scheme)
+{
+    std::string expected = "untitled:Untitled-1";
+
+    resource_location res("untitled:Untitled-1");
+    EXPECT_EQ(res.to_presentable(), expected);
+}
+
 TEST(resource_location, to_presentable_file_scheme_hostname)
 {
     if (is_windows())

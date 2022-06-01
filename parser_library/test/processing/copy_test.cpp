@@ -157,14 +157,14 @@ mock_parse_lib_provider create_copy_mock()
         { "COPYEMPTY", content_COPYEMPTY } };
 }
 
-resource_location start("start");
-resource_location copybm("COPYBM");
-resource_location copyd("COPYD");
-resource_location copyjf("COPYJF");
-resource_location copyl("COPYL");
-resource_location copynd1("COPYND1");
-resource_location copynd2("COPYND2");
-resource_location copyr("COPYR");
+const resource_location start("start");
+const resource_location copybm("COPYBM");
+const resource_location copyd("COPYD");
+const resource_location copyjf("COPYJF");
+const resource_location copyl("COPYL");
+const resource_location copynd1("COPYND1");
+const resource_location copynd2("COPYND2");
+const resource_location copyr("COPYR");
 
 void check_diag(const hlasm_plugin::parser_library::diagnostic_s& diag,
     size_t expected_line,

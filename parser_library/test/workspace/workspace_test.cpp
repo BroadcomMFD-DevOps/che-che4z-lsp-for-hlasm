@@ -33,8 +33,8 @@ using namespace hlasm_plugin::utils::resource;
 using hlasm_plugin::utils::platform::is_windows;
 
 namespace {
-auto correct_loc = is_windows() ? resource_location("test\\library\\test_wks\\correct")
-                                : resource_location("test/library/test_wks/correct");
+const auto correct_loc = is_windows() ? resource_location("test\\library\\test_wks\\correct")
+                                      : resource_location("test/library/test_wks/correct");
 }
 
 class workspace_test : public diagnosable_impl, public testing::Test
@@ -275,17 +275,17 @@ std::string source_using_macro_file_no_error = R"( CORRECT)";
 
 const char* faulty_macro_path = is_windows() ? "lib\\ERROR" : "lib/ERROR";
 const char* correct_macro_path = is_windows() ? "lib\\CORRECT" : "lib/CORRECT";
-std::string hlasmplugin_folder = ".hlasmplugin";
+const std::string hlasmplugin_folder = ".hlasmplugin";
 
-resource_location empty_loc = resource_location("");
+const resource_location empty_loc = resource_location("");
 
-resource_location proc_grps_loc(hlasmplugin_folder + "/proc_grps.json");
-resource_location pgm_conf_loc(hlasmplugin_folder + "/pgm_conf.json");
-resource_location source1_loc("source1");
-resource_location source2_loc("source2");
-resource_location source3_loc("source3");
-resource_location faulty_macro_loc(faulty_macro_path);
-resource_location correct_macro_loc(correct_macro_path);
+const resource_location proc_grps_loc(hlasmplugin_folder + "/proc_grps.json");
+const resource_location pgm_conf_loc(hlasmplugin_folder + "/pgm_conf.json");
+const resource_location source1_loc("source1");
+const resource_location source2_loc("source2");
+const resource_location source3_loc("source3");
+const resource_location faulty_macro_loc(faulty_macro_path);
+const resource_location correct_macro_loc(correct_macro_path);
 
 class file_manager_extended : public file_manager_impl
 {
