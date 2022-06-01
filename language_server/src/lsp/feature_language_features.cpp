@@ -247,14 +247,6 @@ void add_token(
     last_rng = current.token_range;
 }
 
-namespace {
-static bool operator<(const parser_library::position& lhs, const parser_library::position& rhs)
-{
-    return std::tie(lhs.line, lhs.column) < std::tie(rhs.line, rhs.column);
-}
-
-} // namespace
-
 json feature_language_features::convert_tokens_to_num_array(const std::vector<parser_library::token_info>& tokens)
 {
     using namespace parser_library;

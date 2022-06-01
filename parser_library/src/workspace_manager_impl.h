@@ -160,7 +160,7 @@ public:
             return position_uri(definition_result);
         }
 
-        definition_result = ws_path_match(document_uri).definition(std::move(doc_loc), pos);
+        definition_result = ws_path_match(document_uri).definition(doc_loc, pos);
 
         return position_uri(definition_result);
     }

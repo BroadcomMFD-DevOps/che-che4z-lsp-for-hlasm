@@ -64,7 +64,8 @@ dissected_uri dissect_uri(const std::string& uri)
     {
         network::uri u(uri);
 
-        if ((u.has_scheme() && !u.scheme().compare("file")) && (!u.has_authority() || u.authority().to_string() == ""))
+        if (u.has_scheme() && u.scheme().to_string() == "file"
+            && (!u.has_authority() || u.authority().to_string() == ""))
         {
             ret.path = get_file_path(u);
             return ret;

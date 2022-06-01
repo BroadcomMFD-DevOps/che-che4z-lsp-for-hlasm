@@ -63,7 +63,7 @@ void workspace_manager::did_change_watched_files(const char** paths, size_t size
     std::vector<utils::resource::resource_location> paths_s;
     for (size_t i = 0; i < size; ++i)
     {
-        paths_s.push_back(utils::resource::resource_location(paths[i]));
+        paths_s.emplace_back(utils::resource::resource_location(paths[i]));
     }
     impl_->did_change_watched_files(paths_s);
 }
