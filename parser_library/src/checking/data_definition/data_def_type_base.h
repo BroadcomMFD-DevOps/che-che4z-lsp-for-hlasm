@@ -21,9 +21,13 @@
 #include <set>
 #include <variant>
 
-#include "checking/diagnostic_collector.h"
 #include "context/ordinary_assembly/alignment.h"
 #include "data_def_fields.h"
+
+namespace hlasm_plugin::parser_library {
+class diagnostic_collector;
+} // namespace hlasm_plugin::parser_library
+
 namespace hlasm_plugin::parser_library::checking {
 
 class data_definition_operand;

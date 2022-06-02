@@ -17,6 +17,7 @@
 
 #include <concepts>
 
+#include "../diagnostic_collector.h"
 #include "checking/checker_helper.h"
 #include "data_def_types.h"
 

@@ -15,6 +15,7 @@
 // This file contains implementation of the data_def_type for
 // these types: A, Y, S, R, V, Q, J
 
+#include "../diagnostic_collector.h"
 #include "checking/checker_helper.h"
 #include "data_def_types.h"
 
