@@ -128,12 +128,6 @@ void format_path_post_processing_win(std::string hostname, std::string& path)
         path.erase(0, 1);
 }
 
-void format_path_post_processing_linux(std::string hostname, std::string& path)
-{
-    if (!hostname.empty())
-        path.insert(0, "/");
-}
-
 std::string format_path(std::string hostname, std::string path)
 {
     format_path_pre_processing(hostname, path);
@@ -142,8 +136,6 @@ std::string format_path(std::string hostname, std::string path)
 
     if (utils::platform::is_windows())
         format_path_post_processing_win(hostname, s);
-    else
-        format_path_post_processing_linux(hostname, s);
 
     return network::detail::decode(s);
 }
@@ -180,7 +172,7 @@ std::string to_presentable_internal_debug(const dissected_uri& dis_uri, std::str
     return s;
 }
 
-dissected_uri dissect_uri(const std::string& uri, bool human_readable_only)
+dissected_uri dissect_uri(const std::string& uri, bool debug)
 {
     dissected_uri ret;
 
@@ -193,7 +185,7 @@ dissected_uri dissect_uri(const std::string& uri, bool human_readable_only)
             std::string h;
             std::string p;
 
-            if (u.has_host() && !u.host().empty())
+            if (u.has_host())
                 h = u.host().to_string();
             if (u.has_path())
                 p = u.path().to_string();
@@ -214,7 +206,7 @@ dissected_uri dissect_uri(const std::string& uri, bool human_readable_only)
         if (u.has_path())
             ret.path = u.path().to_string();
 
-        if (!human_readable_only)
+        if (debug)
         {
             if (u.has_authority())
                 ret.auth = u.authority().to_string();
@@ -233,14 +225,14 @@ dissected_uri dissect_uri(const std::string& uri, bool human_readable_only)
 }
 } // namespace
 
-std::string get_presentable_uri(const std::string& uri, bool human_readable_only)
+std::string get_presentable_uri(const std::string& uri, bool debug)
 {
-    dissected_uri dis_uri = dissect_uri(uri, human_readable_only);
+    dissected_uri dis_uri = dissect_uri(uri, debug);
 
-    if (human_readable_only)
-        return to_presentable_internal(dis_uri);
-    else
+    if (debug)
         return to_presentable_internal_debug(dis_uri, uri);
+    else
+        return to_presentable_internal(dis_uri);
 }
 
 } // namespace hlasm_plugin::utils::path

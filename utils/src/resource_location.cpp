@@ -41,9 +41,9 @@ const std::string& resource_location::get_uri() const { return m_uri; }
 
 std::string resource_location::get_path() const { return m_uri.size() != 0 ? utils::path::uri_to_path(m_uri) : m_uri; }
 
-std::string resource_location::to_presentable(bool human_readable_only) const
+std::string resource_location::to_presentable(bool debug) const
 {
-    return utils::path::get_presentable_uri(m_uri, human_readable_only);
+    return utils::path::get_presentable_uri(m_uri, debug);
 }
 
 resource_location resource_location::join(const resource_location& rl, std::string_view relative_path)

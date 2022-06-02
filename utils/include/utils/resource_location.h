@@ -31,7 +31,7 @@ public:
 
     const std::string& get_uri() const;
     std::string get_path() const;
-    std::string to_presentable(bool human_readable_only = true) const;
+    std::string to_presentable(bool debug = false) const;
 
     static resource_location join(const resource_location& rl, std::string_view relative_path);
 
