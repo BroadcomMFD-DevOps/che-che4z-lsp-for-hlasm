@@ -108,29 +108,64 @@ std::string path_to_uri(std::string_view path)
 namespace {
 struct dissected_uri
 {
-    std::optional<std::string> scheme = std::nullopt;
-    std::optional<std::string> host = std::nullopt;
-    std::optional<std::string> auth = std::nullopt;
-    std::optional<std::string> path = std::nullopt;
-    std::optional<std::string> query = std::nullopt;
-    std::optional<std::string> fragment = std::nullopt;
+    std::string scheme = "";
+    std::string host = "";
+    std::string port = "";
+    std::string auth = "";
+    std::string path = "";
+    std::string query = "";
+    std::string fragment = "";
 };
 
-void format_path_pre_processing(std::string& hostname, std::string& path)
+dissected_uri dissect_uri(const std::string& uri)
 {
+    dissected_uri dis_uri;
+
+    try
+    {
+        network::uri u(uri);
+
+        if (u.has_scheme())
+            dis_uri.scheme = u.scheme().to_string();
+        if (u.has_host())
+            dis_uri.host = u.host().to_string();
+        if (u.has_port())
+            dis_uri.port = u.port().to_string();
+        if (u.has_authority())
+            dis_uri.auth = u.authority().to_string();
+        if (u.has_path())
+            dis_uri.path = u.path().to_string();
+        if (u.has_query())
+            dis_uri.query = u.query().to_string();
+        if (u.has_fragment())
+            dis_uri.fragment = u.fragment().to_string();
+
+        return dis_uri;
+    }
+    catch (const std::exception&)
+    {
+        return dis_uri;
+    }
+}
+
+void format_path_pre_processing(std::string& hostname, std::string_view port, std::string& path)
+{
+    if (!port.empty())
+        hostname.append(":").append(port);
+
     if (!hostname.empty() && !path.empty() && path[0] == '/')
         path = path.substr(1, path.size() - 1);
 }
 
-void format_path_post_processing_win(std::string hostname, std::string& path)
+void format_path_post_processing_win(std::string_view hostname, std::string& path)
 {
     if (!path.empty() && hostname.empty())
         path.erase(0, 1);
 }
 
-std::string format_path(std::string hostname, std::string path)
+std::string format_path(std::string hostname, std::string_view port, std::string path)
 {
-    format_path_pre_processing(hostname, path);
+    format_path_pre_processing(hostname, port, path);
 
     std::string s = utils::path::lexically_normal(utils::path::join(hostname, path)).string();
 
@@ -140,15 +175,49 @@ std::string format_path(std::string hostname, std::string path)
     return network::detail::decode(s);
 }
 
+void to_presentable_pre_processing(dissected_uri& dis_uri)
+{
+    if (!dis_uri.host.empty() && !dis_uri.auth.empty())
+        dis_uri.host.insert(0, "//");
+
+    if (dis_uri.scheme == "file")
+    {
+        if (utils::platform::is_windows())
+        {
+            // Embed host and port into path
+            dis_uri.path = format_path(dis_uri.host, dis_uri.port, dis_uri.path);
+
+            // Clear not useful stuff before it goes to printer
+            dis_uri.scheme.clear();
+            dis_uri.host.clear();
+            dis_uri.port.clear();
+        }
+        else if (dis_uri.auth.empty() && dis_uri.host.empty())
+        {
+            // When there is no authority and no hostname, we can assume we are dealing with local path
+            dis_uri.path = format_path("", "", dis_uri.path);
+
+            // Clear not useful stuff before it goes to printer
+            dis_uri.scheme.clear();
+        }
+    }
+}
+
 std::string to_presentable_internal(const dissected_uri& dis_uri)
 {
     std::string s;
-    if (dis_uri.scheme.has_value())
-        s.append(dis_uri.scheme.value()).append(":");
-    if (dis_uri.host.has_value())
-        s.append(dis_uri.host.value());
-    if (dis_uri.path.has_value())
-        s.append(dis_uri.path.value());
+
+    if (!dis_uri.scheme.empty())
+        s.append(dis_uri.scheme).append(":");
+
+    s.append(dis_uri.host);
+
+    if (!dis_uri.port.empty())
+        s.append(":").append(dis_uri.port);
+
+    s.append(dis_uri.path);
+
+    // TODO Think about presenting query and fragment parts
 
     return s;
 }
@@ -156,83 +225,30 @@ std::string to_presentable_internal(const dissected_uri& dis_uri)
 std::string to_presentable_internal_debug(const dissected_uri& dis_uri, std::string_view raw_uri)
 {
     std::string s;
-    if (dis_uri.scheme.has_value())
-        s.append("Scheme: ").append(dis_uri.scheme.value()).append("\n");
-    if (dis_uri.auth.has_value())
-        s.append("Authority: ").append(dis_uri.auth.value()).append("\n");
-    if (dis_uri.path.has_value())
-        s.append("Path: ").append(dis_uri.path.value()).append("\n");
-    if (dis_uri.query.has_value())
-        s.append("Query: ").append(dis_uri.query.value()).append("\n");
-    if (dis_uri.fragment.has_value())
-        s.append("Fragment: ").append(dis_uri.fragment.value()).append("\n");
-
+    s.append("Scheme: ").append(dis_uri.scheme).append("\n");
+    s.append("Authority: ").append(dis_uri.auth).append("\n");
+    s.append("Hostname: ").append(dis_uri.host).append("\n");
+    s.append("Port: ").append(dis_uri.port).append("\n");
+    s.append("Path: ").append(dis_uri.path).append("\n");
+    s.append("Query: ").append(dis_uri.query).append("\n");
+    s.append("Fragment: ").append(dis_uri.fragment).append("\n");
     s.append("Raw URI: ").append(raw_uri);
 
     return s;
-}
-
-dissected_uri dissect_uri(const std::string& uri, bool debug)
-{
-    dissected_uri ret;
-
-    try
-    {
-        network::uri u(uri);
-
-        if (u.has_scheme() && u.scheme().to_string() == "file")
-        {
-            std::string h;
-            std::string p;
-
-            if (u.has_host())
-                h = u.host().to_string();
-            if (u.has_path())
-                p = u.path().to_string();
-            if (!h.empty() && u.has_authority())
-                h.insert(0, "//");
-
-            ret.path = format_path(h, p);
-
-            return ret;
-        }
-
-        if (u.has_scheme())
-            ret.scheme = u.scheme().to_string();
-        if (u.has_host())
-            ret.host = u.host().to_string();
-        if (ret.host.has_value() && u.has_authority())
-            ret.host->insert(0, "//");
-        if (u.has_path())
-            ret.path = u.path().to_string();
-
-        if (debug)
-        {
-            if (u.has_authority())
-                ret.auth = u.authority().to_string();
-            if (u.has_query())
-                ret.query = u.query().to_string();
-            if (u.has_fragment())
-                ret.fragment = u.fragment().to_string();
-        }
-
-        return ret;
-    }
-    catch (const std::exception&)
-    {
-        return ret;
-    }
 }
 } // namespace
 
 std::string get_presentable_uri(const std::string& uri, bool debug)
 {
-    dissected_uri dis_uri = dissect_uri(uri, debug);
+    dissected_uri dis_uri = dissect_uri(uri);
 
     if (debug)
         return to_presentable_internal_debug(dis_uri, uri);
     else
+    {
+        to_presentable_pre_processing(dis_uri);
         return to_presentable_internal(dis_uri);
+    }
 }
 
 } // namespace hlasm_plugin::utils::path

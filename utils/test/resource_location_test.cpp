@@ -64,30 +64,12 @@ TEST(resource_location, non_file_uri)
     EXPECT_EQ(res.get_path(), "");
 }
 
-TEST(resource_location, to_presentable_untitled_scheme)
+TEST(resource_location, to_presentable_no_authority)
 {
     std::string expected = "untitled:Untitled-1";
 
     resource_location res("untitled:Untitled-1");
     EXPECT_EQ(res.to_presentable(), expected);
-}
-
-TEST(resource_location, to_presentable_file_scheme_hostname)
-{
-    if (is_windows())
-    {
-        std::string expected = "\\\\localhost\\Public\\folder With spaces\\filE nAme";
-
-        resource_location res("file://localhost/Public/folder%20With%20spaces/filE%20nAme");
-        EXPECT_EQ(res.to_presentable(), expected);
-    }
-    else
-    {
-        std::string expected = "/localhost/home/user/folder With spaces/filE nAme";
-
-        resource_location res("file://localhost/home/user/folder%20With%20spaces/filE%20nAme");
-        EXPECT_EQ(res.to_presentable(), expected);
-    }
 }
 
 TEST(resource_location, to_presentable_file_scheme_localhost)
@@ -108,38 +90,64 @@ TEST(resource_location, to_presentable_file_scheme_localhost)
     }
 }
 
-TEST(resource_location, to_presentable_other_schemes)
-{
-    std::string expected = "aaa://c%3A/Public/folder%20With%20spaces/filE%20nAme";
-
-    resource_location res("aaa://c%3A/Public/folder%20With%20spaces/filE%20nAme");
-    EXPECT_EQ(res.to_presentable(), expected);
-}
-
-TEST(resource_location, to_presentable_file_scheme_debug)
+TEST(resource_location, to_presentable_file_scheme_network)
 {
     if (is_windows())
     {
-        std::string expected = R"(Path: c:\Public\folder With spaces\filE nAme
-Raw URI: file:///c%3A/Public/folder%20With%20spaces/filE%20nAme)";
+        std::string expected = "\\\\server\\Public\\folder With spaces\\filE nAme";
 
-        resource_location res("file:///c%3A/Public/folder%20With%20spaces/filE%20nAme");
-        EXPECT_EQ(res.to_presentable(true), expected);
+        resource_location res("file://server/Public/folder%20With%20spaces/filE%20nAme");
+        EXPECT_EQ(res.to_presentable(), expected);
     }
     else
     {
-        std::string expected = R"(Path: /home/user/folder With spaces/filE nAme
-Raw URI: file:///home/user/folder%20With%20spaces/filE%20nAme)";
+        std::string expected = "file://server/Public/folder%20With%20spaces/filE%20nAme";
 
-        resource_location res("file:///home/user/folder%20With%20spaces/filE%20nAme");
-        EXPECT_EQ(res.to_presentable(true), expected);
+        resource_location res("file://server/Public/folder%20With%20spaces/filE%20nAme");
+        EXPECT_EQ(res.to_presentable(), expected);
     }
+}
+
+TEST(resource_location, to_presentable_file_scheme_network_with_port)
+{
+    if (is_windows())
+    {
+        std::string expected = "\\\\server:50\\Public\\folder With spaces\\filE nAme";
+
+        resource_location res("file://server:50/Public/folder%20With%20spaces/filE%20nAme");
+        EXPECT_EQ(res.to_presentable(), expected);
+    }
+    else
+    {
+        std::string expected = "file://server:50/Public/folder%20With%20spaces/filE%20nAme";
+
+        resource_location res("file://server:50/Public/folder%20With%20spaces/filE%20nAme");
+        EXPECT_EQ(res.to_presentable(), expected);
+    }
+}
+
+TEST(resource_location, to_presentable_other_schemes)
+{
+    std::string expected = "aaa://server/Public/folder%20With%20spaces/filE%20nAme";
+
+    resource_location res("aaa://server/Public/folder%20With%20spaces/filE%20nAme");
+    EXPECT_EQ(res.to_presentable(), expected);
+}
+
+TEST(resource_location, to_presentable_other_schemes_with_port)
+{
+    std::string expected = "aaa://server:80/Public/folder%20With%20spaces/filE%20nAme";
+
+    resource_location res("aaa://server:80/Public/folder%20With%20spaces/filE%20nAme");
+    EXPECT_EQ(res.to_presentable(), expected);
 }
 
 TEST(resource_location, to_presentable_other_schemes_full_debug)
 {
     std::string expected = R"(Scheme: aaa
 Authority: user::pass@127.0.0.1:1234
+Hostname: 127.0.0.1
+Port: 1234
 Path: /path/to/resource
 Query: fileset=sources
 Fragment: pgm
