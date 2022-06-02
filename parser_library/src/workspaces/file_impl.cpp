@@ -61,7 +61,7 @@ void file_impl::load_text()
 
     // TODO Figure out how to present this error in VSCode.
     // Also think about the lifetime of the error as it seems that it will stay in Problem panel forever
-    //add_diagnostic(diagnostic_s::error_W0001(file_location_.to_presentable()));
+    // add_diagnostic(diagnostic_s::error_W0001(file_location_.to_presentable()));
 }
 
 // adds positions of newlines into vector 'lines'
