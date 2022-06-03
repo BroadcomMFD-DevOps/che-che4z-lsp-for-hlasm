@@ -110,18 +110,18 @@ struct dissected_uri
 {
     struct authority
     {
-        std::optional<std::string> user_info = std::nullopt;
-        std::optional<std::string> host = std::nullopt;
-        std::optional<std::string> port = std::nullopt;
+        std::optional<std::string> user_info;
+        std::string host;
+        std::optional<std::string> port;
     };
 
-    std::string scheme = "";
-    std::optional<authority> auth = std::nullopt;
-    std::string path = "";
-    std::optional<std::string> query = std::nullopt;
-    std::optional<std::string> fragment = std::nullopt;
+    std::string scheme;
+    std::optional<authority> auth;
+    std::string path;
+    std::optional<std::string> query;
+    std::optional<std::string> fragment;
 
-    bool contains_host() const { return auth.has_value() && auth->host.has_value() && !auth->host->empty(); }
+    bool contains_host() const { return auth.has_value() && !auth->host.empty(); }
 };
 
 dissected_uri dissect_uri(const std::string& uri)
@@ -143,9 +143,9 @@ dissected_uri dissect_uri(const std::string& uri)
             dis_uri.fragment = u.fragment().to_string();
 
         // Process authority parts
-        std::optional<std::string> user_info = std::nullopt;
-        std::optional<std::string> host = std::nullopt;
-        std::optional<std::string> port = std::nullopt;
+        std::optional<std::string> user_info;
+        std::optional<std::string> host;
+        std::optional<std::string> port;
 
         if (u.has_user_info())
             user_info = u.user_info().to_string();
@@ -156,7 +156,9 @@ dissected_uri dissect_uri(const std::string& uri)
 
         if (user_info.has_value() || host.has_value() || port.has_value())
         {
-            dis_uri.auth = dissected_uri::authority { std::move(user_info), std::move(host), std::move(port) };
+            dis_uri.auth = dissected_uri::authority {
+                std::move(user_info), std::move(host).value_or(std::string()), std::move(port)
+            };
         }
 
         return dis_uri;
@@ -189,8 +191,7 @@ std::string decorate_path(const std::optional<dissected_uri::authority>& auth, s
 
     if (auth.has_value())
     {
-        if (auth->host.has_value())
-            hostname = *auth->host;
+        hostname = auth->host;
 
         if (auth->port.has_value())
             port = *auth->port;
@@ -219,7 +220,7 @@ void handle_local_host_file_scheme(dissected_uri& dis_uri)
 void to_presentable_pre_processing(dissected_uri& dis_uri)
 {
     if (dis_uri.contains_host())
-        dis_uri.auth->host->insert(0, "//");
+        dis_uri.auth->host.insert(0, "//");
 
     if (dis_uri.scheme == "file")
     {
@@ -239,8 +240,7 @@ std::string to_presentable_internal(const dissected_uri& dis_uri)
 
     if (dis_uri.auth.has_value())
     {
-        if (dis_uri.auth->host.has_value())
-            s.append(*dis_uri.auth->host);
+        s.append(dis_uri.auth->host);
 
         if (dis_uri.auth->port.has_value())
             s.append(":").append(*dis_uri.auth->port);
@@ -262,8 +262,7 @@ std::string to_presentable_internal_debug(const dissected_uri& dis_uri, std::str
         const auto& auth = *dis_uri.auth;
         if (auth.user_info.has_value())
             s.append("User info: ").append(*auth.user_info).append("\n");
-        if (auth.host.has_value())
-            s.append("Hostname: ").append(*auth.host).append("\n");
+        s.append("Hostname: ").append(auth.host).append("\n");
         if (auth.port.has_value())
             s.append("Port: ").append(*auth.port).append("\n");
     }
