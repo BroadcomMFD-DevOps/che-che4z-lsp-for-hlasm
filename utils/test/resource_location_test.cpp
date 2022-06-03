@@ -145,7 +145,7 @@ TEST(resource_location, to_presentable_other_schemes_with_port)
 TEST(resource_location, to_presentable_other_schemes_full_debug)
 {
     std::string expected = R"(Scheme: aaa
-Authority: user::pass@127.0.0.1:1234
+User info: user::pass
 Hostname: 127.0.0.1
 Port: 1234
 Path: /path/to/resource

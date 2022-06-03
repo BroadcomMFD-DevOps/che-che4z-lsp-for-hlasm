@@ -108,13 +108,20 @@ std::string path_to_uri(std::string_view path)
 namespace {
 struct dissected_uri
 {
+    struct authority
+    {
+        std::optional<std::string> user_info = std::nullopt;
+        std::optional<std::string> host = std::nullopt;
+        std::optional<std::string> port = std::nullopt;
+    };
+
     std::string scheme = "";
-    std::string host = "";
-    std::string port = "";
-    std::string auth = "";
+    std::optional<authority> auth = std::nullopt;
     std::string path = "";
-    std::string query = "";
-    std::string fragment = "";
+    std::optional<std::string> query = std::nullopt;
+    std::optional<std::string> fragment = std::nullopt;
+
+    bool contains_host() const { return auth.has_value() && auth->host.has_value() && !auth->host->empty(); }
 };
 
 dissected_uri dissect_uri(const std::string& uri)
@@ -125,20 +132,32 @@ dissected_uri dissect_uri(const std::string& uri)
     {
         network::uri u(uri);
 
+        // Process non-authority parts
         if (u.has_scheme())
             dis_uri.scheme = u.scheme().to_string();
-        if (u.has_host())
-            dis_uri.host = u.host().to_string();
-        if (u.has_port())
-            dis_uri.port = u.port().to_string();
-        if (u.has_authority())
-            dis_uri.auth = u.authority().to_string();
         if (u.has_path())
             dis_uri.path = u.path().to_string();
         if (u.has_query())
             dis_uri.query = u.query().to_string();
         if (u.has_fragment())
             dis_uri.fragment = u.fragment().to_string();
+
+        // Process authority parts
+        std::optional<std::string> user_info = std::nullopt;
+        std::optional<std::string> host = std::nullopt;
+        std::optional<std::string> port = std::nullopt;
+
+        if (u.has_user_info())
+            user_info = u.user_info().to_string();
+        if (u.has_host())
+            host = u.host().to_string();
+        if (u.has_port())
+            port = u.port().to_string();
+
+        if (user_info.has_value() || host.has_value() || port.has_value())
+        {
+            dis_uri.auth = dissected_uri::authority { std::move(user_info), std::move(host), std::move(port) };
+        }
 
         return dis_uri;
     }
@@ -150,7 +169,7 @@ dissected_uri dissect_uri(const std::string& uri)
 
 void format_path_pre_processing(std::string& hostname, std::string_view port, std::string& path)
 {
-    if (!port.empty())
+    if (!port.empty() && !hostname.empty())
         hostname.append(":").append(port);
 
     if (!hostname.empty() && !path.empty() && path[0] == '/')
@@ -163,8 +182,20 @@ void format_path_post_processing_win(std::string_view hostname, std::string& pat
         path.erase(0, 1);
 }
 
-std::string format_path(std::string hostname, std::string_view port, std::string path)
+std::string decorate_path(const std::optional<dissected_uri::authority>& auth, std::string path)
 {
+    std::string hostname;
+    std::string port;
+
+    if (auth.has_value())
+    {
+        if (auth->host.has_value())
+            hostname = *auth->host;
+
+        if (auth->port.has_value())
+            port = *auth->port;
+    }
+
     format_path_pre_processing(hostname, port, path);
 
     std::string s = utils::path::lexically_normal(utils::path::join(hostname, path)).string();
@@ -175,31 +206,27 @@ std::string format_path(std::string hostname, std::string_view port, std::string
     return network::detail::decode(s);
 }
 
+void handle_local_host_file_scheme(dissected_uri& dis_uri)
+{
+    // Decorate path with authority
+    dis_uri.path = decorate_path(dis_uri.auth, std::move(dis_uri.path));
+
+    // Clear not useful stuff before it goes to printer
+    dis_uri.scheme.clear();
+    dis_uri.auth = std::nullopt;
+}
+
 void to_presentable_pre_processing(dissected_uri& dis_uri)
 {
-    if (!dis_uri.host.empty() && !dis_uri.auth.empty())
-        dis_uri.host.insert(0, "//");
+    if (dis_uri.contains_host())
+        dis_uri.auth->host->insert(0, "//");
 
     if (dis_uri.scheme == "file")
     {
         if (utils::platform::is_windows())
-        {
-            // Embed host and port into path
-            dis_uri.path = format_path(dis_uri.host, dis_uri.port, dis_uri.path);
-
-            // Clear not useful stuff before it goes to printer
-            dis_uri.scheme.clear();
-            dis_uri.host.clear();
-            dis_uri.port.clear();
-        }
-        else if (dis_uri.auth.empty() && dis_uri.host.empty())
-        {
-            // When there is no authority and no hostname, we can assume we are dealing with local path
-            dis_uri.path = format_path("", "", dis_uri.path);
-
-            // Clear not useful stuff before it goes to printer
-            dis_uri.scheme.clear();
-        }
+            handle_local_host_file_scheme(dis_uri);
+        else if (!dis_uri.contains_host())
+            handle_local_host_file_scheme(dis_uri);
     }
 }
 
@@ -210,10 +237,14 @@ std::string to_presentable_internal(const dissected_uri& dis_uri)
     if (!dis_uri.scheme.empty())
         s.append(dis_uri.scheme).append(":");
 
-    s.append(dis_uri.host);
+    if (dis_uri.auth.has_value())
+    {
+        if (dis_uri.auth->host.has_value())
+            s.append(*dis_uri.auth->host);
 
-    if (!dis_uri.port.empty())
-        s.append(":").append(dis_uri.port);
+        if (dis_uri.auth->port.has_value())
+            s.append(":").append(*dis_uri.auth->port);
+    }
 
     s.append(dis_uri.path);
 
@@ -226,12 +257,21 @@ std::string to_presentable_internal_debug(const dissected_uri& dis_uri, std::str
 {
     std::string s;
     s.append("Scheme: ").append(dis_uri.scheme).append("\n");
-    s.append("Authority: ").append(dis_uri.auth).append("\n");
-    s.append("Hostname: ").append(dis_uri.host).append("\n");
-    s.append("Port: ").append(dis_uri.port).append("\n");
+    if (dis_uri.auth.has_value())
+    {
+        const auto& auth = *dis_uri.auth;
+        if (auth.user_info.has_value())
+            s.append("User info: ").append(*auth.user_info).append("\n");
+        if (auth.host.has_value())
+            s.append("Hostname: ").append(*auth.host).append("\n");
+        if (auth.port.has_value())
+            s.append("Port: ").append(*auth.port).append("\n");
+    }
     s.append("Path: ").append(dis_uri.path).append("\n");
-    s.append("Query: ").append(dis_uri.query).append("\n");
-    s.append("Fragment: ").append(dis_uri.fragment).append("\n");
+    if (dis_uri.query.has_value())
+        s.append("Query: ").append(*dis_uri.query).append("\n");
+    if (dis_uri.fragment.has_value())
+        s.append("Fragment: ").append(*dis_uri.fragment).append("\n");
     s.append("Raw URI: ").append(raw_uri);
 
     return s;

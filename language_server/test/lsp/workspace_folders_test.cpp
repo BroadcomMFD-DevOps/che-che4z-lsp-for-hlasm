@@ -30,7 +30,6 @@ const std::string ws2_uri = is_windows() ? "file:///c%3A/path/to/W%20S/TwoDrive"
 const std::string ws3_uri = is_windows() ? "file:///c%3A/path/to/W%20S/ThreeDrive" : "file:///path/to/W%20S/ThreeDrive";
 const std::string ws4_uri = is_windows() ? "file:///c%3A/path/to/W%20S/FourDrive" : "file:///path/to/W%20S/FourDrive";
 
-const std::string ws1_path = is_windows() ? R"(c:\path\to\W S\OneDrive)" : R"(/path/to/W S/OneDrive)";
 const std::string ws1_path_json_string = is_windows() ? R"(c:\\path\\to\\W S\\OneDrive)" : R"(/path/to/W S/OneDrive)";
 
 TEST(workspace_folders, did_change_workspace_folders)
