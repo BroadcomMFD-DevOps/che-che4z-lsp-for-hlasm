@@ -15,8 +15,8 @@
 // This file contains implementation of the data_def_type for
 // floating point types: E, D, L
 
-#include "checking/diagnostic_collector.h"
 #include "checking/checker_helper.h"
+#include "checking/diagnostic_collector.h"
 #include "data_def_types.h"
 
 using namespace hlasm_plugin::parser_library::checking;
