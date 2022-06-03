@@ -29,18 +29,18 @@ suite('Continuation Handler Test Suite', () => {
         document.uri = vscode.Uri.file('file');
         // prepare editor and edit
         const editor = new TextEditorMock(document);
-        const cursorPosition = new vscode.Position(0, 0);
+        const cursorPosition = new vscode.Position(0, 4);
         editor.selection = new vscode.Selection(cursorPosition, cursorPosition);
         const edit = new TextEditorEditMock('this');
         document.text = edit.text;
 
         // insert new continuation
-        handler.insertContinuation(editor, edit, 15,5);
+        handler.insertContinuation(editor, edit, 15, 5);
         document.text = edit.text;
         assert.equal(document.text, 'this           X\r\n     ');
 
         // insert continuation on continued line
-        handler.insertContinuation(editor, edit, 15,5);
+        handler.insertContinuation(editor, edit, 15, 5);
         document.text = edit.text;
         assert.equal(document.text, 'this           X\r\n               X\r\n     ');
     });
@@ -60,7 +60,7 @@ suite('Continuation Handler Test Suite', () => {
         // delete existing continuation
         handler.removeContinuation(editor, edit, 15);
         document.text = edit.text;
-        assert.equal(document.text, 'continuation   ');
+        assert.equal(document.text, 'continuation    ');
 
         // prepare document
         cursorPosition = new vscode.Position(0, 0);
@@ -69,7 +69,7 @@ suite('Continuation Handler Test Suite', () => {
         // delete non existing continuation - nothing happens
         handler.removeContinuation(editor, edit, 15);
         document.text = edit.text;
-        assert.equal(document.text, 'continuation   ');
+        assert.equal(document.text, 'continuation    ');
     });
 
 });
