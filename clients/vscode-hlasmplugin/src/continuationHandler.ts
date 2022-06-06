@@ -58,57 +58,52 @@ export class ContinuationHandler {
 
     // insert continuation character X to the current line
     insertContinuation(editor: vscode.TextEditor, edit: vscode.TextEditorEdit, continuationOffset: number, continueColumn: number) {
-        const sel = editor.selection;
-
-        // retrieve continuation information
-        const line = sel.active.line;
-        const col = sel.active.character;
-        const isContinued = isLineContinued(editor.document, line, continuationOffset);
         const doc = editor.document;
-        const lineText = doc.lineAt(line).text;
         const eol = doc.eol == vscode.EndOfLine.LF ? '\n' : '\r\n';
 
-        let contSymbol = this.extractContinuationSymbol(doc, line, continuationOffset);
-        if (!isContinued) {
-            let initialLineSize = editor.document.lineAt(line).text.length;
-            if (initialLineSize <= continuationOffset) {
-                edit.insert(new vscode.Position(line, col),
-                    ' '.repeat(continuationOffset - col) + contSymbol + eol +
-                    ' '.repeat(continueColumn));
-            }
-            else {
-                let reinsert = '';
-                let ignoredPart = '';
-                if (col < continuationOffset)
-                    reinsert = lineText.substring(col, continuationOffset).trimEnd();
+        const selections: { [line: number]: vscode.Selection[] } = editor.selections
+            .filter(s => s.isSingleLine)
+            .map(s => s.start.character <= continuationOffset ? s : new vscode.Selection(new vscode.Position(s.start.line, continuationOffset), new vscode.Position(s.start.line, continuationOffset)))
+            .map((s) => ({ line: s.start.line, selection: s.end.character <= continuationOffset ? s : new vscode.Selection(s.start, new vscode.Position(s.end.line, continuationOffset)) }))
+            .reduce((r, v): { [line: number]: vscode.Selection[] } => { r[v.line] = r[v.line] || []; r[v.line].push(v.selection); return r; }, Object.create({}));
 
-                ignoredPart = lineText.substring(continuationOffset + 1);
-                // see https://github.com/microsoft/vscode/issues/32058 why replace does not work
-                const insertionPoint = new vscode.Position(line, Math.min(col, continuationOffset));
-                edit.delete(new vscode.Range(insertionPoint, new vscode.Position(line, lineText.length)));
-                edit.insert(insertionPoint,
-                    ' '.repeat(Math.max(continuationOffset - col, 0)) + contSymbol + ignoredPart + eol +
-                    ' '.repeat(continueColumn) + reinsert);
-            }
-        }
-        // add extra continuation on already continued line
-        else {
-            let prefix = '';
+        let new_selection: vscode.Selection[] = [];
+        let idx = Object.entries(selections).length;
+        for (const line_sel of Object.entries(selections).sort((a, b) => +b[0] - +a[0])) {
+            // retrieve continuation information
+            const line = +line_sel[0];
+            const lineText = doc.lineAt(line).text;
+            const sel = ((x: vscode.Selection[]): vscode.Selection[] => {
+                if (x.length == 1 && x[0].isEmpty)
+                    return [new vscode.Selection(x[0].start, new vscode.Position(line, Math.min(continuationOffset, lineText.length)))];
+                return x.sort((l, r) => l.start.character - r.start.character);
+            })(line_sel[1]);
+
             let reinsert = '';
-            if (col < continuationOffset) {
-                reinsert = lineText.substring(col, continuationOffset).trimEnd();
-                prefix = ' '.repeat(continuationOffset - col) + lineText.substring(continuationOffset, lineText.length);
+            for (let s of sel)
+                reinsert += lineText.substring(s.start.character, s.end.character);
+            const trimmed_reinsert = ' '.repeat(continueColumn) + reinsert.trimEnd();
+            const contSymbol = this.extractContinuationSymbol(doc, line, continuationOffset);
+
+            if (isLineContinued(editor.document, line, continuationOffset)) {
+                edit.insert(new vscode.Position(line, continuationOffset), ' '.repeat(reinsert.length));
+                edit.insert(new vscode.Position(line + 1, 0), trimmed_reinsert.padEnd(continuationOffset) + contSymbol + eol);
             }
             else {
-                prefix = lineText.substring(col, lineText.length);
+                if (lineText.length < continuationOffset)
+                    edit.insert(new vscode.Position(line, lineText.length), ' '.repeat(continuationOffset - lineText.length) + contSymbol + eol + trimmed_reinsert);
+                else {
+                    edit.insert(new vscode.Position(line, continuationOffset), ' '.repeat(reinsert.length));
+                    edit.replace(new vscode.Selection(new vscode.Position(line, continuationOffset), new vscode.Position(line, continuationOffset + 1)), contSymbol);
+                    edit.insert(new vscode.Position(line + 1, 0), trimmed_reinsert + eol);
+                }
             }
-            const insertionPoint = new vscode.Position(line, col);
-            edit.delete(new vscode.Range(insertionPoint, new vscode.Position(line, lineText.length)));
-            edit.insert(insertionPoint,
-                prefix + eol +
-                ' '.repeat(continueColumn) + reinsert + ' '.repeat(continuationOffset - continueColumn - reinsert.length) + contSymbol);
-            setImmediate(() => setCursor(editor, new vscode.Position(line + 1, continueColumn + reinsert.length)));
+            for (let s of sel)
+                edit.delete(s);
+            new_selection.push(new vscode.Selection(new vscode.Position(line + idx, trimmed_reinsert.length), new vscode.Position(line + idx, trimmed_reinsert.length)));
+            idx--;
         }
+        setImmediate(() => { editor.selections = new_selection; });
     }
 
     private extractLineRangesForRemoval(editor: vscode.TextEditor, continuationOffset: number): { start: number, end: number }[] {
