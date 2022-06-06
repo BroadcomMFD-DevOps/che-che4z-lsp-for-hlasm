@@ -45,6 +45,26 @@ suite('Continuation Handler Test Suite', () => {
         assert.equal(document.text, 'this           X\r\n               X\r\n     ');
     });
 
+    test('Insert Continuation Test - Multiple cursors', () => {
+        assert.ok(config.get('continuationHandling'));
+        // prepare document
+        const document = new TextDocumentMock();
+        document.uri = vscode.Uri.file('file');
+        // prepare editor and edit
+        const editor = new TextEditorMock(document);
+        editor.selections = [
+            new vscode.Selection(new vscode.Position(0, 17), new vscode.Position(0, 22)),
+            new vscode.Selection(new vscode.Position(0, 27), new vscode.Position(0, 32)),
+        ];
+        const edit = new TextEditorEditMock('label instr arg1,arg2,arg3,arg4   comment');
+        document.text = edit.text;
+
+        // insert new continuation
+        handler.insertContinuation(editor, edit, 50, 5);
+        document.text = edit.text;
+        assert.equal(document.text, 'label instr arg1,arg3,  comment                   X\r\n     arg2,arg4');
+    });
+
     test('Remove Continuation Test', () => {
         assert.ok(config.get('continuationHandling'));
         // prepare document
@@ -70,6 +90,44 @@ suite('Continuation Handler Test Suite', () => {
         handler.removeContinuation(editor, edit, 15);
         document.text = edit.text;
         assert.equal(document.text, 'continuation    ');
+    });
+
+    test('Rearrange sequence numbers', () => {
+        assert.ok(config.get('continuationHandling'));
+        // prepare document
+        const document = new TextDocumentMock();
+        document.uri = vscode.Uri.file('file');
+        // prepare editor and edit
+        const editor = new TextEditorMock(document);
+        editor.selections = [
+            new vscode.Selection(new vscode.Position(0, 0), new vscode.Position(0, 0))
+        ];
+        const edit = new TextEditorEditMock('label instr arg1,arg2,arg3,arg4   comment           12345678');
+        document.text = edit.text;
+
+        // insert new continuation
+        handler.rearrangeSequenceNumbers(editor, edit, 50);
+        document.text = edit.text;
+        assert.equal(document.text, 'label instr arg1,arg2,arg3,arg4   comment          12345678');
+    });
+
+    test('Rearrange sequence numbers - deletion', () => {
+        assert.ok(config.get('continuationHandling'));
+        // prepare document
+        const document = new TextDocumentMock();
+        document.uri = vscode.Uri.file('file');
+        // prepare editor and edit
+        const editor = new TextEditorMock(document);
+        editor.selections = [
+            new vscode.Selection(new vscode.Position(0, 26), new vscode.Position(0, 31)),
+        ];
+        const edit = new TextEditorEditMock('label instr arg1,arg2,arg3,arg4   comment          12345678');
+        document.text = edit.text;
+
+        // insert new continuation
+        handler.rearrangeSequenceNumbers(editor, edit, 50);
+        document.text = edit.text;
+        assert.equal(document.text, 'label instr arg1,arg2,arg3   comment               12345678');
     });
 
 });

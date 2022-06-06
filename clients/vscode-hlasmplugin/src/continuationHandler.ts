@@ -91,14 +91,14 @@ export class ContinuationHandler {
             }
             else {
                 if (lineText.length < continuationOffset)
-                    edit.insert(new vscode.Position(line, lineText.length), ' '.repeat(continuationOffset - lineText.length) + contSymbol + eol + trimmed_reinsert);
+                    edit.insert(new vscode.Position(line, lineText.length), ' '.repeat(continuationOffset - lineText.length + reinsert.length) + contSymbol + eol + trimmed_reinsert);
                 else {
                     edit.insert(new vscode.Position(line, continuationOffset), ' '.repeat(reinsert.length));
                     edit.replace(new vscode.Selection(new vscode.Position(line, continuationOffset), new vscode.Position(line, continuationOffset + 1)), contSymbol);
                     edit.insert(new vscode.Position(line + 1, 0), trimmed_reinsert + eol);
                 }
             }
-            for (let s of sel)
+            for (let s of sel.sort((l, r) => r.start.character - l.start.character))
                 edit.delete(s);
             new_selection.push(new vscode.Selection(new vscode.Position(line + idx, trimmed_reinsert.length), new vscode.Position(line + idx, trimmed_reinsert.length)));
             idx--;
