@@ -111,37 +111,56 @@ export class ContinuationHandler {
         }
     }
 
+    private extractLineRanges(editor: vscode.TextEditor, continuationOffset: number): { start: number, end: number }[] {
+        const selection_to_lines = (x: vscode.Selection) => {
+            let result = [];
+            for (let l = x.start.line; l <= x.end.line; ++l)
+                result.push(l);
+            return result;
+        };
+        const all_lines = [... new Set(editor.selections.map(selection_to_lines).flat(1))].sort();
+        let last = -2;
+        let result: { start: number, end: number }[] = [];
+        for (let l of all_lines) {
+            if (l != last + 1) {
+                if (l > 0 && isLineContinued(editor.document, l - 1, continuationOffset)) {
+                    result.push({ start: l, end: l });
+                    last = l;
+                }
+            }
+            else {
+                result[result.length - 1].end = l;
+                last = l;
+            }
+        }
+        return result;
+    }
+
     // remove continuation from previous line
     removeContinuation(editor: vscode.TextEditor, edit: vscode.TextEditorEdit, continuationOffset: number) {
-        const sel = editor.selection;
-
-        const line = sel.active.line;
-        const col = sel.active.character;
-        const isThisContinued = isLineContinued(editor.document, line, continuationOffset);
-        const isPrevContinued = isLineContinued(editor.document, line - 1, continuationOffset);
-
-        if (line > 0 && isPrevContinued) {
+        let new_selection: vscode.Selection[] = [];
+        for (const line_range of this.extractLineRanges(editor, continuationOffset).sort((l, r) => { return l.start - r.start; })) {
             edit.delete(
                 new vscode.Range(
-                    new vscode.Position(line - 1, editor.document.lineAt(line - 1).text.length),
-                    new vscode.Position(line, editor.document.lineAt(line).text.length)));
-            if (!isThisContinued) {
-                const continuationPosition = new vscode.Position(line - 1, continuationOffset);
+                    new vscode.Position(line_range.start - 1, editor.document.lineAt(line_range.start - 1).text.length),
+                    new vscode.Position(line_range.end, editor.document.lineAt(line_range.end).text.length)));
+            if (!isLineContinued(editor.document, line_range.end, continuationOffset)) {
+                const continuationPosition = new vscode.Position(line_range.start - 1, continuationOffset);
                 edit.replace(
                     new vscode.Range(
-                        new vscode.Position(line - 1, continuationOffset),
-                        new vscode.Position(line - 1, continuationOffset + 1)
+                        new vscode.Position(line_range.start - 1, continuationOffset),
+                        new vscode.Position(line_range.start - 1, continuationOffset + 1)
                     ),
                     ' '
                 );
             }
-            setImmediate(() => setCursor(editor,
-                new vscode.Position(
-                    line - 1,
-                    editor.document.lineAt(line - 1).text.substring(0, continuationOffset).trimEnd().length
-                )
-            ));
+            let new_cursor = new vscode.Position(
+                line_range.start - 1,
+                editor.document.lineAt(line_range.start - 1).text.substring(0, continuationOffset).trimEnd().length
+            );
+            new_selection.push(new vscode.Selection(new_cursor, new_cursor));
         }
+        editor.selections = new_selection;
     }
 
     rearrangeSequenceNumbers(editor: vscode.TextEditor, edit: vscode.TextEditorEdit, continuationOffset: number) {
@@ -149,7 +168,7 @@ export class ContinuationHandler {
             .filter(s => s.isSingleLine)
             .map((s) => ({ line: s.start.line, selection: s }))
             .reduce((r, v): { [line: number]: vscode.Selection[] } => { r[v.line] = r[v.line] || []; r[v.line].push(v.selection); return r; }, Object.create({}));
-        for (let line_sel of Object.entries(selections).sort((a, b) => +b[0] - +a[0])) {
+        for (const line_sel of Object.entries(selections).sort((a, b) => +b[0] - +a[0])) {
             const sel = line_sel[1];
 
             // retrieve continuation information
