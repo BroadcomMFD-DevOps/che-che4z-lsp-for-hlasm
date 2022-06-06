@@ -111,7 +111,7 @@ export class ContinuationHandler {
         }
     }
 
-    private extractLineRanges(editor: vscode.TextEditor, continuationOffset: number): { start: number, end: number }[] {
+    private extractLineRangesForRemoval(editor: vscode.TextEditor, continuationOffset: number): { start: number, end: number }[] {
         const selection_to_lines = (x: vscode.Selection) => {
             let result = [];
             for (let l = x.start.line; l <= x.end.line; ++l)
@@ -139,7 +139,7 @@ export class ContinuationHandler {
     // remove continuation from previous line
     removeContinuation(editor: vscode.TextEditor, edit: vscode.TextEditorEdit, continuationOffset: number) {
         let new_selection: vscode.Selection[] = [];
-        for (const line_range of this.extractLineRanges(editor, continuationOffset).sort((l, r) => { return l.start - r.start; })) {
+        for (const line_range of this.extractLineRangesForRemoval(editor, continuationOffset).sort((l, r) => { return l.start - r.start; })) {
             edit.delete(
                 new vscode.Range(
                     new vscode.Position(line_range.start - 1, editor.document.lineAt(line_range.start - 1).text.length),
@@ -187,7 +187,7 @@ export class ContinuationHandler {
                 else if (notSpace - deletionStart > selectionLength) {
                     // the end of line segment is either a single character, or longer than 8 => assume continuation symbol is present
                     // otherwise assume only sequence symbols are present
-                    if (lineText.substring(deletionStart + selectionLength, notSpace).trim().length == 0)
+                    if (lineText.substring(deletionStart + selectionLength, notSpace).trim().length == 0) // only delete spaces!!!
                         edit.delete(
                             new vscode.Range(
                                 new vscode.Position(line, deletionStart + selectionLength),
@@ -196,7 +196,7 @@ export class ContinuationHandler {
                         );
                 }
             }
-            for (let s of sel)
+            for (let s of sel.sort((l, r) => r.start.character - l.start.character))
                 if (!s.isEmpty)
                     edit.delete(s);
         }
