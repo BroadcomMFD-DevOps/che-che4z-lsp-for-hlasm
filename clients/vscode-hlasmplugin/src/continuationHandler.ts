@@ -145,36 +145,41 @@ export class ContinuationHandler {
     }
 
     rearrangeSequenceNumbers(editor: vscode.TextEditor, edit: vscode.TextEditorEdit, continuationOffset: number) {
-        const sel = editor.selection;
+        const selections: { [line: number]: vscode.Selection[] } = editor.selections
+            .filter(s => s.isSingleLine)
+            .map((s) => ({ line: s.start.line, selection: s }))
+            .reduce((r, v): { [line: number]: vscode.Selection[] } => { r[v.line] = r[v.line] || []; r[v.line].push(v.selection); return r; }, Object.create({}));
+        for (let line_sel of Object.entries(selections).sort((a, b) => +b[0] - +a[0])) {
+            const sel = line_sel[1];
 
-        if (!sel.isSingleLine || sel.end.character > continuationOffset)
-            return;
-        // retrieve continuation information
-        const line = sel.active.line;
-        const col = sel.active.character;
-        const doc = editor.document;
-        const lineText = doc.lineAt(line).text;
-        const selectionLength = sel.end.character - sel.start.character;
+            // retrieve continuation information
+            const line = +line_sel[0];
+            const doc = editor.document;
+            const lineText = doc.lineAt(line).text;
+            const selectionLength = sel.reduce((r, v) => r + (v.end.character - v.start.character), 0);
 
-        if (lineText.length <= continuationOffset)
-            return;
-        const lastSpace = lineText.lastIndexOf(' ');
-        const notSpace = lastSpace + 1;
-        const deletionStart = continuationOffset + (notSpace + 1 == lineText.length || lineText.length - notSpace > 8 ? 0 : 1);
-        if (notSpace - deletionStart < selectionLength) {
-            edit.insert(new vscode.Position(line, continuationOffset), ' '.repeat(selectionLength - (notSpace - deletionStart)));
+            if (lineText.length > continuationOffset) {
+                const lastSpace = lineText.lastIndexOf(' ');
+                const notSpace = lastSpace + 1;
+                const deletionStart = continuationOffset + (notSpace + 1 == lineText.length || lineText.length - notSpace > 8 ? 0 : 1);
+                if (notSpace - deletionStart < selectionLength) {
+                    edit.insert(new vscode.Position(line, continuationOffset), ' '.repeat(selectionLength - (notSpace - deletionStart)));
+                }
+                else if (notSpace - deletionStart > selectionLength) {
+                    // the end of line segment is either a single character, or longer than 8 => assume continuation symbol is present
+                    // otherwise assume only sequence symbols are present
+                    if (lineText.substring(deletionStart + selectionLength, notSpace).trim().length == 0)
+                        edit.delete(
+                            new vscode.Range(
+                                new vscode.Position(line, deletionStart + selectionLength),
+                                new vscode.Position(line, notSpace)
+                            )
+                        );
+                }
+            }
+            for (let s of sel)
+                if (!s.isEmpty)
+                    edit.delete(s);
         }
-        else if (notSpace - deletionStart > selectionLength) {
-            // the end of line segment is either a single character, or longer than 8 => assume continuation symbol is present
-            // otherwise assume only sequence symbols are present
-            edit.delete(
-                new vscode.Range(
-                    new vscode.Position(line, deletionStart + selectionLength),
-                    new vscode.Position(line, notSpace)
-                )
-            );
-        }
-        if (selectionLength > 0)
-            edit.delete(sel);
     }
 }
