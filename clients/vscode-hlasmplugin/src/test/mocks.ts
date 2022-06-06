@@ -63,8 +63,15 @@ export class TextEditorMock implements vscode.TextEditor {
         this.document = document;
     }
     document: vscode.TextDocument;
-    selection: vscode.Selection;
     selections: vscode.Selection[];
+
+    public get selection(): vscode.Selection {
+        return this.selections[0];
+    }
+    public set selection(v: vscode.Selection) {
+        this.selections = [v];
+    }
+
     visibleRanges: vscode.Range[];
     options: vscode.TextEditorOptions;
     viewColumn: vscode.ViewColumn;
@@ -97,10 +104,10 @@ export class TextEditorEditMock implements vscode.TextEditorEdit {
     private skipLines(text: string, line: number): number {
         let pos = 0;
         for (let i = 0; i < line; ++i) {
-            pos = this.text.indexOf('\r\n', pos);
+            pos = this.text.indexOf('\n', pos);
             if (pos < 0)
                 throw new Error("Bad coordinate");
-            pos += 2
+            pos += 1
         }
         return pos;
     }
