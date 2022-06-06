@@ -113,23 +113,24 @@ export class ContinuationHandler {
 
     // remove continuation from previous line
     removeContinuation(editor: vscode.TextEditor, edit: vscode.TextEditorEdit, continuationOffset: number) {
-        const isThisContinued = isLineContinued(editor.document, editor.selection.active.line, continuationOffset);
-        const isPrevContinued = isLineContinued(editor.document, editor.selection.active.line - 1, continuationOffset);
-        const line = editor.selection.active.line;
-        const col = editor.selection.active.character;
+        const sel = editor.selection;
 
-        if (editor.selection.active.line > 0 && isPrevContinued) {
+        const line = sel.active.line;
+        const col = sel.active.character;
+        const isThisContinued = isLineContinued(editor.document, line, continuationOffset);
+        const isPrevContinued = isLineContinued(editor.document, line - 1, continuationOffset);
+
+        if (line > 0 && isPrevContinued) {
             edit.delete(
                 new vscode.Range(
                     new vscode.Position(line - 1, editor.document.lineAt(line - 1).text.length),
                     new vscode.Position(line, editor.document.lineAt(line).text.length)));
             if (!isThisContinued) {
-                const continuationPosition = new vscode.Position(
-                    editor.selection.active.line - 1, continuationOffset);
+                const continuationPosition = new vscode.Position(line - 1, continuationOffset);
                 edit.replace(
                     new vscode.Range(
-                        new vscode.Position(editor.selection.active.line - 1, continuationOffset),
-                        new vscode.Position(editor.selection.active.line - 1, continuationOffset + 1)
+                        new vscode.Position(line - 1, continuationOffset),
+                        new vscode.Position(line - 1, continuationOffset + 1)
                     ),
                     ' '
                 );
@@ -146,27 +147,34 @@ export class ContinuationHandler {
     rearrangeSequenceNumbers(editor: vscode.TextEditor, edit: vscode.TextEditorEdit, continuationOffset: number) {
         const sel = editor.selection;
 
+        if (!sel.isSingleLine || sel.end.character > continuationOffset)
+            return;
         // retrieve continuation information
         const line = sel.active.line;
         const col = sel.active.character;
         const doc = editor.document;
         const lineText = doc.lineAt(line).text;
+        const selectionLength = sel.end.character - sel.start.character;
 
         if (lineText.length <= continuationOffset)
             return;
         const lastSpace = lineText.lastIndexOf(' ');
-        if (lastSpace < continuationOffset)
-            return;
-        if (lineText.substring(continuationOffset, lastSpace).trim().length != 0)
-            return;
         const notSpace = lastSpace + 1;
-        // the end of line segment is either a single character, or longer than 8 => assume continuation symbol is present
-        // otherwise assume only sequence symbols are present
-        edit.delete(
-            new vscode.Range(
-                new vscode.Position(line, continuationOffset + (notSpace + 1 == lineText.length || lineText.length - notSpace > 8 ? 0 : 1)),
-                new vscode.Position(line, notSpace)
-            )
-        );
+        const deletionStart = continuationOffset + (notSpace + 1 == lineText.length || lineText.length - notSpace > 8 ? 0 : 1);
+        if (notSpace - deletionStart < selectionLength) {
+            edit.insert(new vscode.Position(line, continuationOffset), ' '.repeat(selectionLength - (notSpace - deletionStart)));
+        }
+        else if (notSpace - deletionStart > selectionLength) {
+            // the end of line segment is either a single character, or longer than 8 => assume continuation symbol is present
+            // otherwise assume only sequence symbols are present
+            edit.delete(
+                new vscode.Range(
+                    new vscode.Position(line, deletionStart + selectionLength),
+                    new vscode.Position(line, notSpace)
+                )
+            );
+        }
+        if (selectionLength > 0)
+            edit.delete(sel);
     }
 }
