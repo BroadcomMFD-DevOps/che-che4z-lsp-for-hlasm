@@ -173,8 +173,7 @@ export class ContinuationHandler {
             const selectionLength = sel.reduce((r, v) => r + (v.end.character - v.start.character), 0);
 
             if (lineText.length > continuationOffset) {
-                const lastSpace = lineText.lastIndexOf(' ');
-                const notSpace = lastSpace + 1;
+                const notSpace = Math.max(lineText.lastIndexOf(' '), continuationOffset) + 1;
                 const deletionStart = continuationOffset + (notSpace + 1 == lineText.length || lineText.length - notSpace > 8 ? 0 : 1);
                 if (notSpace - deletionStart < selectionLength) {
                     edit.insert(new vscode.Position(line, continuationOffset), ' '.repeat(selectionLength - (notSpace - deletionStart)));
