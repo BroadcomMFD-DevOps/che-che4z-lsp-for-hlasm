@@ -322,7 +322,19 @@ TEST(ainsert, grammar_unknown_label)
     analyzer a(input);
     a.analyze();
     a.collect_diags();
-    EXPECT_TRUE(matches_message_codes(a.diags(), { "E010", "E076", "E010", "E076", "E010", "E076", "E010", "E076" }));
+    EXPECT_TRUE(matches_message_codes(a.diags(),
+        {
+            "S0012",
+            "S0012",
+            "E010",
+            "E076",
+            "E010",
+            "E076",
+            "E010",
+            "E076",
+            "E010",
+            "E076",
+        }));
 }
 
 TEST(ainsert, grammar_unknown_variable)
@@ -374,12 +386,12 @@ TEST(ainsert, grammar_invalid_string)
     a.collect_diags();
     EXPECT_TRUE(matches_message_codes(a.diags(),
         {
-            "E022",
+            "S0012",
             "E076",
-            "E022",
+            "S0012",
             "E076",
-            "E022",
-            "E022",
+            "S0012",
+            "S0012",
         }));
 }
 
@@ -409,7 +421,7 @@ TEST(ainsert, grammar_non_matching_apostrophes_by_two_01)
     analyzer a(input);
     a.analyze();
     a.collect_diags();
-    EXPECT_TRUE(matches_message_codes(a.diags(), { "E022" }));
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "S0005", "E022" }));
 }
 
 /*
@@ -434,7 +446,7 @@ TEST(ainsert, grammar_non_matching_apostrophes_by_two_02)
     analyzer a(input);
     a.analyze();
     a.collect_diags();
-    EXPECT_TRUE(matches_message_codes(a.diags(), { "E022" }));
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "S0005", "E022" }));
 }
 
 /*
