@@ -157,7 +157,18 @@ export class TextDocumentMock implements vscode.TextDocument {
         throw new Error("Method not implemented.");
     }
     eol: vscode.EndOfLine;
-    lineCount: number;
+
+    public get lineCount(): number {
+        let result = 0;
+        let pos = 0;
+        do {
+            ++result;
+            pos = this.text.indexOf('\n', pos) + 1;
+        } while (pos != 0)
+
+        return result;
+    }
+
     lineAt(line: number): vscode.TextLine;
     lineAt(position: vscode.Position): vscode.TextLine;
     lineAt(position: any) {

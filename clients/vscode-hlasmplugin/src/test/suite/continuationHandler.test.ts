@@ -65,6 +65,25 @@ suite('Continuation Handler Test Suite', () => {
         assert.equal(document.text, 'label instr arg1,arg3,  comment                   X\r\n     arg2,arg4');
     });
 
+    test('Insert Continuation Test - detect continuation', () => {
+        assert.ok(config.get('continuationHandling'));
+        // prepare document
+        const document = new TextDocumentMock();
+        document.uri = vscode.Uri.file('file');
+        // prepare editor and edit
+        const editor = new TextEditorMock(document);
+        editor.selections = [
+            new vscode.Selection(new vscode.Position(2, 7), new vscode.Position(2, 7)),
+        ];
+        const edit = new TextEditorEditMock('    aaa   +\r\n\r\n    bbb');
+        document.text = edit.text;
+
+        // insert new continuation
+        handler.insertContinuation(editor, edit, 10, 5);
+        document.text = edit.text;
+        assert.equal(document.text, '    aaa   +\r\n\r\n    bbb   +\r\n     ');
+    });
+
     test('Remove Continuation Test', () => {
         assert.ok(config.get('continuationHandling'));
         // prepare document
