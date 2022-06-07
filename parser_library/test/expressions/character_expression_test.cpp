@@ -108,7 +108,7 @@ TEST(character_expresssion, invalid_string)
     a.analyze();
     a.collect_diags();
 
-    EXPECT_TRUE(matches_message_codes(a.diags(), { "S0008", "E022", "CE011" }));
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "S0008", "CE011" }));
 }
 
 TEST(character_expresssion, escaping)

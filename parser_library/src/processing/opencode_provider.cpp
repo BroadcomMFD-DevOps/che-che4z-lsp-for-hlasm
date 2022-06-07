@@ -242,6 +242,114 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_looka
 
     return result;
 }
+
+void op_rem_body_alt_ca(parsing::hlasmparser& parser, diagnostic_op_consumer* diags)
+{
+    using namespace parsing;
+    const auto unexpected_token = [diags](const antlr4::Token* t) {
+        if (diags)
+            diags->add_diagnostic(diagnostic_op(diagnostic_severity::error,
+                "S0002",
+                "Syntax error",
+                range(position(t->getLine(), t->getCharPositionInLine()))));
+    };
+
+    auto& input = dynamic_cast<lexing::token_stream&>(*parser.getTokenStream());
+    switch (input.LA(1))
+    {
+        case hlasmparser::EOF:
+            return;
+        case hlasmparser::SPACE:
+            break;
+        default:
+            unexpected_token(input.LT(1));
+            return;
+    }
+    while (input.LA(1) == hlasmparser::SPACE)
+        input.consume();
+    if (input.LA(1) == hlasmparser::EOF)
+        return;
+
+    bool next_op_allowed = true;
+    bool last_op_empty = false;
+
+    std::vector<range> remarks;
+    std::vector<operand_ptr> operands;
+
+    const auto* first_token = input.LT(1);
+    semantics::range_provider provider;
+
+    while (std::exchange(next_op_allowed, false))
+    {
+        switch (input.LA(1))
+        {
+            case hlasmparser::COMMA:
+                last_op_empty = true;
+                next_op_allowed = true;
+                operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range(input.LT(1))));
+                input.consume();
+                if (input.LA(1) == hlasmparser::SPACE)
+                {
+                    input.enable_continuation();
+
+                    if (input.LA(1) == hlasmparser::CONTINUATION)
+                        input.consume();
+                    else
+                    {
+                        if (auto& comment = parser.remark_o()->value; comment.has_value())
+                            remarks.push_back(std::move(comment.value()));
+                        if (input.LA(1) == hlasmparser::CONTINUATION)
+                            input.consume();
+                    }
+                    input.disable_continuation();
+                }
+                break;
+            case hlasmparser::SPACE:
+                if (std::exchange(last_op_empty, false))
+                    operands.push_back(
+                        std::make_unique<semantics::empty_operand>(provider.get_empty_range(input.LT(1))));
+                if (auto& comment = parser.remark_o()->value; comment.has_value())
+                    remarks.push_back(std::move(comment.value()));
+                break;
+            case hlasmparser::EOF:
+                break;
+            default: {
+                last_op_empty = false;
+                auto* ca_op_ctx = parser.manual_ca_op();
+                if (ca_op_ctx->op)
+                    operands.push_back(std::move(ca_op_ctx->op));
+                else
+                    operands.push_back(
+                        std::make_unique<semantics::empty_operand>(provider.get_empty_range(ca_op_ctx->getStart())));
+                if (input.LA(1) == hlasmparser::COMMA)
+                {
+                    input.consume();
+                    next_op_allowed = true;
+                    last_op_empty = true;
+                }
+                else if (input.LA(1) == hlasmparser::SPACE)
+                {
+                    if (auto& comment = parser.remark_o()->value; comment.has_value())
+                        remarks.push_back(std::move(comment.value()));
+                }
+                break;
+            }
+        }
+    }
+    if (std::exchange(last_op_empty, false))
+        operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range(input.LT(-1))));
+
+    const auto* last_token = input.LT(-1);
+    if (input.LA(1) != hlasmparser::EOF)
+    {
+        last_token = input.LT(1);
+        unexpected_token(last_token);
+    }
+
+    auto line_range = provider.get_range(first_token, last_token);
+    parser.get_collector().set_operand_remark_field(std::move(operands), std::move(remarks), line_range);
+};
+
 std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordinary(const statement_processor& proc,
     semantics::collector& collector,
     const std::optional<std::string>& op_text,
@@ -276,7 +384,7 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordin
                     h.parser->op_rem_body_deferred();
                     break;
                 case processing_form::CA:
-                    h.parser->op_rem_body_ca();
+                    op_rem_body_alt_ca(*h.parser, diags);
                     (void)h.parser->get_collector().take_literals(); // drop literals
                     break;
                 case processing_form::MAC: {

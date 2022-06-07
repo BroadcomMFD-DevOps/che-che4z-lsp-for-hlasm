@@ -129,58 +129,6 @@ operand_asm returns [operand_ptr op]
 	: asm_op							{$op = std::move($asm_op.op);}
 	|									{$op = std::make_unique<semantics::empty_operand>(provider.get_empty_range( _localctx->getStart()));};
 
-
-//////////////////////////////////////// ca
-
-op_rem_body_ca
-	:
-	SPACE* EOF {collector.set_operand_remark_field(provider.get_range(_localctx));}
-	|
-	SPACE+ op_rem_body_alt_ca
-	{
-		auto line_range = provider.get_range($op_rem_body_alt_ca.ctx);
-		collector.set_operand_remark_field(std::move($op_rem_body_alt_ca.line.operands), std::move($op_rem_body_alt_ca.line.remarks), line_range);
-	} EOF
-	| remark_o 
-	{
-		auto remarks = $remark_o.value ? remark_list{*$remark_o.value} : remark_list{};
-		auto line_range = provider.get_range($remark_o.ctx);
-		collector.set_operand_remark_field(operand_list(), std::move(remarks), line_range);
-	} EOF;
-
-op_rem_body_alt_ca returns [op_rem line]
-	:
-	(
-		(
-			ca_op? comma
-			{
-				if ($ca_op.ctx && $ca_op.op)
-					$line.operands.push_back(std::move($ca_op.op));
-				else
-					$line.operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range($comma.ctx->getStart())));
-			}
-		)+
-		{enable_continuation();}
-		(
-			r1=remark_o CONTINUATION
-			{
-				if($r1.value) $line.remarks.push_back(std::move(*$r1.value));
-			}
-		)?
-		{disable_continuation();}
-	)*
-	(
-		last_ca_op=ca_op? last_remark=remark_o
-		{
-			if ($last_ca_op.ctx)
-				$line.operands.push_back(std::move($last_ca_op.op));
-			else
-				$line.operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range($remark_o.ctx->getStart())));
-			if ($last_remark.value)
-				$line.remarks.push_back(std::move(*$last_remark.value));
-		}
-	);
-
 //////////////////////////////////////// mac
 
 op_rem_body_mac returns [op_rem line, range line_range]
