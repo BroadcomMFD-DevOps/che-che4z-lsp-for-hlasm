@@ -38,10 +38,10 @@ export class ContinuationHandler {
     private extractMostCommonContinuationSymbol(document: vscode.TextDocument, continuationOffset: number): string {
         let continuationSymbols: { [name: string]: number } = {};
         for (let i = 0; i < Math.min(document.lineCount, 5000); ++i) {
-            const line = document.lineAt(i).text;
-            if (continuationOffset >= line.length)
+            const lineText = document.lineAt(i).text;
+            if (continuationOffset >= lineText.length)
                 continue;
-            const candidate = line.at(continuationOffset);
+            const candidate = lineText.at(continuationOffset);
             if (candidate == ' ')
                 continue;
             continuationSymbols[candidate] = (continuationSymbols[candidate] || 0) + 1;
