@@ -277,7 +277,7 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordin
                     h.parser->op_rem_body_deferred();
                     break;
                 case processing_form::CA:
-                    h.parser->op_rem_body_alt_ca();
+                    h.parser->op_rem_body_ca();
                     (void)h.parser->get_collector().take_literals(); // drop literals
                     break;
                 case processing_form::MAC: {

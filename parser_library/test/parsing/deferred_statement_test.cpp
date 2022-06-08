@@ -83,5 +83,3 @@ TEST(deferred_statement, recognize_comment)
     a.collect_diags();
     EXPECT_TRUE(a.diags().empty());
 }
-
-

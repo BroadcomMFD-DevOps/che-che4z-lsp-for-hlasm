@@ -128,10 +128,10 @@ op_list_asm returns [std::vector<operand_ptr> operands]
 operand_asm returns [operand_ptr op]
 	: asm_op							{$op = std::move($asm_op.op);}
 	|									{$op = std::make_unique<semantics::empty_operand>(provider.get_empty_range( _localctx->getStart()));};
-	
+
 //////////////////////////////////////// ca
 
-op_rem_body_alt_ca locals [bool pending_empty_op = false, std::vector<range> remarks, std::vector<operand_ptr> operands]
+op_rem_body_ca locals [bool pending_empty_op = false, std::vector<range> remarks, std::vector<operand_ptr> operands]
 	:
 	EOF
 	{
