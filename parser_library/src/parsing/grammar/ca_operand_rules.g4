@@ -15,9 +15,6 @@
  //rules for CA operands
 parser grammar ca_operand_rules; 
 
-manual_ca_op returns [operand_ptr op]
-	: ca_op {$op=std::move($ca_op.op);return $ctx;} .*?;
-
 ca_op returns [operand_ptr op]
 	: expr_list seq_symbol
 	{

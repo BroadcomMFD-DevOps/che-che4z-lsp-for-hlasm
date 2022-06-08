@@ -243,100 +243,6 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_looka
     return result;
 }
 
-void op_rem_body_alt_ca(parsing::hlasmparser& parser, diagnostic_op_consumer* diags)
-{
-    using namespace parsing;
-    const auto unexpected_token = [diags](const antlr4::Token* t) {
-        if (diags)
-            diags->add_diagnostic(diagnostic_op(diagnostic_severity::error,
-                "S0002",
-                "Syntax error",
-                range(position(t->getLine(), t->getCharPositionInLine()))));
-    };
-
-    auto& input = dynamic_cast<lexing::token_stream&>(*parser.getTokenStream());
-    switch (input.LA(1))
-    {
-        case hlasmparser::EOF:
-            return;
-        case hlasmparser::SPACE:
-            break;
-        default:
-            unexpected_token(input.LT(1));
-            return;
-    }
-    while (input.LA(1) == hlasmparser::SPACE)
-        input.consume();
-    if (input.LA(1) == hlasmparser::EOF)
-        return;
-
-    std::vector<range> remarks;
-    std::vector<operand_ptr> operands;
-
-    const auto* first_token = input.LT(1);
-    semantics::range_provider provider;
-
-    bool last_token_was_comma = false;
-    bool pending_empty_op = false;
-    for (auto next = input.LA(1); next != hlasmparser::EOF; next = input.LA(1))
-    {
-        bool next_last_token_was_comma = false;
-        switch (next)
-        {
-            case hlasmparser::COMMA:
-                pending_empty_op = true;
-                next_last_token_was_comma = true;
-                operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range(input.LT(1))));
-                input.consume();
-                break;
-            case hlasmparser::SPACE:
-                if (last_token_was_comma)
-                    input.enable_continuation();
-
-                if (auto& comment = parser.remark_o()->value; comment.has_value())
-                    remarks.push_back(std::move(comment.value()));
-
-                if (input.LA(1) == hlasmparser::CONTINUATION)
-                    input.consume();
-
-                if (last_token_was_comma)
-                    input.disable_continuation();
-
-                next_last_token_was_comma = false;
-                break;
-            default: {
-                pending_empty_op = false;
-                auto* ca_op_ctx = parser.manual_ca_op();
-                if (ca_op_ctx->op)
-                    operands.push_back(std::move(ca_op_ctx->op));
-                else
-                    operands.push_back(
-                        std::make_unique<semantics::empty_operand>(provider.get_empty_range(ca_op_ctx->getStart())));
-                if (input.LA(1) == hlasmparser::COMMA)
-                {
-                    input.consume();
-                    next_last_token_was_comma = true;
-                    pending_empty_op = true;
-                }
-                break;
-            }
-        }
-        last_token_was_comma = next_last_token_was_comma;
-    }
-    if (pending_empty_op)
-        operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range(input.LT(-1))));
-
-    const auto* last_token = input.LT(-1);
-    if (input.LA(1) != hlasmparser::EOF)
-    {
-        last_token = input.LT(1);
-        unexpected_token(last_token);
-    }
-
-    auto line_range = provider.get_range(first_token, last_token);
-    parser.get_collector().set_operand_remark_field(std::move(operands), std::move(remarks), line_range);
-};
-
 std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordinary(const statement_processor& proc,
     semantics::collector& collector,
     const std::optional<std::string>& op_text,
@@ -371,7 +277,7 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordin
                     h.parser->op_rem_body_deferred();
                     break;
                 case processing_form::CA:
-                    op_rem_body_alt_ca(*h.parser, diags);
+                    h.parser->op_rem_body_alt_ca();
                     (void)h.parser->get_collector().take_literals(); // drop literals
                     break;
                 case processing_form::MAC: {

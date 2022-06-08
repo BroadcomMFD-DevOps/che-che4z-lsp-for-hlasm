@@ -128,6 +128,102 @@ op_list_asm returns [std::vector<operand_ptr> operands]
 operand_asm returns [operand_ptr op]
 	: asm_op							{$op = std::move($asm_op.op);}
 	|									{$op = std::make_unique<semantics::empty_operand>(provider.get_empty_range( _localctx->getStart()));};
+	
+//////////////////////////////////////// ca
+
+op_rem_body_alt_ca locals [bool pending_empty_op = false, std::vector<range> remarks, std::vector<operand_ptr> operands]
+	:
+	EOF
+	{
+		collector.set_operand_remark_field(provider.get_range(_localctx));
+	}
+	|
+	SPACE+
+	{
+		auto first_token = _input->LT(1);
+	}
+	(
+		EOF
+		{
+			collector.set_operand_remark_field(provider.get_range(_localctx));
+		}
+		|
+		(
+			comma
+			{
+                $operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range($comma.start)));
+				$pending_empty_op = true;
+			}
+			|
+			{
+				$pending_empty_op = false;
+			}
+			ca_op
+			{
+                if ($ca_op.op)
+                    $operands.push_back(std::move($ca_op.op));
+                else
+                    $operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range($ca_op.start)));
+			}
+			(
+				comma
+				{
+					$pending_empty_op = true;
+				}
+			)?
+		)
+		(
+			comma
+			{
+                $operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range($comma.start)));
+				$pending_empty_op = true;
+			}
+			|
+			{
+				if (_input->LA(-1) == hlasmparser::COMMA)
+					enable_continuation();
+			}
+			(
+				SPACE
+				remark
+				{
+					$remarks.push_back(provider.get_range($remark.ctx));
+				}
+				CONTINUATION?
+				|
+				CONTINUATION
+			)
+			{
+				disable_continuation();
+			}
+			|
+			{
+				$pending_empty_op = false;
+			}
+			ca_op
+			{
+                if ($ca_op.op)
+                    $operands.push_back(std::move($ca_op.op));
+                else
+                    $operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range($ca_op.start)));
+			}
+			(
+				comma
+				{
+					$pending_empty_op = true;
+				}
+			)?
+		)*
+		EOF
+		{
+			if ($pending_empty_op)
+				$operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range(_input->LT(-1))));
+
+			collector.set_operand_remark_field(std::move($operands), std::move($remarks), provider.get_range(first_token, _input->LT(-1)));
+		}
+	);
+	finally
+	{disable_continuation();}
 
 //////////////////////////////////////// mac
 

@@ -324,6 +324,8 @@ TEST(ainsert, grammar_unknown_label)
     a.collect_diags();
     EXPECT_TRUE(matches_message_codes(a.diags(),
         {
+            "CE004",
+            "CE004",
             "S0002",
             "S0002",
             "E010",
@@ -392,6 +394,14 @@ TEST(ainsert, grammar_invalid_string)
             "E076",
             "S0002",
             "S0002",
+            "E022",
+            "E022",
+            "E022",
+            "E022",
+            "CE004",
+            "CE004",
+            "CE004",
+            "CE017",
         }));
 }
 
