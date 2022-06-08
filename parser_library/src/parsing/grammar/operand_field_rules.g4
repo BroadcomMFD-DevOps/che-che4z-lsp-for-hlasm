@@ -131,7 +131,7 @@ operand_asm returns [operand_ptr op]
 
 //////////////////////////////////////// ca
 
-op_rem_body_ca locals [bool pending_empty_op = false, std::vector<range> remarks, std::vector<operand_ptr> operands]
+op_rem_body_ca locals [bool pending_empty_op = false, std::vector<range> remarks, std::vector<operand_ptr> operands, antlr4::Token* first_token = nullptr]
 	:
 	EOF
 	{
@@ -139,15 +139,15 @@ op_rem_body_ca locals [bool pending_empty_op = false, std::vector<range> remarks
 	}
 	|
 	SPACE+
-	{
-		auto first_token = _input->LT(1);
-	}
 	(
 		EOF
 		{
 			collector.set_operand_remark_field(provider.get_range(_localctx));
 		}
 		|
+		{
+			$first_token = _input->LT(1);
+		}
 		(
 			comma
 			{
@@ -165,17 +165,12 @@ op_rem_body_ca locals [bool pending_empty_op = false, std::vector<range> remarks
                 else
                     $operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range($ca_op.start)));
 			}
-			(
-				comma
-				{
-					$pending_empty_op = true;
-				}
-			)?
 		)
 		(
 			comma
 			{
-                $operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range($comma.start)));
+				if ($pending_empty_op)
+					$operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range($comma.start)));
 				$pending_empty_op = true;
 			}
 			|
@@ -198,32 +193,32 @@ op_rem_body_ca locals [bool pending_empty_op = false, std::vector<range> remarks
 			}
 			|
 			{
-				$pending_empty_op = false;
+				if (!$pending_empty_op)
+					throw NoViableAltException(this);
 			}
 			ca_op
+			{
+				$pending_empty_op = false;
+			}
 			{
                 if ($ca_op.op)
                     $operands.push_back(std::move($ca_op.op));
                 else
                     $operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range($ca_op.start)));
 			}
-			(
-				comma
-				{
-					$pending_empty_op = true;
-				}
-			)?
 		)*
 		EOF
 		{
 			if ($pending_empty_op)
 				$operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range(_input->LT(-1))));
-
-			collector.set_operand_remark_field(std::move($operands), std::move($remarks), provider.get_range(first_token, _input->LT(-1)));
 		}
 	);
 	finally
-	{disable_continuation();}
+	{
+		disable_continuation();
+		if ($first_token)
+			collector.set_operand_remark_field(std::move($operands), std::move($remarks), provider.get_range($first_token, _input->LT(-1)));
+	}
 
 //////////////////////////////////////// mac
 
