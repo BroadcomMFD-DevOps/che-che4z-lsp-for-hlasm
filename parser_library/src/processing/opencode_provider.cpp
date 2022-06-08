@@ -270,51 +270,42 @@ void op_rem_body_alt_ca(parsing::hlasmparser& parser, diagnostic_op_consumer* di
     if (input.LA(1) == hlasmparser::EOF)
         return;
 
-    bool next_op_allowed = true;
-    bool last_op_empty = false;
-
     std::vector<range> remarks;
     std::vector<operand_ptr> operands;
 
     const auto* first_token = input.LT(1);
     semantics::range_provider provider;
 
-    while (std::exchange(next_op_allowed, false))
+    bool last_token_was_comma = false;
+    bool pending_empty_op = false;
+    for (auto next = input.LA(1); next != hlasmparser::EOF; next = input.LA(1))
     {
-        switch (input.LA(1))
+        bool next_last_token_was_comma = false;
+        switch (next)
         {
             case hlasmparser::COMMA:
-                last_op_empty = true;
-                next_op_allowed = true;
+                pending_empty_op = true;
+                next_last_token_was_comma = true;
                 operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range(input.LT(1))));
                 input.consume();
-                if (input.LA(1) == hlasmparser::SPACE)
-                {
-                    input.enable_continuation();
-
-                    if (input.LA(1) == hlasmparser::CONTINUATION)
-                        input.consume();
-                    else
-                    {
-                        if (auto& comment = parser.remark_o()->value; comment.has_value())
-                            remarks.push_back(std::move(comment.value()));
-                        if (input.LA(1) == hlasmparser::CONTINUATION)
-                            input.consume();
-                    }
-                    input.disable_continuation();
-                }
                 break;
             case hlasmparser::SPACE:
-                if (std::exchange(last_op_empty, false))
-                    operands.push_back(
-                        std::make_unique<semantics::empty_operand>(provider.get_empty_range(input.LT(1))));
+                if (last_token_was_comma)
+                    input.enable_continuation();
+
                 if (auto& comment = parser.remark_o()->value; comment.has_value())
                     remarks.push_back(std::move(comment.value()));
-                break;
-            case hlasmparser::EOF:
+
+                if (input.LA(1) == hlasmparser::CONTINUATION)
+                    input.consume();
+
+                if (last_token_was_comma)
+                    input.disable_continuation();
+
+                next_last_token_was_comma = false;
                 break;
             default: {
-                last_op_empty = false;
+                pending_empty_op = false;
                 auto* ca_op_ctx = parser.manual_ca_op();
                 if (ca_op_ctx->op)
                     operands.push_back(std::move(ca_op_ctx->op));
@@ -324,19 +315,15 @@ void op_rem_body_alt_ca(parsing::hlasmparser& parser, diagnostic_op_consumer* di
                 if (input.LA(1) == hlasmparser::COMMA)
                 {
                     input.consume();
-                    next_op_allowed = true;
-                    last_op_empty = true;
-                }
-                else if (input.LA(1) == hlasmparser::SPACE)
-                {
-                    if (auto& comment = parser.remark_o()->value; comment.has_value())
-                        remarks.push_back(std::move(comment.value()));
+                    next_last_token_was_comma = true;
+                    pending_empty_op = true;
                 }
                 break;
             }
         }
+        last_token_was_comma = next_last_token_was_comma;
     }
-    if (std::exchange(last_op_empty, false))
+    if (pending_empty_op)
         operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range(input.LT(-1))));
 
     const auto* last_token = input.LT(-1);
