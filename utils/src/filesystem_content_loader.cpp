@@ -58,10 +58,10 @@ std::optional<std::string> filesystem_content_loader::load_text(const resource_l
 list_directory_result filesystem_content_loader::list_directory_files(
     const utils::resource::resource_location& directory_loc) const
 {
-    std::filesystem::path lib_p(directory_loc.get_path());
+    std::filesystem::path path(directory_loc.get_path());
     list_directory_result result;
 
-    result.second = utils::path::list_directory_regular_files(lib_p, [&result](const std::filesystem::path& f) {
+    result.second = utils::path::list_directory_regular_files(path, [&result](const std::filesystem::path& f) {
         result.first[utils::path::filename(f).string()] =
             utils::resource::resource_location(utils::path::path_to_uri(utils::path::absolute(f).string()));
     });
@@ -69,9 +69,44 @@ list_directory_result filesystem_content_loader::list_directory_files(
     return result;
 }
 
+list_directory_result filesystem_content_loader::list_directory_subdirs_and_symlinks(
+    const utils::resource::resource_location& directory_loc) const
+{
+    std::filesystem::path path(directory_loc.get_path());
+    list_directory_result result;
+
+    result.second =
+        utils::path::list_directory_subdirs_and_symlinks(path, [&result](const std::filesystem::path& path) {
+            std::error_code ec;
+            auto cp = utils::path::canonical(path, ec);
+
+            if (!ec && utils::path::is_directory(cp))
+            {
+                auto found_dir = utils::resource::resource_location(utils::path::path_to_uri(cp.string()));
+                found_dir.to_directory();
+                result.first[cp.string()] = std::move(found_dir);
+            }
+        });
+
+    return result;
+}
+
 std::string filesystem_content_loader::filename(const utils::resource::resource_location& res_loc) const
 {
     return utils::path::filename(std::filesystem::path(res_loc.get_path())).string();
+}
+
+bool filesystem_content_loader::dir_exists(const utils::resource::resource_location& res_loc) const
+{
+    if (std::error_code ec; utils::path::canonical(res_loc.get_path(), ec), ec || res_loc.get_path().empty())
+        return false;
+    return true;
+}
+
+std::string filesystem_content_loader::lexically_relative(
+    const utils::resource::resource_location& p, const utils::resource::resource_location& q) const
+{
+    return utils::path::lexically_normal(utils::path::lexically_relative(p.get_path(), q.get_path())).string();
 }
 
 } // namespace hlasm_plugin::utils::resource

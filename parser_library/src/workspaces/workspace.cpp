@@ -26,7 +26,9 @@
 #include "library_local.h"
 #include "nlohmann/json.hpp"
 #include "processor.h"
+#include "utils/content_loader.h"
 #include "utils/path.h"
+#include "utils/path_conversions.h"
 #include "utils/platform.h"
 #include "wildcard.h"
 
@@ -47,7 +49,11 @@ workspace::workspace(const utils::resource::resource_location& location,
     , implicit_proc_grp("pg_implicit", {}, {})
     , global_config_(global_config)
 {
+    location_.to_directory();
+
     auto hlasm_folder = utils::resource::resource_location::join(location_, HLASM_PLUGIN_FOLDER);
+    hlasm_folder.to_directory();
+
     proc_grps_loc_ = utils::resource::resource_location::join(hlasm_folder, FILENAME_PROC_GRPS);
     pgm_conf_loc_ = utils::resource::resource_location::join(hlasm_folder, FILENAME_PGM_CONF);
 }
@@ -148,9 +154,29 @@ const program* workspace::get_program(const utils::resource::resource_location& 
 {
     assert(opened_);
 
-    std::string file =
-        utils::path::lexically_normal(utils::path::lexically_relative(file_location.get_path(), location_.get_path()))
-            .string();
+    utils::resource::resource_location rl;
+    if (utils::path::is_uri(file_location.get_uri()))
+    {
+        rl = file_location;
+    }
+    else if (!utils::path::is_absolute(file_location.get_uri()))
+    {
+        auto temp = file_location.get_uri();
+        std::replace(temp.begin(), temp.end(), '\\', '/');
+
+        if (!temp.empty() && temp.back() == '/')
+            temp = temp.substr(0, temp.size() - 1);
+
+        auto ws_uri = std::string(location_.get_uri());
+        ws_uri = ws_uri.substr(0, ws_uri.size() - 1);
+        rl = utils::resource::resource_location::join(utils::resource::resource_location(ws_uri), temp);
+    }
+    else
+        rl = utils::resource::resource_location(
+            utils::path::path_to_uri(utils::path::lexically_normal(file_location.get_uri()).string()));
+
+
+    std::string file = utils::resource::lexically_relative(rl, location_);
 
     // direct match
     auto program = exact_pgm_conf_.find(file);
@@ -403,8 +429,7 @@ std::regex pathmask_to_regex(std::string input)
     std::string r;
     r.reserve(input.size());
 
-    replace_all(input, "\\", "/");
-    if (input.back() != '/')
+    if (!input.empty() && input.back() != '/')
         input.push_back('/');
 
     std::string_view s = input;
@@ -483,52 +508,57 @@ std::string fix_path(std::string path)
 };
 } // namespace
 
-void workspace::find_and_add_libs(
-    std::string root, const std::string& path_pattern, processor_group& prc_grp, const library_local_options& opts)
+void workspace::find_and_add_libs(const utils::resource::resource_location& root,
+    const utils::resource::resource_location& path_pattern,
+    processor_group& prc_grp,
+    const library_local_options& opts)
 {
-    std::regex path_validator = pathmask_to_regex(path_pattern);
+    std::regex path_validator = pathmask_to_regex(
+        path_pattern.get_uri()); // Todo think about if URIs with fragments and queries are safe to enter this function
 
-    std::set<std::string> processed_canonical_paths;
-    std::deque<std::pair<std::string, std::string>> dirs_to_search;
+    std::set<utils::resource::resource_location> processed_paths;
+    std::deque<utils::resource::resource_location> dirs_to_search;
 
-    if (std::error_code ec; dirs_to_search.emplace_back(fix_path(root), utils::path::canonical(root, ec).string()), ec)
+    if (!utils::resource::dir_exists(root))
     {
         if (!opts.optional_library)
-            add_diagnostic(diagnostic_s::error_L0001(root));
+            add_diagnostic(diagnostic_s::error_L0001(root.to_presentable()));
         return;
     }
+
+    dirs_to_search.emplace_back(root);
 
     constexpr size_t limit = 1000;
     while (!dirs_to_search.empty())
     {
-        if (processed_canonical_paths.size() > limit)
+        if (processed_paths.size() > limit)
         {
-            add_diagnostic(diagnostic_s::warning_L0005(path_pattern, limit));
+            add_diagnostic(diagnostic_s::warning_L0005(path_pattern.to_presentable(), limit));
             break;
         }
-        auto [path, canonical_path] = std::move(dirs_to_search.front());
+
+        auto uri = std::move(dirs_to_search.front());
         dirs_to_search.pop_front();
 
-        if (!processed_canonical_paths.insert(std::move(canonical_path)).second)
+        if (!processed_paths.insert(uri).second)
             continue;
 
-        if (std::regex_match(path, path_validator))
-            prc_grp.add_library(
-                std::make_unique<library_local>(file_manager_, utils::resource::resource_location(path), opts));
+        if (std::regex_match(uri.get_uri(), path_validator))
+            prc_grp.add_library(std::make_unique<library_local>(file_manager_, uri, opts));
 
-        auto rc = utils::path::list_directory_subdirs_and_symlinks(
-            path, [&processed_canonical_paths, &dirs_to_search](const auto& path) {
-                std::error_code ec;
-                auto cp = utils::path::canonical(path, ec).string();
-                if (ec || processed_canonical_paths.count(cp))
-                    return;
-                if (utils::path::is_directory(cp))
-                    dirs_to_search.emplace_back(fix_path(path.string()), std::move(cp));
-            });
-        if (rc != utils::path::list_directory_rc::done)
+        auto res = utils::resource::list_directory_subdirs_and_symlinks(uri);
+        if (res.second == utils::path::list_directory_rc::done)
         {
-            add_diagnostic(diagnostic_s::error_L0001(path));
+            add_diagnostic(diagnostic_s::error_L0001(uri.to_presentable()));
             break;
+        }
+
+        for (auto& p : res.first)
+        {
+            if (processed_paths.count(p.second))
+                continue;
+
+            dirs_to_search.emplace_back(p.second);
         }
     }
 }
@@ -556,6 +586,26 @@ std::vector<std::string> get_macro_extensions_compatibility_list(const config::p
 
     return macro_extensions_compatibility_list;
 }
+
+library_local_options get_library_local_options(
+    const config::library& lib, const config::proc_grps& proc_groups, const config::pgm_conf& pgm_config)
+{
+    library_local_options opts;
+
+    opts.optional_library = lib.optional;
+    if (!lib.macro_extensions.empty())
+        opts.extensions = lib.macro_extensions;
+    else if (!proc_groups.macro_extensions.empty())
+        opts.extensions = proc_groups.macro_extensions;
+    else if (auto macro_extensions_compatibility_list = get_macro_extensions_compatibility_list(pgm_config);
+             !macro_extensions_compatibility_list.empty())
+    {
+        opts.extensions = macro_extensions_compatibility_list;
+        opts.extensions_from_deprecated_source = true;
+    }
+
+    return opts;
+}
 } // namespace
 
 void workspace::process_processor_group(
@@ -567,35 +617,36 @@ void workspace::process_processor_group(
 
     for (const auto& lib : pg.libs)
     {
-        std::filesystem::path lib_path = [&path = lib.path]() {
-            if (!path.empty())
-                return utils::path::join(path, "");
-            return std::filesystem::path {};
-        }();
-        if (!utils::path::is_absolute(lib_path))
-            lib_path = utils::path::join(ws_path, lib_path);
-        lib_path = utils::path::lexically_normal(lib_path);
+        auto lib_local_opts = get_library_local_options(lib, proc_groups, pgm_config);
 
-        library_local_options opts;
-        opts.optional_library = lib.optional;
-        if (!lib.macro_extensions.empty())
-            opts.extensions = lib.macro_extensions;
-        else if (!proc_groups.macro_extensions.empty())
-            opts.extensions = proc_groups.macro_extensions;
-        else if (auto macro_extensions_compatibility_list = get_macro_extensions_compatibility_list(pgm_config);
-                 !macro_extensions_compatibility_list.empty())
+        utils::resource::resource_location rl;
+        if (utils::path::is_uri(lib.path))
         {
-            opts.extensions = macro_extensions_compatibility_list;
-            opts.extensions_from_deprecated_source = true;
+            rl = utils::resource::resource_location(lib.path);
         }
+        else if (!utils::path::is_absolute(lib.path))
+        {
+            auto temp = lib.path;
+            replace_all(temp, "\\", "/");
 
-        auto path_string = lib_path.string();
-        if (auto asterisk = path_string.find('*'); asterisk == std::string::npos)
-            prc_grp.add_library(std::make_unique<library_local>(
-                file_manager_, utils::resource::resource_location(path_string), std::move(opts)));
+            if (!temp.empty() && temp.back() == '/')
+                temp = temp.substr(0, temp.size() - 1);
+
+            rl = utils::resource::resource_location::join(location_, temp);
+        }
+        else
+            rl = utils::resource::resource_location(
+                utils::path::path_to_uri(utils::path::lexically_normal(lib.path).string()));
+
+        rl.to_directory();
+        if (auto asterisk = rl.get_uri().find('*'); asterisk == std::string::npos)
+            prc_grp.add_library(std::make_unique<library_local>(file_manager_, rl, std::move(lib_local_opts)));
         else
             find_and_add_libs(
-                path_string.substr(0, path_string.find_last_of("/\\", asterisk)), path_string, prc_grp, opts);
+                utils::resource::resource_location(rl.get_uri().substr(0, rl.get_uri().find_last_of("/", asterisk))),
+                rl,
+                prc_grp,
+                lib_local_opts);
     }
 
     add_proc_grp(std::move(prc_grp));
@@ -656,6 +707,7 @@ bool workspace::load_config(
     config::proc_grps& proc_groups, config::pgm_conf& pgm_config, file_ptr& proc_grps_file, file_ptr& pgm_conf_file)
 {
     auto hlasm_base = utils::resource::resource_location::join(location_, HLASM_PLUGIN_FOLDER);
+    hlasm_base.to_directory();
 
     // proc_grps.json parse
     proc_grps_file = file_manager_.add_file(utils::resource::resource_location::join(hlasm_base, FILENAME_PROC_GRPS));

@@ -35,7 +35,12 @@ public:
     virtual std::optional<std::string> load_text(const resource_location& res_loc) const = 0;
     virtual list_directory_result list_directory_files(
         const utils::resource::resource_location& directory_loc) const = 0;
+    virtual list_directory_result list_directory_subdirs_and_symlinks(
+        const utils::resource::resource_location& directory_loc) const = 0;
     virtual std::string filename(const utils::resource::resource_location& res_loc) const = 0;
+    virtual bool dir_exists(const utils::resource::resource_location& res_loc) const = 0;
+    virtual std::string lexically_relative(
+        const utils::resource::resource_location& p, const utils::resource::resource_location& q) const = 0;
 
 protected:
     ~content_loader() = default;
@@ -43,7 +48,11 @@ protected:
 
 std::optional<std::string> load_text(const resource_location& res_loc);
 list_directory_result list_directory_files(const utils::resource::resource_location& directory_loc);
+list_directory_result list_directory_subdirs_and_symlinks(const utils::resource::resource_location& directory_loc);
 std::string filename(const utils::resource::resource_location& res_loc);
+bool dir_exists(const utils::resource::resource_location& res_loc);
+std::string lexically_relative(
+    const utils::resource::resource_location& p, const utils::resource::resource_location& q);
 
 } // namespace hlasm_plugin::utils::resource
 

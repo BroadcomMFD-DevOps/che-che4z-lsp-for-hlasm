@@ -157,10 +157,66 @@ Raw URI: aaa://user::pass@127.0.0.1:1234/path/to/resource?fileset=sources#pgm)";
     EXPECT_EQ(res.to_presentable(true), expected);
 }
 
-TEST(resource_location, join)
+TEST(resource_location, join_with_root_dir)
+{
+    resource_location res("aaa://src/");
+    std::string rel_loc = ".hlasmplugin";
+
+    EXPECT_EQ(resource_location::join(res, rel_loc), resource_location("aaa://src/.hlasmplugin"));
+}
+TEST(resource_location, join_with_regular_dir)
+{
+    resource_location res("aaa://src/temp/");
+    std::string rel_loc = ".hlasmplugin";
+
+    EXPECT_EQ(resource_location::join(res, rel_loc), resource_location("aaa://src/temp/.hlasmplugin"));
+}
+
+TEST(resource_location, join_with_root_dir_no_auth)
+{
+    resource_location res("aaa:src/");
+    std::string rel_loc = ".hlasmplugin";
+
+    EXPECT_EQ(resource_location::join(res, rel_loc), resource_location("aaa:src/.hlasmplugin"));
+}
+TEST(resource_location, join_with_regular_dir_no_auth)
+{
+    resource_location res("aaa:src/temp/");
+    std::string rel_loc = ".hlasmplugin";
+
+    EXPECT_EQ(resource_location::join(res, rel_loc), resource_location("aaa:src/temp/.hlasmplugin"));
+}
+
+TEST(resource_location, join_with_root_file)
+{
+    resource_location res("aaa://src");
+    std::string rel_loc = ".hlasmplugin";
+
+    EXPECT_EQ(resource_location::join(res, rel_loc), resource_location("aaa://.hlasmplugin"));
+}
+
+
+TEST(resource_location, join_with_regular_file)
 {
     resource_location res("aaa://src/temp");
     std::string rel_loc = ".hlasmplugin";
 
-    EXPECT_EQ(resource_location::join(res, rel_loc), resource_location("aaa://src/temp/.hlasmplugin"));
+    EXPECT_EQ(resource_location::join(res, rel_loc), resource_location("aaa://src/.hlasmplugin"));
+}
+
+TEST(resource_location, join_with_root_file_no_auth)
+{
+    resource_location res("aaa:src");
+    std::string rel_loc = ".hlasmplugin";
+
+    EXPECT_EQ(resource_location::join(res, rel_loc), resource_location("aaa:.hlasmplugin"));
+}
+
+
+TEST(resource_location, join_with_regular_file_no_auth)
+{
+    resource_location res("aaa:src/temp");
+    std::string rel_loc = ".hlasmplugin";
+
+    EXPECT_EQ(resource_location::join(res, rel_loc), resource_location("aaa:src/.hlasmplugin"));
 }

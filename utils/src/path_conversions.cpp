@@ -105,6 +105,22 @@ std::string path_to_uri(std::string_view path)
     return uri;
 }
 
+bool is_uri(std::string path)
+{
+    if (path.empty())
+        return false;
+
+    try
+    {
+        network::uri u(path);
+        return true;
+    }
+    catch (const std::exception&)
+    {
+        return false;
+    }
+}
+
 namespace {
 struct dissected_uri
 {

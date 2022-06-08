@@ -152,8 +152,10 @@ private:
 
     bool opened_ = false;
 
-    void find_and_add_libs(
-        std::string root, const std::string& path_pattern, processor_group& prc_grp, const library_local_options& opts);
+    void find_and_add_libs(const utils::resource::resource_location& root,
+        const utils::resource::resource_location& path_pattern,
+        processor_group& prc_grp,
+        const library_local_options& opts);
 
     void process_processor_group(
         const config::processor_group& pg, const config::proc_grps& proc_groups, const config::pgm_conf& pgm_config);

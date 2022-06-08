@@ -30,7 +30,12 @@ public:
 
     std::optional<std::string> load_text(const resource_location& resource) const;
     list_directory_result list_directory_files(const utils::resource::resource_location& directory_loc) const;
+    list_directory_result list_directory_subdirs_and_symlinks(
+        const utils::resource::resource_location& directory_loc) const;
     std::string filename(const utils::resource::resource_location& res_loc) const;
+    bool dir_exists(const utils::resource::resource_location& res_loc) const;
+    std::string lexically_relative(
+        const utils::resource::resource_location& p, const utils::resource::resource_location& q) const;
 };
 
 } // namespace hlasm_plugin::utils::resource

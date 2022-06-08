@@ -25,6 +25,8 @@ std::string uri_to_path(const std::string& uri);
 // Converts from filesystem path to URI
 std::string path_to_uri(std::string_view path);
 
+bool is_uri(std::string path);
+
 std::string get_presentable_uri(const std::string& uri, bool debug);
 
 } // namespace hlasm_plugin::utils::path

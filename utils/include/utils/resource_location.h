@@ -16,7 +16,6 @@
 #define HLASMPLUGIN_UTILS_RESOURCE_LOCATION_H
 
 #include <compare>
-#include <optional>
 #include <string>
 
 namespace hlasm_plugin::utils::resource {
@@ -33,7 +32,10 @@ public:
     std::string get_path() const;
     std::string to_presentable(bool debug = false) const;
 
-    static resource_location join(const resource_location& rl, std::string_view relative_path);
+    void to_directory();
+
+    void join(std::string_view relative_path);
+    static resource_location join(resource_location rl, std::string_view relative_path);
 
     std::strong_ordering operator<=>(const resource_location& rl) const noexcept = default;
 

@@ -14,14 +14,7 @@
 
 #include "utils/resource_location.h"
 
-#include <filesystem>
-#include <regex>
-
-#include "network/uri/uri.hpp"
-
-#include "utils/path.h"
 #include "utils/path_conversions.h"
-#include "utils/platform.h"
 
 namespace hlasm_plugin::utils::resource {
 
@@ -46,14 +39,28 @@ std::string resource_location::to_presentable(bool debug) const
     return utils::path::get_presentable_uri(m_uri, debug);
 }
 
-resource_location resource_location::join(const resource_location& rl, std::string_view relative_path)
+void resource_location::to_directory()
 {
-    std::string uri = rl.get_uri();
+    if (!m_uri.empty() && m_uri.back() != '/')
+        m_uri.append("/");
+}
 
-    if (!rl.m_uri.empty() && rl.m_uri.back() != '/')
-        return resource_location(uri.append("/").append(relative_path));
+void resource_location::join(std::string_view relative_path)
+{
+    if (auto f = m_uri.find_last_of("/:"); f != std::string::npos)
+    {
+        m_uri = m_uri.substr(0, f + 1);
+        m_uri.append(relative_path);
+    }
+    else
+        m_uri = relative_path;
+}
 
-    return resource_location(uri.append(relative_path));
+resource_location resource_location::join(resource_location rl, std::string_view relative_path)
+{
+    rl.join(relative_path);
+
+    return rl;
 }
 
 std::size_t resource_location_hasher::operator()(const resource_location& rl) const
