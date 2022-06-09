@@ -53,8 +53,16 @@ public:
         list_directory_files,
         (const hlasm_plugin::utils::resource::resource_location& path),
         (override));
-    MOCK_METHOD(bool, file_exists, (const std::string& file_name), (override));
-    MOCK_METHOD(bool, lib_file_exists, (const std::string& lib_path, const std::string& file_name), (override));
+    MOCK_METHOD(list_directory_result,
+        list_directory_subdirs_and_symlinks,
+        (const hlasm_plugin::utils::resource::resource_location& path),
+        (override));
+    MOCK_METHOD(bool, file_exists, (const hlasm_plugin::utils::resource::resource_location& file_loc), (const override));
+    MOCK_METHOD(bool,
+        lib_file_exists,
+        (const hlasm_plugin::utils::resource::resource_location& lib_root, std::string_view file_name),
+        (const override));
+    MOCK_METHOD(bool, dir_exists, (const hlasm_plugin::utils::resource::resource_location& dir_loc), (const override));
     MOCK_METHOD(
         void, did_open_file, (const file_location& document_loc, version_t version, std::string text), (override));
     MOCK_METHOD(void,

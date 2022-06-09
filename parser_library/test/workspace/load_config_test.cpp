@@ -37,9 +37,9 @@ auto proc_grps_loc = resource_location("proc_grps.json");
 auto file_loc = resource_location("test_uri");
 auto ws_loc = is_windows() ? resource_location("file:///c%3A/Users/ws") : resource_location("file:///home/user/ws");
 
-auto pgm1_loc = is_windows() ? resource_location("ws\\pgm1") : resource_location("ws/pgm1");
-auto pgm_override_loc = is_windows() ? resource_location("ws\\pgm_override") : resource_location("ws/pgm_override");
-auto pgm_anything_loc = is_windows() ? resource_location("ws\\pgms\\anything") : resource_location("ws/pgms/anything");
+auto pgm1_loc = resource_location("pgm1");
+auto pgm_override_loc = resource_location("pgm_override");
+auto pgm_anything_loc = is_windows() ? resource_location("pgms\\anything") : resource_location("pgms/anything");
 } // namespace
 
 class file_proc_grps : public file_impl
@@ -228,7 +228,6 @@ TEST(workspace, load_config_synthetic)
                 resource_location("file:///home/user/ws/libs/lib2/"),
                 resource_location("file:///home/user/ws/") };
     }();
-
     check_process_group(pg, expected);
 
     // Check P2
@@ -245,33 +244,27 @@ TEST(workspace, load_config_synthetic)
                 resource_location("file:///home/user/ws/P2lib/"),
                 resource_location("file:///home/user/ws/P2libs/libb/") };
     }();
-
     check_process_group(pg2, expected2);
 
     // Check PGM1
     // test of pgm_conf and workspace::get_proc_grp_by_program
     auto& pg3 = ws.get_proc_grp_by_program(pgm1_loc);
-
     check_process_group(pg3, expected);
 
     // Check PGM anything
     auto& pg4 = ws.get_proc_grp_by_program(pgm_anything_loc);
-
     check_process_group(pg4, expected2);
 
     // test of asm_options
     const auto& asm_options = ws.get_asm_options(pgm1_loc);
-
     EXPECT_EQ("SEVEN", asm_options.sysparm);
     EXPECT_EQ("MAC1", asm_options.profile);
 
     const auto& pp_options = ws.get_preprocessor_options(pgm1_loc);
-
     EXPECT_TRUE(std::holds_alternative<db2_preprocessor_options>(pp_options));
 
     // test of asm_options override
     const auto& asm_options_override = ws.get_asm_options(pgm_override_loc);
-
     EXPECT_EQ("SEVEN", asm_options_override.sysparm);
     EXPECT_EQ("PROFILE OVERRIDE", asm_options_override.profile);
 }
@@ -402,8 +395,6 @@ private:
 })";
     }
 };
-
-
 
 class file_manager_json_test : public file_manager_proc_grps_test
 {

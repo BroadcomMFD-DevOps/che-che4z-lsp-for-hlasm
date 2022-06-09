@@ -78,6 +78,13 @@ TEST(pathmask, pass)
     EXPECT_TRUE(check_path("/path/**", "\\path\\test\\"));
     EXPECT_TRUE(check_path("/path/**", "\\path\\a\\test\\"));
     EXPECT_TRUE(check_path("/path/**", "\\path\\a\\b\\test\\"));
+
+    EXPECT_TRUE(check_path("file:///C%3A/path/**/", "file:///C%3A/path/a/test/"));
+    EXPECT_TRUE(check_path("file:///C%3A/path/**/test/", "file:///C%3A/path/a/test/"));
+    EXPECT_TRUE(check_path("file:///C%3A/path/**/", "file:///c%3A/path/a/test/"));
+    EXPECT_TRUE(check_path("file:///C%3A/path/**/test/", "file:///c%3A/path/a/test/"));
+    EXPECT_TRUE(check_path("file:///c%3A/path/**/", "file:///C%3A/path/a/test/"));
+    EXPECT_TRUE(check_path("file:///c%3A/path/**/test/", "file:///C%3A/path/a/test/"));
 }
 
 TEST(pathmask, fail)
@@ -93,4 +100,6 @@ TEST(pathmask, fail)
     EXPECT_FALSE(check_path("/path/a*/test/", "/path/b/test/"));
     EXPECT_FALSE(check_path("/path/*b/test/", "/path/a/test/"));
     EXPECT_FALSE(check_path("/path/a*b/test/", "/path/ba/test/"));
+
+    EXPECT_FALSE(check_path("/path/", "file:///path/"));
 }

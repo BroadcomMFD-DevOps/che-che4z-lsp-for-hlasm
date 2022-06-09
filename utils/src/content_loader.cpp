@@ -56,6 +56,13 @@ std::string filename(const utils::resource::resource_location& res_loc)
     return cl.filename(res_loc);
 }
 
+bool file_exists(const utils::resource::resource_location& res_loc)
+{
+    const auto& cl = get_content_loader();
+
+    return cl.file_exists(res_loc);
+}
+
 bool dir_exists(const utils::resource::resource_location& res_loc)
 {
     const auto& cl = get_content_loader();

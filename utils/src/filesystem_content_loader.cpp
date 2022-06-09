@@ -61,10 +61,16 @@ list_directory_result filesystem_content_loader::list_directory_files(
     std::filesystem::path path(directory_loc.get_path());
     list_directory_result result;
 
-    result.second = utils::path::list_directory_regular_files(path, [&result](const std::filesystem::path& f) {
+        result.second = utils::path::list_directory_regular_files(path, [&result](const std::filesystem::path& f) {
         result.first[utils::path::filename(f).string()] =
             utils::resource::resource_location(utils::path::path_to_uri(utils::path::absolute(f).string()));
     });
+    //std::error_code ec;
+
+    //result.second = utils::path::list_directory_regular_files(path, [&result, &ec](const std::filesystem::path& f) {
+    //    result.first[utils::path::filename(f).string()] = utils::resource::resource_location(
+    //        utils::path::path_to_uri(utils::path::canonical(utils::path::absolute(f), ec).string()));
+    //});
 
     return result;
 }
@@ -96,11 +102,15 @@ std::string filesystem_content_loader::filename(const utils::resource::resource_
     return utils::path::filename(std::filesystem::path(res_loc.get_path())).string();
 }
 
+bool filesystem_content_loader::file_exists(const utils::resource::resource_location& res_loc) const {
+    std::error_code ec;
+    return std::filesystem::exists(res_loc.get_path(), ec) && !ec && !dir_exists(res_loc);
+    // TODO use error code??
+}
+
 bool filesystem_content_loader::dir_exists(const utils::resource::resource_location& res_loc) const
 {
-    if (std::error_code ec; utils::path::canonical(res_loc.get_path(), ec), ec || res_loc.get_path().empty())
-        return false;
-    return true;
+    return utils::path::is_directory(res_loc.get_path());
 }
 
 std::string filesystem_content_loader::lexically_relative(

@@ -63,9 +63,12 @@ public:
 
     // Returns list of all files in a directory. Returns associative array with pairs file location - file name.
     virtual list_directory_result list_directory_files(const utils::resource::resource_location& directory) = 0;
+    virtual list_directory_result list_directory_subdirs_and_symlinks(
+        const utils::resource::resource_location& directory) = 0;
 
-    virtual bool file_exists(const std::string& file_name) = 0;
-    virtual bool lib_file_exists(const std::string& lib_path, const std::string& file_name) = 0;
+    virtual bool file_exists(const utils::resource::resource_location& file_loc) const = 0;
+    virtual bool lib_file_exists(const utils::resource::resource_location& lib_root, std::string_view file_name) const = 0;
+    virtual bool dir_exists(const utils::resource::resource_location& dir_loc) const = 0;
 
     virtual void did_open_file(const file_location& document_loc, version_t version, std::string text) = 0;
     virtual void did_change_file(

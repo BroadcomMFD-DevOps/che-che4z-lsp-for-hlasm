@@ -113,6 +113,12 @@ list_directory_result file_manager_impl::list_directory_files(const utils::resou
     return utils::resource::list_directory_files(directory);
 }
 
+list_directory_result file_manager_impl::list_directory_subdirs_and_symlinks(
+    const utils::resource::resource_location& directory)
+{
+    return utils::resource::list_directory_subdirs_and_symlinks(directory);
+}
+
 void file_manager_impl::prepare_file_for_change_(std::shared_ptr<file_impl>& file)
 {
     if (file.use_count() == 1) // TODO: possible weak_ptr issue
@@ -173,16 +179,20 @@ void file_manager_impl::did_close_file(const file_location& document_loc)
     // if the file does not exist, no action is taken
 }
 
-bool file_manager_impl::file_exists(const std::string& file_name)
+bool file_manager_impl::file_exists(const utils::resource::resource_location& file_loc) const
 {
-    std::error_code ec;
-    return std::filesystem::exists(file_name, ec);
-    // TODO use error code??
+    return utils::resource::file_exists(file_loc);
 }
 
-bool file_manager_impl::lib_file_exists(const std::string& lib_path, const std::string& file_name)
+bool file_manager_impl::lib_file_exists(
+    const utils::resource::resource_location& lib_root, std::string_view file_name) const
 {
-    return std::filesystem::exists(utils::path::join(lib_path, file_name));
+    return utils::resource::file_exists(utils::resource::resource_location::join(lib_root, file_name));
+}
+
+bool file_manager_impl::dir_exists(const utils::resource::resource_location& dir_loc) const
+{
+    return utils::resource::dir_exists(dir_loc);
 }
 
 void file_manager_impl::put_virtual_file(unsigned long long id, std::string_view text)

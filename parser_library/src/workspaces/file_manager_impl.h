@@ -54,14 +54,17 @@ public:
     processor_file_ptr find_processor_file(const utils::resource::resource_location& key) override;
 
     list_directory_result list_directory_files(const utils::resource::resource_location& directory) override;
+    list_directory_result list_directory_subdirs_and_symlinks(
+        const utils::resource::resource_location& directory) override;
 
     void did_open_file(const file_location& document_loc, version_t version, std::string text) override;
     void did_change_file(
         const file_location& document_loc, version_t version, const document_change* changes, size_t ch_size) override;
     void did_close_file(const file_location& document_loc) override;
 
-    bool file_exists(const std::string& file_name) override;
-    bool lib_file_exists(const std::string& lib_path, const std::string& file_name) override;
+    bool file_exists(const utils::resource::resource_location& file_loc) const override;
+    bool lib_file_exists(const utils::resource::resource_location& lib_root, std::string_view file_name) const override;
+    bool dir_exists(const utils::resource::resource_location& dir_loc) const override;
 
     virtual ~file_manager_impl() = default;
 
