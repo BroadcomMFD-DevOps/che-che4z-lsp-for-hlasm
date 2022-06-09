@@ -328,6 +328,8 @@ checking::check_op_ptr low_language_processor::get_check_op(const semantics::ope
     {
         for (const auto& symbol : missing_symbols)
             add_diagnostic(diagnostic_op::error_E010("ordinary symbol", *symbol, ev_op.operand_range));
+        if (missing_symbols.empty()) // this is a fallback message if somehow non-symbolic deps are not resolved
+            add_diagnostic(diagnostic_op::error_E016(ev_op.operand_range));
         return nullptr;
     }
 

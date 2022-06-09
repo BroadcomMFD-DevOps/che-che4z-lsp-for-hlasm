@@ -526,6 +526,8 @@ struct diagnostic_op
 
     static diagnostic_op error_E015(std::span<const std::string_view> expected, const range& range);
 
+    static diagnostic_op error_E016(const range& range);
+
     static diagnostic_op error_E020(std::string_view message, const range& range);
 
     static diagnostic_op error_E021(std::string_view message, const range& range);

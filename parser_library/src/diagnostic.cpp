@@ -32,16 +32,16 @@ struct concat_helper
     {
         s.append(std::to_string(std::forward<T>(t)));
     }
+
+    constexpr static std::string_view span_sep = ", ";
     template<typename T>
     void operator()(std::string& s, typename std::span<T> span) const
     {
-        constexpr static std::string_view sep = ", ";
-
         bool first = true;
         for (const auto& e : span)
         {
             if (!first)
-                s.append(sep);
+                s.append(span_sep);
             else
                 first = false;
 
@@ -60,9 +60,9 @@ struct concat_helper
     {
         size_t result = 0;
         for (const auto& e : span)
-            result += 1 + len(e);
+            result += span_sep.size() + len(e);
 
-        return result - !!result;
+        return result - (result ? span_sep.size() : 0);
     }
 };
 
@@ -1900,6 +1900,11 @@ diagnostic_op diagnostic_op::error_E015(std::span<const std::string_view> expect
 {
     return diagnostic_op(
         diagnostic_severity::error, "E015", concat("Unexpected operand type. Allowed types: ", expected), range);
+}
+
+diagnostic_op diagnostic_op::error_E016(const range& range)
+{
+    return diagnostic_op(diagnostic_severity::error, "E016", "Unable to evaluate operand", range);
 }
 
 diagnostic_op diagnostic_op::error_E020(std::string_view message, const range& range)
