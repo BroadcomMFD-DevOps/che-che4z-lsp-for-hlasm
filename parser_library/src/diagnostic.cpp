@@ -1873,7 +1873,7 @@ diagnostic_op diagnostic_op::error_E001(const range& range)
 
 diagnostic_op diagnostic_op::error_E010(std::string_view type, std::string_view name, const range& range)
 {
-    return diagnostic_op(diagnostic_severity::error, "E010", concat("Unknown ", type, " name:", name), range);
+    return diagnostic_op(diagnostic_severity::error, "E010", concat("Unknown ", type, ": ", name), range);
 }
 
 diagnostic_op diagnostic_op::error_E011(std::string_view message, const range& range)
