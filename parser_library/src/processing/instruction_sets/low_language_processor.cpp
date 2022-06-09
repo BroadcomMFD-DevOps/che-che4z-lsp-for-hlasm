@@ -325,7 +325,7 @@ checking::check_op_ptr low_language_processor::get_check_op(const semantics::ope
 
     if (can_have_ord_syms && !postpone_dependencies && ev_op.has_dependencies(dep_solver))
     {
-        add_diagnostic(diagnostic_op::error_E010("ordinary symbol", ev_op.operand_range));
+        add_diagnostic(diagnostic_op::error_E010("ordinary symbol", "TODO", ev_op.operand_range));
         return nullptr;
     }
 
