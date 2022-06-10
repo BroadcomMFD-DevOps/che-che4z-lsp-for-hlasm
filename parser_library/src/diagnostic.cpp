@@ -1752,7 +1752,7 @@ diagnostic_op diagnostic_op::error_D033(const range& range)
 {
     return diagnostic_op(diagnostic_severity::error,
         "D033",
-        "Address in form D(B) or a simple relocatable expression resolvable by USING expected.",
+        "Address in form D(B) or a simple relocatable expression resolvable by USING expected",
         range);
 }
 
