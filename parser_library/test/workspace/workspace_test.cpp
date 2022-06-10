@@ -112,8 +112,7 @@ TEST_F(workspace_test, parse_lib_provider)
         library_data { processing::processing_kind::MACRO, ctx_2->ids().add("not_existing") });
 }
 
-
-
+namespace {
 std::string pgroups_file = R"({
   "pgroups": [
     {
@@ -176,23 +175,6 @@ std::string pgroups_file_optional = R"({
   ]
 })";
 
-std::string pgroups_file_pattern = is_windows() ? R"({
-  "pgroups": [
-    {
-      "name": "P1",
-      "libs": [ "pattern_test\\libs\\**" ]
-    }
-  ]
-})"
-                                                : R"({
-  "pgroups": [
-    {
-      "name": "P1",
-      "libs": [ "pattern_test/libs/**" ]
-    }
-  ]
-})";
-
 std::string pgroups_file_invalid_assembler_options = R"({
   "pgroups": [
     {
@@ -245,10 +227,6 @@ std::string pgmconf_file = R"({
 	{
       "program": "source3",
       "pgroup": "P1"
-    },
-	{
-      "program": "pattern_test/test_pattern",
-      "pgroup": "P1"
     }
   ]
 })";
@@ -294,60 +272,21 @@ label
 
 std::string source_using_macro_file_no_error = R"( CORRECT)";
 
-std::string pattern_source = R"(         MACRO
-         TEST
-         TEST1
-         TEST2
-         MEND
-
-         TEST
-         TEST1
-         TEST2
-
-         END)";
-
-std::string pattern_test_1 = R"(         MACRO
-         TEST1
-
-         MEND
-)";
-
-std::string pattern_test_2 = R"(         MACRO
-         TEST2
-
-         MEND
-)";
-
 const char* faulty_macro_path = is_windows() ? "lib\\ERROR" : "lib/ERROR";
 const char* correct_macro_path = is_windows() ? "lib\\CORRECT" : "lib/CORRECT";
-const char* pattern_lib_sublib1_rel_path = "sublib1";
-const char* pattern_lib_sublib2_rel_path = "sublib2";
-const char* pattern_lib_sublib1_abs_path =
-    is_windows() ? "C:\\\\User\\ws\\pattern_test\\libs\\sublib1\\" : "pattern_test/libs/sublib1/";
-const char* pattern_lib_sublib2_abs_path =
-    is_windows() ? "C:\\\\User\\ws\\pattern_test\\libs\\sublib2\\" : "pattern_test/libs/sublib2/";
 const std::string hlasmplugin_folder = ".hlasmplugin";
 
 const resource_location empty_loc = resource_location("");
-const resource_location ws_non_empty_loc = resource_location("file:///C%3A/User/ws/");
 
 const resource_location proc_grps_loc(hlasmplugin_folder + "/proc_grps.json");
 const resource_location pgm_conf_loc(hlasmplugin_folder + "/pgm_conf.json");
 const resource_location source1_loc("source1");
 const resource_location source2_loc("source2");
 const resource_location source3_loc("source3");
-const resource_location pattern_source_loc = resource_location::join(ws_non_empty_loc, "pattern_test/test_pattern");
-const resource_location pattern_lib_loc = resource_location::join(ws_non_empty_loc, "pattern_test/libs/");
-const resource_location pattern_lib_sublib1_loc =
-    resource_location::join(ws_non_empty_loc, "pattern_test/libs/sublib1/");
-const resource_location pattern_lib_sublib2_loc =
-    resource_location::join(ws_non_empty_loc, "pattern_test/libs/sublib2/");
-
-const resource_location pattern_macro1_loc = resource_location::join(pattern_lib_sublib1_loc, "test1");
-const resource_location pattern_macro2_loc = resource_location::join(pattern_lib_sublib1_loc, "test2");
 
 const resource_location faulty_macro_loc(faulty_macro_path);
 const resource_location correct_macro_loc(correct_macro_path);
+} // namespace
 
 class file_manager_extended : public file_manager_impl
 {
@@ -380,7 +319,6 @@ enum class file_manager_opt_variant
     default_to_required,
     required,
     optional,
-    pattern,
     invalid_assembler_options,
     invalid_preprocessor_options,
     invalid_assembler_options_in_pgm_conf,
@@ -401,8 +339,6 @@ class file_manager_opt : public file_manager_impl
                 return pgroups_file_required;
             case file_manager_opt_variant::optional:
                 return pgroups_file_optional;
-            case file_manager_opt_variant::pattern:
-                return pgroups_file_pattern;
             case file_manager_opt_variant::invalid_assembler_options:
                 return pgroups_file_invalid_assembler_options;
             case file_manager_opt_variant::invalid_preprocessor_options:
@@ -429,14 +365,6 @@ public:
         did_open_file(pgm_conf_loc, 1, generate_pgm_conf_file(variant));
         did_open_file(source1_loc, 1, source_using_macro_file_no_error);
         did_open_file(correct_macro_loc, 1, correct_macro_file);
-
-        did_open_file(
-            resource_location::join(ws_non_empty_loc, proc_grps_loc.get_uri()), 1, generate_proc_grps_file(variant));
-        did_open_file(
-            resource_location::join(ws_non_empty_loc, pgm_conf_loc.get_uri()), 1, generate_pgm_conf_file(variant));
-        did_open_file(pattern_source_loc, 1, pattern_source);
-        //did_open_file(pattern_lib_sublib1_loc, 1, pattern_test_1);
-        //did_open_file(pattern_lib_sublib2_loc, 1, pattern_test_2);
     }
 
     list_directory_result list_directory_files(
@@ -445,35 +373,8 @@ public:
         if (location == resource_location("lib/") || location == resource_location("lib\\"))
             return { { { "CORRECT", correct_macro_loc } }, hlasm_plugin::utils::path::list_directory_rc::done };
 
-        if (location == pattern_lib_sublib1_loc)
-            return { { { "test1", pattern_macro1_loc } }, hlasm_plugin::utils::path::list_directory_rc::done };
-
-        if (location == pattern_lib_sublib2_loc)
-            return { { { "test2", pattern_macro2_loc } }, hlasm_plugin::utils::path::list_directory_rc::done };
-
-        if (location == pattern_lib_loc)
-            return { {}, hlasm_plugin::utils::path::list_directory_rc::done };
-
         return { {}, hlasm_plugin::utils::path::list_directory_rc::not_exists };
     }
-
-    list_directory_result list_directory_subdirs_and_symlinks(
-        const hlasm_plugin::utils::resource::resource_location& location) override
-    {
-        if (location == pattern_lib_loc)
-            return { { { pattern_lib_sublib1_abs_path, pattern_lib_sublib1_loc },
-                         { pattern_lib_sublib2_abs_path, pattern_lib_sublib2_loc } },
-                hlasm_plugin::utils::path::list_directory_rc::done };
-
-        if (location == pattern_lib_sublib1_loc || location == pattern_lib_sublib2_loc)
-            return { {}, hlasm_plugin::utils::path::list_directory_rc::done };
-
-        return { {}, hlasm_plugin::utils::path::list_directory_rc::not_exists };
-    }
-
-
-    bool file_exists(const hlasm_plugin::utils::resource::resource_location& file_loc) const override { return true; }
-    bool dir_exists(const hlasm_plugin::utils::resource::resource_location& dir_loc) const override { return true; }
 };
 
 
@@ -573,18 +474,6 @@ TEST_F(workspace_test, missing_library_optional)
     ws.did_open_file(source1_loc);
     EXPECT_EQ(collect_and_get_diags_size(ws, file_manager), (size_t)0);
 }
-
-//TEST_F(workspace_test, library_path_pattern)
-//{
-//    file_manager_opt file_manager(file_manager_opt_variant::pattern);
-//    lib_config config;
-//
-//    workspace ws(ws_non_empty_loc, "workspace_name", file_manager, config);
-//    ws.open();
-//
-//    ws.did_open_file(pattern_source_loc);
-//    EXPECT_EQ(collect_and_get_diags_size(ws, file_manager), (size_t)0);
-//}
 
 TEST_F(workspace_test, invalid_assembler_options)
 {

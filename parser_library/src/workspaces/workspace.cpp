@@ -156,11 +156,12 @@ utils::resource::resource_location transform_to_resource_location(
 {
     utils::resource::resource_location rl;
 
-    if (utils::path::is_uri(path))
-    {
-        rl = utils::resource::resource_location(path);
-    }
-    else if (!utils::path::is_absolute(path))
+    if (utils::path::is_absolute(path))
+        return utils::resource::resource_location(
+            utils::path::path_to_uri(utils::path::lexically_normal(path).string()));
+    else if (utils::path::is_uri(path))
+        return utils::resource::resource_location(path);
+    else
     {
         std::replace(path.begin(), path.end(), '\\', '/');
 
@@ -168,13 +169,9 @@ utils::resource::resource_location transform_to_resource_location(
             path = path.substr(0, path.size() - 1);
 
         auto base_uri = std::string(base_resource_location.get_uri());
-        rl = utils::resource::resource_location(base_uri);
-        rl.join(path);
-    }
-    else
-        rl = utils::resource::resource_location(utils::path::path_to_uri(utils::path::lexically_normal(path).string()));
 
-    return rl;
+        return utils::resource::resource_location::join(base_resource_location, path);
+    }
 }
 } // namespace
 
@@ -558,6 +555,7 @@ void workspace::find_and_add_libs(const utils::resource::resource_location& root
 
         for (auto& p : res.first)
         {
+            p.second.to_directory();
             if (processed_paths.count(p.second))
                 continue;
 
@@ -620,7 +618,17 @@ void workspace::process_processor_group(
     {
         auto lib_local_opts = get_library_local_options(lib, proc_groups, pgm_config);
 
-        utils::resource::resource_location rl = transform_to_resource_location(lib.path, location_);
+        utils::resource::resource_location rl;
+        if (auto asterisk = lib.path.find('*'); asterisk == std::string::npos)
+            rl = transform_to_resource_location(lib.path, location_);
+        else
+        {
+            auto last_slash = lib.path.find_last_of("/\\", asterisk) + 1;
+            rl = transform_to_resource_location(lib.path.substr(0, last_slash), location_);
+            rl.to_directory();
+            rl.join(lib.path.substr(last_slash));
+        }
+
         rl.to_directory();
 
         if (auto asterisk = rl.get_uri().find('*'); asterisk == std::string::npos)
