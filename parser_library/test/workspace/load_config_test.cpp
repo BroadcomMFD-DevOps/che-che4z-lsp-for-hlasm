@@ -229,7 +229,7 @@ TEST(workspace, load_config_synthetic)
                 resource_location("file:///c%3A/Users/Desktop/Temp/"),
                 resource_location("file:///c%3A/Users/ws/") };
         else
-            return { resource_location("file:////home/user/ASLib/"),
+            return { resource_location("file:///home/user/ASLib/"),
                 resource_location("file:///home/user/ws/lib/"),
                 resource_location("file:///home/user/ws/libs/lib2/"),
                 resource_location("file:///home/user/Temp/"),
@@ -247,7 +247,7 @@ TEST(workspace, load_config_synthetic)
                 resource_location("file:///c%3A/Users/ws/P2lib/"),
                 resource_location("file:///c%3A/Users/ws/P2libs/libb/") };
         else
-            return { resource_location("file:////home/user/ASLib/"),
+            return { resource_location("file:///home/user/ASLib/"),
                 resource_location("file:///home/user/ws/P2lib/"),
                 resource_location("file:///home/user/ws/P2libs/libb/") };
     }();

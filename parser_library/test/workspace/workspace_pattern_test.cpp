@@ -106,7 +106,7 @@ const std::string pgroups_file_all_types = is_windows() ? R"({
   "pgroups": [
     {
       "name": "P1",
-      "libs": [ "/home/Temp/Lib", "/home/Temp/Lib2/Libs/**", "different_libs", "different_libs2/Libs/**", "file:///C%3A/User/**/pattern_*est/libs/sublib1", "file:///C%3A/User/ws/pattern_test/libs/sublib2" ]
+      "libs": [ "/home/Temp/Lib", "/home/Temp/Lib2/Libs/**", "different_libs", "different_libs2/Libs/**", "file:///home/User/**/pattern_*est/libs/sublib1", "file:///home/User/ws/pattern_test/libs/sublib2" ]
     }
   ]
 })";
