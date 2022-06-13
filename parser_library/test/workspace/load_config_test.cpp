@@ -34,13 +34,17 @@ using hlasm_plugin::utils::platform::is_windows;
 using namespace hlasm_plugin::utils::resource;
 
 namespace {
-auto proc_grps_loc = resource_location("proc_grps.json");
-auto file_loc = resource_location("test_uri");
-auto ws_loc = is_windows() ? resource_location("file:///c%3A/Users/ws/") : resource_location("file:///home/user/ws/");
+const auto proc_grps_loc = resource_location("proc_grps.json");
+const auto file_loc = resource_location("test_uri");
+const auto users_dir =
+    is_windows() ? resource_location("file:///c%3A/Users/") : resource_location("file:///home/user/");
 
-auto pgm1_loc = resource_location::join(ws_loc, "pgm1");
-auto pgm_override_loc = resource_location::join(ws_loc, "pgm_override");
-auto pgm_anything_loc = resource_location::join(ws_loc, "pgms/anything");
+const auto ws_loc = resource_location::join(users_dir, "ws/");
+
+const auto pgm1_loc = resource_location::join(ws_loc, "pgm1");
+const auto pgm_override_loc = resource_location::join(ws_loc, "pgm_override");
+const auto pgm_anything_loc = resource_location::join(ws_loc, "pgms/anything");
+const auto pgm_outside_ws = resource_location::join(users_dir, "/outside/anything");
 } // namespace
 
 class file_proc_grps : public file_impl
@@ -270,6 +274,16 @@ TEST(workspace, load_config_synthetic)
     const auto& asm_options_override = ws.get_asm_options(pgm_override_loc);
     EXPECT_EQ("SEVEN", asm_options_override.sysparm);
     EXPECT_EQ("PROFILE OVERRIDE", asm_options_override.profile);
+
+    // test sysin options in workspace
+    const auto& asm_options_ws = ws.get_asm_options(pgm_anything_loc);
+    EXPECT_EQ(asm_options_ws.sysin_dsn, "pgms");
+    EXPECT_EQ(asm_options_ws.sysin_member, "anything");
+
+    // test sysin options out of workspace
+    const auto& asm_options_ows = ws.get_asm_options(pgm_outside_ws);
+    EXPECT_EQ(asm_options_ows.sysin_dsn, is_windows() ? "c:\\Users\\outside" : "/home/user/outside");
+    EXPECT_EQ(asm_options_ows.sysin_member, "anything");
 }
 
 TEST(workspace, pgm_conf_malformed)

@@ -19,7 +19,7 @@
 // It also contains definitions (static methods) of almost all diagnostics
 // reported by analyzer.
 
-
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -462,6 +462,7 @@ struct diagnostic_op
     static diagnostic_op error_D031(const range& range);
     static diagnostic_op warn_D032(const range& range, std::string_view modifier);
     static diagnostic_op error_D033(const range& range);
+    static diagnostic_op error_D034(const range& range);
 
     static diagnostic_op error_M102(std::string_view instr_name, const range& range);
 
@@ -514,13 +515,19 @@ struct diagnostic_op
 
     static diagnostic_op error_E001(const range& range);
 
-    static diagnostic_op error_E010(std::string_view message, const range& range);
+    static diagnostic_op error_E010(std::string_view type, std::string_view name, const range& range);
 
     static diagnostic_op error_E011(std::string_view message, const range& range);
 
     static diagnostic_op error_E012(std::string_view message, const range& range);
 
     static diagnostic_op error_E013(std::string_view message, const range& range);
+
+    static diagnostic_op error_E014(const range& range);
+
+    static diagnostic_op error_E015(std::span<const std::string_view> expected, const range& range);
+
+    static diagnostic_op error_E016(const range& range);
 
     static diagnostic_op error_E020(std::string_view message, const range& range);
 

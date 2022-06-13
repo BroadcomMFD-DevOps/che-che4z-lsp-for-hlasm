@@ -45,6 +45,11 @@ void resource_location::to_directory()
         m_uri.append("/");
 }
 
+bool resource_location::lexically_out_of_scope() const
+{
+    return m_uri == std::string_view("..") || m_uri.starts_with("../") || m_uri.starts_with("..\\");
+}
+
 void resource_location::join(std::string_view relative_path)
 {
     if (auto f = m_uri.find_last_of("/:"); f != std::string::npos)

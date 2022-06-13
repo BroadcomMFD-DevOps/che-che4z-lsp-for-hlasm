@@ -34,6 +34,8 @@ public:
 
     void to_directory();
 
+    bool lexically_out_of_scope() const;
+
     void join(std::string_view relative_path);
     static resource_location join(resource_location rl, std::string_view relative_path);
 
