@@ -38,68 +38,71 @@ bool is_windows()
 #endif
 }
 
-namespace {
+const std::string& home()
+{
 #ifdef _WIN32
-const std::string home_dir = []() {
-    std::string result;
-    constexpr auto get_env = [](const char* c) -> std::optional<std::string> {
-        if (auto* r = std::getenv(c))
-            return std::string(r);
-        return std::nullopt;
-    };
-    auto userprofile = get_env("USERPROFILE");
-    auto homedrive = get_env("HOMEDRIVE");
-    auto homepath = get_env("HOMEPATH");
-    auto home = get_env("HOME");
+    static const std::string home_dir = []() {
+        std::string result;
+        constexpr auto get_env = [](const char* c) -> std::optional<std::string> {
+            if (auto* r = std::getenv(c))
+                return std::string(r);
+            return std::nullopt;
+        };
+        auto userprofile = get_env("USERPROFILE");
+        auto homedrive = get_env("HOMEDRIVE");
+        auto homepath = get_env("HOMEPATH");
+        auto home = get_env("HOME");
 
-    if (userprofile)
-        result = std::move(userprofile.value());
-    else if (homedrive && homepath)
-        result = std::move(homedrive.value()) + std::move(homepath.value());
-    else if (home)
-        result = std::move(home.value());
+        if (userprofile)
+            result = std::move(userprofile.value());
+        else if (homedrive && homepath)
+            result = std::move(homedrive.value()) + std::move(homepath.value());
+        else if (home)
+            result = std::move(home.value());
 
-    if (!result.empty())
-        result.front() = std::tolower((unsigned char)result.front());
+        if (!result.empty())
+            result.front() = std::tolower((unsigned char)result.front());
 
-    return result;
-}();
+        return result;
+    }();
 #elif __EMSCRIPTEN__
-const std::string home_dir = []() {
-    std::string s;
+    static const std::string home_dir = []() {
+        std::string s;
 
-    auto resize = +[](intptr_t ptr, int size) {
-        auto str = (std::string*)ptr;
-        str->resize(size);
-        return (intptr_t)str->data();
-    };
-    emscripten::function("resize_string", resize);
-    // clang-format off
-    EM_ASM(
-        {
-            const homedir = require('os').homedir();
-            const len = lengthBytesUTF8(homedir);
-            const ptr = Module.resize_string($1, len);
-            stringToUTF8(homedir, ptr, len + 1);
-        },
-        (intptr_t)&s);
-    // clang-format on
+        auto resize = +[](intptr_t ptr, ssize_t size) {
+            auto str = (std::string*)ptr;
+            str->resize(size);
+            return (intptr_t)str->data();
+        };
+        emscripten::function("resize_string", resize);
+        // clang-format off
+        EM_ASM(
+            {
+                const homedir = require('os').homedir();
+                if (homedir)
+                {
+                    const len = lengthBytesUTF8(homedir);
+                    const ptr = Module.resize_string($0, len);
+                    stringToUTF8(homedir, ptr, len + 1);
+                }
+            },
+            (intptr_t)&s);
+        // clang-format on
 
-    if (!s.empty() && is_windows())
-        s.front() = std::tolower((unsigned char)s.front());
+        if (!s.empty() && is_windows())
+            s.front() = std::tolower((unsigned char)s.front());
 
-    return s;
-}();
+        return s;
+    }();
 #else
-const std::string home_dir = []() {
-    if (const char* home = std::getenv("HOME"); home)
-        return std::string(home);
+    static const std::string home_dir = []() {
+        if (const char* home = std::getenv("HOME"); home)
+            return std::string(home);
 
-    return std::string();
-}();
+        return std::string();
+    }();
 #endif
-} // namespace
-
-const std::string& home() { return home_dir; }
+    return home_dir;
+}
 
 } // namespace hlasm_plugin::utils::platform
