@@ -19,7 +19,7 @@
 #include "../common_testing.h"
 
 namespace hlasm_plugin::parser_library::workspaces {
-extern std::regex pathmask_to_regex(std::string input);
+extern std::regex pathmask_to_regex(const std::string& input);
 } // namespace hlasm_plugin::parser_library::workspaces
 
 bool check_path(std::string pattern, std::string path)
@@ -81,12 +81,12 @@ TEST(pathmask, pass)
 
     EXPECT_TRUE(check_path("file:///C%3A/path/**/", "file:///C%3A/path/a/test/"));
     EXPECT_TRUE(check_path("file:///C%3A/path/**/test/", "file:///C%3A/path/a/test/"));
+    EXPECT_TRUE(check_path("file:///c%3A/path/**/", "file:///C%3A/path/a/test/"));
+    EXPECT_TRUE(check_path("file:///c%3A/path/**/test/", "file:///C%3A/path/a/test/"));
     EXPECT_TRUE(check_path("file:///c%3A/path/**/", "file:///c%3A/path/a/test/"));
     EXPECT_TRUE(check_path("file:///c%3A/path/**/test/", "file:///c%3A/path/a/test/"));
     EXPECT_TRUE(check_path("file:///C%3A/path/**/", "file:///c%3A/path/a/test/"));
     EXPECT_TRUE(check_path("file:///C%3A/path/**/test/", "file:///c%3A/path/a/test/"));
-    EXPECT_TRUE(check_path("file:///c%3A/path/**/", "file:///C%3A/path/a/test/"));
-    EXPECT_TRUE(check_path("file:///c%3A/path/**/test/", "file:///C%3A/path/a/test/"));
 }
 
 TEST(pathmask, fail)
@@ -106,7 +106,7 @@ TEST(pathmask, fail)
     EXPECT_FALSE(check_path("/path/", "file:///path/"));
 
     EXPECT_FALSE(check_path("file:///C%3A/path/**/", "file:///c%3A/Path/a/test/"));
-    EXPECT_FALSE(check_path("file:///C%3A/path/**/test/", "file:///c%3A/pAth/a/test/"));
-    EXPECT_FALSE(check_path("file:///c%3A/path/**/", "file:///C%3A/paTh/a/test/"));
-    EXPECT_FALSE(check_path("file:///c%3A/path/**/test/", "file:///C%3A/patH/a/test/"));
+    EXPECT_FALSE(check_path("file:///C%3A/path/**/test/", "file:///c%3A/path/a/tEst/"));
+    EXPECT_FALSE(check_path("file:///c%3A/path/**/", "file:///C%3A/Path/a/test/"));
+    EXPECT_FALSE(check_path("file:///c%3A/path/**/test/", "file:///C%3A/path/a/tEst/"));
 }

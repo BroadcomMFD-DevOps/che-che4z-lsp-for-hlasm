@@ -52,11 +52,11 @@ public:
     MOCK_METHOD(list_directory_result,
         list_directory_files,
         (const hlasm_plugin::utils::resource::resource_location& path),
-        (override));
+        (const override));
     MOCK_METHOD(list_directory_result,
         list_directory_subdirs_and_symlinks,
         (const hlasm_plugin::utils::resource::resource_location& path),
-        (override));
+        (const override));
     MOCK_METHOD(
         bool, file_exists, (const hlasm_plugin::utils::resource::resource_location& file_loc), (const override));
     MOCK_METHOD(bool,

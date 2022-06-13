@@ -108,13 +108,13 @@ processor_file_ptr file_manager_impl::find_processor_file(const utils::resource:
     return change_into_processor_file_if_not_already_(ret->second);
 }
 
-list_directory_result file_manager_impl::list_directory_files(const utils::resource::resource_location& directory)
+list_directory_result file_manager_impl::list_directory_files(const utils::resource::resource_location& directory) const
 {
     return utils::resource::list_directory_files(directory);
 }
 
 list_directory_result file_manager_impl::list_directory_subdirs_and_symlinks(
-    const utils::resource::resource_location& directory)
+    const utils::resource::resource_location& directory) const
 {
     return utils::resource::list_directory_subdirs_and_symlinks(directory);
 }

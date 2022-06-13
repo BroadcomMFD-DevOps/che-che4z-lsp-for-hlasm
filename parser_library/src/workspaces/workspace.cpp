@@ -52,8 +52,6 @@ workspace::workspace(const utils::resource::resource_location& location,
     location_.to_directory();
 
     auto hlasm_folder = utils::resource::resource_location::join(location_, HLASM_PLUGIN_FOLDER);
-    hlasm_folder.to_directory();
-
     proc_grps_loc_ = utils::resource::resource_location::join(hlasm_folder, FILENAME_PROC_GRPS);
     pgm_conf_loc_ = utils::resource::resource_location::join(hlasm_folder, FILENAME_PGM_CONF);
 }
@@ -150,38 +148,11 @@ const processor_group& workspace::get_proc_grp_by_program(const program& pgm) co
     return proc_grps_.at(pgm.pgroup);
 }
 
-namespace {
-utils::resource::resource_location transform_to_resource_location(
-    std::string path, const utils::resource::resource_location& base_resource_location)
-{
-    utils::resource::resource_location rl;
-
-    if (utils::path::is_absolute(path))
-        return utils::resource::resource_location(
-            utils::path::path_to_uri(utils::path::lexically_normal(path).string()));
-    else if (utils::path::is_uri(path))
-        return utils::resource::resource_location(path);
-    else
-    {
-        std::replace(path.begin(), path.end(), '\\', '/');
-
-        if (!path.empty() && path.back() == '/')
-            path = path.substr(0, path.size() - 1);
-
-        auto base_uri = std::string(base_resource_location.get_uri());
-
-        return utils::resource::resource_location::join(base_resource_location, path);
-    }
-}
-} // namespace
-
 const program* workspace::get_program(const utils::resource::resource_location& file_location) const
 {
     assert(opened_);
 
-    utils::resource::resource_location rl = transform_to_resource_location(file_location.get_uri(), location_);
-
-    std::string file = utils::resource::lexically_relative(rl, location_);
+    std::string file = utils::resource::lexically_relative(file_location, location_);
 
     // direct match
     auto program = exact_pgm_conf_.find(file);
@@ -421,40 +392,56 @@ const processor_group& workspace::get_proc_grp(const proc_grp_id& proc_grp) cons
     return proc_grps_.at(proc_grp);
 }
 
-void replace_all(std::string& str, std::string_view what, std::string_view with)
+namespace {
+utils::resource::resource_location transform_to_resource_location(
+    std::string path, const utils::resource::resource_location& base_resource_location)
 {
-    for (std::string::size_type p = 0; (p = str.find(what, p)) != std::string::npos; p += with.size())
-        str.replace(p, what.size(), with);
+    utils::resource::resource_location rl;
+
+    if (utils::path::is_absolute(path))
+        return utils::resource::resource_location(
+            utils::path::path_to_uri(utils::path::lexically_normal(path).string()));
+    else if (utils::path::is_uri(path))
+        return utils::resource::resource_location(path);
+    else
+    {
+        std::replace(path.begin(), path.end(), '\\', '/');
+
+        return utils::resource::resource_location::join(base_resource_location, path);
+    }
 }
 
-std::regex pathmask_to_regex(std::string input)
+size_t preprocess_uri_with_windows_drive_letter_regex_string(const std::string& input, std::string& r)
 {
-    std::string r;
-    r.reserve(input.size());
-
-    if (!input.empty() && input.back() != '/')
-        input.push_back('/');
-
-    std::string_view s = input;
-
-    // Path mask shouldn't care about Windows Drive letter case
     if (std::smatch matches; std::regex_search(input, matches, std::regex("^file:///([a-zA-Z])%3[aA]/")))
     {
         if (matches.size() == 2)
         {
             // Append windows file path (e.g. file:///[cC]%3A/)
             r.append("file:///[");
-            r.push_back(tolower(matches[1].str()[0]));
-            r.push_back(toupper(matches[1].str()[0]));
+            r.push_back(static_cast<char>(tolower(matches[1].str()[0])));
+            r.push_back(static_cast<char>(toupper(matches[1].str()[0])));
             r.append("]%3[aA]/");
         }
         else
-        {
-            // Something weird is going on
-            r.append(matches[0].str());
-        }
-        s.remove_prefix(matches[0].length());
+            r.append(matches[0].str()); // Something weird is going on
+
+        return matches[0].length();
     }
+
+    return 0;
+}
+} // namespace
+
+std::regex pathmask_to_regex(const std::string& input)
+{
+    std::string r;
+    r.reserve(input.size());
+
+    std::string_view s = input;
+
+    // URI mask shouldn't care about Windows Drive letter case
+    s.remove_prefix(preprocess_uri_with_windows_drive_letter_regex_string(input, r));
 
     bool path_started = false;
     while (!s.empty())
@@ -526,11 +513,6 @@ void workspace::find_and_add_libs(const utils::resource::resource_location& root
     processor_group& prc_grp,
     const library_local_options& opts)
 {
-    std::regex path_validator = pathmask_to_regex(path_pattern.get_uri());
-
-    std::set<utils::resource::resource_location> processed_paths;
-    std::deque<utils::resource::resource_location> dirs_to_search;
-
     if (!file_manager_.dir_exists(root))
     {
         if (!opts.optional_library)
@@ -538,42 +520,48 @@ void workspace::find_and_add_libs(const utils::resource::resource_location& root
         return;
     }
 
+    std::regex path_validator = pathmask_to_regex(path_pattern.get_uri());
+
+    std::set<utils::resource::resource_location> processed_dirs;
+    std::deque<utils::resource::resource_location> dirs_to_search;
+
     dirs_to_search.emplace_back(root);
 
     constexpr size_t limit = 1000;
     while (!dirs_to_search.empty())
     {
-        if (processed_paths.size() > limit)
+        if (processed_dirs.size() > limit)
         {
             add_diagnostic(diagnostic_s::warning_L0005(path_pattern.to_presentable(), limit));
             break;
         }
 
-        auto uri = std::move(dirs_to_search.front());
-        dirs_to_search.pop_front();
+        const auto& dir = dirs_to_search.front();
 
-        if (!processed_paths.insert(uri).second)
+        if (!processed_dirs.insert(dir).second)
             continue;
 
-        if (std::regex_match(uri.get_uri(), path_validator))
+        if (std::regex_match(dir.get_uri(), path_validator))
         {
-            prc_grp.add_library(std::make_unique<library_local>(file_manager_, uri, opts));
+            prc_grp.add_library(std::make_unique<library_local>(file_manager_, dir, opts));
         }
 
-        auto res = file_manager_.list_directory_subdirs_and_symlinks(uri);
-        if (res.second != utils::path::list_directory_rc::done)
+        auto subdir_list = file_manager_.list_directory_subdirs_and_symlinks(dir);
+        if (subdir_list.second != utils::path::list_directory_rc::done)
         {
-            add_diagnostic(diagnostic_s::error_L0001(uri.to_presentable()));
+            add_diagnostic(diagnostic_s::error_L0001(dir.to_presentable()));
             break;
         }
 
-        for (auto& p : res.first)
+        for (auto& subdir : subdir_list.first)
         {
-            if (processed_paths.count(p.second))
+            if (processed_dirs.count(subdir.second))
                 continue;
 
-            dirs_to_search.emplace_back(p.second);
+            dirs_to_search.emplace_back(subdir.second);
         }
+
+        dirs_to_search.pop_front();
     }
 }
 
@@ -633,25 +621,27 @@ void workspace::process_processor_group(
 
         utils::resource::resource_location rl;
         if (auto asterisk = lib.path.find('*'); asterisk == std::string::npos)
+        {
             rl = transform_to_resource_location(lib.path, location_);
+            rl.to_directory();
+            prc_grp.add_library(std::make_unique<library_local>(file_manager_, rl, std::move(lib_local_opts)));
+        }
         else
         {
             auto last_slash = lib.path.find_last_of("/\\", asterisk) + 1;
             rl = transform_to_resource_location(lib.path.substr(0, last_slash), location_);
             rl.to_directory();
+
             rl.join(lib.path.substr(last_slash));
-        }
+            rl.to_directory();
 
-        rl.to_directory();
-
-        if (auto asterisk = rl.get_uri().find('*'); asterisk == std::string::npos)
-            prc_grp.add_library(std::make_unique<library_local>(file_manager_, rl, std::move(lib_local_opts)));
-        else
+            asterisk = rl.get_uri().find('*');
             find_and_add_libs(utils::resource::resource_location(
                                   rl.get_uri().substr(0, rl.get_uri().find_last_of("/", asterisk) + 1)),
                 rl,
                 prc_grp,
                 lib_local_opts);
+        }
     }
 
     add_proc_grp(std::move(prc_grp));
@@ -711,12 +701,8 @@ bool workspace::load_and_process_config()
 bool workspace::load_config(
     config::proc_grps& proc_groups, config::pgm_conf& pgm_config, file_ptr& proc_grps_file, file_ptr& pgm_conf_file)
 {
-    auto hlasm_base = utils::resource::resource_location::join(location_, HLASM_PLUGIN_FOLDER);
-    hlasm_base.to_directory();
-
     // proc_grps.json parse
-    proc_grps_file = file_manager_.add_file(utils::resource::resource_location::join(hlasm_base, FILENAME_PROC_GRPS));
-
+    proc_grps_file = file_manager_.add_file(proc_grps_loc_);
     if (proc_grps_file->update_and_get_bad())
         return false;
 
@@ -742,8 +728,7 @@ bool workspace::load_config(
     }
 
     // pgm_conf.json parse
-    pgm_conf_file = file_manager_.add_file(utils::resource::resource_location::join(hlasm_base, FILENAME_PGM_CONF));
-
+    pgm_conf_file = file_manager_.add_file(pgm_conf_loc_);
     if (pgm_conf_file->update_and_get_bad())
         return false;
 

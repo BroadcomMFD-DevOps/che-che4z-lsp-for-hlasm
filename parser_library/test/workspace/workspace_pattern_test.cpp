@@ -212,10 +212,10 @@ public:
     MOCK_METHOD(list_directory_result,
         list_directory_files,
         (const hlasm_plugin::utils::resource::resource_location& path),
-        (override));
+        (const override));
 
     list_directory_result list_directory_subdirs_and_symlinks(
-        const hlasm_plugin::utils::resource::resource_location& location) override
+        const hlasm_plugin::utils::resource::resource_location& location) const override
     {
         if (location == pattern_test_lib_loc)
             return { { { pattern_lib_sublib1_abs_path, pattern_test_lib_sublib1_loc },
@@ -241,12 +241,11 @@ public:
         return { {}, hlasm_plugin::utils::path::list_directory_rc::done };
     }
 
-    bool file_exists(const hlasm_plugin::utils::resource::resource_location&) const override { return true; }
     bool dir_exists(const hlasm_plugin::utils::resource::resource_location&) const override { return true; }
 };
 } // namespace
 
-TEST(workspace_pattern_test, relative_to_workspace_pattern_absolute)
+TEST(workspace_pattern_test, absolute)
 {
     file_manager_lib_pattern file_manager(variants::ABSOLUTE);
     lib_config config;
@@ -264,7 +263,7 @@ TEST(workspace_pattern_test, relative_to_workspace_pattern_absolute)
     ws.did_open_file(pattern_test_source_loc);
 }
 
-TEST(workspace_pattern_test, relative_to_workspace_pattern_relative)
+TEST(workspace_pattern_test, relative)
 {
     file_manager_lib_pattern file_manager(variants::RELATIVE);
     lib_config config;
@@ -284,7 +283,7 @@ TEST(workspace_pattern_test, relative_to_workspace_pattern_relative)
     ws.did_open_file(pattern_test_source_loc);
 }
 
-TEST(workspace_pattern_test, relative_to_workspace_pattern_uri)
+TEST(workspace_pattern_test, uri)
 {
     file_manager_lib_pattern file_manager(variants::URI);
     lib_config config;
@@ -304,7 +303,7 @@ TEST(workspace_pattern_test, relative_to_workspace_pattern_uri)
     ws.did_open_file(pattern_test_source_loc);
 }
 
-TEST(workspace_pattern_test, relative_to_workspace_pattern_uri_2)
+TEST(workspace_pattern_test, uri_2)
 {
     file_manager_lib_pattern file_manager(variants::URI_2);
     lib_config config;
@@ -322,7 +321,7 @@ TEST(workspace_pattern_test, relative_to_workspace_pattern_uri_2)
     ws.did_open_file(pattern_test_source_loc);
 }
 
-TEST(workspace_pattern_test, relative_to_workspace_all_types)
+TEST(workspace_pattern_test, all_types)
 {
     file_manager_lib_pattern file_manager(variants::ALL_TYPES);
     lib_config config;

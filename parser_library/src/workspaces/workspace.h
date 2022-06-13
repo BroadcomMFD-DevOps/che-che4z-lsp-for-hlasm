@@ -133,7 +133,7 @@ public:
 private:
     constexpr static char FILENAME_PROC_GRPS[] = "proc_grps.json";
     constexpr static char FILENAME_PGM_CONF[] = "pgm_conf.json";
-    constexpr static char HLASM_PLUGIN_FOLDER[] = ".hlasmplugin";
+    constexpr static char HLASM_PLUGIN_FOLDER[] = ".hlasmplugin/";
 
     std::atomic<bool>* cancel_;
 

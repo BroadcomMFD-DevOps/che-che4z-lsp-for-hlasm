@@ -61,10 +61,13 @@ public:
     // Returns nullptr if there is no such file.
     virtual processor_file_ptr find_processor_file(const file_location& key) = 0;
 
-    // Returns list of all files in a directory. Returns associative array with pairs file location - file name.
-    virtual list_directory_result list_directory_files(const utils::resource::resource_location& directory) = 0;
+    // Returns list of all files in a directory. Returns associative array with pairs file name - file location.
+    virtual list_directory_result list_directory_files(const utils::resource::resource_location& directory) const = 0;
+
+    // Returns list of all sub directories and symbolic links. Returns associative array with pairs file path/uri - file
+    // location.
     virtual list_directory_result list_directory_subdirs_and_symlinks(
-        const utils::resource::resource_location& directory) = 0;
+        const utils::resource::resource_location& directory) const = 0;
 
     virtual bool file_exists(const utils::resource::resource_location& file_loc) const = 0;
     virtual bool lib_file_exists(
