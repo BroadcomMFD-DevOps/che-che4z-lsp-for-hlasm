@@ -437,6 +437,25 @@ std::regex pathmask_to_regex(std::string input)
 
     std::string_view s = input;
 
+    // Path mask shouldn't care about Windows Drive letter case
+    if (std::smatch matches; std::regex_search(input, matches, std::regex("^file:///([a-zA-Z])%3[aA]/")))
+    {
+        if (matches.size() == 2)
+        {
+            // Append windows file path (e.g. file:///[cC]%3A/)
+            r.append("file:///[");
+            r.push_back(tolower(matches[1].str()[0]));
+            r.push_back(toupper(matches[1].str()[0]));
+            r.append("]%3[aA]/");
+        }
+        else
+        {
+            // Something weird is going on
+            r.append(matches[0].str());
+        }
+        s.remove_prefix(matches[0].length());
+    }
+
     bool path_started = false;
     while (!s.empty())
     {
@@ -499,10 +518,6 @@ std::regex pathmask_to_regex(std::string input)
         }
     }
 
-    // Windows file URIs should ignore case
-    if (std::regex_search(input, std::regex("^file:///[a-z](:|%3A)/", std::regex_constants::icase)))
-        return std::regex(r, std::regex_constants::icase);
-
     return std::regex(r);
 }
 
@@ -511,8 +526,7 @@ void workspace::find_and_add_libs(const utils::resource::resource_location& root
     processor_group& prc_grp,
     const library_local_options& opts)
 {
-    std::regex path_validator = pathmask_to_regex(
-        path_pattern.get_uri()); // Todo think about if URIs with fragments and queries are safe to enter this function
+    std::regex path_validator = pathmask_to_regex(path_pattern.get_uri());
 
     std::set<utils::resource::resource_location> processed_paths;
     std::deque<utils::resource::resource_location> dirs_to_search;
@@ -555,7 +569,6 @@ void workspace::find_and_add_libs(const utils::resource::resource_location& root
 
         for (auto& p : res.first)
         {
-            p.second.to_directory();
             if (processed_paths.count(p.second))
                 continue;
 

@@ -283,7 +283,6 @@ const resource_location pgm_conf_loc(hlasmplugin_folder + "/pgm_conf.json");
 const resource_location source1_loc("source1");
 const resource_location source2_loc("source2");
 const resource_location source3_loc("source3");
-
 const resource_location faulty_macro_loc(faulty_macro_path);
 const resource_location correct_macro_loc(correct_macro_path);
 } // namespace
@@ -482,7 +481,7 @@ TEST_F(workspace_test, invalid_assembler_options)
     workspace ws(empty_loc, "workspace_name", file_manager, config);
     ws.open();
 
-    EXPECT_GE(collect_and_get_diags_size(ws, file_manager), (size_t)0);
+    EXPECT_GE(collect_and_get_diags_size(ws, file_manager), (size_t)1);
     EXPECT_TRUE(std::any_of(diags().begin(), diags().end(), [](const auto& d) { return d.code == "W0005"; }));
 }
 

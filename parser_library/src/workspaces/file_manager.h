@@ -67,7 +67,8 @@ public:
         const utils::resource::resource_location& directory) = 0;
 
     virtual bool file_exists(const utils::resource::resource_location& file_loc) const = 0;
-    virtual bool lib_file_exists(const utils::resource::resource_location& lib_root, std::string_view file_name) const = 0;
+    virtual bool lib_file_exists(
+        const utils::resource::resource_location& lib_root, std::string_view file_name) const = 0;
     virtual bool dir_exists(const utils::resource::resource_location& dir_loc) const = 0;
 
     virtual void did_open_file(const file_location& document_loc, version_t version, std::string text) = 0;
