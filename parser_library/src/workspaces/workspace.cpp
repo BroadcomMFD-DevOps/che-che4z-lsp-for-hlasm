@@ -394,24 +394,6 @@ const processor_group& workspace::get_proc_grp(const proc_grp_id& proc_grp) cons
 }
 
 namespace {
-utils::resource::resource_location transform_to_resource_location(
-    std::string path, const utils::resource::resource_location& base_resource_location)
-{
-    utils::resource::resource_location rl;
-
-    if (utils::path::is_absolute(path))
-        return utils::resource::resource_location(
-            utils::path::path_to_uri(utils::path::lexically_normal(path).string()));
-    else if (utils::path::is_uri(path))
-        return utils::resource::resource_location(path);
-    else
-    {
-        std::replace(path.begin(), path.end(), '\\', '/');
-
-        return utils::resource::resource_location::join(base_resource_location, path);
-    }
-}
-
 size_t preprocess_uri_with_windows_drive_letter_regex_string(const std::string& input, std::string& r)
 {
     if (std::smatch matches; std::regex_search(input, matches, std::regex("^file:///([a-zA-Z])%3[aA]/")))
@@ -547,19 +529,19 @@ void workspace::find_and_add_libs(const utils::resource::resource_location& root
             prc_grp.add_library(std::make_unique<library_local>(file_manager_, dir, opts));
         }
 
-        auto subdir_list = file_manager_.list_directory_subdirs_and_symlinks(dir);
-        if (subdir_list.second != utils::path::list_directory_rc::done)
+        auto [subdir_list, return_code] = file_manager_.list_directory_subdirs_and_symlinks(dir);
+        if (return_code != utils::path::list_directory_rc::done)
         {
             add_diagnostic(diagnostic_s::error_L0001(dir.to_presentable()));
             break;
         }
 
-        for (auto& subdir : subdir_list.first)
+        for (auto& [_, subdir] : subdir_list)
         {
-            if (processed_dirs.count(subdir.second))
+            if (processed_dirs.contains(subdir))
                 continue;
 
-            dirs_to_search.emplace_back(subdir.second);
+            dirs_to_search.emplace_back(subdir);
         }
 
         dirs_to_search.pop_front();
@@ -567,6 +549,24 @@ void workspace::find_and_add_libs(const utils::resource::resource_location& root
 }
 
 namespace {
+utils::resource::resource_location transform_to_resource_location(
+    std::string path, const utils::resource::resource_location& base_resource_location)
+{
+    utils::resource::resource_location rl;
+
+    if (std::filesystem::path fs_path = path; utils::path::is_absolute(fs_path))
+        return utils::resource::resource_location(
+            utils::path::path_to_uri(utils::path::lexically_normal(fs_path).string()));
+    else if (utils::path::is_uri(path))
+        return utils::resource::resource_location(path);
+    else
+    {
+        std::replace(path.begin(), path.end(), '\\', '/');
+
+        return utils::resource::resource_location::join(base_resource_location, path);
+    }
+}
+
 std::vector<std::string> get_macro_extensions_compatibility_list(const config::pgm_conf& pgm_config)
 {
     // Extract extension list for compatibility reasons
@@ -630,7 +630,7 @@ void workspace::process_processor_group(
         else
         {
             auto last_slash = lib.path.find_last_of("/\\", asterisk) + 1;
-            rl = transform_to_resource_location(lib.path.substr(0, last_slash), location_);
+            rl = transform_to_resource_location(std::move(lib.path.substr(0, last_slash)), location_);
             rl.to_directory();
 
             rl.join(lib.path.substr(last_slash));

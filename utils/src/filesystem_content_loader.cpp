@@ -75,18 +75,17 @@ list_directory_result filesystem_content_loader::list_directory_subdirs_and_syml
     std::filesystem::path path(directory_loc.get_path());
     list_directory_result result;
 
-    result.second =
-        utils::path::list_directory_subdirs_and_symlinks(path, [&result](const std::filesystem::path& path) {
-            std::error_code ec;
-            auto cp = utils::path::canonical(path, ec);
+    result.second = utils::path::list_directory_subdirs_and_symlinks(path, [&result](const std::filesystem::path& p) {
+        std::error_code ec;
+        auto cp = utils::path::canonical(p, ec);
 
-            if (!ec && utils::path::is_directory(cp))
-            {
-                auto found_dir = utils::resource::resource_location(utils::path::path_to_uri(cp.string()));
-                found_dir.to_directory();
-                result.first[cp.string()] = std::move(found_dir);
-            }
-        });
+        if (!ec && utils::path::is_directory(cp))
+        {
+            auto found_dir = utils::resource::resource_location(utils::path::path_to_uri(cp.string()));
+            found_dir.to_directory();
+            result.first[cp.string()] = std::move(found_dir);
+        }
+    });
 
     return result;
 }

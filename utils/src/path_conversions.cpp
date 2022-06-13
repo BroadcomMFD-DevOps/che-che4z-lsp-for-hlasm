@@ -24,7 +24,7 @@
 
 namespace hlasm_plugin::utils::path {
 
-std::string uri_to_path(const std::string& uri)
+std::string uri_to_path(const std::string& uri) noexcept
 {
     try
     {
@@ -105,7 +105,7 @@ std::string path_to_uri(std::string_view path)
     return uri;
 }
 
-bool is_uri(std::string path)
+bool is_uri(const std::string& path) noexcept
 {
     if (path.empty())
         return false;
@@ -140,7 +140,7 @@ struct dissected_uri
     bool contains_host() const { return auth.has_value() && !auth->host.empty(); }
 };
 
-dissected_uri dissect_uri(const std::string& uri)
+dissected_uri dissect_uri(const std::string& uri) noexcept
 {
     dissected_uri dis_uri;
 

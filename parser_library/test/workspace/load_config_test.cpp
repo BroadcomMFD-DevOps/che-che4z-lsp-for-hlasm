@@ -16,7 +16,6 @@
 #include <fstream>
 #include <iterator>
 
-#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
 #include "empty_configs.h"

@@ -20,13 +20,13 @@
 namespace hlasm_plugin::utils::path {
 
 // Converts URI (RFC3986) to common filesystem path.
-std::string uri_to_path(const std::string& uri);
+std::string uri_to_path(const std::string& uri) noexcept;
 
 // Converts from filesystem path to URI
 std::string path_to_uri(std::string_view path);
 
 // Checks if provided path has the URI format
-bool is_uri(std::string path);
+bool is_uri(const std::string& path) noexcept;
 
 // Returns URI in a presentable format for the user
 std::string get_presentable_uri(const std::string& uri, bool debug);

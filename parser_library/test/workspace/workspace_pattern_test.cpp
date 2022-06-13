@@ -141,31 +141,30 @@ enum class variants
     ALL_TYPES
 };
 
-const resource_location root_dir_loc =
-    is_windows() ? resource_location("file:///C%3A/") : resource_location("file:///home/");
-const resource_location user_dir_loc = resource_location::join(root_dir_loc, "User/");
+const auto root_dir_loc = is_windows() ? resource_location("file:///C%3A/") : resource_location("file:///home/");
+const auto user_dir_loc = resource_location::join(root_dir_loc, "User/");
 
-const resource_location ws_loc = resource_location::join(user_dir_loc, "ws/");
-const resource_location hlasmplugin_folder_loc(resource_location::join(ws_loc, ".hlasmplugin/"));
-const resource_location proc_grps_loc(resource_location::join(hlasmplugin_folder_loc, "proc_grps.json"));
-const resource_location pgm_conf_loc(resource_location::join(hlasmplugin_folder_loc, "pgm_conf.json"));
+const auto ws_loc = resource_location::join(user_dir_loc, "ws/");
+const auto hlasmplugin_folder_loc(resource_location::join(ws_loc, ".hlasmplugin/"));
+const auto proc_grps_loc(resource_location::join(hlasmplugin_folder_loc, "proc_grps.json"));
+const auto pgm_conf_loc(resource_location::join(hlasmplugin_folder_loc, "pgm_conf.json"));
 
-const resource_location pattern_test_dir_loc = resource_location::join(ws_loc, "pattern_test/");
-const resource_location pattern_est_dir_loc = resource_location::join(ws_loc, "pattern_est/");
-const resource_location patter_test_dir_loc = resource_location::join(ws_loc, "patter_test/");
+const auto pattern_test_dir_loc = resource_location::join(ws_loc, "pattern_test/");
+const auto pattern_est_dir_loc = resource_location::join(ws_loc, "pattern_est/");
+const auto patter_test_dir_loc = resource_location::join(ws_loc, "patter_test/");
 
-const resource_location pattern_test_source_loc(resource_location::join(pattern_test_dir_loc, "source"));
-const resource_location pattern_test_lib_loc(resource_location::join(pattern_test_dir_loc, "libs/"));
-const resource_location pattern_test_lib_sublib1_loc(resource_location::join(pattern_test_lib_loc, "sublib1/"));
-const resource_location pattern_test_lib_sublib2_loc(resource_location::join(pattern_test_lib_loc, "sublib2/"));
-const resource_location pattern_test_macro1_loc(resource_location::join(pattern_test_lib_sublib1_loc, "mac1"));
-const resource_location pattern_test_macro2_loc(resource_location::join(pattern_test_lib_sublib2_loc, "mac2"));
+const auto pattern_test_source_loc(resource_location::join(pattern_test_dir_loc, "source"));
+const auto pattern_test_lib_loc(resource_location::join(pattern_test_dir_loc, "libs/"));
+const auto pattern_test_lib_sublib1_loc(resource_location::join(pattern_test_lib_loc, "sublib1/"));
+const auto pattern_test_lib_sublib2_loc(resource_location::join(pattern_test_lib_loc, "sublib2/"));
+const auto pattern_test_macro1_loc(resource_location::join(pattern_test_lib_sublib1_loc, "mac1"));
+const auto pattern_test_macro2_loc(resource_location::join(pattern_test_lib_sublib2_loc, "mac2"));
 
-const resource_location temp_lib_loc = resource_location::join(root_dir_loc, "Temp/Lib/");
-const resource_location temp_lib2_libs_loc = resource_location::join(root_dir_loc, "Temp/Lib2/Libs/");
+const auto temp_lib_loc = resource_location::join(root_dir_loc, "Temp/Lib/");
+const auto temp_lib2_libs_loc = resource_location::join(root_dir_loc, "Temp/Lib2/Libs/");
 
-const resource_location different_libs_loc = resource_location::join(ws_loc, "different_libs/");
-const resource_location different_libs2_libs_loc = resource_location::join(ws_loc, "different_libs2/Libs/");
+const auto different_libs_loc = resource_location::join(ws_loc, "different_libs/");
+const auto different_libs2_libs_loc = resource_location::join(ws_loc, "different_libs2/Libs/");
 
 const auto different_libs2_libs_subdir = list_directory_result {
     { { "different_libs/subdir", resource_location::join(different_libs2_libs_loc, "subdir/") } },
