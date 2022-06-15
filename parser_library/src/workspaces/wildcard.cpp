@@ -19,10 +19,10 @@
 namespace hlasm_plugin::parser_library::workspaces {
 namespace {
 // used for wildcard to regex conversions
+const std::regex slash("\\\\");
 const std::regex escape("(\\(|\\[|\\{|\\\\|\\^|\\-|\\=|\\$|\\!|\\||\\]|\\}|\\)|\\.)");
 const std::regex question("\\?");
 const std::regex nongreedy("(\\*|\\+)");
-const std::regex slash("\\/");
 } // namespace
 
 std::regex wildcard2regex(const std::string& wildcard)
@@ -30,8 +30,8 @@ std::regex wildcard2regex(const std::string& wildcard)
     auto regex_str = wildcard;
     if (utils::platform::is_windows())
     {
-        // change of forward slash to double backslash on windows
-        regex_str = std::regex_replace(regex_str, slash, "\\");
+        // change of double backslash on windows to forward slash
+        regex_str = std::regex_replace(regex_str, slash, "/");
     }
     regex_str = std::regex_replace(regex_str, escape, "\\$1");
     regex_str = std::regex_replace(regex_str, question, ".");

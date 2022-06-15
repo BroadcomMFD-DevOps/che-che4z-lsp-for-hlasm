@@ -57,6 +57,15 @@ TEST(extension_handling_test, wildcard)
     EXPECT_FALSE(std::regex_match(test, regex));
 }
 
+TEST(extension_handling_test, wildcard_path)
+{
+    auto regex = wildcard2regex("pgms/*");
+    EXPECT_TRUE(std::regex_match("pgms/anything", regex));
+
+    regex = wildcard2regex("pgms\\*");
+    EXPECT_TRUE(std::regex_match("pgms/anything", regex));
+}
+
 TEST(extension_handling_test, extension_removal)
 {
     file_manager_extension_mock file_mngr;

@@ -157,6 +157,185 @@ Raw URI: aaa://user::pass@127.0.0.1:1234/path/to/resource?fileset=sources#pgm)";
     EXPECT_EQ(res.to_presentable(true), expected);
 }
 
+TEST(resource_location, lexically_relative_subset_of_base)
+{
+    EXPECT_EQ(resource_location("file:///C:/dir/subdir/file_a")
+                  .lexically_relative(resource_location("file:///C:/dir/subdir/")),
+        "file_a");
+
+    EXPECT_EQ(resource_location("file:///C:/dir/subdir/").lexically_relative(resource_location("file:///C:/dir/")),
+        "subdir/");
+
+    EXPECT_EQ(
+        resource_location("file:///C:/dir/subdir/file_a").lexically_relative(resource_location("file:///C:/dir/")),
+        "subdir/file_a");
+}
+
+TEST(resource_location, lexically_relative)
+{
+    EXPECT_EQ(resource_location("file:///C:/dir/file_b")
+                  .lexically_relative(resource_location("file:///C:/dir/subdir/file_a")),
+        "../../file_b");
+
+    EXPECT_EQ(resource_location("file:///C:/dir/subdir/")
+                  .lexically_relative(resource_location("file:///C:/dir/subdir/file_a")),
+        "../");
+
+    EXPECT_EQ(
+        resource_location("file:///C:/").lexically_relative(resource_location("file:///C:/dir/subdir/")), "../../");
+
+    EXPECT_EQ(resource_location("file:///C:/").lexically_relative(resource_location("file:///C:/dir/subdir/file_a")),
+        "../../../");
+
+    EXPECT_EQ(resource_location("file:///C:/dir/file_b").lexically_relative(resource_location("file:///C:/dir/file_a")),
+        "../file_b");
+
+    EXPECT_EQ(resource_location("file:///C:/dir/file_a")
+                  .lexically_relative(resource_location("file:///C:/dir/subdir/file_a")),
+        "../../file_a");
+
+    EXPECT_EQ(
+        resource_location("file:///C:/dir/file_a").lexically_relative(resource_location("file:///C:/dir/subdir/")),
+        "../file_a");
+
+    EXPECT_EQ(
+        resource_location("file:///C:/file_a").lexically_relative(resource_location("file:///C:/dir/subdir/file_a")),
+        "../../../file_a");
+}
+
+TEST(resource_location, lexically_relative_single_dots)
+{
+    EXPECT_EQ(resource_location("file:///C:/dir/subdir/file_a")
+                  .lexically_relative(resource_location("file:///C:/dir/subdir/.")),
+        "file_a");
+
+    EXPECT_EQ(resource_location("file:///C:/dir/subdir/file_a")
+                  .lexically_relative(resource_location("file:///C:/dir/subdir/./")),
+        "file_a");
+
+    EXPECT_EQ(resource_location("file:///C:/dir/./subdir/file_a")
+                  .lexically_relative(resource_location("file:///C:/dir/subdir/./")),
+        ".././subdir/file_a");
+
+    EXPECT_EQ(resource_location("file:///C:/dir/subdir/file_a")
+                  .lexically_relative(resource_location("file:///C:/dir/./subdir")),
+        "../subdir/file_a");
+
+    EXPECT_EQ(resource_location("file:///C:/dir/subdir/file_a")
+                  .lexically_relative(resource_location("file:///C:/dir/./subdir/")),
+        "../subdir/file_a");
+}
+
+TEST(resource_location, lexically_relative_double_dots)
+{
+    EXPECT_EQ(resource_location("file:///C:/dir/subdir/file_a")
+                  .lexically_relative(resource_location("file:///C:/dir/subdir/..")),
+        "");
+
+    EXPECT_EQ(resource_location("file:///C:/dir/subdir/file_a")
+                  .lexically_relative(resource_location("file:///C:/dir/subdir/../")),
+        "");
+
+    EXPECT_EQ(resource_location("file:///C:/dir/../subdir/file_a")
+                  .lexically_relative(resource_location("file:///C:/dir/subdir/../")),
+        "../subdir/file_a");
+
+    EXPECT_EQ(resource_location("file:///C:/dir/subdir/file_a")
+                  .lexically_relative(resource_location("file:///C:/dir/../file_b")),
+        "subdir/file_a");
+
+    EXPECT_EQ(resource_location("file:///C:/dir/subdir/file_a")
+                  .lexically_relative(resource_location("file:///C:/dir/../subdir/")),
+        "subdir/file_a");
+}
+
+TEST(resource_location, lexically_relative_multiple_slashes)
+{
+    EXPECT_EQ(resource_location("file:///C:/dir/subdir/file_a")
+                  .lexically_relative(resource_location("file:///C:/dir/subdir////")),
+        "file_a");
+
+    EXPECT_EQ(resource_location("file:///C:/dir/subdir/file_a")
+                  .lexically_relative(resource_location("file:///C:///dir/subdir////")),
+        "file_a");
+
+    EXPECT_EQ(
+        resource_location("file:///C:/dir/subdir///file_a").lexically_relative(resource_location("file:///C:/dir/")),
+        "subdir/file_a");
+}
+
+TEST(resource_location, lexically_relative_win_drive_letter)
+{
+    EXPECT_EQ(
+        resource_location("file:///C:/dir/subdir/").lexically_relative(resource_location("file:///C:/dir/subdir/")),
+        ".");
+
+    // EXPECT_EQ(
+    //     resource_location("file:///C:/dir/subdir/").lexically_relative(resource_location("file:///c:/dir/subdir/")),
+    //     ".");
+
+    // EXPECT_EQ(
+    //     resource_location("file:///c:/dir/subdir/").lexically_relative(resource_location("file:///C:/dir/subdir/")),
+    //     ".");
+
+    EXPECT_EQ(
+        resource_location("file:///c:/dir/subdir/").lexically_relative(resource_location("file:///c:/dir/subdir/")),
+        ".");
+
+    EXPECT_EQ(
+        resource_location("file:///C%3A/dir/subdir/").lexically_relative(resource_location("file:///C%3A/dir/subdir/")),
+        ".");
+
+    // EXPECT_EQ(
+    //     resource_location("file:///C%3A/dir/subdir/").lexically_relative(resource_location("file:///c%3A/dir/subdir/")),
+    //     ".");
+
+    // EXPECT_EQ(
+    //     resource_location("file:///c%3A/dir/subdir/").lexically_relative(resource_location("file:///C%3A/dir/subdir/")),
+    //     ".");
+
+    EXPECT_EQ(
+        resource_location("file:///c%3A/dir/subdir/").lexically_relative(resource_location("file:///c%3A/dir/subdir/")),
+        ".");
+
+    EXPECT_EQ(resource_location("file:///C:/dir/file_a").lexically_relative(resource_location("file:///D:/dir/file_a")),
+        "../../../C:/dir/file_a");
+
+    EXPECT_EQ(resource_location("file:///D:/dir/file_a").lexically_relative(resource_location("file:///C:/dir/file_a")),
+        "../../../D:/dir/file_a");
+}
+
+TEST(resource_location, lexically_relative_different_schemes)
+{
+    EXPECT_EQ(resource_location("file:///C:/dir/file_a").lexically_relative(resource_location("aaa:dir/file_a")), "");
+
+    EXPECT_EQ(resource_location("aaa:dir/file_a").lexically_relative(resource_location("file:///C:/dir/file_a")), "");
+}
+
+TEST(resource_location, join_empty)
+{
+    resource_location rl("aaa://src/dir/");
+
+    rl.join("");
+    EXPECT_EQ(rl.get_uri(), "aaa://src/dir/");
+}
+
+TEST(resource_location, join_empty_2)
+{
+    resource_location rl("");
+
+    rl.join("aaa://src/dir/");
+    EXPECT_EQ(rl.get_uri(), "aaa://src/dir/");
+}
+
+TEST(resource_location, join_uri)
+{
+    resource_location rl("aaa://src/dir/");
+
+    rl.join("scheme://a/b/c");
+    EXPECT_EQ(rl.get_uri(), "scheme://a/b/c");
+}
+
 TEST(resource_location, join_with_root_dir)
 {
     resource_location res("aaa://src/");
@@ -192,16 +371,15 @@ TEST(resource_location, join_with_root_file)
     resource_location res("aaa://src");
     std::string rel_loc = ".hlasmplugin";
 
-    EXPECT_EQ(resource_location::join(res, rel_loc), resource_location("aaa://.hlasmplugin"));
+    EXPECT_EQ(resource_location::join(res, rel_loc), resource_location("aaa://src/.hlasmplugin"));
 }
-
 
 TEST(resource_location, join_with_regular_file)
 {
     resource_location res("aaa://src/temp");
     std::string rel_loc = ".hlasmplugin";
 
-    EXPECT_EQ(resource_location::join(res, rel_loc), resource_location("aaa://src/.hlasmplugin"));
+    EXPECT_EQ(resource_location::join(res, rel_loc), resource_location("aaa://src/temp/.hlasmplugin"));
 }
 
 TEST(resource_location, join_with_root_file_no_auth)
@@ -209,14 +387,37 @@ TEST(resource_location, join_with_root_file_no_auth)
     resource_location res("aaa:src");
     std::string rel_loc = ".hlasmplugin";
 
-    EXPECT_EQ(resource_location::join(res, rel_loc), resource_location("aaa:.hlasmplugin"));
+    EXPECT_EQ(resource_location::join(res, rel_loc), resource_location("aaa:src/.hlasmplugin"));
 }
-
 
 TEST(resource_location, join_with_regular_file_no_auth)
 {
     resource_location res("aaa:src/temp");
     std::string rel_loc = ".hlasmplugin";
 
-    EXPECT_EQ(resource_location::join(res, rel_loc), resource_location("aaa:src/.hlasmplugin"));
+    EXPECT_EQ(resource_location::join(res, rel_loc), resource_location("aaa:src/temp/.hlasmplugin"));
+}
+
+TEST(resource_location, join_prepending_slash)
+{
+    resource_location rl("aaa://src/dir/a");
+
+    rl.join("/b");
+    EXPECT_EQ(rl.get_uri(), "aaa://src/dir/a//b");
+}
+
+TEST(resource_location, join_prepending_slash_2)
+{
+    resource_location rl("aaa://src/dir/a/");
+
+    rl.join("/b");
+    EXPECT_EQ(rl.get_uri(), "aaa://src/dir/a//b");
+}
+
+TEST(resource_location, join_mulitple_slashes)
+{
+    resource_location rl("aaa://src/dir/////a///");
+
+    rl.join("/b///");
+    EXPECT_EQ(rl.get_uri(), "aaa://src/dir/////a////b///");
 }

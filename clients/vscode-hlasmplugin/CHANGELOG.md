@@ -11,7 +11,6 @@
 - Enhanced commands for continuation handling and trimming of oversized lines
 - Provide the name of a missing variable or ordinary symbol in messages
 - SYSIN_DSN and SYSIN_MEMBER support
-- URIs can now be used to load libraries
 
 #### Fixed
 - Incorrect attribute values generated when literals are substituted in CA expressions

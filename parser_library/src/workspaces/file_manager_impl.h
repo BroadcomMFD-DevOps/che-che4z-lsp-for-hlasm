@@ -62,8 +62,6 @@ public:
         const file_location& document_loc, version_t version, const document_change* changes, size_t ch_size) override;
     void did_close_file(const file_location& document_loc) override;
 
-    bool file_exists(const utils::resource::resource_location& file_loc) const override;
-    bool lib_file_exists(const utils::resource::resource_location& lib_root, std::string_view file_name) const override;
     bool dir_exists(const utils::resource::resource_location& dir_loc) const override;
 
     virtual ~file_manager_impl() = default;

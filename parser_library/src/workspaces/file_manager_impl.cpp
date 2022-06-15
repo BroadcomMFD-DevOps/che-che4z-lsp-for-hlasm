@@ -179,17 +179,6 @@ void file_manager_impl::did_close_file(const file_location& document_loc)
     // if the file does not exist, no action is taken
 }
 
-bool file_manager_impl::file_exists(const utils::resource::resource_location& file_loc) const
-{
-    return utils::resource::file_exists(file_loc);
-}
-
-bool file_manager_impl::lib_file_exists(
-    const utils::resource::resource_location& lib_root, std::string_view file_name) const
-{
-    return utils::resource::file_exists(utils::resource::resource_location::join(lib_root, file_name));
-}
-
 bool file_manager_impl::dir_exists(const utils::resource::resource_location& dir_loc) const
 {
     return utils::resource::dir_exists(dir_loc);

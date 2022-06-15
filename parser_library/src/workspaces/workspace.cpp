@@ -82,12 +82,6 @@ void workspace::collect_diags() const
 
 void workspace::add_proc_grp(processor_group pg) { proc_grps_.emplace(pg.name(), std::move(pg)); }
 
-bool workspace::program_id_match(const std::string& filename, const program_id& program) const
-{
-    std::regex prg_regex = wildcard2regex(program);
-    return std::regex_match(filename, prg_regex);
-}
-
 std::vector<processor_file_ptr> workspace::find_related_opencodes(
     const utils::resource::resource_location& document_loc) const
 {
@@ -153,7 +147,7 @@ std::pair<const program*, utils::resource::resource_location> workspace::get_pro
 {
     assert(opened_);
 
-    std::string file = utils::resource::lexically_relative(file_location, location_);
+    std::string file = file_location.lexically_relative(location_);
 
     // direct match
     auto program = exact_pgm_conf_.find(file);
@@ -394,28 +388,33 @@ const processor_group& workspace::get_proc_grp(const proc_grp_id& proc_grp) cons
 }
 
 namespace {
+std::pair<size_t, char> match_windows_uri_with_drive(const std::string& input)
+{
+    std::smatch matches;
+    std::regex_search(input, matches, std::regex("^file:///([a-zA-Z])(?::|%3[aA])/"));
+
+    if (matches.size() != 2 || matches[1].length() == 0)
+        return { 0, '\0' };
+
+    return { matches[0].length(), matches[1].str()[0] };
+}
+
 size_t preprocess_uri_with_windows_drive_letter_regex_string(const std::string& input, std::string& r)
 {
-    if (std::smatch matches; std::regex_search(input, matches, std::regex("^file:///([a-zA-Z])%3[aA]/")))
-    {
-        if (matches.size() == 2)
-        {
-            // Append windows file path (e.g. file:///[cC]%3A/)
-            r.append("file:///[");
-            r.push_back(static_cast<char>(tolower(matches[1].str()[0])));
-            r.push_back(static_cast<char>(toupper(matches[1].str()[0])));
-            r.append("]%3[aA]/");
-        }
-        else
-            r.append(matches[0].str()); // Something weird is going on
+    auto [match_length, drive_letter] = match_windows_uri_with_drive(input);
 
-        return matches[0].length();
-    }
+    if (match_length == 0)
+        return 0;
 
-    return 0;
+    // Append windows file path (e.g. ^file:///[cC](?::|%3[aA])/)
+    r.append("^file:///[");
+    r.push_back(tolower(drive_letter));
+    r.push_back(toupper(drive_letter));
+    r.append("](?::|%3[aA])/");
+
+    return match_length;
 }
 } // namespace
-
 std::regex pathmask_to_regex(const std::string& input)
 {
     std::string r;
@@ -432,7 +431,7 @@ std::regex pathmask_to_regex(const std::string& input)
         switch (auto c = s.front())
         {
             case '*':
-                if (s.starts_with("**/"))
+                if (s.starts_with("**/") || s.starts_with("**\\"))
                 {
                     if (path_started)
                     {
@@ -447,7 +446,7 @@ std::regex pathmask_to_regex(const std::string& input)
                     r.append(".*");
                     s.remove_prefix(2);
                 }
-                else if (s.starts_with("*/"))
+                else if (s.starts_with("*/") || s.starts_with("*\\"))
                 {
                     path_started = false;
                     r.append("[^/\\\\]*[/\\\\]");
@@ -519,7 +518,8 @@ void workspace::find_and_add_libs(const utils::resource::resource_location& root
             break;
         }
 
-        const auto& dir = dirs_to_search.front();
+        const auto dir = std::move(dirs_to_search.front());
+        dirs_to_search.pop_front();
 
         if (!processed_dirs.insert(dir).second)
             continue;
@@ -543,27 +543,29 @@ void workspace::find_and_add_libs(const utils::resource::resource_location& root
 
             dirs_to_search.emplace_back(subdir);
         }
-
-        dirs_to_search.pop_front();
     }
 }
 
 namespace {
 utils::resource::resource_location transform_to_resource_location(
-    std::string path, const utils::resource::resource_location& base_resource_location)
+    std::string_view path, const utils::resource::resource_location& base_resource_location)
 {
     utils::resource::resource_location rl;
 
     if (std::filesystem::path fs_path = path; utils::path::is_absolute(fs_path))
         return utils::resource::resource_location(
             utils::path::path_to_uri(utils::path::lexically_normal(fs_path).string()));
-    else if (utils::path::is_uri(path))
-        return utils::resource::resource_location(path);
     else
     {
-        std::replace(path.begin(), path.end(), '\\', '/');
+        auto p = std::string(path);
+        if (utils::path::is_uri(p))
+            return utils::resource::resource_location(std::move(p));
+        else
+        {
+            std::replace(p.begin(), p.end(), '\\', '/');
 
-        return utils::resource::resource_location::join(base_resource_location, path);
+            return utils::resource::resource_location::join(base_resource_location, p);
+        }
     }
 }
 
@@ -609,6 +611,29 @@ library_local_options get_library_local_options(
 
     return opts;
 }
+
+// Constructs resource location of a library and analyzes if it points to a specific location
+std::pair<utils::resource::resource_location, bool> construct_and_analyze_lib_resource_location(
+    const std::string& lib_path, const utils::resource::resource_location& base)
+{
+    auto asterisk = lib_path.find('*');
+    auto last_valid_slash = lib_path.find_last_of("/\\", asterisk);
+    utils::resource::resource_location rl;
+
+    if (last_valid_slash != std::string::npos)
+    {
+        rl = transform_to_resource_location(std::string_view(lib_path.substr(0, last_valid_slash)), base);
+        if (last_valid_slash + 1 < lib_path.size())
+            rl.join(lib_path.substr(last_valid_slash + 1));
+    }
+    else
+    {
+        rl = utils::resource::resource_location::join(base, lib_path);
+    }
+
+    rl.to_directory();
+    return std::make_pair(rl, asterisk == std::string::npos);
+}
 } // namespace
 
 void workspace::process_processor_group(
@@ -620,29 +645,14 @@ void workspace::process_processor_group(
     {
         auto lib_local_opts = get_library_local_options(lib, proc_groups, pgm_config);
 
-        utils::resource::resource_location rl;
-        if (auto asterisk = lib.path.find('*'); asterisk == std::string::npos)
-        {
-            rl = transform_to_resource_location(lib.path, location_);
-            rl.to_directory();
+        if (const auto [rl, is_dir] = construct_and_analyze_lib_resource_location(lib.path, location_); is_dir)
             prc_grp.add_library(std::make_unique<library_local>(file_manager_, rl, std::move(lib_local_opts)));
-        }
         else
-        {
-            auto last_slash = lib.path.find_last_of("/\\", asterisk) + 1;
-            rl = transform_to_resource_location(std::move(lib.path.substr(0, last_slash)), location_);
-            rl.to_directory();
-
-            rl.join(lib.path.substr(last_slash));
-            rl.to_directory();
-
-            asterisk = rl.get_uri().find('*');
             find_and_add_libs(utils::resource::resource_location(
-                                  rl.get_uri().substr(0, rl.get_uri().find_last_of("/", asterisk) + 1)),
+                                  rl.get_uri().substr(0, rl.get_uri().find_last_of("/\\", rl.get_uri().find('*')) + 1)),
                 rl,
                 prc_grp,
                 lib_local_opts);
-        }
     }
 
     add_proc_grp(std::move(prc_grp));
@@ -654,7 +664,7 @@ void workspace::process_program(const config::program_mapping& pgm, const file_p
     {
         std::string pgm_name = pgm.program;
         if (utils::platform::is_windows())
-            std::replace(pgm_name.begin(), pgm_name.end(), '/', '\\');
+            std::replace(pgm_name.begin(), pgm_name.end(), '\\', '/');
 
         if (!is_wildcard(pgm_name))
             exact_pgm_conf_.emplace(pgm_name, program { pgm_name, pgm.pgroup, pgm.opts });

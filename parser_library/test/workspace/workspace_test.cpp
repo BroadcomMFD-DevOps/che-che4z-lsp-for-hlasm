@@ -369,7 +369,7 @@ public:
     list_directory_result list_directory_files(
         const hlasm_plugin::utils::resource::resource_location& location) const override
     {
-        if (location == resource_location("lib/") || location == resource_location("lib\\"))
+        if (location == resource_location("lib/"))
             return { { { "CORRECT", correct_macro_loc } }, hlasm_plugin::utils::path::list_directory_rc::done };
 
         return { {}, hlasm_plugin::utils::path::list_directory_rc::not_exists };
@@ -517,7 +517,7 @@ public:
     list_directory_result list_directory_files(
         const hlasm_plugin::utils::resource::resource_location& location) const override
     {
-        if (location == resource_location("lib/") || location == resource_location("lib\\"))
+        if (location == resource_location("lib/"))
             return { {}, hlasm_plugin::utils::path::list_directory_rc::other_failure };
 
         return { {}, hlasm_plugin::utils::path::list_directory_rc::not_exists };

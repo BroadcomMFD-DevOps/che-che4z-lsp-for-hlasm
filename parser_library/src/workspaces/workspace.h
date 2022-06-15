@@ -134,7 +134,7 @@ public:
 private:
     constexpr static char FILENAME_PROC_GRPS[] = "proc_grps.json";
     constexpr static char FILENAME_PGM_CONF[] = "pgm_conf.json";
-    constexpr static char HLASM_PLUGIN_FOLDER[] = ".hlasmplugin/";
+    constexpr static char HLASM_PLUGIN_FOLDER[] = ".hlasmplugin";
 
     std::atomic<bool>* cancel_;
 
@@ -186,8 +186,6 @@ private:
     void filter_and_close_dependencies_(
         const std::set<utils::resource::resource_location>& dependencies, processor_file_ptr file);
     bool is_dependency_(const utils::resource::resource_location& file_location);
-
-    bool program_id_match(const std::string& filename, const program_id& program) const;
 
     std::vector<processor_file_ptr> find_related_opencodes(
         const utils::resource::resource_location& document_loc) const;

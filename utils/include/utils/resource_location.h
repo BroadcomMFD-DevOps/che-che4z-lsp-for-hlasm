@@ -34,10 +34,11 @@ public:
 
     void to_directory();
 
+    std::string lexically_relative(const resource_location& base) const;
     bool lexically_out_of_scope() const;
 
-    void join(std::string_view relative_path);
-    static resource_location join(resource_location rl, std::string_view relative_path);
+    void join(const std::string& other);
+    static resource_location join(resource_location rl, const std::string& other);
 
     std::strong_ordering operator<=>(const resource_location& rl) const noexcept = default;
 

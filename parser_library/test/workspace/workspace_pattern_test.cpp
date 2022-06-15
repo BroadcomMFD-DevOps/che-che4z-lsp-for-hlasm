@@ -47,7 +47,7 @@ const std::string pgroups_file_pattern_relative = is_windows() ? R"({
   "pgroups": [
     {
       "name": "P1",
-      "libs": [ "pattern_test\\libs\\**" ]
+      "libs": [ "pattern_test\\libs\\**\\" ]
     }
   ]
 })"
@@ -55,7 +55,16 @@ const std::string pgroups_file_pattern_relative = is_windows() ? R"({
   "pgroups": [
     {
       "name": "P1",
-      "libs": [ "pattern_test/libs/**" ]
+      "libs": [ "pattern_test/libs/**/" ]
+    }
+  ]
+})";
+
+const std::string pgroups_file_pattern_relative_2 = R"({
+  "pgroups": [
+    {
+      "name": "P1",
+      "libs": [ "*" ]
     }
   ]
 })";
@@ -94,7 +103,7 @@ const std::string pgroups_file_pattern_uri_2 = is_windows() ? R"({
   ]
 })";
 
-const std::string pgroups_file_all_types = is_windows() ? R"({
+const std::string pgroups_file_combination = is_windows() ? R"({
   "pgroups": [
     {
       "name": "P1",
@@ -102,7 +111,7 @@ const std::string pgroups_file_all_types = is_windows() ? R"({
     }
   ]
 })"
-                                                        : R"({
+                                                          : R"({
   "pgroups": [
     {
       "name": "P1",
@@ -111,7 +120,15 @@ const std::string pgroups_file_all_types = is_windows() ? R"({
   ]
 })";
 
-const std::string pgmconf_file = R"({
+const std::string pgmconf_file = is_windows() ? R"({
+  "pgms": [
+	{
+      "program": "pattern_test\\source",
+      "pgroup": "P1"
+    }
+  ]
+})"
+                                              : R"({
   "pgms": [
 	{
       "program": "pattern_test/source",
@@ -136,9 +153,10 @@ enum class variants
 {
     ABSOLUTE,
     RELATIVE,
+    RELATIVE_2,
     URI,
     URI_2,
-    ALL_TYPES
+    COMBINATION
 };
 
 const auto root_dir_loc = is_windows() ? resource_location("file:///C%3A/") : resource_location("file:///home/");
@@ -166,14 +184,8 @@ const auto temp_lib2_libs_loc = resource_location::join(root_dir_loc, "Temp/Lib2
 const auto different_libs_loc = resource_location::join(ws_loc, "different_libs/");
 const auto different_libs2_libs_loc = resource_location::join(ws_loc, "different_libs2/Libs/");
 
-const auto different_libs2_libs_subdir = list_directory_result {
-    { { "different_libs/subdir", resource_location::join(different_libs2_libs_loc, "subdir/") } },
-    hlasm_plugin::utils::path::list_directory_rc::done
-};
-
-const auto temp_lib2_libs_subdir =
-    list_directory_result { { { "temp_libs/subdir", resource_location::join(temp_lib2_libs_loc, "subdir/") } },
-        hlasm_plugin::utils::path::list_directory_rc::done };
+const auto different_libs2_libs_subdir = resource_location::join(different_libs2_libs_loc, "subdir/");
+const auto temp_lib2_libs_subdir = resource_location::join(temp_lib2_libs_loc, "subdir/");
 
 const char* pattern_lib_sublib1_abs_path =
     is_windows() ? "C:\\\\User\\ws\\pattern_test\\libs\\sublib1\\" : "/home/User/ws/pattern_test/libs/sublib1/";
@@ -190,12 +202,14 @@ class file_manager_lib_pattern : public file_manager_impl
                 return pgroups_file_pattern_absolute;
             case variants::RELATIVE:
                 return pgroups_file_pattern_relative;
+            case variants::RELATIVE_2:
+                return pgroups_file_pattern_relative_2;
             case variants::URI:
                 return pgroups_file_pattern_uri;
             case variants::URI_2:
                 return pgroups_file_pattern_uri_2;
-            case variants::ALL_TYPES:
-                return pgroups_file_all_types;
+            case variants::COMBINATION:
+                return pgroups_file_combination;
         }
         throw std::logic_error("Not implemented");
     }
@@ -216,12 +230,10 @@ public:
     list_directory_result list_directory_subdirs_and_symlinks(
         const hlasm_plugin::utils::resource::resource_location& location) const override
     {
-        if (location == pattern_test_lib_loc)
-            return { { { pattern_lib_sublib1_abs_path, pattern_test_lib_sublib1_loc },
-                         { pattern_lib_sublib2_abs_path, pattern_test_lib_sublib2_loc } },
-                hlasm_plugin::utils::path::list_directory_rc::done };
-
         if (location == user_dir_loc)
+            return { { { "ws", ws_loc } }, hlasm_plugin::utils::path::list_directory_rc::done };
+
+        if (location == ws_loc)
             return { { { "pattern_est", pattern_est_dir_loc },
                          { "pattern_test", pattern_test_dir_loc },
                          { "patter_test", patter_test_dir_loc } },
@@ -230,12 +242,17 @@ public:
         if (location == pattern_test_dir_loc)
             return { { { "libs", pattern_test_lib_loc } }, hlasm_plugin::utils::path::list_directory_rc::done };
 
+        if (location == pattern_test_lib_loc)
+            return { { { pattern_lib_sublib1_abs_path, pattern_test_lib_sublib1_loc },
+                         { pattern_lib_sublib2_abs_path, pattern_test_lib_sublib2_loc } },
+                hlasm_plugin::utils::path::list_directory_rc::done };
 
         if (location == different_libs2_libs_loc)
-            return different_libs2_libs_subdir;
+            return { { { "subdir", different_libs2_libs_subdir } },
+                hlasm_plugin::utils::path::list_directory_rc::done };
 
         if (location == temp_lib2_libs_loc)
-            return temp_lib2_libs_subdir;
+            return { { { "subdir", temp_lib2_libs_subdir } }, hlasm_plugin::utils::path::list_directory_rc::done };
 
         return { {}, hlasm_plugin::utils::path::list_directory_rc::done };
     }
@@ -256,7 +273,7 @@ TEST(workspace_pattern_test, absolute)
         .WillOnce(::testing::Return(list_directory_result { {}, hlasm_plugin::utils::path::list_directory_rc::done }));
     EXPECT_CALL(file_manager, list_directory_files(temp_lib2_libs_loc))
         .WillOnce(::testing::Return(list_directory_result { {}, hlasm_plugin::utils::path::list_directory_rc::done }));
-    EXPECT_CALL(file_manager, list_directory_files(temp_lib2_libs_subdir.first.begin()->second))
+    EXPECT_CALL(file_manager, list_directory_files(temp_lib2_libs_subdir))
         .WillOnce(::testing::Return(list_directory_result { {}, hlasm_plugin::utils::path::list_directory_rc::done }));
 
     ws.did_open_file(pattern_test_source_loc);
@@ -278,6 +295,24 @@ TEST(workspace_pattern_test, relative)
     EXPECT_CALL(file_manager, list_directory_files(pattern_test_lib_sublib2_loc))
         .WillOnce(::testing::Return(list_directory_result {
             { { "mac2", pattern_test_macro2_loc } }, hlasm_plugin::utils::path::list_directory_rc::done }));
+
+    ws.did_open_file(pattern_test_source_loc);
+}
+
+TEST(workspace_pattern_test, relative_2)
+{
+    file_manager_lib_pattern file_manager(variants::RELATIVE_2);
+    lib_config config;
+
+    workspace ws(ws_loc, "workspace_name", file_manager, config);
+    ws.open();
+
+    EXPECT_CALL(file_manager, list_directory_files(pattern_test_dir_loc))
+        .WillOnce(::testing::Return(list_directory_result { {}, hlasm_plugin::utils::path::list_directory_rc::done }));
+    EXPECT_CALL(file_manager, list_directory_files(patter_test_dir_loc))
+        .WillOnce(::testing::Return(list_directory_result { {}, hlasm_plugin::utils::path::list_directory_rc::done }));
+    EXPECT_CALL(file_manager, list_directory_files(pattern_est_dir_loc))
+        .WillOnce(::testing::Return(list_directory_result { {}, hlasm_plugin::utils::path::list_directory_rc::done }));
 
     ws.did_open_file(pattern_test_source_loc);
 }
@@ -322,7 +357,7 @@ TEST(workspace_pattern_test, uri_2)
 
 TEST(workspace_pattern_test, all_types)
 {
-    file_manager_lib_pattern file_manager(variants::ALL_TYPES);
+    file_manager_lib_pattern file_manager(variants::COMBINATION);
     lib_config config;
 
     workspace ws(ws_loc, "workspace_name", file_manager, config);
@@ -332,13 +367,13 @@ TEST(workspace_pattern_test, all_types)
         .WillOnce(::testing::Return(list_directory_result { {}, hlasm_plugin::utils::path::list_directory_rc::done }));
     EXPECT_CALL(file_manager, list_directory_files(temp_lib2_libs_loc))
         .WillOnce(::testing::Return(list_directory_result { {}, hlasm_plugin::utils::path::list_directory_rc::done }));
-    EXPECT_CALL(file_manager, list_directory_files(temp_lib2_libs_subdir.first.begin()->second))
+    EXPECT_CALL(file_manager, list_directory_files(temp_lib2_libs_subdir))
         .WillOnce(::testing::Return(list_directory_result { {}, hlasm_plugin::utils::path::list_directory_rc::done }));
     EXPECT_CALL(file_manager, list_directory_files(different_libs_loc))
         .WillOnce(::testing::Return(list_directory_result { {}, hlasm_plugin::utils::path::list_directory_rc::done }));
     EXPECT_CALL(file_manager, list_directory_files(different_libs2_libs_loc))
         .WillOnce(::testing::Return(list_directory_result { {}, hlasm_plugin::utils::path::list_directory_rc::done }));
-    EXPECT_CALL(file_manager, list_directory_files(different_libs2_libs_subdir.first.begin()->second))
+    EXPECT_CALL(file_manager, list_directory_files(different_libs2_libs_subdir))
         .WillOnce(::testing::Return(list_directory_result { {}, hlasm_plugin::utils::path::list_directory_rc::done }));
     EXPECT_CALL(file_manager, list_directory_files(pattern_test_lib_sublib1_loc))
         .WillOnce(::testing::Return(list_directory_result {
