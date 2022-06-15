@@ -83,6 +83,8 @@ public:
     auto end() const { return m_lines.end(); }
 
     auto size() const { return m_lines.size(); }
+
+    std::string text() const;
 };
 
 } // namespace hlasm_plugin::parser_library

@@ -14,6 +14,8 @@
 
 #include "document.h"
 
+#include <numeric>
+
 namespace hlasm_plugin::parser_library {
 document::document(std::string_view text)
 {
@@ -34,4 +36,12 @@ document::document(std::string_view text)
     if (!text.empty())
         m_lines.emplace_back(original_line { text, line_no });
 }
+
+std::string document::text() const
+{
+    return std::accumulate(m_lines.begin(), m_lines.end(), std::string(), [](std::string&& result, const auto& l) {
+        return std::move(result.append(l.text()));
+    });
+}
+
 } // namespace hlasm_plugin::parser_library
