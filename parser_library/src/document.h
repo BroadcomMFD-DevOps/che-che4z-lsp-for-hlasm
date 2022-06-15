@@ -85,6 +85,8 @@ public:
     auto size() const { return m_lines.size(); }
 
     std::string text() const;
+
+    const auto& at(size_t idx) const { return m_lines.at(idx); }
 };
 
 } // namespace hlasm_plugin::parser_library

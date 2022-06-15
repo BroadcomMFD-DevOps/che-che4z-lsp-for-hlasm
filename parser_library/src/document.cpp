@@ -40,7 +40,10 @@ document::document(std::string_view text)
 std::string document::text() const
 {
     return std::accumulate(m_lines.begin(), m_lines.end(), std::string(), [](std::string&& result, const auto& l) {
-        return std::move(result.append(l.text()));
+        result.append(l.text());
+        if (result.empty() || result.back() != '\n')
+            result.push_back('\n');
+        return std::move(result);
     });
 }
 
