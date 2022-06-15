@@ -671,7 +671,6 @@ class db2_preprocessor : public preprocessor
         }
     }
 
-
     void generate_replacement(line_iterator it, line_iterator end, bool include_allowed)
     {
         bool skip_continuation = false;

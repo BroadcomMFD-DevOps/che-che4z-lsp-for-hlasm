@@ -18,7 +18,7 @@
 
 namespace hlasm_plugin::parser_library::processing {
 
-line_iterator preprocessor::extract_nonempty_logical_line(
+preprocessor::line_iterator preprocessor::extract_nonempty_logical_line(
     lexing::logical_line& out, line_iterator it, line_iterator end, const lexing::logical_line_extractor_args& opts)
 {
     out.clear();
