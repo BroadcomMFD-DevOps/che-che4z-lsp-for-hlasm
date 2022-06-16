@@ -999,16 +999,26 @@ public:
         }
     }
 
+    std::string generate_label_fragment(lexing::logical_line::const_iterator label_b,
+        lexing::logical_line::const_iterator label_e,
+        const label_info& li)
+    {
+        if (li.char_length <= 8)
+            return std::string(label_b, label_e) + std::string(9 - li.char_length, ' ');
+        else
+            return std::string(label_b, label_e) + " DS 0H\n";
+    }
+
     void inject_call(lexing::logical_line::const_iterator label_b,
         lexing::logical_line::const_iterator label_e,
         const label_info& li)
     {
         if (li.char_length <= 8)
-            m_result.emplace_back(replaced_line {
-                concat(std::string(label_b, label_e), std::string(9 - li.char_length, ' '), "DFHECALL =X'0E'\n") });
+            m_result.emplace_back(
+                replaced_line { generate_label_fragment(label_b, label_e, li) + "DFHECALL =X'0E'\n" });
         else
         {
-            m_result.emplace_back(replaced_line { concat(std::string(label_b, label_e), " DS 0H\n") });
+            m_result.emplace_back(replaced_line { generate_label_fragment(label_b, label_e, li) });
             m_result.emplace_back(replaced_line { "         DFHECALL =X'0E'\n" });
         }
         // TODO: generate correct calls
@@ -1039,12 +1049,12 @@ public:
             };
 
             echo_text(li);
-            inject_call(label_b, label_e, li);
 
-            auto text_to_add = matches[2].str();
+            std::string text_to_add = matches[2].str();
             if (auto instr_len = lexing::utf8_substr(text_to_add).char_count; instr_len < 4)
                 text_to_add.append(4 - instr_len, ' ');
             text_to_add.append(1, ' ').append(m_mini_parser.operands());
+            text_to_add.insert(0, generate_label_fragment(label_b, label_e, li));
 
             std::string_view prefix;
             std::string_view t = text_to_add;
@@ -1075,12 +1085,21 @@ public:
     document generate_replacement(document doc) override
     {
         m_result.clear();
+        m_result.reserve(doc.size());
 
         line_iterator it = doc.begin();
         line_iterator end = doc.end();
 
+        bool skip_continuation = false;
         for (; it != end;)
         {
+            const auto text = it->text();
+            if (skip_continuation)
+            {
+                m_result.emplace_back(*it++);
+                skip_continuation = is_continued(text);
+                continue;
+            }
             if (std::exchange(m_pending_prolog, false))
                 inject_prolog();
             if (!m_pending_dfh_null_error.empty())
@@ -1090,21 +1109,24 @@ public:
 
             if (lineno == 0 && try_asm_xopts(it->text(), lineno))
             {
-                m_result.emplace_back(std::move(*it++));
+                m_result.emplace_back(*it++);
+                // ignores continuation
                 continue;
             }
 
-            auto [line, line_len_chars, _] = create_line_preview(it->text());
+            auto [line, line_len_chars, _] = create_line_preview(text);
 
             if (ignore_line(line))
             {
-                m_result.emplace_back(std::move(*it++));
+                m_result.emplace_back(*it++);
+                skip_continuation = is_continued(text);
                 continue;
             }
             // apparently lines full of characters are ignored
             if (line_len_chars == valid_cols && line.find(' ') == std::string_view::npos)
             {
-                m_result.emplace_back(std::move(*it++));
+                m_result.emplace_back(*it++);
+                skip_continuation = is_continued(text);
                 continue;
             }
 
@@ -1113,7 +1135,8 @@ public:
             if (std::regex_match(line.begin(), line.end(), m_matches_sv, line_of_interest))
             {
                 process_asm_statement(*m_matches_sv[1].first);
-                m_result.emplace_back(std::move(*it++));
+                m_result.emplace_back(*it++);
+                skip_continuation = is_continued(text);
                 continue;
             }
 
@@ -1175,9 +1198,14 @@ public:
 
             it = it_backup;
 
-            m_result.emplace_back(std::move(*it++));
+            m_result.emplace_back(*it++);
+            skip_continuation = is_continued(text);
         }
 
+        if (std::exchange(m_pending_prolog, false))
+            inject_prolog();
+        if (!m_pending_dfh_null_error.empty())
+            inject_dfh_null_error(std::exchange(m_pending_dfh_null_error, std::string_view()));
         if (!std::exchange(m_end_seen, true))
             inject_no_end_warning();
 

@@ -62,6 +62,8 @@ protected:
         line_iterator it,
         line_iterator end,
         const lexing::logical_line_extractor_args& opts);
+
+    static bool is_continued(std::string_view s);
 };
 } // namespace hlasm_plugin::parser_library::processing
 

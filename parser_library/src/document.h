@@ -32,7 +32,7 @@ struct replaced_line
 struct original_line
 {
     std::string_view m_text;
-    size_t m_lineno;
+    size_t m_lineno = 0;
 };
 
 class document_line
@@ -76,10 +76,8 @@ public:
         : m_lines(std::move(lines))
     {}
 
-    auto begin() { return m_lines.begin(); }
     auto begin() const { return m_lines.begin(); }
 
-    auto end() { return m_lines.end(); }
     auto end() const { return m_lines.end(); }
 
     auto size() const { return m_lines.size(); }
@@ -87,6 +85,8 @@ public:
     std::string text() const;
 
     const auto& at(size_t idx) const { return m_lines.at(idx); }
+
+    void convert_to_replaced();
 };
 
 } // namespace hlasm_plugin::parser_library

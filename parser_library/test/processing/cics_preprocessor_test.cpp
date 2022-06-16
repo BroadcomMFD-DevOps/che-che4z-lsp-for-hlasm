@@ -82,9 +82,6 @@ TEST_P(cics_preprocessor_tests, basics)
     auto p = preprocessor::create(
         config, [](std::string_view) { return std::nullopt; }, nullptr);
 
-    auto result_it = expected.begin();
-
-    bool passed_empty_to_preprocessor = false;
     auto result = p->generate_replacement(document(text_template));
 
     EXPECT_TRUE(std::equal(expected.begin(),

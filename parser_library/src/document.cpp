@@ -19,6 +19,11 @@
 namespace hlasm_plugin::parser_library {
 document::document(std::string_view text)
 {
+    if (text.empty())
+    {
+        m_lines.emplace_back(original_line());
+        return;
+    }
     size_t line_no = 0;
     while (!text.empty())
     {
@@ -40,11 +45,23 @@ document::document(std::string_view text)
 std::string document::text() const
 {
     return std::accumulate(m_lines.begin(), m_lines.end(), std::string(), [](std::string&& result, const auto& l) {
-        result.append(l.text());
-        if (result.empty() || result.back() != '\n')
+        auto t = l.text();
+        result.append(t);
+        if (t.empty() || t.back() != '\n')
             result.push_back('\n');
         return std::move(result);
     });
+}
+
+void document::convert_to_replaced()
+{
+    for (auto& line : m_lines)
+    {
+        if (line.is_original())
+        {
+            line = document_line(replaced_line(std::string(line.text())));
+        }
+    }
 }
 
 } // namespace hlasm_plugin::parser_library

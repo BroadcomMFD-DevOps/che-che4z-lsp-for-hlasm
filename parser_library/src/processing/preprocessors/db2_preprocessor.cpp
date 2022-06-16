@@ -228,11 +228,6 @@ class db2_preprocessor : public preprocessor
         m_result.emplace_back(replaced_line { "         MEND                           \n" });
     }
 
-    static bool is_continued(std::string_view s)
-    {
-        return lexing::utf8_substr(s, lexing::default_ictl_copy.end, 1).str == " ";
-    }
-
     void process_include(std::string_view operands, size_t lineno)
     {
         if (operands == "SQLCA")
@@ -258,6 +253,7 @@ class db2_preprocessor : public preprocessor
         }
 
         document d(include_text.value());
+        d.convert_to_replaced();
         generate_replacement(d.begin(), d.end(), false);
     }
     static bool consume_words(
@@ -544,8 +540,8 @@ class db2_preprocessor : public preprocessor
 
                 first_line_skipped = 0;
             }
+            this_line.append("\n");
             m_result.emplace_back(replaced_line { std::move(this_line) });
-            m_result.emplace_back(replaced_line { "\n" });
             m_operands.append(operand_part);
         }
     }
@@ -679,14 +675,14 @@ class db2_preprocessor : public preprocessor
             const auto text = it->text();
             if (skip_continuation)
             {
-                m_result.emplace_back(std::move(*it++));
+                m_result.emplace_back(*it++);
                 skip_continuation = is_continued(text);
                 continue;
             }
             auto [instruction, first_line_skipped, label] = check_line(text);
             if (instruction == line_type::ignore)
             {
-                m_result.emplace_back(std::move(*it++));
+                m_result.emplace_back(*it++);
                 skip_continuation = is_continued(text);
                 continue;
             }
@@ -705,6 +701,7 @@ class db2_preprocessor : public preprocessor
     document generate_replacement(document doc) override
     {
         m_result.clear();
+        m_result.reserve(doc.size());
 
         line_iterator it = doc.begin();
         line_iterator end = doc.end();

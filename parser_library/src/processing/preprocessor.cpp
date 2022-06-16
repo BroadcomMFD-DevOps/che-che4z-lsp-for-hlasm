@@ -23,9 +23,9 @@ preprocessor::line_iterator preprocessor::extract_nonempty_logical_line(
 {
     out.clear();
 
-    for (; it != end; ++it)
+    for (; it != end;)
     {
-        auto text = it->text();
+        auto text = it++->text();
         if (!append_to_logical_line(out, text, opts))
             break;
     };
@@ -33,6 +33,12 @@ preprocessor::line_iterator preprocessor::extract_nonempty_logical_line(
     finish_logical_line(out, opts);
 
     return it;
+}
+
+bool preprocessor::is_continued(std::string_view s)
+{
+    const auto cont = lexing::utf8_substr(s, lexing::default_ictl_copy.end, 1).str;
+    return !cont.empty() && cont != " ";
 }
 
 } // namespace hlasm_plugin::parser_library::processing

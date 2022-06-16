@@ -33,7 +33,6 @@ TEST(db2_preprocessor, first_line)
     auto p = preprocessor::create(
         db2_preprocessor_options {}, [](std::string_view) { return std::nullopt; }, nullptr);
     std::string_view text = "";
-    size_t lineno = 0;
 
     auto result = p->generate_replacement(document());
 
@@ -71,10 +70,8 @@ TEST(db2_preprocessor, include)
 
     auto result = p->generate_replacement(document(text));
 
-    EXPECT_EQ(std::count_if(result.begin(),
-                  result.end(),
-                  [](const auto& l) { return l.text().find("member content\n") != std::string::npos; }),
-        1);
+    EXPECT_EQ(
+        std::count_if(result.begin(), result.end(), [](const auto& l) { return l.text() == "member content"; }), 1);
 }
 
 TEST(db2_preprocessor, include_sqlca)
@@ -150,7 +147,7 @@ TEST(db2_preprocessor, with_label)
     const auto expected = {
         std::string_view("ABC DS 0H\n"),
         std::string_view("***$$$\n"),
-        std::string_view("*   EXEC SQL WHATEVER"),
+        std::string_view("*   EXEC SQL WHATEVER\n"),
     };
 
     EXPECT_NE(std::search(result.begin(),
