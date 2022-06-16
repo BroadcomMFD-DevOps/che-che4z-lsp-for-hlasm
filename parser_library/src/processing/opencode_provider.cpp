@@ -365,15 +365,18 @@ bool opencode_provider::try_running_preprocessor()
     const auto current_line = m_next_line_index ? m_input_document.at(m_next_line_index - 1).lineno().value() + 1 : 0;
     std::string result;
 
-    std::optional<size_t> stop_line;
     auto it = m_input_document.begin() + m_next_line_index;
     for (; it != m_input_document.end() && !it->is_original(); ++it)
     {
-        result.append(it->text());
-        if (result.empty() || result.back() != '\n')
+        const auto text = it->text();
+        result.append(text);
+        if (text.empty() || text.back() != '\n')
             result.push_back('\n');
-        stop_line = it->lineno();
     }
+    std::optional<size_t> stop_line;
+    if (it != m_input_document.end())
+        stop_line = it->lineno();
+
     const auto last_index = it - m_input_document.begin();
 
     auto virtual_file_name = m_ctx->hlasm_ctx->ids().add("preprocessor:" + std::to_string(current_line));
