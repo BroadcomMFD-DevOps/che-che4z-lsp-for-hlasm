@@ -356,10 +356,7 @@ utils::resource::resource_location generate_virtual_file_name(virtual_file_id id
 
 bool opencode_provider::try_running_preprocessor()
 {
-    if (m_next_line_index >= m_input_document.size())
-        return false;
-    const auto& candidate = m_input_document.at(m_next_line_index);
-    if (candidate.is_original())
+    if (m_next_line_index >= m_input_document.size() || m_input_document.at(m_next_line_index).is_original())
         return false;
 
     const auto current_line = m_next_line_index ? m_input_document.at(m_next_line_index - 1).lineno().value() + 1 : 0;
@@ -643,7 +640,6 @@ extract_next_logical_line_result opencode_provider::extract_next_logical_line_fr
         copy_file.current_statement = resync;
 
         const auto* copy_text = m_ctx->lsp_ctx->get_file_info(copy_file.definition_location()->resource_loc);
-        std::string_view full_text = copy_text->data.get_lines_beginning_at({ 0, 0 });
         std::string_view remaining_text = copy_text->data.get_lines_beginning_at({ line, 0 });
         if (!lexing::extract_logical_line(m_current_logical_line, remaining_text, lexing::default_ictl_copy))
         {

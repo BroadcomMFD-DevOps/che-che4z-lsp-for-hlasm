@@ -818,7 +818,6 @@ public:
 
 class cics_preprocessor : public preprocessor
 {
-    const char* m_last_position = nullptr;
     lexing::logical_line m_logical_line;
     std::string m_operands;
     library_fetcher m_libs;
@@ -999,7 +998,7 @@ public:
         }
     }
 
-    std::string generate_label_fragment(lexing::logical_line::const_iterator label_b,
+    static std::string generate_label_fragment(lexing::logical_line::const_iterator label_b,
         lexing::logical_line::const_iterator label_e,
         const label_info& li)
     {
@@ -1087,11 +1086,11 @@ public:
         m_result.clear();
         m_result.reserve(doc.size());
 
-        line_iterator it = doc.begin();
-        line_iterator end = doc.end();
+        auto it = doc.begin();
+        const auto end = doc.end();
 
         bool skip_continuation = false;
-        for (; it != end;)
+        while (it != end)
         {
             const auto text = it->text();
             if (skip_continuation)

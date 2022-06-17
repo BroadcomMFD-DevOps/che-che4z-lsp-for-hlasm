@@ -44,7 +44,6 @@ using utils::concat;
 
 class db2_preprocessor : public preprocessor
 {
-    const char* m_last_position = nullptr;
     lexing::logical_line m_logical_line;
     std::string m_operands;
     std::string m_version;
@@ -444,7 +443,7 @@ class db2_preprocessor : public preprocessor
                 if (len > li.limit)
                     m_result.emplace_back(replaced_line { concat(" ORG   *+(",
                         // there seems be this strage artifical limit
-                        std::min(len - li.limit, 1073676289ull),
+                        std::min(len - li.limit, 1073676289ULL),
                         ")\n") });
                 break;
             }
@@ -670,7 +669,7 @@ class db2_preprocessor : public preprocessor
     void generate_replacement(line_iterator it, line_iterator end, bool include_allowed)
     {
         bool skip_continuation = false;
-        for (; it != end;)
+        while (it != end)
         {
             const auto text = it->text();
             if (skip_continuation)
@@ -703,8 +702,8 @@ class db2_preprocessor : public preprocessor
         m_result.clear();
         m_result.reserve(doc.size());
 
-        line_iterator it = doc.begin();
-        line_iterator end = doc.end();
+        auto it = doc.begin();
+        const auto end = doc.end();
 
         skip_process(it, end);
         // ignores ICTL

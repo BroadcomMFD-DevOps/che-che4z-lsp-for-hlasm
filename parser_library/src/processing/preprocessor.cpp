@@ -23,12 +23,12 @@ preprocessor::line_iterator preprocessor::extract_nonempty_logical_line(
 {
     out.clear();
 
-    for (; it != end;)
+    while (it != end)
     {
         auto text = it++->text();
         if (!append_to_logical_line(out, text, opts))
             break;
-    };
+    }
 
     finish_logical_line(out, opts);
 
