@@ -55,6 +55,7 @@ TEST(db2_preprocessor, last_line)
                   result.end(),
                   [](const auto& l) { return l.text().find("***$$$ SQL WORKING STORAGE") == 0; }),
         1);
+    EXPECT_EQ(std::count_if(result.begin(), result.end(), [](const auto& l) { return l.text() == " END "; }), 1);
 }
 
 TEST(db2_preprocessor, include)
@@ -72,6 +73,10 @@ TEST(db2_preprocessor, include)
 
     EXPECT_EQ(
         std::count_if(result.begin(), result.end(), [](const auto& l) { return l.text() == "member content"; }), 1);
+    EXPECT_EQ(std::count_if(result.begin(),
+                  result.end(),
+                  [](const auto& l) { return l.text().starts_with(" EXEC SQL INCLUDE MEMBER"); }),
+        0);
 }
 
 TEST(db2_preprocessor, include_sqlca)
