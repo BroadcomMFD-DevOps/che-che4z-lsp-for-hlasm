@@ -363,23 +363,22 @@ bool opencode_provider::try_running_preprocessor()
         return false;
 
     const auto current_line = m_next_line_index ? m_input_document.at(m_next_line_index - 1).lineno().value() + 1 : 0;
-    std::string result;
 
+    std::string preprocessor_text;
     auto it = m_input_document.begin() + m_next_line_index;
     for (; it != m_input_document.end() && !it->is_original(); ++it)
     {
         const auto text = it->text();
-        result.append(text);
+        preprocessor_text.append(text);
         if (text.empty() || text.back() != '\n')
-            result.push_back('\n');
+            preprocessor_text.push_back('\n');
     }
     const size_t stop_line = it != m_input_document.end() ? it->lineno().value() : current_line;
-
     const auto last_index = it - m_input_document.begin();
 
     auto virtual_file_name = m_ctx->hlasm_ctx->ids().add("preprocessor:" + std::to_string(current_line));
 
-    auto [new_file, inserted] = m_virtual_files.try_emplace(virtual_file_name, std::move(result));
+    auto [new_file, inserted] = m_virtual_files.try_emplace(virtual_file_name, std::move(preprocessor_text));
 
     // set up "call site"
     const auto last_statement_line = stop_line - (stop_line != current_line);
@@ -403,7 +402,7 @@ bool opencode_provider::try_running_preprocessor()
     }
     else
     {
-        assert(result == new_file->second);
+        assert(preprocessor_text == new_file->second); // isn't moved if insert fails
     }
 
     m_ctx->hlasm_ctx->enter_copy_member(virtual_file_name);
@@ -577,9 +576,6 @@ bool opencode_provider::is_next_line_ictl() const
 {
     static constexpr std::string_view ICTL_LITERAL = "ICTL";
 
-    if (m_next_line_index >= m_input_document.size())
-        return false;
-
     const auto& current_line = m_input_document.at(m_next_line_index);
     if (!current_line.is_original()) // for now, let's say that ICTL can only be specified in the original
         return false;
@@ -602,9 +598,6 @@ bool opencode_provider::is_next_line_ictl() const
 bool opencode_provider::is_next_line_process() const
 {
     static constexpr std::string_view PROCESS_LITERAL = "*PROCESS";
-
-    if (m_next_line_index >= m_input_document.size())
-        return false;
 
     const auto& current_line = m_input_document.at(m_next_line_index);
     if (!current_line.is_original()) // for now, let's say that *PROCESS can only be specified in the original
@@ -693,6 +686,9 @@ extract_next_logical_line_result opencode_provider::extract_next_logical_line()
         if (!m_ctx->hlasm_ctx->opencode_copy_stack().empty())
             return extract_next_logical_line_from_copy_buffer();
     }
+
+    if (m_next_line_index >= m_input_document.size())
+        return extract_next_logical_line_result::failed;
 
     if (ictl_allowed)
         ictl_allowed = is_next_line_ictl();
