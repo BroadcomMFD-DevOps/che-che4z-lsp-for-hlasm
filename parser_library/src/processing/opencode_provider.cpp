@@ -373,9 +373,7 @@ bool opencode_provider::try_running_preprocessor()
         if (text.empty() || text.back() != '\n')
             result.push_back('\n');
     }
-    std::optional<size_t> stop_line;
-    if (it != m_input_document.end())
-        stop_line = it->lineno();
+    const size_t stop_line = it != m_input_document.end() ? it->lineno().value() : current_line;
 
     const auto last_index = it - m_input_document.begin();
 
@@ -384,8 +382,7 @@ bool opencode_provider::try_running_preprocessor()
     auto [new_file, inserted] = m_virtual_files.try_emplace(virtual_file_name, std::move(result));
 
     // set up "call site"
-    const auto last_statement_line =
-        stop_line.value_or(current_line) - (stop_line.value_or(current_line) != current_line);
+    const auto last_statement_line = stop_line - (stop_line != current_line);
     m_ctx->hlasm_ctx->set_source_position(position(last_statement_line, 0));
     m_ctx->hlasm_ctx->set_source_indices(m_next_line_index, last_index);
     m_next_line_index = last_index;
@@ -726,7 +723,7 @@ extract_next_logical_line_result opencode_provider::extract_next_logical_line()
         return extract_next_logical_line_result::failed;
 
     const auto first_index = m_next_line_index;
-    const auto& current_lineno = m_input_document.at(m_next_line_index).lineno().value();
+    const auto current_lineno = m_input_document.at(m_next_line_index).lineno().value();
     while (m_next_line_index < m_input_document.size())
     {
         const auto& current_line = m_input_document.at(m_next_line_index++);

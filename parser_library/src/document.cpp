@@ -59,7 +59,7 @@ void document::convert_to_replaced()
     {
         if (line.is_original())
         {
-            line = document_line(replaced_line(std::string(line.text())));
+            line = document_line(replaced_line { std::string(line.text()) });
         }
     }
 }
