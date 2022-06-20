@@ -270,14 +270,6 @@ TEST(resource_location, lexically_relative_win_drive_letter)
         resource_location("file:///C:/dir/subdir/").lexically_relative(resource_location("file:///C:/dir/subdir/")),
         ".");
 
-    // EXPECT_EQ(
-    //     resource_location("file:///C:/dir/subdir/").lexically_relative(resource_location("file:///c:/dir/subdir/")),
-    //     ".");
-
-    // EXPECT_EQ(
-    //     resource_location("file:///c:/dir/subdir/").lexically_relative(resource_location("file:///C:/dir/subdir/")),
-    //     ".");
-
     EXPECT_EQ(
         resource_location("file:///c:/dir/subdir/").lexically_relative(resource_location("file:///c:/dir/subdir/")),
         ".");
@@ -285,14 +277,6 @@ TEST(resource_location, lexically_relative_win_drive_letter)
     EXPECT_EQ(
         resource_location("file:///C%3A/dir/subdir/").lexically_relative(resource_location("file:///C%3A/dir/subdir/")),
         ".");
-
-    // EXPECT_EQ(
-    //     resource_location("file:///C%3A/dir/subdir/").lexically_relative(resource_location("file:///c%3A/dir/subdir/")),
-    //     ".");
-
-    // EXPECT_EQ(
-    //     resource_location("file:///c%3A/dir/subdir/").lexically_relative(resource_location("file:///C%3A/dir/subdir/")),
-    //     ".");
 
     EXPECT_EQ(
         resource_location("file:///c%3A/dir/subdir/").lexically_relative(resource_location("file:///c%3A/dir/subdir/")),
@@ -307,10 +291,79 @@ TEST(resource_location, lexically_relative_win_drive_letter)
 
 TEST(resource_location, lexically_relative_different_schemes)
 {
-    EXPECT_EQ(resource_location("file:///C:/dir/file_a").lexically_relative(resource_location("aaa:dir/file_a")), "");
+    EXPECT_EQ(resource_location("file:///home/").lexically_relative(resource_location("aaa:dir/file_a")), "");
 
     EXPECT_EQ(resource_location("aaa:dir/file_a").lexically_relative(resource_location("file:///C:/dir/file_a")), "");
 }
+
+TEST(resource_location, lexically_normal)
+{
+    EXPECT_EQ(resource_location("file:///").lexically_normal(), "file:///");
+    EXPECT_EQ(resource_location("file:///././file").lexically_normal(), "file:///file");
+    EXPECT_EQ(resource_location("file:///C:/./file").lexically_normal(), "file:///C:/file");
+    EXPECT_EQ(resource_location("file:///C:/./dir/").lexically_normal(), "file:///C:/dir/");
+    EXPECT_EQ(resource_location("file:///C:/./dir/.").lexically_normal(), "file:///C:/dir/");
+    EXPECT_EQ(resource_location("file:///C:/./dir../.").lexically_normal(), "file:///C:/dir../");
+    EXPECT_EQ(resource_location("file:///C:/./dir./.").lexically_normal(), "file:///C:/dir./");
+    EXPECT_EQ(resource_location("file:///C:/./dir/..").lexically_normal(), "file:///C:/");
+    EXPECT_EQ(resource_location("file:///C:/.///dir/../").lexically_normal(), "file:///C:/");
+}
+
+TEST(resource_location, lexically_normal_change_root_dir)
+{
+    EXPECT_EQ(resource_location("file:///C:/../D:/").lexically_normal(), "file:///D:/");
+    EXPECT_EQ(resource_location("file:///C:/../../../hostname").lexically_normal(), "file://hostname");
+    EXPECT_EQ(resource_location("file:///C:/../../../hostname/").lexically_normal(), "file://hostname/");
+    EXPECT_EQ(resource_location("file:///C:/../../../hostname/dir/file").lexically_normal(), "file://hostname/dir/file");
+    EXPECT_EQ(resource_location("file:///C:/../../../hostname/..").lexically_normal(), "file://");
+    EXPECT_EQ(resource_location("file:///C:/../../../.").lexically_normal(), "file://");
+}
+
+TEST(resource_location, lexically_normal_diff_schemes)
+{
+    EXPECT_EQ(resource_location("aaa:").lexically_normal(), "aaa:");
+    EXPECT_EQ(resource_location("aaa:././file").lexically_normal(), "aaa:file");
+    EXPECT_EQ(resource_location("aaa:C:/file").lexically_normal(), "aaa:C:/file");
+    EXPECT_EQ(resource_location("aaa:C:/dir/").lexically_normal(), "aaa:C:/dir/");
+    EXPECT_EQ(resource_location("aaa:C:/dir/.").lexically_normal(), "aaa:C:/dir/");
+    EXPECT_EQ(resource_location("aaa:C:/dir../.").lexically_normal(), "aaa:C:/dir../");
+    EXPECT_EQ(resource_location("aaa:C:/dir./.").lexically_normal(), "aaa:C:/dir./");
+    EXPECT_EQ(resource_location("aaa:C:/dir/..").lexically_normal(), "aaa:C:/");
+    EXPECT_EQ(resource_location("aaa:C:///dir/../").lexically_normal(), "aaa:C:/");
+}
+
+TEST(resource_location, lexically_normal_change_root_dir_diff_schemes)
+{
+    EXPECT_EQ(resource_location("aaa:C:/../../../D:").lexically_normal(), "aaa:D:");
+    EXPECT_EQ(resource_location("aaa:C:/../../../D:/").lexically_normal(), "aaa:D:/");
+    EXPECT_EQ(resource_location("aaa:C:/../../../D:/..").lexically_normal(), "aaa:");
+    EXPECT_EQ(resource_location("aaa:C:/../../../.").lexically_normal(), "aaa:");
+}
+
+TEST(resource_location, lexically_normal_slashes)
+{
+    EXPECT_EQ(resource_location("file:///.\\.\\file").lexically_normal(), "file:///file");
+    EXPECT_EQ(resource_location("file:\\\\\\C:\\file").lexically_normal(), "file:///C:/file");
+    EXPECT_EQ(resource_location("file:\\\\\\C:\\.\\dir\\.").lexically_normal(), "file:///C:/dir/");
+}
+
+TEST(resource_location, lexically_normal_rfc_3986)
+{
+    EXPECT_EQ(resource_location("aaa:/a/b/c/./../../g").lexically_normal(), "aaa:/a/g");
+    EXPECT_EQ(resource_location("aaa:mid/content=5/../6").lexically_normal(), "aaa:mid/6");
+}
+
+// TEST(resource_location, lexically_normal_rfc_3986_syntax_based) // todo
+//{
+//     EXPECT_EQ(resource_location("example://a/b/c/%7Bfoo%7D").lexically_normal(),
+//         resource_location("eXAMPLE://a/./b/../b/%63/%7bfoo%7d").lexically_normal());
+// }
+
+// TEST(resource_location, lexically_normal_rfc_3986_case) // todo
+//{
+//     EXPECT_EQ(resource_location("example://a/b/c/%7Bfoo%7D").lexically_normal(),
+//         resource_location("eXAMPLE://a/./b/../b/%63/%7bfoo%7d").lexically_normal());
+// }
 
 TEST(resource_location, join_empty)
 {
@@ -420,4 +473,72 @@ TEST(resource_location, join_mulitple_slashes)
 
     rl.join("/b///");
     EXPECT_EQ(rl.get_uri(), "aaa://src/dir/////a////b///");
+}
+
+TEST(resource_location, relative_reference_resolution_rfc_3986_normal)
+{
+    resource_location rl("http://a/b/c/d;p?q");
+
+    EXPECT_EQ(resource_location::relative_reference_resolution(rl, "g:h").get_uri(), "g:h");
+    EXPECT_EQ(resource_location::relative_reference_resolution(rl, "g").get_uri(), "http://a/b/c/g");
+    EXPECT_EQ(resource_location::relative_reference_resolution(rl, "./g").get_uri(), "http://a/b/c/g");
+    EXPECT_EQ(resource_location::relative_reference_resolution(rl, "g/").get_uri(), "http://a/b/c/g/");
+    EXPECT_EQ(resource_location::relative_reference_resolution(rl, "/g").get_uri(), "http://a/g");
+    EXPECT_EQ(resource_location::relative_reference_resolution(rl, "//g").get_uri(), "http://g");
+    EXPECT_EQ(resource_location::relative_reference_resolution(rl, "?y").get_uri(), "http://a/b/c/d;p?y");
+    EXPECT_EQ(resource_location::relative_reference_resolution(rl, "g?y").get_uri(), "http://a/b/c/g?y");
+    EXPECT_EQ(resource_location::relative_reference_resolution(rl, "#s").get_uri(), "http://a/b/c/d;p?q#s");
+    EXPECT_EQ(resource_location::relative_reference_resolution(rl, "g#s").get_uri(), "http://a/b/c/g#s");
+    EXPECT_EQ(resource_location::relative_reference_resolution(rl, "g?y#s").get_uri(), "http://a/b/c/g?y#s");
+    EXPECT_EQ(resource_location::relative_reference_resolution(rl, ";x").get_uri(), "http://a/b/c/;x");
+    EXPECT_EQ(resource_location::relative_reference_resolution(rl, "g;x").get_uri(), "http://a/b/c/g;x");
+    EXPECT_EQ(resource_location::relative_reference_resolution(rl, "g;x?y#s").get_uri(), "http://a/b/c/g;x?y#s");
+    EXPECT_EQ(resource_location::relative_reference_resolution(rl, "").get_uri(), "http://a/b/c/d;p?q");
+    EXPECT_EQ(resource_location::relative_reference_resolution(rl, ".").get_uri(), "http://a/b/c/");
+    EXPECT_EQ(resource_location::relative_reference_resolution(rl, "./").get_uri(), "http://a/b/c/");
+    EXPECT_EQ(resource_location::relative_reference_resolution(rl, "..").get_uri(), "http://a/b/");
+    EXPECT_EQ(resource_location::relative_reference_resolution(rl, "../").get_uri(), "http://a/b/");
+    EXPECT_EQ(resource_location::relative_reference_resolution(rl, "../g").get_uri(), "http://a/b/g");
+    EXPECT_EQ(resource_location::relative_reference_resolution(rl, "../..").get_uri(), "http://a/");
+    EXPECT_EQ(resource_location::relative_reference_resolution(rl, "../../").get_uri(), "http://a/");
+    EXPECT_EQ(resource_location::relative_reference_resolution(rl, "../../g").get_uri(), "http://a/g");
+}
+
+TEST(resource_location, relative_reference_resolution_rfc_3986_abnormal)
+{
+    resource_location rl("http://a/b/c/d;p?q");
+
+    EXPECT_EQ(resource_location::relative_reference_resolution(rl, "../../../g").get_uri(), "http://a/g");
+    EXPECT_EQ(resource_location::relative_reference_resolution(rl, "../../../../g").get_uri(), "http://a/g");
+}
+
+TEST(resource_location, relative_reference_resolution_rfc_3986_dot_double_dot_2)
+{
+    resource_location rl("http://a/b/c/d;p?q");
+
+    EXPECT_EQ(resource_location::relative_reference_resolution(rl, "/./g").get_uri(), "http://a/g");
+    EXPECT_EQ(resource_location::relative_reference_resolution(rl, "/../g").get_uri(), "http://a/g");
+    EXPECT_EQ(resource_location::relative_reference_resolution(rl, "g.").get_uri(), "http://a/b/c/g.");
+    EXPECT_EQ(resource_location::relative_reference_resolution(rl, ".g").get_uri(), "http://a/b/c/.g");
+    EXPECT_EQ(resource_location::relative_reference_resolution(rl, "g..").get_uri(), "http://a/b/c/g..");
+    EXPECT_EQ(resource_location::relative_reference_resolution(rl, "..g").get_uri(), "http://a/b/c/..g");
+}
+
+TEST(resource_location, relative_reference_resolution_rfc_3986_query_fragment)
+{
+    resource_location rl("http://a/b/c/d;p?q");
+
+    EXPECT_EQ(resource_location::relative_reference_resolution(rl, "./../g").get_uri(), "http://a/b/g");
+    EXPECT_EQ(resource_location::relative_reference_resolution(rl, "./g/.").get_uri(), "http://a/b/c/g/");
+    EXPECT_EQ(resource_location::relative_reference_resolution(rl, "g/./h").get_uri(), "http://a/b/c/g/h");
+    EXPECT_EQ(resource_location::relative_reference_resolution(rl, "g/../h").get_uri(), "http://a/b/c/h");
+    EXPECT_EQ(resource_location::relative_reference_resolution(rl, "g;x=1/./y").get_uri(), "http://a/b/c/g;x=1/y");
+    EXPECT_EQ(resource_location::relative_reference_resolution(rl, "g;x=1/../y").get_uri(), "http://a/b/c/y");
+}
+
+TEST(resource_location, relative_reference_resolution_rfc_3986_strict_parsers)
+{
+    resource_location rl("http://a/b/c/d");
+
+    EXPECT_EQ(resource_location::relative_reference_resolution(rl, "http:g").get_uri(), "http:g");
 }

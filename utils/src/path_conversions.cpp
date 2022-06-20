@@ -121,25 +121,6 @@ bool is_uri(const std::string& path) noexcept
     }
 }
 
-namespace {
-struct dissected_uri
-{
-    struct authority
-    {
-        std::optional<std::string> user_info;
-        std::string host;
-        std::optional<std::string> port;
-    };
-
-    std::string scheme;
-    std::optional<authority> auth;
-    std::string path;
-    std::optional<std::string> query;
-    std::optional<std::string> fragment;
-
-    bool contains_host() const { return auth.has_value() && !auth->host.empty(); }
-};
-
 dissected_uri dissect_uri(const std::string& uri) noexcept
 {
     dissected_uri dis_uri;
@@ -185,6 +166,47 @@ dissected_uri dissect_uri(const std::string& uri) noexcept
     }
 }
 
+std::string reconstruct_uri(const dissected_uri dis_uri)
+{
+    std::string uri;
+
+    uri.append(dis_uri.scheme);
+    uri.push_back(':');
+
+    if (dis_uri.auth)
+    {
+        uri.append("//");
+        if (dis_uri.auth->user_info)
+        {
+            uri.append(*dis_uri.auth->user_info);
+            uri.push_back('@');
+        }
+        uri.append(dis_uri.auth->host);
+        if (dis_uri.auth->port)
+        {
+            uri.push_back(':');
+            uri.append(*dis_uri.auth->port);
+        }
+    }
+
+    uri.append(dis_uri.path);
+
+    if (dis_uri.query)
+    {
+        uri.push_back('?');
+        uri.append(*dis_uri.query);
+    }
+
+    if (dis_uri.fragment)
+    {
+        uri.push_back('#');
+        uri.append(*dis_uri.fragment);
+    }
+
+    return uri;
+}
+
+namespace {
 void format_path_pre_processing(std::string& hostname, std::string_view port, std::string& path)
 {
     if (!port.empty() && !hostname.empty())

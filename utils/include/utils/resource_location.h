@@ -32,13 +32,15 @@ public:
     std::string get_path() const;
     std::string to_presentable(bool debug = false) const;
 
-    void to_directory();
-
+    std::string lexically_normal();
     std::string lexically_relative(const resource_location& base) const;
     bool lexically_out_of_scope() const;
 
     void join(const std::string& other);
     static resource_location join(resource_location rl, const std::string& other);
+
+    void relative_reference_resolution(const std::string& other);
+    static resource_location relative_reference_resolution(resource_location rl, const std::string& other);
 
     std::strong_ordering operator<=>(const resource_location& rl) const noexcept = default;
 

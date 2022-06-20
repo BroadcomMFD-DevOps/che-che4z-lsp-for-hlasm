@@ -16,8 +16,27 @@
 #define HLASMPLUGIN_UTILS_PATH_CONVERSIONS_H
 
 #include <string>
+#include <optional>
 
 namespace hlasm_plugin::utils::path {
+
+struct dissected_uri
+{
+    struct authority
+    {
+        std::optional<std::string> user_info;
+        std::string host;
+        std::optional<std::string> port;
+    };
+
+    std::string scheme;
+    std::optional<authority> auth;
+    std::string path;
+    std::optional<std::string> query;
+    std::optional<std::string> fragment;
+
+    bool contains_host() const { return auth.has_value() && !auth->host.empty(); }
+};
 
 // Converts URI (RFC3986) to common filesystem path.
 std::string uri_to_path(const std::string& uri) noexcept;
@@ -30,6 +49,10 @@ bool is_uri(const std::string& path) noexcept;
 
 // Returns URI in a presentable format for the user
 std::string get_presentable_uri(const std::string& uri, bool debug);
+
+dissected_uri dissect_uri(const std::string& uri) noexcept;
+
+std::string reconstruct_uri(const dissected_uri dis_uri);
 
 } // namespace hlasm_plugin::utils::path
 

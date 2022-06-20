@@ -49,7 +49,7 @@ workspace::workspace(const utils::resource::resource_location& location,
     , implicit_proc_grp("pg_implicit", {}, {})
     , global_config_(global_config)
 {
-    location_.to_directory();
+    location_.join(""); // Ensure that this is a directory
 
     auto hlasm_folder = utils::resource::resource_location::join(location_, HLASM_PLUGIN_FOLDER);
     proc_grps_loc_ = utils::resource::resource_location::join(hlasm_folder, FILENAME_PROC_GRPS);
@@ -553,6 +553,7 @@ utils::resource::resource_location transform_to_resource_location(
     utils::resource::resource_location rl;
 
     if (std::filesystem::path fs_path = path; utils::path::is_absolute(fs_path))
+    //if (std::filesystem::path fs_path = path; utils::path::is_absolute(fs_path) && utils::path::is_directory(fs_path))
         return utils::resource::resource_location(
             utils::path::path_to_uri(utils::path::lexically_normal(fs_path).string()));
     else
@@ -612,7 +613,7 @@ library_local_options get_library_local_options(
     return opts;
 }
 
-// Constructs resource location of a library and analyzes if it points to a specific location
+// Constructs resource location of a library and analyzes if it contains wildcards
 std::pair<utils::resource::resource_location, bool> construct_and_analyze_lib_resource_location(
     const std::string& lib_path, const utils::resource::resource_location& base)
 {
@@ -631,8 +632,8 @@ std::pair<utils::resource::resource_location, bool> construct_and_analyze_lib_re
         rl = utils::resource::resource_location::join(base, lib_path);
     }
 
-    rl.to_directory();
-    return std::make_pair(rl, asterisk == std::string::npos);
+    rl.join(""); // Ensure that this is a directory
+    return std::make_pair(utils::resource::resource_location(rl.lexically_normal()), asterisk != std::string::npos);
 }
 } // namespace
 
@@ -645,11 +646,11 @@ void workspace::process_processor_group(
     {
         auto lib_local_opts = get_library_local_options(lib, proc_groups, pgm_config);
 
-        if (const auto [rl, is_dir] = construct_and_analyze_lib_resource_location(lib.path, location_); is_dir)
+        if (const auto [rl, has_wildcards] = construct_and_analyze_lib_resource_location(lib.path, location_); !has_wildcards)
             prc_grp.add_library(std::make_unique<library_local>(file_manager_, rl, std::move(lib_local_opts)));
         else
             find_and_add_libs(utils::resource::resource_location(
-                                  rl.get_uri().substr(0, rl.get_uri().find_last_of("/\\", rl.get_uri().find('*')) + 1)),
+                                  rl.get_uri().substr(0, rl.get_uri().find_last_of("/", rl.get_uri().find('*')) + 1)),
                 rl,
                 prc_grp,
                 lib_local_opts);

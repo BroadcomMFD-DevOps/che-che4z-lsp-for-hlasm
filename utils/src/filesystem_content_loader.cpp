@@ -82,7 +82,7 @@ list_directory_result filesystem_content_loader::list_directory_subdirs_and_syml
         if (!ec && utils::path::is_directory(cp))
         {
             auto found_dir = utils::resource::resource_location(utils::path::path_to_uri(cp.string()));
-            found_dir.to_directory();
+            found_dir.join(""); // Ensure that this is a directory
             result.first[cp.string()] = std::move(found_dir);
         }
     });
@@ -99,7 +99,6 @@ bool filesystem_content_loader::file_exists(const utils::resource::resource_loca
 {
     std::error_code ec;
     return std::filesystem::exists(res_loc.get_path(), ec) && !ec && !dir_exists(res_loc);
-    // TODO use error code??
 }
 
 bool filesystem_content_loader::dir_exists(const utils::resource::resource_location& res_loc) const
