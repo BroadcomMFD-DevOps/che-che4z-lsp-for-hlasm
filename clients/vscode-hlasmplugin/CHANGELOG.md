@@ -11,6 +11,8 @@
 - Enhanced commands for continuation handling and trimming of oversized lines
 - Provide the name of a missing variable or ordinary symbol in messages
 - SYSIN_DSN and SYSIN_MEMBER support
+- Home directory substitution is now supported in proc_grps.json and pgm_conf.json
+- Conditional DB2 preprocessor option
 
 #### Fixed
 - Incorrect attribute values generated when literals are substituted in CA expressions
@@ -27,6 +29,7 @@
 - Incorrect remark parsing in CA statements
 - DB2 preprocessor incorrectly processes line continuations from included members
 - Partially resolved value used as the final value by EQU statement
+- Language server may crash while processing an unexpected operand
 
 ## [1.2.0](https://github.com/eclipse/che-che4z-lsp-for-hlasm/compare/1.1.0...1.2.0) (2022-05-11)
 
