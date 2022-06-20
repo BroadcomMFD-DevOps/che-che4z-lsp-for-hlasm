@@ -76,11 +76,11 @@ void from_json(const nlohmann::json& j, db2_preprocessor& v)
                 throw nlohmann::json::other_error::create(501, "Version string expected.", j);
             v.version = ver->get<std::string>();
         }
-        if (auto ver = it->find("conditional"); ver != it->end())
+        if (auto cond = it->find("conditional"); cond != it->end())
         {
-            if (!ver->is_boolean())
+            if (!cond->is_boolean())
                 throw nlohmann::json::other_error::create(501, "Boolean expected.", j);
-            v.conditional = ver->get<bool>();
+            v.conditional = cond->get<bool>();
         }
     }
 }
