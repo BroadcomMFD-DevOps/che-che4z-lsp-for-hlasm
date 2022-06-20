@@ -314,7 +314,8 @@ TEST(resource_location, lexically_normal_change_root_dir)
     EXPECT_EQ(resource_location("file:///C:/../D:/").lexically_normal(), "file:///D:/");
     EXPECT_EQ(resource_location("file:///C:/../../../hostname").lexically_normal(), "file://hostname");
     EXPECT_EQ(resource_location("file:///C:/../../../hostname/").lexically_normal(), "file://hostname/");
-    EXPECT_EQ(resource_location("file:///C:/../../../hostname/dir/file").lexically_normal(), "file://hostname/dir/file");
+    EXPECT_EQ(
+        resource_location("file:///C:/../../../hostname/dir/file").lexically_normal(), "file://hostname/dir/file");
     EXPECT_EQ(resource_location("file:///C:/../../../hostname/..").lexically_normal(), "file://");
     EXPECT_EQ(resource_location("file:///C:/../../../.").lexically_normal(), "file://");
 }
@@ -456,7 +457,7 @@ TEST(resource_location, join_prepending_slash)
     resource_location rl("aaa://src/dir/a");
 
     rl.join("/b");
-    EXPECT_EQ(rl.get_uri(), "aaa://src/dir/a//b");
+    EXPECT_EQ(rl.get_uri(), "aaa://src/dir/a/b");
 }
 
 TEST(resource_location, join_prepending_slash_2)
@@ -464,7 +465,7 @@ TEST(resource_location, join_prepending_slash_2)
     resource_location rl("aaa://src/dir/a/");
 
     rl.join("/b");
-    EXPECT_EQ(rl.get_uri(), "aaa://src/dir/a//b");
+    EXPECT_EQ(rl.get_uri(), "aaa://src/dir/a/b");
 }
 
 TEST(resource_location, join_mulitple_slashes)
@@ -472,7 +473,7 @@ TEST(resource_location, join_mulitple_slashes)
     resource_location rl("aaa://src/dir/////a///");
 
     rl.join("/b///");
-    EXPECT_EQ(rl.get_uri(), "aaa://src/dir/////a////b///");
+    EXPECT_EQ(rl.get_uri(), "aaa://src/dir/////a///b///");
 }
 
 TEST(resource_location, relative_reference_resolution_rfc_3986_normal)

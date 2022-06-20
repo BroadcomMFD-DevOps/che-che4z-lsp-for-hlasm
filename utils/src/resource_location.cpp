@@ -45,7 +45,7 @@ std::string resource_location::to_presentable(bool debug) const
 }
 
 namespace {
-void to_directory(std::string& uri)
+void uri_append(std::string& uri, std::string_view r)
 {
     if (!uri.empty())
     {
@@ -53,24 +53,12 @@ void to_directory(std::string& uri)
             uri.back() = '/';
         else if (uri.back() != '/')
             uri.append("/");
-    }
-}
 
-void uri_append(std::string& uri, std::string_view r)
-{
-    to_directory(uri);
+        if (r.starts_with("/"))
+            r.remove_prefix(1);
+    }
+
     uri.append(r);
-}
-
-void merge(std::string& uri, std::string_view r)
-{
-    if (auto f = uri.find_last_of("/:"); f != std::string::npos)
-    {
-        uri = uri.substr(0, f + 1);
-        uri.append(r);
-    }
-    else
-        uri = r;
 }
 
 struct uri_path_iterator
@@ -133,6 +121,7 @@ private:
 
         if (!m_started && !m_uri_path->empty() && (m_uri_path->front() == '/' || m_uri_path->front() == '\\'))
         {
+            // First char of the path is a slash - promote it to element
             m_element = m_uri_path->substr(0, 1);
             m_uri_path->remove_prefix(1);
             m_started = true;
@@ -195,16 +184,18 @@ std::string normalize_path(std::string_view path)
         elements.pop_front();
     }
 
-    // Add a missing '/' if the last char of the original uri is '/.' , '/..' or '.'
-    if (path.ends_with("/.") || path.ends_with("/..") || (path.size() == 1 && path.back() == '.'))
+    // Add a missing '/' if the last part of the original uri is "/." , "/..", "." or ".."
+    if (path == "/." || path == "/.." || path == "." || path == "..")
         uri_append(ret, "");
 
     return ret;
 }
 
-std::string remove_dot_segments(std::string path)
+// Algorithm from RFC 3986
+std::string remove_dot_segments(std::string_view path)
 {
     std::string ret;
+    std::deque<std::string_view> elements;
 
     while (!path.empty())
     {
@@ -214,53 +205,43 @@ std::string remove_dot_segments(std::string path)
             path = path.substr(2);
         else if (path.starts_with("/./"))
             path = path.substr(2);
-        else if (path.size() == 2 && path.starts_with("/."))
+        else if (path == "." || path == ".." || path == "/.")
         {
-            path = path.substr(1);
-            path[0] = '/';
+            break;
         }
         else if (path.starts_with("/../"))
         {
             path = path.substr(3);
 
-            auto prev_slash = ret.find_last_of("/");
-            if (prev_slash != std::string::npos)
-                ret = ret.substr(0, prev_slash);
-            else
-                ret.clear();
+            if (!elements.empty())
+                elements.pop_back();
         }
-        else if (path.size() == 3 && path.starts_with("/.."))
+        else if (path == "/..")
         {
-            path = path.substr(2);
-            path[0] = '/';
-
-            auto prev_slash = ret.find_last_of("/");
-            if (prev_slash != std::string::npos)
-                ret = ret.substr(0, prev_slash);
-            else
-                ret.clear();
+            if (!elements.empty())
+                elements.pop_back();
+            break;
         }
-        else if (path.starts_with("."))
-            path = path.substr(1);
-        else if (path.starts_with(".."))
-            path = path.substr(2);
         else
         {
-            if (path.front() == '/')
-            {
-                ret.push_back('/');
-                path = path.substr(1);
-            }
-
-            auto slash = path.find_first_of("/");
-            ret.append(path.substr(0, slash));
+            auto slash = path.find_first_of("/", 1);
+            elements.push_back(path.substr(0, slash));
 
             if (slash != std::string::npos)
                 path = path.substr(slash);
             else
-                path.clear();
+                path.remove_prefix(path.size());
         }
     }
+
+    for (auto& element : elements)
+    {
+        ret.append(element);
+    }
+
+    // Add a missing '/' if the last part of the original uri is "/." or "/.."
+    if (path == "/." || path == "/..")
+        uri_append(ret, "/");
 
     return ret;
 }
@@ -377,6 +358,18 @@ utils::path::dissected_uri::authority relative_reference_process_new_auth(
     }
 
     return new_auth;
+}
+
+// Merge based on RFC 3986
+void merge(std::string& uri, std::string_view r)
+{
+    if (auto f = uri.find_last_of("/:"); f != std::string::npos)
+    {
+        uri = uri.substr(0, f + 1);
+        uri.append(r);
+    }
+    else
+        uri = r;
 }
 } // namespace
 

@@ -15,8 +15,8 @@
 #ifndef HLASMPLUGIN_UTILS_PATH_CONVERSIONS_H
 #define HLASMPLUGIN_UTILS_PATH_CONVERSIONS_H
 
-#include <string>
 #include <optional>
+#include <string>
 
 namespace hlasm_plugin::utils::path {
 

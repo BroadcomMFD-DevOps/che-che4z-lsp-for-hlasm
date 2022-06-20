@@ -408,8 +408,8 @@ size_t preprocess_uri_with_windows_drive_letter_regex_string(const std::string& 
 
     // Append windows file path (e.g. ^file:///[cC](?::|%3[aA])/)
     r.append("^file:///[");
-    r.push_back(tolower(drive_letter));
-    r.push_back(toupper(drive_letter));
+    r.push_back(static_cast<char>(tolower(drive_letter)));
+    r.push_back(static_cast<char>(toupper(drive_letter)));
     r.append("](?::|%3[aA])/");
 
     return match_length;
@@ -553,7 +553,6 @@ utils::resource::resource_location transform_to_resource_location(
     utils::resource::resource_location rl;
 
     if (std::filesystem::path fs_path = path; utils::path::is_absolute(fs_path))
-    //if (std::filesystem::path fs_path = path; utils::path::is_absolute(fs_path) && utils::path::is_directory(fs_path))
         return utils::resource::resource_location(
             utils::path::path_to_uri(utils::path::lexically_normal(fs_path).string()));
     else
@@ -646,7 +645,8 @@ void workspace::process_processor_group(
     {
         auto lib_local_opts = get_library_local_options(lib, proc_groups, pgm_config);
 
-        if (const auto [rl, has_wildcards] = construct_and_analyze_lib_resource_location(lib.path, location_); !has_wildcards)
+        if (const auto [rl, has_wildcards] = construct_and_analyze_lib_resource_location(lib.path, location_);
+            !has_wildcards)
             prc_grp.add_library(std::make_unique<library_local>(file_manager_, rl, std::move(lib_local_opts)));
         else
             find_and_add_libs(utils::resource::resource_location(
