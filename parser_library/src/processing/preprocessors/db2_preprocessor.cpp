@@ -719,7 +719,7 @@ class db2_preprocessor : public preprocessor
         if (m_source_translated || !m_conditional)
             return document(std::move(m_result));
         else
-            return std::move(doc);
+            return doc;
     }
 
 public:
