@@ -43,7 +43,7 @@ const auto ws_loc = resource_location::join(users_dir, "ws/");
 const auto pgm1_loc = resource_location::join(ws_loc, "pgm1");
 const auto pgm_override_loc = resource_location::join(ws_loc, "pgm_override");
 const auto pgm_anything_loc = resource_location::join(ws_loc, "pgms/anything");
-const auto pgm_outside_ws = resource_location::join(users_dir, "/outside/anything");
+const auto pgm_outside_ws = resource_location::join(users_dir, "outside/anything");
 } // namespace
 
 class file_proc_grps : public file_impl

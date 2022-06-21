@@ -24,7 +24,7 @@
 
 namespace hlasm_plugin::utils::path {
 
-std::string uri_to_path(const std::string& uri) noexcept
+std::string uri_to_path(const std::string& uri)
 {
     try
     {

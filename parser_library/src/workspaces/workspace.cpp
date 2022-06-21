@@ -49,8 +49,6 @@ workspace::workspace(const utils::resource::resource_location& location,
     , implicit_proc_grp("pg_implicit", {}, {})
     , global_config_(global_config)
 {
-    location_.join(""); // Ensure that this is a directory
-
     auto hlasm_folder = utils::resource::resource_location::join(location_, HLASM_PLUGIN_FOLDER);
     proc_grps_loc_ = utils::resource::resource_location::join(hlasm_folder, FILENAME_PROC_GRPS);
     pgm_conf_loc_ = utils::resource::resource_location::join(hlasm_folder, FILENAME_PGM_CONF);
@@ -387,13 +385,10 @@ const processor_group& workspace::get_proc_grp(const proc_grp_id& proc_grp) cons
 namespace {
 std::pair<size_t, char> match_windows_uri_with_drive(const std::string& input)
 {
-    std::smatch matches;
-    std::regex_search(input, matches, std::regex("^file:///([a-zA-Z])(?::|%3[aA])/"));
-
-    if (matches.size() != 2 || matches[1].length() == 0)
+    if (std::smatch matches; std::regex_search(input, matches, std::regex("^file:///([a-zA-Z])(?::|%3[aA])")))
+        return { matches[0].length(), matches[1].str()[0] };
+    else
         return { 0, '\0' };
-
-    return { matches[0].length(), matches[1].str()[0] };
 }
 
 size_t preprocess_uri_with_windows_drive_letter_regex_string(const std::string& input, std::string& r)
@@ -407,7 +402,7 @@ size_t preprocess_uri_with_windows_drive_letter_regex_string(const std::string& 
     r.append("^file:///[");
     r.push_back(static_cast<char>(tolower(drive_letter)));
     r.push_back(static_cast<char>(toupper(drive_letter)));
-    r.append("](?::|%3[aA])/");
+    r.append("](?::|%3[aA])");
 
     return match_length;
 }
@@ -428,14 +423,14 @@ std::regex pathmask_to_regex(const std::string& input)
         switch (auto c = s.front())
         {
             case '*':
-                if (s.starts_with("**/") || s.starts_with("**\\"))
+                if (s.starts_with("**/"))
                 {
                     if (path_started)
                     {
                         path_started = false;
-                        r.append("[^/\\\\]*[/\\\\]");
+                        r.append("[^/]*[/]");
                     }
-                    r.append("(?:[^/\\\\]+[/\\\\])*");
+                    r.append("(?:[^/]+[/])*");
                     s.remove_prefix(3);
                 }
                 else if (s.starts_with("**"))
@@ -443,22 +438,22 @@ std::regex pathmask_to_regex(const std::string& input)
                     r.append(".*");
                     s.remove_prefix(2);
                 }
-                else if (s.starts_with("*/") || s.starts_with("*\\"))
+                else if (s.starts_with("*/"))
                 {
                     path_started = false;
-                    r.append("[^/\\\\]*[/\\\\]");
+                    r.append("[^/]*[/]");
                     s.remove_prefix(2);
                 }
                 else
                 {
-                    r.append("[^/\\\\]*");
+                    r.append("[^/]*");
                     s.remove_prefix(1);
                 }
                 break;
 
             case '/':
                 path_started = false;
-                r.append("[/\\\\]");
+                r.append("[/]");
                 s.remove_prefix(1);
                 break;
 

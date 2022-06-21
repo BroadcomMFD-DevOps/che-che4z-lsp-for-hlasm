@@ -60,7 +60,24 @@ const std::string pgroups_file_pattern_relative = is_windows() ? R"({
   ]
 })";
 
-const std::string pgroups_file_pattern_relative_2 = R"({
+const std::string pgroups_file_pattern_relative_2 = is_windows() ? R"({
+  "pgroups": [
+    {
+      "name": "P1",
+      "libs": [ "pattern_test\\libs\\**" ]
+    }
+  ]
+})"
+                                                                 : R"({
+  "pgroups": [
+    {
+      "name": "P1",
+      "libs": [ "pattern_test/libs/**" ]
+    }
+  ]
+})";
+
+const std::string pgroups_file_pattern_relative_3 = R"({
   "pgroups": [
     {
       "name": "P1",
@@ -120,7 +137,7 @@ const std::string pgroups_file_combination = is_windows() ? R"({
   ]
 })";
 
-const std::string pgmconf_file = is_windows() ? R"({
+const std::string pgmconf_file_platform_dependent_slashes = is_windows() ? R"({
   "pgms": [
 	{
       "program": "pattern_test\\source",
@@ -128,7 +145,16 @@ const std::string pgmconf_file = is_windows() ? R"({
     }
   ]
 })"
-                                              : R"({
+                                                                         : R"({
+  "pgms": [
+	{
+      "program": "pattern_test/source",
+      "pgroup": "P1"
+    }
+  ]
+})";
+
+const std::string pgmconf_file_platform_independent_slashes = R"({
   "pgms": [
 	{
       "program": "pattern_test/source",
@@ -149,14 +175,21 @@ const std::string source_txt = R"(         MACRO
 
          END)";
 
-enum class variants
+enum class pgroup_variants
 {
     ABSOLUTE,
     RELATIVE,
     RELATIVE_2,
+    RELATIVE_3,
     URI,
     URI_2,
     COMBINATION
+};
+
+enum class pgmconf_variants
+{
+    PLATFORM_DEPENDENT,
+    PLATFORM_INDEPENDENT
 };
 
 const auto root_dir_loc = is_windows() ? resource_location("file:///C%3A/") : resource_location("file:///home/");
@@ -194,31 +227,45 @@ const char* pattern_lib_sublib2_abs_path =
 
 class file_manager_lib_pattern : public file_manager_impl
 {
-    std::string get_pgroup_file(variants variant)
+    std::string get_pgroup_file(pgroup_variants variant)
     {
         switch (variant)
         {
-            case variants::ABSOLUTE:
+            case pgroup_variants::ABSOLUTE:
                 return pgroups_file_pattern_absolute;
-            case variants::RELATIVE:
+            case pgroup_variants::RELATIVE:
                 return pgroups_file_pattern_relative;
-            case variants::RELATIVE_2:
+            case pgroup_variants::RELATIVE_2:
                 return pgroups_file_pattern_relative_2;
-            case variants::URI:
+            case pgroup_variants::RELATIVE_3:
+                return pgroups_file_pattern_relative_3;
+            case pgroup_variants::URI:
                 return pgroups_file_pattern_uri;
-            case variants::URI_2:
+            case pgroup_variants::URI_2:
                 return pgroups_file_pattern_uri_2;
-            case variants::COMBINATION:
+            case pgroup_variants::COMBINATION:
                 return pgroups_file_combination;
         }
         throw std::logic_error("Not implemented");
     }
 
-public:
-    file_manager_lib_pattern(variants variant)
+    std::string get_pgmconf_file(pgmconf_variants variant)
     {
-        did_open_file(proc_grps_loc, 1, get_pgroup_file(variant));
-        did_open_file(pgm_conf_loc, 1, pgmconf_file);
+        switch (variant)
+        {
+            case pgmconf_variants::PLATFORM_DEPENDENT:
+                return pgmconf_file_platform_dependent_slashes;
+            case pgmconf_variants::PLATFORM_INDEPENDENT:
+                return pgmconf_file_platform_dependent_slashes;
+        }
+        throw std::logic_error("Not implemented");
+    }
+
+public:
+    file_manager_lib_pattern(pgroup_variants pgroup_variant, pgmconf_variants pgmconf_variant)
+    {
+        did_open_file(proc_grps_loc, 1, get_pgroup_file(pgroup_variant));
+        did_open_file(pgm_conf_loc, 1, get_pgmconf_file(pgmconf_variant));
         did_open_file(pattern_test_source_loc, 1, source_txt);
     }
 
@@ -261,9 +308,9 @@ public:
 };
 } // namespace
 
-TEST(workspace_pattern_test, absolute)
+void verify_absolute(pgmconf_variants pgmconf_variant)
 {
-    file_manager_lib_pattern file_manager(variants::ABSOLUTE);
+    file_manager_lib_pattern file_manager(pgroup_variants::ABSOLUTE, pgmconf_variant);
     lib_config config;
 
     workspace ws(ws_loc, "workspace_name", file_manager, config);
@@ -279,9 +326,9 @@ TEST(workspace_pattern_test, absolute)
     ws.did_open_file(pattern_test_source_loc);
 }
 
-TEST(workspace_pattern_test, relative)
+void verify_relative_1(pgmconf_variants pgmconf_variant)
 {
-    file_manager_lib_pattern file_manager(variants::RELATIVE);
+    file_manager_lib_pattern file_manager(pgroup_variants::RELATIVE, pgmconf_variant);
     lib_config config;
 
     workspace ws(ws_loc, "workspace_name", file_manager, config);
@@ -299,9 +346,27 @@ TEST(workspace_pattern_test, relative)
     ws.did_open_file(pattern_test_source_loc);
 }
 
-TEST(workspace_pattern_test, relative_2)
+void verify_relative_2(pgmconf_variants pgmconf_variant)
 {
-    file_manager_lib_pattern file_manager(variants::RELATIVE_2);
+    file_manager_lib_pattern file_manager(pgroup_variants::RELATIVE_2, pgmconf_variant);
+    lib_config config;
+
+    workspace ws(ws_loc, "workspace_name", file_manager, config);
+    ws.open();
+
+    EXPECT_CALL(file_manager, list_directory_files(pattern_test_lib_loc))
+        .WillOnce(::testing::Return(list_directory_result { {}, hlasm_plugin::utils::path::list_directory_rc::done }));
+    EXPECT_CALL(file_manager, list_directory_files(pattern_test_lib_sublib1_loc))
+        .WillOnce(::testing::Return(list_directory_result { {}, hlasm_plugin::utils::path::list_directory_rc::done }));
+    EXPECT_CALL(file_manager, list_directory_files(pattern_test_lib_sublib2_loc))
+        .WillOnce(::testing::Return(list_directory_result { {}, hlasm_plugin::utils::path::list_directory_rc::done }));
+
+    ws.did_open_file(pattern_test_source_loc);
+}
+
+void verify_relative_3(pgmconf_variants pgmconf_variant)
+{
+    file_manager_lib_pattern file_manager(pgroup_variants::RELATIVE_3, pgmconf_variant);
     lib_config config;
 
     workspace ws(ws_loc, "workspace_name", file_manager, config);
@@ -317,9 +382,9 @@ TEST(workspace_pattern_test, relative_2)
     ws.did_open_file(pattern_test_source_loc);
 }
 
-TEST(workspace_pattern_test, uri)
+void verify_uri_1(pgmconf_variants pgmconf_variant)
 {
-    file_manager_lib_pattern file_manager(variants::URI);
+    file_manager_lib_pattern file_manager(pgroup_variants::URI, pgmconf_variant);
     lib_config config;
 
     workspace ws(ws_loc, "workspace_name", file_manager, config);
@@ -337,9 +402,9 @@ TEST(workspace_pattern_test, uri)
     ws.did_open_file(pattern_test_source_loc);
 }
 
-TEST(workspace_pattern_test, uri_2)
+void verify_uri_2(pgmconf_variants pgmconf_variant)
 {
-    file_manager_lib_pattern file_manager(variants::URI_2);
+    file_manager_lib_pattern file_manager(pgroup_variants::URI_2, pgmconf_variant);
     lib_config config;
 
     workspace ws(ws_loc, "workspace_name", file_manager, config);
@@ -355,9 +420,9 @@ TEST(workspace_pattern_test, uri_2)
     ws.did_open_file(pattern_test_source_loc);
 }
 
-TEST(workspace_pattern_test, all_types)
+void verify_combination(pgmconf_variants pgmconf_variant)
 {
-    file_manager_lib_pattern file_manager(variants::COMBINATION);
+    file_manager_lib_pattern file_manager(pgroup_variants::COMBINATION, pgmconf_variant);
     lib_config config;
 
     workspace ws(ws_loc, "workspace_name", file_manager, config);
@@ -384,3 +449,31 @@ TEST(workspace_pattern_test, all_types)
 
     ws.did_open_file(pattern_test_source_loc);
 }
+
+TEST(workspace_pattern_test, absolute) { verify_absolute(pgmconf_variants::PLATFORM_DEPENDENT); }
+
+TEST(workspace_pattern_test, absolute_independent) { verify_absolute(pgmconf_variants::PLATFORM_INDEPENDENT); }
+
+TEST(workspace_pattern_test, relative_1) { verify_relative_1(pgmconf_variants::PLATFORM_DEPENDENT); }
+
+TEST(workspace_pattern_test, relative_1_independent) { verify_relative_1(pgmconf_variants::PLATFORM_INDEPENDENT); }
+
+TEST(workspace_pattern_test, relative_2) { verify_relative_2(pgmconf_variants::PLATFORM_DEPENDENT); }
+
+TEST(workspace_pattern_test, relative_2_independent) { verify_relative_2(pgmconf_variants::PLATFORM_INDEPENDENT); }
+
+TEST(workspace_pattern_test, relative_3) { verify_relative_3(pgmconf_variants::PLATFORM_DEPENDENT); }
+
+TEST(workspace_pattern_test, relative_3_independent) { verify_relative_3(pgmconf_variants::PLATFORM_INDEPENDENT); }
+
+TEST(workspace_pattern_test, uri_1) { verify_uri_1(pgmconf_variants::PLATFORM_DEPENDENT); }
+
+TEST(workspace_pattern_test, uri_1_independent) { verify_uri_1(pgmconf_variants::PLATFORM_INDEPENDENT); }
+
+TEST(workspace_pattern_test, uri_2) { verify_uri_2(pgmconf_variants::PLATFORM_DEPENDENT); }
+
+TEST(workspace_pattern_test, uri_2_independent) { verify_uri_2(pgmconf_variants::PLATFORM_INDEPENDENT); }
+
+TEST(workspace_pattern_test, combination) { verify_combination(pgmconf_variants::PLATFORM_DEPENDENT); }
+
+TEST(workspace_pattern_test, combination_independent) { verify_combination(pgmconf_variants::PLATFORM_INDEPENDENT); }

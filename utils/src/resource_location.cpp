@@ -15,6 +15,7 @@
 #include "utils/resource_location.h"
 
 #include <algorithm>
+#include <assert.h>
 #include <cstddef>
 #include <deque>
 #include <iterator>
@@ -72,8 +73,7 @@ struct uri_path_iterator
     explicit uri_path_iterator(pointer uri_path)
         : m_uri_path(uri_path)
         , m_element()
-        , m_last(uri_path == nullptr || uri_path->empty())
-        , m_started(m_last)
+        , m_started(m_uri_path == nullptr || uri_path->empty())
     {}
 
     reference operator*() const { return m_element; }
@@ -92,7 +92,10 @@ struct uri_path_iterator
         return tmp;
     }
 
-    friend auto operator<=>(const uri_path_iterator& l, const uri_path_iterator& r) noexcept = default;
+    friend bool operator==(const uri_path_iterator& l, const uri_path_iterator& r)
+    {
+        return l.m_uri_path == r.m_uri_path;
+    }
 
     uri_path_iterator begin()
     {
@@ -105,19 +108,11 @@ struct uri_path_iterator
 private:
     pointer m_uri_path;
     value_type m_element;
-    bool m_last;
     bool m_started;
 
     void next_element()
     {
-        if (m_uri_path == nullptr || m_last == true)
-        {
-            m_element = "";
-            m_uri_path = nullptr;
-            m_last = true;
-            m_started = true;
-            return;
-        }
+        assert(m_uri_path != nullptr);
 
         if (!m_started && !m_uri_path->empty() && (m_uri_path->front() == '/' || m_uri_path->front() == '\\'))
         {
@@ -129,33 +124,36 @@ private:
         }
         m_started = true;
 
-        if (auto not_slash = m_uri_path->find_first_not_of("/\\"); not_slash != std::string_view::npos)
+        if (const auto not_slash = m_uri_path->find_first_not_of("/\\"); not_slash != std::string_view::npos)
         {
             // Store the current element name without any potential ending slash
-            auto next_slash = m_uri_path->find_first_of("/\\", not_slash);
-            m_element = m_uri_path->substr(not_slash, next_slash - not_slash);
-
-            if (next_slash == std::string_view::npos)
+            if (const auto next_slash = m_uri_path->find_first_of("/\\", not_slash);
+                next_slash == std::string_view::npos)
             {
-                m_uri_path = nullptr;
-                return;
+                m_element = m_uri_path->substr(not_slash);
+                m_uri_path->remove_prefix(m_uri_path->size());
             }
-
-            m_uri_path->remove_prefix(next_slash);
+            else
+            {
+                m_element = m_uri_path->substr(not_slash, next_slash - not_slash);
+                m_uri_path->remove_prefix(next_slash);
+            }
         }
-        else
+        else if (*m_uri_path != "" && m_element != "")
         {
             // If we got here it must mean that the path now consists only of slashes (e.g. '/')
             // The last element is therefore empty but valid
-            m_last = true;
             m_element = "";
         }
+        else
+            m_uri_path = nullptr;
     };
 };
 
 std::string normalize_path(std::string_view path)
 {
     std::deque<std::string_view> elements;
+    std::string_view orig_path = path;
 
     for (uri_path_iterator this_it(&path); auto element : this_it)
     {
@@ -185,20 +183,23 @@ std::string normalize_path(std::string_view path)
     }
 
     // Add a missing '/' if the last part of the original uri is "/." , "/..", "." or ".."
-    if (path == "/." || path == "/.." || path == "." || path == "..")
+    if (orig_path.ends_with("/.") || orig_path.ends_with("/..") || orig_path.ends_with(".")
+        || orig_path.ends_with(".."))
         uri_append(ret, "");
 
     return ret;
 }
 } // namespace
 
-std::string resource_location::lexically_normal()
+std::string resource_location::lexically_normal() const
 {
-    std::replace(m_uri.begin(), m_uri.end(), '\\', '/');
+    auto uri = m_uri;
 
-    auto dis_uri = utils::path::dissect_uri(m_uri);
+    std::replace(uri.begin(), uri.end(), '\\', '/');
+
+    auto dis_uri = utils::path::dissect_uri(uri);
     if (dis_uri.path.empty())
-        return m_uri;
+        return uri;
 
     dis_uri.path = normalize_path(dis_uri.path);
 
@@ -273,6 +274,12 @@ void resource_location::join(const std::string& other)
 {
     if (utils::path::is_uri(other))
         m_uri = other;
+    else if (other.starts_with("/"))
+    {
+        auto dis_uri = utils::path::dissect_uri(m_uri);
+        dis_uri.path = other;
+        m_uri = utils::path::reconstruct_uri(dis_uri);
+    }
     else
         uri_append(m_uri, other);
 }

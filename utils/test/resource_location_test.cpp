@@ -457,7 +457,7 @@ TEST(resource_location, join_prepending_slash)
     resource_location rl("aaa://src/dir/a");
 
     rl.join("/b");
-    EXPECT_EQ(rl.get_uri(), "aaa://src/dir/a/b");
+    EXPECT_EQ(rl.get_uri(), "aaa://src/b");
 }
 
 TEST(resource_location, join_prepending_slash_2)
@@ -465,14 +465,14 @@ TEST(resource_location, join_prepending_slash_2)
     resource_location rl("aaa://src/dir/a/");
 
     rl.join("/b");
-    EXPECT_EQ(rl.get_uri(), "aaa://src/dir/a/b");
+    EXPECT_EQ(rl.get_uri(), "aaa://src/b");
 }
 
 TEST(resource_location, join_mulitple_slashes)
 {
     resource_location rl("aaa://src/dir/////a///");
 
-    rl.join("/b///");
+    rl.join("b///");
     EXPECT_EQ(rl.get_uri(), "aaa://src/dir/////a///b///");
 }
 

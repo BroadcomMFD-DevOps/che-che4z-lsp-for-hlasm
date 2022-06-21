@@ -65,7 +65,7 @@ public:
     virtual list_directory_result list_directory_files(const utils::resource::resource_location& directory) const = 0;
 
     // Returns list of all sub directories and symbolic links. Returns associative array with pairs file path/uri - file
-    // location.
+    // location. Used as a shortcut for easier testing with mocks
     virtual list_directory_result list_directory_subdirs_and_symlinks(
         const utils::resource::resource_location& directory) const = 0;
 
