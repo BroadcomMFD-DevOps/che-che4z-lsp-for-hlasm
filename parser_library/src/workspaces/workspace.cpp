@@ -902,9 +902,8 @@ asm_option workspace::get_asm_options(const utils::resource::resource_location& 
         implicit_proc_grp.update_asm_options(result);
     }
 
-    utils::resource::resource_location relative_to_location(
-        utils::path::lexically_normal(utils::path::lexically_relative(file_location.get_path(), location_.get_path()))
-            .string());
+    utils::resource::resource_location relative_to_location(file_location.lexically_relative(location_));
+    relative_to_location = utils::resource::resource_location(relative_to_location.lexically_normal());
 
     std::filesystem::path sysin_path = !pgm
             && (relative_to_location == utils::resource::resource_location()

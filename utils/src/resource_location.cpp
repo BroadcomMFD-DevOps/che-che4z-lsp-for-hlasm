@@ -190,61 +190,6 @@ std::string normalize_path(std::string_view path)
 
     return ret;
 }
-
-// Algorithm from RFC 3986
-std::string remove_dot_segments(std::string_view path)
-{
-    std::string ret;
-    std::deque<std::string_view> elements;
-
-    while (!path.empty())
-    {
-        if (path.starts_with("../"))
-            path = path.substr(3);
-        else if (path.starts_with("./"))
-            path = path.substr(2);
-        else if (path.starts_with("/./"))
-            path = path.substr(2);
-        else if (path == "." || path == ".." || path == "/.")
-        {
-            break;
-        }
-        else if (path.starts_with("/../"))
-        {
-            path = path.substr(3);
-
-            if (!elements.empty())
-                elements.pop_back();
-        }
-        else if (path == "/..")
-        {
-            if (!elements.empty())
-                elements.pop_back();
-            break;
-        }
-        else
-        {
-            auto slash = path.find_first_of("/", 1);
-            elements.push_back(path.substr(0, slash));
-
-            if (slash != std::string::npos)
-                path = path.substr(slash);
-            else
-                path.remove_prefix(path.size());
-        }
-    }
-
-    for (auto& element : elements)
-    {
-        ret.append(element);
-    }
-
-    // Add a missing '/' if the last part of the original uri is "/." or "/.."
-    if (path == "/." || path == "/..")
-        uri_append(ret, "/");
-
-    return ret;
-}
 } // namespace
 
 std::string resource_location::lexically_normal()
@@ -370,6 +315,61 @@ void merge(std::string& uri, std::string_view r)
     }
     else
         uri = r;
+}
+
+// Algorithm from RFC 3986
+std::string remove_dot_segments(std::string_view path)
+{
+    std::string ret;
+    std::deque<std::string_view> elements;
+
+    while (!path.empty())
+    {
+        if (path.starts_with("../"))
+            path = path.substr(3);
+        else if (path.starts_with("./"))
+            path = path.substr(2);
+        else if (path.starts_with("/./"))
+            path = path.substr(2);
+        else if (path == "." || path == ".." || path == "/.")
+        {
+            break;
+        }
+        else if (path.starts_with("/../"))
+        {
+            path = path.substr(3);
+
+            if (!elements.empty())
+                elements.pop_back();
+        }
+        else if (path == "/..")
+        {
+            if (!elements.empty())
+                elements.pop_back();
+            break;
+        }
+        else
+        {
+            auto slash = path.find_first_of("/", 1);
+            elements.push_back(path.substr(0, slash));
+
+            if (slash != std::string::npos)
+                path = path.substr(slash);
+            else
+                path.remove_prefix(path.size());
+        }
+    }
+
+    for (auto& element : elements)
+    {
+        ret.append(element);
+    }
+
+    // Add a missing '/' if the last part of the original uri is "/." or "/.."
+    if (path == "/." || path == "/..")
+        uri_append(ret, "/");
+
+    return ret;
 }
 } // namespace
 
