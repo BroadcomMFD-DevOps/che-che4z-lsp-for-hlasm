@@ -166,7 +166,7 @@ dissected_uri dissect_uri(const std::string& uri) noexcept
     }
 }
 
-std::string reconstruct_uri(const dissected_uri dis_uri)
+std::string reconstruct_uri(const dissected_uri& dis_uri)
 {
     std::string uri;
 

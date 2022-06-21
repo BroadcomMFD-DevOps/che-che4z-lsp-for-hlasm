@@ -69,9 +69,9 @@ struct uri_path_iterator
     using pointer = std::string_view*;
     using reference = std::string_view;
 
-    uri_path_iterator(pointer uri_path)
+    explicit uri_path_iterator(pointer uri_path)
         : m_uri_path(uri_path)
-        , m_element("")
+        , m_element()
         , m_last(uri_path == nullptr || uri_path->empty())
         , m_started(m_last)
     {}
@@ -156,8 +156,8 @@ private:
 std::string normalize_path(std::string_view path)
 {
     std::deque<std::string_view> elements;
-    uri_path_iterator this_it(&path);
-    for (auto element : this_it)
+
+    for (uri_path_iterator this_it(&path); auto element : this_it)
     {
         if (element == ".")
             continue;
@@ -232,14 +232,9 @@ std::string resource_location::lexically_relative(const resource_location& base)
     int16_t number_of_dirs_to_return = 0;
     while (base_it != base_it.end())
     {
-        auto element = *base_it;
-
-        if (element.empty()) {}
-        else if (element == ".")
-        {}
-        else if (element == "..")
+        if (auto element = *base_it; element == "..")
             number_of_dirs_to_return--;
-        else
+        else if (!element.empty() && element != ".")
             number_of_dirs_to_return++;
 
         base_it++;
@@ -331,8 +326,10 @@ std::string remove_dot_segments(std::string_view path)
             path = path.substr(2);
         else if (path.starts_with("/./"))
             path = path.substr(2);
-        else if (path == "." || path == ".." || path == "/.")
+        else if (path == "." || path == ".." || path == "/." || path == "/..")
         {
+            if (!elements.empty() && path == "/..")
+                elements.pop_back();
             break;
         }
         else if (path.starts_with("/../"))
@@ -341,12 +338,6 @@ std::string remove_dot_segments(std::string_view path)
 
             if (!elements.empty())
                 elements.pop_back();
-        }
-        else if (path == "/..")
-        {
-            if (!elements.empty())
-                elements.pop_back();
-            break;
         }
         else
         {
@@ -360,7 +351,7 @@ std::string remove_dot_segments(std::string_view path)
         }
     }
 
-    for (auto& element : elements)
+    for (const auto& element : elements)
     {
         ret.append(element);
     }
@@ -397,7 +388,7 @@ void resource_location::relative_reference_resolution(
             dis_uri.fragment = other.substr(1);
         else if (other.starts_with("//"))
         {
-            dis_uri.auth = relative_reference_process_new_auth(dis_uri.auth, other.substr(2));
+            dis_uri.auth = relative_reference_process_new_auth(dis_uri.auth, std::string_view(other).substr(2));
             dis_uri.path.clear();
             dis_uri.query = std::nullopt;
             dis_uri.fragment = std::nullopt;

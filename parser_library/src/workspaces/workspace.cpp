@@ -637,7 +637,7 @@ std::pair<utils::resource::resource_location, bool> construct_and_analyze_lib_re
 
     if (last_valid_slash != std::string::npos)
     {
-        rl = transform_to_resource_location(std::string_view(lib_path.substr(0, last_valid_slash)), base);
+        rl = transform_to_resource_location(std::string_view(lib_path).substr(0, last_valid_slash), base);
         if (last_valid_slash + 1 < lib_path.size())
             rl.join(lib_path.substr(last_valid_slash + 1));
     }
@@ -690,9 +690,9 @@ void workspace::process_program(const config::program_mapping& pgm, const file_p
         auto rl = transform_to_resource_location(pgm_name, location_);
 
         if (!is_wildcard(rl.get_uri()))
-            exact_pgm_conf_.emplace(rl, program { rl, pgm.pgroup, pgm.opts });
+            exact_pgm_conf_.try_emplace(rl, program { rl, pgm.pgroup, pgm.opts });
         else
-            regex_pgm_conf_.push_back({ program { rl, pgm.pgroup, pgm.opts }, wildcard2regex(rl.get_uri()) });
+            regex_pgm_conf_.emplace_back(program { rl, pgm.pgroup, pgm.opts }, wildcard2regex(rl.get_uri()));
     }
     else
     {

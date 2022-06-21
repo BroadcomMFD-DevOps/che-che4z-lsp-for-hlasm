@@ -52,7 +52,7 @@ std::string get_presentable_uri(const std::string& uri, bool debug);
 
 dissected_uri dissect_uri(const std::string& uri) noexcept;
 
-std::string reconstruct_uri(const dissected_uri dis_uri);
+std::string reconstruct_uri(const dissected_uri& dis_uri);
 
 } // namespace hlasm_plugin::utils::path
 
