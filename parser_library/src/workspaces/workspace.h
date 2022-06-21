@@ -40,7 +40,7 @@ namespace hlasm_plugin::parser_library::workspaces {
 
 using ws_uri = std::string;
 using proc_grp_id = std::string;
-using program_id = std::string;
+using program_id = utils::resource::resource_location;
 using ws_highlight_info = std::unordered_map<std::string, semantics::highlighting_info>;
 struct library_local_options;
 
@@ -143,7 +143,7 @@ private:
     file_manager_vfm fm_vfm_;
 
     std::unordered_map<proc_grp_id, processor_group> proc_grps_;
-    std::map<std::string, program> exact_pgm_conf_;
+    std::map<utils::resource::resource_location, program> exact_pgm_conf_;
     std::vector<std::pair<program, std::regex>> regex_pgm_conf_;
     processor_group implicit_proc_grp;
 

@@ -146,16 +146,14 @@ const program* workspace::get_program(const utils::resource::resource_location& 
 {
     assert(opened_);
 
-    std::string file = file_location.lexically_relative(location_);
-
     // direct match
-    auto program = exact_pgm_conf_.find(file);
+    auto program = exact_pgm_conf_.find(file_location);
     if (program != exact_pgm_conf_.cend())
         return &program->second;
 
     for (const auto& pgm : regex_pgm_conf_)
     {
-        if (std::regex_match(file, pgm.second))
+        if (std::regex_match(file_location.get_uri(), pgm.second))
             return &pgm.first;
     }
     return nullptr;
@@ -608,32 +606,7 @@ std::optional<std::string> substitute_home_directory(std::string p)
     }
     return p;
 }
-} // namespace
 
-void workspace::process_processor_group(
-    const config::processor_group& pg, const config::proc_grps& proc_groups, const config::pgm_conf& pgm_config)
-{
-    std::filesystem::path ws_path(location_.get_path());
-
-    processor_group prc_grp(pg.name, pg.asm_options, pg.preprocessor);
-
-    for (const auto& lib : pg.libs)
-    {
-        std::filesystem::path lib_path = [&path = lib.path]() {
-            if (!path.empty())
-                return utils::path::join(path, "");
-            return std::filesystem::path {};
-        }();
-        if (auto sp = substitute_home_directory(lib_path.string()); sp.has_value())
-            lib_path = std::move(sp.value());
-        else
-        {
-            config_diags_.push_back(diagnostic_s::warning_L0006(lib_path.string()));
-            continue;
-        }
-        if (!utils::path::is_absolute(lib_path))
-            lib_path = utils::path::join(ws_path, lib_path);
-        lib_path = utils::path::lexically_normal(lib_path);
 library_local_options get_library_local_options(
     const config::library& lib, const config::proc_grps& proc_groups, const config::pgm_conf& pgm_config)
 {
@@ -713,19 +686,13 @@ void workspace::process_program(const config::program_mapping& pgm, const file_p
             config_diags_.push_back(diagnostic_s::warning_L0006(pgm_name));
             return;
         }
-        if (std::filesystem::path pgm_path = pgm_name; !utils::path::is_absolute(pgm_path))
-            pgm_name = utils::path::join(location_.get_path(), std::move(pgm_path)).string();
 
-        if (utils::platform::is_windows())
-            std::replace(pgm_name.begin(), pgm_name.end(), '\\', '/');
-            if (!pgm_name.empty())
-                pgm_name.front() = std::tolower((unsigned char)pgm_name.front());
-        }
+        auto rl = transform_to_resource_location(pgm_name, location_);
 
-        if (!is_wildcard(pgm_name))
-            exact_pgm_conf_.emplace(pgm_name, program { pgm_name, pgm.pgroup, pgm.opts });
+        if (!is_wildcard(rl.get_uri()))
+            exact_pgm_conf_.emplace(rl, program { rl, pgm.pgroup, pgm.opts });
         else
-            regex_pgm_conf_.push_back({ program { pgm_name, pgm.pgroup, pgm.opts }, wildcard2regex(pgm_name) });
+            regex_pgm_conf_.push_back({ program { rl, pgm.pgroup, pgm.opts }, wildcard2regex(rl.get_uri()) });
     }
     else
     {
