@@ -40,6 +40,7 @@ workspace::workspace(const utils::resource::resource_location& location,
     const std::string& name,
     file_manager& file_manager,
     const lib_config& global_config,
+    const std::atomic<std::shared_ptr<const nlohmann::json>>& global_settings,
     std::atomic<bool>* cancel)
     : cancel_(cancel)
     , name_(name)
@@ -48,6 +49,7 @@ workspace::workspace(const utils::resource::resource_location& location,
     , fm_vfm_(file_manager_)
     , implicit_proc_grp("pg_implicit", {}, {})
     , global_config_(global_config)
+    , m_global_settings(global_settings)
 {
     auto hlasm_folder = utils::resource::resource_location::join(location_, HLASM_PLUGIN_FOLDER);
     proc_grps_loc_ = utils::resource::resource_location::join(hlasm_folder, FILENAME_PROC_GRPS);
@@ -57,12 +59,16 @@ workspace::workspace(const utils::resource::resource_location& location,
 workspace::workspace(const utils::resource::resource_location& location,
     file_manager& file_manager,
     const lib_config& global_config,
+    const std::atomic<std::shared_ptr<const nlohmann::json>>& global_settings,
     std::atomic<bool>* cancel)
-    : workspace(location, location.get_uri(), file_manager, global_config, cancel)
+    : workspace(location, location.get_uri(), file_manager, global_config, global_settings, cancel)
 {}
 
-workspace::workspace(file_manager& file_manager, const lib_config& global_config, std::atomic<bool>* cancel)
-    : workspace(utils::resource::resource_location(""), file_manager, global_config, cancel)
+workspace::workspace(file_manager& file_manager,
+    const lib_config& global_config,
+    const std::atomic<std::shared_ptr<const nlohmann::json>>& global_settings,
+    std::atomic<bool>* cancel)
+    : workspace(utils::resource::resource_location(""), file_manager, global_config, global_settings, cancel)
 {
     opened_ = true;
 }
@@ -187,6 +193,51 @@ workspace_file_info workspace::parse_config_file()
     }
     ws_file_info.config_parsing = true;
     return ws_file_info;
+}
+
+namespace {
+std::optional<std::string_view> find_setting(std::string_view key, const nlohmann::json& j_)
+{
+    const nlohmann::json* j = &j_;
+
+    for (size_t idx = key.find('.'); idx != std::string_view::npos; idx = key.find('.'))
+    {
+        auto k = key.substr(0, idx);
+        if (k.empty())
+            return std::nullopt;
+
+        if (!j->is_object())
+            return std::nullopt;
+
+        if (auto it = j->find(k); it == j->end())
+            return std::nullopt;
+        else
+            j = &it.value();
+
+        key.remove_prefix(idx + 1);
+    }
+
+    if (!j->is_object())
+        return std::nullopt;
+
+    if (auto it = j->find(key); it == j->end() || !it->is_string())
+        return std::nullopt;
+    else
+        return it.value().get<std::string_view>();
+}
+} // namespace
+
+void workspace::settings_updated()
+{
+    auto global_settings = m_global_settings.load();
+    for (const auto& [key, value] : m_utilized_settings_values)
+    {
+        if (find_setting(key, *global_settings) != value)
+        {
+            parse_config_file();
+            break;
+        }
+    }
 }
 
 workspace_file_info workspace::parse_file(const utils::resource::resource_location& file_location)
@@ -727,8 +778,9 @@ bool workspace::load_and_process_config()
     config::proc_grps proc_groups;
     file_ptr proc_grps_file;
     file_ptr pgm_conf_file;
+    global_settings_map utilized_settings_values;
 
-    bool load_ok = load_config(proc_groups, pgm_config, proc_grps_file, pgm_conf_file);
+    bool load_ok = load_config(proc_groups, pgm_config, proc_grps_file, pgm_conf_file, utilized_settings_values);
     if (!load_ok)
         return false;
 
@@ -746,19 +798,93 @@ bool workspace::load_and_process_config()
         process_program(pgm, pgm_conf_file);
     }
 
+    m_utilized_settings_values = std::move(utilized_settings_values);
+
     return true;
 }
-bool workspace::load_config(
-    config::proc_grps& proc_groups, config::pgm_conf& pgm_config, file_ptr& proc_grps_file, file_ptr& pgm_conf_file)
+
+namespace {
+
+struct json_settings_replacer
+{
+    static const std::regex config_reference;
+
+    const std::shared_ptr<const nlohmann::json>& global_settings;
+    workspace::global_settings_map& utilized_settings_values;
+    utils::resource::resource_location& location;
+    std::match_results<std::string_view::iterator> matches;
+
+    void operator()(nlohmann::json& val)
+    {
+        if (val.is_structured())
+        {
+            for (auto& value : val)
+                (*this)(value);
+        }
+        else if (val.is_string())
+        {
+            const auto& value = val.get<std::string_view>();
+
+            if (auto replacement = try_replace(value); replacement.has_value())
+                val = std::move(replacement).value();
+        }
+    }
+
+    std::optional<std::string> try_replace(std::string_view s)
+    {
+        std::optional<std::string> result;
+        if (!std::regex_search(s.begin(), s.end(), matches, config_reference))
+            return result;
+
+        auto& r = result.emplace();
+        do
+        {
+            r.append(s.begin(), matches[0].first);
+            s.remove_prefix(matches[0].second - s.begin());
+
+            static constexpr std::string_view config_section = "config:";
+
+            std::string_view key(matches[1].first, matches[1].second);
+            if (key.starts_with(config_section))
+            {
+                key.remove_prefix(config_section.size());
+                auto v = find_setting(key, *global_settings);
+                if (v.has_value())
+                    r.append(*v);
+                utilized_settings_values.emplace(key, v);
+            }
+            else if (key == "workspaceFolder")
+                r.append(location.get_uri());
+
+        } while (std::regex_search(s.begin(), s.end(), matches, config_reference));
+
+        r.append(s);
+
+        return result;
+    }
+};
+const std::regex json_settings_replacer::config_reference(R"(\$\{([^}]+)\})");
+} // namespace
+
+bool workspace::load_config(config::proc_grps& proc_groups,
+    config::pgm_conf& pgm_config,
+    file_ptr& proc_grps_file,
+    file_ptr& pgm_conf_file,
+    global_settings_map& utilized_settings_values)
 {
     // proc_grps.json parse
     proc_grps_file = file_manager_.add_file(proc_grps_loc_);
     if (proc_grps_file->update_and_get_bad())
         return false;
 
+    const auto current_settings = m_global_settings.load();
+    json_settings_replacer json_visitor { current_settings, utilized_settings_values, location_ };
+
     try
     {
-        nlohmann::json::parse(proc_grps_file->get_text()).get_to(proc_groups);
+        auto proc_json = nlohmann::json::parse(proc_grps_file->get_text());
+        json_visitor(proc_json);
+        proc_json.get_to(proc_groups);
         proc_grps_.clear();
         for (const auto& pg : proc_groups.pgroups)
         {
@@ -784,7 +910,9 @@ bool workspace::load_config(
 
     try
     {
-        nlohmann::json::parse(pgm_conf_file->get_text()).get_to(pgm_config);
+        auto pgm_json = nlohmann::json::parse(pgm_conf_file->get_text());
+        json_visitor(pgm_json);
+        pgm_json.get_to(pgm_config);
         for (const auto& pgm : pgm_config.pgms)
         {
             if (!pgm.opts.valid())

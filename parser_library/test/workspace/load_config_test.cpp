@@ -213,7 +213,8 @@ TEST(workspace, load_config_synthetic)
 {
     file_manager_proc_grps_test file_manager;
     lib_config config;
-    workspace ws(ws_loc, "test_proc_grps_name", file_manager, config);
+    std::atomic<std::shared_ptr<const nlohmann::json>> global_settings = make_empty_shared_json();
+    workspace ws(ws_loc, "test_proc_grps_name", file_manager, config, global_settings);
 
     ws.open();
 
@@ -292,7 +293,8 @@ TEST(workspace, pgm_conf_malformed)
     fm.did_open_file(proc_grps_name, 0, empty_proc_grps);
 
     lib_config config;
-    workspace ws(fm, config);
+    std::atomic<std::shared_ptr<const nlohmann::json>> global_settings = make_empty_shared_json();
+    workspace ws(fm, config, global_settings);
     ws.open();
 
     ws.collect_diags();
@@ -308,7 +310,8 @@ TEST(workspace, proc_grps_malformed)
     fm.did_open_file(proc_grps_name, 0, R"({ "pgroups" []})");
 
     lib_config config;
-    workspace ws(fm, config);
+    std::atomic<std::shared_ptr<const nlohmann::json>> global_settings = make_empty_shared_json();
+    workspace ws(fm, config, global_settings);
     ws.open();
 
     ws.collect_diags();
@@ -322,7 +325,8 @@ TEST(workspace, pgm_conf_missing)
     fm.did_open_file(proc_grps_name, 0, empty_proc_grps);
 
     lib_config config;
-    workspace ws(fm, config);
+    std::atomic<std::shared_ptr<const nlohmann::json>> global_settings = make_empty_shared_json();
+    workspace ws(fm, config, global_settings);
     ws.open();
 
     ws.collect_diags();
@@ -335,7 +339,8 @@ TEST(workspace, proc_grps_missing)
     fm.did_open_file(pgm_conf_name, 0, empty_pgm_conf);
 
     lib_config config;
-    workspace ws(fm, config);
+    std::atomic<std::shared_ptr<const nlohmann::json>> global_settings = make_empty_shared_json();
+    workspace ws(fm, config, global_settings);
     ws.open();
 
     ws.collect_diags();
@@ -360,7 +365,8 @@ TEST(workspace, asm_options_invalid)
     fm.did_open_file(proc_grps_name, 0, proc_file);
 
     lib_config config;
-    workspace ws(fm, config);
+    std::atomic<std::shared_ptr<const nlohmann::json>> global_settings = make_empty_shared_json();
+    workspace ws(fm, config, global_settings);
     ws.open();
 
     ws.collect_diags();
@@ -414,7 +420,8 @@ TEST(workspace, asm_options_goff_xobject_redefinition)
 {
     file_manager_asm_test file_manager;
     lib_config config;
-    workspace ws(ws_loc, "test_proc_grps_name", file_manager, config);
+    std::atomic<std::shared_ptr<const nlohmann::json>> global_settings = make_empty_shared_json();
+    workspace ws(ws_loc, "test_proc_grps_name", file_manager, config, global_settings);
 
     ws.open();
 
