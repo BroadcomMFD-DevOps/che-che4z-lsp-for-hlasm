@@ -877,7 +877,7 @@ struct json_settings_replacer
                 utilized_settings_values.emplace(reduced_key, v);
             }
             else if (key == "workspaceFolder")
-                r.append(location.get_uri());
+                r.append(location.get_path()); // TODO: change to get_uri as soon as possible
             else
                 unavailable.emplace(key);
 

@@ -115,7 +115,7 @@ To use a predefined set of macro and copy members, follow these steps:
 The structure of the configuration is based on Endevor®. Ensure that you configure these files before using macros from separate files or the COPY instruction.
 When you open a HLASM file or manually set the HLASM language for a file, you can choose to automatically create these files for the current program.
 
-Visual Studio Code workspace variables may be referenced in both configuration files via the standard syntax (`${config:variable_name}`).
+Visual Studio Code workspace variables can be referenced in both configuration files using the standard syntax (${config:variable_name}).
 
 Example `proc_grps.json`:
 
