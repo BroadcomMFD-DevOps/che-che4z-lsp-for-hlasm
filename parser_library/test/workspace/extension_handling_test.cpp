@@ -35,7 +35,7 @@ class file_manager_extension_mock : public file_manager_impl
 {
     list_directory_result list_directory_files(const resource_location&) const override
     {
-        return { { { resource_location::join(lib_loc, "Mac.hlasm"), "Mac.hlasm" } },
+        return { { { "Mac.hlasm", resource_location::join(lib_loc, "Mac.hlasm") } },
             hlasm_plugin::utils::path::list_directory_rc::done };
     }
 };
@@ -112,8 +112,8 @@ class file_manager_extension_mock2 : public file_manager_impl
 {
     list_directory_result list_directory_files(const resource_location&) const override
     {
-        return { { { resource_location::join(lib_loc, "Mac.hlasm"), "Mac.hlasm" },
-                     { resource_location::join(lib_loc, "Mac"), "Mac" } },
+        return { { { "Mac.hlasm", resource_location::join(lib_loc, "Mac.hlasm") },
+                     { "Mac", resource_location::join(lib_loc, "Mac") } },
             hlasm_plugin::utils::path::list_directory_rc::done };
     }
 };
@@ -142,7 +142,7 @@ class file_manager_extension_mock_no_ext : public file_manager_impl
 {
     list_directory_result list_directory_files(const resource_location&) const override
     {
-        return { { { resource_location::join(lib_loc, "Mac"), "Mac" } },
+        return { { { "Mac", resource_location::join(lib_loc, "Mac") } },
             hlasm_plugin::utils::path::list_directory_rc::done };
     }
 };

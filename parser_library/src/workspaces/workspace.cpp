@@ -515,10 +515,10 @@ void workspace::find_and_add_libs(const utils::resource::resource_location& root
             break;
         }
 
-        const auto [canonical_path, dir] = std::move(dirs_to_search.front());
+        auto [canonical_path, dir] = std::move(dirs_to_search.front());
         dirs_to_search.pop_front();
 
-        if (!processed_canonical_paths.insert(canonical_path).second)
+        if (!processed_canonical_paths.insert(std::move(canonical_path)).second)
             continue;
 
         if (std::regex_match(dir.get_uri(), path_validator))
@@ -531,13 +531,12 @@ void workspace::find_and_add_libs(const utils::resource::resource_location& root
             break;
         }
 
-        for (auto& [subdir, subdir_canonical_path] : subdir_list)
+        for (auto& [subdir_canonical_path, subdir] : subdir_list)
         {
             if (processed_canonical_paths.contains(subdir_canonical_path))
                 continue;
 
-            dirs_to_search.emplace_back(
-                std::move(subdir_canonical_path), std::move(const_cast<utils::resource::resource_location&>(subdir)));
+            dirs_to_search.emplace_back(std::move(subdir_canonical_path), std::move(subdir));
         }
     }
 }

@@ -123,7 +123,7 @@ void library_local::load_files()
     }
 
     bool extension_removed = false;
-    for (const auto& [rl, file] : files_list)
+    for (auto& [file, rl] : files_list)
     {
         if (extensions_.empty())
         {

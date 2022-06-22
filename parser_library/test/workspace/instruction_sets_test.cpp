@@ -142,7 +142,7 @@ public:
         const hlasm_plugin::utils::resource::resource_location& location) const override
     {
         if (location == resource_location("lib/"))
-            return { { { resource_location(sam31_macro_path), "SAM31" } },
+            return { { { "SAM31", resource_location(sam31_macro_path) } },
                 hlasm_plugin::utils::path::list_directory_rc::done };
 
         return { {}, hlasm_plugin::utils::path::list_directory_rc::not_exists };

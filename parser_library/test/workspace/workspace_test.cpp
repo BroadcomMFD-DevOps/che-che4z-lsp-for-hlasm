@@ -304,9 +304,9 @@ public:
     list_directory_result list_directory_files(const hlasm_plugin::utils::resource::resource_location&) const override
     {
         if (insert_correct_macro)
-            return { { { faulty_macro_loc, "ERROR" }, { correct_macro_loc, "CORRECT" } },
+            return { { { "ERROR", faulty_macro_loc }, { "CORRECT", correct_macro_loc } },
                 hlasm_plugin::utils::path::list_directory_rc::done };
-        return { { { faulty_macro_loc, "ERROR" } }, hlasm_plugin::utils::path::list_directory_rc::done };
+        return { { { "ERROR", faulty_macro_loc } }, hlasm_plugin::utils::path::list_directory_rc::done };
     }
 
     bool insert_correct_macro = true;
@@ -370,7 +370,7 @@ public:
         const hlasm_plugin::utils::resource::resource_location& location) const override
     {
         if (location == resource_location("lib/"))
-            return { { { correct_macro_loc, "CORRECT" } }, hlasm_plugin::utils::path::list_directory_rc::done };
+            return { { { "CORRECT", correct_macro_loc } }, hlasm_plugin::utils::path::list_directory_rc::done };
 
         return { {}, hlasm_plugin::utils::path::list_directory_rc::not_exists };
     }

@@ -26,9 +26,8 @@
 
 namespace hlasm_plugin::utils::resource {
 
-using list_directory_result = std::pair<
-    std::unordered_map<utils::resource::resource_location, std::string, utils::resource::resource_location_hasher>,
-    utils::path::list_directory_rc>;
+using list_directory_result =
+    std::pair<std::vector<std::pair<std::string, utils::resource::resource_location>>, utils::path::list_directory_rc>;
 
 class content_loader
 {

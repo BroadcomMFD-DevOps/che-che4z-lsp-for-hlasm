@@ -33,9 +33,8 @@ namespace hlasm_plugin::parser_library::workspaces {
 
 using file_ptr = std::shared_ptr<file>;
 using processor_file_ptr = std::shared_ptr<processor_file>;
-using list_directory_result = std::pair<
-    std::unordered_map<utils::resource::resource_location, std::string, utils::resource::resource_location_hasher>,
-    utils::path::list_directory_rc>;
+using list_directory_result =
+    std::pair<std::vector<std::pair<std::string, utils::resource::resource_location>>, utils::path::list_directory_rc>;
 
 // Wraps an associative array of file names and files.
 // Implements LSP text synchronization methods.
