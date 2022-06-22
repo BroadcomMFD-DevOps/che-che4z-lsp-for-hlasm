@@ -50,8 +50,10 @@ bool is_uri(const std::string& path) noexcept;
 // Returns URI in a presentable format for the user
 std::string get_presentable_uri(const std::string& uri, bool debug);
 
+// Do URI dissection
 dissected_uri dissect_uri(const std::string& uri) noexcept;
 
+// Reconstruct dissected URI
 std::string reconstruct_uri(const dissected_uri& dis_uri);
 
 } // namespace hlasm_plugin::utils::path
