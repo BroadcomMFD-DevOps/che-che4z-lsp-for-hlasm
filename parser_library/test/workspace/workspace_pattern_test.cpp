@@ -287,28 +287,28 @@ public:
         const hlasm_plugin::utils::resource::resource_location& location) const override
     {
         if (location == user_dir_loc)
-            return { { { "ws", ws_loc } }, hlasm_plugin::utils::path::list_directory_rc::done };
+            return { { { ws_loc, "ws" } }, hlasm_plugin::utils::path::list_directory_rc::done };
 
         if (location == ws_loc)
-            return { { { "pattern_est", pattern_est_dir_loc },
-                         { "pattern_test", pattern_test_dir_loc },
-                         { "patter_test", patter_test_dir_loc } },
+            return { { { pattern_est_dir_loc, "pattern_est" },
+                         { pattern_test_dir_loc, "pattern_test" },
+                         { patter_test_dir_loc, "patter_test" } },
                 hlasm_plugin::utils::path::list_directory_rc::done };
 
         if (location == pattern_test_dir_loc)
-            return { { { "libs", pattern_test_lib_loc } }, hlasm_plugin::utils::path::list_directory_rc::done };
+            return { { { pattern_test_lib_loc, "libs" } }, hlasm_plugin::utils::path::list_directory_rc::done };
 
         if (location == pattern_test_lib_loc)
-            return { { { pattern_lib_sublib1_abs_path, pattern_test_lib_sublib1_loc },
-                         { pattern_lib_sublib2_abs_path, pattern_test_lib_sublib2_loc } },
+            return { { { pattern_test_lib_sublib1_loc, pattern_lib_sublib1_abs_path },
+                         { pattern_test_lib_sublib2_loc, pattern_lib_sublib2_abs_path } },
                 hlasm_plugin::utils::path::list_directory_rc::done };
 
         if (location == different_libs2_libs_loc)
-            return { { { "subdir", different_libs2_libs_subdir } },
+            return { { { different_libs2_libs_subdir, "subdir" } },
                 hlasm_plugin::utils::path::list_directory_rc::done };
 
         if (location == temp_lib2_libs_loc)
-            return { { { "subdir", temp_lib2_libs_subdir } }, hlasm_plugin::utils::path::list_directory_rc::done };
+            return { { { temp_lib2_libs_subdir, "subdir" } }, hlasm_plugin::utils::path::list_directory_rc::done };
 
         return { {}, hlasm_plugin::utils::path::list_directory_rc::done };
     }
@@ -347,10 +347,10 @@ void verify_relative_1(pgmconf_variants pgmconf_variant)
         .WillOnce(::testing::Return(list_directory_result { {}, hlasm_plugin::utils::path::list_directory_rc::done }));
     EXPECT_CALL(file_manager, list_directory_files(pattern_test_lib_sublib1_loc))
         .WillOnce(::testing::Return(list_directory_result {
-            { { "mac1", pattern_test_macro1_loc } }, hlasm_plugin::utils::path::list_directory_rc::done }));
+            { { pattern_test_macro1_loc, "mac1" } }, hlasm_plugin::utils::path::list_directory_rc::done }));
     EXPECT_CALL(file_manager, list_directory_files(pattern_test_lib_sublib2_loc))
         .WillOnce(::testing::Return(list_directory_result {
-            { { "mac2", pattern_test_macro2_loc } }, hlasm_plugin::utils::path::list_directory_rc::done }));
+            { { pattern_test_macro2_loc, "mac2" } }, hlasm_plugin::utils::path::list_directory_rc::done }));
 
     ws.did_open_file(pattern_test_source_loc);
 }
@@ -403,10 +403,10 @@ void verify_uri_1(pgmconf_variants pgmconf_variant)
         .WillOnce(::testing::Return(list_directory_result { {}, hlasm_plugin::utils::path::list_directory_rc::done }));
     EXPECT_CALL(file_manager, list_directory_files(pattern_test_lib_sublib1_loc))
         .WillOnce(::testing::Return(list_directory_result {
-            { { "mac1", pattern_test_macro1_loc } }, hlasm_plugin::utils::path::list_directory_rc::done }));
+            { { pattern_test_macro1_loc, "mac1" } }, hlasm_plugin::utils::path::list_directory_rc::done }));
     EXPECT_CALL(file_manager, list_directory_files(pattern_test_lib_sublib2_loc))
         .WillOnce(::testing::Return(list_directory_result {
-            { { "mac2", pattern_test_macro2_loc } }, hlasm_plugin::utils::path::list_directory_rc::done }));
+            { { pattern_test_macro2_loc, "mac2" } }, hlasm_plugin::utils::path::list_directory_rc::done }));
 
     ws.did_open_file(pattern_test_source_loc);
 }
@@ -421,10 +421,10 @@ void verify_uri_2(pgmconf_variants pgmconf_variant)
 
     EXPECT_CALL(file_manager, list_directory_files(pattern_test_lib_sublib1_loc))
         .WillOnce(::testing::Return(list_directory_result {
-            { { "mac1", pattern_test_macro1_loc } }, hlasm_plugin::utils::path::list_directory_rc::done }));
+            { { pattern_test_macro1_loc, "mac1" } }, hlasm_plugin::utils::path::list_directory_rc::done }));
     EXPECT_CALL(file_manager, list_directory_files(pattern_test_lib_sublib2_loc))
         .WillOnce(::testing::Return(list_directory_result {
-            { { "mac2", pattern_test_macro2_loc } }, hlasm_plugin::utils::path::list_directory_rc::done }));
+            { { pattern_test_macro2_loc, "mac2" } }, hlasm_plugin::utils::path::list_directory_rc::done }));
 
     ws.did_open_file(pattern_test_source_loc);
 }
@@ -451,10 +451,10 @@ void verify_combination(pgmconf_variants pgmconf_variant)
         .WillOnce(::testing::Return(list_directory_result { {}, hlasm_plugin::utils::path::list_directory_rc::done }));
     EXPECT_CALL(file_manager, list_directory_files(pattern_test_lib_sublib1_loc))
         .WillOnce(::testing::Return(list_directory_result {
-            { { "mac1", pattern_test_macro1_loc } }, hlasm_plugin::utils::path::list_directory_rc::done }));
+            { { pattern_test_macro1_loc, "mac1" } }, hlasm_plugin::utils::path::list_directory_rc::done }));
     EXPECT_CALL(file_manager, list_directory_files(pattern_test_lib_sublib2_loc))
         .WillOnce(::testing::Return(list_directory_result {
-            { { "mac2", pattern_test_macro2_loc } }, hlasm_plugin::utils::path::list_directory_rc::done }));
+            { { pattern_test_macro2_loc, "mac2" } }, hlasm_plugin::utils::path::list_directory_rc::done }));
 
     ws.did_open_file(pattern_test_source_loc);
 }
@@ -577,36 +577,36 @@ public:
             auto inf3 = resource_location::join(location, "inf3");
             auto inf4 = resource_location::join(location, "inf4");
             auto inf5 = resource_location::join(location, "inf5");
-            return { { { inf1.get_uri(), inf1 },
-                         { inf2.get_uri(), inf2 },
-                         { inf3.get_uri(), inf3 },
-                         { inf4.get_uri(), inf4 },
-                         { inf5.get_uri(), inf5 } },
+            return { { { inf1, inf1.get_uri() },
+                         { inf2, inf2.get_uri() },
+                         { inf3, inf3.get_uri() },
+                         { inf4, inf4.get_uri() },
+                         { inf5, inf5.get_uri() } },
                 hlasm_plugin::utils::path::list_directory_rc::done };
         }
 
         if (location.get_uri().ends_with("/canonical/") || location.get_uri().ends_with("/canonical"))
         {
             auto can = resource_location::join(location, "can1");
-            return { { { "can1", can } }, hlasm_plugin::utils::path::list_directory_rc::done };
+            return { { { can, "can1" } }, hlasm_plugin::utils::path::list_directory_rc::done };
         }
 
         if (location.get_uri().ends_with("/can1"))
         {
             auto can = resource_location::join(location, "can2");
-            return { { { "can2", can } }, hlasm_plugin::utils::path::list_directory_rc::done };
+            return { { { can, "can2" } }, hlasm_plugin::utils::path::list_directory_rc::done };
         }
 
         if (location.get_uri().ends_with("/can2"))
         {
             auto can = resource_location::join(location, "can3");
-            return { { { "can3", can } }, hlasm_plugin::utils::path::list_directory_rc::done };
+            return { { { can, "can3" } }, hlasm_plugin::utils::path::list_directory_rc::done };
         }
 
         if (location.get_uri().ends_with("/can3"))
         {
             auto can = resource_location::join(location, "canonical");
-            return { { { "canonical", can } }, hlasm_plugin::utils::path::list_directory_rc::done };
+            return { { { can, "canonical" } }, hlasm_plugin::utils::path::list_directory_rc::done };
         }
 
 
@@ -615,10 +615,9 @@ public:
 };
 } // namespace
 
-TEST(workspace_pattern_test, infinit_loop_general)
+void verify_infinit_loop(pgroup_symlinks_variants pgroup_variant, pgmconf_variants pgmconf_variant)
 {
-    ::testing::NiceMock<file_manager_infinit_loop> file_manager(
-        pgroup_symlinks_variants::INFINIT, pgmconf_variants::PLATFORM_INDEPENDENT);
+    ::testing::NiceMock<file_manager_infinit_loop> file_manager(pgroup_variant, pgmconf_variant);
     lib_config config;
 
     workspace ws(ws_loc, "workspace_name", file_manager, config);
@@ -628,15 +627,22 @@ TEST(workspace_pattern_test, infinit_loop_general)
     // No explicit expectations - it is just expected that this will not crash or end up in a loop.
 }
 
+TEST(workspace_pattern_test, infinit_loop_general)
+{
+    verify_infinit_loop(pgroup_symlinks_variants::INFINIT, pgmconf_variants::PLATFORM_DEPENDENT);
+}
+
+TEST(workspace_pattern_test, infinit_loop_general_independent)
+{
+    verify_infinit_loop(pgroup_symlinks_variants::INFINIT, pgmconf_variants::PLATFORM_INDEPENDENT);
+}
+
 TEST(workspace_pattern_test, infinit_loop_canonical)
 {
-    ::testing::NiceMock<file_manager_infinit_loop> file_manager(
-        pgroup_symlinks_variants::CANONICAL, pgmconf_variants::PLATFORM_INDEPENDENT);
-    lib_config config;
+    verify_infinit_loop(pgroup_symlinks_variants::CANONICAL, pgmconf_variants::PLATFORM_DEPENDENT);
+}
 
-    workspace ws(ws_loc, "workspace_name", file_manager, config);
-    ws.open();
-    ws.did_open_file(pattern_test_source_loc);
-
-    // No explicit expectations - it is just expected that this will not crash or end up in a loop.
+TEST(workspace_pattern_test, infinit_loop_canonical_independent)
+{
+    verify_infinit_loop(pgroup_symlinks_variants::CANONICAL, pgmconf_variants::PLATFORM_INDEPENDENT);
 }
