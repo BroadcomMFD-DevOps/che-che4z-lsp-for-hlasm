@@ -230,8 +230,12 @@ public:
         global_config_ = new_config;
         m_global_settings = global_settings;
 
+        bool updated = false;
         for (auto& w : workspaces_)
-            w.second.settings_updated();
+            updated |= w.second.settings_updated();
+
+        if (updated)
+            notify_diagnostics_consumers();
     }
 
     std::vector<token_info> empty_tokens;

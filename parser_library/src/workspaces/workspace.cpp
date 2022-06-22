@@ -15,11 +15,14 @@
 #include "workspace.h"
 
 #include <algorithm>
+#include <charconv>
 #include <filesystem>
 #include <iostream>
 #include <memory>
 #include <regex>
 #include <string>
+#include <unordered_map>
+#include <unordered_set>
 
 #include "file_manager_vfm.h"
 #include "lib_config.h"
@@ -198,36 +201,52 @@ workspace_file_info workspace::parse_config_file()
 namespace {
 std::optional<std::string_view> find_setting(std::string_view key, const nlohmann::json& j_)
 {
+    constexpr auto find_member = [](std::string_view key, const nlohmann::json& j) -> const nlohmann::json* {
+        if (j.is_object())
+        {
+            if (auto it = j.find(key); it == j.end())
+                return nullptr;
+            else
+                return &it.value();
+        }
+        else if (j.is_array())
+        {
+            unsigned long long i = 0;
+            const auto conv_result = std::from_chars(std::to_address(key.begin()), std::to_address(key.end()), i);
+            if (conv_result.ec != std::errc() || conv_result.ptr != std::to_address(key.end()) || i >= j.size())
+                return nullptr;
+
+            return &j[i];
+        }
+        else
+            return nullptr;
+    };
+
     const nlohmann::json* j = &j_;
 
-    for (size_t idx = key.find('.'); idx != std::string_view::npos; idx = key.find('.'))
+    while (true)
     {
-        auto k = key.substr(0, idx);
-        if (k.empty())
+        auto dot = key.find('.');
+        auto subkey = key.substr(0, dot);
+
+        j = find_member(subkey, *j);
+        if (!j)
             return std::nullopt;
 
-        if (!j->is_object())
-            return std::nullopt;
-
-        if (auto it = j->find(k); it == j->end())
-            return std::nullopt;
+        if (dot == std::string_view::npos)
+            break;
         else
-            j = &it.value();
-
-        key.remove_prefix(idx + 1);
+            key.remove_prefix(dot + 1);
     }
 
-    if (!j->is_object())
-        return std::nullopt;
-
-    if (auto it = j->find(key); it == j->end() || !it->is_string())
+    if (!j->is_string())
         return std::nullopt;
     else
-        return it.value().get<std::string_view>();
+        return j->get<std::string_view>();
 }
 } // namespace
 
-void workspace::settings_updated()
+bool workspace::settings_updated()
 {
     auto global_settings = m_global_settings.load();
     for (const auto& [key, value] : m_utilized_settings_values)
@@ -235,9 +254,10 @@ void workspace::settings_updated()
         if (find_setting(key, *global_settings) != value)
         {
             parse_config_file();
-            break;
+            return true;
         }
     }
+    return false;
 }
 
 workspace_file_info workspace::parse_file(const utils::resource::resource_location& file_location)
@@ -763,7 +783,7 @@ void workspace::process_program(const config::program_mapping& pgm, const file_p
     }
     else
     {
-        config_diags_.push_back(diagnostic_s::error_W0004(pgm_conf_file->get_location().to_presentable(), name_));
+        config_diags_.push_back(diagnostic_s::error_W0004(pgm_conf_file->get_location(), name_));
     }
 }
 
@@ -813,6 +833,7 @@ struct json_settings_replacer
     workspace::global_settings_map& utilized_settings_values;
     utils::resource::resource_location& location;
     std::match_results<std::string_view::iterator> matches;
+    std::unordered_set<std::string> unavailable;
 
     void operator()(nlohmann::json& val)
     {
@@ -847,14 +868,18 @@ struct json_settings_replacer
             std::string_view key(matches[1].first, matches[1].second);
             if (key.starts_with(config_section))
             {
-                key.remove_prefix(config_section.size());
-                auto v = find_setting(key, *global_settings);
+                auto reduced_key = key.substr(config_section.size());
+                auto v = find_setting(reduced_key, *global_settings);
                 if (v.has_value())
                     r.append(*v);
-                utilized_settings_values.emplace(key, v);
+                else
+                    unavailable.emplace(key);
+                utilized_settings_values.emplace(reduced_key, v);
             }
             else if (key == "workspaceFolder")
                 r.append(location.get_uri());
+            else
+                unavailable.emplace(key);
 
         } while (std::regex_search(s.begin(), s.end(), matches, config_reference));
 
@@ -883,23 +908,28 @@ bool workspace::load_config(config::proc_grps& proc_groups,
     try
     {
         auto proc_json = nlohmann::json::parse(proc_grps_file->get_text());
+
+        json_visitor.unavailable.clear();
         json_visitor(proc_json);
+
+        for (const auto& var : json_visitor.unavailable)
+            config_diags_.push_back(diagnostic_s::warn_W0007(proc_grps_file->get_location(), var));
+
         proc_json.get_to(proc_groups);
         proc_grps_.clear();
         for (const auto& pg : proc_groups.pgroups)
         {
             if (!pg.asm_options.valid())
-                config_diags_.push_back(diagnostic_s::error_W0005(
-                    proc_grps_file->get_location().to_presentable(), pg.name, "processor group"));
-            if (!pg.preprocessor.valid())
                 config_diags_.push_back(
-                    diagnostic_s::error_W0006(proc_grps_file->get_location().to_presentable(), pg.name));
+                    diagnostic_s::error_W0005(proc_grps_file->get_location(), pg.name, "processor group"));
+            if (!pg.preprocessor.valid())
+                config_diags_.push_back(diagnostic_s::error_W0006(proc_grps_file->get_location(), pg.name));
         }
     }
     catch (const nlohmann::json::exception&)
     {
         // could not load proc_grps
-        config_diags_.push_back(diagnostic_s::error_W0002(proc_grps_file->get_location().to_presentable(), name_));
+        config_diags_.push_back(diagnostic_s::error_W0002(proc_grps_file->get_location(), name_));
         return false;
     }
 
@@ -911,20 +941,26 @@ bool workspace::load_config(config::proc_grps& proc_groups,
     try
     {
         auto pgm_json = nlohmann::json::parse(pgm_conf_file->get_text());
+
+        json_visitor.unavailable.clear();
         json_visitor(pgm_json);
+
+        for (const auto& var : json_visitor.unavailable)
+            config_diags_.push_back(diagnostic_s::warn_W0007(pgm_conf_file->get_location(), var));
+
         pgm_json.get_to(pgm_config);
         for (const auto& pgm : pgm_config.pgms)
         {
             if (!pgm.opts.valid())
                 config_diags_.push_back(
-                    diagnostic_s::error_W0005(pgm_conf_file->get_location().to_presentable(), pgm.program, "program"));
+                    diagnostic_s::error_W0005(pgm_conf_file->get_location(), pgm.program, "program"));
         }
         exact_pgm_conf_.clear();
         regex_pgm_conf_.clear();
     }
     catch (const nlohmann::json::exception&)
     {
-        config_diags_.push_back(diagnostic_s::error_W0003(pgm_conf_file->get_location().to_presentable(), name_));
+        config_diags_.push_back(diagnostic_s::error_W0003(pgm_conf_file->get_location(), name_));
         return false;
     }
 

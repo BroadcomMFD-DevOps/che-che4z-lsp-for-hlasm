@@ -135,7 +135,7 @@ public:
 
     file_manager& get_file_manager();
 
-    void settings_updated();
+    bool settings_updated();
 
     using global_settings_map = std::unordered_map<std::string,
         std::optional<std::string>,
