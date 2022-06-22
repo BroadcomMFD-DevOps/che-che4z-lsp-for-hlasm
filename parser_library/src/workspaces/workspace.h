@@ -35,6 +35,7 @@
 #include "message_consumer.h"
 #include "processor.h"
 #include "processor_group.h"
+#include "utils/general_hashers.h"
 #include "utils/resource_location.h"
 
 namespace hlasm_plugin::parser_library::workspaces {
@@ -155,10 +156,8 @@ public:
 
     bool settings_updated();
 
-    using global_settings_map = std::unordered_map<std::string,
-        std::optional<std::string>,
-        std::hash<std::string_view>,
-        std::equal_to<std::string_view>>;
+    using global_settings_map =
+        std::unordered_map<std::string, std::optional<std::string>, utils::hashers::string_hasher, std::equal_to<>>;
 
 private:
     constexpr static char FILENAME_PROC_GRPS[] = "proc_grps.json";

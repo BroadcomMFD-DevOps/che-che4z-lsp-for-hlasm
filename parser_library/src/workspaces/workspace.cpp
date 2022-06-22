@@ -199,29 +199,30 @@ workspace_file_info workspace::parse_config_file()
 }
 
 namespace {
+const nlohmann::json* find_member(std::string_view key, const nlohmann::json& j)
+{
+    if (j.is_object())
+    {
+        if (auto it = j.find(key); it == j.end())
+            return nullptr;
+        else
+            return &it.value();
+    }
+    else if (j.is_array())
+    {
+        unsigned long long i = 0;
+        const auto conv_result = std::from_chars(std::to_address(key.begin()), std::to_address(key.end()), i);
+        if (conv_result.ec != std::errc() || conv_result.ptr != std::to_address(key.end()) || i >= j.size())
+            return nullptr;
+
+        return &j[i];
+    }
+    else
+        return nullptr;
+}
+
 std::optional<std::string_view> find_setting(std::string_view key, const nlohmann::json& j_)
 {
-    constexpr auto find_member = [](std::string_view key, const nlohmann::json& j) -> const nlohmann::json* {
-        if (j.is_object())
-        {
-            if (auto it = j.find(key); it == j.end())
-                return nullptr;
-            else
-                return &it.value();
-        }
-        else if (j.is_array())
-        {
-            unsigned long long i = 0;
-            const auto conv_result = std::from_chars(std::to_address(key.begin()), std::to_address(key.end()), i);
-            if (conv_result.ec != std::errc() || conv_result.ptr != std::to_address(key.end()) || i >= j.size())
-                return nullptr;
-
-            return &j[i];
-        }
-        else
-            return nullptr;
-    };
-
     const nlohmann::json* j = &j_;
 
     while (true)
@@ -833,7 +834,7 @@ struct json_settings_replacer
     workspace::global_settings_map& utilized_settings_values;
     utils::resource::resource_location& location;
     std::match_results<std::string_view::iterator> matches;
-    std::unordered_set<std::string> unavailable;
+    std::unordered_set<std::string, utils::hashers::string_hasher, std::equal_to<>> unavailable;
 
     void operator()(nlohmann::json& val)
     {

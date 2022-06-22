@@ -467,12 +467,12 @@ TEST(workspace, pgm_conf_with_substitutions)
 
     fm.did_open_file(pgm_conf_name,
         0,
-        R"({"pgms":[{"program":"test/${config:pgm_mask}","pgroup":"P1","asm_options":{"SYSPARM":"${config:sysparm}${config:sysparm}"}}]})");
+        R"({"pgms":[{"program":"test/${config:pgm_mask.0}","pgroup":"P1","asm_options":{"SYSPARM":"${config:sysparm}${config:sysparm}"}}]})");
     fm.did_open_file(proc_grps_name, 0, R"({"pgroups":[{"name": "P1","libs":[]}]})");
 
     lib_config config;
-    workspace::shared_json global_settings =
-        std::make_shared<const nlohmann::json>(nlohmann::json::parse(R"({"pgm_mask":"file_name","sysparm":"DEBUG"})"));
+    workspace::shared_json global_settings = std::make_shared<const nlohmann::json>(
+        nlohmann::json::parse(R"({"pgm_mask":["file_name"],"sysparm":"DEBUG"})"));
     workspace ws(fm, config, global_settings);
     ws.open();
     ws.collect_diags();

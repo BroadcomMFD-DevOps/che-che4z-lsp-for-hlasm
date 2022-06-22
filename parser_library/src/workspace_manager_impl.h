@@ -225,15 +225,14 @@ public:
     lib_config global_config_;
     workspaces::workspace::shared_json m_global_settings =
         std::make_shared<const nlohmann::json>(nlohmann::json::object());
-    virtual void configuration_changed(
-        const lib_config& new_config, std::shared_ptr<const nlohmann::json> global_settings)
+    void configuration_changed(const lib_config& new_config, std::shared_ptr<const nlohmann::json> global_settings)
     {
         global_config_ = new_config;
-        m_global_settings.store(global_settings);
+        m_global_settings.store(std::move(global_settings));
 
         bool updated = false;
-        for (auto& w : workspaces_)
-            updated |= w.second.settings_updated();
+        for (auto& [_, ws] : workspaces_)
+            updated |= ws.settings_updated();
 
         if (updated)
             notify_diagnostics_consumers();
