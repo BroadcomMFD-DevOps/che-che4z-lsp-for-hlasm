@@ -23,6 +23,7 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
+#include <version>
 
 #include "config/pgm_conf.h"
 #include "config/proc_grps.h"
@@ -66,22 +67,39 @@ struct program
 class workspace : public diagnosable_impl, public parse_lib_provider, public lsp::feature_provider
 {
 public:
+#if __cpp_lib_atomic_shared_ptr >= 201711L
+    using shared_json = std::atomic<std::shared_ptr<const nlohmann::json>>;
+#else
+    class shared_json
+    {
+        std::shared_ptr<const nlohmann::json> m_data;
+
+    public:
+        shared_json(std::shared_ptr<const nlohmann::json> data)
+            : m_data(std::move(data))
+        {}
+
+        auto load() const { return std::atomic_load(&m_data); }
+        void store(std::shared_ptr<const nlohmann::json> data) { std::atomic_store(&m_data, std::move(data)); }
+    };
+#endif
+
     // Creates just a dummy workspace with no libraries - no dependencies
     // between files.
     workspace(file_manager& file_manager,
         const lib_config& global_config,
-        const std::atomic<std::shared_ptr<const nlohmann::json>>& global_settings,
+        const shared_json& global_settings,
         std::atomic<bool>* cancel = nullptr);
     workspace(const utils::resource::resource_location& location,
         file_manager& file_manager,
         const lib_config& global_config,
-        const std::atomic<std::shared_ptr<const nlohmann::json>>& global_settings,
+        const shared_json& global_settings,
         std::atomic<bool>* cancel = nullptr);
     workspace(const utils::resource::resource_location& location,
         const std::string& name,
         file_manager& file_manager,
         const lib_config& global_config,
-        const std::atomic<std::shared_ptr<const nlohmann::json>>& global_settings,
+        const shared_json& global_settings,
         std::atomic<bool>* cancel = nullptr);
 
     workspace(const workspace& ws) = delete;
@@ -212,7 +230,7 @@ private:
     std::unordered_map<utils::resource::resource_location, bool, utils::resource::resource_location_hasher>
         diag_suppress_notified_;
     const lib_config& global_config_;
-    const std::atomic<std::shared_ptr<const nlohmann::json>>& m_global_settings;
+    const shared_json& m_global_settings;
     lib_config local_config_;
     lib_config get_config();
 };

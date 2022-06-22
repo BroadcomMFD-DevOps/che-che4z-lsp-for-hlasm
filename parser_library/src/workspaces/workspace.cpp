@@ -43,7 +43,7 @@ workspace::workspace(const utils::resource::resource_location& location,
     const std::string& name,
     file_manager& file_manager,
     const lib_config& global_config,
-    const std::atomic<std::shared_ptr<const nlohmann::json>>& global_settings,
+    const shared_json& global_settings,
     std::atomic<bool>* cancel)
     : cancel_(cancel)
     , name_(name)
@@ -62,14 +62,14 @@ workspace::workspace(const utils::resource::resource_location& location,
 workspace::workspace(const utils::resource::resource_location& location,
     file_manager& file_manager,
     const lib_config& global_config,
-    const std::atomic<std::shared_ptr<const nlohmann::json>>& global_settings,
+    const shared_json& global_settings,
     std::atomic<bool>* cancel)
     : workspace(location, location.get_uri(), file_manager, global_config, global_settings, cancel)
 {}
 
 workspace::workspace(file_manager& file_manager,
     const lib_config& global_config,
-    const std::atomic<std::shared_ptr<const nlohmann::json>>& global_settings,
+    const shared_json& global_settings,
     std::atomic<bool>* cancel)
     : workspace(utils::resource::resource_location(""), file_manager, global_config, global_settings, cancel)
 {
