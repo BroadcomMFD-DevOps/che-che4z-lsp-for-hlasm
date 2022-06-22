@@ -651,7 +651,8 @@ std::pair<utils::resource::resource_location, bool> construct_and_analyze_lib_re
     if (asterisk != std::string::npos && last_valid_slash != std::string::npos)
     {
         // This is a path with an asterisk
-        // Split the path at the last slash before the asterisk, transform the first part into resource_location, then join the second part
+        // Split the path at the last slash before the asterisk, transform the first part into resource_location, then
+        // join the second part
         rl = transform_to_resource_location(lib_path.substr(0, last_valid_slash), base);
         rl.join(lib_path.substr(last_valid_slash + 1));
     }
