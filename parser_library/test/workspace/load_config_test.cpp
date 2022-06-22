@@ -502,3 +502,35 @@ TEST(workspace, missing_substitutions)
 
     EXPECT_TRUE(matches_message_codes(ws.diags(), { "W0007", "W0007" }));
 }
+
+TEST(workspace, refresh_settings)
+{
+    file_manager_impl fm;
+
+    fm.did_open_file(pgm_conf_name,
+        0,
+        R"({"pgms":[{"program":"test/${config:pgm_mask.0}","pgroup":"P1","asm_options":{"SYSPARM":"${config:sysparm}${config:sysparm}"}}]})");
+    fm.did_open_file(proc_grps_name, 0, R"({"pgroups":[{"name": "P1","libs":[]}]})");
+
+    lib_config config;
+    workspace::shared_json global_settings = std::make_shared<const nlohmann::json>(
+        nlohmann::json::parse(R"({"pgm_mask":["file_name"],"sysparm":"DEBUG"})"));
+    workspace ws(fm, config, global_settings);
+    ws.open();
+    ws.collect_diags();
+
+    EXPECT_TRUE(ws.diags().empty());
+
+    using hlasm_plugin::utils::resource::resource_location;
+    using namespace hlasm_plugin::utils::path;
+
+    EXPECT_EQ(ws.get_asm_options(resource_location(join("test", "file_name").string())).sysparm, "DEBUGDEBUG");
+    EXPECT_FALSE(ws.settings_updated());
+
+    global_settings = std::make_shared<const nlohmann::json>(
+        nlohmann::json::parse(R"({"pgm_mask":["different_file"],"sysparm":"RELEASE"})"));
+    EXPECT_TRUE(ws.settings_updated());
+
+    EXPECT_EQ(ws.get_asm_options(resource_location(join("test", "file_name").string())).sysparm, "");
+    EXPECT_EQ(ws.get_asm_options(resource_location(join("test", "different_file").string())).sysparm, "RELEASERELEASE");
+}
