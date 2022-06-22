@@ -452,13 +452,13 @@ TEST(workspace, proc_grps_with_substitutions)
 
     const auto& pg = ws.get_proc_grp("aproc_groupb");
 
-    using namespace hlasm_plugin::utils::path;
+    using hlasm_plugin::utils::resource::resource_location;
 
     ASSERT_EQ(pg.libraries().size(), 2);
-    EXPECT_EQ(
-        dynamic_cast<const library_local*>(pg.libraries()[0].get())->get_location().get_path(), join("library1", ""));
-    EXPECT_EQ(
-        dynamic_cast<const library_local*>(pg.libraries()[1].get())->get_location().get_path(), join("library2", ""));
+    EXPECT_EQ(dynamic_cast<const library_local*>(pg.libraries()[0].get())->get_location(),
+        resource_location::join(resource_location("library1"), ""));
+    EXPECT_EQ(dynamic_cast<const library_local*>(pg.libraries()[1].get())->get_location(),
+        resource_location::join(resource_location("library2"), ""));
 }
 
 TEST(workspace, pgm_conf_with_substitutions)
@@ -480,9 +480,8 @@ TEST(workspace, pgm_conf_with_substitutions)
     EXPECT_TRUE(ws.diags().empty());
 
     using hlasm_plugin::utils::resource::resource_location;
-    using namespace hlasm_plugin::utils::path;
 
-    const auto& opts = ws.get_asm_options(resource_location(join("test", "file_name").string()));
+    const auto& opts = ws.get_asm_options(resource_location::join(resource_location("test"), "file_name"));
 
     EXPECT_EQ(opts.sysparm, "DEBUGDEBUG");
 }
@@ -522,15 +521,16 @@ TEST(workspace, refresh_settings)
     EXPECT_TRUE(ws.diags().empty());
 
     using hlasm_plugin::utils::resource::resource_location;
-    using namespace hlasm_plugin::utils::path;
 
-    EXPECT_EQ(ws.get_asm_options(resource_location(join("test", "file_name").string())).sysparm, "DEBUGDEBUG");
+    EXPECT_EQ(
+        ws.get_asm_options(resource_location::join(resource_location("test"), "file_name")).sysparm, "DEBUGDEBUG");
     EXPECT_FALSE(ws.settings_updated());
 
     global_settings = std::make_shared<const nlohmann::json>(
         nlohmann::json::parse(R"({"pgm_mask":["different_file"],"sysparm":"RELEASE"})"));
     EXPECT_TRUE(ws.settings_updated());
 
-    EXPECT_EQ(ws.get_asm_options(resource_location(join("test", "file_name").string())).sysparm, "");
-    EXPECT_EQ(ws.get_asm_options(resource_location(join("test", "different_file").string())).sysparm, "RELEASERELEASE");
+    EXPECT_EQ(ws.get_asm_options(resource_location::join(resource_location("test"), "file_name")).sysparm, "");
+    EXPECT_EQ(ws.get_asm_options(resource_location::join(resource_location("test"), "different_file")).sysparm,
+        "RELEASERELEASE");
 }
