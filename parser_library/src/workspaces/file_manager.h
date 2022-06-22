@@ -64,10 +64,13 @@ public:
     // Returns list of all files in a directory. Returns associative array with pairs file name - file location.
     virtual list_directory_result list_directory_files(const utils::resource::resource_location& directory) const = 0;
 
-    // Returns list of all sub directories and symbolic links. Returns associative array with pairs file path/uri - file
-    // location. Used as a shortcut for easier testing with mocks
+    // Returns list of all sub directories and symbolic links. Returns associative array with pairs {canonical path -
+    // file location}.
+    // TODO Used as a shortcut for easier testing with mocks - refactor it out of this class together with canonical()
     virtual list_directory_result list_directory_subdirs_and_symlinks(
         const utils::resource::resource_location& directory) const = 0;
+
+    virtual std::string canonical(const utils::resource::resource_location& res_loc, std::error_code& ec) const = 0;
 
     virtual bool dir_exists(const utils::resource::resource_location& dir_loc) const = 0;
 

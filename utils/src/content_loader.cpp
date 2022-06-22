@@ -70,11 +70,11 @@ bool dir_exists(const utils::resource::resource_location& res_loc)
     return cl.dir_exists(res_loc);
 }
 
-std::string lexically_relative(const utils::resource::resource_location& p, const utils::resource::resource_location& q)
+std::string canonical(const utils::resource::resource_location& res_loc, std::error_code& ec)
 {
     const auto& cl = get_content_loader();
 
-    return cl.lexically_relative(p, q);
+    return cl.canonical(res_loc, ec);
 }
 
 } // namespace hlasm_plugin::utils::resource

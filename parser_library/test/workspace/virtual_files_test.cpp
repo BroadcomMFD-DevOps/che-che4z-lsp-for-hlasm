@@ -57,6 +57,10 @@ public:
         list_directory_subdirs_and_symlinks,
         (const hlasm_plugin::utils::resource::resource_location& path),
         (const override));
+    MOCK_METHOD(std::string,
+        canonical,
+        (const hlasm_plugin::utils::resource::resource_location& res_loc, std::error_code& ec),
+        (const override));
     MOCK_METHOD(
         bool, file_exists, (const hlasm_plugin::utils::resource::resource_location& file_loc), (const override));
     MOCK_METHOD(bool,

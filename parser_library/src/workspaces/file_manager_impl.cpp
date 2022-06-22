@@ -119,6 +119,11 @@ list_directory_result file_manager_impl::list_directory_subdirs_and_symlinks(
     return utils::resource::list_directory_subdirs_and_symlinks(directory);
 }
 
+std::string file_manager_impl::canonical(const utils::resource::resource_location& res_loc, std::error_code& ec) const
+{
+    return utils::resource::canonical(res_loc, ec);
+}
+
 void file_manager_impl::prepare_file_for_change_(std::shared_ptr<file_impl>& file)
 {
     if (file.use_count() == 1) // TODO: possible weak_ptr issue

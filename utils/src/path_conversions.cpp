@@ -70,12 +70,11 @@ std::string uri_to_path(const std::string& uri)
     }
 }
 
-// one letter schemas are valid, but Windows paths collide
-const std::regex uri_like("^[A-Za-z][A-Za-z0-9+\\-.]+:");
-
 std::string path_to_uri(std::string_view path)
 {
-    if (std::regex_search(path.begin(), path.end(), uri_like))
+    // Don't consider one-letter schemes to be URI, consider them to be the beginnings of Windows path
+    static const std::regex uri_unlike_windows_path("^[A-Za-z][A-Za-z0-9+\\-.]+:");
+    if (std::regex_search(path.begin(), path.end(), uri_unlike_windows_path))
         return std::string(path);
 
     // network::detail::encode_path(uri) ignores @, which is incompatible with VS Code
@@ -108,6 +107,11 @@ std::string path_to_uri(std::string_view path)
 bool is_uri(const std::string& path) noexcept
 {
     if (path.empty())
+        return false;
+
+    // one letter schemas are valid, but Windows paths collide
+    static const std::regex uri_like_windows_path("^[A-Za-z]:");
+    if (std::regex_search(path.begin(), path.end(), uri_like_windows_path))
         return false;
 
     try

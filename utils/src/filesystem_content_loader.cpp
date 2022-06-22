@@ -106,10 +106,10 @@ bool filesystem_content_loader::dir_exists(const utils::resource::resource_locat
     return utils::path::is_directory(res_loc.get_path());
 }
 
-std::string filesystem_content_loader::lexically_relative(
-    const utils::resource::resource_location& p, const utils::resource::resource_location& q) const
+std::string filesystem_content_loader::canonical(
+    const utils::resource::resource_location& res_loc, std::error_code& ec) const
 {
-    return utils::path::lexically_normal(utils::path::lexically_relative(p.get_path(), q.get_path())).string();
+    return utils::path::canonical(res_loc.get_path(), ec).string();
 }
 
 } // namespace hlasm_plugin::utils::resource

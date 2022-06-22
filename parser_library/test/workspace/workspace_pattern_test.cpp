@@ -249,6 +249,7 @@ class file_manager_lib_pattern : public file_manager_impl
         throw std::logic_error("Not implemented");
     }
 
+protected:
     std::string get_pgmconf_file(pgmconf_variants variant)
     {
         switch (variant)
@@ -256,10 +257,12 @@ class file_manager_lib_pattern : public file_manager_impl
             case pgmconf_variants::PLATFORM_DEPENDENT:
                 return pgmconf_file_platform_dependent_slashes;
             case pgmconf_variants::PLATFORM_INDEPENDENT:
-                return pgmconf_file_platform_dependent_slashes;
+                return pgmconf_file_platform_independent_slashes;
         }
         throw std::logic_error("Not implemented");
     }
+
+    file_manager_lib_pattern() = default;
 
 public:
     file_manager_lib_pattern(pgroup_variants pgroup_variant, pgmconf_variants pgmconf_variant)
@@ -273,6 +276,12 @@ public:
         list_directory_files,
         (const hlasm_plugin::utils::resource::resource_location& path),
         (const override));
+
+    std::string canonical(
+        const hlasm_plugin::utils::resource::resource_location& res_loc, std::error_code&) const override
+    {
+        return res_loc.get_path();
+    }
 
     list_directory_result list_directory_subdirs_and_symlinks(
         const hlasm_plugin::utils::resource::resource_location& location) const override
@@ -477,3 +486,157 @@ TEST(workspace_pattern_test, uri_2_independent) { verify_uri_2(pgmconf_variants:
 TEST(workspace_pattern_test, combination) { verify_combination(pgmconf_variants::PLATFORM_DEPENDENT); }
 
 TEST(workspace_pattern_test, combination_independent) { verify_combination(pgmconf_variants::PLATFORM_INDEPENDENT); }
+
+namespace {
+
+const std::string pgroups_file_inf = is_windows() ? R"({
+  "pgroups": [
+    {
+      "name": "P1",
+      "libs": [ "file:///C%3A/User/ws/symlinks/inf/**" ]
+    }
+  ]
+})"
+                                                  : R"({
+  "pgroups": [
+    {
+      "name": "P1",
+      "libs": [ "file:///home/User/ws/symlinks/inf/**" ]
+    }
+  ]
+})";
+
+const std::string pgroups_file_canonical = is_windows() ? R"({
+  "pgroups": [
+    {
+      "name": "P1",
+      "libs": [ "file:///C%3A/User/ws/canonical/**" ]
+    }
+  ]
+})"
+                                                        : R"({
+  "pgroups": [
+    {
+      "name": "P1",
+      "libs": [ "file:///home/User/ws/canonical/**" ]
+    }
+  ]
+})";
+
+enum class pgroup_symlinks_variants
+{
+    INFINIT,
+    CANONICAL
+};
+
+class file_manager_infinit_loop : public file_manager_lib_pattern
+{
+    std::string get_pgroup_file(pgroup_symlinks_variants variant)
+    {
+        switch (variant)
+        {
+            case pgroup_symlinks_variants::INFINIT:
+                return pgroups_file_inf;
+            case pgroup_symlinks_variants::CANONICAL:
+                return pgroups_file_canonical;
+        }
+        throw std::logic_error("Not implemented");
+    }
+
+public:
+    file_manager_infinit_loop(pgroup_symlinks_variants pgroup_variant, pgmconf_variants pgmconf_variant)
+    {
+        did_open_file(proc_grps_loc, 1, get_pgroup_file(pgroup_variant));
+        did_open_file(pgm_conf_loc, 1, get_pgmconf_file(pgmconf_variant));
+        did_open_file(pattern_test_source_loc, 1, source_txt);
+    }
+
+    std::string canonical(const hlasm_plugin::utils::resource::resource_location&, std::error_code&) const override
+    {
+        return "canonical";
+    }
+
+    list_directory_result list_directory_subdirs_and_symlinks(
+        const hlasm_plugin::utils::resource::resource_location& location) const override
+    {
+        // TODO: Write a test for never ending dir structure when a todo in pathmask_test is resolved
+        // if (location.get_uri().ends_with("/inf") || location.get_uri().ends_with("/inf/"))
+        //{
+        //     // Just append a dir and return
+        //     auto new_loc = resource_location::join(location, "inf");
+        //     return { { { "inf", new_loc } }, hlasm_plugin::utils::path::list_directory_rc::done };
+        // }
+
+        if (location.get_uri().ends_with("/inf1") || location.get_uri().ends_with("/inf2")
+            || location.get_uri().ends_with("/inf3") || location.get_uri().ends_with("/inf4")
+            || location.get_uri().ends_with("/inf5") || location.get_uri().ends_with("/inf/"))
+        {
+            // Just append a dir and return
+            auto inf1 = resource_location::join(location, "inf1");
+            auto inf2 = resource_location::join(location, "inf2");
+            auto inf3 = resource_location::join(location, "inf3");
+            auto inf4 = resource_location::join(location, "inf4");
+            auto inf5 = resource_location::join(location, "inf5");
+            return { { { inf1.get_uri(), inf1 },
+                         { inf2.get_uri(), inf2 },
+                         { inf3.get_uri(), inf3 },
+                         { inf4.get_uri(), inf4 },
+                         { inf5.get_uri(), inf5 } },
+                hlasm_plugin::utils::path::list_directory_rc::done };
+        }
+
+        if (location.get_uri().ends_with("/canonical/") || location.get_uri().ends_with("/canonical"))
+        {
+            auto can = resource_location::join(location, "can1");
+            return { { { "can1", can } }, hlasm_plugin::utils::path::list_directory_rc::done };
+        }
+
+        if (location.get_uri().ends_with("/can1"))
+        {
+            auto can = resource_location::join(location, "can2");
+            return { { { "can2", can } }, hlasm_plugin::utils::path::list_directory_rc::done };
+        }
+
+        if (location.get_uri().ends_with("/can2"))
+        {
+            auto can = resource_location::join(location, "can3");
+            return { { { "can3", can } }, hlasm_plugin::utils::path::list_directory_rc::done };
+        }
+
+        if (location.get_uri().ends_with("/can3"))
+        {
+            auto can = resource_location::join(location, "canonical");
+            return { { { "canonical", can } }, hlasm_plugin::utils::path::list_directory_rc::done };
+        }
+
+
+        return { {}, hlasm_plugin::utils::path::list_directory_rc::done };
+    }
+};
+} // namespace
+
+TEST(workspace_pattern_test, infinit_loop_general)
+{
+    ::testing::NiceMock<file_manager_infinit_loop> file_manager(
+        pgroup_symlinks_variants::INFINIT, pgmconf_variants::PLATFORM_INDEPENDENT);
+    lib_config config;
+
+    workspace ws(ws_loc, "workspace_name", file_manager, config);
+    ws.open();
+    ws.did_open_file(pattern_test_source_loc);
+
+    // No explicit expectations - it is just expected that this will not crash or end up in a loop.
+}
+
+TEST(workspace_pattern_test, infinit_loop_canonical)
+{
+    ::testing::NiceMock<file_manager_infinit_loop> file_manager(
+        pgroup_symlinks_variants::CANONICAL, pgmconf_variants::PLATFORM_INDEPENDENT);
+    lib_config config;
+
+    workspace ws(ws_loc, "workspace_name", file_manager, config);
+    ws.open();
+    ws.did_open_file(pattern_test_source_loc);
+
+    // No explicit expectations - it is just expected that this will not crash or end up in a loop.
+}

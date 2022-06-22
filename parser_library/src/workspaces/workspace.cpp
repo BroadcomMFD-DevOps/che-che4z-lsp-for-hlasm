@@ -496,30 +496,33 @@ void workspace::find_and_add_libs(const utils::resource::resource_location& root
 
     std::regex path_validator = pathmask_to_regex(path_pattern.get_uri());
 
-    std::set<utils::resource::resource_location> processed_dirs;
-    std::deque<utils::resource::resource_location> dirs_to_search;
+    std::set<std::string> processed_canonical_paths;
+    std::deque<std::pair<std::string, utils::resource::resource_location>> dirs_to_search;
 
-    dirs_to_search.emplace_back(root);
+    if (std::error_code ec; dirs_to_search.emplace_back(file_manager_.canonical(root, ec), root), ec)
+    {
+        if (!opts.optional_library)
+            config_diags_.push_back(diagnostic_s::error_L0001(root.to_presentable()));
+        return;
+    }
 
     constexpr size_t limit = 1000;
     while (!dirs_to_search.empty())
     {
-        if (processed_dirs.size() > limit)
+        if (processed_canonical_paths.size() > limit)
         {
             add_diagnostic(diagnostic_s::warning_L0005(path_pattern.to_presentable(), limit));
             break;
         }
 
-        const auto dir = std::move(dirs_to_search.front());
+        const auto [canonical_path, dir] = std::move(dirs_to_search.front());
         dirs_to_search.pop_front();
 
-        if (!processed_dirs.insert(dir).second)
+        if (!processed_canonical_paths.insert(canonical_path).second)
             continue;
 
         if (std::regex_match(dir.get_uri(), path_validator))
-        {
             prc_grp.add_library(std::make_unique<library_local>(file_manager_, dir, opts));
-        }
 
         auto [subdir_list, return_code] = file_manager_.list_directory_subdirs_and_symlinks(dir);
         if (return_code != utils::path::list_directory_rc::done)
@@ -528,36 +531,50 @@ void workspace::find_and_add_libs(const utils::resource::resource_location& root
             break;
         }
 
-        for (auto& [_, subdir] : subdir_list)
+        for (auto& [subdir_canonical_path, subdir] : subdir_list)
         {
-            if (processed_dirs.contains(subdir))
+            if (processed_canonical_paths.contains(subdir_canonical_path))
                 continue;
 
-            dirs_to_search.emplace_back(subdir);
+            dirs_to_search.emplace_back(subdir_canonical_path, subdir);
         }
     }
 }
 
 namespace {
+std::optional<std::filesystem::path> get_fs_abs_path(std::string_view path)
+{
+    if (path.empty())
+        return std::nullopt;
+
+    try
+    {
+        if (std::filesystem::path fs_path = path; utils::path::is_absolute(fs_path))
+            return fs_path;
+
+        return std::nullopt;
+    }
+    catch (const std::exception&)
+    {
+        return std::nullopt;
+    }
+}
+
 utils::resource::resource_location transform_to_resource_location(
-    std::string_view path, const utils::resource::resource_location& base_resource_location)
+    std::string path, const utils::resource::resource_location& base_resource_location)
 {
     utils::resource::resource_location rl;
 
-    if (std::filesystem::path fs_path = path; utils::path::is_absolute(fs_path))
+    if (utils::path::is_uri(path))
+        return utils::resource::resource_location(std::move(path));
+    else if (auto fs_path = get_fs_abs_path(path); fs_path.has_value())
         return utils::resource::resource_location(
-            utils::path::path_to_uri(utils::path::lexically_normal(fs_path).string()));
+            utils::path::path_to_uri(utils::path::lexically_normal(*fs_path).string()));
     else
     {
-        auto p = std::string(path);
-        if (utils::path::is_uri(p))
-            return utils::resource::resource_location(std::move(p));
-        else
-        {
-            std::replace(p.begin(), p.end(), '\\', '/');
+        std::replace(path.begin(), path.end(), '\\', '/');
 
-            return utils::resource::resource_location::join(base_resource_location, p);
-        }
+        return utils::resource::resource_location::join(base_resource_location, path);
     }
 }
 
@@ -632,7 +649,7 @@ std::pair<utils::resource::resource_location, bool> construct_and_analyze_lib_re
 
     if (last_valid_slash != std::string::npos)
     {
-        rl = transform_to_resource_location(std::string_view(lib_path).substr(0, last_valid_slash), base);
+        rl = transform_to_resource_location(lib_path.substr(0, last_valid_slash), base);
         if (last_valid_slash + 1 < lib_path.size())
             rl.join(lib_path.substr(last_valid_slash + 1));
     }
@@ -685,7 +702,7 @@ void workspace::process_program(const config::program_mapping& pgm, const file_p
         auto rl = transform_to_resource_location(pgm_name, location_);
 
         if (!is_wildcard(rl.get_uri()))
-            exact_pgm_conf_.try_emplace(rl, program { rl, pgm.pgroup, pgm.opts });
+            exact_pgm_conf_.try_emplace(rl, rl, pgm.pgroup, pgm.opts);
         else
             regex_pgm_conf_.emplace_back(program { rl, pgm.pgroup, pgm.opts }, wildcard2regex(rl.get_uri()));
     }

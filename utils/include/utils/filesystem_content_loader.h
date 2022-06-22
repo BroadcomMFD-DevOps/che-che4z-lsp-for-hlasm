@@ -35,8 +35,7 @@ public:
     std::string filename(const utils::resource::resource_location& res_loc) const override;
     bool file_exists(const utils::resource::resource_location& res_loc) const override;
     bool dir_exists(const utils::resource::resource_location& res_loc) const override;
-    std::string lexically_relative(
-        const utils::resource::resource_location& p, const utils::resource::resource_location& q) const override;
+    std::string canonical(const utils::resource::resource_location& res_loc, std::error_code& ec) const override;
 };
 
 } // namespace hlasm_plugin::utils::resource

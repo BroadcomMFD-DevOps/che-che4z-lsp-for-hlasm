@@ -57,6 +57,8 @@ public:
     list_directory_result list_directory_subdirs_and_symlinks(
         const utils::resource::resource_location& directory) const override;
 
+    std::string canonical(const utils::resource::resource_location& res_loc, std::error_code& ec) const override;
+
     void did_open_file(const file_location& document_loc, version_t version, std::string text) override;
     void did_change_file(
         const file_location& document_loc, version_t version, const document_change* changes, size_t ch_size) override;

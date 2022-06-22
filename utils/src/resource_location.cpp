@@ -72,8 +72,7 @@ struct uri_path_iterator
 
     explicit uri_path_iterator(pointer uri_path)
         : m_uri_path(uri_path)
-        , m_element()
-        , m_started(m_uri_path == nullptr || uri_path->empty())
+        , m_started(m_uri_path != nullptr ? m_uri_path->empty() : false)
     {}
 
     reference operator*() const { return m_element; }
