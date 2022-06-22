@@ -865,7 +865,7 @@ struct json_settings_replacer
 
             static constexpr std::string_view config_section = "config:";
 
-            std::string_view key(matches[1].first, matches[1].second);
+            std::string_view key(std::to_address(matches[1].first), matches[1].length());
             if (key.starts_with(config_section))
             {
                 auto reduced_key = key.substr(config_section.size());
