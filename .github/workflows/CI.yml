@@ -40,7 +40,8 @@ jobs:
         run: choco install ninja
       - name: Configure
         shell: cmd
-        run: "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\vcvars64.bat" && mkdir build && cd build && cmake -G Ninja -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl -DCMAKE_BUILD_TYPE=Release -DBUILD_VSIX=Off ../
+        run: >
+             "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\vcvars64.bat" && mkdir build && cd build && cmake -G Ninja -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl -DCMAKE_BUILD_TYPE=Release -DBUILD_VSIX=Off ../
       - name: Build
         shell: cmd
         run: cd build && cmake --build . --parallel --config Release
