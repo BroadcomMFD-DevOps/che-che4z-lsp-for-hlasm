@@ -38,7 +38,7 @@ jobs:
           java-version: 11
       - name: Configure
         shell: cmd
-        run: mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_VSIX=Off ../
+        run: mkdir build && cd build && cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_VSIX=Off ../
       - name: Build
         shell: cmd
         run: cd build && cmake --build . --parallel --config Release
