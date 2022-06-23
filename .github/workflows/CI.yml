@@ -36,6 +36,8 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 11
+      - name: Requirements install
+        run: choco install ninja
       - name: Configure
         shell: cmd
         run: mkdir build && cd build && cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_VSIX=Off ../
