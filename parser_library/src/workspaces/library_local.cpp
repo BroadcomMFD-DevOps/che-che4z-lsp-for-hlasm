@@ -127,7 +127,7 @@ void library_local::load_files()
     {
         if (extensions_.empty())
         {
-            files_[context::to_upper_copy(file)] = rl;
+            files_[context::to_upper_copy(file)] = std::move(rl);
             continue;
         }
 
