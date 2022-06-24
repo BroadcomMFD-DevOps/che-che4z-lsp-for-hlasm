@@ -430,7 +430,7 @@ std::regex pathmask_to_regex(const std::string& input)
                         path_started = false;
                         r.append("[^/]*[/]");
                     }
-                    r.append("(?:[^/]+[/])*");
+                    r.append("(?:.*/)?");
                     s.remove_prefix(3);
                 }
                 else if (s.starts_with("**"))

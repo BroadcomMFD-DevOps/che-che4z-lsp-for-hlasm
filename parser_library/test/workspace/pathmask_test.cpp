@@ -81,6 +81,7 @@ TEST(pathmask, pass)
     EXPECT_TRUE(check_path("file:///C:/path/**/", "file:///c%3a/path/a/test/"));
     EXPECT_TRUE(check_path("file:///C:/path/**/test/", "file:///c%3A/path/a/test/"));
 
+    // The following tests just check that there is no longer a SEH exception
     EXPECT_TRUE(check_path("file:///C%3A/User/ws/symlinks/inf/**",
         "file:///C%3A/User/ws/symlinks/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/"
         "inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/"
@@ -93,18 +94,11 @@ TEST(pathmask, pass)
         "inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/"
         "inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/"));
 
-    // TODO The following two tests end with SEH exception while using MSVC although they shouldn't
-    // EXPECT_TRUE(check_path("file:///C%3A/User/ws/symlinks/inf/**/",
-    //    "file:///C%3A/User/ws/symlinks/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/"
-    //    "inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/"
-    //    "inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/"
-    //    "inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf"));
-
-    // EXPECT_TRUE(check_path("file:///C%3A/User/ws/symlinks/inf/**/",
-    //     "file:///C%3A/User/ws/symlinks/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/"
-    //     "inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/"
-    //     "inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/"
-    //     "inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/"));
+    EXPECT_TRUE(check_path("file:///C%3A/User/ws/symlinks/inf/**/",
+        "file:///C%3A/User/ws/symlinks/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/"
+        "inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/"
+        "inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/"
+        "inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/inf/"));
 }
 
 TEST(pathmask, fail)

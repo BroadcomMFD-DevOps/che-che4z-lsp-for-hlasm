@@ -584,11 +584,28 @@ const std::string pgroups_file_inf = is_windows() ? R"({
   "pgroups": [
     {
       "name": "P1",
-      "libs": [ "file:///C%3A/User/ws/symlinks/inf/**" ]
+      "libs": [ "file:///C%3A/User/ws/symlinks/inf0/**" ]
     }
   ]
 })"
                                                   : R"({
+  "pgroups": [
+    {
+      "name": "P1",
+      "libs": [ "file:///home/User/ws/symlinks/inf0/**" ]
+    }
+  ]
+})";
+
+const std::string pgroups_file_inf_2 = is_windows() ? R"({
+  "pgroups": [
+    {
+      "name": "P1",
+      "libs": [ "file:///C%3A/User/ws/symlinks/inf/**" ]
+    }
+  ]
+})"
+                                                    : R"({
   "pgroups": [
     {
       "name": "P1",
@@ -617,6 +634,7 @@ const std::string pgroups_file_canonical = is_windows() ? R"({
 enum class pgroup_symlinks_variants
 {
     INFINIT,
+    INFINIT_2,
     CANONICAL
 };
 
@@ -628,6 +646,8 @@ class file_manager_infinit_loop : public file_manager_lib_pattern
         {
             case pgroup_symlinks_variants::INFINIT:
                 return pgroups_file_inf;
+            case pgroup_symlinks_variants::INFINIT_2:
+                return pgroups_file_inf_2;
             case pgroup_symlinks_variants::CANONICAL:
                 return pgroups_file_canonical;
         }
@@ -650,17 +670,16 @@ public:
     list_directory_result list_directory_subdirs_and_symlinks(
         const hlasm_plugin::utils::resource::resource_location& location) const override
     {
-        // TODO: Write a test for never ending dir structure when a todo in pathmask_test is resolved
-        // if (location.get_uri().ends_with("/inf") || location.get_uri().ends_with("/inf/"))
-        //{
-        //     // Just append a dir and return
-        //     auto new_loc = resource_location::join(location, "inf");
-        //     return { { { "inf", new_loc } }, hlasm_plugin::utils::path::list_directory_rc::done };
-        // }
+        if (location.get_uri().ends_with("/inf") || location.get_uri().ends_with("/inf/"))
+        {
+            // Just append a dir and return
+            auto new_loc = resource_location::join(location, "inf");
+            return { { { new_loc.get_uri(), new_loc } }, hlasm_plugin::utils::path::list_directory_rc::done };
+        }
 
-        if (location.get_uri().ends_with("/inf1") || location.get_uri().ends_with("/inf2")
-            || location.get_uri().ends_with("/inf3") || location.get_uri().ends_with("/inf4")
-            || location.get_uri().ends_with("/inf5") || location.get_uri().ends_with("/inf/"))
+        if (location.get_uri().ends_with("/inf0/") || location.get_uri().ends_with("/inf1")
+            || location.get_uri().ends_with("/inf2") || location.get_uri().ends_with("/inf3")
+            || location.get_uri().ends_with("/inf4") || location.get_uri().ends_with("/inf5"))
         {
             // Just append a dir and return
             auto inf1 = resource_location::join(location, "inf1");
@@ -726,6 +745,16 @@ TEST(workspace_pattern_test, infinit_loop_general)
 TEST(workspace_pattern_test, infinit_loop_general_independent)
 {
     verify_infinit_loop(pgroup_symlinks_variants::INFINIT, pgmconf_variants::PLATFORM_INDEPENDENT);
+}
+
+TEST(workspace_pattern_test, infinit_loop_general_2)
+{
+    verify_infinit_loop(pgroup_symlinks_variants::INFINIT_2, pgmconf_variants::PLATFORM_DEPENDENT);
+}
+
+TEST(workspace_pattern_test, infinit_loop_general_2_independent)
+{
+    verify_infinit_loop(pgroup_symlinks_variants::INFINIT_2, pgmconf_variants::PLATFORM_INDEPENDENT);
 }
 
 TEST(workspace_pattern_test, infinit_loop_canonical)
