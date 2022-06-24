@@ -198,21 +198,25 @@ void normalize_file_scheme(utils::path::dissected_uri& dis_uri)
         if (!utils::platform::is_windows())
             return;
 
-        static const std::regex host_like_windows_path("^([A-Za-z]($|:$|%3[aA]$))");
-        static const std::regex path_like_windows_path("^(|[/]|[//])[A-Za-z](?::|%3[aA])");
         if (std::smatch s; dis_uri.auth.has_value() && (!dis_uri.auth->port.has_value() || dis_uri.auth->port->empty())
-            && (!dis_uri.auth->user_info.has_value() || dis_uri.auth->user_info->empty())
-            && std::regex_search(dis_uri.auth->host, s, host_like_windows_path))
+            && !dis_uri.auth->user_info.has_value())
         {
-            // auth consists only of host name resembling Windows drive
+            if (static const std::regex host_like_windows_path("^([A-Za-z])($|:$|%3[aA]$)");
+                !std::regex_search(dis_uri.auth->host, s, host_like_windows_path)
+                || (s[2].length() == 0 && !dis_uri.auth->port.has_value()))
+                return;
 
-            // Construct new path
+            // auth consists only of host name resembling Windows drive and empty or missing port part
+
+            // Start constructing new path
             std::string new_path = "/";
-            new_path.append(s[1].str());
+            new_path.append(s[1]);
 
             // If drive letter is captured without colon -> append it
-            if (s[1].length() == 1)
+            if (s[2].length() == 0)
                 new_path.append(":");
+            else
+                new_path.append(s[2]);
 
             new_path.append(dis_uri.path);
             dis_uri.path = std::move(new_path);
@@ -224,7 +228,8 @@ void normalize_file_scheme(utils::path::dissected_uri& dis_uri)
             dis_uri.auth->port = std::nullopt;
             dis_uri.auth->user_info = std::nullopt;
         }
-        else if (!dis_uri.auth.has_value() && std::regex_search(dis_uri.path, s, path_like_windows_path))
+        else if (static const std::regex path_like_windows_path("^(|[/]|[//])[A-Za-z](?::|%3[aA])");
+                 !dis_uri.auth.has_value() && std::regex_search(dis_uri.path, s, path_like_windows_path))
         {
             // Seems like we have a windows like path
             std::string slashes;
