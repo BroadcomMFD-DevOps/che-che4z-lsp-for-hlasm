@@ -24,6 +24,8 @@
 
 namespace hlasm_plugin::utils::path {
 
+static const std::regex uri_like_windows_path("^[A-Za-z](?::|%3[aA])");
+
 std::string uri_to_path(const std::string& uri)
 {
     try
@@ -38,22 +40,24 @@ std::string uri_to_path(const std::string& uri)
         std::string auth_path;
         if (u.has_authority() && u.authority().to_string() != "")
         {
+            if (!utils::platform::is_windows())
+                return ""; // There is no path representation for URIs like "file://share/home/etc" on linux
+
             auth_path = u.authority().to_string() + u.path().to_string();
-            if (utils::platform::is_windows())
-            {
-                // handle remote locations correctly, like \\server\path
+
+            if (!std::regex_search(auth_path, uri_like_windows_path))
+                // handle remote locations correctly, like \\server\path, if the auth doesn't start with e.g. C:/
                 auth_path = "//" + auth_path;
-            }
         }
         else
         {
             network::string_view path = u.path();
 
-            if (utils::platform::is_windows())
-            {
-                // we get path always beginning with / on windows, e.g. /c:/Users/path
+            if (utils::platform::is_windows() && path.size() >= 2
+                && ((path[0] == '/' || path[0] == '\\') && path[1] != '/' && path[1] != '\\'))
+                // If Windows path begins with exactly 1 slash, remove it e.g. /c:/Users/path -> c:/Users/path
                 path.remove_prefix(1);
-            }
+
             auth_path = path.to_string();
 
             if (utils::platform::is_windows())
@@ -110,8 +114,7 @@ bool is_uri(const std::string& path) noexcept
         return false;
 
     // one letter schemas are valid, but Windows paths collide
-    if (static const std::regex uri_like_windows_path("^[A-Za-z]:");
-        std::regex_search(path.begin(), path.end(), uri_like_windows_path))
+    if (std::regex_search(path.begin(), path.end(), uri_like_windows_path))
         return false;
 
     try

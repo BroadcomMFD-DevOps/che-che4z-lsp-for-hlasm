@@ -120,6 +120,33 @@ const std::string pgroups_file_pattern_uri_2 = is_windows() ? R"({
   ]
 })";
 
+const std::string pgroups_file_pattern_uri_non_standard_0 = R"({
+  "pgroups": [
+    {
+      "name": "P1",
+      "libs": [ "file:C%3A/User/ws/pattern_test/libs/**" ]
+    }
+  ]
+})";
+
+const std::string pgroups_file_pattern_uri_non_standard_1 = R"({
+  "pgroups": [
+    {
+      "name": "P1",
+      "libs": [ "file:/C%3A/User/ws/pattern_test/libs/**" ]
+    }
+  ]
+})";
+
+const std::string pgroups_file_pattern_uri_non_standard_2 = R"({
+  "pgroups": [
+    {
+      "name": "P1",
+      "libs": [ "file://C%3A/User/ws/pattern_test/libs/**" ]
+    }
+  ]
+})";
+
 const std::string pgroups_file_combination = is_windows() ? R"({
   "pgroups": [
     {
@@ -183,6 +210,9 @@ enum class pgroup_variants
     RELATIVE_3,
     URI,
     URI_2,
+    URI_NON_STANDARD_0,
+    URI_NON_STANDARD_1,
+    URI_NON_STANDARD_2,
     COMBINATION
 };
 
@@ -243,6 +273,12 @@ class file_manager_lib_pattern : public file_manager_impl
                 return pgroups_file_pattern_uri;
             case pgroup_variants::URI_2:
                 return pgroups_file_pattern_uri_2;
+            case pgroup_variants::URI_NON_STANDARD_0:
+                return pgroups_file_pattern_uri_non_standard_0;
+            case pgroup_variants::URI_NON_STANDARD_1:
+                return pgroups_file_pattern_uri_non_standard_1;
+            case pgroup_variants::URI_NON_STANDARD_2:
+                return pgroups_file_pattern_uri_non_standard_2;
             case pgroup_variants::COMBINATION:
                 return pgroups_file_combination;
         }
@@ -429,6 +465,26 @@ void verify_uri_2(pgmconf_variants pgmconf_variant)
     ws.did_open_file(pattern_test_source_loc);
 }
 
+void verify_uri_non_standard(pgroup_variants pgroup_variant, pgmconf_variants pgmconf_variant)
+{
+    file_manager_lib_pattern file_manager(pgroup_variant, pgmconf_variant);
+    lib_config config;
+
+    workspace ws(ws_loc, "workspace_name", file_manager, config);
+    ws.open();
+
+    EXPECT_CALL(file_manager, list_directory_files(pattern_test_lib_loc))
+        .WillOnce(::testing::Return(list_directory_result { {}, hlasm_plugin::utils::path::list_directory_rc::done }));
+    EXPECT_CALL(file_manager, list_directory_files(pattern_test_lib_sublib1_loc))
+        .WillOnce(::testing::Return(list_directory_result {
+            { { "mac1", pattern_test_macro1_loc } }, hlasm_plugin::utils::path::list_directory_rc::done }));
+    EXPECT_CALL(file_manager, list_directory_files(pattern_test_lib_sublib2_loc))
+        .WillOnce(::testing::Return(list_directory_result {
+            { { "mac2", pattern_test_macro2_loc } }, hlasm_plugin::utils::path::list_directory_rc::done }));
+
+    ws.did_open_file(pattern_test_source_loc);
+}
+
 void verify_combination(pgmconf_variants pgmconf_variant)
 {
     file_manager_lib_pattern file_manager(pgroup_variants::COMBINATION, pgmconf_variant);
@@ -483,6 +539,41 @@ TEST(workspace_pattern_test, uri_2) { verify_uri_2(pgmconf_variants::PLATFORM_DE
 
 TEST(workspace_pattern_test, uri_2_independent) { verify_uri_2(pgmconf_variants::PLATFORM_INDEPENDENT); }
 
+TEST(workspace_pattern_test, uri_non_standard_0)
+{
+    if (hlasm_plugin::utils::platform::is_windows())
+        verify_uri_non_standard(pgroup_variants::URI_NON_STANDARD_0, pgmconf_variants::PLATFORM_DEPENDENT);
+}
+
+TEST(workspace_pattern_test, uri_non_standard_0_independent)
+{
+    if (hlasm_plugin::utils::platform::is_windows())
+        verify_uri_non_standard(pgroup_variants::URI_NON_STANDARD_0, pgmconf_variants::PLATFORM_INDEPENDENT);
+}
+
+TEST(workspace_pattern_test, uri_non_standard_1)
+{
+    if (hlasm_plugin::utils::platform::is_windows())
+        verify_uri_non_standard(pgroup_variants::URI_NON_STANDARD_1, pgmconf_variants::PLATFORM_DEPENDENT);
+}
+
+TEST(workspace_pattern_test, uri_non_standard_1_independent)
+{
+    if (hlasm_plugin::utils::platform::is_windows())
+        verify_uri_non_standard(pgroup_variants::URI_NON_STANDARD_1, pgmconf_variants::PLATFORM_INDEPENDENT);
+}
+
+TEST(workspace_pattern_test, uri_non_standard_2)
+{
+    if (hlasm_plugin::utils::platform::is_windows())
+        verify_uri_non_standard(pgroup_variants::URI_NON_STANDARD_2, pgmconf_variants::PLATFORM_DEPENDENT);
+}
+
+TEST(workspace_pattern_test, uri_non_standard_2_independent)
+{
+    if (hlasm_plugin::utils::platform::is_windows())
+        verify_uri_non_standard(pgroup_variants::URI_NON_STANDARD_2, pgmconf_variants::PLATFORM_INDEPENDENT);
+}
 TEST(workspace_pattern_test, combination) { verify_combination(pgmconf_variants::PLATFORM_DEPENDENT); }
 
 TEST(workspace_pattern_test, combination_independent) { verify_combination(pgmconf_variants::PLATFORM_INDEPENDENT); }

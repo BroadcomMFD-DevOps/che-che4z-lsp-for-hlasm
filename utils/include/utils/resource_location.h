@@ -33,6 +33,8 @@ public:
     std::string to_presentable(bool debug = false) const;
 
     // Lexically functions behave very similarly to std::filesystem functions
+    // Additionally tries to normalize URIs containing file scheme on Windows (file:C:/dir or file:/C:/dir or
+    // file://C:/dir -> or file:///C://dir)
     std::string lexically_normal() const;
     std::string lexically_relative(const resource_location& base) const;
     bool lexically_out_of_scope() const;

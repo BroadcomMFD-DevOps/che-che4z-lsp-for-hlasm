@@ -12,6 +12,8 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
+#include <vector>
+
 #include "gtest/gtest.h"
 
 #include "utils/platform.h"
@@ -41,7 +43,7 @@ TEST(resource_location, non_supported_uri)
     EXPECT_EQ(res.get_path(), "");
 }
 
-TEST(resource_location, file_uri)
+TEST(resource_location, file_uri_empty_auth)
 {
     if (is_windows())
     {
@@ -54,6 +56,71 @@ TEST(resource_location, file_uri)
         resource_location res("file:///home/user/somefile");
         EXPECT_EQ(res.get_uri(), "file:///home/user/somefile");
         EXPECT_EQ(res.get_path(), "/home/user/somefile");
+    }
+}
+
+TEST(resource_location, file_uri_non_empty_auth)
+{
+    if (is_windows())
+    {
+        resource_location res("file://share/c%3A/Public");
+        EXPECT_EQ(res.get_uri(), "file://share/c%3A/Public");
+        EXPECT_EQ(res.get_path(), "\\\\share\\c:\\Public");
+    }
+    else
+    {
+        resource_location res("file://share/home/user/somefile");
+        EXPECT_EQ(res.get_uri(), "file://share/home/user/somefile");
+        EXPECT_EQ(res.get_path(), "");
+    }
+}
+
+TEST(resource_location, file_uri_non_standard_0)
+{
+    if (is_windows())
+    {
+        resource_location res("file:C%3A/Public");
+        EXPECT_EQ(res.get_uri(), "file:C%3A/Public");
+        EXPECT_EQ(res.get_path(), "c:\\Public");
+    }
+    else
+    {
+        resource_location res("file:home/user/somefile");
+        EXPECT_EQ(res.get_uri(), "file:home/user/somefile");
+        EXPECT_EQ(res.get_path(), "home/user/somefile");
+    }
+}
+
+TEST(resource_location, file_uri_non_standard_1)
+{
+    if (is_windows())
+    {
+        resource_location res("file:/c%3A/Public");
+        EXPECT_EQ(res.get_uri(), "file:/c%3A/Public");
+        EXPECT_EQ(res.get_path(), "c:\\Public");
+    }
+    else
+    {
+        resource_location res("file:/home/user/somefile");
+        EXPECT_EQ(res.get_uri(), "file:/home/user/somefile");
+        EXPECT_EQ(res.get_path(), "/home/user/somefile");
+    }
+}
+
+
+TEST(resource_location, file_uri_non_standard_2)
+{
+    if (is_windows())
+    {
+        resource_location res("file://c%3A/Public");
+        EXPECT_EQ(res.get_uri(), "file://c%3A/Public");
+        EXPECT_EQ(res.get_path(), "c:\\Public");
+    }
+    else
+    {
+        resource_location res("file://home/user/somefile");
+        EXPECT_EQ(res.get_uri(), "file://home/user/somefile");
+        EXPECT_EQ(res.get_path(), "");
     }
 }
 
@@ -346,6 +413,60 @@ TEST(resource_location, lexically_normal_slashes)
     EXPECT_EQ(resource_location("file:///.\\.\\file").lexically_normal(), "file:///file");
     EXPECT_EQ(resource_location("file:\\\\\\C:\\file").lexically_normal(), "file:///C:/file");
     EXPECT_EQ(resource_location("file:\\\\\\C:\\.\\dir\\.").lexically_normal(), "file:///C:/dir/");
+}
+
+TEST(resource_location, lexically_normal_file_scheme)
+{
+    if (hlasm_plugin::utils::platform::is_windows())
+    {
+        EXPECT_EQ(resource_location("file:C:/Dir/").lexically_normal(), "file:///C:/Dir/");
+        EXPECT_EQ(resource_location("file:C%3a/Dir/").lexically_normal(), "file:///C%3a/Dir/");
+        EXPECT_EQ(resource_location("file:C%3A/Dir/").lexically_normal(), "file:///C%3A/Dir/");
+
+        EXPECT_EQ(resource_location("file:/C:/Dir/").lexically_normal(), "file:///C:/Dir/");
+        EXPECT_EQ(resource_location("file:/C%3a/Dir/").lexically_normal(), "file:///C%3a/Dir/");
+        EXPECT_EQ(resource_location("file:/C%3A/Dir/").lexically_normal(), "file:///C%3A/Dir/");
+        EXPECT_EQ(resource_location("file:\\C:/Dir/").lexically_normal(), "file:///C:/Dir/");
+        EXPECT_EQ(resource_location("file:\\C%3a/Dir/").lexically_normal(), "file:///C%3a/Dir/");
+        EXPECT_EQ(resource_location("file:\\C%3A/Dir/").lexically_normal(), "file:///C%3A/Dir/");
+
+        EXPECT_EQ(resource_location("file://C:/Dir/").lexically_normal(), "file:///C:/Dir/");
+        EXPECT_EQ(resource_location("file://C%3a/Dir/").lexically_normal(), "file:///C%3a/Dir/");
+        EXPECT_EQ(resource_location("file://C%3A/Dir/").lexically_normal(), "file:///C%3A/Dir/");
+        EXPECT_EQ(resource_location("file:\\\\C:/Dir/").lexically_normal(), "file:///C:/Dir/");
+        EXPECT_EQ(resource_location("file:\\\\C%3a/Dir/").lexically_normal(), "file:///C%3a/Dir/");
+        EXPECT_EQ(resource_location("file:\\\\C%3A/Dir/").lexically_normal(), "file:///C%3A/Dir/");
+
+        EXPECT_EQ(resource_location("file:///C:/Dir/").lexically_normal(), "file:///C:/Dir/");
+        EXPECT_EQ(resource_location("file:///C%3a/Dir/").lexically_normal(), "file:///C%3a/Dir/");
+        EXPECT_EQ(resource_location("file:///C%3A/Dir/").lexically_normal(), "file:///C%3A/Dir/");
+        EXPECT_EQ(resource_location("file:\\\\\\C:/Dir/").lexically_normal(), "file:///C:/Dir/");
+        EXPECT_EQ(resource_location("file:\\\\\\C%3a/Dir/").lexically_normal(), "file:///C%3a/Dir/");
+        EXPECT_EQ(resource_location("file:\\\\\\C%3A/Dir/").lexically_normal(), "file:///C%3A/Dir/");
+
+        EXPECT_EQ(resource_location("file://///C://Dir//").lexically_normal(), "file:///C:/Dir/");
+        EXPECT_EQ(resource_location("file://///C%3a//Dir//").lexically_normal(), "file:///C%3a/Dir/");
+        EXPECT_EQ(resource_location("file://///C%3A//Dir//").lexically_normal(), "file:///C%3A/Dir/");
+        EXPECT_EQ(resource_location("file:\\\\\\\\\\C://Dir//").lexically_normal(), "file:///C:/Dir/");
+        EXPECT_EQ(resource_location("file:\\\\\\\\\\C%3a//Dir//").lexically_normal(), "file:///C%3a/Dir/");
+        EXPECT_EQ(resource_location("file:\\\\\\\\\\C%3A//Dir//").lexically_normal(), "file:///C%3A/Dir/");
+    }
+    else
+    {
+        EXPECT_EQ(resource_location("file:relative/Dir/").lexically_normal(), "file:relative/Dir/");
+        EXPECT_EQ(resource_location("file:relative\\Dir/").lexically_normal(), "file:relative/Dir/");
+        EXPECT_EQ(resource_location("file:/absolute/Dir/").lexically_normal(), "file:/absolute/Dir/");
+        EXPECT_EQ(resource_location("file:\\absolute\\Dir/").lexically_normal(), "file:/absolute/Dir/");
+        EXPECT_EQ(resource_location("file://host/Dir/").lexically_normal(), "file://host/Dir/");
+        EXPECT_EQ(resource_location("file:\\host\\Dir/").lexically_normal(), "file://host/Dir/");
+    }
+
+    EXPECT_EQ(resource_location("").lexically_normal(), "");
+    EXPECT_EQ(resource_location("file:").lexically_normal(), "file:");
+    EXPECT_EQ(resource_location("file://host/C:/Dir/").lexically_normal(), "file://host/C:/Dir/");
+    EXPECT_EQ(resource_location("file:\\\\host/C:/Dir/").lexically_normal(), "file://host/C:/Dir/");
+    EXPECT_EQ(resource_location("aaa:C:/Dir/").lexically_normal(), "aaa:C:/Dir/");
+    EXPECT_EQ(resource_location(":C:/Dir/").lexically_normal(), ":C:/Dir/");
 }
 
 TEST(resource_location, lexically_normal_rfc_3986)

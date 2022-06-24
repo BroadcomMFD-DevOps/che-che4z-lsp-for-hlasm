@@ -19,8 +19,10 @@
 #include <cstddef>
 #include <deque>
 #include <iterator>
+#include <regex>
 
 #include "utils/path_conversions.h"
+#include "utils/platform.h"
 
 namespace hlasm_plugin::utils::resource {
 
@@ -188,6 +190,53 @@ std::string normalize_path(std::string_view path)
 
     return ret;
 }
+
+void normalize_file_scheme(utils::path::dissected_uri& dis_uri)
+{
+    if (dis_uri.scheme == "file")
+    {
+        if (!utils::platform::is_windows())
+            return;
+
+        static const std::regex host_like_windows_path("^([A-Za-z]($|:$|%3[aA]$))");
+        static const std::regex path_like_windows_path("^(|[/]|[//])[A-Za-z](?::|%3[aA])");
+        if (std::smatch s; dis_uri.auth.has_value() && (!dis_uri.auth->port.has_value() || dis_uri.auth->port->empty())
+            && (!dis_uri.auth->user_info.has_value() || dis_uri.auth->user_info->empty())
+            && std::regex_search(dis_uri.auth->host, s, host_like_windows_path))
+        {
+            // auth consists only of host name resembling Windows drive
+
+            // Construct new path
+            std::string new_path = "/";
+            new_path.append(s[1].str());
+
+            // If drive letter is captured without colon -> append it
+            if (s[1].length() == 1)
+                new_path.append(":");
+
+            new_path.append(dis_uri.path);
+            dis_uri.path = std::move(new_path);
+
+            // Clear host but keep in mind that it needs to remain valid (albeit empty)
+            dis_uri.auth->host.clear();
+
+            // port and user_info have zero length in the worst case -> assign nullopt
+            dis_uri.auth->port = std::nullopt;
+            dis_uri.auth->user_info = std::nullopt;
+        }
+        else if (!dis_uri.auth.has_value() && std::regex_search(dis_uri.path, s, path_like_windows_path))
+        {
+            // Seems like we have a windows like path
+            std::string slashes;
+            for (auto i = 3 - s[1].length(); i != 0; i--)
+            {
+                slashes.push_back('/');
+            }
+
+            dis_uri.path.insert(0, slashes);
+        }
+    }
+}
 } // namespace
 
 std::string resource_location::lexically_normal() const
@@ -201,6 +250,8 @@ std::string resource_location::lexically_normal() const
         return uri;
 
     dis_uri.path = normalize_path(dis_uri.path);
+
+    normalize_file_scheme(dis_uri);
 
     return utils::path::reconstruct_uri(dis_uri);
 }
