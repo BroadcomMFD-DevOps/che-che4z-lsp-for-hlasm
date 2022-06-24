@@ -686,7 +686,7 @@ void workspace::process_processor_group(
         else
             find_and_add_libs(utils::resource::resource_location(
                                   rl.get_uri().substr(0, rl.get_uri().find_last_of("/", rl.get_uri().find('*')) + 1)),
-                std::move(rl),
+                rl,
                 prc_grp,
                 lib_local_opts);
     }
