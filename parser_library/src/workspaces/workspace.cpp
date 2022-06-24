@@ -668,11 +668,19 @@ void workspace::process_processor_group(
 {
     processor_group prc_grp(pg.name, pg.asm_options, pg.preprocessor);
 
-    for (const auto& lib : pg.libs)
+    for (auto& lib : pg.libs)
     {
+        std::optional<std::string> lib_path;
+        if (lib_path = substitute_home_directory(lib.path); !lib_path.has_value())
+        {
+            config_diags_.push_back(diagnostic_s::warning_L0006(lib.path));
+            continue;
+        }
+
         auto lib_local_opts = get_library_local_options(lib, proc_groups, pgm_config);
 
-        if (auto [rl, has_wildcards] = construct_and_analyze_lib_resource_location(lib.path, location_); !has_wildcards)
+        if (auto [rl, has_wildcards] = construct_and_analyze_lib_resource_location(*lib_path, location_);
+            !has_wildcards)
             prc_grp.add_library(
                 std::make_unique<library_local>(file_manager_, std::move(rl), std::move(lib_local_opts)));
         else
@@ -690,18 +698,14 @@ void workspace::process_program(const config::program_mapping& pgm, const file_p
 {
     if (proc_grps_.find(pgm.pgroup) != proc_grps_.end())
     {
-        std::string pgm_name = pgm.program;
-        if (auto sp = substitute_home_directory(pgm_name); sp.has_value())
-            pgm_name = std::move(sp.value());
-        else
+        std::optional<std::string> pgm_name;
+        if (pgm_name = substitute_home_directory(pgm.program); !pgm_name.has_value())
         {
-            config_diags_.push_back(diagnostic_s::warning_L0006(pgm_name));
+            config_diags_.push_back(diagnostic_s::warning_L0006(pgm.program));
             return;
         }
 
-        auto rl = transform_to_resource_location(pgm_name, location_);
-
-        if (!is_wildcard(rl.get_uri()))
+        if (auto rl = transform_to_resource_location(*pgm_name, location_); !is_wildcard(rl.get_uri()))
             exact_pgm_conf_.try_emplace(rl, rl, pgm.pgroup, pgm.opts);
         else
             regex_pgm_conf_.emplace_back(program { rl, pgm.pgroup, pgm.opts }, wildcard2regex(rl.get_uri()));
