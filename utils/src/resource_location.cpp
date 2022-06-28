@@ -482,9 +482,7 @@ resource_location resource_location::relative_reference_resolution(resource_loca
 namespace {
 std::strong_ordering string_compare(std::string_view a, std::string_view b)
 {
-    auto res = a.compare(b);
-
-    if (res < 0)
+    if (auto res = a.compare(b); res < 0)
         return std::strong_ordering::less;
     else if (res > 0)
         return std::strong_ordering::greater;
@@ -500,7 +498,8 @@ std::strong_ordering resource_location::operator<=>(const resource_location& rl)
             rl.m_uri); // TODO replace this and others with 'return m_uri <=> rl.m_uri' when new version of Clang is
                        // available
 
-    std::smatch this_smatch, other_smatch;
+    std::smatch this_smatch;
+    std::smatch other_smatch;
 
     // Determine if this is a file scheme with windows drive letter
     if (static const std::regex file_scheme_windows("^file:///([A-Za-z])(?::|%3[aA])");
