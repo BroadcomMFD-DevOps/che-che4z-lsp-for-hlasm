@@ -165,7 +165,7 @@ const std::string pgroups_file_combination = is_windows() ? R"({
   ]
 })";
 
-const std::string pgmconf_file_platform_dependent_slashes = is_windows() ? R"({
+const std::string pgmconf_file_relative_platform_dependent_slashes = is_windows() ? R"({
   "pgms": [
 	{
       "program": "pattern_test\\source",
@@ -173,7 +173,7 @@ const std::string pgmconf_file_platform_dependent_slashes = is_windows() ? R"({
     }
   ]
 })"
-                                                                         : R"({
+                                                                                  : R"({
   "pgms": [
 	{
       "program": "pattern_test/source",
@@ -182,10 +182,122 @@ const std::string pgmconf_file_platform_dependent_slashes = is_windows() ? R"({
   ]
 })";
 
-const std::string pgmconf_file_platform_independent_slashes = R"({
+const std::string pgmconf_file_relative_platform_independent_slashes = R"({
   "pgms": [
 	{
       "program": "pattern_test/source",
+      "pgroup": "P1"
+    }
+  ]
+})";
+
+const std::string pgmconf_file_relative_wild = is_windows() ? R"({
+  "pgms": [
+	{
+      "program": "patter*s*\\*",
+      "pgroup": "P1"
+    }
+  ]
+})"
+                                                            : R"({
+  "pgms": [
+	{
+      "program": "patter*s*/*",
+      "pgroup": "P1"
+    }
+  ]
+})";
+
+const std::string pgmconf_file_absolute = is_windows() ? R"({
+  "pgms": [
+	{
+      "program": "C:/User/ws/pattern_test/source",
+      "pgroup": "P1"
+    }
+  ]
+})"
+                                                       : R"({
+  "pgms": [
+	{
+      "program": "/home/User/ws/pattern_test/source",
+      "pgroup": "P1"
+    }
+  ]
+})";
+
+const std::string pgmconf_file_uri_full = is_windows() ? R"({
+  "pgms": [
+	{
+      "program": "file:///C%3A/User/ws/pattern_test/source",
+      "pgroup": "P1"
+    }
+  ]
+})"
+                                                       : R"({
+  "pgms": [
+	{
+      "program": "file:////home/User/ws/pattern_test/source",
+      "pgroup": "P1"
+    }
+  ]
+})";
+
+const std::string pgmconf_file_platform_uri_wild_01 = is_windows() ? R"({
+  "pgms": [
+	{
+      "program": "file:///C:/User/ws/*/source",
+      "pgroup": "P1"
+    }
+  ]
+})"
+                                                                   : R"({
+  "pgms": [
+	{
+      "program": "file:////home/User/ws/*/source",
+      "pgroup": "P1"
+    }
+  ]
+})";
+
+const std::string pgmconf_file_platform_uri_wild_02 = is_windows() ? R"({
+  "pgms": [
+	{
+      "program": "file:///C:/User/ws/pattern_*est/source",
+      "pgroup": "P1"
+    }
+  ]
+})"
+                                                                   : R"({
+  "pgms": [
+	{
+      "program": "file:////home/User/ws/pattern_*est/source",
+      "pgroup": "P1"
+    }
+  ]
+})";
+
+const std::string pgmconf_file_platform_file_scheme_non_standard_0 = R"({
+  "pgms": [
+	{
+      "program": "file:c%3A/User/ws/pattern_test/sou*ce",
+      "pgroup": "P1"
+    }
+  ]
+})";
+
+const std::string pgmconf_file_platform_file_scheme_non_standard_1 = R"({
+  "pgms": [
+	{
+      "program": "file:/C%3a/User/ws/pattern_**/source",
+      "pgroup": "P1"
+    }
+  ]
+})";
+
+const std::string pgmconf_file_platform_file_scheme_non_standard_2 = R"({
+  "pgms": [
+	{
+      "program": "file://c:/User/**/patter*_test/source",
       "pgroup": "P1"
     }
   ]
@@ -219,8 +331,16 @@ enum class pgroup_variants
 
 enum class pgmconf_variants
 {
-    PLATFORM_DEPENDENT,
-    PLATFORM_INDEPENDENT
+    RELATIVE_PLATFORM_DEPENDENT,
+    RELATIVE_PLATFORM_INDEPENDENT,
+    RELATIVE_WILD,
+    ABSOLUTE,
+    URI_FULL,
+    URI_WILD_01,
+    URI_WILD_02,
+    URI_NON_STANDARD_0,
+    URI_NON_STANDARD_1,
+    URI_NON_STANDARD_2
 };
 
 const auto root_dir_loc = is_windows() ? resource_location("file:///C%3A/") : resource_location("file:///home/");
@@ -291,10 +411,26 @@ protected:
     {
         switch (variant)
         {
-            case pgmconf_variants::PLATFORM_DEPENDENT:
-                return pgmconf_file_platform_dependent_slashes;
-            case pgmconf_variants::PLATFORM_INDEPENDENT:
-                return pgmconf_file_platform_independent_slashes;
+            case pgmconf_variants::RELATIVE_PLATFORM_DEPENDENT:
+                return pgmconf_file_relative_platform_dependent_slashes;
+            case pgmconf_variants::RELATIVE_PLATFORM_INDEPENDENT:
+                return pgmconf_file_relative_platform_independent_slashes;
+            case pgmconf_variants::RELATIVE_WILD:
+                return pgmconf_file_relative_wild;
+            case pgmconf_variants::ABSOLUTE:
+                return pgmconf_file_absolute;
+            case pgmconf_variants::URI_FULL:
+                return pgmconf_file_uri_full;
+            case pgmconf_variants::URI_WILD_01:
+                return pgmconf_file_platform_uri_wild_01;
+            case pgmconf_variants::URI_WILD_02:
+                return pgmconf_file_platform_uri_wild_02;
+            case pgmconf_variants::URI_NON_STANDARD_0:
+                return pgmconf_file_platform_file_scheme_non_standard_0;
+            case pgmconf_variants::URI_NON_STANDARD_1:
+                return pgmconf_file_platform_file_scheme_non_standard_1;
+            case pgmconf_variants::URI_NON_STANDARD_2:
+                return pgmconf_file_platform_file_scheme_non_standard_2;
         }
         throw std::logic_error("Not implemented");
     }
@@ -524,68 +660,108 @@ void verify_combination(pgmconf_variants pgmconf_variant)
     ws.did_open_file(pattern_test_source_loc);
 }
 
-TEST(workspace_pattern_test, absolute) { verify_absolute(pgmconf_variants::PLATFORM_DEPENDENT); }
+TEST(workspace_pattern_test, absolute) { verify_absolute(pgmconf_variants::RELATIVE_PLATFORM_DEPENDENT); }
 
-TEST(workspace_pattern_test, absolute_independent) { verify_absolute(pgmconf_variants::PLATFORM_INDEPENDENT); }
+TEST(workspace_pattern_test, absolute_independent) { verify_absolute(pgmconf_variants::RELATIVE_PLATFORM_INDEPENDENT); }
 
-TEST(workspace_pattern_test, relative_1) { verify_relative_1(pgmconf_variants::PLATFORM_DEPENDENT); }
+TEST(workspace_pattern_test, relative_1) { verify_relative_1(pgmconf_variants::RELATIVE_PLATFORM_DEPENDENT); }
 
-TEST(workspace_pattern_test, relative_1_independent) { verify_relative_1(pgmconf_variants::PLATFORM_INDEPENDENT); }
+TEST(workspace_pattern_test, relative_1_independent)
+{
+    verify_relative_1(pgmconf_variants::RELATIVE_PLATFORM_INDEPENDENT);
+}
 
-TEST(workspace_pattern_test, relative_2) { verify_relative_2(pgmconf_variants::PLATFORM_DEPENDENT); }
+TEST(workspace_pattern_test, relative_2) { verify_relative_2(pgmconf_variants::RELATIVE_PLATFORM_DEPENDENT); }
 
-TEST(workspace_pattern_test, relative_2_independent) { verify_relative_2(pgmconf_variants::PLATFORM_INDEPENDENT); }
+TEST(workspace_pattern_test, relative_2_independent)
+{
+    verify_relative_2(pgmconf_variants::RELATIVE_PLATFORM_INDEPENDENT);
+}
 
-TEST(workspace_pattern_test, relative_3) { verify_relative_3(pgmconf_variants::PLATFORM_DEPENDENT); }
+TEST(workspace_pattern_test, relative_3) { verify_relative_3(pgmconf_variants::RELATIVE_PLATFORM_DEPENDENT); }
 
-TEST(workspace_pattern_test, relative_3_independent) { verify_relative_3(pgmconf_variants::PLATFORM_INDEPENDENT); }
+TEST(workspace_pattern_test, relative_3_independent)
+{
+    verify_relative_3(pgmconf_variants::RELATIVE_PLATFORM_INDEPENDENT);
+}
 
-TEST(workspace_pattern_test, uri_1) { verify_uri_1(pgmconf_variants::PLATFORM_DEPENDENT); }
+TEST(workspace_pattern_test, uri_1) { verify_uri_1(pgmconf_variants::RELATIVE_PLATFORM_DEPENDENT); }
 
-TEST(workspace_pattern_test, uri_1_independent) { verify_uri_1(pgmconf_variants::PLATFORM_INDEPENDENT); }
+TEST(workspace_pattern_test, uri_1_independent) { verify_uri_1(pgmconf_variants::RELATIVE_PLATFORM_INDEPENDENT); }
 
-TEST(workspace_pattern_test, uri_2) { verify_uri_2(pgmconf_variants::PLATFORM_DEPENDENT); }
+TEST(workspace_pattern_test, uri_2) { verify_uri_2(pgmconf_variants::RELATIVE_PLATFORM_DEPENDENT); }
 
-TEST(workspace_pattern_test, uri_2_independent) { verify_uri_2(pgmconf_variants::PLATFORM_INDEPENDENT); }
+TEST(workspace_pattern_test, uri_2_independent) { verify_uri_2(pgmconf_variants::RELATIVE_PLATFORM_INDEPENDENT); }
 
 TEST(workspace_pattern_test, uri_non_standard_0)
 {
-    if (hlasm_plugin::utils::platform::is_windows())
-        verify_uri_non_standard(pgroup_variants::URI_NON_STANDARD_0, pgmconf_variants::PLATFORM_DEPENDENT);
+    if (is_windows())
+        verify_uri_non_standard(pgroup_variants::URI_NON_STANDARD_0, pgmconf_variants::RELATIVE_PLATFORM_DEPENDENT);
 }
 
 TEST(workspace_pattern_test, uri_non_standard_0_independent)
 {
-    if (hlasm_plugin::utils::platform::is_windows())
-        verify_uri_non_standard(pgroup_variants::URI_NON_STANDARD_0, pgmconf_variants::PLATFORM_INDEPENDENT);
+    if (is_windows())
+        verify_uri_non_standard(pgroup_variants::URI_NON_STANDARD_0, pgmconf_variants::RELATIVE_PLATFORM_INDEPENDENT);
 }
 
 TEST(workspace_pattern_test, uri_non_standard_1)
 {
-    if (hlasm_plugin::utils::platform::is_windows())
-        verify_uri_non_standard(pgroup_variants::URI_NON_STANDARD_1, pgmconf_variants::PLATFORM_DEPENDENT);
+    if (is_windows())
+        verify_uri_non_standard(pgroup_variants::URI_NON_STANDARD_1, pgmconf_variants::RELATIVE_PLATFORM_DEPENDENT);
 }
 
 TEST(workspace_pattern_test, uri_non_standard_1_independent)
 {
-    if (hlasm_plugin::utils::platform::is_windows())
-        verify_uri_non_standard(pgroup_variants::URI_NON_STANDARD_1, pgmconf_variants::PLATFORM_INDEPENDENT);
+    if (is_windows())
+        verify_uri_non_standard(pgroup_variants::URI_NON_STANDARD_1, pgmconf_variants::RELATIVE_PLATFORM_INDEPENDENT);
 }
 
 TEST(workspace_pattern_test, uri_non_standard_2)
 {
-    if (hlasm_plugin::utils::platform::is_windows())
-        verify_uri_non_standard(pgroup_variants::URI_NON_STANDARD_2, pgmconf_variants::PLATFORM_DEPENDENT);
+    if (is_windows())
+        verify_uri_non_standard(pgroup_variants::URI_NON_STANDARD_2, pgmconf_variants::RELATIVE_PLATFORM_DEPENDENT);
 }
 
 TEST(workspace_pattern_test, uri_non_standard_2_independent)
 {
-    if (hlasm_plugin::utils::platform::is_windows())
-        verify_uri_non_standard(pgroup_variants::URI_NON_STANDARD_2, pgmconf_variants::PLATFORM_INDEPENDENT);
+    if (is_windows())
+        verify_uri_non_standard(pgroup_variants::URI_NON_STANDARD_2, pgmconf_variants::RELATIVE_PLATFORM_INDEPENDENT);
 }
-TEST(workspace_pattern_test, combination) { verify_combination(pgmconf_variants::PLATFORM_DEPENDENT); }
+TEST(workspace_pattern_test, combination) { verify_combination(pgmconf_variants::RELATIVE_PLATFORM_DEPENDENT); }
 
-TEST(workspace_pattern_test, combination_independent) { verify_combination(pgmconf_variants::PLATFORM_INDEPENDENT); }
+TEST(workspace_pattern_test, combination_independent)
+{
+    verify_combination(pgmconf_variants::RELATIVE_PLATFORM_INDEPENDENT);
+}
+
+TEST(workspace_pattern_test, pgm_conf_relative_wild) { verify_combination(pgmconf_variants::RELATIVE_WILD); }
+
+TEST(workspace_pattern_test, pgm_conf_absolute) { verify_combination(pgmconf_variants::ABSOLUTE); }
+
+TEST(workspace_pattern_test, pgm_conf_uri_full) { verify_combination(pgmconf_variants::URI_FULL); }
+
+TEST(workspace_pattern_test, pgm_conf_uri_wild_01) { verify_combination(pgmconf_variants::URI_WILD_01); }
+
+TEST(workspace_pattern_test, pgm_conf_uri_wild_02) { verify_combination(pgmconf_variants::URI_WILD_02); }
+
+TEST(workspace_pattern_test, pgm_conf_uri_non_standard_0)
+{
+    if (is_windows())
+        verify_combination(pgmconf_variants::URI_NON_STANDARD_0);
+}
+
+TEST(workspace_pattern_test, pgm_conf_uri_non_standard_1)
+{
+    if (is_windows())
+        verify_combination(pgmconf_variants::URI_NON_STANDARD_1);
+}
+
+TEST(workspace_pattern_test, pgm_conf_uri_non_standard_2)
+{
+    if (is_windows())
+        verify_combination(pgmconf_variants::URI_NON_STANDARD_2);
+}
 
 namespace {
 
@@ -749,30 +925,30 @@ void verify_infinit_loop(pgroup_symlinks_variants pgroup_variant, pgmconf_varian
 
 TEST(workspace_pattern_test, infinit_loop_general)
 {
-    verify_infinit_loop(pgroup_symlinks_variants::INFINIT, pgmconf_variants::PLATFORM_DEPENDENT);
+    verify_infinit_loop(pgroup_symlinks_variants::INFINIT, pgmconf_variants::RELATIVE_PLATFORM_DEPENDENT);
 }
 
 TEST(workspace_pattern_test, infinit_loop_general_independent)
 {
-    verify_infinit_loop(pgroup_symlinks_variants::INFINIT, pgmconf_variants::PLATFORM_INDEPENDENT);
+    verify_infinit_loop(pgroup_symlinks_variants::INFINIT, pgmconf_variants::RELATIVE_PLATFORM_INDEPENDENT);
 }
 
 TEST(workspace_pattern_test, infinit_loop_general_2)
 {
-    verify_infinit_loop(pgroup_symlinks_variants::INFINIT_2, pgmconf_variants::PLATFORM_DEPENDENT);
+    verify_infinit_loop(pgroup_symlinks_variants::INFINIT_2, pgmconf_variants::RELATIVE_PLATFORM_DEPENDENT);
 }
 
 TEST(workspace_pattern_test, infinit_loop_general_2_independent)
 {
-    verify_infinit_loop(pgroup_symlinks_variants::INFINIT_2, pgmconf_variants::PLATFORM_INDEPENDENT);
+    verify_infinit_loop(pgroup_symlinks_variants::INFINIT_2, pgmconf_variants::RELATIVE_PLATFORM_INDEPENDENT);
 }
 
 TEST(workspace_pattern_test, infinit_loop_canonical)
 {
-    verify_infinit_loop(pgroup_symlinks_variants::CANONICAL, pgmconf_variants::PLATFORM_DEPENDENT);
+    verify_infinit_loop(pgroup_symlinks_variants::CANONICAL, pgmconf_variants::RELATIVE_PLATFORM_DEPENDENT);
 }
 
 TEST(workspace_pattern_test, infinit_loop_canonical_independent)
 {
-    verify_infinit_loop(pgroup_symlinks_variants::CANONICAL, pgmconf_variants::PLATFORM_INDEPENDENT);
+    verify_infinit_loop(pgroup_symlinks_variants::CANONICAL, pgmconf_variants::RELATIVE_PLATFORM_INDEPENDENT);
 }

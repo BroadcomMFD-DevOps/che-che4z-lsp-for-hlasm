@@ -719,8 +719,9 @@ library_local_options get_library_local_options(
     return opts;
 }
 
-// Constructs resource location of a library and analyzes if it contains wildcards
-std::pair<utils::resource::resource_location, bool> construct_and_analyze_lib_resource_location(
+// Constructs resource location from a provided path which can be either absolute, relative or uri and analyzes if it
+// contains wildcards
+std::pair<utils::resource::resource_location, bool> construct_and_analyze_resource_location(
     const std::string& lib_path, const utils::resource::resource_location& base)
 {
     auto asterisk = lib_path.find('*');
@@ -738,7 +739,6 @@ std::pair<utils::resource::resource_location, bool> construct_and_analyze_lib_re
     else
         rl = transform_to_resource_location(lib_path, base);
 
-    rl.join(""); // Ensure that this is a directory
     return std::make_pair(utils::resource::resource_location(rl.lexically_normal()), asterisk != std::string::npos);
 }
 } // namespace
@@ -759,16 +759,21 @@ void workspace::process_processor_group(
 
         auto lib_local_opts = get_library_local_options(lib, proc_groups, pgm_config);
 
-        if (auto [rl, has_wildcards] = construct_and_analyze_lib_resource_location(*lib_path, location_);
-            !has_wildcards)
+        if (auto [rl, has_wildcards] = construct_and_analyze_resource_location(*lib_path, location_); !has_wildcards)
+        {
+            rl.join(""); // Ensure that this is a directory
             prc_grp.add_library(
                 std::make_unique<library_local>(file_manager_, std::move(rl), std::move(lib_local_opts)));
+        }
         else
+        {
+            rl.join(""); // Ensure that this is a directory
             find_and_add_libs(utils::resource::resource_location(
                                   rl.get_uri().substr(0, rl.get_uri().find_last_of("/", rl.get_uri().find('*')) + 1)),
                 rl,
                 prc_grp,
                 lib_local_opts);
+        }
     }
 
     add_proc_grp(std::move(prc_grp));
@@ -785,7 +790,7 @@ void workspace::process_program(const config::program_mapping& pgm, const file_p
             return;
         }
 
-        if (auto rl = transform_to_resource_location(*pgm_name, location_); !is_wildcard(rl.get_uri()))
+        if (auto [rl, has_wildcards] = construct_and_analyze_resource_location(*pgm_name, location_); !has_wildcards)
             exact_pgm_conf_.try_emplace(rl, rl, pgm.pgroup, pgm.opts);
         else
             regex_pgm_conf_.emplace_back(program { rl, pgm.pgroup, pgm.opts }, wildcard2regex(rl.get_uri()));
@@ -974,10 +979,6 @@ bool workspace::load_config(config::proc_grps& proc_groups,
     }
 
     return true;
-}
-bool workspace::is_wildcard(const std::string& str)
-{
-    return str.find('*') != std::string::npos || str.find('?') != std::string::npos;
 }
 
 void workspace::filter_and_close_dependencies_(

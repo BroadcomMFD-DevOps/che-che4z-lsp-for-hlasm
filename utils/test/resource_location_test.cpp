@@ -669,3 +669,127 @@ TEST(resource_location, relative_reference_resolution_rfc_3986_strict_parsers)
 
     EXPECT_EQ(resource_location::relative_reference_resolution(rl, "http:g").get_uri(), "http:g");
 }
+
+namespace {
+void verify_spaceship_operator(std::string left_colon, std::string right_colon)
+{
+    EXPECT_EQ(resource_location("file:///C" + left_colon).operator<=>(resource_location("file:///C" + right_colon)),
+        std::strong_ordering::equal);
+    EXPECT_EQ(resource_location("file:///c" + left_colon).operator<=>(resource_location("file:///C" + right_colon)),
+        std::strong_ordering::equal);
+    EXPECT_EQ(resource_location("file:///C" + left_colon).operator<=>(resource_location("file:///c" + right_colon)),
+        std::strong_ordering::equal);
+    EXPECT_EQ(resource_location("file:///c" + left_colon).operator<=>(resource_location("file:///c" + right_colon)),
+        std::strong_ordering::equal);
+
+    EXPECT_EQ(resource_location("file:///C" + left_colon + "dir/file")
+                  .
+                  operator<=>(resource_location("file:///C" + right_colon + "dir/file")),
+        std::strong_ordering::equal);
+    EXPECT_EQ(resource_location("file:///c" + left_colon + "dir/file")
+                  .
+                  operator<=>(resource_location("file:///C" + right_colon + "dir/file")),
+        std::strong_ordering::equal);
+    EXPECT_EQ(resource_location("file:///C" + left_colon + "dir/file")
+                  .
+                  operator<=>(resource_location("file:///c" + right_colon + "dir/file")),
+        std::strong_ordering::equal);
+    EXPECT_EQ(resource_location("file:///c" + left_colon + "dir/file")
+                  .
+                  operator<=>(resource_location("file:///c" + right_colon + "dir/file")),
+        std::strong_ordering::equal);
+
+    EXPECT_EQ(resource_location("file:///C" + left_colon).operator<=>(resource_location("file:///D" + right_colon)),
+        std::strong_ordering::less);
+    EXPECT_EQ(resource_location("file:///c" + left_colon).operator<=>(resource_location("file:///D" + right_colon)),
+        std::strong_ordering::less);
+    EXPECT_EQ(resource_location("file:///C" + left_colon).operator<=>(resource_location("file:///d" + right_colon)),
+        std::strong_ordering::less);
+    EXPECT_EQ(resource_location("file:///c" + left_colon).operator<=>(resource_location("file:///d" + right_colon)),
+        std::strong_ordering::less);
+
+    EXPECT_EQ(resource_location("file:///C" + left_colon).operator<=>(resource_location("file:///B" + right_colon)),
+        std::strong_ordering::greater);
+    EXPECT_EQ(resource_location("file:///c" + left_colon).operator<=>(resource_location("file:///B" + right_colon)),
+        std::strong_ordering::greater);
+    EXPECT_EQ(resource_location("file:///C" + left_colon).operator<=>(resource_location("file:///b" + right_colon)),
+        std::strong_ordering::greater);
+    EXPECT_EQ(resource_location("file:///c" + left_colon).operator<=>(resource_location("file:///b" + right_colon)),
+        std::strong_ordering::greater);
+
+    EXPECT_EQ(
+        resource_location("file:///c" + left_colon + "/").operator<=>(resource_location("file:///C" + right_colon)),
+        std::strong_ordering::greater);
+    EXPECT_EQ(
+        resource_location("file:///C" + left_colon).operator<=>(resource_location("file:///c" + right_colon + "/")),
+        std::strong_ordering::less);
+}
+
+void verify_equal_operator(std::string left_colon, std::string right_colon)
+{
+    EXPECT_TRUE(resource_location("file:///C" + left_colon).operator==(resource_location("file:///C" + right_colon)));
+    EXPECT_TRUE(resource_location("file:///c" + left_colon).operator==(resource_location("file:///C" + right_colon)));
+    EXPECT_TRUE(resource_location("file:///C" + left_colon).operator==(resource_location("file:///c" + right_colon)));
+    EXPECT_TRUE(resource_location("file:///c" + left_colon).operator==(resource_location("file:///c" + right_colon)));
+
+    EXPECT_TRUE(resource_location("file:///C" + left_colon + "dir/file")
+                    .
+                    operator==(resource_location("file:///C" + right_colon + "dir/file")));
+    EXPECT_TRUE(resource_location("file:///c" + left_colon + "dir/file")
+                    .
+                    operator==(resource_location("file:///C" + right_colon + "dir/file")));
+    EXPECT_TRUE(resource_location("file:///C" + left_colon + "dir/file")
+                    .
+                    operator==(resource_location("file:///c" + right_colon + "dir/file")));
+    EXPECT_TRUE(resource_location("file:///c" + left_colon + "dir/file")
+                    .
+                    operator==(resource_location("file:///c" + right_colon + "dir/file")));
+
+    EXPECT_FALSE(resource_location("file:///C" + left_colon).operator==(resource_location("file:///D" + right_colon)));
+    EXPECT_FALSE(resource_location("file:///c" + left_colon).operator==(resource_location("file:///D" + right_colon)));
+    EXPECT_FALSE(resource_location("file:///C" + left_colon).operator==(resource_location("file:///d" + right_colon)));
+    EXPECT_FALSE(resource_location("file:///c" + left_colon).operator==(resource_location("file:///d" + right_colon)));
+
+    EXPECT_FALSE(resource_location("file:///C" + left_colon).operator==(resource_location("file:///B" + right_colon)));
+    EXPECT_FALSE(resource_location("file:///c" + left_colon).operator==(resource_location("file:///B" + right_colon)));
+    EXPECT_FALSE(resource_location("file:///C" + left_colon).operator==(resource_location("file:///b" + right_colon)));
+    EXPECT_FALSE(resource_location("file:///c" + left_colon).operator==(resource_location("file:///b" + right_colon)));
+
+    EXPECT_FALSE(
+        resource_location("file:///c" + left_colon + "/").operator==(resource_location("file:///C" + right_colon)));
+    EXPECT_FALSE(
+        resource_location("file:///C" + left_colon).operator==(resource_location("file:///c" + right_colon + "/")));
+}
+} // namespace
+
+TEST(resource_location, operator_spaceship)
+{
+    if (hlasm_plugin::utils::platform::is_windows())
+    {
+        verify_spaceship_operator(":", ":");
+        verify_spaceship_operator("%3A", ":");
+        verify_spaceship_operator("%3a", ":");
+        verify_spaceship_operator(":", "%3A");
+        verify_spaceship_operator(":", "%3a");
+        verify_spaceship_operator("%3A", "%3A");
+        verify_spaceship_operator("%3A", "%3a");
+        verify_spaceship_operator("%3a", "%3A");
+        verify_spaceship_operator("%3a", "%3a");
+    }
+}
+
+TEST(resource_location, operator_equal)
+{
+    if (hlasm_plugin::utils::platform::is_windows())
+    {
+        verify_equal_operator(":", ":");
+        verify_equal_operator("%3A", ":");
+        verify_equal_operator("%3a", ":");
+        verify_equal_operator(":", "%3A");
+        verify_equal_operator(":", "%3a");
+        verify_equal_operator("%3A", "%3A");
+        verify_equal_operator("%3A", "%3a");
+        verify_equal_operator("%3a", "%3A");
+        verify_equal_operator("%3a", "%3a");
+    }
+}
