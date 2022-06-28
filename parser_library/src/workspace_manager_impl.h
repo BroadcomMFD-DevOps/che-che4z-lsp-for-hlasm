@@ -30,11 +30,14 @@ namespace hlasm_plugin::parser_library {
 // notifications and requests.
 class workspace_manager::impl final : public diagnosable_impl
 {
+    static constexpr lib_config supress_all { 0 };
+
 public:
     impl(std::atomic<bool>* cancel = nullptr)
         : cancel_(cancel)
         , file_manager_(cancel)
         , implicit_workspace_(file_manager_, global_config_, m_global_settings, cancel)
+        , git_implicit_workspace_(file_manager_, supress_all, m_global_settings, cancel)
     {}
     impl(const impl&) = delete;
     impl& operator=(const impl&) = delete;
@@ -150,6 +153,7 @@ public:
     {
         message_consumer_ = consumer;
         implicit_workspace_.set_message_consumer(consumer);
+        // git_implicit_workspace_.set_message_consumer(consumer); // not now
         for (auto& wks : workspaces_)
             wks.second.set_message_consumer(consumer);
     }
@@ -281,10 +285,12 @@ private:
                 max_ws = &ws.second;
             }
         }
-        if (max_ws == nullptr)
-            return implicit_workspace_;
-        else
+        if (max_ws != nullptr)
             return *max_ws;
+        else if (document_uri.starts_with("git:"))
+            return git_implicit_workspace_;
+        else
+            return implicit_workspace_;
     }
 
     void notify_diagnostics_consumers() const
@@ -323,6 +329,7 @@ private:
     workspaces::file_manager_impl file_manager_;
     std::unordered_map<std::string, workspaces::workspace> workspaces_;
     workspaces::workspace implicit_workspace_;
+    workspaces::workspace git_implicit_workspace_;
 
     std::vector<diagnostics_consumer*> diag_consumers_;
     std::vector<parsing_metadata_consumer*> parsing_metadata_consumers_;
