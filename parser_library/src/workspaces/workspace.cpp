@@ -539,7 +539,7 @@ std::regex pathmask_to_regex(const std::string& input)
 
             case '?':
                 path_started = true;
-                r.push_back('.');
+                r.append("[^/]");
                 s.remove_prefix(1);
                 break;
             case '^':
