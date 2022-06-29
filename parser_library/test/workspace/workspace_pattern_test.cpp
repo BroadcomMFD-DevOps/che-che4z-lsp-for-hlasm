@@ -121,6 +121,23 @@ const std::string pgroups_file_pattern_uri_2 = is_windows() ? R"({
   ]
 })";
 
+const std::string pgroups_file_pattern_uri_3 = is_windows() ? R"({
+  "pgroups": [
+    {
+      "name": "P1",
+      "libs": [ "file:///C%3A/User/ws/pattern_?est/**/sublib1", "file:///C%3A/User/w?/pattern_test/libs/sublib2" ]
+    }
+  ]
+})"
+                                                            : R"({
+  "pgroups": [
+    {
+      "name": "P1",
+      "libs": [ "file:///home/User/ws/pattern_?est/**/sublib1", "file:///home/User/w?/pattern_test/libs/sublib2" ]
+    }
+  ]
+})";
+
 const std::string pgroups_file_pattern_uri_non_standard_0 = R"({
   "pgroups": [
     {
@@ -152,7 +169,7 @@ const std::string pgroups_file_combination = is_windows() ? R"({
   "pgroups": [
     {
       "name": "P1",
-      "libs": [ "C:\\Temp\\Lib", "C:\\Temp\\Lib2\\Libs\\**", "different_libs", "different_libs2\\Libs\\**", "file:///C%3A/User/**/pattern_*est/libs/sublib1", "file:///C%3A/User/ws/pattern_test/libs/sublib2" ]
+      "libs": [ "C:\\Temp\\Lib", "C:\\Temp\\Lib2\\Libs\\**", "different_libs", "different_libs2\\Libs\\**", "file:///C%3A/User/**/pattern_?est/libs/sublib1", "file:///C%3A/User/ws/pattern_test/libs/sublib2" ]
     }
   ]
 })"
@@ -160,7 +177,7 @@ const std::string pgroups_file_combination = is_windows() ? R"({
   "pgroups": [
     {
       "name": "P1",
-      "libs": [ "/home/Temp/Lib", "/home/Temp/Lib2/Libs/**", "different_libs", "different_libs2/Libs/**", "file:///home/User/**/pattern_*est/libs/sublib1", "file:///home/User/ws/pattern_test/libs/sublib2" ]
+      "libs": [ "/home/Temp/Lib", "/home/Temp/Lib2/Libs/**", "different_libs", "different_libs2/Libs/**", "file:///home/User/**/pattern_?est/libs/sublib1", "file:///home/User/ws/pattern_test/libs/sublib2" ]
     }
   ]
 })";
@@ -276,6 +293,57 @@ const std::string pgmconf_file_platform_uri_wild_02 = is_windows() ? R"({
   ]
 })";
 
+const std::string pgmconf_file_platform_uri_wild_03 = is_windows() ? R"({
+  "pgms": [
+	{
+      "program": "file:///C:/User/ws/pattern_?est/source",
+      "pgroup": "P1"
+    }
+  ]
+})"
+                                                                   : R"({
+  "pgms": [
+	{
+      "program": "file:////home/User/ws/pattern_?est/source",
+      "pgroup": "P1"
+    }
+  ]
+})";
+
+const std::string pgmconf_file_platform_uri_wild_04 = is_windows() ? R"({
+  "pgms": [
+	{
+      "program": "file:///C:/User/ws/pattern_?est/s*rce",
+      "pgroup": "P1"
+    }
+  ]
+})"
+                                                                   : R"({
+  "pgms": [
+	{
+      "program": "file:////home/User/ws/pattern_?est/s*rce",
+      "pgroup": "P1"
+    }
+  ]
+})";
+
+const std::string pgmconf_file_platform_uri_wild_05 = is_windows() ? R"({
+  "pgms": [
+	{
+      "program": "file:///C:/User/**/pattern_?est/source",
+      "pgroup": "P1"
+    }
+  ]
+})"
+                                                                   : R"({
+  "pgms": [
+	{
+      "program": "file:////home/User/**/pattern_?est/source",
+      "pgroup": "P1"
+    }
+  ]
+})";
+
 const std::string pgmconf_file_platform_file_scheme_non_standard_0 = R"({
   "pgms": [
 	{
@@ -323,6 +391,7 @@ enum class pgroup_variants
     RELATIVE_3,
     URI,
     URI_2,
+    URI_3,
     URI_NON_STANDARD_0,
     URI_NON_STANDARD_1,
     URI_NON_STANDARD_2,
@@ -338,6 +407,9 @@ enum class pgmconf_variants
     URI_FULL,
     URI_WILD_01,
     URI_WILD_02,
+    URI_WILD_03,
+    URI_WILD_04,
+    URI_WILD_05,
     URI_NON_STANDARD_0,
     URI_NON_STANDARD_1,
     URI_NON_STANDARD_2
@@ -394,6 +466,8 @@ class file_manager_lib_pattern : public file_manager_impl
                 return pgroups_file_pattern_uri;
             case pgroup_variants::URI_2:
                 return pgroups_file_pattern_uri_2;
+            case pgroup_variants::URI_3:
+                return pgroups_file_pattern_uri_3;
             case pgroup_variants::URI_NON_STANDARD_0:
                 return pgroups_file_pattern_uri_non_standard_0;
             case pgroup_variants::URI_NON_STANDARD_1:
@@ -425,6 +499,12 @@ protected:
                 return pgmconf_file_platform_uri_wild_01;
             case pgmconf_variants::URI_WILD_02:
                 return pgmconf_file_platform_uri_wild_02;
+            case pgmconf_variants::URI_WILD_03:
+                return pgmconf_file_platform_uri_wild_03;
+            case pgmconf_variants::URI_WILD_04:
+                return pgmconf_file_platform_uri_wild_04;
+            case pgmconf_variants::URI_WILD_05:
+                return pgmconf_file_platform_uri_wild_05;
             case pgmconf_variants::URI_NON_STANDARD_0:
                 return pgmconf_file_platform_file_scheme_non_standard_0;
             case pgmconf_variants::URI_NON_STANDARD_1:
@@ -608,6 +688,25 @@ void verify_uri_2(pgmconf_variants pgmconf_variant)
     ws.did_open_file(pattern_test_source_loc);
 }
 
+void verify_uri_3(pgmconf_variants pgmconf_variant)
+{
+    file_manager_lib_pattern file_manager(pgroup_variants::URI_3, pgmconf_variant);
+    lib_config config;
+    workspace::shared_json global_settings = make_empty_shared_json();
+
+    workspace ws(ws_loc, "workspace_name", file_manager, config, global_settings);
+    ws.open();
+
+    EXPECT_CALL(file_manager, list_directory_files(pattern_test_lib_sublib1_loc))
+        .WillOnce(::testing::Return(list_directory_result {
+            { { "mac1", pattern_test_macro1_loc } }, hlasm_plugin::utils::path::list_directory_rc::done }));
+    EXPECT_CALL(file_manager, list_directory_files(pattern_test_lib_sublib2_loc))
+        .WillOnce(::testing::Return(list_directory_result {
+            { { "mac2", pattern_test_macro2_loc } }, hlasm_plugin::utils::path::list_directory_rc::done }));
+
+    ws.did_open_file(pattern_test_source_loc);
+}
+
 void verify_uri_non_standard(pgroup_variants pgroup_variant, pgmconf_variants pgmconf_variant)
 {
     file_manager_lib_pattern file_manager(pgroup_variant, pgmconf_variant);
@@ -693,6 +792,10 @@ TEST(workspace_pattern_test, uri_2) { verify_uri_2(pgmconf_variants::RELATIVE_PL
 
 TEST(workspace_pattern_test, uri_2_independent) { verify_uri_2(pgmconf_variants::RELATIVE_PLATFORM_INDEPENDENT); }
 
+TEST(workspace_pattern_test, uri_3) { verify_uri_3(pgmconf_variants::RELATIVE_PLATFORM_DEPENDENT); }
+
+TEST(workspace_pattern_test, uri_3_independent) { verify_uri_3(pgmconf_variants::RELATIVE_PLATFORM_INDEPENDENT); }
+
 TEST(workspace_pattern_test, uri_non_standard_0)
 {
     if (is_windows())
@@ -744,6 +847,12 @@ TEST(workspace_pattern_test, pgm_conf_uri_full) { verify_combination(pgmconf_var
 TEST(workspace_pattern_test, pgm_conf_uri_wild_01) { verify_combination(pgmconf_variants::URI_WILD_01); }
 
 TEST(workspace_pattern_test, pgm_conf_uri_wild_02) { verify_combination(pgmconf_variants::URI_WILD_02); }
+
+TEST(workspace_pattern_test, pgm_conf_uri_wild_03) { verify_combination(pgmconf_variants::URI_WILD_03); }
+
+TEST(workspace_pattern_test, pgm_conf_uri_wild_04) { verify_combination(pgmconf_variants::URI_WILD_04); }
+
+TEST(workspace_pattern_test, pgm_conf_uri_wild_05) { verify_combination(pgmconf_variants::URI_WILD_05); }
 
 TEST(workspace_pattern_test, pgm_conf_uri_non_standard_0)
 {
