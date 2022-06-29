@@ -538,6 +538,10 @@ std::regex pathmask_to_regex(const std::string& input)
                 break;
 
             case '?':
+                path_started = true;
+                r.push_back('.');
+                s.remove_prefix(1);
+                break;
             case '^':
             case '$':
             case '+':
