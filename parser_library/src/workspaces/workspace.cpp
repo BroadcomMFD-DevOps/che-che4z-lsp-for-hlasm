@@ -728,11 +728,11 @@ library_local_options get_library_local_options(
 std::pair<utils::resource::resource_location, bool> construct_and_analyze_resource_location(
     const std::string& lib_path, const utils::resource::resource_location& base)
 {
-    auto asterisk = lib_path.find('*');
-    auto last_valid_slash = lib_path.find_last_of("/\\", asterisk);
+    auto wildcard = lib_path.find_first_of("*?");
+    auto last_valid_slash = lib_path.find_last_of("/\\", wildcard);
     utils::resource::resource_location rl;
 
-    if (asterisk != std::string::npos && last_valid_slash != std::string::npos)
+    if (wildcard != std::string::npos && last_valid_slash != std::string::npos)
     {
         // This is a path with an asterisk
         // Split the path at the last slash before the asterisk, transform the first part into resource_location, then
@@ -743,7 +743,7 @@ std::pair<utils::resource::resource_location, bool> construct_and_analyze_resour
     else
         rl = transform_to_resource_location(lib_path, base);
 
-    return std::make_pair(utils::resource::resource_location(rl.lexically_normal()), asterisk != std::string::npos);
+    return std::make_pair(utils::resource::resource_location(rl.lexically_normal()), wildcard != std::string::npos);
 }
 } // namespace
 
@@ -772,8 +772,8 @@ void workspace::process_processor_group(
         else
         {
             rl.join(""); // Ensure that this is a directory
-            find_and_add_libs(utils::resource::resource_location(
-                                  rl.get_uri().substr(0, rl.get_uri().find_last_of("/", rl.get_uri().find('*')) + 1)),
+            find_and_add_libs(utils::resource::resource_location(rl.get_uri().substr(
+                                  0, rl.get_uri().find_last_of("/", rl.get_uri().find_first_of("*?")) + 1)),
                 rl,
                 prc_grp,
                 lib_local_opts);

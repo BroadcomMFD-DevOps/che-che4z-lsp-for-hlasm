@@ -205,8 +205,6 @@ private:
         file_ptr& pgm_conf_file,
         global_settings_map& utilized_settings_values);
 
-    bool is_wildcard(const std::string& str);
-
     // files, that depend on others (e.g. open code files that use macros)
     std::set<utils::resource::resource_location> dependants_;
 
