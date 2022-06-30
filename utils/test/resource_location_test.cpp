@@ -793,3 +793,14 @@ TEST(resource_location, operator_equal)
         verify_equal_operator("%3a", "%3a");
     }
 }
+
+TEST(resource_location, special_chars)
+{
+    resource_location rl("file:///C:/temp$/");
+    rl.normalize_path_part();
+
+    EXPECT_TRUE(resource_location("file:///C%3A/temp%24/") == rl);
+    EXPECT_TRUE(resource_location("file:///C%3a/temp%24/") == rl);
+    EXPECT_TRUE(resource_location("file:///c%3A/temp%24/") == rl);
+    EXPECT_TRUE(resource_location("file:///c%3a/temp%24/") == rl);
+}

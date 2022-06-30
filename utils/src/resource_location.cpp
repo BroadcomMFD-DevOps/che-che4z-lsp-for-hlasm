@@ -21,6 +21,8 @@
 #include <iterator>
 #include <regex>
 
+#include "network/uri/uri.hpp"
+
 #include "utils/path_conversions.h"
 #include "utils/platform.h"
 
@@ -519,6 +521,25 @@ std::strong_ordering resource_location::operator<=>(const resource_location& rl)
     other_sv.remove_prefix(other_smatch[0].length());
 
     return string_compare(this_sv, other_sv);
+}
+
+// void resource_location::normalize()
+//{
+//     try
+//     {
+//         network::uri u(m_uri);
+//         u = u.normalize(network::uri_comparison_level::syntax_based);
+//         m_uri = u.string();
+//     }
+//     catch (const std::exception&)
+//     {}
+// }
+
+void resource_location::normalize_path_part()
+{
+    auto dis_uri = utils::path::dissect_uri(m_uri);
+    dis_uri.path = utils::path::encode(dis_uri.path);
+    m_uri = utils::path::reconstruct_uri(dis_uri);
 }
 
 bool resource_location::operator==(const resource_location& rl) const noexcept
