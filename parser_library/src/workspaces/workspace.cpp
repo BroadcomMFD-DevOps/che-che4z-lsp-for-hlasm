@@ -548,8 +548,8 @@ utils::resource::resource_location transform_to_resource_location(
 {
     utils::resource::resource_location rl;
 
-    if (utils::path::is_uri(path))
-        rl = utils::resource::resource_location(std::move(path));
+    if (auto encoded_path = utils::path::encode(path); utils::path::is_uri(encoded_path))
+        rl = utils::resource::resource_location(std::move(encoded_path));
     else if (auto fs_path = get_fs_abs_path(path); fs_path.has_value())
         rl = utils::resource::resource_location(
             utils::path::path_to_uri(utils::path::lexically_normal(*fs_path).string()));
@@ -557,7 +557,7 @@ utils::resource::resource_location transform_to_resource_location(
     {
         std::replace(path.begin(), path.end(), '\\', '/');
 
-        rl = utils::resource::resource_location::join(base_resource_location, path);
+        rl = utils::resource::resource_location::join(base_resource_location, encoded_path);
     }
 
     rl.normalize_path_part();
@@ -630,8 +630,6 @@ library_local_options get_library_local_options(
 std::pair<utils::resource::resource_location, bool> construct_and_analyze_resource_location(
     std::string lib_path, const utils::resource::resource_location& base)
 {
-    lib_path = utils::path::encode(lib_path);
-
     auto wildcard = lib_path.find_first_of("*?");
     auto last_valid_slash = lib_path.find_last_of("/\\", wildcard);
     utils::resource::resource_location rl;
@@ -643,7 +641,8 @@ std::pair<utils::resource::resource_location, bool> construct_and_analyze_resour
         // join the second part
         rl = transform_to_resource_location(lib_path.substr(0, last_valid_slash), base);
 
-        rl.join(lib_path.substr(last_valid_slash + 1));
+        auto encoded_path = utils::path::encode(lib_path.substr(last_valid_slash + 1));
+        rl.join(encoded_path);
     }
     else
         rl = transform_to_resource_location(lib_path, base);

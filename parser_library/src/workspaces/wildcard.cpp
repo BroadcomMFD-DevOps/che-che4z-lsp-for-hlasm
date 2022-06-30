@@ -24,8 +24,9 @@ const std::regex question("\\?");
 const std::regex nongreedy("(\\*|\\+)");
 const std::regex slash("\\\\");
 const std::regex file_scheme_windows("^file:///([A-Za-z])(?::|%3[aA])");
-const std::string single_url_char_matcher = "(?:[^%//]|%[eE]2%82%[aA][cC]|%[eE]2%80%[9aAbB][0-9a-fA-F]|%[cCeE][2356bB]%["
-                                            "89aAbB][0-9a-fA-F]|%[0-9a-fA-F][0-9a-fA-F])";
+const std::string single_url_char_matcher =
+    "(?:[^%//]|%[eE]2%82%[aA][cC]|%[eE]2%80%[9aAbB][0-9a-fA-F]|%[cCeE][2356bB]%["
+    "89aAbB][0-9a-fA-F]|%[0-9a-fA-F][0-9a-fA-F])";
 
 std::pair<size_t, char> match_windows_uri_with_drive(const std::string& input)
 {

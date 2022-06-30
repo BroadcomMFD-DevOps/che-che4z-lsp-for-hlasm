@@ -137,7 +137,7 @@ std::string encode(std::string_view s)
     {
         if (c == '\\')
             c = '/';
-        network::detail::encode_char(c, out, "/.%;=*?");
+        network::detail::encode_char(c, out, "/.%;=*?:");
     }
 
     return uri;

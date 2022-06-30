@@ -523,21 +523,12 @@ std::strong_ordering resource_location::operator<=>(const resource_location& rl)
     return string_compare(this_sv, other_sv);
 }
 
-// void resource_location::normalize()
-//{
-//     try
-//     {
-//         network::uri u(m_uri);
-//         u = u.normalize(network::uri_comparison_level::syntax_based);
-//         m_uri = u.string();
-//     }
-//     catch (const std::exception&)
-//     {}
-// }
-
 void resource_location::normalize_path_part()
 {
     auto dis_uri = utils::path::dissect_uri(m_uri);
+    if (dis_uri.scheme.empty() && dis_uri.path.empty())
+        return;
+
     dis_uri.path = utils::path::encode(dis_uri.path);
     m_uri = utils::path::reconstruct_uri(dis_uri);
 }
