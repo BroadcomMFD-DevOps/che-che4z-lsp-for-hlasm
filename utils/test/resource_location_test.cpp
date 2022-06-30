@@ -796,13 +796,23 @@ TEST(resource_location, operator_equal)
 
 TEST(resource_location, special_chars)
 {
-    resource_location rl("file:///C:/temp$/");
-    rl = resource_location(rl.lexically_normal());
+    if (is_windows())
+    {
+        resource_location rl("file:///C:/temp$/");
+        rl = resource_location(rl.lexically_normal());
 
-    EXPECT_TRUE(resource_location("file:///C:/temp%24/") == rl);
-    EXPECT_TRUE(resource_location("file:///c:/temp%24/") == rl);
-    EXPECT_TRUE(resource_location("file:///C%3A/temp%24/") == rl);
-    EXPECT_TRUE(resource_location("file:///C%3a/temp%24/") == rl);
-    EXPECT_TRUE(resource_location("file:///c%3A/temp%24/") == rl);
-    EXPECT_TRUE(resource_location("file:///c%3a/temp%24/") == rl);
+        EXPECT_TRUE(resource_location("file:///C:/temp%24/") == rl);
+        EXPECT_TRUE(resource_location("file:///c:/temp%24/") == rl);
+        EXPECT_TRUE(resource_location("file:///C%3A/temp%24/") == rl);
+        EXPECT_TRUE(resource_location("file:///C%3a/temp%24/") == rl);
+        EXPECT_TRUE(resource_location("file:///c%3A/temp%24/") == rl);
+        EXPECT_TRUE(resource_location("file:///c%3a/temp%24/") == rl);
+    }
+    else
+    {
+        resource_location rl("file:///home/temp$/");
+        rl = resource_location(rl.lexically_normal());
+
+        EXPECT_TRUE(resource_location("file:///home/temp%24/") == rl);
+    }
 }
