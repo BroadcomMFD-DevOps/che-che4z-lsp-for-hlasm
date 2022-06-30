@@ -149,12 +149,11 @@ const processor_group& workspace::get_proc_grp_by_program(const program& pgm) co
     return proc_grps_.at(pgm.pgroup);
 }
 
-const program* workspace::get_program(const utils::resource::resource_location& file_location2) const
+const program* workspace::get_program(utils::resource::resource_location file_location) const
 {
     assert(opened_);
 
-    utils::resource::resource_location file_location = file_location2;
-    file_location.normalize_path_part();
+    file_location.lexically_normal();
 
     // direct match
     auto program = exact_pgm_conf_.find(file_location);
@@ -560,7 +559,6 @@ utils::resource::resource_location transform_to_resource_location(
         rl = utils::resource::resource_location::join(base_resource_location, encoded_path);
     }
 
-    rl.normalize_path_part();
     return rl;
 }
 
@@ -647,7 +645,6 @@ std::pair<utils::resource::resource_location, bool> construct_and_analyze_resour
     else
         rl = transform_to_resource_location(lib_path, base);
 
-    rl.normalize_path_part();
     return std::make_pair(utils::resource::resource_location(rl.lexically_normal()), wildcard != std::string::npos);
 }
 } // namespace

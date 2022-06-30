@@ -21,8 +21,6 @@
 #include <iterator>
 #include <regex>
 
-#include "network/uri/uri.hpp"
-
 #include "utils/path_conversions.h"
 #include "utils/platform.h"
 
@@ -259,6 +257,7 @@ std::string resource_location::lexically_normal() const
     dis_uri.path = normalize_path(dis_uri.path);
 
     normalize_file_scheme(dis_uri);
+    dis_uri.path = utils::path::encode(dis_uri.path);
 
     return utils::path::reconstruct_uri(dis_uri);
 }
@@ -521,16 +520,6 @@ std::strong_ordering resource_location::operator<=>(const resource_location& rl)
     other_sv.remove_prefix(other_smatch[0].length());
 
     return string_compare(this_sv, other_sv);
-}
-
-void resource_location::normalize_path_part()
-{
-    auto dis_uri = utils::path::dissect_uri(m_uri);
-    if (dis_uri.scheme.empty() && dis_uri.path.empty())
-        return;
-
-    dis_uri.path = utils::path::encode(dis_uri.path);
-    m_uri = utils::path::reconstruct_uri(dis_uri);
 }
 
 bool resource_location::operator==(const resource_location& rl) const noexcept

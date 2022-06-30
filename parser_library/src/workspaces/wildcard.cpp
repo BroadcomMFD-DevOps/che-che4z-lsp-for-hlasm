@@ -65,7 +65,7 @@ std::regex wildcard2regex(std::string wildcard)
         utils::platform::is_windows() && std::regex_search(wildcard, this_smatch, file_scheme_windows))
     {
         std::string regex;
-        regex = "file:///(["; // todo 'file:///(?:['     ?
+        regex = "file:///(?:[";
         regex.push_back(static_cast<char>(tolower(this_smatch[1].str()[0])));
         regex.push_back(static_cast<char>(toupper(this_smatch[1].str()[0])));
         regex.append("])(?::|%3[aA])");
