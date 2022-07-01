@@ -132,7 +132,7 @@ jobs:
       - name: Server Test
         run: cd build/bin && ${{ matrix.test }}
       - name: Actions artifact
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v2
         with:
           name: language_server_${{ matrix.native }}
           path: build/bin/language_server${{ matrix.artifacts-ext }}
