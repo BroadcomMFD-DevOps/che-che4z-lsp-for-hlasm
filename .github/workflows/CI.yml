@@ -251,6 +251,7 @@ jobs:
 
   alpine-VSIX:
     name: Alpine VSIX
+    needs: [formal-checks]
     runs-on: ubuntu-20.04
     container:
       image: alpine:3.15
