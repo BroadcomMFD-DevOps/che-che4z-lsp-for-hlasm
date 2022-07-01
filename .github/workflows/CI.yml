@@ -28,9 +28,8 @@ on:
 
 jobs:
   formal-checks:
-    name: Code format
+    name: Checks
     runs-on: ubuntu-20.04
-
     steps:
       - uses: actions/checkout@v1
       - name: Run clang-format
@@ -55,7 +54,7 @@ jobs:
         run: exit 1
 
   sanitizer-builds:
-    name: Test
+    name: Build with sanitizers
     runs-on: ubuntu-20.04
     needs: [formal-checks]
     strategy:
@@ -80,7 +79,7 @@ jobs:
         run: cd build/bin && ./server_test && ./library_test && ./hlasm_utils_test
 
   build-matrix:
-    name: Test
+    name: Build
     runs-on: ${{ matrix.os }}
     needs: [formal-checks]
     strategy:
