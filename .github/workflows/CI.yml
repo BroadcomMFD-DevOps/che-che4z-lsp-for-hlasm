@@ -88,7 +88,7 @@ jobs:
           - os: ubuntu-20.04
             native: linux
             prereq: sudo apt-get update && sudo apt-get install -y ninja-build
-            config: cmake -G Ninja -DCMAKE_C_COMPILER=gcc-10 -DCMAKE_CXX_COMPILER=g++-10 -DBUILD_VSIX=Off ../
+            config: cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=gcc-10 -DCMAKE_CXX_COMPILER=g++-10 -DBUILD_VSIX=Off ../
           - os: ubuntu-20.04
             native: wasm
             container: emscripten/emsdk:3.1.3
@@ -106,11 +106,10 @@ jobs:
             config: cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_VSIX=Off ../
             build-extra: --parallel --config Release
             artifacts-ext: .exe
-          - os: macos-10.15
+          - os: macos-11
             native: darwin
             prereq: brew install ninja
-            config: cmake -G Ninja -DCMAKE_C_COMPILER=$(brew --prefix llvm@13)/bin/clang -DCMAKE_CXX_COMPILER=$(brew --prefix llvm@13)/bin/clang++ -DLLVM_PATH=$(brew --prefix llvm@13) -DBUILD_VSIX=Off ../
-            build-extra: -- -v
+            config: cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=$(brew --prefix llvm@13)/bin/clang -DCMAKE_CXX_COMPILER=$(brew --prefix llvm@13)/bin/clang++ -DLLVM_PATH=$(brew --prefix llvm@13) -DBUILD_VSIX=Off ../
     container: ${{ matrix.container }}
     steps:
       - uses: actions/checkout@v2
@@ -147,7 +146,7 @@ jobs:
           - os: windows-2019
             native: win32
             chmod: false
-          - os: macos-10.15
+          - os: macos-11
             native: darwin
             chmod: true
 
