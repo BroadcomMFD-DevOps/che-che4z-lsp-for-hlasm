@@ -20,7 +20,6 @@ on:
       - master
       - development
       - release**
-      - refactor_ci
   pull_request:
     branches:
       - master
