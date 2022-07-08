@@ -25,6 +25,7 @@ import { HLASMDebugAdapterFactory } from './hlasmDebugAdapterFactory';
 import { Telemetry } from './telemetry';
 import { LanguageClientErrorHandler } from './languageClientErrorHandler';
 import { HLASMVirtualFileContentProvider } from './hlasmVirtualFileContentProvider';
+import { download_copy_books } from './hlasmDownloadCommands';
 
 const offset = 71;
 const continueColumn = 15;
@@ -193,6 +194,8 @@ async function registerToContext(context: vscode.ExtensionContext, client: vscod
     context.subscriptions.push(vscode.commands.registerCommand('extension.hlasm-plugin.getCurrentProgramName', () => getCurrentProgramName()));
 
     context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider("hlasm", new HLASMVirtualFileContentProvider(client)));
+
+    context.subscriptions.push(vscode.commands.registerCommand("extension.hlasm-plugin.hlasmDownloadDataset", download_copy_books))
 
     return handler;
 }
