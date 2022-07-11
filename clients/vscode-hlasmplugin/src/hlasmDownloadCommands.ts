@@ -21,6 +21,7 @@ import path = require('node:path');
 import { mkdir, rmSync, access } from 'fs';
 import { promises as fsp } from "fs"
 import { resolve } from 'path';
+import { rejects } from 'assert';
 
 type job_id = string;
 class job_description {
@@ -204,7 +205,7 @@ function extract_job_name(jcl: string): string {
     return jcl.slice(2, jcl.indexOf(' '));
 }
 
-async function submit_jobs(client: job_client, jobcard: parsed_job_header, job_list: job_detail[]): Promise<submitted_job[]> {
+async function submit_jobs(client: job_client, jobcard: parsed_job_header, job_list: job_detail[], progress: stage_progress_reporter): Promise<submitted_job[]> {
     let id = 0;
 
     let result: submitted_job[] = [];
@@ -216,6 +217,7 @@ async function submit_jobs(client: job_client, jobcard: parsed_job_header, job_l
         const jobid = await client.submit_jcl(jcl);
 
         result.push({ jobname: jobname, jobid: jobid, details: e, downloaded: false });
+        progress.stage_completed();
     }
     return result;
 }
@@ -542,7 +544,7 @@ function convert_buffer(buffer: Buffer, lrecl: number) {
     return result;
 }
 
-async function download_job_and_process(client: job_client, file_info: job_description, job: submitted_job): Promise<{ unpacker: Promise<void> }> {
+async function download_job_and_process(client: job_client, file_info: job_description, job: submitted_job, progress: stage_progress_reporter): Promise<{ unpacker: Promise<void> }> {
     const { rc, spool_files } = file_info.get_detail_info();
     if (rc !== 0)
         throw Error("Job failed: " + job.jobname + "/" + job.jobid);
@@ -558,6 +560,7 @@ async function download_job_and_process(client: job_client, file_info: job_descr
     const tmp_file = fix_path(job.details.dirs[0] + ".download.tmpfile");
 
     await client.download(tmp_file, job.jobid, spool_files);
+    progress.stage_completed();
 
     job.downloaded = true;
 
@@ -568,6 +571,7 @@ async function download_job_and_process(client: job_client, file_info: job_descr
         all_dirs.push((async () => {
             await fsp.mkdir(target_dir, { recursive: true });
             await unterse(tmp_file, target_dir);
+            progress.stage_completed();
             const files = await fsp.readdir(target_dir, { withFileTypes: true });
             for (const file of files) {
                 if (!file.isFile() || file.isSymbolicLink())
@@ -575,6 +579,7 @@ async function download_job_and_process(client: job_client, file_info: job_descr
                 const filePath = path.join(target_dir, file.name);
                 await fsp.writeFile(filePath, convert_buffer(await fsp.readFile(filePath), 80), "utf-8");
             }
+            progress.stage_completed();
         })());
     }
     return {
@@ -584,11 +589,12 @@ async function download_job_and_process(client: job_client, file_info: job_descr
 
 export async function download_copy_books_with_client(client: job_client,
     job_list: job_detail[],
-    jobcard_pattern: string): Promise<{ failed: number; total: number; }> {
+    jobcard_pattern: string,
+    progress: stage_progress_reporter): Promise<{ failed: number; total: number; }> {
 
     try {
         const jobcard = prepare_job_header(jobcard_pattern);
-        const jobs = await submit_jobs(client, jobcard, job_list);
+        const jobs = await submit_jobs(client, jobcard, job_list, progress);
         const jobs_map: {
             [key: string]: submitted_job
         } = Object.assign({}, ...jobs.map(x => ({ [x.jobname + "." + x.jobid]: x })));
@@ -604,7 +610,7 @@ export async function download_copy_books_with_client(client: job_client,
             }).filter(x => !!x.job);
 
             for (const l of list) {
-                l.job.unpacking = (await download_job_and_process(client, l.file_info, l.job)).unpacker
+                l.job.unpacking = (await download_job_and_process(client, l.file_info, l.job, progress)).unpacker
                     .then(_ => { result.total++; })
                     .catch(_ => { result.total++; result.failed++; });
             }
@@ -803,6 +809,17 @@ async function check_for_existing_files(jobs: job_detail[]) {
     return nonempty_dirs;
 }
 
+interface stage_progress_reporter {
+    stage_completed(): void;
+}
+
+class progress_reporter implements stage_progress_reporter {
+    constructor(private p: vscode.Progress<{ message?: string; increment?: number }>, private stages: number) { }
+    stage_completed(): void {
+        this.p.report({ increment: 100 / this.stages });
+    }
+}
+
 export async function download_copy_books(context: vscode.ExtensionContext) {
     const last_input = get_last_run_config(context);
     const { host, port, user, password, host_input } = await gather_connection_info(last_input);
@@ -830,18 +847,21 @@ export async function download_copy_books(context: vscode.ExtensionContext) {
         // }
     }
 
-    const result = await download_copy_books_with_client(
-        await basic_ftp_job_client({
-            host: host,
-            user: user,
-            password: password,
-            port: port,
-        }),
-        things_to_download,
-        jobcard_pattern);
+    vscode.window.withProgress({ title: "Downloading copybooks", location: vscode.ProgressLocation.Notification }, async (p, t) => {
+        const result = await download_copy_books_with_client(
+            await basic_ftp_job_client({
+                host: host,
+                user: user,
+                password: password,
+                port: port,
+            }),
+            things_to_download,
+            jobcard_pattern,
+            new progress_reporter(p, things_to_download.length * 4));
 
-    if (result.failed)
-        vscode.window.showErrorMessage(result.failed + " jobs out of " + result.total + " failed");
-    else
-        vscode.window.showInformationMessage("All jobs (" + result.total + ") completed successfully");
+        if (result.failed)
+            vscode.window.showErrorMessage(result.failed + " jobs out of " + result.total + " failed");
+        else
+            vscode.window.showInformationMessage("All jobs (" + result.total + ") completed successfully");
+    });
 }
