@@ -590,7 +590,7 @@ async function download_job_and_process(client: job_client, file_info: job_descr
 export async function download_copy_books_with_client(client: job_client,
     job_list: job_detail[],
     jobcard_pattern: string,
-    progress: stage_progress_reporter): Promise<{ failed: number; total: number; }> {
+    progress: stage_progress_reporter): Promise<{ failed: job_detail[]; total: number; }> {
 
     try {
         const jobcard = prepare_job_header(jobcard_pattern);
@@ -602,7 +602,7 @@ export async function download_copy_books_with_client(client: job_client,
         await client.set_list_mask(jobcard.job_mask);
 
         let wait = 0;
-        let result = { failed: 0, total: 0 };
+        let result = { failed: new Array<job_detail>(), total: 0 };
         while (jobs.some(x => !x.downloaded)) {
             const list = (await client.list()).map(x => {
                 const j = jobs_map[x.jobname + "." + x.id];
@@ -612,7 +612,7 @@ export async function download_copy_books_with_client(client: job_client,
             for (const l of list) {
                 l.job.unpacking = (await download_job_and_process(client, l.file_info, l.job, progress)).unpacker
                     .then(_ => { result.total++; })
-                    .catch(_ => { result.total++; result.failed++; });
+                    .catch(_ => { result.total++; result.failed.push(l.job.details); });
             }
 
             if (list.length === 0) {
@@ -859,8 +859,8 @@ export async function download_copy_books(context: vscode.ExtensionContext) {
             jobcard_pattern,
             new progress_reporter(p, things_to_download.length * 4));
 
-        if (result.failed)
-            vscode.window.showErrorMessage(result.failed + " jobs out of " + result.total + " failed");
+        if (result.failed.length > 0) // TODO: offer re-run?
+            vscode.window.showErrorMessage(result.failed.length + " jobs out of " + result.total + " failed");
         else
             vscode.window.showInformationMessage("All jobs (" + result.total + ") completed successfully");
     });
