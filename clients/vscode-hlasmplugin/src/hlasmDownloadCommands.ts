@@ -53,6 +53,7 @@ async function basic_ftp_job_client(connection: {
     port?: number;
     user: string;
     password: string;
+    secure: connection_security_level
 }): Promise<job_client> {
     const client = new Client();
     client.parseList = (rawList: string): JobFileInfo[] => {
@@ -73,6 +74,8 @@ async function basic_ftp_job_client(connection: {
         user: connection.user,
         password: connection.password,
         port: connection.port,
+        secure: connection.secure !== connection_security_level.unsecure,
+        secureOptions: connection.secure === connection_security_level.unsecure ? undefined : { rejectUnauthorized: connection.secure !== connection_security_level.rejectUnauthorized }
     });
 
     const check_response = (resp: FTPResponse) => {
@@ -645,6 +648,18 @@ function ask_user(prompt: string, password: boolean, default_value: string = '')
     }).finally(() => { input.dispose(); });
 }
 
+function pick_user<T>(title: string, options: { label: string, value: T }[]): Promise<T> {
+    var input = vscode.window.createQuickPick();
+    return new Promise<T>((resolve, reject) => {
+        input.title = title;
+        input.items = options.map(x => { return { label: x.label }; });
+        input.canSelectMany = false;
+        input.onDidHide(() => reject("Action was cancelled"));
+        input.onDidAccept(() => resolve(options.find(x => x.label === input.selectedItems[0].label).value));
+        input.show();
+    }).finally(() => { input.dispose(); });
+}
+
 async function gather_available_configs() {
     const available_configs = (await Promise.all(vscode.workspace.workspaceFolders.map(x => {
         return new Promise<{ workspace: vscode.WorkspaceFolder, config: any }>((resolve) => {
@@ -732,7 +747,31 @@ async function gather_download_list() {
     return things_to_download;
 }
 
-class connection_info { host: string; port: number | undefined; user: string; password: string; host_input: string; }
+enum connection_security_level {
+    "rejectUnauthorized",
+    "acceptUnauthorized",
+    "unsecure",
+}
+
+class connection_info {
+    host: string;
+    port: number | undefined;
+    user: string;
+    password: string;
+    host_input: string;
+    secure: connection_security_level;
+}
+
+function gather_security_level_from_zowe(profile: any) {
+    if (profile.secureFtp !== false) {
+        if (profile.rejectUnauthorized !== false)
+            return connection_security_level.rejectUnauthorized;
+        else
+            return connection_security_level.acceptUnauthorized;
+    }
+    else
+        return connection_security_level.unsecure;
+}
 
 async function gather_connection_info_from_zowe(zowe: vscode.Extension<any>, profile_name: string): Promise<connection_info> {
     if (!zowe.isActive)
@@ -749,7 +788,14 @@ async function gather_connection_info_from_zowe(zowe: vscode.Extension<any>, pro
         .getProfilesCache()
         .loadNamedProfile(profile_name);
 
-    return { host: loadedProfile.profile.host, port: loadedProfile.profile.port, user: loadedProfile.profile.user, password: loadedProfile.profile.password, host_input: '@' + profile_name };
+    return {
+        host: loadedProfile.profile.host,
+        port: loadedProfile.profile.port,
+        user: loadedProfile.profile.user,
+        password: loadedProfile.profile.password,
+        host_input: '@' + profile_name,
+        secure: gather_security_level_from_zowe(loadedProfile.profile)
+    };
 }
 
 async function gather_connection_info(last_input: download_input_memento): Promise<connection_info> {
@@ -767,7 +813,12 @@ async function gather_connection_info(last_input: download_input_memento): Promi
 
     const user = await ask_user("user name", false, last_input.user);
     const password = await ask_user("password", true);
-    return { host: host, port: port, user: user, password: password, host_input: host_input };
+    const secure_level = await pick_user("Select security option", [
+        { label: "Use TLS, reject unauthorized certificated", value: connection_security_level.rejectUnauthorized },
+        { label: "Use TLS, accept unauthorized certificated", value: connection_security_level.acceptUnauthorized },
+        { label: "Unsecured connection", value: connection_security_level.unsecure },
+    ]);
+    return { host: host, port: port, user: user, password: password, host_input: host_input, secure: secure_level };
 }
 
 class download_input_memento {
@@ -822,7 +873,7 @@ class progress_reporter implements stage_progress_reporter {
 
 export async function download_copy_books(context: vscode.ExtensionContext) {
     const last_input = get_last_run_config(context);
-    const { host, port, user, password, host_input } = await gather_connection_info(last_input);
+    const { host, port, user, password, host_input, secure } = await gather_connection_info(last_input);
 
     const jobcard_pattern = await ask_user("Enter jobcard pattern (? will be substituted)", false, last_input.jobcard || "//" + user.slice(0, 7).padEnd(8, '?').toUpperCase() + " JOB ACCTNO");
 
@@ -854,6 +905,7 @@ export async function download_copy_books(context: vscode.ExtensionContext) {
                 user: user,
                 password: password,
                 port: port,
+                secure: secure
             }),
             things_to_download,
             jobcard_pattern,
