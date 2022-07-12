@@ -1,0 +1,9 @@
+         MACRO
+         TEST
+         TEST_1_BYTE
+         MEND
+
+         TEST
+         TEST_1_BYTE
+
+         END

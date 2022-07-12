@@ -137,25 +137,4 @@ suite('Integration Test Suite', () => {
 
         await helper.debugStop();
     }).timeout(20000).slow(10000);
-
-    // verify that library patterns are working
-    test('Test library patterns', async () => {
-        const files = await vscode.workspace.findFiles('pattern_test/test_pattern.hlasm');
-
-        assert.ok(files && files[0]);
-        const file = files[0];
-
-        // open the file
-        const document = await vscode.workspace.openTextDocument(file);
-
-        await vscode.window.showTextDocument(document);
-
-        await helper.sleep(2000);
-
-        const allDiags = vscode.languages.getDiagnostics();
-        const patternDiags = allDiags.find(pair => pair[0].path.endsWith("test_pattern.hlasm"))
-
-        if (patternDiags)
-            assert.ok(patternDiags[1].length == 0, 'Library patterns are not working');
-    }).timeout(10000).slow(2500);
 });
