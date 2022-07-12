@@ -92,7 +92,7 @@ TEST(pathmask, pass)
     EXPECT_TRUE(check_path("/path/?/test/", "/path/%df%bf/test/"));
     EXPECT_TRUE(check_path("/path/?/test/", "/path/%dF%Bf/test/"));
     EXPECT_TRUE(check_path("/path/?/test/", "/path/%ef%bf%bf/test/"));
-    EXPECT_TRUE(check_path("/path/?/test/", "/path/%Ef%bF%Ff/test/"));
+    EXPECT_TRUE(check_path("/path/?/test/", "/path/%Ef%bF%Bf/test/"));
     EXPECT_TRUE(check_path("/path/?/test/", "/path/%f0%9f%a7%bf/test/"));
     EXPECT_TRUE(check_path("/path/?/test/", "/path/%f0%9F%A7%bf/test/"));
     EXPECT_TRUE(check_path("/path/?/test/", "/path/%F0%9F%A7%BF/test/"));
@@ -195,6 +195,15 @@ TEST(pathmask, fail)
     EXPECT_FALSE(check_path("/path/*?*?*/test/", "/path/a/b/test/"));
     EXPECT_FALSE(check_path("/path/?*?*?/test/", "/path/a/b/test/"));
     EXPECT_FALSE(check_path("/path/?**?/test/", "/path/a//test/"));
+
+    EXPECT_FALSE(check_path("/path/?/test/", "/path/%7d%df%bf/test/"));
+    EXPECT_FALSE(check_path("/path/?/test/", "/path/%7D%df%bf/test/"));
+    EXPECT_FALSE(check_path("/path/?/test/", "/path/%df%bf%7d/test/"));
+    EXPECT_FALSE(check_path("/path/?/test/", "/path/%dF%Bf%7d/test/"));
+
+    // %FF is not a valid UTF-8 character
+    EXPECT_FALSE(check_path("/path/?/test/", "/path/%Ef%bF%Ff/test/"));
+    EXPECT_FALSE(check_path("/path/??/test/", "/path/%Ef%bF%Ff/test/"));
 
     EXPECT_FALSE(check_path("file:///C%3A/path/**/", "file:///c%3A/Path/a/test/"));
     EXPECT_FALSE(check_path("file:///C%3A/path/**/test/", "file:///c%3A/path/a/tEst/"));

@@ -23,7 +23,7 @@ suite('Pgm And Proc Grps Patterns Test Suite', () => {
 
     async function openDocumentAndCheckDiags(workspace_file: string) {
         helper.showDocument(workspace_file);
-        await helper.sleep(2000);
+        await helper.sleep(1500);
 
         const allDiags = vscode.languages.getDiagnostics();
         const patternDiags = allDiags.find(pair => pair[0].path.endsWith(workspace_file))
