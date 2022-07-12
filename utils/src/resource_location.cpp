@@ -494,32 +494,32 @@ std::strong_ordering string_compare(std::string_view a, std::string_view b)
 
 std::strong_ordering resource_location::operator<=>(const resource_location& rl) const noexcept
 {
-    if (!utils::platform::is_windows())
-        return string_compare(m_uri,
-            rl.m_uri); // TODO replace this and others with 'return m_uri <=> rl.m_uri' when new version of Clang is
-                       // available
-
-    std::smatch this_smatch;
-    std::smatch other_smatch;
-
-    // Determine if this is a file scheme with windows drive letter
-    if (static const std::regex file_scheme_windows("^file:///([A-Za-z])(?::|%3[aA])");
-        !std::regex_search(m_uri, this_smatch, file_scheme_windows)
-        || !std::regex_search(rl.m_uri, other_smatch, file_scheme_windows))
-        return string_compare(m_uri, rl.m_uri);
-
-    // Compare Windows drive folders
-    if (auto res = tolower(this_smatch[1].str()[0]) <=> tolower(other_smatch[1].str()[0]);
-        res != std::strong_ordering::equal)
-        return res;
-
-    // Get rid of the windows drive letter prefix before further comparison
     auto this_sv = std::string_view(m_uri);
     auto other_sv = std::string_view(rl.m_uri);
-    this_sv.remove_prefix(this_smatch[0].length());
-    other_sv.remove_prefix(other_smatch[0].length());
 
-    return string_compare(this_sv, other_sv);
+    if (utils::platform::is_windows())
+    {
+        std::smatch this_smatch;
+        std::smatch other_smatch;
+
+        // Determine if this is a file scheme with windows drive letter
+        if (static const std::regex file_scheme_windows("^file:///([A-Za-z])(?::|%3[aA])");
+            !std::regex_search(m_uri, this_smatch, file_scheme_windows)
+            || !std::regex_search(rl.m_uri, other_smatch, file_scheme_windows))
+            return string_compare(m_uri, rl.m_uri);
+
+        // Compare Windows drive folders
+        if (auto res = tolower(this_smatch[1].str()[0]) <=> tolower(other_smatch[1].str()[0]);
+            res != std::strong_ordering::equal)
+            return res;
+
+        // Get rid of the windows drive letter prefix before further comparison
+        this_sv.remove_prefix(this_smatch[0].length());
+        other_sv.remove_prefix(other_smatch[0].length());
+    }
+
+    return string_compare(this_sv, other_sv); // TODO replace this and others with 'return m_uri <=> rl.m_uri' when new
+                                              // version of Clang is available
 }
 
 bool resource_location::operator==(const resource_location& rl) const noexcept
