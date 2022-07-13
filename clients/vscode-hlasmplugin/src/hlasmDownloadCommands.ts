@@ -530,7 +530,43 @@ function convert_buffer(buffer: Buffer, lrecl: number) {
     return result.slice(0, pos);
 }
 
-async function download_job_and_process(client: job_client, file_info: job_description, job: submitted_job, progress: stage_progress_reporter): Promise<{ unpacker: Promise<void> }> {
+async function translate_files(dir: string) {
+    const files = await fsp.readdir(dir, { withFileTypes: true });
+    for (const file of files) {
+        if (!file.isFile() || file.isSymbolicLink())
+            continue;
+        const filePath = path.join(dir, file.name);
+        await fsp.writeFile(filePath, convert_buffer(await fsp.readFile(filePath), 80), "utf-8");
+    }
+}
+
+async function copy_directory(source: string, target: string) {
+    await fsp.mkdir(target, { recursive: true });
+    const files = await fsp.readdir(source, { withFileTypes: true });
+    for (const file of files) {
+        if (!file.isFile() || file.isSymbolicLink())
+            continue;
+        await fsp.copyFile(path.join(source, file.name), path.join(target, file.name));
+    }
+    for (const file of files) {
+        if (!file.isSymbolicLink())
+            continue;
+        fsp.symlink(await fsp.readlink(path.join(source, file.name)), path.join(target, file.name));
+    }
+}
+
+interface io_ops {
+    unterse: (out_dir: string) => { process: Promise<void>, input: Writable };
+    translate_files: (dir: string) => Promise<void>;
+    copy_directory: (source: string, target: string) => Promise<void>;
+}
+
+async function download_job_and_process(
+    client: job_client,
+    file_info: job_description,
+    job: submitted_job,
+    progress: stage_progress_reporter,
+    io: io_ops): Promise<{ unpacker: Promise<void> }> {
     const job_detail = file_info.get_detail_info();
     if (!job_detail || job_detail.rc !== 0)
         throw Error("Job failed: " + job.jobname + "/" + job.jobid);
@@ -538,7 +574,7 @@ async function download_job_and_process(client: job_client, file_info: job_descr
     const first_dir = fix_path(job.details.dirs[0]);
 
     await fsp.mkdir(first_dir, { recursive: true });
-    const { process, input } = unterse(first_dir);
+    const { process, input } = io.unterse(first_dir);
     await client.download(input, job.jobid, job_detail.spool_files!);
     progress.stage_completed();
     job.downloaded = true;
@@ -548,29 +584,12 @@ async function download_job_and_process(client: job_client, file_info: job_descr
                 await process;
                 progress.stage_completed();
 
-                const files = await fsp.readdir(first_dir, { withFileTypes: true });
-                for (const file of files) {
-                    if (!file.isFile() || file.isSymbolicLink())
-                        continue;
-                    const filePath = path.join(first_dir, file.name);
-                    await fsp.writeFile(filePath, convert_buffer(await fsp.readFile(filePath), 80), "utf-8");
-                }
+                await io.translate_files(first_dir);
+
                 progress.stage_completed();
 
                 for (const dir__ of job.details.dirs.slice(1)) {
-                    const target_dir = fix_path(dir__);
-                    await fsp.mkdir(target_dir, { recursive: true });
-                    const files = await fsp.readdir(first_dir, { withFileTypes: true });
-                    for (const file of files) {
-                        if (!file.isFile() || file.isSymbolicLink())
-                            continue;
-                        await fsp.copyFile(path.join(first_dir, file.name), path.join(target_dir, file.name));
-                    }
-                    for (const file of files) {
-                        if (!file.isSymbolicLink())
-                            continue;
-                        fsp.symlink(await fsp.readlink(path.join(first_dir, file.name)), path.join(target_dir, file.name));
-                    }
+                    await io.copy_directory(first_dir, fix_path(dir__));
                     progress.stage_completed();
                 }
             })()
@@ -580,7 +599,8 @@ async function download_job_and_process(client: job_client, file_info: job_descr
 export async function download_copy_books_with_client(client: job_client,
     job_list: job_detail[],
     jobcard_pattern: string,
-    progress: stage_progress_reporter): Promise<{ failed: job_detail[]; total: number; }> {
+    progress: stage_progress_reporter,
+    io: io_ops): Promise<{ failed: job_detail[]; total: number; }> {
 
     try {
         const jobcard = prepare_job_header(jobcard_pattern);
@@ -601,7 +621,7 @@ export async function download_copy_books_with_client(client: job_client,
 
             for (const l of list) {
                 const job = l.job!;
-                job.unpacking = (await download_job_and_process(client, l.file_info, job, progress)).unpacker
+                job.unpacking = (await download_job_and_process(client, l.file_info, job, progress, io)).unpacker
                     .then(_ => { result.total++; })
                     .catch(_ => { result.total++; result.failed.push(job.details); });
             }
@@ -898,7 +918,8 @@ export async function download_copy_books(context: vscode.ExtensionContext) {
             }),
             things_to_download,
             jobcard_pattern,
-            new progress_reporter(p, things_to_download.reduce((prev, cur) => { return prev + cur.dirs.length + 3 }, 0)));
+            new progress_reporter(p, things_to_download.reduce((prev, cur) => { return prev + cur.dirs.length + 3 }, 0)),
+            { unterse, translate_files, copy_directory });
 
         if (result.failed.length > 0) // TODO: offer re-run?
             vscode.window.showErrorMessage(result.failed.length + " jobs out of " + result.total + " failed");
