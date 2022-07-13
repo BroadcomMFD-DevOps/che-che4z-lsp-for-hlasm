@@ -175,6 +175,6 @@ suite('Integration Test Suite', () => {
     }).timeout(10000).slow(2500);
 
     test('Wildcards and UTF-8 Encoding (Part #2)', async () => {
-        await openDocumentAndCheckDiags("pattern_test/test߼_🧼utf@_8_☕.hlasm");
+        await openDocumentAndCheckDiags("pattern_test/test¾_🧼utf@_8_☕.hlasm");
     }).timeout(10000).slow(2500);
 });
