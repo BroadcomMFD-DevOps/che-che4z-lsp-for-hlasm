@@ -18,7 +18,7 @@ import { Client, FTPResponse, FileInfo, FTPError } from 'basic-ftp'
 import { Readable, Writable } from 'stream';
 import { EOL, homedir } from 'os';
 import path = require('node:path');
-import { mkdir, promises as fsp } from "fs";
+import { promises as fsp } from "fs";
 
 type job_id = string;
 class job_description {
@@ -81,7 +81,10 @@ async function basic_ftp_job_client(connection: {
             await switch_text();
             const job_upload = await client.uploadFrom(Readable.from(jcl), "JOB");
             check_response(job_upload);
-            return /^.*as ([Jj](?:[Oo][Bb])?\d+)/.exec(job_upload.message)[1];
+            const jobid = /^.*as ([Jj](?:[Oo][Bb])?\d+)/.exec(job_upload.message);
+            if (!jobid)
+                throw Error("Unable to extract the job id");
+            return jobid[1];
         },
         async set_list_mask(mask: string): Promise<void> {
             await checked_command("SITE JESJOBNAME=" + mask);
@@ -114,12 +117,12 @@ async function basic_ftp_job_client(connection: {
 }
 
 
-class job_detail {
+interface job_detail {
     dsn: string;
     dirs: string[];
-} [];
+}
 
-class submitted_job {
+interface submitted_job {
     jobname: string;
     jobid: string;
     details: job_detail;
@@ -127,7 +130,7 @@ class submitted_job {
     unpacking?: Promise<void>;
 }
 
-class parsed_job_header {
+interface parsed_job_header {
     job_header: {
         prefix: string,
         repl_count: number,
@@ -239,7 +242,7 @@ function unterse(out_dir: string): { process: Promise<void>, input: Writable } {
         }
     );
     const promise = new Promise<void>((resolve, reject) => {
-        unpacker.stderr.on('data', (chunk) => {
+        unpacker.stderr!.on('data', (chunk) => {
             console.log(chunk.toString());
         });
         unpacker.on('exit', (code, signal) => {
@@ -251,7 +254,7 @@ function unterse(out_dir: string): { process: Promise<void>, input: Writable } {
             resolve();
         })
     });
-    return { process: promise, input: unpacker.stdin };
+    return { process: promise, input: unpacker.stdin! };
 }
 
 const ibm1148_with_crlf_replacement = [
@@ -528,23 +531,15 @@ function convert_buffer(buffer: Buffer, lrecl: number) {
 }
 
 async function download_job_and_process(client: job_client, file_info: job_description, job: submitted_job, progress: stage_progress_reporter): Promise<{ unpacker: Promise<void> }> {
-    const { rc, spool_files } = file_info.get_detail_info() || {};
-    if (rc !== 0)
+    const job_detail = file_info.get_detail_info();
+    if (!job_detail || job_detail.rc !== 0)
         throw Error("Job failed: " + job.jobname + "/" + job.jobid);
 
-    await new Promise<void>((resolve, reject) => {
-        mkdir(path.dirname(job.details.dirs[0]), { recursive: true }, (err) => {
-            if (err)
-                reject(err);
-            else
-                resolve();
-        });
-    });
     const first_dir = fix_path(job.details.dirs[0]);
 
     await fsp.mkdir(first_dir, { recursive: true });
     const { process, input } = unterse(first_dir);
-    await client.download(input, job.jobid, spool_files);
+    await client.download(input, job.jobid, job_detail.spool_files!);
     progress.stage_completed();
     job.downloaded = true;
     return {
@@ -605,9 +600,10 @@ export async function download_copy_books_with_client(client: job_client,
             }).filter(x => !!x.job);
 
             for (const l of list) {
-                l.job.unpacking = (await download_job_and_process(client, l.file_info, l.job, progress)).unpacker
+                const job = l.job!;
+                job.unpacking = (await download_job_and_process(client, l.file_info, job, progress)).unpacker
                     .then(_ => { result.total++; })
-                    .catch(_ => { result.total++; result.failed.push(l.job.details); });
+                    .catch(_ => { result.total++; result.failed.push(job.details); });
             }
 
             if (list.length === 0) {
@@ -647,14 +643,15 @@ function pick_user<T>(title: string, options: { label: string, value: T }[]): Pr
         input.items = options.map(x => { return { label: x.label }; });
         input.canSelectMany = false;
         input.onDidHide(() => reject("Action was cancelled"));
-        input.onDidAccept(() => resolve(options.find(x => x.label === input.selectedItems[0].label).value));
+        input.onDidAccept(() => resolve(options.find(x => x.label === input.selectedItems[0].label)!.value));
         input.show();
     }).finally(() => { input.dispose(); });
 }
 
 async function gather_available_configs() {
+    if (vscode.workspace.workspaceFolders === undefined) return [];
     const available_configs = (await Promise.all(vscode.workspace.workspaceFolders.map(x => {
-        return new Promise<{ workspace: vscode.WorkspaceFolder, config: any }>((resolve) => {
+        return new Promise<{ workspace: vscode.WorkspaceFolder, config: any } | null>((resolve) => {
             vscode.workspace.openTextDocument(vscode.Uri.joinPath(x.uri, ".hlasmplugin", "proc_grps.json")).then((doc) => resolve({ workspace: x, config: JSON.parse(doc.getText()) }), _ => resolve(null))
         })
     }))).filter(x => !!x);
@@ -681,7 +678,7 @@ async function gather_available_configs() {
         return replacer;
     }
 
-    return available_configs.map(x => { return { workspace: x.workspace, config: var_replacer(x.workspace)(x.config) } });
+    return available_configs.map(x => { return { workspace: x!.workspace, config: var_replacer(x!.workspace)(x!.config) } });
 }
 
 async function gather_download_list() {
@@ -723,7 +720,7 @@ async function gather_download_list() {
         }
         catch { return null; }
     }).filter(x => !!x && x.dirs.length > 0).reduce((prev: { [key: string]: string[] }, current) => {
-        for (const d of current.dirs) {
+        for (const d of current!.dirs) {
             if (d.dsn in prev)
                 prev[d.dsn].push(d.path);
             else
@@ -745,7 +742,7 @@ enum connection_security_level {
     "unsecure",
 }
 
-class connection_info {
+interface connection_info {
     host: string;
     port: number | undefined;
     user: string;
@@ -813,20 +810,21 @@ async function gather_connection_info(last_input: download_input_memento): Promi
     return { host: host, port: port, user: user, password: password, host_input: host_input, secure: secure_level };
 }
 
-class download_input_memento {
-    host: string = '';
-    user: string = '';
-    jobcard: string = undefined;
+interface download_input_memento {
+    host: string;
+    user: string;
+    jobcard: string;
 }
 
 const memento_key = "hlasm.download_copy_books";
 
-function get_last_run_config(context: vscode.ExtensionContext) {
-    let last_run = context.globalState.get(memento_key, new download_input_memento());
-    last_run.host = '' + (last_run.host || '');
-    last_run.user = '' + (last_run.user || '');
-    last_run.jobcard = '' + (last_run.jobcard || '');
-    return last_run;
+function get_last_run_config(context: vscode.ExtensionContext): download_input_memento {
+    let last_run = context.globalState.get(memento_key, { host: '', user: '', jobcard: '' });
+    return {
+        host: '' + (last_run.host || ''),
+        user: '' + (last_run.user || ''),
+        jobcard: '' + (last_run.jobcard || ''),
+    };
 }
 
 async function check_for_existing_files(jobs: job_detail[]) {
