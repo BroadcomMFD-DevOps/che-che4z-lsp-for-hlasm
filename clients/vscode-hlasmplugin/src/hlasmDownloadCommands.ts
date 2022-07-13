@@ -20,22 +20,21 @@ import { EOL, homedir } from 'os';
 import path = require('node:path');
 import { promises as fsp } from "fs";
 
-type job_id = string;
-class job_description {
-    constructor(
-        public jobname: string,
-        public id: job_id,
-        public details: string) { }
-
-    public get_detail_info(): { rc: number; spool_files: number } | undefined {
-        const parsed = /^.*RC=(\d+)\s+(\d+) spool file/.exec(this.details);
-        if (!parsed)
-            return undefined;
-        else
-            return { rc: +parsed[1], spool_files: +parsed[2] };
-    }
+export type job_id = string;
+export interface job_description {
+    jobname: string;
+    id: job_id;
+    details: string;
 }
-interface job_client {
+
+function get_job_detail_info(job: job_description): { rc: number; spool_files: number } | undefined {
+    const parsed = /^.*RC=(\d+)\s+(\d+) spool file/.exec(job.details);
+    if (!parsed)
+        return undefined;
+    else
+        return { rc: +parsed[1], spool_files: +parsed[2] };
+}
+export interface job_client {
     submit_jcl(jcl: string): Promise<job_id>;
     set_list_mask(mask: string): Promise<void>;
     list(): Promise<job_description[]>;
@@ -93,11 +92,11 @@ async function basic_ftp_job_client(connection: {
         async list(): Promise<job_description[]> {
             try {
                 await switch_text();
-                return (await client.list()).map((x: FileInfo) => {
+                return (await client.list()).map((x: FileInfo): job_description => {
                     const parsed_line = /(\S+)\s+(\S+)\s+(.*)/.exec(x.name);
                     if (!parsed_line)
                         throw Error("Unable to parse the job list");
-                    return new job_description(parsed_line[1], parsed_line[2], parsed_line[3])
+                    return { jobname: parsed_line[1], id: parsed_line[2], details: parsed_line[3] }
                 });
             }
             catch (e) {
@@ -117,7 +116,7 @@ async function basic_ftp_job_client(connection: {
 }
 
 
-interface job_detail {
+export interface job_detail {
     dsn: string;
     dirs: string[];
 }
@@ -555,7 +554,7 @@ async function copy_directory(source: string, target: string) {
     }
 }
 
-interface io_ops {
+export interface io_ops {
     unterse: (out_dir: string) => { process: Promise<void>, input: Writable };
     translate_files: (dir: string) => Promise<void>;
     copy_directory: (source: string, target: string) => Promise<void>;
@@ -567,7 +566,7 @@ async function download_job_and_process(
     job: submitted_job,
     progress: stage_progress_reporter,
     io: io_ops): Promise<{ unpacker: Promise<void> }> {
-    const job_detail = file_info.get_detail_info();
+    const job_detail = get_job_detail_info(file_info);
     if (!job_detail || job_detail.rc !== 0)
         throw Error("Job failed: " + job.jobname + "/" + job.jobid);
 
@@ -870,7 +869,7 @@ async function check_for_existing_files(jobs: job_detail[]) {
     return nonempty_dirs;
 }
 
-interface stage_progress_reporter {
+export interface stage_progress_reporter {
     stage_completed(): void;
 }
 
