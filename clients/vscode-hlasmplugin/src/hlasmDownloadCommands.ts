@@ -189,12 +189,13 @@ function extract_job_name(jcl: string): string {
     return jcl.slice(2, jcl.indexOf(' '));
 }
 
-async function submit_jobs(client: job_client, jobcard: parsed_job_header, job_list: job_detail[], progress: stage_progress_reporter): Promise<submitted_job[]> {
+async function submit_jobs(client: job_client, jobcard: parsed_job_header, job_list: job_detail[], progress: stage_progress_reporter, check_cancel: () => void): Promise<submitted_job[]> {
     let id = 0;
 
     let result: submitted_job[] = [];
 
     for (const e of job_list) {
+        check_cancel();
         const jcl = generate_jcl(id++, jobcard, e.dsn);
         const jobname = extract_job_name(jcl);
 
@@ -567,43 +568,61 @@ async function download_job_and_process(
     progress: stage_progress_reporter,
     io: io_ops): Promise<{ unpacker: Promise<void> }> {
     const job_detail = get_job_detail_info(file_info);
-    if (!job_detail || job_detail.rc !== 0)
-        throw Error("Job failed: " + job.jobname + "/" + job.jobid);
+    if (!job_detail || job_detail.rc !== 0) {
+        job.downloaded = true; // nothing we can do ...
+        return {
+            unpacker: Promise.reject(Error("Job failed: " + job.jobname + "/" + job.jobid))
+        };
+    }
 
     const first_dir = fix_path(job.details.dirs[0]);
 
-    await fsp.mkdir(first_dir, { recursive: true });
-    const { process, input } = io.unterse(first_dir);
-    await client.download(input, job.jobid, job_detail.spool_files!);
-    progress.stage_completed();
-    job.downloaded = true;
-    return {
-        unpacker:
-            (async () => {
-                await process;
-                progress.stage_completed();
+    try {
+        await fsp.mkdir(first_dir, { recursive: true });
+        const { process, input } = io.unterse(first_dir);
+        await client.download(input, job.jobid, job_detail.spool_files!);
+        progress.stage_completed();
+        job.downloaded = true;
 
-                await io.translate_files(first_dir);
-
-                progress.stage_completed();
-
-                for (const dir__ of job.details.dirs.slice(1)) {
-                    await io.copy_directory(first_dir, fix_path(dir__));
+        return {
+            unpacker:
+                (async () => {
+                    await process;
                     progress.stage_completed();
-                }
-            })()
-    };
+
+                    await io.translate_files(first_dir);
+
+                    progress.stage_completed();
+
+                    for (const dir__ of job.details.dirs.slice(1)) {
+                        await io.copy_directory(first_dir, fix_path(dir__));
+                        progress.stage_completed();
+                    }
+                })()
+        };
+    }
+    catch (e) {
+        return {
+            unpacker: Promise.reject(e)
+        };
+    }
 }
 
 export async function download_copy_books_with_client(client: job_client,
     job_list: job_detail[],
     jobcard_pattern: string,
     progress: stage_progress_reporter,
-    io: io_ops): Promise<{ failed: job_detail[]; total: number; }> {
+    io: io_ops,
+    cancelled: () => boolean): Promise<{ failed: job_detail[]; total: number; }> {
+
+    const check_cancel = () => {
+        if (cancelled())
+            throw Error("Cancel requested");
+    };
 
     try {
         const jobcard = prepare_job_header(jobcard_pattern);
-        const jobs = await submit_jobs(client, jobcard, job_list, progress);
+        const jobs = await submit_jobs(client, jobcard, job_list, progress, check_cancel);
         const jobs_map: {
             [key: string]: submitted_job
         } = Object.assign({}, ...jobs.map(x => ({ [x.jobname + "." + x.jobid]: x })));
@@ -613,6 +632,8 @@ export async function download_copy_books_with_client(client: job_client,
         let wait = 0;
         let result = { failed: new Array<job_detail>(), total: 0 };
         while (jobs.some(x => !x.downloaded)) {
+            check_cancel();
+
             const list = (await client.list()).map(x => {
                 const j = jobs_map[x.jobname + "." + x.id];
                 return { file_info: x, job: j && !j.downloaded ? j : null };
@@ -906,7 +927,7 @@ export async function download_copy_books(context: vscode.ExtensionContext) {
         }
     }
 
-    vscode.window.withProgress({ title: "Downloading copybooks", location: vscode.ProgressLocation.Notification }, async (p, t) => {
+    vscode.window.withProgress({ title: "Downloading copybooks", location: vscode.ProgressLocation.Notification, cancellable: true }, async (p, t) => {
         const result = await download_copy_books_with_client(
             await basic_ftp_job_client({
                 host: host,
@@ -918,7 +939,8 @@ export async function download_copy_books(context: vscode.ExtensionContext) {
             things_to_download,
             jobcard_pattern,
             new progress_reporter(p, things_to_download.reduce((prev, cur) => { return prev + cur.dirs.length + 3 }, 0)),
-            { unterse, translate_files, copy_directory });
+            { unterse, translate_files, copy_directory },
+            () => t.isCancellationRequested);
 
         if (result.failed.length > 0) // TODO: offer re-run?
             vscode.window.showErrorMessage(result.failed.length + " jobs out of " + result.total + " failed");
