@@ -16,12 +16,9 @@ import * as vscode from 'vscode';
 import { fork } from 'child_process';
 import { Client, FTPResponse, FileInfo, FTPError } from 'basic-ftp'
 import { Readable, Writable } from 'stream';
-import { EOL, homedir, type } from 'os';
+import { EOL, homedir } from 'os';
 import path = require('node:path');
-import { mkdir, rmSync, access } from 'fs';
-import { promises as fsp } from "fs"
-import { resolve } from 'path';
-import { rejects } from 'assert';
+import { mkdir, promises as fsp } from "fs";
 
 type job_id = string;
 class job_description {
@@ -129,17 +126,6 @@ class job_detail {
     dirs: string[];
 } [];
 
-class dataset_download_list {
-    connection: {
-        host: string;
-        port?: number;
-        user: string;
-        password: string;
-    };
-    list: job_detail[];
-    job_header_pattern: string;
-}
-
 class submitted_job {
     jobname: string;
     jobid: string;
@@ -227,7 +213,7 @@ async function submit_jobs(client: job_client, jobcard: parsed_job_header, job_l
 
 function fix_path(path: string): string {
     path = path.replace(/\\/g, '/');
-    while (path.endsWith('/')) // no lastIndexOfNot?
+    while (path.endsWith('/')) // no lastIndexOfNot or trimEnd(x)?
         path = path.slice(0, path.length - 1);
     return path;
 }
