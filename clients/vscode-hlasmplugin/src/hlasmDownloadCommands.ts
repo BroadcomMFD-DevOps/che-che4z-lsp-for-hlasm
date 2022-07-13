@@ -536,13 +536,13 @@ const ibm1148_with_crlf_replacement = [
 
 function convert_buffer(buffer: Buffer, lrecl: number) {
     const EOLBuffer = Buffer.from(EOL);
-    const result = Buffer.alloc(2 * buffer.length + Math.floor((buffer.length + lrecl - 1) / lrecl) * EOLBuffer.length);
+    const result = Buffer.allocUnsafe(2 * buffer.length + Math.floor((buffer.length + lrecl - 1) / lrecl) * EOLBuffer.length);
     let pos = 0;
     let i = 0;
     for (const v of buffer) {
         pos += ibm1148_with_crlf_replacement[v].copy(result, pos, 0);
         if (i % lrecl === lrecl - 1)
-            pos += EOLBuffer.copy(result, pos, 0);
+            pos += EOLBuffer.copy(result, pos);
         ++i;
     }
     return result.slice(0, pos);
