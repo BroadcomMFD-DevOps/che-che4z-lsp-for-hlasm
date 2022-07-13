@@ -250,7 +250,7 @@
       {
         "command": "extension.hlasm-plugin.hlasmDownloadDataset",
         "category": "HLASM",
-        "title": "HLASM Download datasets"
+        "title": "Download datasets"
       }
     ],
     "keybindings": [
