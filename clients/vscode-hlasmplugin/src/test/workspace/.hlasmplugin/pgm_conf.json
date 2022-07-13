@@ -17,7 +17,7 @@
       "pgroup": "patterns_2_byte_utf_8"
     },
     {
-      "program": "pattern_test/test_utf_8_￿.hlasm",
+      "program": "pattern_test/test_utf_8_ﾝ.hlasm",
       "pgroup": "patterns_3_byte_utf_8"
     },
     {
@@ -25,7 +25,7 @@
       "pgroup": "patterns_4_byte_utf_8"
     },
     {
-      "program": "pattern_test/$test�_utf🧽_8_߽.hlasm",
+      "program": "pattern_test/$test㎛_utf🧽_8_߽.hlasm",
       "pgroup": "patterns_utf_8_wildcards"
     },
     {

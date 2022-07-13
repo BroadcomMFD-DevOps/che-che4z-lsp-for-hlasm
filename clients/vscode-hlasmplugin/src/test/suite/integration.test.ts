@@ -139,7 +139,7 @@ suite('Integration Test Suite', () => {
     }).timeout(20000).slow(10000);
 
     async function openDocumentAndCheckDiags(workspace_file: string) {
-        helper.showDocument(workspace_file);
+        await helper.showDocument(workspace_file);
         await helper.sleep(1500);
 
         const allDiags = vscode.languages.getDiagnostics();
@@ -163,7 +163,7 @@ suite('Integration Test Suite', () => {
     }).timeout(10000).slow(2500);
 
     test('3 Byte UTF-8 Encoding', async () => {
-        await openDocumentAndCheckDiags("pattern_test/test_utf_8_￿.hlasm");
+        await openDocumentAndCheckDiags("pattern_test/test_utf_8_ﾝ.hlasm");
     }).timeout(10000).slow(2500);
 
     test('4 Byte UTF-8 Encoding', async () => {
@@ -171,10 +171,10 @@ suite('Integration Test Suite', () => {
     }).timeout(10000).slow(2500);
 
     test('Wildcards and UTF-8 Encoding (Part #1)', async () => {
-        await openDocumentAndCheckDiags("pattern_test/$test�_utf🧽_8_߽.hlasm");
+        await openDocumentAndCheckDiags("pattern_test/$test㎛_utf🧽_8_߽.hlasm");
     }).timeout(10000).slow(2500);
 
     test('Wildcards and UTF-8 Encoding (Part #2)', async () => {
-        await openDocumentAndCheckDiags("pattern_test/test߼_🧼utf@_8_￼.hlasm");
+        await openDocumentAndCheckDiags("pattern_test/test߼_🧼utf@_8_☕.hlasm");
     }).timeout(10000).slow(2500);
 });
