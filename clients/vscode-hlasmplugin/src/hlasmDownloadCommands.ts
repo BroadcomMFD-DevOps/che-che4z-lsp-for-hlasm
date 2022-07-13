@@ -43,8 +43,6 @@ interface job_client {
     close(): void;
 }
 
-type JobFileInfo = FileInfo & { details: string };
-
 async function basic_ftp_job_client(connection: {
     host: string;
     port?: number;
@@ -53,18 +51,8 @@ async function basic_ftp_job_client(connection: {
     secure: connection_security_level
 }): Promise<job_client> {
     const client = new Client();
-    client.parseList = (rawList: string): JobFileInfo[] => {
-        return rawList.split(/\r?\n/).slice(1).filter(x => !/^\s*$/.test(x)).map((value) => {
-
-            const parsed_line = /(\S+)\s+(\S+)\s+(.*)/.exec(value);
-            if (!parsed_line)
-                throw Error("Unable to parse the job list");
-            const f: JobFileInfo = Object.assign(new FileInfo(parsed_line[1]), {
-                details: parsed_line[3]
-            });
-            f.uniqueID = parsed_line[2];
-            return f;
-        })
+    client.parseList = (rawList: string): FileInfo[] => {
+        return rawList.split(/\r?\n/).slice(1).filter(x => !/^\s*$/.test(x)).map((value) => new FileInfo(value));
     };
     await client.access({
         host: connection.host,
@@ -102,7 +90,12 @@ async function basic_ftp_job_client(connection: {
         async list(): Promise<job_description[]> {
             try {
                 await switch_text();
-                return (await client.list()).map((x: JobFileInfo) => new job_description(x.name, x.uniqueID, x.details));
+                return (await client.list()).map((x: FileInfo) => {
+                    const parsed_line = /(\S+)\s+(\S+)\s+(.*)/.exec(x.name);
+                    if (!parsed_line)
+                        throw Error("Unable to parse the job list");
+                    return new job_description(parsed_line[1], parsed_line[2], parsed_line[3])
+                });
             }
             catch (e) {
                 if (e instanceof FTPError && e.code == 550)
@@ -535,7 +528,7 @@ function convert_buffer(buffer: Buffer, lrecl: number) {
 }
 
 async function download_job_and_process(client: job_client, file_info: job_description, job: submitted_job, progress: stage_progress_reporter): Promise<{ unpacker: Promise<void> }> {
-    const { rc, spool_files } = file_info.get_detail_info();
+    const { rc, spool_files } = file_info.get_detail_info() || {};
     if (rc !== 0)
         throw Error("Job failed: " + job.jobname + "/" + job.jobid);
 
