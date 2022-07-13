@@ -901,14 +901,13 @@ export async function download_copy_books(context: vscode.ExtensionContext) {
         if (what_to_do !== overwrite)
             return;
 
-        // TODO:
-        // for (const d of dirs_exists) {
-        //     const files = await fsp.readdir(d, { withFileTypes: true });
-        //     for (const f of files) {
-        //         if (f.isFile() || f.isSymbolicLink())
-        //             await fsp.unlink(path.join(d, f.name));
-        //     }
-        // }
+        for (const d of dirs_exists) {
+            const files = await fsp.readdir(d, { withFileTypes: true });
+            for (const f of files) {
+                if (f.isFile() || f.isSymbolicLink())
+                    await fsp.unlink(path.join(d, f.name));
+            }
+        }
     }
 
     vscode.window.withProgress({ title: "Downloading copybooks", location: vscode.ProgressLocation.Notification }, async (p, t) => {
