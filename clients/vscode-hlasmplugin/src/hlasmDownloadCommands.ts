@@ -259,7 +259,8 @@ const ibm1148_with_crlf_replacement = to_buffer_array('\u0000\u0001\u0002\u0003\
 
 function convert_buffer(buffer: Buffer, lrecl: number) {
     const EOLBuffer = Buffer.from(EOL);
-    const result = Buffer.allocUnsafe(2 * buffer.length + Math.floor((buffer.length + lrecl - 1) / lrecl) * EOLBuffer.length);
+    // 0xe000 private plane has 3 byte encoding sequence
+    const result = Buffer.allocUnsafe(3 * buffer.length + Math.floor((buffer.length + lrecl - 1) / lrecl) * EOLBuffer.length);
     let pos = 0;
     let i = 0;
     for (const v of buffer) {
