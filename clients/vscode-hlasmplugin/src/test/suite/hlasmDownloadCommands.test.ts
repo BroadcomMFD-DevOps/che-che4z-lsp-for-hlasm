@@ -250,7 +250,8 @@ suite('HLASM Download datasets', () => {
         assert.equal(extractDsn("~/dir/MY.DATA.SET/", ws).dsn, "MY.DATA.SET");
         assert.equal(extractDsn("~/dir/MY.DATA.SET//", ws).dsn, "MY.DATA.SET");
 
-        assert.deepEqual(extractDsn("C:\\dir\\my.data.set\\\\", ws), { dsn: "MY.DATA.SET", path: "c:/dir/my.data.set" });
+        if (process.platform === "win32")
+            assert.deepEqual(extractDsn("C:\\dir\\my.data.set\\\\", ws), { dsn: "MY.DATA.SET", path: "c:/dir/my.data.set" });
         assert.deepEqual(extractDsn("/home/dir/my.data.set///", ws), { dsn: "MY.DATA.SET", path: "/home/dir/my.data.set" });
 
         assert.deepEqual(extractDsn("dir\\my.data.set\\\\", ws), { dsn: "MY.DATA.SET", path: "/workspace/dir/my.data.set" });
