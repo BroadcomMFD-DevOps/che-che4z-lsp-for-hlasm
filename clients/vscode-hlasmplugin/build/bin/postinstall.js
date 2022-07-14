@@ -18,7 +18,7 @@ const path = require('path');
 
 const base = path.join(__dirname, "..", "..");
 
-// patch basic-ftp data socket close issue
+// patch basic-ftp@4.6.6 data socket close issue
 const transfer = path.join(base, "node_modules/basic-ftp/dist/transfer.js");
 const content = fs.readFileSync(transfer).toString();
 const new_content = content.replace(/source.pipe\(dataSocket\).once\("finish", \(\) => {.*?}\)/s, 'source.pipe(dataSocket.once("close", () => { resolver.onDataDone(task); }))');

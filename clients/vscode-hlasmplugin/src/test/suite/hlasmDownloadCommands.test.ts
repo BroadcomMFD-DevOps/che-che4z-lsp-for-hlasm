@@ -14,83 +14,83 @@
 import * as assert from 'assert';
 import { PassThrough, Writable } from 'stream';
 
-import { download_copy_books_with_client, job_description } from '../../hlasmDownloadCommands';
+import { downloadDependenciesWithClient, JobDescription } from '../../hlasmDownloadCommands';
 
 suite('HLASM Download datasets', () => {
-    const get_client = (list_responses: job_description[][]) => {
+    const getClient = (listResponses: JobDescription[][]) => {
         return {
-            set_list_mask_calls: new Array<string>(),
-            list_calls: 0,
+            setListMaskCalls: new Array<string>(),
+            listCalls: 0,
             jcls: new Array<string>(),
-            download_requests: new Array<{ id: string, spool_file: number }>(),
-            close_calls: 0,
-            next_job_id: 0,
+            downloadRequests: new Array<{ id: string, spoolFile: number }>(),
+            closeCalls: 0,
+            nextJobId: 0,
 
-            close() { ++this.close_calls },
-            async download(target: Writable, id: string, spool_file: number) {
+            close() { ++this.closeCalls },
+            async download(target: Writable, id: string, spoolFile: number) {
                 if (target instanceof Writable) {
-                    this.download_requests.push({ id, spool_file });
+                    this.downloadRequests.push({ id, spoolFile });
                 }
                 else
                     assert.fail("Writable stream expected");
             },
             async list() {
-                const to_return = this.list_calls++;
-                if (to_return >= list_responses.length)
+                const toReturn = this.listCalls++;
+                if (toReturn >= listResponses.length)
                     return [];
                 else
-                    return list_responses[to_return];
+                    return listResponses[toReturn];
             },
-            async set_list_mask(mask: string) {
-                this.set_list_mask_calls.push(mask);
+            async setListMask(mask: string) {
+                this.setListMaskCalls.push(mask);
             },
-            async submit_jcl(jcl: string) {
+            async submitJcl(jcl: string) {
                 this.jcls.push(jcl);
-                return "JOBID" + this.next_job_id++;
+                return "JOBID" + this.nextJobId++;
             },
         }
     }
 
-    const get_io_ops = () => {
+    const getIoOps = () => {
         return {
-            unterse_calls: new Array<string>(),
-            translate_calls: new Array<string>(),
-            copy_calls: new Array<{ source: string, target: string }>(),
-            async unterse(out_dir: string) {
-                this.unterse_calls.push(out_dir);
+            unterseCalls: new Array<string>(),
+            translateCalls: new Array<string>(),
+            copyCalls: new Array<{ source: string, target: string }>(),
+            async unterse(outDir: string) {
+                this.unterseCalls.push(outDir);
 
                 const process = Promise.resolve();
                 const input = new PassThrough();
                 return { process, input };
             },
-            async translate_files(dir: string) {
-                this.translate_calls.push(dir);
+            async translateFiles(dir: string) {
+                this.translateCalls.push(dir);
             },
-            async copy_directory(source: string, target: string) {
-                this.copy_calls.push({ source, target });
+            async copyDirectory(source: string, target: string) {
+                this.copyCalls.push({ source, target });
             },
         };
     }
 
-    const get_stage_counter = () => {
+    const getStageCounter = () => {
         return {
             stages: 0,
 
-            stage_completed() {
+            stageCompleted() {
                 ++this.stages;
             },
         };
     }
 
     test('Simple jobcard', async () => {
-        const client = get_client([
+        const client = getClient([
             [],
             [{ jobname: "JOBNAME", id: "JOBID0", details: "RC=0000 3 spool files" }]
         ]);
-        const io = get_io_ops();
-        const stages = get_stage_counter();
+        const io = getIoOps();
+        const stages = getStageCounter();
 
-        assert.deepEqual(await download_copy_books_with_client(
+        assert.deepEqual(await downloadDependenciesWithClient(
             client,
             [{ dsn: 'A.B', dirs: ['/dir1'] }],
             '//JOBNAME JOB 1',
@@ -100,27 +100,27 @@ suite('HLASM Download datasets', () => {
             { failed: [], total: 1 }
         );
 
-        assert.equal(client.close_calls, 1);
-        assert.deepEqual(client.download_requests, [{ id: "JOBID0", spool_file: 3 }]);
+        assert.equal(client.closeCalls, 1);
+        assert.deepEqual(client.downloadRequests, [{ id: "JOBID0", spoolFile: 3 }]);
         assert.equal(client.jcls.length, 1);
         assert.ok(client.jcls[0].startsWith("//JOBNAME JOB 1"));
         assert.notEqual(client.jcls[0].indexOf("DSN=A.B"), -1);
-        assert.equal(client.list_calls, 2);
-        assert.deepEqual(client.set_list_mask_calls, ['JOBNAME']);
-        assert.equal(io.copy_calls.length, 0);
-        assert.deepEqual(io.translate_calls, ['/dir1']);
-        assert.deepEqual(io.unterse_calls, ['/dir1']);
+        assert.equal(client.listCalls, 2);
+        assert.deepEqual(client.setListMaskCalls, ['JOBNAME']);
+        assert.equal(io.copyCalls.length, 0);
+        assert.deepEqual(io.translateCalls, ['/dir1']);
+        assert.deepEqual(io.unterseCalls, ['/dir1']);
         assert.equal(stages.stages, 4);
     });
 
     test('Jobcard pattern', async () => {
-        const client = get_client([
+        const client = getClient([
             [{ jobname: "JOBNAME0", id: "JOBID0", details: "RC=0000 3 spool files" }]
         ]);
-        const io = get_io_ops();
-        const stages = get_stage_counter();
+        const io = getIoOps();
+        const stages = getStageCounter();
 
-        assert.deepEqual(await download_copy_books_with_client(
+        assert.deepEqual(await downloadDependenciesWithClient(
             client,
             [{ dsn: 'A.B', dirs: ['/dir1'] }],
             '//JOBNAME? JOB 1',
@@ -130,28 +130,28 @@ suite('HLASM Download datasets', () => {
             { failed: [], total: 1 }
         );
 
-        assert.equal(client.close_calls, 1);
-        assert.deepEqual(client.download_requests, [{ id: "JOBID0", spool_file: 3 }]);
+        assert.equal(client.closeCalls, 1);
+        assert.deepEqual(client.downloadRequests, [{ id: "JOBID0", spoolFile: 3 }]);
         assert.equal(client.jcls.length, 1);
         assert.ok(client.jcls[0].startsWith("//JOBNAME0 JOB 1"));
         assert.notEqual(client.jcls[0].indexOf("DSN=A.B"), -1);
-        assert.equal(client.list_calls, 1);
-        assert.deepEqual(client.set_list_mask_calls, ['JOBNAME*']);
-        assert.equal(io.copy_calls.length, 0);
-        assert.deepEqual(io.translate_calls, ['/dir1']);
-        assert.deepEqual(io.unterse_calls, ['/dir1']);
+        assert.equal(client.listCalls, 1);
+        assert.deepEqual(client.setListMaskCalls, ['JOBNAME*']);
+        assert.equal(io.copyCalls.length, 0);
+        assert.deepEqual(io.translateCalls, ['/dir1']);
+        assert.deepEqual(io.unterseCalls, ['/dir1']);
         assert.equal(stages.stages, 4);
     });
 
     test('Cancelled', async () => {
-        const client = get_client([
+        const client = getClient([
             [{ jobname: "JOBNAME0", id: "JOBID0", details: "RC=0000 3 spool files" }]
         ]);
-        const io = get_io_ops();
-        const stages = get_stage_counter();
+        const io = getIoOps();
+        const stages = getStageCounter();
 
         try {
-            await download_copy_books_with_client(
+            await downloadDependenciesWithClient(
                 client,
                 [{ dsn: 'A.B', dirs: ['/dir1'] }],
                 '//JOBNAME? JOB 1',
@@ -164,30 +164,30 @@ suite('HLASM Download datasets', () => {
             assert.equal(e.message, "Cancel requested");
         }
 
-        assert.equal(client.close_calls, 1);
-        assert.deepEqual(client.download_requests, []);
+        assert.equal(client.closeCalls, 1);
+        assert.deepEqual(client.downloadRequests, []);
         assert.equal(client.jcls.length, 0);
-        assert.equal(client.list_calls, 0);
-        assert.deepEqual(client.set_list_mask_calls, []);
-        assert.equal(io.copy_calls.length, 0);
-        assert.deepEqual(io.translate_calls, []);
-        assert.deepEqual(io.unterse_calls, []);
+        assert.equal(client.listCalls, 0);
+        assert.deepEqual(client.setListMaskCalls, []);
+        assert.equal(io.copyCalls.length, 0);
+        assert.deepEqual(io.translateCalls, []);
+        assert.deepEqual(io.unterseCalls, []);
         assert.equal(stages.stages, 0);
     });
 
 
     test('Multiple datasets', async () => {
-        const client = get_client([
+        const client = getClient([
             [{ jobname: "JOBNAME0", id: "JOBID0", details: "RC=0000 3 spool files" }],
             [
                 { jobname: "JOBNAME0", id: "JOBID0", details: "RC=0000 3 spool files" },
                 { jobname: "JOBNAME1", id: "JOBID1", details: "RC=0000 6 spool files" }
             ]
         ]);
-        const io = get_io_ops();
-        const stages = get_stage_counter();
+        const io = getIoOps();
+        const stages = getStageCounter();
 
-        assert.deepEqual(await download_copy_books_with_client(
+        assert.deepEqual(await downloadDependenciesWithClient(
             client,
             [
                 { dsn: 'A.B', dirs: ['/dir1'] },
@@ -200,29 +200,29 @@ suite('HLASM Download datasets', () => {
             { failed: [], total: 2 }
         );
 
-        assert.equal(client.close_calls, 1);
-        assert.deepEqual(client.download_requests, [{ id: "JOBID0", spool_file: 3 }, { id: "JOBID1", spool_file: 6 }]);
+        assert.equal(client.closeCalls, 1);
+        assert.deepEqual(client.downloadRequests, [{ id: "JOBID0", spoolFile: 3 }, { id: "JOBID1", spoolFile: 6 }]);
         assert.equal(client.jcls.length, 2);
         assert.ok(client.jcls[0].startsWith("//JOBNAME0 JOB 1"));
         assert.notEqual(client.jcls[0].indexOf("DSN=A.B"), -1);
         assert.ok(client.jcls[1].startsWith("//JOBNAME1 JOB 1"));
         assert.notEqual(client.jcls[1].indexOf("DSN=C.D"), -1);
-        assert.equal(client.list_calls, 2);
-        assert.deepEqual(client.set_list_mask_calls, ['JOBNAME*']);
-        assert.deepEqual(io.copy_calls, [{ source: '/dir2', target: '/dir3' }]);
-        assert.deepEqual(io.translate_calls, ['/dir1', '/dir2']);
-        assert.deepEqual(io.unterse_calls, ['/dir1', '/dir2']);
+        assert.equal(client.listCalls, 2);
+        assert.deepEqual(client.setListMaskCalls, ['JOBNAME*']);
+        assert.deepEqual(io.copyCalls, [{ source: '/dir2', target: '/dir3' }]);
+        assert.deepEqual(io.translateCalls, ['/dir1', '/dir2']);
+        assert.deepEqual(io.unterseCalls, ['/dir1', '/dir2']);
         assert.equal(stages.stages, 4 + 5);
     });
 
     test('Failed job', async () => {
-        const client = get_client([
+        const client = getClient([
             [{ jobname: "JOBNAME", id: "JOBID0", details: "RC=0008 3 spool files" }]
         ]);
-        const io = get_io_ops();
-        const stages = get_stage_counter();
+        const io = getIoOps();
+        const stages = getStageCounter();
 
-        assert.deepEqual(await download_copy_books_with_client(
+        assert.deepEqual(await downloadDependenciesWithClient(
             client,
             [{ dsn: 'A.B', dirs: ['/dir1'] }],
             '//JOBNAME JOB 1',
@@ -232,14 +232,14 @@ suite('HLASM Download datasets', () => {
             { failed: [{ dsn: 'A.B', dirs: ['/dir1'] }], total: 1 }
         );
 
-        assert.equal(client.close_calls, 1);
-        assert.deepEqual(client.download_requests, []);
+        assert.equal(client.closeCalls, 1);
+        assert.deepEqual(client.downloadRequests, []);
         assert.equal(client.jcls.length, 1);
         assert.ok(client.jcls[0].startsWith("//JOBNAME JOB 1"));
         assert.notEqual(client.jcls[0].indexOf("DSN=A.B"), -1);
-        assert.equal(client.list_calls, 1);
-        assert.deepEqual(client.set_list_mask_calls, ['JOBNAME']);
-        assert.equal(io.copy_calls.length, 0);
+        assert.equal(client.listCalls, 1);
+        assert.deepEqual(client.setListMaskCalls, ['JOBNAME']);
+        assert.equal(io.copyCalls.length, 0);
         assert.equal(stages.stages, 1);
     });
 });

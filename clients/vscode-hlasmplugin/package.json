@@ -248,9 +248,9 @@
         "title": "RearrangeSequenceNumbers"
       },
       {
-        "command": "extension.hlasm-plugin.hlasmDownloadDataset",
+        "command": "extension.hlasm-plugin.downloadDependencies",
         "category": "HLASM",
-        "title": "Download datasets"
+        "title": "Download dependencies"
       }
     ],
     "keybindings": [

@@ -20,35 +20,35 @@ import { EOL, homedir } from 'os';
 import path = require('node:path');
 import { promises as fsp } from "fs";
 
-export type job_id = string;
-export interface job_description {
+export type JobId = string;
+export interface JobDescription {
     jobname: string;
-    id: job_id;
+    id: JobId;
     details: string;
 }
 
-function get_job_detail_info(job: job_description): { rc: number; spool_files: number } | undefined {
+function getJobDetailInfo(job: JobDescription): { rc: number; spoolFiles: number } | undefined {
     const parsed = /^.*RC=(\d+)\s+(\d+) spool file/.exec(job.details);
     if (!parsed)
         return undefined;
     else
-        return { rc: +parsed[1], spool_files: +parsed[2] };
+        return { rc: +parsed[1], spoolFiles: +parsed[2] };
 }
-export interface job_client {
-    submit_jcl(jcl: string): Promise<job_id>;
-    set_list_mask(mask: string): Promise<void>;
-    list(): Promise<job_description[]>;
-    download(target: Writable | string, id: job_id, spool_file: number): Promise<void>;
+export interface JobClient {
+    submitJcl(jcl: string): Promise<JobId>;
+    setListMask(mask: string): Promise<void>;
+    list(): Promise<JobDescription[]>;
+    download(target: Writable | string, id: JobId, spoolFile: number): Promise<void>;
     close(): void;
 }
 
-async function basic_ftp_job_client(connection: {
+async function basicFtpJobClient(connection: {
     host: string;
     port?: number;
     user: string;
     password: string;
-    secure: connection_security_level
-}): Promise<job_client> {
+    secure: connectionSecurityLevel
+}): Promise<JobClient> {
     const client = new Client();
     client.parseList = (rawList: string): FileInfo[] => {
         return rawList.split(/\r?\n/).slice(1).filter(x => !/^\s*$/.test(x)).map((value) => new FileInfo(value));
@@ -58,45 +58,45 @@ async function basic_ftp_job_client(connection: {
         user: connection.user,
         password: connection.password,
         port: connection.port,
-        secure: connection.secure !== connection_security_level.unsecure,
-        secureOptions: connection.secure === connection_security_level.unsecure ? undefined : { rejectUnauthorized: connection.secure !== connection_security_level.rejectUnauthorized }
+        secure: connection.secure !== connectionSecurityLevel.unsecure,
+        secureOptions: connection.secure === connectionSecurityLevel.unsecure ? undefined : { rejectUnauthorized: connection.secure !== connectionSecurityLevel.rejectUnauthorized }
     });
 
-    const check_response = (resp: FTPResponse) => {
+    const checkResponse = (resp: FTPResponse) => {
         if (resp.code < 200 || resp.code > 299)
             throw Error("FTP Error: " + resp.message);
     }
-    const checked_command = async (command: string): Promise<string> => {
+    const checkedCommand = async (command: string): Promise<string> => {
         const resp = await client.send(command);
-        check_response(resp);
+        checkResponse(resp);
         return resp.message
     }
-    const switch_text = async () => { await checked_command("TYPE A"); }
-    const switch_binary = async () => { await checked_command("TYPE I"); }
+    const switchText = async () => { await checkedCommand("TYPE A"); }
+    const switchBinary = async () => { await checkedCommand("TYPE I"); }
 
-    await checked_command("SITE FILE=JES");
+    await checkedCommand("SITE FILE=JES");
     return {
-        async submit_jcl(jcl: string): Promise<string> {
-            await switch_text();
-            const job_upload = await client.uploadFrom(Readable.from(jcl), "JOB");
-            check_response(job_upload);
-            const jobid = /^.*as ([Jj](?:[Oo][Bb])?\d+)/.exec(job_upload.message);
+        async submitJcl(jcl: string): Promise<string> {
+            await switchText();
+            const jobUpload = await client.uploadFrom(Readable.from(jcl), "JOB");
+            checkResponse(jobUpload);
+            const jobid = /^.*as ([Jj](?:[Oo][Bb])?\d+)/.exec(jobUpload.message);
             if (!jobid)
                 throw Error("Unable to extract the job id");
             return jobid[1];
         },
-        async set_list_mask(mask: string): Promise<void> {
-            await checked_command("SITE JESJOBNAME=" + mask);
-            await checked_command("SITE JESSTATUS=OUTPUT");
+        async setListMask(mask: string): Promise<void> {
+            await checkedCommand("SITE JESJOBNAME=" + mask);
+            await checkedCommand("SITE JESSTATUS=OUTPUT");
         },
-        async list(): Promise<job_description[]> {
+        async list(): Promise<JobDescription[]> {
             try {
-                await switch_text();
-                return (await client.list()).map((x: FileInfo): job_description => {
-                    const parsed_line = /(\S+)\s+(\S+)\s+(.*)/.exec(x.name);
-                    if (!parsed_line)
+                await switchText();
+                return (await client.list()).map((x: FileInfo): JobDescription => {
+                    const parsedLine = /(\S+)\s+(\S+)\s+(.*)/.exec(x.name);
+                    if (!parsedLine)
                         throw Error("Unable to parse the job list");
-                    return { jobname: parsed_line[1], id: parsed_line[2], details: parsed_line[3] }
+                    return { jobname: parsedLine[1], id: parsedLine[2], details: parsedLine[3] }
                 });
             }
             catch (e) {
@@ -105,9 +105,9 @@ async function basic_ftp_job_client(connection: {
                 throw e;
             }
         },
-        async download(target: string | Writable, id: job_id, spool_file: number): Promise<void> {
-            await switch_binary();
-            check_response(await client.downloadTo(target, id + "." + spool_file));
+        async download(target: string | Writable, id: JobId, spoolFile: number): Promise<void> {
+            await switchBinary();
+            checkResponse(await client.downloadTo(target, id + "." + spoolFile));
         },
         close(): void {
             client.close();
@@ -116,65 +116,65 @@ async function basic_ftp_job_client(connection: {
 }
 
 
-export interface job_detail {
+export interface JobDetail {
     dsn: string;
     dirs: string[];
 }
 
-interface submitted_job {
+interface submittedJob {
     jobname: string;
     jobid: string;
-    details: job_detail;
+    details: JobDetail;
     downloaded: boolean;
     unpacking?: Promise<void>;
 }
 
-interface parsed_job_header {
-    job_header: {
+interface parsedJobHeader {
+    jobHeader: {
         prefix: string,
-        repl_count: number,
+        replCount: number,
         suffix: string
     } | string;
-    job_mask: string;
+    jobMask: string;
 }
-const translation_table: string = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-function prepare_job_header(pattern: string): parsed_job_header {
+const translationTable: string = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+function prepareJobHeader(pattern: string): parsedJobHeader {
     const match = /^(\/\/[^ ?]+)(\?*)( .*)$/.exec(pattern);
 
     if (!match)
         throw Error("Invalid JOB header");
     else if (match[2].length)
-        return { job_header: { prefix: match[1], repl_count: match[2].length, suffix: match[3] }, job_mask: match[1].slice(2) + '*' };
+        return { jobHeader: { prefix: match[1], replCount: match[2].length, suffix: match[3] }, jobMask: match[1].slice(2) + '*' };
     else
-        return { job_header: pattern, job_mask: pattern.slice(2, pattern.indexOf(' ')) };
+        return { jobHeader: pattern, jobMask: pattern.slice(2, pattern.indexOf(' ')) };
 }
-function generate_job_header(header: parsed_job_header, job_no: number): string {
-    if (typeof header.job_header === 'string')
-        return header.job_header;
+function generateJobHeader(header: parsedJobHeader, jobNo: number): string {
+    if (typeof header.jobHeader === 'string')
+        return header.jobHeader;
     else {
-        let jobname_suffix = '';
-        while (job_no > 0) {
-            let digit = job_no % translation_table.length;
-            jobname_suffix = translation_table.charAt(digit) + jobname_suffix;
-            job_no = job_no / translation_table.length | 0;
+        let jobnameSuffix = '';
+        while (jobNo > 0) {
+            let digit = jobNo % translationTable.length;
+            jobnameSuffix = translationTable.charAt(digit) + jobnameSuffix;
+            jobNo = jobNo / translationTable.length | 0;
         }
-        if (jobname_suffix.length > header.job_header.repl_count)
-            jobname_suffix = jobname_suffix.slice(jobname_suffix.length - header.job_header.repl_count);
-        else if (jobname_suffix.length < header.job_header.repl_count)
-            jobname_suffix = jobname_suffix.padStart(header.job_header.repl_count, '0');
+        if (jobnameSuffix.length > header.jobHeader.replCount)
+            jobnameSuffix = jobnameSuffix.slice(jobnameSuffix.length - header.jobHeader.replCount);
+        else if (jobnameSuffix.length < header.jobHeader.replCount)
+            jobnameSuffix = jobnameSuffix.padStart(header.jobHeader.replCount, '0');
 
-        return header.job_header.prefix + jobname_suffix + header.job_header.suffix;
+        return header.jobHeader.prefix + jobnameSuffix + header.jobHeader.suffix;
     }
 
 }
 
-function generate_jcl(job_no: number, jobcard: parsed_job_header, dataset_name: string): string {
+function generateJcl(jobNo: number, jobcard: parsedJobHeader, datasetName: string): string {
     return [
-        generate_job_header(jobcard, job_no),
+        generateJobHeader(jobcard, jobNo),
         "//AMATERSE EXEC PGM=AMATERSE,PARM=SPACK",
         "//SYSPRINT DD DUMMY",
         "//SYSIN    DD DUMMY",
-        "//SYSUT1   DD DISP=SHR,DSN=" + dataset_name,
+        "//SYSUT1   DD DISP=SHR,DSN=" + datasetName,
         "//SYSUT2   DD DISP=(,PASS),DSN=&&TERSED,SPACE=(CYL,(10,10))",
         "//*",
         "//PRINTIT  EXEC PGM=IEBGENER",
@@ -185,33 +185,33 @@ function generate_jcl(job_no: number, jobcard: parsed_job_header, dataset_name: 
     ].join(EOL)
 }
 
-function extract_job_name(jcl: string): string {
+function extractJobName(jcl: string): string {
     return jcl.slice(2, jcl.indexOf(' '));
 }
 
-async function submit_jobs(client: job_client, jobcard: parsed_job_header, job_list: job_detail[], progress: stage_progress_reporter, check_cancel: () => void): Promise<submitted_job[]> {
+async function submitJobs(client: JobClient, jobcard: parsedJobHeader, jobList: JobDetail[], progress: StageProgressReporter, checkCancel: () => void): Promise<submittedJob[]> {
     let id = 0;
 
-    let result: submitted_job[] = [];
+    let result: submittedJob[] = [];
 
-    for (const e of job_list) {
-        check_cancel();
-        const jcl = generate_jcl(id++, jobcard, e.dsn);
-        const jobname = extract_job_name(jcl);
+    for (const e of jobList) {
+        checkCancel();
+        const jcl = generateJcl(id++, jobcard, e.dsn);
+        const jobname = extractJobName(jcl);
 
-        const jobid = await client.submit_jcl(jcl);
+        const jobid = await client.submitJcl(jcl);
 
         result.push({ jobname: jobname, jobid: jobid, details: e, downloaded: false });
-        progress.stage_completed();
+        progress.stageCompleted();
     }
     return result;
 }
 
-function fix_path(path: string): string {
-    path = path.replace(/\\/g, '/');
-    while (path.endsWith('/')) // no lastIndexOfNot or trimEnd(x)?
-        path = path.slice(0, path.length - 1);
-    return path;
+function fixPath(p: string): string {
+    p = p.replace(/\\/g, '/');
+    while (p.endsWith('/')) // no lastIndexOfNot or trimEnd(x)?
+        p = p.slice(0, p.length - 1);
+    return p;
 }
 
 function getWasmRuntimeArgs(): Array<string> {
@@ -225,11 +225,11 @@ function getWasmRuntimeArgs(): Array<string> {
         ];
 }
 
-async function unterse(out_dir: string): Promise<{ process: Promise<void>, input: Writable }> {
-    await fsp.mkdir(out_dir, { recursive: true });
+async function unterse(outDir: string): Promise<{ process: Promise<void>, input: Writable }> {
+    await fsp.mkdir(outDir, { recursive: true });
     const unpacker = fork(
         path.join(__dirname, '..', 'bin', 'terse'),
-        ["--op", "unpack", "--overwrite", "--copy-if-symlink-fails", "-o", out_dir],
+        ["--op", "unpack", "--overwrite", "--copy-if-symlink-fails", "-o", outDir],
         { execArgv: getWasmRuntimeArgs(), stdio: ['pipe', 'ignore', 'pipe', 'ipc'] }
     );
     const promise = new Promise<void>((resolve, reject) => {
@@ -246,7 +246,7 @@ async function unterse(out_dir: string): Promise<{ process: Promise<void>, input
     return { process: promise, input: unpacker.stdin! };
 }
 
-function to_buffer_array(s: string): Buffer[] {
+function toBufferArray(s: string): Buffer[] {
     if (s.length != 256)
         throw Error("Single byte conversion table expected");
     const result: Buffer[] = [];
@@ -255,16 +255,16 @@ function to_buffer_array(s: string): Buffer[] {
     return result;
 }
 
-const ibm1148_with_crlf_replacement = to_buffer_array('\u0000\u0001\u0002\u0003\u009C\u0009\u0086\u007F\u0097\u008D\u008E\u000B\u000C\ue00D\u000E\u000F\u0010\u0011\u0012\u0013\u009D\ue025\u0008\u0087\u0018\u0019\u0092\u008F\u001C\u001D\u001E\u001F\u0080\u0081\u0082\u0083\u0084\u000A\u0017\u001B\u0088\u0089\u008A\u008B\u008C\u0005\u0006\u0007\u0090\u0091\u0016\u0093\u0094\u0095\u0096\u0004\u0098\u0099\u009A\u009B\u0014\u0015\u009E\u001A\u0020\u00A0\u00E2\u00E4\u00E0\u00E1\u00E3\u00E5\u00E7\u00F1\u005B\u002E\u003C\u0028\u002B\u0021\u0026\u00E9\u00EA\u00EB\u00E8\u00ED\u00EE\u00EF\u00EC\u00DF\u005D\u0024\u002A\u0029\u003B\u005E\u002D\u002F\u00C2\u00C4\u00C0\u00C1\u00C3\u00C5\u00C7\u00D1\u00A6\u002C\u0025\u005F\u003E\u003F\u00F8\u00C9\u00CA\u00CB\u00C8\u00CD\u00CE\u00CF\u00CC\u0060\u003A\u0023\u0040\u0027\u003D\u0022\u00D8\u0061\u0062\u0063\u0064\u0065\u0066\u0067\u0068\u0069\u00AB\u00BB\u00F0\u00FD\u00FE\u00B1\u00B0\u006A\u006B\u006C\u006D\u006E\u006F\u0070\u0071\u0072\u00AA\u00BA\u00E6\u00B8\u00C6\u20AC\u00B5\u007E\u0073\u0074\u0075\u0076\u0077\u0078\u0079\u007A\u00A1\u00BF\u00D0\u00DD\u00DE\u00AE\u00A2\u00A3\u00A5\u00B7\u00A9\u00A7\u00B6\u00BC\u00BD\u00BE\u00AC\u007C\u00AF\u00A8\u00B4\u00D7\u007B\u0041\u0042\u0043\u0044\u0045\u0046\u0047\u0048\u0049\u00AD\u00F4\u00F6\u00F2\u00F3\u00F5\u007D\u004A\u004B\u004C\u004D\u004E\u004F\u0050\u0051\u0052\u00B9\u00FB\u00FC\u00F9\u00FA\u00FF\u005C\u00F7\u0053\u0054\u0055\u0056\u0057\u0058\u0059\u005A\u00B2\u00D4\u00D6\u00D2\u00D3\u00D5\u0030\u0031\u0032\u0033\u0034\u0035\u0036\u0037\u0038\u0039\u00B3\u00DB\u00DC\u00D9\u00DA\u009F');
+const ibm1148WithCrlfReplacement = toBufferArray('\u0000\u0001\u0002\u0003\u009C\u0009\u0086\u007F\u0097\u008D\u008E\u000B\u000C\ue00D\u000E\u000F\u0010\u0011\u0012\u0013\u009D\ue025\u0008\u0087\u0018\u0019\u0092\u008F\u001C\u001D\u001E\u001F\u0080\u0081\u0082\u0083\u0084\u000A\u0017\u001B\u0088\u0089\u008A\u008B\u008C\u0005\u0006\u0007\u0090\u0091\u0016\u0093\u0094\u0095\u0096\u0004\u0098\u0099\u009A\u009B\u0014\u0015\u009E\u001A\u0020\u00A0\u00E2\u00E4\u00E0\u00E1\u00E3\u00E5\u00E7\u00F1\u005B\u002E\u003C\u0028\u002B\u0021\u0026\u00E9\u00EA\u00EB\u00E8\u00ED\u00EE\u00EF\u00EC\u00DF\u005D\u0024\u002A\u0029\u003B\u005E\u002D\u002F\u00C2\u00C4\u00C0\u00C1\u00C3\u00C5\u00C7\u00D1\u00A6\u002C\u0025\u005F\u003E\u003F\u00F8\u00C9\u00CA\u00CB\u00C8\u00CD\u00CE\u00CF\u00CC\u0060\u003A\u0023\u0040\u0027\u003D\u0022\u00D8\u0061\u0062\u0063\u0064\u0065\u0066\u0067\u0068\u0069\u00AB\u00BB\u00F0\u00FD\u00FE\u00B1\u00B0\u006A\u006B\u006C\u006D\u006E\u006F\u0070\u0071\u0072\u00AA\u00BA\u00E6\u00B8\u00C6\u20AC\u00B5\u007E\u0073\u0074\u0075\u0076\u0077\u0078\u0079\u007A\u00A1\u00BF\u00D0\u00DD\u00DE\u00AE\u00A2\u00A3\u00A5\u00B7\u00A9\u00A7\u00B6\u00BC\u00BD\u00BE\u00AC\u007C\u00AF\u00A8\u00B4\u00D7\u007B\u0041\u0042\u0043\u0044\u0045\u0046\u0047\u0048\u0049\u00AD\u00F4\u00F6\u00F2\u00F3\u00F5\u007D\u004A\u004B\u004C\u004D\u004E\u004F\u0050\u0051\u0052\u00B9\u00FB\u00FC\u00F9\u00FA\u00FF\u005C\u00F7\u0053\u0054\u0055\u0056\u0057\u0058\u0059\u005A\u00B2\u00D4\u00D6\u00D2\u00D3\u00D5\u0030\u0031\u0032\u0033\u0034\u0035\u0036\u0037\u0038\u0039\u00B3\u00DB\u00DC\u00D9\u00DA\u009F');
 
-function convert_buffer(buffer: Buffer, lrecl: number) {
+function convertBuffer(buffer: Buffer, lrecl: number) {
     const EOLBuffer = Buffer.from(EOL);
     // 0xe000 private plane has 3 byte encoding sequence
     const result = Buffer.allocUnsafe(3 * buffer.length + Math.floor((buffer.length + lrecl - 1) / lrecl) * EOLBuffer.length);
     let pos = 0;
     let i = 0;
     for (const v of buffer) {
-        pos += ibm1148_with_crlf_replacement[v].copy(result, pos, 0);
+        pos += ibm1148WithCrlfReplacement[v].copy(result, pos, 0);
         if (i % lrecl === lrecl - 1)
             pos += EOLBuffer.copy(result, pos);
         ++i;
@@ -272,17 +272,17 @@ function convert_buffer(buffer: Buffer, lrecl: number) {
     return result.slice(0, pos);
 }
 
-async function translate_files(dir: string) {
+async function translateFiles(dir: string) {
     const files = await fsp.readdir(dir, { withFileTypes: true });
     for (const file of files) {
         if (!file.isFile() || file.isSymbolicLink())
             continue;
         const filePath = path.join(dir, file.name);
-        await fsp.writeFile(filePath, convert_buffer(await fsp.readFile(filePath), 80), "utf-8");
+        await fsp.writeFile(filePath, convertBuffer(await fsp.readFile(filePath), 80), "utf-8");
     }
 }
 
-async function copy_directory(source: string, target: string) {
+async function copyDirectory(source: string, target: string) {
     await fsp.mkdir(target, { recursive: true });
     const files = await fsp.readdir(source, { withFileTypes: true });
     for (const file of files) {
@@ -297,47 +297,47 @@ async function copy_directory(source: string, target: string) {
     }
 }
 
-export interface io_ops {
-    unterse: (out_dir: string) => Promise<{ process: Promise<void>, input: Writable }>;
-    translate_files: (dir: string) => Promise<void>;
-    copy_directory: (source: string, target: string) => Promise<void>;
+export interface IoOps {
+    unterse: (outDir: string) => Promise<{ process: Promise<void>, input: Writable }>;
+    translateFiles: (dir: string) => Promise<void>;
+    copyDirectory: (source: string, target: string) => Promise<void>;
 }
 
-async function download_job_and_process(
-    client: job_client,
-    file_info: job_description,
-    job: submitted_job,
-    progress: stage_progress_reporter,
-    io: io_ops): Promise<{ unpacker: Promise<void> }> {
-    const job_detail = get_job_detail_info(file_info);
-    if (!job_detail || job_detail.rc !== 0) {
+async function downloadJobAndProcess(
+    client: JobClient,
+    fileInfo: JobDescription,
+    job: submittedJob,
+    progress: StageProgressReporter,
+    io: IoOps): Promise<{ unpacker: Promise<void> }> {
+    const JobDetail = getJobDetailInfo(fileInfo);
+    if (!JobDetail || JobDetail.rc !== 0) {
         job.downloaded = true; // nothing we can do ...
         return {
             unpacker: Promise.reject(Error("Job failed: " + job.jobname + "/" + job.jobid))
         };
     }
 
-    const first_dir = fix_path(job.details.dirs[0]);
+    const firstDir = fixPath(job.details.dirs[0]);
 
     try {
-        const { process, input } = await io.unterse(first_dir);
-        await client.download(input, job.jobid, job_detail.spool_files!);
-        progress.stage_completed();
+        const { process, input } = await io.unterse(firstDir);
+        await client.download(input, job.jobid, JobDetail.spoolFiles!);
+        progress.stageCompleted();
         job.downloaded = true;
 
         return {
             unpacker:
                 (async () => {
                     await process;
-                    progress.stage_completed();
+                    progress.stageCompleted();
 
-                    await io.translate_files(first_dir);
+                    await io.translateFiles(firstDir);
 
-                    progress.stage_completed();
+                    progress.stageCompleted();
 
                     for (const dir__ of job.details.dirs.slice(1)) {
-                        await io.copy_directory(first_dir, fix_path(dir__));
-                        progress.stage_completed();
+                        await io.copyDirectory(firstDir, fixPath(dir__));
+                        progress.stageCompleted();
                     }
                 })()
         };
@@ -349,40 +349,40 @@ async function download_job_and_process(
     }
 }
 
-export async function download_copy_books_with_client(client: job_client,
-    job_list: job_detail[],
-    jobcard_pattern: string,
-    progress: stage_progress_reporter,
-    io: io_ops,
-    cancelled: () => boolean): Promise<{ failed: job_detail[]; total: number; }> {
+export async function downloadDependenciesWithClient(client: JobClient,
+    jobList: JobDetail[],
+    jobcardPattern: string,
+    progress: StageProgressReporter,
+    io: IoOps,
+    cancelled: () => boolean): Promise<{ failed: JobDetail[]; total: number; }> {
 
-    const check_cancel = () => {
+    const checkCancel = () => {
         if (cancelled())
             throw Error("Cancel requested");
     };
 
     try {
-        const jobcard = prepare_job_header(jobcard_pattern);
-        const jobs = await submit_jobs(client, jobcard, job_list, progress, check_cancel);
-        const jobs_map: {
-            [key: string]: submitted_job
+        const jobcard = prepareJobHeader(jobcardPattern);
+        const jobs = await submitJobs(client, jobcard, jobList, progress, checkCancel);
+        const jobsMap: {
+            [key: string]: submittedJob
         } = Object.assign({}, ...jobs.map(x => ({ [x.jobname + "." + x.jobid]: x })));
 
-        await client.set_list_mask(jobcard.job_mask);
+        await client.setListMask(jobcard.jobMask);
 
         let wait = 0;
-        let result = { failed: new Array<job_detail>(), total: 0 };
+        let result = { failed: new Array<JobDetail>(), total: 0 };
         while (jobs.some(x => !x.downloaded)) {
-            check_cancel();
+            checkCancel();
 
             const list = (await client.list()).map(x => {
-                const j = jobs_map[x.jobname + "." + x.id];
-                return { file_info: x, job: j && !j.downloaded ? j : null };
+                const j = jobsMap[x.jobname + "." + x.id];
+                return { fileInfo: x, job: j && !j.downloaded ? j : null };
             }).filter(x => !!x.job);
 
             for (const l of list) {
                 const job = l.job!;
-                job.unpacking = (await download_job_and_process(client, l.file_info, job, progress, io)).unpacker
+                job.unpacking = (await downloadJobAndProcess(client, l.fileInfo, job, progress, io)).unpacker
                     .then(_ => { result.total++; })
                     .catch(_ => { result.total++; result.failed.push(job.details); });
             }
@@ -405,20 +405,20 @@ export async function download_copy_books_with_client(client: job_client,
     }
 }
 
-function ask_user(prompt: string, password: boolean, default_value: string = ''): Promise<string> {
-    var input = vscode.window.createInputBox();
+function askUser(prompt: string, password: boolean, defaultValue: string = ''): Promise<string> {
+    const input = vscode.window.createInputBox();
     return new Promise<string>((resolve, reject) => {
         input.prompt = prompt;
         input.password = password;
-        input.value = default_value || '';
+        input.value = defaultValue || '';
         input.onDidHide(() => reject("Action was cancelled"));
         input.onDidAccept(() => resolve(input.value));
         input.show();
     }).finally(() => { input.dispose(); });
 }
 
-function pick_user<T>(title: string, options: { label: string, value: T }[]): Promise<T> {
-    var input = vscode.window.createQuickPick();
+function pickUser<T>(title: string, options: { label: string, value: T }[]): Promise<T> {
+    const input = vscode.window.createQuickPick();
     return new Promise<T>((resolve, reject) => {
         input.title = title;
         input.items = options.map(x => { return { label: x.label }; });
@@ -429,16 +429,16 @@ function pick_user<T>(title: string, options: { label: string, value: T }[]): Pr
     }).finally(() => { input.dispose(); });
 }
 
-async function gather_available_configs() {
+async function gatherAvailableConfigs() {
     if (vscode.workspace.workspaceFolders === undefined) return [];
-    const available_configs = (await Promise.all(vscode.workspace.workspaceFolders.map(x => {
+    const availableConfigs = (await Promise.all(vscode.workspace.workspaceFolders.map(x => {
         return new Promise<{ workspace: vscode.WorkspaceFolder, config: any } | null>((resolve) => {
             vscode.workspace.openTextDocument(vscode.Uri.joinPath(x.uri, ".hlasmplugin", "proc_grps.json")).then((doc) => resolve({ workspace: x, config: JSON.parse(doc.getText()) }), _ => resolve(null))
         })
     }))).filter(x => !!x);
 
     // because VSCode does not expose the service???
-    const var_replacer = (workspace: vscode.WorkspaceFolder) => {
+    const varReplacer = (workspace: vscode.WorkspaceFolder) => {
         const config = vscode.workspace.getConfiguration(undefined, workspace);
         const replacer = (obj: any): any => {
             if (typeof obj === 'object') {
@@ -459,14 +459,14 @@ async function gather_available_configs() {
         return replacer;
     }
 
-    return available_configs.map(x => { return { workspace: x!.workspace, config: var_replacer(x!.workspace)(x!.config) } });
+    return availableConfigs.map(x => { return { workspace: x!.workspace, config: varReplacer(x!.workspace)(x!.config) } });
 }
 
-async function gather_download_list() {
-    const available_configs = await gather_available_configs();
+async function gatherDownloadList() {
+    const availableConfigs = await gatherAvailableConfigs();
 
-    const guess_dsn_regex = /(?:.*[\\/])?((?:[A-Za-z0-9@#$]{1,8}\.)+(?:[A-Za-z0-9@#$]{1,8}))[\\/]*/;
-    const collected_dsn_and_path = available_configs.map((x) => {
+    const guessDsnRegex = /(?:.*[\\/])?((?:[A-Za-z0-9@#$]{1,8})(?:\.[A-Za-z0-9@#$]{1,8})+)[\\/]*/;
+    const collectedDsnAndPath = availableConfigs.map((x) => {
         try {
             const dirs: { dsn: string, path: string }[] = [];
 
@@ -478,20 +478,20 @@ async function gather_download_list() {
                     else if (typeof l.path === 'string')
                         d = l.path;
                     if (d.length > 0) {
-                        const dsn = guess_dsn_regex.exec(d);
+                        const dsn = guessDsnRegex.exec(d);
                         if (dsn) {
                             if (d.startsWith("~")) {
-                                dirs.push({ dsn: dsn[1], path: fix_path(path.join(homedir(), /~[\\/]/.test(d) ? d.slice(2) : d.slice(1))) });
+                                dirs.push({ dsn: dsn[1], path: fixPath(path.join(homedir(), /~[\\/]/.test(d) ? d.slice(2) : d.slice(1))) });
                             }
                             else if (/^[A-Za-z][A-Za-z0-9+.-]+:/.test(d)) { // url (and not windows path)
                                 const uri = vscode.Uri.parse(d);
                                 if (uri.scheme === 'file')
-                                    dirs.push({ dsn: dsn[1], path: fix_path(uri.fsPath) });
+                                    dirs.push({ dsn: dsn[1], path: fixPath(uri.fsPath) });
                             }
                             else { // path
                                 const uri = path.isAbsolute(d) ? vscode.Uri.file(d) : vscode.Uri.joinPath(x.workspace.uri, d);
                                 if (uri.scheme === 'file')
-                                    dirs.push({ dsn: dsn[1], path: fix_path(uri.fsPath) });
+                                    dirs.push({ dsn: dsn[1], path: fixPath(uri.fsPath) });
                             }
                         }
                     }
@@ -510,40 +510,40 @@ async function gather_download_list() {
         return prev;
     }, {});
 
-    const things_to_download: job_detail[] = [];
-    for (const key in collected_dsn_and_path)
-        things_to_download.push({ dsn: key, dirs: [... new Set<string>(collected_dsn_and_path[key])] });
+    const thingsToDownload: JobDetail[] = [];
+    for (const key in collectedDsnAndPath)
+        thingsToDownload.push({ dsn: key, dirs: [... new Set<string>(collectedDsnAndPath[key])] });
 
-    return things_to_download;
+    return thingsToDownload;
 }
 
-enum connection_security_level {
+enum connectionSecurityLevel {
     "rejectUnauthorized",
     "acceptUnauthorized",
     "unsecure",
 }
 
-interface connection_info {
+interface connectionInfo {
     host: string;
     port: number | undefined;
     user: string;
     password: string;
-    host_input: string;
-    secure: connection_security_level;
+    hostInput: string;
+    secure: connectionSecurityLevel;
 }
 
-function gather_security_level_from_zowe(profile: any) {
+function gatherSecurityLevelFromZowe(profile: any) {
     if (profile.secureFtp !== false) {
         if (profile.rejectUnauthorized !== false)
-            return connection_security_level.rejectUnauthorized;
+            return connectionSecurityLevel.rejectUnauthorized;
         else
-            return connection_security_level.acceptUnauthorized;
+            return connectionSecurityLevel.acceptUnauthorized;
     }
     else
-        return connection_security_level.unsecure;
+        return connectionSecurityLevel.unsecure;
 }
 
-async function gather_connection_info_from_zowe(zowe: vscode.Extension<any>, profile_name: string): Promise<connection_info> {
+async function gatherConnectionInfoFromZowe(zowe: vscode.Extension<any>, profileName: string): Promise<connectionInfo> {
     if (!zowe.isActive)
         await zowe.activate();
     if (!zowe.isActive)
@@ -556,59 +556,59 @@ async function gather_connection_info_from_zowe(zowe: vscode.Extension<any>, pro
     const loadedProfile = zoweExplorerApi
         .getExplorerExtenderApi()
         .getProfilesCache()
-        .loadNamedProfile(profile_name);
+        .loadNamedProfile(profileName);
 
     return {
         host: loadedProfile.profile.host,
         port: loadedProfile.profile.port,
         user: loadedProfile.profile.user,
         password: loadedProfile.profile.password,
-        host_input: '@' + profile_name,
-        secure: gather_security_level_from_zowe(loadedProfile.profile)
+        hostInput: '@' + profileName,
+        secure: gatherSecurityLevelFromZowe(loadedProfile.profile)
     };
 }
 
-async function gather_connection_info(last_input: download_input_memento): Promise<connection_info> {
+async function gatherConnectionInfo(lastInput: downloadInputMemento): Promise<connectionInfo> {
     const zowe = vscode.extensions.getExtension("Zowe.vscode-extension-for-zowe");
 
-    const host_input = await ask_user(zowe ? "host[:port] or @zowe-profile-name" : "host[:port]", false, !zowe && last_input.host.startsWith('@') ? '' : last_input.host);
-    const host_port = host_input.split(':');
-    if (host_port.length < 1 || host_port.length > 2)
+    const hostInput = await askUser(zowe ? "host[:port] or @zowe-profile-name" : "host[:port]", false, !zowe && lastInput.host.startsWith('@') ? '' : lastInput.host);
+    const hostPort = hostInput.split(':');
+    if (hostPort.length < 1 || hostPort.length > 2)
         throw Error("Invalid hostname or port");
 
-    const host = host_port[0];
-    const port = host_port.length > 1 ? +host_port[1] : undefined;
+    const host = hostPort[0];
+    const port = hostPort.length > 1 ? +hostPort[1] : undefined;
     if (zowe && port === undefined && host.startsWith('@'))
-        return await gather_connection_info_from_zowe(zowe, host.slice(1));
+        return await gatherConnectionInfoFromZowe(zowe, host.slice(1));
 
-    const user = await ask_user("user name", false, last_input.user);
-    const password = await ask_user("password", true);
-    const secure_level = await pick_user("Select security option", [
-        { label: "Use TLS, reject unauthorized certificated", value: connection_security_level.rejectUnauthorized },
-        { label: "Use TLS, accept unauthorized certificated", value: connection_security_level.acceptUnauthorized },
-        { label: "Unsecured connection", value: connection_security_level.unsecure },
+    const user = await askUser("user name", false, lastInput.user);
+    const password = await askUser("password", true);
+    const secureLevel = await pickUser("Select security option", [
+        { label: "Use TLS, reject unauthorized certificated", value: connectionSecurityLevel.rejectUnauthorized },
+        { label: "Use TLS, accept unauthorized certificated", value: connectionSecurityLevel.acceptUnauthorized },
+        { label: "Unsecured connection", value: connectionSecurityLevel.unsecure },
     ]);
-    return { host: host, port: port, user: user, password: password, host_input: host_input, secure: secure_level };
+    return { host: host, port: port, user: user, password: password, hostInput: hostInput, secure: secureLevel };
 }
 
-interface download_input_memento {
+interface downloadInputMemento {
     host: string;
     user: string;
     jobcard: string;
 }
 
-const memento_key = "hlasm.download_copy_books";
+const mementoKey = "hlasm.downloadDependencies";
 
-function get_last_run_config(context: vscode.ExtensionContext): download_input_memento {
-    let last_run = context.globalState.get(memento_key, { host: '', user: '', jobcard: '' });
+function getLastRunConfig(context: vscode.ExtensionContext): downloadInputMemento {
+    let lastRun = context.globalState.get(mementoKey, { host: '', user: '', jobcard: '' });
     return {
-        host: '' + (last_run.host || ''),
-        user: '' + (last_run.user || ''),
-        jobcard: '' + (last_run.jobcard || ''),
+        host: '' + (lastRun.host || ''),
+        user: '' + (lastRun.user || ''),
+        jobcard: '' + (lastRun.jobcard || ''),
     };
 }
 
-async function is_directory_empty(dir: string): Promise<boolean> {
+async function isDirectoryEmpty(dir: string): Promise<boolean> {
     try {
         const dirIter = await fsp.opendir(dir);
         const { value, done } = await dirIter[Symbol.asyncIterator]().next();
@@ -622,21 +622,20 @@ async function is_directory_empty(dir: string): Promise<boolean> {
     return true;
 }
 
-async function check_for_existing_files(jobs: job_detail[]) {
-    const unique_dirs = new Set<string>();
-    jobs.forEach(x => x.dirs.forEach(y => unique_dirs.add(y)));
+async function checkForExistingFiles(jobs: JobDetail[]) {
+    const uniqueDirs = new Set<string>();
+    jobs.forEach(x => x.dirs.forEach(y => uniqueDirs.add(y)));
 
-    const nonempty_dirs = new Set<string>();
+    const nonemptyDirs = new Set<string>();
 
-    unique_dirs.forEach(x => {
-        if (!is_directory_empty(x))
-            nonempty_dirs.add(x);
-    });
+    for (const d of uniqueDirs)
+        if (!await isDirectoryEmpty(d))
+            nonemptyDirs.add(d);
 
-    return nonempty_dirs;
+    return nonemptyDirs;
 }
 
-async function remove_files_from_directory(dir: string) {
+async function removeFilesFromDirectory(dir: string) {
     const files = await fsp.readdir(dir, { withFileTypes: true });
     for (const f of files) {
         if (f.isFile() || f.isSymbolicLink())
@@ -644,51 +643,51 @@ async function remove_files_from_directory(dir: string) {
     }
 }
 
-export interface stage_progress_reporter {
-    stage_completed(): void;
+export interface StageProgressReporter {
+    stageCompleted(): void;
 }
 
-class progress_reporter implements stage_progress_reporter {
+class progressReporter implements StageProgressReporter {
     constructor(private p: vscode.Progress<{ message?: string; increment?: number }>, private stages: number) { }
-    stage_completed(): void {
+    stageCompleted(): void {
         this.p.report({ increment: 100 / this.stages });
     }
 }
 
-export async function download_copy_books(context: vscode.ExtensionContext) {
-    const last_input = get_last_run_config(context);
-    const { host, port, user, password, host_input, secure } = await gather_connection_info(last_input);
+export async function downloadDependencies(context: vscode.ExtensionContext) {
+    const lastInput = getLastRunConfig(context);
+    const { host, port, user, password, hostInput, secure } = await gatherConnectionInfo(lastInput);
 
-    const jobcard_pattern = await ask_user("Enter jobcard pattern (? will be substituted)", false, last_input.jobcard || "//" + user.slice(0, 7).padEnd(8, '?').toUpperCase() + " JOB ACCTNO");
+    const jobcardPattern = await askUser("Enter jobcard pattern (? will be substituted)", false, lastInput.jobcard || "//" + user.slice(0, 7).padEnd(8, '?').toUpperCase() + " JOB ACCTNO");
 
-    await context.globalState.update(memento_key, { host: host_input, user: user, jobcard: jobcard_pattern });
+    await context.globalState.update(mementoKey, { host: hostInput, user: user, jobcard: jobcardPattern });
 
-    const things_to_download = await gather_download_list();
+    const thingsToDownload = await gatherDownloadList();
 
-    const dirs_with_files = await check_for_existing_files(things_to_download);
-    if (dirs_with_files.size > 0) {
+    const dirsWithFiles = await checkForExistingFiles(thingsToDownload);
+    if (dirsWithFiles.size > 0) {
         const overwrite = "Overwrite";
-        const what_to_do = await vscode.window.showQuickPick([overwrite, "Cancel"], { title: "Some of the directories (" + dirs_with_files.size + ") exist and are not empty." });
-        if (what_to_do !== overwrite)
+        const whatToDo = await vscode.window.showQuickPick([overwrite, "Cancel"], { title: "Some of the directories (" + dirsWithFiles.size + ") exist and are not empty." });
+        if (whatToDo !== overwrite)
             return;
 
-        for (const d of dirs_with_files)
-            remove_files_from_directory(d);
+        for (const d of dirsWithFiles)
+            removeFilesFromDirectory(d);
     }
 
-    vscode.window.withProgress({ title: "Downloading copybooks", location: vscode.ProgressLocation.Notification, cancellable: true }, async (p, t) => {
-        const result = await download_copy_books_with_client(
-            await basic_ftp_job_client({
+    vscode.window.withProgress({ title: "Downloading dependencies", location: vscode.ProgressLocation.Notification, cancellable: true }, async (p, t) => {
+        const result = await downloadDependenciesWithClient(
+            await basicFtpJobClient({
                 host: host,
                 user: user,
                 password: password,
                 port: port,
                 secure: secure
             }),
-            things_to_download,
-            jobcard_pattern,
-            new progress_reporter(p, things_to_download.reduce((prev, cur) => { return prev + cur.dirs.length + 3 }, 0)),
-            { unterse, translate_files, copy_directory },
+            thingsToDownload,
+            jobcardPattern,
+            new progressReporter(p, thingsToDownload.reduce((prev, cur) => { return prev + cur.dirs.length + 3 }, 0)),
+            { unterse, translateFiles, copyDirectory },
             () => t.isCancellationRequested);
 
         if (result.failed.length > 0) // TODO: offer re-run?
