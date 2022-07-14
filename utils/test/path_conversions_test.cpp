@@ -48,6 +48,14 @@ TEST(path_conversions, path_to_uri)
     }
 }
 
+TEST(path_conversions, encode)
+{
+    EXPECT_EQ(encode("abc"), "abc");
+    EXPECT_EQ(encode("%"), "%25");
+    EXPECT_EQ(encode("%25"), "%25");
+    EXPECT_EQ(encode("%st"), "%25st");
+}
+
 TEST(path_conversions, reconstruct_uri_scheme_path)
 {
     dissected_uri dis_uri;

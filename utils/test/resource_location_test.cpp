@@ -420,39 +420,41 @@ TEST(resource_location, lexically_normal_file_scheme)
     if (hlasm_plugin::utils::platform::is_windows())
     {
         EXPECT_EQ(resource_location("file:C:/Dir/").lexically_normal(), "file:///C:/Dir/");
-        EXPECT_EQ(resource_location("file:C%3a/Dir/").lexically_normal(), "file:///C%3a/Dir/");
+        EXPECT_EQ(resource_location("file:C%3a/Dir/").lexically_normal(), "file:///C%3A/Dir/");
         EXPECT_EQ(resource_location("file:C%3A/Dir/").lexically_normal(), "file:///C%3A/Dir/");
 
         EXPECT_EQ(resource_location("file:/C:/Dir/").lexically_normal(), "file:///C:/Dir/");
-        EXPECT_EQ(resource_location("file:/C%3a/Dir/").lexically_normal(), "file:///C%3a/Dir/");
+        EXPECT_EQ(resource_location("file:/C%3a/Dir/").lexically_normal(), "file:///C%3A/Dir/");
         EXPECT_EQ(resource_location("file:/C%3A/Dir/").lexically_normal(), "file:///C%3A/Dir/");
         EXPECT_EQ(resource_location("file:\\C:/Dir/").lexically_normal(), "file:///C:/Dir/");
-        EXPECT_EQ(resource_location("file:\\C%3a/Dir/").lexically_normal(), "file:///C%3a/Dir/");
+        EXPECT_EQ(resource_location("file:\\C%3a/Dir/").lexically_normal(), "file:///C%3A/Dir/");
         EXPECT_EQ(resource_location("file:\\C%3A/Dir/").lexically_normal(), "file:///C%3A/Dir/");
 
         EXPECT_EQ(resource_location("file://C:/Dir/").lexically_normal(), "file:///C:/Dir/");
-        EXPECT_EQ(resource_location("file://C%3a/Dir/").lexically_normal(), "file:///C%3a/Dir/");
+        EXPECT_EQ(resource_location("file://C%3a/Dir/").lexically_normal(), "file:///C%3A/Dir/");
         EXPECT_EQ(resource_location("file://C%3A/Dir/").lexically_normal(), "file:///C%3A/Dir/");
         EXPECT_EQ(resource_location("file:\\\\C:/Dir/").lexically_normal(), "file:///C:/Dir/");
-        EXPECT_EQ(resource_location("file:\\\\C%3a/Dir/").lexically_normal(), "file:///C%3a/Dir/");
+        EXPECT_EQ(resource_location("file:\\\\C%3a/Dir/").lexically_normal(), "file:///C%3A/Dir/");
         EXPECT_EQ(resource_location("file:\\\\C%3A/Dir/").lexically_normal(), "file:///C%3A/Dir/");
 
         EXPECT_EQ(resource_location("file:///C:/Dir/").lexically_normal(), "file:///C:/Dir/");
-        EXPECT_EQ(resource_location("file:///C%3a/Dir/").lexically_normal(), "file:///C%3a/Dir/");
+        EXPECT_EQ(resource_location("file:///C%3a/Dir/").lexically_normal(), "file:///C%3A/Dir/");
         EXPECT_EQ(resource_location("file:///C%3A/Dir/").lexically_normal(), "file:///C%3A/Dir/");
         EXPECT_EQ(resource_location("file:\\\\\\C:/Dir/").lexically_normal(), "file:///C:/Dir/");
-        EXPECT_EQ(resource_location("file:\\\\\\C%3a/Dir/").lexically_normal(), "file:///C%3a/Dir/");
+        EXPECT_EQ(resource_location("file:\\\\\\C%3a/Dir/").lexically_normal(), "file:///C%3A/Dir/");
         EXPECT_EQ(resource_location("file:\\\\\\C%3A/Dir/").lexically_normal(), "file:///C%3A/Dir/");
 
         EXPECT_EQ(resource_location("file://///C://Dir//").lexically_normal(), "file:///C:/Dir/");
-        EXPECT_EQ(resource_location("file://///C%3a//Dir//").lexically_normal(), "file:///C%3a/Dir/");
+        EXPECT_EQ(resource_location("file://///C%3a//Dir//").lexically_normal(), "file:///C%3A/Dir/");
         EXPECT_EQ(resource_location("file://///C%3A//Dir//").lexically_normal(), "file:///C%3A/Dir/");
         EXPECT_EQ(resource_location("file:\\\\\\\\\\C://Dir//").lexically_normal(), "file:///C:/Dir/");
-        EXPECT_EQ(resource_location("file:\\\\\\\\\\C%3a//Dir//").lexically_normal(), "file:///C%3a/Dir/");
+        EXPECT_EQ(resource_location("file:\\\\\\\\\\C%3a//Dir//").lexically_normal(), "file:///C%3A/Dir/");
         EXPECT_EQ(resource_location("file:\\\\\\\\\\C%3A//Dir//").lexically_normal(), "file:///C%3A/Dir/");
 
         EXPECT_EQ(resource_location("file://C/Dir//").lexically_normal(), "file://C/Dir/");
         EXPECT_EQ(resource_location("file://host/Dir//").lexically_normal(), "file://host/Dir/");
+
+        EXPECT_NE(resource_location("file:C%3a/Dir/").lexically_normal(), "file:///C%3a/Dir/");
     }
     else
     {
@@ -479,12 +481,6 @@ TEST(resource_location, lexically_normal_rfc_3986)
 }
 
 // TEST(resource_location, lexically_normal_rfc_3986_syntax_based) // todo
-//{
-//     EXPECT_EQ(resource_location("example://a/b/c/%7Bfoo%7D").lexically_normal(),
-//         resource_location("eXAMPLE://a/./b/../b/%63/%7bfoo%7d").lexically_normal());
-// }
-
-// TEST(resource_location, lexically_normal_rfc_3986_case) // todo
 //{
 //     EXPECT_EQ(resource_location("example://a/b/c/%7Bfoo%7D").lexically_normal(),
 //         resource_location("eXAMPLE://a/./b/../b/%63/%7bfoo%7d").lexically_normal());
@@ -794,25 +790,130 @@ TEST(resource_location, operator_equal)
     }
 }
 
-TEST(resource_location, special_chars)
+namespace {
+std::vector<std::string> get_file_roots()
 {
-    if (is_windows())
-    {
-        resource_location rl("file:///C:/temp$/");
-        rl = resource_location(rl.lexically_normal());
+    static const auto file_roots = []() {
+        std::vector<std::string> temp;
 
-        EXPECT_TRUE(resource_location("file:///C:/temp%24/") == rl);
-        EXPECT_TRUE(resource_location("file:///c:/temp%24/") == rl);
-        EXPECT_TRUE(resource_location("file:///C%3A/temp%24/") == rl);
-        EXPECT_TRUE(resource_location("file:///C%3a/temp%24/") == rl);
-        EXPECT_TRUE(resource_location("file:///c%3A/temp%24/") == rl);
-        EXPECT_TRUE(resource_location("file:///c%3a/temp%24/") == rl);
+        if (is_windows())
+        {
+            temp.emplace_back("file:///C:/");
+            temp.emplace_back("file:///c:/");
+            temp.emplace_back("file:///C%3A/");
+            temp.emplace_back("file:///c%3A/");
+            temp.emplace_back("file:///C%3a/");
+            temp.emplace_back("file:///c%3a/");
+        }
+        else
+            temp.emplace_back("file:///home/");
+
+        return temp;
+    }();
+
+    return file_roots;
+}
+
+std::pair<std::vector<std::string>, std::string> get_1_byte_utf_8_test_case()
+{
+    std::vector<std::string> equivalent;
+
+    for (auto& file_root : get_file_roots())
+    {
+        equivalent.emplace_back(file_root + "temp%2B/");
+        equivalent.emplace_back(file_root + "temp%2b/");
     }
-    else
-    {
-        resource_location rl("file:///home/temp$/");
-        rl = resource_location(rl.lexically_normal());
 
-        EXPECT_TRUE(resource_location("file:///home/temp%24/") == rl);
+    if (is_windows())
+        return { equivalent, "file:///C:/temp+/" };
+    else
+        return { equivalent, "file:///home/temp+/" };
+}
+
+std::pair<std::vector<std::string>, std::string> get_percent_encoded_path_01()
+{
+    std::vector<std::string> equivalent;
+    for (auto& file_root : get_file_roots())
+    {
+        equivalent.emplace_back(file_root + "temp%2B/");
+        equivalent.emplace_back(file_root + "temp%2b/");
+    }
+
+    if (is_windows())
+        return { equivalent, "file:///C:/temp+/" };
+    else
+        return { equivalent, "file:///home/temp+/" };
+}
+
+std::pair<std::vector<std::string>, std::string> get_percent_encoded_path_02()
+{
+    std::vector<std::string> equivalent;
+    for (auto& file_root : get_file_roots())
+    {
+        equivalent.emplace_back(file_root + "temp%2B%2B/");
+        equivalent.emplace_back(file_root + "temp%2b%2b/");
+        equivalent.emplace_back(file_root + "temp%2B%2b/");
+        equivalent.emplace_back(file_root + "temp%2B%2b/");
+    }
+
+    if (is_windows())
+        return { equivalent, "file:///C:/temp++/" };
+    else
+        return { equivalent, "file:///home/temp++/" };
+}
+
+std::pair<std::vector<std::string>, std::string> get_percent_encoded_path_01_no_slash()
+{
+    std::vector<std::string> equivalent;
+    for (auto& file_root : get_file_roots())
+    {
+        equivalent.emplace_back(file_root + "temp%2B");
+        equivalent.emplace_back(file_root + "temp%2b");
+    }
+
+    if (is_windows())
+        return { equivalent, "file:///C:/temp+" };
+    else
+        return { equivalent, "file:///home/temp+" };
+}
+
+std::pair<std::vector<std::string>, std::string> get_percent_encoded_path_02_no_slash()
+{
+    std::vector<std::string> equivalent;
+    for (auto& file_root : get_file_roots())
+    {
+        equivalent.emplace_back(file_root + "temp%2B%2B");
+        equivalent.emplace_back(file_root + "temp%2b%2b");
+        equivalent.emplace_back(file_root + "temp%2B%2b");
+        equivalent.emplace_back(file_root + "temp%2B%2b");
+    }
+
+    if (is_windows())
+        return { equivalent, "file:///C:/temp++" };
+    else
+        return { equivalent, "file:///home/temp++" };
+}
+} // namespace
+
+TEST(resource_location, lexically_normal_percent_encoded_chars)
+{
+    std::vector<std::pair<std::vector<std::string>, std::string>> test_cases;
+    test_cases.emplace_back(get_percent_encoded_path_01());
+    test_cases.emplace_back(get_percent_encoded_path_01_no_slash());
+    test_cases.emplace_back(get_percent_encoded_path_02());
+    test_cases.emplace_back(get_percent_encoded_path_02_no_slash());
+
+    for (const auto& tc : test_cases)
+    {
+        resource_location expected(tc.second);
+        expected = resource_location(expected.lexically_normal());
+
+        for (const auto& equivalent : tc.first)
+        {
+            resource_location temp(equivalent);
+            temp = resource_location(temp.lexically_normal());
+
+            EXPECT_TRUE(temp == expected) << temp.get_uri() << " should be equal to " << expected.get_uri();
+        }
     }
 }
