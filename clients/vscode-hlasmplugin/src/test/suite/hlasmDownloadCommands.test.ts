@@ -111,7 +111,7 @@ suite('HLASM Download datasets', () => {
         assert.deepEqual(io.translate_calls, ['/dir1']);
         assert.deepEqual(io.unterse_calls, ['/dir1']);
         assert.equal(stages.stages, 4);
-    }).timeout(5000).slow(2000);
+    });
 
     test('Jobcard pattern', async () => {
         const client = get_client([
@@ -141,7 +141,7 @@ suite('HLASM Download datasets', () => {
         assert.deepEqual(io.translate_calls, ['/dir1']);
         assert.deepEqual(io.unterse_calls, ['/dir1']);
         assert.equal(stages.stages, 4);
-    }).timeout(5000).slow(2000);
+    });
 
     test('Cancelled', async () => {
         const client = get_client([
@@ -173,7 +173,7 @@ suite('HLASM Download datasets', () => {
         assert.deepEqual(io.translate_calls, []);
         assert.deepEqual(io.unterse_calls, []);
         assert.equal(stages.stages, 0);
-    }).timeout(5000).slow(2000);
+    });
 
 
     test('Multiple datasets', async () => {
@@ -213,7 +213,7 @@ suite('HLASM Download datasets', () => {
         assert.deepEqual(io.translate_calls, ['/dir1', '/dir2']);
         assert.deepEqual(io.unterse_calls, ['/dir1', '/dir2']);
         assert.equal(stages.stages, 4 + 5);
-    }).timeout(5000).slow(2000);
+    });
 
     test('Failed job', async () => {
         const client = get_client([
@@ -241,5 +241,5 @@ suite('HLASM Download datasets', () => {
         assert.deepEqual(client.set_list_mask_calls, ['JOBNAME']);
         assert.equal(io.copy_calls.length, 0);
         assert.equal(stages.stages, 1);
-    }).timeout(5000).slow(2000);
+    });
 });
