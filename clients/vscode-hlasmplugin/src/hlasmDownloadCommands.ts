@@ -121,7 +121,7 @@ export interface JobDetail {
     dirs: string[];
 }
 
-interface submittedJob {
+interface SubmittedJob {
     jobname: string;
     jobid: string;
     details: JobDetail;
@@ -129,7 +129,7 @@ interface submittedJob {
     unpacking?: Promise<void>;
 }
 
-interface parsedJobHeader {
+interface ParsedJobHeader {
     jobHeader: {
         prefix: string,
         replCount: number,
@@ -138,7 +138,7 @@ interface parsedJobHeader {
     jobMask: string;
 }
 const translationTable: string = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-function prepareJobHeader(pattern: string): parsedJobHeader {
+function prepareJobHeader(pattern: string): ParsedJobHeader {
     const match = /^(\/\/[^ ?]+)(\?*)( .*)$/.exec(pattern);
 
     if (!match)
@@ -148,7 +148,7 @@ function prepareJobHeader(pattern: string): parsedJobHeader {
     else
         return { jobHeader: pattern, jobMask: pattern.slice(2, pattern.indexOf(' ')) };
 }
-function generateJobHeader(header: parsedJobHeader, jobNo: number): string {
+function generateJobHeader(header: ParsedJobHeader, jobNo: number): string {
     if (typeof header.jobHeader === 'string')
         return header.jobHeader;
     else {
@@ -168,7 +168,7 @@ function generateJobHeader(header: parsedJobHeader, jobNo: number): string {
 
 }
 
-function generateJcl(jobNo: number, jobcard: parsedJobHeader, datasetName: string): string {
+function generateJcl(jobNo: number, jobcard: ParsedJobHeader, datasetName: string): string {
     return [
         generateJobHeader(jobcard, jobNo),
         "//AMATERSE EXEC PGM=AMATERSE,PARM=SPACK",
@@ -189,10 +189,10 @@ function extractJobName(jcl: string): string {
     return jcl.slice(2, jcl.indexOf(' '));
 }
 
-async function submitJobs(client: JobClient, jobcard: parsedJobHeader, jobList: JobDetail[], progress: StageProgressReporter, checkCancel: () => void): Promise<submittedJob[]> {
+async function submitJobs(client: JobClient, jobcard: ParsedJobHeader, jobList: JobDetail[], progress: StageProgressReporter, checkCancel: () => void): Promise<SubmittedJob[]> {
     let id = 0;
 
-    let result: submittedJob[] = [];
+    let result: SubmittedJob[] = [];
 
     for (const e of jobList) {
         checkCancel();
@@ -306,7 +306,7 @@ export interface IoOps {
 async function downloadJobAndProcess(
     client: JobClient,
     fileInfo: JobDescription,
-    job: submittedJob,
+    job: SubmittedJob,
     progress: StageProgressReporter,
     io: IoOps): Promise<{ unpacker: Promise<void> }> {
     const JobDetail = getJobDetailInfo(fileInfo);
@@ -365,7 +365,7 @@ export async function downloadDependenciesWithClient(client: JobClient,
         const jobcard = prepareJobHeader(jobcardPattern);
         const jobs = await submitJobs(client, jobcard, jobList, progress, checkCancel);
         const jobsMap: {
-            [key: string]: submittedJob
+            [key: string]: SubmittedJob
         } = Object.assign({}, ...jobs.map(x => ({ [x.jobname + "." + x.jobid]: x })));
 
         await client.setListMask(jobcard.jobMask);
@@ -523,7 +523,7 @@ enum connectionSecurityLevel {
     "unsecure",
 }
 
-interface connectionInfo {
+interface ConnectionInfo {
     host: string;
     port: number | undefined;
     user: string;
@@ -543,7 +543,7 @@ function gatherSecurityLevelFromZowe(profile: any) {
         return connectionSecurityLevel.unsecure;
 }
 
-async function gatherConnectionInfoFromZowe(zowe: vscode.Extension<any>, profileName: string): Promise<connectionInfo> {
+async function gatherConnectionInfoFromZowe(zowe: vscode.Extension<any>, profileName: string): Promise<ConnectionInfo> {
     if (!zowe.isActive)
         await zowe.activate();
     if (!zowe.isActive)
@@ -568,7 +568,7 @@ async function gatherConnectionInfoFromZowe(zowe: vscode.Extension<any>, profile
     };
 }
 
-async function gatherConnectionInfo(lastInput: downloadInputMemento): Promise<connectionInfo> {
+async function gatherConnectionInfo(lastInput: DownloadDependenciesInputMemento): Promise<ConnectionInfo> {
     const zowe = vscode.extensions.getExtension("Zowe.vscode-extension-for-zowe");
 
     const hostInput = await askUser(zowe ? "host[:port] or @zowe-profile-name" : "host[:port]", false, !zowe && lastInput.host.startsWith('@') ? '' : lastInput.host);
@@ -591,7 +591,7 @@ async function gatherConnectionInfo(lastInput: downloadInputMemento): Promise<co
     return { host: host, port: port, user: user, password: password, hostInput: hostInput, secure: secureLevel };
 }
 
-interface downloadInputMemento {
+interface DownloadDependenciesInputMemento {
     host: string;
     user: string;
     jobcard: string;
@@ -599,7 +599,7 @@ interface downloadInputMemento {
 
 const mementoKey = "hlasm.downloadDependencies";
 
-function getLastRunConfig(context: vscode.ExtensionContext): downloadInputMemento {
+function getLastRunConfig(context: vscode.ExtensionContext): DownloadDependenciesInputMemento {
     let lastRun = context.globalState.get(mementoKey, { host: '', user: '', jobcard: '' });
     return {
         host: '' + (lastRun.host || ''),
@@ -647,7 +647,7 @@ export interface StageProgressReporter {
     stageCompleted(): void;
 }
 
-class progressReporter implements StageProgressReporter {
+class ProgressReporter implements StageProgressReporter {
     constructor(private p: vscode.Progress<{ message?: string; increment?: number }>, private stages: number) { }
     stageCompleted(): void {
         this.p.report({ increment: 100 / this.stages });
@@ -686,7 +686,7 @@ export async function downloadDependencies(context: vscode.ExtensionContext) {
             }),
             thingsToDownload,
             jobcardPattern,
-            new progressReporter(p, thingsToDownload.reduce((prev, cur) => { return prev + cur.dirs.length + 3 }, 0)),
+            new ProgressReporter(p, thingsToDownload.reduce((prev, cur) => { return prev + cur.dirs.length + 3 }, 0)),
             { unterse, translateFiles, copyDirectory },
             () => t.isCancellationRequested);
 
