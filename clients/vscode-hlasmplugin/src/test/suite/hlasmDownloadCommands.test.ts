@@ -56,7 +56,7 @@ suite('HLASM Download datasets', () => {
             unterse_calls: new Array<string>(),
             translate_calls: new Array<string>(),
             copy_calls: new Array<{ source: string, target: string }>(),
-            unterse(out_dir: string) {
+            async unterse(out_dir: string) {
                 this.unterse_calls.push(out_dir);
 
                 const process = Promise.resolve();

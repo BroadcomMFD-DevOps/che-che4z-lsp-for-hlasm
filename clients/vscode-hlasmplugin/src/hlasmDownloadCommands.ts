@@ -225,26 +225,15 @@ function getWasmRuntimeArgs(): Array<string> {
         ];
 }
 
-function unterse(out_dir: string): { process: Promise<void>, input: Writable } {
+async function unterse(out_dir: string): Promise<{ process: Promise<void>, input: Writable }> {
+    await fsp.mkdir(out_dir, { recursive: true });
     const unpacker = fork(
         path.join(__dirname, '..', 'bin', 'terse'),
-        [
-            "--op",
-            "unpack",
-            "--overwrite",
-            "--copy-if-symlink-fails",
-            "-o",
-            out_dir
-        ],
-        {
-            execArgv: getWasmRuntimeArgs(),
-            stdio: ['pipe', 'ignore', 'pipe', 'ipc']
-        }
+        ["--op", "unpack", "--overwrite", "--copy-if-symlink-fails", "-o", out_dir],
+        { execArgv: getWasmRuntimeArgs(), stdio: ['pipe', 'ignore', 'pipe', 'ipc'] }
     );
     const promise = new Promise<void>((resolve, reject) => {
-        unpacker.stderr!.on('data', (chunk) => {
-            console.log(chunk.toString());
-        });
+        unpacker.stderr!.on('data', (chunk) => console.log(chunk.toString()));
         unpacker.on('exit', (code, signal) => {
             if (signal)
                 reject("Signal received from unterse: " + signal);
@@ -308,7 +297,7 @@ async function copy_directory(source: string, target: string) {
 }
 
 export interface io_ops {
-    unterse: (out_dir: string) => { process: Promise<void>, input: Writable };
+    unterse: (out_dir: string) => Promise<{ process: Promise<void>, input: Writable }>;
     translate_files: (dir: string) => Promise<void>;
     copy_directory: (source: string, target: string) => Promise<void>;
 }
@@ -330,8 +319,7 @@ async function download_job_and_process(
     const first_dir = fix_path(job.details.dirs[0]);
 
     try {
-        await fsp.mkdir(first_dir, { recursive: true });
-        const { process, input } = io.unterse(first_dir);
+        const { process, input } = await io.unterse(first_dir);
         await client.download(input, job.jobid, job_detail.spool_files!);
         progress.stage_completed();
         job.downloaded = true;
@@ -619,27 +607,40 @@ function get_last_run_config(context: vscode.ExtensionContext): download_input_m
     };
 }
 
+async function is_directory_empty(dir: string): Promise<boolean> {
+    try {
+        const dirIter = await fsp.opendir(dir);
+        const { value, done } = await dirIter[Symbol.asyncIterator]().next();
+        if (!done) {
+            await dirIter.close(); // async iterator is closed automatically when the last entry is produced
+            return false;
+        }
+    }
+    catch (e) { if (e.code !== 'ENOENT') throw e; }
+
+    return true;
+}
+
 async function check_for_existing_files(jobs: job_detail[]) {
     const unique_dirs = new Set<string>();
     jobs.forEach(x => x.dirs.forEach(y => unique_dirs.add(y)));
 
     const nonempty_dirs = new Set<string>();
 
-    for (const x of unique_dirs) {
-        try {
-            const dirIter = await fsp.opendir(x);
-            const { value, done } = await dirIter[Symbol.asyncIterator]().next();
-            if (!done) {
-                nonempty_dirs.add(x);
-                await dirIter.close(); // async iterator is closed automatically when the last entry is produced
-            }
-        }
-        catch (e) {
-            if (e.code !== 'ENOENT') throw e;
-        }
-    }
+    unique_dirs.forEach(x => {
+        if (!is_directory_empty(x))
+            nonempty_dirs.add(x);
+    });
 
     return nonempty_dirs;
+}
+
+async function remove_files_from_directory(dir: string) {
+    const files = await fsp.readdir(dir, { withFileTypes: true });
+    for (const f of files) {
+        if (f.isFile() || f.isSymbolicLink())
+            await fsp.unlink(path.join(dir, f.name));
+    }
 }
 
 export interface stage_progress_reporter {
@@ -663,20 +664,15 @@ export async function download_copy_books(context: vscode.ExtensionContext) {
 
     const things_to_download = await gather_download_list();
 
-    const dirs_exists = await check_for_existing_files(things_to_download);
-    if (dirs_exists.size > 0) {
+    const dirs_with_files = await check_for_existing_files(things_to_download);
+    if (dirs_with_files.size > 0) {
         const overwrite = "Overwrite";
-        const what_to_do = await vscode.window.showQuickPick([overwrite, "Cancel"], { title: "Some of the directories (" + dirs_exists.size + ") exist and are not empty." });
+        const what_to_do = await vscode.window.showQuickPick([overwrite, "Cancel"], { title: "Some of the directories (" + dirs_with_files.size + ") exist and are not empty." });
         if (what_to_do !== overwrite)
             return;
 
-        for (const d of dirs_exists) {
-            const files = await fsp.readdir(d, { withFileTypes: true });
-            for (const f of files) {
-                if (f.isFile() || f.isSymbolicLink())
-                    await fsp.unlink(path.join(d, f.name));
-            }
-        }
+        for (const d of dirs_with_files)
+            remove_files_from_directory(d);
     }
 
     vscode.window.withProgress({ title: "Downloading copybooks", location: vscode.ProgressLocation.Notification, cancellable: true }, async (p, t) => {
