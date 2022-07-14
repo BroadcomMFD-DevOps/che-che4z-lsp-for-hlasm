@@ -88,6 +88,9 @@ TEST(wildcard2regex_test, utf_8_chars_01)
     EXPECT_FALSE(std::regex_match("pg%C3%BF%25s", regex));
     EXPECT_FALSE(std::regex_match("pg%C3%BF%C3%BEs", regex));
     EXPECT_FALSE(std::regex_match("pg%DF%BF%25s", regex));
+
+    // %FF is not a valid UTF-8 character
+    EXPECT_FALSE(std::regex_match("pg%Ffs", regex));
 }
 
 TEST(wildcard2regex_test, utf_8_chars_02)
@@ -103,4 +106,7 @@ TEST(wildcard2regex_test, utf_8_chars_02)
     EXPECT_TRUE(std::regex_match("pg%C3%BF%25s", regex));
     EXPECT_TRUE(std::regex_match("pg%C3%BF%C3%BEs", regex));
     EXPECT_TRUE(std::regex_match("pg%DF%BF%25s", regex));
+
+    // %FF is not a valid UTF-8 character
+    EXPECT_FALSE(std::regex_match("pg%Ff%Ffs", regex));
 }

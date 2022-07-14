@@ -185,7 +185,7 @@ const std::string pgroups_file_combination = is_windows() ? R"({
 const std::string pgmconf_file_relative_platform_dependent_slashes = is_windows() ? R"({
   "pgms": [
 	{
-      "program": "pattern_test\\source",
+      "program": "pattern_test\\s%25urce;",
       "pgroup": "P1"
     }
   ]
@@ -193,7 +193,7 @@ const std::string pgmconf_file_relative_platform_dependent_slashes = is_windows(
                                                                                   : R"({
   "pgms": [
 	{
-      "program": "pattern_test/source",
+      "program": "pattern_test/s%25urce;",
       "pgroup": "P1"
     }
   ]
@@ -202,7 +202,7 @@ const std::string pgmconf_file_relative_platform_dependent_slashes = is_windows(
 const std::string pgmconf_file_relative_platform_independent_slashes = R"({
   "pgms": [
 	{
-      "program": "pattern_test/source",
+      "program": "pattern_test/s%25urce;",
       "pgroup": "P1"
     }
   ]
@@ -228,7 +228,7 @@ const std::string pgmconf_file_relative_wild = is_windows() ? R"({
 const std::string pgmconf_file_absolute = is_windows() ? R"({
   "pgms": [
 	{
-      "program": "C:/User/ws/pattern_test/source",
+      "program": "C:/User/ws/pattern_test/s%25urce;",
       "pgroup": "P1"
     }
   ]
@@ -236,7 +236,7 @@ const std::string pgmconf_file_absolute = is_windows() ? R"({
                                                        : R"({
   "pgms": [
 	{
-      "program": "/home/User/ws/pattern_test/source",
+      "program": "/home/User/ws/pattern_test/s%25urce;",
       "pgroup": "P1"
     }
   ]
@@ -245,7 +245,7 @@ const std::string pgmconf_file_absolute = is_windows() ? R"({
 const std::string pgmconf_file_uri_full = is_windows() ? R"({
   "pgms": [
 	{
-      "program": "file:///C%3A/User/ws/pattern_test/source",
+      "program": "file:///C%3A/User/ws/pattern_test/s%2525urce%3B",
       "pgroup": "P1"
     }
   ]
@@ -253,7 +253,7 @@ const std::string pgmconf_file_uri_full = is_windows() ? R"({
                                                        : R"({
   "pgms": [
 	{
-      "program": "file:////home/User/ws/pattern_test/source",
+      "program": "file:////home/User/ws/pattern_test/s%2525urce%3B",
       "pgroup": "P1"
     }
   ]
@@ -262,7 +262,7 @@ const std::string pgmconf_file_uri_full = is_windows() ? R"({
 const std::string pgmconf_file_platform_uri_wild_01 = is_windows() ? R"({
   "pgms": [
 	{
-      "program": "file:///C:/User/ws/*/source",
+      "program": "file:///C:/User/ws/*/s%2525urce%3B",
       "pgroup": "P1"
     }
   ]
@@ -270,7 +270,7 @@ const std::string pgmconf_file_platform_uri_wild_01 = is_windows() ? R"({
                                                                    : R"({
   "pgms": [
 	{
-      "program": "file:////home/User/ws/*/source",
+      "program": "file:////home/User/ws/*/s%2525urce%3B",
       "pgroup": "P1"
     }
   ]
@@ -279,7 +279,7 @@ const std::string pgmconf_file_platform_uri_wild_01 = is_windows() ? R"({
 const std::string pgmconf_file_platform_uri_wild_02 = is_windows() ? R"({
   "pgms": [
 	{
-      "program": "file:///C:/User/ws/pattern_*est/source",
+      "program": "file:///C:/User/ws/pattern_*est/s%2525urce%3B",
       "pgroup": "P1"
     }
   ]
@@ -287,7 +287,7 @@ const std::string pgmconf_file_platform_uri_wild_02 = is_windows() ? R"({
                                                                    : R"({
   "pgms": [
 	{
-      "program": "file:////home/User/ws/pattern_*est/source",
+      "program": "file:////home/User/ws/pattern_*est/s%2525urce%3B",
       "pgroup": "P1"
     }
   ]
@@ -296,7 +296,7 @@ const std::string pgmconf_file_platform_uri_wild_02 = is_windows() ? R"({
 const std::string pgmconf_file_platform_uri_wild_03 = is_windows() ? R"({
   "pgms": [
 	{
-      "program": "file:///C:/User/ws/pattern_?est/source",
+      "program": "file:///C:/User/ws/pattern_?est/s%2525urce%3B",
       "pgroup": "P1"
     }
   ]
@@ -304,7 +304,7 @@ const std::string pgmconf_file_platform_uri_wild_03 = is_windows() ? R"({
                                                                    : R"({
   "pgms": [
 	{
-      "program": "file:////home/User/ws/pattern_?est/source",
+      "program": "file:////home/User/ws/pattern_?est/s%2525urce%3B",
       "pgroup": "P1"
     }
   ]
@@ -313,7 +313,7 @@ const std::string pgmconf_file_platform_uri_wild_03 = is_windows() ? R"({
 const std::string pgmconf_file_platform_uri_wild_04 = is_windows() ? R"({
   "pgms": [
 	{
-      "program": "file:///C:/User/ws/pattern_?est/s*rce",
+      "program": "file:///C:/User/ws/pattern_?est/s*rce%3B",
       "pgroup": "P1"
     }
   ]
@@ -321,7 +321,7 @@ const std::string pgmconf_file_platform_uri_wild_04 = is_windows() ? R"({
                                                                    : R"({
   "pgms": [
 	{
-      "program": "file:////home/User/ws/pattern_?est/s*rce",
+      "program": "file:////home/User/ws/pattern_?est/s*rce%3B",
       "pgroup": "P1"
     }
   ]
@@ -330,7 +330,7 @@ const std::string pgmconf_file_platform_uri_wild_04 = is_windows() ? R"({
 const std::string pgmconf_file_platform_uri_wild_05 = is_windows() ? R"({
   "pgms": [
 	{
-      "program": "file:///C:/User/**/pattern_?est/source",
+      "program": "file:///C:/User/**/pattern_?est/s?25urce?",
       "pgroup": "P1"
     }
   ]
@@ -338,7 +338,7 @@ const std::string pgmconf_file_platform_uri_wild_05 = is_windows() ? R"({
                                                                    : R"({
   "pgms": [
 	{
-      "program": "file:////home/User/**/pattern_?est/source",
+      "program": "file:////home/User/**/pattern_?est/s?25urce?",
       "pgroup": "P1"
     }
   ]
@@ -347,7 +347,7 @@ const std::string pgmconf_file_platform_uri_wild_05 = is_windows() ? R"({
 const std::string pgmconf_file_platform_file_scheme_non_standard_0 = R"({
   "pgms": [
 	{
-      "program": "file:c%3A/User/ws/pattern_test/sou*ce",
+      "program": "file:c%3A/User/ws/pattern_test/s%2525u*c%3B",
       "pgroup": "P1"
     }
   ]
@@ -356,7 +356,7 @@ const std::string pgmconf_file_platform_file_scheme_non_standard_0 = R"({
 const std::string pgmconf_file_platform_file_scheme_non_standard_1 = R"({
   "pgms": [
 	{
-      "program": "file:/C%3a/User/ws/pattern_**/source",
+      "program": "file:/C%3a/User/ws/pattern_**/s%2525urce%3B",
       "pgroup": "P1"
     }
   ]
@@ -365,7 +365,7 @@ const std::string pgmconf_file_platform_file_scheme_non_standard_1 = R"({
 const std::string pgmconf_file_platform_file_scheme_non_standard_2 = R"({
   "pgms": [
 	{
-      "program": "file://c:/User/**/patter*_test/source",
+      "program": "file://c:/User/**/patter*_test/s%2525urce%3B",
       "pgroup": "P1"
     }
   ]
@@ -427,7 +427,7 @@ const auto pattern_test_dir_loc = resource_location::join(ws_loc, "pattern_test/
 const auto pattern_est_dir_loc = resource_location::join(ws_loc, "pattern_est/");
 const auto patter_test_dir_loc = resource_location::join(ws_loc, "patter_test/");
 
-const auto pattern_test_source_loc(resource_location::join(pattern_test_dir_loc, "source"));
+const auto pattern_test_source_loc(resource_location::join(pattern_test_dir_loc, "s%2525urce%3B")); // -> "s%25urce;"
 const auto pattern_test_lib_loc(resource_location::join(pattern_test_dir_loc, "libs/"));
 const auto pattern_test_lib_sublib1_loc(resource_location::join(pattern_test_lib_loc, "sublib1/"));
 const auto pattern_test_lib_sublib2_loc(resource_location::join(pattern_test_lib_loc, "sublib2/"));
