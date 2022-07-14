@@ -13,8 +13,9 @@
  */
 import * as assert from 'assert';
 import { PassThrough, Writable } from 'stream';
+import { Uri } from 'vscode';
 
-import { downloadDependenciesWithClient, JobDescription } from '../../hlasmDownloadCommands';
+import { convertBuffer, downloadDependenciesWithClient, extractDsn, gatherDownloadList, JobDescription, replaceVariables } from '../../hlasmDownloadCommands';
 
 suite('HLASM Download datasets', () => {
     const getClient = (listResponses: JobDescription[][]) => {
@@ -241,5 +242,47 @@ suite('HLASM Download datasets', () => {
         assert.deepEqual(client.setListMaskCalls, ['JOBNAME']);
         assert.equal(io.copyCalls.length, 0);
         assert.equal(stages.stages, 1);
+    });
+
+    test('Data set name extractor', () => {
+        const ws = Uri.parse("file:///workspace");
+        assert.equal(extractDsn("~/dir/MY.DATA.SET", ws).dsn, "MY.DATA.SET");
+        assert.equal(extractDsn("~/dir/MY.DATA.SET/", ws).dsn, "MY.DATA.SET");
+        assert.equal(extractDsn("~/dir/MY.DATA.SET//", ws).dsn, "MY.DATA.SET");
+
+        assert.deepEqual(extractDsn("C:\\dir\\my.data.set\\\\", ws), { dsn: "MY.DATA.SET", path: "c:/dir/my.data.set" });
+        assert.deepEqual(extractDsn("/home/dir/my.data.set///", ws), { dsn: "MY.DATA.SET", path: "/home/dir/my.data.set" });
+
+        assert.deepEqual(extractDsn("dir\\my.data.set\\\\", ws), { dsn: "MY.DATA.SET", path: "/workspace/dir/my.data.set" });
+    });
+
+    test('Config to task conversion', () => {
+        const ws = Uri.parse("file:///workspace");
+
+        assert.deepEqual(gatherDownloadList([{ workspaceUri: ws, config: { pgroups: [{ libs: ["ext/MY.DATASET", { path: "ext2/MY.DATASET2" }] }, { libs: ["ext2/MY.DATASET", { path: "ext/OTHER.DATASET" }] }] } }]),
+            [
+                {
+                    dsn: "MY.DATASET",
+                    dirs: ["/workspace/ext/MY.DATASET", "/workspace/ext2/MY.DATASET"]
+                },
+                {
+                    dsn: "MY.DATASET2",
+                    dirs: ["/workspace/ext2/MY.DATASET2"]
+                },
+                {
+                    dsn: "OTHER.DATASET",
+                    dirs: ["/workspace/ext/OTHER.DATASET"]
+                }
+            ]
+        )
+    });
+
+    test('Variable replacer', () => {
+        const ws = Uri.parse("file:///workspace");
+        assert.deepEqual(replaceVariables([{ key: "${workspaceFolder}/${config:test}" }], (k) => (k === 'test' && 'replacement'), ws), [{ key: "file:///workspace/replacement" }]);
+    });
+
+    test('Buffer conversion', () => {
+        assert.equal(convertBuffer(Buffer.from([0x40, 0xC1, 0x40]), 80), ' A ');
     });
 });
