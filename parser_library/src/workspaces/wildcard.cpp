@@ -23,14 +23,14 @@ const std::regex escape("(\\(|\\[|\\{|\\\\|\\^|\\-|\\=|\\$|\\!|\\||\\]|\\}|\\)|\
 const std::regex question("\\?");
 const std::regex nongreedy("(\\*|\\+)");
 const std::regex slash("\\\\");
-const std::regex file_scheme_windows("^file:///([A-Za-z])(?::|%3[aA])");
+const std::regex file_scheme_windows("^file:///([A-Za-z])(?::|%3A)");
 
 const std::string single_url_char_matcher = []() {
-    const std::string utf_8_continuation_matcher = "(?:%[89abAB][0-9a-fA-F])";
-    const std::string utf_8_1_byte_matcher = "%[0-7][0-9a-fA-F]";
-    const std::string utf_8_2_byte_matcher = "%[cCdD][0-9a-fA-F]" + utf_8_continuation_matcher;
-    const std::string utf_8_3_byte_matcher = "%[eE][0-9a-fA-F]" + utf_8_continuation_matcher + "{2}";
-    const std::string utf_8_4_byte_matcher = "%[fF][0-7]" + utf_8_continuation_matcher + "{3}";
+    const std::string utf_8_continuation_matcher = "(?:%[89AB][0-9A-F])";
+    const std::string utf_8_1_byte_matcher = "%[0-7][0-9A-F]";
+    const std::string utf_8_2_byte_matcher = "%[CD][0-9A-F]" + utf_8_continuation_matcher;
+    const std::string utf_8_3_byte_matcher = "%E[0-9A-F]" + utf_8_continuation_matcher + "{2}";
+    const std::string utf_8_4_byte_matcher = "%F[0-7]" + utf_8_continuation_matcher + "{3}";
 
     const std::string utf_8_char_matcher =
         utf_8_4_byte_matcher + "|" + utf_8_3_byte_matcher + "|" + utf_8_2_byte_matcher + "|" + utf_8_1_byte_matcher;
@@ -55,11 +55,11 @@ std::pair<size_t, std::string> preprocess_uri_with_windows_drive_letter_regex_st
 
     std::string r;
 
-    // Append windows file path (e.g. ^file:///[cC](?::|%3[aA]))
+    // Append windows file path (e.g. ^file:///[cC](?::|%3A))
     r.append("^file:///[");
     r.push_back(static_cast<char>(tolower(drive_letter)));
     r.push_back(static_cast<char>(toupper(drive_letter)));
-    r.append("](?::|%3[aA])");
+    r.append("](?::|%3A)");
 
     return { match_length, r };
 }

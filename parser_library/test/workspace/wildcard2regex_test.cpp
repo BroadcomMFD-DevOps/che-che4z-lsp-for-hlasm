@@ -56,9 +56,8 @@ void verify_file_scheme(std::string colon)
     EXPECT_TRUE(std::regex_match("file:///c:/dir/", regex));
     EXPECT_TRUE(std::regex_match("file:///C%3A/dir/whatever/file", regex));
     EXPECT_TRUE(std::regex_match("file:///C%3A/dir/", regex));
-    EXPECT_TRUE(std::regex_match("file:///C%3a/dir/whatever/file", regex));
-    EXPECT_TRUE(std::regex_match("file:///C%3a/dir/", regex));
 
+    EXPECT_FALSE(std::regex_match("file:///C%3a/dir/", regex));
     EXPECT_FALSE(std::regex_match("file:///D:/dir/", regex));
     EXPECT_FALSE(std::regex_match("file:///D%3A/dir/", regex));
     EXPECT_FALSE(std::regex_match("file:///D%3a/dir/", regex));
@@ -71,7 +70,6 @@ TEST(wildcard2regex_test, file_scheme)
     {
         verify_file_scheme(":");
         verify_file_scheme("%3A");
-        verify_file_scheme("%3a");
     }
 }
 
@@ -79,10 +77,15 @@ TEST(wildcard2regex_test, utf_8_chars_01)
 {
     auto regex = wildcard2regex("pg?s");
     EXPECT_TRUE(std::regex_match("pgms", regex));
-    EXPECT_TRUE(std::regex_match("pg%7fs", regex));
-    EXPECT_TRUE(std::regex_match("pg%cf%bfs", regex));
-    EXPECT_TRUE(std::regex_match("pg%ef%bf%bfs", regex));
-    EXPECT_TRUE(std::regex_match("pg%f0%9f%a7%bfs", regex));
+    EXPECT_TRUE(std::regex_match("pg%7Fs", regex));
+    EXPECT_TRUE(std::regex_match("pg%CF%BFs", regex));
+    EXPECT_TRUE(std::regex_match("pg%EF%BF%BFs", regex));
+    EXPECT_TRUE(std::regex_match("pg%F0%9F%A7%BFs", regex));
+
+    EXPECT_FALSE(std::regex_match("pg%7fs", regex));
+    EXPECT_FALSE(std::regex_match("pg%cf%bfs", regex));
+    EXPECT_FALSE(std::regex_match("pg%ef%bf%bfs", regex));
+    EXPECT_FALSE(std::regex_match("pg%f0%9f%a7%bfs", regex));
 
     EXPECT_FALSE(std::regex_match("pg%24%25s", regex));
     EXPECT_FALSE(std::regex_match("pg%C3%BF%25s", regex));

@@ -39,21 +39,25 @@ TEST(path_conversions, path_to_uri)
     if (is_windows())
     {
         EXPECT_EQ(path_to_uri("\\\\czprfs50\\Public"), "file://czprfs50/Public");
-        EXPECT_EQ(path_to_uri("c:\\Public"), "file:///c%3A/Public");
+        EXPECT_EQ(path_to_uri("c:\\Public"), "file:///c:/Public");
     }
     else
     {
         EXPECT_EQ(path_to_uri("/home/user/somefile"), "file:///home/user/somefile");
-        EXPECT_EQ(path_to_uri("/C:/Public"), "file:///C%3A/Public");
+        EXPECT_EQ(path_to_uri("/C:/Public"), "file:///C:/Public");
     }
 }
 
 TEST(path_conversions, encode)
 {
-    EXPECT_EQ(encode("abc"), "abc");
-    EXPECT_EQ(encode("%"), "%25");
-    EXPECT_EQ(encode("%25"), "%25");
-    EXPECT_EQ(encode("%st"), "%25st");
+    EXPECT_EQ(encode("abc", false), "abc");
+    EXPECT_EQ(encode("abc", true), "abc");
+    EXPECT_EQ(encode("%", false), "%25");
+    EXPECT_EQ(encode("%", true), "%25");
+    EXPECT_EQ(encode("%25", false), "%2525");
+    EXPECT_EQ(encode("%25", true), "%25");
+    EXPECT_EQ(encode("%st", false), "%25st");
+    EXPECT_EQ(encode("%st", true), "%25st");
 }
 
 TEST(path_conversions, reconstruct_uri_scheme_path)

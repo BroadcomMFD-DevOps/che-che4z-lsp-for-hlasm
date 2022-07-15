@@ -87,20 +87,17 @@ TEST(pathmask, pass)
 
     EXPECT_TRUE(check_path("/path/*?**?*/test/", "/path/a/b/test/"));
 
-    EXPECT_TRUE(check_path("/path/?/test/", "/path/%7d/test/"));
     EXPECT_TRUE(check_path("/path/?/test/", "/path/%7D/test/"));
-    EXPECT_TRUE(check_path("/path/?/test/", "/path/%df%bf/test/"));
-    EXPECT_TRUE(check_path("/path/?/test/", "/path/%dF%Bf/test/"));
-    EXPECT_TRUE(check_path("/path/?/test/", "/path/%ef%bf%bf/test/"));
-    EXPECT_TRUE(check_path("/path/?/test/", "/path/%Ef%bF%Bf/test/"));
-    EXPECT_TRUE(check_path("/path/?/test/", "/path/%f0%9f%a7%bf/test/"));
-    EXPECT_TRUE(check_path("/path/?/test/", "/path/%f0%9F%A7%bf/test/"));
+    EXPECT_TRUE(check_path("/path/?/test/", "/path/%DF%BF/test/"));
+    EXPECT_TRUE(check_path("/path/?/test/", "/path/%EF%BF%BF/test/"));
     EXPECT_TRUE(check_path("/path/?/test/", "/path/%F0%9F%A7%BF/test/"));
 
-    EXPECT_TRUE(check_path("/path/??/test/", "/path/%7d%df%bf/test/"));
-    EXPECT_TRUE(check_path("/path/??/test/", "/path/%df%bf%7d/test/"));
-    EXPECT_TRUE(check_path("/path/??/test/", "/path/%ef%bf%bf%7d/test/"));
-    EXPECT_TRUE(check_path("/path/???/test/", "/path/%f0%9f%a7%bf%7d%df%bf/test/"));
+    EXPECT_TRUE(check_path("/path/??/test/", "/path/%7D%DF%BF/test/"));
+    EXPECT_TRUE(check_path("/path/??/test/", "/path/%DF%BF%7D/test/"));
+    EXPECT_TRUE(check_path("/path/??/test/", "/path/%EF%BF%BF%7D/test/"));
+    EXPECT_TRUE(check_path("/path/???/test/", "/path/%F0%9F%A7%BF%7D%DF%BF/test/"));
+
+    EXPECT_FALSE(check_path("/path/?/test/", "/path/%7d/test/"));
 
     EXPECT_TRUE(check_path("file:///C%3A/path/**/", "file:///C%3A/path/a/test/"));
     EXPECT_TRUE(check_path("file:///C%3A/path/**/test/", "file:///C%3A/path/a/test/"));
@@ -111,23 +108,32 @@ TEST(pathmask, pass)
     EXPECT_TRUE(check_path("file:///C%3A/path/**/", "file:///c%3A/path/a/test/"));
     EXPECT_TRUE(check_path("file:///C%3A/path/**/test/", "file:///c%3A/path/a/test/"));
 
-    EXPECT_TRUE(check_path("file:///C%3a/path/**/", "file:///C%3A/path/a/test/"));
-    EXPECT_TRUE(check_path("file:///C%3a/path/**/test/", "file:///C%3A/path/a/test/"));
-    EXPECT_TRUE(check_path("file:///c%3a/path/**/", "file:///C%3A/path/a/test/"));
-    EXPECT_TRUE(check_path("file:///c%3a/path/**/test/", "file:///C%3A/path/a/test/"));
-    EXPECT_TRUE(check_path("file:///c%3a/path/**/", "file:///c%3A/path/a/test/"));
-    EXPECT_TRUE(check_path("file:///c%3a/path/**/test/", "file:///c%3A/path/a/test/"));
-    EXPECT_TRUE(check_path("file:///C%3a/path/**/", "file:///c%3A/path/a/test/"));
-    EXPECT_TRUE(check_path("file:///C%3a/path/**/test/", "file:///c%3A/path/a/test/"));
-
     EXPECT_TRUE(check_path("file:///C:/path/**/", "file:///C%3A/path/a/test/"));
-    EXPECT_TRUE(check_path("file:///C:/path/**/test/", "file:///C%3a/path/a/test/"));
-    EXPECT_TRUE(check_path("file:///c:/path/**/", "file:///C%3a/path/a/test/"));
+    EXPECT_TRUE(check_path("file:///C:/path/**/test/", "file:///C%3A/path/a/test/"));
+    EXPECT_TRUE(check_path("file:///c:/path/**/", "file:///C%3A/path/a/test/"));
     EXPECT_TRUE(check_path("file:///c:/path/**/test/", "file:///C%3A/path/a/test/"));
     EXPECT_TRUE(check_path("file:///c:/path/**/", "file:///c%3A/path/a/test/"));
-    EXPECT_TRUE(check_path("file:///c:/path/**/test/", "file:///c%3a/path/a/test/"));
-    EXPECT_TRUE(check_path("file:///C:/path/**/", "file:///c%3a/path/a/test/"));
+    EXPECT_TRUE(check_path("file:///c:/path/**/test/", "file:///c%3A/path/a/test/"));
+    EXPECT_TRUE(check_path("file:///C:/path/**/", "file:///c%3A/path/a/test/"));
     EXPECT_TRUE(check_path("file:///C:/path/**/test/", "file:///c%3A/path/a/test/"));
+
+    EXPECT_TRUE(check_path("file:///C%3A/path/**/", "file:///C:/path/a/test/"));
+    EXPECT_TRUE(check_path("file:///C%3A/path/**/test/", "file:///C:/path/a/test/"));
+    EXPECT_TRUE(check_path("file:///c%3A/path/**/", "file:///C:/path/a/test/"));
+    EXPECT_TRUE(check_path("file:///c%3A/path/**/test/", "file:///C:/path/a/test/"));
+    EXPECT_TRUE(check_path("file:///c%3A/path/**/", "file:///c:/path/a/test/"));
+    EXPECT_TRUE(check_path("file:///c%3A/path/**/test/", "file:///c:/path/a/test/"));
+    EXPECT_TRUE(check_path("file:///C%3A/path/**/", "file:///c:/path/a/test/"));
+    EXPECT_TRUE(check_path("file:///C%3A/path/**/test/", "file:///c:/path/a/test/"));
+
+    EXPECT_TRUE(check_path("file:///C:/path/**/", "file:///C:/path/a/test/"));
+    EXPECT_TRUE(check_path("file:///C:/path/**/test/", "file:///C:/path/a/test/"));
+    EXPECT_TRUE(check_path("file:///c:/path/**/", "file:///C:/path/a/test/"));
+    EXPECT_TRUE(check_path("file:///c:/path/**/test/", "file:///C:/path/a/test/"));
+    EXPECT_TRUE(check_path("file:///c:/path/**/", "file:///c:/path/a/test/"));
+    EXPECT_TRUE(check_path("file:///c:/path/**/test/", "file:///c:/path/a/test/"));
+    EXPECT_TRUE(check_path("file:///C:/path/**/", "file:///c:/path/a/test/"));
+    EXPECT_TRUE(check_path("file:///C:/path/**/test/", "file:///c:/path/a/test/"));
 
     // The following tests just check that there is no longer a SEH exception
     EXPECT_TRUE(check_path("file:///C%3A/User/ws/symlinks/inf/**",

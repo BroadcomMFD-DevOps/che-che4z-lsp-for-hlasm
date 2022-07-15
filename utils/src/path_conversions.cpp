@@ -25,7 +25,7 @@
 
 namespace hlasm_plugin::utils::path {
 
-static const std::regex uri_like_windows_path("^[A-Za-z](?::|%3[aA])");
+static const std::regex uri_like_windows_path("^[A-Za-z](?::|%3A)");
 
 std::string uri_to_path(const std::string& uri)
 {
@@ -83,15 +83,7 @@ std::string path_to_uri(std::string_view path)
         return std::string(path);
 
     // network::detail::encode_path(uri) ignores @, which is incompatible with VS Code
-    std::string uri;
-    auto out = std::back_inserter(uri);
-
-    for (char c : path)
-    {
-        if (c == '\\')
-            c = '/';
-        network::detail::encode_char(c, out, "/.*?");
-    }
+    std::string uri = encode(path, false);
 
     if (utils::platform::is_windows())
     {
@@ -181,10 +173,8 @@ std::optional<uint8_t> get_hex(char c)
 
 std::optional<uint8_t> get_hex_repre(char c1, char c2)
 {
-    std::optional<int8_t> upper_half, lower_half;
-
-    upper_half = get_hex(c1);
-    lower_half = get_hex(c2);
+    auto upper_half = get_hex(c1);
+    auto lower_half = get_hex(c2);
 
     if (!upper_half.has_value() || !lower_half.has_value())
         return std::nullopt;
@@ -225,7 +215,7 @@ size_t get_already_encoded_size(std::string_view::const_iterator it, std::string
 }
 } // namespace
 
-std::string encode(std::string_view s)
+std::string encode(std::string_view s, bool partially_encoded)
 {
     std::string uri;
     auto out = std::back_inserter(uri);
@@ -235,20 +225,21 @@ std::string encode(std::string_view s)
 
     while (it != end)
     {
-        if (auto encoded_size = get_already_encoded_size(it, end); encoded_size > 0)
-        {
-            while (encoded_size > 0)
+        if (partially_encoded)
+            if (auto encoded_size = get_already_encoded_size(it, end); encoded_size > 0)
             {
-                out++ = *it++;
-                out++ = toupper(*it++);
-                out++ = toupper(*it++);
+                while (encoded_size > 0)
+                {
+                    out++ = *it++;
+                    out++ = toupper(*it++);
+                    out++ = toupper(*it++);
 
-                encoded_size--;
+                    encoded_size--;
+                }
+
+                continue;
             }
 
-            continue;
-        }
-
         auto c = *it;
         if (c == '\\')
             c = '/';
@@ -260,26 +251,6 @@ std::string encode(std::string_view s)
     return uri;
 }
 
-std::string encode2(std::string_view s)
-{
-    std::string uri;
-    auto out = std::back_inserter(uri);
-
-    auto it = s.begin();
-    auto end = s.end();
-
-    while (it != end)
-    {
-        auto c = *it;
-        if (c == '\\')
-            c = '/';
-        network::detail::encode_char(c, out, "/.*?:");
-
-        it++;
-    }
-
-    return uri;
-}
 dissected_uri dissect_uri(const std::string& uri) noexcept
 {
     dissected_uri dis_uri;

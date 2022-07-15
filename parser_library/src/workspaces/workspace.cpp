@@ -547,7 +547,7 @@ utils::resource::resource_location transform_to_resource_location(
 {
     utils::resource::resource_location rl;
 
-    if (auto encoded_path = utils::path::encode(path); utils::path::is_uri(encoded_path))
+    if (auto encoded_path = utils::path::encode(path, true); utils::path::is_uri(encoded_path))
         rl = utils::resource::resource_location(std::move(encoded_path));
     else if (auto fs_path = get_fs_abs_path(path); fs_path.has_value())
         rl = utils::resource::resource_location(
@@ -556,7 +556,7 @@ utils::resource::resource_location transform_to_resource_location(
     {
         std::replace(path.begin(), path.end(), '\\', '/');
         if (base_resource_location.is_local())
-            rl = utils::resource::resource_location::join(base_resource_location, utils::path::encode2(path));
+            rl = utils::resource::resource_location::join(base_resource_location, utils::path::encode(path, false));
         else
             rl = utils::resource::resource_location::join(base_resource_location, path);
     }

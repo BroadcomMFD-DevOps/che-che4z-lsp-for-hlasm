@@ -276,7 +276,7 @@ std::string resource_location::lexically_normal() const
     dis_uri.path = normalize_path(dis_uri.path);
 
     normalize_file_scheme(dis_uri);
-    dis_uri.path = utils::path::encode(dis_uri.path);
+    dis_uri.path = utils::path::encode(dis_uri.path, true);
 
     return utils::path::reconstruct_uri(dis_uri);
 }
