@@ -131,6 +131,74 @@ TEST(resource_location, non_file_uri)
     EXPECT_EQ(res.get_path(), "");
 }
 
+TEST(resource_location, is_local)
+{
+    if (is_windows())
+    {
+        EXPECT_TRUE(resource_location("file:///C:").is_local());
+        EXPECT_TRUE(resource_location("file:///d:").is_local());
+        EXPECT_TRUE(resource_location("file:///Z:/").is_local());
+        EXPECT_TRUE(resource_location("file:///C:/").is_local());
+        EXPECT_TRUE(resource_location("file:///C:/file").is_local());
+        EXPECT_TRUE(resource_location("file:///C:/").is_local());
+
+        EXPECT_TRUE(resource_location("file:///C%3A").is_local());
+        EXPECT_TRUE(resource_location("file:///d%3A").is_local());
+        EXPECT_TRUE(resource_location("file:///Z%3A/").is_local());
+        EXPECT_TRUE(resource_location("file:///C%3A/").is_local());
+        EXPECT_TRUE(resource_location("file:///C%3A/file").is_local());
+        EXPECT_TRUE(resource_location("file:///C%3A/").is_local());
+
+        EXPECT_FALSE(resource_location("file:///C%3a").is_local());
+        EXPECT_FALSE(resource_location("file:///d%3a").is_local());
+        EXPECT_FALSE(resource_location("file:///Z%3a/").is_local());
+        EXPECT_FALSE(resource_location("file:///C%3a/").is_local());
+        EXPECT_FALSE(resource_location("file:///C%3a/file").is_local());
+        EXPECT_FALSE(resource_location("file:///C%3a/").is_local());
+
+        EXPECT_FALSE(resource_location("file:C:").is_local());
+        EXPECT_FALSE(resource_location("file:\\C:").is_local());
+        EXPECT_FALSE(resource_location("file:\\\\C:").is_local());
+        EXPECT_FALSE(resource_location("file:\\\\\\C:").is_local());
+        EXPECT_FALSE(resource_location("file:C:/").is_local());
+        EXPECT_FALSE(resource_location("file:/C:/").is_local());
+        EXPECT_FALSE(resource_location("file://C:/").is_local());
+
+        EXPECT_FALSE(resource_location("file://host/C:").is_local());
+
+        EXPECT_FALSE(resource_location("aaa:C:/").is_local());
+        EXPECT_FALSE(resource_location("aaa:/C:/").is_local());
+        EXPECT_FALSE(resource_location("aaa://C:/").is_local());
+        EXPECT_FALSE(resource_location("aaa:///C:/").is_local());
+    }
+    else
+    {
+        EXPECT_TRUE(resource_location("file:/local").is_local());
+        EXPECT_TRUE(resource_location("file:/local/").is_local());
+        EXPECT_TRUE(resource_location("file:/local/file").is_local());
+
+        EXPECT_TRUE(resource_location("file:///local").is_local());
+        EXPECT_TRUE(resource_location("file:///local/").is_local());
+        EXPECT_TRUE(resource_location("file:///local/file").is_local());
+
+        EXPECT_FALSE(resource_location("aaa:/local").is_local());
+        EXPECT_FALSE(resource_location("aaa:/local/").is_local());
+        EXPECT_FALSE(resource_location("aaa:/local/file").is_local());
+    }
+
+    EXPECT_FALSE(resource_location("").is_local());
+
+    EXPECT_FALSE(resource_location("file:relative").is_local());
+    EXPECT_FALSE(resource_location("file://host").is_local());
+    EXPECT_FALSE(resource_location("file://host/").is_local());
+    EXPECT_FALSE(resource_location("file://host/user/somefile").is_local());
+
+    EXPECT_FALSE(resource_location("aaa:relative").is_local());
+    EXPECT_FALSE(resource_location("aaa://host").is_local());
+    EXPECT_FALSE(resource_location("aaa://host/").is_local());
+    EXPECT_FALSE(resource_location("aaa://host/user/somefile").is_local());
+}
+
 TEST(resource_location, to_presentable_no_authority)
 {
     std::string expected = "untitled:Untitled-1";
@@ -812,22 +880,6 @@ std::vector<std::string> get_file_roots()
     }();
 
     return file_roots;
-}
-
-std::pair<std::vector<std::string>, std::string> get_1_byte_utf_8_test_case()
-{
-    std::vector<std::string> equivalent;
-
-    for (auto& file_root : get_file_roots())
-    {
-        equivalent.emplace_back(file_root + "temp%2B/");
-        equivalent.emplace_back(file_root + "temp%2b/");
-    }
-
-    if (is_windows())
-        return { equivalent, "file:///C:/temp+/" };
-    else
-        return { equivalent, "file:///home/temp+/" };
 }
 
 std::pair<std::vector<std::string>, std::string> get_percent_encoded_path_01()

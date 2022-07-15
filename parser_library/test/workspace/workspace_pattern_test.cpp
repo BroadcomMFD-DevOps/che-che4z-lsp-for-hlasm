@@ -31,7 +31,7 @@ const std::string pgroups_file_pattern_absolute = is_windows() ? R"({
   "pgroups": [
     {
       "name": "P1",
-      "libs": [ "C:\\Temp\\Lib", "C:\\Temp\\Lib2\\Libs\\**" ]
+      "libs": [ "C:\\Temp\\Lib", "C:\\Temp\\Lib2\\L%25bs;\\**" ]
     }
   ]
 })"
@@ -39,7 +39,7 @@ const std::string pgroups_file_pattern_absolute = is_windows() ? R"({
   "pgroups": [
     {
       "name": "P1",
-      "libs": [ "/home/Temp/Lib", "/home/Temp/Lib2/Libs/**" ]
+      "libs": [ "/home/Temp/Lib", "/home/Temp/Lib2/L%25bs;/**" ]
     }
   ]
 })";
@@ -48,7 +48,7 @@ const std::string pgroups_file_pattern_relative = is_windows() ? R"({
   "pgroups": [
     {
       "name": "P1",
-      "libs": [ "pattern_test\\libs\\**\\" ]
+      "libs": [ "pattern_test\\l%25bs;\\**\\" ]
     }
   ]
 })"
@@ -56,7 +56,7 @@ const std::string pgroups_file_pattern_relative = is_windows() ? R"({
   "pgroups": [
     {
       "name": "P1",
-      "libs": [ "pattern_test/libs/**/" ]
+      "libs": [ "pattern_test/l%25bs;/**/" ]
     }
   ]
 })";
@@ -65,7 +65,7 @@ const std::string pgroups_file_pattern_relative_2 = is_windows() ? R"({
   "pgroups": [
     {
       "name": "P1",
-      "libs": [ "pattern_test\\libs\\**" ]
+      "libs": [ "pattern_test\\l%25bs;\\**" ]
     }
   ]
 })"
@@ -73,7 +73,7 @@ const std::string pgroups_file_pattern_relative_2 = is_windows() ? R"({
   "pgroups": [
     {
       "name": "P1",
-      "libs": [ "pattern_test/libs/**" ]
+      "libs": [ "pattern_test/l%25bs;/**" ]
     }
   ]
 })";
@@ -91,7 +91,7 @@ const std::string pgroups_file_pattern_uri = is_windows() ? R"({
   "pgroups": [
     {
       "name": "P1",
-      "libs": [ "file:///C%3A/User/ws/pattern_test/libs/**" ]
+      "libs": [ "file:///C%3A/User/ws/pattern_test/l%2525bs;/**" ]
     }
   ]
 })"
@@ -99,7 +99,7 @@ const std::string pgroups_file_pattern_uri = is_windows() ? R"({
   "pgroups": [
     {
       "name": "P1",
-      "libs": [ "file:///home/User/ws/pattern_test/libs/**" ]
+      "libs": [ "file:///home/User/ws/pattern_test/l%2525bs;/**" ]
     }
   ]
 })";
@@ -108,7 +108,7 @@ const std::string pgroups_file_pattern_uri_2 = is_windows() ? R"({
   "pgroups": [
     {
       "name": "P1",
-      "libs": [ "file:///C%3A/User/**/pattern_*est/libs/sublib1", "file:///C%3A/User/ws/pattern_test/libs/sublib2" ]
+      "libs": [ "file:///C%3A/User/**/pattern_*est/l%2525bs;/sublib1", "file:///C%3A/User/ws/pattern_test/l%2525bs;/sublib2" ]
     }
   ]
 })"
@@ -116,7 +116,7 @@ const std::string pgroups_file_pattern_uri_2 = is_windows() ? R"({
   "pgroups": [
     {
       "name": "P1",
-      "libs": [ "file:///home/User/**/pattern_*est/libs/sublib1", "file:///home/User/ws/pattern_test/libs/sublib2" ]
+      "libs": [ "file:///home/User/**/pattern_*est/l%2525bs;/sublib1", "file:///home/User/ws/pattern_test/l%2525bs;/sublib2" ]
     }
   ]
 })";
@@ -125,7 +125,7 @@ const std::string pgroups_file_pattern_uri_3 = is_windows() ? R"({
   "pgroups": [
     {
       "name": "P1",
-      "libs": [ "file:///C%3A/User/ws/pattern_?est/**/sublib1", "file:///C%3A/User/w?/pattern_test/libs/sublib2" ]
+      "libs": [ "file:///C%3A/User/ws/pattern_?est/**/sublib1", "file:///C%3A/User/w?/pattern_test/l%2525bs;/sublib2" ]
     }
   ]
 })"
@@ -133,7 +133,7 @@ const std::string pgroups_file_pattern_uri_3 = is_windows() ? R"({
   "pgroups": [
     {
       "name": "P1",
-      "libs": [ "file:///home/User/ws/pattern_?est/**/sublib1", "file:///home/User/w?/pattern_test/libs/sublib2" ]
+      "libs": [ "file:///home/User/ws/pattern_?est/**/sublib1", "file:///home/User/w?/pattern_test/l%2525bs;/sublib2" ]
     }
   ]
 })";
@@ -142,7 +142,7 @@ const std::string pgroups_file_pattern_uri_non_standard_0 = R"({
   "pgroups": [
     {
       "name": "P1",
-      "libs": [ "file:C%3A/User/ws/pattern_test/libs/**" ]
+      "libs": [ "file:C%3A/User/ws/pattern_test/l%2525bs;/**" ]
     }
   ]
 })";
@@ -151,7 +151,7 @@ const std::string pgroups_file_pattern_uri_non_standard_1 = R"({
   "pgroups": [
     {
       "name": "P1",
-      "libs": [ "file:/C%3A/User/ws/pattern_test/libs/**" ]
+      "libs": [ "file:/C%3A/User/ws/pattern_test/l%2525bs;/**" ]
     }
   ]
 })";
@@ -160,7 +160,7 @@ const std::string pgroups_file_pattern_uri_non_standard_2 = R"({
   "pgroups": [
     {
       "name": "P1",
-      "libs": [ "file://C%3A/User/ws/pattern_test/libs/**" ]
+      "libs": [ "file://C%3A/User/ws/pattern_test/l%2525bs;/**" ]
     }
   ]
 })";
@@ -169,7 +169,7 @@ const std::string pgroups_file_combination = is_windows() ? R"({
   "pgroups": [
     {
       "name": "P1",
-      "libs": [ "C:\\Temp\\Lib", "C:\\Temp\\Lib2\\Libs\\**", "different_libs", "different_libs2\\Libs\\**", "file:///C%3A/User/**/pattern_?est/libs/sublib1", "file:///C%3A/User/ws/pattern_test/libs/sublib2" ]
+      "libs": [ "C:\\Temp\\Lib", "C:\\Temp\\Lib2\\L%25bs;\\**", "different_libs", "different_libs2\\Libs\\**", "file:///C%3A/User/**/pattern_?est/l%2525bs;/sublib1", "file:///C%3A/User/ws/pattern_test/l%2525bs;/sublib2" ]
     }
   ]
 })"
@@ -177,7 +177,7 @@ const std::string pgroups_file_combination = is_windows() ? R"({
   "pgroups": [
     {
       "name": "P1",
-      "libs": [ "/home/Temp/Lib", "/home/Temp/Lib2/Libs/**", "different_libs", "different_libs2/Libs/**", "file:///home/User/**/pattern_?est/libs/sublib1", "file:///home/User/ws/pattern_test/libs/sublib2" ]
+      "libs": [ "/home/Temp/Lib", "/home/Temp/Lib2/L%25bs;/**", "different_libs", "different_libs2/Libs/**", "file:///home/User/**/pattern_?est/l%2525bs;/sublib1", "file:///home/User/ws/pattern_test/l%2525bs;/sublib2" ]
     }
   ]
 })";
@@ -237,6 +237,23 @@ const std::string pgmconf_file_absolute = is_windows() ? R"({
   "pgms": [
 	{
       "program": "/home/User/ws/pattern_test/s%25urce;",
+      "pgroup": "P1"
+    }
+  ]
+})";
+
+const std::string pgmconf_file_absolute_wild = is_windows() ? R"({
+  "pgms": [
+	{
+      "program": "C:/User/ws/pattern_test/s%25urce?",
+      "pgroup": "P1"
+    }
+  ]
+})"
+                                                            : R"({
+  "pgms": [
+	{
+      "program": "/home/User/ws/pattern_test/s%25urce?",
       "pgroup": "P1"
     }
   ]
@@ -347,7 +364,7 @@ const std::string pgmconf_file_platform_uri_wild_05 = is_windows() ? R"({
 const std::string pgmconf_file_platform_file_scheme_non_standard_0 = R"({
   "pgms": [
 	{
-      "program": "file:c%3A/User/ws/pattern_test/s%2525u*c%3B",
+      "program": "file:c%3A/User/ws/pattern_test/s%2525u*ce%3B",
       "pgroup": "P1"
     }
   ]
@@ -404,6 +421,7 @@ enum class pgmconf_variants
     RELATIVE_PLATFORM_INDEPENDENT,
     RELATIVE_WILD,
     ABSOLUTE,
+    ABSOLUTE_WILD,
     URI_FULL,
     URI_WILD_01,
     URI_WILD_02,
@@ -428,14 +446,15 @@ const auto pattern_est_dir_loc = resource_location::join(ws_loc, "pattern_est/")
 const auto patter_test_dir_loc = resource_location::join(ws_loc, "patter_test/");
 
 const auto pattern_test_source_loc(resource_location::join(pattern_test_dir_loc, "s%2525urce%3B")); // -> "s%25urce;"
-const auto pattern_test_lib_loc(resource_location::join(pattern_test_dir_loc, "libs/"));
+const auto pattern_test_lib_loc(resource_location::join(pattern_test_dir_loc, "l%2525bs%3B/")); // -> "l%25bs;"
 const auto pattern_test_lib_sublib1_loc(resource_location::join(pattern_test_lib_loc, "sublib1/"));
 const auto pattern_test_lib_sublib2_loc(resource_location::join(pattern_test_lib_loc, "sublib2/"));
 const auto pattern_test_macro1_loc(resource_location::join(pattern_test_lib_sublib1_loc, "mac1"));
 const auto pattern_test_macro2_loc(resource_location::join(pattern_test_lib_sublib2_loc, "mac2"));
 
 const auto temp_lib_loc = resource_location::join(root_dir_loc, "Temp/Lib/");
-const auto temp_lib2_libs_loc = resource_location::join(root_dir_loc, "Temp/Lib2/Libs/");
+const auto temp_lib2_libs_loc =
+    resource_location::join(root_dir_loc, "Temp/Lib2/L%2525bs%3B/"); // -> "Temp/Lib2/L%25bs;/"
 
 const auto different_libs_loc = resource_location::join(ws_loc, "different_libs/");
 const auto different_libs2_libs_loc = resource_location::join(ws_loc, "different_libs2/Libs/");
@@ -444,9 +463,9 @@ const auto different_libs2_libs_subdir = resource_location::join(different_libs2
 const auto temp_lib2_libs_subdir = resource_location::join(temp_lib2_libs_loc, "subdir/");
 
 const char* pattern_lib_sublib1_abs_path =
-    is_windows() ? "C:\\\\User\\ws\\pattern_test\\libs\\sublib1\\" : "/home/User/ws/pattern_test/libs/sublib1/";
+    is_windows() ? "C:\\\\User\\ws\\pattern_test\\l%25bs;\\sublib1\\" : "/home/User/ws/pattern_test/l%25bs;/sublib1/";
 const char* pattern_lib_sublib2_abs_path =
-    is_windows() ? "c:\\\\User\\ws\\pAttErn_test\\libs\\sublib2\\" : "/home/User/ws/pattern_test/libs/sublib2/";
+    is_windows() ? "c:\\\\User\\ws\\pAttErn_test\\l%25bs;\\sublib2\\" : "/home/User/ws/pattern_test/l%25bs;/sublib2/";
 
 class file_manager_lib_pattern : public file_manager_impl
 {
@@ -493,6 +512,8 @@ protected:
                 return pgmconf_file_relative_wild;
             case pgmconf_variants::ABSOLUTE:
                 return pgmconf_file_absolute;
+            case pgmconf_variants::ABSOLUTE_WILD:
+                return pgmconf_file_absolute_wild;
             case pgmconf_variants::URI_FULL:
                 return pgmconf_file_uri_full;
             case pgmconf_variants::URI_WILD_01:
@@ -841,6 +862,8 @@ TEST(workspace_pattern_test, combination_independent)
 TEST(workspace_pattern_test, pgm_conf_relative_wild) { verify_combination(pgmconf_variants::RELATIVE_WILD); }
 
 TEST(workspace_pattern_test, pgm_conf_absolute) { verify_combination(pgmconf_variants::ABSOLUTE); }
+
+TEST(workspace_pattern_test, pgm_conf_absolute_wild) { verify_combination(pgmconf_variants::ABSOLUTE_WILD); }
 
 TEST(workspace_pattern_test, pgm_conf_uri_full) { verify_combination(pgmconf_variants::URI_FULL); }
 

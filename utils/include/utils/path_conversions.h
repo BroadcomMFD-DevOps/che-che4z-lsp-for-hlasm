@@ -49,6 +49,7 @@ bool is_uri(const std::string& path) noexcept;
 
 // Returns percent encoded string
 std::string encode(std::string_view s);
+std::string encode2(std::string_view s);
 
 // Returns URI in a presentable format for the user
 std::string get_presentable_uri(const std::string& uri, bool debug);

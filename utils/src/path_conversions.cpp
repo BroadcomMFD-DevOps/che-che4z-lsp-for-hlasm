@@ -21,6 +21,7 @@
 
 #include "utils/path.h"
 #include "utils/platform.h"
+#include "utils/utf8text.h"
 
 namespace hlasm_plugin::utils::path {
 
@@ -89,7 +90,7 @@ std::string path_to_uri(std::string_view path)
     {
         if (c == '\\')
             c = '/';
-        network::detail::encode_char(c, out, "/.%;=");
+        network::detail::encode_char(c, out, "/.*?");
     }
 
     if (utils::platform::is_windows())
@@ -128,21 +129,157 @@ bool is_uri(const std::string& path) noexcept
     }
 }
 
+namespace {
+uint8_t get_encoded_size(std::string_view::iterator it, std::string_view::iterator end)
+{
+    const auto next_it = std::next(it);
+    auto cs = utf8_prefix_sizes[*next_it].utf8;
+
+    for (uint8_t i = 0; i < cs; ++i)
+    {
+        if (it == end || *it != '%')
+            return 0;
+
+        it = std::next(it);
+        if (it == end || *it == '%')
+            return 0;
+
+        it = std::next(it);
+        if (it == end || *it == '%')
+            return 0;
+
+        it = std::next(it);
+    }
+
+    return cs;
+}
+
+bool is_percent_encoded(std::string_view::const_iterator it, uint8_t cs)
+{
+    for (size_t i = 0; i < cs; ++i)
+    {
+        if (*std::next(it, i * 3) != '%')
+            return false;
+    }
+
+    return true;
+}
+
+std::optional<uint8_t> get_hex(char c)
+{
+    if (c >= '0' && c <= '9')
+        return c - '0';
+
+    if (c >= 'A' && c <= 'F')
+        return c - 'A' + 10;
+
+    if (c >= 'a' && c <= 'f')
+        return c - 'a' + 10;
+
+    return std::nullopt;
+}
+
+std::optional<uint8_t> get_hex_repre(char c1, char c2)
+{
+    std::optional<int8_t> upper_half, lower_half;
+
+    upper_half = get_hex(c1);
+    lower_half = get_hex(c2);
+
+    if (!upper_half.has_value() || !lower_half.has_value())
+        return std::nullopt;
+
+    return (*upper_half << 4) | *lower_half;
+}
+
+size_t get_already_encoded_size(std::string_view::const_iterator it, std::string_view::iterator end)
+{
+    if (it == end || *it != '%' || std::distance(it, end) < 3)
+        return 0;
+
+    auto hex = get_hex_repre(*std::next(it), *std::next(it, 2));
+    if (!hex.has_value())
+        return 0;
+
+    auto cs = utf8_prefix_sizes[*hex].utf8;
+    if (cs == 0 || cs == 1)
+        return cs;
+
+    if (std::distance(it, end) < cs * 3 || !is_percent_encoded(it, cs))
+        return 0;
+
+
+    auto f = hex;
+    auto s = get_hex_repre(*std::next(it, 4), *std::next(it, 5));
+    if (!f.has_value() || !s.has_value() || !utf8_valid_multibyte_prefix(*f, *s))
+        return 0;
+
+    for (size_t i = 2; i < cs; ++i)
+    {
+        hex = get_hex_repre(*std::next(it, i * 3 + 1), *std::next(it, i * 3 + 2));
+        if (!hex.has_value() || ((*hex) & 0xC0) != 0x80)
+            return 0;
+    }
+
+    return cs;
+}
+} // namespace
+
 std::string encode(std::string_view s)
 {
     std::string uri;
     auto out = std::back_inserter(uri);
 
-    for (char c : s)
+    auto it = s.begin();
+    auto end = s.end();
+
+    while (it != end)
     {
+        if (auto encoded_size = get_already_encoded_size(it, end); encoded_size > 0)
+        {
+            while (encoded_size > 0)
+            {
+                out++ = *it++;
+                out++ = toupper(*it++);
+                out++ = toupper(*it++);
+
+                encoded_size--;
+            }
+
+            continue;
+        }
+
+        auto c = *it;
         if (c == '\\')
             c = '/';
-        network::detail::encode_char(c, out, "/.%;=*?:");
+        network::detail::encode_char(c, out, "/.*?:");
+
+        it++;
     }
 
     return uri;
 }
 
+std::string encode2(std::string_view s)
+{
+    std::string uri;
+    auto out = std::back_inserter(uri);
+
+    auto it = s.begin();
+    auto end = s.end();
+
+    while (it != end)
+    {
+        auto c = *it;
+        if (c == '\\')
+            c = '/';
+        network::detail::encode_char(c, out, "/.*?:");
+
+        it++;
+    }
+
+    return uri;
+}
 dissected_uri dissect_uri(const std::string& uri) noexcept
 {
     dissected_uri dis_uri;

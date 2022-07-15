@@ -47,6 +47,25 @@ std::string resource_location::to_presentable(bool debug) const
     return utils::path::get_presentable_uri(m_uri, debug);
 }
 
+bool resource_location::is_local() const
+{
+    auto dis_uri = utils::path::dissect_uri(m_uri);
+
+    if (dis_uri.scheme != "file" || dis_uri.path.empty() || dis_uri.path[0] != '/')
+        return false;
+
+    if (utils::platform::is_windows())
+    {
+        if (!dis_uri.auth.has_value() || !dis_uri.auth->host.empty()
+            || !std::regex_search(dis_uri.path, std::regex("^/[A-Za-z](?::|%3A)")))
+            return false;
+    }
+    else if (dis_uri.contains_host())
+        return false;
+
+    return true;
+}
+
 namespace {
 void uri_append(std::string& uri, std::string_view r)
 {
