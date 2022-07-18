@@ -82,10 +82,7 @@ TEST(wildcard2regex_test, utf_8_chars_01)
     EXPECT_TRUE(std::regex_match("pg%EF%BF%BFs", regex));
     EXPECT_TRUE(std::regex_match("pg%F0%9F%A7%BFs", regex));
 
-    EXPECT_FALSE(std::regex_match("pg%7fs", regex));
-    EXPECT_FALSE(std::regex_match("pg%cf%bfs", regex));
-    EXPECT_FALSE(std::regex_match("pg%ef%bf%bfs", regex));
-    EXPECT_FALSE(std::regex_match("pg%f0%9f%a7%bfs", regex));
+    EXPECT_FALSE(std::regex_match("pg%7fs", regex)); // lowercase percent encoding is not allowed
 
     EXPECT_FALSE(std::regex_match("pg%24%25s", regex));
     EXPECT_FALSE(std::regex_match("pg%C3%BF%25s", regex));
@@ -93,23 +90,24 @@ TEST(wildcard2regex_test, utf_8_chars_01)
     EXPECT_FALSE(std::regex_match("pg%DF%BF%25s", regex));
 
     // %FF is not a valid UTF-8 character
-    EXPECT_FALSE(std::regex_match("pg%Ffs", regex));
+    EXPECT_FALSE(std::regex_match("pg%FFs", regex));
 }
 
 TEST(wildcard2regex_test, utf_8_chars_02)
 {
     auto regex = wildcard2regex("pg??s");
-    EXPECT_FALSE(std::regex_match("pgms", regex));
-    EXPECT_FALSE(std::regex_match("pg%7fs", regex));
-    EXPECT_FALSE(std::regex_match("pg%cf%bfs", regex));
-    EXPECT_FALSE(std::regex_match("pg%ef%bf%bfs", regex));
-    EXPECT_FALSE(std::regex_match("pg%f0%9f%a7%bfs", regex));
 
     EXPECT_TRUE(std::regex_match("pg%24%25s", regex));
     EXPECT_TRUE(std::regex_match("pg%C3%BF%25s", regex));
     EXPECT_TRUE(std::regex_match("pg%C3%BF%C3%BEs", regex));
     EXPECT_TRUE(std::regex_match("pg%DF%BF%25s", regex));
 
+    EXPECT_FALSE(std::regex_match("pgms", regex));
+    EXPECT_FALSE(std::regex_match("pg%7Fs", regex));
+    EXPECT_FALSE(std::regex_match("pg%CF%BFs", regex));
+    EXPECT_FALSE(std::regex_match("pg%EF%BF%BFs", regex));
+    EXPECT_FALSE(std::regex_match("pg%F0%9F%A7%BFs", regex));
+
     // %FF is not a valid UTF-8 character
-    EXPECT_FALSE(std::regex_match("pg%Ff%Ffs", regex));
+    EXPECT_FALSE(std::regex_match("pg%FF%FFs", regex));
 }
