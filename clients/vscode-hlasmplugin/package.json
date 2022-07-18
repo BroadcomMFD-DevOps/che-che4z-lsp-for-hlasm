@@ -233,19 +233,19 @@
     },
     "commands": [
       {
-        "command": "insertContinuation",
+        "command": "extension.hlasm-plugin.insertContinuation",
         "category": "HLASM",
         "title": "Insert Continuation"
       },
       {
-        "command": "removeContinuation",
+        "command": "extension.hlasm-plugin.removeContinuation",
         "category": "HLASM",
         "title": "Remove Continuation"
       },
       {
-        "command": "rearrangeSequenceNumbers",
+        "command": "extension.hlasm-plugin.rearrangeSequenceNumbers",
         "category": "HLASM",
-        "title": "RearrangeSequenceNumbers"
+        "title": "Rearrange Sequence Numbers"
       },
       {
         "command": "extension.hlasm-plugin.downloadDependencies",
@@ -255,17 +255,17 @@
     ],
     "keybindings": [
       {
-        "command": "insertContinuation",
+        "command": "extension.hlasm-plugin.insertContinuation",
         "key": "shift+alt+enter",
         "when": "editorLangId == hlasm && editorTextFocus && !editorReadonly"
       },
       {
-        "command": "removeContinuation",
+        "command": "extension.hlasm-plugin.removeContinuation",
         "key": "shift+alt+backspace",
         "when": "editorLangId == hlasm && editorTextFocus && !editorReadonly"
       },
       {
-        "command": "rearrangeSequenceNumbers",
+        "command": "extension.hlasm-plugin.rearrangeSequenceNumbers",
         "key": "shift+alt+delete",
         "when": "editorLangId == hlasm && editorTextFocus && !editorReadonly"
       }
