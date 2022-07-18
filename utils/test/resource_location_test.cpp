@@ -149,20 +149,20 @@ TEST(resource_location, is_local)
         EXPECT_TRUE(resource_location("file:///C%3A/file").is_local());
         EXPECT_TRUE(resource_location("file:///C%3A/").is_local());
 
-        EXPECT_FALSE(resource_location("file:///C%3a").is_local());
-        EXPECT_FALSE(resource_location("file:///d%3a").is_local());
-        EXPECT_FALSE(resource_location("file:///Z%3a/").is_local());
-        EXPECT_FALSE(resource_location("file:///C%3a/").is_local());
-        EXPECT_FALSE(resource_location("file:///C%3a/file").is_local());
-        EXPECT_FALSE(resource_location("file:///C%3a/").is_local());
+        EXPECT_TRUE(resource_location("file:///C%3a").is_local());
+        EXPECT_TRUE(resource_location("file:///d%3a").is_local());
+        EXPECT_TRUE(resource_location("file:///Z%3a/").is_local());
+        EXPECT_TRUE(resource_location("file:///C%3a/").is_local());
+        EXPECT_TRUE(resource_location("file:///C%3a/file").is_local());
+        EXPECT_TRUE(resource_location("file:///C%3a/").is_local());
 
-        EXPECT_FALSE(resource_location("file:C:").is_local());
-        EXPECT_FALSE(resource_location("file:\\C:").is_local());
-        EXPECT_FALSE(resource_location("file:\\\\C:").is_local());
-        EXPECT_FALSE(resource_location("file:\\\\\\C:").is_local());
-        EXPECT_FALSE(resource_location("file:C:/").is_local());
-        EXPECT_FALSE(resource_location("file:/C:/").is_local());
-        EXPECT_FALSE(resource_location("file://C:/").is_local());
+        EXPECT_TRUE(resource_location("file:C:").is_local());
+        EXPECT_TRUE(resource_location("file:\\C:").is_local());
+        EXPECT_TRUE(resource_location("file:\\\\C:").is_local());
+        EXPECT_TRUE(resource_location("file:\\\\\\C:").is_local());
+        EXPECT_TRUE(resource_location("file:C:/").is_local());
+        EXPECT_TRUE(resource_location("file:/C:/").is_local());
+        EXPECT_TRUE(resource_location("file://C:/").is_local());
 
         EXPECT_FALSE(resource_location("file://host/C:").is_local());
 
@@ -180,6 +180,16 @@ TEST(resource_location, is_local)
         EXPECT_TRUE(resource_location("file:///local").is_local());
         EXPECT_TRUE(resource_location("file:///local/").is_local());
         EXPECT_TRUE(resource_location("file:///local/file").is_local());
+
+        EXPECT_TRUE(resource_location("file:\\C:").is_local());
+        EXPECT_TRUE(resource_location("file:\\\\\\C:").is_local());
+        EXPECT_TRUE(resource_location("file:/C:/").is_local());
+        EXPECT_TRUE(resource_location("file:///C:").is_local());
+
+        EXPECT_FALSE(resource_location("file:C:").is_local());
+        EXPECT_FALSE(resource_location("file:\\\\C:").is_local());
+        EXPECT_FALSE(resource_location("file:C:/").is_local());
+        EXPECT_FALSE(resource_location("file://C:/").is_local());
 
         EXPECT_FALSE(resource_location("aaa:/local").is_local());
         EXPECT_FALSE(resource_location("aaa:/local/").is_local());
@@ -435,18 +445,18 @@ TEST(resource_location, lexically_normal)
 {
     EXPECT_EQ(resource_location("file:///").lexically_normal(), "file:///");
     EXPECT_EQ(resource_location("file:///././file").lexically_normal(), "file:///file");
-    EXPECT_EQ(resource_location("file:///C:/./file").lexically_normal(), "file:///C:/file");
-    EXPECT_EQ(resource_location("file:///C:/./dir/").lexically_normal(), "file:///C:/dir/");
-    EXPECT_EQ(resource_location("file:///C:/./dir/.").lexically_normal(), "file:///C:/dir/");
-    EXPECT_EQ(resource_location("file:///C:/./dir../.").lexically_normal(), "file:///C:/dir../");
-    EXPECT_EQ(resource_location("file:///C:/./dir./.").lexically_normal(), "file:///C:/dir./");
-    EXPECT_EQ(resource_location("file:///C:/./dir/..").lexically_normal(), "file:///C:/");
-    EXPECT_EQ(resource_location("file:///C:/.///dir/../").lexically_normal(), "file:///C:/");
+    EXPECT_EQ(resource_location("file:///C:/./file").lexically_normal(), "file:///c%3A/file");
+    EXPECT_EQ(resource_location("file:///C:/./dir/").lexically_normal(), "file:///c%3A/dir/");
+    EXPECT_EQ(resource_location("file:///C:/./dir/.").lexically_normal(), "file:///c%3A/dir/");
+    EXPECT_EQ(resource_location("file:///C:/./dir../.").lexically_normal(), "file:///c%3A/dir../");
+    EXPECT_EQ(resource_location("file:///C:/./dir./.").lexically_normal(), "file:///c%3A/dir./");
+    EXPECT_EQ(resource_location("file:///C:/./dir/..").lexically_normal(), "file:///c%3A/");
+    EXPECT_EQ(resource_location("file:///C:/.///dir/../").lexically_normal(), "file:///c%3A/");
 }
 
 TEST(resource_location, lexically_normal_change_root_dir)
 {
-    EXPECT_EQ(resource_location("file:///C:/../D:/").lexically_normal(), "file:///D:/");
+    EXPECT_EQ(resource_location("file:///C:/../D:/").lexically_normal(), "file:///d%3A/");
     EXPECT_EQ(resource_location("file:///C:/../../../hostname").lexically_normal(), "file://hostname");
     EXPECT_EQ(resource_location("file:///C:/../../../hostname/").lexically_normal(), "file://hostname/");
     EXPECT_EQ(
@@ -459,19 +469,19 @@ TEST(resource_location, lexically_normal_diff_schemes)
 {
     EXPECT_EQ(resource_location("aaa:").lexically_normal(), "aaa:");
     EXPECT_EQ(resource_location("aaa:././file").lexically_normal(), "aaa:file");
-    EXPECT_EQ(resource_location("aaa:C:/file").lexically_normal(), "aaa:C:/file");
-    EXPECT_EQ(resource_location("aaa:C:/dir/").lexically_normal(), "aaa:C:/dir/");
-    EXPECT_EQ(resource_location("aaa:C:/dir/.").lexically_normal(), "aaa:C:/dir/");
-    EXPECT_EQ(resource_location("aaa:C:/dir../.").lexically_normal(), "aaa:C:/dir../");
-    EXPECT_EQ(resource_location("aaa:C:/dir./.").lexically_normal(), "aaa:C:/dir./");
-    EXPECT_EQ(resource_location("aaa:C:/dir/..").lexically_normal(), "aaa:C:/");
-    EXPECT_EQ(resource_location("aaa:C:///dir/../").lexically_normal(), "aaa:C:/");
+    EXPECT_EQ(resource_location("aaa:C:/file").lexically_normal(), "aaa:C%3A/file");
+    EXPECT_EQ(resource_location("aaa:C:/dir/").lexically_normal(), "aaa:C%3A/dir/");
+    EXPECT_EQ(resource_location("aaa:C:/dir/.").lexically_normal(), "aaa:C%3A/dir/");
+    EXPECT_EQ(resource_location("aaa:C:/dir../.").lexically_normal(), "aaa:C%3A/dir../");
+    EXPECT_EQ(resource_location("aaa:C:/dir./.").lexically_normal(), "aaa:C%3A/dir./");
+    EXPECT_EQ(resource_location("aaa:C:/dir/..").lexically_normal(), "aaa:C%3A/");
+    EXPECT_EQ(resource_location("aaa:C:///dir/../").lexically_normal(), "aaa:C%3A/");
 }
 
 TEST(resource_location, lexically_normal_change_root_dir_diff_schemes)
 {
-    EXPECT_EQ(resource_location("aaa:C:/../../../D:").lexically_normal(), "aaa:D:");
-    EXPECT_EQ(resource_location("aaa:C:/../../../D:/").lexically_normal(), "aaa:D:/");
+    EXPECT_EQ(resource_location("aaa:C:/../../../D:").lexically_normal(), "aaa:D%3A");
+    EXPECT_EQ(resource_location("aaa:C:/../../../D:/").lexically_normal(), "aaa:D%3A/");
     EXPECT_EQ(resource_location("aaa:C:/../../../D:/..").lexically_normal(), "aaa:");
     EXPECT_EQ(resource_location("aaa:C:/../../../.").lexically_normal(), "aaa:");
 }
@@ -479,66 +489,70 @@ TEST(resource_location, lexically_normal_change_root_dir_diff_schemes)
 TEST(resource_location, lexically_normal_slashes)
 {
     EXPECT_EQ(resource_location("file:///.\\.\\file").lexically_normal(), "file:///file");
-    EXPECT_EQ(resource_location("file:\\\\\\C:\\file").lexically_normal(), "file:///C:/file");
-    EXPECT_EQ(resource_location("file:\\\\\\C:\\.\\dir\\.").lexically_normal(), "file:///C:/dir/");
+    EXPECT_EQ(resource_location("file:\\\\\\C:\\file").lexically_normal(), "file:///c%3A/file");
+    EXPECT_EQ(resource_location("file:\\\\\\C:\\.\\dir\\.").lexically_normal(), "file:///c%3A/dir/");
 }
 
 TEST(resource_location, lexically_normal_file_scheme)
 {
     if (hlasm_plugin::utils::platform::is_windows())
     {
-        EXPECT_EQ(resource_location("file:C:/Dir/").lexically_normal(), "file:///C:/Dir/");
-        EXPECT_EQ(resource_location("file:C%3a/Dir/").lexically_normal(), "file:///C%3A/Dir/");
-        EXPECT_EQ(resource_location("file:C%3A/Dir/").lexically_normal(), "file:///C%3A/Dir/");
+        EXPECT_EQ(resource_location("file:c:/Dir/").lexically_normal(), "file:///c%3A/Dir/");
+        EXPECT_EQ(resource_location("file:c%3a/Dir/").lexically_normal(), "file:///c%3A/Dir/");
+        EXPECT_EQ(resource_location("file:c%3A/Dir/").lexically_normal(), "file:///c%3A/Dir/");
 
-        EXPECT_EQ(resource_location("file:/C:/Dir/").lexically_normal(), "file:///C:/Dir/");
-        EXPECT_EQ(resource_location("file:/C%3a/Dir/").lexically_normal(), "file:///C%3A/Dir/");
-        EXPECT_EQ(resource_location("file:/C%3A/Dir/").lexically_normal(), "file:///C%3A/Dir/");
-        EXPECT_EQ(resource_location("file:\\C:/Dir/").lexically_normal(), "file:///C:/Dir/");
-        EXPECT_EQ(resource_location("file:\\C%3a/Dir/").lexically_normal(), "file:///C%3A/Dir/");
-        EXPECT_EQ(resource_location("file:\\C%3A/Dir/").lexically_normal(), "file:///C%3A/Dir/");
+        EXPECT_EQ(resource_location("file:C:/Dir/").lexically_normal(), "file:///c%3A/Dir/");
+        EXPECT_EQ(resource_location("file:C%3a/Dir/").lexically_normal(), "file:///c%3A/Dir/");
+        EXPECT_EQ(resource_location("file:C%3A/Dir/").lexically_normal(), "file:///c%3A/Dir/");
 
-        EXPECT_EQ(resource_location("file://C:/Dir/").lexically_normal(), "file:///C:/Dir/");
-        EXPECT_EQ(resource_location("file://C%3a/Dir/").lexically_normal(), "file:///C%3A/Dir/");
-        EXPECT_EQ(resource_location("file://C%3A/Dir/").lexically_normal(), "file:///C%3A/Dir/");
-        EXPECT_EQ(resource_location("file:\\\\C:/Dir/").lexically_normal(), "file:///C:/Dir/");
-        EXPECT_EQ(resource_location("file:\\\\C%3a/Dir/").lexically_normal(), "file:///C%3A/Dir/");
-        EXPECT_EQ(resource_location("file:\\\\C%3A/Dir/").lexically_normal(), "file:///C%3A/Dir/");
+        EXPECT_EQ(resource_location("file:/C:/Dir/").lexically_normal(), "file:///c%3A/Dir/");
+        EXPECT_EQ(resource_location("file:/C%3a/Dir/").lexically_normal(), "file:///c%3A/Dir/");
+        EXPECT_EQ(resource_location("file:/C%3A/Dir/").lexically_normal(), "file:///c%3A/Dir/");
+        EXPECT_EQ(resource_location("file:\\C:/Dir/").lexically_normal(), "file:///c%3A/Dir/");
+        EXPECT_EQ(resource_location("file:\\C%3a/Dir/").lexically_normal(), "file:///c%3A/Dir/");
+        EXPECT_EQ(resource_location("file:\\C%3A/Dir/").lexically_normal(), "file:///c%3A/Dir/");
 
-        EXPECT_EQ(resource_location("file:///C:/Dir/").lexically_normal(), "file:///C:/Dir/");
-        EXPECT_EQ(resource_location("file:///C%3a/Dir/").lexically_normal(), "file:///C%3A/Dir/");
-        EXPECT_EQ(resource_location("file:///C%3A/Dir/").lexically_normal(), "file:///C%3A/Dir/");
-        EXPECT_EQ(resource_location("file:\\\\\\C:/Dir/").lexically_normal(), "file:///C:/Dir/");
-        EXPECT_EQ(resource_location("file:\\\\\\C%3a/Dir/").lexically_normal(), "file:///C%3A/Dir/");
-        EXPECT_EQ(resource_location("file:\\\\\\C%3A/Dir/").lexically_normal(), "file:///C%3A/Dir/");
+        EXPECT_EQ(resource_location("file://C:/Dir/").lexically_normal(), "file:///c%3A/Dir/");
+        EXPECT_EQ(resource_location("file://C%3a/Dir/").lexically_normal(), "file:///c%3A/Dir/");
+        EXPECT_EQ(resource_location("file://C%3A/Dir/").lexically_normal(), "file:///c%3A/Dir/");
+        EXPECT_EQ(resource_location("file:\\\\C:/Dir/").lexically_normal(), "file:///c%3A/Dir/");
+        EXPECT_EQ(resource_location("file:\\\\C%3a/Dir/").lexically_normal(), "file:///c%3A/Dir/");
+        EXPECT_EQ(resource_location("file:\\\\C%3A/Dir/").lexically_normal(), "file:///c%3A/Dir/");
 
-        EXPECT_EQ(resource_location("file://///C://Dir//").lexically_normal(), "file:///C:/Dir/");
-        EXPECT_EQ(resource_location("file://///C%3a//Dir//").lexically_normal(), "file:///C%3A/Dir/");
-        EXPECT_EQ(resource_location("file://///C%3A//Dir//").lexically_normal(), "file:///C%3A/Dir/");
-        EXPECT_EQ(resource_location("file:\\\\\\\\\\C://Dir//").lexically_normal(), "file:///C:/Dir/");
-        EXPECT_EQ(resource_location("file:\\\\\\\\\\C%3a//Dir//").lexically_normal(), "file:///C%3A/Dir/");
-        EXPECT_EQ(resource_location("file:\\\\\\\\\\C%3A//Dir//").lexically_normal(), "file:///C%3A/Dir/");
+        EXPECT_EQ(resource_location("file:///C:/Dir/").lexically_normal(), "file:///c%3A/Dir/");
+        EXPECT_EQ(resource_location("file:///C%3a/Dir/").lexically_normal(), "file:///c%3A/Dir/");
+        EXPECT_EQ(resource_location("file:///C%3A/Dir/").lexically_normal(), "file:///c%3A/Dir/");
+        EXPECT_EQ(resource_location("file:\\\\\\C:/Dir/").lexically_normal(), "file:///c%3A/Dir/");
+        EXPECT_EQ(resource_location("file:\\\\\\C%3a/Dir/").lexically_normal(), "file:///c%3A/Dir/");
+        EXPECT_EQ(resource_location("file:\\\\\\C%3A/Dir/").lexically_normal(), "file:///c%3A/Dir/");
+
+        EXPECT_EQ(resource_location("file://///C://Dir//").lexically_normal(), "file:///c%3A/Dir/");
+        EXPECT_EQ(resource_location("file://///C%3a//Dir//").lexically_normal(), "file:///c%3A/Dir/");
+        EXPECT_EQ(resource_location("file://///C%3A//Dir//").lexically_normal(), "file:///c%3A/Dir/");
+        EXPECT_EQ(resource_location("file:\\\\\\\\\\C://Dir//").lexically_normal(), "file:///c%3A/Dir/");
+        EXPECT_EQ(resource_location("file:\\\\\\\\\\C%3a//Dir//").lexically_normal(), "file:///c%3A/Dir/");
+        EXPECT_EQ(resource_location("file:\\\\\\\\\\C%3A//Dir//").lexically_normal(), "file:///c%3A/Dir/");
 
         EXPECT_EQ(resource_location("file://C/Dir//").lexically_normal(), "file://C/Dir/");
         EXPECT_EQ(resource_location("file://host/Dir//").lexically_normal(), "file://host/Dir/");
-
-        EXPECT_NE(resource_location("file:C%3a/Dir/").lexically_normal(), "file:///C%3a/Dir/");
     }
     else
     {
         EXPECT_EQ(resource_location("file:relative/Dir/").lexically_normal(), "file:relative/Dir/");
         EXPECT_EQ(resource_location("file:relative\\Dir/").lexically_normal(), "file:relative/Dir/");
-        EXPECT_EQ(resource_location("file:/absolute/Dir/").lexically_normal(), "file:/absolute/Dir/");
-        EXPECT_EQ(resource_location("file:\\absolute\\Dir/").lexically_normal(), "file:/absolute/Dir/");
+        EXPECT_EQ(
+            resource_location("file:/absolute/Dir/colon:name").lexically_normal(), "file:/absolute/Dir/colon%3Aname");
+        EXPECT_EQ(
+            resource_location("file:\\absolute\\Dir/colon:name").lexically_normal(), "file:/absolute/Dir/colon%3Aname");
         EXPECT_EQ(resource_location("file://host/Dir/").lexically_normal(), "file://host/Dir/");
         EXPECT_EQ(resource_location("file:\\\\host\\Dir/").lexically_normal(), "file://host/Dir/");
     }
 
     EXPECT_EQ(resource_location("").lexically_normal(), "");
     EXPECT_EQ(resource_location("file:").lexically_normal(), "file:");
-    EXPECT_EQ(resource_location("file://host/C:/Dir/").lexically_normal(), "file://host/C:/Dir/");
-    EXPECT_EQ(resource_location("file:\\\\host/C:/Dir/").lexically_normal(), "file://host/C:/Dir/");
-    EXPECT_EQ(resource_location("aaa:C:/Dir/").lexically_normal(), "aaa:C:/Dir/");
+    EXPECT_EQ(resource_location("file://host/C:/Dir/").lexically_normal(), "file://host/C%3A/Dir/");
+    EXPECT_EQ(resource_location("file:\\\\host/C:/Dir/").lexically_normal(), "file://host/C%3A/Dir/");
+    EXPECT_EQ(resource_location("aaa:C:/Dir/").lexically_normal(), "aaa:C%3A/Dir/");
     EXPECT_EQ(resource_location(":C:/Dir/").lexically_normal(), ":C:/Dir/");
 }
 
@@ -548,11 +562,29 @@ TEST(resource_location, lexically_normal_rfc_3986)
     EXPECT_EQ(resource_location("aaa:mid/content=5/../6").lexically_normal(), "aaa:mid/6");
 }
 
-// TEST(resource_location, lexically_normal_rfc_3986_syntax_based) // todo
-//{
-//     EXPECT_EQ(resource_location("example://a/b/c/%7Bfoo%7D").lexically_normal(),
-//         resource_location("eXAMPLE://a/./b/../b/%63/%7bfoo%7d").lexically_normal());
-// }
+TEST(resource_location, lexically_normal_rfc_3986_syntax_based)
+{
+    // EXPECT_EQ(resource_location("example://a/b/c/%7Bfoo%7D").lexically_normal(),
+    //     resource_location("eXAMPLE://a/./b/../b/%63/%7bfoo%7d").lexically_normal()); // todo
+
+    EXPECT_EQ(resource_location("example://a/b/c/%7Bfoo%7D").lexically_normal(),
+        resource_location("eXAMPLE://a/./b/../b/c/%7bfoo%7d").lexically_normal());
+
+    EXPECT_EQ(resource_location("aaa:/directory/colon:file").lexically_normal(),
+        resource_location("aaa:/directory/colon%3Afile").lexically_normal());
+
+    if (is_windows())
+    {
+        EXPECT_EQ(resource_location("file:///C:/a/b/c/%7Bfoo%7D").lexically_normal(),
+            resource_location("file:///C:/a/./b/../b/c/%7bfoo%7d").lexically_normal());
+
+        EXPECT_EQ(resource_location("file:/C%3a/a/b/c/%7Bfoo%7D").lexically_normal(),
+            resource_location("file:/C:/a/./b/../b/c/%7bfoo%7d").lexically_normal());
+
+        EXPECT_EQ(resource_location("file:/C%3a/a/b/c/%7Bfoo%7D").lexically_normal(),
+            resource_location("file:/C%3A/a/./b/../b/c/%7bfoo%7d").lexically_normal());
+    }
+}
 
 TEST(resource_location, join_empty)
 {

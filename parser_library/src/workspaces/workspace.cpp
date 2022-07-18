@@ -556,7 +556,7 @@ utils::resource::resource_location transform_to_resource_location(
     {
         std::replace(path.begin(), path.end(), '\\', '/');
         if (base_resource_location.is_local())
-            rl = utils::resource::resource_location::join(base_resource_location, utils::path::encode(path, false));
+            rl = utils::resource::resource_location::join(base_resource_location, utils::path::encode_path(path, false));
         else
             rl = utils::resource::resource_location::join(base_resource_location, path);
     }

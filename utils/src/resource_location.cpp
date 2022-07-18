@@ -49,21 +49,15 @@ std::string resource_location::to_presentable(bool debug) const
 
 bool resource_location::is_local() const
 {
-    auto dis_uri = utils::path::dissect_uri(m_uri);
-
-    if (dis_uri.scheme != "file" || dis_uri.path.empty() || dis_uri.path[0] != '/')
-        return false;
-
     if (utils::platform::is_windows())
     {
-        if (!dis_uri.auth.has_value() || !dis_uri.auth->host.empty()
-            || !std::regex_search(dis_uri.path, std::regex("^/[A-Za-z](?::|%3A)")))
-            return false;
+        if (std::regex_search(m_uri, std::regex("^file:(?:///|\\\\\\\\\\\\|//|\\\\\\\\|/|\\\\|)[A-Za-z](?::|%3[aA])")))
+            return true;
     }
-    else if (dis_uri.contains_host())
-        return false;
+    else if (std::regex_search(m_uri, std::regex("^file:(?:///|\\\\\\\\\\\\|/|\\\\)")))
+        return true;
 
-    return true;
+    return false;
 }
 
 namespace {
@@ -210,7 +204,28 @@ std::string normalize_path(std::string_view path)
     return ret;
 }
 
-void normalize_file_scheme(utils::path::dissected_uri& dis_uri)
+std::string normalize_scheme(std::string scheme)
+{
+    std::transform(scheme.begin(), scheme.end(), scheme.begin(), [](unsigned char c) {
+        return static_cast<const char>(tolower(c));
+    });
+    return scheme;
+}
+
+void normalize_windows_like_uri_helper(
+    utils::path::dissected_uri& dis_uri, unsigned char win_drive_letter, std::string path_suffix)
+{
+    dis_uri.path.clear();
+    dis_uri.path.push_back('/');
+    dis_uri.path.push_back(static_cast<const char>(tolower(win_drive_letter)));
+    dis_uri.path.push_back(':');
+    dis_uri.path.append(path_suffix);
+
+    // Clear host but keep in mind that it needs to remain valid (albeit empty)
+    dis_uri.auth = { std::nullopt, "", std::nullopt };
+}
+
+void normalize_windows_like_uri(utils::path::dissected_uri& dis_uri)
 {
     if (dis_uri.scheme == "file")
     {
@@ -218,7 +233,7 @@ void normalize_file_scheme(utils::path::dissected_uri& dis_uri)
             return;
 
         if (std::smatch s; dis_uri.auth.has_value() && (!dis_uri.auth->port.has_value() || dis_uri.auth->port->empty())
-            && !dis_uri.auth->user_info.has_value())
+            && !dis_uri.auth->user_info.has_value() && dis_uri.contains_host())
         {
             if (static const std::regex host_like_windows_path("^([A-Za-z])($|:$|%3[aA]$)");
                 !std::regex_search(dis_uri.auth->host, s, host_like_windows_path)
@@ -226,38 +241,13 @@ void normalize_file_scheme(utils::path::dissected_uri& dis_uri)
                 return;
 
             // auth consists only of host name resembling Windows drive and empty or missing port part
-
-            // Start constructing new path
-            std::string new_path = "/";
-            new_path.append(s[1]);
-
-            // If drive letter is captured without colon -> append it
-            if (s[2].length() == 0)
-                new_path.append(":");
-            else
-                new_path.append(s[2]);
-
-            new_path.append(dis_uri.path);
-            dis_uri.path = std::move(new_path);
-
-            // Clear host but keep in mind that it needs to remain valid (albeit empty)
-            dis_uri.auth->host.clear();
-
-            // port and user_info have zero length in the worst case -> assign nullopt
-            dis_uri.auth->port = std::nullopt;
-            dis_uri.auth->user_info = std::nullopt;
+            normalize_windows_like_uri_helper(dis_uri, s[1].str()[0], std::move(dis_uri.path));
         }
-        else if (static const std::regex path_like_windows_path("^(|[/]|[//])[A-Za-z](?::|%3[aA])");
-                 !dis_uri.auth.has_value() && std::regex_search(dis_uri.path, s, path_like_windows_path))
+        else if (static const std::regex path_like_windows_path("^(?:[///]|[//]|[/]|)([A-Za-z])(?::|%3[aA])");
+                 !dis_uri.contains_host() && std::regex_search(dis_uri.path, s, path_like_windows_path))
         {
             // Seems like we have a windows like path
-            std::string slashes;
-            for (auto i = 3 - s[1].length(); i != 0; i--)
-            {
-                slashes.push_back('/');
-            }
-
-            dis_uri.path.insert(0, slashes);
+            normalize_windows_like_uri_helper(dis_uri, s[1].str()[0], std::move(s.suffix().str()));
         }
     }
 }
@@ -273,10 +263,11 @@ std::string resource_location::lexically_normal() const
     if (dis_uri.path.empty())
         return uri;
 
+    dis_uri.scheme = normalize_scheme(dis_uri.scheme);
     dis_uri.path = normalize_path(dis_uri.path);
+    normalize_windows_like_uri(dis_uri);
 
-    normalize_file_scheme(dis_uri);
-    dis_uri.path = utils::path::encode(dis_uri.path, true);
+    dis_uri.path = utils::path::encode_path(dis_uri.path, true);
 
     return utils::path::reconstruct_uri(dis_uri);
 }
