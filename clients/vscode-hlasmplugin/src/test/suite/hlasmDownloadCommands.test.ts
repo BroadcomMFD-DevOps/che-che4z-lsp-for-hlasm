@@ -24,10 +24,10 @@ suite('HLASM Download datasets', () => {
             listCalls: 0,
             jcls: new Array<string>(),
             downloadRequests: new Array<{ id: string, spoolFile: number }>(),
-            closeCalls: 0,
+            disposeCalls: 0,
             nextJobId: 0,
 
-            close() { ++this.closeCalls },
+            dispose() { ++this.disposeCalls },
             async download(target: Writable, id: string, spoolFile: number) {
                 if (target instanceof Writable) {
                     this.downloadRequests.push({ id, spoolFile });
@@ -101,7 +101,7 @@ suite('HLASM Download datasets', () => {
             { failed: [], total: 1 }
         );
 
-        assert.equal(client.closeCalls, 1);
+        assert.equal(client.disposeCalls, 1);
         assert.deepEqual(client.downloadRequests, [{ id: "JOBID0", spoolFile: 3 }]);
         assert.equal(client.jcls.length, 1);
         assert.ok(client.jcls[0].startsWith("//JOBNAME JOB 1"));
@@ -131,7 +131,7 @@ suite('HLASM Download datasets', () => {
             { failed: [], total: 1 }
         );
 
-        assert.equal(client.closeCalls, 1);
+        assert.equal(client.disposeCalls, 1);
         assert.deepEqual(client.downloadRequests, [{ id: "JOBID0", spoolFile: 3 }]);
         assert.equal(client.jcls.length, 1);
         assert.ok(client.jcls[0].startsWith("//JOBNAME0 JOB 1"));
@@ -165,7 +165,7 @@ suite('HLASM Download datasets', () => {
             assert.equal(e.message, "Cancel requested");
         }
 
-        assert.equal(client.closeCalls, 1);
+        assert.equal(client.disposeCalls, 1);
         assert.deepEqual(client.downloadRequests, []);
         assert.equal(client.jcls.length, 0);
         assert.equal(client.listCalls, 0);
@@ -201,7 +201,7 @@ suite('HLASM Download datasets', () => {
             { failed: [], total: 2 }
         );
 
-        assert.equal(client.closeCalls, 1);
+        assert.equal(client.disposeCalls, 1);
         assert.deepEqual(client.downloadRequests, [{ id: "JOBID0", spoolFile: 3 }, { id: "JOBID1", spoolFile: 6 }]);
         assert.equal(client.jcls.length, 2);
         assert.ok(client.jcls[0].startsWith("//JOBNAME0 JOB 1"));
@@ -233,7 +233,7 @@ suite('HLASM Download datasets', () => {
             { failed: [{ dsn: 'A.B', dirs: ['/dir1'] }], total: 1 }
         );
 
-        assert.equal(client.closeCalls, 1);
+        assert.equal(client.disposeCalls, 1);
         assert.deepEqual(client.downloadRequests, []);
         assert.equal(client.jcls.length, 1);
         assert.ok(client.jcls[0].startsWith("//JOBNAME JOB 1"));

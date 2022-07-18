@@ -39,7 +39,7 @@ export interface JobClient {
     setListMask(mask: string): Promise<void>;
     list(): Promise<JobDescription[]>;
     download(target: Writable | string, id: JobId, spoolFile: number): Promise<void>;
-    close(): void;
+    dispose(): void;
 }
 
 async function basicFtpJobClient(connection: {
@@ -109,7 +109,7 @@ async function basicFtpJobClient(connection: {
             await switchBinary();
             checkResponse(await client.downloadTo(target, id + "." + spoolFile));
         },
-        close(): void {
+        dispose(): void {
             client.close();
         }
     };
@@ -268,7 +268,7 @@ export function convertBuffer(buffer: Buffer, lrecl: number) {
             pos += EOLBuffer.copy(result, pos);
         ++i;
     }
-    return result.slice(0, pos);
+    return result.subarray(0, pos);
 }
 
 async function translateFiles(dir: string) {
@@ -292,7 +292,7 @@ async function copyDirectory(source: string, target: string) {
     for (const file of files) {
         if (!file.isSymbolicLink())
             continue;
-        fsp.symlink(await fsp.readlink(path.join(source, file.name)), path.join(target, file.name));
+        await fsp.symlink(await fsp.readlink(path.join(source, file.name)), path.join(target, file.name));
     }
 }
 
@@ -308,8 +308,8 @@ async function downloadJobAndProcess(
     job: SubmittedJob,
     progress: StageProgressReporter,
     io: IoOps): Promise<{ unpacker: Promise<void> }> {
-    const JobDetail = getJobDetailInfo(fileInfo);
-    if (!JobDetail || JobDetail.rc !== 0) {
+    const jobDetail = getJobDetailInfo(fileInfo);
+    if (!jobDetail || jobDetail.rc !== 0) {
         job.downloaded = true; // nothing we can do ...
         return {
             unpacker: Promise.reject(Error("Job failed: " + job.jobname + "/" + job.jobid))
@@ -320,7 +320,7 @@ async function downloadJobAndProcess(
 
     try {
         const { process, input } = await io.unterse(firstDir);
-        await client.download(input, job.jobid, JobDetail.spoolFiles!);
+        await client.download(input, job.jobid, jobDetail.spoolFiles!);
         progress.stageCompleted();
         job.downloaded = true;
 
@@ -363,9 +363,7 @@ export async function downloadDependenciesWithClient(client: JobClient,
     try {
         const jobcard = prepareJobHeader(jobcardPattern);
         const jobs = await submitJobs(client, jobcard, jobList, progress, checkCancel);
-        const jobsMap: {
-            [key: string]: SubmittedJob
-        } = Object.assign({}, ...jobs.map(x => ({ [x.jobname + "." + x.jobid]: x })));
+        const jobsMap = jobs.reduce((result: { [key: string]: SubmittedJob }, x) => { result[x.jobname + "." + x.jobid] = x; return result; }, {});
 
         await client.setListMask(jobcard.jobMask);
 
@@ -400,7 +398,7 @@ export async function downloadDependenciesWithClient(client: JobClient,
         return result;
     }
     finally {
-        client.close();
+        client.dispose();
     }
 }
 

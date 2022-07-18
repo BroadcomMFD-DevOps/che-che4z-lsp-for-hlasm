@@ -140,10 +140,10 @@ function startCheckingNativeClient(hlasmpluginClient: vscodelc.LanguageClient) {
 
 async function registerToContext(context: vscode.ExtensionContext, client: vscodelc.LanguageClient) {
     const completeCommand = "editor.action.triggerSuggest";
-    var commandList = await vscode.commands.getCommands();
+    const commandList = await vscode.commands.getCommands();
 
     // check whether the continuation commands have already been registered
-    var commandsRegistered = commandList.find(command => command == "extension.hlasm-plugin.insertContinuation" || command == "extension.hlasm-plugin.removeContinuation");
+    const commandsRegistered = commandList.find(command => command == "extension.hlasm-plugin.insertContinuation" || command == "extension.hlasm-plugin.removeContinuation");
 
     // initialize helpers
     const handler = new EventsHandler(completeCommand);
