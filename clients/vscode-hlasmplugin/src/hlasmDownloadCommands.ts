@@ -664,7 +664,7 @@ export async function downloadDependencies(context: vscode.ExtensionContext) {
             return;
 
         for (const d of dirsWithFiles)
-            removeFilesFromDirectory(d);
+            await removeFilesFromDirectory(d);
     }
 
     try {
