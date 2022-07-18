@@ -153,7 +153,7 @@ const program* workspace::get_program(const utils::resource::resource_location& 
 {
     assert(opened_);
 
-    utils::resource::resource_location rl = utils::resource::resource_location(file_location.lexically_normal());
+    auto rl = utils::resource::resource_location(file_location.lexically_normal());
 
     // direct match
     auto program = exact_pgm_conf_.find(rl);

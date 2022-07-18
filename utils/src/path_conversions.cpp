@@ -122,30 +122,6 @@ bool is_uri(const std::string& path) noexcept
 }
 
 namespace {
-uint8_t get_encoded_size(std::string_view::iterator it, std::string_view::iterator end)
-{
-    const auto next_it = std::next(it);
-    auto cs = utf8_prefix_sizes[*next_it].utf8;
-
-    for (uint8_t i = 0; i < cs; ++i)
-    {
-        if (it == end || *it != '%')
-            return 0;
-
-        it = std::next(it);
-        if (it == end || *it == '%')
-            return 0;
-
-        it = std::next(it);
-        if (it == end || *it == '%')
-            return 0;
-
-        it = std::next(it);
-    }
-
-    return cs;
-}
-
 bool is_percent_encoded(std::string_view::const_iterator it, uint8_t cs)
 {
     for (size_t i = 0; i < cs; ++i)
