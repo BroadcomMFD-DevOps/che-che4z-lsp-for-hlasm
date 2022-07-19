@@ -305,140 +305,176 @@ Raw URI: aaa://user::pass@127.0.0.1:1234/path/to/resource?fileset=sources#pgm)";
 TEST(resource_location, lexically_relative_subset_of_base)
 {
     EXPECT_EQ(resource_location("file:///C:/dir/subdir/file_a")
-                  .lexically_relative(resource_location("file:///C:/dir/subdir/")),
+                  .lexically_relative(resource_location("file:///C:/dir/subdir/"))
+                  .get_uri(),
         "file_a");
 
-    EXPECT_EQ(resource_location("file:///C:/dir/subdir/").lexically_relative(resource_location("file:///C:/dir/")),
+    EXPECT_EQ(
+        resource_location("file:///C:/dir/subdir/").lexically_relative(resource_location("file:///C:/dir/")).get_uri(),
         "subdir/");
 
-    EXPECT_EQ(
-        resource_location("file:///C:/dir/subdir/file_a").lexically_relative(resource_location("file:///C:/dir/")),
+    EXPECT_EQ(resource_location("file:///C:/dir/subdir/file_a")
+                  .lexically_relative(resource_location("file:///C:/dir/"))
+                  .get_uri(),
         "subdir/file_a");
 }
 
 TEST(resource_location, lexically_relative)
 {
     EXPECT_EQ(resource_location("file:///C:/dir/file_b")
-                  .lexically_relative(resource_location("file:///C:/dir/subdir/file_a")),
+                  .lexically_relative(resource_location("file:///C:/dir/subdir/file_a"))
+                  .get_uri(),
         "../../file_b");
 
     EXPECT_EQ(resource_location("file:///C:/dir/subdir/")
-                  .lexically_relative(resource_location("file:///C:/dir/subdir/file_a")),
+                  .lexically_relative(resource_location("file:///C:/dir/subdir/file_a"))
+                  .get_uri(),
         "../");
 
     EXPECT_EQ(
-        resource_location("file:///C:/").lexically_relative(resource_location("file:///C:/dir/subdir/")), "../../");
+        resource_location("file:///C:/").lexically_relative(resource_location("file:///C:/dir/subdir/")).get_uri(),
+        "../../");
 
-    EXPECT_EQ(resource_location("file:///C:/").lexically_relative(resource_location("file:///C:/dir/subdir/file_a")),
+    EXPECT_EQ(resource_location("file:///C:/")
+                  .lexically_relative(resource_location("file:///C:/dir/subdir/file_a"))
+                  .get_uri(),
         "../../../");
 
-    EXPECT_EQ(resource_location("file:///C:/dir/file_b").lexically_relative(resource_location("file:///C:/dir/file_a")),
+    EXPECT_EQ(resource_location("file:///C:/dir/file_b")
+                  .lexically_relative(resource_location("file:///C:/dir/file_a"))
+                  .get_uri(),
         "../file_b");
 
     EXPECT_EQ(resource_location("file:///C:/dir/file_a")
-                  .lexically_relative(resource_location("file:///C:/dir/subdir/file_a")),
+                  .lexically_relative(resource_location("file:///C:/dir/subdir/file_a"))
+                  .get_uri(),
         "../../file_a");
 
-    EXPECT_EQ(
-        resource_location("file:///C:/dir/file_a").lexically_relative(resource_location("file:///C:/dir/subdir/")),
+    EXPECT_EQ(resource_location("file:///C:/dir/file_a")
+                  .lexically_relative(resource_location("file:///C:/dir/subdir/"))
+                  .get_uri(),
         "../file_a");
 
-    EXPECT_EQ(
-        resource_location("file:///C:/file_a").lexically_relative(resource_location("file:///C:/dir/subdir/file_a")),
+    EXPECT_EQ(resource_location("file:///C:/file_a")
+                  .lexically_relative(resource_location("file:///C:/dir/subdir/file_a"))
+                  .get_uri(),
         "../../../file_a");
 }
 
 TEST(resource_location, lexically_relative_single_dots)
 {
     EXPECT_EQ(resource_location("file:///C:/dir/subdir/file_a")
-                  .lexically_relative(resource_location("file:///C:/dir/subdir/.")),
+                  .lexically_relative(resource_location("file:///C:/dir/subdir/."))
+                  .get_uri(),
         "file_a");
 
     EXPECT_EQ(resource_location("file:///C:/dir/subdir/file_a")
-                  .lexically_relative(resource_location("file:///C:/dir/subdir/./")),
+                  .lexically_relative(resource_location("file:///C:/dir/subdir/./"))
+                  .get_uri(),
         "file_a");
 
     EXPECT_EQ(resource_location("file:///C:/dir/./subdir/file_a")
-                  .lexically_relative(resource_location("file:///C:/dir/subdir/./")),
+                  .lexically_relative(resource_location("file:///C:/dir/subdir/./"))
+                  .get_uri(),
         ".././subdir/file_a");
 
     EXPECT_EQ(resource_location("file:///C:/dir/subdir/file_a")
-                  .lexically_relative(resource_location("file:///C:/dir/./subdir")),
+                  .lexically_relative(resource_location("file:///C:/dir/./subdir"))
+                  .get_uri(),
         "../subdir/file_a");
 
     EXPECT_EQ(resource_location("file:///C:/dir/subdir/file_a")
-                  .lexically_relative(resource_location("file:///C:/dir/./subdir/")),
+                  .lexically_relative(resource_location("file:///C:/dir/./subdir/"))
+                  .get_uri(),
         "../subdir/file_a");
 }
 
 TEST(resource_location, lexically_relative_double_dots)
 {
     EXPECT_EQ(resource_location("file:///C:/dir/subdir/file_a")
-                  .lexically_relative(resource_location("file:///C:/dir/subdir/..")),
+                  .lexically_relative(resource_location("file:///C:/dir/subdir/.."))
+                  .get_uri(),
         "");
 
     EXPECT_EQ(resource_location("file:///C:/dir/subdir/file_a")
-                  .lexically_relative(resource_location("file:///C:/dir/subdir/../")),
+                  .lexically_relative(resource_location("file:///C:/dir/subdir/../"))
+                  .get_uri(),
         "");
 
     EXPECT_EQ(resource_location("file:///C:/dir/../subdir/file_a")
-                  .lexically_relative(resource_location("file:///C:/dir/subdir/../")),
+                  .lexically_relative(resource_location("file:///C:/dir/subdir/../"))
+                  .get_uri(),
         "../subdir/file_a");
 
     EXPECT_EQ(resource_location("file:///C:/dir/subdir/file_a")
-                  .lexically_relative(resource_location("file:///C:/dir/../file_b")),
+                  .lexically_relative(resource_location("file:///C:/dir/../file_b"))
+                  .get_uri(),
         "subdir/file_a");
 
     EXPECT_EQ(resource_location("file:///C:/dir/subdir/file_a")
-                  .lexically_relative(resource_location("file:///C:/dir/../subdir/")),
+                  .lexically_relative(resource_location("file:///C:/dir/../subdir/"))
+                  .get_uri(),
         "subdir/file_a");
 }
 
 TEST(resource_location, lexically_relative_multiple_slashes)
 {
     EXPECT_EQ(resource_location("file:///C:/dir/subdir/file_a")
-                  .lexically_relative(resource_location("file:///C:/dir/subdir////")),
+                  .lexically_relative(resource_location("file:///C:/dir/subdir////"))
+                  .get_uri(),
         "file_a");
 
     EXPECT_EQ(resource_location("file:///C:/dir/subdir/file_a")
-                  .lexically_relative(resource_location("file:///C:///dir/subdir////")),
+                  .lexically_relative(resource_location("file:///C:///dir/subdir////"))
+                  .get_uri(),
         "file_a");
 
-    EXPECT_EQ(
-        resource_location("file:///C:/dir/subdir///file_a").lexically_relative(resource_location("file:///C:/dir/")),
+    EXPECT_EQ(resource_location("file:///C:/dir/subdir///file_a")
+                  .lexically_relative(resource_location("file:///C:/dir/"))
+                  .get_uri(),
         "subdir/file_a");
 }
 
 TEST(resource_location, lexically_relative_win_drive_letter)
 {
-    EXPECT_EQ(
-        resource_location("file:///C:/dir/subdir/").lexically_relative(resource_location("file:///C:/dir/subdir/")),
+    EXPECT_EQ(resource_location("file:///C:/dir/subdir/")
+                  .lexically_relative(resource_location("file:///C:/dir/subdir/"))
+                  .get_uri(),
         ".");
 
-    EXPECT_EQ(
-        resource_location("file:///c:/dir/subdir/").lexically_relative(resource_location("file:///c:/dir/subdir/")),
+    EXPECT_EQ(resource_location("file:///c:/dir/subdir/")
+                  .lexically_relative(resource_location("file:///c:/dir/subdir/"))
+                  .get_uri(),
         ".");
 
-    EXPECT_EQ(
-        resource_location("file:///C%3A/dir/subdir/").lexically_relative(resource_location("file:///C%3A/dir/subdir/")),
+    EXPECT_EQ(resource_location("file:///C%3A/dir/subdir/")
+                  .lexically_relative(resource_location("file:///C%3A/dir/subdir/"))
+                  .get_uri(),
         ".");
 
-    EXPECT_EQ(
-        resource_location("file:///c%3A/dir/subdir/").lexically_relative(resource_location("file:///c%3A/dir/subdir/")),
+    EXPECT_EQ(resource_location("file:///c%3A/dir/subdir/")
+                  .lexically_relative(resource_location("file:///c%3A/dir/subdir/"))
+                  .get_uri(),
         ".");
 
-    EXPECT_EQ(resource_location("file:///C:/dir/file_a").lexically_relative(resource_location("file:///D:/dir/file_a")),
+    EXPECT_EQ(resource_location("file:///C:/dir/file_a")
+                  .lexically_relative(resource_location("file:///D:/dir/file_a"))
+                  .get_uri(),
         "../../../C:/dir/file_a");
 
-    EXPECT_EQ(resource_location("file:///D:/dir/file_a").lexically_relative(resource_location("file:///C:/dir/file_a")),
+    EXPECT_EQ(resource_location("file:///D:/dir/file_a")
+                  .lexically_relative(resource_location("file:///C:/dir/file_a"))
+                  .get_uri(),
         "../../../D:/dir/file_a");
 }
 
 TEST(resource_location, lexically_relative_different_schemes)
 {
-    EXPECT_EQ(resource_location("file:///home/").lexically_relative(resource_location("aaa:dir/file_a")), "");
+    EXPECT_EQ(resource_location("file:///home/").lexically_relative(resource_location("aaa:dir/file_a")).get_uri(), "");
 
-    EXPECT_EQ(resource_location("aaa:dir/file_a").lexically_relative(resource_location("file:///C:/dir/file_a")), "");
+    EXPECT_EQ(
+        resource_location("aaa:dir/file_a").lexically_relative(resource_location("file:///C:/dir/file_a")).get_uri(),
+        "");
 }
 
 TEST(resource_location, lexically_normal)

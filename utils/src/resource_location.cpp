@@ -270,7 +270,7 @@ resource_location resource_location::lexically_normal() const
     return resource_location(utils::path::reconstruct_uri(dis_uri));
 }
 
-std::string resource_location::lexically_relative(const resource_location& base) const
+resource_location resource_location::lexically_relative(const resource_location& base) const
 {
     std::string_view this_uri = m_uri;
     std::string_view base_uri = base.get_uri();
@@ -279,7 +279,7 @@ std::string resource_location::lexically_relative(const resource_location& base)
     if (auto this_colon = this_uri.find_first_of(":") + 1; this_colon != std::string_view::npos)
     {
         if (0 != this_uri.compare(0, this_colon, base_uri, 0, this_colon))
-            return "";
+            return resource_location();
 
         this_uri.remove_prefix(this_colon);
         base_uri.remove_prefix(this_colon);
@@ -291,7 +291,7 @@ std::string resource_location::lexically_relative(const resource_location& base)
 
     auto [this_it, base_it] = std::mismatch(l_it.begin(), l_it.end(), r_it.begin(), r_it.end());
     if (this_it == this_it.end() && base_it == base_it.end())
-        return ".";
+        return resource_location(".");
 
     // Figure out how many dirs to return
     int16_t number_of_dirs_to_return = 0;
@@ -306,10 +306,10 @@ std::string resource_location::lexically_relative(const resource_location& base)
     }
 
     if (number_of_dirs_to_return < 0)
-        return "";
+        return resource_location();
 
     if (number_of_dirs_to_return == 0 && (this_it == this_it.end() || *this_it == ""))
-        return ".";
+        return resource_location(".");
 
     // Append number of dirs to return
     std::string ret;
@@ -326,7 +326,7 @@ std::string resource_location::lexically_relative(const resource_location& base)
         this_it++;
     }
 
-    return ret;
+    return resource_location(ret);
 }
 
 bool resource_location::lexically_out_of_scope() const
