@@ -143,10 +143,9 @@ suite('Integration Test Suite', () => {
         await helper.sleep(1500);
 
         const allDiags = vscode.languages.getDiagnostics();
-        const patternDiags = allDiags.find(pair => pair[0].path.endsWith(workspace_file))
+        const patternDiags = allDiags.find(pair => pair[0].path.endsWith(workspace_file));
 
-        if (patternDiags)
-            assert.ok(patternDiags[1].length == 0, "Library patterns are not working");
+        assert.ok(patternDiags === undefined, "Library patterns are not working for file: " + workspace_file);
     }
 
     // verify that general library patterns are working
