@@ -251,7 +251,7 @@ void normalize_windows_like_uri(utils::path::dissected_uri& dis_uri)
 }
 } // namespace
 
-std::string resource_location::lexically_normal() const
+resource_location resource_location::lexically_normal() const
 {
     auto uri = m_uri;
 
@@ -259,7 +259,7 @@ std::string resource_location::lexically_normal() const
 
     auto dis_uri = utils::path::dissect_uri(uri);
     if (dis_uri.path.empty())
-        return uri;
+        return resource_location(m_uri);
 
     dis_uri.scheme = normalize_scheme(dis_uri.scheme);
     dis_uri.path = normalize_path(dis_uri.path);
@@ -267,7 +267,7 @@ std::string resource_location::lexically_normal() const
 
     dis_uri.path = utils::path::encode(dis_uri.path, true);
 
-    return utils::path::reconstruct_uri(dis_uri);
+    return resource_location(utils::path::reconstruct_uri(dis_uri));
 }
 
 std::string resource_location::lexically_relative(const resource_location& base) const

@@ -39,7 +39,7 @@ public:
     // - normalize URIs containing file scheme on Windows (from file:C:/dir or file:/C:/dir or
     // file://C:/dir or file:///C://dir to file:///C:/dir)
     // - percent encode special characters
-    std::string lexically_normal() const;
+    resource_location lexically_normal() const;
     std::string lexically_relative(const resource_location& base) const;
     bool lexically_out_of_scope() const;
 

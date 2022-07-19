@@ -153,7 +153,7 @@ const program* workspace::get_program(const utils::resource::resource_location& 
 {
     assert(opened_);
 
-    auto rl = utils::resource::resource_location(file_location.lexically_normal());
+    auto rl = file_location.lexically_normal();
 
     // direct match
     auto program = exact_pgm_conf_.find(rl);
@@ -518,7 +518,7 @@ void workspace::find_and_add_libs(const utils::resource::resource_location& root
             if (processed_canonical_paths.contains(subdir_canonical_path))
                 continue;
 
-            dirs_to_search.emplace_back(std::move(subdir_canonical_path), utils::resource::resource_location(subdir.lexically_normal()));
+            dirs_to_search.emplace_back(std::move(subdir_canonical_path), subdir.lexically_normal());
         }
     }
 }
@@ -562,7 +562,7 @@ utils::resource::resource_location transform_to_resource_location(
             rl = utils::resource::resource_location::join(base_resource_location, path);
     }
 
-    return utils::resource::resource_location(rl.lexically_normal());
+    return rl.lexically_normal();
 }
 
 std::vector<std::string> get_macro_extensions_compatibility_list(const config::pgm_conf& pgm_config)
@@ -972,7 +972,7 @@ asm_option workspace::get_asm_options(const utils::resource::resource_location& 
     }
 
     utils::resource::resource_location relative_to_location(file_location.lexically_relative(location_));
-    relative_to_location = utils::resource::resource_location(relative_to_location.lexically_normal());
+    relative_to_location = relative_to_location.lexically_normal();
 
     // TODO - convert sysin_path from std::filesystem::path to utils::resource::resource_location
     std::filesystem::path sysin_path = !pgm
