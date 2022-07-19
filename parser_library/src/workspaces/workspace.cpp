@@ -518,7 +518,7 @@ void workspace::find_and_add_libs(const utils::resource::resource_location& root
             if (processed_canonical_paths.contains(subdir_canonical_path))
                 continue;
 
-            dirs_to_search.emplace_back(std::move(subdir_canonical_path), std::move(subdir));
+            dirs_to_search.emplace_back(std::move(subdir_canonical_path), utils::resource::resource_location(subdir.lexically_normal()));
         }
     }
 }

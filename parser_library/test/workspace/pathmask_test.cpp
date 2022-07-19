@@ -19,10 +19,10 @@
 #include "../common_testing.h"
 
 namespace hlasm_plugin::parser_library::workspaces {
-extern std::regex pathmask_to_regex(const std::string& input);
+extern std::regex pathmask_to_regex(std::string_view input);
 } // namespace hlasm_plugin::parser_library::workspaces
 
-bool check_path(std::string pattern, std::string path)
+bool check_path(std::string_view pattern, std::string path)
 {
     return std::regex_match(path, hlasm_plugin::parser_library::workspaces::pathmask_to_regex(pattern));
 }
@@ -99,39 +99,18 @@ TEST(pathmask, pass)
 
     EXPECT_TRUE(check_path("file:///C%3A/path/**/", "file:///C%3A/path/a/test/"));
     EXPECT_TRUE(check_path("file:///C%3A/path/**/test/", "file:///C%3A/path/a/test/"));
-    EXPECT_TRUE(check_path("file:///c%3A/path/**/", "file:///C%3A/path/a/test/"));
-    EXPECT_TRUE(check_path("file:///c%3A/path/**/test/", "file:///C%3A/path/a/test/"));
     EXPECT_TRUE(check_path("file:///c%3A/path/**/", "file:///c%3A/path/a/test/"));
     EXPECT_TRUE(check_path("file:///c%3A/path/**/test/", "file:///c%3A/path/a/test/"));
-    EXPECT_TRUE(check_path("file:///C%3A/path/**/", "file:///c%3A/path/a/test/"));
-    EXPECT_TRUE(check_path("file:///C%3A/path/**/test/", "file:///c%3A/path/a/test/"));
 
-    EXPECT_TRUE(check_path("file:///C:/path/**/", "file:///C%3A/path/a/test/"));
-    EXPECT_TRUE(check_path("file:///C:/path/**/test/", "file:///C%3A/path/a/test/"));
-    EXPECT_TRUE(check_path("file:///c:/path/**/", "file:///C%3A/path/a/test/"));
-    EXPECT_TRUE(check_path("file:///c:/path/**/test/", "file:///C%3A/path/a/test/"));
-    EXPECT_TRUE(check_path("file:///c:/path/**/", "file:///c%3A/path/a/test/"));
-    EXPECT_TRUE(check_path("file:///c:/path/**/test/", "file:///c%3A/path/a/test/"));
-    EXPECT_TRUE(check_path("file:///C:/path/**/", "file:///c%3A/path/a/test/"));
-    EXPECT_TRUE(check_path("file:///C:/path/**/test/", "file:///c%3A/path/a/test/"));
-
-    EXPECT_TRUE(check_path("file:///C%3A/path/**/", "file:///C:/path/a/test/"));
-    EXPECT_TRUE(check_path("file:///C%3A/path/**/test/", "file:///C:/path/a/test/"));
-    EXPECT_TRUE(check_path("file:///c%3A/path/**/", "file:///C:/path/a/test/"));
-    EXPECT_TRUE(check_path("file:///c%3A/path/**/test/", "file:///C:/path/a/test/"));
-    EXPECT_TRUE(check_path("file:///c%3A/path/**/", "file:///c:/path/a/test/"));
-    EXPECT_TRUE(check_path("file:///c%3A/path/**/test/", "file:///c:/path/a/test/"));
-    EXPECT_TRUE(check_path("file:///C%3A/path/**/", "file:///c:/path/a/test/"));
-    EXPECT_TRUE(check_path("file:///C%3A/path/**/test/", "file:///c:/path/a/test/"));
+    EXPECT_TRUE(check_path("file:///C%3a/path/**/", "file:///C%3a/path/a/test/"));
+    EXPECT_TRUE(check_path("file:///C%3a/path/**/test/", "file:///C%3a/path/a/test/"));
+    EXPECT_TRUE(check_path("file:///c%3a/path/**/", "file:///c%3a/path/a/test/"));
+    EXPECT_TRUE(check_path("file:///c%3a/path/**/test/", "file:///c%3a/path/a/test/"));
 
     EXPECT_TRUE(check_path("file:///C:/path/**/", "file:///C:/path/a/test/"));
     EXPECT_TRUE(check_path("file:///C:/path/**/test/", "file:///C:/path/a/test/"));
-    EXPECT_TRUE(check_path("file:///c:/path/**/", "file:///C:/path/a/test/"));
-    EXPECT_TRUE(check_path("file:///c:/path/**/test/", "file:///C:/path/a/test/"));
     EXPECT_TRUE(check_path("file:///c:/path/**/", "file:///c:/path/a/test/"));
     EXPECT_TRUE(check_path("file:///c:/path/**/test/", "file:///c:/path/a/test/"));
-    EXPECT_TRUE(check_path("file:///C:/path/**/", "file:///c:/path/a/test/"));
-    EXPECT_TRUE(check_path("file:///C:/path/**/test/", "file:///c:/path/a/test/"));
 
     // The following tests just check that there is no longer a SEH exception
     EXPECT_TRUE(check_path("file:///C%3A/User/ws/symlinks/inf/**",

@@ -24,9 +24,6 @@
 #include "utils/utf8text.h"
 
 namespace hlasm_plugin::utils::path {
-
-static const std::regex uri_like_windows_path("^[A-Za-z](?::|%3A)");
-
 std::string uri_to_path(const std::string& uri)
 {
     try
@@ -46,7 +43,7 @@ std::string uri_to_path(const std::string& uri)
 
             auth_path = u.authority().to_string() + u.path().to_string();
 
-            if (!std::regex_search(auth_path, uri_like_windows_path))
+            if (!std::regex_search(auth_path, std::regex("^[a-z]%3A")))
                 // handle remote locations correctly, like \\server\path, if the auth doesn't start with e.g. C:/
                 auth_path = "//" + auth_path;
         }
@@ -107,7 +104,7 @@ bool is_uri(const std::string& path) noexcept
         return false;
 
     // one letter schemas are valid, but Windows paths collide
-    if (std::regex_search(path.begin(), path.end(), uri_like_windows_path))
+    if (std::regex_search(path.begin(), path.end(), std::regex("^[A-Za-z](?::|%3[aA])")))
         return false;
 
     try

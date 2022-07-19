@@ -433,7 +433,7 @@ enum class pgmconf_variants
     URI_NON_STANDARD_2
 };
 
-const auto root_dir_loc = is_windows() ? resource_location("file:///C%3A/") : resource_location("file:///home/");
+const auto root_dir_loc = is_windows() ? resource_location("file:///c%3A/") : resource_location("file:///home/");
 const auto user_dir_loc = resource_location::join(root_dir_loc, "User/");
 
 const auto ws_loc = resource_location::join(user_dir_loc, "ws/");

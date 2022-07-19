@@ -45,34 +45,29 @@ TEST(wildcard2regex_test, path)
     EXPECT_TRUE(std::regex_match("pgms/anything", regex));
 }
 
-namespace {
-void verify_file_scheme(std::string colon)
+TEST(wildcard2regex_test, uri)
 {
-    auto regex = wildcard2regex("file:///C" + colon + "/dir/*");
-
+    auto regex = wildcard2regex("file:///C:/dir/*");
     EXPECT_TRUE(std::regex_match("file:///C:/dir/whatever/file", regex));
     EXPECT_TRUE(std::regex_match("file:///C:/dir/", regex));
-    EXPECT_TRUE(std::regex_match("file:///c:/dir/whatever/file", regex));
-    EXPECT_TRUE(std::regex_match("file:///c:/dir/", regex));
-    EXPECT_TRUE(std::regex_match("file:///C%3A/dir/whatever/file", regex));
-    EXPECT_TRUE(std::regex_match("file:///C%3A/dir/", regex));
-
+    EXPECT_FALSE(std::regex_match("file:///C%3A/dir/", regex));
     EXPECT_FALSE(std::regex_match("file:///C%3a/dir/", regex));
     EXPECT_FALSE(std::regex_match("file:///D:/dir/", regex));
-    EXPECT_FALSE(std::regex_match("file:///D%3A/dir/", regex));
+
+    regex = wildcard2regex("file:///C%3a/dir/*");
+    EXPECT_TRUE(std::regex_match("file:///C%3a/dir/whatever/file", regex));
+    EXPECT_TRUE(std::regex_match("file:///C%3a/dir/", regex));
+    EXPECT_FALSE(std::regex_match("file:///C%3A/dir/", regex));
+    EXPECT_FALSE(std::regex_match("file:///C:/dir/", regex));
     EXPECT_FALSE(std::regex_match("file:///D%3a/dir/", regex));
-}
-} // namespace
 
-TEST(wildcard2regex_test, file_scheme)
-{
-    if (hlasm_plugin::utils::platform::is_windows())
-    {
-        verify_file_scheme(":");
-        verify_file_scheme("%3A");
-    }
+    regex = wildcard2regex("file:///C%3A/dir/*");
+    EXPECT_TRUE(std::regex_match("file:///C%3A/dir/whatever/file", regex));
+    EXPECT_TRUE(std::regex_match("file:///C%3A/dir/", regex));
+    EXPECT_FALSE(std::regex_match("file:///C:/dir/", regex));
+    EXPECT_FALSE(std::regex_match("file:///C%3a/dir/", regex));
+    EXPECT_FALSE(std::regex_match("file:///D%3A/dir/", regex));
 }
-
 TEST(wildcard2regex_test, utf_8_chars_01)
 {
     auto regex = wildcard2regex("pg?s");
