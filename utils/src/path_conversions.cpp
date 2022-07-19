@@ -184,6 +184,26 @@ size_t get_already_encoded_size(std::string_view s)
 
     return cs;
 }
+
+bool try_to_parse_encoded(std::back_insert_iterator<std::string>& out, std::string_view& s)
+{
+    auto encoded_size = get_already_encoded_size(s);
+    if (encoded_size == 0)
+        return false;
+
+    while (encoded_size > 0)
+    {
+        out++ = s[0];
+        out++ = static_cast<char>(std::toupper(s[1]));
+        out++ = static_cast<char>(std::toupper(s[2]));
+        s.remove_prefix(3);
+
+        encoded_size--;
+    }
+
+    return true;
+}
+
 } // namespace
 
 std::string encode(std::string_view s, bool partially_encoded)
@@ -193,21 +213,8 @@ std::string encode(std::string_view s, bool partially_encoded)
 
     while (!s.empty())
     {
-        if (partially_encoded)
-            if (auto encoded_size = get_already_encoded_size(s); encoded_size > 0)
-            {
-                while (encoded_size > 0)
-                {
-                    out++ = s[0];
-                    out++ = static_cast<char>(std::toupper(s[1]));
-                    out++ = static_cast<char>(std::toupper(s[2]));
-                    s.remove_prefix(3);
-
-                    encoded_size--;
-                }
-
-                continue;
-            }
+        if (partially_encoded && try_to_parse_encoded(out, s))
+            continue;
 
         auto c = s.front();
         if (c == '\\')
