@@ -92,10 +92,10 @@ TEST(pathmask, pass)
     EXPECT_TRUE(check_path("/path/?/test/", "/path/%EF%BF%BF/test/"));
     EXPECT_TRUE(check_path("/path/?/test/", "/path/%F0%9F%A7%BF/test/"));
 
-    EXPECT_TRUE(check_path("/path/??/test/", "/path/%7D%DF%BF/test/"));
-    EXPECT_TRUE(check_path("/path/??/test/", "/path/%DF%BF%7D/test/"));
-    EXPECT_TRUE(check_path("/path/??/test/", "/path/%EF%BF%BF%7D/test/"));
-    EXPECT_TRUE(check_path("/path/???/test/", "/path/%F0%9F%A7%BF%7D%DF%BF/test/"));
+    EXPECT_TRUE(check_path("/path/\?\?/test/", "/path/%7D%DF%BF/test/"));
+    EXPECT_TRUE(check_path("/path/\?\?/test/", "/path/%DF%BF%7D/test/"));
+    EXPECT_TRUE(check_path("/path/\?\?/test/", "/path/%EF%BF%BF%7D/test/"));
+    EXPECT_TRUE(check_path("/path/\?\?\?/test/", "/path/%F0%9F%A7%BF%7D%DF%BF/test/"));
 
     EXPECT_TRUE(check_path("file:///C%3A/path/**/", "file:///C%3A/path/a/test/"));
     EXPECT_TRUE(check_path("file:///C%3A/path/**/test/", "file:///C%3A/path/a/test/"));
@@ -174,8 +174,8 @@ TEST(pathmask, fail)
     EXPECT_FALSE(check_path("/path/?/test/", "/path/test/"));
     EXPECT_FALSE(check_path("/path/?/test/", "/path//test/"));
     EXPECT_FALSE(check_path("/path/?/test/", "/path///test/"));
-    EXPECT_FALSE(check_path("/path/???/test/", "/path/ab/test/"));
-    EXPECT_FALSE(check_path("/path/???/test/", "/path/a/b/test/"));
+    EXPECT_FALSE(check_path("/path/\?\?\?/test/", "/path/ab/test/"));
+    EXPECT_FALSE(check_path("/path/\?\?\?/test/", "/path/a/b/test/"));
 
     EXPECT_FALSE(check_path("/path/?*", "/path/a/"));
     EXPECT_FALSE(check_path("/path/*?", "/path/a/"));
@@ -213,7 +213,7 @@ TEST(pathmask, fail)
     // %FF is not a valid UTF-8 character
     EXPECT_FALSE(check_path("/path/?/test/", "/path/%FF/test/"));
     EXPECT_FALSE(check_path("/path/?/test/", "/path/%EF%BF%FF/test/"));
-    EXPECT_FALSE(check_path("/path/??/test/", "/path/%EF%BF%FF/test/"));
+    EXPECT_FALSE(check_path("/path/\?\?/test/", "/path/%EF%BF%FF/test/"));
 
     EXPECT_FALSE(check_path("file:///C%3A/path/**/", "file:///c%3A/Path/a/test/"));
     EXPECT_FALSE(check_path("file:///C%3A/path/**/test/", "file:///c%3A/path/a/tEst/"));
