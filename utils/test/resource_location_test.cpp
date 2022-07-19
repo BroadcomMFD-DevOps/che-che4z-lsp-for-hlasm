@@ -1051,13 +1051,11 @@ TEST(resource_location, lexically_normal_percent_encoded_chars)
 
     for (const auto& tc : test_cases)
     {
-        resource_location expected(tc.second);
-        expected = resource_location(expected.lexically_normal());
+        resource_location expected = resource_location(tc.second).lexically_normal();
 
         for (const auto& equivalent : tc.first)
         {
-            resource_location temp(equivalent);
-            temp = resource_location(temp.lexically_normal());
+            resource_location temp = resource_location(equivalent).lexically_normal();
 
             EXPECT_TRUE(temp == expected) << temp.get_uri() << " should be equal to " << expected.get_uri();
         }

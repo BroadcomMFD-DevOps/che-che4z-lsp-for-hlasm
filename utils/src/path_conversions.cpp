@@ -119,32 +119,32 @@ bool is_uri(const std::string& path) noexcept
 }
 
 namespace {
-bool is_percent_encoded(std::string_view::const_iterator it, uint8_t cs)
+bool has_percents_in_place(std::string_view s, uint8_t cs)
 {
     for (size_t i = 0; i < cs; ++i)
     {
-        if (*std::next(it, i * 3) != '%')
+        if (s[i * 3] != '%')
             return false;
     }
 
     return true;
 }
 
-std::optional<uint8_t> get_hex(char c)
+std::optional<unsigned char> get_hex(char c)
 {
     if (c >= '0' && c <= '9')
-        return c - '0';
+        return static_cast<unsigned char>(c - '0');
 
     if (c >= 'A' && c <= 'F')
-        return c - 'A' + 10;
+        return static_cast<unsigned char>(c - 'A' + 10);
 
     if (c >= 'a' && c <= 'f')
-        return c - 'a' + 10;
+        return static_cast<unsigned char>(c - 'a' + 10);
 
     return std::nullopt;
 }
 
-std::optional<uint8_t> get_hex_repre(char c1, char c2)
+std::optional<unsigned char> get_utf_8_byte(char c1, char c2)
 {
     auto upper_half = get_hex(c1);
     auto lower_half = get_hex(c2);
@@ -152,35 +152,33 @@ std::optional<uint8_t> get_hex_repre(char c1, char c2)
     if (!upper_half.has_value() || !lower_half.has_value())
         return std::nullopt;
 
-    return (*upper_half << 4) | *lower_half;
+    return static_cast<unsigned char>((*upper_half << 4) | *lower_half);
 }
 
-size_t get_already_encoded_size(std::string_view::const_iterator it, std::string_view::iterator end)
+size_t get_already_encoded_size(std::string_view s)
 {
-    if (it == end || *it != '%' || std::distance(it, end) < 3)
+    if (s.empty() || s.front() != '%' || s.size() < 3)
         return 0;
 
-    auto hex = get_hex_repre(*std::next(it), *std::next(it, 2));
-    if (!hex.has_value())
+    auto first_byte = get_utf_8_byte(s[1], s[2]);
+    if (!first_byte.has_value())
         return 0;
 
-    auto cs = utf8_prefix_sizes[*hex].utf8;
+    auto cs = utf8_prefix_sizes[*first_byte].utf8;
     if (cs == 0 || cs == 1)
         return cs;
 
-    if (std::distance(it, end) < cs * 3 || !is_percent_encoded(it, cs))
+    if (s.size() < static_cast<size_t>(cs) * 3 || !has_percents_in_place(s, cs))
         return 0;
 
-
-    auto f = hex;
-    auto s = get_hex_repre(*std::next(it, 4), *std::next(it, 5));
-    if (!f.has_value() || !s.has_value() || !utf8_valid_multibyte_prefix(*f, *s))
+    if (auto second_byte = get_utf_8_byte(s[4], s[5]);
+        !second_byte.has_value() || !utf8_valid_multibyte_prefix(*first_byte, *second_byte))
         return 0;
 
     for (size_t i = 2; i < cs; ++i)
     {
-        hex = get_hex_repre(*std::next(it, i * 3 + 1), *std::next(it, i * 3 + 2));
-        if (!hex.has_value() || ((*hex) & 0xC0) != 0x80)
+        if (auto next_byte = get_utf_8_byte(s[i * 3 + 1], s[i * 3 + 2]);
+            !next_byte.has_value() || ((*next_byte) & 0xC0) != 0x80)
             return 0;
     }
 
@@ -193,19 +191,17 @@ std::string encode(std::string_view s, bool partially_encoded)
     std::string uri;
     auto out = std::back_inserter(uri);
 
-    auto it = s.begin();
-    auto end = s.end();
-
-    while (it != end)
+    while (!s.empty())
     {
         if (partially_encoded)
-            if (auto encoded_size = get_already_encoded_size(it, end); encoded_size > 0)
+            if (auto encoded_size = get_already_encoded_size(s); encoded_size > 0)
             {
                 while (encoded_size > 0)
                 {
-                    out++ = *it++;
-                    out++ = toupper(*it++);
-                    out++ = toupper(*it++);
+                    out++ = s[0];
+                    out++ = static_cast<char>(std::toupper(s[1]));
+                    out++ = static_cast<char>(std::toupper(s[2]));
+                    s.remove_prefix(3);
 
                     encoded_size--;
                 }
@@ -213,12 +209,12 @@ std::string encode(std::string_view s, bool partially_encoded)
                 continue;
             }
 
-        auto c = *it;
+        auto c = s.front();
         if (c == '\\')
             c = '/';
-        network::detail::encode_char(c, out, "/.*?");
 
-        it++;
+        network::detail::encode_char(c, out, "/.*?");
+        s.remove_prefix(1);
     }
 
     return uri;
