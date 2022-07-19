@@ -548,7 +548,7 @@ utils::resource::resource_location transform_to_resource_location(
     utils::resource::resource_location rl;
 
     if (utils::resource::resource_location(path).is_local())
-        rl = utils::resource::resource_location("file:" + utils::path::encode(path.substr(5), true));
+        rl = utils::resource::resource_location("file:" + utils::path::encode(std::string_view(path).substr(5), true));
     else if (utils::path::is_uri(path))
         rl = utils::resource::resource_location(std::move(path));
     else if (auto fs_path = get_fs_abs_path(path); fs_path.has_value())

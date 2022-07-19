@@ -213,13 +213,15 @@ std::string normalize_scheme(std::string scheme)
 }
 
 void normalize_windows_like_uri_helper(
-    utils::path::dissected_uri& dis_uri, unsigned char win_drive_letter, std::string path_suffix)
+    utils::path::dissected_uri& dis_uri, unsigned char win_drive_letter, std::string_view path_suffix)
 {
-    dis_uri.path.clear();
-    dis_uri.path.push_back('/');
-    dis_uri.path.push_back(static_cast<const char>(tolower(win_drive_letter)));
-    dis_uri.path.push_back(':');
-    dis_uri.path.append(path_suffix);
+    std::string path;
+    path.push_back('/');
+    path.push_back(static_cast<const char>(tolower(win_drive_letter)));
+    path.push_back(':');
+    path.append(path_suffix);
+
+    dis_uri.path = std::move(path);
 
     // Clear host but keep in mind that it needs to remain valid (albeit empty)
     dis_uri.auth = { std::nullopt, "", std::nullopt };
@@ -241,7 +243,7 @@ void normalize_windows_like_uri(utils::path::dissected_uri& dis_uri)
                 return;
 
             // auth consists only of host name resembling Windows drive and empty or missing port part
-            normalize_windows_like_uri_helper(dis_uri, s[1].str()[0], std::move(dis_uri.path));
+            normalize_windows_like_uri_helper(dis_uri, s[1].str()[0], dis_uri.path);
         }
         else if (static const std::regex path_like_windows_path("^(?:[///]|[//]|[/]|)([A-Za-z])(?::|%3[aA])");
                  !dis_uri.contains_host() && std::regex_search(dis_uri.path, s, path_like_windows_path))
