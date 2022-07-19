@@ -47,7 +47,7 @@ async function basicFtpJobClient(connection: {
     port?: number;
     user: string;
     password: string;
-    secure: connectionSecurityLevel
+    securityLevel: connectionSecurityLevel
 }): Promise<JobClient> {
     const client = new Client();
     client.parseList = (rawList: string): FileInfo[] => {
@@ -58,8 +58,8 @@ async function basicFtpJobClient(connection: {
         user: connection.user,
         password: connection.password,
         port: connection.port,
-        secure: connection.secure !== connectionSecurityLevel.unsecure,
-        secureOptions: connection.secure === connectionSecurityLevel.unsecure ? undefined : { rejectUnauthorized: connection.secure !== connectionSecurityLevel.rejectUnauthorized }
+        secure: connection.securityLevel !== connectionSecurityLevel.unsecure,
+        secureOptions: connection.securityLevel === connectionSecurityLevel.unsecure ? undefined : { rejectUnauthorized: connection.securityLevel !== connectionSecurityLevel.rejectUnauthorized }
     });
 
     const checkResponse = (resp: FTPResponse) => {
@@ -115,7 +115,7 @@ async function basicFtpJobClient(connection: {
     };
 }
 
-export interface JobDetail {
+interface JobDetail {
     dsn: string;
     dirs: string[];
 }
@@ -151,12 +151,7 @@ function generateJobHeader(header: ParsedJobHeader, jobNo: number): string {
     if (typeof header.jobHeader === 'string')
         return header.jobHeader;
     else {
-        let jobnameSuffix = '';
-        while (jobNo > 0) {
-            let digit = jobNo % translationTable.length;
-            jobnameSuffix = translationTable.charAt(digit) + jobnameSuffix;
-            jobNo = jobNo / translationTable.length | 0;
-        }
+        let jobnameSuffix = jobNo.toString(36).toUpperCase();
         if (jobnameSuffix.length > header.jobHeader.replCount)
             jobnameSuffix = jobnameSuffix.slice(jobnameSuffix.length - header.jobHeader.replCount);
         else if (jobnameSuffix.length < header.jobHeader.replCount)
@@ -181,7 +176,7 @@ function generateJcl(jobNo: number, jobcard: ParsedJobHeader, datasetName: strin
         "//SYSIN    DD DUMMY",
         "//SYSUT1   DD DISP=OLD,DSN=&&TERSED",
         "//SYSUT2   DD SYSOUT=*"
-    ].join(EOL)
+    ].join('\r\n')
 }
 
 function extractJobName(jcl: string): string {
@@ -234,12 +229,12 @@ async function unterse(outDir: string): Promise<{ process: Promise<void>, input:
     const promise = new Promise<void>((resolve, reject) => {
         unpacker.stderr!.on('data', (chunk) => console.log(chunk.toString()));
         unpacker.on('exit', (code, signal) => {
-            if (signal)
-                reject("Signal received from unterse: " + signal);
-            if (code !== 0)
+            if (code === 0)
+                resolve();
+            else if (code)
                 reject("Unterse ended with error code: " + code);
-
-            resolve();
+            else
+                reject("Signal received from unterse: " + signal);
         })
     });
     return { process: promise, input: unpacker.stdin! };
@@ -405,6 +400,7 @@ export async function downloadDependenciesWithClient(client: JobClient,
 function askUser(prompt: string, password: boolean, defaultValue: string = ''): Promise<string> {
     const input = vscode.window.createInputBox();
     return new Promise<string>((resolve, reject) => {
+        input.ignoreFocusOut = true;
         input.prompt = prompt;
         input.password = password;
         input.value = defaultValue || '';
@@ -417,6 +413,7 @@ function askUser(prompt: string, password: boolean, defaultValue: string = ''): 
 function pickUser<T>(title: string, options: { label: string, value: T }[]): Promise<T> {
     const input = vscode.window.createQuickPick();
     return new Promise<T>((resolve, reject) => {
+        input.ignoreFocusOut = true;
         input.title = title;
         input.items = options.map(x => { return { label: x.label }; });
         input.canSelectMany = false;
@@ -521,7 +518,7 @@ interface ConnectionInfo {
     user: string;
     password: string;
     hostInput: string;
-    secure: connectionSecurityLevel;
+    securityLevel: connectionSecurityLevel;
 }
 
 function gatherSecurityLevelFromZowe(profile: any) {
@@ -556,7 +553,7 @@ async function gatherConnectionInfoFromZowe(zowe: vscode.Extension<any>, profile
         user: loadedProfile.profile.user,
         password: loadedProfile.profile.password,
         hostInput: '@' + profileName,
-        secure: gatherSecurityLevelFromZowe(loadedProfile.profile)
+        securityLevel: gatherSecurityLevelFromZowe(loadedProfile.profile)
     };
 }
 
@@ -575,12 +572,12 @@ async function gatherConnectionInfo(lastInput: DownloadDependenciesInputMemento)
 
     const user = await askUser("user name", false, lastInput.user);
     const password = await askUser("password", true);
-    const secureLevel = await pickUser("Select security option", [
+    const securityLevel = await pickUser("Select security option", [
         { label: "Use TLS, reject unauthorized certificated", value: connectionSecurityLevel.rejectUnauthorized },
         { label: "Use TLS, accept unauthorized certificated", value: connectionSecurityLevel.acceptUnauthorized },
         { label: "Unsecured connection", value: connectionSecurityLevel.unsecure },
     ]);
-    return { host: host, port: port, user: user, password: password, hostInput: hostInput, secure: secureLevel };
+    return { host, port, user, password, hostInput, securityLevel };
 }
 
 interface DownloadDependenciesInputMemento {
@@ -648,7 +645,7 @@ class ProgressReporter implements StageProgressReporter {
 
 export async function downloadDependencies(context: vscode.ExtensionContext) {
     const lastInput = getLastRunConfig(context);
-    const { host, port, user, password, hostInput, secure } = await gatherConnectionInfo(lastInput);
+    const { host, port, user, password, hostInput, securityLevel } = await gatherConnectionInfo(lastInput);
 
     const jobcardPattern = await askUser("Enter jobcard pattern (? will be substituted)", false, lastInput.jobcard || "//" + user.slice(0, 7).padEnd(8, '?').toUpperCase() + " JOB ACCTNO");
 
@@ -675,7 +672,7 @@ export async function downloadDependencies(context: vscode.ExtensionContext) {
                     user: user,
                     password: password,
                     port: port,
-                    secure: secure
+                    securityLevel: securityLevel
                 }),
                 thingsToDownload,
                 jobcardPattern,
