@@ -547,16 +547,17 @@ utils::resource::resource_location transform_to_resource_location(
 {
     utils::resource::resource_location rl;
 
-    if (auto encoded_path = utils::path::encode(path, true); utils::path::is_uri(encoded_path))
-        rl = utils::resource::resource_location(std::move(encoded_path));
+    if (utils::resource::resource_location(path).is_local())
+        rl = utils::resource::resource_location("file:" + utils::path::encode(path.substr(5), true));
+    else if (utils::path::is_uri(path))
+        rl = utils::resource::resource_location(std::move(path));
     else if (auto fs_path = get_fs_abs_path(path); fs_path.has_value())
         rl = utils::resource::resource_location(
             utils::path::path_to_uri(utils::path::lexically_normal(*fs_path).string()));
     else
     {
-        std::replace(path.begin(), path.end(), '\\', '/');
         if (base_resource_location.is_local())
-            rl = utils::resource::resource_location::join(base_resource_location, utils::path::encode_path(path, false));
+            rl = utils::resource::resource_location::join(base_resource_location, utils::path::encode(path, false));
         else
             rl = utils::resource::resource_location::join(base_resource_location, path);
     }

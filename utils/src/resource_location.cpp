@@ -51,10 +51,10 @@ bool resource_location::is_local() const
 {
     if (utils::platform::is_windows())
     {
-        if (std::regex_search(m_uri, std::regex("^file:(?:///|\\\\\\\\\\\\|//|\\\\\\\\|/|\\\\|)[A-Za-z](?::|%3[aA])")))
+        if (std::regex_search(m_uri, std::regex("^file:(?:|(?:\\\\|/)+)[A-Za-z](?::|%3[aA])")))
             return true;
     }
-    else if (std::regex_search(m_uri, std::regex("^file:(?:///|\\\\\\\\\\\\|/|\\\\)")))
+    else if (std::regex_search(m_uri, std::regex("^file:(?:(?:/|\\\\){3}|(?:(?:/|\\\\)(?:[^/\\\\])+))")))
         return true;
 
     return false;
@@ -245,10 +245,8 @@ void normalize_windows_like_uri(utils::path::dissected_uri& dis_uri)
         }
         else if (static const std::regex path_like_windows_path("^(?:[///]|[//]|[/]|)([A-Za-z])(?::|%3[aA])");
                  !dis_uri.contains_host() && std::regex_search(dis_uri.path, s, path_like_windows_path))
-        {
             // Seems like we have a windows like path
-            normalize_windows_like_uri_helper(dis_uri, s[1].str()[0], std::move(s.suffix().str()));
-        }
+            normalize_windows_like_uri_helper(dis_uri, s[1].str()[0], s.suffix().str());
     }
 }
 } // namespace
@@ -267,7 +265,7 @@ std::string resource_location::lexically_normal() const
     dis_uri.path = normalize_path(dis_uri.path);
     normalize_windows_like_uri(dis_uri);
 
-    dis_uri.path = utils::path::encode_path(dis_uri.path, true);
+    dis_uri.path = utils::path::encode(dis_uri.path, true);
 
     return utils::path::reconstruct_uri(dis_uri);
 }

@@ -189,8 +189,9 @@ size_t get_already_encoded_size(std::string_view::const_iterator it, std::string
 
     return cs;
 }
+} // namespace
 
-std::string encode_general(std::string_view s, bool partially_encoded, const char* ignore_chars)
+std::string encode(std::string_view s, bool partially_encoded)
 {
     std::string uri;
     auto out = std::back_inserter(uri);
@@ -218,21 +219,12 @@ std::string encode_general(std::string_view s, bool partially_encoded, const cha
         auto c = *it;
         if (c == '\\')
             c = '/';
-        network::detail::encode_char(c, out, ignore_chars);
+        network::detail::encode_char(c, out, "/.*?");
 
         it++;
     }
 
     return uri;
-}
-
-} // namespace
-
-std::string encode(std::string_view s, bool partially_encoded) { return encode_general(s, partially_encoded, "/.*?:"); }
-
-std::string encode_path(std::string_view s, bool partially_encoded)
-{
-    return encode_general(s, partially_encoded, "/.*?");
 }
 
 dissected_uri dissect_uri(const std::string& uri) noexcept
@@ -276,16 +268,6 @@ dissected_uri dissect_uri(const std::string& uri) noexcept
     }
     catch (const std::exception&)
     {
-        std::smatch s;
-
-        // Try to salvage at least something if this resembles a URI
-        if (static const std::regex uri_unlike_windows_path("^([A-Za-z][A-Za-z0-9+-.]+):");
-            std::regex_search(uri.begin(), uri.end(), s, uri_unlike_windows_path))
-        {
-            dis_uri.scheme = s[1];
-            dis_uri.path = s.suffix();
-        }
-
         return dis_uri;
     }
 }

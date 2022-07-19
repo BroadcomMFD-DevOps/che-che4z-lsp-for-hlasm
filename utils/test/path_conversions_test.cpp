@@ -39,12 +39,12 @@ TEST(path_conversions, path_to_uri)
     if (is_windows())
     {
         EXPECT_EQ(path_to_uri("\\\\czprfs50\\Public"), "file://czprfs50/Public");
-        EXPECT_EQ(path_to_uri("c:\\Public"), "file:///c:/Public");
+        EXPECT_EQ(path_to_uri("c:\\Public"), "file:///c%3A/Public");
     }
     else
     {
         EXPECT_EQ(path_to_uri("/home/user/somefile"), "file:///home/user/somefile");
-        EXPECT_EQ(path_to_uri("/C:/Public"), "file:///C:/Public");
+        EXPECT_EQ(path_to_uri("/C:/Public"), "file:///C%3A/Public");
     }
 }
 
