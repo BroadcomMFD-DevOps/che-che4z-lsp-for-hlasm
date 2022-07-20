@@ -51,8 +51,7 @@ public:
     void relative_reference_resolution(const std::string& other);
     static resource_location relative_reference_resolution(resource_location rl, const std::string& other);
 
-    std::strong_ordering operator<=>(const resource_location& rl) const noexcept;
-    bool operator==(const resource_location& rl) const noexcept;
+    std::strong_ordering operator<=>(const resource_location& rl) const noexcept = default;
 
 private:
     std::string m_uri;
