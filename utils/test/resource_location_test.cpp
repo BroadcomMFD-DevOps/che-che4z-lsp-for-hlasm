@@ -653,7 +653,7 @@ TEST(resource_location, join_empty)
     resource_location rl("aaa://src/dir/");
 
     rl.join("");
-    EXPECT_EQ(rl.get_uri(), "aaa://src/dir/");
+    EXPECT_EQ(rl, resource_location("aaa://src/dir/"));
 }
 
 TEST(resource_location, join_empty_2)
@@ -661,7 +661,7 @@ TEST(resource_location, join_empty_2)
     resource_location rl("");
 
     rl.join("aaa://src/dir/");
-    EXPECT_EQ(rl.get_uri(), "aaa://src/dir/");
+    EXPECT_EQ(rl, resource_location("aaa://src/dir/"));
 }
 
 TEST(resource_location, join_uri)
@@ -669,7 +669,7 @@ TEST(resource_location, join_uri)
     resource_location rl("aaa://src/dir/");
 
     rl.join("scheme://a/b/c");
-    EXPECT_EQ(rl.get_uri(), "scheme://a/b/c");
+    EXPECT_EQ(rl, resource_location("scheme://a/b/c"));
 }
 
 TEST(resource_location, join_with_root_dir)
@@ -739,7 +739,7 @@ TEST(resource_location, join_prepending_slash)
     resource_location rl("aaa://src/dir/a");
 
     rl.join("/b");
-    EXPECT_EQ(rl.get_uri(), "aaa://src/b");
+    EXPECT_EQ(rl, resource_location("aaa://src/b"));
 }
 
 TEST(resource_location, join_prepending_slash_2)
@@ -747,7 +747,7 @@ TEST(resource_location, join_prepending_slash_2)
     resource_location rl("aaa://src/dir/a/");
 
     rl.join("/b");
-    EXPECT_EQ(rl.get_uri(), "aaa://src/b");
+    EXPECT_EQ(rl, resource_location("aaa://src/b"));
 }
 
 TEST(resource_location, join_mulitple_slashes)
@@ -755,7 +755,7 @@ TEST(resource_location, join_mulitple_slashes)
     resource_location rl("aaa://src/dir/////a///");
 
     rl.join("b///");
-    EXPECT_EQ(rl.get_uri(), "aaa://src/dir/////a///b///");
+    EXPECT_EQ(rl, resource_location("aaa://src/dir/////a///b///"));
 }
 
 TEST(resource_location, relative_reference_resolution_rfc_3986_normal)
@@ -852,88 +852,41 @@ std::vector<std::string> get_file_roots()
     return file_roots;
 }
 
-std::pair<std::vector<std::string>, std::string> get_percent_encoded_path_01()
+std::pair<std::vector<resource_location>, resource_location> construct_combinations(
+    std::string_view decoded_suffix, std::vector<std::string_view> encoded_suffixes)
 {
-    std::vector<std::string> equivalent;
+    std::vector<resource_location> equivalent;
     for (auto& file_root : get_file_roots())
     {
-        equivalent.emplace_back(file_root + "temp%2B/");
-        equivalent.emplace_back(file_root + "temp%2b/");
+        for (auto& suffix : encoded_suffixes)
+        {
+            equivalent.emplace_back(file_root + std::string(suffix));
+        }
     }
 
     if (is_windows())
-        return { equivalent, "file:///C:/temp+/" };
+        return { equivalent, resource_location("file:///C:/" + std::string(decoded_suffix)).lexically_normal() };
     else
-        return { equivalent, "file:///home/temp+/" };
-}
-
-std::pair<std::vector<std::string>, std::string> get_percent_encoded_path_02()
-{
-    std::vector<std::string> equivalent;
-    for (auto& file_root : get_file_roots())
-    {
-        equivalent.emplace_back(file_root + "temp%2B%2B/");
-        equivalent.emplace_back(file_root + "temp%2b%2b/");
-        equivalent.emplace_back(file_root + "temp%2B%2b/");
-        equivalent.emplace_back(file_root + "temp%2B%2b/");
-    }
-
-    if (is_windows())
-        return { equivalent, "file:///C:/temp++/" };
-    else
-        return { equivalent, "file:///home/temp++/" };
-}
-
-std::pair<std::vector<std::string>, std::string> get_percent_encoded_path_01_no_slash()
-{
-    std::vector<std::string> equivalent;
-    for (auto& file_root : get_file_roots())
-    {
-        equivalent.emplace_back(file_root + "temp%2B");
-        equivalent.emplace_back(file_root + "temp%2b");
-    }
-
-    if (is_windows())
-        return { equivalent, "file:///C:/temp+" };
-    else
-        return { equivalent, "file:///home/temp+" };
-}
-
-std::pair<std::vector<std::string>, std::string> get_percent_encoded_path_02_no_slash()
-{
-    std::vector<std::string> equivalent;
-    for (auto& file_root : get_file_roots())
-    {
-        equivalent.emplace_back(file_root + "temp%2B%2B");
-        equivalent.emplace_back(file_root + "temp%2b%2b");
-        equivalent.emplace_back(file_root + "temp%2B%2b");
-        equivalent.emplace_back(file_root + "temp%2B%2b");
-    }
-
-    if (is_windows())
-        return { equivalent, "file:///C:/temp++" };
-    else
-        return { equivalent, "file:///home/temp++" };
+        return { equivalent, resource_location("file:///home/" + std::string(decoded_suffix)).lexically_normal() };
 }
 } // namespace
 
 TEST(resource_location, lexically_normal_percent_encoded_chars)
 {
-    std::vector<std::pair<std::vector<std::string>, std::string>> test_cases;
-    test_cases.emplace_back(get_percent_encoded_path_01());
-    test_cases.emplace_back(get_percent_encoded_path_01_no_slash());
-    test_cases.emplace_back(get_percent_encoded_path_02());
-    test_cases.emplace_back(get_percent_encoded_path_02_no_slash());
+    std::vector<std::pair<std::vector<resource_location>, resource_location>> test_cases;
+    test_cases.emplace_back(construct_combinations("temp+", { "temp%2B", "temp%2b" }));
+    test_cases.emplace_back(construct_combinations("temp+/", { "temp%2B/", "temp%2b/" }));
+    test_cases.emplace_back(
+        construct_combinations("temp++", { "temp%2B%2B", "temp%2B%2b", "temp%2b%2B", "temp%2b%2b" }));
+    test_cases.emplace_back(
+        construct_combinations("temp++/", { "temp%2B%2B/", "temp%2B%2b/", "temp%2b%2B/", "temp%2b%2b/" }));
 
-    for (const auto& tc : test_cases)
+    for (const auto& [equivalents, expected] : test_cases)
     {
-        resource_location expected = resource_location(tc.second).lexically_normal();
-
-        for (const auto& equivalent : tc.first)
+        for (const auto& equivalent : equivalents)
         {
-            resource_location temp = resource_location(equivalent).lexically_normal();
-
-            EXPECT_TRUE(temp == expected) << temp.get_uri() << " should be equal to " << expected.get_uri();
+            auto rl = equivalent.lexically_normal();
+            EXPECT_TRUE(rl == expected) << rl.get_uri() << " should be equal to " << expected.get_uri();
         }
     }
 }
