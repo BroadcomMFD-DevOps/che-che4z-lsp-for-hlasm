@@ -19,6 +19,12 @@
       ]
     },
     {
+      "name": "patterns_special_chars",
+      "libs": [
+        "pattern_test/libs/!#$%&'()+,-.0123456789;=@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`{}~sublib"
+      ]
+    },
+    {
       "name": "patterns_1_byte_utf_8",
       "libs": [
         "pattern_test/libs/sublib_,"
