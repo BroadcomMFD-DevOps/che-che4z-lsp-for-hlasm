@@ -49,12 +49,16 @@ std::string resource_location::to_presentable(bool debug) const
 
 bool resource_location::is_local() const
 {
+    return is_local(m_uri);
+}
+
+bool resource_location::is_local(const std::string& uri) {
     if (utils::platform::is_windows())
     {
-        if (std::regex_search(m_uri, std::regex("^file:(?:|(?:\\\\|/)+)[A-Za-z](?::|%3[aA])")))
+        if (std::regex_search(uri, std::regex("^file:(?:|(?:\\\\|/)+)[A-Za-z](?::|%3[aA])")))
             return true;
     }
-    else if (std::regex_search(m_uri, std::regex("^file:(?:(?:/|\\\\){3}|(?:(?:/|\\\\)(?:[^/\\\\])+))")))
+    else if (std::regex_search(uri, std::regex("^file:(?:(?:/|\\\\){3}|(?:(?:/|\\\\)(?:[^/\\\\])+))")))
         return true;
 
     return false;
