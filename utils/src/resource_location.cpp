@@ -217,14 +217,6 @@ std::string normalize_path(std::string_view path)
     return ret;
 }
 
-std::string normalize_scheme(std::string scheme)
-{
-    std::transform(scheme.begin(), scheme.end(), scheme.begin(), [](unsigned char c) {
-        return static_cast<const char>(tolower(c));
-    });
-    return scheme;
-}
-
 void normalize_windows_like_uri_helper(
     utils::path::dissected_uri& dis_uri, unsigned char win_drive_letter, std::string_view path_suffix)
 {
@@ -274,7 +266,10 @@ resource_location resource_location::lexically_normal() const
     if (dis_uri.path.empty())
         return resource_location(m_uri);
 
-    dis_uri.scheme = normalize_scheme(dis_uri.scheme);
+    std::transform(dis_uri.scheme.begin(), dis_uri.scheme.end(), dis_uri.scheme.begin(), [](unsigned char c) {
+        return static_cast<const char>(tolower(c));
+    });
+
     dis_uri.path = normalize_path(dis_uri.path);
     normalize_windows_like_uri(dis_uri);
 
@@ -425,11 +420,11 @@ std::string remove_dot_segments(std::string_view path)
         }
         else
         {
-            auto slash = path.find_first_of("/", 1);
-            elements.push_back(path.substr(0, slash));
+            auto first_slash = path.find_first_of("/", 1);
+            elements.push_back(path.substr(0, first_slash));
 
-            if (slash != std::string::npos)
-                path = path.substr(slash);
+            if (first_slash != std::string::npos)
+                path = path.substr(first_slash);
             else
                 path.remove_prefix(path.size());
         }
