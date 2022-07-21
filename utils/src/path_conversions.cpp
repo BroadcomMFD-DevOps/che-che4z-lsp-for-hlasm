@@ -24,6 +24,10 @@
 #include "utils/utf8text.h"
 
 namespace hlasm_plugin::utils::path {
+const std::regex windows_drive("^[a-z]%3A");
+const std::regex uri_unlike_windows_path("^[A-Za-z][A-Za-z0-9+\\-.]+:");
+const std::regex uri_like_windows_path("^[A-Za-z](?::|%3[aA])");
+
 std::string uri_to_path(const std::string& uri)
 {
     try
@@ -43,7 +47,7 @@ std::string uri_to_path(const std::string& uri)
 
             auth_path = u.authority().to_string() + u.path().to_string();
 
-            if (!std::regex_search(auth_path, std::regex("^[a-z]%3A")))
+            if (!std::regex_search(auth_path, windows_drive))
                 // handle remote locations correctly, like \\server\path, if the auth doesn't start with e.g. C:/
                 auth_path = "//" + auth_path;
         }
@@ -75,8 +79,7 @@ std::string uri_to_path(const std::string& uri)
 std::string path_to_uri(std::string_view path)
 {
     // Don't consider one-letter schemes to be URI, consider them to be the beginnings of Windows path
-    if (static const std::regex uri_unlike_windows_path("^[A-Za-z][A-Za-z0-9+\\-.]+:");
-        std::regex_search(path.begin(), path.end(), uri_unlike_windows_path))
+    if (std::regex_search(path.begin(), path.end(), uri_unlike_windows_path))
         return std::string(path);
 
     // network::detail::encode_path(uri) ignores @, which is incompatible with VS Code
@@ -104,7 +107,7 @@ bool is_uri(const std::string& path) noexcept
         return false;
 
     // one letter schemas are valid, but Windows paths collide
-    if (std::regex_search(path.begin(), path.end(), std::regex("^[A-Za-z](?::|%3[aA])")))
+    if (std::regex_search(path.begin(), path.end(), uri_like_windows_path))
         return false;
 
     try

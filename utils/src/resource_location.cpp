@@ -26,6 +26,17 @@
 
 namespace hlasm_plugin::utils::resource {
 
+namespace {
+const std::string windows_drive_letter = "[A-Za-z]";
+const std::string colon = "(?::|%3[aA])";
+const std::string slash = "(?:/|\\\\)";
+
+const std::regex host_like_windows_path("^(" + windows_drive_letter + ")(" + colon + "?)$");
+const std::regex path_like_windows_path("^(?:[///]|[//]|[/])?(" + windows_drive_letter + ")" + colon);
+const std::regex local_windows("^file:" + slash + "*" + windows_drive_letter + colon);
+const std::regex local_non_windows("^file:(?:" + slash + "{3}|(?:" + slash + "(?:[^/\\\\])+))");
+} // namespace
+
 resource_location::resource_location(std::string uri)
     : m_uri(std::move(uri))
 {}
@@ -47,18 +58,16 @@ std::string resource_location::to_presentable(bool debug) const
     return utils::path::get_presentable_uri(m_uri, debug);
 }
 
-bool resource_location::is_local() const
-{
-    return is_local(m_uri);
-}
+bool resource_location::is_local() const { return is_local(m_uri); }
 
-bool resource_location::is_local(const std::string& uri) {
+bool resource_location::is_local(const std::string& uri)
+{
     if (utils::platform::is_windows())
     {
-        if (std::regex_search(uri, std::regex("^file:(?:|(?:\\\\|/)+)[A-Za-z](?::|%3[aA])")))
+        if (std::regex_search(uri, local_windows))
             return true;
     }
-    else if (std::regex_search(uri, std::regex("^file:(?:(?:/|\\\\){3}|(?:(?:/|\\\\)(?:[^/\\\\])+))")))
+    else if (std::regex_search(uri, local_non_windows))
         return true;
 
     return false;
@@ -241,16 +250,14 @@ void normalize_windows_like_uri(utils::path::dissected_uri& dis_uri)
         if (std::smatch s; dis_uri.auth.has_value() && (!dis_uri.auth->port.has_value() || dis_uri.auth->port->empty())
             && !dis_uri.auth->user_info.has_value() && dis_uri.contains_host())
         {
-            if (static const std::regex host_like_windows_path("^([A-Za-z])($|:$|%3[aA]$)");
-                !std::regex_search(dis_uri.auth->host, s, host_like_windows_path)
+            if (!std::regex_search(dis_uri.auth->host, s, host_like_windows_path)
                 || (s[2].length() == 0 && !dis_uri.auth->port.has_value()))
                 return;
 
             // auth consists only of host name resembling Windows drive and empty or missing port part
             normalize_windows_like_uri_helper(dis_uri, s[1].str()[0], dis_uri.path);
         }
-        else if (static const std::regex path_like_windows_path("^(?:[///]|[//]|[/]|)([A-Za-z])(?::|%3[aA])");
-                 !dis_uri.contains_host() && std::regex_search(dis_uri.path, s, path_like_windows_path))
+        else if (!dis_uri.contains_host() && std::regex_search(dis_uri.path, s, path_like_windows_path))
             // Seems like we have a windows like path
             normalize_windows_like_uri_helper(dis_uri, s[1].str()[0], s.suffix().str());
     }
