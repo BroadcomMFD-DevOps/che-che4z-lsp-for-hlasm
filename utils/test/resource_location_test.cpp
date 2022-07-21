@@ -831,38 +831,22 @@ TEST(resource_location, relative_reference_resolution_rfc_3986_strict_parsers)
 namespace {
 std::vector<std::string> get_file_roots()
 {
-    static const auto file_roots = []() {
-        std::vector<std::string> temp;
-
-        if (is_windows())
-        {
-            temp.emplace_back("file:///C:/");
-            temp.emplace_back("file:///c:/");
-            temp.emplace_back("file:///C%3A/");
-            temp.emplace_back("file:///c%3A/");
-            temp.emplace_back("file:///C%3a/");
-            temp.emplace_back("file:///c%3a/");
-        }
-        else
-            temp.emplace_back("file:///home/");
-
-        return temp;
-    }();
-
-    return file_roots;
+    return is_windows() ? std::vector<std::string> { "file:///C:/",
+        "file:///c:/",
+        "file:///C%3A/",
+        "file:///c%3A/",
+        "file:///C%3a/",
+        "file:///c%3a/" }
+                        : std::vector<std::string> { "file:///home/" };
 }
 
 std::pair<std::vector<resource_location>, resource_location> construct_combinations(
     std::string_view decoded_suffix, std::vector<std::string_view> encoded_suffixes)
 {
     std::vector<resource_location> equivalent;
-    for (auto& file_root : get_file_roots())
-    {
-        for (auto& suffix : encoded_suffixes)
-        {
+    for (const auto& file_root : get_file_roots())
+        for (const auto& suffix : encoded_suffixes)
             equivalent.emplace_back(file_root + std::string(suffix));
-        }
-    }
 
     if (is_windows())
         return { equivalent, resource_location("file:///C:/" + std::string(decoded_suffix)).lexically_normal() };
@@ -882,11 +866,9 @@ TEST(resource_location, lexically_normal_percent_encoded_chars)
         construct_combinations("temp++/", { "temp%2B%2B/", "temp%2B%2b/", "temp%2b%2B/", "temp%2b%2b/" }));
 
     for (const auto& [equivalents, expected] : test_cases)
-    {
         for (const auto& equivalent : equivalents)
         {
             auto rl = equivalent.lexically_normal();
             EXPECT_TRUE(rl == expected) << rl.get_uri() << " should be equal to " << expected.get_uri();
         }
-    }
 }
