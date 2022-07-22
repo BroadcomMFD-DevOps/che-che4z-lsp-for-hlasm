@@ -49,7 +49,7 @@ std::regex wildcard2regex(std::string wildcard)
     return std::regex(wildcard);
 }
 
-std::regex pathmask_to_regex(std::string_view s)
+std::regex percent_encoded_pathmask_to_regex(std::string_view s)
 {
     std::string r;
     r.reserve(s.size());

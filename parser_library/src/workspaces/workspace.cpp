@@ -477,7 +477,7 @@ void workspace::find_and_add_libs(const utils::resource::resource_location& root
         return;
     }
 
-    std::regex path_validator = pathmask_to_regex(path_pattern.get_uri());
+    std::regex path_validator = percent_encoded_pathmask_to_regex(path_pattern.get_uri());
 
     std::set<std::string> processed_canonical_paths;
     std::deque<std::pair<std::string, utils::resource::resource_location>> dirs_to_search;
