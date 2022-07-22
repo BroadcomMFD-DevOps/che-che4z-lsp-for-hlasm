@@ -21,6 +21,7 @@
 #include <iterator>
 #include <regex>
 
+#include "utils/encoding.h"
 #include "utils/path_conversions.h"
 #include "utils/platform.h"
 
@@ -273,7 +274,7 @@ resource_location resource_location::lexically_normal() const
     dis_uri.path = normalize_path(dis_uri.path);
     normalize_windows_like_uri(dis_uri);
 
-    dis_uri.path = utils::path::encode(dis_uri.path, true);
+    dis_uri.path = utils::encoding::percent_encode_and_ignore_utf8(dis_uri.path);
 
     return resource_location(utils::path::reconstruct_uri(dis_uri));
 }

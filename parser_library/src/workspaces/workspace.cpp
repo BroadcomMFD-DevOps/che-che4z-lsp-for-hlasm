@@ -30,6 +30,7 @@
 #include "nlohmann/json.hpp"
 #include "processor.h"
 #include "utils/content_loader.h"
+#include "utils/encoding.h"
 #include "utils/path.h"
 #include "utils/path_conversions.h"
 #include "utils/platform.h"
@@ -548,7 +549,8 @@ utils::resource::resource_location transform_to_resource_location(
     utils::resource::resource_location rl;
 
     if (utils::resource::resource_location::is_local(path))
-        rl = utils::resource::resource_location("file:" + utils::path::encode(std::string_view(path).substr(5), true));
+        rl = utils::resource::resource_location(
+            "file:" + utils::encoding::percent_encode_and_ignore_utf8(std::string_view(path).substr(5)));
     else if (utils::path::is_uri(path))
         rl = utils::resource::resource_location(std::move(path));
     else if (auto fs_path = get_fs_abs_path(path); fs_path.has_value())
@@ -557,7 +559,8 @@ utils::resource::resource_location transform_to_resource_location(
     else
     {
         if (base_resource_location.is_local())
-            rl = utils::resource::resource_location::join(base_resource_location, utils::path::encode(path, false));
+            rl =
+                utils::resource::resource_location::join(base_resource_location, utils::encoding::percent_encode(path));
         else
             rl = utils::resource::resource_location::join(base_resource_location, path);
     }
