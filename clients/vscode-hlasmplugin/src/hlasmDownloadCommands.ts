@@ -20,6 +20,8 @@ import { EOL, homedir } from 'os';
 import path = require('node:path');
 import { promises as fsp } from "fs";
 
+const cancelMessage = "Action was cancelled";
+
 export type JobId = string;
 export interface JobDescription {
     jobname: string;
@@ -352,7 +354,7 @@ export async function downloadDependenciesWithClient(client: JobClient,
 
     const checkCancel = () => {
         if (cancelled())
-            throw Error("Cancel requested");
+            throw Error(cancelMessage);
     };
 
     try {
@@ -404,7 +406,7 @@ function askUser(prompt: string, password: boolean, defaultValue: string = ''): 
         input.prompt = prompt;
         input.password = password;
         input.value = defaultValue || '';
-        input.onDidHide(() => reject("Action was cancelled"));
+        input.onDidHide(() => reject(Error(cancelMessage)));
         input.onDidAccept(() => resolve(input.value));
         input.show();
     }).finally(() => { input.dispose(); });
@@ -417,7 +419,7 @@ function pickUser<T>(title: string, options: { label: string, value: T }[]): Pro
         input.title = title;
         input.items = options.map(x => { return { label: x.label }; });
         input.canSelectMany = false;
-        input.onDidHide(() => reject("Action was cancelled"));
+        input.onDidHide(() => reject(Error(cancelMessage)));
         input.onDidAccept(() => resolve(options.find(x => x.label === input.selectedItems[0].label)!.value));
         input.show();
     }).finally(() => { input.dispose(); });
@@ -644,27 +646,27 @@ class ProgressReporter implements StageProgressReporter {
 }
 
 export async function downloadDependencies(context: vscode.ExtensionContext) {
-    const lastInput = getLastRunConfig(context);
-    const { host, port, user, password, hostInput, securityLevel } = await gatherConnectionInfo(lastInput);
-
-    const jobcardPattern = await askUser("Enter jobcard pattern (? will be substituted)", false, lastInput.jobcard || "//" + user.slice(0, 7).padEnd(8, '?').toUpperCase() + " JOB ACCTNO");
-
-    await context.globalState.update(mementoKey, { host: hostInput, user: user, jobcard: jobcardPattern });
-
-    const thingsToDownload = gatherDownloadList(await gatherAvailableConfigs());
-
-    const dirsWithFiles = await checkForExistingFiles(thingsToDownload);
-    if (dirsWithFiles.size > 0) {
-        const overwrite = "Overwrite";
-        const whatToDo = await vscode.window.showQuickPick([overwrite, "Cancel"], { title: "Some of the directories (" + dirsWithFiles.size + ") exist and are not empty." });
-        if (whatToDo !== overwrite)
-            return;
-
-        for (const d of dirsWithFiles)
-            await removeFilesFromDirectory(d);
-    }
-
     try {
+        const lastInput = getLastRunConfig(context);
+        const { host, port, user, password, hostInput, securityLevel } = await gatherConnectionInfo(lastInput);
+
+        const jobcardPattern = await askUser("Enter jobcard pattern (? will be substituted)", false, lastInput.jobcard || "//" + user.slice(0, 7).padEnd(8, '?').toUpperCase() + " JOB ACCTNO");
+
+        await context.globalState.update(mementoKey, { host: hostInput, user: user, jobcard: jobcardPattern });
+
+        const thingsToDownload = gatherDownloadList(await gatherAvailableConfigs());
+
+        const dirsWithFiles = await checkForExistingFiles(thingsToDownload);
+        if (dirsWithFiles.size > 0) {
+            const overwrite = "Overwrite";
+            const whatToDo = await vscode.window.showQuickPick([overwrite, "Cancel"], { title: "Some of the directories (" + dirsWithFiles.size + ") exist and are not empty." });
+            if (whatToDo !== overwrite)
+                return;
+
+            for (const d of dirsWithFiles)
+                await removeFilesFromDirectory(d);
+        }
+
         const result = await vscode.window.withProgress({ title: "Downloading dependencies", location: vscode.ProgressLocation.Notification, cancellable: true }, async (p, t) => {
             return downloadDependenciesWithClient(
                 await basicFtpJobClient({
@@ -687,6 +689,7 @@ export async function downloadDependencies(context: vscode.ExtensionContext) {
             vscode.window.showInformationMessage("All jobs (" + result.total + ") completed successfully");
     }
     catch (e) {
-        vscode.window.showErrorMessage("Error occured while downloading dependencies: " + e.message);
+        if (e.message !== cancelMessage)
+            vscode.window.showErrorMessage("Error occured while downloading dependencies: " + (e.message || e));
     }
 }
