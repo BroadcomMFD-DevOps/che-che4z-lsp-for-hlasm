@@ -162,7 +162,7 @@ suite('HLASM Download datasets', () => {
             assert.fail();
         }
         catch (e) {
-            assert.equal(e.message, "Cancel requested");
+            assert.equal(e.message, "Action was cancelled");
         }
 
         assert.equal(client.disposeCalls, 1);
