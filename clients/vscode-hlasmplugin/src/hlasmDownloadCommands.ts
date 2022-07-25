@@ -161,12 +161,56 @@ function generateJobHeader(header: ParsedJobHeader, jobNo: number): string {
 
         return header.jobHeader.prefix + jobnameSuffix + header.jobHeader.suffix;
     }
+}
 
+export function adjustJobHeader(hdr: string): string[] {
+    const recordLength = 72;
+    const splitFailed = () => {
+        throw Error("Unable to split the job card into records: " + hdr);
+    };
+
+    hdr = hdr.trimEnd();
+    if (hdr.length < recordLength) return [hdr];
+    const parts = /^(\/\/\S+)\s+(\S+)(?:\s+(.*))?/.exec(hdr);
+    if (!parts) splitFailed();
+    if (parts.length < 4 || parts[3].length === 0) return [parts[1] + ' ' + parts[2]];
+    const split_result = [];
+    let to_split = parts[3];
+    while (to_split.length > 0) {
+        const symbol = to_split.search(/[,']/,);
+        if (symbol === -1) {
+            split_result.push(to_split);
+            break;
+        }
+        switch (to_split.charAt(symbol)) {
+            case ',':
+                split_result.push(to_split.slice(0, symbol + 1));
+                to_split = to_split.slice(symbol + 1);
+                break;
+            case '\'':
+                const quoted = to_split.match(/[^']*'(?:[^']|'')*'\)*,?/);
+                if (!quoted) splitFailed();
+                split_result.push(quoted[0]);
+                to_split = to_split.slice(quoted[0].length);
+                break;
+        }
+    }
+    const result = [parts[1] + ' ' + parts[2] + ' '];
+
+    for (const x of split_result) {
+        if (result[result.length - 1].length + x.length < recordLength)
+            result[result.length - 1] += x;
+        else
+            result.push('// ' + x);
+    }
+
+    if (result.some(x => x.length >= recordLength)) splitFailed();
+    return result;
 }
 
 function generateJcl(jobNo: number, jobcard: ParsedJobHeader, datasetName: string): string {
     return [
-        generateJobHeader(jobcard, jobNo),
+        ...adjustJobHeader(generateJobHeader(jobcard, jobNo)),
         "//AMATERSE EXEC PGM=AMATERSE,PARM=SPACK",
         "//SYSPRINT DD DUMMY",
         "//SYSIN    DD DUMMY",

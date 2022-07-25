@@ -15,7 +15,7 @@ import * as assert from 'assert';
 import { PassThrough, Writable } from 'stream';
 import { Uri } from 'vscode';
 
-import { convertBuffer, downloadDependenciesWithClient, extractDsn, gatherDownloadList, JobDescription, replaceVariables } from '../../hlasmDownloadCommands';
+import { convertBuffer, downloadDependenciesWithClient, extractDsn, gatherDownloadList, JobDescription, replaceVariables, adjustJobHeader } from '../../hlasmDownloadCommands';
 
 suite('HLASM Download datasets', () => {
     const getClient = (listResponses: JobDescription[][]) => {
@@ -285,5 +285,22 @@ suite('HLASM Download datasets', () => {
 
     test('Buffer conversion', () => {
         assert.equal(convertBuffer(Buffer.from([0x40, 0xC1, 0x40]), 80), ' A ');
+    });
+
+    test('Job card splitter', () => {
+        assert.deepEqual(adjustJobHeader('//ABC JOB'), ['//ABC JOB']);
+        assert.deepEqual(adjustJobHeader('//ABC JOB '), ['//ABC JOB']);
+        assert.deepEqual(adjustJobHeader('//ABC JOB 123456'), ['//ABC JOB 123456']);
+        assert.deepEqual(adjustJobHeader('//ABC JOB 123456 '), ['//ABC JOB 123456']);
+
+        assert.deepEqual(adjustJobHeader('//ABC JOB' + ' '.repeat(100)), ['//ABC JOB']);
+        assert.deepEqual(adjustJobHeader('//ABC JOB' + ' '.repeat(100) + '123456'), ['//ABC JOB 123456']);
+        assert.deepEqual(adjustJobHeader('//ABC JOB' + ' '.repeat(100) + '123456,USER=USER01'), ['//ABC JOB 123456,USER=USER01']);
+        assert.deepEqual(adjustJobHeader('//ABC JOB' + ' '.repeat(100) + '(123456,\'Department\'),USER=USER01'), ['//ABC JOB (123456,\'Department\'),USER=USER01']);
+        assert.deepEqual(adjustJobHeader('//ABC JOB' + ' '.repeat(100) + '(123456,,,),USER=USER01'), ['//ABC JOB (123456,,,),USER=USER01']);
+        assert.deepEqual(adjustJobHeader('//ABC JOB (' + '1,'.repeat(50) + '\'A\'),USER=USER01 '), [
+            '//ABC JOB (1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,',
+            '// 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,\'A\'),USER=USER01'
+        ]);
     });
 });
