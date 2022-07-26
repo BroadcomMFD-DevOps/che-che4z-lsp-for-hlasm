@@ -194,9 +194,11 @@ void from_json(const nlohmann::json& j, processor_group& p)
             std::transform(
                 p_name.begin(), p_name.end(), p_name.begin(), [](unsigned char c) { return (char)toupper(c); });
             if (p_name == "DB2")
-                it->get_to(std::get<db2_preprocessor>(p.preprocessors.emplace_back(db2_preprocessor()).options));
+                it->get_to(std::get<db2_preprocessor>(
+                    p.preprocessors.emplace_back(preprocessor_options { db2_preprocessor() }).options));
             else if (p_name == "CICS")
-                it->get_to(std::get<cics_preprocessor>(p.preprocessors.emplace_back(cics_preprocessor()).options));
+                it->get_to(std::get<cics_preprocessor>(
+                    p.preprocessors.emplace_back(preprocessor_options { cics_preprocessor() }).options));
             else
                 throw nlohmann::json::other_error::create(501, "Unable to identify requested preprocessor.", *it);
         };
