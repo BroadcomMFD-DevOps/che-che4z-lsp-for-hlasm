@@ -652,7 +652,7 @@ std::pair<utils::resource::resource_location, bool> construct_and_analyze_resour
 void workspace::process_processor_group(
     const config::processor_group& pg, const config::proc_grps& proc_groups, const config::pgm_conf& pgm_config)
 {
-    processor_group prc_grp(pg.name, pg.asm_options, pg.preprocessor);
+    processor_group prc_grp(pg.name, pg.asm_options, pg.preprocessors);
 
     for (auto& lib : pg.libs)
     {
@@ -842,7 +842,7 @@ bool workspace::load_config(config::proc_grps& proc_groups,
             if (!pg.asm_options.valid())
                 config_diags_.push_back(
                     diagnostic_s::error_W0005(proc_grps_file->get_location(), pg.name, "processor group"));
-            if (!pg.preprocessor.valid())
+            if (std::any_of(pg.preprocessors.begin(), pg.preprocessors.end(), [](const auto& x) { return !x.valid(); }))
                 config_diags_.push_back(diagnostic_s::error_W0006(proc_grps_file->get_location(), pg.name));
         }
     }
@@ -1013,11 +1013,12 @@ asm_option workspace::get_asm_options(const utils::resource::resource_location& 
     return result;
 }
 
-preprocessor_options workspace::get_preprocessor_options(const utils::resource::resource_location& file_location) const
+std::vector<preprocessor_options> workspace::get_preprocessor_options(
+    const utils::resource::resource_location& file_location) const
 {
     auto& proc_grp = get_proc_grp_by_program(file_location);
 
-    return proc_grp.preprocessor();
+    return proc_grp.preprocessors();
 }
 
 processor_file_ptr workspace::get_processor_file(const utils::resource::resource_location& file_location)

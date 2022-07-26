@@ -63,7 +63,7 @@ void from_json(const nlohmann::json& j, cics_preprocessor& p);
 
 struct preprocessor_options
 {
-    std::variant<std::monostate, db2_preprocessor, cics_preprocessor> options;
+    std::variant<db2_preprocessor, cics_preprocessor> options;
 
     bool valid() const noexcept;
 
@@ -75,7 +75,7 @@ struct processor_group
     std::string name;
     std::vector<library> libs;
     assembler_options asm_options;
-    preprocessor_options preprocessor;
+    std::vector<preprocessor_options> preprocessors;
 };
 void to_json(nlohmann::json& j, const processor_group& p);
 void from_json(const nlohmann::json& j, processor_group& p);
