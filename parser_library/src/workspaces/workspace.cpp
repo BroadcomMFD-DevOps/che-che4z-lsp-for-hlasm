@@ -544,15 +544,15 @@ std::optional<std::filesystem::path> get_fs_abs_path(std::string_view path)
 }
 
 utils::resource::resource_location transform_to_resource_location(
-    std::string path, const utils::resource::resource_location& base_resource_location)
+    std::string_view path, const utils::resource::resource_location& base_resource_location)
 {
     utils::resource::resource_location rl;
 
     if (utils::resource::resource_location::is_local(path))
         rl = utils::resource::resource_location(
-            "file:" + utils::encoding::percent_encode_and_ignore_utf8(std::string_view(path).substr(5)));
+            "file:" + utils::encoding::percent_encode_and_ignore_utf8(path.substr(5)));
     else if (utils::path::is_uri(path))
-        rl = utils::resource::resource_location(std::move(path));
+        rl = utils::resource::resource_location(path);
     else if (auto fs_path = get_fs_abs_path(path); fs_path.has_value())
         rl = utils::resource::resource_location(
             utils::path::path_to_uri(utils::path::lexically_normal(*fs_path).string()));
@@ -562,7 +562,7 @@ utils::resource::resource_location transform_to_resource_location(
             rl =
                 utils::resource::resource_location::join(base_resource_location, utils::encoding::percent_encode(path));
         else
-            rl = utils::resource::resource_location::join(base_resource_location, path);
+            rl = utils::resource::resource_location::join(base_resource_location, std::string(path));
     }
 
     return rl.lexically_normal();

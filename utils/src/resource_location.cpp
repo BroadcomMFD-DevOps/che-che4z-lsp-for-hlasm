@@ -348,23 +348,23 @@ bool resource_location::lexically_out_of_scope() const
     return m_uri == std::string_view("..") || m_uri.starts_with("../") || m_uri.starts_with("..\\");
 }
 
-void resource_location::join(const std::string& other)
+void resource_location::join(std::string other)
 {
     if (utils::path::is_uri(other))
-        m_uri = other;
+        m_uri = std::move(other);
     else if (other.starts_with("/"))
     {
         auto dis_uri = utils::path::dissect_uri(m_uri);
-        dis_uri.path = other;
+        dis_uri.path = std::move(other);
         m_uri = utils::path::reconstruct_uri(dis_uri);
     }
     else
         uri_append(m_uri, other);
 }
 
-resource_location resource_location::join(resource_location rl, const std::string& other)
+resource_location resource_location::join(resource_location rl, std::string other)
 {
-    rl.join(other);
+    rl.join(std::move(other));
 
     return rl;
 }
@@ -450,7 +450,7 @@ std::string remove_dot_segments(std::string_view path)
 } // namespace
 
 void resource_location::relative_reference_resolution(
-    const std::string& other) // TODO enhancements can be made based on rfc3986 if needed
+    std::string_view other) // TODO enhancements can be made based on rfc3986 if needed
 {
     if (other.empty())
         return;
@@ -495,7 +495,7 @@ void resource_location::relative_reference_resolution(
     }
 }
 
-resource_location resource_location::relative_reference_resolution(resource_location rl, const std::string& other)
+resource_location resource_location::relative_reference_resolution(resource_location rl, std::string_view other)
 {
     rl.relative_reference_resolution(other);
 
