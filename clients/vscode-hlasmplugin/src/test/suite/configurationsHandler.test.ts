@@ -29,7 +29,7 @@ suite('Configurations Handler Test Suite', () => {
         assert.equal(configPaths[1], path.join(workspacePath, '.hlasmplugin', 'proc_grps.json'));
     });
 
-    // 7 expressions - 2 for always recognize, 9 open codes (pgm_conf.json) and 9 library definitions (proc_grps.json)
+    // 20 expressions - 2 for always recognize, 9 open codes (pgm_conf.json) and 9 library definitions (proc_grps.json)
     test('Update wildcards test', () => {
         const wildcards = handler.updateWildcards();
         assert.equal(wildcards.length, 20);

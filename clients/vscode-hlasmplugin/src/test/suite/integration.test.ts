@@ -155,7 +155,7 @@ suite('Integration Test Suite', () => {
 
     test('Special chars - basic character set', async () => {
         await openDocumentAndCheckDiags("pattern_test/!#$%&'()+,-.0123456789;=@ABCDEFGHIJKLMNOPQRSTUVWXYZ??^_`abcdefghijklmnopqrstuvwxyz??~.hlasm");
-    }).timeout(100000000).slow(2500);
+    }).timeout(10000).slow(2500);
 
     test('1 Byte UTF-8 Encoding', async () => {
         await openDocumentAndCheckDiags("pattern_test/test_utf_8_+.hlasm");
