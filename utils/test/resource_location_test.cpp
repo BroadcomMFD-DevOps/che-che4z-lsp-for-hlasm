@@ -135,78 +135,78 @@ TEST(resource_location, is_local)
 {
     if (is_windows())
     {
-        EXPECT_TRUE(resource_location("file:///C:").is_local());
-        EXPECT_TRUE(resource_location("file:///d:").is_local());
-        EXPECT_TRUE(resource_location("file:///Z:/").is_local());
-        EXPECT_TRUE(resource_location("file:///C:/").is_local());
-        EXPECT_TRUE(resource_location("file:///C:/file").is_local());
-        EXPECT_TRUE(resource_location("file:///C:/").is_local());
+        EXPECT_TRUE(resource_location::is_local("file:///C:"));
+        EXPECT_TRUE(resource_location::is_local("file:///d:"));
+        EXPECT_TRUE(resource_location::is_local("file:///Z:/"));
+        EXPECT_TRUE(resource_location::is_local("file:///C:/"));
+        EXPECT_TRUE(resource_location::is_local("file:///C:/file"));
+        EXPECT_TRUE(resource_location::is_local("file:///C:/"));
 
-        EXPECT_TRUE(resource_location("file:///C%3A").is_local());
-        EXPECT_TRUE(resource_location("file:///d%3A").is_local());
-        EXPECT_TRUE(resource_location("file:///Z%3A/").is_local());
-        EXPECT_TRUE(resource_location("file:///C%3A/").is_local());
-        EXPECT_TRUE(resource_location("file:///C%3A/file").is_local());
-        EXPECT_TRUE(resource_location("file:///C%3A/").is_local());
+        EXPECT_TRUE(resource_location::is_local("file:///C%3A"));
+        EXPECT_TRUE(resource_location::is_local("file:///d%3A"));
+        EXPECT_TRUE(resource_location::is_local("file:///Z%3A/"));
+        EXPECT_TRUE(resource_location::is_local("file:///C%3A/"));
+        EXPECT_TRUE(resource_location::is_local("file:///C%3A/file"));
+        EXPECT_TRUE(resource_location::is_local("file:///C%3A/"));
 
-        EXPECT_TRUE(resource_location("file:///C%3a").is_local());
-        EXPECT_TRUE(resource_location("file:///d%3a").is_local());
-        EXPECT_TRUE(resource_location("file:///Z%3a/").is_local());
-        EXPECT_TRUE(resource_location("file:///C%3a/").is_local());
-        EXPECT_TRUE(resource_location("file:///C%3a/file").is_local());
-        EXPECT_TRUE(resource_location("file:///C%3a/").is_local());
+        EXPECT_TRUE(resource_location::is_local("file:///C%3a"));
+        EXPECT_TRUE(resource_location::is_local("file:///d%3a"));
+        EXPECT_TRUE(resource_location::is_local("file:///Z%3a/"));
+        EXPECT_TRUE(resource_location::is_local("file:///C%3a/"));
+        EXPECT_TRUE(resource_location::is_local("file:///C%3a/file"));
+        EXPECT_TRUE(resource_location::is_local("file:///C%3a/"));
 
-        EXPECT_TRUE(resource_location("file:C:").is_local());
-        EXPECT_TRUE(resource_location("file:\\C:").is_local());
-        EXPECT_TRUE(resource_location("file:\\\\C:").is_local());
-        EXPECT_TRUE(resource_location("file:\\\\\\C:").is_local());
-        EXPECT_TRUE(resource_location("file:C:/").is_local());
-        EXPECT_TRUE(resource_location("file:/C:/").is_local());
-        EXPECT_TRUE(resource_location("file://C:/").is_local());
+        EXPECT_TRUE(resource_location::is_local("file:C:"));
+        EXPECT_TRUE(resource_location::is_local("file:\\C:"));
+        EXPECT_TRUE(resource_location::is_local("file:\\\\C:"));
+        EXPECT_TRUE(resource_location::is_local("file:\\\\\\C:"));
+        EXPECT_TRUE(resource_location::is_local("file:C:/"));
+        EXPECT_TRUE(resource_location::is_local("file:/C:/"));
+        EXPECT_TRUE(resource_location::is_local("file://C:/"));
 
-        EXPECT_FALSE(resource_location("file://host/C:").is_local());
+        EXPECT_FALSE(resource_location::is_local("file://host/C:"));
 
-        EXPECT_FALSE(resource_location("aaa:C:/").is_local());
-        EXPECT_FALSE(resource_location("aaa:/C:/").is_local());
-        EXPECT_FALSE(resource_location("aaa://C:/").is_local());
-        EXPECT_FALSE(resource_location("aaa:///C:/").is_local());
+        EXPECT_FALSE(resource_location::is_local("aaa:C:/"));
+        EXPECT_FALSE(resource_location::is_local("aaa:/C:/"));
+        EXPECT_FALSE(resource_location::is_local("aaa://C:/"));
+        EXPECT_FALSE(resource_location::is_local("aaa:///C:/"));
     }
     else
     {
-        EXPECT_TRUE(resource_location("file:/local").is_local());
-        EXPECT_TRUE(resource_location("file:/local/").is_local());
-        EXPECT_TRUE(resource_location("file:/local/file").is_local());
+        EXPECT_TRUE(resource_location::is_local("file:/local"));
+        EXPECT_TRUE(resource_location::is_local("file:/local/"));
+        EXPECT_TRUE(resource_location::is_local("file:/local/file"));
 
-        EXPECT_TRUE(resource_location("file:///local").is_local());
-        EXPECT_TRUE(resource_location("file:///local/").is_local());
-        EXPECT_TRUE(resource_location("file:///local/file").is_local());
+        EXPECT_TRUE(resource_location::is_local("file:///local"));
+        EXPECT_TRUE(resource_location::is_local("file:///local/"));
+        EXPECT_TRUE(resource_location::is_local("file:///local/file"));
 
-        EXPECT_TRUE(resource_location("file:\\C:").is_local());
-        EXPECT_TRUE(resource_location("file:\\\\\\C:").is_local());
-        EXPECT_TRUE(resource_location("file:/C:/").is_local());
-        EXPECT_TRUE(resource_location("file:///C:").is_local());
+        EXPECT_TRUE(resource_location::is_local("file:\\C:"));
+        EXPECT_TRUE(resource_location::is_local("file:\\\\\\C:"));
+        EXPECT_TRUE(resource_location::is_local("file:/C:/"));
+        EXPECT_TRUE(resource_location::is_local("file:///C:"));
 
-        EXPECT_FALSE(resource_location("file:C:").is_local());
-        EXPECT_FALSE(resource_location("file:\\\\C:").is_local());
-        EXPECT_FALSE(resource_location("file:C:/").is_local());
-        EXPECT_FALSE(resource_location("file://C:/").is_local());
+        EXPECT_FALSE(resource_location::is_local("file:C:"));
+        EXPECT_FALSE(resource_location::is_local("file:\\\\C:"));
+        EXPECT_FALSE(resource_location::is_local("file:C:/"));
+        EXPECT_FALSE(resource_location::is_local("file://C:/"));
 
-        EXPECT_FALSE(resource_location("aaa:/local").is_local());
-        EXPECT_FALSE(resource_location("aaa:/local/").is_local());
-        EXPECT_FALSE(resource_location("aaa:/local/file").is_local());
+        EXPECT_FALSE(resource_location::is_local("aaa:/local"));
+        EXPECT_FALSE(resource_location::is_local("aaa:/local/"));
+        EXPECT_FALSE(resource_location::is_local("aaa:/local/file"));
     }
 
-    EXPECT_FALSE(resource_location("").is_local());
+    EXPECT_FALSE(resource_location::is_local(""));
 
-    EXPECT_FALSE(resource_location("file:relative").is_local());
-    EXPECT_FALSE(resource_location("file://host").is_local());
-    EXPECT_FALSE(resource_location("file://host/").is_local());
-    EXPECT_FALSE(resource_location("file://host/user/somefile").is_local());
+    EXPECT_FALSE(resource_location::is_local("file:relative"));
+    EXPECT_FALSE(resource_location::is_local("file://host"));
+    EXPECT_FALSE(resource_location::is_local("file://host/"));
+    EXPECT_FALSE(resource_location::is_local("file://host/user/somefile"));
 
-    EXPECT_FALSE(resource_location("aaa:relative").is_local());
-    EXPECT_FALSE(resource_location("aaa://host").is_local());
-    EXPECT_FALSE(resource_location("aaa://host/").is_local());
-    EXPECT_FALSE(resource_location("aaa://host/user/somefile").is_local());
+    EXPECT_FALSE(resource_location::is_local("aaa:relative"));
+    EXPECT_FALSE(resource_location::is_local("aaa://host"));
+    EXPECT_FALSE(resource_location::is_local("aaa://host/"));
+    EXPECT_FALSE(resource_location::is_local("aaa://host/user/somefile"));
 }
 
 TEST(resource_location, to_presentable_no_authority)
@@ -506,16 +506,27 @@ TEST(resource_location, lexically_normal)
 TEST(resource_location, lexically_normal_change_root_dir)
 {
     if (is_windows())
+    {
         EXPECT_EQ(resource_location("file:///C:/../D:/").lexically_normal().get_uri(), "file:///d%3A/");
-    else
-        EXPECT_EQ(resource_location("file:///C:/../D:/").lexically_normal().get_uri(), "file:///D%3A/");
 
-    EXPECT_EQ(resource_location("file:///C:/../../../hostname").lexically_normal().get_uri(), "file://hostname");
-    EXPECT_EQ(resource_location("file:///C:/../../../hostname/").lexically_normal().get_uri(), "file://hostname/");
-    EXPECT_EQ(resource_location("file:///C:/../../../hostname/dir/file").lexically_normal().get_uri(),
-        "file://hostname/dir/file");
-    EXPECT_EQ(resource_location("file:///C:/../../../hostname/..").lexically_normal().get_uri(), "file://");
-    EXPECT_EQ(resource_location("file:///C:/../../../.").lexically_normal().get_uri(), "file://");
+        EXPECT_EQ(resource_location("file:///C:/../../../file").lexically_normal().get_uri(), "file:///c%3A/file");
+        EXPECT_EQ(resource_location("file:///C:/../../../dir/").lexically_normal().get_uri(), "file:///c%3A/dir/");
+        EXPECT_EQ(resource_location("file:///C:/../../../dir/subdir/file").lexically_normal().get_uri(),
+            "file:///c%3A/dir/subdir/file");
+        EXPECT_EQ(resource_location("file:///C:/../../../dir/..").lexically_normal().get_uri(), "file:///c%3A/");
+        EXPECT_EQ(resource_location("file:///C:/../../../.").lexically_normal().get_uri(), "file:///c%3A/");
+    }
+    else
+    {
+        EXPECT_EQ(resource_location("file:///C:/../D:/").lexically_normal().get_uri(), "file:///D%3A/");
+        EXPECT_EQ(resource_location("file:///C:/../../..").lexically_normal().get_uri(), "file:///");
+        EXPECT_EQ(resource_location("file:///C:/../../../file").lexically_normal().get_uri(), "file:///file");
+        EXPECT_EQ(resource_location("file:///C:/../../../root/").lexically_normal().get_uri(), "file:///root/");
+        EXPECT_EQ(resource_location("file:///C:/../../../root/dir/file").lexically_normal().get_uri(),
+            "file:///root/dir/file");
+        EXPECT_EQ(resource_location("file:///C:/../../../root/..").lexically_normal().get_uri(), "file:///");
+        EXPECT_EQ(resource_location("file:///C:/../../../.").lexically_normal().get_uri(), "file:///");
+    }
 }
 
 TEST(resource_location, lexically_normal_diff_schemes)

@@ -33,7 +33,7 @@ public:
     std::string to_presentable(bool debug = false) const;
 
     bool is_local() const;
-    static bool is_local(const std::string& uri);
+    static bool is_local(std::string_view uri);
 
     // Lexically functions behave very similarly to std::filesystem functions
     // Additionally tries to

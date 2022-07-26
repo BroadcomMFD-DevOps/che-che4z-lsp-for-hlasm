@@ -32,6 +32,7 @@ const std::string windows_drive_letter = "[A-Za-z]";
 const std::string colon = "(?::|%3[aA])";
 const std::string slash = "(?:/|\\\\)";
 
+const std::regex windows_drive("^(" + windows_drive_letter + colon + ")");
 const std::regex host_like_windows_path("^(" + windows_drive_letter + ")(" + colon + "?)$");
 const std::regex path_like_windows_path("^(?:[///]|[//]|[/])?(" + windows_drive_letter + ")" + colon);
 const std::regex local_windows("^file:" + slash + "*" + windows_drive_letter + colon);
@@ -61,14 +62,14 @@ std::string resource_location::to_presentable(bool debug) const
 
 bool resource_location::is_local() const { return is_local(m_uri); }
 
-bool resource_location::is_local(const std::string& uri)
+bool resource_location::is_local(std::string_view uri)
 {
     if (utils::platform::is_windows())
     {
-        if (std::regex_search(uri, local_windows))
+        if (std::regex_search(uri.begin(), uri.end(), local_windows))
             return true;
     }
-    else if (std::regex_search(uri, local_non_windows))
+    else if (std::regex_search(uri.begin(), uri.end(), local_non_windows))
         return true;
 
     return false;
@@ -178,10 +179,11 @@ private:
     };
 };
 
-std::string normalize_path(std::string_view path)
+std::string normalize_path(std::string_view orig_path, bool has_file_scheme, bool has_host)
 {
     std::deque<std::string_view> elements;
-    std::string_view orig_path = path;
+    std::string_view path = orig_path;
+    std::string_view win_root_dir;
 
     for (uri_path_iterator this_it(&path); auto element : this_it)
     {
@@ -189,19 +191,22 @@ std::string normalize_path(std::string_view path)
             continue;
         else if (element == "..")
         {
-            if (!elements.empty())
+            if (!elements.empty() && (elements.size() > 1 || (elements.front() != "/" && elements.front() != "\\")))
                 elements.pop_back();
         }
         else if (elements.empty() && element.empty())
             elements.push_back("/");
+        else if (has_file_scheme && !has_host && utils::platform::is_windows()
+            && std::regex_match(element.begin(), element.end(), windows_drive))
+            win_root_dir = element;
         else
             elements.push_back(element);
     }
 
     std::string ret = "";
-    // Check if there is any element to process further
-    if (elements.empty())
-        return ret;
+
+    if (!win_root_dir.empty())
+        ret.append(win_root_dir);
 
     // Append elements to uri
     while (!elements.empty())
@@ -271,7 +276,7 @@ resource_location resource_location::lexically_normal() const
         return static_cast<const char>(tolower(c));
     });
 
-    dis_uri.path = normalize_path(dis_uri.path);
+    dis_uri.path = normalize_path(dis_uri.path, dis_uri.scheme == "file", dis_uri.contains_host());
     normalize_windows_like_uri(dis_uri);
 
     dis_uri.path = utils::encoding::percent_encode_and_ignore_utf8(dis_uri.path);
