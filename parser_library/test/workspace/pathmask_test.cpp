@@ -18,9 +18,11 @@
 
 #include "workspaces/wildcard.h"
 
-bool check_mask_matching(std::string_view pattern, std::string encoded_path)
+bool check_mask_matching(std::string_view pattern, std::string_view encoded_path)
 {
-    return std::regex_match(encoded_path, hlasm_plugin::parser_library::workspaces::percent_encoded_pathmask_to_regex(pattern));
+    return std::regex_match(encoded_path.begin(),
+        encoded_path.end(),
+        hlasm_plugin::parser_library::workspaces::percent_encoded_pathmask_to_regex(pattern));
 }
 
 TEST(percent_encoded_pathmask, pass)

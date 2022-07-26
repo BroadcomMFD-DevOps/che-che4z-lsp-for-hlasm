@@ -27,9 +27,21 @@ const std::regex slash("\\\\");
 const std::string single_url_char_matcher = []() {
     const std::string utf_8_continuation_matcher = "(?:%[89AB][0-9A-F])";
     const std::string utf_8_1_byte_matcher = "%[0-7][0-9A-F]";
-    const std::string utf_8_2_byte_matcher = "%[CD][0-9A-F]" + utf_8_continuation_matcher;
-    const std::string utf_8_3_byte_matcher = "%E[0-9A-F]" + utf_8_continuation_matcher + "{2}";
-    const std::string utf_8_4_byte_matcher = "%F[0-7]" + utf_8_continuation_matcher + "{3}";
+    const std::string utf_8_2_byte_matcher = "%(?:(?:C[2-9A-F])|(?:D[0-9A-F]))" + utf_8_continuation_matcher;
+
+    const std::string utf_8_3_byte_pattern_overlongs = "0%[AB]";
+    const std::string utf_8_3_byte_pattern_straight = "[1-9A-CF]" + utf_8_continuation_matcher;
+    const std::string utf_8_3_byte_pattern_surrogates = "D%[89]";
+    const std::string utf_8_3_byte_matcher = "%E(?:" + utf_8_3_byte_pattern_straight
+        + "|(?:" + utf_8_3_byte_pattern_overlongs + "|" + utf_8_3_byte_pattern_surrogates + ")[0-9A-F])"
+        + utf_8_continuation_matcher;
+
+    const std::string utf_8_4_byte_pattern_planes_1_3 = "0%[9AB]";
+    const std::string utf_8_4_byte_pattern_planes_4_15 = "[1-3]" + utf_8_continuation_matcher;
+    const std::string utf_8_4_byte_pattern_plane_16 = "4%8";
+    const std::string utf_8_4_byte_matcher = "%F(?:" + utf_8_4_byte_pattern_planes_4_15
+        + "|(?:" + utf_8_4_byte_pattern_planes_1_3 + "|" + utf_8_4_byte_pattern_plane_16 + ")[0-9A-F])"
+        + utf_8_continuation_matcher + "{2}";
 
     const std::string utf_8_char_matcher =
         utf_8_4_byte_matcher + "|" + utf_8_3_byte_matcher + "|" + utf_8_2_byte_matcher + "|" + utf_8_1_byte_matcher;

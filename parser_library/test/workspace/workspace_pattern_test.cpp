@@ -27,12 +27,10 @@ using namespace hlasm_plugin::utils::resource;
 using hlasm_plugin::utils::platform::is_windows;
 
 namespace {
-
-// const std::string user_dir = is_windows() ? "C:/User/" : "/home/User/";
 const std::string file_scheme_user_dir = is_windows() ? "file:///C:/User/" : "file:///home/User/";
 const std::string file_scheme_user_dir_encoded = is_windows() ? "file:///C%3A/User/" : "file:///home/User/";
 
-std::string pgroups_generator(std::vector<std::string_view> lib_paths)
+std::string pgroups_generator(std::vector<std::string> lib_paths)
 {
     std::string lib_path;
     bool first = true;
@@ -60,7 +58,7 @@ std::string pgroups_generator(std::vector<std::string_view> lib_paths)
 })";
 }
 
-std::string pgmconf_generator(std::string_view program)
+std::string pgmconf_generator(std::string program)
 {
     return R"({
   "pgms": [
