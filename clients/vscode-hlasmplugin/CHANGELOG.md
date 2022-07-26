@@ -2,6 +2,9 @@
 
 ## ****Unreleased****
 
+### Fixed
+- Improve performance of file system event processing
+
 ## [1.3.0](https://github.com/eclipse/che-che4z-lsp-for-hlasm/compare/1.2.0...1.3.0) (2022-06-30)
 
 #### Added
