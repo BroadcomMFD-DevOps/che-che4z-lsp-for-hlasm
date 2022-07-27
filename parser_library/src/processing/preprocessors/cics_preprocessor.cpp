@@ -887,6 +887,10 @@ public:
             m_result.emplace_back(replaced_line { "         DFHEIEND                  INSERTED BY TRANSLATOR\n" });
         }
     }
+    void inject_DFHEISTG()
+    {
+        m_result.emplace_back(replaced_line { "         DFHEISTG                  INSERTED BY TRANSLATOR\n" });
+    }
 
     bool try_asm_xopts(std::string_view input, size_t lineno)
     {
@@ -1135,6 +1139,16 @@ public:
             {
                 process_asm_statement(*m_matches_sv[1].first);
                 m_result.emplace_back(*it++);
+                skip_continuation = is_continued(text);
+                continue;
+            }
+
+            static const std::regex dfheistg_dsect("DFHEISTG[ ]+DSECT(?: .+)?");
+
+            if (std::regex_match(line.begin(), line.end(), m_matches_sv, dfheistg_dsect))
+            {
+                m_result.emplace_back(*it++);
+                inject_DFHEISTG();
                 skip_continuation = is_continued(text);
                 continue;
             }

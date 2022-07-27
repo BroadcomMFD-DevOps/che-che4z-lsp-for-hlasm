@@ -253,8 +253,8 @@ void from_json(const nlohmann::json& j, processor_group& p)
     {
         if (it->is_array())
         {
-            for (auto nested_it = it->begin(); nested_it != it->end(); ++nested_it)
-                add_single_preprocessor(p.preprocessors, *nested_it);
+            for (const auto& nested_j : *it)
+                add_single_preprocessor(p.preprocessors, nested_j);
         }
         else
             add_single_preprocessor(p.preprocessors, *it);

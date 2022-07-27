@@ -190,6 +190,14 @@ INSTANTIATE_TEST_SUITE_P(cics_preprocessor,
                 "         DFHEIMSG 4",
             },
         } },
+        { {
+            { "DFHEISTG DSECT\n END", cics_preprocessor_options(false, false, false) },
+            {
+                "DFHEISTG DSECT",
+                "         DFHEISTG                  INSERTED BY TRANSLATOR",
+                " END",
+            },
+        } },
     }));
 
 class cics_preprocessor_dfh_fixture
