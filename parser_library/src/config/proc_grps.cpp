@@ -14,11 +14,23 @@
 
 #include "proc_grps.h"
 
+#include <array>
+
 #include "assembler_options.h"
 #include "instruction_set_version.h"
 #include "nlohmann/json.hpp"
 
 namespace hlasm_plugin::parser_library::config {
+
+bool preprocessor_options::valid() const noexcept
+{
+    return std::visit([](const auto& t) { return t.valid(); }, options);
+}
+
+std::string_view preprocessor_options::type() const noexcept
+{
+    return std::visit([]<typename T>(const T&) { return T::name; }, options);
+}
 
 void to_json(nlohmann::json& j, const library& p)
 {
@@ -47,11 +59,11 @@ void to_json(nlohmann::json& j, const db2_preprocessor& v)
     static const db2_preprocessor default_config;
     if (v == default_config)
     {
-        j = "DB2";
+        j = db2_preprocessor::name;
         return;
     }
     j = nlohmann::json {
-        { "name", "DB2" },
+        { "name", db2_preprocessor::name },
         {
             "options",
             {
@@ -90,12 +102,12 @@ void to_json(nlohmann::json& j, const cics_preprocessor& v)
     static const cics_preprocessor default_config;
     if (v == default_config)
     {
-        j = "CICS";
+        j = cics_preprocessor::name;
         return;
     }
 
     j = nlohmann::json {
-        { "name", "CICS" },
+        { "name", cics_preprocessor::name },
         {
             "options",
             nlohmann::json::array({
@@ -141,7 +153,7 @@ void from_json(const nlohmann::json& j, cics_preprocessor& v)
     }
 }
 
-void to_json(nlohmann::json& j, const endevor_preprocessor&) { j = "ENDEVOR"; }
+void to_json(nlohmann::json& j, const endevor_preprocessor&) { j = endevor_preprocessor::name; }
 void from_json(const nlohmann::json&, endevor_preprocessor& v) { v = endevor_preprocessor(); }
 
 namespace {
@@ -186,28 +198,24 @@ T& emplace_options(std::vector<preprocessor_options>& preprocessors)
     return std::get<T>(preprocessors.emplace_back(preprocessor_options { T() }).options);
 }
 
-constexpr const std::pair<std::string_view,
-    void (*)(std::vector<preprocessor_options>& preprocessors, const nlohmann::json& j)>
-    preprocessor_list[] = {
-        {
-            "DB2",
-            +[](std::vector<preprocessor_options>& preprocessors, const nlohmann::json& j) {
-                j.get_to(emplace_options<db2_preprocessor>(preprocessors));
-            },
-        },
-        {
-            "CICS",
-            +[](std::vector<preprocessor_options>& preprocessors, const nlohmann::json& j) {
-                j.get_to(emplace_options<cics_preprocessor>(preprocessors));
-            },
-        },
-        {
-            "ENDEVOR",
-            +[](std::vector<preprocessor_options>& preprocessors, const nlohmann::json& j) {
-                j.get_to(emplace_options<endevor_preprocessor>(preprocessors));
-            },
-        },
-    };
+template<typename T>
+constexpr auto generate_preprocessor_entry()
+{
+    return std::make_pair(
+        T::name, +[](std::vector<preprocessor_options>& preprocessors, const nlohmann::json& j) {
+            j.get_to(emplace_options<T>(preprocessors));
+        });
+}
+
+template<typename T>
+struct preprocessor_list_generator;
+template<typename... Ts>
+struct preprocessor_list_generator<std::variant<Ts...>>
+{
+    static constexpr const std::array list = { generate_preprocessor_entry<Ts>()... };
+};
+
+constexpr const auto preprocessor_list = preprocessor_list_generator<decltype(preprocessor_options::options)>::list;
 
 constexpr auto find_preprocessor_deserializer(std::string_view name)
 {
@@ -264,31 +272,6 @@ void from_json(const nlohmann::json& j, proc_grps& p)
     j.at("pgroups").get_to(p.pgroups);
     if (auto it = j.find("macro_extensions"); it != j.end())
         it->get_to(p.macro_extensions);
-}
-
-namespace {
-struct preprocessor_validator
-{
-    template<typename T>
-    bool operator()(const T& t) const noexcept
-    {
-        return t.valid();
-    }
-};
-
-struct preprocessor_type_visitor
-{
-    std::string_view operator()(const db2_preprocessor&) const noexcept { return "DB2"; }
-    std::string_view operator()(const cics_preprocessor&) const noexcept { return "CICS"; }
-    std::string_view operator()(const endevor_preprocessor&) const noexcept { return "ENDEVOR"; }
-};
-} // namespace
-
-bool preprocessor_options::valid() const noexcept { return std::visit(preprocessor_validator {}, options); }
-
-std::string_view preprocessor_options::type() const noexcept
-{
-    return std::visit(preprocessor_type_visitor(), options);
 }
 
 } // namespace hlasm_plugin::parser_library::config
