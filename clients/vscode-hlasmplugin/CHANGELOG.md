@@ -2,6 +2,9 @@
 
 ## ****Unreleased****
 
+#### Added
+- Command for downloading copybook datasets from the mainframe
+
 ### Fixed
 - Improve performance of file system event processing
 
