@@ -45,8 +45,8 @@ public:
     bool lexically_out_of_scope() const;
 
     // Join behaves very similarly to std::filesystem functions
-    void join(std::string other);
-    static resource_location join(resource_location rl, std::string other);
+    void join(std::string_view other);
+    static resource_location join(resource_location rl, std::string_view other);
 
     // Relative reference resolution based on RFC 3986
     void relative_reference_resolution(std::string_view other);

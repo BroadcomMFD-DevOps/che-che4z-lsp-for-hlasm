@@ -348,23 +348,23 @@ bool resource_location::lexically_out_of_scope() const
     return m_uri == std::string_view("..") || m_uri.starts_with("../") || m_uri.starts_with("..\\");
 }
 
-void resource_location::join(std::string other)
+void resource_location::join(std::string_view other)
 {
     if (utils::path::is_uri(other))
-        m_uri = std::move(other);
+        m_uri = other;
     else if (other.starts_with("/"))
     {
         auto dis_uri = utils::path::dissect_uri(m_uri);
-        dis_uri.path = std::move(other);
+        dis_uri.path = other;
         m_uri = utils::path::reconstruct_uri(dis_uri);
     }
     else
         uri_append(m_uri, other);
 }
 
-resource_location resource_location::join(resource_location rl, std::string other)
+resource_location resource_location::join(resource_location rl, std::string_view other)
 {
-    rl.join(std::move(other));
+    rl.join(other);
 
     return rl;
 }

@@ -108,9 +108,9 @@ bool try_to_parse_encoded(std::back_insert_iterator<std::string>& out, std::stri
 
     return true;
 }
+} // namespace
 
-std::string encode_internal(
-    std::string_view s, std::function<bool(std::back_insert_iterator<std::string>&, std::string_view&)> encode_checker)
+std::string percent_encode(std::string_view s)
 {
     std::string uri;
     uri.reserve(s.size());
@@ -118,9 +118,6 @@ std::string encode_internal(
 
     while (!s.empty())
     {
-        if (encode_checker && encode_checker(out, s))
-            continue;
-
         auto c = s.front();
         if (c == '\\')
             c = '/';
@@ -131,10 +128,24 @@ std::string encode_internal(
 
     return uri;
 }
+std::string percent_encode_and_ignore_utf8(std::string_view s)
+{
+    std::string uri;
+    uri.reserve(s.size());
+    auto out = std::back_inserter(uri);
 
-} // namespace
+    while (!s.empty())
+    {
+        if (try_to_parse_encoded(out, s))
+            continue;
 
-std::string percent_encode(std::string_view s) { return encode_internal(s, nullptr); }
+        auto c = s.front();
+        if (c == '\\')
+            c = '/';
 
-std::string percent_encode_and_ignore_utf8(std::string_view s) { return encode_internal(s, &try_to_parse_encoded); }
+        network::detail::encode_char(c, out, "/.*?");
+        s.remove_prefix(1);
+    }
+    return uri;
+}
 } // namespace hlasm_plugin::utils::encoding
