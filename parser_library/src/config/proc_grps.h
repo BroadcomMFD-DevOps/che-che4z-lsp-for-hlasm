@@ -67,6 +67,8 @@ struct preprocessor_options
 
     bool valid() const noexcept;
 
+    std::string_view type() const noexcept;
+
     friend bool operator==(const preprocessor_options&, const preprocessor_options&) = default;
 };
 

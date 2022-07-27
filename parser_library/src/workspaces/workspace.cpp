@@ -842,8 +842,12 @@ bool workspace::load_config(config::proc_grps& proc_groups,
             if (!pg.asm_options.valid())
                 config_diags_.push_back(
                     diagnostic_s::error_W0005(proc_grps_file->get_location(), pg.name, "processor group"));
-            if (std::any_of(pg.preprocessors.begin(), pg.preprocessors.end(), [](const auto& x) { return !x.valid(); }))
-                config_diags_.push_back(diagnostic_s::error_W0006(proc_grps_file->get_location(), pg.name));
+            for (const auto& p : pg.preprocessors)
+            {
+                if (!p.valid())
+                    config_diags_.push_back(
+                        diagnostic_s::error_W0006(proc_grps_file->get_location(), pg.name, p.type()));
+            }
         }
     }
     catch (const nlohmann::json::exception&)

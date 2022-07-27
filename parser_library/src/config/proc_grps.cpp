@@ -234,8 +234,19 @@ struct preprocessor_validator
         return t.valid();
     }
 };
+
+struct preprocessor_type_visitor
+{
+    std::string_view operator()(const db2_preprocessor&) const noexcept { return "DB2"; }
+    std::string_view operator()(const cics_preprocessor&) const noexcept { return "CICS"; }
+};
 } // namespace
 
 bool preprocessor_options::valid() const noexcept { return std::visit(preprocessor_validator {}, options); }
+
+std::string_view preprocessor_options::type() const noexcept
+{
+    return std::visit(preprocessor_type_visitor(), options);
+}
 
 } // namespace hlasm_plugin::parser_library::config
