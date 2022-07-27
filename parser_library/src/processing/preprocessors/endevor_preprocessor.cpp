@@ -36,13 +36,13 @@ public:
     {}
 
     // Inherited via preprocessor
-    virtual document generate_replacement(document doc) override
+    document generate_replacement(document doc) override
     {
         if (std::none_of(doc.begin(), doc.end(), [](const auto& l) {
                 auto text = l.text();
                 return text.starts_with("-INC ") || text.starts_with("++INCLUDE ");
             }))
-            return std::move(doc);
+            return doc;
 
         static std::regex include_regex(R"(^(?:-INC|\+\+INCLUDE)\s+(\S+))");
 
@@ -83,8 +83,7 @@ public:
             const auto& line = *entry.current;
             entry.next();
 
-            const auto& text = line.text();
-            if (!std::regex_search(text.begin(), text.end(), matches, include_regex))
+            if (const auto& text = line.text(); !std::regex_search(text.begin(), text.end(), matches, include_regex))
             {
                 result.push_back(line);
                 continue;

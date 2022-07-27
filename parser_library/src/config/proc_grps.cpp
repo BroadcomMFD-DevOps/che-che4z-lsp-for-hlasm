@@ -179,6 +179,61 @@ void to_json(nlohmann::json& j, const processor_group& p)
     }
 }
 
+namespace {
+template<typename T>
+T& emplace_options(std::vector<preprocessor_options>& preprocessors)
+{
+    return std::get<T>(preprocessors.emplace_back(preprocessor_options { T() }).options);
+}
+
+constexpr const std::pair<std::string_view,
+    void (*)(std::vector<preprocessor_options>& preprocessors, const nlohmann::json& j)>
+    preprocessor_list[] = {
+        {
+            "DB2",
+            +[](std::vector<preprocessor_options>& preprocessors, const nlohmann::json& j) {
+                j.get_to(emplace_options<db2_preprocessor>(preprocessors));
+            },
+        },
+        {
+            "CICS",
+            +[](std::vector<preprocessor_options>& preprocessors, const nlohmann::json& j) {
+                j.get_to(emplace_options<cics_preprocessor>(preprocessors));
+            },
+        },
+        {
+            "ENDEVOR",
+            +[](std::vector<preprocessor_options>& preprocessors, const nlohmann::json& j) {
+                j.get_to(emplace_options<endevor_preprocessor>(preprocessors));
+            },
+        },
+    };
+
+constexpr auto find_preprocessor_deserializer(std::string_view name)
+{
+    auto it = std::find_if(std::begin(preprocessor_list), std::end(preprocessor_list), [&name](const auto& entry) {
+        return entry.first == name;
+    });
+    return it != std::end(preprocessor_list) ? it->second : nullptr;
+}
+
+void add_single_preprocessor(std::vector<preprocessor_options>& preprocessors, const nlohmann::json& j)
+{
+    std::string p_name;
+    if (j.is_string())
+        p_name = j.get<std::string>();
+    else if (j.is_object())
+        j.at("name").get_to(p_name);
+
+    std::transform(p_name.begin(), p_name.end(), p_name.begin(), [](unsigned char c) { return (char)toupper(c); });
+    if (auto deserializer = find_preprocessor_deserializer(p_name); deserializer)
+        deserializer(preprocessors, j);
+    else
+        throw nlohmann::json::other_error::create(501, "Unable to identify requested preprocessor.", j);
+}
+
+} // namespace
+
 void from_json(const nlohmann::json& j, processor_group& p)
 {
     j.at("name").get_to(p.name);
@@ -188,36 +243,13 @@ void from_json(const nlohmann::json& j, processor_group& p)
 
     if (auto it = j.find("preprocessor"); it != j.end())
     {
-        const auto add_single_pp = [&p](nlohmann::json::const_iterator it) {
-            std::string p_name;
-            if (it->is_string())
-                p_name = it->get<std::string>();
-            else if (it->is_object())
-                it->at("name").get_to(p_name);
-            else
-                throw nlohmann::json::other_error::create(501, "Unable to identify requested preprocessor.", *it);
-
-            std::transform(
-                p_name.begin(), p_name.end(), p_name.begin(), [](unsigned char c) { return (char)toupper(c); });
-            if (p_name == "DB2")
-                it->get_to(std::get<db2_preprocessor>(
-                    p.preprocessors.emplace_back(preprocessor_options { db2_preprocessor() }).options));
-            else if (p_name == "CICS")
-                it->get_to(std::get<cics_preprocessor>(
-                    p.preprocessors.emplace_back(preprocessor_options { cics_preprocessor() }).options));
-            else if (p_name == "ENDEVOR")
-                it->get_to(std::get<endevor_preprocessor>(
-                    p.preprocessors.emplace_back(preprocessor_options { endevor_preprocessor() }).options));
-            else
-                throw nlohmann::json::other_error::create(501, "Unable to identify requested preprocessor.", *it);
-        };
         if (it->is_array())
         {
             for (auto nested_it = it->begin(); nested_it != it->end(); ++nested_it)
-                add_single_pp(nested_it);
+                add_single_preprocessor(p.preprocessors, *nested_it);
         }
         else
-            add_single_pp(it);
+            add_single_preprocessor(p.preprocessors, *it);
     }
 }
 
