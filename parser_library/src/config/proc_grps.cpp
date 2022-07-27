@@ -141,13 +141,19 @@ void from_json(const nlohmann::json& j, cics_preprocessor& v)
     }
 }
 
+void to_json(nlohmann::json& j, const endevor_preprocessor&) { j = "ENDEVOR"; }
+void from_json(const nlohmann::json&, endevor_preprocessor& v) { v = endevor_preprocessor(); }
+
 namespace {
 struct preprocessor_visitor
 {
     nlohmann::json& j;
 
-    void operator()(const db2_preprocessor& p) const { j = p; }
-    void operator()(const cics_preprocessor& p) const { j = p; }
+    template<typename T>
+    void operator()(const T& p) const
+    {
+        j = p;
+    }
 };
 } // namespace
 
@@ -199,6 +205,9 @@ void from_json(const nlohmann::json& j, processor_group& p)
             else if (p_name == "CICS")
                 it->get_to(std::get<cics_preprocessor>(
                     p.preprocessors.emplace_back(preprocessor_options { cics_preprocessor() }).options));
+            else if (p_name == "ENDEVOR")
+                it->get_to(std::get<endevor_preprocessor>(
+                    p.preprocessors.emplace_back(preprocessor_options { endevor_preprocessor() }).options));
             else
                 throw nlohmann::json::other_error::create(501, "Unable to identify requested preprocessor.", *it);
         };
@@ -239,6 +248,7 @@ struct preprocessor_type_visitor
 {
     std::string_view operator()(const db2_preprocessor&) const noexcept { return "DB2"; }
     std::string_view operator()(const cics_preprocessor&) const noexcept { return "CICS"; }
+    std::string_view operator()(const endevor_preprocessor&) const noexcept { return "ENDEVOR"; }
 };
 } // namespace
 

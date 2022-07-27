@@ -61,9 +61,19 @@ struct cics_preprocessor
 void to_json(nlohmann::json& j, const cics_preprocessor& p);
 void from_json(const nlohmann::json& j, cics_preprocessor& p);
 
+struct endevor_preprocessor
+{
+    bool valid() const noexcept { return true; }
+
+    friend bool operator==(const endevor_preprocessor&, const endevor_preprocessor&) = default;
+};
+
+void to_json(nlohmann::json& j, const endevor_preprocessor& p);
+void from_json(const nlohmann::json& j, endevor_preprocessor& p);
+
 struct preprocessor_options
 {
-    std::variant<db2_preprocessor, cics_preprocessor> options;
+    std::variant<db2_preprocessor, cics_preprocessor, endevor_preprocessor> options;
 
     bool valid() const noexcept;
 
