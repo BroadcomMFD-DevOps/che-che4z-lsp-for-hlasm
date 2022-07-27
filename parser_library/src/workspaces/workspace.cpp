@@ -562,7 +562,7 @@ utils::resource::resource_location transform_to_resource_location(
             rl =
                 utils::resource::resource_location::join(base_resource_location, utils::encoding::percent_encode(path));
         else
-            rl = utils::resource::resource_location::join(base_resource_location, std::string(path));
+            rl = utils::resource::resource_location::join(base_resource_location, path);
     }
 
     return rl.lexically_normal();
