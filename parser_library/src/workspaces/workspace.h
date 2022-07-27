@@ -115,7 +115,7 @@ public:
     const processor_group& get_proc_grp(const proc_grp_id& proc_grp) const;
     const processor_group& get_proc_grp_by_program(const utils::resource::resource_location& file_location) const;
     const processor_group& get_proc_grp_by_program(const program& program) const;
-    const program* get_program(utils::resource::resource_location) const;
+    const program* get_program(const utils::resource::resource_location& program) const;
 
     workspace_file_info parse_file(const utils::resource::resource_location& file_location);
     workspace_file_info parse_successful(const processor_file_ptr& f);
@@ -124,7 +124,7 @@ public:
     void did_close_file(const utils::resource::resource_location& file_location);
     void did_change_file(
         const utils::resource::resource_location& file_location, const document_change* changes, size_t ch_size);
-    void did_change_watched_files(const utils::resource::resource_location& file_location);
+    void did_change_watched_files(const std::vector<utils::resource::resource_location>& file_locations);
 
     location definition(const utils::resource::resource_location& document_loc, position pos) const override;
     location_list references(const utils::resource::resource_location& document_loc, position pos) const override;
