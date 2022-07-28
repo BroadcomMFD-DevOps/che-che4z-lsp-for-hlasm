@@ -193,8 +193,19 @@ INSTANTIATE_TEST_SUITE_P(cics_preprocessor,
         { {
             { "DFHEISTG DSECT\n END", cics_preprocessor_options(false, false, false) },
             {
+                "         DFHEIGBL ,,,NOLE          INSERTED BY TRANSLATOR",
+                "DFHEISTG DSECT",
+                " END",
+            },
+        } },
+        { {
+            { "DFHEISTG DSECT\n END", cics_preprocessor_options(true, false, false) },
+            {
+                "         DFHEIGBL ,,,NOLE          INSERTED BY TRANSLATOR",
                 "DFHEISTG DSECT",
                 "         DFHEISTG                  INSERTED BY TRANSLATOR",
+                "         DFHEISTG                  INSERTED BY TRANSLATOR",
+                "         DFHEIEND                  INSERTED BY TRANSLATOR",
                 " END",
             },
         } },
