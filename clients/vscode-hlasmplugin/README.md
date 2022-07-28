@@ -19,7 +19,7 @@ HLASM Language Support is also part of [Code4z](https://marketplace.visualstudio
 
 ## Compatibility
 
-HLASM Language Support is supported on Visual Studio Code and Github Codespaces.
+HLASM Language Support is supported on Visual Studio Code and GitHub Codespaces.
 
 ## Integration with Zowe Explorer
 
@@ -57,7 +57,7 @@ The HLASM Language Support extension parses and analyzes all parts of a HLASM pr
 
 ## LSP Features
 ### Highlighting
-The HLASM Language Support extension highlights statements with different colors for labels, instructions, operands, remarks and variables. Statements containing instructions that can have operands are highlighted differently to statements that do not expect operands. Code that is skipped by branching AIF, AGO or conditional assembly is not colored.
+The HLASM Language Support extension highlights statements with different colors for labels, instructions, operands, remarks and variables. Statements containing instructions that can have operands are highlighted differently to statements that do not expect operands. Code that is skipped by branching `AIF`, `AGO` or conditional assembly is not colored.
 
 ![](https://github.com/eclipse/che-che4z-lsp-for-hlasm/raw/master/clients/vscode-hlasmplugin/readme_res/highlighting.png)
 
@@ -81,13 +81,13 @@ The macro tracer is not a debugger. It cannot debug running executables, it only
 ### Configuring the Macro Tracer
 
 1. Open your workspace.
-2. In the left sidebar, click the bug icon to open the debugging panel (Ctrl + Shift + D).
+2. In the left sidebar, click the bug icon to open the debugging panel (`Ctrl + Shift + D`).
 3. Select `create a launch.json file`.  
    File `launch.json` opens with pre-filled configuration and your workspace is now configured for macro tracing.   
 
 ### Using the Macro Tracer
 
-To run the macro tracer, open the file that you want to trace. Then press **F5** to open the debugging panel and start the debugging session.
+To run the macro tracer, open the file that you want to trace. Then press **`F5`** to open the debugging panel and start the debugging session.
 
 When the tracer stops at a macro or COPY instruction, you can select **step into** to open the macro or COPY file, or **step over** to skip to the next line.
 
@@ -187,7 +187,7 @@ The program name in `pgm_conf.json` can be wildcarded, as in the following examp
 ```
 In this example, GROUP1 is used for all open code programs.
 
-Assembler options defined by the processor group can be overriden in the `pgm_conf.json` file as shown in the following example:
+Assembler options defined by the processor group can be overridden in the `pgm_conf.json` file as shown in the following example:
 ```
 {
   "pgms": [
@@ -205,7 +205,7 @@ Assembler options defined by the processor group can be overriden in the `pgm_co
 ---
 ### File Extensions
 
-The `alwaysRecognize` option in `pgm_conf.json` has been deprecated in favour of the standard VSCode user and workspace level setting `file.associations`.
+The `alwaysRecognize` option in `pgm_conf.json` has been deprecated in favor of the standard VSCode user and workspace level setting `file.associations`.
 
 `proc_grps.json` can include an optional parameter `macro_extensions` which contains a list of extensions that are to be used to identify files with macro definitions.
 The options can be specified both at the top level of the file, providing the default list for all libraries in all process groups, and at the level of individual library definitions, overriding the default from the top level.
