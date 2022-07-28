@@ -1094,6 +1094,15 @@ public:
         return events;
     }
 
+    static bool is_process_line(std::string_view s)
+    {
+        static constexpr const std::string_view PROCESS = "*PROCESS ";
+        return s.size() >= PROCESS.size()
+            && std::equal(PROCESS.begin(), PROCESS.end(), s.begin(), [](unsigned char l, unsigned char r) {
+                   return l == toupper(r);
+               });
+    }
+
     // Inherited via preprocessor
     document generate_replacement(document doc) override
     {
@@ -1104,6 +1113,7 @@ public:
         const auto end = doc.end();
 
         bool skip_continuation = false;
+        bool asm_xopts_allowed = true;
         while (it != end)
         {
             const auto text = it->text();
@@ -1122,12 +1132,21 @@ public:
 
             const auto lineno = it->lineno().value_or(0); // TODO: preprocessor chaining
 
-            if (lineno == 0 && try_asm_xopts(it->text(), lineno))
+            if (asm_xopts_allowed && is_process_line(text))
             {
                 m_result.emplace_back(*it++);
                 // ignores continuation
                 continue;
             }
+
+            if (asm_xopts_allowed && try_asm_xopts(it->text(), lineno))
+            {
+                m_result.emplace_back(*it++);
+                // ignores continuation
+                continue;
+            }
+
+            asm_xopts_allowed = false;
 
             auto [line, line_len_chars, _] = create_line_preview(text);
 

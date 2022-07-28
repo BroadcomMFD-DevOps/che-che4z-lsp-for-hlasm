@@ -209,6 +209,14 @@ INSTANTIATE_TEST_SUITE_P(cics_preprocessor,
                 " END",
             },
         } },
+        { {
+            { "*PROCESS OVERRIDE(RENT)\n*ASM XOPTS(NOPROLOG,NOEPILOG)\n END", cics_preprocessor_options() },
+            {
+                "*PROCESS OVERRIDE(RENT)",
+                "*ASM XOPTS(NOPROLOG,NOEPILOG)",
+                " END",
+            },
+        } },
     }));
 
 class cics_preprocessor_dfh_fixture
