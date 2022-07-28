@@ -54,23 +54,30 @@ void from_json(const nlohmann::json& j, library& p)
         throw nlohmann::json::other_error::create(501, "Unexpected JSON type.", j);
 }
 
-void to_json(nlohmann::json& j, const db2_preprocessor& v)
+template<typename T>
+bool to_json_preprocessor_defaults(nlohmann::json& j, const T& v)
 {
-    static const db2_preprocessor default_config;
+    static const T default_config;
     if (v == default_config)
     {
-        j = db2_preprocessor::name;
-        return;
+        j = T::name;
+        return true;
     }
+
     j = nlohmann::json {
-        { "name", db2_preprocessor::name },
-        {
-            "options",
-            {
-                { "conditional", v.conditional },
-                { "version", v.version },
-            },
-        },
+        { "name", T::name },
+    };
+    return false;
+}
+
+void to_json(nlohmann::json& j, const db2_preprocessor& v)
+{
+    if (to_json_preprocessor_defaults(j, v))
+        return;
+
+    j["options"] = nlohmann::json {
+        { "conditional", v.conditional },
+        { "version", v.version },
     };
 }
 void from_json(const nlohmann::json& j, db2_preprocessor& v)
@@ -99,24 +106,14 @@ void from_json(const nlohmann::json& j, db2_preprocessor& v)
 
 void to_json(nlohmann::json& j, const cics_preprocessor& v)
 {
-    static const cics_preprocessor default_config;
-    if (v == default_config)
-    {
-        j = cics_preprocessor::name;
+    if (to_json_preprocessor_defaults(j, v))
         return;
-    }
 
-    j = nlohmann::json {
-        { "name", cics_preprocessor::name },
-        {
-            "options",
-            nlohmann::json::array({
-                v.prolog ? "PROLOG" : "NOPROLOG",
-                v.epilog ? "EPILOG" : "NOEPILOG",
-                v.leasm ? "LEASM" : "NOLEASM",
-            }),
-        },
-    };
+    j["options"] = nlohmann::json::array({
+        v.prolog ? "PROLOG" : "NOPROLOG",
+        v.epilog ? "EPILOG" : "NOEPILOG",
+        v.leasm ? "LEASM" : "NOLEASM",
+    });
 }
 
 namespace {
@@ -153,7 +150,11 @@ void from_json(const nlohmann::json& j, cics_preprocessor& v)
     }
 }
 
-void to_json(nlohmann::json& j, const endevor_preprocessor&) { j = endevor_preprocessor::name; }
+void to_json(nlohmann::json& j, const endevor_preprocessor& v)
+{
+    if (to_json_preprocessor_defaults(j, v))
+        return;
+}
 void from_json(const nlohmann::json&, endevor_preprocessor& v) { v = endevor_preprocessor(); }
 
 namespace {
