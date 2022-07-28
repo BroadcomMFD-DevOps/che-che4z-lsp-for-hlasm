@@ -104,8 +104,6 @@ The HLASM Language Support extension looks for locally stored members when a mac
 
 - `pgm_conf.json` provides a mapping between programs (open-code files) and processor groups. It specifies which list of directories is used with which program. 
 
-Note: Relative paths specified in `proc_grps.json` (for libraries) or in `pgm_conf.json` (for programs) are resolved with respect to the current workspace.
-
 To use a predefined set of macro and copy members, follow these steps: 
 1. Specify any number of library directories to search for macros and COPY files in `proc_grps.json`. These directories are searched in order they are listed. 
 2. Name the group of directories with an identifier.
@@ -117,14 +115,19 @@ The structure of the configuration is based on Endevor®. Ensure that you config
 Visual Studio Code workspace variables can be referenced in both configuration files using the standard syntax `${config:variable_name}`.
 
 ---
+**NOTE**
+
+Relative paths specified in `proc_grps.json` (for libraries) or in `pgm_conf.json` (for programs) are resolved with respect to the current workspace.
+
+---
 ### Example `proc_grps.json`:
 
 The following example defines two processor groups, GROUP1 and GROUP2, and a list of directories to search for macros and COPY files, it also defines the _SYSPARM_ assembler parameter for GROUP1. Additionally, if the library `MACLIB/` does not exist in the workspace, the plugin does not report it as an error. 
 
-The following wildcards can be used to locate libraries and/or programs as is shown in the path `C:/common/**/maclib`:
+Wildcards can be used to locate libraries and/or programs as is shown in the path mask `C:/common/**/maclib` below. Available wildcards are:
 - `?` -  Matches a single character but not a directory separator 
-- `*` -  Matches a continuous sequence of characters but not a directory separator
-- `**` - Matches a continuous sequence of characters including directory separators
+- `*` -  Matches 0 characters, 1 characters or a continuous sequence of characters but not a directory separator
+- `**` - Matches 0 characters, 1 character or a continuous sequence of characters including directory separators
 
 The order of libraries selected by a path mask is arbitrary. We therefore recommend you ensure that macro names within these libraries are unique.
 
@@ -176,6 +179,7 @@ The following example specifies that GROUP1 is used when working with `source_co
   ]
 }
 ```
+
 When you have both `proc_grps.json` and `pgm_conf.json` configured as above and you invoke the MAC1 macro from the `source_code`, the folder `ASMMAC/` in the current workspace is searched for a file with the name "MAC1". If "MAC1" file isn't found, the folder `C:/SYS.ASMMAC` is searched. If even this search is unsuccessful, an error saying that the macro does not exist is displayed.
 
 The program name in `pgm_conf.json` can be wildcarded, as in the following example:
@@ -193,6 +197,7 @@ The program name in `pgm_conf.json` can be wildcarded, as in the following examp
 In this example, GROUP1 is used for all open code programs.
 
 Assembler options defined by the processor group can be overridden in the `pgm_conf.json` file as shown in the following example:
+
 ```
 {
   "pgms": [
@@ -263,7 +268,7 @@ In the `pgm_conf.json` above, the `source_code` file has a configuration, so all
 
 Processor groups can be configured so that the HLASM source will be processed with a preprocessor. Currently, there are the following preprocessor options available - `DB2`, `CICS` and `ENDEVOR`.
 
-The preprocessor option can be configured using the `preprocessor` key in a processor group:
+A preprocessor option can be configured using the `preprocessor` key in a processor group:
 ```
 {
   "pgroups": [
