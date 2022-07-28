@@ -217,6 +217,22 @@ INSTANTIATE_TEST_SUITE_P(cics_preprocessor,
                 " END",
             },
         } },
+        { {
+            { "*PROCESS OVERRIDE(RENT)\n*ASM cics(NOPROLOG,NOEPILOG)\n END", cics_preprocessor_options() },
+            {
+                "*PROCESS OVERRIDE(RENT)",
+                "*ASM cics(NOPROLOG,NOEPILOG)",
+                " END",
+            },
+        } },
+        { {
+            { "         DFHEISTG\n END", cics_preprocessor_options(false, false, false) },
+            {
+                "         DFHEIGBL ,,,NOLE          INSERTED BY TRANSLATOR",
+                "         DFHEISTG",
+                " END",
+            },
+        } },
     }));
 
 class cics_preprocessor_dfh_fixture

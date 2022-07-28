@@ -908,7 +908,8 @@ public:
 
         line = line.substr(0, lexing::default_ictl.end);
 
-        static const std::regex asm_statement(R"(\*ASM[ ]+[Xx][Oo][Pp][Tt][Ss][(']([A-Z, ]*)[)'](?: .*)?)");
+        static const std::regex asm_statement(
+            R"(\*ASM[ ]+(?:[Xx][Oo][Pp][Tt][Ss]|[Cc][Ii][Cc][Ss])[(']([A-Z, ]*)[)'](?: .*)?)");
         static const std::regex op_sep("[ ,]+");
         static const std::unordered_map<std::string_view, std::pair<bool cics_preprocessor_options::*, bool>> opts {
             { "PROLOG", { &cics_preprocessor_options::prolog, true } },
@@ -941,13 +942,16 @@ public:
         return true;
     }
 
-    bool process_asm_statement(char type, std::string_view sect_name)
+    bool process_asm_statement(std::string_view type, std::string_view sect_name)
     {
-        switch (type)
+        switch (type.front())
         {
             case 'D':
                 if (!std::exchange(m_global_macro_called, true))
                     inject_DFHEIGBL(false);
+                if (type.starts_with("DFHE"))
+                    return false;
+                // DSECT otherwise
                 if (sect_name != "DFHEISTG")
                     return false;
                 m_pending_dfheistg_prolog = m_options.prolog;
@@ -1168,10 +1172,12 @@ public:
                 continue;
             }
 
-            static const std::regex line_of_interest("([^ ]*)[ ]+(START|CSECT|RSECT|DSECT|END)(?: .+)?");
+            static const std::regex line_of_interest(
+                "([^ ]*)[ ]+(START|CSECT|RSECT|DSECT|DFHEIENT|DFHEISTG|END)(?: .+)?");
 
             if (std::regex_match(line.begin(), line.end(), m_matches_sv, line_of_interest)
-                && process_asm_statement(*m_matches_sv[2].first,
+                && process_asm_statement(
+                    std::string_view(std::to_address(m_matches_sv[2].first), m_matches_sv[2].length()),
                     std::string_view(std::to_address(m_matches_sv[1].first), m_matches_sv[1].length())))
             {
                 m_result.emplace_back(*it++);
