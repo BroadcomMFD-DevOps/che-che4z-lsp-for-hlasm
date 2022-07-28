@@ -44,12 +44,12 @@ External files are usually accessed during HLASM evaluation (e.g. due to use of 
 
 To do this, set up two configuration files — `proc_grps.json` and `pgm_conf.json`. Follow these steps:
 
-1. After you open a HLASM file for the first time, two pop-ups display. Select **Create `pgm_conf.json` with current program** and **Create empty `proc_grps.json`**. 
+1. After you open a HLASM file for the first time, two pop-ups display. Select **Create empty proc_grps.json** and **Create pgm_conf.json with this file**. 
    Two configuration files are then created with default values. They are stored in the `.hlasmplugin` subfolder.
 2. Navigate to the `proc_grps.json` file. This is the entry point where you can specify paths to macro definitions and COPY files. 
-3. Fill the `libs` array with the corresponding paths. For example, if you have your macro files in the `ASMMAC/` folder, add the string `"ASMMAC"` into the libs array. You can use either absolute or relative paths. Wildcards `?`, `*` and `**` can also be used.
+3. Fill the `libs` array with the corresponding paths. For example, if you have your macro files in the `ASMMAC/` folder, add the string `"ASMMAC"` into the libs array.
 
-Follow the section *External Macro Libraries and COPY Members* below for more detailed instructions on configuring the environment.
+Follow the section [External Macro Libraries and COPY Members](#External-Macro-Libraries-and-COPY-Members) below for more detailed instructions on configuring the environment.
 
 ## Language Features
 
@@ -87,7 +87,7 @@ The macro tracer is not a debugger. It cannot debug running executables, it only
 
 ### Using the Macro Tracer
 
-To run the macro tracer, open the file that you want to trace. Then press **`F5`** to open the debugging panel and start the debugging session.
+To run the macro tracer, open the file you want to trace. Then press **`F5`** to open the debugging panel and start the debugging session.
 
 When the tracer stops at a macro or COPY instruction, you can select **step into** to open the macro or COPY file, or **step over** to skip to the next line.
 
@@ -98,13 +98,13 @@ Breakpoints can be set before or during the debugging session.
 ## Configuration
 
 ### External Macro Libraries and COPY Members
-The HLASM Language Support extension looks for locally stored members when a macro or COPY instruction is evaluated. The paths of these members are specified in two configuration files in the `.hlasmplugin` folder of the currently open workspace:
+The HLASM Language Support extension looks for locally stored members when a macro call or COPY instruction is evaluated. The paths of these members are specified in two configuration files in the `.hlasmplugin` folder of the currently open workspace:
 
 - `proc_grps.json` defines _processor groups_ by assigning a group name to a list of directories. Hence, the group name serves as a unique identifier of a set of HLASM libraries defined by a list of directories (some of which can be optional). Additionaly, some assembler options can be specified in `asm_options` sections (`SYSPARM`, `SYSTEM_ID` and others).
 
 - `pgm_conf.json` provides a mapping between programs (open-code files) and processor groups. It specifies which list of directories is used with which program. 
 
-Note: If a relative path is specified for `proc_grps.json` (for libraries) or `pgm_conf.json` (for programs), it is relative to the current workspace.
+Note: Relative paths specified in `proc_grps.json` (for libraries) or in `pgm_conf.json` (for programs) are resolved with respect to the current workspace.
 
 To use a predefined set of macro and copy members, follow these steps: 
 1. Specify any number of library directories to search for macros and COPY files in `proc_grps.json`. These directories are searched in order they are listed. 
@@ -121,7 +121,12 @@ Visual Studio Code workspace variables can be referenced in both configuration f
 
 The following example defines two processor groups, GROUP1 and GROUP2, and a list of directories to search for macros and COPY files, it also defines the _SYSPARM_ assembler parameter for GROUP1. Additionally, if the library `MACLIB/` does not exist in the workspace, the plugin does not report it as an error. 
 
-The path `C:/common/**/maclib` contains the wildcard `**`, which matches any number of characters and directory separators. Path masks can also be specified using the wildcard `*`, which matches any number of characters but not directory separators, or using the wildcard `?`, which matches a single character but not a directory separator. The order of libraries selected by a path mask is arbitrary. We therefore recommend you ensure that macro names within these libraries are unique.
+The following wildcards can be used to locate libraries and/or programs as is shown in the path `C:/common/**/maclib`:
+- `?` -  Matches a single character but not a directory separator 
+- `*` -  Matches a continuous sequence of characters but not a directory separator
+- `**` - Matches a continuous sequence of characters including directory separators
+
+The order of libraries selected by a path mask is arbitrary. We therefore recommend you ensure that macro names within these libraries are unique.
 
 ```
 {
@@ -286,8 +291,27 @@ The preprocessor option can be configured using the `preprocessor` key in a proc
 }
 ```
 
-You can also chain the preprocessors in a following way:
+You can also chain the preprocessors in the following way:
 ```
+{
+  "pgroups": [
+    {
+      "name": "GROUP1",
+      "libs": [ "ASMMAC/" ],
+      "preprocessor": [
+        {
+          "name": "DB2"
+        },
+        {
+          "name": "CICS",
+          "options": [
+            "NOPROLOG"
+          ]
+        }
+      ]
+    }
+  ]
+}
 ```
 
 
