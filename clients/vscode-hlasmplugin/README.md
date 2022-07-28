@@ -33,7 +33,7 @@ For more information about the Zowe Explorer extension, see [Zowe Explorer](http
 
 Follow these steps to open a HLASM project:
 
-1. In **File** -> **Open Folder...** select the folder with the HLASM sources. <!-- (An example workspace is provided in the folder `example_workspace`.) Uncomment once PR#44 is merged-->
+1. In **File** -> **Open Folder...** select the folder with the HLASM sources. An example workspace is provided in the folder `example_workspace`.
 2. Open any HLASM source file (note that HLASM does not have a standard filename extension) or create a new file.
 3. If the auto-detection of HLASM language does not recognize the file, set it manually in the bottom-right corner of the VS Code window.  
 4. The extension is now enabled on the open file. If you have macro definitions in separate files or use the COPY instruction, you need to set up a workspace.
@@ -47,7 +47,7 @@ To do this, set up two configuration files — `proc_grps.json` and `pgm_conf.js
 1. After you open a HLASM file for the first time, two pop-ups display. Select **Create `pgm_conf.json` with current program** and **Create empty `proc_grps.json`**. 
    Two configuration files are then created with default values. They are stored in the `.hlasmplugin` subfolder.
 2. Navigate to the `proc_grps.json` file. This is the entry point where you can specify paths to macro definitions and COPY files. 
-3. Fill the `libs` array with the corresponding paths. For example, if you have your macro files in the `ASMMAC/` folder, add the string `"ASMMAC"` into the libs array. You can use either absolute or relative paths. Wildcards `?` and `*` can also be used.
+3. Fill the `libs` array with the corresponding paths. For example, if you have your macro files in the `ASMMAC/` folder, add the string `"ASMMAC"` into the libs array. You can use either absolute or relative paths. Wildcards `?`, `*` and `**` can also be used.
 
 Follow the section *External Macro Libraries and COPY Members* below for more detailed instructions on configuring the environment.
 
@@ -112,16 +112,16 @@ To use a predefined set of macro and copy members, follow these steps:
    You have created a new processor group.
 3. Use the identifier of the new processor group with the name of your source code file in `pgm_conf.json` to assign the library members to the program.
 
-The structure of the configuration is based on Endevor®. Ensure that you configure these files before using macros from separate files or the COPY instruction.
-When you open a HLASM file or manually set the HLASM language for a file, you can choose to automatically create these files for the current program.
+The structure of the configuration is based on Endevor®. Ensure that you configure these files before using macros or the COPY instruction.
 
-Visual Studio Code workspace variables can be referenced in both configuration files using the standard syntax (${config:variable_name}).
+Visual Studio Code workspace variables can be referenced in both configuration files using the standard syntax `${config:variable_name}`.
 
-Example `proc_grps.json`:
+---
+### Example `proc_grps.json`:
 
 The following example defines two processor groups, GROUP1 and GROUP2, and a list of directories to search for macros and COPY files, it also defines the _SYSPARM_ assembler parameter for GROUP1. Additionally, if the library `MACLIB/` does not exist in the workspace, the plugin does not report it as an error. 
 
-The path `C:/common/**/maclib` contains the wildcard `**`, which matches any number of characters and directory separators. Path masks can also be specified using the wildcard `*` which matches characters but not directory separators. The order of libraries selected by a path mask is arbitrary. We therefore recommend you ensure that macro names within these libraries are unique.
+The path `C:/common/**/maclib` contains the wildcard `**`, which matches any number of characters and directory separators. Path masks can also be specified using the wildcard `*`, which matches any number of characters but not directory separators, or using the wildcard `?`, which matches a single character but not a directory separator. The order of libraries selected by a path mask is arbitrary. We therefore recommend you ensure that macro names within these libraries are unique.
 
 ```
 {
@@ -153,7 +153,7 @@ The path `C:/common/**/maclib` contains the wildcard `**`, which matches any num
 }
 ```
 
-Example `pgm_conf.json`:
+### Example `pgm_conf.json`:
 
 The following example specifies that GROUP1 is used when working with `source_code` and GROUP2 is used when working with `second_file`.
 
@@ -171,7 +171,7 @@ The following example specifies that GROUP1 is used when working with `source_co
   ]
 }
 ```
-If you have the two configuration files configured as above and invoke the MAC1 macro from `source_code`, the folder `ASMMAC/` in the current workspace is searched for a file with the exact name "MAC1". If that search is unsuccessful the folder `C:/SYS.ASMMAC` is searched. If that search is unsuccessful an error displays that the macro does not exist.
+When you have both `proc_grps.json` and `pgm_conf.json` configured as above and you invoke the MAC1 macro from the `source_code`, the folder `ASMMAC/` in the current workspace is searched for a file with the name "MAC1". If "MAC1" file isn't found, the folder `C:/SYS.ASMMAC` is searched. If even this search is unsuccessful, an error saying that the macro does not exist is displayed.
 
 The program name in `pgm_conf.json` can be wildcarded, as in the following example:
 
@@ -202,7 +202,7 @@ Assembler options defined by the processor group can be overriden in the `pgm_co
   ]
 }
 ```
-
+---
 ### File Extensions
 
 The `alwaysRecognize` option in `pgm_conf.json` has been deprecated in favour of the standard VSCode user and workspace level setting `file.associations`.
@@ -256,9 +256,9 @@ In the `pgm_conf.json` above, the `source_code` file has a configuration, so all
 
 ### Preprocessors
 
-Processor groups can be configured so that the HLASM source will be processed with a preprocessor. Currently, there are two preprocessor options available - `DB2` and `CICS`.
+Processor groups can be configured so that the HLASM source will be processed with a preprocessor. Currently, there are the following preprocessor options available - `DB2`, `CICS` and `ENDEVOR`.
 
-It can by configured using the `preprocessor` key in processor group:
+The preprocessor option can be configured using the `preprocessor` key in a processor group:
 ```
 {
   "pgroups": [
@@ -276,9 +276,18 @@ It can by configured using the `preprocessor` key in processor group:
           "NOPROLOG"
         ]
       }
-    }
+    },
+    {
+      "name": "GROUP3",
+      "libs": [ "ASMMAC/" ],
+      "preprocessor": "ENDEVOR"
+    },
   ]
 }
+```
+
+You can also chain the preprocessors in a following way:
+```
 ```
 
 
