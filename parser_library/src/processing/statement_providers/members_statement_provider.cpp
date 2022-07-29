@@ -98,8 +98,16 @@ void members_statement_provider::fill_cache(
     // TODO: what if it fails?
     auto def_impl = std::dynamic_pointer_cast<const semantics::statement_si_deferred>(cache.get_base());
 
-    for (const auto& d : def_impl->diagnostics())
-        reparsed_stmt.diags.push_back(d);
+    if (kind == statement_provider_kind::COPY)
+    {
+        for (const auto& d : def_impl->diagnostics_without_operands())
+            reparsed_stmt.diags.push_back(d);
+    }
+    else if (kind == statement_provider_kind::MACRO)
+    {
+        for (const auto& d : def_impl->diagnostics())
+            reparsed_stmt.diags.push_back(d);
+    }
 
     if (status.first.occurence == operand_occurence::ABSENT || status.first.form == processing_form::UNKNOWN
         || status.first.form == processing_form::IGNORED)
