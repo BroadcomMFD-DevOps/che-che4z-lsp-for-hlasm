@@ -1222,7 +1222,7 @@ public:
             }
 
             static const std::regex dfh_lookup(
-                "([^ ]*)[ ]+([A-Z#$@][A-Z#$@0-9]*)[ ]+(.*(DFHRESP|DFHVALUE)[ ]*\\([ ]*[A-Z]*[ ]*\\).*)",
+                "([^ ]*)[ ]+([A-Z#$@][A-Z#$@0-9]*)[ ]+(.*?(DFHRESP|DFHVALUE)[ ]*\\([ ]*[A-Z0-9]*[ ]*\\).*)",
                 std::regex_constants::icase);
 
             it = it_backup;
