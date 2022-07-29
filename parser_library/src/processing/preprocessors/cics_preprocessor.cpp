@@ -918,7 +918,7 @@ public:
         line = line.substr(0, lexing::default_ictl.end);
 
         static const std::regex asm_statement(
-            R"(\*ASM[ ]+(?:[Xx][Oo][Pp][Tt][Ss]|[Cc][Ii][Cc][Ss])[(']([A-Z, ]*)[)'](?: .*)?)");
+            R"(\*ASM[ ]+(?:[Xx][Oo][Pp][Tt][Ss]?|[Cc][Ii][Cc][Ss])[(']([A-Z, ]*)[)'](?: .*)?)");
         static const std::regex op_sep("[ ,]+");
         static const std::unordered_map<std::string_view, std::pair<bool cics_preprocessor_options::*, bool>> opts {
             { "PROLOG", { &cics_preprocessor_options::prolog, true } },
@@ -1262,7 +1262,7 @@ public:
             inject_DFHEISTG();
         if (!m_pending_dfh_null_error.empty())
             inject_dfh_null_error(std::exchange(m_pending_dfh_null_error, std::string_view()));
-        if (!std::exchange(m_end_seen, true))
+        if (!std::exchange(m_end_seen, true) && !asm_xopts_allowed) // actual code encountered
             inject_no_end_warning();
 
         return document(std::move(m_result));

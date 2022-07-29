@@ -233,6 +233,19 @@ INSTANTIATE_TEST_SUITE_P(cics_preprocessor,
                 " END",
             },
         } },
+        { {
+            { "*ASM XOPT(NOPROLOG NOEPILOG) ", cics_preprocessor_options() },
+            {
+                "*ASM XOPT(NOPROLOG NOEPILOG) ",
+            },
+        } },
+        { {
+            { "*ASM XOPT(NOPROLOG NOEPILOG) \n END", cics_preprocessor_options() },
+            {
+                "*ASM XOPT(NOPROLOG NOEPILOG) ",
+                " END",
+            },
+        } },
     }));
 
 class cics_preprocessor_dfh_fixture
