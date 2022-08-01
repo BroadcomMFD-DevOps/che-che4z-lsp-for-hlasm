@@ -320,10 +320,7 @@ void processing_manager::register_sequence_symbol(context::id_index target, rang
     {
         hlasm_ctx_.add_opencode_sequence_symbol(std::move(new_symbol));
         if (seq_lookahead)
-        {
-            if (auto [it, inserted] = m_lookahead_seq_redifinitions.try_emplace(target); inserted)
-                m_pending_seq_redifinitions.emplace_back(it);
-        }
+            m_pending_seq_redifinitions.emplace_back(m_lookahead_seq_redifinitions.try_emplace(target).first);
     }
     else if (!(*symbol->access_opencode_symbol() == *new_symbol))
     {
