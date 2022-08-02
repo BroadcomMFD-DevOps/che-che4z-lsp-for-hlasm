@@ -38,7 +38,7 @@ namespace {
 void process_machine_instruction(const context::machine_instruction& machine_instr,
     std::set<completion_item_s, completion_item_s::label_comparer>& items)
 {
-    std::stringstream doc_ss(" ");
+    std::stringstream doc_ss("");
     std::stringstream detail_ss(""); // operands used for hover - e.g. V,D12U(X,B)[,M]
     std::stringstream autocomplete(""); // operands used for autocomplete - e.g. V,D12U(X,B) [,M]
 
@@ -104,7 +104,7 @@ void process_assembler_instruction(const context::assembler_instruction& asm_ins
 void process_mnemonic_code(
     const context::mnemonic_code& mnemonic_instr, std::set<completion_item_s, completion_item_s::label_comparer>& items)
 {
-    std::stringstream doc_ss(" ");
+    std::stringstream doc_ss("");
     std::stringstream detail_ss("");
     std::stringstream subs_ops_mnems("");
     std::stringstream subs_ops_nomnems("");

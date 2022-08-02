@@ -1002,7 +1002,7 @@ hover_result lsp_context::find_hover(const symbol_occurence& occ, macro_info_ptr
                 auto it = completion_item_s::m_instruction_completion_items.find(*occ.name);
                 if (it == completion_item_s::m_instruction_completion_items.end())
                     return "";
-                return it->detail + "  \n" + it->documentation;
+                return it->detail + "\n\n" + it->documentation;
             }
         }
         case lsp::occurence_kind::COPY_OP:
