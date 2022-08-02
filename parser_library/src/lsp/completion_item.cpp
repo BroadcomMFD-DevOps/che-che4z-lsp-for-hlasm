@@ -122,7 +122,7 @@ void process_mnemonic_code(
     bool first_optional = true;
 
     const auto& mach_operands = mnemonic_instr.instruction()->operands();
-    auto no_optional = mnemonic_instr.instruction()->optional_operand_count();
+    const auto optional_count = mnemonic_instr.instruction()->optional_operand_count();
     bool first = true;
     constexpr const auto is_mnemonic_with_operand_ommited = [](std::string_view name) {
         static constexpr const std::string_view list[] = { "VNOT", "NOTR", "NOTGR" };
@@ -140,8 +140,8 @@ void process_mnemonic_code(
             // can still replace mnemonics
             if (position == i)
             {
-                // mnemonics can be substituted when no_optional is 1, but not 2 -> 2 not implemented
-                if (no_optional == 1 && mach_operands.size() - i == 1)
+                // mnemonics can be substituted when optional_count is 1, but not 2 -> 2 not implemented
+                if (optional_count == 1 && mach_operands.size() - i == 1)
                 {
                     subs_ops_mnems << "[";
                     if (i != 0)
@@ -162,15 +162,12 @@ void process_mnemonic_code(
                 continue;
             }
         }
-        const bool is_optional = mach_operands.size() - i <= no_optional;
-        if (is_optional)
+        const bool is_optional = mach_operands.size() - i <= optional_count;
+        if (is_optional && first_optional)
         {
-            if (first_optional)
-            {
-                first_optional = false;
-                subs_ops_nomnems << "${" << snippet_id++ << ": [";
-                subs_ops_nomnems_no_snippets << " [";
-            }
+            first_optional = false;
+            subs_ops_nomnems << "${" << snippet_id++ << ": [";
+            subs_ops_nomnems_no_snippets << " [";
         }
         if (i != 0)
             subs_ops_mnems << ",";
@@ -184,7 +181,7 @@ void process_mnemonic_code(
 
         if (is_optional)
         {
-            if (mach_operands.size() - i < no_optional)
+            if (mach_operands.size() - i < optional_count)
             {
                 subs_ops_mnems << mach_operands[i].to_string() + "[,";
                 subs_ops_nomnems << mach_operands[i].to_string() << "[,";
@@ -192,9 +189,9 @@ void process_mnemonic_code(
             }
             else
             {
-                subs_ops_mnems << mach_operands[i].to_string() + std::string(no_optional, ']');
-                subs_ops_nomnems << mach_operands[i].to_string() << std::string(no_optional, ']') << "}";
-                subs_ops_nomnems_no_snippets << mach_operands[i].to_string() << std::string(no_optional, ']');
+                subs_ops_mnems << mach_operands[i].to_string() + std::string(optional_count, ']');
+                subs_ops_nomnems << mach_operands[i].to_string() << std::string(optional_count, ']') << "}";
+                subs_ops_nomnems_no_snippets << mach_operands[i].to_string() << std::string(optional_count, ']');
             }
         }
         first = false;
