@@ -16,14 +16,14 @@
 parser grammar macro_operand_rules; 
 
 
-mac_op[int* paren_count] returns [operand_ptr op]
-	: mac_preproc[$paren_count]
+mac_op returns [operand_ptr op]
+	: mac_preproc
 	{
 		$op = std::make_unique<macro_operand_string>($mac_preproc.ctx->getText(),provider.get_range($mac_preproc.ctx));
 	};
 
 mac_op_o returns [operand_ptr op] 
-	: mac_entry[true]?
+	: mac_entry?
 	{
 		if($mac_entry.ctx)
 			$op = std::make_unique<macro_operand_chain>(std::move($mac_entry.chain),provider.get_range($mac_entry.ctx));
@@ -34,7 +34,7 @@ mac_op_o returns [operand_ptr op]
 macro_ops returns [operand_list list] 
 	: mac_op_o  {$list.push_back(std::move($mac_op_o.op));} (comma mac_op_o {$list.push_back(std::move($mac_op_o.op));})* EOF;
 
-mac_preproc[int* paren_count]
+mac_preproc
 	:
 	(
 		ASTERISK
@@ -53,14 +53,14 @@ mac_preproc[int* paren_count]
 		(
 			ORDSYMBOL (ORDSYMBOL|NUM)*
 			|
-			LPAR {++*$paren_count;}
+			LPAR
 			|
 			AMPERSAND
 		)
 		|
-		LPAR {++*$paren_count;}
+		LPAR
 		|
-		RPAR {--*$paren_count;}
+		RPAR
 		|
 		APOSTROPHE
 		(~(APOSTROPHE|ATTR|CONTINUATION))*
@@ -68,7 +68,7 @@ mac_preproc[int* paren_count]
 		|
 		ATTR
 		(
-			{is_previous_attribute_consuming(*$paren_count == 0, _input->LT(-2))}?
+			{is_previous_attribute_consuming(_input->LT(-2))}?
 			(~(APOSTROPHE|ATTR|CONTINUATION))*?
 			|
 			(~(APOSTROPHE|ATTR|CONTINUATION))*
@@ -77,7 +77,7 @@ mac_preproc[int* paren_count]
 	)+
 	;
 
-mac_entry [bool top_level = true] returns [concat_chain chain]
+mac_entry returns [concat_chain chain]
 	: 
 	(
 		asterisk		{$chain.push_back(std::make_unique<char_str_conc>("*", provider.get_range($asterisk.ctx)));}
@@ -142,7 +142,7 @@ mac_entry [bool top_level = true] returns [concat_chain chain]
 			}
 		)*
 		(
-			mac_entry[false]
+			mac_entry
 			{
 				sublist.push_back(std::move($mac_entry.chain));
 				pending_empty = false;
@@ -159,7 +159,7 @@ mac_entry [bool top_level = true] returns [concat_chain chain]
 					pending_empty = true;
 				}
 				(
-					mac_entry[false]
+					mac_entry
 					{
 						sublist.push_back(std::move($mac_entry.chain));
 						pending_empty = false;
@@ -198,7 +198,7 @@ mac_entry [bool top_level = true] returns [concat_chain chain]
 			$chain.push_back(std::make_unique<char_str_conc>("'", provider.get_range($ap1)));
 		}
 		(
-			{is_previous_attribute_consuming($top_level, _input->LT(-2))}?
+			{is_previous_attribute_consuming(_input->LT(-2))}?
 			{
 				collector.add_hl_symbol(token_info(provider.get_range($ap1),hl_scopes::operator_symbol));
 			}
