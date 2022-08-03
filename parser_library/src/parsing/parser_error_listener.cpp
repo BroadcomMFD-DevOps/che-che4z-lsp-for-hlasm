@@ -202,13 +202,13 @@ void parser_error_listener_base::syntaxError(
             ampersand_followed,
             attr_last);
 
-        // right paranthesis has no left match
-        if (right_prec)
+        // right parenthesis has no left match
+        if (right_prec && !odd_apostrophes && !attr_last)
             add_parser_diagnostic(range(position(line, char_pos_in_line)),
                 diagnostic_severity::error,
                 "S0012",
                 "Right parenthesis has no left match");
-        // left paranthesis has no right match
+        // left parenthesis has no right match
         else if (left_prec)
             add_parser_diagnostic(range(position(line, char_pos_in_line)),
                 diagnostic_severity::error,
@@ -219,7 +219,7 @@ void parser_error_listener_base::syntaxError(
             add_parser_diagnostic(range(position(line, char_pos_in_line)),
                 diagnostic_severity::error,
                 "S0010",
-                "Only left and right paranthesis present");
+                "Only left and right parenthesis present");
         // sign followed by a wrong token
         else if (!sign_followed)
             add_parser_diagnostic(range(position(line, char_pos_in_line)),

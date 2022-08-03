@@ -64,14 +64,16 @@ mac_preproc[int* paren_count]
 		|
 		APOSTROPHE
 		(~(APOSTROPHE|ATTR|CONTINUATION))*
-		(APOSTROPHE|ATTR)
+		(APOSTROPHE|ATTR)?
 		|
 		ATTR
 		(
-			{!is_previous_attribute_consuming(*$paren_count == 0, _input->LT(-2))}?
+			{is_previous_attribute_consuming(*$paren_count == 0, _input->LT(-2))}?
+			(~(APOSTROPHE|ATTR|CONTINUATION))*?
+			|
 			(~(APOSTROPHE|ATTR|CONTINUATION))*
-			(APOSTROPHE|ATTR)
-		)?
+			(APOSTROPHE|ATTR)?
+		)
 	)+
 	;
 
@@ -196,7 +198,11 @@ mac_entry [bool top_level = true] returns [concat_chain chain]
 			$chain.push_back(std::make_unique<char_str_conc>("'", provider.get_range($ap1)));
 		}
 		(
-			{!is_previous_attribute_consuming($top_level, _input->LT(-2))}?
+			{is_previous_attribute_consuming($top_level, _input->LT(-2))}?
+			{
+				collector.add_hl_symbol(token_info(provider.get_range($ap1),hl_scopes::operator_symbol));
+			}
+			|
 			(
 				string_ch_v
 				{
@@ -208,11 +214,6 @@ mac_entry [bool top_level = true] returns [concat_chain chain]
 			{
 				$chain.push_back(std::make_unique<char_str_conc>("'", provider.get_range($ap2)));
 				collector.add_hl_symbol(token_info(provider.get_range($ap1,$ap2),hl_scopes::string));
-			}
-			|
-			{is_previous_attribute_consuming($top_level, _input->LT(-2))}?
-			{
-				collector.add_hl_symbol(token_info(provider.get_range($ap1),hl_scopes::operator_symbol));
 			}
 		)
 	)+

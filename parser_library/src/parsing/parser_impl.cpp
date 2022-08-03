@@ -224,8 +224,7 @@ bool parser_impl::is_previous_attribute_consuming(bool top_level, const antlr4::
 
     auto tmp = std::toupper((unsigned char)text.back());
 
-    // this almost looks like a bug in the original assembler
-    return tmp == 'O' && top_level || tmp == 'S' || tmp == 'I' || tmp == 'L' || tmp == 'T';
+    return tmp == 'O' || tmp == 'S' || tmp == 'I' || tmp == 'L' || tmp == 'T';
 }
 
 antlr4::misc::IntervalSet parser_impl::getExpectedTokens()
