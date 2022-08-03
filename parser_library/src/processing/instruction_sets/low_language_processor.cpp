@@ -221,7 +221,7 @@ void low_language_processor::resolve_unknown_loctr_dependency(context::space_ptr
 low_language_processor::transform_result low_language_processor::transform_mnemonic(const resolved_statement& stmt,
     context::dependency_solver& dep_solver,
     const context::mnemonic_code& mnemonic,
-    diagnostic_collector add_diagnostic)
+    const diagnostic_collector& add_diagnostic)
 {
     // operands obtained from the user
     const auto& operands = stmt.operands_ref().value;
@@ -278,7 +278,7 @@ low_language_processor::transform_result low_language_processor::transform_mnemo
 }
 
 low_language_processor::transform_result low_language_processor::transform_default(
-    const resolved_statement& stmt, context::dependency_solver& dep_solver, diagnostic_collector add_diagnostic)
+    const resolved_statement& stmt, context::dependency_solver& dep_solver, const diagnostic_collector& add_diagnostic)
 {
     std::vector<checking::check_op_ptr> operand_vector;
     for (auto& op : stmt.operands_ref().value)
@@ -304,7 +304,7 @@ low_language_processor::transform_result low_language_processor::transform_defau
 
 checking::check_op_ptr low_language_processor::get_check_op(const semantics::operand* op,
     context::dependency_solver& dep_solver,
-    diagnostic_collector add_diagnostic,
+    const diagnostic_collector& add_diagnostic,
     const resolved_statement& stmt,
     size_t op_position,
     const context::mnemonic_code* mnemonic)
