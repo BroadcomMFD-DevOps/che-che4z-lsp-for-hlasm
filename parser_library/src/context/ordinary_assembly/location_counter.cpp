@@ -26,10 +26,8 @@ bool location_counter::has_unresolved_spaces() const { return !!org_data_.back()
 
 size_t location_counter::storage() const { return curr_data().storage; }
 
-location_counter::location_counter(id_index name, const section& owner, const loctr_kind kind, id_storage& ids)
+location_counter::location_counter(id_index name, const section& owner, loctr_kind kind)
     : switched_(nullptr)
-    , last_space_(0)
-    , ids_(ids)
     , layuot_created_(false)
     , name(name)
     , owner(owner)
@@ -311,16 +309,6 @@ bool location_counter::check_underflow()
         }
     }
     return ok;
-}
-
-id_index location_counter::create_space_name(char type)
-{
-    std::string tmp("_ " + *owner.name + " " + *name + " " + std::to_string(last_space_));
-
-    ++last_space_;
-    tmp[0] = type;
-
-    return ids_.add(std::move(tmp));
 }
 
 space_ptr location_counter::register_space(alignment align, space_kind sp_kind)
