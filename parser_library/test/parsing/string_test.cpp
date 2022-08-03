@@ -93,37 +93,6 @@ TEST_P(parser_string_fixture, basic)
     EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "PAR"), GetParam().expected);
 }
 
-TEST(parser, no_ending_apostrophe)
-{
-    std::string input = R"(
- MACRO
- MAC &VAR
- MEND
- 
- MAC "N'SYM)";
-    analyzer a(input);
-    a.analyze();
-    a.collect_diags();
-
-    EXPECT_TRUE(matches_message_codes(a.diags(), { "S0005" }));
-}
-
-TEST(parser, no_ending_apostrophe_2)
-{
-    std::string input = R"(
- MACRO
- MAC &VAR
- MEND
- 
- MAC "L'SYM' STH)";
-    analyzer a(input);
-    a.analyze();
-    a.collect_diags();
-
-    EXPECT_TRUE(matches_message_codes(a.diags(), { "S0005" }));
-}
-
-
 TEST(parser, incomplete_string)
 {
     std::string input = R"(
@@ -195,4 +164,225 @@ TEST(parser, preserve_structured_parameter_2)
 
     EXPECT_TRUE(a.diags().empty());
     EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "PAR"), "A");
+}
+
+namespace {
+struct test_param_parser_quotes
+{
+    std::string name;
+    bool is_consuming;
+};
+
+struct stringer_test_param_parser_quotes
+{
+    std::string operator()(::testing::TestParamInfo<test_param_parser_quotes> p) { return p.param.name; }
+};
+
+class parser_quotes_fixture : public ::testing::TestWithParam<test_param_parser_quotes>
+{};
+
+INSTANTIATE_TEST_SUITE_P(parser,
+    parser_quotes_fixture,
+    ::testing::Values(test_param_parser_quotes { "A", false },
+        test_param_parser_quotes { "B", false },
+        test_param_parser_quotes { "C", false },
+        test_param_parser_quotes { "D", false },
+        test_param_parser_quotes { "E", false },
+        test_param_parser_quotes { "F", false },
+        test_param_parser_quotes { "G", false },
+        test_param_parser_quotes { "H", false },
+        test_param_parser_quotes { "I", true },
+        test_param_parser_quotes { "J", false },
+        test_param_parser_quotes { "K", false },
+        test_param_parser_quotes { "L", true },
+        test_param_parser_quotes { "M", false },
+        test_param_parser_quotes { "N", false },
+        test_param_parser_quotes { "O", true },
+        test_param_parser_quotes { "P", false },
+        test_param_parser_quotes { "Q", false },
+        test_param_parser_quotes { "R", false },
+        test_param_parser_quotes { "S", true },
+        test_param_parser_quotes { "T", true },
+        test_param_parser_quotes { "U", false },
+        test_param_parser_quotes { "V", false },
+        test_param_parser_quotes { "W", false },
+        test_param_parser_quotes { "X", false },
+        test_param_parser_quotes { "Y", false },
+        test_param_parser_quotes { "Z", false }),
+    stringer_test_param_parser_quotes());
+} // namespace
+
+TEST_P(parser_quotes_fixture, no_brackets)
+{
+    std::string input = R"(
+         MACRO
+         MAC &VAR
+         GBLC &STR
+&STR     SETC '&VAR'
+         MEND
+ 
+         GBLC &STR
+&INSTR   SETC   'J'
+         MAC )"
+        + GetParam().name + "'&INSTR";
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    if (GetParam().is_consuming)
+    {
+        EXPECT_TRUE(a.diags().empty());
+        EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "STR"), GetParam().name + "'J");
+    }
+    else
+        EXPECT_TRUE(matches_message_codes(a.diags(), { "S0005" }));
+}
+
+TEST_P(parser_quotes_fixture, no_brackets_remark)
+{
+    std::string input = R"(
+         MACRO
+         MAC &VAR
+         GBLC &STR
+&STR     SETC '&VAR'
+         MEND
+ 
+         GBLC &STR
+&INSTR   SETC   'J'
+         MAC )"
+        + GetParam().name + "'&INSTR          REMARK";
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    if (GetParam().is_consuming)
+    {
+        EXPECT_TRUE(a.diags().empty());
+        EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "STR"), GetParam().name + "'J");
+    }
+    else
+        EXPECT_TRUE(matches_message_codes(a.diags(), { "S0005" }));
+}
+
+
+TEST_P(parser_quotes_fixture, no_brackets_remark_2)
+{
+    std::string input = R"(
+         MACRO
+         MAC &VAR
+         GBLC &STR
+&STR     SETC '&VAR'
+         MEND
+ 
+         GBLC &STR
+&INSTR   SETC   'J'
+         MAC )"
+        + GetParam().name + "'&INSTR          REMARK'";
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(a.diags().empty());
+    if (GetParam().is_consuming)
+        EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "STR"), GetParam().name + "'J");
+    else
+        EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "STR"), GetParam().name + "'J          REMARK'");
+}
+
+TEST_P(parser_quotes_fixture, brackets)
+{
+    std::string input = R"(
+         MACRO
+         MAC &VAR
+         GBLC &STR
+&STR     SETC '&VAR(1)'
+         MEND
+ 
+         GBLC &STR
+&INSTR   SETC   'J'
+         MAC ()"
+        + GetParam().name + "'&INSTR)";
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    if (GetParam().is_consuming)
+    {
+        EXPECT_TRUE(a.diags().empty());
+        EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "STR"), GetParam().name + "'J");
+    }
+    else
+        EXPECT_TRUE(matches_message_codes(a.diags(), { "S0005" }));
+}
+
+TEST_P(parser_quotes_fixture, brackets_2_params)
+{
+    std::string input = R"(
+         MACRO
+         MAC &VAR
+         GBLC &STR1,&STR2
+&STR1    SETC '&VAR(1)'
+&STR2    SETC '&VAR(2)'
+         MEND
+ 
+         GBLC &STR1,&STR2
+         MAC (A,)"
+        + GetParam().name + "'-9')";
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(a.diags().empty());
+    EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "STR1"), "A");
+    EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "STR2"), GetParam().name + "'-9'");
+}
+
+TEST_P(parser_quotes_fixture, no_ending_apostrophe)
+{
+    std::string input = R"(
+         MACRO
+         MAC &VAR
+         GBLC &STR
+&STR     SETC '&VAR'
+         MEND
+ 
+         GBLC &STR
+         MAC ")"
+        + GetParam().name + "'SYM";
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    if (GetParam().is_consuming)
+    {
+        EXPECT_TRUE(a.diags().empty());
+        EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "STR"), "\"" + GetParam().name + "'SYM");
+    }
+    else
+        EXPECT_TRUE(matches_message_codes(a.diags(), { "S0005" }));
+}
+
+TEST_P(parser_quotes_fixture, no_ending_apostrophe_2)
+{
+    std::string input = R"(
+         MACRO
+         MAC &VAR
+         GBLC &STR
+&STR     SETC '&VAR'
+         MEND
+ 
+         GBLC &STR
+         MAC ")"
+        + GetParam().name + "'SYM' STH";
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    if (GetParam().is_consuming)
+        EXPECT_TRUE(matches_message_codes(a.diags(), { "S0005" }));
+    else
+    {
+        EXPECT_TRUE(a.diags().empty());
+        EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "STR"), "\"" + GetParam().name + "'SYM'");
+    }
 }
