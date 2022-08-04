@@ -93,7 +93,7 @@ class symbol_dependency_tables
     std::vector<dependant> extract_dependencies(
         const std::vector<const resolvable*>& dependency_sources, const dependency_evaluation_context& dep_ctx);
 
-    void try_erase_source_statement(dependant index);
+    void try_erase_source_statement(const dependant& index);
 
     bool add_dependency(dependant target,
         const resolvable* dependency_source,

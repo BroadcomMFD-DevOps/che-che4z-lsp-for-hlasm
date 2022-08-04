@@ -141,14 +141,12 @@ void symbol_dependency_tables::resolve_dependant_default(dependant target)
 
 void symbol_dependency_tables::resolve(loctr_dependency_resolver* resolver)
 {
-    bool defined = true;
-    std::vector<dependant> to_delete;
-
-    while (defined)
+    while (true)
     {
-        defined = false;
-        for (const auto& [target, dep_src_and_context] : dependencies_)
+        auto to_delete = dependencies_.end();
+        for (auto it = dependencies_.begin(); it != dependencies_.end(); ++it)
         {
+            const auto& [target, dep_src_and_context] = *it;
             // resolve only symbol dependencies when resolver is not present
             if (resolver == nullptr && std::holds_alternative<space_ptr>(target))
                 continue;
@@ -157,23 +155,19 @@ void symbol_dependency_tables::resolve(loctr_dependency_resolver* resolver)
 
             if (extract_dependencies(dep_src, context).empty()) // target no longer dependent on anything
             {
-                to_delete.push_back(target);
+                to_delete = it;
 
                 resolve_dependant(target, dep_src, resolver, context); // resolve target
-
-                defined = true; // another defined target => iterate again
 
                 break;
             }
         }
 
-        for (auto del : to_delete)
-        {
-            dependencies_.erase(del);
-            try_erase_source_statement(del);
-        }
+        if (to_delete == dependencies_.end())
+            break;
 
-        to_delete.clear();
+        try_erase_source_statement(to_delete->first);
+        dependencies_.erase(to_delete);
     }
 }
 
@@ -226,7 +220,7 @@ std::vector<dependant> symbol_dependency_tables::extract_dependencies(
     return ret;
 }
 
-void symbol_dependency_tables::try_erase_source_statement(dependant index)
+void symbol_dependency_tables::try_erase_source_statement(const dependant& index)
 {
     auto ait = dependency_source_addrs_.find(index);
     if (ait != dependency_source_addrs_.end())
