@@ -556,27 +556,28 @@ void asm_processor::process_ORG(rebuilt_statement stmt)
         }
     }
 
-    if (reloc_expr)
+    if (!reloc_expr)
     {
-        auto reloc_val = !undefined_absolute_part
-            ? reloc_expr->expression->evaluate(dep_solver, drop_diags).get_reloc()
-            : *reloc_expr->expression->get_dependencies(dep_solver).unresolved_address;
-
-        if (!check_address_for_ORG(stmt.stmt_range_ref(), reloc_val, loctr, boundary, offset))
-            return;
-
-        if (undefined_absolute_part)
-            hlasm_ctx.ord_ctx.set_location_counter_value(reloc_val,
-                boundary,
-                offset,
-                reloc_expr->expression.get(),
-                std::make_unique<postponed_statement_impl>(std::move(stmt), hlasm_ctx.processing_stack()),
-                dep_solver.derive_current_dependency_evaluation_context());
-        else
-            hlasm_ctx.ord_ctx.set_location_counter_value(reloc_val, boundary, offset);
-    }
-    else
         add_diagnostic(diagnostic_op::error_A245_ORG_expression(stmt.stmt_range_ref()));
+        return;
+    }
+
+    auto reloc_val = !undefined_absolute_part
+        ? reloc_expr->expression->evaluate(dep_solver, drop_diags).get_reloc()
+        : *reloc_expr->expression->get_dependencies(dep_solver).unresolved_address;
+
+    if (!check_address_for_ORG(stmt.stmt_range_ref(), reloc_val, loctr, boundary, offset))
+        return;
+
+    if (undefined_absolute_part)
+        hlasm_ctx.ord_ctx.set_location_counter_value(reloc_val,
+            boundary,
+            offset,
+            reloc_expr->expression.get(),
+            std::make_unique<postponed_statement_impl>(std::move(stmt), hlasm_ctx.processing_stack()),
+            dep_solver.derive_current_dependency_evaluation_context());
+    else
+        hlasm_ctx.ord_ctx.set_location_counter_value(reloc_val, boundary, offset);
 }
 
 void asm_processor::process_OPSYN(rebuilt_statement stmt)
