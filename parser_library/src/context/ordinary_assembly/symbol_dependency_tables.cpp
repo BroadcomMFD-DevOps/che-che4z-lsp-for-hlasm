@@ -408,16 +408,12 @@ void symbol_dependency_tables::add_defined(loctr_dependency_resolver* resolver) 
 
 bool symbol_dependency_tables::check_loctr_cycle()
 {
-    using dep_map = std::unordered_map<dependant, std::vector<dependant>>;
-    using dep_set = std::unordered_set<dependant>;
-
-    dep_map dep_g;
+    std::unordered_map<dependant, std::vector<dependant>> dep_g;
 
     // create graph
     for (const auto& [target, dep_src_loctr] : m_dependencies_space)
     {
-        const auto& [dep_src, loctr] = dep_src_loctr;
-        auto new_deps = extract_dependencies(dep_src, loctr);
+        auto new_deps = extract_dependencies(dep_src_loctr.m_resolvable, dep_src_loctr.m_dec);
 
         std::erase_if(new_deps, [](const auto& e) { return !std::holds_alternative<space_ptr>(e); });
 
@@ -425,75 +421,52 @@ bool symbol_dependency_tables::check_loctr_cycle()
             dep_g.emplace(target, std::move(new_deps));
     }
 
-    // find cycle
-    std::stack<std::vector<dependant>> path_stack;
-    std::unordered_map<dependant, dep_set> visited;
-    dep_set cycled;
-    for (auto& [v, e] : dep_g)
+    std::unordered_set<dependant> visited;
+    std::unordered_set<dependant> cycles;
+    std::vector<dependant> path;
+    std::deque<std::optional<dependant>> next_steps;
+
+    for (const auto& [target, _] : dep_g)
     {
-        // if graph has not been visited from this vertex
-        if (visited.find(v) == visited.end())
-            path_stack.push({ v });
-        else
+        if (visited.contains(target))
             continue;
 
-        while (!path_stack.empty())
+        next_steps.push_back(target);
+
+        while (!next_steps.empty())
         {
-            auto path = std::move(path_stack.top());
-            auto target = path.back();
-            path_stack.pop();
-
-            // if edge already visited, continue
-            if (path.size() > 1)
+            auto next = std::move(next_steps.front());
+            next_steps.pop_front();
+            if (!next.has_value())
             {
-                auto& visited_edges = visited[*(path.end() - 2)];
-                if (visited_edges.find(target) != visited_edges.end())
-                    continue;
-            }
-
-            bool found_searched = false;
-            // vertex visited
-            if (visited.find(target) != visited.end())
-            {
-                auto cycle_start = std::find(path.begin(), path.end(), target);
-
-                // graph search found already searched subgraph
-                if (cycle_start == path.end() - 1)
-                    found_searched = true;
-                else
-                    cycled.insert(cycle_start, path.end());
-            }
-
-            // register visited edge
-            if (path.size() > 1)
-                visited[*(path.end() - 2)].insert(target);
-            else
-                visited[target];
-
-            // finishing current path
-            if (found_searched)
+                path.pop_back();
                 continue;
-
-            // add next paths
-            auto it = dep_g.find(target);
-            if (it != dep_g.end())
-                for (auto& entry : it->second)
-                {
-                    auto new_path(path);
-                    new_path.push_back(entry);
-                    path_stack.push(std::move(new_path));
-                }
+            }
+            if (auto it = std::find(path.begin(), path.end(), next.value()); it != path.end())
+            {
+                cycles.insert(it, path.end());
+                continue;
+            }
+            if (!visited.emplace(next.value()).second)
+                continue;
+            if (auto it = dep_g.find(next.value()); it != dep_g.end())
+            {
+                path.push_back(std::move(next).value());
+                next_steps.emplace_front(std::nullopt);
+                next_steps.insert(next_steps.begin(), it->second.begin(), it->second.end());
+            }
         }
+        assert(path.empty());
     }
 
-    for (const auto& target : cycled)
+    for (const auto& target : cycles)
     {
         resolve_dependant_default(target);
         try_erase_source_statement(target);
         erase_dependant(target);
     }
 
-    return cycled.empty();
+    return cycles.empty();
 }
 
 std::vector<std::pair<post_stmt_ptr, dependency_evaluation_context>> symbol_dependency_tables::collect_postponed()

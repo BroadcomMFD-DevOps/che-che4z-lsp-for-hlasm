@@ -72,7 +72,7 @@ public:
     // access symbol dependency table
     symbol_dependency_tables symbol_dependencies;
 
-    ordinary_assembly_context(hlasm_context& hlasm_ctx);
+    explicit ordinary_assembly_context(hlasm_context& hlasm_ctx);
     ordinary_assembly_context(ordinary_assembly_context&&) noexcept;
     ~ordinary_assembly_context();
 

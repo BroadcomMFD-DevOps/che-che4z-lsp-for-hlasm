@@ -242,7 +242,7 @@ std::variant<space_ptr, address> location_counter::restore_from_unresolved_value
     std::variant<space_ptr, address> result = curr_data().fist_space();
     size_t tmp_idx = org_data_.size() - 1;
 
-    if (auto& new_sp = std::get<space_ptr>(result); new_sp && new_sp->kind == space_kind::LOCTR_SET)
+    if (const auto& new_sp = std::get<space_ptr>(result); new_sp && new_sp->kind == space_kind::LOCTR_SET)
     {
         for (auto& switched_data : switched_org_data_)
         {
