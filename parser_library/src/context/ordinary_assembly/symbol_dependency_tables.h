@@ -67,8 +67,15 @@ class dependency_adder;
 // class holding data about dependencies between symbols
 class symbol_dependency_tables
 {
+    struct dependency_value
+    {
+        const resolvable* m_resolvable;
+        dependency_evaluation_context m_dec;
+    };
     // actual dependecies of symbol or space
-    std::unordered_map<dependant, std::pair<const resolvable*, dependency_evaluation_context>> dependencies_;
+    // std::unordered_map<dependant, std::pair<const resolvable*, dependency_evaluation_context>> dependencies_;
+    std::unordered_map<std::variant<id_index, attr_ref>, dependency_value> m_dependencies_symbolic;
+    std::unordered_map<space_ptr, dependency_value> m_dependencies_space;
 
     // statements where dependencies are from
     std::unordered_map<dependant, statement_ref> dependency_source_stmts_;
@@ -85,8 +92,11 @@ class symbol_dependency_tables
         const resolvable* dep_src,
         loctr_dependency_resolver* resolver,
         const dependency_evaluation_context& dep_ctx);
-    void resolve_dependant_default(dependant target);
+    void resolve_dependant_default(const dependant& target);
     void resolve(loctr_dependency_resolver* resolver);
+
+    const dependency_value* find_dependant(const dependant& target) const;
+    void erase_dependant(const dependant& target);
 
     std::vector<dependant> extract_dependencies(
         const resolvable* dependency_source, const dependency_evaluation_context& dep_ctx);
