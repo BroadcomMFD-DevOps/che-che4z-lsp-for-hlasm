@@ -74,20 +74,20 @@ class symbol_dependency_tables
 
         dependency_value(const resolvable* r, dependency_evaluation_context dec)
             : m_resolvable(r)
-            , m_dec(dec)
+            , m_dec(std::move(dec))
         {}
     };
     // actual dependecies of symbol or space
     std::unordered_map<dependant, dependency_value> m_dependencies;
 
     // statements where dependencies are from
-    std::unordered_map<dependant, statement_ref> dependency_source_stmts_;
+    std::unordered_map<dependant, statement_ref> m_dependency_source_stmts;
     // addresses where dependencies are from
-    std::unordered_map<dependant, addr_res_ptr> dependency_source_addrs_;
+    std::unordered_map<dependant, addr_res_ptr> m_dependency_source_addrs;
     // list of statements containing dependencies that can not be checked yet
-    std::unordered_map<post_stmt_ptr, dependency_evaluation_context> postponed_stmts_;
+    std::unordered_map<post_stmt_ptr, dependency_evaluation_context> m_postponed_stmts;
 
-    ordinary_assembly_context& sym_ctx_;
+    ordinary_assembly_context& m_sym_ctx;
 
     bool check_cycle(dependant target, std::vector<dependant> dependencies);
 
@@ -167,15 +167,15 @@ public:
 // helper class to add dependencies
 class dependency_adder
 {
-    symbol_dependency_tables& owner_;
-    size_t ref_count_;
+    symbol_dependency_tables& m_owner;
+    size_t m_ref_count;
 
-    std::vector<dependant> dependants;
-    dependency_evaluation_context dep_ctx;
+    std::vector<dependant> m_dependants;
+    dependency_evaluation_context m_dep_ctx;
+
+    post_stmt_ptr m_source_stmt;
 
 public:
-    post_stmt_ptr source_stmt;
-
     dependency_adder(symbol_dependency_tables& owner,
         post_stmt_ptr dependency_source_stmt,
         const dependency_evaluation_context& dep_ctx);
