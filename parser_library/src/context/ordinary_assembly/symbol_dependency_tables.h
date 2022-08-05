@@ -71,6 +71,11 @@ class symbol_dependency_tables
     {
         const resolvable* m_resolvable;
         dependency_evaluation_context m_dec;
+
+        dependency_value(const resolvable* r, dependency_evaluation_context dec)
+            : m_resolvable(r)
+            , m_dec(dec)
+        {}
     };
     // actual dependecies of symbol or space
     // std::unordered_map<dependant, std::pair<const resolvable*, dependency_evaluation_context>> dependencies_;
