@@ -78,9 +78,7 @@ class symbol_dependency_tables
         {}
     };
     // actual dependecies of symbol or space
-    // std::unordered_map<dependant, std::pair<const resolvable*, dependency_evaluation_context>> dependencies_;
-    std::unordered_map<std::variant<id_index, attr_ref>, dependency_value> m_dependencies_symbolic;
-    std::unordered_map<space_ptr, dependency_value> m_dependencies_space;
+    std::unordered_map<dependant, dependency_value> m_dependencies;
 
     // statements where dependencies are from
     std::unordered_map<dependant, statement_ref> dependency_source_stmts_;
@@ -100,8 +98,7 @@ class symbol_dependency_tables
     void resolve_dependant_default(const dependant& target);
     void resolve(loctr_dependency_resolver* resolver);
 
-    const dependency_value* find_dependant(const dependant& target) const;
-    void erase_dependant(const dependant& target);
+    const dependency_value* find_dependency_value(const dependant& target) const;
 
     std::vector<dependant> extract_dependencies(
         const resolvable* dependency_source, const dependency_evaluation_context& dep_ctx);

@@ -41,7 +41,7 @@ bool symbol_dependency_tables::check_cycle(dependant target, std::vector<dependa
         auto top_dep = std::move(dependencies.back());
         dependencies.pop_back();
 
-        auto dependant = find_dependant(top_dep);
+        auto dependant = find_dependency_value(top_dep);
         if (!dependant)
             continue;
 
@@ -139,84 +139,31 @@ void symbol_dependency_tables::resolve_dependant_default(const dependant& target
     std::visit(resolve_dependant_default_visitor { sym_ctx_ }, target);
 }
 
-constexpr const auto convert_to_dependant = []<typename T>(T&& x) -> dependant { return std::forward<T>(x); };
-constexpr const auto convert_to_symbolic = []<typename T>(T&& x) -> std::variant<id_index, attr_ref> {
-    if constexpr (std::is_same_v<std::remove_cvref_t<T>, id_index> || std::is_same_v<std::remove_cvref_t<T>, attr_ref>)
-        return std::forward<T>(x);
-    else
-    {
-        assert(false);
-        return {};
-    }
-};
-
 void symbol_dependency_tables::resolve(loctr_dependency_resolver* resolver)
 {
-    const auto resolvable = [this]<typename T>(const std::pair<T, dependency_value>& v) {
+    const auto resolvable = [this, resolver](const std::pair<dependant, dependency_value>& v) {
+        if (!resolver && std::holds_alternative<space_ptr>(v.first))
+            return false;
         return extract_dependencies(v.second.m_resolvable, v.second.m_dec).empty();
     };
-
-    while (true)
+    auto it = m_dependencies.end();
+    while ((it = std::find_if(m_dependencies.begin(), m_dependencies.end(), resolvable)) != m_dependencies.end())
     {
-        if (auto to_resolve = std::find_if(m_dependencies_symbolic.begin(), m_dependencies_symbolic.end(), resolvable);
-            to_resolve != m_dependencies_symbolic.end())
-        {
-            auto r = std::visit(convert_to_dependant, to_resolve->first);
-            const auto& [dep_src, context] = to_resolve->second;
+        const auto& [target, dep_value] = *it;
 
-            resolve_dependant(r, dep_src, resolver, context); // resolve target
-            try_erase_source_statement(r);
-            m_dependencies_symbolic.erase(to_resolve);
-            continue;
-        }
-
-        if (resolver)
-        {
-            if (auto to_resolve = std::find_if(m_dependencies_space.begin(), m_dependencies_space.end(), resolvable);
-                to_resolve != m_dependencies_space.end())
-            {
-                const auto& [dep_src, context] = to_resolve->second;
-
-                resolve_dependant(to_resolve->first, dep_src, resolver, context); // resolve target
-                try_erase_source_statement(to_resolve->first);
-                m_dependencies_space.erase(to_resolve);
-                continue;
-            }
-        }
-
-        break;
+        resolve_dependant(target, dep_value.m_resolvable, resolver, dep_value.m_dec); // resolve target
+        try_erase_source_statement(target);
+        m_dependencies.erase(it);
     }
 }
 
-const symbol_dependency_tables::dependency_value* symbol_dependency_tables::find_dependant(
+const symbol_dependency_tables::dependency_value* symbol_dependency_tables::find_dependency_value(
     const dependant& target) const
 {
-    return std::visit(
-        [this]<typename T>(const T& v) -> const dependency_value* {
-            if constexpr (std::is_same_v<T, space_ptr>)
-            {
-                if (auto it = m_dependencies_space.find(v); it == m_dependencies_space.end())
-                    return nullptr;
-                else
-                    return &it->second;
-            }
-            else
-            {
-                if (auto it = m_dependencies_symbolic.find(v); it == m_dependencies_symbolic.end())
-                    return nullptr;
-                else
-                    return &it->second;
-            }
-        },
-        target);
-}
+    if (auto it = m_dependencies.find(target); it != m_dependencies.end())
+        return &it->second;
 
-void symbol_dependency_tables::erase_dependant(const dependant& target)
-{
-    if (std::holds_alternative<space_ptr>(target))
-        m_dependencies_space.erase(std::get<space_ptr>(target));
-    else
-        m_dependencies_symbolic.erase(std::visit(convert_to_symbolic, target));
+    return nullptr;
 }
 
 std::vector<dependant> symbol_dependency_tables::extract_dependencies(
@@ -297,10 +244,6 @@ bool symbol_dependency_tables::add_dependency(dependant target,
     bool check_for_cycle,
     const dependency_evaluation_context& dep_ctx)
 {
-    if (find_dependant(target))
-        throw std::invalid_argument("symbol dependency already present");
-
-
     if (check_for_cycle)
     {
         auto dependencies = extract_dependencies(dependency_source, dep_ctx);
@@ -313,11 +256,9 @@ bool symbol_dependency_tables::add_dependency(dependant target,
         }
     }
 
-    if (std::holds_alternative<space_ptr>(target))
-        m_dependencies_space.try_emplace(std::get<space_ptr>(std::move(target)), dependency_source, dep_ctx);
-    else
-        m_dependencies_symbolic.try_emplace(
-            std::visit(convert_to_symbolic, std::move(target)), dependency_source, dep_ctx);
+    auto [it, inserted] = m_dependencies.try_emplace(std::move(target), dependency_source, dep_ctx);
+
+    assert(inserted);
 
     return true;
 }
@@ -379,7 +320,7 @@ void symbol_dependency_tables::add_dependency(space_ptr target,
 
 bool symbol_dependency_tables::check_cycle(space_ptr target)
 {
-    auto dep_src = find_dependant(target);
+    auto dep_src = find_dependency_value(target);
     if (!dep_src)
         return true;
 
@@ -408,23 +349,35 @@ void symbol_dependency_tables::add_defined(loctr_dependency_resolver* resolver) 
 
 bool symbol_dependency_tables::check_loctr_cycle()
 {
-    std::unordered_map<dependant, std::vector<dependant>> dep_g;
-
-    // create graph
-    for (const auto& [target, dep_src_loctr] : m_dependencies_space)
+    struct deref_tools
     {
-        auto new_deps = extract_dependencies(dep_src_loctr.m_resolvable, dep_src_loctr.m_dec);
+        bool operator()(const dependant* l, const dependant* r) const { return *l == *r; }
+        size_t operator()(const dependant* p) const { return std::hash<dependant>()(*p); }
+    };
 
-        std::erase_if(new_deps, [](const auto& e) { return !std::holds_alternative<space_ptr>(e); });
+    const auto dep_g = [this]() {
+        // create graph
+        std::unordered_map<const dependant*, std::vector<dependant>, deref_tools, deref_tools> result;
+        for (const auto& [target, dep_src_loctr] : m_dependencies)
+        {
+            if (!std::holds_alternative<space_ptr>(target))
+                continue;
 
-        if (!new_deps.empty())
-            dep_g.emplace(target, std::move(new_deps));
-    }
+            auto new_deps = extract_dependencies(dep_src_loctr.m_resolvable, dep_src_loctr.m_dec);
 
-    std::unordered_set<dependant> visited;
-    std::unordered_set<dependant> cycles;
-    std::vector<dependant> path;
-    std::deque<std::optional<dependant>> next_steps;
+            std::erase_if(new_deps, [](const auto& e) { return !std::holds_alternative<space_ptr>(e); });
+
+            if (!new_deps.empty())
+                result.emplace(&target, std::move(new_deps));
+        }
+        return result;
+    }();
+
+    std::unordered_set<const dependant*, deref_tools, deref_tools> cycles;
+
+    std::unordered_set<const dependant*, deref_tools, deref_tools> visited;
+    std::vector<const dependant*> path;
+    std::deque<const dependant*> next_steps;
 
     for (const auto& [target, _] : dep_g)
     {
@@ -437,33 +390,35 @@ bool symbol_dependency_tables::check_loctr_cycle()
         {
             auto next = std::move(next_steps.front());
             next_steps.pop_front();
-            if (!next.has_value())
+            if (!next)
             {
                 path.pop_back();
                 continue;
             }
-            if (auto it = std::find(path.begin(), path.end(), next.value()); it != path.end())
+            if (auto it = std::find_if(path.begin(), path.end(), [next](const auto* v) { return *v == *next; });
+                it != path.end())
             {
                 cycles.insert(it, path.end());
                 continue;
             }
-            if (!visited.emplace(next.value()).second)
+            if (!visited.emplace(next).second)
                 continue;
-            if (auto it = dep_g.find(next.value()); it != dep_g.end())
+            if (auto it = dep_g.find(next); it != dep_g.end())
             {
-                path.push_back(std::move(next).value());
-                next_steps.emplace_front(std::nullopt);
-                next_steps.insert(next_steps.begin(), it->second.begin(), it->second.end());
+                path.push_back(next);
+                next_steps.emplace_front(nullptr);
+                for (auto d = it->second.rbegin(); d != it->second.rend(); ++d)
+                    next_steps.emplace_front(std::to_address(d));
             }
         }
         assert(path.empty());
     }
 
-    for (const auto& target : cycles)
+    for (const auto* target : cycles)
     {
-        resolve_dependant_default(target);
-        try_erase_source_statement(target);
-        erase_dependant(target);
+        resolve_dependant_default(*target);
+        try_erase_source_statement(*target);
+        m_dependencies.erase(*target);
     }
 
     return cycles.empty();
@@ -482,17 +437,14 @@ std::vector<std::pair<post_stmt_ptr, dependency_evaluation_context>> symbol_depe
 
     postponed_stmts_.clear();
     dependency_source_stmts_.clear();
-    m_dependencies_symbolic.clear();
-    m_dependencies_space.clear();
+    m_dependencies.clear();
 
     return res;
 }
 
 void symbol_dependency_tables::resolve_all_as_default()
 {
-    for (auto& [target, dep_src] : m_dependencies_symbolic)
-        resolve_dependant_default(std::visit(convert_to_dependant, target));
-    for (auto& [target, dep_src] : m_dependencies_space)
+    for (auto& [target, dep_src] : m_dependencies)
         resolve_dependant_default(target);
 }
 
