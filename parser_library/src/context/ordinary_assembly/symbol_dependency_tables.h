@@ -102,6 +102,7 @@ class symbol_dependency_tables
 
     std::vector<dependant> extract_dependencies(
         const resolvable* dependency_source, const dependency_evaluation_context& dep_ctx);
+    bool has_dependencies(const resolvable* dependency_source, const dependency_evaluation_context& dep_ctx);
     std::vector<dependant> extract_dependencies(
         const std::vector<const resolvable*>& dependency_sources, const dependency_evaluation_context& dep_ctx);
 

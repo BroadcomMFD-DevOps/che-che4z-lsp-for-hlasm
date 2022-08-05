@@ -144,7 +144,7 @@ void symbol_dependency_tables::resolve(loctr_dependency_resolver* resolver)
     const auto resolvable = [this, resolver](const std::pair<dependant, dependency_value>& v) {
         if (!resolver && std::holds_alternative<space_ptr>(v.first))
             return false;
-        return extract_dependencies(v.second.m_resolvable, v.second.m_dec).empty();
+        return !has_dependencies(v.second.m_resolvable, v.second.m_dec);
     };
     auto it = m_dependencies.end();
     while ((it = std::find_if(m_dependencies.begin(), m_dependencies.end(), resolvable)) != m_dependencies.end())
@@ -200,6 +200,16 @@ std::vector<dependant> symbol_dependency_tables::extract_dependencies(
 
 
     return ret;
+}
+
+bool symbol_dependency_tables::has_dependencies(
+    const resolvable* dependency_source, const dependency_evaluation_context& dep_ctx)
+{
+    context::ordinary_assembly_dependency_solver dep_solver(m_sym_ctx, dep_ctx);
+    auto deps = dependency_source->get_dependencies(dep_solver);
+
+    return !deps.undefined_symbols.empty() || !deps.unresolved_spaces.empty() || !deps.undefined_attr_refs.empty()
+        || deps.unresolved_address && !deps.unresolved_address->normalized_spaces().empty();
 }
 
 std::vector<dependant> symbol_dependency_tables::extract_dependencies(
