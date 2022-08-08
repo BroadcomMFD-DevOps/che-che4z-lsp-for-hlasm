@@ -62,7 +62,7 @@ struct resolve_dependant_visitor
 {
     symbol_value& val;
     loctr_dependency_resolver* resolver;
-    ordinary_assembly_context& m_sym_ctx;
+    ordinary_assembly_context& sym_ctx;
     std::unordered_map<dependant, statement_ref>& dependency_source_stmts;
     const dependency_evaluation_context& dep_ctx;
 
@@ -70,7 +70,7 @@ struct resolve_dependant_visitor
     {
         assert(ref.attribute == data_attr_kind::L || ref.attribute == data_attr_kind::S);
 
-        auto tmp_sym = m_sym_ctx.get_symbol(ref.symbol_id);
+        auto tmp_sym = sym_ctx.get_symbol(ref.symbol_id);
         assert(!tmp_sym->attributes().is_defined(ref.attribute));
 
         symbol_attributes::value_t value = (val.value_kind() == symbol_value_kind::ABS)
@@ -82,7 +82,7 @@ struct resolve_dependant_visitor
         if (ref.attribute == data_attr_kind::S)
             tmp_sym->set_scale(value);
     }
-    void operator()(id_index symbol) const { m_sym_ctx.get_symbol(symbol)->set_value(val); }
+    void operator()(id_index symbol) const { sym_ctx.get_symbol(symbol)->set_value(val); }
     void operator()(const space_ptr& sp) const
     {
         int length = 0;
@@ -315,14 +315,15 @@ void symbol_dependency_tables::add_dependency(space_ptr target,
 {
     auto [it, inserted] = m_dependency_source_addrs.emplace(target, std::move(dependency_source));
 
+    assert(inserted);
+
     add_dependency(dependant(target), &*it->second, false, dep_ctx);
 
     if (dependency_source_stmt)
     {
         auto [sit, sinserted] = m_postponed_stmts.try_emplace(std::move(dependency_source_stmt), dep_ctx);
 
-        if (!sinserted)
-            throw std::runtime_error("statement already registered");
+        assert(sinserted);
 
         m_dependency_source_stmts.emplace(dependant(std::move(target)), statement_ref(sit, 1));
     }
