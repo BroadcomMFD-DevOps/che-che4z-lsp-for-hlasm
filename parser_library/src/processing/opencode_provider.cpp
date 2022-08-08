@@ -238,6 +238,17 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_looka
     return result;
 }
 
+bool is_multiline(std::string_view v)
+{
+    auto nl = v.find_first_of("\r\n");
+    if (nl == std::string_view::npos)
+        return false;
+    v.remove_prefix(nl);
+    v.remove_prefix(1 + v.starts_with("\r\n"));
+
+    return !v.empty();
+}
+
 std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordinary(const statement_processor& proc,
     semantics::collector& collector,
     const std::optional<std::string>& op_text,
@@ -273,7 +284,10 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordin
                     h.parser->op_rem_body_deferred();
                     break;
                 case processing_form::CA:
-                    h.parser->op_rem_body_ca();
+                    if (is_multiline(*op_text))
+                        h.parser->op_rem_body_ca_multiline();
+                    else
+                        h.parser->op_rem_body_ca_singleline();
                     (void)h.parser->get_collector().take_literals(); // drop literals
                     break;
                 case processing_form::MAC: {
