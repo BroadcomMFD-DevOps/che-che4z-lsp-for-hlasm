@@ -21,7 +21,8 @@
 #include "error_strategy.h"
 #include "expressions/conditional_assembly/ca_expr_visitor.h"
 #include "expressions/conditional_assembly/terms/ca_constant.h"
-#include "hlasmparser.h"
+#include "hlasmparser_multiline.h"
+#include "hlasmparser_singleline.h"
 #include "lexing/token_stream.h"
 #include "processing/op_code.h"
 
@@ -57,7 +58,8 @@ void parser_impl::reinitialize(context::hlasm_context* h_ctx,
     err_listener_.diagnoser = d;
 }
 
-std::unique_ptr<parser_holder> parser_holder::create(
+template<bool multiline>
+std::unique_ptr<parser_holder<multiline>> parser_holder<multiline>::create(
     semantics::source_info_processor* lsp_proc, context::hlasm_context* hl_ctx, diagnostic_op_consumer* d)
 {
     std::string s;
@@ -66,7 +68,8 @@ std::unique_ptr<parser_holder> parser_holder::create(
     h->input = std::make_unique<lexing::input_source>(s);
     h->lex = std::make_unique<lexing::lexer>(h->input.get(), lsp_proc);
     h->stream = std::make_unique<lexing::token_stream>(h->lex.get());
-    h->parser = std::make_unique<hlasmparser>(h->stream.get());
+    h->parser =
+        std::make_unique<std::conditional_t<multiline, hlasmparser_multiline, hlasmparser_singleline>>(h->stream.get());
     h->parser->setErrorHandler(h->error_handler);
     h->parser->initialize(hl_ctx, d);
     return h;
@@ -250,6 +253,10 @@ void parser_impl::add_diagnostic(diagnostic_op d) const
 
 context::id_index parser_impl::add_id(std::string s) { return hlasm_ctx->ids().add(std::move(s)); }
 
-parser_holder::~parser_holder() = default;
+template<bool multiline>
+parser_holder<multiline>::~parser_holder() = default;
+
+template struct parser_holder<false>;
+template struct parser_holder<true>;
 
 } // namespace hlasm_plugin::parser_library::parsing

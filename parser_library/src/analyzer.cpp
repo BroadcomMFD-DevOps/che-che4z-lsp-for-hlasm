@@ -14,7 +14,7 @@
 
 #include "analyzer.h"
 
-#include "hlasmparser.h"
+#include "hlasmparser_multiline.h"
 #include "parsing/error_strategy.h"
 #include "processing/preprocessor.h"
 
@@ -118,7 +118,7 @@ analyzing_context analyzer::context() const { return ctx_; }
 
 context::hlasm_context& analyzer::hlasm_ctx() { return *ctx_.hlasm_ctx; }
 
-parsing::hlasmparser& analyzer::parser() { return mngr_.opencode_parser(); }
+parsing::hlasmparser_multiline& analyzer::parser() { return mngr_.opencode_parser(); }
 
 size_t analyzer::debug_syntax_errors() { return mngr_.opencode_parser().getNumberOfSyntaxErrors(); }
 

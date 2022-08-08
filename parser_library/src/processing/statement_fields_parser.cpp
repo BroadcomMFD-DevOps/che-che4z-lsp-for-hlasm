@@ -15,14 +15,16 @@
 #include "statement_fields_parser.h"
 
 #include "context/hlasm_context.h"
-#include "hlasmparser.h"
+#include "hlasmparser_multiline.h"
+#include "hlasmparser_singleline.h"
 #include "lexing/token_stream.h"
 #include "parsing/error_strategy.h"
 
 namespace hlasm_plugin::parser_library::processing {
 
 statement_fields_parser::statement_fields_parser(context::hlasm_context* hlasm_ctx)
-    : m_parser(parsing::parser_holder::create(nullptr, hlasm_ctx, nullptr))
+    : m_parser_singleline(parsing::parser_holder<false>::create(nullptr, hlasm_ctx, nullptr))
+    , m_parser_multiline(parsing::parser_holder<true>::create(nullptr, hlasm_ctx, nullptr))
     , m_hlasm_ctx(hlasm_ctx)
 {}
 
@@ -30,30 +32,63 @@ statement_fields_parser::statement_fields_parser(context::hlasm_context* hlasm_c
 statement_fields_parser::~statement_fields_parser() = default;
 
 
-const parsing::parser_holder& statement_fields_parser::prepare_parser(const std::string& text,
+template<bool multiline>
+const parsing::parser_holder<multiline>& statement_fields_parser::prepare_parser(const std::string& text,
     bool unlimited_line,
     semantics::range_provider field_range,
     processing::processing_status status,
     diagnostic_op_consumer& add_diag)
 {
-    m_parser->input->reset(text);
+    auto& parser = [this]() -> std::unique_ptr<parsing::parser_holder<multiline>>& {
+        if constexpr (multiline)
+            return m_parser_multiline;
+        else
+            return m_parser_singleline;
+    }();
+    parser->input->reset(text);
 
-    m_parser->lex->reset();
-    m_parser->lex->set_file_offset(field_range.original_range.start);
-    m_parser->lex->set_unlimited_line(unlimited_line);
+    parser->lex->reset();
+    parser->lex->set_file_offset(field_range.original_range.start);
+    parser->lex->set_unlimited_line(unlimited_line);
 
-    m_parser->stream->reset();
+    parser->stream->reset();
 
-    m_parser->parser->reinitialize(m_hlasm_ctx, std::move(field_range), status, &add_diag);
+    parser->parser->reinitialize(m_hlasm_ctx, std::move(field_range), status, &add_diag);
 
-    m_parser->parser->reset();
+    parser->parser->reset();
 
-    m_parser->parser->get_collector().prepare_for_next_statement();
+    parser->parser->get_collector().prepare_for_next_statement();
 
-    return *m_parser;
+    return *parser;
+}
+
+constexpr bool is_multiline(std::string_view v)
+{
+    auto nl = v.find_first_of("\r\n");
+    if (nl == std::string_view::npos)
+        return false;
+    v.remove_prefix(nl);
+    v.remove_prefix(1 + v.starts_with("\r\n"));
+
+    return !v.empty();
 }
 
 statement_fields_parser::parse_result statement_fields_parser::parse_operand_field(std::string field,
+    bool after_substitution,
+    semantics::range_provider field_range,
+    processing::processing_status status,
+    diagnostic_op_consumer& add_diag)
+{
+    if (is_multiline(field))
+        return parse_operand_field_impl<true>(
+            std::move(field), after_substitution, std::move(field_range), std::move(status), add_diag);
+    else
+        return parse_operand_field_impl<false>(
+            std::move(field), after_substitution, std::move(field_range), std::move(status), add_diag);
+}
+
+template<bool multiline>
+statement_fields_parser::parse_result statement_fields_parser::parse_operand_field_impl(std::string field,
     bool after_substitution,
     semantics::range_provider field_range,
     processing::processing_status status,
@@ -68,7 +103,8 @@ statement_fields_parser::parse_result statement_fields_parser::parse_operand_fie
             diag.message = diagnostic_decorate_message(field, diag.message);
         add_diag.add_diagnostic(std::move(diag));
     });
-    const auto& h = prepare_parser(field, after_substitution, std::move(field_range), status, add_diag_subst);
+    const auto& h =
+        prepare_parser<multiline>(field, after_substitution, std::move(field_range), status, add_diag_subst);
 
     semantics::op_rem line;
     std::vector<semantics::literal_si> literals;
@@ -96,7 +132,7 @@ statement_fields_parser::parse_result statement_fields_parser::parse_operand_fie
                     semantics::range_provider tmp_provider(
                         r, std::move(ranges), semantics::adjusting_state::MACRO_REPARSE);
 
-                    const auto& h_second = prepare_parser(to_parse, true, tmp_provider, status, add_diag_subst);
+                    const auto& h_second = prepare_parser<false>(to_parse, true, tmp_provider, status, add_diag_subst);
 
                     line.operands = std::move(h_second.parser->macro_ops()->list);
                     literals = h.parser->get_collector().take_literals();

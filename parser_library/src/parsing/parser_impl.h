@@ -15,6 +15,8 @@
 #ifndef HLASMPLUGIN_PARSERLIBRARY_PARSER_IMPL_H
 #define HLASMPLUGIN_PARSERLIBRARY_PARSER_IMPL_H
 
+#include <type_traits>
+
 #include "antlr4-runtime.h"
 
 #include "parser_error_listener.h"
@@ -36,8 +38,10 @@ namespace hlasm_plugin::parser_library::parsing {
 using self_def_t = std::int32_t;
 
 class error_strategy;
+template<bool multiline>
 struct parser_holder;
-class hlasmparser;
+class hlasmparser_singleline;
+class hlasmparser_multiline;
 
 // class providing methods helpful for parsing and methods modifying parsing process
 class parser_impl : public antlr4::Parser
@@ -164,13 +168,14 @@ private:
 };
 
 // structure containing parser components
+template<bool multiline>
 struct parser_holder
 {
     std::shared_ptr<parsing::error_strategy> error_handler;
     std::unique_ptr<lexing::input_source> input;
     std::unique_ptr<lexing::lexer> lex;
     std::unique_ptr<lexing::token_stream> stream;
-    std::unique_ptr<hlasmparser> parser;
+    std::unique_ptr<std::conditional_t<multiline, hlasmparser_multiline, hlasmparser_singleline>> parser;
 
     ~parser_holder();
 

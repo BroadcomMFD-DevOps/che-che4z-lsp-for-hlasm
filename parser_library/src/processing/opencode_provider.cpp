@@ -15,7 +15,8 @@
 #include "opencode_provider.h"
 
 #include "analyzer.h"
-#include "hlasmparser.h"
+#include "hlasmparser_multiline.h"
+#include "hlasmparser_singleline.h"
 #include "lexing/token_stream.h"
 #include "parsing/error_strategy.h"
 #include "parsing/parser_impl.h"
@@ -44,9 +45,12 @@ opencode_provider::opencode_provider(std::string_view text,
     virtual_file_monitor* virtual_file_monitor)
     : statement_provider(statement_provider_kind::OPEN)
     , m_input_document(preprocessor ? preprocessor->generate_replacement(document(text)) : document(text))
-    , m_parser(parsing::parser_holder::create(&src_proc, ctx.hlasm_ctx.get(), &diag_consumer))
-    , m_lookahead_parser(parsing::parser_holder::create(nullptr, ctx.hlasm_ctx.get(), nullptr))
-    , m_operand_parser(parsing::parser_holder::create(nullptr, ctx.hlasm_ctx.get(), nullptr))
+    , m_singleline { parsing::parser_holder<false>::create(&src_proc, ctx.hlasm_ctx.get(), &diag_consumer),
+        parsing::parser_holder<false>::create(nullptr, ctx.hlasm_ctx.get(), nullptr),
+        parsing::parser_holder<false>::create(nullptr, ctx.hlasm_ctx.get(), nullptr), }
+    , m_multiline { parsing::parser_holder<true>::create(&src_proc, ctx.hlasm_ctx.get(), &diag_consumer),
+        parsing::parser_holder<true>::create(nullptr, ctx.hlasm_ctx.get(), nullptr),
+        parsing::parser_holder<true>::create(nullptr, ctx.hlasm_ctx.get(), nullptr), }
     , m_ctx(&ctx)
     , m_lib_provider(&lib_provider)
     , m_state_listener(&state_listener)
@@ -141,17 +145,15 @@ void opencode_provider::ainsert(const std::string& rec, ainsert_destination dest
     suspend_copy_processing(remove_empty::no);
 }
 
-extract_next_logical_line_result opencode_provider::feed_line(parsing::parser_holder& p)
+template<bool multiline>
+void opencode_provider::feed_line(parsing::parser_holder<multiline>& p, bool is_process)
 {
-    auto ll_res = extract_next_logical_line();
-    if (ll_res == extract_next_logical_line_result::failed)
-        return ll_res;
     m_line_fed = true;
 
     p.input->reset(m_current_logical_line);
 
-    p.lex->set_file_offset({ m_current_logical_line_source.begin_line, 0 /*lexing::default_ictl.begin-1 really*/ },
-        ll_res == extract_next_logical_line_result::process);
+    p.lex->set_file_offset(
+        { m_current_logical_line_source.begin_line, 0 /*lexing::default_ictl.begin-1 really*/ }, is_process);
     p.lex->set_unlimited_line(false);
     p.lex->reset();
 
@@ -162,8 +164,6 @@ extract_next_logical_line_result opencode_provider::feed_line(parsing::parser_ho
     p.parser->get_collector().prepare_for_next_statement();
 
     m_ctx->hlasm_ctx->metrics.lines += m_current_logical_line.segments.size();
-
-    return ll_res;
 }
 
 bool opencode_provider::is_comment()
@@ -205,6 +205,7 @@ void opencode_provider::generate_continuation_error_messages(diagnostic_op_consu
         ++line_no;
     }
 }
+template<bool multiline>
 std::shared_ptr<const context::hlasm_statement> opencode_provider::process_lookahead(const statement_processor& proc,
     semantics::collector& collector,
     const std::optional<std::string>& op_text,
@@ -220,7 +221,8 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_looka
             || std::get<context::id_index>(collector.current_instruction().value)
                 == m_ctx->hlasm_ctx->ids().well_known.COPY))
     {
-        const auto& h = prepare_operand_parser(*op_text, *m_ctx->hlasm_ctx, nullptr, {}, op_range, proc_status, true);
+        const auto& h =
+            prepare_operand_parser<multiline>(*op_text, *m_ctx->hlasm_ctx, nullptr, {}, op_range, proc_status, true);
 
         h.parser->lookahead_operands_and_remarks();
 
@@ -238,7 +240,7 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_looka
     return result;
 }
 
-bool is_multiline(std::string_view v)
+constexpr bool is_multiline(std::string_view v)
 {
     auto nl = v.find_first_of("\r\n");
     if (nl == std::string_view::npos)
@@ -249,6 +251,7 @@ bool is_multiline(std::string_view v)
     return !v.empty();
 }
 
+template<bool multiline>
 std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordinary(const statement_processor& proc,
     semantics::collector& collector,
     const std::optional<std::string>& op_text,
@@ -268,7 +271,8 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordin
     if (op_text)
     {
         collector.starting_operand_parsing();
-        const auto& h = prepare_operand_parser(*op_text, *m_ctx->hlasm_ctx, diags, {}, op_range, proc_status, false);
+        const auto& h =
+            prepare_operand_parser<multiline>(*op_text, *m_ctx->hlasm_ctx, diags, {}, op_range, proc_status, false);
 
         const auto& [format, opcode] = proc_status;
         if (format.occurence == operand_occurence::ABSENT || format.form == processing_form::UNKNOWN)
@@ -284,10 +288,7 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordin
                     h.parser->op_rem_body_deferred();
                     break;
                 case processing_form::CA:
-                    if (is_multiline(*op_text))
-                        h.parser->op_rem_body_ca_multiline();
-                    else
-                        h.parser->op_rem_body_ca_singleline();
+                    h.parser->op_rem_body_ca();
                     (void)h.parser->get_collector().take_literals(); // drop literals
                     break;
                 case processing_form::MAC: {
@@ -305,11 +306,19 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordin
 
                         semantics::range_provider tmp_provider(r, ranges, semantics::adjusting_state::MACRO_REPARSE);
 
-                        const auto& h_second = prepare_operand_parser(
+                        const auto& h_second = prepare_operand_parser<false>(
                             to_parse, *m_ctx->hlasm_ctx, diags, std::move(tmp_provider), r, proc_status, true);
 
                         line.operands = std::move(h_second.parser->macro_ops()->list);
-                        h.parser->get_collector().set_literals(h_second.parser->get_collector().take_literals());
+
+                        auto& c = h.parser->get_collector();
+                        auto& c_s = h_second.parser->get_collector();
+                        if (&c != &c_s)
+                        {
+                            c.set_literals(c_s.take_literals());
+                            for (auto&& x : c_s.extract_hl_symbols())
+                                c.add_hl_symbol(std::move(x));
+                        }
                     }
 
                     h.parser->get_collector().set_operand_remark_field(
@@ -491,14 +500,38 @@ void opencode_provider::convert_ainsert_buffer_to_copybook()
 
 context::shared_stmt_ptr opencode_provider::get_next(const statement_processor& proc)
 {
+    auto ll_res = extract_next_logical_line();
+    if (ll_res == extract_next_logical_line_result::failed)
+        return nullptr;
+    if (m_current_logical_line.segments.size() > 1)
+        return get_next_impl<true>(proc, ll_res == extract_next_logical_line_result::process);
+    else
+        return get_next_impl<false>(proc, ll_res == extract_next_logical_line_result::process);
+}
+
+template<bool multiline>
+context::shared_stmt_ptr opencode_provider::get_next_impl(const statement_processor& proc, bool is_process)
+{
     const bool lookahead = proc.kind == processing_kind::LOOKAHEAD;
     const bool nested = proc.kind == processing_kind::MACRO || proc.kind == processing_kind::COPY;
 
-    auto& ph = lookahead ? *m_lookahead_parser : *m_parser;
-
-    auto feed_line_res = feed_line(ph);
-    if (feed_line_res == extract_next_logical_line_result::failed)
-        return nullptr;
+    auto& ph = lookahead ? [this]() -> auto&
+    {
+        if constexpr (multiline)
+            return *m_multiline.m_lookahead_parser;
+        else
+            return *m_singleline.m_lookahead_parser;
+    }
+    ()
+        : [this]() -> auto&
+    {
+        if constexpr (multiline)
+            return *m_multiline.m_parser;
+        else
+            return *m_singleline.m_parser;
+    }
+    ();
+    feed_line<multiline>(ph, is_process);
 
     auto& collector = ph.parser->get_collector();
     auto* diag_target = nested ? collector.diag_collector() : static_cast<diagnostic_op_consumer*>(m_diagnoser);
@@ -513,7 +546,7 @@ context::shared_stmt_ptr opencode_provider::get_next(const statement_processor& 
             generate_continuation_error_messages(diag_target);
     }
 
-    if (feed_line_res != extract_next_logical_line_result::process && is_comment())
+    if (!is_process && is_comment())
     {
         if (!lookahead)
             process_comment();
@@ -558,8 +591,8 @@ context::shared_stmt_ptr opencode_provider::get_next(const statement_processor& 
     m_ctx->hlasm_ctx->set_source_indices(
         m_current_logical_line_source.first_index, m_current_logical_line_source.last_index);
 
-    return lookahead ? process_lookahead(proc, collector, op_text, op_range)
-                     : process_ordinary(proc, collector, op_text, op_range, diag_target);
+    return lookahead ? process_lookahead<multiline>(proc, collector, op_text, op_range)
+                     : process_ordinary<multiline>(proc, collector, op_text, op_range, diag_target);
 }
 
 bool opencode_provider::finished() const
@@ -576,12 +609,15 @@ bool opencode_provider::finished() const
     return std::none_of(o.begin(), o.end(), [](const auto& c) { return c.suspended(); });
 }
 
-parsing::hlasmparser& opencode_provider::parser()
+parsing::hlasmparser_multiline& opencode_provider::parser()
 {
     if (!m_line_fed)
-        feed_line(*m_parser);
+    {
+        auto ll_res = extract_next_logical_line();
+        feed_line<true>(*m_multiline.m_parser, ll_res == extract_next_logical_line_result::process);
+    }
     assert(m_line_fed);
-    return *m_parser->parser;
+    return *m_multiline.m_parser->parser;
 }
 
 bool opencode_provider::is_next_line_ictl() const
@@ -754,7 +790,8 @@ extract_next_logical_line_result opencode_provider::extract_next_logical_line()
     return extract_next_logical_line_result::normal;
 }
 
-const parsing::parser_holder& opencode_provider::prepare_operand_parser(const std::string& text,
+template<bool multiline>
+const parsing::parser_holder<multiline>& opencode_provider::prepare_operand_parser(const std::string& text,
     context::hlasm_context& hlasm_ctx,
     diagnostic_op_consumer* diags,
     semantics::range_provider range_prov,
@@ -762,7 +799,14 @@ const parsing::parser_holder& opencode_provider::prepare_operand_parser(const st
     const processing_status& proc_status,
     bool unlimited_line)
 {
-    auto& h = *m_operand_parser;
+    auto& h = [this]() -> auto&
+    {
+        if constexpr (multiline)
+            return *m_multiline.m_operand_parser;
+        else
+            return *m_singleline.m_operand_parser;
+    }
+    ();
 
     h.input->reset(text);
 
