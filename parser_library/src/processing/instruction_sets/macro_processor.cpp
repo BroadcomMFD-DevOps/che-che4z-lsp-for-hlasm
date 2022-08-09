@@ -19,6 +19,7 @@
 #include <stack>
 
 #include "ebcdic_encoding.h"
+#include "parsing/parser_impl.h"
 #include "semantics/operand_impls.h"
 
 namespace hlasm_plugin::parser_library::processing {
@@ -55,22 +56,6 @@ void macro_processor::process(std::shared_ptr<const processing::resolved_stateme
     hlasm_ctx.enter_macro(stmt->opcode_ref().value, std::move(args.name_param), std::move(args.symbolic_params));
 }
 namespace {
-bool is_consuming_data_def(unsigned char c)
-{
-    c = (char)toupper(c);
-    return c == 'O' || c == 'L' || c == 'I' || c == 'S' || c == 'T';
-}
-
-bool can_consume(std::string_view s, const size_t offset)
-{
-    if (offset > s.size())
-        return false;
-
-    auto c = s[offset];
-    c = (char)toupper(c);
-    return c == '=' || (c >= 'A' && c <= 'Z');
-}
-
 bool is_valid_string(std::string_view s)
 {
     size_t index = 0;
@@ -81,7 +66,9 @@ bool is_valid_string(std::string_view s)
         if (apostrophe == std::string_view::npos)
             return true;
 
-        if (apostrophe > 0 && is_consuming_data_def(s[apostrophe - 1]) && can_consume(s, apostrophe + 1))
+        if (apostrophe > 0 && apostrophe + 1 < s.size()
+            && parsing::parser_impl::is_attribute_consuming(s[apostrophe - 1])
+            && parsing::parser_impl::can_attribute_consume(s[apostrophe + 1]))
         {
             index = apostrophe + 1;
             continue;
@@ -127,7 +114,8 @@ std::pair<std::unique_ptr<context::macro_param_data_single>, bool> find_single_m
         }
         else if (data[start] == '\'')
         {
-            if (start > 0 && is_consuming_data_def(data[start - 1]) && can_consume(data, start + 1))
+            if (start > 0 && start + 1 < data.size() && parsing::parser_impl::is_attribute_consuming(data[start - 1])
+                && parsing::parser_impl::can_attribute_consume(data[start + 1]))
             {
                 ++start;
                 continue;
@@ -381,19 +369,15 @@ context::macro_data_ptr create_macro_data_inner(semantics::concat_chain::const_i
         return std::make_unique<context::macro_param_data_dummy>();
     else if (size > 1 || (size == 1 && (*begin)->type != semantics::concat_type::SUB))
     {
-        if (!nested)
-            return std::make_unique<context::macro_param_data_single>(to_string(begin, end));
+        auto is_var_present = [](const auto& p) { return p->type == semantics::concat_type::VAR; };
+
+        if (auto s = to_string(begin, end);
+            !nested || std::find_if(begin, end, is_var_present) == end || is_valid_string(s))
+            return macro_processor::string_to_macrodata(s);
         else
         {
-            auto is_var_present = [](const auto& p) { return p->type == semantics::concat_type::VAR; };
-
-            if (auto s = to_string(begin, end); std::find_if(begin, end, is_var_present) == end || is_valid_string(s))
-                return macro_processor::string_to_macrodata(s);
-            else
-            {
-                add_diagnostic(diagnostic_op::error_S0005);
-                return macro_processor::string_to_macrodata("");
-            }
+            add_diagnostic(diagnostic_op::error_S0005);
+            return macro_processor::string_to_macrodata("");
         }
     }
 

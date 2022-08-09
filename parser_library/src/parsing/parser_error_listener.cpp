@@ -15,6 +15,7 @@
 #include "parser_error_listener.h"
 
 #include "lexing/token_stream.h"
+#include "parser_impl.h"
 
 enum Tokens
 {
@@ -58,34 +59,6 @@ bool can_be_before_sign(size_t input)
         || input == COMMENT);
 }
 
-bool is_attribute_consuming(const antlr4::Token* token)
-{
-    if (!token)
-        return false;
-
-    auto text = token->getText();
-    if (text.size() != 1)
-        return false;
-
-    auto c = std::toupper((unsigned char)text.front());
-
-    return c == 'O' || c == 'S' || c == 'I' || c == 'L' || c == 'T';
-}
-
-bool can_consume(const antlr4::Token* token)
-{
-    if (!token)
-        return false;
-
-    auto text = token->getText();
-    if (text.size() == 0)
-        return false;
-
-    auto c = std::toupper((unsigned char)text.front());
-
-    return c == '=' || (c >= 'A' && c <= 'Z');
-}
-
 void iterate_error_stream(antlr4::TokenStream* input_stream,
     int start,
     int end,
@@ -123,13 +96,11 @@ void iterate_error_stream(antlr4::TokenStream* input_stream,
                 sign_preceding = false;
             if (is_comparative_sign(type))
                 unexpected_sign = true;
-            if (type == APOSTROPHE)
+            if (type == APOSTROPHE
+                || (type == ATTR
+                    && (!parser_impl::is_attribute_consuming(input_stream->get(i - 1))
+                        || (i + 1 <= end && !parser_impl::can_attribute_consume(input_stream->get(i + 1))))))
                 apostrophes++;
-            if (type == ATTR)
-            {
-                if (!is_attribute_consuming(input_stream->get(i - 1)) || !can_consume(input_stream->get(i + 1)))
-                    apostrophes++;
-            }
         }
         // if there is right bracket preceding left bracket
         if (parenthesis > 0)
