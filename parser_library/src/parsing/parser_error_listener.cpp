@@ -230,77 +230,47 @@ void parser_error_listener_base::syntaxError(
 
         // apostrophe expected
         if (odd_apostrophes && is_expected(APOSTROPHE, expected_tokens))
-            add_parser_diagnostic(diagnostic_op::error_S0005(range(position(line, char_pos_in_line))));
+            add_parser_diagnostic(diagnostic_op::error_S0005, range(position(line, char_pos_in_line)));
         // right parenthesis has no left match
         else if (right_prec)
-            add_parser_diagnostic(range(position(line, char_pos_in_line)),
-                diagnostic_severity::error,
-                "S0012",
-                "Right parenthesis has no left match");
+            add_parser_diagnostic(diagnostic_op::error_S0012, range(position(line, char_pos_in_line)));
         // left parenthesis has no right match
         else if (left_prec)
-            add_parser_diagnostic(range(position(line, char_pos_in_line)),
-                diagnostic_severity::error,
-                "S0011",
-                "Left parenthesis has no right match");
+            add_parser_diagnostic(diagnostic_op::error_S0011, range(position(line, char_pos_in_line)));
         // nothing else but left and right parenthesis is present
         else if (only_par)
-            add_parser_diagnostic(range(position(line, char_pos_in_line)),
-                diagnostic_severity::error,
-                "S0010",
-                "Only left and right parenthesis present");
+            add_parser_diagnostic(diagnostic_op::error_S0010, range(position(line, char_pos_in_line)));
         // sign followed by a wrong token
         else if (!sign_followed)
-            add_parser_diagnostic(range(position(line, char_pos_in_line)),
-                diagnostic_severity::error,
-                "S0009",
-                "A sign has to be followed by an expression");
+            add_parser_diagnostic(diagnostic_op::error_S0009, range(position(line, char_pos_in_line)));
         // ampersand not followed with a name of a variable symbol
         else if (!ampersand_followed)
-            add_parser_diagnostic(range(position(line, char_pos_in_line)),
-                diagnostic_severity::error,
-                "S0008",
-                "Ampersand has to be followed by a name of a variable");
+            add_parser_diagnostic(diagnostic_op::error_S0008, range(position(line, char_pos_in_line)));
         // expression starting with a sign
         else if (!sign_preceding)
-            add_parser_diagnostic(range(position(line, char_pos_in_line)),
-                diagnostic_severity::error,
-                "S0007",
-                "A sign needs to be preceded by an expression");
+            add_parser_diagnostic(diagnostic_op::error_S0007, range(position(line, char_pos_in_line)));
         // unexpected sign in an expression - GT, LT etc
         else if (unexpected_sign)
-            add_parser_diagnostic(range(position(line, char_pos_in_line)),
-                diagnostic_severity::error,
-                "S0006",
-                "Unexpected sign in an expression");
+            add_parser_diagnostic(diagnostic_op::error_S0006, range(position(line, char_pos_in_line)));
         // unfinished statement - solo label on line
         else if (start_token->getCharPositionInLine() == 0)
-            add_parser_diagnostic(range(position(line, char_pos_in_line)),
-                diagnostic_severity::error,
-                "S0004",
-                "Unfinished statement, the label cannot be alone on a line");
+            add_parser_diagnostic(diagnostic_op::error_S0004, range(position(line, char_pos_in_line)));
         // other undeclared errors
         else
-            add_parser_diagnostic(
-                range(position(line, char_pos_in_line)), diagnostic_severity::error, "S0002", "Syntax error");
+            add_parser_diagnostic(diagnostic_op::error_S0002, range(position(line, char_pos_in_line)));
     }
     catch (antlr4::InputMismatchException& excp)
     {
         auto offender = excp.getOffendingToken();
 
         if (offender->getType() == antlr4::Token::EOF)
-            add_parser_diagnostic(range(position(line, char_pos_in_line)),
-                diagnostic_severity::error,
-                "S0003",
-                "Unexpected end of statement");
+            add_parser_diagnostic(diagnostic_op::error_S0003, range(position(line, char_pos_in_line)));
         else
-            add_parser_diagnostic(
-                range(position(line, char_pos_in_line)), diagnostic_severity::error, "S0002", "Syntax error");
+            add_parser_diagnostic(diagnostic_op::error_S0002, range(position(line, char_pos_in_line)));
     }
     catch (...)
     {
-        add_parser_diagnostic(
-            range(position(line, char_pos_in_line)), diagnostic_severity::error, "S0001", "C++ error");
+        add_parser_diagnostic(diagnostic_op::error_S0001, range(position(line, char_pos_in_line)));
     }
 }
 
