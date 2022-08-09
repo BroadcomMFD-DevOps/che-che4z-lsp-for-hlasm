@@ -61,44 +61,43 @@ bool is_consuming_data_def(unsigned char c)
     return c == 'O' || c == 'L' || c == 'I' || c == 'S' || c == 'T';
 }
 
-bool can_consume(const std::string& data, const size_t start)
+bool can_consume(std::string_view s, const size_t offset)
 {
-    if (start > data.size())
+    if (offset > s.size())
         return false;
 
-    auto c = data[start];
+    auto c = s[offset];
+    c = (char)toupper(c);
     return c == '=' || (c >= 'A' && c <= 'Z');
 }
 
-bool is_valid_string(const std::string& s)
+bool is_valid_string(std::string_view s)
 {
     size_t index = 0;
 
     while (true)
     {
-        auto quote = s.find_first_of('\'', index);
-
-        if (quote == std::string::npos)
+        auto apostrophe = s.find_first_of('\'', index);
+        if (apostrophe == std::string_view::npos)
             return true;
 
-        if (quote > 0 && is_consuming_data_def(s[quote - 1]) && can_consume(s, quote + 1))
+        if (apostrophe > 0 && is_consuming_data_def(s[apostrophe - 1]) && can_consume(s, apostrophe + 1))
         {
-            index = quote + 1;
+            index = apostrophe + 1;
             continue;
         }
 
-        quote = s.find_first_of('\'', quote + 1);
-
-        if (quote == std::string::npos)
+        apostrophe = s.find_first_of('\'', apostrophe + 1);
+        if (apostrophe == std::string_view::npos)
             return false;
 
-        index = quote + 1;
+        index = apostrophe + 1;
     }
 }
 } // namespace
 
 std::pair<std::unique_ptr<context::macro_param_data_single>, bool> find_single_macro_param(
-    const std::string& data, size_t& start)
+    std::string_view data, size_t& start)
 {
     // always called in nested configuration
     size_t begin = start;
@@ -107,7 +106,7 @@ std::pair<std::unique_ptr<context::macro_param_data_single>, bool> find_single_m
     {
         start = data.find_first_of(",'()", start);
 
-        if (start == std::string::npos)
+        if (start == std::string_view::npos)
             return { nullptr, false };
 
         if (data[start] == '(')
@@ -136,7 +135,7 @@ std::pair<std::unique_ptr<context::macro_param_data_single>, bool> find_single_m
 
             start = data.find_first_of('\'', start + 1);
 
-            if (start == std::string::npos)
+            if (start == std::string_view::npos)
                 return { nullptr, false };
 
             ++start;
@@ -150,17 +149,17 @@ std::pair<std::unique_ptr<context::macro_param_data_single>, bool> find_single_m
     if (comma_encountered)
         ++start;
 
-    return { std::make_unique<context::macro_param_data_single>(data.substr(begin, tmp_start - begin)),
+    return { std::make_unique<context::macro_param_data_single>(std::string(data.substr(begin, tmp_start - begin))),
         comma_encountered };
 }
 
-context::macro_data_ptr macro_processor::string_to_macrodata(std::string data)
+context::macro_data_ptr macro_processor::string_to_macrodata(std::string_view data)
 {
     if (data.empty())
         return std::make_unique<context::macro_param_data_dummy>();
 
     if (data.front() != '(' || data.back() != ')')
-        return std::make_unique<context::macro_param_data_single>(std::move(data));
+        return std::make_unique<context::macro_param_data_single>(std::string(data));
 
 
     std::stack<size_t> nests;
@@ -175,7 +174,7 @@ context::macro_data_ptr macro_processor::string_to_macrodata(std::string data)
         auto begin = nests.top();
 
         if (begin == data.size())
-            return std::make_unique<context::macro_param_data_single>(std::move(data));
+            return std::make_unique<context::macro_param_data_single>(std::string(data));
 
         if (data[begin] == '(')
         {
@@ -200,7 +199,7 @@ context::macro_data_ptr macro_processor::string_to_macrodata(std::string data)
                 empty_op_pending = comma;
 
                 if (tmp_single == nullptr)
-                    return std::make_unique<context::macro_param_data_single>(std::move(data));
+                    return std::make_unique<context::macro_param_data_single>(std::string(data));
 
                 auto single = context::macro_param_data_composite(std::move(vec)).get_value() + tmp_single->get_value();
 
@@ -224,12 +223,12 @@ context::macro_data_ptr macro_processor::string_to_macrodata(std::string data)
             empty_op_pending = comma;
 
             if (macro_data.top().back() == nullptr)
-                return std::make_unique<context::macro_param_data_single>(std::move(data));
+                return std::make_unique<context::macro_param_data_single>(std::string(data));
         }
     }
 
     if (nests.top() != data.size())
-        return std::make_unique<context::macro_param_data_single>(std::move(data));
+        return std::make_unique<context::macro_param_data_single>(std::string(data));
 
     assert(macro_data.size() == 1 && macro_data.top().size() == 1);
 
