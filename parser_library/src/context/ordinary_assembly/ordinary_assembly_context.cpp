@@ -124,6 +124,7 @@ void ordinary_assembly_context::set_section(id_index name, section_kind kind, lo
             symbol_attributes::make_section_attrs(),
             std::move(symbol_location),
             hlasm_ctx_.processing_stack());
+        symbol_dependencies.add_defined(name);
     }
 }
 
@@ -185,6 +186,7 @@ void ordinary_assembly_context::set_location_counter(id_index name, location sym
             hlasm_ctx_.processing_stack());
         if (!inserted)
             throw std::invalid_argument("symbol already defined");
+        symbol_dependencies.add_defined(name);
     }
 }
 

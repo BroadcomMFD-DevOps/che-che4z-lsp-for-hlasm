@@ -205,8 +205,8 @@ void low_language_processor::resolve_unknown_loctr_dependency(context::space_ptr
 
     context::space::resolve(sp, std::move(ret));
 
-    //if (!hlasm_ctx.ord_ctx.symbol_dependencies.check_cycle(new_sp))
-    //    add_diagnostic(diagnostic_op::error_E033(err_range));
+    // if (!hlasm_ctx.ord_ctx.symbol_dependencies.check_cycle(new_sp))
+    //     add_diagnostic(diagnostic_op::error_E033(err_range));
 
     for (auto& sect : hlasm_ctx.ord_ctx.sections())
         for (auto& loctr : sect->location_counters())

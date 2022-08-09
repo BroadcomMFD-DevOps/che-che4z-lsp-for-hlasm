@@ -15,7 +15,6 @@
 #ifndef SEMANTICS_SYMBOL_DEPENDENCY_TABLES_H
 #define SEMANTICS_SYMBOL_DEPENDENCY_TABLES_H
 
-#include <map>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -81,7 +80,7 @@ class symbol_dependency_tables
     };
 
     // actual dependecies of symbol or space
-    std::map<dependant, dependency_value> m_dependencies;
+    std::unordered_map<dependant, dependency_value> m_dependencies;
 
     // statements where dependencies are from
     std::unordered_map<dependant, statement_ref> m_dependency_source_stmts;
