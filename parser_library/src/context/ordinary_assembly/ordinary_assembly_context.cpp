@@ -61,16 +61,17 @@ bool ordinary_assembly_context::create_symbol(
 
     bool ok = true;
 
-    if (value.value_kind() == symbol_value_kind::RELOC)
-        ok = symbol_dependencies.check_loctr_cycle();
-
     if (value.value_kind() != symbol_value_kind::UNDEF)
-        symbol_dependencies.add_defined();
+        symbol_dependencies.add_defined(name);
 
     return ok;
 }
 
-void ordinary_assembly_context::add_symbol_reference(symbol sym) { symbol_refs_.try_emplace(sym.name, std::move(sym)); }
+void ordinary_assembly_context::add_symbol_reference(symbol sym)
+{
+    auto [it, _] = symbol_refs_.try_emplace(sym.name, std::move(sym));
+    symbol_dependencies.add_defined(it->first);
+}
 
 const symbol* ordinary_assembly_context::get_symbol_reference(context::id_index name) const
 {
@@ -321,7 +322,7 @@ void ordinary_assembly_context::finish_module_layout(loctr_dependency_resolver* 
                     return;
 
                 sect->location_counters()[i]->finish_layout(sect->location_counters()[i - 1]->storage());
-                symbol_dependencies.add_defined(resolver);
+                symbol_dependencies.add_defined(id_index(), resolver);
             }
         }
     }

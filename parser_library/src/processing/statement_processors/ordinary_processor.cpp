@@ -135,7 +135,9 @@ void ordinary_processor::end_processing()
         hlasm_ctx.ord_ctx.generate_pool(*this, hlasm_ctx.using_current());
     }
 
-    hlasm_ctx.ord_ctx.symbol_dependencies.add_defined(&asm_proc_);
+    hlasm_ctx.ord_ctx.symbol_dependencies.check_loctr_cycle();
+
+    hlasm_ctx.ord_ctx.symbol_dependencies.add_defined(context::id_index(), &asm_proc_);
 
     hlasm_ctx.ord_ctx.finish_module_layout(&asm_proc_);
 

@@ -15,6 +15,7 @@
 #ifndef SEMANTICS_SYMBOL_DEPENDENCY_TABLES_H
 #define SEMANTICS_SYMBOL_DEPENDENCY_TABLES_H
 
+#include <map>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -71,14 +72,16 @@ class symbol_dependency_tables
     {
         const resolvable* m_resolvable;
         dependency_evaluation_context m_dec;
+        std::vector<std::variant<id_index, space_ptr>> m_last_dependencies;
 
         dependency_value(const resolvable* r, dependency_evaluation_context dec)
             : m_resolvable(r)
             , m_dec(std::move(dec))
         {}
     };
+
     // actual dependecies of symbol or space
-    std::unordered_map<dependant, dependency_value> m_dependencies;
+    std::map<dependant, dependency_value> m_dependencies;
 
     // statements where dependencies are from
     std::unordered_map<dependant, statement_ref> m_dependency_source_stmts;
@@ -96,13 +99,13 @@ class symbol_dependency_tables
         loctr_dependency_resolver* resolver,
         const dependency_evaluation_context& dep_ctx);
     void resolve_dependant_default(const dependant& target);
-    void resolve(loctr_dependency_resolver* resolver);
+    void resolve(std::variant<id_index, space_ptr> what_changed, loctr_dependency_resolver* resolver);
 
     const dependency_value* find_dependency_value(const dependant& target) const;
 
     std::vector<dependant> extract_dependencies(
         const resolvable* dependency_source, const dependency_evaluation_context& dep_ctx);
-    bool has_dependencies(const resolvable* dependency_source, const dependency_evaluation_context& dep_ctx);
+    bool update_dependencies(dependency_value& v);
     std::vector<dependant> extract_dependencies(
         const std::vector<const resolvable*>& dependency_sources, const dependency_evaluation_context& dep_ctx);
 
@@ -151,7 +154,8 @@ public:
 
     // registers that some symbol has been defined
     // if resolver is present, location counter dependencies are checked as well (not just symbol deps)
-    void add_defined(loctr_dependency_resolver* resolver = nullptr);
+    void add_defined(
+        const std::variant<id_index, space_ptr>& what_changed, loctr_dependency_resolver* resolver = nullptr);
 
     // checks for cycle in location counter value
     bool check_loctr_cycle();

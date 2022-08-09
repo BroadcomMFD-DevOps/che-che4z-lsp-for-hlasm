@@ -26,7 +26,6 @@
 #include "processing/instruction_sets/postponed_statement_impl.h"
 
 namespace hlasm_plugin::parser_library::context {
-
 bool symbol_dependency_tables::check_cycle(dependant target, std::vector<dependant> dependencies)
 {
     if (std::find(dependencies.begin(), dependencies.end(), target)
@@ -101,6 +100,13 @@ struct resolve_dependant_visitor
     }
 };
 
+struct dependant_visitor
+{
+    std::variant<id_index, space_ptr> operator()(id_index id) { return id; }
+    std::variant<id_index, space_ptr> operator()(attr_ref a) { return a.symbol_id; }
+    std::variant<id_index, space_ptr> operator()(space_ptr p) { return std::move(p); }
+};
+
 void symbol_dependency_tables::resolve_dependant(dependant target,
     const resolvable* dep_src,
     loctr_dependency_resolver* resolver,
@@ -139,12 +145,18 @@ void symbol_dependency_tables::resolve_dependant_default(const dependant& target
     std::visit(resolve_dependant_default_visitor { m_sym_ctx }, target);
 }
 
-void symbol_dependency_tables::resolve(loctr_dependency_resolver* resolver)
+void symbol_dependency_tables::resolve(
+    std::variant<id_index, space_ptr> what_changed, loctr_dependency_resolver* resolver)
 {
-    const auto resolvable = [this, resolver](const std::pair<dependant, dependency_value>& v) {
+    const auto resolvable = [this, resolver, &what_changed](std::pair<const dependant, dependency_value>& v) {
+        std::erase_if(v.second.m_last_dependencies, [&what_changed](const auto& v) {
+            return what_changed == v || std::holds_alternative<space_ptr>(v) && std::get<space_ptr>(v)->resolved();
+        });
         if (!resolver && std::holds_alternative<space_ptr>(v.first))
             return false;
-        return !has_dependencies(v.second.m_resolvable, v.second.m_dec);
+        if (!v.second.m_last_dependencies.empty())
+            return false;
+        return !update_dependencies(v.second);
     };
     auto it = m_dependencies.end();
     while ((it = std::find_if(m_dependencies.begin(), m_dependencies.end(), resolvable)) != m_dependencies.end())
@@ -153,6 +165,15 @@ void symbol_dependency_tables::resolve(loctr_dependency_resolver* resolver)
 
         resolve_dependant(target, dep_value.m_resolvable, resolver, dep_value.m_dec); // resolve target
         try_erase_source_statement(target);
+
+        for (auto nested = std::next(it); nested != m_dependencies.end(); ++nested)
+        {
+            std::erase_if(nested->second.m_last_dependencies, [&what_changed](const auto& v) {
+                return what_changed == v || std::holds_alternative<space_ptr>(v) && std::get<space_ptr>(v)->resolved();
+            });
+        }
+
+        what_changed = std::visit(dependant_visitor(), target);
         m_dependencies.erase(it);
     }
 }
@@ -202,14 +223,28 @@ std::vector<dependant> symbol_dependency_tables::extract_dependencies(
     return ret;
 }
 
-bool symbol_dependency_tables::has_dependencies(
-    const resolvable* dependency_source, const dependency_evaluation_context& dep_ctx)
+bool symbol_dependency_tables::update_dependencies(dependency_value& d)
 {
-    context::ordinary_assembly_dependency_solver dep_solver(m_sym_ctx, dep_ctx);
-    auto deps = dependency_source->get_dependencies(dep_solver);
+    context::ordinary_assembly_dependency_solver dep_solver(m_sym_ctx, d.m_dec);
+    auto deps = d.m_resolvable->get_dependencies(dep_solver);
 
-    return !deps.undefined_symbols.empty() || !deps.unresolved_spaces.empty() || !deps.undefined_attr_refs.empty()
-        || deps.unresolved_address && !deps.unresolved_address->normalized_spaces().empty();
+    d.m_last_dependencies.clear();
+    d.m_last_dependencies.insert(
+        d.m_last_dependencies.end(), deps.undefined_symbols.begin(), deps.undefined_symbols.end());
+    for (const auto& dep : deps.undefined_attr_refs)
+        d.m_last_dependencies.push_back(dep.symbol_id);
+
+    if (!d.m_last_dependencies.empty())
+        return true;
+
+    for (const auto& sp : deps.unresolved_spaces)
+        d.m_last_dependencies.push_back(sp);
+
+    if (deps.unresolved_address)
+        for (auto&& x : deps.unresolved_address->normalized_spaces())
+            d.m_last_dependencies.push_back(x.first);
+
+    return !d.m_last_dependencies.empty();
 }
 
 std::vector<dependant> symbol_dependency_tables::extract_dependencies(
@@ -256,12 +291,10 @@ bool symbol_dependency_tables::add_dependency(dependant target,
 {
     if (check_for_cycle)
     {
-        auto dependencies = extract_dependencies(dependency_source, dep_ctx);
-
-        bool no_cycle = check_cycle(target, dependencies);
+        bool no_cycle = check_cycle(target, extract_dependencies(dependency_source, dep_ctx));
         if (!no_cycle)
         {
-            resolve(nullptr);
+            resolve(std::visit(dependant_visitor(), target), nullptr);
             return false;
         }
     }
@@ -338,7 +371,7 @@ bool symbol_dependency_tables::check_cycle(space_ptr target)
     bool no_cycle = check_cycle(target, extract_dependencies(dep_src->m_resolvable, dep_src->m_dec));
 
     if (!no_cycle)
-        resolve(nullptr);
+        resolve(std::move(target), nullptr);
 
     return no_cycle;
 }
@@ -356,7 +389,11 @@ dependency_adder symbol_dependency_tables::add_dependencies(
     return dependency_adder(*this, std::move(dependency_source_stmt), dep_ctx);
 }
 
-void symbol_dependency_tables::add_defined(loctr_dependency_resolver* resolver) { resolve(resolver); }
+void symbol_dependency_tables::add_defined(
+    const std::variant<id_index, space_ptr>& what_changed, loctr_dependency_resolver* resolver)
+{
+    resolve(what_changed, resolver);
+}
 
 bool symbol_dependency_tables::check_loctr_cycle()
 {
