@@ -60,6 +60,8 @@ public:
 protected:
     virtual void add_parser_diagnostic(
         range diagnostic_range, diagnostic_severity severity, std::string code, std::string message) = 0;
+
+    virtual void add_parser_diagnostic(diagnostic_op diag_op) = 0;
 };
 
 class parser_error_listener final : public parser_error_listener_base
@@ -78,10 +80,16 @@ protected:
         range diagnostic_range, diagnostic_severity severity, std::string code, std::string message) override
     {
         if (diagnoser)
-            diagnoser->add_diagnostic(diagnostic_op(severity,
+            add_parser_diagnostic(diagnostic_op(severity,
                 std::move(code),
                 std::move(message),
                 provider ? provider->adjust_range(diagnostic_range) : std::move(diagnostic_range)));
+    }
+
+    void add_parser_diagnostic(diagnostic_op diag_op) override
+    {
+        if (diagnoser)
+            diagnoser->add_diagnostic(std::move(diag_op));
     }
 };
 

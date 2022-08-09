@@ -732,6 +732,8 @@ struct diagnostic_op
     static diagnostic_op error_U006_duplicate_base_specified(const range& range);
 
     static diagnostic_op mnote_diagnostic(unsigned level, std::string_view message, const range& range);
+
+    static diagnostic_op error_S0005(const range& range);
 };
 
 std::string diagnostic_decorate_message(std::string_view field, std::string_view message);

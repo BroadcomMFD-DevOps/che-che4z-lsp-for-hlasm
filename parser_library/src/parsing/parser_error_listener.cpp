@@ -24,7 +24,7 @@ enum Tokens
 using namespace hlasm_plugin::parser_library::lexing;
 
 namespace hlasm_plugin::parser_library::parsing {
-
+namespace {
 bool is_comparative_sign(size_t input)
 {
     return (input == LT || input == GT || input == EQUALS || input == EQ || input == OR || input == AND || input == LE
@@ -58,6 +58,34 @@ bool can_be_before_sign(size_t input)
         || input == COMMENT);
 }
 
+bool is_attribute_consuming(const antlr4::Token* token)
+{
+    if (!token)
+        return false;
+
+    auto text = token->getText();
+    if (text.size() != 1)
+        return false;
+
+    auto c = std::toupper((unsigned char)text.front());
+
+    return c == 'O' || c == 'S' || c == 'I' || c == 'L' || c == 'T';
+}
+
+bool can_consume(const antlr4::Token* token)
+{
+    if (!token)
+        return false;
+
+    auto text = token->getText();
+    if (text.size() == 0)
+        return false;
+
+    auto c = std::toupper((unsigned char)text.front());
+
+    return c == '=' || (c >= 'A' && c <= 'Z');
+}
+
 void iterate_error_stream(antlr4::TokenStream* input_stream,
     int start,
     int end,
@@ -68,8 +96,7 @@ void iterate_error_stream(antlr4::TokenStream* input_stream,
     bool& sign_preceding,
     bool& unexpected_sign,
     bool& odd_apostrophes,
-    bool& ampersand_followed,
-    bool& attr_last)
+    bool& ampersand_followed)
 {
     int parenthesis = 0;
     int apostrophes = 0;
@@ -97,12 +124,12 @@ void iterate_error_stream(antlr4::TokenStream* input_stream,
             if (is_comparative_sign(type))
                 unexpected_sign = true;
             if (type == APOSTROPHE)
-            {
                 apostrophes++;
-                attr_last = false;
-            }
             if (type == ATTR)
-                attr_last = true;
+            {
+                if (!is_attribute_consuming(input_stream->get(i - 1)) || !can_consume(input_stream->get(i + 1)))
+                    apostrophes++;
+            }
         }
         // if there is right bracket preceding left bracket
         if (parenthesis > 0)
@@ -118,6 +145,7 @@ bool is_expected(int exp_token, antlr4::misc::IntervalSet expectedTokens)
 {
     return expectedTokens.contains(static_cast<size_t>(exp_token));
 }
+} // namespace
 
 void parser_error_listener_base::syntaxError(
     antlr4::Recognizer*, antlr4::Token*, size_t line, size_t char_pos_in_line, const std::string&, std::exception_ptr e)
@@ -187,7 +215,6 @@ void parser_error_listener_base::syntaxError(
         bool unexpected_sign = false;
         bool odd_apostrophes = false;
         bool ampersand_followed = true;
-        bool attr_last = false;
 
         iterate_error_stream(input_stream,
             start_index,
@@ -199,11 +226,13 @@ void parser_error_listener_base::syntaxError(
             sign_preceding,
             unexpected_sign,
             odd_apostrophes,
-            ampersand_followed,
-            attr_last);
+            ampersand_followed);
 
+        // apostrophe expected
+        if (odd_apostrophes && is_expected(APOSTROPHE, expected_tokens))
+            add_parser_diagnostic(diagnostic_op::error_S0005(range(position(line, char_pos_in_line))));
         // right parenthesis has no left match
-        if (right_prec && !odd_apostrophes && !attr_last)
+        else if (right_prec)
             add_parser_diagnostic(range(position(line, char_pos_in_line)),
                 diagnostic_severity::error,
                 "S0012",
@@ -244,19 +273,12 @@ void parser_error_listener_base::syntaxError(
                 diagnostic_severity::error,
                 "S0006",
                 "Unexpected sign in an expression");
-        // apostrophe expected
-        else if (odd_apostrophes && is_expected(APOSTROPHE, expected_tokens))
-            add_parser_diagnostic(
-                range(position(line, char_pos_in_line)), diagnostic_severity::error, "S0005", "Expected an apostrophe");
         // unfinished statement - solo label on line
         else if (start_token->getCharPositionInLine() == 0)
             add_parser_diagnostic(range(position(line, char_pos_in_line)),
                 diagnostic_severity::error,
                 "S0004",
                 "Unfinished statement, the label cannot be alone on a line");
-        else if (attr_last && is_expected(APOSTROPHE, expected_tokens))
-            add_parser_diagnostic(
-                range(position(line, char_pos_in_line)), diagnostic_severity::error, "S0005", "Expected an apostrophe");
         // other undeclared errors
         else
             add_parser_diagnostic(

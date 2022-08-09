@@ -2432,6 +2432,11 @@ diagnostic_op diagnostic_op::mnote_diagnostic(unsigned level, std::string_view m
     return diagnostic_op(lvl, "MNOTE", std::string(message), range, tag);
 }
 
+diagnostic_op diagnostic_op::error_S0005(const range& range)
+{
+    return diagnostic_op(diagnostic_severity::error, "S0005", "Expected an apostrophe.", range);
+}
+
 diagnostic_s diagnostic_s::error_W0001(const utils::resource::resource_location& file_name)
 {
     return diagnostic_s(file_name.get_uri(),
