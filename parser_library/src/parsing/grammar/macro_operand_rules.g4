@@ -64,15 +64,32 @@ mac_preproc
 		|
 		APOSTROPHE
 		(~(APOSTROPHE|ATTR|CONTINUATION))*
-		(APOSTROPHE|ATTR)?
+		(APOSTROPHE|ATTR)
 		|
 		ATTR
 		(
 			{is_previous_attribute_consuming(_input->LT(-2))}?
-			(~(APOSTROPHE|ATTR|CONTINUATION))*?
+			(
+				ORDSYMBOL
+				|
+				AMPERSAND
+				ORDSYMBOL
+				(ORDSYMBOL|NUM)*
+				(APOSTROPHE|ATTR)?
+				|
+				EQUALS
+				(~(APOSTROPHE|ATTR|CONTINUATION))*
+				|
+				(ASTERISK|MINUS|PLUS|LT|GT|SLASH|VERTICAL|IDENTIFIER|NUM|DOT|LPAR|RPAR)
+				(~(APOSTROPHE|ATTR|CONTINUATION))*
+				(APOSTROPHE|ATTR)
+			)
 			|
-			(~(APOSTROPHE|ATTR|CONTINUATION))*
-			(APOSTROPHE|ATTR)?
+			{!is_previous_attribute_consuming(_input->LT(-2))}?
+			(
+				(~(APOSTROPHE|ATTR|CONTINUATION))*
+				(APOSTROPHE|ATTR)
+			)?
 		)
 	)+
 	;
