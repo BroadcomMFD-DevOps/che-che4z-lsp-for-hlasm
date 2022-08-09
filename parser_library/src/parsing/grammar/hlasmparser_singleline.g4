@@ -334,11 +334,11 @@ op_rem_body_alt_mac returns [op_rem line]
 		int paren_count = 0;
 	}
 	(
-		mac_op[&paren_count]? comma
+		mac_op[&paren_count]? COMMA
 		{
 			if ($mac_op.ctx && $mac_op.op)
 				$line.operands.push_back(std::move($mac_op.op));
-			$line.operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_range($comma.ctx->getStart())));
+			$line.operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_range($COMMA)));
 		}
 	)*
 	(

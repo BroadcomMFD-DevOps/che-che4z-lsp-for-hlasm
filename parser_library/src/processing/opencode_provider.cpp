@@ -316,8 +316,7 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordin
                         if (&c != &c_s)
                         {
                             c.set_literals(c_s.take_literals());
-                            for (auto&& x : c_s.extract_hl_symbols())
-                                c.add_hl_symbol(std::move(x));
+                            c.set_hl_symbols(c_s.extract_hl_symbols());
                         }
                     }
 
