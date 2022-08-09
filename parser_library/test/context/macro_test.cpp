@@ -636,18 +636,26 @@ TEST(variable_argument_passing, positive_sublist)
     EXPECT_EQ(data->get_ith(3)->get_value(), "CLI");
     EXPECT_TRUE(dynamic_cast<const macro_param_data_single*>(data->get_ith(3)));
 
-    data = macro_processor::string_to_macrodata("(DATA1,DATA2,L'DATA3,DATA4)");
+    data = macro_processor::string_to_macrodata("(DATA1,DATA2,I'DATA3,DATA4,L'DATA5,O'DATA6,S'DATA7,T'DATA8)");
 
     ASSERT_TRUE(dynamic_cast<macro_param_data_composite*>(data.get()));
-    ASSERT_EQ(data->number, (size_t)4);
+    ASSERT_EQ(data->number, (size_t)8);
     EXPECT_EQ(data->get_ith(0)->get_value(), "DATA1");
     EXPECT_TRUE(dynamic_cast<const macro_param_data_single*>(data->get_ith(0)));
     EXPECT_EQ(data->get_ith(1)->get_value(), "DATA2");
     EXPECT_TRUE(dynamic_cast<const macro_param_data_single*>(data->get_ith(1)));
-    EXPECT_EQ(data->get_ith(2)->get_value(), "L'DATA3");
+    EXPECT_EQ(data->get_ith(2)->get_value(), "I'DATA3");
     EXPECT_TRUE(dynamic_cast<const macro_param_data_single*>(data->get_ith(2)));
     EXPECT_EQ(data->get_ith(3)->get_value(), "DATA4");
     EXPECT_TRUE(dynamic_cast<const macro_param_data_single*>(data->get_ith(3)));
+    EXPECT_EQ(data->get_ith(4)->get_value(), "L'DATA5");
+    EXPECT_TRUE(dynamic_cast<const macro_param_data_single*>(data->get_ith(4)));
+    EXPECT_EQ(data->get_ith(5)->get_value(), "O'DATA6");
+    EXPECT_TRUE(dynamic_cast<const macro_param_data_single*>(data->get_ith(5)));
+    EXPECT_EQ(data->get_ith(6)->get_value(), "S'DATA7");
+    EXPECT_TRUE(dynamic_cast<const macro_param_data_single*>(data->get_ith(6)));
+    EXPECT_EQ(data->get_ith(7)->get_value(), "T'DATA8");
+    EXPECT_TRUE(dynamic_cast<const macro_param_data_single*>(data->get_ith(7)));
 }
 
 TEST(variable_argument_passing, negative_sublist)

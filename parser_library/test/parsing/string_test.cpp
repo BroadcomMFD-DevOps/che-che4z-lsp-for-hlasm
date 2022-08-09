@@ -15,6 +15,7 @@
 #include "gtest/gtest.h"
 
 #include "../common_testing.h"
+#include "../mock_parse_lib_provider.h"
 
 // tests parsing of hlasm strings
 
@@ -114,58 +115,6 @@ TEST(parser, incomplete_string)
     ASSERT_TRUE(par_value.has_value());
 }
 
-TEST(parser, preserve_structured_parameter)
-{
-    std::string input = R"(
-     GBLC  &PAR
-     MACRO
-     MAC2
-     GBLC  &PAR
-&PAR SETC  '&SYSLIST(1,1)'
-     MEND
-
-     MACRO
-     MAC   &P1
-     MAC2  &P1
-     MEND
-
-
-     MAC   (A,O'-9')
-)";
-    analyzer a(input);
-    a.analyze();
-    a.collect_diags();
-
-    EXPECT_TRUE(a.diags().empty());
-    EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "PAR"), "A");
-}
-
-TEST(parser, preserve_structured_parameter_2)
-{
-    std::string input = R"(
-     GBLC  &PAR
-     MACRO
-     MAC2
-     GBLC  &PAR
-&PAR SETC  '&SYSLIST(1,1)'
-     MEND
-
-     MACRO
-     MAC   &P1
-     MAC2  &P1.
-     MEND
-
-
-     MAC   (A,O'-9')
-)";
-    analyzer a(input);
-    a.analyze();
-    a.collect_diags();
-
-    EXPECT_TRUE(a.diags().empty());
-    EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "PAR"), "A");
-}
-
 namespace {
 struct test_param_parser_quotes
 {
@@ -184,16 +133,16 @@ class parser_quotes_fixture : public ::testing::TestWithParam<test_param_parser_
 INSTANTIATE_TEST_SUITE_P(parser,
     parser_quotes_fixture,
     ::testing::Values(test_param_parser_quotes { "A", false },
-        test_param_parser_quotes { "B", false },
-        test_param_parser_quotes { "C", false },
+       /* test_param_parser_quotes { "B", false },
+        test_param_parser_quotes { "C", false }, */
         test_param_parser_quotes { "D", false },
-        test_param_parser_quotes { "E", false },
+      /*  test_param_parser_quotes { "E", false },
         test_param_parser_quotes { "F", false },
         test_param_parser_quotes { "G", false },
-        test_param_parser_quotes { "H", false },
-        test_param_parser_quotes { "I", true },
+        test_param_parser_quotes { "H", false },*/
+        test_param_parser_quotes { "I", true }/*,
         test_param_parser_quotes { "J", false },
-        test_param_parser_quotes { "K", false },
+        test_param_parser_quotes { "K", false } ,
         test_param_parser_quotes { "L", true },
         test_param_parser_quotes { "M", false },
         test_param_parser_quotes { "N", false },
@@ -208,181 +157,761 @@ INSTANTIATE_TEST_SUITE_P(parser,
         test_param_parser_quotes { "W", false },
         test_param_parser_quotes { "X", false },
         test_param_parser_quotes { "Y", false },
-        test_param_parser_quotes { "Z", false }),
+        test_param_parser_quotes { "Z", false }*/),
     stringer_test_param_parser_quotes());
-} // namespace
 
-TEST_P(parser_quotes_fixture, no_brackets)
-{
-    std::string input = R"(
+mock_parse_lib_provider lib_provider { { "MAC", R"(*
          MACRO
          MAC &VAR
          GBLC &STR
 &STR     SETC '&VAR'
          MEND
- 
+)" },
+    { "MAC_LIST_1_ELEM", R"(*
+         MACRO
+         MAC_LIST_1_ELEM &VAR
+         GBLC &STR
+&STR     SETC '&VAR(1)'
+         MEND
+)" },
+    { "MAC_LIST_2_ELEM", R"(*
+         MACRO
+         MAC_LIST_2_ELEM &VAR
+         GBLC &STR1,&STR2
+&STR1     SETC '&VAR(1)'
+&STR2     SETC '&VAR(2)'
+         MEND
+)" } };
+
+std::unique_ptr<analyzer> analyze(const std::string& s)
+{
+    auto a = std::make_unique<analyzer>(s, analyzer_options { &lib_provider });
+
+    a->analyze();
+    a->collect_diags();
+
+    return a;
+}
+
+} // namespace
+
+TEST_P(parser_quotes_fixture, 0_end_quotes)
+{
+    std::string input = R"(
+         GBLC &STR
+&INSTR   SETC   'J'
+         MAC )"
+        + GetParam().name + "'";
+
+    auto a = analyze(input);
+
+    EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
+}
+
+TEST_P(parser_quotes_fixture, 0_end_quotes_instr)
+{
+    std::string input = R"(
          GBLC &STR
 &INSTR   SETC   'J'
          MAC )"
         + GetParam().name + "'&INSTR";
-    analyzer a(input);
-    a.analyze();
-    a.collect_diags();
+
+    auto a = analyze(input);
 
     if (GetParam().is_consuming)
     {
-        EXPECT_TRUE(a.diags().empty());
-        EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "STR"), GetParam().name + "'J");
+        EXPECT_TRUE(a->diags().empty());
+        EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR"), GetParam().name + "'J");
     }
     else
-        EXPECT_TRUE(matches_message_codes(a.diags(), { "S0005" }));
+        EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
 }
 
-TEST_P(parser_quotes_fixture, no_brackets_remark)
+TEST_P(parser_quotes_fixture, 1_end_quote_instr)
 {
     std::string input = R"(
-         MACRO
-         MAC &VAR
          GBLC &STR
-&STR     SETC '&VAR'
-         MEND
- 
+&INSTR   SETC   'J'
+         MAC )"
+        + GetParam().name + "'&INSTR'";
+
+    auto a = analyze(input);
+
+    EXPECT_TRUE(a->diags().empty());
+    EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR"), GetParam().name + "'J'");
+}
+
+TEST_P(parser_quotes_fixture, 2_end_quotes_instr)
+{
+    std::string input = R"( 
+         GBLC &STR
+&INSTR   SETC   'J'
+         MAC )"
+        + GetParam().name + "'&INSTR''";
+
+    auto a = analyze(input);
+
+    if (GetParam().is_consuming)
+    {
+        EXPECT_TRUE(a->diags().empty());
+        EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR"), GetParam().name + "'J''");
+    }
+    else
+        EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
+}
+
+TEST_P(parser_quotes_fixture, 0_end_quotes_text)
+{
+    std::string input = R"(
+         GBLC &STR
+         MAC )"
+        + GetParam().name + "'J";
+
+    auto a = analyze(input);
+
+    if (GetParam().is_consuming)
+    {
+        EXPECT_TRUE(a->diags().empty());
+        EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR"), GetParam().name + "'J");
+    }
+    else
+        EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
+}
+
+TEST_P(parser_quotes_fixture, 1_end_quote_text)
+{
+    std::string input = R"(
+         GBLC &STR
+         MAC )"
+        + GetParam().name + "'J'";
+
+    auto a = analyze(input);
+
+    if (GetParam().is_consuming)
+        EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
+    else
+    {
+        EXPECT_TRUE(a->diags().empty());
+        EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR"), GetParam().name + "'J'");
+    }
+}
+
+TEST_P(parser_quotes_fixture, 2_end_quotes_text)
+{
+    std::string input = R"(
+         GBLC &STR
+         MAC )"
+        + GetParam().name + "'J''";
+
+    auto a = analyze(input);
+
+    if (GetParam().is_consuming)
+    {
+        EXPECT_TRUE(a->diags().empty());
+        EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR"), GetParam().name + "'J''");
+    }
+    else
+        EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
+}
+
+TEST_P(parser_quotes_fixture, 0_end_quotes_number)
+{
+    std::string input = R"(
+         GBLC &STR
+         MAC )"
+        + GetParam().name + "'9";
+
+    auto a = analyze(input);
+
+    EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
+}
+
+TEST_P(parser_quotes_fixture, 0_end_quotes_minus_number)
+{
+    std::string input = R"(
+         GBLC &STR
+         MAC )"
+        + GetParam().name + "'-9";
+
+    auto a = analyze(input);
+
+    EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
+}
+
+TEST_P(parser_quotes_fixture, 1_end_quote_number)
+{
+    std::string input = R"(
+         GBLC &STR
+         MAC )"
+        + GetParam().name + "'9'";
+
+    auto a = analyze(input);
+
+    EXPECT_TRUE(a->diags().empty());
+    EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR"), GetParam().name + "'9'");
+}
+
+TEST_P(parser_quotes_fixture, 1_end_quote_minus_number)
+{
+    std::string input = R"(
+         GBLC &STR
+         MAC )"
+        + GetParam().name + "'-9'";
+
+    auto a = analyze(input);
+
+    EXPECT_TRUE(a->diags().empty());
+    EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR"), GetParam().name + "'-9'");
+}
+
+TEST_P(parser_quotes_fixture, 2_end_quotes_number)
+{
+    std::string input = R"(
+         GBLC &STR
+         MAC )"
+        + GetParam().name + "'9''";
+
+    auto a = analyze(input);
+
+    EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
+}
+
+TEST_P(parser_quotes_fixture, 2_end_quotes_minus_number)
+{
+    std::string input = R"(
+         GBLC &STR
+         MAC )"
+        + GetParam().name + "'-9''";
+
+    auto a = analyze(input);
+
+    EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
+}
+
+TEST_P(parser_quotes_fixture, 0_end_quote_instr_remark)
+{
+    std::string input = R"( 
          GBLC &STR
 &INSTR   SETC   'J'
          MAC )"
         + GetParam().name + "'&INSTR          REMARK";
-    analyzer a(input);
-    a.analyze();
-    a.collect_diags();
+
+    auto a = analyze(input);
 
     if (GetParam().is_consuming)
     {
-        EXPECT_TRUE(a.diags().empty());
-        EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "STR"), GetParam().name + "'J");
+        EXPECT_TRUE(a->diags().empty());
+        EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR"), GetParam().name + "'J");
     }
     else
-        EXPECT_TRUE(matches_message_codes(a.diags(), { "S0005" }));
+        EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
 }
 
 
-TEST_P(parser_quotes_fixture, no_brackets_remark_2)
+TEST_P(parser_quotes_fixture, 1_end_quote_instr_remark)
 {
     std::string input = R"(
-         MACRO
-         MAC &VAR
-         GBLC &STR
-&STR     SETC '&VAR'
-         MEND
- 
          GBLC &STR
 &INSTR   SETC   'J'
          MAC )"
         + GetParam().name + "'&INSTR          REMARK'";
-    analyzer a(input);
-    a.analyze();
-    a.collect_diags();
 
-    EXPECT_TRUE(a.diags().empty());
+    auto a = analyze(input);
+
+    EXPECT_TRUE(a->diags().empty());
     if (GetParam().is_consuming)
-        EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "STR"), GetParam().name + "'J");
+        EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR"), GetParam().name + "'J");
     else
-        EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "STR"), GetParam().name + "'J          REMARK'");
+        EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR"), GetParam().name + "'J          REMARK'");
 }
 
-TEST_P(parser_quotes_fixture, brackets)
+TEST_P(parser_quotes_fixture, 2_end_quotes_instr_remark)
 {
     std::string input = R"(
-         MACRO
-         MAC &VAR
-         GBLC &STR
-&STR     SETC '&VAR(1)'
-         MEND
- 
          GBLC &STR
 &INSTR   SETC   'J'
-         MAC ()"
-        + GetParam().name + "'&INSTR)";
-    analyzer a(input);
-    a.analyze();
-    a.collect_diags();
+         MAC )"
+        + GetParam().name + "'&INSTR          REMARK''";
+
+    auto a = analyze(input);
 
     if (GetParam().is_consuming)
     {
-        EXPECT_TRUE(a.diags().empty());
-        EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "STR"), GetParam().name + "'J");
+        EXPECT_TRUE(a->diags().empty());
+        EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR"), GetParam().name + "'J");
     }
     else
-        EXPECT_TRUE(matches_message_codes(a.diags(), { "S0005" }));
+        EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
 }
 
-TEST_P(parser_quotes_fixture, brackets_2_params)
+TEST_P(parser_quotes_fixture, 0_end_quote_text_remark)
 {
     std::string input = R"(
-         MACRO
-         MAC &VAR
-         GBLC &STR1,&STR2
-&STR1    SETC '&VAR(1)'
-&STR2    SETC '&VAR(2)'
-         MEND
- 
-         GBLC &STR1,&STR2
-         MAC (A,)"
-        + GetParam().name + "'-9')";
-    analyzer a(input);
-    a.analyze();
-    a.collect_diags();
+         GBLC &STR
+         MAC )"
+        + GetParam().name + "'J          REMARK";
 
-    EXPECT_TRUE(a.diags().empty());
-    EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "STR1"), "A");
-    EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "STR2"), GetParam().name + "'-9'");
+    auto a = analyze(input);
+
+    if (GetParam().is_consuming)
+    {
+        EXPECT_TRUE(a->diags().empty());
+        EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR"), GetParam().name + "'J");
+    }
+    else
+        EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
+}
+
+
+TEST_P(parser_quotes_fixture, 1_end_quote_text_remark)
+{
+    std::string input = R"(
+         GBLC &STR
+         MAC )"
+        + GetParam().name + "'J          REMARK'";
+
+    auto a = analyze(input);
+
+    EXPECT_TRUE(a->diags().empty());
+    if (GetParam().is_consuming)
+        EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR"), GetParam().name + "'J");
+    else
+        EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR"), GetParam().name + "'J          REMARK'");
+}
+
+TEST_P(parser_quotes_fixture, 2_end_quotes_text_remark)
+{
+    std::string input = R"(
+         GBLC &STR
+         MAC )"
+        + GetParam().name + "'J          REMARK''";
+
+    auto a = analyze(input);
+
+    if (GetParam().is_consuming)
+    {
+        EXPECT_TRUE(a->diags().empty());
+        EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR"), GetParam().name + "'J");
+    }
+    else
+        EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
+}
+
+TEST_P(parser_quotes_fixture, 0_end_quotes_number_remark)
+{
+    std::string input = R"( 
+         GBLC &STR
+         MAC )"
+        + GetParam().name + "'-9          REMARK";
+
+    auto a = analyze(input);
+
+    EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
+}
+
+TEST_P(parser_quotes_fixture, 1_end_quote_number_remark)
+{
+    std::string input = R"(
+         GBLC &STR
+         MAC )"
+        + GetParam().name + "'-9          REMARK'";
+
+    auto a = analyze(input);
+
+    EXPECT_TRUE(a->diags().empty());
+    EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR"), GetParam().name + "'-9          REMARK'");
+}
+
+TEST_P(parser_quotes_fixture, 2_end_quotes_number_remark)
+{
+    std::string input = R"(
+         GBLC &STR
+         MAC )"
+        + GetParam().name + "'-9          REMARK''";
+
+    auto a = analyze(input);
+
+    EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
+}
+
+TEST_P(parser_quotes_fixture, list_1_elem_var_instr)
+{
+    std::string input = R"(
+&VAR     SETC 'J'
+         GBLC &STR
+         MAC_LIST_1_ELEM ()"
+        + GetParam().name + "'&VAR)";
+
+    auto a = analyze(input);
+
+    if (GetParam().is_consuming)
+    {
+        EXPECT_TRUE(a->diags().empty());
+        EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR"), GetParam().name + "'J");
+    }
+    else
+        EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
+}
+
+TEST_P(parser_quotes_fixture, list_1_elem_var_instr_end_quote_01)
+{
+    std::string input = R"(
+&VAR     SETC 'J'
+         GBLC &STR
+         MAC_LIST_1_ELEM ()"
+        + GetParam().name + "'&VAR')'";
+
+    auto a = analyze(input);
+
+    if (!GetParam().is_consuming)
+        EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
+    // else
+    //     EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" })); // todo error should be "unbalanced parentheses
+}
+
+TEST_P(parser_quotes_fixture, list_1_elem_var_instr_end_quote_02)
+{
+    std::string input = R"(
+&VAR     SETC 'J'
+         GBLC &STR
+         MAC_LIST_1_ELEM ()"
+        + GetParam().name + "'&VAR')''";
+
+    auto a = analyze(input);
+
+    EXPECT_TRUE(a->diags().empty());
+    EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR"), "(" + GetParam().name + "'J')''");
+}
+
+TEST_P(parser_quotes_fixture, list_1_elem_var_number)
+{
+    std::string input = R"(
+&VAR     SETC '9'
+         GBLC &STR
+         MAC_LIST_1_ELEM ()"
+        + GetParam().name + "'&VAR)";
+
+    auto a = analyze(input);
+
+    if (GetParam().is_consuming)
+        EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" })); // todo error should be "unbalanced parentheses
+    else
+        EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
+}
+
+TEST_P(parser_quotes_fixture, list_1_elem_var_number_end_quote_01)
+{
+    std::string input = R"(
+&VAR     SETC '9'
+         GBLC &STR
+         MAC_LIST_1_ELEM ()"
+        + GetParam().name + "'&VAR')'";
+
+    auto a = analyze(input);
+
+    if (!GetParam().is_consuming)
+        EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
+    // else
+    //{
+    //     EXPECT_TRUE(a->diags().empty());
+    //     EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR"), "(" + GetParam().name + "'9')'");
+    // }
+}
+
+TEST_P(parser_quotes_fixture, list_1_elem_var_number_end_quote_02)
+{
+    std::string input = R"(
+&VAR     SETC '9'
+         GBLC &STR
+         MAC_LIST_1_ELEM ()"
+        + GetParam().name + "'&VAR')''";
+
+    auto a = analyze(input);
+
+    EXPECT_TRUE(a->diags().empty());
+    EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR"), "(" + GetParam().name + "'9')''");
+}
+
+TEST_P(parser_quotes_fixture, list_1_elem_var_minus_number)
+{
+    std::string input = R"(
+&VAR     SETC '-9'
+         GBLC &STR
+         MAC_LIST_1_ELEM ()"
+        + GetParam().name + "'&VAR)";
+
+    auto a = analyze(input);
+
+    if (GetParam().is_consuming)
+    {
+        EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" })); // todo error should be "unbalanced parentheses
+    }
+    else
+        EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
+}
+
+TEST_P(parser_quotes_fixture, list_1_elem_text)
+{
+    std::string input = R"(
+         GBLC &STR
+         MAC_LIST_1_ELEM ()"
+        + GetParam().name + "'J')";
+
+    auto a = analyze(input);
+
+    if (GetParam().is_consuming)
+        EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
+    else
+    {
+        EXPECT_TRUE(a->diags().empty());
+        EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR"), GetParam().name + "'J'");
+    }
+}
+
+TEST_P(parser_quotes_fixture, list_1_elem_text_missing_quote)
+{
+    std::string input = R"(
+         GBLC &STR
+         MAC_LIST_1_ELEM ()"
+        + GetParam().name + "'J)";
+
+    auto a = analyze(input);
+
+    if (GetParam().is_consuming)
+    {
+        EXPECT_TRUE(a->diags().empty());
+        EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR"), GetParam().name + "'J");
+    }
+    else
+        EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
+}
+
+TEST_P(parser_quotes_fixture, list_1_elem_number)
+{
+    std::string input = R"(
+        GBLC &STR
+        MAC_LIST_1_ELEM ()"
+        + GetParam().name + "'9')";
+
+    auto a = analyze(input);
+
+    EXPECT_TRUE(a->diags().empty());
+    EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR"), GetParam().name + "'9'");
+}
+
+TEST_P(parser_quotes_fixture, list_1_elem_number_missing_quote)
+{
+    std::string input = R"(
+         GBLC &STR
+         MAC_LIST_1_ELEM ()"
+        + GetParam().name + "'9)";
+
+    auto a = analyze(input);
+
+    EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
+}
+
+TEST_P(parser_quotes_fixture, list_2_elem_var_instr)
+{
+    std::string input = R"(
+&VAR     SETC 'J'
+         GBLC &STR1,&STR2
+         MAC_LIST_2_ELEM (A,)"
+        + GetParam().name + "'&VAR)";
+
+    auto a = analyze(input);
+
+    if (GetParam().is_consuming)
+    {
+        EXPECT_TRUE(a->diags().empty());
+        EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR1"), "A");
+        EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR2"), GetParam().name + "'J");
+    }
+    else
+        EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
+}
+
+TEST_P(parser_quotes_fixture, list_2_elem_var_number)
+{
+    std::string input = R"(
+&VAR     SETC '9'
+         GBLC &STR1,&STR2
+         MAC_LIST_2_ELEM (A,)"
+        + GetParam().name + "'&VAR)";
+
+    auto a = analyze(input);
+
+    if (GetParam().is_consuming)
+    {
+        EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" })); // todo error should be "unbalanced parentheses
+    }
+    else
+        EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
+}
+
+TEST_P(parser_quotes_fixture, list_2_elem_text)
+{
+    std::string input = R"(
+         GBLC &STR1,&STR2
+         MAC_LIST_2_ELEM (A,)"
+        + GetParam().name + "'J')";
+
+    auto a = analyze(input);
+
+    if (GetParam().is_consuming)
+        EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
+    else
+    {
+        EXPECT_TRUE(a->diags().empty());
+        EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR1"), "A");
+        EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR2"), GetParam().name + "'J'");
+    }
+}
+
+TEST_P(parser_quotes_fixture, list_2_elem_text_missing_quote)
+{
+    std::string input = R"(
+         GBLC &STR1,&STR2
+         MAC_LIST_2_ELEM (A,)"
+        + GetParam().name + "'J)";
+
+    auto a = analyze(input);
+
+    if (GetParam().is_consuming)
+    {
+        EXPECT_TRUE(a->diags().empty());
+        EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR1"), "A");
+        EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR2"), GetParam().name + "'J");
+    }
+    else
+        EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
+}
+
+TEST_P(parser_quotes_fixture, list_2_elem_number)
+{
+    std::string input = R"(
+         GBLC &STR1,&STR2
+         MAC_LIST_2_ELEM (A,)"
+        + GetParam().name + "'9')";
+
+    auto a = analyze(input);
+
+    EXPECT_TRUE(a->diags().empty());
+    EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR1"), "A");
+    EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR2"), GetParam().name + "'9'");
+}
+
+TEST_P(parser_quotes_fixture, list_2_elem_number_missing_quote)
+{
+    std::string input = R"(
+         GBLC &STR1,&STR2
+         MAC_LIST_2_ELEM (A,)"
+        + GetParam().name + "'9)";
+
+    auto a = analyze(input);
+
+    EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
+}
+
+TEST_P(parser_quotes_fixture, brackets_2_params_no_ending_apostrophe)
+{
+    std::string input = R"(
+         MAC (A,)"
+        + GetParam().name + "'-9)";
+
+    auto a = analyze(input);
+
+    EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
 }
 
 TEST_P(parser_quotes_fixture, no_ending_apostrophe)
 {
     std::string input = R"(
-         MACRO
-         MAC &VAR
-         GBLC &STR
-&STR     SETC '&VAR'
-         MEND
- 
          GBLC &STR
          MAC ")"
         + GetParam().name + "'SYM";
-    analyzer a(input);
-    a.analyze();
-    a.collect_diags();
+
+    auto a = analyze(input);
 
     if (GetParam().is_consuming)
     {
-        EXPECT_TRUE(a.diags().empty());
-        EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "STR"), "\"" + GetParam().name + "'SYM");
+        EXPECT_TRUE(a->diags().empty());
+        EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR"), "\"" + GetParam().name + "'SYM");
     }
     else
-        EXPECT_TRUE(matches_message_codes(a.diags(), { "S0005" }));
+        EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
 }
 
 TEST_P(parser_quotes_fixture, no_ending_apostrophe_2)
 {
     std::string input = R"(
-         MACRO
-         MAC &VAR
-         GBLC &STR
-&STR     SETC '&VAR'
-         MEND
- 
          GBLC &STR
          MAC ")"
         + GetParam().name + "'SYM' STH";
+
+    auto a = analyze(input);
+
+    if (GetParam().is_consuming)
+        EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
+    else
+    {
+        EXPECT_TRUE(a->diags().empty());
+        EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR"), "\"" + GetParam().name + "'SYM'");
+    }
+}
+
+TEST_P(parser_quotes_fixture, preserve_structured_parameter)
+{
+    std::string input = R"(
+      GBLC  &PAR1,&PAR2
+      MACRO
+      MAC2
+      GBLC  &PAR1,&PAR2
+&PAR1 SETC  '&SYSLIST(1,1)'
+&PAR2 SETC  '&SYSLIST(1,2)'
+      MEND
+
+      MACRO
+      MAC   &P1
+      MAC2  &P1
+      MEND
+
+      MAC   (A,)"
+        + GetParam().name + "'-9')";
+
     analyzer a(input);
     a.analyze();
     a.collect_diags();
 
-    if (GetParam().is_consuming)
-        EXPECT_TRUE(matches_message_codes(a.diags(), { "S0005" }));
-    else
-    {
-        EXPECT_TRUE(a.diags().empty());
-        EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "STR"), "\"" + GetParam().name + "'SYM'");
-    }
+    EXPECT_TRUE(a.diags().empty());
+    EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "PAR1"), "A");
+    EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "PAR2"), GetParam().name + "'-9'");
+}
+
+TEST_P(parser_quotes_fixture, preserve_structured_parameter_2)
+{
+    std::string input = R"(
+      GBLC  &PAR1,&PAR2
+      MACRO
+      MAC2
+      GBLC  &PAR1,&PAR2
+&PAR1 SETC  '&SYSLIST(1,1)'
+&PAR2 SETC  '&SYSLIST(1,2)'
+      MEND
+
+      MACRO
+      MAC   &P1
+      MAC2  &P1.
+      MEND
+
+      MAC   (A,)"
+        + GetParam().name + "'-9')";
+
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(a.diags().empty());
+    EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "PAR1"), "A");
+    EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "PAR2"), GetParam().name + "'-9'");
 }
