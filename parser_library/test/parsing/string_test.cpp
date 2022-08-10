@@ -178,7 +178,7 @@ std::unique_ptr<analyzer> analyze(const std::string& s)
 
 } // namespace
 
-TEST_P(parser_attribute_fixture, missing_quote)
+TEST_P(parser_attribute_fixture, missing_apostrophe)
 {
     std::string input = R"(
          GBLC &STR
@@ -190,7 +190,7 @@ TEST_P(parser_attribute_fixture, missing_quote)
     EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
 }
 
-TEST_P(parser_attribute_fixture, instr_0_end_quotes)
+TEST_P(parser_attribute_fixture, instr_0_end_apostrophes)
 {
     std::string input = R"(
          GBLC &STR
@@ -209,7 +209,7 @@ TEST_P(parser_attribute_fixture, instr_0_end_quotes)
         EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
 }
 
-TEST_P(parser_attribute_fixture, instr_0_end_quote_remark)
+TEST_P(parser_attribute_fixture, instr_0_end_apostrophe_remark)
 {
     std::string input = R"( 
          GBLC &STR
@@ -228,7 +228,7 @@ TEST_P(parser_attribute_fixture, instr_0_end_quote_remark)
         EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
 }
 
-TEST_P(parser_attribute_fixture, text_0_end_quotes)
+TEST_P(parser_attribute_fixture, text_0_end_apostrophes)
 {
     std::string input = R"(
          GBLC &STR
@@ -246,7 +246,7 @@ TEST_P(parser_attribute_fixture, text_0_end_quotes)
         EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
 }
 
-TEST_P(parser_attribute_fixture, text_0_end_quote_remark)
+TEST_P(parser_attribute_fixture, text_0_end_apostrophe_remark)
 {
     std::string input = R"(
          GBLC &STR
@@ -264,7 +264,7 @@ TEST_P(parser_attribute_fixture, text_0_end_quote_remark)
         EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
 }
 
-TEST_P(parser_attribute_fixture, number_variants_0_end_quotes)
+TEST_P(parser_attribute_fixture, number_variants_0_end_apostrophes)
 {
     std::string input = R"(
          GBLC &STR
@@ -284,7 +284,7 @@ TEST_P(parser_attribute_fixture, number_variants_0_end_quotes)
     EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005", "S0005", "S0005", "S0005" }));
 }
 
-TEST_P(parser_attribute_fixture, instr_1_end_quote)
+TEST_P(parser_attribute_fixture, instr_1_end_apostrophe)
 {
     std::string input = R"(
          GBLC &STR
@@ -298,7 +298,7 @@ TEST_P(parser_attribute_fixture, instr_1_end_quote)
     EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR"), GetParam().name + "'J'");
 }
 
-TEST_P(parser_attribute_fixture, instr_1_end_quote_remark)
+TEST_P(parser_attribute_fixture, instr_1_end_apostrophe_remark)
 {
     std::string input = R"(
          GBLC &STR
@@ -315,7 +315,7 @@ TEST_P(parser_attribute_fixture, instr_1_end_quote_remark)
         EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR"), GetParam().name + "'J          REMARK'");
 }
 
-TEST_P(parser_attribute_fixture, text_1_end_quote)
+TEST_P(parser_attribute_fixture, text_1_end_apostrophe)
 {
     std::string input = R"(
          GBLC &STR
@@ -333,7 +333,7 @@ TEST_P(parser_attribute_fixture, text_1_end_quote)
     }
 }
 
-TEST_P(parser_attribute_fixture, text_1_end_quote_text_remark)
+TEST_P(parser_attribute_fixture, text_1_end_apostrophe_text_remark)
 {
     std::string input = R"(
          GBLC &STR
@@ -349,7 +349,7 @@ TEST_P(parser_attribute_fixture, text_1_end_quote_text_remark)
         EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR"), GetParam().name + "'J          REMARK'");
 }
 
-TEST_P(parser_attribute_fixture, number_1_end_quote)
+TEST_P(parser_attribute_fixture, number_1_end_apostrophe)
 {
     std::string input = R"(
          GBLC &STR
@@ -362,7 +362,7 @@ TEST_P(parser_attribute_fixture, number_1_end_quote)
     EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR"), GetParam().name + "'9'");
 }
 
-TEST_P(parser_attribute_fixture, number_1_end_quote_remark)
+TEST_P(parser_attribute_fixture, number_1_end_apostrophe_remark)
 {
     std::string input = R"(
          GBLC &STR
@@ -375,7 +375,7 @@ TEST_P(parser_attribute_fixture, number_1_end_quote_remark)
     EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR"), GetParam().name + "'9           REMARK'");
 }
 
-TEST_P(parser_attribute_fixture, negative_number_1_end_quote)
+TEST_P(parser_attribute_fixture, negative_number_1_end_apostrophe)
 {
     std::string input = R"(
          GBLC &STR
@@ -388,7 +388,7 @@ TEST_P(parser_attribute_fixture, negative_number_1_end_quote)
     EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR"), GetParam().name + "'-9'");
 }
 
-TEST_P(parser_attribute_fixture, negative_number_1_end_quote_remark)
+TEST_P(parser_attribute_fixture, negative_number_1_end_apostrophe_remark)
 {
     std::string input = R"(
          GBLC &STR
@@ -401,7 +401,7 @@ TEST_P(parser_attribute_fixture, negative_number_1_end_quote_remark)
     EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR"), GetParam().name + "'-9          REMARK'");
 }
 
-TEST_P(parser_attribute_fixture, instr_2_end_quotes)
+TEST_P(parser_attribute_fixture, instr_2_end_apostrophes)
 {
     std::string input = R"( 
          GBLC &STR
@@ -420,7 +420,7 @@ TEST_P(parser_attribute_fixture, instr_2_end_quotes)
         EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
 }
 
-TEST_P(parser_attribute_fixture, instr_2_end_quotes_remark)
+TEST_P(parser_attribute_fixture, instr_2_end_apostrophes_remark)
 {
     std::string input = R"(
          GBLC &STR
@@ -439,7 +439,7 @@ TEST_P(parser_attribute_fixture, instr_2_end_quotes_remark)
         EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
 }
 
-TEST_P(parser_attribute_fixture, text_2_end_quotes)
+TEST_P(parser_attribute_fixture, text_2_end_apostrophes)
 {
     std::string input = R"(
          GBLC &STR
@@ -457,7 +457,7 @@ TEST_P(parser_attribute_fixture, text_2_end_quotes)
         EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
 }
 
-TEST_P(parser_attribute_fixture, text_2_end_quotes_remark)
+TEST_P(parser_attribute_fixture, text_2_end_apostrophes_remark)
 {
     std::string input = R"(
          GBLC &STR
@@ -475,7 +475,7 @@ TEST_P(parser_attribute_fixture, text_2_end_quotes_remark)
         EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
 }
 
-TEST_P(parser_attribute_fixture, number_variants_2_end_quotes)
+TEST_P(parser_attribute_fixture, number_variants_2_end_apostrophes)
 {
     std::string input = R"(
          GBLC &STR
@@ -565,7 +565,7 @@ TEST_P(parser_attribute_fixture, list_1_elem_var_number_variants)
         EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005", "S0005" }));
 }
 
-TEST_P(parser_attribute_fixture, list_1_elem_text_missing_quote)
+TEST_P(parser_attribute_fixture, list_1_elem_text_missing_apostrophe)
 {
     std::string input = R"(
          GBLC &STR
@@ -583,7 +583,7 @@ TEST_P(parser_attribute_fixture, list_1_elem_text_missing_quote)
         EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
 }
 
-TEST_P(parser_attribute_fixture, list_1_elem_number_missing_quote)
+TEST_P(parser_attribute_fixture, list_1_elem_number_missing_apostrophe)
 {
     std::string input = R"(
          GBLC &STR
@@ -595,7 +595,7 @@ TEST_P(parser_attribute_fixture, list_1_elem_number_missing_quote)
     EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
 }
 
-TEST_P(parser_attribute_fixture, list_1_elem_var_instr_end_quote_01)
+TEST_P(parser_attribute_fixture, list_1_elem_var_instr_end_apostrophe_01)
 {
     std::string input = R"(
 &VAR     SETC 'J'
@@ -611,7 +611,7 @@ TEST_P(parser_attribute_fixture, list_1_elem_var_instr_end_quote_01)
     //     EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" })); // todo
 }
 
-TEST_P(parser_attribute_fixture, list_1_elem_var_number_end_quote_01)
+TEST_P(parser_attribute_fixture, list_1_elem_var_number_end_apostrophe_01)
 {
     std::string input = R"(
 &VAR     SETC '9'
@@ -630,7 +630,7 @@ TEST_P(parser_attribute_fixture, list_1_elem_var_number_end_quote_01)
     // }
 }
 
-TEST_P(parser_attribute_fixture, list_1_elem_var_instr_end_quote_02)
+TEST_P(parser_attribute_fixture, list_1_elem_var_instr_end_apostrophe_02)
 {
     std::string input = R"(
 &VAR     SETC 'J'
@@ -644,7 +644,7 @@ TEST_P(parser_attribute_fixture, list_1_elem_var_instr_end_quote_02)
     EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR"), "(" + GetParam().name + "'J')''");
 }
 
-TEST_P(parser_attribute_fixture, list_1_elem_var_number_end_quote_02)
+TEST_P(parser_attribute_fixture, list_1_elem_var_number_end_apostrophe_02)
 {
     std::string input = R"(
 &VAR     SETC '9'
@@ -732,7 +732,7 @@ TEST_P(parser_attribute_fixture, list_2_elem_number)
     EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR2"), GetParam().name + "'9'");
 }
 
-TEST_P(parser_attribute_fixture, list_2_elem_text_missing_quote)
+TEST_P(parser_attribute_fixture, list_2_elem_text_missing_apostrophe)
 {
     std::string input = R"(
          GBLC &STR1,&STR2
@@ -751,7 +751,7 @@ TEST_P(parser_attribute_fixture, list_2_elem_text_missing_quote)
         EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
 }
 
-TEST_P(parser_attribute_fixture, list_2_elem_number_variants_missing_quote)
+TEST_P(parser_attribute_fixture, list_2_elem_number_variants_missing_apostrophe)
 {
     std::string input = R"(
          GBLC &STR1,&STR2
