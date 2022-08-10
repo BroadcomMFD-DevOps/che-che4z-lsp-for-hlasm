@@ -287,10 +287,21 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordin
                 case processing_form::DEFERRED:
                     h.parser->op_rem_body_deferred();
                     break;
-                case processing_form::CA:
-                    h.parser->op_rem_body_ca();
+                case processing_form::CA: {
+                    const auto& wk = m_ctx->hlasm_ctx->ids().well_known;
+                    bool var_def = opcode.value == wk.GBLA || opcode.value == wk.GBLB || opcode.value == wk.GBLC
+                        || opcode.value == wk.LCLA || opcode.value == wk.LCLB || opcode.value == wk.LCLC;
+                    bool branchlike = opcode.value == wk.AIF || opcode.value == wk.AGO || opcode.value == wk.AIFB
+                        || opcode.value == wk.AGOB;
+                    if (var_def)
+                        h.parser->op_rem_body_ca_var_def();
+                    else if (branchlike)
+                        h.parser->op_rem_body_ca_branch();
+                    else
+                        h.parser->op_rem_body_ca_expr();
                     (void)h.parser->get_collector().take_literals(); // drop literals
                     break;
+                }
                 case processing_form::MAC: {
                     auto rule = h.parser->op_rem_body_mac();
                     auto line = std::move(rule->line);

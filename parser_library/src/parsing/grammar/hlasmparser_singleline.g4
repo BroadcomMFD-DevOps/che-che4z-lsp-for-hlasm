@@ -190,14 +190,6 @@ signed_num_ch
 signed_num returns [self_def_t value]
 	: signed_num_ch									{$value = parse_self_def_term("D",$signed_num_ch.ctx->getText(),provider.get_range($signed_num_ch.ctx));};
 
-self_def_term returns [self_def_t value]
-	: ORDSYMBOL string							
-	{
-		collector.add_hl_symbol(token_info(provider.get_range( $ORDSYMBOL),hl_scopes::self_def_type));
-		auto opt = $ORDSYMBOL->getText();
-		$value = parse_self_def_term(opt, $string.value, provider.get_range($ORDSYMBOL,$string.ctx->getStop()));
-	};
-
 id returns [id_index name = nullptr, id_index using_qualifier = nullptr]
 	: f=id_no_dot {$name = $f.name;} (dot s=id_no_dot {$name = $s.name; $using_qualifier = $f.name;})?;
 
@@ -259,7 +251,7 @@ deferred_op_rem returns [remark_list remarks, std::vector<vs_ptr> var_list]
 
 //////////////////////////////////////// ca
 
-op_rem_body_ca locals [bool pending_empty_op = true, std::vector<range> remarks, std::vector<operand_ptr> operands, antlr4::Token* first_token = nullptr]
+op_rem_body_ca_branch locals [bool pending_empty_op = true, std::vector<range> remarks, std::vector<operand_ptr> operands, antlr4::Token* first_token = nullptr]
 	:
 	EOF
 	{
@@ -283,7 +275,120 @@ op_rem_body_ca locals [bool pending_empty_op = true, std::vector<range> remarks,
 				if (!$pending_empty_op)
 					throw NoViableAltException(this);
 			}
-			ca_op
+			ca_op=ca_op_branch
+			{
+				$pending_empty_op = false;
+			}
+			{
+                if ($ca_op.op)
+                    $operands.push_back(std::move($ca_op.op));
+                else
+                    $operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range($ca_op.start)));
+			}
+		)+
+		{
+			if ($pending_empty_op)
+				$operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range(_input->LT(-1))));
+		}
+		(
+			SPACE
+			remark
+			{
+				$remarks.push_back(provider.get_range($remark.ctx));
+			}
+		)?
+		|
+		{
+			collector.set_operand_remark_field(provider.get_range(_localctx));
+		}
+	);
+	finally
+	{
+		if ($first_token)
+			collector.set_operand_remark_field(std::move($operands), std::move($remarks), provider.get_range($first_token, _input->LT(-1)));
+	}
+op_rem_body_ca_expr locals [bool pending_empty_op = true, std::vector<range> remarks, std::vector<operand_ptr> operands, antlr4::Token* first_token = nullptr]
+	:
+	EOF
+	{
+		collector.set_operand_remark_field(provider.get_range(_localctx));
+	}
+	|
+	SPACE+
+	(
+		{
+			$first_token = _input->LT(1);
+		}
+		(
+			comma
+			{
+				if ($pending_empty_op)
+					$operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range($comma.start)));
+				$pending_empty_op = true;
+			}
+			|
+			{
+				if (!$pending_empty_op)
+					throw NoViableAltException(this);
+			}
+			ca_op=ca_op_expr
+			{
+				$pending_empty_op = false;
+			}
+			{
+                if ($ca_op.op)
+                    $operands.push_back(std::move($ca_op.op));
+                else
+                    $operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range($ca_op.start)));
+			}
+		)+
+		{
+			if ($pending_empty_op)
+				$operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range(_input->LT(-1))));
+		}
+		(
+			SPACE
+			remark
+			{
+				$remarks.push_back(provider.get_range($remark.ctx));
+			}
+		)?
+		|
+		{
+			collector.set_operand_remark_field(provider.get_range(_localctx));
+		}
+	);
+	finally
+	{
+		if ($first_token)
+			collector.set_operand_remark_field(std::move($operands), std::move($remarks), provider.get_range($first_token, _input->LT(-1)));
+	}
+
+op_rem_body_ca_var_def locals [bool pending_empty_op = true, std::vector<range> remarks, std::vector<operand_ptr> operands, antlr4::Token* first_token = nullptr]
+	:
+	EOF
+	{
+		collector.set_operand_remark_field(provider.get_range(_localctx));
+	}
+	|
+	SPACE+
+	(
+		{
+			$first_token = _input->LT(1);
+		}
+		(
+			comma
+			{
+				if ($pending_empty_op)
+					$operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range($comma.start)));
+				$pending_empty_op = true;
+			}
+			|
+			{
+				if (!$pending_empty_op)
+					throw NoViableAltException(this);
+			}
+			ca_op=ca_op_var_def
 			{
 				$pending_empty_op = false;
 			}
