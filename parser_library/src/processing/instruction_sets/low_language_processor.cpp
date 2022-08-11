@@ -154,26 +154,19 @@ low_language_processor::preprocessed_part low_language_processor::preprocess_inn
     return result;
 }
 
-bool low_language_processor::check_address_for_ORG(range err_range,
-    const context::address& addr_to_check,
-    const context::address& curr_addr,
-    size_t boundary,
-    int offset)
+check_org_result hlasm_plugin::parser_library::processing::check_address_for_ORG(
+    const context::address& addr_to_check, const context::address& curr_addr, size_t boundary, int offset)
 {
     int al = boundary ? (int)((boundary - (addr_to_check.offset() % boundary)) % boundary) : 0;
 
     bool underflow = !addr_to_check.has_dependant_space() && addr_to_check.offset() + al + offset < 0;
     if (!curr_addr.in_same_loctr(addr_to_check) || underflow)
-    {
-        add_diagnostic(diagnostic_op::error_E068(err_range));
-        return false;
-    }
+        return check_org_result::underflow;
+
     if (!addr_to_check.is_simple())
-    {
-        add_diagnostic(diagnostic_op::error_A115_ORG_op_format(err_range));
-        return false;
-    }
-    return true;
+        return check_org_result::invalid_address;
+
+    return check_org_result::valid;
 }
 
 void low_language_processor::resolve_unknown_loctr_dependency(context::space_ptr sp,
@@ -186,12 +179,15 @@ void low_language_processor::resolve_unknown_loctr_dependency(context::space_ptr
     hlasm_ctx.ord_ctx.set_location_counter(sp->owner.name, location());
     hlasm_ctx.ord_ctx.current_section()->current_location_counter().switch_to_unresolved_value(sp);
 
-    if (!check_address_for_ORG(err_range,
-            addr,
-            hlasm_ctx.ord_ctx.align(context::no_align, dep_ctx),
-            sp->previous_boundary,
-            sp->previous_offset))
+    if (auto org = check_address_for_ORG(
+            addr, hlasm_ctx.ord_ctx.align(context::no_align, dep_ctx), sp->previous_boundary, sp->previous_offset);
+        org != check_org_result::valid)
     {
+        if (org == check_org_result::underflow)
+            add_diagnostic(diagnostic_op::error_E068(err_range));
+        else if (org == check_org_result::invalid_address)
+            add_diagnostic(diagnostic_op::error_A115_ORG_op_format(err_range));
+
         (void)hlasm_ctx.ord_ctx.current_section()->current_location_counter().restore_from_unresolved_value(sp);
         hlasm_ctx.ord_ctx.set_location_counter(tmp_loctr.name, location());
         return;

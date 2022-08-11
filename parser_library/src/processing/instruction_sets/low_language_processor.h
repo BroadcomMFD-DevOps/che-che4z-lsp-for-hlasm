@@ -58,13 +58,6 @@ protected:
         context::symbol_value value,
         context::symbol_attributes attributes);
 
-    // helper method to check address for the ORG instruction
-    bool check_address_for_ORG(range err_range,
-        const context::address& addr_to_check,
-        const context::address& curr_addr,
-        size_t boundary,
-        int offset);
-
 
 private:
     struct preprocessed_part
@@ -92,6 +85,17 @@ private:
         size_t op_position,
         const context::mnemonic_code* mnemonic = nullptr);
 };
+
+enum class check_org_result
+{
+    valid,
+    underflow,
+    invalid_address,
+};
+
+// helper method to check address for the ORG instruction
+check_org_result check_address_for_ORG(
+    const context::address& addr_to_check, const context::address& curr_addr, size_t boundary, int offset);
 
 } // namespace hlasm_plugin::parser_library::processing
 #endif

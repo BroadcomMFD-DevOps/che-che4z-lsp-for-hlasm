@@ -565,8 +565,19 @@ void asm_processor::process_ORG(rebuilt_statement stmt)
         ? reloc_expr->expression->evaluate(dep_solver, drop_diags).get_reloc()
         : *reloc_expr->expression->get_dependencies(dep_solver).unresolved_address;
 
-    if (!check_address_for_ORG(stmt.stmt_range_ref(), reloc_val, loctr, boundary, offset))
-        return;
+    switch (check_address_for_ORG(reloc_val, loctr, boundary, offset))
+    {
+        case check_org_result::valid:
+            break;
+
+        case check_org_result::underflow:
+            add_diagnostic(diagnostic_op::error_E068(stmt.stmt_range_ref()));
+            return;
+
+        case check_org_result::invalid_address:
+            add_diagnostic(diagnostic_op::error_A115_ORG_op_format(stmt.stmt_range_ref()));
+            return;
+    }
 
     if (undefined_absolute_part)
         hlasm_ctx.ord_ctx.set_location_counter_value(reloc_val,
