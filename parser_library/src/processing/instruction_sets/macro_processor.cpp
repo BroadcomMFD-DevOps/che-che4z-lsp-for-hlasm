@@ -367,7 +367,9 @@ context::macro_data_ptr create_macro_data_inner(semantics::concat_chain::const_i
     auto size = end - begin;
     if (size == 0)
         return std::make_unique<context::macro_param_data_dummy>();
-    else if (size > 1 || (size == 1 && (*begin)->type != semantics::concat_type::SUB))
+    else if (size == 1 && (*begin)->type != semantics::concat_type::SUB)
+        return macro_processor::string_to_macrodata(to_string(begin, end));
+    else if (size > 1)
     {
         auto is_var_present = [](const auto& p) { return p->type == semantics::concat_type::VAR; };
 
