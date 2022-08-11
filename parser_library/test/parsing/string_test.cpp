@@ -857,3 +857,59 @@ TEST_P(parser_attribute_fixture, preserve_structured_parameter_2)
     EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "PAR1"), "A");
     EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "PAR2"), GetParam().name + "'-9'");
 }
+
+TEST(parser, preconstructed_string)
+{
+    std::string input = R"(
+         MACRO
+         MAC2
+         MEND
+
+         MACRO
+         MAC &PAR
+&HASH    SETC  'I''#RULE'
+&NUM     SETC  'I''1RULE'
+&NEG     SETC  'I''-1RULE'
+&EQ      SETC  'I''=RULE'
+&CHAR    SETC  'I''RULE'
+&PAR2    SETC  'I''&PAR'
+         MAC2  (&HASH)
+         MAC2  (&NUM)
+         MAC2  (&NEG)
+         MAC2  (&EQ)
+         MAC2  (&CHAR)
+         MAC2  (&PAR2)
+         MEND
+
+         MAC PARAMETER)";
+
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(a.diags().empty());
+}
+
+TEST(parser, consuming_attribute)
+{
+    std::string input = R"(
+         MACRO
+         MAC2 &NAMELEN=,&PLIST=PLIST
+         MEND
+
+         MACRO
+         MAC &PLIST=PLIST,&STGNAME='STG'
+
+         MAC2 NAMELEN=L'=C&STGNAME.,                                   X
+               DATA=24(R13),PLIST=&PLIST
+         MEND
+
+         MAC
+         END)";
+
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(a.diags().empty());
+}
