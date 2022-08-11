@@ -130,7 +130,7 @@ void ordinary_processor::end_processing()
     {
         auto ltorg = hlasm_ctx.ord_ctx.implicit_ltorg_target();
         hlasm_ctx.ord_ctx.set_location_counter(ltorg->name, {});
-        hlasm_ctx.ord_ctx.set_available_location_counter_value(0, 0);
+        hlasm_ctx.ord_ctx.set_available_location_counter_value();
 
         hlasm_ctx.ord_ctx.generate_pool(*this, hlasm_ctx.using_current());
     }

@@ -93,7 +93,7 @@ public:
     const section* current_section() const;
 
     // sets current section
-    void set_section(id_index name, section_kind kind, location symbol_location);
+    section* set_section(id_index name, section_kind kind, location symbol_location);
 
     // creates an external section
     void create_external_section(
@@ -118,9 +118,7 @@ public:
         const dependency_evaluation_context& dep_ctx);
 
     // sets next available value for the current location counter
-    void set_available_location_counter_value(
-        size_t boundary, int offset, const dependency_evaluation_context& dep_ctx);
-    void set_available_location_counter_value(size_t boundary, int offset);
+    void set_available_location_counter_value();
 
     // check whether symbol is already defined
     bool symbol_defined(id_index name) const;

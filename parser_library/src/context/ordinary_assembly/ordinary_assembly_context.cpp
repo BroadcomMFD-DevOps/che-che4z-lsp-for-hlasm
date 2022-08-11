@@ -101,7 +101,7 @@ section* ordinary_assembly_context::get_section(id_index name)
 
 const section* ordinary_assembly_context::current_section() const { return curr_section_; }
 
-void ordinary_assembly_context::set_section(id_index name, section_kind kind, location symbol_location)
+section* ordinary_assembly_context::set_section(id_index name, section_kind kind, location symbol_location)
 {
     auto tmp = std::find_if(sections_.begin(), sections_.end(), [name, kind](const auto& sect) {
         return sect->name == name && sect->kind == kind;
@@ -126,6 +126,8 @@ void ordinary_assembly_context::set_section(id_index name, section_kind kind, lo
             hlasm_ctx_.processing_stack());
         symbol_dependencies.add_defined(name);
     }
+
+    return curr_section_;
 }
 
 void ordinary_assembly_context::create_external_section(
@@ -239,8 +241,7 @@ space_ptr ordinary_assembly_context::set_location_counter_value_space(const addr
     }
 }
 
-void ordinary_assembly_context::set_available_location_counter_value(
-    size_t boundary, int offset, const dependency_evaluation_context& dep_ctx)
+void ordinary_assembly_context::set_available_location_counter_value()
 {
     if (!curr_section_)
         create_private_section();
@@ -248,18 +249,7 @@ void ordinary_assembly_context::set_available_location_counter_value(
     auto [sp, addr] = curr_section_->current_location_counter().set_available_value();
 
     if (sp)
-        symbol_dependencies.add_dependency(
-            sp, std::make_unique<aggregate_address_resolver>(std::move(addr), boundary, offset), dep_ctx);
-    else
-    {
-        if (boundary)
-            (void)align(alignment { 0, boundary }, dep_ctx);
-        (void)reserve_storage_area(offset, context::no_align, dep_ctx);
-    }
-}
-void ordinary_assembly_context::set_available_location_counter_value(size_t boundary, int offset)
-{
-    set_available_location_counter_value(boundary, offset, dependency_evaluation_context {});
+        symbol_dependencies.add_dependency(sp, std::make_unique<aggregate_address_resolver>(std::move(addr), 0, 0), {});
 }
 
 bool ordinary_assembly_context::symbol_defined(id_index name) const { return symbols_.find(name) != symbols_.end(); }

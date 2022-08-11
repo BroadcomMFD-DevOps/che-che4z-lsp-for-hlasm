@@ -493,7 +493,7 @@ void asm_processor::process_ORG(rebuilt_statement stmt)
         || (ops.size() == 2 && ops[0]->type == semantics::operand_type::EMPTY
             && ops[1]->type == semantics::operand_type::EMPTY))
     {
-        hlasm_ctx.ord_ctx.set_available_location_counter_value(0, 0);
+        hlasm_ctx.ord_ctx.set_available_location_counter_value();
         return;
     }
 
@@ -906,7 +906,7 @@ void asm_processor::process_START(rebuilt_statement stmt)
     const auto& processing_stack = hlasm_ctx.processing_stack();
     auto sym_loc = processing_stack.back().proc_location;
     sym_loc.pos.column = 0;
-    hlasm_ctx.ord_ctx.set_section(sect_name, context::section_kind::EXECUTABLE, std::move(sym_loc));
+    auto* section = hlasm_ctx.ord_ctx.set_section(sect_name, context::section_kind::EXECUTABLE, std::move(sym_loc));
     context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx);
 
     const auto& ops = stmt.operands_ref().value;
@@ -928,7 +928,7 @@ void asm_processor::process_START(rebuilt_statement stmt)
     size_t start_section_alignment = hlasm_ctx.section_alignment().boundary;
     size_t start_section_alignment_mask = start_section_alignment - 1;
 
-    auto offset = initial_offset.value();
+    uint32_t offset = initial_offset.value();
     if (offset & start_section_alignment_mask)
     {
         // TODO: generate informational message?
@@ -936,7 +936,7 @@ void asm_processor::process_START(rebuilt_statement stmt)
         offset &= ~start_section_alignment_mask;
     }
 
-    hlasm_ctx.ord_ctx.set_available_location_counter_value(start_section_alignment, offset);
+    section->current_location_counter().reserve_storage_area(offset, context::no_align);
 }
 void asm_processor::process_END(rebuilt_statement stmt)
 {
