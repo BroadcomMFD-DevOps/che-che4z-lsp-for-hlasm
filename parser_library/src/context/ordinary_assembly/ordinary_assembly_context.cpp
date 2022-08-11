@@ -300,7 +300,7 @@ space_ptr ordinary_assembly_context::register_ordinary_space(alignment align)
     return curr_section_->current_location_counter().register_ordinary_space(align);
 }
 
-void ordinary_assembly_context::finish_module_layout(diagnostic_op_consumer* diag_consumer)
+void ordinary_assembly_context::finish_module_layout(diagnostic_s_consumer* diag_consumer)
 {
     for (auto& sect : sections_)
     {

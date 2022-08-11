@@ -60,7 +60,7 @@ bool symbol_dependency_tables::check_cycle(dependant target, std::vector<dependa
 struct resolve_dependant_visitor
 {
     symbol_value& val;
-    diagnostic_op_consumer* diag_consumer;
+    diagnostic_s_consumer* diag_consumer;
     ordinary_assembly_context& sym_ctx;
     std::unordered_map<dependant, statement_ref>& dependency_source_stmts;
     const dependency_evaluation_context& dep_ctx;
@@ -91,18 +91,23 @@ struct resolve_dependant_visitor
             length = val.value_kind() == symbol_value_kind::RELOC ? val.get_reloc().offset() : 0;
 
         if (sp->kind == space_kind::LOCTR_UNKNOWN)
-            resolve_unknown_loctr_dependency(sp,
-                val.get_reloc(),
-                dependency_source_stmts.find(sp)->second.stmt_ref->first->resolved_stmt()->stmt_range_ref());
+            resolve_unknown_loctr_dependency(
+                sp, val.get_reloc(), *dependency_source_stmts.find(sp)->second.stmt_ref->first);
         else
             space::resolve(sp, length);
     }
 
-    void resolve_unknown_loctr_dependency(context::space_ptr sp, const context::address& addr, range err_range) const
+    void resolve_unknown_loctr_dependency(
+        context::space_ptr sp, const context::address& addr, postponed_statement& stmt) const
     {
         using namespace processing;
 
         assert(diag_consumer);
+
+        const auto add_diagnostic = [&stmt, diag_consumer = diag_consumer](auto f) {
+            diag_consumer->add_diagnostic(
+                add_stack_details(f(stmt.resolved_stmt()->stmt_range_ref()), stmt.location_stack()));
+        };
 
         auto tmp_loctr = sym_ctx.current_section()->current_location_counter();
 
@@ -114,9 +119,9 @@ struct resolve_dependant_visitor
             org != check_org_result::valid)
         {
             if (org == check_org_result::underflow)
-                diag_consumer->add_diagnostic(diagnostic_op::error_E068(err_range));
+                add_diagnostic(diagnostic_op::error_E068);
             else if (org == check_org_result::invalid_address)
-                diag_consumer->add_diagnostic(diagnostic_op::error_A115_ORG_op_format(err_range));
+                add_diagnostic(diagnostic_op::error_A115_ORG_op_format);
 
             (void)sym_ctx.current_section()->current_location_counter().restore_from_unresolved_value(sp);
             sym_ctx.set_location_counter(tmp_loctr.name, location());
@@ -132,7 +137,7 @@ struct resolve_dependant_visitor
         context::space::resolve(sp, std::move(ret));
 
         if (!sym_ctx.symbol_dependencies.check_cycle(new_sp))
-            diag_consumer->add_diagnostic(diagnostic_op::error_E033(err_range));
+            add_diagnostic(diagnostic_op::error_E033);
 
         for (auto& sect : sym_ctx.sections())
         {
@@ -140,7 +145,7 @@ struct resolve_dependant_visitor
             {
                 if (!loctr->check_underflow())
                 {
-                    diag_consumer->add_diagnostic(diagnostic_op::error_E068(err_range));
+                    add_diagnostic(diagnostic_op::error_E068);
                     return;
                 }
             }
@@ -157,7 +162,7 @@ struct dependant_visitor
 
 void symbol_dependency_tables::resolve_dependant(dependant target,
     const resolvable* dep_src,
-    diagnostic_op_consumer* diag_consumer,
+    diagnostic_s_consumer* diag_consumer,
     const dependency_evaluation_context& dep_ctx)
 {
     context::ordinary_assembly_dependency_solver dep_solver(m_sym_ctx, dep_ctx);
@@ -194,7 +199,7 @@ void symbol_dependency_tables::resolve_dependant_default(const dependant& target
 }
 
 void symbol_dependency_tables::resolve(
-    std::variant<id_index, space_ptr> what_changed, diagnostic_op_consumer* diag_consumer)
+    std::variant<id_index, space_ptr> what_changed, diagnostic_s_consumer* diag_consumer)
 {
     const auto resolvable = [this, diag_consumer, &what_changed](std::pair<const dependant, dependency_value>& v) {
         std::erase_if(v.second.m_last_dependencies, [&what_changed](const auto& v) {
@@ -438,7 +443,7 @@ dependency_adder symbol_dependency_tables::add_dependencies(
 }
 
 void symbol_dependency_tables::add_defined(
-    const std::variant<id_index, space_ptr>& what_changed, diagnostic_op_consumer* diag_consumer)
+    const std::variant<id_index, space_ptr>& what_changed, diagnostic_s_consumer* diag_consumer)
 {
     resolve(what_changed, diag_consumer);
 }

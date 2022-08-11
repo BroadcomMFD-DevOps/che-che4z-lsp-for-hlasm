@@ -95,10 +95,10 @@ class symbol_dependency_tables
 
     void resolve_dependant(dependant target,
         const resolvable* dep_src,
-        diagnostic_op_consumer* diag_consumer,
+        diagnostic_s_consumer* diag_consumer,
         const dependency_evaluation_context& dep_ctx);
     void resolve_dependant_default(const dependant& target);
-    void resolve(std::variant<id_index, space_ptr> what_changed, diagnostic_op_consumer* diag_consumer);
+    void resolve(std::variant<id_index, space_ptr> what_changed, diagnostic_s_consumer* diag_consumer);
 
     const dependency_value* find_dependency_value(const dependant& target) const;
 
@@ -154,7 +154,7 @@ public:
     // registers that some symbol has been defined
     // if resolver is present, location counter dependencies are checked as well (not just symbol deps)
     void add_defined(
-        const std::variant<id_index, space_ptr>& what_changed, diagnostic_op_consumer* diag_consumer = nullptr);
+        const std::variant<id_index, space_ptr>& what_changed, diagnostic_s_consumer* diag_consumer = nullptr);
 
     // checks for cycle in location counter value
     bool check_loctr_cycle();
