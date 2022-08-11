@@ -81,7 +81,7 @@ mac_preproc
 				(APOSTROPHE|ATTR)?
 				|
 				EQUALS
-				(~(APOSTROPHE|ATTR|CONTINUATION))*
+				ORDSYMBOL
 				|
 				(ASTERISK|MINUS|PLUS|LT|GT|SLASH|VERTICAL|IDENTIFIER|NUM|DOT|LPAR|RPAR)
 				(~(APOSTROPHE|ATTR|CONTINUATION))*
@@ -100,33 +100,18 @@ mac_preproc
 mac_entry returns [concat_chain chain]
 	: 
 	(
-		asterisk		{$chain.push_back(std::make_unique<char_str_conc>("*", provider.get_range($asterisk.ctx)));}
-		| minus			{$chain.push_back(std::make_unique<char_str_conc>("-", provider.get_range($minus.ctx)));}
-		| plus			{$chain.push_back(std::make_unique<char_str_conc>("+", provider.get_range($plus.ctx)));}
-		| LT			{$chain.push_back(std::make_unique<char_str_conc>("<", provider.get_range($LT)));}
-		| GT			{$chain.push_back(std::make_unique<char_str_conc>(">", provider.get_range($GT)));}
-		| slash			{$chain.push_back(std::make_unique<char_str_conc>("/", provider.get_range($slash.ctx)));}
+		token=(ASTERISK|MINUS|PLUS|LT|GT|SLASH|VERTICAL)
+		{
+			$chain.push_back(std::make_unique<char_str_conc>($token.text, provider.get_range($token)));
+		}
 		| equals		{$chain.push_back(std::make_unique<equals_conc>());}
-		| VERTICAL		{$chain.push_back(std::make_unique<char_str_conc>("|", provider.get_range($VERTICAL)));}
-		| IDENTIFIER
-		{
-			auto r = provider.get_range($IDENTIFIER);
-			$chain.push_back(std::make_unique<char_str_conc>($IDENTIFIER.text, r));
-			collector.add_hl_symbol(token_info(r, hl_scopes::operand));
-		}
-		| NUM
-		{
-			auto r = provider.get_range($NUM);
-			$chain.push_back(std::make_unique<char_str_conc>($NUM.text, r));
-			collector.add_hl_symbol(token_info(r, hl_scopes::operand));
-		}
-		| ORDSYMBOL
-		{
-			auto r = provider.get_range($ORDSYMBOL);
-			$chain.push_back(std::make_unique<char_str_conc>($ORDSYMBOL.text, r));
-			collector.add_hl_symbol(token_info(r, hl_scopes::operand));
-		}
 		| dot			{$chain.push_back(std::make_unique<dot_conc>());}
+		| token=(IDENTIFIER|NUM|ORDSYMBOL)
+		{
+			auto r = provider.get_range($token);
+			$chain.push_back(std::make_unique<char_str_conc>($token.text, r));
+			collector.add_hl_symbol(token_info(r, hl_scopes::operand));
+		}
 		| AMPERSAND
 		(
 			vs_id tmp=subscript
@@ -247,16 +232,13 @@ mac_entry returns [concat_chain chain]
 				)?
 				|
 				equals
+				ORDSYMBOL
 				{
 					$chain.push_back(std::make_unique<equals_conc>());
+					auto r = provider.get_range($ORDSYMBOL);
+					$chain.push_back(std::make_unique<char_str_conc>($ORDSYMBOL.text, r));
+					collector.add_hl_symbol(token_info(r, hl_scopes::operand));
 				}
-				(
-					string_ch_v
-					{
-						if (auto& p = $string_ch_v.point; p)
-							$chain.push_back(std::move(p));
-					}
-				)*
 				|
 				token=(ASTERISK|MINUS|PLUS|LT|GT|SLASH|VERTICAL|IDENTIFIER|NUM|DOT|LPAR|RPAR)
 				{

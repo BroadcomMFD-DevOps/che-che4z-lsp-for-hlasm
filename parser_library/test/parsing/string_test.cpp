@@ -894,16 +894,19 @@ TEST(parser, consuming_attribute)
 {
     std::string input = R"(
          MACRO
-         MAC2 &NAMELEN=,&PLIST=PLIST
+         MAC2 &NAMELEN=,&PLIST=
+         GBLC &NL,&PL
+&NL      SETC '&NAMELEN'
+&PL      SETC '&PLIST'
          MEND
 
          MACRO
          MAC &PLIST=PLIST,&STGNAME='STG'
 
-         MAC2 NAMELEN=L'=C&STGNAME.,                                   X
-               DATA=24(R13),PLIST=&PLIST
+         MAC2 NAMELEN=L'=C&STGNAME,PLIST=&PLIST
          MEND
 
+         GBLC &NL,&PL
          MAC
          END)";
 
@@ -912,4 +915,6 @@ TEST(parser, consuming_attribute)
     a.collect_diags();
 
     EXPECT_TRUE(a.diags().empty());
+    EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "NL"), "L'=C'STG'");
+    EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "PL"), "PLIST");
 }
