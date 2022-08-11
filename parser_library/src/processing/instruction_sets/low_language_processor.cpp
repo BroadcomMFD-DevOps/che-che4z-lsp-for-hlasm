@@ -169,51 +169,6 @@ check_org_result hlasm_plugin::parser_library::processing::check_address_for_ORG
     return check_org_result::valid;
 }
 
-void low_language_processor::resolve_unknown_loctr_dependency(context::space_ptr sp,
-    const context::address& addr,
-    range err_range,
-    const context::dependency_evaluation_context& dep_ctx)
-{
-    auto tmp_loctr = hlasm_ctx.ord_ctx.current_section()->current_location_counter();
-
-    hlasm_ctx.ord_ctx.set_location_counter(sp->owner.name, location());
-    hlasm_ctx.ord_ctx.current_section()->current_location_counter().switch_to_unresolved_value(sp);
-
-    if (auto org = check_address_for_ORG(
-            addr, hlasm_ctx.ord_ctx.align(context::no_align, dep_ctx), sp->previous_boundary, sp->previous_offset);
-        org != check_org_result::valid)
-    {
-        if (org == check_org_result::underflow)
-            add_diagnostic(diagnostic_op::error_E068(err_range));
-        else if (org == check_org_result::invalid_address)
-            add_diagnostic(diagnostic_op::error_A115_ORG_op_format(err_range));
-
-        (void)hlasm_ctx.ord_ctx.current_section()->current_location_counter().restore_from_unresolved_value(sp);
-        hlasm_ctx.ord_ctx.set_location_counter(tmp_loctr.name, location());
-        return;
-    }
-
-    auto new_sp = hlasm_ctx.ord_ctx.set_location_counter_value_space(
-        addr, sp->previous_boundary, sp->previous_offset, nullptr, nullptr, dep_ctx);
-
-    auto ret = hlasm_ctx.ord_ctx.current_section()->current_location_counter().restore_from_unresolved_value(sp);
-    hlasm_ctx.ord_ctx.set_location_counter(tmp_loctr.name, location());
-
-    context::space::resolve(sp, std::move(ret));
-
-    // if (!hlasm_ctx.ord_ctx.symbol_dependencies.check_cycle(new_sp))
-    //     add_diagnostic(diagnostic_op::error_E033(err_range));
-
-    for (auto& sect : hlasm_ctx.ord_ctx.sections())
-        for (auto& loctr : sect->location_counters())
-            if (!loctr->check_underflow())
-            {
-                add_diagnostic(diagnostic_op::error_E068(err_range));
-                return;
-            }
-}
-
-
 low_language_processor::transform_result low_language_processor::transform_mnemonic(const resolved_statement& stmt,
     context::dependency_solver& dep_solver,
     const context::mnemonic_code& mnemonic,

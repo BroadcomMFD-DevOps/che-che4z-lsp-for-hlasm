@@ -300,7 +300,7 @@ space_ptr ordinary_assembly_context::register_ordinary_space(alignment align)
     return curr_section_->current_location_counter().register_ordinary_space(align);
 }
 
-void ordinary_assembly_context::finish_module_layout(loctr_dependency_resolver* resolver)
+void ordinary_assembly_context::finish_module_layout(diagnostic_op_consumer* diag_consumer)
 {
     for (auto& sect : sections_)
     {
@@ -314,7 +314,7 @@ void ordinary_assembly_context::finish_module_layout(loctr_dependency_resolver* 
                     return;
 
                 sect->location_counters()[i]->finish_layout(sect->location_counters()[i - 1]->storage());
-                symbol_dependencies.add_defined(id_index(), resolver);
+                symbol_dependencies.add_defined(id_index(), diag_consumer);
             }
         }
     }

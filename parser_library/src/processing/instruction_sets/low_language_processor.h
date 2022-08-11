@@ -16,14 +16,13 @@
 #define PROCESSING_LOW_LANGUAGE_PROCESSOR_H
 
 #include "checking/instruction_checker.h"
-#include "context/ordinary_assembly/loctr_dependency_resolver.h"
 #include "instruction_processor.h"
 #include "processing/statement_fields_parser.h"
 
 namespace hlasm_plugin::parser_library::processing {
 
 // common ancestor for ASM and MACH processing containing useful methods
-class low_language_processor : public instruction_processor, public context::loctr_dependency_resolver
+class low_language_processor : public instruction_processor
 {
 public:
     static bool check(const resolved_statement& stmt,
@@ -31,11 +30,6 @@ public:
         context::dependency_solver& dep_solver,
         const checking::instruction_checker& checker,
         const diagnosable_ctx& diagnoser);
-
-    void resolve_unknown_loctr_dependency(context::space_ptr sp,
-        const context::address& addr,
-        range err_range,
-        const context::dependency_evaluation_context& dep_ctx) override;
 
 protected:
     statement_fields_parser& parser;
