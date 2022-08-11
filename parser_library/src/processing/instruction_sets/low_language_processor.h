@@ -47,16 +47,6 @@ protected:
 
     rebuilt_statement preprocess(std::shared_ptr<const processing::resolved_statement> stmt);
 
-    // adds dependency and also check for cyclic dependency and adds diagnostics if so
-    template<typename... Args>
-    auto add_dependency(range err_range, Args&&... args)
-        -> std::void_t<decltype(hlasm_ctx.ord_ctx.symbol_dependencies.add_dependency(std::forward<Args>(args)...))>
-    {
-        bool cycle_ok = hlasm_ctx.ord_ctx.symbol_dependencies.add_dependency(std::forward<Args>(args)...);
-        if (!cycle_ok)
-            add_diagnostic(diagnostic_op::error_E033(err_range));
-    }
-
     // finds symbol in the label field
     context::id_index find_label_symbol(const rebuilt_statement& stmt) const;
     // finds using label in the label field

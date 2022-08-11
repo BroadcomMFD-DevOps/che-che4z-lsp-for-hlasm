@@ -219,16 +219,15 @@ void asm_processor::process_EQU(rebuilt_statement stmt)
             {
                 if (!holder.is_address() || !holder.unresolved_spaces.empty())
                 {
-                    bool cycle_ok = create_symbol(stmt.stmt_range_ref(), symbol_name, context::symbol_value(), attrs);
-
-                    if (cycle_ok)
+                    const auto& stmt_range = stmt.stmt_range_ref();
+                    if (create_symbol(stmt_range, symbol_name, context::symbol_value(), attrs))
                     {
-                        const auto& stmt_range = stmt.stmt_range_ref();
-                        add_dependency(stmt_range,
-                            symbol_name,
-                            &*expr_op->expression,
-                            std::make_unique<postponed_statement_impl>(std::move(stmt), hlasm_ctx.processing_stack()),
-                            dep_solver.derive_current_dependency_evaluation_context());
+                        if (!hlasm_ctx.ord_ctx.symbol_dependencies.add_dependency(symbol_name,
+                                expr_op->expression.get(),
+                                std::make_unique<postponed_statement_impl>(
+                                    std::move(stmt), hlasm_ctx.processing_stack()),
+                                dep_solver.derive_current_dependency_evaluation_context()))
+                            add_diagnostic(diagnostic_op::error_E033(stmt_range));
                     }
                 }
                 else
