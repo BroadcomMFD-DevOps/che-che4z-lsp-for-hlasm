@@ -90,7 +90,10 @@ mac_preproc
 			|
 			{!is_attribute_consuming(_input->LT(-2))}?
 			(
-				(~(APOSTROPHE|ATTR|CONTINUATION))+
+				(~(APOSTROPHE|ATTR|CONTINUATION))*
+				(APOSTROPHE|ATTR)
+				|
+				(~(APOSTROPHE|ATTR|CONTINUATION|SPACE))+
 				(APOSTROPHE|ATTR)?
 			)
 		)

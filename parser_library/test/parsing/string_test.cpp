@@ -190,6 +190,24 @@ TEST_P(parser_attribute_fixture, missing_apostrophe)
     EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
 }
 
+TEST_P(parser_attribute_fixture, trailing_comma)
+{
+    std::string input = R"(
+         GBLC &STR
+         MAC )"
+        + GetParam().name + "'SYM                                     ,";
+
+    auto a = analyze(input);
+
+    if (GetParam().is_consuming)
+    {
+        EXPECT_TRUE(a->diags().empty());
+        EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR"), GetParam().name + "'SYM");
+    }
+    else
+        EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
+}
+
 TEST_P(parser_attribute_fixture, instr_0_end_apostrophes)
 {
     std::string input = R"(
