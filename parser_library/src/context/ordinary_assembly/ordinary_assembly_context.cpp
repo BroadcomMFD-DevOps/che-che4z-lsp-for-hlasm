@@ -145,16 +145,15 @@ void ordinary_assembly_context::create_external_section(
         }
     }();
 
-    if (!symbols_
-             .try_emplace(name,
-                 std::in_place_type_t<symbol>(),
-                 name,
-                 create_section(name, kind)->current_location_counter().current_address(),
-                 attrs,
-                 std::move(symbol_location),
-                 processing_stack)
-             .second)
-        throw std::invalid_argument("symbol already defined");
+    auto [it, inserted] = symbols_.try_emplace(name,
+        std::in_place_type_t<symbol>(),
+        name,
+        create_section(name, kind)->current_location_counter().current_address(),
+        attrs,
+        std::move(symbol_location),
+        processing_stack);
+
+    assert(inserted);
 }
 
 void ordinary_assembly_context::set_location_counter(id_index name, location symbol_location)
@@ -186,8 +185,7 @@ void ordinary_assembly_context::set_location_counter(id_index name, location sym
             symbol_attributes::make_section_attrs(),
             std::move(symbol_location),
             hlasm_ctx_.processing_stack());
-        if (!inserted)
-            throw std::invalid_argument("symbol already defined");
+        assert(inserted);
         symbol_dependencies.add_defined(name);
     }
 }
