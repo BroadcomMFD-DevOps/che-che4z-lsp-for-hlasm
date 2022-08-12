@@ -370,15 +370,13 @@ context::macro_data_ptr create_macro_data_inner(semantics::concat_chain::const_i
         return macro_processor::string_to_macrodata(to_string(begin, end));
     else if (size > 1)
     {
-        auto is_var_present = [](const auto& p) { return p->type == semantics::concat_type::VAR; };
-
         if (auto s = to_string(begin, end);
-            !nested || std::find_if(begin, end, is_var_present) == end || is_valid_string(s))
+            !nested || semantics::concatenation_point::find_var_sym(begin, end) == nullptr || is_valid_string(s))
             return macro_processor::string_to_macrodata(s);
         else
         {
             add_diagnostic(diagnostic_op::error_S0005);
-            return macro_processor::string_to_macrodata("");
+            return std::make_unique<context::macro_param_data_dummy>();
         }
     }
 
@@ -398,7 +396,7 @@ context::macro_data_ptr macro_processor::create_macro_data(semantics::concat_cha
     semantics::concat_chain::const_iterator end,
     diagnostic_adder& add_diagnostic)
 {
-    auto tmp = semantics::concatenation_point::contains_var_sym(begin, end);
+    auto tmp = semantics::concatenation_point::find_var_sym(begin, end);
     if (tmp)
     {
         add_diagnostic(diagnostic_op::error_E064);

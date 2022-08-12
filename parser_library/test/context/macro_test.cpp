@@ -1139,3 +1139,22 @@ T11  MAC ,, A
         EXPECT_EQ(get_symbol_abs(a.hlasm_ctx(), std::string("T") + std::to_string(i)), expected.begin()[i]) << i;
     }
 }
+
+TEST(macro, illegal_ampersand)
+{
+    std::string input = R"(
+     MACRO
+     MAC &PAR=&VAR
+     MEND
+
+     MAC
+     END
+)";
+
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    ASSERT_TRUE(matches_message_codes(a.diags(), { "E064" }));
+    EXPECT_EQ(a.diags()[0].diag_range, range({ 2, 9 }, { 2, 18 }));
+}
