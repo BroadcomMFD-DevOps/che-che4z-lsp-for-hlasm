@@ -304,18 +304,14 @@ void ordinary_assembly_context::finish_module_layout(diagnostic_s_consumer* diag
 {
     for (auto& sect : sections_)
     {
-        for (size_t i = 0; i < sect->location_counters().size(); ++i)
+        size_t last_offset = 0;
+        for (const auto& loctr : sect->location_counters())
         {
-            if (i == 0)
-                sect->location_counters()[0]->finish_layout(0);
-            else
-            {
-                if (sect->location_counters()[i - 1]->has_unresolved_spaces())
-                    return;
-
-                sect->location_counters()[i]->finish_layout(sect->location_counters()[i - 1]->storage());
-                symbol_dependencies.add_defined(id_index(), diag_consumer);
-            }
+            loctr->finish_layout(last_offset);
+            symbol_dependencies.add_defined(id_index(), diag_consumer);
+            if (loctr->has_unresolved_spaces())
+                return;
+            last_offset = loctr->storage();
         }
     }
 }
