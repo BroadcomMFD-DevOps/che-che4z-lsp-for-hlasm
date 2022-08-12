@@ -59,27 +59,26 @@ namespace {
 bool is_valid_string(std::string_view s)
 {
     size_t index = 0;
+    size_t apostrophes = 0;
 
     while (true)
     {
-        auto apostrophe = s.find_first_of('\'', index);
-        if (apostrophe == std::string_view::npos)
-            return true;
+        auto ap_id = s.find_first_of('\'', index);
+        if (ap_id == std::string_view::npos)
+            break;
 
-        if (apostrophe > 0 && apostrophe + 1 < s.size()
-            && parsing::parser_impl::is_attribute_consuming(s[apostrophe - 1])
-            && parsing::parser_impl::can_attribute_consume(s[apostrophe + 1]))
+        if (ap_id > 0 && ap_id + 1 < s.size() && parsing::parser_impl::is_attribute_consuming(s[ap_id - 1])
+            && parsing::parser_impl::can_attribute_consume(s[ap_id + 1]))
         {
-            index = apostrophe + 1;
+            index = ap_id + 1;
             continue;
         }
 
-        apostrophe = s.find_first_of('\'', apostrophe + 1);
-        if (apostrophe == std::string_view::npos)
-            return false;
-
-        index = apostrophe + 1;
+        index = ap_id + 1;
+        apostrophes++;
     }
+
+    return apostrophes % 2 == 0;
 }
 } // namespace
 

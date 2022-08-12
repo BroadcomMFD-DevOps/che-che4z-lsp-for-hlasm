@@ -876,7 +876,7 @@ TEST_P(parser_attribute_fixture, preserve_structured_parameter_2)
     EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "PAR2"), GetParam().name + "'-9'");
 }
 
-TEST(parser, preconstructed_string)
+TEST(parser, preconstructed_string_1)
 {
     std::string input = R"(
          MACRO
@@ -898,6 +898,29 @@ TEST(parser, preconstructed_string)
          MAC2  (&CHAR)
          MAC2  (&PAR2)
          MEND
+
+         MAC PARAMETER)";
+
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(a.diags().empty());
+}
+
+TEST(parser, preconstructed_string_2)
+{
+    std::string input = R"(
+         MACRO
+         MAC
+         MEND
+
+&VAR     SETC 'L''SYM'
+
+         MAC ('(&VAR)')
+         MAC ('STR(&VAR)')
+         MAC ('(&VAR)STR')
+         MAC ('STR(&VAR)STR')
 
          MAC PARAMETER)";
 
