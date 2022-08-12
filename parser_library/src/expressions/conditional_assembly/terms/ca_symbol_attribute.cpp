@@ -453,25 +453,16 @@ semantics::literal_si ca_symbol_attribute::reparse_substituted_literal(
     });
     auto h = parsing::parser_holder<false>::create(nullptr, &eval_ctx.hlasm_ctx, &add_diag_subst);
 
-    h->input->reset(text);
-
-    h->lex->reset();
-    h->lex->set_file_offset(var_range.start);
-    h->lex->set_unlimited_line(true);
-
-    h->stream->reset();
-
-    h->parser->reinitialize(&eval_ctx.hlasm_ctx,
+    h->prepare_parser(text,
+        &eval_ctx.hlasm_ctx,
+        &add_diag_subst,
         semantics::range_provider(var_range, semantics::adjusting_state::SUBSTITUTION),
+        var_range,
         processing::processing_status(processing::processing_format(processing::processing_kind::ORDINARY,
                                           processing::processing_form::CA,
                                           processing::operand_occurence::ABSENT),
             processing::op_code()),
-        &add_diag_subst);
-
-    h->parser->reset();
-
-    h->parser->get_collector().prepare_for_next_statement();
+        true);
 
     auto literal_context = h->parser->literal_reparse();
 

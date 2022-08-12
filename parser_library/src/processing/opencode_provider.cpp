@@ -818,19 +818,7 @@ const parsing::parser_holder<multiline>& opencode_provider::prepare_operand_pars
     }
     ();
 
-    h.input->reset(text);
-
-    h.lex->reset();
-    h.lex->set_file_offset(text_range.start);
-    h.lex->set_unlimited_line(unlimited_line);
-
-    h.stream->reset();
-
-    h.parser->reinitialize(&hlasm_ctx, std::move(range_prov), proc_status, diags);
-
-    h.parser->reset();
-
-    h.parser->get_collector().prepare_for_next_statement();
+    h.prepare_parser(text, &hlasm_ctx, diags, std::move(range_prov), text_range, proc_status, unlimited_line);
 
     return h;
 }

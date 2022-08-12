@@ -256,6 +256,30 @@ context::id_index parser_impl::add_id(std::string s) { return hlasm_ctx->ids().a
 template<bool multiline>
 parser_holder<multiline>::~parser_holder() = default;
 
+template<bool multiline>
+void parser_holder<multiline>::prepare_parser(const std::string& text,
+    context::hlasm_context* hlasm_ctx,
+    diagnostic_op_consumer* diags,
+    semantics::range_provider range_prov,
+    range text_range,
+    const processing::processing_status& proc_status,
+    bool unlimited_line) const
+{
+    input->reset(text);
+
+    lex->reset();
+    lex->set_file_offset(text_range.start);
+    lex->set_unlimited_line(unlimited_line);
+
+    stream->reset();
+
+    parser->reinitialize(hlasm_ctx, std::move(range_prov), proc_status, diags);
+
+    parser->reset();
+
+    parser->get_collector().prepare_for_next_statement();
+}
+
 template struct parser_holder<false>;
 template struct parser_holder<true>;
 

@@ -179,6 +179,14 @@ struct parser_holder
 
     ~parser_holder();
 
+    void prepare_parser(const std::string& text,
+        context::hlasm_context* hlasm_ctx,
+        diagnostic_op_consumer* diags,
+        semantics::range_provider range_prov,
+        range text_range,
+        const processing::processing_status& proc_status,
+        bool unlimited_line) const;
+
     static std::unique_ptr<parser_holder> create(
         semantics::source_info_processor* lsp_proc, context::hlasm_context* hl_ctx, diagnostic_op_consumer* d);
 };

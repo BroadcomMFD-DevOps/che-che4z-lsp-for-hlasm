@@ -43,11 +43,13 @@ class statement_fields_parser final : public diagnosable_impl
     context::hlasm_context* m_hlasm_ctx;
 
     template<bool multiline>
-    const parsing::parser_holder<multiline>& prepare_parser(const std::string& text,
-        bool unlimited_line,
-        semantics::range_provider field_range,
-        processing::processing_status status,
-        diagnostic_op_consumer& add_diag);
+    auto& get_parser_holder() const
+    {
+        if constexpr (multiline)
+            return *m_parser_multiline;
+        else
+            return *m_parser_singleline;
+    }
 
 public:
     struct parse_result
