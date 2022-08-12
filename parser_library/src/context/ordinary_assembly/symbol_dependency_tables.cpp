@@ -91,22 +91,30 @@ struct resolve_dependant_visitor
             length = val.value_kind() == symbol_value_kind::RELOC ? val.get_reloc().offset() : 0;
 
         if (sp->kind == space_kind::LOCTR_UNKNOWN)
-            resolve_unknown_loctr_dependency(
-                sp, val.get_reloc(), *dependency_source_stmts.find(sp)->second.stmt_ref->first);
+        {
+            // I don't think that the postponed statement has to always exist.
+            auto dep_it = dependency_source_stmts.find(sp);
+            const postponed_statement* stmt =
+                dep_it == dependency_source_stmts.end() ? nullptr : dep_it->second.stmt_ref->first.get();
+            resolve_unknown_loctr_dependency(sp, val.get_reloc(), stmt);
+        }
         else
             space::resolve(sp, length);
     }
 
     void resolve_unknown_loctr_dependency(
-        context::space_ptr sp, const context::address& addr, postponed_statement& stmt) const
+        context::space_ptr sp, const context::address& addr, const postponed_statement* stmt) const
     {
         using namespace processing;
 
         assert(diag_consumer);
 
-        const auto add_diagnostic = [&stmt, diag_consumer = diag_consumer](auto f) {
-            diag_consumer->add_diagnostic(
-                add_stack_details(f(stmt.resolved_stmt()->stmt_range_ref()), stmt.location_stack()));
+        const auto add_diagnostic = [stmt, d = diag_consumer](auto f) {
+            if (stmt)
+                d->add_diagnostic(
+                    add_stack_details(f(stmt->resolved_stmt()->stmt_range_ref()), stmt->location_stack()));
+            else
+                d->add_diagnostic(add_stack_details(f(range()), {}));
         };
 
         auto tmp_loctr = sym_ctx.current_section()->current_location_counter();
