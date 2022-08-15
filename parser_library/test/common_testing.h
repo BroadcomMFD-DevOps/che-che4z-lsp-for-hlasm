@@ -149,6 +149,17 @@ inline bool contains_message_codes(const std::vector<Msg>& d, const C& c)
     return std::includes(codes.begin(), codes.end(), to_find.begin(), to_find.end());
 }
 
+template<typename Msg, typename C = std::initializer_list<std::pair<size_t, size_t>>>
+inline bool matches_diagnosed_line_ranges(const std::vector<Msg>& d, const C& c)
+{
+    std::vector<std::pair<size_t, size_t>> diag_lines;
+    std::transform(d.begin(), d.end(), std::back_inserter(diag_lines), [](const auto& d) {
+        return std::make_pair(d.diag_range.start.line, d.diag_range.end.line);
+    });
+
+    return std::is_permutation(diag_lines.begin(), diag_lines.end(), c.begin(), c.end());
+}
+
 inline const section* get_section(hlasm_context& ctx, std::string name)
 {
     auto sect = ctx.ids().find(std::move(name));
