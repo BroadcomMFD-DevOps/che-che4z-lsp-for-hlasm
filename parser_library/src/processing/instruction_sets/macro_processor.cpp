@@ -370,8 +370,10 @@ context::macro_data_ptr create_macro_data_inner(semantics::concat_chain::const_i
         return macro_processor::string_to_macrodata(to_string(begin, end));
     else if (size > 1)
     {
-        if (auto s = to_string(begin, end);
-            !nested || semantics::concatenation_point::find_var_sym(begin, end) == nullptr || is_valid_string(s))
+        if (auto s = to_string(begin, end); s.front() != '('
+            && (!nested || semantics::concatenation_point::find_var_sym(begin, end) == nullptr || is_valid_string(s)))
+            return macro_processor::string_to_macrodata(s);
+        else if (s.front() == '(' && is_valid_string(s))
             return macro_processor::string_to_macrodata(s);
         else
         {

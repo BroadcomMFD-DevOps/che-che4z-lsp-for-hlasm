@@ -72,30 +72,25 @@ mac_preproc
 			(
 				ORDSYMBOL
 				|
-				ORDSYMBOL
-				(APOSTROPHE|ATTR)
-				|
-				AMPERSAND
-				ORDSYMBOL
-				(ORDSYMBOL|NUM)*
-				(APOSTROPHE|ATTR)?
-				|
 				EQUALS
 				ORDSYMBOL
 				|
 				(ASTERISK|MINUS|PLUS|LT|GT|SLASH|VERTICAL|IDENTIFIER|NUM|DOT|LPAR|RPAR)
-				(~(APOSTROPHE|ATTR|CONTINUATION))*
-				(APOSTROPHE|ATTR)?
+				(~(APOSTROPHE|ATTR|CONTINUATION)|(APOSTROPHE|ATTR)(APOSTROPHE|ATTR))*
+				(APOSTROPHE|ATTR)
 			)
 			|
 			{!is_attribute_consuming(_input->LT(-2))}?
 			(
-				(~(APOSTROPHE|ATTR|CONTINUATION))*
+				(~(APOSTROPHE|ATTR|CONTINUATION)|(APOSTROPHE|ATTR)(APOSTROPHE|ATTR))*
 				(APOSTROPHE|ATTR)
-				|
-				(~(APOSTROPHE|ATTR|CONTINUATION|SPACE))+
-				(APOSTROPHE|ATTR)?
+
 			)
+			|
+			AMPERSAND
+			ORDSYMBOL
+			(ORDSYMBOL|NUM)*
+			(APOSTROPHE|ATTR)?
 		)
 	)+
 	;
@@ -255,12 +250,12 @@ mac_entry returns [concat_chain chain]
 							$chain.push_back(std::move(p));
 					}
 				)*
-				ap2=(APOSTROPHE|ATTR)
-				{
-					$chain.push_back(std::make_unique<char_str_conc>("'", provider.get_range($ap2)));
-					collector.add_hl_symbol(token_info(provider.get_range($ap1,$ap2),hl_scopes::string));
-				}
-			)
+					ap2=(APOSTROPHE|ATTR)
+					{
+						$chain.push_back(std::make_unique<char_str_conc>("'", provider.get_range($ap2)));
+						collector.add_hl_symbol(token_info(provider.get_range($ap1,$ap2),hl_scopes::string));
+					}
+				)
 			|
 			{!is_attribute_consuming(_input->LT(-2))}?
 			(
