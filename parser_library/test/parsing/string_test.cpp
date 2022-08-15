@@ -549,9 +549,7 @@ TEST_P(parser_data_attribute_fixture, list_1_elem_text)
 
     if (GetParam().is_consuming)
     {
-        // EXPECT_TRUE(
-        //     matches_message_codes(a->diags(), { "S0005", "S0005", "S0005" })); // todo error should also be
-        //     "unbalanced parenthesis
+        EXPECT_TRUE(contains_message_codes(a->diags(), { "S0005" }));
         EXPECT_TRUE(matches_diagnosed_line_ranges(a->diags(), { { 3, 3 }, { 5, 5 }, { 6, 6 } }));
 
         EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR1"), GetParam().name + "'J");
@@ -623,10 +621,7 @@ TEST_P(parser_data_attribute_fixture, list_1_elem_var_instr)
 
     if (GetParam().is_consuming)
     {
-        // EXPECT_TRUE(
-        //     matches_message_codes(a->diags(), { "S0005", "S0005", "S0005" })); // todo error should also be
-        //     "unbalanced parenthesis
-
+        EXPECT_TRUE(contains_message_codes(a->diags(), { "S0005" }));
         EXPECT_TRUE(matches_diagnosed_line_ranges(a->diags(), { { 4, 4 }, { 6, 6 }, { 7, 7 } }));
 
         EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR1"), GetParam().name + "'J");
@@ -658,13 +653,12 @@ TEST_P(parser_data_attribute_fixture, list_1_elem_var_number)
 
     if (GetParam().is_consuming)
     {
-        // EXPECT_TRUE(
-        //     matches_message_codes(a->diags(), { "S0005", "S0005" })); // todo error should be "unbalanced
-        //     parentheses"
-        // EXPECT_TRUE(matches_diagnosed_line_ranges(a->diags(), { { 3, 3 }, { 5, 5 }}));
+        EXPECT_TRUE(contains_message_codes(a->diags(), { "S0005" }));
+        EXPECT_TRUE(contains_diagnosed_line_ranges(a->diags(), { { 3, 3 } }));
 
         EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR2"), GetParam().name + "'9'");
-        // EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR4"), "(" + GetParam().name + "'9')'"); // todo
+        // EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR4"), "(" + GetParam().name + "'9')'"); // This almost seems
+        // like a bug in HLASM
         EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR5"), "(" + GetParam().name + "'9')''");
     }
     else
@@ -774,11 +768,7 @@ TEST_P(parser_data_attribute_fixture, list_2_elem_var_number)
 
     auto a = analyze(input, GetParam().name);
 
-    if (GetParam().is_consuming)
-        EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" })); // todo error should be "unbalanced parentheses"
-    else
-        EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
-
+    EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
     EXPECT_TRUE(matches_diagnosed_line_ranges(a->diags(), { { 3, 3 } }));
 
     EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR3"), "A");
@@ -796,11 +786,7 @@ TEST_P(parser_data_attribute_fixture, list_2_elem_var_negative_number)
 
     auto a = analyze(input, GetParam().name);
 
-    if (GetParam().is_consuming)
-        EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" })); // todo error should be "unbalanced parentheses"
-    else
-        EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
-
+    EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
     EXPECT_TRUE(matches_diagnosed_line_ranges(a->diags(), { { 3, 3 } }));
 
     EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR3"), "A");
