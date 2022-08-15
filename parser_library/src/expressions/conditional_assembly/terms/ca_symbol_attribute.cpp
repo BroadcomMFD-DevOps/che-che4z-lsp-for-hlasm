@@ -22,7 +22,6 @@
 #include "ebcdic_encoding.h"
 #include "expressions/conditional_assembly/ca_expr_visitor.h"
 #include "expressions/evaluation_context.h"
-#include "hlasmparser_singleline.h"
 #include "lexing/lexer.h"
 #include "lexing/token_stream.h"
 #include "parsing/parser_impl.h"
@@ -451,7 +450,7 @@ semantics::literal_si ca_symbol_attribute::reparse_substituted_literal(
         diag.message = diagnostic_decorate_message(text, diag.message);
         eval_ctx.diags.add_diagnostic(std::move(diag));
     });
-    auto h = parsing::parser_holder<false>::create(nullptr, &eval_ctx.hlasm_ctx, &add_diag_subst);
+    auto h = parsing::parser_holder::create(nullptr, &eval_ctx.hlasm_ctx, &add_diag_subst, false);
 
     h->prepare_parser(text,
         &eval_ctx.hlasm_ctx,
@@ -464,10 +463,10 @@ semantics::literal_si ca_symbol_attribute::reparse_substituted_literal(
             processing::op_code()),
         true);
 
-    auto literal_context = h->parser->literal_reparse();
+    auto literal_value = h->literal_reparse();
 
     if (!error)
-        return std::move(literal_context->value);
+        return std::move(literal_value);
 
     return {};
 }

@@ -15,16 +15,16 @@
 #include "statement_fields_parser.h"
 
 #include "context/hlasm_context.h"
-#include "hlasmparser_multiline.h"
-#include "hlasmparser_singleline.h"
 #include "lexing/token_stream.h"
 #include "parsing/error_strategy.h"
+#include "parsing/parser_impl.h"
+#include "semantics/operand_impls.h"
 
 namespace hlasm_plugin::parser_library::processing {
 
 statement_fields_parser::statement_fields_parser(context::hlasm_context* hlasm_ctx)
-    : m_parser_singleline(parsing::parser_holder<false>::create(nullptr, hlasm_ctx, nullptr))
-    , m_parser_multiline(parsing::parser_holder<true>::create(nullptr, hlasm_ctx, nullptr))
+    : m_parser_singleline(parsing::parser_holder::create(nullptr, hlasm_ctx, nullptr, false))
+    , m_parser_multiline(parsing::parser_holder::create(nullptr, hlasm_ctx, nullptr, true))
     , m_hlasm_ctx(hlasm_ctx)
 {}
 
@@ -47,21 +47,6 @@ statement_fields_parser::parse_result statement_fields_parser::parse_operand_fie
     processing::processing_status status,
     diagnostic_op_consumer& add_diag)
 {
-    if (is_multiline(field))
-        return parse_operand_field_impl<true>(
-            std::move(field), after_substitution, std::move(field_range), std::move(status), add_diag);
-    else
-        return parse_operand_field_impl<false>(
-            std::move(field), after_substitution, std::move(field_range), std::move(status), add_diag);
-}
-
-template<bool multiline>
-statement_fields_parser::parse_result statement_fields_parser::parse_operand_field_impl(std::string field,
-    bool after_substitution,
-    semantics::range_provider field_range,
-    processing::processing_status status,
-    diagnostic_op_consumer& add_diag)
-{
     m_hlasm_ctx->metrics.reparsed_statements++;
 
     const auto original_range = field_range.original_range;
@@ -71,7 +56,7 @@ statement_fields_parser::parse_result statement_fields_parser::parse_operand_fie
             diag.message = diagnostic_decorate_message(field, diag.message);
         add_diag.add_diagnostic(std::move(diag));
     });
-    const auto& h = get_parser_holder<multiline>();
+    const auto& h = is_multiline(field) ? *m_parser_multiline : *m_parser_singleline;
     h.prepare_parser(
         field, m_hlasm_ctx, &add_diag_subst, std::move(field_range), original_range, status, after_substitution);
 
@@ -81,13 +66,13 @@ statement_fields_parser::parse_result statement_fields_parser::parse_operand_fie
     const auto& [format, opcode] = status;
     if (format.occurence == processing::operand_occurence::ABSENT
         || format.form == processing::processing_form::UNKNOWN)
-        h.parser->op_rem_body_noop();
+        h.op_rem_body_noop();
     else
     {
         switch (format.form)
         {
             case processing::processing_form::MAC:
-                line = std::move(h.parser->op_rem_body_mac_r()->line);
+                line = h.op_rem_body_mac_r();
                 literals = h.parser->get_collector().take_literals();
 
                 if (h.error_handler->error_reported())
@@ -107,21 +92,21 @@ statement_fields_parser::parse_result statement_fields_parser::parse_operand_fie
                         status,
                         true);
 
-                    line.operands = std::move(h_second.parser->macro_ops()->list);
+                    line.operands = h_second.macro_ops();
                     literals = h.parser->get_collector().take_literals();
                 }
                 break;
             case processing::processing_form::ASM:
-                line = std::move(h.parser->op_rem_body_asm_r()->line);
+                line = h.op_rem_body_asm_r();
                 literals = h.parser->get_collector().take_literals();
                 break;
             case processing::processing_form::MACH:
-                line = std::move(h.parser->op_rem_body_mach_r()->line);
+                line = h.op_rem_body_mach_r();
                 transform_reloc_imm_operands(line.operands, opcode.value);
                 literals = h.parser->get_collector().take_literals();
                 break;
             case processing::processing_form::DAT:
-                line = std::move(h.parser->op_rem_body_dat_r()->line);
+                line = h.op_rem_body_dat_r();
                 literals = h.parser->get_collector().take_literals();
                 break;
             default:

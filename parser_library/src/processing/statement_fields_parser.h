@@ -25,7 +25,6 @@ class hlasm_context;
 
 namespace hlasm_plugin::parser_library::parsing {
 class parser_error_listener_ctx;
-template<bool multiline>
 struct parser_holder;
 } // namespace hlasm_plugin::parser_library::parsing
 
@@ -38,18 +37,9 @@ using provider_ptr = std::unique_ptr<statement_provider>;
 
 class statement_fields_parser final : public diagnosable_impl
 {
-    std::unique_ptr<parsing::parser_holder<false>> m_parser_singleline;
-    std::unique_ptr<parsing::parser_holder<true>> m_parser_multiline;
+    std::unique_ptr<parsing::parser_holder> m_parser_singleline;
+    std::unique_ptr<parsing::parser_holder> m_parser_multiline;
     context::hlasm_context* m_hlasm_ctx;
-
-    template<bool multiline>
-    auto& get_parser_holder() const
-    {
-        if constexpr (multiline)
-            return *m_parser_multiline;
-        else
-            return *m_parser_singleline;
-    }
 
 public:
     struct parse_result
@@ -71,7 +61,6 @@ public:
     void collect_diags() const override;
 
 private:
-    template<bool multiline>
     parse_result parse_operand_field_impl(std::string field,
         bool after_substitution,
         semantics::range_provider field_range,
