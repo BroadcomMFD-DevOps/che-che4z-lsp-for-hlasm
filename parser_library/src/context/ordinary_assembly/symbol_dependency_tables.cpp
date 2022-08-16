@@ -163,9 +163,9 @@ struct resolve_dependant_visitor
 
 struct dependant_visitor
 {
-    std::variant<id_index, space_ptr> operator()(id_index id) { return id; }
-    std::variant<id_index, space_ptr> operator()(attr_ref a) { return a.symbol_id; }
-    std::variant<id_index, space_ptr> operator()(space_ptr p) { return std::move(p); }
+    std::variant<id_index, space_ptr> operator()(id_index id) const { return id; }
+    std::variant<id_index, space_ptr> operator()(attr_ref a) const { return a.symbol_id; }
+    std::variant<id_index, space_ptr> operator()(space_ptr p) const { return std::move(p); }
 };
 
 void symbol_dependency_tables::resolve_dependant(dependant target,
@@ -210,8 +210,8 @@ void symbol_dependency_tables::resolve(
     std::variant<id_index, space_ptr> what_changed, diagnostic_s_consumer* diag_consumer)
 {
     const auto resolvable = [this, diag_consumer, &what_changed](std::pair<const dependant, dependency_value>& v) {
-        std::erase_if(v.second.m_last_dependencies, [&what_changed](const auto& v) {
-            return what_changed == v || std::holds_alternative<space_ptr>(v) && std::get<space_ptr>(v)->resolved();
+        std::erase_if(v.second.m_last_dependencies, [&what_changed](const auto& d) {
+            return what_changed == d || std::holds_alternative<space_ptr>(d) && std::get<space_ptr>(d)->resolved();
         });
         if (!diag_consumer && std::holds_alternative<space_ptr>(v.first))
             return false;
@@ -293,17 +293,17 @@ bool symbol_dependency_tables::update_dependencies(dependency_value& d)
     d.m_last_dependencies.insert(
         d.m_last_dependencies.end(), deps.undefined_symbols.begin(), deps.undefined_symbols.end());
     for (const auto& dep : deps.undefined_attr_refs)
-        d.m_last_dependencies.push_back(dep.symbol_id);
+        d.m_last_dependencies.emplace_back(dep.symbol_id);
 
     if (!d.m_last_dependencies.empty())
         return true;
 
     for (const auto& sp : deps.unresolved_spaces)
-        d.m_last_dependencies.push_back(sp);
+        d.m_last_dependencies.emplace_back(sp);
 
     if (deps.unresolved_address)
-        for (auto&& x : deps.unresolved_address->normalized_spaces())
-            d.m_last_dependencies.push_back(x.first);
+        for (auto&& [sp, _] : deps.unresolved_address->normalized_spaces())
+            d.m_last_dependencies.emplace_back(std::move(sp));
 
     return !d.m_last_dependencies.empty();
 }
