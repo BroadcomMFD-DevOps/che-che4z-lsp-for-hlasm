@@ -196,14 +196,14 @@ mac_entry returns [concat_chain chain]
 			collector.add_hl_symbol(token_info(provider.get_range($ap1,$ap2),hl_scopes::string));
 		}
 		|
-		ap1=ATTR
+		at=ATTR
 		{
-			$chain.push_back(std::make_unique<char_str_conc>("'", provider.get_range($ap1)));
+			$chain.push_back(std::make_unique<char_str_conc>("'", provider.get_range($at)));
 		}
 		(
 			{is_attribute_consuming(_input->LT(-2))}?
 			{
-				collector.add_hl_symbol(token_info(provider.get_range($ap1),hl_scopes::operator_symbol));
+				collector.add_hl_symbol(token_info(provider.get_range($at),hl_scopes::operator_symbol));
 			}
 			(
 				ORDSYMBOL
@@ -222,10 +222,10 @@ mac_entry returns [concat_chain chain]
 					collector.add_hl_symbol(token_info(provider.get_range($AMPERSAND, $vs_id.ctx->getStop()),hl_scopes::var_symbol));
 				}
 				(
-					ap2=(APOSTROPHE|ATTR)
+					ap=(APOSTROPHE|ATTR)
 					{
-						$chain.push_back(std::make_unique<char_str_conc>("'", provider.get_range($ap2)));
-						collector.add_hl_symbol(token_info(provider.get_range($ap1,$ap2),hl_scopes::string));
+						$chain.push_back(std::make_unique<char_str_conc>("'", provider.get_range($ap)));
+						collector.add_hl_symbol(token_info(provider.get_range($at,$ap),hl_scopes::string));
 					}
 				)?
 				|
@@ -244,31 +244,53 @@ mac_entry returns [concat_chain chain]
 					$chain.push_back(std::make_unique<char_str_conc>($token.text, r));
 				}
 				(
+					(
+						string_ch_v
+						{
+							if (auto& p = $string_ch_v.point; p)
+								$chain.push_back(std::move(p));
+						}
+					)
+					|
+					(
+						ap1=(APOSTROPHE|ATTR)
+						ap2=(APOSTROPHE|ATTR)
+						{
+							$chain.push_back(std::make_unique<char_str_conc>("'", provider.get_range($ap1)));
+							$chain.push_back(std::make_unique<char_str_conc>("'", provider.get_range($ap2)));
+						}
+					)
+				)*
+				ap=(APOSTROPHE|ATTR)
+				{
+					$chain.push_back(std::make_unique<char_str_conc>("'", provider.get_range($ap)));
+					collector.add_hl_symbol(token_info(provider.get_range($at,$ap),hl_scopes::string));
+				}
+			)
+			|
+			{!is_attribute_consuming(_input->LT(-2))}?
+			(
+				(
 					string_ch_v
 					{
 						if (auto& p = $string_ch_v.point; p)
 							$chain.push_back(std::move(p));
 					}
-				)*
+				)
+				|
+				(
+					ap1=(APOSTROPHE|ATTR)
 					ap2=(APOSTROPHE|ATTR)
 					{
+						$chain.push_back(std::make_unique<char_str_conc>("'", provider.get_range($ap1)));
 						$chain.push_back(std::make_unique<char_str_conc>("'", provider.get_range($ap2)));
-						collector.add_hl_symbol(token_info(provider.get_range($ap1,$ap2),hl_scopes::string));
 					}
 				)
-			|
-			{!is_attribute_consuming(_input->LT(-2))}?
-			(
-				string_ch_v
-				{
-					if (auto& p = $string_ch_v.point; p)
-						$chain.push_back(std::move(p));
-				}
-			)*?
-			ap2=(APOSTROPHE|ATTR)
+			)*
+			ap=(APOSTROPHE|ATTR)
 			{
-				$chain.push_back(std::make_unique<char_str_conc>("'", provider.get_range($ap2)));
-				collector.add_hl_symbol(token_info(provider.get_range($ap1,$ap2),hl_scopes::string));
+				$chain.push_back(std::make_unique<char_str_conc>("'", provider.get_range($ap)));
+				collector.add_hl_symbol(token_info(provider.get_range($at,$ap),hl_scopes::string));
 			}
 		)
 	)+
