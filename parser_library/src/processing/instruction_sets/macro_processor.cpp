@@ -140,13 +140,13 @@ std::pair<std::unique_ptr<context::macro_param_data_single>, bool> find_single_m
         comma_encountered };
 }
 
-context::macro_data_ptr macro_processor::string_to_macrodata(std::string_view data)
+context::macro_data_ptr macro_processor::string_to_macrodata(std::string data)
 {
     if (data.empty())
         return std::make_unique<context::macro_param_data_dummy>();
 
     if (data.front() != '(' || data.back() != ')')
-        return std::make_unique<context::macro_param_data_single>(std::string(data));
+        return std::make_unique<context::macro_param_data_single>(std::move(data));
 
 
     std::stack<size_t> nests;
@@ -161,7 +161,7 @@ context::macro_data_ptr macro_processor::string_to_macrodata(std::string_view da
         auto begin = nests.top();
 
         if (begin == data.size())
-            return std::make_unique<context::macro_param_data_single>(std::string(data));
+            return std::make_unique<context::macro_param_data_single>(std::move(data));
 
         if (data[begin] == '(')
         {
@@ -186,7 +186,7 @@ context::macro_data_ptr macro_processor::string_to_macrodata(std::string_view da
                 empty_op_pending = comma;
 
                 if (tmp_single == nullptr)
-                    return std::make_unique<context::macro_param_data_single>(std::string(data));
+                    return std::make_unique<context::macro_param_data_single>(std::move(data));
 
                 auto single = context::macro_param_data_composite(std::move(vec)).get_value() + tmp_single->get_value();
 
@@ -210,7 +210,7 @@ context::macro_data_ptr macro_processor::string_to_macrodata(std::string_view da
             empty_op_pending = comma;
 
             if (macro_data.top().back() == nullptr)
-                return std::make_unique<context::macro_param_data_single>(std::string(data));
+                return std::make_unique<context::macro_param_data_single>(std::move(data));
         }
     }
 
@@ -372,9 +372,9 @@ context::macro_data_ptr create_macro_data_inner(semantics::concat_chain::const_i
     {
         if (auto s = to_string(begin, end);
             s.front() != '(' && (!nested || semantics::concatenation_point::find_var_sym(begin, end) == nullptr))
-            return macro_processor::string_to_macrodata(s);
+            return macro_processor::string_to_macrodata(std::move(s));
         else if (is_valid_string(s))
-            return macro_processor::string_to_macrodata(s);
+            return macro_processor::string_to_macrodata(std::move(s));
         else
         {
             add_diagnostic(diagnostic_op::error_S0005);
