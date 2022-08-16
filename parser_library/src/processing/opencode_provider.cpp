@@ -144,7 +144,7 @@ void opencode_provider::ainsert(const std::string& rec, ainsert_destination dest
     suspend_copy_processing(remove_empty::no);
 }
 
-void opencode_provider::feed_line(parsing::parser_holder& p, bool is_process)
+void opencode_provider::feed_line(const parsing::parser_holder& p, bool is_process)
 {
     m_line_fed = true;
 

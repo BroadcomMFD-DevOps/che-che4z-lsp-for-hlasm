@@ -466,7 +466,7 @@ semantics::literal_si ca_symbol_attribute::reparse_substituted_literal(
     auto literal_value = h->literal_reparse();
 
     if (!error)
-        return std::move(literal_value);
+        return literal_value;
 
     return {};
 }

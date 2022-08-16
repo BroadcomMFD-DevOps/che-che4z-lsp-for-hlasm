@@ -137,7 +137,7 @@ public:
     bool finished() const override;
 
 private:
-    void feed_line(parsing::parser_holder& p, bool is_process);
+    void feed_line(const parsing::parser_holder& p, bool is_process);
     bool is_comment();
     void process_comment();
     void generate_aread_highlighting(std::string_view text, size_t line_no) const;
