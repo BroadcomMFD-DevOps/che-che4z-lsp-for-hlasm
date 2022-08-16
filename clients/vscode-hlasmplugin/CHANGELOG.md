@@ -14,6 +14,7 @@
 - False positive diagnostics generated for statements included by the COPY instruction
 - Sequence symbol redefinition diagnostic issued even for symbols excluded by CA statements
 - Validation of mnemonics with optional operands produced incorrect diagnostics
+- Implement changes introduced by APAR PH46868
 
 ## [1.3.0](https://github.com/eclipse/che-che4z-lsp-for-hlasm/compare/1.2.0...1.3.0) (2022-06-30)
 

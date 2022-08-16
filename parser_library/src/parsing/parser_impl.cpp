@@ -230,8 +230,7 @@ bool parser_impl::is_attribute_consuming(const antlr4::Token* token)
 
 bool parser_impl::can_attribute_consume(char c)
 {
-    auto tmp = std::toupper(static_cast<int>(c));
-    return tmp == '=' || tmp == '$' || tmp == '_' || tmp == '#' || tmp == '@' || (tmp >= 'A' && tmp <= 'Z');
+    return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c == '=' || c == '$' || c == '_' || c == '#' || c == '@';
 }
 
 bool parser_impl::can_attribute_consume(const antlr4::Token* token)
