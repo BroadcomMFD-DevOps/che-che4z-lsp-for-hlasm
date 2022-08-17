@@ -69,27 +69,13 @@ mac_preproc
 		ATTR
 		(
 			{is_attribute_consuming(_input->LT(-2))}?
-			(
-				EQUALS?
-				ORDSYMBOL
-				|
-				(ASTERISK|MINUS|PLUS|LT|GT|SLASH|VERTICAL|IDENTIFIER|NUM|DOT|LPAR|RPAR)
-				(~(APOSTROPHE|ATTR|CONTINUATION)|(APOSTROPHE|ATTR)(APOSTROPHE|ATTR))*
-				(APOSTROPHE|ATTR)
-			)
-			|
-			{!is_attribute_consuming(_input->LT(-2))}?
-			(
-				(~(APOSTROPHE|ATTR|CONTINUATION)|(APOSTROPHE|ATTR)(APOSTROPHE|ATTR))*
-				(APOSTROPHE|ATTR)
-
-			)
-			|
 			AMPERSAND
-			ORDSYMBOL
-			(ORDSYMBOL|NUM)*
-			(APOSTROPHE|ATTR)?
-		)
+			(ORDSYMBOL (ORDSYMBOL|NUM)*|AMPERSAND)
+			|
+			{!is_attribute_consuming(_input->LT(-2)) || !can_attribute_consume(_input->LT(1))}?
+			(~(APOSTROPHE|ATTR|CONTINUATION))*
+			(APOSTROPHE|ATTR)
+		)?
 	)+
 	;
 
@@ -240,20 +226,59 @@ mac_entry returns [concat_chain chain]
 				}
 				|
 				AMPERSAND
-				vs_id tmp=subscript
-				{
-					auto id = $vs_id.name;
-					auto r = provider.get_range( $AMPERSAND,$tmp.ctx->getStop());
-					$chain.push_back(std::make_unique<var_sym_conc>(std::make_unique<basic_variable_symbol>(id, std::move($tmp.value), r)));
-					collector.add_hl_symbol(token_info(provider.get_range($AMPERSAND, $vs_id.ctx->getStop()),hl_scopes::var_symbol));
-				}
 				(
-					ap=(APOSTROPHE|ATTR)
+					vs_id tmp=subscript
 					{
-						$chain.push_back(std::make_unique<char_str_conc>("'", provider.get_range($ap)));
-						collector.add_hl_symbol(token_info(provider.get_range($at,$ap),hl_scopes::string));
+						auto id = $vs_id.name;
+						auto r = provider.get_range( $AMPERSAND,$tmp.ctx->getStop());
+						$chain.push_back(std::make_unique<var_sym_conc>(std::make_unique<basic_variable_symbol>(id, std::move($tmp.value), r)));
+						collector.add_hl_symbol(token_info(provider.get_range($AMPERSAND, $vs_id.ctx->getStop()),hl_scopes::var_symbol));
 					}
-				)?
+					(
+						dot
+						(
+							(
+								AMPERSAND
+								vs_id tmp=subscript
+								{
+									$chain.push_back(std::make_unique<dot_conc>());
+									auto id_nested = $vs_id.name;
+									auto r_nested = provider.get_range( $AMPERSAND,$tmp.ctx->getStop());
+									$chain.push_back(std::make_unique<var_sym_conc>(std::make_unique<basic_variable_symbol>(id_nested, std::move($tmp.value), r_nested)));
+									collector.add_hl_symbol(token_info(provider.get_range($AMPERSAND, $vs_id.ctx->getStop()),hl_scopes::var_symbol));
+								}
+							)
+							|
+							(
+								ORDSYMBOL
+								{
+									auto r_nested = provider.get_range($ORDSYMBOL);
+									$chain.push_back(std::make_unique<char_str_conc>($ORDSYMBOL.text, r_nested));
+									collector.add_hl_symbol(token_info(r_nested, hl_scopes::operand));
+								}
+							)
+						)
+					)*
+					(
+						ap=(APOSTROPHE|ATTR)
+						{
+							$chain.push_back(std::make_unique<char_str_conc>("'", provider.get_range($ap)));
+							collector.add_hl_symbol(token_info(provider.get_range($at,$ap),hl_scopes::string));
+						}
+					)?
+					|
+					AMPERSAND
+					{
+						$chain.push_back(std::make_unique<char_str_conc>("&&", provider.get_range(_input->LT(-2),_input->LT(-1))));
+					}
+					(
+						ap=(APOSTROPHE|ATTR)
+						{
+							$chain.push_back(std::make_unique<char_str_conc>("'", provider.get_range($ap)));
+							collector.add_hl_symbol(token_info(provider.get_range($at,$ap),hl_scopes::string));
+						}
+					)?
+				)
 				|
 				token=(ASTERISK|MINUS|PLUS|LT|GT|SLASH|VERTICAL|IDENTIFIER|NUM|DOT|LPAR|RPAR)
 				{

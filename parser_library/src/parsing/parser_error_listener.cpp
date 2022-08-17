@@ -83,6 +83,11 @@ void iterate_error_stream(antlr4::TokenStream* input_stream,
         else
         {
             only_par = false;
+            if (type == AMPERSAND && i < end && input_stream->get(i + 1)->getType() == AMPERSAND)
+            {
+                i += 1;
+                continue;
+            }
             if ((is_sign(type) || type == AMPERSAND)
                 && (i == end || (i < end && !can_follow_sign(input_stream->get(i + 1)->getType()))))
             {
@@ -199,8 +204,11 @@ void parser_error_listener_base::syntaxError(
             odd_apostrophes,
             ampersand_followed);
 
+        // ampersand not followed with a name of a variable symbol
+        if (!ampersand_followed)
+            add_parser_diagnostic(diagnostic_op::error_S0008, range(position(line, char_pos_in_line)));
         // apostrophe expected
-        if (odd_apostrophes && is_expected(APOSTROPHE, expected_tokens))
+        else if (odd_apostrophes && is_expected(APOSTROPHE, expected_tokens))
             add_parser_diagnostic(diagnostic_op::error_S0005, range(position(line, char_pos_in_line)));
         // right parenthesis has no left match
         else if (right_prec)
@@ -214,9 +222,6 @@ void parser_error_listener_base::syntaxError(
         // sign followed by a wrong token
         else if (!sign_followed)
             add_parser_diagnostic(diagnostic_op::error_S0009, range(position(line, char_pos_in_line)));
-        // ampersand not followed with a name of a variable symbol
-        else if (!ampersand_followed)
-            add_parser_diagnostic(diagnostic_op::error_S0008, range(position(line, char_pos_in_line)));
         // expression starting with a sign
         else if (!sign_preceding)
             add_parser_diagnostic(diagnostic_op::error_S0007, range(position(line, char_pos_in_line)));
