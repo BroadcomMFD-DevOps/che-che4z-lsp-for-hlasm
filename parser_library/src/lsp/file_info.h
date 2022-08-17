@@ -17,6 +17,7 @@
 
 #include <functional>
 #include <map>
+#include <span>
 #include <variant>
 
 #include "context/copy_member.h"

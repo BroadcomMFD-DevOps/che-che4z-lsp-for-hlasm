@@ -164,8 +164,10 @@ std::span<const symbol_occurence* const> file_info::get_occurences(context::id_i
 
     auto [low, high] = std::equal_range(occurences_by_name.begin(), occurences_by_name.end(), name, search_predicate);
 
-    return std::span<const symbol_occurence* const>(
-        std::to_address(low), std::distance(low, high)); // missing c++20 ctor in libc++ 12
+    if (low == high) // missing c++20 ctor in libc++ 12 and broken std::to_address
+        return std::span<const symbol_occurence* const>();
+    else
+        return std::span<const symbol_occurence* const>(&*low, std::distance(low, high));
 }
 
 void file_info::process_occurrences()
