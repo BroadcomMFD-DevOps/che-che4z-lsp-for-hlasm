@@ -15,6 +15,9 @@
 #ifndef CONTEXT_SOURCE_CONTEXT_H
 #define CONTEXT_SOURCE_CONTEXT_H
 
+#include <memory>
+#include <vector>
+
 #include "copy_member.h"
 #include "processing/processing_format.h"
 #include "source_snapshot.h"
@@ -51,9 +54,14 @@ struct code_scope;
 
 struct processing_frame
 {
-    processing_frame(location proc_location, const code_scope& scope, file_processing_type proc_type, id_index member);
+    processing_frame(position pos,
+        std::shared_ptr<const utils::resource::resource_location> resource_loc,
+        const code_scope& scope,
+        file_processing_type proc_type,
+        id_index member);
 
-    location proc_location;
+    position pos;
+    std::shared_ptr<const utils::resource::resource_location> resource_loc;
     const code_scope& scope;
     file_processing_type proc_type;
     id_index member_name;

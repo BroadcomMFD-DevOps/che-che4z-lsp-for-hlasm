@@ -153,7 +153,7 @@ std::string lsp_context::find_macro_copy_id(const context::processing_stack_t& s
 {
     assert(i != 0);
     assert(i < stack.size());
-    return stack[i].member_name == context::id_storage::empty_id ? stack[i].proc_location.get_uri()
+    return stack[i].member_name == context::id_storage::empty_id ? stack[i].resource_loc->get_uri()
                                                                  : *stack[i].member_name;
 }
 
@@ -319,7 +319,7 @@ bool do_not_need_nodes(
     const auto size = sym.size() < sect_sym.size() ? sym.size() : sect_sym.size();
     while (i < size)
     {
-        if (sym[i].proc_location != sect_sym[i].proc_location)
+        if (sym[i].pos != sect_sym[i].pos || sym[i].resource_loc != sect_sym[i].resource_loc)
         {
             if (i + 1 == sym.size())
             {
@@ -344,9 +344,8 @@ void lsp_context::document_symbol_symbol(document_symbol_list_s& modified,
     unsigned long i,
     long long& limit) const
 {
-    document_symbol_item_s aux(find_macro_copy_id(sym.proc_stack(), i),
-        document_symbol_kind::MACRO,
-        range(sym.proc_stack()[0].proc_location.pos));
+    document_symbol_item_s aux(
+        find_macro_copy_id(sym.proc_stack(), i), document_symbol_kind::MACRO, range(sym.proc_stack()[0].pos));
 
     const auto comp_aux = [&aux](const auto& e) {
         return aux.name == e.name && aux.kind == e.kind && aux.symbol_range == e.symbol_range
@@ -438,7 +437,7 @@ void lsp_context::document_symbol_opencode_ord_symbol(document_symbol_list_s& re
             {
                 children.emplace_back(*id,
                     document_symbol_item_kind_mapping_symbol.at(sym.attributes().origin),
-                    range(sym.proc_stack()[0].proc_location.pos));
+                    range(sym.proc_stack()[0].pos));
                 --limit;
             }
             else

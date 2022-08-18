@@ -70,7 +70,8 @@ context::id_index low_language_processor::find_using_label(const rebuilt_stateme
 bool low_language_processor::create_symbol(
     range err_range, context::id_index symbol_name, context::symbol_value value, context::symbol_attributes attributes)
 {
-    auto sym_loc = hlasm_ctx.processing_stack().back().proc_location;
+    auto stack_frame = hlasm_ctx.processing_stack().back();
+    location sym_loc(stack_frame.pos, *stack_frame.resource_loc);
     sym_loc.pos.column = 0;
     bool ok = hlasm_ctx.ord_ctx.create_symbol(symbol_name, std::move(value), std::move(attributes), std::move(sym_loc));
 

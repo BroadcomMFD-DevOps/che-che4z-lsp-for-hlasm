@@ -102,6 +102,50 @@ class hlasm_context
 
     long long m_statements_remaining;
 
+    struct shared_uri_wrapper
+    {
+        std::shared_ptr<const utils::resource::resource_location> data;
+
+        shared_uri_wrapper(const utils::resource::resource_location& uri)
+            : data(std::make_shared<const utils::resource::resource_location>(uri)) {};
+        shared_uri_wrapper(utils::resource::resource_location&& uri)
+            : data(std::make_shared<const utils::resource::resource_location>(std::move(uri))) {};
+    };
+
+    struct uri_reverse_comparer
+    {
+        using is_transparent = void;
+        bool operator()(std::string_view l, std::string_view r) const
+        {
+            if (l.size() != r.size())
+                return l.size() < r.size();
+            for (auto lit = l.rbegin(), rit = r.rbegin(); lit != l.rend(); ++lit, ++rit)
+                if (*lit < *rit)
+                    return true;
+
+            return false;
+        }
+        bool operator()(const shared_uri_wrapper& l, const shared_uri_wrapper& r) const
+        {
+            return operator()(l.data->get_uri(), r.data->get_uri());
+        }
+        bool operator()(const shared_uri_wrapper& l, const utils::resource::resource_location& r) const
+        {
+            return operator()(l.data->get_uri(), r.get_uri());
+        }
+        bool operator()(const utils::resource::resource_location& l, const shared_uri_wrapper& r) const
+        {
+            return operator()(l.get_uri(), r.data->get_uri());
+        }
+    };
+
+    std::set<shared_uri_wrapper, uri_reverse_comparer> m_resources;
+
+    std::shared_ptr<const utils::resource::resource_location> shared_resource_location(
+        const utils::resource::resource_location&);
+    std::shared_ptr<const utils::resource::resource_location> shared_resource_location(
+        utils::resource::resource_location&&);
+
 public:
     hlasm_context(utils::resource::resource_location file_loc = utils::resource::resource_location(""),
         asm_option asm_opts = {},
@@ -133,7 +177,7 @@ public:
     void pop_statement_processing();
 
     // gets stack of locations of all currently processed files
-    processing_stack_t processing_stack() const;
+    processing_stack_t processing_stack();
     location current_statement_location() const;
     // gets macro nest
     const std::deque<code_scope>& scope_stack() const;

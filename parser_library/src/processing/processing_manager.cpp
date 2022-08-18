@@ -343,7 +343,7 @@ std::unique_ptr<context::opencode_sequence_symbol> processing_manager::create_op
     context::id_index name, range symbol_range)
 {
     auto symbol_pos = symbol_range.start;
-    location loc(symbol_pos, hlasm_ctx_.processing_stack().back().proc_location.resource_loc);
+    location loc(symbol_pos, *hlasm_ctx_.processing_stack().back().resource_loc);
 
     auto&& [statement_position, snapshot] = hlasm_ctx_.get_begin_snapshot(attr_lookahead_active());
 

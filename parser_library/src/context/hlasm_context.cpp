@@ -474,20 +474,41 @@ std::shared_ptr<id_storage> hlasm_context::ids_ptr() { return ids_; }
 
 const hlasm_context::instruction_storage& hlasm_context::instruction_map() const { return m_instruction_map; }
 
-processing_stack_t hlasm_context::processing_stack() const
+std::shared_ptr<const utils::resource::resource_location> hlasm_context::shared_resource_location(
+    const utils::resource::resource_location& l)
+{
+    auto it = m_resources.lower_bound(l);
+    if (it != m_resources.end() && *it->data == l)
+        return it->data;
+    return m_resources.emplace_hint(it, l)->data;
+}
+std::shared_ptr<const utils::resource::resource_location> hlasm_context::shared_resource_location(
+    utils::resource::resource_location&& l)
+{
+    auto it = m_resources.lower_bound(l);
+    if (it != m_resources.end() && *it->data == l)
+        return it->data;
+    return m_resources.emplace_hint(it, std::move(l))->data;
+}
+
+processing_stack_t hlasm_context::processing_stack()
 {
     std::vector<processing_frame> res;
 
     for (size_t i = 0; i < source_stack_.size(); ++i)
     {
-        res.emplace_back(source_stack_[i].current_instruction,
+        res.emplace_back(source_stack_[i].current_instruction.pos,
+            shared_resource_location(source_stack_[i].current_instruction.resource_loc),
             scope_stack_.front(),
             file_processing_type::OPENCODE,
             id_storage::empty_id);
         for (const auto& member : source_stack_[i].copy_stack)
         {
-            location loc(member.current_statement_position(), member.definition_location()->resource_loc);
-            res.emplace_back(std::move(loc), scope_stack_.front(), file_processing_type::COPY, member.name());
+            res.emplace_back(member.current_statement_position(),
+                shared_resource_location(member.definition_location()->resource_loc),
+                scope_stack_.front(),
+                file_processing_type::COPY,
+                member.name());
         }
 
         if (i == 0) // append macros immediately after ordinary processing
@@ -498,7 +519,8 @@ processing_stack_t hlasm_context::processing_stack() const
 
                 const auto& nest = scope_stack_[j].this_macro->copy_nests[offs];
                 for (size_t k = 0; k < nest.size(); ++k)
-                    res.emplace_back(nest[k].loc,
+                    res.emplace_back(nest[k].loc.pos,
+                        shared_resource_location(nest[k].loc.resource_loc),
                         scope_stack_[j],
                         k == 0 ? file_processing_type::MACRO : file_processing_type::COPY,
                         nest[k].member_name);

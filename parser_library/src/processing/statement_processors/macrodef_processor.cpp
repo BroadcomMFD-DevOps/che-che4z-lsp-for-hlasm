@@ -36,7 +36,8 @@ macrodef_processor::macrodef_processor(analyzing_context ctx,
     , finished_flag_(false)
     , table_(create_table())
 {
-    result_.definition_location = hlasm_ctx.processing_stack().back().proc_location;
+    auto satck_frame = hlasm_ctx.processing_stack().back();
+    result_.definition_location = location(satck_frame.pos, *satck_frame.resource_loc);
     result_.external = start_.is_external;
     if (start_.is_external)
         result_.prototype.macro_name = start_.external_name;
@@ -87,9 +88,8 @@ void macrodef_processor::process_statement(context::shared_stmt_ptr statement)
 void macrodef_processor::end_processing()
 {
     if (!finished_flag_)
-        add_diagnostic(diagnostic_op::error_E046(*result_.prototype.macro_name,
-            range(hlasm_ctx.processing_stack().back().proc_location.pos,
-                hlasm_ctx.processing_stack().back().proc_location.pos)));
+        add_diagnostic(
+            diagnostic_op::error_E046(*result_.prototype.macro_name, range(hlasm_ctx.processing_stack().back().pos)));
 
     hlasm_ctx.pop_statement_processing();
 
@@ -161,7 +161,8 @@ void macrodef_processor::process_statement(const context::hlasm_statement& state
 
     if (expecting_MACRO_)
     {
-        result_.definition_location = hlasm_ctx.processing_stack().back().proc_location;
+        auto stack_frame = hlasm_ctx.processing_stack().back();
+        result_.definition_location = location(stack_frame.pos, *stack_frame.resource_loc);
 
         if (!res_stmt || res_stmt->opcode_ref().value != macro_id)
         {
