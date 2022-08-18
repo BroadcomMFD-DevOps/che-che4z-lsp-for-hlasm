@@ -1158,3 +1158,25 @@ TEST(macro, illegal_ampersand)
     ASSERT_TRUE(matches_message_codes(a.diags(), { "E064" }));
     EXPECT_EQ(a.diags()[0].diag_range, range({ 2, 9 }, { 2, 18 }));
 }
+
+TEST(macro, multiple_apostrophes)
+{
+    std::string input = R"(
+     MACRO
+     MAC
+     GBLC &STR
+&STR SETC '&SYSLIST(1)'
+     MEND
+
+     GBLC &STR
+     MAC  ' TXT('''
+     END
+)";
+
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(a.diags().empty());
+    EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "STR"), "' TXT('''");
+}
