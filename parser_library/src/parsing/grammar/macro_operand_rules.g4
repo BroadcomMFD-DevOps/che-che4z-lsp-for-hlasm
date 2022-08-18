@@ -68,14 +68,15 @@ mac_preproc
 		|
 		ATTR
 		(
-			{is_attribute_consuming(_input->LT(-2))}?
 			AMPERSAND
-			(ORDSYMBOL (ORDSYMBOL|NUM)*|AMPERSAND)
+			(~(APOSTROPHE|ATTR|CONTINUATION|SPACE))*
+			(APOSTROPHE|ATTR)
 			|
-			{!is_attribute_consuming(_input->LT(-2)) || !can_attribute_consume(_input->LT(1))}?
+			{!is_attribute_consuming(_input->LT(-2)) || (!can_attribute_consume(_input->LT(1)) && _input->LA(1) != AMPERSAND)}?
 			(~(APOSTROPHE|ATTR|CONTINUATION))*
 			(APOSTROPHE|ATTR)
-		)?
+			|
+		)
 	)+
 	;
 
@@ -87,15 +88,6 @@ mac_entry_nested_strings [concat_chain *chain]
 			{
 				if (auto& p = $string_ch_v.point; p)
 					$chain->push_back(std::move(p));
-			}
-		)
-		|
-		(
-			ap1=(APOSTROPHE|ATTR)
-			ap2=(APOSTROPHE|ATTR)
-			{
-				$chain->push_back(std::make_unique<char_str_conc>("'", provider.get_range($ap1)));
-				$chain->push_back(std::make_unique<char_str_conc>("'", provider.get_range($ap2)));
 			}
 		)
 	)*
@@ -196,13 +188,7 @@ mac_entry returns [concat_chain chain]
 		{
 			$chain.push_back(std::make_unique<char_str_conc>("'", provider.get_range($ap1)));
 		}
-		(
-			string_ch_v
-			{
-				if (auto& p = $string_ch_v.point; p)
-					$chain.push_back(std::move(p));
-			}
-		)*?
+		mac_entry_nested_strings[&$chain]
 		ap2=(APOSTROPHE|ATTR)
 		{
 			$chain.push_back(std::make_unique<char_str_conc>("'", provider.get_range($ap2)));
