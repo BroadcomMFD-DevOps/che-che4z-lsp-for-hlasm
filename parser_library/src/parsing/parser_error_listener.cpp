@@ -102,6 +102,7 @@ void iterate_error_stream(antlr4::TokenStream* input_stream,
             if (is_comparative_sign(type))
                 unexpected_sign = true;
             if (type == APOSTROPHE
+                || (type == ATTR && (i + 1 <= end && input_stream->get(i + 1)->getType() == AMPERSAND))
                 || (type == ATTR
                     && (!parser_impl::is_attribute_consuming(input_stream->get(i - 1))
                         || (i + 1 <= end && !parser_impl::can_attribute_consume(input_stream->get(i + 1))))))
