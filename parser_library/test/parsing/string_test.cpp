@@ -742,6 +742,118 @@ TEST_P(parser_data_attribute_fixture, var_ord_concat_remark)
     }
 }
 
+TEST_P(parser_data_attribute_fixture, ordsymbol_var_concat)
+{
+    std::string input = R"(
+         GBLC &STR1,&STR2,&STR3
+&VAR     SETC 'J'
+         MAC_STR1 $x'ORD&VAR
+         MAC_STR2 $x'ORD&VAR'
+         MAC_STR3 $x'ORD&VAR''
+)";
+
+    auto a = analyze(input, GetParam().name);
+
+    if (GetParam().is_consuming)
+    {
+        EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
+        EXPECT_TRUE(matches_diagnosed_line_ranges(a->diags(), { { 4, 4 } }));
+
+        EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR1"), GetParam().name + "'ORDJ");
+        EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR3"), GetParam().name + "'ORDJ''");
+    }
+    else
+    {
+        EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005", "S0005" }));
+        EXPECT_TRUE(matches_diagnosed_line_ranges(a->diags(), { { 3, 3 }, { 5, 5 } }));
+
+        EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR2"), GetParam().name + "'ORDJ'");
+    }
+}
+
+TEST_P(parser_data_attribute_fixture, ordsymbol_var_concat_remark)
+{
+    std::string input = R"(
+         GBLC &STR1,&STR2,&STR3
+&VAR     SETC 'J'
+         MAC_STR1 $x'ORD&VAR    REMARK
+         MAC_STR2 $x'ORD&VAR    REMARK'
+         MAC_STR3 $x'ORD&VAR    REMARK''
+)";
+
+    auto a = analyze(input, GetParam().name);
+
+    if (GetParam().is_consuming)
+    {
+        EXPECT_TRUE(a->diags().empty());
+        EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR1"), GetParam().name + "'ORDJ");
+        EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR2"), GetParam().name + "'ORDJ");
+        EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR3"), GetParam().name + "'ORDJ");
+    }
+    else
+    {
+        EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005", "S0005" }));
+        EXPECT_TRUE(matches_diagnosed_line_ranges(a->diags(), { { 3, 3 }, { 5, 5 } }));
+
+        EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR2"), GetParam().name + "'ORDJ    REMARK'");
+    }
+}
+
+TEST_P(parser_data_attribute_fixture, ordsymbol_double_ampersand_concat)
+{
+    std::string input = R"(
+         GBLC &STR1,&STR2,&STR3
+         MAC_STR1 $x'ORD&&
+         MAC_STR2 $x'ORD&&'
+         MAC_STR3 $x'ORD&&''
+)";
+
+    auto a = analyze(input, GetParam().name);
+
+    if (GetParam().is_consuming)
+    {
+        EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
+        EXPECT_TRUE(matches_diagnosed_line_ranges(a->diags(), { { 3, 3 } }));
+
+        EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR1"), GetParam().name + "'ORD&&");
+        EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR3"), GetParam().name + "'ORD&&''");
+    }
+    else
+    {
+        EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005", "S0005" }));
+        EXPECT_TRUE(matches_diagnosed_line_ranges(a->diags(), { { 2, 2 }, { 4, 4 } }));
+
+        EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR2"), GetParam().name + "'ORD&&'");
+    }
+}
+
+TEST_P(parser_data_attribute_fixture, ordsymbol_double_ampersand_concat_remark)
+{
+    std::string input = R"(
+         GBLC &STR1,&STR2,&STR3
+         MAC_STR1 $x'ORD&&    REMARK
+         MAC_STR2 $x'ORD&&    REMARK'
+         MAC_STR3 $x'ORD&&    REMARK''
+)";
+
+    auto a = analyze(input, GetParam().name);
+
+    if (GetParam().is_consuming)
+    {
+        EXPECT_TRUE(a->diags().empty());
+        EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR1"), GetParam().name + "'ORD&&");
+        EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR2"), GetParam().name + "'ORD&&");
+        EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR3"), GetParam().name + "'ORD&&");
+    }
+    else
+    {
+        EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005", "S0005" }));
+        EXPECT_TRUE(matches_diagnosed_line_ranges(a->diags(), { { 2, 2 }, { 4, 4 } }));
+
+        EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR2"), GetParam().name + "'ORD&&    REMARK'");
+    }
+}
+
 TEST_P(parser_data_attribute_fixture, list_1_elem_text)
 {
     std::string input = R"(
@@ -757,7 +869,7 @@ TEST_P(parser_data_attribute_fixture, list_1_elem_text)
 
     if (GetParam().is_consuming)
     {
-        EXPECT_TRUE(contains_message_codes(a->diags(), { "S0005" }));
+        EXPECT_TRUE(contains_message_codes(a->diags(), { "S0003", "S0005", "S0005" }));
         EXPECT_TRUE(matches_diagnosed_line_ranges(a->diags(), { { 3, 3 }, { 5, 5 }, { 6, 6 } }));
 
         EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR1"), GetParam().name + "'J");
@@ -788,7 +900,7 @@ TEST_P(parser_data_attribute_fixture, list_1_elem_number)
 
     if (GetParam().is_attribute)
     {
-        EXPECT_TRUE(contains_message_codes(a->diags(), { "S0003", "S0005" }));
+        EXPECT_TRUE(contains_message_codes(a->diags(), { "S0005", "S0003", "S0005", "S0003" }));
         EXPECT_TRUE(contains_diagnosed_line_ranges(a->diags(), { { 2, 2 }, { 4, 4 }, { 5, 5 } }));
     }
     else
@@ -816,7 +928,7 @@ TEST_P(parser_data_attribute_fixture, list_1_elem_negative_number)
 
     if (GetParam().is_attribute)
     {
-        EXPECT_TRUE(contains_message_codes(a->diags(), { "S0003", "S0005" }));
+        EXPECT_TRUE(contains_message_codes(a->diags(), { "S0005", "S0003", "S0005", "S0003" }));
         EXPECT_TRUE(contains_diagnosed_line_ranges(a->diags(), { { 2, 2 }, { 4, 4 }, { 5, 5 } }));
     }
     else
@@ -845,7 +957,7 @@ TEST_P(parser_data_attribute_fixture, list_1_elem_var_instr)
 
     if (GetParam().is_consuming)
     {
-        EXPECT_TRUE(contains_message_codes(a->diags(), { "S0005" }));
+        EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005", "S0005", "S0005" }));
         EXPECT_TRUE(matches_diagnosed_line_ranges(a->diags(), { { 4, 4 }, { 6, 6 }, { 7, 7 } }));
 
         EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR1"), GetParam().name + "'J");
@@ -877,8 +989,8 @@ TEST_P(parser_data_attribute_fixture, list_1_elem_var_number)
 
     if (GetParam().is_consuming)
     {
-        EXPECT_TRUE(contains_message_codes(a->diags(), { "S0005" }));
-        EXPECT_TRUE(contains_diagnosed_line_ranges(a->diags(), { { 3, 3 } }));
+        EXPECT_TRUE(contains_message_codes(a->diags(), { "S0005", "S0005" }));
+        EXPECT_TRUE(contains_diagnosed_line_ranges(a->diags(), { { 3, 3 }, { 5, 5 } }));
 
         EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR2"), GetParam().name + "'9'");
         // EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR4"), "(" + GetParam().name + "'9')'"); // This almost seems
