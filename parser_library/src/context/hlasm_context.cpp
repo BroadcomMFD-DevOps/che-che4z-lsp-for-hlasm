@@ -499,6 +499,47 @@ processing_stack_t hlasm_context::processing_stack()
     {
         res.emplace_back(source_stack_[i].current_instruction.pos,
             shared_resource_location(source_stack_[i].current_instruction.resource_loc),
+            id_storage::empty_id);
+        for (const auto& member : source_stack_[i].copy_stack)
+        {
+            res.emplace_back(member.current_statement_position(),
+                shared_resource_location(member.definition_location()->resource_loc),
+                member.name());
+        }
+
+        if (i == 0) // append macros immediately after ordinary processing
+        {
+            for (size_t j = 1; j < scope_stack_.size(); ++j)
+            {
+                auto offs = scope_stack_[j].this_macro->current_statement;
+
+                const auto& nest = scope_stack_[j].this_macro->copy_nests[offs];
+                for (size_t k = 0; k < nest.size(); ++k)
+                    res.emplace_back(
+                        nest[k].loc.pos, shared_resource_location(nest[k].loc.resource_loc), nest[k].member_name);
+            }
+        }
+    }
+
+    return res;
+}
+
+processing_frame hlasm_context::processing_stack_top()
+{
+    // TODO: do something smarter...
+    auto tmp = processing_stack();
+    assert(!tmp.empty());
+    return std::move(tmp.back());
+}
+
+processing_stack_details_t hlasm_context::processing_stack_details()
+{
+    std::vector<processing_frame_details> res;
+
+    for (size_t i = 0; i < source_stack_.size(); ++i)
+    {
+        res.emplace_back(source_stack_[i].current_instruction.pos,
+            shared_resource_location(source_stack_[i].current_instruction.resource_loc),
             scope_stack_.front(),
             file_processing_type::OPENCODE,
             id_storage::empty_id);

@@ -35,7 +35,14 @@ source_snapshot source_context::create_snapshot() const
     return source_snapshot { current_instruction, begin_index, end_index, std::move(copy_frames) };
 }
 
-processing_frame::processing_frame(position pos,
+processing_frame::processing_frame(
+    position pos, std::shared_ptr<const utils::resource::resource_location> resource_loc, id_index member)
+    : pos(pos)
+    , resource_loc(std::move(resource_loc))
+    , member_name(member)
+{}
+
+processing_frame_details::processing_frame_details(position pos,
     std::shared_ptr<const utils::resource::resource_location> resource_loc,
     const code_scope& scope,
     file_processing_type proc_type,

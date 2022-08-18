@@ -113,7 +113,7 @@ class debugger::impl final : public processing::statement_analyzer
 
     std::unordered_map<size_t, variable_store> variables_;
     size_t next_var_ref_ = 1;
-    context::processing_stack_t proc_stack_;
+    context::processing_stack_details_t proc_stack_;
 
     std::unordered_map<utils::resource::resource_location,
         std::vector<breakpoint>,
@@ -192,7 +192,7 @@ public:
 
         bool breakpoint_hit = false;
 
-        auto stack = ctx_->processing_stack();
+        auto stack = ctx_->processing_stack_details();
         const auto stack_depth = stack.size();
 
         for (const auto& bp : breakpoints(*stack.back().resource_loc))

@@ -41,7 +41,7 @@ void copy_processor::process_statement(context::shared_stmt_ptr statement)
 {
     if (first_statement_)
     {
-        auto stack_frame = hlasm_ctx.processing_stack().back();
+        auto stack_frame = hlasm_ctx.processing_stack_top();
 
         result_.definition_location = location(stack_frame.pos, *stack_frame.resource_loc);
         first_statement_ = false;
@@ -62,13 +62,13 @@ void copy_processor::end_processing()
 {
     if (first_statement_)
     {
-        auto stack_frame = hlasm_ctx.processing_stack().back();
+        auto stack_frame = hlasm_ctx.processing_stack_top();
         result_.definition_location = location(stack_frame.pos, *stack_frame.resource_loc); // empty file
     }
 
     if (macro_nest_ > 0)
     {
-        range r(hlasm_ctx.processing_stack().back().pos);
+        range r(hlasm_ctx.processing_stack_top().pos);
         add_diagnostic(diagnostic_op::error_E061(*start_.member_name, r));
         result_.invalid_member = true;
     }
@@ -94,7 +94,7 @@ void copy_processor::process_MEND()
     --macro_nest_;
     if (macro_nest_ < 0)
     {
-        range r(hlasm_ctx.processing_stack().back().pos);
+        range r(hlasm_ctx.processing_stack_top().pos);
         add_diagnostic(diagnostic_op::error_E061(*start_.member_name, r));
         result_.invalid_member = true;
     }

@@ -178,6 +178,8 @@ public:
 
     // gets stack of locations of all currently processed files
     processing_stack_t processing_stack();
+    processing_frame processing_stack_top();
+    processing_stack_details_t processing_stack_details();
     location current_statement_location() const;
     // gets macro nest
     const std::deque<code_scope>& scope_stack() const;

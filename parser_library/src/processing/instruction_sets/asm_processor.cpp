@@ -114,7 +114,7 @@ void asm_processor::process_LOCTR(rebuilt_statement stmt)
     }
     else
     {
-        auto stack_frame = hlasm_ctx.processing_stack().back();
+        auto stack_frame = hlasm_ctx.processing_stack_top();
         location sym_loc(stack_frame.pos, *stack_frame.resource_loc);
         sym_loc.pos.column = 0;
         hlasm_ctx.ord_ctx.set_location_counter(loctr_name, std::move(sym_loc));
@@ -916,7 +916,7 @@ void asm_processor::process_START(rebuilt_statement stmt)
         return;
     }
 
-    auto stack_frame = hlasm_ctx.processing_stack().back();
+    auto stack_frame = hlasm_ctx.processing_stack_top();
     location sym_loc(stack_frame.pos, *stack_frame.resource_loc);
     sym_loc.pos.column = 0;
     auto* section = hlasm_ctx.ord_ctx.set_section(sect_name, context::section_kind::EXECUTABLE, std::move(sym_loc));
