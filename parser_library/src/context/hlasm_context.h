@@ -120,8 +120,8 @@ class hlasm_context
             if (l.size() != r.size())
                 return l.size() < r.size();
             for (auto lit = l.rbegin(), rit = r.rbegin(); lit != l.rend(); ++lit, ++rit)
-                if (*lit < *rit)
-                    return true;
+                if (*lit != *rit)
+                    return *lit < *rit;
 
             return false;
         }
