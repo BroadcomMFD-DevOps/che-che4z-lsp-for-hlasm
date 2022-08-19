@@ -477,18 +477,12 @@ const hlasm_context::instruction_storage& hlasm_context::instruction_map() const
 const utils::resource::resource_location* hlasm_context::shared_resource_location(
     const utils::resource::resource_location& l)
 {
-    auto it = m_resource_locations.lower_bound(l);
-    if (it != m_resource_locations.end() && *it == l)
-        return &*it;
-    return &*m_resource_locations.emplace_hint(it, l);
+    return &*m_resource_locations.emplace(l).first;
 }
 const utils::resource::resource_location* hlasm_context::shared_resource_location(
     utils::resource::resource_location&& l)
 {
-    auto it = m_resource_locations.lower_bound(l);
-    if (it != m_resource_locations.end() && *it == l)
-        return &*it;
-    return &*m_resource_locations.emplace_hint(it, std::move(l));
+    return &*m_resource_locations.emplace(std::move(l)).first;
 }
 
 processing_stack_t hlasm_context::processing_stack()

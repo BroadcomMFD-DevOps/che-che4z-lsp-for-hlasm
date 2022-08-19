@@ -19,6 +19,7 @@
 #include <deque>
 #include <memory>
 #include <set>
+#include <unordered_set>
 #include <vector>
 
 #include "code_scope.h"
@@ -102,26 +103,8 @@ class hlasm_context
 
     long long m_statements_remaining;
 
-    struct resource_location_reverse_comparer
-    {
-        using is_transparent = void;
-        bool operator()(std::string_view l, std::string_view r) const
-        {
-            if (l.size() != r.size())
-                return l.size() < r.size();
-            for (auto lit = l.rbegin(), rit = r.rbegin(); lit != l.rend(); ++lit, ++rit)
-                if (*lit != *rit)
-                    return *lit < *rit;
-
-            return false;
-        }
-        bool operator()(const utils::resource::resource_location& l, const utils::resource::resource_location& r) const
-        {
-            return operator()(l.get_uri(), r.get_uri());
-        }
-    };
-
-    std::set<utils::resource::resource_location, resource_location_reverse_comparer> m_resource_locations;
+    std::unordered_set<utils::resource::resource_location, utils::resource::resource_location_hasher>
+        m_resource_locations;
 
     const utils::resource::resource_location* shared_resource_location(const utils::resource::resource_location&);
     const utils::resource::resource_location* shared_resource_location(utils::resource::resource_location&&);
