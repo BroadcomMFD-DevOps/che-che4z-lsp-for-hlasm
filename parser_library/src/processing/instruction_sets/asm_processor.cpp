@@ -80,7 +80,6 @@ void asm_processor::process_sect(const context::section_kind kind, rebuilt_state
         return false;
     };
 
-    const auto& processing_stack = hlasm_ctx.processing_stack();
     if (hlasm_ctx.ord_ctx.symbol_defined(sect_name)
         && (sect_name != context::id_storage::empty_id && !hlasm_ctx.ord_ctx.section_defined(sect_name, kind)
             || sect_name == context::id_storage::empty_id && kind != section_kind::DUMMY
@@ -90,7 +89,7 @@ void asm_processor::process_sect(const context::section_kind kind, rebuilt_state
     }
     else
     {
-        auto stack_frame = processing_stack.back();
+        auto stack_frame = hlasm_ctx.processing_stack_top();
         location sym_loc(stack_frame.pos, *stack_frame.resource_loc);
         sym_loc.pos.column = 0;
         hlasm_ctx.ord_ctx.set_section(sect_name, kind, std::move(sym_loc));

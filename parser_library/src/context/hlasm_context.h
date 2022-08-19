@@ -126,6 +126,8 @@ class hlasm_context
     const utils::resource::resource_location* shared_resource_location(const utils::resource::resource_location&);
     const utils::resource::resource_location* shared_resource_location(utils::resource::resource_location&&);
 
+    processing_frame_tree m_stack_tree;
+
 public:
     hlasm_context(utils::resource::resource_location file_loc = utils::resource::resource_location(""),
         asm_option asm_opts = {},

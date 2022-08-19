@@ -493,18 +493,20 @@ const utils::resource::resource_location* hlasm_context::shared_resource_locatio
 
 processing_stack_t hlasm_context::processing_stack()
 {
-    std::vector<processing_frame> res;
+    auto result = m_stack_tree.root();
 
     for (size_t i = 0; i < source_stack_.size(); ++i)
     {
-        res.emplace_back(source_stack_[i].current_instruction.pos,
-            shared_resource_location(source_stack_[i].current_instruction.resource_loc),
-            id_storage::empty_id);
+        result = m_stack_tree.step(processing_frame(source_stack_[i].current_instruction.pos,
+                                       shared_resource_location(source_stack_[i].current_instruction.resource_loc),
+                                       id_storage::empty_id),
+            result);
         for (const auto& member : source_stack_[i].copy_stack)
         {
-            res.emplace_back(member.current_statement_position(),
-                shared_resource_location(member.definition_location()->resource_loc),
-                member.name());
+            result = m_stack_tree.step(processing_frame(member.current_statement_position(),
+                                           shared_resource_location(member.definition_location()->resource_loc),
+                                           member.name()),
+                result);
         }
 
         if (i == 0) // append macros immediately after ordinary processing
@@ -515,13 +517,15 @@ processing_stack_t hlasm_context::processing_stack()
 
                 const auto& nest = scope_stack_[j].this_macro->copy_nests[offs];
                 for (size_t k = 0; k < nest.size(); ++k)
-                    res.emplace_back(
-                        nest[k].loc.pos, shared_resource_location(nest[k].loc.resource_loc), nest[k].member_name);
+                    result = m_stack_tree.step(
+                        processing_frame(
+                            nest[k].loc.pos, shared_resource_location(nest[k].loc.resource_loc), nest[k].member_name),
+                        result);
             }
         }
     }
 
-    return res;
+    return result;
 }
 
 processing_frame hlasm_context::processing_stack_top()

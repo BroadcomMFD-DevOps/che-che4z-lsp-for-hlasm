@@ -116,11 +116,12 @@ private:
         const std::vector<std::pair<symbol_occurence, lsp_context::vector_set<context::id_index>>>& copy_occs,
         const document_symbol_kind kind,
         long long& limit) const;
-    std::string find_macro_copy_id(const context::processing_stack_t& stack, unsigned long i) const;
+    std::string find_macro_copy_id(const std::vector<context::processing_frame>& stack, unsigned long i) const;
     void document_symbol_symbol(document_symbol_list_s& modified,
         document_symbol_list_s children,
         context::id_index id,
         const context::symbol& sym,
+        const std::vector<context::processing_frame>& sym_stack,
         const document_symbol_kind kind,
         unsigned long i,
         long long& limit) const;

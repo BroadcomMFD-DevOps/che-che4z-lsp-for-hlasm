@@ -149,7 +149,7 @@ const std::unordered_map<occurence_kind, document_symbol_kind> document_symbol_i
     { occurence_kind::VAR, document_symbol_kind::VAR }, { occurence_kind::SEQ, document_symbol_kind::SEQ }
 };
 
-std::string lsp_context::find_macro_copy_id(const context::processing_stack_t& stack, unsigned long i) const
+std::string lsp_context::find_macro_copy_id(const std::vector<context::processing_frame>& stack, unsigned long i) const
 {
     assert(i != 0);
     assert(i < stack.size());
@@ -309,8 +309,9 @@ void lsp_context::modify_with_copy(document_symbol_list_s& modified,
     }
 }
 
-bool do_not_need_nodes(
-    const context::processing_stack_t& sym, const context::processing_stack_t& sect_sym, unsigned long& i)
+bool do_not_need_nodes(const std::vector<context::processing_frame>& sym,
+    const std::vector<context::processing_frame>& sect_sym,
+    unsigned long& i)
 {
     if (sym.size() == 1)
     {
@@ -340,12 +341,12 @@ void lsp_context::document_symbol_symbol(document_symbol_list_s& modified,
     document_symbol_list_s children,
     context::id_index id,
     const context::symbol& sym,
+    const std::vector<context::processing_frame>& sym_stack,
     document_symbol_kind kind,
     unsigned long i,
     long long& limit) const
 {
-    document_symbol_item_s aux(
-        find_macro_copy_id(sym.proc_stack(), i), document_symbol_kind::MACRO, range(sym.proc_stack()[0].pos));
+    document_symbol_item_s aux(find_macro_copy_id(sym_stack, i), document_symbol_kind::MACRO, range(sym_stack[0].pos));
 
     const auto comp_aux = [&aux](const auto& e) {
         return aux.name == e.name && aux.kind == e.kind && aux.symbol_range == e.symbol_range
@@ -360,9 +361,9 @@ void lsp_context::document_symbol_symbol(document_symbol_list_s& modified,
         i_find = modified.end() - 1;
     }
     i++;
-    while (i < sym.proc_stack().size())
+    while (i < sym_stack.size())
     {
-        aux.name = find_macro_copy_id(sym.proc_stack(), i);
+        aux.name = find_macro_copy_id(sym_stack, i);
         document_symbol_list_s* aux_list = &i_find->children;
         i_find = std::find_if(aux_list->begin(), aux_list->end(), comp_aux);
         if (i_find == aux_list->end())
@@ -394,6 +395,9 @@ void lsp_context::document_symbol_opencode_ord_symbol(document_symbol_list_s& re
         }
     }
 
+    std::vector<context::processing_frame> sym_stack;
+    std::vector<context::processing_frame> sect_sym_stack;
+
     for (const auto& [id, sym_var] : symbol_list)
     {
         if (limit <= 0)
@@ -404,13 +408,18 @@ void lsp_context::document_symbol_opencode_ord_symbol(document_symbol_list_s& re
         if (sym.attributes().origin == context::symbol_origin::SECT)
             continue;
 
+        sym_stack.clear();
+        for (auto p = sym.proc_stack(); !p.empty(); p = p.parent())
+            sym_stack.push_back(p.frame());
+        std::reverse(sym_stack.begin(), sym_stack.end());
+
         const auto* sect =
             sym.value().value_kind() == context::symbol_value_kind::RELOC && sym.value().get_reloc().bases().size() == 1
             ? sym.value().get_reloc().bases().front().first.owner
             : nullptr;
         if (sect == nullptr || children_of_sects.find(sect) == children_of_sects.end())
         {
-            if (sym.proc_stack().size() == 1)
+            if (sym_stack.size() == 1)
             {
                 result.emplace_back(*id,
                     document_symbol_item_kind_mapping_symbol.at(sym.attributes().origin),
@@ -423,6 +432,7 @@ void lsp_context::document_symbol_opencode_ord_symbol(document_symbol_list_s& re
                     document_symbol_list_s {},
                     id,
                     sym,
+                    sym_stack,
                     document_symbol_item_kind_mapping_symbol.at(sym.attributes().origin),
                     1,
                     limit);
@@ -431,13 +441,20 @@ void lsp_context::document_symbol_opencode_ord_symbol(document_symbol_list_s& re
         else
         {
             const auto* sect_sym = m_hlasm_ctx->ord_ctx.get_symbol(sect->name);
+
+
+            sect_sym_stack.clear();
+            for (auto p = sect_sym->proc_stack(); !p.empty(); p = p.parent())
+                sect_sym_stack.push_back(p.frame());
+            std::reverse(sect_sym_stack.begin(), sect_sym_stack.end());
+
+
             auto& children = children_of_sects.find(sect)->second;
             unsigned long i = 1;
-            if (do_not_need_nodes(sym.proc_stack(), sect_sym->proc_stack(), i))
+            if (do_not_need_nodes(sym_stack, sect_sym_stack, i))
             {
-                children.emplace_back(*id,
-                    document_symbol_item_kind_mapping_symbol.at(sym.attributes().origin),
-                    range(sym.proc_stack()[0].pos));
+                children.emplace_back(
+                    *id, document_symbol_item_kind_mapping_symbol.at(sym.attributes().origin), range(sym_stack[0].pos));
                 --limit;
             }
             else
@@ -446,6 +463,7 @@ void lsp_context::document_symbol_opencode_ord_symbol(document_symbol_list_s& re
                     document_symbol_list_s {},
                     id,
                     sym,
+                    sym_stack,
                     document_symbol_item_kind_mapping_symbol.at(sym.attributes().origin),
                     i,
                     limit);
@@ -456,7 +474,13 @@ void lsp_context::document_symbol_opencode_ord_symbol(document_symbol_list_s& re
     for (auto&& [sect, children] : children_of_sects)
     {
         const auto& sym = *m_hlasm_ctx->ord_ctx.get_symbol(sect->name);
-        if (sym.proc_stack().size() == 1)
+
+        sym_stack.clear();
+        for (auto p = sym.proc_stack(); !p.empty(); p = p.parent())
+            sym_stack.push_back(p.frame());
+        std::reverse(sym_stack.begin(), sym_stack.end());
+
+        if (sym_stack.size() == 1)
         {
             result.emplace_back(*sect->name,
                 document_symbol_item_kind_mapping_section.at(sect->kind),
@@ -470,6 +494,7 @@ void lsp_context::document_symbol_opencode_ord_symbol(document_symbol_list_s& re
                 std::move(children),
                 sect->name,
                 sym,
+                sym_stack,
                 document_symbol_item_kind_mapping_section.at(sect->kind),
                 1,
                 limit);
