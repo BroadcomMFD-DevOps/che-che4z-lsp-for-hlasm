@@ -474,21 +474,21 @@ std::shared_ptr<id_storage> hlasm_context::ids_ptr() { return ids_; }
 
 const hlasm_context::instruction_storage& hlasm_context::instruction_map() const { return m_instruction_map; }
 
-std::shared_ptr<const utils::resource::resource_location> hlasm_context::shared_resource_location(
+const utils::resource::resource_location* hlasm_context::shared_resource_location(
     const utils::resource::resource_location& l)
 {
-    auto it = m_resources.lower_bound(l);
-    if (it != m_resources.end() && *it->data == l)
-        return it->data;
-    return m_resources.emplace_hint(it, l)->data;
+    auto it = m_resource_locations.lower_bound(l);
+    if (it != m_resource_locations.end() && *it == l)
+        return &*it;
+    return &*m_resource_locations.emplace_hint(it, l);
 }
-std::shared_ptr<const utils::resource::resource_location> hlasm_context::shared_resource_location(
+const utils::resource::resource_location* hlasm_context::shared_resource_location(
     utils::resource::resource_location&& l)
 {
-    auto it = m_resources.lower_bound(l);
-    if (it != m_resources.end() && *it->data == l)
-        return it->data;
-    return m_resources.emplace_hint(it, std::move(l))->data;
+    auto it = m_resource_locations.lower_bound(l);
+    if (it != m_resource_locations.end() && *it == l)
+        return &*it;
+    return &*m_resource_locations.emplace_hint(it, std::move(l));
 }
 
 processing_stack_t hlasm_context::processing_stack()
@@ -526,10 +526,35 @@ processing_stack_t hlasm_context::processing_stack()
 
 processing_frame hlasm_context::processing_stack_top()
 {
-    // TODO: do something smarter...
-    auto tmp = processing_stack();
-    assert(!tmp.empty());
-    return std::move(tmp.back());
+    // this is an inverted version of the loop from processing_stack()
+    // terminating after finding the first (originally last) element
+
+    assert(!source_stack_.empty());
+
+    if (source_stack_.size() == 1 && scope_stack_.size() > 1)
+    {
+        const auto& last_macro = scope_stack_.back().this_macro;
+
+        if (const auto& nest = last_macro->copy_nests[last_macro->current_statement]; !nest.empty())
+        {
+            const auto& last_copy = nest.back();
+            return processing_frame(
+                last_copy.loc.pos, shared_resource_location(last_copy.loc.resource_loc), last_copy.member_name);
+        }
+    }
+
+    const auto& last_source = source_stack_.back();
+    if (!last_source.copy_stack.empty())
+    {
+        const auto& last_member = last_source.copy_stack.back();
+        return processing_frame(last_member.current_statement_position(),
+            shared_resource_location(last_member.definition_location()->resource_loc),
+            last_member.name());
+    }
+
+    return processing_frame(last_source.current_instruction.pos,
+        shared_resource_location(last_source.current_instruction.resource_loc),
+        id_storage::empty_id);
 }
 
 processing_stack_details_t hlasm_context::processing_stack_details()

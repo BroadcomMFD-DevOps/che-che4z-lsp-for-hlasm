@@ -102,17 +102,7 @@ class hlasm_context
 
     long long m_statements_remaining;
 
-    struct shared_uri_wrapper
-    {
-        std::shared_ptr<const utils::resource::resource_location> data;
-
-        shared_uri_wrapper(const utils::resource::resource_location& uri)
-            : data(std::make_shared<const utils::resource::resource_location>(uri)) {};
-        shared_uri_wrapper(utils::resource::resource_location&& uri)
-            : data(std::make_shared<const utils::resource::resource_location>(std::move(uri))) {};
-    };
-
-    struct uri_reverse_comparer
+    struct resource_location_reverse_comparer
     {
         using is_transparent = void;
         bool operator()(std::string_view l, std::string_view r) const
@@ -125,26 +115,16 @@ class hlasm_context
 
             return false;
         }
-        bool operator()(const shared_uri_wrapper& l, const shared_uri_wrapper& r) const
+        bool operator()(const utils::resource::resource_location& l, const utils::resource::resource_location& r) const
         {
-            return operator()(l.data->get_uri(), r.data->get_uri());
-        }
-        bool operator()(const shared_uri_wrapper& l, const utils::resource::resource_location& r) const
-        {
-            return operator()(l.data->get_uri(), r.get_uri());
-        }
-        bool operator()(const utils::resource::resource_location& l, const shared_uri_wrapper& r) const
-        {
-            return operator()(l.get_uri(), r.data->get_uri());
+            return operator()(l.get_uri(), r.get_uri());
         }
     };
 
-    std::set<shared_uri_wrapper, uri_reverse_comparer> m_resources;
+    std::set<utils::resource::resource_location, resource_location_reverse_comparer> m_resource_locations;
 
-    std::shared_ptr<const utils::resource::resource_location> shared_resource_location(
-        const utils::resource::resource_location&);
-    std::shared_ptr<const utils::resource::resource_location> shared_resource_location(
-        utils::resource::resource_location&&);
+    const utils::resource::resource_location* shared_resource_location(const utils::resource::resource_location&);
+    const utils::resource::resource_location* shared_resource_location(utils::resource::resource_location&&);
 
 public:
     hlasm_context(utils::resource::resource_location file_loc = utils::resource::resource_location(""),
