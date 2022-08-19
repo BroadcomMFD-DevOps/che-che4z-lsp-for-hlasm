@@ -49,73 +49,30 @@ processing_frame_details::processing_frame_details(position pos,
     , member_name(member)
 {}
 
-void processing_frame_tree::recursive_dulicate(processing_frame_node* ptr, node_pointer current)
-{
-    auto* next_node = new processing_frame_node { current.m_node, nullptr, current.m_node->m_child, ptr->frame };
-    current.m_node->m_child = next_node;
-    node_pointer this_copy(next_node);
-
-    for (auto p = ptr->m_child; p; p = p->m_next_sibling)
-        recursive_dulicate(p, this_copy);
-}
-
-processing_frame_tree::processing_frame_tree(const processing_frame_tree& other)
-{
-    for (auto p = other.m_root.m_child; p; p = p->m_next_sibling)
-        recursive_dulicate(p, root());
-}
-
+processing_frame_tree::processing_frame_tree()
+    : m_root(&*m_frames.emplace(processing_frame_node { nullptr, processing_frame({}, {}, {}) }).first)
+{}
 
 processing_frame_tree::node_pointer processing_frame_tree::step(processing_frame next, node_pointer current)
 {
     assert(current.m_node);
 
-    for (auto** p = &current.m_node->m_child; *p; p = &(*p)->m_next_sibling)
-    {
-        if ((*p)->frame == next)
-        {
-            // move to front
-            auto* result = *p;
-            *p = result->m_next_sibling;
-            result->m_next_sibling = current.m_node->m_child;
-            current.m_node->m_child = result;
-
-            return node_pointer(result);
-        }
-    }
-
-    auto* next_node = new processing_frame_node { current.m_node, nullptr, current.m_node->m_child, std::move(next) };
-    current.m_node->m_child = next_node;
-    return node_pointer(next_node);
+    return node_pointer(&*m_frames.emplace(processing_frame_node { current.m_node, next }).first);
 }
 
 
-processing_frame_tree ::~processing_frame_tree()
+std::vector<processing_frame> processing_frame_tree::node_pointer::to_vector() const
 {
-    processing_frame_node* left_most = nullptr;
-    const auto update_left_most = [&left_most, this]() {
-        if (!left_most)
-            left_most = m_root.m_child;
-        while (true)
-        {
-            if (left_most->m_child)
-                left_most = left_most->m_child;
-            else if (left_most->m_next_sibling)
-                left_most = left_most->m_next_sibling;
-            else
-                break;
-        }
-    };
-    while (auto ch = m_root.m_child)
-    {
-        if (ch->m_next_sibling && ch->m_child)
-        {
-            update_left_most();
-            left_most->m_child = std::exchange(ch->m_next_sibling, nullptr);
-            continue;
-        }
-        if (left_most == ch)
-            left_most = nullptr;
-        delete std::exchange(m_root.m_child, ch->m_next_sibling ? ch->m_next_sibling : ch->m_child);
-    }
+    std::vector<processing_frame> result;
+    to_vector(result);
+    return result;
+}
+void processing_frame_tree::node_pointer::to_vector(std::vector<processing_frame>& result) const
+{
+    result.clear();
+
+    for (auto it = *this; !it.empty(); it = it.parent())
+        result.emplace_back(it.frame());
+
+    std::reverse(result.begin(), result.end());
 }

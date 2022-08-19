@@ -408,10 +408,7 @@ void lsp_context::document_symbol_opencode_ord_symbol(document_symbol_list_s& re
         if (sym.attributes().origin == context::symbol_origin::SECT)
             continue;
 
-        sym_stack.clear();
-        for (auto p = sym.proc_stack(); !p.empty(); p = p.parent())
-            sym_stack.push_back(p.frame());
-        std::reverse(sym_stack.begin(), sym_stack.end());
+        sym.proc_stack().to_vector(sym_stack);
 
         const auto* sect =
             sym.value().value_kind() == context::symbol_value_kind::RELOC && sym.value().get_reloc().bases().size() == 1
@@ -442,12 +439,7 @@ void lsp_context::document_symbol_opencode_ord_symbol(document_symbol_list_s& re
         {
             const auto* sect_sym = m_hlasm_ctx->ord_ctx.get_symbol(sect->name);
 
-
-            sect_sym_stack.clear();
-            for (auto p = sect_sym->proc_stack(); !p.empty(); p = p.parent())
-                sect_sym_stack.push_back(p.frame());
-            std::reverse(sect_sym_stack.begin(), sect_sym_stack.end());
-
+            sect_sym->proc_stack().to_vector(sect_sym_stack);
 
             auto& children = children_of_sects.find(sect)->second;
             unsigned long i = 1;
@@ -475,10 +467,7 @@ void lsp_context::document_symbol_opencode_ord_symbol(document_symbol_list_s& re
     {
         const auto& sym = *m_hlasm_ctx->ord_ctx.get_symbol(sect->name);
 
-        sym_stack.clear();
-        for (auto p = sym.proc_stack(); !p.empty(); p = p.parent())
-            sym_stack.push_back(p.frame());
-        std::reverse(sym_stack.begin(), sym_stack.end());
+        sym.proc_stack().to_vector(sym_stack);
 
         if (sym_stack.size() == 1)
         {
