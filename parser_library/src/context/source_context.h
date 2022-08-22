@@ -123,7 +123,7 @@ public:
     {
         const processing_frame_node* m_node;
 
-        node_pointer(const processing_frame_node* node)
+        explicit node_pointer(const processing_frame_node* node)
             : m_node(node)
         {}
 
@@ -144,7 +144,7 @@ public:
         friend class processing_frame_tree;
     };
 
-    node_pointer root() { return node_pointer(m_root); }
+    node_pointer root() const { return node_pointer(m_root); }
 
     processing_frame_tree();
 

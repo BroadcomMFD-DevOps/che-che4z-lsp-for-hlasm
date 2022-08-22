@@ -489,13 +489,13 @@ processing_stack_t hlasm_context::processing_stack()
 {
     auto result = m_stack_tree.root();
 
-    for (size_t i = 0; i < source_stack_.size(); ++i)
+    for (bool first = true; const auto& source : source_stack_)
     {
-        result = m_stack_tree.step(processing_frame(source_stack_[i].current_instruction.pos,
-                                       shared_resource_location(source_stack_[i].current_instruction.resource_loc),
+        result = m_stack_tree.step(processing_frame(source.current_instruction.pos,
+                                       shared_resource_location(source.current_instruction.resource_loc),
                                        id_storage::empty_id),
             result);
-        for (const auto& member : source_stack_[i].copy_stack)
+        for (const auto& member : source.copy_stack)
         {
             result = m_stack_tree.step(processing_frame(member.current_statement_position(),
                                            shared_resource_location(member.definition_location()->resource_loc),
@@ -503,17 +503,17 @@ processing_stack_t hlasm_context::processing_stack()
                 result);
         }
 
-        if (i == 0) // append macros immediately after ordinary processing
+        if (first) // append macros immediately after ordinary processing
         {
+            first = false;
             for (size_t j = 1; j < scope_stack_.size(); ++j)
             {
                 auto offs = scope_stack_[j].this_macro->current_statement;
 
-                const auto& nest = scope_stack_[j].this_macro->copy_nests[offs];
-                for (size_t k = 0; k < nest.size(); ++k)
+                for (const auto& nest : scope_stack_[j].this_macro->copy_nests[offs])
                     result = m_stack_tree.step(
                         processing_frame(
-                            nest[k].loc.pos, shared_resource_location(nest[k].loc.resource_loc), nest[k].member_name),
+                            nest.loc.pos, shared_resource_location(nest.loc.resource_loc), nest.member_name),
                         result);
             }
         }
@@ -559,14 +559,14 @@ processing_stack_details_t hlasm_context::processing_stack_details()
 {
     std::vector<processing_frame_details> res;
 
-    for (size_t i = 0; i < source_stack_.size(); ++i)
+    for (bool first = true; const auto& source : source_stack_)
     {
-        res.emplace_back(source_stack_[i].current_instruction.pos,
-            shared_resource_location(source_stack_[i].current_instruction.resource_loc),
+        res.emplace_back(source.current_instruction.pos,
+            shared_resource_location(source.current_instruction.resource_loc),
             scope_stack_.front(),
             file_processing_type::OPENCODE,
             id_storage::empty_id);
-        for (const auto& member : source_stack_[i].copy_stack)
+        for (const auto& member : source.copy_stack)
         {
             res.emplace_back(member.current_statement_position(),
                 shared_resource_location(member.definition_location()->resource_loc),
@@ -575,19 +575,23 @@ processing_stack_details_t hlasm_context::processing_stack_details()
                 member.name());
         }
 
-        if (i == 0) // append macros immediately after ordinary processing
+        if (first) // append macros immediately after ordinary processing
         {
+            first = false;
             for (size_t j = 1; j < scope_stack_.size(); ++j)
             {
                 auto offs = scope_stack_[j].this_macro->current_statement;
 
-                const auto& nest = scope_stack_[j].this_macro->copy_nests[offs];
-                for (size_t k = 0; k < nest.size(); ++k)
-                    res.emplace_back(nest[k].loc.pos,
-                        shared_resource_location(nest[k].loc.resource_loc),
+                for (auto type = file_processing_type::MACRO;
+                     const auto& nest : scope_stack_[j].this_macro->copy_nests[offs])
+                {
+                    res.emplace_back(nest.loc.pos,
+                        shared_resource_location(nest.loc.resource_loc),
                         scope_stack_[j],
-                        k == 0 ? file_processing_type::MACRO : file_processing_type::COPY,
-                        nest[k].member_name);
+                        type,
+                        nest.member_name);
+                    type = file_processing_type::COPY;
+                }
             }
         }
     }

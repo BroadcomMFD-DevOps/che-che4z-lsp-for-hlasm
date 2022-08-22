@@ -125,7 +125,6 @@ private:
     void document_symbol_symbol(document_symbol_list_s& modified,
         document_symbol_list_s children,
         context::id_index id,
-        const context::symbol& sym,
         const std::vector<context::processing_frame>& sym_stack,
         const document_symbol_kind kind,
         unsigned long i,
