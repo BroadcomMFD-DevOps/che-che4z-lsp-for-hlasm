@@ -89,8 +89,7 @@ void asm_processor::process_sect(const context::section_kind kind, rebuilt_state
     }
     else
     {
-        auto stack_frame = hlasm_ctx.processing_stack_top();
-        location sym_loc(stack_frame.pos, *stack_frame.resource_loc);
+        location sym_loc = hlasm_ctx.processing_stack_top().get_location();
         sym_loc.pos.column = 0;
         hlasm_ctx.ord_ctx.set_section(sect_name, kind, std::move(sym_loc));
     }
@@ -113,8 +112,7 @@ void asm_processor::process_LOCTR(rebuilt_statement stmt)
     }
     else
     {
-        auto stack_frame = hlasm_ctx.processing_stack_top();
-        location sym_loc(stack_frame.pos, *stack_frame.resource_loc);
+        auto sym_loc = hlasm_ctx.processing_stack_top().get_location();
         sym_loc.pos.column = 0;
         hlasm_ctx.ord_ctx.set_location_counter(loctr_name, std::move(sym_loc));
     }
@@ -915,8 +913,7 @@ void asm_processor::process_START(rebuilt_statement stmt)
         return;
     }
 
-    auto stack_frame = hlasm_ctx.processing_stack_top();
-    location sym_loc(stack_frame.pos, *stack_frame.resource_loc);
+    auto sym_loc = hlasm_ctx.processing_stack_top().get_location();
     sym_loc.pos.column = 0;
     auto* section = hlasm_ctx.ord_ctx.set_section(sect_name, context::section_kind::EXECUTABLE, std::move(sym_loc));
     context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx);

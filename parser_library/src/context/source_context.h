@@ -61,12 +61,13 @@ struct processing_frame
         , member_name(member)
     {}
 
-
     position pos;
     const utils::resource::resource_location* resource_loc;
     id_index member_name;
 
     bool operator==(const processing_frame&) const = default;
+
+    location get_location() const { return location(pos, *resource_loc); }
 };
 
 struct processing_frame_details
