@@ -89,7 +89,7 @@ void asm_processor::process_sect(const context::section_kind kind, rebuilt_state
     }
     else
     {
-        location sym_loc = hlasm_ctx.processing_stack_top().get_location();
+        auto sym_loc = hlasm_ctx.processing_stack_top().get_location();
         sym_loc.pos.column = 0;
         hlasm_ctx.ord_ctx.set_section(sect_name, kind, std::move(sym_loc));
     }

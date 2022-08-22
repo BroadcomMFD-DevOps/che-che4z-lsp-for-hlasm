@@ -57,7 +57,7 @@ struct processing_frame
 {
     constexpr processing_frame(position pos, const utils::resource::resource_location* resource_loc, id_index member)
         : pos(pos)
-        , resource_loc(std::move(resource_loc))
+        , resource_loc(resource_loc)
         , member_name(member)
     {}
 
