@@ -211,6 +211,23 @@ TEST(arithmetic_expressions, operator_priorities)
     SETAEQ("E", 7);
 }
 
+TEST(arithmetic_expressions, not_operator)
+{
+    std::string input =
+        R"(
+&A1 SETA NOT 87
+&A2 SETA (NOT 87)
+)";
+    analyzer a(input);
+    a.analyze();
+
+    a.collect_diags();
+    ASSERT_EQ(a.diags().size(), (size_t)0);
+
+    SETAEQ("A1", -88);
+    SETAEQ("A2", -88);
+}
+
 TEST(arithmetic_expressions, invalid_operator)
 {
     std::string input =

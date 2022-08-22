@@ -302,6 +302,31 @@ TEST(logical_expressions, operator_precedence)
     }
 }
 
+TEST(logical_expressions, logical_operators_and_relational_not)
+{
+    std::string input =
+        R"(
+&A SETB (NOT 1 EQ NOT 1)
+&B SETB (NOT 0 NE NOT 1)
+&C SETB (0 LE NOT 0)
+&D SETB (0 LT NOT 0)
+&E SETB (1 GE NOT 0)
+&F SETB (1 GT NOT 1)
+)";
+
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(a.diags().empty());
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "A"), true);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B"), true);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "C"), true);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "D"), true);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "E"), true);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "F"), true);
+}
+
 TEST(logical_expressions, symbol_after_substitution)
 {
     std::string input =
