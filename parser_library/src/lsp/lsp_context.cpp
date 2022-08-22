@@ -234,9 +234,46 @@ void lsp_context::document_symbol_copy(document_symbol_list_s& result,
     }
 }
 
+std::span<const symbol_occurence* const> lsp_context::get_occurences_by_name(
+    const file_info& document, context::id_index name, document_symbol_cache& cache) const
+{
+    auto [it, inserted] = cache.occurences_by_name.try_emplace(&document);
+
+    auto& occurences_by_name = it->second;
+    if (inserted)
+    {
+        const auto& occurences = document.get_occurences();
+        occurences_by_name.reserve(occurences.size());
+        std::transform(
+            occurences.begin(), occurences.end(), std::back_inserter(occurences_by_name), [](const auto& occ) {
+                return &occ;
+            });
+        std::sort(occurences_by_name.begin(), occurences_by_name.end(), [](const auto* l, const auto* r) {
+            return l->name < r->name;
+        });
+    }
+
+    if (name == nullptr)
+        return occurences_by_name;
+
+    struct
+    {
+        bool operator()(const symbol_occurence* l, context::id_index r) const { return l->name < r; }
+        bool operator()(context::id_index l, const symbol_occurence* r) const { return l < r->name; }
+    } search_predicate;
+
+    auto [low, high] = std::equal_range(occurences_by_name.begin(), occurences_by_name.end(), name, search_predicate);
+
+    if (low == high) // missing c++20 ctor in libc++ 12 and broken std::to_address
+        return std::span<const symbol_occurence* const>();
+    else
+        return std::span<const symbol_occurence* const>(&*low, std::distance(low, high));
+}
+
 void lsp_context::fill_cache(
     std::vector<std::pair<symbol_occurence, lsp_context::vector_set<context::id_index>>>& copy_occurences,
-    const utils::resource::resource_location& document_loc) const
+    const utils::resource::resource_location& document_loc,
+    document_symbol_cache& cache) const
 {
     const auto& document = *m_files.at(document_loc);
     for (const auto& [_, info] : m_files)
@@ -244,10 +281,11 @@ void lsp_context::fill_cache(
         if (info->type != file_type::COPY)
             continue;
 
-        for (const auto* occ : document.get_occurences(std::get<context::copy_member_ptr>(info->owner)->name))
+        for (const auto* occ :
+            get_occurences_by_name(document, std::get<context::copy_member_ptr>(info->owner)->name, cache))
         {
             lsp_context::vector_set<context::id_index> occurences;
-            for (context::id_index last = nullptr; const auto* new_occ : info->get_occurences(nullptr))
+            for (context::id_index last = nullptr; const auto* new_occ : get_occurences_by_name(*info, nullptr, cache))
             {
                 if (last == new_occ->name)
                     continue;
@@ -267,7 +305,7 @@ lsp_context::copy_occurences(const utils::resource::resource_location& document_
     auto [it, inserted] = cache.occurences.try_emplace(document_loc);
 
     if (inserted)
-        fill_cache(it->second, document_loc);
+        fill_cache(it->second, document_loc, cache);
 
     return it->second;
 }

@@ -49,6 +49,8 @@ class lsp_context final : public feature_provider
             std::vector<std::pair<symbol_occurence, vector_set<context::id_index>>>,
             utils::resource::resource_location_hasher>
             occurences;
+
+        std::unordered_map<const file_info*, std::vector<const symbol_occurence*>> occurences_by_name;
     };
 
 public:
@@ -109,7 +111,10 @@ private:
         const utils::resource::resource_location& document_loc, document_symbol_cache& cache) const;
     void fill_cache(
         std::vector<std::pair<symbol_occurence, lsp_context::vector_set<context::id_index>>>& copy_occurences,
-        const utils::resource::resource_location& document_loc) const;
+        const utils::resource::resource_location& document_loc,
+        document_symbol_cache& cache) const;
+    std::span<const symbol_occurence* const> get_occurences_by_name(
+        const file_info& document, context::id_index name, document_symbol_cache& cache) const;
 
     void modify_with_copy(document_symbol_list_s& modified,
         context::id_index sym_name,
