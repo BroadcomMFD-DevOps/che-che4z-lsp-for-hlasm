@@ -293,6 +293,7 @@ TEST(arithmetic_expressions, dots)
 {
     for (const auto& [input, ok] : {
              std::pair<std::string, bool> { "&A SETA &A", true },
+             std::pair<std::string, bool> { "&A SETA NOT &A", true },
              std::pair<std::string, bool> { "&A. SETA &A", false },
              std::pair<std::string, bool> { "&A SETA &A.", false },
              std::pair<std::string, bool> { "&A. SETA &A.", false },

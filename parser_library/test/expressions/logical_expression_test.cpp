@@ -202,6 +202,21 @@ TEST(logical_expressions, arithmetic_logical_clash)
     SETBEQ("A2", 1);
 }
 
+TEST(logical_expressions, no_parenthesis)
+{
+    std::string input =
+        R"(
+&A1 SETB NOT 0
+&A2 SETB NOT NOT NOT 0
+)";
+    analyzer a(input);
+    a.analyze();
+
+    a.collect_diags();
+    EXPECT_EQ(a.diags().size(), (size_t)2);
+    //EXPECT_TRUE(matches_message_codes(a.diags(), { "CE016", "CE016" })); // todo
+}
+
 TEST(logical_expressions, no_spaces)
 {
     std::string input =
