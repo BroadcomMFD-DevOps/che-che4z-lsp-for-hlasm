@@ -48,6 +48,7 @@ enum class z_arch_affiliation : uint16_t
     SINCE_Z13,
     SINCE_Z14,
     SINCE_Z15,
+    SINCE_Z16,
 };
 
 struct instruction_set_affiliation
@@ -146,6 +147,8 @@ enum class mach_format : unsigned char
     VRR_g,
     VRR_h,
     VRR_i,
+    VRR_j,
+    VRR_k,
     VRS_d,
     VSI,
 };

@@ -81,6 +81,7 @@ constexpr auto UNI_SINCE_Z12                = UNI | z_arch_affiliation::SINCE_Z1
 constexpr auto UNI_SINCE_Z13                = UNI | z_arch_affiliation::SINCE_Z13;
 constexpr auto UNI_SINCE_Z14                = UNI | z_arch_affiliation::SINCE_Z14;
 constexpr auto UNI_SINCE_Z15                = UNI | z_arch_affiliation::SINCE_Z15;
+constexpr auto UNI_SINCE_Z16                = UNI | z_arch_affiliation::SINCE_Z16;
 constexpr auto UNI_SINCE_Z9                 = UNI | z_arch_affiliation::SINCE_Z9;
 constexpr auto UNI_SINCE_ZOP                = UNI | z_arch_affiliation::SINCE_ZOP;
 // clang-format on
@@ -232,6 +233,10 @@ std::string_view instruction::mach_format_to_string(mach_format f)
             return "VRR-h";
         case mach_format::VRR_i:
             return "VRR-i";
+        case mach_format::VRR_j:
+            return "VRR-j";
+        case mach_format::VRR_k:
+            return "VRR-k";
         case mach_format::VRS_a:
             return "VRS-a";
         case mach_format::VRS_b:
@@ -549,6 +554,7 @@ constexpr auto VRR_a_3 = instruction_format_definition_factory<mach_format::VRR_
 constexpr auto VRR_a_4 = instruction_format_definition_factory<mach_format::VRR_a, vec_reg_5_U, vec_reg_5_U, mask_4_U, mask_4_U>::def();
 constexpr auto VRR_a_4_opt = instruction_format_definition_factory<mach_format::VRR_a, vec_reg_5_U, vec_reg_5_U, mask_4_U, mask_4_U_opt>::def();
 constexpr auto VRR_a_5 = instruction_format_definition_factory<mach_format::VRR_a, vec_reg_5_U, vec_reg_5_U, mask_4_U, mask_4_U, mask_4_U>::def();
+constexpr auto VRR_b_3 = instruction_format_definition_factory<mach_format::VRR_b, vec_reg_5_U, vec_reg_5_U, vec_reg_5_U>::def();
 constexpr auto VRR_b_5 = instruction_format_definition_factory<mach_format::VRR_b, vec_reg_5_U, vec_reg_5_U, vec_reg_5_U, mask_4_U, mask_4_U>::def();
 constexpr auto VRR_b_5_opt = instruction_format_definition_factory<mach_format::VRR_b, vec_reg_5_U, vec_reg_5_U, vec_reg_5_U, mask_4_U, mask_4_U_opt>::def();
 constexpr auto VRR_c_3 = instruction_format_definition_factory<mach_format::VRR_c, vec_reg_5_U, vec_reg_5_U, vec_reg_5_U>::def();
@@ -564,6 +570,8 @@ constexpr auto VRR_f_3 = instruction_format_definition_factory<mach_format::VRR_
 constexpr auto VRR_g_1 = instruction_format_definition_factory<mach_format::VRR_g, vec_reg_5_U>::def();
 constexpr auto VRR_h_3 = instruction_format_definition_factory<mach_format::VRR_h, vec_reg_5_U, vec_reg_5_U, mask_4_U>::def();
 constexpr auto VRR_i_3 = instruction_format_definition_factory<mach_format::VRR_i, reg_4_U, vec_reg_5_U, mask_4_U>::def();
+constexpr auto VRR_j_4 = instruction_format_definition_factory<mach_format::VRR_j, vec_reg_5_U, vec_reg_5_U, vec_reg_5_U, mask_4_U>::def();
+constexpr auto VRR_k_3 = instruction_format_definition_factory<mach_format::VRR_k,  vec_reg_5_U, vec_reg_5_U, mask_4_U>::def();
 constexpr auto VRS_a_4 = instruction_format_definition_factory<mach_format::VRS_a, vec_reg_5_U, vec_reg_5_U, db_12_4_U, mask_4_U>::def();
 constexpr auto VRS_a_4_opt = instruction_format_definition_factory<mach_format::VRS_a, vec_reg_5_U, vec_reg_5_U, db_12_4_U, mask_4_U_opt>::def();
 constexpr auto VRS_b_3 = instruction_format_definition_factory<mach_format::VRS_b, vec_reg_5_U, reg_4_U, db_12_4_U>::def();
@@ -1023,6 +1031,7 @@ constexpr machine_instruction machine_instructions[] = {
     { "LAXG", RSY_a_3, 753, UNI_SINCE_Z11 },
     { "LAY", RXY_a_2, 750, UNI_SINCE_YOP },
     { "LB", RXY_a_2, 756, UNI_SINCE_YOP },
+    { "LBEAR", S_1_u, 1067, UNI_SINCE_Z16 },
     { "LBH", RXY_a_2, 756, UNI_SINCE_Z11 },
     { "LBR", RRE_2, 756, UNI_SINCE_Z9 },
     { "LCBB", RXE_3_xm, 757, UNI_SINCE_Z13 },
@@ -1155,6 +1164,7 @@ constexpr machine_instruction machine_instructions[] = {
     { "LPR", RR_2, 771, UNI_ESA_XA_370_DOS_SINCE_ZOP },
     { "LPSW", SI_1, 1036, UNI_ESA_XA_370_DOS_SINCE_ZOP },
     { "LPSWE", S_1_u, 1037, UNI_SINCE_ZOP },
+    { "LPSWEY", S_1_s, 1073, UNI_SINCE_Z16 },
     { "LPTEA", RRF_b_4, 1032, UNI_SINCE_Z9 },
     { "LPXBR", RRE_2, 1465, UNI_ESA_SINCE_ZOP },
     { "LPXR", RRE_2, 1420, UNI_ESA_SINCE_ZOP },
@@ -1325,6 +1335,7 @@ constexpr machine_instruction machine_instructions[] = {
     { "NILL", RI_a_2_u, 519, UNI_SINCE_ZOP },
     { "NIY", SIY_2_su, 518, UNI_SINCE_YOP },
     { "NNGRK", RRF_a_3, 796, UNI_SINCE_Z15 },
+    { "NNPA", RRE_0, 1795, UNI_SINCE_Z16 },
     { "NNRK", RRF_a_3, 796, UNI_SINCE_Z15 },
     { "NOGRK", RRF_a_3, 799, UNI_SINCE_Z15 },
     { "NORK", RRF_a_3, 799, UNI_SINCE_Z15 },
@@ -1379,9 +1390,11 @@ constexpr machine_instruction machine_instructions[] = {
     { "QADTR", RRF_b_4, 1521, UNI_SINCE_Z9 },
     { "QAXTR", RRF_b_4, 1521, UNI_SINCE_Z9 },
     { "QCTRI", S_1_u, 43, UNI_SINCE_Z10 },
+    { "QPACI", S_1_u, 1139, UNI_SINCE_Z16 },
     { "QSI", S_1_u, 45, UNI_SINCE_Z10 },
     { "RCHP", S_0, 1221, UNI_ESA_XA_SINCE_ZOP },
     { "RDD", SI_2_u, 0, UNI_370 },
+    { "RDP", RRF_b_4_opt, 1140, UNI_SINCE_Z16 },
     { "RIO", S_1_u, 0, UNI_370 },
     { "RISBG", RIE_f_5, 847, UNI_SINCE_Z10 },
     { "RISBGN", RIE_f_5, 847, UNI_SINCE_Z12 },
@@ -1520,6 +1533,7 @@ constexpr machine_instruction machine_instructions[] = {
     { "STAM", RS_a_3, 861, UNI_ESA_SINCE_ZOP },
     { "STAMY", RSY_a_3, 861, UNI_SINCE_YOP },
     { "STAP", S_1_u, 1118, UNI_ESA_XA_370_SINCE_ZOP },
+    { "STBEAR", S_1_u, 1161, UNI_SINCE_Z16 },
     { "STC", RX_a_2_ux, 862, UNI_ESA_XA_370_DOS_SINCE_ZOP },
     { "STCH", RXY_a_2, 862, UNI_SINCE_Z11 },
     { "STCK", S_1_u, 863, UNI_ESA_XA_370_DOS_SINCE_ZOP },
@@ -1660,18 +1674,25 @@ constexpr machine_instruction machine_instructions[] = {
     { "VCE", RI_a_2_u, 0, ESA_XA_370 },
     { "VCEQ", VRR_b_5, 1561, UNI_ESA_XA_370_SINCE_Z13 },
     { "VCES", RI_a_2_u, 0, ESA_XA_370 },
+    { "VCFN", VRR_a_4, 1857, UNI_SINCE_Z16 },
     { "VCFPL", VRR_a_5, 1643, UNI_SINCE_Z15 },
     { "VCFPS", VRR_a_5, 1641, UNI_SINCE_Z15 },
     { "VCH", VRR_b_5, 1562, UNI_SINCE_Z13 },
     { "VCHL", VRR_b_5, 1563, UNI_SINCE_Z13 },
     { "VCKSM", VRR_c_3, 1560, UNI_SINCE_Z13 },
+    { "VCLFNH", VRR_a_4, 1855, UNI_SINCE_Z16 },
+    { "VCLFNL", VRR_a_4, 1856, UNI_SINCE_Z16 },
     { "VCLFP", VRR_a_5, 1611, UNI_SINCE_Z15 },
     { "VCLGD", VRR_a_5, 1611, UNI_SINCE_Z13 },
     { "VCLZ", VRR_a_3, 1564, UNI_SINCE_Z13 },
+    { "VCLZDP", VRR_k_3, 1713, UNI_SINCE_Z16 },
+    { "VCNF", VRR_a_4, 1858, UNI_SINCE_Z16 },
     { "VCOVM", RRE_2, 0, ESA_XA_370 },
     { "VCP", VRR_h_3, 1644, UNI_SINCE_Z14 },
+    { "VCRNF", VRR_c_5, 1857, UNI_SINCE_Z16 },
     { "VCS", RI_a_2_u, 0, ESA_XA_370 },
     { "VCSFP", VRR_a_5, 1644, UNI_SINCE_Z15 },
+    { "VCSPH", VRR_j_4, 1713, UNI_SINCE_Z16 },
     { "VCTZ", VRR_a_3, 1564, UNI_SINCE_Z13 },
     { "VCVB", VRR_i_3, 1645, UNI_SINCE_Z14 },
     { "VCVBG", VRR_i_3, 1645, UNI_SINCE_Z14 },
@@ -1830,6 +1851,7 @@ constexpr machine_instruction machine_instructions[] = {
     { "VPKLS", VRR_b_5, 1546, UNI_SINCE_Z13 },
     { "VPKS", VRR_b_5, 1545, UNI_SINCE_Z13 },
     { "VPKZ", VSI_3, 1652, UNI_SINCE_Z14 },
+    { "VPKZR", VRI_f_5, 1720, UNI_SINCE_Z16 },
     { "VPOPCT", VRR_a_3, 1575, UNI_SINCE_Z13 },
     { "VPSOP", VRI_g_5_u, 1653, UNI_SINCE_Z14 },
     { "VRCL", RRE_2, 0, ESA_XA_370 },
@@ -1845,6 +1867,8 @@ constexpr machine_instruction machine_instructions[] = {
     { "VSCBI", VRR_c_4, 1581, UNI_SINCE_Z13 },
     { "VSCEF", VRV_3, 1548, UNI_SINCE_Z13 },
     { "VSCEG", VRV_3, 1548, UNI_SINCE_Z13 },
+    { "VSCHP", VRR_b_5, 1707, UNI_SINCE_Z16 },
+    { "VSCSHP", VRR_b_3, 1706, UNI_SINCE_Z16 },
     { "VSD", RI_a_2_u, 0, ESA_XA_370 },
     { "VSDP", VRI_f_5, 1656, UNI_SINCE_Z14 },
     { "VSDS", RI_a_2_u, 0, ESA_XA_370 },
@@ -1865,6 +1889,7 @@ constexpr machine_instruction machine_instructions[] = {
     { "VSRL", VRR_c_3, 1580, UNI_ESA_XA_370_SINCE_Z13 },
     { "VSRLB", VRR_c_3, 1580, UNI_SINCE_Z13 },
     { "VSRP", VRI_g_5_s, 1657, UNI_SINCE_Z14 },
+    { "VSRPR", VRI_f_5, 1728, UNI_SINCE_Z16 },
     { "VSRRS", RRE_2, 0, ESA_XA_370 },
     { "VSRSV", RRE_2, 0, ESA_XA_370 },
     { "VSS", RI_a_2_u, 0, ESA_XA_370 },
@@ -1902,6 +1927,8 @@ constexpr machine_instruction machine_instructions[] = {
     { "VTVM", RRE_2, 0, ESA_XA_370 },
     { "VUPH", VRR_a_3, 1552, UNI_SINCE_Z13 },
     { "VUPKZ", VSI_3, 1660, UNI_SINCE_Z14 },
+    { "VUPKZH", VRR_k_3, 1732, UNI_SINCE_Z16 },
+    { "VUPKZL", VRR_k_3, 1733, UNI_SINCE_Z16 },
     { "VUPL", VRR_a_3, 1553, UNI_SINCE_Z13 },
     { "VUPLH", VRR_a_3, 1553, UNI_SINCE_Z13 },
     { "VUPLL", VRR_a_3, 1554, UNI_SINCE_Z13 },
@@ -2024,6 +2051,8 @@ constexpr auto mi_CLT = find_mi("CLT");
 constexpr auto mi_CRB = find_mi("CRB");
 constexpr auto mi_CRJ = find_mi("CRJ");
 constexpr auto mi_CRT = find_mi("CRT");
+constexpr auto mi_IILF = find_mi("IILF");
+constexpr auto mi_LLILF = find_mi("LLILF");
 constexpr auto mi_LOC = find_mi("LOC");
 constexpr auto mi_LOCFH = find_mi("LOCFH");
 constexpr auto mi_LOCFHR = find_mi("LOCFHR");
@@ -2142,6 +2171,7 @@ constexpr auto mi_VS = find_mi("VS");
 constexpr auto mi_VSBCBI = find_mi("VSBCBI");
 constexpr auto mi_VSBI = find_mi("VSBI");
 constexpr auto mi_VSCBI = find_mi("VSCBI");
+constexpr auto mi_VSCHP = find_mi("VSCHP");
 constexpr auto mi_VSEG = find_mi("VSEG");
 constexpr auto mi_VSTBR = find_mi("VSTBR");
 constexpr auto mi_VSTEBRF = find_mi("VSTEBRF");
@@ -2436,11 +2466,13 @@ constexpr mnemonic_code mnemonic_codes[] = {
     { "JZ", mi_BRC, { { 0, 8 } }, UNI_ESA_SINCE_ZOP },
     { "LDRV", mi_VLLEBRZ, { { 2, 3 } }, UNI_SINCE_Z15 },
     { "LERV", mi_VLLEBRZ, { { 2, 6 } }, UNI_SINCE_Z15 },
+    { "LFI", mi_IILF, {}, UNI_SINCE_Z16 },
     { "LHHR", mi_RISBHGZ, { { 2, 0 }, { 3, 31 } }, UNI_SINCE_Z11 },
     { "LHLR", mi_RISBHGZ, { { 2, 0 }, { 3, 31 }, { 4, 32 } }, UNI_SINCE_Z11 },
     { "LLCHHR", mi_RISBHGZ, { { 2, 24 }, { 3, 31 } }, UNI_SINCE_Z11 },
     { "LLCHLR", mi_RISBHGZ, { { 2, 24 }, { 3, 31 }, { 4, 32 } }, UNI_SINCE_Z11 },
     { "LLCLHR", mi_RISBLGZ, { { 2, 24 }, { 3, 31 }, { 4, 32 } }, UNI_SINCE_Z11 },
+    { "LLGFI", mi_LLILF, {}, UNI_SINCE_Z16 },
     { "LLHFR", mi_RISBLGZ, { { 2, 0 }, { 3, 31 }, { 4, 32 } }, UNI_SINCE_Z11 },
     { "LLHHHR", mi_RISBHGZ, { { 2, 16 }, { 3, 31 } }, UNI_SINCE_Z11 },
     { "LLHHLR", mi_RISBHGZ, { { 2, 16 }, { 3, 31 }, { 4, 32 } }, UNI_SINCE_Z11 },
@@ -2623,6 +2655,12 @@ constexpr mnemonic_code mnemonic_codes[] = {
     { "SELRO", mi_SELR, { { 3, 1 } }, UNI_SINCE_Z15 },
     { "SELRP", mi_SELR, { { 3, 2 } }, UNI_SINCE_Z15 },
     { "SELRZ", mi_SELR, { { 3, 8 } }, UNI_SINCE_Z15 },
+    { "SLLHH", mi_RISBHGZ, { { 2, 0 }, { 3, 0 } }, UNI_SINCE_Z16 }, // TODO: op!!!
+    { "SLLHL", mi_RISBHGZ, { { 2, 0 }, { 3, 0 } }, UNI_SINCE_Z16 }, // TODO: op!!!
+    { "SLLLH", mi_RISBLGZ, { { 2, 0 }, { 3, 0 } }, UNI_SINCE_Z16 }, // TODO: op!!!
+    { "SRLHH", mi_RISBHGZ, { { 3, 0 }, { 4, 0 } }, UNI_SINCE_Z16 }, // TODO: op!!!
+    { "SRLHL", mi_RISBHGZ, { { 3, 0 }, { 4, 0 } }, UNI_SINCE_Z16 }, // TODO: op!!!
+    { "SRLLH", mi_RISBLGZ, { { 3, 0 }, { 4, 0 } }, UNI_SINCE_Z16 }, // TODO: op!!!
     { "STDRV", mi_VSTEBRG, { { 2, 0 } }, UNI_SINCE_Z15 },
     { "STERV", mi_VSTEBRF, { { 2, 0 } }, UNI_SINCE_Z15 },
     { "STOCE", mi_STOC, { { 2, 8 } }, UNI_SINCE_Z11 },
@@ -3035,6 +3073,9 @@ constexpr mnemonic_code mnemonic_codes[] = {
     { "VSCBIG", mi_VSCBI, { { 3, 3 } }, UNI_SINCE_Z13 },
     { "VSCBIH", mi_VSCBI, { { 3, 1 } }, UNI_SINCE_Z13 },
     { "VSCBIQ", mi_VSCBI, { { 3, 4 } }, UNI_SINCE_Z13 },
+    { "VSCHDP", mi_VSCHP, { { 3, 3 } }, UNI_SINCE_Z16 },
+    { "VSCHSP", mi_VSCHP, { { 3, 2 } }, UNI_SINCE_Z16 },
+    { "VSCHXP", mi_VSCHP, { { 3, 4 } }, UNI_SINCE_Z16 },
     { "VSEGB", mi_VSEG, { { 2, 0 } }, UNI_SINCE_Z13 },
     { "VSEGF", mi_VSEG, { { 2, 2 } }, UNI_SINCE_Z13 },
     { "VSEGH", mi_VSEG, { { 2, 1 } }, UNI_SINCE_Z13 },
