@@ -368,7 +368,7 @@ public:
         , m_operand_len((unsigned char)operands.size())
         , m_operands(operands.data())
     {
-        assert(operands.size() <= std::numeric_limits<decltype(m_operand_len)>::max());
+        assert(operands.size() <= max_operand_count);
     }
     constexpr machine_instruction(std::string_view name,
         instruction_format_definition ifd,
@@ -406,6 +406,8 @@ public:
         const std::vector<const checking::machine_operand*> operands,
         const range& stmt_range,
         const diagnostic_collector& add_diagnostic) const; // input vector is the vector of the actual incoming values
+
+    static constexpr const size_t max_operand_count = 16; // 12 really
 };
 
 class ca_instruction
@@ -423,13 +425,59 @@ public:
     constexpr auto operandless() const { return m_operandless; }
 };
 
+enum class mnemonic_replacement_kind : unsigned char
+{
+    insert,
+    copy,
+    or_with,
+    add_to,
+    subtract_from,
+};
+
+struct mnemonic_replacement
+{
+    unsigned char position : 4 = 0, source : 4 = 0;
+    mnemonic_replacement_kind type = mnemonic_replacement_kind::insert;
+    unsigned short value = 0;
+
+    constexpr mnemonic_replacement() = default;
+    constexpr mnemonic_replacement(unsigned char pos, unsigned short v)
+        : position(pos)
+        , value(v)
+    {
+        assert(pos < machine_instruction::max_operand_count);
+        assert(static_cast<unsigned short>(v) == v);
+    };
+    constexpr mnemonic_replacement(unsigned char pos, mnemonic_replacement_kind t, unsigned char src)
+        : position(pos)
+        , source(src)
+        , type(t)
+    {
+        assert(t == mnemonic_replacement_kind::copy);
+        assert(pos < machine_instruction::max_operand_count);
+        assert(src < machine_instruction::max_operand_count);
+    };
+    constexpr mnemonic_replacement(unsigned char pos, unsigned short v, mnemonic_replacement_kind t, unsigned char src)
+        : position(pos)
+        , source(src)
+        , type(t)
+        , value(v)
+    {
+        assert(pos < machine_instruction::max_operand_count);
+        assert(src < machine_instruction::max_operand_count);
+        assert(static_cast<unsigned short>(v) == v);
+    };
+
+    constexpr bool inserts_operand() const { return type == mnemonic_replacement_kind::insert || position != source; }
+    constexpr bool has_source() const { return type != mnemonic_replacement_kind::insert; }
+};
+
 // representation of mnemonic codes for machine instructions
 class mnemonic_code
 {
     const machine_instruction* m_instruction;
 
-    // first goes place, then value
-    std::array<std::pair<unsigned char, unsigned short>, 3> m_replaced;
+    std::array<mnemonic_replacement, 3> m_replaced;
     unsigned char m_replaced_count;
 
     reladdr_transform_mask m_reladdr_mask;
@@ -437,11 +485,12 @@ class mnemonic_code
     instruction_set_affiliation m_instr_set_affiliation;
 
     inline_string<9> m_name;
-
-    // Generates a bitmask for an arbitrary mnemonic indicating which operands
-    // are of the RI type (and therefore are modified by transform_reloc_imm_operands)
+    unsigned char m_op_min : 4, m_op_max : 4;
+    // unsigned char reserved = 0;
+    //  Generates a bitmask for an arbitrary mnemonic indicating which operands
+    //  are of the RI type (and therefore are modified by transform_reloc_imm_operands)
     static constexpr unsigned char generate_reladdr_bitmask(
-        const machine_instruction* instruction, std::initializer_list<const std::pair<int, int>> replaced)
+        const machine_instruction* instruction, std::initializer_list<const mnemonic_replacement> replaced)
     {
         unsigned char result = 0;
 
@@ -453,7 +502,7 @@ class mnemonic_code
         size_t position = 0;
         for (const auto& op : instruction->operands())
         {
-            if (replaced_b != replaced_e && position == replaced_b->first)
+            if (replaced_b != replaced_e && position == replaced_b->position)
             {
                 ++replaced_b;
                 ++position;
@@ -472,34 +521,64 @@ class mnemonic_code
 public:
     constexpr mnemonic_code(std::string_view name,
         const machine_instruction* instr,
-        std::initializer_list<const std::pair<int, int>> replaced,
-        instruction_set_affiliation instr_set_affiliation)
+        std::initializer_list<const mnemonic_replacement> replaced,
+        instruction_set_affiliation instr_set_affiliation,
+        std::optional<size_t> operand_count_override = std::nullopt)
         : m_instruction(instr)
         , m_replaced {}
         , m_replaced_count((unsigned char)replaced.size())
         , m_reladdr_mask(generate_reladdr_bitmask(instr, replaced))
         , m_instr_set_affiliation(instr_set_affiliation)
         , m_name(name)
+        , m_op_min(0)
+        , m_op_max(0)
     {
         assert(replaced.size() <= m_replaced.size());
-        for (size_t i = 0; const auto& [a, b] : replaced)
+        size_t extra_ops = 0;
+        int pos = -1;
+        const size_t optional_threshold = instr->operands().size() - instr->optional_operand_count();
+        size_t opt = instr->optional_operand_count();
+        for (size_t i = 0; const auto& r : replaced)
         {
-            assert(static_cast<unsigned char>(a) == a && static_cast<unsigned short>(b) == b
-                && static_cast<unsigned char>(a) < instr->operands().size() + instr->optional_operand_count());
-            m_replaced[i] = std::make_pair(static_cast<unsigned char>(a), static_cast<unsigned short>(b));
-            i++;
+            assert(r.position < instr->operands().size());
+            assert(pos < r.position); // ensure uniqueness and order
+            pos = r.position;
+
+            m_replaced[i] = r;
+            ++i;
+            if (r.inserts_operand())
+            {
+                ++extra_ops;
+                if (r.position >= optional_threshold)
+                {
+                    assert(opt);
+                    --opt;
+                }
+            }
         }
+        if (!operand_count_override.has_value())
+        {
+            m_op_max = instr->operands().size() - extra_ops;
+            m_op_min = m_op_max - opt;
+            assert(m_op_max <= instr->operands().size());
+            assert(m_op_min <= m_op_max);
+        }
+        else
+        {
+            assert(operand_count_override.value() <= instr->operands().size());
+            m_op_min = m_op_max = operand_count_override.value();
+        }
+
+        for (const auto& r : replaced)
+            assert(r.type == mnemonic_replacement_kind::insert || r.source < m_op_max);
     };
 
     constexpr const machine_instruction* instruction() const { return m_instruction; }
-    constexpr std::span<const std::pair<unsigned char, unsigned short>> replaced_operands() const
+    constexpr std::span<const mnemonic_replacement> replaced_operands() const
     {
         return { m_replaced.data(), m_replaced_count };
     }
-    constexpr size_t operand_count() const
-    {
-        return m_instruction->operands().size() + m_instruction->optional_operand_count() - m_replaced_count;
-    }
+    constexpr std::pair<size_t, size_t> operand_count() const { return { m_op_min, m_op_max }; }
     constexpr reladdr_transform_mask reladdr_mask() const { return m_reladdr_mask; }
     constexpr std::string_view name() const { return m_name.to_string_view(); }
     constexpr const instruction_set_affiliation& instr_set_affiliation() const { return m_instr_set_affiliation; };

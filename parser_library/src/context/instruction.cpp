@@ -473,7 +473,7 @@ constexpr auto RIE_b_4 = instruction_format_definition_factory<mach_format::RIE_
 constexpr auto RIE_c_4 = instruction_format_definition_factory<mach_format::RIE_c, reg_4_U, imm_8_S, mask_4_U, rel_addr_imm_16_S>::def();
 constexpr auto RIE_d_3 = instruction_format_definition_factory<mach_format::RIE_d, reg_4_U, reg_4_U, imm_16_S>::def();
 constexpr auto RIE_e_3 = instruction_format_definition_factory<mach_format::RIE_e, reg_4_U, reg_4_U, rel_addr_imm_16_S>::def();
-constexpr auto RIE_f_5 = instruction_format_definition_factory<mach_format::RIE_f, reg_4_U, reg_4_U, imm_8_S, imm_8_S, imm_8_S_opt>::def();
+constexpr auto RIE_f_5 = instruction_format_definition_factory<mach_format::RIE_f, reg_4_U, reg_4_U, imm_8_U, imm_8_U, imm_8_U_opt>::def();
 constexpr auto RIE_g_3 = instruction_format_definition_factory<mach_format::RIE_g, reg_4_U, imm_16_S, mask_4_U>::def();
 constexpr auto RIL_a_2 = instruction_format_definition_factory<mach_format::RIL_a, reg_4_U, imm_32_S>::def();
 constexpr auto RIL_b_2 = instruction_format_definition_factory<mach_format::RIL_b, reg_4_U, rel_addr_imm_32_S>::def();
@@ -1398,12 +1398,8 @@ constexpr machine_instruction machine_instructions[] = {
     { "RIO", S_1_u, 0, UNI_370 },
     { "RISBG", RIE_f_5, 847, UNI_SINCE_Z10 },
     { "RISBGN", RIE_f_5, 847, UNI_SINCE_Z12 },
-    { "RISBGNZ", RIE_f_5, 860, UNI_SINCE_Z12 },
-    { "RISBGZ", RIE_f_5, 858, UNI_SINCE_Z10 },
     { "RISBHG", RIE_f_5, 848, UNI_SINCE_Z11 },
-    { "RISBHGZ", RIE_f_5, 860, UNI_SINCE_Z11 },
     { "RISBLG", RIE_f_5, 849, UNI_SINCE_Z11 },
-    { "RISBLGZ", RIE_f_5, 860, UNI_SINCE_Z11 },
     { "RLL", RSY_a_3, 845, UNI_ESA_SINCE_ZOP },
     { "RLLG", RSY_a_3, 845, UNI_SINCE_ZOP },
     { "RNSBG", RIE_f_5, 845, UNI_SINCE_Z10 },
@@ -2064,8 +2060,10 @@ constexpr auto mi_LOCHI = find_mi("LOCHI");
 constexpr auto mi_LOCR = find_mi("LOCR");
 constexpr auto mi_NOGRK = find_mi("NOGRK");
 constexpr auto mi_NORK = find_mi("NORK");
-constexpr auto mi_RISBHGZ = find_mi("RISBHGZ");
-constexpr auto mi_RISBLGZ = find_mi("RISBLGZ");
+constexpr auto mi_RISBG = find_mi("RISBG");
+constexpr auto mi_RISBGN = find_mi("RISBGN");
+constexpr auto mi_RISBHG = find_mi("RISBHG");
+constexpr auto mi_RISBLG = find_mi("RISBLG");
 constexpr auto mi_RNSBG = find_mi("RNSBG");
 constexpr auto mi_ROSBG = find_mi("ROSBG");
 constexpr auto mi_RXSBG = find_mi("RXSBG");
@@ -2467,16 +2465,16 @@ constexpr mnemonic_code mnemonic_codes[] = {
     { "LDRV", mi_VLLEBRZ, { { 2, 3 } }, UNI_SINCE_Z15 },
     { "LERV", mi_VLLEBRZ, { { 2, 6 } }, UNI_SINCE_Z15 },
     { "LFI", mi_IILF, {}, UNI_SINCE_Z16 },
-    { "LHHR", mi_RISBHGZ, { { 2, 0 }, { 3, 31 } }, UNI_SINCE_Z11 },
-    { "LHLR", mi_RISBHGZ, { { 2, 0 }, { 3, 31 }, { 4, 32 } }, UNI_SINCE_Z11 },
-    { "LLCHHR", mi_RISBHGZ, { { 2, 24 }, { 3, 31 } }, UNI_SINCE_Z11 },
-    { "LLCHLR", mi_RISBHGZ, { { 2, 24 }, { 3, 31 }, { 4, 32 } }, UNI_SINCE_Z11 },
-    { "LLCLHR", mi_RISBLGZ, { { 2, 24 }, { 3, 31 }, { 4, 32 } }, UNI_SINCE_Z11 },
+    { "LHHR", mi_RISBHG, { { 2, 0 }, { 3, 31 } }, UNI_SINCE_Z11 },
+    { "LHLR", mi_RISBHG, { { 2, 0 }, { 3, 31 }, { 4, 32 } }, UNI_SINCE_Z11 },
+    { "LLCHHR", mi_RISBHG, { { 2, 24 }, { 3, 0x80 + 31 } }, UNI_SINCE_Z11 },
+    { "LLCHLR", mi_RISBHG, { { 2, 24 }, { 3, 0x80 + 31 }, { 4, 32 } }, UNI_SINCE_Z11 },
+    { "LLCLHR", mi_RISBLG, { { 2, 24 }, { 3, 0x80 + 31 }, { 4, 32 } }, UNI_SINCE_Z11 },
     { "LLGFI", mi_LLILF, {}, UNI_SINCE_Z16 },
-    { "LLHFR", mi_RISBLGZ, { { 2, 0 }, { 3, 31 }, { 4, 32 } }, UNI_SINCE_Z11 },
-    { "LLHHHR", mi_RISBHGZ, { { 2, 16 }, { 3, 31 } }, UNI_SINCE_Z11 },
-    { "LLHHLR", mi_RISBHGZ, { { 2, 16 }, { 3, 31 }, { 4, 32 } }, UNI_SINCE_Z11 },
-    { "LLHLHR", mi_RISBLGZ, { { 2, 16 }, { 3, 31 }, { 4, 32 } }, UNI_SINCE_Z11 },
+    { "LLHFR", mi_RISBLG, { { 2, 0 }, { 3, 31 }, { 4, 32 } }, UNI_SINCE_Z11 },
+    { "LLHHHR", mi_RISBHG, { { 2, 16 }, { 3, 0x80 + 31 } }, UNI_SINCE_Z11 },
+    { "LLHHLR", mi_RISBHG, { { 2, 16 }, { 3, 0x80 + 31 }, { 4, 32 } }, UNI_SINCE_Z11 },
+    { "LLHLHR", mi_RISBLG, { { 2, 16 }, { 3, 0x80 + 31 }, { 4, 32 } }, UNI_SINCE_Z11 },
     { "LOCE", mi_LOC, { { 2, 8 } }, UNI_SINCE_Z11 },
     { "LOCFHE", mi_LOCFH, { { 2, 8 } }, UNI_SINCE_Z13 },
     { "LOCFHH", mi_LOCFH, { { 2, 2 } }, UNI_SINCE_Z13 },
@@ -2608,11 +2606,15 @@ constexpr mnemonic_code mnemonic_codes[] = {
     { "NLHR", mi_RNSBG, { { 2, 32 }, { 3, 63 }, { 4, 32 } }, UNI_SINCE_Z11 },
     { "NOP", mi_BC, { { 0, 0 } }, UNI_ESA_XA_370_DOS_SINCE_ZOP },
     { "NOPR", mi_BCR, { { 0, 0 } }, UNI_ESA_XA_370_DOS_SINCE_ZOP },
-    { "NOTGR", mi_NOGRK, { { 2, 0 } }, UNI_SINCE_Z15 },
-    { "NOTR", mi_NORK, { { 2, 0 } }, UNI_SINCE_Z15 },
+    { "NOTGR", mi_NOGRK, { mnemonic_replacement(2, mnemonic_replacement_kind::copy, 1) }, UNI_SINCE_Z15 },
+    { "NOTR", mi_NORK, { mnemonic_replacement(2, mnemonic_replacement_kind::copy, 1) }, UNI_SINCE_Z15 },
     { "OHHR", mi_ROSBG, { { 2, 0 }, { 3, 31 } }, UNI_SINCE_Z11 },
     { "OHLR", mi_ROSBG, { { 2, 0 }, { 3, 31 }, { 4, 32 } }, UNI_SINCE_Z11 },
     { "OLHR", mi_ROSBG, { { 2, 32 }, { 3, 63 }, { 4, 32 } }, UNI_SINCE_Z11 },
+    { "RISBGNZ", mi_RISBGN, { mnemonic_replacement(3, 0x80, mnemonic_replacement_kind::or_with, 3) }, UNI_SINCE_Z12 },
+    { "RISBGZ", mi_RISBG, { mnemonic_replacement(3, 0x80, mnemonic_replacement_kind::or_with, 3) }, UNI_SINCE_Z10 },
+    { "RISBHGZ", mi_RISBHG, { mnemonic_replacement(3, 0x80, mnemonic_replacement_kind::or_with, 3) }, UNI_SINCE_Z11 },
+    { "RISBLGZ", mi_RISBLG, { mnemonic_replacement(3, 0x80, mnemonic_replacement_kind::or_with, 3) }, UNI_SINCE_Z11 },
     { "SELFHRE", mi_SELFHR, { { 3, 8 } }, UNI_SINCE_Z15 },
     { "SELFHRH", mi_SELFHR, { { 3, 2 } }, UNI_SINCE_Z15 },
     { "SELFHRL", mi_SELFHR, { { 3, 4 } }, UNI_SINCE_Z15 },
@@ -2655,12 +2657,57 @@ constexpr mnemonic_code mnemonic_codes[] = {
     { "SELRO", mi_SELR, { { 3, 1 } }, UNI_SINCE_Z15 },
     { "SELRP", mi_SELR, { { 3, 2 } }, UNI_SINCE_Z15 },
     { "SELRZ", mi_SELR, { { 3, 8 } }, UNI_SINCE_Z15 },
-    { "SLLHH", mi_RISBHGZ, { { 2, 0 }, { 3, 0 } }, UNI_SINCE_Z16 }, // TODO: op!!!
-    { "SLLHL", mi_RISBHGZ, { { 2, 0 }, { 3, 0 } }, UNI_SINCE_Z16 }, // TODO: op!!!
-    { "SLLLH", mi_RISBLGZ, { { 2, 0 }, { 3, 0 } }, UNI_SINCE_Z16 }, // TODO: op!!!
-    { "SRLHH", mi_RISBHGZ, { { 3, 0 }, { 4, 0 } }, UNI_SINCE_Z16 }, // TODO: op!!!
-    { "SRLHL", mi_RISBHGZ, { { 3, 0 }, { 4, 0 } }, UNI_SINCE_Z16 }, // TODO: op!!!
-    { "SRLLH", mi_RISBLGZ, { { 3, 0 }, { 4, 0 } }, UNI_SINCE_Z16 }, // TODO: op!!!
+    { "SLLHH",
+        mi_RISBHG,
+        {
+            mnemonic_replacement(2, 0),
+            mnemonic_replacement(3, 0x80 + 31, mnemonic_replacement_kind::subtract_from, 2),
+            mnemonic_replacement(4, mnemonic_replacement_kind::copy, 2),
+        },
+        UNI_SINCE_Z16,
+        3 }, // TODO: op!!!
+    { "SLLHL",
+        mi_RISBHG,
+        {
+            mnemonic_replacement(2, 0),
+            mnemonic_replacement(3, 0x80 + 31, mnemonic_replacement_kind::subtract_from, 2),
+            mnemonic_replacement(4, 32, mnemonic_replacement_kind::add_to, 2),
+        },
+        UNI_SINCE_Z16,
+        3 }, // TODO: op!!!
+    { "SLLLH",
+        mi_RISBLG,
+        {
+            mnemonic_replacement(2, 0),
+            mnemonic_replacement(3, 0x80 + 31, mnemonic_replacement_kind::subtract_from, 2),
+            mnemonic_replacement(4, 32, mnemonic_replacement_kind::add_to, 2),
+        },
+        UNI_SINCE_Z16,
+        3 }, // TODO: op!!!
+    { "SRLHH",
+        mi_RISBHG,
+        {
+            mnemonic_replacement(3, 0x80 + 31),
+            mnemonic_replacement(4, 64, mnemonic_replacement_kind::subtract_from, 2),
+        },
+        UNI_SINCE_Z16,
+        3 }, // TODO: op!!!
+    { "SRLHL",
+        mi_RISBHG,
+        {
+            mnemonic_replacement(3, 0x80 + 31),
+            mnemonic_replacement(4, 32, mnemonic_replacement_kind::subtract_from, 2),
+        },
+        UNI_SINCE_Z16,
+        3 }, // TODO: op!!!
+    { "SRLLH",
+        mi_RISBLG,
+        {
+            mnemonic_replacement(3, 0x80 + 31),
+            mnemonic_replacement(4, 32, mnemonic_replacement_kind::subtract_from, 2),
+        },
+        UNI_SINCE_Z16,
+        3 }, // TODO: op!!!
     { "STDRV", mi_VSTEBRG, { { 2, 0 } }, UNI_SINCE_Z15 },
     { "STERV", mi_VSTEBRF, { { 2, 0 } }, UNI_SINCE_Z15 },
     { "STOCE", mi_STOC, { { 2, 8 } }, UNI_SINCE_Z11 },
@@ -2920,12 +2967,12 @@ constexpr mnemonic_code mnemonic_codes[] = {
     { "VGMF", mi_VGM, { { 3, 2 } }, UNI_SINCE_Z13 },
     { "VGMG", mi_VGM, { { 3, 3 } }, UNI_SINCE_Z13 },
     { "VGMH", mi_VGM, { { 3, 1 } }, UNI_SINCE_Z13 },
-    { "VISTRB", mi_VISTR, { { 3, 0 } }, UNI_SINCE_Z13 },
-    { "VISTRBS", mi_VISTR, { { 3, 0 }, { 4, 1 } }, UNI_SINCE_Z13 },
-    { "VISTRF", mi_VISTR, { { 3, 2 } }, UNI_SINCE_Z13 },
-    { "VISTRFS", mi_VISTR, { { 3, 2 }, { 4, 1 } }, UNI_SINCE_Z13 },
-    { "VISTRH", mi_VISTR, { { 3, 1 } }, UNI_SINCE_Z13 },
-    { "VISTRHS", mi_VISTR, { { 3, 1 }, { 4, 1 } }, UNI_SINCE_Z13 },
+    { "VISTRB", mi_VISTR, { { 2, 0 } }, UNI_SINCE_Z13 },
+    { "VISTRBS", mi_VISTR, { { 2, 0 }, { 3, 1 } }, UNI_SINCE_Z13 },
+    { "VISTRF", mi_VISTR, { { 2, 2 } }, UNI_SINCE_Z13 },
+    { "VISTRFS", mi_VISTR, { { 2, 2 }, { 3, 1 } }, UNI_SINCE_Z13 },
+    { "VISTRH", mi_VISTR, { { 2, 1 } }, UNI_SINCE_Z13 },
+    { "VISTRHS", mi_VISTR, { { 2, 1 }, { 3, 1 } }, UNI_SINCE_Z13 },
     { "VLBRF", mi_VLBR, { { 2, 2 } }, UNI_SINCE_Z15 },
     { "VLBRG", mi_VLBR, { { 2, 3 } }, UNI_SINCE_Z15 },
     { "VLBRH", mi_VLBR, { { 2, 1 } }, UNI_SINCE_Z15 },
@@ -3036,7 +3083,7 @@ constexpr mnemonic_code mnemonic_codes[] = {
     { "VMXLF", mi_VMXL, { { 3, 2 } }, UNI_SINCE_Z13 },
     { "VMXLG", mi_VMXL, { { 3, 3 } }, UNI_SINCE_Z13 },
     { "VMXLH", mi_VMXL, { { 3, 1 } }, UNI_SINCE_Z13 },
-    { "VNOT", mi_VNO, { { 2, 0 } }, UNI_SINCE_Z13 },
+    { "VNOT", mi_VNO, { mnemonic_replacement(2, mnemonic_replacement_kind::copy, 1) }, UNI_SINCE_Z13 },
     { "VONE", mi_VGBM, { { 1, 65535 } }, UNI_SINCE_Z13 },
     { "VPKF", mi_VPK, { { 3, 2 } }, UNI_SINCE_Z13 },
     { "VPKG", mi_VPK, { { 3, 3 } }, UNI_SINCE_Z13 },

@@ -379,13 +379,14 @@ std::string parameter::to_string() const
     return ret_val;
 }
 
-std::string machine_operand_format::to_string() const
+std::string machine_operand_format::to_string(std::optional<size_t> i) const
 {
-    std::string ret_val = identifier.to_string();
+    const auto index = i.has_value() ? std::to_string(i.value()) : std::string();
+    std::string ret_val = identifier.to_string() + index;
     if (first.is_empty() && second.is_empty())
         return ret_val;
     if (first.is_empty())
-        return (ret_val + "(" + second.to_string() + ")");
+        return (ret_val + "(" + second.to_string() + index + ")");
     // only second cannot be empty
-    return (ret_val + "(" + first.to_string() + "," + second.to_string() + ")");
+    return (ret_val + "(" + first.to_string() + index + "," + second.to_string() + index + ")");
 }

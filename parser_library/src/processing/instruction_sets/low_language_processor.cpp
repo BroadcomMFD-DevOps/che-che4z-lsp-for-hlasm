@@ -14,6 +14,7 @@
 
 #include "low_language_processor.h"
 
+#include <algorithm>
 #include <optional>
 #include <type_traits>
 
@@ -183,49 +184,85 @@ low_language_processor::transform_result low_language_processor::transform_mnemo
 
     auto replaced = mnemonic.replaced_operands();
 
-    // check whether substituted mnemonic values are ok
-
     // check size of mnemonic operands
-    if (operands.size() + replaced.size() > curr_instr->operands().size()
-        || operands.size() + replaced.size() < curr_instr->operands().size() - curr_instr->optional_operand_count())
+    if (auto [low, high] = mnemonic.operand_count(); operands.size() < low || operands.size() > high)
     {
-        add_diagnostic(diagnostic_op::error_optional_number_of_operands(instr_name,
-            curr_instr->optional_operand_count(),
-            curr_instr->operands().size() - replaced.size(),
-            stmt.stmt_range_ref()));
+        add_diagnostic(
+            diagnostic_op::error_optional_number_of_operands(instr_name, high - low, high, stmt.stmt_range_ref()));
         return std::nullopt;
     }
+    assert(operands.size() <= context::machine_instruction::max_operand_count);
 
-    // create vector of empty operands
-    std::vector<checking::check_op_ptr> operand_vector(curr_instr->operands().size());
-    // add substituted
-    for (const auto& mnem : replaced)
-        operand_vector[mnem.first] = std::make_unique<checking::one_operand>((int)mnem.second);
-    // add other
-    size_t real_op_idx = 0;
-    for (size_t j = 0; j < operand_vector.size() && real_op_idx < operands.size(); j++)
+    std::array<checking::check_op_ptr, context::machine_instruction::max_operand_count> po;
+    std::array<int, context::machine_instruction::max_operand_count> provided_operand_values {}; // or 0 by default
+    for (size_t op_id = 0, po_id = 0, repl_id = 0; const auto &operand : operands)
     {
-        if (operand_vector[j])
-            continue;
-
-        auto& operand = operands[real_op_idx++];
+        while (repl_id < replaced.size() && op_id == replaced[repl_id].position && replaced[repl_id].inserts_operand())
+        {
+            ++repl_id;
+            ++op_id;
+        }
+        auto& t = po[po_id];
         if (operand->type == semantics::operand_type::EMPTY) // if operand is empty
         {
-            operand_vector[j] = std::make_unique<checking::empty_operand>();
-            operand_vector[j]->operand_range = operand->operand_range;
+            t = std::make_unique<checking::empty_operand>();
+            t->operand_range = operand->operand_range;
         }
         else // if operand is not empty
         {
-            auto uniq = get_check_op(operand.get(), dep_solver, add_diagnostic, stmt, j, &mnemonic);
-            if (!uniq)
+            t = get_check_op(operand.get(), dep_solver, add_diagnostic, stmt, op_id, &mnemonic);
+            if (!t)
                 return std::nullopt; // contains dependencies
-
-            uniq->operand_range = operand.get()->operand_range;
-            operand_vector[j] = std::move(uniq);
+            t->operand_range = operand.get()->operand_range;
+            if (const auto* ao = dynamic_cast<const checking::one_operand*>(t.get()); ao)
+                provided_operand_values[po_id] = ao->value;
         }
+        ++op_id;
+        ++po_id;
     }
-    std::erase_if(operand_vector, [](const auto& x) { return !x; });
-    return operand_vector;
+    std::span<checking::check_op_ptr> provided_operands(po.data(), operands.size());
+
+    // create vector of empty operands
+    std::vector<checking::check_op_ptr> result(curr_instr->operands().size());
+
+    // add other
+    for (size_t j = 0; j < result.size(); j++)
+    {
+        if (!replaced.empty() && replaced.front().position == j)
+        {
+            const auto replacement = replaced.front();
+            replaced = replaced.subspan(1);
+            int value = replacement.value;
+            switch (replacement.type)
+            {
+                case context::mnemonic_replacement_kind::insert:
+                    break;
+                case context::mnemonic_replacement_kind::copy:
+                    value = provided_operand_values[replacement.source];
+                    break;
+                case context::mnemonic_replacement_kind::or_with:
+                    value |= provided_operand_values[replacement.source];
+                    break;
+                case context::mnemonic_replacement_kind::add_to:
+                    value += provided_operand_values[replacement.source];
+                    break;
+                case context::mnemonic_replacement_kind::subtract_from:
+                    value -= provided_operand_values[replacement.source];
+                    break;
+            }
+            result[j] = std::make_unique<checking::one_operand>(value);
+            if (!replacement.inserts_operand() && !provided_operands.empty())
+                provided_operands = provided_operands.subspan(1); // consume updated operand
+            continue;
+        }
+        if (provided_operands.empty())
+            break;
+
+        result[j] = std::move(provided_operands.front());
+        provided_operands = provided_operands.subspan(1);
+    }
+    std::erase_if(result, [](const auto& x) { return !x; });
+    return result;
 }
 
 low_language_processor::transform_result low_language_processor::transform_default(

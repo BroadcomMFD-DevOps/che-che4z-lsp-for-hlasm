@@ -18,6 +18,7 @@
 #include <assert.h>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <variant>
 #include <vector>
@@ -109,7 +110,7 @@ struct machine_operand_format
         assert(!second.is_empty() || first.is_empty());
     };
 
-    std::string to_string() const;
+    std::string to_string(std::optional<size_t> i = std::nullopt) const;
 };
 
 // Abstract class that represents a machine operand suitable for checking.
