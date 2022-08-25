@@ -320,7 +320,7 @@ You can also chain the preprocessors in the following way:
 
 ## Download Dependencies
 
-You can use HLASM Language Support to download dependencies specified in mainframe data sets in `proc_grps.json` to your workspace. To connect to the mainframe, we recommend setting up a `zowe zosmf` or `zowe zftp` profile to store your credentials and connection information.
+You can use HLASM Language Support extension to download dependencies from mainframe data sets specified in `proc_grps.json` to your workspace. To connect to the mainframe, we recommend setting up a `zowe zosmf` or `zowe zftp` profile to store your credentials and connection information.
 
 1. Press **F1** to open the Command Pallet.
 2. Run the commend **HLASM: Download dependencies**.
