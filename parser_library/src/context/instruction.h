@@ -551,7 +551,7 @@ public:
         assert(transform.size() <= m_transform.size());
         std::copy(transform.begin(), transform.end(), m_transform.begin());
         const auto insert_count = std::count_if(transform.begin(), transform.end(), [](auto t) { return t.insert; });
-        const auto total = std::reduce(
+        const auto total = std::accumulate(
             transform.begin(), transform.end(), (size_t)0, [](size_t res, auto t) { return res + t.skip + t.insert; });
         assert(total <= instr->operands().size());
 
