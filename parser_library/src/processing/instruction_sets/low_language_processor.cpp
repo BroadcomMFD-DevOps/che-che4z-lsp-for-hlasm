@@ -248,13 +248,13 @@ low_language_processor::transform_result low_language_processor::transform_mnemo
     {
         if (!transforms.empty() && transforms.front().skip == processed)
         {
-            const auto replacement = transforms.front();
+            const auto transform = transforms.front();
             transforms = transforms.subspan(1);
             processed = 0;
 
-            auto [expr_value, failed, r] = provided_operand_values[replacement.source];
-            int value = replacement.value;
-            switch (replacement.type)
+            const auto& [expr_value, failed, r] = provided_operand_values[transform.source];
+            int value = transform.value;
+            switch (transform.type)
             {
                 case context::mnemonic_transformation_kind::value:
                     break;
@@ -274,12 +274,12 @@ low_language_processor::transform_result low_language_processor::transform_mnemo
                     value = 1 + ~(unsigned)expr_value & (1u << value) - 1;
                     break;
             }
-            if (!failed)
+            if (!transform.has_source() && transform.insert || !failed)
                 op = std::make_unique<checking::one_operand>(value, r);
             else
                 op = std::make_unique<checking::empty_operand>(r);
 
-            if (!replacement.insert && !provided_operands.empty())
+            if (!transform.insert && !provided_operands.empty())
                 provided_operands = provided_operands.subspan(1); // consume updated operand
             continue;
         }
