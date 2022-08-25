@@ -327,7 +327,7 @@ You can use HLASM Language Support to download dependencies specified in mainfra
 3. Do one of the following:
    - Specify the name of a `zowe zosmf` or `zowe zftp` profile that contains your mainframe credentials and server information.
    - Enter your server details manually:
-      1. Specify the address of your mainframe server in the format `http(s)://host:port`.
+      1. Enter the address of your mainframe server in the format `http(s)://host:port`.
       2. Enter your mainframe username.
       3. Enter your mainframe password.
       4. Select one of the following security options:
