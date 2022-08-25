@@ -9,7 +9,7 @@
 </div>
 
 # HLASM Language Support
-HLASM Language Support is an extension that supports the High Level Assembler language. It provides code completion, highlighting and navigation features, shows mistakes in the source, and enables you to trace how the conditional assembly is evaluated with a modern debugging experience.
+HLASM Language Support is an extension that supports the High Level Assembler language. It provides code completion, highlighting and navigation features, shows mistakes in the source, retrieval of dependencies from mainframe data sets, and enables you to trace how the conditional assembly is evaluated with a modern debugging experience.
 
 HLASM Language Support is also part of [Code4z](https://marketplace.visualstudio.com/items?itemName=broadcomMFD.code4z-extension-pack), an all-round package that offers a modern experience for mainframe application developers, including extensions for language support, data editing, testing, and source code management.
 
@@ -318,6 +318,25 @@ You can also chain the preprocessors in the following way:
 }
 ```
 
+## Download Dependencies
+
+You can use HLASM Language Support to download dependencies specified in mainframe data sets in `proc_grps.json` to your workspace. To connect to the mainframe, we recommend setting up a `zowe zosmf` or `zowe zftp` profile to store your credentials and connection information.
+
+1. Press **F1** to open the Command Pallet.
+2. Run the commend **HLASM: Download dependencies**.
+3. Do one of the following:
+   - Specify the name of a `zowe zosmf` or `zowe zftp` profile that contains your mainframe credentials and server information.
+   - Enter your server details manually:
+      1. Specify the address of your mainframe server in the format `http(s)://host:port`.
+      2. Enter your mainframe username.
+      3. Enter your mainframe password.
+      4. Select one of the following security options:
+         - **Use TLS, reject unauthorized certificates**
+         - **Use TLS, accept unauthorized certificates**
+         - **Unsecured connection**   
+4. Enter your job header.
+
+All dependencies are downloaded from the specified data sets to your workspace.
 
 ## Questions, issues, feature requests, and contributions
 - If you have a question about how to accomplish something with the extension, or come across a problem, file an issue on [GitHub](https://github.com/eclipse/che-che4z-lsp-for-hlasm)
