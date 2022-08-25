@@ -190,7 +190,9 @@ TEST(logical_expressions, arithmetic_logical_clash)
     std::string input =
         R"(
 &A1 SETB (NOT 0 AND NOT 0 AND 50 GT 126+4)
-&A2 SETB (1 AND 10 EQ (10 OR 2))
+&A2 SETB (NOT 0 AND NOT 0 OR 50 GT 126+4)
+&A3 SETB (1 AND 10 EQ (10 OR 2))
+&A4 SETB (1 AND (10 EQ (10 OR 2)))
 )";
     analyzer a(input);
     a.analyze();
@@ -200,6 +202,8 @@ TEST(logical_expressions, arithmetic_logical_clash)
 
     SETBEQ("A1", 0);
     SETBEQ("A2", 1);
+    SETBEQ("A3", 0);
+    SETBEQ("A4", 0);
 }
 
 TEST(logical_expressions, no_parenthesis)
@@ -214,7 +218,7 @@ TEST(logical_expressions, no_parenthesis)
 
     a.collect_diags();
     EXPECT_EQ(a.diags().size(), (size_t)2);
-    //EXPECT_TRUE(matches_message_codes(a.diags(), { "CE016", "CE016" })); // todo
+    // EXPECT_TRUE(matches_message_codes(a.diags(), { "CE016", "CE016" })); // todo
 }
 
 TEST(logical_expressions, no_spaces)
@@ -289,6 +293,37 @@ TEST(logical_expressions, parenthesis_around_expressions)
     EXPECT_TRUE(std::all_of(diags.begin(), diags.end(), [](const auto& d) { return d.code == "CE016"; }));
 }
 
+TEST(logical_expressions, not_negative)
+{
+    std::string input =
+        R"(
+&A SETB (NOT -5)
+)";
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_NE(a.diags().size(), (size_t)0);
+    // EXPECT_TRUE(std::all_of(diags.begin(), diags.end(), [](const auto& d) { return d.code == "CE016"; })); // todo
+}
+
+TEST(logical_expressions, not_negative_2)
+{
+    std::string input =
+        R"(
+&F SETA 5
+&NEGF SETA -5
+&A SETB (NOT &F)
+&B SETB (NOT &NEGF)
+)";
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_EQ(a.diags().size(), (size_t)0);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "A"), false);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B"), false);
+}
 TEST(logical_expressions, operator_precedence)
 {
     for (const auto& [args, expected] : std::initializer_list<std::pair<std::string, bool>> {
@@ -317,29 +352,356 @@ TEST(logical_expressions, operator_precedence)
     }
 }
 
-TEST(logical_expressions, logical_operators_and_relational_not)
+TEST(logical_expressions, operator_precedence_2)
 {
     std::string input =
         R"(
-&A SETB (NOT 1 EQ NOT 1)
-&B SETB (NOT 0 NE NOT 1)
-&C SETB (0 LE NOT 0)
-&D SETB (0 LT NOT 0)
-&E SETB (1 GE NOT 0)
-&F SETB (1 GT NOT 1)
+&B1   SETB   (1 AND NOT 5 EQ 4)
+&B2   SETB   (4 AND (NOT 5) EQ 4)
+&B22   SETB   (4 AND (NOT -5) EQ 4)
+&B23   SETB   (1 AND ((NOT -5) EQ 4))
+&B24   SETB   (1 AND ((NOT -5) EQ 0))
+&B25   SETB   (1 AND ((NOT -4) EQ 0))
+&B26   SETB   (1 AND ((NOT -0) EQ 0))
+&B27   SETB   (1 AND ((NOT 0) EQ 0))
+&B3   SETB   (1 AND (NOT -5) EQ 4)
+&B31   SETB   ((1 AND NOT -5) EQ 4)
+&B32   SETB   (1 AND  (NOT -5  EQ 4))
+&B33   SETB   (1 AND  NOT -5  EQ 4)
+&B34   SETB   (1 AND  ((NOT -5)  EQ 4))
+&B4   SETB   (4)
+&B5   SETB   (1 AND NOT 0 EQ -1)
+&B6   SETB   (1 AND (NOT 0) EQ -1)
+&B7   SETB   (3 AND (NOT 0) EQ -1)
+&A5   SETA   (-1 AND NOT 0 AND -1)
+&A6   SETA   (-1 AND (NOT 0) AND -1)
+&A7   SETA   (NOT 0 AND NOT 0)
+&A8   SETA   ((NOT 0) AND (NOT 0))
+&B8   SETB   (NOT 0 AND NOT 0)
+&B9   SETB   ((NOT 0) AND (NOT 0))
 )";
-
     analyzer a(input);
     a.analyze();
     a.collect_diags();
 
     EXPECT_TRUE(a.diags().empty());
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "A"), true);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B"), true);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "C"), true);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "D"), true);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "E"), true);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "F"), true);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B1"), true);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B2"), false);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B22"), false);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B23"), false);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B24"), true);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B25"), true);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B26"), false);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B27"), false);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B3"), false);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B31"), false);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B32"), true);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B33"), true);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B34"), false);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B4"), true);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B5"), true);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B6"), false);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B7"), false);
+    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "A5"), -1);
+    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "A6"), -1);
+    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "A7"), -1);
+    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "A8"), -1);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B8"), true);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B9"), true);
+}
+
+TEST(logical_expressions, operator_precedence_3)
+{
+    std::string input =
+        R"(
+&FIVE  SETA 5
+&NEGFIVE  SETA -5
+&B1   SETB   (1 AND NOT &FIVE EQ 4)
+&B2   SETB   (4 AND (NOT &FIVE) EQ 4)
+&B22   SETB   (4 AND (NOT &NEGFIVE) EQ 4)
+&B23   SETB   (1 AND ((NOT &NEGFIVE) EQ 4))
+&B24   SETB   (1 AND ((NOT &NEGFIVE) EQ 0))
+&B25   SETB   (1 AND ((NOT -4) EQ 0))
+&B26   SETB   (1 AND ((NOT -0) EQ 0))
+&B27   SETB   (1 AND ((NOT 0) EQ 0))
+&B3   SETB   (1 AND (NOT -5) EQ 4)
+&B31   SETB   ((1 AND NOT -5) EQ 4)
+&B32   SETB   (1 AND  (NOT -5  EQ 4))
+&B33   SETB   (1 AND  NOT -5  EQ 4)
+&B34   SETB   (1 AND  ((NOT -5)  EQ 4))
+&B4   SETB   (4)
+&B5   SETB   (1 AND NOT 0 EQ -1)
+&B6   SETB   (1 AND (NOT 0) EQ -1)
+&A5   SETA   (-1 AND NOT 0 AND -1)
+&A6   SETA   (-1 AND (NOT 0) AND -1)
+&A7   SETA   (NOT 0 AND NOT 0)
+&A8   SETA   ((NOT 0) AND (NOT 0))
+&B7   SETB   (NOT 0 AND NOT 0)
+&B8   SETB   ((NOT 0) AND (NOT 0))
+)";
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(a.diags().empty());
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B1"), true);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B2"), false);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B22"), false);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B23"), false);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B24"), true);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B25"), true);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B26"), false);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B27"), false);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B3"), false);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B31"), false);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B32"), true);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B33"), true);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B34"), false);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B4"), true);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B5"), true);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B6"), false);
+    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "A5"), -1);
+    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "A6"), -1);
+    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "A7"), -1);
+    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "A8"), -1);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B7"), true);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B8"), true);
+}
+
+TEST(logical_expressions, operator_precedence_diag)
+{
+    std::string input =
+        R"(
+&A1   SETB   (-1 AND NOT 0 AND -1)
+&A2   SETB   (-1 AND (NOT 0) AND -1)
+&A3   SETB   (6 AND NOT -7)
+)";
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_EQ(a.diags().size(), 2);
+}
+
+TEST(logical_expressions, operator2)
+{
+    std::string input =
+        R"(
+&A1   SETB   (6 AND (NOT 7))
+&A2   SETB   (6 AND (NOT 0))
+&A3   SETB   (1 AND NOT 0)
+&A4   SETB   (1 AND (NOT 0))
+)";
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(a.diags().empty());
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "A1"), false);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "A2"), true);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "A3"), true);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "A4"), true);
+}
+
+TEST(logical_expressions, operator3)
+{
+    std::string input =
+        R"(
+&VAR  SETA -7
+&A    SETA   (6 AND NOT &VAR)
+&B1   SETB   (6 AND NOT &VAR)
+&B2   SETB   (6)
+&B3   SETB   (NOT 6)
+)";
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(a.diags().empty());
+    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "A"), 6);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B1"), false);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B2"), true);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B3"), false);
+}
+
+TEST(logical_expressions, logical_operator_eq)
+{
+    for (const auto& [input, res] : {
+             std::pair<std::string, bool> { "&A SETB (0 EQ 0)", true },
+             std::pair<std::string, bool> { "&A SETB (0 EQ 1)", false },
+             std::pair<std::string, bool> { "&A SETB (1 EQ 0)", false },
+             std::pair<std::string, bool> { "&A SETB (1 EQ 1)", true },
+             std::pair<std::string, bool> { "&A SETB (0 EQ NOT 0)", false },
+             std::pair<std::string, bool> { "&A SETB (0 EQ NOT 1)", true },
+             std::pair<std::string, bool> { "&A SETB (1 EQ NOT 0)", true },
+             std::pair<std::string, bool> { "&A SETB (1 EQ NOT 1)", false },
+             std::pair<std::string, bool> { "&A SETB (NOT 0 EQ 0)", false },
+             std::pair<std::string, bool> { "&A SETB (NOT 0 EQ 1)", true },
+             std::pair<std::string, bool> { "&A SETB (NOT 1 EQ 0)", true },
+             std::pair<std::string, bool> { "&A SETB (NOT 1 EQ 1)", false },
+             std::pair<std::string, bool> { "&A SETB (NOT 0 EQ NOT 0)", true },
+             std::pair<std::string, bool> { "&A SETB (NOT 0 EQ NOT 1)", false },
+             std::pair<std::string, bool> { "&A SETB (NOT 1 EQ NOT 0)", false },
+             std::pair<std::string, bool> { "&A SETB (NOT 1 EQ NOT 1)", true },
+         })
+    {
+        analyzer a(input);
+        a.analyze();
+
+        a.collect_diags();
+        EXPECT_TRUE(a.diags().empty());
+        EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "A"), res) << input;
+    }
+}
+
+TEST(logical_expressions, logical_operator_ne)
+{
+    for (const auto& [input, res] : {
+             std::pair<std::string, bool> { "&A SETB (0 NE 0)", false },
+             std::pair<std::string, bool> { "&A SETB (0 NE 1)", true },
+             std::pair<std::string, bool> { "&A SETB (1 NE 0)", true },
+             std::pair<std::string, bool> { "&A SETB (1 NE 1)", false },
+             std::pair<std::string, bool> { "&A SETB (0 NE NOT 0)", true },
+             std::pair<std::string, bool> { "&A SETB (0 NE NOT 1)", false },
+             std::pair<std::string, bool> { "&A SETB (1 NE NOT 0)", false },
+             std::pair<std::string, bool> { "&A SETB (1 NE NOT 1)", true },
+             std::pair<std::string, bool> { "&A SETB (NOT 0 NE 0)", true },
+             std::pair<std::string, bool> { "&A SETB (NOT 0 NE 1)", false },
+             std::pair<std::string, bool> { "&A SETB (NOT 1 NE 0)", false },
+             std::pair<std::string, bool> { "&A SETB (NOT 1 NE 1)", true },
+             std::pair<std::string, bool> { "&A SETB (NOT 0 NE NOT 0)", false },
+             std::pair<std::string, bool> { "&A SETB (NOT 0 NE NOT 1)", true },
+             std::pair<std::string, bool> { "&A SETB (NOT 1 NE NOT 0)", true },
+             std::pair<std::string, bool> { "&A SETB (NOT 1 NE NOT 1)", false },
+         })
+    {
+        analyzer a(input);
+        a.analyze();
+
+        a.collect_diags();
+        EXPECT_TRUE(a.diags().empty());
+        EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "A"), res) << input;
+    }
+}
+
+TEST(logical_expressions, logical_operator_le)
+{
+    for (const auto& [input, res] : {
+             std::pair<std::string, bool> { "&A SETB (0 LE 0)", true },
+             std::pair<std::string, bool> { "&A SETB (0 LE 1)", true },
+             std::pair<std::string, bool> { "&A SETB (1 LE 0)", false },
+             std::pair<std::string, bool> { "&A SETB (1 LE 1)", true },
+             std::pair<std::string, bool> { "&A SETB (0 LE NOT 0)", true },
+             std::pair<std::string, bool> { "&A SETB (0 LE NOT 1)", true },
+             std::pair<std::string, bool> { "&A SETB (1 LE NOT 0)", true },
+             std::pair<std::string, bool> { "&A SETB (1 LE NOT 1)", false },
+             std::pair<std::string, bool> { "&A SETB (NOT 0 LE 0)", false },
+             std::pair<std::string, bool> { "&A SETB (NOT 0 LE 1)", false }, // todo ?! Should be true?
+             std::pair<std::string, bool> { "&A SETB (NOT 1 LE 0)", true },
+             std::pair<std::string, bool> { "&A SETB (NOT 1 LE 1)", false }, // todo ?! Should be true?
+             std::pair<std::string, bool> { "&A SETB (NOT 0 LE NOT 0)", false }, // todo ?! Should be true?
+             std::pair<std::string, bool> { "&A SETB (NOT 0 LE NOT 1)", false },
+             std::pair<std::string, bool> { "&A SETB (NOT 1 LE NOT 0)", false }, // todo ?! Should be true?
+             std::pair<std::string, bool> { "&A SETB (NOT 1 LE NOT 1)", true },
+         })
+    {
+        analyzer a(input);
+        a.analyze();
+
+        a.collect_diags();
+        EXPECT_TRUE(a.diags().empty());
+        EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "A"), res) << input;
+    }
+}
+
+TEST(logical_expressions, logical_operator_lt)
+{
+    for (const auto& [input, res] : {
+             std::pair<std::string, bool> { "&A SETB (0 LT 0)", false },
+             std::pair<std::string, bool> { "&A SETB (0 LT 1)", true },
+             std::pair<std::string, bool> { "&A SETB (1 LT 0)", false },
+             std::pair<std::string, bool> { "&A SETB (1 LT 1)", false },
+             std::pair<std::string, bool> { "&A SETB (0 LT NOT 0)", true },
+             std::pair<std::string, bool> { "&A SETB (0 LT NOT 1)", false },
+             std::pair<std::string, bool> { "&A SETB (1 LT NOT 0)", false },
+             std::pair<std::string, bool> { "&A SETB (1 LT NOT 1)", false },
+             std::pair<std::string, bool> { "&A SETB (NOT 0 LT 0)", true }, // todo ?! Should be false?
+             std::pair<std::string, bool> { "&A SETB (NOT 0 LT 1)", false },
+             std::pair<std::string, bool> { "&A SETB (NOT 1 LT 0)", true }, // todo ?! Should be false?
+             std::pair<std::string, bool> { "&A SETB (NOT 1 LT 1)", true },
+             std::pair<std::string, bool> { "&A SETB (NOT 0 LT NOT 0)", false },
+             std::pair<std::string, bool> { "&A SETB (NOT 0 LT NOT 1)", true }, // todo ?! Should be false?
+             std::pair<std::string, bool> { "&A SETB (NOT 1 LT NOT 0)", true },
+             std::pair<std::string, bool> { "&A SETB (NOT 1 LT NOT 1)", true }, // todo ?! Should be false?
+         })
+    {
+        analyzer a(input);
+        a.analyze();
+
+        a.collect_diags();
+        EXPECT_TRUE(a.diags().empty());
+        EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "A"), res) << input;
+    }
+}
+
+TEST(logical_expressions, logical_operator_ge)
+{
+    for (const auto& [input, res] : {
+             std::pair<std::string, bool> { "&A SETB (0 GE 0)", true },
+             std::pair<std::string, bool> { "&A SETB (0 GE 1)", false },
+             std::pair<std::string, bool> { "&A SETB (1 GE 0)", true },
+             std::pair<std::string, bool> { "&A SETB (1 GE 1)", true },
+             std::pair<std::string, bool> { "&A SETB (0 GE NOT 0)", false },
+             std::pair<std::string, bool> { "&A SETB (0 GE NOT 1)", true },
+             std::pair<std::string, bool> { "&A SETB (1 GE NOT 0)", true },
+             std::pair<std::string, bool> { "&A SETB (1 GE NOT 1)", true },
+             std::pair<std::string, bool> { "&A SETB (NOT 0 GE 0)", false }, // todo ?! Should be true?
+             std::pair<std::string, bool> { "&A SETB (NOT 0 GE 1)", true },
+             std::pair<std::string, bool> { "&A SETB (NOT 1 GE 0)", false }, // todo ?! Should be true?
+             std::pair<std::string, bool> { "&A SETB (NOT 1 GE 1)", false },
+             std::pair<std::string, bool> { "&A SETB (NOT 0 GE NOT 0)", true },
+             std::pair<std::string, bool> { "&A SETB (NOT 0 GE NOT 1)", false }, // todo ?! Should be true?
+             std::pair<std::string, bool> { "&A SETB (NOT 1 GE NOT 0)", false },
+             std::pair<std::string, bool> { "&A SETB (NOT 1 GE NOT 1)", false }, // todo ?! Should be true?
+         })
+    {
+        analyzer a(input);
+        a.analyze();
+
+        a.collect_diags();
+        EXPECT_TRUE(a.diags().empty());
+        EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "A"), res) << input;
+    }
+}
+
+TEST(logical_expressions, logical_operator_gt)
+{
+    for (const auto& [input, res] : {
+             std::pair<std::string, bool> { "&A SETB (0 GT 0)", false },
+             std::pair<std::string, bool> { "&A SETB (0 GT 1)", false },
+             std::pair<std::string, bool> { "&A SETB (1 GT 0)", true },
+             std::pair<std::string, bool> { "&A SETB (1 GT 1)", false },
+             std::pair<std::string, bool> { "&A SETB (0 GT NOT 0)", false },
+             std::pair<std::string, bool> { "&A SETB (0 GT NOT 1)", false },
+             std::pair<std::string, bool> { "&A SETB (1 GT NOT 0)", false },
+             std::pair<std::string, bool> { "&A SETB (1 GT NOT 1)", true },
+             std::pair<std::string, bool> { "&A SETB (NOT 0 GT 0)", true },
+             std::pair<std::string, bool> { "&A SETB (NOT 0 GT 1)", true }, // todo ?! Should be false?
+             std::pair<std::string, bool> { "&A SETB (NOT 1 GT 0)", false },
+             std::pair<std::string, bool> { "&A SETB (NOT 1 GT 1)", true }, // todo ?! Should be false?
+             std::pair<std::string, bool> { "&A SETB (NOT 0 GT NOT 0)", true }, // todo ?! Should be false?
+             std::pair<std::string, bool> { "&A SETB (NOT 0 GT NOT 1)", true },
+             std::pair<std::string, bool> { "&A SETB (NOT 1 GT NOT 0)", true }, // todo ?! Should be false?
+             std::pair<std::string, bool> { "&A SETB (NOT 1 GT NOT 1)", false },
+         })
+    {
+        analyzer a(input);
+        a.analyze();
+
+        a.collect_diags();
+        EXPECT_TRUE(a.diags().empty());
+        EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "A"), res) << input;
+    }
 }
 
 TEST(logical_expressions, symbol_after_substitution)
