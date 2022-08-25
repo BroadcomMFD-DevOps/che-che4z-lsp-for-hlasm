@@ -433,6 +433,7 @@ enum class mnemonic_transformation_kind : unsigned char
     or_with,
     add_to,
     subtract_from,
+    complement,
 };
 
 struct mnemonic_transformation

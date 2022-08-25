@@ -195,6 +195,9 @@ void process_mnemonic_code(
                     case context::mnemonic_transformation_kind::subtract_from:
                         subs_ops_mnems.append_imm(replacement.value).append("-");
                         break;
+                    case context::mnemonic_transformation_kind::complement:
+                        subs_ops_mnems.append("-");
+                        break;
                 }
                 if (replacement.has_source())
                 {

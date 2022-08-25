@@ -270,6 +270,9 @@ low_language_processor::transform_result low_language_processor::transform_mnemo
                 case context::mnemonic_transformation_kind::subtract_from:
                     value -= expr_value;
                     break;
+                case context::mnemonic_transformation_kind::complement:
+                    value = 1 + ~(unsigned)expr_value & (1u << value) - 1;
+                    break;
             }
             if (!failed)
                 op = std::make_unique<checking::one_operand>(value, r);

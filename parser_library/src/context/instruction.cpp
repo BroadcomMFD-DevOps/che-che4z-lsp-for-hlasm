@@ -2700,7 +2700,7 @@ constexpr mnemonic_code mnemonic_codes[] = {
         mi_RISBHG,
         {
             mnemonic_transformation(3, 0x80 + 31),
-            mnemonic_transformation(0, 64, mnemonic_transformation_kind::subtract_from, 2),
+            mnemonic_transformation(0, 6, mnemonic_transformation_kind::complement, 2),
         },
         UNI_SINCE_Z16 },
     { "SRLHL",
