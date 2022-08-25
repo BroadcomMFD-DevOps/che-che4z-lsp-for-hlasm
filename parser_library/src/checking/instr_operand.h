@@ -194,6 +194,7 @@ class empty_operand final : public machine_operand, public asm_operand
 {
 public:
     empty_operand();
+    explicit empty_operand(range r);
 
     bool check(diagnostic_op& diag,
         const machine_operand_format& to_check,

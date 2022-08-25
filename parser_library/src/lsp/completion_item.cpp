@@ -154,45 +154,45 @@ void process_mnemonic_code(
     operand_formatter subs_ops_nomnems_no_snippets;
 
     // get mnemonic operands
-    size_t iter_over_mnem = 0;
     int snippet_id = 1;
     bool first_optional = true;
 
     const auto& mach_operands = mnemonic_instr.instruction()->operands();
     const auto optional_count = mnemonic_instr.instruction()->optional_operand_count();
 
-    auto replaces = mnemonic_instr.replaced_operands();
+    auto transforms = mnemonic_instr.operand_transformations();
 
     std::bitset<context::machine_instruction::max_operand_count> ops_used_by_replacement;
-    for (const auto& r : replaces)
+    for (const auto& r : transforms)
         if (r.has_source())
             ops_used_by_replacement.set(r.source);
 
-    for (size_t i = 0; i < mach_operands.size(); i++)
+    for (size_t i = 0, processed = 0; i < mach_operands.size(); i++)
     {
-        if (replaces.size() > iter_over_mnem)
+        if (!transforms.empty())
         {
-            auto replacement = replaces[iter_over_mnem];
+            auto replacement = transforms.front();
             // can still replace mnemonics
-            if (replacement.position == i)
+            if (replacement.skip == processed)
             {
-                ++iter_over_mnem;
+                transforms = transforms.subspan(1);
+                processed = 0;
                 // replace current for mnemonic
                 subs_ops_mnems.start_operand();
                 switch (replacement.type)
                 {
-                    case context::mnemonic_replacement_kind::insert:
+                    case context::mnemonic_transformation_kind::value:
                         subs_ops_mnems.append_imm(replacement.value);
                         break;
-                    case context::mnemonic_replacement_kind::copy:
+                    case context::mnemonic_transformation_kind::copy:
                         break;
-                    case context::mnemonic_replacement_kind::or_with:
+                    case context::mnemonic_transformation_kind::or_with:
                         subs_ops_mnems.append_imm(replacement.value).append("|");
                         break;
-                    case context::mnemonic_replacement_kind::add_to:
+                    case context::mnemonic_transformation_kind::add_to:
                         subs_ops_mnems.append_imm(replacement.value).append("+");
                         break;
-                    case context::mnemonic_replacement_kind::subtract_from:
+                    case context::mnemonic_transformation_kind::subtract_from:
                         subs_ops_mnems.append_imm(replacement.value).append("-");
                         break;
                 }
@@ -211,10 +211,10 @@ void process_mnemonic_code(
                         subs_ops_nomnems_no_snippets.append(op_string);
                     }
                 }
-
                 continue;
             }
         }
+        ++processed;
         ops_used_by_replacement.reset(i);
 
         const bool is_optional = mach_operands.size() - i <= optional_count;

@@ -329,6 +329,9 @@ bool one_operand::check(
 }
 
 empty_operand::empty_operand() {}
+empty_operand::empty_operand(range r)
+    : operand(r)
+{}
 
 bool empty_operand::check(
     diagnostic_op& diag, const machine_operand_format&, std::string_view instr_name, const range&) const
