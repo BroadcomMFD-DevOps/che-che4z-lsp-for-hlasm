@@ -402,13 +402,12 @@ public:
     constexpr size_t optional_operand_count() const { return m_optional_op_count; }
     constexpr const instruction_set_affiliation& instr_set_affiliation() const { return m_instr_set_affiliation; };
 
-    bool check_nth_operand(size_t place, const checking::machine_operand* operand);
     bool check(std::string_view name_of_instruction,
         const std::vector<const checking::machine_operand*> operands,
         const range& stmt_range,
         const diagnostic_collector& add_diagnostic) const; // input vector is the vector of the actual incoming values
 
-    static constexpr const size_t max_operand_count = 16; // 12 really
+    static constexpr const size_t max_operand_count = 16;
 };
 
 class ca_instruction
@@ -446,6 +445,11 @@ struct mnemonic_transformation
     unsigned short value = 0;
 
     constexpr mnemonic_transformation() = default;
+    constexpr mnemonic_transformation(unsigned short v)
+        : value(v)
+    {
+        assert(static_cast<unsigned short>(v) == v);
+    }
     constexpr mnemonic_transformation(unsigned char skip, unsigned short v, bool insert = true)
         : skip(skip)
         , insert(insert)
@@ -495,7 +499,8 @@ class mnemonic_code
     inline_string<9> m_name;
     unsigned char m_op_min : 4 = 0;
     unsigned char m_op_max : 4 = 0;
-    // unsigned char reserved = 0;
+    // unsigned char available = 0;
+
     //  Generates a bitmask for an arbitrary mnemonic indicating which operands
     //  are of the RI type (and therefore are modified by transform_reloc_imm_operands)
     static constexpr unsigned char generate_reladdr_bitmask(
