@@ -218,7 +218,7 @@ TEST(logical_expressions, no_parenthesis)
 
     a.collect_diags();
     EXPECT_EQ(a.diags().size(), (size_t)2);
-    // EXPECT_TRUE(matches_message_codes(a.diags(), { "CE016", "CE016" })); // todo
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "CE016", "CE016" }));
 }
 
 TEST(logical_expressions, no_spaces)
@@ -549,7 +549,7 @@ TEST(logical_expressions, logical_operator_eq)
         a.analyze();
 
         a.collect_diags();
-        EXPECT_TRUE(a.diags().empty());
+        EXPECT_TRUE(a.diags().empty()) << input;
         EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "A"), res) << input;
     }
 }
@@ -579,7 +579,7 @@ TEST(logical_expressions, logical_operator_ne)
         a.analyze();
 
         a.collect_diags();
-        EXPECT_TRUE(a.diags().empty());
+        EXPECT_TRUE(a.diags().empty()) << input;
         EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "A"), res) << input;
     }
 }
@@ -596,12 +596,12 @@ TEST(logical_expressions, logical_operator_le)
              std::pair<std::string, bool> { "&A SETB (1 LE NOT 0)", true },
              std::pair<std::string, bool> { "&A SETB (1 LE NOT 1)", false },
              std::pair<std::string, bool> { "&A SETB (NOT 0 LE 0)", false },
-             std::pair<std::string, bool> { "&A SETB (NOT 0 LE 1)", false }, // todo ?! Should be true?
+             std::pair<std::string, bool> { "&A SETB (NOT 0 LE 1)", false },
              std::pair<std::string, bool> { "&A SETB (NOT 1 LE 0)", true },
-             std::pair<std::string, bool> { "&A SETB (NOT 1 LE 1)", false }, // todo ?! Should be true?
-             std::pair<std::string, bool> { "&A SETB (NOT 0 LE NOT 0)", false }, // todo ?! Should be true?
+             std::pair<std::string, bool> { "&A SETB (NOT 1 LE 1)", false },
+             std::pair<std::string, bool> { "&A SETB (NOT 0 LE NOT 0)", false },
              std::pair<std::string, bool> { "&A SETB (NOT 0 LE NOT 1)", false },
-             std::pair<std::string, bool> { "&A SETB (NOT 1 LE NOT 0)", false }, // todo ?! Should be true?
+             std::pair<std::string, bool> { "&A SETB (NOT 1 LE NOT 0)", false },
              std::pair<std::string, bool> { "&A SETB (NOT 1 LE NOT 1)", true },
          })
     {
@@ -609,7 +609,7 @@ TEST(logical_expressions, logical_operator_le)
         a.analyze();
 
         a.collect_diags();
-        EXPECT_TRUE(a.diags().empty());
+        EXPECT_TRUE(a.diags().empty()) << input;
         EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "A"), res) << input;
     }
 }
@@ -625,21 +625,21 @@ TEST(logical_expressions, logical_operator_lt)
              std::pair<std::string, bool> { "&A SETB (0 LT NOT 1)", false },
              std::pair<std::string, bool> { "&A SETB (1 LT NOT 0)", false },
              std::pair<std::string, bool> { "&A SETB (1 LT NOT 1)", false },
-             std::pair<std::string, bool> { "&A SETB (NOT 0 LT 0)", true }, // todo ?! Should be false?
+             std::pair<std::string, bool> { "&A SETB (NOT 0 LT 0)", true },
              std::pair<std::string, bool> { "&A SETB (NOT 0 LT 1)", false },
-             std::pair<std::string, bool> { "&A SETB (NOT 1 LT 0)", true }, // todo ?! Should be false?
+             std::pair<std::string, bool> { "&A SETB (NOT 1 LT 0)", true },
              std::pair<std::string, bool> { "&A SETB (NOT 1 LT 1)", true },
              std::pair<std::string, bool> { "&A SETB (NOT 0 LT NOT 0)", false },
-             std::pair<std::string, bool> { "&A SETB (NOT 0 LT NOT 1)", true }, // todo ?! Should be false?
+             std::pair<std::string, bool> { "&A SETB (NOT 0 LT NOT 1)", true },
              std::pair<std::string, bool> { "&A SETB (NOT 1 LT NOT 0)", true },
-             std::pair<std::string, bool> { "&A SETB (NOT 1 LT NOT 1)", true }, // todo ?! Should be false?
+             std::pair<std::string, bool> { "&A SETB (NOT 1 LT NOT 1)", true },
          })
     {
         analyzer a(input);
         a.analyze();
 
         a.collect_diags();
-        EXPECT_TRUE(a.diags().empty());
+        EXPECT_TRUE(a.diags().empty()) << input;
         EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "A"), res) << input;
     }
 }
@@ -655,21 +655,21 @@ TEST(logical_expressions, logical_operator_ge)
              std::pair<std::string, bool> { "&A SETB (0 GE NOT 1)", true },
              std::pair<std::string, bool> { "&A SETB (1 GE NOT 0)", true },
              std::pair<std::string, bool> { "&A SETB (1 GE NOT 1)", true },
-             std::pair<std::string, bool> { "&A SETB (NOT 0 GE 0)", false }, // todo ?! Should be true?
+             std::pair<std::string, bool> { "&A SETB (NOT 0 GE 0)", false },
              std::pair<std::string, bool> { "&A SETB (NOT 0 GE 1)", true },
-             std::pair<std::string, bool> { "&A SETB (NOT 1 GE 0)", false }, // todo ?! Should be true?
+             std::pair<std::string, bool> { "&A SETB (NOT 1 GE 0)", false },
              std::pair<std::string, bool> { "&A SETB (NOT 1 GE 1)", false },
              std::pair<std::string, bool> { "&A SETB (NOT 0 GE NOT 0)", true },
-             std::pair<std::string, bool> { "&A SETB (NOT 0 GE NOT 1)", false }, // todo ?! Should be true?
+             std::pair<std::string, bool> { "&A SETB (NOT 0 GE NOT 1)", false },
              std::pair<std::string, bool> { "&A SETB (NOT 1 GE NOT 0)", false },
-             std::pair<std::string, bool> { "&A SETB (NOT 1 GE NOT 1)", false }, // todo ?! Should be true?
+             std::pair<std::string, bool> { "&A SETB (NOT 1 GE NOT 1)", false },
          })
     {
         analyzer a(input);
         a.analyze();
 
         a.collect_diags();
-        EXPECT_TRUE(a.diags().empty());
+        EXPECT_TRUE(a.diags().empty()) << input;
         EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "A"), res) << input;
     }
 }
@@ -686,12 +686,12 @@ TEST(logical_expressions, logical_operator_gt)
              std::pair<std::string, bool> { "&A SETB (1 GT NOT 0)", false },
              std::pair<std::string, bool> { "&A SETB (1 GT NOT 1)", true },
              std::pair<std::string, bool> { "&A SETB (NOT 0 GT 0)", true },
-             std::pair<std::string, bool> { "&A SETB (NOT 0 GT 1)", true }, // todo ?! Should be false?
+             std::pair<std::string, bool> { "&A SETB (NOT 0 GT 1)", true },
              std::pair<std::string, bool> { "&A SETB (NOT 1 GT 0)", false },
-             std::pair<std::string, bool> { "&A SETB (NOT 1 GT 1)", true }, // todo ?! Should be false?
-             std::pair<std::string, bool> { "&A SETB (NOT 0 GT NOT 0)", true }, // todo ?! Should be false?
+             std::pair<std::string, bool> { "&A SETB (NOT 1 GT 1)", true },
+             std::pair<std::string, bool> { "&A SETB (NOT 0 GT NOT 0)", true },
              std::pair<std::string, bool> { "&A SETB (NOT 0 GT NOT 1)", true },
-             std::pair<std::string, bool> { "&A SETB (NOT 1 GT NOT 0)", true }, // todo ?! Should be false?
+             std::pair<std::string, bool> { "&A SETB (NOT 1 GT NOT 0)", true },
              std::pair<std::string, bool> { "&A SETB (NOT 1 GT NOT 1)", false },
          })
     {
@@ -699,7 +699,7 @@ TEST(logical_expressions, logical_operator_gt)
         a.analyze();
 
         a.collect_diags();
-        EXPECT_TRUE(a.diags().empty());
+        EXPECT_TRUE(a.diags().empty()) << input;
         EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "A"), res) << input;
     }
 }
@@ -763,4 +763,20 @@ TEST(logical_expressions, simple_string_equality)
 
     EXPECT_TRUE(a.diags().empty());
     EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B"), true);
+}
+
+TEST(logical_expressions, string_function_and)
+{
+    std::string input =
+        R"(
+&A1   SETB   (6 AND DCLEN('hey'))
+&A2   SETB   (DCLEN('hey') AND 6)
+)";
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(a.diags().empty());
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "A1"), true);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "A2"), true);
 }
