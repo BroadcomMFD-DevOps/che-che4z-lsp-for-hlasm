@@ -57,30 +57,20 @@ ca_function_unary_operator::ca_function_unary_operator(
     : ca_unary_operator(std::move(expr), kind, std::move(expr_range))
     , function(function)
 {}
-
 void ca_function_unary_operator::resolve_expression_tree(context::SET_t_enum kind, diagnostic_op_consumer& diags)
 {
-    if (expr_kind != kind)
-        diags.add_diagnostic(diagnostic_op::error_CE004(expr_range));
-    else
-    {
-        auto param_type = ca_common_expr_policy::get_operands_type(function, kind);
-        expr->resolve_expression_tree(param_type, diags);
-    }
+    expr_kind = kind;
+    auto param_type = ca_common_expr_policy::get_operands_type(function, kind);
+    expr->resolve_expression_tree(param_type, diags);
 }
 
 context::SET_t ca_function_unary_operator::operation(context::SET_t operand, const evaluation_context& eval_ctx) const
 {
-    if (expr_kind == context::SET_t_enum::A_TYPE)
-    {
-        if (function == ca_expr_ops::NOT)
-            return ~operand.access_a();
-    }
-    else if (expr_kind == context::SET_t_enum::B_TYPE)
-    {
-        if (function == ca_expr_ops::NOT)
-            return !operand.access_b();
-    }
+    if (function == ca_expr_ops::NOT)
+        if (eval_ctx.parent_expression_type == context::SET_t_enum::A_TYPE)
+            return convert_return_types(~operand.access_a(), expr_kind, eval_ctx);
+        else
+            return convert_return_types(!operand.access_b(), expr_kind, eval_ctx);
     else if (expr_kind == context::SET_t_enum::C_TYPE)
     {
         diagnostic_adder add_diagnostic(eval_ctx.diags, expr_range);

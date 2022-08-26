@@ -58,7 +58,9 @@ undef_sym_set ca_function::get_undefined_attributed_symbols(const evaluation_con
 
 void ca_function::resolve_expression_tree(context::SET_t_enum kind, diagnostic_op_consumer& diags)
 {
-    if (kind != expr_kind && !(kind == context::SET_t_enum::A_TYPE && expr_kind == context::SET_t_enum::B_TYPE))
+    if (kind != expr_kind
+        && !(kind == context::SET_t_enum::A_TYPE && expr_kind == context::SET_t_enum::B_TYPE
+            || kind == context::SET_t_enum::B_TYPE && expr_kind == context::SET_t_enum::A_TYPE))
         diags.add_diagnostic(diagnostic_op::error_CE004(expr_range));
     else if (duplication_factor && expr_kind != context::SET_t_enum::C_TYPE)
         diags.add_diagnostic(diagnostic_op::error_CE005(duplication_factor->expr_range));

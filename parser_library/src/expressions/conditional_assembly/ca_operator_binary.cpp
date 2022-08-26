@@ -151,8 +151,37 @@ context::A_t shift_operands(context::A_t lhs, context::A_t rhs, ca_expr_ops shif
 }
 
 context::SET_t ca_function_binary_operator::operation(
-    context::SET_t lhs, context::SET_t rhs, const evaluation_context&) const
+    context::SET_t lhs, context::SET_t rhs, const evaluation_context& eval_ctx) const
 {
+    if (eval_ctx.parent_expression_type == context::SET_t_enum::A_TYPE)
+    {
+        switch (function)
+        {
+            case ca_expr_ops::AND:
+                return convert_return_types(lhs.access_a() & rhs.access_a(), expr_kind, eval_ctx);
+            case ca_expr_ops::OR:
+                return convert_return_types(lhs.access_a() | rhs.access_a(), expr_kind, eval_ctx);
+            case ca_expr_ops::XOR:
+                return convert_return_types(lhs.access_a() ^ rhs.access_a(), expr_kind, eval_ctx);
+            default:
+                break;
+        }
+    }
+    else if (eval_ctx.parent_expression_type == context::SET_t_enum::B_TYPE)
+    {
+        switch (function)
+        {
+            case ca_expr_ops::AND:
+                return convert_return_types(lhs.access_b() && rhs.access_b(), expr_kind, eval_ctx);
+            case ca_expr_ops::OR:
+                return convert_return_types(lhs.access_b() || rhs.access_b(), expr_kind, eval_ctx);
+            case ca_expr_ops::XOR:
+                return convert_return_types(lhs.access_b() != rhs.access_b(), expr_kind, eval_ctx);
+            default:
+                break;
+        }
+    }
+
     if (expr_kind == context::SET_t_enum::A_TYPE)
     {
         switch (function)
@@ -166,12 +195,6 @@ context::SET_t ca_function_binary_operator::operation(
                 return ca_function::FIND(lhs.access_c(), rhs.access_c());
             case ca_expr_ops::INDEX:
                 return ca_function::INDEX(lhs.access_c(), rhs.access_c());
-            case ca_expr_ops::AND:
-                return lhs.access_a() & rhs.access_a();
-            case ca_expr_ops::OR:
-                return lhs.access_a() | rhs.access_a();
-            case ca_expr_ops::XOR:
-                return lhs.access_a() ^ rhs.access_a();
             default:
                 break;
         }
@@ -196,12 +219,6 @@ context::SET_t ca_function_binary_operator::operation(
                 return comp >= 0;
             case ca_expr_ops::GT:
                 return comp > 0;
-            case ca_expr_ops::AND:
-                return lhs.access_b() && rhs.access_b();
-            case ca_expr_ops::OR:
-                return lhs.access_b() || rhs.access_b();
-            case ca_expr_ops::XOR:
-                return lhs.access_b() != rhs.access_b();
             default:
                 break;
         }

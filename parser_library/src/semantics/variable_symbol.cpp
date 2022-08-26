@@ -81,7 +81,9 @@ std::vector<context::A_t> variable_symbol::evaluate_subscript(const expressions:
     std::vector<context::A_t> eval_subscript;
     for (const auto& expr : subscript)
     {
-        auto val = expr->evaluate<context::A_t>(eval_ctx);
+        expressions::evaluation_context new_eval_ctx(eval_ctx.hlasm_ctx, eval_ctx.lib_provider, eval_ctx.diags);
+        new_eval_ctx.parent_expression_type = context::SET_t_enum::A_TYPE;
+        auto val = expr->evaluate<context::A_t>(new_eval_ctx);
         eval_subscript.push_back(val);
     }
 

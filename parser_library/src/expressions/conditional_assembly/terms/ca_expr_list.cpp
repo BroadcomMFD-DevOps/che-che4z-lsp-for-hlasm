@@ -153,7 +153,7 @@ struct resolve_stacks
             diags.add_diagnostic(diagnostic_op::error_CE003(range(op.r.start)));
             return false;
         }
-        if (op.requires_terms && !right.simple_term || right.i < op.i)
+        if (right.i < op.i)
         {
             diags.add_diagnostic(diagnostic_op::error_CE003(range(op.r.end)));
             return false;
@@ -194,7 +194,8 @@ struct resolve_stacks
         op_stack.pop();
         if (terms.size() < 1 + op.binary)
         {
-            diags.add_diagnostic(diagnostic_op::error_CE003(range(terms.size() < op.binary ? op.r.start : op.r.end)));
+            diags.add_diagnostic(diagnostic_op::error_CE003(
+                range(terms.size() < static_cast<size_t>(op.binary) ? op.r.start : op.r.end)));
             return false;
         }
         return op.binary ? reduce_binary(op, diags) : reduce_unary(op, diags);
@@ -204,7 +205,7 @@ struct resolve_stacks
     {
         while (!op_stack.empty())
         {
-            if (op_stack.top().priority + right_assoc > prio_limit)
+            if (op_stack.top().priority + right_assoc >= prio_limit)
                 break;
             if (!reduce_stack_entry(diags))
                 return false;

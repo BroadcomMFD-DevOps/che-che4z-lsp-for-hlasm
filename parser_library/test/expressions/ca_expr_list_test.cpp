@@ -32,6 +32,7 @@ TEST(ca_expr_list, unknown_function_to_operator)
     context::hlasm_context ctx;
     diagnostic_op_consumer_container diags;
     evaluation_context eval_ctx { ctx, workspaces::empty_parse_lib_provider::instance, diags };
+    eval_ctx.parent_expression_type = context::SET_t_enum::B_TYPE;
 
     std::string name = "AND";
     auto c = std::make_unique<ca_constant>(1, range());

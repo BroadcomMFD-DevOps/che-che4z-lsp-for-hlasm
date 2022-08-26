@@ -136,6 +136,7 @@ ca_processor::SET_info ca_processor::get_SET_symbol(const semantics::complete_st
 
     if (!is_scalar_expression)
     {
+        eval_ctx.parent_expression_type = context::SET_t_enum::A_TYPE;
         index = symbol->subscript.front()->evaluate<context::A_t>(eval_ctx);
 
         if (index < 1)
@@ -266,6 +267,7 @@ bool ca_processor::prepare_ACTR(const semantics::complete_statement& stmt, conte
 
     if (ca_op->kind == semantics::ca_kind::EXPR)
     {
+        eval_ctx.parent_expression_type = context::SET_t_enum::A_TYPE;
         ctr = ca_op->access_expr()->expression->evaluate<context::A_t>(eval_ctx);
         return true;
     }
@@ -331,6 +333,7 @@ bool ca_processor::prepare_AGO(const semantics::complete_statement& stmt,
     if (ca_op->kind == semantics::ca_kind::BRANCH)
     {
         auto br_op = ca_op->access_branch();
+        eval_ctx.parent_expression_type = context::SET_t_enum::A_TYPE;
         branch = br_op->expression->evaluate<context::A_t>(eval_ctx);
         targets.emplace_back(br_op->sequence_symbol.name, br_op->sequence_symbol.symbol_range);
 
@@ -404,6 +407,7 @@ bool ca_processor::prepare_AIF(
             if (!condition)
             {
                 auto br = ca_op->access_branch();
+                eval_ctx.parent_expression_type = context::SET_t_enum::B_TYPE;
                 condition = br->expression->evaluate<context::B_t>(eval_ctx);
 
                 target = br->sequence_symbol.name;
@@ -614,7 +618,10 @@ void ca_processor::process_SET(const semantics::complete_statement& stmt)
         auto& val = set_symbol->template access_set_symbol<T>()->reserve_value(index - 1 + i);
         // then evaluate the new value and save it unless the operand is empty
         if (expr_values[i])
+        {
+            eval_ctx.parent_expression_type = context::object_traits<T>::type_enum;
             val = expr_values[i]->template evaluate<T>(eval_ctx);
+        }
     }
 }
 
@@ -674,6 +681,7 @@ void ca_processor::process_MHELP(const semantics::complete_statement& stmt)
     uint32_t value = 0;
     if (ca_op->kind == semantics::ca_kind::EXPR)
     {
+        eval_ctx.parent_expression_type = context::SET_t_enum::A_TYPE;
         value = ca_op->access_expr()->expression->evaluate<context::A_t>(eval_ctx);
     }
     else if (ca_op->kind == semantics::ca_kind::VAR)

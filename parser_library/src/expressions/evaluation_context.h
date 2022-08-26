@@ -15,23 +15,26 @@
 #ifndef HLASMPLUGIN_PARSER_HLASM_EVALUATION_CONTEXT_H
 #define HLASMPLUGIN_PARSER_HLASM_EVALUATION_CONTEXT_H
 
+#include "context/common_types.h"
 #include "diagnosable_ctx.h"
 #include "workspaces/parse_lib_provider.h"
 
 namespace hlasm_plugin::parser_library::expressions {
 
-// structure holding required objects to correcly perform evaluation of expressions
+// structure holding required objects to correctly perform evaluation of expressions
 struct evaluation_context
 {
     context::hlasm_context& hlasm_ctx;
     workspaces::parse_lib_provider& lib_provider;
     diagnostic_op_consumer& diags;
+    context::SET_t_enum parent_expression_type;
 
     evaluation_context(
         context::hlasm_context& ctx, workspaces::parse_lib_provider& lib_provider, diagnostic_op_consumer& diags)
         : hlasm_ctx(ctx)
         , lib_provider(lib_provider)
         , diags(diags)
+        , parent_expression_type(context::SET_t_enum::UNDEF_TYPE)
     {}
 
     evaluation_context(const evaluation_context& oth) = delete;
