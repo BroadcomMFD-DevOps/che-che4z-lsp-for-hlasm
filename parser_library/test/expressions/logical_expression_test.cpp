@@ -118,7 +118,6 @@ TEST(logical_expressions, valid_relational_expression)
 {
     std::string input =
         R"(
-AND EQU 1
 &A1 SETB ('a' EQ 'A')
 &A2 SETB ('a' LT 'A')
 &A3 SETB ('abc' GT 'b')
