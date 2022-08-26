@@ -92,8 +92,8 @@ namespace {
 void process_machine_instruction(const context::machine_instruction& machine_instr,
     std::set<completion_item_s, completion_item_s::label_comparer>& items)
 {
-    operand_formatter detail(""); // operands used for hover - e.g. V,D12U(X,B)[,M]
-    operand_formatter autocomplete(""); // operands used for autocomplete - e.g. V,D12U(X,B) [,M]
+    operand_formatter detail; // operands used for hover - e.g. V,D12U(X,B)[,M]
+    operand_formatter autocomplete; // operands used for autocomplete - e.g. V,D12U(X,B) [,M]
 
     int snippet_id = 1;
     bool first_optional = true;
