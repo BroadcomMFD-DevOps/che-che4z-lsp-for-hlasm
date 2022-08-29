@@ -31,9 +31,12 @@ TEST(logical_expressions, valid_assignment)
 {
     std::string input =
         R"(
+&VAR SETA -6
 &A1 SETB 1
 &A2 SETB 0
 &A3 SETB (&A3)
+&A4 SETB (10)
+&A5 SETB (&VAR)
 )";
     analyzer a(input);
     a.analyze();
@@ -44,6 +47,8 @@ TEST(logical_expressions, valid_assignment)
     SETBEQ("A1", 1);
     SETBEQ("A2", 0);
     SETBEQ("A3", 0);
+    SETBEQ("A4", 1);
+    SETBEQ("A5", 1);
 }
 
 TEST(logical_expressions, empty_string_conversion)
@@ -65,15 +70,14 @@ TEST(logical_expressions, invalid_assignment)
 {
     std::string input =
         R"(
-&A1 SETB (C'D')
-&A2 SETB (10)
-&A3 SETB (-1)
+&A1 SETB 10
+&A2 SETB (-1)
 )";
     analyzer a(input);
     a.analyze();
 
     a.collect_diags();
-    EXPECT_TRUE(matches_message_codes(a.diags(), { "CE004", "CE004", "CE004" }));
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "CE016", "CE004" }));
 }
 
 TEST(logical_expressions, invalid_expression)
@@ -90,6 +94,20 @@ NOT EQU 1
 
     a.collect_diags();
     ASSERT_EQ(a.diags().size(), (size_t)3);
+}
+
+TEST(logical_expressions, invalid_expression_2)
+{
+    std::string input =
+        R"(
+&A1  SETB (5 AND -5)
+&A2  SETB (5 AND +5)
+)";
+    analyzer a(input);
+    a.analyze();
+
+    a.collect_diags();
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "CE004", "CE004" }));
 }
 
 TEST(logical_expressions, valid_expression)
