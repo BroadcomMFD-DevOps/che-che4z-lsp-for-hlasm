@@ -513,8 +513,7 @@ class mnemonic_code
         auto replaced_b = transforms.begin();
         auto const replaced_e = transforms.end();
 
-        size_t processed = 0;
-        for (const auto& op : instruction->operands())
+        for (size_t processed = 0; const auto& op : instruction->operands())
         {
             if (replaced_b != replaced_e && processed == replaced_b->skip)
             {

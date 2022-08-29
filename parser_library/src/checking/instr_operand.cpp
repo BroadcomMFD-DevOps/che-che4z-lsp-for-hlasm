@@ -386,10 +386,12 @@ std::string machine_operand_format::to_string(std::optional<size_t> i) const
 {
     const auto index = i.has_value() ? std::to_string(i.value()) : std::string();
     std::string ret_val = identifier.to_string() + index;
-    if (first.is_empty() && second.is_empty())
-        return ret_val;
-    if (first.is_empty())
-        return (ret_val + "(" + second.to_string() + index + ")");
-    // only second cannot be empty
-    return (ret_val + "(" + first.to_string() + index + "," + second.to_string() + index + ")");
+    if (!first.is_empty() || !second.is_empty())
+    {
+        ret_val.append("(");
+        if (!first.is_empty()) // only second cannot be empty
+            ret_val.append(first.to_string()).append(index).append(",");
+        ret_val.append(second.to_string()).append(index).append(")");
+    }
+    return ret_val;
 }
