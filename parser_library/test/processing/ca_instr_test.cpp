@@ -323,7 +323,7 @@ TEST(ACTR, negative)
     a.analyze();
     a.collect_diags();
 
-    EXPECT_TRUE(matches_message_codes(a.diags(), { "CE007", "E056" }));
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "E056" }));
     EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "B"), std::nullopt);
 }
 

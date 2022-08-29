@@ -97,7 +97,7 @@ ca_plus_operator::ca_plus_operator(ca_expr_ptr expr, range expr_range)
     : ca_unary_operator(std::move(expr), context::SET_t_enum::A_TYPE, std::move(expr_range))
 {}
 
-context::SET_t ca_plus_operator::operation(context::SET_t operand, const evaluation_context&) const
+context::SET_t ca_plus_operator::operation(context::SET_t operand, const evaluation_context& eval_ctx) const
 {
     return operand.access_a();
 }
@@ -106,7 +106,7 @@ ca_minus_operator::ca_minus_operator(ca_expr_ptr expr, range expr_range)
     : ca_unary_operator(std::move(expr), context::SET_t_enum::A_TYPE, std::move(expr_range))
 {}
 
-context::SET_t ca_minus_operator::operation(context::SET_t operand, const evaluation_context&) const
+context::SET_t ca_minus_operator::operation(context::SET_t operand, const evaluation_context& eval_ctx) const
 {
     return -operand.access_a();
 }

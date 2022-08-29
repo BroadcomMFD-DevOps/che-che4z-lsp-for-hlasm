@@ -107,11 +107,26 @@ term returns [ca_expr_ptr ca_expr]
 		auto r = provider.get_range($self_def_term.ctx);
 		$ca_expr = std::make_unique<ca_constant>($self_def_term.value, r);
 	}
-	| num
+	| signed_num
 	{
-		collector.add_hl_symbol(token_info(provider.get_range( $num.ctx),hl_scopes::number));
-		auto r = provider.get_range($num.ctx);
-		$ca_expr = std::make_unique<ca_constant>($num.value, r);
+		auto r = provider.get_range($signed_num.ctx);
+		auto m_sign = $signed_num.ctx->signed_num_ch()->MINUS();
+
+		if (m_sign == nullptr)
+		{
+			collector.add_hl_symbol(token_info(r, hl_scopes::number));
+			$ca_expr = std::make_unique<ca_constant>($signed_num.value, r);
+		}
+		else
+		{
+			auto num_r = r;
+			num_r.start.column++;
+
+			collector.add_hl_symbol(token_info(num_r, hl_scopes::number));
+			auto num_expr = std::make_unique<ca_constant>(-$signed_num.value, num_r);
+
+			$ca_expr = std::make_unique<ca_minus_operator>(std::move(num_expr), r);
+		}
 	}
 	| ca_dupl_factor id_no_dot subscript_ne
 	{
