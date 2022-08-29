@@ -41,7 +41,7 @@ public:
 
     context::SET_t evaluate(const evaluation_context& eval_ctx) const override;
 
-    bool is_compatible(ca_expression_compatibility i) const override { return i == ca_expression_compatibility::setb; }
+    bool is_compatible(ca_expression_compatibility i) const override { return i == ca_expression_compatibility::setb && (value == 0 || value == 1); }
 
     static context::A_t self_defining_term(
         std::string_view type, std::string_view value, diagnostic_adder& add_diagnostic);
