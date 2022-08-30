@@ -38,6 +38,7 @@ deferred_operand_rules;
 	#include "expressions/conditional_assembly/ca_operator_binary.h"
 	#include "expressions/conditional_assembly/terms/ca_constant.h"
 	#include "expressions/conditional_assembly/terms/ca_expr_list.h"
+	#include "expressions/conditional_assembly/terms/ca_expr_list_seta.h"
 	#include "expressions/conditional_assembly/terms/ca_function.h"
 	#include "expressions/conditional_assembly/terms/ca_string.h"
 	#include "expressions/conditional_assembly/terms/ca_symbol.h"
