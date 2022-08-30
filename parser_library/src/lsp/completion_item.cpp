@@ -39,6 +39,11 @@ struct operand_formatter
         result.append(s);
         return *this;
     }
+    operand_formatter& append(size_t count, char ch)
+    {
+        result.append(count, ch);
+        return *this;
+    }
     operand_formatter& append(int i)
     {
         result.append(std::to_string(i));
@@ -97,36 +102,37 @@ void process_machine_instruction(const context::machine_instruction& machine_ins
 
     int snippet_id = 1;
     bool first_optional = true;
-    for (size_t i = 0; i < machine_instr.operands().size(); i++)
+    for (size_t i = 0; const auto& op : machine_instr.operands())
     {
-        const auto& op = machine_instr.operands()[i];
-        const bool is_optional = machine_instr.operands().size() - i <= machine_instr.optional_operand_count();
-        if (is_optional && first_optional)
+        if (op.optional)
         {
-            first_optional = false;
-            autocomplete.append("${").append(snippet_id++).append(": [");
+            if (first_optional)
+            {
+                first_optional = false;
+                autocomplete.append("${").append(snippet_id++).append(": ");
+            }
             detail.append("[");
+            autocomplete.append("[");
         }
         autocomplete.start_operand();
         detail.start_operand();
-        if (!is_optional)
-        {
-            detail.append(op.to_string(i + 1));
-            autocomplete.append("${").append(snippet_id++).append(":").append(op.to_string(i + 1)).append("}");
-        }
-        else if (machine_instr.operands().size() - i > 1)
-        {
-            detail.append(op.to_string(i + 1)).append("[");
-            autocomplete.append(op.to_string(i + 1)).append("[");
-        }
-        else
-        {
-            detail.append(op.to_string(i + 1)).append(std::string(machine_instr.optional_operand_count(), ']'));
-            autocomplete.append(op.to_string(i + 1))
-                .append(std::string(machine_instr.optional_operand_count(), ']'))
-                .append("}");
-        }
+
+        if (!op.optional)
+            autocomplete.append("${").append(snippet_id++).append(":");
+
+        const auto formatted_op = op.to_string(++i);
+        detail.append(formatted_op);
+        autocomplete.append(formatted_op);
+
+        if (!op.optional)
+            autocomplete.append("}");
     }
+    if (auto opt = machine_instr.optional_operand_count())
+    {
+        detail.append(opt, ']');
+        autocomplete.append(opt, ']').append("}");
+    }
+
     items.emplace(std::string(machine_instr.name()),
         "Operands: " + detail.take(),
         utils::concat(machine_instr.name(), " ${", snippet_id++, ":}", autocomplete.take()),
