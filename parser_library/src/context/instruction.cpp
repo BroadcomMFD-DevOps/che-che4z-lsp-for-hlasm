@@ -1666,7 +1666,6 @@ constexpr machine_instruction machine_instructions[] = {
     { "VCLFNH", VRR_a_4, 1855, UNI_SINCE_Z16 },
     { "VCLFNL", VRR_a_4, 1856, UNI_SINCE_Z16 },
     { "VCLFP", VRR_a_5, 1611, UNI_SINCE_Z15 },
-    { "VCLGD", VRR_a_5, 1611, UNI_SINCE_Z13 },
     { "VCLZ", VRR_a_3, 1564, UNI_SINCE_Z13 },
     { "VCLZDP", VRR_k_3, 1713, UNI_SINCE_Z16 },
     { "VCNF", VRR_a_4, 1858, UNI_SINCE_Z16 },
@@ -2072,7 +2071,6 @@ constexpr auto mi_VCFPS = find_mi("VCFPS");
 constexpr auto mi_VCH = find_mi("VCH");
 constexpr auto mi_VCHL = find_mi("VCHL");
 constexpr auto mi_VCLFP = find_mi("VCLFP");
-constexpr auto mi_VCLGD = find_mi("VCLGD");
 constexpr auto mi_VCLZ = find_mi("VCLZ");
 constexpr auto mi_VCSFP = find_mi("VCSFP");
 constexpr auto mi_VCTZ = find_mi("VCTZ");
@@ -2811,7 +2809,8 @@ constexpr mnemonic_code mnemonic_codes[] = {
     { "VCHLH", mi_VCHL, { { 3, 1 }, { 0 } }, UNI_SINCE_Z13 },
     { "VCHLHS", mi_VCHL, { { 3, 1 }, { 1 } }, UNI_SINCE_Z13 },
     { "VCLFEB", mi_VCLFP, { { 2, 0 } }, UNI_SINCE_Z15 },
-    { "VCLGDB", mi_VCLGD, { { 2, 3 } }, UNI_SINCE_Z13 },
+    { "VCLGD", mi_VCLFP, {}, UNI_SINCE_Z13 },
+    { "VCLGDB", mi_VCLFP, { { 2, 3 } }, UNI_SINCE_Z13 },
     { "VCLZB", mi_VCLZ, { { 2, 0 } }, UNI_SINCE_Z13 },
     { "VCLZF", mi_VCLZ, { { 2, 2 } }, UNI_SINCE_Z13 },
     { "VCLZG", mi_VCLZ, { { 2, 3 } }, UNI_SINCE_Z13 },
@@ -3262,7 +3261,7 @@ constexpr mnemonic_code mnemonic_codes[] = {
         { { 2, 2 }, mnemonic_transformation(0, 8, mnemonic_transformation_kind::or_with, 2, false) },
         UNI_SINCE_Z15 },
     { "WCLGDB",
-        mi_VCLGD,
+        mi_VCLFP,
         { { 2, 3 }, mnemonic_transformation(0, 8, mnemonic_transformation_kind::or_with, 2, false) },
         UNI_SINCE_Z13 },
     { "WFADB", mi_VFA, { { 3, 3 }, { 8 } }, UNI_SINCE_Z13 },
