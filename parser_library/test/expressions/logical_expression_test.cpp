@@ -187,6 +187,7 @@ TEST(logical_expressions, priority)
 &A4 SETB (1 XOR 0 OR 1) 0
 &A5 SETB (1 AND 0 OR 1 AND 1)  
 &A6 SETB (NOT 0 AND NOT 0 AND 50 GT 126+4)
+&A7 SETB (NOT 0 OR NOT 0)
 )";
     analyzer a(input);
     a.analyze();
@@ -200,6 +201,7 @@ TEST(logical_expressions, priority)
     SETBEQ("A4", 0);
     SETBEQ("A5", 1);
     SETBEQ("A6", 0);
+    SETBEQ("A7", 1);
 }
 
 TEST(logical_expressions, arithmetic_logical_clash)
@@ -234,7 +236,6 @@ TEST(logical_expressions, no_parenthesis)
     a.analyze();
 
     a.collect_diags();
-    EXPECT_EQ(a.diags().size(), (size_t)2);
     EXPECT_TRUE(matches_message_codes(a.diags(), { "CE016", "CE016" }));
 }
 
@@ -484,22 +485,6 @@ TEST(logical_expressions, operator_precedence_3)
     EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B7"), true);
     EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B8"), true);
 }
-
-TEST(logical_expressions, operator_precedence_diag)
-{
-    std::string input =
-        R"(
-&A1   SETB   (-1 AND NOT 0 AND -1)
-&A2   SETB   (-1 AND (NOT 0) AND -1)
-&A3   SETB   (6 AND NOT -7)
-)";
-    analyzer a(input);
-    a.analyze();
-    a.collect_diags();
-
-    EXPECT_EQ(a.diags().size(), 2);
-}
-
 TEST(logical_expressions, operator2)
 {
     std::string input =

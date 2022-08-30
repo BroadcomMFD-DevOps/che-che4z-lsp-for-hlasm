@@ -217,6 +217,8 @@ TEST(arithmetic_expressions, not_operator)
         R"(
 &A1 SETA NOT 80
 &A2 SETA (NOT 87)
+&A3 SETA NOT NOT NOT (6 AND 2)
+&A4 SETA NOT NOT NOT -5    REMARK
 )";
     analyzer a(input);
     a.analyze();
@@ -226,6 +228,8 @@ TEST(arithmetic_expressions, not_operator)
 
     SETAEQ("A1", -81);
     SETAEQ("A2", -88);
+    SETAEQ("A3", -3);
+    SETAEQ("A4", 4);
 }
 
 TEST(arithmetic_expressions, invalid_operator)
@@ -242,7 +246,7 @@ TEST(arithmetic_expressions, invalid_operator)
     EXPECT_EQ(a.diags().front().code, "CE002");
 }
 
-TEST(character_expresssion, illegal_dupl_factor)
+TEST(arithmetic_expressions, illegal_dupl_factor)
 {
     std::string input =
         R"(
