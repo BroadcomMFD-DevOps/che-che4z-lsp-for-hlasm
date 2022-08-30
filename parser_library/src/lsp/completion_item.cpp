@@ -254,9 +254,9 @@ void process_mnemonic_code(
         }
         else
         {
-            subs_ops_mnems.append(op_string).append(std::string(optional_count, ']'));
-            subs_ops_nomnems.append(op_string).append(std::string(optional_count, ']')).append("}");
-            subs_ops_nomnems_no_snippets.append(op_string).append(std::string(optional_count, ']'));
+            subs_ops_mnems.append(op_string).append(optional_count, ']');
+            subs_ops_nomnems.append(op_string).append(optional_count, ']').append("}");
+            subs_ops_nomnems_no_snippets.append(op_string).append(optional_count, ']');
         }
     }
     items.emplace(std::string(mnemonic_instr.name()),
