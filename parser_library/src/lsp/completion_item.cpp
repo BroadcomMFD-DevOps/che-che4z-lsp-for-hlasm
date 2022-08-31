@@ -152,6 +152,25 @@ void process_assembler_instruction(const context::assembler_instruction& asm_ins
         completion_item_kind::asm_instr);
 }
 
+std::array<unsigned char, context::machine_instruction::max_operand_count> compute_corrected_ids(
+    std::span<const context::mnemonic_transformation> ts)
+{
+    std::array<unsigned char, context::machine_instruction::max_operand_count> r;
+    std::iota(r.begin(), r.end(), unsigned char());
+
+    unsigned char correction = 0;
+    auto it = r.begin();
+    for (const auto& t : ts)
+    {
+        for (auto cnt = t.skip; cnt; --cnt)
+            *it++ += correction;
+        correction += t.insert;
+    }
+    std::for_each(it, r.end(), [correction](auto& x) { x += correction; });
+
+    return r;
+}
+
 void process_mnemonic_code(
     const context::mnemonic_code& mnemonic_instr, std::set<completion_item_s, completion_item_s::label_comparer>& items)
 {
@@ -169,10 +188,13 @@ void process_mnemonic_code(
     auto transforms = mnemonic_instr.operand_transformations();
 
     std::bitset<context::machine_instruction::max_operand_count> ops_used_by_replacement;
+    const auto ids = compute_corrected_ids(transforms);
+
     for (const auto& r : transforms)
         if (r.has_source())
             ops_used_by_replacement.set(r.source);
 
+    size_t brackets = 0;
     for (size_t i = 0, processed = 0; i < mach_operands.size(); i++)
     {
         if (!transforms.empty())
@@ -207,7 +229,7 @@ void process_mnemonic_code(
                 }
                 if (replacement.has_source())
                 {
-                    const auto op_string = mach_operands[replacement.source].to_string(1 + replacement.source);
+                    const auto op_string = mach_operands[replacement.source].to_string(1 + ids[replacement.source]);
                     subs_ops_mnems.append(op_string);
                     if (ops_used_by_replacement.test(replacement.source))
                     {
@@ -220,6 +242,7 @@ void process_mnemonic_code(
                         subs_ops_nomnems_no_snippets.append(op_string);
                     }
                 }
+
                 continue;
             }
         }
@@ -230,9 +253,10 @@ void process_mnemonic_code(
         if (is_optional && first_optional)
         {
             first_optional = false;
-            subs_ops_mnems.append(" [");
+            subs_ops_mnems.append("[");
             subs_ops_nomnems.append("${").append(snippet_id++).append(": [");
-            subs_ops_nomnems_no_snippets.append(" [");
+            subs_ops_nomnems_no_snippets.append("[");
+            ++brackets;
         }
 
         subs_ops_mnems.start_operand();
@@ -251,13 +275,20 @@ void process_mnemonic_code(
             subs_ops_mnems.append(op_string).append("[");
             subs_ops_nomnems.append(op_string).append("[");
             subs_ops_nomnems_no_snippets.append(op_string).append("[");
+            ++brackets;
         }
         else
         {
-            subs_ops_mnems.append(op_string).append(optional_count, ']');
-            subs_ops_nomnems.append(op_string).append(optional_count, ']').append("}");
-            subs_ops_nomnems_no_snippets.append(op_string).append(optional_count, ']');
+            subs_ops_mnems.append(op_string);
+            subs_ops_nomnems.append(op_string);
+            subs_ops_nomnems_no_snippets.append(op_string);
         }
+    }
+    if (brackets)
+    {
+        subs_ops_mnems.append(brackets, ']');
+        subs_ops_nomnems.append(brackets, ']').append("}");
+        subs_ops_nomnems_no_snippets.append(brackets, ']');
     }
     items.emplace(std::string(mnemonic_instr.name()),
         "Operands: " + subs_ops_nomnems_no_snippets.take(),
