@@ -521,15 +521,15 @@ class mnemonic_code
                     || op.identifier.type == checking::machine_operand_type::MASK
                     || op.identifier.type == checking::machine_operand_type::REG
                     || op.identifier.type == checking::machine_operand_type::VEC_REG);
+                top_bit >>= +!replaced_b++->insert;
                 processed = 0;
-                if (replaced_b++->insert)
-                    continue;
+                continue;
             }
 
             if (op.identifier.type == checking::machine_operand_type::RELOC_IMM)
                 result |= top_bit;
-            top_bit >>= 1;
 
+            top_bit >>= 1;
             ++processed;
         }
         return result;
