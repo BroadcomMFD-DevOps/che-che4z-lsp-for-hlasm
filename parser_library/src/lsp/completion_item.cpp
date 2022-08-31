@@ -61,7 +61,7 @@ struct operand_formatter
                 i >>= 4;
             }
             std::reverse(buffer, end);
-            result.append("X'").append(std::string_view(buffer, end)).append("'");
+            result.append("X'").append(buffer, end).append("'");
         }
         else if (i & 0x80)
         {
@@ -156,7 +156,7 @@ std::array<unsigned char, context::machine_instruction::max_operand_count> compu
     std::span<const context::mnemonic_transformation> ts)
 {
     std::array<unsigned char, context::machine_instruction::max_operand_count> r;
-    std::iota(r.begin(), r.end(), unsigned char());
+    std::iota(r.begin(), r.end(), (unsigned char)0);
 
     unsigned char correction = 0;
     auto it = r.begin();
