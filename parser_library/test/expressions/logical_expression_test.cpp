@@ -87,29 +87,16 @@ TEST(logical_expressions, invalid_expression)
 NOT EQU 1
 &A1 SETB (AND AND 1)
 &A2 SETB (1 AND NOT)
-&C3 SETB (1 OR AND 1)
+&A3 SETB (1 OR AND 1)
+&A4 SETB (5 AND -5)
+&A5 SETB (5 AND +5)
 )";
     analyzer a(input);
     a.analyze();
 
     a.collect_diags();
-    ASSERT_EQ(a.diags().size(), (size_t)3);
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "CE012", "CE003", "CE003", "CE004", "CE004" }));
 }
-
-TEST(logical_expressions, invalid_expression_2)
-{
-    std::string input =
-        R"(
-&A1  SETB (5 AND -5)
-&A2  SETB (5 AND +5)
-)";
-    analyzer a(input);
-    a.analyze();
-
-    a.collect_diags();
-    EXPECT_TRUE(matches_message_codes(a.diags(), { "CE004", "CE004" }));
-}
-
 TEST(logical_expressions, valid_expression)
 {
     std::string input =
@@ -311,7 +298,47 @@ TEST(logical_expressions, parenthesis_around_expressions)
     EXPECT_TRUE(std::all_of(diags.begin(), diags.end(), [](const auto& d) { return d.code == "CE016"; }));
 }
 
-TEST(logical_expressions, not_negative)
+TEST(logical_expressions, not_operator_valid)
+{
+    std::string input =
+        R"(
+&F SETA 5
+&NEGF SETA -5
+&B1 SETB (NOT &F)
+&B2 SETB (NOT &NEGF)
+&B3   SETB   (NOT 6)
+)";
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_EQ(a.diags().size(), (size_t)0);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B1"), false);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B2"), false);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B3"), false);
+}
+
+TEST(logical_expressions, not_operator_valid_log_expr)
+{
+    std::string input =
+        R"(
+&VAR  SETA -7
+&B1   SETB   (6 AND NOT &VAR)
+&B2   SETB   (6 AND (NOT 7))
+&B3   SETB   (1 AND NOT 0)
+&B4   SETB   (NOT 0 AND NOT 0)
+)";
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(a.diags().empty());
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B1"), false);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B2"), false);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B3"), true);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B4"), true);
+}
+TEST(logical_expressions, not_operator_invalid)
 {
     std::string input =
         R"(
@@ -321,26 +348,7 @@ TEST(logical_expressions, not_negative)
     a.analyze();
     a.collect_diags();
 
-    EXPECT_NE(a.diags().size(), (size_t)0);
-    // EXPECT_TRUE(std::all_of(diags.begin(), diags.end(), [](const auto& d) { return d.code == "CE016"; })); // todo
-}
-
-TEST(logical_expressions, not_negative_2)
-{
-    std::string input =
-        R"(
-&F SETA 5
-&NEGF SETA -5
-&A SETB (NOT &F)
-&B SETB (NOT &NEGF)
-)";
-    analyzer a(input);
-    a.analyze();
-    a.collect_diags();
-
-    EXPECT_EQ(a.diags().size(), (size_t)0);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "A"), false);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B"), false);
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "CE004" }));
 }
 TEST(logical_expressions, operator_precedence)
 {
@@ -370,33 +378,15 @@ TEST(logical_expressions, operator_precedence)
     }
 }
 
-TEST(logical_expressions, operator_precedence_2)
+TEST(logical_expressions, operator_precedence_not)
 {
     std::string input =
         R"(
 &B1   SETB   (1 AND NOT 5 EQ 4)
-&B2   SETB   (4 AND (NOT 5) EQ 4)
-&B22   SETB   (4 AND (NOT -5) EQ 4)
-&B23   SETB   (1 AND ((NOT -5) EQ 4))
-&B24   SETB   (1 AND ((NOT -5) EQ 0))
-&B25   SETB   (1 AND ((NOT -4) EQ 0))
-&B26   SETB   (1 AND ((NOT -0) EQ 0))
-&B27   SETB   (1 AND ((NOT 0) EQ 0))
-&B3   SETB   (1 AND (NOT -5) EQ 4)
-&B31   SETB   ((1 AND NOT -5) EQ 4)
-&B32   SETB   (1 AND  (NOT -5  EQ 4))
-&B33   SETB   (1 AND  NOT -5  EQ 4)
-&B34   SETB   (1 AND  ((NOT -5)  EQ 4))
-&B4   SETB   (4)
-&B5   SETB   (1 AND NOT 0 EQ -1)
-&B6   SETB   (1 AND (NOT 0) EQ -1)
-&B7   SETB   (3 AND (NOT 0) EQ -1)
-&A5   SETA   (-1 AND NOT 0 AND -1)
-&A6   SETA   (-1 AND (NOT 0) AND -1)
-&A7   SETA   (NOT 0 AND NOT 0)
-&A8   SETA   ((NOT 0) AND (NOT 0))
-&B8   SETB   (NOT 0 AND NOT 0)
-&B9   SETB   ((NOT 0) AND (NOT 0))
+&B2   SETB   (1 AND (NOT 5) EQ 4)
+&B3   SETB   (1 AND  NOT -5  EQ 4)
+&B4   SETB   (1 AND (NOT -5) EQ 4)
+&B5   SETB   ((4 AND NOT -5) EQ 4)
 )";
     analyzer a(input);
     a.analyze();
@@ -405,57 +395,22 @@ TEST(logical_expressions, operator_precedence_2)
     EXPECT_TRUE(a.diags().empty());
     EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B1"), true);
     EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B2"), false);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B22"), false);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B23"), false);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B24"), true);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B25"), true);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B26"), false);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B27"), false);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B3"), false);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B31"), false);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B32"), true);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B33"), true);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B34"), false);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B4"), true);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B5"), true);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B6"), false);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B7"), false);
-    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "A5"), -1);
-    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "A6"), -1);
-    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "A7"), -1);
-    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "A8"), -1);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B8"), true);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B9"), true);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B3"), true);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B4"), false);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B5"), false);
 }
 
-TEST(logical_expressions, operator_precedence_3)
+TEST(logical_expressions, operator_precedence_not_var)
 {
     std::string input =
         R"(
 &FIVE  SETA 5
 &NEGFIVE  SETA -5
 &B1   SETB   (1 AND NOT &FIVE EQ 4)
-&B2   SETB   (4 AND (NOT &FIVE) EQ 4)
-&B22   SETB   (4 AND (NOT &NEGFIVE) EQ 4)
-&B23   SETB   (1 AND ((NOT &NEGFIVE) EQ 4))
-&B24   SETB   (1 AND ((NOT &NEGFIVE) EQ 0))
-&B25   SETB   (1 AND ((NOT -4) EQ 0))
-&B26   SETB   (1 AND ((NOT -0) EQ 0))
-&B27   SETB   (1 AND ((NOT 0) EQ 0))
-&B3   SETB   (1 AND (NOT -5) EQ 4)
-&B31   SETB   ((1 AND NOT -5) EQ 4)
-&B32   SETB   (1 AND  (NOT -5  EQ 4))
-&B33   SETB   (1 AND  NOT -5  EQ 4)
-&B34   SETB   (1 AND  ((NOT -5)  EQ 4))
-&B4   SETB   (4)
-&B5   SETB   (1 AND NOT 0 EQ -1)
-&B6   SETB   (1 AND (NOT 0) EQ -1)
-&A5   SETA   (-1 AND NOT 0 AND -1)
-&A6   SETA   (-1 AND (NOT 0) AND -1)
-&A7   SETA   (NOT 0 AND NOT 0)
-&A8   SETA   ((NOT 0) AND (NOT 0))
-&B7   SETB   (NOT 0 AND NOT 0)
-&B8   SETB   ((NOT 0) AND (NOT 0))
+&B2   SETB   (1 AND (NOT &FIVE) EQ 4)
+&B3   SETB   (1 AND  NOT &NEGFIVE  EQ 4)
+&B4   SETB   (1 AND (NOT &NEGFIVE) EQ 4)
+&B5   SETB   ((4 AND NOT &NEGFIVE) EQ 4)
 )";
     analyzer a(input);
     a.analyze();
@@ -464,69 +419,11 @@ TEST(logical_expressions, operator_precedence_3)
     EXPECT_TRUE(a.diags().empty());
     EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B1"), true);
     EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B2"), false);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B22"), false);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B23"), false);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B24"), true);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B25"), true);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B26"), false);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B27"), false);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B3"), false);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B31"), false);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B32"), true);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B33"), true);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B34"), false);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B4"), true);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B5"), true);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B6"), false);
-    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "A5"), -1);
-    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "A6"), -1);
-    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "A7"), -1);
-    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "A8"), -1);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B7"), true);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B8"), true);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B3"), true);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B4"), false);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B5"), false);
 }
-TEST(logical_expressions, operator2)
-{
-    std::string input =
-        R"(
-&A1   SETB   (6 AND (NOT 7))
-&A2   SETB   (6 AND (NOT 0))
-&A3   SETB   (1 AND NOT 0)
-&A4   SETB   (1 AND (NOT 0))
-)";
-    analyzer a(input);
-    a.analyze();
-    a.collect_diags();
-
-    EXPECT_TRUE(a.diags().empty());
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "A1"), false);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "A2"), true);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "A3"), true);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "A4"), true);
-}
-
-TEST(logical_expressions, operator3)
-{
-    std::string input =
-        R"(
-&VAR  SETA -7
-&A    SETA   (6 AND NOT &VAR)
-&B1   SETB   (6 AND NOT &VAR)
-&B2   SETB   (6)
-&B3   SETB   (NOT 6)
-)";
-    analyzer a(input);
-    a.analyze();
-    a.collect_diags();
-
-    EXPECT_TRUE(a.diags().empty());
-    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "A"), 6);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B1"), false);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B2"), true);
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B3"), false);
-}
-
-TEST(logical_expressions, logical_operator_eq)
+TEST(logical_expressions, relational_operator_eq)
 {
     for (const auto& [input, res] : {
              std::pair<std::string, bool> { "&A SETB (0 EQ 0)", true },
@@ -556,7 +453,7 @@ TEST(logical_expressions, logical_operator_eq)
     }
 }
 
-TEST(logical_expressions, logical_operator_ne)
+TEST(logical_expressions, relational_operator_ne)
 {
     for (const auto& [input, res] : {
              std::pair<std::string, bool> { "&A SETB (0 NE 0)", false },
@@ -586,7 +483,7 @@ TEST(logical_expressions, logical_operator_ne)
     }
 }
 
-TEST(logical_expressions, logical_operator_le)
+TEST(logical_expressions, relational_operator_le)
 {
     for (const auto& [input, res] : {
              std::pair<std::string, bool> { "&A SETB (0 LE 0)", true },
@@ -616,7 +513,7 @@ TEST(logical_expressions, logical_operator_le)
     }
 }
 
-TEST(logical_expressions, logical_operator_lt)
+TEST(logical_expressions, relational_operator_lt)
 {
     for (const auto& [input, res] : {
              std::pair<std::string, bool> { "&A SETB (0 LT 0)", false },
@@ -646,7 +543,7 @@ TEST(logical_expressions, logical_operator_lt)
     }
 }
 
-TEST(logical_expressions, logical_operator_ge)
+TEST(logical_expressions, relational_operator_ge)
 {
     for (const auto& [input, res] : {
              std::pair<std::string, bool> { "&A SETB (0 GE 0)", true },
@@ -676,7 +573,7 @@ TEST(logical_expressions, logical_operator_ge)
     }
 }
 
-TEST(logical_expressions, logical_operator_gt)
+TEST(logical_expressions, relational_operator_gt)
 {
     for (const auto& [input, res] : {
              std::pair<std::string, bool> { "&A SETB (0 GT 0)", false },
@@ -767,7 +664,7 @@ TEST(logical_expressions, simple_string_equality)
     EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B"), true);
 }
 
-TEST(logical_expressions, string_function_and)
+TEST(logical_expressions, logical_expr_and_string_function)
 {
     std::string input =
         R"(

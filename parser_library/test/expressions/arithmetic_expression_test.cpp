@@ -215,10 +215,12 @@ TEST(arithmetic_expressions, not_operator)
 {
     std::string input =
         R"(
+&VAR  SETA -7
 &A1 SETA NOT 80
 &A2 SETA (NOT 87)
-&A3 SETA NOT NOT NOT (6 AND 2)
-&A4 SETA NOT NOT NOT -5    REMARK
+&A3 SETA (6 AND NOT &VAR)
+&A4 SETA NoT NOT NOT (6 AND 2)
+&A5 SETA not NOT NOT -5    REMARK
 )";
     analyzer a(input);
     a.analyze();
@@ -228,8 +230,29 @@ TEST(arithmetic_expressions, not_operator)
 
     SETAEQ("A1", -81);
     SETAEQ("A2", -88);
-    SETAEQ("A3", -3);
-    SETAEQ("A4", 4);
+    SETAEQ("A3", 6);
+    SETAEQ("A4", -3);
+    SETAEQ("A5", 4);
+}
+
+TEST(logical_expressions, not_operator_precedence)
+{
+    std::string input =
+        R"(
+&A1   SETA   (-1 AND NOT 0 AND -1)
+&A2   SETA   (-1 AND (NOT 0) AND -1)
+&A3   SETA   (NOT 0 AND NOT 0)
+&A4   SETA   ((NOT 0) AND (NOT 0))
+)";
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(a.diags().empty());
+    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "A1"), -1);
+    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "A2"), -1);
+    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "A3"), -1);
+    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "A4"), -1);
 }
 
 TEST(arithmetic_expressions, invalid_operator)
