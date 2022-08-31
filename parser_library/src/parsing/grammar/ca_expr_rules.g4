@@ -18,7 +18,7 @@ parser grammar ca_expr_rules;
 expr_general returns [ca_expr_ptr ca_expr]
 	:
 	{NOT(_input->LT(1))}?
-	tmp=not_expr
+	tmp=not_expr_list
 	{
 		$ca_expr = std::move($tmp.ca_expr);
 	}
@@ -169,7 +169,7 @@ expr_list returns [ca_expr_ptr ca_expr]
 	: lpar SPACE* expr_space_c SPACE* rpar
 	{
 		auto r = provider.get_range($lpar.ctx->getStart(), $rpar.ctx->getStop());
-		$ca_expr = std::make_unique<ca_expr_list>(std::move($expr_space_c.ca_exprs), r);
+		$ca_expr = std::make_unique<ca_expr_list>(std::move($expr_space_c.ca_exprs), r, true);
 	};
 	finally
 	{if (!$ca_expr) $ca_expr = std::make_unique<ca_constant>(0, provider.get_range(_localctx));}
@@ -185,7 +185,7 @@ expr_space_c returns [std::vector<ca_expr_ptr> ca_exprs]
 		$ca_exprs = std::move($tmp.ca_exprs);
 	};
 
-not_expr returns [ca_expr_ptr ca_expr]
+not_expr_list returns [ca_expr_ptr ca_expr]
 	:
 	{
 		std::vector<ca_expr_ptr> ca_exprs;
@@ -198,11 +198,11 @@ not_expr returns [ca_expr_ptr ca_expr]
 			collector.add_hl_symbol(token_info(not_r, hl_scopes::operand));
 			ca_exprs.push_back(std::make_unique<ca_symbol>(parse_identifier($ORDSYMBOL->getText(), not_r), not_r)); 
 		}
-	)*
+	)+
 	expr
 	{
 		ca_exprs.push_back(std::move($expr.ca_expr)); 
-		$ca_expr = std::make_unique<ca_expr_list_seta>(std::move(ca_exprs), range(ca_exprs.front()->expr_range.start, ca_exprs.back()->expr_range.end));
+		$ca_expr = std::make_unique<ca_expr_list>(std::move(ca_exprs), range(ca_exprs.front()->expr_range.start, ca_exprs.back()->expr_range.end), false);
 	}
 	;
 

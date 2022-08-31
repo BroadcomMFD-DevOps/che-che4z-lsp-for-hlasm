@@ -44,7 +44,7 @@ TEST(ca_expr_list, unknown_function_to_operator)
 
     std::vector<ca_expr_ptr> list;
     list.emplace_back(std::move(unknown_func));
-    ca_expr_list expr_list(std::move(list), range());
+    ca_expr_list expr_list(std::move(list), range(), true);
 
     //   function  =>    operator
     // ((1)AND(1)) => ((1) AND (1))
@@ -72,7 +72,7 @@ TEST(ca_expr_list, resolve_C_type)
     list.emplace_back(std::move(sym));
     list.emplace_back(std::move(str));
     // (UPPER 'low')
-    ca_expr_list expr_list(std::move(list), range());
+    ca_expr_list expr_list(std::move(list), range(), true);
     expr_list.resolve_expression_tree(context::SET_t_enum::C_TYPE, diags);
     auto res = expr_list.evaluate(eval_ctx);
 
@@ -93,7 +93,7 @@ TEST(ca_expr_list, get_undefined_attributed_symbols)
     list.emplace_back(std::move(sym));
     list.emplace_back(std::move(str));
     // (L'X 'low')
-    ca_expr_list expr_list(std::move(list), range());
+    ca_expr_list expr_list(std::move(list), range(), true);
 
     context::hlasm_context ctx;
     diagnostic_op_consumer_container diags;
@@ -112,7 +112,7 @@ TEST(ca_expr_list, is_character_expression)
     std::vector<ca_expr_ptr> list;
     list.emplace_back(std::move(str));
     // ('low')
-    ca_expr_list expr_list(std::move(list), range());
+    ca_expr_list expr_list(std::move(list), range(), true);
 
     EXPECT_TRUE(expr_list.is_character_expression(character_expression_purpose::assignment));
     EXPECT_FALSE(expr_list.is_character_expression(character_expression_purpose::left_side_of_comparison));
@@ -123,7 +123,7 @@ TEST(ca_expr_list, unfinished_expressions)
     // ()
     {
         diagnostic_op_consumer_container diags;
-        ca_expr_list expr_list({}, range());
+        ca_expr_list expr_list({}, range(), true);
         expr_list.resolve_expression_tree(context::SET_t_enum::B_TYPE, diags);
 
         EXPECT_FALSE(diags.diags.empty());
@@ -137,7 +137,7 @@ TEST(ca_expr_list, unfinished_expressions)
         std::vector<ca_expr_ptr> list;
         list.emplace_back(std::move(sym));
 
-        ca_expr_list expr_list(std::move(list), range());
+        ca_expr_list expr_list(std::move(list), range(), true);
         expr_list.resolve_expression_tree(context::SET_t_enum::B_TYPE, diags);
 
         EXPECT_FALSE(diags.diags.empty());
@@ -154,7 +154,7 @@ TEST(ca_expr_list, unfinished_expressions)
         list.emplace_back(std::move(c));
         list.emplace_back(std::move(sym));
 
-        ca_expr_list expr_list(std::move(list), range());
+        ca_expr_list expr_list(std::move(list), range(), true);
         expr_list.resolve_expression_tree(context::SET_t_enum::B_TYPE, diags);
 
         EXPECT_FALSE(diags.diags.empty());
@@ -176,7 +176,7 @@ TEST(ca_expr_list, unfinished_expressions)
         list.emplace_back(std::move(c2));
         list.emplace_back(std::move(eq_sym));
 
-        ca_expr_list expr_list(std::move(list), range());
+        ca_expr_list expr_list(std::move(list), range(), true);
         expr_list.resolve_expression_tree(context::SET_t_enum::B_TYPE, diags);
 
         EXPECT_FALSE(diags.diags.empty());

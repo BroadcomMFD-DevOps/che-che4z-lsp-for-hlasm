@@ -28,7 +28,7 @@ class ca_expr_list : public ca_expression
 public:
     std::vector<ca_expr_ptr> expr_list;
 
-    ca_expr_list(std::vector<ca_expr_ptr> expr_list, range expr_range);
+    ca_expr_list(std::vector<ca_expr_ptr> expr_list, range expr_range, bool parenthesized);
 
     undef_sym_set get_undefined_attributed_symbols(const evaluation_context& eval_ctx) const override;
 
@@ -42,7 +42,7 @@ public:
 
     bool is_compatible(ca_expression_compatibility i) const override
     {
-        return i == ca_expression_compatibility::aif || i == ca_expression_compatibility::setb;
+        return m_parenthesized && (i == ca_expression_compatibility::aif || i == ca_expression_compatibility::setb);
     }
 
 private:
@@ -57,6 +57,8 @@ private:
     // each loop iteration it pastes them together and continue until list is exhausted
     template<typename T>
     void resolve(diagnostic_op_consumer& diags);
+
+    bool m_parenthesized;
 };
 
 } // namespace hlasm_plugin::parser_library::expressions

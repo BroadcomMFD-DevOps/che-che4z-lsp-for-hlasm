@@ -15,8 +15,6 @@ target_sources(parser_library PRIVATE
 	ca_constant.h
 	ca_expr_list.cpp
 	ca_expr_list.h
-	ca_expr_list_seta.cpp
-	ca_expr_list_seta.h
 	ca_function.cpp
 	ca_function.h
 	ca_string.cpp

@@ -673,7 +673,9 @@ void ca_processor::process_MHELP(const semantics::complete_statement& stmt)
 
     uint32_t value = 0;
     if (ca_op->kind == semantics::ca_kind::EXPR)
+    {
         value = ca_op->access_expr()->expression->evaluate<context::A_t>(eval_ctx);
+    }
     else if (ca_op->kind == semantics::ca_kind::VAR)
     {
         auto val = ca_op->access_var()->variable_symbol->evaluate(eval_ctx);
