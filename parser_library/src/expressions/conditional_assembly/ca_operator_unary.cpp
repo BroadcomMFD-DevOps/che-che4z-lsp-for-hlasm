@@ -67,10 +67,12 @@ void ca_function_unary_operator::resolve_expression_tree(context::SET_t_enum kin
 context::SET_t ca_function_unary_operator::operation(context::SET_t operand, const evaluation_context& eval_ctx) const
 {
     if (function == ca_expr_ops::NOT)
+    {
         if (eval_ctx.parent_expression_type == context::SET_t_enum::A_TYPE)
             return convert_return_types(~operand.access_a(), expr_kind, eval_ctx);
-        else
+        else if (eval_ctx.parent_expression_type == context::SET_t_enum::B_TYPE)
             return convert_return_types(!operand.access_b(), expr_kind, eval_ctx);
+    }
     else if (expr_kind == context::SET_t_enum::C_TYPE)
     {
         diagnostic_adder add_diagnostic(eval_ctx.diags, expr_range);
@@ -97,7 +99,7 @@ ca_plus_operator::ca_plus_operator(ca_expr_ptr expr, range expr_range)
     : ca_unary_operator(std::move(expr), context::SET_t_enum::A_TYPE, std::move(expr_range))
 {}
 
-context::SET_t ca_plus_operator::operation(context::SET_t operand, const evaluation_context& eval_ctx) const
+context::SET_t ca_plus_operator::operation(context::SET_t operand, const evaluation_context&) const
 {
     return operand.access_a();
 }
@@ -106,7 +108,7 @@ ca_minus_operator::ca_minus_operator(ca_expr_ptr expr, range expr_range)
     : ca_unary_operator(std::move(expr), context::SET_t_enum::A_TYPE, std::move(expr_range))
 {}
 
-context::SET_t ca_minus_operator::operation(context::SET_t operand, const evaluation_context& eval_ctx) const
+context::SET_t ca_minus_operator::operation(context::SET_t operand, const evaluation_context&) const
 {
     return -operand.access_a();
 }

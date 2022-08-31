@@ -153,7 +153,7 @@ struct resolve_stacks
             diags.add_diagnostic(diagnostic_op::error_CE003(range(op.r.start)));
             return false;
         }
-        if (right.i < op.i)
+        if (op.requires_terms && right.i < op.i)
         {
             diags.add_diagnostic(diagnostic_op::error_CE003(range(op.r.end)));
             return false;

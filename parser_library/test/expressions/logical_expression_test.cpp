@@ -174,7 +174,7 @@ TEST(logical_expressions, invalid_relational_expression)
     a.analyze();
 
     a.collect_diags();
-    ASSERT_EQ(a.diags().size(), (size_t)6);
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "CE004", "CE004", "CE004", "CE004" }));
 }
 
 TEST(logical_expressions, priority)

@@ -269,11 +269,10 @@ bool parser_impl::ALIAS()
 
 bool parser_impl::NOT(const antlr4::Token* token)
 {
-    static constexpr std::string_view NOT_OPERATOR = "NOT";
-
     if (!token)
         return false;
 
+    static constexpr std::string_view NOT_OPERATOR = "NOT";
     auto token_txt = token->getText();
     if (token_txt.size() != NOT_OPERATOR.size())
         return false;
