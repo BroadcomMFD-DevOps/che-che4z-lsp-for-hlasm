@@ -239,6 +239,12 @@ void symbol_dependency_tables::resolve(
     }
 }
 
+void symbol_dependency_tables::resolve_t_attrs()
+{
+    for (id_index name : m_sym_ctx.cleanup_label_mentions())
+        resolve(name, nullptr);
+}
+
 const symbol_dependency_tables::dependency_value* symbol_dependency_tables::find_dependency_value(
     const dependant& target) const
 {

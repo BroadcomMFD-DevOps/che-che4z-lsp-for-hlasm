@@ -253,7 +253,15 @@ mach_expr_data_attr::mach_expr_data_attr(context::id_index value,
 
 context::dependency_collector mach_expr_data_attr::get_dependencies(context::dependency_solver& solver) const
 {
-    auto symbol = solver.get_symbol(value);
+    const context::symbol* symbol = nullptr;
+    if (auto symbol_ext = solver.get_symbol_candidate(value);
+        std::holds_alternative<context::symbol_candidate>(symbol_ext))
+    {
+        if (attribute == context::data_attr_kind::T)
+            return context::dependency_collector();
+    }
+    else
+        symbol = std::get<const context::symbol*>(symbol_ext);
 
     if (symbol == nullptr || !symbol->attributes().is_defined(attribute))
         return context::dependency_collector({ attribute, value });
@@ -264,7 +272,15 @@ context::dependency_collector mach_expr_data_attr::get_dependencies(context::dep
 mach_expression::value_t mach_expr_data_attr::evaluate(
     context::dependency_solver& solver, diagnostic_op_consumer& diags) const
 {
-    auto symbol = solver.get_symbol(value);
+    const context::symbol* symbol = nullptr;
+    if (auto symbol_ext = solver.get_symbol_candidate(value);
+        std::holds_alternative<context::symbol_candidate>(symbol_ext))
+    {
+        if (attribute == context::data_attr_kind::T)
+            return ebcdic_encoding::to_ebcdic(std::get<context::symbol_candidate>(symbol_ext).mentioned ? 'M' : 'U');
+    }
+    else
+        symbol = std::get<const context::symbol*>(symbol_ext);
 
     if (symbol == nullptr)
     {

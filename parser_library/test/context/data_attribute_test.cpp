@@ -678,15 +678,13 @@ TEST(data_attributes, forward_attr_ref_fail)
 {
     std::string input = R"(
 A EQU L'Q
-B EQU T'W
-
 )";
 
     analyzer a(input);
     a.analyze();
 
     a.collect_diags();
-    ASSERT_EQ(a.diags().size(), (size_t)2);
+    ASSERT_EQ(a.diags().size(), (size_t)1);
 }
 
 TEST(data_attributes, attr_cycle_ok)

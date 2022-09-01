@@ -16,6 +16,7 @@
 #define CONTEXT_ORDINARY_ASSEMBLY_CONTEXT_H
 
 #include <unordered_map>
+#include <unordered_set>
 #include <variant>
 
 #include "alignment.h"
@@ -51,6 +52,10 @@ class ordinary_assembly_context
     std::unordered_map<id_index, std::variant<symbol, label_tag>> symbols_;
     // list of lookaheaded symbols
     std::unordered_map<id_index, symbol> symbol_refs_;
+
+    // ids that were mentioned as macro labels and could have been symbols
+    std::unordered_set<id_index> symbol_candidates;
+    bool reporting_candidates = false;
 
     section* curr_section_;
     section* first_control_section_ = nullptr;
@@ -160,6 +165,9 @@ public:
 
     index_t<using_collection> current_using() const;
     bool using_label_active(index_t<using_collection> context_id, id_index label, const section* sect) const;
+
+    void symbol_mentioned_on_macro(id_index name);
+    const std::unordered_set<id_index>& cleanup_label_mentions();
 
 private:
     void create_private_section();

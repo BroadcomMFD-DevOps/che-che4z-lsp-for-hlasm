@@ -60,4 +60,20 @@ using_evaluate_result ordinary_assembly_dependency_solver::using_evaluate(
     return u.evaluate(active_using, label, owner, offset, long_offset);
 }
 
+std::variant<const symbol*, symbol_candidate> ordinary_assembly_dependency_solver::get_symbol_candidate(
+    id_index name) const
+{
+    auto tmp = ord_context.symbols_.find(name);
+
+    if (tmp != ord_context.symbols_.end())
+    {
+        return std::get_if<symbol>(&tmp->second);
+    }
+
+    if (!ord_context.reporting_candidates)
+        return nullptr;
+
+    return symbol_candidate { ord_context.symbol_candidates.contains(name) };
+}
+
 } // namespace hlasm_plugin::parser_library::context

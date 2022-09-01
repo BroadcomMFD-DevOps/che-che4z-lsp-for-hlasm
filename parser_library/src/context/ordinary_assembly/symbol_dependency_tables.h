@@ -164,6 +164,7 @@ public:
 
     // assign default values to all unresoved dependants
     void resolve_all_as_default();
+    void resolve_t_attrs();
 
     friend dependency_adder;
 };

@@ -135,6 +135,8 @@ void ordinary_processor::end_processing()
         hlasm_ctx.ord_ctx.generate_pool(*this, hlasm_ctx.using_current());
     }
 
+    hlasm_ctx.ord_ctx.symbol_dependencies.resolve_t_attrs();
+
     if (!hlasm_ctx.ord_ctx.symbol_dependencies.check_loctr_cycle())
         add_diagnostic(diagnostic_op::error_E033(range())); // TODO: at least we say something
 

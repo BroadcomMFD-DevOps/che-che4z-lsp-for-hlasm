@@ -377,4 +377,21 @@ bool ordinary_assembly_context::using_label_active(
     return usings.is_label_mapping_section(context_id, label, sect);
 }
 
+void ordinary_assembly_context::symbol_mentioned_on_macro(id_index name)
+{
+    if (symbols_.contains(name)) // if defined, we no longer care
+        return;
+
+    symbol_candidates.emplace(name);
+}
+
+const std::unordered_set<id_index>& ordinary_assembly_context::cleanup_label_mentions()
+{
+    std::erase_if(symbol_candidates, [this](id_index name) { return symbols_.contains(name); });
+
+    reporting_candidates = true;
+
+    return symbol_candidates;
+}
+
 } // namespace hlasm_plugin::parser_library::context
