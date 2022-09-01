@@ -43,7 +43,8 @@ bool is_symbol(const ca_expr_ptr& expr) { return dynamic_cast<const ca_symbol*>(
 
 const std::string& get_symbol(const ca_expr_ptr& expr) { return *dynamic_cast<const ca_symbol&>(*expr).symbol; }
 
-void ca_expr_list::resolve_expression_tree(context::SET_t_enum kind, diagnostic_op_consumer& diags)
+void ca_expr_list::resolve_expression_tree(
+    context::SET_t_enum kind, context::SET_t_enum parent_expr_kind, diagnostic_op_consumer& diags)
 {
     expr_kind = kind;
 
@@ -51,11 +52,11 @@ void ca_expr_list::resolve_expression_tree(context::SET_t_enum kind, diagnostic_
         unknown_functions_to_operators();
 
     if (kind == context::SET_t_enum::A_TYPE)
-        resolve<context::A_t>(diags);
+        resolve<context::A_t>(parent_expr_kind, diags);
     else if (kind == context::SET_t_enum::B_TYPE)
-        resolve<context::B_t>(diags);
+        resolve<context::B_t>(parent_expr_kind, diags);
     else if (kind == context::SET_t_enum::C_TYPE)
-        resolve<context::C_t>(diags);
+        resolve<context::C_t>(parent_expr_kind, diags);
     else
         assert(false);
 }
@@ -228,7 +229,7 @@ struct resolve_stacks
 } // namespace
 
 template<typename T>
-void ca_expr_list::resolve(diagnostic_op_consumer& diags)
+void ca_expr_list::resolve(context::SET_t_enum parent_expr_kind, diagnostic_op_consumer& diags)
 {
     using expr_policy = typename ca_expr_traits<T>::policy_t;
 
@@ -313,7 +314,7 @@ void ca_expr_list::resolve(diagnostic_op_consumer& diags)
     ca_expr_ptr final_expr = std::move(stacks.terms.top().term);
 
     // resolve created tree
-    final_expr->resolve_expression_tree(context::object_traits<T>::type_enum, diags);
+    final_expr->resolve_expression_tree(context::object_traits<T>::type_enum, parent_expr_kind, diags);
 
     // move resolved tree to the front of the array
     expr_list.clear();

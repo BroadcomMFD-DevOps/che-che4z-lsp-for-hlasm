@@ -27,14 +27,12 @@ struct evaluation_context
     context::hlasm_context& hlasm_ctx;
     workspaces::parse_lib_provider& lib_provider;
     diagnostic_op_consumer& diags;
-    context::SET_t_enum parent_expression_type;
 
     evaluation_context(
         context::hlasm_context& ctx, workspaces::parse_lib_provider& lib_provider, diagnostic_op_consumer& diags)
         : hlasm_ctx(ctx)
         , lib_provider(lib_provider)
         , diags(diags)
-        , parent_expression_type(context::SET_t_enum::UNDEF_TYPE)
     {}
 
     evaluation_context(const evaluation_context& oth) = delete;
