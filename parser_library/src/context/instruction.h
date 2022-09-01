@@ -506,18 +506,18 @@ class mnemonic_code
 
         decltype(result) top_bit = 1 << (std::numeric_limits<decltype(result)>::digits - 1);
 
-        auto replaced_b = transforms.begin();
-        auto const replaced_e = transforms.end();
+        auto transforms_b = transforms.begin();
+        auto const transforms_e = transforms.end();
 
         for (size_t processed = 0; const auto& op : instruction->operands())
         {
-            if (replaced_b != replaced_e && processed == replaced_b->skip)
+            if (transforms_b != transforms_e && processed == transforms_b->skip)
             {
                 assert(op.identifier.type == checking::machine_operand_type::IMM
                     || op.identifier.type == checking::machine_operand_type::MASK
                     || op.identifier.type == checking::machine_operand_type::REG
                     || op.identifier.type == checking::machine_operand_type::VEC_REG);
-                top_bit >>= +!replaced_b++->insert;
+                top_bit >>= +!transforms_b++->insert;
                 processed = 0;
                 continue;
             }
