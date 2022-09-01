@@ -447,16 +447,13 @@ struct mnemonic_transformation
     constexpr mnemonic_transformation() = default;
     constexpr mnemonic_transformation(unsigned short v)
         : value(v)
-    {
-        assert(static_cast<unsigned short>(v) == v);
-    }
+    {}
     constexpr mnemonic_transformation(unsigned char skip, unsigned short v, bool insert = true)
         : skip(skip)
         , insert(insert)
         , value(v)
     {
         assert(skip < machine_instruction::max_operand_count);
-        assert(static_cast<unsigned short>(v) == v);
     }
     constexpr mnemonic_transformation(unsigned char skip, mnemonic_transformation_kind t, unsigned char src)
         : skip(skip)
@@ -478,7 +475,6 @@ struct mnemonic_transformation
         assert(t != mnemonic_transformation_kind::copy && t != mnemonic_transformation_kind::value);
         assert(skip < machine_instruction::max_operand_count);
         assert(src < machine_instruction::max_operand_count);
-        assert(static_cast<unsigned short>(v) == v);
     }
 
     constexpr bool has_source() const { return type != mnemonic_transformation_kind::value; }
