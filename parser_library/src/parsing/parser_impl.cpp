@@ -274,13 +274,12 @@ bool parser_impl::NOT(const antlr4::Token* token)
 
     static constexpr std::string_view NOT_OPERATOR = "NOT";
     auto token_txt = token->getText();
-    if (token_txt.size() != NOT_OPERATOR.size())
-        return false;
 
-    return std::equal(
-        NOT_OPERATOR.begin(), NOT_OPERATOR.end(), token_txt.begin(), [](unsigned char l, unsigned char r) {
-            return l == ::toupper(r);
-        });
+    return std::equal(NOT_OPERATOR.begin(),
+        NOT_OPERATOR.end(),
+        token_txt.begin(),
+        token_txt.end(),
+        [](unsigned char l, unsigned char r) { return l == ::toupper(r); });
 }
 
 bool parser_impl::is_attribute_consuming(char c)
