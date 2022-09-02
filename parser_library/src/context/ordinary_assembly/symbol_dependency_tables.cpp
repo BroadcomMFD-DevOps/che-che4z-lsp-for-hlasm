@@ -206,13 +206,24 @@ void symbol_dependency_tables::resolve_dependant_default(const dependant& target
     std::visit(resolve_dependant_default_visitor { m_sym_ctx }, target);
 }
 
+struct symbol_dependency_tables::change_eq_predicate
+{
+    bool operator()(const auto&, const auto&) const noexcept { return false; }
+
+    bool operator()(const id_index& l, const id_index& r) const noexcept { return l == r; }
+    bool operator()(const id_index& l, const id_index_t_attr& r) const noexcept { return l == r.name; }
+    bool operator()(const space_ptr& l, const space_ptr& r) const noexcept { return l == r; }
+};
+
 void symbol_dependency_tables::resolve(
     std::variant<id_index, space_ptr> what_changed, diagnostic_s_consumer* diag_consumer)
 {
-    const auto resolvable = [this, diag_consumer, &what_changed](std::pair<const dependant, dependency_value>& v) {
-        std::erase_if(v.second.m_last_dependencies, [&what_changed](const auto& d) {
-            return what_changed == d || std::holds_alternative<space_ptr>(d) && std::get<space_ptr>(d)->resolved();
-        });
+    const auto obsolete_dep = [&what_changed](const auto& d) {
+        return std::visit(change_eq_predicate(), what_changed, d)
+            || std::holds_alternative<space_ptr>(d) && std::get<space_ptr>(d)->resolved();
+    };
+    const auto resolvable = [this, diag_consumer, &obsolete_dep](std::pair<const dependant, dependency_value>& v) {
+        std::erase_if(v.second.m_last_dependencies, obsolete_dep);
         if (!diag_consumer && std::holds_alternative<space_ptr>(v.first))
             return false;
         if (!v.second.m_last_dependencies.empty())
@@ -228,25 +239,23 @@ void symbol_dependency_tables::resolve(
         try_erase_source_statement(target);
 
         for (auto nested = std::next(it); nested != m_dependencies.end(); ++nested)
-        {
-            std::erase_if(nested->second.m_last_dependencies, [&what_changed](const auto& v) {
-                return what_changed == v || std::holds_alternative<space_ptr>(v) && std::get<space_ptr>(v)->resolved();
-            });
-        }
+            std::erase_if(nested->second.m_last_dependencies, obsolete_dep);
 
-        what_changed = std::visit(dependant_visitor(), target);
-        m_dependencies.erase(it);
+        what_changed = std::visit(dependant_visitor(), std::move(m_dependencies.extract(it).key()));
     }
 }
 
 void symbol_dependency_tables::resolve_t_attrs()
 {
     m_sym_ctx.start_reporting_label_mentions();
+    bool anything_removed = false;
     // drop cached symbolic dependencies
     for (auto& [_, dep] : m_dependencies)
-        std::erase_if(dep.m_last_dependencies, [](const auto& d) { return std::holds_alternative<id_index>(d); });
+        anything_removed |= !!std::erase_if(
+            dep.m_last_dependencies, [](const auto& d) { return std::holds_alternative<id_index_t_attr>(d); });
     // try one more resolve cycle
-    resolve(nullptr, nullptr);
+    if (anything_removed)
+        resolve(nullptr, nullptr);
 }
 
 const symbol_dependency_tables::dependency_value* symbol_dependency_tables::find_dependency_value(
@@ -303,7 +312,12 @@ bool symbol_dependency_tables::update_dependencies(dependency_value& d)
     d.m_last_dependencies.insert(
         d.m_last_dependencies.end(), deps.undefined_symbols.begin(), deps.undefined_symbols.end());
     for (const auto& dep : deps.undefined_attr_refs)
-        d.m_last_dependencies.emplace_back(dep.symbol_id);
+    {
+        if (dep.attribute != context::data_attr_kind::T)
+            d.m_last_dependencies.emplace_back(dep.symbol_id);
+        else
+            d.m_last_dependencies.emplace_back(id_index_t_attr { dep.symbol_id });
+    }
 
     if (!d.m_last_dependencies.empty())
         return true;

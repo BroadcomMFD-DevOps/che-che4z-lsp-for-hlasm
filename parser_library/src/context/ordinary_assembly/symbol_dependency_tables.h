@@ -67,11 +67,19 @@ class dependency_adder;
 // class holding data about dependencies between symbols
 class symbol_dependency_tables
 {
+    struct change_eq_predicate;
+    struct id_index_t_attr
+    {
+        id_index name;
+
+        auto operator<=>(const id_index_t_attr&) const noexcept = default;
+    };
+
     struct dependency_value
     {
         const resolvable* m_resolvable;
         dependency_evaluation_context m_dec;
-        std::vector<std::variant<id_index, space_ptr>> m_last_dependencies;
+        std::vector<std::variant<id_index, id_index_t_attr, space_ptr>> m_last_dependencies;
 
         dependency_value(const resolvable* r, dependency_evaluation_context dec)
             : m_resolvable(r)
