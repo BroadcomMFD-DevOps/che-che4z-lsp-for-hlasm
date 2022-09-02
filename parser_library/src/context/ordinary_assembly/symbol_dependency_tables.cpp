@@ -206,21 +206,18 @@ void symbol_dependency_tables::resolve_dependant_default(const dependant& target
     std::visit(resolve_dependant_default_visitor { m_sym_ctx }, target);
 }
 
-struct symbol_dependency_tables::change_eq_predicate
-{
-    bool operator()(const auto&, const auto&) const noexcept { return false; }
-
-    bool operator()(const id_index& l, const id_index& r) const noexcept { return l == r; }
-    bool operator()(const id_index& l, const id_index_t_attr& r) const noexcept { return l == r.name; }
-    bool operator()(const space_ptr& l, const space_ptr& r) const noexcept { return l == r; }
-};
-
 void symbol_dependency_tables::resolve(
     std::variant<id_index, space_ptr> what_changed, diagnostic_s_consumer* diag_consumer)
 {
     const auto obsolete_dep = [&what_changed](const auto& d) {
-        return std::visit(change_eq_predicate(), what_changed, d)
-            || std::holds_alternative<space_ptr>(d) && std::get<space_ptr>(d)->resolved();
+        if (std::holds_alternative<space_ptr>(d))
+        {
+            const auto& d_ptr = std::get<space_ptr>(d);
+            return d_ptr->resolved()
+                || std::holds_alternative<space_ptr>(what_changed) && std::get<space_ptr>(what_changed) == d_ptr;
+        }
+        const auto id = std::holds_alternative<id_index>(d) ? std::get<id_index>(d) : std::get<id_index_t_attr>(d).name;
+        return std::holds_alternative<id_index>(what_changed) && id == std::get<id_index>(what_changed);
     };
     const auto resolvable = [this, diag_consumer, &obsolete_dep](std::pair<const dependant, dependency_value>& v) {
         std::erase_if(v.second.m_last_dependencies, obsolete_dep);
@@ -248,13 +245,13 @@ void symbol_dependency_tables::resolve(
 void symbol_dependency_tables::resolve_t_attrs()
 {
     m_sym_ctx.start_reporting_label_mentions();
-    bool anything_removed = false;
+    bool erased = false;
     // drop cached symbolic dependencies
     for (auto& [_, dep] : m_dependencies)
-        anything_removed |= !!std::erase_if(
+        erased |= !!std::erase_if(
             dep.m_last_dependencies, [](const auto& d) { return std::holds_alternative<id_index_t_attr>(d); });
     // try one more resolve cycle
-    if (anything_removed)
+    if (erased)
         resolve(nullptr, nullptr);
 }
 
