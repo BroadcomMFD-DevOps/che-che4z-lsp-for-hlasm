@@ -1073,3 +1073,18 @@ A_       MAC   A_
     // EXPECT_EQ(get_symbol_abs(a.hlasm_ctx(), "E11"), 0xC3);
     // EXPECT_EQ(get_symbol_abs(a.hlasm_ctx(), "C11"), 0xC3);
 }
+
+TEST(data_attributes, mach_variable_type_no_macros)
+{
+    std::string input = R"(
+V1 EQU T'W
+)";
+
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(a.diags().empty());
+
+    EXPECT_EQ(get_symbol_abs(a.hlasm_ctx(), "V1"), 0xE4);
+}
