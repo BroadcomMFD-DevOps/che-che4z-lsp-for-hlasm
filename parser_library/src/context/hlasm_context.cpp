@@ -830,14 +830,14 @@ struct opcode_attr_visitor
     }
 };
 
-C_t hlasm_context::get_opcode_attr(id_index symbol)
+C_t hlasm_context::get_opcode_attr(id_index symbol) const
 {
     if (auto it = macros_.find(symbol); it != macros_.end())
         return "M";
 
     if (auto it = m_instruction_map.find(symbol); it != m_instruction_map.end())
     {
-        auto& [opcode, detail] = *it;
+        const auto& [opcode, detail] = *it;
         return std::visit(opcode_attr_visitor(), detail);
     }
 

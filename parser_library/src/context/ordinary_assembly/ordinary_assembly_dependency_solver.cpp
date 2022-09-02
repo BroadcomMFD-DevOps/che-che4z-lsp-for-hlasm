@@ -76,4 +76,9 @@ std::variant<const symbol*, symbol_candidate> ordinary_assembly_dependency_solve
     return symbol_candidate { ord_context.symbol_candidates.contains(name) };
 }
 
+std::string ordinary_assembly_dependency_solver::get_opcode_attr(id_index name) const
+{
+    return ord_context.hlasm_ctx_.get_opcode_attr(name);
+}
+
 } // namespace hlasm_plugin::parser_library::context

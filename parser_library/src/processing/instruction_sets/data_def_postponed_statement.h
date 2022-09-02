@@ -79,6 +79,7 @@ struct data_def_dependency_solver final : public context::dependency_solver
         context::id_index label, const context::section* owner, int32_t offset, bool long_offset) const override;
     std::variant<const context::symbol*, context::symbol_candidate> get_symbol_candidate(
         context::id_index name) const override;
+    std::string get_opcode_attr(context::id_index name) const override;
 };
 
 } // namespace hlasm_plugin::parser_library::processing

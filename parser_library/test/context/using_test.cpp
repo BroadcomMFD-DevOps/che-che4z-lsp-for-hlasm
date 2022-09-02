@@ -89,6 +89,7 @@ struct test_context : public dependency_solver
     {
         return get_symbol(name);
     }
+    std::string get_opcode_attr(id_index name) const { return hlasm_ctx.get_opcode_attr(name); }
 };
 
 std::unique_ptr<mach_expression> operator+(std::unique_ptr<mach_expression> l, std::unique_ptr<mach_expression> r)

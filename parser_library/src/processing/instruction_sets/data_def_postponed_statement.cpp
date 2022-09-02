@@ -142,4 +142,9 @@ std::variant<const context::symbol*, context::symbol_candidate> data_def_depende
     return base.get_symbol_candidate(name);
 }
 
+std::string data_def_dependency_solver::get_opcode_attr(context::id_index name) const
+{
+    return base.get_opcode_attr(name);
+}
+
 } // namespace hlasm_plugin::parser_library::processing

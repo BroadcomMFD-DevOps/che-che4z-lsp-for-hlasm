@@ -45,6 +45,7 @@ public:
     virtual using_evaluate_result using_evaluate(
         id_index label, const section* owner, int32_t offset, bool long_offset) const = 0;
     virtual std::variant<const symbol*, symbol_candidate> get_symbol_candidate(id_index name) const = 0;
+    virtual std::string get_opcode_attr(id_index symbol) const = 0;
 
 protected:
     ~dependency_solver() = default;
