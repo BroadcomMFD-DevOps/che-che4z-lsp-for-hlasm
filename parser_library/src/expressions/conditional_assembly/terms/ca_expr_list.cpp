@@ -150,12 +150,12 @@ struct resolve_stacks
         auto left = std::move(terms.top());
         terms.pop();
 
-        if (op.requires_terms && !left.simple_term || left.i > op.i)
+        if (left.i > op.i)
         {
             diags.add_diagnostic(diagnostic_op::error_CE003(range(op.r.start)));
             return false;
         }
-        if (op.requires_terms && right.i < op.i)
+        if (right.i < op.i)
         {
             diags.add_diagnostic(diagnostic_op::error_CE003(range(op.r.end)));
             return false;
@@ -207,7 +207,7 @@ struct resolve_stacks
     {
         while (!op_stack.empty())
         {
-            if (op_stack.top().priority + right_assoc >= prio_limit)
+            if (op_stack.top().priority + right_assoc > prio_limit)
                 break;
             if (!reduce_stack_entry(diags))
                 return false;
@@ -269,7 +269,7 @@ void ca_expr_list::resolve(context::SET_t_enum parent_expr_kind, diagnostic_op_c
                     expr_list.clear();
                     return;
                 }
-                if (!stacks.reduce_stack(diags, op_type.priority, op_type.right_assoc))
+                if (op_type.binary && !stacks.reduce_stack(diags, op_type.priority, op_type.right_assoc))
                 {
                     expr_list.clear();
                     return;

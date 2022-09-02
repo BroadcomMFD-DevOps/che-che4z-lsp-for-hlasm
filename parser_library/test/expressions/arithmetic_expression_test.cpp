@@ -371,3 +371,20 @@ TEST(arithmetic_expressions, limits)
     EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "A"), SET_t(2147483647));
     EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "B"), SET_t(static_cast<A_t>(-2147483648)));
 }
+
+TEST(arithmetic_expressions, bit_shift)
+{
+    std::string input =
+        R"(
+&A SETA (5 SLA 1)
+&B SETA (5 SLA 1 SRA 1)
+)";
+    analyzer a(input);
+    a.analyze();
+
+    a.collect_diags();
+    EXPECT_TRUE(a.diags().empty());
+
+    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "A"), 10);
+    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "B"), 5);
+}
