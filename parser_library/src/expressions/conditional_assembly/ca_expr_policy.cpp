@@ -115,9 +115,6 @@ int ca_arithmetic_policy::get_priority(ca_expr_ops op)
 {
     switch (op)
     {
-        case ca_expr_ops::FIND:
-        case ca_expr_ops::INDEX:
-            return 0;
         case ca_expr_ops::NOT:
             return 1;
         case ca_expr_ops::AND:
@@ -129,6 +126,9 @@ int ca_arithmetic_policy::get_priority(ca_expr_ops op)
         case ca_expr_ops::SRA:
         case ca_expr_ops::SRL:
             return 3;
+        case ca_expr_ops::FIND:
+        case ca_expr_ops::INDEX:
+            return 4;
         default:
             return 0;
     }

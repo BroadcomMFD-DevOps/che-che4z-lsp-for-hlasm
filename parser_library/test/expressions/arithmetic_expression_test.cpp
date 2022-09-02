@@ -232,6 +232,19 @@ TEST(arithmetic_expressions, operator_priorities)
     SETAEQ("E", 7);
 }
 
+TEST(arithmetic_expressions, operator_priorities_invalid)
+{
+    std::string input =
+        R"(
+&A SETA ('A' INDEX 'A' AND 'A' INDEX 'A')
+)";
+    analyzer a(input);
+    a.analyze();
+
+    a.collect_diags();
+    ASSERT_NE(a.diags().size(), (size_t)0);
+}
+
 TEST(arithmetic_expressions, not_operator)
 {
     std::string input =
