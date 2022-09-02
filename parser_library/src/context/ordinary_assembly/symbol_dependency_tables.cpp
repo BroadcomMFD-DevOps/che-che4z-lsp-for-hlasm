@@ -241,8 +241,12 @@ void symbol_dependency_tables::resolve(
 
 void symbol_dependency_tables::resolve_t_attrs()
 {
-    for (id_index name : m_sym_ctx.cleanup_label_mentions())
-        resolve(name, nullptr);
+    m_sym_ctx.start_reporting_label_mentions();
+    // drop cached symbolic dependencies
+    for (auto& [_, dep] : m_dependencies)
+        std::erase_if(dep.m_last_dependencies, [](const auto& d) { return std::holds_alternative<id_index>(d); });
+    // try one more resolve cycle
+    resolve(nullptr, nullptr);
 }
 
 const symbol_dependency_tables::dependency_value* symbol_dependency_tables::find_dependency_value(

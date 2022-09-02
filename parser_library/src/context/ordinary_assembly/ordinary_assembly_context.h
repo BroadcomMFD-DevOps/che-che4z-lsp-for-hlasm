@@ -167,7 +167,7 @@ public:
     bool using_label_active(index_t<using_collection> context_id, id_index label, const section* sect) const;
 
     void symbol_mentioned_on_macro(id_index name);
-    const std::unordered_set<id_index>& cleanup_label_mentions();
+    void start_reporting_label_mentions();
 
 private:
     void create_private_section();
