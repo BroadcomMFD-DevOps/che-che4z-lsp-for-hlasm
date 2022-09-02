@@ -77,8 +77,9 @@ protected:
         context::SET_t retval, context::SET_t_enum type, const evaluation_context& eval_ctx) const;
 };
 
+
 template<typename T>
-T ca_expression::evaluate(const evaluation_context& eval_ctx) const
+inline T ca_expression::evaluate(const evaluation_context& eval_ctx) const
 {
     static_assert(context::object_traits<T>::type_enum != context::SET_t_enum::UNDEF_TYPE);
     auto ret = evaluate(eval_ctx);

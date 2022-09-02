@@ -18,9 +18,9 @@ parser grammar ca_expr_rules;
 expr_general returns [ca_expr_ptr ca_expr]
 	:
 	{NOT(_input->LT(1))}?
-	tmp=not_expr_list
+	not_expr_list
 	{
-		$ca_expr = std::move($tmp.ca_expr);
+		$ca_expr = std::move($not_expr_list.ca_expr);
 	}
 	|
 	expr
