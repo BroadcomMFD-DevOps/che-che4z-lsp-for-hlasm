@@ -93,14 +93,12 @@ NOT EQU  1
 &A1 SETB (AND AND 1)
 &A2 SETB (1 AND NOT)
 &A3 SETB (1 OR AND 1)
-&A4 SETB (5 AND -5)
-&A5 SETB (5 AND +5)
 )";
     analyzer a(input);
     a.analyze();
 
     a.collect_diags();
-    EXPECT_TRUE(matches_message_codes(a.diags(), { "CE012", "CE003", "CE003", "CE004", "CE004" }));
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "CE012", "CE003", "CE003" }));
 }
 TEST(logical_expressions, valid_expression)
 {
@@ -123,7 +121,6 @@ AND EQU  1
     SETBEQ("A3", 1);
     SETBEQ("A4", 0);
 }
-
 TEST(logical_expressions, valid_relational_expression)
 {
     std::string input =
@@ -136,9 +133,6 @@ TEST(logical_expressions, valid_relational_expression)
 &A6  SETB ('CCCC' EQ (4)'C')
 &A7  SETB ((4)'C' EQ 'CCCC')
 &A8  SETB ('A' EQ BYTE(X'C1'))
-&A9  SETB (+1 EQ +1)
-&A10 SETB (-1 EQ +1)
-&A11 SETB ((+1) EQ 1)
 )";
     analyzer a(input);
     a.analyze();
@@ -154,9 +148,6 @@ TEST(logical_expressions, valid_relational_expression)
     SETBEQ("A6", 1);
     SETBEQ("A7", 1);
     SETBEQ("A8", 1);
-    SETBEQ("A9", 1);
-    SETBEQ("A10", 0);
-    SETBEQ("A11", 1);
 }
 
 TEST(logical_expressions, invalid_relational_expression)
@@ -221,6 +212,43 @@ TEST(logical_expressions, arithmetic_logical_clash)
     SETBEQ("A2", 1);
     SETBEQ("A3", 0);
     SETBEQ("A4", 0);
+}
+
+TEST(logical_expressions, signs_in_arithmetic_expressions)
+{
+    std::string input =
+        R"(
+&A1 SETB ((+1 EQ +1) AND 1)
+&A2 SETB (+1 EQ +1)
+&A3 SETB (-1 EQ +1)
+&A4 SETB ((+1) EQ 1)
+)";
+    analyzer a(input);
+    a.analyze();
+
+    a.collect_diags();
+    EXPECT_EQ(a.diags().size(), (size_t)0);
+    SETBEQ("A1", 1);
+    SETBEQ("A2", 1);
+    SETBEQ("A3", 0);
+    SETBEQ("A4", 1);
+}
+
+
+TEST(logical_expressions, signs_in_logical_expressions)
+{
+    std::string input =
+        R"(
+&A1 SETB (5 AND -5)
+&A2 SETB (5 AND +5)
+&A3 SETB ((+1 EQ +1) AND +1)
+&A4 SETB (NOT -5)
+)";
+    analyzer a(input);
+    a.analyze();
+
+    a.collect_diags();
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "CE004", "CE004", "CE004", "CE004" }));
 }
 
 TEST(logical_expressions, no_parenthesis)
@@ -367,18 +395,7 @@ TEST(logical_expressions, not_operator_valid_relational_expr)
     EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B2"), true);
     EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B3"), false);
 }
-TEST(logical_expressions, not_operator_invalid)
-{
-    std::string input =
-        R"(
-&A SETB (NOT -5)
-)";
-    analyzer a(input);
-    a.analyze();
-    a.collect_diags();
 
-    EXPECT_TRUE(matches_message_codes(a.diags(), { "CE004" }));
-}
 TEST(logical_expressions, operator_precedence)
 {
     for (const auto& [args, expected] : std::initializer_list<std::pair<std::string, bool>> {
