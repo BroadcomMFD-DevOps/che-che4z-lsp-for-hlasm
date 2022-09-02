@@ -32,11 +32,11 @@ TEST(logical_expressions, valid_assignment)
     std::string input =
         R"(
 &VAR SETA -6
-&A1 SETB 1
-&A2 SETB 0
-&A3 SETB (&A3)
-&A4 SETB (10)
-&A5 SETB (&VAR)
+&A1  SETB 1
+&A2  SETB 0
+&A3  SETB (&A3)
+&A4  SETB (10)
+&A5  SETB (&VAR)
 )";
     analyzer a(input);
     a.analyze();
@@ -72,19 +72,24 @@ TEST(logical_expressions, invalid_assignment)
         R"(
 &A1 SETB 10
 &A2 SETB (-1)
+&A3 SETB (+1)
+&A4 SETB ((-1))
+&A5 SETB ((+1))
+&A6 SETB (0+1)
+&A7 SETB (1-1)
 )";
     analyzer a(input);
     a.analyze();
 
     a.collect_diags();
-    EXPECT_TRUE(matches_message_codes(a.diags(), { "CE016", "CE004" }));
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "CE016", "CE004", "CE004", "CE004", "CE004", "CE004", "CE004" }));
 }
 
 TEST(logical_expressions, invalid_expression)
 {
     std::string input =
         R"(
-NOT EQU 1
+NOT EQU  1
 &A1 SETB (AND AND 1)
 &A2 SETB (1 AND NOT)
 &A3 SETB (1 OR AND 1)
@@ -101,7 +106,7 @@ TEST(logical_expressions, valid_expression)
 {
     std::string input =
         R"(
-AND EQU 1
+AND EQU  1
 &A1 SETB (AND AND 1)
 &A2 SETB (1 OR NOT 0)
 &A3 SETB (1 OR AND)
@@ -123,14 +128,17 @@ TEST(logical_expressions, valid_relational_expression)
 {
     std::string input =
         R"(
-&A1 SETB ('a' EQ 'A')
-&A2 SETB ('a' LT 'A')
-&A3 SETB ('abc' GT 'b')
-&A4 SETB ('A' EQ UPPER('a'))
-&A5 SETB (D2A('10') EQ 10)
-&A6 SETB ('CCCC' EQ (4)'C')
-&A7 SETB ((4)'C' EQ 'CCCC')
-&A8 SETB ('A' EQ BYTE(X'C1'))
+&A1  SETB ('a' EQ 'A')
+&A2  SETB ('a' LT 'A')
+&A3  SETB ('abc' GT 'b')
+&A4  SETB ('A' EQ UPPER('a'))
+&A5  SETB (D2A('10') EQ 10)
+&A6  SETB ('CCCC' EQ (4)'C')
+&A7  SETB ((4)'C' EQ 'CCCC')
+&A8  SETB ('A' EQ BYTE(X'C1'))
+&A9  SETB (+1 EQ +1)
+&A10 SETB (-1 EQ +1)
+&A11 SETB ((+1) EQ 1)
 )";
     analyzer a(input);
     a.analyze();
@@ -146,6 +154,9 @@ TEST(logical_expressions, valid_relational_expression)
     SETBEQ("A6", 1);
     SETBEQ("A7", 1);
     SETBEQ("A8", 1);
+    SETBEQ("A9", 1);
+    SETBEQ("A10", 0);
+    SETBEQ("A11", 1);
 }
 
 TEST(logical_expressions, invalid_relational_expression)
@@ -302,11 +313,11 @@ TEST(logical_expressions, not_operator_valid)
 {
     std::string input =
         R"(
-&F SETA 5
+&F    SETA 5
 &NEGF SETA -5
-&B1 SETB (NOT &F)
-&B2 SETB (NOT &NEGF)
-&B3   SETB   (NOT 6)
+&B1   SETB (NOT &F)
+&B2   SETB (NOT &NEGF)
+&B3   SETB (NOT 6)
 )";
     analyzer a(input);
     a.analyze();
@@ -318,11 +329,11 @@ TEST(logical_expressions, not_operator_valid)
     EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B3"), false);
 }
 
-TEST(logical_expressions, not_operator_valid_log_expr)
+TEST(logical_expressions, not_operator_valid_logical_expr)
 {
     std::string input =
         R"(
-&VAR  SETA -7
+&VAR  SETA   -7
 &B1   SETB   (6 AND NOT &VAR)
 &B2   SETB   (6 AND (NOT 7))
 &B3   SETB   (1 AND NOT 0)
@@ -337,6 +348,24 @@ TEST(logical_expressions, not_operator_valid_log_expr)
     EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B2"), false);
     EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B3"), true);
     EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B4"), true);
+}
+
+TEST(logical_expressions, not_operator_valid_relational_expr)
+{
+    std::string input =
+        R"(
+&B1 SETB (-1 EQ NOT 0)
+&B2 SETB (NOT -1 EQ +1)
+&B3 SETB ((NOT 1) EQ -2)
+)";
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(a.diags().empty());
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B1"), false);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B2"), true);
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B3"), false);
 }
 TEST(logical_expressions, not_operator_invalid)
 {
@@ -404,13 +433,13 @@ TEST(logical_expressions, operator_precedence_not_var)
 {
     std::string input =
         R"(
-&FIVE  SETA 5
-&NEGFIVE  SETA -5
-&B1   SETB   (1 AND NOT &FIVE EQ 4)
-&B2   SETB   (1 AND (NOT &FIVE) EQ 4)
-&B3   SETB   (1 AND  NOT &NEGFIVE  EQ 4)
-&B4   SETB   (1 AND (NOT &NEGFIVE) EQ 4)
-&B5   SETB   ((4 AND NOT &NEGFIVE) EQ 4)
+&FIVE     SETA   5
+&NEGFIVE  SETA   -5
+&B1       SETB   (1 AND NOT &FIVE EQ 4)
+&B2       SETB   (1 AND (NOT &FIVE) EQ 4)
+&B3       SETB   (1 AND  NOT &NEGFIVE  EQ 4)
+&B4       SETB   (1 AND (NOT &NEGFIVE) EQ 4)
+&B5       SETB   ((4 AND NOT &NEGFIVE) EQ 4)
 )";
     analyzer a(input);
     a.analyze();

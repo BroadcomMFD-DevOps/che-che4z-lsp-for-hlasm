@@ -49,6 +49,27 @@ TEST(arithmetic_expressions, valid_self_defining_term)
     SETAEQ("A4", 0);
 }
 
+TEST(arithmetic_expressions, valid_expressions)
+{
+    std::string input =
+        R"(
+&A1 SETA (+1)
+&A2 SETA (-1)
+&A3 SETA (1+0)
+&A4 SETA (1-1)
+)";
+    analyzer a(input);
+    a.analyze();
+
+    a.collect_diags();
+    ASSERT_EQ(a.diags().size(), (size_t)0);
+
+    SETAEQ("A1", 1);
+    SETAEQ("A2", -1);
+    SETAEQ("A3", 1);
+    SETAEQ("A4", 0);
+}
+
 TEST(arithmetic_expressions, empty_string_conversion)
 {
     std::string input = R"(

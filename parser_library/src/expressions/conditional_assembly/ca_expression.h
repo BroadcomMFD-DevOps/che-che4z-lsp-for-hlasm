@@ -81,11 +81,9 @@ template<typename T>
 T ca_expression::evaluate(const evaluation_context& eval_ctx) const
 {
     static_assert(context::object_traits<T>::type_enum != context::SET_t_enum::UNDEF_TYPE);
-
-
     auto ret = evaluate(eval_ctx);
-    ret = convert_return_types(std::move(ret), context::object_traits<T>::type_enum, eval_ctx);
 
+    ret = convert_return_types(std::move(ret), context::object_traits<T>::type_enum, eval_ctx);
 
     if constexpr (context::object_traits<T>::type_enum == context::SET_t_enum::A_TYPE)
         return ret.access_a();

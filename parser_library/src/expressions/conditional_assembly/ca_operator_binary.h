@@ -31,7 +31,8 @@ public:
 
     undef_sym_set get_undefined_attributed_symbols(const evaluation_context& eval_ctx) const override;
 
-    void resolve_expression_tree(context::SET_t_enum kind, context::SET_t_enum parent_expr_kind, diagnostic_op_consumer& diags) override;
+    void resolve_expression_tree(
+        context::SET_t_enum kind, context::SET_t_enum parent_expr_kind, diagnostic_op_consumer& diags) override;
 
     bool is_character_expression(character_expression_purpose purpose) const override;
 
@@ -71,7 +72,8 @@ public:
         range expr_range,
         context::SET_t_enum parent_expr_kind = context::SET_t_enum::UNDEF_TYPE);
 
-    void resolve_expression_tree(context::SET_t_enum kind, context::SET_t_enum parent_expr_kind, diagnostic_op_consumer& diags) override;
+    void resolve_expression_tree(
+        context::SET_t_enum kind, context::SET_t_enum parent_expr_kind, diagnostic_op_consumer& diags) override;
 
     context::SET_t operation(context::SET_t lhs, context::SET_t rhs, const evaluation_context& eval_ctx) const override;
 
