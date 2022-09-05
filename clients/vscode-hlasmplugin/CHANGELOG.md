@@ -6,6 +6,11 @@
 
 ### Fixed
 - Implement rest of the changes introduced by APAR PH46868
+#### Added
+- Add support for z16 instructions
+- Enhance documentation for instruction mnemonics
+
+### Fixed
 
 ## [1.4.0](https://github.com/eclipse/che-che4z-lsp-for-hlasm/compare/1.3.0...1.4.0) (2022-08-30)
 
