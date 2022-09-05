@@ -119,7 +119,6 @@ struct term_entry
 {
     ca_expr_ptr term;
     size_t i;
-    bool simple_term;
 };
 struct op_entry
 {
@@ -128,7 +127,6 @@ struct op_entry
     int priority;
     bool binary;
     bool right_assoc;
-    bool requires_terms;
     range r;
 };
 
@@ -161,12 +159,10 @@ struct resolve_stacks
             return false;
         }
 
-        terms.push({
-            std::make_unique<ca_function_binary_operator>(
-                std::move(left.term), std::move(right.term), op.op_type, context::object_traits<T>::type_enum, op.r),
-            left.i,
-            false,
-        });
+        terms.push(
+            { std::make_unique<ca_function_binary_operator>(
+                  std::move(left.term), std::move(right.term), op.op_type, context::object_traits<T>::type_enum, op.r),
+                left.i });
         return true;
     }
 
@@ -175,18 +171,15 @@ struct resolve_stacks
         auto right = std::move(terms.top());
         terms.pop();
 
-        if (op.requires_terms && !right.simple_term || right.i < op.i)
+        if (right.i < op.i)
         {
             diags.add_diagnostic(diagnostic_op::error_CE003(range(op.r.end)));
             return false;
         }
 
-        terms.push({
-            std::make_unique<ca_function_unary_operator>(
-                std::move(right.term), op.op_type, expr_policy::set_type, op.r),
-            op.i,
-            false,
-        });
+        terms.push({ std::make_unique<ca_function_unary_operator>(
+                         std::move(right.term), op.op_type, expr_policy::set_type, op.r),
+            op.i });
         return true;
     }
 
@@ -237,7 +230,6 @@ void ca_expr_list::resolve(context::SET_t_enum parent_expr_kind, diagnostic_op_c
 
     auto i = (size_t)-1;
     bool prefer_next_term = true;
-    bool last_was_terminal = false;
     for (auto& curr_expr : expr_list)
     {
         ++i;
@@ -263,12 +255,6 @@ void ca_expr_list::resolve(context::SET_t_enum parent_expr_kind, diagnostic_op_c
                      !(prefer_next_term && op_type.binary)) // ... AND AND is interpreted as AND term,
                                                             // ... AND NOT ... is apparently not
             {
-                if (op_type.requires_terms && !last_was_terminal)
-                {
-                    diags.add_diagnostic(diagnostic_op::error_CE003(range(curr_expr->expr_range.start)));
-                    expr_list.clear();
-                    return;
-                }
                 if (op_type.binary && !stacks.reduce_stack(diags, op_type.priority, op_type.right_assoc))
                 {
                     expr_list.clear();
@@ -280,17 +266,14 @@ void ca_expr_list::resolve(context::SET_t_enum parent_expr_kind, diagnostic_op_c
                     op_type.priority,
                     op_type.binary,
                     op_type.right_assoc,
-                    op_type.requires_terms,
                     curr_expr->expr_range,
                 });
-                prefer_next_term = op_type.binary || op_type.requires_terms;
-                last_was_terminal = false;
+                prefer_next_term = op_type.binary;
                 continue;
             }
         }
-        stacks.push_term({ std::move(curr_expr), i, true });
+        stacks.push_term({ std::move(curr_expr), i });
         prefer_next_term = false;
-        last_was_terminal = true;
     }
 
     if (!stacks.reduce_stack_all(diags))

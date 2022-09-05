@@ -231,7 +231,7 @@ TEST(arithmetic_expressions, operator_priorities)
     SETAEQ("C", 10);
     SETAEQ("D", 40);
     SETAEQ("E", 7);
-    //SETAEQ("F", -4); // TODO Resolve when CA expression parsing is extended
+    // SETAEQ("F", -4); // TODO Resolve when CA expression parsing is extended
 }
 
 TEST(arithmetic_expressions, operator_priorities_invalid)
