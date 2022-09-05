@@ -17,16 +17,30 @@ parser grammar ca_expr_rules;
 
 expr_general returns [ca_expr_ptr ca_expr]
 	:
-	{NOT(_input->LT(1))}?
-	not_expr_list
 	{
-		$ca_expr = std::move($not_expr_list.ca_expr);
+		std::vector<ca_expr_ptr> ca_exprs;
 	}
-	|
+	(
+		{NOT(_input->LT(1))}?
+		ORDSYMBOL SPACE+
+		{
+			auto not_r = provider.get_range($ORDSYMBOL);
+			collector.add_hl_symbol(token_info(not_r, hl_scopes::operand));
+			ca_exprs.push_back(std::make_unique<ca_symbol>(parse_identifier($ORDSYMBOL->getText(), not_r), not_r)); 
+		}
+	)*
 	expr
-	{
-		$ca_expr = std::move($expr.ca_expr);
-	};
+	(
+		{
+			if (!ca_exprs.empty()) {
+				ca_exprs.push_back(std::move($expr.ca_expr)); 
+				$ca_expr = std::make_unique<ca_expr_list>(std::move(ca_exprs), range(ca_exprs.front()->expr_range.start, ca_exprs.back()->expr_range.end), false);
+
+			}
+			else
+				$ca_expr = std::move($expr.ca_expr);
+		}
+	);
 	finally
 	{if (!$ca_expr) $ca_expr = std::make_unique<ca_constant>(0, provider.get_range(_localctx));}
 
@@ -169,27 +183,6 @@ expr_space_c returns [std::vector<ca_expr_ptr> ca_exprs]
 		$tmp.ca_exprs.push_back(std::move($expr.ca_expr)); 
 		$ca_exprs = std::move($tmp.ca_exprs);
 	};
-
-not_expr_list returns [ca_expr_ptr ca_expr]
-	:
-	{
-		std::vector<ca_expr_ptr> ca_exprs;
-	}
-	(
-		{NOT(_input->LT(1))}?
-		ORDSYMBOL SPACE+
-		{
-			auto not_r = provider.get_range($ORDSYMBOL);
-			collector.add_hl_symbol(token_info(not_r, hl_scopes::operand));
-			ca_exprs.push_back(std::make_unique<ca_symbol>(parse_identifier($ORDSYMBOL->getText(), not_r), not_r)); 
-		}
-	)+
-	expr
-	{
-		ca_exprs.push_back(std::move($expr.ca_expr)); 
-		$ca_expr = std::make_unique<ca_expr_list>(std::move(ca_exprs), range(ca_exprs.front()->expr_range.start, ca_exprs.back()->expr_range.end), false);
-	}
-	;
 
 seq_symbol returns [seq_sym ss = seq_sym{}]
 	: DOT id_no_dot
