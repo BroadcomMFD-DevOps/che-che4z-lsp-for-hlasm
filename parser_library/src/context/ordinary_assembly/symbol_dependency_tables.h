@@ -67,18 +67,12 @@ class dependency_adder;
 // class holding data about dependencies between symbols
 class symbol_dependency_tables
 {
-    struct id_index_t_attr
-    {
-        id_index name;
-
-        auto operator<=>(const id_index_t_attr&) const noexcept = default;
-    };
-
     struct dependency_value
     {
         const resolvable* m_resolvable;
         dependency_evaluation_context m_dec;
-        std::vector<std::variant<id_index, space_ptr, id_index_t_attr>> m_last_dependencies;
+        std::vector<std::variant<id_index, space_ptr>> m_last_dependencies;
+        bool m_has_t_attr_dependency = false;
 
         dependency_value(const resolvable* r, dependency_evaluation_context dec)
             : m_resolvable(r)
@@ -171,7 +165,6 @@ public:
 
     // assign default values to all unresoved dependants
     void resolve_all_as_default();
-    void resolve_t_attrs();
 
     friend dependency_adder;
 };

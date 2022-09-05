@@ -808,7 +808,7 @@ SET_t hlasm_context::get_attribute_value_ord(data_attr_kind attribute, const sym
             return "U";
         case data_attr_kind::O:
             if (symbol)
-                return get_opcode_attr(symbol->name);
+                return get_opcode_attr(symbol->name());
             return "U";
         default:
             if (symbol)

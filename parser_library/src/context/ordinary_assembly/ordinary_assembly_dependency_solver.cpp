@@ -63,17 +63,22 @@ using_evaluate_result ordinary_assembly_dependency_solver::using_evaluate(
 std::variant<const symbol*, symbol_candidate> ordinary_assembly_dependency_solver::get_symbol_candidate(
     id_index name) const
 {
-    auto tmp = ord_context.symbols_.find(name);
+    auto it = ord_context.symbols_.find(name);
 
-    if (tmp != ord_context.symbols_.end())
+    if (it == ord_context.symbols_.end())
     {
-        return std::get_if<symbol>(&tmp->second);
+        if (ord_context.reporting_candidates)
+            return symbol_candidate { false };
+        else
+            return nullptr;
     }
 
-    if (!ord_context.reporting_candidates)
+    if (const auto* s = std::get_if<symbol>(&it->second))
+        return s;
+    else if (!ord_context.reporting_candidates)
         return nullptr;
-
-    return symbol_candidate { ord_context.symbol_candidates.contains(name) };
+    else
+        return symbol_candidate { std::holds_alternative<macro_label_tag>(it->second) };
 }
 
 std::string ordinary_assembly_dependency_solver::get_opcode_attr(id_index name) const
