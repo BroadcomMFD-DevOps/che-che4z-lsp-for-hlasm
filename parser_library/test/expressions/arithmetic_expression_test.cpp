@@ -218,6 +218,7 @@ TEST(arithmetic_expressions, operator_priorities)
 &C SETA (10 OR 1+1)
 &D SETA (10 SLL 10 AND 2)
 &E SETA 4-2+5
+* &F SETA 1+NOT+NOT -5 AND 5
 )";
     analyzer a(input);
     a.analyze();
@@ -230,6 +231,7 @@ TEST(arithmetic_expressions, operator_priorities)
     SETAEQ("C", 10);
     SETAEQ("D", 40);
     SETAEQ("E", 7);
+    //SETAEQ("F", -4); // TODO Resolve when CA expression parsing is extended
 }
 
 TEST(arithmetic_expressions, operator_priorities_invalid)
