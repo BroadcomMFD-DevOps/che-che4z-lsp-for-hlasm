@@ -396,6 +396,22 @@ TEST(logical_expressions, not_operator_valid_relational_expr)
     EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B3"), false);
 }
 
+TEST(logical_expressions, not_operator_continuation)
+{
+    std::string input =
+        R"(
+&B       SETB (NOT&B)
+&B       SETB                                                        (NX
+               OT&B)                                                    
+)";
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(a.diags().empty());
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B"), false);
+}
+
 TEST(logical_expressions, operator_precedence)
 {
     for (const auto& [args, expected] : std::initializer_list<std::pair<std::string, bool>> {

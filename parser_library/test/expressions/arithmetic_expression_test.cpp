@@ -271,7 +271,7 @@ TEST(arithmetic_expressions, not_operator)
     SETAEQ("A5", 4);
 }
 
-TEST(logical_expressions, not_operator_precedence)
+TEST(arithmetic_expressions, not_operator_precedence)
 {
     std::string input =
         R"(
