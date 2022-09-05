@@ -107,18 +107,20 @@ section* ordinary_assembly_context::set_section(id_index name, section_kind kind
         curr_section_ = &**tmp;
     else
     {
-        assert(name == id_storage::empty_id || symbol_can_be_assigned(symbols_, name));
-
         curr_section_ = create_section(name, kind);
 
         auto tmp_addr = curr_section_->current_location_counter().current_address();
-        symbols_.insert_or_assign(name,
-            symbol(name,
-                tmp_addr,
-                symbol_attributes::make_section_attrs(),
-                std::move(symbol_location),
-                hlasm_ctx_.processing_stack()));
-        symbol_dependencies.add_defined(name);
+        if (name != id_storage::empty_id)
+        {
+            assert(symbol_can_be_assigned(symbols_, name));
+            symbols_.insert_or_assign(name,
+                symbol(name,
+                    tmp_addr,
+                    symbol_attributes::make_section_attrs(),
+                    std::move(symbol_location),
+                    hlasm_ctx_.processing_stack()));
+            symbol_dependencies.add_defined(name);
+        }
     }
 
     return curr_section_;
