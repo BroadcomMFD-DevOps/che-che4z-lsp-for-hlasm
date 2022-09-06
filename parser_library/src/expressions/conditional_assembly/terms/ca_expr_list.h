@@ -41,7 +41,7 @@ public:
 
     bool is_compatible(ca_expression_compatibility i) const override
     {
-        return m_parenthesized && (i == ca_expression_compatibility::aif || i == ca_expression_compatibility::setb);
+        return parenthesized && (i == ca_expression_compatibility::aif || i == ca_expression_compatibility::setb);
     }
 
     std::span<const ca_expr_ptr> expression_list() const;
@@ -60,7 +60,7 @@ private:
     void resolve(context::SET_t_enum parent_expr_kind, diagnostic_op_consumer& diags);
 
     std::vector<ca_expr_ptr> expr_list;
-    const bool m_parenthesized;
+    const bool parenthesized;
 };
 
 } // namespace hlasm_plugin::parser_library::expressions

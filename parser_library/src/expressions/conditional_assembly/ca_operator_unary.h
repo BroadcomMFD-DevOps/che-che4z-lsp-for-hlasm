@@ -72,9 +72,6 @@ public:
 class ca_function_unary_operator : public ca_unary_operator
 {
 public:
-    ca_expr_ops function;
-    context::SET_t_enum m_parent_expr_kind = context::SET_t_enum::UNDEF_TYPE;
-
     ca_function_unary_operator(ca_expr_ptr expr,
         ca_expr_ops function,
         context::SET_t_enum expr_kind,
@@ -85,6 +82,10 @@ public:
         context::SET_t_enum kind, context::SET_t_enum parent_expr_kind, diagnostic_op_consumer& diags) override;
 
     context::SET_t operation(context::SET_t operand, const evaluation_context& eval_ctx) const override;
+
+private:
+    ca_expr_ops function;
+    context::SET_t_enum m_parent_expr_kind = context::SET_t_enum::UNDEF_TYPE;
 };
 
 } // namespace hlasm_plugin::parser_library::expressions

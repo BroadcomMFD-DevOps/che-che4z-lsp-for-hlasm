@@ -28,7 +28,7 @@ namespace hlasm_plugin::parser_library::expressions {
 ca_expr_list::ca_expr_list(std::vector<ca_expr_ptr> expr_list, range expr_range, bool parenthesized)
     : ca_expression(context::SET_t_enum::UNDEF_TYPE, std::move(expr_range))
     , expr_list(std::move(expr_list))
-    , m_parenthesized(parenthesized)
+    , parenthesized(parenthesized)
 {}
 
 undef_sym_set ca_expr_list::get_undefined_attributed_symbols(const evaluation_context& eval_ctx) const
