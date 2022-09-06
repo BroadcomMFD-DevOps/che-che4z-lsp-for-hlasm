@@ -18,6 +18,7 @@
 #include <atomic>
 #include <filesystem>
 #include <memory>
+#include <optional>
 #include <regex>
 #include <string>
 #include <unordered_set>
@@ -25,6 +26,7 @@
 #include <vector>
 #include <version>
 
+#include "config/b4g_config.h"
 #include "config/pgm_conf.h"
 #include "config/proc_grps.h"
 #include "diagnosable_impl.h"
@@ -115,7 +117,6 @@ public:
     const processor_group& get_proc_grp(const proc_grp_id& proc_grp) const;
     const processor_group& get_proc_grp_by_program(const utils::resource::resource_location& file_location) const;
     const processor_group& get_proc_grp_by_program(const program& program) const;
-    const program* get_program(const utils::resource::resource_location& program) const;
 
     workspace_file_info parse_file(const utils::resource::resource_location& file_location);
     workspace_file_info parse_successful(const processor_file_ptr& f);
@@ -164,6 +165,7 @@ private:
     constexpr static char FILENAME_PROC_GRPS[] = "proc_grps.json";
     constexpr static char FILENAME_PGM_CONF[] = "pgm_conf.json";
     constexpr static char HLASM_PLUGIN_FOLDER[] = ".hlasmplugin";
+    constexpr static char B4G_CONF_FILE[] = ".bridge.json";
 
     std::atomic<bool>* cancel_;
 
@@ -173,10 +175,27 @@ private:
     file_manager_vfm fm_vfm_;
 
     std::unordered_map<proc_grp_id, processor_group> proc_grps_;
-    std::map<utils::resource::resource_location, program> exact_pgm_conf_;
-    std::vector<std::pair<program, std::regex>> regex_pgm_conf_;
+
+    struct tagged_program
+    {
+        program pgm;
+        const void* tag = nullptr;
+    };
+
+
+    std::map<utils::resource::resource_location, tagged_program> exact_pgm_conf_;
+    std::vector<std::pair<tagged_program, std::regex>> regex_pgm_conf_;
     global_settings_map m_utilized_settings_values;
     processor_group implicit_proc_grp;
+
+    struct b4g_config
+    {
+        std::optional<config::b4g_map> config;
+        std::vector<diagnostic_s> diags;
+    };
+
+    std::unordered_map<utils::resource::resource_location, b4g_config, utils::resource::resource_location_hasher>
+        m_b4g_config_cache;
 
     utils::resource::resource_location proc_grps_loc_;
     utils::resource::resource_location pgm_conf_loc_;
@@ -194,12 +213,27 @@ private:
     void process_program(const config::program_mapping& pgm, const file_ptr& pgm_conf_file);
 
     bool is_config_file(const utils::resource::resource_location& file_location) const;
+    void reparse_after_config_refresh();
     workspace_file_info parse_config_file();
+    enum class parse_b4g_config_file_result
+    {
+        parsed,
+        not_found,
+        error,
+    };
+    parse_b4g_config_file_result parse_b4g_config_file(const utils::resource::resource_location& file_location);
+
+    bool try_loading_alternative_configuration(const utils::resource::resource_location& file_location);
 
     bool load_and_process_config();
     // Loads the pgm_conf.json and proc_grps.json from disk, adds them to file_manager_ and parses both jsons.
     // Returns false if there is any error.
-    bool load_config(config::proc_grps& proc_groups,
+    struct load_config_result
+    {
+        bool proc_found;
+        bool pgm_found;
+    };
+    load_config_result load_config(config::proc_grps& proc_groups,
         config::pgm_conf& pgm_config,
         file_ptr& proc_grps_file,
         file_ptr& pgm_conf_file,
@@ -231,6 +265,10 @@ private:
     const shared_json& m_global_settings;
     lib_config local_config_;
     lib_config get_config();
+
+    const program* get_program(const utils::resource::resource_location& program) const;
+    const program* get_program_normalized(const utils::resource::resource_location& file_location) const;
+    void load_alternative_config_if_needed(const utils::resource::resource_location& file_location);
 };
 
 } // namespace hlasm_plugin::parser_library::workspaces

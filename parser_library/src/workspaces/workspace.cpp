@@ -84,8 +84,12 @@ void workspace::collect_diags() const
         collect_diags_from_child(pg.second);
     }
 
-    for (auto& diag : config_diags_)
+    for (const auto& diag : config_diags_)
         add_diagnostic(diag);
+
+    for (const auto& [_, c] : m_b4g_config_cache)
+        for (const auto& d : c.diags)
+            add_diagnostic(d);
 }
 
 void workspace::add_proc_grp(processor_group pg) { proc_grps_.emplace(pg.name(), std::move(pg)); }
@@ -152,21 +156,56 @@ const processor_group& workspace::get_proc_grp_by_program(const program& pgm) co
 
 const program* workspace::get_program(const utils::resource::resource_location& file_location) const
 {
+    return get_program_normalized(file_location.lexically_normal());
+}
+
+const program* workspace::get_program_normalized(const utils::resource::resource_location& file_location) const
+{
     assert(opened_);
-
-    auto rl = file_location.lexically_normal();
-
     // direct match
-    auto program = exact_pgm_conf_.find(rl);
+    auto program = exact_pgm_conf_.find(file_location);
     if (program != exact_pgm_conf_.cend())
-        return &program->second;
+        return &program->second.pgm;
 
     for (const auto& pgm : regex_pgm_conf_)
     {
-        if (std::regex_match(rl.get_uri(), pgm.second))
-            return &pgm.first;
+        if (std::regex_match(file_location.get_uri(), pgm.second))
+            return &pgm.first.pgm;
     }
     return nullptr;
+}
+
+bool workspace::try_loading_alternative_configuration(const utils::resource::resource_location& file_location)
+{
+    const auto b4g_conf = utils::resource::resource_location::replace_filename(file_location, B4G_CONF_FILE);
+
+    auto it = m_b4g_config_cache.find(b4g_conf);
+    if (it != m_b4g_config_cache.end())
+        return false;
+
+    switch (parse_b4g_config_file(b4g_conf))
+    {
+        case parse_b4g_config_file_result::parsed:
+            return true;
+
+        case parse_b4g_config_file_result::error:
+            // TODO: say something?
+            return false;
+
+        case parse_b4g_config_file_result::not_found:
+            return false;
+    }
+}
+
+void workspace::load_alternative_config_if_needed(const utils::resource::resource_location& file_location)
+{
+    assert(opened_);
+    const auto rl = file_location.lexically_normal();
+
+    if (get_program_normalized(rl))
+        return;
+
+    try_loading_alternative_configuration(rl);
 }
 
 const ws_uri& workspace::uri() const { return location_.get_uri(); }
@@ -176,26 +215,29 @@ bool workspace::is_config_file(const utils::resource::resource_location& file_lo
     return file_location == proc_grps_loc_ || file_location == pgm_conf_loc_;
 }
 
+void workspace::reparse_after_config_refresh()
+{
+    // Reparse every opened file when configuration is changed
+    for (const auto& fname : opened_files_)
+    {
+        auto found = file_manager_.find_processor_file(fname);
+        if (!found || !found->parse(*this, get_asm_options(fname), get_preprocessor_options(fname), &fm_vfm_))
+            continue;
+
+        (void)parse_successful(found);
+    }
+
+    for (const auto& fname : dependants_)
+    {
+        if (auto found = file_manager_.find_processor_file(fname); found)
+            filter_and_close_dependencies_(found->files_to_close(), found);
+    }
+}
+
 workspace_file_info workspace::parse_config_file()
 {
     if (load_and_process_config())
-    {
-        // Reparse every opened file when configuration is changed
-        for (const auto& fname : opened_files_)
-        {
-            auto found = file_manager_.find_processor_file(fname);
-            if (!found || !found->parse(*this, get_asm_options(fname), get_preprocessor_options(fname), &fm_vfm_))
-                continue;
-
-            (void)parse_successful(found);
-        }
-
-        for (const auto& fname : dependants_)
-        {
-            if (auto found = file_manager_.find_processor_file(fname); found)
-                filter_and_close_dependencies_(found->files_to_close(), found);
-        }
-    }
+        reparse_after_config_refresh();
 
     workspace_file_info ws_file_info;
     ws_file_info.config_parsing = true;
@@ -265,6 +307,73 @@ bool workspace::settings_updated()
     return false;
 }
 
+workspace::parse_b4g_config_file_result workspace::parse_b4g_config_file(
+    const utils::resource::resource_location& file_location)
+{
+    auto [it, inserted] = m_b4g_config_cache.try_emplace(file_location);
+    if (!inserted)
+    {
+        std::erase_if(exact_pgm_conf_, [tag = &*it](const auto& e) { return e.second.tag == tag; });
+        std::erase_if(regex_pgm_conf_, [tag = &*it](const auto& e) { return e.first.tag == tag; });
+        it->second = {};
+    }
+
+    auto b4g_config_file = file_manager_.add_file(file_location);
+    if (b4g_config_file->update_and_get_bad())
+        return parse_b4g_config_file_result::not_found; // TODO: say something?
+
+    const void* new_tag = &*it;
+    auto& conf = it->second;
+    std::set<std::string> missing_pgroups;
+    try
+    {
+        conf.config.emplace(nlohmann::json::parse(b4g_config_file->get_text()).get<config::b4g_map>());
+        for (const auto& [name, details] : conf.config.value().files)
+        {
+            if (!proc_grps_.contains(details.processor_group_name))
+            {
+                missing_pgroups.emplace(details.processor_group_name);
+                continue;
+            }
+            const auto filename = utils::resource::resource_location::replace_filename(file_location, name);
+            exact_pgm_conf_.try_emplace(filename,
+                tagged_program {
+                    program {
+                        filename,
+                        details.processor_group_name,
+                        {},
+                    },
+                    new_tag,
+                });
+        }
+        if (const auto& def_grp = conf.config.value().default_processor_group_name; !def_grp.empty())
+        {
+            if (!proc_grps_.contains(def_grp))
+                missing_pgroups.emplace(def_grp);
+            else
+            {
+                auto rl = utils::resource::resource_location::replace_filename(file_location, "*");
+                regex_pgm_conf_.emplace_back(
+                    tagged_program {
+                        program { rl, def_grp, {} },
+                        new_tag,
+                    },
+                    wildcard2regex(rl.get_uri()));
+            }
+        }
+    }
+    catch (const nlohmann::json::exception&)
+    {
+        // TODO:
+        // conf.diags.push_back();
+        return parse_b4g_config_file_result::error;
+    }
+    // TODO:
+    // for (const auto& pgroup: missing_pgroups) confi.diags.push_back();
+
+    return parse_b4g_config_file_result::parsed;
+}
+
 workspace_file_info workspace::parse_file(const utils::resource::resource_location& file_location)
 {
     workspace_file_info ws_file_info;
@@ -275,8 +384,27 @@ workspace_file_info workspace::parse_file(const utils::resource::resource_locati
         return parse_config_file();
     }
 
+    if (file_location.get_uri().ends_with(B4G_CONF_FILE) && utils::resource::filename(file_location) == B4G_CONF_FILE)
+    {
+        switch (parse_b4g_config_file(file_location))
+        {
+            case parse_b4g_config_file_result::parsed:
+                reparse_after_config_refresh();
+                break;
+
+            case parse_b4g_config_file_result::error:
+                // TODO: say something?
+                break;
+            case parse_b4g_config_file_result::not_found:
+                break;
+        }
+        ws_file_info.config_parsing = true;
+        return ws_file_info;
+    }
+
     // TODO: what about removing files??? what if depentands_ points to not existing file?
     std::vector<processor_file_ptr> files_to_parse;
+    load_alternative_config_if_needed(file_location);
 
     for (const auto& dep : dependants_)
     {
@@ -676,9 +804,10 @@ void workspace::process_program(const config::program_mapping& pgm, const file_p
 
         if (auto rl = transform_to_resource_location(*pgm_name, location_);
             pgm_name->find_first_of("*?") == std::string::npos)
-            exact_pgm_conf_.try_emplace(rl, rl, pgm.pgroup, pgm.opts);
+            exact_pgm_conf_.try_emplace(rl, tagged_program { program(rl, pgm.pgroup, pgm.opts) });
         else
-            regex_pgm_conf_.emplace_back(program { rl, pgm.pgroup, pgm.opts }, wildcard2regex(rl.get_uri()));
+            regex_pgm_conf_.emplace_back(
+                tagged_program { program { rl, pgm.pgroup, pgm.opts } }, wildcard2regex(rl.get_uri()));
     }
     else
         config_diags_.push_back(diagnostic_s::error_W0004(pgm_conf_file->get_location(), name_));
@@ -697,11 +826,13 @@ bool workspace::load_and_process_config()
     file_ptr pgm_conf_file;
     global_settings_map utilized_settings_values;
 
-    bool load_ok = load_config(proc_groups, pgm_config, proc_grps_file, pgm_conf_file, utilized_settings_values);
-    if (!load_ok)
+    auto load_result = load_config(proc_groups, pgm_config, proc_grps_file, pgm_conf_file, utilized_settings_values);
+    if (!load_result.proc_found)
         return false;
 
-    local_config_ = lib_config::load_from_pgm_config(pgm_config);
+    exact_pgm_conf_.clear();
+    regex_pgm_conf_.clear();
+    m_b4g_config_cache.clear();
 
     // process processor groups
     for (auto& pg : proc_groups.pgroups)
@@ -709,10 +840,19 @@ bool workspace::load_and_process_config()
         process_processor_group(pg, proc_groups, pgm_config);
     }
 
-    // process programs
-    for (auto& pgm : pgm_config.pgms)
+    if (!load_result.pgm_found)
     {
-        process_program(pgm, pgm_conf_file);
+        local_config_ = {};
+    }
+    else
+    {
+        local_config_ = lib_config::load_from_pgm_config(pgm_config);
+
+        // process programs
+        for (auto& pgm : pgm_config.pgms)
+        {
+            process_program(pgm, pgm_conf_file);
+        }
     }
 
     m_utilized_settings_values = std::move(utilized_settings_values);
@@ -788,7 +928,7 @@ struct json_settings_replacer
 const std::regex json_settings_replacer::config_reference(R"(\$\{([^}]+)\})");
 } // namespace
 
-bool workspace::load_config(config::proc_grps& proc_groups,
+workspace::load_config_result workspace::load_config(config::proc_grps& proc_groups,
     config::pgm_conf& pgm_config,
     file_ptr& proc_grps_file,
     file_ptr& pgm_conf_file,
@@ -797,7 +937,7 @@ bool workspace::load_config(config::proc_grps& proc_groups,
     // proc_grps.json parse
     proc_grps_file = file_manager_.add_file(proc_grps_loc_);
     if (proc_grps_file->update_and_get_bad())
-        return false;
+        return load_config_result { false, false };
 
     const auto current_settings = m_global_settings.load();
     json_settings_replacer json_visitor { current_settings, utilized_settings_values, location_ };
@@ -831,13 +971,13 @@ bool workspace::load_config(config::proc_grps& proc_groups,
     {
         // could not load proc_grps
         config_diags_.push_back(diagnostic_s::error_W0002(proc_grps_file->get_location(), name_));
-        return false;
+        return load_config_result { false, false };
     }
 
     // pgm_conf.json parse
     pgm_conf_file = file_manager_.add_file(pgm_conf_loc_);
     if (pgm_conf_file->update_and_get_bad())
-        return false;
+        return load_config_result { true, false };
 
     try
     {
@@ -856,16 +996,14 @@ bool workspace::load_config(config::proc_grps& proc_groups,
                 config_diags_.push_back(
                     diagnostic_s::error_W0005(pgm_conf_file->get_location(), pgm.program, "program"));
         }
-        exact_pgm_conf_.clear();
-        regex_pgm_conf_.clear();
     }
     catch (const nlohmann::json::exception&)
     {
         config_diags_.push_back(diagnostic_s::error_W0003(pgm_conf_file->get_location(), name_));
-        return false;
+        return load_config_result { true, false };
     }
 
-    return true;
+    return load_config_result { true, true };
 }
 
 void workspace::filter_and_close_dependencies_(
