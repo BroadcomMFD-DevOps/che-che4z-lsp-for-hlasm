@@ -113,10 +113,7 @@ void ca_expr_list::unknown_functions_to_operators()
     }
 }
 
-std::span<const ca_expr_ptr> ca_expr_list::expression_list() const
-{
-    return expr_list;
-}
+std::span<const ca_expr_ptr> ca_expr_list::expression_list() const { return expr_list; }
 
 namespace {
 
