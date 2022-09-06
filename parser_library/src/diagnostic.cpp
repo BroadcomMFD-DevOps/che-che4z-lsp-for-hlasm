@@ -2583,6 +2583,30 @@ diagnostic_s diagnostic_s::warn_W0007(
         diagnostic_tag::none);
 }
 
+diagnostic_s diagnostic_s::error_B4G001(const utils::resource::resource_location& file_name)
+{
+    return diagnostic_s(file_name.get_uri(),
+        {},
+        diagnostic_severity::warning,
+        "B4G001",
+        concat("The .bridge.json file has unexpected content"),
+        {},
+        diagnostic_tag::none);
+}
+
+diagnostic_s diagnostic_s::error_B4G002(const utils::resource::resource_location& file_name, std::string_view grp_name)
+{
+    return diagnostic_s(file_name.get_uri(),
+        {},
+        diagnostic_severity::warning,
+        "B4G002",
+        concat("The .bridge.json file refers to a processor group \"",
+            grp_name,
+            "\", that is not defined in proc_grps.json"),
+        {},
+        diagnostic_tag::none);
+}
+
 diagnostic_s diagnostic_s::error_L0001(std::string_view path)
 {
     return diagnostic_s("", {}, "L0001", concat("Unable to load library: ", path, "."));

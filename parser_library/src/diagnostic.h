@@ -878,6 +878,10 @@ public:
 
     static diagnostic_s warn_W0007(const utils::resource::resource_location&, std::string_view substitution);
 
+    static diagnostic_s error_B4G001(const utils::resource::resource_location&);
+
+    static diagnostic_s error_B4G002(const utils::resource::resource_location&, std::string_view grp_name);
+
     /*
     E01x - wrong format
     - E010 - unknown name

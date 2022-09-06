@@ -192,12 +192,10 @@ bool workspace::try_loading_alternative_configuration(const utils::resource::res
             return true;
 
         case parse_b4g_config_file_result::error:
-            // TODO: say something?
-            return false;
-
         case parse_b4g_config_file_result::not_found:
-            return false;
+            break;
     }
+    return false;
 }
 
 void workspace::load_alternative_config_if_needed(const utils::resource::resource_location& file_location)
@@ -313,7 +311,8 @@ bool workspace::settings_updated()
 workspace::parse_b4g_config_file_result workspace::parse_b4g_config_file(
     const utils::resource::resource_location& file_location)
 {
-    const auto alternative_root = utils::resource::resource_location::replace_filename(file_location, "");
+    const auto alternative_root =
+        utils::resource::resource_location::replace_filename(file_location, "").join("..").lexically_normal();
 
     auto [it, inserted] = m_b4g_config_cache.try_emplace(file_location);
     if (!inserted)
@@ -326,7 +325,7 @@ workspace::parse_b4g_config_file_result workspace::parse_b4g_config_file(
 
     auto b4g_config_file = file_manager_.add_file(file_location);
     if (b4g_config_file->update_and_get_bad())
-        return parse_b4g_config_file_result::not_found; // TODO: say something?
+        return parse_b4g_config_file_result::not_found;
 
     const void* new_tag = &*it;
     auto& conf = it->second;
@@ -334,52 +333,54 @@ workspace::parse_b4g_config_file_result workspace::parse_b4g_config_file(
     try
     {
         conf.config.emplace(nlohmann::json::parse(b4g_config_file->get_text()).get<config::b4g_map>());
-
-        for (const auto& pg_def : m_proc_grps_source.pgroups)
-            process_processor_group(pg_def, m_proc_grps_source.macro_extensions, {}, alternative_root);
-
-        for (const auto& [name, details] : conf.config.value().files)
-        {
-            if (!proc_grps_.contains({ details.processor_group_name, alternative_root }))
-            {
-                missing_pgroups.emplace(details.processor_group_name);
-                continue;
-            }
-            const auto filename = utils::resource::resource_location::replace_filename(file_location, name);
-            exact_pgm_conf_.try_emplace(filename,
-                tagged_program {
-                    program {
-                        filename,
-                        { details.processor_group_name, alternative_root },
-                        {},
-                    },
-                    new_tag,
-                });
-        }
-        if (const auto& def_grp = conf.config.value().default_processor_group_name; !def_grp.empty())
-        {
-            if (!proc_grps_.contains({ def_grp, file_location }))
-                missing_pgroups.emplace(def_grp);
-            else
-            {
-                auto rl = utils::resource::resource_location::replace_filename(file_location, "*");
-                regex_pgm_conf_.emplace_back(
-                    tagged_program {
-                        program { rl, { def_grp, alternative_root }, {} },
-                        new_tag,
-                    },
-                    wildcard2regex(rl.get_uri()));
-            }
-        }
     }
     catch (const nlohmann::json::exception&)
     {
-        // TODO:
-        // conf.diags.push_back();
+        conf.diags.push_back(diagnostic_s::error_B4G001(file_location));
         return parse_b4g_config_file_result::error;
     }
-    // TODO:
-    // for (const auto& pgroup: missing_pgroups) confi.diags.push_back();
+
+    for (const auto& pg_def : m_proc_grps_source.pgroups)
+        process_processor_group(pg_def, m_proc_grps_source.macro_extensions, {}, alternative_root);
+
+    for (const auto& [name, details] : conf.config.value().files)
+    {
+        proc_grp_id grp_id(details.processor_group_name, alternative_root);
+        if (!proc_grps_.contains(grp_id))
+        {
+            missing_pgroups.emplace(details.processor_group_name);
+            continue;
+        }
+        const auto filename = utils::resource::resource_location::replace_filename(file_location, name);
+        exact_pgm_conf_.try_emplace(filename,
+            tagged_program {
+                program {
+                    filename,
+                    std::move(grp_id),
+                    {},
+                },
+                new_tag,
+            });
+    }
+    if (const auto& def_grp = conf.config.value().default_processor_group_name; !def_grp.empty())
+    {
+        proc_grp_id grp_id(def_grp, alternative_root);
+        if (!proc_grps_.contains(grp_id))
+            missing_pgroups.emplace(def_grp);
+        else
+        {
+            auto rl = utils::resource::resource_location::replace_filename(file_location, "*");
+            regex_pgm_conf_.emplace_back(
+                tagged_program {
+                    program { rl, std::move(grp_id), {} },
+                    new_tag,
+                },
+                wildcard2regex(rl.get_uri()));
+        }
+    }
+
+    for (const auto& pgroup : missing_pgroups)
+        conf.diags.push_back(diagnostic_s::error_B4G002(file_location, pgroup));
 
     return parse_b4g_config_file_result::parsed;
 }
@@ -403,8 +404,6 @@ workspace_file_info workspace::parse_file(const utils::resource::resource_locati
                 break;
 
             case parse_b4g_config_file_result::error:
-                // TODO: say something?
-                break;
             case parse_b4g_config_file_result::not_found:
                 break;
         }
