@@ -348,7 +348,7 @@ bool resource_location::lexically_out_of_scope() const
     return m_uri == std::string_view("..") || m_uri.starts_with("../") || m_uri.starts_with("..\\");
 }
 
-void resource_location::join(std::string_view other)
+resource_location& resource_location::join(std::string_view other)
 {
     if (utils::path::is_uri(other))
         m_uri = other;
@@ -360,11 +360,34 @@ void resource_location::join(std::string_view other)
     }
     else
         uri_append(m_uri, other);
+
+    return *this;
 }
 
 resource_location resource_location::join(resource_location rl, std::string_view other)
 {
     rl.join(other);
+
+    return rl;
+}
+
+resource_location& resource_location::replace_filename(std::string_view other)
+{
+    auto dis_uri = utils::path::dissect_uri(m_uri);
+
+    if (auto pos = dis_uri.path.rfind('/'); pos == std::string::npos)
+        dis_uri.path = other;
+    else
+        dis_uri.path.erase(pos + 1).append(other);
+
+    m_uri = utils::path::reconstruct_uri(dis_uri);
+
+    return *this;
+}
+
+resource_location resource_location::replace_filename(resource_location rl, std::string_view other)
+{
+    rl.replace_filename(other);
 
     return rl;
 }
