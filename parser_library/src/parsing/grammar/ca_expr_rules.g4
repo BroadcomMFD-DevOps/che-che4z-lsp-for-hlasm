@@ -22,7 +22,7 @@ expr_general returns [ca_expr_ptr ca_expr]
 	}
 	(
 		{NOT(_input->LT(1))}?
-		ORDSYMBOL SPACE+
+		ORDSYMBOL SPACE*
 		{
 			auto not_r = provider.get_range($ORDSYMBOL);
 			collector.add_hl_symbol(token_info(not_r, hl_scopes::operand));
