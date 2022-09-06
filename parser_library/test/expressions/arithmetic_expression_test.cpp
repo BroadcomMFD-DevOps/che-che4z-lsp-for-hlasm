@@ -291,6 +291,22 @@ TEST(arithmetic_expressions, not_operator_precedence)
     EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "A4"), -1);
 }
 
+TEST(arithmetic_expressions, not_operator_continuation)
+{
+    std::string input =
+        R"(
+&A       SETA NOT&A
+* TODO Grammar for NOT needs to be adjusted
+*&A       SETA                                                         NX
+               OT&A                                                 
+)";
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(a.diags().empty());
+}
+
 TEST(arithmetic_expressions, invalid_operator)
 {
     std::string input =
