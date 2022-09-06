@@ -30,6 +30,8 @@ enum class processor_group_root_folder : bool
     workspace,
     alternate_root,
 };
+void to_json(nlohmann::json& j, const processor_group_root_folder& p);
+void from_json(const nlohmann::json& j, processor_group_root_folder& p);
 
 struct library
 {
