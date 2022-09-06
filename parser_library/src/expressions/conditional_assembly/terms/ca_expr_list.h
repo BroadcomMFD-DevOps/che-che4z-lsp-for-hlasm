@@ -26,8 +26,6 @@ namespace hlasm_plugin::parser_library::expressions {
 class ca_expr_list final : public ca_expression
 {
 public:
-    std::vector<ca_expr_ptr> expr_list;
-
     ca_expr_list(std::vector<ca_expr_ptr> expr_list, range expr_range, bool parenthesized);
 
     undef_sym_set get_undefined_attributed_symbols(const evaluation_context& eval_ctx) const override;
@@ -46,6 +44,8 @@ public:
         return m_parenthesized && (i == ca_expression_compatibility::aif || i == ca_expression_compatibility::setb);
     }
 
+    std::span<const ca_expr_ptr> expression_list() const;
+
 private:
     // this function is present due to the fact that in hlasm you can omit space between operator and operands if
     // operators are in parentheses (eg. ('A')FIND('B') )
@@ -59,7 +59,8 @@ private:
     template<typename T>
     void resolve(context::SET_t_enum parent_expr_kind, diagnostic_op_consumer& diags);
 
-    bool m_parenthesized;
+    std::vector<ca_expr_ptr> expr_list;
+    const bool m_parenthesized;
 };
 
 } // namespace hlasm_plugin::parser_library::expressions

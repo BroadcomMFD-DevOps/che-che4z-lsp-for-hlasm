@@ -267,7 +267,7 @@ bool parser_impl::ALIAS()
     return opcode.type == instruction_type::ASM && opcode.value == hlasm_ctx->ids().well_known.ALIAS;
 }
 
-bool parser_impl::NOT(const antlr4::Token* token)
+bool parser_impl::NOT(const antlr4::Token* token) const
 {
     if (!token)
         return false;
