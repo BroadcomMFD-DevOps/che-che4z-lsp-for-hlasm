@@ -890,5 +890,6 @@ TEST(resource_location, replace_filename)
     EXPECT_EQ(resource_location::replace_filename(resource_location("s://h/a"), "b").get_uri(), "s://h/b");
     EXPECT_EQ(resource_location::replace_filename(resource_location("s://h/a/x/"), "b").get_uri(), "s://h/a/x/b");
     EXPECT_EQ(resource_location::replace_filename(resource_location("s://h/a"), "").get_uri(), "s://h/");
-    EXPECT_EQ(resource_location::replace_filename(resource_location("s://h/a/x/f?zzz"), "b").get_uri(), "s://h/a/x/b?zzz");
+    EXPECT_EQ(
+        resource_location::replace_filename(resource_location("s://h/a/x/f?zzz"), "b").get_uri(), "s://h/a/x/b?zzz");
 }

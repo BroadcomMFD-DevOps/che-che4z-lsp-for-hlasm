@@ -20,6 +20,7 @@
 #include <memory>
 #include <optional>
 #include <regex>
+#include <span>
 #include <string>
 #include <unordered_set>
 #include <utility>
@@ -43,7 +44,7 @@
 namespace hlasm_plugin::parser_library::workspaces {
 
 using ws_uri = std::string;
-using proc_grp_id = std::string;
+using proc_grp_id = std::pair<std::string, utils::resource::resource_location>;
 using program_id = utils::resource::resource_location;
 using ws_highlight_info = std::unordered_map<std::string, semantics::highlighting_info>;
 struct library_local_options;
@@ -113,7 +114,7 @@ public:
 
     void collect_diags() const override;
 
-    void add_proc_grp(processor_group pg);
+    void add_proc_grp(processor_group pg, const utils::resource::resource_location& alternative_root);
     const processor_group& get_proc_grp(const proc_grp_id& proc_grp) const;
     const processor_group& get_proc_grp_by_program(const utils::resource::resource_location& file_location) const;
     const processor_group& get_proc_grp_by_program(const program& program) const;
@@ -174,7 +175,17 @@ private:
     file_manager& file_manager_;
     file_manager_vfm fm_vfm_;
 
-    std::unordered_map<proc_grp_id, processor_group> proc_grps_;
+    config::proc_grps m_proc_grps_source;
+
+    struct proc_grp_id_hasher
+    {
+        size_t operator()(const proc_grp_id& pgid) const
+        {
+            return std::hash<std::string>()(pgid.first) ^ utils::resource::resource_location_hasher()(pgid.second);
+        }
+    };
+
+    std::unordered_map<proc_grp_id, processor_group, proc_grp_id_hasher> proc_grps_;
 
     struct tagged_program
     {
@@ -207,8 +218,10 @@ private:
         processor_group& prc_grp,
         const library_local_options& opts);
 
-    void process_processor_group(
-        const config::processor_group& pg, const config::proc_grps& proc_groups, const config::pgm_conf& pgm_config);
+    void process_processor_group(const config::processor_group& pg,
+        std::span<const std::string> fallback_macro_extensions,
+        std::span<const std::string> always_recognize,
+        const utils::resource::resource_location& alternative_root);
 
     void process_program(const config::program_mapping& pgm, const file_ptr& pgm_conf_file);
 

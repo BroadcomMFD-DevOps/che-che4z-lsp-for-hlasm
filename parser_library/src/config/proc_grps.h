@@ -25,11 +25,18 @@
 
 namespace hlasm_plugin::parser_library::config {
 
+enum class processor_group_root_folder : bool
+{
+    workspace,
+    alternate_root,
+};
+
 struct library
 {
     std::string path;
     std::vector<std::string> macro_extensions;
     bool optional = false;
+    processor_group_root_folder root_folder = processor_group_root_folder::workspace;
 };
 void to_json(nlohmann::json& j, const library& p);
 void from_json(const nlohmann::json& j, library& p);

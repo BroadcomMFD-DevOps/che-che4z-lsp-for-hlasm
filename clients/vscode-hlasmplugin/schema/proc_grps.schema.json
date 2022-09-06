@@ -36,6 +36,11 @@
                                             "items": {
                                                 "type": "string"
                                             }
+                                        },
+                                        "use_alternate_root": {
+                                            "type": "boolean",
+                                            "description": "Indicates that relative paths should be evaluated with respect to an alternative root folder (e.g. folder with .brigde.json file).",
+                                            "default": false
                                         }
                                     },
                                     "required": [

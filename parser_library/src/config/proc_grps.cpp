@@ -37,6 +37,8 @@ void to_json(nlohmann::json& j, const library& p)
     j = nlohmann::json { { "path", p.path }, { "optional", p.optional } };
     if (auto m = nlohmann::json(p.macro_extensions); !m.empty())
         j["macro_extensions"] = std::move(m);
+    if (p.root_folder == processor_group_root_folder::alternate_root)
+        j["use_alternate_root"] = true;
 }
 void from_json(const nlohmann::json& j, library& p)
 {
@@ -49,6 +51,9 @@ void from_json(const nlohmann::json& j, library& p)
             p.optional = it->get_to(p.optional);
         if (auto it = j.find("macro_extensions"); it != j.end())
             it->get_to(p.macro_extensions);
+        if (auto it = j.find("use_alternate_root"); it != j.end())
+            p.root_folder =
+                it->get<bool>() ? processor_group_root_folder::alternate_root : processor_group_root_folder::workspace;
     }
     else
         throw nlohmann::json::other_error::create(501, "Unexpected JSON type.", j);
