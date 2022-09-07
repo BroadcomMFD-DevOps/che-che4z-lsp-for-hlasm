@@ -455,7 +455,7 @@ TEST(arithmetic_expressions, subscripted_concat_evaluation)
     a.collect_diags();
 
     EXPECT_TRUE(a.diags().empty());
-    EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "X"), 10);
+    EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "X"), "10");
     EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "Y"), 2);
 }
 
