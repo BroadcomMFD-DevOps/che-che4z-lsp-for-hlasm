@@ -80,7 +80,7 @@ context::SET_t ca_string::evaluate(const evaluation_context& eval_ctx) const
 
         if (count == 0)
         {
-            // when zero-length substring is requested, validation of the first parameter seems supressed
+            // when zero-length substring is requested, validation of the first parameter seems suppressed
             str = "";
         }
         else if (start < 0 || count < 0 || (start == 0 && count > 0))

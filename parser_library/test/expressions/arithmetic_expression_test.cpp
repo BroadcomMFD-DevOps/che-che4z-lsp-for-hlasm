@@ -419,3 +419,56 @@ TEST(arithmetic_expressions, bit_shift)
     EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "A"), 10);
     EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "B"), 5);
 }
+
+TEST(arithmetic_expressions, subscript_evaluation)
+{
+    std::string input =
+        R"(
+&A    SETA 2                   
+&B    SETA 3                   
+&C    SETA (&A AND &B)
+&L(1) SETB 0,1              
+&X    SETA (&L((&A AND &B)))
+&Y    SETA (&L(&C))         
+)";
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(a.diags().empty());
+    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "X"), 1);
+    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "Y"), 1);
+}
+
+TEST(arithmetic_expressions, subscripted_concat_evaluation)
+{
+    std::string input =
+        R"(
+&A    SETA 2                   
+&B    SETA 3                   
+&L(1) SETB 0,1,0              
+&X    SETC '&L((&A AND &B))'.'&L((&A OR &B))'
+&Y    SETA DCLEN('&L((&A AND &B))'.'&L((&A OR &B))')
+)";
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(a.diags().empty());
+    EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "X"), 10);
+    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "Y"), 2);
+}
+
+TEST(arithmetic_expressions, different_var_types)
+{
+    std::string input =
+        R"(
+&C SETC 'XYZ'
+&A SETA '&C'((0 OR 1),1)
+)";
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "CE004"}));
+}
