@@ -37,9 +37,9 @@
                                                 "type": "string"
                                             }
                                         },
-                                        "use_alternate_root": {
+                                        "prefer_alternate_root": {
                                             "type": "boolean",
-                                            "description": "Indicates that relative paths should be evaluated with respect to an alternative root folder (e.g. folder with .brigde.json file).",
+                                            "description": "Indicates that relative paths should be evaluated with respect to an alternative root folder (e.g. provided by the Endevor Bridge for Git).",
                                             "default": false
                                         }
                                     },

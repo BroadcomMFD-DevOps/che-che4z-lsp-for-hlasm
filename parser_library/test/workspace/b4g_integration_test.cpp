@@ -77,7 +77,7 @@ TEST(b4g_integration_test, basic_pgm_conf_retrieval)
 
     file_manager.did_open_file(resource_location(".hlasmplugin/proc_grps.json"),
         1,
-        R"({"pgroups":[{"name":"P1","libs":[{"path":"ASMMACP1","use_alternate_root":true},"ASMMACP1"]},{"name":"P2","libs":[{"path":"ASMMACP2","use_alternate_root":true},"ASMMACP2"]}]})");
+        R"({"pgroups":[{"name":"P1","libs":[{"path":"ASMMACP1","prefer_alternate_root":true},"ASMMACP1"]},{"name":"P2","libs":[{"path":"ASMMACP2","prefer_alternate_root":true},"ASMMACP2"]}]})");
     file_manager.did_open_file(resource_location("SYS/SUB/ASMPGM/.bridge.json"),
         1,
         R"({"elements":{"A":{"processorGroup":"P1"}},"defaultProcessorGroup":"P2","fileExtension":""})");

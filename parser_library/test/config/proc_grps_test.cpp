@@ -112,9 +112,9 @@ TEST(proc_grps, full_content_read)
             proc_grps { { { "P1", {}, {}, { { cics_preprocessor { true, true, true } }, { db2_preprocessor() } } } } }),
         std::make_pair(R"({"pgroups":[{"name":"P1", "libs":[], "preprocessor":{"name":"ENDEVOR"}}]})"_json,
             proc_grps { { { "P1", {}, {}, { { endevor_preprocessor {} } } } } }),
-        std::make_pair(R"({"pgroups":[{"name":"P1", "libs":[{"path": "lib2", "use_alternate_root":true}]}]})"_json,
+        std::make_pair(R"({"pgroups":[{"name":"P1", "libs":[{"path": "lib2", "prefer_alternate_root":true}]}]})"_json,
             proc_grps { { { "P1", { { "lib2", {}, false, processor_group_root_folder::alternate_root } } } } }),
-        std::make_pair(R"({"pgroups":[{"name":"P1", "libs":[{"path": "lib2", "use_alternate_root":false}]}]})"_json,
+        std::make_pair(R"({"pgroups":[{"name":"P1", "libs":[{"path": "lib2", "prefer_alternate_root":false}]}]})"_json,
             proc_grps { { { "P1", { { "lib2", {}, false, processor_group_root_folder::workspace } } } } }),
     };
 
@@ -164,7 +164,7 @@ TEST(proc_grps, full_content_write)
         std::make_pair(R"({"pgroups":[{"name":"P1", "libs":[{"path":"lib1","optional":false}]}]})"_json,
             proc_grps { { { "P1", { { "lib1", {}, false, processor_group_root_folder::workspace } } } } }),
         std::make_pair(
-            R"({"pgroups":[{"name":"P1", "libs":[{"path":"lib1","optional":false,"use_alternate_root":true}]}]})"_json,
+            R"({"pgroups":[{"name":"P1", "libs":[{"path":"lib1","optional":false,"prefer_alternate_root":true}]}]})"_json,
             proc_grps { { { "P1", { { "lib1", {}, false, processor_group_root_folder::alternate_root } } } } }),
     };
 
@@ -189,7 +189,7 @@ TEST(proc_grps, invalid)
         R"({"pgroups":[{"name":"","libs":[{}]}],"preprocessor":{"name":"DB2","options":{"version":{}}}})"_json,
         R"({"pgroups":[{"name":"","libs":[{}]}],"preprocessor":{"name":"DB2","options":{"conditional":1}}})"_json,
         R"({"pgroups":[{"name":"","libs":[{}]}],"preprocessor":{"name":"DB2","options":{"conditional":{}}}})"_json,
-        R"({"pgroups":[{"libs":[{"path":"a","use_alternate_root":"AAA"}]}]})"_json,
+        R"({"pgroups":[{"libs":[{"path":"a","prefer_alternate_root":"AAA"}]}]})"_json,
     };
 
     for (const auto& input : cases)
