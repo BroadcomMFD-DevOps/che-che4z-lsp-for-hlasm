@@ -50,12 +50,16 @@ void ca_string::resolve_expression_tree(
 {
     if (expr_kind != kind)
         diags.add_diagnostic(diagnostic_op::error_CE004(expr_range));
+
+    auto converted_expr_kind =
+        parent_expr_kind == context::SET_t_enum::B_TYPE ? parent_expr_kind : context::SET_t_enum::A_TYPE;
+
     if (duplication_factor)
-        duplication_factor->resolve_expression_tree(context::SET_t_enum::A_TYPE, parent_expr_kind, diags);
+        duplication_factor->resolve_expression_tree(context::SET_t_enum::A_TYPE, converted_expr_kind, diags);
     if (substring.start)
-        substring.start->resolve_expression_tree(context::SET_t_enum::A_TYPE, parent_expr_kind, diags);
+        substring.start->resolve_expression_tree(context::SET_t_enum::A_TYPE, converted_expr_kind, diags);
     if (substring.count)
-        substring.count->resolve_expression_tree(context::SET_t_enum::A_TYPE, parent_expr_kind, diags);
+        substring.count->resolve_expression_tree(context::SET_t_enum::A_TYPE, converted_expr_kind, diags);
 }
 
 bool ca_string::is_character_expression(character_expression_purpose) const { return true; }

@@ -723,7 +723,7 @@ TEST(logical_expressions, evaluation_mix)
         R"(
 &A SETC 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'    
 &VAR SETA DCLEN(('&A'((0 OR 1),1).'&A'((3 AND 7),(7 AND 3)))) 
-&RES1 SETB ((DCLEN(('&A'((0 OR 1),1).'&A'((3 AND 7),(7 AND 3))))) EQ 4)
+&RES1 SETB ((DCLEN(('&A'((0 OR 1),1).'&A'((3 AND 7),(7 AND 3))))) EQ 2)
 &RES2 SETB (&VAR EQ 4)
 )";
     analyzer a(input);
@@ -731,6 +731,6 @@ TEST(logical_expressions, evaluation_mix)
     a.collect_diags();
 
     EXPECT_TRUE(a.diags().empty());
-    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "RES1"), true); // todo this is currently evaluated as false with IBM HLASM
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "RES1"), true);
     EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "RES2"), true);
 }

@@ -32,7 +32,7 @@ TEST(character_expression, operator_priority)
     std::string input =
         R"(
 &C1 SETC 'ABC'.(3)'ABCDEF'(4,3)
-&C2 SETC 'ABC'.(NOT -3)'ABCDEF'(4,3)
+&C2 SETC 'ABC'.(NOT -3)'ABCDEF'(NOT -5,NOT -4)
 )";
     analyzer a(input);
     a.analyze();
