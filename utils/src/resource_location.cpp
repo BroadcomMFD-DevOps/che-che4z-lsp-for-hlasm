@@ -184,18 +184,25 @@ std::string normalize_path(std::string_view orig_path, bool has_file_scheme, boo
     std::deque<std::string_view> elements;
     std::string_view path = orig_path;
     std::string_view win_root_dir;
+    bool first = true;
 
     for (uri_path_iterator this_it(&path); auto element : this_it)
     {
+        bool is_first = std::exchange(first, false);
         if (element == ".")
             continue;
         else if (element == "..")
         {
-            if (!elements.empty() && (elements.size() > 1 || (elements.front() != "/" && elements.front() != "\\")))
+            if (elements.empty())
+                elements.push_back(element);
+            else if (elements.size() > 1 || (elements.front() != "/" && elements.front() != "\\"))
                 elements.pop_back();
         }
         else if (elements.empty() && element.empty())
-            elements.push_back("/");
+        {
+            if (is_first)
+                elements.push_back("/");
+        }
         else if (has_file_scheme && !has_host && utils::platform::is_windows()
             && std::regex_match(element.begin(), element.end(), windows_drive))
             win_root_dir = element;
@@ -267,6 +274,9 @@ resource_location resource_location::lexically_normal() const
     auto uri = m_uri;
 
     std::replace(uri.begin(), uri.end(), '\\', '/');
+
+    if (!utils::path::is_uri(uri))
+        return resource_location(normalize_path(uri, false, false));
 
     auto dis_uri = utils::path::dissect_uri(uri);
     if (dis_uri.path.empty())
@@ -373,6 +383,13 @@ resource_location resource_location::join(resource_location rl, std::string_view
 
 resource_location& resource_location::replace_filename(std::string_view other)
 {
+    if (!utils::path::is_uri(m_uri))
+    {
+        m_uri.erase(m_uri.find_last_of("/\\") + 1);
+        m_uri.append(other);
+        return *this;
+    }
+
     auto dis_uri = utils::path::dissect_uri(m_uri);
 
     if (auto pos = dis_uri.path.rfind('/'); pos == std::string::npos)

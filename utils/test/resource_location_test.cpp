@@ -542,6 +542,17 @@ TEST(resource_location, lexically_normal_diff_schemes)
     EXPECT_EQ(resource_location("aaa:C:///dir/../").lexically_normal().get_uri(), "aaa:C%3A/");
 }
 
+TEST(resource_location, lexically_normal_no_schemes)
+{
+    EXPECT_EQ(resource_location("").lexically_normal().get_uri(), "");
+    EXPECT_EQ(resource_location("./").lexically_normal().get_uri(), "");
+    EXPECT_EQ(resource_location("././").lexically_normal().get_uri(), "");
+    EXPECT_EQ(resource_location("../").lexically_normal().get_uri(), "../");
+    EXPECT_EQ(resource_location("./../").lexically_normal().get_uri(), "../");
+    EXPECT_EQ(resource_location("./a").lexically_normal().get_uri(), "a");
+    EXPECT_EQ(resource_location("../a").lexically_normal().get_uri(), "../a");
+}
+
 TEST(resource_location, lexically_normal_change_root_dir_diff_schemes)
 {
     EXPECT_EQ(resource_location("aaa:C:/../../../D:").lexically_normal().get_uri(), "aaa:D%3A");
@@ -886,10 +897,14 @@ TEST(resource_location, lexically_normal_percent_encoded_chars)
 
 TEST(resource_location, replace_filename)
 {
-    EXPECT_EQ(resource_location::replace_filename(resource_location("s:a"), "b").get_uri(), "s:b");
-    EXPECT_EQ(resource_location::replace_filename(resource_location("s://h/a"), "b").get_uri(), "s://h/b");
-    EXPECT_EQ(resource_location::replace_filename(resource_location("s://h/a/x/"), "b").get_uri(), "s://h/a/x/b");
-    EXPECT_EQ(resource_location::replace_filename(resource_location("s://h/a"), "").get_uri(), "s://h/");
+    EXPECT_EQ(resource_location::replace_filename(resource_location("a"), "b").get_uri(), "b");
+    EXPECT_EQ(resource_location::replace_filename(resource_location("x/a"), "b").get_uri(), "x/b");
+    EXPECT_EQ(resource_location::replace_filename(resource_location("x/"), "b").get_uri(), "x/b");
+    EXPECT_EQ(resource_location::replace_filename(resource_location("schema:a"), "b").get_uri(), "schema:b");
+    EXPECT_EQ(resource_location::replace_filename(resource_location("schema://h/a"), "b").get_uri(), "schema://h/b");
     EXPECT_EQ(
-        resource_location::replace_filename(resource_location("s://h/a/x/f?zzz"), "b").get_uri(), "s://h/a/x/b?zzz");
+        resource_location::replace_filename(resource_location("schema://h/a/x/"), "b").get_uri(), "schema://h/a/x/b");
+    EXPECT_EQ(resource_location::replace_filename(resource_location("schema://h/a"), "").get_uri(), "schema://h/");
+    EXPECT_EQ(resource_location::replace_filename(resource_location("schema://h/a/x/f?zzz"), "b").get_uri(),
+        "schema://h/a/x/b?zzz");
 }
