@@ -235,14 +235,12 @@ void workspace::reparse_after_config_refresh()
     }
 }
 
-workspace_file_info workspace::parse_config_file()
+workspace::parse_config_file_result workspace::parse_config_file()
 {
     if (load_and_process_config())
-        reparse_after_config_refresh();
+        return parse_config_file_result::parsed;
 
-    workspace_file_info ws_file_info;
-    ws_file_info.config_parsing = true;
-    return ws_file_info;
+    return parse_config_file_result::not_found;
 }
 
 namespace {
@@ -301,14 +299,15 @@ bool workspace::settings_updated()
     {
         if (find_setting(key, *global_settings) != value)
         {
-            parse_config_file();
+            if (parse_config_file() == parse_config_file_result::parsed)
+                reparse_after_config_refresh();
             return true;
         }
     }
     return false;
 }
 
-workspace::parse_b4g_config_file_result workspace::parse_b4g_config_file(
+workspace::parse_config_file_result workspace::parse_b4g_config_file(
     const utils::resource::resource_location& file_location)
 {
     const auto alternative_root =
@@ -325,7 +324,7 @@ workspace::parse_b4g_config_file_result workspace::parse_b4g_config_file(
 
     auto b4g_config_file = file_manager_.add_file(file_location);
     if (b4g_config_file->update_and_get_bad())
-        return parse_b4g_config_file_result::not_found;
+        return parse_config_file_result::not_found;
 
     const void* new_tag = &*it;
     auto& conf = it->second;
@@ -337,7 +336,7 @@ workspace::parse_b4g_config_file_result workspace::parse_b4g_config_file(
     catch (const nlohmann::json::exception&)
     {
         conf.diags.push_back(diagnostic_s::error_B4G001(file_location));
-        return parse_b4g_config_file_result::error;
+        return parse_config_file_result::error;
     }
 
     for (const auto& pg_def : m_proc_grps_source.pgroups)
@@ -382,7 +381,7 @@ workspace::parse_b4g_config_file_result workspace::parse_b4g_config_file(
     for (const auto& pgroup : missing_pgroups)
         conf.diags.push_back(diagnostic_s::error_B4G002(file_location, pgroup));
 
-    return parse_b4g_config_file_result::parsed;
+    return parse_config_file_result::parsed;
 }
 
 workspace_file_info workspace::parse_file(const utils::resource::resource_location& file_location)
@@ -392,19 +391,22 @@ workspace_file_info workspace::parse_file(const utils::resource::resource_locati
     // TODO: add support for hlasm to vscode (auto detection??) and do the decision based on languageid
     if (is_config_file(file_location))
     {
-        return parse_config_file();
+        if (parse_config_file() == parse_config_file_result::parsed)
+            reparse_after_config_refresh();
+        ws_file_info.config_parsing = true;
+        return ws_file_info;
     }
 
     if (file_location.get_uri().ends_with(B4G_CONF_FILE) && utils::resource::filename(file_location) == B4G_CONF_FILE)
     {
         switch (parse_b4g_config_file(file_location))
         {
-            case parse_b4g_config_file_result::parsed:
+            case parse_config_file_result::parsed:
                 reparse_after_config_refresh();
                 break;
 
-            case parse_b4g_config_file_result::error:
-            case parse_b4g_config_file_result::not_found:
+            case parse_config_file_result::error:
+            case parse_config_file_result::not_found:
                 break;
         }
         ws_file_info.config_parsing = true;

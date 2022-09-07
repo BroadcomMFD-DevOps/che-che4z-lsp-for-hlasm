@@ -227,14 +227,14 @@ private:
 
     bool is_config_file(const utils::resource::resource_location& file_location) const;
     void reparse_after_config_refresh();
-    workspace_file_info parse_config_file();
-    enum class parse_b4g_config_file_result
+    enum class parse_config_file_result
     {
         parsed,
         not_found,
         error,
     };
-    parse_b4g_config_file_result parse_b4g_config_file(const utils::resource::resource_location& file_location);
+    parse_config_file_result parse_config_file();
+    parse_config_file_result parse_b4g_config_file(const utils::resource::resource_location& file_location);
 
     bool try_loading_alternative_configuration(const utils::resource::resource_location& file_location);
 
