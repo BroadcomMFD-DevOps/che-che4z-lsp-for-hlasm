@@ -223,7 +223,7 @@ private:
         std::span<const std::string> always_recognize,
         const utils::resource::resource_location& alternative_root);
 
-    void process_program(const config::program_mapping& pgm, const file_ptr& pgm_conf_file);
+    bool process_program(const config::program_mapping& pgm);
 
     bool is_config_file(const utils::resource::resource_location& file_location) const;
     void reparse_after_config_refresh();
@@ -239,18 +239,11 @@ private:
     bool try_loading_alternative_configuration(const utils::resource::resource_location& file_location);
 
     bool load_and_process_config();
-    // Loads the pgm_conf.json and proc_grps.json from disk, adds them to file_manager_ and parses both jsons.
-    // Returns false if there is any error.
-    struct load_config_result
-    {
-        bool proc_found;
-        bool pgm_found;
-    };
-    load_config_result load_config(config::proc_grps& proc_groups,
-        config::pgm_conf& pgm_config,
-        file_ptr& proc_grps_file,
-        file_ptr& pgm_conf_file,
-        global_settings_map& utilized_settings_values);
+
+    bool load_proc_config(
+        config::proc_grps& proc_groups, file_ptr& proc_grps_file, global_settings_map& utilized_settings_values);
+    bool load_pgm_config(
+        config::pgm_conf& pgm_config, file_ptr& pgm_conf_file, global_settings_map& utilized_settings_values);
 
     // files, that depend on others (e.g. open code files that use macros)
     std::set<utils::resource::resource_location> dependants_;
