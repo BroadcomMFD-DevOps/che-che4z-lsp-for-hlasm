@@ -825,7 +825,7 @@ void workspace::process_processor_group(const config::processor_group& pg,
 bool workspace::process_program(const config::program_mapping& pgm)
 {
     const auto key = std::make_pair(pgm.pgroup, utils::resource::resource_location());
-    if (proc_grps_.find(key) == proc_grps_.end())
+    if (!proc_grps_.contains(key))
         return false;
 
     std::optional<std::string> pgm_name = substitute_home_directory(pgm.program);
