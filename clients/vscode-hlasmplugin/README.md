@@ -53,7 +53,7 @@ To do this, set up two configuration files — `proc_grps.json` and `pgm_conf.js
 
 Follow the section [External Macro Libraries and COPY Members](#External-Macro-Libraries-and-COPY-Members) below for more detailed instructions on configuring the environment.
 
-The `pgm_conf.json` file may be provided implicitly by another product that supports integration with the HLASM Language support (e.g. Endevor Bridge for Git integration).
+The `pgm_conf.json` file can be provided implicitly by another product that supports integration with HLASM Language Support (e.g. Endevor Bridge for Git).
 
 ## Language Features
 

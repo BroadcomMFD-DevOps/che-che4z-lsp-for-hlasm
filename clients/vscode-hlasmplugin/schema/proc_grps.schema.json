@@ -39,7 +39,7 @@
                                         },
                                         "prefer_alternate_root": {
                                             "type": "boolean",
-                                            "description": "Indicates that relative paths should be evaluated with respect to an alternative root folder (e.g. provided by the Endevor Bridge for Git).",
+                                            "description": "Specify 'true' to resolve relative paths with respect to a different root folder than the workspace root (e.g. a folder provided by Endevor Bridge for Git).",
                                             "default": false
                                         }
                                     },
