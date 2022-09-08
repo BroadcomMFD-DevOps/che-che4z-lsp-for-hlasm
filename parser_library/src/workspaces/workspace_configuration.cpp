@@ -14,6 +14,8 @@
 
 #include "workspace_configuration.h"
 
+#include <charconv>
+
 #include "file_manager.h"
 #include "library_local.h"
 #include "nlohmann/json.hpp"
@@ -254,7 +256,8 @@ bool workspace_configuration::is_configuration_file(const utils::resource::resou
 void workspace_configuration::process_processor_group(const config::processor_group& pg,
     std::span<const std::string> fallback_macro_extensions,
     std::span<const std::string> always_recognize,
-    const utils::resource::resource_location& alternative_root)
+    const utils::resource::resource_location& alternative_root,
+    std::vector<diagnostic_s>& diags)
 {
     processor_group prc_grp(pg.name, pg.asm_options, pg.preprocessors);
 
@@ -268,7 +271,7 @@ void workspace_configuration::process_processor_group(const config::processor_gr
         std::optional<std::string> lib_path = substitute_home_directory(lib.path);
         if (!lib_path.has_value())
         {
-            m_config_diags.push_back(diagnostic_s::warning_L0006(lib.path));
+            diags.push_back(diagnostic_s::warning_L0006(lib.path));
             continue;
         }
 
@@ -284,13 +287,14 @@ void workspace_configuration::process_processor_group(const config::processor_gr
                                   rl.get_uri().substr(0, rl.get_uri().find_last_of("/", first_wild_card) + 1)),
                 rl,
                 prc_grp,
-                lib_local_opts);
+                lib_local_opts,
+                diags);
     }
 
     m_proc_grps.try_emplace(std::make_pair(prc_grp.name(), alternative_root), std::move(prc_grp));
 }
 
-bool workspace_configuration::process_program(const config::program_mapping& pgm)
+bool workspace_configuration::process_program(const config::program_mapping& pgm, std::vector<diagnostic_s>& diags)
 {
     const auto key = std::make_pair(pgm.pgroup, utils::resource::resource_location());
     if (!m_proc_grps.contains(key))
@@ -299,7 +303,7 @@ bool workspace_configuration::process_program(const config::program_mapping& pgm
     std::optional<std::string> pgm_name = substitute_home_directory(pgm.program);
     if (!pgm_name.has_value())
     {
-        m_config_diags.push_back(diagnostic_s::warning_L0006(pgm.program));
+        diags.push_back(diagnostic_s::warning_L0006(pgm.program));
         return false;
     }
 
@@ -323,15 +327,15 @@ bool workspace_configuration::is_b4g_config_file(const utils::resource::resource
 }
 
 // open config files and parse them
-parse_config_file_result workspace_configuration::load_and_process_config()
+parse_config_file_result workspace_configuration::load_and_process_config(std::vector<diagnostic_s>& diags)
 {
-    m_config_diags.clear();
+    diags.clear();
 
     config::proc_grps proc_groups;
     file_ptr proc_grps_file;
     global_settings_map utilized_settings_values;
 
-    if (auto l = load_proc_config(proc_groups, proc_grps_file, utilized_settings_values);
+    if (auto l = load_proc_config(proc_groups, proc_grps_file, utilized_settings_values, diags);
         l != parse_config_file_result::parsed)
         return l;
 
@@ -342,13 +346,13 @@ parse_config_file_result workspace_configuration::load_and_process_config()
 
     config::pgm_conf pgm_config;
     file_ptr pgm_conf_file;
-    const auto pgm_conf_loaded = load_pgm_config(pgm_config, pgm_conf_file, utilized_settings_values);
+    const auto pgm_conf_loaded = load_pgm_config(pgm_config, pgm_conf_file, utilized_settings_values, diags);
 
     // process processor groups
     for (auto& pg : proc_groups.pgroups)
     {
         process_processor_group(
-            pg, proc_groups.macro_extensions, pgm_config.always_recognize, utils::resource::resource_location());
+            pg, proc_groups.macro_extensions, pgm_config.always_recognize, utils::resource::resource_location(), diags);
     }
 
     if (pgm_conf_loaded != parse_config_file_result::parsed)
@@ -362,8 +366,8 @@ parse_config_file_result workspace_configuration::load_and_process_config()
         // process programs
         for (auto& pgm : pgm_config.pgms)
         {
-            if (!process_program(pgm))
-                m_config_diags.push_back(diagnostic_s::error_W0004(pgm_conf_file->get_location(), pgm.pgroup));
+            if (!process_program(pgm, diags))
+                diags.push_back(diagnostic_s::error_W0004(pgm_conf_file->get_location(), pgm.pgroup));
         }
     }
 
@@ -374,8 +378,10 @@ parse_config_file_result workspace_configuration::load_and_process_config()
     return parse_config_file_result::parsed;
 }
 
-parse_config_file_result workspace_configuration::load_proc_config(
-    config::proc_grps& proc_groups, file_ptr& proc_grps_file, global_settings_map& utilized_settings_values)
+parse_config_file_result workspace_configuration::load_proc_config(config::proc_grps& proc_groups,
+    file_ptr& proc_grps_file,
+    global_settings_map& utilized_settings_values,
+    std::vector<diagnostic_s>& diags)
 {
     const auto current_settings = m_global_settings.load();
     json_settings_replacer json_visitor { current_settings, utilized_settings_values, m_location };
@@ -394,30 +400,31 @@ parse_config_file_result workspace_configuration::load_proc_config(
     catch (const nlohmann::json::exception&)
     {
         // could not load proc_grps
-        m_config_diags.push_back(diagnostic_s::error_W0002(proc_grps_file->get_location()));
+        diags.push_back(diagnostic_s::error_W0002(proc_grps_file->get_location()));
         return parse_config_file_result::error;
     }
 
     for (const auto& var : json_visitor.unavailable)
-        m_config_diags.push_back(diagnostic_s::warn_W0007(proc_grps_file->get_location(), var));
+        diags.push_back(diagnostic_s::warn_W0007(proc_grps_file->get_location(), var));
 
     for (const auto& pg : proc_groups.pgroups)
     {
         if (!pg.asm_options.valid())
-            m_config_diags.push_back(
-                diagnostic_s::error_W0005(proc_grps_file->get_location(), pg.name, "processor group"));
+            diags.push_back(diagnostic_s::error_W0005(proc_grps_file->get_location(), pg.name, "processor group"));
         for (const auto& p : pg.preprocessors)
         {
             if (!p.valid())
-                m_config_diags.push_back(diagnostic_s::error_W0006(proc_grps_file->get_location(), pg.name, p.type()));
+                diags.push_back(diagnostic_s::error_W0006(proc_grps_file->get_location(), pg.name, p.type()));
         }
     }
 
     return parse_config_file_result::parsed;
 }
 
-parse_config_file_result workspace_configuration::load_pgm_config(
-    config::pgm_conf& pgm_config, file_ptr& pgm_conf_file, global_settings_map& utilized_settings_values)
+parse_config_file_result workspace_configuration::load_pgm_config(config::pgm_conf& pgm_config,
+    file_ptr& pgm_conf_file,
+    global_settings_map& utilized_settings_values,
+    std::vector<diagnostic_s>& diags)
 {
     const auto current_settings = m_global_settings.load();
     json_settings_replacer json_visitor { current_settings, utilized_settings_values, m_location };
@@ -435,17 +442,17 @@ parse_config_file_result workspace_configuration::load_pgm_config(
     }
     catch (const nlohmann::json::exception&)
     {
-        m_config_diags.push_back(diagnostic_s::error_W0003(pgm_conf_file->get_location()));
+        diags.push_back(diagnostic_s::error_W0003(pgm_conf_file->get_location()));
         return parse_config_file_result::error;
     }
 
     for (const auto& var : json_visitor.unavailable)
-        m_config_diags.push_back(diagnostic_s::warn_W0007(pgm_conf_file->get_location(), var));
+        diags.push_back(diagnostic_s::warn_W0007(pgm_conf_file->get_location(), var));
 
     for (const auto& pgm : pgm_config.pgms)
     {
         if (!pgm.opts.valid())
-            m_config_diags.push_back(diagnostic_s::error_W0005(pgm_conf_file->get_location(), pgm.program, "program"));
+            diags.push_back(diagnostic_s::error_W0005(pgm_conf_file->get_location(), pgm.program, "program"));
     }
 
     return parse_config_file_result::parsed;
@@ -495,7 +502,7 @@ parse_config_file_result workspace_configuration::parse_b4g_config_file(
     }
 
     for (const auto& pg_def : m_proc_grps_source.pgroups)
-        process_processor_group(pg_def, m_proc_grps_source.macro_extensions, {}, alternative_root);
+        process_processor_group(pg_def, m_proc_grps_source.macro_extensions, {}, alternative_root, conf.diags);
 
     for (const auto& [name, details] : conf.config.value().files)
     {
@@ -543,12 +550,13 @@ parse_config_file_result workspace_configuration::parse_b4g_config_file(
 void workspace_configuration::find_and_add_libs(const utils::resource::resource_location& root,
     const utils::resource::resource_location& path_pattern,
     processor_group& prc_grp,
-    const library_local_options& opts)
+    const library_local_options& opts,
+    std::vector<diagnostic_s>& diags)
 {
     if (!m_file_manager.dir_exists(root))
     {
         if (!opts.optional_library)
-            m_config_diags.push_back(diagnostic_s::error_L0001(root.to_presentable()));
+            diags.push_back(diagnostic_s::error_L0001(root.to_presentable()));
         return;
     }
 
@@ -560,7 +568,7 @@ void workspace_configuration::find_and_add_libs(const utils::resource::resource_
     if (std::error_code ec; dirs_to_search.emplace_back(m_file_manager.canonical(root, ec), root), ec)
     {
         if (!opts.optional_library)
-            m_config_diags.push_back(diagnostic_s::error_L0001(root.to_presentable()));
+            diags.push_back(diagnostic_s::error_L0001(root.to_presentable()));
         return;
     }
 
@@ -569,7 +577,7 @@ void workspace_configuration::find_and_add_libs(const utils::resource::resource_
     {
         if (processed_canonical_paths.size() > limit)
         {
-            m_config_diags.push_back(diagnostic_s::warning_L0005(path_pattern.to_presentable(), limit));
+            diags.push_back(diagnostic_s::warning_L0005(path_pattern.to_presentable(), limit));
             break;
         }
 
@@ -585,7 +593,7 @@ void workspace_configuration::find_and_add_libs(const utils::resource::resource_
         auto [subdir_list, return_code] = m_file_manager.list_directory_subdirs_and_symlinks(dir);
         if (return_code != utils::path::list_directory_rc::done)
         {
-            m_config_diags.push_back(diagnostic_s::error_L0001(dir.to_presentable()));
+            diags.push_back(diagnostic_s::error_L0001(dir.to_presentable()));
             break;
         }
 
@@ -620,7 +628,7 @@ parse_config_file_result workspace_configuration::parse_configuration_file(
     std::optional<utils::resource::resource_location> file)
 {
     if (!file.has_value() || is_config_file(*file))
-        return load_and_process_config();
+        return load_and_process_config(m_config_diags);
 
     if (is_b4g_config_file(*file))
         return parse_b4g_config_file(*file);

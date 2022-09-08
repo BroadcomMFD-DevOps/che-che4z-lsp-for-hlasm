@@ -15,15 +15,22 @@
 #ifndef HLASMPLUGIN_PARSERLIBRARY_WORKSPACE_CONFIGURATION_H
 #define HLASMPLUGIN_PARSERLIBRARY_WORKSPACE_CONFIGURATION_H
 
+#include <atomic>
+#include <map>
+#include <memory>
 #include <optional>
 #include <regex>
+#include <span>
+#include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include "config/b4g_config.h"
 #include "config/pgm_conf.h"
 #include "config/proc_grps.h"
 #include "diagnosable.h"
+#include "diagnostic.h"
 #include "lib_config.h"
 #include "processor_group.h"
 #include "utils/general_hashers.h"
@@ -127,9 +134,10 @@ class workspace_configuration
     void process_processor_group(const config::processor_group& pg,
         std::span<const std::string> fallback_macro_extensions,
         std::span<const std::string> always_recognize,
-        const utils::resource::resource_location& alternative_root);
+        const utils::resource::resource_location& alternative_root,
+        std::vector<diagnostic_s>& diags);
 
-    bool process_program(const config::program_mapping& pgm);
+    bool process_program(const config::program_mapping& pgm, std::vector<diagnostic_s>& diags);
 
     bool is_config_file(const utils::resource::resource_location& file_location) const;
     bool is_b4g_config_file(const utils::resource::resource_location& file) const;
@@ -139,17 +147,22 @@ class workspace_configuration
 
     bool try_loading_alternative_configuration(const utils::resource::resource_location& file_location);
 
-    parse_config_file_result load_and_process_config();
+    parse_config_file_result load_and_process_config(std::vector<diagnostic_s>& diags);
 
-    parse_config_file_result load_proc_config(
-        config::proc_grps& proc_groups, file_ptr& proc_grps_file, global_settings_map& utilized_settings_values);
-    parse_config_file_result load_pgm_config(
-        config::pgm_conf& pgm_config, file_ptr& pgm_conf_file, global_settings_map& utilized_settings_values);
+    parse_config_file_result load_proc_config(config::proc_grps& proc_groups,
+        file_ptr& proc_grps_file,
+        global_settings_map& utilized_settings_values,
+        std::vector<diagnostic_s>& diags);
+    parse_config_file_result load_pgm_config(config::pgm_conf& pgm_config,
+        file_ptr& pgm_conf_file,
+        global_settings_map& utilized_settings_values,
+        std::vector<diagnostic_s>& diags);
 
     void find_and_add_libs(const utils::resource::resource_location& root,
         const utils::resource::resource_location& path_pattern,
         processor_group& prc_grp,
-        const library_local_options& opts);
+        const library_local_options& opts,
+        std::vector<diagnostic_s>& diags);
 
 public:
     workspace_configuration(
