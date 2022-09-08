@@ -164,7 +164,7 @@ TEST(logical_expressions, invalid_relational_expression)
     a.analyze();
 
     a.collect_diags();
-    EXPECT_TRUE(matches_message_codes(a.diags(), { "CE004", "CE004", "CE004", "CE004", "CE002" }));
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "CE004", "CE004", "CE004", "CE004", "CE004", "CE004", "CE002" }));
 }
 
 TEST(logical_expressions, priority)
