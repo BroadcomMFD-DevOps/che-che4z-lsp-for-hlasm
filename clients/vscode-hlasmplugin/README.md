@@ -114,7 +114,7 @@ To use a predefined set of macro and copy members, follow these steps:
    You have created a new processor group.
 3. Use the identifier of the new processor group with the name of your source code file in `pgm_conf.json` to assign the library members to the program.
 
-Relative paths that you specify in `proc_grps.json` (for libraries) or in `pgm_conf.json` (for programs) are resolved with respect to the current workspace, unless the option `prefer_alternate_root` is true. In that case the relative paths are resolved with respect to the directory provided by an integration (e.g. Endevor Bridge for Git integration).
+Relative paths that you specify in `proc_grps.json` (for libraries) or in `pgm_conf.json` (for programs) are resolved with respect to the current workspace. If you set the option `prefer_alternate_root` to `true`, relative paths are resolved with respect to the directory provided by an integration (e.g. Endevor Bridge for Git integration).
 
 The structure of the configuration is based on Endevor®. Ensure that you configure these files before you use macros or the COPY instruction.
 
