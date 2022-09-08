@@ -59,19 +59,22 @@ undef_sym_set ca_function::get_undefined_attributed_symbols(const evaluation_con
 void ca_function::resolve_expression_tree(
     context::SET_t_enum kind, context::SET_t_enum parent_expr_kind, diagnostic_op_consumer& diags)
 {
+    if (kind != expr_kind
+        && !((kind == context::SET_t_enum::A_TYPE && expr_kind == context::SET_t_enum::B_TYPE)
+            || (kind == context::SET_t_enum::B_TYPE && expr_kind == context::SET_t_enum::A_TYPE)))
+        diags.add_diagnostic(diagnostic_op::error_CE004(expr_range));
+
     if (duplication_factor && expr_kind != context::SET_t_enum::C_TYPE)
         diags.add_diagnostic(diagnostic_op::error_CE005(duplication_factor->expr_range));
+
+    auto [param_size, param_kind] = ca_common_expr_policy::get_function_param_info(function, expr_kind);
+    if (parameters.size() != param_size)
+        diags.add_diagnostic(diagnostic_op::error_CE006(expr_range));
     else
     {
-        auto [param_size, param_kind] = ca_common_expr_policy::get_function_param_info(function, expr_kind);
-        if (parameters.size() != param_size)
-            diags.add_diagnostic(diagnostic_op::error_CE006(expr_range));
-        else
+        for (auto&& expr : parameters)
         {
-            for (auto&& expr : parameters)
-            {
-                expr->resolve_expression_tree(param_kind, parent_expr_kind, diags);
-            }
+            expr->resolve_expression_tree(param_kind, parent_expr_kind, diags);
         }
     }
 }

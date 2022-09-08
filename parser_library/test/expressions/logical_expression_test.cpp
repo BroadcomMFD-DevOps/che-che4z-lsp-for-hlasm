@@ -158,7 +158,7 @@ TEST(logical_expressions, invalid_relational_expression)
 &A2 SETB (13 LT 'A')
 &A3 SETB ('a' LT 12)
 &A4 SETB (BYTE(X'C1') EQ 'A')
-&A5 SETB (DCLEN('&A'((0 OR 1),1).'&A'((3 AND 7),(1 EQ 1))))
+&A5 SETB (DCLEN('ABC'((0 OR 1),1).'ABC'((3 AND 7),(1 EQ 1))))
 )";
     analyzer a(input);
     a.analyze();
