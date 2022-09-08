@@ -470,5 +470,5 @@ TEST(arithmetic_expressions, different_var_types)
     a.analyze();
     a.collect_diags();
 
-    EXPECT_TRUE(matches_message_codes(a.diags(), { "CE004"}));
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "CE004" }));
 }
