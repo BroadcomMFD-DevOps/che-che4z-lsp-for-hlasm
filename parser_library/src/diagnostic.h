@@ -864,11 +864,11 @@ public:
 
     static diagnostic_s error_W0001(const utils::resource::resource_location& file_name);
 
-    static diagnostic_s error_W0002(const utils::resource::resource_location& file_name, std::string_view ws_name);
+    static diagnostic_s error_W0002(const utils::resource::resource_location& file_name);
 
-    static diagnostic_s error_W0003(const utils::resource::resource_location& file_name, std::string_view ws_name);
+    static diagnostic_s error_W0003(const utils::resource::resource_location& file_name);
 
-    static diagnostic_s error_W0004(const utils::resource::resource_location&, std::string_view ws_name);
+    static diagnostic_s error_W0004(const utils::resource::resource_location&, std::string_view pgroup);
 
     static diagnostic_s error_W0005(
         const utils::resource::resource_location&, std::string_view name, std::string_view type);

@@ -123,7 +123,7 @@ TEST(b4g_integration_test, basic_pgm_conf_retrieval)
 )");
 
     lib_config config;
-    workspace::shared_json global_settings = make_empty_shared_json();
+    shared_json global_settings = make_empty_shared_json();
     workspace ws(resource_location(), "workspace_name", file_manager, config, global_settings);
     ws.open();
 
@@ -156,7 +156,7 @@ TEST(b4g_integration_test, invalid_bridge_json)
     file_manager.did_open_file(resource_location("SYS/SUB/ASMPGM/A"), 1, "");
 
     lib_config config;
-    workspace::shared_json global_settings = make_empty_shared_json();
+    shared_json global_settings = make_empty_shared_json();
     workspace ws(resource_location(), "workspace_name", file_manager, config, global_settings);
     ws.open();
 
@@ -179,7 +179,7 @@ TEST(b4g_integration_test, missing_pgroup)
     file_manager.did_open_file(resource_location("SYS/SUB/ASMPGM/A"), 1, "");
 
     lib_config config;
-    workspace::shared_json global_settings = make_empty_shared_json();
+    shared_json global_settings = make_empty_shared_json();
     workspace ws(resource_location(), "workspace_name", file_manager, config, global_settings);
     ws.open();
 
@@ -209,7 +209,7 @@ TEST(b4g_integration_test, bridge_config_changed)
 )");
 
     lib_config config;
-    workspace::shared_json global_settings = make_empty_shared_json();
+    shared_json global_settings = make_empty_shared_json();
     workspace ws(resource_location(), "workspace_name", file_manager, config, global_settings);
     ws.open();
 
@@ -253,7 +253,7 @@ TEST(b4g_integration_test, proc_config_changed)
 )");
 
     lib_config config;
-    workspace::shared_json global_settings = make_empty_shared_json();
+    shared_json global_settings = make_empty_shared_json();
     workspace ws(resource_location(), "workspace_name", file_manager, config, global_settings);
     ws.open();
 
