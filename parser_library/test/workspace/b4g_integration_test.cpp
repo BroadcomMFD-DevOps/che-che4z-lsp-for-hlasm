@@ -146,3 +146,136 @@ TEST(b4g_integration_test, basic_pgm_conf_retrieval)
 
     ws.did_close_file(resource_location("SYS/SUB/ASMPGM/B"));
 }
+
+TEST(b4g_integration_test, invalid_bridge_json)
+{
+    file_manager_impl_test file_manager;
+
+    file_manager.did_open_file(resource_location(".hlasmplugin/proc_grps.json"), 1, R"({"pgroups":[]})");
+    file_manager.did_open_file(resource_location("SYS/SUB/ASMPGM/.bridge.json"), 1, R"({})");
+    file_manager.did_open_file(resource_location("SYS/SUB/ASMPGM/A"), 1, "");
+
+    lib_config config;
+    workspace::shared_json global_settings = make_empty_shared_json();
+    workspace ws(resource_location(), "workspace_name", file_manager, config, global_settings);
+    ws.open();
+
+    ws.did_open_file(resource_location("SYS/SUB/ASMPGM/A"));
+    ws.collect_diags();
+    file_manager.collect_diags();
+
+    EXPECT_TRUE(file_manager.diags().empty());
+    EXPECT_TRUE(matches_message_codes(ws.diags(), { "B4G001" }));
+}
+
+TEST(b4g_integration_test, missing_pgroup)
+{
+    file_manager_impl_test file_manager;
+
+    file_manager.did_open_file(resource_location(".hlasmplugin/proc_grps.json"), 1, R"({"pgroups":[]})");
+    file_manager.did_open_file(resource_location("SYS/SUB/ASMPGM/.bridge.json"),
+        1,
+        R"({"elements":{"A":{"processorGroup":"P1"}},"defaultProcessorGroup":"P2","fileExtension":""})");
+    file_manager.did_open_file(resource_location("SYS/SUB/ASMPGM/A"), 1, "");
+
+    lib_config config;
+    workspace::shared_json global_settings = make_empty_shared_json();
+    workspace ws(resource_location(), "workspace_name", file_manager, config, global_settings);
+    ws.open();
+
+    ws.did_open_file(resource_location("SYS/SUB/ASMPGM/A"));
+    ws.collect_diags();
+    file_manager.collect_diags();
+
+    EXPECT_TRUE(file_manager.diags().empty());
+    EXPECT_TRUE(matches_message_codes(ws.diags(), { "B4G002", "B4G002" }));
+}
+
+TEST(b4g_integration_test, bridge_config_changed)
+{
+    file_manager_impl_test file_manager;
+
+    file_manager.did_open_file(resource_location(".hlasmplugin/proc_grps.json"),
+        1,
+        R"({"pgroups":[{"name":"P1","libs":[{"path":"ASMMAC","prefer_alternate_root":true}]}]})");
+    file_manager.did_open_file(resource_location("SYS/SUB/ASMPGM/.bridge.json"), 1, R"({})");
+    file_manager.did_open_file(resource_location("SYS/SUB/ASMPGM/A"), 1, " MAC1");
+    file_manager.did_open_file(resource_location("SYS/SUB/ASMMAC/MAC1"),
+        1,
+        R"(        MACRO
+        MAC1
+        MNOTE 4,'MACRO'
+        MEND
+)");
+
+    lib_config config;
+    workspace::shared_json global_settings = make_empty_shared_json();
+    workspace ws(resource_location(), "workspace_name", file_manager, config, global_settings);
+    ws.open();
+
+    ws.did_open_file(resource_location("SYS/SUB/ASMPGM/A"));
+    ws.collect_diags();
+    file_manager.collect_diags();
+
+    EXPECT_TRUE(matches_message_codes(file_manager.diags(), { "E049" }));
+    EXPECT_TRUE(matches_message_codes(ws.diags(), { "B4G001" }));
+
+    ws.diags().clear();
+    file_manager.diags().clear();
+
+    std::string_view new_bridge_json = R"({"elements":{},"defaultProcessorGroup":"P1","fileExtension":""})";
+    document_change doc_change(new_bridge_json.data(), new_bridge_json.size());
+    file_manager.did_change_file(resource_location("SYS/SUB/ASMPGM/.bridge.json"), 2, &doc_change, 1);
+    ws.did_change_file(resource_location("SYS/SUB/ASMPGM/.bridge.json"), &doc_change, 1);
+
+    ws.collect_diags();
+    file_manager.collect_diags();
+
+    EXPECT_TRUE(matches_message_codes(file_manager.diags(), { "MNOTE" }));
+    EXPECT_TRUE(ws.diags().empty());
+}
+
+TEST(b4g_integration_test, proc_config_changed)
+{
+    file_manager_impl_test file_manager;
+
+    file_manager.did_open_file(resource_location(".hlasmplugin/proc_grps.json"), 1, R"({"pgroups":[]})");
+    file_manager.did_open_file(resource_location("SYS/SUB/ASMPGM/.bridge.json"),
+        1,
+        R"({"elements":{},"defaultProcessorGroup":"P1","fileExtension":""})");
+    file_manager.did_open_file(resource_location("SYS/SUB/ASMPGM/A"), 1, " MAC1");
+    file_manager.did_open_file(resource_location("SYS/SUB/ASMMAC/MAC1"),
+        1,
+        R"(        MACRO
+        MAC1
+        MNOTE 4,'MACRO'
+        MEND
+)");
+
+    lib_config config;
+    workspace::shared_json global_settings = make_empty_shared_json();
+    workspace ws(resource_location(), "workspace_name", file_manager, config, global_settings);
+    ws.open();
+
+    ws.did_open_file(resource_location("SYS/SUB/ASMPGM/A"));
+    ws.collect_diags();
+    file_manager.collect_diags();
+
+    EXPECT_TRUE(matches_message_codes(file_manager.diags(), { "E049" }));
+    EXPECT_TRUE(matches_message_codes(ws.diags(), { "B4G002" }));
+
+    ws.diags().clear();
+    file_manager.diags().clear();
+
+    std::string_view new_bridge_json =
+        R"({"pgroups":[{"name":"P1","libs":[{"path":"ASMMAC","prefer_alternate_root":true}]}]})";
+    document_change doc_change(new_bridge_json.data(), new_bridge_json.size());
+    file_manager.did_change_file(resource_location(".hlasmplugin/proc_grps.json"), 2, &doc_change, 1);
+    ws.did_change_file(resource_location(".hlasmplugin/proc_grps.json"), &doc_change, 1);
+
+    ws.collect_diags();
+    file_manager.collect_diags();
+
+    EXPECT_TRUE(matches_message_codes(file_manager.diags(), { "MNOTE" }));
+    EXPECT_TRUE(ws.diags().empty());
+}

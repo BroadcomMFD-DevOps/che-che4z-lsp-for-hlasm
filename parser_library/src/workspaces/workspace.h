@@ -226,6 +226,7 @@ private:
     bool process_program(const config::program_mapping& pgm);
 
     bool is_config_file(const utils::resource::resource_location& file_location) const;
+    static bool is_b4g_config_file(const utils::resource::resource_location& file);
     void reparse_after_config_refresh();
     enum class parse_config_file_result
     {

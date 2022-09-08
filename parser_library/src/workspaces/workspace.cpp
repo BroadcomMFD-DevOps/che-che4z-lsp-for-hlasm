@@ -94,7 +94,7 @@ void workspace::collect_diags() const
 
 void workspace::add_proc_grp(processor_group pg, const utils::resource::resource_location& alternative_root)
 {
-    proc_grps_.emplace(std::make_pair(pg.name(), alternative_root), std::move(pg));
+    proc_grps_.try_emplace(std::make_pair(pg.name(), alternative_root), std::move(pg));
 }
 
 std::vector<processor_file_ptr> workspace::find_related_opencodes(
@@ -182,8 +182,7 @@ bool workspace::try_loading_alternative_configuration(const utils::resource::res
 {
     const auto b4g_conf = utils::resource::resource_location::replace_filename(file_location, B4G_CONF_FILE);
 
-    auto it = m_b4g_config_cache.find(b4g_conf);
-    if (it != m_b4g_config_cache.end())
+    if (m_b4g_config_cache.contains(b4g_conf))
         return false;
 
     switch (parse_b4g_config_file(b4g_conf))
@@ -216,13 +215,21 @@ bool workspace::is_config_file(const utils::resource::resource_location& file_lo
     return file_location == proc_grps_loc_ || file_location == pgm_conf_loc_;
 }
 
+bool workspace::is_b4g_config_file(const utils::resource::resource_location& file)
+{
+    return file.get_uri().ends_with(B4G_CONF_FILE) && utils::resource::filename(file) == B4G_CONF_FILE;
+}
+
 void workspace::reparse_after_config_refresh()
 {
     // Reparse every opened file when configuration is changed
     for (const auto& fname : opened_files_)
     {
         auto found = file_manager_.find_processor_file(fname);
-        if (!found || !found->parse(*this, get_asm_options(fname), get_preprocessor_options(fname), &fm_vfm_))
+        if (!found)
+            continue;
+        load_alternative_config_if_needed(fname);
+        if (!found->parse(*this, get_asm_options(fname), get_preprocessor_options(fname), &fm_vfm_))
             continue;
 
         (void)parse_successful(found);
@@ -328,7 +335,7 @@ workspace::parse_config_file_result workspace::parse_b4g_config_file(
 
     const void* new_tag = &*it;
     auto& conf = it->second;
-    std::set<std::string> missing_pgroups;
+    std::unordered_set<std::string> missing_pgroups;
     try
     {
         conf.config.emplace(nlohmann::json::parse(b4g_config_file->get_text()).get<config::b4g_map>());
@@ -397,7 +404,7 @@ workspace_file_info workspace::parse_file(const utils::resource::resource_locati
         return ws_file_info;
     }
 
-    if (file_location.get_uri().ends_with(B4G_CONF_FILE) && utils::resource::filename(file_location) == B4G_CONF_FILE)
+    if (is_b4g_config_file(file_location))
     {
         switch (parse_b4g_config_file(file_location))
         {
@@ -415,7 +422,6 @@ workspace_file_info workspace::parse_file(const utils::resource::resource_locati
 
     // TODO: what about removing files??? what if depentands_ points to not existing file?
     std::vector<processor_file_ptr> files_to_parse;
-    load_alternative_config_if_needed(file_location);
 
     for (const auto& dep : dependants_)
     {
@@ -440,6 +446,7 @@ workspace_file_info workspace::parse_file(const utils::resource::resource_locati
 
     for (const auto& f : files_to_parse)
     {
+        load_alternative_config_if_needed(file_location);
         if (!f->parse(*this, get_asm_options(f->get_location()), get_preprocessor_options(f->get_location()), &fm_vfm_))
             continue;
 

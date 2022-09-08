@@ -20,6 +20,7 @@
 #include <vector>
 
 #include "nlohmann/json_fwd.hpp"
+#include "utils/general_hashers.h"
 
 namespace hlasm_plugin::parser_library::config {
 struct b4g_detail
@@ -28,7 +29,7 @@ struct b4g_detail
 };
 struct b4g_map
 {
-    std::unordered_map<std::string, b4g_detail> files;
+    std::unordered_map<std::string, b4g_detail, utils::hashers::string_hasher, std::equal_to<>> files;
     std::string default_processor_group_name;
 };
 
