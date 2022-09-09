@@ -76,7 +76,7 @@ std::vector<std::string> get_macro_extensions_compatibility_list(std::span<const
         if (const auto ext_pattern = wc.rfind("*."); ext_pattern != std::string_view::npos)
         {
             wc.remove_prefix(ext_pattern + 1);
-            macro_extensions_compatibility_list.push_back(std::string(wc));
+            macro_extensions_compatibility_list.emplace_back(wc);
         }
     }
 
@@ -176,7 +176,8 @@ struct json_settings_replacer
 
     const nlohmann::json& global_settings;
     global_settings_map& utilized_settings_values;
-    utils::resource::resource_location& location;
+    const utils::resource::resource_location& location;
+
     std::match_results<std::string_view::iterator> matches;
     std::unordered_set<std::string, utils::hashers::string_hasher, std::equal_to<>> unavailable;
 
@@ -349,7 +350,7 @@ parse_config_file_result workspace_configuration::load_and_process_config(std::v
     const auto pgm_conf_loaded = load_pgm_config(pgm_config, pgm_conf_file, utilized_settings_values, diags);
 
     // process processor groups
-    for (auto& pg : proc_groups.pgroups)
+    for (const auto& pg : proc_groups.pgroups)
     {
         process_processor_group(
             pg, proc_groups.macro_extensions, pgm_config.always_recognize, utils::resource::resource_location(), diags);
@@ -364,7 +365,7 @@ parse_config_file_result workspace_configuration::load_and_process_config(std::v
         m_local_config = lib_config::load_from_pgm_config(pgm_config);
 
         // process programs
-        for (auto& pgm : pgm_config.pgms)
+        for (const auto& pgm : pgm_config.pgms)
         {
             if (!process_program(pgm, diags))
                 diags.push_back(diagnostic_s::error_W0004(pgm_conf_file->get_location(), pgm.pgroup));
@@ -458,7 +459,7 @@ parse_config_file_result workspace_configuration::load_pgm_config(config::pgm_co
     return parse_config_file_result::parsed;
 }
 
-bool workspace_configuration::settings_updated()
+bool workspace_configuration::settings_updated() const
 {
     auto global_settings = m_global_settings.load();
     for (const auto& [key, value] : m_utilized_settings_values)
@@ -562,7 +563,7 @@ void workspace_configuration::find_and_add_libs(const utils::resource::resource_
 
     std::regex path_validator = percent_encoded_pathmask_to_regex(path_pattern.get_uri());
 
-    std::set<std::string> processed_canonical_paths;
+    std::unordered_set<std::string> processed_canonical_paths;
     std::deque<std::pair<std::string, utils::resource::resource_location>> dirs_to_search;
 
     if (std::error_code ec; dirs_to_search.emplace_back(m_file_manager.canonical(root, ec), root), ec)
@@ -664,14 +665,13 @@ const program* workspace_configuration::get_program_normalized(
     const utils::resource::resource_location& file_location) const
 {
     // direct match
-    auto program = m_exact_pgm_conf.find(file_location);
-    if (program != m_exact_pgm_conf.cend())
+    if (auto program = m_exact_pgm_conf.find(file_location); program != m_exact_pgm_conf.cend())
         return &program->second.pgm;
 
-    for (const auto& pgm : m_regex_pgm_conf)
+    for (const auto& [program, pattern] : m_regex_pgm_conf)
     {
-        if (std::regex_match(file_location.get_uri(), pgm.second))
-            return &pgm.first.pgm;
+        if (std::regex_match(file_location.get_uri(), pattern))
+            return &program.pgm;
     }
     return nullptr;
 }

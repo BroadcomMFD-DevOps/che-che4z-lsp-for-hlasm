@@ -147,7 +147,7 @@ private:
         diag_suppress_notified_;
     const lib_config& global_config_;
 
-    lib_config get_config();
+    lib_config get_config() const;
 
     workspace_configuration m_configuration;
 };

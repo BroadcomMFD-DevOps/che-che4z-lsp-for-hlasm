@@ -121,7 +121,7 @@ void workspace::show_message(const std::string& message)
         message_consumer_->show_message(message, message_type::MT_INFO);
 }
 
-lib_config workspace::get_config() { return m_configuration.get_config().fill_missing_settings(global_config_); }
+lib_config workspace::get_config() const { return m_configuration.get_config().fill_missing_settings(global_config_); }
 
 const ws_uri& workspace::uri() const { return location_.get_uri(); }
 

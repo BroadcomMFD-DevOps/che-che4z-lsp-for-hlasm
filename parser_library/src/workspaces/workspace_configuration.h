@@ -177,7 +177,7 @@ public:
     const processor_group& get_proc_grp_by_program(const program& p) const;
     const lib_config& get_config() const { return m_local_config; }
 
-    bool settings_updated();
+    bool settings_updated() const;
     void refresh_libraries();
 
     void copy_diagnostics(const diagnosable& target) const;
