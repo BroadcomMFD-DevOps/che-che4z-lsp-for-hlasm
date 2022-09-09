@@ -48,7 +48,7 @@ void ca_expr_list::resolve_expression_tree(
 {
     expr_kind = kind;
 
-    if (kind == context::SET_t_enum::B_TYPE)
+    if (kind == context::SET_t_enum::A_TYPE || kind == context::SET_t_enum::B_TYPE)
         unknown_functions_to_operators();
 
     if (kind == context::SET_t_enum::A_TYPE)
@@ -130,6 +130,7 @@ struct op_entry
     bool binary;
     bool right_assoc;
     range r;
+    std::string symbol_name;
 };
 
 template<typename T>
@@ -161,10 +162,24 @@ struct resolve_stacks
             return false;
         }
 
-        terms.push(
-            { std::make_unique<ca_function_binary_operator>(
-                  std::move(left.term), std::move(right.term), op.op_type, context::object_traits<T>::type_enum, op.r),
+        if (auto function_name = ca_common_expr_policy::get_function(op.symbol_name);
+            function_name == ca_expr_funcs::UNKNOWN)
+            terms.push({ std::make_unique<ca_function_binary_operator>(std::move(left.term),
+                             std::move(right.term),
+                             op.op_type,
+                             context::object_traits<T>::type_enum,
+                             op.r),
                 left.i });
+        else
+        {
+            std::vector<ca_expr_ptr> function_params;
+            function_params.push_back(std::move(left.term));
+            function_params.push_back(std::move(right.term));
+            terms.push({ std::make_unique<ca_function>(
+                             context::id_storage::empty_id, function_name, std::move(function_params), nullptr, op.r),
+                left.i });
+        }
+
         return true;
     }
 
@@ -262,14 +277,13 @@ void ca_expr_list::resolve(context::SET_t_enum parent_expr_kind, diagnostic_op_c
                     expr_list.clear();
                     return;
                 }
-                stacks.push_op({
-                    i,
+                stacks.push_op({ i,
                     op_type.op,
                     op_type.priority,
                     op_type.binary,
                     op_type.right_assoc,
                     curr_expr->expr_range,
-                });
+                    symbol });
                 prefer_next_term = op_type.binary;
                 continue;
             }

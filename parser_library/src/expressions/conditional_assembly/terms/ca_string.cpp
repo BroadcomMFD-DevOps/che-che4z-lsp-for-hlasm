@@ -15,6 +15,7 @@
 #include "ca_string.h"
 
 #include "expressions/conditional_assembly/ca_expr_visitor.h"
+#include "expressions/conditional_assembly/ca_operator_binary.h"
 #include "expressions/evaluation_context.h"
 
 namespace hlasm_plugin::parser_library::expressions {
@@ -45,6 +46,28 @@ undef_sym_set ca_string::get_undefined_attributed_symbols(const evaluation_conte
     return tmp;
 }
 
+namespace {
+void check_valid_dupl_expr(const ca_expression* expr_ptr, diagnostic_op_consumer& diags)
+{
+    auto expr_list = dynamic_cast<const ca_expr_list*>(expr_ptr);
+
+    while (expr_list && expr_list->expression_list().size() > 0)
+    {
+        if (expr_list->expression_list().size() != 1)
+        {
+            diags.add_diagnostic(diagnostic_op::error_CE005(expr_list->expr_range));
+            return;
+        }
+
+        expr_ptr = expr_list->expression_list()[0].get();
+        expr_list = dynamic_cast<const ca_expr_list*>(expr_list->expression_list()[0].get());
+    }
+
+    if (expr_ptr != nullptr && dynamic_cast<const ca_function_binary_operator*>(expr_ptr))
+        diags.add_diagnostic(diagnostic_op::error_CE005(expr_ptr->expr_range));
+}
+} // namespace
+
 void ca_string::resolve_expression_tree(
     context::SET_t_enum kind, context::SET_t_enum parent_expr_kind, diagnostic_op_consumer& diags)
 {
@@ -55,7 +78,10 @@ void ca_string::resolve_expression_tree(
         parent_expr_kind == context::SET_t_enum::B_TYPE ? parent_expr_kind : context::SET_t_enum::A_TYPE;
 
     if (duplication_factor)
+    {
         duplication_factor->resolve_expression_tree(context::SET_t_enum::A_TYPE, converted_expr_kind, diags);
+        check_valid_dupl_expr(duplication_factor.get(), diags);
+    }
     if (substring.start)
         substring.start->resolve_expression_tree(context::SET_t_enum::A_TYPE, converted_expr_kind, diags);
     if (substring.count)

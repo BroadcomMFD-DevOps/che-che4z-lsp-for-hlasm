@@ -57,6 +57,7 @@ TEST(arithmetic_expressions, valid_expressions)
 &A2 SETA (-1)
 &A3 SETA (1+0)
 &A4 SETA (1-1)
+&A5 SETA (NOT(2))
 )";
     analyzer a(input);
     a.analyze();
@@ -68,6 +69,7 @@ TEST(arithmetic_expressions, valid_expressions)
     SETAEQ("A2", -1);
     SETAEQ("A3", 1);
     SETAEQ("A4", 0);
+    SETAEQ("A5", -3);
 }
 
 TEST(arithmetic_expressions, empty_string_conversion)

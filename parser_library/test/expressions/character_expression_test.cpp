@@ -246,17 +246,23 @@ TEST(character_expression, valid_dupl_expression)
 {
     std::string input =
         R"(
-&A  SETC 'ABCDEF'
-&C1 SETC ((DCLEN('XYZ')))'&A'
-&C2 SETC ((NOT -3))'&A'
+&A  SETC 'ABC'
+&C1 SETC (1)'&A'
+&C2 SETC (+5)'&A'
+&C3 SETC ((DCLEN('XYZ')))'&A'
+&C4 SETC ((NOT -X'03'))'&A'
+&C5 SETC (((('ABC' FIND 'BC'))))'&A'
 )";
     analyzer a(input);
     a.analyze();
     a.collect_diags();
 
     EXPECT_TRUE(a.diags().empty());
-    EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "C1"), "ABCDEFABCDEFABCDEF");
-    EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "C2"), "ABCDEFABCDEF");
+    EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "C1"), "ABC");
+    EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "C2"), "ABCABCABCABCABC");
+    EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "C3"), "ABCABCABC");
+    EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "C4"), "ABCABC");
+    EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "C5"), "ABCABC");
 }
 
 TEST(character_expression, invalid_dupl_expression)
@@ -264,13 +270,13 @@ TEST(character_expression, invalid_dupl_expression)
     std::string input =
         R"(
 &A  SETC 'ABCDEF'
-&B SETC ((2 AND 2))'&A'
+&B SETC ((1 AND 1))'&A'
 )";
     analyzer a(input);
     a.analyze();
     a.collect_diags();
 
-    EXPECT_TRUE(!a.diags().empty());
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "CE005" }));
 }
 
 TEST(character_expression, invalid_expression)
@@ -283,7 +289,7 @@ TEST(character_expression, invalid_expression)
     a.analyze();
     a.collect_diags();
 
-    EXPECT_TRUE(!a.diags().empty());
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "CE004" }));
 }
 
 TEST(character_expression, string_concat)
