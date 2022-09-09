@@ -244,7 +244,7 @@ context::SET_t ca_symbol_attribute::evaluate_ordsym(context::id_index name, cons
     else if (attribute == context::data_attr_kind::O)
     {
         auto tmp = eval_ctx.hlasm_ctx.get_attribute_value_ord(attribute, name);
-        if (tmp.access_c() == "U" && eval_ctx.lib_provider.has_library(*name, eval_ctx.hlasm_ctx.opencode_location()))
+        if (tmp.access_c() == "U" && eval_ctx.lib_info.has_library(*name))
             return std::string("S");
         return tmp;
     }
@@ -283,7 +283,7 @@ context::SET_t ca_symbol_attribute::evaluate_literal(
             if (iequals(std::string_view(name_field).substr(0, 3), std::string_view(lit->get_text()).substr(0, 3))
                 && utils::is_similar(lit,
                     reparse_substituted_literal(
-                        name_field, lit->get_range(), { eval_ctx.hlasm_ctx, eval_ctx.lib_provider, drop_diags })))
+                        name_field, lit->get_range(), { eval_ctx.hlasm_ctx, eval_ctx.lib_info, drop_diags })))
                 return "M";
         }
         return std::string { lit->get_dd().get_type_attribute() };

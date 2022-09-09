@@ -33,7 +33,9 @@ ordinary_processor::ordinary_processor(analyzing_context ctx,
     statement_fields_parser& parser,
     opencode_provider& open_code)
     : statement_processor(processing_kind::ORDINARY, ctx)
-    , eval_ctx { *ctx.hlasm_ctx, lib_provider, *this }
+    , lib_provider(lib_provider)
+    , lib_info(lib_provider, *ctx.hlasm_ctx)
+    , eval_ctx { *ctx.hlasm_ctx, lib_info, *this }
     , ca_proc_(ctx, branch_provider, lib_provider, state_listener, open_code)
     , mac_proc_(ctx, branch_provider, lib_provider)
     , asm_proc_(ctx, branch_provider, lib_provider, parser, open_code)
@@ -54,8 +56,7 @@ processing_status ordinary_processor::get_processing_status(const semantics::ins
 
     if (!status)
     {
-        auto found =
-            eval_ctx.lib_provider.parse_library(*id, ctx, workspaces::library_data { processing_kind::MACRO, id });
+        auto found = lib_provider.parse_library(*id, ctx, workspaces::library_data { processing_kind::MACRO, id });
         processing_form f;
         context::instruction_type t;
         if (found)
