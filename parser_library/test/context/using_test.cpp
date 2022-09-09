@@ -45,8 +45,7 @@ struct test_context : public dependency_solver
     }
     const section* create_section(const std::string& s)
     {
-        asm_ctx.set_section(id(s), section_kind::COMMON, location());
-        return asm_ctx.current_section();
+        return asm_ctx.set_section(id(s), section_kind::COMMON, location(), library_info_transitional::empty);
     }
 
     address addr(const std::string& name, const std::string& sect, int offset)

@@ -221,11 +221,13 @@ TEST(attribute_lookahead, nested_lookup_triggered)
     ASSERT_EQ(res.size(), (size_t)1);
     EXPECT_TRUE(res.find(a.hlasm_ctx().ids().add("B")) != res.end());
 
-    a.hlasm_ctx().ord_ctx.add_symbol_reference(context::symbol(a.hlasm_ctx().ids().add("B"),
-        context::symbol_value(),
-        context::symbol_attributes(context::symbol_origin::EQU, 'U'_ebcdic, 1),
-        location(),
-        {}));
+    a.hlasm_ctx().ord_ctx.add_symbol_reference(
+        context::symbol(a.hlasm_ctx().ids().add("B"),
+            context::symbol_value(),
+            context::symbol_attributes(context::symbol_origin::EQU, 'U'_ebcdic, 1),
+            location(),
+            {}),
+        library_info_transitional::empty);
 
     res = expr->get_undefined_attributed_symbols(eval_ctx);
     ASSERT_EQ(res.size(), (size_t)1);
@@ -244,8 +246,11 @@ TEST(attribute_lookahead, lookup_not_triggered)
     evaluation_context eval_ctx { a.hlasm_ctx(), library_info_transitional::empty, diags };
 
     // define symbol with undefined length
-    auto tmp = a.hlasm_ctx().ord_ctx.create_symbol(
-        a.hlasm_ctx().ids().add("X"), symbol_value(), symbol_attributes(symbol_origin::DAT, 200), {});
+    auto tmp = a.hlasm_ctx().ord_ctx.create_symbol(a.hlasm_ctx().ids().add("X"),
+        symbol_value(),
+        symbol_attributes(symbol_origin::DAT, 200),
+        {},
+        library_info_transitional::empty);
     ASSERT_TRUE(tmp);
 
     // although length is undefined the actual symbol is defined so no lookup should happen

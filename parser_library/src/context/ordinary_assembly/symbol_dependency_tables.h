@@ -29,6 +29,10 @@
 #include "postponed_statement.h"
 #include "tagged_index.h"
 
+namespace hlasm_plugin::parser_library {
+class library_info;
+} // namespace hlasm_plugin::parser_library
+
 namespace hlasm_plugin::parser_library::context {
 
 class ordinary_assembly_context;
@@ -92,29 +96,33 @@ class symbol_dependency_tables
 
     ordinary_assembly_context& m_sym_ctx;
 
-    bool check_cycle(dependant target, std::vector<dependant> dependencies);
+    bool check_cycle(dependant target, std::vector<dependant> dependencies, const library_info& li);
 
     void resolve_dependant(dependant target,
         const resolvable* dep_src,
         diagnostic_s_consumer* diag_consumer,
-        const dependency_evaluation_context& dep_ctx);
+        const dependency_evaluation_context& dep_ctx,
+        const library_info& li);
     void resolve_dependant_default(const dependant& target);
-    void resolve(std::variant<id_index, space_ptr> what_changed, diagnostic_s_consumer* diag_consumer);
+    void resolve(
+        std::variant<id_index, space_ptr> what_changed, diagnostic_s_consumer* diag_consumer, const library_info& li);
 
     const dependency_value* find_dependency_value(const dependant& target) const;
 
     std::vector<dependant> extract_dependencies(
-        const resolvable* dependency_source, const dependency_evaluation_context& dep_ctx);
-    bool update_dependencies(dependency_value& v);
-    std::vector<dependant> extract_dependencies(
-        const std::vector<const resolvable*>& dependency_sources, const dependency_evaluation_context& dep_ctx);
+        const resolvable* dependency_source, const dependency_evaluation_context& dep_ctx, const library_info& li);
+    bool update_dependencies(dependency_value& v, const library_info& li);
+    std::vector<dependant> extract_dependencies(const std::vector<const resolvable*>& dependency_sources,
+        const dependency_evaluation_context& dep_ctx,
+        const library_info& li);
 
     void try_erase_source_statement(const dependant& index);
 
     bool add_dependency(dependant target,
         const resolvable* dependency_source,
         bool check_cycle,
-        const dependency_evaluation_context& dep_ctx);
+        const dependency_evaluation_context& dep_ctx,
+        const library_info& li);
 
 public:
     symbol_dependency_tables(ordinary_assembly_context& sym_ctx);
@@ -124,7 +132,8 @@ public:
     [[nodiscard]] bool add_dependency(id_index target,
         const resolvable* dependency_source,
         post_stmt_ptr dependency_source_stmt,
-        const dependency_evaluation_context& dep_ctx);
+        const dependency_evaluation_context& dep_ctx,
+        const library_info& li);
 
     // add symbol attribute dependency on statement
     // returns false if cyclic dependency occured
@@ -132,33 +141,37 @@ public:
         data_attr_kind attr,
         const resolvable* dependency_source,
         post_stmt_ptr dependency_source_stmt,
-        const dependency_evaluation_context& dep_ctx);
+        const dependency_evaluation_context& dep_ctx,
+        const library_info& li);
 
     // add space dependency
     void add_dependency(space_ptr target,
         const resolvable* dependency_source,
         post_stmt_ptr dependency_source_stmt,
-        const dependency_evaluation_context& dep_ctx);
+        const dependency_evaluation_context& dep_ctx,
+        const library_info& li);
     void add_dependency(space_ptr target,
         addr_res_ptr dependency_source,
         const dependency_evaluation_context& dep_ctx,
+        const library_info& li,
         post_stmt_ptr dependency_source_stmt = nullptr);
-    bool check_cycle(space_ptr target);
+    bool check_cycle(space_ptr target, const library_info& li);
 
     // add statement dependency on its operands
-    void add_dependency(post_stmt_ptr target, const dependency_evaluation_context& dep_ctx);
+    void add_dependency(post_stmt_ptr target, const dependency_evaluation_context& dep_ctx, const library_info& li);
 
     // method for creating more than one dependency assigned to one statement
     dependency_adder add_dependencies(
-        post_stmt_ptr dependency_source_stmt, const dependency_evaluation_context& dep_ctx);
+        post_stmt_ptr dependency_source_stmt, const dependency_evaluation_context& dep_ctx, const library_info& li);
 
     // registers that some symbol has been defined
     // if resolver is present, location counter dependencies are checked as well (not just symbol deps)
-    void add_defined(
-        const std::variant<id_index, space_ptr>& what_changed, diagnostic_s_consumer* diag_consumer = nullptr);
+    void add_defined(const std::variant<id_index, space_ptr>& what_changed,
+        diagnostic_s_consumer* diag_consumer,
+        const library_info& li);
 
     // checks for cycle in location counter value
-    bool check_loctr_cycle();
+    bool check_loctr_cycle(const library_info& li);
 
     // collect all postponed statements either if they still contain dependent objects
     std::vector<std::pair<post_stmt_ptr, dependency_evaluation_context>> collect_postponed();
@@ -180,10 +193,13 @@ class dependency_adder
 
     post_stmt_ptr m_source_stmt;
 
+    const library_info& m_li;
+
 public:
     dependency_adder(symbol_dependency_tables& owner,
         post_stmt_ptr dependency_source_stmt,
-        const dependency_evaluation_context& dep_ctx);
+        const dependency_evaluation_context& dep_ctx,
+        const library_info& li);
 
     // add symbol dependency on statement
     [[nodiscard]] bool add_dependency(id_index target, const resolvable* dependency_source);

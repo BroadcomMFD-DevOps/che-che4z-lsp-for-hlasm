@@ -27,17 +27,23 @@ TEST(dependency_collector, uresolved_addresses)
     auto name1 = ctx.ids().add("SYM1");
     auto name2 = ctx.ids().add("SYM2");
 
-    ctx.ord_ctx.set_section(ctx.ids().add("TEST"), section_kind::COMMON, location());
+    ctx.ord_ctx.set_section(ctx.ids().add("TEST"), section_kind::COMMON, location(), library_info_transitional::empty);
     auto addr1 = ctx.ord_ctx.current_section()->current_location_counter().current_address();
 
-    (void)ctx.ord_ctx.create_symbol(
-        name1, symbol_value(std::move(addr1)), symbol_attributes(symbol_origin::UNKNOWN), location());
+    (void)ctx.ord_ctx.create_symbol(name1,
+        symbol_value(std::move(addr1)),
+        symbol_attributes(symbol_origin::UNKNOWN),
+        location(),
+        library_info_transitional::empty);
 
     auto sp = ctx.ord_ctx.current_section()->current_location_counter().register_ordinary_space(halfword);
     auto addr2 = ctx.ord_ctx.current_section()->current_location_counter().current_address();
 
-    (void)ctx.ord_ctx.create_symbol(
-        name2, symbol_value(std::move(addr2)), symbol_attributes(symbol_origin::UNKNOWN), location());
+    (void)ctx.ord_ctx.create_symbol(name2,
+        symbol_value(std::move(addr2)),
+        symbol_attributes(symbol_origin::UNKNOWN),
+        location(),
+        library_info_transitional::empty);
 
     // ((SYM2-SYM1)/(SYM2-SYM1))+SYM2
     mach_expr_binary<add> expr(std::make_unique<mach_expr_binary<expressions::div>>(

@@ -168,7 +168,7 @@ void literal_pool::generate_pool(diagnosable_ctx& diags, index_t<using_collectio
     });
 
     constexpr auto sectalign = doubleword;
-    ord_ctx.align(sectalign);
+    ord_ctx.align(sectalign, li);
 
     for (const auto& [it, size, alignment] : m_pending_literals)
     {
@@ -191,11 +191,12 @@ void literal_pool::generate_pool(diagnosable_ctx& diags, index_t<using_collectio
         // TODO: warn on align > sectalign
 
         bool cycle_ok = ord_ctx.create_symbol(&lit_val.text,
-            ord_ctx.align(lit_val.align_on_halfword ? halfword : no_align),
+            ord_ctx.align(lit_val.align_on_halfword ? halfword : no_align, li),
             symbol_attributes(symbol_origin::DAT,
                 ebcdic_encoding::a2e[(unsigned char)lit->get_type_attribute()],
                 lit->get_length_attribute(solver, diags)),
-            {});
+            {},
+            li);
 
         if (size == 0)
         {
@@ -203,7 +204,7 @@ void literal_pool::generate_pool(diagnosable_ctx& diags, index_t<using_collectio
             continue;
         }
 
-        ord_ctx.reserve_storage_area(size, no_align);
+        ord_ctx.reserve_storage_area(size, no_align, li);
 
         if (!cycle_ok)
             diags.add_diagnostic(diagnostic_op::error_E033(it->second.r));
@@ -211,7 +212,8 @@ void literal_pool::generate_pool(diagnosable_ctx& diags, index_t<using_collectio
         {
             auto adder = ord_ctx.symbol_dependencies.add_dependencies(
                 std::make_unique<literal_postponed_statement>(lit, lit_val, hlasm_ctx.ids()),
-                { lit_val.loctr, lit_key.generation, lit_key.unique_id, active_using });
+                { lit_val.loctr, lit_key.generation, lit_key.unique_id, active_using },
+                li);
             adder.add_dependency();
             adder.finish();
         }

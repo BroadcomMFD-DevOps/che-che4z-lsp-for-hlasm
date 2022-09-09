@@ -130,20 +130,20 @@ void ordinary_processor::end_processing()
     if (hlasm_ctx.ord_ctx.literals().get_pending_count())
     {
         auto ltorg = hlasm_ctx.ord_ctx.implicit_ltorg_target();
-        hlasm_ctx.ord_ctx.set_location_counter(ltorg->name, {});
-        hlasm_ctx.ord_ctx.set_available_location_counter_value();
+        hlasm_ctx.ord_ctx.set_location_counter(ltorg->name, {}, lib_info);
+        hlasm_ctx.ord_ctx.set_available_location_counter_value(lib_info);
 
         hlasm_ctx.ord_ctx.generate_pool(*this, hlasm_ctx.using_current(), lib_info);
     }
 
     hlasm_ctx.ord_ctx.start_reporting_label_candidates();
 
-    if (!hlasm_ctx.ord_ctx.symbol_dependencies.check_loctr_cycle())
+    if (!hlasm_ctx.ord_ctx.symbol_dependencies.check_loctr_cycle(lib_info))
         add_diagnostic(diagnostic_op::error_E033(range())); // TODO: at least we say something
 
-    hlasm_ctx.ord_ctx.symbol_dependencies.add_defined(context::id_index(), &asm_proc_);
+    hlasm_ctx.ord_ctx.symbol_dependencies.add_defined(context::id_index(), &asm_proc_, lib_info);
 
-    hlasm_ctx.ord_ctx.finish_module_layout(&asm_proc_);
+    hlasm_ctx.ord_ctx.finish_module_layout(&asm_proc_, lib_info);
 
     hlasm_ctx.ord_ctx.symbol_dependencies.resolve_all_as_default();
 

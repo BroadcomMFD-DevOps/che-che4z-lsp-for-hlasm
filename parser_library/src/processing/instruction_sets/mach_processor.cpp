@@ -36,7 +36,7 @@ void mach_processor::process(std::shared_ptr<const processing::resolved_statemen
 
     register_literals(rebuilt_stmt, context::halfword, hlasm_ctx.ord_ctx.next_unique_id());
 
-    auto loctr = hlasm_ctx.ord_ctx.align(context::halfword);
+    auto loctr = hlasm_ctx.ord_ctx.align(context::halfword, lib_info);
 
     const auto& mach_instr = [](const std::string& name) {
         if (auto mnemonic = context::instruction::find_mnemonic_codes(name))
@@ -67,9 +67,10 @@ void mach_processor::process(std::shared_ptr<const processing::resolved_statemen
 
     hlasm_ctx.ord_ctx.symbol_dependencies.add_dependency(
         std::make_unique<postponed_statement_impl>(std::move(rebuilt_stmt), hlasm_ctx.processing_stack()),
-        dep_solver.derive_current_dependency_evaluation_context());
+        dep_solver.derive_current_dependency_evaluation_context(),
+        lib_info);
 
-    (void)hlasm_ctx.ord_ctx.reserve_storage_area(mach_instr.size_in_bits() / 8, context::halfword);
+    (void)hlasm_ctx.ord_ctx.reserve_storage_area(mach_instr.size_in_bits() / 8, context::halfword, lib_info);
 }
 
 } // namespace hlasm_plugin::parser_library::processing
