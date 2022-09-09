@@ -279,6 +279,23 @@ TEST(character_expression, invalid_dupl_expression)
     EXPECT_TRUE(matches_message_codes(a.diags(), { "CE005" }));
 }
 
+TEST(character_expression, subscripted_concat_evaluation)
+{
+    std::string input =
+        R"(
+&A    SETA 2
+&B    SETA 3
+&L(1) SETB 1,0,1
+&X    SETC '&L((&A OR &B))'.'&L((&A AND &B))'
+)";
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(a.diags().empty());
+    EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "X"), "10");
+}
+
 TEST(character_expression, invalid_expression)
 {
     std::string input =

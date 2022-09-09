@@ -86,6 +86,11 @@ void ca_string::resolve_expression_tree(
         substring.start->resolve_expression_tree(context::SET_t_enum::A_TYPE, converted_expr_kind, diags);
     if (substring.count)
         substring.count->resolve_expression_tree(context::SET_t_enum::A_TYPE, converted_expr_kind, diags);
+
+    for (const auto& concat_point : value)
+    {
+        concat_point->resolve(diags);
+    }
 }
 
 bool ca_string::is_character_expression(character_expression_purpose) const { return true; }

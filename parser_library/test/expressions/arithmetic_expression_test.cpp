@@ -446,19 +446,17 @@ TEST(arithmetic_expressions, subscripted_concat_evaluation)
 {
     std::string input =
         R"(
-&A    SETA 2                   
-&B    SETA 3                   
-&L(1) SETB 0,1,0              
-&X    SETC '&L((&A AND &B))'.'&L((&A OR &B))'
-&Y    SETA DCLEN('&L((&A AND &B))'.'&L((&A OR &B))')
+&A    SETA 2
+&B    SETA 3
+&L(1) SETB 1,0,1
+&X    SETA C2A('&L((&A OR &B))'.'&L((&A AND &B))')
 )";
     analyzer a(input);
     a.analyze();
     a.collect_diags();
 
     EXPECT_TRUE(a.diags().empty());
-    EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "X"), "10");
-    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "Y"), 2);
+    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "X"), 61936); // C2A('10') = 61936
 }
 
 TEST(arithmetic_expressions, different_var_types)
