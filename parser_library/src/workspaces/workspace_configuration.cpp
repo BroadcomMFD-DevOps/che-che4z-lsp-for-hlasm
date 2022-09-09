@@ -174,7 +174,7 @@ struct json_settings_replacer
 {
     static const std::regex config_reference;
 
-    const std::shared_ptr<const nlohmann::json>& global_settings;
+    const nlohmann::json& global_settings;
     global_settings_map& utilized_settings_values;
     utils::resource::resource_location& location;
     std::match_results<std::string_view::iterator> matches;
@@ -214,7 +214,7 @@ struct json_settings_replacer
             if (key.starts_with(config_section))
             {
                 auto reduced_key = key.substr(config_section.size());
-                auto v = find_setting(reduced_key, *global_settings);
+                auto v = find_setting(reduced_key, global_settings);
                 if (v.has_value())
                     r.append(*v);
                 else
@@ -384,7 +384,7 @@ parse_config_file_result workspace_configuration::load_proc_config(config::proc_
     std::vector<diagnostic_s>& diags)
 {
     const auto current_settings = m_global_settings.load();
-    json_settings_replacer json_visitor { current_settings, utilized_settings_values, m_location };
+    json_settings_replacer json_visitor { *current_settings, utilized_settings_values, m_location };
 
     // proc_grps.json parse
     proc_grps_file = m_file_manager.add_file(m_proc_grps_loc);
@@ -427,7 +427,7 @@ parse_config_file_result workspace_configuration::load_pgm_config(config::pgm_co
     std::vector<diagnostic_s>& diags)
 {
     const auto current_settings = m_global_settings.load();
-    json_settings_replacer json_visitor { current_settings, utilized_settings_values, m_location };
+    json_settings_replacer json_visitor { *current_settings, utilized_settings_values, m_location };
 
     // pgm_conf.json parse
     pgm_conf_file = m_file_manager.add_file(m_pgm_conf_loc);
