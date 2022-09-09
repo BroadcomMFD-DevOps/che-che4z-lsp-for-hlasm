@@ -28,6 +28,7 @@
 
 namespace hlasm_plugin::parser_library {
 class diagnosable_ctx;
+class library_info;
 } // namespace hlasm_plugin::parser_library
 
 namespace hlasm_plugin::parser_library::expressions {
@@ -152,7 +153,7 @@ public:
 
     literal_pool& literals() { return *m_literals; }
     const literal_pool& literals() const { return *m_literals; }
-    void generate_pool(diagnosable_ctx& diags, index_t<using_collection> active_using) const;
+    void generate_pool(diagnosable_ctx& diags, index_t<using_collection> active_using, const library_info& li) const;
     location_counter* implicit_ltorg_target()
     {
         if (!first_control_section_)

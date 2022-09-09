@@ -21,6 +21,7 @@
 
 #include "../common_testing.h"
 #include "context/using.h"
+#include "library_info_transitional.h"
 
 namespace {
 struct test_context : public dependency_solver
@@ -128,7 +129,7 @@ TEST(using, basic)
     [[maybe_unused]] auto with_sect =
         coll.add(current, nullptr, c.create_symbol("SECT"), nullptr, args(c.number(1)), {}, {});
 
-    coll.resolve_all(c.asm_ctx, d_s);
+    coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
     EXPECT_TRUE(d_s.diags.empty());
 
@@ -154,7 +155,7 @@ TEST(using, multiple_registers)
     [[maybe_unused]] auto with_sect =
         coll.add(current, nullptr, c.create_symbol("SECT"), nullptr, args(c.number(2), c.number(1)), {}, {});
 
-    coll.resolve_all(c.asm_ctx, d_s);
+    coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
     EXPECT_TRUE(d_s.diags.empty());
 
@@ -182,7 +183,7 @@ TEST(using, with_offset)
     [[maybe_unused]] auto with_sect =
         coll.add(current, nullptr, c.create_symbol("SECT") + c.number(10), nullptr, args(c.number(2)), {}, {});
 
-    coll.resolve_all(c.asm_ctx, d_s);
+    coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
     EXPECT_TRUE(d_s.diags.empty());
 
@@ -206,7 +207,7 @@ TEST(using, with_negative_offset)
     [[maybe_unused]] auto with_sect =
         coll.add(current, nullptr, c.create_symbol("SECT") - c.number(10), nullptr, args(c.number(2)), {}, {});
 
-    coll.resolve_all(c.asm_ctx, d_s);
+    coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
     EXPECT_TRUE(d_s.diags.empty());
 
@@ -247,7 +248,7 @@ TEST(using, dependent_using)
         {},
         {});
 
-    coll.resolve_all(c.asm_ctx, d_s);
+    coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
     EXPECT_TRUE(d_s.diags.empty());
 
@@ -279,7 +280,7 @@ TEST(using, labeled)
     [[maybe_unused]] auto with_sect =
         coll.add(current, label, c.create_symbol("SECT"), nullptr, args(c.number(1)), {}, {});
 
-    coll.resolve_all(c.asm_ctx, d_s);
+    coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
     EXPECT_TRUE(d_s.diags.empty());
 
@@ -308,7 +309,7 @@ TEST(using, drop_one)
 
     [[maybe_unused]] auto after_drop2 = coll.remove(with_sect, args(c.number(2)), {}, {});
 
-    coll.resolve_all(c.asm_ctx, d_s);
+    coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
     EXPECT_TRUE(d_s.diags.empty());
 
@@ -341,7 +342,7 @@ TEST(using, drop_dependent)
 
     [[maybe_unused]] auto after_drop2 = coll.remove(with_sect2, args(c.number(2)), {}, {});
 
-    coll.resolve_all(c.asm_ctx, d_s);
+    coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
     EXPECT_TRUE(d_s.diags.empty());
 
@@ -371,7 +372,7 @@ TEST(using, override_label)
     [[maybe_unused]] auto with_sect2 =
         coll.add(with_sect, label, c.create_symbol("SECT2"), nullptr, args(c.number(1)), {}, {});
 
-    coll.resolve_all(c.asm_ctx, d_s);
+    coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
     EXPECT_TRUE(d_s.diags.empty());
 
@@ -405,7 +406,7 @@ TEST(using, drop_reg_with_labeled_dependent)
 
     [[maybe_unused]] auto after_drop2 = coll.remove(with_sect2, args(c.number(2)), {}, {});
 
-    coll.resolve_all(c.asm_ctx, d_s);
+    coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
     EXPECT_TRUE(d_s.diags.empty());
 
@@ -432,7 +433,7 @@ TEST(using, no_drop_warning)
 
     [[maybe_unused]] auto after_drop2 = coll.remove(current, args(c.number(2)), {}, {});
 
-    coll.resolve_all(c.asm_ctx, d_s);
+    coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
     EXPECT_TRUE(matches_message_codes(d_s.diags, { "U001" }));
 }
@@ -450,7 +451,7 @@ TEST(using, use_reg_16)
     [[maybe_unused]] auto with_sect =
         coll.add(current, nullptr, c.create_symbol("SECT"), nullptr, args(c.number(16)), {}, {});
 
-    coll.resolve_all(c.asm_ctx, d_s);
+    coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
     EXPECT_TRUE(matches_message_codes(d_s.diags, { "M120" }));
 }
@@ -471,7 +472,7 @@ TEST(using, use_non_simple_reloc)
         {},
         {});
 
-    coll.resolve_all(c.asm_ctx, d_s);
+    coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
     EXPECT_TRUE(matches_message_codes(d_s.diags, { "M113" }));
 }
@@ -491,7 +492,7 @@ TEST(using, drop_qualified_label)
 
     [[maybe_unused]] auto after_drop2 = coll.remove(with_sect, args(c.create_symbol("LABEL", "LABEL")), {}, {});
 
-    coll.resolve_all(c.asm_ctx, d_s);
+    coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
     EXPECT_TRUE(matches_message_codes(d_s.diags, { "U003" }));
 }
@@ -506,7 +507,7 @@ TEST(using, drop_reg_16)
 
     [[maybe_unused]] auto after_drop2 = coll.remove(current, args(c.number(16)), {}, {});
 
-    coll.resolve_all(c.asm_ctx, d_s);
+    coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
     EXPECT_TRUE(matches_message_codes(d_s.diags, { "U003" }));
 }
@@ -523,7 +524,7 @@ TEST(using, drop_reloc)
     [[maybe_unused]] auto after_drop2 =
         coll.remove(current, args(c.create_symbol("LABEL") + c.create_symbol("LABEL")), {}, {});
 
-    coll.resolve_all(c.asm_ctx, d_s);
+    coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
     EXPECT_TRUE(matches_message_codes(d_s.diags, { "U003" }));
 }
@@ -547,7 +548,7 @@ TEST(using, dependent_no_active_using)
         {},
         {});
 
-    coll.resolve_all(c.asm_ctx, d_s);
+    coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
     EXPECT_TRUE(matches_message_codes(d_s.diags, { "U004" }));
 }
@@ -578,7 +579,7 @@ TEST(using, dependent_no_active_matching_using)
         {},
         {});
 
-    coll.resolve_all(c.asm_ctx, d_s);
+    coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
     EXPECT_TRUE(matches_message_codes(d_s.diags, { "U004" }));
 }
@@ -594,7 +595,7 @@ TEST(using, using_undefined_begin)
     [[maybe_unused]] auto with_sect =
         coll.add(current, nullptr, c.create_symbol("SECT"), nullptr, args(c.number(1)), {}, {});
 
-    coll.resolve_all(c.asm_ctx, d_s);
+    coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
     EXPECT_TRUE(matches_message_codes(d_s.diags, { "M113" }));
 }
@@ -612,7 +613,7 @@ TEST(using, using_qualified_begin)
     [[maybe_unused]] auto with_sect =
         coll.add(current, nullptr, c.create_symbol("SECT", "LABEL"), nullptr, args(c.number(1)), {}, {});
 
-    coll.resolve_all(c.asm_ctx, d_s);
+    coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
     EXPECT_TRUE(matches_message_codes(d_s.diags, { "U002" }));
 }
@@ -630,7 +631,7 @@ TEST(using, using_undefined_end)
     [[maybe_unused]] auto with_sect =
         coll.add(current, nullptr, c.create_symbol("SECT"), c.create_symbol("SECT_END"), args(c.number(1)), {}, {});
 
-    coll.resolve_all(c.asm_ctx, d_s);
+    coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
     EXPECT_TRUE(matches_message_codes(d_s.diags, { "M113" }));
 }
@@ -653,7 +654,7 @@ TEST(using, using_qualified_end)
         {},
         {});
 
-    coll.resolve_all(c.asm_ctx, d_s);
+    coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
     EXPECT_TRUE(matches_message_codes(d_s.diags, { "U002" }));
 }
@@ -674,7 +675,7 @@ TEST(using, using_bad_range)
     [[maybe_unused]] auto with_sect2 =
         coll.add(current, nullptr, c.create_symbol("SECT"), c.create_symbol("SECT2"), args(c.number(1)), {}, {});
 
-    coll.resolve_all(c.asm_ctx, d_s);
+    coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
     EXPECT_TRUE(matches_message_codes(d_s.diags, { "U005", "U005" }));
 }
@@ -700,7 +701,7 @@ TEST(using, use_complex_reloc)
         {},
         {});
 
-    coll.resolve_all(c.asm_ctx, d_s);
+    coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
     EXPECT_TRUE(matches_message_codes(d_s.diags, { "M120" }));
 }
@@ -715,7 +716,7 @@ TEST(using, drop_invalid)
 
     [[maybe_unused]] auto after_drop2 = coll.remove(current, args(c.create_symbol("LABEL")), {}, {});
 
-    coll.resolve_all(c.asm_ctx, d_s);
+    coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
     EXPECT_TRUE(matches_message_codes(d_s.diags, { "U003" }));
 }
@@ -732,7 +733,7 @@ TEST(using, drop_inactive)
 
     [[maybe_unused]] auto after_drop2 = coll.remove(current, args(c.create_symbol("LABEL")), {}, {});
 
-    coll.resolve_all(c.asm_ctx, d_s);
+    coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
     EXPECT_TRUE(matches_message_codes(d_s.diags, { "U001" }));
 }
@@ -750,7 +751,7 @@ TEST(using, basic_with_limit)
     [[maybe_unused]] auto with_sect = coll.add(
         current, nullptr, c.create_symbol("SECT"), c.create_symbol("SECT") + c.number(10), args(c.number(1)), {}, {});
 
-    coll.resolve_all(c.asm_ctx, d_s);
+    coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
     EXPECT_TRUE(d_s.diags.empty());
 
@@ -772,7 +773,7 @@ TEST(using, duplicate_base)
     [[maybe_unused]] auto with_sect =
         coll.add(current, nullptr, c.create_symbol("SECT"), nullptr, args(c.number(1), c.number(1)), {}, {});
 
-    coll.resolve_all(c.asm_ctx, d_s);
+    coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
     EXPECT_TRUE(matches_message_codes(d_s.diags, { "U006" }));
 }
@@ -787,7 +788,7 @@ TEST(using, absolute)
 
     [[maybe_unused]] auto with_sect = coll.add(current, nullptr, c.number(128), nullptr, args(c.number(1)), {}, {});
 
-    coll.resolve_all(c.asm_ctx, d_s);
+    coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
     EXPECT_TRUE(d_s.diags.empty());
 
@@ -818,7 +819,7 @@ TEST(using, smaller_offset_but_invalid)
         {},
         {});
 
-    coll.resolve_all(c.asm_ctx, d_s);
+    coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
     EXPECT_TRUE(d_s.diags.empty());
 

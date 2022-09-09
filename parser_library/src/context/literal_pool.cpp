@@ -131,7 +131,7 @@ const semantics::instruction_si literal_pool::literal_postponed_statement::empty
 const processing::processing_format literal_pool::literal_postponed_statement::dc_format(
     processing::processing_kind::ORDINARY, processing::processing_form::ASM, processing::operand_occurence::PRESENT);
 
-void literal_pool::generate_pool(diagnosable_ctx& diags, index_t<using_collection> active_using)
+void literal_pool::generate_pool(diagnosable_ctx& diags, index_t<using_collection> active_using, const library_info& li)
 {
     ordinary_assembly_context& ord_ctx = hlasm_ctx.ord_ctx;
 
@@ -150,7 +150,8 @@ void literal_pool::generate_pool(diagnosable_ctx& diags, index_t<using_collectio
                 it->first.generation,
                 it->first.unique_id,
                 active_using,
-            });
+            },
+            li);
         auto bit_length = lit->evaluate_total_length(solver, checking::data_instr_type::DC, diags);
         if (bit_length < 0)
             continue;
@@ -181,7 +182,8 @@ void literal_pool::generate_pool(diagnosable_ctx& diags, index_t<using_collectio
                 lit_key.generation,
                 lit_key.unique_id,
                 active_using,
-            });
+            },
+            li);
 
         if (!lit->access_data_def_type()) // unknown type
             continue;

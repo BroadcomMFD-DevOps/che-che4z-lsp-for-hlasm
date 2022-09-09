@@ -155,7 +155,8 @@ lookahead_processor::process_table_t lookahead_processor::create_table(context::
 void lookahead_processor::assign_EQU_attributes(context::id_index symbol_name, const resolved_statement& statement)
 {
     diagnostic_consumer_transform drop_diags([](diagnostic_op) {});
-    context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx);
+    library_info_transitional li(lib_provider_, *ctx.hlasm_ctx);
+    context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, li);
     // type attribute operand
     context::symbol_attributes::type_attr t_attr = context::symbol_attributes::undef_type;
     if (statement.operands_ref().value.size() >= 3
@@ -239,7 +240,8 @@ void lookahead_processor::assign_data_def_attributes(context::id_index symbol_na
     context::symbol_attributes::len_attr len = context::symbol_attributes::undef_length;
     context::symbol_attributes::scale_attr scale = context::symbol_attributes::undef_scale;
 
-    context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx);
+    library_info_transitional li(lib_provider_, *ctx.hlasm_ctx);
+    context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, li);
     diagnostic_consumer_transform drop_diags([](diagnostic_op) {});
 
     if (!data_op->value->length || !data_op->value->length->get_dependencies(dep_solver).contains_dependencies())

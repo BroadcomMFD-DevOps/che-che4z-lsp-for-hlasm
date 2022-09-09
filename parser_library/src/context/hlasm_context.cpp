@@ -1041,7 +1041,10 @@ bool hlasm_context::using_pop()
     return true;
 }
 
-void hlasm_context::using_resolve(diagnostic_s_consumer& diag) { m_usings->resolve_all(ord_ctx, diag); }
+void hlasm_context::using_resolve(diagnostic_s_consumer& diag, const library_info& li)
+{
+    m_usings->resolve_all(ord_ctx, diag, li);
+}
 
 index_t<using_collection> hlasm_context::using_current() const { return m_active_usings.back(); }
 

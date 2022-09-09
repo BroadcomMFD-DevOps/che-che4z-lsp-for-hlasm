@@ -344,9 +344,10 @@ section* ordinary_assembly_context::create_section(id_index name, section_kind k
 
 size_t ordinary_assembly_context::current_literal_pool_generation() const { return m_literals->current_generation(); }
 
-void ordinary_assembly_context::generate_pool(diagnosable_ctx& diags, index_t<using_collection> active_using) const
+void ordinary_assembly_context::generate_pool(
+    diagnosable_ctx& diags, index_t<using_collection> active_using, const library_info& li) const
 {
-    m_literals->generate_pool(diags, active_using);
+    m_literals->generate_pool(diags, active_using, li);
 }
 bool ordinary_assembly_context::is_using_label(id_index name) const
 {

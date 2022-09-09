@@ -290,7 +290,8 @@ context::SET_t ca_symbol_attribute::evaluate_literal(
     }
     else
     {
-        context::ordinary_assembly_dependency_solver solver(eval_ctx.hlasm_ctx.ord_ctx, context::address());
+        context::ordinary_assembly_dependency_solver solver(
+            eval_ctx.hlasm_ctx.ord_ctx, context::address(), eval_ctx.lib_info);
         context::symbol_attributes attrs = lit->get_dd().get_symbol_attributes(solver, eval_ctx.diags);
         if ((attribute == context::data_attr_kind::S || attribute == context::data_attr_kind::I)
             && !attrs.can_have_SI_attr())

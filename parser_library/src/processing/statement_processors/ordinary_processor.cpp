@@ -133,7 +133,7 @@ void ordinary_processor::end_processing()
         hlasm_ctx.ord_ctx.set_location_counter(ltorg->name, {});
         hlasm_ctx.ord_ctx.set_available_location_counter_value();
 
-        hlasm_ctx.ord_ctx.generate_pool(*this, hlasm_ctx.using_current());
+        hlasm_ctx.ord_ctx.generate_pool(*this, hlasm_ctx.using_current(), lib_info);
     }
 
     hlasm_ctx.ord_ctx.start_reporting_label_candidates();
@@ -150,7 +150,7 @@ void ordinary_processor::end_processing()
     // do not replace stack trace in the messages - it is already provided
     diagnostic_consumer_transform using_diags(
         [this](diagnostic_s d) { diagnosable_impl::add_diagnostic(std::move(d)); });
-    hlasm_ctx.using_resolve(using_diags);
+    hlasm_ctx.using_resolve(using_diags, lib_info);
 
     check_postponed_statements(hlasm_ctx.ord_ctx.symbol_dependencies.collect_postponed());
 
@@ -257,7 +257,7 @@ void ordinary_processor::check_postponed_statements(
         if (!stmt)
             continue;
 
-        context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, dep_ctx);
+        context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, dep_ctx, lib_info);
 
         const auto* rs = stmt->resolved_stmt();
         switch (rs->opcode_ref().type)

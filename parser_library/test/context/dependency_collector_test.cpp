@@ -16,6 +16,7 @@
 
 #include "../common_testing.h"
 #include "context/ordinary_assembly/ordinary_assembly_dependency_solver.h"
+#include "library_info_transitional.h"
 
 // test for
 // dependency_collector class
@@ -52,7 +53,7 @@ TEST(dependency_collector, uresolved_addresses)
         std::make_unique<mach_expr_symbol>(name2, nullptr, range()),
         range());
 
-    context::ordinary_assembly_dependency_solver dep_solver(ctx.ord_ctx);
+    context::ordinary_assembly_dependency_solver dep_solver(ctx.ord_ctx, library_info_transitional::empty);
 
     auto deps = expr.get_dependencies(dep_solver);
 

@@ -29,6 +29,9 @@
 #include "source_context.h"
 #include "tagged_index.h"
 
+namespace hlasm_plugin::parser_library {
+class library_info;
+} // namespace hlasm_plugin::parser_library
 namespace hlasm_plugin::parser_library::expressions {
 class mach_expression;
 } // namespace hlasm_plugin::parser_library::expressions
@@ -318,7 +321,7 @@ public:
         processing_stack_t stack);
     void using_push();
     bool using_pop();
-    void using_resolve(diagnostic_s_consumer&);
+    void using_resolve(diagnostic_s_consumer&, const library_info&);
     index_t<using_collection> using_current() const;
 
     const using_collection& usings() const { return *m_usings; }
