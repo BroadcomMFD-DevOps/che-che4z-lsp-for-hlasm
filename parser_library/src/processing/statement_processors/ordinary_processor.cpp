@@ -62,8 +62,7 @@ processing_status ordinary_processor::get_processing_status(const semantics::ins
         if (found)
         {
             f = processing_form::MAC;
-            t = (hlasm_ctx.macros().find(id) != hlasm_ctx.macros().end()) ? context::instruction_type::MAC
-                                                                          : context::instruction_type::UNDEF;
+            t = hlasm_ctx.find_macro(id) ? context::instruction_type::MAC : context::instruction_type::UNDEF;
         }
         else
         {

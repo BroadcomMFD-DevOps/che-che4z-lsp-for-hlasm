@@ -17,6 +17,7 @@
 
 #include <cassert>
 #include <deque>
+#include <map>
 #include <memory>
 #include <set>
 #include <unordered_set>
@@ -41,16 +42,45 @@ class using_collection;
 
 namespace hlasm_plugin::parser_library::context {
 
+class opcode_generation
+{
+    friend class hlasm_context;
+
+    size_t gen;
+
+    constexpr opcode_generation(size_t g)
+        : gen(g)
+    {}
+
+    opcode_generation& operator++()
+    {
+        ++gen;
+        return *this;
+    }
+    opcode_generation operator++(int)
+    {
+        opcode_generation result = *this;
+        ++gen;
+        return result;
+    }
+
+public:
+    auto operator<=>(const opcode_generation&) const = default;
+
+    static const opcode_generation current;
+};
+inline const opcode_generation opcode_generation::current((size_t)-1);
+
 // class helping to perform semantic analysis of hlasm source code
 // wraps all classes and structures needed by semantic analysis (like variable symbol tables, opsyn tables...) in one
 // place contains methods that store gathered information from semantic analysis helping it to correctly evaluate parsed
 // code
 class hlasm_context
 {
-    using macro_storage = std::unordered_map<id_index, macro_def_ptr>;
+    using macro_storage = std::map<std::pair<id_index, opcode_generation>, macro_def_ptr>;
     using copy_member_storage = std::unordered_map<id_index, copy_member_ptr>;
     using instruction_storage = std::unordered_map<id_index, opcode_t::opcode_variant>;
-    using opcode_map = std::unordered_map<id_index, opcode_t>;
+    using opcode_map = std::map<std::pair<id_index, opcode_generation>, opcode_t>;
     using global_variable_storage = std::unordered_map<id_index, var_sym_ptr>;
 
     // storage of global variables
@@ -62,6 +92,10 @@ class hlasm_context
     copy_member_storage copy_members_;
     // map of OPSYN mnemonics
     opcode_map opcode_mnemo_;
+    opcode_generation current_opcode_generation = 0;
+
+    const opcode_t* find_opcode_mnemo(id_index name, opcode_generation gen) const;
+
     // storage of identifiers
     std::shared_ptr<id_storage> ids_;
 
@@ -99,7 +133,7 @@ class hlasm_context
     void add_system_vars_to_scope(code_scope& scope);
     void add_global_system_vars(code_scope& scope);
 
-    bool is_opcode(id_index symbol) const;
+    bool is_opcode(id_index symbol, opcode_generation gen) const;
 
     std::unique_ptr<using_collection> m_usings;
     std::vector<index_t<using_collection>> m_active_usings;
@@ -208,17 +242,18 @@ public:
     const opcode_map& opcode_mnemo_storage() const;
 
     // checks whether the symbol is an operation code (is a valid instruction or a mnemonic)
-    opcode_t get_operation_code(id_index symbol) const;
+    opcode_t get_operation_code(id_index symbol, opcode_generation gen = opcode_generation::current) const;
 
     // get data attribute value of ordinary symbol
     SET_t get_attribute_value_ord(data_attr_kind attribute, id_index symbol);
     SET_t get_attribute_value_ord(data_attr_kind attribute, const symbol* symbol);
 
-    C_t get_opcode_attr(id_index symbol) const;
+    C_t get_opcode_attr(id_index symbol, opcode_generation gen = opcode_generation::current) const;
 
     // gets macro storage
     const macro_storage& macros() const;
-    macro_def_ptr get_macro_definition(id_index name) const;
+    const macro_def_ptr* find_macro(id_index name, opcode_generation gen = opcode_generation::current) const;
+    macro_def_ptr get_macro_definition(id_index name, opcode_generation gen = opcode_generation::current) const;
     // checks whether processing is currently in macro
     bool is_in_macro() const;
     // returns macro we are currently in or empty shared_ptr if in open code
