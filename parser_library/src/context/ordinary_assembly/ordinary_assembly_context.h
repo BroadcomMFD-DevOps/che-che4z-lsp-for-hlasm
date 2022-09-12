@@ -39,6 +39,7 @@ namespace hlasm_plugin::parser_library::context {
 class hlasm_context;
 class literal_pool;
 class location_counter;
+class opcode_generation;
 
 struct using_label_tag
 {};
@@ -176,6 +177,8 @@ public:
 
     void symbol_mentioned_on_macro(id_index name);
     void start_reporting_label_candidates();
+
+    opcode_generation current_opcode_generation() const;
 
 private:
     void create_private_section();

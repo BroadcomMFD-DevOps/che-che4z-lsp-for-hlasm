@@ -202,7 +202,8 @@ void ordinary_assembly_context::set_location_counter_value(const address& addr,
 void ordinary_assembly_context::set_location_counter_value(
     const address& addr, size_t boundary, int offset, const library_info& li)
 {
-    set_location_counter_value(addr, boundary, offset, nullptr, nullptr, dependency_evaluation_context {}, li);
+    set_location_counter_value(
+        addr, boundary, offset, nullptr, nullptr, dependency_evaluation_context(current_opcode_generation()), li);
 }
 
 space_ptr ordinary_assembly_context::set_location_counter_value_space(const address& addr,
@@ -249,8 +250,10 @@ void ordinary_assembly_context::set_available_location_counter_value(const libra
     auto [sp, addr] = curr_section_->current_location_counter().set_available_value();
 
     if (sp)
-        symbol_dependencies.add_dependency(
-            sp, std::make_unique<aggregate_address_resolver>(std::move(addr), 0, 0), {}, li);
+        symbol_dependencies.add_dependency(sp,
+            std::make_unique<aggregate_address_resolver>(std::move(addr), 0, 0),
+            dependency_evaluation_context(current_opcode_generation()),
+            li);
 }
 
 bool ordinary_assembly_context::symbol_defined(id_index name) const
@@ -287,7 +290,7 @@ address ordinary_assembly_context::reserve_storage_area(
 
 address ordinary_assembly_context::reserve_storage_area(size_t length, alignment align, const library_info& li)
 {
-    return reserve_storage_area(length, align, dependency_evaluation_context {}, li);
+    return reserve_storage_area(length, align, dependency_evaluation_context(current_opcode_generation()), li);
 }
 
 address ordinary_assembly_context::align(
@@ -298,7 +301,7 @@ address ordinary_assembly_context::align(
 
 address ordinary_assembly_context::align(alignment a, const library_info& li)
 {
-    return align(a, dependency_evaluation_context {}, li);
+    return align(a, dependency_evaluation_context(current_opcode_generation()), li);
 }
 
 space_ptr ordinary_assembly_context::register_ordinary_space(alignment align)
@@ -394,5 +397,10 @@ void ordinary_assembly_context::symbol_mentioned_on_macro(id_index name)
 }
 
 void ordinary_assembly_context::start_reporting_label_candidates() { reporting_candidates = true; }
+
+opcode_generation ordinary_assembly_context::current_opcode_generation() const
+{
+    return hlasm_ctx_.current_opcode_generation();
+}
 
 } // namespace hlasm_plugin::parser_library::context

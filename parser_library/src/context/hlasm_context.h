@@ -25,6 +25,7 @@
 
 #include "code_scope.h"
 #include "compiler_options.h"
+#include "opcode_generation.h"
 #include "operation_code.h"
 #include "ordinary_assembly/ordinary_assembly_context.h"
 #include "source_context.h"
@@ -41,38 +42,6 @@ class using_collection;
 } // namespace hlasm_plugin::parser_library::context
 
 namespace hlasm_plugin::parser_library::context {
-
-class opcode_generation
-{
-    friend class hlasm_context;
-
-    size_t gen;
-
-    constexpr opcode_generation(size_t g)
-        : gen(g)
-    {}
-
-    opcode_generation& operator++()
-    {
-        ++gen;
-        return *this;
-    }
-
-    opcode_generation operator++(int)
-    {
-        opcode_generation result = *this;
-        ++gen;
-        return result;
-    }
-
-public:
-    auto operator<=>(const opcode_generation&) const = default;
-
-    static const opcode_generation current;
-    static const opcode_generation zero;
-};
-inline const opcode_generation opcode_generation::current((size_t)-1);
-inline const opcode_generation opcode_generation::zero(0);
 
 // class helping to perform semantic analysis of hlasm source code
 // wraps all classes and structures needed by semantic analysis (like variable symbol tables, opsyn tables...) in one
@@ -95,7 +64,7 @@ class hlasm_context
     copy_member_storage copy_members_;
     // map of OPSYN mnemonics
     opcode_map opcode_mnemo_;
-    opcode_generation current_opcode_generation = opcode_generation::zero;
+    opcode_generation m_current_opcode_generation = opcode_generation::zero;
 
     // storage of identifiers
     std::shared_ptr<id_storage> ids_;
@@ -362,6 +331,8 @@ public:
     bool next_statement() { return --m_statements_remaining >= 0; }
 
     const opcode_t* find_opcode_mnemo(id_index name, opcode_generation gen) const;
+
+    opcode_generation current_opcode_generation() const { return m_current_opcode_generation; }
 };
 
 bool test_symbol_for_read(const var_sym_ptr& var,

@@ -744,14 +744,14 @@ void hlasm_context::add_mnemonic(id_index mnemo, id_index op_code)
     auto tmp = find_opcode_mnemo(op_code, opcode_generation::current);
     assert(tmp && *tmp); // mnemonic was not removed
 
-    opcode_mnemo_.try_emplace({ mnemo, ++current_opcode_generation }, *tmp);
+    opcode_mnemo_.try_emplace({ mnemo, ++m_current_opcode_generation }, *tmp);
 }
 
 void hlasm_context::remove_mnemonic(id_index mnemo)
 {
     const opcode_t* it;
     assert((it = find_opcode_mnemo(mnemo, opcode_generation::current)) && *it);
-    opcode_mnemo_.try_emplace({ mnemo, ++current_opcode_generation }, opcode_t());
+    opcode_mnemo_.try_emplace({ mnemo, ++m_current_opcode_generation }, opcode_t());
 }
 
 opcode_t hlasm_context::get_operation_code(id_index symbol, opcode_generation gen) const
@@ -841,7 +841,7 @@ macro_def_ptr hlasm_context::add_macro(id_index name,
 
 void hlasm_context::add_macro(macro_def_ptr macro)
 {
-    auto next_gen = ++current_opcode_generation;
+    auto next_gen = ++m_current_opcode_generation;
     const auto& m = macros_.try_emplace({ macro->id, next_gen }, std::move(macro)).first->second;
     opcode_mnemo_.try_emplace({ m->id, next_gen }, opcode_t { m->id, m });
 };

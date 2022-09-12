@@ -23,6 +23,7 @@
 
 #include "address.h"
 #include "address_resolver.h"
+#include "context/opcode_generation.h"
 #include "dependable.h"
 #include "dependant.h"
 #include "diagnostic_consumer.h"
@@ -44,16 +45,22 @@ struct dependency_evaluation_context
     size_t literal_pool_generation = 0;
     size_t unique_id = 0;
     index_t<using_collection> active_using;
+    opcode_generation opcode_gen;
 
-    dependency_evaluation_context() = default;
+    dependency_evaluation_context(opcode_generation opcode_gen = /* testing only */ opcode_generation::zero)
+        : opcode_gen(opcode_gen)
+    {}
+
     dependency_evaluation_context(std::optional<address> loctr_address,
         size_t literal_pool_generation,
         size_t unique_id,
-        index_t<using_collection> active_using)
+        index_t<using_collection> active_using,
+        opcode_generation opcode_gen)
         : loctr_address(std::move(loctr_address))
         , literal_pool_generation(literal_pool_generation)
         , unique_id(unique_id)
         , active_using(active_using)
+        , opcode_gen(opcode_gen)
     {}
 };
 
