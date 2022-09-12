@@ -14,20 +14,14 @@
 
 #include "workspace.h"
 
-#include <algorithm>
-#include <charconv>
 #include <filesystem>
 #include <iostream>
 #include <memory>
-#include <regex>
 #include <string>
-#include <unordered_map>
-#include <unordered_set>
 
 #include "file_manager.h"
 #include "lib_config.h"
 #include "library_local.h"
-#include "nlohmann/json.hpp"
 #include "processor.h"
 #include "utils/content_loader.h"
 #include "utils/encoding.h"
@@ -35,8 +29,6 @@
 #include "utils/path_conversions.h"
 #include "utils/platform.h"
 #include "wildcard.h"
-
-using json = nlohmann::json;
 
 namespace hlasm_plugin::parser_library::workspaces {
 
