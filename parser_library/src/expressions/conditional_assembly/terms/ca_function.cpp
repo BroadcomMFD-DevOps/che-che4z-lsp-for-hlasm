@@ -63,12 +63,10 @@ void ca_function::resolve_expression_tree(
         && !((kind == context::SET_t_enum::A_TYPE && expr_kind == context::SET_t_enum::B_TYPE)
             || (kind == context::SET_t_enum::B_TYPE && expr_kind == context::SET_t_enum::A_TYPE)))
         diags.add_diagnostic(diagnostic_op::error_CE004(expr_range));
-
-    if (duplication_factor && expr_kind != context::SET_t_enum::C_TYPE)
+    else if (duplication_factor && expr_kind != context::SET_t_enum::C_TYPE)
         diags.add_diagnostic(diagnostic_op::error_CE005(duplication_factor->expr_range));
-
-    auto [param_size, param_kind] = ca_common_expr_policy::get_function_param_info(function, expr_kind);
-    if (parameters.size() != param_size)
+    else if (auto [param_size, param_kind] = ca_common_expr_policy::get_function_param_info(function, expr_kind);
+             parameters.size() != param_size)
         diags.add_diagnostic(diagnostic_op::error_CE006(expr_range));
     else
     {

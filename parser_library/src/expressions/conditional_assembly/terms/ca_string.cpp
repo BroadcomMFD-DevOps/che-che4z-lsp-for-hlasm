@@ -47,11 +47,11 @@ undef_sym_set ca_string::get_undefined_attributed_symbols(const evaluation_conte
 }
 
 namespace {
-void check_valid_dupl_expr(const ca_expression* expr_ptr, diagnostic_op_consumer& diags)
+void check_valid_dupl_expr(const ca_expression* expr_ptr, const diagnostic_op_consumer& diags)
 {
     auto expr_list = dynamic_cast<const ca_expr_list*>(expr_ptr);
 
-    while (expr_list && expr_list->expression_list().size() > 0)
+    while (expr_list && !expr_list->expression_list().empty())
     {
         if (expr_list->expression_list().size() != 1)
         {
