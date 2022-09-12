@@ -130,7 +130,7 @@ struct op_entry
     bool binary;
     bool right_assoc;
     range r;
-    std::string symbol_name;
+    ca_expr_funcs function;
 };
 
 template<typename T>
@@ -162,8 +162,7 @@ struct resolve_stacks
             return false;
         }
 
-        if (auto function_name = ca_common_expr_policy::get_function(op.symbol_name);
-            function_name == ca_expr_funcs::UNKNOWN)
+        if (op.function == ca_expr_funcs::UNKNOWN)
             terms.push({ std::make_unique<ca_function_binary_operator>(std::move(left.term),
                              std::move(right.term),
                              op.op_type,
@@ -176,7 +175,7 @@ struct resolve_stacks
             function_params.push_back(std::move(left.term));
             function_params.push_back(std::move(right.term));
             terms.push({ std::make_unique<ca_function>(
-                             context::id_storage::empty_id, function_name, std::move(function_params), nullptr, op.r),
+                             context::id_storage::empty_id, op.function, std::move(function_params), nullptr, op.r),
                 left.i });
         }
 
@@ -283,7 +282,7 @@ void ca_expr_list::resolve(context::SET_t_enum parent_expr_kind, diagnostic_op_c
                     op_type.binary,
                     op_type.right_assoc,
                     curr_expr->expr_range,
-                    symbol });
+                    ca_common_expr_policy::get_function(symbol) });
                 prefer_next_term = op_type.binary;
                 continue;
             }
