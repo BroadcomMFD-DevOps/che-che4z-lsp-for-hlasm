@@ -71,27 +71,25 @@ bool instruction_available(instruction_set_affiliation instr_set_affiliation, in
 }
 } // namespace
 
-hlasm_context::instruction_storage hlasm_context::init_instruction_map(
-    id_storage& ids, instruction_set_version active_instr_set)
+void hlasm_context::init_instruction_map(opcode_map& opcodes, id_storage& ids, instruction_set_version active_instr_set)
 {
-    hlasm_context::instruction_storage instr_map;
     for (const auto& instr : instruction::all_machine_instructions())
     {
         if (!instruction_available(instr.instr_set_affiliation(), active_instr_set))
             continue;
 
         auto id = ids.add(std::string(instr.name()));
-        instr_map.emplace(id, &instr);
+        opcodes.try_emplace({ id, opcode_generation::zero }, opcode_t { id, &instr });
     }
     for (const auto& instr : instruction::all_assembler_instructions())
     {
         auto id = ids.add(std::string(instr.name()));
-        instr_map.emplace(id, &instr);
+        opcodes.try_emplace({ id, opcode_generation::zero }, opcode_t { id, &instr });
     }
     for (const auto& instr : instruction::all_ca_instructions())
     {
         auto id = ids.add(std::string(instr.name()));
-        instr_map.emplace(id, &instr);
+        opcodes.try_emplace({ id, opcode_generation::zero }, opcode_t { id, &instr });
     }
     for (const auto& instr : instruction::all_mnemonic_codes())
     {
@@ -99,10 +97,8 @@ hlasm_context::instruction_storage hlasm_context::init_instruction_map(
             continue;
 
         auto id = ids.add(std::string(instr.name()));
-        instr_map.emplace(id, &instr);
+        opcodes.try_emplace({ id, opcode_generation::zero }, opcode_t { id, &instr });
     }
-
-    return instr_map;
 }
 
 namespace {
@@ -378,22 +374,18 @@ void hlasm_context::add_global_system_vars(code_scope& scope)
     add_global_system_var_to_scope(ids(), "SYSVER", scope);
 }
 
-bool hlasm_context::is_opcode(id_index symbol, opcode_generation gen) const
-{
-    return find_macro(symbol, gen) || m_instruction_map.contains(symbol);
-}
-
 hlasm_context::hlasm_context(
     utils::resource::resource_location file_loc, asm_option asm_options, std::shared_ptr<id_storage> init_ids)
     : ids_(std::move(init_ids))
     , opencode_file_location_(file_loc)
     , asm_options_(std::move(asm_options))
-    , m_instruction_map(init_instruction_map(*ids_, asm_options_.instr_set))
     , m_usings(std::make_unique<using_collection>())
     , m_active_usings(1, m_usings->remove_all())
     , m_statements_remaining(asm_options_.statement_count_limit)
     , ord_ctx(*this)
 {
+    init_instruction_map(opcode_mnemo_, *ids_, asm_options_.instr_set);
+
     add_global_system_vars(scope_stack_.emplace_back());
     visited_files_.insert(file_loc);
     push_statement_processing(processing::processing_kind::ORDINARY, std::move(file_loc));
@@ -473,8 +465,6 @@ id_storage& hlasm_context::ids() { return *ids_; }
 const id_storage& hlasm_context::ids() const { return *ids_; }
 
 std::shared_ptr<id_storage> hlasm_context::ids_ptr() { return ids_; }
-
-const hlasm_context::instruction_storage& hlasm_context::instruction_map() const { return m_instruction_map; }
 
 const utils::resource::resource_location* hlasm_context::shared_resource_location(
     const utils::resource::resource_location& l)
@@ -751,48 +741,25 @@ const opcode_t* hlasm_context::find_opcode_mnemo(id_index name, opcode_generatio
 
 void hlasm_context::add_mnemonic(id_index mnemo, id_index op_code)
 {
-    if (auto tmp = find_opcode_mnemo(op_code, opcode_generation::current); tmp)
-    {
-        assert(*tmp); // mnemonic was not removed
+    auto tmp = find_opcode_mnemo(op_code, opcode_generation::current);
+    assert(tmp && *tmp); // mnemonic was not removed
 
-        opcode_mnemo_.try_emplace({ mnemo, current_opcode_generation++ }, *tmp);
-
-        return;
-    }
-
-    opcode_t value = { op_code };
-
-    if (auto mac = find_macro(op_code); mac)
-        value.opcode_detail = *mac;
-    else if (auto instr_it = m_instruction_map.find(op_code); instr_it != m_instruction_map.end())
-        value.opcode_detail = instr_it->second;
-    else
-        assert(false);
-
-    opcode_mnemo_.try_emplace({ mnemo, current_opcode_generation++ }, std::move(value));
+    opcode_mnemo_.try_emplace({ mnemo, ++current_opcode_generation }, *tmp);
 }
 
 void hlasm_context::remove_mnemonic(id_index mnemo)
 {
     const opcode_t* it;
-    assert((it = find_opcode_mnemo(mnemo, opcode_generation::current)) && *it
-        || is_opcode(mnemo, opcode_generation::current));
-    opcode_mnemo_.try_emplace({ mnemo, current_opcode_generation++ }, opcode_t());
+    assert((it = find_opcode_mnemo(mnemo, opcode_generation::current)) && *it);
+    opcode_mnemo_.try_emplace({ mnemo, ++current_opcode_generation }, opcode_t());
 }
 
 opcode_t hlasm_context::get_operation_code(id_index symbol, opcode_generation gen) const
 {
     if (auto it = find_opcode_mnemo(symbol, gen); it)
         return *it;
-
-    opcode_t value;
-
-    if (auto mac = find_macro(symbol, gen); mac)
-        value = opcode_t { symbol, *mac };
-    else if (auto instr_it = m_instruction_map.find(symbol); instr_it != m_instruction_map.end())
-        value = opcode_t { symbol, instr_it->second };
-
-    return value;
+    else
+        return opcode_t();
 }
 
 SET_t hlasm_context::get_attribute_value_ord(data_attr_kind attribute, id_index symbol_name)
@@ -834,6 +801,7 @@ struct opcode_attr_visitor
     std::string operator()(const ca_instruction*) const { return "A"; }
     std::string operator()(const mnemonic_code*) const { return "E"; }
     std::string operator()(const machine_instruction*) const { return "O"; }
+    std::string operator()(const macro_def_ptr&) const { return "M"; }
     template<typename T>
     std::string operator()(const T&) const
     {
@@ -843,16 +811,11 @@ struct opcode_attr_visitor
 
 C_t hlasm_context::get_opcode_attr(id_index symbol, opcode_generation gen) const
 {
-    if (find_macro(symbol, gen))
-        return "M";
+    auto op = find_opcode_mnemo(symbol, gen);
+    if (!op)
+        return "U";
 
-    if (auto it = m_instruction_map.find(symbol); it != m_instruction_map.end())
-    {
-        const auto& [opcode, detail] = *it;
-        return std::visit(opcode_attr_visitor(), detail);
-    }
-
-    return "U";
+    return std::visit(opcode_attr_visitor(), op->opcode_detail);
 }
 
 macro_def_ptr hlasm_context::add_macro(id_index name,
@@ -878,7 +841,7 @@ macro_def_ptr hlasm_context::add_macro(id_index name,
 
 void hlasm_context::add_macro(macro_def_ptr macro)
 {
-    auto next_gen = current_opcode_generation++;
+    auto next_gen = ++current_opcode_generation;
     const auto& m = macros_.try_emplace({ macro->id, next_gen }, std::move(macro)).first->second;
     opcode_mnemo_.try_emplace({ m->id, next_gen }, opcode_t { m->id, m });
 };

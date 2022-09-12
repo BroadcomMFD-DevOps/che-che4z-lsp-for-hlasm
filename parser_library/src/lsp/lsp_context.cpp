@@ -889,9 +889,8 @@ completion_list_s lsp_context::complete_instr(const file_info& fi, position pos)
     for (const auto& instr : completion_item_s::m_instruction_completion_items)
     {
         auto id = m_hlasm_ctx->ids().find(instr.label);
-
-        auto it = m_hlasm_ctx->instruction_map().find(id);
-        if (it != m_hlasm_ctx->instruction_map().end())
+        // TODO: we could provide more precise results here if actual generation is provided
+        if (m_hlasm_ctx->find_opcode_mnemo(id, context::opcode_generation::zero))
         {
             auto& i = result.emplace_back(instr);
             if (auto space = i.insert_text.find(' '); space != std::string::npos)

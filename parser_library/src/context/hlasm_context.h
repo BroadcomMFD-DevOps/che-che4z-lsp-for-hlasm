@@ -57,6 +57,7 @@ class opcode_generation
         ++gen;
         return *this;
     }
+
     opcode_generation operator++(int)
     {
         opcode_generation result = *this;
@@ -68,8 +69,10 @@ public:
     auto operator<=>(const opcode_generation&) const = default;
 
     static const opcode_generation current;
+    static const opcode_generation zero;
 };
 inline const opcode_generation opcode_generation::current((size_t)-1);
+inline const opcode_generation opcode_generation::zero(0);
 
 // class helping to perform semantic analysis of hlasm source code
 // wraps all classes and structures needed by semantic analysis (like variable symbol tables, opsyn tables...) in one
@@ -92,9 +95,7 @@ class hlasm_context
     copy_member_storage copy_members_;
     // map of OPSYN mnemonics
     opcode_map opcode_mnemo_;
-    opcode_generation current_opcode_generation = 0;
-
-    const opcode_t* find_opcode_mnemo(id_index name, opcode_generation gen) const;
+    opcode_generation current_opcode_generation = opcode_generation::zero;
 
     // storage of identifiers
     std::shared_ptr<id_storage> ids_;
@@ -116,8 +117,7 @@ class hlasm_context
     static constexpr alignment sectalgn = doubleword;
 
     // map of active instructions in HLASM
-    const instruction_storage m_instruction_map;
-    static instruction_storage init_instruction_map(id_storage& ids, instruction_set_version active_instr_set);
+    static void init_instruction_map(opcode_map& opcodes, id_storage& ids, instruction_set_version active_instr_set);
 
     // value of system variable SYSNDX
     unsigned long SYSNDX_ = 1;
@@ -132,8 +132,6 @@ class hlasm_context
 
     void add_system_vars_to_scope(code_scope& scope);
     void add_global_system_vars(code_scope& scope);
-
-    bool is_opcode(id_index symbol, opcode_generation gen) const;
 
     std::unique_ptr<using_collection> m_usings;
     std::vector<index_t<using_collection>> m_active_usings;
@@ -204,9 +202,6 @@ public:
     id_storage& ids();
     const id_storage& ids() const;
     std::shared_ptr<id_storage> ids_ptr();
-
-    // map of active instructions
-    const instruction_storage& instruction_map() const;
 
     // field that accessed ordinary assembly context
     ordinary_assembly_context ord_ctx;
@@ -365,6 +360,8 @@ public:
     name_result try_get_symbol_name(const std::string& symbol);
 
     bool next_statement() { return --m_statements_remaining >= 0; }
+
+    const opcode_t* find_opcode_mnemo(id_index name, opcode_generation gen) const;
 };
 
 bool test_symbol_for_read(const var_sym_ptr& var,

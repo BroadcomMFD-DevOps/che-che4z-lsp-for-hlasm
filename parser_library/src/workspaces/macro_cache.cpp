@@ -34,7 +34,8 @@ std::vector<cached_opsyn_mnemo> macro_cache_key::get_opsyn_state(context::hlasm_
 {
     auto& wn = ctx.ids().well_known;
     // List of instructions that are resolved during macro definition - therefore are affected by OPSYN
-    std::array<context::id_index, 19> cached_instr { wn.COPY,
+    std::array<context::id_index, 19> cached_instr {
+        wn.COPY,
         wn.ASPACE,
         wn.GBLA,
         wn.GBLB,
@@ -51,7 +52,8 @@ std::vector<cached_opsyn_mnemo> macro_cache_key::get_opsyn_state(context::hlasm_
         wn.AIF,
         wn.AREAD,
         wn.ACTR,
-        wn.AGO };
+        wn.AGO,
+    };
 
     std::vector<cached_opsyn_mnemo> result;
 
@@ -60,8 +62,10 @@ std::vector<cached_opsyn_mnemo> macro_cache_key::get_opsyn_state(context::hlasm_
     for (auto it = opcodes.rbegin(); it != opcodes.rend(); ++it)
     {
         const auto& [from_pair, opcode] = *it;
-        const auto& [from, _] = from_pair;
-        if (from == last_from)
+        const auto& [from, gen] = from_pair;
+
+        // ignore historical OPSYNs and original instructions
+        if (from == last_from || gen == context::opcode_generation::zero)
             continue;
 
         // If there is an opsyn, that aliases an instruction to be CA instruction, add it to result
@@ -72,30 +76,6 @@ std::vector<cached_opsyn_mnemo> macro_cache_key::get_opsyn_state(context::hlasm_
 
         last_from = from;
     }
-
-    // context::id_index last_id {};
-    // auto& macros = ctx.macros();
-    // // Also macros with the same name as CA instructions may alias the instructions
-    // for (auto it = macros.rbegin(); it != macros.rend(); ++it)
-    // {
-    //     const auto& [id_pair, macro] = *it;
-    //     if (!macro)
-    //         continue;
-    //     const auto& [id, _] = id_pair;
-    //     if (last_id == id)
-    //         continue;
-    //
-    //     auto opcode = ctx.get_operation_code(id);
-    //     // Macros for which there is an opsyn in effect are already captured
-    //     if (auto pval = std::get_if<context::macro_def_ptr>(&opcode.opcode_detail); !pval || *pval != macro)
-    //         continue;
-    //
-    //     // If there is an opsyn, that aliases an instruction to be CA instruction, add it to result
-    //     if (std::find(cached_instr.begin(), cached_instr.end(), macro->id) != cached_instr.end())
-    //         result.push_back({ id, id, true });
-    //
-    //     last_id = id;
-    // }
 
     sort_opsyn_state(result);
 
