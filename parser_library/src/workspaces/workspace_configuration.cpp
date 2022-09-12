@@ -662,15 +662,15 @@ const program* workspace_configuration::get_program(const utils::resource::resou
 }
 
 const program* workspace_configuration::get_program_normalized(
-    const utils::resource::resource_location& file_location) const
+    const utils::resource::resource_location& file_location_normalized) const
 {
     // direct match
-    if (auto program = m_exact_pgm_conf.find(file_location); program != m_exact_pgm_conf.cend())
+    if (auto program = m_exact_pgm_conf.find(file_location_normalized); program != m_exact_pgm_conf.cend())
         return &program->second.pgm;
 
     for (const auto& [program, pattern] : m_regex_pgm_conf)
     {
-        if (std::regex_match(file_location.get_uri(), pattern))
+        if (std::regex_match(file_location_normalized.get_uri(), pattern))
             return &program.pgm;
     }
     return nullptr;

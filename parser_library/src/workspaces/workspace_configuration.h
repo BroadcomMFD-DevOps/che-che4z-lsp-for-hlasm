@@ -141,7 +141,7 @@ class workspace_configuration
 
     bool is_config_file(const utils::resource::resource_location& file_location) const;
     bool is_b4g_config_file(const utils::resource::resource_location& file) const;
-    const program* get_program_normalized(const utils::resource::resource_location& file_location) const;
+    const program* get_program_normalized(const utils::resource::resource_location& file_location_normalized) const;
 
     parse_config_file_result parse_b4g_config_file(const utils::resource::resource_location& file_location);
 
