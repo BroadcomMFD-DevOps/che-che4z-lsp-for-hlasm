@@ -47,11 +47,11 @@ struct dependency_evaluation_context
     index_t<using_collection> active_using;
     opcode_generation opcode_gen;
 
-    dependency_evaluation_context(opcode_generation opcode_gen = /* testing only */ opcode_generation::zero)
+    explicit dependency_evaluation_context(opcode_generation opcode_gen)
         : opcode_gen(opcode_gen)
     {}
 
-    dependency_evaluation_context(std::optional<address> loctr_address,
+    explicit dependency_evaluation_context(std::optional<address> loctr_address,
         size_t literal_pool_generation,
         size_t unique_id,
         index_t<using_collection> active_using,

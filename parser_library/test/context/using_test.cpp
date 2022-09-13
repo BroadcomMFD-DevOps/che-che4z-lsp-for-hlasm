@@ -125,8 +125,13 @@ TEST(using, basic)
 
     auto sect = c.create_section("SECT");
 
-    [[maybe_unused]] auto with_sect =
-        coll.add(current, nullptr, c.create_symbol("SECT"), nullptr, args(c.number(1)), {}, {});
+    [[maybe_unused]] auto with_sect = coll.add(current,
+        nullptr,
+        c.create_symbol("SECT"),
+        nullptr,
+        args(c.number(1)),
+        dependency_evaluation_context(opcode_generation::current),
+        {});
 
     coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
@@ -151,8 +156,13 @@ TEST(using, multiple_registers)
 
     auto sect = c.create_section("SECT");
 
-    [[maybe_unused]] auto with_sect =
-        coll.add(current, nullptr, c.create_symbol("SECT"), nullptr, args(c.number(2), c.number(1)), {}, {});
+    [[maybe_unused]] auto with_sect = coll.add(current,
+        nullptr,
+        c.create_symbol("SECT"),
+        nullptr,
+        args(c.number(2), c.number(1)),
+        dependency_evaluation_context(opcode_generation::current),
+        {});
 
     coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
@@ -179,8 +189,13 @@ TEST(using, with_offset)
 
     auto sect = c.create_section("SECT");
 
-    [[maybe_unused]] auto with_sect =
-        coll.add(current, nullptr, c.create_symbol("SECT") + c.number(10), nullptr, args(c.number(2)), {}, {});
+    [[maybe_unused]] auto with_sect = coll.add(current,
+        nullptr,
+        c.create_symbol("SECT") + c.number(10),
+        nullptr,
+        args(c.number(2)),
+        dependency_evaluation_context(opcode_generation::current),
+        {});
 
     coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
@@ -203,8 +218,13 @@ TEST(using, with_negative_offset)
 
     auto sect = c.create_section("SECT");
 
-    [[maybe_unused]] auto with_sect =
-        coll.add(current, nullptr, c.create_symbol("SECT") - c.number(10), nullptr, args(c.number(2)), {}, {});
+    [[maybe_unused]] auto with_sect = coll.add(current,
+        nullptr,
+        c.create_symbol("SECT") - c.number(10),
+        nullptr,
+        args(c.number(2)),
+        dependency_evaluation_context(opcode_generation::current),
+        {});
 
     coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
@@ -237,14 +257,19 @@ TEST(using, dependent_using)
      * USING SECT2+5,SECT+20
      */
 
-    [[maybe_unused]] auto with_sect =
-        coll.add(current, nullptr, c.create_symbol("SECT") + c.number(10), nullptr, args(c.number(12)), {}, {});
+    [[maybe_unused]] auto with_sect = coll.add(current,
+        nullptr,
+        c.create_symbol("SECT") + c.number(10),
+        nullptr,
+        args(c.number(12)),
+        dependency_evaluation_context(opcode_generation::current),
+        {});
     [[maybe_unused]] auto with_sect2 = coll.add(with_sect,
         nullptr,
         c.create_symbol("SECT2") + c.number(5),
         nullptr,
         args(c.create_symbol("SECT") + c.number(20)),
-        {},
+        dependency_evaluation_context(opcode_generation::current),
         {});
 
     coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
@@ -276,8 +301,13 @@ TEST(using, labeled)
     auto sect = c.create_section("SECT");
     auto label = c.id("LABEL");
 
-    [[maybe_unused]] auto with_sect =
-        coll.add(current, label, c.create_symbol("SECT"), nullptr, args(c.number(1)), {}, {});
+    [[maybe_unused]] auto with_sect = coll.add(current,
+        label,
+        c.create_symbol("SECT"),
+        nullptr,
+        args(c.number(1)),
+        dependency_evaluation_context(opcode_generation::current),
+        {});
 
     coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
@@ -303,10 +333,16 @@ TEST(using, drop_one)
 
     auto sect = c.create_section("SECT");
 
-    [[maybe_unused]] auto with_sect =
-        coll.add(current, nullptr, c.create_symbol("SECT"), nullptr, args(c.number(2), c.number(1)), {}, {});
+    [[maybe_unused]] auto with_sect = coll.add(current,
+        nullptr,
+        c.create_symbol("SECT"),
+        nullptr,
+        args(c.number(2), c.number(1)),
+        dependency_evaluation_context(opcode_generation::current),
+        {});
 
-    [[maybe_unused]] auto after_drop2 = coll.remove(with_sect, args(c.number(2)), {}, {});
+    [[maybe_unused]] auto after_drop2 =
+        coll.remove(with_sect, args(c.number(2)), dependency_evaluation_context(opcode_generation::current), {});
 
     coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
@@ -334,12 +370,23 @@ TEST(using, drop_dependent)
     auto sect = c.create_section("SECT");
     auto sect2 = c.create_section("SECT2");
 
-    [[maybe_unused]] auto with_sect =
-        coll.add(current, nullptr, c.create_symbol("SECT"), nullptr, args(c.number(2)), {}, {});
-    [[maybe_unused]] auto with_sect2 =
-        coll.add(with_sect, nullptr, c.create_symbol("SECT2"), nullptr, args(c.create_symbol("SECT")), {}, {});
+    [[maybe_unused]] auto with_sect = coll.add(current,
+        nullptr,
+        c.create_symbol("SECT"),
+        nullptr,
+        args(c.number(2)),
+        dependency_evaluation_context(opcode_generation::current),
+        {});
+    [[maybe_unused]] auto with_sect2 = coll.add(with_sect,
+        nullptr,
+        c.create_symbol("SECT2"),
+        nullptr,
+        args(c.create_symbol("SECT")),
+        dependency_evaluation_context(opcode_generation::current),
+        {});
 
-    [[maybe_unused]] auto after_drop2 = coll.remove(with_sect2, args(c.number(2)), {}, {});
+    [[maybe_unused]] auto after_drop2 =
+        coll.remove(with_sect2, args(c.number(2)), dependency_evaluation_context(opcode_generation::current), {});
 
     coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
@@ -366,10 +413,20 @@ TEST(using, override_label)
     auto sect2 = c.create_section("SECT2");
     auto label = c.id("LABEL");
 
-    [[maybe_unused]] auto with_sect =
-        coll.add(current, label, c.create_symbol("SECT"), nullptr, args(c.number(1)), {}, {});
-    [[maybe_unused]] auto with_sect2 =
-        coll.add(with_sect, label, c.create_symbol("SECT2"), nullptr, args(c.number(1)), {}, {});
+    [[maybe_unused]] auto with_sect = coll.add(current,
+        label,
+        c.create_symbol("SECT"),
+        nullptr,
+        args(c.number(1)),
+        dependency_evaluation_context(opcode_generation::current),
+        {});
+    [[maybe_unused]] auto with_sect2 = coll.add(with_sect,
+        label,
+        c.create_symbol("SECT2"),
+        nullptr,
+        args(c.number(1)),
+        dependency_evaluation_context(opcode_generation::current),
+        {});
 
     coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
@@ -398,12 +455,23 @@ TEST(using, drop_reg_with_labeled_dependent)
     auto sect = c.create_section("SECT");
     auto sect2 = c.create_section("SECT2");
 
-    [[maybe_unused]] auto with_sect =
-        coll.add(current, nullptr, c.create_symbol("SECT"), nullptr, args(c.number(2)), {}, {});
-    [[maybe_unused]] auto with_sect2 =
-        coll.add(with_sect, label, c.create_symbol("SECT2"), nullptr, args(c.create_symbol("SECT")), {}, {});
+    [[maybe_unused]] auto with_sect = coll.add(current,
+        nullptr,
+        c.create_symbol("SECT"),
+        nullptr,
+        args(c.number(2)),
+        dependency_evaluation_context(opcode_generation::current),
+        {});
+    [[maybe_unused]] auto with_sect2 = coll.add(with_sect,
+        label,
+        c.create_symbol("SECT2"),
+        nullptr,
+        args(c.create_symbol("SECT")),
+        dependency_evaluation_context(opcode_generation::current),
+        {});
 
-    [[maybe_unused]] auto after_drop2 = coll.remove(with_sect2, args(c.number(2)), {}, {});
+    [[maybe_unused]] auto after_drop2 =
+        coll.remove(with_sect2, args(c.number(2)), dependency_evaluation_context(opcode_generation::current), {});
 
     coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
@@ -430,7 +498,8 @@ TEST(using, no_drop_warning)
     index_t<using_collection> current;
     diagnostic_consumer_container<diagnostic_s> d_s;
 
-    [[maybe_unused]] auto after_drop2 = coll.remove(current, args(c.number(2)), {}, {});
+    [[maybe_unused]] auto after_drop2 =
+        coll.remove(current, args(c.number(2)), dependency_evaluation_context(opcode_generation::current), {});
 
     coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
@@ -447,8 +516,13 @@ TEST(using, use_reg_16)
 
     [[maybe_unused]] auto sect = c.create_section("SECT");
 
-    [[maybe_unused]] auto with_sect =
-        coll.add(current, nullptr, c.create_symbol("SECT"), nullptr, args(c.number(16)), {}, {});
+    [[maybe_unused]] auto with_sect = coll.add(current,
+        nullptr,
+        c.create_symbol("SECT"),
+        nullptr,
+        args(c.number(16)),
+        dependency_evaluation_context(opcode_generation::current),
+        {});
 
     coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
@@ -468,7 +542,7 @@ TEST(using, use_non_simple_reloc)
         c.create_symbol("SECT"),
         nullptr,
         args(c.create_symbol("LABEL") + c.create_symbol("LABEL")),
-        {},
+        dependency_evaluation_context(opcode_generation::current),
         {});
 
     coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
@@ -486,10 +560,18 @@ TEST(using, drop_qualified_label)
 
     [[maybe_unused]] auto sect = c.create_section("SECT");
 
-    [[maybe_unused]] auto with_sect =
-        coll.add(current, c.label("LABEL"), c.create_symbol("SECT"), nullptr, args(c.number(1)), {}, {});
+    [[maybe_unused]] auto with_sect = coll.add(current,
+        c.label("LABEL"),
+        c.create_symbol("SECT"),
+        nullptr,
+        args(c.number(1)),
+        dependency_evaluation_context(opcode_generation::current),
+        {});
 
-    [[maybe_unused]] auto after_drop2 = coll.remove(with_sect, args(c.create_symbol("LABEL", "LABEL")), {}, {});
+    [[maybe_unused]] auto after_drop2 = coll.remove(with_sect,
+        args(c.create_symbol("LABEL", "LABEL")),
+        dependency_evaluation_context(opcode_generation::current),
+        {});
 
     coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
@@ -504,7 +586,8 @@ TEST(using, drop_reg_16)
     index_t<using_collection> current;
     diagnostic_consumer_container<diagnostic_s> d_s;
 
-    [[maybe_unused]] auto after_drop2 = coll.remove(current, args(c.number(16)), {}, {});
+    [[maybe_unused]] auto after_drop2 =
+        coll.remove(current, args(c.number(16)), dependency_evaluation_context(opcode_generation::current), {});
 
     coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
@@ -520,8 +603,10 @@ TEST(using, drop_reloc)
     diagnostic_consumer_container<diagnostic_s> d_s;
 
     [[maybe_unused]] auto sect = c.create_section("LABEL");
-    [[maybe_unused]] auto after_drop2 =
-        coll.remove(current, args(c.create_symbol("LABEL") + c.create_symbol("LABEL")), {}, {});
+    [[maybe_unused]] auto after_drop2 = coll.remove(current,
+        args(c.create_symbol("LABEL") + c.create_symbol("LABEL")),
+        dependency_evaluation_context(opcode_generation::current),
+        {});
 
     coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
@@ -544,7 +629,7 @@ TEST(using, dependent_no_active_using)
         c.create_symbol("SECT2") + c.number(5),
         nullptr,
         args(c.create_symbol("SECT") + c.number(20)),
-        {},
+        dependency_evaluation_context(opcode_generation::current),
         {});
 
     coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
@@ -568,14 +653,19 @@ TEST(using, dependent_no_active_matching_using)
      * USING SECT2+5,SECT+20
      */
 
-    [[maybe_unused]] auto with_sect =
-        coll.add(current, nullptr, c.create_symbol("SECT") + c.number(10), nullptr, args(c.number(12)), {}, {});
+    [[maybe_unused]] auto with_sect = coll.add(current,
+        nullptr,
+        c.create_symbol("SECT") + c.number(10),
+        nullptr,
+        args(c.number(12)),
+        dependency_evaluation_context(opcode_generation::current),
+        {});
     [[maybe_unused]] auto with_sect2 = coll.add(with_sect,
         nullptr,
         c.create_symbol("SECT2") + c.number(5),
         nullptr,
         args(c.create_symbol("SECT3") + c.number(20)),
-        {},
+        dependency_evaluation_context(opcode_generation::current),
         {});
 
     coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
@@ -591,8 +681,13 @@ TEST(using, using_undefined_begin)
     index_t<using_collection> current;
     diagnostic_consumer_container<diagnostic_s> d_s;
 
-    [[maybe_unused]] auto with_sect =
-        coll.add(current, nullptr, c.create_symbol("SECT"), nullptr, args(c.number(1)), {}, {});
+    [[maybe_unused]] auto with_sect = coll.add(current,
+        nullptr,
+        c.create_symbol("SECT"),
+        nullptr,
+        args(c.number(1)),
+        dependency_evaluation_context(opcode_generation::current),
+        {});
 
     coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
@@ -609,8 +704,13 @@ TEST(using, using_qualified_begin)
 
     [[maybe_unused]] auto sect = c.create_section("SECT");
 
-    [[maybe_unused]] auto with_sect =
-        coll.add(current, nullptr, c.create_symbol("SECT", "LABEL"), nullptr, args(c.number(1)), {}, {});
+    [[maybe_unused]] auto with_sect = coll.add(current,
+        nullptr,
+        c.create_symbol("SECT", "LABEL"),
+        nullptr,
+        args(c.number(1)),
+        dependency_evaluation_context(opcode_generation::current),
+        {});
 
     coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
@@ -627,8 +727,13 @@ TEST(using, using_undefined_end)
 
     [[maybe_unused]] auto sect = c.create_section("SECT");
 
-    [[maybe_unused]] auto with_sect =
-        coll.add(current, nullptr, c.create_symbol("SECT"), c.create_symbol("SECT_END"), args(c.number(1)), {}, {});
+    [[maybe_unused]] auto with_sect = coll.add(current,
+        nullptr,
+        c.create_symbol("SECT"),
+        c.create_symbol("SECT_END"),
+        args(c.number(1)),
+        dependency_evaluation_context(opcode_generation::current),
+        {});
 
     coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
@@ -650,7 +755,7 @@ TEST(using, using_qualified_end)
         c.create_symbol("SECT"),
         c.create_symbol("SECT", "LABEL") + c.number(1),
         args(c.number(1)),
-        {},
+        dependency_evaluation_context(opcode_generation::current),
         {});
 
     coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
@@ -669,10 +774,20 @@ TEST(using, using_bad_range)
     [[maybe_unused]] auto sect = c.create_section("SECT");
     [[maybe_unused]] auto sect2 = c.create_section("SECT2");
 
-    [[maybe_unused]] auto with_sect =
-        coll.add(current, nullptr, c.create_symbol("SECT"), c.create_symbol("SECT"), args(c.number(1)), {}, {});
-    [[maybe_unused]] auto with_sect2 =
-        coll.add(current, nullptr, c.create_symbol("SECT"), c.create_symbol("SECT2"), args(c.number(1)), {}, {});
+    [[maybe_unused]] auto with_sect = coll.add(current,
+        nullptr,
+        c.create_symbol("SECT"),
+        c.create_symbol("SECT"),
+        args(c.number(1)),
+        dependency_evaluation_context(opcode_generation::current),
+        {});
+    [[maybe_unused]] auto with_sect2 = coll.add(current,
+        nullptr,
+        c.create_symbol("SECT"),
+        c.create_symbol("SECT2"),
+        args(c.number(1)),
+        dependency_evaluation_context(opcode_generation::current),
+        {});
 
     coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
@@ -697,7 +812,7 @@ TEST(using, use_complex_reloc)
         c.create_symbol("SECT"),
         nullptr,
         args(c.create_symbol("S1") + c.create_symbol("S2")),
-        {},
+        dependency_evaluation_context(opcode_generation::current),
         {});
 
     coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
@@ -713,7 +828,8 @@ TEST(using, drop_invalid)
     index_t<using_collection> current;
     diagnostic_consumer_container<diagnostic_s> d_s;
 
-    [[maybe_unused]] auto after_drop2 = coll.remove(current, args(c.create_symbol("LABEL")), {}, {});
+    [[maybe_unused]] auto after_drop2 = coll.remove(
+        current, args(c.create_symbol("LABEL")), dependency_evaluation_context(opcode_generation::current), {});
 
     coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
@@ -730,7 +846,8 @@ TEST(using, drop_inactive)
 
     [[maybe_unused]] auto label = c.label("LABEL");
 
-    [[maybe_unused]] auto after_drop2 = coll.remove(current, args(c.create_symbol("LABEL")), {}, {});
+    [[maybe_unused]] auto after_drop2 = coll.remove(
+        current, args(c.create_symbol("LABEL")), dependency_evaluation_context(opcode_generation::current), {});
 
     coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
@@ -747,8 +864,13 @@ TEST(using, basic_with_limit)
 
     auto sect = c.create_section("SECT");
 
-    [[maybe_unused]] auto with_sect = coll.add(
-        current, nullptr, c.create_symbol("SECT"), c.create_symbol("SECT") + c.number(10), args(c.number(1)), {}, {});
+    [[maybe_unused]] auto with_sect = coll.add(current,
+        nullptr,
+        c.create_symbol("SECT"),
+        c.create_symbol("SECT") + c.number(10),
+        args(c.number(1)),
+        dependency_evaluation_context(opcode_generation::current),
+        {});
 
     coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
@@ -769,8 +891,13 @@ TEST(using, duplicate_base)
 
     [[maybe_unused]] auto sect = c.create_section("SECT");
 
-    [[maybe_unused]] auto with_sect =
-        coll.add(current, nullptr, c.create_symbol("SECT"), nullptr, args(c.number(1), c.number(1)), {}, {});
+    [[maybe_unused]] auto with_sect = coll.add(current,
+        nullptr,
+        c.create_symbol("SECT"),
+        nullptr,
+        args(c.number(1), c.number(1)),
+        dependency_evaluation_context(opcode_generation::current),
+        {});
 
     coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
@@ -785,7 +912,13 @@ TEST(using, absolute)
     index_t<using_collection> current;
     diagnostic_consumer_container<diagnostic_s> d_s;
 
-    [[maybe_unused]] auto with_sect = coll.add(current, nullptr, c.number(128), nullptr, args(c.number(1)), {}, {});
+    [[maybe_unused]] auto with_sect = coll.add(current,
+        nullptr,
+        c.number(128),
+        nullptr,
+        args(c.number(1)),
+        dependency_evaluation_context(opcode_generation::current),
+        {});
 
     coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);
 
@@ -808,14 +941,19 @@ TEST(using, smaller_offset_but_invalid)
 
     [[maybe_unused]] auto sect = c.create_section("SECT");
 
-    [[maybe_unused]] auto with_sect =
-        coll.add(current, nullptr, c.create_symbol("SECT"), nullptr, args(c.number(1)), {}, {});
+    [[maybe_unused]] auto with_sect = coll.add(current,
+        nullptr,
+        c.create_symbol("SECT"),
+        nullptr,
+        args(c.number(1)),
+        dependency_evaluation_context(opcode_generation::current),
+        {});
     [[maybe_unused]] auto with_sect2 = coll.add(with_sect,
         nullptr,
         c.create_symbol("SECT") + c.number(100),
         c.create_symbol("SECT") + c.number(120),
         args(c.number(2)),
-        {},
+        dependency_evaluation_context(opcode_generation::current),
         {});
 
     coll.resolve_all(c.asm_ctx, d_s, library_info_transitional::empty);

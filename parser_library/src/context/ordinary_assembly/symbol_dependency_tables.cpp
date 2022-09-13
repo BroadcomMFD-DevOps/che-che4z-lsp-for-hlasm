@@ -586,8 +586,8 @@ dependency_adder::dependency_adder(symbol_dependency_tables& owner,
     : m_owner(owner)
     , m_ref_count(0)
     , m_dep_ctx(dep_ctx)
-    , m_li(li)
     , m_source_stmt(std::move(dependency_source_stmt))
+    , m_li(li)
 {}
 
 bool dependency_adder::add_dependency(id_index target, const resolvable* dependency_source)

@@ -26,7 +26,7 @@ class opcode_generation
 
     size_t gen;
 
-    constexpr opcode_generation(size_t g)
+    explicit constexpr opcode_generation(size_t g)
         : gen(g)
     {}
 

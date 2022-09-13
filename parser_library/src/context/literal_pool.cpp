@@ -210,7 +210,7 @@ void literal_pool::generate_pool(diagnosable_ctx& diags, index_t<using_collectio
         {
             auto adder = ord_ctx.symbol_dependencies.add_dependencies(
                 std::make_unique<literal_postponed_statement>(lit, lit_val, hlasm_ctx.ids()),
-                {
+                dependency_evaluation_context {
                     lit_val.loctr,
                     lit_key.generation,
                     lit_key.unique_id,

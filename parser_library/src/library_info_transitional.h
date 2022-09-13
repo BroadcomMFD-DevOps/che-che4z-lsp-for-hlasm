@@ -30,14 +30,15 @@ class library_info_transitional final : public library_info
     workspaces::parse_lib_provider* m_lib_provider;
     const context::hlasm_context* m_hlasm_ctx = nullptr;
 
-    library_info_transitional(workspaces::parse_lib_provider& lib_provider)
+    explicit library_info_transitional(workspaces::parse_lib_provider& lib_provider)
         : m_lib_provider(&lib_provider)
     {}
 
 public:
     bool has_library(std::string_view member) const override;
 
-    library_info_transitional(workspaces::parse_lib_provider& lib_provider, const context::hlasm_context& hlasm_ctx)
+    explicit library_info_transitional(
+        workspaces::parse_lib_provider& lib_provider, const context::hlasm_context& hlasm_ctx)
         : m_lib_provider(&lib_provider)
         , m_hlasm_ctx(&hlasm_ctx)
     {}
