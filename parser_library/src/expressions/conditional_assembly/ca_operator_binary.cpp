@@ -72,7 +72,7 @@ ca_function_binary_operator::ca_function_binary_operator(ca_expr_ptr left_expr,
     context::SET_t_enum parent_expr_kind)
     : ca_binary_operator(std::move(left_expr), std::move(right_expr), expr_kind, std::move(expr_range))
     , function(function)
-    , m_expr_ctx({ expr_kind, parent_expr_kind, true })
+    , m_expr_ctx { expr_kind, parent_expr_kind, true }
 {}
 
 void ca_function_binary_operator::resolve_expression_tree(ca_expression_ctx expr_ctx, diagnostic_op_consumer& diags)

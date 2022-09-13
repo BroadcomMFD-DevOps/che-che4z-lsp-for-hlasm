@@ -59,7 +59,7 @@ ca_function_unary_operator::ca_function_unary_operator(ca_expr_ptr expr,
     context::SET_t_enum parent_expr_kind)
     : ca_unary_operator(std::move(expr), kind, std::move(expr_range))
     , function(function)
-    , m_expr_ctx({ kind, parent_expr_kind, true })
+    , m_expr_ctx { kind, parent_expr_kind, true }
 {}
 void ca_function_unary_operator::resolve_expression_tree(ca_expression_ctx expr_ctx, diagnostic_op_consumer& diags)
 {
