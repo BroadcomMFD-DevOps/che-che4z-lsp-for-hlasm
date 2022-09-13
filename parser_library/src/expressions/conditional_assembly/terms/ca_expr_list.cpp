@@ -43,20 +43,19 @@ bool is_symbol(const ca_expr_ptr& expr) { return dynamic_cast<const ca_symbol*>(
 
 const std::string& get_symbol(const ca_expr_ptr& expr) { return *dynamic_cast<const ca_symbol&>(*expr).symbol; }
 
-void ca_expr_list::resolve_expression_tree(
-    context::SET_t_enum kind, context::SET_t_enum parent_expr_kind, diagnostic_op_consumer& diags)
+void ca_expr_list::resolve_expression_tree(ca_expression_ctx expr_ctx, diagnostic_op_consumer& diags)
 {
-    expr_kind = kind;
+    expr_kind = expr_ctx.kind;
 
-    if (kind == context::SET_t_enum::A_TYPE || kind == context::SET_t_enum::B_TYPE)
+    if (expr_kind == context::SET_t_enum::A_TYPE || expr_kind == context::SET_t_enum::B_TYPE)
         unknown_functions_to_operators();
 
-    if (kind == context::SET_t_enum::A_TYPE)
-        resolve<context::A_t>(parent_expr_kind, diags);
-    else if (kind == context::SET_t_enum::B_TYPE)
-        resolve<context::B_t>(parent_expr_kind, diags);
-    else if (kind == context::SET_t_enum::C_TYPE)
-        resolve<context::C_t>(parent_expr_kind, diags);
+    if (expr_kind == context::SET_t_enum::A_TYPE)
+        resolve<context::A_t>(expr_ctx, diags);
+    else if (expr_kind == context::SET_t_enum::B_TYPE)
+        resolve<context::B_t>(expr_ctx, diags);
+    else if (expr_kind == context::SET_t_enum::C_TYPE)
+        resolve<context::C_t>(expr_ctx, diags);
     else
         assert(false);
 }
@@ -238,7 +237,7 @@ struct resolve_stacks
 } // namespace
 
 template<typename T>
-void ca_expr_list::resolve(context::SET_t_enum parent_expr_kind, diagnostic_op_consumer& diags)
+void ca_expr_list::resolve(ca_expression_ctx expr_ctx, diagnostic_op_consumer& diags)
 {
     using expr_policy = typename ca_expr_traits<T>::policy_t;
 
@@ -312,7 +311,8 @@ void ca_expr_list::resolve(context::SET_t_enum parent_expr_kind, diagnostic_op_c
     ca_expr_ptr final_expr = std::move(stacks.terms.top().term);
 
     // resolve created tree
-    final_expr->resolve_expression_tree(context::object_traits<T>::type_enum, parent_expr_kind, diags);
+    expr_ctx.kind = context::object_traits<T>::type_enum;
+    final_expr->resolve_expression_tree(expr_ctx, diags);
 
     // move resolved tree to the front of the array
     expr_list.clear();

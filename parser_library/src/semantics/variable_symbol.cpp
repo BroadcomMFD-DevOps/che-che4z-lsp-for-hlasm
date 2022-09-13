@@ -99,10 +99,12 @@ context::SET_t variable_symbol::evaluate(const expressions::evaluation_context& 
 
 void variable_symbol::resolve(context::SET_t_enum parent_expr_kind, diagnostic_op_consumer& diag)
 {
+    expressions::ca_expression_ctx expr_ctx = { context::SET_t_enum::A_TYPE,
+        parent_expr_kind == context::SET_t_enum::B_TYPE ? parent_expr_kind : context::SET_t_enum::A_TYPE,
+        true };
+
     for (const auto& v : subscript)
-        v->resolve_expression_tree(context::SET_t_enum::A_TYPE,
-            parent_expr_kind == context::SET_t_enum::B_TYPE ? parent_expr_kind : context::SET_t_enum::A_TYPE,
-            diag);
+        v->resolve_expression_tree(expr_ctx, diag);
 }
 
 variable_symbol::variable_symbol(

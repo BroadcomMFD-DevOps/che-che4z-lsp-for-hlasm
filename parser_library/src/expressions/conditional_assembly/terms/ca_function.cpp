@@ -56,15 +56,14 @@ undef_sym_set ca_function::get_undefined_attributed_symbols(const evaluation_con
     return ret;
 }
 
-void ca_function::resolve_expression_tree(
-    context::SET_t_enum kind, context::SET_t_enum parent_expr_kind, diagnostic_op_consumer& diags)
+void ca_function::resolve_expression_tree(ca_expression_ctx expr_ctx, diagnostic_op_consumer& diags)
 {
     // No diag when kind == expr_kind or when there is a combination of A_TYPE and B_TYPE
     static constexpr bool allowed_combinations[4][4] = {
         { 1, 1, 0, 0 }, { 1, 1, 0, 0 }, { 0, 0, 1, 0 }, { 0, 0, 0, 1 }
     };
 
-    if (!allowed_combinations[static_cast<int>(kind)][static_cast<int>(expr_kind)])
+    if (!allowed_combinations[static_cast<int>(expr_ctx.kind)][static_cast<int>(expr_kind)])
         diags.add_diagnostic(diagnostic_op::error_CE004(expr_range));
     else if (duplication_factor && expr_kind != context::SET_t_enum::C_TYPE)
         diags.add_diagnostic(diagnostic_op::error_CE005(duplication_factor->expr_range));
@@ -73,9 +72,10 @@ void ca_function::resolve_expression_tree(
         diags.add_diagnostic(diagnostic_op::error_CE006(expr_range));
     else
     {
+        expr_ctx.kind = param_kind;
         for (auto&& expr : parameters)
         {
-            expr->resolve_expression_tree(param_kind, parent_expr_kind, diags);
+            expr->resolve_expression_tree(expr_ctx, diags);
         }
     }
 }
