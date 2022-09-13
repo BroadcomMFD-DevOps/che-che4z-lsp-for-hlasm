@@ -59,9 +59,10 @@ undef_sym_set ca_function::get_undefined_attributed_symbols(const evaluation_con
 void ca_function::resolve_expression_tree(ca_expression_ctx expr_ctx, diagnostic_op_consumer& diags)
 {
     // No diag when kind == expr_kind or when there is a combination of A_TYPE and B_TYPE
-    static constexpr bool allowed_combinations[4][4] = {
-        { 1, 1, 0, 0 }, { 1, 1, 0, 0 }, { 0, 0, 1, 0 }, { 0, 0, 0, 1 }
-    };
+    static constexpr std::array<std::array<bool, 4>, 4> allowed_combinations({ { true, true, false, false },
+        { true, true, false, false },
+        { false, false, true, false },
+        { false, false, false, true } });
 
     if (!allowed_combinations[static_cast<int>(expr_ctx.kind)][static_cast<int>(expr_kind)])
         diags.add_diagnostic(diagnostic_op::error_CE004(expr_range));
