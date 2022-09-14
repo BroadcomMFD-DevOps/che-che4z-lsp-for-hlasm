@@ -2101,7 +2101,7 @@ diagnostic_op diagnostic_op::error_E078(std::string_view message, const range& r
 {
     return diagnostic_op(diagnostic_severity::error,
         "E078",
-        concat("Inconsistent GBL symbol definitions, first is retained - ", message),
+        concat("Global variable re-declared with an incorrect type - ", message),
         range);
 }
 
