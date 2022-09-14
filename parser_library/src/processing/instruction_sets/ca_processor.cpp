@@ -190,10 +190,7 @@ bool ca_processor::prepare_SET_operands(
     return true;
 }
 
-bool ca_processor::prepare_GBL_LCL(const semantics::complete_statement& stmt,
-    std::vector<context::id_index>& ids,
-    std::vector<bool>& scalar_info,
-    std::vector<range>& ranges)
+bool ca_processor::prepare_GBL_LCL(const semantics::complete_statement& stmt, std::vector<GLB_LCL_info>& info)
 {
     bool has_operand = false;
     for (auto& op : stmt.operands_ref().value)
@@ -223,17 +220,12 @@ bool ca_processor::prepare_GBL_LCL(const semantics::complete_statement& stmt,
                     assert(false);
                 continue;
             }
-            if (std::find(ids.begin(), ids.end(), id) != ids.end())
-            {
+
+            if (std::find_if(info.begin(), info.end(), [id](const auto& i) { return i.id == id; }) != info.end())
                 add_diagnostic(diagnostic_op::error_E051(*id, ca_op->operand_range));
-            }
             else
-            {
-                ids.push_back(id);
-                scalar_info.push_back(subscript.empty());
-                ranges.push_back(ca_op->operand_range);
+                info.emplace_back(id, subscript.empty(), ca_op->operand_range);
             }
-        }
         else
         {
             add_diagnostic(diagnostic_op::error_E014(ca_op->operand_range));
@@ -630,20 +622,18 @@ void ca_processor::process_GBL_LCL(const semantics::complete_statement& stmt)
 {
     register_seq_sym(stmt);
 
-    std::vector<context::id_index> ids;
-    std::vector<bool> scalar_info;
-    std::vector<range> ranges;
-    bool ok = prepare_GBL_LCL(stmt, ids, scalar_info, ranges);
+    std::vector<GLB_LCL_info> info;
+    bool ok = prepare_GBL_LCL(stmt, info);
 
     if (!ok)
         return;
 
-    for (size_t i = 0; i < ids.size(); ++i)
+    for (const auto& i : info)
     {
         if constexpr (global)
-            hlasm_ctx.create_global_variable<T>(ids[i], scalar_info[i], ranges[i], eval_ctx.diags);
+            hlasm_ctx.create_global_variable<T>(i.id, i.scalar)
         else
-            hlasm_ctx.create_local_variable<T>(ids[i], scalar_info[i]);
+            hlasm_ctx.create_local_variable<T>(i.id, i.scalar)
     }
 }
 
