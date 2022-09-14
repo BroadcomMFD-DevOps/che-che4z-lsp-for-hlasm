@@ -69,7 +69,7 @@ TEST(context, create_global_var)
 
     auto idx = ctx.ids().add("var");
 
-    auto glob = ctx.create_global_variable<C_t>(idx, true, range(), diag);
+    auto glob = ctx.create_global_variable<C_t>(idx, true);
 
     auto found = ctx.get_var_sym(idx);
 
@@ -88,18 +88,18 @@ TEST(context, create_global_var_different_types)
     diagnostic_op_consumer_container diag;
 
     auto idx = ctx.ids().add("var");
-    auto glob_a = ctx.create_global_variable<A_t>(idx, true, range(), diag);
-    auto glob_b = ctx.create_global_variable<B_t>(idx, true, range(), diag);
+    auto glob_a = ctx.create_global_variable<A_t>(idx, true);
+    auto glob_b = ctx.create_global_variable<B_t>(idx, true);
     auto found = ctx.get_var_sym(idx);
 
     ASSERT_TRUE(found);
-    EXPECT_TRUE(glob_a == glob_b);
-    EXPECT_TRUE(glob_b == found);
+    EXPECT_TRUE(glob_a == found);
+    EXPECT_FALSE(glob_b);
 
     EXPECT_TRUE(ctx.globals().find(idx) != ctx.globals().end());
-    EXPECT_TRUE(glob_b.get() == ctx.globals().find(idx)->second->access_set_symbol_base());
-    EXPECT_TRUE(std::dynamic_pointer_cast<set_symbol<A_t>>(glob_b));
-    EXPECT_TRUE(glob_b == ctx.globals().find(idx)->second);
+    EXPECT_TRUE(glob_a.get() == ctx.globals().find(idx)->second->access_set_symbol_base());
+    EXPECT_TRUE(std::dynamic_pointer_cast<set_symbol<A_t>>(glob_a));
+    EXPECT_TRUE(glob_a == ctx.globals().find(idx)->second);
 }
 
 TEST(context, find_global_system_var)
@@ -643,6 +643,22 @@ TEST(context, create_global_var_different_types_macro)
     a.collect_diags();
 
     EXPECT_TRUE(matches_message_codes(a.diags(), { "E078" }));
+}
+
+TEST(context, create_local_var_different_types)
+{
+    std::string input =
+        R"(
+      LCLA &A
+      LCLB &A
+
+      END
+)";
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "E051" }));
 }
 
 TEST(context_system_variables, SYSNEST_SYSMAC)

@@ -128,6 +128,9 @@ ca_processor::SET_info ca_processor::get_SET_symbol(const semantics::complete_st
     else
         set_sym = hlasm_ctx.template create_local_variable<T>(name, is_scalar_expression)->access_set_symbol_base();
 
+    if (!set_sym)
+        eval_ctx.diags.add_diagnostic(diagnostic_op::error_E051(*name, symbol->symbol_range));
+
     if (symbol->subscript.size() > 1)
     {
         add_diagnostic(diagnostic_op::error_E020("variable symbol subscript", symbol->symbol_range));
@@ -225,7 +228,7 @@ bool ca_processor::prepare_GBL_LCL(const semantics::complete_statement& stmt, st
                 add_diagnostic(diagnostic_op::error_E051(*id, ca_op->operand_range));
             else
                 info.emplace_back(id, subscript.empty(), ca_op->operand_range);
-            }
+        }
         else
         {
             add_diagnostic(diagnostic_op::error_E014(ca_op->operand_range));
@@ -631,9 +634,15 @@ void ca_processor::process_GBL_LCL(const semantics::complete_statement& stmt)
     for (const auto& i : info)
     {
         if constexpr (global)
-            hlasm_ctx.create_global_variable<T>(i.id, i.scalar)
+        {
+            if (!hlasm_ctx.create_global_variable<T>(i.id, i.scalar))
+                eval_ctx.diags.add_diagnostic(diagnostic_op::error_E078(*i.id, i.r));
+        }
         else
-            hlasm_ctx.create_local_variable<T>(i.id, i.scalar)
+        {
+            if (!hlasm_ctx.create_local_variable<T>(i.id, i.scalar))
+                eval_ctx.diags.add_diagnostic(diagnostic_op::error_E051(*i.id, i.r));
+        }
     }
 }
 
