@@ -63,8 +63,10 @@ private:
     template<typename T>
     void process_SET(const semantics::complete_statement& stmt);
 
-    bool prepare_GBL_LCL(
-        const semantics::complete_statement& stmt, std::vector<context::id_index>& ids, std::vector<bool>& scalar_info);
+    bool prepare_GBL_LCL(const semantics::complete_statement& stmt,
+        std::vector<context::id_index>& ids,
+        std::vector<bool>& scalar_info,
+        std::vector<range>& ranges);
 
     template<typename T, bool global>
     void process_GBL_LCL(const semantics::complete_statement& stmt);

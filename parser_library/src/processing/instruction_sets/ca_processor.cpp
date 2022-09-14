@@ -190,8 +190,10 @@ bool ca_processor::prepare_SET_operands(
     return true;
 }
 
-bool ca_processor::prepare_GBL_LCL(
-    const semantics::complete_statement& stmt, std::vector<context::id_index>& ids, std::vector<bool>& scalar_info)
+bool ca_processor::prepare_GBL_LCL(const semantics::complete_statement& stmt,
+    std::vector<context::id_index>& ids,
+    std::vector<bool>& scalar_info,
+    std::vector<range>& ranges)
 {
     bool has_operand = false;
     for (auto& op : stmt.operands_ref().value)
@@ -229,6 +231,7 @@ bool ca_processor::prepare_GBL_LCL(
             {
                 ids.push_back(id);
                 scalar_info.push_back(subscript.empty());
+                ranges.push_back(ca_op->operand_range);
             }
         }
         else
@@ -629,7 +632,8 @@ void ca_processor::process_GBL_LCL(const semantics::complete_statement& stmt)
 
     std::vector<context::id_index> ids;
     std::vector<bool> scalar_info;
-    bool ok = prepare_GBL_LCL(stmt, ids, scalar_info);
+    std::vector<range> ranges;
+    bool ok = prepare_GBL_LCL(stmt, ids, scalar_info, ranges);
 
     if (!ok)
         return;
@@ -637,7 +641,7 @@ void ca_processor::process_GBL_LCL(const semantics::complete_statement& stmt)
     for (size_t i = 0; i < ids.size(); ++i)
     {
         if constexpr (global)
-            hlasm_ctx.create_global_variable<T>(ids[i], scalar_info[i]);
+            hlasm_ctx.create_global_variable<T>(ids[i], scalar_info[i], ranges[i], eval_ctx.diags);
         else
             hlasm_ctx.create_local_variable<T>(ids[i], scalar_info[i]);
     }

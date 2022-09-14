@@ -253,7 +253,7 @@ public:
 
     // creates specified global set symbol
     template<typename T>
-    set_sym_ptr create_global_variable(id_index id, bool is_scalar)
+    set_sym_ptr create_global_variable(id_index id, bool is_scalar, range r, diagnostic_op_consumer& diags)
     {
         auto* scope = curr_scope();
 
@@ -263,6 +263,12 @@ public:
         if (auto glob = globals_.find(id); glob != globals_.end())
         {
             set_sym_ptr var = std::dynamic_pointer_cast<set_symbol<T>>(glob->second);
+            if (var == nullptr)
+            {
+                diags.add_diagnostic(diagnostic_op::error_E078(*id, r));
+                var = std::dynamic_pointer_cast<set_symbol_base>(glob->second);
+            }
+
             assert(var);
 
             scope->variables.try_emplace(id, var);
