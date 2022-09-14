@@ -152,25 +152,7 @@ struct concatenation_point
 template<bool exact, typename... Ts>
 struct concat_chain_matcher
 {
-    bool operator()(const concat_chain& chain) const
-    {
-        if constexpr (exact)
-        {
-            if (chain.size() != sizeof...(Ts))
-                return false;
-        }
-        else
-        {
-            if (chain.size() < sizeof...(Ts))
-                return false;
-        }
-        return []<size_t... ids>(const concat_chain& ch, std::index_sequence<ids...>)
-        {
-            return (std::holds_alternative<Ts>(ch[ids].value) && ...);
-        }
-        (chain, std::index_sequence_for<Ts...>());
-    }
-    bool operator()(concat_chain::const_iterator b, concat_chain::const_iterator e) const
+    bool operator()(concat_chain::const_iterator b, concat_chain::const_iterator e) const noexcept
     {
         if constexpr (exact)
         {
@@ -182,12 +164,9 @@ struct concat_chain_matcher
             if (std::distance(b, e) < sizeof...(Ts))
                 return false;
         }
-        return []<size_t... ids>(concat_chain::const_iterator it, std::index_sequence<ids...>)
-        {
-            return (std::holds_alternative<Ts>((it + ids)->value) && ...);
-        }
-        (b, std::index_sequence_for<Ts...>());
+        return ((std::holds_alternative<Ts>(b->value) && (++b, true)) && ...);
     }
+    bool operator()(const concat_chain& chain) const noexcept { return operator()(chain.begin(), chain.end()); }
 };
 
 template<typename... Ts>
