@@ -65,7 +65,7 @@ TEST(ca_expr_list, resolve_C_type)
     auto sym = std::make_unique<ca_symbol>(&name, range());
 
     concat_chain value;
-    value.push_back(char_str_conc("low", range()));
+    value.emplace_back(char_str_conc("low", range()));
     auto str = std::make_unique<ca_string>(std::move(value), nullptr, ca_string::substring_t(), range());
 
     std::vector<ca_expr_ptr> list;
@@ -86,7 +86,7 @@ TEST(ca_expr_list, get_undefined_attributed_symbols)
     auto sym = std::make_unique<ca_symbol_attribute>(&name, context::data_attr_kind::L, range(), range());
 
     concat_chain value;
-    value.push_back(char_str_conc("low", range()));
+    value.emplace_back(char_str_conc("low", range()));
     auto str = std::make_unique<ca_string>(std::move(value), nullptr, ca_string::substring_t(), range());
 
     std::vector<ca_expr_ptr> list;
@@ -106,7 +106,7 @@ TEST(ca_expr_list, get_undefined_attributed_symbols)
 TEST(ca_expr_list, is_character_expression)
 {
     concat_chain value;
-    value.push_back(char_str_conc("low", range()));
+    value.emplace_back(char_str_conc("low", range()));
     auto str = std::make_unique<ca_string>(std::move(value), nullptr, ca_string::substring_t(), range());
 
     std::vector<ca_expr_ptr> list;

@@ -124,19 +124,19 @@ struct concatenation_point
     static std::set<context::id_index> get_undefined_attributed_symbols(
         const concat_chain& chain, const expressions::evaluation_context& eval_ctx);
 
-    concatenation_point(char_str_conc v)
+    explicit concatenation_point(char_str_conc v)
         : value(std::move(v))
     {}
-    concatenation_point(var_sym_conc v)
+    explicit concatenation_point(var_sym_conc v)
         : value(std::move(v))
     {}
-    concatenation_point(dot_conc v)
+    explicit concatenation_point(dot_conc v)
         : value(std::move(v))
     {}
-    concatenation_point(sublist_conc v)
+    explicit concatenation_point(sublist_conc v)
         : value(std::move(v))
     {}
-    concatenation_point(equals_conc v)
+    explicit concatenation_point(equals_conc v)
         : value(std::move(v))
     {}
 

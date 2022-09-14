@@ -27,27 +27,27 @@ concat_chain create_chain()
     auto vs = std::make_unique<basic_variable_symbol>(&name, std::vector<ca_expr_ptr>(), range());
 
     concat_chain created_name;
-    created_name.push_back(char_str_conc("n", range()));
+    created_name.emplace_back(char_str_conc("n", range()));
 
     auto vsc = std::make_unique<created_variable_symbol>(std::move(created_name), std::vector<ca_expr_ptr>(), range());
 
     concat_chain chain;
 
-    chain.push_back(char_str_conc("ada", range()));
-    chain.push_back(var_sym_conc(std::move(vs)));
-    chain.push_back(dot_conc());
-    chain.push_back(equals_conc());
+    chain.emplace_back(char_str_conc("ada", range()));
+    chain.emplace_back(var_sym_conc(std::move(vs)));
+    chain.emplace_back(dot_conc());
+    chain.emplace_back(equals_conc());
 
     std::vector<concat_chain> list;
     concat_chain elem;
-    elem.push_back(char_str_conc("ada", range()));
+    elem.emplace_back(char_str_conc("ada", range()));
     list.push_back(std::move(elem));
-    elem.push_back(char_str_conc("ada", range()));
+    elem.emplace_back(char_str_conc("ada", range()));
     list.push_back(std::move(elem));
-    elem.push_back(var_sym_conc(std::move(vsc)));
+    elem.emplace_back(var_sym_conc(std::move(vsc)));
     list.push_back(std::move(elem));
 
-    chain.push_back(sublist_conc(std::move(list)));
+    chain.emplace_back(sublist_conc(std::move(list)));
 
     return chain;
 }

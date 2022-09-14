@@ -29,10 +29,10 @@ op_ch_c returns [std::string value]
 
 op_ch_v returns [std::optional<concatenation_point> point]
 	: common_ch_v							{$point = std::move($common_ch_v.point);}
-	| lpar									{$point = char_str_conc("(", provider.get_range($lpar.ctx->getStart())); }
-	| rpar									{$point = char_str_conc(")", provider.get_range($rpar.ctx->getStart())); }
-	| comma									{$point = char_str_conc(",", provider.get_range($comma.ctx->getStart())); }
-	| ATTR									{$point = char_str_conc("'", provider.get_range($ATTR)); };
+	| lpar									{$point.emplace(char_str_conc("(", provider.get_range($lpar.ctx->getStart()))); }
+	| rpar									{$point.emplace(char_str_conc(")", provider.get_range($rpar.ctx->getStart()))); }
+	| comma									{$point.emplace(char_str_conc(",", provider.get_range($comma.ctx->getStart()))); }
+	| ATTR									{$point.emplace(char_str_conc("'", provider.get_range($ATTR))); };
 
 op_ch_v_c returns [concat_chain chain]
 	:
@@ -85,7 +85,7 @@ before_var_sym_model returns [std::string value]
 	| tmp=before_var_sym_model before_var_sym_model_b	{$tmp.value.append(std::move($before_var_sym_model_b.value)); $value = std::move($tmp.value);};
 
 var_sym_model returns [concat_chain chain]
-	: var_symbol										{$chain.push_back(var_sym_conc(std::move($var_symbol.vs)));}
+	: var_symbol										{$chain.emplace_back(var_sym_conc(std::move($var_symbol.vs)));}
 	| string_v_actual									{$chain = std::move($string_v_actual.chain);};
 
 after_var_sym_model_b returns [concat_chain chain]
@@ -113,7 +113,7 @@ model_op returns [std::optional<concat_chain> chain_opt]
 		else
 		{
 			concat_chain chain;
-			chain.push_back(char_str_conc(std::move($before_var_sym_model.value), provider.get_range($before_var_sym_model.ctx)));
+			chain.emplace_back(char_str_conc(std::move($before_var_sym_model.value), provider.get_range($before_var_sym_model.ctx)));
 			chain.insert(chain.end(), 
 				std::make_move_iterator($var_sym_model.chain.begin()), 
 				std::make_move_iterator($var_sym_model.chain.end())
@@ -134,7 +134,7 @@ model_string_ch returns [std::string value]
 
 model_string_ch_v returns [std::optional<concatenation_point> point]
 	: l_sp_ch_v								{$point = std::move($l_sp_ch_v.point);}
-	| l=(APOSTROPHE|ATTR) r=(APOSTROPHE|ATTR)	{$point = char_str_conc("''", provider.get_range($l, $r));};
+	| l=(APOSTROPHE|ATTR) r=(APOSTROPHE|ATTR)	{$point.emplace(char_str_conc("''", provider.get_range($l, $r)));};
 
 model_string_ch_v_c returns [concat_chain chain]
 	:
@@ -152,25 +152,25 @@ model_string_ch_c returns [std::string value]
 string_v_actual returns [concat_chain chain]
 	: ap1=(APOSTROPHE|ATTR)	 model_string_ch_c var_symbol model_string_ch_v_c ap2=(APOSTROPHE|ATTR)	
 	{ 
-		$chain.push_back(char_str_conc("'", provider.get_range($ap1)));
-		$chain.push_back(char_str_conc(std::move($model_string_ch_c.value), provider.get_range($model_string_ch_c.ctx)));
-		$chain.push_back(var_sym_conc(std::move($var_symbol.vs)));
+		$chain.emplace_back(char_str_conc("'", provider.get_range($ap1)));
+		$chain.emplace_back(char_str_conc(std::move($model_string_ch_c.value), provider.get_range($model_string_ch_c.ctx)));
+		$chain.emplace_back(var_sym_conc(std::move($var_symbol.vs)));
 		$chain.insert($chain.end(), 
 			std::make_move_iterator($model_string_ch_v_c.chain.begin()), 
 			std::make_move_iterator($model_string_ch_v_c.chain.end())
 		);
-		$chain.push_back(char_str_conc("'", provider.get_range($ap2)));
+		$chain.emplace_back(char_str_conc("'", provider.get_range($ap2)));
 		collector.add_hl_symbol(token_info(provider.get_range($ap1,$ap2),hl_scopes::string)); 
 	};
 
 model_string_v returns [concat_chain chain]
 	: ap1=(APOSTROPHE|ATTR) model_string_ch_v_c ap2=(APOSTROPHE|ATTR)
 	{ 
-		$chain.push_back(char_str_conc("'", provider.get_range($ap1)));
+		$chain.emplace_back(char_str_conc("'", provider.get_range($ap1)));
 		$chain.insert($chain.end(),
 			std::make_move_iterator($model_string_ch_v_c.chain.begin()),
 			std::make_move_iterator($model_string_ch_v_c.chain.end())
 		);
-		$chain.push_back(char_str_conc("'", provider.get_range($ap2)));
+		$chain.emplace_back(char_str_conc("'", provider.get_range($ap2)));
 		collector.add_hl_symbol(token_info(provider.get_range($ap1,$ap2),hl_scopes::string)); 
 	};

@@ -226,29 +226,29 @@ created_set_body returns [concat_chain concat_list]
 		ORDSYMBOL
 		{
 			collector.add_hl_symbol(token_info(provider.get_range( $ORDSYMBOL),hl_scopes::var_symbol));
-			$concat_list.push_back(char_str_conc($ORDSYMBOL->getText(), provider.get_range($ORDSYMBOL)));
+			$concat_list.emplace_back(char_str_conc($ORDSYMBOL->getText(), provider.get_range($ORDSYMBOL)));
 		}
 		|
 		IDENTIFIER
 		{
 			collector.add_hl_symbol(token_info(provider.get_range( $IDENTIFIER),hl_scopes::var_symbol));
-			$concat_list.push_back(char_str_conc($IDENTIFIER->getText(), provider.get_range($IDENTIFIER)));
+			$concat_list.emplace_back(char_str_conc($IDENTIFIER->getText(), provider.get_range($IDENTIFIER)));
 		}
 		|
 		NUM
 		{
 			collector.add_hl_symbol(token_info(provider.get_range( $NUM),hl_scopes::var_symbol));
-			$concat_list.push_back(char_str_conc($NUM->getText(), provider.get_range($NUM)));
+			$concat_list.emplace_back(char_str_conc($NUM->getText(), provider.get_range($NUM)));
 		}
 		|
 		var_symbol
 		{
-			$concat_list.push_back(var_sym_conc(std::move($var_symbol.vs)));
+			$concat_list.emplace_back(var_sym_conc(std::move($var_symbol.vs)));
 		}
 		|
 		dot
 		{
-			$concat_list.push_back(dot_conc());
+			$concat_list.emplace_back(dot_conc());
 		}
 	)+
 	;
@@ -393,7 +393,7 @@ ca_string returns [ca_expr_ptr ca_expr]
 
 string_ch_v returns [std::optional<concatenation_point> point]
 	: l_sp_ch_v								{$point = std::move($l_sp_ch_v.point);}
-	| l=(APOSTROPHE|ATTR) r=(APOSTROPHE|ATTR)	{$point = char_str_conc("'", provider.get_range($l, $r));};
+	| l=(APOSTROPHE|ATTR) r=(APOSTROPHE|ATTR)	{$point.emplace(char_str_conc("'", provider.get_range($l, $r)));};
 
 string_ch_v_c returns [concat_chain chain]
 	:
