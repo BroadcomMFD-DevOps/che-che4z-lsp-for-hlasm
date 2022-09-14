@@ -258,17 +258,17 @@ context::macro_data_ptr macro_processor::get_label_args(const resolved_statement
 
 bool is_keyword(const semantics::concat_chain& chain, context::hlasm_context& hlasm_ctx)
 {
-    return chain.size() >= 2 && chain[0].type() == semantics::concat_type::STR
-        && chain[1].type() == semantics::concat_type::EQU
-        && hlasm_ctx.try_get_symbol_name(std::get<semantics::char_str_conc>(chain[0].value).value).first;
+    using namespace semantics;
+    return concat_chain_starts_with<char_str_conc, equals_conc>(chain)
+        && hlasm_ctx.try_get_symbol_name(std::get<char_str_conc>(chain[0].value).value).first;
 }
 
 bool can_chain_be_forwarded(const semantics::concat_chain& chain)
 {
-    if (chain.size() == 1 && chain.front().type() == semantics::concat_type::VAR) // single variable symbol &VAR
+    using namespace semantics;
+    if (concat_chain_matches<var_sym_conc>(chain)) // single variable symbol &VAR
         return true;
-    if (chain.size() == 2 && chain.front().type() == semantics::concat_type::VAR
-        && chain.back().type() == semantics::concat_type::DOT) // single variable symbol with dot &VAR.
+    if (concat_chain_matches<var_sym_conc, dot_conc>(chain)) // single variable symbol with dot &VAR.
         return true;
     return false;
 }
@@ -343,10 +343,9 @@ void macro_processor::get_keyword_arg(const resolved_statement& statement,
 
         auto chain_begin = chain.begin() + 2;
         auto chain_end = chain.end();
-        auto chain_size = chain.size() - 2;
         context::macro_data_ptr data;
 
-        if (chain_size == 1 && (*chain_begin).type() == semantics::concat_type::SUB)
+        if (semantics::concat_chain_matches<semantics::sublist_conc>(chain_begin, chain_end))
         {
             diagnostic_adder add_diags(statement.operands_ref().field_range);
             data = create_macro_data(chain_begin, chain_end, eval_ctx, add_diags);
@@ -368,7 +367,7 @@ context::macro_data_ptr create_macro_data_inner(semantics::concat_chain::const_i
     auto size = end - begin;
     if (size == 0)
         return std::make_unique<context::macro_param_data_dummy>();
-    else if (size == 1 && begin->type() != semantics::concat_type::SUB)
+    else if (size == 1 && !semantics::concat_chain_matches<semantics::sublist_conc>(begin, end))
         return macro_processor::string_to_macrodata(to_string(begin, end));
     else if (size > 1)
     {

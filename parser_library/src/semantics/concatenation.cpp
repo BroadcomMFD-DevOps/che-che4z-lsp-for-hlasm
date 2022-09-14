@@ -117,7 +117,7 @@ struct concat_point_stringifier
             result.append(*v.symbol->access_basic()->name);
     }
 
-    void operator()(const dot_conc& v) const { result.push_back('.'); }
+    void operator()(const dot_conc&) const { result.push_back('.'); }
 
     void operator()(const sublist_conc& v) const
     {
@@ -131,7 +131,7 @@ struct concat_point_stringifier
         result.push_back(')');
     }
 
-    void operator()(const equals_conc& v) const { result.push_back('='); }
+    void operator()(const equals_conc&) const { result.push_back('='); }
 };
 
 std::string concatenation_point::to_string(concat_chain::const_iterator begin, concat_chain::const_iterator end)

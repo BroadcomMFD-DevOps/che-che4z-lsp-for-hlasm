@@ -20,7 +20,7 @@ instruction returns [id_index instr]
 	{
 		for(const auto& point : $l_string_v.chain)
 		{
-			if(point.type() != concat_type::STR)
+			if(!std::holds_alternative<semantics::char_str_conc>(point.value))
 				continue;
 			collector.add_hl_symbol(token_info(std::get<semantics::char_str_conc>(point.value).conc_range,hl_scopes::instruction));
 		}

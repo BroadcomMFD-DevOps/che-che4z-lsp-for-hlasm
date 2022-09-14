@@ -112,7 +112,6 @@ struct sublist_conc
 struct concatenation_point
 {
     std::variant<char_str_conc, var_sym_conc, dot_conc, sublist_conc, equals_conc> value;
-    concat_type type() const { return static_cast<concat_type>(value.index()); }
 
     // cleans concat_chains of empty strings and badly parsed operands
     static void clear_concat_chain(concat_chain& conc_list);
@@ -149,6 +148,52 @@ struct concatenation_point
     std::string evaluate(const expressions::evaluation_context& eval_ctx) const;
     void resolve(diagnostic_op_consumer& diag) const;
 };
+
+template<bool exact, typename... Ts>
+struct concat_chain_matcher
+{
+    bool operator()(const concat_chain& chain) const
+    {
+        if constexpr (exact)
+        {
+            if (chain.size() != sizeof...(Ts))
+                return false;
+        }
+        else
+        {
+            if (chain.size() < sizeof...(Ts))
+                return false;
+        }
+        return []<size_t... ids>(const concat_chain& ch, std::index_sequence<ids...>)
+        {
+            return (std::holds_alternative<Ts>(ch[ids].value) && ...);
+        }
+        (chain, std::index_sequence_for<Ts...>());
+    }
+    bool operator()(concat_chain::const_iterator b, concat_chain::const_iterator e) const
+    {
+        if constexpr (exact)
+        {
+            if (std::distance(b, e) != sizeof...(Ts))
+                return false;
+        }
+        else
+        {
+            if (std::distance(b, e) < sizeof...(Ts))
+                return false;
+        }
+        return []<size_t... ids>(concat_chain::const_iterator it, std::index_sequence<ids...>)
+        {
+            return (std::holds_alternative<Ts>((it + ids)->value) && ...);
+        }
+        (b, std::index_sequence_for<Ts...>());
+    }
+};
+
+template<typename... Ts>
+constexpr const concat_chain_matcher<true, Ts...> concat_chain_matches;
+template<typename... Ts>
+constexpr const concat_chain_matcher<false, Ts...> concat_chain_starts_with;
 
 } // namespace hlasm_plugin::parser_library::semantics
 
