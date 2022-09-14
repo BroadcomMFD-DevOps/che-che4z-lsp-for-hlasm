@@ -270,9 +270,9 @@ void macrodef_processor::process_prototype_operand(
 
         auto& tmp_chain = tmp->chain;
 
-        if (tmp_chain.size() == 1 && tmp_chain[0]->type == semantics::concat_type::VAR) // if operand is varsym
+        if (tmp_chain.size() == 1 && tmp_chain[0].type() == semantics::concat_type::VAR) // if operand is varsym
         {
-            auto var = tmp_chain[0]->access_var()->symbol.get();
+            auto var = std::get<semantics::var_sym_conc>(tmp_chain[0].value).symbol.get();
 
             if (test_varsym_validity(var, param_names, tmp->operand_range, true))
             {
@@ -284,10 +284,10 @@ void macrodef_processor::process_prototype_operand(
         }
         else if (tmp_chain.size() > 1)
         {
-            if (tmp_chain[0]->type == semantics::concat_type::VAR
-                && tmp_chain[1]->type == semantics::concat_type::EQU) // if operand is in form of key param
+            if (tmp_chain[0].type() == semantics::concat_type::VAR
+                && tmp_chain[1].type() == semantics::concat_type::EQU) // if operand is in form of key param
             {
-                auto var = tmp_chain[0]->access_var()->symbol.get();
+                auto var = std::get<semantics::var_sym_conc>(tmp_chain[0].value).symbol.get();
 
                 if (test_varsym_validity(var, param_names, tmp->operand_range, false))
                 {

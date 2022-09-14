@@ -258,17 +258,17 @@ context::macro_data_ptr macro_processor::get_label_args(const resolved_statement
 
 bool is_keyword(const semantics::concat_chain& chain, context::hlasm_context& hlasm_ctx)
 {
-    return chain.size() >= 2 && chain[0]->type == semantics::concat_type::STR
-        && chain[1]->type == semantics::concat_type::EQU
-        && hlasm_ctx.try_get_symbol_name(chain[0]->access_str()->value).first;
+    return chain.size() >= 2 && chain[0].type() == semantics::concat_type::STR
+        && chain[1].type() == semantics::concat_type::EQU
+        && hlasm_ctx.try_get_symbol_name(std::get<semantics::char_str_conc>(chain[0].value).value).first;
 }
 
 bool can_chain_be_forwarded(const semantics::concat_chain& chain)
 {
-    if (chain.size() == 1 && chain.front()->type == semantics::concat_type::VAR) // single variable symbol &VAR
+    if (chain.size() == 1 && chain.front().type() == semantics::concat_type::VAR) // single variable symbol &VAR
         return true;
-    if (chain.size() == 2 && chain.front()->type == semantics::concat_type::VAR
-        && chain.back()->type == semantics::concat_type::DOT) // single variable symbol with dot &VAR.
+    if (chain.size() == 2 && chain.front().type() == semantics::concat_type::VAR
+        && chain.back().type() == semantics::concat_type::DOT) // single variable symbol with dot &VAR.
         return true;
     return false;
 }
@@ -297,8 +297,8 @@ std::vector<context::macro_arg> macro_processor::get_operand_args(const resolved
         }
         else if (can_chain_be_forwarded(tmp_chain)) // single varsym
         {
-            context::macro_data_ptr data = string_to_macrodata(
-                semantics::var_sym_conc::evaluate(tmp_chain.front()->access_var()->symbol->evaluate(eval_ctx)));
+            context::macro_data_ptr data = string_to_macrodata(semantics::var_sym_conc::evaluate(
+                std::get<semantics::var_sym_conc>(tmp_chain.front().value).symbol->evaluate(eval_ctx)));
 
             args.push_back({ std::move(data), nullptr });
         }
@@ -318,7 +318,7 @@ void macro_processor::get_keyword_arg(const resolved_statement& statement,
     std::vector<context::id_index>& keyword_params,
     range op_range) const
 {
-    auto id = hlasm_ctx.try_get_symbol_name(chain[0]->access_str()->value).second;
+    auto id = hlasm_ctx.try_get_symbol_name(std::get<semantics::char_str_conc>(chain[0].value).value).second;
     assert(id != context::id_storage::empty_id);
 
     auto named = hlasm_ctx.get_macro_definition(statement.opcode_ref().value)->named_params().find(id);
@@ -328,7 +328,7 @@ void macro_processor::get_keyword_arg(const resolved_statement& statement,
         add_diagnostic(diagnostic_op::warning_W014(op_range));
 
         // MACROCASE TODO
-        auto name = chain[0]->access_str()->value;
+        auto name = std::get<semantics::char_str_conc>(chain[0].value).value;
 
         args.push_back({ std::make_unique<context::macro_param_data_single>(
                              name + "=" + semantics::concatenation_point::to_string(chain.begin() + 2, chain.end())),
@@ -346,7 +346,7 @@ void macro_processor::get_keyword_arg(const resolved_statement& statement,
         auto chain_size = chain.size() - 2;
         context::macro_data_ptr data;
 
-        if (chain_size == 1 && (*chain_begin)->type == semantics::concat_type::SUB)
+        if (chain_size == 1 && (*chain_begin).type() == semantics::concat_type::SUB)
         {
             diagnostic_adder add_diags(statement.operands_ref().field_range);
             data = create_macro_data(chain_begin, chain_end, eval_ctx, add_diags);
@@ -368,7 +368,7 @@ context::macro_data_ptr create_macro_data_inner(semantics::concat_chain::const_i
     auto size = end - begin;
     if (size == 0)
         return std::make_unique<context::macro_param_data_dummy>();
-    else if (size == 1 && (*begin)->type != semantics::concat_type::SUB)
+    else if (size == 1 && begin->type() != semantics::concat_type::SUB)
         return macro_processor::string_to_macrodata(to_string(begin, end));
     else if (size > 1)
     {
@@ -384,7 +384,7 @@ context::macro_data_ptr create_macro_data_inner(semantics::concat_chain::const_i
         }
     }
 
-    const auto& inner_chains = (*begin)->access_sub()->list;
+    const auto& inner_chains = std::get<semantics::sublist_conc>(begin->value).list;
 
     std::vector<context::macro_data_ptr> sublist;
 

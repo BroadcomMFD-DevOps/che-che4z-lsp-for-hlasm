@@ -226,29 +226,29 @@ created_set_body returns [concat_chain concat_list]
 		ORDSYMBOL
 		{
 			collector.add_hl_symbol(token_info(provider.get_range( $ORDSYMBOL),hl_scopes::var_symbol));
-			$concat_list.push_back(std::make_unique<char_str_conc>($ORDSYMBOL->getText(), provider.get_range($ORDSYMBOL)));
+			$concat_list.push_back(char_str_conc($ORDSYMBOL->getText(), provider.get_range($ORDSYMBOL)));
 		}
 		|
 		IDENTIFIER
 		{
 			collector.add_hl_symbol(token_info(provider.get_range( $IDENTIFIER),hl_scopes::var_symbol));
-			$concat_list.push_back(std::make_unique<char_str_conc>($IDENTIFIER->getText(), provider.get_range($IDENTIFIER)));
+			$concat_list.push_back(char_str_conc($IDENTIFIER->getText(), provider.get_range($IDENTIFIER)));
 		}
 		|
 		NUM
 		{
 			collector.add_hl_symbol(token_info(provider.get_range( $NUM),hl_scopes::var_symbol));
-			$concat_list.push_back(std::make_unique<char_str_conc>($NUM->getText(), provider.get_range($NUM)));
+			$concat_list.push_back(char_str_conc($NUM->getText(), provider.get_range($NUM)));
 		}
 		|
 		var_symbol
 		{
-			$concat_list.push_back(std::make_unique<var_sym_conc>(std::move($var_symbol.vs)));
+			$concat_list.push_back(var_sym_conc(std::move($var_symbol.vs)));
 		}
 		|
 		dot
 		{
-			$concat_list.push_back(std::make_unique<dot_conc>());
+			$concat_list.push_back(dot_conc());
 		}
 	)+
 	;
@@ -391,17 +391,17 @@ ca_string returns [ca_expr_ptr ca_expr]
 	finally
 	{if (!$ca_expr) $ca_expr = std::make_unique<ca_constant>(0, provider.get_range(_localctx));}
 
-string_ch_v returns [concat_point_ptr point]
+string_ch_v returns [std::optional<concatenation_point> point]
 	: l_sp_ch_v								{$point = std::move($l_sp_ch_v.point);}
-	| l=(APOSTROPHE|ATTR) r=(APOSTROPHE|ATTR)	{$point = std::make_unique<char_str_conc>("'", provider.get_range($l, $r));};
+	| l=(APOSTROPHE|ATTR) r=(APOSTROPHE|ATTR)	{$point = char_str_conc("'", provider.get_range($l, $r));};
 
 string_ch_v_c returns [concat_chain chain]
 	:
 	| cl=string_ch_v_c string_ch_v
 	{
-		if (auto& v = $string_ch_v.point; v)
-			$cl.chain.push_back(std::move(v));
 		$chain = std::move($cl.chain);
+		if (auto& v = $string_ch_v.point; v.has_value())
+			$chain.push_back(std::move(v.value()));
 	};
 	finally
 	{concatenation_point::clear_concat_chain($chain);}
