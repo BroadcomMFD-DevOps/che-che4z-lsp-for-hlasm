@@ -2615,20 +2615,22 @@ diagnostic_s diagnostic_s::error_B4G002(const utils::resource::resource_location
         diagnostic_tag::none);
 }
 
-diagnostic_s diagnostic_s::error_L0001(std::string_view path)
+diagnostic_s diagnostic_s::error_L0001(const utils::resource::resource_location& config_loc, std::string_view path)
 {
-    return diagnostic_s("", {}, "L0001", concat("Unable to load library: ", path, "."));
+    return diagnostic_s(config_loc.get_uri(), {}, "L0001", concat("Unable to load library: ", path, "."));
 }
 
-diagnostic_s diagnostic_s::error_L0002(std::string_view path)
+diagnostic_s diagnostic_s::error_L0002(const utils::resource::resource_location& config_loc, std::string_view path)
 {
-    return diagnostic_s(
-        "", {}, "L0002", concat("Unable to load library: ", path, ". Error: The path does not point to directory."));
+    return diagnostic_s(config_loc.get_uri(),
+        {},
+        "L0002",
+        concat("Unable to load library: ", path, ". Error: The path does not point to directory."));
 }
 
-diagnostic_s diagnostic_s::warning_L0003(std::string_view path)
+diagnostic_s diagnostic_s::warning_L0003(const utils::resource::resource_location& config_loc, std::string_view path)
 {
-    return diagnostic_s("",
+    return diagnostic_s(config_loc.get_uri(),
         {},
         diagnostic_severity::warning,
         "L0003",
@@ -2639,9 +2641,10 @@ diagnostic_s diagnostic_s::warning_L0003(std::string_view path)
         diagnostic_tag::none);
 }
 
-diagnostic_s diagnostic_s::warning_L0004(std::string_view path, std::string_view macro_name)
+diagnostic_s diagnostic_s::warning_L0004(
+    const utils::resource::resource_location& config_loc, std::string_view path, std::string_view macro_name)
 {
-    return diagnostic_s("",
+    return diagnostic_s(config_loc.get_uri(),
         {},
         diagnostic_severity::warning,
         "L0004",
@@ -2650,9 +2653,10 @@ diagnostic_s diagnostic_s::warning_L0004(std::string_view path, std::string_view
         diagnostic_tag::none);
 }
 
-diagnostic_s diagnostic_s::warning_L0005(std::string_view pattern, size_t limit)
+diagnostic_s diagnostic_s::warning_L0005(
+    const utils::resource::resource_location& config_loc, std::string_view pattern, size_t limit)
 {
-    return diagnostic_s("",
+    return diagnostic_s(config_loc.get_uri(),
         {},
         diagnostic_severity::warning,
         "L0005",
@@ -2661,9 +2665,9 @@ diagnostic_s diagnostic_s::warning_L0005(std::string_view pattern, size_t limit)
         diagnostic_tag::none);
 }
 
-diagnostic_s diagnostic_s::warning_L0006(std::string_view path)
+diagnostic_s diagnostic_s::warning_L0006(const utils::resource::resource_location& config_loc, std::string_view path)
 {
-    return diagnostic_s("",
+    return diagnostic_s(config_loc.get_uri(),
         {},
         diagnostic_severity::warning,
         "L0006",

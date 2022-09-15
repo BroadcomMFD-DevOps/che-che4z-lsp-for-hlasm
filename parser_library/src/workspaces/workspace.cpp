@@ -21,7 +21,6 @@
 
 #include "file_manager.h"
 #include "lib_config.h"
-#include "library_local.h"
 #include "processor.h"
 #include "utils/content_loader.h"
 #include "utils/encoding.h"

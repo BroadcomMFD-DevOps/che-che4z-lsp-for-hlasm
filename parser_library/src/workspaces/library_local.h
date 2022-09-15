@@ -41,8 +41,10 @@ class library_local final : public library, public diagnosable_impl
 public:
     // takes reference to file manager that provides access to the files
     // and normalised path to directory that it wraps.
-    library_local(
-        file_manager& file_manager, utils::resource::resource_location lib_loc, library_local_options options);
+    library_local(file_manager& file_manager,
+        utils::resource::resource_location lib_loc,
+        library_local_options options,
+        const utils::resource::resource_location& proc_grps_loc);
 
     library_local(const library_local&) = delete;
     library_local& operator=(const library_local&) = delete;
@@ -70,6 +72,7 @@ private:
     bool files_loaded_ = false;
     bool optional_ = false;
     bool extensions_from_deprecated_source = false;
+    const utils::resource::resource_location& proc_grps_loc_;
 
     void load_files();
 };
