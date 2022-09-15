@@ -60,6 +60,12 @@ private:
         context::id_index id;
         bool scalar;
         range r;
+
+        GLB_LCL_info(context::id_index id, bool scalar, range r)
+            : id(id)
+            , scalar(scalar)
+            , r(r)
+        {}
     };
 
     template<typename T>
@@ -70,7 +76,7 @@ private:
     template<typename T>
     void process_SET(const semantics::complete_statement& stmt);
 
-    bool prepare_GBL_LCL(const semantics::complete_statement& stmt, std::vector<GLB_LCL_info>& info);
+    bool prepare_GBL_LCL(const semantics::complete_statement& stmt, std::vector<GLB_LCL_info>& info) const;
 
     template<typename T, bool global>
     void process_GBL_LCL(const semantics::complete_statement& stmt);
