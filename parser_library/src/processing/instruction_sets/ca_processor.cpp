@@ -126,10 +126,17 @@ ca_processor::SET_info ca_processor::get_SET_symbol(const semantics::complete_st
         }
     }
     else
-        set_sym = hlasm_ctx.template create_local_variable<T>(name, is_scalar_expression)->access_set_symbol_base();
+    {
+        auto var = hlasm_ctx.create_local_variable<T>(name, is_scalar_expression);
+        if (!var)
+        {
+            add_diagnostic(diagnostic_op::error_E051(*name, symbol->symbol_range));
+            return {};
+        }
 
-    if (!set_sym)
-        eval_ctx.diags.add_diagnostic(diagnostic_op::error_E051(*name, symbol->symbol_range));
+        set_sym = var->access_set_symbol_base();
+        assert(set_sym);
+    }
 
     if (symbol->subscript.size() > 1)
     {
