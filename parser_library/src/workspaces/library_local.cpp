@@ -115,13 +115,13 @@ void library_local::load_files()
             break;
         case hlasm_plugin::utils::path::list_directory_rc::not_exists:
             if (!optional_)
-                add_diagnostic(diagnostic_s::error_L0002(proc_grps_loc_, lib_loc_.to_presentable()));
+                add_diagnostic(diagnostic_s::error_L0002(proc_grps_loc_, lib_loc_));
             break;
         case hlasm_plugin::utils::path::list_directory_rc::not_a_directory:
-            add_diagnostic(diagnostic_s::error_L0002(proc_grps_loc_, lib_loc_.to_presentable()));
+            add_diagnostic(diagnostic_s::error_L0002(proc_grps_loc_, lib_loc_));
             break;
         case hlasm_plugin::utils::path::list_directory_rc::other_failure:
-            add_diagnostic(diagnostic_s::error_L0001(proc_grps_loc_, lib_loc_.to_presentable()));
+            add_diagnostic(diagnostic_s::error_L0001(proc_grps_loc_, lib_loc_));
             break;
     }
 
@@ -149,8 +149,7 @@ void library_local::load_files()
             // TODO: the stored value is a full path, yet we try to interpret it as a relative one later on
             if (!inserted)
                 add_diagnostic(diagnostic_s::warning_L0004(
-                    proc_grps_loc_,
-                    lib_loc_.to_presentable(), context::to_upper_copy(std::string(filename))));
+                    proc_grps_loc_, lib_loc_, context::to_upper_copy(std::string(filename))));
 
             if (extension.size())
                 extension_removed = true;
@@ -158,7 +157,7 @@ void library_local::load_files()
         }
     }
     if (extension_removed && extensions_from_deprecated_source)
-        add_diagnostic(diagnostic_s::warning_L0003(proc_grps_loc_, lib_loc_.to_presentable()));
+        add_diagnostic(diagnostic_s::warning_L0003(proc_grps_loc_, lib_loc_));
 
     files_loaded_ = true;
 }

@@ -557,7 +557,7 @@ void workspace_configuration::find_and_add_libs(const utils::resource::resource_
     if (!m_file_manager.dir_exists(root))
     {
         if (!opts.optional_library)
-            diags.push_back(diagnostic_s::error_L0001(m_proc_grps_loc, root.to_presentable()));
+            diags.push_back(diagnostic_s::error_L0001(m_proc_grps_loc, root));
         return;
     }
 
@@ -569,7 +569,7 @@ void workspace_configuration::find_and_add_libs(const utils::resource::resource_
     if (std::error_code ec; dirs_to_search.emplace_back(m_file_manager.canonical(root, ec), root), ec)
     {
         if (!opts.optional_library)
-            diags.push_back(diagnostic_s::error_L0001(m_proc_grps_loc, root.to_presentable()));
+            diags.push_back(diagnostic_s::error_L0001(m_proc_grps_loc, root));
         return;
     }
 
@@ -594,7 +594,7 @@ void workspace_configuration::find_and_add_libs(const utils::resource::resource_
         auto [subdir_list, return_code] = m_file_manager.list_directory_subdirs_and_symlinks(dir);
         if (return_code != utils::path::list_directory_rc::done)
         {
-            diags.push_back(diagnostic_s::error_L0001(m_proc_grps_loc, dir.to_presentable()));
+            diags.push_back(diagnostic_s::error_L0001(m_proc_grps_loc, dir));
             break;
         }
 
