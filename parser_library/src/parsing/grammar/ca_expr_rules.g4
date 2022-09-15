@@ -397,11 +397,13 @@ string_ch_v returns [std::optional<concatenation_point> point]
 
 string_ch_v_c returns [concat_chain chain]
 	:
-	| cl=string_ch_v_c string_ch_v
-	{
-		$chain = std::move($cl.chain);
-		if (auto& v = $string_ch_v.point; v.has_value())
-			$chain.push_back(std::move(v.value()));
-	};
+	(
+		string_ch_v
+		{
+			if (auto& v = $string_ch_v.point; v.has_value())
+				$chain.push_back(std::move(v.value()));
+		}
+	)*
+	;
 	finally
 	{concatenation_point::clear_concat_chain($chain);}

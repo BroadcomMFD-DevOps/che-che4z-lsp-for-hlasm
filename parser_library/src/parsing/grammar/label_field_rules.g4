@@ -57,63 +57,46 @@ label
 	};
 
 
-l_common_rules returns [concat_chain chain]
-	: l_string_v_apo_sp l_string_v
+l_common_rules [concat_chain* chain]
+	: l_string_v_apo_sp[$chain] l_string_v[$chain]
+	| l_string_poss_space_c
 	{
-		$chain = std::move($l_string_v_apo_sp.chain);
-		$chain.insert($chain.end(), std::make_move_iterator($l_string_v.chain.begin()), std::make_move_iterator($l_string_v.chain.end()));
+		$chain->emplace_back(char_str_conc(std::move($l_string_poss_space_c.value), provider.get_range($l_string_poss_space_c.ctx)));
 	}
-	| l_string_poss_space_c l_string_v
+	l_string_v[$chain]
+	| l_string_v_apo_sp[$chain] l_string
 	{
-		$chain.emplace_back(char_str_conc(std::move($l_string_poss_space_c.value), provider.get_range($l_string_poss_space_c.ctx)));
-		$chain.insert($chain.end(), std::make_move_iterator($l_string_v.chain.begin()), std::make_move_iterator($l_string_v.chain.end()));
-	}
-	| l_string_v_apo_sp l_string
-	{
-		$l_string_v_apo_sp.chain.emplace_back(char_str_conc(std::move($l_string.value), provider.get_range($l_string.ctx)));
-		$chain = std::move($l_string_v_apo_sp.chain);
+		$chain->emplace_back(char_str_conc(std::move($l_string.value), provider.get_range($l_string.ctx)));
 	};
 
 l_model_sp returns [concat_chain chain]
-	: l_string_v_apo_sp											{$chain = std::move($l_string_v_apo_sp.chain);}
-	| l_common_rules											{$chain = std::move($l_common_rules.chain);}
-	| l_common_rules l_string_v_apo
+	: l_string_v_apo_sp[&$chain]
+	| l_common_rules[&$chain]
+	| l_common_rules[&$chain] l_string_v_apo[&$chain]
+	| l_common_rules[&$chain] l_string_no_space_c
 	{
-		$chain = std::move($l_common_rules.chain);
-		$chain.insert($chain.end(), std::make_move_iterator($l_string_v_apo.chain.begin()), std::make_move_iterator($l_string_v_apo.chain.end()));
-	}
-	| l_common_rules l_string_no_space_c
-	{
-		$chain = std::move($l_common_rules.chain);
 		$chain.emplace_back(char_str_conc(std::move($l_string_no_space_c.value), provider.get_range($l_string_no_space_c.ctx)));
 	}
-	| l_string_poss_space_c l_string l_string_v_apo
+	| l_string_poss_space_c l_string
 	{
 		$chain.emplace_back(char_str_conc(std::move($l_string_poss_space_c.value), provider.get_range($l_string_poss_space_c.ctx)));
 		$chain.emplace_back(char_str_conc(std::move($l_string.value), provider.get_range($l_string.ctx)));
-		$chain.insert($chain.end(), std::make_move_iterator($l_string_v_apo.chain.begin()), std::make_move_iterator($l_string_v_apo.chain.end()));
-	};
+	}
+	l_string_v_apo[&$chain]
+	;
 	finally
 	{concatenation_point::clear_concat_chain($chain);}
 
 l_model returns [concat_chain chain]
-	: l_string_v			
-	{
-		$chain = std::move($l_string_v.chain);
-	}
-	| l_string l_string_v_apo
+	: l_string_v[&$chain]
+	| l_string
 	{
 		$chain.emplace_back(char_str_conc(std::move($l_string.value), provider.get_range($l_string.ctx)));
-		$chain.insert($chain.end(), std::make_move_iterator($l_string_v_apo.chain.begin()), std::make_move_iterator($l_string_v_apo.chain.end()));
 	}
-	| l_string_v l_string_v_apo
+	l_string_v_apo[&$chain]
+	| l_string_v[&$chain] l_string_v_apo[&$chain]
+	| l_string_v[&$chain] l_string_no_space_c
 	{
-		$chain = std::move($l_string_v.chain);
-		$chain.insert($chain.end(), std::make_move_iterator($l_string_v_apo.chain.begin()), std::make_move_iterator($l_string_v_apo.chain.end()));
-	}
-	| l_string_v l_string_no_space_c
-	{
-		$chain = std::move($l_string_v.chain);
 		$chain.emplace_back(char_str_conc(std::move($l_string_no_space_c.value), provider.get_range($l_string_no_space_c.ctx)));
 	};
 	finally
@@ -169,28 +152,26 @@ l_ch_v returns [std::optional<concatenation_point> point]
 	| LPAR													{$point.emplace(char_str_conc("(", provider.get_range($LPAR)));}
 	| RPAR													{$point.emplace(char_str_conc(")", provider.get_range($RPAR)));};
 
-l_str_v returns [concat_chain chain]
-	:														
-	| tmp=l_str_v l_ch_v
-	{
-		if ($l_ch_v.point.has_value())
-			$tmp.chain.emplace_back(std::move($l_ch_v.point.value()));
-		$chain=std::move($tmp.chain);
-	};
-
 l_string returns [std::string value]
 	: l_ch													{$value = std::move($l_ch.value);}
 	| str=l_string l_ch										{$value.append(std::move($str.value)); $value.append(std::move($l_ch.value));};
 
-l_string_v returns [concat_chain chain]
-	: l_string_o var_symbol l_str_v							
+l_string_v [concat_chain* chain]
+	: l_string_o var_symbol
 	{
-		$chain.emplace_back(char_str_conc(std::move($l_string_o.value), provider.get_range($l_string_o.ctx)));
-		$chain.emplace_back(var_sym_conc(std::move($var_symbol.vs)));
-		$chain.insert($chain.end(), std::make_move_iterator($l_str_v.chain.begin()), std::make_move_iterator($l_str_v.chain.end()));
-	};
+		$chain->emplace_back(char_str_conc(std::move($l_string_o.value), provider.get_range($l_string_o.ctx)));
+		$chain->emplace_back(var_sym_conc(std::move($var_symbol.vs)));
+	}
+	(
+		l_ch_v
+		{
+			if ($l_ch_v.point.has_value())
+				$chain->emplace_back(std::move($l_ch_v.point.value()));
+		}
+	)*
+	;
 	finally
-	{concatenation_point::clear_concat_chain($chain);}
+	{concatenation_point::clear_concat_chain(*$chain);}
 
 l_string_o returns [std::string value]
 	: l_string												{$value = std::move($l_string.value);}				
@@ -206,55 +187,56 @@ l_string_no_space_c returns [std::string value]
 		$value = std::move($tmp.value); $value.append("'"); $value.append(std::move($str1.value)); $value.append("'"); $value.append(std::move($str2.value));
 	};
 
-l_string_no_space_v returns [concat_chain chain]
-	: l=l_apo l_string_o r=l_apo l_string_v
+l_string_no_space_v [concat_chain* chain]
+	: l=l_apo l_string_o r=l_apo
 	{
 		std::string tmp("'"); tmp.append(std::move($l_string_o.value)); tmp.append("'");
-		$chain.emplace_back(char_str_conc(std::move(tmp), provider.get_range($l.ctx->getStart(), $r.ctx->getStart())));
-		$chain.insert($chain.end(), std::make_move_iterator($l_string_v.chain.begin()), std::make_move_iterator($l_string_v.chain.end()));
+		$chain->emplace_back(char_str_conc(std::move(tmp), provider.get_range($l.ctx->getStart(), $r.ctx->getStart())));
 	}
-	| l=l_apo l_string_v r=l_apo l_string_o
+	l_string_v[$chain]
+	| l=l_apo
 	{
-		$chain.emplace_back(char_str_conc("'", provider.get_range($l.ctx->getStart())));
-		$chain.insert($chain.end(), std::make_move_iterator($l_string_v.chain.begin()), std::make_move_iterator($l_string_v.chain.end()));
-		$chain.emplace_back(char_str_conc("'", provider.get_range($r.ctx->getStart())));
-		$chain.emplace_back(char_str_conc(std::move($l_string_o.value), provider.get_range($l_string_o.ctx)));
+		$chain->emplace_back(char_str_conc("'", provider.get_range($l.ctx->getStart())));
 	}
-	| l=l_apo str1=l_string_v r=l_apo str2=l_string_v
+	l_string_v[$chain] r=l_apo l_string_o
 	{
-		$chain.emplace_back(char_str_conc("'", provider.get_range($l.ctx->getStart())));
-		$chain.insert($chain.end(), std::make_move_iterator($str1.chain.begin()), std::make_move_iterator($str1.chain.end()));
-		$chain.emplace_back(char_str_conc("'", provider.get_range($r.ctx->getStart())));
-		$chain.insert($chain.end(), std::make_move_iterator($str2.chain.begin()), std::make_move_iterator($str2.chain.end()));
-	};
+		$chain->emplace_back(char_str_conc("'", provider.get_range($r.ctx->getStart())));
+		$chain->emplace_back(char_str_conc(std::move($l_string_o.value), provider.get_range($l_string_o.ctx)));
+	}
+	| l=l_apo
+	{
+		$chain->emplace_back(char_str_conc("'", provider.get_range($l.ctx->getStart())));
+	}
+	str1=l_string_v[$chain] r=l_apo
+	{
+		$chain->emplace_back(char_str_conc("'", provider.get_range($r.ctx->getStart())));
+	}
+	str2=l_string_v[$chain]
+	;
 
-l_string_no_space_u returns [concat_chain chain]
-	: l_string_no_space_v													{$chain = std::move($l_string_no_space_v.chain);}
+l_string_no_space_u [concat_chain* chain]
+	: l_string_no_space_v[$chain]
 	| l=l_apo str1=l_string_o r=l_apo str2=l_string_o
 	{
 		std::string tmp("'"); tmp.append(std::move($str1.value)); tmp.append("'");  tmp.append(std::move($str2.value));
-		$chain.emplace_back(char_str_conc(std::move(tmp), provider.get_range($l.ctx->getStart(), $r.ctx->getStart())));
+		$chain->emplace_back(char_str_conc(std::move(tmp), provider.get_range($l.ctx->getStart(), $r.ctx->getStart())));
 	};
 
-l_string_no_space_u_c returns [concat_chain chain]
-	:  
-	| cl1=l_string_no_space_u_c cl2=l_string_no_space_u
-	{
-		$chain = std::move($cl1.chain);
-		$chain.insert($chain.end(), std::make_move_iterator($cl2.chain.begin()), std::make_move_iterator($cl2.chain.end()));	
-	};
+l_string_no_space_u_c [concat_chain* chain]
+	: (l_string_no_space_u[$chain])*
+	;
 
 l_string_no_space_c_o returns [std::string value]
 	: l_string_no_space_c														{$value = std::move($l_string_no_space_c.value);}
 	| ;
 
-l_string_v_apo returns [concat_chain chain]
-	: cl1=l_string_no_space_c_o  cl2=l_string_no_space_v cl3=l_string_no_space_u_c
+l_string_v_apo [concat_chain* chain]
+	: cl1=l_string_no_space_c_o
 	{
-		$chain.emplace_back(char_str_conc(std::move($cl1.value), provider.get_range($l_string_no_space_c_o.ctx)));
-		$chain.insert($chain.end(), std::make_move_iterator($cl2.chain.begin()), std::make_move_iterator($cl2.chain.end()));	
-		$chain.insert($chain.end(), std::make_move_iterator($cl3.chain.begin()), std::make_move_iterator($cl3.chain.end()));
-	};
+		$chain->emplace_back(char_str_conc(std::move($cl1.value), provider.get_range($l_string_no_space_c_o.ctx)));
+	}
+	cl2=l_string_no_space_v[$chain] cl3=l_string_no_space_u_c[$chain]
+	;
 
 
 
@@ -266,26 +248,29 @@ l_sp_ch_v returns [std::optional<concatenation_point> point]
 	: l_ch_v														{$point = std::move($l_ch_v.point);}
 	| SPACE															{$point.emplace(char_str_conc($SPACE->getText(), provider.get_range($SPACE)));};
 
-l_sp_str_v returns [concat_chain chain]
-	:		
-	| tmp=l_sp_str_v l_sp_ch_v
-	{
-		$chain = std::move($tmp.chain);
-		if ($l_sp_ch_v.point.has_value())
-			$chain.emplace_back(std::move($l_sp_ch_v.point.value()));
-	};
+l_sp_str_v [concat_chain* chain]
+	:
+	(
+		l_sp_ch_v
+		{
+			if ($l_sp_ch_v.point.has_value())
+				$chain->emplace_back(std::move($l_sp_ch_v.point.value()));
+		}
+	)*
+	;
 
 l_sp_string returns [std::string value]
 	: 
 	| tmp=l_sp_string l_sp_ch											{$value=std::move($tmp.value); $value.append(std::move($l_sp_ch.value));};
 
-l_sp_string_v returns [concat_chain chain]
-	: l_sp_string var_symbol l_sp_str_v
+l_sp_string_v [concat_chain* chain]
+	: l_sp_string var_symbol
 	{
-		$chain.emplace_back(char_str_conc(std::move($l_sp_string.value), provider.get_range($l_sp_string.ctx)));
-		$chain.emplace_back(var_sym_conc(std::move($var_symbol.vs)));
-		$chain.insert($chain.end(), std::make_move_iterator($l_sp_str_v.chain.begin()), std::make_move_iterator($l_sp_str_v.chain.end()));
-	};
+		$chain->emplace_back(char_str_conc(std::move($l_sp_string.value), provider.get_range($l_sp_string.ctx)));
+		$chain->emplace_back(var_sym_conc(std::move($var_symbol.vs)));
+	}
+	l_sp_str_v[$chain]
+	;
 
 
 l_string_poss_space_c returns [std::string value]
@@ -296,36 +281,37 @@ l_string_poss_space_c_o returns [std::string value]
 	: l_string_poss_space_c													{$value = std::move($l_string_poss_space_c.value);}
 	| ;
 
-l_string_poss_space_u returns [concat_chain chain]
+l_string_poss_space_u [concat_chain* chain]
 	: l=l_apo l_sp_string r=l_apo										
 	{
 		std::string tmp("'"); tmp.append(std::move($l_sp_string.value)); tmp.append("'"); 
-		$chain.emplace_back(char_str_conc(std::move(tmp), provider.get_range($l.ctx->getStart(), $r.ctx->getStart())));
+		$chain->emplace_back(char_str_conc(std::move(tmp), provider.get_range($l.ctx->getStart(), $r.ctx->getStart())));
 	}
-	| l=l_apo l_sp_string_v r=l_apo
+	| l=l_apo
 	{
-		$chain.emplace_back(char_str_conc("'", provider.get_range($l.ctx->getStart())));
-		$chain.insert($chain.end(), std::make_move_iterator($l_sp_string_v.chain.begin()), std::make_move_iterator($l_sp_string_v.chain.end()));
-		$chain.emplace_back(char_str_conc("'", provider.get_range($r.ctx->getStart())));
+		$chain->emplace_back(char_str_conc("'", provider.get_range($l.ctx->getStart())));
+	}
+	l_sp_string_v[$chain] r=l_apo
+	{
+		$chain->emplace_back(char_str_conc("'", provider.get_range($r.ctx->getStart())));
 	};
 
-l_string_poss_space_u_c returns [concat_chain chain]
-	: tmp=l_string_poss_space_u_c l_string_poss_space_u							
-	{
-		$chain = std::move($tmp.chain); 
-		$chain.insert($chain.end(), std::make_move_iterator($l_string_poss_space_u.chain.begin()), std::make_move_iterator($l_string_poss_space_u.chain.end()));
-	}
-	| ;
+l_string_poss_space_u_c [concat_chain* chain]
+	: (l_string_poss_space_u[$chain])*
+	;
 
-l_string_v_apo_sp returns [concat_chain chain]
-	: cl1=l_string_poss_space_c_o l=l_apo cl2=l_sp_string_v r=l_apo cl3=l_string_poss_space_u_c
+l_string_v_apo_sp [concat_chain* chain]
+	: cl1=l_string_poss_space_c_o l=l_apo
 	{
 		$cl1.value.append("'");
-		$cl2.chain.emplace_back(char_str_conc("'", provider.get_range($r.ctx->getStart())));
-		$chain.emplace_back(char_str_conc(std::move($cl1.value), provider.get_range($l_string_poss_space_c_o.ctx->getStart(), $l.ctx->getStart())));
-		$chain.insert($chain.end(), std::make_move_iterator($cl2.chain.begin()), std::make_move_iterator($cl2.chain.end()));
-		$chain.insert($chain.end(), std::make_move_iterator($cl3.chain.begin()), std::make_move_iterator($cl3.chain.end()));
-	};
+		$chain->emplace_back(char_str_conc(std::move($cl1.value), provider.get_range($l_string_poss_space_c_o.ctx->getStart(), $l.ctx->getStart())));
+	}
+	cl2=l_sp_string_v[$chain] r=l_apo
+	{
+		$chain->emplace_back(char_str_conc("'", provider.get_range($r.ctx->getStart())));
+	}
+	cl3=l_string_poss_space_u_c[$chain]
+	;
 
 
 
