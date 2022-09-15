@@ -231,10 +231,10 @@ bool ca_processor::prepare_GBL_LCL(const semantics::complete_statement& stmt, st
                 continue;
             }
 
-            if (std::find_if(info.begin(), info.end(), [id](const auto& i) { return i.id == id; }) != info.end())
+            if (std::find_if(info.begin(), info.end(), [id = id](const auto& i) { return i.id == id; }) != info.end())
                 add_diagnostic(diagnostic_op::error_E051(*id, ca_op->operand_range));
             else
-                info.emplace_back(id, subscript.empty(), ca_op->operand_range);
+                info.push_back({ id, subscript.empty(), ca_op->operand_range });
         }
         else
         {
