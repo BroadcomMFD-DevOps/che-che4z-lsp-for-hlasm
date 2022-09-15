@@ -37,15 +37,6 @@ namespace hlasm_plugin::parser_library::semantics {
 struct variable_symbol;
 using vs_ptr = std::unique_ptr<variable_symbol>;
 
-enum class concat_type
-{
-    STR,
-    VAR,
-    DOT,
-    SUB,
-    EQU
-};
-
 struct concatenation_point;
 using concat_chain = std::vector<concatenation_point>;
 
