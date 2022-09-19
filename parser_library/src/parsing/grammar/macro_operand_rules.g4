@@ -83,11 +83,7 @@ mac_preproc
 mac_entry_nested_strings [concat_chain *chain]
 	:
 	(
-		string_ch_v
-		{
-			if (auto& p = $string_ch_v.point; p.has_value())
-				$chain->emplace_back(std::move(p.value()));
-		}
+		string_ch_v[$chain]
 	)*
 	;
 
@@ -187,11 +183,7 @@ mac_entry returns [concat_chain chain]
 			$chain.emplace_back(char_str_conc("'", provider.get_range($ap1)));
 		}
 		(
-			string_ch_v
-			{
-				if (auto& p = $string_ch_v.point; p.has_value())
-					$chain.push_back(std::move(p.value()));
-			}
+			string_ch_v[&$chain]
 		)*?
 		ap2=(APOSTROPHE|ATTR)
 		{

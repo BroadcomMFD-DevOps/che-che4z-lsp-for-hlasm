@@ -125,32 +125,32 @@ l_ch returns [std::string value]
 	| LPAR													{$value = "(";}
 	| RPAR													{$value = ")";};
 
-common_ch_v returns [std::optional<concatenation_point> point]
-	: ASTERISK												{$point.emplace(char_str_conc("*", provider.get_range($ASTERISK)));}
-	| MINUS													{$point.emplace(char_str_conc("-", provider.get_range($MINUS)));}
-	| PLUS													{$point.emplace(char_str_conc("+", provider.get_range($PLUS)));}
-	| LT													{$point.emplace(char_str_conc("<", provider.get_range($LT)));}
-	| GT													{$point.emplace(char_str_conc(">", provider.get_range($GT)));}
-	| SLASH													{$point.emplace(char_str_conc("/", provider.get_range($SLASH)));}
-	| EQUALS												{$point.emplace(equals_conc());}
-	| VERTICAL												{$point.emplace(char_str_conc("|", provider.get_range($VERTICAL)));}
-	| IDENTIFIER											{$point.emplace(char_str_conc($IDENTIFIER->getText(), provider.get_range($IDENTIFIER)));}
-	| NUM													{$point.emplace(char_str_conc($NUM->getText(), provider.get_range($NUM)));}
-	| ORDSYMBOL												{$point.emplace(char_str_conc($ORDSYMBOL->getText(), provider.get_range($ORDSYMBOL)));}
-	| DOT													{$point.emplace(dot_conc());}
+common_ch_v [concat_chain* chain]
+	: ASTERISK												{$chain->emplace_back(char_str_conc("*", provider.get_range($ASTERISK)));}
+	| MINUS													{$chain->emplace_back(char_str_conc("-", provider.get_range($MINUS)));}
+	| PLUS													{$chain->emplace_back(char_str_conc("+", provider.get_range($PLUS)));}
+	| LT													{$chain->emplace_back(char_str_conc("<", provider.get_range($LT)));}
+	| GT													{$chain->emplace_back(char_str_conc(">", provider.get_range($GT)));}
+	| SLASH													{$chain->emplace_back(char_str_conc("/", provider.get_range($SLASH)));}
+	| EQUALS												{$chain->emplace_back(equals_conc());}
+	| VERTICAL												{$chain->emplace_back(char_str_conc("|", provider.get_range($VERTICAL)));}
+	| IDENTIFIER											{$chain->emplace_back(char_str_conc($IDENTIFIER->getText(), provider.get_range($IDENTIFIER)));}
+	| NUM													{$chain->emplace_back(char_str_conc($NUM->getText(), provider.get_range($NUM)));}
+	| ORDSYMBOL												{$chain->emplace_back(char_str_conc($ORDSYMBOL->getText(), provider.get_range($ORDSYMBOL)));}
+	| DOT													{$chain->emplace_back(dot_conc());}
 	|
 	(
-		l=AMPERSAND r=AMPERSAND								{$point.emplace(char_str_conc("&&", provider.get_range($l,$r)));}
+		l=AMPERSAND r=AMPERSAND								{$chain->emplace_back(char_str_conc("&&", provider.get_range($l,$r)));}
 		|
-		var_symbol											{$point.emplace(var_sym_conc(std::move($var_symbol.vs)));}
+		var_symbol											{$chain->emplace_back(var_sym_conc(std::move($var_symbol.vs)));}
 	)
 	;
 
-l_ch_v returns [std::optional<concatenation_point> point]
-	: common_ch_v											{$point = std::move($common_ch_v.point);}
-	| COMMA													{$point.emplace(char_str_conc(",", provider.get_range($COMMA)));}
-	| LPAR													{$point.emplace(char_str_conc("(", provider.get_range($LPAR)));}
-	| RPAR													{$point.emplace(char_str_conc(")", provider.get_range($RPAR)));};
+l_ch_v [concat_chain* chain]
+	: common_ch_v[$chain]
+	| COMMA													{$chain->emplace_back(char_str_conc(",", provider.get_range($COMMA)));}
+	| LPAR													{$chain->emplace_back(char_str_conc("(", provider.get_range($LPAR)));}
+	| RPAR													{$chain->emplace_back(char_str_conc(")", provider.get_range($RPAR)));};
 
 l_string returns [std::string value]
 	: l_ch													{$value = std::move($l_ch.value);}
@@ -163,11 +163,7 @@ l_string_v [concat_chain* chain]
 		$chain->emplace_back(var_sym_conc(std::move($var_symbol.vs)));
 	}
 	(
-		l_ch_v
-		{
-			if ($l_ch_v.point.has_value())
-				$chain->emplace_back(std::move($l_ch_v.point.value()));
-		}
+		l_ch_v[$chain]
 	)*
 	;
 	finally
@@ -244,18 +240,14 @@ l_string_v_apo [concat_chain* chain]
 l_sp_ch returns [std::string value] //l_ch with SPACE
 	: l_ch															{$value = std::move($l_ch.value);}
 	| SPACE															{$value = $SPACE->getText();}; 					
-l_sp_ch_v returns [std::optional<concatenation_point> point]
-	: l_ch_v														{$point = std::move($l_ch_v.point);}
-	| SPACE															{$point.emplace(char_str_conc($SPACE->getText(), provider.get_range($SPACE)));};
+l_sp_ch_v [concat_chain* chain]
+	: l_ch_v[$chain]
+	| SPACE															{$chain->emplace_back(char_str_conc($SPACE->getText(), provider.get_range($SPACE)));};
 
 l_sp_str_v [concat_chain* chain]
 	:
 	(
-		l_sp_ch_v
-		{
-			if ($l_sp_ch_v.point.has_value())
-				$chain->emplace_back(std::move($l_sp_ch_v.point.value()));
-		}
+		l_sp_ch_v[$chain]
 	)*
 	;
 

@@ -391,18 +391,14 @@ ca_string returns [ca_expr_ptr ca_expr]
 	finally
 	{if (!$ca_expr) $ca_expr = std::make_unique<ca_constant>(0, provider.get_range(_localctx));}
 
-string_ch_v returns [std::optional<concatenation_point> point]
-	: l_sp_ch_v								{$point = std::move($l_sp_ch_v.point);}
-	| l=(APOSTROPHE|ATTR) r=(APOSTROPHE|ATTR)	{$point.emplace(char_str_conc("'", provider.get_range($l, $r)));};
+string_ch_v [concat_chain* chain]
+	: l_sp_ch_v[$chain]
+	| l=(APOSTROPHE|ATTR) r=(APOSTROPHE|ATTR)	{$chain->emplace_back(char_str_conc("'", provider.get_range($l, $r)));};
 
 string_ch_v_c returns [concat_chain chain]
 	:
 	(
-		string_ch_v
-		{
-			if (auto& v = $string_ch_v.point; v.has_value())
-				$chain.push_back(std::move(v.value()));
-		}
+		string_ch_v[&$chain]
 	)*
 	;
 	finally

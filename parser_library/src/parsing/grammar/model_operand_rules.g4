@@ -23,12 +23,12 @@ op_ch returns [std::string value]
 	| comma									{$value = ","; }
 	| ATTR									{$value = "'"; };
 
-op_ch_v returns [std::optional<concatenation_point> point]
-	: common_ch_v							{$point = std::move($common_ch_v.point);}
-	| lpar									{$point.emplace(char_str_conc("(", provider.get_range($lpar.ctx->getStart()))); }
-	| rpar									{$point.emplace(char_str_conc(")", provider.get_range($rpar.ctx->getStart()))); }
-	| comma									{$point.emplace(char_str_conc(",", provider.get_range($comma.ctx->getStart()))); }
-	| ATTR									{$point.emplace(char_str_conc("'", provider.get_range($ATTR))); };
+op_ch_v [concat_chain* chain]
+	: common_ch_v[$chain]
+	| lpar									{$chain->emplace_back(char_str_conc("(", provider.get_range($lpar.ctx->getStart()))); }
+	| rpar									{$chain->emplace_back(char_str_conc(")", provider.get_range($rpar.ctx->getStart()))); }
+	| comma									{$chain->emplace_back(char_str_conc(",", provider.get_range($comma.ctx->getStart()))); }
+	| ATTR									{$chain->emplace_back(char_str_conc("'", provider.get_range($ATTR))); };
 
 model_string returns [std::string value]
 	: ap1=APOSTROPHE
@@ -76,11 +76,7 @@ var_sym_model [concat_chain* chain]
 	| string_v_actual[$chain];
 
 after_var_sym_model_b [concat_chain* chain]
-	: op_ch_v
-	{
-		if ($op_ch_v.point.has_value())
-			$chain->push_back(std::move($op_ch_v.point.value()));
-	}
+	: op_ch_v[$chain]
 	| model_string_v[$chain]
 	;
 
@@ -114,18 +110,14 @@ model_string_ch returns [std::string value]
 	: l_sp_ch								{$value = std::move($l_sp_ch.value);}
 	| (APOSTROPHE|ATTR) (APOSTROPHE|ATTR)	{$value = "''";};
 
-model_string_ch_v returns [std::optional<concatenation_point> point]
-	: l_sp_ch_v								{$point = std::move($l_sp_ch_v.point);}
-	| l=(APOSTROPHE|ATTR) r=(APOSTROPHE|ATTR)	{$point.emplace(char_str_conc("''", provider.get_range($l, $r)));};
+model_string_ch_v [concat_chain* chain]
+	: l_sp_ch_v[$chain]
+	| l=(APOSTROPHE|ATTR) r=(APOSTROPHE|ATTR)	{$chain->emplace_back(char_str_conc("''", provider.get_range($l, $r)));};
 
 model_string_ch_v_c [concat_chain* chain]
 	:
 	(
-		model_string_ch_v
-		{
-			if ($model_string_ch_v.point.has_value())
-				$chain->push_back(std::move($model_string_ch_v.point.value()));
-		}
+		model_string_ch_v[$chain]
 	)*;
 
 model_string_ch_c returns [std::string value]
