@@ -23,10 +23,6 @@ op_ch returns [std::string value]
 	| comma									{$value = ","; }
 	| ATTR									{$value = "'"; };
 
-op_ch_c returns [std::string value]
-	:
-	| tmp=op_ch_c op_ch							{$value = std::move($tmp.value); $value.append($op_ch.value);};
-
 op_ch_v returns [std::optional<concatenation_point> point]
 	: common_ch_v							{$point = std::move($common_ch_v.point);}
 	| lpar									{$point.emplace(char_str_conc("(", provider.get_range($lpar.ctx->getStart()))); }
