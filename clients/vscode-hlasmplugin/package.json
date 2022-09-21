@@ -251,6 +251,11 @@
         "command": "extension.hlasm-plugin.downloadDependencies",
         "category": "HLASM",
         "title": "Download dependencies"
+      },
+      {
+        "command": "extension.hlasm-plugin.commentEditorCommands",
+        "category": "HLASM",
+        "title": "Toggle line comment"
       }
     ],
     "keybindings": [
@@ -267,6 +272,23 @@
       {
         "command": "extension.hlasm-plugin.rearrangeSequenceNumbers",
         "key": "shift+alt+delete",
+        "when": "editorLangId == hlasm && editorTextFocus && !editorReadonly"
+      },
+      {
+        "command": "extension.hlasm-plugin.commentEditorCommands",
+        "key": "ctrl+/",
+        "when": "editorLangId == hlasm && editorTextFocus && !editorReadonly"
+      },
+      {
+        "command": "extension.hlasm-plugin.commentEditorCommands",
+        "key": "ctrl+k ctrl+c",
+        "args": "CommentOption.add",
+        "when": "editorLangId == hlasm && editorTextFocus && !editorReadonly"
+      },
+      {
+        "command": "extension.hlasm-plugin.commentEditorCommands",
+        "key": "ctrl+k ctrl+u",
+        "args": "CommentOption.remove",
         "when": "editorLangId == hlasm && editorTextFocus && !editorReadonly"
       }
     ],
