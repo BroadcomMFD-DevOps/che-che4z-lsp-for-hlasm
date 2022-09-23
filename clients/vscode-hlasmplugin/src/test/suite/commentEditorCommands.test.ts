@@ -14,7 +14,7 @@
 
 import * as assert from 'assert';
 import * as vscode from 'vscode';
-import { CommentOption, lineCommentCommand, translateCommentOption } from '../../commentEditorCommands';
+import { blockCommentCommand, CommentOption, lineCommentCommand, translateCommentOption } from '../../commentEditorCommands';
 import { TextDocumentMock, TextEditorEditMock, TextEditorMock } from '../mocks';
 
 suite('Comment editor commands', () => {
@@ -31,11 +31,11 @@ suite('Comment editor commands', () => {
 
         lineCommentCommand(editor, edit, CommentOption.toggle);
         document.text = edit.text;
-        assert.ok(document.text === '* this');
+        assert.strictEqual(document.text, '* this');
 
         lineCommentCommand(editor, edit, CommentOption.toggle);
         document.text = edit.text;
-        assert.ok(document.text === '  this');
+        assert.strictEqual(document.text, '  this');
     })
 
     test('Add comment', () => {
@@ -51,11 +51,11 @@ suite('Comment editor commands', () => {
 
         lineCommentCommand(editor, edit, CommentOption.add);
         document.text = edit.text;
-        assert.ok(document.text === '* this');
+        assert.strictEqual(document.text, '* this');
 
         lineCommentCommand(editor, edit, CommentOption.add);
         document.text = edit.text;
-        assert.ok(document.text === '* this');
+        assert.strictEqual(document.text, '* this');
     })
 
     test('Remove comment', () => {
@@ -71,11 +71,11 @@ suite('Comment editor commands', () => {
 
         lineCommentCommand(editor, edit, CommentOption.remove);
         document.text = edit.text;
-        assert.ok(document.text === '  this');
+        assert.strictEqual(document.text, '  this');
 
         lineCommentCommand(editor, edit, CommentOption.remove);
         document.text = edit.text;
-        assert.ok(document.text === '  this');
+        assert.strictEqual(document.text, '  this');
     })
 
     test('Toggle multiline comment', () => {
@@ -91,11 +91,11 @@ suite('Comment editor commands', () => {
 
         lineCommentCommand(editor, edit, CommentOption.toggle);
         document.text = edit.text;
-        assert.ok(document.text === '*A this                                                                X\n               that');
+        assert.strictEqual(document.text, '*A this                                                                X\n               that');
 
         lineCommentCommand(editor, edit, CommentOption.toggle);
         document.text = edit.text;
-        assert.ok(document.text === 'AA this                                                                X\n               that');
+        assert.strictEqual(document.text, 'AA this                                                                X\n               that');
     })
 
     test('Deserialize comment option', () => {
@@ -104,7 +104,7 @@ suite('Comment editor commands', () => {
         assert.ok(translateCommentOption('CommentOption.remove') === CommentOption.remove);
         assert.ok(translateCommentOption('something') === null);
     })
-    
+
     test('Toggle macro style comment', () => {
         // prepare document
         const document = new TextDocumentMock();
@@ -118,10 +118,33 @@ suite('Comment editor commands', () => {
 
         lineCommentCommand(editor, edit, CommentOption.toggle);
         document.text = edit.text;
-        assert.ok(document.text === '   this');
+        assert.strictEqual(document.text, '   this');
 
         lineCommentCommand(editor, edit, CommentOption.toggle);
         document.text = edit.text;
-        assert.ok(document.text === '*  this');
+        assert.strictEqual(document.text, '*  this');
+    })
+
+    test('Toggle block comment', () => {
+        // prepare document
+        const document = new TextDocumentMock();
+        document.uri = vscode.Uri.file('file');
+        document.eol = vscode.EndOfLine.LF;
+        // prepare editor and edit
+        const editor = new TextEditorMock(document);
+        const cursorPosition = new vscode.Position(0, 4);
+        editor.selection = new vscode.Selection(cursorPosition, cursorPosition.translate(0, 1));
+        const edit = new TextEditorEditMock('  this');
+        document.text = edit.text;
+
+        blockCommentCommand(editor, edit);
+        document.text = edit.text;
+        assert.strictEqual(document.text, '         AGO   .SKIP_0_0\n  this\n.SKIP_0_0 ANOP');
+
+
+        editor.selection = new vscode.Selection(new vscode.Position(1, 4), new vscode.Position(1, 5));
+        blockCommentCommand(editor, edit);
+        document.text = edit.text;
+        assert.strictEqual(document.text, '  this\n');
     })
 })

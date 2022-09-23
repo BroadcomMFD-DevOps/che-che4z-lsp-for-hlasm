@@ -26,7 +26,7 @@ import { Telemetry } from './telemetry';
 import { LanguageClientErrorHandler } from './languageClientErrorHandler';
 import { HLASMVirtualFileContentProvider } from './hlasmVirtualFileContentProvider';
 import { downloadDependencies } from './hlasmDownloadCommands';
-import { CommentOption, lineCommentCommand, translateCommentOption } from './commentEditorCommands';
+import { blockCommentCommand, CommentOption, lineCommentCommand, translateCommentOption } from './commentEditorCommands';
 
 const offset = 71;
 const continueColumn = 15;
@@ -171,6 +171,8 @@ async function registerToContext(context: vscode.ExtensionContext, client: vscod
 
         context.subscriptions.push(vscode.commands.registerTextEditorCommand("extension.hlasm-plugin.commentEditorCommands",
             (editor, edit, args) => lineCommentCommand(editor, edit, typeof args === 'string' && translateCommentOption(args) || CommentOption.toggle)));
+        context.subscriptions.push(vscode.commands.registerTextEditorCommand("extension.hlasm-plugin.blockCommentEditorCommands",
+            (editor, edit) => blockCommentCommand(editor, edit)));
     }
 
     // overrides should happen only if the user wishes

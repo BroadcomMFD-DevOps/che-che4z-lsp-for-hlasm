@@ -45,6 +45,13 @@ function findFirstLine(doc: vscode.TextDocument, lineno: number): number {
     return lineno;
 }
 
+function findLastLine(doc: vscode.TextDocument, lineno: number): number {
+    while (lineno < doc.lineCount && isContinued(doc.lineAt(lineno).text))
+        ++lineno;
+
+    return lineno;
+}
+
 function isCommented(doc: vscode.TextDocument, lineno: number): boolean {
     const text = doc.lineAt(lineno).text;
     return text.startsWith('*') || text.startsWith('.*');
@@ -96,6 +103,84 @@ export function lineCommentCommand(editor: vscode.TextEditor, edit: vscode.TextE
                 if (commented)
                     removeComment(editor, edit, lineno);
                 break;
+        }
+    }
+}
+
+interface block {
+    first: number;
+    last: number;
+}
+
+function isolateBlocks(block_candidates: block[]): block[] {
+    let last_last = -1;
+    const blocks = [];
+
+    for (const b of block_candidates) {
+        if (b.first > last_last)
+            blocks.push(b);
+        else
+            blocks[blocks.length - 1].last = Math.max(b.last, last_last);
+
+        last_last = blocks[blocks.length - 1].last;
+    }
+
+    return blocks;
+}
+
+function processBlock(doc: vscode.TextDocument, b: block) {
+    const begin = /^[ ]+AGO[ ]+(\.[A-Z@#$_][A-Z@#$0-9_]*)(:? .+)?/i;
+
+    let start_line = b.first;
+    let bm = begin.exec(doc.lineAt(start_line).text);
+    if (!bm && start_line > 0) {
+        const prev_line = findFirstLine(doc, start_line - 1);
+
+        bm = begin.exec(doc.lineAt(prev_line).text);
+        if (bm)
+            start_line = prev_line;
+    }
+    if (!bm)
+        return { commentArea: b, addComment: true };
+
+    const end = new RegExp('^' + bm[1] + '[ ]+ANOP(?: .+)?', 'i');
+    let em = end.exec(doc.lineAt(findFirstLine(doc, b.last)).text);
+    let end_line = b.last;
+    if (!em && b.last + 1 < doc.lineCount) {
+        em = end.exec(doc.lineAt(b.last + 1).text);
+        if (!em)
+            return { commentArea: b, addComment: true };
+
+        end_line = findLastLine(doc, b.last + 1);
+    }
+
+    return {
+        addComment: false,
+        removeLines: [
+            { begin: start_line, end: findLastLine(doc, start_line) },
+            { begin: findFirstLine(doc, end_line), end: end_line }
+        ]
+    };
+}
+
+export function blockCommentCommand(editor: vscode.TextEditor, edit: vscode.TextEditorEdit) {
+    if (editor.document.isClosed) return;
+
+    const block_candidates = [...new Set(editor.selections.filter(x => !x.isEmpty).flatMap(x => {
+        return { first: findFirstLine(editor.document, x.start.line), last: findLastLine(editor.document, x.end.line) }
+    }))].sort((l, r) => l.first - r.first || -(l.last - r.last));
+
+    const blocks = isolateBlocks(block_candidates).map(x => processBlock(editor.document, x));
+
+    const eol = editor.document.eol == vscode.EndOfLine.LF ? '\n' : '\r\n';
+    for (const b of blocks) {
+        if (b.addComment) {
+            const label = '.SKIP_' + b.commentArea.first + '_' + b.commentArea.last;
+            edit.insert(new vscode.Position(b.commentArea.first, 0), '         AGO   ' + label + eol);
+            edit.insert(editor.document.lineAt(b.commentArea.last).range.end, eol + label + ' ANOP');
+        } else {
+            for (const sub of b.removeLines)
+                edit.delete(new vscode.Range(new vscode.Position(sub.begin, 0), new vscode.Position(sub.end + 1, 0)))
         }
     }
 }
