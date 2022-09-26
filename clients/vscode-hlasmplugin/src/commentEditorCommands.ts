@@ -107,14 +107,14 @@ export function lineCommentCommand(editor: vscode.TextEditor, edit: vscode.TextE
     }
 }
 
-interface block {
+interface CodeBlock {
     first: number;
     last: number;
 }
 
-function isolateBlocks(block_candidates: block[]): block[] {
+function isolateBlocks(block_candidates: CodeBlock[]): CodeBlock[] {
     let last_last = -1;
-    const blocks = [];
+    const blocks: CodeBlock[] = [];
 
     for (const b of block_candidates) {
         if (b.first > last_last)
@@ -128,8 +128,8 @@ function isolateBlocks(block_candidates: block[]): block[] {
     return blocks;
 }
 
-function processBlock(doc: vscode.TextDocument, b: block) {
-    const begin = /^[ ]+AGO[ ]+(\.[A-Z@#$_][A-Z@#$0-9_]*)(:? .+)?/i;
+function processBlock(doc: vscode.TextDocument, b: CodeBlock) {
+    const begin = /^ +AGO +(\.[A-Z@#$_][A-Z@#$0-9_]*)(:? .+)?/i;
 
     let start_line = b.first;
     let bm = begin.exec(doc.lineAt(start_line).text);
