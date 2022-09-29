@@ -322,16 +322,14 @@ TEST CSECT
 
 TEST(DC, correctly_count_long_utf8_chars)
 {
-    std::string input = (const char*)u8R"(
-X    DC  C'¦'
-LEN  EQU *-X
-XA   DC  CA'¦'
-LENA EQU *-XA
-XE   DC  CE'¦'
-LENE EQU *-XE
-XU   DC  CU'¦'
-LENU EQU *-XU
-)";
+    std::string input = (const char*)u8"X    DC  C'\u00A6'\n"
+                                     u8"LEN  EQU *-X\n"
+                                     u8"XA   DC  CA'\u00A6'\n"
+                                     u8"LENA EQU *-XA\n"
+                                     u8"XE   DC  CE'\u00A6'\n"
+                                     u8"LENE EQU *-XE\n"
+                                     u8"XU   DC  CU'\u00A6'\n"
+                                     u8"LENU EQU *-XU\n";
 
     analyzer a(input);
     a.analyze();
