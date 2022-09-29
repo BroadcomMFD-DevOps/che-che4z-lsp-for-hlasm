@@ -319,3 +319,28 @@ TEST CSECT
 
     EXPECT_TRUE(matches_message_codes(a.diags(), { "D034", "D034", "D034", "D034" }));
 }
+
+TEST(DC, correctly_count_long_utf8_chars)
+{
+    std::string input = (const char*)u8R"(
+X    DC  C'¦'
+LEN  EQU *-X
+XA   DC  CA'¦'
+LENA EQU *-XA
+XE   DC  CE'¦'
+LENE EQU *-XE
+XU   DC  CU'¦'
+LENU EQU *-XU
+)";
+
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(a.diags().empty());
+
+    EXPECT_EQ(get_symbol_abs(a.hlasm_ctx(), "LEN"), 1);
+    EXPECT_EQ(get_symbol_abs(a.hlasm_ctx(), "LENA"), 1);
+    EXPECT_EQ(get_symbol_abs(a.hlasm_ctx(), "LENE"), 1);
+    EXPECT_EQ(get_symbol_abs(a.hlasm_ctx(), "LENU"), 2);
+}
