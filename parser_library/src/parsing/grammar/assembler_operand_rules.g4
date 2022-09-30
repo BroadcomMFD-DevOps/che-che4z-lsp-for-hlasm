@@ -31,7 +31,8 @@ asm_op returns [operand_ptr op]
 			);
 		collector.add_hl_symbol(token_info(provider.get_range($id.ctx),hl_scopes::operand));
 	}
-	| lpar id1=end_instr_word comma id2=end_instr_word comma id3=end_instr_word rpar
+	|
+	{ END() }? lpar id1=end_instr_word comma id2=end_instr_word comma id3=end_instr_word rpar
 	{
 		std::vector<std::unique_ptr<complex_assembler_operand::component_value_t>> language_triplet;
 		range first_range = provider.get_range($id1.ctx);
@@ -48,7 +49,8 @@ asm_op returns [operand_ptr op]
 			provider.get_range($lpar.ctx->getStart(),$rpar.ctx->getStop())
 		);
 	}
-	| lpar base=mach_expr comma end=mach_expr rpar
+	| 
+	lpar base=mach_expr comma end=mach_expr rpar
 	{
 		$op = std::make_unique<using_instr_assembler_operand>(
 			std::move($base.m_e), 
