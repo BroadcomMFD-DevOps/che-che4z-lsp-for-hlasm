@@ -33,14 +33,16 @@ asm_op returns [operand_ptr op]
 	}
 	| lpar id1=end_instr_word comma id2=end_instr_word comma id3=end_instr_word rpar
 	{
-
 		std::vector<std::unique_ptr<complex_assembler_operand::component_value_t>> language_triplet;
 		range first_range = provider.get_range($id1.ctx);
 		range second_range = provider.get_range($id2.ctx);
 		range third_range = provider.get_range($id3.ctx);
-		language_triplet.push_back(std::make_unique<complex_assembler_operand::string_value_t>(std::move($id1.value), first_range));
-		language_triplet.push_back(std::make_unique<complex_assembler_operand::string_value_t>(std::move($id2.value), second_range));
-		language_triplet.push_back(std::make_unique<complex_assembler_operand::string_value_t>(std::move($id3.value), third_range));
+		language_triplet.push_back(std::make_unique<complex_assembler_operand::string_value_t>($id1.value, first_range));
+		language_triplet.push_back(std::make_unique<complex_assembler_operand::string_value_t>($id2.value, second_range));
+		language_triplet.push_back(std::make_unique<complex_assembler_operand::string_value_t>($id3.value, third_range));
+		collector.add_hl_symbol(token_info(first_range,hl_scopes::operand));
+		collector.add_hl_symbol(token_info(second_range,hl_scopes::operand));
+		collector.add_hl_symbol(token_info(third_range,hl_scopes::operand));
 		$op = std::make_unique<complex_assembler_operand>(
 			"",std::move(language_triplet),
 			provider.get_range($lpar.ctx->getStart(),$rpar.ctx->getStop())
@@ -104,13 +106,4 @@ asm_op_comma_c returns [std::vector<std::unique_ptr<complex_assembler_operand::c
 	| tmp=asm_op_comma_c comma asm_op_inner								{$tmp.asm_ops.push_back(std::move($asm_op_inner.op)); $asm_ops = std::move($tmp.asm_ops);};	
 
 end_instr_word returns [std::string value]
-	: end_instr_word_inner
-	{
-		$value = std::move($end_instr_word_inner.value);
-		collector.add_hl_symbol(token_info(provider.get_range($end_instr_word_inner.ctx),hl_scopes::operand));
-	};
-
-end_instr_word_inner returns [std::string value]
-	: ORDSYMBOL															{$value = $ORDSYMBOL->getText();}
-	| IDENTIFIER														{$value = $IDENTIFIER->getText();}
-	| NUM																{$value = $NUM->getText();};
+	: (t=~(COMMA|CONTINUATION){$value.append($t.text);})+;
