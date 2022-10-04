@@ -42,6 +42,19 @@ TEST(org, non_reloc)
     EXPECT_TRUE(matches_message_codes(a.diags(), { "A245" }));
 }
 
+TEST(org, non_reloc_symbolic)
+{
+    std::string input(R"(
+    ORG X-X
+X   EQU *
+)");
+    analyzer a(input);
+    a.analyze();
+
+    a.collect_diags();
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "A245" }));
+}
+
 TEST(org, symbol_non_prev_defined)
 {
     std::string input(R"(
@@ -349,11 +362,11 @@ B  EQU *-A
 )");
     analyzer a(input);
     a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(a.diags().empty());
 
     EXPECT_EQ(get_symbol_abs(a.hlasm_ctx(), "B"), 8);
-
-    a.collect_diags();
-    ASSERT_EQ(a.diags().size(), (size_t)0);
 }
 
 TEST(org, second_param_use_ord_sym)
@@ -388,9 +401,12 @@ X  EQU *-C
 )");
     analyzer a(input);
     a.analyze();
-
     a.collect_diags();
-    ASSERT_EQ(a.diags().size(), (size_t)1);
+
+    EXPECT_TRUE(a.diags().empty());
+
+    EXPECT_EQ(get_symbol_address(a.hlasm_ctx(), "C"), std::pair(4, std::string()));
+    EXPECT_EQ(get_symbol_abs(a.hlasm_ctx(), "X"), 4);
 }
 
 TEST(org, second_param_use_ord_sym_alignment_cycle)
