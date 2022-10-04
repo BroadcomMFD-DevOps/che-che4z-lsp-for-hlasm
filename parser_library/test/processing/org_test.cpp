@@ -30,6 +30,18 @@ A ORG ,
     ASSERT_EQ(a.diags().size(), (size_t)1);
 }
 
+TEST(org, non_reloc)
+{
+    std::string input(R"(
+    ORG 0
+)");
+    analyzer a(input);
+    a.analyze();
+
+    a.collect_diags();
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "A245" }));
+}
+
 TEST(org, symbol_non_prev_defined)
 {
     std::string input(R"(
@@ -178,6 +190,25 @@ S0 DS  (X)C
    LR  1,1
 S  ORG *-2
 X  EQU S-*
+)");
+    analyzer a(input);
+    a.analyze();
+
+    EXPECT_EQ(get_symbol_abs(a.hlasm_ctx(), "X"), 2);
+
+    a.collect_diags();
+    ASSERT_EQ(a.diags().size(), (size_t)0);
+}
+
+TEST(org, jump_after_last_space_and_back_asterisk_with_equ)
+{
+    std::string input(R"(
+   LR  1,1
+S0 DS  (X)C
+   LR  1,1
+S  ORG Y-2
+X  EQU S-*
+Y  EQU S
 )");
     analyzer a(input);
     a.analyze();
@@ -1068,4 +1099,46 @@ TEST(org, missing_reloc_expr)
     a.collect_diags();
 
     EXPECT_TRUE(matches_message_codes(a.diags(), { "A245" }));
+}
+
+TEST(org, equ)
+{
+    std::string input(R"(
+A        DS    XL10
+         ORG   B+4
+C        DS    XL6
+         ORG   ,
+B        EQU   A,L'A
+
+
+)");
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(a.diags().empty());
+
+    EXPECT_EQ(get_symbol_address(a.hlasm_ctx(), "C"), std::pair(4, std::string()));
+}
+
+TEST(org, equ_with_loctr)
+{
+    std::string input(R"(
+S        CSECT
+L        LOCTR
+A        DS    XL10
+         ORG   B+4
+C        DS    XL6
+         ORG   ,
+B        EQU   A,L'A
+S        LOCTR
+         DS    FD
+)");
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(a.diags().empty());
+
+    EXPECT_EQ(get_symbol_address(a.hlasm_ctx(), "C"), std::pair(12, std::string("S")));
 }
