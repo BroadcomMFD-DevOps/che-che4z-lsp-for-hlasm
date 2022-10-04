@@ -606,6 +606,11 @@ void asm_processor::process_ORG(rebuilt_statement stmt)
             lib_info);
     else
         hlasm_ctx.ord_ctx.set_location_counter_value(reloc_val, boundary, offset, lib_info);
+
+    if (boundary > 1 && offset == 0)
+    {
+        hlasm_ctx.ord_ctx.align(context::alignment { 0, boundary }, lib_info);
+    }
 }
 
 void asm_processor::process_OPSYN(rebuilt_statement stmt)
