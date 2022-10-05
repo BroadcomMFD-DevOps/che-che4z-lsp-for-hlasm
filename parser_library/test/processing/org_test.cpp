@@ -65,7 +65,7 @@ S LR  1,1
     a.analyze();
 
     a.collect_diags();
-    ASSERT_EQ(a.diags().size(), (size_t)1);
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "E033" }));
 }
 
 TEST(org, symbol_in_different_loctr)
@@ -990,7 +990,7 @@ Y LR 1,1
     a.analyze();
 
     a.collect_diags();
-    ASSERT_EQ(a.diags().size(), (size_t)1);
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "E033", "E068" }));
 }
 
 TEST(org, unknown_part_underflow)

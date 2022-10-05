@@ -127,6 +127,10 @@ struct resolve_dependant_visitor
 
         const auto& addr = sym_val.get_reloc();
 
+        if (auto spaces = addr.normalized_spaces();
+            std::find_if(spaces.begin(), spaces.end(), [&sp](const auto& e) { return e.first == sp; }) != spaces.end())
+            add_diagnostic(diagnostic_op::error_E033);
+
         auto tmp_loctr = sym_ctx.current_section()->current_location_counter();
 
         sym_ctx.set_location_counter(sp->owner.name, location(), li);
