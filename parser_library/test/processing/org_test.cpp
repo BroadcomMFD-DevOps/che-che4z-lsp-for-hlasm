@@ -1117,6 +1117,22 @@ TEST(org, missing_reloc_expr)
     EXPECT_TRUE(matches_message_codes(a.diags(), { "A245" }));
 }
 
+TEST(org, simple_equ)
+{
+    std::string input(R"(
+A        ORG   B
+B        EQU   A
+)");
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(a.diags().empty());
+
+    EXPECT_EQ(get_symbol_address(a.hlasm_ctx(), "A"), std::pair(0, std::string()));
+    EXPECT_EQ(get_symbol_address(a.hlasm_ctx(), "B"), std::pair(0, std::string()));
+}
+
 TEST(org, equ)
 {
     std::string input(R"(
