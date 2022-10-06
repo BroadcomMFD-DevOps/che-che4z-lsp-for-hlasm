@@ -357,6 +357,7 @@ A   MVI  0,X'0000000000'
     LARL 0,A+X'00000000000000'
     LARL 0,A+X'00000000000000000000000000000000000000000000000000'
     LARL 0,A+-0000000000
+    LARL 0,A+B'0000000000000000000000000000000000000000000000000000000'
 )";
 
     analyzer a(input);
@@ -377,5 +378,5 @@ A   LARL 0,A+-00000000000
     a.analyze();
     a.collect_diags();
 
-    EXPECT_TRUE(a.diags().empty());
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "CE007" }));
 }
