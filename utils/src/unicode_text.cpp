@@ -12,7 +12,7 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
-#include "utils/utf8text.h"
+#include "utils/unicode_text.h"
 
 #include <algorithm>
 

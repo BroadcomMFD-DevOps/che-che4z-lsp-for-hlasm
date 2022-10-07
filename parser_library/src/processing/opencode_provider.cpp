@@ -23,7 +23,7 @@
 #include "processing/error_statement.h"
 #include "semantics/collector.h"
 #include "semantics/range_provider.h"
-#include "utils/utf8text.h"
+#include "utils/unicode_text.h"
 
 namespace hlasm_plugin::parser_library::processing {
 

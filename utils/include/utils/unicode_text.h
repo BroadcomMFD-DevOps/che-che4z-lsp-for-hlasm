@@ -12,8 +12,8 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
-#ifndef HLASMPLUGIN_UTILS_UTF8TEXT_H
-#define HLASMPLUGIN_UTILS_UTF8TEXT_H
+#ifndef HLASMPLUGIN_UTILS_UNICODE_TEXT_H
+#define HLASMPLUGIN_UTILS_UNICODE_TEXT_H
 
 #include <array>
 #include <limits>

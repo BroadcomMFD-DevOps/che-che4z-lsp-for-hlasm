@@ -22,7 +22,7 @@
 #include "preprocessor_options.h"
 #include "processing/preprocessor.h"
 #include "utils/concat.h"
-#include "utils/utf8text.h"
+#include "utils/unicode_text.h"
 #include "workspaces/parse_lib_provider.h"
 
 namespace hlasm_plugin::parser_library::processing {

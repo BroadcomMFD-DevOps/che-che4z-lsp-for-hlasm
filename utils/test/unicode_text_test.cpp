@@ -17,7 +17,7 @@
 
 #include "gtest/gtest.h"
 
-#include "utils/utf8text.h"
+#include "utils/unicode_text.h"
 
 using namespace hlasm_plugin::utils;
 

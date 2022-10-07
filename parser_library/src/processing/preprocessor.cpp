@@ -15,7 +15,7 @@
 #include "preprocessor.h"
 
 #include "lexing/logical_line.h"
-#include "utils/utf8text.h"
+#include "utils/unicode_text.h"
 
 namespace hlasm_plugin::parser_library::processing {
 
