@@ -353,3 +353,16 @@ TEST(character_expression, invalid_function)
 
     EXPECT_TRUE(matches_message_codes(a.diags(), { "CE012" }));
 }
+
+TEST(character_expression, multi_byte_substr)
+{
+    std::string input = (const char*)u8"&C SETC '\u00A6'(1,1)";
+
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(a.diags().empty());
+
+    EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "C"), std::string((const char*)u8"\u00A6"));
+}

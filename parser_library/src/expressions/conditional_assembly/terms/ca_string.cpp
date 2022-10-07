@@ -14,9 +14,12 @@
 
 #include "ca_string.h"
 
+#include <optional>
+
 #include "expressions/conditional_assembly/ca_expr_visitor.h"
 #include "expressions/conditional_assembly/ca_operator_binary.h"
 #include "expressions/evaluation_context.h"
+#include "utils/unicode_text.h"
 
 namespace hlasm_plugin::parser_library::expressions {
 
@@ -76,7 +79,13 @@ context::SET_t ca_string::evaluate(const evaluation_context& eval_ctx) const
 {
     context::C_t str = semantics::concatenation_point::evaluate(value, eval_ctx);
 
-    if (str.size() > MAX_STR_SIZE)
+    auto str_len = [&str, res = std::optional<size_t>()]() mutable {
+        if (!res)
+            res = utils::length_utf32_no_validation(str);
+        return res.value();
+    };
+
+    if (str.size() > MAX_STR_SIZE && str_len() > MAX_STR_SIZE)
     {
         eval_ctx.diags.add_diagnostic(diagnostic_op::error_CE011(expr_range));
         return context::object_traits<context::C_t>::default_v();
@@ -86,7 +95,7 @@ context::SET_t ca_string::evaluate(const evaluation_context& eval_ctx) const
     {
         auto start = substring.start->evaluate(eval_ctx).access_a();
         auto count =
-            substring.count ? substring.count->evaluate(eval_ctx).access_a() : (context::A_t)str.size() - start + 1;
+            substring.count ? substring.count->evaluate(eval_ctx).access_a() : (context::A_t)str_len() - start + 1;
 
         if (count == 0)
         {
@@ -98,17 +107,17 @@ context::SET_t ca_string::evaluate(const evaluation_context& eval_ctx) const
             eval_ctx.diags.add_diagnostic(diagnostic_op::error_CE008(substring.substring_range));
             return context::object_traits<context::C_t>::default_v();
         }
-        else if (start > (context::A_t)str.size())
+        else if (start > str.size() || start > (context::A_t)str_len())
         {
             eval_ctx.diags.add_diagnostic(diagnostic_op::error_CE009(substring.start->expr_range));
             return context::object_traits<context::C_t>::default_v();
         }
         /* TODO uncomment when assembler options will be implemented
-        if (start + count - 1 > (int)str.size())
+        if (start + count - 1 > (context::A_t)str_len())
             eval_ctx.diags.add_diagnostic(diagnostic_op::error_CW001(substring.count->expr_range));
         */
         else
-            str = str.substr(start - 1, count);
+            str = std::string(utils::utf8_substr<false>(str, start - 1, count).str);
     }
 
     return duplicate(duplication_factor, std::move(str), expr_range, eval_ctx);
@@ -127,7 +136,7 @@ std::string ca_string::duplicate(
             return "";
         }
 
-        if (value.size() * dupl > MAX_STR_SIZE)
+        if (value.size() * dupl > MAX_STR_SIZE && utils::length_utf32_no_validation(value) * dupl > MAX_STR_SIZE)
         {
             eval_ctx.diags.add_diagnostic(diagnostic_op::error_CE011(expr_range));
             return "";
