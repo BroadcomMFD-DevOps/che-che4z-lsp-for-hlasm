@@ -56,13 +56,13 @@ void adjust_extensions_vector(std::vector<std::string>& extensions, bool extensi
 library_local::library_local(file_manager& file_manager,
     utils::resource::resource_location lib_loc,
     library_local_options options,
-    const utils::resource::resource_location& proc_grps_loc)
+    utils::resource::resource_location proc_grps_loc)
     : m_file_manager(file_manager)
     , m_lib_loc(std::move(lib_loc))
     , m_extensions(std::move(options.extensions))
     , m_optional(options.optional_library)
     , m_extensions_from_deprecated_source(options.extensions_from_deprecated_source)
-    , m_proc_grps_loc(proc_grps_loc)
+    , m_proc_grps_loc(std::move(proc_grps_loc))
 {
     if (m_extensions.size())
         adjust_extensions_vector(m_extensions, m_extensions_from_deprecated_source);
@@ -76,7 +76,7 @@ library_local::library_local(library_local&& l) noexcept
     , m_files_loaded(l.m_files_loaded)
     , m_optional(l.m_optional)
     , m_extensions_from_deprecated_source(l.m_extensions_from_deprecated_source)
-    , m_proc_grps_loc(l.m_proc_grps_loc)
+    , m_proc_grps_loc(std::move(l.m_proc_grps_loc))
 {}
 
 void library_local::collect_diags() const

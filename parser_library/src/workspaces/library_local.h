@@ -44,7 +44,7 @@ public:
     library_local(file_manager& file_manager,
         utils::resource::resource_location lib_loc,
         library_local_options options,
-        const utils::resource::resource_location& proc_grps_loc);
+        utils::resource::resource_location proc_grps_loc);
 
     library_local(const library_local&) = delete;
     library_local& operator=(const library_local&) = delete;
@@ -72,7 +72,7 @@ private:
     bool m_files_loaded = false;
     bool m_optional = false;
     bool m_extensions_from_deprecated_source = false;
-    const utils::resource::resource_location& m_proc_grps_loc;
+    utils::resource::resource_location m_proc_grps_loc;
 
     void load_files();
 };
