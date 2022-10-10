@@ -120,9 +120,9 @@ function isolateBlocks(block_candidates: CodeBlock[]): CodeBlock[] {
         if (b.first > last_last)
             blocks.push(b);
         else
-            blocks[blocks.length - 1].last = Math.max(b.last, last_last);
+            blocks.at(-1).last = Math.max(b.last, last_last);
 
-        last_last = blocks[blocks.length - 1].last;
+        last_last = blocks.at(-1).last;
     }
 
     return blocks;
@@ -167,7 +167,7 @@ export function blockCommentCommand(editor: vscode.TextEditor, edit: vscode.Text
     if (editor.document.isClosed) return;
 
     const block_candidates = [...new Set(editor.selections.filter(x => !x.isEmpty).flatMap(x => {
-        return { first: findFirstLine(editor.document, x.start.line), last: findLastLine(editor.document, x.end.line) }
+        return { first: findFirstLine(editor.document, x.start.line), last: findLastLine(editor.document, x.end.line - +(x.start.line != x.end.line && x.end.character == 0)) }
     }))].sort((l, r) => l.first - r.first || -(l.last - r.last));
 
     const blocks = isolateBlocks(block_candidates).map(x => processBlock(editor.document, x));
