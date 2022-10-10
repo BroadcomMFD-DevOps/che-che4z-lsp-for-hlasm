@@ -82,18 +82,24 @@ function removeComment(editor: vscode.TextEditor, edit: vscode.TextEditorEdit, l
 export function lineCommentCommand(editor: vscode.TextEditor, edit: vscode.TextEditorEdit, args: CommentOption) {
     if (editor.document.isClosed) return;
 
-    const lines = [...new Set(editor.selections.flatMap(x => seq(x.start.line, x.end.line)).map(x => findFirstLine(editor.document, x)))].sort((l, r) => l - r);
+    const lines = [
+        ...new Set(
+            editor.selections
+                .flatMap(x => seq(x.start.line, x.end.line - +(x.start.line != x.end.line && x.end.character == 0)))
+                .map(x => findFirstLine(editor.document, x))
+        )
+    ].sort((l, r) => l - r);
     const lineWithStatus = lines.map(x => { return { lineno: x, commented: isCommented(editor.document, x) }; })
+
+    if (args == CommentOption.toggle) {
+        if (lineWithStatus.every(x => x.commented))
+            args = CommentOption.remove;
+        else
+            args = CommentOption.add;
+    }
 
     for (const { lineno, commented } of lineWithStatus) {
         switch (args) {
-            case CommentOption.toggle:
-                if (commented)
-                    removeComment(editor, edit, lineno);
-                else
-                    addComment(editor, edit, lineno);
-                break;
-
             case CommentOption.add:
                 if (!commented)
                     addComment(editor, edit, lineno);
@@ -166,8 +172,11 @@ function processBlock(doc: vscode.TextDocument, b: CodeBlock) {
 export function blockCommentCommand(editor: vscode.TextEditor, edit: vscode.TextEditorEdit) {
     if (editor.document.isClosed) return;
 
-    const block_candidates = [...new Set(editor.selections.filter(x => !x.isEmpty).flatMap(x => {
-        return { first: findFirstLine(editor.document, x.start.line), last: findLastLine(editor.document, x.end.line - +(x.start.line != x.end.line && x.end.character == 0)) }
+    const block_candidates = [...new Set(editor.selections.flatMap(x => {
+        return {
+            first: findFirstLine(editor.document, x.start.line),
+            last: findLastLine(editor.document, x.end.line - +(x.start.line != x.end.line && x.end.character == 0))
+        }
     }))].sort((l, r) => l.first - r.first || -(l.last - r.last));
 
     const blocks = isolateBlocks(block_candidates).map(x => processBlock(editor.document, x));
