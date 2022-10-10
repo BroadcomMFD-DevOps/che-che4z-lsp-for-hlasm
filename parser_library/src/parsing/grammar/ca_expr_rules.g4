@@ -164,6 +164,17 @@ term returns [ca_expr_ptr ca_expr]
 	finally
 	{if (!$ca_expr) $ca_expr = std::make_unique<ca_constant>(0, provider.get_range(_localctx));}
 
+signed_num returns [self_def_t value]
+	: signed_num_ch									{$value = parse_self_def_term("D",$signed_num_ch.ctx->getText(),provider.get_range($signed_num_ch.ctx));};
+
+self_def_term returns [self_def_t value]
+	: ORDSYMBOL string
+	{
+		collector.add_hl_symbol(token_info(provider.get_range( $ORDSYMBOL),hl_scopes::self_def_type));
+		auto opt = $ORDSYMBOL->getText();
+		$value = parse_self_def_term(opt, $string.value, provider.get_range($ORDSYMBOL,$string.ctx->getStop()));
+	};
+
 expr_list returns [ca_expr_ptr ca_expr]
 	: lpar SPACE* expr_space_c SPACE* rpar
 	{
@@ -226,29 +237,29 @@ created_set_body returns [concat_chain concat_list]
 		ORDSYMBOL
 		{
 			collector.add_hl_symbol(token_info(provider.get_range( $ORDSYMBOL),hl_scopes::var_symbol));
-			$concat_list.push_back(std::make_unique<char_str_conc>($ORDSYMBOL->getText(), provider.get_range($ORDSYMBOL)));
+			$concat_list.emplace_back(char_str_conc($ORDSYMBOL->getText(), provider.get_range($ORDSYMBOL)));
 		}
 		|
 		IDENTIFIER
 		{
 			collector.add_hl_symbol(token_info(provider.get_range( $IDENTIFIER),hl_scopes::var_symbol));
-			$concat_list.push_back(std::make_unique<char_str_conc>($IDENTIFIER->getText(), provider.get_range($IDENTIFIER)));
+			$concat_list.emplace_back(char_str_conc($IDENTIFIER->getText(), provider.get_range($IDENTIFIER)));
 		}
 		|
 		NUM
 		{
 			collector.add_hl_symbol(token_info(provider.get_range( $NUM),hl_scopes::var_symbol));
-			$concat_list.push_back(std::make_unique<char_str_conc>($NUM->getText(), provider.get_range($NUM)));
+			$concat_list.emplace_back(char_str_conc($NUM->getText(), provider.get_range($NUM)));
 		}
 		|
 		var_symbol
 		{
-			$concat_list.push_back(std::make_unique<var_sym_conc>(std::move($var_symbol.vs)));
+			$concat_list.emplace_back(var_sym_conc(std::move($var_symbol.vs)));
 		}
 		|
 		dot
 		{
-			$concat_list.push_back(std::make_unique<dot_conc>());
+			$concat_list.emplace_back(dot_conc());
 		}
 	)+
 	;
@@ -391,17 +402,15 @@ ca_string returns [ca_expr_ptr ca_expr]
 	finally
 	{if (!$ca_expr) $ca_expr = std::make_unique<ca_constant>(0, provider.get_range(_localctx));}
 
-string_ch_v returns [concat_point_ptr point]
-	: l_sp_ch_v								{$point = std::move($l_sp_ch_v.point);}
-	| l=(APOSTROPHE|ATTR) r=(APOSTROPHE|ATTR)	{$point = std::make_unique<char_str_conc>("'", provider.get_range($l, $r));};
+string_ch_v [concat_chain* chain]
+	: l_sp_ch_v[$chain]
+	| l=(APOSTROPHE|ATTR) r=(APOSTROPHE|ATTR)	{$chain->emplace_back(char_str_conc("'", provider.get_range($l, $r)));};
 
 string_ch_v_c returns [concat_chain chain]
 	:
-	| cl=string_ch_v_c string_ch_v
-	{
-		if (auto& v = $string_ch_v.point; v)
-			$cl.chain.push_back(std::move(v));
-		$chain = std::move($cl.chain);
-	};
+	(
+		string_ch_v[&$chain]
+	)*
+	;
 	finally
 	{concatenation_point::clear_concat_chain($chain);}

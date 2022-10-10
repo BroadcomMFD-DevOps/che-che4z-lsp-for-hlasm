@@ -21,7 +21,7 @@
 
 #include "utils/concat.h"
 #include "utils/resource_location.h"
-#include "utils/utf8text.h"
+#include "utils/unicode_text.h"
 
 namespace hlasm_plugin::parser_library {
 
@@ -538,8 +538,8 @@ diagnostic_op diagnostic_op::warning_A140_END_lang_third(const range& range)
 {
     return diagnostic_op(diagnostic_severity::warning,
         "A140",
-        "Third parameter of language operand must be exactly 5 character long and must specify the compile date in the "
-        "\"YYDDD\" format",
+        "Third parameter of language operand must be exactly 5 character long and should specify the compile date in "
+        "the \"YYDDD\" format",
         range);
 }
 
@@ -1729,6 +1729,14 @@ diagnostic_op diagnostic_op::warn_M136(const range& range)
         range);
 }
 
+diagnostic_op diagnostic_op::warn_M137(std::string_view instr_name, long long from, long long to, const range& range)
+{
+    return diagnostic_op(diagnostic_severity::warning,
+        "M137",
+        concat(instr_name, " instruction: immediate operand absolute value should be between ", from, " and ", to),
+        range);
+}
+
 diagnostic_op diagnostic_op::error_optional_number_of_operands(
     std::string_view instr_name, size_t optional_no, size_t operands_no, const range& range)
 {
@@ -1980,7 +1988,7 @@ diagnostic_op diagnostic_op::error_E056(const range& range)
 
 diagnostic_op diagnostic_op::error_E057(const range& range)
 {
-    return diagnostic_op(diagnostic_severity::error, "E057", "Symbol not an ordinary or sequence symbol", range);
+    return diagnostic_op(diagnostic_severity::error, "E057", "Symbol is not an ordinary or a sequence symbol", range);
 }
 
 diagnostic_op diagnostic_op::error_E058(const range& range)
@@ -2141,6 +2149,12 @@ diagnostic_op diagnostic_op::warning_W015(const range& range)
 {
     return diagnostic_op(
         diagnostic_severity::warning, "W015", "End of source input reached, batch mode is not supported yet", range);
+}
+
+diagnostic_op diagnostic_op::warning_W016(const range& range)
+{
+    return diagnostic_op(
+        diagnostic_severity::warning, "W016", "Multiple TITLE instructions with a non-empty name field", range);
 }
 
 diagnostic_op diagnostic_op::error_EQU1(const range& range)

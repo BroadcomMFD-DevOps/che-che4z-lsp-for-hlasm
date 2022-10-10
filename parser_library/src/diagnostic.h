@@ -508,6 +508,8 @@ struct diagnostic_op
 
     static diagnostic_op warn_M136(const range& range);
 
+    static diagnostic_op warn_M137(std::string_view instr_name, long long from, long long to, const range& range);
+
     static diagnostic_op error_optional_number_of_operands(
         std::string_view instr_name, size_t optional_no, size_t operands_no, const range& range);
 
@@ -632,6 +634,8 @@ struct diagnostic_op
     static diagnostic_op warning_W014(const range& range);
 
     static diagnostic_op warning_W015(const range& range);
+
+    static diagnostic_op warning_W016(const range& range);
 
     static diagnostic_op error_EQU1(const range& range);
 

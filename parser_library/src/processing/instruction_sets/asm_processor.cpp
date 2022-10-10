@@ -24,7 +24,7 @@
 #include "expressions/mach_expr_term.h"
 #include "expressions/mach_expr_visitor.h"
 #include "postponed_statement_impl.h"
-#include "utils/utf8text.h"
+#include "utils/unicode_text.h"
 
 namespace hlasm_plugin::parser_library::processing {
 
@@ -143,11 +143,20 @@ void asm_processor::process_EQU(rebuilt_statement stmt)
         add_diagnostic(diagnostic_op::error_E031("symbol", stmt.label_ref().field_range));
         return;
     }
+
+    const auto& ops = stmt.operands_ref().value;
+
+    if (ops.empty() || ops.size() > 5)
+    {
+        add_diagnostic(diagnostic_op::error_A012_from_to("EQU", 1, 5, stmt.stmt_range_ref()));
+        return;
+    }
+
     // type attribute operand
     context::symbol_attributes::type_attr t_attr = context::symbol_attributes::undef_type;
-    if (stmt.operands_ref().value.size() >= 3 && stmt.operands_ref().value[2]->type == semantics::operand_type::ASM)
+    if (ops.size() >= 3 && ops[2]->type == semantics::operand_type::ASM)
     {
-        auto asm_op = stmt.operands_ref().value[2]->access_asm();
+        auto asm_op = ops[2]->access_asm();
         auto expr_op = asm_op->access_expr();
 
         if (expr_op && !expr_op->has_dependencies(dep_solver, nullptr))
@@ -165,9 +174,9 @@ void asm_processor::process_EQU(rebuilt_statement stmt)
 
     // length attribute operand
     context::symbol_attributes::len_attr length_attr = context::symbol_attributes::undef_length;
-    if (stmt.operands_ref().value.size() >= 2 && stmt.operands_ref().value[1]->type == semantics::operand_type::ASM)
+    if (ops.size() >= 2 && ops[1]->type == semantics::operand_type::ASM)
     {
-        auto asm_op = stmt.operands_ref().value[1]->access_asm();
+        auto asm_op = ops[1]->access_asm();
         auto expr_op = asm_op->access_expr();
 
         if (expr_op && !expr_op->has_dependencies(dep_solver, nullptr))
@@ -184,12 +193,9 @@ void asm_processor::process_EQU(rebuilt_statement stmt)
     }
 
     // value operand
-    if (stmt.operands_ref().value.size() != 0 && stmt.operands_ref().value[0]->type == semantics::operand_type::ASM)
+    if (ops[0]->type == semantics::operand_type::ASM)
     {
-        auto asm_op = stmt.operands_ref().value[0]->access_asm();
-        auto expr_op = asm_op->access_expr();
-
-        if (expr_op)
+        if (auto expr_op = ops[0]->access_asm()->access_expr(); expr_op)
         {
             auto holder(expr_op->expression->get_dependencies(dep_solver));
 
@@ -236,6 +242,12 @@ void asm_processor::process_EQU(rebuilt_statement stmt)
                     create_symbol(stmt.stmt_range_ref(), symbol_name, *holder.unresolved_address, attrs);
             }
         }
+        else
+            add_diagnostic(diagnostic_op::error_A132_EQU_value_format(ops[0]->operand_range));
+    }
+    else
+    {
+        add_diagnostic(diagnostic_op::error_A132_EQU_value_format(ops[0]->operand_range));
     }
 }
 
@@ -505,7 +517,6 @@ void asm_processor::process_ORG(rebuilt_statement stmt)
     context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, loctr, lib_info);
 
     const semantics::expr_assembler_operand* reloc_expr = nullptr;
-    bool undefined_absolute_part = false;
     size_t boundary = 0;
     int offset = 0;
 
@@ -527,14 +538,6 @@ void asm_processor::process_ORG(rebuilt_statement stmt)
 
         if (i == 0)
         {
-            auto deps = expr->expression->get_dependencies(dep_solver);
-            undefined_absolute_part =
-                deps.undefined_attr_refs.size() || deps.undefined_symbols.size() || deps.unresolved_spaces.size();
-            if (!deps.unresolved_address)
-            {
-                add_diagnostic(diagnostic_op::error_A245_ORG_expression(stmt.stmt_range_ref()));
-                return;
-            }
             reloc_expr = expr;
         }
 
@@ -566,9 +569,29 @@ void asm_processor::process_ORG(rebuilt_statement stmt)
         return;
     }
 
-    auto reloc_val = !undefined_absolute_part
-        ? reloc_expr->expression->evaluate(dep_solver, drop_diags).get_reloc()
-        : *reloc_expr->expression->get_dependencies(dep_solver).unresolved_address;
+    context::address reloc_val;
+    auto deps = reloc_expr->expression->get_dependencies(dep_solver);
+    bool undefined_absolute_part =
+        deps.undefined_attr_refs.size() || deps.undefined_symbols.size() || deps.unresolved_spaces.size();
+
+    if (!undefined_absolute_part)
+    {
+        if (auto res = reloc_expr->expression->evaluate(dep_solver, drop_diags);
+            res.value_kind() == context::symbol_value_kind::RELOC)
+            reloc_val = std::move(res).get_reloc();
+        else
+        {
+            add_diagnostic(diagnostic_op::error_A245_ORG_expression(stmt.stmt_range_ref()));
+            return;
+        }
+    }
+    else
+    {
+        if (deps.unresolved_address)
+            reloc_val = std::move(*deps.unresolved_address);
+        else
+            reloc_val = loctr;
+    }
 
     switch (check_address_for_ORG(reloc_val, loctr, boundary, offset))
     {
@@ -594,6 +617,11 @@ void asm_processor::process_ORG(rebuilt_statement stmt)
             lib_info);
     else
         hlasm_ctx.ord_ctx.set_location_counter_value(reloc_val, boundary, offset, lib_info);
+
+    if (boundary > 1 && offset == 0)
+    {
+        hlasm_ctx.ord_ctx.align(context::alignment { 0, boundary }, lib_info);
+    }
 }
 
 void asm_processor::process_OPSYN(rebuilt_statement stmt)
@@ -757,6 +785,7 @@ asm_processor::process_table_t asm_processor::create_table(context::hlasm_contex
     table.emplace(h_ctx.ids().add("POP"), [this](rebuilt_statement stmt) { process_POP(std::move(stmt)); });
     table.emplace(h_ctx.ids().add("MNOTE"), [this](rebuilt_statement stmt) { process_MNOTE(std::move(stmt)); });
     table.emplace(h_ctx.ids().add("CXD"), [this](rebuilt_statement stmt) { process_CXD(std::move(stmt)); });
+    table.emplace(h_ctx.ids().add("TITLE"), [this](rebuilt_statement stmt) { process_TITLE(std::move(stmt)); });
 
     return table;
 }
@@ -1291,6 +1320,8 @@ void asm_processor::process_MNOTE(rebuilt_statement stmt)
     utils::append_utf8_sanitized(sanitized, text);
 
     add_diagnostic(diagnostic_op::mnote_diagnostic(level.value(), sanitized, r));
+
+    hlasm_ctx.update_mnote_max((unsigned)level.value());
 }
 
 void asm_processor::process_CXD(rebuilt_statement stmt)
@@ -1313,6 +1344,34 @@ void asm_processor::process_CXD(rebuilt_statement stmt)
     }
 
     hlasm_ctx.ord_ctx.reserve_storage_area(cxd_length, context::no_align, lib_info);
+}
+
+struct title_label_visitor
+{
+    std::string operator()(const std::string& v) const { return v; }
+    std::string operator()(const semantics::ord_symbol_string& v) const { return v.mixed_case; }
+    std::string operator()(const semantics::concat_chain&) const { return {}; }
+    std::string operator()(const semantics::seq_sym&) const { return {}; }
+    std::string operator()(const semantics::vs_ptr&) const { return {}; }
+};
+
+void asm_processor::process_TITLE(rebuilt_statement stmt)
+{
+    const auto& label = stmt.label_ref();
+
+    if (auto label_text = std::visit(title_label_visitor(), label.value); !label_text.empty())
+    {
+        if (hlasm_ctx.get_title_name().empty())
+            hlasm_ctx.set_title_name(std::move(label_text));
+        else
+            add_diagnostic(diagnostic_op::warning_W016(label.field_range));
+    }
+
+    hlasm_ctx.ord_ctx.symbol_dependencies.add_dependency(
+        std::make_unique<postponed_statement_impl>(std::move(stmt), hlasm_ctx.processing_stack()),
+        context::ordinary_assembly_dependency_solver(hlasm_ctx.ord_ctx, lib_info)
+            .derive_current_dependency_evaluation_context(),
+        lib_info);
 }
 
 } // namespace hlasm_plugin::parser_library::processing
