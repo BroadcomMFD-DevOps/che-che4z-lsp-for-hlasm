@@ -88,10 +88,10 @@ R1    EQU 1
 * A continuation character is inserted on column 72 to indicate that
     MAC1 OPERAND1,OPERAND2,OPERAND3, MACROS ACCEPT LOTS OF OPERANDS    X
                OPERAND4,OPERAND5 AND THAT IS WHY WE NEED THIS
-* In Settings, you may enable option 'Continuation Handling'
+* In Extension settings, you may enable option 'Continuation Handling'
 * It helps adjusting parameters/remarks without moving the continuation
 
 * END
-* Look at the plugin description to find more information
+* Look at the extension description to find more information
 * Some interesting examples of HLASM usage are in the 'crazy' file
 * Feel free to create files/folders, set configurations and edit code
