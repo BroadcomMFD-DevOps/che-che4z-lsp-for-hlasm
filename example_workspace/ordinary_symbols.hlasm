@@ -9,5 +9,5 @@ ADDR DS CL(SIZE) Depends on SIZE, SIZE is not yet defined,             X
 
 HERE DS 0C     HERE is defined, instruction is resolved
 LEN EQU HERE-ADDR Depends on length of ADDR, ADDR is not yet resolved  X
-                  intruction cannot be resolved
+                  instruction cannot be resolved
 SIZE EQU 5 SIZE is defined -> ADDR is resolved -> LEN is resolved

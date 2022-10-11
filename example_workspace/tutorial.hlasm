@@ -2,7 +2,7 @@
 
 * STATEMENTS
 * Source code is divided into statements
-* Each statement constists of:
+* Each statement consists of:
 * - label/name (yellow)
 * - instruction (red)
 * - parameters of instruction (gray)
@@ -51,7 +51,7 @@ R1    EQU 1
 * Also, parts of symbols may be substituted
 * Here, R&VAR is processed as R1 because &VAR is substituted by 1
     LR R&VAR,5
-* AIF jump/skips code generation on fullifiling a condition
+* AIF jump/skips code generation on fulfilling a condition
 * &VAR equals 1, code generations jumps to the sequence symbol .THERE
 * Therefore LR statement is not generated (white)
     AIF (&VAR EQ 1).THERE
@@ -72,7 +72,7 @@ R1    EQU 1
 * P1 has 2 library folders - libs and libs2 - their files may be used
 
 * MAC2 is defined in libs/mac2 and is invoked by writing its name
-* It accepts and uses 2 parameters, try 'go to defition' on MAC2
+* It accepts and uses 2 parameters, try 'go to definition' on MAC2
     MAC2  R1,&VAR
 * copy file REGISTERS is defined in libs2/registers and is invoked by
 * COPY instruction with its name, try 'go to definition' on REGISTERS
