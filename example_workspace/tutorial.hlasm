@@ -9,7 +9,7 @@
 * - remarks
 
 * Coloring scheme is applied to provide visual support while working 
-* with the code. E.g.:
+* with the code:
 LABEL    LR    1,1 HERE COME REMARKS
 
 * LSP FEATURES
