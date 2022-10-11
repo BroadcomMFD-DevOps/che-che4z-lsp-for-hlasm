@@ -10,6 +10,6 @@
     
 
     AGO .SKIPRUBBISH
-    Anything in here is just skipped.
-    And it is still valid hlasm source code.
+    Anything in here is just skipped
+    And it is still valid hlasm source code
 .SKIPRUBBISH ANOP
