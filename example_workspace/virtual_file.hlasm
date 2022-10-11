@@ -10,8 +10,8 @@
          MAC
          AINSERT '         MACRO',BACK
          AINSERT '         MAC_VIRTUAL',BACK
-         AINSERT '         GBLA &&VAR',BACK
-         AINSERT '&&VAR     SETA 5',BACK
+         AINSERT '         GBLA  &&VAR',BACK
+         AINSERT '&&VAR     SETA  5',BACK
          AINSERT '         INTENTIONAL_GIBBERISH',BACK
          AINSERT '         MEND',BACK
          MEND
@@ -19,7 +19,7 @@
 * Unknown operation code 'INTENTIONAL_GIBBERISH' message should appear 
 * in the 'PROBLEMS' tab and new file containing the virtual content 
 * should open when the error is selected
-         GBLA &VAR
+         GBLA  &VAR
          MAC
          MAC_VIRTUAL
          END
