@@ -1,0 +1,28 @@
+****************************  VIRTUAL FILE  ***************************
+* This file demonstrates the virtual file feature
+
+* The following macro uses AINSERT instructions to generate a new macro
+* 'MAC_VIRTUAL' for which the code is generated once MEND is reached 
+* and control is given back to the original caller.
+* The generated code, however, doesn't overwrite the original code
+* and is placed in a virtual file instead.
+         MACRO
+         MAC
+         AINSERT '         MACRO',BACK
+         AINSERT '         MAC_VIRTUAL',BACK
+         AINSERT '         GBLA &&VAR',BACK
+         AINSERT '&&VAR     SETA 5',BACK
+         AINSERT '         INTENTIONAL_GIBBERISH',BACK
+         AINSERT '         MEND',BACK
+         MEND
+
+* Unknown operation code 'INTENTIONAL_GIBBERISH' message should appear 
+* in the 'PROBLEMS' tab and new file containing the virtual content 
+* should open when the error is selected
+         GBLA &VAR
+         MAC
+         MAC_VIRTUAL
+         END
+
+* Virtual file can also be accessed by stepping into macro 'MAC' while 
+* using Macro Tracer and then stepping over past 'MEND' instruction
