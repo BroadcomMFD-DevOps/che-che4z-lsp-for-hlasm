@@ -5,10 +5,6 @@
       "pgroup": "P1"
     },
     {
-      "program": "empty.hlasm",
-      "pgroup": "P1"
-    },
-    {
       "program": "JULSUB",
       "pgroup": "JULSUB_PG"
     },
