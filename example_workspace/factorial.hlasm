@@ -1,4 +1,4 @@
-***************************  FACTORIAL  ******************************
+*****************************  FACTORIAL  *****************************
 * The following recursive macro calculates a factorial of its parameter
 * during compile time. The result is stored in variable symbol RES
          MACRO
