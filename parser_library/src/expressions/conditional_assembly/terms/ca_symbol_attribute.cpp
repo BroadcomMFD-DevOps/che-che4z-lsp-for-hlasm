@@ -357,7 +357,7 @@ context::SET_t ca_symbol_attribute::evaluate_varsym(
         case context::data_attr_kind::O:
         case context::data_attr_kind::S:
         case context::data_attr_kind::I:
-            return evaluate_substituted(var_name, std::move(expr_subscript), vs->symbol_range, eval_ctx);
+            return evaluate_substituted(var_name, expr_subscript, vs->symbol_range, eval_ctx);
 
         case context::data_attr_kind::T: {
             if (!test_symbol_for_read(var_symbol, expr_subscript, vs->symbol_range, eval_ctx.diags, *var_name))
@@ -384,7 +384,7 @@ context::SET_t ca_symbol_attribute::evaluate_varsym(
                 return std::string { (char)ebcdic_encoding::e2a[tmp_symbol->attributes().type()] };
 
             return evaluate_substituted(
-                var_name, std::move(expr_subscript), vs->symbol_range, eval_ctx); // is type U, must substitute var sym
+                var_name, expr_subscript, vs->symbol_range, eval_ctx); // is type U, must substitute var sym
         }
         case context::data_attr_kind::K:
             if (!test_symbol_for_read(var_symbol, expr_subscript, vs->symbol_range, eval_ctx.diags, *var_name))
