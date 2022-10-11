@@ -222,7 +222,9 @@ context::C_t get_current_macro_name_field(const context::hlasm_context& ctx)
 
     if (!scope.is_in_macro())
         return {};
-    return scope.this_macro->named_params.at(ctx.ids().well_known.SYSLIST)->get_data({ 0 })->get_value();
+    return scope.this_macro->named_params.at(ctx.ids().well_known.SYSLIST)
+        ->get_data(std::array<size_t, 1> { 0 })
+        ->get_value();
 }
 
 context::SET_t ca_symbol_attribute::evaluate_ordsym(context::id_index name, const evaluation_context& eval_ctx) const
@@ -399,7 +401,7 @@ context::SET_t ca_symbol_attribute::evaluate_varsym(
 }
 
 context::SET_t ca_symbol_attribute::evaluate_substituted(context::id_index var_name,
-    std::vector<context::A_t> expr_subscript,
+    std::span<const context::A_t> expr_subscript,
     range var_range,
     const evaluation_context& eval_ctx) const
 {
