@@ -3,11 +3,14 @@
 * STATEMENTS
 * Source code is divided into statements
 * Each statement consists of:
-* - label/name (yellow)
-* - instruction (red)
-* - parameters of instruction (gray)
-* - remarks (blue)
-LABEL LR 1,1 HERE COME REMARKS
+* - label/name
+* - instruction
+* - parameters of instruction
+* - remarks
+
+* Coloring scheme is applied to provide visual support while working 
+* with the code. E.g.:
+LABEL    LR    1,1 HERE COME REMARKS
 
 * LSP FEATURES
 * You can use 4 different editor commands on instructions, variable,
