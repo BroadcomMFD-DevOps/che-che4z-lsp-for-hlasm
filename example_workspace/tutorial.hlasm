@@ -84,6 +84,13 @@ R1       EQU   1
 * All symbols defined in REGISTERS file are defined in this file too
 * An error message is issued as symbol R1 is redeclared
 
+* You can even use wildcards to locate dependencies which was done to 
+* locate this file (tutorial.hlasm) in pgm_conf.json and for the 
+* following library in proc_grps.json:
+         GENERIC
+
+* ~ can also be used as a substitution for you home directory
+
 * CONTINUATIONS
 * Longer statements may need more than one line
 * A continuation character is inserted on column 72 to indicate that

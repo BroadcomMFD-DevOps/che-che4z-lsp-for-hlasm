@@ -3,7 +3,9 @@
     {
        "name": "P1",
        "libs": [
-          "libs","libs2"
+          "libs/mac",
+          "libs/registers",
+          "**/g*i?"
         ],
         "asm_options": {
             "SYSPARM": "SEVEN"
