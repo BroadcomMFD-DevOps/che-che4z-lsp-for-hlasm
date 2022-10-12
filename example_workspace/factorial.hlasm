@@ -26,14 +26,30 @@
 * indeed 120
 LEN120   DS    CL(&RES)
 
-* Unfortunately, the macro cannot compute factorial of numbers greater
-* than 12 because it does not fit into 32 bit variable
+* Unfortunately, the macro cannot calculate factorial of numbers 
+* greater than 12 because it does not fit into 32 bit variable
          FACT  6
 LEN720   DS    CL(&RES)
 
-* Now, let's run the macro one more time if assembler option SYSPARM
-* is set to value 'SEVEN'
-         AIF   ('&SYSPARM' NE 'SEVEN').SKIP_2
+*************************  ASSEMBLER OPTIONS  *************************
+* The following demonstrates how to set assembler options in
+* configuration files. If you go to proc_grps.json you can see that 
+* assembler option 'SYSPARM' is set to value 'SEVEN' in the 
+* process group 'P1'. 
+* However, the calculation of 7! is skipped by the AIF instruction:
+         AIF   ('&SYSPARM' NE 'SEVEN').NEXT
          FACT  7
-LEN5040  DS    CL(&RES)
-.SKIP_2  END
+         AGO   .FINAL
+       
+* The reason for this behavior lies in the pgm_conf.json where the 
+* 'SYSPARM' assembler option is overridden for this particular file.
+* Hence, the calculation of 8! takes place instead:
+.NEXT    AIF   ('&SYSPARM' NE 'EIGHT').FINAL
+         FACT  8
+         AGO   .FINAL
+
+* Finally, we can print the result in the 'PROBLEMS' tab by using MNOTE
+* instruction. Try using different MNOTE levels!
+.FINAL   MNOTE 2,'Result is &RES'
+
+         END

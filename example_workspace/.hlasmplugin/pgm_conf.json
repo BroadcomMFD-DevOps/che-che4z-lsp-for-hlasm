@@ -6,7 +6,8 @@
     },
     {
       "program": "factorial.hlasm",
-      "pgroup": "P1"
+      "pgroup": "P1",
+      "asm_options": {"SYSPARM": "EIGHT"}
     },
     {
       "program": "JULSUB",
