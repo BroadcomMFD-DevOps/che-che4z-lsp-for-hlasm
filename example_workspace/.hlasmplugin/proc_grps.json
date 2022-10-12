@@ -5,7 +5,7 @@
        "libs": [
           "libs/mac",
           "libs/registers",
-          "**/g*i?"
+          "${workspaceFolder}/**/g*i?"
         ],
         "asm_options": {
             "SYSPARM": "SEVEN"
