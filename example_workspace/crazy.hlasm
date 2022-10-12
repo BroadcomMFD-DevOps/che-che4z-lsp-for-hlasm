@@ -1,5 +1,4 @@
-*******************************  CRAZY  *******************************
-* MACRO CYCLES
+***************************  INFINIT CYCLES  **************************
 * It is possible to recursively call macro from itself
 * The number of calls is limited in HLASM 
          MACRO
@@ -9,6 +8,7 @@
 
          MAC
 
+**************************  RUBBISH SKIPPING  *************************
          AGO   .SKIP
          Anything in here is just skipped
          And it is still valid hlasm source code
