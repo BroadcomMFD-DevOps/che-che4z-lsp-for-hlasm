@@ -1,4 +1,4 @@
-******************************  COMMENTS  *****************************
+***************************  LINE COMMENTS  ***************************
 * This file shows how line and block comments work in the extension
 
 * Try commenting the following line while using any of the following: 
@@ -21,7 +21,7 @@ LABEL1   LR    1,1   Notice that the first character is replaced with *
 *SEVERAL LR    1,1
 *LINES   LR    1,1
 
-
+***************************  BLOCK COMMENTS  **************************
 * If you need to skip a block of code you can use the Toggle Block 
 * Comment command (SHIFT + ALT + A) which will surround the selected  
 * block with AGO instruction. Go ahead, select the following lines and  
