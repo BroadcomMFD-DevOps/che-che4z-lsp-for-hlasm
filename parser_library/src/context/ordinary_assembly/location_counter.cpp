@@ -41,30 +41,29 @@ location_counter::location_counter(id_index name, const section& owner, loctr_ki
 
 address location_counter::current_address() const
 {
-    return address({ &owner, nullptr }, (int)curr_data().storage, curr_data().spaces());
+    return address({ &owner, nullptr }, curr_data().storage, curr_data().spaces());
 }
 
 address location_counter::current_address_for_alignment_evaluation(alignment align) const
 {
     const auto& spaces = curr_data().unknown_parts;
     auto it = std::find_if(spaces.rbegin(), spaces.rend(), [align](const auto& up) {
-        return up.unknown_space->kind == space_kind::ALIGNMENT && up.unknown_space->align.boundary >= align.boundary
-            && up.unknown_space->align.byte % align.boundary <= align.byte;
+        return up.unknown_space->align.boundary >= align.boundary;
     }).base();
     if (it == spaces.begin())
-        return address({ &owner, nullptr }, (int)curr_data().storage, curr_data().spaces());
+        return address({ &owner, nullptr }, curr_data().storage, curr_data().spaces());
 
     space_storage alignment_spaces;
     alignment_spaces.reserve(std::distance(it, spaces.end()));
 
-    int offset = align.byte - std::prev(it)->unknown_space->align.byte % align.boundary + std::prev(it)->storage_after;
+    int offset = std::prev(it)->unknown_space->align.byte + std::prev(it)->storage_after;
 
     for (; it != spaces.end(); ++it)
     {
         offset += it->storage_after;
         alignment_spaces.push_back(it->unknown_space);
     }
-    return address({ &owner, nullptr }, offset, std::move(alignment_spaces));
+    return address({ &owner, nullptr }, offset, alignment_spaces);
 }
 
 aligned_addr location_counter::reserve_storage_area(size_t length, alignment a)
