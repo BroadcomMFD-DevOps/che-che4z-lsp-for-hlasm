@@ -10,10 +10,10 @@
          AIF   (&SYSNEST NE 1).INITEND
 &RES     SETA  1
 .INITEND AIF   (&A EQ 0).SKIP   Nothing to do for a factorial of 0
-&RES     SETA  &RES*&A           Do the actual multiplication
+&RES     SETA  &RES*&A          Do the actual multiplication
 * The 'NEXT' variable is local to the scope of current macro execution
 &NEXT    SETA  &A-1            
-         FACT  &NEXT             Do the factorial of A-1
+         FACT  &NEXT            Do the factorial of A-1
 .SKIP    ANOP
          MEND
     
@@ -22,8 +22,8 @@
          FACT  5    Now we 'call' the macro, and it will assign 5! to  x
                     &RES
 
-* We can hover over the LEN120 symbol to see that its length is
-* indeed 120
+* We can hover over the LEN120 symbol while running macro tracer to see
+* that its length is indeed 120
 LEN120   DS    CL(&RES)
 
 * Unfortunately, the macro cannot calculate factorial of numbers 

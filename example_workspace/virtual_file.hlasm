@@ -8,7 +8,7 @@
 * and is placed in a virtual file instead.
          MACRO
          MAC
-         AINSERT '         MACRO',BACK
+         AINSERT '         MACRO  WELCOME TO THE VIRTUAL FILE!',BACK
          AINSERT '         MAC_VIRTUAL',BACK
          AINSERT '         GBLA  &&VAR',BACK
          AINSERT '&&VAR     SETA  5',BACK
