@@ -59,7 +59,7 @@ public:
 };
 
 // function binary CA operators - AND, SLL, OR, ...
-class ca_function_binary_operator : public ca_binary_operator
+class ca_function_binary_operator final : public ca_binary_operator
 {
 public:
     ca_function_binary_operator(ca_expr_ptr left_expr,
