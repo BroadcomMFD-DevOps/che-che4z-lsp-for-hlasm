@@ -1,5 +1,7 @@
 ******************************  TUTORIAL  *****************************
-* This is an example HLASM workspace.
+* This folder represents an example HLASM workspace where you can find 
+* tutorials, configuration tips and more while this file contains a 
+* basic introduction to the HLASM extension. 
 
 *****************************  STATEMENTS  ****************************
 * Source code is divided into statements.
