@@ -1237,5 +1237,4 @@ A   USE
     EXPECT_TRUE(a.diags().empty());
 
     EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "T"), "U");
-
 }
