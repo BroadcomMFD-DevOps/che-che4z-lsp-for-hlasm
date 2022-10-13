@@ -48,7 +48,7 @@ R1       EQU   1
 * Generates code/instructions, language on top of the previous two
 * Capable of creating conditional jumps, substitutions, etc...
 
-* SETA defines a variable symbol (pink) with given value
+* SETA defines a variable symbol with given value
 &VAR     SETA  1
 * Whenever the symbol &VAR is encountered, it is substituted
          LR    &VAR,&VAR
@@ -57,7 +57,7 @@ R1       EQU   1
          LR    R&VAR,5
 * AIF jump/skips code generation on fulfilling a condition
 * &VAR equals 1, code generations jumps to the sequence symbol .THERE
-* Therefore LR statement is not generated (white)
+* Therefore LR statement is not generated
          AIF   (&VAR EQ 1).THERE
          LR    1,1
 .THERE   ANOP
