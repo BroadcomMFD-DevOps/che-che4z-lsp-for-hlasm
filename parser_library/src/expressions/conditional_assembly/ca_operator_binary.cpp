@@ -78,44 +78,46 @@ ca_function_binary_operator::ca_function_binary_operator(ca_expr_ptr left_expr,
     , m_expr_ctx { expr_kind, parent_expr_kind, true }
 {}
 
-std::variant<bool, undef_sym_set> t_attr_special_case(
+// Detects (T'&VAR EQ 'O') condition
+std::optional<undef_sym_set> t_attr_special_case(
     const expressions::ca_expression* left, const expressions::ca_expression* right, const evaluation_context& eval_ctx)
 {
     const expressions::ca_symbol_attribute* t_attr = nullptr;
     const expressions::ca_string* o_string = nullptr;
 
-    if (t_attr = dynamic_cast<const expressions::ca_symbol_attribute*>(left))
-    {
+    if ((t_attr = dynamic_cast<const expressions::ca_symbol_attribute*>(left)) != nullptr)
         o_string = dynamic_cast<const expressions::ca_string*>(right);
-    }
-    else if (t_attr = dynamic_cast<const expressions::ca_symbol_attribute*>(right))
-    {
+    else if ((t_attr = dynamic_cast<const expressions::ca_symbol_attribute*>(right)) != nullptr)
         o_string = dynamic_cast<const expressions::ca_string*>(left);
-    }
+
     if (t_attr == nullptr || o_string == nullptr)
-        return false;
+        return std::nullopt;
 
-    if (t_attr->attribute != context::data_attr_kind::T || !std::holds_alternative<semantics::vs_ptr>(t_attr->symbol)
-        || !std::get<semantics::vs_ptr>(t_attr->symbol)->access_basic())
-        return false;
+    if (t_attr->attribute != context::data_attr_kind::T || !std::holds_alternative<semantics::vs_ptr>(t_attr->symbol))
+        return std::nullopt;
+    auto basic = std::get<semantics::vs_ptr>(t_attr->symbol)->access_basic();
+    if (!basic)
+        return std::nullopt;
 
-    if (auto deps = o_string->get_undefined_attributed_symbols(eval_ctx); !deps.empty())
-        return std::move(deps);
+    undef_sym_set deps = o_string->get_undefined_attributed_symbols(eval_ctx);
+    for (const auto& expr : basic->subscript)
+        deps.merge(expr->get_undefined_attributed_symbols(eval_ctx));
 
-    auto v = o_string->evaluate(eval_ctx);
+    if (!deps.empty())
+        return deps;
 
-    return v.type == context::SET_t_enum::C_TYPE && v.access_c() == "O";
+    if (auto v = o_string->evaluate(eval_ctx); v.type != context::SET_t_enum::C_TYPE || v.access_c() != "O")
+        return std::nullopt;
+
+    return deps;
 }
 
 undef_sym_set ca_function_binary_operator::get_undefined_attributed_symbols(const evaluation_context& eval_ctx) const
 {
     if (is_relational() && m_expr_ctx.parent_expr_kind == context::SET_t_enum::B_TYPE)
     {
-        auto special = t_attr_special_case(left_expr.get(), right_expr.get(), eval_ctx);
-        if (std::holds_alternative<undef_sym_set>(special))
-            return std::move(std::get<undef_sym_set>(special));
-        else if (std::get<bool>(special))
-            return undef_sym_set();
+        if (auto special = t_attr_special_case(left_expr.get(), right_expr.get(), eval_ctx); special.has_value())
+            return std::move(special).value();
     }
     return ca_binary_operator::get_undefined_attributed_symbols(eval_ctx);
 }
