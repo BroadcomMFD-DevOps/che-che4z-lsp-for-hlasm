@@ -1,6 +1,6 @@
 ***************************  INFINIT CYCLES  **************************
-* It is possible to recursively call macro from itself
-* The number of calls is limited in HLASM 
+* It is possible to recursively call macro from itself.
+* The number of calls is limited in HLASM:
          MACRO
          MAC
          MAC

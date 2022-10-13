@@ -1,9 +1,9 @@
 **************************  ORDINARY SYMBOLS  *************************
-* In this file you can find some interesting use cases in HLASM
+* In this file you can find some interesting use cases in HLASM.
 
 * FORWARD DEPENDENCY
 * An example of a forward dependency where instruction lengths are 
-* forward dependent on resolved length of different instructions
+* forward dependent on resolved length of different instructions:
          DS    CL(LEN) Depends on LEN, LEN is not yet defined,         X
                instruction cannot be resolved
 ADDR     DS    CL(SIZE) Depends on SIZE, SIZE is not yet defined,      X
