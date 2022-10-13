@@ -34,9 +34,11 @@ public:
     std::string get_opcode_attr(id_index symbol) const override;
 
 protected:
-    dependency_solver_redirect(dependency_solver& base)
+    explicit dependency_solver_redirect(dependency_solver& base)
         : m_base(&base)
     {}
+
+    ~dependency_solver_redirect() = default;
 };
 
 } // namespace hlasm_plugin::parser_library::context

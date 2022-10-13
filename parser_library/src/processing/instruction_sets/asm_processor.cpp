@@ -136,7 +136,7 @@ struct override_symbol_candidates final : public context::dependency_solver_redi
             return r;
     }
 
-    override_symbol_candidates(context::dependency_solver& solver)
+    explicit override_symbol_candidates(context::dependency_solver& solver)
         : dependency_solver_redirect(solver)
     {}
 };
