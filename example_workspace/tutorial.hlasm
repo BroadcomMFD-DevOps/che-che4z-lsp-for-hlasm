@@ -72,7 +72,7 @@ R1       EQU   1
 * For dependency resolution, there are 2 configs in .hlasmplugin folder
 * - proc_grps.json - names of processor groups with their libraries
 * - pgm_conf.json - lists main/open code files and assigns proc groups
-* processor group P1 is assigned to this file (tutorial)
+* processor group P1 is assigned to this file (tutorial.hlasm)
 * P1 has 2 library folders - libs and libs2 - their files may be used
 
 * MAC2 is defined in libs/mac2 and is invoked by writing its name
