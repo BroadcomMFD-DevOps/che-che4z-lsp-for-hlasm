@@ -27,12 +27,13 @@
 * using Macro Tracer and then stepping over past 'MEND' instruction
 
 ***************************  PREPROCESSORS  ***************************
-* The extension also supports various preprocessors for e.g. CICS, 
-* Endevor and DB2. Look at proc_grps.json to see how they are 
-* configured for.
+* The extension also has its own implementation of various 
+* preprocessors (e.g. CICS, Endevor and DB2). The preprocessors can be 
+* chained and their ordering matters. Look at proc_grps.json to see how
+* they are configured.
 
-* Preprocessors generate virtual files with HLASM code and you can step 
-* into them in a similar fashion as above. Try this with the following:
+* Preprocessors can generate virtual HLASM files and you can step into 
+* them in a similar fashion as above. Try this with the following:
 START    DS    0C
 -INC     MEMBER
          LTORG

@@ -1,5 +1,0 @@
-TEST     DS    0F
--INC     MEMBER
-         LTORG
-AAA      EQU *-TEST
-         END
