@@ -7,9 +7,3 @@
          MEND 
 
          MAC
-
-**************************  RUBBISH SKIPPING  *************************
-         AGO   .SKIP
-         Anything in here is just skipped
-         And it is still valid hlasm source code
-.SKIP    ANOP

@@ -27,9 +27,7 @@ LABEL1   LR    1,1   Notice that the first character is replaced with *
 * block with AGO instruction. Go ahead, select the following lines and  
 * try the block comment feature. The same command can be used for
 * uncommenting of block of code as well:
-         This
-         should
-         be
-         a
-         block
-         comment
+         When Block comment command is applied on these lines,
+         Anything in here is just skipped
+         And the result is a valid hlasm source code
+         Producing no more errors
