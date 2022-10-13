@@ -1,5 +1,5 @@
 ****************************  VIRTUAL FILE  ***************************
-* This file demonstrates the virtual file feature
+* This file demonstrates the virtual file and preprocessors feature
 
 * The following macro uses AINSERT instructions to generate a new macro
 * 'MAC_VIRTUAL' for which the code is generated once MEND is reached 
@@ -22,7 +22,20 @@
          GBLA  &VAR
          MAC
          MAC_VIRTUAL
-         END
 
 * Virtual file can also be accessed by stepping into macro 'MAC' while 
 * using Macro Tracer and then stepping over past 'MEND' instruction
+
+***************************  PREPROCESSORS  ***************************
+* The extension also supports various preprocessors for e.g. CICS, 
+* Endevor and DB2. Look at proc_grps.json to see how they are 
+* configured for.
+
+* Preprocessors generate virtual files with HLASM code and you can step 
+* into them in a similar fashion as above. Try this with the following:
+START    DS    0C
+-INC     MEMBER
+         LTORG
+DIFF     EQU   *-START
+
+         END

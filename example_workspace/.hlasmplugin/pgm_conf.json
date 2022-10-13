@@ -10,6 +10,10 @@
       "asm_options": {"SYSPARM": "EIGHT"}
     },
     {
+      "program": "virtual_file.hlasm",
+      "pgroup": "P2"
+    },
+    {
       "program": "JULSUB",
       "pgroup": "JULSUB_PG"
     }

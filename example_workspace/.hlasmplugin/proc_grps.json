@@ -12,6 +12,16 @@
         }
     },
     {
+      "name": "P2",
+      "libs": [
+        "libs/preproc_members"
+      ],
+      "preprocessor":[
+        "ENDEVOR",
+        {"name": "CICS", "options": ["NOPROLOG","NOEPILOG"]}
+      ]
+    },
+    {
       "name": "JULSUB_PG",
       "libs": [
         "JULSUB_MACRO"
