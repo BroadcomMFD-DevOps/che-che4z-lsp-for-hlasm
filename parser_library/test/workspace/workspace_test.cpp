@@ -462,9 +462,9 @@ TEST_F(workspace_test, diagnostics_recollection)
 
     ws.collect_diags();
     size_t original_diags_size = collect_and_get_diags_size(ws, file_manager);
+    EXPECT_GE(original_diags_size, (size_t)1);
 
     ws.collect_diags();
-
     EXPECT_EQ(collect_and_get_diags_size(ws, file_manager), original_diags_size);
 }
 
