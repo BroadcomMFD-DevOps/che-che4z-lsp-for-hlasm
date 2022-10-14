@@ -643,9 +643,23 @@ class db2_preprocessor : public preprocessor
     void generate_sql_code_mock()
     {
         // this function generates non-realistic sql statement replacement code, because people do strange things...
-        m_result.emplace_back(replaced_line { "         LA    15,SQLCA      \n" });
-        m_result.emplace_back(replaced_line { "         L     15,=V(DSNHLI) \n" });
-        m_result.emplace_back(replaced_line { "         BALR  14,15         \n" });
+        m_result.emplace_back(replaced_line { "         BRAS  15,*+56                     \n" });
+        m_result.emplace_back(replaced_line { "         DC    H'0',X'0000',H'0'           \n" });
+        m_result.emplace_back(replaced_line { "         DC    XL8'0000000000000000'       \n" });
+        m_result.emplace_back(replaced_line { "         DC    XL8'0000000000000000',H'0'  \n" });
+        m_result.emplace_back(replaced_line { "         DC    H'0,0,0',X'0000',H'0',9H'0' \n" });
+        m_result.emplace_back(replaced_line { "         MVC   SQLPLLEN(24),0(15)          \n" });
+        m_result.emplace_back(replaced_line { "         MVC   SQLSTNM7(28),24(15)         \n" });
+        m_result.emplace_back(replaced_line { "         LA    15,SQLCA                    \n" });
+        m_result.emplace_back(replaced_line { "         ST    15,SQLCODEP                 \n" });
+        m_result.emplace_back(replaced_line { "         MVC   SQLVPARM,=XL4'00000000'     \n" });
+        m_result.emplace_back(replaced_line { "         MVC   SQLAPARM,=XL4'00000000'     \n" });
+        m_result.emplace_back(replaced_line { "         LA    1,SQLPLLEN                  \n" });
+        m_result.emplace_back(replaced_line { "         ST    1,SQLPLIST                  \n" });
+        m_result.emplace_back(replaced_line { "         OI    SQLPLIST,X'80'              \n" });
+        m_result.emplace_back(replaced_line { "         LA    1,SQLPLIST                  \n" });
+        m_result.emplace_back(replaced_line { "         L     15,=V(DSNHLI)               \n" });
+        m_result.emplace_back(replaced_line { "         BALR  14,15                       \n" });
     }
 
     void skip_process(line_iterator& it, line_iterator end)
