@@ -543,7 +543,7 @@ class db2_preprocessor : public preprocessor
             }
             this_line.append("\n");
             m_result.emplace_back(replaced_line { std::move(this_line) });
-            m_operands.append(operand_part);
+            m_operands.append(operand_part.substr(0, operand_part.find("--")));
         }
     }
 
