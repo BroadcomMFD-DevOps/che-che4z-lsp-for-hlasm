@@ -14,6 +14,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cctype>
 #include <charconv>
 #include <regex>
 #include <span>
@@ -593,6 +594,8 @@ class db2_preprocessor : public preprocessor
         return { instruction, first_line_skipped, label };
     }
 
+    static bool ord_char(unsigned char c) { return std::isalnum(c) || c == '_' || c == '@' || c == '$' || c == '#'; }
+
     static size_t count_arguments(std::string_view s)
     {
         size_t result = 0;
@@ -609,6 +612,14 @@ class db2_preprocessor : public preprocessor
             {
                 case ':':
                     ++result;
+                    while (!s.empty() && s.front() == ' ') // skip optional spaces
+                        s.remove_prefix(1);
+                    while (!s.empty() && ord_char(s.front())) // skip host variable name
+                        s.remove_prefix(1);
+                    while (!s.empty() && s.front() == ' ') // skip spaces
+                        s.remove_prefix(1);
+                    if (!s.empty() && s.front() == ':') // null indicator?
+                        s.remove_prefix(1);
                     break;
 
                 case '\'':

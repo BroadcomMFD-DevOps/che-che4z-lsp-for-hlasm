@@ -978,6 +978,7 @@ TEST(db2_preprocessor, hostvar_like_string)
 {
     std::string input = R"(
     USING *,12
+    USING SQLDSECT,11
 Q1  DS    0C
     EXEC  SQL SELECT 1 INTO :A FROM TABLE
 L1  EQU   *-Q1
@@ -985,6 +986,8 @@ Q2  DS    0C
     EXEC  SQL SELECT 1 INTO :A FROM TABLE WHERE X = ': NOT HOSTVAR'
 L2  EQU   *-Q2
 A   DS    F
+    EXEC  SQL INCLUDE SQLCA
+    END
 )";
 
     analyzer a(input, analyzer_options { db2_preprocessor_options {} });
