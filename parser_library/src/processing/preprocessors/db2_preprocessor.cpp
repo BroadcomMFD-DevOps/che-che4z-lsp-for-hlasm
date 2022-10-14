@@ -593,6 +593,37 @@ class db2_preprocessor : public preprocessor
         return { instruction, first_line_skipped, label };
     }
 
+    static size_t count_arguments(std::string_view s)
+    {
+        size_t result = 0;
+
+        while (!s.empty())
+        {
+            auto next = s.find_first_of(":'\"");
+            if (next == std::string_view::npos)
+                break;
+
+            auto c = s[next];
+            s.remove_prefix(next + 1);
+            switch (c)
+            {
+                case ':':
+                    ++result;
+                    break;
+
+                case '\'':
+                case '\"':
+                    if (auto ending = s.find(c); ending == std::string_view::npos)
+                        s = {};
+                    else
+                        s.remove_prefix(ending + 1);
+                    break;
+            }
+        }
+
+        return result;
+    }
+
     void process_nonempty_line(
         size_t lineno, bool include_allowed, line_type instruction, size_t first_line_skipped, std::string_view label)
     {
@@ -606,7 +637,7 @@ class db2_preprocessor : public preprocessor
             case line_type::exec_sql:
                 process_regular_line(label, first_line_skipped);
                 if (sql_has_codegen(m_operands))
-                    generate_sql_code_mock();
+                    generate_sql_code_mock(count_arguments(m_operands));
                 m_result.emplace_back(replaced_line { "***$$$\n" });
                 break;
 
@@ -640,9 +671,10 @@ class db2_preprocessor : public preprocessor
                 std::regex_constants::icase);
         return !std::regex_match(sql.begin(), sql.end(), no_code_statements);
     }
-    void generate_sql_code_mock()
+    void generate_sql_code_mock(size_t arguments)
     {
-        // this function generates non-realistic sql statement replacement code, because people do strange things...
+        // this function generates semi-realistic sql statement replacement code, because people do strange things...
+        // <arguments> output parameters
         m_result.emplace_back(replaced_line { "         BRAS  15,*+56                     \n" });
         m_result.emplace_back(replaced_line { "         DC    H'0',X'0000',H'0'           \n" });
         m_result.emplace_back(replaced_line { "         DC    XL8'0000000000000000'       \n" });
@@ -652,8 +684,37 @@ class db2_preprocessor : public preprocessor
         m_result.emplace_back(replaced_line { "         MVC   SQLSTNM7(28),24(15)         \n" });
         m_result.emplace_back(replaced_line { "         LA    15,SQLCA                    \n" });
         m_result.emplace_back(replaced_line { "         ST    15,SQLCODEP                 \n" });
-        m_result.emplace_back(replaced_line { "         MVC   SQLVPARM,=XL4'00000000'     \n" });
-        m_result.emplace_back(replaced_line { "         MVC   SQLAPARM,=XL4'00000000'     \n" });
+        if (arguments == 0)
+        {
+            m_result.emplace_back(replaced_line { "         MVC   SQLVPARM,=XL4'00000000'     \n" });
+            m_result.emplace_back(replaced_line { "         MVC   SQLAPARM,=XL4'00000000'     \n" });
+        }
+        else
+        {
+            m_result.emplace_back(replaced_line { "         MVC   SQLVPARM,=XL4'00000000'     \n" });
+            m_result.emplace_back(replaced_line { "         LA    14,SQLPVARS+16              \n" });
+            m_result.emplace_back(replaced_line { "         A     14,=A(SQLAVARS-SQLPVARS)    \n" });
+            for (size_t i = 0; i < arguments; ++i)
+            {
+                if (i > 0)
+                    m_result.emplace_back(replaced_line { "         LA    14,44(,14)                  \n" });
+                m_result.emplace_back(replaced_line { "         LA    15,0                        \n" });
+                m_result.emplace_back(replaced_line { "         ST    15,4(,14)                   \n" });
+                m_result.emplace_back(replaced_line { "         MVC   0(2,14),=X'0000'            \n" });
+                m_result.emplace_back(replaced_line { "         MVC   2(2,14),=H'0'               \n" });
+                m_result.emplace_back(replaced_line { "         SLR   15,15                       \n" });
+                m_result.emplace_back(replaced_line { "         ST    15,8(,14)                   \n" });
+                m_result.emplace_back(replaced_line { "         SLR   15,15                       \n" });
+                m_result.emplace_back(replaced_line { "         ST    15,12(,14)                  \n" });
+            }
+            m_result.emplace_back(replaced_line { "         LA    14,SQLPVARS+16                \n" });
+            m_result.emplace_back(replaced_line { "         A     14,=A(SQLAVARS-SQLPVARS)      \n" });
+            m_result.emplace_back(replaced_line { "         MVC   0(8,14),=XL8'0000000000000000'\n" });
+            m_result.emplace_back(replaced_line { "         MVC   8(4,14),=F'0'                 \n" });
+            m_result.emplace_back(replaced_line { "         MVC   12(2,14),=H'0'                \n" });
+            m_result.emplace_back(replaced_line { "         MVC   14(2,14),=H'0'                \n" });
+            m_result.emplace_back(replaced_line { "         ST    14,SQLAPARM                   \n" });
+        }
         m_result.emplace_back(replaced_line { "         LA    1,SQLPLLEN                  \n" });
         m_result.emplace_back(replaced_line { "         ST    1,SQLPLIST                  \n" });
         m_result.emplace_back(replaced_line { "         OI    SQLPLIST,X'80'              \n" });
