@@ -682,7 +682,7 @@ class db2_preprocessor : public preprocessor
                 std::regex_constants::icase);
         return !std::regex_match(sql.begin(), sql.end(), no_code_statements);
     }
-    void generate_sql_code_mock(size_t out_params)
+    void generate_sql_code_mock(size_t in_params)
     {
         // this function generates semi-realistic sql statement replacement code, because people do strange things...
         // <arguments> output parameters
@@ -696,16 +696,14 @@ class db2_preprocessor : public preprocessor
         m_result.emplace_back(replaced_line { "         LA    15,SQLCA                    \n" });
         m_result.emplace_back(replaced_line { "         ST    15,SQLCODEP                 \n" });
 
-        m_result.emplace_back(replaced_line { "         MVC   SQLVPARM,=XL4'00000000'     \n" });
-        if (out_params == 0)
+        if (in_params == 0)
         {
-            m_result.emplace_back(replaced_line { "         MVC   SQLAPARM,=XL4'00000000'     \n" });
+            m_result.emplace_back(replaced_line { "         MVC   SQLVPARM,=XL4'00000000'     \n" });
         }
         else
         {
             m_result.emplace_back(replaced_line { "         LA    14,SQLPVARS+16              \n" });
-            m_result.emplace_back(replaced_line { "         A     14,=A(SQLAVARS-SQLPVARS)    \n" });
-            for (size_t i = 0; i < out_params; ++i)
+            for (size_t i = 0; i < in_params; ++i)
             {
                 if (i > 0)
                     m_result.emplace_back(replaced_line { "         LA    14,44(,14)                  \n" });
@@ -718,14 +716,15 @@ class db2_preprocessor : public preprocessor
                 m_result.emplace_back(replaced_line { "         SLR   15,15                       \n" });
                 m_result.emplace_back(replaced_line { "         ST    15,12(,14)                  \n" });
             }
-            m_result.emplace_back(replaced_line { "         LA    14,SQLPVARS+16                \n" });
-            m_result.emplace_back(replaced_line { "         A     14,=A(SQLAVARS-SQLPVARS)      \n" });
+            m_result.emplace_back(replaced_line { "         LA    14,SQLPVARS                   \n" });
             m_result.emplace_back(replaced_line { "         MVC   0(8,14),=XL8'0000000000000000'\n" });
             m_result.emplace_back(replaced_line { "         MVC   8(4,14),=F'0'                 \n" });
             m_result.emplace_back(replaced_line { "         MVC   12(2,14),=H'0'                \n" });
             m_result.emplace_back(replaced_line { "         MVC   14(2,14),=H'0'                \n" });
-            m_result.emplace_back(replaced_line { "         ST    14,SQLAPARM                   \n" });
+            m_result.emplace_back(replaced_line { "         ST    14,SQLVPARM                   \n" });
         }
+        m_result.emplace_back(replaced_line { "         MVC   SQLAPARM,=XL4'00000000'     \n" });
+
         m_result.emplace_back(replaced_line { "         LA    1,SQLPLLEN                  \n" });
         m_result.emplace_back(replaced_line { "         ST    1,SQLPLIST                  \n" });
         m_result.emplace_back(replaced_line { "         OI    SQLPLIST,X'80'              \n" });
