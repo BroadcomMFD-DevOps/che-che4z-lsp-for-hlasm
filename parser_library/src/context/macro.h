@@ -33,8 +33,7 @@ struct macro_arg
     macro_data_ptr data;
 
     macro_arg(macro_data_ptr data)
-        : id(nullptr)
-        , data(std::move(data))
+        : data(std::move(data))
     {}
     macro_arg(macro_data_ptr data, id_index name)
         : id(name)

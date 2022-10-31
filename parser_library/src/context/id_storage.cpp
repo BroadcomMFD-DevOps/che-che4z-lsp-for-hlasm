@@ -20,7 +20,7 @@ using namespace hlasm_plugin::parser_library::context;
 
 const std::string id_storage::empty_string_("");
 
-const id_storage::const_pointer id_storage::empty_id = &id_storage::empty_string_;
+const id_index id_storage::empty_id(&id_storage::empty_string_);
 
 hlasm_plugin::parser_library::context::id_storage::id_storage()
     : well_known(lit_)
@@ -28,13 +28,13 @@ hlasm_plugin::parser_library::context::id_storage::id_storage()
 
 size_t id_storage::size() const { return lit_.size(); }
 
-id_storage::const_iterator id_storage::begin() const { return lit_.begin(); }
+// id_storage::const_iterator id_storage::begin() const { return lit_.begin(); }
 
-id_storage::const_iterator id_storage::end() const { return lit_.end(); }
+// id_storage::const_iterator id_storage::end() const { return lit_.end(); }
 
 bool id_storage::empty() const { return lit_.empty(); }
 
-id_storage::const_pointer id_storage::find(std::string val) const
+id_index id_storage::find(std::string val) const
 {
     if (val.empty())
         return empty_id;
@@ -43,15 +43,15 @@ id_storage::const_pointer id_storage::find(std::string val) const
 
     const_iterator tmp = lit_.find(val);
 
-    return tmp == lit_.end() ? nullptr : &*tmp;
+    return id_index(tmp == lit_.end() ? nullptr : &*tmp);
 }
 
-id_storage::const_pointer id_storage::add(std::string value)
+id_index id_storage::add(std::string value)
 {
     if (value.empty())
         return empty_id;
     to_upper(value);
-    return &*lit_.insert(std::move(value)).first;
+    return id_index(&*lit_.insert(std::move(value)).first);
 }
 
 id_storage::well_known_strings::well_known_strings(std::unordered_set<std::string>& ptr)

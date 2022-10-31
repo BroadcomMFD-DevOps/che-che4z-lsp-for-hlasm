@@ -188,7 +188,7 @@ void hlasm_context::add_system_vars_to_scope(code_scope& scope)
             auto sect_name = ord_ctx.current_section() ? ord_ctx.current_section()->name : id_storage::empty_id;
 
             scope.system_variables.insert(
-                create_system_variable<system_variable, std::string>(ids(), "SYSECT", *sect_name, false));
+                create_system_variable<system_variable, std::string>(ids(), "SYSECT", sect_name.to_string(), false));
         }
 
         {
@@ -231,7 +231,7 @@ void hlasm_context::add_system_vars_to_scope(code_scope& scope)
 
             if (ord_ctx.current_section())
             {
-                location_counter_name = *ord_ctx.current_section()->current_location_counter().name;
+                location_counter_name = ord_ctx.current_section()->current_location_counter().name.to_string();
             }
 
             scope.system_variables.insert(
@@ -250,12 +250,10 @@ void hlasm_context::add_system_vars_to_scope(code_scope& scope)
 
             for (auto it = scope_stack_.rbegin(); it != scope_stack_.rend(); ++it)
             {
-                std::string tmp;
                 if (it->is_in_macro())
-                    tmp = *it->this_macro->id;
+                    data.push_back(it->this_macro->id.to_string());
                 else
-                    tmp = "OPEN CODE";
-                data.push_back(std::move(tmp));
+                    data.push_back("OPEN CODE");
             }
 
             scope.system_variables.insert(
@@ -1061,7 +1059,7 @@ void hlasm_context::using_resolve(diagnostic_s_consumer& diag, const library_inf
 
 index_t<using_collection> hlasm_context::using_current() const { return m_active_usings.back(); }
 
-hlasm_context::name_result hlasm_context::try_get_symbol_name(const std::string& symbol)
+hlasm_context::name_result hlasm_context::try_get_symbol_name(std::string_view symbol)
 {
     if (symbol.empty() || symbol.size() > 63 || isdigit((unsigned char)symbol.front()))
         return std::make_pair(false, context::id_storage::empty_id);
@@ -1070,7 +1068,7 @@ hlasm_context::name_result hlasm_context::try_get_symbol_name(const std::string&
         if (!lexing::lexer::ord_char(c))
             return std::make_pair(false, context::id_storage::empty_id);
 
-    return std::make_pair(true, ids().add(symbol));
+    return std::make_pair(true, ids().add(std::string(symbol)));
 }
 
 SET_t get_var_sym_value(const hlasm_context& hlasm_ctx,
@@ -1080,7 +1078,7 @@ SET_t get_var_sym_value(const hlasm_context& hlasm_ctx,
     diagnostic_op_consumer& diags)
 {
     auto var = hlasm_ctx.get_var_sym(name);
-    if (!test_symbol_for_read(var, subscript, symbol_range, diags, *name))
+    if (!test_symbol_for_read(var, subscript, symbol_range, diags, name.to_string_view()))
         return SET_t();
 
     if (auto set_sym = var->access_set_symbol_base())

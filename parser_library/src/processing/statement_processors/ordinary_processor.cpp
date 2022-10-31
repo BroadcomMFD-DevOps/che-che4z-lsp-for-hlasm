@@ -56,7 +56,8 @@ processing_status ordinary_processor::get_processing_status(const semantics::ins
 
     if (!status)
     {
-        auto found = lib_provider.parse_library(*id, ctx, workspaces::library_data { processing_kind::MACRO, id });
+        auto found =
+            lib_provider.parse_library(id.to_string(), ctx, workspaces::library_data { processing_kind::MACRO, id });
         processing_form f;
         context::instruction_type t;
         if (found)
@@ -103,8 +104,8 @@ void ordinary_processor::process_statement(context::shared_stmt_ptr s)
     switch (statement->opcode_ref().type)
     {
         case context::instruction_type::UNDEF:
-            add_diagnostic(
-                diagnostic_op::error_E049(*statement->opcode_ref().value, statement->instruction_ref().field_range));
+            add_diagnostic(diagnostic_op::error_E049(
+                statement->opcode_ref().value.to_string_view(), statement->instruction_ref().field_range));
             return;
         case context::instruction_type::CA:
             ca_proc_.process(std::move(statement));

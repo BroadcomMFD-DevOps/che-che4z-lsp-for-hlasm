@@ -41,7 +41,10 @@ undef_sym_set ca_expr_list::get_undefined_attributed_symbols(const evaluation_co
 
 bool is_symbol(const ca_expr_ptr& expr) { return dynamic_cast<const ca_symbol*>(expr.get()) != nullptr; }
 
-const std::string& get_symbol(const ca_expr_ptr& expr) { return *dynamic_cast<const ca_symbol&>(*expr).symbol; }
+std::string_view get_symbol(const ca_expr_ptr& expr)
+{
+    return dynamic_cast<const ca_symbol&>(*expr).symbol.to_string_view();
+}
 
 void ca_expr_list::resolve_expression_tree(ca_expression_ctx expr_ctx, diagnostic_op_consumer& diags)
 {
@@ -250,7 +253,7 @@ void ca_expr_list::resolve(ca_expression_ctx expr_ctx, diagnostic_op_consumer& d
         ++i;
         if (is_symbol(curr_expr))
         {
-            const auto& symbol = get_symbol(curr_expr);
+            const auto symbol = get_symbol(curr_expr);
             auto op_type_var = expr_policy::get_operator_properties(symbol);
             if (std::holds_alternative<std::monostate>(op_type_var))
             {

@@ -675,7 +675,7 @@ void asm_processor::process_OPSYN(rebuilt_statement stmt)
         if (hlasm_ctx.get_operation_code(label))
             hlasm_ctx.remove_mnemonic(label);
         else
-            add_diagnostic(diagnostic_op::error_E049(*label, stmt.label_ref().field_range));
+            add_diagnostic(diagnostic_op::error_E049(label.to_string_view(), stmt.label_ref().field_range));
     }
     else
     {
@@ -744,7 +744,7 @@ bool asm_processor::process_copy(const semantics::complete_statement& stmt,
     if (tmp == ctx.hlasm_ctx->copy_members().end())
     {
         bool result = lib_provider.parse_library(
-            *sym_expr->value, ctx, workspaces::library_data { processing_kind::COPY, sym_expr->value });
+            sym_expr->value.to_string(), ctx, workspaces::library_data { processing_kind::COPY, sym_expr->value });
 
         if (!result)
         {
@@ -836,7 +836,7 @@ public:
     void visit(const expressions::mach_expr_default&) override {}
     void visit(const expressions::mach_expr_literal&) override {}
 
-    context::id_index value = nullptr;
+    context::id_index value;
 };
 } // namespace
 
@@ -865,9 +865,9 @@ void asm_processor::process_AINSERT(rebuilt_statement stmt)
     if (!value)
         return;
     processing::ainsert_destination dest;
-    if (*value == "FRONT")
+    if (value.to_string_view() == "FRONT")
         dest = processing::ainsert_destination::front;
-    else if (*value == "BACK")
+    else if (value.to_string_view() == "BACK")
         dest = processing::ainsert_destination::back;
     else
     {
@@ -1045,7 +1045,7 @@ void asm_processor::process_END(rebuilt_statement stmt)
 void asm_processor::process_ALIAS(rebuilt_statement stmt)
 {
     auto symbol_name = find_label_symbol(stmt);
-    if (symbol_name->empty())
+    if (symbol_name.empty())
     {
         add_diagnostic(diagnostic_op::error_A163_ALIAS_mandatory_label(stmt.stmt_range_ref()));
         return;

@@ -254,7 +254,7 @@ inline std::optional<std::pair<int, std::string>> get_symbol_address(hlasm_conte
     if (val.bases().size() != 1 && val.bases().front().second != 1)
         return std::nullopt;
 
-    return std::pair<int, std::string>(val.offset(), *val.bases().front().first.owner->name);
+    return std::pair<int, std::string>(val.offset(), val.bases().front().first.owner->name.to_string());
 }
 
 #endif

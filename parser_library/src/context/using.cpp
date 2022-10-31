@@ -63,7 +63,7 @@ void using_collection::using_entry::compute_context_correction(
     context.m_state.emplace_back(using_context::entry { u.label, u.owner, u.begin, u.length, u.reg_set, u.reg_offset });
 }
 
-std::string_view convert_diag(id_index id) { return *id; }
+std::string_view convert_diag(id_index id) { return id.to_string_view(); }
 int convert_diag(using_collection::register_t c) { return c; }
 
 void using_collection::using_entry::compute_context_correction(
@@ -90,7 +90,7 @@ size_t using_collection::using_entry::compute_context_drop(register_t d)
     size_t invalidated = 0;
     for (auto& e : context.m_state)
     {
-        if (e.label == nullptr)
+        if (e.label.null())
         {
             invalidated += std::count(e.regs.begin(), e.regs.end(), d);
             std::replace(e.regs.begin(), e.regs.end(), d, invalid_register);
@@ -119,7 +119,7 @@ auto using_collection::using_drop_definition::abs_or_reloc(
         {
             return { std::nullopt, rng };
         }
-        return { qualified_address(nullptr, nullptr, v), rng };
+        return { qualified_address(id_index(), nullptr, v), rng };
     }
     if (value.value_kind() == symbol_value_kind::RELOC && value.get_reloc().is_simple())
     {
@@ -140,7 +140,7 @@ auto using_collection::using_drop_definition::reg_or_label(const using_collectio
 
     if (expr.label)
     {
-        return { qualified_id { nullptr, expr.label }, rng };
+        return { qualified_id { id_index(), expr.label }, rng };
     }
 
     if (expr.value.value_kind() == symbol_value_kind::ABS)
@@ -216,7 +216,7 @@ using_collection::resolved_entry using_collection::using_drop_definition::resolv
         {
             constexpr auto section_name = [](const section* s) {
                 if (s)
-                    return std::string_view(*s->name);
+                    return s->name.to_string_view();
                 else
                     return std::string_view();
             };
@@ -321,10 +321,10 @@ namespace {
 id_index identify_label(const ordinary_assembly_context& ord_context, const expressions::mach_expression* expression)
 {
     if (auto sym = dynamic_cast<const expressions::mach_expr_symbol*>(expression);
-        sym && sym->qualifier == nullptr && ord_context.is_using_label(sym->value))
+        sym && sym->qualifier.null() && ord_context.is_using_label(sym->value))
         return sym->value;
 
-    return nullptr;
+    return id_index();
 }
 } // namespace
 
@@ -496,7 +496,7 @@ auto using_collection::using_context::evaluate(id_index label,
     {
         // implicit 0 mapping
         static constexpr entry zero_entry {
-            nullptr,
+            id_index(),
             nullptr,
             0,
             0x1000,

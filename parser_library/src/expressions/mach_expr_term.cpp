@@ -159,9 +159,9 @@ size_t mach_expr_symbol::hash() const
 {
     auto result = (size_t)0xdf510e8c145dd28d;
 
-    result = hash_combine(result, (uintptr_t)value);
+    result = hash_combine(result, value.hash());
     if (qualifier)
-        result = hash_combine(result, (uintptr_t)qualifier);
+        result = hash_combine(result, qualifier.hash());
     return result;
 }
 mach_expr_ptr mach_expr_symbol::clone() const
@@ -317,9 +317,9 @@ void mach_expr_data_attr::apply(mach_expr_visitor& visitor) const { visitor.visi
 size_t mach_expr_data_attr::hash() const
 {
     auto result = (size_t)0xa2957a462d908bd2;
-    result = hash_combine(result, (uintptr_t)value);
+    result = hash_combine(result, value.hash());
     if (qualifier)
-        result = hash_combine(result, (uintptr_t)qualifier);
+        result = hash_combine(result, qualifier.hash());
     result = hash_combine(result, (size_t)attribute);
 
     return result;

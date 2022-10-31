@@ -147,7 +147,7 @@ term returns [ca_expr_ptr ca_expr]
 		collector.add_hl_symbol(token_info(provider.get_range( $id_no_dot.ctx),hl_scopes::operand));
 		
 		auto r = provider.get_range($ca_dupl_factor.ctx->getStart(), $subscript_ne.ctx->getStop());
-		auto func = ca_common_expr_policy::get_function(*$id_no_dot.name);
+		auto func = ca_common_expr_policy::get_function($id_no_dot.name.to_string_view());
 		$ca_expr = std::make_unique<ca_function>($id_no_dot.name, func, std::move($subscript_ne.value), std::move($ca_dupl_factor.value), r);
 	}
 	| id_no_dot

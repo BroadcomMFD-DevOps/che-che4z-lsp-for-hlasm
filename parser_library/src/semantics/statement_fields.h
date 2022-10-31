@@ -39,7 +39,7 @@ enum class label_si_type
 
 struct ord_symbol_string
 {
-    context::id_index symbol = nullptr;
+    context::id_index symbol;
     std::string mixed_case;
 };
 

@@ -66,7 +66,7 @@ void copy_processor::end_processing()
     if (macro_nest_ > 0)
     {
         range r(hlasm_ctx.processing_stack_top().pos);
-        add_diagnostic(diagnostic_op::error_E061(*start_.member_name, r));
+        add_diagnostic(diagnostic_op::error_E061(start_.member_name.to_string_view(), r));
         result_.invalid_member = true;
     }
 
@@ -92,7 +92,7 @@ void copy_processor::process_MEND()
     if (macro_nest_ < 0)
     {
         range r(hlasm_ctx.processing_stack_top().pos);
-        add_diagnostic(diagnostic_op::error_E061(*start_.member_name, r));
+        add_diagnostic(diagnostic_op::error_E061(start_.member_name.to_string_view(), r));
         result_.invalid_member = true;
     }
 }

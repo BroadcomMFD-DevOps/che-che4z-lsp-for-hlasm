@@ -58,6 +58,7 @@ public:
 
     explicit processing_status_cache_key(const processing_status& s);
 
+    static unsigned char generate_loctr_len(std::string_view id);
     static unsigned char generate_loctr_len(context::id_index id);
 };
 
