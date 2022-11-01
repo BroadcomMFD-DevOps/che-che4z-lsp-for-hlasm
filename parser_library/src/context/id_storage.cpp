@@ -30,16 +30,17 @@ size_t id_storage::size() const { return lit_.size(); }
 
 bool id_storage::empty() const { return lit_.empty(); }
 
-id_index id_storage::find(std::string val) const
+std::optional<id_index> id_storage::find(std::string val) const
 {
     if (val.empty())
         return empty_id;
 
     to_upper(val);
 
-    auto tmp = lit_.find(val);
-
-    return id_index(tmp == lit_.end() ? nullptr : &*tmp);
+    if (auto tmp = lit_.find(val); tmp != lit_.end())
+        return id_index(&*tmp);
+    else
+        return std::nullopt;
 }
 
 id_index id_storage::add(std::string value)

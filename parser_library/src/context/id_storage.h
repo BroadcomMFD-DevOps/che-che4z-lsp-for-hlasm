@@ -15,6 +15,7 @@
 #ifndef CONTEXT_LITERAL_STORAGE_H
 #define CONTEXT_LITERAL_STORAGE_H
 
+#include <optional>
 #include <string>
 #include <unordered_set>
 
@@ -76,7 +77,7 @@ public:
     size_t size() const;
     bool empty() const;
 
-    id_index find(std::string val) const;
+    std::optional<id_index> find(std::string val) const;
 
     id_index add(std::string value);
 

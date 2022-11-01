@@ -42,7 +42,7 @@ TEST(context_id_storage, add)
 {
     hlasm_context ctx;
 
-    ASSERT_FALSE(ctx.ids().find("").null());
+    ASSERT_TRUE(ctx.ids().find("").has_value());
 
     auto it1 = ctx.ids().add("var");
     auto it2 = ctx.ids().find("var");
@@ -109,11 +109,13 @@ TEST(context, find_global_system_var)
 
     auto idx = ctx.ids().find("SYSDATC");
 
-    auto scope_var_ptr = ctx.get_var_sym(idx);
+    ASSERT_TRUE(idx.has_value());
+
+    auto scope_var_ptr = ctx.get_var_sym(idx.value());
 
 
     EXPECT_TRUE(scope_var_ptr);
-    EXPECT_TRUE(ctx.globals().find(idx) != ctx.globals().end());
+    EXPECT_TRUE(ctx.globals().find(idx.value()) != ctx.globals().end());
 }
 
 TEST(context, create_local_var)
