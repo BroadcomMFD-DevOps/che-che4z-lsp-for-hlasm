@@ -436,7 +436,7 @@ void ca_processor::process_AIF(const semantics::complete_statement& stmt)
     register_seq_sym(stmt);
 
     context::B_t condition;
-    context::id_index target;
+    context::id_index target = context::id_storage::empty_id;
     range target_range;
     bool ok = prepare_AIF(stmt, condition, target, target_range);
 
@@ -486,7 +486,7 @@ struct AREAD_operand_visitor final : public semantics::operand_visitor
     {}
 
     expressions::evaluation_context* eval_ctx = nullptr;
-    context::id_index value;
+    context::id_index value = context::id_storage::empty_id;
 
     void visit(const semantics::empty_operand&) override {}
     void visit(const semantics::model_operand&) override {}

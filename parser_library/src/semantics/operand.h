@@ -58,7 +58,7 @@ struct op_rem
 // sequence symbol structure
 struct seq_sym
 {
-    context::id_index name;
+    context::id_index name = context::id_storage::empty_id;
     range symbol_range;
 };
 

@@ -36,7 +36,7 @@ struct lookahead_start_data
     context::source_snapshot snapshot;
 
     // SEQ action
-    context::id_index target;
+    context::id_index target = context::id_storage::empty_id;
     range target_range;
 
     lookahead_start_data(context::id_index target,

@@ -835,7 +835,7 @@ public:
     void visit(const expressions::mach_expr_default&) override {}
     void visit(const expressions::mach_expr_literal&) override {}
 
-    context::id_index value;
+    context::id_index value = context::id_storage::empty_id;
 };
 } // namespace
 

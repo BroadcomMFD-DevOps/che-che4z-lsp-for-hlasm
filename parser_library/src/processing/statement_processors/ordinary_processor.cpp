@@ -46,11 +46,9 @@ ordinary_processor::ordinary_processor(analyzing_context ctx,
 
 processing_status ordinary_processor::get_processing_status(const semantics::instruction_si& instruction) const
 {
-    context::id_index id;
-    if (instruction.type == semantics::instruction_si_type::CONC)
-        id = resolve_instruction(std::get<semantics::concat_chain>(instruction.value), instruction.field_range);
-    else
-        id = std::get<context::id_index>(instruction.value);
+    context::id_index id = instruction.type == semantics::instruction_si_type::CONC
+        ? resolve_instruction(std::get<semantics::concat_chain>(instruction.value), instruction.field_range)
+        : std::get<context::id_index>(instruction.value);
 
     auto status = get_instruction_processing_status(id, hlasm_ctx);
 
@@ -141,7 +139,7 @@ void ordinary_processor::end_processing()
     if (!hlasm_ctx.ord_ctx.symbol_dependencies.check_loctr_cycle(lib_info))
         add_diagnostic(diagnostic_op::error_E033(range())); // TODO: at least we say something
 
-    hlasm_ctx.ord_ctx.symbol_dependencies.add_defined(context::id_index(), &asm_proc_, lib_info);
+    hlasm_ctx.ord_ctx.symbol_dependencies.add_defined(context::id_storage::empty_id, &asm_proc_, lib_info);
 
     hlasm_ctx.ord_ctx.finish_module_layout(&asm_proc_, lib_info);
 

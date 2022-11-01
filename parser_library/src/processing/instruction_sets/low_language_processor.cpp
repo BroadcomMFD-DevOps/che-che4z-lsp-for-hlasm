@@ -66,7 +66,7 @@ context::id_index low_language_processor::find_using_label(const rebuilt_stateme
 
         add_diagnostic(diagnostic_op::error_E065(label.field_range));
     }
-    return context::id_index();
+    return context::id_storage::empty_id;
 }
 
 bool low_language_processor::create_symbol(

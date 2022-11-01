@@ -71,7 +71,7 @@ id_index literal_pool::get_literal(
     unique_id = dd->references_loctr ? unique_id : 0;
     auto it = m_literals_genmap.find(literal_id { generation, unique_id, dd });
     if (it == m_literals_genmap.end())
-        return id_index();
+        return id_storage::empty_id;
     return id_index(&it->second->second.text);
 }
 

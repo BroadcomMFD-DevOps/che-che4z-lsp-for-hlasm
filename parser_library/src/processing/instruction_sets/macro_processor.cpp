@@ -351,7 +351,7 @@ void macro_processor::get_keyword_arg(const resolved_statement& statement,
         else
             data = string_to_macrodata(semantics::concatenation_point::evaluate(chain_begin, chain_end, eval_ctx));
 
-        args.push_back({ std::move(data), id });
+        args.emplace_back(std::move(data), id);
     }
 }
 

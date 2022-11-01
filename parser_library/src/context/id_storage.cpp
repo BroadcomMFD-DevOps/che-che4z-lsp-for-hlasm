@@ -18,10 +18,6 @@
 
 using namespace hlasm_plugin::parser_library::context;
 
-const std::string empty_string_;
-
-const id_index id_storage::empty_id(&empty_string_);
-
 hlasm_plugin::parser_library::context::id_storage::id_storage()
     : well_known(lit_)
 {}

@@ -15,7 +15,7 @@
  //rules for instruction field
 parser grammar instruction_field_rules;
 
-instruction returns [id_index instr] locals [concat_chain chain]
+instruction returns [id_index instr = id_storage::empty_id] locals [concat_chain chain]
 	: l_string_v[&$chain]			/*model*/
 	{
 		for(const auto& point : $chain)

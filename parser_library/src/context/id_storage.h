@@ -34,7 +34,7 @@ class id_index
     friend class literal_pool;
 
 public:
-    constexpr id_index() noexcept = default;
+    // constexpr id_index() noexcept = default;
 
     constexpr auto operator<=>(const id_index&) const noexcept = default;
     constexpr bool operator==(const id_index&) const noexcept = default;
@@ -65,14 +65,14 @@ namespace hlasm_plugin::parser_library::context {
 // changes strings of identifiers to indexes of this storage class for easier and unified work
 class id_storage
 {
-private:
+    static constexpr const std::string empty_string_ = std::string();
     std::unordered_set<std::string> lit_;
 
 public:
     id_storage();
 
     // represents value of empty identifier
-    static const id_index empty_id;
+    static constexpr const id_index empty_id = id_index(&empty_string_);
 
     size_t size() const;
     bool empty() const;

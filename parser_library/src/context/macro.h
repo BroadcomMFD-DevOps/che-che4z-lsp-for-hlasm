@@ -32,10 +32,7 @@ struct macro_arg
     id_index id;
     macro_data_ptr data;
 
-    macro_arg(macro_data_ptr data)
-        : data(std::move(data))
-    {}
-    macro_arg(macro_data_ptr data, id_index name)
+    explicit macro_arg(macro_data_ptr data, id_index name = id_storage::empty_id)
         : id(name)
         , data(std::move(data))
     {}

@@ -320,7 +320,7 @@ void ordinary_assembly_context::finish_module_layout(diagnostic_s_consumer* diag
         for (const auto& loctr : sect->location_counters())
         {
             loctr->finish_layout(last_offset);
-            symbol_dependencies.add_defined(id_index(), diag_consumer, li);
+            symbol_dependencies.add_defined(id_storage::empty_id, diag_consumer, li);
             if (loctr->has_unresolved_spaces())
                 return;
             last_offset = loctr->storage();

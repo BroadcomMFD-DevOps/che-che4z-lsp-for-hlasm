@@ -152,7 +152,7 @@ TEST(context, OPSYN)
     EXPECT_EQ(ctx.get_operation_code(mv).opcode, st);
 
     ctx.remove_mnemonic(lr);
-    EXPECT_EQ(ctx.get_operation_code(lr).opcode, id_index());
+    EXPECT_EQ(ctx.get_operation_code(lr).opcode, id_storage::empty_id);
 
     EXPECT_EQ(ctx.get_operation_code(mvc).opcode, mvc);
 }
@@ -302,9 +302,9 @@ TEST(context_macro, add_macro)
     macro_arg a(move(p1), key);
     vector<macro_arg> args;
     args.push_back(move(a));
-    args.push_back({ nullptr, op1 });
-    args.push_back({ nullptr });
-    args.push_back({ nullptr, op3 });
+    args.emplace_back(nullptr, op1);
+    args.emplace_back(nullptr);
+    args.emplace_back(nullptr, op3);
 
     // prototype->|&LBL		MAC		&KEY=,&OP1,,&OP3
     auto& m = *ctx.add_macro(idx, lbl, move(args), {}, {}, {}, {}, {});
@@ -334,9 +334,9 @@ TEST(context_macro, call_and_leave_macro)
     macro_arg a(move(p1), key);
     vector<macro_arg> args;
     args.push_back(move(a));
-    args.push_back({ nullptr, op1 });
-    args.push_back({ nullptr });
-    args.push_back({ nullptr, op3 });
+    args.emplace_back(nullptr, op1);
+    args.emplace_back(nullptr);
+    args.emplace_back(nullptr, op3);
 
     // prototype->|		MAC		&KEY=,&OP1,,&OP3
     auto& m = *ctx.add_macro(idx, context::id_storage::empty_id, move(args), {}, {}, {}, {}, {});
@@ -348,9 +348,9 @@ TEST(context_macro, call_and_leave_macro)
 
     // creating vector of param data for entering macro
     vector<macro_arg> params;
-    params.push_back({ move(p2) });
-    params.push_back({ move(p3) });
-    params.push_back({ move(p4) });
+    params.emplace_back(move(p2));
+    params.emplace_back(move(p3));
+    params.emplace_back(move(p4));
 
     // call->|		MAC		ada,mko,
     auto m2 = ctx.enter_macro(idx, nullptr, move(params));
@@ -396,9 +396,9 @@ TEST(context_macro, repeat_call_same_macro)
     macro_arg a(move(p1), key);
     vector<macro_arg> args;
     args.push_back(move(a));
-    args.push_back({ nullptr, op1 });
-    args.push_back({ nullptr });
-    args.push_back({ nullptr, op3 });
+    args.emplace_back(nullptr, op1);
+    args.emplace_back(nullptr);
+    args.emplace_back(nullptr, op3);
 
     // prototype->|&LBL		MAC		&KEY=,&OP1,,&OP3
     ctx.add_macro(idx, lbl, move(args), {}, {}, {}, {}, {});
@@ -411,9 +411,9 @@ TEST(context_macro, repeat_call_same_macro)
 
     // creating vector of param data for entering macro
     vector<macro_arg> params;
-    params.push_back({ move(p2) });
-    params.push_back({ move(p3) });
-    params.push_back({ move(p4) });
+    params.emplace_back(move(p2));
+    params.emplace_back(move(p3));
+    params.emplace_back(move(p4));
 
     // calling macro
     // call->|lbl		MAC		ada,mko,
@@ -441,10 +441,10 @@ TEST(context_macro, repeat_call_same_macro)
     macro_data_ptr dat(make_unique<macro_param_data_composite>(move(v)));
 
     // creating another vector for macro call
-    params.push_back({ move(np2) });
-    params.push_back({ move(np4), key });
-    params.push_back({ move(np3) });
-    params.push_back({ move(dat) });
+    params.emplace_back(move(np2));
+    params.emplace_back(move(np4), key);
+    params.emplace_back(move(np3));
+    params.emplace_back(move(dat));
 
     // call->|		MAC		,KEY=cas,,(first,second,third)
     auto m3 = ctx.enter_macro(idx, nullptr, move(params));
@@ -490,9 +490,9 @@ TEST(context_macro, recurr_call)
     macro_arg a(move(p1), key);
     vector<macro_arg> args;
     args.push_back(move(a));
-    args.push_back({ nullptr, op1 });
-    args.push_back({ nullptr });
-    args.push_back({ nullptr, op3 });
+    args.emplace_back(nullptr, op1);
+    args.emplace_back(nullptr);
+    args.emplace_back(nullptr, op3);
 
     // prototype->|&LBL		MAC		&KEY=,&OP1,,&OP3
     ctx.add_macro(idx, lbl, move(args), {}, {}, {}, {}, {});
@@ -506,9 +506,9 @@ TEST(context_macro, recurr_call)
 
     // creating vector of param data for entering macro
     vector<macro_arg> params;
-    params.push_back({ move(p2) });
-    params.push_back({ move(p3) });
-    params.push_back({ move(p4) });
+    params.emplace_back(move(p2));
+    params.emplace_back(move(p3));
+    params.emplace_back(move(p4));
 
     // calling macro
     // call->|lbl		MAC		ada,mko,
@@ -537,10 +537,10 @@ TEST(context_macro, recurr_call)
     macro_data_ptr dat(make_unique<macro_param_data_composite>(move(v)));
 
     // creating another vector for macro call
-    params.push_back({ move(np2) });
-    params.push_back({ move(np4), key });
-    params.push_back({ move(np3) });
-    params.push_back({ move(dat) });
+    params.emplace_back(move(np2));
+    params.emplace_back(move(np4), key);
+    params.emplace_back(move(np3));
+    params.emplace_back(move(dat));
 
     // call->|		MAC		,KEY=cas,,(first,second,third)
     auto m3 = ctx.enter_macro(idx, nullptr, move(params));

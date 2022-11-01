@@ -187,7 +187,7 @@ num returns [self_def_t value]
 signed_num_ch
 	: MINUS? NUM+;
 
-id returns [id_index name, id_index using_qualifier]
+id returns [id_index name = id_storage::empty_id, id_index using_qualifier = id_storage::empty_id]
 	: f=id_no_dot {$name = $f.name;} (dot s=id_no_dot {$name = $s.name; $using_qualifier = $f.name;})?;
 
 id_no_dot returns [id_index name = id_storage::empty_id] locals [std::string buffer]
