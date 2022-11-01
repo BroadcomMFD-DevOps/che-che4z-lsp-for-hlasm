@@ -90,7 +90,7 @@ size_t using_collection::using_entry::compute_context_drop(register_t d)
     size_t invalidated = 0;
     for (auto& e : context.m_state)
     {
-        if (e.label.null())
+        if (!e.label.has_value())
         {
             invalidated += std::count(e.regs.begin(), e.regs.end(), d);
             std::replace(e.regs.begin(), e.regs.end(), d, invalid_register);

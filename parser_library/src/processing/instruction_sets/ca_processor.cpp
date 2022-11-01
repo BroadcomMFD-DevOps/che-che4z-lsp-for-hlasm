@@ -540,7 +540,7 @@ void ca_processor::process_AREAD(const semantics::complete_statement& stmt)
         AREAD_operand_visitor op(&eval_ctx);
         ops.value.at(0)->apply(op);
 
-        if (op.value.null())
+        if (!op.value.has_value())
             return aread_variant::invalid;
 
         static const std::initializer_list<std::pair<std::string_view, aread_variant>> allowed_operands = {

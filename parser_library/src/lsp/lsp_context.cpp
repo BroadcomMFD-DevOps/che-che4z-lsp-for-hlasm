@@ -254,7 +254,7 @@ std::span<const symbol_occurence* const> lsp_context::get_occurences_by_name(
         });
     }
 
-    if (name.null())
+    if (!name.has_value())
         return occurences_by_name;
 
     struct
@@ -287,7 +287,7 @@ void lsp_context::fill_cache(
         {
             lsp_context::vector_set<context::id_index> occurences;
             for (context::id_index last;
-                 const auto* new_occ : get_occurences_by_name(*info, context::id_index(), cache))
+                 const auto* new_occ : get_occurences_by_name(*info, context::id_storage::empty_id, cache))
             {
                 if (last == new_occ->name)
                     continue;
