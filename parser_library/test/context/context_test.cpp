@@ -42,7 +42,7 @@ TEST(context_id_storage, add)
 {
     hlasm_context ctx;
 
-    ASSERT_FALSE(!ctx.ids().find(""));
+    ASSERT_FALSE(ctx.ids().find("").null());
 
     auto it1 = ctx.ids().add("var");
     auto it2 = ctx.ids().find("var");
@@ -337,7 +337,7 @@ TEST(context_macro, call_and_leave_macro)
     args.push_back({ nullptr, op3 });
 
     // prototype->|		MAC		&KEY=,&OP1,,&OP3
-    auto& m = *ctx.add_macro(idx, context::id_index(), move(args), {}, {}, {}, {}, {});
+    auto& m = *ctx.add_macro(idx, context::id_storage::empty_id, move(args), {}, {}, {}, {}, {});
 
     // creating param data
     macro_data_ptr p2(make_unique<macro_param_data_single>("ada"));

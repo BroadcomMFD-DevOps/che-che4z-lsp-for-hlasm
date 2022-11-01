@@ -48,36 +48,32 @@ macro_definition::macro_definition(id_index name,
     for (auto&& stmt : definition)
         cached_definition.emplace_back(std::move(stmt));
 
-    if (label_param_name_)
-    {
-        auto tmp = std::make_unique<positional_param>(label_param_name, 0, *macro_param_data_component::dummy);
-        named_params_.emplace(label_param_name, &*tmp);
-        positional_params_.push_back(std::move(tmp));
-    }
-    else
-    {
-        positional_params_.push_back(nullptr);
-    }
-    size_t idx = 1;
+    assert(!label_param_name_.null());
 
-    for (auto it = params.begin(); it != params.end(); ++it)
+    // there seems to be some dark magic happening here...
+    // we always expect the label "named" parameter to exists even if not provided and label_param_name is empty string
+    named_params_.emplace(label_param_name,
+        positional_params_
+            .emplace_back(std::make_unique<positional_param>(label_param_name, 0, *macro_param_data_component::dummy))
+            .get());
+
+    for (size_t idx = 1; auto& [p_id, p_data] : params)
     {
-        if (it->data)
+        if (p_data)
         {
-            if (!it->id)
-                throw std::invalid_argument("keyword parameter without name used");
+            assert(!p_id.null());
 
-            auto tmp = std::make_unique<keyword_param>(it->id, move(it->data), nullptr);
-            named_params_.emplace(it->id, &*tmp);
-            keyword_params_.push_back(std::move(tmp));
+            named_params_.emplace(p_id,
+                keyword_params_.emplace_back(std::make_unique<keyword_param>(p_id, std::move(p_data), nullptr)).get());
         }
         else
         {
-            if (it->id)
+            if (p_id.has_value())
             {
-                auto tmp = std::make_unique<positional_param>(it->id, idx, *macro_param_data_component::dummy);
-                named_params_.emplace(it->id, &*tmp);
-                positional_params_.push_back(std::move(tmp));
+                named_params_.emplace(p_id,
+                    positional_params_
+                        .emplace_back(std::make_unique<positional_param>(p_id, idx, *macro_param_data_component::dummy))
+                        .get());
             }
             else
             {
@@ -107,7 +103,7 @@ macro_invo_ptr macro_definition::call(
 
     for (auto&& param : actual_params)
     {
-        if (param.id)
+        if (param.id.has_value())
         {
             auto tmp = named_params_.find(param.id);
 

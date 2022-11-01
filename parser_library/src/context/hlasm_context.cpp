@@ -776,7 +776,7 @@ void hlasm_context::add_mnemonic(id_index mnemo, id_index op_code)
 
 void hlasm_context::remove_mnemonic(id_index mnemo)
 {
-    const opcode_t* it;
+    [[maybe_unused]] const opcode_t* it;
     assert((it = find_opcode_mnemo(mnemo, opcode_generation::current)) && *it);
     opcode_mnemo_.try_emplace({ mnemo, ++m_current_opcode_generation }, opcode_t());
 }

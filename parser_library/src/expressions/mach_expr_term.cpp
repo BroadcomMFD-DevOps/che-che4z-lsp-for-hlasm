@@ -98,14 +98,14 @@ context::dependency_collector mach_expr_symbol::get_dependencies(context::depend
 
     if (symbol == nullptr || symbol->kind() == context::symbol_value_kind::UNDEF)
         return value;
-    else if (symbol->kind() == context::symbol_value_kind::ABS && qualifier)
+    else if (symbol->kind() == context::symbol_value_kind::ABS && qualifier.has_value())
     {
         return context::dependency_collector::error();
     }
     else if (symbol->kind() == context::symbol_value_kind::RELOC)
     {
         auto reloc_value = symbol->value().get_reloc();
-        if (qualifier)
+        if (qualifier.has_value())
         {
             if (!reloc_value.is_simple())
                 return context::dependency_collector::error();
@@ -127,7 +127,7 @@ mach_expr_constant::value_t mach_expr_symbol::evaluate(
 
     if (symbol->kind() == context::symbol_value_kind::ABS)
     {
-        if (qualifier)
+        if (qualifier.has_value())
         {
             diags.add_diagnostic(diagnostic_op::error_ME004(get_range()));
         }
@@ -135,7 +135,7 @@ mach_expr_constant::value_t mach_expr_symbol::evaluate(
     }
     else if (symbol->kind() == context::symbol_value_kind::RELOC)
     {
-        if (!qualifier)
+        if (!qualifier.has_value())
             return symbol->value();
         auto reloc_value = symbol->value().get_reloc();
         if (reloc_value.is_simple())
@@ -160,8 +160,7 @@ size_t mach_expr_symbol::hash() const
     auto result = (size_t)0xdf510e8c145dd28d;
 
     result = hash_combine(result, value.hash());
-    if (qualifier)
-        result = hash_combine(result, qualifier.hash());
+    result = hash_combine(result, qualifier.hash());
     return result;
 }
 mach_expr_ptr mach_expr_symbol::clone() const
@@ -318,8 +317,7 @@ size_t mach_expr_data_attr::hash() const
 {
     auto result = (size_t)0xa2957a462d908bd2;
     result = hash_combine(result, value.hash());
-    if (qualifier)
-        result = hash_combine(result, qualifier.hash());
+    result = hash_combine(result, qualifier.hash());
     result = hash_combine(result, (size_t)attribute);
 
     return result;

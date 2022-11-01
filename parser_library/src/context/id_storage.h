@@ -35,15 +35,16 @@ class id_index
 public:
     constexpr id_index() noexcept = default;
 
-    auto operator<=>(const id_index&) const noexcept = default;
+    constexpr auto operator<=>(const id_index&) const noexcept = default;
+    constexpr bool operator==(const id_index&) const noexcept = default;
+    constexpr bool operator==(std::string_view s) const noexcept { return m_value && *m_value == s; }
 
     std::string_view to_string_view() const noexcept { return *m_value; }
     std::string to_string() const { return *m_value; }
 
-    bool null() const noexcept { return m_value == nullptr; }
-    explicit operator bool() const noexcept { return !null(); }
-    bool empty() const noexcept { return m_value && m_value->empty(); }
-    bool has_value() const noexcept { return m_value && !m_value->empty(); }
+    constexpr bool null() const noexcept { return m_value == nullptr; }
+    constexpr bool empty() const noexcept { return m_value && m_value->empty(); }
+    constexpr bool has_value() const noexcept { return m_value && !m_value->empty(); }
 
     auto hash() const noexcept { return std::hash<const std::string*>()(m_value); }
 };
@@ -65,19 +66,14 @@ class id_storage
 {
 private:
     std::unordered_set<std::string> lit_;
-    static const std::string empty_string_;
 
 public:
     id_storage();
-    using const_pointer = const std::string*;
-    using const_iterator = typename std::unordered_set<std::string>::const_iterator;
 
     // represents value of empty identifier
     static const id_index empty_id;
 
     size_t size() const;
-    // const_iterator begin() const;
-    // const_iterator end() const;
     bool empty() const;
 
     id_index find(std::string val) const;

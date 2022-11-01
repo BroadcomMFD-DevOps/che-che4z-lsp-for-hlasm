@@ -80,7 +80,7 @@ hover_result hover_text(const context::symbol& sym)
             if (d != 1 && d != -1)
                 markdown.append(std::to_string(-(unsigned)d)).append("*");
 
-            if (base.qualifier)
+            if (base.qualifier.has_value())
                 markdown.append(base.qualifier.to_string_view()).append(".");
             markdown.append(base.owner->name.to_string_view());
         }

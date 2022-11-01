@@ -862,7 +862,7 @@ void asm_processor::process_AINSERT(rebuilt_statement stmt)
     second_op->expression->apply(visitor);
     auto [value] = visitor;
 
-    if (!value)
+    if (!value.has_value())
         return;
     processing::ainsert_destination dest;
     if (value.to_string_view() == "FRONT")
@@ -1094,7 +1094,7 @@ void asm_processor::process_USING(rebuilt_statement stmt)
 
     auto label = find_using_label(stmt);
 
-    if (label)
+    if (label.has_value())
     {
         if (!hlasm_ctx.ord_ctx.symbol_defined(label))
         {

@@ -18,19 +18,15 @@
 
 using namespace hlasm_plugin::parser_library::context;
 
-const std::string id_storage::empty_string_("");
+const std::string empty_string_;
 
-const id_index id_storage::empty_id(&id_storage::empty_string_);
+const id_index id_storage::empty_id(&empty_string_);
 
 hlasm_plugin::parser_library::context::id_storage::id_storage()
     : well_known(lit_)
 {}
 
 size_t id_storage::size() const { return lit_.size(); }
-
-// id_storage::const_iterator id_storage::begin() const { return lit_.begin(); }
-
-// id_storage::const_iterator id_storage::end() const { return lit_.end(); }
 
 bool id_storage::empty() const { return lit_.empty(); }
 
@@ -41,7 +37,7 @@ id_index id_storage::find(std::string val) const
 
     to_upper(val);
 
-    const_iterator tmp = lit_.find(val);
+    auto tmp = lit_.find(val);
 
     return id_index(tmp == lit_.end() ? nullptr : &*tmp);
 }

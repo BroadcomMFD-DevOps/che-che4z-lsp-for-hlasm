@@ -24,7 +24,7 @@ void using_label_checker::add_diagnostic(diagnostic_op) const {}
 void using_label_checker::visit(const expressions::mach_expr_constant&) {}
 void using_label_checker::visit(const expressions::mach_expr_data_attr& attr)
 {
-    if (!attr.value || !attr.qualifier)
+    if (!attr.value.has_value() || !attr.qualifier.has_value())
         return;
     auto symbol = solver.get_symbol(attr.value);
     if (symbol == nullptr || symbol->kind() != context::symbol_value_kind::RELOC)
@@ -40,7 +40,7 @@ void using_label_checker::visit(const expressions::mach_expr_data_attr& attr)
 void using_label_checker::visit(const expressions::mach_expr_data_attr_literal&) {}
 void using_label_checker::visit(const expressions::mach_expr_symbol& expr)
 {
-    if (!expr.qualifier)
+    if (!expr.qualifier.has_value())
         return;
     auto value = expr.evaluate(solver, *this);
     if (value.value_kind() != context::symbol_value_kind::RELOC)

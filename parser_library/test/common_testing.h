@@ -198,7 +198,7 @@ inline bool contains_message_text(const std::vector<Msg>& d, const C& c)
 inline const section* get_section(hlasm_context& ctx, std::string name)
 {
     auto sect = ctx.ids().find(std::move(name));
-    if (!sect)
+    if (sect.null())
         return nullptr;
 
     return ctx.ord_ctx.get_section(sect);
@@ -207,7 +207,7 @@ inline const section* get_section(hlasm_context& ctx, std::string name)
 inline const symbol* get_symbol(hlasm_context& ctx, std::string name)
 {
     auto symbol = ctx.ids().find(std::move(name));
-    if (!symbol)
+    if (symbol.null())
         return nullptr;
 
     return ctx.ord_ctx.get_symbol(symbol);
@@ -216,7 +216,7 @@ inline const symbol* get_symbol(hlasm_context& ctx, std::string name)
 inline std::optional<symbol_value::abs_value_t> get_symbol_abs(hlasm_context& ctx, std::string name)
 {
     auto symbol = ctx.ids().find(std::move(name));
-    if (!symbol)
+    if (symbol.null())
         return std::nullopt;
 
     auto s = ctx.ord_ctx.get_symbol(symbol);
@@ -229,7 +229,7 @@ inline std::optional<symbol_value::abs_value_t> get_symbol_abs(hlasm_context& ct
 inline std::optional<symbol_value::reloc_value_t> get_symbol_reloc(hlasm_context& ctx, std::string name)
 {
     auto symbol = ctx.ids().find(std::move(name));
-    if (!symbol)
+    if (symbol.null())
         return std::nullopt;
 
     auto s = ctx.ord_ctx.get_symbol(symbol);
@@ -242,7 +242,7 @@ inline std::optional<symbol_value::reloc_value_t> get_symbol_reloc(hlasm_context
 inline std::optional<std::pair<int, std::string>> get_symbol_address(hlasm_context& ctx, std::string name)
 {
     auto symbol = ctx.ids().find(std::move(name));
-    if (!symbol)
+    if (symbol.null())
         return std::nullopt;
 
     auto s = ctx.ord_ctx.get_symbol(symbol);

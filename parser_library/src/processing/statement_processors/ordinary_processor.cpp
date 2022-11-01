@@ -225,7 +225,7 @@ std::optional<processing_status> ordinary_processor::get_instruction_processing_
             op_code(instruction, context::instruction_type::MAC));
     }
 
-    if (!code.opcode)
+    if (!code.opcode.has_value())
     {
         if (instruction == context::id_storage::empty_id)
             return std::make_pair(
