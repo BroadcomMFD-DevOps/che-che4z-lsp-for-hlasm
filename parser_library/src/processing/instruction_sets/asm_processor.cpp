@@ -82,8 +82,7 @@ void asm_processor::process_sect(const context::section_kind kind, rebuilt_state
 
     if (sect_name != context::id_storage::empty_id && hlasm_ctx.ord_ctx.symbol_defined(sect_name)
             && !hlasm_ctx.ord_ctx.section_defined(sect_name, kind)
-        || sect_name == context::id_storage::empty_id && kind != section_kind::DUMMY
-            && do_other_private_sections_exist(sect_name, kind))
+        || !sect_name.has_value() && kind != section_kind::DUMMY && do_other_private_sections_exist(sect_name, kind))
     {
         add_diagnostic(diagnostic_op::error_E031("symbol", stmt.label_ref().field_range));
     }
@@ -104,7 +103,7 @@ void asm_processor::process_LOCTR(rebuilt_statement stmt)
 {
     auto loctr_name = find_label_symbol(stmt);
 
-    if (loctr_name == context::id_storage::empty_id)
+    if (!loctr_name.has_value())
         add_diagnostic(diagnostic_op::error_E053(stmt.label_ref().field_range));
 
     if (hlasm_ctx.ord_ctx.symbol_defined(loctr_name) && !hlasm_ctx.ord_ctx.counter_defined(loctr_name))
@@ -148,7 +147,7 @@ void asm_processor::process_EQU(rebuilt_statement stmt)
 
     auto symbol_name = find_label_symbol(stmt);
 
-    if (symbol_name == context::id_storage::empty_id)
+    if (!symbol_name.has_value())
     {
         if (stmt.label_ref().type == semantics::label_si_type::EMPTY)
             add_diagnostic(diagnostic_op::error_E053(stmt.label_ref().field_range));
@@ -648,7 +647,7 @@ void asm_processor::process_OPSYN(rebuilt_statement stmt)
     const auto& operands = stmt.operands_ref().value;
 
     auto label = find_label_symbol(stmt);
-    if (label == context::id_storage::empty_id)
+    if (!label.has_value())
     {
         if (stmt.label_ref().type == semantics::label_si_type::EMPTY)
             add_diagnostic(diagnostic_op::error_E053(stmt.label_ref().field_range));
@@ -670,7 +669,7 @@ void asm_processor::process_OPSYN(rebuilt_statement stmt)
         }
     }
 
-    if (operand == context::id_storage::empty_id)
+    if (!operand.has_value())
     {
         if (hlasm_ctx.get_operation_code(label))
             hlasm_ctx.remove_mnemonic(label);

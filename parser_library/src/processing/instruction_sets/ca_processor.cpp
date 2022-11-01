@@ -217,7 +217,7 @@ bool ca_processor::prepare_GBL_LCL(const semantics::complete_statement& stmt, st
         {
             auto [id, subscript] = ca_op->access_var()->variable_symbol->evaluate_symbol(eval_ctx);
 
-            if (id == context::id_storage::empty_id)
+            if (!id.has_value())
                 continue;
 
             if (auto var_sym = hlasm_ctx.get_var_sym(id))

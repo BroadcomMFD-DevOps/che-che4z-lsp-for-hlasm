@@ -153,8 +153,7 @@ std::string lsp_context::find_macro_copy_id(const std::vector<context::processin
 {
     assert(i != 0);
     assert(i < stack.size());
-    return stack[i].member_name == context::id_storage::empty_id ? stack[i].resource_loc->get_uri()
-                                                                 : stack[i].member_name.to_string();
+    return stack[i].member_name.has_value() ? stack[i].member_name.to_string() : stack[i].resource_loc->get_uri();
 }
 
 void lsp_context::document_symbol_macro(document_symbol_list_s& result,
