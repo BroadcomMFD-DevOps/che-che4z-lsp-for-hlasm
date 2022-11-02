@@ -15,6 +15,7 @@
 #ifndef CONTEXT_LITERAL_STORAGE_H
 #define CONTEXT_LITERAL_STORAGE_H
 
+#include <compare>
 #include <optional>
 #include <string>
 #include <unordered_set>
