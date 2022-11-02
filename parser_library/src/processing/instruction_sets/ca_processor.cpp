@@ -217,7 +217,7 @@ bool ca_processor::prepare_GBL_LCL(const semantics::complete_statement& stmt, st
         {
             auto [id, subscript] = ca_op->access_var()->variable_symbol->evaluate_symbol(eval_ctx);
 
-            if (!id.has_value())
+            if (id.empty())
                 continue;
 
             if (auto var_sym = hlasm_ctx.get_var_sym(id))
@@ -540,7 +540,7 @@ void ca_processor::process_AREAD(const semantics::complete_statement& stmt)
         AREAD_operand_visitor op(&eval_ctx);
         ops.value.at(0)->apply(op);
 
-        if (!op.value.has_value())
+        if (op.value.empty())
             return aread_variant::invalid;
 
         static const std::initializer_list<std::pair<std::string_view, aread_variant>> allowed_operands = {

@@ -82,7 +82,7 @@ void asm_processor::process_sect(const context::section_kind kind, rebuilt_state
 
     if (sect_name != context::id_storage::empty_id && hlasm_ctx.ord_ctx.symbol_defined(sect_name)
             && !hlasm_ctx.ord_ctx.section_defined(sect_name, kind)
-        || !sect_name.has_value() && kind != section_kind::DUMMY && do_other_private_sections_exist(sect_name, kind))
+        || sect_name.empty() && kind != section_kind::DUMMY && do_other_private_sections_exist(sect_name, kind))
     {
         add_diagnostic(diagnostic_op::error_E031("symbol", stmt.label_ref().field_range));
     }
@@ -103,7 +103,7 @@ void asm_processor::process_LOCTR(rebuilt_statement stmt)
 {
     auto loctr_name = find_label_symbol(stmt);
 
-    if (!loctr_name.has_value())
+    if (loctr_name.empty())
         add_diagnostic(diagnostic_op::error_E053(stmt.label_ref().field_range));
 
     if (hlasm_ctx.ord_ctx.symbol_defined(loctr_name) && !hlasm_ctx.ord_ctx.counter_defined(loctr_name))
@@ -147,7 +147,7 @@ void asm_processor::process_EQU(rebuilt_statement stmt)
 
     auto symbol_name = find_label_symbol(stmt);
 
-    if (!symbol_name.has_value())
+    if (symbol_name.empty())
     {
         if (stmt.label_ref().type == semantics::label_si_type::EMPTY)
             add_diagnostic(diagnostic_op::error_E053(stmt.label_ref().field_range));
@@ -647,7 +647,7 @@ void asm_processor::process_OPSYN(rebuilt_statement stmt)
     const auto& operands = stmt.operands_ref().value;
 
     auto label = find_label_symbol(stmt);
-    if (!label.has_value())
+    if (label.empty())
     {
         if (stmt.label_ref().type == semantics::label_si_type::EMPTY)
             add_diagnostic(diagnostic_op::error_E053(stmt.label_ref().field_range));
@@ -669,7 +669,7 @@ void asm_processor::process_OPSYN(rebuilt_statement stmt)
         }
     }
 
-    if (!operand.has_value())
+    if (operand.empty())
     {
         if (hlasm_ctx.get_operation_code(label))
             hlasm_ctx.remove_mnemonic(label);
@@ -861,7 +861,7 @@ void asm_processor::process_AINSERT(rebuilt_statement stmt)
     second_op->expression->apply(visitor);
     auto [value] = visitor;
 
-    if (!value.has_value())
+    if (value.empty())
         return;
     processing::ainsert_destination dest;
     if (value.to_string_view() == "FRONT")
@@ -1093,7 +1093,7 @@ void asm_processor::process_USING(rebuilt_statement stmt)
 
     auto label = find_using_label(stmt);
 
-    if (label.has_value())
+    if (!label.empty())
     {
         if (!hlasm_ctx.ord_ctx.symbol_defined(label))
         {

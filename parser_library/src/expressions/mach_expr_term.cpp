@@ -98,14 +98,14 @@ context::dependency_collector mach_expr_symbol::get_dependencies(context::depend
 
     if (symbol == nullptr || symbol->kind() == context::symbol_value_kind::UNDEF)
         return value;
-    else if (symbol->kind() == context::symbol_value_kind::ABS && qualifier.has_value())
+    else if (symbol->kind() == context::symbol_value_kind::ABS && !qualifier.empty())
     {
         return context::dependency_collector::error();
     }
     else if (symbol->kind() == context::symbol_value_kind::RELOC)
     {
         auto reloc_value = symbol->value().get_reloc();
-        if (qualifier.has_value())
+        if (!qualifier.empty())
         {
             if (!reloc_value.is_simple())
                 return context::dependency_collector::error();
@@ -127,7 +127,7 @@ mach_expr_constant::value_t mach_expr_symbol::evaluate(
 
     if (symbol->kind() == context::symbol_value_kind::ABS)
     {
-        if (qualifier.has_value())
+        if (!qualifier.empty())
         {
             diags.add_diagnostic(diagnostic_op::error_ME004(get_range()));
         }
@@ -135,7 +135,7 @@ mach_expr_constant::value_t mach_expr_symbol::evaluate(
     }
     else if (symbol->kind() == context::symbol_value_kind::RELOC)
     {
-        if (!qualifier.has_value())
+        if (qualifier.empty())
             return symbol->value();
         auto reloc_value = symbol->value().get_reloc();
         if (reloc_value.is_simple())

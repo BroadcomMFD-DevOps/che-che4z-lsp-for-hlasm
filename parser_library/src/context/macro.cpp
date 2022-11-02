@@ -64,7 +64,7 @@ macro_definition::macro_definition(id_index name,
         }
         else
         {
-            if (p_id.has_value())
+            if (!p_id.empty())
             {
                 named_params_.emplace(p_id,
                     positional_params_
@@ -99,7 +99,7 @@ macro_invo_ptr macro_definition::call(
 
     for (auto&& param : actual_params)
     {
-        if (param.id.has_value())
+        if (!param.id.empty())
         {
             auto tmp = named_params_.find(param.id);
 

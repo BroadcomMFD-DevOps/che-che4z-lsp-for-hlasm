@@ -44,7 +44,6 @@ public:
     std::string to_string() const { return *m_value; }
 
     constexpr bool empty() const noexcept { return m_value && m_value->empty(); }
-    constexpr bool has_value() const noexcept { return m_value && !m_value->empty(); }
 
     auto hash() const noexcept { return std::hash<const std::string*>()(m_value); }
 };

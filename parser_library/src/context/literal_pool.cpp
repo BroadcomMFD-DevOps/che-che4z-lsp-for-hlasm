@@ -36,7 +36,7 @@ id_index literal_pool::add_literal(const std::string& literal_text,
     bool align_on_halfword)
 {
     unique_id = dd->references_loctr ? unique_id : 0;
-    if (auto lit = get_literal(m_current_literal_pool_generation, dd, unique_id); lit.has_value())
+    if (auto lit = get_literal(m_current_literal_pool_generation, dd, unique_id); !lit.empty())
         return lit;
 
     auto [it, inserted] = m_literals.try_emplace(

@@ -80,7 +80,7 @@ hover_result hover_text(const context::symbol& sym)
             if (d != 1 && d != -1)
                 markdown.append(std::to_string(-(unsigned)d)).append("*");
 
-            if (base.qualifier.has_value())
+            if (!base.qualifier.empty())
                 markdown.append(base.qualifier.to_string_view()).append(".");
             markdown.append(base.owner->name.to_string_view());
         }
@@ -153,7 +153,7 @@ std::string lsp_context::find_macro_copy_id(const std::vector<context::processin
 {
     assert(i != 0);
     assert(i < stack.size());
-    return stack[i].member_name.has_value() ? stack[i].member_name.to_string() : stack[i].resource_loc->get_uri();
+    return stack[i].member_name.empty() ? stack[i].resource_loc->get_uri() : stack[i].member_name.to_string();
 }
 
 void lsp_context::document_symbol_macro(document_symbol_list_s& result,
@@ -253,7 +253,7 @@ std::span<const symbol_occurence* const> lsp_context::get_occurences_by_name(
         });
     }
 
-    if (!name.has_value())
+    if (name.empty())
         return occurences_by_name;
 
     struct
@@ -801,7 +801,7 @@ completion_list_s lsp_context::complete_seq(const file_info& file, position pos)
 std::string get_macro_signature(const context::macro_definition& m)
 {
     std::stringstream signature;
-    if (m.get_label_param_name().has_value())
+    if (!m.get_label_param_name().empty())
         signature << "&" << m.get_label_param_name().to_string_view() << " ";
     signature << m.id.to_string_view() << " ";
 
