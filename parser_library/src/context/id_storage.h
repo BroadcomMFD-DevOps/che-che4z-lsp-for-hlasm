@@ -43,7 +43,6 @@ public:
     std::string_view to_string_view() const noexcept { return *m_value; }
     std::string to_string() const { return *m_value; }
 
-    constexpr bool null() const noexcept { return m_value == nullptr; }
     constexpr bool empty() const noexcept { return m_value && m_value->empty(); }
     constexpr bool has_value() const noexcept { return m_value && !m_value->empty(); }
 

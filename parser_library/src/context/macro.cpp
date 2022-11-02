@@ -48,8 +48,6 @@ macro_definition::macro_definition(id_index name,
     for (auto&& stmt : definition)
         cached_definition.emplace_back(std::move(stmt));
 
-    assert(!label_param_name_.null());
-
     // there seems to be some dark magic happening here...
     // we always expect the label "named" parameter to exists even if not provided and label_param_name is empty string
     named_params_.emplace(label_param_name,
@@ -61,8 +59,6 @@ macro_definition::macro_definition(id_index name,
     {
         if (p_data)
         {
-            assert(!p_id.null());
-
             named_params_.emplace(p_id,
                 keyword_params_.emplace_back(std::make_unique<keyword_param>(p_id, std::move(p_data), nullptr)).get());
         }
