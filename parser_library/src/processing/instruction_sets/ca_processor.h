@@ -51,7 +51,7 @@ private:
     struct SET_info
     {
         context::set_symbol_base* symbol = nullptr;
-        context::id_index name = context::id_storage::empty_id;
+        context::id_index name;
         int index = 0;
     };
 

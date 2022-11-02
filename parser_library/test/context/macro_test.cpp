@@ -90,7 +90,7 @@ TEST(macro, macro_def_count)
 
     ASSERT_EQ(a.hlasm_ctx().macros().size(), (size_t)2);
 
-    id_index id = id_storage::empty_id;
+    id_index id;
 
     id = a.hlasm_ctx().ids().add("M1");
     EXPECT_TRUE(a.hlasm_ctx().find_macro(id));
@@ -126,7 +126,7 @@ TEST(macro, macro_def_count_inner)
 
     ASSERT_EQ(a.hlasm_ctx().macros().size(), (size_t)3);
 
-    id_index id = id_storage::empty_id;
+    id_index id;
 
     id = a.hlasm_ctx().ids().add("M1");
     EXPECT_TRUE(a.hlasm_ctx().find_macro(id));
@@ -161,7 +161,7 @@ TEST(macro, macro_lookahead_pass)
 
     ASSERT_EQ(a.hlasm_ctx().macros().size(), (size_t)1);
 
-    id_index id = id_storage::empty_id;
+    id_index id;
 
     id = a.hlasm_ctx().ids().add("M1");
     EXPECT_TRUE(a.hlasm_ctx().find_macro(id));
@@ -190,7 +190,7 @@ TEST(macro, macro_lookahead_fail)
 
     ASSERT_EQ(a.hlasm_ctx().macros().size(), (size_t)2);
 
-    id_index id = id_storage::empty_id;
+    id_index id;
 
     id = a.hlasm_ctx().ids().add("M1");
     EXPECT_TRUE(a.hlasm_ctx().find_macro(id));

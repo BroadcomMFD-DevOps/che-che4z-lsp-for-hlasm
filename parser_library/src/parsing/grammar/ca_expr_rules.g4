@@ -287,7 +287,7 @@ var_symbol returns [vs_ptr vs]
 	finally
 	{if (!$vs) $vs = std::make_unique<basic_variable_symbol>(parse_identifier("", {}), std::vector<expressions::ca_expr_ptr>{}, provider.get_range($ctx));}
 
-data_attribute returns [context::data_attr_kind attribute, std::variant<context::id_index, semantics::vs_ptr, semantics::literal_si> value = context::id_storage::empty_id, range value_range]
+data_attribute returns [context::data_attr_kind attribute, std::variant<context::id_index, semantics::vs_ptr, semantics::literal_si> value, range value_range]
 	: ORDSYMBOL attr data_attribute_value
 	{
 		collector.add_hl_symbol(token_info(provider.get_range($ORDSYMBOL), hl_scopes::data_attr_type));
@@ -296,7 +296,7 @@ data_attribute returns [context::data_attr_kind attribute, std::variant<context:
 		$value_range = provider.get_range( $data_attribute_value.ctx);
 	};
 
-data_attribute_value returns [std::variant<context::id_index, semantics::vs_ptr, semantics::literal_si> value = context::id_storage::empty_id]
+data_attribute_value returns [std::variant<context::id_index, semantics::vs_ptr, semantics::literal_si> value]
 	: literal
 	{
 		if (auto& lv = $literal.value; lv)
@@ -312,7 +312,7 @@ data_attribute_value returns [std::variant<context::id_index, semantics::vs_ptr,
 		$value = $id.name;
 	};
 
-vs_id returns [id_index name = id_storage::empty_id]
+vs_id returns [id_index name]
 	: ORDSYMBOL
 	{
 		std::string text = $ORDSYMBOL->getText();
@@ -349,7 +349,7 @@ var_def returns [vs_ptr vs]
 			$vs = std::make_unique<created_variable_symbol>(std::move($var_def_name.created_name), std::move($var_def_substr.value), r);	
 	};
 
-var_def_name returns [id_index name = id_storage::empty_id, concat_chain created_name]
+var_def_name returns [id_index name, concat_chain created_name]
 	: AMPERSAND?
 	(
 		vs_id									{$name = $vs_id.name;}

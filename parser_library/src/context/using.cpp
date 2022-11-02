@@ -119,7 +119,7 @@ auto using_collection::using_drop_definition::abs_or_reloc(
         {
             return { std::nullopt, rng };
         }
-        return { qualified_address(id_storage::empty_id, nullptr, v), rng };
+        return { qualified_address(id_index(), nullptr, v), rng };
     }
     if (value.value_kind() == symbol_value_kind::RELOC && value.get_reloc().is_simple())
     {
@@ -140,7 +140,7 @@ auto using_collection::using_drop_definition::reg_or_label(const using_collectio
 
     if (!expr.label.empty())
     {
-        return { qualified_id { id_storage::empty_id, expr.label }, rng };
+        return { qualified_id { id_index(), expr.label }, rng };
     }
 
     if (expr.value.value_kind() == symbol_value_kind::ABS)
@@ -324,7 +324,7 @@ id_index identify_label(const ordinary_assembly_context& ord_context, const expr
         sym && sym->qualifier.empty() && ord_context.is_using_label(sym->value))
         return sym->value;
 
-    return id_storage::empty_id;
+    return id_index();
 }
 } // namespace
 
@@ -496,7 +496,7 @@ auto using_collection::using_context::evaluate(id_index label,
     {
         // implicit 0 mapping
         static constexpr entry zero_entry {
-            id_storage::empty_id,
+            id_index(),
             nullptr,
             0,
             0x1000,

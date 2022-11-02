@@ -120,7 +120,6 @@ struct instruction_si
     instruction_si(range field_range)
         : type(instruction_si_type::EMPTY)
         , field_range(std::move(field_range))
-        , value(context::id_storage::empty_id)
     {}
 
     instruction_si_type type;

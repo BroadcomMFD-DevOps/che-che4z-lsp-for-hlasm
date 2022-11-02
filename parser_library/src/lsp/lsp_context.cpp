@@ -286,7 +286,7 @@ void lsp_context::fill_cache(
         {
             lsp_context::vector_set<context::id_index> occurences;
             for (std::optional<context::id_index> last;
-                 const auto* new_occ : get_occurences_by_name(*info, context::id_storage::empty_id, cache))
+                 const auto* new_occ : get_occurences_by_name(*info, context::id_index(), cache))
             {
                 if (last == new_occ->name)
                     continue;

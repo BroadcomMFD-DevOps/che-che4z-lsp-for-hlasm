@@ -49,7 +49,7 @@ processing_status macrodef_processor::get_processing_status(const semantics::ins
     if (expecting_prototype_ && !expecting_MACRO_)
     {
         processing_format format(processing_kind::MACRO, processing_form::MAC);
-        context::id_index id = context::id_storage::empty_id;
+        context::id_index id;
         if (instruction.type == semantics::instruction_si_type::EMPTY)
         {
             add_diagnostic(diagnostic_op::error_E042(instruction.field_range));
@@ -140,7 +140,7 @@ processing_status macrodef_processor::get_macro_processing_status(
     {
         processing_format format(processing_kind::MACRO, processing_form::CA, operand_occurence::ABSENT);
 
-        return std::make_pair(format, op_code(context::id_storage::empty_id, context::instruction_type::CA));
+        return std::make_pair(format, op_code(context::id_index(), context::instruction_type::CA));
     }
 
     processing_format format(processing_kind::MACRO, processing_form::DEFERRED);

@@ -139,7 +139,7 @@ void ordinary_processor::end_processing()
     if (!hlasm_ctx.ord_ctx.symbol_dependencies.check_loctr_cycle(lib_info))
         add_diagnostic(diagnostic_op::error_E033(range())); // TODO: at least we say something
 
-    hlasm_ctx.ord_ctx.symbol_dependencies.add_defined(context::id_storage::empty_id, &asm_proc_, lib_info);
+    hlasm_ctx.ord_ctx.symbol_dependencies.add_defined(context::id_index(), &asm_proc_, lib_info);
 
     hlasm_ctx.ord_ctx.finish_module_layout(&asm_proc_, lib_info);
 
@@ -228,7 +228,7 @@ std::optional<processing_status> ordinary_processor::get_instruction_processing_
         if (instruction.empty())
             return std::make_pair(
                 processing_format(processing_kind::ORDINARY, processing_form::CA, operand_occurence::ABSENT),
-                op_code(context::id_storage::empty_id, context::instruction_type::CA));
+                op_code(context::id_index(), context::instruction_type::CA));
         else
             return std::nullopt;
     }
@@ -327,17 +327,17 @@ context::id_index ordinary_processor::resolve_instruction(
     if (tmp.empty())
     {
         add_diagnostic(diagnostic_op::error_E074(instruction_range));
-        return context::id_storage::empty_id;
+        return context::id_index();
     }
     else if (!std::regex_match(tmp, regex))
     {
         add_diagnostic(diagnostic_op::error_E075(tmp, instruction_range));
-        return context::id_storage::empty_id;
+        return context::id_index();
     }
     else if (tmp.find(' ') != std::string::npos)
     {
         add_diagnostic(diagnostic_op::error_E067(instruction_range));
-        return context::id_storage::empty_id;
+        return context::id_index();
     }
 
     return hlasm_ctx.ids().add(std::move(tmp));

@@ -80,7 +80,7 @@ void asm_processor::process_sect(const context::section_kind kind, rebuilt_state
         return false;
     };
 
-    if (sect_name != context::id_storage::empty_id && hlasm_ctx.ord_ctx.symbol_defined(sect_name)
+    if (!sect_name.empty() && hlasm_ctx.ord_ctx.symbol_defined(sect_name)
             && !hlasm_ctx.ord_ctx.section_defined(sect_name, kind)
         || sect_name.empty() && kind != section_kind::DUMMY && do_other_private_sections_exist(sect_name, kind))
     {
@@ -292,7 +292,7 @@ void asm_processor::process_data_instruction(rebuilt_statement stmt)
     // process label
     auto label = find_label_symbol(stmt);
 
-    if (label != context::id_storage::empty_id)
+    if (!label.empty())
     {
         if (!hlasm_ctx.ord_ctx.symbol_defined(label))
         {
@@ -330,7 +330,7 @@ void asm_processor::process_data_instruction(rebuilt_statement stmt)
 
     const context::resolvable* l_dep = nullptr;
     const context::resolvable* s_dep = nullptr;
-    if (label != context::id_storage::empty_id)
+    if (!label.empty())
     {
         auto data_op = operands.front()->access_data_def();
 
@@ -514,7 +514,7 @@ void asm_processor::process_ORG(rebuilt_statement stmt)
     auto label = find_label_symbol(stmt);
     auto loctr = hlasm_ctx.ord_ctx.align(context::no_align, lib_info);
 
-    if (label != context::id_storage::empty_id)
+    if (!label.empty())
     {
         if (hlasm_ctx.ord_ctx.symbol_defined(label))
             add_diagnostic(diagnostic_op::error_E031("symbol", stmt.label_ref().field_range));
@@ -654,7 +654,7 @@ void asm_processor::process_OPSYN(rebuilt_statement stmt)
         return;
     }
 
-    context::id_index operand = context::id_storage::empty_id;
+    context::id_index operand;
     if (operands.size() == 1) // covers also the " , " case
     {
         auto asm_op = operands.front()->access_asm();
@@ -818,7 +818,7 @@ context::id_index asm_processor::find_sequence_symbol(const rebuilt_statement& s
             branch_provider.register_sequence_symbol(symbol.name, symbol.symbol_range);
             return symbol.name;
         default:
-            return context::id_storage::empty_id;
+            return context::id_index();
     }
 }
 
@@ -835,7 +835,7 @@ public:
     void visit(const expressions::mach_expr_default&) override {}
     void visit(const expressions::mach_expr_literal&) override {}
 
-    context::id_index value = context::id_storage::empty_id;
+    context::id_index value;
 };
 } // namespace
 
@@ -905,7 +905,7 @@ void asm_processor::process_CCW(rebuilt_statement stmt)
     context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, loctr, lib_info);
     find_sequence_symbol(stmt);
 
-    if (auto label = find_label_symbol(stmt); label != context::id_storage::empty_id)
+    if (auto label = find_label_symbol(stmt); !label.empty())
     {
         if (hlasm_ctx.ord_ctx.symbol_defined(label))
             add_diagnostic(diagnostic_op::error_E031("symbol", stmt.label_ref().field_range));
@@ -927,7 +927,7 @@ void asm_processor::process_CNOP(rebuilt_statement stmt)
     context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, loctr, lib_info);
     find_sequence_symbol(stmt);
 
-    if (auto label = find_label_symbol(stmt); label != context::id_storage::empty_id)
+    if (auto label = find_label_symbol(stmt); !label.empty())
     {
         if (hlasm_ctx.ord_ctx.symbol_defined(label))
             add_diagnostic(diagnostic_op::error_E031("symbol", stmt.label_ref().field_range));
@@ -1064,7 +1064,7 @@ void asm_processor::process_LTORG(rebuilt_statement stmt)
     find_sequence_symbol(stmt);
 
 
-    if (auto label = find_label_symbol(stmt); label != context::id_storage::empty_id)
+    if (auto label = find_label_symbol(stmt); !label.empty())
     {
         if (hlasm_ctx.ord_ctx.symbol_defined(label))
             add_diagnostic(diagnostic_op::error_E031("symbol", stmt.label_ref().field_range));
@@ -1172,7 +1172,7 @@ void asm_processor::process_DROP(rebuilt_statement stmt)
     auto loctr = hlasm_ctx.ord_ctx.align(context::no_align, lib_info);
     context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, loctr, lib_info);
 
-    if (auto label = find_label_symbol(stmt); label != context::id_storage::empty_id)
+    if (auto label = find_label_symbol(stmt); !label.empty())
     {
         if (hlasm_ctx.ord_ctx.symbol_defined(label))
         {
@@ -1350,7 +1350,7 @@ void asm_processor::process_CXD(rebuilt_statement stmt)
     constexpr uint32_t cxd_length = 4;
 
     // process label
-    if (auto label = find_label_symbol(stmt); label != context::id_storage::empty_id)
+    if (auto label = find_label_symbol(stmt); !label.empty())
     {
         if (!hlasm_ctx.ord_ctx.symbol_defined(label))
         {

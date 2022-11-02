@@ -198,7 +198,7 @@ private:
         using_drop_definition(index_t<using_collection> parent,
             index_t<mach_expression> begin,
             std::vector<index_t<mach_expression>> base,
-            id_index label = id_storage::empty_id,
+            id_index label = {},
             index_t<mach_expression> end = {})
             : m_parent(parent)
             , m_label(label)
@@ -266,7 +266,7 @@ private:
             index_t<instruction_context> instruction_ctx,
             index_t<mach_expression> begin,
             std::vector<index_t<mach_expression>> base,
-            id_index label = id_storage::empty_id,
+            id_index label,
             index_t<mach_expression> end = {})
             : definition(parent, begin, std::move(base), label, end)
             , instruction_ctx(instruction_ctx)
@@ -300,7 +300,7 @@ private:
         std::unique_ptr<const mach_expression> expression;
         index_t<instruction_context> context;
         symbol_value value;
-        id_index label = id_storage::empty_id;
+        id_index label;
     };
 
     std::vector<using_entry> m_usings;

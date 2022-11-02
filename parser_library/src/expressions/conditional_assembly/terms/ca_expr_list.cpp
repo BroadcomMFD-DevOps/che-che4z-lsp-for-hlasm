@@ -177,7 +177,7 @@ struct resolve_stacks
             function_params.push_back(std::move(left.term));
             function_params.push_back(std::move(right.term));
             terms.push({ std::make_unique<ca_function>(
-                             context::id_storage::empty_id, op.function, std::move(function_params), nullptr, op.r),
+                             context::id_index(), op.function, std::move(function_params), nullptr, op.r),
                 left.i });
         }
 

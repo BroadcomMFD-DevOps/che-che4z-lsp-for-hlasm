@@ -318,7 +318,7 @@ void macro_processor::get_keyword_arg(const resolved_statement& statement,
     range op_range) const
 {
     auto id = hlasm_ctx.try_get_symbol_name(std::get<semantics::char_str_conc>(chain[0].value).value).second;
-    assert(id != context::id_storage::empty_id);
+    assert(!id.empty());
 
     auto named = hlasm_ctx.get_macro_definition(statement.opcode_ref().value)->named_params().find(id);
     if (named == hlasm_ctx.get_macro_definition(statement.opcode_ref().value)->named_params().end()

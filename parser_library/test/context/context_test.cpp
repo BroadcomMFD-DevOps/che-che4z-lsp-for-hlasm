@@ -152,7 +152,7 @@ TEST(context, OPSYN)
     EXPECT_EQ(ctx.get_operation_code(mv).opcode, st);
 
     ctx.remove_mnemonic(lr);
-    EXPECT_EQ(ctx.get_operation_code(lr).opcode, id_storage::empty_id);
+    EXPECT_EQ(ctx.get_operation_code(lr).opcode, id_index());
 
     EXPECT_EQ(ctx.get_operation_code(mvc).opcode, mvc);
 }
@@ -339,7 +339,7 @@ TEST(context_macro, call_and_leave_macro)
     args.emplace_back(nullptr, op3);
 
     // prototype->|		MAC		&KEY=,&OP1,,&OP3
-    auto& m = *ctx.add_macro(idx, context::id_storage::empty_id, move(args), {}, {}, {}, {}, {});
+    auto& m = *ctx.add_macro(idx, context::id_index(), move(args), {}, {}, {}, {}, {});
 
     // creating param data
     macro_data_ptr p2(make_unique<macro_param_data_single>("ada"));

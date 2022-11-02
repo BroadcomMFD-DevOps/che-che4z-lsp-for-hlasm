@@ -43,7 +43,7 @@ TEST(ca_symbol, resolve_expr_tree)
 
     diagnostic_op_consumer_container diags;
 
-    ca_symbol(context::id_storage::empty_id, range())
+    ca_symbol(context::id_index(), range())
         .resolve_expression_tree({ context::SET_t_enum::C_TYPE, context::SET_t_enum::C_TYPE, true }, diags);
 
     EXPECT_FALSE(diags.diags.empty());
@@ -51,8 +51,8 @@ TEST(ca_symbol, resolve_expr_tree)
 
 TEST(ca_symbol, is_char)
 {
-    EXPECT_FALSE(ca_symbol(context::id_storage::empty_id, range())
-                     .is_character_expression(character_expression_purpose::assignment));
-    EXPECT_FALSE(ca_symbol(context::id_storage::empty_id, range())
+    EXPECT_FALSE(
+        ca_symbol(context::id_index(), range()).is_character_expression(character_expression_purpose::assignment));
+    EXPECT_FALSE(ca_symbol(context::id_index(), range())
                      .is_character_expression(character_expression_purpose::left_side_of_comparison));
 }

@@ -57,7 +57,7 @@ std::vector<cached_opsyn_mnemo> macro_cache_key::get_opsyn_state(context::hlasm_
 
     std::vector<cached_opsyn_mnemo> result;
 
-    context::id_index last_from = context::id_storage::empty_id;
+    context::id_index last_from;
     auto& opcodes = ctx.opcode_mnemo_storage();
     for (auto it = opcodes.rbegin(); it != opcodes.rend(); ++it)
     {

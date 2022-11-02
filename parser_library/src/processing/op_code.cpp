@@ -54,7 +54,7 @@ unsigned char processing_status_cache_key::generate_loctr_len(context::id_index 
 processing_status_cache_key::processing_status_cache_key(const processing_status& s)
     : form(s.first.form)
     , occurence(s.first.occurence)
-    , is_alias(s.second.type == context::instruction_type::ASM && s.second.value == "ALIAS")
+    , is_alias(s.second.type == context::instruction_type::ASM && s.second.value.to_string_view() == "ALIAS")
     , loctr_len(s.second.type != context::instruction_type::MACH || s.second.value.empty()
               ? 1
               : generate_loctr_len(s.second.value.to_string_view()))

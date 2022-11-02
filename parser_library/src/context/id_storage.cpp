@@ -18,8 +18,6 @@
 
 using namespace hlasm_plugin::parser_library::context;
 
-const std::string id_storage::empty_string_;
-
 hlasm_plugin::parser_library::context::id_storage::id_storage()
     : well_known(lit_)
 {}
@@ -31,7 +29,7 @@ bool id_storage::empty() const { return lit_.empty(); }
 std::optional<id_index> id_storage::find(std::string val) const
 {
     if (val.empty())
-        return empty_id;
+        return id_index();
 
     to_upper(val);
 
@@ -44,7 +42,7 @@ std::optional<id_index> id_storage::find(std::string val) const
 id_index id_storage::add(std::string value)
 {
     if (value.empty())
-        return empty_id;
+        return id_index();
     to_upper(value);
     return id_index(&*lit_.insert(std::move(value)).first);
 }

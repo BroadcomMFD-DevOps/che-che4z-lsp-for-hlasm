@@ -33,7 +33,7 @@ bool symbol_can_be_assigned(const auto& symbols, auto name)
 
 void ordinary_assembly_context::create_private_section()
 {
-    curr_section_ = create_section(id_storage::empty_id, section_kind::EXECUTABLE);
+    curr_section_ = create_section(id_index(), section_kind::EXECUTABLE);
 }
 
 const std::vector<std::unique_ptr<section>>& ordinary_assembly_context::sections() const { return sections_; }
@@ -111,7 +111,7 @@ section* ordinary_assembly_context::set_section(
         curr_section_ = create_section(name, kind);
 
         auto tmp_addr = curr_section_->current_location_counter().current_address();
-        if (name != id_storage::empty_id)
+        if (!name.empty())
         {
             assert(symbol_can_be_assigned(symbols_, name));
             symbols_.insert_or_assign(name,
@@ -320,7 +320,7 @@ void ordinary_assembly_context::finish_module_layout(diagnostic_s_consumer* diag
         for (const auto& loctr : sect->location_counters())
         {
             loctr->finish_layout(last_offset);
-            symbol_dependencies.add_defined(id_storage::empty_id, diag_consumer, li);
+            symbol_dependencies.add_defined(id_index(), diag_consumer, li);
             if (loctr->has_unresolved_spaces())
                 return;
             last_offset = loctr->storage();

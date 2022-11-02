@@ -34,16 +34,14 @@ class id_index
     friend class literal_pool;
 
 public:
-    // constexpr id_index() noexcept = default;
+    constexpr id_index() noexcept = default;
 
     constexpr auto operator<=>(const id_index&) const noexcept = default;
-    constexpr bool operator==(const id_index&) const noexcept = default;
-    constexpr bool operator==(std::string_view s) const noexcept { return m_value && *m_value == s; }
 
-    std::string_view to_string_view() const noexcept { return *m_value; }
-    std::string to_string() const { return *m_value; }
+    std::string_view to_string_view() const noexcept { return m_value ? *m_value : std::string_view(); }
+    std::string to_string() const { return m_value ? *m_value : std::string(); }
 
-    constexpr bool empty() const noexcept { return m_value && m_value->empty(); }
+    constexpr bool empty() const noexcept { return m_value == nullptr; }
 
     auto hash() const noexcept { return std::hash<const std::string*>()(m_value); }
 };
@@ -63,14 +61,10 @@ namespace hlasm_plugin::parser_library::context {
 // changes strings of identifiers to indexes of this storage class for easier and unified work
 class id_storage
 {
-    static const std::string empty_string_;
     std::unordered_set<std::string> lit_;
 
 public:
     id_storage();
-
-    // represents value of empty identifier
-    static constexpr const id_index empty_id = id_index(&empty_string_);
 
     size_t size() const;
     bool empty() const;
