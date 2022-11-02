@@ -18,10 +18,6 @@
 
 using namespace hlasm_plugin::parser_library::context;
 
-hlasm_plugin::parser_library::context::id_storage::id_storage()
-    : well_known(lit_)
-{}
-
 size_t id_storage::size() const { return lit_.size(); }
 
 bool id_storage::empty() const { return lit_.empty(); }
@@ -32,6 +28,9 @@ std::optional<id_index> id_storage::find(std::string val) const
         return id_index();
 
     to_upper(val);
+
+    if (val.size() < id_index::buffer_size)
+        return id_index(val);
 
     if (auto tmp = lit_.find(val); tmp != lit_.end())
         return id_index(&*tmp);
@@ -44,32 +43,9 @@ id_index id_storage::add(std::string value)
     if (value.empty())
         return id_index();
     to_upper(value);
+
+    if (value.size() < id_index::buffer_size)
+        return id_index(value);
+
     return id_index(&*lit_.insert(std::move(value)).first);
 }
-
-id_storage::well_known_strings::well_known_strings(std::unordered_set<std::string>& ptr)
-    : COPY(&*ptr.emplace("COPY").first)
-    , SETA(&*ptr.emplace("SETA").first)
-    , SETB(&*ptr.emplace("SETB").first)
-    , SETC(&*ptr.emplace("SETC").first)
-    , GBLA(&*ptr.emplace("GBLA").first)
-    , GBLB(&*ptr.emplace("GBLB").first)
-    , GBLC(&*ptr.emplace("GBLC").first)
-    , LCLA(&*ptr.emplace("LCLA").first)
-    , LCLB(&*ptr.emplace("LCLB").first)
-    , LCLC(&*ptr.emplace("LCLC").first)
-    , MACRO(&*ptr.emplace("MACRO").first)
-    , MEND(&*ptr.emplace("MEND").first)
-    , MEXIT(&*ptr.emplace("MEXIT").first)
-    , MHELP(&*ptr.emplace("MHELP").first)
-    , ASPACE(&*ptr.emplace("ASPACE").first)
-    , AIF(&*ptr.emplace("AIF").first)
-    , AIFB(&*ptr.emplace("AIFB").first)
-    , AGO(&*ptr.emplace("AGO").first)
-    , AGOB(&*ptr.emplace("AGOB").first)
-    , ACTR(&*ptr.emplace("ACTR").first)
-    , AREAD(&*ptr.emplace("AREAD").first)
-    , ALIAS(&*ptr.emplace("ALIAS").first)
-    , END(&*ptr.emplace("END").first)
-    , SYSLIST(&*ptr.emplace("SYSLIST").first)
-{}

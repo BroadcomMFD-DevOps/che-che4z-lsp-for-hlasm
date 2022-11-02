@@ -15,7 +15,11 @@
 #ifndef CONTEXT_LITERAL_STORAGE_H
 #define CONTEXT_LITERAL_STORAGE_H
 
+#include <algorithm>
+#include <array>
+#include <cassert>
 #include <compare>
+#include <cstring>
 #include <optional>
 #include <string>
 #include <unordered_set>
@@ -25,26 +29,68 @@ namespace hlasm_plugin::parser_library::context {
 
 class id_index
 {
-    const std::string* m_value = nullptr;
+    static constexpr size_t buffer_size = sizeof(const std::string*) < 8 ? 16 : 2 * sizeof(const std::string*);
+    alignas(const std::string*) char m_buffer[buffer_size] = {};
 
-    explicit constexpr id_index(const std::string* value) noexcept
-        : m_value(value)
-    {}
+    explicit id_index(const std::string* value) noexcept
+    {
+        new (m_buffer) const std::string*(value);
+        m_buffer[buffer_size - 1] = 0x80u;
+    }
+
+    explicit constexpr id_index(std::string_view s) noexcept
+    {
+        assert(s.size() < buffer_size);
+        if (std::is_constant_evaluated())
+            std::copy(s.begin(), s.end(), m_buffer);
+        else
+            std::memcpy(m_buffer, s.data(), s.size());
+        m_buffer[buffer_size - 1] = (char)s.size();
+    }
 
     friend class id_storage;
     friend class literal_pool;
 
 public:
     constexpr id_index() noexcept = default;
+    template<size_t n>
+    consteval id_index(const char (&s)[n]) requires(n <= buffer_size)
+        : id_index(std::string_view(s, n - 1))
+    {
+        assert(s[n - 1] == 0
+            && std::string_view(s, n - 1).find_first_of("abcdefghijklmnopqrstuvwxyz") == std::string_view::npos);
+    }
 
     constexpr auto operator<=>(const id_index&) const noexcept = default;
+    constexpr bool operator==(const id_index& o) const noexcept
+    {
+        if (std::is_constant_evaluated())
+        {
+            for (size_t i = 0; i < buffer_size; ++i)
+                if (m_buffer[i] != o.m_buffer[i])
+                    return false;
+            return true;
+        }
+        else
+        {
+            return 0 == std::memcmp(m_buffer, o.m_buffer, buffer_size);
+        }
+    }
 
-    std::string_view to_string_view() const noexcept { return m_value ? *m_value : std::string_view(); }
-    std::string to_string() const { return m_value ? *m_value : std::string(); }
+    std::string_view to_string_view() const noexcept
+    {
+        return (m_buffer[buffer_size - 1] & 0x80u) ? *reinterpret_cast<const std::string* const&>(m_buffer)
+                                                   : std::string_view(m_buffer, m_buffer[buffer_size - 1]);
+    }
+    std::string to_string() const
+    {
+        return (m_buffer[buffer_size - 1] & 0x80u) ? *reinterpret_cast<const std::string* const&>(m_buffer)
+                                                   : std::string(m_buffer, m_buffer[buffer_size - 1]);
+    }
 
-    constexpr bool empty() const noexcept { return m_value == nullptr; }
+    constexpr bool empty() const noexcept { return m_buffer[buffer_size - 1] == 0; }
 
-    auto hash() const noexcept { return std::hash<const std::string*>()(m_value); }
+    auto hash() const noexcept { return std::hash<std::string_view>()(std::string_view(m_buffer, buffer_size)); }
 };
 } // namespace hlasm_plugin::parser_library::context
 
@@ -65,8 +111,6 @@ class id_storage
     std::unordered_set<std::string> lit_;
 
 public:
-    id_storage();
-
     size_t size() const;
     bool empty() const;
 
@@ -74,35 +118,35 @@ public:
 
     id_index add(std::string value);
 
-    struct well_known_strings
+    struct well_known
     {
-        id_index COPY;
-        id_index SETA;
-        id_index SETB;
-        id_index SETC;
-        id_index GBLA;
-        id_index GBLB;
-        id_index GBLC;
-        id_index LCLA;
-        id_index LCLB;
-        id_index LCLC;
-        id_index MACRO;
-        id_index MEND;
-        id_index MEXIT;
-        id_index MHELP;
-        id_index ASPACE;
-        id_index AIF;
-        id_index AIFB;
-        id_index AGO;
-        id_index AGOB;
-        id_index ACTR;
-        id_index AREAD;
-        id_index ALIAS;
-        id_index END;
-        id_index SYSLIST;
-        well_known_strings(std::unordered_set<std::string>& ptr);
-
-    } const well_known;
+        static constexpr id_index COPY = id_index("COPY");
+        static constexpr id_index SETA = id_index("SETA");
+        static constexpr id_index SETB = id_index("SETB");
+        static constexpr id_index SETC = id_index("SETC");
+        static constexpr id_index GBLA = id_index("GBLA");
+        static constexpr id_index GBLB = id_index("GBLB");
+        static constexpr id_index GBLC = id_index("GBLC");
+        static constexpr id_index LCLA = id_index("LCLA");
+        static constexpr id_index LCLB = id_index("LCLB");
+        static constexpr id_index LCLC = id_index("LCLC");
+        static constexpr id_index MACRO = id_index("MACRO");
+        static constexpr id_index MEND = id_index("MEND");
+        static constexpr id_index MEXIT = id_index("MEXIT");
+        static constexpr id_index MHELP = id_index("MHELP");
+        static constexpr id_index ASPACE = id_index("ASPACE");
+        static constexpr id_index AIF = id_index("AIF");
+        static constexpr id_index AIFB = id_index("AIFB");
+        static constexpr id_index AGO = id_index("AGO");
+        static constexpr id_index AGOB = id_index("AGOB");
+        static constexpr id_index ACTR = id_index("ACTR");
+        static constexpr id_index AREAD = id_index("AREAD");
+        static constexpr id_index ALIAS = id_index("ALIAS");
+        static constexpr id_index END = id_index("END");
+        static constexpr id_index SYSLIST = id_index("SYSLIST");
+        static constexpr id_index ANOP = id_index("ANOP");
+        static constexpr id_index AEJECT = id_index("AEJECT");
+    };
 };
 
 } // namespace hlasm_plugin::parser_library::context

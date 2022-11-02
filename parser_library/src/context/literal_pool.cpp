@@ -109,7 +109,7 @@ public:
         id_storage& ids)
         : details(&details)
         , op(details.r, {})
-        , op_code(ids.add("DC"), instruction_type::ASM)
+        , op_code(context::id_index("DC"), instruction_type::ASM)
     {
         op.value.push_back(std::make_unique<semantics::data_def_operand>(dd, details.r));
     }

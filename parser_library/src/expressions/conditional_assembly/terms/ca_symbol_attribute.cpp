@@ -222,7 +222,7 @@ context::C_t get_current_macro_name_field(const context::hlasm_context& ctx)
 
     if (!scope.is_in_macro())
         return {};
-    return scope.this_macro->named_params.at(ctx.ids().well_known.SYSLIST)
+    return scope.this_macro->named_params.at(context::id_storage::well_known::SYSLIST)
         ->get_data(std::array<size_t, 1> { 0 })
         ->get_value();
 }
