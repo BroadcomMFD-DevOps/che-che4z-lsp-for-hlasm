@@ -65,7 +65,7 @@ namespace hlasm_plugin::parser_library::context {
 // changes strings of identifiers to indexes of this storage class for easier and unified work
 class id_storage
 {
-    static constexpr const std::string empty_string_ = std::string();
+    static const std::string empty_string_;
     std::unordered_set<std::string> lit_;
 
 public:
