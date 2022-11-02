@@ -48,8 +48,6 @@ macro_definition::macro_definition(id_index name,
     for (auto&& stmt : definition)
         cached_definition.emplace_back(std::move(stmt));
 
-    // there seems to be some dark magic happening here...
-    // we always expect the label "named" parameter to exists even if not provided and label_param_name is empty string
     named_params_.emplace(label_param_name,
         positional_params_
             .emplace_back(std::make_unique<positional_param>(label_param_name, 0, *macro_param_data_component::dummy))
