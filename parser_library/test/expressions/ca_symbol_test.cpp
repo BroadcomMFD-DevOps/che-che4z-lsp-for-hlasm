@@ -28,9 +28,8 @@ TEST(ca_symbol, undefined_attributes)
     context::hlasm_context ctx;
     diagnostic_op_consumer_container diags;
     evaluation_context eval_ctx { ctx, library_info_transitional::empty, diags };
-    std::string name = "n";
 
-    ca_symbol sym(ctx.ids().add(name), range());
+    ca_symbol sym(ctx.ids().add("n"), range());
 
     auto res = sym.get_undefined_attributed_symbols(eval_ctx);
 

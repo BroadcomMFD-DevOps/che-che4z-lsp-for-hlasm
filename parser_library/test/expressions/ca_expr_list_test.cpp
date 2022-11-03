@@ -34,7 +34,6 @@ TEST(ca_expr_list, unknown_function_to_operator)
     diagnostic_op_consumer_container diags;
     evaluation_context eval_ctx { ctx, library_info_transitional::empty, diags };
 
-    std::string name = "AND";
     auto c = std::make_unique<ca_constant>(1, range());
     auto dupl = std::make_unique<ca_constant>(1, range());
     std::vector<ca_expr_ptr> params;
