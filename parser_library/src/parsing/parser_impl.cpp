@@ -405,7 +405,8 @@ void parser_impl::add_diagnostic(diagnostic_op d) const
         diagnoser_->add_diagnostic(std::move(d));
 }
 
-context::id_index parser_impl::add_id(std::string s) { return hlasm_ctx->ids().add(std::move(s)); }
+context::id_index parser_impl::add_id(std::string s) const { return hlasm_ctx->ids().add(std::move(s)); }
+context::id_index parser_impl::add_id(std::string_view s) const { return hlasm_ctx->ids().add(s); }
 
 parser_holder::~parser_holder() = default;
 
