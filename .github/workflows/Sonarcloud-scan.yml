@@ -33,7 +33,7 @@ jobs:
             echo '${{ toJSON(github.event) }}'
     
      - name: Issue error
-       uses: actions/github-script@v3
+       uses: actions/github-script@v6
        with:
          script: |
                  core.setFailed('Previous job ended unsuccessfully with the following conclusion: ${{ github.event.workflow_run.conclusion }}')
@@ -47,10 +47,10 @@ jobs:
       - name: Requirements install
         run: sudo apt-get update && sudo apt-get install libc++-12-dev libc++abi-12-dev
       - name: 'Download build output'
-        uses: actions/github-script@v3.1.0
+        uses: actions/github-script@v6
         with:
           script: |
-            var artifacts = await github.actions.listWorkflowRunArtifacts({
+            var artifacts = await github.rest.actions.listWorkflowRunArtifacts({
                owner: context.repo.owner,
                repo: context.repo.repo,
                run_id: ${{github.event.workflow_run.id }},
@@ -58,7 +58,7 @@ jobs:
             var matchArtifact = artifacts.data.artifacts.filter((artifact) => {
               return artifact.name == "bw-output"
             })[0];
-            var download = await github.actions.downloadArtifact({
+            var download = await github.rest.actions.downloadArtifact({
                owner: context.repo.owner,
                repo: context.repo.repo,
                artifact_id: matchArtifact.id,
