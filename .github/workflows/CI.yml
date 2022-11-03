@@ -68,6 +68,7 @@ jobs:
         uses: actions/setup-java@v3
         with:
           java-version: 11
+          distribution: 'temurin'
       - name: Requirements install
         run: sudo apt-get update && sudo apt-get install uuid-dev ninja-build libc++-12-dev libc++abi-12-dev
       - name: Configure
@@ -117,6 +118,7 @@ jobs:
         uses: actions/setup-java@v3
         with:
           java-version: 11
+          distribution: 'temurin'
       - name: Requirements install
         if: ${{ matrix.prereq }}
         run: ${{ matrix.prereq }}
