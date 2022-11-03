@@ -161,8 +161,8 @@ TEST(macro_cache_test, copy_from_macro)
     opencode->collect_diags();
     EXPECT_EQ(opencode->diags().size(), 0U);
 
-    auto macro_id = file_mngr.hlasm_ctx->ids().add("MAC");
-    auto copy_id = file_mngr.hlasm_ctx->ids().add("COPYFILE");
+    auto macro_id = context::id_index("MAC");
+    auto copy_id = context::id_index("COPYFILE");
 
     analyzing_context new_ctx = create_analyzing_context(opencode_file_name, file_mngr.hlasm_ctx->ids_ptr());
 
@@ -225,7 +225,7 @@ SETA   OPSYN LR
     EXPECT_EQ(opencode->diags().size(), 0U);
 
 
-    auto macro_id = file_mngr.hlasm_ctx->ids().add("MAC");
+    auto macro_id = context::id_index("MAC");
     auto ids = file_mngr.hlasm_ctx->ids_ptr();
 
     constexpr context::id_index LR("LR");
@@ -253,7 +253,7 @@ SETA   OPSYN LR
 
     macro_cache_key macro_key_two_opsyns = macro_key_one_opsyn;
     macro_key_two_opsyns.opsyn_state.push_back(
-        cached_opsyn_mnemo { file_mngr.hlasm_ctx->ids().add("L"), context::id_storage::well_known::SETB, false });
+        cached_opsyn_mnemo { context::id_index("L"), context::id_storage::well_known::SETB, false });
 
     macro_cache_key::sort_opsyn_state(macro_key_two_opsyns.opsyn_state);
 
@@ -280,7 +280,7 @@ TEST(macro_cache_test, empty_macro)
 
     opencode->parse(file_mngr, {}, {}, nullptr);
 
-    auto macro_id = file_mngr.hlasm_ctx->ids().add("MAC");
+    auto macro_id = context::id_index("MAC");
 
     analyzing_context new_ctx = create_analyzing_context(opencode_file_name, file_mngr.hlasm_ctx->ids_ptr());
 
@@ -410,7 +410,7 @@ TEST(macro_cache_test, inline_depends_on_copy)
     EXPECT_EQ(opencode->diags().size(), 0U);
 
 
-    auto copy_id = file_mngr.hlasm_ctx->ids().add("COPYFILE");
+    auto copy_id = context::id_index("COPYFILE");
 
     analyzing_context new_ctx = create_analyzing_context(opencode_file_name, file_mngr.hlasm_ctx->ids_ptr());
 

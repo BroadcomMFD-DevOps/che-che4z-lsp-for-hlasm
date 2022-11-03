@@ -23,7 +23,7 @@ using namespace hlasm_plugin::parser_library;
 
 concat_chain create_chain(context::hlasm_context& ctx)
 {
-    auto vs = std::make_unique<basic_variable_symbol>(ctx.ids().add("n"), std::vector<ca_expr_ptr>(), range());
+    auto vs = std::make_unique<basic_variable_symbol>(id_index("N"), std::vector<ca_expr_ptr>(), range());
 
     concat_chain created_name;
     created_name.emplace_back(char_str_conc("n", range()));

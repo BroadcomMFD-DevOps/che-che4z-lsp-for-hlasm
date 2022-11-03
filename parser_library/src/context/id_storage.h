@@ -110,13 +110,16 @@ class id_storage
 {
     std::unordered_set<std::string> lit_;
 
+    static id_index small_id(std::string_view value);
+
 public:
     size_t size() const;
     bool empty() const;
 
-    std::optional<id_index> find(std::string val) const;
+    std::optional<id_index> find(std::string_view val) const;
 
-    id_index add(std::string value);
+    id_index add(std::string_view value);
+    id_index add(std::string&& value);
 
     struct well_known
     {

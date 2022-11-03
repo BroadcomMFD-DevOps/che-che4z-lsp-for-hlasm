@@ -62,6 +62,7 @@ processing_status macrodef_processor::get_processing_status(const semantics::ins
                 ? std::get<context::id_index>(instruction.value)
                 : hlasm_ctx.ids().add(
                     semantics::concatenation_point::to_string(std::get<semantics::concat_chain>(instruction.value)));
+            // TODO: should the identifier limit be enforced here?
         }
         return std::make_pair(format, op_code(id, context::instruction_type::MAC));
     }
