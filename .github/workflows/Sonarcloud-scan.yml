@@ -70,7 +70,7 @@ jobs:
       - name: Get ref
         run: echo "REF=$(cat pr-info/ref.txt)" >> $GITHUB_ENV
       - run: mv bw-artifact.zip /tmp/bw-artifact.zip
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           persist-credentials: false
           fetch-depth: 1
