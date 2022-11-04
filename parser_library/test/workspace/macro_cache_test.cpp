@@ -309,8 +309,6 @@ MAC OPSYN AREAD
     a.analyze();
     auto state = macro_cache_key::get_opsyn_state(a.hlasm_ctx());
 
-    auto& ids = a.hlasm_ctx().ids();
-
     constexpr context::id_index L("L");
     constexpr context::id_index LR("LR");
     constexpr context::id_index MAC("MAC");
