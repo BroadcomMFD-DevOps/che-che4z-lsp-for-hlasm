@@ -61,20 +61,33 @@ public:
             && std::string_view(s, n - 1).find_first_of("abcdefghijklmnopqrstuvwxyz") == std::string_view::npos);
     }
 
-    constexpr auto operator<=>(const id_index&) const noexcept = default;
-    constexpr bool operator==(const id_index& o) const noexcept
+    constexpr auto operator<=>(const id_index& o) const noexcept
     {
+        // compilers seem still a bit weirded out by the = default;
         if (std::is_constant_evaluated())
         {
             for (size_t i = 0; i < buffer_size; ++i)
-                if (m_buffer[i] != o.m_buffer[i])
-                    return false;
-            return true;
+            {
+                if (auto r = (unsigned char)m_buffer[i] <=> (unsigned char)o.m_buffer[i]; r != 0)
+                    return r;
+            }
+            return std::strong_ordering::equal;
         }
         else
         {
-            return 0 == std::memcmp(m_buffer, o.m_buffer, buffer_size);
+            auto r = std::memcmp(m_buffer, o.m_buffer, buffer_size);
+            if (r == 0)
+                return std::strong_ordering::equal;
+            else if (r < 0)
+                return std::strong_ordering::less;
+            else
+                return std::strong_ordering::greater;
         }
+    }
+
+    constexpr bool operator==(const id_index& o) const noexcept
+    {
+        return std::equal(std::begin(m_buffer), std::end(m_buffer), std::begin(o.m_buffer), std::end(o.m_buffer));
     }
 
     std::string_view to_string_view() const noexcept
