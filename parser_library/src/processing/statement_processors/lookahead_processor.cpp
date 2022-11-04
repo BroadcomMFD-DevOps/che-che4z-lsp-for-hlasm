@@ -110,7 +110,7 @@ lookahead_processor::lookahead_processor(analyzing_context ctx,
     , to_find_(std::move(start.targets))
     , target_(start.target)
     , action(start.action)
-    , asm_proc_table_(create_table(*ctx.hlasm_ctx))
+    , asm_proc_table_(create_table())
 {}
 
 void lookahead_processor::process_MACRO() { ++macro_nest_; }
@@ -123,7 +123,7 @@ void lookahead_processor::process_COPY(const resolved_statement& statement)
     }
 }
 
-lookahead_processor::process_table_t lookahead_processor::create_table(context::hlasm_context& h_ctx)
+lookahead_processor::process_table_t lookahead_processor::create_table()
 {
     process_table_t table;
     table.emplace(context::id_index("CSECT"),

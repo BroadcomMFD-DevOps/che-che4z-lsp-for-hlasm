@@ -697,7 +697,7 @@ asm_processor::asm_processor(analyzing_context ctx,
     statement_fields_parser& parser,
     opencode_provider& open_code)
     : low_language_processor(ctx, branch_provider, lib_provider, parser)
-    , table_(create_table(*ctx.hlasm_ctx))
+    , table_(create_table())
     , open_code_(&open_code)
 {}
 
@@ -768,7 +768,7 @@ bool asm_processor::process_copy(const semantics::complete_statement& stmt,
     return true;
 }
 
-asm_processor::process_table_t asm_processor::create_table(context::hlasm_context& h_ctx)
+asm_processor::process_table_t asm_processor::create_table()
 {
     process_table_t table;
     table.emplace(context::id_index("CSECT"),

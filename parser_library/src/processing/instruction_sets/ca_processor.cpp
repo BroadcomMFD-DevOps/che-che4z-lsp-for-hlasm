@@ -28,7 +28,7 @@ ca_processor::ca_processor(analyzing_context ctx,
     processing_state_listener& listener,
     opencode_provider& open_code)
     : instruction_processor(ctx, branch_provider, lib_provider)
-    , table_(create_table(*ctx.hlasm_ctx))
+    , table_(create_table())
     , listener_(listener)
     , open_code_(&open_code)
 {}
@@ -41,7 +41,7 @@ void ca_processor::process(std::shared_ptr<const processing::resolved_statement>
     func(*stmt);
 }
 
-ca_processor::process_table_t ca_processor::create_table(context::hlasm_context& h_ctx)
+ca_processor::process_table_t ca_processor::create_table()
 {
     process_table_t table;
     table.emplace(context::id_storage::well_known::SETA,
