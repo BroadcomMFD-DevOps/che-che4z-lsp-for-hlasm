@@ -68,7 +68,7 @@ public:
         {
             for (size_t i = 0; i < buffer_size; ++i)
             {
-                if (auto r = m_buffer[i] <=> o.m_buffer[i]; r != 0)
+                if (auto r = m_buffer[i] <=> o.m_buffer[i]; r != std::strong_ordering::equal)
                     return r;
             }
             return std::strong_ordering::equal;
