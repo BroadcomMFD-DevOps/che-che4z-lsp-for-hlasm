@@ -21,23 +21,36 @@
 
 namespace hlasm_plugin::parser_library::processing {
 
+namespace {
+
+struct LCL_GBL_instr
+{
+    context::id_index name;
+    context::SET_t_enum type;
+    bool global;
+};
+
+constexpr std::array<LCL_GBL_instr, 6> LCL_GBL_instructions_ { {
+    { context::id_storage::well_known::LCLA, context::SET_t_enum::A_TYPE, false },
+    { context::id_storage::well_known::LCLB, context::SET_t_enum::B_TYPE, false },
+    { context::id_storage::well_known::LCLC, context::SET_t_enum::C_TYPE, false },
+    { context::id_storage::well_known::GBLA, context::SET_t_enum::A_TYPE, true },
+    { context::id_storage::well_known::GBLB, context::SET_t_enum::B_TYPE, true },
+    { context::id_storage::well_known::GBLC, context::SET_t_enum::C_TYPE, true },
+} };
+
+constexpr std::array<std::pair<context::id_index, context::SET_t_enum>, 3> SET_instructions_ { {
+    { context::id_storage::well_known::SETA, context::SET_t_enum::A_TYPE },
+    { context::id_storage::well_known::SETB, context::SET_t_enum::B_TYPE },
+    { context::id_storage::well_known::SETC, context::SET_t_enum::C_TYPE },
+} };
+
+} // namespace
+
 lsp_analyzer::lsp_analyzer(context::hlasm_context& hlasm_ctx, lsp::lsp_context& lsp_ctx, const std::string& file_text)
     : hlasm_ctx_(hlasm_ctx)
     , lsp_ctx_(lsp_ctx)
     , file_text_(file_text)
-    , LCL_GBL_instructions_ { {
-          { context::id_storage::well_known::LCLA, context::SET_t_enum::A_TYPE, false },
-          { context::id_storage::well_known::LCLB, context::SET_t_enum::B_TYPE, false },
-          { context::id_storage::well_known::LCLC, context::SET_t_enum::C_TYPE, false },
-          { context::id_storage::well_known::GBLA, context::SET_t_enum::A_TYPE, true },
-          { context::id_storage::well_known::GBLB, context::SET_t_enum::B_TYPE, true },
-          { context::id_storage::well_known::GBLC, context::SET_t_enum::C_TYPE, true },
-      } }
-    , SET_instructions_ { {
-          { context::id_storage::well_known::SETA, context::SET_t_enum::A_TYPE },
-          { context::id_storage::well_known::SETB, context::SET_t_enum::B_TYPE },
-          { context::id_storage::well_known::SETC, context::SET_t_enum::C_TYPE },
-      } }
 {}
 
 void lsp_analyzer::analyze(

@@ -33,7 +33,7 @@ macro_cache::macro_cache(const file_manager& file_mngr, file& macro_file)
 std::vector<cached_opsyn_mnemo> macro_cache_key::get_opsyn_state(context::hlasm_context& ctx)
 {
     // List of instructions that are resolved during macro definition - therefore are affected by OPSYN
-    std::array<context::id_index, 18> cached_instr {
+    static constexpr std::array<context::id_index, 18> cached_instr {
         context::id_storage::well_known::COPY,
         context::id_storage::well_known::ASPACE,
         context::id_storage::well_known::GBLA,

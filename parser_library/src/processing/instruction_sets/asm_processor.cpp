@@ -860,7 +860,7 @@ void asm_processor::process_AINSERT(rebuilt_statement stmt)
 
     AINSERT_operand_visitor visitor;
     second_op->expression->apply(visitor);
-    auto [value] = visitor;
+    const auto& [value] = visitor;
 
     if (value.empty())
         return;
