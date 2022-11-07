@@ -30,7 +30,7 @@ namespace hlasm_plugin::parser_library::context {
 class id_index
 {
     static constexpr size_t buffer_size = sizeof(const std::string*) < 8 ? 16 : 2 * sizeof(const std::string*);
-    alignas(const std::string*) char m_buffer[buffer_size] = {};
+    alignas(const std::string*) unsigned char m_buffer[buffer_size] = {}; // check CWG2489
 
     explicit id_index(const std::string* value) noexcept
     {
@@ -54,7 +54,7 @@ class id_index
 public:
     constexpr id_index() noexcept = default;
     template<size_t n>
-    consteval id_index(const char (&s)[n]) requires(n <= buffer_size)
+    explicit consteval id_index(const char (&s)[n]) requires(n <= buffer_size)
         : id_index(std::string_view(s, n - 1))
     {
         assert(s[n - 1] == 0
@@ -63,12 +63,12 @@ public:
 
     constexpr auto operator<=>(const id_index& o) const noexcept
     {
-        // compilers seem still a bit weirded out by the = default;
+        // compilers seem still a bit weirded out by the "= default";
         if (std::is_constant_evaluated())
         {
             for (size_t i = 0; i < buffer_size; ++i)
             {
-                if (auto r = (unsigned char)m_buffer[i] <=> (unsigned char)o.m_buffer[i]; r != 0)
+                if (auto r = m_buffer[i] <=> o.m_buffer[i]; r != 0)
                     return r;
             }
             return std::strong_ordering::equal;
@@ -92,18 +92,18 @@ public:
 
     std::string_view to_string_view() const noexcept
     {
-        return (m_buffer[buffer_size - 1] & 0x80u) ? *reinterpret_cast<const std::string* const&>(m_buffer)
-                                                   : std::string_view(m_buffer, m_buffer[buffer_size - 1]);
+        return (m_buffer[buffer_size - 1] & 0x80u)
+            ? *reinterpret_cast<const std::string* const&>(m_buffer)
+            : std::string_view(reinterpret_cast<const char*>(m_buffer), m_buffer[buffer_size - 1]);
     }
-    std::string to_string() const
-    {
-        return (m_buffer[buffer_size - 1] & 0x80u) ? *reinterpret_cast<const std::string* const&>(m_buffer)
-                                                   : std::string(m_buffer, m_buffer[buffer_size - 1]);
-    }
+    std::string to_string() const { return std::string(to_string_view()); }
 
     constexpr bool empty() const noexcept { return m_buffer[buffer_size - 1] == 0; }
 
-    auto hash() const noexcept { return std::hash<std::string_view>()(std::string_view(m_buffer, buffer_size)); }
+    auto hash() const noexcept
+    {
+        return std::hash<std::string_view>()(std::string_view(reinterpret_cast<const char*>(m_buffer), buffer_size));
+    }
 };
 } // namespace hlasm_plugin::parser_library::context
 
