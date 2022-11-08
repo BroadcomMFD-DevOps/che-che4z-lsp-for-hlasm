@@ -763,7 +763,7 @@ export async function downloadDependencies(context: vscode.ExtensionContext, ...
             vscode.window.showErrorMessage(result.failed.length + " jobs out of " + result.total + " failed", showFailedJobs).then((choice) => {
                 if (choice !== showFailedJobs) return;
                 const channel: vscode.OutputChannel = context.extension.exports.getExtension().outputChannel;
-                channel.appendLine("The following datasets could not have been downloaded:");
+                channel.appendLine("The following data sets could not have been downloaded:");
                 result.failed.forEach(x => { channel.append('  '); channel.appendLine(x.dsn) });
                 channel.show();
             });
