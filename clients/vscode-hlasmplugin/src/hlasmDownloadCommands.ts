@@ -561,7 +561,10 @@ async function filterDownloadList(downloadCandidates: JobDetail[]): Promise<JobD
         input.canSelectMany = true;
         input.selectedItems = input.items;
         input.onDidHide(() => reject(Error(cancelMessage)));
-        input.onDidAccept(() => resolve(downloadCandidates.filter(x => input.selectedItems.some(item => item.label === x.dsn))));
+        input.onDidAccept(() => {
+            const selected = new Set(input.selectedItems.map(x => x.label));
+            resolve(downloadCandidates.filter(x => selected.has(x.dsn)));
+        });
         input.show();
     }).finally(() => { input.dispose(); });
 }
