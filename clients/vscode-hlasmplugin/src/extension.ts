@@ -28,6 +28,7 @@ import { HLASMVirtualFileContentProvider } from './hlasmVirtualFileContentProvid
 import { downloadDependencies } from './hlasmDownloadCommands';
 import { blockCommentCommand, CommentOption, lineCommentCommand } from './commentEditorCommands';
 import { HLASMCodeActionsProvider } from './hlasmCodeActionsProvider';
+import { hlasmplugin_folder } from './constants';
 
 const offset = 71;
 const continueColumn = 15;
@@ -73,7 +74,7 @@ export async function activate(context: vscode.ExtensionContext) {
         synchronize: !syncFileEvents ? undefined : {
             fileEvents: [
                 vscode.workspace.createFileSystemWatcher(filePattern),
-                vscode.workspace.createFileSystemWatcher('.hlasmplugin/*.json'),
+                vscode.workspace.createFileSystemWatcher(hlasmplugin_folder + '/*.json'),
             ]
         },
         errorHandler: clientErrorHandler

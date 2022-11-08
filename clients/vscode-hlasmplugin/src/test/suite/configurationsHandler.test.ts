@@ -17,6 +17,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 
 import { ConfigurationsHandler } from '../../configurationsHandler';
+import { hlasmplugin_folder, pgm_conf_file, proc_grps_file } from '../../constants';
 
 suite('Configurations Handler Test Suite', () => {
     const handler = new ConfigurationsHandler();
@@ -25,8 +26,8 @@ suite('Configurations Handler Test Suite', () => {
     // configuration files paths
     test('Check configs test', () => {
         const configPaths = handler.checkConfigs();
-        assert.equal(configPaths[0], path.join(workspacePath, '.hlasmplugin', 'pgm_conf.json'));
-        assert.equal(configPaths[1], path.join(workspacePath, '.hlasmplugin', 'proc_grps.json'));
+        assert.equal(configPaths[0], path.join(workspacePath, hlasmplugin_folder, pgm_conf_file));
+        assert.equal(configPaths[1], path.join(workspacePath, hlasmplugin_folder, proc_grps_file));
     });
 
     // 20 expressions - 2 for always recognize, 9 open codes (pgm_conf.json) and 9 library definitions (proc_grps.json)

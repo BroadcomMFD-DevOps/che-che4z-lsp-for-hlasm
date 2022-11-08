@@ -19,6 +19,7 @@ import { Readable, Writable } from 'stream';
 import { EOL, homedir } from 'os';
 import path = require('node:path');
 import { promises as fsp } from "fs";
+import { hlasmplugin_folder, proc_grps_file } from './constants';
 
 const cancelMessage = "Action was cancelled";
 
@@ -491,7 +492,7 @@ async function gatherAvailableConfigs() {
     if (vscode.workspace.workspaceFolders === undefined) return [];
     const availableConfigs = (await Promise.all(vscode.workspace.workspaceFolders.map(x => {
         return new Promise<{ workspace: vscode.WorkspaceFolder, config: any } | null>((resolve) => {
-            vscode.workspace.openTextDocument(vscode.Uri.joinPath(x.uri, ".hlasmplugin", "proc_grps.json")).then((doc) => resolve({ workspace: x, config: JSON.parse(doc.getText()) }), _ => resolve(null))
+            vscode.workspace.openTextDocument(vscode.Uri.joinPath(x.uri, hlasmplugin_folder, proc_grps_file)).then((doc) => resolve({ workspace: x, config: JSON.parse(doc.getText()) }), _ => resolve(null))
         })
     }))).filter(x => !!x).map(x => x!);
 

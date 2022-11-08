@@ -2630,6 +2630,17 @@ diagnostic_s diagnostic_s::error_B4G002(const utils::resource::resource_location
         diagnostic_tag::none);
 }
 
+diagnostic_s diagnostic_s::info_SUP(const utils::resource::resource_location& file_name)
+{
+    return diagnostic_s(file_name.get_uri(),
+        range(position(), position((size_t)-1, (size_t)-1)),
+        diagnostic_severity::hint,
+        "SUP",
+        concat("Diagnostics suppressed, no configuration available."),
+        {},
+        diagnostic_tag::none);
+}
+
 diagnostic_s diagnostic_s::error_L0001(
     const utils::resource::resource_location& config_loc, const utils::resource::resource_location& lib_loc)
 {

@@ -13,15 +13,54 @@
  */
 
 import * as vscode from 'vscode';
+import { hlasmplugin_folder, pgm_conf_file, proc_grps_file } from './constants';
 
 export class HLASMCodeActionsProvider implements vscode.CodeActionProvider {
     provideCodeActions(document: vscode.TextDocument, range: vscode.Range | vscode.Selection, context: vscode.CodeActionContext, token: vscode.CancellationToken): vscode.ProviderResult<(vscode.CodeAction | vscode.Command)[]> {
+        const result: vscode.CodeAction[] = [];
+        const workspace = vscode.workspace.getWorkspaceFolder(document.uri);
+        if (!workspace) return null;
+
         if (context.diagnostics.some(x => x.code === 'E049')) {
-            return [
-                { title: "Download dependencies", command: "extension.hlasm-plugin.downloadDependencies", arguments: ['newOnly'] },
-                { title: "Download all dependencies", command: "extension.hlasm-plugin.downloadDependencies" },
-            ];
+            result.push({
+                title: 'Download dependencies',
+                command: {
+                    title: 'Download dependencies',
+                    command: 'extension.hlasm-plugin.downloadDependencies',
+                    arguments: ['newOnly']
+                },
+                kind: vscode.CodeActionKind.QuickFix
+            });
+            result.push({
+                title: 'Download all dependencies',
+                command: {
+                    title: 'Download dependencies',
+                    command: 'extension.hlasm-plugin.downloadDependencies'
+                },
+                kind: vscode.CodeActionKind.QuickFix
+            });
+            result.push({
+                title: 'Modify proc_grps.json configuration file',
+                command: {
+                    title: 'Open proc_grps.json',
+                    command: 'vscode.open',
+                    arguments: [vscode.Uri.joinPath(workspace.uri, hlasmplugin_folder, proc_grps_file)]
+                },
+                kind: vscode.CodeActionKind.QuickFix
+            });
+
         }
-        return null;
+        if (context.diagnostics.some(x => x.code === 'SUP' || x.code === 'E049')) {
+            result.push({
+                title: 'Modify pgm_conf.json configuration file',
+                command: {
+                    title: 'Open pgm_conf.json',
+                    command: 'vscode.open',
+                    arguments: [vscode.Uri.joinPath(workspace.uri, hlasmplugin_folder, pgm_conf_file)]
+                },
+                kind: vscode.CodeActionKind.QuickFix
+            });
+        }
+        return result.length !== 0 ? result : null;
     }
 }

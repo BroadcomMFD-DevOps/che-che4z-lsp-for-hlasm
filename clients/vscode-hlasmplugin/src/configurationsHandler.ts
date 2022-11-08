@@ -13,8 +13,9 @@
  */
 
 import * as vscode from 'vscode';
-import * as fs from 'fs'
-import * as path from 'path'
+import * as fs from 'fs';
+import * as path from 'path';
+import { hlasmplugin_folder, proc_grps_file, pgm_conf_file } from './constants';
 
 /**
  * Handles changes in configurations files.
@@ -186,11 +187,11 @@ export class ConfigurationsHandler {
 
         // update .hlasmplugin folder
         const folder = vscode.workspace.workspaceFolders[0].uri.fsPath;
-        this.folderPath = path.join(folder, '.hlasmplugin');
+        this.folderPath = path.join(folder, hlasmplugin_folder);
 
         // paths where the configs are supposed to be
-        this.procGrpsPath = path.join(this.folderPath, 'proc_grps.json');
-        this.pgmConfPath = path.join(this.folderPath, 'pgm_conf.json');
+        this.procGrpsPath = path.join(this.folderPath, proc_grps_file);
+        this.pgmConfPath = path.join(this.folderPath, pgm_conf_file);
         this.ebgPath = path.join(folder, '.ebg');
 
         if (!fs.existsSync(this.procGrpsPath))
