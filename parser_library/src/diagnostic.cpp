@@ -1944,6 +1944,7 @@ diagnostic_op diagnostic_op::error_E048(std::string_view message, const range& r
 
 diagnostic_op diagnostic_op::error_E049(std::string_view message, const range& range)
 {
+    // E049 code utilized in the extension code
     return diagnostic_op(diagnostic_severity::error, "E049", concat("Operation code not found - ", message), range);
 }
 

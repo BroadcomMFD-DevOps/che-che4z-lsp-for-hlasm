@@ -27,6 +27,7 @@ import { LanguageClientErrorHandler } from './languageClientErrorHandler';
 import { HLASMVirtualFileContentProvider } from './hlasmVirtualFileContentProvider';
 import { downloadDependencies } from './hlasmDownloadCommands';
 import { blockCommentCommand, CommentOption, lineCommentCommand } from './commentEditorCommands';
+import { HLASMCodeActionsProvider } from './hlasmCodeActionsProvider';
 
 const offset = 71;
 const continueColumn = 15;
@@ -159,6 +160,7 @@ async function registerToContext(context: vscode.ExtensionContext, client: vscod
     // register provider for all hlasm debug configurations
     context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('hlasm', new HLASMConfigurationProvider()));
     context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('hlasm', new HLASMDebugAdapterFactory(client)));
+    context.subscriptions.push(vscode.languages.registerCodeActionsProvider('hlasm', new HLASMCodeActionsProvider()));
 
     // register continuation handlers
     if (!commandsRegistered) {
@@ -205,7 +207,7 @@ async function registerToContext(context: vscode.ExtensionContext, client: vscod
 
     context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider("hlasm", new HLASMVirtualFileContentProvider(client)));
 
-    context.subscriptions.push(vscode.commands.registerCommand("extension.hlasm-plugin.downloadDependencies", () => downloadDependencies(context)));
+    context.subscriptions.push(vscode.commands.registerCommand("extension.hlasm-plugin.downloadDependencies", (...args: any[]) => downloadDependencies(context, ...args)));
 
     return handler;
 }

@@ -552,14 +552,26 @@ export function gatherDownloadList(availableConfigs: { workspaceUri: vscode.Uri,
     return thingsToDownload;
 }
 
-async function filterDownloadList(downloadCandidates: JobDetail[]): Promise<JobDetail[]> {
+async function filterDownloadList(downloadCandidates: JobDetail[], newOnly: boolean): Promise<JobDetail[]> {
     const input = vscode.window.createQuickPick();
-    return new Promise<JobDetail[]>((resolve, reject) => {
+
+    const interestingDsn = new Set<string>();
+    if (newOnly) {
+        for (const job of downloadCandidates) {
+            for (const dir of job.dirs) {
+                if (await isDirectoryEmpty(dir)) {
+                    interestingDsn.add(job.dsn);
+                    break;
+                }
+            };
+        }
+    }
+    return new Promise<JobDetail[]>(async (resolve, reject) => {
         input.ignoreFocusOut = true;
         input.title = 'Select data sets to download';
         input.items = downloadCandidates.map(x => { return { label: x.dsn }; });
         input.canSelectMany = true;
-        input.selectedItems = input.items;
+        input.selectedItems = newOnly ? input.items.filter(x => interestingDsn.has(x.label)) : input.items;
         input.onDidHide(() => reject(Error(cancelMessage)));
         input.onDidAccept(() => {
             const selected = new Set(input.selectedItems.map(x => x.label));
@@ -706,8 +718,9 @@ class ProgressReporter implements StageProgressReporter {
     }
 }
 
-export async function downloadDependencies(context: vscode.ExtensionContext) {
+export async function downloadDependencies(context: vscode.ExtensionContext, ...args: any[]) {
     try {
+        const newOnly = args.length === 1 && args[0] === "newOnly";
         const lastInput = getLastRunConfig(context);
         const { host, port, user, password, hostInput, securityLevel } = await gatherConnectionInfo(lastInput);
 
@@ -715,7 +728,7 @@ export async function downloadDependencies(context: vscode.ExtensionContext) {
 
         await context.globalState.update(mementoKey, { host: hostInput, user: user, jobcard: jobcardPattern });
 
-        const thingsToDownload = await filterDownloadList(gatherDownloadList(await gatherAvailableConfigs()));
+        const thingsToDownload = await filterDownloadList(gatherDownloadList(await gatherAvailableConfigs()), newOnly);
 
         const dirsWithFiles = await checkForExistingFiles(thingsToDownload);
         if (dirsWithFiles.size > 0) {
