@@ -15,3 +15,4 @@
 export const pgm_conf_file = 'pgm_conf.json';
 export const proc_grps_file = 'proc_grps.json';
 export const hlasmplugin_folder = '.hlasmplugin';
+export const ebg_folder = '.ebg';

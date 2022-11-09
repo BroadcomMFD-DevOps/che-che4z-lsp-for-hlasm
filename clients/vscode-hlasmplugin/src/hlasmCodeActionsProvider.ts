@@ -14,8 +14,7 @@
 
 import { relative } from 'path';
 import * as vscode from 'vscode';
-import { hlasmplugin_folder, pgm_conf_file, proc_grps_file } from './constants';
-import { uriExists } from './helpers';
+import { configurationExists } from './helpers';
 
 export class HLASMCodeActionsProvider implements vscode.CodeActionProvider {
     async provideCodeActions(document: vscode.TextDocument, range: vscode.Range | vscode.Selection, context: vscode.CodeActionContext, token: vscode.CancellationToken): Promise<(vscode.CodeAction | vscode.Command)[]> {
@@ -23,15 +22,13 @@ export class HLASMCodeActionsProvider implements vscode.CodeActionProvider {
         const workspace = vscode.workspace.getWorkspaceFolder(document.uri);
         if (!workspace) return null;
 
-        const procGrps = vscode.Uri.joinPath(workspace.uri, hlasmplugin_folder, proc_grps_file);
-        const pgmConf = vscode.Uri.joinPath(workspace.uri, hlasmplugin_folder, pgm_conf_file);
-        const [procGrpsExists, pgmConfExists] = await Promise.all([uriExists(procGrps), uriExists(pgmConf)]);
+        const [procGrps, pgmConf, ebgConf] = await configurationExists(workspace.uri);
 
         let suggestProcGrpsChange = false;
         let suggestPgmConfChange = false;
 
         if (context.diagnostics.some(x => x.code === 'E049')) {
-            if (procGrpsExists) {
+            if (procGrps.exists) {
                 result.push({
                     title: 'Download dependencies',
                     command: {
@@ -57,7 +54,7 @@ export class HLASMCodeActionsProvider implements vscode.CodeActionProvider {
         }
 
         if (suggestProcGrpsChange || suggestPgmConfChange) {
-            if (!procGrpsExists && !pgmConfExists) {
+            if (!procGrps.exists && !pgmConf.exists && !ebgConf.exists) {
                 suggestProcGrpsChange = false;
                 suggestPgmConfChange = false;
                 result.push({
@@ -71,13 +68,13 @@ export class HLASMCodeActionsProvider implements vscode.CodeActionProvider {
                 });
             }
             if (suggestProcGrpsChange) {
-                if (procGrpsExists)
+                if (procGrps.exists)
                     result.push({
                         title: 'Modify proc_grps.json configuration file',
                         command: {
                             title: 'Open proc_grps.json',
                             command: 'vscode.open',
-                            arguments: [procGrps]
+                            arguments: [procGrps.uri]
                         },
                         kind: vscode.CodeActionKind.QuickFix
                     });
@@ -93,17 +90,20 @@ export class HLASMCodeActionsProvider implements vscode.CodeActionProvider {
                     });
             }
             if (suggestPgmConfChange) {
-                if (pgmConfExists)
+                if (pgmConf.exists)
                     result.push({
                         title: 'Modify pgm_conf.json configuration file',
                         command: {
                             title: 'Open pgm_conf.json',
                             command: 'vscode.open',
-                            arguments: [pgmConf]
+                            arguments: [pgmConf.uri]
                         },
                         kind: vscode.CodeActionKind.QuickFix
                     });
-                else
+                else {
+                    if (ebgConf.exists) {
+                        // TODO: could we trigger B4G sync?
+                    }
                     result.push({
                         title: 'Create pgm_conf.json configuration file',
                         command: {
@@ -113,6 +113,7 @@ export class HLASMCodeActionsProvider implements vscode.CodeActionProvider {
                         },
                         kind: vscode.CodeActionKind.QuickFix
                     });
+                }
             }
         }
 

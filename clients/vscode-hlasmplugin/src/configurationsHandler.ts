@@ -15,7 +15,7 @@
 import * as vscode from 'vscode';
 import { hlasmplugin_folder, proc_grps_file, pgm_conf_file } from './constants';
 import { TextDecoder, TextEncoder } from 'util';
-import { uriExists } from './helpers';
+import { configurationExists } from './helpers';
 
 /**
  * Handles changes in configurations files.
@@ -25,11 +25,6 @@ import { uriExists } from './helpers';
 export class ConfigurationsHandler {
     // defined regex expression to match files and recognize them as HLASM
     private definedExpressions: { regex: RegExp, workspaceUri: vscode.Uri }[] = [];
-    // paths to the configurations
-    private pgmConfPath: string;
-    private ebgPath: string;
-    private procGrpsPath: string;
-    private folderPath: string;
     // whether to create warning prompts on missing configs
     shouldCheckConfigs: boolean;
 
@@ -55,16 +50,13 @@ export class ConfigurationsHandler {
         if (await ConfigurationsHandler.configFilesExist(workspace))
             return;
 
-        const procGrps = vscode.Uri.joinPath(workspace, hlasmplugin_folder, proc_grps_file);
-        const pgmConf = vscode.Uri.joinPath(workspace, hlasmplugin_folder, pgm_conf_file);
-        const ebgPath = vscode.Uri.joinPath(workspace, '.ebg');
+        const [g, p, e] = await configurationExists(workspace);
 
         const doNotShowAgain = 'Do not track';
 
-        const [g, p, e] = await Promise.all([uriExists(procGrps), uriExists(pgmConf), uriExists(ebgPath)]);
 
         // give option to create proc_grps
-        if (!g)
+        if (!g.exists)
             vscode.window.showWarningMessage('proc_grps.json not found',
                 ...['Create empty proc_grps.json', doNotShowAgain])
                 .then((selection) => {
@@ -76,7 +68,7 @@ export class ConfigurationsHandler {
                         ConfigurationsHandler.createProcTemplate(workspace).then(uri => vscode.commands.executeCommand("vscode.open", uri));
                     }
                 });
-        if (!p && !e)
+        if (!p.exists && !e.exists)
             vscode.window.showWarningMessage('pgm_conf.json not found',
                 ...['Create empty pgm_conf.json', 'Create pgm_conf.json with this file', doNotShowAgain])
                 .then((selection) => {
@@ -198,10 +190,8 @@ export class ConfigurationsHandler {
      * Checks if the configs are there and stores their complete paths
      */
     public static async configFilesExist(workspace: vscode.Uri): Promise<boolean> {
-        const procGrps = vscode.Uri.joinPath(workspace, hlasmplugin_folder, proc_grps_file);
-        const pgmConf = vscode.Uri.joinPath(workspace, hlasmplugin_folder, pgm_conf_file);
-        const [g, p] = await Promise.all([uriExists(procGrps), uriExists(pgmConf)]);
-        return g && p;
+        const [g, p, e] = await configurationExists(workspace);
+        return g.exists && p.exists;
     }
     public static createCompleteConfig(workspace: vscode.Uri, program: string, group: string) {
         if (program)
