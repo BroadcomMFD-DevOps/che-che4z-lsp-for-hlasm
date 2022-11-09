@@ -29,6 +29,7 @@ import { downloadDependencies } from './hlasmDownloadCommands';
 import { blockCommentCommand, CommentOption, lineCommentCommand } from './commentEditorCommands';
 import { HLASMCodeActionsProvider } from './hlasmCodeActionsProvider';
 import { hlasmplugin_folder } from './constants';
+import { ConfigurationsHandler } from './configurationsHandler';
 
 const offset = 71;
 const continueColumn = 15;
@@ -201,6 +202,7 @@ async function registerToContext(context: vscode.ExtensionContext, client: vscod
     context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(e => handler.onDidChangeConfiguration(e)));
     context.subscriptions.push(vscode.workspace.onDidSaveTextDocument(e => handler.onDidSaveTextDocument(e)));
     context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(e => handler.onDidChangeActiveTextEditor(e)));
+    context.subscriptions.push(vscode.workspace.onDidChangeWorkspaceFolders(e => handler.onDidChangeWorkspaceFolders(e)));
 
     // register filename retrieve functions for debug sessions
     context.subscriptions.push(vscode.commands.registerCommand('extension.hlasm-plugin.getProgramName', () => getProgramName()));
@@ -209,6 +211,8 @@ async function registerToContext(context: vscode.ExtensionContext, client: vscod
     context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider("hlasm", new HLASMVirtualFileContentProvider(client)));
 
     context.subscriptions.push(vscode.commands.registerCommand("extension.hlasm-plugin.downloadDependencies", (...args: any[]) => downloadDependencies(context, ...args)));
+
+    context.subscriptions.push(vscode.commands.registerCommand('extension.hlasm-plugin.createCompleteConfig', ConfigurationsHandler.createCompleteConfig));
 
     return handler;
 }
