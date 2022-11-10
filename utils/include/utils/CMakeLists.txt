@@ -15,6 +15,7 @@ target_sources(hlasm_utils PUBLIC
 	encoding.h
 	filesystem_content_loader.h
 	general_hashers.h
+	levenshtein_distance.h
 	list_directory_rc.h
 	path.h
 	path_conversions.h
