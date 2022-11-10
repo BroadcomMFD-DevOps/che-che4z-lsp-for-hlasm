@@ -30,7 +30,7 @@ export class HLASMCodeActionsProvider implements vscode.CodeActionProvider {
         if (context.diagnostics.some(x => x.code === 'E049')) {
             if (procGrps.exists) {
                 result.push({
-                    title: 'Download dependencies',
+                    title: 'Download missing dependencies',
                     command: {
                         title: 'Download dependencies',
                         command: 'extension.hlasm-plugin.downloadDependencies',
