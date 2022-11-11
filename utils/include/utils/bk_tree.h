@@ -22,6 +22,7 @@
 #include <iterator>
 #include <map>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 namespace hlasm_plugin::utils {
@@ -63,7 +64,7 @@ public:
                 auto [it, _] = m_nodes.try_emplace(key, std::forward<U>(value));
                 return { &it->second, true };
             }
-            const auto dist = m_dist(node->second, value);
+            const auto dist = m_dist(std::as_const(node->second), std::as_const(value));
             if (dist == 0)
                 return { &node->second, false };
 
@@ -86,7 +87,7 @@ public:
             const auto it = search.back();
             search.pop_back();
 
-            const auto dist = m_dist(it->second, value);
+            const auto dist = m_dist(it->second, std::as_const(value));
             if (dist < result.second)
                 result = { &it->second, dist };
 
