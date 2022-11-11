@@ -51,12 +51,12 @@ TEST_P(levenshtein_distance_fixture, verify)
     const auto& [l, r, result] = GetParam();
     EXPECT_EQ(levenshtein_distance(l, r), result);
     EXPECT_EQ(levenshtein_distance(r, l), result);
-    EXPECT_EQ(levenshtein_distance<16>(l, r), result);
-    EXPECT_EQ(levenshtein_distance<16>(r, l), result);
+    EXPECT_EQ(levenshtein_distance_n<16>(l, r), result);
+    EXPECT_EQ(levenshtein_distance_n<16>(r, l), result);
 }
 
 TEST(levenshtein_distance, mixed_types)
 {
     EXPECT_EQ(levenshtein_distance(std::span("abc"), "abc"), 0);
-    EXPECT_EQ(levenshtein_distance<4>(std::span("abc"), "abc"), 0);
+    EXPECT_EQ(levenshtein_distance_n<4>(std::span("abc"), "abc"), 0);
 }
