@@ -19,7 +19,6 @@
 #include <array>
 #include <cassert>
 #include <compare>
-#include <deque>
 #include <iterator>
 #include <map>
 #include <type_traits>
@@ -27,177 +26,85 @@
 
 namespace hlasm_plugin::utils {
 
-template<typename T,
-    class Distance,
-    class Nodes = std::vector<T>,
-    class Edges = std::map<std::pair<size_t, size_t>, size_t>>
+template<typename T, class Distance>
 class bk_tree
 {
-    Nodes m_nodes;
-    Edges m_edges;
+    using map = std::map<std::pair<const T*, size_t>, T>;
+    map m_nodes;
     [[no_unique_address]] Distance m_dist;
 
-public:
-    struct iterator
-    {
-        friend class bk_tree;
+    static constexpr auto root_key = std::pair<const T*, size_t>(nullptr, (size_t)-1);
 
-        const bk_tree* m_tree = nullptr;
-        size_t m_idx = 0;
-
-        iterator(const bk_tree& tree, size_t idx)
-            : m_tree(&tree)
-            , m_idx(idx) {};
-
-    public:
-        iterator() = default;
-
-        auto operator<=>(const iterator& o) const noexcept
-        {
-            assert(m_tree == o.m_tree);
-            return m_idx <=> o.m_idx;
-        }
-        bool operator==(const iterator& o) const noexcept
-        {
-            assert(m_tree == o.m_tree);
-            return m_idx == o.m_idx;
-        }
-
-        iterator& operator++()
-        {
-            ++m_idx;
-            return *this;
-        }
-
-        iterator operator++(int)
-        {
-            auto ret = *this;
-            ++m_idx;
-            return ret;
-        }
-
-        iterator& operator--()
-        {
-            --m_idx;
-            return *this;
-        }
-
-        iterator operator--(int)
-        {
-            auto ret = *this;
-            --m_idx;
-            return ret;
-        }
-
-        iterator& operator+=(size_t off)
-        {
-            m_idx += off;
-            return *this;
-        }
-
-        iterator& operator-=(size_t off)
-        {
-            m_idx -= off;
-            return *this;
-        }
-
-        auto* operator->() const noexcept
-        {
-            assert(m_tree);
-            return &m_tree->m_nodes[m_idx];
-        }
-
-        auto& operator*() const noexcept
-        {
-            assert(m_tree);
-            return m_tree->m_nodes[m_idx];
-        }
-
-        auto& operator[](size_t n) const noexcept
-        {
-            assert(m_tree);
-            return m_tree->m_nodes[m_idx + n];
-        }
-
-        std::ptrdiff_t operator-(const iterator& o)
-        {
-            assert(m_tree == o.m_tree);
-            return m_idx - o.m_idx;
-        }
-
-        using iterator_category = std::iterator_traits<typename Nodes::iterator>::iterator_category;
+    static constexpr auto add = [](size_t a, size_t b) {
+        size_t res = a + b;
+        if (res < a)
+            return (size_t)-1;
+        return res;
     };
 
+public:
     bk_tree() requires(std::is_default_constructible_v<Distance>) = default;
     bk_tree(Distance d)
         : m_dist(std::move(d))
     {}
 
-    auto begin() const noexcept { return iterator(*this, 0); }
-    auto end() const noexcept { return iterator(*this, m_nodes.size()); }
     auto size() const noexcept { return m_nodes.size(); }
 
     template<typename U>
-    std::pair<iterator, bool> insert(U&& value)
+    std::pair<const T*, bool> insert(U&& value)
     {
-        if (m_nodes.empty())
+        auto key = root_key;
+
+        while (true)
         {
-            m_nodes.emplace_back(std::forward<U>(value));
-            return { iterator(*this, 0), true };
-        }
-
-        for (size_t it = 0;;)
-        {
-            const auto dist = m_dist(m_nodes[it], value);
-            if (dist == 0)
-                return { iterator(*this, it), false };
-
-            auto edge = m_edges.find(std::make_pair(it, dist));
-
-            if (edge == m_edges.end())
+            auto node = m_nodes.find(key);
+            if (node == m_nodes.end())
             {
-                const auto next_id = m_nodes.size();
-                m_nodes.emplace_back(std::forward<U>(value));
-                m_edges.try_emplace(std::make_pair(it, dist), next_id);
-
-                return { iterator(*this, next_id), true };
+                auto [it, _] = m_nodes.try_emplace(key, std::forward<U>(value));
+                return { &it->second, true };
             }
+            const auto dist = m_dist(node->second, value);
+            if (dist == 0)
+                return { &node->second, false };
 
-            it = edge->second;
+            key = { &node->second, dist };
         }
     }
 
-    template<size_t extra = 0, typename U>
+    template<typename U>
     auto find(U&& value) const
     {
-        auto result = std::make_pair(end(), (size_t)-1);
+        auto result = root_key;
 
         if (m_nodes.empty())
             return result;
 
-        std::deque<size_t> search(1, 0);
+        std::vector<typename map::const_iterator> search(1, m_nodes.find(root_key));
 
         while (!search.empty())
         {
-            const auto it = search.front();
-            search.pop_front();
+            const auto it = search.back();
+            search.pop_back();
 
-            const auto dist = m_dist(m_nodes[it], value);
+            const auto dist = m_dist(it->second, value);
             if (dist < result.second)
-                result = { iterator(*this, it), dist };
+                result = { &it->second, dist };
 
             if (dist == 0)
                 break;
 
-            auto low = m_edges.lower_bound(std::make_pair(it, 0));
-            auto high = m_edges.upper_bound(std::make_pair(it, (size_t)-1));
+            // | e->first.second - dist | < result.second
+            // -result.second < e->first.second - dist < result.second
+            // dist - result.second < e->first.second < dist + result.second
+            // dist - result.second + 1 <= e->first.second <= dist - 1 + result.second
+            //
+            // truth: dist >= result.second > 0
+
+            auto low = m_nodes.lower_bound(std::make_pair(&it->second, dist - result.second + 1));
+            auto high = m_nodes.upper_bound(std::make_pair(&it->second, add(dist - 1, result.second)));
 
             for (auto e = low; e != high; ++e)
-            {
-                const auto abs_diff = e->first.second > dist ? e->first.second - dist : dist - e->first.second;
-                if (abs_diff < result.second)
-                    search.push_back(e->second);
-            }
+                search.push_back(e);
         }
 
         return result;
