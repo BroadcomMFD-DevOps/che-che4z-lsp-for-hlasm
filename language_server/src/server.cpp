@@ -64,6 +64,10 @@ void server::call_method(const std::string& method, const json& id, const json& 
             send_telemetry_error("call_method/json_error");
         }
     }
+    else if (method.starts_with("$/"))
+    {
+        // ignore
+    }
     else
     {
         std::ostringstream ss;

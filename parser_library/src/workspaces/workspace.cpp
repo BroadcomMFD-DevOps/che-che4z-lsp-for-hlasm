@@ -336,6 +336,15 @@ const processor_group& workspace::get_proc_grp_by_program(const utils::resource:
 
 const processor_group& workspace::get_proc_grp(const proc_grp_id& id) const { return m_configuration.get_proc_grp(id); }
 
+std::string workspace::make_opcode_suggestion(const utils::resource::resource_location& file, std::string_view opcode)
+{
+    const auto* pgm = m_configuration.get_program(file);
+    if (!pgm)
+        return {};
+    auto& proc_grp = m_configuration.get_proc_grp_by_program(*pgm);
+    return proc_grp.suggest(opcode).first;
+}
+
 void workspace::filter_and_close_dependencies_(
     const std::set<utils::resource::resource_location>& dependencies, processor_file_ptr file)
 {

@@ -54,6 +54,36 @@ processor_group::processor_group(const std::string& pg_name,
 
 void processor_group::update_asm_options(asm_option& opts) const { m_asm_opts.apply(opts); }
 
+void processor_group::generate_suggestions(bool force)
+{
+    if (m_suggestions.has_value())
+    {
+        if (!force)
+            return;
+    }
+    else
+        m_suggestions.emplace();
+
+    for (const auto& l : m_libs)
+    {
+        for (auto&& f : l->list_files())
+        {
+            if (f.size() > suggestion_limit)
+                continue;
+            m_suggestions->insert(std::move(f));
+        }
+    }
+}
+
+std::pair<std::string, size_t> processor_group::suggest(std::string_view s)
+{
+    generate_suggestions(false);
+    auto [suggestion, dist] = m_suggestions->find(s);
+    if (suggestion)
+        return std::pair<std::string, size_t>(*suggestion, dist);
+    return std::pair<std::string, size_t>(std::string(), (size_t)-1);
+}
+
 void processor_group::collect_diags() const
 {
     for (auto&& lib : m_libs)

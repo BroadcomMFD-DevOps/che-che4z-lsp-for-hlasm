@@ -128,6 +128,8 @@ public:
 
     virtual continuous_sequence<char> get_virtual_file_content(unsigned long long id) const;
 
+    virtual continuous_sequence<char> make_opcode_suggestion(const char* document_uri, const char* opcode) const;
+
 private:
     impl* impl_;
 };

@@ -14,9 +14,23 @@
 
 import { relative } from 'path';
 import * as vscode from 'vscode';
+import * as vscodelc from 'vscode-languageclient/node';
 import { configurationExists } from './helpers';
 
+interface OpcodeSuggestionResponse {
+    uri: string;
+    suggestions: {
+        [key: string]: string
+    };
+};
+
+function unique(a: string[]) {
+    return [...new Set(a)];
+}
+
 export class HLASMCodeActionsProvider implements vscode.CodeActionProvider {
+    constructor(private client: vscodelc.BaseLanguageClient) { }
+
     async provideCodeActions(document: vscode.TextDocument, range: vscode.Range | vscode.Selection, context: vscode.CodeActionContext, token: vscode.CancellationToken): Promise<(vscode.CodeAction | vscode.Command)[]> {
         const result: vscode.CodeAction[] = [];
         const workspace = vscode.workspace.getWorkspaceFolder(document.uri);
@@ -27,8 +41,29 @@ export class HLASMCodeActionsProvider implements vscode.CodeActionProvider {
         let suggestProcGrpsChange = false;
         let suggestPgmConfChange = false;
 
-        if (context.diagnostics.some(x => x.code === 'E049')) {
+        const E049 = context.diagnostics.filter(x => x.code === 'E049');
+
+        const opcodeTasks = E049.map(diag => { return { diag, opcode: document.getText(diag.range).toUpperCase() }; });
+
+        if (E049.length > 0) {
             if (procGrps.exists) {
+                await this.client.onReady();
+                const suggestionsResponse = await this.client.sendRequest<OpcodeSuggestionResponse>("textDocument/$/opcode_suggestion", { textDocument: { uri: document.uri.toString() }, opcodes: unique(opcodeTasks.map(x => x.opcode)) });
+
+                for (const { diag, opcode } of opcodeTasks) {
+                    if (opcode in suggestionsResponse.suggestions) {
+                        const subst = suggestionsResponse.suggestions[opcode];
+                        const edit = new vscode.WorkspaceEdit();
+                        edit.replace(document.uri, diag.range, subst)
+                        result.push({
+                            title: `Did you mean '${subst}'?`,
+                            diagnostics: [diag],
+                            kind: vscode.CodeActionKind.QuickFix,
+                            edit: edit
+                        });
+                    }
+                }
+
                 result.push({
                     title: 'Download missing dependencies',
                     command: {
@@ -49,7 +84,7 @@ export class HLASMCodeActionsProvider implements vscode.CodeActionProvider {
             }
             suggestProcGrpsChange = true;
         }
-        if (context.diagnostics.some(x => x.code === 'SUP' || x.code === 'E049')) {
+        if (E049.length > 0 || context.diagnostics.some(x => x.code === 'SUP')) {
             suggestPgmConfChange = true;
         }
 
