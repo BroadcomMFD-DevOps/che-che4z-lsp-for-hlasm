@@ -62,6 +62,7 @@ void processor_group::generate_suggestions(bool force)
     {
         if (!force)
             return;
+        m_suggestions->clear();
     }
     else
         m_suggestions.emplace();
