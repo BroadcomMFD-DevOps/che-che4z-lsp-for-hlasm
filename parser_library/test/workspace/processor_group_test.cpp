@@ -217,7 +217,6 @@ TEST(processor_group, asm_options_machine_invalid)
     }
 }
 
-
 TEST(processor_group, opcode_suggestions)
 {
     struct library_mock final : library, diagnosable_impl

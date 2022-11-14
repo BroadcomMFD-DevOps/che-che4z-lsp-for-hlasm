@@ -12,9 +12,6 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
-#ifndef HLASMPLUGIN_LANGUAGESERVER_TEST_FEATURE_LANGUAGE_FEATURES_TEST_H
-#define HLASMPLUGIN_LANGUAGESERVER_TEST_FEATURE_LANGUAGE_FEATURES_TEST_H
-
 #include "gmock/gmock.h"
 
 #include "../response_provider_mock.h"
@@ -306,4 +303,17 @@ TEST_P(convert_tokens_fixture, test)
     EXPECT_EQ(result, GetParam().result);
 }
 
-#endif
+TEST(language_features, opcode_suggestion)
+{
+    test::ws_mngr_mock ws_mngr;
+    NiceMock<response_provider_mock> response_mock;
+    lsp::feature_language_features f(ws_mngr, response_mock);
+    std::map<std::string, method> notifs;
+    f.register_methods(notifs);
+
+    auto params1 =
+        nlohmann::json::parse(R"({"textDocument":{"uri":")" + uri + R"("},"opcodes":["LHIXXX"],"extended":false})");
+
+    EXPECT_CALL(ws_mngr, make_opcode_suggestion(StrEq(uri), StrEq("LHIXXX"), false));
+    notifs["textDocument/$/opcode_suggestion"].handler("", params1);
+}
