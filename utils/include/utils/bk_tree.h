@@ -101,8 +101,8 @@ public:
             if (dist == 0)
                 break;
 
-            auto low = m_nodes.lower_bound(std::make_pair(&it->second, dist - best.second + 1));
-            auto high = m_nodes.upper_bound(std::make_pair(&it->second, add(dist - 1, best.second)));
+            auto low = m_nodes.lower_bound(std::make_pair(&it->second, dist - best.second));
+            auto high = m_nodes.upper_bound(std::make_pair(&it->second, add(dist, best.second)));
 
             if (low != high)
                 search.emplace_back(low, high);
