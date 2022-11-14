@@ -87,12 +87,9 @@ public:
         while (!search.empty())
         {
             auto& it_pair = search.back();
-            if (it_pair.first == it_pair.second)
-            {
-                search.pop_back();
-                continue;
-            }
             const auto it = it_pair.first++;
+            if (it_pair.first == it_pair.second)
+                search.pop_back();
 
             const auto dist = m_dist(it->second, std::as_const(value));
             if (dist <= best.second)
