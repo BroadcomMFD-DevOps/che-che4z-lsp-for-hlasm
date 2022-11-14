@@ -17,7 +17,10 @@
 #include <filesystem>
 #include <memory>
 
+#include "context/instruction.h"
 #include "file_manager.h"
+#include "utils/bk_tree.h"
+#include "utils/levenshtein_distance.h"
 #include "utils/path.h"
 
 namespace hlasm_plugin::parser_library::workspaces {
@@ -336,14 +339,100 @@ const processor_group& workspace::get_proc_grp_by_program(const utils::resource:
 
 const processor_group& workspace::get_proc_grp(const proc_grp_id& id) const { return m_configuration.get_proc_grp(id); }
 
+namespace {
+auto generate_instruction_bk_tree(instruction_set_version version)
+{
+    utils::bk_tree<std::string_view, utils::levenshtein_distance_t<16>> result;
+
+    for (const auto& i : context::instruction::all_assembler_instructions())
+        result.insert(i.name());
+    for (const auto& i : context::instruction::all_ca_instructions())
+        result.insert(i.name());
+    for (const auto& i : context::instruction::all_machine_instructions())
+        if (instruction_available(i.instr_set_affiliation(), version))
+            result.insert(i.name());
+    for (const auto& i : context::instruction::all_mnemonic_codes())
+        if (instruction_available(i.instr_set_affiliation(), version))
+            result.insert(i.name());
+
+    return result;
+};
+
+template<instruction_set_version instr_set>
+const utils::bk_tree<std::string_view, utils::levenshtein_distance_t<16>>& get_instruction_bk_tree()
+{
+    static const auto tree = generate_instruction_bk_tree(instr_set);
+
+    return tree;
+}
+
+constexpr const utils::bk_tree<std::string_view, utils::levenshtein_distance_t<16>>& (*instruction_bk_trees[])() = {
+    nullptr,
+    &get_instruction_bk_tree<instruction_set_version::ZOP>,
+    &get_instruction_bk_tree<instruction_set_version::YOP>,
+    &get_instruction_bk_tree<instruction_set_version::Z9>,
+    &get_instruction_bk_tree<instruction_set_version::Z10>,
+    &get_instruction_bk_tree<instruction_set_version::Z11>,
+    &get_instruction_bk_tree<instruction_set_version::Z12>,
+    &get_instruction_bk_tree<instruction_set_version::Z13>,
+    &get_instruction_bk_tree<instruction_set_version::Z14>,
+    &get_instruction_bk_tree<instruction_set_version::Z15>,
+    &get_instruction_bk_tree<instruction_set_version::Z16>,
+    &get_instruction_bk_tree<instruction_set_version::ESA>,
+    &get_instruction_bk_tree<instruction_set_version::XA>,
+    &get_instruction_bk_tree<instruction_set_version::_370>,
+    &get_instruction_bk_tree<instruction_set_version::DOS>,
+    &get_instruction_bk_tree<instruction_set_version::UNI>,
+};
+
+std::vector<std::pair<std::string, size_t>> generate_instruction_suggestions(
+    std::string_view opcode, instruction_set_version set)
+{
+    std::vector<std::pair<std::string, size_t>> result;
+
+    const auto iset_id = static_cast<int>(set);
+    assert(0 < iset_id && iset_id <= static_cast<int>(instruction_set_version::UNI));
+
+    auto instr_suggestion = instruction_bk_trees[iset_id]().find<2>(opcode, 3);
+
+    for (const auto& s : instr_suggestion)
+    {
+        if (!s.first)
+            break;
+        if (s.second == 0)
+            break;
+        result.emplace_back(*s.first, s.second);
+    }
+
+    return result;
+}
+
+} // namespace
+
 std::vector<std::pair<std::string, size_t>> workspace::make_opcode_suggestion(
     const utils::resource::resource_location& file, std::string_view opcode, bool extended)
 {
-    const auto* pgm = m_configuration.get_program(file);
-    if (!pgm)
-        return {};
-    auto& proc_grp = m_configuration.get_proc_grp_by_program(*pgm);
-    return proc_grp.suggest(opcode, extended);
+    std::vector<std::pair<std::string, size_t>> result;
+
+    asm_option opts;
+    if (const auto* pgm = m_configuration.get_program(file); pgm)
+    {
+        auto& proc_grp = m_configuration.get_proc_grp_by_program(*pgm);
+        proc_grp.update_asm_options(opts);
+        pgm->asm_opts.apply(opts);
+
+        result = proc_grp.suggest(opcode, extended);
+    }
+    else
+    {
+        implicit_proc_grp.update_asm_options(opts);
+    }
+
+    for (auto&& s : generate_instruction_suggestions(opcode, opts.instr_set))
+        result.emplace_back(std::move(s));
+    std::stable_sort(result.begin(), result.end(), [](const auto& l, const auto& r) { return l.second < r.second; });
+
+    return result;
 }
 
 void workspace::filter_and_close_dependencies_(
