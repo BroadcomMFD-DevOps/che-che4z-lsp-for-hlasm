@@ -216,3 +216,33 @@ TEST(processor_group, asm_options_machine_invalid)
             << "Input: " << input << " Expected: " << int(expected);
     }
 }
+
+
+TEST(processor_group, opcode_suggestions)
+{
+    struct library_mock final : library, diagnosable_impl
+    {
+        std::shared_ptr<processor> find_file(const std::string&) override { return nullptr; }
+        void refresh() override {}
+        std::vector<std::string> list_files() override { return { "MAC1", "MAC2", "LONGMAC" }; }
+
+        // diag iface
+        void collect_diags() const override {}
+    };
+    processor_group grp("", {}, {});
+    grp.add_library(std::make_unique<library_mock>());
+
+    auto mac_false = grp.suggest("MAC", false);
+    std::vector<std::pair<std::string, size_t>> expected_mac_false { { "MAC1", 1 }, { "MAC2", 1 } };
+
+    EXPECT_TRUE(
+        std::is_permutation(mac_false.begin(), mac_false.end(), expected_mac_false.begin(), expected_mac_false.end()));
+
+    auto mac_true = grp.suggest("$LOGMAC", true);
+    std::vector<std::pair<std::string, size_t>> expected_mac_true { { "LONGMAC", 2 } };
+    EXPECT_TRUE(
+        std::is_permutation(mac_true.begin(), mac_true.end(), expected_mac_true.begin(), expected_mac_true.end()));
+
+    EXPECT_TRUE(grp.suggest("MAC1", false).empty());
+    EXPECT_TRUE(grp.suggest("MAC1", true).empty());
+}
