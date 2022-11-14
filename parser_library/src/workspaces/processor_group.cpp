@@ -96,12 +96,12 @@ std::vector<std::pair<std::string, size_t>> processor_group::suggest(std::string
 
     if (!extended)
     {
-        auto suggestions = m_suggestions->find<3>(opcode, 3);
+        auto suggestions = m_suggestions->find<3>(opcode, 3); // dist = 3 <=> 1 character swap + 1 typo
         return process(suggestions);
     }
     else
     {
-        auto suggestions = m_suggestions->find<4>(opcode, 10);
+        auto suggestions = m_suggestions->find<10>(opcode, 4); // one extra typo
         return process(suggestions);
     }
 }
