@@ -20,11 +20,20 @@
 
 using namespace hlasm_plugin::utils;
 
+template<typename T>
+struct abs_value
+{
+    auto operator()(T a, T b) const noexcept { return (size_t)std::abs(a - b); }
+};
+
+struct lv_dist_sv
+{
+    auto operator()(std::string_view l, std::string_view r) const noexcept { return levenshtein_distance(l, r); }
+};
 
 TEST(bk_tree, simple_insert)
 {
-    const auto dist = [](long long a, long long b) { return (size_t)std::abs(a - b); };
-    bk_tree<unsigned, decltype(dist)> tree;
+    bk_tree<unsigned, abs_value<long long>> tree;
 
     EXPECT_EQ(tree.insert(5).second, true);
     EXPECT_EQ(tree.insert(10).second, true);
@@ -35,8 +44,7 @@ TEST(bk_tree, simple_insert)
 
 TEST(bk_tree, repeated_insert)
 {
-    const auto dist = [](long long a, long long b) { return (size_t)std::abs(a - b); };
-    bk_tree<unsigned, decltype(dist)> tree;
+    bk_tree<unsigned, abs_value<long long>> tree;
 
     tree.insert(5);
     tree.insert(10);
@@ -50,11 +58,9 @@ TEST(bk_tree, repeated_insert)
 }
 
 
-
 TEST(bk_tree, direct_find)
 {
-    const auto dist = [](long long a, long long b) { return (size_t)std::abs(a - b); };
-    bk_tree<unsigned, decltype(dist)> tree;
+    bk_tree<unsigned, abs_value<long long>> tree;
 
     tree.insert(5);
     tree.insert(10);
@@ -71,8 +77,7 @@ TEST(bk_tree, direct_find)
 
 TEST(bk_tree, approx_find)
 {
-    const auto dist = [](long long a, long long b) { return (size_t)std::abs(a - b); };
-    bk_tree<unsigned, decltype(dist)> tree;
+    bk_tree<unsigned, abs_value<long long>> tree;
 
     tree.insert(5);
     tree.insert(10);
@@ -106,8 +111,7 @@ TEST(bk_tree, approx_find)
 
 TEST(bk_tree, strings)
 {
-    constexpr auto sv_dist = [](std::string_view l, std::string_view r) { return levenshtein_distance(l, r); };
-    bk_tree<std::string, decltype(sv_dist)> tree;
+    bk_tree<std::string, lv_dist_sv> tree;
 
     tree.insert("lorem");
     tree.insert("ipsum");
@@ -140,8 +144,7 @@ TEST(bk_tree, strings)
 
 TEST(bk_tree, max_dist)
 {
-    constexpr auto sv_dist = [](std::string_view l, std::string_view r) { return levenshtein_distance(l, r); };
-    bk_tree<std::string, decltype(sv_dist)> tree;
+    bk_tree<std::string, lv_dist_sv> tree;
 
     tree.insert("lorem");
     tree.insert("ipsum");
@@ -153,8 +156,7 @@ TEST(bk_tree, max_dist)
 
 TEST(bk_tree, multiple_results)
 {
-    constexpr auto sv_dist = [](std::string_view l, std::string_view r) { return levenshtein_distance(l, r); };
-    bk_tree<std::string, decltype(sv_dist)> tree;
+    bk_tree<std::string, lv_dist_sv> tree;
 
     tree.insert("abc1");
     tree.insert("abc2");
@@ -173,8 +175,7 @@ TEST(bk_tree, multiple_results)
 
 TEST(bk_tree, multiple_results_no_limit)
 {
-    constexpr auto sv_dist = [](std::string_view l, std::string_view r) { return levenshtein_distance(l, r); };
-    bk_tree<std::string, decltype(sv_dist)> tree;
+    bk_tree<std::string, lv_dist_sv> tree;
 
     tree.insert("abc1");
     tree.insert("abc2");

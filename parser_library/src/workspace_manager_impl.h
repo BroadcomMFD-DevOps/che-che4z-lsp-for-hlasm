@@ -275,7 +275,7 @@ public:
         {
             if (s.first.empty())
                 break;
-            res.emplace_back(make_continuous_sequence(std::move(s.first)), s.second);
+            res.emplace_back(opcode_suggestion { make_continuous_sequence(std::move(s.first)), s.second });
         }
 
         return make_continuous_sequence(std::move(res));
