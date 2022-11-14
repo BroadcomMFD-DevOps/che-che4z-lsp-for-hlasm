@@ -484,7 +484,7 @@ void feature_language_features::opcode_suggestion(const json& id, const json& pa
                 for (const auto& s : opcode_suggestions)
                 {
                     ar.push_back(nlohmann::json {
-                        { "opcode", std::string_view(s.opcode.begin(), s.opcode.end()) },
+                        { "opcode", std::string_view(s.opcode.data(), s.opcode.size()) },
                         { "distance", s.distance },
                     });
                 }
