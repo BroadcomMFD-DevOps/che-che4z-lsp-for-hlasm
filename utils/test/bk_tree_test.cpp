@@ -137,3 +137,56 @@ TEST(bk_tree, strings)
     EXPECT_EQ(*tree.find("ett").first, "et");
     EXPECT_EQ(*tree.find("connector").first, "consectetur");
 }
+
+TEST(bk_tree, max_dist)
+{
+    constexpr auto sv_dist = [](std::string_view l, std::string_view r) { return levenshtein_distance(l, r); };
+    bk_tree<std::string, decltype(sv_dist)> tree;
+
+    tree.insert("lorem");
+    tree.insert("ipsum");
+    tree.insert("dolor");
+
+    EXPECT_EQ(tree.find("", 1).first, nullptr);
+    EXPECT_NE(tree.find("loram", 1).first, nullptr);
+}
+
+TEST(bk_tree, multiple_results)
+{
+    constexpr auto sv_dist = [](std::string_view l, std::string_view r) { return levenshtein_distance(l, r); };
+    bk_tree<std::string, decltype(sv_dist)> tree;
+
+    tree.insert("abc1");
+    tree.insert("abc2");
+    tree.insert("abc3");
+    tree.insert("abcdd");
+
+    auto r = tree.find<3>("abc", 1);
+
+    ASSERT_TRUE(std::all_of(r.begin(), r.end(), [](const auto& v) { return v.first != nullptr; }));
+    std::vector<std::string> result;
+    std::transform(r.begin(), r.end(), std::back_inserter(result), [](const auto& v) { return *v.first; });
+    const std::string expected[] { "abc1", "abc2", "abc3" };
+
+    EXPECT_TRUE(std::is_permutation(result.begin(), result.end(), std::begin(expected), std::end(expected)));
+}
+
+TEST(bk_tree, multiple_results_no_limit)
+{
+    constexpr auto sv_dist = [](std::string_view l, std::string_view r) { return levenshtein_distance(l, r); };
+    bk_tree<std::string, decltype(sv_dist)> tree;
+
+    tree.insert("abc1");
+    tree.insert("abc2");
+    tree.insert("abc3");
+    tree.insert("abcdd");
+
+    auto r = tree.find<3>("abc");
+
+    ASSERT_TRUE(std::all_of(r.begin(), r.end(), [](const auto& v) { return v.first != nullptr; }));
+    std::vector<std::string> result;
+    std::transform(r.begin(), r.end(), std::back_inserter(result), [](const auto& v) { return *v.first; });
+    const std::string expected[] { "abc1", "abc2", "abc3" };
+
+    EXPECT_TRUE(std::is_permutation(result.begin(), result.end(), std::begin(expected), std::end(expected)));
+}
