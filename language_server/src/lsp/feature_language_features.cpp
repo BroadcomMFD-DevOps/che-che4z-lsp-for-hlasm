@@ -466,6 +466,10 @@ void feature_language_features::opcode_suggestion(const json& id, const json& pa
 
     auto suggestions = json::object();
 
+    bool extended = false;
+    if (auto e = params.find("extended"); e != params.end() && e->is_boolean())
+        extended = e->get<bool>();
+
     if (auto opcodes = params.find("opcodes"); opcodes != params.end() && opcodes->is_array())
     {
         for (const auto& opcode : *opcodes)
@@ -473,10 +477,18 @@ void feature_language_features::opcode_suggestion(const json& id, const json& pa
             if (!opcode.is_string())
                 continue;
             auto op = opcode.get<std::string>();
-            auto suggestion = ws_mngr_.make_opcode_suggestion(document_uri.c_str(), op.c_str());
-            std::string_view suggestion_sv(suggestion.begin(), suggestion.end());
-            if (!suggestion_sv.empty() && op != suggestion_sv)
-                suggestions[op] = suggestion_sv;
+            auto opcode_suggestions = ws_mngr_.make_opcode_suggestion(document_uri.c_str(), op.c_str(), extended);
+            if (opcode_suggestions.size())
+            {
+                auto& ar = suggestions[op] = json::array();
+                for (const auto& s : opcode_suggestions)
+                {
+                    ar.push_back(nlohmann::json {
+                        { "opcode", std::string_view(s.opcode.begin(), s.opcode.end()) },
+                        { "distance", s.distance },
+                    });
+                }
+            }
         }
     }
 

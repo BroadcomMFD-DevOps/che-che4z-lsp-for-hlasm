@@ -52,7 +52,7 @@ public:
 
     void generate_suggestions(bool force = true);
 
-    std::pair<std::string, size_t> suggest(std::string_view s);
+    std::vector<std::pair<std::string, size_t>> suggest(std::string_view s, bool extended);
 
 private:
     std::vector<std::unique_ptr<library>> m_libs;

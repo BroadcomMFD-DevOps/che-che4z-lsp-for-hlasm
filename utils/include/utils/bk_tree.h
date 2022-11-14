@@ -73,43 +73,48 @@ public:
         }
     }
 
-    template<typename U>
-    auto find(U&& value) const
+    template<size_t result_size = 0, typename U>
+    auto find(U&& value, size_t max_dist = (size_t)-1) const
     {
-        auto result = root_key;
+        std::array<std::pair<const T*, size_t>, result_size + !result_size> result;
+        std::fill(result.begin(), result.end(), std::pair<const T*, size_t>(nullptr, max_dist));
+        auto& best = result.front();
 
-        if (m_nodes.empty())
-            return result;
-
-        std::vector<typename map::const_iterator> search(1, m_nodes.find(root_key));
+        std::vector<std::pair<typename map::const_iterator, typename map::const_iterator>> search;
+        if (auto root = m_nodes.find(root_key); root != m_nodes.end())
+            search.emplace_back(root, std::next(root));
 
         while (!search.empty())
         {
-            const auto it = search.back();
-            search.pop_back();
+            auto& it_pair = search.back();
+            if (it_pair.first == it_pair.second)
+            {
+                search.pop_back();
+                continue;
+            }
+            const auto it = it_pair.first++;
 
             const auto dist = m_dist(it->second, std::as_const(value));
-            if (dist < result.second)
-                result = { &it->second, dist };
+            if (dist <= best.second)
+            {
+                std::shift_right(result.begin(), result.end(), 1);
+                best = { &it->second, dist };
+            }
 
             if (dist == 0)
                 break;
 
-            // | e->first.second - dist | < result.second
-            // -result.second < e->first.second - dist < result.second
-            // dist - result.second < e->first.second < dist + result.second
-            // dist - result.second + 1 <= e->first.second <= dist - 1 + result.second
-            //
-            // truth: dist >= result.second > 0
+            auto low = m_nodes.lower_bound(std::make_pair(&it->second, dist - best.second + 1));
+            auto high = m_nodes.upper_bound(std::make_pair(&it->second, add(dist - 1, best.second)));
 
-            auto low = m_nodes.lower_bound(std::make_pair(&it->second, dist - result.second + 1));
-            auto high = m_nodes.upper_bound(std::make_pair(&it->second, add(dist - 1, result.second)));
-
-            for (auto e = low; e != high; ++e)
-                search.push_back(e);
+            if (low != high)
+                search.emplace_back(low, high);
         }
 
-        return result;
+        if constexpr (result_size == 0)
+            return best;
+        else
+            return result;
     }
 };
 } // namespace hlasm_plugin::utils

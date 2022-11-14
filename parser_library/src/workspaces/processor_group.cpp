@@ -14,6 +14,8 @@
 
 #include "processor_group.h"
 
+#include <span>
+
 namespace hlasm_plugin::parser_library::workspaces {
 
 namespace {
@@ -75,13 +77,33 @@ void processor_group::generate_suggestions(bool force)
     }
 }
 
-std::pair<std::string, size_t> processor_group::suggest(std::string_view s)
+std::vector<std::pair<std::string, size_t>> processor_group::suggest(std::string_view opcode, bool extended)
 {
     generate_suggestions(false);
-    auto [suggestion, dist] = m_suggestions->find(s);
-    if (suggestion)
-        return std::pair<std::string, size_t>(*suggestion, dist);
-    return std::pair<std::string, size_t>(std::string(), (size_t)-1);
+
+    constexpr auto process = [](std::span<std::pair<const std::string*, size_t>> input) {
+        std::vector<std::pair<std::string, size_t>> result;
+        for (const auto& s : input)
+        {
+            if (!s.first)
+                break;
+            if (s.second == 0) // exact match
+                break;
+            result.emplace_back(*s.first, s.second);
+        }
+        return result;
+    };
+
+    if (!extended)
+    {
+        auto suggestions = m_suggestions->find<3>(opcode, 3);
+        return process(suggestions);
+    }
+    else
+    {
+        auto suggestions = m_suggestions->find<4>(opcode, 10);
+        return process(suggestions);
+    }
 }
 
 void processor_group::collect_diags() const

@@ -20,7 +20,10 @@ import { configurationExists } from './helpers';
 interface OpcodeSuggestionResponse {
     uri: string;
     suggestions: {
-        [key: string]: string
+        [key: string]: {
+            opcode: string;
+            distance: number;
+        }[]
     };
 };
 
@@ -48,19 +51,25 @@ export class HLASMCodeActionsProvider implements vscode.CodeActionProvider {
         if (E049.length > 0) {
             if (procGrps.exists) {
                 await this.client.onReady();
-                const suggestionsResponse = await this.client.sendRequest<OpcodeSuggestionResponse>("textDocument/$/opcode_suggestion", { textDocument: { uri: document.uri.toString() }, opcodes: unique(opcodeTasks.map(x => x.opcode)) });
+                const suggestionsResponse = await this.client.sendRequest<OpcodeSuggestionResponse>("textDocument/$/opcode_suggestion", {
+                    textDocument: { uri: document.uri.toString() },
+                    opcodes: unique(opcodeTasks.map(x => x.opcode)),
+                    extended: true,
+                });
 
                 for (const { diag, opcode } of opcodeTasks) {
                     if (opcode in suggestionsResponse.suggestions) {
                         const subst = suggestionsResponse.suggestions[opcode];
-                        const edit = new vscode.WorkspaceEdit();
-                        edit.replace(document.uri, diag.range, subst)
-                        result.push({
-                            title: `Did you mean '${subst}'?`,
-                            diagnostics: [diag],
-                            kind: vscode.CodeActionKind.QuickFix,
-                            edit: edit
-                        });
+                        for (const s of subst) {
+                            const edit = new vscode.WorkspaceEdit();
+                            edit.replace(document.uri, diag.range, s.opcode)
+                            result.push({
+                                title: `Did you mean '${s.opcode}'?`,
+                                diagnostics: [diag],
+                                kind: vscode.CodeActionKind.QuickFix,
+                                edit: edit
+                            });
+                        }
                     }
                 }
 
