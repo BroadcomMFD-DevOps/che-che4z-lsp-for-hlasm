@@ -45,7 +45,7 @@ class bk_tree
 
 public:
     bk_tree() requires(std::is_default_constructible_v<Distance>) = default;
-    bk_tree(Distance d)
+    explicit bk_tree(Distance d)
         : m_dist(std::move(d))
     {}
 

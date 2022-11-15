@@ -84,13 +84,13 @@ std::vector<std::pair<std::string, size_t>> processor_group::suggest(std::string
 
     constexpr auto process = [](std::span<std::pair<const std::string*, size_t>> input) {
         std::vector<std::pair<std::string, size_t>> result;
-        for (const auto& s : input)
+        for (const auto& [suggestion, distance] : input)
         {
-            if (!s.first)
+            if (!suggestion)
                 break;
-            if (s.second == 0) // exact match
+            if (distance == 0) // exact match
                 break;
-            result.emplace_back(*s.first, s.second);
+            result.emplace_back(*suggestion, distance);
         }
         return result;
     };

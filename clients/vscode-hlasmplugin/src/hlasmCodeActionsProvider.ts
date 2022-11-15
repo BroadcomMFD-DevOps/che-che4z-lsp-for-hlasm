@@ -12,7 +12,7 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
-import { relative, resolve } from 'path';
+import { relative } from 'path';
 import * as vscode from 'vscode';
 import * as vscodelc from 'vscode-languageclient/node';
 import { configurationExists } from './helpers';

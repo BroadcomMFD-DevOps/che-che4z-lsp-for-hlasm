@@ -478,16 +478,15 @@ void feature_language_features::opcode_suggestion(const json& id, const json& pa
                 continue;
             auto op = opcode.get<std::string>();
             auto opcode_suggestions = ws_mngr_.make_opcode_suggestion(document_uri.c_str(), op.c_str(), extended);
-            if (opcode_suggestions.size())
+            if (opcode_suggestions.size() == 0)
+                continue;
+            auto& ar = suggestions[op] = json::array();
+            for (const auto& s : opcode_suggestions)
             {
-                auto& ar = suggestions[op] = json::array();
-                for (const auto& s : opcode_suggestions)
-                {
-                    ar.push_back(nlohmann::json {
-                        { "opcode", std::string_view(s.opcode.data(), s.opcode.size()) },
-                        { "distance", s.distance },
-                    });
-                }
+                ar.push_back(nlohmann::json {
+                    { "opcode", std::string_view(s.opcode.data(), s.opcode.size()) },
+                    { "distance", s.distance },
+                });
             }
         }
     }

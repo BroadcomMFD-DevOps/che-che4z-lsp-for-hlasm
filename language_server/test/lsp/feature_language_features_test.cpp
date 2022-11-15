@@ -314,6 +314,16 @@ TEST(language_features, opcode_suggestion)
     auto params1 =
         nlohmann::json::parse(R"({"textDocument":{"uri":")" + uri + R"("},"opcodes":["LHIXXX"],"extended":false})");
 
-    EXPECT_CALL(ws_mngr, make_opcode_suggestion(StrEq(uri), StrEq("LHIXXX"), false));
+    using namespace hlasm_plugin::parser_library;
+
+    std::vector<opcode_suggestion> response;
+    response.emplace_back(opcode_suggestion { make_continuous_sequence(std::string("LHI")), 3 });
+    auto expected_json =
+        nlohmann::json::parse(R"({"uri":")" + uri + R"(","suggestions":{"LHIXXX":[{"opcode":"LHI","distance":3}]}})");
+
+    EXPECT_CALL(ws_mngr, make_opcode_suggestion(StrEq(uri), StrEq("LHIXXX"), false))
+        .WillOnce(Return(ByMove(make_continuous_sequence(std::move(response)))));
+    EXPECT_CALL(response_mock, respond(_, _, expected_json));
+
     notifs["textDocument/$/opcode_suggestion"].handler("", params1);
 }
