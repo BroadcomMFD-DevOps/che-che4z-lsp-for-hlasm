@@ -272,11 +272,7 @@ public:
         std::vector<opcode_suggestion> res;
 
         for (auto&& [suggestion, distance] : suggestions)
-        {
-            if (suggestion.empty())
-                break;
             res.emplace_back(opcode_suggestion { make_continuous_sequence(std::move(suggestion)), distance });
-        }
 
         return make_continuous_sequence(std::move(res));
     }

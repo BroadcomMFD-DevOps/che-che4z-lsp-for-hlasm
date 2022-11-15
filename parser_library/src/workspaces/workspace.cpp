@@ -393,15 +393,13 @@ std::vector<std::pair<std::string, size_t>> generate_instruction_suggestions(
     const auto iset_id = static_cast<int>(set);
     assert(0 < iset_id && iset_id <= static_cast<int>(instruction_set_version::UNI));
 
-    auto instr_suggestion = instruction_bk_trees[iset_id]().find<2>(opcode, 3);
-
-    for (const auto& [opcode, distance] : instr_suggestion)
+    for (const auto& [suggestion, distance] : instruction_bk_trees[iset_id]().find<2>(opcode, 3))
     {
-        if (!opcode)
+        if (!suggestion)
             break;
         if (distance == 0)
             break;
-        result.emplace_back(*opcode, distance);
+        result.emplace_back(*suggestion, distance);
     }
 
     return result;

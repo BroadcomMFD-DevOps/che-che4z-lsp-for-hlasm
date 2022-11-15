@@ -305,7 +305,7 @@ TEST_P(convert_tokens_fixture, test)
 
 TEST(language_features, opcode_suggestion)
 {
-    test::ws_mngr_mock ws_mngr;
+    parser_library::workspace_manager ws_mngr;
     NiceMock<response_provider_mock> response_mock;
     lsp::feature_language_features f(ws_mngr, response_mock);
     std::map<std::string, method> notifs;
@@ -316,13 +316,8 @@ TEST(language_features, opcode_suggestion)
 
     using namespace hlasm_plugin::parser_library;
 
-    std::vector<opcode_suggestion> response;
-    response.emplace_back(opcode_suggestion { make_continuous_sequence(std::string("LHI")), 3 });
     auto expected_json =
         nlohmann::json::parse(R"({"uri":")" + uri + R"(","suggestions":{"LHIXXX":[{"opcode":"LHI","distance":3}]}})");
-
-    EXPECT_CALL(ws_mngr, make_opcode_suggestion(StrEq(uri), StrEq("LHIXXX"), false))
-        .WillOnce(Return(ByMove(make_continuous_sequence(std::move(response)))));
     EXPECT_CALL(response_mock, respond(_, _, expected_json));
 
     notifs["textDocument/$/opcode_suggestion"].handler("", params1);
