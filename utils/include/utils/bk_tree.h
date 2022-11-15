@@ -17,10 +17,7 @@
 
 #include <algorithm>
 #include <array>
-#include <cassert>
-#include <compare>
 #include <iterator>
-#include <map>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -44,8 +41,6 @@ class bk_tree
 
     std::vector<node_t> m_nodes;
 
-    static constexpr auto root_key = std::pair<const T*, size_t>(nullptr, (size_t)-1);
-
     static constexpr auto dist = [](size_t a, size_t b) {
         if (a >= b)
             return a - b;
@@ -57,7 +52,7 @@ class bk_tree
     void find_impl(std::array<std::pair<const T*, size_t>, result_size>& result,
         const U& value,
         size_t node_id,
-        size_t distance) const noexcept
+        size_t distance) const noexcept(noexcept(m_dist(std::declval<const T&>(), value)))
     {
         auto& best = result.front();
         while (node_id != invalid && best.second > 0)
@@ -68,7 +63,7 @@ class bk_tree
             if (dist(node.distance, distance) > best.second)
                 continue;
 
-            const auto d = m_dist(node.value, std::as_const(value));
+            const auto d = m_dist(node.value, value);
             if (d <= best.second)
             {
                 std::shift_right(result.begin(), result.end(), 1);
@@ -90,7 +85,7 @@ public:
     {}
 
     auto size() const noexcept { return m_nodes.size(); }
-    void clear() { m_nodes.clear(); }
+    void clear() noexcept { m_nodes.clear(); }
 
     template<typename U>
     std::pair<const T*, bool> insert(U&& value)
@@ -111,12 +106,26 @@ public:
             if (distance == 0)
                 return { &node.value, false };
         }
+        struct restore_t
+        {
+            size_t* id;
+            ~restore_t()
+            {
+                if (id)
+                    *id = invalid;
+            }
+        } restore { node_id };
+
         *node_id = m_nodes.size();
-        return { &m_nodes.emplace_back(node_t { distance, invalid, invalid, std::forward<U>(value) }).value, true };
+        const auto& new_node = m_nodes.emplace_back(node_t { distance, invalid, invalid, std::forward<U>(value) });
+        restore.id = nullptr;
+
+        return { &new_node.value, true };
     }
 
     template<size_t result_size = 0, typename U>
-    auto find(U&& value, size_t max_dist = (size_t)-1) const noexcept
+    auto find(U&& value, size_t max_dist = (size_t)-1) const
+        noexcept(noexcept(m_dist(std::declval<const T&>(), std::as_const(value))))
     {
         std::array<std::pair<const T*, size_t>, result_size + !result_size> result;
         std::fill(result.begin(), result.end(), std::pair<const T*, size_t>(nullptr, max_dist));
