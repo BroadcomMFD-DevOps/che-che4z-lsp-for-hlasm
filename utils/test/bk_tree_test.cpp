@@ -35,9 +35,9 @@ TEST(bk_tree, simple_insert)
 {
     bk_tree<unsigned, abs_value<long long>> tree;
 
-    EXPECT_EQ(tree.insert(5).second, true);
-    EXPECT_EQ(tree.insert(10).second, true);
-    EXPECT_EQ(tree.insert(0).second, true);
+    EXPECT_EQ(tree.insert(5u).second, true);
+    EXPECT_EQ(tree.insert(10u).second, true);
+    EXPECT_EQ(tree.insert(0u).second, true);
 
     EXPECT_EQ(tree.size(), 3);
 }
@@ -46,13 +46,13 @@ TEST(bk_tree, repeated_insert)
 {
     bk_tree<unsigned, abs_value<long long>> tree;
 
-    tree.insert(5);
-    tree.insert(10);
-    tree.insert(0);
+    tree.insert(5u);
+    tree.insert(10u);
+    tree.insert(0u);
 
-    EXPECT_EQ(tree.insert(5).second, false);
-    EXPECT_EQ(tree.insert(10).second, false);
-    EXPECT_EQ(tree.insert(0).second, false);
+    EXPECT_EQ(tree.insert(5u).second, false);
+    EXPECT_EQ(tree.insert(10u).second, false);
+    EXPECT_EQ(tree.insert(0u).second, false);
 
     EXPECT_EQ(tree.size(), 3);
 }
@@ -62,51 +62,51 @@ TEST(bk_tree, direct_find)
 {
     bk_tree<unsigned, abs_value<long long>> tree;
 
-    tree.insert(5);
-    tree.insert(10);
-    tree.insert(0);
+    tree.insert(5u);
+    tree.insert(10u);
+    tree.insert(0u);
 
-    EXPECT_EQ(tree.find(5).second, 0);
-    EXPECT_EQ(tree.find(10).second, 0);
-    EXPECT_EQ(tree.find(0).second, 0);
+    EXPECT_EQ(tree.find(5u).second, 0);
+    EXPECT_EQ(tree.find(10u).second, 0);
+    EXPECT_EQ(tree.find(0u).second, 0);
 
-    EXPECT_EQ(*tree.find(5).first, 5);
-    EXPECT_EQ(*tree.find(10).first, 10);
-    EXPECT_EQ(*tree.find(0).first, 0);
+    EXPECT_EQ(*tree.find(5u).first, 5);
+    EXPECT_EQ(*tree.find(10u).first, 10);
+    EXPECT_EQ(*tree.find(0u).first, 0);
 }
 
 TEST(bk_tree, approx_find)
 {
     bk_tree<unsigned, abs_value<long long>> tree;
 
-    tree.insert(5);
-    tree.insert(10);
-    tree.insert(0);
+    tree.insert(5u);
+    tree.insert(10u);
+    tree.insert(0u);
 
-    EXPECT_EQ(tree.find(1).second, 1);
-    EXPECT_EQ(tree.find(2).second, 2);
-    EXPECT_EQ(tree.find(3).second, 2);
-    EXPECT_EQ(tree.find(4).second, 1);
-    EXPECT_EQ(tree.find(5).second, 0);
-    EXPECT_EQ(tree.find(6).second, 1);
-    EXPECT_EQ(tree.find(7).second, 2);
-    EXPECT_EQ(tree.find(8).second, 2);
-    EXPECT_EQ(tree.find(9).second, 1);
+    EXPECT_EQ(tree.find(1u).second, 1);
+    EXPECT_EQ(tree.find(2u).second, 2);
+    EXPECT_EQ(tree.find(3u).second, 2);
+    EXPECT_EQ(tree.find(4u).second, 1);
+    EXPECT_EQ(tree.find(5u).second, 0);
+    EXPECT_EQ(tree.find(6u).second, 1);
+    EXPECT_EQ(tree.find(7u).second, 2);
+    EXPECT_EQ(tree.find(8u).second, 2);
+    EXPECT_EQ(tree.find(9u).second, 1);
     EXPECT_EQ(tree.find(10).second, 0);
-    EXPECT_EQ(tree.find(15).second, 5);
+    EXPECT_EQ(tree.find(15u).second, 5);
 
 
-    EXPECT_EQ(*tree.find(1).first, 0);
-    EXPECT_EQ(*tree.find(2).first, 0);
-    EXPECT_EQ(*tree.find(3).first, 5);
-    EXPECT_EQ(*tree.find(4).first, 5);
-    EXPECT_EQ(*tree.find(5).first, 5);
-    EXPECT_EQ(*tree.find(6).first, 5);
-    EXPECT_EQ(*tree.find(7).first, 5);
-    EXPECT_EQ(*tree.find(8).first, 10);
-    EXPECT_EQ(*tree.find(9).first, 10);
-    EXPECT_EQ(*tree.find(10).first, 10);
-    EXPECT_EQ(*tree.find(15).first, 10);
+    EXPECT_EQ(*tree.find(1u).first, 0);
+    EXPECT_EQ(*tree.find(2u).first, 0);
+    EXPECT_EQ(*tree.find(3u).first, 5);
+    EXPECT_EQ(*tree.find(4u).first, 5);
+    EXPECT_EQ(*tree.find(5u).first, 5);
+    EXPECT_EQ(*tree.find(6u).first, 5);
+    EXPECT_EQ(*tree.find(7u).first, 5);
+    EXPECT_EQ(*tree.find(8u).first, 10);
+    EXPECT_EQ(*tree.find(9u).first, 10);
+    EXPECT_EQ(*tree.find(10u).first, 10);
+    EXPECT_EQ(*tree.find(15u).first, 10);
 }
 
 TEST(bk_tree, strings)

@@ -30,18 +30,58 @@ namespace hlasm_plugin::utils {
 template<typename T, class Distance>
 class bk_tree
 {
-    using map = std::map<std::pair<const T*, size_t>, T>;
-    map m_nodes;
     [[no_unique_address]] Distance m_dist;
+
+    static constexpr size_t invalid = (size_t)-1;
+
+    struct node_t
+    {
+        size_t distance;
+        size_t next_sibling;
+        size_t first_child;
+        T value;
+    };
+
+    std::vector<node_t> m_nodes;
 
     static constexpr auto root_key = std::pair<const T*, size_t>(nullptr, (size_t)-1);
 
-    static constexpr auto add = [](size_t a, size_t b) {
-        size_t res = a + b;
-        if (res < a)
-            return (size_t)-1;
-        return res;
+    static constexpr auto dist = [](size_t a, size_t b) {
+        if (a >= b)
+            return a - b;
+        else
+            return b - a;
     };
+
+    template<size_t result_size, typename U>
+    void find_impl(std::array<std::pair<const T*, size_t>, result_size>& result,
+        const U& value,
+        size_t node_id,
+        size_t distance) const noexcept
+    {
+        auto& best = result.front();
+        while (node_id != invalid && best.second > 0)
+        {
+            const auto& node = m_nodes[node_id];
+            node_id = node.next_sibling;
+
+            if (dist(node.distance, distance) > best.second)
+                continue;
+
+            const auto d = m_dist(node.value, std::as_const(value));
+            if (d <= best.second)
+            {
+                std::shift_right(result.begin(), result.end(), 1);
+                best = { &node.value, d };
+            }
+
+            if (d == 0)
+                break;
+
+            if (node.first_child != invalid)
+                find_impl(result, value, node.first_child, d);
+        }
+    }
 
 public:
     bk_tree() requires(std::is_default_constructible_v<Distance>) = default;
@@ -55,61 +95,37 @@ public:
     template<typename U>
     std::pair<const T*, bool> insert(U&& value)
     {
-        auto key = root_key;
-
-        while (true)
+        size_t dummy = m_nodes.empty() ? invalid : 0;
+        size_t distance = invalid;
+        auto* node_id = &dummy;
+        while (*node_id != invalid)
         {
-            auto node = m_nodes.find(key);
-            if (node == m_nodes.end())
+            auto& node = m_nodes[*node_id];
+            if (node.distance != distance)
             {
-                auto [it, _] = m_nodes.try_emplace(key, std::forward<U>(value));
-                return { &it->second, true };
+                node_id = &node.next_sibling;
+                continue;
             }
-            const auto dist = m_dist(std::as_const(node->second), std::as_const(value));
-            if (dist == 0)
-                return { &node->second, false };
-
-            key = { &node->second, dist };
+            node_id = &node.first_child;
+            distance = m_dist(std::as_const(node.value), std::as_const(value));
+            if (distance == 0)
+                return { &node.value, false };
         }
+        *node_id = m_nodes.size();
+        return { &m_nodes.emplace_back(node_t { distance, invalid, invalid, std::forward<U>(value) }).value, true };
     }
 
     template<size_t result_size = 0, typename U>
-    auto find(U&& value, size_t max_dist = (size_t)-1) const
+    auto find(U&& value, size_t max_dist = (size_t)-1) const noexcept
     {
         std::array<std::pair<const T*, size_t>, result_size + !result_size> result;
         std::fill(result.begin(), result.end(), std::pair<const T*, size_t>(nullptr, max_dist));
-        auto& best = result.front();
 
-        std::vector<std::pair<typename map::const_iterator, typename map::const_iterator>> search;
-        if (auto root = m_nodes.find(root_key); root != m_nodes.end())
-            search.emplace_back(root, std::next(root));
-
-        while (!search.empty())
-        {
-            auto& it_pair = search.back();
-            const auto it = it_pair.first++;
-            if (it_pair.first == it_pair.second)
-                search.pop_back();
-
-            const auto dist = m_dist(it->second, std::as_const(value));
-            if (dist <= best.second)
-            {
-                std::shift_right(result.begin(), result.end(), 1);
-                best = { &it->second, dist };
-            }
-
-            if (dist == 0)
-                break;
-
-            auto low = m_nodes.lower_bound(std::make_pair(&it->second, dist - best.second));
-            auto high = m_nodes.upper_bound(std::make_pair(&it->second, add(dist, best.second)));
-
-            if (low != high)
-                search.emplace_back(low, high);
-        }
+        if (!m_nodes.empty())
+            find_impl(result, std::as_const(value), 0, invalid);
 
         if constexpr (result_size == 0)
-            return best;
+            return result.front();
         else
             return result;
     }
