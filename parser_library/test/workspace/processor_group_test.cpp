@@ -24,7 +24,7 @@ using namespace hlasm_plugin::parser_library::workspaces;
 auto asm_options(config::assembler_options o)
 {
     asm_option result;
-    processor_group("", std::move(o), {}).update_asm_options(result);
+    processor_group("", std::move(o), {}).apply_options_to(result);
     return result;
 }
 

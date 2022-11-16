@@ -54,7 +54,7 @@ processor_group::processor_group(const std::string& pg_name,
     , m_prep_opts(translate_pp_configs(pp))
 {}
 
-void processor_group::update_asm_options(asm_option& opts) const { m_asm_opts.apply(opts); }
+void processor_group::apply_options_to(asm_option& opts) const { m_asm_opts.apply_options_to(opts); }
 
 void processor_group::generate_suggestions(bool force)
 {
@@ -69,11 +69,11 @@ void processor_group::generate_suggestions(bool force)
 
     for (const auto& l : m_libs)
     {
-        for (auto&& f : l->list_files())
+        for (auto&& filename : l->list_files())
         {
-            if (f.size() > suggestion_limit)
+            if (filename.size() > suggestion_limit)
                 continue;
-            m_suggestions->insert(std::move(f));
+            m_suggestions->insert(std::move(filename));
         }
     }
 }

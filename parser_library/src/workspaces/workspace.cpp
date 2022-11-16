@@ -416,14 +416,14 @@ std::vector<std::pair<std::string, size_t>> workspace::make_opcode_suggestion(
     if (const auto* pgm = m_configuration.get_program(file); pgm)
     {
         auto& proc_grp = m_configuration.get_proc_grp_by_program(*pgm);
-        proc_grp.update_asm_options(opts);
-        pgm->asm_opts.apply(opts);
+        proc_grp.apply_options_to(opts);
+        pgm->asm_opts.apply_options_to(opts);
 
         result = proc_grp.suggest(opcode, extended);
     }
     else
     {
-        implicit_proc_grp.update_asm_options(opts);
+        implicit_proc_grp.apply_options_to(opts);
     }
 
     for (auto&& s : generate_instruction_suggestions(opcode, opts.instr_set))
@@ -536,12 +536,12 @@ asm_option workspace::get_asm_options(const utils::resource::resource_location& 
     const auto* pgm = m_configuration.get_program(file_location);
     if (pgm)
     {
-        m_configuration.get_proc_grp_by_program(*pgm).update_asm_options(result);
-        pgm->asm_opts.apply(result);
+        m_configuration.get_proc_grp_by_program(*pgm).apply_options_to(result);
+        pgm->asm_opts.apply_options_to(result);
     }
     else
     {
-        implicit_proc_grp.update_asm_options(result);
+        implicit_proc_grp.apply_options_to(result);
     }
 
     utils::resource::resource_location relative_to_location(

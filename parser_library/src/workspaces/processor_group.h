@@ -46,7 +46,7 @@ public:
 
     const std::vector<std::unique_ptr<library>>& libraries() const { return m_libs; }
 
-    void update_asm_options(asm_option& opts) const;
+    void apply_options_to(asm_option& opts) const;
 
     const std::vector<preprocessor_options>& preprocessors() const { return m_prep_opts; }
 
