@@ -191,3 +191,11 @@ TEST(bk_tree, multiple_results_no_limit)
 
     EXPECT_TRUE(std::is_permutation(result.begin(), result.end(), std::begin(expected), std::end(expected)));
 }
+
+TEST(bk_tree, empty)
+{
+    bk_tree<std::string, lv_dist_sv> tree;
+
+    EXPECT_EQ(tree.size(), 0);
+    EXPECT_EQ(tree.find("lorem").first, nullptr);
+}
