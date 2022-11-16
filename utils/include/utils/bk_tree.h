@@ -80,7 +80,7 @@ class bk_tree
 
 public:
     bk_tree() requires(std::is_default_constructible_v<Distance>) = default;
-    explicit bk_tree(Distance d)
+    explicit bk_tree(Distance d) noexcept(std::is_nothrow_move_constructible_v<Distance>)
         : m_dist(std::move(d))
     {}
 
