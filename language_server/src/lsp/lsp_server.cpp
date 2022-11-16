@@ -102,7 +102,7 @@ void server::message_received(const json& message)
         if (id_found == message.end())
         {
             // notification
-            call_method(method_found.value().get<std::string>(), "", params_found.value());
+            call_method(method_found.value().get<std::string>(), nlohmann::json(), params_found.value());
         }
         else
         {
