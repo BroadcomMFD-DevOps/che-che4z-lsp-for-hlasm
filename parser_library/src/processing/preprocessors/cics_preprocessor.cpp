@@ -852,8 +852,6 @@ class cics_preprocessor : public preprocessor
 
     mini_parser<lexing::logical_line::const_iterator> m_mini_parser;
 
-    std::vector<std::shared_ptr<semantics::preprocessor_statement_si>> m_statements;
-
 public:
     cics_preprocessor(const cics_preprocessor_options& options, library_fetcher libs, diagnostic_op_consumer* diags)
         : m_libs(std::move(libs))
@@ -1274,11 +1272,6 @@ public:
     }
 
     cics_preprocessor_options current_options() const { return m_options; }
-
-    std::vector<std::shared_ptr<semantics::preprocessor_statement_si>> get_statements() const override
-    {
-        return m_statements;
-    }
 };
 
 } // namespace

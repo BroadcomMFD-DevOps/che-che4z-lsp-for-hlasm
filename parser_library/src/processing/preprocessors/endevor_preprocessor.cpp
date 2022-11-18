@@ -93,7 +93,6 @@ class endevor_preprocessor : public preprocessor
     diagnostic_op_consumer* m_diags = nullptr;
     endevor_preprocessor_options m_options;
     semantics::source_info_processor& m_src_proc;
-    std::vector<std::shared_ptr<semantics::preprocessor_statement_si>> m_statements;
     context::id_storage& m_ids;
 
     bool process_member(std::string_view member, std::vector<stack_entry>& stack) const
@@ -190,11 +189,6 @@ public:
         }
 
         return document(std::move(result));
-    }
-
-    std::vector<std::shared_ptr<semantics::preprocessor_statement_si>> get_statements() const override
-    {
-        return m_statements;
     }
 };
 

@@ -77,9 +77,11 @@ public:
         semantics::source_info_processor&,
         context::id_storage&);
 
-    virtual std::vector<std::shared_ptr<semantics::preprocessor_statement_si>> get_statements() const = 0;
+    virtual std::vector<std::shared_ptr<semantics::preprocessor_statement_si>> get_statements() const;
 
 protected:
+    std::vector<std::shared_ptr<semantics::preprocessor_statement_si>> m_statements;
+
     using line_iterator = std::vector<document_line>::const_iterator;
 
     static line_iterator extract_nonempty_logical_line(lexing::logical_line& out,
