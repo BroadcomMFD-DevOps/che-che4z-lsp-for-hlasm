@@ -70,7 +70,6 @@ std::unique_ptr<processing::preprocessor> analyzer_options::get_preprocessor(pro
     struct combined_preprocessor : processing::preprocessor
     {
         std::vector<std::unique_ptr<processing::preprocessor>> pp;
-
         document generate_replacement(document doc) override
         {
             for (const auto& p : pp)
