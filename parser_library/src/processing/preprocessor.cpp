@@ -44,9 +44,9 @@ bool preprocessor::is_continued(std::string_view s)
     return !cont.empty() && cont != " ";
 }
 
-std::vector<std::shared_ptr<semantics::preprocessor_statement_si>> preprocessor::get_statements() const
+std::vector<std::shared_ptr<semantics::preprocessor_statement_si>> preprocessor::take_statements()
 {
-    return m_statements;
+    return std::move(m_statements);
 }
 
 void preprocessor::do_highlighting(

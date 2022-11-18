@@ -77,7 +77,7 @@ public:
         semantics::source_info_processor&,
         context::id_storage&);
 
-    virtual std::vector<std::shared_ptr<semantics::preprocessor_statement_si>> get_statements() const;
+    virtual std::vector<std::shared_ptr<semantics::preprocessor_statement_si>> take_statements();
 
 protected:
     std::vector<std::shared_ptr<semantics::preprocessor_statement_si>> m_statements;

@@ -27,7 +27,7 @@ endevor_statement_si::endevor_statement_si(range stmt_range,
     context::id_storage& ids)
     : preprocessor_statement_si(std::move(stmt_range),
         label_si(range()),
-        instruction_si(std::move(instruction_range), ids.add(std::string_view("-INC")), true),
+        instruction_si(std::move(instruction_range), context::id_index("-INC"), true),
         operands_si(copy_member_range, {}),
         std::move(remarks),
         context::id_storage::well_known::COPY)

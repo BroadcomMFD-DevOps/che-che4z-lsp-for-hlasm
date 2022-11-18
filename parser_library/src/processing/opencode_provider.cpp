@@ -600,7 +600,7 @@ bool opencode_provider::finished() const
 std::vector<std::shared_ptr<semantics::preprocessor_statement_si>>
 opencode_provider::get_preprocessor_statements() const
 {
-    return m_preprocessor ? m_preprocessor->get_statements()
+    return m_preprocessor ? m_preprocessor->take_statements()
                           : std::vector<std::shared_ptr<semantics::preprocessor_statement_si>>();
 }
 

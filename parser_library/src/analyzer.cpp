@@ -77,14 +77,15 @@ std::unique_ptr<processing::preprocessor> analyzer_options::get_preprocessor(pro
             return doc;
         }
 
-        std::vector<std::shared_ptr<semantics::preprocessor_statement_si>> get_statements() const override
+        std::vector<std::shared_ptr<semantics::preprocessor_statement_si>> take_statements() override
         {
             std::vector<std::shared_ptr<semantics::preprocessor_statement_si>> stmts;
 
             for (const auto& p : pp)
             {
-                auto p_stmts = p->get_statements();
-                stmts.insert(stmts.end(), p_stmts.begin(), p_stmts.end());
+                auto p_stmts = p->take_statements();
+                stmts.insert(
+                    stmts.end(), std::make_move_iterator(p_stmts.begin()), std::make_move_iterator(p_stmts.end()));
             }
 
             return stmts;
