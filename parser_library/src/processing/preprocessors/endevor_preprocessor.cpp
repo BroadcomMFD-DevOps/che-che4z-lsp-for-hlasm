@@ -36,9 +36,6 @@ struct stack_entry
         , current(doc.begin())
     {}
 
-    stack_entry(stack_entry&&) = default;
-    stack_entry& operator=(stack_entry&&) = default;
-
     void next() { ++current; }
     bool end() const { return current == doc.end(); }
 };
