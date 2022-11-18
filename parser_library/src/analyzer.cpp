@@ -70,6 +70,13 @@ std::unique_ptr<processing::preprocessor> analyzer_options::get_preprocessor(pro
     struct combined_preprocessor : processing::preprocessor
     {
         std::vector<std::unique_ptr<processing::preprocessor>> pp;
+
+        combined_preprocessor() = default;
+        combined_preprocessor(combined_preprocessor&& cp) noexcept
+        {
+            pp.insert(pp.end(), std::make_move_iterator(cp.pp.begin()), std::make_move_iterator(cp.pp.end()));
+        };
+
         document generate_replacement(document doc) override
         {
             clear_statements();
