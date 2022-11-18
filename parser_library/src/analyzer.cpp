@@ -69,37 +69,29 @@ std::unique_ptr<processing::preprocessor> analyzer_options::get_preprocessor(pro
 
     struct combined_preprocessor : processing::preprocessor
     {
-        mutable std::vector<std::unique_ptr<semantics::preprocessor_statement_si>> m_statements;
-
         std::vector<std::unique_ptr<processing::preprocessor>> pp;
+
         document generate_replacement(document doc) override
         {
-            m_statements.clear();
-
             for (const auto& p : pp)
                 doc = p->generate_replacement(std::move(doc));
             return doc;
         }
 
-        void collect_statements(
-            std::vector<std::unique_ptr<semantics::preprocessor_statement_si>>& statement_collector) override
+        std::vector<std::shared_ptr<semantics::preprocessor_statement_si>> get_statements() const override
         {
-            statement_collector.insert(statement_collector.end(),
-                std::make_move_iterator(m_statements.begin()),
-                std::make_move_iterator(m_statements.end()));
-        }
+            std::vector<std::shared_ptr<semantics::preprocessor_statement_si>> stmts;
 
-        const std::vector<std::unique_ptr<semantics::preprocessor_statement_si>>& get_statements() const override
-        {
             for (const auto& p : pp)
             {
-                p->collect_statements(m_statements);
+                auto p_stmts = p->get_statements();
+                stmts.insert(stmts.end(), p_stmts.begin(), p_stmts.end());
             }
 
-            return m_statements;
+            return stmts;
         }
-
     } tmp;
+
     std::transform(
         preprocessor_args.begin(), preprocessor_args.end(), std::back_inserter(tmp.pp), transform_preprocessor);
 

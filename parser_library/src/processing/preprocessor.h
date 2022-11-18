@@ -77,9 +77,7 @@ public:
         semantics::source_info_processor&,
         context::id_storage&);
 
-    virtual void collect_statements(
-        std::vector<std::unique_ptr<semantics::preprocessor_statement_si>>& statement_collector) = 0;
-    virtual const std::vector<std::unique_ptr<semantics::preprocessor_statement_si>>& get_statements() const = 0;
+    virtual std::vector<std::shared_ptr<semantics::preprocessor_statement_si>> get_statements() const = 0;
 
 protected:
     using line_iterator = std::vector<document_line>::const_iterator;

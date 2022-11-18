@@ -55,7 +55,7 @@ class db2_preprocessor : public preprocessor
     diagnostic_op_consumer* m_diags = nullptr;
     std::vector<document_line> m_result;
     bool m_source_translated = false;
-    std::vector<std::unique_ptr<semantics::preprocessor_statement_si>> m_statements;
+    std::vector<std::shared_ptr<semantics::preprocessor_statement_si>> m_statements;
 
     static bool remove_space(std::string_view& s)
     {
@@ -819,15 +819,7 @@ public:
         , m_diags(diags)
     {}
 
-    void collect_statements(
-        std::vector<std::unique_ptr<semantics::preprocessor_statement_si>>& statement_collector) override
-    {
-        statement_collector.insert(statement_collector.end(),
-            std::make_move_iterator(m_statements.begin()),
-            std::make_move_iterator(m_statements.end()));
-    }
-
-    const std::vector<std::unique_ptr<semantics::preprocessor_statement_si>>& get_statements() const override
+    std::vector<std::shared_ptr<semantics::preprocessor_statement_si>> get_statements() const override
     {
         return m_statements;
     }

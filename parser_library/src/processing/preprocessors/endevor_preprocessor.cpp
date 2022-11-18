@@ -93,7 +93,7 @@ class endevor_preprocessor : public preprocessor
     diagnostic_op_consumer* m_diags = nullptr;
     endevor_preprocessor_options m_options;
     semantics::source_info_processor& m_src_proc;
-    std::vector<std::unique_ptr<semantics::preprocessor_statement_si>> m_statements;
+    std::vector<std::shared_ptr<semantics::preprocessor_statement_si>> m_statements;
     context::id_storage& m_ids;
 
     bool process_member(std::string_view member, std::vector<stack_entry>& stack) const
@@ -192,15 +192,7 @@ public:
         return document(std::move(result));
     }
 
-    void collect_statements(
-        std::vector<std::unique_ptr<semantics::preprocessor_statement_si>>& statement_collector) override
-    {
-        statement_collector.insert(statement_collector.end(),
-            std::make_move_iterator(m_statements.begin()),
-            std::make_move_iterator(m_statements.end()));
-    }
-
-    const std::vector<std::unique_ptr<semantics::preprocessor_statement_si>>& get_statements() const override
+    std::vector<std::shared_ptr<semantics::preprocessor_statement_si>> get_statements() const override
     {
         return m_statements;
     }
