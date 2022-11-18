@@ -66,7 +66,7 @@ std::unique_ptr<semantics::endevor_statement_si> get_preproc_statement(
 
     auto stmt_r = range({ line_no, 0 }, { line_no, matches[0].str().length() });
 
-    auto [inc, inc_range] = get_stmt_part_pair(matches, 1, line_no);
+    auto inc_range = get_stmt_part_pair(matches, 1, line_no).second;
     auto [member, member_range] = get_stmt_part_pair(matches, 2, line_no);
 
     auto remarks_r = range();
@@ -80,7 +80,7 @@ std::unique_ptr<semantics::endevor_statement_si> get_preproc_statement(
     auto remarks_si = semantics::remarks_si(std::move(remarks_r), std::move(rems));
 
     return std::make_unique<semantics::endevor_statement_si>(
-        std::move(stmt_r), inc, std::move(inc_range), member, std::move(member_range), std::move(remarks_si), ids);
+        std::move(stmt_r), std::move(inc_range), member, std::move(member_range), std::move(remarks_si), ids);
 }
 } // namespace
 

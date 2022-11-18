@@ -182,7 +182,6 @@ struct preprocessor_statement_si
 struct endevor_statement_si : public preprocessor_statement_si
 {
     endevor_statement_si(range stmt_range,
-        std::string_view instruction,
         range instruction_range,
         std::string_view copy_member,
         range copy_member_range,

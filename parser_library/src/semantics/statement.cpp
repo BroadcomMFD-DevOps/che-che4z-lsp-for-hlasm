@@ -20,7 +20,6 @@
 namespace hlasm_plugin::parser_library::semantics {
 
 endevor_statement_si::endevor_statement_si(range stmt_range,
-    std::string_view instruction,
     range instruction_range,
     std::string_view copy_member,
     range copy_member_range,
@@ -28,7 +27,7 @@ endevor_statement_si::endevor_statement_si(range stmt_range,
     context::id_storage& ids)
     : preprocessor_statement_si(std::move(stmt_range),
         label_si(range()),
-        instruction_si(std::move(instruction_range), ids.add(instruction), true),
+        instruction_si(std::move(instruction_range), ids.add(std::string_view("-INC")), true),
         operands_si(copy_member_range, {}),
         std::move(remarks),
         context::id_storage::well_known::COPY)
