@@ -257,7 +257,7 @@ void workspace::did_change_watched_files(const std::vector<utils::resource::reso
         parse_file(file_location);
 }
 
-location workspace::definition(const utils::resource::resource_location& document_loc, const position pos) const
+location workspace::definition(const utils::resource::resource_location& document_loc, position pos) const
 {
     auto opencodes = find_related_opencodes(document_loc);
     if (opencodes.empty())
@@ -269,7 +269,7 @@ location workspace::definition(const utils::resource::resource_location& documen
         return { pos, document_loc };
 }
 
-location_list workspace::references(const utils::resource::resource_location& document_loc, const position pos) const
+location_list workspace::references(const utils::resource::resource_location& document_loc, position pos) const
 {
     auto opencodes = find_related_opencodes(document_loc);
     if (opencodes.empty())
@@ -281,7 +281,7 @@ location_list workspace::references(const utils::resource::resource_location& do
         return {};
 }
 
-std::string workspace::hover(const utils::resource::resource_location& document_loc, const position pos) const
+std::string workspace::hover(const utils::resource::resource_location& document_loc, position pos) const
 {
     auto opencodes = find_related_opencodes(document_loc);
     if (opencodes.empty())
@@ -294,7 +294,7 @@ std::string workspace::hover(const utils::resource::resource_location& document_
 }
 
 lsp::completion_list_s workspace::completion(const utils::resource::resource_location& document_loc,
-    const position pos,
+    position pos,
     const char trigger_char,
     completion_trigger_kind trigger_kind) const
 {

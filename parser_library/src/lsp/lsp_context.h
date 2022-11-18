@@ -79,7 +79,7 @@ private:
     void distribute_file_occurences(const file_occurences_t& occurences);
 
     occurence_scope_t find_occurence_with_scope(
-        const utils::resource::resource_location& document_loc, const position pos) const;
+        const utils::resource::resource_location& document_loc, position pos) const;
 
     std::optional<location> find_definition_location(const symbol_occurence& occ, macro_info_ptr macro_i) const;
     std::string find_hover(const symbol_occurence& occ, macro_info_ptr macro_i) const;
@@ -89,7 +89,7 @@ private:
     completion_list_s complete_instr(const file_info& file, position pos) const;
 
     bool is_continued_line(std::string_view line) const;
-    bool should_complete_instr(const text_data_ref_t& text, const position pos) const;
+    bool should_complete_instr(const text_data_ref_t& text, position pos) const;
     std::string get_macro_documentation(const macro_info& m) const;
 
     void document_symbol_macro(document_symbol_list_s& result,

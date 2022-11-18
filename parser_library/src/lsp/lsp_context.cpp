@@ -665,7 +665,7 @@ const file_info* lsp_context::get_file_info(const utils::resource::resource_loca
         return nullptr;
 }
 
-location lsp_context::definition(const utils::resource::resource_location& document_loc, const position pos) const
+location lsp_context::definition(const utils::resource::resource_location& document_loc, position pos) const
 {
     auto [occ, macro_scope] = find_occurence_with_scope(document_loc, pos);
 
@@ -687,7 +687,7 @@ void collect_references(location_list& refs, const symbol_occurence& occ, const 
     }
 }
 
-location_list lsp_context::references(const utils::resource::resource_location& document_loc, const position pos) const
+location_list lsp_context::references(const utils::resource::resource_location& document_loc, position pos) const
 {
     location_list result;
 
@@ -713,7 +713,7 @@ location_list lsp_context::references(const utils::resource::resource_location& 
     return result;
 }
 
-std::string lsp_context::hover(const utils::resource::resource_location& document_loc, const position pos) const
+std::string lsp_context::hover(const utils::resource::resource_location& document_loc, position pos) const
 {
     auto [occ, macro_scope] = find_occurence_with_scope(document_loc, pos);
 
@@ -730,7 +730,7 @@ bool lsp_context::is_continued_line(std::string_view line) const
     return line.size() > continuation_column && !isspace((unsigned char)line[continuation_column]);
 }
 
-bool lsp_context::should_complete_instr(const text_data_ref_t& text, const position pos) const
+bool lsp_context::should_complete_instr(const text_data_ref_t& text, position pos) const
 {
     bool line_before_continued = pos.line > 0 ? is_continued_line(text.get_line(pos.line - 1)) : false;
 
@@ -741,7 +741,7 @@ bool lsp_context::should_complete_instr(const text_data_ref_t& text, const posit
 }
 
 completion_list_s lsp_context::completion(const utils::resource::resource_location& document_uri,
-    const position pos,
+    position pos,
     const char trigger_char,
     completion_trigger_kind trigger_kind) const
 {
@@ -950,7 +950,7 @@ void lsp_context::distribute_file_occurences(const file_occurences_t& occurences
 }
 
 occurence_scope_t lsp_context::find_occurence_with_scope(
-    const utils::resource::resource_location& document_loc, const position pos) const
+    const utils::resource::resource_location& document_loc, position pos) const
 {
     if (auto file = m_files.find(document_loc); file != m_files.end())
         return file->second->find_occurence_with_scope(pos);
