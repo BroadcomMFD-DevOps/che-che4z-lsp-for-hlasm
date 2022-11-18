@@ -122,7 +122,7 @@ analyzer::analyzer(const std::string& text, analyzer_options opts)
                     },
                     *this,
                     src_proc_,
-                    *ctx_.hlasm_ctx->ids_ptr()),
+                    ctx_.hlasm_ctx->ids()),
                 opts.parsing_opencode == file_is_opencode::yes ? processing::opencode_provider_options { true, 10 }
                                                                : processing::opencode_provider_options {},
                 opts.vf_monitor),
