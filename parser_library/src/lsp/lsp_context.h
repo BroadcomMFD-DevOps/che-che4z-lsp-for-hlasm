@@ -19,14 +19,13 @@
 
 #include "completion_item.h"
 #include "document_symbol_item.h"
-#include "feature_provider.h"
 #include "file_info.h"
 #include "location.h"
 #include "opencode_info.h"
 
 namespace hlasm_plugin::parser_library::lsp {
 
-class lsp_context final : public feature_provider
+class lsp_context final
 {
     opencode_info_ptr m_opencode;
     std::unordered_map<utils::resource::resource_location, file_info_ptr, utils::resource::resource_location_hasher>
@@ -64,15 +63,15 @@ public:
         context::id_index macro_name, context::opcode_generation gen = context::opcode_generation::current) const;
     [[nodiscard]] const file_info* get_file_info(const utils::resource::resource_location& file_loc) const;
 
-    location definition(const utils::resource::resource_location& document_loc, position pos) const override;
-    location_list references(const utils::resource::resource_location& document_loc, position pos) const override;
-    hover_result hover(const utils::resource::resource_location& document_loc, position pos) const override;
+    location definition(const utils::resource::resource_location& document_loc, position pos) const;
+    location_list references(const utils::resource::resource_location& document_loc, position pos) const;
+    std::string hover(const utils::resource::resource_location& document_loc, position pos) const;
     completion_list_s completion(const utils::resource::resource_location& document_uri,
         position pos,
         char trigger_char,
-        completion_trigger_kind trigger_kind) const override;
+        completion_trigger_kind trigger_kind) const;
     document_symbol_list_s document_symbol(
-        const utils::resource::resource_location& document_loc, long long limit) const override;
+        const utils::resource::resource_location& document_loc, long long limit) const;
 
 private:
     void add_file(file_info file_i);
@@ -83,7 +82,7 @@ private:
         const utils::resource::resource_location& document_loc, const position pos) const;
 
     std::optional<location> find_definition_location(const symbol_occurence& occ, macro_info_ptr macro_i) const;
-    hover_result find_hover(const symbol_occurence& occ, macro_info_ptr macro_i) const;
+    std::string find_hover(const symbol_occurence& occ, macro_info_ptr macro_i) const;
 
     completion_list_s complete_var(const file_info& file, position pos) const;
     completion_list_s complete_seq(const file_info& file, position pos) const;

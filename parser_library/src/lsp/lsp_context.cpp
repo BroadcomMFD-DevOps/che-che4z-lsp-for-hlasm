@@ -51,7 +51,7 @@ std::string& append_hex_and_dec(std::string& t, T value)
     return t;
 }
 
-hover_result hover_text(const context::symbol& sym)
+std::string hover_text(const context::symbol& sym)
 {
     if (sym.value().value_kind() == context::symbol_value_kind::UNDEF)
         return "";
@@ -107,7 +107,7 @@ hover_result hover_text(const context::symbol& sym)
     return markdown;
 }
 
-hover_result hover_text(const variable_symbol_definition& sym)
+std::string hover_text(const variable_symbol_definition& sym)
 {
     if (sym.macro_param)
         return "MACRO parameter";
@@ -713,7 +713,7 @@ location_list lsp_context::references(const utils::resource::resource_location& 
     return result;
 }
 
-hover_result lsp_context::hover(const utils::resource::resource_location& document_loc, const position pos) const
+std::string lsp_context::hover(const utils::resource::resource_location& document_loc, const position pos) const
 {
     auto [occ, macro_scope] = find_occurence_with_scope(document_loc, pos);
 
@@ -1022,7 +1022,7 @@ std::optional<location> lsp_context::find_definition_location(
     return std::nullopt;
 }
 
-hover_result lsp_context::find_hover(const symbol_occurence& occ, macro_info_ptr macro_scope_i) const
+std::string lsp_context::find_hover(const symbol_occurence& occ, macro_info_ptr macro_scope_i) const
 {
     switch (occ.kind)
     {

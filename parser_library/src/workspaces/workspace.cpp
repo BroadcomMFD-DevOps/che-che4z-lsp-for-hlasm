@@ -263,7 +263,10 @@ location workspace::definition(const utils::resource::resource_location& documen
     if (opencodes.empty())
         return { pos, document_loc };
     // for now take last opencode
-    return opencodes.back()->get_lsp_feature_provider().definition(document_loc, pos);
+    if (const auto* lsp_context = opencodes.back()->get_lsp_context())
+        return lsp_context->definition(document_loc, pos);
+    else
+        return { pos, document_loc };
 }
 
 location_list workspace::references(const utils::resource::resource_location& document_loc, const position pos) const
@@ -272,16 +275,22 @@ location_list workspace::references(const utils::resource::resource_location& do
     if (opencodes.empty())
         return {};
     // for now take last opencode
-    return opencodes.back()->get_lsp_feature_provider().references(document_loc, pos);
+    if (const auto* lsp_context = opencodes.back()->get_lsp_context())
+        return lsp_context->references(document_loc, pos);
+    else
+        return {};
 }
 
-lsp::hover_result workspace::hover(const utils::resource::resource_location& document_loc, const position pos) const
+std::string workspace::hover(const utils::resource::resource_location& document_loc, const position pos) const
 {
     auto opencodes = find_related_opencodes(document_loc);
     if (opencodes.empty())
         return {};
     // for now take last opencode
-    return opencodes.back()->get_lsp_feature_provider().hover(document_loc, pos);
+    if (const auto* lsp_context = opencodes.back()->get_lsp_context())
+        return lsp_context->hover(document_loc, pos);
+    else
+        return {};
 }
 
 lsp::completion_list_s workspace::completion(const utils::resource::resource_location& document_loc,
@@ -293,7 +302,10 @@ lsp::completion_list_s workspace::completion(const utils::resource::resource_loc
     if (opencodes.empty())
         return {};
     // for now take last opencode
-    return opencodes.back()->get_lsp_feature_provider().completion(document_loc, pos, trigger_char, trigger_kind);
+    if (const auto* lsp_context = opencodes.back()->get_lsp_context())
+        return lsp_context->completion(document_loc, pos, trigger_char, trigger_kind);
+    else
+        return {};
 }
 
 lsp::document_symbol_list_s workspace::document_symbol(
@@ -303,7 +315,10 @@ lsp::document_symbol_list_s workspace::document_symbol(
     if (opencodes.empty())
         return {};
     // for now take last opencode
-    return opencodes.back()->get_lsp_feature_provider().document_symbol(document_loc, limit);
+    if (const auto* lsp_context = opencodes.back()->get_lsp_context())
+        return lsp_context->document_symbol(document_loc, limit);
+    else
+        return {};
 }
 
 void workspace::open()
