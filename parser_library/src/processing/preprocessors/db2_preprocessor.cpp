@@ -790,7 +790,7 @@ class db2_preprocessor : public preprocessor
     // Inherited via preprocessor
     document generate_replacement(document doc) override
     {
-        m_statements.clear();
+        clear_statements();
         m_source_translated = false;
         m_result.clear();
         m_result.reserve(doc.size());

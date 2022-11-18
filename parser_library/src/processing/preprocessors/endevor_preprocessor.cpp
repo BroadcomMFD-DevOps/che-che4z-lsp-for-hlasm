@@ -58,7 +58,7 @@ std::pair<std::string_view, range> get_stmt_part_pair(
     return { name, std::move(r) };
 }
 
-std::unique_ptr<semantics::endevor_statement_si> get_preproc_statement(
+std::shared_ptr<semantics::endevor_statement_si> get_preproc_statement(
     const std::match_results<std::string_view::iterator>& matches, size_t line_no, context::id_storage& ids)
 {
     if (matches.size() != 4)
@@ -79,7 +79,7 @@ std::unique_ptr<semantics::endevor_statement_si> get_preproc_statement(
 
     auto remarks_si = semantics::remarks_si(std::move(remarks_r), std::move(rems));
 
-    return std::make_unique<semantics::endevor_statement_si>(
+    return std::make_shared<semantics::endevor_statement_si>(
         std::move(stmt_r), std::move(inc_range), member, std::move(member_range), std::move(remarks_si), ids);
 }
 } // namespace
@@ -136,7 +136,7 @@ public:
     // Inherited via preprocessor
     document generate_replacement(document doc) override
     {
-        m_statements.clear();
+        clear_statements();
 
         if (std::none_of(doc.begin(), doc.end(), [](const auto& l) {
                 auto text = l.text();
@@ -181,7 +181,7 @@ public:
             {
                 auto stmt = get_preproc_statement(matches, *line_no, m_ids);
                 do_highlighting(*stmt, m_src_proc);
-                m_statements.emplace_back(std::move(stmt));
+                set_statement(std::move(stmt));
             }
         }
 

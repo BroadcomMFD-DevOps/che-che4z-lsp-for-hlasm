@@ -1126,6 +1126,7 @@ public:
     // Inherited via preprocessor
     document generate_replacement(document doc) override
     {
+        clear_statements();
         m_result.clear();
         m_result.reserve(doc.size());
 

@@ -72,23 +72,20 @@ std::unique_ptr<processing::preprocessor> analyzer_options::get_preprocessor(pro
         std::vector<std::unique_ptr<processing::preprocessor>> pp;
         document generate_replacement(document doc) override
         {
+            clear_statements();
+
             for (const auto& p : pp)
                 doc = p->generate_replacement(std::move(doc));
+
             return doc;
         }
 
         std::vector<std::shared_ptr<semantics::preprocessor_statement_si>> take_statements() override
         {
-            std::vector<std::shared_ptr<semantics::preprocessor_statement_si>> stmts;
-
             for (const auto& p : pp)
-            {
-                auto p_stmts = p->take_statements();
-                stmts.insert(
-                    stmts.end(), std::make_move_iterator(p_stmts.begin()), std::make_move_iterator(p_stmts.end()));
-            }
+                set_statements(p->take_statements());
 
-            return stmts;
+            return preprocessor::take_statements();
         }
     } tmp;
 

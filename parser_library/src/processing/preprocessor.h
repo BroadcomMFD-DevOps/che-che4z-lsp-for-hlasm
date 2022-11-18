@@ -80,8 +80,6 @@ public:
     virtual std::vector<std::shared_ptr<semantics::preprocessor_statement_si>> take_statements();
 
 protected:
-    std::vector<std::shared_ptr<semantics::preprocessor_statement_si>> m_statements;
-
     using line_iterator = std::vector<document_line>::const_iterator;
 
     static line_iterator extract_nonempty_logical_line(lexing::logical_line& out,
@@ -89,10 +87,17 @@ protected:
         line_iterator end,
         const lexing::logical_line_extractor_args& opts);
 
+    void clear_statements();
+    void set_statement(std::shared_ptr<semantics::preprocessor_statement_si> stmt);
+    void set_statements(std::vector<std::shared_ptr<semantics::preprocessor_statement_si>> stmts);
+
     static bool is_continued(std::string_view s);
 
     static void do_highlighting(
         const semantics::preprocessor_statement_si& stmt, semantics::source_info_processor& src_proc);
+
+private:
+    std::vector<std::shared_ptr<semantics::preprocessor_statement_si>> m_statements;
 };
 } // namespace hlasm_plugin::parser_library::processing
 
