@@ -114,6 +114,8 @@ public:
     std::vector<std::pair<std::string, size_t>> make_opcode_suggestion(
         const utils::resource::resource_location& file, std::string_view opcode, bool extended);
 
+    static lsp::completion_list_s generate_completion(lsp::completion_list_source cls, const lsp::lsp_context&);
+
 private:
     std::atomic<bool>* cancel_;
 
@@ -150,6 +152,11 @@ private:
     lib_config get_config() const;
 
     workspace_configuration m_configuration;
+
+    static lsp::completion_list_s generate_completion(std::monostate, const lsp::lsp_context&);
+    static lsp::completion_list_s generate_completion(const lsp::vardef_storage*, const lsp::lsp_context&);
+    static lsp::completion_list_s generate_completion(const context::label_storage*, const lsp::lsp_context&);
+    static lsp::completion_list_s generate_completion(lsp::completion_list_instructions, const lsp::lsp_context&);
 };
 
 } // namespace hlasm_plugin::parser_library::workspaces

@@ -19,6 +19,7 @@
 
 #include "context/instruction.h"
 #include "file_manager.h"
+#include "lsp/item_convertors.h"
 #include "utils/bk_tree.h"
 #include "utils/levenshtein_distance.h"
 #include "utils/path.h"
@@ -302,10 +303,75 @@ lsp::completion_list_s workspace::completion(const utils::resource::resource_loc
     if (opencodes.empty())
         return {};
     // for now take last opencode
-    if (const auto* lsp_context = opencodes.back()->get_lsp_context())
-        return lsp_context->completion(document_loc, pos, trigger_char, trigger_kind);
-    else
+    const auto* lsp_context = opencodes.back()->get_lsp_context();
+    if (!lsp_context)
         return {};
+
+    return generate_completion(lsp_context->completion(document_loc, pos, trigger_char, trigger_kind), *lsp_context);
+}
+
+lsp::completion_list_s workspace::generate_completion(lsp::completion_list_source cls, const lsp::lsp_context& ctx)
+{
+    return std::visit([&ctx](auto v) { return generate_completion(std::move(v), ctx); }, std::move(cls));
+}
+
+lsp::completion_list_s workspace::generate_completion(std::monostate, const lsp::lsp_context&)
+{
+    return lsp::completion_list_s();
+}
+
+lsp::completion_list_s workspace::generate_completion(const lsp::vardef_storage* var_defs, const lsp::lsp_context&)
+{
+    lsp::completion_list_s items;
+    for (const auto& vardef : *var_defs)
+    {
+        items.emplace_back(generate_completion_item(vardef));
+    }
+
+    return items;
+}
+
+lsp::completion_list_s workspace::generate_completion(const context::label_storage* seq_syms, const lsp::lsp_context&)
+{
+    lsp::completion_list_s items;
+    items.reserve(seq_syms->size());
+    for (const auto& [_, sym] : *seq_syms)
+    {
+        items.emplace_back(lsp::generate_completion_item(*sym));
+    }
+    return items;
+}
+
+lsp::completion_list_s workspace::generate_completion(
+    lsp::completion_list_instructions cli, const lsp::lsp_context& lsp_context)
+{
+    lsp::completion_list_s result;
+
+    const auto& hlasm_ctx = lsp_context.get_related_hlasm_context();
+
+    // Store only instructions from the currently active instruction set
+    for (const auto& instr : lsp::completion_item_s::m_instruction_completion_items)
+    {
+        auto id = hlasm_ctx.ids().find(instr.label);
+        // TODO: we could provide more precise results here if actual generation is provided
+        if (id.has_value() && hlasm_ctx.find_opcode_mnemo(id.value(), context::opcode_generation::zero))
+        {
+            auto& i = result.emplace_back(instr);
+            if (auto space = i.insert_text.find(' '); space != std::string::npos)
+            {
+                if (auto col_pos = cli.completed_text_start_column + space; col_pos < 15)
+                    i.insert_text.insert(i.insert_text.begin() + space, 15 - col_pos, ' ');
+            }
+        }
+    }
+
+    for (const auto& [_, macro_i] : *cli.macros)
+    {
+        result.emplace_back(
+            generate_completion_item(*macro_i, lsp_context.get_file_info(macro_i->definition_location.resource_loc)));
+    }
+
+    return result;
 }
 
 lsp::document_symbol_list_s workspace::document_symbol(

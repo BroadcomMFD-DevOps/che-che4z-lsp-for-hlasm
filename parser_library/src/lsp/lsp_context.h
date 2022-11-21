@@ -16,6 +16,7 @@
 #define LSP_CONTEXT_H
 
 #include <algorithm>
+#include <variant>
 
 #include "completion_item.h"
 #include "document_symbol_item.h"
@@ -24,6 +25,16 @@
 #include "opencode_info.h"
 
 namespace hlasm_plugin::parser_library::lsp {
+
+struct completion_list_instructions
+{
+    std::string_view completed_text;
+    size_t completed_text_start_column;
+    const std::unordered_map<context::macro_def_ptr, macro_info_ptr>* macros;
+};
+
+using completion_list_source =
+    std::variant<std::monostate, const vardef_storage*, const context::label_storage*, completion_list_instructions>;
 
 class lsp_context final
 {
@@ -66,12 +77,14 @@ public:
     location definition(const utils::resource::resource_location& document_loc, position pos) const;
     location_list references(const utils::resource::resource_location& document_loc, position pos) const;
     std::string hover(const utils::resource::resource_location& document_loc, position pos) const;
-    completion_list_s completion(const utils::resource::resource_location& document_uri,
+    completion_list_source completion(const utils::resource::resource_location& document_uri,
         position pos,
         char trigger_char,
         completion_trigger_kind trigger_kind) const;
     document_symbol_list_s document_symbol(
         const utils::resource::resource_location& document_loc, long long limit) const;
+
+    const context::hlasm_context& get_related_hlasm_context() const { return *m_hlasm_ctx; }
 
 private:
     void add_file(file_info file_i);
@@ -84,13 +97,11 @@ private:
     std::optional<location> find_definition_location(const symbol_occurence& occ, macro_info_ptr macro_i) const;
     std::string find_hover(const symbol_occurence& occ, macro_info_ptr macro_i) const;
 
-    completion_list_s complete_var(const file_info& file, position pos) const;
-    completion_list_s complete_seq(const file_info& file, position pos) const;
-    completion_list_s complete_instr(const file_info& file, position pos) const;
+    completion_list_source complete_var(const file_info& file, position pos) const;
+    completion_list_source complete_seq(const file_info& file, position pos) const;
+    completion_list_source complete_instr(const file_info& file, position pos) const;
 
-    bool is_continued_line(std::string_view line) const;
     bool should_complete_instr(const text_data_ref_t& text, position pos) const;
-    std::string get_macro_documentation(const macro_info& m) const;
 
     void document_symbol_macro(document_symbol_list_s& result,
         const utils::resource::resource_location& document_loc,
