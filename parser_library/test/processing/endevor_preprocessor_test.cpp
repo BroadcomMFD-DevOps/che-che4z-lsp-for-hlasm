@@ -94,7 +94,7 @@ TEST_F(endevor_preprocessor_test, cycle)
     auto p = create_preprocessor([&callback_count = m_callback_count](std::string_view s) {
         EXPECT_EQ(s, "AAA");
         ++callback_count;
-        return std::string("-INC AAA");
+        return std::string("-INC AaA");
     });
 
     auto result = p->generate_replacement(document("++INCLUDE AAA"));
@@ -132,7 +132,7 @@ TESTVAL EQU 42
 )" },
     });
     std::string input = R"(
--INC MEMBER
+-INC MeMbEr
 )";
 
     analyzer a(input, analyzer_options { &libs, endevor_preprocessor_options {} });

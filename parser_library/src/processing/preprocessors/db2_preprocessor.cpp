@@ -234,12 +234,14 @@ class db2_preprocessor : public preprocessor
 
     void process_include(std::string_view operands, size_t lineno)
     {
-        if (operands == "SQLCA")
+        auto operands_upper = context::to_upper_copy(std::string(operands));
+
+        if (operands_upper == "SQLCA")
         {
             inject_SQLCA();
             return;
         }
-        if (operands == "SQLDA")
+        if (operands_upper == "SQLDA")
         {
             inject_SQLDA();
             return;
@@ -248,7 +250,7 @@ class db2_preprocessor : public preprocessor
 
         std::optional<std::string> include_text;
         if (m_libs)
-            include_text = m_libs(operands);
+            include_text = m_libs(operands_upper);
         if (!include_text.has_value())
         {
             if (m_diags)

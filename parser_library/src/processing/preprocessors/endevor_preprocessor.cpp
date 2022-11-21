@@ -94,7 +94,11 @@ class endevor_preprocessor : public preprocessor
 
     bool process_member(std::string_view member, std::vector<stack_entry>& stack) const
     {
-        if (std::any_of(stack.begin(), stack.end(), [&member](const auto& e) { return e.name == member; }))
+        std::string member_upper = context::to_upper_copy(std::string(member));
+
+        if (std::any_of(stack.begin(), stack.end(), [member = std::string_view(member_upper)](const auto& e) {
+                return e.name == member;
+            }))
         {
             if (m_diags)
                 m_diags->add_diagnostic(diagnostic_op::error_END002(
@@ -102,7 +106,7 @@ class endevor_preprocessor : public preprocessor
             return false;
         }
 
-        if (auto lib = m_libs(member); !lib.has_value())
+        if (auto lib = m_libs(member_upper); !lib.has_value())
         {
             if (m_diags)
                 m_diags->add_diagnostic(diagnostic_op::error_END001(
@@ -114,7 +118,7 @@ class endevor_preprocessor : public preprocessor
         {
             document member_doc(lib.value());
             member_doc.convert_to_replaced();
-            stack.emplace_back(std::string(member), std::move(member_doc));
+            stack.emplace_back(std::move(member_upper), std::move(member_doc));
         }
 
         return true;

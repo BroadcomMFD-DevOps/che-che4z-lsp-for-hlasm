@@ -111,7 +111,7 @@ TEST_F(db2_preprocessor_test, include_sqlca)
             return std::nullopt;
         },
         nullptr);
-    std::string_view text = "\n EXEC SQL INCLUDE SQLCA ";
+    std::string_view text = "\n EXEC SQL INCLUDE SqLcA ";
 
     auto result = p->generate_replacement(document(text));
 
@@ -131,7 +131,7 @@ TEST_F(db2_preprocessor_test, include_sqlda)
             return std::nullopt;
         },
         nullptr);
-    std::string_view text = "\n EXEC SQL INCLUDE SQLDA ";
+    std::string_view text = "\n EXEC SQL INCLUDE SqLdA ";
 
     auto result = p->generate_replacement(document(text));
 
@@ -361,6 +361,22 @@ TEST(db2_preprocessor, include_empty)
         { "MEMBER", "" },
     });
     std::string input = " EXEC SQL INCLUDE MEMBER ";
+
+    analyzer a(input, analyzer_options { &libs, db2_preprocessor_options {} });
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_EQ(a.diags().size(), (size_t)0);
+
+    EXPECT_TRUE(a.hlasm_ctx().get_visited_files().count(member_loc));
+}
+
+TEST(db2_preprocessor, include_insensitive)
+{
+    mock_parse_lib_provider libs({
+        { "MEMBER", "" },
+    });
+    std::string input = " EXEC SQL INCLUDE MeMbEr";
 
     analyzer a(input, analyzer_options { &libs, db2_preprocessor_options {} });
     a.analyze();
