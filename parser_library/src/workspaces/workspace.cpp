@@ -297,7 +297,7 @@ std::string workspace::hover(const utils::resource::resource_location& document_
 lsp::completion_list_s workspace::completion(const utils::resource::resource_location& document_loc,
     position pos,
     const char trigger_char,
-    completion_trigger_kind trigger_kind) const
+    completion_trigger_kind trigger_kind)
 {
     auto opencodes = find_related_opencodes(document_loc);
     if (opencodes.empty())
@@ -307,20 +307,36 @@ lsp::completion_list_s workspace::completion(const utils::resource::resource_loc
     if (!lsp_context)
         return {};
 
-    return generate_completion(lsp_context->completion(document_loc, pos, trigger_char, trigger_kind), *lsp_context);
+    return generate_completion(lsp_context->completion(document_loc, pos, trigger_char, trigger_kind),
+        *lsp_context,
+        [&document_loc, this](std::string_view opcode) {
+            auto suggestions = make_opcode_suggestion(document_loc, opcode, true);
+            std::vector<std::string> result;
+            std::transform(suggestions.begin(), suggestions.end(), std::back_inserter(result), [](auto& e) {
+                return std::move(e.first);
+            });
+            return result;
+        });
 }
 
-lsp::completion_list_s workspace::generate_completion(lsp::completion_list_source cls, const lsp::lsp_context& ctx)
+lsp::completion_list_s workspace::generate_completion(lsp::completion_list_source cls,
+    const lsp::lsp_context& ctx,
+    std::function<std::vector<std::string>(std::string_view)> instruction_suggestions)
 {
-    return std::visit([&ctx](auto v) { return generate_completion(std::move(v), ctx); }, std::move(cls));
+    return std::visit([&ctx, &instruction_suggestions](
+                          auto v) { return generate_completion(std::move(v), ctx, instruction_suggestions); },
+        std::move(cls));
 }
 
-lsp::completion_list_s workspace::generate_completion(std::monostate, const lsp::lsp_context&)
+lsp::completion_list_s workspace::generate_completion(
+    std::monostate, const lsp::lsp_context&, const std::function<std::vector<std::string>(std::string_view)>&)
 {
     return lsp::completion_list_s();
 }
 
-lsp::completion_list_s workspace::generate_completion(const lsp::vardef_storage* var_defs, const lsp::lsp_context&)
+lsp::completion_list_s workspace::generate_completion(const lsp::vardef_storage* var_defs,
+    const lsp::lsp_context&,
+    const std::function<std::vector<std::string>(std::string_view)>&)
 {
     lsp::completion_list_s items;
     for (const auto& vardef : *var_defs)
@@ -331,7 +347,9 @@ lsp::completion_list_s workspace::generate_completion(const lsp::vardef_storage*
     return items;
 }
 
-lsp::completion_list_s workspace::generate_completion(const context::label_storage* seq_syms, const lsp::lsp_context&)
+lsp::completion_list_s workspace::generate_completion(const context::label_storage* seq_syms,
+    const lsp::lsp_context&,
+    const std::function<std::vector<std::string>(std::string_view)>&)
 {
     lsp::completion_list_s items;
     items.reserve(seq_syms->size());
@@ -342,12 +360,17 @@ lsp::completion_list_s workspace::generate_completion(const context::label_stora
     return items;
 }
 
-lsp::completion_list_s workspace::generate_completion(
-    lsp::completion_list_instructions cli, const lsp::lsp_context& lsp_context)
+lsp::completion_list_s workspace::generate_completion(lsp::completion_list_instructions cli,
+    const lsp::lsp_context& lsp_context,
+    const std::function<std::vector<std::string>(std::string_view)>& instruction_suggestions)
 {
     lsp::completion_list_s result;
 
     const auto& hlasm_ctx = lsp_context.get_related_hlasm_context();
+
+    auto suggestions = !cli.completed_text.empty() && instruction_suggestions
+        ? instruction_suggestions(cli.completed_text)
+        : std::vector<std::string>();
 
     // Store only instructions from the currently active instruction set
     for (const auto& instr : lsp::completion_item_s::m_instruction_completion_items)
@@ -362,13 +385,21 @@ lsp::completion_list_s workspace::generate_completion(
                 if (auto col_pos = cli.completed_text_start_column + space; col_pos < 15)
                     i.insert_text.insert(i.insert_text.begin() + space, 15 - col_pos, ' ');
             }
+            if (std::find(suggestions.begin(), suggestions.end(), i.label) != suggestions.end())
+            {
+                i.suggestion_for = cli.completed_text;
+            }
         }
     }
 
     for (const auto& [_, macro_i] : *cli.macros)
     {
-        result.emplace_back(
+        auto& i = result.emplace_back(
             generate_completion_item(*macro_i, lsp_context.get_file_info(macro_i->definition_location.resource_loc)));
+        if (std::find(suggestions.begin(), suggestions.end(), i.label) != suggestions.end())
+        {
+            i.suggestion_for = cli.completed_text;
+        }
     }
 
     return result;
@@ -467,30 +498,46 @@ constexpr const utils::bk_tree<std::string_view, utils::levenshtein_distance_t<1
 };
 
 std::vector<std::pair<std::string, size_t>> generate_instruction_suggestions(
-    std::string_view opcode, instruction_set_version set)
+    std::string_view opcode, instruction_set_version set, bool extended)
 {
-    std::vector<std::pair<std::string, size_t>> result;
-
     const auto iset_id = static_cast<int>(set);
     assert(0 < iset_id && iset_id <= static_cast<int>(instruction_set_version::UNI));
 
-    for (const auto& [suggestion, distance] : instruction_bk_trees[iset_id]().find<2>(opcode, 3))
-    {
-        if (!suggestion)
-            break;
-        if (distance == 0)
-            break;
-        result.emplace_back(*suggestion, distance);
-    }
+    constexpr auto process = [](std::span<const std::pair<const std::string_view*, size_t>> suggestions) {
+        std::vector<std::pair<std::string, size_t>> result;
+        for (const auto& [suggestion, distance] : suggestions)
+        {
+            if (!suggestion)
+                break;
+            if (distance == 0)
+                break;
+            result.emplace_back(*suggestion, distance);
+        }
 
-    return result;
+        return result;
+    };
+
+    if (extended)
+    {
+        auto suggestion = instruction_bk_trees[iset_id]().find<10>(opcode, 4);
+        return process(suggestion);
+    }
+    else
+    {
+        auto suggestion = instruction_bk_trees[iset_id]().find<3>(opcode, 3);
+        return process(suggestion);
+    }
 }
 
 } // namespace
 
 std::vector<std::pair<std::string, size_t>> workspace::make_opcode_suggestion(
-    const utils::resource::resource_location& file, std::string_view opcode, bool extended)
+    const utils::resource::resource_location& file, std::string_view opcode_, bool extended)
 {
+    std::string opcode(opcode_);
+    for (auto& c : opcode)
+        c = static_cast<char>(std::toupper((unsigned char)c));
+
     std::vector<std::pair<std::string, size_t>> result;
 
     asm_option opts;
@@ -507,7 +554,7 @@ std::vector<std::pair<std::string, size_t>> workspace::make_opcode_suggestion(
         implicit_proc_grp.apply_options_to(opts);
     }
 
-    for (auto&& s : generate_instruction_suggestions(opcode, opts.instr_set))
+    for (auto&& s : generate_instruction_suggestions(opcode, opts.instr_set, extended))
         result.emplace_back(std::move(s));
     std::stable_sort(result.begin(), result.end(), [](const auto& l, const auto& r) { return l.second < r.second; });
 

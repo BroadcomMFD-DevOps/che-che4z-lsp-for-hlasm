@@ -16,6 +16,7 @@
 #define HLASMPLUGIN_PARSERLIBRARY_WORKSPACE_H
 
 #include <atomic>
+#include <functional>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -83,7 +84,7 @@ public:
     lsp::completion_list_s completion(const utils::resource::resource_location& document_loc,
         position pos,
         char trigger_char,
-        completion_trigger_kind trigger_kind) const;
+        completion_trigger_kind trigger_kind);
     lsp::document_symbol_list_s document_symbol(
         const utils::resource::resource_location& document_loc, long long limit) const;
 
@@ -114,7 +115,9 @@ public:
     std::vector<std::pair<std::string, size_t>> make_opcode_suggestion(
         const utils::resource::resource_location& file, std::string_view opcode, bool extended);
 
-    static lsp::completion_list_s generate_completion(lsp::completion_list_source cls, const lsp::lsp_context&);
+    static lsp::completion_list_s generate_completion(lsp::completion_list_source cls,
+        const lsp::lsp_context& ctx,
+        std::function<std::vector<std::string>(std::string_view)> instruction_suggestions = {});
 
 private:
     std::atomic<bool>* cancel_;
@@ -153,10 +156,18 @@ private:
 
     workspace_configuration m_configuration;
 
-    static lsp::completion_list_s generate_completion(std::monostate, const lsp::lsp_context&);
-    static lsp::completion_list_s generate_completion(const lsp::vardef_storage*, const lsp::lsp_context&);
-    static lsp::completion_list_s generate_completion(const context::label_storage*, const lsp::lsp_context&);
-    static lsp::completion_list_s generate_completion(lsp::completion_list_instructions, const lsp::lsp_context&);
+    static lsp::completion_list_s generate_completion(std::monostate,
+        const lsp::lsp_context&,
+        const std::function<std::vector<std::string>(std::string_view)>& instruction_suggestions);
+    static lsp::completion_list_s generate_completion(const lsp::vardef_storage*,
+        const lsp::lsp_context&,
+        const std::function<std::vector<std::string>(std::string_view)>& instruction_suggestions);
+    static lsp::completion_list_s generate_completion(const context::label_storage*,
+        const lsp::lsp_context&,
+        const std::function<std::vector<std::string>(std::string_view)>& instruction_suggestions);
+    static lsp::completion_list_s generate_completion(lsp::completion_list_instructions,
+        const lsp::lsp_context&,
+        const std::function<std::vector<std::string>(std::string_view)>& instruction_suggestions);
 };
 
 } // namespace hlasm_plugin::parser_library::workspaces
