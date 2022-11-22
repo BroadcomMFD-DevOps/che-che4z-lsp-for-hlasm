@@ -337,7 +337,7 @@ lsp::completion_list_s workspace::generate_completion(
     lsp::completion_list_s items;
     for (const auto& vardef : *var_defs)
     {
-        items.emplace_back(generate_completion_item(vardef));
+        items.emplace_back(lsp::generate_completion_item(vardef));
     }
 
     return items;
@@ -390,8 +390,8 @@ lsp::completion_list_s workspace::generate_completion(const lsp::completion_list
 
     for (const auto& [_, macro_i] : *cli.macros)
     {
-        auto& i = result.emplace_back(
-            generate_completion_item(*macro_i, cli.lsp_ctx->get_file_info(macro_i->definition_location.resource_loc)));
+        auto& i = result.emplace_back(lsp::generate_completion_item(
+            *macro_i, cli.lsp_ctx->get_file_info(macro_i->definition_location.resource_loc)));
         if (std::find(suggestions.begin(), suggestions.end(), i.label) != suggestions.end())
         {
             i.suggestion_for = cli.completed_text;
