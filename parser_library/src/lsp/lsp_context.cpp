@@ -679,6 +679,7 @@ completion_list_source lsp_context::complete_instr(const file_info& fi, position
     auto& value = std::get<completion_list_instructions>(result);
 
     value.completed_text = fi.data.get_line(pos.line).substr(0, pos.column);
+    value.lsp_ctx = this;
 
     if (auto completion_start = value.completed_text.rfind(' '); completion_start == std::string_view::npos)
         value.completed_text_start_column = pos.column;

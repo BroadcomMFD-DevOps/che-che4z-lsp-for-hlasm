@@ -582,8 +582,7 @@ TEST(workspace, completion_list_instr)
     m.try_emplace(aaaa->macro_definition, aaaa);
 
     auto result = workspace::generate_completion(
-        lsp::completion_list_source(lsp::completion_list_instructions { "AAAAA", 1, &m }),
-        a.context().lsp_ctx.get(),
+        lsp::completion_list_source(lsp::completion_list_instructions { "AAAAA", 1, &m, a.context().lsp_ctx.get() }),
         [](std::string_view v) -> std::vector<std::string> {
             if (v == "AAAAA")
                 return { "AAAA", "ADATA" };

@@ -116,7 +116,6 @@ public:
         const utils::resource::resource_location& file, std::string_view opcode, bool extended);
 
     static lsp::completion_list_s generate_completion(const lsp::completion_list_source& cls,
-        const lsp::lsp_context* ctx = nullptr,
         std::function<std::vector<std::string>(std::string_view)> instruction_suggestions = {});
 
 private:
@@ -156,17 +155,13 @@ private:
 
     workspace_configuration m_configuration;
 
-    static lsp::completion_list_s generate_completion(std::monostate,
-        const lsp::lsp_context*,
-        const std::function<std::vector<std::string>(std::string_view)>& instruction_suggestions);
+    static lsp::completion_list_s generate_completion(
+        std::monostate, const std::function<std::vector<std::string>(std::string_view)>& instruction_suggestions);
     static lsp::completion_list_s generate_completion(const lsp::vardef_storage*,
-        const lsp::lsp_context*,
         const std::function<std::vector<std::string>(std::string_view)>& instruction_suggestions);
     static lsp::completion_list_s generate_completion(const context::label_storage*,
-        const lsp::lsp_context*,
         const std::function<std::vector<std::string>(std::string_view)>& instruction_suggestions);
     static lsp::completion_list_s generate_completion(const lsp::completion_list_instructions&,
-        const lsp::lsp_context*,
         const std::function<std::vector<std::string>(std::string_view)>& instruction_suggestions);
 };
 

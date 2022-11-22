@@ -26,11 +26,14 @@
 
 namespace hlasm_plugin::parser_library::lsp {
 
+class lsp_context;
+
 struct completion_list_instructions
 {
     std::string_view completed_text;
     size_t completed_text_start_column;
     const std::unordered_map<context::macro_def_ptr, macro_info_ptr>* macros;
+    const lsp_context* lsp_ctx;
 };
 
 using completion_list_source =

@@ -308,7 +308,6 @@ lsp::completion_list_s workspace::completion(const utils::resource::resource_loc
         return {};
 
     return generate_completion(lsp_context->completion(document_loc, pos, trigger_char, trigger_kind),
-        lsp_context,
         [&document_loc, this](std::string_view opcode) {
             auto suggestions = make_opcode_suggestion(document_loc, opcode, true);
             std::vector<std::string> result;
@@ -320,22 +319,20 @@ lsp::completion_list_s workspace::completion(const utils::resource::resource_loc
 }
 
 lsp::completion_list_s workspace::generate_completion(const lsp::completion_list_source& cls,
-    const lsp::lsp_context* ctx,
     std::function<std::vector<std::string>(std::string_view)> instruction_suggestions)
 {
     return std::visit(
-        [ctx, &instruction_suggestions](auto v) { return generate_completion(v, ctx, instruction_suggestions); }, cls);
+        [&instruction_suggestions](auto v) { return generate_completion(v, instruction_suggestions); }, cls);
 }
 
 lsp::completion_list_s workspace::generate_completion(
-    std::monostate, const lsp::lsp_context*, const std::function<std::vector<std::string>(std::string_view)>&)
+    std::monostate, const std::function<std::vector<std::string>(std::string_view)>&)
 {
     return lsp::completion_list_s();
 }
 
-lsp::completion_list_s workspace::generate_completion(const lsp::vardef_storage* var_defs,
-    const lsp::lsp_context*,
-    const std::function<std::vector<std::string>(std::string_view)>&)
+lsp::completion_list_s workspace::generate_completion(
+    const lsp::vardef_storage* var_defs, const std::function<std::vector<std::string>(std::string_view)>&)
 {
     lsp::completion_list_s items;
     for (const auto& vardef : *var_defs)
@@ -346,9 +343,8 @@ lsp::completion_list_s workspace::generate_completion(const lsp::vardef_storage*
     return items;
 }
 
-lsp::completion_list_s workspace::generate_completion(const context::label_storage* seq_syms,
-    const lsp::lsp_context*,
-    const std::function<std::vector<std::string>(std::string_view)>&)
+lsp::completion_list_s workspace::generate_completion(
+    const context::label_storage* seq_syms, const std::function<std::vector<std::string>(std::string_view)>&)
 {
     lsp::completion_list_s items;
     items.reserve(seq_syms->size());
@@ -360,16 +356,13 @@ lsp::completion_list_s workspace::generate_completion(const context::label_stora
 }
 
 lsp::completion_list_s workspace::generate_completion(const lsp::completion_list_instructions& cli,
-    const lsp::lsp_context* lsp_context,
     const std::function<std::vector<std::string>(std::string_view)>& instruction_suggestions)
 {
     lsp::completion_list_s result;
 
-    if (!lsp_context)
-        return result;
+    assert(cli.lsp_ctx);
 
-
-    const auto& hlasm_ctx = lsp_context->get_related_hlasm_context();
+    const auto& hlasm_ctx = cli.lsp_ctx->get_related_hlasm_context();
 
     auto suggestions = !cli.completed_text.empty() && instruction_suggestions
         ? instruction_suggestions(cli.completed_text)
@@ -398,7 +391,7 @@ lsp::completion_list_s workspace::generate_completion(const lsp::completion_list
     for (const auto& [_, macro_i] : *cli.macros)
     {
         auto& i = result.emplace_back(
-            generate_completion_item(*macro_i, lsp_context->get_file_info(macro_i->definition_location.resource_loc)));
+            generate_completion_item(*macro_i, cli.lsp_ctx->get_file_info(macro_i->definition_location.resource_loc)));
         if (std::find(suggestions.begin(), suggestions.end(), i.label) != suggestions.end())
         {
             i.suggestion_for = cli.completed_text;
