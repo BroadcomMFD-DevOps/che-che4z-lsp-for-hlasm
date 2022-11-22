@@ -84,7 +84,7 @@ std::shared_ptr<semantics::endevor_statement_si> get_preproc_statement(
 }
 } // namespace
 
-class endevor_preprocessor : public preprocessor
+class endevor_preprocessor final : public preprocessor
 {
     library_fetcher m_libs;
     diagnostic_op_consumer* m_diags = nullptr;

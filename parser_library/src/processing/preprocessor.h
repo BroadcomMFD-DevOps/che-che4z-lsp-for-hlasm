@@ -80,6 +80,10 @@ public:
     virtual std::vector<std::shared_ptr<semantics::preprocessor_statement_si>> take_statements();
 
 protected:
+    preprocessor() = default;
+    preprocessor(const preprocessor&) = default;
+    preprocessor(preprocessor&&) = default;
+
     using line_iterator = std::vector<document_line>::const_iterator;
 
     static line_iterator extract_nonempty_logical_line(lexing::logical_line& out,

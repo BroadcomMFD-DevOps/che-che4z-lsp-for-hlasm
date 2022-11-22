@@ -832,7 +832,7 @@ public:
     }
 };
 
-class cics_preprocessor : public preprocessor
+class cics_preprocessor final : public preprocessor
 {
     lexing::logical_line m_logical_line;
     std::string m_operands;

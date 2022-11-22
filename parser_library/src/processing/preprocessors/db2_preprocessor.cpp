@@ -45,7 +45,7 @@ namespace hlasm_plugin::parser_library::processing {
 namespace {
 using utils::concat;
 
-class db2_preprocessor : public preprocessor
+class db2_preprocessor final : public preprocessor
 {
     lexing::logical_line m_logical_line;
     std::string m_operands;
