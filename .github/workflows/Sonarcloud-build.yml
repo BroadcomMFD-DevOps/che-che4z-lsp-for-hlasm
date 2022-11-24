@@ -63,7 +63,7 @@ jobs:
           LLVM_PROFILE_FILE="server.rawprof" ./server_test
           LLVM_PROFILE_FILE="utils.rawprof" ./hlasm_utils_test
       - name: Extension Test
-        uses: GabrielBB/xvfb-action@v1.0
+        uses: GabrielBB/xvfb-action@v1
         with:
           run: npx c8 --reporter=lcovonly --allowExternal --exclude='**/.vscode-test/**' --exclude='**/test/**' --exclude='**/build/**' npm test
           working-directory: clients/vscode-hlasmplugin
