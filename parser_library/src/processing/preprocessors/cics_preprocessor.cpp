@@ -20,6 +20,7 @@
 
 #include "lexing/logical_line.h"
 #include "preprocessor_options.h"
+#include "preprocessor_utils.h"
 #include "processing/preprocessor.h"
 #include "semantics/source_info_processor.h"
 #include "semantics/statement.h"

@@ -17,6 +17,7 @@
 #include <vector>
 
 #include "preprocessor_options.h"
+#include "preprocessor_utils.h"
 #include "processing/preprocessor.h"
 #include "semantics/collector.h"
 #include "semantics/source_info_processor.h"
