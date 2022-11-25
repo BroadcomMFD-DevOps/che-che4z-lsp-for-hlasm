@@ -204,3 +204,36 @@ TEST(virtual_files, workspace_auto_cleanup)
 )";
     wm.did_open_file("ws/file", 1, input.data(), input.size());
 }
+
+TEST(virtual_files, hover)
+{
+    class diag_consumer_mock : public diagnostics_consumer
+    {
+    public:
+        // Inherited via diagnostics_consumer
+        void consume_diagnostics(diagnostic_list diagnostics) override { diags = diagnostics; }
+
+        diagnostic_list diags;
+    } diag_mock;
+
+    workspace_manager wm;
+    wm.add_workspace("ws", "ws");
+    std::string_view input = R"(
+MY  DSECT
+    DS  F
+    AINSERT 'A DC H',BACK
+)";
+    wm.register_diagnostics_consumer(&diag_mock);
+    wm.did_open_file("ws/file", 1, input.data(), input.size());
+
+    ASSERT_EQ(diag_mock.diags.diagnostics_size(), 1);
+
+    auto diag = diag_mock.diags.diagnostics(0);
+    std::string vf = diag.file_uri();
+
+    ASSERT_TRUE(vf.starts_with("hlasm://"));
+
+    std::string hover_text(wm.hover(vf.c_str(), position(0, 0)));
+
+    EXPECT_NE(hover_text.find("MY + X'4' (4)"), std::string::npos);
+}
