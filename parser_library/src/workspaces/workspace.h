@@ -96,7 +96,6 @@ public:
     virtual std::vector<preprocessor_options> get_preprocessor_options(
         const utils::resource::resource_location& file_location) const;
     const ws_uri& uri() const;
-    const utils::resource::resource_location& location() const;
 
     void open();
     void close();

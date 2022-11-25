@@ -106,7 +106,6 @@ void workspace::show_message(const std::string& message)
 lib_config workspace::get_config() const { return m_configuration.get_config().fill_missing_settings(global_config_); }
 
 const ws_uri& workspace::uri() const { return location_.get_uri(); }
-const utils::resource::resource_location& workspace::location() const { return location_; }
 
 void workspace::reparse_after_config_refresh()
 {
