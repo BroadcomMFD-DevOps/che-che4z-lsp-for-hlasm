@@ -179,19 +179,19 @@ struct preprocessor_statement_si
     context::id_index m_resemblance;
 
     preprocessor_statement_si(preproc_details details, context::id_index resemblence)
-        : m_details(details)
+        : m_details(std::move(details))
         , m_resemblance(resemblence)
     {}
 };
 
 struct endevor_statement_si : public preprocessor_statement_si
 {
-    endevor_statement_si(preproc_details details);
+    explicit endevor_statement_si(preproc_details details);
 };
 
 struct cics_statement_si : public preprocessor_statement_si
 {
-    cics_statement_si(preproc_details details);
+    explicit cics_statement_si(preproc_details details);
 };
 
 } // namespace hlasm_plugin::parser_library::semantics

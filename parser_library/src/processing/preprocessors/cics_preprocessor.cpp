@@ -1097,7 +1097,7 @@ public:
         inject_call(label_b, label_e, li);
     }
 
-    static bool is_command_present(std::match_results<lexing::logical_line::const_iterator> matches)
+    static bool is_command_present(const std::match_results<lexing::logical_line::const_iterator>& matches)
     {
         return matches[3].matched;
     }
