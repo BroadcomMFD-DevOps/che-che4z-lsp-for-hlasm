@@ -32,7 +32,7 @@ const resource_location mac_loc("MAC");
 const resource_location source_loc("OPEN");
 const resource_location member_loc("MEMBER");
 const resource_location member2_loc("MEMBER2");
-const resource_location preproc5_loc("PREPROCESSOR:5.hlasm");
+const resource_location preproc5_loc("PREPROCESSOR_5.hlasm");
 } // namespace
 
 class lsp_context_endevor_preprocessor_test : public testing::Test
