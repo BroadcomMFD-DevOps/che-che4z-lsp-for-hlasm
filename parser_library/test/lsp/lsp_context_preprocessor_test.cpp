@@ -12,6 +12,8 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
+#include <algorithm>
+
 #include "gtest/gtest.h"
 
 #include "../mock_parse_lib_provider.h"
@@ -56,6 +58,13 @@ protected:
     analyzer a;
 };
 
+namespace {
+static bool has_same_content(const location_list& a, const location_list& b)
+{
+    return std::is_permutation(a.begin(), a.end(), b.begin(), b.end());
+}
+} // namespace
+
 TEST_F(lsp_context_endevor_preprocessor_test, go_to)
 {
     // no jump, instr -INC
@@ -82,32 +91,43 @@ TEST_F(lsp_context_endevor_preprocessor_test, go_to)
 
 TEST_F(lsp_context_endevor_preprocessor_test, refs)
 {
-    location_list expected_inc_locations {
-        location(position(1, 0), source_loc), location(position(2, 0), source_loc), location(position(3, 0), source_loc)
+    const location_list expected_inc_locations {
+        location(position(1, 0), source_loc),
+        location(position(2, 0), source_loc),
+        location(position(3, 0), source_loc),
     };
-    location_list expected_member_locations { location(position(1, 6), source_loc),
-        location(position(2, 11), source_loc) };
-    location_list expected_member2_locations { location(position(3, 6), source_loc) };
-    location_list expected_blabla_locations {};
+    const location_list expected_member_locations {
+        location(position(1, 6), source_loc),
+        location(position(2, 11), source_loc),
+    };
+    const location_list expected_member2_locations {
+        location(position(3, 6), source_loc),
+    };
+    const location_list expected_blabla_locations {};
 
     // -INC/++INCLUDE reference
-    EXPECT_EQ(expected_inc_locations, a.context().lsp_ctx->references(source_loc, position(1, 1)));
+    EXPECT_TRUE(has_same_content(expected_inc_locations, a.context().lsp_ctx->references(source_loc, position(1, 1))));
     // -INC/++INCLUDE reference
-    EXPECT_EQ(expected_inc_locations, a.context().lsp_ctx->references(source_loc, position(2, 5)));
+    EXPECT_TRUE(has_same_content(expected_inc_locations, a.context().lsp_ctx->references(source_loc, position(2, 5))));
     // -INC/++INCLUDE reference
-    EXPECT_EQ(expected_inc_locations, a.context().lsp_ctx->references(source_loc, position(3, 2)));
+    EXPECT_TRUE(has_same_content(expected_inc_locations, a.context().lsp_ctx->references(source_loc, position(3, 2))));
 
     // MEMBER reference
-    EXPECT_EQ(expected_member_locations, a.context().lsp_ctx->references(source_loc, position(1, 8)));
+    EXPECT_TRUE(
+        has_same_content(expected_member_locations, a.context().lsp_ctx->references(source_loc, position(1, 8))));
     // MEMBER reference
-    EXPECT_EQ(expected_member_locations, a.context().lsp_ctx->references(source_loc, position(2, 14)));
+    EXPECT_TRUE(
+        has_same_content(expected_member_locations, a.context().lsp_ctx->references(source_loc, position(2, 14))));
     // MEMBER reference
-    EXPECT_EQ(expected_member2_locations, a.context().lsp_ctx->references(source_loc, position(3, 8)));
+    EXPECT_TRUE(
+        has_same_content(expected_member2_locations, a.context().lsp_ctx->references(source_loc, position(3, 8))));
 
     // blabla reference
-    EXPECT_EQ(expected_blabla_locations, a.context().lsp_ctx->references(source_loc, position(1, 15)));
+    EXPECT_TRUE(
+        has_same_content(expected_blabla_locations, a.context().lsp_ctx->references(source_loc, position(1, 15))));
     // blabla reference
-    EXPECT_EQ(expected_blabla_locations, a.context().lsp_ctx->references(source_loc, position(2, 21)));
+    EXPECT_TRUE(
+        has_same_content(expected_blabla_locations, a.context().lsp_ctx->references(source_loc, position(2, 21))));
 }
 
 class lsp_context_cics_preprocessor_test : public testing::Test
@@ -189,22 +209,30 @@ TEST_F(lsp_context_cics_preprocessor_test, refs_exec_cics)
     };
 
     // EXEC CICS ABEND reference
-    EXPECT_EQ(expected_exec_cics_abend_locations, a.context().lsp_ctx->references(source_loc, position(1, 7)));
+    EXPECT_TRUE(has_same_content(
+        expected_exec_cics_abend_locations, a.context().lsp_ctx->references(source_loc, position(1, 7))));
     // ABCODE reference
-    EXPECT_EQ(expected_abcode_locations, a.context().lsp_ctx->references(source_loc, position(1, 25)));
+    EXPECT_TRUE(
+        has_same_content(expected_abcode_locations, a.context().lsp_ctx->references(source_loc, position(1, 25))));
     // '1234' reference
-    EXPECT_EQ(expected_1234_locations, a.context().lsp_ctx->references(source_loc, position(1, 29)));
+    EXPECT_TRUE(
+        has_same_content(expected_1234_locations, a.context().lsp_ctx->references(source_loc, position(1, 29))));
     // NODUMP reference
-    EXPECT_EQ(expected_nodump_locations, a.context().lsp_ctx->references(source_loc, position(1, 39)));
+    EXPECT_TRUE(
+        has_same_content(expected_nodump_locations, a.context().lsp_ctx->references(source_loc, position(1, 39))));
 
     // ALLOCATE reference
-    EXPECT_EQ(expected_exec_cics_allocate_locations, a.context().lsp_ctx->references(source_loc, position(2, 18)));
+    EXPECT_TRUE(has_same_content(
+        expected_exec_cics_allocate_locations, a.context().lsp_ctx->references(source_loc, position(2, 18))));
     // SYSID reference
-    EXPECT_EQ(expected_sysid_locations, a.context().lsp_ctx->references(source_loc, position(2, 25)));
+    EXPECT_TRUE(
+        has_same_content(expected_sysid_locations, a.context().lsp_ctx->references(source_loc, position(2, 25))));
     // '4321' reference
-    EXPECT_EQ(expected_4321_locations, a.context().lsp_ctx->references(source_loc, position(2, 31)));
+    EXPECT_TRUE(
+        has_same_content(expected_4321_locations, a.context().lsp_ctx->references(source_loc, position(2, 31))));
     // NOQUEUE reference
-    EXPECT_EQ(expected_noqueue_locations, a.context().lsp_ctx->references(source_loc, position(2, 42)));
+    EXPECT_TRUE(
+        has_same_content(expected_noqueue_locations, a.context().lsp_ctx->references(source_loc, position(2, 42))));
 }
 
 TEST_F(lsp_context_cics_preprocessor_test, refs_dfh)
@@ -235,15 +263,19 @@ TEST_F(lsp_context_cics_preprocessor_test, refs_dfh)
     };
 
     // LARL reference
-    EXPECT_EQ(expected_larl_locations, a.context().lsp_ctx->references(source_loc, position(5, 7)));
+    EXPECT_TRUE(has_same_content(expected_larl_locations, a.context().lsp_ctx->references(source_loc, position(5, 7))));
     // L reference
-    EXPECT_EQ(expected_l_locations, a.context().lsp_ctx->references(source_loc, position(6, 5)));
+    EXPECT_TRUE(has_same_content(expected_l_locations, a.context().lsp_ctx->references(source_loc, position(6, 5))));
     // DFHRESP reference
-    EXPECT_EQ(expected_dfhresp_locations, a.context().lsp_ctx->references(source_loc, position(5, 16)));
+    EXPECT_TRUE(
+        has_same_content(expected_dfhresp_locations, a.context().lsp_ctx->references(source_loc, position(5, 16))));
     // DFHVALUE reference
-    EXPECT_EQ(expected_dfhvalue_locations, a.context().lsp_ctx->references(source_loc, position(7, 17)));
+    EXPECT_TRUE(
+        has_same_content(expected_dfhvalue_locations, a.context().lsp_ctx->references(source_loc, position(7, 17))));
     // NORMAL reference
-    EXPECT_EQ(expected_normal_locations, a.context().lsp_ctx->references(source_loc, position(5, 23)));
+    EXPECT_TRUE(
+        has_same_content(expected_normal_locations, a.context().lsp_ctx->references(source_loc, position(5, 23))));
     // BUSY reference
-    EXPECT_EQ(expected_busy_locations, a.context().lsp_ctx->references(source_loc, position(6, 20)));
+    EXPECT_TRUE(
+        has_same_content(expected_busy_locations, a.context().lsp_ctx->references(source_loc, position(6, 20))));
 }
