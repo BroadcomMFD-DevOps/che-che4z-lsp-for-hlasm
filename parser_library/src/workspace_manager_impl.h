@@ -315,20 +315,20 @@ private:
         {
             auto related_ws = file_manager_.get_virtual_file_workspace(hlasm_id.value());
             if (!related_ws.get_uri().empty())
-                for (auto& ws : workspaces_)
-                    if (ws.second.uri() == related_ws.get_uri())
-                        return ws.second;
+                for (auto& [_, ws] : workspaces_)
+                    if (ws.uri() == related_ws.get_uri())
+                        return ws;
         }
 
         size_t max = 0;
         workspaces::workspace* max_ws = nullptr;
-        for (auto& ws : workspaces_)
+        for (auto& [name, ws] : workspaces_)
         {
-            size_t match = prefix_match(document_uri, ws.second.uri());
-            if (match > max && match >= ws.first.size())
+            size_t match = prefix_match(document_uri, ws.uri());
+            if (match > max && match >= name.size())
             {
                 max = match;
-                max_ws = &ws.second;
+                max_ws = &ws;
             }
         }
         if (max_ws != nullptr)
