@@ -574,7 +574,7 @@ location lsp_context::definition(const utils::resource::resource_location& docum
     if (!occ)
         return { pos, document_loc };
 
-    if (auto def = find_definition_location(*occ, macro_scope))
+    if (auto def = find_definition_location(*occ, macro_scope, document_loc, pos))
         return { def->pos, def->resource_loc };
     return { pos, document_loc };
 }
@@ -733,15 +733,43 @@ occurence_scope_t lsp_context::find_occurence_with_scope(
     return std::make_pair(nullptr, nullptr);
 }
 
-std::optional<location> lsp_context::find_definition_location(
-    const symbol_occurence& occ, macro_info_ptr macro_scope_i) const
+std::optional<location> lsp_context::find_definition_location(const symbol_occurence& occ,
+    macro_info_ptr macro_scope_i,
+    const utils::resource::resource_location& document_loc,
+    position pos) const
 {
     switch (occ.kind)
     {
         case lsp::occurence_kind::ORD: {
             auto sym = m_hlasm_ctx->ord_ctx.get_symbol(occ.name);
             if (sym)
-                return sym->symbol_location();
+            {
+                std::pair<occurence_scope_t, context::processing_stack_t> top_reference;
+                auto& [top_scope, top_stack] = top_reference;
+
+                auto stack = sym->proc_stack();
+                while (!stack.empty())
+                {
+                    auto frame = stack.frame();
+
+                    if (*frame.resource_loc == document_loc && frame.pos.line == pos.line)
+                    {
+                        top_reference = {};
+                        break;
+                    }
+
+                    auto scope = find_occurence_with_scope(*frame.resource_loc, position(frame.pos.line, 0));
+
+                    if (scope.first && scope.first->kind == lsp::occurence_kind::ORD && scope.first->name == occ.name)
+                        top_reference = { scope, stack };
+
+                    stack = stack.parent();
+                }
+                if (top_scope.first)
+                    return location(top_scope.first->occurence_range.start, *top_stack.frame().resource_loc);
+                else
+                    return sym->symbol_location();
+            }
             break;
         }
         case lsp::occurence_kind::SEQ: {
