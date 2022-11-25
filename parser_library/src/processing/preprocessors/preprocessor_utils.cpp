@@ -31,13 +31,13 @@ std::vector<semantics::preproc_details::name_range> get_operands_list(
 
         if (pos == std::string_view::npos)
         {
-            operand_list.emplace_back(std::string(operands),
-                range((position(lineno, column_offset)), (position(lineno, column_offset + operands.length()))));
+            operand_list.emplace_back(semantics::preproc_details::name_range { std::string(operands),
+                range((position(lineno, column_offset)), (position(lineno, column_offset + operands.length()))) });
             break;
         }
 
-        operand_list.emplace_back(std::string(operands.substr(0, pos)),
-            range((position(lineno, column_offset)), (position(lineno, column_offset + pos))));
+        operand_list.emplace_back(semantics::preproc_details::name_range { std::string(operands.substr(0, pos)),
+            range((position(lineno, column_offset)), (position(lineno, column_offset + pos))) });
 
         operands.remove_prefix(pos);
         column_offset += pos;
