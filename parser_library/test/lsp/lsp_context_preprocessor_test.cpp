@@ -279,3 +279,13 @@ TEST_F(lsp_context_cics_preprocessor_test, refs_dfh)
     EXPECT_TRUE(
         has_same_content(expected_busy_locations, a.context().lsp_ctx->references(source_loc, position(6, 20))));
 }
+
+TEST_F(lsp_context_cics_preprocessor_test, hover)
+{
+    // DFHRESP(NORMAL)
+    EXPECT_EQ("=F'0'", a.context().lsp_ctx->hover(source_loc, position(5, 15)));
+    // DFHRESP(BUSY)
+    EXPECT_EQ("=F'128'", a.context().lsp_ctx->hover(source_loc, position(6, 20)));
+    // DFHVALUE ( BUSY )
+    EXPECT_EQ("=F'612'", a.context().lsp_ctx->hover(source_loc, position(7, 28)));
+}
