@@ -14,6 +14,8 @@
 
 #include "request_manager.h"
 
+#include <string_view>
+
 using namespace hlasm_plugin::language_server;
 
 request::request(json message, server* executing_server)
@@ -140,35 +142,31 @@ void request_manager::finish_server_requests(server* to_finish)
         requests_.end());
 }
 
-
 std::pair<std::string, request_manager::request_parsing_implication> request_manager::get_request_file_(
     const json& r) const
 {
-    constexpr const char* didOpen = "textDocument/didOpen";
-    constexpr const char* didChange = "textDocument/didChange";
-    constexpr const char* didClose = "textDocument/didClose";
+    constexpr auto parising_implication = [](std::string_view method) {
+        if (method == "textDocument/didOpen" || method == "textDocument/didChange")
+            return request_parsing_implication::parsing_required;
+        if (method == "textDocument/didClose")
+            return request_parsing_implication::stop_parsing;
+        return request_parsing_implication::parsing_not_required;
+    };
 
     auto found = r.find("method");
     if (found == r.end())
         return {};
     auto method = found->get<std::string>();
-    if (method.substr(0, 12) == "textDocument")
-    {
-        const auto params = r.find("params");
-        if (params == r.end())
-            return {};
-        const auto textDocument = params->find("textDocument");
-        if (textDocument == params->end())
-            return {};
-        const auto uri = textDocument->find("uri");
-        if (uri == textDocument->end())
-            return {};
-        return {
-            uri->get<std::string>(),
-            method == didOpen || method == didChange ? request_parsing_implication::parsing_required
-                : method == didClose                 ? request_parsing_implication::stop_parsing
-                                                     : request_parsing_implication::parsing_not_required,
-        };
-    }
-    return {};
+    if (method.substr(0, 12) != "textDocument")
+        return {};
+    const auto params = r.find("params");
+    if (params == r.end())
+        return {};
+    const auto textDocument = params->find("textDocument");
+    if (textDocument == params->end())
+        return {};
+    const auto uri = textDocument->find("uri");
+    if (uri == textDocument->end())
+        return {};
+    return { uri->get<std::string>(), parising_implication(method) };
 }

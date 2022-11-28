@@ -179,18 +179,16 @@ workspace_file_info workspace::parse_file(
     std::vector<processor_file_ptr> files_to_parse;
 
     // TODO: apparently just opening a file without changing it triggers reparse
-    auto this_file = file_manager_.find_processor_file(file_location);
-    if (file_content_status == open_file_result::changed_content
+
+    if (auto this_file = file_manager_.find_processor_file(file_location);
+        file_content_status == open_file_result::changed_content
         || file_content_status == open_file_result::changed_lsp && !(this_file && this_file->has_lsp_info()))
     {
         if (trigger_reparse(file_location))
             files_to_parse = collect_dependants(file_location);
 
-        if (files_to_parse.empty())
-        {
-            if (this_file)
-                files_to_parse.push_back(std::move(this_file));
-        }
+        if (files_to_parse.empty() && this_file)
+            files_to_parse.push_back(std::move(this_file));
 
         for (const auto& f : files_to_parse)
         {

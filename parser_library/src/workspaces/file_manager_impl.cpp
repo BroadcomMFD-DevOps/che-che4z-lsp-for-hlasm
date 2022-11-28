@@ -227,13 +227,10 @@ open_file_result file_manager_impl::update_file(const file_location& document_lo
     if (f == files_.end())
         return open_file_result::identical;
 
-    switch (f->second->update_and_get_bad())
-    {
-        case update_file_result::identical:
-            return open_file_result::identical;
-        default:
-            return open_file_result::changed_content;
-    }
+    if (f->second->update_and_get_bad() == update_file_result::identical)
+        return open_file_result::identical;
+    else
+        return open_file_result::changed_content;
 }
 
 } // namespace hlasm_plugin::parser_library::workspaces

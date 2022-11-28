@@ -70,7 +70,7 @@ private:
 
     std::optional<utils::bk_tree<std::string, utils::levenshtein_distance_t<suggestion_limit>>> m_suggestions;
 
-    std::set<std::string> m_refresh_prefix;
+    std::set<std::string, std::less<>> m_refresh_prefix;
 };
 } // namespace hlasm_plugin::parser_library::workspaces
 #endif // !HLASMPLUGIN_PARSERLIBRARY_PROCESSOR_GROUP_H
