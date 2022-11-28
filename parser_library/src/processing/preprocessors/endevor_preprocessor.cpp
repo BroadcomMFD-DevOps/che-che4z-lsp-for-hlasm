@@ -146,7 +146,7 @@ public:
 
             if (line_no)
             {
-                auto stmt = get_preproc_statement<semantics::endevor_statement_si, std::string_view::iterator>(
+                auto stmt = get_preproc_statement<semantics::endevor_statement_si>(
                     matches, { std::nullopt, { 1 }, 2, 3 }, *line_no);
                 do_highlighting(*stmt, m_src_proc);
                 set_statement(std::move(stmt));

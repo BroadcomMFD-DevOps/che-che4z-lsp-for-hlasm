@@ -74,7 +74,7 @@ template<typename PREPROC_STATEMENT, typename ITERATOR>
 std::shared_ptr<PREPROC_STATEMENT> get_preproc_statement(
     const std::match_results<ITERATOR>& matches, stmt_part_ids ids, size_t lineno)
 {
-    if (!matches.size())
+    if (!matches.size() || ids.operands >= matches.size() || (ids.remarks && *ids.remarks >= matches.size()))
         return nullptr;
 
     semantics::preproc_details details;
@@ -92,18 +92,17 @@ std::shared_ptr<PREPROC_STATEMENT> get_preproc_statement(
             get_stmt_part_name_range<ITERATOR>(matches, ids.instruction.front(), lineno).r.start;
     }
 
-    if (ids.operands < matches.size() && matches[ids.operands].length())
+    if (matches[ids.operands].length())
     {
         auto [ops_text, op_range] = get_stmt_part_name_range<ITERATOR>(matches, ids.operands, lineno);
-        details.operands.first = get_operands_list(ops_text, op_range.start.column, lineno);
-        details.operands.second = std::move(op_range);
+        details.operands.items = get_operands_list(ops_text, op_range.start.column, lineno);
+        details.operands.overall_r = std::move(op_range);
     }
 
-    if (ids.remarks && *ids.remarks < matches.size() && matches[*ids.remarks].length())
+    if (ids.remarks && matches[*ids.remarks].length())
     {
-        details.remarks.second = get_stmt_part_name_range<ITERATOR>(matches, *ids.remarks, lineno).r;
-
-        details.remarks.first.emplace_back(details.remarks.second);
+        details.remarks.overall_r = get_stmt_part_name_range<ITERATOR>(matches, *ids.remarks, lineno).r;
+        details.remarks.items.emplace_back(details.remarks.overall_r);
     }
 
     return std::make_shared<PREPROC_STATEMENT>(std::move(details));

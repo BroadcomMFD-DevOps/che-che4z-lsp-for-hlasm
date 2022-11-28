@@ -1009,11 +1009,9 @@ public:
         return utils::utf8_substr(lexing::extract_line(input).first, lexing::default_ictl.begin - 1, valid_cols);
     }
 
-    static bool ignore_line(std::string_view s) { return s.empty() || s.front() == '*' || s.substr(0, 2) == ".*"; }
-
     static bool is_ignored_line(std::string_view line, size_t line_len_chars)
     {
-        if (ignore_line(line))
+        if (line.empty() || line.front() == '*' || line.substr(0, 2) == ".*")
             return true;
 
         // apparently lines full of characters are ignored
@@ -1023,7 +1021,7 @@ public:
         return false;
     }
 
-    bool is_line_of_interest(std::string_view line)
+    bool process_line_of_interest(std::string_view line)
     {
         static const std::regex line_of_interest("([^ ]*)[ ]+(START|CSECT|RSECT|DSECT|DFHEIENT|DFHEISTG|END)(?: .+)?");
 
@@ -1140,7 +1138,7 @@ public:
             m_result.emplace_back(replaced_line { "         DFHEIMSG 12\n" });
         }
 
-        if (auto stmt = get_preproc_statement<semantics::cics_statement_si, lexing::logical_line::const_iterator>(
+        if (auto stmt = get_preproc_statement<semantics::cics_statement_si>(
                 m_matches_ll, { 1, { 2, 3 }, { 4 }, std::nullopt }, lineno))
         {
             do_highlighting(*stmt, m_src_proc);
@@ -1223,8 +1221,7 @@ public:
                 ret_val = true;
         }
 
-        if (auto stmt = get_preproc_statement<semantics::cics_statement_si, lexing::logical_line::const_iterator>(
-                m_matches_ll, { 1, { 2 }, 3, 4 }, lineno))
+        if (auto stmt = get_preproc_statement<semantics::cics_statement_si>(m_matches_ll, { 1, { 2 }, 3, 4 }, lineno))
         {
             do_highlighting(*stmt, m_src_proc);
             set_statement(std::move(stmt));
@@ -1242,7 +1239,7 @@ public:
                });
     }
 
-    void try_general_injections()
+    void do_general_injections()
     {
         if (std::exchange(m_pending_prolog, false))
             inject_prolog();
@@ -1274,7 +1271,7 @@ public:
                 continue;
             }
 
-            try_general_injections();
+            do_general_injections();
 
             const auto lineno = it->lineno().value_or(0); // TODO: preprocessor chaining
 
@@ -1295,7 +1292,7 @@ public:
             asm_xopts_allowed = false;
 
             if (auto [line, line_len_chars, _, __] = create_line_preview(text);
-                is_ignored_line(line, line_len_chars) || is_line_of_interest(line))
+                is_ignored_line(line, line_len_chars) || process_line_of_interest(line))
             {
                 m_result.emplace_back(*it++);
                 skip_continuation = is_continued(text);
@@ -1316,7 +1313,7 @@ public:
             skip_continuation = is_continued(text);
         }
 
-        try_general_injections();
+        do_general_injections();
         if (!std::exchange(m_end_seen, true) && !asm_xopts_allowed) // actual code encountered
             inject_no_end_warning();
 

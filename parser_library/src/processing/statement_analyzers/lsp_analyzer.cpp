@@ -95,7 +95,7 @@ void lsp_analyzer::analyze(const semantics::preprocessor_statement_si& statement
     collect_occurences(lsp::occurence_kind::ORD, statement);
 
     const auto& opcode = statement.m_resemblance;
-    const auto& operands = statement.m_details.operands.first;
+    const auto& operands = statement.m_details.operands.items;
     if (opcode == context::id_storage::well_known::COPY && operands.size() == 1)
         if (const auto& copy_id = hlasm_ctx_.ids().find(operands.front().name); copy_id)
             add_copy_operand(*copy_id, operands.front().r);
@@ -190,16 +190,16 @@ void lsp_analyzer::collect_occurences(lsp::occurence_kind kind, const semantics:
     occurence_collector collector(kind, hlasm_ctx_, stmt_occurences_);
     const auto& details = statement.m_details;
 
-    if (auto id = hlasm_ctx_.ids().find(details.label.name); id)
-        collector.occurences.emplace_back(lsp::occurence_kind::ORD, *id, details.label.r);
+    auto id = hlasm_ctx_.ids().add(details.label.name);
+    collector.occurences.emplace_back(lsp::occurence_kind::ORD, id, details.label.r);
 
-    if (auto id = hlasm_ctx_.ids().find(details.instruction.name); id)
-        collector.occurences.emplace_back(*id, context::macro_def_ptr {}, details.instruction.r);
+    id = hlasm_ctx_.ids().add(details.instruction.name);
+    collector.occurences.emplace_back(id, context::macro_def_ptr {}, details.instruction.r);
 
-    for (const auto& ops : details.operands.first)
+    for (const auto& ops : details.operands.items)
     {
-        if (auto id = hlasm_ctx_.ids().find(ops.name); id)
-            collector.occurences.emplace_back(lsp::occurence_kind::ORD, *id, ops.r);
+        id = hlasm_ctx_.ids().add(ops.name);
+        collector.occurences.emplace_back(lsp::occurence_kind::ORD, id, ops.r);
     }
 }
 

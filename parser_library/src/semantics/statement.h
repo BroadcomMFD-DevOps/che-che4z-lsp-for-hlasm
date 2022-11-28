@@ -166,11 +166,18 @@ struct preproc_details
         range r;
     };
 
+    template<typename ITEM_TYPE>
+    struct item_list
+    {
+        std::vector<ITEM_TYPE> items;
+        range overall_r;
+    };
+
     range stmt_r;
     name_range label;
     name_range instruction;
-    std::pair<std::vector<name_range>, range> operands;
-    std::pair<std::vector<range>, range> remarks;
+    item_list<name_range> operands;
+    item_list<range> remarks;
 };
 
 struct preprocessor_statement_si

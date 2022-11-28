@@ -72,11 +72,11 @@ void preprocessor::do_highlighting(
 
     src_proc.add_hl_symbol(token_info(details.instruction.r, semantics::hl_scopes::instruction));
 
-    if (!details.operands.first.empty())
-        src_proc.add_hl_symbol(token_info(details.operands.second, semantics::hl_scopes::operand));
+    if (!details.operands.items.empty())
+        src_proc.add_hl_symbol(token_info(details.operands.overall_r, semantics::hl_scopes::operand));
 
-    if (!details.remarks.first.empty())
-        src_proc.add_hl_symbol(token_info(details.remarks.second, semantics::hl_scopes::remark));
+    if (!details.remarks.items.empty())
+        src_proc.add_hl_symbol(token_info(details.remarks.overall_r, semantics::hl_scopes::remark));
 }
 
 } // namespace hlasm_plugin::parser_library::processing
