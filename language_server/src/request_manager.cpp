@@ -157,7 +157,7 @@ std::pair<std::string, request_manager::request_parsing_implication> request_man
     if (found == r.end())
         return {};
     auto method = found->get<std::string>();
-    if (method.substr(0, 12) != "textDocument")
+    if (!method.starts_with("textDocument"))
         return {};
     const auto params = r.find("params");
     if (params == r.end())
