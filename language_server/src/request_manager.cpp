@@ -145,7 +145,7 @@ void request_manager::finish_server_requests(server* to_finish)
 std::pair<std::string, request_manager::request_parsing_implication> request_manager::get_request_file_(
     const json& r) const
 {
-    constexpr auto parising_implication = [](std::string_view method) {
+    constexpr auto parsing_implication = [](std::string_view method) {
         if (method == "textDocument/didOpen" || method == "textDocument/didChange")
             return request_parsing_implication::parsing_required;
         if (method == "textDocument/didClose")
@@ -168,5 +168,5 @@ std::pair<std::string, request_manager::request_parsing_implication> request_man
     const auto uri = textDocument->find("uri");
     if (uri == textDocument->end())
         return {};
-    return { uri->get<std::string>(), parising_implication(method) };
+    return { uri->get<std::string>(), parsing_implication(method) };
 }
