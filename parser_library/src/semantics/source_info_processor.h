@@ -29,10 +29,10 @@ public:
     explicit source_info_processor(bool collect_hl_info);
 
     // takes vector of highlighting symbols and processes them into highlighting info for further propagation
-    void process_hl_symbols(std::vector<token_info> symbols);
+    void process_hl_symbols(std::vector<token_info> symbols, size_t continue_column = 15);
 
     // add one hl symbol to the highlighting info
-    void add_hl_symbol(token_info symbol);
+    void add_hl_symbol(token_info symbol, size_t continue_column = 15);
 
     const lines_info& semantic_tokens() const;
 

@@ -1141,7 +1141,7 @@ public:
         if (auto stmt = get_preproc_statement<semantics::cics_statement_si>(
                 m_matches_ll, { 1, { 2, 3 }, { 4 }, std::nullopt }, lineno))
         {
-            do_highlighting(*stmt, m_src_proc);
+            do_highlighting(*stmt, m_src_proc, 1);
             set_statement(std::move(stmt));
         }
 

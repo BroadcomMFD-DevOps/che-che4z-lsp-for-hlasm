@@ -22,11 +22,11 @@ using namespace hlasm_plugin::parser_library::semantics;
 source_info_processor::source_info_processor(bool collect_hl_info)
     : collect_hl_info_(collect_hl_info) {};
 
-void source_info_processor::process_hl_symbols(std::vector<token_info> symbols)
+void source_info_processor::process_hl_symbols(std::vector<token_info> symbols, size_t continue_column)
 {
     for (const auto& symbol : symbols)
     {
-        add_hl_symbol(symbol);
+        add_hl_symbol(symbol, continue_column);
     }
 }
 
@@ -34,7 +34,7 @@ void source_info_processor::finish() { std::sort(hl_info_.lines.begin(), hl_info
 
 const lines_info& source_info_processor::semantic_tokens() const { return hl_info_.lines; }
 
-void source_info_processor::add_hl_symbol(token_info symbol)
+void source_info_processor::add_hl_symbol(token_info symbol, size_t continue_column)
 {
     // file is open in IDE, get its highlighting
     if (!collect_hl_info_)
@@ -55,7 +55,7 @@ void source_info_processor::add_hl_symbol(token_info symbol)
         first.token_range.end.column = hl_info_.cont_info.continuation_column;
         hl_info_.lines.push_back(std::move(first));
         rest.token_range.start.line++;
-        rest.token_range.start.column = hl_info_.cont_info.continue_column;
+        rest.token_range.start.column = continue_column;
     }
 
     if (rest.token_range.start != rest.token_range.end) // do not add empty tokens

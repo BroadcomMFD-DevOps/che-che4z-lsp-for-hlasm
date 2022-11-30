@@ -408,8 +408,8 @@ TEST(highlighting, cics_preprocessor_statement)
 {
     const std::string contents = R"(
 A   EXEC CICS ABEND ABCODE('1234')
-    EXEC CICS ABEND ABCODE('1234')                                     X12345678
-               NODUMP
+    EXEC CICS ABEND ABCODE('12                                         X12345678
+ 34') NODUMP
 B   L 0,DFHRESP ( NORMAL ) bla bla)";
 
     analyzer a(
@@ -421,16 +421,16 @@ B   L 0,DFHRESP ( NORMAL ) bla bla)";
         token_info({ { 1, 0 }, { 1, 1 } }, hl_scopes::label),
         token_info({ { 1, 4 }, { 1, 19 } }, hl_scopes::instruction),
         token_info({ { 1, 20 }, { 1, 34 } }, hl_scopes::operand),
-        token_info({ { 2, 0 }, { 2, 1 } }, hl_scopes::label),
         token_info({ { 2, 4 }, { 2, 19 } }, hl_scopes::instruction),
-        token_info({ { 2, 20 }, { 2, 26 } }, hl_scopes::operand),
+        token_info({ { 2, 20 }, { 3, 5 } }, hl_scopes::operand),
         token_info({ { 2, 28 }, { 2, 32 } }, hl_scopes::operand),
         token_info({ { 2, 71 }, { 2, 71 } }, hl_scopes::continuation),
         token_info({ { 2, 72 }, { 2, 80 } }, hl_scopes::seq_symbol),
-        token_info({ { 3, 15 }, { 3, 21 } }, hl_scopes::operand),
+        token_info({ { 3, 6 }, { 3, 12 } }, hl_scopes::operand),
         token_info({ { 4, 0 }, { 4, 1 } }, hl_scopes::label),
         token_info({ { 4, 4 }, { 4, 5 } }, hl_scopes::instruction),
-        token_info({ { 4, 6 }, { 4, 26 } }, hl_scopes::operand),
+        token_info({ { 4, 6 }, { 4, 7 } }, hl_scopes::operand),
+        token_info({ { 4, 8 }, { 4, 26 } }, hl_scopes::operand),
         token_info({ { 4, 27 }, { 4, 34 } }, hl_scopes::remark),
     };
 
