@@ -36,9 +36,13 @@ public:
     range original_range;
     std::vector<range> original_operand_ranges;
     adjusting_state state;
+    size_t continued_code_line_offset;
 
-    range_provider(range original_field_range, adjusting_state state);
-    range_provider(range original_field_range, std::vector<range> original_operand_ranges, adjusting_state state);
+    range_provider(range original_field_range, adjusting_state state, const size_t continued_code_line_offset = 15);
+    range_provider(range original_field_range,
+        std::vector<range> original_operand_ranges,
+        adjusting_state state,
+        const size_t continued_code_line_offset = 15);
     range_provider();
 
     range get_range(const antlr4::Token* start, const antlr4::Token* stop) const;

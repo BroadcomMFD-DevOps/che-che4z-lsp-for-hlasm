@@ -73,7 +73,7 @@ range range_provider::adjust_range(range r) const
 position range_provider::adjust_position(position pos, bool end) const
 {
     auto [orig_range, offset] = [this, pos, end]() {
-        constexpr static size_t continued_code_line_width = 72 - 16;
+        const size_t continued_code_line_width = 72 - continued_code_line_offset - 1;
 
         for (auto offset = pos.column - original_range.start.column; const auto& r : original_operand_ranges)
         {
@@ -99,23 +99,27 @@ position range_provider::adjust_position(position pos, bool end) const
         else
         {
             offset -= rest;
-            column_start = 15;
+            column_start = continued_code_line_offset;
             ++line_start;
         }
     }
     return position(line_start, column_start);
 }
 
-range_provider::range_provider(range original_range, adjusting_state state)
+range_provider::range_provider(range original_range, adjusting_state state, const size_t continued_code_line_offset)
     : original_range(original_range)
     , state(state)
+    , continued_code_line_offset(continued_code_line_offset)
 {}
 
-range_provider::range_provider(
-    range original_field_range, std::vector<range> original_operand_ranges_, adjusting_state state)
+range_provider::range_provider(range original_field_range,
+    std::vector<range> original_operand_ranges_,
+    adjusting_state state,
+    const size_t continued_code_line_offset)
     : original_range(original_field_range)
     , original_operand_ranges(std::move(original_operand_ranges_))
     , state(state)
+    , continued_code_line_offset(continued_code_line_offset)
 {
     assert(original_operand_ranges.empty() || original_range.start == original_operand_ranges.front().start);
 }
@@ -123,4 +127,5 @@ range_provider::range_provider(
 range_provider::range_provider()
     : original_range()
     , state(adjusting_state::NONE)
+    , continued_code_line_offset(15)
 {}

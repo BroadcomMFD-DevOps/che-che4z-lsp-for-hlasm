@@ -32,7 +32,7 @@ const resource_location mac_loc("MAC");
 const resource_location source_loc("OPEN");
 const resource_location member_loc("MEMBER");
 const resource_location member2_loc("MEMBER2");
-const resource_location preproc5_loc("PREPROCESSOR_5.hlasm");
+const resource_location preproc6_loc("PREPROCESSOR_6.hlasm");
 } // namespace
 
 class lsp_context_endevor_preprocessor_test : public testing::Test
@@ -143,11 +143,12 @@ protected:
         R"(
 A   EXEC CICS ABEND ABCODE('1234') NODUMP
   EXEC  CICS  ALLOCATE SYSID('4321') NOQUEUE
-     EXEC  CICS  ABEND  ABCODE('1234')  NODUMP
+     EXEC  CICS  ABEND  ABCODE('12                                     x12345678
+                 34') NODUMP
 
 B   LARL 0,DFHRESP(NORMAL)
-    L   0,DFHRESP(BUSY)
-    LARL  0,DFHVALUE ( BUSY ))";
+    L   0,DFHVALUE ( BUSY )
+    L     0,DFHRESP ( NORMAL ))";
 
     analyzer a;
 };
@@ -158,23 +159,19 @@ TEST_F(lsp_context_cics_preprocessor_test, go_to)
     EXPECT_EQ(location(position(1, 1), source_loc), a.context().lsp_ctx->definition(source_loc, position(1, 1)));
     // no jump, EXEC CICS ABEND
     EXPECT_EQ(location(position(1, 16), source_loc), a.context().lsp_ctx->definition(source_loc, position(1, 16)));
-    // no jump, operand ABCODE
+    // no jump, operand ABCODE('1234')
     EXPECT_EQ(location(position(1, 23), source_loc), a.context().lsp_ctx->definition(source_loc, position(1, 23)));
-    // no jump, operand 1234
-    EXPECT_EQ(location(position(1, 30), source_loc), a.context().lsp_ctx->definition(source_loc, position(1, 30)));
     // no jump, operand NODUMP
     EXPECT_EQ(location(position(1, 41), source_loc), a.context().lsp_ctx->definition(source_loc, position(1, 41)));
 
     // jump to virtual file, label B
-    EXPECT_EQ(location(position(1, 0), preproc5_loc), a.context().lsp_ctx->definition(source_loc, position(5, 1)));
+    EXPECT_EQ(location(position(1, 0), preproc6_loc), a.context().lsp_ctx->definition(source_loc, position(6, 1)));
     // no jump, instr LARL
-    EXPECT_EQ(location(position(5, 7), source_loc), a.context().lsp_ctx->definition(source_loc, position(5, 7)));
+    EXPECT_EQ(location(position(6, 7), source_loc), a.context().lsp_ctx->definition(source_loc, position(6, 7)));
     // no jump, operand 0
-    EXPECT_EQ(location(position(5, 11), source_loc), a.context().lsp_ctx->definition(source_loc, position(5, 11)));
-    // no jump, operand DFHRESP
-    EXPECT_EQ(location(position(5, 17), source_loc), a.context().lsp_ctx->definition(source_loc, position(5, 17)));
-    // no jump, operand NORMAL
-    EXPECT_EQ(location(position(5, 25), source_loc), a.context().lsp_ctx->definition(source_loc, position(5, 25)));
+    EXPECT_EQ(location(position(6, 11), source_loc), a.context().lsp_ctx->definition(source_loc, position(6, 11)));
+    // no jump, operand DFHRESP(NORMAL)
+    EXPECT_EQ(location(position(6, 17), source_loc), a.context().lsp_ctx->definition(source_loc, position(6, 17)));
 }
 
 TEST_F(lsp_context_cics_preprocessor_test, refs_exec_cics)
@@ -183,26 +180,19 @@ TEST_F(lsp_context_cics_preprocessor_test, refs_exec_cics)
         location(position(1, 4), source_loc),
         location(position(3, 5), source_loc),
     };
-    const location_list expected_abcode_locations {
+    const location_list expected_abcode1234_locations {
         location(position(1, 20), source_loc),
         location(position(3, 24), source_loc),
     };
-    const location_list expected_1234_locations {
-        location(position(1, 28), source_loc),
-        location(position(3, 32), source_loc),
-    };
     const location_list expected_nodump_locations {
         location(position(1, 35), source_loc),
-        location(position(3, 40), source_loc),
+        location(position(4, 22), source_loc),
     };
     const location_list expected_exec_cics_allocate_locations {
         location(position(2, 2), source_loc),
     };
-    const location_list expected_sysid_locations {
+    const location_list expected_sysid4321_locations {
         location(position(2, 23), source_loc),
-    };
-    const location_list expected_4321_locations {
-        location(position(2, 30), source_loc),
     };
     const location_list expected_noqueue_locations {
         location(position(2, 37), source_loc),
@@ -211,25 +201,26 @@ TEST_F(lsp_context_cics_preprocessor_test, refs_exec_cics)
     // EXEC CICS ABEND reference
     EXPECT_TRUE(has_same_content(
         expected_exec_cics_abend_locations, a.context().lsp_ctx->references(source_loc, position(1, 7))));
-    // ABCODE reference
+    // ABCODE('1234') reference
     EXPECT_TRUE(
-        has_same_content(expected_abcode_locations, a.context().lsp_ctx->references(source_loc, position(1, 25))));
-    // '1234' reference
-    EXPECT_TRUE(
-        has_same_content(expected_1234_locations, a.context().lsp_ctx->references(source_loc, position(1, 29))));
+        has_same_content(expected_abcode1234_locations, a.context().lsp_ctx->references(source_loc, position(1, 25))));
     // NODUMP reference
     EXPECT_TRUE(
         has_same_content(expected_nodump_locations, a.context().lsp_ctx->references(source_loc, position(1, 39))));
 
+    // ABCODE('1234') reference - multiline
+    EXPECT_TRUE(
+        has_same_content(expected_abcode1234_locations, a.context().lsp_ctx->references(source_loc, position(4, 18))));
+    // NODUMP reference
+    EXPECT_TRUE(
+        has_same_content(expected_nodump_locations, a.context().lsp_ctx->references(source_loc, position(4, 25))));
+
     // ALLOCATE reference
     EXPECT_TRUE(has_same_content(
         expected_exec_cics_allocate_locations, a.context().lsp_ctx->references(source_loc, position(2, 18))));
-    // SYSID reference
+    // SYSID('4321') reference
     EXPECT_TRUE(
-        has_same_content(expected_sysid_locations, a.context().lsp_ctx->references(source_loc, position(2, 25))));
-    // '4321' reference
-    EXPECT_TRUE(
-        has_same_content(expected_4321_locations, a.context().lsp_ctx->references(source_loc, position(2, 31))));
+        has_same_content(expected_sysid4321_locations, a.context().lsp_ctx->references(source_loc, position(2, 25))));
     // NOQUEUE reference
     EXPECT_TRUE(
         has_same_content(expected_noqueue_locations, a.context().lsp_ctx->references(source_loc, position(2, 42))));
@@ -238,54 +229,31 @@ TEST_F(lsp_context_cics_preprocessor_test, refs_exec_cics)
 TEST_F(lsp_context_cics_preprocessor_test, refs_dfh)
 {
     const location_list expected_larl_locations {
-        location(position(5, 4), source_loc),
-        location(position(7, 4), source_loc),
-        location(position(1, 9), preproc5_loc),
-        location(position(5, 9), preproc5_loc),
+        location(position(6, 4), source_loc),
+        location(position(1, 9), preproc6_loc),
     };
     const location_list expected_l_locations {
-        location(position(6, 4), source_loc),
-        location(position(3, 9), preproc5_loc),
+        location(position(7, 4), source_loc),
+        location(position(8, 4), source_loc),
+        location(position(3, 9), preproc6_loc),
+        location(position(5, 9), preproc6_loc),
     };
-    const location_list expected_dfhresp_locations {
-        location(position(5, 11), source_loc),
-        location(position(6, 10), source_loc),
+    const location_list expected_dfhresp_normal_locations {
+        location(position(6, 11), source_loc),
+        location(position(8, 12), source_loc),
     };
-    const location_list expected_dfhvalue_locations {
-        location(position(7, 12), source_loc),
-    };
-    const location_list expected_normal_locations {
-        location(position(5, 19), source_loc),
-    };
-    const location_list expected_busy_locations {
-        location(position(6, 18), source_loc),
-        location(position(7, 23), source_loc),
+    const location_list expected_dfhvalue_busy_locations {
+        location(position(7, 10), source_loc),
     };
 
     // LARL reference
-    EXPECT_TRUE(has_same_content(expected_larl_locations, a.context().lsp_ctx->references(source_loc, position(5, 7))));
+    EXPECT_TRUE(has_same_content(expected_larl_locations, a.context().lsp_ctx->references(source_loc, position(6, 7))));
     // L reference
-    EXPECT_TRUE(has_same_content(expected_l_locations, a.context().lsp_ctx->references(source_loc, position(6, 5))));
-    // DFHRESP reference
-    EXPECT_TRUE(
-        has_same_content(expected_dfhresp_locations, a.context().lsp_ctx->references(source_loc, position(5, 16))));
-    // DFHVALUE reference
-    EXPECT_TRUE(
-        has_same_content(expected_dfhvalue_locations, a.context().lsp_ctx->references(source_loc, position(7, 17))));
-    // NORMAL reference
-    EXPECT_TRUE(
-        has_same_content(expected_normal_locations, a.context().lsp_ctx->references(source_loc, position(5, 23))));
-    // BUSY reference
-    EXPECT_TRUE(
-        has_same_content(expected_busy_locations, a.context().lsp_ctx->references(source_loc, position(6, 20))));
-}
-
-TEST_F(lsp_context_cics_preprocessor_test, hover)
-{
-    // DFHRESP(NORMAL)
-    EXPECT_EQ("=F'0'", a.context().lsp_ctx->hover(source_loc, position(5, 15)));
-    // DFHRESP(BUSY)
-    EXPECT_EQ("=F'128'", a.context().lsp_ctx->hover(source_loc, position(6, 20)));
-    // DFHVALUE ( BUSY )
-    EXPECT_EQ("=F'612'", a.context().lsp_ctx->hover(source_loc, position(7, 28)));
+    EXPECT_TRUE(has_same_content(expected_l_locations, a.context().lsp_ctx->references(source_loc, position(7, 5))));
+    // DFHRESP(NORMAL) reference
+    EXPECT_TRUE(has_same_content(
+        expected_dfhresp_normal_locations, a.context().lsp_ctx->references(source_loc, position(6, 16))));
+    // DFHVALUE ( BUSY ) reference
+    EXPECT_TRUE(has_same_content(
+        expected_dfhvalue_busy_locations, a.context().lsp_ctx->references(source_loc, position(7, 25))));
 }
