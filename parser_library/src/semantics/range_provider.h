@@ -26,7 +26,8 @@ enum class adjusting_state
 {
     NONE,
     SUBSTITUTION,
-    MACRO_REPARSE
+    MACRO_REPARSE,
+    MODEL_REPARSE,
 };
 
 // structure for computing range
@@ -35,10 +36,12 @@ struct range_provider
 public:
     range original_range;
     std::vector<range> original_operand_ranges;
+    std::vector<std::pair<std::pair<size_t, bool>, range>> model_substitutions;
     adjusting_state state;
 
     range_provider(range original_field_range, adjusting_state state);
     range_provider(range original_field_range, std::vector<range> original_operand_ranges, adjusting_state state);
+    range_provider(std::vector<std::pair<std::pair<size_t, bool>, range>> model_substitutions);
     range_provider();
 
     range get_range(const antlr4::Token* start, const antlr4::Token* stop) const;

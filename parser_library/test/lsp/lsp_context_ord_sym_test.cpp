@@ -139,3 +139,19 @@ D  EQU 0-C1-C1
     EXPECT_TRUE(a.context().lsp_ctx->hover(empty_loc, { 7, 0 }).starts_with("C1 - C0 + X'0' (0)"));
     EXPECT_TRUE(a.context().lsp_ctx->hover(empty_loc, { 8, 0 }).starts_with("-2*C1 + X'0' (0)"));
 }
+
+TEST(hover, model_statement)
+{
+    std::string input = R"(
+&BBB     SETC  '0'
+         LA    R1,&BBB
+R1       EQU   1
+)";
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(a.diags().empty());
+
+    EXPECT_TRUE(a.context().lsp_ctx->hover(empty_loc, { 2, 16 }).starts_with("X'1'"));
+}
