@@ -61,14 +61,11 @@ struct symbol_occurence
 
     bool is_similar(const symbol_occurence& occ) const
     {
-        return kind == occ.kind && evaluated_model == occ.evaluated_model && name == occ.name && opcode == occ.opcode;
+        return kind == occ.kind && name == occ.name && opcode == occ.opcode;
     }
-};
 
-inline bool operator==(const symbol_occurence& lhs, const symbol_occurence& rhs)
-{
-    return lhs.is_similar(rhs) && lhs.occurence_range == rhs.occurence_range;
-}
+    bool operator==(const symbol_occurence&) const noexcept = default;
+};
 
 using occurence_storage = std::vector<symbol_occurence>;
 

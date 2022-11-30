@@ -171,4 +171,6 @@ R1       EQU   1
     EXPECT_TRUE(a.diags().empty());
     EXPECT_TRUE(a.context().lsp_ctx->hover(empty_loc, { 2, 70 }).starts_with("X'1'"));
     EXPECT_TRUE(a.context().lsp_ctx->hover(empty_loc, { 3, 15 }).starts_with("X'1'"));
+    EXPECT_EQ(a.context().lsp_ctx->references(empty_loc, { 2, 70 }).size(), 4);
+    EXPECT_EQ(a.context().lsp_ctx->references(empty_loc, { 3, 15 }).size(), 4);
 }
