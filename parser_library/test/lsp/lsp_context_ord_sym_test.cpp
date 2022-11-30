@@ -155,3 +155,20 @@ R1       EQU   1
 
     EXPECT_TRUE(a.context().lsp_ctx->hover(empty_loc, { 2, 16 }).starts_with("X'1'"));
 }
+
+TEST(hover, model_statement_continuation)
+{
+    std::string input = R"(
+&BBB     SETC  'R1'
+         LR                                                           RX
+               1,&BBB
+R1       EQU   1
+)";
+    analyzer a(input);
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(a.diags().empty());
+    EXPECT_TRUE(a.context().lsp_ctx->hover(empty_loc, { 2, 70 }).starts_with("X'1'"));
+    EXPECT_TRUE(a.context().lsp_ctx->hover(empty_loc, { 3, 15 }).starts_with("X'1'"));
+}
