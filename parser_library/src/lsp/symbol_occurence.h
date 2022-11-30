@@ -35,14 +35,16 @@ enum class occurence_kind
 struct symbol_occurence
 {
     occurence_kind kind;
+    bool evaluated_model = false;
     context::id_index name;
     range occurence_range;
 
     // in case of INSTR kind, holds potential macro opcode
     context::macro_def_ptr opcode = nullptr;
 
-    symbol_occurence(occurence_kind kind, context::id_index name, const range& occurence_range)
+    symbol_occurence(occurence_kind kind, context::id_index name, const range& occurence_range, bool evaluated_model)
         : kind(kind)
+        , evaluated_model(evaluated_model)
         , name(name)
         , occurence_range(occurence_range)
     {}
@@ -59,7 +61,7 @@ struct symbol_occurence
 
     bool is_similar(const symbol_occurence& occ) const
     {
-        return kind == occ.kind && name == occ.name && opcode == occ.opcode;
+        return kind == occ.kind && evaluated_model == occ.evaluated_model && name == occ.name && opcode == occ.opcode;
     }
 };
 
