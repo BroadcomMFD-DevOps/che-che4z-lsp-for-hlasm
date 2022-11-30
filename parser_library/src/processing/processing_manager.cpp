@@ -127,6 +127,7 @@ void processing_manager::register_stmt_analyzer(statement_analyzer* stmt_analyze
 {
     stms_analyzers_.push_back(stmt_analyzer);
 }
+
 void processing_manager::run_anayzers(const context::hlasm_statement& statement) const
 {
     run_anayzers(statement, find_provider().kind, procs_.back()->kind);
