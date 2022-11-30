@@ -81,7 +81,7 @@ protected:
 
     static bool is_continued(std::string_view s);
 
-    void do_highlighting(const semantics::preprocessor_statement_si& stmt,
+    virtual void do_highlighting(const semantics::preprocessor_statement_si& stmt,
         semantics::source_info_processor& src_proc,
         size_t continue_column = 15) const;
 

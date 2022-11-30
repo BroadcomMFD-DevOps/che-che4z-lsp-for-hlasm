@@ -144,14 +144,15 @@ semantics::preproc_details::name_range get_stmt_part_name_range(
 
 template<typename PREPROC_STATEMENT, typename ITERATOR>
 std::shared_ptr<PREPROC_STATEMENT> get_preproc_statement(
-    const std::match_results<ITERATOR>& matches, stmt_part_ids ids, size_t lineno)
+    const std::match_results<ITERATOR>& matches, stmt_part_ids ids, size_t lineno, size_t continuation_column)
 {
     if (!matches.size() || ids.operands >= matches.size() || (ids.remarks && *ids.remarks >= matches.size()))
         return nullptr;
 
     semantics::preproc_details details;
-    auto rp = semantics::range_provider(
-        range({ lineno, 0 }, { lineno, matches[0].str().length() }), semantics::adjusting_state::MACRO_REPARSE, 1);
+    auto rp = semantics::range_provider(range({ lineno, 0 }, { lineno, matches[0].str().length() }),
+        semantics::adjusting_state::MACRO_REPARSE,
+        continuation_column);
 
     details.stmt_r = rp.adjust_range(range({ lineno, 0 }, { lineno, matches[0].str().length() }));
 
@@ -184,11 +185,17 @@ std::shared_ptr<PREPROC_STATEMENT> get_preproc_statement(
 
 template std::shared_ptr<semantics::endevor_statement_si>
 get_preproc_statement<semantics::endevor_statement_si, std::string_view::iterator>(
-    const std::match_results<std::string_view::iterator>& matches, stmt_part_ids ids, size_t lineno);
+    const std::match_results<std::string_view::iterator>& matches,
+    stmt_part_ids ids,
+    size_t lineno,
+    size_t continuation_column);
 
 template std::shared_ptr<semantics::cics_statement_si>
 get_preproc_statement<semantics::cics_statement_si, lexing::logical_line::const_iterator>(
-    const std::match_results<lexing::logical_line::const_iterator>& matches, stmt_part_ids ids, size_t lineno);
+    const std::match_results<lexing::logical_line::const_iterator>& matches,
+    stmt_part_ids ids,
+    size_t lineno,
+    size_t continuation_column);
 
 
 } // namespace hlasm_plugin::parser_library::processing
