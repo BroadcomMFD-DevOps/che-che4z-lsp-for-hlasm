@@ -34,6 +34,8 @@ struct stmt_part_ids
     std::optional<size_t> remarks;
 };
 
+// This function returns a list of operands with their ranges while expecting to receive a single line string where
+// operands are separated by spaces or commas
 std::vector<semantics::preproc_details::name_range> get_operands_list(
     std::string_view operands, range r, const size_t continuation_column);
 

@@ -39,7 +39,7 @@ size_t get_quoted_string_end(std::string_view s)
     {
         closing_quote = s.find_first_of("'");
 
-        if (closing_quote == std::string_view::npos || closing_quote == s.length() || s[closing_quote + 1] != '\'')
+        if (closing_quote == std::string_view::npos || closing_quote == s.length() || s[closing_quote + 1] != '\'') // ignore double quotes
             break;
 
         s = s.substr(closing_quote + 1);
