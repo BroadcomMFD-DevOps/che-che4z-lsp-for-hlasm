@@ -1328,7 +1328,7 @@ public:
     {
         preprocessor::do_highlighting(stmt, src_proc, continue_column);
 
-        size_t lineno = stmt.m_details.instruction.r.start.line;
+        size_t lineno = stmt.m_details.stmt_r.start.line;
         for (size_t i = 0; i < m_logical_line.segments.size(); ++i)
         {
             const auto& segment = m_logical_line.segments[i];
@@ -1339,7 +1339,8 @@ public:
 
             if (!segment.ignore.empty())
                 m_src_proc.add_hl_symbol(
-                    token_info(range(position(lineno + i, 72), position(lineno + i, 72 + segment.ignore.length())),
+                    token_info(range(position(lineno + i, 72),
+                                   position(lineno + i, 72 + segment.ignore.length() - segment.continuation.empty())),
                         semantics::hl_scopes::ignored));
         }
     }

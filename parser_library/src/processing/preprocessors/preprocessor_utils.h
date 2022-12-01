@@ -35,7 +35,7 @@ struct stmt_part_ids
 };
 
 std::vector<semantics::preproc_details::name_range> get_operands_list(
-    std::string_view operands, size_t column_offset, size_t lineno, const semantics::range_provider& rp);
+    std::string_view operands, range r, const size_t continuation_column);
 
 template<typename PREPROC_STATEMENT, typename ITERATOR>
 std::shared_ptr<PREPROC_STATEMENT> get_preproc_statement(

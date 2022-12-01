@@ -101,9 +101,12 @@ size_t remove_separators(std::string_view& s)
 } // namespace
 
 std::vector<semantics::preproc_details::name_range> get_operands_list(
-    std::string_view operands, size_t column_offset, size_t lineno, const semantics::range_provider& rp)
+    std::string_view operands, range r, const size_t continuation_column)
 {
     std::vector<semantics::preproc_details::name_range> operand_list;
+    const size_t lineno = r.start.line;
+    size_t column_offset = r.start.column;
+    auto rp = semantics::range_provider(std::move(r), semantics::adjusting_state::MACRO_REPARSE, continuation_column);
 
     while (!operands.empty())
     {
@@ -150,11 +153,9 @@ std::shared_ptr<PREPROC_STATEMENT> get_preproc_statement(
         return nullptr;
 
     semantics::preproc_details details;
-    auto rp = semantics::range_provider(range({ lineno, 0 }, { lineno, matches[0].str().length() }),
-        semantics::adjusting_state::MACRO_REPARSE,
-        continuation_column);
 
-    details.stmt_r = rp.adjust_range(range({ lineno, 0 }, { lineno, matches[0].str().length() }));
+    details.stmt_r = range({ lineno, 0 }, { lineno, matches[0].str().length() });
+    auto rp = semantics::range_provider(details.stmt_r, semantics::adjusting_state::MACRO_REPARSE, continuation_column);
 
     if (ids.label)
         details.label = get_stmt_part_name_range<ITERATOR>(matches, *ids.label, lineno, rp);
@@ -169,9 +170,9 @@ std::shared_ptr<PREPROC_STATEMENT> get_preproc_statement(
 
     if (matches[ids.operands].length())
     {
-        auto [ops_text, op_range] = get_stmt_part_name_range<ITERATOR>(matches, ids.operands, lineno, rp);
-        details.operands.items = get_operands_list(ops_text, op_range.start.column, lineno, rp);
-        details.operands.overall_r = std::move(op_range);
+        auto [ops_text, ops_range] = get_stmt_part_name_range<ITERATOR>(matches, ids.operands, lineno, rp);
+        details.operands.items = get_operands_list(ops_text, ops_range, continuation_column);
+        details.operands.overall_r = std::move(ops_range);
     }
 
     if (ids.remarks && matches[*ids.remarks].length())
