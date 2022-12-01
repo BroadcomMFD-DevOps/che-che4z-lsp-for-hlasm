@@ -412,6 +412,7 @@ A   EXEC CICS ABEND ABCODE('1234')                                      00000000
  ABCODE('1234')
     EXEC CICS ABEND ABCODE('12                                         X00000001
  34') NODUMP
+
 B   L 0,DFHRESP ( NORMAL ) bla                                         X00000002
                bla                                                     XYZ
                bla
@@ -437,22 +438,23 @@ B   L 0,DFHRESP ( NORMAL ) bla                                         X00000002
         token_info({ { 4, 72 }, { 4, 80 } }, hl_scopes::ignored),
         token_info({ { 5, 1 }, { 5, 5 } }, hl_scopes::operand),
         token_info({ { 5, 6 }, { 5, 12 } }, hl_scopes::operand),
-        token_info({ { 6, 0 }, { 6, 1 } }, hl_scopes::label),
-        token_info({ { 6, 4 }, { 6, 5 } }, hl_scopes::instruction),
-        token_info({ { 6, 6 }, { 6, 7 } }, hl_scopes::operand),
-        token_info({ { 6, 8 }, { 6, 26 } }, hl_scopes::operand),
-        token_info({ { 6, 27 }, { 6, 71 } }, hl_scopes::remark),
-        token_info({ { 6, 71 }, { 6, 72 } }, hl_scopes::continuation),
-        token_info({ { 6, 72 }, { 6, 80 } }, hl_scopes::ignored),
-        token_info({ { 7, 15 }, { 7, 71 } }, hl_scopes::remark),
+
+        token_info({ { 7, 0 }, { 7, 1 } }, hl_scopes::label),
+        token_info({ { 7, 4 }, { 7, 5 } }, hl_scopes::instruction),
+        token_info({ { 7, 6 }, { 7, 7 } }, hl_scopes::operand),
+        token_info({ { 7, 8 }, { 7, 26 } }, hl_scopes::operand),
+        token_info({ { 7, 27 }, { 7, 71 } }, hl_scopes::remark),
         token_info({ { 7, 71 }, { 7, 72 } }, hl_scopes::continuation),
-        token_info({ { 7, 72 }, { 7, 74 } }, hl_scopes::ignored),
-        token_info({ { 8, 15 }, { 8, 18 } }, hl_scopes::remark),
-        token_info({ { 9, 71 }, { 9, 72 } }, hl_scopes::continuation),
-        token_info({ { 9, 72 }, { 9, 80 } }, hl_scopes::ignored),
-        token_info({ { 10, 15 }, { 10, 16 } }, hl_scopes::instruction),
-        token_info({ { 10, 17 }, { 10, 18 } }, hl_scopes::operand),
-        token_info({ { 10, 19 }, { 10, 34 } }, hl_scopes::operand),
+        token_info({ { 7, 72 }, { 7, 80 } }, hl_scopes::ignored),
+        token_info({ { 8, 15 }, { 8, 71 } }, hl_scopes::remark),
+        token_info({ { 8, 71 }, { 8, 72 } }, hl_scopes::continuation),
+        token_info({ { 8, 72 }, { 8, 74 } }, hl_scopes::ignored),
+        token_info({ { 9, 15 }, { 9, 18 } }, hl_scopes::remark),
+        token_info({ { 10, 71 }, { 10, 72 } }, hl_scopes::continuation),
+        token_info({ { 10, 72 }, { 10, 80 } }, hl_scopes::ignored),
+        token_info({ { 11, 15 }, { 11, 16 } }, hl_scopes::instruction),
+        token_info({ { 11, 17 }, { 11, 18 } }, hl_scopes::operand),
+        token_info({ { 11, 19 }, { 11, 34 } }, hl_scopes::operand),
     };
 
     EXPECT_EQ(tokens, expected);

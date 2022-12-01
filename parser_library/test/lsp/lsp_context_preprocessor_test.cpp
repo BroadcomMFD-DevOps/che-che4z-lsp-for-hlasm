@@ -257,3 +257,5 @@ TEST_F(lsp_context_cics_preprocessor_test, refs_dfh)
     EXPECT_TRUE(has_same_content(
         expected_dfhvalue_busy_locations, a.context().lsp_ctx->references(source_loc, position(7, 25))));
 }
+
+// TODO: hover for DFHVALUE and DHFRESP values
