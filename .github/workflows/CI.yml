@@ -70,7 +70,7 @@ jobs:
           java-version: 11
           distribution: 'temurin'
       - name: Requirements install
-        run: sudo apt-get update && sudo apt-get install uuid-dev ninja-build libc++-14-dev libc++abi-14-dev
+        run: sudo apt-get update && sudo apt-get install ninja-build libc++-14-dev libc++abi-14-dev
       - name: Configure
         run: mkdir build && cd build && cmake -G Ninja -DBUILD_VSIX=Off -DCMAKE_C_COMPILER=clang-14 -DCMAKE_CXX_COMPILER=clang++-14 -DCMAKE_CXX_FLAGS="-fsanitize=${{ matrix.flags }}" ../
       - name: Build
