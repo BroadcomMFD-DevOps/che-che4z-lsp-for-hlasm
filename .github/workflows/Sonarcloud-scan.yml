@@ -27,6 +27,10 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
 
     steps:
+      - name: LLVM 14.0.6
+        run: |
+          curl -o - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+          echo "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-14 main" | sudo tee -a /etc/apt/sources.list
       - name: Requirements install
         run: sudo apt-get update && sudo apt-get install libc++-14-dev libc++abi-14-dev
       - name: 'Download build output'
