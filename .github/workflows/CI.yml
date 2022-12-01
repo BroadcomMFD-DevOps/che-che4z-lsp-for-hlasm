@@ -80,7 +80,7 @@ jobs:
       - name: Build
         run: cd build && cmake --build .
       - name: Test
-        run: cd build/bin && ./server_test && ./library_test && ./hlasm_utils_test
+        run: (ASAN_OPTIONS=alloc_dealloc_mismatch=0; cd build/bin && ./server_test && ./library_test && ./hlasm_utils_test)
 
   build-matrix:
     name: Build
@@ -143,8 +143,18 @@ jobs:
     runs-on: ${{ matrix.os }}
     needs: [build-matrix]
     strategy:
+      fail-fast: false
       matrix:
         include:
+          - os: ubuntu-20.04
+            native: linux
+            chmod: true
+          - os: windows-2019
+            native: win32
+            chmod: false
+          - os: macos-11
+            native: darwin
+            chmod: true
           - os: ubuntu-22.04
             native: linux
             chmod: true
@@ -247,7 +257,7 @@ jobs:
     needs: [formal-checks]
     runs-on: ubuntu-22.04
     container:
-      image: alpine:3.15
+      image: alpine:3.16
 
     steps:
       - name: Requirements install

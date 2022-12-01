@@ -52,7 +52,7 @@ On Ubuntu 22.04 the following commands install all prerequisites and then build 
 
 ### Alpine Linux
 
-The build works on Alpine Linux version 3.15. The following commands install all prerequisites and then build the project into the `build` folder:
+The build works on Alpine Linux version 3.16. The following commands install all prerequisites and then build the project into the `build` folder:
 
     apk update && apk add linux-headers git g++ cmake util-linux-dev npm ninja
                           pkgconfig openjdk11 maven

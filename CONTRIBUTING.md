@@ -45,7 +45,7 @@ Each pull request is automatically verified in the following environments (in a 
 - Windows build with the MSVC compiler
 - Ubuntu 22.04 build with the GNU GCC 11 compiler using the libstdc++ standard library
 - Ubuntu 22.04 build with the Clang 14 compiler using the libc++ standard library and address sanitizer
-- Alpine Linux 3.15 build with GNU GCC 10 compiler
+- Alpine Linux 3.16 build with GNU GCC 11 compiler
 - MacOS 12 build with CLang 14 using the libc++ standard library
 
 Further, all C++ sources must be formatted with clang-format. The required configuration is available in the [.clang-format](https://github.com/eclipse/che-che4z-lsp-for-hlasm/blob/development/.clang-format) file in the root of the repository.
