@@ -1,5 +1,4 @@
 /*
-/*
  * Copyright (c) 2022 Broadcom.
  * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *

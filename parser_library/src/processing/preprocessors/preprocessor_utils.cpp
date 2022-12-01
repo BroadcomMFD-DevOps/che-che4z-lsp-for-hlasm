@@ -22,14 +22,6 @@
 
 namespace hlasm_plugin::parser_library::processing {
 namespace {
-std::pair<std::string, size_t> extract_resulting_string(std::string_view s, size_t end_position)
-{
-    auto extracted_string = s.substr(0, end_position);
-    auto ret_val = std::string(extracted_string);
-    ret_val.erase(remove_if(ret_val.begin(), ret_val.end(), isspace), ret_val.end());
-    return { ret_val, extracted_string.length() };
-}
-
 size_t get_quoted_string_end(std::string_view s)
 {
     auto closing_quote = std::string_view::npos;
@@ -59,23 +51,23 @@ size_t get_argument_end(std::string_view s)
     return string_end_pos == std::string_view::npos ? s.length() : s.find_first_of(")", string_end_pos) + 1;
 }
 
-std::pair<std::string, size_t> extract_operand_and_argument(std::string_view s)
+std::string_view extract_operand_and_argument(std::string_view s)
 {
     static const std::string separators = " ,";
 
     auto separator_pos = s.find_first_of(separators);
     if (separator_pos == std::string_view::npos)
-        return extract_resulting_string(s, s.length());
+        return s;
 
     auto parenthesis = s.find_first_of("(");
     if (parenthesis == std::string_view::npos)
-        return extract_resulting_string(s, separator_pos);
+        return s.substr(0, separator_pos);
 
     if (parenthesis > separator_pos)
         if (auto prev_char = s.find_last_not_of(separators, parenthesis - 1); prev_char > separator_pos)
-            return extract_resulting_string(s, separator_pos);
+            return s.substr(0, separator_pos);
 
-    return extract_resulting_string(s, get_argument_end(s));
+    return s.substr(0, get_argument_end(s));
 }
 
 std::pair<std::string_view, size_t> remove_separators(std::string_view s)
@@ -108,14 +100,18 @@ std::vector<semantics::preproc_details::name_range> get_operands_list(
             break;
 
         column_offset += trimmed;
-        auto [op, extracted_length] = extract_operand_and_argument(operands);
 
-        operand_list.emplace_back(semantics::preproc_details::name_range { std::move(op),
+        auto operand_view = extract_operand_and_argument(operands);
+        std::string operand;
+        operand.reserve(operand_view.length());
+        std::remove_copy_if(operand_view.begin(), operand_view.end(), std::back_inserter(operand), isspace);
+
+        operand_list.emplace_back(semantics::preproc_details::name_range { std::move(operand),
             rp.adjust_range(
-                range((position(lineno, column_offset)), (position(lineno, column_offset + extracted_length)))) });
+                range((position(lineno, column_offset)), (position(lineno, column_offset + operand_view.length())))) });
 
-        operands.remove_prefix(extracted_length);
-        column_offset += extracted_length;
+        operands.remove_prefix(operand_view.length());
+        column_offset += operand_view.length();
     }
 
     return operand_list;

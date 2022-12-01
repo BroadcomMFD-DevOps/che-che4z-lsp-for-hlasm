@@ -165,7 +165,7 @@ struct preproc_details
         std::string name;
         range r;
 
-        auto operator<=>(const name_range& oth) const noexcept = default;
+        bool operator==(const name_range&) const = default;
     };
 
     template<typename ITEM_TYPE>

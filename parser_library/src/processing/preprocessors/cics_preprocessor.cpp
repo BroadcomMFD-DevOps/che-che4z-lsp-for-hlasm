@@ -1011,7 +1011,7 @@ public:
 
     static bool is_ignored_line(std::string_view line, size_t line_len_chars)
     {
-        if (line.empty() || line.front() == '*' || line.substr(0, 2) == ".*")
+        if (line.empty() || line.front() == '*' || line.starts_with(".*"))
             return true;
 
         // apparently lines full of characters are ignored
