@@ -203,7 +203,7 @@ void lsp_analyzer::collect_occurences(
 
 void lsp_analyzer::collect_occurences(lsp::occurence_kind kind, const semantics::preprocessor_statement_si& statement)
 {
-    bool evaluated_model = false;
+    const bool evaluated_model = false;
 
     occurence_collector collector(kind, hlasm_ctx_, stmt_occurences_, evaluated_model);
     const auto& details = statement.m_details;

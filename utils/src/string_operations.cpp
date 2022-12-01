@@ -16,13 +16,11 @@
 
 namespace hlasm_plugin::utils {
 
-std::pair<std::string_view, size_t> trim_left(std::string_view s) { return trim_left(s); }
-
-std::pair<std::string_view, size_t> trim_left_in_place(std::string_view& s)
+std::pair<std::string_view, size_t> trim_left(std::string_view s)
 {
     size_t to_trim = s.find_first_not_of(" ");
     if (to_trim == std::string_view::npos)
-        to_trim = s.length();
+        return { "", s.length() };
 
     s.remove_prefix(to_trim);
     return { s, to_trim };

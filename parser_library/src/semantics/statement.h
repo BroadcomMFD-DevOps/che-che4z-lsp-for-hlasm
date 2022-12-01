@@ -187,9 +187,9 @@ struct preprocessor_statement_si
     preproc_details m_details;
     context::id_index m_resemblance;
 
-    preprocessor_statement_si(preproc_details details, context::id_index resemblence)
+    preprocessor_statement_si(preproc_details details, context::id_index resemblance)
         : m_details(std::move(details))
-        , m_resemblance(resemblence)
+        , m_resemblance(resemblance)
     {}
 };
 

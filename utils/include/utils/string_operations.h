@@ -20,7 +20,6 @@
 namespace hlasm_plugin::utils {
 
 std::pair<std::string_view, size_t> trim_left(std::string_view s);
-std::pair<std::string_view, size_t> trim_left_in_place(std::string_view& s);
 
 } // namespace hlasm_plugin::utils
 

@@ -22,9 +22,9 @@
 
 namespace hlasm_plugin::parser_library::processing {
 namespace {
-std::pair<std::string, size_t> extract_resulting_string(std::string_view s, size_t position)
+std::pair<std::string, size_t> extract_resulting_string(std::string_view s, size_t end_position)
 {
-    auto extracted_string = s.substr(0, position);
+    auto extracted_string = s.substr(0, end_position);
     auto ret_val = std::string(extracted_string);
     ret_val.erase(remove_if(ret_val.begin(), ret_val.end(), isspace), ret_val.end());
     return { ret_val, extracted_string.length() };
@@ -37,18 +37,13 @@ size_t get_quoted_string_end(std::string_view s)
     s.remove_prefix(1);
     while (closing_quote == std::string_view::npos)
     {
-        auto quote = s.find_first_of("'");
+        closing_quote = s.find_first_of("'");
 
-        if (quote == std::string_view::npos)
+        if (closing_quote == std::string_view::npos || closing_quote == s.length() || s[closing_quote + 1] != '\'')
             break;
 
-        if (s.length() == quote)
-            break;
-
-        if (s[quote + 1] == '\'')
-            s = s.substr(quote + 1);
-        else
-            closing_quote = quote;
+        s = s.substr(closing_quote + 1);
+        closing_quote = std::string_view::npos;
     }
 
     return closing_quote;
@@ -56,16 +51,11 @@ size_t get_quoted_string_end(std::string_view s)
 
 size_t get_argument_end(std::string_view s)
 {
-    auto closing_quote = std::string_view::npos;
-    if (auto opening_quote = s.find_first_of("'"); opening_quote != std::string_view::npos)
-        closing_quote = get_quoted_string_end(s);
+    auto string_end_pos = std::string_view::npos;
+    if (auto string_start_pos = s.find_first_of("'"); string_start_pos != std::string_view::npos)
+        string_end_pos = get_quoted_string_end(s);
 
-    if (auto closing_parenthesis =
-            closing_quote == std::string_view::npos ? std::string_view::npos : s.find_first_of(")", closing_quote);
-        closing_parenthesis == std::string_view::npos)
-        return s.length();
-    else
-        return closing_parenthesis + 1;
+    return string_end_pos == std::string_view::npos ? s.length() : s.find_first_of(")", string_end_pos) + 1;
 }
 
 std::pair<std::string, size_t> extract_operand_and_argument(std::string_view s)
@@ -87,16 +77,17 @@ std::pair<std::string, size_t> extract_operand_and_argument(std::string_view s)
     return extract_resulting_string(s, get_argument_end(s));
 }
 
-size_t remove_separators(std::string_view& s)
+std::pair<std::string_view, size_t> remove_separators(std::string_view s)
 {
-    auto trimmed = hlasm_plugin::utils::trim_left_in_place(s).second;
+    size_t trimmed = 0;
+    std::tie(s, trimmed) = hlasm_plugin::utils::trim_left(s);
     if (!s.empty() && s.front() == ',')
     {
         s.remove_prefix(1);
         trimmed += 1;
     }
 
-    return trimmed;
+    return { s, trimmed };
 }
 } // namespace
 
@@ -110,10 +101,12 @@ std::vector<semantics::preproc_details::name_range> get_operands_list(
 
     while (!operands.empty())
     {
-        column_offset += remove_separators(operands);
+        size_t trimmed = 0;
+        std::tie(operands, trimmed) = remove_separators(operands);
         if (operands.empty())
             break;
 
+        column_offset += trimmed;
         auto [op, extracted_length] = extract_operand_and_argument(operands);
 
         operand_list.emplace_back(semantics::preproc_details::name_range { std::move(op),
