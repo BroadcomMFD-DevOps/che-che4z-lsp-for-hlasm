@@ -16,6 +16,7 @@
 
 #include "../common_testing.h"
 #include "parsing/parser_tools.h"
+#include "utils/platform.h"
 
 // tests for
 // parsing various files
@@ -26,7 +27,7 @@ class library_test : public testing::Test
 public:
     virtual void setup(std::string param)
     {
-        get_content("test/library/input/" + param + ".in", input);
+        input = hlasm_plugin::utils::platform::read_file("test/library/input/" + param + ".in").value();
         holder = std::make_unique<analyzer>(input);
     }
 

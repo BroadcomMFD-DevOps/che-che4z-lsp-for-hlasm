@@ -15,8 +15,6 @@
 #include <algorithm>
 #include <chrono>
 #include <ctime>
-#include <filesystem>
-#include <fstream>
 #include <iostream>
 #include <limits>
 #include <sstream>
@@ -27,6 +25,8 @@
 #include "config/pgm_conf.h"
 #include "diagnostic_counter.h"
 #include "nlohmann/json.hpp"
+#include "utils/path.h"
+#include "utils/platform.h"
 #include "utils/unicode_text.h"
 #include "workspace_manager.h"
 
@@ -88,8 +88,8 @@ json parse_one_file(const std::string& source_file,
     bool do_reparse)
 {
     auto source_path = ws_folder + "/" + source_file;
-    std::ifstream in(source_path);
-    if (in.fail())
+    auto content_o = hlasm_plugin::utils::platform::read_file(source_path);
+    if (!content_o.has_value())
     {
         ++s.failed_file_opens;
         std::clog << "File read error: " << source_path << std::endl;
@@ -97,8 +97,7 @@ json parse_one_file(const std::string& source_file,
     }
     s.program_count++;
     // program's contents
-    auto content = std::string((std::istreambuf_iterator<char>(in)), (std::istreambuf_iterator<char>()));
-    content = hlasm_plugin::utils::replace_non_utf8_chars(content);
+    auto content = hlasm_plugin::utils::replace_non_utf8_chars(content_o.value());
 
     // new workspace manager
     hlasm_plugin::parser_library::workspace_manager ws;
@@ -238,7 +237,7 @@ std::string get_file_message(size_t iter, size_t begin, size_t end, const std::s
 
 int main(int argc, char** argv)
 {
-    std::string ws_folder = std::filesystem::current_path().string();
+    std::string ws_folder = hlasm_plugin::utils::path::absolute(".").string();
     std::string single_file = "";
     size_t start_range = 0, end_range = 0;
     bool write_details = true;
@@ -304,15 +303,15 @@ int main(int argc, char** argv)
 
     auto conf_path = ws_folder + "/.hlasmplugin/pgm_conf.json";
 
-    std::ifstream in(conf_path);
-    if (in.fail())
+    auto conf_o = hlasm_plugin::utils::platform::read_file(conf_path);
+    if (!conf_o.has_value())
     {
         std::clog << "Non existing config: " << conf_path << '\n';
         return 1;
     }
 
     // configuration contents
-    std::string conf((std::istreambuf_iterator<char>(in)), (std::istreambuf_iterator<char>()));
+    const auto& conf = conf_o.value();
 
     hlasm_plugin::parser_library::config::pgm_conf program_config;
     try
