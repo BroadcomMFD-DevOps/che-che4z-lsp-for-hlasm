@@ -20,7 +20,6 @@
 #include <regex>
 #include <vector>
 
-#include "semantics/range_provider.h"
 #include "semantics/statement.h"
 
 namespace hlasm_plugin::parser_library::processing {
@@ -36,11 +35,13 @@ struct stmt_part_ids
 // This function returns a list of operands with their ranges while expecting to receive a single line string where
 // operands are separated by spaces or commas
 std::vector<semantics::preproc_details::name_range> get_operands_list(
-    std::string_view operands, range r, const size_t continuation_column);
+    std::string_view operands, range r, size_t continuation_column);
 
 template<typename PREPROC_STATEMENT, typename ITERATOR>
-std::shared_ptr<PREPROC_STATEMENT> get_preproc_statement(
-    const std::match_results<ITERATOR>& matches, stmt_part_ids ids, size_t lineno, size_t continuation_column = 15);
+std::shared_ptr<PREPROC_STATEMENT> get_preproc_statement(const std::match_results<ITERATOR>& matches,
+    const stmt_part_ids& ids,
+    size_t lineno,
+    size_t continuation_column = 15);
 
 } // namespace hlasm_plugin::parser_library::processing
 

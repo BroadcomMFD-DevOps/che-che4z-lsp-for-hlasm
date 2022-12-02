@@ -22,17 +22,27 @@ using namespace hlasm_plugin::parser_library::semantics;
 source_info_processor::source_info_processor(bool collect_hl_info)
     : collect_hl_info_(collect_hl_info) {};
 
+void source_info_processor::process_hl_symbols(std::vector<token_info> symbols)
+{
+    process_hl_symbols(std::move(symbols), hl_info_.cont_info.continue_column);
+}
+
 void source_info_processor::process_hl_symbols(std::vector<token_info> symbols, size_t continue_column)
 {
-    for (const auto& symbol : symbols)
+    for (auto& symbol : symbols)
     {
-        add_hl_symbol(symbol, continue_column);
+        add_hl_symbol(std::move(symbol), continue_column);
     }
 }
 
 void source_info_processor::finish() { std::sort(hl_info_.lines.begin(), hl_info_.lines.end()); }
 
 const lines_info& source_info_processor::semantic_tokens() const { return hl_info_.lines; }
+
+void source_info_processor::add_hl_symbol(token_info symbol)
+{
+    add_hl_symbol(std::move(symbol), hl_info_.cont_info.continue_column);
+}
 
 void source_info_processor::add_hl_symbol(token_info symbol, size_t continue_column)
 {
@@ -46,7 +56,7 @@ void source_info_processor::add_hl_symbol(token_info symbol, size_t continue_col
     }
 
     // split multi line symbols
-    auto rest = symbol;
+    auto& rest = symbol;
     while (rest.token_range.start.line < rest.token_range.end.line)
     {
         // remove first line and add as separate token

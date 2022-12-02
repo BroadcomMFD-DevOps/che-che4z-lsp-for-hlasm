@@ -208,17 +208,17 @@ void lsp_analyzer::collect_occurences(lsp::occurence_kind kind, const semantics:
     occurence_collector collector(kind, hlasm_ctx_, stmt_occurences_, evaluated_model);
     const auto& details = statement.m_details;
 
-    auto id = hlasm_ctx_.ids().add(details.label.name);
-    collector.occurences.emplace_back(lsp::occurence_kind::ORD, id, details.label.r, evaluated_model);
+    collector.occurences.emplace_back(
+        lsp::occurence_kind::ORD, hlasm_ctx_.ids().add(details.label.name), details.label.r, evaluated_model);
 
-    id = hlasm_ctx_.ids().add(details.instruction.name);
-    collector.occurences.emplace_back(lsp::occurence_kind::INSTR, id, details.instruction.r, evaluated_model);
+    collector.occurences.emplace_back(lsp::occurence_kind::INSTR,
+        hlasm_ctx_.ids().add(details.instruction.name),
+        details.instruction.r,
+        evaluated_model);
 
     for (const auto& ops : details.operands.items)
-    {
-        id = hlasm_ctx_.ids().add(ops.name);
-        collector.occurences.emplace_back(lsp::occurence_kind::ORD, id, ops.r, evaluated_model);
-    }
+        collector.occurences.emplace_back(
+            lsp::occurence_kind::ORD, hlasm_ctx_.ids().add(ops.name), ops.r, evaluated_model);
 }
 
 void lsp_analyzer::collect_occurence(const semantics::label_si& label, occurence_collector& collector)
@@ -268,8 +268,6 @@ void lsp_analyzer::collect_occurence(const semantics::deferred_operands_si& oper
     std::for_each(operands.vars.begin(), operands.vars.end(), [&](const auto& v) { collector.get_occurence(*v); });
 }
 
-
-
 bool lsp_analyzer::is_LCL_GBL(
     const processing::resolved_statement& statement, context::SET_t_enum& set_type, bool& global) const
 {
@@ -287,8 +285,6 @@ bool lsp_analyzer::is_LCL_GBL(
 
     return false;
 }
-
-
 
 bool lsp_analyzer::is_SET(const processing::resolved_statement& statement, context::SET_t_enum& set_type) const
 {

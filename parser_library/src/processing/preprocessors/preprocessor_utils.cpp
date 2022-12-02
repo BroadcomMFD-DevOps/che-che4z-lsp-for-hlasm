@@ -17,6 +17,7 @@
 #include <algorithm>
 
 #include "lexing/logical_line.h"
+#include "semantics/range_provider.h"
 #include "semantics/statement.h"
 #include "utils/string_operations.h"
 
@@ -85,7 +86,7 @@ std::pair<std::string_view, size_t> remove_separators(std::string_view s)
 } // namespace
 
 std::vector<semantics::preproc_details::name_range> get_operands_list(
-    std::string_view operands, range r, const size_t continuation_column)
+    std::string_view operands, range r, size_t continuation_column)
 {
     std::vector<semantics::preproc_details::name_range> operand_list;
     const size_t lineno = r.start.line;
@@ -137,7 +138,7 @@ semantics::preproc_details::name_range get_stmt_part_name_range(
 
 template<typename PREPROC_STATEMENT, typename ITERATOR>
 std::shared_ptr<PREPROC_STATEMENT> get_preproc_statement(
-    const std::match_results<ITERATOR>& matches, stmt_part_ids ids, size_t lineno, size_t continuation_column)
+    const std::match_results<ITERATOR>& matches, const stmt_part_ids& ids, size_t lineno, size_t continuation_column)
 {
     if (!matches.size() || ids.operands >= matches.size() || (ids.remarks && *ids.remarks >= matches.size()))
         return nullptr;
@@ -177,14 +178,14 @@ std::shared_ptr<PREPROC_STATEMENT> get_preproc_statement(
 template std::shared_ptr<semantics::endevor_statement_si>
 get_preproc_statement<semantics::endevor_statement_si, std::string_view::iterator>(
     const std::match_results<std::string_view::iterator>& matches,
-    stmt_part_ids ids,
+    const stmt_part_ids& ids,
     size_t lineno,
     size_t continuation_column);
 
 template std::shared_ptr<semantics::cics_statement_si>
 get_preproc_statement<semantics::cics_statement_si, lexing::logical_line::const_iterator>(
     const std::match_results<lexing::logical_line::const_iterator>& matches,
-    stmt_part_ids ids,
+    const stmt_part_ids& ids,
     size_t lineno,
     size_t continuation_column);
 

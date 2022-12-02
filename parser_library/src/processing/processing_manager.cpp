@@ -274,13 +274,12 @@ void processing_manager::finish_opencode()
 
         if (stmt->m_resemblance == context::id_storage::well_known::COPY && stmt->m_details.operands.items.size() == 1)
         {
-            if (const auto& id = hlasm_ctx_.ids().find(stmt->m_details.operands.items.front().name); id)
-                asm_processor::parse_copy(ctx_,
-                    lib_provider_,
-                    *id,
-                    stmt->m_details.operands.items.front().r,
-                    stmt->m_details.stmt_r,
-                    nullptr);
+            asm_processor::parse_copy(ctx_,
+                lib_provider_,
+                hlasm_ctx_.ids().add(stmt->m_details.operands.items.front().name),
+                stmt->m_details.operands.items.front().r,
+                stmt->m_details.stmt_r,
+                nullptr);
         }
 
         // diagnosable_impl::add_diagnostic(diagnostic_s::fade(file_loc_, stmt->stmt_range_ref())); // todo create

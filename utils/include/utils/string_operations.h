@@ -16,6 +16,7 @@
 #define HLASMPLUGIN_UTILS_STRING_OPERATIONS_H
 
 #include <string_view>
+#include <utility>
 
 namespace hlasm_plugin::utils {
 
