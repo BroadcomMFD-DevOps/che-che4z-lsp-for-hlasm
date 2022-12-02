@@ -69,18 +69,14 @@ jobs:
         with:
           java-version: 11
           distribution: 'temurin'
-      - name: LLVM 14.0.6
-        run: |
-          curl -o - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-          echo "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-14 main" | sudo tee -a /etc/apt/sources.list
       - name: Requirements install
-        run: sudo apt-get update && sudo apt-get install ninja-build libc++-14-dev libc++abi-14-dev
+        run: sudo apt-get update && sudo apt-get install ninja-build
       - name: Configure
-        run: mkdir build && cd build && cmake -G Ninja -DBUILD_VSIX=Off -DCMAKE_C_COMPILER=clang-14 -DCMAKE_CXX_COMPILER=clang++-14 -DCMAKE_CXX_FLAGS="-fsanitize=${{ matrix.flags }}" ../
+        run: mkdir build && cd build && cmake -G Ninja -DBUILD_VSIX=Off -DCMAKE_C_COMPILER=clang-14 -DCMAKE_CXX_COMPILER=clang++-14 -DCMAKE_CXX_FLAGS="-fsanitize=${{ matrix.flags }}" -DWITH_LIBCXX=Off ../
       - name: Build
         run: cd build && cmake --build .
       - name: Test
-        run: (ASAN_OPTIONS=alloc_dealloc_mismatch=0; cd build/bin && ./server_test && ./library_test && ./hlasm_utils_test)
+        run: cd build/bin && ./server_test && ./library_test && ./hlasm_utils_test
 
   build-matrix:
     name: Build
@@ -92,7 +88,7 @@ jobs:
           - os: ubuntu-22.04
             native: linux
             prereq: sudo apt-get update && sudo apt-get install -y ninja-build
-            config: cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=gcc-11 -DCMAKE_CXX_COMPILER=g++-11 -DBUILD_VSIX=Off ../
+            config: cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=gcc-11 -DCMAKE_CXX_COMPILER=g++-11 -DBUILD_VSIX=Off -DCMAKE_EXE_LINKER_FLAGS="-static-libstdc++ -static-libgcc" ../
           - os: ubuntu-22.04
             native: wasm
             container: emscripten/emsdk:3.1.13
@@ -280,7 +276,7 @@ jobs:
           export TEL_KEY=`node -e "console.log(Buffer.from('${{ secrets.TELEMETRY_KEY }}').toString('base64'))"`
           sed -i "s/const TELEMETRY_KEY_ENCODED = TELEMETRY_DEFAULT_KEY/const TELEMETRY_KEY_ENCODED = '$TEL_KEY'/" telemetry.ts
       - name: Configure
-        run: mkdir build && cd build && cmake -G Ninja ../
+        run: mkdir build && cd build && cmake -G Ninja -DCMAKE_EXE_LINKER_FLAGS="-static-libstdc++ -static-libgcc" ../
       - name: Build
         run: chown `id -u`:`id -g` ./clients/vscode-hlasmplugin && cd build && cmake --build .
       - name: Server Test

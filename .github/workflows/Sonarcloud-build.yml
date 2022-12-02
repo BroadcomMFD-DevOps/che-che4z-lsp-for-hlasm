@@ -38,12 +38,8 @@ jobs:
           distribution: 'temurin'
       - name: Get version
         run: echo "VERSION=$(node -e "console.log(require('./clients/vscode-hlasmplugin/package.json').version)")" >> $GITHUB_ENV
-      - name: LLVM 14.0.6
-        run: |
-          curl -o - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-          echo "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-14 main" | sudo tee -a /etc/apt/sources.list
       - name: Requirements install
-        run: sudo apt-get update && sudo apt-get install ninja-build libc++-14-dev libc++abi-14-dev
+        run: sudo apt-get update && sudo apt-get install ninja-build
       - name: Configure
         run: >
           mkdir build && cd build &&
@@ -51,6 +47,7 @@ jobs:
           -DCMAKE_C_COMPILER=clang-14
           -DCMAKE_CXX_COMPILER=clang++-14
           -DCMAKE_CXX_FLAGS="-fprofile-instr-generate -fcoverage-mapping"
+          -DWITH_LIBCXX=Off
           ../
       - name: Sonar build wrapper download
         run: >
