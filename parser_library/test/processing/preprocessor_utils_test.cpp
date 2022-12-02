@@ -17,12 +17,18 @@
 
 #include "../common_testing.h"
 #include "processing/preprocessors/preprocessor_utils.h"
+#include "semantics/range_provider.h"
 #include "semantics/statement.h"
 
 namespace {
 static constexpr const lexing::logical_line_extractor_args extract_opts { 1, 71, 2, false, false };
 
-range get_range(size_t text_length) { return range(position(0, 0), position(0, text_length)); }
+semantics::range_provider get_range_provider(size_t text_length, size_t lineno, size_t continue_column)
+{
+    return semantics::range_provider(range(position(lineno, 0), position(lineno, text_length)),
+        semantics::adjusting_state::MACRO_REPARSE,
+        continue_column);
+}
 
 std::string get_inline_string(std::string_view text, const lexing::logical_line_extractor_args& opts)
 {
@@ -44,10 +50,10 @@ TEST(preprocessor_utils, operand_parsing_single)
     std::string input = get_inline_string(R"(  ABCODE    )", extract_opts);
 
     std::vector<semantics::preproc_details::name_range> expected {
-        { "ABCODE", range(position(0, 2), position(0, 8)) },
+        { "ABCODE", range(position(1, 2), position(1, 8)) },
     };
 
-    EXPECT_EQ(processing::get_operands_list(input, get_range(input.length()), 1), expected);
+    EXPECT_EQ(processing::get_operands_list(input, 0, get_range_provider(input.length(), 1, 1)), expected);
 }
 
 TEST(preprocessor_utils, operand_parsing_single_argument)
@@ -58,7 +64,18 @@ TEST(preprocessor_utils, operand_parsing_single_argument)
         { "ABCODE('1234')", range(position(0, 0), position(0, 14)) },
     };
 
-    EXPECT_EQ(processing::get_operands_list(input, get_range(input.length()), 1), expected);
+    EXPECT_EQ(processing::get_operands_list(input, 0, get_range_provider(input.length(), 0, 1)), expected);
+}
+
+TEST(preprocessor_utils, operand_parsing_single_op_column)
+{
+    std::string input = get_inline_string(R"(ABCODE    )", extract_opts);
+
+    std::vector<semantics::preproc_details::name_range> expected {
+        { "ABCODE", range(position(0, 14), position(0, 20)) },
+    };
+
+    EXPECT_EQ(processing::get_operands_list(input, 14, get_range_provider(input.length(), 0, 1)), expected);
 }
 
 TEST(preprocessor_utils, operand_parsing_single_argument_multiline)
@@ -71,7 +88,7 @@ TEST(preprocessor_utils, operand_parsing_single_argument_multiline)
         { "ABCODE('1234')", range(position(0, 0), position(1, 13)) },
     };
 
-    EXPECT_EQ(processing::get_operands_list(input, get_range(input.length()), 1), expected);
+    EXPECT_EQ(processing::get_operands_list(input, 0, get_range_provider(input.length(), 0, 1)), expected);
 }
 
 TEST(preprocessor_utils, operand_parsing_multiple)
@@ -85,7 +102,7 @@ TEST(preprocessor_utils, operand_parsing_multiple)
         { "OPERAND('4321')", range(position(0, 41), position(0, 57)) },
     };
 
-    EXPECT_EQ(processing::get_operands_list(input, get_range(input.length()), 1), expected);
+    EXPECT_EQ(processing::get_operands_list(input, 0, get_range_provider(input.length(), 0, 1)), expected);
 }
 
 TEST(preprocessor_utils, operand_parsing_multiple_comma_separated)
@@ -99,22 +116,39 @@ TEST(preprocessor_utils, operand_parsing_multiple_comma_separated)
         { "DFHVALUE(ACQUIRED)", range(position(0, 6), position(0, 24)) },
     };
 
-    EXPECT_EQ(processing::get_operands_list(input, get_range(input.length()), 1), expected);
+    EXPECT_EQ(processing::get_operands_list(input, 0, get_range_provider(input.length(), 0, 1)), expected);
 }
 
 TEST(preprocessor_utils, operand_parsing_multiple_multiline)
 {
     auto input = get_inline_string(
         R"(ABCODE ( '1234' )                                                      X
-              NODUMP                                                   X
-              OPERAND ('4321'))",
+               NODUMP                                                  X
+               OPERAND ('4321'))",
         extract_opts);
 
     std::vector<semantics::preproc_details::name_range> expected {
         { "ABCODE('1234')", range(position(0, 0), position(0, 17)) },
-        { "NODUMP", range(position(1, 14), position(1, 20)) },
-        { "OPERAND('4321')", range(position(2, 14), position(2, 30)) },
+        { "NODUMP", range(position(1, 15), position(1, 21)) },
+        { "OPERAND('4321')", range(position(2, 15), position(2, 31)) },
     };
 
-    EXPECT_EQ(processing::get_operands_list(input, get_range(input.length()), 1), expected);
+    EXPECT_EQ(processing::get_operands_list(input, 0, get_range_provider(input.length(), 0, 1)), expected);
+}
+
+TEST(preprocessor_utils, operand_parsing_multiple_multiline_continue)
+{
+    auto input = get_inline_string(
+        R"(ABCODE ( '1234' )                                                      X
+               NODUMP                                                  X
+               OPERAND ('4321'))",
+        lexing::default_ictl);
+
+    std::vector<semantics::preproc_details::name_range> expected {
+        { "ABCODE('1234')", range(position(0, 0), position(0, 17)) },
+        { "NODUMP", range(position(1, 15), position(1, 21)) },
+        { "OPERAND('4321')", range(position(2, 15), position(2, 31)) },
+    };
+
+    EXPECT_EQ(processing::get_operands_list(input, 0, get_range_provider(input.length(), 0, 15)), expected);
 }
