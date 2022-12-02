@@ -87,8 +87,9 @@ jobs:
         include:
           - os: ubuntu-22.04
             native: linux
-            prereq: sudo apt-get update && sudo apt-get install -y ninja-build
-            config: cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=gcc-11 -DCMAKE_CXX_COMPILER=g++-11 -DBUILD_VSIX=Off -DCMAKE_EXE_LINKER_FLAGS="-static" ../
+            container: alpine:3.16
+            prereq: apk update && apk add --no-cache linux-headers git g++ cmake util-linux-dev npm ninja pkgconfig openjdk11 maven
+            config: cmake -G Ninja -DCMAKE_EXE_LINKER_FLAGS="-static" ../
           - os: ubuntu-22.04
             native: wasm
             container: emscripten/emsdk:3.1.13
@@ -248,56 +249,11 @@ jobs:
           name: hlasm-language-support-${{ env.VERSION }}.vsix
           path: ${{ env.VSIX_FILENAME }}
 
-  alpine-VSIX:
-    name: Alpine VSIX
-    needs: [formal-checks]
-    runs-on: ubuntu-22.04
-    container:
-      image: alpine:3.16
-
-    steps:
-      - name: Requirements install
-        run: |
-          apk update
-          apk add --no-cache linux-headers git g++ cmake util-linux-dev npm ninja pkgconfig openjdk11 maven
-      - name: Workaround for git safe.directory feature
-        run: git config --global --add safe.directory '*'
-      - uses: actions/checkout@v3
-      - name: Extract branch name
-        run: echo BRANCH=${GITHUB_REF#refs/heads/} >> $GITHUB_ENV
-      - name: Update version
-        if: env.BRANCH == 'master' || startsWith(env.BRANCH, 'release')
-        run: cd clients/vscode-hlasmplugin && npm ci && npm run compile && npx semantic-release --dry-run
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Inject telemetry key
-        run: |
-          cd clients/vscode-hlasmplugin/src
-          export TEL_KEY=`node -e "console.log(Buffer.from('${{ secrets.TELEMETRY_KEY }}').toString('base64'))"`
-          sed -i "s/const TELEMETRY_KEY_ENCODED = TELEMETRY_DEFAULT_KEY/const TELEMETRY_KEY_ENCODED = '$TEL_KEY'/" telemetry.ts
-      - name: Configure
-        run: mkdir build && cd build && cmake -G Ninja -DCMAKE_EXE_LINKER_FLAGS="-static-libstdc++ -static-libgcc" ../
-      - name: Build
-        run: chown `id -u`:`id -g` ./clients/vscode-hlasmplugin && cd build && cmake --build .
-      - name: Server Test
-        run: cd build/bin && ./server_test && ./library_test && ./hlasm_utils_test
-      - name: Get VSIX filename
-        run: echo VSIX_FILENAME=$(ls build/bin/*.vsix) >> $GITHUB_ENV
-      - name: Get version
-        run: echo VERSION=$(node -e "console.log(require('./clients/vscode-hlasmplugin/package.json').version)") >> $GITHUB_ENV
-      - name: Rename VSIX
-        run: mv ${{ env.VSIX_FILENAME }} hlasm-language-support-${{ env.VERSION }}-alpine.vsix
-      - name: Upload VSIX
-        uses: actions/upload-artifact@v3
-        with:
-          name: hlasm-language-support-${{ env.VERSION }}-alpine.vsix
-          path: hlasm-language-support-${{ env.VERSION }}-alpine.vsix
-
   release:
     name: Release VSIXs
     runs-on: ubuntu-22.04
     if: (github.event_name == 'push' && github.ref == 'refs/heads/master') || (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/release'))
-    needs: [alpine-VSIX, VSIX]
+    needs: [VSIX]
 
     steps:
       - uses: actions/checkout@v3
@@ -312,16 +268,10 @@ jobs:
         with:
           name: hlasm-language-support-${{ env.VERSION }}.vsix
           path: clients/vscode-hlasmplugin/
-      - name: Download alpine VSIX
-        uses: actions/download-artifact@v3
-        with:
-          name: hlasm-language-support-${{ env.VERSION }}-alpine.vsix
-          path: clients/vscode-hlasmplugin/
       - name: Rename VSIXs
         run: |
           cd clients/vscode-hlasmplugin/
           mv hlasm-language-support-${{ env.VERSION }}.vsix         multi.vsix
-          mv hlasm-language-support-${{ env.VERSION }}-alpine.vsix  alpine.vsix
 
       - name: Commit changes
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
@@ -370,7 +320,7 @@ jobs:
   theia-test:
     name: Theia Integration Test
     runs-on: ubuntu-22.04
-    needs: alpine-VSIX
+    needs: build-matrix
     strategy:
       matrix:
         theia: ["quay.io/zowe-explorer/theia:1.25.0"] 
@@ -399,7 +349,7 @@ jobs:
       - name: Download VSIX
         uses: actions/download-artifact@v3
         with:
-          name: hlasm-language-support-${{ env.VERSION }}-alpine.vsix
+          name: hlasm-language-support-${{ env.VERSION }}.vsix
           path: clients/vscode-hlasmplugin/plugin/
       - name: npm ci
         run: cd clients/vscode-hlasmplugin && npm ci
