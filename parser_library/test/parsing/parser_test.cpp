@@ -32,14 +32,6 @@ public:
     }
 
 protected:
-    void get_content(const std::string& file_name, std::string& content)
-    {
-        std::ifstream ifs(file_name);
-        ASSERT_TRUE(ifs.good()) << "Could not open file '" << file_name
-                                << "'. Tests must be started from the bin/ folder.\n";
-        std::string read((std::istreambuf_iterator<char>(ifs)), (std::istreambuf_iterator<char>()));
-        content = std::move(read);
-    }
     std::unique_ptr<analyzer> holder;
     std::string input;
 };

@@ -320,7 +320,7 @@ jobs:
   theia-test:
     name: Theia Integration Test
     runs-on: ubuntu-22.04
-    needs: build-matrix
+    needs: VSIX
     strategy:
       matrix:
         theia: ["quay.io/zowe-explorer/theia:1.25.0"] 
