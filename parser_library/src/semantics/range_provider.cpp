@@ -106,7 +106,7 @@ position range_provider::adjust_model_position(position pos, bool end) const
 position range_provider::adjust_position(position pos, bool end) const
 {
     auto [orig_range, column] = [this, pos, end]() {
-        const size_t continued_code_line_column = 72 - m_continued_code_line_column - 1;
+        const size_t continued_code_line_column = 71 - m_continued_code_line_column;
 
         for (auto column = pos.column - original_range.start.column; const auto& r : original_operand_ranges)
         {
