@@ -90,6 +90,8 @@ jobs:
             container: alpine:3.16
             prereq: apk update && apk add --no-cache linux-headers git g++ cmake util-linux-dev npm ninja pkgconfig openjdk11 maven
             config: cmake -G Ninja -DCMAKE_EXE_LINKER_FLAGS="-static" ../
+            dbg-strip: cd build/bin && objcopy --only-keep-debug language_server language_server.dbg && objcopy --strip-unneeded language_server && objcopy --add-gnu-debuglink=language_server.dbg language_server
+            dbg-pattern: build/bin/language_server.dbg
           - os: ubuntu-22.04
             native: wasm
             container: emscripten/emsdk:3.1.13
@@ -107,10 +109,13 @@ jobs:
             config: cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_VSIX=Off ../
             build-extra: --parallel --config Release
             artifacts-ext: .exe
+            dbg-pattern: build/bin/language_server.pdb
           - os: macos-12
             native: darwin
             prereq: brew install ninja
             config: cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=$(brew --prefix llvm@14)/bin/clang -DCMAKE_CXX_COMPILER=$(brew --prefix llvm@14)/bin/clang++ -DLLVM_PATH=$(brew --prefix llvm@14) -DBUILD_VSIX=Off ../
+            dbg-strip: cd build/bin && $(brew --prefix llvm@14)/bin/llvm-objcopy --only-keep-debug language_server language_server.dbg && $(brew --prefix llvm@14)/bin/llvm-objcopy --strip-unneeded language_server && $(brew --prefix llvm@14)/bin/llvm-objcopy --add-gnu-debuglink=language_server.dbg language_server
+            dbg-pattern: build/bin/language_server.dbg
     container: ${{ matrix.container }}
     steps:
       - uses: actions/checkout@v3
@@ -129,11 +134,20 @@ jobs:
         run: cd build && cmake --build . ${{ matrix.build-extra }}
       - name: Server Test
         run: cd build/bin && ${{ matrix.test || './library_test && ./server_test && ./hlasm_utils_test' }}
+      - name: Strip debug info
+        if: ${{ matrix.dbg-strip }}
+        run: ${{ matrix.dbg-strip }}
       - name: Actions artifact
         uses: actions/upload-artifact@v3
         with:
           name: language_server_${{ matrix.native }}
           path: build/bin/language_server${{ matrix.artifacts-ext }}
+      - name: Actions artifact
+        if: ${{ matrix.dbg-pattern }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: language_server_${{ matrix.native }}_dbg
+          path: ${{ matrix.dbg-pattern }}
 
   test-matrix:
     name: Test
