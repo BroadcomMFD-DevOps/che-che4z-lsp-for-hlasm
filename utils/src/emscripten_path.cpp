@@ -57,7 +57,7 @@ std::filesystem::path absolute(const std::filesystem::path& p)
     return join(std::filesystem::current_path(), p);
 }
 
-std::filesystem::path current_path(const std::filesystem::path& p) { return std::filesystem::current_path(); }
+std::filesystem::path current_path() { return std::filesystem::current_path(); }
 
 std::filesystem::path join(const std::filesystem::path& left, const std::filesystem::path& right)
 {
