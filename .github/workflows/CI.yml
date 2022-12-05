@@ -109,7 +109,6 @@ jobs:
             config: cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_VSIX=Off ../
             build-extra: --parallel --config Release
             artifacts-ext: .exe
-            dbg-pattern: build/bin/language_server.pdb
           - os: macos-12
             native: darwin
             prereq: brew install ninja
