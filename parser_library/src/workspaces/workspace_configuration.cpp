@@ -607,7 +607,9 @@ void workspace_configuration::find_and_add_libs(const utils::resource::resource_
     }
 }
 
-void workspace_configuration::copy_diagnostics(const diagnosable& target) const
+void workspace_configuration::copy_diagnostics(const diagnosable& target,
+    const std::unordered_set<utils::resource::resource_location, utils::resource::resource_location_hasher>& b4g_filter)
+    const
 {
     for (auto& [_, pg] : m_proc_grps)
     {
@@ -620,9 +622,13 @@ void workspace_configuration::copy_diagnostics(const diagnosable& target) const
     for (const auto& diag : m_config_diags)
         target.add_diagnostic(diag);
 
-    for (const auto& [_, c] : m_b4g_config_cache)
+    for (const auto& [uri, c] : m_b4g_config_cache)
+    {
+        if (!b4g_filter.contains(uri))
+            continue;
         for (const auto& d : c.diags)
             target.add_diagnostic(d);
+    }
 }
 
 parse_config_file_result workspace_configuration::parse_configuration_file(
@@ -687,34 +693,33 @@ const program* workspace_configuration::get_program_normalized(
     return nullptr;
 }
 
-bool workspace_configuration::try_loading_alternative_configuration(
-    const utils::resource::resource_location& file_location)
+std::pair<parse_config_file_result, utils::resource::resource_location>
+workspace_configuration::try_loading_alternative_configuration(const utils::resource::resource_location& file_location)
 {
-    const auto b4g_conf = utils::resource::resource_location::replace_filename(file_location, B4G_CONF_FILE);
+    auto result = std::pair(parse_config_file_result::parsed,
+        utils::resource::resource_location::replace_filename(file_location, B4G_CONF_FILE));
+    auto& [parsed, valid_configuration_url] = result;
 
-    if (m_b4g_config_cache.contains(b4g_conf))
-        return false;
+    if (!m_b4g_config_cache.contains(valid_configuration_url))
+        parsed = parse_b4g_config_file(valid_configuration_url);
 
-    switch (parse_b4g_config_file(b4g_conf))
-    {
-        case parse_config_file_result::parsed:
-            return true;
-
-        case parse_config_file_result::error:
-        case parse_config_file_result::not_found:
-            break;
-    }
-    return false;
+    return result;
 }
 
-void workspace_configuration::load_alternative_config_if_needed(const utils::resource::resource_location& file_location)
+utils::resource::resource_location workspace_configuration::load_alternative_config_if_needed(
+    const utils::resource::resource_location& file_location)
 {
     const auto rl = file_location.lexically_normal();
 
     if (get_program_normalized(rl))
-        return;
+        return utils::resource::resource_location();
 
-    try_loading_alternative_configuration(rl);
+    auto [result, uri] = try_loading_alternative_configuration(rl);
+
+    if (result == parse_config_file_result::not_found)
+        return utils::resource::resource_location();
+
+    return std::move(uri);
 }
 
 } // namespace hlasm_plugin::parser_library::workspaces
