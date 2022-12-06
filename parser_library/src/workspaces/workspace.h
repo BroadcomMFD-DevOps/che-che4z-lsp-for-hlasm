@@ -140,7 +140,7 @@ private:
     struct opened_file_details
     {
         opened_file_details() = default;
-        opened_file_details(utils::resource::resource_location alternative_config)
+        explicit opened_file_details(utils::resource::resource_location alternative_config)
             : alternative_config(std::move(alternative_config))
         {}
         utils::resource::resource_location alternative_config;

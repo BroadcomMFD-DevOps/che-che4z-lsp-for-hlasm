@@ -198,14 +198,15 @@ workspace_file_info workspace::parse_file(
         if (files_to_parse.empty() && this_file)
             files_to_parse.push_back(std::move(this_file));
 
-        if (auto opened_it = opened_files_.find(file_location); opened_it != opened_files_.end())
-        {
-            opened_it->second = m_configuration.load_alternative_config_if_needed(file_location);
-        }
         for (const auto& f : files_to_parse)
         {
-            if (!f->parse(
-                    *this, get_asm_options(f->get_location()), get_preprocessor_options(f->get_location()), &fm_vfm_))
+            const auto& f_loc = f->get_location();
+
+            if (auto alt_cfg = m_configuration.load_alternative_config_if_needed(f_loc); !alt_cfg.empty())
+                if (auto opened_it = opened_files_.find(f_loc); opened_it != opened_files_.end())
+                    opened_it->second.alternative_config = std::move(alt_cfg);
+
+            if (!f->parse(*this, get_asm_options(f_loc), get_preprocessor_options(f_loc), &fm_vfm_))
                 continue;
 
             ws_file_info = parse_successful(f);
