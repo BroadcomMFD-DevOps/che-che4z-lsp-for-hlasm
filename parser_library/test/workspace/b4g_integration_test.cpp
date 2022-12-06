@@ -34,7 +34,7 @@ struct file_manager_impl_test : public file_manager_impl
         for (const auto& [key, _] : get_files())
         {
             auto rel_path = key.lexically_relative(directory);
-            if (rel_path.get_uri().empty() || rel_path.lexically_out_of_scope())
+            if (rel_path.empty() || rel_path.lexically_out_of_scope())
                 continue;
             auto first_filename = rel_path.get_uri();
             if (auto n = first_filename.find('/'); n != std::string::npos)
@@ -54,7 +54,7 @@ struct file_manager_impl_test : public file_manager_impl
         for (const auto& [key, _] : get_files())
         {
             auto rel_path = key.lexically_relative(directory);
-            if (rel_path.get_uri().empty() || rel_path.lexically_out_of_scope())
+            if (rel_path.empty() || rel_path.lexically_out_of_scope())
                 continue;
             auto first_filename = rel_path.get_uri();
             if (auto n = first_filename.find('/'); n != std::string::npos)

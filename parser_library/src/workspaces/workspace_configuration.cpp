@@ -264,8 +264,8 @@ void workspace_configuration::process_processor_group(const config::processor_gr
 
     for (auto& lib : pg.libs)
     {
-        const auto& root = lib.root_folder == config::processor_group_root_folder::alternate_root
-                && !alternative_root.get_uri().empty()
+        const auto& root =
+            lib.root_folder == config::processor_group_root_folder::alternate_root && !alternative_root.empty()
             ? alternative_root
             : m_location;
 
