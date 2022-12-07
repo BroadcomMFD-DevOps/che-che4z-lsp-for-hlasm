@@ -202,9 +202,9 @@ workspace_file_info workspace::parse_file(
         {
             const auto& f_loc = f->get_location();
 
-            if (auto alt_cfg = m_configuration.load_alternative_config_if_needed(f_loc); !alt_cfg.empty())
-                if (auto opened_it = opened_files_.find(f_loc); opened_it != opened_files_.end())
-                    opened_it->second.alternative_config = std::move(alt_cfg);
+            auto alt_cfg = m_configuration.load_alternative_config_if_needed(f_loc);
+            if (auto opened_it = opened_files_.find(f_loc); opened_it != opened_files_.end())
+                opened_it->second.alternative_config = std::move(alt_cfg);
 
             if (!f->parse(*this, get_asm_options(f_loc), get_preprocessor_options(f_loc), &fm_vfm_))
                 continue;

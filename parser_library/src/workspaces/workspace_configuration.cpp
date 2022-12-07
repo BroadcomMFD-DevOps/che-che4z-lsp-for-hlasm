@@ -472,6 +472,7 @@ bool workspace_configuration::settings_updated() const
 parse_config_file_result workspace_configuration::parse_b4g_config_file(
     const utils::resource::resource_location& file_location)
 {
+    // keep in sync with try_loading_alternative_configuration
     const auto alternative_root =
         utils::resource::resource_location::replace_filename(file_location, "").join("..").lexically_normal();
 
@@ -698,10 +699,12 @@ workspace_configuration::try_loading_alternative_configuration(const utils::reso
 {
     auto result = std::pair(parse_config_file_result::parsed,
         utils::resource::resource_location::replace_filename(file_location, B4G_CONF_FILE));
-    auto& [parsed, valid_configuration_url] = result;
+    auto& [parsed, configuration_url] = result;
 
-    if (!m_b4g_config_cache.contains(valid_configuration_url))
-        parsed = parse_b4g_config_file(valid_configuration_url);
+    if (auto it = m_b4g_config_cache.find(configuration_url); it == m_b4g_config_cache.end())
+        parsed = parse_b4g_config_file(configuration_url);
+    else if (!it->second.config.has_value()) // keep in sync with parse_b4g_config_file
+        parsed = it->second.diags.empty() ? parse_config_file_result::not_found : parse_config_file_result::error;
 
     return result;
 }
