@@ -16,13 +16,23 @@
 #define LSP_CONTEXT_H
 
 #include <algorithm>
+#include <memory>
+#include <span>
+#include <string_view>
+#include <unordered_map>
+#include <utility>
 #include <variant>
+#include <vector>
 
 #include "completion_item.h"
+#include "context/id_storage.h"
+#include "context/macro.h"
 #include "document_symbol_item.h"
 #include "file_info.h"
 #include "location.h"
 #include "opencode_info.h"
+#include "range.h"
+#include "utils/resource_location.h"
 
 namespace hlasm_plugin::parser_library::lsp {
 

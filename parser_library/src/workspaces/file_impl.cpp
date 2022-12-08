@@ -15,11 +15,10 @@
 
 #include "file_impl.h"
 
-#include <cerrno>
-#include <codecvt>
-#include <exception>
-#include <locale>
-#include <string>
+//#include <cerrno>
+//#include <codecvt>
+//#include <exception>
+//#include <locale>
 
 #include "file_manager.h"
 #include "utils/content_loader.h"

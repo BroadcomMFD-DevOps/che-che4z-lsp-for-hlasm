@@ -15,10 +15,10 @@
 #ifndef LSP_TEXT_DATA_VIEW_H
 #define LSP_TEXT_DATA_VIEW_H
 
-#include <string>
+#include <string_view>
 #include <vector>
 
-#include "protocol.h"
+#include "range.h"
 
 namespace hlasm_plugin::parser_library::lsp {
 
@@ -27,7 +27,7 @@ class text_data_view
     std::string_view text = empty_text;
     std::vector<size_t> line_indices;
 
-    static std::string empty_text;
+    static constexpr std::string_view empty_text = "";
 
 public:
     text_data_view() = default;

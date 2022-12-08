@@ -15,6 +15,15 @@
 #ifndef HLASMPLUGIN_PARSERLIBRARY_DEBUG_LIB_PROVIDER_H
 #define HLASMPLUGIN_PARSERLIBRARY_DEBUG_LIB_PROVIDER_H
 
+#include <memory>
+#include <optional>
+#include <string>
+#include <string_view>
+#include <utility>
+
+#include "analyzing_context.h"
+#include "workspaces/parse_lib_provider.h"
+#include "workspaces/processor.h"
 #include "workspaces/workspace.h"
 
 namespace hlasm_plugin::parser_library::debugging {

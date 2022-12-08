@@ -12,9 +12,12 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
+#include <string>
+#include <string_view>
+#include <unordered_map>
+#include <utility>
+
 #include "analyzer.h"
-
-
 
 namespace hlasm_plugin::parser_library {
 

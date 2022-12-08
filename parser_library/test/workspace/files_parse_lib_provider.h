@@ -14,6 +14,11 @@
 #ifndef HLASMPLUGIN_PARSERLIBRARY_TEST_FILES_PARSE_LIB_PROVIDER_H
 #define HLASMPLUGIN_PARSERLIBRARY_TEST_FILES_PARSE_LIB_PROVIDER_H
 
+#include <optional>
+#include <string>
+#include <string_view>
+#include <utility>
+
 #include "analyzer.h"
 #include "workspaces/file_manager.h"
 

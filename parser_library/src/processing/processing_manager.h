@@ -15,9 +15,12 @@
 #ifndef PROCESSING_PROCESSING_MANAGER_H
 #define PROCESSING_PROCESSING_MANAGER_H
 
+#include <memory>
 #include <set>
 #include <stack>
+#include <vector>
 
+#include "analyzing_context.h"
 #include "branching_provider.h"
 #include "opencode_provider.h"
 #include "processing_state_listener.h"

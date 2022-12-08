@@ -17,8 +17,11 @@
 
 #include <optional>
 #include <string>
+#include <string_view>
+#include <utility>
 
 #include "analyzing_context.h"
+#include "utils/resource_location.h"
 
 namespace hlasm_plugin::parser_library::workspaces {
 

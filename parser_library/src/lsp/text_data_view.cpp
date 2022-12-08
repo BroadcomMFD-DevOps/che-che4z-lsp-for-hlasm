@@ -67,6 +67,4 @@ std::string_view text_data_view::get_lines_beginning_at(position pos) const
 
 size_t text_data_view::get_number_of_lines() const { return line_indices.size(); }
 
-std::string text_data_view::empty_text;
-
 } // namespace hlasm_plugin::parser_library::lsp

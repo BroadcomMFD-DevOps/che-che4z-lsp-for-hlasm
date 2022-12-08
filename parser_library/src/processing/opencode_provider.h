@@ -17,13 +17,17 @@
 
 #include <deque>
 #include <memory>
+#include <string>
 #include <string_view>
+#include <unordered_map>
 #include <vector>
 
 #include "context/source_snapshot.h"
+#include "diagnosable_ctx.h"
 #include "lexing/logical_line.h"
 #include "parsing/parser_error_listener.h"
 #include "preprocessor.h"
+#include "range.h"
 #include "statement_providers/statement_provider.h"
 #include "virtual_file_monitor.h"
 

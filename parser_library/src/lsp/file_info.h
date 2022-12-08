@@ -17,13 +17,17 @@
 
 #include <functional>
 #include <map>
+#include <memory>
 #include <span>
+#include <utility>
 #include <variant>
+#include <vector>
 
 #include "context/copy_member.h"
 #include "macro_info.h"
 #include "symbol_occurence.h"
 #include "text_data_view.h"
+#include "utils/resource_location.h"
 
 namespace hlasm_plugin::parser_library::lsp {
 

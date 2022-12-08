@@ -15,10 +15,12 @@
 #ifndef HLASMPLUGIN_PARSERLIBRARY_FILE_IMPL_H
 #define HLASMPLUGIN_PARSERLIBRARY_FILE_IMPL_H
 
+#include <string>
+#include <string_view>
+#include <vector>
+
 #include "diagnosable_impl.h"
 #include "file.h"
-#include "processor.h"
-#include "utils/resource_location.h"
 
 namespace hlasm_plugin::parser_library::workspaces {
 
