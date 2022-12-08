@@ -116,20 +116,8 @@ analyzer::analyzer(const std::string& text, analyzer_options opts)
                 src_proc_,
                 *this,
                 opts.get_preprocessor(
-                    [libs = &opts.get_lib_provider(), program = opts.file_loc, &ctx = ctx_](std::string_view library) {
-                        std::optional<utils::resource::resource_location> res_loc;
-
-                        auto result = libs->get_library(std::string(library), program, res_loc);
-
-                        if (res_loc.has_value())
-                        {
-                            ctx.hlasm_ctx->add_preprocessor_dependency(res_loc.value());
-                            return std::optional<std::pair<std::string, utils::resource::resource_location>>(
-                                std::make_pair(*result, *res_loc));
-                        }
-
-                        return std::optional<std::pair<std::string, utils::resource::resource_location>>(std::nullopt);
-                    },
+                    [libs = &opts.get_lib_provider(), program = opts.file_loc, &ctx = ctx_](
+                        std::string_view library) { return libs->get_library(std::string(library), program); },
                     *this,
                     src_proc_,
                     ctx_.hlasm_ctx->ids()),
