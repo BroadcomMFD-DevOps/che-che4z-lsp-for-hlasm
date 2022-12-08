@@ -12,11 +12,15 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
+#include <string>
+
 #include "gtest/gtest.h"
 
 #include "../mock_parse_lib_provider.h"
 #include "analyzer.h"
 #include "context/instruction.h"
+#include "location.h"
+#include "range.h"
 #include "utils/resource_location.h"
 #include "workspaces/parse_lib_provider.h"
 

@@ -12,6 +12,9 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
+#include <string>
+#include <vector>
+
 #include "gtest/gtest.h"
 
 #include "lsp/completion_item.h"

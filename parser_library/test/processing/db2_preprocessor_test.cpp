@@ -12,13 +12,19 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
+#include <memory>
+#include <string_view>
 #include <unordered_map>
+#include <utility>
 
 #include "../common_testing.h"
 #include "../mock_parse_lib_provider.h"
+#include "analyzer.h"
 #include "preprocessor_options.h"
 #include "processing/preprocessor.h"
 #include "semantics/source_info_processor.h"
+#include "utils/resource_location.h"
+
 // test db2 preprocessor emulator
 
 using namespace hlasm_plugin::parser_library::processing;
