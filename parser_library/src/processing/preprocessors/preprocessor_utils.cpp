@@ -105,7 +105,7 @@ std::vector<semantics::preproc_details::name_range> get_operands_list(
         std::string operand;
         operand.reserve(operand_view.length());
         std::remove_copy_if(operand_view.begin(), operand_view.end(), std::back_inserter(operand), [](unsigned char c) {
-            return isspace(c);
+            return utils::isblank32(c);
         });
 
         operand_list.emplace_back(semantics::preproc_details::name_range { std::move(operand),

@@ -26,6 +26,7 @@
 #include "macro_info.h"
 #include "text_data_ref_t.h"
 #include "utils/concat.h"
+#include "utils/string_operations.h"
 
 namespace hlasm_plugin::parser_library::lsp {
 namespace {
@@ -134,7 +135,7 @@ size_t constexpr continuation_column = 71;
 
 bool is_continued_line(std::string_view line)
 {
-    return line.size() > continuation_column && !isspace((unsigned char)line[continuation_column]);
+    return line.size() > continuation_column && !utils::isblank32(line[continuation_column]);
 }
 
 namespace {

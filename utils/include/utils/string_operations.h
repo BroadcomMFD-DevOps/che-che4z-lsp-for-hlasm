@@ -15,12 +15,15 @@
 #ifndef HLASMPLUGIN_UTILS_STRING_OPERATIONS_H
 #define HLASMPLUGIN_UTILS_STRING_OPERATIONS_H
 
+#include <cctype>
 #include <string_view>
 #include <utility>
 
 namespace hlasm_plugin::utils {
 
 std::pair<std::string_view, size_t> trim_left(std::string_view s);
+
+inline bool isblank32(char32_t c) { return c <= 255 && std::isblank(static_cast<unsigned char>(c)); }
 
 } // namespace hlasm_plugin::utils
 
