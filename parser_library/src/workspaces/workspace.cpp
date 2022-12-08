@@ -678,7 +678,7 @@ bool workspace::has_library(const std::string& library, const utils::resource::r
     return false;
 }
 
-std::optional<std::pair<std::string, utils::resource::resource_location>> workspace::get_library(
+std::optional<std::pair<std::string_view, utils::resource::resource_location>> workspace::get_library(
     const std::string& library, const utils::resource::resource_location& program) const
 {
     auto& proc_grp = get_proc_grp_by_program(program);
@@ -692,7 +692,7 @@ std::optional<std::pair<std::string, utils::resource::resource_location>> worksp
         if (!f) // for now
             return std::nullopt;
 
-        return std::pair<std::string, utils::resource::resource_location>(f->get_text(), f->get_location());
+        return std::pair<std::string_view, utils::resource::resource_location>(f->get_text(), f->get_location());
     }
     return std::nullopt;
 }

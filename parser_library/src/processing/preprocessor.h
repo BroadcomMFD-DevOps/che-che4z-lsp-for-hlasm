@@ -53,7 +53,7 @@ class id_storage;
 namespace hlasm_plugin::parser_library::processing {
 
 using library_fetcher =
-    std::function<std::optional<std::pair<std::string, hlasm_plugin::utils::resource::resource_location>>(
+    std::function<std::optional<std::pair<std::string_view, hlasm_plugin::utils::resource::resource_location>>(
         std::string_view)>;
 
 class preprocessor
@@ -62,7 +62,7 @@ public:
     struct included_member_details
     {
         std::string name;
-        std::string text;
+        std::string_view text;
         utils::resource::resource_location loc;
     };
 

@@ -24,14 +24,14 @@ namespace hlasm_plugin::parser_library::lsp {
 
 class text_data_ref_t
 {
-    const std::string* text = &empty_text;
+    std::string_view text = empty_text;
     std::vector<size_t> line_indices;
 
     static std::string empty_text;
 
 public:
     text_data_ref_t() = default;
-    explicit text_data_ref_t(const std::string& text);
+    explicit text_data_ref_t(std::string_view text);
 
     // Returns a specified line from the text, zero-based indexed.
     // If the line does not exist, returns empty string view

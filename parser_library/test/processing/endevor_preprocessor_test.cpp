@@ -46,7 +46,7 @@ TEST_F(endevor_preprocessor_test, basic_inc)
     auto p = create_preprocessor([&callback_count = m_callback_count](std::string_view s) {
         EXPECT_EQ(s, "AAA");
         ++callback_count;
-        return std::pair<std::string, hlasm_plugin::utils::resource::resource_location>(
+        return std::pair<std::string_view, hlasm_plugin::utils::resource::resource_location>(
             "TEST", hlasm_plugin::utils::resource::resource_location());
     });
 
@@ -63,7 +63,7 @@ TEST_F(endevor_preprocessor_test, basic_include)
     auto p = create_preprocessor([&callback_count = m_callback_count](std::string_view s) {
         EXPECT_EQ(s, "AAA");
         ++callback_count;
-        return std::pair<std::string, hlasm_plugin::utils::resource::resource_location>(
+        return std::pair<std::string_view, hlasm_plugin::utils::resource::resource_location>(
             "TEST", hlasm_plugin::utils::resource::resource_location());
     });
 
@@ -96,7 +96,7 @@ TEST_F(endevor_preprocessor_test, cycle)
     auto p = create_preprocessor([&callback_count = m_callback_count](std::string_view s) {
         EXPECT_EQ(s, "AAA");
         ++callback_count;
-        return std::pair<std::string, hlasm_plugin::utils::resource::resource_location>(
+        return std::pair<std::string_view, hlasm_plugin::utils::resource::resource_location>(
             "-INC AaA", hlasm_plugin::utils::resource::resource_location());
     });
 
@@ -111,13 +111,13 @@ TEST_F(endevor_preprocessor_test, nested)
 {
     auto p = create_preprocessor(
         [&callback_count = m_callback_count](std::string_view s)
-            -> std::optional<std::pair<std::string, hlasm_plugin::utils::resource::resource_location>> {
+            -> std::optional<std::pair<std::string_view, hlasm_plugin::utils::resource::resource_location>> {
             ++callback_count;
             if (s == "MEMBER")
-                return std::pair<std::string, hlasm_plugin::utils::resource::resource_location>(
+                return std::pair<std::string_view, hlasm_plugin::utils::resource::resource_location>(
                     "BBB\n-INC NESTED\nDDD", hlasm_plugin::utils::resource::resource_location());
             if (s == "NESTED")
-                return std::pair<std::string, hlasm_plugin::utils::resource::resource_location>(
+                return std::pair<std::string_view, hlasm_plugin::utils::resource::resource_location>(
                     "CCC", hlasm_plugin::utils::resource::resource_location());
             return std::nullopt;
         });

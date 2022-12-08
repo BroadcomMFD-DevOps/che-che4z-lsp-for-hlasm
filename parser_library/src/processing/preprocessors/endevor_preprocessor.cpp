@@ -106,7 +106,7 @@ class endevor_preprocessor final : public preprocessor
             return false;
         }
 
-        std::optional<std::pair<std::string, utils::resource::resource_location>> library;
+        std::optional<std::pair<std::string_view, utils::resource::resource_location>> library;
         if (m_libs)
             library = m_libs(member_upper);
 
@@ -124,7 +124,7 @@ class endevor_preprocessor final : public preprocessor
             document member_doc(lib_text);
             member_doc.convert_to_replaced();
             stack.emplace_back(member_upper, std::move(member_doc));
-            store_included_member({ std::move(member_upper), std::move(lib_text), std::move(lib_loc) });
+            store_included_member({ std::move(member_upper), lib_text, std::move(lib_loc) });
         }
 
         return true;

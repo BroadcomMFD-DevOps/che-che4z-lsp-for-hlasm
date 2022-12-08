@@ -50,11 +50,11 @@ public:
     void did_change(range range, std::string new_text) override;
     void did_close() override;
 
-    static std::vector<size_t> create_line_indices(const std::string& text);
+    static std::vector<size_t> create_line_indices(std::string_view text);
 
     // Returns the location in text that corresponds to utf-16 based location
     // The position may point beyond the last character -> returns text.size()
-    static size_t index_from_position(const std::string& text, const std::vector<size_t>& line_indices, position pos);
+    static size_t index_from_position(std::string_view text, const std::vector<size_t>& line_indices, position pos);
 
     virtual ~file_impl() = default;
 
