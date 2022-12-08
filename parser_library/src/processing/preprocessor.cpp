@@ -44,7 +44,11 @@ bool preprocessor::is_continued(std::string_view s)
     return !cont.empty() && cont != " ";
 }
 
-void preprocessor::clear_statements() { m_statements.clear(); }
+void preprocessor::reset()
+{
+    m_statements.clear();
+    m_inc_members.clear();
+}
 
 void preprocessor::set_statement(std::shared_ptr<semantics::preprocessor_statement_si> stmt)
 {
@@ -78,6 +82,22 @@ void preprocessor::do_highlighting(
 
     if (stmt.remarks_ref().value.size())
         src_proc.add_hl_symbol(token_info(stmt.remarks_ref().field_range, semantics::hl_scopes::remark));
+}
+
+void preprocessor::store_included_member(included_member_details details)
+{
+    m_inc_members.emplace_back(std::move(details));
+}
+
+void preprocessor::store_included_members(std::vector<included_member_details> details)
+{
+    m_inc_members.insert(
+        m_inc_members.end(), std::make_move_iterator(details.begin()), std::make_move_iterator(details.end()));
+}
+
+std::vector<preprocessor::included_member_details> preprocessor::take_included_members()
+{
+    return std::move(m_inc_members);
 }
 
 } // namespace hlasm_plugin::parser_library::processing

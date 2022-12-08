@@ -89,6 +89,7 @@ private:
 
     statement_provider& find_provider() const;
     void finish_processor();
+    void finish_preprocessor();
 
     void start_macro_definition(macrodef_start_data start) override;
     void finish_macro_definition(macrodef_processing_result result) override;

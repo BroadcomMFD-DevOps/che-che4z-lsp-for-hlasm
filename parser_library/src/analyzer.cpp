@@ -73,7 +73,7 @@ std::unique_ptr<processing::preprocessor> analyzer_options::get_preprocessor(pro
 
         document generate_replacement(document doc) override
         {
-            clear_statements();
+            reset();
 
             for (const auto& p : pp)
                 doc = p->generate_replacement(std::move(doc));
@@ -87,6 +87,14 @@ std::unique_ptr<processing::preprocessor> analyzer_options::get_preprocessor(pro
                 set_statements(p->take_statements());
 
             return preprocessor::take_statements();
+        }
+
+        std::vector<preprocessor::included_member_details> take_included_members() override
+        {
+            for (const auto& p : pp)
+                store_included_members(p->take_included_members());
+
+            return preprocessor::take_included_members();
         }
     } tmp;
 
@@ -114,9 +122,13 @@ analyzer::analyzer(const std::string& text, analyzer_options opts)
                         auto result = libs->get_library(std::string(library), program, res_loc);
 
                         if (res_loc.has_value())
+                        {
                             ctx.hlasm_ctx->add_preprocessor_dependency(res_loc.value());
+                            return std::optional<std::pair<std::string, utils::resource::resource_location>>(
+                                std::make_pair(*result, *res_loc));
+                        }
 
-                        return result;
+                        return std::optional<std::pair<std::string, utils::resource::resource_location>>(std::nullopt);
                     },
                     *this,
                     src_proc_,

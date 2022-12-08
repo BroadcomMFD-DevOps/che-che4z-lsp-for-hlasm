@@ -182,6 +182,36 @@ void processing_manager::finish_processor()
     procs_.pop_back();
 }
 
+void processing_manager::finish_preprocessor()
+{
+    auto preproc = opencode_prov_.get_preprocessor();
+    if (!preproc)
+        return;
+
+    for (const auto& stmt : preproc->take_statements())
+    {
+        if (!stmt)
+            continue;
+
+        lsp_analyzer_.analyze(*stmt);
+    }
+
+    for (const auto& inc_member_details : preproc->take_included_members())
+    {
+        static const context::statement_block stmt_block;
+
+        ctx_.lsp_ctx->add_copy(std::make_shared<context::copy_member>(hlasm_ctx_.ids().add(inc_member_details.name),
+                                   stmt_block,
+                                   location(position(0, 0), inc_member_details.loc)),
+            lsp::text_data_ref_t(inc_member_details.text));
+
+        ctx_.hlasm_ctx->add_preprocessor_dependency(inc_member_details.loc);
+    }
+
+    // diagnosable_impl::add_diagnostic(diagnostic_s::fade(file_loc_, stmt->stmt_range_ref())); // todo create
+    // separate 'fade' container
+}
+
 void processing_manager::start_macro_definition(macrodef_start_data start)
 {
     start_macro_definition(std::move(start), std::nullopt);
@@ -265,20 +295,7 @@ void processing_manager::finish_copy_member(copy_processing_result result)
 
 void processing_manager::finish_opencode()
 {
-    for (const auto& stmt : opencode_prov_.get_preprocessor_statements())
-    {
-        if (!stmt)
-            continue;
-
-        lsp_analyzer_.analyze(*stmt);
-
-        if (stmt->m_resemblence == context::id_storage::well_known::COPY)
-            asm_processor::process_copy(*stmt, ctx_, lib_provider_, nullptr, false);
-
-        // diagnosable_impl::add_diagnostic(diagnostic_s::fade(file_loc_, stmt->stmt_range_ref())); // todo create
-        // separate 'fade' container
-    }
-
+    finish_preprocessor();
     lsp_analyzer_.opencode_finished();
 }
 
