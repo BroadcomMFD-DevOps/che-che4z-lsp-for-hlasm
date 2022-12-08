@@ -36,6 +36,7 @@
 #include "virtual_file_monitor.h"
 #include "workspaces/file_manager.h"
 #include "workspaces/file_manager_vfm.h"
+#include "workspaces/workspace.h"
 
 using namespace hlasm_plugin::parser_library::workspaces;
 
@@ -140,7 +141,7 @@ public:
         thread_ = std::thread([this, open_code = std::move(open_code), &workspace, lib_provider]() {
             std::lock_guard<std::mutex> guard(variable_mtx_); // Lock the mutex while analyzer is running, unlock once
                                                               // it is stopped and waiting in the statement method
-            debug_lib_provider debug_provider(workspace);
+            debug_lib_provider debug_provider(workspace, &cancel_);
 
             workspaces::file_manager_vfm vfm(
                 workspace.get_file_manager(), utils::resource::resource_location(workspace.uri()));
@@ -277,6 +278,8 @@ public:
         continue_ = true;
         con_var.notify_all();
     }
+
+    void pause() { stop_on_next_stmt_ = true; }
 
     // Retrieval of current context.
     const std::vector<stack_frame>& stack_frames()
@@ -445,6 +448,7 @@ void debugger::next() { pimpl->next(); }
 void debugger::step_in() { pimpl->step_in(); }
 void debugger::disconnect() { pimpl->disconnect(); }
 void debugger::continue_debug() { pimpl->continue_debug(); }
+void debugger::pause() { pimpl->pause(); }
 
 
 void debugger::breakpoints(sequence<char> source, sequence<breakpoint> bps)

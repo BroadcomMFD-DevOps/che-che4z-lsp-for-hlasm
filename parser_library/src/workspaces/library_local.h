@@ -55,7 +55,7 @@ public:
 
     const utils::resource::resource_location& get_location() const;
 
-    std::shared_ptr<processor> find_file(const std::string& file) override;
+    std::shared_ptr<processor> find_file(std::string_view file) override;
 
     void refresh() override;
 
@@ -64,6 +64,8 @@ public:
     std::vector<std::string> list_files() override;
 
     std::string refresh_url_prefix() const override;
+
+    std::pair<utils::resource::resource_location, std::string> get_file_content(std::string_view file) override;
 
 private:
     file_manager& m_file_manager;

@@ -17,9 +17,12 @@
 
 #include <memory>
 #include <string>
+#include <string_view>
+#include <utility>
 #include <vector>
 
 #include "diagnosable.h"
+#include "utils/resource_location.h"
 
 namespace hlasm_plugin::parser_library::workspaces {
 
@@ -29,10 +32,11 @@ class library : public virtual diagnosable
 {
 public:
     virtual ~library() = default;
-    virtual std::shared_ptr<processor> find_file(const std::string& file) = 0;
+    virtual std::shared_ptr<processor> find_file(std::string_view file) = 0;
     virtual void refresh() = 0;
     virtual std::vector<std::string> list_files() = 0;
     virtual std::string refresh_url_prefix() const = 0;
+    virtual std::pair<utils::resource::resource_location, std::string> get_file_content(std::string_view file) = 0;
 };
 
 } // namespace hlasm_plugin::parser_library::workspaces

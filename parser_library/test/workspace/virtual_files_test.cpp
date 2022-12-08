@@ -91,6 +91,11 @@ public:
         (const override));
 
     MOCK_METHOD(open_file_result, update_file, (const file_location& document_loc), (override));
+
+    MOCK_METHOD(std::optional<std::string>,
+        get_file_content,
+        (const hlasm_plugin::utils::resource::resource_location&),
+        (override));
 };
 
 } // namespace

@@ -89,6 +89,7 @@ public:
     void step_in();
     void disconnect();
     void continue_debug();
+    void pause();
 
     void breakpoints(sequence<char> source, sequence<breakpoint> bps);
     void breakpoints(std::string_view source, sequence<breakpoint> bps) { breakpoints(sequence(source), bps); }

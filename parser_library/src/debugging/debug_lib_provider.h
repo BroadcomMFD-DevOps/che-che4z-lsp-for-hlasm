@@ -15,16 +15,20 @@
 #ifndef HLASMPLUGIN_PARSERLIBRARY_DEBUG_LIB_PROVIDER_H
 #define HLASMPLUGIN_PARSERLIBRARY_DEBUG_LIB_PROVIDER_H
 
+#include <atomic>
 #include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <utility>
 
-#include "analyzing_context.h"
+#include "utils/resource_location.h"
 #include "workspaces/parse_lib_provider.h"
-#include "workspaces/processor.h"
-#include "workspaces/workspace.h"
+
+namespace hlasm_plugin::parser_library::workspaces {
+class workspace;
+}
 
 namespace hlasm_plugin::parser_library::debugging {
 
@@ -33,37 +37,24 @@ namespace hlasm_plugin::parser_library::debugging {
 // parsing that do not collide with LSP.
 class debug_lib_provider final : public workspaces::parse_lib_provider
 {
-    const workspaces::workspace& ws_;
+    const workspaces::workspace* ws_;
+    std::unordered_map<utils::resource::resource_location, std::string, utils::resource::resource_location_hasher>
+        files;
+    std::atomic<bool>* cancel;
 
 public:
-    debug_lib_provider(const workspaces::workspace& ws)
-        : ws_(ws)
+    debug_lib_provider(const workspaces::workspace& ws, std::atomic<bool>* cancel)
+        : ws_(&ws)
+        , cancel(cancel)
     {}
 
     workspaces::parse_result parse_library(
-        const std::string& library, analyzing_context ctx, workspaces::library_data data) override
-    {
-        auto& proc_grp = ws_.get_proc_grp_by_program(ctx.hlasm_ctx->opencode_location());
-        for (auto&& lib : proc_grp.libraries())
-        {
-            std::shared_ptr<workspaces::processor> found = lib->find_file(library);
-            if (found)
-                return found->parse_no_lsp_update(*this, std::move(ctx), data);
-        }
+        const std::string& library, analyzing_context ctx, workspaces::library_data data) override;
 
-        return false;
-    }
-
-    bool has_library(const std::string& library, const utils::resource::resource_location& program) const override
-    {
-        return ws_.has_library(library, program);
-    }
+    bool has_library(const std::string& library, const utils::resource::resource_location& program) const override;
 
     std::optional<std::pair<std::string, utils::resource::resource_location>> get_library(
-        const std::string& library, const utils::resource::resource_location& program) const override
-    {
-        return ws_.get_library(library, program);
-    }
+        const std::string& library, const utils::resource::resource_location& program) const override;
 };
 
 } // namespace hlasm_plugin::parser_library::debugging
