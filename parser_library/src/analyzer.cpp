@@ -116,7 +116,7 @@ analyzer::analyzer(const std::string& text, analyzer_options opts)
                 src_proc_,
                 *this,
                 opts.get_preprocessor(
-                    [libs = &opts.get_lib_provider(), program = opts.file_loc, &ctx = ctx_](
+                    [libs = &opts.get_lib_provider(), program = opts.file_loc](
                         std::string_view library) { return libs->get_library(std::string(library), program); },
                     *this,
                     src_proc_,
