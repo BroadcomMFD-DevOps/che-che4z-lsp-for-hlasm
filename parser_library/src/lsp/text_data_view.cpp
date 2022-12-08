@@ -12,18 +12,18 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
-#include "text_data_ref_t.h"
+#include "text_data_view.h"
 
 #include "workspaces/file_impl.h"
 
 namespace hlasm_plugin::parser_library::lsp {
 
-text_data_ref_t::text_data_ref_t(std::string_view text)
+text_data_view::text_data_view(std::string_view text)
     : text(text)
     , line_indices(workspaces::file_impl::create_line_indices(text))
 {}
 
-std::string_view text_data_ref_t::get_line(size_t line) const
+std::string_view text_data_view::get_line(size_t line) const
 {
     if (line >= line_indices.size())
         return "";
@@ -32,7 +32,7 @@ std::string_view text_data_ref_t::get_line(size_t line) const
     return text.substr(line_indices[line], line_len);
 }
 
-std::string_view text_data_ref_t::get_line_beginning_at(position pos) const
+std::string_view text_data_view::get_line_beginning_at(position pos) const
 {
     if (pos.line >= line_indices.size())
         return "";
@@ -41,7 +41,7 @@ std::string_view text_data_ref_t::get_line_beginning_at(position pos) const
     return text.substr(line_indices[pos.line], line_len);
 }
 
-char text_data_ref_t::get_character_before(position pos) const
+char text_data_view::get_character_before(position pos) const
 {
     if (pos.column == 0)
         return '\0';
@@ -49,7 +49,7 @@ char text_data_ref_t::get_character_before(position pos) const
     return text.at(index);
 }
 
-std::string_view text_data_ref_t::get_range_content(range r) const
+std::string_view text_data_view::get_range_content(range r) const
 {
     size_t start_i = workspaces::file_impl::index_from_position(text, line_indices, r.start);
     size_t end_i = workspaces::file_impl::index_from_position(text, line_indices, r.end);
@@ -58,15 +58,15 @@ std::string_view text_data_ref_t::get_range_content(range r) const
     return text.substr(start_i, end_i - start_i);
 }
 
-std::string_view text_data_ref_t::get_lines_beginning_at(position pos) const
+std::string_view text_data_view::get_lines_beginning_at(position pos) const
 {
     if (pos.line >= line_indices.size())
         return {};
     return text.substr(line_indices[pos.line]);
 }
 
-size_t text_data_ref_t::get_number_of_lines() const { return line_indices.size(); }
+size_t text_data_view::get_number_of_lines() const { return line_indices.size(); }
 
-std::string text_data_ref_t::empty_text;
+std::string text_data_view::empty_text;
 
 } // namespace hlasm_plugin::parser_library::lsp

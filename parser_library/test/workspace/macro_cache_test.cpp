@@ -117,7 +117,7 @@ analyzing_context create_analyzing_context(std::string file_name, std::shared_pt
         std::make_shared<lsp::lsp_context>(hlasm_ctx),
     };
     lsp::opencode_info_ptr oip = std::make_unique<lsp::opencode_info>(lsp::vardef_storage(), lsp::file_occurences_t {});
-    new_ctx.lsp_ctx->add_opencode(std::move(oip), lsp::text_data_ref_t(""));
+    new_ctx.lsp_ctx->add_opencode(std::move(oip), lsp::text_data_view(""));
 
     return new_ctx;
 }

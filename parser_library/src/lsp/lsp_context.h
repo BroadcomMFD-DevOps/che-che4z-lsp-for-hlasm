@@ -69,9 +69,9 @@ class lsp_context final
 public:
     explicit lsp_context(std::shared_ptr<context::hlasm_context> h_ctx);
 
-    void add_copy(context::copy_member_ptr copy, text_data_ref_t text_data);
-    void add_macro(macro_info_ptr macro_i, text_data_ref_t text_data = text_data_ref_t());
-    void add_opencode(opencode_info_ptr opencode_i, text_data_ref_t text_data);
+    void add_copy(context::copy_member_ptr copy, text_data_view text_data);
+    void add_macro(macro_info_ptr macro_i, text_data_view text_data = text_data_view());
+    void add_opencode(opencode_info_ptr opencode_i, text_data_view text_data);
 
     [[nodiscard]] macro_info_ptr get_macro_info(
         context::id_index macro_name, context::opcode_generation gen = context::opcode_generation::current) const;
@@ -109,7 +109,7 @@ private:
     completion_list_source complete_seq(const file_info& file, position pos) const;
     completion_list_source complete_instr(const file_info& file, position pos) const;
 
-    bool should_complete_instr(const text_data_ref_t& text, position pos) const;
+    bool should_complete_instr(const text_data_view& text, position pos) const;
 
     void document_symbol_macro(document_symbol_list_s& result,
         const utils::resource::resource_location& document_loc,
