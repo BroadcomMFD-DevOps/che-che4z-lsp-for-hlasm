@@ -139,7 +139,7 @@ position range_provider::adjust_position(position pos, bool end) const
     return position(line_start, column_start);
 }
 
-range_provider::range_provider(range original_range, adjusting_state state, const size_t continued_code_line_column)
+range_provider::range_provider(range original_range, adjusting_state state, size_t continued_code_line_column)
     : original_range(original_range)
     , state(state)
     , m_continued_code_line_column(continued_code_line_column)
@@ -148,7 +148,7 @@ range_provider::range_provider(range original_range, adjusting_state state, cons
 range_provider::range_provider(range original_field_range,
     std::vector<range> original_operand_ranges_,
     adjusting_state state,
-    const size_t continued_code_line_column)
+    size_t continued_code_line_column)
     : original_range(original_field_range)
     , original_operand_ranges(std::move(original_operand_ranges_))
     , state(state)

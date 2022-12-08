@@ -1138,12 +1138,10 @@ public:
             m_result.emplace_back(replaced_line { "         DFHEIMSG 12\n" });
         }
 
-        if (static const stmt_part_ids part_ids { 1, { 2, 3 }, { 4 }, std::nullopt };
-            auto stmt = get_preproc_statement<semantics::cics_statement_si>(m_matches_ll, part_ids, lineno, 1))
-        {
-            do_highlighting(*stmt, m_src_proc, 1);
-            set_statement(std::move(stmt));
-        }
+        static const stmt_part_ids part_ids { 1, { 2, 3 }, { 4 }, std::nullopt };
+        auto stmt = get_preproc_statement<semantics::cics_statement_si>(m_matches_ll, part_ids, lineno, 1);
+        do_highlighting(*stmt, m_src_proc, 1);
+        set_statement(std::move(stmt));
 
         return true;
     }
@@ -1219,11 +1217,9 @@ public:
             }
             else if (r.substitutions_performed() > 0)
                 ret_val = true;
-        }
 
-        if (static const stmt_part_ids part_ids { 1, { 2 }, 3, 4 };
-            auto stmt = get_preproc_statement<semantics::cics_statement_si>(m_matches_ll, part_ids, lineno))
-        {
+            static const stmt_part_ids part_ids { 1, { 2 }, 3, 4 };
+            auto stmt = get_preproc_statement<semantics::cics_statement_si>(m_matches_ll, part_ids, lineno);
             do_highlighting(*stmt, m_src_proc);
             set_statement(std::move(stmt));
         }

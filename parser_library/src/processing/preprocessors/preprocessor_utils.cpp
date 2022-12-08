@@ -15,6 +15,7 @@
 #include "preprocessor_utils.h"
 
 #include <algorithm>
+#include <tuple>
 
 #include "lexing/logical_line.h"
 #include "semantics/range_provider.h"
@@ -32,7 +33,7 @@ size_t get_quoted_string_end(std::string_view s)
     {
         closing_quote = s.find_first_of("'");
 
-        if (closing_quote == std::string_view::npos || closing_quote == s.length()
+        if (closing_quote == std::string_view::npos || closing_quote == s.length() - 1
             || s[closing_quote + 1] != '\'') // ignore double quotes
             break;
 
@@ -54,7 +55,7 @@ size_t get_argument_end(std::string_view s)
 
 std::string_view extract_operand_and_argument(std::string_view s)
 {
-    static const std::string separators = " ,";
+    static constexpr std::string_view separators = " ,";
 
     auto separator_pos = s.find_first_of(separators);
     if (separator_pos == std::string_view::npos)
@@ -103,7 +104,9 @@ std::vector<semantics::preproc_details::name_range> get_operands_list(
         auto operand_view = extract_operand_and_argument(operands);
         std::string operand;
         operand.reserve(operand_view.length());
-        std::remove_copy_if(operand_view.begin(), operand_view.end(), std::back_inserter(operand), isspace);
+        std::remove_copy_if(operand_view.begin(), operand_view.end(), std::back_inserter(operand), [](unsigned char c) {
+            return isspace(c);
+        });
 
         operand_list.emplace_back(semantics::preproc_details::name_range { std::move(operand),
             rp.adjust_range(range(
@@ -139,8 +142,7 @@ template<typename PREPROC_STATEMENT, typename ITERATOR>
 std::shared_ptr<PREPROC_STATEMENT> get_preproc_statement(
     const std::match_results<ITERATOR>& matches, const stmt_part_ids& ids, size_t lineno, size_t continue_column)
 {
-    if (!matches.size() || ids.operands >= matches.size() || (ids.remarks && *ids.remarks >= matches.size()))
-        return nullptr;
+    assert(!matches.empty() || ids.operands < matches.size() || (ids.remarks && *ids.remarks < matches.size()));
 
     semantics::preproc_details details;
 
