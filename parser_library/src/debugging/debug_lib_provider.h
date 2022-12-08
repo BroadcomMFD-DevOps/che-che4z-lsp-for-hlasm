@@ -28,7 +28,6 @@
 
 namespace hlasm_plugin::parser_library::workspaces {
 class library;
-class workspace;
 } // namespace hlasm_plugin::parser_library::workspaces
 
 namespace hlasm_plugin::parser_library::debugging {

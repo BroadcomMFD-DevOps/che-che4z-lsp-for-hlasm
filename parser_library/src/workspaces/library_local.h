@@ -84,9 +84,13 @@ private:
         state_t m_data;
 
     public:
+        atomic_state_t() = default;
+        atomic_state_t(state_t data)
+            : m_data(std::move(data))
+        {}
         auto load() const { return std::atomic_load(&m_data); }
         void store(state_t data) { std::atomic_store(&m_data, std::move(data)); }
-        void exchange(state_t data) { std::atomic_exchange(&m_data, std::move(data)); }
+        auto exchange(state_t data) { return std::atomic_exchange(&m_data, std::move(data)); }
     };
 #endif
 

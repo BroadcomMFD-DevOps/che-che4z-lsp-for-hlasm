@@ -155,7 +155,7 @@ library_local::state_t library_local::load_files()
     {
         if (m_extensions.empty())
         {
-            new_files[context::to_upper_copy(file)] = std::move(rl);
+            new_files.try_emplace(context::to_upper_copy(file), std::move(rl));
             continue;
         }
 
@@ -170,7 +170,8 @@ library_local::state_t library_local::load_files()
                 continue;
             filename.remove_suffix(extension.size());
 
-            const auto [_, inserted] = new_files.try_emplace(context::to_upper_copy(std::string(filename)), rl);
+            const auto [_, inserted] =
+                new_files.try_emplace(context::to_upper_copy(std::string(filename)), std::move(rl));
             // TODO: the stored value is a full path, yet we try to interpret it as a relative one later on
             if (!inserted)
                 new_diags.push_back(diagnostic_s::warning_L0004(

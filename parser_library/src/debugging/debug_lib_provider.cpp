@@ -20,7 +20,6 @@
 
 namespace hlasm_plugin::parser_library::debugging {
 
-
 debug_lib_provider::debug_lib_provider(
     std::vector<std::shared_ptr<workspaces::library>> libraries, std::atomic<bool>* cancel)
     : libraries(std::move(libraries))
@@ -52,8 +51,7 @@ workspaces::parse_result debug_lib_provider::parse_library(
     return false;
 }
 
-bool debug_lib_provider::has_library(
-    const std::string& library, const utils::resource::resource_location& program) const
+bool debug_lib_provider::has_library(const std::string& library, const utils::resource::resource_location&) const
 {
     for (auto&& lib : libraries)
         if (lib->has_file(library))
@@ -62,7 +60,7 @@ bool debug_lib_provider::has_library(
 }
 
 std::optional<std::pair<std::string, utils::resource::resource_location>> debug_lib_provider::get_library(
-    const std::string& library, const utils::resource::resource_location& program) const
+    const std::string& library, const utils::resource::resource_location&) const
 {
     for (auto&& lib : libraries)
     {
