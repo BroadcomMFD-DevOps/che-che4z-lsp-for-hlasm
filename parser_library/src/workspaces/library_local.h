@@ -15,8 +15,11 @@
 #ifndef HLASMPLUGIN_PARSERLIBRARY_LOCAL_LIBRARY_H
 #define HLASMPLUGIN_PARSERLIBRARY_LOCAL_LIBRARY_H
 
+#include <atomic>
+#include <memory>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include "diagnosable_impl.h"
@@ -36,7 +39,7 @@ struct library_local_options
 };
 
 // library holds absolute path to a directory and finds macro files in it
-class library_local final : public library, public diagnosable_impl
+class library_local final : public library
 {
 public:
     // takes reference to file manager that provides access to the files
@@ -51,15 +54,11 @@ public:
 
     library_local(library_local&&) noexcept;
 
-    void collect_diags() const override;
-
     const utils::resource::resource_location& get_location() const;
 
     std::shared_ptr<processor> find_file(std::string_view file) override;
 
     void refresh() override;
-
-    bool is_once_only() const override { return false; }
 
     std::vector<std::string> list_files() override;
 
@@ -67,20 +66,41 @@ public:
 
     std::pair<utils::resource::resource_location, std::string> get_file_content(std::string_view file) override;
 
+    bool has_file(std::string_view file) override;
+
+    void copy_diagnostics(std::vector<diagnostic_s>& target) const override;
+
 private:
+    using state_t = std::shared_ptr<const std::pair<std::unordered_map<std::string,
+                                                        utils::resource::resource_location,
+                                                        utils::hashers::string_hasher,
+                                                        std::equal_to<>>,
+        std::vector<diagnostic_s>>>;
+#if __cpp_lib_atomic_shared_ptr >= 201711L
+    using atomic_state_t = std::atomic<state_t>;
+#else
+    class atomic_state_t
+    {
+        state_t m_data;
+
+    public:
+        auto load() const { return std::atomic_load(&m_data); }
+        void store(state_t data) { std::atomic_store(&m_data, std::move(data)); }
+        void exchange(state_t data) { std::atomic_exchange(&m_data, std::move(data)); }
+    };
+#endif
+
     file_manager& m_file_manager;
 
     utils::resource::resource_location m_lib_loc;
-    std::unordered_map<std::string, utils::resource::resource_location, utils::hashers::string_hasher, std::equal_to<>>
-        m_files;
+    atomic_state_t m_files;
     std::vector<std::string> m_extensions;
-    // indicates whether load_files function was called (not whether it was successful)
-    bool m_files_loaded = false;
     bool m_optional = false;
     bool m_extensions_from_deprecated_source = false;
     utils::resource::resource_location m_proc_grps_loc;
 
-    void load_files();
+    state_t load_files();
+    state_t get_or_load_files();
 };
 #pragma warning(pop)
 

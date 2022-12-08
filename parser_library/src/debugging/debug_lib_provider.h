@@ -27,8 +27,9 @@
 #include "workspaces/parse_lib_provider.h"
 
 namespace hlasm_plugin::parser_library::workspaces {
+class library;
 class workspace;
-}
+} // namespace hlasm_plugin::parser_library::workspaces
 
 namespace hlasm_plugin::parser_library::debugging {
 
@@ -37,16 +38,13 @@ namespace hlasm_plugin::parser_library::debugging {
 // parsing that do not collide with LSP.
 class debug_lib_provider final : public workspaces::parse_lib_provider
 {
-    const workspaces::workspace* ws_;
     std::unordered_map<utils::resource::resource_location, std::string, utils::resource::resource_location_hasher>
         files;
+    std::vector<std::shared_ptr<workspaces::library>> libraries;
     std::atomic<bool>* cancel;
 
 public:
-    debug_lib_provider(const workspaces::workspace& ws, std::atomic<bool>* cancel)
-        : ws_(&ws)
-        , cancel(cancel)
-    {}
+    debug_lib_provider(std::vector<std::shared_ptr<workspaces::library>> libraries, std::atomic<bool>* cancel);
 
     workspaces::parse_result parse_library(
         const std::string& library, analyzing_context ctx, workspaces::library_data data) override;

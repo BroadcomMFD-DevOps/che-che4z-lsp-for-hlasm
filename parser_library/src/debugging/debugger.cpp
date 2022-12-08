@@ -133,27 +133,44 @@ public:
     void launch(
         std::string_view source, workspaces::workspace& workspace, bool stop_on_entry, parse_lib_provider* lib_provider)
     {
-        // TODO: check if already running???
+        // still has data races
         auto open_code = workspace.get_processor_file(utils::resource::resource_location(source));
-        opencode_source_uri_ = open_code->get_location().get_uri();
+        auto open_code_location = open_code->get_location();
+        opencode_source_uri_ = open_code_location.get_uri();
         stop_on_next_stmt_ = stop_on_entry;
 
-        thread_ = std::thread([this, open_code = std::move(open_code), &workspace, lib_provider]() {
+        struct debugger_thread_data
+        {
+            utils::resource::resource_location open_code_location;
+            std::string open_code_text;
+            debug_lib_provider debug_provider;
+            asm_option asm_opts;
+            std::vector<preprocessor_options> pp_opts;
+            workspaces::file_manager_vfm vfm;
+            analyzer_options opts;
+        };
+
+        auto data = std::make_unique<debugger_thread_data>(debugger_thread_data {
+            open_code_location,
+            open_code->get_text(),
+            debug_lib_provider(workspace.get_proc_grp_by_program(open_code_location).libraries(), &cancel_),
+            workspace.get_asm_options(open_code_location),
+            workspace.get_preprocessor_options(open_code_location),
+            workspaces::file_manager_vfm(
+                workspace.get_file_manager(), utils::resource::resource_location(workspace.uri())),
+        });
+
+        thread_ = std::thread([this, data = std::move(data), lib_provider]() {
             std::lock_guard<std::mutex> guard(variable_mtx_); // Lock the mutex while analyzer is running, unlock once
                                                               // it is stopped and waiting in the statement method
-            debug_lib_provider debug_provider(workspace, &cancel_);
 
-            workspaces::file_manager_vfm vfm(
-                workspace.get_file_manager(), utils::resource::resource_location(workspace.uri()));
-            // TODO: it would probably be better to implement Sources request and keep everything locally
-
-            analyzer a(open_code->get_text(),
+            analyzer a(data->open_code_text,
                 analyzer_options {
-                    open_code->get_location(),
-                    lib_provider ? lib_provider : &debug_provider,
-                    workspace.get_asm_options(open_code->get_location()),
-                    workspace.get_preprocessor_options(open_code->get_location()),
-                    &vfm,
+                    std::move(data->open_code_location),
+                    lib_provider ? lib_provider : &data->debug_provider,
+                    std::move(data->asm_opts),
+                    std::move(data->pp_opts),
+                    &data->vfm,
                 });
 
             a.register_stmt_analyzer(this);

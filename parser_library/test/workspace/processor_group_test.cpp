@@ -220,7 +220,7 @@ TEST(processor_group, asm_options_machine_invalid)
 
 TEST(processor_group, opcode_suggestions)
 {
-    struct library_mock final : library, diagnosable_impl
+    struct library_mock final : library
     {
         std::shared_ptr<processor> find_file(std::string_view) override { return nullptr; }
         void refresh() override {}
@@ -230,9 +230,14 @@ TEST(processor_group, opcode_suggestions)
         {
             return std::pair<hlasm_plugin::utils::resource::resource_location, std::string>();
         }
+        bool has_file(std::string_view file)
+        {
+            auto files = list_files();
+            return std::any_of(files.begin(), files.end(), [file](const auto& v) { return v == file; });
+        }
 
-        // diag iface
-        void collect_diags() const override {}
+        void copy_diagnostics(std::vector<diagnostic_s>&) const override {}
+
         std::string refresh_url_prefix() const override { return {}; }
     };
     processor_group grp("", {}, {});

@@ -69,33 +69,23 @@ library_local::library_local(file_manager& file_manager,
 library_local::library_local(library_local&& l) noexcept
     : m_file_manager(l.m_file_manager)
     , m_lib_loc(std::move(l.m_lib_loc))
-    , m_files(std::move(l.m_files))
+    , m_files(l.m_files.exchange(nullptr))
     , m_extensions(std::move(l.m_extensions))
-    , m_files_loaded(l.m_files_loaded)
     , m_optional(l.m_optional)
     , m_extensions_from_deprecated_source(l.m_extensions_from_deprecated_source)
     , m_proc_grps_loc(std::move(l.m_proc_grps_loc))
 {}
 
-void library_local::collect_diags() const
-{
-    // does not have any diagnosable children
-}
-
-void library_local::refresh()
-{
-    m_files.clear();
-    load_files();
-}
+void library_local::refresh() { load_files(); }
 
 std::vector<std::string> library_local::list_files()
 {
-    if (!m_files_loaded)
-        load_files();
+    auto files = get_or_load_files();
 
     std::vector<std::string> result;
-    result.reserve(m_files.size());
-    std::transform(m_files.begin(), m_files.end(), std::back_inserter(result), [](const auto& f) { return f.first; });
+    result.reserve(files->first.size());
+    std::transform(
+        files->first.begin(), files->first.end(), std::back_inserter(result), [](const auto& f) { return f.first; });
     return result;
 }
 
@@ -105,10 +95,9 @@ const utils::resource::resource_location& library_local::get_location() const { 
 
 std::shared_ptr<processor> library_local::find_file(std::string_view file_name)
 {
-    if (!m_files_loaded)
-        load_files();
+    auto files = get_or_load_files();
 
-    if (auto found = m_files.find(file_name); found != m_files.end())
+    if (auto found = files->first.find(file_name); found != files->first.end())
         return m_file_manager.add_processor_file(found->second);
     else
         return nullptr;
@@ -116,11 +105,10 @@ std::shared_ptr<processor> library_local::find_file(std::string_view file_name)
 
 std::pair<utils::resource::resource_location, std::string> library_local::get_file_content(std::string_view file)
 {
-    if (!m_files_loaded)
-        load_files();
+    auto files = get_or_load_files();
 
-    auto found = m_files.find(file);
-    if (found == m_files.end())
+    auto found = files->first.find(file);
+    if (found == files->first.end())
         return std::pair<utils::resource::resource_location, std::string>();
     auto content = m_file_manager.get_file_content(found->second);
     if (!content.has_value())
@@ -128,13 +116,23 @@ std::pair<utils::resource::resource_location, std::string> library_local::get_fi
     return { found->second, std::move(content).value() };
 }
 
-void library_local::load_files()
+bool library_local::has_file(std::string_view file) { return get_or_load_files()->first.contains(file); }
+
+void library_local::copy_diagnostics(std::vector<diagnostic_s>& target) const
+{
+    if (auto files = m_files.load(); files)
+        target.insert(target.end(), files->second.begin(), files->second.end());
+}
+
+library_local::state_t library_local::load_files()
 {
     auto [files_list, rc] = m_file_manager.list_directory_files(m_lib_loc);
-    m_files.clear();
-    diags().clear();
-
-    std::vector<diagnostic_s> new_diags;
+    auto new_state = std::make_shared<std::pair<std::unordered_map<std::string,
+                                                    utils::resource::resource_location,
+                                                    utils::hashers::string_hasher,
+                                                    std::equal_to<>>,
+        std::vector<diagnostic_s>>>();
+    auto& [new_files, new_diags] = *new_state;
 
     switch (rc)
     {
@@ -152,7 +150,6 @@ void library_local::load_files()
             break;
     }
 
-    decltype(m_files) new_files;
     bool extension_removed = false;
     for (auto& [file, rl] : files_list)
     {
@@ -187,10 +184,16 @@ void library_local::load_files()
     if (extension_removed && m_extensions_from_deprecated_source)
         new_diags.push_back(diagnostic_s::warning_L0003(m_proc_grps_loc, m_lib_loc));
 
-    using std::swap;
-    swap(m_files, new_files);
-    swap(diags(), new_diags);
-    m_files_loaded = true;
+    m_files.store(new_state);
+
+    return new_state;
+}
+
+library_local::state_t library_local::get_or_load_files()
+{
+    if (auto files = m_files.load(); files)
+        return files;
+    return load_files();
 }
 
 } // namespace hlasm_plugin::parser_library::workspaces
