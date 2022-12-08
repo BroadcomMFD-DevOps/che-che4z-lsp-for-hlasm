@@ -41,13 +41,13 @@ struct files_parse_lib_provider : public workspaces::parse_lib_provider
     {
         return file_mngr->find(utils::resource::resource_location(library)) != nullptr;
     }
-    virtual std::optional<std::pair<std::string_view, utils::resource::resource_location>> get_library(
+    virtual std::optional<std::pair<std::string, utils::resource::resource_location>> get_library(
         const std::string& library, const utils::resource::resource_location&) const override
     {
         auto macro = file_mngr->add_processor_file(utils::resource::resource_location(library));
         if (!macro)
             return std::nullopt;
-        return std::pair<std::string_view, hlasm_plugin::utils::resource::resource_location>(
+        return std::pair<std::string, hlasm_plugin::utils::resource::resource_location>(
             macro->get_text(), macro->get_location());
     }
 };

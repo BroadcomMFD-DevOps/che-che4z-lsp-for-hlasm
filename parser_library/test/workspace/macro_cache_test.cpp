@@ -97,13 +97,13 @@ struct file_manager_cache_test_mock : public file_manager_impl, public parse_lib
         return files_by_library_.count(library) > 0;
     };
 
-    std::optional<std::pair<std::string_view, resource_location>> get_library(
+    std::optional<std::pair<std::string, resource_location>> get_library(
         const std::string& library, const resource_location&) const override
     {
         auto it = files_by_library_.find(library);
         if (it == files_by_library_.end())
             return std::nullopt;
-        return std::pair<std::string_view, resource_location>(
+        return std::pair<std::string, resource_location>(
             it->second.first->get_text(), it->second.first->get_location());
     }
 };

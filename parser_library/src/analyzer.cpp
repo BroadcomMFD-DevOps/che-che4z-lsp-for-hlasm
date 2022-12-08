@@ -89,12 +89,12 @@ std::unique_ptr<processing::preprocessor> analyzer_options::get_preprocessor(pro
             return preprocessor::take_statements();
         }
 
-        std::vector<preprocessor::included_member_details> take_included_members() override
+        const std::vector<included_member_details>& view_included_members() override
         {
             for (const auto& p : pp)
-                store_included_members(p->take_included_members());
+                capture_included_members(*p);
 
-            return preprocessor::take_included_members();
+            return preprocessor::view_included_members();
         }
     } tmp;
 

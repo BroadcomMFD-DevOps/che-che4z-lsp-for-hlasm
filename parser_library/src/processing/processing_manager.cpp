@@ -196,7 +196,7 @@ void processing_manager::finish_preprocessor()
         lsp_analyzer_.analyze(*stmt);
     }
 
-    for (auto& inc_member_details : preproc->take_included_members())
+    for (const auto& inc_member_details : preproc->view_included_members())
     {
         static const context::statement_block stmt_block;
 
@@ -204,7 +204,7 @@ void processing_manager::finish_preprocessor()
 
         ctx_.lsp_ctx->add_copy(std::make_shared<context::copy_member>(hlasm_ctx_.ids().add(inc_member_details.name),
                                    stmt_block,
-                                   location(position(0, 0), std::move(inc_member_details.loc))),
+                                   location(position(0, 0), inc_member_details.loc)),
             lsp::text_data_view(inc_member_details.text));
     }
 

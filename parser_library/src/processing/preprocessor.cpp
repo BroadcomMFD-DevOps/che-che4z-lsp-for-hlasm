@@ -95,9 +95,14 @@ void preprocessor::store_included_members(std::vector<included_member_details> d
         m_inc_members.end(), std::make_move_iterator(details.begin()), std::make_move_iterator(details.end()));
 }
 
-std::vector<preprocessor::included_member_details> preprocessor::take_included_members()
+void preprocessor::capture_included_members(preprocessor& preproc)
 {
-    return std::move(m_inc_members);
+    store_included_members(std::move(preproc.m_inc_members));
+}
+
+const std::vector<preprocessor::included_member_details>& preprocessor::view_included_members()
+{
+    return m_inc_members;
 }
 
 } // namespace hlasm_plugin::parser_library::processing

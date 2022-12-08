@@ -66,14 +66,14 @@ public:
         return read_library_name(library).has_value();
     }
 
-    std::optional<std::pair<std::string_view, hlasm_plugin::utils::resource::resource_location>> get_library(
+    std::optional<std::pair<std::string, hlasm_plugin::utils::resource::resource_location>> get_library(
         const std::string& library, const hlasm_plugin::utils::resource::resource_location&) const override
     {
         auto lib = read_library_name(library);
         if (!lib.has_value())
             return std::nullopt;
 
-        return std::pair<std::string_view, hlasm_plugin::utils::resource::resource_location>(
+        return std::pair<std::string, hlasm_plugin::utils::resource::resource_location>(
             files[lib.value()], hlasm_plugin::utils::resource::resource_location(library));
     }
 

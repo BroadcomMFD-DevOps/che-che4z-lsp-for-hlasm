@@ -92,7 +92,7 @@ TEST_F(db2_preprocessor_test, include)
         db2_preprocessor_options {},
         [](std::string_view s) {
             EXPECT_EQ(s, "MEMBER");
-            return std::pair<std::string_view, hlasm_plugin::utils::resource::resource_location>(
+            return std::pair<std::string, hlasm_plugin::utils::resource::resource_location>(
                 "member content", hlasm_plugin::utils::resource::resource_location());
         },
         nullptr);
@@ -225,7 +225,7 @@ TEST_F(db2_preprocessor_test, no_nested_include)
         db2_preprocessor_options {},
         [](std::string_view s) {
             EXPECT_EQ(s, "MEMBER");
-            return std::pair<std::string_view, hlasm_plugin::utils::resource::resource_location>(
+            return std::pair<std::string, hlasm_plugin::utils::resource::resource_location>(
                 " EXEC SQL INCLUDE MEMBER", hlasm_plugin::utils::resource::resource_location());
         },
         &m_diags);

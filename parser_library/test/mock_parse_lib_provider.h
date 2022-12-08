@@ -58,14 +58,14 @@ public:
     }
 
 
-    std::optional<std::pair<std::string_view, utils::resource::resource_location>> get_library(
+    std::optional<std::pair<std::string, utils::resource::resource_location>> get_library(
         const std::string& library, const utils::resource::resource_location&) const override
     {
         auto it = m_files.find(library);
         if (it == m_files.end())
             return std::nullopt;
 
-        return std::pair<std::string_view, utils::resource::resource_location>(
+        return std::pair<std::string, utils::resource::resource_location>(
             it->second, utils::resource::resource_location(library));
     }
 };

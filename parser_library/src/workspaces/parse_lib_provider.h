@@ -42,7 +42,7 @@ public:
 
     virtual bool has_library(const std::string& library, const utils::resource::resource_location& program) const = 0;
 
-    virtual std::optional<std::pair<std::string_view, utils::resource::resource_location>> get_library(
+    virtual std::optional<std::pair<std::string, utils::resource::resource_location>> get_library(
         const std::string& library, const utils::resource::resource_location& program) const = 0;
 
 protected:
@@ -55,7 +55,7 @@ class empty_parse_lib_provider final : public parse_lib_provider
 public:
     parse_result parse_library(const std::string&, analyzing_context, library_data) override { return false; };
     bool has_library(const std::string&, const utils::resource::resource_location&) const override { return false; };
-    std::optional<std::pair<std::string_view, utils::resource::resource_location>> get_library(
+    std::optional<std::pair<std::string, utils::resource::resource_location>> get_library(
         const std::string&, const utils::resource::resource_location&) const override
     {
         return std::nullopt;

@@ -53,7 +53,7 @@ class id_storage;
 namespace hlasm_plugin::parser_library::processing {
 
 using library_fetcher =
-    std::function<std::optional<std::pair<std::string_view, hlasm_plugin::utils::resource::resource_location>>(
+    std::function<std::optional<std::pair<std::string, hlasm_plugin::utils::resource::resource_location>>(
         std::string_view)>;
 
 class preprocessor
@@ -62,7 +62,7 @@ public:
     struct included_member_details
     {
         std::string name;
-        std::string_view text;
+        std::string text;
         utils::resource::resource_location loc;
     };
 
@@ -90,7 +90,7 @@ public:
 
     virtual std::vector<std::shared_ptr<semantics::preprocessor_statement_si>> take_statements();
 
-    virtual std::vector<included_member_details> take_included_members();
+    virtual const std::vector<included_member_details>& view_included_members();
 
 protected:
     preprocessor() = default;
@@ -115,6 +115,7 @@ protected:
 
     void store_included_member(included_member_details details);
     void store_included_members(std::vector<included_member_details> details);
+    void capture_included_members(preprocessor& preproc);
 
 private:
     std::vector<std::shared_ptr<semantics::preprocessor_statement_si>> m_statements;

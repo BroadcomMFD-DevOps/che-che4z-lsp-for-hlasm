@@ -248,7 +248,7 @@ class db2_preprocessor final : public preprocessor
         }
         m_result.emplace_back(replaced_line { "***$$$\n" });
 
-        std::optional<std::pair<std::string_view, utils::resource::resource_location>> include_member;
+        std::optional<std::pair<std::string, utils::resource::resource_location>> include_member;
         if (m_libs)
             include_member = m_libs(operands_upper);
         if (!include_member.has_value())
@@ -262,7 +262,7 @@ class db2_preprocessor final : public preprocessor
         document d(include_mem_text);
         d.convert_to_replaced();
         generate_replacement(d.begin(), d.end(), false);
-        store_included_member({ std::move(operands_upper), include_mem_text, std::move(include_mem_loc) });
+        store_included_member({ std::move(operands_upper), std::move(include_mem_text), std::move(include_mem_loc) });
     }
     static bool consume_words(
         std::string_view& l, std::initializer_list<std::string_view> words, bool tolerate_no_space_at_end = false)
