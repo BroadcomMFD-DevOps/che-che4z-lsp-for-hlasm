@@ -53,7 +53,7 @@ workspaces::parse_result debug_lib_provider::parse_library(
 
 bool debug_lib_provider::has_library(const std::string& library, const utils::resource::resource_location&) const
 {
-    for (auto&& lib : libraries)
+    for (const auto& lib : libraries)
         if (lib->has_file(library))
             return true;
     return false;
@@ -62,7 +62,7 @@ bool debug_lib_provider::has_library(const std::string& library, const utils::re
 std::optional<std::pair<std::string, utils::resource::resource_location>> debug_lib_provider::get_library(
     const std::string& library, const utils::resource::resource_location&) const
 {
-    for (auto&& lib : libraries)
+    for (const auto& lib : libraries)
     {
         auto&& [location, content] = lib->get_file_content(library);
         if (location.empty())
