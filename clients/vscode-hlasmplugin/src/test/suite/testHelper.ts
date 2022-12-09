@@ -123,7 +123,11 @@ export async function insertString(editor: vscode.TextEditor, position: vscode.P
     return movePosition;
 }
 
-export function sleep(ms: number): Promise<unknown> {
-    return new Promise((resolve) => { setTimeout(resolve, ms); });
+export function sleep(ms: number): Promise<void> {
+    return new Promise<void>((resolve) => { setTimeout(resolve, ms); });
+}
+
+export function timeout(ms: number, error_message: string | undefined = undefined): Promise<void> {
+    return new Promise<void>((_, reject) => { setTimeout(() => reject(error_message && Error(error_message)), ms); });
 }
 
