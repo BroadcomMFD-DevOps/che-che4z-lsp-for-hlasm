@@ -143,9 +143,11 @@ void dap_feature::on_launch(const json& request_seq, const json& args)
     bool stop_on_entry = args["stopOnEntry"].get<bool>();
     auto workspace_id = ws_mngr_.find_workspace(program_path.c_str());
     debugger->set_event_consumer(this);
-    debugger->launch(program_path.c_str(), *workspace_id, stop_on_entry);
 
-    response_->respond(request_seq, "launch", json());
+    if (debugger->launch(program_path.c_str(), *workspace_id, stop_on_entry))
+        response_->respond(request_seq, "launch", json());
+    else
+        response_->respond_error(request_seq, "launch", 0, "File not found", json());
 }
 
 void dap_feature::on_set_breakpoints(const json& request_seq, const json& args)

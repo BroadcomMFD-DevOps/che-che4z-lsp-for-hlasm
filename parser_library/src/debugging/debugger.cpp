@@ -130,12 +130,16 @@ class debugger::impl final : public processing::statement_analyzer
 public:
     impl() = default;
 
-    void launch(
-        std::string_view source, workspaces::workspace& workspace, bool stop_on_entry, parse_lib_provider* lib_provider)
+    bool launch(std::string_view source, workspaces::workspace& workspace, bool stop_on_entry)
     {
         // still has data races
-        auto open_code = workspace.get_processor_file(utils::resource::resource_location(source));
-        auto open_code_location = open_code->get_location();
+        utils::resource::resource_location open_code_location(source);
+        auto open_code_text = workspace.get_file_manager().get_file_content(open_code_location);
+        if (!open_code_text.has_value())
+        {
+            debug_ended_ = true;
+            return false;
+        }
         opencode_source_uri_ = open_code_location.get_uri();
         stop_on_next_stmt_ = stop_on_entry;
 
@@ -152,7 +156,7 @@ public:
 
         auto data = std::make_unique<debugger_thread_data>(debugger_thread_data {
             open_code_location,
-            open_code->get_text(),
+            std::move(open_code_text).value(),
             debug_lib_provider(workspace.get_proc_grp_by_program(open_code_location).libraries(), &cancel_),
             workspace.get_asm_options(open_code_location),
             workspace.get_preprocessor_options(open_code_location),
@@ -160,14 +164,14 @@ public:
                 workspace.get_file_manager(), utils::resource::resource_location(workspace.uri())),
         });
 
-        thread_ = std::thread([this, data = std::move(data), lib_provider]() {
+        thread_ = std::thread([this, data = std::move(data)]() {
             std::lock_guard<std::mutex> guard(variable_mtx_); // Lock the mutex while analyzer is running, unlock once
                                                               // it is stopped and waiting in the statement method
 
             analyzer a(data->open_code_text,
                 analyzer_options {
                     std::move(data->open_code_location),
-                    lib_provider ? lib_provider : &data->debug_provider,
+                    &data->debug_provider,
                     std::move(data->asm_opts),
                     std::move(data->pp_opts),
                     &data->vfm,
@@ -183,6 +187,8 @@ public:
                 event_->exited(0);
             debug_ended_ = true;
         });
+
+        return true;
     }
 
     void set_event_consumer(debug_event_consumer* event) { event_ = event; }
@@ -451,12 +457,9 @@ debugger::~debugger()
         delete pimpl;
 }
 
-void debugger::launch(sequence<char> source,
-    workspaces::workspace& source_workspace,
-    bool stop_on_entry,
-    parse_lib_provider* lib_provider)
+bool debugger::launch(sequence<char> source, workspaces::workspace& source_workspace, bool stop_on_entry)
 {
-    pimpl->launch(std::string_view(source), source_workspace, stop_on_entry, lib_provider);
+    return pimpl->launch(std::string_view(source), source_workspace, stop_on_entry);
 }
 
 void debugger::set_event_consumer(debug_event_consumer* event) { pimpl->set_event_consumer(event); }

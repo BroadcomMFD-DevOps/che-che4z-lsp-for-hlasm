@@ -48,7 +48,7 @@ TEST(debugger, stopped_on_entry)
     resource_location file_loc(file_name);
 
     file_manager.did_open_file(file_loc, 0, "   LR 1,2");
-    d.launch(file_name.c_str(), ws, true);
+    ASSERT_TRUE(d.launch(file_name.c_str(), ws, true));
     m.wait_for_stopped();
 
     auto frames = d.stack_frames();
@@ -86,7 +86,7 @@ TEST(debugger, disconnect)
     resource_location file_loc(file_name);
 
     file_manager.did_open_file(file_loc, 0, "   LR 1,2");
-    d.launch(file_name.c_str(), ws, true);
+    ASSERT_TRUE(d.launch(file_name.c_str(), ws, true));
     m.wait_for_stopped();
 
     d.disconnect();
@@ -404,7 +404,7 @@ TEST(debugger, test)
     resource_location file_loc(filename);
 
     file_manager.did_open_file(file_loc, 0, open_code);
-    d.launch(filename, lib_provider, true, &lib_provider);
+    ASSERT_TRUE(d.launch(filename, lib_provider, true));
     m.wait_for_stopped();
     std::vector<debugging::stack_frame> exp_frames { { 1, 1, 0, "OPENCODE", file_loc.get_uri() } };
     std::vector<frame_vars> exp_frame_vars { { {}, {}, {} } };
@@ -495,7 +495,7 @@ TEST(debugger, sysstmt)
     resource_location file_loc(filename);
 
     file_manager.did_open_file(file_loc, 0, open_code);
-    d.launch(filename, lib_provider, true, &lib_provider);
+    ASSERT_TRUE(d.launch(filename, lib_provider, true));
     m.wait_for_stopped();
     std::vector<debugging::stack_frame> exp_frames { { 1, 1, 0, "OPENCODE", file_loc.get_uri() } };
     std::vector<frame_vars> exp_frame_vars { { { {
@@ -557,7 +557,7 @@ A  MAC_IN ()
     resource_location file_loc(filename);
 
     file_manager.did_open_file(file_loc, 0, open_code);
-    d.launch(filename, lib_provider, true, &lib_provider);
+    ASSERT_TRUE(d.launch(filename, lib_provider, true));
     m.wait_for_stopped();
     std::vector<debugging::stack_frame> exp_frames { { 1, 1, 0, "OPENCODE", file_loc.get_uri() } };
     std::vector<frame_vars> exp_frame_vars { { {}, {}, {} } };
@@ -724,7 +724,7 @@ TEST(debugger, positional_parameters)
 
     file_manager.did_open_file(file_loc, 0, open_code);
 
-    d.launch(filename, lib_provider, true, &lib_provider);
+    ASSERT_TRUE(d.launch(filename, lib_provider, true));
     m.wait_for_stopped();
 
     d.next();
@@ -845,7 +845,7 @@ TEST(debugger, arrays)
 
     file_manager.did_open_file(file_loc, 0, open_code);
 
-    d.launch(filename, lib_provider, true, &lib_provider);
+    ASSERT_TRUE(d.launch(filename, lib_provider, true));
     m.wait_for_stopped();
     std::vector<debugging::stack_frame> exp_frames { { 1, 1, 0, "OPENCODE", file_loc.get_uri() } };
     std::vector<frame_vars> exp_frame_vars { { {}, {}, {} } };
@@ -901,7 +901,8 @@ B EQU A
 
     file_manager.did_open_file(file_loc, 0, open_code);
 
-    d.launch(file_loc.get_uri(), lib_provider, true, &lib_provider);
+    ASSERT_TRUE(d.launch(file_loc.get_uri(), lib_provider, true));
+    ;
     m.wait_for_stopped();
     std::vector<debugging::stack_frame> exp_frames { { 1, 1, 0, "OPENCODE", file_loc.get_uri() } };
     std::vector<frame_vars> exp_frame_vars { { {}, {}, {} } };
@@ -947,7 +948,8 @@ TEST(debugger, ainsert)
 
     file_manager.did_open_file(file_loc, 0, open_code);
 
-    d.launch(file_loc.get_uri(), lib_provider, true, &lib_provider);
+    ASSERT_TRUE(d.launch(file_loc.get_uri(), lib_provider, true));
+    ;
     m.wait_for_stopped();
     std::vector<debugging::stack_frame> exp_frames { { 1, 1, 0, "OPENCODE", file_loc.get_uri() } };
     std::vector<frame_vars> exp_frame_vars { {
@@ -1000,7 +1002,7 @@ TEST(debugger, concurrent_next_and_file_change)
     resource_location file_loc(filename);
 
     file_manager.did_open_file(file_loc, 0, open_code);
-    d.launch(filename, lib_provider, true, &lib_provider);
+    ASSERT_TRUE(d.launch(filename, lib_provider, true));
     m.wait_for_stopped();
     std::string new_string = "SOME NEW FILE DOES NOT MATTER";
     std::vector<document_change> chs;
@@ -1037,4 +1039,22 @@ TEST(debugger, breakpoints_set_get)
 
     ASSERT_EQ(bps.size(), 1);
     EXPECT_EQ(bp.line, bps.begin()->line);
+}
+
+TEST(debugger, invalid_file)
+{
+    file_manager_impl file_manager;
+    lib_config config;
+    shared_json global_settings = make_empty_shared_json();
+    workspace ws(file_manager, config, global_settings);
+
+    debug_event_consumer_s_mock m;
+    debugger d;
+    d.set_event_consumer(&m);
+    std::string file_name = "test_workspace\\test";
+    resource_location file_loc(file_name);
+
+    EXPECT_FALSE(d.launch(file_name.c_str(), ws, true));
+
+    d.disconnect();
 }
