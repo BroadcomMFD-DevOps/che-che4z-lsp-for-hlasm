@@ -12,12 +12,15 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
+#include <array>
+#include <bitset>
 #include <charconv>
 #include <cstring>
 #include <optional>
 #include <string>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 #include "analyzer.h"
 #include "analyzing_context.h"
