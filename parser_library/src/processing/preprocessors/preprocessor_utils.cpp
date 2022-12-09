@@ -142,7 +142,7 @@ template<typename PREPROC_STATEMENT, typename ITERATOR>
 std::shared_ptr<PREPROC_STATEMENT> get_preproc_statement(
     const std::match_results<ITERATOR>& matches, const stmt_part_ids& ids, size_t lineno, size_t continue_column)
 {
-    assert(!matches.empty() || ids.operands < matches.size() || (ids.remarks && *ids.remarks < matches.size()));
+    assert(!matches.empty() && ids.operands < matches.size() && (!ids.remarks || *ids.remarks < matches.size()));
 
     semantics::preproc_details details;
 
