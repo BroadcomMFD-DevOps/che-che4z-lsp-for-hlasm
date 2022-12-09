@@ -124,11 +124,12 @@ std::string get_content(const uint8_t* data, size_t size, fuzzer_lib_provider& l
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
 {
-    if (!data || size == 0)
+    if (!data || size <= 1)
         return 0;
 
     fuzzer_lib_provider lib;
-    analyzer a(get_content(data, size, lib), analyzer_options(&lib, get_preprocessor_options(std::bitset<3>(data[0]))));
+    auto source = get_content(data + 1, size - 1, lib);
+    analyzer a(source, analyzer_options(&lib, get_preprocessor_options(std::bitset<3>(data[0]))));
     a.analyze();
 
     return 0; // Non-zero return values are reserved for future use.
