@@ -401,11 +401,13 @@ TEST_F(feature_launch_test, variables)
     feature.on_disconnect("9"_json, {});
 }
 
-std::string pause = ".A AGO .A";
+namespace {
+std::string pause_file = ".A AGO .A";
+}
 
 TEST_F(feature_launch_test, pause)
 {
-    ws_mngr.did_open_file(utils::path::path_to_uri(file_path).c_str(), 0, pause.c_str(), pause.size());
+    ws_mngr.did_open_file(utils::path::path_to_uri(file_path).c_str(), 0, pause_file.c_str(), pause_file.size());
 
     feature.on_launch("0"_json, nlohmann::json { { "program", file_path }, { "stopOnEntry", false } });
 

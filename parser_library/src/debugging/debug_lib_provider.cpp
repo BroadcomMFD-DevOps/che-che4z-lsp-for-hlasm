@@ -29,7 +29,7 @@ debug_lib_provider::debug_lib_provider(
 workspaces::parse_result debug_lib_provider::parse_library(
     const std::string& library, analyzing_context ctx, workspaces::library_data data)
 {
-    for (auto&& lib : libraries)
+    for (const auto& lib : libraries)
     {
         auto found = lib->get_file_content(library);
         if (found.first.empty())
