@@ -471,7 +471,7 @@ void workspace::close() { opened_ = false; }
 
 void workspace::set_message_consumer(message_consumer* consumer) { message_consumer_ = consumer; }
 
-file_manager& workspace::get_file_manager() { return file_manager_; }
+file_manager& workspace::get_file_manager() const { return file_manager_; }
 
 bool workspace::settings_updated()
 {
@@ -695,6 +695,12 @@ std::optional<std::pair<std::string, utils::resource::resource_location>> worksp
         return std::pair<std::string, utils::resource::resource_location>(f->get_text(), f->get_location());
     }
     return std::nullopt;
+}
+
+std::vector<std::shared_ptr<library>> workspace::get_libraries(
+    const utils::resource::resource_location& file_location) const
+{
+    return get_proc_grp_by_program(file_location).libraries();
 }
 
 asm_option workspace::get_asm_options(const utils::resource::resource_location& file_location) const

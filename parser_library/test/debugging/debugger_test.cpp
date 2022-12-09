@@ -329,34 +329,56 @@ public:
         : workspace(file_mngr, config, global_settings)
     {}
 
-    parse_result parse_library(const std::string& library, analyzing_context ctx, library_data data) override
+    parse_result parse_library(const std::string&, analyzing_context, library_data) override
     {
-        std::shared_ptr<file> found = get_file_manager().add_file(resource_location(library));
-        if (found)
-        {
-            analyzer a(found->get_text(),
-                analyzer_options {
-                    found->get_location(),
-                    this,
-                    std::move(ctx),
-                    data,
-                    collect_highlighting_info::no,
-                });
-            a.analyze();
-            return true;
-        }
+        assert(false);
 
         return false;
     }
-    asm_option get_asm_options(const hlasm_plugin::utils::resource::resource_location&) const override
+
+    std::vector<std::shared_ptr<library>> get_libraries(const resource_location&) const override
     {
-        return { "SEVEN", "" };
+        struct debugger_mock_library : library
+        {
+            file_manager& fm;
+            std::shared_ptr<processor> find_file(std::string_view) override
+            {
+                assert(false);
+                return nullptr;
+            }
+            void refresh() override { assert(false); }
+            std::vector<std::string> list_files() override
+            {
+                assert(false);
+                return {};
+            }
+            std::pair<resource_location, std::string> get_file_content(std::string_view file) override
+            {
+                auto text = fm.get_file_content(resource_location(file));
+                if (text.has_value())
+                    return { resource_location(file), std::move(text).value() };
+                else
+                    return std::pair<resource_location, std::string>();
+            }
+            bool has_file(std::string_view file) { return !!fm.find(resource_location(file)); }
+
+            void copy_diagnostics(std::vector<diagnostic_s>&) const override { assert(false); }
+
+            std::string refresh_url_prefix() const override
+            {
+                assert(false);
+                return {};
+            }
+
+            debugger_mock_library(file_manager& fm)
+                : fm(fm)
+            {}
+        };
+
+        return { std::make_shared<debugger_mock_library>(get_file_manager()) };
     }
-    std::vector<preprocessor_options> get_preprocessor_options(
-        const hlasm_plugin::utils::resource::resource_location&) const override
-    {
-        return {};
-    }
+    asm_option get_asm_options(const resource_location&) const override { return { "SEVEN", "" }; }
+    std::vector<preprocessor_options> get_preprocessor_options(const resource_location&) const override { return {}; }
 };
 
 TEST(debugger, test)
