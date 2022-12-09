@@ -24,8 +24,7 @@ suite('Integration Test Suite', () => {
     suiteSetup(async function () {
         this.timeout(30000);
 
-        await helper.showDocument(workspace_file);
-        editor = helper.get_editor(workspace_file);
+        editor = (await helper.showDocument(workspace_file)).editor;
     });
 
     // open 'open' file, should be recognized as hlasm
