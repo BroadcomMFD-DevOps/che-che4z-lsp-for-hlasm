@@ -24,10 +24,8 @@ namespace hlasm_plugin::parser_library::lsp {
 
 class text_data_view
 {
-    std::string_view text = empty_text;
+    std::string_view text;
     std::vector<size_t> line_indices;
-
-    static constexpr std::string_view empty_text = "";
 
 public:
     text_data_view() = default;

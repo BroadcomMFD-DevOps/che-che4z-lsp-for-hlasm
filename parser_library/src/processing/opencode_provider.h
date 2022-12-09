@@ -23,7 +23,6 @@
 #include <vector>
 
 #include "context/source_snapshot.h"
-#include "diagnosable_ctx.h"
 #include "lexing/logical_line.h"
 #include "parsing/parser_error_listener.h"
 #include "preprocessor.h"
@@ -31,11 +30,13 @@
 #include "statement_providers/statement_provider.h"
 #include "virtual_file_monitor.h"
 
+namespace hlasm_plugin::parser_library {
+class diagnosable_ctx;
+} // namespace hlasm_plugin::parser_library
 namespace hlasm_plugin::parser_library::parsing {
 class hlasmparser_multiline;
 class parser_error_listener;
 class parser_error_listener_ctx;
-
 struct parser_holder;
 } // namespace hlasm_plugin::parser_library::parsing
 namespace hlasm_plugin::parser_library::semantics {

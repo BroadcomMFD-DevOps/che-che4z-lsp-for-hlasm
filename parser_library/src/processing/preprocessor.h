@@ -113,8 +113,8 @@ protected:
     static void do_highlighting(
         const semantics::preprocessor_statement_si& stmt, semantics::source_info_processor& src_proc);
 
-    void store_included_member(included_member_details details);
-    void store_included_members(std::vector<included_member_details> details);
+    void append_included_member(included_member_details details);
+    void append_included_members(std::vector<included_member_details> details);
     void capture_included_members(preprocessor& preproc);
 
 private:

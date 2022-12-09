@@ -124,7 +124,7 @@ class endevor_preprocessor final : public preprocessor
             document member_doc(lib_text);
             member_doc.convert_to_replaced();
             stack.emplace_back(member_upper, std::move(member_doc));
-            store_included_member({ std::move(member_upper), std::move(lib_text), std::move(lib_loc) });
+            append_included_member({ std::move(member_upper), std::move(lib_text), std::move(lib_loc) });
         }
 
         return true;

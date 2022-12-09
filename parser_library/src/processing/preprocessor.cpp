@@ -84,12 +84,12 @@ void preprocessor::do_highlighting(
         src_proc.add_hl_symbol(token_info(stmt.remarks_ref().field_range, semantics::hl_scopes::remark));
 }
 
-void preprocessor::store_included_member(included_member_details details)
+void preprocessor::append_included_member(included_member_details details)
 {
     m_inc_members.emplace_back(std::move(details));
 }
 
-void preprocessor::store_included_members(std::vector<included_member_details> details)
+void preprocessor::append_included_members(std::vector<included_member_details> details)
 {
     m_inc_members.insert(
         m_inc_members.end(), std::make_move_iterator(details.begin()), std::make_move_iterator(details.end()));
@@ -97,7 +97,7 @@ void preprocessor::store_included_members(std::vector<included_member_details> d
 
 void preprocessor::capture_included_members(preprocessor& preproc)
 {
-    store_included_members(std::move(preproc.m_inc_members));
+    append_included_members(std::move(preproc.m_inc_members));
 }
 
 const std::vector<preprocessor::included_member_details>& preprocessor::view_included_members()
