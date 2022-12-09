@@ -82,7 +82,7 @@ private:
 #else
     class atomic_files_collection_t
     {
-        state_t m_data;
+        files_collection_t m_data;
 
     public:
         atomic_files_collection_t() = default;
@@ -90,8 +90,8 @@ private:
             : m_data(std::move(data))
         {}
         auto load() const { return std::atomic_load(&m_data); }
-        void store(state_t data) { std::atomic_store(&m_data, std::move(data)); }
-        auto exchange(state_t data) { return std::atomic_exchange(&m_data, std::move(data)); }
+        void store(files_collection_t data) { std::atomic_store(&m_data, std::move(data)); }
+        auto exchange(files_collection_t data) { return std::atomic_exchange(&m_data, std::move(data)); }
     };
 #endif
 
