@@ -69,7 +69,7 @@ library_local::library_local(file_manager& file_manager,
 library_local::library_local(library_local&& l) noexcept
     : m_file_manager(l.m_file_manager)
     , m_lib_loc(std::move(l.m_lib_loc))
-    , m_files(l.m_files.exchange(nullptr))
+    , m_files_collection(l.m_files_collection.exchange(nullptr))
     , m_extensions(std::move(l.m_extensions))
     , m_optional(l.m_optional)
     , m_extensions_from_deprecated_source(l.m_extensions_from_deprecated_source)
@@ -120,11 +120,11 @@ bool library_local::has_file(std::string_view file) { return get_or_load_files()
 
 void library_local::copy_diagnostics(std::vector<diagnostic_s>& target) const
 {
-    if (auto files = m_files.load(); files)
+    if (auto files = m_files_collection.load(); files)
         target.insert(target.end(), files->second.begin(), files->second.end());
 }
 
-library_local::state_t library_local::load_files()
+library_local::files_collection_t library_local::load_files()
 {
     auto [files_list, rc] = m_file_manager.list_directory_files(m_lib_loc);
     auto new_state = std::make_shared<std::pair<std::unordered_map<std::string,
@@ -185,14 +185,14 @@ library_local::state_t library_local::load_files()
     if (extension_removed && m_extensions_from_deprecated_source)
         new_diags.push_back(diagnostic_s::warning_L0003(m_proc_grps_loc, m_lib_loc));
 
-    m_files.store(new_state);
+    m_files_collection.store(new_state);
 
     return new_state;
 }
 
-library_local::state_t library_local::get_or_load_files()
+library_local::files_collection_t library_local::get_or_load_files()
 {
-    if (auto files = m_files.load(); files)
+    if (auto files = m_files_collection.load(); files)
         return files;
     return load_files();
 }

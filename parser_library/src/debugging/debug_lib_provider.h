@@ -22,6 +22,7 @@
 #include <string_view>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 #include "utils/resource_location.h"
 #include "workspaces/parse_lib_provider.h"
@@ -38,9 +39,9 @@ namespace hlasm_plugin::parser_library::debugging {
 class debug_lib_provider final : public workspaces::parse_lib_provider
 {
     std::unordered_map<utils::resource::resource_location, std::string, utils::resource::resource_location_hasher>
-        files;
-    std::vector<std::shared_ptr<workspaces::library>> libraries;
-    std::atomic<bool>* cancel;
+        m_files;
+    std::vector<std::shared_ptr<workspaces::library>> m_libraries;
+    std::atomic<bool>* m_cancel;
 
 public:
     debug_lib_provider(std::vector<std::shared_ptr<workspaces::library>> libraries, std::atomic<bool>* cancel);

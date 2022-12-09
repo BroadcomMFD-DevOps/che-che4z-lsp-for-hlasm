@@ -18,6 +18,7 @@
 #include <atomic>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -71,21 +72,21 @@ public:
     void copy_diagnostics(std::vector<diagnostic_s>& target) const override;
 
 private:
-    using state_t = std::shared_ptr<const std::pair<std::unordered_map<std::string,
-                                                        utils::resource::resource_location,
-                                                        utils::hashers::string_hasher,
-                                                        std::equal_to<>>,
+    using files_collection_t = std::shared_ptr<const std::pair<std::unordered_map<std::string,
+                                                                   utils::resource::resource_location,
+                                                                   utils::hashers::string_hasher,
+                                                                   std::equal_to<>>,
         std::vector<diagnostic_s>>>;
 #if __cpp_lib_atomic_shared_ptr >= 201711L
-    using atomic_state_t = std::atomic<state_t>;
+    using atomic_files_collection_t = std::atomic<files_collection_t>;
 #else
-    class atomic_state_t
+    class atomic_files_collection_t
     {
         state_t m_data;
 
     public:
-        atomic_state_t() = default;
-        atomic_state_t(state_t data)
+        atomic_files_collection_t() = default;
+        atomic_files_collection_t(files_collection_t data)
             : m_data(std::move(data))
         {}
         auto load() const { return std::atomic_load(&m_data); }
@@ -97,14 +98,14 @@ private:
     file_manager& m_file_manager;
 
     utils::resource::resource_location m_lib_loc;
-    atomic_state_t m_files;
+    atomic_files_collection_t m_files_collection;
     std::vector<std::string> m_extensions;
     bool m_optional = false;
     bool m_extensions_from_deprecated_source = false;
     utils::resource::resource_location m_proc_grps_loc;
 
-    state_t load_files();
-    state_t get_or_load_files();
+    files_collection_t load_files();
+    files_collection_t get_or_load_files();
 };
 #pragma warning(pop)
 

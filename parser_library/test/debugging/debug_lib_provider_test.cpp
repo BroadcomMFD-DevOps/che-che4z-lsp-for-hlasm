@@ -55,8 +55,8 @@ protected:
 TEST_F(debug_lib_provider_test, parse_library)
 {
     const std::string aaa_content = " MNOTE 'AAA'";
-    const resource_location aaa_locaiton("AAA");
-    EXPECT_CALL(*mock_lib, get_file_content(Eq("AAA"))).WillOnce(Return(std::pair(aaa_locaiton, aaa_content)));
+    const resource_location aaa_location("AAA");
+    EXPECT_CALL(*mock_lib, get_file_content(Eq("AAA"))).WillOnce(Return(std::pair(aaa_location, aaa_content)));
 
     std::string input = " COPY AAA";
     analyzer a(input, analyzer_options(&lib));
@@ -78,11 +78,11 @@ TEST_F(debug_lib_provider_test, has_library)
 TEST_F(debug_lib_provider_test, get_library)
 {
     const std::string aaa_content = "AAA content";
-    const resource_location aaa_locaiton("AAA");
-    EXPECT_CALL(*mock_lib, get_file_content(Eq("AAA"))).WillOnce(Return(std::pair(aaa_locaiton, aaa_content)));
+    const resource_location aaa_location("AAA");
+    EXPECT_CALL(*mock_lib, get_file_content(Eq("AAA"))).WillOnce(Return(std::pair(aaa_location, aaa_content)));
     EXPECT_CALL(*mock_lib, get_file_content(Eq("BBB"))).WillOnce(Return(std::pair<resource_location, std::string>()));
 
-    EXPECT_EQ(lib.get_library("AAA", resource_location()), std::pair(aaa_content, aaa_locaiton));
+    EXPECT_EQ(lib.get_library("AAA", resource_location()), std::pair(aaa_content, aaa_location));
 
     EXPECT_EQ(lib.get_library("BBB", resource_location()), std::nullopt);
 }

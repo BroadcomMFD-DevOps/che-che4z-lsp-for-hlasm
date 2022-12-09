@@ -22,20 +22,20 @@ namespace hlasm_plugin::parser_library::debugging {
 
 debug_lib_provider::debug_lib_provider(
     std::vector<std::shared_ptr<workspaces::library>> libraries, std::atomic<bool>* cancel)
-    : libraries(std::move(libraries))
-    , cancel(cancel)
+    : m_libraries(std::move(libraries))
+    , m_cancel(cancel)
 {}
 
 workspaces::parse_result debug_lib_provider::parse_library(
     const std::string& library, analyzing_context ctx, workspaces::library_data data)
 {
-    for (const auto& lib : libraries)
+    for (const auto& lib : m_libraries)
     {
         auto found = lib->get_file_content(library);
         if (found.first.empty())
             continue;
 
-        const auto& [location, content] = *files.insert(std::move(found)).first;
+        const auto& [location, content] = *m_files.insert(std::move(found)).first;
         analyzer a(content,
             analyzer_options {
                 location,
@@ -44,8 +44,8 @@ workspaces::parse_result debug_lib_provider::parse_library(
                 data,
                 collect_highlighting_info::no,
             });
-        a.analyze(cancel);
-        return cancel == nullptr || !*cancel;
+        a.analyze(m_cancel);
+        return m_cancel == nullptr || !*m_cancel;
     }
 
     return false;
@@ -53,7 +53,7 @@ workspaces::parse_result debug_lib_provider::parse_library(
 
 bool debug_lib_provider::has_library(const std::string& library, const utils::resource::resource_location&) const
 {
-    for (const auto& lib : libraries)
+    for (const auto& lib : m_libraries)
         if (lib->has_file(library))
             return true;
     return false;
@@ -62,7 +62,7 @@ bool debug_lib_provider::has_library(const std::string& library, const utils::re
 std::optional<std::pair<std::string, utils::resource::resource_location>> debug_lib_provider::get_library(
     const std::string& library, const utils::resource::resource_location&) const
 {
-    for (const auto& lib : libraries)
+    for (const auto& lib : m_libraries)
     {
         auto&& [location, content] = lib->get_file_content(library);
         if (location.empty())
