@@ -198,14 +198,16 @@ void processing_manager::finish_preprocessor()
 
     for (const auto& inc_member_details : preproc->view_included_members())
     {
+        assert(inc_member_details);
+
         static const context::statement_block stmt_block;
 
-        ctx_.hlasm_ctx->add_preprocessor_dependency(inc_member_details.loc);
+        ctx_.hlasm_ctx->add_preprocessor_dependency(inc_member_details->loc);
 
-        ctx_.lsp_ctx->add_copy(std::make_shared<context::copy_member>(hlasm_ctx_.ids().add(inc_member_details.name),
+        ctx_.lsp_ctx->add_copy(std::make_shared<context::copy_member>(hlasm_ctx_.ids().add(inc_member_details->name),
                                    stmt_block,
-                                   location(position(0, 0), inc_member_details.loc)),
-            lsp::text_data_view(inc_member_details.text));
+                                   location(position(0, 0), inc_member_details->loc)),
+            lsp::text_data_view(inc_member_details->text));
     }
 
     // diagnosable_impl::add_diagnostic(diagnostic_s::fade(file_loc_, stmt->stmt_range_ref())); // todo create

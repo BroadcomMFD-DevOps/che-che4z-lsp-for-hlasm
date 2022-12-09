@@ -90,7 +90,7 @@ public:
 
     virtual std::vector<std::shared_ptr<semantics::preprocessor_statement_si>> take_statements();
 
-    virtual const std::vector<included_member_details>& view_included_members();
+    virtual const std::vector<std::unique_ptr<included_member_details>>& view_included_members();
 
 protected:
     preprocessor() = default;
@@ -113,13 +113,13 @@ protected:
     static void do_highlighting(
         const semantics::preprocessor_statement_si& stmt, semantics::source_info_processor& src_proc);
 
-    void append_included_member(included_member_details details);
-    void append_included_members(std::vector<included_member_details> details);
+    void append_included_member(std::unique_ptr<included_member_details> details);
+    void append_included_members(std::vector<std::unique_ptr<included_member_details>> details);
     void capture_included_members(preprocessor& preproc);
 
 private:
     std::vector<std::shared_ptr<semantics::preprocessor_statement_si>> m_statements;
-    std::vector<included_member_details> m_inc_members;
+    std::vector<std::unique_ptr<included_member_details>> m_inc_members;
 };
 } // namespace hlasm_plugin::parser_library::processing
 

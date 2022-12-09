@@ -262,7 +262,8 @@ class db2_preprocessor final : public preprocessor
         document d(include_mem_text);
         d.convert_to_replaced();
         generate_replacement(d.begin(), d.end(), false);
-        append_included_member({ std::move(operands_upper), std::move(include_mem_text), std::move(include_mem_loc) });
+        append_included_member(std::make_unique<preprocessor::included_member_details>(
+            std::move(operands_upper), std::move(include_mem_text), std::move(include_mem_loc)));
     }
     static bool consume_words(
         std::string_view& l, std::initializer_list<std::string_view> words, bool tolerate_no_space_at_end = false)
