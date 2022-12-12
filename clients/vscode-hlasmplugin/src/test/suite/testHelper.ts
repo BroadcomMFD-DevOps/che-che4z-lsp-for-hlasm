@@ -126,3 +126,11 @@ export function timeout(ms: number, error_message: string | undefined = undefine
     return new Promise<void>((_, reject) => { setTimeout(() => reject(error_message && Error(error_message)), ms); });
 }
 
+export async function waitForDiagnostics() {
+    return new Promise<[vscode.Uri, vscode.Diagnostic[]][]>((resolve, reject) => {
+        const listener = vscode.languages.onDidChangeDiagnostics((_) => {
+            listener.dispose();
+            resolve(vscode.languages.getDiagnostics());
+        });
+    });
+}

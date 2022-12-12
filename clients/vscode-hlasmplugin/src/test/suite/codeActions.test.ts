@@ -26,9 +26,11 @@ suite('Code actions', () => {
     });
 
     test('Diagnostics not suppressed', async () => {
+        const diagnostic_event = helper.waitForDiagnostics();
+
         const { editor, document } = await helper.showDocument('code_action_1.hlasm', 'hlasm');
 
-        await helper.sleep(2500); // wait for vscode
+        await diagnostic_event;
 
         const codeActionsList: vscode.CodeAction[] = await vscode.commands.executeCommand('vscode.executeCodeActionProvider', document.uri, new vscode.Range(0, 10, 0, 15));
 
@@ -36,9 +38,11 @@ suite('Code actions', () => {
     }).timeout(10000).slow(5000);
 
     test('Diagnostics suppressed', async () => {
+        const diagnostic_event = helper.waitForDiagnostics();
+
         const { editor, document } = await helper.showDocument('code_action_2.hlasm', 'hlasm');
 
-        await helper.sleep(2500); // wait for vscode
+        await diagnostic_event;
 
         const codeActionsList: vscode.CodeAction[] = await vscode.commands.executeCommand('vscode.executeCodeActionProvider', document.uri, new vscode.Range(0, 10, 0, 15));
 

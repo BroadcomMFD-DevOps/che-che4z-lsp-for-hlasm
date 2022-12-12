@@ -82,7 +82,7 @@ export class HLASMCodeActionsProvider implements vscode.CodeActionProvider {
 
         const E049 = context.diagnostics.filter(x => x.code === 'E049');
         if (E049.length > 0)
-            result.push(...await generateOpcodeCodeActions(E049.map(diag => { return { diag, opcode: document.getText(diag.range).toUpperCase() }; }), this.client, document.uri, 2500));
+            result.push(...await generateOpcodeCodeActions(E049.map(diag => { return { diag, opcode: document.getText(diag.range).toUpperCase() }; }), this.client, document.uri, 1000));
 
         const workspace = vscode.workspace.getWorkspaceFolder(document.uri);
         if (!workspace) return result;
