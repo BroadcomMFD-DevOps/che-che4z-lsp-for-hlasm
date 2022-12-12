@@ -19,13 +19,13 @@
 
 #include "../common_testing.h"
 #include "diagnosable_impl.h"
+#include "file_manager_mock.h"
 #include "preprocessor_options.h"
 #include "utils/resource_location.h"
 #include "virtual_file_monitor.h"
 #include "workspace_manager.h"
 #include "workspaces/file_manager_impl.h"
 #include "workspaces/file_manager_vfm.h"
-#include "file_manager_mock.h"
 
 using namespace ::testing;
 using namespace hlasm_plugin::utils::path;
