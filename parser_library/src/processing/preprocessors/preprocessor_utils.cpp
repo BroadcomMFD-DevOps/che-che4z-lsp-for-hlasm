@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <string>
 #include <tuple>
+#include <utility>
 
 #include "lexing/logical_line.h"
 #include "utils/string_operations.h"
@@ -43,7 +44,7 @@ size_t get_quoted_string_end(std::string_view s)
     return closing_quote;
 }
 
-size_t get_argument_end(std::string_view s)
+size_t get_argument_length(std::string_view s)
 {
     auto string_end_pos = std::string_view::npos;
     if (auto string_start_pos = s.find_first_of("'"); string_start_pos != std::string_view::npos)
@@ -68,7 +69,7 @@ std::string_view extract_operand_and_argument(std::string_view s)
         if (auto prev_char = s.find_last_not_of(separators, parenthesis - 1); prev_char > separator_pos)
             return s.substr(0, separator_pos);
 
-    return s.substr(0, get_argument_end(s));
+    return s.substr(0, get_argument_length(s));
 }
 
 std::pair<std::string_view, size_t> remove_separators(std::string_view s)
