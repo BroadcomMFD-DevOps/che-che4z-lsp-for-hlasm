@@ -57,7 +57,7 @@ std::unique_ptr<processing::preprocessor> analyzer_options::get_preprocessor(pro
     const auto transform_preprocessor = [&asm_lf, &diag_consumer, &src_proc](const preprocessor_options& po) {
         return std::visit(
             [&asm_lf, &diag_consumer, &src_proc](const auto& p) -> std::unique_ptr<processing::preprocessor> {
-                return processing::preprocessor::create(p, std::move(asm_lf), &diag_consumer, src_proc);
+                return processing::preprocessor::create(p, asm_lf, &diag_consumer, src_proc);
             },
             po);
     };
