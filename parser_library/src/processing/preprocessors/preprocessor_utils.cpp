@@ -15,11 +15,10 @@
 #include "preprocessor_utils.h"
 
 #include <algorithm>
+#include <string>
 #include <tuple>
 
 #include "lexing/logical_line.h"
-#include "semantics/range_provider.h"
-#include "semantics/statement.h"
 #include "utils/string_operations.h"
 
 namespace hlasm_plugin::parser_library::processing {

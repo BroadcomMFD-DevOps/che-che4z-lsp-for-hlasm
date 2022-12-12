@@ -15,8 +15,15 @@
 #ifndef SEMANTICS_STATEMENT_H
 #define SEMANTICS_STATEMENT_H
 
+#include <span>
+#include <string>
+#include <utility>
+#include <vector>
+
 #include "context/hlasm_statement.h"
+#include "context/id_storage.h"
 #include "diagnostic.h"
+#include "range.h"
 #include "statement_fields.h"
 
 // this file contains inherited structures from hlasm_statement that are used during the parsing

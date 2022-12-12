@@ -18,6 +18,7 @@
 #include <memory>
 #include <optional>
 #include <regex>
+#include <string_view>
 #include <vector>
 
 #include "semantics/range_provider.h"
@@ -33,8 +34,8 @@ struct stmt_part_ids
     std::optional<size_t> remarks;
 };
 
-// This function returns a list of operands with their ranges while expecting to receive a single line string where
-// operands are separated by spaces or commas
+// This function returns a list of operands with their ranges while expecting to receive a string_view of a single line
+// where operands are separated by spaces or commas
 std::vector<semantics::preproc_details::name_range> get_operands_list(
     std::string_view operands, size_t op_column_start, const semantics::range_provider& rp);
 

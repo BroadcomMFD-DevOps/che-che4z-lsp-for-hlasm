@@ -15,10 +15,10 @@
 #ifndef SOURCE_INFO_PROC_INFO
 #define SOURCE_INFO_PROC_INFO
 
-#include <memory>
 #include <vector>
 
 #include "highlighting_info.h"
+#include "protocol.h"
 
 namespace hlasm_plugin::parser_library::semantics {
 

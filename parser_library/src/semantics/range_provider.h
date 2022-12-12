@@ -15,6 +15,9 @@
 #ifndef SEMANTICS_RANGE_PROVIDER_H
 #define SEMANTICS_RANGE_PROVIDER_H
 
+#include <utility>
+#include <vector>
+
 #include "antlr4-runtime.h"
 
 #include "range.h"

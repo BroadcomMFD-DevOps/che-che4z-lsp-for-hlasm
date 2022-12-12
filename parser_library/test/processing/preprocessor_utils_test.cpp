@@ -13,6 +13,10 @@
  */
 
 
+#include <string>
+#include <string_view>
+#include <vector>
+
 #include "gtest/gtest.h"
 
 #include "../common_testing.h"

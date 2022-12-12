@@ -14,9 +14,6 @@
 
 #include "statement.h"
 
-#include "expressions/mach_expr_term.h"
-#include "semantics/operand_impls.h"
-
 namespace hlasm_plugin::parser_library::semantics {
 
 endevor_statement_si::endevor_statement_si(preproc_details details)

@@ -12,10 +12,18 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
+#include <algorithm>
+#include <ostream>
+#include <string>
+
 #include "gtest/gtest.h"
 
 #include "../gtest_stringers.h"
 #include "analyzer.h"
+#include "preprocessor_options.h"
+#include "protocol.h"
+#include "semantics/highlighting_info.h"
+#include "utils/resource_location.h"
 #include "workspaces/parse_lib_provider.h"
 
 using namespace hlasm_plugin::parser_library;

@@ -15,6 +15,7 @@
 #include "source_info_processor.h"
 
 #include <algorithm>
+#include <utility>
 
 using namespace hlasm_plugin::parser_library;
 using namespace hlasm_plugin::parser_library::semantics;

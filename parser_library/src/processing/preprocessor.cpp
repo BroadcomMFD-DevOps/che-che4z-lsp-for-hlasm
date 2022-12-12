@@ -14,7 +14,10 @@
 
 #include "preprocessor.h"
 
+#include <iterator>
+
 #include "lexing/logical_line.h"
+#include "protocol.h"
 #include "semantics/source_info_processor.h"
 #include "semantics/statement.h"
 #include "utils/unicode_text.h"

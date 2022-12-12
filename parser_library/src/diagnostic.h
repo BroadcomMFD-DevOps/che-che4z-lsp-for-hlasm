@@ -22,9 +22,11 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 #include "protocol.h"
+#include "range.h"
 
 namespace hlasm_plugin::utils::resource {
 class resource_location;

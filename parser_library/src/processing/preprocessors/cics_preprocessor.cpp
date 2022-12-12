@@ -12,16 +12,28 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
+#include <algorithm>
+#include <array>
 #include <cassert>
 #include <charconv>
+#include <memory>
 #include <regex>
+#include <string>
+#include <string_view>
+#include <unordered_map>
 #include <utility>
 #include <variant>
+#include <vector>
 
+#include "diagnostic.h"
+#include "diagnostic_consumer.h"
+#include "document.h"
 #include "lexing/logical_line.h"
 #include "preprocessor_options.h"
 #include "preprocessor_utils.h"
 #include "processing/preprocessor.h"
+#include "protocol.h"
+#include "range.h"
 #include "semantics/source_info_processor.h"
 #include "semantics/statement.h"
 #include "utils/concat.h"

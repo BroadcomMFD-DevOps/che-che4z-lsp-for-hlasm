@@ -12,10 +12,17 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
+#include <initializer_list>
+#include <ostream>
+#include <string>
+#include <string_view>
 #include <unordered_map>
+#include <utility>
+#include <vector>
 
 #include "../common_testing.h"
 #include "../mock_parse_lib_provider.h"
+#include "analyzer.h"
 #include "preprocessor_options.h"
 #include "processing/preprocessor.h"
 #include "semantics/source_info_processor.h"
