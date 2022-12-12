@@ -14,6 +14,7 @@
 
 #include "workspace.h"
 
+#include <algorithm>
 #include <filesystem>
 #include <memory>
 
