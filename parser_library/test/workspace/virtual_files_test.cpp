@@ -112,7 +112,7 @@ TEST(virtual_files, callback_test_ainsert_valid_vfm)
 TEST(virtual_files, file_manager_vfm)
 {
     const hlasm_plugin::utils::resource::resource_location related_workspace("workspace");
-    fm_mock fm;
+    file_manager_mock fm;
     file_manager_vfm vfm(fm, related_workspace);
 
     constexpr std::string_view test_content = "test content";

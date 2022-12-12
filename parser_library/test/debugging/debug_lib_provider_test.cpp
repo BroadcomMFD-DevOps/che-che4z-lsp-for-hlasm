@@ -46,7 +46,7 @@ class debug_lib_provider_test : public Test
 {
 protected:
     std::shared_ptr<NiceMock<library_mock>> mock_lib = std::make_shared<NiceMock<library_mock>>();
-    NiceMock<fm_mock> fm_mock;
+    NiceMock<file_manager_mock> fm_mock;
     debug_lib_provider lib = debug_lib_provider({ mock_lib }, fm_mock, nullptr);
 };
 

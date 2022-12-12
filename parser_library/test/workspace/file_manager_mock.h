@@ -20,7 +20,7 @@
 
 namespace {
 
-class fm_mock : public file_manager, public diagnosable_impl
+class file_manager_mock : public file_manager, public diagnosable_impl
 {
 public:
     void collect_diags() const override
