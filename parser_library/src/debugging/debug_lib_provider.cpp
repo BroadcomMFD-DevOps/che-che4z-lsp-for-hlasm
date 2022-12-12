@@ -15,27 +15,34 @@
 #include "debug_lib_provider.h"
 
 #include "analyzer.h"
+#include "workspaces/file_manager.h"
 #include "workspaces/library.h"
 #include "workspaces/workspace.h"
 
 namespace hlasm_plugin::parser_library::debugging {
 
-debug_lib_provider::debug_lib_provider(
-    std::vector<std::shared_ptr<workspaces::library>> libraries, std::atomic<bool>* cancel)
+debug_lib_provider::debug_lib_provider(std::vector<std::shared_ptr<workspaces::library>> libraries,
+    workspaces::file_manager& fm,
+    std::atomic<bool>* cancel)
     : m_libraries(std::move(libraries))
+    , m_file_manager(fm)
     , m_cancel(cancel)
 {}
 
 workspaces::parse_result debug_lib_provider::parse_library(
     const std::string& library, analyzing_context ctx, workspaces::library_data data)
 {
+    utils::resource::resource_location url;
     for (const auto& lib : m_libraries)
     {
-        auto found = lib->get_file_content(library);
-        if (found.first.empty())
+        if (!lib->has_file(library, &url))
             continue;
 
-        const auto& [location, content] = *m_files.insert(std::move(found)).first;
+        auto content_o = m_file_manager.get_file_content(url);
+        if (!content_o.has_value())
+            return false;
+
+        const auto& [location, content] = *m_files.try_emplace(std::move(url), std::move(content_o).value()).first;
         analyzer a(content,
             analyzer_options {
                 location,
@@ -62,12 +69,17 @@ bool debug_lib_provider::has_library(const std::string& library, const utils::re
 std::optional<std::pair<std::string, utils::resource::resource_location>> debug_lib_provider::get_library(
     const std::string& library, const utils::resource::resource_location&) const
 {
+    utils::resource::resource_location url;
     for (const auto& lib : m_libraries)
     {
-        auto&& [location, content] = lib->get_file_content(library);
-        if (location.empty())
+        if (!lib->has_file(library, &url))
             continue;
-        return std::pair(std::move(content), std::move(location));
+
+        auto content_o = m_file_manager.get_file_content(url);
+        if (!content_o.has_value())
+            break;
+
+        return std::pair(std::move(content_o).value(), std::move(url));
     }
     return {};
 }

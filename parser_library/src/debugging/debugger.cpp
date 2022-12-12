@@ -157,7 +157,7 @@ public:
         auto data = std::make_unique<debugger_thread_data>(debugger_thread_data {
             open_code_location,
             std::move(open_code_text).value(),
-            debug_lib_provider(workspace.get_libraries(open_code_location), &cancel_),
+            debug_lib_provider(workspace.get_libraries(open_code_location), workspace.get_file_manager(), &cancel_),
             workspace.get_asm_options(open_code_location),
             workspace.get_preprocessor_options(open_code_location),
             workspaces::file_manager_vfm(

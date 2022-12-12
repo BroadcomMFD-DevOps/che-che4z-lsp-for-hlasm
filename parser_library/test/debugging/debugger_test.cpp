@@ -341,26 +341,21 @@ public:
         struct debugger_mock_library : library
         {
             file_manager& fm;
-            std::shared_ptr<processor> find_file(std::string_view) override
-            {
-                assert(false);
-                return nullptr;
-            }
             void refresh() override { assert(false); }
+
             std::vector<std::string> list_files() override
             {
                 assert(false);
                 return {};
             }
-            std::pair<resource_location, std::string> get_file_content(std::string_view file) override
+
+            bool has_file(std::string_view file, resource_location* url)
             {
-                auto text = fm.get_file_content(resource_location(file));
-                if (text.has_value())
-                    return { resource_location(file), std::move(text).value() };
-                else
-                    return std::pair<resource_location, std::string>();
+                bool result = !!fm.find(resource_location(file));
+                if (result && url)
+                    *url = resource_location(file);
+                return result;
             }
-            bool has_file(std::string_view file) { return !!fm.find(resource_location(file)); }
 
             void copy_diagnostics(std::vector<diagnostic_s>&) const override { assert(false); }
 

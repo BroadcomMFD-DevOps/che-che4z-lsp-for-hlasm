@@ -93,30 +93,18 @@ std::string library_local::refresh_url_prefix() const { return m_lib_loc.get_uri
 
 const utils::resource::resource_location& library_local::get_location() const { return m_lib_loc; }
 
-std::shared_ptr<processor> library_local::find_file(std::string_view file_name)
+bool library_local::has_file(std::string_view file, utils::resource::resource_location* url)
 {
     auto files = get_or_load_files();
+    auto it = files->first.find(file);
+    if (it == files->first.end())
+        return false;
 
-    if (auto found = files->first.find(file_name); found != files->first.end())
-        return m_file_manager.add_processor_file(found->second);
-    else
-        return nullptr;
+    if (url)
+        *url = it->second;
+
+    return true;
 }
-
-std::pair<utils::resource::resource_location, std::string> library_local::get_file_content(std::string_view file)
-{
-    auto files = get_or_load_files();
-
-    auto found = files->first.find(file);
-    if (found == files->first.end())
-        return std::pair<utils::resource::resource_location, std::string>();
-    auto content = m_file_manager.get_file_content(found->second);
-    if (!content.has_value())
-        return std::pair<utils::resource::resource_location, std::string>();
-    return { found->second, std::move(content).value() };
-}
-
-bool library_local::has_file(std::string_view file) { return get_or_load_files()->first.contains(file); }
 
 void library_local::copy_diagnostics(std::vector<diagnostic_s>& target) const
 {

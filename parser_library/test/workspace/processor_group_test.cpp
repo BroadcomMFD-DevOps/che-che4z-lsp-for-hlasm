@@ -222,18 +222,15 @@ TEST(processor_group, opcode_suggestions)
 {
     struct library_mock final : library
     {
-        std::shared_ptr<processor> find_file(std::string_view) override { return nullptr; }
         void refresh() override {}
         std::vector<std::string> list_files() override { return { "MAC1", "MAC2", "LONGMAC" }; }
-        std::pair<hlasm_plugin::utils::resource::resource_location, std::string> get_file_content(
-            std::string_view) override
-        {
-            return std::pair<hlasm_plugin::utils::resource::resource_location, std::string>();
-        }
-        bool has_file(std::string_view file)
+        bool has_file(std::string_view file, hlasm_plugin::utils::resource::resource_location* url)
         {
             auto files = list_files();
-            return std::any_of(files.begin(), files.end(), [file](const auto& v) { return v == file; });
+            bool result = std::any_of(files.begin(), files.end(), [file](const auto& v) { return v == file; });
+            if (url)
+                *url = hlasm_plugin::utils::resource::resource_location(file);
+            return result;
         }
 
         void copy_diagnostics(std::vector<diagnostic_s>&) const override {}

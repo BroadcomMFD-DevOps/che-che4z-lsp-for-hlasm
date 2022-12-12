@@ -57,17 +57,13 @@ public:
 
     const utils::resource::resource_location& get_location() const;
 
-    std::shared_ptr<processor> find_file(std::string_view file) override;
-
     void refresh() override;
 
     std::vector<std::string> list_files() override;
 
     std::string refresh_url_prefix() const override;
 
-    std::pair<utils::resource::resource_location, std::string> get_file_content(std::string_view file) override;
-
-    bool has_file(std::string_view file) override;
+    bool has_file(std::string_view file, utils::resource::resource_location* url = nullptr) override;
 
     void copy_diagnostics(std::vector<diagnostic_s>& target) const override;
 

@@ -18,6 +18,7 @@
 #include "gtest/gtest.h"
 
 #include "../common_testing.h"
+#include "../workspace/file_manager_mock.h"
 #include "analyzer.h"
 #include "debugging/debug_lib_provider.h"
 #include "utils/resource_location.h"
@@ -34,12 +35,10 @@ class library_mock : public library
 {
 public:
     // Inherited via library
-    MOCK_METHOD(std::shared_ptr<processor>, find_file, (std::string_view), (override));
     MOCK_METHOD(void, refresh, (), (override));
     MOCK_METHOD(std::vector<std::string>, list_files, (), (override));
     MOCK_METHOD(std::string, refresh_url_prefix, (), (const override));
-    MOCK_METHOD((std::pair<resource_location, std::string>), get_file_content, (std::string_view), (override));
-    MOCK_METHOD(bool, has_file, (std::string_view), (override));
+    MOCK_METHOD(bool, has_file, (std::string_view, resource_location* url), (override));
     MOCK_METHOD(void, copy_diagnostics, (std::vector<diagnostic_s>&), (const override));
 };
 
@@ -47,7 +46,8 @@ class debug_lib_provider_test : public Test
 {
 protected:
     std::shared_ptr<NiceMock<library_mock>> mock_lib = std::make_shared<NiceMock<library_mock>>();
-    debug_lib_provider lib = debug_lib_provider({ mock_lib }, nullptr);
+    NiceMock<fm_mock> fm_mock;
+    debug_lib_provider lib = debug_lib_provider({ mock_lib }, fm_mock, nullptr);
 };
 
 } // namespace
@@ -56,7 +56,8 @@ TEST_F(debug_lib_provider_test, parse_library)
 {
     const std::string aaa_content = " MNOTE 'AAA'";
     const resource_location aaa_location("AAA");
-    EXPECT_CALL(*mock_lib, get_file_content(Eq("AAA"))).WillOnce(Return(std::pair(aaa_location, aaa_content)));
+    EXPECT_CALL(fm_mock, get_file_content(Eq(aaa_location))).WillOnce(Return(aaa_content));
+    EXPECT_CALL(*mock_lib, has_file(Eq("AAA"), _)).WillOnce(DoAll(SetArgPointee<1>(aaa_location), Return(true)));
 
     std::string input = " COPY AAA";
     analyzer a(input, analyzer_options(&lib));
@@ -68,8 +69,8 @@ TEST_F(debug_lib_provider_test, parse_library)
 
 TEST_F(debug_lib_provider_test, has_library)
 {
-    EXPECT_CALL(*mock_lib, has_file(Eq("AAA"))).WillOnce(Return(true));
-    EXPECT_CALL(*mock_lib, has_file(Eq("BBB"))).WillOnce(Return(false));
+    EXPECT_CALL(*mock_lib, has_file(Eq("AAA"), _)).WillOnce(Return(true));
+    EXPECT_CALL(*mock_lib, has_file(Eq("BBB"), _)).WillOnce(Return(false));
 
     EXPECT_TRUE(lib.has_library("AAA", resource_location()));
     EXPECT_FALSE(lib.has_library("BBB", resource_location()));
@@ -79,8 +80,10 @@ TEST_F(debug_lib_provider_test, get_library)
 {
     const std::string aaa_content = "AAA content";
     const resource_location aaa_location("AAA");
-    EXPECT_CALL(*mock_lib, get_file_content(Eq("AAA"))).WillOnce(Return(std::pair(aaa_location, aaa_content)));
-    EXPECT_CALL(*mock_lib, get_file_content(Eq("BBB"))).WillOnce(Return(std::pair<resource_location, std::string>()));
+    EXPECT_CALL(fm_mock, get_file_content(Eq(aaa_location))).WillOnce(Return(aaa_content));
+
+    EXPECT_CALL(*mock_lib, has_file(Eq("AAA"), _)).WillOnce(DoAll(SetArgPointee<1>(aaa_location), Return(true)));
+    EXPECT_CALL(*mock_lib, has_file(Eq("BBB"), _)).WillOnce(Return(false));
 
     EXPECT_EQ(lib.get_library("AAA", resource_location()), std::pair(aaa_content, aaa_location));
 

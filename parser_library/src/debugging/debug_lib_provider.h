@@ -28,6 +28,7 @@
 #include "workspaces/parse_lib_provider.h"
 
 namespace hlasm_plugin::parser_library::workspaces {
+class file_manager;
 class library;
 } // namespace hlasm_plugin::parser_library::workspaces
 
@@ -41,10 +42,13 @@ class debug_lib_provider final : public workspaces::parse_lib_provider
     std::unordered_map<utils::resource::resource_location, std::string, utils::resource::resource_location_hasher>
         m_files;
     std::vector<std::shared_ptr<workspaces::library>> m_libraries;
+    workspaces::file_manager& m_file_manager;
     std::atomic<bool>* m_cancel;
 
 public:
-    debug_lib_provider(std::vector<std::shared_ptr<workspaces::library>> libraries, std::atomic<bool>* cancel);
+    debug_lib_provider(std::vector<std::shared_ptr<workspaces::library>> libraries,
+        workspaces::file_manager& fm,
+        std::atomic<bool>* cancel);
 
     workspaces::parse_result parse_library(
         const std::string& library, analyzing_context ctx, workspaces::library_data data) override;
