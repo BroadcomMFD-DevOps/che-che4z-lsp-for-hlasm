@@ -72,7 +72,7 @@ std::unique_ptr<processing::preprocessor> analyzer_options::get_preprocessor(pro
 
         document generate_replacement(document doc) override
         {
-            clear_statements();
+            reset();
 
             for (const auto& p : pp)
                 doc = p->generate_replacement(std::move(doc));
@@ -86,6 +86,14 @@ std::unique_ptr<processing::preprocessor> analyzer_options::get_preprocessor(pro
                 set_statements(p->take_statements());
 
             return preprocessor::take_statements();
+        }
+
+        const std::vector<std::unique_ptr<included_member_details>>& view_included_members() override
+        {
+            for (const auto& p : pp)
+                capture_included_members(*p);
+
+            return preprocessor::view_included_members();
         }
     } tmp;
 
@@ -107,16 +115,8 @@ analyzer::analyzer(const std::string& text, analyzer_options opts)
                 src_proc_,
                 *this,
                 opts.get_preprocessor(
-                    [libs = &opts.get_lib_provider(), program = opts.file_loc, &ctx = ctx_](std::string_view library) {
-                        std::optional<utils::resource::resource_location> res_loc;
-
-                        auto result = libs->get_library(std::string(library), program, res_loc);
-
-                        if (res_loc.has_value())
-                            ctx.hlasm_ctx->add_preprocessor_dependency(res_loc.value());
-
-                        return result;
-                    },
+                    [libs = &opts.get_lib_provider(), program = opts.file_loc](
+                        std::string_view library) { return libs->get_library(std::string(library), program); },
                     *this,
                     src_proc_),
                 opts.parsing_opencode == file_is_opencode::yes ? processing::opencode_provider_options { true, 10 }

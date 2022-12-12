@@ -166,10 +166,7 @@ std::span<const symbol_occurence* const> lsp_context::get_occurences_by_name(
 
     auto [low, high] = std::equal_range(occurences_by_name.begin(), occurences_by_name.end(), name, search_predicate);
 
-    if (low == high) // missing c++20 ctor in libc++ 12 and broken std::to_address
-        return std::span<const symbol_occurence* const>();
-    else
-        return std::span<const symbol_occurence* const>(&*low, std::distance(low, high));
+    return std::span<const symbol_occurence* const>(low, high);
 }
 
 void lsp_context::fill_cache(
@@ -440,7 +437,7 @@ void lsp_context::document_symbol_opencode_var_seq_symbol_aux(document_symbol_li
             continue;
 
         auto location = name_to_location_cache.find(item.name);
-        if (location == name_to_location_cache.end() || location->second.get_uri().empty())
+        if (location == name_to_location_cache.end() || location->second.empty())
             return;
 
         if (const auto& file = m_files.find(location->second); file != m_files.end())
@@ -522,12 +519,12 @@ lsp_context::lsp_context(std::shared_ptr<context::hlasm_context> h_ctx)
     : m_hlasm_ctx(std::move(h_ctx))
 {}
 
-void lsp_context::add_copy(context::copy_member_ptr copy, text_data_ref_t text_data)
+void lsp_context::add_copy(context::copy_member_ptr copy, text_data_view text_data)
 {
     add_file(file_info(std::move(copy), std::move(text_data)));
 }
 
-void lsp_context::add_macro(macro_info_ptr macro_i, text_data_ref_t text_data)
+void lsp_context::add_macro(macro_info_ptr macro_i, text_data_view text_data)
 {
     if (macro_i->external)
         add_file(file_info(macro_i->macro_definition, std::move(text_data)));
@@ -535,7 +532,7 @@ void lsp_context::add_macro(macro_info_ptr macro_i, text_data_ref_t text_data)
     m_macros[macro_i->macro_definition] = macro_i;
 }
 
-void lsp_context::add_opencode(opencode_info_ptr opencode_i, text_data_ref_t text_data)
+void lsp_context::add_opencode(opencode_info_ptr opencode_i, text_data_view text_data)
 {
     m_opencode = std::move(opencode_i);
     add_file(file_info(m_hlasm_ctx->opencode_location(), std::move(text_data)));
@@ -625,7 +622,7 @@ std::string lsp_context::hover(const utils::resource::resource_location& documen
     return find_hover(*occ, macro_scope);
 }
 
-bool lsp_context::should_complete_instr(const text_data_ref_t& text, position pos) const
+bool lsp_context::should_complete_instr(const text_data_view& text, position pos) const
 {
     bool line_before_continued = pos.line > 0 ? is_continued_line(text.get_line(pos.line - 1)) : false;
 
@@ -643,7 +640,7 @@ completion_list_source lsp_context::completion(const utils::resource::resource_l
     const auto* file_info = get_file_info(document_uri);
     if (!file_info)
         return {};
-    const text_data_ref_t& text = file_info->data;
+    const text_data_view& text = file_info->data;
 
     char last_char =
         (trigger_kind == completion_trigger_kind::trigger_character) ? trigger_char : text.get_character_before(pos);

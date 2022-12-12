@@ -12,12 +12,16 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
+#include <string_view>
 #include <unordered_map>
+#include <utility>
 
 #include "../common_testing.h"
 #include "../mock_parse_lib_provider.h"
+#include "analyzer.h"
 #include "preprocessor_options.h"
 #include "processing/preprocessor.h"
+#include "utils/resource_location.h"
 
 using namespace hlasm_plugin::parser_library::processing;
 using namespace hlasm_plugin::utils::resource;
@@ -45,7 +49,8 @@ TEST_F(endevor_preprocessor_test, basic_inc)
     auto p = create_preprocessor([&callback_count = m_callback_count](std::string_view s) {
         EXPECT_EQ(s, "AAA");
         ++callback_count;
-        return std::string("TEST");
+        return std::pair<std::string, hlasm_plugin::utils::resource::resource_location>(
+            "TEST", hlasm_plugin::utils::resource::resource_location());
     });
 
     auto result = p->generate_replacement(document("-INC AAA"));
@@ -61,7 +66,8 @@ TEST_F(endevor_preprocessor_test, basic_include)
     auto p = create_preprocessor([&callback_count = m_callback_count](std::string_view s) {
         EXPECT_EQ(s, "AAA");
         ++callback_count;
-        return std::string("TEST");
+        return std::pair<std::string, hlasm_plugin::utils::resource::resource_location>(
+            "TEST", hlasm_plugin::utils::resource::resource_location());
     });
 
     auto result = p->generate_replacement(document("++INCLUDE AAA"));
@@ -93,7 +99,8 @@ TEST_F(endevor_preprocessor_test, cycle)
     auto p = create_preprocessor([&callback_count = m_callback_count](std::string_view s) {
         EXPECT_EQ(s, "AAA");
         ++callback_count;
-        return std::string("-INC AaA");
+        return std::pair<std::string, hlasm_plugin::utils::resource::resource_location>(
+            "-INC AaA", hlasm_plugin::utils::resource::resource_location());
     });
 
     auto result = p->generate_replacement(document("++INCLUDE AAA"));
@@ -105,13 +112,16 @@ TEST_F(endevor_preprocessor_test, cycle)
 
 TEST_F(endevor_preprocessor_test, nested)
 {
-    auto p =
-        create_preprocessor([&callback_count = m_callback_count](std::string_view s) -> std::optional<std::string> {
+    auto p = create_preprocessor(
+        [&callback_count = m_callback_count](std::string_view s)
+            -> std::optional<std::pair<std::string, hlasm_plugin::utils::resource::resource_location>> {
             ++callback_count;
             if (s == "MEMBER")
-                return "BBB\n-INC NESTED\nDDD";
+                return std::pair<std::string, hlasm_plugin::utils::resource::resource_location>(
+                    "BBB\n-INC NESTED\nDDD", hlasm_plugin::utils::resource::resource_location());
             if (s == "NESTED")
-                return "CCC";
+                return std::pair<std::string, hlasm_plugin::utils::resource::resource_location>(
+                    "CCC", hlasm_plugin::utils::resource::resource_location());
             return std::nullopt;
         });
 

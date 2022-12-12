@@ -18,8 +18,11 @@
 #include <atomic>
 #include <functional>
 #include <optional>
+#include <set>
 #include <string>
+#include <string_view>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include "diagnosable_impl.h"
@@ -91,9 +94,8 @@ public:
 
     parse_result parse_library(const std::string& library, analyzing_context ctx, library_data data) override;
     bool has_library(const std::string& library, const utils::resource::resource_location& program) const override;
-    std::optional<std::string> get_library(const std::string& library,
-        const utils::resource::resource_location& program,
-        std::optional<utils::resource::resource_location>& location) const override;
+    std::optional<std::pair<std::string, utils::resource::resource_location>> get_library(
+        const std::string& library, const utils::resource::resource_location& program) const override;
     virtual asm_option get_asm_options(const utils::resource::resource_location& file_location) const;
     virtual std::vector<preprocessor_options> get_preprocessor_options(
         const utils::resource::resource_location& file_location) const;
@@ -136,7 +138,19 @@ private:
     // files, that depend on others (e.g. open code files that use macros)
     std::set<utils::resource::resource_location> dependants_;
 
-    std::set<utils::resource::resource_location> opened_files_;
+    struct opened_file_details
+    {
+        opened_file_details() = default;
+        explicit opened_file_details(utils::resource::resource_location alternative_config)
+            : alternative_config(std::move(alternative_config))
+        {}
+        utils::resource::resource_location alternative_config;
+    };
+
+    std::unordered_map<utils::resource::resource_location,
+        opened_file_details,
+        utils::resource::resource_location_hasher>
+        opened_files_;
 
     void filter_and_close_dependencies_(
         const std::set<utils::resource::resource_location>& dependencies, processor_file_ptr file);

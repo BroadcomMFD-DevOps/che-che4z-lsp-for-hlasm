@@ -182,6 +182,38 @@ void processing_manager::finish_processor()
     procs_.pop_back();
 }
 
+void processing_manager::finish_preprocessor()
+{
+    auto preproc = opencode_prov_.get_preprocessor();
+    if (!preproc)
+        return;
+
+    for (const auto& stmt : preproc->take_statements())
+    {
+        if (!stmt)
+            continue;
+
+        lsp_analyzer_.analyze(*stmt);
+    }
+
+    for (const auto& inc_member_details : preproc->view_included_members())
+    {
+        assert(inc_member_details);
+
+        static const context::statement_block stmt_block;
+
+        ctx_.hlasm_ctx->add_preprocessor_dependency(inc_member_details->loc);
+
+        ctx_.lsp_ctx->add_copy(std::make_shared<context::copy_member>(hlasm_ctx_.ids().add(inc_member_details->name),
+                                   stmt_block,
+                                   location(position(0, 0), inc_member_details->loc)),
+            lsp::text_data_view(inc_member_details->text));
+    }
+
+    // diagnosable_impl::add_diagnostic(diagnostic_s::fade(file_loc_, stmt->stmt_range_ref())); // todo create
+    // separate 'fade' container
+}
+
 void processing_manager::start_macro_definition(macrodef_start_data start)
 {
     start_macro_definition(std::move(start), std::nullopt);
@@ -265,27 +297,7 @@ void processing_manager::finish_copy_member(copy_processing_result result)
 
 void processing_manager::finish_opencode()
 {
-    for (const auto& stmt : opencode_prov_.get_preprocessor_statements())
-    {
-        if (!stmt)
-            continue;
-
-        lsp_analyzer_.analyze(*stmt);
-
-        if (stmt->m_resemblance == context::id_storage::well_known::COPY && stmt->m_details.operands.items.size() == 1)
-        {
-            asm_processor::parse_copy(ctx_,
-                lib_provider_,
-                hlasm_ctx_.ids().add(stmt->m_details.operands.items.front().name),
-                stmt->m_details.operands.items.front().r,
-                stmt->m_details.stmt_r,
-                nullptr);
-        }
-
-        // diagnosable_impl::add_diagnostic(diagnostic_s::fade(file_loc_, stmt->stmt_range_ref())); // todo create
-        // separate 'fade' container
-    }
-
+    finish_preprocessor();
     lsp_analyzer_.opencode_finished();
 }
 
@@ -380,10 +392,10 @@ void processing_manager::register_sequence_symbol(context::id_index target, rang
 std::unique_ptr<context::opencode_sequence_symbol> processing_manager::create_opencode_sequence_symbol(
     context::id_index name, range symbol_range)
 {
-    auto loc = hlasm_ctx_.processing_stack_top().get_location();
+    auto loc = hlasm_ctx_.processing_stack_top(false).get_location();
     loc.pos = symbol_range.start;
 
-    auto&& [statement_position, snapshot] = hlasm_ctx_.get_begin_snapshot(attr_lookahead_active());
+    auto&& [statement_position, snapshot] = hlasm_ctx_.get_begin_snapshot(lookahead_active());
 
     return std::make_unique<context::opencode_sequence_symbol>(
         name, std::move(loc), statement_position, std::move(snapshot));
