@@ -924,7 +924,7 @@ B EQU A
     file_manager.did_open_file(file_loc, 0, open_code);
 
     ASSERT_TRUE(d.launch(file_loc.get_uri(), lib_provider, true));
-    ;
+
     m.wait_for_stopped();
     std::vector<debugging::stack_frame> exp_frames { { 1, 1, 0, "OPENCODE", file_loc.get_uri() } };
     std::vector<frame_vars> exp_frame_vars { { {}, {}, {} } };
@@ -971,7 +971,7 @@ TEST(debugger, ainsert)
     file_manager.did_open_file(file_loc, 0, open_code);
 
     ASSERT_TRUE(d.launch(file_loc.get_uri(), lib_provider, true));
-    ;
+
     m.wait_for_stopped();
     std::vector<debugging::stack_frame> exp_frames { { 1, 1, 0, "OPENCODE", file_loc.get_uri() } };
     std::vector<frame_vars> exp_frame_vars { {
