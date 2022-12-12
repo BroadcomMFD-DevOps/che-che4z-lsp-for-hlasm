@@ -15,16 +15,28 @@
 #include "asm_processor.h"
 
 #include <charconv>
+#include <optional>
 
+#include "analyzing_context.h"
 #include "checking/instr_operand.h"
+#include "context/common_types.h"
 #include "context/literal_pool.h"
 #include "context/ordinary_assembly/ordinary_assembly_dependency_solver.h"
 #include "data_def_postponed_statement.h"
+#include "diagnosable_ctx.h"
 #include "ebcdic_encoding.h"
 #include "expressions/mach_expr_term.h"
 #include "expressions/mach_expr_visitor.h"
 #include "postponed_statement_impl.h"
+#include "processing/branching_provider.h"
+#include "processing/opencode_provider.h"
+#include "processing/processing_manager.h"
+#include "processing/statement.h"
+#include "processing/statement_fields_parser.h"
+#include "range.h"
+#include "semantics/operand_impls.h"
 #include "utils/unicode_text.h"
+#include "workspaces/parse_lib_provider.h"
 
 namespace hlasm_plugin::parser_library::processing {
 

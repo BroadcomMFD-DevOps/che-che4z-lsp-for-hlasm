@@ -13,6 +13,7 @@
  */
 
 #include <algorithm>
+#include <iterator>
 #include <memory>
 #include <regex>
 #include <string>
@@ -26,9 +27,7 @@
 #include "preprocessor_utils.h"
 #include "processing/preprocessor.h"
 #include "range.h"
-#include "semantics/collector.h"
 #include "semantics/source_info_processor.h"
-#include "semantics/statement.h"
 #include "utils/resource_location.h"
 
 namespace hlasm_plugin::parser_library::processing {

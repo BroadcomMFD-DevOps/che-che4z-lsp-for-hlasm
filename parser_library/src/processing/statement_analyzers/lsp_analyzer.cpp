@@ -15,9 +15,24 @@
 #include "lsp_analyzer.h"
 
 #include <algorithm>
+#include <array>
+#include <utility>
 
+#include "context/hlasm_context.h"
+#include "context/id_storage.h"
+#include "lsp/lsp_context.h"
+#include "lsp/text_data_view.h"
+#include "occurence_collector.h"
+#include "processing/statement.h"
+#include "processing/statement_analyzers/occurence_collector.h"
+#include "processing/statement_processors/copy_processing_info.h"
+#include "processing/statement_processors/macrodef_processing_info.h"
 #include "processing/statement_processors/macrodef_processor.h"
-
+#include "range.h"
+#include "semantics/statement.h"
+#include "semantics/statement_fields.h"
+#include "semantics/variable_symbol.h"
+#include "utils/resource_location.h"
 
 namespace hlasm_plugin::parser_library::processing {
 

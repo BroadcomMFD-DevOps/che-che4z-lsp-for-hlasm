@@ -20,6 +20,7 @@
 #include <string>
 #include <utility>
 
+#include "input_source.h"
 #include "utils/string_operations.h"
 
 using namespace antlr4;

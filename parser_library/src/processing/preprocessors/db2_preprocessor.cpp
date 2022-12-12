@@ -16,17 +16,22 @@
 #include <cassert>
 #include <cctype>
 #include <charconv>
+#include <memory>
 #include <regex>
 #include <span>
+#include <string>
+#include <string_view>
 #include <tuple>
 #include <utility>
+#include <vector>
 
+#include "diagnostic_consumer.h"
 #include "lexing/logical_line.h"
 #include "preprocessor_options.h"
 #include "processing/preprocessor.h"
 #include "semantics/source_info_processor.h"
-#include "semantics/statement.h"
 #include "utils/concat.h"
+#include "utils/resource_location.h"
 #include "workspaces/parse_lib_provider.h"
 
 namespace {
