@@ -192,11 +192,11 @@ struct preproc_details
 struct preprocessor_statement_si
 {
     preproc_details m_details;
-    context::id_index m_resemblance;
+    const bool m_copylike;
 
-    preprocessor_statement_si(preproc_details details, context::id_index resemblance)
+    preprocessor_statement_si(preproc_details details, bool copylike)
         : m_details(std::move(details))
-        , m_resemblance(resemblance)
+        , m_copylike(copylike)
     {}
 };
 

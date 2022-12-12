@@ -17,13 +17,13 @@
 namespace hlasm_plugin::parser_library::semantics {
 
 endevor_statement_si::endevor_statement_si(preproc_details details)
-    : preprocessor_statement_si(std::move(details), context::id_storage::well_known::COPY)
+    : preprocessor_statement_si(std::move(details), true)
 {
     m_details.instruction.name = "-INC";
 }
 
 cics_statement_si::cics_statement_si(preproc_details details)
-    : preprocessor_statement_si(std::move(details), context::id_index())
+    : preprocessor_statement_si(std::move(details), false)
 {}
 
 } // namespace hlasm_plugin::parser_library::semantics
