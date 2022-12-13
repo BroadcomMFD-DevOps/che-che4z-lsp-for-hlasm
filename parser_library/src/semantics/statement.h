@@ -210,6 +210,11 @@ struct cics_statement_si : public preprocessor_statement_si
     explicit cics_statement_si(preproc_details details);
 };
 
+struct db2_statement_si : public preprocessor_statement_si
+{
+    explicit db2_statement_si(preproc_details details);
+};
+
 } // namespace hlasm_plugin::parser_library::semantics
 
 #endif
