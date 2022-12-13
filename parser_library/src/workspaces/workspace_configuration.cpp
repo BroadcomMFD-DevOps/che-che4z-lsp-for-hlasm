@@ -257,31 +257,16 @@ bool workspace_configuration::is_configuration_file(const utils::resource::resou
     return is_config_file(file) || is_b4g_config_file(file);
 }
 
+template<typename T>
 inline bool operator<(const std::pair<utils::resource::resource_location, library_options>& l,
-    const std::tuple<const utils::resource::resource_location&, const library_options&>& r) noexcept
+    const std::tuple<const utils::resource::resource_location&, const T&>& r) noexcept
 {
     const auto& [lx, ly] = l;
     return std::tie(lx, ly) < r;
 }
-inline bool operator<(const std::pair<utils::resource::resource_location, library_options>& l,
-    const std::tuple<const utils::resource::resource_location&, const library_local_options&>& r) noexcept
-{
-    const auto& [lx, ly] = l;
-    const auto& [rx, ry] = r;
-    if (auto c = lx <=> rx; c != 0)
-        return c < 0;
-    return ly < ry;
-}
-inline bool operator<(const std::tuple<const utils::resource::resource_location&, const library_local_options&>& l,
-    const std::pair<utils::resource::resource_location, library_options>& r) noexcept
-{
-    const auto& [lx, ly] = l;
-    const auto& [rx, ry] = r;
-    if (auto c = lx <=> rx; c != 0)
-        return c < 0;
-    return ly < ry;
-}
-inline bool operator<(const std::tuple<const utils::resource::resource_location&, const library_options&>& l,
+
+template<typename T>
+inline bool operator<(const std::tuple<const utils::resource::resource_location&, const T&>& l,
     const std::pair<utils::resource::resource_location, library_options>& r) noexcept
 {
     const auto& [rx, ry] = r;

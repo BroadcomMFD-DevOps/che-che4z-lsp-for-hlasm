@@ -101,7 +101,7 @@ class library_options
         void (*deleter)(const void* p) noexcept;
         bool (*comparer_lt)(const void* l, const void* r) noexcept;
         template<typename T>
-        static constexpr const impl* get()
+        static const impl* get()
         {
             static constexpr const impl i { &impl_t<T>::deleter, &impl_t<T>::comparer_lt };
             return &i;
