@@ -74,8 +74,7 @@ std::string_view extract_operand_and_argument(std::string_view s)
 
 std::pair<std::string_view, size_t> remove_separators(std::string_view s)
 {
-    size_t trimmed = 0;
-    std::tie(s, trimmed) = hlasm_plugin::utils::trim_left(s);
+    auto trimmed = hlasm_plugin::utils::trim_left(s);
     if (!s.empty() && s.front() == ',')
     {
         s.remove_prefix(1);
