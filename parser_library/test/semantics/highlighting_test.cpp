@@ -467,3 +467,29 @@ B   L 0,DFHRESP ( NORMAL ) bla                                         X00000002
 
     EXPECT_EQ(tokens, expected);
 }
+
+TEST(highlighting, db2_preprocessor_statement_include)
+{
+    const std::string contents = R"(
+A   EXEC  SQL   INCLUDE  SQLCA -- REMARK
+B                                                        EXEC SQL --REMX
+  INCLUDE SQLCA         -- rem)";
+
+    analyzer a(
+        contents, analyzer_options { source_file_loc, db2_preprocessor_options(), collect_highlighting_info::yes });
+    a.analyze();
+
+    const auto& tokens = a.source_processor().semantic_tokens();
+    const semantics::lines_info expected = {
+        token_info({ { 1, 0 }, { 1, 1 } }, hl_scopes::label),
+        token_info({ { 1, 4 }, { 1, 23 } }, hl_scopes::instruction),
+        token_info({ { 1, 25 }, { 1, 30 } }, hl_scopes::operand),
+        token_info({ { 1, 31 }, { 1, 40 } }, hl_scopes::remark),
+        token_info({ { 2, 0 }, { 2, 1 } }, hl_scopes::label),
+        token_info({ { 2, 57 }, { 3, 9 } }, hl_scopes::instruction),
+        token_info({ { 3, 10 }, { 3, 15 } }, hl_scopes::operand),
+        token_info({ { 3, 24 }, { 3, 30 } }, hl_scopes::remark),
+    };
+
+    EXPECT_EQ(tokens, expected);
+}
