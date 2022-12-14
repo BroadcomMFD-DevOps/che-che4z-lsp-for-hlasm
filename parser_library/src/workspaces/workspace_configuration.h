@@ -112,7 +112,7 @@ class library_options
 
 public:
     template<typename T>
-    library_options(T value)
+    explicit library_options(T value)
         : m_impl(impl::get<T>())
         , m_data(new T(std::move(value)))
     {}

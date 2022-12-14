@@ -12,6 +12,8 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
+#include <type_traits>
+
 #include "gtest/gtest.h"
 
 #include "../common_testing.h"
@@ -32,6 +34,8 @@ struct X
 
 TEST(workspace_configuration, library_options)
 {
+    static_assert(!std::is_copy_constructible_v<library_options>);
+
     constexpr auto eq = [](auto&& l, auto&& r) { return !(l < r || r < l); };
 
     X<0> x0_0 { 0 };
