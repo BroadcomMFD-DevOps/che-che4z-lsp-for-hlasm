@@ -21,7 +21,7 @@ size_t trim_left(std::string_view& s)
     if (s.empty() || s.front() != ' ')
         return 0;
 
-    size_t to_trim = s.find_first_not_of(' ');
+    const auto to_trim = s.find_first_not_of(' ');
     if (to_trim == std::string_view::npos)
     {
         auto s_length = s.length();
@@ -30,6 +30,23 @@ size_t trim_left(std::string_view& s)
     }
 
     s.remove_prefix(to_trim);
+    return to_trim;
+}
+
+size_t trim_right(std::string_view& s)
+{
+    if (s.empty() || s.back() != ' ')
+        return 0;
+
+    const auto to_trim = s.find_last_not_of(' ');
+    if (to_trim == std::string_view::npos)
+    {
+        auto s_length = s.length();
+        s = {};
+        return s_length;
+    }
+
+    s = s.substr(0, to_trim + 1);
     return to_trim;
 }
 

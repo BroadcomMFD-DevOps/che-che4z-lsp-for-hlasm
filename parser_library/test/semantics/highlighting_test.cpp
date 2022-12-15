@@ -471,9 +471,15 @@ B   L 0,DFHRESP ( NORMAL ) bla                                         X00000002
 TEST(highlighting, db2_preprocessor_statement_include)
 {
     const std::string contents = R"(
-A   EXEC  SQL   INCLUDE  SQLCA -- REMARK
-B                                                        EXEC SQL --REMX
-  INCLUDE SQLCA         -- rem)";
+AAA EXEC  SQL   INCLUDE  SQLCA -- REMARK                                00000001
+                                                         EXEC SQL --REMX00000020
+               INCLUDE SQLCA         -- rem  rem2                       00000300
+                  EXEC      SQL                                        X00004000
+               SELECT                                                  X
+               1       --rem                                           X00050000
+               FROM                                                    X
+               SYSIBM.SYSDUMMY1
+B SQL  TYPE   IS RESULT_SET_LOCATOR VARYING   comment comment2          006)";
 
     analyzer a(
         contents, analyzer_options { source_file_loc, db2_preprocessor_options(), collect_highlighting_info::yes });
@@ -481,14 +487,38 @@ B                                                        EXEC SQL --REMX
 
     const auto& tokens = a.source_processor().semantic_tokens();
     const semantics::lines_info expected = {
-        token_info({ { 1, 0 }, { 1, 1 } }, hl_scopes::label),
-        token_info({ { 1, 4 }, { 1, 23 } }, hl_scopes::instruction),
-        token_info({ { 1, 25 }, { 1, 30 } }, hl_scopes::operand),
+        token_info({ { 1, 0 }, { 1, 3 } }, hl_scopes::label),
+        token_info({ { 1, 4 }, { 1, 13 } }, hl_scopes::instruction),
+        token_info({ { 1, 16 }, { 1, 30 } }, hl_scopes::operand),
         token_info({ { 1, 31 }, { 1, 40 } }, hl_scopes::remark),
-        token_info({ { 2, 0 }, { 2, 1 } }, hl_scopes::label),
-        token_info({ { 2, 57 }, { 3, 9 } }, hl_scopes::instruction),
-        token_info({ { 3, 10 }, { 3, 15 } }, hl_scopes::operand),
-        token_info({ { 3, 24 }, { 3, 30 } }, hl_scopes::remark),
+        token_info({ { 1, 72 }, { 1, 80 } }, hl_scopes::ignored),
+        token_info({ { 2, 57 }, { 2, 65 } }, hl_scopes::instruction),
+        token_info({ { 2, 66 }, { 2, 71 } }, hl_scopes::remark),
+        token_info({ { 2, 71 }, { 2, 72 } }, hl_scopes::continuation),
+        token_info({ { 2, 72 }, { 2, 80 } }, hl_scopes::ignored),
+        token_info({ { 3, 15 }, { 3, 28 } }, hl_scopes::operand),
+        token_info({ { 3, 37 }, { 3, 49 } }, hl_scopes::remark),
+        token_info({ { 3, 72 }, { 3, 80 } }, hl_scopes::ignored),
+        token_info({ { 4, 18 }, { 4, 31 } }, hl_scopes::instruction),
+        token_info({ { 4, 71 }, { 4, 72 } }, hl_scopes::continuation),
+        token_info({ { 4, 72 }, { 4, 80 } }, hl_scopes::ignored),
+        token_info({ { 5, 15 }, { 5, 21 } }, hl_scopes::operand),
+        token_info({ { 5, 71 }, { 5, 72 } }, hl_scopes::continuation),
+        token_info({ { 6, 15 }, { 6, 16 } }, hl_scopes::operand),
+        token_info({ { 6, 23 }, { 6, 28 } }, hl_scopes::remark),
+        token_info({ { 6, 71 }, { 6, 72 } }, hl_scopes::continuation),
+        token_info({ { 6, 72 }, { 6, 80 } }, hl_scopes::ignored),
+        token_info({ { 7, 15 }, { 7, 19 } }, hl_scopes::operand),
+        token_info({ { 7, 71 }, { 7, 72 } }, hl_scopes::continuation),
+        token_info({ { 8, 15 }, { 8, 31 } }, hl_scopes::operand),
+        token_info({ { 9, 0 }, { 9, 1 } }, hl_scopes::label),
+        token_info({ { 9, 2 }, { 9, 16 } }, hl_scopes::instruction),
+        token_info({ { 9, 17 }, { 9, 62 } }, hl_scopes::operand),
+        /* TODO - Missing recognition of remarks in the SQL  TYPE   IS statement
+        token_info({ { 9, 17 }, { 9, 43 } }, hl_scopes::operand),
+        token_info({ { 9, 46 }, { 9, 62 } }, hl_scopes::remark),
+        */
+        token_info({ { 9, 72 }, { 9, 75 } }, hl_scopes::ignored),
     };
 
     EXPECT_EQ(tokens, expected);

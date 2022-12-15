@@ -22,6 +22,8 @@
 namespace hlasm_plugin::utils {
 
 size_t trim_left(std::string_view& s);
+size_t trim_right(std::string_view& s);
+
 size_t consume(std::string_view& s, std::string_view lit);
 std::string_view next_nonblank_sequence(std::string_view s);
 

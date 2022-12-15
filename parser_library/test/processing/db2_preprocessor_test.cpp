@@ -1006,6 +1006,8 @@ B   DS   0C
                DECLARE C CURSOR FOR SELECT 1 FROM TABLE
 E   DS   0C
 LEN EQU  E-B
+       EXEC    SQL                -- comment                           X
+               INCLUDE SQLCA
 )";
 
     analyzer a(input, analyzer_options { db2_preprocessor_options {} });

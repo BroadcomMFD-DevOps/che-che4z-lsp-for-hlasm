@@ -848,7 +848,6 @@ public:
 class cics_preprocessor final : public preprocessor
 {
     lexing::logical_line m_logical_line;
-    std::string m_operands;
     library_fetcher m_libs;
     diagnostic_op_consumer* m_diags = nullptr;
     std::vector<document_line> m_result;
