@@ -85,7 +85,7 @@ std::optional<timestamp> timestamp::now()
         return std::nullopt;
 
     auto v = (unsigned long long)compressed;
-    auto microseconds = 1'000'000ULL * (unsigned long long)(v - compressed);
+    auto microseconds = (unsigned long long)(1'000'000 * (compressed - v));
 
     constexpr auto shift_out = [](auto& value, int bits) {
         auto result = value & (1 << bits) - 1;
