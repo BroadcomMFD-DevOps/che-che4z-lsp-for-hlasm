@@ -17,6 +17,7 @@
 
 #include <compare>
 #include <optional>
+#include <string>
 
 namespace hlasm_plugin::utils {
 
@@ -59,6 +60,8 @@ public:
     unsigned microsecond() const noexcept { return m_microsecond; }
 
     auto operator<=>(const timestamp&) const noexcept = default;
+
+    std::string to_string() const;
 
     static std::optional<timestamp> now();
 };

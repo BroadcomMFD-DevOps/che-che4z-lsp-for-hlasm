@@ -14,6 +14,7 @@
 
 #include "utils/time.h"
 
+#include <string_view>
 #ifdef __EMSCRIPTEN__
 #    include <emscripten.h>
 
@@ -26,6 +27,37 @@
 
 
 namespace hlasm_plugin::utils {
+
+
+std::string timestamp::to_string() const
+{
+    constexpr auto padded_append = [](auto& where, const auto& what, size_t pad) {
+        auto s = std::to_string(what);
+        if (s.size() < pad)
+            where.append(pad - s.size(), '0');
+        where.append(s);
+    };
+
+    std::string curr_time;
+    curr_time.reserve(std::string_view("yyyy-MM-hh hh:mm:ss.uuuuuu").size());
+
+    padded_append(curr_time, year(), 4);
+    curr_time.append(1, '-');
+    padded_append(curr_time, month(), 2);
+    curr_time.append(1, '-');
+    padded_append(curr_time, day(), 2);
+    curr_time.append(1, ' ');
+    padded_append(curr_time, hour(), 2);
+    curr_time.append(1, ':');
+    padded_append(curr_time, minute(), 2);
+    curr_time.append(1, ':');
+    padded_append(curr_time, second(), 2);
+    curr_time.append(1, '.');
+    padded_append(curr_time, microsecond(), 6);
+
+    return curr_time;
+}
+
 std::optional<timestamp> timestamp::now()
 {
 #ifdef __EMSCRIPTEN__
@@ -102,4 +134,5 @@ std::optional<timestamp> timestamp::now()
         static_cast<unsigned>(std::chrono::nanoseconds(subsecond).count() / 1000));
 #endif
 }
+
 } // namespace hlasm_plugin::utils

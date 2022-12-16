@@ -23,36 +23,11 @@ using namespace hlasm_plugin::language_server;
 
 std::string current_time()
 {
-    auto t_o = hlasm_plugin::utils::timestamp::now();
-    if (!t_o.has_value())
+    auto t = hlasm_plugin::utils::timestamp::now();
+    if (!t.has_value())
         return "<unknown time>";
-    const auto& t = t_o.value();
-
-    constexpr auto padded_append = [](auto& where, const auto& what, size_t pad) {
-        auto s = std::to_string(what);
-        if (s.size() < pad)
-            where.append(pad - s.size(), '0');
-        where.append(s);
-    };
-
-    std::string curr_time;
-    curr_time.reserve(std::string_view("yyyy-MM-hh hh:mm:ss.uuuuuu").size());
-
-    padded_append(curr_time, t.year(), 4);
-    curr_time.append(1, '-');
-    padded_append(curr_time, t.month(), 2);
-    curr_time.append(1, '-');
-    padded_append(curr_time, t.day(), 2);
-    curr_time.append(1, ' ');
-    padded_append(curr_time, t.hour(), 2);
-    curr_time.append(1, ':');
-    padded_append(curr_time, t.minute(), 2);
-    curr_time.append(1, ':');
-    padded_append(curr_time, t.second(), 2);
-    curr_time.append(1, '.');
-    padded_append(curr_time, t.microsecond(), 6);
-
-    return curr_time;
+    else
+        return t->to_string();
 }
 
 void logger::log(std::string_view data)
