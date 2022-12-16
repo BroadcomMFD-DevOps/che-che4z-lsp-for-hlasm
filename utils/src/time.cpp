@@ -26,23 +26,23 @@
 #endif
 
 namespace {
-template<typename T, typename U>
-concept localtime_r_exists = requires(T t, U u)
+template<typename T>
+concept localtime_r_exists = requires(const T* t)
 {
-    { localtime_r(t, u) };
+    { localtime_r(t, nullptr) };
 };
-template<typename T, typename U>
-auto localtime_r_wrapper(const T* timer, U* buf)
+template<typename T>
+auto localtime_r_wrapper(const T* timer, auto* buf)
 {
     if (auto ret = localtime(timer))
     {
         *buf = *ret;
         return buf;
     }
-    return static_cast<U*>(nullptr);
+    return static_cast<decltype(buf)>(nullptr);
 }
-template<typename T, typename U>
-auto localtime_r_wrapper(const T* timer, U* buf) requires localtime_r_exists<const T*, U*>
+template<typename T>
+auto localtime_r_wrapper(const T* timer, auto* buf) requires localtime_r_exists<T>
 {
     return localtime_r(timer, buf);
 }
