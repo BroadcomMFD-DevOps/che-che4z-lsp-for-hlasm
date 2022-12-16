@@ -12,34 +12,45 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
-
-#include <cstdlib>
-#define __STDC_WANT_LIB_EXT1__ 1
-#include <iostream>
-#include <time.h>
-
 #include "logger.h"
+
+#include <iostream>
+#include <string>
+
+#include "utils/time.h"
 
 using namespace hlasm_plugin::language_server;
 
 std::string current_time()
 {
+    auto t_o = hlasm_plugin::utils::timestamp::now();
+    if (!t_o.has_value())
+        return "<unknown time>";
+    const auto& t = t_o.value();
+
+    constexpr auto padded_append = [](auto& where, const auto& what, size_t pad) {
+        auto s = std::to_string(what);
+        if (s.size() < pad)
+            where.append(pad - s.size(), '0');
+        where.append(s);
+    };
+
     std::string curr_time;
-    // Current date/time based on current time
-    time_t now = time(0);
-    // Convert current time to string
+    curr_time.reserve(std::string_view("yyyy-MM-hh hh:mm:ss.uuuuuu").size());
 
-#if __STDC_LIB_EXT1__ || _MSVC_LANG
-    char cstr[50];
-    ctime_s(cstr, sizeof cstr, &now);
-    curr_time.assign(cstr);
-#else
-    curr_time.assign(ctime(&now));
-#endif
-
-    // Last charactor of currentTime is "\n", so remove it
-    if (!curr_time.empty())
-        curr_time.pop_back();
+    padded_append(curr_time, t.year(), 4);
+    curr_time.append(1, '-');
+    padded_append(curr_time, t.month(), 2);
+    curr_time.append(1, '-');
+    padded_append(curr_time, t.day(), 2);
+    curr_time.append(1, ' ');
+    padded_append(curr_time, t.hour(), 2);
+    curr_time.append(1, ':');
+    padded_append(curr_time, t.minute(), 2);
+    curr_time.append(1, ':');
+    padded_append(curr_time, t.second(), 2);
+    curr_time.append(1, '.');
+    padded_append(curr_time, t.microsecond(), 6);
 
     return curr_time;
 }

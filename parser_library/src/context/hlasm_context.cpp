@@ -25,6 +25,7 @@
 #include "lexing/lexer.h"
 #include "lexing/tools.h"
 #include "using.h"
+#include "utils/time.h"
 
 namespace hlasm_plugin::parser_library::context {
 
@@ -242,36 +243,35 @@ void hlasm_context::add_global_system_vars(code_scope& scope)
     if (!is_in_macro())
     {
         {
-            auto tmp_now = std::time(0);
-            auto now = std::localtime(&tmp_now);
+            auto now = utils::timestamp::now().value_or(utils::timestamp(1900, 1, 1));
 
             std::string datc_val;
             std::string date_val;
             datc_val.reserve(8);
             date_val.reserve(8);
-            auto year = std::to_string(now->tm_year + 1900);
+            auto year = std::to_string(now.year());
             datc_val.append(year);
 
-            if (now->tm_mon + 1 < 10)
+            if (now.month() < 10)
             {
                 datc_val.push_back('0');
                 date_val.push_back('0');
             }
 
-            datc_val.append(std::to_string(now->tm_mon + 1));
+            datc_val.append(std::to_string(now.month() + 1));
 
-            date_val.append(std::to_string(now->tm_mon + 1));
+            date_val.append(std::to_string(now.month() + 1));
             date_val.push_back('/');
 
-            if (now->tm_mday < 10)
+            if (now.day() < 10)
             {
                 datc_val.push_back('0');
                 date_val.push_back('0');
             }
 
-            datc_val.append(std::to_string(now->tm_mday));
+            datc_val.append(std::to_string(now.day()));
 
-            date_val.append(std::to_string(now->tm_mday));
+            date_val.append(std::to_string(now.day()));
             date_val.push_back('/');
             date_val.append(year.c_str() + 2);
 
@@ -287,13 +287,13 @@ void hlasm_context::add_global_system_vars(code_scope& scope)
 
             {
                 std::string value;
-                if (now->tm_hour < 10)
+                if (now.hour() < 10)
                     value.push_back('0');
-                value.append(std::to_string(now->tm_hour));
+                value.append(std::to_string(now.hour()));
                 value.push_back(':');
-                if (now->tm_min < 10)
+                if (now.minute() < 10)
                     value.push_back('0');
-                value.append(std::to_string(now->tm_min));
+                value.append(std::to_string(now.minute()));
 
                 globals_.insert(create_system_variable<system_variable>(id_index("SYSTIME"), std::move(value), true));
             }
