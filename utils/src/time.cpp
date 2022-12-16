@@ -25,6 +25,26 @@
 #    include <time.h>
 #endif
 
+namespace {
+template<typename T, typename U>
+concept localtime_r_exists = requires(T t, U u)
+{
+    { localtime_r(t, u) };
+};
+
+template<typename T, typename U>
+auto localtime_r_wrapper(const T* timer, U* buf)
+{
+    if (auto ret = localtime(timer))
+        *buf = *ret;
+    return buf;
+}
+template<typename T, typename U>
+bool localtime_r_wrapper(const T* timer, U* buf) requires localtime_r_exists<const T*, U*>
+{
+    return localtime_r(timer, buf);
+}
+} // namespace
 
 namespace hlasm_plugin::utils {
 
@@ -106,20 +126,15 @@ std::optional<timestamp> timestamp::now()
     const auto now_t = system_clock::to_time_t(now);
 
     struct tm tm_buf;
-#    if defined(localtime_r)
-    if (!localtime_r(&now_t, &tm_buf))
-        return std::nullopt;
-#    elif __STDC_LIB_EXT1__
+#    ifdef __STDC_LIB_EXT1__
     if (!localtime_s(&now_t, &tm_buf))
         return std::nullopt;
-#    elif WIN32
+#    elif defined _MSC_VER
     if (localtime_s(&tm_buf, &now_t))
         return std::nullopt;
 #    else
-    if (const auto* tm = localtime(&now_t); !tm)
+    if (localtime_r_wrapper(&now_t, &tm_buf))
         return std::nullopt;
-    else
-        tm_buf = *tm;
 #    endif
 
     const auto subsecond = now - floor<seconds>(now);
