@@ -31,6 +31,27 @@ class timestamp
     unsigned long long m_second : 6 = 0;
     unsigned long long m_microsecond : 20 = 0;
 
+#ifndef _MSC_VER
+    unsigned long long as_ull() const noexcept
+    {
+        auto v = (unsigned long long)m_year;
+        v <<= 18;
+        v |= (unsigned long long)m_month;
+        v <<= 4;
+        v |= (unsigned long long)m_day;
+        v <<= 5;
+        v |= (unsigned long long)m_hour;
+        v <<= 5;
+        v |= (unsigned long long)m_minute;
+        v <<= 6;
+        v |= (unsigned long long)m_second;
+        v <<= 6;
+        v |= (unsigned long long)m_microsecond;
+
+        return v;
+    }
+#endif
+
 public:
     timestamp() = default;
     timestamp(unsigned year,
@@ -59,7 +80,13 @@ public:
     unsigned second() const noexcept { return m_second; }
     unsigned microsecond() const noexcept { return m_microsecond; }
 
+#ifdef _MSC_VER
     auto operator<=>(const timestamp&) const noexcept = default;
+#else
+    // both gcc and clang have issues with this???
+    auto operator<=>(const timestamp& o) const noexcept { return as_ull() <=> o.as_ull(); }
+    bool operator==(const timestamp& o) const noexcept { return as_ull() == o.as_ull(); }
+#endif // _MSC_VER
 
     std::string to_string() const;
 

@@ -28,7 +28,6 @@
 
 namespace hlasm_plugin::utils {
 
-
 std::string timestamp::to_string() const
 {
     constexpr auto padded_append = [](auto& where, const auto& what, size_t pad) {
