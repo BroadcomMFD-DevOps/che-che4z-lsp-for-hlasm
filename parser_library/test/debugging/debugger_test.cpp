@@ -15,10 +15,12 @@
 #include <functional>
 #include <optional>
 #include <regex>
+#include <string_view>
 #include <thread>
 #include <unordered_map>
 #include <utility>
 #include <variant>
+#include <vector>
 
 #include "gtest/gtest.h"
 
