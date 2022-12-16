@@ -3423,7 +3423,7 @@ const mnemonic_code& instruction::get_mnemonic_codes(std::string_view name)
 std::span<const mnemonic_code> instruction::all_mnemonic_codes() { return mnemonic_codes; }
 
 namespace {
-constexpr instruction_set_size compute_instruction_size(instruction_set_version v)
+constexpr instruction_set_size compute_instruction_set_size(instruction_set_version v)
 {
     instruction_set_size result = {
         0,
@@ -3443,21 +3443,21 @@ constexpr instruction_set_size compute_instruction_size(instruction_set_version 
 
 constexpr const instruction_set_size instruction_set_sizes[] = {
     {},
-    compute_instruction_size(instruction_set_version::ZOP),
-    compute_instruction_size(instruction_set_version::YOP),
-    compute_instruction_size(instruction_set_version::Z9),
-    compute_instruction_size(instruction_set_version::Z10),
-    compute_instruction_size(instruction_set_version::Z11),
-    compute_instruction_size(instruction_set_version::Z12),
-    compute_instruction_size(instruction_set_version::Z13),
-    compute_instruction_size(instruction_set_version::Z14),
-    compute_instruction_size(instruction_set_version::Z15),
-    compute_instruction_size(instruction_set_version::Z16),
-    compute_instruction_size(instruction_set_version::ESA),
-    compute_instruction_size(instruction_set_version::XA),
-    compute_instruction_size(instruction_set_version::_370),
-    compute_instruction_size(instruction_set_version::DOS),
-    compute_instruction_size(instruction_set_version::UNI),
+    compute_instruction_set_size(instruction_set_version::ZOP),
+    compute_instruction_set_size(instruction_set_version::YOP),
+    compute_instruction_set_size(instruction_set_version::Z9),
+    compute_instruction_set_size(instruction_set_version::Z10),
+    compute_instruction_set_size(instruction_set_version::Z11),
+    compute_instruction_set_size(instruction_set_version::Z12),
+    compute_instruction_set_size(instruction_set_version::Z13),
+    compute_instruction_set_size(instruction_set_version::Z14),
+    compute_instruction_set_size(instruction_set_version::Z15),
+    compute_instruction_set_size(instruction_set_version::Z16),
+    compute_instruction_set_size(instruction_set_version::ESA),
+    compute_instruction_set_size(instruction_set_version::XA),
+    compute_instruction_set_size(instruction_set_version::_370),
+    compute_instruction_set_size(instruction_set_version::DOS),
+    compute_instruction_set_size(instruction_set_version::UNI),
 };
 
 } // namespace
