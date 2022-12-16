@@ -36,8 +36,11 @@ template<typename T, typename U>
 auto localtime_r_wrapper(const T* timer, U* buf)
 {
     if (auto ret = localtime(timer))
+    {
         *buf = *ret;
-    return buf;
+        return buf;
+    }
+    return static_cast<U*>(nullptr);
 }
 template<typename T, typename U>
 bool localtime_r_wrapper(const T* timer, U* buf) requires localtime_r_exists<const T*, U*>
@@ -133,7 +136,7 @@ std::optional<timestamp> timestamp::now()
     if (localtime_s(&tm_buf, &now_t))
         return std::nullopt;
 #    else
-    if (localtime_r_wrapper(&now_t, &tm_buf))
+    if (!localtime_r_wrapper(&now_t, &tm_buf))
         return std::nullopt;
 #    endif
 
