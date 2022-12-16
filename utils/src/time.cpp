@@ -31,7 +31,6 @@ concept localtime_r_exists = requires(T t, U u)
 {
     { localtime_r(t, u) };
 };
-
 template<typename T, typename U>
 auto localtime_r_wrapper(const T* timer, U* buf)
 {
@@ -43,7 +42,7 @@ auto localtime_r_wrapper(const T* timer, U* buf)
     return static_cast<U*>(nullptr);
 }
 template<typename T, typename U>
-bool localtime_r_wrapper(const T* timer, U* buf) requires localtime_r_exists<const T*, U*>
+auto localtime_r_wrapper(const T* timer, U* buf) requires localtime_r_exists<const T*, U*>
 {
     return localtime_r(timer, buf);
 }
@@ -88,13 +87,13 @@ std::optional<timestamp> timestamp::now()
         try
         {
             const x = new Date();
-            let r = x.getFullYear() - 1900;
+            let r = x.getFullYear();
             r = r * 16 + x.getMonth();
             r = r * 32 + x.getDate();
             r = r * 32 + x.getHours();
             r = r * 64 + x.getMinutes();
             r = r * 64 + x.getSeconds();
-            r = r + x.getMilliseconds() / 1000;
+            r = r * 1024 + x.getMilliseconds();
 
             return r;
         }
@@ -107,14 +106,14 @@ std::optional<timestamp> timestamp::now()
     if (compressed < 0)
         return std::nullopt;
 
-    auto v = (unsigned long long)compressed;
-    auto microseconds = (unsigned long long)(1'000'000 * (compressed - v));
-
     constexpr auto shift_out = [](auto& value, int bits) {
         auto result = value & (1 << bits) - 1;
         value >>= bits;
         return result;
     };
+    auto v = (unsigned long long)compressed;
+
+    auto microseconds = 1000 * shift_out(v, 10);
     auto second = shift_out(v, 6);
     auto minute = shift_out(v, 6);
     auto hour = shift_out(v, 5);
@@ -122,7 +121,7 @@ std::optional<timestamp> timestamp::now()
     auto month = shift_out(v, 4);
     auto year = v;
 
-    return timestamp(1900 + year, month, day, hour, minute, second, microseconds);
+    return timestamp(year, month, day, hour, minute, second, microseconds);
 #else
     using namespace std::chrono;
     const auto now = system_clock::now();
