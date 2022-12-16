@@ -27,3 +27,5 @@ TEST(timestamp, components)
     auto t = timestamp::now().value();
     EXPECT_EQ(t, timestamp(t.year(), t.month(), t.day(), t.hour(), t.minute(), t.second(), t.microsecond()));
 }
+
+TEST(timestamp, to_string) { EXPECT_EQ(timestamp(1, 2, 3, 4, 5, 6, 7).to_string(), "0001-02-03 04:05:06.000007"); }
