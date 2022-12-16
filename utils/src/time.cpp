@@ -26,25 +26,15 @@
 #endif
 
 namespace {
-template<typename T>
-concept localtime_r_exists = requires(const T* t)
-{
-    { localtime_r(t, nullptr) };
-};
-template<typename T>
-auto localtime_r_wrapper(const T* timer, auto* buf)
+// template has lower overload priority than the original function
+struct tm* localtime_r(const auto* timer, struct tm* buf)
 {
     if (auto ret = localtime(timer))
     {
         *buf = *ret;
         return buf;
     }
-    return static_cast<decltype(buf)>(nullptr);
-}
-template<typename T>
-auto localtime_r_wrapper(const T* timer, auto* buf) requires localtime_r_exists<T>
-{
-    return localtime_r(timer, buf);
+    return nullptr;
 }
 } // namespace
 
@@ -135,7 +125,7 @@ std::optional<timestamp> timestamp::now()
     if (localtime_s(&tm_buf, &now_t))
         return std::nullopt;
 #    else
-    if (!localtime_r_wrapper(&now_t, &tm_buf))
+    if (!localtime_r(&now_t, &tm_buf))
         return std::nullopt;
 #    endif
 
