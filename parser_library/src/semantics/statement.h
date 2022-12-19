@@ -175,18 +175,11 @@ struct preproc_details
         bool operator==(const name_range&) const = default;
     };
 
-    template<typename ITEM_TYPE>
-    struct item_list
-    {
-        std::vector<ITEM_TYPE> items;
-        range overall_r;
-    };
-
     range stmt_r;
     name_range label;
     name_range instruction;
-    item_list<name_range> operands;
-    item_list<range> remarks;
+    std::vector<name_range> operands;
+    std::vector<range> remarks;
 };
 
 struct preprocessor_statement_si

@@ -796,12 +796,12 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
             {
                 utils::trim_right(operand_part);
                 operands.append(operand_part);
-                m_preproc_details.operands.items.emplace_back(std::string(operand_part),
+                m_preproc_details.operands.emplace_back(std::string(operand_part),
                     r_adj(lineno, first_line_skipped, lineno, first_line_skipped + operand_part.length()));
             }
 
             if (remark_start != std::string_view::npos)
-                m_preproc_details.remarks.items.emplace_back(r_adj(lineno,
+                m_preproc_details.remarks.emplace_back(r_adj(lineno,
                     first_line_skipped + remark_start,
                     lineno,
                     first_line_skipped + operand_remark_part.length()));
@@ -825,7 +825,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
             auto ops = segment.code.substr(first_line_skipped);
             utils::trim_right(ops);
             operands.append(ops);
-            m_preproc_details.operands.items.emplace_back(
+            m_preproc_details.operands.emplace_back(
                 std::string(ops), r_adj(lineno, first_line_skipped, lineno, first_line_skipped + ops.length()));
             lineno++;
             first_line_skipped = 0;
@@ -1057,19 +1057,12 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
             m_preproc_details.label = std::move(label);
             m_preproc_details.instruction = std::move(instruction.second);
 
-            if (!m_preproc_details.operands.items.empty())
-                m_preproc_details.operands.overall_r = range(
-                    m_preproc_details.operands.items.front().r.start, m_preproc_details.operands.items.back().r.end);
-            if (!m_preproc_details.remarks.items.empty())
-                m_preproc_details.remarks.overall_r =
-                    range(m_preproc_details.remarks.items.front().start, m_preproc_details.remarks.items.back().end);
-
             auto stmt = std::make_shared<semantics::preprocessor_statement_si>(
                 std::move(m_preproc_details), instruction.first == line_type::include);
 
             do_highlighting(*stmt, m_src_proc);
 
-            m_preproc_details.operands.items = std::move(m_args);
+            m_preproc_details.operands = std::move(m_args);
             set_statement(std::move(stmt));
         }
     }

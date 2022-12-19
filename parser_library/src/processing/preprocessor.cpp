@@ -80,15 +80,11 @@ void preprocessor::do_highlighting(const semantics::preprocessor_statement_si& s
 
     src_proc.add_hl_symbol(token_info(details.instruction.r, semantics::hl_scopes::instruction), continue_column);
 
-    for (const auto& operand : details.operands.items)
-    {
+    for (const auto& operand : details.operands)
         src_proc.add_hl_symbol(token_info(operand.r, semantics::hl_scopes::operand), continue_column);
-    }
 
-    for (const auto& remark_r : details.remarks.items)
-    {
+    for (const auto& remark_r : details.remarks)
         src_proc.add_hl_symbol(token_info(remark_r, semantics::hl_scopes::remark), continue_column);
-    }
 }
 
 void preprocessor::append_included_member(std::unique_ptr<included_member_details> details)

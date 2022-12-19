@@ -159,18 +159,12 @@ std::shared_ptr<PREPROC_STATEMENT> get_preproc_statement(
     }
 
     if (matches[ids.operands].length())
-    {
-        auto [ops_text, ops_range] = get_stmt_part_name_range<ITERATOR>(matches, ids.operands, rp);
-        details.operands.items =
-            get_operands_list(ops_text, std::distance(matches[0].first, matches[ids.operands].first), rp);
-        details.operands.overall_r = std::move(ops_range);
-    }
+        details.operands = get_operands_list(get_stmt_part_name_range<ITERATOR>(matches, ids.operands, rp).name,
+            std::distance(matches[0].first, matches[ids.operands].first),
+            rp);
 
     if (ids.remarks && matches[*ids.remarks].length())
-    {
-        details.remarks.overall_r = get_stmt_part_name_range<ITERATOR>(matches, *ids.remarks, rp).r;
-        details.remarks.items.emplace_back(details.remarks.overall_r);
-    }
+        details.remarks.emplace_back(get_stmt_part_name_range<ITERATOR>(matches, *ids.remarks, rp).r);
 
     return std::make_shared<PREPROC_STATEMENT>(std::move(details));
 }
