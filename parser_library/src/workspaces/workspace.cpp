@@ -414,7 +414,7 @@ lsp::completion_list_s workspace::generate_completion(const lsp::completion_list
     auto suggestions = [&instruction_suggestions](std::string_view ct) {
         std::vector<std::pair<std::string, bool>> result;
         if (ct.empty() || !instruction_suggestions)
-            return std::vector<std::pair<std::string, bool>>();
+            return result;
         auto raw_suggestions = instruction_suggestions(ct);
         result.reserve(raw_suggestions.size());
         for (auto&& s : raw_suggestions)
