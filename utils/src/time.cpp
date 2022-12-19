@@ -50,7 +50,7 @@ std::string timestamp::to_string() const
     };
 
     std::string curr_time;
-    curr_time.reserve(std::string_view("yyyy-MM-hh hh:mm:ss.uuuuuu").size());
+    curr_time.reserve(std::string_view("yyyy-MM-dd HH:mm:ss.SSSSSS").size());
 
     padded_append(curr_time, year(), 4);
     curr_time.append(1, '-');

@@ -35,17 +35,17 @@ class timestamp
     unsigned long long as_ull() const noexcept
     {
         auto v = (unsigned long long)m_year;
-        v <<= 18;
-        v |= (unsigned long long)m_month;
         v <<= 4;
+        v |= (unsigned long long)m_month;
+        v <<= 5;
         v |= (unsigned long long)m_day;
         v <<= 5;
         v |= (unsigned long long)m_hour;
-        v <<= 5;
+        v <<= 6;
         v |= (unsigned long long)m_minute;
         v <<= 6;
         v |= (unsigned long long)m_second;
-        v <<= 6;
+        v <<= 20;
         v |= (unsigned long long)m_microsecond;
 
         return v;
