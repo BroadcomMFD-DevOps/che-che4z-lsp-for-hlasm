@@ -9,7 +9,9 @@
 </div>
 
 # HLASM Language Support
-HLASM Language Support is an extension that supports the High Level Assembler language. It provides code completion, highlighting and navigation features, shows mistakes in the source, retrieval of dependencies from mainframe data sets, and enables you to trace how the conditional assembly is evaluated with a modern debugging experience.
+HLASM Language Support is an IDE extension that supports the High Level Assembler language. It provides code completion, highlighting and navigation features, shows mistakes in the source, retrieval of dependencies from mainframe data sets, and enables you to trace how the conditional assembly is evaluated with a modern debugging experience.
+
+HLASM Language Support is part of the Che4z open-source project. Feel free to contribute at our [Github repository](https://github.com/eclipse/che-che4z-lsp-for-hlasm/). For project documentation, see the [wiki](https://github.com/eclipse/che-che4z-lsp-for-hlasm/wiki/). 
 
 HLASM Language Support is also part of [Code4z](https://marketplace.visualstudio.com/items?itemName=broadcomMFD.code4z-extension-pack), an all-round package that offers a modern experience for mainframe application developers, including extensions for language support, data editing, testing, and source code management.
 
