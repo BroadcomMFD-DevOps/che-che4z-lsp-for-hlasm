@@ -897,6 +897,9 @@ TEST_F(db2_preprocessor_test, sql_type_warn_on_continuation)
 //                            "               IS                                           RESULT_SET_X\n"
 //                            "               LOCATOR VARYING\n"
 //                            "RE2                                 SQL TYPE                         ISX\n"
+//                            "               RESULT_SET_LOCATOR                                      X\n"
+//                            "               VARYING"
+//                            "RE3                                 SQL TYPE                         ISX\n"
 //                            "                                                     RESULT_SET_LOCATORX\n"
 //                            "                VARYING";
 //    auto p = create_preprocessor(
@@ -916,7 +919,10 @@ TEST_F(db2_preprocessor_test, sql_type_warn_on_continuation)
 //    std::string_view text = "RE1                                 SQL TYPE                          IX\n"
 //                            "               S                                            RESULT_SET_X\n"
 //                            "               LOCATOR VARYING\n"
-//                            "RE2                                 SQL TYPE                         ISX\n"
+//                            "RE2                                 SQL TYPE                           X\n"
+//                            "               IS                                        RESULT_SET_--RX\n"
+//                            "               LOCATOR VARYING\n"
+//                            "RE3                                 SQL TYPE                         ISX\n"
 //                            "                                                     RESULT_SET_LOCATORX\n"
 //                            "               VARYING";
 //    auto p = create_preprocessor(

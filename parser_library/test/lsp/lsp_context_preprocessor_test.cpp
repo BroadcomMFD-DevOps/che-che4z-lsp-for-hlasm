@@ -427,3 +427,25 @@ TEST_F(lsp_context_db2_preprocessor_test, refs_include)
     EXPECT_TRUE(
         has_same_content(expected_member_locations, a.context().lsp_ctx->references(source_loc, position(1, 29))));
 }
+
+// Todo: There shouldn't be a reference from ZY as it is commented out -> finish writing the test expectations
+// TEST(lsp_context_db2_preprocessor_test, commented_label_reference)
+//{
+//    std::string input = R"(
+//         USING *,12
+//         USING SQLDSECT,11
+//                                         EXEC  SQL SELECT 1 IN         X
+//               TO : --RM                                             ZYX
+//               XWV   FROM TABLE WHERE X = :ABCDE
+//*
+// ZYXWV    DS    F
+// ABCDE    DS    F
+//    END
+//)";
+//
+//    analyzer a(input, analyzer_options { db2_preprocessor_options {} });
+//    a.analyze();
+//
+//    a.collect_diags();
+//    EXPECT_TRUE(a.diags().empty());
+//}
