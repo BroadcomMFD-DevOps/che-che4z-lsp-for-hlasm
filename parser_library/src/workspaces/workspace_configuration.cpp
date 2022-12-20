@@ -382,13 +382,13 @@ parse_config_file_result workspace_configuration::load_and_process_config(std::v
     config::proc_grps proc_groups;
     global_settings_map utilized_settings_values;
 
-    if (auto l = load_proc_config(proc_groups, utilized_settings_values, diags); l != parse_config_file_result::parsed)
-        return l;
-
     m_proc_grps.clear();
     m_exact_pgm_conf.clear();
     m_regex_pgm_conf.clear();
     m_b4g_config_cache.clear();
+
+    if (auto l = load_proc_config(proc_groups, utilized_settings_values, diags); l != parse_config_file_result::parsed)
+        return l;
 
     config::pgm_conf pgm_config;
     const auto pgm_conf_loaded = load_pgm_config(pgm_config, utilized_settings_values, diags);
@@ -688,6 +688,15 @@ parse_config_file_result workspace_configuration::parse_configuration_file(
 bool workspace_configuration::refresh_libraries(const std::vector<utils::resource::resource_location>& file_locations)
 {
     bool refreshed = false;
+
+    if (std::any_of(file_locations.begin(),
+            file_locations.end(),
+            [this, hlasm_folder = utils::resource::resource_location::join(m_location, HLASM_PLUGIN_FOLDER)](
+                const auto& uri) { return uri == m_pgm_conf_loc || uri == m_proc_grps_loc || uri == hlasm_folder; }))
+    {
+        parse_configuration_file();
+        return true;
+    }
 
     std::unordered_set<const library*> refreshed_libs;
     for (auto& [_, proc_grp] : m_proc_grps)
