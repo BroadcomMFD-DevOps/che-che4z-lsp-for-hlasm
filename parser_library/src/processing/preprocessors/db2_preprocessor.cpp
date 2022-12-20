@@ -594,7 +594,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
                 return consume_and_create(line_preview, line_type::exec_sql, { "EXEC", "SQL" }, "EXEC SQL");
 
             case 'S':
-                return consume_and_create(line_preview, line_type::sql_type, { "SQL", "TYPE", "IS" }, "SQL TYPE IS");
+                return consume_and_create(line_preview, line_type::sql_type, { "SQL", "TYPE", "IS" }, "SQL TYPE IS"); // todo - should probably be only SQL TYPE
 
             default:
                 return ignore;
