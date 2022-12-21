@@ -14,8 +14,10 @@
 
 #include "workspace_configuration.h"
 
+#include <algorithm>
 #include <charconv>
 #include <compare>
+#include <string_view>
 #include <tuple>
 
 #include "file_manager.h"

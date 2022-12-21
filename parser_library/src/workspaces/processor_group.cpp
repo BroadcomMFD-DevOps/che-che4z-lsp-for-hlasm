@@ -14,7 +14,10 @@
 
 #include "processor_group.h"
 
+#include <algorithm>
 #include <span>
+#include <string_view>
+#include <variant>
 
 namespace hlasm_plugin::parser_library::workspaces {
 
