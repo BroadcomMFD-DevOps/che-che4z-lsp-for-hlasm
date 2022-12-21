@@ -63,7 +63,7 @@ struct logical_line
     bool so_si_continuation;
     bool missing_next_line;
 
-    void clear()
+    virtual void clear()
     {
         segments.clear();
         continuation_error = false;

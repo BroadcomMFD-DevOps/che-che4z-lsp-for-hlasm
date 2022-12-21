@@ -2348,15 +2348,24 @@ diagnostic_op diagnostic_op::error_DB004(const range& range)
 {
     return diagnostic_op(diagnostic_severity::error,
         "DB004",
-        std::string("DB2 preprocessor - requested SQL TYPE not recognized"),
+        std::string(
+            "DB2 preprocessor - requested 'SQL TYPE IS' not recognized (operands either missing or not recognized)"),
         range);
 }
 
-diagnostic_op diagnostic_op::error_DB005(const range& range)
+diagnostic_op diagnostic_op::warn_DB005(const range& range)
 {
     return diagnostic_op(diagnostic_severity::warning,
         "DB005",
-        std::string("DB2 preprocessor - continuation detected on SQL TYPE statement"),
+        std::string("DB2 preprocessor - continuation detected on 'SQL TYPE' statement"),
+        range);
+}
+
+diagnostic_op diagnostic_op::warn_DB006(const range& range)
+{
+    return diagnostic_op(diagnostic_severity::warning,
+        "DB006",
+        std::string("DB2 preprocessor - requested 'SQL TYPE' not recognized (operand 'IS' either missing or split)"),
         range);
 }
 

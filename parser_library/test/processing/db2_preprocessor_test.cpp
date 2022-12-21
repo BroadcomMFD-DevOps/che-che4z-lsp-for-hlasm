@@ -890,52 +890,73 @@ TEST_F(db2_preprocessor_test, sql_type_warn_on_continuation)
     EXPECT_TRUE(matches_message_codes(m_diags.diags, { "DB005" }));
 }
 
-// TODO
-//TEST_F(db2_preprocessor_test, sql_type_parse_and_warn_on_continuation)
+// TODO - issue with msvc regex
+// TEST(db2_preprocessor, sql_type_is_table_like_regex)
 //{
-//    std::string_view text = "RE1                                 SQL TYPE                           X\n"
-//                            "               IS                                           RESULT_SET_X\n"
-//                            "               LOCATOR VARYING\n"
-//                            "RE2                                 SQL TYPE                         ISX\n"
-//                            "               RESULT_SET_LOCATOR                                      X\n"
-//                            "               VARYING"
-//                            "RE3                                 SQL TYPE                         ISX\n"
-//                            "                                                     RESULT_SET_LOCATORX\n"
-//                            "                VARYING";
-//    auto p = create_preprocessor(
-//        db2_preprocessor_options {}, [](std::string_view) { return std::nullopt; }, &m_diags);
+//    std::string input = R"(
+// A SQL TYPE IS TABLE LIKE A                                             X
+//               A                                                       X
+//               A AS LOCATOR)";
 //
-//    auto result = p->generate_replacement(document(text));
+//    analyzer a(input, analyzer_options { db2_preprocessor_options {} });
+//    a.analyze();
 //
-//    EXPECT_TRUE(matches_message_codes(m_diags.diags, { "DB005" }));
-//    EXPECT_EQ(std::count_if(result.begin(),
-//                  result.end(),
-//                  [](const auto& l) { return l.text().find("DS    FL4") != std::string_view::npos; }),
-//        2);
+//    // No expectations - it should just past
 //}
-//
-//TEST_F(db2_preprocessor_test, sql_type_dont_parse_and_warn_on_continuation)
-//{
-//    std::string_view text = "RE1                                 SQL TYPE                          IX\n"
-//                            "               S                                            RESULT_SET_X\n"
-//                            "               LOCATOR VARYING\n"
-//                            "RE2                                 SQL TYPE                           X\n"
-//                            "               IS                                        RESULT_SET_--RX\n"
-//                            "               LOCATOR VARYING\n"
-//                            "RE3                                 SQL TYPE                         ISX\n"
-//                            "                                                     RESULT_SET_LOCATORX\n"
-//                            "               VARYING";
-//    auto p = create_preprocessor(
-//        db2_preprocessor_options {}, [](std::string_view) { return std::nullopt; }, &m_diags);
-//
-//    auto result = p->generate_replacement(document(text));
-//
-//    EXPECT_TRUE(matches_message_codes(m_diags.diags, { "DB005" }));
-//    EXPECT_EQ(std::count_if(result.begin(),
-//                  result.end(),
-//                  [](const auto& l) { return l.text().find("DS    FL4") != std::string_view::npos; }),
-//        0);
-//}
+
+TEST_F(db2_preprocessor_test, sql_type_parse_and_warn_on_continuation)
+{
+    std::string_view text = "RE1                                 SQL TYPE                           X\n"
+                            "               IS                                           RESULT_SET_X\n"
+                            "               LOCATOR VARYING\n"
+                            "RE2                                 SQL TYPE                         ISX\n"
+                            "               RESULT_SET_LOCATOR                                      X\n"
+                            "               VARYING\n"
+                            "RE3                                 SQL TYPE                         ISX\n"
+                            "                                                     RESULT_SET_LOCATORX\n"
+                            "                VARYING";
+    auto p = create_preprocessor(
+        db2_preprocessor_options {}, [](std::string_view) { return std::nullopt; }, &m_diags);
+
+    auto result = p->generate_replacement(document(text));
+
+    EXPECT_TRUE(matches_message_codes(m_diags.diags, { "DB005", "DB005", "DB005" }));
+    EXPECT_EQ(std::count_if(result.begin(),
+                  result.end(),
+                  [](const auto& l) { return l.text().find("DS    FL4") != std::string_view::npos; }),
+        3);
+}
+
+TEST_F(db2_preprocessor_test, sql_type_dont_parse_and_warn_on_continuation)
+{
+    std::string_view text = "RE1                                 SQL TYPE                          IX\n"
+                            "               S                                            RESULT_SET_X\n"
+                            "               LOCATOR VARYING\n"
+                            "RE2                                 SQL TYPE                           X\n"
+                            "               IS                                        RESULT_SET_--RX\n"
+                            "               LOCATOR VARYING\n"
+                            "RE3                                 SQL TYPE                         ISX\n"
+                            "                                                     RESULT_SET_LOCATORX\n"
+                            "               VARYING";
+    auto p = create_preprocessor(
+        db2_preprocessor_options {}, [](std::string_view) { return std::nullopt; }, &m_diags);
+
+    auto result = p->generate_replacement(document(text));
+
+    EXPECT_TRUE(matches_message_codes(m_diags.diags,
+        {
+            "DB005",
+            "DB006",
+            "DB005",
+            "DB004",
+            "DB005",
+            "DB004",
+        }));
+    EXPECT_EQ(std::count_if(result.begin(),
+                  result.end(),
+                  [](const auto& l) { return l.text().find("DS    FL4") != std::string_view::npos; }),
+        0);
+}
 
 TEST(db2_preprocessor, no_codegen_for_unacceptable_sql_statement)
 {
