@@ -63,17 +63,17 @@ The HLASM Language Support extension parses and analyzes all parts of a HLASM pr
 ### Highlighting
 The HLASM Language Support extension highlights statements with different colors for labels, instructions, operands, remarks and variables. Statements containing instructions that can have operands are highlighted differently to statements that do not expect operands. Code that is skipped by branching `AIF`, `AGO` or conditional assembly is not colored.
 
-![](clients/vscode-hlasmplugin/readme_res/highlighting.png)
+![](/clients/vscode-hlasmplugin/readme_res/highlighting.png)
 
 ### Autocomplete
 Autocomplete is enabled for the instruction field. While typing, a list of instructions starting with the typed characters displays. Selecting an instruction from the list completes it and inserts the default operands. Variables and sequence symbols are also filled with a value from their scope.
 
-![](clients/vscode-hlasmplugin/readme_res/autocomplete.gif)
+![](/clients/vscode-hlasmplugin/readme_res/autocomplete.gif)
 
 ### Go To Definition and Find All References
 The extension adds the 'go to definition' and 'find all references' functionalities. Use the 'go to definition' functionality to show definitions of variable symbols, ordinary symbols and macros, or open COPY files directly. Use the 'find all references' functionality to show all places where a symbol is used.
 
-![](clients/vscode-hlasmplugin/readme_res/go_to_def.gif)
+![](/clients/vscode-hlasmplugin/readme_res/go_to_def.gif)
 
 ## Macro Tracer
 
@@ -97,7 +97,7 @@ When the tracer stops at a macro or COPY instruction, you can select **step into
 
 Breakpoints can be set before or during the debugging session.
 
-![](clients/vscode-hlasmplugin/readme_res/tracer.gif)
+![](/clients/vscode-hlasmplugin/readme_res/tracer.gif)
 
 ## Configuration
 
