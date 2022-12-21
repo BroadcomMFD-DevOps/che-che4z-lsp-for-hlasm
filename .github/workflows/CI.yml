@@ -89,7 +89,7 @@ jobs:
             native: linux
             container: alpine:3.16
             prereq: apk update && apk add --no-cache linux-headers git g++ cmake util-linux-dev npm ninja pkgconfig openjdk11 maven
-            config: cmake -G Ninja -DCMAKE_EXE_LINKER_FLAGS="-static" ../
+            config: cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXE_LINKER_FLAGS="-static" -DBUILD_VSIX=Off ../
             dbg-strip: cd build/bin && objcopy --only-keep-debug language_server language_server.dbg && objcopy --strip-unneeded language_server && objcopy --add-gnu-debuglink=language_server.dbg language_server
             dbg-pattern: build/bin/language_server.dbg
           - os: ubuntu-22.04
@@ -240,16 +240,14 @@ jobs:
           export TEL_KEY=`node -e "console.log(Buffer.from('${{ secrets.TELEMETRY_KEY }}').toString('base64'))"`
           sed -i "s/const TELEMETRY_KEY_ENCODED = TELEMETRY_DEFAULT_KEY/const TELEMETRY_KEY_ENCODED = '$TEL_KEY'/" telemetry.ts
       - name: Package VSIX
-        run: cd clients/vscode-hlasmplugin/ && npm ci && npm run compile && npx vsce package --baseContentUrl "https://raw.githubusercontent.com/$GITHUB_REPOSITORY/$GITHUB_SHA/"
-      - name: Get VSIX filename
-        run: echo VSIX_FILENAME=$(ls clients/vscode-hlasmplugin/*.vsix) >> $GITHUB_ENV
+        run: cd clients/vscode-hlasmplugin/ && npm ci && npm run compile && npx vsce package -o vscode-hlasmplugin.vsix --baseContentUrl "https://raw.githubusercontent.com/$GITHUB_REPOSITORY/$GITHUB_SHA/"
       - name: Get version
         run: echo VERSION=$(node -e "console.log(require('./clients/vscode-hlasmplugin/package.json').version)") >> $GITHUB_ENV
       - name: Upload VSIX
         uses: actions/upload-artifact@v3
         with:
           name: hlasm-language-support-${{ env.VERSION }}.vsix
-          path: ${{ env.VSIX_FILENAME }}
+          path: clients/vscode-hlasmplugin/vscode-hlasmplugin.vsix
 
   release:
     name: Release VSIXs
