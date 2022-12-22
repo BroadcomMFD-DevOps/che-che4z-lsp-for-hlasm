@@ -380,6 +380,23 @@ TEST(db2_preprocessor, include_empty)
     EXPECT_TRUE(a.hlasm_ctx().get_visited_files().count(member_loc));
 }
 
+// todo
+// TEST(db2_preprocessor, include_double)
+//{
+//    mock_parse_lib_provider libs({
+//        { "MEMBER", "" },
+//    });
+//    std::string input = " EXEC SQL INCLUDE MEMBER MEMBER";
+//
+//    analyzer a(input, analyzer_options { &libs, db2_preprocessor_options {} });
+//    a.analyze();
+//    a.collect_diags();
+//
+//    EXPECT_GE(a.diags().size(), (size_t)1);
+//
+//    EXPECT_EQ(a.hlasm_ctx().get_visited_files().count(member_loc), 0);
+//}
+
 TEST(db2_preprocessor, include_insensitive)
 {
     mock_parse_lib_provider libs({

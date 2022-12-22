@@ -68,6 +68,11 @@ protected:
 
         return it != files.end() ? std::make_optional(*it) : std::nullopt;
     }
+
+    inline bool reloc_symbol_checker(std::string_view source)
+    {
+        return source.find("Relocatable Symbol") != std::string_view::npos;
+    };
 };
 } // namespace
 
@@ -320,12 +325,11 @@ class lsp_context_db2_preprocessor_test : public lsp_context_preprocessor_test
 protected:
     inline static const std::string contents =
         R"(
-A      EXEC   SQL  INCLUDE  MEMBER
+A      EXEC   SQL  INCLUDE   MEMBER
 B       EXEC  SQL   INCLUDE sqlca
 C     EXEC SQL INCLUDE  SqLdA)";
 
-    std::optional<resource_location> preproc2_loc;
-    std::optional<resource_location> preproc3_loc;
+    std::optional<resource_location> preproc1_loc;
 
 public:
     lsp_context_db2_preprocessor_test()
@@ -336,116 +340,191 @@ public:
     void SetUp() override
     {
         a.analyze();
-        preproc2_loc = find_preproc_file("PREPROCESSOR_2.hlasm");
-        preproc3_loc = find_preproc_file("PREPROCESSOR_3.hlasm");
+        preproc1_loc = find_preproc_file("PREPROCESSOR_1.hlasm");
 
-        ASSERT_TRUE(preproc2_loc.has_value());
-        ASSERT_TRUE(preproc3_loc.has_value());
+        ASSERT_TRUE(preproc1_loc.has_value());
     }
 };
 
-TEST_F(lsp_context_db2_preprocessor_test, go_to_include)
+TEST_F(lsp_context_db2_preprocessor_test, go_to_label)
 {
-    // jump to MEMBER, label A
-    EXPECT_EQ(location(position(0, 0), member_loc), a.context().lsp_ctx->definition(source_loc, position(1, 1)));
+    // jump to virtual file, label A
+    EXPECT_EQ(location(position(0, 0), *preproc1_loc), a.context().lsp_ctx->definition(source_loc, position(1, 1)));
     // jump to virtual file, label B
-    EXPECT_EQ(location(position(0, 0), *preproc2_loc), a.context().lsp_ctx->definition(source_loc, position(2, 1)));
+    EXPECT_EQ(location(position(6, 0), *preproc1_loc), a.context().lsp_ctx->definition(source_loc, position(2, 0)));
     // jump to virtual file, label C
-    EXPECT_EQ(location(position(0, 0), *preproc3_loc), a.context().lsp_ctx->definition(source_loc, position(3, 1)));
-
-    // no jump,  EXEC   SQL  INCLUDE
-    EXPECT_EQ(location(position(1, 15), source_loc), a.context().lsp_ctx->definition(source_loc, position(1, 15)));
-    // no jump,   EXEC  SQL   INCLUDE
-    EXPECT_EQ(location(position(2, 15), source_loc), a.context().lsp_ctx->definition(source_loc, position(2, 15)));
-    // no jump, EXEC SQL INCLUDE
-    EXPECT_EQ(location(position(3, 15), source_loc), a.context().lsp_ctx->definition(source_loc, position(3, 15)));
-
-    // jump from source to included file
-    EXPECT_EQ(location(position(0, 3), source_loc), a.context().lsp_ctx->definition(source_loc, position(1, 29)));
-    // jump from source to virtual file
-    EXPECT_EQ(location(position(0, 0), *preproc2_loc), a.context().lsp_ctx->definition(source_loc, position(2, 29)));
-    // jump from source to virtual file
-    EXPECT_EQ(location(position(0, 0), *preproc3_loc), a.context().lsp_ctx->definition(source_loc, position(3, 29)));
+    EXPECT_EQ(location(position(32, 0), *preproc1_loc), a.context().lsp_ctx->definition(source_loc, position(3, 1)));
 }
 
-TEST_F(lsp_context_db2_preprocessor_test, refs_include)
+TEST_F(lsp_context_db2_preprocessor_test, go_to_exec_sql)
+{
+    // no jump,  EXEC   SQL
+    EXPECT_EQ(location(position(1, 12), source_loc), a.context().lsp_ctx->definition(source_loc, position(1, 12)));
+    // no jump,   EXEC  SQL
+    EXPECT_EQ(location(position(2, 12), source_loc), a.context().lsp_ctx->definition(source_loc, position(2, 12)));
+    // no jump, EXEC SQL
+    EXPECT_EQ(location(position(3, 12), source_loc), a.context().lsp_ctx->definition(source_loc, position(3, 12)));
+}
+
+TEST_F(lsp_context_db2_preprocessor_test, go_to_include)
+{
+    // jump from source to virtual file
+    EXPECT_EQ(location(position(0, 0), member_loc), a.context().lsp_ctx->definition(source_loc, position(1, 29)));
+    // jump from source to virtual file
+    EXPECT_EQ(location(position(6, 0), *preproc1_loc), a.context().lsp_ctx->definition(source_loc, position(2, 29)));
+    // jump from source to virtual file
+    EXPECT_EQ(location(position(32, 0), *preproc1_loc), a.context().lsp_ctx->definition(source_loc, position(3, 29)));
+}
+
+TEST_F(lsp_context_db2_preprocessor_test, refs_label)
 {
     const location_list expected_a_locations {
         location(position(1, 0), source_loc),
-        location(position(0, 0), member_loc),
+        location(position(0, 0), *preproc1_loc),
     };
     const location_list expected_b_locations {
         location(position(2, 0), source_loc),
-        location(position(0, 0), *preproc2_loc),
+        location(position(6, 0), *preproc1_loc),
     };
     const location_list expected_c_locations {
         location(position(3, 0), source_loc),
-        location(position(0, 0), *preproc3_loc),
+        location(position(32, 0), *preproc1_loc),
     };
-    const location_list expected_exec_sql_include_locations {
+
+    // A reference
+    EXPECT_TRUE(has_same_content(expected_a_locations, a.context().lsp_ctx->references(source_loc, position(1, 1))));
+    // B reference
+    EXPECT_TRUE(has_same_content(expected_b_locations, a.context().lsp_ctx->references(source_loc, position(2, 0))));
+    // C reference
+    EXPECT_TRUE(has_same_content(expected_c_locations, a.context().lsp_ctx->references(source_loc, position(3, 1))));
+}
+
+
+TEST_F(lsp_context_db2_preprocessor_test, refs_exec_sql)
+{
+    const location_list expected_exec_sql_locations {
         location(position(1, 7), source_loc),
         location(position(2, 8), source_loc),
         location(position(3, 6), source_loc),
     };
+
+    // EXEC SQL reference
+    EXPECT_TRUE(
+        has_same_content(expected_exec_sql_locations, a.context().lsp_ctx->references(source_loc, position(1, 12))));
+    // EXEC SQL reference
+    EXPECT_TRUE(
+        has_same_content(expected_exec_sql_locations, a.context().lsp_ctx->references(source_loc, position(2, 12))));
+    // EXEC SQL reference
+    EXPECT_TRUE(
+        has_same_content(expected_exec_sql_locations, a.context().lsp_ctx->references(source_loc, position(3, 12))));
+}
+
+TEST_F(lsp_context_db2_preprocessor_test, refs_include)
+{
     const location_list expected_member_locations {
-        location(position(1, 28), source_loc),
-        location(position(0, 3), member_loc),
+        location(position(1, 29), source_loc),
     };
     const location_list expected_sqlca_locations {
         location(position(2, 28), source_loc),
-        location(position(0, 3), *preproc2_loc),
+        location(position(11, 0), *preproc1_loc),
     };
     const location_list expected_sqlda_locations {
         location(position(3, 24), source_loc),
-        location(position(0, 3), *preproc3_loc),
+        location(position(43, 0), *preproc1_loc),
     };
-
-    // A reference
-    EXPECT_TRUE(has_same_content(expected_a_locations, a.context().lsp_ctx->references(source_loc, position(1, 0))));
-    // B reference
-    EXPECT_TRUE(has_same_content(expected_b_locations, a.context().lsp_ctx->references(source_loc, position(2, 0))));
-    // C reference
-    EXPECT_TRUE(has_same_content(expected_c_locations, a.context().lsp_ctx->references(source_loc, position(3, 0))));
-
-    // EXEC SQL INCLUDE reference
-    EXPECT_TRUE(has_same_content(
-        expected_exec_sql_include_locations, a.context().lsp_ctx->references(source_loc, position(1, 9))));
-    // EXEC SQL INCLUDE reference
-    EXPECT_TRUE(has_same_content(
-        expected_exec_sql_include_locations, a.context().lsp_ctx->references(source_loc, position(1, 19))));
-    // EXEC SQL INCLUDE reference
-    EXPECT_TRUE(has_same_content(
-        expected_exec_sql_include_locations, a.context().lsp_ctx->references(source_loc, position(3, 22))));
 
     // MEMBER reference
     EXPECT_TRUE(
         has_same_content(expected_member_locations, a.context().lsp_ctx->references(source_loc, position(1, 29))));
     // SQLCA reference
     EXPECT_TRUE(
-        has_same_content(expected_member_locations, a.context().lsp_ctx->references(source_loc, position(1, 29))));
+        has_same_content(expected_sqlca_locations, a.context().lsp_ctx->references(source_loc, position(2, 29))));
     // SQLDA reference
     EXPECT_TRUE(
-        has_same_content(expected_member_locations, a.context().lsp_ctx->references(source_loc, position(1, 29))));
+        has_same_content(expected_sqlda_locations, a.context().lsp_ctx->references(source_loc, position(3, 29))));
+}
+
+TEST_F(lsp_context_db2_preprocessor_test, hover_label)
+{
+    // A
+    EXPECT_TRUE(reloc_symbol_checker(a.context().lsp_ctx->hover(source_loc, position(1, 1))));
+    // B
+    EXPECT_TRUE(reloc_symbol_checker(a.context().lsp_ctx->hover(source_loc, position(2, 0))));
+    // C
+    EXPECT_TRUE(reloc_symbol_checker(a.context().lsp_ctx->hover(source_loc, position(3, 1))));
 }
 
 // Todo: There shouldn't be a reference from ZY as it is commented out -> finish writing the test expectations
-// TEST(lsp_context_db2_preprocessor_test, commented_label_reference)
-//{
-//    std::string input = R"(
-//         USING *,12
-//         USING SQLDSECT,11
-//                                         EXEC  SQL SELECT 1 IN         X
-//               TO : --RM                                             ZYX
-//               XWV   FROM TABLE WHERE X = :ABCDE
-//*
-// ZYXWV    DS    F
-// ABCDE    DS    F
-//    END
-//)";
-//
-//    analyzer a(input, analyzer_options { db2_preprocessor_options {} });
-//    a.analyze();
-//
-//    a.collect_diags();
-//    EXPECT_TRUE(a.diags().empty());
-//}
+class lsp_context_db2_preprocessor_exec_sql_args_test : public lsp_context_preprocessor_test
+{
+protected:
+    inline static const std::string contents =
+        R"(
+         USING *,12
+         USING SQLDSECT,11
+         EXEC SQL INCLUDE SQLDA
+                                         EXEC  SQL SELECT 1          INX
+               TO : --RM                                             ZYX
+               XWV   FROM TABLE WHERE X = :ABCDE
+
+ZYXWV    DS    F
+XWV      DS    F
+ABCDE    DS    F
+         END
+)";
+
+public:
+    lsp_context_db2_preprocessor_exec_sql_args_test()
+        : lsp_context_preprocessor_test(
+            contents, std::make_shared<mock_parse_lib_provider>(member_list), db2_preprocessor_options())
+    {}
+};
+
+TEST_F(lsp_context_db2_preprocessor_exec_sql_args_test, go_to)
+{
+    // XWV
+    EXPECT_EQ(location(position(9, 0), source_loc), a.context().lsp_ctx->definition(source_loc, position(6, 17)));
+    // ABCDE
+    EXPECT_EQ(location(position(10, 0), source_loc), a.context().lsp_ctx->definition(source_loc, position(6, 48)));
+
+    // ZY - no jump
+    EXPECT_EQ(location(), a.context().lsp_ctx->definition(source_loc, position(5, 71)));
+}
+
+TEST_F(lsp_context_db2_preprocessor_exec_sql_args_test, refs)
+{
+    const location_list expected_zyxwv_locations {
+        location(position(8, 0), source_loc),
+    };
+    const location_list expected_xwv_locations {
+        location(position(6, 15), source_loc),
+        location(position(9, 0), source_loc),
+    };
+    const location_list expected_abcde_locations {
+        location(position(6, 43), source_loc),
+        location(position(10, 0), source_loc),
+    };
+
+    // ZYXWV reference
+    EXPECT_TRUE(
+        has_same_content(expected_zyxwv_locations, a.context().lsp_ctx->references(source_loc, position(8, 1))));
+    // XWV reference
+    EXPECT_TRUE(has_same_content(expected_xwv_locations, a.context().lsp_ctx->references(source_loc, position(6, 17))));
+    // ABCDE reference
+    EXPECT_TRUE(
+        has_same_content(expected_abcde_locations, a.context().lsp_ctx->references(source_loc, position(6, 48))));
+
+    // ZY reference
+    EXPECT_TRUE(a.context().lsp_ctx->references(source_loc, position(5, 70)).empty());
+}
+
+TEST_F(lsp_context_db2_preprocessor_exec_sql_args_test, hover)
+{
+    // XWV
+    EXPECT_TRUE(reloc_symbol_checker(a.context().lsp_ctx->hover(source_loc, position(6, 17))));
+    // ABCDE
+    EXPECT_TRUE(reloc_symbol_checker(a.context().lsp_ctx->hover(source_loc, position(6, 48))));
+
+    // ZY
+    EXPECT_TRUE(a.context().lsp_ctx->hover(source_loc, position(5, 71)).empty());
+}

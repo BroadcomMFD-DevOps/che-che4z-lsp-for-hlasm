@@ -477,6 +477,7 @@ AAA EXEC  SQL   INCLUDE  SQLCA -- REMARK                                00000001
                   EXEC      SQL                                        X00004000
                SELECT                                                  X
                1       --rem                                           X00050000
+                   INTO :B                                             X
                FROM                                                    X
                SYSIBM.SYSDUMMY1
 B SQL  TYPE   IS RESULT_SET_LOCATOR VARYING   comment comment2          006)";
@@ -489,36 +490,40 @@ B SQL  TYPE   IS RESULT_SET_LOCATOR VARYING   comment comment2          006)";
     const semantics::lines_info expected = {
         token_info({ { 1, 0 }, { 1, 3 } }, hl_scopes::label),
         token_info({ { 1, 4 }, { 1, 13 } }, hl_scopes::instruction),
-        token_info({ { 1, 16 }, { 1, 30 } }, hl_scopes::operand),
-        token_info({ { 1, 31 }, { 1, 40 } }, hl_scopes::remark),
+        token_info({ { 1, 13 }, { 1, 31 } }, hl_scopes::operand),
+        token_info({ { 1, 31 }, { 1, 71 } }, hl_scopes::remark),
         token_info({ { 1, 72 }, { 1, 80 } }, hl_scopes::ignored),
         token_info({ { 2, 57 }, { 2, 65 } }, hl_scopes::instruction),
+        token_info({ { 2, 65 }, { 2, 66 } }, hl_scopes::operand),
         token_info({ { 2, 66 }, { 2, 71 } }, hl_scopes::remark),
         token_info({ { 2, 71 }, { 2, 72 } }, hl_scopes::continuation),
         token_info({ { 2, 72 }, { 2, 80 } }, hl_scopes::ignored),
-        token_info({ { 3, 15 }, { 3, 28 } }, hl_scopes::operand),
-        token_info({ { 3, 37 }, { 3, 49 } }, hl_scopes::remark),
+        token_info({ { 3, 15 }, { 3, 37 } }, hl_scopes::operand),
+        token_info({ { 3, 37 }, { 3, 71 } }, hl_scopes::remark),
         token_info({ { 3, 72 }, { 3, 80 } }, hl_scopes::ignored),
         token_info({ { 4, 18 }, { 4, 31 } }, hl_scopes::instruction),
+        token_info({ { 4, 31 }, { 4, 71 } }, hl_scopes::operand),
         token_info({ { 4, 71 }, { 4, 72 } }, hl_scopes::continuation),
         token_info({ { 4, 72 }, { 4, 80 } }, hl_scopes::ignored),
-        token_info({ { 5, 15 }, { 5, 21 } }, hl_scopes::operand),
+        token_info({ { 5, 15 }, { 5, 71 } }, hl_scopes::operand),
         token_info({ { 5, 71 }, { 5, 72 } }, hl_scopes::continuation),
-        token_info({ { 6, 15 }, { 6, 16 } }, hl_scopes::operand),
-        token_info({ { 6, 23 }, { 6, 28 } }, hl_scopes::remark),
+        token_info({ { 6, 15 }, { 6, 23 } }, hl_scopes::operand),
+        token_info({ { 6, 23 }, { 6, 71 } }, hl_scopes::remark),
         token_info({ { 6, 71 }, { 6, 72 } }, hl_scopes::continuation),
         token_info({ { 6, 72 }, { 6, 80 } }, hl_scopes::ignored),
-        token_info({ { 7, 15 }, { 7, 19 } }, hl_scopes::operand),
+        token_info({ { 7, 15 }, { 7, 71 } }, hl_scopes::operand),
         token_info({ { 7, 71 }, { 7, 72 } }, hl_scopes::continuation),
-        token_info({ { 8, 15 }, { 8, 31 } }, hl_scopes::operand),
-        token_info({ { 9, 0 }, { 9, 1 } }, hl_scopes::label),
-        token_info({ { 9, 2 }, { 9, 16 } }, hl_scopes::instruction),
-        token_info({ { 9, 17 }, { 9, 62 } }, hl_scopes::operand),
+        token_info({ { 8, 15 }, { 8, 71 } }, hl_scopes::operand),
+        token_info({ { 8, 71 }, { 8, 72 } }, hl_scopes::continuation),
+        token_info({ { 9, 15 }, { 9, 31 } }, hl_scopes::operand),
+        token_info({ { 10, 0 }, { 10, 1 } }, hl_scopes::label),
+        token_info({ { 10, 2 }, { 10, 11 } }, hl_scopes::instruction),
+        token_info({ { 10, 11 }, { 10, 71 } }, hl_scopes::operand),
         /* TODO - Missing recognition of remarks in the SQL  TYPE   IS statement
-        token_info({ { 9, 17 }, { 9, 43 } }, hl_scopes::operand),
-        token_info({ { 9, 46 }, { 9, 62 } }, hl_scopes::remark),
+        token_info({ { 10, 14 }, { 10, 46 } }, hl_scopes::operand),
+        token_info({ { 10, 46 }, { 10, 62 } }, hl_scopes::remark),
         */
-        token_info({ { 9, 72 }, { 9, 75 } }, hl_scopes::ignored),
+        token_info({ { 10, 72 }, { 10, 75 } }, hl_scopes::ignored),
     };
 
     EXPECT_EQ(tokens, expected);

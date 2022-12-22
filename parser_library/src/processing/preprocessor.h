@@ -100,6 +100,11 @@ protected:
         semantics::source_info_processor& src_proc,
         size_t continue_column = 15) const;
 
+    virtual void do_highlighting(const semantics::preprocessor_statement_si& stmt,
+        const lexing::logical_line& ll,
+        semantics::source_info_processor& src_proc,
+        size_t continue_column = 15) const;
+
     void append_included_member(std::unique_ptr<included_member_details> details);
     void append_included_members(std::vector<std::unique_ptr<included_member_details>> details);
     void capture_included_members(preprocessor& preproc);
