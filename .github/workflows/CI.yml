@@ -249,25 +249,25 @@ jobs:
           chmod +x ${{ env.CLIENT_DIR }}/bin/linux/language_server
       - name: Extract branch name
         run: echo BRANCH=${GITHUB_REF#refs/heads/} >> $GITHUB_ENV
-      - name: Update version
-        if: env.BRANCH == 'master' || env.BRANCH == 'release-next'
-        run: |
-          npm ci
-          npm run compile
-          npx semantic-release --dry-run
+      - name: NPM CI
+        run: npm ci
         working-directory: ${{ env.CLIENT_DIR }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Inject telemetry key
         run: |
           export TEL_KEY=`node -e "console.log(Buffer.from('${{ secrets.TELEMETRY_KEY }}').toString('base64'))"`
           sed -i "s/const TELEMETRY_KEY_ENCODED = TELEMETRY_DEFAULT_KEY/const TELEMETRY_KEY_ENCODED = '$TEL_KEY'/" src/telemetry.ts
         working-directory: ${{ env.CLIENT_DIR }}
+      - name: NPM Compile
+        run: npm run compile
+        working-directory: ${{ env.CLIENT_DIR }}
+      - name: Update version
+        if: env.BRANCH == 'master' || env.BRANCH == 'release-next'
+        run: npx semantic-release --dry-run
+        working-directory: ${{ env.CLIENT_DIR }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Package VSIX
-        run: |
-          npm ci
-          npm run compile
-          npx vsce package -o hlasm-language-support.vsix --baseContentUrl "https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}/"
+        run: npx vsce package -o hlasm-language-support.vsix --baseContentUrl "https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}/"
         working-directory: ${{ env.CLIENT_DIR }}
       - name: Upload VSIX
         uses: actions/upload-artifact@v3
