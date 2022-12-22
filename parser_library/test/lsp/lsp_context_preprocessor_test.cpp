@@ -368,12 +368,12 @@ TEST_F(lsp_context_db2_preprocessor_test, go_to_exec_sql)
 
 TEST_F(lsp_context_db2_preprocessor_test, go_to_include)
 {
-    // jump from source to virtual file
+    // jump from source to MEMBER
     EXPECT_EQ(location(position(0, 0), member_loc), a.context().lsp_ctx->definition(source_loc, position(1, 29)));
-    // jump from source to virtual file
-    EXPECT_EQ(location(position(6, 0), *preproc1_loc), a.context().lsp_ctx->definition(source_loc, position(2, 29)));
-    // jump from source to virtual file
-    EXPECT_EQ(location(position(32, 0), *preproc1_loc), a.context().lsp_ctx->definition(source_loc, position(3, 29)));
+    // no jump, sqlca
+    EXPECT_EQ(location(position(2, 29), source_loc), a.context().lsp_ctx->definition(source_loc, position(2, 29)));
+    // no jump, SqLdA
+    EXPECT_EQ(location(position(3, 29), source_loc), a.context().lsp_ctx->definition(source_loc, position(3, 29)));
 }
 
 TEST_F(lsp_context_db2_preprocessor_test, refs_label)
@@ -426,11 +426,9 @@ TEST_F(lsp_context_db2_preprocessor_test, refs_include)
     };
     const location_list expected_sqlca_locations {
         location(position(2, 28), source_loc),
-        location(position(11, 0), *preproc1_loc),
     };
     const location_list expected_sqlda_locations {
         location(position(3, 24), source_loc),
-        location(position(43, 0), *preproc1_loc),
     };
 
     // MEMBER reference
@@ -462,7 +460,7 @@ protected:
         R"(
          USING *,12
          USING SQLDSECT,11
-         EXEC SQL INCLUDE SQLDA
+         EXEC SQL INCLUDE SQLCA
                                          EXEC  SQL SELECT 1          INX
                TO : --RM                                             ZYX
                XWV   FROM TABLE WHERE X = :ABCDE
@@ -488,7 +486,7 @@ TEST_F(lsp_context_db2_preprocessor_exec_sql_args_test, go_to)
     EXPECT_EQ(location(position(10, 0), source_loc), a.context().lsp_ctx->definition(source_loc, position(6, 48)));
 
     // ZY - no jump
-    EXPECT_EQ(location(), a.context().lsp_ctx->definition(source_loc, position(5, 71)));
+    EXPECT_EQ(location(position(5, 71), source_loc), a.context().lsp_ctx->definition(source_loc, position(5, 71)));
 }
 
 TEST_F(lsp_context_db2_preprocessor_exec_sql_args_test, refs)

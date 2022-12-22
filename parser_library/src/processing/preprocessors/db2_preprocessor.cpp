@@ -64,14 +64,8 @@ struct db2_logical_line : public lexing::logical_line
     {
         size_t d = std::distance(begin(), e);
 
-        auto temp = d;
-        size_t i = 0;
-        while (i < m_comments.size() && temp > segments[i].code.length())
-        {
-            temp -= segments[i].code.length();
+        for (size_t i = 0, total = 0; d > total && i < segments.size(); ++i)
             d += m_comments[i].empty() ? 0 : m_comments[i].length() - 2;
-            ++i;
-        }
 
         return d;
     }

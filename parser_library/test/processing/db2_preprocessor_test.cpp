@@ -211,7 +211,7 @@ TEST_F(db2_preprocessor_test, bad_continuation)
     auto p = create_preprocessor(
         db2_preprocessor_options {}, [](std::string_view) { return std::nullopt; }, &m_diags);
 
-    std::string_view text = R"( EXEC SQL PRETENT SQL STATEMENT                                        X
+    std::string_view text = R"( EXEC SQL PRETEND SQL STATEMENT                                        X
 badcontinuation)";
 
     auto doc = p->generate_replacement(document(text));
