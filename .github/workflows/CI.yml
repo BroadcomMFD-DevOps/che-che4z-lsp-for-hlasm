@@ -247,8 +247,6 @@ jobs:
         run: |
           chmod +x ${{ env.CLIENT_DIR }}/bin/darwin/language_server
           chmod +x ${{ env.CLIENT_DIR }}/bin/linux/language_server
-      - name: Extract branch name
-        run: echo BRANCH=${GITHUB_REF#refs/heads/} >> $GITHUB_ENV
       - name: NPM CI
         run: npm ci
         working-directory: ${{ env.CLIENT_DIR }}
@@ -261,7 +259,7 @@ jobs:
         run: npm run compile
         working-directory: ${{ env.CLIENT_DIR }}
       - name: Update version
-        if: env.BRANCH == 'master' || env.BRANCH == 'release-next'
+        if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/release-next'
         run: npx semantic-release --dry-run
         working-directory: ${{ env.CLIENT_DIR }}
         env:
@@ -366,8 +364,6 @@ jobs:
           persist-credentials: false
       - name: Install Chromium
         run: apk add --no-cache chromium
-      - name: Extract branch name
-        run: echo BRANCH=${GITHUB_REF#refs/heads/} >> $GITHUB_ENV
       - name: Download VSIX
         uses: actions/download-artifact@v3
         with:
