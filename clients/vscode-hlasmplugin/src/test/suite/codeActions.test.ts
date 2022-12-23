@@ -16,22 +16,27 @@ import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as helper from './testHelper';
 
-async function queryCodeActions(uri: vscode.Uri, range: vscode.Range, sleep: number, max_attempts: number = 10) {
-    for (; max_attempts > 0; --max_attempts) {
+async function queryCodeActions(uri: vscode.Uri, range: vscode.Range, sleep: number, attempts: number = 10) {
+    for (let i = 0; i < attempts; ++i) {
         // it seems that vscode occasionally makes its own request and cancels ours
         await helper.sleep(sleep);
 
         try {
             const codeActionsList: vscode.CodeAction[] = await vscode.commands.executeCommand('vscode.executeCodeActionProvider', uri, range);
 
-            // empty list also points toward the request being cancelled
-            if (codeActionsList.length !== 0)
-                return codeActionsList;
+            // empty list also points towards the request being cancelled
+            if (codeActionsList.length === 0)
+                continue;
+
+            if (i > 0)
+                console.log(`Code actions required ${i + 1} attempts`);
+
+            return codeActionsList;
         } catch (e) {
             assert.equal(e.message, 'Cancelled');
         }
     }
-    return [];
+    throw Error("Code actions query failed");
 }
 
 suite('Code actions', () => {
