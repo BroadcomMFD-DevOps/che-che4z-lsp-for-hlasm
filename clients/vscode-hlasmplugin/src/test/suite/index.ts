@@ -29,7 +29,7 @@ async function primeExtension() {
 	// wait for the language server initialization
 	await Promise.race([lang.onReady(), timeout(30000, 'Language server initialization failed')]);
 	// prime opcode suggestions to avoid timeouts
-	await Promise.race([lang.sendRequest<object>('textDocument/$/opcode_suggestion', { "opcodes": ["OPCODE"] }), timeout(30000, 'Opcode suggestion request failed')]);
+	await Promise.race([lang.sendRequest<object>('textDocument/$/opcode_suggestion', { opcodes: ['OPCODE'] }), timeout(30000, 'Opcode suggestion request failed')]);
 }
 
 export async function run(): Promise<void> {
