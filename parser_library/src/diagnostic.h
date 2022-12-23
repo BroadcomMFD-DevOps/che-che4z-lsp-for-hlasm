@@ -715,6 +715,8 @@ struct diagnostic_op
 
     static diagnostic_op warn_DB006(const range& range);
 
+    static diagnostic_op warn_DB007(const range& range);
+
     static diagnostic_op warn_CIC001(const range& range);
 
     static diagnostic_op warn_CIC002(const range& range, std::string_view variable_name);

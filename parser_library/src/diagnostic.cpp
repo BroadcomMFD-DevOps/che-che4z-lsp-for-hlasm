@@ -2369,6 +2369,12 @@ diagnostic_op diagnostic_op::warn_DB006(const range& range)
         range);
 }
 
+diagnostic_op diagnostic_op::warn_DB007(const range& range)
+{
+    return diagnostic_op(
+        diagnostic_severity::warning, "DB007", std::string("DB2 preprocessor - missing INCLUDE member"), range);
+}
+
 diagnostic_op diagnostic_op::warn_CIC001(const range& range)
 {
     return diagnostic_op(diagnostic_severity::warning,

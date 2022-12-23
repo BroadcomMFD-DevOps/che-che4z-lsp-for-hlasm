@@ -364,38 +364,83 @@ TEST(db2_preprocessor, continuation_in_buffer)
     EXPECT_TRUE(a.hlasm_ctx().get_visited_files().count(member_loc));
 }
 
-TEST(db2_preprocessor, include_empty)
+TEST(db2_preprocessor, include_valid)
 {
     mock_parse_lib_provider libs({
         { "MEMBER", "" },
     });
-    std::string input = " EXEC SQL INCLUDE MEMBER ";
 
-    analyzer a(input, analyzer_options { &libs, db2_preprocessor_options {} });
-    a.analyze();
-    a.collect_diags();
+    std::vector<std::string> inputs = {
+        R"( EXEC SQL INCLUDE MEMBER )",
+        R"( EXEC SQL INCLUDE MEMBER--TMP)",
+        R"( EXEC SQL INCLUDE MEMBER--)",
+        R"( EXEC SQL INCLUDE                                                      X
+               MEMBER)",
+        R"( EXEC SQL INCLUDE -- TMP                                               X
+               MEMBER)",
+        R"( EXEC SQL INCLUDE  -- COMMENT                                          X
+                  --COMMENT                                            X
+               MEMBER)",
+    };
 
-    EXPECT_EQ(a.diags().size(), (size_t)0);
+    for (const auto& input : inputs)
+    {
+        analyzer a(input, analyzer_options { &libs, db2_preprocessor_options {} });
+        a.analyze();
+        a.collect_diags();
 
-    EXPECT_TRUE(a.hlasm_ctx().get_visited_files().count(member_loc));
+        EXPECT_EQ(a.diags().size(), (size_t)0);
+
+        EXPECT_TRUE(a.hlasm_ctx().get_visited_files().count(member_loc));
+    }
 }
 
-// todo
-// TEST(db2_preprocessor, include_double)
-//{
-//    mock_parse_lib_provider libs({
-//        { "MEMBER", "" },
-//    });
-//    std::string input = " EXEC SQL INCLUDE MEMBER MEMBER";
-//
-//    analyzer a(input, analyzer_options { &libs, db2_preprocessor_options {} });
-//    a.analyze();
-//    a.collect_diags();
-//
-//    EXPECT_GE(a.diags().size(), (size_t)1);
-//
-//    EXPECT_EQ(a.hlasm_ctx().get_visited_files().count(member_loc), 0);
-//}
+TEST(db2_preprocessor, include_double)
+{
+    mock_parse_lib_provider libs({
+        { "MEMBER", "" },
+    });
+
+    std::vector<std::string> inputs = {
+        R"( EXEC SQL INCLUDE MEMBER MEMBER)",
+        R"( EXEC SQL INCLUDE MEMBER                                               X
+               MEMBER)",
+        R"( EXEC SQL INCLUDE  MEMBER                                              X
+                   -- COMMENT                                          X
+                  --COMMENT                                            X
+               MEMBER)",
+    };
+
+    for (const auto& input : inputs)
+    {
+        analyzer a(input, analyzer_options { &libs, db2_preprocessor_options {} });
+        a.analyze();
+        a.collect_diags();
+
+        EXPECT_TRUE(matches_message_codes(a.diags(), { "DB002" }));
+        EXPECT_EQ(a.hlasm_ctx().get_visited_files().count(member_loc), 0);
+    }
+}
+
+TEST(db2_preprocessor, include_member_not_present)
+{
+    mock_parse_lib_provider libs({
+        { "MEMBER", "" },
+    });
+    std::vector<std::string> inputs = { R"( EXEC SQL INCLUDE -- MEMBER)",
+        R"( EXEC SQL INCLUDE --                                                   X
+               -- MEMBER)" };
+
+    for (const auto& input : inputs)
+    {
+        analyzer a(input, analyzer_options { &libs, db2_preprocessor_options {} });
+        a.analyze();
+        a.collect_diags();
+
+        EXPECT_TRUE(matches_message_codes(a.diags(), { "DB007" }));
+        EXPECT_EQ(a.hlasm_ctx().get_visited_files().count(member_loc), 0);
+    }
+}
 
 TEST(db2_preprocessor, include_insensitive)
 {

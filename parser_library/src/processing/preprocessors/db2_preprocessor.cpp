@@ -79,11 +79,22 @@ struct db2_logical_line : public lexing::logical_line
         return it;
     }
 
-    void trim_left(lexing::logical_line::const_iterator& it)
+    static void iterate_by(
+        lexing::logical_line::const_iterator& it, const lexing::logical_line::const_iterator& it_e, size_t offset)
     {
-        while (it != end())
+        while (offset > 0 && it != it_e)
         {
-            if (auto fw_lookup = it; (*it == ' ') || (*it == '-' && (++fw_lookup != end() && *fw_lookup == '-')))
+            it++;
+            --offset;
+        }
+    }
+
+    static void trim_left(lexing::logical_line::const_iterator& it,
+        const lexing::logical_line::const_iterator& it_e) // todo should consider strings with '--'
+    {
+        while (it != it_e)
+        {
+            if (auto fw_lookup = it; (*it == ' ') || (*it == '-' && (++fw_lookup != it_e && *fw_lookup == '-')))
                 it = fw_lookup;
             else
                 break;
@@ -554,22 +565,46 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         return consumed_words_spread;
     }
 
-    semantics::preproc_details::name_range try_process_include(
+    std::optional<semantics::preproc_details::name_range> try_process_include(
         lexing::logical_line::const_iterator it, size_t lineno, const range_adjuster& r_adj)
     {
-        static const auto pattern =
-            std::regex("INCLUDE(?:[ ]+|--)+([A-Z#$@][A-Z#$@0-9]*(?:[(][A-Z#$@][A-Z#$@0-9]*[)])?)(?:(?:[ ]+|--)+)?",
-                std::regex_constants::icase);
+        static const auto include_pattern = std::regex("(INCLUDE)([ ]|--)*(.*)", std::regex_constants::icase);
+        static const auto member_pattern = std::regex("(.*?)(?:[ ]|--|$)+");
 
-        if (std::match_results<lexing::logical_line::const_iterator> matches;
-            std::regex_search(it, m_logical_line.end(), matches, pattern))
-            return semantics::preproc_details::name_range(matches[1].str(),
-                r_adj(lineno,
-                    m_logical_line.distance_from_beginning(matches[1].first),
-                    lineno,
-                    m_logical_line.distance_from_beginning(matches[1].second)));
+        if (std::match_results<lexing::logical_line::const_iterator> inc_match;
+            !std::regex_match(it, m_logical_line.end(), inc_match, include_pattern))
+            return std::nullopt;
+        else
+            it = inc_match[2].length() == 0 ? inc_match[1].second : inc_match[2].first;
 
-        return {};
+        lexing::logical_line::const_iterator inc_it_s, inc_it_e;
+        semantics::preproc_details::name_range nr;
+
+        for (auto reg_it = std::regex_iterator<lexing::logical_line::const_iterator>(
+                      it, m_logical_line.end(), member_pattern),
+                  reg_it_e = std::regex_iterator<lexing::logical_line::const_iterator>();
+             reg_it != reg_it_e;
+             ++reg_it)
+        {
+            if (const auto& sub_match = (*reg_it)[1]; sub_match.length())
+            {
+                if (nr.name.empty())
+                    inc_it_s = sub_match.first;
+                inc_it_e = sub_match.second;
+
+                if (!nr.name.empty())
+                    nr.name.push_back(' ');
+                nr.name.append(sub_match.str());
+            }
+        }
+
+        if (!nr.name.empty())
+            nr.r = r_adj(lineno,
+                m_logical_line.distance_from_beginning(inc_it_s),
+                lineno,
+                m_logical_line.distance_from_beginning(inc_it_e));
+
+        return nr;
     }
 
     static bool is_end(std::string_view s)
@@ -595,7 +630,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         if (!it_s.same_line(it_i))
             return false;
 
-        m_logical_line.trim_left(++it_s);
+        db2_logical_line::trim_left(++it_s, m_logical_line.end());
         return true;
     }
 
@@ -772,30 +807,20 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
 
         // keep the capture groups in sync
         static const auto xml_type =
-            std::regex("XML(?:[ ]+|--)+AS(?:[ ]+|--)+"
-                       "(?:"
-                       "(BINARY(?:[ ]+|--)+LARGE(?:[ ]+|--)+OBJECT|BLOB|CHARACTER(?:[ ]+|--)+LARGE(?:[ "
-                       "]+|--)+OBJECT|CHAR(?:[ ]+|--)+LARGE(?:[ ]+|--)+OBJECT|CLOB|DBCLOB)"
-                       "(?:[ ]+|--)+([[:digit:]]{1,9})([KMG])?"
-                       "|"
-                       "(BLOB_FILE|CLOB_FILE|DBCLOB_FILE)"
-                       ")"
-                       "(?: .*)?");
+            std::regex("XML(?:[ ]|--)+AS(?:[ ]|--)+(?:(BINARY(?:[ ]|--)+LARGE(?:[ ]|--)+OBJECT|BLOB|CHARACTER(?:[ "
+                       "]|--)+LARGE(?:[ ]|--)+OBJECT|CHAR(?:[ ]|--)+LARGE(?:[ ]|--)+OBJECT|CLOB|DBCLOB)(?:[ "
+                       "]|--)+([[:digit:]]{1,9})([KMG])?|(BLOB_FILE|CLOB_FILE|DBCLOB_FILE))(?: .*)?");
         static const auto lob_type =
-            std::regex("(?:"
-                       "(BINARY(?:[ ]+|--)+LARGE(?:[ ]+|--)+OBJECT|BLOB|CHARACTER(?:[ ]+|--)+LARGE(?:[ "
-                       "]+|--)+OBJECT|CHAR(?:[ ]+|--)+LARGE(?:[ ]+|--)+OBJECT|CLOB|DBCLOB)"
-                       "(?:[ ]+|--)+([[:digit:]]{1,9})([KMG])?"
-                       "|"
-                       "(BLOB_FILE|CLOB_FILE|DBCLOB_FILE|BLOB_LOCATOR|CLOB_LOCATOR|DBCLOB_LOCATOR)"
-                       ")"
-                       "(?: .*)?");
+            std::regex("(?:(BINARY(?:[ ]|--)+LARGE(?:[ ]|--)+OBJECT|BLOB|CHARACTER(?:[ ]|--)+LARGE(?:[ "
+                       "]|--)+OBJECT|CHAR(?:[ ]|--)+LARGE(?:[ ]|--)+OBJECT|CLOB|DBCLOB)(?:[ "
+                       "]|--)+([[:digit:]]{1,9})([KMG])?|(BLOB_FILE|CLOB_FILE|DBCLOB_FILE|BLOB_LOCATOR|CLOB_LOCATOR|"
+                       "DBCLOB_LOCATOR))(?: .*)?");
 
         static const auto table_like = std::regex(
-            "TABLE(?:[ ]+|--)+LIKE(?:[ ]+|--)+('(?:[^']|'')+'|(?:[^']|'')+)(?:[ ]+|--)+AS(?:[ ]+|--)+LOCATOR(?: .*)?");
+            "TABLE(?:[ ]|--)+LIKE(?:[ ]|--)+('(?:[^']|'')+'|(?:[^']|'')+)(?:[ ]|--)+AS(?:[ ]|--)+LOCATOR(?: .*)?");
 
         static const auto result_set_locator_type =
-            std::regex("SULT_SET_LOCATOR(?:[ ]+|--)+VARYING(?: .*)?"); // todo tolerate_no_space_at_end
+            std::regex("SULT_SET_LOCATOR(?:[ ]|--)+VARYING(?: .*)?"); // todo tolerate_no_space_at_end
         static const auto row_id_type = std::regex("WID(?: .*)?");
 
         switch (*it)
@@ -926,16 +951,23 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         std::vector<semantics::preproc_details::name_range> args;
         auto& [instr_type, instr_name_range] = instruction_info;
         auto it = m_logical_line.begin_with_offset(instr_name_range.r.end.column);
-        m_logical_line.trim_left(it);
+        db2_logical_line::trim_left(it, m_logical_line.end());
 
         switch (instr_type)
         {
             case line_type::exec_sql: {
                 process_regular_line(lineno, label, first_line_skipped, r_adj);
-                if (auto inc_member_details = try_process_include(it, lineno, r_adj); !inc_member_details.name.empty())
+                if (auto inc_member_details = try_process_include(it, lineno, r_adj); inc_member_details.has_value())
                 {
+                    if (inc_member_details->name.empty())
+                    {
+                        if (m_diags)
+                            m_diags->add_diagnostic(diagnostic_op::warn_DB007(range(position(lineno, 0))));
+                        break;
+                    }
+
                     instr_type = line_type::include;
-                    args.emplace_back(std::move(inc_member_details));
+                    args.emplace_back(std::move(*inc_member_details));
                     if (include_allowed)
                         process_include(args.back().name, lineno);
                     else if (m_diags)
@@ -980,8 +1012,8 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
     {
         // handles only the most obvious cases (imprecisely)
         static const auto no_code_statements =
-            std::regex("(?:DECLARE|WHENEVER|BEGIN(?:[ ]+|--)+DECLARE(?:[ ]+|--)+SECTION|END(?:[ ]+|--)+DECLARE(?:[ "
-                       "]+|--)+SECTION)(?: .*)?",
+            std::regex("(?:DECLARE|WHENEVER|BEGIN(?:[ ]|--)+DECLARE(?:[ ]|--)+SECTION|END(?:[ ]|--)+DECLARE(?:[ "
+                       "]|--)+SECTION)(?: .*)?",
                 std::regex_constants::icase);
         return !std::regex_match(it, m_logical_line.end(), no_code_statements);
     }
