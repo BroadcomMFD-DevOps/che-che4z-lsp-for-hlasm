@@ -33,7 +33,7 @@ async function queryCodeActions(uri: vscode.Uri, range: vscode.Range, sleep: num
 
             return codeActionsList;
         } catch (e) {
-            assert.equal(e.message, 'Cancelled');
+            assert.ok(e instanceof vscode.CancellationError || e instanceof Error && e.message === 'Canceled');
         }
     }
     throw Error("Code actions query failed");
