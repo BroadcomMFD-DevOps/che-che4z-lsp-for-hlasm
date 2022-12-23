@@ -747,7 +747,7 @@ asm_option workspace::get_asm_options(const utils::resource::resource_location& 
         ? file_location
         : relative_to_location;
     result.sysin_member = sysin_path.filename();
-    result.sysin_dsn = sysin_path.parent().get_local_if_available();
+    result.sysin_dsn = sysin_path.parent().get_local_path_or_uri();
 
     return result;
 }

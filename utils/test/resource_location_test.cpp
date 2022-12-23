@@ -933,12 +933,12 @@ TEST(resource_location, parent)
     EXPECT_EQ(resource_location("schema://h/a/x/f?zzz").parent().get_uri(), "schema://h/a/x?zzz");
 }
 
-TEST(resource_location, get_local_if_available)
+TEST(resource_location, get_local_path_or_uri)
 {
-    EXPECT_EQ(resource_location("schema://h/a").get_local_if_available(), "schema://h/a");
-    EXPECT_EQ(resource_location("schema:h/a").get_local_if_available(), "schema:h/a");
-    EXPECT_EQ(resource_location("x/a").get_local_if_available(), "x/a");
+    EXPECT_EQ(resource_location("schema://h/a").get_local_path_or_uri(), "schema://h/a");
+    EXPECT_EQ(resource_location("schema:h/a").get_local_path_or_uri(), "schema:h/a");
+    EXPECT_EQ(resource_location("x/a").get_local_path_or_uri(), "x/a");
     EXPECT_EQ((is_windows() ? resource_location("file:///C:/dir/file") : resource_location("file:///home/file"))
-                  .get_local_if_available(),
+                  .get_local_path_or_uri(),
         is_windows() ? "c:\\dir\\file" : "/home/file");
 }

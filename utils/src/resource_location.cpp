@@ -440,7 +440,7 @@ resource_location resource_location::parent() const
     return resource_location(utils::path::reconstruct_uri(dis_uri));
 }
 
-std::string resource_location::get_local_if_available() const { return is_local() ? get_path() : m_uri; }
+std::string resource_location::get_local_path_or_uri() const { return is_local() ? get_path() : m_uri; }
 
 namespace {
 utils::path::dissected_uri::authority relative_reference_process_new_auth(
