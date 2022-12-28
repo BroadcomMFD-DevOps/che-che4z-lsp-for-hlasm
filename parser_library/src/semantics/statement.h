@@ -187,7 +187,7 @@ struct preprocessor_statement_si
     preproc_details m_details;
     const bool m_copylike;
 
-    preprocessor_statement_si(preproc_details details, bool copylike)
+    preprocessor_statement_si(preproc_details details, bool copylike = false)
         : m_details(std::move(details))
         , m_copylike(copylike)
     {}
@@ -196,16 +196,6 @@ struct preprocessor_statement_si
 struct endevor_statement_si : public preprocessor_statement_si
 {
     explicit endevor_statement_si(preproc_details details);
-};
-
-struct cics_statement_si : public preprocessor_statement_si
-{
-    explicit cics_statement_si(preproc_details details);
-};
-
-struct db2_statement_si : public preprocessor_statement_si
-{
-    explicit db2_statement_si(preproc_details details);
 };
 
 } // namespace hlasm_plugin::parser_library::semantics

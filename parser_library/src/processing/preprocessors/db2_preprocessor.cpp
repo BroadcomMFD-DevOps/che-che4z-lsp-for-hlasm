@@ -140,11 +140,9 @@ void finish_db2_logical_line(db2_logical_line& out, const lexing::logical_line_e
 template<typename It>
 class mini_parser
 {
-    std::string m_substituted_operands;
-
     enum class symbol_type : unsigned char
     {
-        non_special_char,
+        other_char,
         ord_char,
         blank,
         colon,
@@ -180,19 +178,16 @@ class mini_parser
         if (b == e)
             return b;
 
-        unsigned char q = *b;
+        const unsigned char quote = *b;
         while (++b != e)
-            if (q == *b)
+            if (quote == *b)
                 break;
 
         return b;
     }
 
 public:
-    const std::string& operands() const& { return m_substituted_operands; }
-    std::string operands() && { return std::move(m_substituted_operands); }
-
-    std::vector<semantics::preproc_details::name_range> parse_and_substitute(
+    std::vector<semantics::preproc_details::name_range> get_args(
         It b, It e, size_t lineno, const range_adjuster& r_adj, db2_logical_line& db2_ll)
     {
         enum class consuming_state
@@ -281,7 +276,7 @@ public:
 
                     break;
 
-                case symbol_type::non_special_char:
+                case symbol_type::other_char:
                     if (state == consuming_state::CONSUMING)
                         op_inserter(op_start_it, b);
                     break;
@@ -517,37 +512,49 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         It next_word_start;
     };
 
-    template<typename It>
-    static std::optional<consumed_words_info<It>> consume_word_move_to_next(
-        It it, const It& it_e, std::string_view word_to_consume, bool needs_same_line = false)
+    static std::regex get_consuming_regex(std::initializer_list<std::string_view> words, bool end_of_line_as_separator)
     {
+        assert(words.size());
+
+        auto w_it = words.begin();
+
         std::string s = "(";
-        s.append(word_to_consume);
-        s.append(")([ ]|--|$)*(?:.*)");
-        const auto is_pattern = std::regex(s);
+        s.append(*w_it++);
+        while (w_it != words.end())
+            s.append("(?:[ ]|--)+(?:").append(*w_it++).append(")");
 
-        if (std::match_results<It> matches; std::regex_match(it, it_e, matches, is_pattern)
-            && (!needs_same_line || same_line(matches[1].first, std::prev(matches[1].second))))
-            return consumed_words_info<It> { matches[1].second,
-                matches[2].length() == 0 ? matches[1].second : matches[2].second };
+        s.append(")([ ]|--)");
+        if (end_of_line_as_separator)
+            s.append("*");
+        else
+            s.append("+");
+        s.append("(.*)");
 
-        return std::nullopt;
+        return std::regex(s);
     }
 
     template<typename It>
-    static std::optional<consumed_words_info<It>> consume_words_move_to_next(
-        It it, const It& it_e, std::initializer_list<std::string_view> words, bool needs_same_line = false)
+    static std::optional<It> consume_words_advance_to_next(It& it,
+        const It& it_e,
+        std::initializer_list<std::string_view> words,
+        bool needs_same_line,
+        bool end_of_line_as_separator)
     {
-        std::optional<consumed_words_info<It>> cwi;
-        for (auto& w : words)
+        if (!words.size())
+            return std::nullopt;
+
+        if (std::match_results<It> matches;
+            std::regex_match(it, it_e, matches, get_consuming_regex(words, end_of_line_as_separator))
+            && (!needs_same_line || same_line(matches[1].first, std::prev(matches[1].second)))
+            && (!end_of_line_as_separator || matches[2].length() || !matches[3].length()
+                || (matches[1].second == matches[3].first
+                    && !same_line(std::prev(matches[1].second), matches[3].first))))
         {
-            if (cwi = consume_word_move_to_next(it, it_e, w, needs_same_line); !cwi)
-                return std::nullopt;
-            else
-                it = cwi->next_word_start;
+            it = matches[3].first;
+            return matches[1].second;
         }
 
-        return cwi;
+        return std::nullopt;
     }
 
     std::optional<semantics::preproc_details::name_range> try_process_include(lexing::logical_line::const_iterator it,
@@ -556,14 +563,12 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         size_t lineno,
         const range_adjuster& r_adj)
     {
-        if (auto cwi = consume_word_move_to_next(it, it_e, "INCLUDE"); !cwi)
+        if (!consume_words_advance_to_next(it, it_e, { "INCLUDE" }, false, false))
             return std::nullopt;
-        else
-            it = cwi->next_word_start;
 
         lexing::logical_line::const_iterator inc_it_s, inc_it_e;
         semantics::preproc_details::name_range nr;
-        static const auto member_pattern = std::regex("(.*?)(?:[ ]|--|$)+");
+        static const auto member_pattern = std::regex("(.*?)(?:[ ]|--)*$");
 
         for (auto reg_it = std::regex_iterator<lexing::logical_line::const_iterator>(it, it_e, member_pattern),
                   reg_it_e = std::regex_iterator<lexing::logical_line::const_iterator>();
@@ -588,16 +593,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         return nr;
     }
 
-    static bool is_end(std::string_view s)
-    {
-        if (!utils::consume(s, "END"))
-            return false;
-
-        if (s.empty() || s.front() == ' ')
-            return true;
-
-        return false;
-    }
+    static bool is_end(std::string_view s) { return utils::consume(s, "END") && (s.empty() || s.front() == ' '); }
 
     static std::string_view create_line_preview(std::string_view input)
     {
@@ -616,8 +612,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
 
     static bool ignore_line(std::string_view s) { return s.empty() || s.front() == '*' || s.substr(0, 2) == ".*"; }
 
-    static semantics::preproc_details::name_range extract_label(
-        std::string_view& s, size_t lineno, const range_adjuster& r_adj)
+    static semantics::preproc_details::name_range extract_label(std::string_view& s, size_t lineno)
     {
         auto label = utils::next_nonblank_sequence(s);
         if (!label.length())
@@ -625,7 +620,8 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
 
         s.remove_prefix(label.length());
 
-        return semantics::preproc_details::name_range(std::string(label), r_adj(lineno, 0, lineno, label.length()));
+        return semantics::preproc_details::name_range(
+            std::string(label), range((position(lineno, 0)), (position(lineno, label.length()))));
     }
 
     enum class line_type
@@ -637,25 +633,26 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
     };
 
     static std::pair<line_type, semantics::preproc_details::name_range> consume_instruction(
-        std::string_view& line_preview, size_t lineno, size_t instr_column_start, const range_adjuster& r_adj)
+        std::string_view& line_preview, size_t lineno, size_t instr_column_start)
     {
         static const std::pair<line_type, semantics::preproc_details::name_range> ignore(line_type::ignore, {});
 
         if (line_preview.empty())
             return ignore;
 
-        const auto consume_and_create = [lineno, instr_column_start, &r_adj](std::string_view& line_preview,
+        const auto consume_and_create = [lineno, instr_column_start](std::string_view& line_preview,
                                             line_type line,
                                             std::initializer_list<std::string_view> words_to_consume,
                                             std::string line_id) {
             auto it = line_preview.begin();
-            if (auto cwi = consume_words_move_to_next(it, line_preview.end(), words_to_consume); cwi)
+            if (auto consumed_words_end =
+                    consume_words_advance_to_next(it, line_preview.end(), words_to_consume, false, false);
+                consumed_words_end)
                 return std::pair<line_type, semantics::preproc_details::name_range>(line,
                     semantics::preproc_details::name_range(line_id,
-                        r_adj(lineno,
-                            instr_column_start,
-                            lineno,
-                            instr_column_start + std::distance(line_preview.begin(), cwi->consumed_words_end))));
+                        range((position(lineno, instr_column_start)),
+                            (position(lineno,
+                                instr_column_start + std::distance(line_preview.begin(), *consumed_words_end))))));
             return ignore;
         };
 
@@ -773,9 +770,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
 
     bool process_sql_type_operands(std::string_view label,
         lexing::logical_line::const_iterator it,
-        const lexing::logical_line::const_iterator& it_e,
-        size_t lineno,
-        const range_adjuster& r_adj)
+        const lexing::logical_line::const_iterator& it_e)
     {
         if (it == it_e)
             return false;
@@ -877,7 +872,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
     std::tuple<std::pair<line_type, semantics::preproc_details::name_range>,
         size_t,
         semantics::preproc_details::name_range>
-    check_line(std::string_view input, size_t lineno, const range_adjuster& r_adj)
+    check_line(std::string_view input, size_t lineno)
     {
         static const std::tuple<std::pair<line_type, semantics::preproc_details::name_range>,
             size_t,
@@ -889,7 +884,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
             return ignore;
 
         size_t first_line_skipped = line_preview.size();
-        semantics::preproc_details::name_range label = extract_label(line_preview, lineno, r_adj);
+        semantics::preproc_details::name_range label = extract_label(line_preview, lineno);
 
         auto trimmed = utils::trim_left(line_preview);
         if (!trimmed)
@@ -902,7 +897,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
             return ignore;
         }
 
-        auto instruction_info = consume_instruction(line_preview, lineno, label.r.end.column + trimmed, r_adj);
+        auto instruction_info = consume_instruction(line_preview, lineno, label.r.end.column + trimmed);
         const auto& instruction_type = instruction_info.first;
         if (instruction_type == line_type::ignore)
             return ignore;
@@ -958,7 +953,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
                     if (sql_has_codegen(it, it_e))
                     {
                         mini_parser<lexing::logical_line::const_iterator> p;
-                        args = p.parse_and_substitute(it, it_e, lineno, r_adj, ll);
+                        args = p.get_args(it, it_e, lineno, r_adj, ll);
                         generate_sql_code_mock(args.size());
                     }
                     m_result.emplace_back(replaced_line { "***$$$\n" });
@@ -971,18 +966,16 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
                 // DB2 preprocessor exhibits strange behavior when SQL TYPE line is continued
                 if (ll.segments.size() > 1 && m_diags)
                     m_diags->add_diagnostic(diagnostic_op::warn_DB005(range(position(lineno, 0))));
-                if (auto cwi = consume_word_move_to_next(it, it_e, "IS", true); !cwi)
+                if (!consume_words_advance_to_next(it, it_e, { "IS" }, true, true))
                 {
                     if (m_diags)
                         m_diags->add_diagnostic(diagnostic_op::warn_DB006(range(position(lineno, 0))));
                     break;
                 }
-                else
-                    it = cwi->next_word_start;
 
                 if (label.empty())
                     label = " "; // best matches the observed behavior
-                if (!process_sql_type_operands(label, it, it_e, lineno, r_adj) && m_diags)
+                if (!process_sql_type_operands(label, it, it_e) && m_diags)
                     m_diags->add_diagnostic(diagnostic_op::error_DB004(range(position(lineno, 0))));
                 break;
         }
@@ -1085,8 +1078,18 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
 
             size_t lineno = it->lineno().value_or(0); // TODO: needs to be addressed for chained preprocessors
             auto backup_it = it;
-            db2_logical_line ll;
+            auto [instruction, first_line_skipped, label] = check_line(text, lineno);
+            if (instruction.first == line_type::ignore)
+            {
+                it = backup_it;
+                m_result.emplace_back(*it++);
+                skip_continuation = is_continued(text);
+                continue;
+            }
 
+            m_source_translated = true;
+
+            db2_logical_line ll;
             it = extract_nonempty_db2_logical_line(ll, it, end, lexing::default_ictl);
 
             auto rp = semantics::range_provider(
@@ -1098,17 +1101,6 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
                 return rp.adjust_range(
                     range((position(start_lineno, start_column)), (position(end_lineno, end_column))));
             };
-
-            auto [instruction, first_line_skipped, label] = check_line(text, lineno, adj_range);
-            if (instruction.first == line_type::ignore)
-            {
-                it = backup_it;
-                m_result.emplace_back(*it++);
-                skip_continuation = is_continued(text);
-                continue;
-            }
-
-            m_source_translated = true;
 
             semantics::preproc_details preproc_details {
                 adj_range(lineno, 0, lineno, text.length()), std::move(label), std::move(instruction.second)

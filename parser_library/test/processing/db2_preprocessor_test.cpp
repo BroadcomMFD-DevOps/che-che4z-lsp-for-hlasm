@@ -252,6 +252,20 @@ TEST(db2_preprocessor, sqlsect_available)
     EXPECT_EQ(a.diags().size(), (size_t)0);
 }
 
+TEST(db2_preprocessor, instruction_not_recognized)
+{
+    std::string input = R"(
+               EXEC                                                 SQLX
+               INCLUDE SQLCA
+)";
+
+    analyzer a(input, analyzer_options { db2_preprocessor_options {} });
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "E049" }));
+}
+
 TEST(db2_preprocessor, aread_from_preprocessor)
 {
     std::string input = R"(
@@ -381,6 +395,8 @@ TEST(db2_preprocessor, include_valid)
         R"( EXEC SQL INCLUDE  -- COMMENT                                          X
                   --COMMENT                                            X
                MEMBER)",
+        //R"(               EXEC                                                 SQLX
+        //        INCLUDE SQLCA)", // TODO Easier to enable this with proper grammar
     };
 
     for (const auto& input : inputs)
@@ -454,7 +470,6 @@ TEST(db2_preprocessor, include_insensitive)
     a.collect_diags();
 
     EXPECT_EQ(a.diags().size(), (size_t)0);
-
     EXPECT_TRUE(a.hlasm_ctx().get_visited_files().count(member_loc));
 }
 
@@ -466,7 +481,21 @@ TEST(db2_preprocessor, include_nonexistent)
     a.analyze();
     a.collect_diags();
 
-    EXPECT_EQ(a.diags().size(), (size_t)1);
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "DB002" }));
+}
+
+TEST(db2_preprocessor, include_invalid)
+{
+    mock_parse_lib_provider libs({
+        { "MEMBER", "" },
+    });
+    std::string input = " EXEC SQL INCLUDEMEMBER ";
+
+    analyzer a(input, analyzer_options { &libs, db2_preprocessor_options {} });
+    a.analyze();
+    a.collect_diags();
+
+    EXPECT_EQ(a.hlasm_ctx().get_visited_files().count(member_loc), 0);
 }
 
 TEST(db2_preprocessor, ago_in_include)
@@ -968,15 +997,19 @@ TEST_F(db2_preprocessor_test, sql_type_warn_on_continuation)
 
 TEST_F(db2_preprocessor_test, sql_type_parse_and_warn_on_continuation)
 {
-    std::string_view text = "RE1                                 SQL TYPE                           X\n"
-                            "               IS                                           RESULT_SET_X\n"
-                            "               LOCATOR VARYING\n"
-                            "RE2                                 SQL TYPE                         ISX\n"
-                            "               RESULT_SET_LOCATOR                                      X\n"
-                            "               VARYING\n"
-                            "RE3                                 SQL TYPE                         ISX\n"
-                            "                                                     RESULT_SET_LOCATORX\n"
-                            "                VARYING";
+    std::string_view text = R"(
+RE1                                 SQL TYPE                           X
+               IS                                           RESULT_SET_X
+               LOCATOR VARYING
+RE2                                 SQL TYPE                         ISX
+               RESULT_SET_LOCATOR                                      X
+               VARYING
+RE3                                 SQL TYPE                         ISX
+                                                     RESULT_SET_LOCATORX
+                VARYING
+)";
+
+
     auto p = create_preprocessor(
         db2_preprocessor_options {}, [](std::string_view) { return std::nullopt; }, &m_diags);
 
@@ -991,15 +1024,18 @@ TEST_F(db2_preprocessor_test, sql_type_parse_and_warn_on_continuation)
 
 TEST_F(db2_preprocessor_test, sql_type_dont_parse_and_warn_on_continuation)
 {
-    std::string_view text = "RE1                                 SQL TYPE                          IX\n"
-                            "               S                                            RESULT_SET_X\n"
-                            "               LOCATOR VARYING\n"
-                            "RE2                                 SQL TYPE                           X\n"
-                            "               IS                                        RESULT_SET_--RX\n"
-                            "               LOCATOR VARYING\n"
-                            "RE3                                 SQL TYPE                         ISX\n"
-                            "                                                     RESULT_SET_LOCATORX\n"
-                            "               VARYING";
+    std::string_view text = R"(
+RE1                                 SQL TYPE                          IX
+               S                                            RESULT_SET_X
+               LOCATOR VARYING
+RE2                                 SQL TYPE                           X
+               IS                                        RESULT_SET_--RX
+               LOCATOR VARYING
+RE3                                 SQL TYPE                         ISX
+                                                     RESULT_SET_LOCATORX
+               VARYING
+)";
+
     auto p = create_preprocessor(
         db2_preprocessor_options {}, [](std::string_view) { return std::nullopt; }, &m_diags);
 

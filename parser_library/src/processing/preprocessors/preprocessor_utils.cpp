@@ -169,19 +169,17 @@ std::shared_ptr<PREPROC_STATEMENT> get_preproc_statement(
     return std::make_shared<PREPROC_STATEMENT>(std::move(details));
 }
 
+template std::shared_ptr<semantics::preprocessor_statement_si>
+get_preproc_statement<semantics::preprocessor_statement_si, lexing::logical_line::const_iterator>(
+    const std::match_results<lexing::logical_line::const_iterator>& matches,
+    const stmt_part_ids& ids,
+    size_t lineno,
+    size_t continuation_column);
+
 template std::shared_ptr<semantics::endevor_statement_si>
 get_preproc_statement<semantics::endevor_statement_si, std::string_view::iterator>(
     const std::match_results<std::string_view::iterator>& matches,
     const stmt_part_ids& ids,
     size_t lineno,
     size_t continuation_column);
-
-template std::shared_ptr<semantics::cics_statement_si>
-get_preproc_statement<semantics::cics_statement_si, lexing::logical_line::const_iterator>(
-    const std::match_results<lexing::logical_line::const_iterator>& matches,
-    const stmt_part_ids& ids,
-    size_t lineno,
-    size_t continuation_column);
-
-
 } // namespace hlasm_plugin::parser_library::processing

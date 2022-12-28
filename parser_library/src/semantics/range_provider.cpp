@@ -115,12 +115,7 @@ position range_provider::adjust_position(position pos, bool end) const
                 return std::pair(r, column);
             column -= range_len;
         }
-
-        size_t line_diff = pos.line - original_range.start.line;
-
-        return std::pair(original_range,
-            pos.column - original_range.start.column + continued_code_line_column * (line_diff > 1 ? line_diff - 1 : 0)
-                + ((line_diff != 0) ? 71 : 0));
+        return std::pair(original_range, pos.column - original_range.start.column);
     }();
 
     auto column_start = orig_range.start.column;

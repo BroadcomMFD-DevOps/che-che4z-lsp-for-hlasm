@@ -21,6 +21,7 @@
 #include "checking/using_label_checker.h"
 #include "processing/processing_manager.h"
 #include "processing/statement_processors/ordinary_processor.h"
+#include "utils/string_operations.h"
 
 using namespace hlasm_plugin::parser_library;
 using namespace processing;
@@ -89,22 +90,6 @@ bool low_language_processor::create_symbol(
     return ok;
 }
 
-// return true if the result is not empty
-bool trim_right(std::string& s)
-{
-    auto last_non_space = s.find_last_not_of(' ');
-    if (last_non_space != std::string::npos)
-    {
-        s.erase(last_non_space + 1);
-        return true;
-    }
-    else
-    {
-        s.clear();
-        return false;
-    }
-}
-
 low_language_processor::preprocessed_part low_language_processor::preprocess_inner(const resolved_statement& stmt)
 {
     using namespace semantics;
@@ -116,7 +101,7 @@ low_language_processor::preprocessed_part low_language_processor::preprocess_inn
     {
         case label_si_type::CONC:
             new_label = concatenation_point::evaluate(std::get<concat_chain>(label_ref.value), eval_ctx);
-            if (!trim_right(new_label))
+            if (utils::trim_right(new_label); new_label.empty())
                 result.label.emplace(label_ref.field_range);
             else
             {
@@ -126,7 +111,7 @@ low_language_processor::preprocessed_part low_language_processor::preprocess_inn
             break;
         case label_si_type::VAR:
             new_label = var_sym_conc::evaluate(std::get<vs_ptr>(label_ref.value)->evaluate(eval_ctx));
-            if (!trim_right(new_label))
+            if (utils::trim_right(new_label); new_label.empty())
                 result.label.emplace(label_ref.field_range);
             else
             {
