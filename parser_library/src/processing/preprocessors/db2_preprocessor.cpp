@@ -229,7 +229,7 @@ public:
         const auto op_inserter = [&operands, &r_adj](const It& start, const It& end) {
             if (r_adj)
                 operands.emplace_back(
-                    semantics::preproc_details::name_range(std::string(start, end), r_adj(start, end)));
+                    semantics::preproc_details::name_range { std::string(start, end), r_adj(start, end) });
         };
 
         while (b != e)
@@ -622,8 +622,8 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
 
         s.remove_prefix(label.length());
 
-        return semantics::preproc_details::name_range(
-            std::string(label), range((position(lineno, 0)), (position(lineno, label.length()))));
+        return semantics::preproc_details::name_range { std::string(label),
+            range((position(lineno, 0)), (position(lineno, label.length()))) };
     }
 
     enum class line_type
@@ -651,10 +651,10 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
                     consume_words_advance_to_next(it, line_preview.end(), words_to_consume, false, false);
                 consumed_words_end)
                 return std::make_pair(line,
-                    semantics::preproc_details::name_range(line_id,
+                    semantics::preproc_details::name_range { line_id,
                         range((position(lineno, instr_column_start)),
                             (position(lineno,
-                                instr_column_start + std::distance(line_preview.begin(), *consumed_words_end))))));
+                                instr_column_start + std::distance(line_preview.begin(), *consumed_words_end)))) });
             return ignore;
         };
 
