@@ -142,6 +142,8 @@ struct logical_line
             return m_segment == o.m_segment;
         }
 
+        bool same_segment(const segment_iterator& s) const noexcept { return m_segment == s; }
+
     private:
         segment_iterator m_segment = segment_iterator();
         column_iterator m_col = std::string_view::const_iterator();

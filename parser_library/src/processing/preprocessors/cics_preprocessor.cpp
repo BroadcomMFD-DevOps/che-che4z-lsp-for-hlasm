@@ -701,18 +701,6 @@ class mini_parser
         return r;
     }();
 
-    template<typename T>
-    std::true_type same_line_detector(const T& t, decltype(t.same_line(t)) = false);
-    std::false_type same_line_detector(...);
-
-    bool same_line(It l, It r)
-    {
-        if constexpr (decltype(same_line_detector(l))::value)
-            return l.same_line(r);
-        else
-            return true;
-    }
-
 public:
     const std::string& operands() const& { return m_substituted_operands; }
     std::string operands() && { return std::move(m_substituted_operands); }

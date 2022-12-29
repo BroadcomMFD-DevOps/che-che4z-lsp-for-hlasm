@@ -395,8 +395,8 @@ TEST(db2_preprocessor, include_valid)
         R"( EXEC SQL INCLUDE  -- COMMENT                                          X
                   --COMMENT                                            X
                MEMBER)",
-        //R"(               EXEC                                                 SQLX
-        //        INCLUDE SQLCA)", // TODO Easier to enable this with proper grammar
+        // R"(               EXEC                                                 SQLX
+        //         INCLUDE SQLCA)", // TODO Easier to enable this with proper grammar
     };
 
     for (const auto& input : inputs)
