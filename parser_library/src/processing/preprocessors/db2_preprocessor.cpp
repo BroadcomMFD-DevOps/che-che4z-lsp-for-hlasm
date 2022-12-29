@@ -735,8 +735,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         if (!std::regex_match(it, it_e, match, pattern))
             return false;
 
-        auto s = (match[4].matched ? match[4] : match[1]).str();
-        switch (s.back())
+        switch (*std::prev((match[4].matched ? match[4] : match[1]).second))
         {
             case 'E': // ..._FILE
                 add_ds_line(label, "", "0FL4");
@@ -752,9 +751,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
 
             default: {
                 const auto li = lob_info(*match[1].first, match[3].matched ? *match[3].first : 0);
-                unsigned long long len;
-                std::from_chars(std::to_address(match[2].first), std::to_address(match[2].second), len);
-                len *= li.scale;
+                auto len = std::stoll(match[2].str()) * li.scale;
 
                 add_ds_line(label, "", "0FL4");
                 add_ds_line(label, "_LENGTH", "FL4", false);

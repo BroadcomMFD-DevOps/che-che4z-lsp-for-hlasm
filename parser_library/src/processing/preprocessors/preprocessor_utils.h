@@ -48,7 +48,7 @@ static std::true_type same_line_detector(const It& t, decltype(t.same_line(t)) =
 static std::false_type same_line_detector(...);
 
 template<typename It>
-static bool same_line(It l, It r)
+static bool same_line(const It& l, const It& r)
 {
     if constexpr (decltype(same_line_detector(l))::value)
         return l.same_line(r);
