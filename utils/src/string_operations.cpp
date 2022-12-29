@@ -19,7 +19,7 @@ namespace hlasm_plugin::utils {
 size_t consume(std::string_view& s, std::string_view lit)
 {
     // case sensitive
-    if (s.substr(0, lit.size()) != lit)
+    if (!s.starts_with(lit))
         return 0;
     s.remove_prefix(lit.size());
     return lit.size();
