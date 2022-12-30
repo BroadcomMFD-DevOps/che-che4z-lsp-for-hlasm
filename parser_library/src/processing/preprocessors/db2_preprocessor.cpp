@@ -124,7 +124,7 @@ enum class symbol_type : unsigned char
     remark_start,
 };
 
-static constexpr std::array symbols = []() {
+constexpr std::array symbols = []() {
     std::array<symbol_type, std::numeric_limits<unsigned char>::max() + 1> r {};
 
     for (unsigned char c = '0'; c <= '9'; ++c)
@@ -904,7 +904,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         std::string_view label,
         const range_adjuster& r_adj)
     {
-        const auto diag_adder = [diags = m_diags](diagnostic_op diag) {
+        const auto diag_adder = [diags = m_diags](diagnostic_op&& diag) {
             if (diags)
                 diags->add_diagnostic(diag);
         };

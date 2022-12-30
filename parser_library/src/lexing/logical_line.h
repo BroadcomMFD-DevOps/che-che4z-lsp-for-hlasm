@@ -84,8 +84,8 @@ struct logical_line
         using pointer = const char*;
         using reference = const char&;
 
-        const_iterator() = default;
-        const_iterator(segment_iterator segment, column_iterator col, const logical_line* ll)
+        const_iterator() noexcept = default;
+        const_iterator(segment_iterator segment, column_iterator col, const logical_line* ll) noexcept
             : m_segment(segment)
             , m_col(col)
             , m_logical_line(ll)

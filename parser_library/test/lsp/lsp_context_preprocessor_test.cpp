@@ -455,7 +455,6 @@ TEST_F(lsp_context_db2_preprocessor_test, hover_label)
     EXPECT_TRUE(reloc_symbol_checker(a.context().lsp_ctx->hover(source_loc, position(3, 1))));
 }
 
-// Todo: There shouldn't be a reference from ZY as it is commented out -> finish writing the test expectations
 class lsp_context_db2_preprocessor_exec_sql_args_test : public lsp_context_preprocessor_test
 {
 protected:
