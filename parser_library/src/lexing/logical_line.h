@@ -65,7 +65,7 @@ struct logical_line
 
     virtual ~logical_line() = default;
 
-    virtual void clear()
+    virtual void clear() noexcept
     {
         segments.clear();
         continuation_error = false;

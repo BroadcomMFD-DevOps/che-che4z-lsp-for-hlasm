@@ -50,7 +50,7 @@ using utils::concat;
 
 struct db2_logical_line final : public lexing::logical_line
 {
-    void clear() override
+    void clear() noexcept override
     {
         lexing::logical_line::clear();
         m_first_line = {};
@@ -58,7 +58,8 @@ struct db2_logical_line final : public lexing::logical_line
         m_comments.clear();
     }
 
-    size_t distance(const lexing::logical_line::const_iterator& b, const lexing::logical_line::const_iterator& e) const
+    size_t distance(
+        const lexing::logical_line::const_iterator& b, const lexing::logical_line::const_iterator& e) const noexcept
     {
         assert(segments.size() == m_comments.size());
 
@@ -70,7 +71,9 @@ struct db2_logical_line final : public lexing::logical_line
                 break;
 
         for (size_t i = 0; segment_it != segments.end() && !e.same_segment(segment_it); ++segment_it, ++i)
-            d += m_comments[i].empty() ? 0 : m_comments[i].length() - 2;
+            d += m_comments[i].empty()
+                ? 0
+                : m_comments[i].length() - 2; // Compensate for both code and comment having the '--' separator
 
         return d;
     }
@@ -111,6 +114,68 @@ private:
     }
 };
 
+enum class symbol_type : unsigned char
+{
+    other_char,
+    ord_char,
+    blank,
+    colon,
+    quote,
+    remark_start,
+};
+
+static constexpr std::array symbols = []() {
+    std::array<symbol_type, std::numeric_limits<unsigned char>::max() + 1> r {};
+
+    for (unsigned char c = '0'; c <= '9'; ++c)
+        r[c] = symbol_type::ord_char;
+    for (unsigned char c = 'A'; c <= 'Z'; ++c)
+        r[c] = symbol_type::ord_char;
+    for (unsigned char c = 'a'; c <= 'z'; ++c)
+        r[c] = symbol_type::ord_char;
+
+    r[(unsigned char)'_'] = symbol_type::ord_char;
+    r[(unsigned char)'@'] = symbol_type::ord_char;
+    r[(unsigned char)'$'] = symbol_type::ord_char;
+    r[(unsigned char)'#'] = symbol_type::ord_char;
+    r[(unsigned char)' '] = symbol_type::blank;
+    r[(unsigned char)':'] = symbol_type::colon;
+    r[(unsigned char)'\''] = symbol_type::quote;
+    r[(unsigned char)'\"'] = symbol_type::quote;
+    r[(unsigned char)'-'] = symbol_type::remark_start;
+
+    return r;
+}();
+
+size_t find_start_of_line_comment(std::stack<unsigned char>& quotes, const std::string_view& code)
+{
+    bool comment_possibly_started = false;
+    size_t comment_start = 0;
+    for (const auto& c : code)
+    {
+        if (auto s = symbols[static_cast<unsigned char>(c)]; s == symbol_type::quote)
+        {
+            if (quotes.empty() || quotes.top() != c)
+                quotes.push(c);
+            else if (quotes.top() == c)
+                quotes.pop();
+
+            comment_possibly_started = false;
+        }
+        else if (quotes.empty() && s == symbol_type::remark_start)
+        {
+            if (!comment_possibly_started)
+                comment_possibly_started = true;
+            else
+                break;
+        }
+
+        comment_start++;
+    }
+
+    return comment_start;
+}
+
 void finish_db2_logical_line(
     db2_logical_line& out, const lexing::logical_line_extractor_args& opts, size_t instruction_end)
 {
@@ -128,32 +193,11 @@ void finish_db2_logical_line(
         auto& code = seg.code;
         auto& comment = out.m_comments.emplace_back();
 
-        bool comment_possibly_started = false;
-        for (size_t i = 0; i < code.size(); ++i)
+        // Code and comment both contain the '--' separator
+        if (auto comment_start = find_start_of_line_comment(quotes, code); comment_start != code.length())
         {
-            const auto& c = code[i];
-            if (c == '\"' || c == '\'')
-            {
-                if (quotes.empty() || quotes.top() != c)
-                    quotes.push(c);
-                else if (quotes.top() == c)
-                    quotes.pop();
-
-                comment_possibly_started = false;
-                continue;
-            }
-
-            if (quotes.empty() && c == '-')
-            {
-                if (!comment_possibly_started)
-                    comment_possibly_started = true;
-                else
-                {
-                    comment = code.substr(i - 1);
-                    code = code.substr(0, i + 1);
-                    break;
-                }
-            }
+            comment = code.substr(comment_start - 1);
+            code = code.substr(0, comment_start + 1);
         }
     }
 }
@@ -164,39 +208,6 @@ using range_adjuster =
 template<typename It>
 class mini_parser
 {
-    enum class symbol_type : unsigned char
-    {
-        other_char,
-        ord_char,
-        blank,
-        colon,
-        quote,
-        remark_start,
-    };
-
-    static constexpr std::array symbols = []() {
-        std::array<symbol_type, std::numeric_limits<unsigned char>::max() + 1> r {};
-
-        for (unsigned char c = '0'; c <= '9'; ++c)
-            r[c] = symbol_type::ord_char;
-        for (unsigned char c = 'A'; c <= 'Z'; ++c)
-            r[c] = symbol_type::ord_char;
-        for (unsigned char c = 'a'; c <= 'z'; ++c)
-            r[c] = symbol_type::ord_char;
-
-        r[(unsigned char)'_'] = symbol_type::ord_char;
-        r[(unsigned char)'@'] = symbol_type::ord_char;
-        r[(unsigned char)'$'] = symbol_type::ord_char;
-        r[(unsigned char)'#'] = symbol_type::ord_char;
-        r[(unsigned char)' '] = symbol_type::blank;
-        r[(unsigned char)':'] = symbol_type::colon;
-        r[(unsigned char)'\''] = symbol_type::quote;
-        r[(unsigned char)'\"'] = symbol_type::quote;
-        r[(unsigned char)'-'] = symbol_type::remark_start;
-
-        return r;
-    }();
-
     void skip_to_string_end(It& b, const It& e) const
     {
         if (b == e)
@@ -211,6 +222,8 @@ class mini_parser
 public:
     std::vector<semantics::preproc_details::name_range> get_args(It& b, const It& e, const range_adjuster& r_adj)
     {
+        assert(r_adj);
+
         enum class consuming_state
         {
             NON_CONSUMING,
@@ -220,31 +233,32 @@ public:
             QUOTE,
         };
 
-        It op_start_it = b;
-        consuming_state next_state = consuming_state::NON_CONSUMING;
-        std::vector<semantics::preproc_details::name_range> operands;
+        std::vector<semantics::preproc_details::name_range> arguments;
+        const auto try_arg_inserter = [&arguments, &r_adj](const It& start, const It& end, consuming_state state) {
+            if (state != consuming_state::CONSUMING)
+                return false;
 
-        const auto op_inserter = [&operands, &r_adj](const It& start, const It& end) {
-            if (r_adj)
-                operands.emplace_back(
-                    semantics::preproc_details::name_range { std::string(start, end), r_adj(start, end) });
+            arguments.emplace_back(
+                semantics::preproc_details::name_range { std::string(start, end), r_adj(start, end) });
+            return true;
         };
 
+        It arg_start_it;
+        consuming_state next_state = consuming_state::NON_CONSUMING;
         while (b != e)
         {
             const auto state = std::exchange(next_state, consuming_state::NON_CONSUMING);
-            const char c = *b;
 
-            switch (symbols[static_cast<unsigned char>(c)])
+            switch (symbols[static_cast<unsigned char>(*b)])
             {
                 case symbol_type::ord_char:
                     if (state == consuming_state::PREPARE_TO_CONSUME)
                     {
-                        op_start_it = b;
+                        arg_start_it = b;
                         next_state = consuming_state::CONSUMING;
                     }
                     else if (state == consuming_state::CONSUMING)
-                        next_state = consuming_state::CONSUMING;
+                        next_state = state;
 
                     break;
 
@@ -252,31 +266,21 @@ public:
                     if (state == consuming_state::PREPARE_TO_CONSUME || state == consuming_state::TRAIL)
                         break;
 
-                    if (state == consuming_state::CONSUMING)
-                    {
-                        op_inserter(op_start_it, b);
-                        break;
-                    }
+                    if (!try_arg_inserter(arg_start_it, b, state))
+                        next_state = consuming_state::PREPARE_TO_CONSUME;
 
-                    next_state = consuming_state::PREPARE_TO_CONSUME;
                     break;
 
                 case symbol_type::blank:
-
-                    if (state == consuming_state::CONSUMING)
-                    {
-                        op_inserter(op_start_it, b);
+                    if (try_arg_inserter(arg_start_it, b, state))
                         next_state = consuming_state::TRAIL;
-                        break;
-                    }
-
-                    next_state = state;
+                    else
+                        next_state = state;
 
                     break;
 
                 case symbol_type::quote:
-                    if (state == consuming_state::CONSUMING)
-                        op_inserter(op_start_it, b);
+                    try_arg_inserter(arg_start_it, b, state);
 
                     if (skip_to_string_end(b, e); b == e)
                         goto done;
@@ -284,22 +288,17 @@ public:
                     break;
 
                 case symbol_type::remark_start:
-                    if (state == consuming_state::CONSUMING)
-                        op_inserter(op_start_it, b);
-
-                    if (auto n = std::next(b);
-                        n != e && symbols[static_cast<unsigned char>(*n)] == symbol_type::remark_start)
+                    if (auto n = std::next(b); !try_arg_inserter(arg_start_it, b, state) && n != e
+                        && symbols[static_cast<unsigned char>(*n)] == symbol_type::remark_start)
                     {
-                        b = std::next(n);
+                        b = n;
                         next_state = state;
-                        continue;
                     }
 
                     break;
 
                 case symbol_type::other_char:
-                    if (state == consuming_state::CONSUMING)
-                        op_inserter(op_start_it, b);
+                    try_arg_inserter(arg_start_it, b, state);
                     break;
 
                 default:
@@ -310,11 +309,10 @@ public:
             ++b;
         }
 
-        if (next_state == consuming_state::CONSUMING)
-            op_inserter(op_start_it, b);
+        try_arg_inserter(arg_start_it, b, next_state);
 
     done:
-        return operands;
+        return arguments;
     }
 };
 
@@ -635,7 +633,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
     }
 
     static std::pair<line_type, semantics::preproc_details::name_range> extract_instruction(
-        std::string_view& line_preview, size_t lineno, size_t instr_column_start)
+        const std::string_view& line_preview, size_t lineno, size_t instr_column_start)
     {
         static const std::pair<line_type, semantics::preproc_details::name_range> ignore(line_type::ignore, {});
 
@@ -906,8 +904,13 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         std::string_view label,
         const range_adjuster& r_adj)
     {
-        if (ll.continuation_error && m_diags)
-            m_diags->add_diagnostic(diagnostic_op::error_DB001(range(position(lineno, 0))));
+        const auto diag_adder = [diags = m_diags](diagnostic_op diag) {
+            if (diags)
+                diags->add_diagnostic(diag);
+        };
+
+        if (ll.continuation_error)
+            diag_adder(diagnostic_op::error_DB001(range(position(lineno, 0))));
 
         std::vector<semantics::preproc_details::name_range> args;
         auto it = ll.begin_from_operands();
@@ -921,17 +924,15 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
                 {
                     if (inc_member_details->name.empty())
                     {
-                        if (m_diags)
-                            m_diags->add_diagnostic(diagnostic_op::warn_DB007(range(position(lineno, 0))));
+                        diag_adder(diagnostic_op::warn_DB007(range(position(lineno, 0))));
                         break;
                     }
 
                     if (include_allowed)
                         std::tie(instruction_type, inc_member_details->name) =
                             process_include_member(instruction_type, inc_member_details->name, lineno);
-                    else if (m_diags)
-                        m_diags->add_diagnostic(
-                            diagnostic_op::error_DB003(range(position(lineno, 0)), inc_member_details->name));
+                    else
+                        diag_adder(diagnostic_op::error_DB003(range(position(lineno, 0)), inc_member_details->name));
 
                     args.emplace_back(std::move(*inc_member_details));
                 }
@@ -952,19 +953,18 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
             case line_type::sql_type:
                 process_sql_type_line(ll);
                 // DB2 preprocessor exhibits strange behavior when SQL TYPE line is continued
-                if (ll.segments.size() > 1 && m_diags)
-                    m_diags->add_diagnostic(diagnostic_op::warn_DB005(range(position(lineno, 0))));
+                if (ll.segments.size() > 1)
+                    diag_adder(diagnostic_op::warn_DB005(range(position(lineno, 0))));
                 if (!consume_words_advance_to_next(it, it_e, { "IS" }, true, true))
                 {
-                    if (m_diags)
-                        m_diags->add_diagnostic(diagnostic_op::warn_DB006(range(position(lineno, 0))));
+                    diag_adder(diagnostic_op::warn_DB006(range(position(lineno, 0))));
                     break;
                 }
 
                 if (label.empty())
                     label = " "; // best matches the observed behavior
-                if (!process_sql_type_operands(label, it, it_e) && m_diags)
-                    m_diags->add_diagnostic(diagnostic_op::error_DB004(range(position(lineno, 0))));
+                if (!process_sql_type_operands(label, it, it_e))
+                    diag_adder(diagnostic_op::error_DB004(range(position(lineno, 0))));
                 break;
 
             default:
@@ -1083,27 +1083,29 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
 
             db2_logical_line ll = extract_nonempty_db2_logical_line(instruction_nr.r.end.column, it, end);
 
-            const auto adj_range = [rp = semantics::range_provider(
-                                        range(position(lineno, 0), position(lineno, ll.distance(ll.begin(), ll.end()))),
-                                        semantics::adjusting_state::MACRO_REPARSE),
-                                       &ll,
-                                       &lineno](const db2_logical_line::const_iterator& start_column,
-                                       const db2_logical_line::const_iterator& end_column) {
-                auto dist_from_beginning = ll.distance(ll.begin(), start_column);
-                return rp.adjust_range(range((position(lineno, dist_from_beginning)),
-                    (position(lineno, ll.distance(start_column, end_column) + dist_from_beginning))));
-            };
+            const auto r_adjuster =
+                [rp = semantics::range_provider(
+                     range(position(lineno, 0), position(lineno, ll.distance(ll.begin(), ll.end()))),
+                     semantics::adjusting_state::MACRO_REPARSE),
+                    &ll,
+                    &lineno](const db2_logical_line::const_iterator& start_column,
+                    const db2_logical_line::const_iterator& end_column) {
+                    auto dist_from_beginning = ll.distance(ll.begin(), start_column);
+                    return rp.adjust_range(range((position(lineno, dist_from_beginning)),
+                        (position(lineno, ll.distance(start_column, end_column) + dist_from_beginning))));
+                };
 
-            auto ops = process_nonempty_line(ll, lineno, include_allowed, instruction_type, label_nr.name, adj_range);
+
+            auto args = process_nonempty_line(ll, lineno, include_allowed, instruction_type, label_nr.name, r_adjuster);
 
             auto stmt = std::make_shared<semantics::preprocessor_statement_si>(
                 semantics::preproc_details {
-                    adj_range(ll.begin(), ll.end()), std::move(label_nr), std::move(instruction_nr) },
+                    r_adjuster(ll.begin(), ll.end()), std::move(label_nr), std::move(instruction_nr) },
                 instruction_type == line_type::include);
 
             do_highlighting(*stmt, ll, m_src_proc);
 
-            stmt->m_details.operands = std::move(ops);
+            stmt->m_details.operands = std::move(args);
             set_statement(std::move(stmt));
         }
     }
@@ -1139,27 +1141,26 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         preprocessor::do_highlighting(stmt, ll, src_proc, continue_column);
 
         auto db2_ll = dynamic_cast<const db2_logical_line&>(ll);
-        for (size_t i = 0, lineno = stmt.m_details.stmt_r.start.line; i < db2_ll.segments.size(); ++i, ++lineno)
+        for (size_t i = 0, lineno = stmt.m_details.stmt_r.start.line, line_start_column = 0; i < db2_ll.segments.size();
+             ++i, ++lineno, std::exchange(line_start_column, continue_column))
         {
-            size_t code_len = 0;
-            if (const auto& code = db2_ll.segments[i].code; !code.empty())
-            {
-                code_len = code.length();
-                auto comment_offset = db2_ll.m_comments[i].empty() ? 0 : 2;
-
-                size_t start_column = i == 0 ? stmt.m_details.instruction.r.end.column : continue_column;
-                src_proc.add_hl_symbol(token_info(range(position(lineno, start_column),
-                                                      position(lineno, start_column * !!i + code_len - comment_offset)),
-                    semantics::hl_scopes::operand));
-            }
+            const auto& code = db2_ll.segments[i].code;
+            auto comment_start_column = line_start_column + code.length();
 
             if (const auto& comment = db2_ll.m_comments[i]; !comment.empty())
             {
-                src_proc.add_hl_symbol(
-                    token_info(range(position(lineno, !!i * continue_column + code_len - 2),
-                                   position(lineno, !!i * continue_column + code_len - 2 + comment.length())),
-                        semantics::hl_scopes::remark));
+                comment_start_column -= 2; // Compensate for both code and comment having the '--' separator
+                src_proc.add_hl_symbol(token_info(range(position(lineno, comment_start_column),
+                                                      position(lineno, comment_start_column + comment.length())),
+                    semantics::hl_scopes::remark));
             }
+
+            if (!code.empty())
+                if (auto operand_start_column = i == 0 ? stmt.m_details.instruction.r.end.column : continue_column;
+                    operand_start_column < comment_start_column)
+                    src_proc.add_hl_symbol(token_info(
+                        range(position(lineno, operand_start_column), position(lineno, comment_start_column)),
+                        semantics::hl_scopes::operand));
         }
     }
 
