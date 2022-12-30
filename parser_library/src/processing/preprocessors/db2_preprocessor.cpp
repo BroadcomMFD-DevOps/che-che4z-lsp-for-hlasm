@@ -487,7 +487,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         m_result.emplace_back(replaced_line { "         MEND                           \n" });
     }
 
-    static std::regex get_consuming_regex(std::initializer_list<std::string_view> words, bool end_of_line_as_separator)
+    static std::regex get_consuming_regex(std::initializer_list<std::string_view> words, bool tolerate_no_space_at_end)
     {
         assert(words.size());
 
@@ -499,7 +499,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
             s.append("(?:[ ]|--)+(?:").append(*w_it++).append(")");
 
         s.append(")([ ]|--)");
-        if (end_of_line_as_separator)
+        if (tolerate_no_space_at_end)
             s.append("*");
         else
             s.append("+");
@@ -513,15 +513,15 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         const It& it_e,
         std::initializer_list<std::string_view> words,
         bool needs_same_line,
-        bool end_of_line_as_separator)
+        bool tolerate_no_space_at_end)
     {
         if (!words.size())
             return std::nullopt;
 
         if (std::match_results<It> matches;
-            std::regex_match(it, it_e, matches, get_consuming_regex(words, end_of_line_as_separator))
+            std::regex_match(it, it_e, matches, get_consuming_regex(words, tolerate_no_space_at_end))
             && (!needs_same_line || same_line(matches[1].first, std::prev(matches[1].second)))
-            && (!end_of_line_as_separator || matches[2].length() || !matches[3].length()
+            && (!tolerate_no_space_at_end || matches[2].length() || !matches[3].length()
                 || (matches[1].second == matches[3].first
                     && !same_line(std::prev(matches[1].second), matches[3].first))))
         {
@@ -647,7 +647,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
                                             std::string_view line_id) {
             auto it = line_preview.begin();
             if (auto consumed_words_end =
-                    consume_words_advance_to_next(it, line_preview.end(), words_to_consume, false, false);
+                    consume_words_advance_to_next(it, line_preview.end(), words_to_consume, true, false);
                 consumed_words_end)
                 return std::make_pair(line,
                     semantics::preproc_details::name_range { std::string(line_id),
@@ -767,7 +767,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
     };
 
     bool process_sql_type_operands(std::string_view label,
-        const lexing::logical_line::const_iterator& it,
+        lexing::logical_line::const_iterator& it,
         const lexing::logical_line::const_iterator& it_e)
     {
         if (it == it_e)
@@ -787,27 +787,24 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         static const auto table_like = std::regex(
             "TABLE(?:[ ]|--)+LIKE(?:[ ]|--)+('(?:[^']|'')+'|(?:[^']|'')+)(?:[ ]|--)+AS(?:[ ]|--)+LOCATOR(?: .*)?");
 
-        static const auto result_set_locator_type =
-            std::regex("SULT_SET_LOCATOR(?:[ ]|--)+VARYING(?: .*)?"); // todo tolerate_no_space_at_end
-        static const auto row_id_type = std::regex("WID(?: .*)?");
-
         switch (*it)
         {
             case 'R':
-                if (auto it_n = std::next(it); it_n == it_e)
+                if (++it; it == it_e)
                     return false;
                 else
                 {
-                    switch (*it_n)
+                    switch (*it++)
                     {
                         case 'E':
-                            if (!std::regex_match(std::next(it_n), it_e, result_set_locator_type))
+                            if (!consume_words_advance_to_next(
+                                    it, it_e, { "SULT_SET_LOCATOR", "VARYING" }, false, true))
                                 return false;
                             add_ds_line(label, "", "FL4");
                             return true;
 
                         case 'O':
-                            if (!std::regex_match(std::next(it_n), it_e, row_id_type))
+                            if (!consume_words_advance_to_next(it, it_e, { "WID" }, false, true))
                                 return false;
                             add_ds_line(label, "", "H,CL40");
                             return true;
