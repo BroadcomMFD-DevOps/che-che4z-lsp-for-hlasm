@@ -370,10 +370,10 @@ TEST_F(lsp_context_db2_preprocessor_test, go_to_include)
 {
     // jump from source to MEMBER
     EXPECT_EQ(location(position(0, 0), member_loc), a.context().lsp_ctx->definition(source_loc, position(1, 29)));
-    // no jump, sqlca
-    EXPECT_EQ(location(position(2, 29), source_loc), a.context().lsp_ctx->definition(source_loc, position(2, 29)));
-    // no jump, SqLdA
-    EXPECT_EQ(location(position(3, 29), source_loc), a.context().lsp_ctx->definition(source_loc, position(3, 29)));
+    // jump from source to virtual file - SQLCA
+    EXPECT_EQ(location(position(10, 0), *preproc1_loc), a.context().lsp_ctx->definition(source_loc, position(2, 29)));
+    // jump from source to virtual file - SQLDA
+    EXPECT_EQ(location(position(42, 0), *preproc1_loc), a.context().lsp_ctx->definition(source_loc, position(3, 29)));
 }
 
 TEST_F(lsp_context_db2_preprocessor_test, refs_label)
@@ -426,9 +426,12 @@ TEST_F(lsp_context_db2_preprocessor_test, refs_include)
     };
     const location_list expected_sqlca_locations {
         location(position(2, 28), source_loc),
+        location(position(10, 0), *preproc1_loc),
     };
     const location_list expected_sqlda_locations {
         location(position(3, 24), source_loc),
+        location(position(42, 0), *preproc1_loc),
+        location(position(60, 0), *preproc1_loc),
     };
 
     // MEMBER reference

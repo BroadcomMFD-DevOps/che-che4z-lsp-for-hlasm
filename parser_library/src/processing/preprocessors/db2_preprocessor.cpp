@@ -328,6 +328,14 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
     bool m_source_translated = false;
     semantics::source_info_processor& m_src_proc;
 
+    enum class line_type
+    {
+        ignore,
+        exec_sql,
+        include,
+        sql_type
+    };
+
     void push_sql_version_data()
     {
         assert(!m_version.empty());
@@ -479,40 +487,6 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         m_result.emplace_back(replaced_line { "         MEND                           \n" });
     }
 
-    void process_include_member(std::string_view member, size_t lineno)
-    {
-        auto member_upper = context::to_upper_copy(std::string(member));
-
-        if (member_upper == "SQLCA")
-        {
-            inject_SQLCA();
-            return;
-        }
-        if (member_upper == "SQLDA")
-        {
-            inject_SQLDA();
-            return;
-        }
-        m_result.emplace_back(replaced_line { "***$$$\n" });
-
-        std::optional<std::pair<std::string, utils::resource::resource_location>> include_member;
-        if (m_libs)
-            include_member = m_libs(member_upper);
-        if (!include_member.has_value())
-        {
-            if (m_diags)
-                m_diags->add_diagnostic(diagnostic_op::error_DB002(range(position(lineno, 0)), member));
-            return;
-        }
-
-        auto& [include_mem_text, include_mem_loc] = *include_member;
-        document d(include_mem_text);
-        d.convert_to_replaced();
-        generate_replacement(d.begin(), d.end(), false);
-        append_included_member(std::make_unique<included_member_details>(included_member_details {
-            std::move(member_upper), std::move(include_mem_text), std::move(include_mem_loc) }));
-    }
-
     static std::regex get_consuming_regex(std::initializer_list<std::string_view> words, bool end_of_line_as_separator)
     {
         assert(words.size());
@@ -593,6 +567,42 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         return nr;
     }
 
+    std::pair<line_type, std::string> process_include_member(
+        line_type instruction_type, std::string member, size_t lineno)
+    {
+        auto member_upper = context::to_upper_copy(member);
+
+        if (member_upper == "SQLCA")
+        {
+            inject_SQLCA();
+            return { instruction_type, member_upper };
+        }
+        if (member_upper == "SQLDA")
+        {
+            inject_SQLDA();
+            return { instruction_type, member_upper };
+        }
+        m_result.emplace_back(replaced_line { "***$$$\n" });
+
+        std::optional<std::pair<std::string, utils::resource::resource_location>> include_member;
+        if (m_libs)
+            include_member = m_libs(member_upper);
+        if (!include_member.has_value())
+        {
+            if (m_diags)
+                m_diags->add_diagnostic(diagnostic_op::error_DB002(range(position(lineno, 0)), member));
+            return { instruction_type, member };
+        }
+
+        auto& [include_mem_text, include_mem_loc] = *include_member;
+        document d(include_mem_text);
+        d.convert_to_replaced();
+        generate_replacement(d.begin(), d.end(), false);
+        append_included_member(std::make_unique<included_member_details>(included_member_details {
+            std::move(member_upper), std::move(include_mem_text), std::move(include_mem_loc) }));
+        return { line_type::include, member };
+    }
+
     static bool is_end(std::string_view s) { return utils::consume(s, "END") && (s.empty() || s.front() == ' '); }
 
     static std::string_view create_line_preview(std::string_view input)
@@ -623,14 +633,6 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         return semantics::preproc_details::name_range { std::string(label),
             range((position(lineno, 0)), (position(lineno, label.length()))) };
     }
-
-    enum class line_type
-    {
-        ignore,
-        exec_sql,
-        include,
-        sql_type
-    };
 
     static std::pair<line_type, semantics::preproc_details::name_range> extract_instruction(
         std::string_view& line_preview, size_t lineno, size_t instr_column_start)
@@ -927,13 +929,14 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
                         break;
                     }
 
-                    instruction_type = line_type::include;
-                    args.emplace_back(std::move(*inc_member_details));
                     if (include_allowed)
-                        process_include_member(args.back().name, lineno);
+                        std::tie(instruction_type, inc_member_details->name) =
+                            process_include_member(instruction_type, inc_member_details->name, lineno);
                     else if (m_diags)
                         m_diags->add_diagnostic(
-                            diagnostic_op::error_DB003(range(position(lineno, 0)), args.back().name));
+                            diagnostic_op::error_DB003(range(position(lineno, 0)), inc_member_details->name));
+
+                    args.emplace_back(std::move(*inc_member_details));
                 }
                 else
                 {
