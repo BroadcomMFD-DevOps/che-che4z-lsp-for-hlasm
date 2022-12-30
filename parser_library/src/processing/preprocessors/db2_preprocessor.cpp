@@ -127,22 +127,24 @@ enum class symbol_type : unsigned char
 constexpr std::array symbols = []() {
     std::array<symbol_type, std::numeric_limits<unsigned char>::max() + 1> r {};
 
-    for (unsigned char c = '0'; c <= '9'; ++c)
-        r[c] = symbol_type::ord_char;
-    for (unsigned char c = 'A'; c <= 'Z'; ++c)
-        r[c] = symbol_type::ord_char;
-    for (unsigned char c = 'a'; c <= 'z'; ++c)
-        r[c] = symbol_type::ord_char;
+    using enum symbol_type;
 
-    r[(unsigned char)'_'] = symbol_type::ord_char;
-    r[(unsigned char)'@'] = symbol_type::ord_char;
-    r[(unsigned char)'$'] = symbol_type::ord_char;
-    r[(unsigned char)'#'] = symbol_type::ord_char;
-    r[(unsigned char)' '] = symbol_type::blank;
-    r[(unsigned char)':'] = symbol_type::colon;
-    r[(unsigned char)'\''] = symbol_type::quote;
-    r[(unsigned char)'\"'] = symbol_type::quote;
-    r[(unsigned char)'-'] = symbol_type::remark_start;
+    for (unsigned char c = '0'; c <= '9'; ++c)
+        r[c] = ord_char;
+    for (unsigned char c = 'A'; c <= 'Z'; ++c)
+        r[c] = ord_char;
+    for (unsigned char c = 'a'; c <= 'z'; ++c)
+        r[c] = ord_char;
+
+    r[(unsigned char)'_'] = ord_char;
+    r[(unsigned char)'@'] = ord_char;
+    r[(unsigned char)'$'] = ord_char;
+    r[(unsigned char)'#'] = ord_char;
+    r[(unsigned char)' '] = blank;
+    r[(unsigned char)':'] = colon;
+    r[(unsigned char)'\''] = quote;
+    r[(unsigned char)'\"'] = quote;
+    r[(unsigned char)'-'] = remark_start;
 
     return r;
 }();
@@ -251,7 +253,8 @@ public:
 
             switch (symbols[static_cast<unsigned char>(*b)])
             {
-                case symbol_type::ord_char:
+                using enum symbol_type;
+                case ord_char:
                     if (state == consuming_state::PREPARE_TO_CONSUME)
                     {
                         arg_start_it = b;
@@ -262,7 +265,7 @@ public:
 
                     break;
 
-                case symbol_type::colon:
+                case colon:
                     if (state == consuming_state::PREPARE_TO_CONSUME || state == consuming_state::TRAIL)
                         break;
 
@@ -271,7 +274,7 @@ public:
 
                     break;
 
-                case symbol_type::blank:
+                case blank:
                     if (try_arg_inserter(arg_start_it, b, state))
                         next_state = consuming_state::TRAIL;
                     else
@@ -279,7 +282,7 @@ public:
 
                     break;
 
-                case symbol_type::quote:
+                case quote:
                     try_arg_inserter(arg_start_it, b, state);
 
                     if (skip_to_string_end(b, e); b == e)
@@ -287,9 +290,9 @@ public:
 
                     break;
 
-                case symbol_type::remark_start:
+                case remark_start:
                     if (auto n = std::next(b); !try_arg_inserter(arg_start_it, b, state) && n != e
-                        && symbols[static_cast<unsigned char>(*n)] == symbol_type::remark_start)
+                        && symbols[static_cast<unsigned char>(*n)] == remark_start)
                     {
                         b = n;
                         next_state = state;
@@ -297,7 +300,7 @@ public:
 
                     break;
 
-                case symbol_type::other_char:
+                case other_char:
                     try_arg_inserter(arg_start_it, b, state);
                     break;
 
@@ -773,14 +776,28 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
 
         // keep the capture groups in sync
         static const auto xml_type =
-            std::regex("XML(?:[ ]|--)+AS(?:[ ]|--)+(?:(BINARY(?:[ ]|--)+LARGE(?:[ ]|--)+OBJECT|BLOB|CHARACTER(?:[ "
-                       "]|--)+LARGE(?:[ ]|--)+OBJECT|CHAR(?:[ ]|--)+LARGE(?:[ ]|--)+OBJECT|CLOB|DBCLOB)(?:[ "
-                       "]|--)+([[:digit:]]{1,9})([KMG])?|(BLOB_FILE|CLOB_FILE|DBCLOB_FILE))(?: .*)?");
+            std::regex("XML(?:[ ]|--)+AS(?:[ ]|--)+"
+                       "(?:"
+                       "("
+                       "BINARY(?:[ ]|--)+LARGE(?:[ ]|--)+OBJECT|BLOB|CHARACTER(?:[ ]|--)+"
+                       "LARGE(?:[ ]|--)+OBJECT|CHAR(?:[ ]|--)+LARGE(?:[ ]|--)+OBJECT|CLOB|DBCLOB"
+                       ")"
+                       "(?:[ ]|--)+([[:digit:]]{1,9})([KMG])?"
+                       "|"
+                       "(BLOB_FILE|CLOB_FILE|DBCLOB_FILE)"
+                       ")"
+                       "(?: .*)?");
         static const auto lob_type =
-            std::regex("(?:(BINARY(?:[ ]|--)+LARGE(?:[ ]|--)+OBJECT|BLOB|CHARACTER(?:[ ]|--)+LARGE(?:[ "
-                       "]|--)+OBJECT|CHAR(?:[ ]|--)+LARGE(?:[ ]|--)+OBJECT|CLOB|DBCLOB)(?:[ "
-                       "]|--)+([[:digit:]]{1,9})([KMG])?|(BLOB_FILE|CLOB_FILE|DBCLOB_FILE|BLOB_LOCATOR|CLOB_LOCATOR|"
-                       "DBCLOB_LOCATOR))(?: .*)?");
+            std::regex("(?:"
+                       "("
+                       "BINARY(?:[ ]|--)+LARGE(?:[ ]|--)+OBJECT|BLOB|CHARACTER(?:[ ]|--)+"
+                       "LARGE(?:[ ]|--)+OBJECT|CHAR(?:[ ]|--)+LARGE(?:[ ]|--)+OBJECT|CLOB|DBCLOB"
+                       ")"
+                       "(?:[ ]|--)+([[:digit:]]{1,9})([KMG])?"
+                       "|"
+                       "(BLOB_FILE|CLOB_FILE|DBCLOB_FILE|BLOB_LOCATOR|CLOB_LOCATOR|DBCLOB_LOCATOR)"
+                       ")"
+                       "(?: .*)?");
 
         static const auto table_like = std::regex(
             "TABLE(?:[ ]|--)+LIKE(?:[ ]|--)+('(?:[^']|'')+'|(?:[^']|'')+)(?:[ ]|--)+AS(?:[ ]|--)+LOCATOR(?: .*)?");
@@ -906,7 +923,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
     {
         const auto diag_adder = [diags = m_diags](diagnostic_op&& diag) {
             if (diags)
-                diags->add_diagnostic(diag);
+                diags->add_diagnostic(std::move(diag));
         };
 
         if (ll.continuation_error)
@@ -978,10 +995,10 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         const lexing::logical_line::const_iterator& it, const lexing::logical_line::const_iterator& it_e) const
     {
         // handles only the most obvious cases (imprecisely)
-        static const auto no_code_statements =
-            std::regex("(?:DECLARE|WHENEVER|BEGIN(?:[ ]|--)+DECLARE(?:[ ]|--)+SECTION|END(?:[ ]|--)+DECLARE(?:[ "
-                       "]|--)+SECTION)(?: .*)?",
-                std::regex_constants::icase);
+        static const auto no_code_statements = std::regex(
+            "(?:DECLARE|WHENEVER|BEGIN(?:[ ]|--)+DECLARE(?:[ ]|--)+SECTION|END(?:[ ]|--)+DECLARE(?:[ ]|--)+SECTION)"
+            "(?: .*)?",
+            std::regex_constants::icase);
         return !std::regex_match(it, it_e, no_code_statements);
     }
 

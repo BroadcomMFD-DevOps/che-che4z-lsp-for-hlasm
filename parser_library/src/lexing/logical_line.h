@@ -63,7 +63,7 @@ struct logical_line
     bool so_si_continuation;
     bool missing_next_line;
 
-    virtual ~logical_line() = default;
+    virtual ~logical_line() noexcept = default;
 
     virtual void clear() noexcept
     {
