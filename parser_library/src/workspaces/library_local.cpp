@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <locale>
+#include <utility>
 
 #include "utils/path.h"
 #include "utils/platform.h"
@@ -24,7 +25,7 @@
 namespace hlasm_plugin::parser_library::workspaces {
 
 namespace {
-void adjust_extensions_vector(std::vector<std::string>& extensions, bool extensions_from_deprecated_source)
+void adjust_extensions_vector(std::vector<std::string>& extensions)
 {
     bool contains_empty = false;
     for (auto& ext : extensions)
@@ -45,8 +46,6 @@ void adjust_extensions_vector(std::vector<std::string>& extensions, bool extensi
             return false;
         return l < r;
     });
-    if (extensions_from_deprecated_source && !contains_empty)
-        extensions.emplace_back(); // alwaysRecognize always implied accepting files without an extension
     extensions.erase(std::unique(extensions.begin(), extensions.end()), extensions.end());
 }
 } // namespace
@@ -59,11 +58,10 @@ library_local::library_local(file_manager& file_manager,
     , m_lib_loc(std::move(lib_loc))
     , m_extensions(std::move(options.extensions))
     , m_optional(options.optional_library)
-    , m_extensions_from_deprecated_source(options.extensions_from_deprecated_source)
     , m_proc_grps_loc(std::move(proc_grps_loc))
 {
     if (m_extensions.size())
-        adjust_extensions_vector(m_extensions, m_extensions_from_deprecated_source);
+        adjust_extensions_vector(m_extensions);
 }
 
 library_local::library_local(library_local&& l) noexcept
@@ -72,7 +70,6 @@ library_local::library_local(library_local&& l) noexcept
     , m_files_collection(l.m_files_collection.exchange(nullptr))
     , m_extensions(std::move(l.m_extensions))
     , m_optional(l.m_optional)
-    , m_extensions_from_deprecated_source(l.m_extensions_from_deprecated_source)
     , m_proc_grps_loc(std::move(l.m_proc_grps_loc))
 {}
 
@@ -138,12 +135,40 @@ library_local::files_collection_t library_local::load_files()
             break;
     }
 
-    bool extension_removed = false;
+    size_t conflict_count = 0;
+    std::string file_name_conflicts;
+    const auto add_conflict = [&conflict_count, &file_name_conflicts](std::string_view file_name) {
+        if (conflict_count == 3)
+            file_name_conflicts.append(" and others");
+        else
+        {
+            if (conflict_count)
+                file_name_conflicts.append(", ");
+            file_name_conflicts.append(file_name);
+        }
+        ++conflict_count;
+    };
+
     for (auto& [file, rl] : files_list)
     {
         if (m_extensions.empty())
         {
-            new_files.try_emplace(context::to_upper_copy(file), std::move(rl));
+            context::to_upper(file);
+            // ".hidden" is not an extension -----------------------------------------------v
+            const auto file_name = std::string_view(file).substr(0, file.find_first_of('.', 1));
+
+            auto [it, inserted] = new_files.try_emplace(std::string(file_name), std::move(rl));
+            if (!inserted)
+            {
+                // rl was not moved
+                add_conflict(file_name);
+
+                // keep shortest (i.e. without extension for compatibility) or lexicographically smaller
+                const std::string_view rl_uri(rl.get_uri());
+                const std::string_view old_uri(it->second.get_uri());
+                if (std::pair(rl_uri.size(), rl_uri) < std::pair(old_uri.size(), old_uri))
+                    it->second = std::move(rl);
+            }
             continue;
         }
 
@@ -162,16 +187,16 @@ library_local::files_collection_t library_local::load_files()
                 new_files.try_emplace(context::to_upper_copy(std::string(filename)), std::move(rl));
             // TODO: the stored value is a full path, yet we try to interpret it as a relative one later on
             if (!inserted)
-                new_diags.push_back(diagnostic_s::warning_L0004(
-                    m_proc_grps_loc, m_lib_loc, context::to_upper_copy(std::string(filename))));
+                add_conflict(context::to_upper_copy(std::string(filename)));
 
-            if (extension.size())
-                extension_removed = true;
             break;
         }
     }
-    if (extension_removed && m_extensions_from_deprecated_source)
-        new_diags.push_back(diagnostic_s::warning_L0003(m_proc_grps_loc, m_lib_loc));
+
+    if (conflict_count > 0)
+        new_diags.push_back(
+            diagnostic_s::warning_L0004(m_proc_grps_loc, m_lib_loc, file_name_conflicts, !m_extensions.empty()));
+
 
     m_files_collection.store(new_state);
 
