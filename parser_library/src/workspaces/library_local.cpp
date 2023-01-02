@@ -138,14 +138,15 @@ library_local::files_collection_t library_local::load_files()
     size_t conflict_count = 0;
     std::string file_name_conflicts;
     const auto add_conflict = [&conflict_count, &file_name_conflicts](std::string_view file_name) {
-        if (conflict_count == 3)
-            file_name_conflicts.append(" and others");
-        else
+        constexpr const size_t max_conflict_count = 3;
+        if (conflict_count < max_conflict_count)
         {
             if (conflict_count)
                 file_name_conflicts.append(", ");
             file_name_conflicts.append(file_name);
         }
+        else if (conflict_count == max_conflict_count)
+            file_name_conflicts.append(" and others");
         ++conflict_count;
     };
 
@@ -196,7 +197,6 @@ library_local::files_collection_t library_local::load_files()
     if (conflict_count > 0)
         new_diags.push_back(
             diagnostic_s::warning_L0004(m_proc_grps_loc, m_lib_loc, file_name_conflicts, !m_extensions.empty()));
-
 
     m_files_collection.store(new_state);
 
