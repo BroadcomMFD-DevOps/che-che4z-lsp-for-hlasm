@@ -62,7 +62,7 @@ TEST(extension_handling_test, extension_removal)
 
     // test no extensions
     library_local lib5(file_mngr, lib2_loc, { {} }, empty_loc);
-    EXPECT_FALSE(lib5.has_file("MAC"));
+    EXPECT_TRUE(lib5.has_file("MAC"));
 
     // test no extensions
     library_local lib6(file_mngr, lib2_loc, { { "" } }, empty_loc);
@@ -82,7 +82,7 @@ TEST(extension_handling_test, legacy_extension_selection)
     EXPECT_TRUE(lib.has_file("MAC"));
     std::vector<hlasm_plugin ::parser_library::diagnostic_s> diags;
     lib.copy_diagnostics(diags);
-    EXPECT_TRUE(std::any_of(diags.begin(), diags.end(), [](const auto& d) { return d.code == "L0003"; }));
+    EXPECT_TRUE(diags.empty());
 }
 
 class file_manager_extension_mock2 : public file_manager_impl
@@ -119,6 +119,18 @@ TEST(extension_handling_test, no_multiple_macro_definitions)
     EXPECT_TRUE(std::none_of(diags.begin(), diags.end(), [](const auto& d) { return d.code == "L0004"; }));
 }
 
+TEST(extension_handling_test, multiple_macro_not_provided)
+{
+    file_manager_extension_mock2 file_mngr;
+    resource_location empty_loc;
+    library_local lib(file_mngr, lib_loc, {}, empty_loc);
+
+    EXPECT_TRUE(lib.has_file("MAC"));
+    std::vector<hlasm_plugin ::parser_library::diagnostic_s> diags;
+    lib.copy_diagnostics(diags);
+    EXPECT_EQ(std::count_if(diags.begin(), diags.end(), [](const auto& d) { return d.code == "L0004"; }), 1);
+}
+
 class file_manager_extension_mock_no_ext : public file_manager_impl
 {
     list_directory_result list_directory_files(const resource_location&) const override
@@ -132,9 +144,9 @@ TEST(extension_handling_test, legacy_extension_selection_file_without_ext)
 {
     file_manager_extension_mock_no_ext file_mngr;
     resource_location empty_loc;
-    library_local lib(file_mngr, lib_loc, { { ".hlasm" }, true }, empty_loc);
+    library_local lib(file_mngr, lib_loc, { { ".hlasm" } }, empty_loc);
 
-    EXPECT_TRUE(lib.has_file("MAC"));
+    EXPECT_FALSE(lib.has_file("MAC"));
     std::vector<hlasm_plugin ::parser_library::diagnostic_s> diags;
     lib.copy_diagnostics(diags);
     EXPECT_TRUE(std::none_of(diags.begin(), diags.end(), [](const auto& d) { return d.code == "L0003"; }));
