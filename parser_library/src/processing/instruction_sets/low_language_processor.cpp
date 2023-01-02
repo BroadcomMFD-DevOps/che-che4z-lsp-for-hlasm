@@ -95,29 +95,26 @@ low_language_processor::preprocessed_part low_language_processor::preprocess_inn
     using namespace semantics;
     preprocessed_part result;
 
-    std::string new_label;
+    const auto label_inserter = [&result, this](const std::string label, const range& r) {
+        if (std::string_view label_sv = label; utils::trim_right(label_sv) == label.length())
+            result.label.emplace(r);
+        else
+        {
+            auto ord_id = this->hlasm_ctx.ids().add(label_sv);
+            result.label.emplace(r, ord_symbol_string { ord_id, std::string(label_sv) });
+        }
+    };
+
     // label
     switch (const auto& label_ref = stmt.label_ref(); label_ref.type)
     {
         case label_si_type::CONC:
-            new_label = concatenation_point::evaluate(std::get<concat_chain>(label_ref.value), eval_ctx);
-            if (utils::trim_right(new_label); new_label.empty())
-                result.label.emplace(label_ref.field_range);
-            else
-            {
-                auto ord_id = hlasm_ctx.ids().add(new_label);
-                result.label.emplace(label_ref.field_range, ord_symbol_string { ord_id, std::move(new_label) });
-            }
+            label_inserter(concatenation_point::evaluate(std::get<concat_chain>(label_ref.value), eval_ctx),
+                label_ref.field_range);
             break;
         case label_si_type::VAR:
-            new_label = var_sym_conc::evaluate(std::get<vs_ptr>(label_ref.value)->evaluate(eval_ctx));
-            if (utils::trim_right(new_label); new_label.empty())
-                result.label.emplace(label_ref.field_range);
-            else
-            {
-                auto ord_id = hlasm_ctx.ids().add(new_label);
-                result.label.emplace(label_ref.field_range, ord_symbol_string { ord_id, std::move(new_label) });
-            }
+            label_inserter(
+                var_sym_conc::evaluate(std::get<vs_ptr>(label_ref.value)->evaluate(eval_ctx)), label_ref.field_range);
             break;
         case label_si_type::MAC:
             if (stmt.opcode_ref().value.to_string_view() != "TITLE")

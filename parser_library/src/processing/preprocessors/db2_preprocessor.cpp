@@ -149,7 +149,8 @@ constexpr std::array symbols = []() {
     return r;
 }();
 
-size_t find_start_of_line_comment(std::stack<unsigned char>& quotes, const std::string_view& code)
+size_t find_start_of_line_comment(
+    std::stack<unsigned char, std::basic_string<unsigned char>>& quotes, const std::string_view& code)
 {
     bool comment_possibly_started = false;
     size_t comment_start = 0;
@@ -189,7 +190,7 @@ void finish_db2_logical_line(
     out.m_first_line = out.segments.front().code;
     out.m_instruction_end = instruction_end;
 
-    std::stack<unsigned char> quotes;
+    std::stack<unsigned char, std::basic_string<unsigned char>> quotes;
     for (auto& seg : out.segments)
     {
         auto& code = seg.code;
@@ -204,8 +205,8 @@ void finish_db2_logical_line(
     }
 }
 
-using range_adjuster =
-    std::function<range(db2_logical_line::const_iterator start_column, db2_logical_line::const_iterator end_column)>;
+using range_adjuster = std::function<range(
+    const db2_logical_line::const_iterator& start_column, const db2_logical_line::const_iterator& end_column)>;
 
 template<typename It>
 class mini_parser
@@ -767,8 +768,31 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         return true;
     };
 
-    bool process_sql_type_operands(std::string_view label,
-        lexing::logical_line::const_iterator& it,
+    bool handle_r_starting_operands(const std::string_view& label,
+        const lexing::logical_line::const_iterator& it_b,
+        const lexing::logical_line::const_iterator& it_e)
+    {
+        auto ds_line_inserter = [&label, &it_e, this](lexing::logical_line::const_iterator it_b,
+                                    std::initializer_list<std::string_view> words_to_consume,
+                                    std::string_view ds_line_type) {
+            if (!consume_words_advance_to_next(it_b, it_e, std::move(words_to_consume), false, true))
+                return false;
+            add_ds_line(label, "", std::move(ds_line_type));
+            return true;
+        };
+
+        assert(it_b != it_e && *it_b == 'R');
+
+        if (auto it_n = std::next(it_b); it_n == it_e || (*it_n != 'E' && *it_n != 'O'))
+            return false;
+        else if (*it_n == 'E')
+            return ds_line_inserter(it_b, { "RESULT_SET_LOCATOR", "VARYING" }, "FL4");
+        else
+            return ds_line_inserter(it_b, { "ROWID" }, "H,CL40");
+    };
+
+    bool process_sql_type_operands(const std::string_view& label,
+        const lexing::logical_line::const_iterator& it,
         const lexing::logical_line::const_iterator& it_e)
     {
         if (it == it_e)
@@ -805,28 +829,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         switch (*it)
         {
             case 'R':
-                if (++it; it == it_e)
-                    return false;
-                else
-                {
-                    switch (*it++)
-                    {
-                        case 'E':
-                            if (!consume_words_advance_to_next(
-                                    it, it_e, { "SULT_SET_LOCATOR", "VARYING" }, false, true))
-                                return false;
-                            add_ds_line(label, "", "FL4");
-                            return true;
-
-                        case 'O':
-                            if (!consume_words_advance_to_next(it, it_e, { "WID" }, false, true))
-                                return false;
-                            add_ds_line(label, "", "H,CL40");
-                            return true;
-                        default:
-                            return false;
-                    }
-                }
+                return handle_r_starting_operands(label, it, it_e);
 
             case 'T':
                 if (!std::regex_match(it, it_e, table_like))
@@ -1004,8 +1007,8 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
 
     void generate_sql_code_mock(size_t in_params)
     {
-        // this function generates semi-realistic sql statement replacement code, because people do strange
-        // things... <arguments> output parameters
+        // this function generates semi-realistic sql statement replacement code, because people do strange things...
+        // <arguments> input parameters
         m_result.emplace_back(replaced_line { "         BRAS  15,*+56                     \n" });
         m_result.emplace_back(replaced_line { "         DC    H'0',X'0000',H'0'           \n" });
         m_result.emplace_back(replaced_line { "         DC    XL8'0000000000000000'       \n" });
@@ -1157,7 +1160,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
     {
         preprocessor::do_highlighting(stmt, ll, src_proc, continue_column);
 
-        auto db2_ll = dynamic_cast<const db2_logical_line&>(ll);
+        const auto& db2_ll = dynamic_cast<const db2_logical_line&>(ll);
         for (size_t i = 0, lineno = stmt.m_details.stmt_r.start.line, line_start_column = 0; i < db2_ll.segments.size();
              ++i, ++lineno, std::exchange(line_start_column, continue_column))
         {

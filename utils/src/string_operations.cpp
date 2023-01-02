@@ -16,6 +16,34 @@
 
 namespace hlasm_plugin::utils {
 
+size_t trim_left(std::string_view& s)
+{
+    const auto to_trim = s.find_first_not_of(' ');
+    if (to_trim == std::string_view::npos)
+    {
+        auto s_length = s.length();
+        s = {};
+        return s_length;
+    }
+
+    s.remove_prefix(to_trim);
+    return to_trim;
+}
+
+size_t trim_right(std::string_view& s)
+{
+    const auto to_trim = s.find_last_not_of(' ');
+    if (to_trim == std::string_view::npos)
+    {
+        auto s_length = s.length();
+        s = {};
+        return s_length;
+    }
+
+    s = s.substr(0, to_trim + 1);
+    return to_trim;
+}
+
 size_t consume(std::string_view& s, std::string_view lit)
 {
     // case sensitive
