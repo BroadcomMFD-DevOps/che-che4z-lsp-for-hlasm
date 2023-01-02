@@ -77,7 +77,7 @@ TEST(extension_handling_test, legacy_extension_selection)
 {
     file_manager_extension_mock file_mngr;
     resource_location empty_loc;
-    library_local lib(file_mngr, lib_loc, { { ".hlasm" }, true }, empty_loc);
+    library_local lib(file_mngr, lib_loc, { { ".hlasm" } }, empty_loc);
 
     EXPECT_TRUE(lib.has_file("MAC"));
     std::vector<hlasm_plugin ::parser_library::diagnostic_s> diags;
