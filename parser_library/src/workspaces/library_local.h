@@ -48,10 +48,6 @@ struct library_local_options
             return true;
         if (extensions > o.extensions)
             return false;
-        if (extensions_from_deprecated_source < o.extensions_from_deprecated_source)
-            return true;
-        if (extensions_from_deprecated_source > o.extensions_from_deprecated_source)
-            return false;
         if (optional_library < o.optional_library)
             return true;
         return false;
