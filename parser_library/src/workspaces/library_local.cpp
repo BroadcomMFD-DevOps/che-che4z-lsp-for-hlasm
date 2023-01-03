@@ -147,43 +147,30 @@ library_local::files_collection_t library_local::load_files()
     {
         if (m_extensions.empty())
         {
-            context::to_upper(file);
-            // ".hidden" is not an extension -----------------------------------------------v
-            const auto file_name = std::string_view(file).substr(0, file.find_first_of('.', 1));
-
-            auto [it, inserted] = new_files.try_emplace(std::string(file_name), std::move(rl));
-            if (!inserted)
-            {
-                // rl was not moved
-                add_conflict(file_name);
-
-                // keep shortest (i.e. without extension for compatibility) or lexicographically smaller
-                const std::string_view rl_uri(rl.get_uri());
-                const std::string_view old_uri(it->second.get_uri());
-                if (std::pair(rl_uri.size(), rl_uri) < std::pair(old_uri.size(), old_uri))
-                    it->second = std::move(rl);
-            }
-            continue;
+            // ".hidden" is not an extension ------v
+            if (auto off = file.find_first_of('.', 1); off != std::string::npos)
+                file.erase(off);
         }
+        else if (auto ext = std::find_if(
+                     m_extensions.begin(), m_extensions.end(), [&file](const auto& e) { return file.ends_with(e); });
+                 ext != m_extensions.end())
 
-        for (const auto& extension : m_extensions)
+            file.erase(file.size() - ext->size());
+        else
+            continue;
+
+        context::to_upper(file);
+
+        if (auto [it, inserted] = new_files.try_emplace(std::move(file), std::move(rl)); !inserted)
         {
-            std::string_view filename(file);
+            // file, rl was not moved
+            add_conflict(file);
 
-            if (filename.size() <= extension.size())
-                continue;
-
-            if (filename.substr(filename.size() - extension.size()) != extension)
-                continue;
-            filename.remove_suffix(extension.size());
-
-            const auto [_, inserted] =
-                new_files.try_emplace(context::to_upper_copy(std::string(filename)), std::move(rl));
-            // TODO: the stored value is a full path, yet we try to interpret it as a relative one later on
-            if (!inserted)
-                add_conflict(context::to_upper_copy(std::string(filename)));
-
-            break;
+            // keep shortest (i.e. without extension for compatibility) or lexicographically smaller
+            const std::string_view rl_uri(rl.get_uri());
+            const std::string_view old_uri(it->second.get_uri());
+            if (std::pair(rl_uri.size(), rl_uri) < std::pair(old_uri.size(), old_uri))
+                it->second = std::move(rl);
         }
     }
 
