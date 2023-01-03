@@ -80,7 +80,7 @@ TEST(extension_handling_test, legacy_extension_selection)
     library_local lib(file_mngr, lib_loc, { { ".hlasm" } }, empty_loc);
 
     EXPECT_TRUE(lib.has_file("MAC"));
-    std::vector<hlasm_plugin ::parser_library::diagnostic_s> diags;
+    std::vector<hlasm_plugin::parser_library::diagnostic_s> diags;
     lib.copy_diagnostics(diags);
     EXPECT_TRUE(diags.empty());
 }
@@ -102,7 +102,7 @@ TEST(extension_handling_test, multiple_macro_definitions)
     library_local lib(file_mngr, lib_loc, { { ".hlasm", "" } }, empty_loc);
 
     EXPECT_TRUE(lib.has_file("MAC"));
-    std::vector<hlasm_plugin ::parser_library::diagnostic_s> diags;
+    std::vector<hlasm_plugin::parser_library::diagnostic_s> diags;
     lib.copy_diagnostics(diags);
     EXPECT_TRUE(std::any_of(diags.begin(), diags.end(), [](const auto& d) { return d.code == "L0004"; }));
 }
@@ -114,19 +114,19 @@ TEST(extension_handling_test, no_multiple_macro_definitions)
     library_local lib(file_mngr, lib_loc, { { ".hlasm" } }, empty_loc);
 
     EXPECT_TRUE(lib.has_file("MAC"));
-    std::vector<hlasm_plugin ::parser_library::diagnostic_s> diags;
+    std::vector<hlasm_plugin::parser_library::diagnostic_s> diags;
     lib.copy_diagnostics(diags);
     EXPECT_TRUE(std::none_of(diags.begin(), diags.end(), [](const auto& d) { return d.code == "L0004"; }));
 }
 
-TEST(extension_handling_test, multiple_macro_not_provided)
+TEST(extension_handling_test, multiple_macros_extensions_not_provided)
 {
     file_manager_extension_mock2 file_mngr;
     resource_location empty_loc;
     library_local lib(file_mngr, lib_loc, {}, empty_loc);
 
     EXPECT_TRUE(lib.has_file("MAC"));
-    std::vector<hlasm_plugin ::parser_library::diagnostic_s> diags;
+    std::vector<hlasm_plugin::parser_library::diagnostic_s> diags;
     lib.copy_diagnostics(diags);
     EXPECT_EQ(std::count_if(diags.begin(), diags.end(), [](const auto& d) { return d.code == "L0004"; }), 1);
 }
@@ -147,7 +147,7 @@ TEST(extension_handling_test, legacy_extension_selection_file_without_ext)
     library_local lib(file_mngr, lib_loc, { { ".hlasm" } }, empty_loc);
 
     EXPECT_FALSE(lib.has_file("MAC"));
-    std::vector<hlasm_plugin ::parser_library::diagnostic_s> diags;
+    std::vector<hlasm_plugin::parser_library::diagnostic_s> diags;
     lib.copy_diagnostics(diags);
     EXPECT_TRUE(std::none_of(diags.begin(), diags.end(), [](const auto& d) { return d.code == "L0003"; }));
 }
