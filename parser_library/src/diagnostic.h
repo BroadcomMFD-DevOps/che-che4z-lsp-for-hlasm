@@ -866,8 +866,7 @@ public:
     static diagnostic_s error_L0002(
         const utils::resource::resource_location& config_loc, const utils::resource::resource_location& lib_loc);
 
-    // static diagnostic_s warning_L0003(
-    //     const utils::resource::resource_location& config_loc, const utils::resource::resource_location& lib_loc);
+    // warning_L0003 - removed
 
     static diagnostic_s warning_L0004(const utils::resource::resource_location& config_loc,
         const utils::resource::resource_location& lib_loc,
