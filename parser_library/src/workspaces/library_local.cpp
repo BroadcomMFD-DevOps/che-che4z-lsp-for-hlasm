@@ -27,17 +27,10 @@ namespace hlasm_plugin::parser_library::workspaces {
 namespace {
 void adjust_extensions_vector(std::vector<std::string>& extensions)
 {
-    bool contains_empty = false;
     for (auto& ext : extensions)
-    {
-        if (ext.empty())
-            contains_empty = true;
-        else
-        {
-            if (ext[0] != '.')
-                ext.insert(0, 1, '.');
-        }
-    }
+        if (!ext.empty() && ext[0] != '.')
+            ext.insert(0, 1, '.');
+
     // from longest to shortest, then lexicographically
     std::sort(extensions.begin(), extensions.end(), [](const std::string& l, const std::string& r) {
         if (l.size() > r.size())
