@@ -26,8 +26,6 @@ using namespace hlasm_plugin::utils::resource;
 namespace {
 const auto lib_loc =
     hlasm_plugin::utils::platform::is_windows() ? resource_location("lib\\") : resource_location("lib/");
-const auto lib2_loc =
-    hlasm_plugin::utils::platform::is_windows() ? resource_location("lib2\\") : resource_location("lib2/");
 } // namespace
 
 class file_manager_extension_mock : public file_manager_impl
@@ -57,15 +55,15 @@ TEST(extension_handling_test, extension_removal)
     EXPECT_FALSE(lib3.has_file("MAC"));
 
     // test multiple extensions
-    library_local lib4(file_mngr, lib2_loc, { { ".hlasm", ".asm" } }, empty_loc);
+    library_local lib4(file_mngr, lib_loc, { { ".hlasm", ".asm" } }, empty_loc);
     EXPECT_TRUE(lib4.has_file("MAC"));
 
     // test no extensions
-    library_local lib5(file_mngr, lib2_loc, { {} }, empty_loc);
+    library_local lib5(file_mngr, lib_loc, { {} }, empty_loc);
     EXPECT_TRUE(lib5.has_file("MAC"));
 
-    // test no extensions
-    library_local lib6(file_mngr, lib2_loc, { { "" } }, empty_loc);
+    // test empty extension
+    library_local lib6(file_mngr, lib_loc, { { "" } }, empty_loc);
     EXPECT_FALSE(lib6.has_file("MAC"));
 
     // tolerate missing dot
@@ -149,5 +147,5 @@ TEST(extension_handling_test, legacy_extension_selection_file_without_ext)
     EXPECT_FALSE(lib.has_file("MAC"));
     std::vector<hlasm_plugin::parser_library::diagnostic_s> diags;
     lib.copy_diagnostics(diags);
-    EXPECT_TRUE(std::none_of(diags.begin(), diags.end(), [](const auto& d) { return d.code == "L0003"; }));
+    EXPECT_TRUE(diags.empty());
 }
