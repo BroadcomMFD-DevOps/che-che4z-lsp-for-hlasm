@@ -152,7 +152,7 @@ library_local::files_collection_t library_local::load_files()
                 file.erase(off);
         }
         else if (auto ext = std::find_if(
-                     m_extensions.begin(), m_extensions.end(), [&file](const auto& e) { return file.ends_with(e); });
+                     m_extensions.begin(), m_extensions.end(), [&f = file](const auto& e) { return f.ends_with(e); });
                  ext != m_extensions.end())
 
             file.erase(file.size() - ext->size());
