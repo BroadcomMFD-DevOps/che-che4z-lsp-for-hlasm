@@ -191,14 +191,13 @@ private:
 template<typename It>
 class mini_parser
 {
-    void skip_to_string_end(It& b, const It& e) const
+    void skip_to_matching_character(It& b, const It& e, char to_match) const
     {
         if (b == e)
             return;
 
-        const unsigned char quote = *b;
         while (++b != e)
-            if (quote == *b)
+            if (to_match == *b)
                 break;
     }
 
@@ -264,7 +263,7 @@ public:
                 case quote:
                     try_arg_inserter(arg_start_it, b, state);
 
-                    if (skip_to_string_end(b, e); b == e)
+                    if (skip_to_matching_character(b, e, *b); b == e)
                         goto done;
 
                     break;
@@ -295,6 +294,44 @@ public:
 
     done:
         return arguments;
+    }
+};
+
+struct consuming_regex_details
+{
+    bool needs_same_line;
+    bool tolerate_no_space_at_end;
+    const std::regex r;
+
+    consuming_regex_details(const std::initializer_list<std::string_view>& words_to_consume,
+        bool needs_same_line,
+        bool tolerate_no_space_at_end)
+        : needs_same_line(needs_same_line)
+        , tolerate_no_space_at_end(tolerate_no_space_at_end)
+        , r(get_consuming_regex(words_to_consume, tolerate_no_space_at_end))
+    {}
+
+private:
+    static const std::regex get_consuming_regex(
+        const std::initializer_list<std::string_view>& words, bool tolerate_no_space_at_end)
+    {
+        assert(words.size());
+
+        auto w_it = words.begin();
+
+        std::string s = "(";
+        s.append(*w_it++);
+        while (w_it != words.end())
+            s.append("(?:[ ]|--)+(?:").append(*w_it++).append(")");
+
+        s.append(")([ ]|--)");
+        if (tolerate_no_space_at_end)
+            s.append("*");
+        else
+            s.append("+");
+        s.append("(.*)");
+
+        return std::regex(s);
     }
 };
 
@@ -468,41 +505,12 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         m_result.emplace_back(replaced_line { "         MEND                           \n" });
     }
 
-    static std::regex get_consuming_regex(std::initializer_list<std::string_view> words, bool tolerate_no_space_at_end)
-    {
-        assert(words.size());
-
-        auto w_it = words.begin();
-
-        std::string s = "(";
-        s.append(*w_it++);
-        while (w_it != words.end())
-            s.append("(?:[ ]|--)+(?:").append(*w_it++).append(")");
-
-        s.append(")([ ]|--)");
-        if (tolerate_no_space_at_end)
-            s.append("*");
-        else
-            s.append("+");
-        s.append("(.*)");
-
-        return std::regex(s);
-    }
-
     template<typename It>
-    static std::optional<It> consume_words_advance_to_next(It& it,
-        const It& it_e,
-        std::initializer_list<std::string_view> words,
-        bool needs_same_line,
-        bool tolerate_no_space_at_end)
+    static std::optional<It> consume_words_advance_to_next(It& it, const It& it_e, const consuming_regex_details& crd)
     {
-        if (!words.size())
-            return std::nullopt;
-
-        if (std::match_results<It> matches;
-            std::regex_match(it, it_e, matches, get_consuming_regex(words, tolerate_no_space_at_end))
-            && (!needs_same_line || same_line(matches[1].first, std::prev(matches[1].second)))
-            && (!tolerate_no_space_at_end || matches[2].length() || !matches[3].length()
+        if (std::match_results<It> matches; std::regex_match(it, it_e, matches, crd.r)
+            && (!crd.needs_same_line || same_line(matches[1].first, std::prev(matches[1].second)))
+            && (!crd.tolerate_no_space_at_end || matches[2].length() || !matches[3].length()
                 || (matches[1].second == matches[3].first
                     && !same_line(std::prev(matches[1].second), matches[3].first))))
         {
@@ -517,7 +525,8 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         const lexing::logical_line::const_iterator& it_e,
         const db2_logical_line_helper& ll)
     {
-        if (!consume_words_advance_to_next(it, it_e, { "INCLUDE" }, false, false))
+        static const consuming_regex_details include_crd({ "INCLUDE" }, false, false);
+        if (!consume_words_advance_to_next(it, it_e, include_crd))
             return std::nullopt;
 
         lexing::logical_line::const_iterator inc_it_s;
@@ -623,12 +632,10 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         if (line_preview.empty())
             return ignore;
 
-        const auto consume_and_create = [&line_preview, lineno, instr_column_start](line_type line,
-                                            std::initializer_list<std::string_view> words_to_consume,
-                                            std::string_view line_id) {
+        const auto consume_and_create = [&line_preview, lineno, instr_column_start](
+                                            line_type line, consuming_regex_details crd, std::string_view line_id) {
             auto it = line_preview.begin();
-            if (auto consumed_words_end =
-                    consume_words_advance_to_next(it, line_preview.end(), words_to_consume, true, false);
+            if (auto consumed_words_end = consume_words_advance_to_next(it, line_preview.end(), crd);
                 consumed_words_end)
                 return std::make_pair(line,
                     semantics::preproc_details::name_range { std::string(line_id),
@@ -638,13 +645,16 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
             return ignore;
         };
 
+        static const consuming_regex_details exec_sql_crd({ "EXEC", "SQL" }, true, false);
+        static const consuming_regex_details sql_type_crd({ "SQL", "TYPE" }, true, false);
+
         switch (line_preview.front())
         {
             case 'E':
-                return consume_and_create(line_type::exec_sql, { "EXEC", "SQL" }, "EXEC SQL");
+                return consume_and_create(line_type::exec_sql, exec_sql_crd, "EXEC SQL");
 
             case 'S':
-                return consume_and_create(line_type::sql_type, { "SQL", "TYPE" }, "SQL TYPE");
+                return consume_and_create(line_type::sql_type, sql_type_crd, "SQL TYPE");
 
             default:
                 return ignore;
@@ -752,9 +762,9 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         const lexing::logical_line::const_iterator& it_e)
     {
         auto ds_line_inserter = [&label, &it_e, this](lexing::logical_line::const_iterator it_b,
-                                    std::initializer_list<std::string_view> words_to_consume,
+                                    consuming_regex_details crd,
                                     std::string_view ds_line_type) {
-            if (!consume_words_advance_to_next(it_b, it_e, std::move(words_to_consume), false, true))
+            if (!consume_words_advance_to_next(it_b, it_e, crd))
                 return false;
             add_ds_line(label, "", std::move(ds_line_type));
             return true;
@@ -762,12 +772,15 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
 
         assert(it_b != it_e && *it_b == 'R');
 
+        static const consuming_regex_details result_set_crd({ "RESULT_SET_LOCATOR", "VARYING" }, false, true);
+        static const consuming_regex_details rowid_crd({ "ROWID" }, false, true);
+
         if (auto it_n = std::next(it_b); it_n == it_e || (*it_n != 'E' && *it_n != 'O'))
             return false;
         else if (*it_n == 'E')
-            return ds_line_inserter(it_b, { "RESULT_SET_LOCATOR", "VARYING" }, "FL4");
+            return ds_line_inserter(it_b, result_set_crd, "FL4");
         else
-            return ds_line_inserter(it_b, { "ROWID" }, "H,CL40");
+            return ds_line_inserter(it_b, rowid_crd, "H,CL40");
     };
 
     bool process_sql_type_operands(const std::string_view& label,
@@ -907,6 +920,8 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         if (ll.m_db2_ll.continuation_error)
             diag_adder(diagnostic_op::error_DB001(range(position(ll.m_lineno, 0))));
 
+        static const consuming_regex_details is_crd({ "IS" }, true, true);
+
         std::vector<semantics::preproc_details::name_range> args;
         auto it = std::next(ll.m_db2_ll.begin(), ll.m_instruction_end);
         auto it_e = ll.m_db2_ll.end();
@@ -952,7 +967,8 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
                 // DB2 preprocessor exhibits strange behavior when SQL TYPE line is continued
                 if (ll.m_db2_ll.segments.size() > 1)
                     diag_adder(diagnostic_op::warn_DB005(range(position(ll.m_lineno, 0))));
-                if (!consume_words_advance_to_next(it, it_e, { "IS" }, true, true))
+
+                if (!consume_words_advance_to_next(it, it_e, is_crd))
                 {
                     diag_adder(diagnostic_op::warn_DB006(range(position(ll.m_lineno, 0))));
                     break;
