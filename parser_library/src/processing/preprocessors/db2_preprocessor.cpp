@@ -196,9 +196,8 @@ class mini_parser
         if (b == e)
             return;
 
-        while (++b != e)
-            if (to_match == *b)
-                break;
+        while (++b != e && to_match != *b)
+            ;
     }
 
 public:

@@ -23,8 +23,10 @@
 
 using namespace hlasm_plugin::parser_library::lexing;
 
+namespace {
 class logical_line_iterator_fixture : public ::testing::TestWithParam<std::vector<std::string_view>>
 {};
+} // namespace
 
 TEST_P(logical_line_iterator_fixture, general_behavior)
 {
