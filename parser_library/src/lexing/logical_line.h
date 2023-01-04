@@ -15,6 +15,7 @@
 #ifndef HLASMPLUGIN_HLASMPARSERLIBRARY_LOGICAL_LINE_H
 #define HLASMPLUGIN_HLASMPARSERLIBRARY_LOGICAL_LINE_H
 
+#include <algorithm>
 #include <cassert>
 #include <cstddef>
 #include <cstdlib>
