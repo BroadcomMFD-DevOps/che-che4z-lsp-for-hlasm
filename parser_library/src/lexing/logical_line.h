@@ -16,9 +16,12 @@
 #define HLASMPLUGIN_HLASMPARSERLIBRARY_LOGICAL_LINE_H
 
 #include <cassert>
-#include <limits>
+#include <cstddef>
+#include <cstdlib>
+#include <iterator>
 #include <memory>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace hlasm_plugin::parser_library::lexing {
@@ -63,9 +66,7 @@ struct logical_line
     bool so_si_continuation;
     bool missing_next_line;
 
-    virtual ~logical_line() noexcept = default;
-
-    virtual void clear() noexcept
+    void clear() noexcept
     {
         segments.clear();
         continuation_error = false;
@@ -84,27 +85,27 @@ struct logical_line
         using pointer = const char*;
         using reference = const char&;
 
-        const_iterator() noexcept = default;
-        const_iterator(segment_iterator segment, column_iterator col, const logical_line* ll) noexcept
-            : m_segment(segment)
-            , m_col(col)
+        const_iterator() = default;
+        const_iterator(segment_iterator segment_it, column_iterator col_it, const logical_line* ll) noexcept
+            : m_segment_it(segment_it)
+            , m_col_it(col_it)
             , m_logical_line(ll)
         {}
 
-        reference operator*() const noexcept { return *m_col; }
-        pointer operator->() const noexcept { return std::to_address(m_col); }
+        reference operator*() const noexcept { return *m_col_it; }
+        pointer operator->() const noexcept { return std::to_address(m_col_it); }
         const_iterator& operator++() noexcept
         {
             assert(m_logical_line);
-            ++m_col;
-            while (m_col == m_segment->code.end())
+            ++m_col_it;
+            while (m_col_it == m_segment_it->code.end())
             {
-                if (++m_segment == m_logical_line->segments.end())
+                if (++m_segment_it == m_logical_line->segments.end())
                 {
-                    m_col = column_iterator();
+                    m_col_it = column_iterator();
                     break;
                 }
-                m_col = m_segment->code.begin();
+                m_col_it = m_segment_it->code.begin();
             }
             return *this;
         }
@@ -117,12 +118,12 @@ struct logical_line
         const_iterator& operator--() noexcept
         {
             assert(m_logical_line);
-            while (m_segment == m_logical_line->segments.end() || m_col == m_segment->code.begin())
+            while (m_segment_it == m_logical_line->segments.end() || m_col_it == m_segment_it->code.begin())
             {
-                --m_segment;
-                m_col = m_segment->code.end();
+                --m_segment_it;
+                m_col_it = m_segment_it->code.end();
             }
-            --m_col;
+            --m_col_it;
             return *this;
         }
         const_iterator operator--(int) noexcept
@@ -134,21 +135,47 @@ struct logical_line
         friend bool operator==(const const_iterator& a, const const_iterator& b) noexcept
         {
             assert(a.m_logical_line == b.m_logical_line);
-            return a.m_segment == b.m_segment && a.m_col == b.m_col;
+            return a.m_segment_it == b.m_segment_it && a.m_col_it == b.m_col_it;
         }
         friend bool operator!=(const const_iterator& a, const const_iterator& b) noexcept { return !(a == b); }
 
         bool same_line(const const_iterator& o) const noexcept
         {
             assert(m_logical_line == o.m_logical_line);
-            return m_segment == o.m_segment;
+            return m_segment_it == o.m_segment_it;
         }
 
-        bool same_segment(const segment_iterator& s) const noexcept { return m_segment == s; }
+        const_iterator transform_into(const logical_line& other_ll) const noexcept
+        {
+            assert(m_logical_line);
+            const auto& my_segments = m_logical_line->segments;
+            const auto& other_segments = other_ll.segments;
+
+            if (m_segment_it == my_segments.end())
+            {
+                if (std::find_if(
+                        my_segments.begin(), my_segments.end(), [](const auto& my_s) { return !my_s.code.empty(); })
+                    == my_segments.end())
+                    return const_iterator(other_segments.end(), column_iterator(), &other_ll);
+                else
+                    return std::next(std::prev(*this).transform_into(other_ll));
+            }
+
+            if (auto other_segment_it = std::find_if(other_segments.begin(),
+                    other_segments.end(),
+                    [&my_line = m_segment_it->line](const auto& other_s) { return other_s.line == my_line; });
+                other_segment_it == other_segments.end())
+                return const_iterator(other_segments.end(), column_iterator(), &other_ll);
+            else
+                return const_iterator(other_segment_it,
+                    other_segment_it->code.begin()
+                        + std::abs(std::to_address(m_col_it) - std::to_address(other_segment_it->code.begin())),
+                    &other_ll);
+        }
 
     private:
-        segment_iterator m_segment = segment_iterator();
-        column_iterator m_col = std::string_view::const_iterator();
+        segment_iterator m_segment_it = segment_iterator();
+        column_iterator m_col_it = std::string_view::const_iterator();
         const logical_line* m_logical_line = nullptr;
     };
 
