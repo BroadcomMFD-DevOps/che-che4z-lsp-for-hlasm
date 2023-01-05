@@ -74,7 +74,7 @@ export function moveCursor(editor: vscode.TextEditor, position: vscode.Position)
 }
 
 export async function toggleBreakpoints(file: string, lines: Array<number>) {
-    const document = (await (await showDocument(file, 'hlasm'))).document;
+    const document = (await showDocument(file, 'hlasm')).document;
 
     await vscode.debug.addBreakpoints(lines.map(l => new vscode.SourceBreakpoint(new vscode.Location(document.uri, new vscode.Position(l, 0)), true)));
 }
