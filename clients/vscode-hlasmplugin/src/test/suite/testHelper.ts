@@ -62,7 +62,12 @@ export async function showDocument(workspace_file: string, language_id: string |
 
 export async function closeAllEditors() {
     // workbench.action.closeAllEditors et al. saves content
-    while (vscode.window.activeTextEditor !== undefined) {
+    while (vscode.window.visibleTextEditors.length > 0) {
+        if (vscode.window.activeTextEditor === undefined) {
+            console.log('Visible editor without active one');
+            await new Promise<void>((resolve) => setImmediate(resolve));
+            continue;
+        }
         const editorChanged = activeEditorChanged();
         await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
         await editorChanged;
