@@ -43,14 +43,17 @@ export function getWorkspacePath(): string {
     return vscode.workspace.workspaceFolders[0].uri.fsPath;
 }
 
-export async function showDocument(workspace_file: string, language_id: string | undefined = undefined) {
+export async function getWorkspaceFile(workspace_file: string) {
     const files = await vscode.workspace.findFiles(workspace_file);
 
     assert.ok(files && files[0]);
-    const file = files[0];
 
+    return files[0];
+}
+
+export async function showDocument(workspace_file: string, language_id: string | undefined = undefined) {
     // open and show the file
-    let document = await vscode.workspace.openTextDocument(file);
+    let document = await vscode.workspace.openTextDocument(await getWorkspaceFile(workspace_file));
     if (language_id)
         document = await vscode.languages.setTextDocumentLanguage(document, language_id);
 
@@ -138,6 +141,7 @@ export async function insertString(editor: vscode.TextEditor, position: vscode.P
     const lines = str_split.length;
 
     const movePosition = new vscode.Position(position.line + lines - 1, lines == 1 ? position.character + str.length : str_split[lines].length);
+
     editor.selection = new vscode.Selection(movePosition, movePosition);
 
     return movePosition;
@@ -151,13 +155,18 @@ export function timeout(ms: number, error_message: string | undefined = undefine
     return new Promise<void>((_, reject) => { setTimeout(() => reject(error_message && Error(error_message)), ms); });
 }
 
-export async function waitForDiagnostics(filename: string) {
-    return new Promise<[vscode.Uri, vscode.Diagnostic[]][]>((resolve, reject) => {
+export async function waitForDiagnostics(workspace_file: string) {
+    const result = new Promise<[vscode.Uri, vscode.Diagnostic[]][]>((resolve) => {
+        const file_promise = getWorkspaceFile(workspace_file).then(uri => uri.toString());
         const listener = vscode.languages.onDidChangeDiagnostics((e) => {
-            if (!e.uris.find(v => v.path.endsWith('/' + filename)))
-                return;
-            listener.dispose();
-            resolve(vscode.languages.getDiagnostics());
+            file_promise.then((file) => {
+                if (!e.uris.find(v => v.toString() === file))
+                    return;
+                listener.dispose();
+                resolve(vscode.languages.getDiagnostics());
+            });
         });
     });
+
+    return result;
 }

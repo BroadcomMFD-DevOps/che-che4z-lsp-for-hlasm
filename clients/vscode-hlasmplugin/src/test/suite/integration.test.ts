@@ -16,6 +16,7 @@ import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as helper from './testHelper';
+import { waitForDiagnostics } from './testHelper';
 
 suite('Integration Test Suite', () => {
     const workspace_file = 'open';
@@ -133,13 +134,12 @@ suite('Integration Test Suite', () => {
     }).timeout(20000).slow(10000);
 
     async function openDocumentAndCheckDiags(workspace_file: string) {
-        await helper.showDocument(workspace_file);
-        await helper.sleep(1500);
+        const diagsChange = waitForDiagnostics(workspace_file);
+        const uri = (await helper.showDocument(workspace_file)).document.uri.toString();
 
-        const allDiags = vscode.languages.getDiagnostics();
-        const patternDiags = allDiags.find(pair => pair[0].path.endsWith(workspace_file));
+        const [, diags] = (await diagsChange).find(pair => pair[0].toString() === uri);
 
-        assert.ok(patternDiags === undefined, "Library patterns are not working for file: " + workspace_file);
+        assert.ok(diags && diags.length === 1 && diags[0].code === 'MNOTE' && diags[0].message === 'DONE', "Library patterns are not working for file: " + workspace_file);
     }
 
     // verify that library patterns are working
