@@ -132,14 +132,7 @@ export async function debugStepInto() {
 }
 
 export async function debugStop() {
-    const done = new Promise<void>((resolve) => {
-        const listener = vscode.debug.onDidTerminateDebugSession(() => {
-            listener.dispose();
-            resolve();
-        })
-    });
-    await vscode.commands.executeCommand('workbench.action.debug.stop');
-    await done;
+    await vscode.debug.stopDebugging();
 }
 
 export async function insertString(editor: vscode.TextEditor, position: vscode.Position, str: string): Promise<vscode.Position> {
