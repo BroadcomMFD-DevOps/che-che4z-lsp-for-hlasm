@@ -61,24 +61,12 @@ export async function showDocument(workspace_file: string, language_id: string |
 }
 
 export async function closeAllEditors() {
+    await vscode.commands.executeCommand('workbench.action.files.revert');
     // workbench.action.closeAllEditors et al. saves content
-    while (vscode.window.visibleTextEditors.length > 0) {
-        if (vscode.window.activeTextEditor === undefined) {
-            console.log('Visible editor without active one');
-            await new Promise<void>((resolve) => setImmediate(resolve));
-            continue;
-        }
-        const editorChanged = activeEditorChanged();
-        await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
-        await editorChanged;
-    }
+    await vscode.commands.executeCommand('workbench.action.closeAllEditors');
 }
 
-export function moveCursor(editor: vscode.TextEditor, position: vscode.Position) {
-    editor.selection = new vscode.Selection(position, position);
-}
-
-export async function toggleBreakpoints(file: string, lines: Array<number>) {
+export async function addBreakpoints(file: string, lines: Array<number>) {
     const document = (await showDocument(file, 'hlasm')).document;
 
     await vscode.debug.addBreakpoints(lines.map(l => new vscode.SourceBreakpoint(new vscode.Location(document.uri, new vscode.Position(l, 0)), true)));
