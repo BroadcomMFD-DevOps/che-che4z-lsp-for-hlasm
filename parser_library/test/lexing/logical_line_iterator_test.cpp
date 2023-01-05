@@ -65,106 +65,61 @@ INSTANTIATE_TEST_SUITE_P(logical_line,
     }));
 
 namespace {
-class logical_line_iterator_transform_test : public testing::Test
+class logical_line_iterator_coordinates_test : public testing::Test
 {
 public:
-    logical_line_iterator_transform_test(std::string_view input)
+    logical_line_iterator_coordinates_test(std::string_view input)
         : m_input(std::move(input))
     {}
 
-    void SetUp() override
-    {
-        ASSERT_TRUE(extract_logical_line(m_line_a, m_input, default_ictl));
-        m_line_b = m_line_a;
-    }
+    void SetUp() override { ASSERT_TRUE(extract_logical_line(m_line, m_input, default_ictl)); }
 
 protected:
-    logical_line m_line_a;
-    logical_line m_line_b;
+    logical_line m_line;
     std::string_view m_input;
-
-    void check_equality(const logical_line::const_iterator& it_regular,
-        const logical_line::const_iterator& it_transformed,
-        const logical_line& base_line)
-    {
-        EXPECT_TRUE(std::equal(it_regular, base_line.end(), it_transformed, base_line.end()));
-        EXPECT_TRUE(std::equal(std::make_reverse_iterator(it_regular),
-            std::make_reverse_iterator(base_line.begin()),
-            std::make_reverse_iterator(it_transformed),
-            std::make_reverse_iterator(base_line.begin())));
-    };
 };
 
-class logical_line_iterator_transform_single_line_test : public logical_line_iterator_transform_test
+class logical_line_iterator_coordinates_singleline : public logical_line_iterator_coordinates_test
 {
 public:
-    logical_line_iterator_transform_single_line_test()
-        : logical_line_iterator_transform_test("123456")
+    logical_line_iterator_coordinates_singleline()
+        : logical_line_iterator_coordinates_test("123456")
     {}
 };
 } // namespace
 
-TEST_F(logical_line_iterator_transform_single_line_test, unchanged_code_part)
+TEST_F(logical_line_iterator_coordinates_singleline, unchanged_code_part)
 {
-    auto it_transformed_a = m_line_b.begin().transform_into(m_line_a);
-    auto it_regular_a = m_line_a.begin();
-    check_equality(it_regular_a, it_transformed_a, m_line_a);
+    auto expected = std::pair<size_t, size_t>(0, 0);
+    EXPECT_EQ(m_line.begin().get_coordinates(), expected);
 
-    it_transformed_a = std::next(m_line_b.begin(), 3).transform_into(m_line_a);
-    it_regular_a = std::next(m_line_a.begin(), 3);
-    check_equality(it_regular_a, it_transformed_a, m_line_a);
+    expected = std::pair<size_t, size_t>(3, 0);
+    EXPECT_EQ(std::next(m_line.begin(), 3).get_coordinates(), expected);
 
-    it_transformed_a = m_line_b.end().transform_into(m_line_a);
-    it_regular_a = m_line_a.end();
-    check_equality(it_regular_a, it_transformed_a, m_line_a);
+    expected = std::pair<size_t, size_t>(6, 0);
+    EXPECT_EQ(m_line.end().get_coordinates(), expected);
 }
 
-TEST_F(logical_line_iterator_transform_single_line_test, removed_code_prefix)
+TEST_F(logical_line_iterator_coordinates_singleline, removed_code_suffix)
 {
-    m_line_b.segments.front().code.remove_prefix(3);
+    m_line.segments.front().code.remove_suffix(3);
 
-    auto it_transformed_a = m_line_b.begin().transform_into(m_line_a);
-    auto it_regular_a = std::next(m_line_a.begin(), 3);
-    check_equality(it_regular_a, it_transformed_a, m_line_a);
+    auto expected = std::pair<size_t, size_t>(0, 0);
+    EXPECT_EQ(m_line.begin().get_coordinates(), expected);
 
-    it_transformed_a = m_line_b.end().transform_into(m_line_a);
-    it_regular_a = m_line_a.end();
-    check_equality(it_regular_a, it_transformed_a, m_line_a);
-}
+    expected = std::pair<size_t, size_t>(3, 0);
+    EXPECT_EQ(std::next(m_line.begin(), 3).get_coordinates(), expected);
 
-TEST_F(logical_line_iterator_transform_single_line_test, removed_code_suffix)
-{
-    m_line_b.segments.front().code.remove_suffix(3);
-
-    auto it_transformed_a = m_line_b.begin().transform_into(m_line_a);
-    auto it_regular_a = m_line_a.begin();
-    check_equality(it_regular_a, it_transformed_a, m_line_a);
-
-    it_transformed_a = m_line_b.end().transform_into(m_line_a);
-    it_regular_a = std::next(m_line_a.begin(), 3);
-    check_equality(it_regular_a, it_transformed_a, m_line_a);
-}
-
-TEST_F(logical_line_iterator_transform_single_line_test, removed_code_prefix_suffix)
-{
-    m_line_b.segments.front().code.remove_prefix(1);
-    m_line_b.segments.front().code.remove_suffix(1);
-
-    auto it_transformed_a = m_line_b.begin().transform_into(m_line_a);
-    auto it_regular_a = std::next(m_line_a.begin());
-    check_equality(it_regular_a, it_transformed_a, m_line_a);
-
-    it_transformed_a = m_line_b.end().transform_into(m_line_a);
-    it_regular_a = std::prev(m_line_a.end());
-    check_equality(it_regular_a, it_transformed_a, m_line_a);
+    expected = std::pair<size_t, size_t>(3, 0);
+    EXPECT_EQ(m_line.end().get_coordinates(), expected);
 }
 
 namespace {
-class logical_line_iterator_transform_multi_line_test : public logical_line_iterator_transform_test
+class logical_line_iterator_coordinates_multiline : public logical_line_iterator_coordinates_test
 {
 public:
-    logical_line_iterator_transform_multi_line_test()
-        : logical_line_iterator_transform_test(m_input)
+    logical_line_iterator_coordinates_multiline()
+        : logical_line_iterator_coordinates_test(m_input)
     {}
 
 private:
@@ -177,75 +132,64 @@ private:
                FROM                                                    X
                SYSIBM.SYSDUMMY1)";
 };
+
 } // namespace
 
-TEST_F(logical_line_iterator_transform_multi_line_test, unchanged_code_part)
+TEST_F(logical_line_iterator_coordinates_multiline, unchanged_code_part)
 {
-    auto it_transformed_a = m_line_b.begin().transform_into(m_line_a);
-    auto it_regular_a = m_line_a.begin();
-    check_equality(it_regular_a, it_transformed_a, m_line_a);
+    auto expected = std::pair<size_t, size_t>(0, 0);
+    EXPECT_EQ(m_line.begin().get_coordinates(), expected);
 
-    it_transformed_a = std::next(m_line_b.begin(), 120).transform_into(m_line_a);
-    it_regular_a = std::next(m_line_a.begin(), 120);
-    check_equality(it_regular_a, it_transformed_a, m_line_a);
+    expected = std::pair<size_t, size_t>(18, 2);
+    EXPECT_EQ(std::next(m_line.begin(), 130).get_coordinates(), expected);
 
-    it_transformed_a = m_line_b.end().transform_into(m_line_a);
-    it_regular_a = m_line_a.end();
-    check_equality(it_regular_a, it_transformed_a, m_line_a);
+    expected = std::pair<size_t, size_t>(31, 6);
+    EXPECT_EQ(m_line.end().get_coordinates(), expected);
 }
 
-TEST_F(logical_line_iterator_transform_multi_line_test, empty_all_lines)
+TEST_F(logical_line_iterator_coordinates_multiline, empty_all_lines)
 {
-    std::for_each(m_line_b.segments.begin(), m_line_b.segments.end(), [](auto& s) { s.code = {}; });
+    std::for_each(m_line.segments.begin(), m_line.segments.end(), [](auto& s) { s.code = {}; });
 
-    auto it_transformed_a = m_line_b.begin().transform_into(m_line_a);
-    auto it_regular_a = m_line_a.end();
-    check_equality(it_regular_a, it_transformed_a, m_line_a);
-
-    it_transformed_a = m_line_b.end().transform_into(m_line_a);
-    it_regular_a = m_line_a.end();
-    check_equality(it_regular_a, it_transformed_a, m_line_a);
+    auto expected = std::pair<size_t, size_t>(0, 0);
+    EXPECT_EQ(m_line.begin().get_coordinates(), expected);
+    EXPECT_EQ(m_line.end().get_coordinates(), expected);
 }
 
-TEST_F(logical_line_iterator_transform_multi_line_test, empty_last_line)
+TEST_F(logical_line_iterator_coordinates_multiline, empty_last_line)
 {
-    m_line_b.segments.back().code = {};
+    m_line.segments.back().code = {};
 
-    auto it_transformed_a = m_line_b.begin().transform_into(m_line_a);
-    auto it_regular_a = m_line_a.begin();
-    check_equality(it_regular_a, it_transformed_a, m_line_a);
+    auto expected = std::pair<size_t, size_t>(0, 0);
+    EXPECT_EQ(m_line.begin().get_coordinates(), expected);
 
-    it_transformed_a = m_line_b.end().transform_into(m_line_a);
-    it_regular_a = std::prev(m_line_a.end(), 16);
-    check_equality(it_regular_a, it_transformed_a, m_line_a);
+    expected = std::pair<size_t, size_t>(70, 5);
+    EXPECT_EQ(std::prev(m_line.end()).get_coordinates(), expected);
+
+    expected = std::pair<size_t, size_t>(71, 5);
+    EXPECT_EQ(m_line.end().get_coordinates(), expected);
 }
 
-TEST_F(logical_line_iterator_transform_multi_line_test, empty_some_lines)
+TEST_F(logical_line_iterator_coordinates_multiline, empty_some_lines)
 {
-    m_line_b.segments[1].code = {};
-    m_line_b.segments[3].code.remove_suffix(46);
+    m_line.segments[1].code = {};
+    m_line.segments[3].code.remove_suffix(46);
 
-    auto it_transformed_a = m_line_b.begin().transform_into(m_line_a);
-    auto it_regular_a = m_line_a.begin();
-    check_equality(it_regular_a, it_transformed_a, m_line_a);
+    auto expected = std::pair<size_t, size_t>(0, 0);
+    EXPECT_EQ(m_line.begin().get_coordinates(), expected);
 
-    it_transformed_a = std::next(m_line_b.begin(), 70).transform_into(m_line_a);
-    it_regular_a = std::next(m_line_a.begin(), 70);
-    check_equality(it_regular_a, it_transformed_a, m_line_a);
+    expected = std::pair<size_t, size_t>(70, 0);
+    EXPECT_EQ(std::next(m_line.begin(), 70).get_coordinates(), expected);
 
-    it_transformed_a = std::next(m_line_b.begin(), 71).transform_into(m_line_a);
-    it_regular_a = std::next(m_line_a.begin(), 127);
-    check_equality(it_regular_a, it_transformed_a, m_line_a);
+    expected = std::pair<size_t, size_t>(15, 2);
+    EXPECT_EQ(std::next(m_line.begin(), 71).get_coordinates(), expected);
 
-    it_transformed_a = std::next(m_line_b.begin(), 136).transform_into(m_line_a);
-    it_regular_a = std::next(m_line_a.begin(), 192);
-    check_equality(it_regular_a, it_transformed_a, m_line_a);
+    expected = std::pair<size_t, size_t>(70, 4);
+    EXPECT_EQ(std::next(m_line.begin(), 192).get_coordinates(), expected);
 
-    it_transformed_a = std::next(m_line_b.begin(), 137).transform_into(m_line_a);
-    it_regular_a = std::next(m_line_a.begin(), 239);
-    check_equality(it_regular_a, it_transformed_a, m_line_a);
+    expected = std::pair<size_t, size_t>(15, 5);
+    EXPECT_EQ(std::next(m_line.begin(), 193).get_coordinates(), expected);
 
-    it_transformed_a = m_line_b.end().transform_into(m_line_a);
-    it_regular_a = m_line_a.end();
-    check_equality(it_regular_a, it_transformed_a, m_line_a);
+    expected = std::pair<size_t, size_t>(31, 6);
+    EXPECT_EQ(m_line.end().get_coordinates(), expected);
 }

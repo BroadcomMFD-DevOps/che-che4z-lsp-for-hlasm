@@ -146,32 +146,22 @@ struct logical_line
             return m_segment_it == o.m_segment_it;
         }
 
-        const_iterator transform_into(const logical_line& other_ll) const noexcept
+        std::pair<size_t, size_t> get_coordinates() const noexcept
         {
             assert(m_logical_line);
-            const auto& my_segments = m_logical_line->segments;
-            const auto& other_segments = other_ll.segments;
 
-            if (m_segment_it == my_segments.end())
+            if (m_logical_line->begin() == m_logical_line->end())
+                return { 0, 0 };
+
+            if (m_segment_it == m_logical_line->segments.end())
             {
-                if (std::find_if(
-                        my_segments.begin(), my_segments.end(), [](const auto& my_s) { return !my_s.code.empty(); })
-                    == my_segments.end())
-                    return const_iterator(other_segments.end(), column_iterator(), &other_ll);
-                else
-                    return std::next(std::prev(*this).transform_into(other_ll));
+                auto coor = std::prev(*this).get_coordinates();
+                coor.first++;
+                return coor;
             }
-
-            if (auto other_segment_it = std::find_if(other_segments.begin(),
-                    other_segments.end(),
-                    [&my_line = m_segment_it->line](const auto& other_s) { return other_s.line == my_line; });
-                other_segment_it == other_segments.end())
-                return const_iterator(other_segments.end(), column_iterator(), &other_ll);
             else
-                return const_iterator(other_segment_it,
-                    other_segment_it->code.begin()
-                        + std::abs(std::to_address(m_col_it) - std::to_address(other_segment_it->code.begin())),
-                    &other_ll);
+                return { m_segment_it->code_offset + std::distance(m_segment_it->code.begin(), m_col_it),
+                    std::distance(m_logical_line->segments.begin(), m_segment_it) };
         }
 
     private:

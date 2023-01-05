@@ -15,7 +15,7 @@
 #include "range_provider.h"
 
 using namespace hlasm_plugin::parser_library;
-using namespace hlasm_plugin::parser_library::semantics;
+namespace hlasm_plugin::parser_library::semantics {
 
 range range_provider::get_range(const antlr4::Token* start, const antlr4::Token* stop) const
 {
@@ -157,8 +157,7 @@ range_provider::range_provider(range original_field_range,
     assert(original_operand_ranges.empty() || original_range.start == original_operand_ranges.front().start);
 }
 
-hlasm_plugin::parser_library::semantics::range_provider::range_provider(
-    std::vector<std::pair<std::pair<size_t, bool>, range>> ms)
+range_provider::range_provider(std::vector<std::pair<std::pair<size_t, bool>, range>> ms)
     : model_substitutions(std::move(ms))
     , state(adjusting_state::MODEL_REPARSE)
 {
@@ -169,3 +168,18 @@ range_provider::range_provider()
     : original_range()
     , state(adjusting_state::NONE)
 {}
+
+range text_range(
+    const lexing::logical_line::const_iterator& b, const lexing::logical_line::const_iterator& e, size_t lineno_offset)
+{
+    const auto [bx, by] = b.get_coordinates();
+    position b_pos(by + lineno_offset, bx);
+    if (b == e) // empty range
+        return range(std::move(b_pos));
+    else
+    {
+        const auto [ex, ey] = e.get_coordinates();
+        return range(std::move(b_pos), position(ey + lineno_offset, ex));
+    }
+}
+} // namespace hlasm_plugin::parser_library::semantics

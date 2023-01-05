@@ -88,28 +88,21 @@ constexpr std::array symbols = []() {
 class db2_logical_line_helper
 {
 public:
-    std::shared_ptr<lexing::logical_line> m_orig_ll;
+    lexing::logical_line m_orig_ll;
     lexing::logical_line m_db2_ll;
-    size_t m_instruction_end = 0;
     size_t m_lineno = 0;
     std::vector<std::optional<std::string_view>> m_comments;
-    semantics::range_provider m_rp;
 
     db2_logical_line_helper() = default;
 
-    db2_logical_line_helper(std::shared_ptr<lexing::logical_line> ll, size_t instruction_end, size_t lineno)
-        : m_orig_ll(ll)
-        , m_db2_ll()
-        , m_instruction_end(instruction_end)
-        , m_lineno(lineno)
+    preprocessor::line_iterator reinit(preprocessor::line_iterator it, preprocessor::line_iterator end, size_t lineno)
     {
-        assert(m_orig_ll);
+        m_lineno = lineno;
 
-        std::tie(m_db2_ll, m_comments) = extract_db2_line_comments(*m_orig_ll);
+        it = preprocessor::extract_nonempty_logical_line(m_orig_ll, it, end, lexing::default_ictl);
+        std::tie(m_db2_ll, m_comments) = extract_db2_line_comments(m_orig_ll);
 
-        m_rp = semantics::range_provider(
-            range(position(lineno, 0), position(lineno, std::distance(m_orig_ll->begin(), m_orig_ll->end()))),
-            semantics::adjusting_state::MACRO_REPARSE);
+        return it;
     }
 
     static void trim_left(lexing::logical_line::const_iterator& it, const lexing::logical_line::const_iterator& it_e)
@@ -123,16 +116,6 @@ public:
             else
                 break;
         }
-    }
-
-    range adjust_range(const lexing::logical_line::const_iterator& start_column,
-        const lexing::logical_line::const_iterator& end_column) const
-    {
-        auto orig_it_s = start_column.transform_into(*m_orig_ll);
-        auto dist_from_beginning = std::distance(m_orig_ll->begin(), orig_it_s);
-        return m_rp.adjust_range(range((position(m_lineno, dist_from_beginning)),
-            (position(
-                m_lineno, std::distance(orig_it_s, end_column.transform_into(*m_orig_ll)) + dist_from_beginning))));
     }
 
 private:
@@ -167,7 +150,7 @@ private:
     }
 
     std::pair<lexing::logical_line, std::vector<std::optional<std::string_view>>> extract_db2_line_comments(
-        lexing::logical_line ll)
+        lexing::logical_line ll) const
     {
         std::vector<std::optional<std::string_view>> comments;
         std::stack<unsigned char, std::basic_string<unsigned char>> quotes;
@@ -191,17 +174,19 @@ private:
 template<typename It>
 class mini_parser
 {
-    void skip_to_matching_character(It& b, const It& e, char to_match) const
+    void skip_to_matching_character(It& b, const It& e) const
     {
         if (b == e)
             return;
+
+        const auto to_match = *b;
 
         while (++b != e && to_match != *b)
             ;
     }
 
 public:
-    std::vector<semantics::preproc_details::name_range> get_args(It& b, const It& e, const db2_logical_line_helper& ll)
+    std::vector<semantics::preproc_details::name_range> get_args(It& b, const It& e, size_t lineno)
     {
         enum class consuming_state
         {
@@ -213,12 +198,12 @@ public:
         };
 
         std::vector<semantics::preproc_details::name_range> arguments;
-        const auto try_arg_inserter = [&arguments, &ll](const It& start, const It& end, consuming_state state) {
+        const auto try_arg_inserter = [&arguments, &lineno](const It& start, const It& end, consuming_state state) {
             if (state != consuming_state::CONSUMING)
                 return false;
 
-            arguments.emplace_back(
-                semantics::preproc_details::name_range { std::string(start, end), ll.adjust_range(start, end) });
+            arguments.emplace_back(semantics::preproc_details::name_range {
+                std::string(start, end), semantics::text_range(start, end, lineno) });
             return true;
         };
 
@@ -262,7 +247,7 @@ public:
                 case quote:
                     try_arg_inserter(arg_start_it, b, state);
 
-                    if (skip_to_matching_character(b, e, *b); b == e)
+                    if (skip_to_matching_character(b, e); b == e)
                         goto done;
 
                     break;
@@ -311,7 +296,7 @@ struct consuming_regex_details
     {}
 
 private:
-    static const std::regex get_consuming_regex(
+    static std::regex get_consuming_regex(
         const std::initializer_list<std::string_view>& words, bool tolerate_no_space_at_end)
     {
         assert(words.size());
@@ -520,12 +505,11 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         return std::nullopt;
     }
 
-    std::optional<semantics::preproc_details::name_range> try_process_include(lexing::logical_line::const_iterator it,
-        const lexing::logical_line::const_iterator& it_e,
-        const db2_logical_line_helper& ll)
+    std::optional<semantics::preproc_details::name_range> try_process_include(
+        lexing::logical_line::const_iterator it, const lexing::logical_line::const_iterator& it_e, size_t lineno)
     {
-        static const consuming_regex_details include_crd({ "INCLUDE" }, false, false);
-        if (!consume_words_advance_to_next(it, it_e, include_crd))
+        if (static const consuming_regex_details include_crd({ "INCLUDE" }, false, false);
+            !consume_words_advance_to_next(it, it_e, include_crd))
             return std::nullopt;
 
         lexing::logical_line::const_iterator inc_it_s;
@@ -551,7 +535,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         }
 
         if (!nr.name.empty())
-            nr.r = ll.adjust_range(inc_it_s, inc_it_e);
+            nr.r = semantics::text_range(inc_it_s, inc_it_e, lineno);
 
         return nr;
     }
@@ -631,8 +615,9 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         if (line_preview.empty())
             return ignore;
 
-        const auto consume_and_create = [&line_preview, lineno, instr_column_start](
-                                            line_type line, consuming_regex_details crd, std::string_view line_id) {
+        const auto consume_and_create = [&line_preview, lineno, instr_column_start](line_type line,
+                                            const consuming_regex_details& crd,
+                                            std::string_view line_id) {
             auto it = line_preview.begin();
             if (auto consumed_words_end = consume_words_advance_to_next(it, line_preview.end(), crd);
                 consumed_words_end)
@@ -760,12 +745,12 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         const lexing::logical_line::const_iterator& it_b,
         const lexing::logical_line::const_iterator& it_e)
     {
-        auto ds_line_inserter = [&label, &it_e, this](lexing::logical_line::const_iterator it_b,
-                                    consuming_regex_details crd,
+        auto ds_line_inserter = [&label, &it_e, this](lexing::logical_line::const_iterator it,
+                                    const consuming_regex_details& crd,
                                     std::string_view ds_line_type) {
-            if (!consume_words_advance_to_next(it_b, it_e, crd))
+            if (!consume_words_advance_to_next(it, it_e, crd))
                 return false;
-            add_ds_line(label, "", std::move(ds_line_type));
+            add_ds_line(label, "", ds_line_type);
             return true;
         };
 
@@ -872,7 +857,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
     {
         m_result.emplace_back(replaced_line { "***$$$\n" });
         m_result.emplace_back(replaced_line {
-            concat("*", ll.m_orig_ll->segments.front().code.substr(0, lexing::default_ictl.end - 1), "\n") });
+            concat("*", ll.m_orig_ll.segments.front().code.substr(0, lexing::default_ictl.end - 1), "\n") });
         m_result.emplace_back(replaced_line { "***$$$\n" });
     }
 
@@ -908,8 +893,11 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         return ignore;
     }
 
-    std::vector<semantics::preproc_details::name_range> process_nonempty_line(
-        const db2_logical_line_helper& ll, bool include_allowed, line_type& instruction_type, std::string_view label)
+    std::vector<semantics::preproc_details::name_range> process_nonempty_line(const db2_logical_line_helper& ll,
+        size_t instruction_end,
+        bool include_allowed,
+        line_type& instruction_type,
+        std::string_view label)
     {
         const auto diag_adder = [diags = m_diags](diagnostic_op&& diag) {
             if (diags)
@@ -922,7 +910,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         static const consuming_regex_details is_crd({ "IS" }, true, true);
 
         std::vector<semantics::preproc_details::name_range> args;
-        auto it = std::next(ll.m_db2_ll.begin(), ll.m_instruction_end);
+        auto it = std::next(ll.m_db2_ll.begin(), instruction_end);
         auto it_e = ll.m_db2_ll.end();
         db2_logical_line_helper::trim_left(it, it_e);
 
@@ -930,7 +918,8 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         {
             case line_type::exec_sql: {
                 process_regular_line(ll.m_db2_ll.segments, label);
-                if (auto inc_member_details = try_process_include(it, it_e, ll); inc_member_details.has_value())
+                if (auto inc_member_details = try_process_include(it, it_e, ll.m_lineno);
+                    inc_member_details.has_value())
                 {
                     if (inc_member_details->name.empty())
                     {
@@ -952,7 +941,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
                     if (sql_has_codegen(it, it_e))
                     {
                         mini_parser<lexing::logical_line::const_iterator> p;
-                        args = p.get_args(it, it_e, ll);
+                        args = p.get_args(it, it_e, ll.m_lineno);
                         generate_sql_code_mock(args.size());
                     }
                     m_result.emplace_back(replaced_line { "***$$$\n" });
@@ -1071,7 +1060,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
     void generate_replacement(line_iterator it, line_iterator end, bool include_allowed)
     {
         bool skip_continuation = false;
-        auto ll = std::make_shared<lexing::logical_line>();
+
         while (it != end)
         {
             const auto text = it->text();
@@ -1094,19 +1083,20 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
 
             m_source_translated = true;
 
-            it = extract_nonempty_logical_line(*ll, it, end, lexing::default_ictl);
-            m_ll_helper = db2_logical_line_helper(ll, instruction_nr.r.end.column, lineno);
+            it = m_ll_helper.reinit(it, end, lineno);
 
-            auto args = process_nonempty_line(m_ll_helper, include_allowed, instruction_type, label_nr.name);
+            auto args = process_nonempty_line(
+                m_ll_helper, instruction_nr.r.end.column, include_allowed, instruction_type, label_nr.name);
 
             auto stmt = std::make_shared<semantics::preprocessor_statement_si>(
                 semantics::preproc_details {
-                    m_ll_helper.adjust_range(m_ll_helper.m_orig_ll->begin(), m_ll_helper.m_orig_ll->end()),
+                    semantics::text_range(
+                        m_ll_helper.m_orig_ll.begin(), m_ll_helper.m_orig_ll.end(), m_ll_helper.m_lineno),
                     std::move(label_nr),
                     std::move(instruction_nr) },
                 instruction_type == line_type::include);
 
-            do_highlighting(*stmt, *m_ll_helper.m_orig_ll, m_src_proc);
+            do_highlighting(*stmt, m_ll_helper.m_orig_ll, m_src_proc);
 
             stmt->m_details.operands = std::move(args);
             set_statement(std::move(stmt));
@@ -1177,7 +1167,6 @@ public:
         , m_libs(std::move(libs))
         , m_diags(diags)
         , m_src_proc(src_proc)
-        , m_ll_helper()
     {}
 };
 } // namespace

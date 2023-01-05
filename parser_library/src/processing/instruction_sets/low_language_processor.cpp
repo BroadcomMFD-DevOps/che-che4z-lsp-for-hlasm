@@ -21,7 +21,6 @@
 #include "checking/using_label_checker.h"
 #include "processing/processing_manager.h"
 #include "processing/statement_processors/ordinary_processor.h"
-#include "utils/string_operations.h"
 
 using namespace hlasm_plugin::parser_library;
 using namespace processing;
@@ -95,13 +94,14 @@ low_language_processor::preprocessed_part low_language_processor::preprocess_inn
     using namespace semantics;
     preprocessed_part result;
 
-    const auto label_inserter = [&result, this](const std::string label, const range& r) {
-        if (std::string_view label_sv = label; utils::trim_right(label_sv) == label.length())
+    const auto label_inserter = [&result, &ids = hlasm_ctx.ids()](std::string&& label, const range& r) {
+        label.erase(label.find_last_not_of(' ') + 1);
+        if (label.empty())
             result.label.emplace(r);
         else
         {
-            auto ord_id = this->hlasm_ctx.ids().add(label_sv);
-            result.label.emplace(r, ord_symbol_string { ord_id, std::string(label_sv) });
+            auto ord_id = ids.add(label);
+            result.label.emplace(r, ord_symbol_string { ord_id, std::move(label) });
         }
     };
 
