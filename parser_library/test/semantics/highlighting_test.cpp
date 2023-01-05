@@ -19,6 +19,7 @@
 #include "gtest/gtest.h"
 
 #include "../gtest_stringers.h"
+#include "../mock_parse_lib_provider.h"
 #include "analyzer.h"
 #include "preprocessor_options.h"
 #include "protocol.h"
@@ -524,6 +525,28 @@ B SQL  TYPE   IS RESULT_SET_LOCATOR VARYING   comment comment2          006)";
         token_info({ { 10, 46 }, { 10, 62 } }, hl_scopes::remark),
         */
         token_info({ { 10, 72 }, { 10, 75 } }, hl_scopes::ignored),
+    };
+
+    EXPECT_EQ(tokens, expected);
+}
+
+TEST(highlighting, db2_preprocessor_statement_reinclude)
+{
+    mock_parse_lib_provider libs({
+        { "MEMBER", "  SQL TYPE IS RESULT_SET_LOCATOR VARYING" },
+    });
+
+    const std::string contents = "ABCDE EXEC  SQL   INCLUDE  MEMBER";
+
+    analyzer a(contents,
+        analyzer_options { source_file_loc, &libs, db2_preprocessor_options(), collect_highlighting_info::yes });
+    a.analyze();
+
+    const auto& tokens = a.source_processor().semantic_tokens();
+    const semantics::lines_info expected = {
+        token_info({ { 0, 0 }, { 0, 5 } }, hl_scopes::label),
+        token_info({ { 0, 6 }, { 0, 15 } }, hl_scopes::instruction),
+        token_info({ { 0, 15 }, { 0, 33 } }, hl_scopes::operand),
     };
 
     EXPECT_EQ(tokens, expected);

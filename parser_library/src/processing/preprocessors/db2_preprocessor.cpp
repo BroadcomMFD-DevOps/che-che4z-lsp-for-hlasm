@@ -567,10 +567,11 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
             return { instruction_type, member };
         }
 
+        static db2_logical_line_helper ll_helper;
         auto& [include_mem_text, include_mem_loc] = *include_member;
         document d(include_mem_text);
         d.convert_to_replaced();
-        generate_replacement(d.begin(), d.end(), false);
+        generate_replacement(d.begin(), d.end(), ll_helper, false);
         append_included_member(std::make_unique<included_member_details>(included_member_details {
             std::move(member_upper), std::move(include_mem_text), std::move(include_mem_loc) }));
         return { line_type::include, member };
@@ -1057,7 +1058,8 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         }
     }
 
-    void generate_replacement(line_iterator it, line_iterator end, bool include_allowed)
+    void generate_replacement(
+        line_iterator it, line_iterator end, db2_logical_line_helper& ll_helper, bool include_allowed)
     {
         bool skip_continuation = false;
 
@@ -1071,9 +1073,9 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
                 continue;
             }
 
-            size_t lineno = it->lineno().value_or(0); // TODO: needs to be addressed for chained preprocessors
+            auto lineno = it->lineno(); // TODO: needs to be addressed for chained preprocessors
 
-            auto [instruction_type, label_nr, instruction_nr] = check_line(text, lineno);
+            auto [instruction_type, label_nr, instruction_nr] = check_line(text, lineno.value_or(0));
             if (instruction_type == line_type::ignore)
             {
                 m_result.emplace_back(*it++);
@@ -1083,23 +1085,26 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
 
             m_source_translated = true;
 
-            it = m_ll_helper.reinit(it, end, lineno);
+            it = ll_helper.reinit(it, end, lineno.value_or(0));
 
             auto args = process_nonempty_line(
-                m_ll_helper, instruction_nr.r.end.column, include_allowed, instruction_type, label_nr.name);
+                ll_helper, instruction_nr.r.end.column, include_allowed, instruction_type, label_nr.name);
 
-            auto stmt = std::make_shared<semantics::preprocessor_statement_si>(
-                semantics::preproc_details {
-                    semantics::text_range(
-                        m_ll_helper.m_orig_ll.begin(), m_ll_helper.m_orig_ll.end(), m_ll_helper.m_lineno),
-                    std::move(label_nr),
-                    std::move(instruction_nr) },
-                instruction_type == line_type::include);
+            if (lineno.has_value())
+            {
+                auto stmt = std::make_shared<semantics::preprocessor_statement_si>(
+                    semantics::preproc_details {
+                        semantics::text_range(
+                            ll_helper.m_orig_ll.begin(), ll_helper.m_orig_ll.end(), ll_helper.m_lineno),
+                        std::move(label_nr),
+                        std::move(instruction_nr) },
+                    instruction_type == line_type::include);
 
-            do_highlighting(*stmt, m_ll_helper.m_orig_ll, m_src_proc);
+                do_highlighting(*stmt, ll_helper.m_orig_ll, m_src_proc);
 
-            stmt->m_details.operands = std::move(args);
-            set_statement(std::move(stmt));
+                stmt->m_details.operands = std::move(args);
+                set_statement(std::move(stmt));
+            }
         }
     }
 
@@ -1118,7 +1123,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         // ignores ICTL
         inject_SQLSECT();
 
-        generate_replacement(it, end, true);
+        generate_replacement(it, end, m_ll_helper, true);
 
         if (m_source_translated || !m_conditional)
             return document(std::move(m_result));
