@@ -149,18 +149,11 @@ struct logical_line
         {
             assert(m_logical_line);
 
-            if (m_logical_line->begin() == m_logical_line->end())
+            if (m_segment_it == m_logical_line->segments.end())
                 return { 0, 0 };
 
-            if (m_segment_it == m_logical_line->segments.end())
-            {
-                auto coor = std::prev(*this).get_coordinates();
-                coor.first++;
-                return coor;
-            }
-            else
-                return { m_segment_it->code_offset + std::distance(m_segment_it->code.begin(), m_col_it),
-                    std::distance(m_logical_line->segments.begin(), m_segment_it) };
+            return { m_segment_it->code_offset + std::distance(m_segment_it->code.begin(), m_col_it),
+                std::distance(m_logical_line->segments.begin(), m_segment_it) };
         }
 
     private:

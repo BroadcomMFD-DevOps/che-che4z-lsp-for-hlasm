@@ -92,12 +92,13 @@ TEST_F(logical_line_iterator_coordinates_singleline, unchanged_code_part)
 {
     auto expected = std::pair<size_t, size_t>(0, 0);
     EXPECT_EQ(m_line.begin().get_coordinates(), expected);
+    EXPECT_EQ(m_line.end().get_coordinates(), expected);
 
     expected = std::pair<size_t, size_t>(3, 0);
     EXPECT_EQ(std::next(m_line.begin(), 3).get_coordinates(), expected);
 
-    expected = std::pair<size_t, size_t>(6, 0);
-    EXPECT_EQ(m_line.end().get_coordinates(), expected);
+    expected = std::pair<size_t, size_t>(5, 0);
+    EXPECT_EQ(std::prev(m_line.end()).get_coordinates(), expected);
 }
 
 TEST_F(logical_line_iterator_coordinates_singleline, removed_code_suffix)
@@ -107,11 +108,8 @@ TEST_F(logical_line_iterator_coordinates_singleline, removed_code_suffix)
     auto expected = std::pair<size_t, size_t>(0, 0);
     EXPECT_EQ(m_line.begin().get_coordinates(), expected);
 
-    expected = std::pair<size_t, size_t>(3, 0);
-    EXPECT_EQ(std::next(m_line.begin(), 3).get_coordinates(), expected);
-
-    expected = std::pair<size_t, size_t>(3, 0);
-    EXPECT_EQ(m_line.end().get_coordinates(), expected);
+    expected = std::pair<size_t, size_t>(2, 0);
+    EXPECT_EQ(std::prev(m_line.end()).get_coordinates(), expected);
 }
 
 namespace {
@@ -143,8 +141,8 @@ TEST_F(logical_line_iterator_coordinates_multiline, unchanged_code_part)
     expected = std::pair<size_t, size_t>(18, 2);
     EXPECT_EQ(std::next(m_line.begin(), 130).get_coordinates(), expected);
 
-    expected = std::pair<size_t, size_t>(31, 6);
-    EXPECT_EQ(m_line.end().get_coordinates(), expected);
+    expected = std::pair<size_t, size_t>(30, 6);
+    EXPECT_EQ(std::prev(m_line.end()).get_coordinates(), expected);
 }
 
 TEST_F(logical_line_iterator_coordinates_multiline, empty_all_lines)
@@ -165,9 +163,6 @@ TEST_F(logical_line_iterator_coordinates_multiline, empty_last_line)
 
     expected = std::pair<size_t, size_t>(70, 5);
     EXPECT_EQ(std::prev(m_line.end()).get_coordinates(), expected);
-
-    expected = std::pair<size_t, size_t>(71, 5);
-    EXPECT_EQ(m_line.end().get_coordinates(), expected);
 }
 
 TEST_F(logical_line_iterator_coordinates_multiline, empty_some_lines)
@@ -190,6 +185,6 @@ TEST_F(logical_line_iterator_coordinates_multiline, empty_some_lines)
     expected = std::pair<size_t, size_t>(15, 5);
     EXPECT_EQ(std::next(m_line.begin(), 193).get_coordinates(), expected);
 
-    expected = std::pair<size_t, size_t>(31, 6);
-    EXPECT_EQ(m_line.end().get_coordinates(), expected);
+    expected = std::pair<size_t, size_t>(30, 6);
+    EXPECT_EQ(std::prev(m_line.end()).get_coordinates(), expected);
 }
