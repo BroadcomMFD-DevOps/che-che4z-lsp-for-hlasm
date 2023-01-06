@@ -334,6 +334,61 @@ public:
     }
 };
 
+enum class condition_code
+{
+    _0,
+    _1,
+    _2,
+    _3,
+};
+
+class condition_code_explanation
+{
+    std::array<const char*, 4> text;
+    std::array<unsigned char, 4> lengths;
+
+public:
+    template<size_t l0>
+    consteval condition_code_explanation(const char (&t0)[l0]) noexcept requires(l0 > 1 && l0 < 256)
+        : text { t0, t0, t0, t0 }
+        , lengths { l0 - 1, l0 - 1, l0 - 1, l0 - 1 }
+    {}
+    template<size_t l0, size_t l1, size_t l2, size_t l3>
+    consteval condition_code_explanation(
+        const char (&t0)[l0], const char (&t1)[l1], const char (&t2)[l2], const char (&t3)[l3]) noexcept
+        requires(l0 > 0 && l1 > 0 && l2 > 0 && l3 > 0 && l0 < 256 && l1 < 256 && l2 < 256 && l3 < 256)
+        : text { l0 == 1 ? nullptr : t0, l1 == 1 ? nullptr : t1, l2 == 1 ? nullptr : t2, l3 == 1 ? nullptr : t3 }
+        , lengths { l0 - 1, l1 - 1, l2 - 1, l3 - 1 }
+    {}
+
+    constexpr std::string_view tranlate_cc(condition_code cc) const noexcept
+    {
+        auto cc_val = static_cast<int>(cc);
+        return std::string_view(text[cc_val], lengths[cc_val]);
+    }
+
+    constexpr bool has_single_explanation() const noexcept
+    {
+        return text[0] == text[1] && text[0] == text[2] && text[0] == text[3] && lengths[0] == lengths[1]
+            && lengths[0] == lengths[2] && lengths[0] == lengths[3];
+    }
+};
+
+constexpr size_t condition_code_set_size = 0
+#define DEFINE_CC_SET(...) +1
+#include "instruction_details.h"
+    ;
+extern constinit std::array<condition_code_explanation, condition_code_set_size> condition_code_explanations;
+
+struct machine_instruction_details
+{
+    const char* fullname;
+    unsigned char fullname_length;
+    unsigned char cc_explanation;
+    bool privileged : 1;
+    bool privileged_conditionally : 1;
+    bool has_parameter_list : 1;
+};
 
 struct instruction_format_definition
 {
@@ -398,13 +453,15 @@ class machine_instruction
     unsigned char m_operand_len;
 
     const checking::machine_operand_format* m_operands;
+    machine_instruction_details m_details;
 
 public:
     constexpr machine_instruction(std::string_view name,
         mach_format format,
         std::span<const checking::machine_operand_format> operands,
         unsigned short page_no,
-        instruction_set_affiliation instr_set_affiliation)
+        instruction_set_affiliation instr_set_affiliation,
+        machine_instruction_details d)
         : m_name(name)
         , m_size_identifier(get_length_by_format(format))
         , m_page_no(page_no)
@@ -420,14 +477,16 @@ public:
 #endif
         , m_operand_len((unsigned char)operands.size())
         , m_operands(operands.data())
+        , m_details(d)
     {
         assert(operands.size() <= max_operand_count);
     }
     constexpr machine_instruction(std::string_view name,
         instruction_format_definition ifd,
         unsigned short page_no,
-        instruction_set_affiliation instr_set_affiliation)
-        : machine_instruction(name, ifd.format, ifd.op_format, page_no, instr_set_affiliation)
+        instruction_set_affiliation instr_set_affiliation,
+        machine_instruction_details d)
+        : machine_instruction(name, ifd.format, ifd.op_format, page_no, instr_set_affiliation, d)
     {}
 
     constexpr std::string_view name() const { return m_name.to_string_view(); }

@@ -450,12 +450,70 @@ public:
     static constexpr instruction_format_definition def() { return { {}, F }; }
 };
 
+namespace {
+struct
+{
+} constexpr privileged;
+struct
+{
+} constexpr privileged_conditionally;
+struct
+{
+} constexpr has_parameter_list;
+struct cc_index
+{
+    unsigned char value;
+};
+
+template<typename... Args>
+constexpr bool make_machine_instruction_details_validate_args() noexcept
+{
+    constexpr size_t p = (0 + ... + std::is_same_v<Args, std::decay_t<decltype(privileged)>>);
+    constexpr size_t p_c = (0 + ... + std::is_same_v<Args, std::decay_t<decltype(privileged_conditionally)>>);
+    constexpr size_t pl = (0 + ... + std::is_same_v<Args, std::decay_t<decltype(has_parameter_list)>>);
+    constexpr size_t cc = (0 + ... + std::is_same_v<Args, cc_index>);
+
+    return p <= 1 && p_c <= 1 && pl <= 1 && !(p && p_c) && cc <= 1;
+}
+
+template<size_t n, typename... Args>
+constexpr machine_instruction_details make_machine_instruction_details(const char (&name)[n], Args&&... args) noexcept
+    requires(n > 0 && n < 256 && make_machine_instruction_details_validate_args<std::decay_t<Args>...>())
+{
+    return machine_instruction_details {
+        name,
+        n - 1,
+        static_cast<unsigned char>((0 + ... +
+            []<typename T>(const T& val) {
+                if constexpr (std::is_same_v<T, cc_index>)
+                    return val.value;
+                else
+                    return 0;
+            }(args))),
+        (0 + ... + std::is_same_v<std::decay_t<Args>, std::decay_t<decltype(privileged)>>),
+        (0 + ... + std::is_same_v<std::decay_t<Args>, std::decay_t<decltype(privileged_conditionally)>>),
+        (0 + ... + std::is_same_v<std::decay_t<Args>, std::decay_t<decltype(has_parameter_list)>>),
+    };
+}
+} // namespace
+
+enum class condition_code_explanation_id
+{
+#define DEFINE_CC_SET(name, ...) name,
+#include "instruction_details.h"
+};
+
+constinit std::array<condition_code_explanation, condition_code_set_size> condition_code_explanations = {
+#define DEFINE_CC_SET(name, ...) condition_code_explanation(__VA_ARGS__),
+#include "instruction_details.h"
+};
 
 #define DEFINE_INSTRUCTION_FORMAT(name, format, ...)                                                                   \
     constexpr auto name = instruction_format_definition_factory<format, __VA_ARGS__>::def();
 #include "instruction_details.h"
 
-#define DEFINE_INSTRUCTION(name, format, page, iset, ...) { #name, format, page, iset, {} },
+#define DEFINE_INSTRUCTION(name, format, page, iset, description, ...)                                                 \
+    { #name, format, page, iset, make_machine_instruction_details(description) },
 constexpr machine_instruction machine_instructions[] = {
 #include "instruction_details.h"
 };
