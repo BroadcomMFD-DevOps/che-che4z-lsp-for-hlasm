@@ -52,18 +52,22 @@ suite('Integration Test Suite', () => {
         assert.ok(openDiags.length == 1 && openDiags[0].code == 'M003', 'Wrong diagnostic');
     }).timeout(10000).slow(1000);
 
-    // test completion for instructions
-    test('Completion Instructions test', async () => {
-        await helper.insertString(editor, new vscode.Position(7, 1), 'L');
-
+    async function insertBestCompletion() {
+        // for some reason insertBestCompletion does not do anything
         await vscode.commands.executeCommand('editor.action.triggerSuggest');
         await helper.sleep(1000);
 
         await vscode.commands.executeCommand('acceptSelectedSuggestion');
         await helper.sleep(1000);
+    }
 
-        const text = editor.document.getText();
-        const acceptedLine = text.split('\n')[7];
+    // test completion for instructions
+    test('Completion Instructions test', async () => {
+        await helper.insertString(editor, new vscode.Position(7, 1), 'L');
+
+        await insertBestCompletion();
+
+        const acceptedLine = editor.document.getText(new vscode.Range(7, 0, 8, 0));
 
         assert.ok(acceptedLine.includes('L             R1,D12U2(X2,B2)'), 'Wrong suggestion result' + acceptedLine);
     }).timeout(10000).slow(4000);
@@ -72,14 +76,9 @@ suite('Integration Test Suite', () => {
     test('Completion Variable symbol test', async () => {
         await helper.insertString(editor, new vscode.Position(8, 0), '&');
 
-        await vscode.commands.executeCommand('editor.action.triggerSuggest');
-        await helper.sleep(1000);
+        await insertBestCompletion();
 
-        await vscode.commands.executeCommand('acceptSelectedSuggestion')
-        await helper.sleep(1000);
-
-        const text = editor.document.getText();
-        const acceptedLine = text.split('\n')[8];
+        const acceptedLine = editor.document.getText(new vscode.Range(8, 0, 9, 0));
 
         assert.ok(acceptedLine.includes('&VAR'), 'Wrong suggestion result' + acceptedLine);
     }).timeout(10000).slow(4000);

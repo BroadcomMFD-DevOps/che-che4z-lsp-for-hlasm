@@ -155,14 +155,18 @@ export function timeout(ms: number, error_message: string | undefined = undefine
     return new Promise<void>((_, reject) => { setTimeout(() => reject(error_message && Error(error_message)), ms); });
 }
 
-export async function waitForDiagnostics(workspace_file: string) {
+export async function waitForDiagnostics(file: string | vscode.Uri) {
     const result = new Promise<[vscode.Uri, vscode.Diagnostic[]][]>((resolve) => {
-        const file_promise = getWorkspaceFile(workspace_file).then(uri => uri.toString());
-        const listener = vscode.languages.onDidChangeDiagnostics((e) => {
+        const file_promise = typeof file === 'string' ? getWorkspaceFile(file).then(uri => uri.toString()) : Promise.resolve(file.toString());
+
+        let listener = vscode.languages.onDidChangeDiagnostics((e) => {
             file_promise.then((file) => {
+                if (!listener)
+                    return;
                 if (!e.uris.find(v => v.toString() === file))
                     return;
                 listener.dispose();
+                listener = null;
                 resolve(vscode.languages.getDiagnostics());
             });
         });
