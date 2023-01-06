@@ -12,7 +12,6 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
-
 #include <algorithm>
 #include <array>
 #include <cassert>
@@ -100,7 +99,8 @@ public:
         m_lineno = lineno;
 
         it = preprocessor::extract_nonempty_logical_line(m_orig_ll, it, end, lexing::default_ictl);
-        std::tie(m_db2_ll, m_comments) = extract_db2_line_comments(m_orig_ll);
+        m_db2_ll = m_orig_ll;
+        extract_db2_line_comments(m_db2_ll, m_comments);
 
         return it;
     }
@@ -149,10 +149,10 @@ private:
         return comment_start;
     }
 
-    std::pair<lexing::logical_line, std::vector<std::optional<std::string_view>>> extract_db2_line_comments(
-        lexing::logical_line ll) const
+    void extract_db2_line_comments(
+        lexing::logical_line& ll, std::vector<std::optional<std::string_view>>& comments) const
     {
-        std::vector<std::optional<std::string_view>> comments;
+        comments.clear();
         std::stack<unsigned char, std::basic_string<unsigned char>> quotes;
         for (auto& seg : ll.segments)
         {
@@ -166,8 +166,6 @@ private:
                 code.remove_suffix(comment->length());
             }
         }
-
-        return { ll, comments };
     }
 };
 
@@ -329,6 +327,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
     bool m_source_translated = false;
     semantics::source_info_processor& m_src_proc;
     db2_logical_line_helper m_ll_helper;
+    db2_logical_line_helper m_ll_include_helper;
 
     enum class line_type
     {
@@ -567,11 +566,10 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
             return { instruction_type, member };
         }
 
-        static db2_logical_line_helper ll_helper;
         auto& [include_mem_text, include_mem_loc] = *include_member;
         document d(include_mem_text);
         d.convert_to_replaced();
-        generate_replacement(d.begin(), d.end(), ll_helper, false);
+        generate_replacement(d.begin(), d.end(), m_ll_include_helper, false);
         append_included_member(std::make_unique<included_member_details>(included_member_details {
             std::move(member_upper), std::move(include_mem_text), std::move(include_mem_loc) }));
         return { line_type::include, member };
