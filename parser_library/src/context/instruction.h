@@ -374,11 +374,7 @@ public:
     }
 };
 
-constexpr size_t condition_code_set_size = 0
-#define DEFINE_CC_SET(...) +1
-#include "instruction_details.h"
-    ;
-extern constinit std::array<condition_code_explanation, condition_code_set_size> condition_code_explanations;
+extern constinit const condition_code_explanation condition_code_explanations[];
 
 struct machine_instruction_details
 {
@@ -519,6 +515,16 @@ public:
         const diagnostic_collector& add_diagnostic) const; // input vector is the vector of the actual incoming values
 
     static constexpr const size_t max_operand_count = 16;
+
+    constexpr std::string_view fullname() const noexcept
+    {
+        return std::string_view(m_details.fullname, m_details.fullname_length);
+    }
+
+    constexpr const auto& cc_explanation() const noexcept
+    {
+        return condition_code_explanations[m_details.cc_explanation];
+    }
 };
 
 class ca_instruction

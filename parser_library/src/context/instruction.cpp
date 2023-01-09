@@ -503,7 +503,7 @@ enum class condition_code_explanation_id
 #include "instruction_details.h"
 };
 
-constinit std::array<condition_code_explanation, condition_code_set_size> condition_code_explanations = {
+constinit const condition_code_explanation condition_code_explanations[] = {
 #define DEFINE_CC_SET(name, ...) condition_code_explanation(__VA_ARGS__),
 #include "instruction_details.h"
 };
