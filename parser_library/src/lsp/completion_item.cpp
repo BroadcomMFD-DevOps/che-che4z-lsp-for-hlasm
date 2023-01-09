@@ -53,15 +53,14 @@ struct operand_formatter
     {
         if (i >= 0x100)
         {
-            char buffer[std::numeric_limits<decltype(i)>::digits / 4 + 1];
-            auto* end = buffer;
+            char buffer[(std::numeric_limits<decltype(i)>::digits + 3) / 4];
+            auto* b = std::end(buffer);
             while (i)
             {
-                *end++ = "0123456789ABCDEF"[i & 0xf];
+                *--b = "0123456789ABCDEF"[i & 0xf];
                 i >>= 4;
             }
-            std::reverse(buffer, end);
-            result.append("X'").append(buffer, end).append("'");
+            result.append("X'").append(b, std::end(buffer)).append("'");
         }
         else if (i & 0x80)
         {
@@ -96,6 +95,29 @@ completion_item_s::completion_item_s(std::string label,
 {}
 
 namespace {
+
+std::string generate_cc_explanation(const context::condition_code_explanation& cc)
+{
+    std::string result = "Condition Code: ";
+
+    const auto cc_translate = [&cc](int v) {
+        auto result = cc.tranlate_cc(static_cast<context::condition_code>(v));
+        if (result.empty())
+            result = "--";
+        return result;
+    };
+
+    if (cc.has_single_explanation())
+        result.append(cc_translate(0));
+    else
+    {
+        for (int i = 0; i < 4; ++i)
+            result.append("\n- ").append(cc_translate(i));
+    }
+
+    return result;
+}
+
 void process_machine_instruction(const context::machine_instruction& machine_instr,
     std::set<completion_item_s, completion_item_s::label_comparer>& items)
 {
@@ -135,11 +157,19 @@ void process_machine_instruction(const context::machine_instruction& machine_ins
         autocomplete.append(opt, ']').append("}");
     }
 
+    auto operands = detail.take();
+
     items.emplace(std::string(machine_instr.name()),
-        "Operands: " + detail.take(),
+        std::move(operands),
         utils::concat(machine_instr.name(), " ${", snippet_id++, ":}", autocomplete.take()),
-        utils::concat("Machine instruction \n\nInstruction format: ",
-            context::instruction::mach_format_to_string(machine_instr.format())),
+        utils::concat("#### ",
+            machine_instr.fullname(),
+            "\n\nMachine instruction, format: ",
+            context::instruction::mach_format_to_string(machine_instr.format()),
+            "\n\nOperands: ",
+            operands,
+            "\n\n",
+            generate_cc_explanation(machine_instr.cc_explanation())),
         completion_item_kind::mach_instr,
         true);
 }
@@ -293,14 +323,18 @@ void process_mnemonic_code(
         subs_ops_nomnems_no_snippets.append(brackets, ']');
     }
     items.emplace(std::string(mnemonic_instr.name()),
-        "Operands: " + subs_ops_nomnems_no_snippets.take(),
+        subs_ops_nomnems_no_snippets.take(),
         utils::concat(mnemonic_instr.name(), " ${", snippet_id++, ":}", subs_ops_nomnems.take()),
-        utils::concat("Mnemonic code for ",
+        utils::concat("#### ",
+            mnemonic_instr.instruction()->fullname(),
+            "\n\nMnemonic code for ",
             mnemonic_instr.instruction()->name(),
-            " instruction\n\nSubstituted operands: ",
+            " instruction, format: ",
+            context::instruction::mach_format_to_string(mnemonic_instr.instruction()->format()),
+            "\n\nSubstituted operands: ",
             subs_ops_mnems.take(),
-            "\n\nInstruction format: ",
-            context::instruction::mach_format_to_string(mnemonic_instr.instruction()->format())),
+            "\n\n",
+            generate_cc_explanation(mnemonic_instr.instruction()->cc_explanation())),
         completion_item_kind::mach_instr,
         true);
 }

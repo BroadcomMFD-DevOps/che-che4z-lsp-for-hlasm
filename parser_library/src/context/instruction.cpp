@@ -508,7 +508,7 @@ enum class condition_code_explanation_id : unsigned char
 #include "instruction_details.h"
 } // namespace
 
-constinit const condition_code_explanation condition_code_explanations[] = {
+constinit const condition_code_explanation hlasm_plugin::parser_library::context::condition_code_explanations[] = {
 #define DEFINE_CC_SET(name, ...) condition_code_explanation(__VA_ARGS__),
 #include "instruction_details.h"
 };
@@ -518,7 +518,7 @@ constinit const condition_code_explanation condition_code_explanations[] = {
 #include "instruction_details.h"
 
 #define DEFINE_INSTRUCTION(name, format, page, iset, description, ...)                                                 \
-    { #name, format, page, iset, make_machine_instruction_details(description) },
+    { #name, format, page, iset, make_machine_instruction_details(description, __VA_ARGS__) },
 constexpr machine_instruction machine_instructions[] = {
 #include "instruction_details.h"
 };
