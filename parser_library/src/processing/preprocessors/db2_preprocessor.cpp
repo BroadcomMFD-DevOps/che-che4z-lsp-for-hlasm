@@ -184,7 +184,7 @@ class mini_parser
     }
 
 public:
-    std::vector<semantics::preproc_details::name_range> get_args(It& b, const It& e, size_t lineno)
+    std::vector<semantics::preproc_details::name_range> get_args(It b, const It& e, size_t lineno)
     {
         enum class consuming_state
         {
@@ -328,6 +328,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
     semantics::source_info_processor& m_src_proc;
     db2_logical_line_helper m_ll_helper;
     db2_logical_line_helper m_ll_include_helper;
+    mini_parser<lexing::logical_line::const_iterator> m_parser;
 
     enum class line_type
     {
@@ -799,7 +800,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
                        "(?: .*)?");
 
         static const auto table_like = std::regex(
-            "TABLE(?:[ ]|--)+LIKE(?:[ ]|--)+('(?:[^']|'')+'|(?:[^']|'')+)(?:[ ]|--)+AS(?:[ ]|--)+LOCATOR(?: .*)?");
+            "TABLE(?:[ ]|--)+LIKE(?:[ ]|--)+('(?:[^']|'')*'|[^'](?:[^']|'')*)(?:[ ]|--)+AS(?:[ ]|--)+LOCATOR(?: .*)?");
 
         switch (*it)
         {
@@ -937,12 +938,9 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
                 }
                 else
                 {
+                    args = m_parser.get_args(it, it_e, ll.m_lineno);
                     if (sql_has_codegen(it, it_e))
-                    {
-                        mini_parser<lexing::logical_line::const_iterator> p;
-                        args = p.get_args(it, it_e, ll.m_lineno);
                         generate_sql_code_mock(args.size());
-                    }
                     m_result.emplace_back(replaced_line { "***$$$\n" });
                 }
 

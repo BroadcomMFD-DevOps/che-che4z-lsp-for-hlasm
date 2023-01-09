@@ -982,10 +982,10 @@ TEST_F(db2_preprocessor_test, sql_type_warn_on_continuation)
 }
 
 // TODO - issue with msvc regex
-// TEST(db2_preprocessor, sql_type_is_table_like_regex)
+//TEST(db2_preprocessor, sql_type_is_table_like_regex)
 //{
 //    std::string input = R"(
-// A SQL TYPE IS TABLE LIKE A                                             X
+//A SQL TYPE IS TABLE LIKE A                                             X
 //               A                                                       X
 //               A AS LOCATOR)";
 //
