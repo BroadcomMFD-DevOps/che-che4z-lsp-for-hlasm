@@ -495,13 +495,18 @@ constexpr machine_instruction_details make_machine_instruction_details(const cha
         (0 + ... + std::is_same_v<std::decay_t<Args>, std::decay_t<decltype(has_parameter_list)>>),
     };
 }
-} // namespace
 
-enum class condition_code_explanation_id
+enum class condition_code_explanation_id : unsigned char
 {
 #define DEFINE_CC_SET(name, ...) name,
 #include "instruction_details.h"
 };
+
+
+#define DEFINE_CC_SET(name, ...)                                                                                       \
+    constexpr const auto name = cc_index { static_cast<unsigned char>(condition_code_explanation_id::name) };
+#include "instruction_details.h"
+} // namespace
 
 constinit const condition_code_explanation condition_code_explanations[] = {
 #define DEFINE_CC_SET(name, ...) condition_code_explanation(__VA_ARGS__),
