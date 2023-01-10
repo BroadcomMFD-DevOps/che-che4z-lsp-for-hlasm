@@ -148,6 +148,8 @@ DEFINE_CC_SET(second_interruptible, "Entire second operand processed", "", "", "
 DEFINE_CC_SET(cipher_interruptible, "Normal completion", "", "", "Partial completion")
 DEFINE_CC_SET(cipher, "Normal completion", "Verification-pattern mismatch", "", "Partial completion")
 DEFINE_CC_SET(cipher_with_incomplete, "Normal completion", "Verification-pattern mismatch", "Incomlete processing", "Partial completion")
+DEFINE_CC_SET(cfc_special, "Operands equal", "Operand 1 (or 3) is low", "Operand 1 (or 3) is high", "")
+
 
 DEFINE_INSTRUCTION(A, RX_a_2_ux, 530, UNI_ESA_XA_370_DOS_SINCE_ZOP, "Add (32)", arithmetic)
 DEFINE_INSTRUCTION(AD, RX_a_2_ux, 1412, UNI_ESA_XA_370_DOS_SINCE_ZOP, "Add Normalized (long HFP)")
@@ -288,7 +290,7 @@ DEFINE_INSTRUCTION(CELFBR, RRF_e_4, 1451, UNI_SINCE_Z11, "Convert from Logical (
 DEFINE_INSTRUCTION(CELGBR, RRF_e_4, 1451, UNI_SINCE_Z11, "Convert from Logical (short BFP<-64)")
 DEFINE_INSTRUCTION(CER, RR_2, 1414, UNI_ESA_XA_370_DOS_SINCE_ZOP, "Compare (short HFP)")
 DEFINE_INSTRUCTION(CEXTR, RRE_2, 1495, UNI_SINCE_Z9, "Compare Biased Exponent (extended DFP)")
-DEFINE_INSTRUCTION(CFC, S_1_u, 621, UNI_ESA_XA_SINCE_ZOP, "Compare and Form Codeword")
+DEFINE_INSTRUCTION(CFC, S_1_u, 642, UNI_ESA_XA_SINCE_ZOP, "Compare and Form Codeword", cfc_special, has_parameter_list)
 DEFINE_INSTRUCTION(CFDBR, RRF_e_3, 1452, UNI_ESA_SINCE_ZOP, "Convert to Fixed (32<-long BFP)")
 DEFINE_INSTRUCTION(CFDBRA, RRF_e_4, 1452, UNI_SINCE_Z11, "Convert to Fixed (32<-long BFP)")
 DEFINE_INSTRUCTION(CFDR, RRF_e_3, 1415, UNI_ESA_SINCE_ZOP, "Convert to Fixed (32<-long HFP)")
