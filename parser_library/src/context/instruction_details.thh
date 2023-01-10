@@ -144,6 +144,7 @@ DEFINE_CC_SET(arithmetic_logical, "Result zero; no carry", "Result not zero; no 
 DEFINE_CC_SET(logical, "Result zero", "Result not zero", "", "")
 DEFINE_CC_SET(comparison, "Operands equal", "First operand low", "First operand high", "")
 DEFINE_CC_SET(comparison_interruptible, "Operands equal", "First operand low", "First operand high", "CPU-determined number of bytes compared without finding an inequality")
+DEFINE_CC_SET(second_interruptible, "Entire second operand processed", "", "", "CPU-determined number of the second operands processed")
 
 DEFINE_INSTRUCTION(A, RX_a_2_ux, 530, UNI_ESA_XA_370_DOS_SINCE_ZOP, "Add (32)", arithmetic)
 DEFINE_INSTRUCTION(AD, RX_a_2_ux, 1412, UNI_ESA_XA_370_DOS_SINCE_ZOP, "Add Normalized (long HFP)")
@@ -340,7 +341,7 @@ DEFINE_INSTRUCTION(CIB, RIS_4, 620, UNI_SINCE_Z10, "Compare Immediate and Branch
 DEFINE_INSTRUCTION(CIH, RIL_a_2, 635, UNI_SINCE_Z11, "Compare Immediate High (32)")
 DEFINE_INSTRUCTION(CIJ, RIE_c_4, 620, UNI_SINCE_Z10, "Compare Immediate and Branch Relative (32<-8)")
 DEFINE_INSTRUCTION(CIT, RIE_a_3, 633, UNI_SINCE_Z10, "Compare Immediate and Trap (32<-16)")
-DEFINE_INSTRUCTION(CKSM, RRE_2, 533, UNI_ESA_SINCE_ZOP, "Checksum")
+DEFINE_INSTRUCTION(CKSM, RRE_2, 553, UNI_ESA_SINCE_ZOP, "Checksum", second_interruptible)
 DEFINE_INSTRUCTION(CL, RX_a_2_ux, 636, UNI_ESA_XA_370_DOS_SINCE_ZOP, "Compare Logical (32)")
 DEFINE_INSTRUCTION(CLC, SS_a_2_u, 636, UNI_ESA_XA_370_DOS_SINCE_ZOP, "Compare Logical (character)")
 DEFINE_INSTRUCTION(CLCL, RR_2, 642, UNI_ESA_XA_370_DOS_SINCE_ZOP, "Compare Logical Long")
