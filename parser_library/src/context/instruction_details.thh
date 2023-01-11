@@ -177,6 +177,7 @@ DEFINE_CC_SET(subtract_logical, "", "Result not zero, borrow", "Result zero, no 
 DEFINE_CC_SET(subtract_logical_borrow, "Result zero, borrow", "Result not zero, borrow", "Result zero, no borrow", "Result not zero, no borrow")
 DEFINE_CC_SET(svc_special, "Saved as old PSW, replaced by value in new PSW")
 DEFINE_CC_SET(tam_special, "AMODE24", "AMODE31", "", "AMODE64")
+DEFINE_CC_SET(ts_special, "Leftmost bit zero", "Leftmost bit one", "", "")
 
 DEFINE_INSTRUCTION(A, RX_a_2_ux, 530, UNI_ESA_XA_370_DOS_SINCE_ZOP, "Add (32)", arithmetic)
 DEFINE_INSTRUCTION(AD, RX_a_2_ux, 1412, UNI_ESA_XA_370_DOS_SINCE_ZOP, "Add Normalized (long HFP)")
@@ -1231,7 +1232,7 @@ DEFINE_INSTRUCTION(TRTO, RRF_c_3_opt, 895, UNI_SINCE_ZOP, "Translate Two to One"
 DEFINE_INSTRUCTION(TRTR, SS_a_2_u, 892, UNI_SINCE_YOP, "Translate and Test Reverse")
 DEFINE_INSTRUCTION(TRTRE, RRF_c_3_opt, 888, UNI_SINCE_Z10, "Translate and Test Reverse Extended")
 DEFINE_INSTRUCTION(TRTT, RRF_c_3_opt, 895, UNI_SINCE_ZOP, "Translate Two to Two")
-DEFINE_INSTRUCTION(TS, SI_1, 876, UNI_ESA_XA_370_DOS_SINCE_ZOP, "Test and Set")
+DEFINE_INSTRUCTION(TS, SI_1, 908, UNI_ESA_XA_370_DOS_SINCE_ZOP, "Test and Set", ts_special)
 DEFINE_INSTRUCTION(TSCH, S_1_u, 1232, UNI_ESA_XA_SINCE_ZOP, "Test Subchannel")
 DEFINE_INSTRUCTION(UNPK, SS_b_2, 900, UNI_ESA_XA_370_DOS_SINCE_ZOP, "Unpack")
 DEFINE_INSTRUCTION(UNPKA, SS_a_2_u, 901, UNI_SINCE_ZOP, "Unpack ASCII")
