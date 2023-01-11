@@ -514,22 +514,22 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         lexing::logical_line::const_iterator inc_it_s;
         lexing::logical_line::const_iterator inc_it_e;
         semantics::preproc_details::name_range nr;
-        static const auto member_pattern = std::regex("(?:[ ]|--)*$");
+        static const auto member_pattern = std::regex("(.*?)(?:[ ]|--|$)+");
 
         for (auto reg_it = std::regex_iterator<lexing::logical_line::const_iterator>(it, it_e, member_pattern),
                   reg_it_e = std::regex_iterator<lexing::logical_line::const_iterator>();
              reg_it != reg_it_e;
              ++reg_it)
         {
-            if (const auto& match_prefix = (*reg_it).prefix(); match_prefix.length())
+            if (const auto& sub_match = (*reg_it)[1]; sub_match.length())
             {
                 if (nr.name.empty())
-                    inc_it_s = match_prefix.first;
-                inc_it_e = match_prefix.second;
+                    inc_it_s = sub_match.first;
+                inc_it_e = sub_match.second;
 
                 if (!nr.name.empty())
                     nr.name.push_back(' ');
-                nr.name.append(match_prefix.str());
+                nr.name.append(sub_match.str());
             }
         }
 
