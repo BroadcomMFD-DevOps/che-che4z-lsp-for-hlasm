@@ -157,6 +157,7 @@ DEFINE_CC_SET(cmpsc_special, "End of second operand reached", "End of first oper
 DEFINE_CC_SET(unicode_convert_8, "Entire second operand processed", "End of first operand reached", "Invalid UTF-8 character", "CPU-determined number of characters processed")
 DEFINE_CC_SET(unicode_convert_16, "Entire second operand processed", "End of first operand reached", "Invalid Unicode low surrogate", "CPU-determined number of characters processed")
 DEFINE_CC_SET(unicode_convert_32, "Entire second operand processed", "End of first operand reached", "Invalid UTF-32 character", "CPU-determined number of characters processed")
+DEFINE_CC_SET(execute, "Set by the target instructions")
 
 DEFINE_INSTRUCTION(A, RX_a_2_ux, 530, UNI_ESA_XA_370_DOS_SINCE_ZOP, "Add (32)", arithmetic)
 DEFINE_INSTRUCTION(AD, RX_a_2_ux, 1412, UNI_ESA_XA_370_DOS_SINCE_ZOP, "Add Normalized (long HFP)")
@@ -525,8 +526,8 @@ DEFINE_INSTRUCTION(ESEA, RRE_1, 1006, UNI_SINCE_ZOP, "Extract and Set Extended A
 DEFINE_INSTRUCTION(ESTA, RRE_2, 1008, UNI_ESA_SINCE_ZOP, "Extract Stacked State")
 DEFINE_INSTRUCTION(ESXTR, RRE_2, 1511, UNI_SINCE_Z9, "Extract Significance (64<-extended DFP)")
 DEFINE_INSTRUCTION(ETND, RRE_1, 745, UNI_SINCE_Z12, "Extract Transaction Nesting Depth")
-DEFINE_INSTRUCTION(EX, RX_a_2_ux, 740, UNI_ESA_XA_370_DOS_SINCE_ZOP, "Execute")
-DEFINE_INSTRUCTION(EXRL, RIL_b_2, 740, UNI_SINCE_Z10, "Execute Relative Long")
+DEFINE_INSTRUCTION(EX, RX_a_2_ux, 763, UNI_ESA_XA_370_DOS_SINCE_ZOP, "Execute", execute)
+DEFINE_INSTRUCTION(EXRL, RIL_b_2, 763, UNI_SINCE_Z10, "Execute Relative Long", execute)
 DEFINE_INSTRUCTION(FIDBR, RRF_e_3, 1462, UNI_ESA_SINCE_ZOP, "Load FP Integer (long BFP)")
 DEFINE_INSTRUCTION(FIDBRA, RRF_e_4, 1462, UNI_SINCE_Z11, "Load FP Integer (long BFP)")
 DEFINE_INSTRUCTION(FIDR, RRE_2, 1419, UNI_ESA_SINCE_ZOP, "Load FP Integer (long HFP)")
