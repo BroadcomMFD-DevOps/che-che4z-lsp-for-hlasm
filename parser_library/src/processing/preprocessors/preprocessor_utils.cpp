@@ -125,9 +125,9 @@ semantics::preproc_details::name_range get_stmt_part_name_range(
     auto lineno = rp.original_range.start.line;
     auto first_dist = std::distance(it_start, submatch.first);
 
-    return semantics::preproc_details::name_range(submatch.str(),
+    return semantics::preproc_details::name_range({ submatch.str(),
         rp.adjust_range(range(position(lineno, first_dist),
-            position(lineno, std::distance(submatch.first, submatch.second) + first_dist))));
+            position(lineno, std::distance(submatch.first, submatch.second) + first_dist))) });
 }
 
 template<typename ITERATOR>
@@ -135,7 +135,7 @@ semantics::preproc_details::name_range get_stmt_part_name_range(
     const std::match_results<ITERATOR>& matches, size_t index, const semantics::range_provider& rp)
 {
     return (index < matches.size() && matches[index].length())
-        ? get_stmt_part_name_range(matches[index], matches[0].first, rp)
+        ? get_stmt_part_name_range<ITERATOR>(matches[index], matches[0].first, rp)
         : semantics::preproc_details::name_range();
 }
 
@@ -191,7 +191,7 @@ std::shared_ptr<PREPROC_STATEMENT> get_preproc_statement(
     if (ids.remarks && matches[*ids.remarks].length())
         details.remarks.emplace_back(get_stmt_part_name_range<ITERATOR>(matches, *ids.remarks, rp).r);
 
-    handle_suffix(ids.suffix, matches, rp, details);
+    handle_suffix<ITERATOR>(ids.suffix, matches, rp, details);
 
     return std::make_shared<PREPROC_STATEMENT>(std::move(details));
 }
