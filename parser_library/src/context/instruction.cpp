@@ -176,6 +176,8 @@ std::string_view instruction::mach_format_to_string(mach_format f)
             return "S";
         case mach_format::SI:
             return "SI";
+        case mach_format::DIAGNOSE:
+            return "DIAGNOSE";
         case mach_format::SIL:
             return "SIL";
         case mach_format::SIY:

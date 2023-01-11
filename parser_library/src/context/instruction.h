@@ -141,6 +141,7 @@ enum class mach_format : unsigned char
     RX_b,
     S,
     SI,
+    DIAGNOSE,
 
     length_48,
     MII = length_48,
