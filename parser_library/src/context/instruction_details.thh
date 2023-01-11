@@ -153,6 +153,7 @@ DEFINE_CC_SET(cas, "First and second operands match, the third operand replaced 
 DEFINE_CC_SET(cass, "First and third operands match, the first operand replaced by the replacement value and the second operads replace by the store value", "First and third operands do not match, third operand replaced by the first", "", "")
 DEFINE_CC_SET(clst_special, "Operands equal; operands unchanged", "First operand low; operands updated", "First operand high; operands updated", "CPU-determined number of bytes compared without finding an inequality; operands updated")
 DEFINE_CC_SET(cuse_special, "Substring found", "End of long operand reached, last bytes compared equal", "End of long operand reached, last bytes compared not equal", "CPU-determined number of bytes compared, last bytes compared not equal")
+DEFINE_CC_SET(cmpsc_special, "End of second operand reached", "End of first operand only reached", "", "CPU-determined number of data processed")
 
 DEFINE_INSTRUCTION(A, RX_a_2_ux, 530, UNI_ESA_XA_370_DOS_SINCE_ZOP, "Add (32)", arithmetic)
 DEFINE_INSTRUCTION(AD, RX_a_2_ux, 1412, UNI_ESA_XA_370_DOS_SINCE_ZOP, "Add Normalized (long HFP)")
@@ -407,7 +408,7 @@ DEFINE_INSTRUCTION(CLRT, RRF_c_3, 660, UNI_SINCE_Z10, "Compare Logical and Trap 
 DEFINE_INSTRUCTION(CLST, RRE_2, 671, UNI_ESA_SINCE_ZOP, "Compare Logical String", clst_special)
 DEFINE_INSTRUCTION(CLT, RSY_b_3_ux, 660, UNI_SINCE_Z12, "Compare Logical and Trap (32)")
 DEFINE_INSTRUCTION(CLY, RXY_a_2, 657, UNI_SINCE_YOP, "Compare Logical (32)", comparison)
-DEFINE_INSTRUCTION(CMPSC, RRE_2, 654, UNI_ESA_SINCE_ZOP, "Compression Call")
+DEFINE_INSTRUCTION(CMPSC, RRE_2, 654, UNI_ESA_SINCE_ZOP, "Compression Call", cmpsc_special, has_parameter_list)
 DEFINE_INSTRUCTION(CONCS, S_1_u, 263, UNI_370, "Connect Channel Set")
 DEFINE_INSTRUCTION(CP, SS_b_2, 921, UNI_ESA_XA_370_DOS_SINCE_ZOP, "Compare Decimal")
 DEFINE_INSTRUCTION(CPDT, RSL_b_3, 1505, UNI_SINCE_Z13, "Convert to Packed (From Long DFP)")
