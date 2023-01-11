@@ -175,6 +175,7 @@ DEFINE_CC_SET(stck, "Clock in set state", "Close in non-set state", "Clock in er
 DEFINE_CC_SET(stfle_special, "Complete facility list stored", "", "", "Incomplete facility list stored")
 DEFINE_CC_SET(subtract_logical, "", "Result not zero, borrow", "Result zero, no borrow", "Result not zero, no borrow")
 DEFINE_CC_SET(subtract_logical_borrow, "Result zero, borrow", "Result not zero, borrow", "Result zero, no borrow", "Result not zero, no borrow")
+DEFINE_CC_SET(svc_special, "Saved as old PSW, replaced by value in new PSW")
 
 DEFINE_INSTRUCTION(A, RX_a_2_ux, 530, UNI_ESA_XA_370_DOS_SINCE_ZOP, "Add (32)", arithmetic)
 DEFINE_INSTRUCTION(AD, RX_a_2_ux, 1412, UNI_ESA_XA_370_DOS_SINCE_ZOP, "Add Normalized (long HFP)")
@@ -1173,7 +1174,7 @@ DEFINE_INSTRUCTION(STURG, RRE_2, 1147, UNI_SINCE_ZOP, "Store Using Real Address 
 DEFINE_INSTRUCTION(STY, RXY_a_2, 892, UNI_SINCE_YOP, "Store (32)")
 DEFINE_INSTRUCTION(SU, RX_a_2_ux, 1429, UNI_ESA_XA_370_DOS_SINCE_ZOP, "Subtract Unnormalized (short HFP)")
 DEFINE_INSTRUCTION(SUR, RR_2, 1429, UNI_ESA_XA_370_DOS_SINCE_ZOP, "Subtract Unnormalized (short HFP)")
-DEFINE_INSTRUCTION(SVC, I_1, 876, UNI_ESA_XA_370_DOS_SINCE_ZOP, "Supervisor Call")
+DEFINE_INSTRUCTION(SVC, I_1, 907, UNI_ESA_XA_370_DOS_SINCE_ZOP, "Supervisor Call", svc_special)
 DEFINE_INSTRUCTION(SW, RX_a_2_ux, 1429, UNI_ESA_XA_370_DOS_SINCE_ZOP, "Subtract Unnormalized (long HFP)")
 DEFINE_INSTRUCTION(SWR, RR_2, 1429, UNI_ESA_XA_370_DOS_SINCE_ZOP, "Subtract Unnormalized (long HFP)")
 DEFINE_INSTRUCTION(SXBR, RRE_2, 1470, UNI_ESA_SINCE_ZOP, "Subtract (extended BFP)")
