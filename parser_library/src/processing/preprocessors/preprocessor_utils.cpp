@@ -85,10 +85,11 @@ std::pair<std::string_view, size_t> remove_separators(std::string_view s)
 }
 } // namespace
 
-std::vector<semantics::preproc_details::name_range> get_operands_list(
-    std::string_view operands, size_t op_column_start, const semantics::range_provider& rp)
+void fill_operands_list(std::string_view operands,
+    size_t op_column_start,
+    const semantics::range_provider& rp,
+    std::vector<semantics::preproc_details::name_range>& operand_list)
 {
-    std::vector<semantics::preproc_details::name_range> operand_list;
     auto lineno = rp.original_range.start.line;
 
     while (!operands.empty())
@@ -114,26 +115,49 @@ std::vector<semantics::preproc_details::name_range> get_operands_list(
         operands.remove_prefix(operand_view.length());
         op_column_start += operand_view.length();
     }
-
-    return operand_list;
 }
 
 namespace {
 template<typename ITERATOR>
 semantics::preproc_details::name_range get_stmt_part_name_range(
+    const std::sub_match<ITERATOR>& submatch, const ITERATOR& it_start, const semantics::range_provider& rp)
+{
+    auto lineno = rp.original_range.start.line;
+    auto first_dist = std::distance(it_start, submatch.first);
+
+    return semantics::preproc_details::name_range(submatch.str(),
+        rp.adjust_range(range(position(lineno, first_dist),
+            position(lineno, std::distance(submatch.first, submatch.second) + first_dist))));
+}
+
+template<typename ITERATOR>
+semantics::preproc_details::name_range get_stmt_part_name_range(
     const std::match_results<ITERATOR>& matches, size_t index, const semantics::range_provider& rp)
 {
-    semantics::preproc_details::name_range nr;
-    auto lineno = rp.original_range.start.line;
+    return (index < matches.size() && matches[index].length())
+        ? get_stmt_part_name_range(matches[index], matches[0].first, rp)
+        : semantics::preproc_details::name_range();
+}
 
-    if (index < matches.size() && matches[index].length())
-    {
-        nr.name = matches[index].str();
-        nr.r = rp.adjust_range(range(position(lineno, std::distance(matches[0].first, matches[index].first)),
-            position(lineno, std::distance(matches[0].first, matches[index].second))));
-    }
+template<typename ITERATOR>
+void handle_suffix(stmt_part_ids::suffix_type type,
+    const std::match_results<ITERATOR>& matches,
+    const semantics::range_provider& rp,
+    semantics::preproc_details& details)
+{
+    if (!matches.suffix().length())
+        return;
 
-    return nr;
+    const auto& it_start = matches[0].first;
+    const auto& suffix = matches.suffix();
+
+    if (type == stmt_part_ids::suffix_type::OPERANDS)
+        fill_operands_list(get_stmt_part_name_range<ITERATOR>(suffix, it_start, rp).name,
+            std::distance(it_start, suffix.first),
+            rp,
+            details.operands);
+    else if (type == stmt_part_ids::suffix_type::REMARKS)
+        details.remarks.emplace_back(get_stmt_part_name_range<ITERATOR>(suffix, it_start, rp).r);
 }
 } // namespace
 
@@ -158,13 +182,16 @@ std::shared_ptr<PREPROC_STATEMENT> get_preproc_statement(
         details.instruction.r.start = get_stmt_part_name_range<ITERATOR>(matches, ids.instruction.front(), rp).r.start;
     }
 
-    if (matches[ids.operands].length())
-        details.operands = get_operands_list(get_stmt_part_name_range<ITERATOR>(matches, ids.operands, rp).name,
-            std::distance(matches[0].first, matches[ids.operands].first),
-            rp);
+    if (ids.operands && matches[*ids.operands].length())
+        fill_operands_list(get_stmt_part_name_range<ITERATOR>(matches, *ids.operands, rp).name,
+            std::distance(matches[0].first, matches[*ids.operands].first),
+            rp,
+            details.operands);
 
     if (ids.remarks && matches[*ids.remarks].length())
         details.remarks.emplace_back(get_stmt_part_name_range<ITERATOR>(matches, *ids.remarks, rp).r);
+
+    handle_suffix(ids.suffix, matches, rp, details);
 
     return std::make_shared<PREPROC_STATEMENT>(std::move(details));
 }

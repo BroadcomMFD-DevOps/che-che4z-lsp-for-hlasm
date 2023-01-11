@@ -301,7 +301,7 @@ private:
 
         auto w_it = words.begin();
 
-        std::string s = "(";
+        std::string s = "^(";
         s.append(*w_it++);
         while (w_it != words.end())
             s.append("(?:[ ]|--)+(?:").append(*w_it++).append(")");
@@ -311,7 +311,6 @@ private:
             s.append("*");
         else
             s.append("+");
-        s.append("(.*)");
 
         return std::regex(s);
     }
@@ -492,13 +491,13 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
     template<typename It>
     static std::optional<It> consume_words_advance_to_next(It& it, const It& it_e, const consuming_regex_details& crd)
     {
-        if (std::match_results<It> matches; std::regex_match(it, it_e, matches, crd.r)
+        if (std::match_results<It> matches; std::regex_search(it, it_e, matches, crd.r)
             && (!crd.needs_same_line || same_line(matches[1].first, std::prev(matches[1].second)))
-            && (!crd.tolerate_no_space_at_end || matches[2].length() || !matches[3].length()
-                || (matches[1].second == matches[3].first
-                    && !same_line(std::prev(matches[1].second), matches[3].first))))
+            && (!crd.tolerate_no_space_at_end || matches[2].length() || !matches.suffix().length()
+                || (matches[1].second == matches.suffix().first
+                    && !same_line(std::prev(matches[1].second), matches.suffix().first))))
         {
-            it = matches[3].first;
+            it = matches.suffix().first;
             return matches[1].second;
         }
 
@@ -515,22 +514,22 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         lexing::logical_line::const_iterator inc_it_s;
         lexing::logical_line::const_iterator inc_it_e;
         semantics::preproc_details::name_range nr;
-        static const auto member_pattern = std::regex("(.*?)(?:[ ]|--)*$");
+        static const auto member_pattern = std::regex("(?:[ ]|--)*$");
 
         for (auto reg_it = std::regex_iterator<lexing::logical_line::const_iterator>(it, it_e, member_pattern),
                   reg_it_e = std::regex_iterator<lexing::logical_line::const_iterator>();
              reg_it != reg_it_e;
              ++reg_it)
         {
-            if (const auto& sub_match = (*reg_it)[1]; sub_match.length())
+            if (const auto& match_prefix = (*reg_it).prefix(); match_prefix.length())
             {
                 if (nr.name.empty())
-                    inc_it_s = sub_match.first;
-                inc_it_e = sub_match.second;
+                    inc_it_s = match_prefix.first;
+                inc_it_e = match_prefix.second;
 
                 if (!nr.name.empty())
                     nr.name.push_back(' ');
-                nr.name.append(sub_match.str());
+                nr.name.append(match_prefix.str());
             }
         }
 
@@ -706,7 +705,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         const lexing::logical_line::const_iterator& it_e)
     {
         std::match_results<lexing::logical_line::const_iterator> match;
-        if (!std::regex_match(it, it_e, match, pattern))
+        if (!std::regex_search(it, it_e, match, pattern))
             return false;
 
         switch (*std::prev((match[4].matched ? match[4] : match[1]).second))
@@ -776,7 +775,8 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
 
         // keep the capture groups in sync
         static const auto xml_type =
-            std::regex("XML(?:[ ]|--)+AS(?:[ ]|--)+"
+            std::regex("^"
+                       "XML(?:[ ]|--)+AS(?:[ ]|--)+"
                        "(?:"
                        "("
                        "BINARY(?:[ ]|--)+LARGE(?:[ ]|--)+OBJECT|BLOB|CHARACTER(?:[ ]|--)+"
@@ -785,10 +785,10 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
                        "(?:[ ]|--)+([[:digit:]]{1,9})([KMG])?"
                        "|"
                        "(BLOB_FILE|CLOB_FILE|DBCLOB_FILE)"
-                       ")"
-                       "(?: .*)?");
+                       ")");
         static const auto lob_type =
-            std::regex("(?:"
+            std::regex("^"
+                       "(?:"
                        "("
                        "BINARY(?:[ ]|--)+LARGE(?:[ ]|--)+OBJECT|BLOB|CHARACTER(?:[ ]|--)+"
                        "LARGE(?:[ ]|--)+OBJECT|CHAR(?:[ ]|--)+LARGE(?:[ ]|--)+OBJECT|CLOB|DBCLOB"
@@ -796,10 +796,9 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
                        "(?:[ ]|--)+([[:digit:]]{1,9})([KMG])?"
                        "|"
                        "(BLOB_FILE|CLOB_FILE|DBCLOB_FILE|BLOB_LOCATOR|CLOB_LOCATOR|DBCLOB_LOCATOR)"
-                       ")"
-                       "(?: .*)?");
+                       ")");
 
-        static const auto table_like = std::regex("TABLE(?:[ ]|--)+LIKE(?:[ ]|--)+(.*)AS(?:[ ]|--)+LOCATOR(?: .*)?");
+        static const auto table_like = std::regex("TABLE(?:[ ]|--)+LIKE(?:[ ]|--)+(.*)AS(?:[ ]|--)+LOCATOR");
         static const auto text_variant1 = std::regex("'(?:[^']|'')*'(?:[ ]|--)+");
         static const auto text_variant2 = std::regex("[^'](?:[^']|'')*(?:[ ]|--)+");
         std::match_results<lexing::logical_line::const_iterator> matches;
@@ -810,7 +809,10 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
                 return handle_r_starting_operands(label, it, it_e);
 
             case 'T':
-                if (!std::regex_match(it, it_e, matches, table_like)
+                if (!std::regex_search(it, it_e, matches, table_like)
+                    || (matches.suffix().length() != 0
+                        && !std::regex_search(
+                            matches.suffix().first, matches.suffix().second, std::regex("^(?:[ ]|--)")))
                     || (!std::regex_match(matches[1].first, matches[1].second, text_variant1)
                         && !std::regex_match(matches[1].first, matches[1].second, text_variant2)
                         && matches[1].length() != 0))
@@ -982,10 +984,9 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
     {
         // handles only the most obvious cases (imprecisely)
         static const auto no_code_statements = std::regex(
-            "(?:DECLARE|WHENEVER|BEGIN(?:[ ]|--)+DECLARE(?:[ ]|--)+SECTION|END(?:[ ]|--)+DECLARE(?:[ ]|--)+SECTION)"
-            "(?: .*)?",
+            "^(?:DECLARE|WHENEVER|BEGIN(?:[ ]|--)+DECLARE(?:[ ]|--)+SECTION|END(?:[ ]|--)+DECLARE(?:[ ]|--)+SECTION)",
             std::regex_constants::icase);
-        return !std::regex_match(it, it_e, no_code_statements);
+        return !std::regex_search(it, it_e, no_code_statements);
     }
 
     void generate_sql_code_mock(size_t in_params)

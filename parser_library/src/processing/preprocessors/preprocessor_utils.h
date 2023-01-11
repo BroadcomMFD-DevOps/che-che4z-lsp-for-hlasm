@@ -28,16 +28,26 @@ namespace hlasm_plugin::parser_library::processing {
 
 struct stmt_part_ids
 {
+    enum class suffix_type
+    {
+        NONE,
+        OPERANDS,
+        REMARKS
+    };
+
     std::optional<size_t> label;
     std::vector<size_t> instruction;
-    size_t operands;
+    std::optional<size_t> operands;
     std::optional<size_t> remarks;
+    suffix_type suffix;
 };
 
-// This function returns a list of operands with their ranges while expecting to receive a string_view of a single line
+// This function fills an operand list with their ranges while expecting to receive a string_view of a single line
 // where operands are separated by spaces or commas
-std::vector<semantics::preproc_details::name_range> get_operands_list(
-    std::string_view operands, size_t op_column_start, const semantics::range_provider& rp);
+void fill_operands_list(std::string_view operands,
+    size_t op_column_start,
+    const semantics::range_provider& rp,
+    std::vector<semantics::preproc_details::name_range>& operand_list);
 
 template<typename PREPROC_STATEMENT, typename ITERATOR>
 std::shared_ptr<PREPROC_STATEMENT> get_preproc_statement(

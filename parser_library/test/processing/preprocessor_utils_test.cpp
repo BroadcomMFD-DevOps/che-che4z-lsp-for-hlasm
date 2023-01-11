@@ -57,7 +57,9 @@ TEST(preprocessor_utils, operand_parsing_single)
         { "ABCODE", range(position(1, 2), position(1, 8)) },
     };
 
-    EXPECT_EQ(processing::get_operands_list(input, 0, get_range_provider(input.length(), 1, 1)), expected);
+    std::vector<semantics::preproc_details::name_range> ops;
+    processing::fill_operands_list(input, 0, get_range_provider(input.length(), 1, 1), ops);
+    EXPECT_EQ(ops, expected);
 }
 
 TEST(preprocessor_utils, operand_parsing_single_argument)
@@ -68,7 +70,9 @@ TEST(preprocessor_utils, operand_parsing_single_argument)
         { "ABCODE('1234')", range(position(0, 0), position(0, 14)) },
     };
 
-    EXPECT_EQ(processing::get_operands_list(input, 0, get_range_provider(input.length(), 0, 1)), expected);
+    std::vector<semantics::preproc_details::name_range> ops;
+    processing::fill_operands_list(input, 0, get_range_provider(input.length(), 0, 1), ops);
+    EXPECT_EQ(ops, expected);
 }
 
 TEST(preprocessor_utils, operand_parsing_single_op_column)
@@ -79,7 +83,9 @@ TEST(preprocessor_utils, operand_parsing_single_op_column)
         { "ABCODE", range(position(0, 14), position(0, 20)) },
     };
 
-    EXPECT_EQ(processing::get_operands_list(input, 14, get_range_provider(input.length(), 0, 1)), expected);
+    std::vector<semantics::preproc_details::name_range> ops;
+    processing::fill_operands_list(input, 14, get_range_provider(input.length(), 0, 1), ops);
+    EXPECT_EQ(ops, expected);
 }
 
 TEST(preprocessor_utils, operand_parsing_single_argument_multiline)
@@ -92,7 +98,9 @@ TEST(preprocessor_utils, operand_parsing_single_argument_multiline)
         { "ABCODE('1234')", range(position(0, 0), position(1, 13)) },
     };
 
-    EXPECT_EQ(processing::get_operands_list(input, 0, get_range_provider(input.length(), 0, 1)), expected);
+    std::vector<semantics::preproc_details::name_range> ops;
+    processing::fill_operands_list(input, 0, get_range_provider(input.length(), 0, 1), ops);
+    EXPECT_EQ(ops, expected);
 }
 
 TEST(preprocessor_utils, operand_parsing_multiple)
@@ -106,7 +114,9 @@ TEST(preprocessor_utils, operand_parsing_multiple)
         { "OPERAND('4321')", range(position(0, 41), position(0, 57)) },
     };
 
-    EXPECT_EQ(processing::get_operands_list(input, 0, get_range_provider(input.length(), 0, 1)), expected);
+    std::vector<semantics::preproc_details::name_range> ops;
+    processing::fill_operands_list(input, 0, get_range_provider(input.length(), 0, 1), ops);
+    EXPECT_EQ(ops, expected);
 }
 
 TEST(preprocessor_utils, operand_parsing_multiple_comma_separated)
@@ -120,7 +130,9 @@ TEST(preprocessor_utils, operand_parsing_multiple_comma_separated)
         { "DFHVALUE(ACQUIRED)", range(position(0, 6), position(0, 24)) },
     };
 
-    EXPECT_EQ(processing::get_operands_list(input, 0, get_range_provider(input.length(), 0, 1)), expected);
+    std::vector<semantics::preproc_details::name_range> ops;
+    processing::fill_operands_list(input, 0, get_range_provider(input.length(), 0, 1), ops);
+    EXPECT_EQ(ops, expected);
 }
 
 TEST(preprocessor_utils, operand_parsing_multiple_multiline)
@@ -137,7 +149,9 @@ TEST(preprocessor_utils, operand_parsing_multiple_multiline)
         { "OPERAND('4321')", range(position(2, 15), position(2, 31)) },
     };
 
-    EXPECT_EQ(processing::get_operands_list(input, 0, get_range_provider(input.length(), 0, 1)), expected);
+    std::vector<semantics::preproc_details::name_range> ops;
+    processing::fill_operands_list(input, 0, get_range_provider(input.length(), 0, 1), ops);
+    EXPECT_EQ(ops, expected);
 }
 
 TEST(preprocessor_utils, operand_parsing_multiple_multiline_continue)
@@ -154,5 +168,7 @@ TEST(preprocessor_utils, operand_parsing_multiple_multiline_continue)
         { "OPERAND('4321')", range(position(2, 15), position(2, 31)) },
     };
 
-    EXPECT_EQ(processing::get_operands_list(input, 0, get_range_provider(input.length(), 0, 15)), expected);
+    std::vector<semantics::preproc_details::name_range> ops;
+    processing::fill_operands_list(input, 0, get_range_provider(input.length(), 0, 15), ops);
+    EXPECT_EQ(ops, expected);
 }

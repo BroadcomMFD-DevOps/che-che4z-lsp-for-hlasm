@@ -47,14 +47,6 @@ struct stack_entry
     void next() { ++current; }
     bool end() const { return current == doc.end(); }
 };
-
-std::string_view get_copy_member(const std::match_results<std::string_view::iterator>& matches)
-{
-    if (matches.size() != 4)
-        return "";
-
-    return std::string_view(matches[2].first, matches[2].second);
-}
 } // namespace
 
 class endevor_preprocessor final : public preprocessor
@@ -125,7 +117,7 @@ public:
             }))
             return doc;
 
-        static std::regex include_regex(R"(^(-INC|\+\+INCLUDE)\s+(\S+)(?:\s+(.*))?)");
+        static std::regex include_regex(R"(^(-INC|\+\+INCLUDE)\s+(\S+))");
 
         std::vector<document_line> result;
         result.reserve(doc.size());
@@ -152,15 +144,16 @@ public:
                 continue;
             }
 
-            auto copy_member = get_copy_member(matches);
             auto line_no = std::prev(stack.back().current)->lineno();
 
-            if (!process_member(copy_member, stack))
+            if (!process_member(std::string_view(matches[2].first, matches[2].second), stack))
                 break;
 
             if (line_no)
             {
-                static const stmt_part_ids part_ids { std::nullopt, { 1 }, 2, 3 };
+                static const stmt_part_ids part_ids {
+                    std::nullopt, { 1 }, 2, std::nullopt, stmt_part_ids::suffix_type::REMARKS
+                };
 
                 auto stmt = get_preproc_statement<semantics::endevor_statement_si>(matches, part_ids, *line_no);
                 do_highlighting(*stmt, m_src_proc);
