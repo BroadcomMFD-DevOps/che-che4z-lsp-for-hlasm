@@ -169,6 +169,7 @@ DEFINE_CC_SET(mvcle_special, "Operands have equal lengths", "First operand short
 DEFINE_CC_SET(mvst_special, "", "Entire second operand moved, first operand updated, second operand unchanged", "", "CPU-determined number of bytes moved, both operands updated")
 DEFINE_CC_SET(pcc_special, "Normal completion", "Verification-pattern mismatch", "Invalid bit index, or message length, or result is infinity", "Partial completion")
 DEFINE_CC_SET(plo_special, "Comparisons equal, replacement values stored or load performed, function code valid (T=1)", "First operand not equal", "Third operand not equal (DCS only)", "Function code invalid (T=1 only)")
+DEFINE_CC_SET(string_search, "Character found, first operand updated with its address, second operands unchanged", "Character not found, operands unchanged", "CPU-determined number of characters searched, first operand unchanged, second operand udpated")
 
 DEFINE_INSTRUCTION(A, RX_a_2_ux, 530, UNI_ESA_XA_370_DOS_SINCE_ZOP, "Add (32)", arithmetic)
 DEFINE_INSTRUCTION(AD, RX_a_2_ux, 1412, UNI_ESA_XA_370_DOS_SINCE_ZOP, "Add Normalized (long HFP)")
@@ -1098,8 +1099,8 @@ DEFINE_INSTRUCTION(SRNM, S_1_u, 975, UNI_ESA_SINCE_ZOP, "Set BFP Rounding Mode (
 DEFINE_INSTRUCTION(SRNMB, S_1_u, 975, UNI_SINCE_Z11, "Set BFP Rounding Mode (3 bit)")
 DEFINE_INSTRUCTION(SRNMT, S_1_u, 975, UNI_SINCE_Z9, "Set DFP Rounding Mode")
 DEFINE_INSTRUCTION(SRP, SS_c_3, 926, UNI_ESA_XA_370_DOS_SINCE_ZOP, "Shift and Round Decimal")
-DEFINE_INSTRUCTION(SRST, RRE_2, 850, UNI_ESA_SINCE_ZOP, "Search String")
-DEFINE_INSTRUCTION(SRSTU, RRE_2, 852, UNI_SINCE_YOP, "Search String Unicode")
+DEFINE_INSTRUCTION(SRST, RRE_2, 881, UNI_ESA_SINCE_ZOP, "Search String", string_search)
+DEFINE_INSTRUCTION(SRSTU, RRE_2, 882, UNI_SINCE_YOP, "Search String Unicode", string_search)
 DEFINE_INSTRUCTION(SRXT, RXF_3_x, 1526, UNI_SINCE_Z9, "Shift Significand Right (extended DFP)")
 DEFINE_INSTRUCTION(SSAIR, RRE_1, 1107, UNI_SINCE_YOP, "Set Secondary ASN with Instance")
 DEFINE_INSTRUCTION(SSAR, RRE_1, 1107, UNI_ESA_XA_370_SINCE_ZOP, "Set Secondary ASN")
