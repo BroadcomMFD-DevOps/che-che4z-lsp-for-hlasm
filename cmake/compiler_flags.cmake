@@ -56,7 +56,7 @@ endif()
 
 if(APPLE)
   if(WITH_STATIC_CRT)
-    execute_process(COMMAND ${CMAKE_CXX_COMPILER} --print-file-name=libc++.a OUTPUT_VARIABLE libcpp_file)
+    execute_process(COMMAND "${CMAKE_CXX_COMPILER} --print-file-name=libc++.a" OUTPUT_VARIABLE libcpp_file)
     message(STATUS "Using libc++ in ${libcpp_file}" )
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lc++abi ${libcpp_file}")
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -lc++abi ${libcpp_file}")
