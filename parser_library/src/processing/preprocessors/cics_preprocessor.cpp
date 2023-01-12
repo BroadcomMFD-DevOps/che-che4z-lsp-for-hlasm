@@ -1023,6 +1023,21 @@ public:
 
     bool process_line_of_interest(std::string_view line)
     {
+        //static const std::vector<words_to_consume> interesting_words({
+        //    words_to_consume({ "START" }, false, true),
+        //    words_to_consume({ "CSECT" }, false, true),
+        //    words_to_consume({ "RSECT" }, false, true),
+        //    words_to_consume({ "DSECT" }, false, true),
+        //    words_to_consume({ "DFHEIENT" }, false, true),
+        //    words_to_consume({ "DFHEISTG" }, false, true),
+        //    words_to_consume({ "END" }, false, true),
+        //});
+
+        //auto wtc_it = std::find_if(interesting_words.begin(), interesting_words.end(), [&line](const auto& wtc) {
+        //    auto it = line.begin();
+        //    return consume_words_advance_to_next(it, line.end(), wtc).has_value();
+        //});
+
         static const std::regex line_of_interest("([^ ]*)[ ]+(START|CSECT|RSECT|DSECT|DFHEIENT|DFHEISTG|END)(?: .+)?");
 
         return (std::regex_match(line.begin(), line.end(), m_matches_sv, line_of_interest)

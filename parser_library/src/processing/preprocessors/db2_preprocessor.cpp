@@ -84,6 +84,17 @@ constexpr std::array symbols = []() {
     return r;
 }();
 
+template<typename It>
+static const auto db2_separator = [](const It& it, const It& it_e) {
+    if (it == it_e)
+        return 0;
+    else if (*it == ' ')
+        return 1;
+    else if (auto it_n = std::next(it); *it == '-' && (it_n != it_e && *it_n == '-'))
+        return 2;
+    return 0;
+};
+
 class db2_logical_line_helper
 {
 public:
@@ -106,35 +117,9 @@ public:
     }
 
     template<typename It>
-    static void trim_left(It& it, const It& it_e)
+    static std::optional<It> consume_and_advance(It& it, const It& it_e, words_to_consume wtc)
     {
-        while (it != it_e)
-        {
-            if (*it == ' ')
-                it = std::next(it);
-            else if (auto it_n = std::next(it); *it == '-' && (it_n != it_e && *it_n == '-'))
-                it = std::next(it_n);
-            else
-                break;
-        }
-    }
-
-    template<typename It>
-    static std::optional<std::string> next_nonblank_sequence(It& it, const It& it_e)
-    {
-        const auto is_separator = [&it_e](It& it) {
-            if (it == it_e || *it == ' ')
-                return true;
-            else if (auto it_n = std::next(it); *it == '-' && (it_n != it_e && *it_n == '-'))
-                return true;
-            return false;
-        };
-
-        It seq_start = it;
-        while (!is_separator(it))
-            it++;
-
-        return it == seq_start ? std::nullopt : std::optional<std::string>(std::string(seq_start, it));
+        return consume_words_advance_to_next<It>(it, it_e, wtc, db2_separator<It>);
     }
 
 private:
@@ -295,37 +280,6 @@ public:
 
     done:
         return arguments;
-    }
-};
-
-struct words_to_consume
-{
-    bool needs_same_line;
-    bool tolerate_no_space_at_end;
-    const std::vector<std::string> words_uc;
-    const std::vector<std::string> words_lc;
-
-    words_to_consume(std::vector<std::string> words, bool needs_same_line, bool tolerate_no_space_at_end)
-        : needs_same_line(needs_same_line)
-        , tolerate_no_space_at_end(tolerate_no_space_at_end)
-        , words_uc(case_transform(words, toupper))
-        , words_lc(case_transform(words, tolower))
-    {
-        assert(words_uc.size() == words_lc.size());
-        assert(std::equal(words_uc.begin(), words_uc.end(), words_lc.begin(), [](const auto& w_uc, const auto& w_lc) {
-            return w_uc.length() == w_lc.length();
-        }));
-    }
-
-private:
-    static std::vector<std::string> case_transform(std::vector<std::string> words, const auto& f)
-    {
-        std::transform(words.begin(), words.end(), words.begin(), [&f](std::string& w) {
-            std::transform(w.begin(), w.end(), w.begin(), [&f](unsigned char c) { return static_cast<char>(f(c)); });
-            return w;
-        });
-
-        return words;
     }
 };
 
@@ -501,55 +455,11 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         m_result.emplace_back(replaced_line { "         MEND                           \n" });
     }
 
-    template<typename It>
-    static std::optional<It> consume_words_advance_to_next(It& it, const It& it_e, const words_to_consume& wtc)
-    {
-        It backup = it;
-        std::optional<It> consumed_word_end = std::nullopt;
-
-        const auto reverter = [backup = it, &it]() {
-            it = backup;
-            return std::nullopt;
-        };
-
-        for (size_t i = 0; i < wtc.words_uc.size(); ++i)
-        {
-            const auto& w_uc = wtc.words_uc[i];
-            const auto& w_lc = wtc.words_lc[i];
-
-            if (consumed_word_end && *consumed_word_end == it)
-                return reverter();
-
-            It consumed_word_start = it;
-            for (size_t j = 0; j < w_uc.length(); ++j)
-            {
-                const auto& c_uc = w_uc[j];
-                const auto& c_lc = w_lc[j];
-
-                if (it == it_e || (*it != c_uc && *it != c_lc))
-                    return reverter();
-
-                it++;
-            }
-
-            if (wtc.needs_same_line && !same_line(consumed_word_start, std::prev(it)))
-                return reverter();
-
-            consumed_word_end = it;
-            db2_logical_line_helper::trim_left(it, it_e);
-        }
-
-        if (!wtc.tolerate_no_space_at_end && consumed_word_end == it)
-            return reverter();
-
-        return consumed_word_end;
-    }
-
     std::optional<semantics::preproc_details::name_range> try_process_include(
         lexing::logical_line::const_iterator it, const lexing::logical_line::const_iterator& it_e, size_t lineno)
     {
         if (static const words_to_consume include_wtc({ "INCLUDE" }, false, false);
-            !consume_words_advance_to_next(it, it_e, include_wtc))
+            !db2_logical_line_helper::consume_and_advance(it, it_e, include_wtc))
             return std::nullopt;
 
         lexing::logical_line::const_iterator inc_it_s = it;
@@ -557,7 +467,8 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         semantics::preproc_details::name_range nr;
         std::optional<std::string> word = std::nullopt;
 
-        while (word = db2_logical_line_helper::next_nonblank_sequence(it, it_e))
+        while (word = next_continuous_sequence<lexing::logical_line::const_iterator>(
+                   it, it_e, db2_separator<lexing::logical_line::const_iterator>))
         {
             inc_it_e = it;
 
@@ -565,7 +476,8 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
                 nr.name.push_back(' ');
             nr.name.append(*word);
 
-            db2_logical_line_helper::trim_left(it, it_e);
+            trim_left<lexing::logical_line::const_iterator>(
+                it, it_e, db2_separator<lexing::logical_line::const_iterator>);
         }
 
         if (!nr.name.empty())
@@ -631,7 +543,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
 
     static semantics::preproc_details::name_range extract_label(std::string_view& s, size_t lineno)
     {
-        auto label = utils::next_nonblank_sequence(s);
+        auto label = utils::next_continuous_sequence(s);
         if (!label.length())
             return {};
 
@@ -652,7 +564,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         const auto consume_and_create = [&line_preview, lineno, instr_column_start](
                                             line_type line, const words_to_consume& wtc, std::string_view line_id) {
             auto it = line_preview.begin();
-            if (auto consumed_words_end = consume_words_advance_to_next(it, line_preview.end(), wtc);
+            if (auto consumed_words_end = db2_logical_line_helper::consume_and_advance(it, line_preview.end(), wtc);
                 consumed_words_end)
                 return std::make_pair(line,
                     semantics::preproc_details::name_range { std::string(line_id),
@@ -740,12 +652,12 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         lexing::logical_line::const_iterator it,
         const lexing::logical_line::const_iterator& it_e)
     {
-        if (wtc_prefix && !consume_words_advance_to_next(it, it_e, *wtc_prefix))
+        if (wtc_prefix && !db2_logical_line_helper::consume_and_advance(it, it_e, *wtc_prefix))
             return false;
 
         const auto word_consumer = [&it, &it_e](const std::vector<words_to_consume>& words_to_consume) {
             auto wtc_it = std::find_if(words_to_consume.begin(), words_to_consume.end(), [&it, &it_e](const auto& wtc) {
-                return consume_words_advance_to_next(it, it_e, wtc);
+                return db2_logical_line_helper::consume_and_advance(it, it_e, wtc);
             });
 
             return wtc_it != words_to_consume.end() ? &wtc_it->words_uc : nullptr;
@@ -802,7 +714,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         auto ds_line_inserter = [&label, &it_e, this](lexing::logical_line::const_iterator it,
                                     const words_to_consume& wtc,
                                     std::string_view ds_line_type) {
-            if (!consume_words_advance_to_next(it, it_e, wtc))
+            if (!db2_logical_line_helper::consume_and_advance(it, it_e, wtc))
                 return false;
             add_ds_line(label, "", ds_line_type);
             return true;
@@ -859,7 +771,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
                 return handle_r_starting_operands(label, it, it_e);
 
             case 'T': {
-                if (!consume_words_advance_to_next(it, it_e, table_like))
+                if (!db2_logical_line_helper::consume_and_advance(it, it_e, table_like))
                     return false;
 
                 if (!std::regex_search(it, it_e, matches, table_like_regex)
@@ -973,7 +885,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         std::vector<semantics::preproc_details::name_range> args;
         auto it = std::next(ll.m_db2_ll.begin(), instruction_end);
         auto it_e = ll.m_db2_ll.end();
-        db2_logical_line_helper::trim_left(it, it_e);
+        trim_left<lexing::logical_line::const_iterator>(it, it_e, db2_separator<lexing::logical_line::const_iterator>);
 
         switch (instruction_type)
         {
@@ -1014,7 +926,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
                 if (ll.m_db2_ll.segments.size() > 1)
                     diag_adder(diagnostic_op::warn_DB005(range(position(ll.m_lineno, 0))));
 
-                if (!consume_words_advance_to_next(it, it_e, is_wtc))
+                if (!db2_logical_line_helper::consume_and_advance(it, it_e, is_wtc))
                 {
                     diag_adder(diagnostic_op::warn_DB006(range(position(ll.m_lineno, 0))));
                     break;
@@ -1040,11 +952,12 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         static const words_to_consume declare_wtc({ "DECLARE" }, false, false);
         static const words_to_consume whenever_wtc({ "WHENEVER" }, false, false);
         static const words_to_consume begin_wtc({ "BEGIN", "DECLARE", "SECTION" }, false, true);
-        static const words_to_consume end_wtc({ "END", "DECLARE", "SECTION" }, false, true); // todo icase variant
+        static const words_to_consume end_wtc({ "END", "DECLARE", "SECTION" }, false, true);
 
-        return !consume_words_advance_to_next(it, it_e, declare_wtc)
-            && !consume_words_advance_to_next(it, it_e, whenever_wtc)
-            && !consume_words_advance_to_next(it, it_e, begin_wtc) && !consume_words_advance_to_next(it, it_e, end_wtc);
+        return !db2_logical_line_helper::consume_and_advance(it, it_e, declare_wtc)
+            && !db2_logical_line_helper::consume_and_advance(it, it_e, whenever_wtc)
+            && !db2_logical_line_helper::consume_and_advance(it, it_e, begin_wtc)
+            && !db2_logical_line_helper::consume_and_advance(it, it_e, end_wtc);
     }
 
     void generate_sql_code_mock(size_t in_params)
