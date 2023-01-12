@@ -82,8 +82,7 @@ We build the project on MacOS 12. In order to successfully build, first install 
 The project can be built with a snippet like this:
 
     mkdir build && cd build
-    cmake -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
-          -DLLVM_PATH=<path-to-llvm-installation> ../
+    cmake -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ ../
     cmake --build .
 
 For instance, a possible path to LLVM is `/usr/local/opt/llvm8`. You may use `$(brew --prefix llvm)` as the path to the LLVM installation directory.
