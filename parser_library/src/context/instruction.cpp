@@ -516,11 +516,11 @@ constinit const condition_code_explanation hlasm_plugin::parser_library::context
 };
 
 #define DEFINE_INSTRUCTION_FORMAT(name, format, ...)                                                                   \
-    constexpr auto name = instruction_format_definition_factory<format __VA_OPT__(,) __VA_ARGS__>::def();
+    constexpr auto name = instruction_format_definition_factory<format __VA_OPT__(, ) __VA_ARGS__>::def();
 #include "instruction_details.h"
 
 #define DEFINE_INSTRUCTION(name, format, page, iset, description, ...)                                                 \
-    { #name, format, page, iset, make_machine_instruction_details(description __VA_OPT__(,) __VA_ARGS__) },
+    { #name, format, page, iset, make_machine_instruction_details(description __VA_OPT__(, ) __VA_ARGS__) },
 constexpr machine_instruction machine_instructions[] = {
 #include "instruction_details.h"
 };
