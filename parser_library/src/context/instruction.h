@@ -542,6 +542,8 @@ public:
     {
         return condition_code_explanations[m_details.cc_explanation];
     }
+
+    constexpr size_t page_in_pop() const noexcept { return m_page_no; }
 };
 
 class ca_instruction

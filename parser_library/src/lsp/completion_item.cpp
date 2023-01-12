@@ -98,12 +98,14 @@ namespace {
 
 std::string generate_cc_explanation(const context::condition_code_explanation& cc)
 {
-    std::string result = "Condition Code: ";
+    const auto qual = cc.cc_qualification();
+    std::string result =
+        qual.empty() ? std::string("Condition Code: ") : utils::concat("Condition Code (", qual, "): ");
 
     const auto cc_translate = [&cc](int v) {
         auto result = cc.tranlate_cc(static_cast<context::condition_code>(v));
         if (result.empty())
-            result = "--";
+            result = "\\--"; // otherwise a horizontal line is generated
         return result;
     };
 
@@ -159,6 +161,10 @@ void process_machine_instruction(const context::machine_instruction& machine_ins
 
     auto operands = detail.take();
 
+    std::string page_text;
+    if (const auto page_pop = machine_instr.page_in_pop())
+        page_text = utils::concat("\n\nDetails on page ", std::to_string(page_pop));
+
     items.emplace(std::string(machine_instr.name()),
         std::move(operands),
         utils::concat(machine_instr.name(), " ${", snippet_id++, ":}", autocomplete.take()),
@@ -169,7 +175,8 @@ void process_machine_instruction(const context::machine_instruction& machine_ins
             "\n\nOperands: ",
             operands,
             "\n\n",
-            generate_cc_explanation(machine_instr.cc_explanation())),
+            generate_cc_explanation(machine_instr.cc_explanation()),
+            page_text),
         completion_item_kind::mach_instr,
         true);
 }
