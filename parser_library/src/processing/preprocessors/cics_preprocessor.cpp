@@ -37,6 +37,7 @@
 #include "semantics/source_info_processor.h"
 #include "semantics/statement.h"
 #include "utils/concat.h"
+#include "utils/string_operations.h"
 #include "utils/unicode_text.h"
 #include "workspaces/parse_lib_provider.h"
 
@@ -1023,26 +1024,29 @@ public:
 
     bool process_line_of_interest(std::string_view line)
     {
-        //static const std::vector<words_to_consume> interesting_words({
-        //    words_to_consume({ "START" }, false, true),
-        //    words_to_consume({ "CSECT" }, false, true),
-        //    words_to_consume({ "RSECT" }, false, true),
-        //    words_to_consume({ "DSECT" }, false, true),
-        //    words_to_consume({ "DFHEIENT" }, false, true),
-        //    words_to_consume({ "DFHEISTG" }, false, true),
-        //    words_to_consume({ "END" }, false, true),
-        //});
+        static const std::vector<words_to_consume> interesting_words({
+            words_to_consume({ "START" }, false, true),
+            words_to_consume({ "CSECT" }, false, true),
+            words_to_consume({ "RSECT" }, false, true),
+            words_to_consume({ "DSECT" }, false, true),
+            words_to_consume({ "DFHEIENT" }, false, true),
+            words_to_consume({ "DFHEISTG" }, false, true),
+            words_to_consume({ "END" }, false, true),
+        });
 
-        //auto wtc_it = std::find_if(interesting_words.begin(), interesting_words.end(), [&line](const auto& wtc) {
-        //    auto it = line.begin();
-        //    return consume_words_advance_to_next(it, line.end(), wtc).has_value();
-        //});
+        auto section_name = utils::next_continuous_sequence(line);
+        line.remove_prefix(section_name.length());
+        utils::trim_left(line);
+        auto wtc_it = std::find_if(interesting_words.begin(), interesting_words.end(), [&line](const auto& wtc) {
+            auto it = line.begin();
+            return consume_words_advance_to_next<std::string_view::const_iterator>(
+                it, line.end(), wtc, space_separator<std::string_view::const_iterator>);
+        });
 
-        static const std::regex line_of_interest("([^ ]*)[ ]+(START|CSECT|RSECT|DSECT|DFHEIENT|DFHEISTG|END)(?: .+)?");
+        if (wtc_it == interesting_words.end())
+            return false;
 
-        return (std::regex_match(line.begin(), line.end(), m_matches_sv, line_of_interest)
-            && process_asm_statement(std::string_view(m_matches_sv[2].first, m_matches_sv[2].second),
-                std::string_view(m_matches_sv[1].first, m_matches_sv[1].second)));
+        return process_asm_statement(wtc_it->words_uc.front(), section_name);
     }
 
     struct label_info
