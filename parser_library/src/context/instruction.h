@@ -345,8 +345,8 @@ enum class condition_code
 
 class condition_code_explanation
 {
-    std::array<const char*, 4> text;
-    std::array<unsigned char, 4> lengths;
+    std::array<const char*, 5> text;
+    std::array<unsigned char, 5> lengths;
 
 public:
     template<size_t l0>
@@ -361,12 +361,28 @@ public:
         : text { l0 == 1 ? nullptr : t0, l1 == 1 ? nullptr : t1, l2 == 1 ? nullptr : t2, l3 == 1 ? nullptr : t3 }
         , lengths { l0 - 1, l1 - 1, l2 - 1, l3 - 1 }
     {}
+    template<size_t l0, size_t l1, size_t l2, size_t l3, size_t qual>
+    consteval condition_code_explanation(const char (&t0)[l0],
+        const char (&t1)[l1],
+        const char (&t2)[l2],
+        const char (&t3)[l3],
+        const char (&qualification)[qual]) noexcept requires(l0 > 0 && l1 > 0 && l2 > 0 && l3 > 0 && qual > 1
+        && l0 < 256 && l1 < 256 && l2 < 256 && l3 < 256 && qual < 256)
+        : text { l0 == 1 ? nullptr : t0,
+            l1 == 1 ? nullptr : t1,
+            l2 == 1 ? nullptr : t2,
+            l3 == 1 ? nullptr : t3,
+            qualification }
+        , lengths { l0 - 1, l1 - 1, l2 - 1, l3 - 1, qual - 1 }
+    {}
 
     constexpr std::string_view tranlate_cc(condition_code cc) const noexcept
     {
         auto cc_val = static_cast<int>(cc);
         return std::string_view(text[cc_val], lengths[cc_val]);
     }
+
+    constexpr std::string_view cc_qualification() const noexcept { return std::string_view(text[4], lengths[4]); }
 
     constexpr bool has_single_explanation() const noexcept
     {
