@@ -132,6 +132,7 @@ std::string_view get_privileged_status_text(context::privilege_status p)
         case conditionally_privileged:
             return "\n\nConditionally privileged instruction";
     }
+    assert(false);
 }
 
 std::string get_page_text(size_t pageno)
@@ -194,8 +195,9 @@ void process_machine_instruction(const context::machine_instruction& machine_ins
     items.emplace(std::string(machine_instr.name()),
         std::move(operands),
         utils::concat(machine_instr.name(), " ${", snippet_id++, ":}", autocomplete.take()),
-        utils::concat("#### ",
+        utils::concat("**",
             machine_instr.fullname(),
+            "**",
             "\n\nMachine instruction, format: ",
             context::instruction::mach_format_to_string(machine_instr.format()),
             "\n\nOperands: ",
@@ -359,8 +361,9 @@ void process_mnemonic_code(
     items.emplace(std::string(mnemonic_instr.name()),
         subs_ops_nomnems_no_snippets.take(),
         utils::concat(mnemonic_instr.name(), " ${", snippet_id++, ":}", subs_ops_nomnems.take()),
-        utils::concat("#### ",
+        utils::concat("**",
             mnemonic_instr.instruction()->fullname(),
+            "**",
             "\n\nMnemonic code for ",
             mnemonic_instr.instruction()->name(),
             " instruction, format: ",
