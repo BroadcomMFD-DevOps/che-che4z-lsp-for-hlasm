@@ -105,7 +105,8 @@ public:
         return it;
     }
 
-    static void trim_left(lexing::logical_line::const_iterator& it, const lexing::logical_line::const_iterator& it_e)
+    template<typename It>
+    static void trim_left(It& it, const It& it_e)
     {
         while (it != it_e)
         {
@@ -116,6 +117,24 @@ public:
             else
                 break;
         }
+    }
+
+    template<typename It>
+    static std::optional<std::string> next_nonblank_sequence(It& it, const It& it_e)
+    {
+        const auto is_separator = [&it_e](It& it) {
+            if (it == it_e || *it == ' ')
+                return true;
+            else if (auto it_n = std::next(it); *it == '-' && (it_n != it_e && *it_n == '-'))
+                return true;
+            return false;
+        };
+
+        It seq_start = it;
+        while (!is_separator(it))
+            it++;
+
+        return it == seq_start ? std::nullopt : std::optional<std::string>(std::string(seq_start, it));
     }
 
 private:
@@ -279,40 +298,34 @@ public:
     }
 };
 
-struct consuming_regex_details
+struct words_to_consume
 {
     bool needs_same_line;
     bool tolerate_no_space_at_end;
-    const std::regex r;
+    const std::vector<std::string> words_uc;
+    const std::vector<std::string> words_lc;
 
-    consuming_regex_details(const std::initializer_list<std::string_view>& words_to_consume,
-        bool needs_same_line,
-        bool tolerate_no_space_at_end)
+    words_to_consume(std::vector<std::string> words, bool needs_same_line, bool tolerate_no_space_at_end)
         : needs_same_line(needs_same_line)
         , tolerate_no_space_at_end(tolerate_no_space_at_end)
-        , r(get_consuming_regex(words_to_consume, tolerate_no_space_at_end))
-    {}
+        , words_uc(case_transform(words, toupper))
+        , words_lc(case_transform(words, tolower))
+    {
+        assert(words_uc.size() == words_lc.size());
+        assert(std::equal(words_uc.begin(), words_uc.end(), words_lc.begin(), [](const auto& w_uc, const auto& w_lc) {
+            return w_uc.length() == w_lc.length();
+        }));
+    }
 
 private:
-    static std::regex get_consuming_regex(
-        const std::initializer_list<std::string_view>& words, bool tolerate_no_space_at_end)
+    static std::vector<std::string> case_transform(std::vector<std::string> words, const auto& f)
     {
-        assert(words.size());
+        std::transform(words.begin(), words.end(), words.begin(), [&f](std::string& w) {
+            std::transform(w.begin(), w.end(), w.begin(), [&f](unsigned char c) { return static_cast<char>(f(c)); });
+            return w;
+        });
 
-        auto w_it = words.begin();
-
-        std::string s = "^(";
-        s.append(*w_it++);
-        while (w_it != words.end())
-            s.append("(?:[ ]|--)+(?:").append(*w_it++).append(")");
-
-        s.append(")([ ]|--)");
-        if (tolerate_no_space_at_end)
-            s.append("*");
-        else
-            s.append("+");
-
-        return std::regex(s);
+        return words;
     }
 };
 
@@ -489,48 +502,70 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
     }
 
     template<typename It>
-    static std::optional<It> consume_words_advance_to_next(It& it, const It& it_e, const consuming_regex_details& crd)
+    static std::optional<It> consume_words_advance_to_next(It& it, const It& it_e, const words_to_consume& wtc)
     {
-        if (std::match_results<It> matches; std::regex_search(it, it_e, matches, crd.r)
-            && (!crd.needs_same_line || same_line(matches[1].first, std::prev(matches[1].second)))
-            && (!crd.tolerate_no_space_at_end || matches[2].length() || !matches.suffix().length()
-                || (matches[1].second == matches.suffix().first
-                    && !same_line(std::prev(matches[1].second), matches.suffix().first))))
+        It backup = it;
+        std::optional<It> consumed_word_end = std::nullopt;
+
+        const auto reverter = [backup = it, &it]() {
+            it = backup;
+            return std::nullopt;
+        };
+
+        for (size_t i = 0; i < wtc.words_uc.size(); ++i)
         {
-            it = matches.suffix().first;
-            return matches[1].second;
+            const auto& w_uc = wtc.words_uc[i];
+            const auto& w_lc = wtc.words_lc[i];
+
+            if (consumed_word_end && *consumed_word_end == it)
+                return reverter();
+
+            It consumed_word_start = it;
+            for (size_t j = 0; j < w_uc.length(); ++j)
+            {
+                const auto& c_uc = w_uc[j];
+                const auto& c_lc = w_lc[j];
+
+                if (it == it_e || (*it != c_uc && *it != c_lc))
+                    return reverter();
+
+                it++;
+            }
+
+            if (wtc.needs_same_line && !same_line(consumed_word_start, std::prev(it)))
+                return reverter();
+
+            consumed_word_end = it;
+            db2_logical_line_helper::trim_left(it, it_e);
         }
 
-        return std::nullopt;
+        if (!wtc.tolerate_no_space_at_end && consumed_word_end == it)
+            return reverter();
+
+        return consumed_word_end;
     }
 
     std::optional<semantics::preproc_details::name_range> try_process_include(
         lexing::logical_line::const_iterator it, const lexing::logical_line::const_iterator& it_e, size_t lineno)
     {
-        if (static const consuming_regex_details include_crd({ "INCLUDE" }, false, false);
-            !consume_words_advance_to_next(it, it_e, include_crd))
+        if (static const words_to_consume include_wtc({ "INCLUDE" }, false, false);
+            !consume_words_advance_to_next(it, it_e, include_wtc))
             return std::nullopt;
 
-        lexing::logical_line::const_iterator inc_it_s;
+        lexing::logical_line::const_iterator inc_it_s = it;
         lexing::logical_line::const_iterator inc_it_e;
         semantics::preproc_details::name_range nr;
-        static const auto member_pattern = std::regex("(.*?)(?:[ ]|--|$)+");
+        std::optional<std::string> word = std::nullopt;
 
-        for (auto reg_it = std::regex_iterator<lexing::logical_line::const_iterator>(it, it_e, member_pattern),
-                  reg_it_e = std::regex_iterator<lexing::logical_line::const_iterator>();
-             reg_it != reg_it_e;
-             ++reg_it)
+        while (word = db2_logical_line_helper::next_nonblank_sequence(it, it_e))
         {
-            if (const auto& sub_match = (*reg_it)[1]; sub_match.length())
-            {
-                if (nr.name.empty())
-                    inc_it_s = sub_match.first;
-                inc_it_e = sub_match.second;
+            inc_it_e = it;
 
-                if (!nr.name.empty())
-                    nr.name.push_back(' ');
-                nr.name.append(sub_match.str());
-            }
+            if (!nr.name.empty())
+                nr.name.push_back(' ');
+            nr.name.append(*word);
+
+            db2_logical_line_helper::trim_left(it, it_e);
         }
 
         if (!nr.name.empty())
@@ -614,11 +649,10 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         if (line_preview.empty())
             return ignore;
 
-        const auto consume_and_create = [&line_preview, lineno, instr_column_start](line_type line,
-                                            const consuming_regex_details& crd,
-                                            std::string_view line_id) {
+        const auto consume_and_create = [&line_preview, lineno, instr_column_start](
+                                            line_type line, const words_to_consume& wtc, std::string_view line_id) {
             auto it = line_preview.begin();
-            if (auto consumed_words_end = consume_words_advance_to_next(it, line_preview.end(), crd);
+            if (auto consumed_words_end = consume_words_advance_to_next(it, line_preview.end(), wtc);
                 consumed_words_end)
                 return std::make_pair(line,
                     semantics::preproc_details::name_range { std::string(line_id),
@@ -628,16 +662,16 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
             return ignore;
         };
 
-        static const consuming_regex_details exec_sql_crd({ "EXEC", "SQL" }, true, false);
-        static const consuming_regex_details sql_type_crd({ "SQL", "TYPE" }, true, false);
+        static const words_to_consume exec_sql_wtc({ "EXEC", "SQL" }, true, false);
+        static const words_to_consume sql_type_wtc({ "SQL", "TYPE" }, true, false);
 
         switch (line_preview.front())
         {
             case 'E':
-                return consume_and_create(line_type::exec_sql, exec_sql_crd, "EXEC SQL");
+                return consume_and_create(line_type::exec_sql, exec_sql_wtc, "EXEC SQL");
 
             case 'S':
-                return consume_and_create(line_type::sql_type, sql_type_crd, "SQL TYPE");
+                return consume_and_create(line_type::sql_type, sql_type_wtc, "SQL TYPE");
 
             default:
                 return ignore;
@@ -699,16 +733,32 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         return result;
     }
 
-    bool handle_lob(const std::regex& pattern,
+    bool handle_lob(const std::optional<words_to_consume>& wtc_prefix,
+        const std::vector<words_to_consume>& wtc_general,
+        const std::optional<std::vector<words_to_consume>>& wtc_additional,
         std::string_view label,
-        const lexing::logical_line::const_iterator& it,
+        lexing::logical_line::const_iterator it,
         const lexing::logical_line::const_iterator& it_e)
     {
-        std::match_results<lexing::logical_line::const_iterator> match;
-        if (!std::regex_search(it, it_e, match, pattern))
+        if (wtc_prefix && !consume_words_advance_to_next(it, it_e, *wtc_prefix))
             return false;
 
-        switch (*std::prev((match[4].matched ? match[4] : match[1]).second))
+        const auto word_consumer = [&it, &it_e](const std::vector<words_to_consume>& words_to_consume) {
+            auto wtc_it = std::find_if(words_to_consume.begin(), words_to_consume.end(), [&it, &it_e](const auto& wtc) {
+                return consume_words_advance_to_next(it, it_e, wtc);
+            });
+
+            return wtc_it != words_to_consume.end() ? &wtc_it->words_uc : nullptr;
+        };
+
+        const std::vector<std::string>* consumed_words_group = word_consumer(wtc_general);
+        if (!consumed_words_group && wtc_additional)
+            consumed_words_group = word_consumer(*wtc_additional);
+
+        if (!consumed_words_group)
+            return false;
+
+        switch (consumed_words_group->back().back())
         {
             case 'E': // ..._FILE
                 add_ds_line(label, "", "0FL4");
@@ -723,8 +773,13 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
                 break;
 
             default: {
-                const auto li = lob_info(*match[1].first, match[3].matched ? *match[3].first : 0);
-                auto len = std::stoll(match[2].str()) * li.scale;
+                std::match_results<lexing::logical_line::const_iterator> match;
+                if (static const auto pattern = std::regex("^(?:([[:digit:]]{1,9})([KMG])?)");
+                    !std::regex_search(it, it_e, match, pattern))
+                    return false;
+
+                const auto li = lob_info(consumed_words_group->front().front(), match[2].matched ? *match[2].first : 0);
+                auto len = std::stoll(match[1].str()) * li.scale;
 
                 add_ds_line(label, "", "0FL4");
                 add_ds_line(label, "_LENGTH", "FL4", false);
@@ -741,13 +796,13 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
     };
 
     bool handle_r_starting_operands(const std::string_view& label,
-        const lexing::logical_line::const_iterator& it_b,
+        lexing::logical_line::const_iterator& it_b,
         const lexing::logical_line::const_iterator& it_e)
     {
         auto ds_line_inserter = [&label, &it_e, this](lexing::logical_line::const_iterator it,
-                                    const consuming_regex_details& crd,
+                                    const words_to_consume& wtc,
                                     std::string_view ds_line_type) {
-            if (!consume_words_advance_to_next(it, it_e, crd))
+            if (!consume_words_advance_to_next(it, it_e, wtc))
                 return false;
             add_ds_line(label, "", ds_line_type);
             return true;
@@ -755,50 +810,45 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
 
         assert(it_b != it_e && *it_b == 'R');
 
-        static const consuming_regex_details result_set_crd({ "RESULT_SET_LOCATOR", "VARYING" }, false, true);
-        static const consuming_regex_details rowid_crd({ "ROWID" }, false, true);
+        static const words_to_consume result_set_wtc({ "RESULT_SET_LOCATOR", "VARYING" }, false, true);
+        static const words_to_consume rowid_wtc({ "ROWID" }, false, true);
 
         if (auto it_n = std::next(it_b); it_n == it_e || (*it_n != 'E' && *it_n != 'O'))
             return false;
         else if (*it_n == 'E')
-            return ds_line_inserter(it_b, result_set_crd, "FL4");
+            return ds_line_inserter(it_b, result_set_wtc, "FL4");
         else
-            return ds_line_inserter(it_b, rowid_crd, "H,CL40");
+            return ds_line_inserter(it_b, rowid_wtc, "H,CL40");
     };
 
     bool process_sql_type_operands(const std::string_view& label,
-        const lexing::logical_line::const_iterator& it,
+        lexing::logical_line::const_iterator& it,
         const lexing::logical_line::const_iterator& it_e)
     {
         if (it == it_e)
             return false;
 
-        // keep the capture groups in sync
-        static const auto xml_type =
-            std::regex("^"
-                       "XML(?:[ ]|--)+AS(?:[ ]|--)+"
-                       "(?:"
-                       "("
-                       "BINARY(?:[ ]|--)+LARGE(?:[ ]|--)+OBJECT|BLOB|CHARACTER(?:[ ]|--)+"
-                       "LARGE(?:[ ]|--)+OBJECT|CHAR(?:[ ]|--)+LARGE(?:[ ]|--)+OBJECT|CLOB|DBCLOB"
-                       ")"
-                       "(?:[ ]|--)+([[:digit:]]{1,9})([KMG])?"
-                       "|"
-                       "(BLOB_FILE|CLOB_FILE|DBCLOB_FILE)"
-                       ")");
-        static const auto lob_type =
-            std::regex("^"
-                       "(?:"
-                       "("
-                       "BINARY(?:[ ]|--)+LARGE(?:[ ]|--)+OBJECT|BLOB|CHARACTER(?:[ ]|--)+"
-                       "LARGE(?:[ ]|--)+OBJECT|CHAR(?:[ ]|--)+LARGE(?:[ ]|--)+OBJECT|CLOB|DBCLOB"
-                       ")"
-                       "(?:[ ]|--)+([[:digit:]]{1,9})([KMG])?"
-                       "|"
-                       "(BLOB_FILE|CLOB_FILE|DBCLOB_FILE|BLOB_LOCATOR|CLOB_LOCATOR|DBCLOB_LOCATOR)"
-                       ")");
+        static const words_to_consume lob_xml_prefix({ "XML", "AS" }, false, false);
+        static const std::vector<words_to_consume> lob_wtc_general({
+            words_to_consume({ "BINARY", "LARGE", "OBJECT" }, false, false),
+            words_to_consume({ "BLOB" }, false, false),
+            words_to_consume({ "CHARACTER", "LARGE", "OBJECT" }, false, false),
+            words_to_consume({ "CHAR", "LARGE", "OBJECT" }, false, false),
+            words_to_consume({ "CLOB" }, false, false),
+            words_to_consume({ "DBCLOB" }, false, false),
+            words_to_consume({ "BLOB_FILE" }, false, true),
+            words_to_consume({ "CLOB_FILE" }, false, true),
+            words_to_consume({ "DBCLOB_FILE" }, false, true),
+        });
+        static const std::vector<words_to_consume> lob_wtc_additional({
+            words_to_consume({ "BLOB_LOCATOR" }, false, true),
+            words_to_consume({ "CLOB_LOCATOR" }, false, true),
+            words_to_consume({ "DBCLOB_LOCATOR" }, false, true),
+        });
 
-        static const auto table_like = std::regex("TABLE(?:[ ]|--)+LIKE(?:[ ]|--)+(.*)AS(?:[ ]|--)+LOCATOR");
+
+        static const words_to_consume table_like({ "TABLE", "LIKE" }, false, false);
+        static const auto table_like_regex = std::regex("(.*)AS(?:[ ]|--)+LOCATOR");
         static const auto text_variant1 = std::regex("'(?:[^']|'')*'(?:[ ]|--)+");
         static const auto text_variant2 = std::regex("[^'](?:[^']|'')*(?:[ ]|--)+");
         std::match_results<lexing::logical_line::const_iterator> matches;
@@ -808,8 +858,11 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
             case 'R':
                 return handle_r_starting_operands(label, it, it_e);
 
-            case 'T':
-                if (!std::regex_search(it, it_e, matches, table_like)
+            case 'T': {
+                if (!consume_words_advance_to_next(it, it_e, table_like))
+                    return false;
+
+                if (!std::regex_search(it, it_e, matches, table_like_regex)
                     || (matches.suffix().length() != 0
                         && !std::regex_search(
                             matches.suffix().first, matches.suffix().second, std::regex("^(?:[ ]|--)")))
@@ -819,14 +872,15 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
                     return false;
                 add_ds_line(label, "", "FL4");
                 return true;
+            }
 
             case 'X':
-                return handle_lob(xml_type, label, it, it_e);
+                return handle_lob(lob_xml_prefix, lob_wtc_general, std::nullopt, label, it, it_e);
 
             case 'B':
             case 'C':
             case 'D':
-                return handle_lob(lob_type, label, it, it_e);
+                return handle_lob(std::nullopt, lob_wtc_general, lob_wtc_additional, label, it, it_e);
             default:
                 return false;
         }
@@ -914,7 +968,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         if (ll.m_db2_ll.continuation_error)
             diag_adder(diagnostic_op::error_DB001(range(position(ll.m_lineno, 0))));
 
-        static const consuming_regex_details is_crd({ "IS" }, true, true);
+        static const words_to_consume is_wtc({ "IS" }, true, true);
 
         std::vector<semantics::preproc_details::name_range> args;
         auto it = std::next(ll.m_db2_ll.begin(), instruction_end);
@@ -960,7 +1014,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
                 if (ll.m_db2_ll.segments.size() > 1)
                     diag_adder(diagnostic_op::warn_DB005(range(position(ll.m_lineno, 0))));
 
-                if (!consume_words_advance_to_next(it, it_e, is_crd))
+                if (!consume_words_advance_to_next(it, it_e, is_wtc))
                 {
                     diag_adder(diagnostic_op::warn_DB006(range(position(ll.m_lineno, 0))));
                     break;
@@ -980,13 +1034,17 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
     }
 
     bool sql_has_codegen(
-        const lexing::logical_line::const_iterator& it, const lexing::logical_line::const_iterator& it_e) const
+        lexing::logical_line::const_iterator it, const lexing::logical_line::const_iterator& it_e) const
     {
         // handles only the most obvious cases (imprecisely)
-        static const auto no_code_statements = std::regex(
-            "^(?:DECLARE|WHENEVER|BEGIN(?:[ ]|--)+DECLARE(?:[ ]|--)+SECTION|END(?:[ ]|--)+DECLARE(?:[ ]|--)+SECTION)",
-            std::regex_constants::icase);
-        return !std::regex_search(it, it_e, no_code_statements);
+        static const words_to_consume declare_wtc({ "DECLARE" }, false, false);
+        static const words_to_consume whenever_wtc({ "WHENEVER" }, false, false);
+        static const words_to_consume begin_wtc({ "BEGIN", "DECLARE", "SECTION" }, false, true);
+        static const words_to_consume end_wtc({ "END", "DECLARE", "SECTION" }, false, true); // todo icase variant
+
+        return !consume_words_advance_to_next(it, it_e, declare_wtc)
+            && !consume_words_advance_to_next(it, it_e, whenever_wtc)
+            && !consume_words_advance_to_next(it, it_e, begin_wtc) && !consume_words_advance_to_next(it, it_e, end_wtc);
     }
 
     void generate_sql_code_mock(size_t in_params)
