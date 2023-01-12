@@ -238,7 +238,8 @@ DEFINE_CC_SET(compare_exp, "Biased exponents equal", "First operand biased expon
 DEFINE_CC_SET(vector_saturate, "No saturation", "One or more but not all elements saturated", "", "All elements saturated", "only set when CS=1")
 DEFINE_CC_SET(vector_equal, "All elements equal", "Some elements equal", "", "No element equal", "only set when CS=1")
 DEFINE_CC_SET(vector_high, "All elements high", "Some elements high", "", "No element high", "only set when CS=1")
-DEFINE_CC_SET(vector_find, "ZS=1: No matching elements before an element containing zero in the second operand", "One or mores matches in the second operand and, if ZS=1, no zero matches", "If ZS=1, at least one indication in the first intermediate result is true with a lower index than a true indication in the second intermediate result", "All intermediate results are false", "only set when CS=1")
+DEFINE_CC_SET(vector_find, "If ZS=1, No matching elements before an element containing zero in the second operand", "One or mores matches in the second operand and, if ZS=1, no zero matches", "If ZS=1, at least one indication in the first intermediate result is true with a lower index than a true indication in the second intermediate result", "All intermediate results are false", "only set when CS=1")
+DEFINE_CC_SET(vector_find_equal, "If ZS=1, no equal comparisons with index less than zero comparisons", "Equal comparisons detected, if ZS=1, no zero comparisons were done", "If ZS=1, Equal comparisons detected, if ZS=1, zero comparisons were done", ""No comparisons, if ZS=1, no zero elements either, "only set when CS=1"))
 
 DEFINE_INSTRUCTION(A, RX_a_2_ux, 530, UNI_ESA_XA_370_DOS_SINCE_ZOP, "Add (32)", arithmetic)
 DEFINE_INSTRUCTION(AD, RX_a_2_ux, 1462, UNI_ESA_XA_370_DOS_SINCE_ZOP, "Add Normalized (long HFP)", arithmetic_no_overflow)
@@ -1370,7 +1371,7 @@ DEFINE_INSTRUCTION(VFCE, VRR_c_6, 1601, UNI_SINCE_Z13, "Vector FP Compare Equal"
 DEFINE_INSTRUCTION(VFCH, VRR_c_6, 1603, UNI_SINCE_Z13, "Vector FP Compare High")
 DEFINE_INSTRUCTION(VFCHE, VRR_c_6, 1605, UNI_SINCE_Z13, "Vector FP Compare High or Equal")
 DEFINE_INSTRUCTION(VFD, VRR_c_5, 1613, UNI_SINCE_Z13, "Vector FP Divide")
-DEFINE_INSTRUCTION(VFEE, VRR_b_5_opt, 1587, UNI_SINCE_Z13, "Vector Find Element Equal")
+DEFINE_INSTRUCTION(VFEE, VRR_b_5_opt, 1645, UNI_SINCE_Z13, "Vector Find Element Equal", vector_find_equal)
 DEFINE_INSTRUCTION(VFENE, VRR_b_5_opt, 1588, UNI_SINCE_Z13, "Vector Find Element Not Equal")
 DEFINE_INSTRUCTION(VFI, VRR_a_5, 1615, UNI_SINCE_Z13, "Vector Load FP Integer")
 DEFINE_INSTRUCTION(VFLL, VRR_a_4, 1617, UNI_SINCE_Z14, "Vector FP Load Lengthened")
