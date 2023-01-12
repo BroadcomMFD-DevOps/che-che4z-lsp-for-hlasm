@@ -100,7 +100,7 @@ std::string generate_cc_explanation(const context::condition_code_explanation& c
 {
     const auto qual = cc.cc_qualification();
     std::string result =
-        qual.empty() ? std::string("Condition Code: ") : utils::concat("Condition Code (", qual, "): ");
+        qual.empty() ? std::string("\n\nCondition Code: ") : utils::concat("\n\nCondition Code (", qual, "): ");
 
     const auto cc_translate = [&cc](int v) {
         auto result = cc.tranlate_cc(static_cast<context::condition_code>(v));
@@ -118,6 +118,36 @@ std::string generate_cc_explanation(const context::condition_code_explanation& c
     }
 
     return result;
+}
+
+std::string_view get_privileged_status_text(context::privilege_status p)
+{
+    using enum context::privilege_status;
+    switch (p)
+    {
+        case not_privileged:
+            return "";
+        case privileged:
+            return "\n\nPrivileged instruction";
+        case conditionally_privileged:
+            return "\n\nConditionally privileged instruction";
+    }
+}
+
+std::string get_page_text(size_t pageno)
+{
+    if (pageno == 0)
+        return {};
+    else
+        return utils::concat("\n\nDetails on page ", std::to_string(pageno));
+}
+
+std::string_view get_implicit_parameters_text(bool has_some)
+{
+    if (has_some)
+        return " (has additional implicit operands)";
+    else
+        return "";
 }
 
 void process_machine_instruction(const context::machine_instruction& machine_instr,
@@ -161,10 +191,6 @@ void process_machine_instruction(const context::machine_instruction& machine_ins
 
     auto operands = detail.take();
 
-    std::string page_text;
-    if (const auto page_pop = machine_instr.page_in_pop())
-        page_text = utils::concat("\n\nDetails on page ", std::to_string(page_pop));
-
     items.emplace(std::string(machine_instr.name()),
         std::move(operands),
         utils::concat(machine_instr.name(), " ${", snippet_id++, ":}", autocomplete.take()),
@@ -174,9 +200,10 @@ void process_machine_instruction(const context::machine_instruction& machine_ins
             context::instruction::mach_format_to_string(machine_instr.format()),
             "\n\nOperands: ",
             operands,
-            "\n\n",
+            get_implicit_parameters_text(machine_instr.has_parameter_list()),
+            get_privileged_status_text(machine_instr.privileged()),
             generate_cc_explanation(machine_instr.cc_explanation()),
-            page_text),
+            get_page_text(machine_instr.page_in_pop())),
         completion_item_kind::mach_instr,
         true);
 }
@@ -340,8 +367,10 @@ void process_mnemonic_code(
             context::instruction::mach_format_to_string(mnemonic_instr.instruction()->format()),
             "\n\nSubstituted operands: ",
             subs_ops_mnems.take(),
-            "\n\n",
-            generate_cc_explanation(mnemonic_instr.instruction()->cc_explanation())),
+            get_implicit_parameters_text(mnemonic_instr.instruction()->has_parameter_list()),
+            get_privileged_status_text(mnemonic_instr.instruction()->privileged()),
+            generate_cc_explanation(mnemonic_instr.instruction()->cc_explanation()),
+            get_page_text(mnemonic_instr.instruction()->page_in_pop())),
         completion_item_kind::mach_instr,
         true);
 }

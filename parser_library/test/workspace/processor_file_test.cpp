@@ -63,7 +63,7 @@ TEST(processor_file, parse_macro)
     EXPECT_EQ(open_fp->definition(opencode_loc, { 1, 2 }), location({ 1, 1 }, macro_loc));
 
     const std::string sam31_hover_message = "#### Set Addressing Mode (31)\n\nMachine instruction, format: E\n\n"
-                                            "Operands: \n\nCondition Code: The code remains unchanged";
+                                            "Operands: \n\nCondition Code: The code remains unchanged\n\nDetails on page 885";
     EXPECT_EQ(open_fp->hover(opencode_loc, { 0, 2 }), sam31_hover_message);
     EXPECT_EQ(open_fp->hover(macro_loc, { 2, 2 }), sam31_hover_message);
 

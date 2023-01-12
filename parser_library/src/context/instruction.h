@@ -410,6 +410,13 @@ struct instruction_format_definition
     mach_format format;
 };
 
+enum class privilege_status
+{
+    not_privileged,
+    privileged,
+    conditionally_privileged,
+};
+
 // machine instruction representation for checking
 class machine_instruction
 {
@@ -544,6 +551,12 @@ public:
     }
 
     constexpr size_t page_in_pop() const noexcept { return m_page_no; }
+
+    constexpr bool has_parameter_list() const noexcept { return m_details.has_parameter_list; }
+    constexpr privilege_status privileged() const noexcept
+    {
+        return static_cast<privilege_status>(m_details.privileged + m_details.privileged_conditionally * 2);
+    }
 };
 
 class ca_instruction
