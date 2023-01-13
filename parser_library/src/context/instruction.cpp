@@ -468,33 +468,30 @@ struct cc_index
 };
 
 template<typename... Args>
-constexpr bool make_machine_instruction_details_validate_args() noexcept
+struct make_machine_instruction_details_args_validator
 {
-    constexpr size_t p = (0 + ... + std::is_same_v<Args, std::decay_t<decltype(privileged)>>);
-    constexpr size_t p_c = (0 + ... + std::is_same_v<Args, std::decay_t<decltype(privileged_conditionally)>>);
-    constexpr size_t pl = (0 + ... + std::is_same_v<Args, std::decay_t<decltype(has_parameter_list)>>);
-    constexpr size_t cc = (0 + ... + std::is_same_v<Args, cc_index>);
+    static constexpr size_t p = (0 + ... + std::is_same_v<Args, std::decay_t<decltype(privileged)>>);
+    static constexpr size_t p_c = (0 + ... + std::is_same_v<Args, std::decay_t<decltype(privileged_conditionally)>>);
+    static constexpr size_t pl = (0 + ... + std::is_same_v<Args, std::decay_t<decltype(has_parameter_list)>>);
+    static constexpr size_t cc = (0 + ... + std::is_same_v<Args, cc_index>);
+    static constexpr bool value = p <= 1 && p_c <= 1 && pl <= 1 && !(p && p_c) && cc <= 1;
+};
+template<typename... Args>
+using make_machine_instruction_details_args_validator_t = make_machine_instruction_details_args_validator<Args...>;
 
-    return p <= 1 && p_c <= 1 && pl <= 1 && !(p && p_c) && cc <= 1;
-}
+struct
+{
+    constexpr unsigned char operator()(const cc_index& val) const noexcept { return val.value; }
+    constexpr unsigned char operator()(const auto&) const noexcept { return 0; }
+} constexpr cc_visitor;
 
 template<size_t n, typename... Args>
 constexpr machine_instruction_details make_machine_instruction_details(const char (&name)[n], Args&&... args) noexcept
-    requires(n > 0 && n < 256 && make_machine_instruction_details_validate_args<std::decay_t<Args>...>())
+    requires(n > 1 && n < 256 && make_machine_instruction_details_args_validator_t<std::decay_t<Args>...>::value)
 {
+    using A = make_machine_instruction_details_args_validator_t<std::decay_t<Args>...>;
     return machine_instruction_details {
-        name,
-        n - 1,
-        static_cast<unsigned char>((0 + ... +
-            []<typename T>(const T& val) {
-                if constexpr (std::is_same_v<T, cc_index>)
-                    return val.value;
-                else
-                    return 0;
-            }(args))),
-        (0 + ... + std::is_same_v<std::decay_t<Args>, std::decay_t<decltype(privileged)>>),
-        (0 + ... + std::is_same_v<std::decay_t<Args>, std::decay_t<decltype(privileged_conditionally)>>),
-        (0 + ... + std::is_same_v<std::decay_t<Args>, std::decay_t<decltype(has_parameter_list)>>),
+        name, n - 1, static_cast<unsigned char>((0 + ... + cc_visitor(args))), A::p > 0, A::p_c > 0, A::pl > 0
     };
 }
 
