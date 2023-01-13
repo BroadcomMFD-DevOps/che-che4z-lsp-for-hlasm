@@ -476,8 +476,6 @@ struct make_machine_instruction_details_args_validator
     static constexpr size_t cc = (0 + ... + std::is_same_v<Args, cc_index>);
     static constexpr bool value = p <= 1 && p_c <= 1 && pl <= 1 && !(p && p_c) && cc <= 1;
 };
-template<typename... Args>
-using make_machine_instruction_details_args_validator_t = make_machine_instruction_details_args_validator<Args...>;
 
 struct
 {
@@ -487,9 +485,9 @@ struct
 
 template<size_t n, typename... Args>
 constexpr machine_instruction_details make_machine_instruction_details(const char (&name)[n], Args&&... args) noexcept
-    requires(n > 1 && n < 256 && make_machine_instruction_details_args_validator_t<std::decay_t<Args>...>::value)
+    requires(n > 1 && n < 256 && make_machine_instruction_details_args_validator<std::decay_t<Args>...>::value)
 {
-    using A = make_machine_instruction_details_args_validator_t<std::decay_t<Args>...>;
+    using A = make_machine_instruction_details_args_validator<std::decay_t<Args>...>;
     return machine_instruction_details {
         name, n - 1, static_cast<unsigned char>((0 + ... + cc_visitor(args))), A::p > 0, A::p_c > 0, A::pl > 0
     };
