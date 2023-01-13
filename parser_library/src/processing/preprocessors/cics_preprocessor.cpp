@@ -941,46 +941,59 @@ public:
 
     bool try_asm_xopts(std::string_view input, size_t lineno)
     {
-        if (input.substr(0, 5) != "*ASM ")
+        static constexpr auto sv_icase_compare = [](const std::string_view& sv_a, const std::string_view& sv_b) {
+            if (sv_a.size() != sv_b.size())
+                return false;
+
+            return std::equal(
+                sv_a.begin(), sv_a.end(), sv_b.begin(), [](auto a, auto b) { return tolower(a) == tolower(b); });
+        };
+
+        if (!sv_icase_compare(input.substr(0, 5), "*ASM "))
             return false;
 
         auto [line, _] = lexing::extract_line(input);
         if (m_diags && line.size() > lexing::default_ictl.end && line[lexing::default_ictl.end] != ' ')
             m_diags->add_diagnostic(diagnostic_op::warn_CIC001(range(position(lineno, 0))));
 
-        line = line.substr(0, lexing::default_ictl.end);
+        line = line.substr(5, lexing::default_ictl.end - 5);
 
-        static const std::regex asm_statement(
-            R"(^\*ASM[ ]+(?:[Xx][Oo][Pp][Tt][Ss]?|[Cc][Ii][Cc][Ss])[(']([A-Z, ]*)[)'])");
-        static const std::regex op_sep("[ ,]+");
-        static const std::unordered_map<std::string_view, std::pair<bool cics_preprocessor_options::*, bool>> opts {
-            { "PROLOG", { &cics_preprocessor_options::prolog, true } },
-            { "NOPROLOG", { &cics_preprocessor_options::prolog, false } },
-            { "EPILOG", { &cics_preprocessor_options::epilog, true } },
-            { "NOEPILOG", { &cics_preprocessor_options::epilog, false } },
-            { "LEASM", { &cics_preprocessor_options::leasm, true } },
-            { "NOLEASM", { &cics_preprocessor_options::leasm, false } },
-        };
-
-        std::match_results<std::string_view::const_iterator> m_regex_match;
-        if (!std::regex_search(line.begin(), line.end(), m_regex_match, asm_statement)
-            || m_regex_match[1].length() == 0)
+        if (auto keyword = utils::next_continuous_sequence(line, "(\'"); sv_icase_compare(keyword, "XOPTS")
+            || sv_icase_compare(keyword, "XOPT") || sv_icase_compare(keyword, "CICS"))
+            line.remove_prefix(keyword.length() + 1);
+        else
             return false;
 
-        std::string_view operands(m_regex_match[1].first, m_regex_match[1].second);
-        auto opts_begin =
-            std::regex_token_iterator<std::string_view::iterator>(operands.begin(), operands.end(), op_sep, -1);
-        auto opts_end = std::regex_token_iterator<std::string_view::iterator>();
-
-        for (; opts_begin != opts_end; ++opts_begin)
+        std::vector<std::string_view> words;
+        while (!line.empty() && (line.front() != '\'' && line.front() != ')'))
         {
-            if (opts_begin->length() == 0)
-                continue;
-
-            std::string_view name(opts_begin->first, opts_begin->second);
-            if (auto o = opts.find(name); o != opts.end())
-                (m_options.*o->second.first) = o->second.second;
+            words.emplace_back(utils::next_continuous_sequence(line, " ,)\'"));
+            line.remove_prefix(words.back().length());
+            auto tmp = line.find_first_not_of(" ,");
+            if (tmp != std::string_view::npos)
+                line.remove_prefix(tmp);
         }
+
+        if (line.empty() || (line.front() != '\'' && line.front() != ')'))
+            return false;
+
+        std::for_each(words.begin(), words.end(), [&options = this->m_options](const auto& w) {
+            static const std::unordered_map<std::string_view, std::pair<bool cics_preprocessor_options::*, bool>>
+                preproc_opts {
+                    { "PROLOG", { &cics_preprocessor_options::prolog, true } },
+                    { "NOPROLOG", { &cics_preprocessor_options::prolog, false } },
+                    { "EPILOG", { &cics_preprocessor_options::epilog, true } },
+                    { "NOEPILOG", { &cics_preprocessor_options::epilog, false } },
+                    { "LEASM", { &cics_preprocessor_options::leasm, true } },
+                    { "NOLEASM", { &cics_preprocessor_options::leasm, false } },
+                };
+
+            if (w.length() != 0)
+            {
+                if (auto o = preproc_opts.find(w); o != preproc_opts.end())
+                    (options.*o->second.first) = o->second.second;
+            }
+        });
 
         return true;
     }

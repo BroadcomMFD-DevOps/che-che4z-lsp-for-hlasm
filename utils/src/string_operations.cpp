@@ -53,6 +53,15 @@ size_t consume(std::string_view& s, std::string_view lit)
     return lit.size();
 }
 
+std::string_view next_continuous_sequence(std::string_view s, std::string_view separators)
+{
+    auto sep_pos = s.find_first_of(separators);
+    if (sep_pos == std::string_view::npos)
+        sep_pos = s.size();
+
+    return s.substr(0, sep_pos);
+}
+
 std::string_view next_continuous_sequence(std::string_view s)
 {
     if (s.empty() || s.front() == ' ')

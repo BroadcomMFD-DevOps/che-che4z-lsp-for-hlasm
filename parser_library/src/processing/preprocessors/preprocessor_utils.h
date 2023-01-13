@@ -79,6 +79,9 @@ static const auto space_separator = [](const It& it, const It& it_e) {
 };
 
 template<typename It>
+static const auto no_separator = [](const It&, const It&) { return 0; };
+
+template<typename It>
 static void trim_left(It& it, const It& it_e, const separator_funcion<It>& is_separator)
 {
     while (it != it_e)
@@ -175,6 +178,12 @@ static std::optional<It> consume_words_advance_to_next(
         return reverter();
 
     return consumed_word_end;
+}
+
+template<typename It>
+static std::optional<It> consume_words(It& it, const It& it_e, const words_to_consume& wtc)
+{
+    return consume_words_advance_to_next<It>(it, it_e, wtc, no_separator<It>);
 }
 
 } // namespace hlasm_plugin::parser_library::processing
