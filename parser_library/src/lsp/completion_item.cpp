@@ -103,10 +103,10 @@ std::string generate_cc_explanation(const context::condition_code_explanation& c
         qual.empty() ? std::string("\n\nCondition Code: ") : utils::concat("\n\nCondition Code (", qual, "): ");
 
     const auto cc_translate = [&cc](int v) {
-        auto result = cc.tranlate_cc(static_cast<context::condition_code>(v));
-        if (result.empty())
-            result = "\\--"; // otherwise a horizontal line is generated
-        return result;
+        auto r = cc.tranlate_cc(static_cast<context::condition_code>(v));
+        if (r.empty())
+            r = "\\--"; // otherwise a horizontal line is generated
+        return r;
     };
 
     if (cc.has_single_explanation())

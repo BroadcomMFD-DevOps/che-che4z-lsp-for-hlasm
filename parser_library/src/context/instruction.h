@@ -350,19 +350,19 @@ class condition_code_explanation
 
 public:
     template<size_t l0>
-    consteval condition_code_explanation(const char (&t0)[l0]) noexcept requires(l0 > 1 && l0 < 256)
+    explicit consteval condition_code_explanation(const char (&t0)[l0]) noexcept requires(l0 > 1 && l0 < 256)
         : text { t0, t0, t0, t0 }
         , lengths { l0 - 1, l0 - 1, l0 - 1, l0 - 1 }
     {}
     template<size_t l0, size_t l1, size_t l2, size_t l3>
-    consteval condition_code_explanation(
+    explicit consteval condition_code_explanation(
         const char (&t0)[l0], const char (&t1)[l1], const char (&t2)[l2], const char (&t3)[l3]) noexcept
         requires(l0 > 0 && l1 > 0 && l2 > 0 && l3 > 0 && l0 < 256 && l1 < 256 && l2 < 256 && l3 < 256)
         : text { l0 == 1 ? nullptr : t0, l1 == 1 ? nullptr : t1, l2 == 1 ? nullptr : t2, l3 == 1 ? nullptr : t3 }
         , lengths { l0 - 1, l1 - 1, l2 - 1, l3 - 1 }
     {}
     template<size_t l0, size_t l1, size_t l2, size_t l3, size_t qual>
-    consteval condition_code_explanation(const char (&t0)[l0],
+    explicit consteval condition_code_explanation(const char (&t0)[l0],
         const char (&t1)[l1],
         const char (&t2)[l2],
         const char (&t3)[l3],
