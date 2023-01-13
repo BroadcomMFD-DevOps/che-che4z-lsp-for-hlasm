@@ -649,19 +649,6 @@ const std::unordered_map<std::string_view, int> DFHVALUE_operands = {
     { "ZCPTRACE", 364 },
 };
 
-const std::regex DFH_matcher(
-    [](const auto& DFHRESP_operands, const auto& DFHVALUE_operands) {
-        std::string DFHRESP_list;
-        for (const auto& [key, value] : DFHRESP_operands)
-            DFHRESP_list.append(key).append(1, '|');
-        std::string DFHVALUE_list;
-        for (const auto& [key, value] : DFHVALUE_operands)
-            DFHVALUE_list.append(key).append(1, '|');
-        // keep the empty alternatives
-        return "^DFH(?:RESP[ ]*\\([ ]*(" + DFHRESP_list + ")[ ]*\\)|VALUE[ ]*\\([ ]*(" + DFHVALUE_list + ")[ ]*\\))";
-    }(DFHRESP_operands, DFHVALUE_operands),
-    std::regex_constants::icase);
-
 // emulates limited variant of alternative operand parser and performs DFHRESP/DFHVALUE substitutions
 // recognizes L' attribute, '...' strings and skips end of line comments
 template<typename It>
@@ -702,6 +689,45 @@ class mini_parser
         return r;
     }();
 
+    std::optional<std::string> try_dfh_consume(
+        It& b, const It& e, const words_to_consume& wtc, const std::unordered_map<std::string_view, int>& value_map)
+    {
+        const auto reverter = [backup = b, &b]() {
+            b = backup;
+            return std::nullopt;
+        };
+
+        static const auto dfh_value_end_separators = [](const It& b, const It& e) {
+            if (b == e)
+                return 0;
+            else if (*b == ' ' || *b == ')')
+                return 1;
+            return 0;
+        };
+
+        if (!consume_words_advance_to_next<It>(b, e, wtc, space_separator<It>))
+            return reverter();
+
+        if (b == e || *b++ != '(')
+            return reverter();
+        trim_left<It>(b, e, space_separator<It>);
+
+        auto val = next_continuous_sequence<It>(b, e, dfh_value_end_separators);
+
+        trim_left<It>(b, e, space_separator<It>);
+        if (b == e || *b++ != ')')
+            return reverter();
+
+        if (!val)
+            return std::string();
+
+        auto map_it = value_map.find(context::to_upper_copy(*val));
+        if (map_it == value_map.end())
+            return reverter();
+
+        return std::to_string(map_it->second);
+    }
+
 public:
     const std::string& operands() const& { return m_substituted_operands; }
     std::string operands() && { return std::move(m_substituted_operands); }
@@ -725,7 +751,7 @@ public:
         size_t substitutions_performed() const { return std::get<size_t>(m_value); }
     };
 
-    parse_and_substitute_result parse_and_substitute(It b, It e)
+    parse_and_substitute_result parse_and_substitute(It b, const It& e)
     {
         m_substituted_operands.clear();
         size_t valid_dfh = 0;
@@ -759,28 +785,25 @@ public:
                     }
                     else if (!last_attribute && (c == 'D' || c == 'd'))
                     {
-                        // check for DFHRESP/DFHVALUE expression
-                        if (std::regex_search(b, e, m_matches, DFH_matcher))
-                        {
-                            if (m_matches[1].length() != 0)
-                                m_substituted_operands.append("=F'")
-                                    .append(
-                                        std::to_string(DFHRESP_operands.at(context::to_upper_copy(m_matches[1].str()))))
-                                    .append("'");
-                            else if (m_matches[2].length() != 0)
-                                m_substituted_operands.append("=F'")
-                                    .append(std::to_string(
-                                        DFHVALUE_operands.at(context::to_upper_copy(m_matches[2].str()))))
-                                    .append("'");
-                            else
-                            {
-                                if (auto c3 = *std::next(b, 3); c3 == 'R' || c3 == 'r') // indicate NULL argument error
-                                    return parse_and_substitute_result("DFHRESP");
-                                else
-                                    return parse_and_substitute_result("DFHVALUE");
-                            }
+                        static const words_to_consume dfhresp_wtc({ "DFHRESP" }, false, true);
+                        static const words_to_consume dfhvalue_wtc({ "DFHVALUE" }, false, true);
+                        static const std::string miss = "...";
 
-                            b = m_matches.suffix().first;
+                        // check for DFHRESP/DFHVALUE expression
+                        auto expr_start = b;
+                        auto val = try_dfh_consume(b, e, dfhresp_wtc, DFHRESP_operands)
+                                       .value_or(try_dfh_consume(b, e, dfhvalue_wtc, DFHVALUE_operands).value_or(miss));
+
+                        if (val != miss)
+                        {
+                            if (!val.empty())
+                                m_substituted_operands.append("=F'").append(val).append("'");
+                            else if (std::advance(expr_start, 3);
+                                     *expr_start == 'R' || *expr_start == 'r') // indicate NULL argument error
+                                return parse_and_substitute_result("DFHRESP");
+                            else
+                                return parse_and_substitute_result("DFHVALUE");
+
                             ++valid_dfh;
                             continue;
                         }
