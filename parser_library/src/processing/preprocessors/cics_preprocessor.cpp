@@ -698,11 +698,7 @@ class mini_parser
         };
 
         static const auto dfh_value_end_separators = [](const It& b, const It& e) {
-            if (b == e)
-                return 0;
-            else if (*b == ' ' || *b == ')')
-                return 1;
-            return 0;
+            return (b == e || (*b != ' ' && *b != ')')) ? 0 : 1;
         };
 
         if (!consume_words_advance_to_next<It>(b, e, wtc, space_separator<It>))
@@ -787,17 +783,17 @@ public:
                     {
                         static const words_to_consume dfhresp_wtc({ "DFHRESP" }, false, true);
                         static const words_to_consume dfhvalue_wtc({ "DFHVALUE" }, false, true);
-                        static const std::string miss = "...";
 
                         // check for DFHRESP/DFHVALUE expression
                         auto expr_start = b;
-                        auto val = try_dfh_consume(b, e, dfhresp_wtc, DFHRESP_operands)
-                                       .value_or(try_dfh_consume(b, e, dfhvalue_wtc, DFHVALUE_operands).value_or(miss));
+                        auto val = try_dfh_consume(b, e, dfhresp_wtc, DFHRESP_operands);
+                        if (!val.has_value())
+                            val = try_dfh_consume(b, e, dfhvalue_wtc, DFHVALUE_operands);
 
-                        if (val != miss)
+                        if (val.has_value())
                         {
-                            if (!val.empty())
-                                m_substituted_operands.append("=F'").append(val).append("'");
+                            if (!val->empty())
+                                m_substituted_operands.append("=F'").append(*val).append("'");
                             else if (std::advance(expr_start, 3);
                                      *expr_start == 'R' || *expr_start == 'r') // indicate NULL argument error
                                 return parse_and_substitute_result("DFHRESP");
@@ -1170,8 +1166,8 @@ public:
 
         auto label = next_continuous_sequence<It>(it, it_e, space_separator<It>);
         stmt_iterators.label = { m_logical_line.begin(), it, std::move(label) };
-
         trim_left<It>(it, it_e, space_separator<It>);
+
         auto instr_start = it;
 
         static const words_to_consume exec_cics_wtc({ "EXEC", "CICS" }, false, false);
@@ -1185,23 +1181,26 @@ public:
         trim_left<It>(it, it_e, space_separator<It>);
         stmt_iterators.operands = stmt_part_details<It>::it_string_tuple(it, it_e);
 
+        const auto diag_adder = [&diags = this->m_diags](diagnostic_op d) {
+            if (diags)
+                diags->add_diagnostic(d);
+        };
         auto lineno = potential_lineno.value_or(0);
+
         if (stmt_iterators.instruction.front().name && !stmt_iterators.instruction.front().name->empty())
         {
             process_exec_cics(stmt_iterators.label->name.value_or(""));
 
             if (exec_cics_continuation_error)
             {
-                if (m_diags)
-                    m_diags->add_diagnostic(diagnostic_op::warn_CIC001(range(position(lineno, 0))));
+                diag_adder(diagnostic_op::warn_CIC001(range(position(lineno, 0))));
                 m_result.emplace_back(replaced_line { "*DFH7080I W  CONTINUATION OF EXEC COMMAND IGNORED.\n" });
                 m_result.emplace_back(replaced_line { "         DFHEIMSG 4\n" });
             }
         }
         else
         {
-            if (m_diags)
-                m_diags->add_diagnostic(diagnostic_op::warn_CIC003(range(position(lineno, 0))));
+            diag_adder(diagnostic_op::warn_CIC003(range(position(lineno, 0))));
             m_result.emplace_back(replaced_line { "*DFH7237I S  INCORRECT SYNTAX AFTER 'EXEC CICS'. COMMAND NOT\n" });
             m_result.emplace_back(replaced_line { "*            TRANSLATED.\n" });
             m_result.emplace_back(replaced_line { "         DFHEIMSG 12\n" });
@@ -1219,13 +1218,17 @@ public:
         return true;
     }
 
-    auto try_substituting_dfh(const std::match_results<lexing::logical_line::const_iterator>& matches)
+    auto try_substituting_dfh(const stmt_part_details<lexing::logical_line::const_iterator>& stmt_iterators)
     {
-        auto events = m_mini_parser.parse_and_substitute(matches[3].first, matches[3].second);
+        assert(stmt_iterators.label.has_value() && stmt_iterators.instruction.front().name.has_value()
+            && stmt_iterators.operands.has_value());
+
+        auto events = m_mini_parser.parse_and_substitute(stmt_iterators.operands->it_s, stmt_iterators.operands->it_e);
         if (!events.error() && events.substitutions_performed() > 0)
         {
-            auto label_b = matches[1].first;
-            auto label_e = matches[1].second;
+            const auto& label_b = stmt_iterators.label->it_s;
+            const auto& label_e = stmt_iterators.label->it_e;
+
             label_info li {
                 (size_t)std::distance(label_b, label_e),
                 (size_t)std::count_if(label_b, label_e, [](unsigned char c) { return (c & 0xc0) != 0x80; }),
@@ -1233,11 +1236,10 @@ public:
 
             echo_text(li);
 
-            std::string text_to_add = matches[2].str();
+            std::string text_to_add = std::string(stmt_iterators.instruction.front().name.value());
             if (auto instr_len = utils::utf8_substr(text_to_add).char_count; instr_len < 4)
                 text_to_add.append(4 - instr_len, ' ');
             text_to_add.append(1, ' ').append(m_mini_parser.operands());
-            // text_to_add.insert(0, generate_label_fragment(label_b, label_e, li));
             text_to_add.insert(0, generate_label_fragment(std::string(label_b, label_e), li));
 
             std::string_view prefix;
@@ -1265,46 +1267,128 @@ public:
         return events;
     }
 
-    bool try_dfh_lookup(preprocessor::line_iterator& it,
-        const preprocessor::line_iterator& end,
+    bool consume_dfh_values(
+        lexing::logical_line::const_iterator& it, const lexing::logical_line::const_iterator& it_e, bool nested)
+    {
+        using It = lexing::logical_line::const_iterator;
+
+        const auto reverter = [backup = it, &it]() {
+            it = backup;
+            return false;
+        };
+
+        static const words_to_consume dfhresp_wtc({ "DFHRESP" }, false, true);
+        static const words_to_consume dfhvalue_wtc({ "DFHVALUE" }, false, true);
+
+        if (consume_words_advance_to_next<It>(it, it_e, dfhresp_wtc, space_separator<It>)
+            || consume_words_advance_to_next<It>(it, it_e, dfhvalue_wtc, space_separator<It>))
+        {
+            if (it == it_e || *it++ != '(')
+                return reverter();
+
+            trim_left<It>(it, it_e, space_separator<It>);
+            consume_dfh_values(it, it_e, true);
+            trim_left<It>(it, it_e, space_separator<It>);
+
+            if (it == it_e || *it++ != ')')
+                return reverter();
+        }
+        else if (nested)
+        {
+            static const auto space_parenthesis_separator = [](const It& it, const It& it_e) {
+                return (it == it_e || (*it != ' ' && *it != ')')) ? 0 : 1;
+            };
+
+            skip_past_next_continuous_sequence<It>(it, it_e, space_parenthesis_separator);
+            trim_left<It>(it, it_e, space_separator<It>);
+        }
+        else
+            return reverter();
+
+        return true;
+    }
+
+    bool skip_past_dfh_values(
+        lexing::logical_line::const_iterator& it, const lexing::logical_line::const_iterator& it_e)
+    {
+        using It = lexing::logical_line::const_iterator;
+
+        static const auto comma_separator = [](const It& it, const It& it_e) {
+            return (it == it_e || *it != ',') ? 0 : 1;
+        };
+
+        while (skip_past_next_continuous_sequence<It>(it, it_e, comma_separator))
+            ;
+
+        trim_left<It>(it, it_e, comma_separator);
+        if (it == it_e)
+            return false;
+
+        return consume_dfh_values(it, it_e, false);
+    }
+
+    bool try_dfh_lookup(preprocessor::line_iterator& line_it,
+        const preprocessor::line_iterator& line_it_e,
         const std::optional<size_t>& potential_lineno)
     {
-        static const std::regex dfh_lookup("^([^ ]*)[ ]+([A-Z#$@][A-Z#$@0-9]*)[ ]+((?:\\S+,)?(?:DFHRESP|DFHVALUE)"
-                                           "[ ]*\\([ ]*[A-Z0-9]*[ ]*\\))",
-            std::regex_constants::icase);
+        using It = lexing::logical_line::const_iterator;
 
-        bool ret_val = false;
+        const auto diag_adder = [&diags = this->m_diags](diagnostic_op d) {
+            if (diags)
+                diags->add_diagnostic(d);
+        };
+
         auto lineno = potential_lineno.value_or(0);
-        it = extract_nonempty_logical_line(m_logical_line, it, end, lexing::default_ictl);
+        line_it = extract_nonempty_logical_line(m_logical_line, line_it, line_it_e, lexing::default_ictl);
 
         if (m_logical_line.continuation_error)
         {
-            if (m_diags)
-                m_diags->add_diagnostic(diagnostic_op::warn_CIC001(range(position(lineno, 0))));
+            diag_adder(diagnostic_op::warn_CIC001(range(position(lineno, 0))));
+            return false;
         }
-        else if (std::regex_search(m_logical_line.begin(), m_logical_line.end(), m_matches_ll, dfh_lookup))
+
+        auto it = m_logical_line.begin();
+        auto it_e = m_logical_line.end();
+        stmt_part_details<It> stmt_iterators { stmt_part_details<It>::it_string_tuple(it, it_e) };
+
+        auto label = next_continuous_sequence<It>(it, it_e, space_separator<It>);
+        stmt_iterators.label = { m_logical_line.begin(), it, std::move(label) };
+        trim_left<It>(it, it_e, space_separator<It>);
+
+        auto instr_start = it;
+        auto instruction = next_continuous_sequence<It>(it, it_e, space_separator<It>);
+        stmt_iterators.instruction.emplace_back(
+            stmt_part_details<It>::it_string_tuple(std::move(instr_start), it, std::move(instruction)));
+        trim_left<It>(it, it_e, space_separator<It>);
+
+        if (it == it_e)
+            return false;
+
+        auto operand_start = it;
+        if (!skip_past_dfh_values(it, it_e))
+            return false;
+
+        stmt_iterators.operands = stmt_part_details<It>::it_string_tuple(std::move(operand_start), it);
+        trim_left<It>(it, it_e, space_separator<It>);
+
+        stmt_iterators.remarks = stmt_part_details<It>::it_string_tuple(it, it_e);
+
+        if (potential_lineno)
         {
-            auto r = try_substituting_dfh(m_matches_ll);
-            if (r.error())
-            {
-                if (m_diags)
-                    m_diags->add_diagnostic(
-                        diagnostic_op::warn_CIC002(range(position(lineno, 0)), r.error_variable_name()));
-                m_pending_dfh_null_error = r.error_variable_name();
-            }
-            else if (r.substitutions_performed() > 0)
-                ret_val = true;
-
-            if (potential_lineno)
-            {
-                static const stmt_part_ids part_ids { 1, { 2 }, 3, std::nullopt, stmt_part_ids::suffix_type::REMARKS };
-                auto stmt = get_preproc_statement<semantics::preprocessor_statement_si>(m_matches_ll, part_ids, lineno);
-                do_highlighting(*stmt, m_logical_line, m_src_proc);
-                set_statement(std::move(stmt));
-            }
+            auto stmt = get_preproc_statement2<semantics::preprocessor_statement_si>(stmt_iterators, lineno);
+            do_highlighting(*stmt, m_logical_line, m_src_proc);
+            set_statement(std::move(stmt));
         }
 
-        return ret_val;
+        if (auto r = try_substituting_dfh(stmt_iterators); r.error())
+        {
+            diag_adder(diagnostic_op::warn_CIC002(range(position(lineno, 0)), r.error_variable_name()));
+            m_pending_dfh_null_error = r.error_variable_name();
+
+            return false;
+        }
+        else
+            return r.substitutions_performed() > 0;
     }
 
     static bool is_process_line(std::string_view s)

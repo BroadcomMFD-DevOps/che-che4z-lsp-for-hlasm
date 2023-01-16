@@ -91,13 +91,7 @@ template<typename It>
 using separator_funcion = std::function<size_t(const It& it, const It& it_e)>;
 
 template<typename It>
-static const auto space_separator = [](const It& it, const It& it_e) {
-    if (it == it_e)
-        return 0;
-    else if (*it == ' ')
-        return 1;
-    return 0;
-};
+static const auto space_separator = [](const It& it, const It& it_e) { return (it == it_e || *it != ' ') ? 0 : 1; };
 
 template<typename It>
 static const auto no_separator = [](const It&, const It&) { return 0; };
@@ -115,14 +109,23 @@ static void trim_left(It& it, const It& it_e, const separator_funcion<It>& is_se
 }
 
 template<typename It>
-static std::optional<std::string> next_continuous_sequence(
-    It& it, const It& it_e, const separator_funcion<It>& is_separator)
+static bool skip_past_next_continuous_sequence(It& it, const It& it_e, const separator_funcion<It>& is_separator)
 {
     It seq_start = it;
     while (it != it_e && !is_separator(it, it_e))
         it++;
 
-    return it == seq_start ? std::nullopt : std::optional<std::string>(std::string(seq_start, it));
+    return it == seq_start;
+}
+
+template<typename It>
+static std::optional<std::string> next_continuous_sequence(
+    It& it, const It& it_e, const separator_funcion<It>& is_separator)
+{
+    It seq_start = it;
+    return skip_past_next_continuous_sequence(it, it_e, is_separator)
+        ? std::nullopt
+        : std::optional<std::string>(std::string(seq_start, it));
 }
 
 struct words_to_consume
