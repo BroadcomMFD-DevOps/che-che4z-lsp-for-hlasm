@@ -140,7 +140,16 @@ std::string get_page_text(size_t pageno)
     if (pageno == 0)
         return {};
     else
-        return utils::concat("\n\nDetails on page ", std::to_string(pageno));
+    {
+        const auto page_text = std::to_string(pageno);
+
+        return utils::concat("\n\nDetails on [page ",
+            page_text,
+            "](",
+            "https://publibfp.dhe.ibm.com/epubs/pdf/a227832d.pdf#page=",
+            page_text,
+            " \"Principles of Operations (SA22-7832-13)\")");
+    }
 }
 
 std::string_view get_implicit_parameters_text(bool has_some)
