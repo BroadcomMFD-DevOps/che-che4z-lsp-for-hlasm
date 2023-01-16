@@ -119,18 +119,36 @@ void fill_operands_list(std::string_view operands,
 
 namespace {
 template<typename ITERATOR>
-semantics::preproc_details::name_range get_stmt_part_name_range(
-    const typename stmt_part_details<ITERATOR>::it_string_tuple& detail,
+range get_stmt_part_range(const typename stmt_part_details<ITERATOR>::it_pair& it_details,
     const ITERATOR& it_start,
     const semantics::range_provider& rp)
 {
     auto lineno = rp.original_range.start.line;
-    auto first_dist = std::distance(it_start, detail.it_s);
+    auto first_dist = std::distance(it_start, it_details.s);
 
+    return rp.adjust_range(
+        range(position(lineno, first_dist), position(lineno, std::distance(it_details.s, it_details.e) + first_dist)));
+}
+
+template<typename ITERATOR>
+semantics::preproc_details::name_range get_stmt_part_name_range(
+    const typename stmt_part_details<ITERATOR>::it_pair& it_details,
+    const ITERATOR& it_start,
+    const semantics::range_provider& rp)
+{
     return semantics::preproc_details::name_range(
-        { detail.name ? std::move(*detail.name) : std::string(detail.it_s, detail.it_e),
-            rp.adjust_range(range(position(lineno, first_dist),
-                position(lineno, std::distance(detail.it_s, detail.it_e) + first_dist))) });
+        { std::string(it_details.s, it_details.e), get_stmt_part_range<ITERATOR>(it_details, it_start, rp) });
+}
+
+template<typename ITERATOR>
+semantics::preproc_details::name_range get_stmt_part_name_range(
+    const typename stmt_part_details<ITERATOR>::it_string& it_details,
+    const ITERATOR& it_start,
+    const semantics::range_provider& rp)
+{
+    return semantics::preproc_details::name_range(
+        { it_details.alt_name ? *it_details.alt_name : std::string(it_details.it.s, it_details.it.e),
+            get_stmt_part_range<ITERATOR>(it_details.it, it_start, rp) });
 }
 } // namespace
 
@@ -140,26 +158,25 @@ std::shared_ptr<semantics::preprocessor_statement_si> get_preproc_statement(
 {
     semantics::preproc_details details;
 
-    details.stmt_r = range(
-        { lineno, 0 }, { lineno, static_cast<size_t>(std::distance(stmt_parts.stmt.it_s, stmt_parts.stmt.it_e)) });
+    details.stmt_r =
+        range({ lineno, 0 }, { lineno, static_cast<size_t>(std::distance(stmt_parts.stmt.s, stmt_parts.stmt.e)) });
     auto rp = semantics::range_provider(details.stmt_r, semantics::adjusting_state::MACRO_REPARSE, continue_column);
 
-    if (stmt_parts.label && stmt_parts.label->it_s != stmt_parts.label->it_e)
-        details.label = get_stmt_part_name_range<ITERATOR>(*stmt_parts.label, stmt_parts.stmt.it_s, rp);
+    if (stmt_parts.label && stmt_parts.label->s != stmt_parts.label->e)
+        details.label = get_stmt_part_name_range<ITERATOR>(*stmt_parts.label, stmt_parts.stmt.s, rp);
 
     // Let's store the complete instruction range and only the last word of the instruction as it is unique
-    if (stmt_parts.instruction.it_s != stmt_parts.instruction.it_e)
-        details.instruction = get_stmt_part_name_range<ITERATOR>(stmt_parts.instruction, stmt_parts.stmt.it_s, rp);
+    if (stmt_parts.instruction.it.s != stmt_parts.instruction.it.e)
+        details.instruction = get_stmt_part_name_range<ITERATOR>(stmt_parts.instruction, stmt_parts.stmt.s, rp);
 
-    if (stmt_parts.operands && stmt_parts.operands->it_s != stmt_parts.operands->it_e)
-        fill_operands_list(get_stmt_part_name_range<ITERATOR>(*stmt_parts.operands, stmt_parts.stmt.it_s, rp).name,
-            std::distance(stmt_parts.stmt.it_s, stmt_parts.operands->it_s),
+    if (stmt_parts.operands.s != stmt_parts.operands.e)
+        fill_operands_list(std::string(stmt_parts.operands.s, stmt_parts.operands.e),
+            std::distance(stmt_parts.stmt.s, stmt_parts.operands.s),
             rp,
             details.operands);
 
-    if (stmt_parts.remarks && stmt_parts.remarks->it_s != stmt_parts.remarks->it_e)
-        details.remarks.emplace_back(
-            get_stmt_part_name_range<ITERATOR>(*stmt_parts.remarks, stmt_parts.stmt.it_s, rp).r);
+    if (stmt_parts.remarks && stmt_parts.remarks->s != stmt_parts.remarks->e)
+        details.remarks.emplace_back(get_stmt_part_range<ITERATOR>(*stmt_parts.remarks, stmt_parts.stmt.s, rp));
 
     return std::make_shared<semantics::preprocessor_statement_si>(std::move(details), stmt_parts.copy_like);
 }

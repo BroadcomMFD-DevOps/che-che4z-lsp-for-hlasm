@@ -171,7 +171,7 @@ public:
                 continue;
             }
 
-            const auto& [instr_e, member_b, member_e] = *iterators;
+            auto& [instr_e, member_b, member_e] = *iterators;
             if (member_b == member_e)
             {
                 result.push_back(line);
@@ -184,15 +184,16 @@ public:
 
             if (line_no)
             {
-                using it_tuple = stmt_part_details<It>::it_string_tuple;
+                using it_p = stmt_part_details<It>::it_pair;
+                using it_s = stmt_part_details<It>::it_string;
                 auto remark_start = member_e;
                 trim_left<It>(remark_start, text.end(), space_separator<It>);
 
-                auto stmt = get_preproc_statement(stmt_part_details<It>(it_tuple(text.begin(), text.end()),
+                auto stmt = get_preproc_statement(stmt_part_details<It>(it_p(text.begin(), text.end()),
                                                       std::nullopt,
-                                                      it_tuple(text.begin(), instr_e, "-INC"),
-                                                      it_tuple(member_b, member_e),
-                                                      it_tuple(remark_start, text.end()),
+                                                      it_s(it_p(text.begin(), std::move(instr_e)), "-INC"),
+                                                      it_p(std::move(member_b), std::move(member_e)),
+                                                      it_p(std::move(remark_start), text.end()),
                                                       true),
                     *line_no);
                 do_highlighting(*stmt, logical_line, m_src_proc);

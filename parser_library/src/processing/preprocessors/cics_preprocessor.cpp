@@ -1159,27 +1159,24 @@ public:
             m_logical_line.segments.erase(m_logical_line.segments.begin() + 1, m_logical_line.segments.end());
         }
 
-        stmt_part_details<It> stmt_iterators { stmt_part_details<It>::it_string_tuple(
-            m_logical_line.begin(), m_logical_line.end()) };
-        auto it = m_logical_line.begin();
-        auto it_e = m_logical_line.end();
+        const auto& it_b = m_logical_line.begin();
+        const auto& it_e = m_logical_line.end();
+        auto it = it_b;
 
-        auto label = next_continuous_sequence<It>(it, it_e, space_separator<It>);
-        stmt_iterators.label = { m_logical_line.begin(), it, std::move(label) };
+        skip_past_next_continuous_sequence<It>(it, it_e, space_separator<It>);
+        auto label_e = it;
         trim_left<It>(it, it_e, space_separator<It>);
 
-        auto instr_start = it;
-
+        auto instr_s = it;
         static const words_to_consume exec_cics_wtc({ "EXEC", "CICS" }, false, false);
         if (!consume_words_advance_to_next<It>(it, it_e, exec_cics_wtc, space_separator<It>))
             return false;
 
-        auto command = next_continuous_sequence<It>(it, it_e, space_separator<It>);
-        stmt_iterators.instruction =
-            stmt_part_details<It>::it_string_tuple(std::move(instr_start), it, std::move(command));
+        auto command_s = it;
+        skip_past_next_continuous_sequence<It>(it, it_e, space_separator<It>);
+        auto command_e = it;
 
         trim_left<It>(it, it_e, space_separator<It>);
-        stmt_iterators.operands = stmt_part_details<It>::it_string_tuple(it, it_e);
 
         const auto diag_adder = [&diags = this->m_diags](diagnostic_op d) {
             if (diags)
@@ -1187,9 +1184,9 @@ public:
         };
         auto lineno = potential_lineno.value_or(0);
 
-        if (stmt_iterators.instruction.name && !stmt_iterators.instruction.name->empty())
+        if (command_s != command_e)
         {
-            process_exec_cics(stmt_iterators.label->name.value_or(""));
+            process_exec_cics(std::string(it_b, label_e));
 
             if (exec_cics_continuation_error)
             {
@@ -1204,13 +1201,21 @@ public:
             m_result.emplace_back(replaced_line { "*DFH7237I S  INCORRECT SYNTAX AFTER 'EXEC CICS'. COMMAND NOT\n" });
             m_result.emplace_back(replaced_line { "*            TRANSLATED.\n" });
             m_result.emplace_back(replaced_line { "         DFHEIMSG 12\n" });
-
-            stmt_iterators.instruction.name = "EXEC CICS";
         }
 
         if (potential_lineno)
         {
-            auto stmt = get_preproc_statement(stmt_iterators, lineno, 1);
+            using it_p = stmt_part_details<It>::it_pair;
+            using it_s = stmt_part_details<It>::it_string;
+
+            auto stmt =
+                get_preproc_statement(stmt_part_details<It>(it_p(it_b, it_e),
+                                          it_p(it_b, std::move(label_e)),
+                                          it_s(it_p(std::move(instr_s), command_e),
+                                              command_s == command_e ? "EXEC CICS" : std::string(command_s, command_e)),
+                                          it_p(std::move(it), it_e)),
+                    lineno,
+                    1);
             do_highlighting(*stmt, m_logical_line, m_src_proc, 1);
             set_statement(std::move(stmt));
         }
@@ -1220,14 +1225,13 @@ public:
 
     auto try_substituting_dfh(const stmt_part_details<lexing::logical_line::const_iterator>& stmt_iterators)
     {
-        assert(stmt_iterators.label.has_value() && stmt_iterators.instruction.name.has_value()
-            && stmt_iterators.operands.has_value());
+        assert(stmt_iterators.label.has_value());
 
-        auto events = m_mini_parser.parse_and_substitute(stmt_iterators.operands->it_s, stmt_iterators.operands->it_e);
+        auto events = m_mini_parser.parse_and_substitute(stmt_iterators.operands.s, stmt_iterators.operands.e);
         if (!events.error() && events.substitutions_performed() > 0)
         {
-            const auto& label_b = stmt_iterators.label->it_s;
-            const auto& label_e = stmt_iterators.label->it_e;
+            const auto& label_b = stmt_iterators.label->s;
+            const auto& label_e = stmt_iterators.label->e;
 
             label_info li {
                 (size_t)std::distance(label_b, label_e),
@@ -1236,7 +1240,7 @@ public:
 
             echo_text(li);
 
-            std::string text_to_add = std::string(stmt_iterators.instruction.name.value());
+            std::string text_to_add = std::string(stmt_iterators.instruction.it.s, stmt_iterators.instruction.it.e);
             if (auto instr_len = utils::utf8_substr(text_to_add).char_count; instr_len < 4)
                 text_to_add.append(4 - instr_len, ' ');
             text_to_add.append(1, ' ').append(m_mini_parser.operands());
@@ -1317,13 +1321,19 @@ public:
             return (it == it_e || *it != ',') ? 0 : 1;
         };
 
-        while (skip_past_next_continuous_sequence<It>(it, it_e, comma_separator))
-            ;
+        static const auto comma_space_separator = [](const It& it, const It& it_e) {
+            return (it == it_e || (*it != ',' && *it != ' ')) ? 0 : 1;
+        };
 
-        trim_left<It>(it, it_e, comma_separator);
-        if (it == it_e)
-            return false;
+        auto current_it = it;
+        auto last_op_start = it;
+        while (skip_past_next_continuous_sequence<It>(it, it_e, comma_space_separator)) // todo review
+        {
+            trim_left<It>(it, it_e, comma_separator);
+            last_op_start = std::exchange(current_it, it);
+        }
 
+        it = std::move(last_op_start);
         return consume_dfh_values(it, it_e, false);
     }
 
@@ -1348,30 +1358,34 @@ public:
         }
 
         auto it = m_logical_line.begin();
-        auto it_e = m_logical_line.end();
-        stmt_part_details<It> stmt_iterators { stmt_part_details<It>::it_string_tuple(it, it_e) };
+        const auto& it_e = m_logical_line.end();
 
-        auto label = next_continuous_sequence<It>(it, it_e, space_separator<It>);
-        stmt_iterators.label = { m_logical_line.begin(), it, std::move(label) };
+        skip_past_next_continuous_sequence<It>(it, it_e, space_separator<It>);
+        auto label_e = it;
         trim_left<It>(it, it_e, space_separator<It>);
 
-        auto instr_start = it;
-        auto instruction = next_continuous_sequence<It>(it, it_e, space_separator<It>);
-        stmt_iterators.instruction =
-            stmt_part_details<It>::it_string_tuple(std::move(instr_start), it, std::move(instruction));
-        trim_left<It>(it, it_e, space_separator<It>);
+        auto instr_s = it;
+        if (!skip_past_next_continuous_sequence<It>(it, it_e, space_separator<It>))
+            return false;
+        auto instr_e = it;
 
+        trim_left<It>(it, it_e, space_separator<It>);
         if (it == it_e)
             return false;
 
-        auto operand_start = it;
+        auto operand_s = it;
         if (!skip_past_dfh_values(it, it_e))
             return false;
-
-        stmt_iterators.operands = stmt_part_details<It>::it_string_tuple(std::move(operand_start), it);
+        auto operand_e = it;
         trim_left<It>(it, it_e, space_separator<It>);
 
-        stmt_iterators.remarks = stmt_part_details<It>::it_string_tuple(it, it_e);
+        using it_p = stmt_part_details<It>::it_pair;
+        using it_s = stmt_part_details<It>::it_string;
+        stmt_part_details<It> stmt_iterators(it_p(m_logical_line.begin(), it_e),
+            it_p(m_logical_line.begin(), std::move(label_e)),
+            it_s(it_p(std::move(instr_s), std::move(instr_e))),
+            it_p(std::move(operand_s), std::move(operand_e)),
+            it_p(std::move(it), it_e));
 
         if (potential_lineno)
         {

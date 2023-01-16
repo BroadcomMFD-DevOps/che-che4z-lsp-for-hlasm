@@ -29,18 +29,23 @@ namespace hlasm_plugin::parser_library::processing {
 template<typename ITERATOR>
 struct stmt_part_details
 {
-    struct it_string_tuple
+    struct it_pair
     {
-        ITERATOR it_s;
-        ITERATOR it_e;
-        std::optional<std::string> name;
+        ITERATOR s;
+        ITERATOR e;
     };
 
-    it_string_tuple stmt;
-    std::optional<it_string_tuple> label;
-    it_string_tuple instruction;
-    std::optional<it_string_tuple> operands;
-    std::optional<it_string_tuple> remarks;
+    struct it_string
+    {
+        it_pair it;
+        std::optional<std::string> alt_name;
+    };
+
+    it_pair stmt;
+    std::optional<it_pair> label;
+    it_string instruction;
+    it_pair operands;
+    std::optional<it_pair> remarks;
 
     bool copy_like;
 };
