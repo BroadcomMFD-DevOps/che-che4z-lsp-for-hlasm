@@ -1113,41 +1113,34 @@ public:
         }
     }
 
-    static std::string generate_label_fragment(lexing::logical_line::const_iterator label_b,
-        lexing::logical_line::const_iterator label_e,
-        const label_info& li)
+    static std::string generate_label_fragment(std::string_view label, const label_info& li)
     {
         if (li.char_length <= 8)
-            return std::string(label_b, label_e) + std::string(9 - li.char_length, ' ');
+            return std::string(label).append(std::string(9 - li.char_length, ' '));
         else
-            return std::string(label_b, label_e) + " DS 0H\n";
+            return std::string(label).append(" DS 0H\n");
     }
 
-    void inject_call(lexing::logical_line::const_iterator label_b,
-        lexing::logical_line::const_iterator label_e,
-        const label_info& li)
+    void inject_call(std::string_view label, const label_info& li)
     {
         if (li.char_length <= 8)
-            m_result.emplace_back(
-                replaced_line { generate_label_fragment(label_b, label_e, li) + "DFHECALL =X'0E'\n" });
+            m_result.emplace_back(replaced_line { generate_label_fragment(label, li) + "DFHECALL =X'0E'\n" });
         else
         {
-            m_result.emplace_back(replaced_line { generate_label_fragment(label_b, label_e, li) });
+            m_result.emplace_back(replaced_line { generate_label_fragment(label, li) });
             m_result.emplace_back(replaced_line { "         DFHECALL =X'0E'\n" });
         }
         // TODO: generate correct calls
     }
 
-    void process_exec_cics(const std::match_results<lexing::logical_line::const_iterator>& matches)
+    void process_exec_cics(std::string_view label)
     {
-        auto label_b = matches[1].first;
-        auto label_e = matches[1].second;
         label_info li {
-            (size_t)std::distance(label_b, label_e),
-            (size_t)std::count_if(label_b, label_e, [](unsigned char c) { return (c & 0xc0) != 0x80; }),
+            label.length(),
+            (size_t)std::count_if(label.begin(), label.end(), [](unsigned char c) { return (c & 0xc0) != 0x80; }),
         };
         echo_text(li);
-        inject_call(label_b, label_e, li);
+        inject_call(label, li);
     }
 
     static bool is_command_present(const std::match_results<lexing::logical_line::const_iterator>& matches)
@@ -1155,13 +1148,13 @@ public:
         return matches[3].matched;
     }
 
-    bool try_exec_cics(preprocessor::line_iterator& it,
-        const preprocessor::line_iterator& end,
+    bool try_exec_cics(preprocessor::line_iterator& line_it,
+        const preprocessor::line_iterator& line_it_e,
         const std::optional<size_t>& potential_lineno)
     {
-        static const std::regex exec_cics("^([^ ]*)[ ]+([eE][xX][eE][cC][ ]+[cC][iI][cC][sS](?:[ ]+(\\S+))?)");
+        using It = lexing::logical_line::const_iterator;
 
-        it = extract_nonempty_logical_line(m_logical_line, it, end, cics_extract);
+        line_it = extract_nonempty_logical_line(m_logical_line, line_it, line_it_e, cics_extract);
         bool exec_cics_continuation_error = false;
         if (m_logical_line.continuation_error)
         {
@@ -1170,13 +1163,32 @@ public:
             m_logical_line.segments.erase(m_logical_line.segments.begin() + 1, m_logical_line.segments.end());
         }
 
-        if (!std::regex_search(m_logical_line.begin(), m_logical_line.end(), m_matches_ll, exec_cics))
+        stmt_part_details<It> stmt_iterators { stmt_part_details<It>::it_string_tuple(
+            m_logical_line.begin(), m_logical_line.end()) };
+        auto it = m_logical_line.begin();
+        auto it_e = m_logical_line.end();
+
+        auto label = next_continuous_sequence<It>(it, it_e, space_separator<It>);
+        stmt_iterators.label = { m_logical_line.begin(), it, std::move(label) };
+
+        trim_left<It>(it, it_e, space_separator<It>);
+        auto instr_start = it;
+
+        static const words_to_consume exec_cics_wtc({ "EXEC", "CICS" }, false, false);
+        if (!consume_words_advance_to_next<It>(it, it_e, exec_cics_wtc, space_separator<It>))
             return false;
 
+        auto command = next_continuous_sequence<It>(it, it_e, space_separator<It>);
+        stmt_iterators.instruction.emplace_back(
+            stmt_part_details<It>::it_string_tuple(std::move(instr_start), it, std::move(command)));
+
+        trim_left<It>(it, it_e, space_separator<It>);
+        stmt_iterators.operands = stmt_part_details<It>::it_string_tuple(it, it_e);
+
         auto lineno = potential_lineno.value_or(0);
-        if (is_command_present(m_matches_ll))
+        if (stmt_iterators.instruction.front().name && !stmt_iterators.instruction.front().name->empty())
         {
-            process_exec_cics(m_matches_ll);
+            process_exec_cics(stmt_iterators.label->name.value_or(""));
 
             if (exec_cics_continuation_error)
             {
@@ -1193,14 +1205,13 @@ public:
             m_result.emplace_back(replaced_line { "*DFH7237I S  INCORRECT SYNTAX AFTER 'EXEC CICS'. COMMAND NOT\n" });
             m_result.emplace_back(replaced_line { "*            TRANSLATED.\n" });
             m_result.emplace_back(replaced_line { "         DFHEIMSG 12\n" });
+
+            stmt_iterators.instruction.front().name = "EXEC CICS";
         }
 
         if (potential_lineno)
         {
-            static const stmt_part_ids part_ids {
-                1, { 2, 3 }, std::nullopt, std::nullopt, stmt_part_ids::suffix_type::OPERANDS
-            };
-            auto stmt = get_preproc_statement<semantics::preprocessor_statement_si>(m_matches_ll, part_ids, lineno, 1);
+            auto stmt = get_preproc_statement2<semantics::preprocessor_statement_si>(stmt_iterators, lineno, 1);
             do_highlighting(*stmt, m_logical_line, m_src_proc, 1);
             set_statement(std::move(stmt));
         }
@@ -1226,7 +1237,8 @@ public:
             if (auto instr_len = utils::utf8_substr(text_to_add).char_count; instr_len < 4)
                 text_to_add.append(4 - instr_len, ' ');
             text_to_add.append(1, ' ').append(m_mini_parser.operands());
-            text_to_add.insert(0, generate_label_fragment(label_b, label_e, li));
+            // text_to_add.insert(0, generate_label_fragment(label_b, label_e, li));
+            text_to_add.insert(0, generate_label_fragment(std::string(label_b, label_e), li));
 
             std::string_view prefix;
             std::string_view t = text_to_add;

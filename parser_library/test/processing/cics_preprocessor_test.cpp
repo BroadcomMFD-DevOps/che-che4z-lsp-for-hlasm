@@ -493,7 +493,7 @@ NOSPACE  EXEC CICS)";
     a.analyze();
     a.collect_diags();
 
-    EXPECT_TRUE(matches_message_codes(a.diags(), { "CIC003", "CIC003" }));
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "CIC003", "E049" }));
 }
 
 TEST(cics_preprocessor, check_null_argument_message)

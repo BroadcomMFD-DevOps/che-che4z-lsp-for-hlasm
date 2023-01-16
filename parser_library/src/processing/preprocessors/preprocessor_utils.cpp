@@ -140,6 +140,21 @@ semantics::preproc_details::name_range get_stmt_part_name_range(
 }
 
 template<typename ITERATOR>
+semantics::preproc_details::name_range get_stmt_part_name_range2(
+    const typename stmt_part_details<ITERATOR>::it_string_tuple& detail,
+    const ITERATOR& it_start,
+    const semantics::range_provider& rp)
+{
+    auto lineno = rp.original_range.start.line;
+    auto first_dist = std::distance(it_start, detail.it_s);
+
+    return semantics::preproc_details::name_range(
+        { detail.name ? std::move(*detail.name) : std::string(detail.it_s, detail.it_e),
+            rp.adjust_range(range(position(lineno, first_dist),
+                position(lineno, std::distance(detail.it_s, detail.it_e) + first_dist))) });
+}
+
+template<typename ITERATOR>
 void handle_suffix(stmt_part_ids::suffix_type type,
     const std::match_results<ITERATOR>& matches,
     const semantics::range_provider& rp,
@@ -196,6 +211,41 @@ std::shared_ptr<PREPROC_STATEMENT> get_preproc_statement(
     return std::make_shared<PREPROC_STATEMENT>(std::move(details));
 }
 
+template<typename PREPROC_STATEMENT, typename ITERATOR>
+std::shared_ptr<PREPROC_STATEMENT> get_preproc_statement2(
+    const stmt_part_details<ITERATOR>& stmt_parts, size_t lineno, size_t continue_column)
+{
+    semantics::preproc_details details;
+
+    details.stmt_r = range(
+        { lineno, 0 }, { lineno, static_cast<size_t>(std::distance(stmt_parts.stmt.it_s, stmt_parts.stmt.it_e)) });
+    auto rp = semantics::range_provider(details.stmt_r, semantics::adjusting_state::MACRO_REPARSE, continue_column);
+
+    if (stmt_parts.label)
+        details.label = get_stmt_part_name_range2<ITERATOR>(*stmt_parts.label, stmt_parts.stmt.it_s, rp);
+
+    if (stmt_parts.instruction.size())
+    {
+        // Let's store the complete instruction range and only the last word of the instruction as it is unique
+        details.instruction =
+            get_stmt_part_name_range2<ITERATOR>(stmt_parts.instruction.back(), stmt_parts.stmt.it_s, rp);
+        details.instruction.r.start =
+            get_stmt_part_name_range2<ITERATOR>(stmt_parts.instruction.front(), stmt_parts.stmt.it_s, rp).r.start;
+    }
+
+    if (stmt_parts.operands && stmt_parts.operands->it_s != stmt_parts.operands->it_e)
+        fill_operands_list(get_stmt_part_name_range2<ITERATOR>(*stmt_parts.operands, stmt_parts.stmt.it_s, rp).name,
+            std::distance(stmt_parts.stmt.it_s, stmt_parts.operands->it_s),
+            rp,
+            details.operands);
+
+    if (stmt_parts.remarks && stmt_parts.remarks->it_s != stmt_parts.remarks->it_e)
+        details.remarks.emplace_back(
+            get_stmt_part_name_range2<ITERATOR>(*stmt_parts.remarks, stmt_parts.stmt.it_s, rp).r);
+
+    return std::make_shared<PREPROC_STATEMENT>(std::move(details));
+}
+
 template std::shared_ptr<semantics::preprocessor_statement_si>
 get_preproc_statement<semantics::preprocessor_statement_si, lexing::logical_line::const_iterator>(
     const std::match_results<lexing::logical_line::const_iterator>& matches,
@@ -209,4 +259,13 @@ get_preproc_statement<semantics::endevor_statement_si, std::string_view::iterato
     const stmt_part_ids& ids,
     size_t lineno,
     size_t continuation_column);
+
+template std::shared_ptr<semantics::preprocessor_statement_si>
+get_preproc_statement2<semantics::preprocessor_statement_si, lexing::logical_line::const_iterator>(
+    const stmt_part_details<lexing::logical_line::const_iterator>& stmt_parts, size_t lineno, size_t continue_column);
+
+template std::shared_ptr<semantics::endevor_statement_si>
+get_preproc_statement2<semantics::endevor_statement_si, std::string_view::iterator>(
+    const stmt_part_details<std::string_view::iterator>& stmt_parts, size_t lineno, size_t continue_column);
+
 } // namespace hlasm_plugin::parser_library::processing

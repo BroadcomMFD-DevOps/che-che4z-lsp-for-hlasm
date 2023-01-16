@@ -42,6 +42,23 @@ struct stmt_part_ids
     suffix_type suffix;
 };
 
+template<typename ITERATOR>
+struct stmt_part_details
+{
+    struct it_string_tuple
+    {
+        ITERATOR it_s;
+        ITERATOR it_e;
+        std::optional<std::string> name;
+    };
+
+    it_string_tuple stmt;
+    std::optional<it_string_tuple> label;
+    std::vector<it_string_tuple> instruction;
+    std::optional<it_string_tuple> operands;
+    std::optional<it_string_tuple> remarks;
+};
+
 // This function fills an operand list with their ranges while expecting to receive a string_view of a single line
 // where operands are separated by spaces or commas
 void fill_operands_list(std::string_view operands,
@@ -52,6 +69,10 @@ void fill_operands_list(std::string_view operands,
 template<typename PREPROC_STATEMENT, typename ITERATOR>
 std::shared_ptr<PREPROC_STATEMENT> get_preproc_statement(
     const std::match_results<ITERATOR>& matches, const stmt_part_ids& ids, size_t lineno, size_t continue_column = 15);
+
+template<typename PREPROC_STATEMENT, typename ITERATOR>
+std::shared_ptr<PREPROC_STATEMENT> get_preproc_statement2(
+    const stmt_part_details<ITERATOR>& iterators, size_t lineno, size_t continue_column = 15);
 
 template<typename It>
 static std::true_type same_line_detector(const It& t, decltype(t.same_line(t)) = false);
@@ -174,7 +195,7 @@ static std::optional<It> consume_words_advance_to_next(
         trim_left(it, it_e, is_separator);
     }
 
-    if (!wtc.tolerate_no_space_at_end && consumed_word_end == it)
+    if (!wtc.tolerate_no_space_at_end && consumed_word_end && *consumed_word_end == it)
         return reverter();
 
     return consumed_word_end;
