@@ -26,22 +26,6 @@
 
 namespace hlasm_plugin::parser_library::processing {
 
-struct stmt_part_ids
-{
-    enum class suffix_type
-    {
-        NONE,
-        OPERANDS,
-        REMARKS
-    };
-
-    std::optional<size_t> label;
-    std::vector<size_t> instruction;
-    std::optional<size_t> operands;
-    std::optional<size_t> remarks;
-    suffix_type suffix;
-};
-
 template<typename ITERATOR>
 struct stmt_part_details
 {
@@ -54,9 +38,11 @@ struct stmt_part_details
 
     it_string_tuple stmt;
     std::optional<it_string_tuple> label;
-    std::vector<it_string_tuple> instruction;
+    it_string_tuple instruction;
     std::optional<it_string_tuple> operands;
     std::optional<it_string_tuple> remarks;
+
+    bool copy_like;
 };
 
 // This function fills an operand list with their ranges while expecting to receive a string_view of a single line
@@ -66,12 +52,8 @@ void fill_operands_list(std::string_view operands,
     const semantics::range_provider& rp,
     std::vector<semantics::preproc_details::name_range>& operand_list);
 
-template<typename PREPROC_STATEMENT, typename ITERATOR>
-std::shared_ptr<PREPROC_STATEMENT> get_preproc_statement(
-    const std::match_results<ITERATOR>& matches, const stmt_part_ids& ids, size_t lineno, size_t continue_column = 15);
-
-template<typename PREPROC_STATEMENT, typename ITERATOR>
-std::shared_ptr<PREPROC_STATEMENT> get_preproc_statement2(
+template<typename ITERATOR>
+std::shared_ptr<semantics::preprocessor_statement_si> get_preproc_statement(
     const stmt_part_details<ITERATOR>& iterators, size_t lineno, size_t continue_column = 15);
 
 template<typename It>
@@ -115,7 +97,7 @@ static bool skip_past_next_continuous_sequence(It& it, const It& it_e, const sep
     while (it != it_e && !is_separator(it, it_e))
         it++;
 
-    return it == seq_start;
+    return it != seq_start;
 }
 
 template<typename It>
@@ -123,7 +105,7 @@ static std::optional<std::string> next_continuous_sequence(
     It& it, const It& it_e, const separator_funcion<It>& is_separator)
 {
     It seq_start = it;
-    return skip_past_next_continuous_sequence(it, it_e, is_separator)
+    return !skip_past_next_continuous_sequence(it, it_e, is_separator)
         ? std::nullopt
         : std::optional<std::string>(std::string(seq_start, it));
 }

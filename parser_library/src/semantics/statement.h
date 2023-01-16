@@ -192,12 +192,6 @@ struct preprocessor_statement_si
         , m_copylike(copylike)
     {}
 };
-
-struct endevor_statement_si : public preprocessor_statement_si
-{
-    explicit endevor_statement_si(preproc_details details);
-};
-
 } // namespace hlasm_plugin::parser_library::semantics
 
 #endif

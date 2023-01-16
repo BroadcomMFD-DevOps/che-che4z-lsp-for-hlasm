@@ -1175,8 +1175,8 @@ public:
             return false;
 
         auto command = next_continuous_sequence<It>(it, it_e, space_separator<It>);
-        stmt_iterators.instruction.emplace_back(
-            stmt_part_details<It>::it_string_tuple(std::move(instr_start), it, std::move(command)));
+        stmt_iterators.instruction =
+            stmt_part_details<It>::it_string_tuple(std::move(instr_start), it, std::move(command));
 
         trim_left<It>(it, it_e, space_separator<It>);
         stmt_iterators.operands = stmt_part_details<It>::it_string_tuple(it, it_e);
@@ -1187,7 +1187,7 @@ public:
         };
         auto lineno = potential_lineno.value_or(0);
 
-        if (stmt_iterators.instruction.front().name && !stmt_iterators.instruction.front().name->empty())
+        if (stmt_iterators.instruction.name && !stmt_iterators.instruction.name->empty())
         {
             process_exec_cics(stmt_iterators.label->name.value_or(""));
 
@@ -1205,12 +1205,12 @@ public:
             m_result.emplace_back(replaced_line { "*            TRANSLATED.\n" });
             m_result.emplace_back(replaced_line { "         DFHEIMSG 12\n" });
 
-            stmt_iterators.instruction.front().name = "EXEC CICS";
+            stmt_iterators.instruction.name = "EXEC CICS";
         }
 
         if (potential_lineno)
         {
-            auto stmt = get_preproc_statement2<semantics::preprocessor_statement_si>(stmt_iterators, lineno, 1);
+            auto stmt = get_preproc_statement(stmt_iterators, lineno, 1);
             do_highlighting(*stmt, m_logical_line, m_src_proc, 1);
             set_statement(std::move(stmt));
         }
@@ -1220,7 +1220,7 @@ public:
 
     auto try_substituting_dfh(const stmt_part_details<lexing::logical_line::const_iterator>& stmt_iterators)
     {
-        assert(stmt_iterators.label.has_value() && stmt_iterators.instruction.front().name.has_value()
+        assert(stmt_iterators.label.has_value() && stmt_iterators.instruction.name.has_value()
             && stmt_iterators.operands.has_value());
 
         auto events = m_mini_parser.parse_and_substitute(stmt_iterators.operands->it_s, stmt_iterators.operands->it_e);
@@ -1236,7 +1236,7 @@ public:
 
             echo_text(li);
 
-            std::string text_to_add = std::string(stmt_iterators.instruction.front().name.value());
+            std::string text_to_add = std::string(stmt_iterators.instruction.name.value());
             if (auto instr_len = utils::utf8_substr(text_to_add).char_count; instr_len < 4)
                 text_to_add.append(4 - instr_len, ' ');
             text_to_add.append(1, ' ').append(m_mini_parser.operands());
@@ -1357,8 +1357,8 @@ public:
 
         auto instr_start = it;
         auto instruction = next_continuous_sequence<It>(it, it_e, space_separator<It>);
-        stmt_iterators.instruction.emplace_back(
-            stmt_part_details<It>::it_string_tuple(std::move(instr_start), it, std::move(instruction)));
+        stmt_iterators.instruction =
+            stmt_part_details<It>::it_string_tuple(std::move(instr_start), it, std::move(instruction));
         trim_left<It>(it, it_e, space_separator<It>);
 
         if (it == it_e)
@@ -1375,7 +1375,7 @@ public:
 
         if (potential_lineno)
         {
-            auto stmt = get_preproc_statement2<semantics::preprocessor_statement_si>(stmt_iterators, lineno);
+            auto stmt = get_preproc_statement(stmt_iterators, lineno);
             do_highlighting(*stmt, m_logical_line, m_src_proc);
             set_statement(std::move(stmt));
         }

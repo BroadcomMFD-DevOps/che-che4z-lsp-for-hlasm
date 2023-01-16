@@ -29,6 +29,7 @@
 #include "range.h"
 #include "semantics/source_info_processor.h"
 #include "utils/resource_location.h"
+#include "utils/string_operations.h"
 
 namespace hlasm_plugin::parser_library::processing {
 
@@ -46,6 +47,27 @@ struct stack_entry
 
     void next() { ++current; }
     bool end() const { return current == doc.end(); }
+};
+
+using It = std::string_view::const_iterator;
+std::optional<std::tuple<It, It, It>> try_fill_vars(std::string_view text, std::string_view include_instr)
+{
+    if (!text.starts_with(include_instr))
+        return std::nullopt;
+
+    auto it = std::next(text.begin(), include_instr.length());
+    auto instr_end = it;
+
+    const auto& it_e = text.end();
+    trim_left<It>(it, it_e, space_separator<It>);
+    if (it == instr_end)
+        return std::nullopt;
+
+    It member_b = it;
+    if (!skip_past_next_continuous_sequence<It>(it, it_e, space_separator<It>))
+        return std::nullopt;
+
+    return std::tuple<It, It, It>(std::move(instr_end), std::move(member_b), std::move(it));
 };
 } // namespace
 
@@ -117,15 +139,12 @@ public:
             }))
             return doc;
 
-        static std::regex include_regex(R"(^(-INC|\+\+INCLUDE)\s+(\S+))");
-
         std::vector<document_line> result;
         result.reserve(doc.size());
 
         std::vector<stack_entry> stack;
         stack.emplace_back(std::string(), std::move(doc));
-
-        std::match_results<std::string_view::iterator> matches;
+        lexing::logical_line logical_line;
 
         while (!stack.empty())
         {
@@ -135,28 +154,48 @@ public:
                 stack.pop_back();
                 continue;
             }
+
+            logical_line.clear();
+            extract_nonempty_logical_line(logical_line, entry.current, entry.doc.end(), lexing::default_ictl);
+
+            const auto& text = logical_line.segments.front().code;
+            auto iterators = try_fill_vars(text, "-INC");
+            if (!iterators)
+                iterators = try_fill_vars(text, "++INCLUDE");
+
             const auto& line = *entry.current;
             entry.next();
+            if (!iterators)
+            {
+                result.push_back(line);
+                continue;
+            }
 
-            if (const auto& text = line.text(); !std::regex_search(text.begin(), text.end(), matches, include_regex))
+            const auto& [instr_e, member_b, member_e] = *iterators;
+            if (member_b == member_e)
             {
                 result.push_back(line);
                 continue;
             }
 
             auto line_no = std::prev(stack.back().current)->lineno();
-
-            if (!process_member(std::string_view(matches[2].first, matches[2].second), stack))
+            if (!process_member(std::string_view(member_b, member_e), stack))
                 break;
 
             if (line_no)
             {
-                static const stmt_part_ids part_ids {
-                    std::nullopt, { 1 }, 2, std::nullopt, stmt_part_ids::suffix_type::REMARKS
-                };
+                using it_tuple = stmt_part_details<It>::it_string_tuple;
+                auto remark_start = member_e;
+                trim_left<It>(remark_start, text.end(), space_separator<It>);
 
-                auto stmt = get_preproc_statement<semantics::endevor_statement_si>(matches, part_ids, *line_no);
-                do_highlighting(*stmt, m_src_proc);
+                auto stmt = get_preproc_statement(stmt_part_details<It>(it_tuple(text.begin(), text.end()),
+                                                      std::nullopt,
+                                                      it_tuple(text.begin(), instr_e, "-INC"),
+                                                      it_tuple(member_b, member_e),
+                                                      it_tuple(remark_start, text.end()),
+                                                      true),
+                    *line_no);
+                do_highlighting(*stmt, logical_line, m_src_proc);
                 set_statement(std::move(stmt));
             }
         }
