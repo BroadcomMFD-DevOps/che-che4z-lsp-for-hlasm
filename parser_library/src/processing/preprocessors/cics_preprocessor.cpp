@@ -655,7 +655,6 @@ template<typename It>
 class mini_parser
 {
     std::string m_substituted_operands;
-    std::match_results<It> m_matches;
 
     enum class symbol_type : unsigned char
     {
@@ -697,8 +696,8 @@ class mini_parser
             return std::nullopt;
         };
 
-        static constexpr const auto dfh_value_end_separators = [](const It& b, const It& e) {
-            return (b == e || (*b != ' ' && *b != ')')) ? 0 : 1;
+        static constexpr const auto dfh_value_end_separators = [](const It& it_b, const It& it_e) {
+            return (it_b == it_e || (*it_b != ' ' && *it_b != ')')) ? 0 : 1;
         };
 
         if (!consume_words_advance_to_next<It>(b, e, wtc, space_separator<It>))
@@ -866,9 +865,6 @@ class cics_preprocessor final : public preprocessor
     bool m_pending_prolog = false;
     bool m_pending_dfheistg_prolog = false;
     std::string_view m_pending_dfh_null_error;
-
-    std::match_results<std::string_view::iterator> m_matches_sv;
-    std::match_results<lexing::logical_line::const_iterator> m_matches_ll;
 
     mini_parser<lexing::logical_line::const_iterator> m_mini_parser;
 
@@ -1139,11 +1135,6 @@ public:
         inject_call(label, li);
     }
 
-    static bool is_command_present(const std::match_results<lexing::logical_line::const_iterator>& matches)
-    {
-        return matches[3].matched;
-    }
-
     bool try_exec_cics(preprocessor::line_iterator& line_it,
         const preprocessor::line_iterator& line_it_e,
         const std::optional<size_t>& potential_lineno)
@@ -1168,8 +1159,8 @@ public:
         trim_left<It>(it, it_e, space_separator<It>);
 
         auto instr_s = it;
-        static const words_to_consume exec_cics_wtc({ "EXEC", "CICS" }, false, false);
-        if (!consume_words_advance_to_next<It>(it, it_e, exec_cics_wtc, space_separator<It>))
+        if (static const words_to_consume exec_cics_wtc({ "EXEC", "CICS" }, false, false);
+            !consume_words_advance_to_next<It>(it, it_e, exec_cics_wtc, space_separator<It>))
             return false;
 
         auto command_s = it;
@@ -1178,7 +1169,7 @@ public:
 
         trim_left<It>(it, it_e, space_separator<It>);
 
-        const auto diag_adder = [&diags = this->m_diags](diagnostic_op d) {
+        const auto diag_adder = [&diags = this->m_diags](diagnostic_op&& d) {
             if (diags)
                 diags->add_diagnostic(d);
         };
@@ -1239,7 +1230,7 @@ public:
 
             echo_text(li);
 
-            std::string text_to_add = std::string(stmt_iterators.instruction.s, stmt_iterators.instruction.e);
+            auto text_to_add = std::string(stmt_iterators.instruction.s, stmt_iterators.instruction.e);
             if (auto instr_len = utils::utf8_substr(text_to_add).char_count; instr_len < 4)
                 text_to_add.append(4 - instr_len, ' ');
             text_to_add.append(1, ' ').append(m_mini_parser.operands());
@@ -1298,8 +1289,8 @@ public:
         }
         else if (nested)
         {
-            static constexpr const auto space_parenthesis_separator = [](const It& it, const It& it_e) {
-                return (it == it_e || (*it != ' ' && *it != ')')) ? 0 : 1;
+            static constexpr const auto space_parenthesis_separator = [](const It& b, const It& e) {
+                return (b == e || (*b != ' ' && *b != ')')) ? 0 : 1;
             };
 
             skip_past_next_continuous_sequence<It>(it, it_e, space_parenthesis_separator);
@@ -1314,9 +1305,9 @@ public:
     bool skip_past_dfh_values(
         lexing::logical_line::const_iterator& it, const lexing::logical_line::const_iterator& it_e)
     {
-        static constexpr const auto comma_space_separator = [](const lexing::logical_line::const_iterator& it,
-                                                                const lexing::logical_line::const_iterator& it_e) {
-            return (it == it_e || (*it != ',' && *it != ' ')) ? 0 : 1;
+        static constexpr const auto comma_space_separator = [](const lexing::logical_line::const_iterator& b,
+                                                                const lexing::logical_line::const_iterator& e) {
+            return (b == e || (*b != ',' && *b != ' ')) ? 0 : 1;
         };
 
         auto current_op_start = it;
@@ -1337,7 +1328,7 @@ public:
     {
         using It = lexing::logical_line::const_iterator;
 
-        const auto diag_adder = [&diags = this->m_diags](diagnostic_op d) {
+        const auto diag_adder = [&diags = this->m_diags](diagnostic_op&& d) {
             if (diags)
                 diags->add_diagnostic(d);
         };

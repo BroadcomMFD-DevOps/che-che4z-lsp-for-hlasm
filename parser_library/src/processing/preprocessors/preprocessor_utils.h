@@ -118,7 +118,8 @@ struct words_to_consume
     const std::vector<std::string> words_uc;
     const std::vector<std::string> words_lc;
 
-    words_to_consume(std::vector<std::string> words, bool needs_same_line, bool tolerate_no_space_at_end)
+    words_to_consume(
+        const std::vector<std::string>& words, bool needs_same_line, bool tolerate_no_space_at_end) noexcept
         : needs_same_line(needs_same_line)
         , tolerate_no_space_at_end(tolerate_no_space_at_end)
         , words_uc(case_transform(words, toupper))
@@ -146,7 +147,6 @@ template<typename It>
 static std::optional<It> consume_words_advance_to_next(
     It& it, const It& it_e, const words_to_consume& wtc, const separator_function<It>& is_separator)
 {
-    It backup = it;
     std::optional<It> consumed_word_end = std::nullopt;
 
     const auto reverter = [backup = it, &it]() {

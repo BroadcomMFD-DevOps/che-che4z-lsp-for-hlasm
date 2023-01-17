@@ -85,7 +85,7 @@ constexpr std::array symbols = []() {
 }();
 
 template<typename It>
-static constexpr const auto db2_separator = [](const It& it, const It& it_e) {
+constexpr const auto db2_separator = [](const It& it, const It& it_e) {
     if (it == it_e)
         return 0;
     else if (*it == ' ')
@@ -686,9 +686,15 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
 
             default: {
                 size_t digits_count = 0;
-                const auto custom_separator = [&digits_count](const lexing::logical_line::const_iterator& it,
-                                                  const lexing::logical_line::const_iterator& it_e) {
-                    return ((it == it_e) || (*it >= '0' && *it <= '9' && digits_count++ < 10)) ? 0 : 1;
+                const auto custom_separator = [&digits_count](const lexing::logical_line::const_iterator& b,
+                                                  const lexing::logical_line::const_iterator& e) {
+                    if ((b == e) || (*b >= '0' && *b <= '9' && digits_count < 10))
+                    {
+                        digits_count++;
+                        return 0;
+                    }
+
+                    return 1;
                 };
 
                 auto digits_s = it;
@@ -714,7 +720,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
     };
 
     bool handle_r_starting_operands(const std::string_view& label,
-        lexing::logical_line::const_iterator& it_b,
+        const lexing::logical_line::const_iterator& it_b,
         const lexing::logical_line::const_iterator& it_e)
     {
         auto ds_line_inserter = [&label, &it_e, this](lexing::logical_line::const_iterator it,
@@ -755,22 +761,22 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
 
         bool quote_encountered = false;
         bool check_space = false;
-        const auto special_quote_separator = [&quote_encountered, &check_space](const It& it, const It& it_e) {
-            if (it == it_e)
+        const auto special_quote_separator = [&quote_encountered, &check_space](const It& b, const It& e) {
+            if (b == e)
                 return 0;
 
-            if (check_space && *it == ' ')
+            if (check_space && *b == ' ')
                 return 1;
 
-            if (*it != '\'')
+            if (*b != '\'')
                 return 0;
 
             if (std::exchange(quote_encountered, !quote_encountered))
                 return 0;
             else
             {
-                auto it_n = std::next(it);
-                return (it_n != it_e && *it_n == '\'') ? 0 : 1;
+                auto n = std::next(b);
+                return (n != e && *n == '\'') ? 0 : 1;
             }
         };
 
