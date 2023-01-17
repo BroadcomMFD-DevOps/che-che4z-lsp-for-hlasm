@@ -73,10 +73,11 @@ template<typename It>
 using separator_function = std::function<size_t(const It& it, const It& it_e)>;
 
 template<typename It>
-static const auto space_separator = [](const It& it, const It& it_e) { return (it == it_e || *it != ' ') ? 0 : 1; };
+static constexpr const auto space_separator =
+    [](const It& it, const It& it_e) { return (it == it_e || *it != ' ') ? 0 : 1; };
 
 template<typename It>
-static const auto no_separator = [](const It&, const It&) { return 0; };
+static constexpr const auto no_separator = [](const It&, const It&) { return 0; };
 
 template<typename It>
 static void trim_left(It& it, const It& it_e, const separator_function<It>& is_separator)

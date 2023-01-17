@@ -64,14 +64,8 @@ std::string_view next_continuous_sequence(std::string_view s, std::string_view s
 
 std::string_view next_continuous_sequence(std::string_view s)
 {
-    if (s.empty() || s.front() == ' ')
-        return {};
-
-    auto space = s.find(' ');
-    if (space == std::string_view::npos)
-        space = s.size();
-
-    return s.substr(0, space);
+    static constexpr const std::string_view space_separator = " ";
+    return next_continuous_sequence(s, space_separator);
 }
 
 } // namespace hlasm_plugin::utils

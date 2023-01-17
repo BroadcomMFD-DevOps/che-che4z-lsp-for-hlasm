@@ -85,7 +85,7 @@ constexpr std::array symbols = []() {
 }();
 
 template<typename It>
-static const auto db2_separator = [](const It& it, const It& it_e) {
+static constexpr const auto db2_separator = [](const It& it, const It& it_e) {
     if (it == it_e)
         return 0;
     else if (*it == ' ')
@@ -1081,7 +1081,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
 
     void skip_process(line_iterator& it, line_iterator end)
     {
-        static constexpr std::string_view PROCESS_LITERAL = "*PROCESS";
+        static constexpr const std::string_view PROCESS_LITERAL = "*PROCESS";
         for (; it != end; ++it)
         {
             const auto text = it->text();

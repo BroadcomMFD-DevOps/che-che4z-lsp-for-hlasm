@@ -697,7 +697,7 @@ class mini_parser
             return std::nullopt;
         };
 
-        static const auto dfh_value_end_separators = [](const It& b, const It& e) {
+        static constexpr const auto dfh_value_end_separators = [](const It& b, const It& e) {
             return (b == e || (*b != ' ' && *b != ')')) ? 0 : 1;
         };
 
@@ -1298,7 +1298,7 @@ public:
         }
         else if (nested)
         {
-            static const auto space_parenthesis_separator = [](const It& it, const It& it_e) {
+            static constexpr const auto space_parenthesis_separator = [](const It& it, const It& it_e) {
                 return (it == it_e || (*it != ' ' && *it != ')')) ? 0 : 1;
             };
 
@@ -1314,8 +1314,8 @@ public:
     bool skip_past_dfh_values(
         lexing::logical_line::const_iterator& it, const lexing::logical_line::const_iterator& it_e)
     {
-        static const auto comma_space_separator = [](const lexing::logical_line::const_iterator& it,
-                                                      const lexing::logical_line::const_iterator& it_e) {
+        static constexpr const auto comma_space_separator = [](const lexing::logical_line::const_iterator& it,
+                                                                const lexing::logical_line::const_iterator& it_e) {
             return (it == it_e || (*it != ',' && *it != ' ')) ? 0 : 1;
         };
 
