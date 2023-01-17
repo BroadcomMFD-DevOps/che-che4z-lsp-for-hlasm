@@ -16,9 +16,7 @@
 #define HLASMPLUGIN_UTILS_STRING_OPERATIONS_H
 
 #include <cctype>
-#include <functional>
 #include <string_view>
-#include <utility>
 
 namespace hlasm_plugin::utils {
 
@@ -26,8 +24,7 @@ size_t trim_left(std::string_view& s);
 size_t trim_right(std::string_view& s);
 
 size_t consume(std::string_view& s, std::string_view lit);
-std::string_view next_continuous_sequence(std::string_view s);
-std::string_view next_continuous_sequence(std::string_view s, std::string_view separators);
+std::string_view next_continuous_sequence(std::string_view s, std::string_view separators = " ");
 
 inline bool isblank32(char32_t c) { return c <= 255 && std::isblank(static_cast<unsigned char>(c)); }
 

@@ -17,7 +17,6 @@
 #include <cassert>
 #include <charconv>
 #include <memory>
-#include <regex>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -941,7 +940,7 @@ public:
                 sv_a.begin(), sv_a.end(), sv_b.begin(), [](auto a, auto b) { return tolower(a) == tolower(b); });
         };
 
-        if (!sv_icase_compare(input.substr(0, 5), "*ASM "))
+        if (!input.starts_with("*ASM "))
             return false;
 
         auto [line, _] = lexing::extract_line(input);
@@ -1052,29 +1051,22 @@ public:
 
     bool process_line_of_interest(std::string_view line)
     {
-        static const std::vector<words_to_consume> interesting_words({
-            words_to_consume({ "START" }, false, true),
-            words_to_consume({ "CSECT" }, false, true),
-            words_to_consume({ "RSECT" }, false, true),
-            words_to_consume({ "DSECT" }, false, true),
-            words_to_consume({ "DFHEIENT" }, false, true),
-            words_to_consume({ "DFHEISTG" }, false, true),
-            words_to_consume({ "END" }, false, true),
-        });
+        static constexpr std::array<std::string_view, 7> interesting_words {
+            { "START", "CSECT", "RSECT", "DSECT", "DFHEIENT", "DFHEISTG", "END" }
+        };
 
         auto section_name = utils::next_continuous_sequence(line);
         line.remove_prefix(section_name.length());
         utils::trim_left(line);
-        auto wtc_it = std::find_if(interesting_words.begin(), interesting_words.end(), [&line](const auto& wtc) {
+        auto word_it = std::find_if(interesting_words.begin(), interesting_words.end(), [&line](const auto& word) {
             auto it = line.begin();
-            return consume_words_advance_to_next<std::string_view::const_iterator>(
-                it, line.end(), wtc, space_separator<std::string_view::const_iterator>);
+            return line.starts_with(word) && (line.length() == word.length() || line[word.length()] == ' ');
         });
 
-        if (wtc_it == interesting_words.end())
+        if (word_it == interesting_words.end())
             return false;
 
-        return process_asm_statement(wtc_it->words_uc.front(), section_name);
+        return process_asm_statement(*word_it, section_name);
     }
 
     struct label_info
@@ -1159,8 +1151,10 @@ public:
         trim_left<It>(it, it_e, space_separator<It>);
 
         auto instr_s = it;
-        if (static const words_to_consume exec_cics_wtc({ "EXEC", "CICS" }, false, false);
-            !consume_words_advance_to_next<It>(it, it_e, exec_cics_wtc, space_separator<It>))
+        std::optional<It> consumed_instr_base_end = std::nullopt;
+        if (static const words_to_consume exec_cics_wtc({ "EXEC", "CICS" }, false, true);
+            !(consumed_instr_base_end =
+                    consume_words_advance_to_next<It>(it, it_e, exec_cics_wtc, space_separator<It>)))
             return false;
 
         auto command_s = it;
@@ -1175,7 +1169,7 @@ public:
         };
         auto lineno = potential_lineno.value_or(0);
 
-        if (command_s != command_e)
+        if (*consumed_instr_base_end != command_e && command_s != command_e)
         {
             process_exec_cics(std::string(it_b, label_e));
 

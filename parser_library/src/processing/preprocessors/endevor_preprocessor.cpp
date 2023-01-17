@@ -15,7 +15,6 @@
 #include <algorithm>
 #include <iterator>
 #include <memory>
-#include <regex>
 #include <string>
 #include <string_view>
 #include <utility>

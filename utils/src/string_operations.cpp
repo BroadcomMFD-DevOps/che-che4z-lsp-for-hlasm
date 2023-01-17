@@ -61,11 +61,4 @@ std::string_view next_continuous_sequence(std::string_view s, std::string_view s
 
     return s.substr(0, sep_pos);
 }
-
-std::string_view next_continuous_sequence(std::string_view s)
-{
-    static constexpr const std::string_view space_separator = " ";
-    return next_continuous_sequence(s, space_separator);
-}
-
 } // namespace hlasm_plugin::utils
