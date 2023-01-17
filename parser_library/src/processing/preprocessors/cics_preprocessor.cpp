@@ -1206,13 +1206,12 @@ public:
         if (potential_lineno)
         {
             using it_p = stmt_part_details<It>::it_pair;
-            using it_s = stmt_part_details<It>::it_string;
 
             auto stmt =
                 get_preproc_statement(stmt_part_details<It>(it_p(it_b, it_e),
                                           it_p(it_b, std::move(label_e)),
-                                          it_s(it_p(std::move(instr_s), command_e),
-                                              command_s == command_e ? "EXEC CICS" : std::string(command_s, command_e)),
+                                          it_p(std::move(instr_s), command_e),
+                                          command_s == command_e ? "EXEC CICS" : std::string(command_s, command_e),
                                           it_p(std::move(it), it_e)),
                     lineno,
                     1);
@@ -1240,7 +1239,7 @@ public:
 
             echo_text(li);
 
-            std::string text_to_add = std::string(stmt_iterators.instruction.it.s, stmt_iterators.instruction.it.e);
+            std::string text_to_add = std::string(stmt_iterators.instruction.s, stmt_iterators.instruction.e);
             if (auto instr_len = utils::utf8_substr(text_to_add).char_count; instr_len < 4)
                 text_to_add.append(4 - instr_len, ' ');
             text_to_add.append(1, ' ').append(m_mini_parser.operands());
@@ -1315,25 +1314,20 @@ public:
     bool skip_past_dfh_values(
         lexing::logical_line::const_iterator& it, const lexing::logical_line::const_iterator& it_e)
     {
-        using It = lexing::logical_line::const_iterator;
-
-        static const auto comma_separator = [](const It& it, const It& it_e) {
-            return (it == it_e || *it != ',') ? 0 : 1;
-        };
-
-        static const auto comma_space_separator = [](const It& it, const It& it_e) {
+        static const auto comma_space_separator = [](const lexing::logical_line::const_iterator& it,
+                                                      const lexing::logical_line::const_iterator& it_e) {
             return (it == it_e || (*it != ',' && *it != ' ')) ? 0 : 1;
         };
 
-        auto current_it = it;
-        auto last_op_start = it;
-        while (skip_past_next_continuous_sequence<It>(it, it_e, comma_space_separator)) // todo review
+        auto current_op_start = it;
+        while (skip_past_next_continuous_sequence<lexing::logical_line::const_iterator>(
+            current_op_start, it_e, comma_space_separator))
         {
-            trim_left<It>(it, it_e, comma_separator);
-            last_op_start = std::exchange(current_it, it);
+            if (current_op_start == it_e || *current_op_start++ != ',')
+                break;
+            it = current_op_start;
         }
 
-        it = std::move(last_op_start);
         return consume_dfh_values(it, it_e, false);
     }
 
@@ -1380,10 +1374,10 @@ public:
         trim_left<It>(it, it_e, space_separator<It>);
 
         using it_p = stmt_part_details<It>::it_pair;
-        using it_s = stmt_part_details<It>::it_string;
         stmt_part_details<It> stmt_iterators(it_p(m_logical_line.begin(), it_e),
             it_p(m_logical_line.begin(), std::move(label_e)),
-            it_s(it_p(std::move(instr_s), std::move(instr_e))),
+            it_p(std::move(instr_s), std::move(instr_e)),
+            std::nullopt,
             it_p(std::move(operand_s), std::move(operand_e)),
             it_p(std::move(it), it_e));
 

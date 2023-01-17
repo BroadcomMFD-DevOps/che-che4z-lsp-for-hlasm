@@ -185,13 +185,13 @@ public:
             if (line_no)
             {
                 using it_p = stmt_part_details<It>::it_pair;
-                using it_s = stmt_part_details<It>::it_string;
                 auto remark_start = member_e;
                 trim_left<It>(remark_start, text.end(), space_separator<It>);
 
                 auto stmt = get_preproc_statement(stmt_part_details<It>(it_p(text.begin(), text.end()),
                                                       std::nullopt,
-                                                      it_s(it_p(text.begin(), std::move(instr_e)), "-INC"),
+                                                      it_p(text.begin(), std::move(instr_e)),
+                                                      "-INC",
                                                       it_p(std::move(member_b), std::move(member_e)),
                                                       it_p(std::move(remark_start), text.end()),
                                                       true),

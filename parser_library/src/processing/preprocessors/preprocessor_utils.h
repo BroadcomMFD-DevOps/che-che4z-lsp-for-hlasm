@@ -35,15 +35,10 @@ struct stmt_part_details
         ITERATOR e;
     };
 
-    struct it_string
-    {
-        it_pair it;
-        std::optional<std::string> alt_name;
-    };
-
     it_pair stmt;
     std::optional<it_pair> label;
-    it_string instruction;
+    it_pair instruction;
+    std::optional<std::string> preferred_instruction_name;
     it_pair operands;
     std::optional<it_pair> remarks;
 

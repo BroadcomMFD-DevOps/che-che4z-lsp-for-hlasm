@@ -134,21 +134,12 @@ template<typename ITERATOR>
 semantics::preproc_details::name_range get_stmt_part_name_range(
     const typename stmt_part_details<ITERATOR>::it_pair& it_details,
     const ITERATOR& it_start,
-    const semantics::range_provider& rp)
+    const semantics::range_provider& rp,
+    std::optional<std::string> preferred_name = std::nullopt)
 {
     return semantics::preproc_details::name_range(
-        { std::string(it_details.s, it_details.e), get_stmt_part_range<ITERATOR>(it_details, it_start, rp) });
-}
-
-template<typename ITERATOR>
-semantics::preproc_details::name_range get_stmt_part_name_range(
-    const typename stmt_part_details<ITERATOR>::it_string& it_details,
-    const ITERATOR& it_start,
-    const semantics::range_provider& rp)
-{
-    return semantics::preproc_details::name_range(
-        { it_details.alt_name ? *it_details.alt_name : std::string(it_details.it.s, it_details.it.e),
-            get_stmt_part_range<ITERATOR>(it_details.it, it_start, rp) });
+        { preferred_name ? std::move(*preferred_name) : std::string(it_details.s, it_details.e),
+            get_stmt_part_range<ITERATOR>(it_details, it_start, rp) });
 }
 } // namespace
 
@@ -166,8 +157,9 @@ std::shared_ptr<semantics::preprocessor_statement_si> get_preproc_statement(
         details.label = get_stmt_part_name_range<ITERATOR>(*stmt_parts.label, stmt_parts.stmt.s, rp);
 
     // Let's store the complete instruction range and only the last word of the instruction as it is unique
-    if (stmt_parts.instruction.it.s != stmt_parts.instruction.it.e)
-        details.instruction = get_stmt_part_name_range<ITERATOR>(stmt_parts.instruction, stmt_parts.stmt.s, rp);
+    if (stmt_parts.instruction.s != stmt_parts.instruction.e)
+        details.instruction = get_stmt_part_name_range<ITERATOR>(
+            stmt_parts.instruction, stmt_parts.stmt.s, rp, stmt_parts.preferred_instruction_name);
 
     if (stmt_parts.operands.s != stmt_parts.operands.e)
         fill_operands_list(std::string(stmt_parts.operands.s, stmt_parts.operands.e),
