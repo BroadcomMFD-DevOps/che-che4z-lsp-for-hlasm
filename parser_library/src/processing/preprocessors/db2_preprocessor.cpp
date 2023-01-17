@@ -685,13 +685,19 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
                 break;
 
             default: {
-                std::match_results<lexing::logical_line::const_iterator> match;
-                if (static const auto pattern = std::regex("^(?:([[:digit:]]{1,9})([KMG])?)");
-                    !std::regex_search(it, it_e, match, pattern))
+                size_t digits_count = 0;
+                const auto custom_separator = [&digits_count](const lexing::logical_line::const_iterator& it,
+                                                  const lexing::logical_line::const_iterator& it_e) {
+                    return ((it == it_e) || (*it >= '0' && *it <= '9' && digits_count++ < 10)) ? 0 : 1;
+                };
+
+                auto digits_s = it;
+                skip_past_next_continuous_sequence<lexing::logical_line::const_iterator>(it, it_e, custom_separator);
+                if (it == digits_s)
                     return false;
 
-                const auto li = lob_info(consumed_words_group->front().front(), match[2].matched ? *match[2].first : 0);
-                auto len = std::stoll(match[1].str()) * li.scale;
+                const auto li = lob_info(consumed_words_group->front().front(), it != it_e ? *it : 0);
+                auto len = std::stoll(std::string(digits_s, it)) * li.scale;
 
                 add_ds_line(label, "", "0FL4");
                 add_ds_line(label, "_LENGTH", "FL4", false);
