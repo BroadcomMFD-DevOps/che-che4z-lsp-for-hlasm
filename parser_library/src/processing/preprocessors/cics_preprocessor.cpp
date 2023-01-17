@@ -1208,11 +1208,11 @@ public:
             using it_p = stmt_part_details<It>::it_pair;
 
             auto stmt =
-                get_preproc_statement(stmt_part_details<It>(it_p(it_b, it_e),
-                                          it_p(it_b, std::move(label_e)),
-                                          it_p(std::move(instr_s), command_e),
+                get_preproc_statement(stmt_part_details<It>({ it_p({ it_b, it_e }),
+                                          it_p({ it_b, std::move(label_e) }),
+                                          it_p({ std::move(instr_s), command_e }),
                                           command_s == command_e ? "EXEC CICS" : std::string(command_s, command_e),
-                                          it_p(std::move(it), it_e)),
+                                          it_p({ std::move(it), it_e }) }),
                     lineno,
                     1);
             do_highlighting(*stmt, m_logical_line, m_src_proc, 1);
@@ -1374,12 +1374,12 @@ public:
         trim_left<It>(it, it_e, space_separator<It>);
 
         using it_p = stmt_part_details<It>::it_pair;
-        stmt_part_details<It> stmt_iterators(it_p(m_logical_line.begin(), it_e),
-            it_p(m_logical_line.begin(), std::move(label_e)),
-            it_p(std::move(instr_s), std::move(instr_e)),
+        stmt_part_details<It> stmt_iterators({ it_p({ m_logical_line.begin(), it_e }),
+            it_p({ m_logical_line.begin(), std::move(label_e) }),
+            it_p({ std::move(instr_s), std::move(instr_e) }),
             std::nullopt,
-            it_p(std::move(operand_s), std::move(operand_e)),
-            it_p(std::move(it), it_e));
+            it_p({ std::move(operand_s), std::move(operand_e) }),
+            it_p({ std::move(it), it_e }) });
 
         if (potential_lineno)
         {
