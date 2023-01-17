@@ -70,7 +70,7 @@ static bool same_line(const It& l, const It& r)
 }
 
 template<typename It>
-using separator_funcion = std::function<size_t(const It& it, const It& it_e)>;
+using separator_function = std::function<size_t(const It& it, const It& it_e)>;
 
 template<typename It>
 static const auto space_separator = [](const It& it, const It& it_e) { return (it == it_e || *it != ' ') ? 0 : 1; };
@@ -79,7 +79,7 @@ template<typename It>
 static const auto no_separator = [](const It&, const It&) { return 0; };
 
 template<typename It>
-static void trim_left(It& it, const It& it_e, const separator_funcion<It>& is_separator)
+static void trim_left(It& it, const It& it_e, const separator_function<It>& is_separator)
 {
     while (it != it_e)
     {
@@ -91,7 +91,7 @@ static void trim_left(It& it, const It& it_e, const separator_funcion<It>& is_se
 }
 
 template<typename It>
-static bool skip_past_next_continuous_sequence(It& it, const It& it_e, const separator_funcion<It>& is_separator)
+static bool skip_past_next_continuous_sequence(It& it, const It& it_e, const separator_function<It>& is_separator)
 {
     It seq_start = it;
     while (it != it_e && !is_separator(it, it_e))
@@ -102,7 +102,7 @@ static bool skip_past_next_continuous_sequence(It& it, const It& it_e, const sep
 
 template<typename It>
 static std::optional<std::string> next_continuous_sequence(
-    It& it, const It& it_e, const separator_funcion<It>& is_separator)
+    It& it, const It& it_e, const separator_function<It>& is_separator)
 {
     It seq_start = it;
     return !skip_past_next_continuous_sequence(it, it_e, is_separator)
@@ -143,7 +143,7 @@ private:
 
 template<typename It>
 static std::optional<It> consume_words_advance_to_next(
-    It& it, const It& it_e, const words_to_consume& wtc, const separator_funcion<It>& is_separator)
+    It& it, const It& it_e, const words_to_consume& wtc, const separator_function<It>& is_separator)
 {
     It backup = it;
     std::optional<It> consumed_word_end = std::nullopt;

@@ -733,6 +733,86 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
             return ds_line_inserter(it_b, rowid_wtc, "H,CL40");
     };
 
+    bool handle_table_like(const std::string_view& label,
+        lexing::logical_line::const_iterator& it,
+        const lexing::logical_line::const_iterator& it_e)
+    {
+        static const words_to_consume table_like({ "TABLE", "LIKE" }, false, false);
+        static const words_to_consume as_locator({ "AS", "LOCATOR" }, false, true);
+
+        using It = lexing::logical_line::const_iterator;
+        if (!db2_logical_line_helper::consume_and_advance(it, it_e, table_like))
+            return false;
+        trim_left<It>(it, it_e, db2_separator<It>);
+        if (it == it_e)
+            return false;
+
+        bool quote_encountered = false;
+        bool check_space = false;
+        const auto special_quote_separator = [&quote_encountered, &check_space](const It& it, const It& it_e) {
+            if (it == it_e)
+                return 0;
+
+            if (check_space && *it == ' ')
+                return 1;
+
+            if (*it != '\'')
+                return 0;
+
+            if (std::exchange(quote_encountered, !quote_encountered))
+                return 0;
+            else
+            {
+                auto it_n = std::next(it);
+                return (it_n != it_e && *it_n == '\'') ? 0 : 1;
+            }
+        };
+
+        std::optional<It> as_locator_end = std::nullopt;
+        if (*it == '\'')
+        {
+            it++;
+            while (it != it_e && *it != '\'')
+                skip_past_next_continuous_sequence<It>(it, it_e, special_quote_separator);
+
+            if (it == it_e || *it++ != '\'')
+                return false;
+
+            auto string_end = it;
+            trim_left<It>(it, it_e, db2_separator<It>);
+
+            if (it == it_e || it == string_end)
+                return false;
+
+            if (as_locator_end = db2_logical_line_helper::consume_and_advance(it, it_e, as_locator); !as_locator_end)
+                return false;
+        }
+        else
+        {
+            check_space = true;
+            while (!(as_locator_end = db2_logical_line_helper::consume_and_advance(it, it_e, as_locator)))
+            {
+                while (it != it_e && *it != '\'' && *it != ' ')
+                    skip_past_next_continuous_sequence<It>(it, it_e, special_quote_separator);
+
+                if (it == it_e || *it == '\'')
+                    return false;
+
+                auto string_end = it;
+                trim_left<It>(it, it_e, db2_separator<It>);
+
+                if (it == it_e || it == string_end)
+                    return false;
+            }
+        }
+
+        if (it != it_e && (!as_locator_end || *as_locator_end == it))
+            return false;
+
+        add_ds_line(label, "", "FL4");
+        return true;
+    }
+
     bool process_sql_type_operands(const std::string_view& label,
         lexing::logical_line::const_iterator& it,
         const lexing::logical_line::const_iterator& it_e)
@@ -759,32 +839,13 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         });
 
 
-        static const words_to_consume table_like({ "TABLE", "LIKE" }, false, false);
-        static const auto table_like_regex = std::regex("(.*)AS(?:[ ]|--)+LOCATOR");
-        static const auto text_variant1 = std::regex("'(?:[^']|'')*'(?:[ ]|--)+");
-        static const auto text_variant2 = std::regex("[^'](?:[^']|'')*(?:[ ]|--)+");
-        std::match_results<lexing::logical_line::const_iterator> matches;
-
         switch (*it)
         {
             case 'R':
                 return handle_r_starting_operands(label, it, it_e);
 
-            case 'T': {
-                if (!db2_logical_line_helper::consume_and_advance(it, it_e, table_like))
-                    return false;
-
-                if (!std::regex_search(it, it_e, matches, table_like_regex)
-                    || (matches.suffix().length() != 0
-                        && !std::regex_search(
-                            matches.suffix().first, matches.suffix().second, std::regex("^(?:[ ]|--)")))
-                    || (!std::regex_match(matches[1].first, matches[1].second, text_variant1)
-                        && !std::regex_match(matches[1].first, matches[1].second, text_variant2)
-                        && matches[1].length() != 0))
-                    return false;
-                add_ds_line(label, "", "FL4");
-                return true;
-            }
+            case 'T':
+                return handle_table_like(label, it, it_e);
 
             case 'X':
                 return handle_lob(lob_xml_prefix, lob_wtc_general, std::nullopt, label, it, it_e);
@@ -793,6 +854,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
             case 'C':
             case 'D':
                 return handle_lob(std::nullopt, lob_wtc_general, lob_wtc_additional, label, it, it_e);
+
             default:
                 return false;
         }
