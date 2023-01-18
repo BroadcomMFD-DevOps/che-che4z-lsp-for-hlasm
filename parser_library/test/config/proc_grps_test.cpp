@@ -199,14 +199,14 @@ TEST(proc_grps, invalid)
 TEST(proc_grps, preprocessor_options_validate)
 {
     const auto cases = {
-        std::make_pair(preprocessor_options { db2_preprocessor {} }, true),
-        std::make_pair(preprocessor_options { cics_preprocessor {} }, true),
-        std::make_pair(preprocessor_options { db2_preprocessor { "" } }, true),
-        std::make_pair(preprocessor_options { db2_preprocessor { "aaa" } }, true),
-        std::make_pair(preprocessor_options { db2_preprocessor { std::string(64, 'A') } }, true),
-        std::make_pair(preprocessor_options { db2_preprocessor { std::string(65, 'A') } }, false),
-        std::make_pair(preprocessor_options { db2_preprocessor { std::string(256, 'A') } }, false),
-        std::make_pair(preprocessor_options { endevor_preprocessor {} }, true),
+        std::make_pair(config::preprocessor_options { db2_preprocessor {} }, true),
+        std::make_pair(config::preprocessor_options { cics_preprocessor {} }, true),
+        std::make_pair(config::preprocessor_options { db2_preprocessor { "" } }, true),
+        std::make_pair(config::preprocessor_options { db2_preprocessor { "aaa" } }, true),
+        std::make_pair(config::preprocessor_options { db2_preprocessor { std::string(64, 'A') } }, true),
+        std::make_pair(config::preprocessor_options { db2_preprocessor { std::string(65, 'A') } }, false),
+        std::make_pair(config::preprocessor_options { db2_preprocessor { std::string(256, 'A') } }, false),
+        std::make_pair(config::preprocessor_options { endevor_preprocessor {} }, true),
     };
 
     for (const auto& [input, expected] : cases)

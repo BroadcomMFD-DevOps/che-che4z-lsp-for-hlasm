@@ -27,6 +27,7 @@
 #include <vector>
 
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 #include "analyzer.h"
 #include "ebcdic_encoding.h"

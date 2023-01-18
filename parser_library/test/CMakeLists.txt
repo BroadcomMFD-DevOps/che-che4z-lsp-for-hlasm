@@ -55,6 +55,8 @@ target_link_libraries(library_test ${ANTLR4_RUNTIME})
 target_link_libraries(library_test std::filesystem)
 target_link_libraries(library_test nlohmann_json::nlohmann_json)
 
+target_precompile_headers(library_test PRIVATE common_testing.h)
+
 add_dependencies(library_test library_tests_copy)
 
 if(DISCOVER_TESTS)
