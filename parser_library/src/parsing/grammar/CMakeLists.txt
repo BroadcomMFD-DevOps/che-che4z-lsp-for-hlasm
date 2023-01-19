@@ -38,10 +38,9 @@ if(NOT USE_PRE_GENERATED_GRAMMAR)
 	   DEPENDS antlr4jar ${GRAMMAR_SRC} lex.tokens
 	)
 
-	add_custom_command(OUTPUT ${GENERATED_GRAMMER_FOLDER}/hlasmparser.grammar
-		COMMAND
-		${CMAKE_COMMAND} -E touch ${GENERATED_GRAMMER_FOLDER}/hlasmparser.grammar
-		DEPENDS ${GENERATED_SRC}
+	add_custom_target(generate_grammar
+		DEPENDS
+			${GENERATED_SRC}
 	)
 endif()
 
