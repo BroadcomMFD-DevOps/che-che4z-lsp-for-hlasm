@@ -94,7 +94,7 @@ jobs:
           - os: ubuntu-22.04
             native: linux
             container: alpine:3.16
-            prereq: apk update && apk add --no-cache linux-headers git g++ cmake util-linux-dev npm ninja pkgconfig openjdk11 maven
+            prereq: apk update && apk add --no-cache linux-headers git g++ cmake ninja openjdk11 maven
             config: cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXE_LINKER_FLAGS="-static" -DBUILD_VSIX=Off ../
             dbg-strip: objcopy --only-keep-debug language_server language_server.dbg && objcopy --strip-unneeded language_server && objcopy --add-gnu-debuglink=language_server.dbg language_server
             dbg-pattern: build/bin/language_server.dbg
