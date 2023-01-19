@@ -30,11 +30,13 @@ export function popWaitRequestResolver(message: string, sessionId: string): () =
     return result;
 }
 
-export function activeEditorChanged(): Promise<void> {
-    return new Promise<void>((resolve) => {
-        const listener = vscode.window.onDidChangeActiveTextEditor(() => {
-            listener.dispose();
-            resolve();
+export function activeEditorChanged(): Promise<vscode.TextEditor> {
+    return new Promise<vscode.TextEditor>((resolve) => {
+        const listener = vscode.window.onDidChangeActiveTextEditor((e) => {
+            if (e) {
+                listener.dispose();
+                resolve(e);
+            }
         })
     });
 }
@@ -59,7 +61,7 @@ export async function showDocument(workspace_file: string, language_id: string |
 
     const visible = activeEditorChanged();
     const result = { editor: await vscode.window.showTextDocument(document), document };
-    await visible;
+    assert.strictEqual(await visible, result.editor);
     return result;
 }
 
