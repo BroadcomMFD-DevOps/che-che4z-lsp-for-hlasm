@@ -474,7 +474,7 @@ struct make_machine_instruction_details_args_validator
     static constexpr size_t p_c = (0 + ... + std::is_same_v<Args, std::decay_t<decltype(privileged_conditionally)>>);
     static constexpr size_t pl = (0 + ... + std::is_same_v<Args, std::decay_t<decltype(has_parameter_list)>>);
     static constexpr size_t cc = (0 + ... + std::is_same_v<Args, cc_index>);
-    static constexpr bool value = p <= 1 && p_c <= 1 && pl <= 1 && !(p && p_c) && cc <= 1;
+    static constexpr bool value = !(p && p_c) && p <= 1 && p_c <= 1 && pl <= 1 && cc <= 1;
 };
 
 struct

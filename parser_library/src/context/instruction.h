@@ -349,31 +349,31 @@ class condition_code_explanation
     std::array<unsigned char, 5> lengths;
 
 public:
-    template<size_t l0>
-    explicit consteval condition_code_explanation(const char (&t0)[l0]) noexcept requires(l0 > 1 && l0 < 256)
+    template<size_t L0>
+    explicit consteval condition_code_explanation(const char (&t0)[L0]) noexcept requires(L0 > 1 && L0 < 256)
         : text { t0, t0, t0, t0 }
-        , lengths { l0 - 1, l0 - 1, l0 - 1, l0 - 1 }
+        , lengths { L0 - 1, L0 - 1, L0 - 1, L0 - 1 }
     {}
-    template<size_t l0, size_t l1, size_t l2, size_t l3>
+    template<size_t L0, size_t L1, size_t L2, size_t L3>
     explicit consteval condition_code_explanation(
-        const char (&t0)[l0], const char (&t1)[l1], const char (&t2)[l2], const char (&t3)[l3]) noexcept
-        requires(l0 > 0 && l1 > 0 && l2 > 0 && l3 > 0 && l0 < 256 && l1 < 256 && l2 < 256 && l3 < 256)
-        : text { l0 == 1 ? nullptr : t0, l1 == 1 ? nullptr : t1, l2 == 1 ? nullptr : t2, l3 == 1 ? nullptr : t3 }
-        , lengths { l0 - 1, l1 - 1, l2 - 1, l3 - 1 }
+        const char (&t0)[L0], const char (&t1)[L1], const char (&t2)[L2], const char (&t3)[L3]) noexcept
+        requires(L0 > 0 && L1 > 0 && L2 > 0 && L3 > 0 && L0 < 256 && L1 < 256 && L2 < 256 && L3 < 256)
+        : text { L0 == 1 ? nullptr : t0, L1 == 1 ? nullptr : t1, L2 == 1 ? nullptr : t2, L3 == 1 ? nullptr : t3 }
+        , lengths { L0 - 1, L1 - 1, L2 - 1, L3 - 1 }
     {}
-    template<size_t l0, size_t l1, size_t l2, size_t l3, size_t qual>
-    explicit consteval condition_code_explanation(const char (&t0)[l0],
-        const char (&t1)[l1],
-        const char (&t2)[l2],
-        const char (&t3)[l3],
-        const char (&qualification)[qual]) noexcept requires(l0 > 0 && l1 > 0 && l2 > 0 && l3 > 0 && qual > 1
-        && l0 < 256 && l1 < 256 && l2 < 256 && l3 < 256 && qual < 256)
-        : text { l0 == 1 ? nullptr : t0,
-            l1 == 1 ? nullptr : t1,
-            l2 == 1 ? nullptr : t2,
-            l3 == 1 ? nullptr : t3,
+    template<size_t L0, size_t L1, size_t L2, size_t L3, size_t Qual>
+    explicit consteval condition_code_explanation(const char (&t0)[L0],
+        const char (&t1)[L1],
+        const char (&t2)[L2],
+        const char (&t3)[L3],
+        const char (&qualification)[Qual]) noexcept requires(L0 > 0 && L1 > 0 && L2 > 0 && L3 > 0 && Qual > 1
+        && L0 < 256 && L1 < 256 && L2 < 256 && L3 < 256 && Qual < 256)
+        : text { L0 == 1 ? nullptr : t0,
+            L1 == 1 ? nullptr : t1,
+            L2 == 1 ? nullptr : t2,
+            L3 == 1 ? nullptr : t3,
             qualification }
-        , lengths { l0 - 1, l1 - 1, l2 - 1, l3 - 1, qual - 1 }
+        , lengths { L0 - 1, L1 - 1, L2 - 1, L3 - 1, Qual - 1 }
     {}
 
     constexpr std::string_view tranlate_cc(condition_code cc) const noexcept
