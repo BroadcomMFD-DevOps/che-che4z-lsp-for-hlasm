@@ -100,7 +100,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install ninja-build
       - name: Configure
-        run: cmake -G Ninja -DBUILD_VSIX=Off -DCMAKE_C_COMPILER=clang-14 -DCMAKE_CXX_COMPILER=clang++-14 -DCMAKE_CXX_FLAGS="-fsanitize=${{ matrix.flags }}" -DWITH_LIBCXX=Off -DUSE_PRE_GENERATED_GRAMMAR="build/generated_parser" ../
+        run: cmake -G Ninja -DBUILD_VSIX=Off -DCMAKE_C_COMPILER=clang-14 -DCMAKE_CXX_COMPILER=clang++-14 -DCMAKE_CXX_FLAGS="-fsanitize=${{ matrix.flags }}" -DWITH_LIBCXX=Off -DUSE_PRE_GENERATED_GRAMMAR:PATH="build/generated_parser" ../
         working-directory: build
       - name: Build
         run: cmake --build .
@@ -123,7 +123,7 @@ jobs:
             native: linux
             container: alpine:3.16
             prereq: apk update && apk add --no-cache linux-headers git g++ cmake ninja
-            config: cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXE_LINKER_FLAGS="-static" -DBUILD_VSIX=Off -DUSE_PRE_GENERATED_GRAMMAR="build/generated_parser" ../
+            config: cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXE_LINKER_FLAGS="-static" -DBUILD_VSIX=Off -DUSE_PRE_GENERATED_GRAMMAR:PATH="build/generated_parser" ../
             dbg-strip: objcopy --only-keep-debug language_server language_server.dbg && objcopy --strip-unneeded language_server && objcopy --add-gnu-debuglink=language_server.dbg language_server
             dbg-pattern: build/bin/language_server.dbg
           - os: ubuntu-22.04
@@ -132,7 +132,7 @@ jobs:
             prereq: sudo apt-get update && sudo apt-get install -y ninja-build
             config: >
               emcmake cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DDISCOVER_TESTS=Off
-              -DWITH_LIBCXX=Off -DWITH_STATIC_CRT=Off -DCMAKE_CXX_FLAGS="-s USE_PTHREADS=1 -fexceptions" -DUSE_PRE_GENERATED_GRAMMAR="build/generated_parser"
+              -DWITH_LIBCXX=Off -DWITH_STATIC_CRT=Off -DCMAKE_CXX_FLAGS="-s USE_PTHREADS=1 -fexceptions" -DUSE_PRE_GENERATED_GRAMMAR:PATH="build/generated_parser"
               -DCMAKE_EXE_LINKER_FLAGS="-s PTHREAD_POOL_SIZE=8 -s TOTAL_MEMORY=268435456 -s PROXY_TO_PTHREAD=1 -s NODERAWFS=1 -s EXIT_RUNTIME=1 --bind"
               -DCMAKE_CROSSCOMPILING_EMULATOR="node;--experimental-wasm-threads;--experimental-wasm-bulk-memory"
               -Dgtest_disable_pthreads=On -DBUILD_VSIX=Off ../
@@ -140,13 +140,13 @@ jobs:
             artifacts-ext: .*
           - os: windows-2022
             native: win32
-            config: cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_VSIX=Off -DUSE_PRE_GENERATED_GRAMMAR="build/generated_parser" ../
+            config: cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_VSIX=Off -DUSE_PRE_GENERATED_GRAMMAR:PATH="build/generated_parser" ../
             build-extra: --parallel --config Release
             artifacts-ext: .exe
           - os: macos-12
             native: darwin
             prereq: brew install ninja
-            config: cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=$(brew --prefix llvm@14)/bin/clang -DCMAKE_CXX_COMPILER=$(brew --prefix llvm@14)/bin/clang++ -DLLVM_PATH=$(brew --prefix llvm@14) -DBUILD_VSIX=Off -DUSE_PRE_GENERATED_GRAMMAR="build/generated_parser" ../
+            config: cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=$(brew --prefix llvm@14)/bin/clang -DCMAKE_CXX_COMPILER=$(brew --prefix llvm@14)/bin/clang++ -DLLVM_PATH=$(brew --prefix llvm@14) -DBUILD_VSIX=Off -DUSE_PRE_GENERATED_GRAMMAR:PATH="build/generated_parser" ../
     container: ${{ matrix.container }}
     steps:
       - uses: actions/checkout@v3
