@@ -32,7 +32,7 @@ suite('Integration Test Suite', () => {
     test('HLASM file open test', async () => {
         // setting a language takes a while but shouldn't take longer than a second
         await helper.sleep(1000);
-        assert.ok(editor.document.languageId === 'hlasm');
+        assert.strictEqual(editor.document.languageId, 'hlasm');
     }).timeout(10000).slow(4000);
 
     // change 'open' file to create diagnostic
@@ -45,11 +45,12 @@ suite('Integration Test Suite', () => {
         });
 
         const allDiags = (await diagnostic_event).filter(x => x[0].path.endsWith('/open'));
-        assert.ok(allDiags.length === 1, 'Wrong number of diagnosed files');
-        assert.ok(allDiags[0][0].path === editor.document.uri.path, 'Wrong path');
+        assert.strictEqual(allDiags.length, 1, 'Wrong number of diagnosed files');
+        assert.strictEqual(allDiags[0][0].path, editor.document.uri.path, 'Wrong path');
 
         const openDiags = allDiags[0][1];
-        assert.ok(openDiags.length == 1 && openDiags[0].code == 'M003', 'Wrong diagnostic');
+        assert.strictEqual(openDiags.length, 1, 'Wrong diagnostic count');
+        assert.strictEqual(openDiags[0].code, 'M003', 'Wrong diagnostic');
     }).timeout(10000).slow(1000);
 
     async function insertBestCompletion() {
@@ -69,7 +70,7 @@ suite('Integration Test Suite', () => {
 
         const acceptedLine = editor.document.getText(new vscode.Range(7, 0, 8, 0));
 
-        assert.ok(acceptedLine.includes('L             R1,D12U2(X2,B2)'), 'Wrong suggestion result' + acceptedLine);
+        assert.match(acceptedLine, /L             R1,D12U2\(X2,B2\)/, 'Wrong suggestion result');
     }).timeout(10000).slow(4000);
 
     // test completion for variable symbols
@@ -80,17 +81,17 @@ suite('Integration Test Suite', () => {
 
         const acceptedLine = editor.document.getText(new vscode.Range(8, 0, 9, 0));
 
-        assert.ok(acceptedLine.includes('&VAR'), 'Wrong suggestion result' + acceptedLine);
+        assert.match(acceptedLine, /&VAR/, 'Wrong suggestion result');
     }).timeout(10000).slow(4000);
 
     // go to definition for ordinary symbol
     test('Definition Ordinary symbol test', async () => {
         const result: vscode.Location[] = await vscode.commands.executeCommand('vscode.executeDefinitionProvider', editor.document.uri, new vscode.Position(1, 7));
 
-        assert.ok(result.length == 1
-            && result[0].uri.fsPath == editor.document.fileName
-            && result[0].range.start.line == 9
-            && result[0].range.start.character == 0, 'Wrong ordinary symbol definition location');
+        assert.strictEqual(result.length, 1, 'Wrong ordinary symbol definition count');
+        assert.strictEqual(result[0].uri.fsPath, editor.document.fileName, 'Wrong ordinary symbol definition filename');
+        assert.strictEqual(result[0].range.start.line, 9, 'Wrong ordinary symbol definition line');
+        assert.strictEqual(result[0].range.start.character, 0, 'Wrong ordinary symbol definition column');
     }).timeout(10000).slow(1000);
 
     // hover for variable symbol
@@ -105,10 +106,10 @@ suite('Integration Test Suite', () => {
     // go to definition for macros
     test('Definition Macro test', async () => {
         const result: vscode.Location[] = await vscode.commands.executeCommand('vscode.executeDefinitionProvider', editor.document.uri, new vscode.Position(6, 2));
-        assert.ok(result.length == 1
-            && result[0].uri.fsPath == path.join(helper.getWorkspacePath(), 'libs', 'mac.asm')
-            && result[0].range.start.line == 1
-            && result[0].range.start.character == 4, 'Wrong macro definition location');
+        assert.strictEqual(result.length, 1, 'Wrong ordinary symbol definition count');
+        assert.strictEqual(result[0].uri.fsPath, path.join(helper.getWorkspacePath(), 'libs', 'mac.asm'), 'Wrong ordinary symbol definition filename');
+        assert.strictEqual(result[0].range.start.line, 1, 'Wrong ordinary symbol definition line');
+        assert.strictEqual(result[0].range.start.character, 4, 'Wrong ordinary symbol definition column');
     }).timeout(10000).slow(1000);
 
     // debug open code test
@@ -127,7 +128,7 @@ suite('Integration Test Suite', () => {
 
         const variables = variablesResult.body ? variablesResult.body.variables : variablesResult.variables;
 
-        assert.ok(variables.length == 1 && variables[0].value == 'SOMETHING' && variables[0].name == '&VAR2', 'Wrong debug variable &VAR2');
+        assert.equal(variables.length == 1 && variables[0].value == 'SOMETHING' && variables[0].name, '&VAR2', 'Wrong debug variable &VAR2');
 
         await helper.debugStop();
     }).timeout(20000).slow(10000);
@@ -138,7 +139,7 @@ suite('Integration Test Suite', () => {
 
         const [, diags] = (await diagsChange).find(pair => pair[0].toString() === uri);
 
-        assert.ok(diags && diags.length === 1 && diags[0].code === 'MNOTE' && diags[0].message === 'DONE', "Library patterns are not working for file: " + workspace_file);
+        assert.strictEqual(diags && diags.length === 1 && diags[0].code === 'MNOTE' && diags[0].message, 'DONE', "Library patterns are not working for file: " + workspace_file);
     }
 
     // verify that library patterns are working
