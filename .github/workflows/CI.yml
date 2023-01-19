@@ -71,7 +71,7 @@ jobs:
         run: |
           mkdir build && cd build
           cmake -DBUILD_VSIX=Off -DBUILD_TESTING=Off ../
-          cmake --build build/generated_parser/hlasmparser.grammar
+          cmake --build generated_parser/hlasmparser.grammar
       - name: Upload generated files
         uses: actions/upload-artifact@v3
         with:
