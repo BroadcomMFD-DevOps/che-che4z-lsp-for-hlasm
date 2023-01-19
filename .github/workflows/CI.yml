@@ -55,11 +55,11 @@ jobs:
     needs: [formal-checks]
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/cache/restore@v3
+      - uses: actions/cache@v3
         id: cache
         with:
-        path: build/generated_parser
-        key: ${{ hashFiles('**/CMakeLists.txt', 'cmake/**', 'parser_library/src/parsing/grammar/**') }}
+          path: build/generated_parser
+          key: ${{ hashFiles('**/CMakeLists.txt', 'cmake/**', 'parser_library/src/parsing/grammar/**') }}
       - name: Set up JDK 11
         if: steps.cache.outputs.cache-hit != 'true'
         uses: actions/setup-java@v3
