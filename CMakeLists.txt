@@ -52,7 +52,6 @@ option(WITH_LIBCXX "Building with clang++ and libc++(in Linux). To enable with: 
 option(WITH_STATIC_CRT "(Visual C++) Enable to statically link CRT, which avoids requiring users to install the redistribution package.
  To disable with: -DWITH_STATIC_CRT=Off" On)
 option(DISCOVER_TESTS "Enables CTest by executing tests and discovering test cases. To disable with: -DDISCOVER_TESTS=Off" On)
-option(FS_PATH "Provide path to libc++fs for installation on MacOS" "")
 option(BUILD_VSIX "When disabled, the VS Code client is not built and it is not packaged into vsix." On)
 option(BUILD_FUZZER "Enable building of the fuzzer. Tested with clang and libstdc++ (enable with -DWITH_LIBCXX=Off)" Off)
 
