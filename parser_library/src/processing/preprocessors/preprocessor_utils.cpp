@@ -118,10 +118,8 @@ void fill_operands_list(std::string_view operands,
 }
 
 namespace {
-template<typename ITERATOR>
-range get_stmt_part_range(const typename stmt_part_details<ITERATOR>::it_pair& it_details,
-    const ITERATOR& it_start,
-    const semantics::range_provider& rp)
+template<typename It, typename It_pair = stmt_part_details<It>::it_pair>
+range get_stmt_part_range(const It_pair& it_details, const It& it_start, const semantics::range_provider& rp)
 {
     auto lineno = rp.original_range.start.line;
     auto first_dist = std::distance(it_start, it_details.s);
@@ -130,22 +128,21 @@ range get_stmt_part_range(const typename stmt_part_details<ITERATOR>::it_pair& i
         range(position(lineno, first_dist), position(lineno, std::distance(it_details.s, it_details.e) + first_dist)));
 }
 
-template<typename ITERATOR>
-semantics::preproc_details::name_range get_stmt_part_name_range(
-    const typename stmt_part_details<ITERATOR>::it_pair& it_details,
-    const ITERATOR& it_start,
+template<typename It, typename It_pair = stmt_part_details<It>::it_pair>
+semantics::preproc_details::name_range get_stmt_part_name_range(const It_pair& it_details,
+    const It& it_start,
     const semantics::range_provider& rp,
     std::optional<std::string> preferred_name = std::nullopt)
 {
     return semantics::preproc_details::name_range(
         { preferred_name ? std::move(*preferred_name) : std::string(it_details.s, it_details.e),
-            get_stmt_part_range<ITERATOR>(it_details, it_start, rp) });
+            get_stmt_part_range(it_details, it_start, rp) });
 }
 } // namespace
 
-template<typename ITERATOR>
+template<typename It>
 std::shared_ptr<semantics::preprocessor_statement_si> get_preproc_statement(
-    const stmt_part_details<ITERATOR>& stmt_parts, size_t lineno, size_t continue_column)
+    const stmt_part_details<It>& stmt_parts, size_t lineno, size_t continue_column)
 {
     semantics::preproc_details details;
 
@@ -154,11 +151,11 @@ std::shared_ptr<semantics::preprocessor_statement_si> get_preproc_statement(
     auto rp = semantics::range_provider(details.stmt_r, semantics::adjusting_state::MACRO_REPARSE, continue_column);
 
     if (stmt_parts.label && stmt_parts.label->s != stmt_parts.label->e)
-        details.label = get_stmt_part_name_range<ITERATOR>(*stmt_parts.label, stmt_parts.stmt.s, rp);
+        details.label = get_stmt_part_name_range(*stmt_parts.label, stmt_parts.stmt.s, rp);
 
     // Let's store the complete instruction range and only the last word of the instruction as it is unique
     if (stmt_parts.instruction.s != stmt_parts.instruction.e)
-        details.instruction = get_stmt_part_name_range<ITERATOR>(
+        details.instruction = get_stmt_part_name_range(
             stmt_parts.instruction, stmt_parts.stmt.s, rp, stmt_parts.preferred_instruction_name);
 
     if (stmt_parts.operands.s != stmt_parts.operands.e)
@@ -168,7 +165,7 @@ std::shared_ptr<semantics::preprocessor_statement_si> get_preproc_statement(
             details.operands);
 
     if (stmt_parts.remarks && stmt_parts.remarks->s != stmt_parts.remarks->e)
-        details.remarks.emplace_back(get_stmt_part_range<ITERATOR>(*stmt_parts.remarks, stmt_parts.stmt.s, rp));
+        details.remarks.emplace_back(get_stmt_part_range(*stmt_parts.remarks, stmt_parts.stmt.s, rp));
 
     return std::make_shared<semantics::preprocessor_statement_si>(std::move(details), stmt_parts.copy_like);
 }

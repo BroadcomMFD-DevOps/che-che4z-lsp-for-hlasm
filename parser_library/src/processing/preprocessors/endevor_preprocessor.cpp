@@ -58,12 +58,12 @@ std::optional<std::tuple<It, It, It>> try_fill_vars(std::string_view text, std::
     auto instr_end = it;
 
     const auto& it_e = text.end();
-    trim_left<It>(it, it_e, space_separator<It>);
+    trim_left(it, it_e, space_separator<It>);
     if (it == instr_end)
         return std::nullopt;
 
     It member_b = it;
-    if (!skip_past_next_continuous_sequence<It>(it, it_e, space_separator<It>))
+    if (!skip_past_next_continuous_sequence(it, it_e, space_separator<It>))
         return std::nullopt;
 
     return std::tuple<It, It, It>(std::move(instr_end), std::move(member_b), std::move(it));
@@ -185,7 +185,7 @@ public:
             {
                 using it_p = stmt_part_details<It>::it_pair;
                 auto remark_start = member_e;
-                trim_left<It>(remark_start, text.end(), space_separator<It>);
+                trim_left(remark_start, text.end(), space_separator<It>);
 
                 auto stmt = get_preproc_statement(stmt_part_details<It>({ it_p({ text.begin(), text.end() }),
                                                       std::nullopt,

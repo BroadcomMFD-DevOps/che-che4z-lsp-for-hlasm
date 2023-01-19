@@ -118,7 +118,7 @@ public:
     template<typename It>
     static std::optional<It> consume_and_advance(It& it, const It& it_e, words_to_consume wtc)
     {
-        return consume_words_advance_to_next<It>(it, it_e, wtc, db2_separator<It>);
+        return consume_words_advance_to_next(it, it_e, wtc, db2_separator<It>);
     }
 
 private:
@@ -466,8 +466,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         semantics::preproc_details::name_range nr;
         std::optional<std::string> word = std::nullopt;
 
-        while (word = next_continuous_sequence<lexing::logical_line::const_iterator>(
-                   it, it_e, db2_separator<lexing::logical_line::const_iterator>))
+        while (word = next_continuous_sequence(it, it_e, db2_separator<lexing::logical_line::const_iterator>))
         {
             inc_it_e = it;
 
@@ -475,8 +474,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
                 nr.name.push_back(' ');
             nr.name.append(*word);
 
-            trim_left<lexing::logical_line::const_iterator>(
-                it, it_e, db2_separator<lexing::logical_line::const_iterator>);
+            trim_left(it, it_e, db2_separator<lexing::logical_line::const_iterator>);
         }
 
         if (!nr.name.empty())
@@ -697,7 +695,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
                 };
 
                 auto digits_s = it;
-                skip_past_next_continuous_sequence<lexing::logical_line::const_iterator>(it, it_e, custom_separator);
+                skip_past_next_continuous_sequence(it, it_e, custom_separator);
                 if (it == digits_s)
                     return false;
 
@@ -754,7 +752,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         using It = lexing::logical_line::const_iterator;
         if (!db2_logical_line_helper::consume_and_advance(it, it_e, table_like))
             return false;
-        trim_left<It>(it, it_e, db2_separator<It>);
+        trim_left(it, it_e, db2_separator<It>);
         if (it == it_e)
             return false;
 
@@ -784,13 +782,13 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         {
             it++;
             while (it != it_e && *it != '\'')
-                skip_past_next_continuous_sequence<It>(it, it_e, special_quote_separator);
+                skip_past_next_continuous_sequence(it, it_e, special_quote_separator);
 
             if (it == it_e || *it++ != '\'')
                 return false;
 
             auto string_end = it;
-            trim_left<It>(it, it_e, db2_separator<It>);
+            trim_left(it, it_e, db2_separator<It>);
 
             if (it == it_e || it == string_end)
                 return false;
@@ -804,13 +802,13 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
             while (!(as_locator_end = db2_logical_line_helper::consume_and_advance(it, it_e, as_locator)))
             {
                 while (it != it_e && *it != '\'' && *it != ' ')
-                    skip_past_next_continuous_sequence<It>(it, it_e, special_quote_separator);
+                    skip_past_next_continuous_sequence(it, it_e, special_quote_separator);
 
                 if (it == it_e || *it == '\'')
                     return false;
 
                 auto string_end = it;
-                trim_left<It>(it, it_e, db2_separator<It>);
+                trim_left(it, it_e, db2_separator<It>);
 
                 if (it == it_e || it == string_end)
                     return false;
@@ -848,7 +846,6 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
             words_to_consume({ "CLOB_LOCATOR" }, false, true),
             words_to_consume({ "DBCLOB_LOCATOR" }, false, true),
         });
-
 
         switch (*it)
         {
@@ -958,7 +955,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         std::vector<semantics::preproc_details::name_range> args;
         auto it = std::next(ll.m_db2_ll.begin(), instruction_end);
         auto it_e = ll.m_db2_ll.end();
-        trim_left<lexing::logical_line::const_iterator>(it, it_e, db2_separator<lexing::logical_line::const_iterator>);
+        trim_left(it, it_e, db2_separator<lexing::logical_line::const_iterator>);
 
         switch (instruction_type)
         {

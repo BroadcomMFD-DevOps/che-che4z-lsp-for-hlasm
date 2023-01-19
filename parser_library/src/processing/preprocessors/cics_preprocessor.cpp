@@ -699,16 +699,16 @@ class mini_parser
             return (it_b == it_e || (*it_b != ' ' && *it_b != ')')) ? 0 : 1;
         };
 
-        if (!consume_words_advance_to_next<It>(b, e, wtc, space_separator<It>))
+        if (!consume_words_advance_to_next(b, e, wtc, space_separator<It>))
             return reverter();
 
         if (b == e || *b++ != '(')
             return reverter();
-        trim_left<It>(b, e, space_separator<It>);
+        trim_left(b, e, space_separator<It>);
 
-        auto val = next_continuous_sequence<It>(b, e, dfh_value_end_separators);
+        auto val = next_continuous_sequence(b, e, dfh_value_end_separators);
 
-        trim_left<It>(b, e, space_separator<It>);
+        trim_left(b, e, space_separator<It>);
         if (b == e || *b++ != ')')
             return reverter();
 
@@ -1146,22 +1146,21 @@ public:
         const auto& it_e = m_logical_line.end();
         auto it = it_b;
 
-        skip_past_next_continuous_sequence<It>(it, it_e, space_separator<It>);
+        skip_past_next_continuous_sequence(it, it_e, space_separator<It>);
         auto label_e = it;
-        trim_left<It>(it, it_e, space_separator<It>);
+        trim_left(it, it_e, space_separator<It>);
 
         auto instr_s = it;
         std::optional<It> consumed_instr_base_end = std::nullopt;
         if (static const words_to_consume exec_cics_wtc({ "EXEC", "CICS" }, false, true);
-            !(consumed_instr_base_end =
-                    consume_words_advance_to_next<It>(it, it_e, exec_cics_wtc, space_separator<It>)))
+            !(consumed_instr_base_end = consume_words_advance_to_next(it, it_e, exec_cics_wtc, space_separator<It>)))
             return false;
 
         auto command_s = it;
-        skip_past_next_continuous_sequence<It>(it, it_e, space_separator<It>);
+        skip_past_next_continuous_sequence(it, it_e, space_separator<It>);
         auto command_e = it;
 
-        trim_left<It>(it, it_e, space_separator<It>);
+        trim_left(it, it_e, space_separator<It>);
 
         const auto diag_adder = [&diags = this->m_diags](diagnostic_op&& d) {
             if (diags)
@@ -1268,15 +1267,15 @@ public:
         static const words_to_consume dfhresp_wtc({ "DFHRESP" }, false, true);
         static const words_to_consume dfhvalue_wtc({ "DFHVALUE" }, false, true);
 
-        if (consume_words_advance_to_next<It>(it, it_e, dfhresp_wtc, space_separator<It>)
-            || consume_words_advance_to_next<It>(it, it_e, dfhvalue_wtc, space_separator<It>))
+        if (consume_words_advance_to_next(it, it_e, dfhresp_wtc, space_separator<It>)
+            || consume_words_advance_to_next(it, it_e, dfhvalue_wtc, space_separator<It>))
         {
             if (it == it_e || *it++ != '(')
                 return reverter();
 
-            trim_left<It>(it, it_e, space_separator<It>);
+            trim_left(it, it_e, space_separator<It>);
             consume_dfh_values(it, it_e, true);
-            trim_left<It>(it, it_e, space_separator<It>);
+            trim_left(it, it_e, space_separator<It>);
 
             if (it == it_e || *it++ != ')')
                 return reverter();
@@ -1287,8 +1286,8 @@ public:
                 return (b == e || (*b != ' ' && *b != ')')) ? 0 : 1;
             };
 
-            skip_past_next_continuous_sequence<It>(it, it_e, space_parenthesis_separator);
-            trim_left<It>(it, it_e, space_separator<It>);
+            skip_past_next_continuous_sequence(it, it_e, space_parenthesis_separator);
+            trim_left(it, it_e, space_separator<It>);
         }
         else
             return reverter();
@@ -1305,8 +1304,7 @@ public:
         };
 
         auto current_op_start = it;
-        while (skip_past_next_continuous_sequence<lexing::logical_line::const_iterator>(
-            current_op_start, it_e, comma_space_separator))
+        while (skip_past_next_continuous_sequence(current_op_start, it_e, comma_space_separator))
         {
             if (current_op_start == it_e || *current_op_start++ != ',')
                 break;
@@ -1339,16 +1337,16 @@ public:
         auto it = m_logical_line.begin();
         const auto& it_e = m_logical_line.end();
 
-        skip_past_next_continuous_sequence<It>(it, it_e, space_separator<It>);
+        skip_past_next_continuous_sequence(it, it_e, space_separator<It>);
         auto label_e = it;
-        trim_left<It>(it, it_e, space_separator<It>);
+        trim_left(it, it_e, space_separator<It>);
 
         auto instr_s = it;
-        if (!skip_past_next_continuous_sequence<It>(it, it_e, space_separator<It>))
+        if (!skip_past_next_continuous_sequence(it, it_e, space_separator<It>))
             return false;
         auto instr_e = it;
 
-        trim_left<It>(it, it_e, space_separator<It>);
+        trim_left(it, it_e, space_separator<It>);
         if (it == it_e)
             return false;
 
@@ -1356,7 +1354,7 @@ public:
         if (!skip_past_dfh_values(it, it_e))
             return false;
         auto operand_e = it;
-        trim_left<It>(it, it_e, space_separator<It>);
+        trim_left(it, it_e, space_separator<It>);
 
         using it_p = stmt_part_details<It>::it_pair;
         stmt_part_details<It> stmt_iterators({ it_p({ m_logical_line.begin(), it_e }),

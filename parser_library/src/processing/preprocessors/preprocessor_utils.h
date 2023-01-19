@@ -25,13 +25,13 @@
 
 namespace hlasm_plugin::parser_library::processing {
 
-template<typename ITERATOR>
+template<typename It>
 struct stmt_part_details
 {
     struct it_pair
     {
-        ITERATOR s;
-        ITERATOR e;
+        It s;
+        It e;
     };
 
     it_pair stmt;
@@ -51,9 +51,9 @@ void fill_operands_list(std::string_view operands,
     const semantics::range_provider& rp,
     std::vector<semantics::preproc_details::name_range>& operand_list);
 
-template<typename ITERATOR>
+template<typename It>
 std::shared_ptr<semantics::preprocessor_statement_si> get_preproc_statement(
-    const stmt_part_details<ITERATOR>& iterators, size_t lineno, size_t continue_column = 15);
+    const stmt_part_details<It>& iterators, size_t lineno, size_t continue_column = 15);
 
 template<typename It>
 static std::true_type same_line_detector(const It& t, decltype(t.same_line(t)) = false);
@@ -78,8 +78,8 @@ static constexpr const auto space_separator =
 template<typename It>
 static constexpr const auto no_separator = [](const It&, const It&) { return 0; };
 
-template<typename It>
-static void trim_left(It& it, const It& it_e, const separator_function<It>& is_separator)
+template<typename It, typename Separator = separator_function<It>>
+static void trim_left(It& it, const It& it_e, const Separator& is_separator)
 {
     while (it != it_e)
     {
@@ -90,8 +90,8 @@ static void trim_left(It& it, const It& it_e, const separator_function<It>& is_s
     }
 }
 
-template<typename It>
-static bool skip_past_next_continuous_sequence(It& it, const It& it_e, const separator_function<It>& is_separator)
+template<typename It, typename Separator = separator_function<It>>
+static bool skip_past_next_continuous_sequence(It& it, const It& it_e, const typename Separator& is_separator)
 {
     It seq_start = it;
     while (it != it_e && !is_separator(it, it_e))
@@ -100,9 +100,8 @@ static bool skip_past_next_continuous_sequence(It& it, const It& it_e, const sep
     return it != seq_start;
 }
 
-template<typename It>
-static std::optional<std::string> next_continuous_sequence(
-    It& it, const It& it_e, const separator_function<It>& is_separator)
+template<typename It, typename Separator = separator_function<It>>
+static std::optional<std::string> next_continuous_sequence(It& it, const It& it_e, const Separator& is_separator)
 {
     It seq_start = it;
     return !skip_past_next_continuous_sequence(it, it_e, is_separator)
@@ -142,9 +141,9 @@ private:
     }
 };
 
-template<typename It>
+template<typename It, typename Separator = separator_function<It>>
 static std::optional<It> consume_words_advance_to_next(
-    It& it, const It& it_e, const words_to_consume& wtc, const separator_function<It>& is_separator)
+    It& it, const It& it_e, const words_to_consume& wtc, const Separator& is_separator)
 {
     std::optional<It> consumed_word_end = std::nullopt;
 
@@ -185,13 +184,6 @@ static std::optional<It> consume_words_advance_to_next(
 
     return consumed_word_end;
 }
-
-template<typename It>
-static std::optional<It> consume_words(It& it, const It& it_e, const words_to_consume& wtc)
-{
-    return consume_words_advance_to_next<It>(it, it_e, wtc, no_separator<It>);
-}
-
 } // namespace hlasm_plugin::parser_library::processing
 
 #endif
