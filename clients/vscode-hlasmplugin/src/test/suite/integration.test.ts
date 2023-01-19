@@ -38,19 +38,15 @@ suite('Integration Test Suite', () => {
     // change 'open' file to create diagnostic
     test('Diagnostic test', async () => {
         // register callback to check for the correctness of the diagnostic
-        const diagnostic_event = helper.waitForDiagnostics(workspace_file);
+        const diagnostic_event = helper.waitForDiagnostics(workspace_file, true);
         // remove second parameter from LR instruction
         await editor.edit(edit => {
             edit.delete(new vscode.Range(new vscode.Position(2, 6), new vscode.Position(2, 7)));
         });
 
-        const allDiags = (await diagnostic_event).filter(x => x[0].path.endsWith('/open'));
-        assert.strictEqual(allDiags.length, 1, 'Wrong number of diagnosed files');
-        assert.strictEqual(allDiags[0][0].path, editor.document.uri.path, 'Wrong path');
-
-        const openDiags = allDiags[0][1];
-        assert.strictEqual(openDiags.length, 1, 'Wrong diagnostic count');
-        assert.strictEqual(openDiags[0].code, 'M003', 'Wrong diagnostic');
+        const diags = await diagnostic_event;
+        assert.strictEqual(diags.length, 1, 'Wrong number of diagnosed files');
+        assert.strictEqual(diags[0].code, 'M003', 'Wrong diagnostic');
     }).timeout(10000).slow(1000);
 
     async function insertBestCompletion() {
@@ -134,12 +130,15 @@ suite('Integration Test Suite', () => {
     }).timeout(20000).slow(10000);
 
     async function openDocumentAndCheckDiags(workspace_file: string) {
-        const diagsChange = waitForDiagnostics(workspace_file);
+        const diagsChange = waitForDiagnostics(workspace_file, true);
         const uri = (await helper.showDocument(workspace_file)).document.uri.toString();
 
-        const [, diags] = (await diagsChange).find(pair => pair[0].toString() === uri);
+        const diags = await diagsChange;
 
-        assert.strictEqual(diags && diags.length === 1 && diags[0].code === 'MNOTE' && diags[0].message, 'DONE', "Library patterns are not working for file: " + workspace_file);
+        assert.ok(diags);
+        assert.strictEqual(diags.length, 1);
+        assert.strictEqual(diags[0].code, 'MNOTE');
+        assert.strictEqual(diags[0].message, 'DONE', "Library patterns are not working for file: " + workspace_file);
     }
 
     // verify that library patterns are working
