@@ -15,9 +15,6 @@ PROJECT(antlr4cpp_fetcher CXX)
 INCLUDE(FetchContent)
 FIND_PACKAGE(Git REQUIRED)
 
-# only JRE required
-FIND_PACKAGE(Java 11 COMPONENTS Runtime REQUIRED)
-
 if(APPLE)
   find_library(COREFOUNDATION_LIBRARY CoreFoundation)
 endif()
@@ -61,6 +58,8 @@ if(NOT antlr4cpp_POPULATED)
         ${antlr4cpp_SOURCE_DIR}/tool/target/antlr4-${ANTLR4CPP_EXTERNAL_TAG}-complete.jar)
 
     if(NOT USE_PRE_GENERATED_GRAMMAR)
+        # only JRE required
+        FIND_PACKAGE(Java 11 COMPONENTS Runtime REQUIRED)
         #Check whether maven is installed and in path
         find_program(MVN_RETURN mvn)
         if(MVN_RETURN MATCHES "MVN_RETURN-NOTFOUND")
