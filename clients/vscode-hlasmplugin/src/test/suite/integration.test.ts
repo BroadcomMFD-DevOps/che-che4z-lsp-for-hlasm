@@ -45,8 +45,8 @@ suite('Integration Test Suite', () => {
         });
 
         const diags = await diagnostic_event;
-        assert.strictEqual(diags.length, 1, 'Wrong number of diagnosed files');
-        assert.strictEqual(diags[0].code, 'M003', 'Wrong diagnostic');
+        const codes = diags.map(x => x.code || '');
+        assert.deepStrictEqual(codes, ['M003'], editor.document.getText());
     }).timeout(10000).slow(1000);
 
     async function insertBestCompletion() {
@@ -94,9 +94,9 @@ suite('Integration Test Suite', () => {
     test('Hover Variable symbol test', async () => {
         const result: vscode.Hover[] = await vscode.commands.executeCommand('vscode.executeHoverProvider', editor.document.uri, new vscode.Position(6, 8));
 
-        assert.ok(result.length == 1
-            && result[0].contents.length == 1
-            && (result[0].contents[0] as vscode.MarkdownString).value == 'SETA variable', 'Wrong variable symbol hover contents');
+        assert.strictEqual(result.length, 1);
+        assert.strictEqual(result[0].contents.length, 1);
+        assert.strictEqual((result[0].contents[0] as vscode.MarkdownString).value, 'SETA variable', 'Wrong variable symbol hover contents');
     }).timeout(10000).slow(1000);
 
     // go to definition for macros
@@ -124,7 +124,9 @@ suite('Integration Test Suite', () => {
 
         const variables = variablesResult.body ? variablesResult.body.variables : variablesResult.variables;
 
-        assert.equal(variables.length == 1 && variables[0].value == 'SOMETHING' && variables[0].name, '&VAR2', 'Wrong debug variable &VAR2');
+        assert.strictEqual(variables.length, 1);
+        assert.strictEqual(variables[0].value, 'SOMETHING', 'Wrong debug variable &VAR2');
+        assert.strictEqual(variables[0].name, '&VAR2', 'Wrong debug variable &VAR2');
 
         await helper.debugStop();
     }).timeout(20000).slow(10000);

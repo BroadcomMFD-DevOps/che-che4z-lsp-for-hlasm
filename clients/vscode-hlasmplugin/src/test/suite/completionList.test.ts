@@ -51,8 +51,7 @@ suite('Completion List Test Suite', () => {
 
         const completionList: vscode.CompletionList = await vscode.commands.executeCommand('vscode.executeCompletionItemProvider', editor.document.uri, movePosition);
 
-        assert.strictEqual(completionList.items.length, 2, 'Wrong number of suggestion result.');
-        assert.strictEqual(completionList.items[0].label.toString(), '&VAR', 'Wrong first completion item.');
-        assert.strictEqual(completionList.items[1].label.toString(), '&VAR2', 'Wrong second completion item.');
+        const labels = completionList.items.map(x => x.label.toString());
+        assert.deepStrictEqual(labels, ['&VAR', '&VAR2'], 'Wrong suggestion result.');
     }).timeout(10000).slow(1000);
 });
