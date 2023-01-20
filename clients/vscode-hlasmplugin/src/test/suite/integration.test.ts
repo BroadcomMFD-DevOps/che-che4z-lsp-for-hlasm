@@ -28,6 +28,10 @@ suite('Integration Test Suite', () => {
         editor = (await helper.showDocument(workspace_file)).editor;
     });
 
+    suiteTeardown(async function () {
+        await helper.closeAllEditors();
+    });
+
     // open 'open' file, should be recognized as hlasm
     test('HLASM file open test', async () => {
         // setting a language takes a while but shouldn't take longer than a second
