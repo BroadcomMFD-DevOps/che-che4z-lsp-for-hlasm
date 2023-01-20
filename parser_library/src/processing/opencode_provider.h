@@ -79,7 +79,7 @@ class opencode_provider final : public statement_provider
     document m_input_document;
     std::size_t m_next_line_index = 0;
 
-    lexing::logical_line m_current_logical_line;
+    lexing::logical_line<std::string_view::iterator> m_current_logical_line;
     struct logical_line_origin
     {
         size_t begin_line;

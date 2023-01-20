@@ -15,6 +15,7 @@
 #ifndef HLASMPLUGIN_HLASMPARSERLIBRARY_LOGICAL_LINE_H
 #define HLASMPLUGIN_HLASMPARSERLIBRARY_LOGICAL_LINE_H
 
+#include <algorithm>
 #include <cassert>
 #include <cstddef>
 #include <cstdlib>
@@ -41,16 +42,14 @@ enum class logical_line_segment_eol : uint8_t
 // segment 3:              <code.................><ignore.................><logical_line_segment_eol>
 
 // a single line in a file that is a part of the logical (continued) HLASM line/statement.
+template<typename It>
 struct logical_line_segment
 {
-    std::string_view code;
-    std::string_view continuation;
-    std::string_view ignore;
-
-    std::string_view line;
-
-    size_t code_offset;
-    size_t code_offset_utf16;
+    It begin;
+    It code;
+    It continuation;
+    It ignore;
+    It end;
 
     bool continuation_error;
     bool so_si_continuation;
@@ -58,10 +57,21 @@ struct logical_line_segment
     logical_line_segment_eol eol;
 };
 
+template<typename It>
+size_t logical_distance(It b, It e)
+{
+    return std::distance(b, e);
+}
+
+template<typename It>
+requires requires(It i) { i.counter()->size_t; }
+size_t logical_distance(It b, It e) { return e.counter() - b.counter(); }
+
 // represents a single (possibly continued) HLASM line/statement
+template<typename It>
 struct logical_line
 {
-    std::vector<logical_line_segment> segments;
+    std::vector<logical_line_segment<It>> segments;
     bool continuation_error;
     bool so_si_continuation;
     bool missing_next_line;
@@ -76,8 +86,8 @@ struct logical_line
 
     struct const_iterator
     {
-        using segment_iterator = std::vector<logical_line_segment>::const_iterator;
-        using column_iterator = std::string_view::const_iterator;
+        using segment_iterator = std::vector<logical_line_segment<It>>::const_iterator;
+        using column_iterator = It;
 
         using iterator_category = std::bidirectional_iterator_tag;
         using difference_type = std::ptrdiff_t;
@@ -98,14 +108,14 @@ struct logical_line
         {
             assert(m_logical_line);
             ++m_col_it;
-            while (m_col_it == m_segment_it->code.end())
+            while (m_col_it == m_segment_it->continuation)
             {
                 if (++m_segment_it == m_logical_line->segments.end())
                 {
                     m_col_it = column_iterator();
                     break;
                 }
-                m_col_it = m_segment_it->code.begin();
+                m_col_it = m_segment_it->code;
             }
             return *this;
         }
@@ -118,10 +128,10 @@ struct logical_line
         const_iterator& operator--() noexcept
         {
             assert(m_logical_line);
-            while (m_segment_it == m_logical_line->segments.end() || m_col_it == m_segment_it->code.begin())
+            while (m_segment_it == m_logical_line->segments.end() || m_col_it == m_segment_it->code)
             {
                 --m_segment_it;
-                m_col_it = m_segment_it->code.end();
+                m_col_it = m_segment_it->continuation;
             }
             --m_col_it;
             return *this;
@@ -152,21 +162,21 @@ struct logical_line
             if (m_segment_it == m_logical_line->segments.end())
                 return { 0, 0 };
 
-            return { m_segment_it->code_offset + std::distance(m_segment_it->code.begin(), m_col_it),
-                std::distance(m_logical_line->segments.begin(), m_segment_it) };
+            return { logical_distance(m_segment_it->begin, m_col_it),
+                logical_distance(m_logical_line->segments.begin(), m_segment_it) };
         }
 
     private:
         segment_iterator m_segment_it = segment_iterator();
-        column_iterator m_col_it = std::string_view::const_iterator();
+        column_iterator m_col_it = It();
         const logical_line* m_logical_line = nullptr;
     };
 
     const_iterator begin() const noexcept
     {
         for (auto s = segments.begin(); s != segments.end(); ++s)
-            if (!s->code.empty())
-                return const_iterator(s, s->code.begin(), this);
+            if (s->code != s->continuation)
+                return const_iterator(s, s->code, this);
         return end();
     }
     const_iterator end() const noexcept
@@ -193,17 +203,142 @@ constexpr const logical_line_extractor_args default_ictl_dbcs_copy = { 1, 71, 16
 // remove and return a single line from the input (terminated by LF, CRLF, CR, EOF)
 std::pair<std::string_view, logical_line_segment_eol> extract_line(std::string_view& input);
 
-// extract a logical line (extracting lines while continued and not EOF)
-// returns true when a logical line was extracted
-bool extract_logical_line(logical_line& out, std::string_view& input, const logical_line_extractor_args& opts);
+// skips n full utf-8 characters
+// for n == 0 skips partial sequence
+template<typename It>
+void utf8_next(It& it, size_t n, const It& end)
+{
+    while (it != end)
+    {
+        if (unsigned char c = *it; (c & 0xc0) == 0x80)
+        {
+            ++it;
+            continue;
+        }
+        if (n == 0)
+            break;
+        ++it;
+        --n;
+    }
+}
+
+// returns back by n utf-8 characters
+// n positive
+template<typename It>
+void utf8_prev(It& it, size_t n, const It& begin)
+{
+    assert(n);
+    while (it != begin)
+    {
+        --it;
+        if (unsigned char c = *it; (c & 0xc0) == 0x80)
+            continue;
+        --n;
+        if (n == 0)
+            break;
+    }
+}
 
 // appends a logical line segment to the logical line extracted from the input
 // returns "need more" (appended line was continued), input must be non-empty
-bool append_to_logical_line(logical_line& out, std::string_view& input, const logical_line_extractor_args& opts);
+template<typename It>
+bool append_to_logical_line(logical_line<It>& out, std::string_view& input, const logical_line_extractor_args& opts)
+{
+    auto [line, eol] = extract_line(input);
+
+    auto& segment = out.segments.emplace_back();
+
+    auto it = line.begin();
+    const auto end = line.end();
+
+    segment.begin = it;
+    utf8_next(it, opts.begin - 1, end);
+    segment.code = it;
+    utf8_next(it, opts.end + 1 - opts.begin, end);
+    segment.continuation = it;
+    utf8_next(it, 1, end);
+    segment.ignore = it;
+    segment.end = end;
+    segment.eol = eol;
+
+    if (segment.continuation == segment.ignore)
+        return false;
+
+    if (*segment.continuation == ' ' || opts.end == 80 || opts.continuation == 0)
+    {
+        segment.ignore = segment.continuation;
+        return false;
+    }
+
+    // line is continued
+
+    if (opts.dbcs)
+    {
+        auto extended_cont = std::mismatch(std::make_reverse_iterator(segment.continuation),
+            std::make_reverse_iterator(segment.code),
+            std::make_reverse_iterator(segment.ignore))
+                                 .first.base();
+
+        utf8_next(extended_cont, 0, segment.continuation);
+
+        if (extended_cont != segment.continuation)
+        {
+            segment.continuation = extended_cont;
+            if (const auto c = *segment.continuation; c == '<' || c == '>')
+                out.so_si_continuation |= segment.so_si_continuation = true;
+        }
+    }
+
+    return true;
+}
 
 // logical line post-processing
-void finish_logical_line(logical_line& out, const logical_line_extractor_args& opts);
+template<typename It>
+void finish_logical_line(logical_line<It>& out, const logical_line_extractor_args& opts)
+{
+    if (out.segments.empty())
+        return;
 
+    const size_t cont_size = opts.continuation - opts.begin;
+    for (size_t i = 1; i < out.segments.size(); ++i)
+    {
+        auto& s = out.segments[i];
+
+        auto blank_start = s.code;
+        utf8_next(s.code, cont_size, s.continuation);
+
+        out.continuation_error |= s.continuation_error =
+            std::any_of(blank_start, s.code, [](unsigned char c) { return c != ' '; });
+    }
+    auto& last = out.segments.back();
+    if (!opts.eof_copy_rules)
+    {
+        out.missing_next_line = last.continuation != last.ignore;
+    }
+    else
+        last.ignore = last.continuation;
+}
+
+// extract a logical line (extracting lines while continued and not EOF)
+// returns true when a logical line was extracted
+template<typename It>
+bool extract_logical_line(logical_line<It>& out, std::string_view& input, const logical_line_extractor_args& opts)
+{
+    out.clear();
+
+    if (input.empty())
+        return false;
+
+    do
+    {
+        if (!append_to_logical_line(out, input, opts))
+            break;
+    } while (!input.empty());
+
+    finish_logical_line(out, opts);
+
+    return true;
+}
 } // namespace hlasm_plugin::parser_library::lexing
 
 #endif // HLASMPLUGIN_HLASMPARSERLIBRARY_LOGICAL_LINE_H

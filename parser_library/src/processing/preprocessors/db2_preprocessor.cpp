@@ -87,8 +87,8 @@ constexpr std::array symbols = []() {
 class db2_logical_line_helper
 {
 public:
-    lexing::logical_line m_orig_ll;
-    lexing::logical_line m_db2_ll;
+    lexing::logical_line<std::string_view::iterator> m_orig_ll;
+    lexing::logical_line<std::string_view::iterator> m_db2_ll;
     size_t m_lineno = 0;
     std::vector<std::optional<std::string_view>> m_comments;
 
@@ -105,7 +105,8 @@ public:
         return it;
     }
 
-    static void trim_left(lexing::logical_line::const_iterator& it, const lexing::logical_line::const_iterator& it_e)
+    template<typename It>
+    static void trim_left(It& it, const It& it_e)
     {
         while (it != it_e)
         {
@@ -119,14 +120,15 @@ public:
     }
 
 private:
-    size_t find_start_of_line_comment(
-        std::stack<unsigned char, std::basic_string<unsigned char>>& quotes, const std::string_view& code) const
+    template<typename It>
+    It find_start_of_line_comment(
+        std::stack<unsigned char, std::basic_string<unsigned char>>& quotes, It code, const It& code_end) const
     {
         bool comment_possibly_started = false;
-        size_t comment_start = 0;
-        for (const auto& c : code)
+        for (; code != code_end; ++code)
         {
-            if (auto s = symbols[static_cast<unsigned char>(c)]; s == symbol_type::quote)
+            const unsigned char c = *code;
+            if (auto s = symbols[c]; s == symbol_type::quote)
             {
                 if (quotes.empty() || quotes.top() != c)
                     quotes.push(c);
@@ -142,28 +144,28 @@ private:
                 else
                     break;
             }
-
-            comment_start++;
         }
 
-        return comment_start;
+        return code;
     }
 
-    void extract_db2_line_comments(
-        lexing::logical_line& ll, std::vector<std::optional<std::string_view>>& comments) const
+    void extract_db2_line_comments(lexing::logical_line<std::string_view::iterator>& ll,
+        std::vector<std::optional<std::string_view>>& comments) const
     {
         comments.clear();
         std::stack<unsigned char, std::basic_string<unsigned char>> quotes;
         for (auto& seg : ll.segments)
         {
-            auto& code = seg.code;
             auto& comment = comments.emplace_back(std::nullopt);
 
             // code part will contain the '--' separator if comment is detected
-            if (auto comment_start = find_start_of_line_comment(quotes, code); comment_start != code.length())
+            if (auto comment_start = find_start_of_line_comment(quotes, seg.code, seg.continuation);
+                comment_start != seg.continuation)
             {
-                comment = code.substr(comment_start + 1);
-                code.remove_suffix(comment->length());
+                std::advance(comment_start, 1);
+                comment = std::string_view(comment_start, seg.continuation);
+                seg.continuation = comment_start;
+                seg.ignore = comment_start;
             }
         }
     }
@@ -328,7 +330,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
     semantics::source_info_processor& m_src_proc;
     db2_logical_line_helper m_ll_helper;
     db2_logical_line_helper m_ll_include_helper;
-    mini_parser<lexing::logical_line::const_iterator> m_parser;
+    mini_parser<lexing::logical_line<std::string_view::iterator>::const_iterator> m_parser;
 
     enum class line_type
     {
@@ -505,20 +507,19 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         return std::nullopt;
     }
 
-    std::optional<semantics::preproc_details::name_range> try_process_include(
-        lexing::logical_line::const_iterator it, const lexing::logical_line::const_iterator& it_e, size_t lineno)
+    template<typename It>
+    std::optional<semantics::preproc_details::name_range> try_process_include(It it, const It& it_e, size_t lineno)
     {
         if (static const consuming_regex_details include_crd({ "INCLUDE" }, false, false);
             !consume_words_advance_to_next(it, it_e, include_crd))
             return std::nullopt;
 
-        lexing::logical_line::const_iterator inc_it_s;
-        lexing::logical_line::const_iterator inc_it_e;
+        It inc_it_s;
+        It inc_it_e;
         semantics::preproc_details::name_range nr;
         static const auto member_pattern = std::regex("(.*?)(?:[ ]|--)*$");
 
-        for (auto reg_it = std::regex_iterator<lexing::logical_line::const_iterator>(it, it_e, member_pattern),
-                  reg_it_e = std::regex_iterator<lexing::logical_line::const_iterator>();
+        for (auto reg_it = std::regex_iterator<It>(it, it_e, member_pattern), reg_it_e = std::regex_iterator<It>();
              reg_it != reg_it_e;
              ++reg_it)
         {
@@ -700,12 +701,10 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         return result;
     }
 
-    bool handle_lob(const std::regex& pattern,
-        std::string_view label,
-        const lexing::logical_line::const_iterator& it,
-        const lexing::logical_line::const_iterator& it_e)
+    template<typename It>
+    bool handle_lob(const std::regex& pattern, std::string_view label, const It& it, const It& it_e)
     {
-        std::match_results<lexing::logical_line::const_iterator> match;
+        std::match_results<It> match;
         if (!std::regex_search(it, it_e, match, pattern))
             return false;
 
@@ -741,13 +740,11 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         return true;
     };
 
-    bool handle_r_starting_operands(const std::string_view& label,
-        const lexing::logical_line::const_iterator& it_b,
-        const lexing::logical_line::const_iterator& it_e)
+    template<typename It>
+    bool handle_r_starting_operands(const std::string_view& label, const It& it_b, const It& it_e)
     {
-        auto ds_line_inserter = [&label, &it_e, this](lexing::logical_line::const_iterator it,
-                                    const consuming_regex_details& crd,
-                                    std::string_view ds_line_type) {
+        auto ds_line_inserter = [&label, &it_e, this](
+                                    It it, const consuming_regex_details& crd, std::string_view ds_line_type) {
             if (!consume_words_advance_to_next(it, it_e, crd))
                 return false;
             add_ds_line(label, "", ds_line_type);
@@ -767,9 +764,8 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
             return ds_line_inserter(it_b, rowid_crd, "H,CL40");
     };
 
-    bool process_sql_type_operands(const std::string_view& label,
-        const lexing::logical_line::const_iterator& it,
-        const lexing::logical_line::const_iterator& it_e)
+    template<typename It>
+    bool process_sql_type_operands(const std::string_view& label, const It& it, const It& it_e)
     {
         if (it == it_e)
             return false;
@@ -797,7 +793,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
                        "(BLOB_FILE|CLOB_FILE|DBCLOB_FILE|BLOB_LOCATOR|CLOB_LOCATOR|DBCLOB_LOCATOR)"
                        ")(?= |$)");
 
-        std::match_results<lexing::logical_line::const_iterator> matches;
+        std::match_results<It> matches;
 
         switch (*it)
         {
@@ -867,7 +863,8 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         }
     }
 
-    void process_regular_line(const std::vector<lexing::logical_line_segment>& ll_segments, std::string_view label)
+    void process_regular_line(const std::vector<lexing::logical_line_segment<std::string_view::iterator>>& ll_segments,
+        std::string_view label)
     {
         if (!label.empty())
             m_result.emplace_back(replaced_line { concat(label, " DS 0H\n") });
@@ -877,11 +874,11 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         bool first_line = true;
         for (const auto& segment : ll_segments)
         {
-            std::string this_line(segment.line);
+            std::string this_line(segment.begin, segment.end);
 
             if (std::exchange(first_line, false))
             {
-                const auto appended_line_size = segment.line.size();
+                const auto appended_line_size = std::distance(segment.begin, segment.end);
                 if (!label.empty())
                     this_line.replace(this_line.size() - appended_line_size,
                         label.size(),
@@ -898,8 +895,9 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
     void process_sql_type_line(const db2_logical_line_helper& ll)
     {
         m_result.emplace_back(replaced_line { "***$$$\n" });
-        m_result.emplace_back(replaced_line {
-            concat("*", ll.m_orig_ll.segments.front().code.substr(0, lexing::default_ictl.end - 1), "\n") });
+        m_result.emplace_back(replaced_line { concat("*",
+            std::string_view(ll.m_orig_ll.segments.front().code, ll.m_orig_ll.segments.front().continuation),
+            "\n") });
         m_result.emplace_back(replaced_line { "***$$$\n" });
     }
 
@@ -1014,8 +1012,8 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         return args;
     }
 
-    bool sql_has_codegen(
-        const lexing::logical_line::const_iterator& it, const lexing::logical_line::const_iterator& it_e) const
+    template<typename It>
+    bool sql_has_codegen(const It& it, const It& it_e) const
     {
         // handles only the most obvious cases (imprecisely)
         static const auto no_code_statements = std::regex("^(?:DECLARE|WHENEVER|BEGIN"
@@ -1176,7 +1174,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
     }
 
     void do_highlighting(const semantics::preprocessor_statement_si& stmt,
-        const lexing::logical_line& ll,
+        const lexing::logical_line<std::string_view::iterator>& ll,
         semantics::source_info_processor& src_proc,
         size_t continue_column = 15) const override
     {
@@ -1186,8 +1184,8 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
              i < m_ll_helper.m_db2_ll.segments.size();
              ++i, ++lineno, std::exchange(line_start_column, continue_column))
         {
-            const auto& code = m_ll_helper.m_db2_ll.segments[i].code;
-            auto comment_start_column = line_start_column + code.length();
+            const auto& segment = m_ll_helper.m_db2_ll.segments[i];
+            auto comment_start_column = line_start_column + std::distance(segment.code, segment.continuation);
 
             if (const auto& comment = m_ll_helper.m_comments[i]; comment.has_value())
             {
@@ -1197,7 +1195,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
                     semantics::hl_scopes::remark));
             }
 
-            if (!code.empty())
+            if (segment.code != segment.continuation)
                 if (auto operand_start_column = i == 0 ? stmt.m_details.instruction.r.end.column : continue_column;
                     operand_start_column < comment_start_column)
                     src_proc.add_hl_symbol(token_info(

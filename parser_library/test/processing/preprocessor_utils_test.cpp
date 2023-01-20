@@ -36,7 +36,7 @@ semantics::range_provider get_range_provider(size_t text_length, size_t lineno, 
 
 std::string get_inline_string(std::string_view text, const lexing::logical_line_extractor_args& opts)
 {
-    lexing::logical_line out;
+    lexing::logical_line<std::string_view::iterator> out;
     out.clear();
 
     bool feed = true;

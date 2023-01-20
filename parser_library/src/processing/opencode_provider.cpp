@@ -168,7 +168,9 @@ void opencode_provider::feed_line(const parsing::parser_holder& p, bool is_proce
 
 bool opencode_provider::is_comment()
 {
-    auto prefix = m_current_logical_line.segments.front().code.substr(0, 2);
+    auto prefix = std::string_view(
+        m_current_logical_line.segments.front().code, m_current_logical_line.segments.front().continuation)
+                      .substr(0, 2);
     return prefix == ".*" || prefix.substr(0, 1) == "*";
 }
 
@@ -177,10 +179,10 @@ void opencode_provider::process_comment()
     size_t line_no = m_current_logical_line_source.begin_line;
     for (const auto& l : m_current_logical_line.segments)
     {
-        if (l.code.size())
+        if (l.code != l.continuation)
         {
-            auto skip_len = utils::length_utf16(l.line.substr(0, l.code.data() - l.line.data()));
-            auto code_len = utils::length_utf16(l.code);
+            auto skip_len = utils::length_utf16(std::string_view(l.begin, l.code));
+            auto code_len = utils::length_utf16(std::string_view(l.begin, l.continuation));
 
             m_src_proc->add_hl_symbol(
                 token_info(range(position(line_no, skip_len), position(line_no, skip_len + code_len)),
@@ -197,8 +199,8 @@ void opencode_provider::generate_continuation_error_messages(diagnostic_op_consu
     {
         if (s.continuation_error)
         {
-            diags->add_diagnostic(
-                diagnostic_op::error_E001(range { { line_no, 0 }, { line_no, s.code_offset_utf16 } }));
+            diags->add_diagnostic(diagnostic_op::error_E001(
+                range { { line_no, 0 }, { line_no, utils::length_utf16(std::string_view(s.begin, s.code)) } }));
 
             break;
         }
@@ -470,7 +472,7 @@ bool opencode_provider::suspend_copy_processing(remove_empty re) const
         const size_t line_no = pos.line;
 
         // remove line being processed
-        lexing::logical_line ll = {};
+        lexing::logical_line<std::string_view::iterator> ll = {};
         if (const bool before_first_read = copy.current_statement == (size_t)-1; !before_first_read)
             lexing::extract_logical_line(ll, remaining_text, lexing::default_ictl_copy);
 
