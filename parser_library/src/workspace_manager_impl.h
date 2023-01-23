@@ -348,13 +348,9 @@ private:
         fade_messages_.clear();
         file_manager_.retrieve_fade_messages(fade_messages_);
 
-        diagnostic_list l(diags().data(), diags().size());
-        fade_message_list fm(fade_messages_.data(), fade_messages_.size());
-
         for (auto consumer : diag_consumers_)
-        {
-            consumer->consume_diagnostics(l, fm);
-        }
+            consumer->consume_diagnostics(diagnostic_list(diags().data(), diags().size()),
+                fade_message_list(fade_messages_.data(), fade_messages_.size()));
     }
 
     void notify_performance_consumers(

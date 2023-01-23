@@ -917,7 +917,7 @@ public:
     - E022 - missing operand
 
     E03x - runtime problems
-    - E030 - assigment not allowed
+    - E030 - assignment not allowed
     - E031 - naming problem - name already exists
 
     W01x - wrong format
