@@ -42,6 +42,7 @@
 #include "utils/concat.h"
 #include "utils/resource_location.h"
 #include "utils/string_operations.h"
+#include "utils/text_matchers.h"
 #include "utils/unicode_text.h"
 #include "workspaces/parse_lib_provider.h"
 
@@ -495,10 +496,10 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
     static std::optional<It> consume_words_advance_to_next(It& it, const It& it_e, const consuming_regex_details& crd)
     {
         if (std::match_results<It> matches; std::regex_match(it, it_e, matches, crd.r)
-            && (!crd.needs_same_line || same_line(matches[1].first, std::prev(matches[1].second)))
+            && (!crd.needs_same_line || utils::text_matchers::same_line(matches[1].first, std::prev(matches[1].second)))
             && (!crd.tolerate_no_space_at_end || matches[2].length() || !matches[3].length()
                 || (matches[1].second == matches[3].first
-                    && !same_line(std::prev(matches[1].second), matches[3].first))))
+                    && !utils::text_matchers::same_line(std::prev(matches[1].second), matches[3].first))))
         {
             it = matches[3].first;
             return matches[1].second;
@@ -793,58 +794,37 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
                        "(BLOB_FILE|CLOB_FILE|DBCLOB_FILE|BLOB_LOCATOR|CLOB_LOCATOR|DBCLOB_LOCATOR)"
                        ")(?= |$)");
 
-        std::match_results<It> matches;
-
         switch (*it)
         {
             case 'R':
                 return handle_r_starting_operands(label, it, it_e);
 
             case 'T': {
+                namespace m = utils::text_matchers;
+                static constexpr auto line_comment =
+                    m::seq(m::basic_string_matcher<true, true>("--"), m::start_of_next_line());
+
+                static constexpr auto separator = m::plus(m::alt(m::space_matcher<false, false>(), line_comment));
+
+                static constexpr auto quoted_name = m::seq(m::char_matcher("'"),
+                    m::star(m::alt(m::not_char_matcher("'"), m::basic_string_matcher<true, false>("''"))),
+                    m::char_matcher("'"));
+                static constexpr auto name_without_quotes = m::seq(m::not_char_matcher("' "),
+                    m::star(m::alt(m::not_char_matcher("' "), m::basic_string_matcher<true, false>("''"))));
+
+                static constexpr auto matcher = m::seq<m::basic_string_matcher<true, true>>("TABLE",
+                    separator,
+                    "LIKE",
+                    separator,
+                    m::alt(quoted_name, name_without_quotes),
+                    separator,
+                    "AS",
+                    separator,
+                    "LOCATOR",
+                    m::alt(m::end(), separator));
+
                 auto wrk = it;
-                if (!utils::consume(wrk, it_e, "TABLE"))
-                    return false;
-                if (!utils::trim_left(wrk, it_e, { " ", "--" }))
-                    return false;
-                if (!utils::consume(wrk, it_e, "LIKE"))
-                    return false;
-                if (!utils::trim_left(wrk, it_e, { " ", "--" }))
-                    return false;
-
-                if (wrk == it_e)
-                    return false;
-
-                const bool match_ap = *wrk++ == '\'';
-                size_t len = !match_ap;
-
-                while (wrk != it_e && (match_ap || *wrk != ' '))
-                {
-                    if (char c = *wrk++; c != '\'' && c != '-')
-                        ++len;
-                    else if (wrk != it_e && *wrk == c)
-                    {
-                        ++wrk;
-                        len += 2 * (c != '-');
-                    }
-                    else if (c == '-')
-                        ++len;
-                    else if (match_ap)
-                        break;
-                    else
-                        return false;
-                }
-                if (len == 0)
-                    return false;
-
-                if (!utils::trim_left(wrk, it_e, { " ", "--" }))
-                    return false;
-                if (!utils::consume(wrk, it_e, "AS"))
-                    return false;
-                if (!utils::trim_left(wrk, it_e, { " ", "--" }))
-                    return false;
-                if (!utils::consume(wrk, it_e, "LOCATOR"))
-                    return false;
-                if (wrk != it_e && !utils::consume(wrk, it_e, " ") && !utils::consume(wrk, it_e, "--"))
+                if (!matcher(wrk, it_e))
                     return false;
 
                 add_ds_line(label, "", "FL4");

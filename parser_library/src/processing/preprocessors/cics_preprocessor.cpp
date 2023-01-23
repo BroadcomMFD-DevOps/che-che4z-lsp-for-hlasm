@@ -37,6 +37,7 @@
 #include "semantics/source_info_processor.h"
 #include "semantics/statement.h"
 #include "utils/concat.h"
+#include "utils/text_matchers.h"
 #include "utils/unicode_text.h"
 #include "workspaces/parse_lib_provider.h"
 
@@ -809,7 +810,7 @@ public:
                         // skips comment at the end of the line
                         m_substituted_operands.push_back(c);
                         auto skip_line = b;
-                        while (skip_line != e && same_line(b, skip_line))
+                        while (skip_line != e && utils::text_matchers::same_line(b, skip_line))
                             ++skip_line;
                         b = skip_line;
                         continue;
