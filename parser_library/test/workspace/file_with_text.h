@@ -24,7 +24,7 @@ public:
         const std::string& text,
         const hlasm_plugin::parser_library::workspaces::file_manager& file_mngr)
         : file_impl(location)
-        , processor_file_impl(location, file_mngr)
+        , processor_file_impl(location, file_mngr, nullptr)
     {
         did_open(text, 1);
     }

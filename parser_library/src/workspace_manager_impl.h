@@ -21,7 +21,10 @@
 #include <limits>
 #include <optional>
 #include <string_view>
+#include <unordered_map>
+#include <vector>
 
+#include "protocol.h"
 #include "workspace_manager.h"
 #include "workspaces/file_manager_impl.h"
 #include "workspaces/workspace.h"
@@ -337,14 +340,19 @@ private:
             return quiet_implicit_workspace_;
     }
 
-    void notify_diagnostics_consumers() const
+    void notify_diagnostics_consumers()
     {
         diags().clear();
         collect_diags();
+
+        auto& fmsgs = file_manager_.fade_messages();
+
         diagnostic_list l(diags().data(), diags().size());
+        fade_message_list fm(fmsgs.data(), fmsgs.size());
+
         for (auto consumer : diag_consumers_)
         {
-            consumer->consume_diagnostics(l);
+            consumer->consume_diagnostics(l, fm);
         }
     }
 

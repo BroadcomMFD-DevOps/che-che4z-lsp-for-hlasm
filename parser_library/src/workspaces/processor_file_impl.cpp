@@ -21,24 +21,34 @@
 
 namespace hlasm_plugin::parser_library::workspaces {
 
-processor_file_impl::processor_file_impl(
-    utils::resource::resource_location file_loc, const file_manager& file_mngr, std::atomic<bool>* cancel)
+processor_file_impl::processor_file_impl(utils::resource::resource_location file_loc,
+    const file_manager& file_mngr,
+    std::shared_ptr<std::vector<fade_message_s>> fade_messages,
+    std::atomic<bool>* cancel)
     : file_impl(std::move(file_loc))
     , cancel_(cancel)
     , macro_cache_(file_mngr, *this)
+    , fade_messages_(fade_messages)
 {}
 
-processor_file_impl::processor_file_impl(file_impl&& f_impl, const file_manager& file_mngr, std::atomic<bool>* cancel)
+processor_file_impl::processor_file_impl(file_impl&& f_impl,
+    const file_manager& file_mngr,
+    std::shared_ptr<std::vector<fade_message_s>> fade_messages,
+    std::atomic<bool>* cancel)
     : file_impl(std::move(f_impl))
     , cancel_(cancel)
     , macro_cache_(file_mngr, *this)
+    , fade_messages_(fade_messages)
 {}
 
-processor_file_impl::processor_file_impl(
-    const file_impl& file, const file_manager& file_mngr, std::atomic<bool>* cancel)
+processor_file_impl::processor_file_impl(const file_impl& file,
+    const file_manager& file_mngr,
+    std::shared_ptr<std::vector<fade_message_s>> fade_messages,
+    std::atomic<bool>* cancel)
     : file_impl(file)
     , cancel_(cancel)
     , macro_cache_(file_mngr, *this)
+    , fade_messages_(fade_messages)
 {}
 
 void processor_file_impl::collect_diags() const { file_impl::collect_diags(); }
@@ -64,6 +74,7 @@ parse_result processor_file_impl::parse(parse_lib_provider& lib_provider,
             last_opencode_id_storage_,
             std::move(pp),
             vfm,
+            fade_messages_,
         });
     // If parsed as opencode previously, use id_index from the last parsing
 

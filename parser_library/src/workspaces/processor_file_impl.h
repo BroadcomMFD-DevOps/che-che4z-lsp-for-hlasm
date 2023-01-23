@@ -15,7 +15,12 @@
 #ifndef HLASMPLUGIN_PARSERLIBRARY_PROCESSOR_FILE_H
 #define HLASMPLUGIN_PARSERLIBRARY_PROCESSOR_FILE_H
 
+#include <atomic>
+#include <memory>
+#include <set>
+
 #include "analyzer.h"
+#include "fade_messages.h"
 #include "file_impl.h"
 #include "macro_cache.h"
 #include "processor.h"
@@ -33,9 +38,16 @@ class processor_file_impl : public virtual file_impl, public virtual processor_f
 public:
     processor_file_impl(utils::resource::resource_location file_loc,
         const file_manager& file_mngr,
+        std::shared_ptr<std::vector<fade_message_s>> fade_messages,
         std::atomic<bool>* cancel = nullptr);
-    processor_file_impl(file_impl&&, const file_manager& file_mngr, std::atomic<bool>* cancel = nullptr);
-    processor_file_impl(const file_impl& file, const file_manager& file_mngr, std::atomic<bool>* cancel = nullptr);
+    processor_file_impl(file_impl&&,
+        const file_manager& file_mngr,
+        std::shared_ptr<std::vector<fade_message_s>> fade_messages,
+        std::atomic<bool>* cancel = nullptr);
+    processor_file_impl(const file_impl& file,
+        const file_manager& file_mngr,
+        std::shared_ptr<std::vector<fade_message_s>> fade_messages,
+        std::atomic<bool>* cancel = nullptr);
     void collect_diags() const override;
     bool is_once_only() const override;
     // Starts parser with new (empty) context
@@ -69,6 +81,8 @@ private:
     std::set<utils::resource::resource_location> files_to_close_;
 
     macro_cache macro_cache_;
+
+    std::shared_ptr<std::vector<fade_message_s>> fade_messages_;
 
     bool should_collect_hl(context::hlasm_context* ctx = nullptr) const;
 };

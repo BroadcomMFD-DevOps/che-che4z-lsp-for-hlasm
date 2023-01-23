@@ -80,6 +80,8 @@ public:
         get_file_content,
         (const hlasm_plugin::utils::resource::resource_location&),
         (override));
+
+    MOCK_METHOD(std::vector<fade_message_s>&, fade_messages, (), (override));
 };
 
 } // namespace

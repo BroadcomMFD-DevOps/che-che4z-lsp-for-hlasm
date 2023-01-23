@@ -25,6 +25,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "fade_messages.h"
 #include "lib_config.h"
 #include "message_consumer.h"
 #include "parser_library_export.h"
@@ -45,7 +46,7 @@ using ws_id = workspaces::workspace*;
 class diagnostics_consumer
 {
 public:
-    virtual void consume_diagnostics(diagnostic_list diagnostics) = 0;
+    virtual void consume_diagnostics(diagnostic_list diagnostics, fade_message_list fade_messages) = 0;
 
 protected:
     ~diagnostics_consumer() = default;

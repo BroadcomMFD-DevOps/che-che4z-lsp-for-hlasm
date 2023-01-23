@@ -206,6 +206,9 @@ workspace_file_info workspace::parse_file(
             if (auto opened_it = opened_files_.find(f_loc); opened_it != opened_files_.end())
                 opened_it->second.alternative_config = std::move(alt_cfg);
 
+            std::erase_if(
+                file_manager_.fade_messages(), [&f_loc](const auto& fm) { return fm.uri == f_loc.get_uri(); });
+
             if (!f->parse(*this, get_asm_options(f_loc), get_preprocessor_options(f_loc), &fm_vfm_))
                 continue;
 

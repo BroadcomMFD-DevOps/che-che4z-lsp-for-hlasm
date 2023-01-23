@@ -16,8 +16,12 @@
 #define HLASMPLUGIN_PARSERLIBRARY_FILE_MANAGER_IMPL_H
 
 #include <memory>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 #include "diagnosable_impl.h"
+#include "fade_messages.h"
 #include "file_manager.h"
 #include "processor_file_impl.h"
 #include "utils/resource_location.h"
@@ -36,7 +40,8 @@ class file_manager_impl : public file_manager, public diagnosable_impl
 
 public:
     file_manager_impl(std::atomic<bool>* cancel = nullptr)
-        : cancel_(cancel) {};
+        : cancel_(cancel)
+        , fade_messages_(std::make_shared<std::vector<fade_message_s>>()) {};
     file_manager_impl(const file_manager_impl&) = delete;
     file_manager_impl& operator=(const file_manager_impl&) = delete;
 
@@ -44,6 +49,7 @@ public:
     file_manager_impl& operator=(file_manager_impl&&) = delete;
 
     void collect_diags() const override;
+    std::vector<fade_message_s>& fade_messages() override;
 
     file_ptr add_file(const file_location&) override;
     processor_file_ptr add_processor_file(const file_location&) override;
@@ -99,6 +105,8 @@ private:
         std::shared_ptr<file_impl>,
         utils::resource::resource_location_hasher>
         files_;
+
+    std::shared_ptr<std::vector<fade_message_s>> fade_messages_;
 
     processor_file_ptr change_into_processor_file_if_not_already_(std::shared_ptr<file_impl>& ret);
     void prepare_file_for_change_(std::shared_ptr<file_impl>& file);
