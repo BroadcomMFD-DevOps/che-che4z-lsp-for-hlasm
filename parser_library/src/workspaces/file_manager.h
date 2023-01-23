@@ -96,7 +96,7 @@ public:
 
     virtual std::optional<std::string> get_file_content(const utils::resource::resource_location&) = 0;
 
-    virtual std::vector<fade_message_s>& fade_messages() = 0;
+    virtual void retrieve_fade_messages(std::vector<fade_message_s>& fms) const = 0;
 
 protected:
     ~file_manager() = default;

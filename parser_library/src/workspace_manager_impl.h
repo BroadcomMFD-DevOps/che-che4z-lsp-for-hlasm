@@ -345,10 +345,11 @@ private:
         diags().clear();
         collect_diags();
 
-        auto& fmsgs = file_manager_.fade_messages();
+        fade_messages_.clear();
+        file_manager_.retrieve_fade_messages(fade_messages_);
 
         diagnostic_list l(diags().data(), diags().size());
-        fade_message_list fm(fmsgs.data(), fmsgs.size());
+        fade_message_list fm(fade_messages_.data(), fade_messages_.size());
 
         for (auto consumer : diag_consumers_)
         {
@@ -386,6 +387,7 @@ private:
     std::vector<diagnostics_consumer*> diag_consumers_;
     std::vector<parsing_metadata_consumer*> parsing_metadata_consumers_;
     message_consumer* message_consumer_ = nullptr;
+    std::vector<fade_message_s> fade_messages_;
 };
 } // namespace hlasm_plugin::parser_library
 

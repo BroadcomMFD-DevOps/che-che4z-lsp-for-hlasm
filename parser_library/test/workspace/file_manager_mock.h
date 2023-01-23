@@ -81,7 +81,7 @@ public:
         (const hlasm_plugin::utils::resource::resource_location&),
         (override));
 
-    MOCK_METHOD(std::vector<fade_message_s>&, fade_messages, (), (override));
+    MOCK_METHOD(void, retrieve_fade_messages, (std::vector<fade_message_s>&), (const override));
 };
 
 } // namespace

@@ -30,7 +30,11 @@ void file_manager_impl::collect_diags() const
         collect_diags_from_child(*it.second);
 }
 
-std::vector<fade_message_s>& file_manager_impl::fade_messages() { return *fade_messages_; }
+void file_manager_impl::retrieve_fade_messages(std::vector<fade_message_s>& fms) const
+{
+    for (const auto& [_, file_impl] : files_)
+        file_impl->retrieve_fade_messages(fms);
+}
 
 file_ptr file_manager_impl::add_file(const file_location& file)
 {
@@ -46,7 +50,7 @@ processor_file_ptr file_manager_impl::change_into_processor_file_if_not_already_
         return processor;
     else
     {
-        auto proc_file = std::make_shared<processor_file_impl>(std::move(*to_change), *this, fade_messages_, cancel_);
+        auto proc_file = std::make_shared<processor_file_impl>(std::move(*to_change), *this, cancel_);
         to_change = proc_file;
         return proc_file;
     }
@@ -58,7 +62,7 @@ processor_file_ptr file_manager_impl::add_processor_file(const file_location& fi
     auto ret = files_.find(file);
     if (ret == files_.end())
     {
-        auto ptr = std::make_shared<processor_file_impl>(file, *this, fade_messages_, cancel_);
+        auto ptr = std::make_shared<processor_file_impl>(file, *this, cancel_);
         files_.try_emplace(file, ptr);
         return ptr;
     }
@@ -72,7 +76,7 @@ processor_file_ptr file_manager_impl::get_processor_file(const file_location& fi
     auto ret = files_.find(file);
     if (ret == files_.end())
     {
-        return std::make_shared<processor_file_impl>(file, *this, fade_messages_);
+        return std::make_shared<processor_file_impl>(file, *this);
     }
     else
         return change_into_processor_file_if_not_already_(ret->second);
@@ -144,7 +148,7 @@ void file_manager_impl::prepare_file_for_change_(std::shared_ptr<file_impl>& fil
     // another shared ptr to this file exists, we need to create a copy
     auto proc_file = std::dynamic_pointer_cast<processor_file>(file);
     if (proc_file)
-        file = std::make_shared<processor_file_impl>(*file, *this, fade_messages_, cancel_);
+        file = std::make_shared<processor_file_impl>(*file, *this, cancel_);
     else
         file = std::make_shared<file_impl>(*file);
 }

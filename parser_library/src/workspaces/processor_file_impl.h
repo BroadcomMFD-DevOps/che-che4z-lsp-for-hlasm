@@ -38,16 +38,9 @@ class processor_file_impl : public virtual file_impl, public virtual processor_f
 public:
     processor_file_impl(utils::resource::resource_location file_loc,
         const file_manager& file_mngr,
-        std::shared_ptr<std::vector<fade_message_s>> fade_messages,
         std::atomic<bool>* cancel = nullptr);
-    processor_file_impl(file_impl&&,
-        const file_manager& file_mngr,
-        std::shared_ptr<std::vector<fade_message_s>> fade_messages,
-        std::atomic<bool>* cancel = nullptr);
-    processor_file_impl(const file_impl& file,
-        const file_manager& file_mngr,
-        std::shared_ptr<std::vector<fade_message_s>> fade_messages,
-        std::atomic<bool>* cancel = nullptr);
+    processor_file_impl(file_impl&&, const file_manager& file_mngr, std::atomic<bool>* cancel = nullptr);
+    processor_file_impl(const file_impl& file, const file_manager& file_mngr, std::atomic<bool>* cancel = nullptr);
     void collect_diags() const override;
     bool is_once_only() const override;
     // Starts parser with new (empty) context
@@ -67,6 +60,8 @@ public:
 
     bool has_lsp_info() const override;
 
+    void retrieve_fade_messages(std::vector<fade_message_s>& fms) const;
+
 private:
     std::unique_ptr<analyzer> last_analyzer_ = nullptr;
     std::shared_ptr<context::id_storage> last_opencode_id_storage_;
@@ -82,7 +77,7 @@ private:
 
     macro_cache macro_cache_;
 
-    std::shared_ptr<std::vector<fade_message_s>> fade_messages_;
+    std::shared_ptr<std::vector<fade_message_s>> fade_messages_ = std::make_shared<std::vector<fade_message_s>>();
 
     bool should_collect_hl(context::hlasm_context* ctx = nullptr) const;
 };

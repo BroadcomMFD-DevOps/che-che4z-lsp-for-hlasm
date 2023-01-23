@@ -49,7 +49,7 @@ public:
     file_manager_impl& operator=(file_manager_impl&&) = delete;
 
     void collect_diags() const override;
-    std::vector<fade_message_s>& fade_messages() override;
+    void retrieve_fade_messages(std::vector<fade_message_s>& fms) const override;
 
     file_ptr add_file(const file_location&) override;
     processor_file_ptr add_processor_file(const file_location&) override;
