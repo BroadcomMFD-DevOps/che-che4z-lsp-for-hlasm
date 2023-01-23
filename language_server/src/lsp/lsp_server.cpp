@@ -291,7 +291,9 @@ void server::consume_diagnostics(
     parser_library::diagnostic_list diagnostics, parser_library::fade_message_list fade_messages)
 {
     // map of all diagnostics that came from the server
-    std::map<std::string, std::vector<std::variant<parser_library::diagnostic, parser_library::fade_message>>>
+    std::map<std::string,
+        std::vector<std::variant<parser_library::diagnostic, parser_library::fade_message>>,
+        std::less<>>
         diags_map;
 
     diags_error_count = 0;
@@ -320,7 +322,7 @@ void server::consume_diagnostics(
     {
         json diags_array = json::array();
 
-        static constexpr struct diag_msg_visitor
+        struct diag_msg_visitor
         {
             json operator()(const parser_library::diagnostic& diag) const noexcept
             {
@@ -342,8 +344,9 @@ void server::consume_diagnostics(
                     parser_library::diagnostic_severity::hint,
                     parser_library::diagnostic_tag::unnecessary);
             }
-        } visitor;
+        };
 
+        static constexpr diag_msg_visitor visitor;
         std::for_each(diag_vec.begin(), diag_vec.end(), [&diags_array](const auto& d) {
             diags_array.push_back(std::visit(visitor, d));
         });

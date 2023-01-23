@@ -236,7 +236,7 @@ private:
 
 struct PARSER_LIBRARY_EXPORT diagnostic
 {
-    diagnostic(diagnostic_s&);
+    explicit diagnostic(diagnostic_s&);
 
     const char* file_uri() const;
     range get_range() const;
@@ -254,7 +254,7 @@ private:
 
 struct PARSER_LIBRARY_EXPORT fade_message
 {
-    fade_message(fade_message_s&);
+    explicit fade_message(fade_message_s&);
 
     const char* file_uri() const;
     range get_range() const;

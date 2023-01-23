@@ -60,7 +60,7 @@ public:
 
     bool has_lsp_info() const override;
 
-    void retrieve_fade_messages(std::vector<fade_message_s>& fms) const;
+    void retrieve_fade_messages(std::vector<fade_message_s>& fms) const override;
 
 private:
     std::unique_ptr<analyzer> last_analyzer_ = nullptr;
