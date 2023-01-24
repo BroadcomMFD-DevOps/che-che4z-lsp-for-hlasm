@@ -18,10 +18,10 @@
 #include <algorithm>
 #include <exception>
 #include <functional>
-#include <map>
 #include <memory>
 #include <optional>
-#include <variant>
+#include <unordered_map>
+#include <utility>
 
 #include "../logger.h"
 #include "feature_language_features.h"
@@ -290,19 +290,22 @@ json create_diag_json(const parser_library::range& r,
 void server::consume_diagnostics(
     parser_library::diagnostic_list diagnostics, parser_library::fade_message_list fade_messages)
 {
-    // map of all diagnostics that came from the server
-    std::map<std::string,
-        std::vector<std::variant<parser_library::diagnostic, parser_library::fade_message>>,
-        std::less<>>
-        diags_map;
-
     diags_error_count = 0;
     diags_warning_count = 0;
+    std::unordered_map<std::string, json::array_t> diag_jsons;
 
     for (size_t i = 0; i < diagnostics.diagnostics_size(); ++i)
     {
         const auto& d = diagnostics.diagnostics(i);
-        diags_map[d.file_uri()].emplace_back(d);
+
+        diag_jsons[d.file_uri()].emplace_back(create_diag_json(d.get_range(),
+            d.code(),
+            d.source(),
+            d.message(),
+            diagnostic_related_info_to_json(d),
+            d.severity(),
+            d.tags()));
+
         if (d.severity() == parser_library::diagnostic_severity::error)
             ++diags_error_count;
         else if (d.severity() == parser_library::diagnostic_severity::warning)
@@ -312,46 +315,22 @@ void server::consume_diagnostics(
     for (size_t i = 0; i < fade_messages.size(); ++i)
     {
         const auto& fm = fade_messages.message(i);
-        diags_map[fm.file_uri()].emplace_back(fm);
+
+        diag_jsons[fm.file_uri()].emplace_back(create_diag_json(fm.get_range(),
+            fm.code(),
+            fm.source(),
+            fm.message(),
+            std::nullopt,
+            parser_library::diagnostic_severity::hint,
+            parser_library::diagnostic_tag::unnecessary));
     }
 
     // set of all files for which diagnostics came from the server.
     std::unordered_set<std::string> new_files;
     // transform the diagnostics into json
-    for (const auto& [uri, diag_vec] : diags_map)
+    for (const auto& [uri, diag_json] : diag_jsons)
     {
-        json diags_array = json::array();
-
-        struct diag_msg_visitor
-        {
-            json operator()(const parser_library::diagnostic& diag) const noexcept
-            {
-                return create_diag_json(diag.get_range(),
-                    diag.code(),
-                    diag.source(),
-                    diag.message(),
-                    diagnostic_related_info_to_json(diag),
-                    diag.severity(),
-                    diag.tags());
-            }
-            json operator()(const parser_library::fade_message& fm) const noexcept
-            {
-                return create_diag_json(fm.get_range(),
-                    fm.code(),
-                    fm.source(),
-                    fm.message(),
-                    std::nullopt,
-                    parser_library::diagnostic_severity::hint,
-                    parser_library::diagnostic_tag::unnecessary);
-            }
-        };
-
-        static constexpr diag_msg_visitor visitor;
-        std::for_each(diag_vec.begin(), diag_vec.end(), [&diags_array](const auto& d) {
-            diags_array.push_back(std::visit(visitor, d));
-        });
-
-        json publish_diags_params { { "uri", uri }, { "diagnostics", diags_array } };
+        json publish_diags_params { { "uri", uri }, { "diagnostics", diag_json } };
         new_files.insert(uri);
         last_diagnostics_files_.erase(uri);
 
@@ -369,6 +348,5 @@ void server::consume_diagnostics(
 
     last_diagnostics_files_ = std::move(new_files);
 }
-
 
 } // namespace hlasm_plugin::language_server::lsp

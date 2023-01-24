@@ -25,7 +25,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include "fade_messages.h"
 #include "lib_config.h"
 #include "message_consumer.h"
 #include "parser_library_export.h"

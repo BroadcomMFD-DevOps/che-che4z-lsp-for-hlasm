@@ -17,6 +17,7 @@
 #include <cassert>
 #include <memory>
 #include <string>
+#include <utility>
 
 #include "file.h"
 
@@ -61,7 +62,7 @@ parse_result processor_file_impl::parse(parse_lib_provider& lib_provider,
         last_opencode_id_storage_ = std::make_shared<context::id_storage>();
 
     const bool collect_hl = should_collect_hl();
-    fade_messages_->clear();
+    auto fms = std::make_shared<std::vector<fade_message_s>>();
     auto new_analyzer = std::make_unique<analyzer>(get_text(),
         analyzer_options {
             get_location(),
@@ -72,7 +73,7 @@ parse_result processor_file_impl::parse(parse_lib_provider& lib_provider,
             last_opencode_id_storage_,
             std::move(pp),
             vfm,
-            fade_messages_,
+            fms,
         });
     // If parsed as opencode previously, use id_index from the last parsing
 
@@ -98,6 +99,8 @@ parse_result processor_file_impl::parse(parse_lib_provider& lib_provider,
             if (dependencies_.find(file) == dependencies_.end())
                 files_to_close_.insert(file);
         }
+
+        fade_messages_ = std::move(fms);
     }
 
     return res;
@@ -112,7 +115,7 @@ parse_result processor_file_impl::parse_macro(
         return true;
 
     const bool collect_hl = should_collect_hl(ctx.hlasm_ctx.get());
-    fade_messages_->clear();
+    auto fms = std::make_shared<std::vector<fade_message_s>>();
     auto a = std::make_unique<analyzer>(get_text(),
         analyzer_options {
             get_location(),
@@ -120,7 +123,7 @@ parse_result processor_file_impl::parse_macro(
             std::move(ctx),
             data,
             collect_hl ? collect_highlighting_info::yes : collect_highlighting_info::no,
-            fade_messages_,
+            fms,
         });
 
     auto ret = parse_inner(*a);
@@ -132,6 +135,8 @@ parse_result processor_file_impl::parse_macro(
     last_analyzer_ = std::move(a);
     last_analyzer_opencode_ = false;
     last_analyzer_with_lsp = collect_hl;
+
+    fade_messages_ = std::move(fms);
 
     return ret;
 }

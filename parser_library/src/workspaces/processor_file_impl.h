@@ -77,7 +77,8 @@ private:
 
     macro_cache macro_cache_;
 
-    std::shared_ptr<std::vector<fade_message_s>> fade_messages_ = std::make_shared<std::vector<fade_message_s>>();
+    std::shared_ptr<const std::vector<fade_message_s>> fade_messages_ =
+        std::make_shared<const std::vector<fade_message_s>>();
 
     bool should_collect_hl(context::hlasm_context* ctx = nullptr) const;
 };
