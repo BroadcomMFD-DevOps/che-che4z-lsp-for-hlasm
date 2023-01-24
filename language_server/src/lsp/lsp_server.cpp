@@ -29,6 +29,7 @@
 #include "feature_workspace_folders.h"
 #include "lib_config.h"
 #include "parsing_metadata_serialization.h"
+#include "utils/general_hashers.h"
 #include "utils/resource_location.h"
 
 namespace hlasm_plugin::language_server::lsp {
@@ -292,7 +293,7 @@ void server::consume_diagnostics(
 {
     diags_error_count = 0;
     diags_warning_count = 0;
-    std::unordered_map<std::string, json::array_t> diag_jsons;
+    std::unordered_map<std::string, json::array_t, utils::hashers::string_hasher, std::equal_to<>> diag_jsons;
 
     for (size_t i = 0; i < diagnostics.diagnostics_size(); ++i)
     {
@@ -328,9 +329,9 @@ void server::consume_diagnostics(
     // set of all files for which diagnostics came from the server.
     std::unordered_set<std::string> new_files;
     // transform the diagnostics into json
-    for (const auto& [uri, diag_json] : diag_jsons)
+    for (auto& [uri, diag_json] : diag_jsons)
     {
-        json publish_diags_params { { "uri", uri }, { "diagnostics", diag_json } };
+        json publish_diags_params { { "uri", uri }, { "diagnostics", std::move(diag_json) } };
         new_files.insert(uri);
         last_diagnostics_files_.erase(uri);
 

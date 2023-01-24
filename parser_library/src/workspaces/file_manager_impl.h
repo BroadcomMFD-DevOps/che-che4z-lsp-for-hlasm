@@ -105,8 +105,6 @@ private:
         utils::resource::resource_location_hasher>
         files_;
 
-    std::shared_ptr<std::vector<fade_message_s>> fade_messages_ = std::make_shared<std::vector<fade_message_s>>();
-
     processor_file_ptr change_into_processor_file_if_not_already_(std::shared_ptr<file_impl>& ret);
     void prepare_file_for_change_(std::shared_ptr<file_impl>& file);
 

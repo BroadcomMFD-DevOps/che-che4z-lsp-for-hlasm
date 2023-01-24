@@ -27,27 +27,20 @@ processor_file_impl::processor_file_impl(
     utils::resource::resource_location file_loc, const file_manager& file_mngr, std::atomic<bool>* cancel)
     : file_impl(std::move(file_loc))
     , cancel_(cancel)
-    , macro_cache_(file_mngr, *this)
-{
-    assert(fade_messages_);
-};
+    , macro_cache_(file_mngr, *this) {};
 
 processor_file_impl::processor_file_impl(file_impl&& f_impl, const file_manager& file_mngr, std::atomic<bool>* cancel)
     : file_impl(std::move(f_impl))
     , cancel_(cancel)
     , macro_cache_(file_mngr, *this)
-{
-    assert(fade_messages_);
-}
+{}
 
 processor_file_impl::processor_file_impl(
     const file_impl& file, const file_manager& file_mngr, std::atomic<bool>* cancel)
     : file_impl(file)
     , cancel_(cancel)
     , macro_cache_(file_mngr, *this)
-{
-    assert(fade_messages_);
-}
+{}
 
 void processor_file_impl::collect_diags() const { file_impl::collect_diags(); }
 

@@ -45,7 +45,7 @@ processing_manager::processing_manager(std::unique_ptr<opencode_provider> base_p
     , lsp_analyzer_(*ctx_.hlasm_ctx, *ctx_.lsp_ctx, file_text)
     , stms_analyzers_({ &lsp_analyzer_ })
     , file_loc_(file_loc)
-    , m_fade_msgs(fade_msgs)
+    , m_fade_msgs(std::move(fade_msgs))
 {
     switch (data.proc_kind)
     {
