@@ -108,6 +108,7 @@ constexpr auto star(Matcher&& matcher)
         return true;
     };
 }
+
 template<typename Matcher>
 constexpr auto plus(Matcher&& matcher)
 {
@@ -117,6 +118,21 @@ constexpr auto plus(Matcher&& matcher)
             matched = true;
 
         return matched;
+    };
+}
+
+template<size_t min, size_t max = min, typename Matcher>
+constexpr auto times(Matcher&& matcher) requires(min <= max)
+{
+    return [matcher = std::forward<Matcher>(matcher)]<typename It>(It& b, const It& e) noexcept {
+        auto work = b;
+        size_t count = 0;
+        while (count < max && matcher(work, e))
+            ++count;
+        if (count < min)
+            return false;
+        b = work;
+        return true;
     };
 }
 
@@ -219,24 +235,9 @@ public:
 };
 
 template<typename It, typename Matcher>
-constexpr auto capture(std::pair<It, It>& capture, Matcher&& matcher)
-{
-    return [&capture, matcher = std::forward<Matcher>(matcher)]<typename It>(It& b, const It& e) noexcept {
-        auto work = b;
-        if (matcher(b, e))
-        {
-            capture = std::make_pair(work, b);
-            return true;
-        }
-        else
-            return false;
-    };
-}
-
-template<typename It, typename Matcher>
 constexpr auto capture(std::optional<std::pair<It, It>>& capture, Matcher&& matcher)
 {
-    return [&capture, matcher = std::forward<Matcher>(matcher)]<typename It>(It& b, const It& e) noexcept {
+    return [&capture, matcher = std::forward<Matcher>(matcher)](It& b, const It& e) noexcept {
         auto work = b;
         if (matcher(b, e))
         {

@@ -702,14 +702,9 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         return result;
     }
 
-    template<typename It>
-    bool handle_lob(const std::regex& pattern, std::string_view label, const It& it, const It& it_e)
+    bool handle_lob(std::string_view label, char type_start, char type_end, char scale, std::string size)
     {
-        std::match_results<It> match;
-        if (!std::regex_search(it, it_e, match, pattern))
-            return false;
-
-        switch (*std::prev((match[4].matched ? match[4] : match[1]).second))
+        switch (type_end)
         {
             case 'E': // ..._FILE
                 add_ds_line(label, "", "0FL4");
@@ -724,8 +719,8 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
                 break;
 
             default: {
-                const auto li = lob_info(*match[1].first, match[3].matched ? *match[3].first : 0);
-                auto len = std::stoll(match[2].str()) * li.scale;
+                const auto li = lob_info(type_start, scale);
+                auto len = std::stoll(size) * li.scale;
 
                 add_ds_line(label, "", "0FL4");
                 add_ds_line(label, "_LENGTH", "FL4", false);
@@ -771,28 +766,31 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         if (it == it_e)
             return false;
 
-        // keep the capture groups in sync
-        static const auto xml_type =
-            std::regex("^XML(?:[ ]|--)+AS(?:[ ]|--)+"
-                       "(?:"
-                       "("
-                       "BINARY(?:[ ]|--)+LARGE(?:[ ]|--)+OBJECT|BLOB|CHARACTER(?:[ ]|--)+"
-                       "LARGE(?:[ ]|--)+OBJECT|CHAR(?:[ ]|--)+LARGE(?:[ ]|--)+OBJECT|CLOB|DBCLOB"
-                       ")"
-                       "(?:[ ]|--)+([[:digit:]]{1,9})([KMG])?"
-                       "|"
-                       "(BLOB_FILE|CLOB_FILE|DBCLOB_FILE)"
-                       ")(?= |$)");
-        static const auto lob_type =
-            std::regex("^(?:"
-                       "("
-                       "BINARY(?:[ ]|--)+LARGE(?:[ ]|--)+OBJECT|BLOB|CHARACTER(?:[ ]|--)+"
-                       "LARGE(?:[ ]|--)+OBJECT|CHAR(?:[ ]|--)+LARGE(?:[ ]|--)+OBJECT|CLOB|DBCLOB"
-                       ")"
-                       "(?:[ ]|--)+([[:digit:]]{1,9})([KMG])?"
-                       "|"
-                       "(BLOB_FILE|CLOB_FILE|DBCLOB_FILE|BLOB_LOCATOR|CLOB_LOCATOR|DBCLOB_LOCATOR)"
-                       ")(?= |$)");
+        std::optional<std::pair<It, It>> type;
+        std::optional<std::pair<It, It>> blob_size;
+        std::optional<std::pair<It, It>> blob_unit;
+
+        namespace m = utils::text_matchers;
+        using string_matcher = m::basic_string_matcher<true, true>;
+        static constexpr auto line_comment = m::seq(string_matcher("--"), m::start_of_next_line());
+        static constexpr auto separator = m::plus(m::alt(m::space_matcher<false, false>(), line_comment));
+        static constexpr auto xml_start = m::seq<string_matcher>("XML", separator, "AS", separator);
+        static constexpr auto lob_file = m::alt<string_matcher>("BLOB_FILE", "CLOB_FILE", "DBCLOB_FILE");
+        static constexpr auto lob_locator = m::alt<string_matcher>("BLOB_LOCATOR", "CLOB_LOCATOR", "DBCLOB_LOCATOR");
+        static constexpr auto lob_rest_base = m::alt<string_matcher>("BLOB",
+            "CLOB",
+            "DBCLOB",
+            m::seq<string_matcher>(
+                m::alt<string_matcher>("BINARY", "CHARACTER", "CHAR"), separator, "LARGE", separator, "OBJECT"));
+
+        const auto lob_size = m::seq(m::capture(blob_size, m::times<1, 9>(m::char_matcher("0123456789"))),
+            m::opt(m::capture(blob_unit, m::char_matcher("KMG"))));
+
+        const auto xml_type = m::seq<string_matcher>(xml_start,
+            m::alt(m::capture(type, lob_file), m::seq(m::capture(type, lob_rest_base), separator, lob_size)));
+        const auto lob_type = m::alt(m::capture(type, m::alt(lob_file, lob_locator)),
+            m::seq(m::capture(type, lob_rest_base), separator, lob_size));
+        const auto lob_or_xml_type = m::seq(m::alt(xml_type, lob_type), m::alt(separator, m::end()));
 
         switch (*it)
         {
@@ -800,19 +798,14 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
                 return handle_r_starting_operands(label, it, it_e);
 
             case 'T': {
-                namespace m = utils::text_matchers;
-                static constexpr auto line_comment =
-                    m::seq(m::basic_string_matcher<true, true>("--"), m::start_of_next_line());
-
-                static constexpr auto separator = m::plus(m::alt(m::space_matcher<false, false>(), line_comment));
-
+                static constexpr auto double_apo = m::basic_string_matcher<true, false>("''");
                 static constexpr auto quoted_name = m::seq(m::char_matcher("'"),
-                    m::star(m::alt(m::not_char_matcher("'"), m::basic_string_matcher<true, false>("''"))),
+                    m::star(m::alt(line_comment, m::not_char_matcher("'"), double_apo)),
                     m::char_matcher("'"));
-                static constexpr auto name_without_quotes = m::seq(m::not_char_matcher("' "),
-                    m::star(m::alt(m::not_char_matcher("' "), m::basic_string_matcher<true, false>("''"))));
+                static constexpr auto name_without_quotes = m::seq(
+                    m::not_char_matcher("' "), m::star(m::alt(line_comment, m::not_char_matcher("' "), double_apo)));
 
-                static constexpr auto matcher = m::seq<m::basic_string_matcher<true, true>>("TABLE",
+                static constexpr auto matcher = m::seq<string_matcher>("TABLE",
                     separator,
                     "LIKE",
                     separator,
@@ -831,13 +824,21 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
                 return true;
             }
 
-            case 'X':
-                return handle_lob(xml_type, label, it, it_e);
-
             case 'B':
             case 'C':
             case 'D':
-                return handle_lob(lob_type, label, it, it_e);
+            case 'X': {
+                auto wrk = it;
+                if (!lob_or_xml_type(wrk, it_e))
+                    return false;
+                char type_start = *type.value().first;
+                char type_end = *std::prev(type.value().second);
+                char scale = blob_unit.has_value() ? *blob_unit->first : 0;
+                std::string size;
+                if (blob_size.has_value())
+                    size = std::string(blob_size->first, blob_size->second);
+                return handle_lob(label, type_start, type_end, scale, size);
+            }
             default:
                 return false;
         }
