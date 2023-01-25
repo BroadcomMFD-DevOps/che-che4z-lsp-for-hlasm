@@ -339,8 +339,8 @@ template<typename BidirIt, typename Counter>
 struct pointer_traits<hlasm_plugin::utils::utf8_iterator<BidirIt, Counter>>
 {
     using pointer = hlasm_plugin::utils::utf8_iterator<BidirIt, Counter>;
-    using element_type = pointer_traits<BidirIt>::element_type;
-    using difference_type = pointer_traits<BidirIt>::difference_type;
+    using element_type = typename pointer_traits<BidirIt>::element_type;
+    using difference_type = typename pointer_traits<BidirIt>::difference_type;
 
     template<class U>
     using rebind = typename pointer_traits<BidirIt>::template rebind<U>;
