@@ -88,7 +88,7 @@ struct logical_line
 
     struct const_iterator
     {
-        using segment_iterator = std::vector<logical_line_segment<It>>::const_iterator;
+        using segment_iterator = typename std::vector<logical_line_segment<It>>::const_iterator;
         using column_iterator = It;
 
         using iterator_category = std::bidirectional_iterator_tag;
