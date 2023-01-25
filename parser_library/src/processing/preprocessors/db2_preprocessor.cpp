@@ -208,7 +208,7 @@ public:
             return true;
         };
 
-        It arg_start_it;
+        It arg_start_it = b;
         consuming_state next_state = consuming_state::NON_CONSUMING;
         while (b != e)
         {
@@ -249,7 +249,7 @@ public:
                     try_arg_inserter(arg_start_it, b, state);
 
                     if (skip_to_matching_character(b, e); b == e)
-                        goto done;
+                        return arguments;
 
                     break;
 
@@ -277,7 +277,6 @@ public:
 
         try_arg_inserter(arg_start_it, b, next_state);
 
-    done:
         return arguments;
     }
 };
