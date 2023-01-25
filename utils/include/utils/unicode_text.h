@@ -276,7 +276,8 @@ public:
     }
 
     auto& operator*() const noexcept(noexcept(*m_base)) { return *m_base; }
-    auto operator->() const noexcept(noexcept(m_base.operator->)) { return m_base.operator->(); }
+    auto operator->() const noexcept requires std::is_pointer_v<BidirIt> { return m_base; }
+    auto operator->() const noexcept(noexcept(m_base.operator->())) { return m_base.operator->(); }
 
     friend difference_type operator-(
         const utf8_iterator& l, const utf8_iterator& r) noexcept requires std::sized_sentinel_for<BidirIt, BidirIt>
@@ -293,6 +294,8 @@ public:
     {
         return std::distance(l.m_base, r);
     }
+
+    auto to_address() const noexcept { return std::to_address(m_base); }
 };
 
 
@@ -336,18 +339,15 @@ void utf8_prev(It& it, size_t n, const Sentinel& begin)
 
 namespace std {
 template<typename BidirIt, typename Counter>
-struct pointer_traits<hlasm_plugin::utils::utf8_iterator<BidirIt, Counter>>
+struct pointer_traits<::hlasm_plugin::utils::utf8_iterator<BidirIt, Counter>>
 {
-    using pointer = hlasm_plugin::utils::utf8_iterator<BidirIt, Counter>;
+    using pointer = ::hlasm_plugin::utils::utf8_iterator<BidirIt, Counter>;
     using element_type = typename pointer_traits<BidirIt>::element_type;
     using difference_type = typename pointer_traits<BidirIt>::difference_type;
 
-    template<class U>
-    using rebind = typename pointer_traits<BidirIt>::template rebind<U>;
-
-    static element_type* to_address(hlasm_plugin::utils::utf8_iterator<BidirIt, Counter> p) noexcept
+    static element_type* to_address(::hlasm_plugin::utils::utf8_iterator<BidirIt, Counter> p) noexcept
     {
-        return ::std::to_address(p.base());
+        return p.to_address();
     }
 };
 } // namespace std

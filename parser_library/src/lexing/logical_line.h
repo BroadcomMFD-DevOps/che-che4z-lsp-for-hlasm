@@ -69,10 +69,112 @@ template<typename It>
 requires requires(It i) { i.counter()->size_t; }
 size_t logical_distance(It b, It e) { return e.counter() - b.counter(); }
 
+template<typename It>
+struct logical_line;
+
+template<typename It>
+struct logical_line_const_iterator
+{
+    using segment_iterator = typename std::vector<logical_line_segment<It>>::const_iterator;
+    using column_iterator = It;
+
+    using iterator_category = std::bidirectional_iterator_tag;
+    using difference_type = std::ptrdiff_t;
+    using value_type = typename std::iterator_traits<It>::value_type;
+    using pointer = typename std::iterator_traits<It>::pointer;
+    using reference = typename std::iterator_traits<It>::reference;
+
+    logical_line_const_iterator() = default;
+    logical_line_const_iterator(
+        segment_iterator segment_it, column_iterator col_it, const logical_line<It>* ll) noexcept
+        : m_segment_it(segment_it)
+        , m_col_it(col_it)
+        , m_logical_line(ll)
+    {}
+
+    reference operator*() const noexcept { return *m_col_it; }
+    pointer operator->() const noexcept requires std::is_pointer_v<It> { return m_col_it; }
+    pointer operator->() const noexcept(noexcept(m_col_it.operator->())) { return m_col_it.operator->(); }
+    logical_line_const_iterator& operator++() noexcept
+    {
+        assert(m_logical_line);
+        ++m_col_it;
+        while (m_col_it == m_segment_it->continuation)
+        {
+            if (++m_segment_it == m_logical_line->segments.end())
+            {
+                m_col_it = column_iterator();
+                break;
+            }
+            m_col_it = m_segment_it->code;
+        }
+        return *this;
+    }
+    logical_line_const_iterator operator++(int) noexcept
+    {
+        logical_line_const_iterator tmp = *this;
+        ++(*this);
+        return tmp;
+    }
+    logical_line_const_iterator& operator--() noexcept
+    {
+        assert(m_logical_line);
+        while (m_segment_it == m_logical_line->segments.end() || m_col_it == m_segment_it->code)
+        {
+            --m_segment_it;
+            m_col_it = m_segment_it->continuation;
+        }
+        --m_col_it;
+        return *this;
+    }
+    logical_line_const_iterator operator--(int) noexcept
+    {
+        logical_line_const_iterator tmp = *this;
+        --(*this);
+        return tmp;
+    }
+    friend bool operator==(const logical_line_const_iterator& a, const logical_line_const_iterator& b) noexcept
+    {
+        assert(a.m_logical_line == b.m_logical_line);
+        return a.m_segment_it == b.m_segment_it && a.m_col_it == b.m_col_it;
+    }
+    friend bool operator!=(const logical_line_const_iterator& a, const logical_line_const_iterator& b) noexcept
+    {
+        return !(a == b);
+    }
+
+    bool same_line(const logical_line_const_iterator& o) const noexcept
+    {
+        assert(m_logical_line == o.m_logical_line);
+        return m_segment_it == o.m_segment_it;
+    }
+
+    std::pair<size_t, size_t> get_coordinates() const noexcept
+    {
+        assert(m_logical_line);
+
+        if (m_segment_it == m_logical_line->segments.end())
+            return { 0, 0 };
+
+        return { logical_distance(m_segment_it->begin, m_col_it),
+            logical_distance(m_logical_line->segments.begin(), m_segment_it) };
+    }
+
+    auto to_address() const noexcept { return std::to_address(m_col_it); }
+
+private:
+    segment_iterator m_segment_it = segment_iterator();
+    column_iterator m_col_it = It();
+    const logical_line<It>* m_logical_line = nullptr;
+};
+
+
 // represents a single (possibly continued) HLASM line/statement
 template<typename It>
 struct logical_line
 {
+    using const_iterator = logical_line_const_iterator<It>;
+
     std::vector<logical_line_segment<It>> segments;
     bool continuation_error;
     bool so_si_continuation;
@@ -86,94 +188,6 @@ struct logical_line
         missing_next_line = false;
     }
 
-    struct const_iterator
-    {
-        using segment_iterator = typename std::vector<logical_line_segment<It>>::const_iterator;
-        using column_iterator = It;
-
-        using iterator_category = std::bidirectional_iterator_tag;
-        using difference_type = std::ptrdiff_t;
-        using value_type = char;
-        using pointer = const char*;
-        using reference = const char&;
-
-        const_iterator() = default;
-        const_iterator(segment_iterator segment_it, column_iterator col_it, const logical_line* ll) noexcept
-            : m_segment_it(segment_it)
-            , m_col_it(col_it)
-            , m_logical_line(ll)
-        {}
-
-        reference operator*() const noexcept { return *m_col_it; }
-        pointer operator->() const noexcept { return std::to_address(m_col_it); }
-        const_iterator& operator++() noexcept
-        {
-            assert(m_logical_line);
-            ++m_col_it;
-            while (m_col_it == m_segment_it->continuation)
-            {
-                if (++m_segment_it == m_logical_line->segments.end())
-                {
-                    m_col_it = column_iterator();
-                    break;
-                }
-                m_col_it = m_segment_it->code;
-            }
-            return *this;
-        }
-        const_iterator operator++(int) noexcept
-        {
-            const_iterator tmp = *this;
-            ++(*this);
-            return tmp;
-        }
-        const_iterator& operator--() noexcept
-        {
-            assert(m_logical_line);
-            while (m_segment_it == m_logical_line->segments.end() || m_col_it == m_segment_it->code)
-            {
-                --m_segment_it;
-                m_col_it = m_segment_it->continuation;
-            }
-            --m_col_it;
-            return *this;
-        }
-        const_iterator operator--(int) noexcept
-        {
-            const_iterator tmp = *this;
-            --(*this);
-            return tmp;
-        }
-        friend bool operator==(const const_iterator& a, const const_iterator& b) noexcept
-        {
-            assert(a.m_logical_line == b.m_logical_line);
-            return a.m_segment_it == b.m_segment_it && a.m_col_it == b.m_col_it;
-        }
-        friend bool operator!=(const const_iterator& a, const const_iterator& b) noexcept { return !(a == b); }
-
-        bool same_line(const const_iterator& o) const noexcept
-        {
-            assert(m_logical_line == o.m_logical_line);
-            return m_segment_it == o.m_segment_it;
-        }
-
-        std::pair<size_t, size_t> get_coordinates() const noexcept
-        {
-            assert(m_logical_line);
-
-            if (m_segment_it == m_logical_line->segments.end())
-                return { 0, 0 };
-
-            return { logical_distance(m_segment_it->begin, m_col_it),
-                logical_distance(m_logical_line->segments.begin(), m_segment_it) };
-        }
-
-    private:
-        segment_iterator m_segment_it = segment_iterator();
-        column_iterator m_col_it = It();
-        const logical_line* m_logical_line = nullptr;
-    };
-
     const_iterator begin() const noexcept
     {
         for (auto s = segments.begin(); s != segments.end(); ++s)
@@ -181,10 +195,8 @@ struct logical_line
                 return const_iterator(s, s->code, this);
         return end();
     }
-    const_iterator end() const noexcept
-    {
-        return const_iterator(segments.end(), std::string_view::const_iterator(), this);
-    }
+
+    const_iterator end() const noexcept { return const_iterator(segments.end(), It(), this); }
 };
 
 // defines the layout of the hlasm source file and options to follow for line extraction
@@ -356,5 +368,21 @@ std::pair<bool, decltype(std::begin(std::declval<Range&&>()))> extract_logical_l
 }
 
 } // namespace hlasm_plugin::parser_library::lexing
+
+
+namespace std {
+template<typename It>
+struct pointer_traits<::hlasm_plugin::parser_library::lexing::logical_line_const_iterator<It>>
+{
+    using pointer = ::hlasm_plugin::parser_library::lexing::logical_line_const_iterator<It>;
+    using element_type = typename pointer_traits<It>::element_type;
+    using difference_type = typename pointer_traits<It>::difference_type;
+
+    static element_type* to_address(::hlasm_plugin::parser_library::lexing::logical_line_const_iterator<It> p) noexcept
+    {
+        return p.to_address();
+    }
+};
+} // namespace std
 
 #endif // HLASMPLUGIN_HLASMPARSERLIBRARY_LOGICAL_LINE_H
