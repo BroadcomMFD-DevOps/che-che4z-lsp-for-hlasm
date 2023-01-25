@@ -25,6 +25,8 @@
 #include <utility>
 #include <vector>
 
+#include "utils/unicode_text.h"
+
 namespace hlasm_plugin::parser_library::lexing {
 
 // termination character of a line in a file
@@ -203,60 +205,50 @@ constexpr const logical_line_extractor_args default_ictl_dbcs_copy = { 1, 71, 16
 // remove and return a single line from the input (terminated by LF, CRLF, CR, EOF)
 std::pair<std::string_view, logical_line_segment_eol> extract_line(std::string_view& input);
 
-// skips n full utf-8 characters
-// for n == 0 skips partial sequence
-template<typename It>
-void utf8_next(It& it, size_t n, const It& end)
+template<typename It, typename Sentinel>
+std::pair<std::pair<It, It>, logical_line_segment_eol> extract_line(It& input, const Sentinel& s)
 {
-    while (it != end)
+    auto start = input;
+    typename std::iterator_traits<It>::value_type c {};
+    while (input != s)
     {
-        if (unsigned char c = *it; (c & 0xc0) == 0x80)
-        {
-            ++it;
-            continue;
-        }
-        if (n == 0)
+        c = *input;
+        if (c == '\r' || c == '\n')
             break;
-        ++it;
-        --n;
+        ++input;
     }
-}
+    auto end = input;
+    if (input == s)
+        return std::make_pair(std::make_pair(start, end), logical_line_segment_eol::none);
+    ++input;
+    if (c == '\n')
+        return std::make_pair(std::make_pair(start, end), logical_line_segment_eol::lf);
+    if (input == s || *input != '\n')
+        return std::make_pair(std::make_pair(start, end), logical_line_segment_eol::cr);
+    ++input;
 
-// returns back by n utf-8 characters
-// n positive
-template<typename It>
-void utf8_prev(It& it, size_t n, const It& begin)
-{
-    assert(n);
-    while (it != begin)
-    {
-        --it;
-        if (unsigned char c = *it; (c & 0xc0) == 0x80)
-            continue;
-        --n;
-        if (n == 0)
-            break;
-    }
+    return std::make_pair(std::make_pair(start, end), logical_line_segment_eol::crlf);
 }
 
 // appends a logical line segment to the logical line extracted from the input
 // returns "need more" (appended line was continued), input must be non-empty
-template<typename It>
-bool append_to_logical_line(logical_line<It>& out, std::string_view& input, const logical_line_extractor_args& opts)
+template<typename It, typename Sentinel>
+bool append_to_logical_line(
+    logical_line<std::remove_cvref_t<It>>& out, It&& input, const Sentinel& s, const logical_line_extractor_args& opts)
 {
-    auto [line, eol] = extract_line(input);
+    auto [line_its, eol] = extract_line(input, s);
 
     auto& segment = out.segments.emplace_back();
 
-    auto it = line.begin();
-    const auto end = line.end();
+    auto& it = line_its.first;
+    const auto& end = line_its.second;
 
     segment.begin = it;
-    utf8_next(it, opts.begin - 1, end);
+    utils::utf8_next(it, opts.begin - 1, end);
     segment.code = it;
-    utf8_next(it, opts.end + 1 - opts.begin, end);
+    utils::utf8_next(it, opts.end + 1 - opts.begin, end);
     segment.continuation = it;
-    utf8_next(it, 1, end);
+    utils::utf8_next(it, 1, end);
     segment.ignore = it;
     segment.end = end;
     segment.eol = eol;
@@ -279,7 +271,7 @@ bool append_to_logical_line(logical_line<It>& out, std::string_view& input, cons
             std::make_reverse_iterator(segment.ignore))
                                  .first.base();
 
-        utf8_next(extended_cont, 0, segment.continuation);
+        utils::utf8_next(extended_cont, 0, segment.continuation);
 
         if (extended_cont != segment.continuation)
         {
@@ -290,6 +282,17 @@ bool append_to_logical_line(logical_line<It>& out, std::string_view& input, cons
     }
 
     return true;
+}
+
+template<typename Range>
+std::pair<bool, decltype(std::begin(std::declval<Range&&>()))> append_to_logical_line(
+    logical_line<decltype(std::begin(std::declval<Range&&>()))>& out,
+    Range&& range,
+    const logical_line_extractor_args& opts)
+{
+    std::pair<bool, decltype(std::begin(std::declval<Range&&>()))> result(false, std::begin(range));
+    result.first = append_to_logical_line(out, result.second, std::end(range), opts);
+    return result;
 }
 
 // logical line post-processing
@@ -305,7 +308,7 @@ void finish_logical_line(logical_line<It>& out, const logical_line_extractor_arg
         auto& s = out.segments[i];
 
         auto blank_start = s.code;
-        utf8_next(s.code, cont_size, s.continuation);
+        utils::utf8_next(s.code, cont_size, s.continuation);
 
         out.continuation_error |= s.continuation_error =
             std::any_of(blank_start, s.code, [](unsigned char c) { return c != ' '; });
@@ -321,24 +324,37 @@ void finish_logical_line(logical_line<It>& out, const logical_line_extractor_arg
 
 // extract a logical line (extracting lines while continued and not EOF)
 // returns true when a logical line was extracted
-template<typename It>
-bool extract_logical_line(logical_line<It>& out, std::string_view& input, const logical_line_extractor_args& opts)
+template<typename It, typename Sentinel>
+bool extract_logical_line(
+    logical_line<std::remove_cvref_t<It>>& out, It&& input, const Sentinel& s, const logical_line_extractor_args& opts)
 {
     out.clear();
 
-    if (input.empty())
+    if (input == s)
         return false;
 
     do
     {
-        if (!append_to_logical_line(out, input, opts))
+        if (!append_to_logical_line(out, input, s, opts))
             break;
-    } while (!input.empty());
+    } while (input != s);
 
     finish_logical_line(out, opts);
 
     return true;
 }
+
+template<typename Range>
+std::pair<bool, decltype(std::begin(std::declval<Range&&>()))> extract_logical_line(
+    logical_line<decltype(std::begin(std::declval<Range&&>()))>& out,
+    Range&& range,
+    const logical_line_extractor_args& opts)
+{
+    std::pair<bool, decltype(std::begin(std::declval<Range&&>()))> result(false, std::begin(range));
+    result.first = extract_logical_line(out, result.second, std::end(range), opts);
+    return result;
+}
+
 } // namespace hlasm_plugin::parser_library::lexing
 
 #endif // HLASMPLUGIN_HLASMPARSERLIBRARY_LOGICAL_LINE_H

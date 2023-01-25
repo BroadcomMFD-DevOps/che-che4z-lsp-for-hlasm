@@ -34,8 +34,7 @@ preprocessor::line_iterator preprocessor::extract_nonempty_logical_line(
 
     while (it != end)
     {
-        auto text = it++->text();
-        if (!append_to_logical_line(out, text, opts))
+        if (!append_to_logical_line(out, it++->text(), opts).first)
             break;
     }
 

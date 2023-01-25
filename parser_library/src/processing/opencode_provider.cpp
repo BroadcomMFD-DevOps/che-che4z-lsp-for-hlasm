@@ -469,15 +469,16 @@ bool opencode_provider::suspend_copy_processing(remove_empty re) const
         const auto pos = copy.current_statement_position();
         std::string_view remaining_text =
             m_ctx->lsp_ctx->get_file_info(copy.definition_location()->resource_loc)->data.get_lines_beginning_at(pos);
+        auto remaining_text_it = remaining_text.begin();
         const size_t line_no = pos.line;
 
         // remove line being processed
         lexing::logical_line<std::string_view::iterator> ll = {};
         if (const bool before_first_read = copy.current_statement == (size_t)-1; !before_first_read)
-            lexing::extract_logical_line(ll, remaining_text, lexing::default_ictl_copy);
+            lexing::extract_logical_line(ll, remaining_text_it, remaining_text.end(), lexing::default_ictl_copy);
 
         copy.suspend(line_no + ll.segments.size());
-        if (remaining_text.empty())
+        if (remaining_text_it == remaining_text.end())
         {
             if (re == remove_empty::yes)
                 copy.resume();
@@ -689,7 +690,7 @@ extract_next_logical_line_result opencode_provider::extract_next_logical_line_fr
 
         const auto* copy_text = m_ctx->lsp_ctx->get_file_info(copy_file.definition_location()->resource_loc);
         std::string_view remaining_text = copy_text->data.get_lines_beginning_at({ line, 0 });
-        if (!lexing::extract_logical_line(m_current_logical_line, remaining_text, lexing::default_ictl_copy))
+        if (!lexing::extract_logical_line(m_current_logical_line, remaining_text, lexing::default_ictl_copy).first)
         {
             opencode_copy_stack.pop_back();
             continue;
@@ -745,8 +746,7 @@ extract_next_logical_line_result opencode_provider::extract_next_logical_line()
         {
             const auto first_index = m_next_line_index;
             const auto& current_line = m_input_document.at(m_next_line_index++);
-            auto current_line_text = current_line.text();
-            append_to_logical_line(m_current_logical_line, current_line_text, lexing::default_ictl);
+            append_to_logical_line(m_current_logical_line, current_line.text(), lexing::default_ictl);
             finish_logical_line(m_current_logical_line, lexing::default_ictl);
             --m_opts.process_remaining;
 
@@ -767,8 +767,7 @@ extract_next_logical_line_result opencode_provider::extract_next_logical_line()
     while (m_next_line_index < m_input_document.size())
     {
         const auto& current_line = m_input_document.at(m_next_line_index++);
-        auto current_line_text = current_line.text();
-        if (!append_to_logical_line(m_current_logical_line, current_line_text, lexing::default_ictl))
+        if (!append_to_logical_line(m_current_logical_line, current_line.text(), lexing::default_ictl).first)
             break;
     }
     finish_logical_line(m_current_logical_line, lexing::default_ictl);

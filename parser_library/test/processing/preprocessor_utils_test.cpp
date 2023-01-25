@@ -39,9 +39,13 @@ std::string get_inline_string(std::string_view text, const lexing::logical_line_
     lexing::logical_line<std::string_view::iterator> out;
     out.clear();
 
-    bool feed = true;
-    while (feed)
-        feed = append_to_logical_line(out, text, opts);
+    while (true)
+    {
+        auto [next, it] = append_to_logical_line(out, text, opts);
+        if (!next)
+            break;
+        text.remove_prefix(std::distance(text.begin(), it));
+    }
 
     finish_logical_line(out, opts);
 

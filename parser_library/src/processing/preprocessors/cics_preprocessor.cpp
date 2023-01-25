@@ -1045,9 +1045,9 @@ public:
         {
             std::string buffer;
             auto it = l.begin;
-            lexing::utf8_next(it, cics_extract.end, l.end);
+            utils::utf8_next(it, cics_extract.end, l.end);
             buffer.append(l.begin, it);
-            lexing::utf8_next(it, 1, l.end);
+            utils::utf8_next(it, 1, l.end);
 
             if (it != l.end)
                 buffer.append(" ").append(it, l.end);

@@ -73,7 +73,7 @@ public:
         : m_input(std::move(input))
     {}
 
-    void SetUp() override { ASSERT_TRUE(extract_logical_line(m_line, m_input, default_ictl)); }
+    void SetUp() override { ASSERT_TRUE(extract_logical_line(m_line, m_input, default_ictl).first); }
 
 protected:
     test_logical_line m_line;

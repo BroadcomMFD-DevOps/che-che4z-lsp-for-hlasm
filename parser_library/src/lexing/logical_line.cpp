@@ -19,30 +19,10 @@
 namespace hlasm_plugin::parser_library::lexing {
 std::pair<std::string_view, logical_line_segment_eol> extract_line(std::string_view& input)
 {
-    auto eol = input.find_first_of("\r\n");
-    if (eol == std::string_view::npos)
-    {
-        std::string_view ret = input;
-        input = std::string_view();
-        return std::make_pair(ret, logical_line_segment_eol::none);
-    }
-    else
-    {
-        auto ret = std::make_pair(input.substr(0, eol), logical_line_segment_eol::lf);
-        size_t remove = eol + 1;
-        if (input.at(eol) == '\r')
-        {
-            if (input.size() > eol + 1 && input.at(eol + 1) == '\n')
-            {
-                ++remove;
-                ret.second = logical_line_segment_eol::crlf;
-            }
-            else
-                ret.second = logical_line_segment_eol::cr;
-        }
-        input.remove_prefix(remove);
+    auto it = input.begin();
+    auto [its, eol] = extract_line(it, input.end());
+    input.remove_prefix(std::distance(input.begin(), it));
 
-        return ret;
-    }
+    return std::make_pair(std::string_view(its.first, its.second), eol);
 }
 } // namespace hlasm_plugin::parser_library::lexing
