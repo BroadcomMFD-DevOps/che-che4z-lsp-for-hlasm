@@ -19,6 +19,11 @@
 
 #include "parser_library_export.h"
 
+namespace hlasm_plugin::utils {
+template<typename BidirIt, typename Counter>
+class utf8_iterator;
+class utf8_utf16_counter;
+} // namespace hlasm_plugin::utils
 namespace hlasm_plugin::parser_library::lexing {
 template<typename It>
 struct logical_line;
@@ -35,7 +40,7 @@ public:
     void append(std::string_view str);
     using antlr4::ANTLRInputStream::reset;
     void reset(std::string_view str);
-    void reset(const logical_line<std::string_view::iterator>& l);
+    void reset(const logical_line<utils::utf8_iterator<std::string_view::iterator, utils::utf8_utf16_counter>>& l);
 
     input_source(const input_source&) = delete;
     input_source& operator=(const input_source&) = delete;

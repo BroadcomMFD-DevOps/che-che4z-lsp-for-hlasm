@@ -71,8 +71,8 @@ void input_source::reset(std::string_view str)
     append_utf8_to_utf32(_data, str);
 }
 
-// TODO: this is a compatibility mechanism, ideally we want use logical_line directly
-void input_source::reset(const logical_line<std::string_view::iterator>& l)
+void input_source::reset(
+    const logical_line<utils::utf8_iterator<std::string_view::iterator, utils::utf8_utf16_counter>>& l)
 {
     reset("");
     for (size_t i = 0; i < l.segments.size(); ++i)
@@ -81,7 +81,7 @@ void input_source::reset(const logical_line<std::string_view::iterator>& l)
         if (i > 0)
             _data.append(std::distance(s.begin, s.code), s.continuation_error ? 'X' : ' ');
 
-        append(std::string_view(s.code, s.end));
+        append(std::string_view(s.code.base(), s.end.base()));
 
         if (i + 1 < l.segments.size())
         {
