@@ -15,13 +15,21 @@
 import * as path from 'path';
 import { runTests, downloadAndUnzipVSCode } from '@vscode/test-electron';
 import * as process from 'process';
+import * as os from 'os'
+import * as fs from 'fs'
 
 async function main() {
 	try {
 		// prepare development and tests paths
 		const extensionDevelopmentPath = path.join(__dirname, '../../');
 		const extensionTestsPath = path.join(__dirname, './suite/index');
-		const launchArgs = [path.join(__dirname, './workspace/'), '--disable-extensions', '--disable-workspace-trust', '--user-data-dir', `${os.tmpdir()}`];
+		const launchArgs = [
+			path.join(__dirname, './workspace/'),
+			'--disable-extensions',
+			'--disable-workspace-trust',
+			'--user-data-dir',
+			fs.mkdtempSync(path.join(os.tmpdir(), 'test-'))
+		];
 		const vscodeExecutablePath = process.argv.length > 2 && process.argv[2] == 'insiders' && await downloadAndUnzipVSCode('insiders') || undefined;
 
 		// run tests
