@@ -121,7 +121,7 @@ void processing_manager::start_processing(std::atomic<bool>* cancel)
         if (stmt)
         {
             update_metrics(proc.kind, prov.kind, hlasm_ctx_.metrics);
-            run_anayzers(*stmt, prov.kind, proc.kind, false);
+            run_analyzers(*stmt, prov.kind, proc.kind, false);
 
             proc.process_statement(std::move(stmt));
         }
@@ -133,12 +133,12 @@ void processing_manager::register_stmt_analyzer(statement_analyzer* stmt_analyze
     stms_analyzers_.push_back(stmt_analyzer);
 }
 
-void processing_manager::run_anayzers(const context::hlasm_statement& statement, bool evaluated_model) const
+void processing_manager::run_analyzers(const context::hlasm_statement& statement, bool evaluated_model) const
 {
-    run_anayzers(statement, find_provider().kind, procs_.back()->kind, evaluated_model);
+    run_analyzers(statement, find_provider().kind, procs_.back()->kind, evaluated_model);
 }
 
-void processing_manager::run_anayzers(const context::hlasm_statement& statement,
+void processing_manager::run_analyzers(const context::hlasm_statement& statement,
     statement_provider_kind prov_kind,
     processing_kind proc_kind,
     bool evaluated_model) const

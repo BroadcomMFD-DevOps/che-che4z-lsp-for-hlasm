@@ -53,8 +53,8 @@ public:
 
     void register_stmt_analyzer(statement_analyzer* stmt_analyzer);
 
-    void run_anayzers(const context::hlasm_statement& statement, bool evaluated_model) const;
-    void run_anayzers(const context::hlasm_statement& statement,
+    void run_analyzers(const context::hlasm_statement& statement, bool evaluated_model) const;
+    void run_analyzers(const context::hlasm_statement& statement,
         statement_provider_kind prov_kind,
         processing_kind proc_kind,
         bool evaluated_model) const;

@@ -21,6 +21,7 @@
 
 #include "file.h"
 #include "file_manager.h"
+#include "processing/statement_analyzers/hit_count_analyzer.h"
 
 namespace hlasm_plugin::parser_library::workspaces {
 
@@ -33,6 +34,18 @@ processor_file_impl::processor_file_impl(std::shared_ptr<file> file, file_manage
 
 void processor_file_impl::collect_diags() const {}
 bool processor_file_impl::is_once_only() const { return false; }
+
+namespace {
+void process_hit_counts(
+    const processing::hit_count_analyzer& hc_analyzer, std::shared_ptr<std::vector<fade_message_s>> fade_messages)
+{
+    for (const auto& [hit_entry, hit_details] : hc_analyzer.get_hit_counts())
+    {
+        if (!hit_details.count)
+            fade_messages->emplace_back(fade_message_s::inactive_statement(hit_entry.rl.get_uri(), hit_details.r));
+    }
+}
+} // namespace
 
 parse_result processor_file_impl::parse(parse_lib_provider& lib_provider,
     asm_option asm_opts,
@@ -56,9 +69,11 @@ parse_result processor_file_impl::parse(parse_lib_provider& lib_provider,
             vfm,
             fms,
         });
-    // If parsed as opencode previously, use id_index from the last parsing
 
     auto old_dep = dependencies_;
+
+    processing::hit_count_analyzer hc_analyzer(new_analyzer->hlasm_ctx());
+    new_analyzer->register_stmt_analyzer(&hc_analyzer);
 
     new_analyzer->analyze(cancel_);
 
@@ -85,6 +100,7 @@ parse_result processor_file_impl::parse(parse_lib_provider& lib_provider,
             files_to_close_.insert(file);
     }
 
+    process_hit_counts(hc_analyzer, fms);
     fade_messages_ = std::move(fms);
 
     return true;
@@ -110,6 +126,9 @@ parse_result processor_file_impl::parse_macro(
             fms,
         });
 
+    processing::hit_count_analyzer hc_analyzer(a->hlasm_ctx());
+    //a->register_stmt_analyzer(&hc_analyzer);
+
     a->analyze(cancel_);
 
     if (cancel_ && *cancel_)
@@ -123,6 +142,7 @@ parse_result processor_file_impl::parse_macro(
     last_analyzer_opencode_ = false;
     last_analyzer_with_lsp = collect_hl;
 
+    process_hit_counts(hc_analyzer, fms);
     fade_messages_ = std::move(fms);
 
     return true;

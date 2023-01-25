@@ -36,6 +36,7 @@ struct fade_message_s
         , r(std::move(r)) {};
 
     static fade_message_s preprocessor_statement(std::string uri, const range& range);
+    static fade_message_s inactive_statement(std::string uri, const range& range);
 };
 
 } // namespace hlasm_plugin::parser_library
