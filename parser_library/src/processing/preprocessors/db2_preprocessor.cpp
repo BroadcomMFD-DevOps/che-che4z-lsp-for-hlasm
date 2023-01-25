@@ -789,7 +789,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
             m::alt(m::capture(type, lob_file), m::seq(m::capture(type, lob_rest_base), separator, lob_size)));
         const auto lob_type = m::alt(m::capture(type, m::alt(lob_file, lob_locator)),
             m::seq(m::capture(type, lob_rest_base), separator, lob_size));
-        const auto lob_or_xml_type = m::seq(m::alt(xml_type, lob_type), m::alt(separator, m::end()));
+        const auto lob_or_xml_type = m::seq(m::alt(xml_type, lob_type), m::alt(m::end(), separator));
 
         switch (*it)
         {
@@ -798,9 +798,8 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
 
             case 'T': {
                 static constexpr auto double_apo = m::basic_string_matcher<true, false>("''");
-                static constexpr auto quoted_name = m::seq(m::char_matcher("'"),
-                    m::star(m::alt(line_comment, m::not_char_matcher("'"), double_apo)),
-                    m::char_matcher("'"));
+                static constexpr auto quoted_name = m::seq(
+                    m::char_matcher("'"), m::star(m::alt(m::not_char_matcher("'"), double_apo)), m::char_matcher("'"));
                 static constexpr auto name_without_quotes = m::seq(
                     m::not_char_matcher("' "), m::star(m::alt(line_comment, m::not_char_matcher("' "), double_apo)));
 

@@ -93,6 +93,7 @@ size_t length_utf32_no_validation(std::string_view text);
 class utf8_dummy_counter
 {
 public:
+    utf8_dummy_counter() = default;
     explicit utf8_dummy_counter(size_t) {};
 
     void add(unsigned char) {}
@@ -101,9 +102,10 @@ public:
 
 class utf8_byte_counter
 {
-    size_t m_value;
+    size_t m_value = 0;
 
 public:
+    utf8_byte_counter() = default;
     explicit utf8_byte_counter(size_t value)
         : m_value(value) {};
 
@@ -114,7 +116,7 @@ public:
 
 class utf8_utf16_counter
 {
-    size_t m_value;
+    size_t m_value = 0;
 
     static constexpr auto utf16_lengths = []() {
         unsigned long long v = 0;
@@ -137,6 +139,7 @@ class utf8_utf16_counter
     }();
 
 public:
+    utf8_utf16_counter() = default;
     explicit utf8_utf16_counter(size_t value)
         : m_value(value) {};
 
@@ -147,9 +150,10 @@ public:
 
 class utf8_utf32_counter
 {
-    size_t m_value;
+    size_t m_value = 0;
 
 public:
+    utf8_utf32_counter() = default;
     explicit utf8_utf32_counter(size_t value)
         : m_value(value) {};
 
@@ -172,16 +176,14 @@ class utf8_multicounter : Counters...
     using replace_size_t = size_t;
 
 public:
-    explicit utf8_multicounter()
-        : Counters(replace_size_t<Counters> {})...
-    {}
+    utf8_multicounter() = default;
     explicit utf8_multicounter(replace_size_t<Counters>... counters)
         : Counters(counters)...
     {}
     void add(unsigned char c) { (Counters::add(c), ...); }
     void remove(unsigned char c) { (Counters::remove(c), ...); }
     template<size_t n>
-    size_t counter(counter_index_t<n>) const noexcept
+    size_t counter(counter_index_t<n> = {}) const noexcept
     {
         return [this]<size_t... idx>(std::index_sequence<idx...>)
         {
@@ -192,7 +194,7 @@ public:
     size_t counter() const noexcept { return counter(counter_index<0>); }
 };
 
-template<typename BidirIt, typename Counter>
+template<typename BidirIt, typename Counter = utf8_dummy_counter>
 class utf8_iterator : Counter
 {
     BidirIt m_base;
@@ -204,12 +206,13 @@ public:
     using pointer = typename std::iterator_traits<BidirIt>::pointer;
     using reference = typename std::iterator_traits<BidirIt>::reference;
 
-    utf8_iterator() requires(std::is_default_constructible_v<BidirIt>)
-        : Counter(0)
-        , m_base(BidirIt())
+    utf8_iterator() requires(std::is_default_constructible_v<BidirIt>&& std::is_default_constructible_v<Counter>)
+        : m_base(BidirIt())
     {}
 
-    explicit utf8_iterator(BidirIt it, size_t counter = 0) requires std::is_constructible_v<Counter, size_t>
+    explicit utf8_iterator(BidirIt it) requires std::is_default_constructible_v<Counter> : m_base(std::move(it)) {}
+
+    explicit utf8_iterator(BidirIt it, size_t counter) requires std::is_constructible_v<Counter, size_t>
         : Counter(counter), m_base(std::move(it))
     {}
 
@@ -232,7 +235,7 @@ public:
     }
 
     template<size_t n>
-    size_t counter(counter_index_t<n> idx) const noexcept requires requires(const Counter& c)
+    size_t counter(counter_index_t<n> idx = {}) const noexcept requires requires(const Counter& c)
     {
         {
             c.counter(counter_index_t<n>())
