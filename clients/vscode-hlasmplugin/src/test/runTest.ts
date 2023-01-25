@@ -13,8 +13,7 @@
  */
 
 import * as path from 'path';
-import { runTests, downloadAndUnzipVSCode } from 'vscode-test';
-import { TestOptions } from 'vscode-test/out/runTest';
+import { runTests, downloadAndUnzipVSCode } from '@vscode/test-electron';
 import * as process from 'process';
 
 async function main() {
