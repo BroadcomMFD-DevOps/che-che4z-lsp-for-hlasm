@@ -239,3 +239,37 @@ TEST(logical_line, eol)
         EXPECT_EQ(t.first.size(), 0);
     }
 }
+
+TEST(logical_line, iterator_difference)
+{
+    std::string_view input =
+        "123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890\n"
+        "               678901234567890123456789012345678901234567890123456789012345678901234567890\n"
+        "               67890123456789012345678901234567890123456789012345678901 34567890\n";
+    test_logical_line line;
+
+    EXPECT_TRUE(remove_logical_line(line, input, default_ictl));
+
+    EXPECT_FALSE(line.continuation_error);
+    EXPECT_FALSE(line.so_si_continuation);
+    EXPECT_FALSE(line.missing_next_line);
+
+    ASSERT_EQ(line.segments.size(), 3);
+
+    const auto b = line.begin();
+    const auto l1e = [](auto start) {
+        auto r = start;
+        while (r.same_line(start))
+            std::advance(r, 1);
+        return r;
+    }(b);
+    const auto e = line.end();
+    const auto e_1 = std::prev(e);
+
+    EXPECT_EQ(std::distance(b, e), e - b);
+    EXPECT_EQ(-(b - e), e - b);
+    EXPECT_EQ(std::distance(b, l1e), l1e - b);
+    EXPECT_EQ(-(b - l1e), l1e - b);
+    EXPECT_EQ(std::distance(b, e_1), e_1 - b);
+    EXPECT_EQ(-(b - e_1), e_1 - b);
+}

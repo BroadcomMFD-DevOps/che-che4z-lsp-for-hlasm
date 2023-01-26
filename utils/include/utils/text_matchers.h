@@ -43,7 +43,7 @@ class basic_string_matcher
 
 public:
     // case_sensitive => to_match assumed in capitals
-    constexpr basic_string_matcher(std::string_view to_match)
+    explicit constexpr basic_string_matcher(std::string_view to_match)
         : to_match(to_match)
     {}
 
@@ -80,7 +80,7 @@ class char_matcher_impl
 
 public:
     // case_sensitive => to_match assumed in capitals
-    constexpr char_matcher_impl(std::string_view to_match)
+    explicit constexpr char_matcher_impl(std::string_view to_match)
         : to_match(to_match)
     {}
 
@@ -218,7 +218,7 @@ class start_of_line
     It start;
 
 public:
-    start_of_line(It start)
+    explicit start_of_line(It start)
         : start(std::move(start))
     {}
     constexpr bool operator()(It& b, const It& e) const noexcept { return b == start || start_of_next_line()(b, e); }
@@ -241,7 +241,7 @@ constexpr auto capture(std::optional<std::pair<It, It>>& capture, Matcher&& matc
         auto work = b;
         if (matcher(b, e))
         {
-            capture.emplace(std::make_pair(work, b));
+            capture.emplace(work, b);
             return true;
         }
         else

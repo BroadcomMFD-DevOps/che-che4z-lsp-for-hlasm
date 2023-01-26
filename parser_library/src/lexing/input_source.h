@@ -17,16 +17,10 @@
 
 #include "antlr4-runtime.h"
 
+#include "logical_line.h"
 #include "parser_library_export.h"
 
-namespace hlasm_plugin::utils {
-template<typename BidirIt, typename Counter>
-class utf8_iterator;
-class utf8_utf16_counter;
-} // namespace hlasm_plugin::utils
 namespace hlasm_plugin::parser_library::lexing {
-template<typename It>
-struct logical_line;
 /*
 custom ANTLRInputStream
 supports input rewinding, appending and resetting

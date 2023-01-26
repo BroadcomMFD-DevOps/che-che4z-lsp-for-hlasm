@@ -17,6 +17,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <concepts>
 #include <cstddef>
 #include <cstdlib>
 #include <iterator>
@@ -65,9 +66,11 @@ size_t logical_distance(It b, It e)
     return std::distance(b, e);
 }
 
-template<typename It>
-requires requires(It i) { i.counter()->size_t; }
-size_t logical_distance(It b, It e) { return e.counter() - b.counter(); }
+template<utils::HasCounter It>
+size_t logical_distance(It b, It e)
+{
+    return e.counter() - b.counter();
+}
 
 template<typename It>
 struct logical_line;
@@ -83,6 +86,8 @@ struct logical_line_const_iterator
     using value_type = typename std::iterator_traits<It>::value_type;
     using pointer = typename std::iterator_traits<It>::pointer;
     using reference = typename std::iterator_traits<It>::reference;
+
+    using iterator_concept = std::bidirectional_iterator_tag;
 
     logical_line_const_iterator() = default;
     logical_line_const_iterator(
@@ -133,14 +138,11 @@ struct logical_line_const_iterator
         --(*this);
         return tmp;
     }
+
     friend bool operator==(const logical_line_const_iterator& a, const logical_line_const_iterator& b) noexcept
     {
         assert(a.m_logical_line == b.m_logical_line);
         return a.m_segment_it == b.m_segment_it && a.m_col_it == b.m_col_it;
-    }
-    friend bool operator!=(const logical_line_const_iterator& a, const logical_line_const_iterator& b) noexcept
-    {
-        return !(a == b);
     }
 
     bool same_line(const logical_line_const_iterator& o) const noexcept
@@ -161,6 +163,34 @@ struct logical_line_const_iterator
     }
 
     auto to_address() const noexcept { return std::to_address(m_col_it); }
+
+    friend difference_type operator-(
+        const logical_line_const_iterator& e, const logical_line_const_iterator& b) noexcept
+    {
+        assert(e.m_logical_line == b.m_logical_line);
+        if (e.m_segment_it == b.m_segment_it)
+            return std::distance(b, e);
+
+        if (e.m_segment_it < b.m_segment_it)
+            return -(b - e);
+
+        /*
+         * |      >XXXXXXXXXX
+         * | XXXXXXXXXXXXXXXX
+         * | XXXXXXXXXXXXXXXX
+         * | XXXXXX<
+         */
+
+        size_t result = std::distance(b.m_col_it, b.m_segment_it->continuation);
+
+        for (auto it = std::next(b.m_segment_it); it != e.m_segment_it; ++it)
+            result += std::distance(it->code, it->continuation);
+
+        if (e.m_segment_it != e.m_logical_line->segments.end())
+            result += std::distance(e.m_segment_it->code, e.m_col_it);
+
+        return result;
+    }
 
 private:
     segment_iterator m_segment_it = segment_iterator();
@@ -371,7 +401,7 @@ std::pair<bool, decltype(std::begin(std::declval<Range&&>()))> extract_logical_l
 
 
 namespace std {
-template<typename It>
+template<std::bidirectional_iterator It>
 struct pointer_traits<::hlasm_plugin::parser_library::lexing::logical_line_const_iterator<It>>
 {
     using pointer = ::hlasm_plugin::parser_library::lexing::logical_line_const_iterator<It>;

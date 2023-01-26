@@ -693,8 +693,8 @@ extract_next_logical_line_result opencode_provider::extract_next_logical_line_fr
         copy_file.current_statement = resync;
 
         const auto* copy_text = m_ctx->lsp_ctx->get_file_info(copy_file.definition_location()->resource_loc);
-        std::string_view remaining_text = copy_text->data.get_lines_beginning_at({ line, 0 });
-        if (!lexing::extract_logical_line(m_current_logical_line,
+        if (std::string_view remaining_text = copy_text->data.get_lines_beginning_at({ line, 0 });
+            !lexing::extract_logical_line(m_current_logical_line,
                 utils::utf8_iterator<std::string_view::iterator, utils::utf8_utf16_counter>(remaining_text.begin()),
                 remaining_text.end(),
                 lexing::default_ictl_copy))
@@ -777,8 +777,8 @@ extract_next_logical_line_result opencode_provider::extract_next_logical_line()
     const auto current_lineno = m_input_document.at(m_next_line_index).lineno().value();
     while (m_next_line_index < m_input_document.size())
     {
-        const auto current_line_text = m_input_document.at(m_next_line_index++).text();
-        if (!append_to_logical_line(m_current_logical_line,
+        if (const auto current_line_text = m_input_document.at(m_next_line_index++).text();
+            !append_to_logical_line(m_current_logical_line,
                 utils::utf8_iterator<std::string_view::iterator, utils::utf8_utf16_counter>(current_line_text.begin()),
                 current_line_text.end(),
                 lexing::default_ictl))

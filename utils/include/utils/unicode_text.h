@@ -17,6 +17,7 @@
 
 #include <array>
 #include <cassert>
+#include <concepts>
 #include <limits>
 #include <memory>
 #include <stdexcept>
@@ -90,14 +91,52 @@ size_t length_utf16_no_validation(std::string_view text);
 size_t length_utf32(std::string_view text);
 size_t length_utf32_no_validation(std::string_view text);
 
+template<size_t>
+struct counter_index_t
+{};
+
+template<size_t n>
+constexpr counter_index_t<n> counter_index = {};
+
+template<typename T>
+concept HasCounter = requires(const T& c)
+{
+    {
+        c.counter()
+    }
+    noexcept->std::same_as<size_t>;
+};
+template<typename T, size_t n>
+concept HasCounters = requires(const T& c)
+{
+    {
+        c.counter(counter_index<n>)
+    }
+    noexcept->std::same_as<size_t>;
+};
+
+template<typename T>
+concept ByteCounter = std::semiregular<T> && HasCounter<T> && requires(T t, unsigned char c)
+{
+    {
+        t.add(c)
+    }
+    noexcept;
+    {
+        t.remove(c)
+    }
+    noexcept;
+};
+
 class utf8_dummy_counter
 {
 public:
     utf8_dummy_counter() = default;
     explicit utf8_dummy_counter(size_t) {};
 
-    void add(unsigned char) {}
-    void remove(unsigned char) {}
+    void add(unsigned char) noexcept {}
+    void remove(unsigned char) noexcept {}
+    size_t counter() const noexcept { return 0; }
 };
 
 class utf8_byte_counter
@@ -109,8 +148,8 @@ public:
     explicit utf8_byte_counter(size_t value)
         : m_value(value) {};
 
-    void add(unsigned char) { ++m_value; }
-    void remove(unsigned char) { --m_value; }
+    void add(unsigned char) noexcept { ++m_value; }
+    void remove(unsigned char) noexcept { --m_value; }
     size_t counter() const noexcept { return m_value; }
 };
 
@@ -143,8 +182,8 @@ public:
     explicit utf8_utf16_counter(size_t value)
         : m_value(value) {};
 
-    void add(unsigned char c) { m_value += utf16_lengths >> (c >> 3 << 1) & 0b11; }
-    void remove(unsigned char c) { m_value -= utf16_lengths >> (c >> 3 << 1) & 0b11; }
+    void add(unsigned char c) noexcept { m_value += utf16_lengths >> (c >> 3 << 1) & 0b11; }
+    void remove(unsigned char c) noexcept { m_value -= utf16_lengths >> (c >> 3 << 1) & 0b11; }
     size_t counter() const noexcept { return m_value; }
 };
 
@@ -157,19 +196,12 @@ public:
     explicit utf8_utf32_counter(size_t value)
         : m_value(value) {};
 
-    void add(unsigned char c) { m_value += (c & 0xc0) != 0x80; }
-    void remove(unsigned char c) { m_value -= (c & 0xc0) != 0x80; }
+    void add(unsigned char c) noexcept { m_value += (c & 0xc0) != 0x80; }
+    void remove(unsigned char c) noexcept { m_value -= (c & 0xc0) != 0x80; }
     size_t counter() const noexcept { return m_value; }
 };
 
-template<size_t>
-struct counter_index_t
-{};
-
-template<size_t n>
-constexpr counter_index_t<n> counter_index = {};
-
-template<typename... Counters>
+template<ByteCounter... Counters>
 class utf8_multicounter : Counters...
 {
     template<typename>
@@ -180,8 +212,8 @@ public:
     explicit utf8_multicounter(replace_size_t<Counters>... counters)
         : Counters(counters)...
     {}
-    void add(unsigned char c) { (Counters::add(c), ...); }
-    void remove(unsigned char c) { (Counters::remove(c), ...); }
+    void add(unsigned char c) noexcept { (Counters::add(c), ...); }
+    void remove(unsigned char c) noexcept { (Counters::remove(c), ...); }
     template<size_t n>
     size_t counter(counter_index_t<n> = {}) const noexcept
     {
@@ -194,7 +226,7 @@ public:
     size_t counter() const noexcept { return counter(counter_index<0>); }
 };
 
-template<typename BidirIt, typename Counter = utf8_dummy_counter>
+template<std::bidirectional_iterator BidirIt, ByteCounter Counter = utf8_dummy_counter>
 class utf8_iterator : Counter
 {
     BidirIt m_base;
@@ -206,11 +238,15 @@ public:
     using pointer = typename std::iterator_traits<BidirIt>::pointer;
     using reference = typename std::iterator_traits<BidirIt>::reference;
 
-    utf8_iterator() requires(std::is_default_constructible_v<BidirIt>&& std::is_default_constructible_v<Counter>)
+    using iterator_concept = std::bidirectional_iterator_tag;
+
+    utf8_iterator() requires(std::is_default_constructible_v<BidirIt>)
         : m_base(BidirIt())
     {}
 
-    explicit utf8_iterator(BidirIt it) requires std::is_default_constructible_v<Counter> : m_base(std::move(it)) {}
+    explicit utf8_iterator(BidirIt it)
+        : m_base(std::move(it))
+    {}
 
     explicit utf8_iterator(BidirIt it, size_t counter) requires std::is_constructible_v<Counter, size_t>
         : Counter(counter), m_base(std::move(it))
@@ -223,25 +259,10 @@ public:
 
     auto base() const noexcept { return m_base; }
 
-    size_t counter() const noexcept requires requires(const Counter& c)
-    {
-        {
-            c.counter()
-        }
-        noexcept->std::same_as<size_t>;
-    }
-    {
-        return Counter::counter();
-    }
+    size_t counter() const noexcept requires HasCounter<Counter> { return Counter::counter(); }
 
     template<size_t n>
-    size_t counter(counter_index_t<n> idx = {}) const noexcept requires requires(const Counter& c)
-    {
-        {
-            c.counter(counter_index_t<n>())
-        }
-        noexcept->std::same_as<size_t>;
-    }
+    size_t counter(counter_index_t<n> idx = {}) const noexcept requires HasCounters<Counter, n>
     {
         return Counter::counter(idx);
     }
@@ -338,7 +359,7 @@ void utf8_prev(It& it, size_t n, const Sentinel& begin)
 } // namespace hlasm_plugin::utils
 
 namespace std {
-template<typename BidirIt, typename Counter>
+template<std::bidirectional_iterator BidirIt, ::hlasm_plugin::utils::ByteCounter Counter>
 struct pointer_traits<::hlasm_plugin::utils::utf8_iterator<BidirIt, Counter>>
 {
     using pointer = ::hlasm_plugin::utils::utf8_iterator<BidirIt, Counter>;

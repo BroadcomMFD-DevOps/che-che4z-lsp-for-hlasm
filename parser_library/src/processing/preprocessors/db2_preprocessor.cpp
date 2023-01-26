@@ -187,7 +187,7 @@ class mini_parser
     }
 
 public:
-    std::vector<semantics::preproc_details::name_range> get_args(It b, const It& e, size_t lineno)
+    std::vector<semantics::preproc_details::name_range> get_args(It b, const It& e, size_t lineno) const
     {
         enum class consuming_state
         {
@@ -330,7 +330,6 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
     semantics::source_info_processor& m_src_proc;
     db2_logical_line_helper m_ll_helper;
     db2_logical_line_helper m_ll_include_helper;
-    mini_parser<lexing::logical_line<std::string_view::iterator>::const_iterator> m_parser;
 
     enum class line_type
     {
@@ -701,7 +700,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         return result;
     }
 
-    bool handle_lob(std::string_view label, char type_start, char type_end, char scale, std::string size)
+    bool handle_lob(std::string_view label, char type_start, char type_end, char scale, long long size)
     {
         switch (type_end)
         {
@@ -719,7 +718,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
 
             default: {
                 const auto li = lob_info(type_start, scale);
-                auto len = std::stoll(size) * li.scale;
+                auto len = size * li.scale;
 
                 add_ds_line(label, "", "0FL4");
                 add_ds_line(label, "_LENGTH", "FL4", false);
@@ -814,8 +813,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
                     "LOCATOR",
                     m::alt(m::end(), separator));
 
-                auto wrk = it;
-                if (!matcher(wrk, it_e))
+                if (auto wrk = it; !matcher(wrk, it_e))
                     return false;
 
                 add_ds_line(label, "", "FL4");
@@ -826,15 +824,14 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
             case 'C':
             case 'D':
             case 'X': {
-                auto wrk = it;
-                if (!lob_or_xml_type(wrk, it_e))
+                if (auto wrk = it; !lob_or_xml_type(wrk, it_e))
                     return false;
                 char type_start = *type.value().first;
                 char type_end = *std::prev(type.value().second);
                 char scale = blob_unit.has_value() ? *blob_unit->first : 0;
-                std::string size;
+                long long size = 0;
                 if (blob_size.has_value())
-                    size = std::string(blob_size->first, blob_size->second);
+                    size = std::stoll(std::string(blob_size->first, blob_size->second));
                 return handle_lob(label, type_start, type_end, scale, size);
             }
             default:
@@ -957,7 +954,9 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
                 }
                 else
                 {
-                    args = m_parser.get_args(it, it_e, ll.m_lineno);
+                    static constexpr mini_parser<lexing::logical_line<std::string_view::iterator>::const_iterator>
+                        parser;
+                    args = parser.get_args(it, it_e, ll.m_lineno);
                     if (sql_has_codegen(it, it_e))
                         generate_sql_code_mock(args.size());
                     m_result.emplace_back(replaced_line { "***$$$\n" });
