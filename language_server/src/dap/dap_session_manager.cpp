@@ -65,8 +65,8 @@ session_manager::session_manager(
     , out_stream(&out)
     , telemetry_reporter(telem_reporter)
 {}
-session_manager::session_manager(session_manager&&) = default;
-session_manager& session_manager::operator=(session_manager&&) = default;
+session_manager::session_manager(session_manager&&) noexcept = default;
+session_manager& session_manager::operator=(session_manager&&) noexcept = default;
 session_manager::~session_manager() = default;
 
 // Inherited via json_sink

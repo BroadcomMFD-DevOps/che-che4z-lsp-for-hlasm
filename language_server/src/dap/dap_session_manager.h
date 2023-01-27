@@ -42,8 +42,10 @@ public:
     session_manager(hlasm_plugin::parser_library::workspace_manager& ws,
         json_sink& out,
         telemetry_sink* telemetry_reporter = nullptr);
-    session_manager(session_manager&&);
-    session_manager& operator=(session_manager&&);
+    session_manager(const session_manager&) = delete;
+    session_manager(session_manager&&) noexcept;
+    session_manager& operator=(const session_manager&) = delete;
+    session_manager& operator=(session_manager&&) noexcept;
     ~session_manager();
 
     // Inherited via json_sink

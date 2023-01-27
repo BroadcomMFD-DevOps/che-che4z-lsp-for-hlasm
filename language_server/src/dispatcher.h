@@ -25,7 +25,7 @@ class request_manager;
 
 // Reads and writes LSP (or DAP) messages from streams and deserializes them into json
 // Creates requests and passes them to request manager.
-class dispatcher : public send_message_provider
+class dispatcher final : public send_message_provider
 {
 public:
     // Takes istream to read messages, ostream to write messages,
