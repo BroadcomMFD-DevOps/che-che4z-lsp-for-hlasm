@@ -32,7 +32,7 @@ public:
         : server(ws_mngr)
         , cancel_(cancel)
     {}
-    void message_received(const json&) override
+    void message_received(const nlohmann::json&) override
     {
         ++messages_received;
         for (size_t i = 0; i < 50; ++i)
@@ -43,10 +43,12 @@ public:
         }
     }
 
-    void request(const std::string&, const json&, method) override {}
-    void respond(const json&, const std::string&, const json&) override {}
-    void notify(const std::string&, const json&) override {}
-    void respond_error(const json&, const std::string&, int, const std::string&, const json&) override {}
+    void request(const std::string&, const nlohmann::json&, method) override {}
+    void respond(const nlohmann::json&, const std::string&, const nlohmann::json&) override {}
+    void notify(const std::string&, const nlohmann::json&) override {}
+    void respond_error(
+        const nlohmann::json&, const std::string&, int, const std::string&, const nlohmann::json&) override
+    {}
 
     int messages_received = 0;
 

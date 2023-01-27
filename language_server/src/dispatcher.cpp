@@ -29,7 +29,7 @@ dispatcher::dispatcher(json_channel_adapter io, server& server, request_manager&
     server_.set_send_message_provider(this);
 }
 
-void dispatcher::reply(const json& message) { channel.write(message); }
+void dispatcher::reply(const nlohmann::json& message) { channel.write(message); }
 
 int dispatcher::run_server_loop()
 {

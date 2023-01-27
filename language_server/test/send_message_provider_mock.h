@@ -24,7 +24,7 @@ namespace hlasm_plugin::language_server {
 class send_message_provider_mock : public send_message_provider
 {
 public:
-    MOCK_METHOD1(reply, void(const json&));
+    MOCK_METHOD1(reply, void(const nlohmann::json&));
 };
 
 } // namespace hlasm_plugin::language_server

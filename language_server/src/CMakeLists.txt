@@ -14,7 +14,6 @@ target_sources(language_server_base PRIVATE
 	base_protocol_channel.cpp
 	base_protocol_channel.h
 	blocking_queue.h
-	common_types.h
 	dispatcher.cpp
 	dispatcher.h
 	feature.cpp

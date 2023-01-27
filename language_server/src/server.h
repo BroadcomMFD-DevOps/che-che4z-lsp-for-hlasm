@@ -18,7 +18,6 @@
 #include <chrono>
 #include <unordered_set>
 
-#include "common_types.h"
 #include "feature.h"
 #include "send_message_provider.h"
 #include "telemetry_sink.h"
@@ -37,7 +36,7 @@ public:
     explicit server(parser_library::workspace_manager& ws_mngr, telemetry_sink* telemetry_provider = nullptr);
 
     // Tells the server that a massage was received. The server carries out the notification or request.
-    virtual void message_received(const json& message) = 0;
+    virtual void message_received(const nlohmann::json& message) = 0;
 
     // Returns true, if LSP shutdown request has been received.
     bool is_shutdown_request_received() const;
@@ -63,7 +62,7 @@ protected:
     void register_feature_methods();
 
     // Calls a method that is registered in methods_ with the specified name with arguments and id of request.
-    void call_method(const std::string& method, const json& id, const json& args);
+    void call_method(const std::string& method, const nlohmann::json& id, const nlohmann::json& args);
 
     virtual telemetry_metrics_info get_telemetry_details();
 

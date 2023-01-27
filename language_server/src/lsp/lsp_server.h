@@ -19,7 +19,6 @@
 #include <string>
 #include <unordered_set>
 
-#include "../common_types.h"
 #include "../parsing_metadata_collector.h"
 #include "../server.h"
 #include "nlohmann/json_fwd.hpp"
@@ -41,24 +40,24 @@ public:
     explicit server(parser_library::workspace_manager& ws_mngr);
 
     // Parses LSP (JSON RPC) message and calls corresponding method.
-    void message_received(const json& message) override;
+    void message_received(const nlohmann::json& message) override;
 
     // Inherited via telemetry_sink
     void send_telemetry(const telemetry_message& message) override;
 
 protected:
     // Sends request to LSP client using send_message_provider.
-    void request(const std::string& requested_method, const json& args, method handler) override;
+    void request(const std::string& requested_method, const nlohmann::json& args, method handler) override;
     // Sends respond to request to LSP client using send_message_provider.
-    void respond(const json& id, const std::string& requested_method, const json& args) override;
+    void respond(const nlohmann::json& id, const std::string& requested_method, const nlohmann::json& args) override;
     // Sends notification to LSP client using send_message_provider.
-    void notify(const std::string& method, const json& args) override;
+    void notify(const std::string& method, const nlohmann::json& args) override;
     // Sends erroneous respond to LSP client using send_message_provider.
-    void respond_error(const json& id,
+    void respond_error(const nlohmann::json& id,
         const std::string& requested_method,
         int err_code,
         const std::string& err_message,
-        const json& error) override;
+        const nlohmann::json& error) override;
 
     telemetry_metrics_info get_telemetry_details() override;
 
@@ -70,15 +69,15 @@ private:
 
     // requests
     // Implements initialize request.
-    void on_initialize(json id, const json& param);
+    void on_initialize(nlohmann::json id, const nlohmann::json& param);
     // Implements the LSP shutdown request.
-    void on_shutdown(json id, const json& param);
+    void on_shutdown(nlohmann::json id, const nlohmann::json& param);
 
 
     // notifications
 
     // Implements the LSP exit request.
-    void on_exit(json id, const json& param);
+    void on_exit(nlohmann::json id, const nlohmann::json& param);
 
 
     // client notifications
