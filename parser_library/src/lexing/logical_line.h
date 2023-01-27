@@ -58,6 +58,21 @@ struct logical_line_segment
     bool so_si_continuation;
 
     logical_line_segment_eol eol;
+
+    It skipped_begin() const noexcept { return begin; }
+    It skipped_end() const noexcept { return code; }
+
+    It code_begin() const noexcept { return code; }
+    It code_end() const noexcept { return continuation; }
+
+    It continuation_begin() const noexcept { return continuation; }
+    It continuation_end() const noexcept { return ignore; }
+
+    It ignore_begin() const noexcept { return ignore; }
+    It ignore_end() const noexcept { return end; }
+
+    It line_begin() const noexcept { return begin; }
+    It line_end() const noexcept { return end; }
 };
 
 template<typename It>

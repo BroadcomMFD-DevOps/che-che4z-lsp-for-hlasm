@@ -15,6 +15,7 @@
 #include "input_source.h"
 
 #include <exception>
+#include <iterator>
 
 #include "logical_line.h"
 #include "utils/unicode_text.h"

@@ -16,6 +16,8 @@
 
 #include <cassert>
 
+#include "antlr4-runtime.h"
+
 using namespace hlasm_plugin::parser_library;
 namespace hlasm_plugin::parser_library::semantics {
 

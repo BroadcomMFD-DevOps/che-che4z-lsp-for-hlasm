@@ -18,10 +18,13 @@
 #include <utility>
 #include <vector>
 
-#include "antlr4-runtime.h"
-
 #include "lexing/logical_line.h"
 #include "range.h"
+
+namespace antlr4 {
+class ParserRuleContext;
+class Token;
+} // namespace antlr4
 
 namespace hlasm_plugin::parser_library::semantics {
 

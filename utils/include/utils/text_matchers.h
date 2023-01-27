@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Broadcom.
+ * Copyright (c) 2023 Broadcom.
  * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program and the accompanying materials are made
@@ -42,7 +42,7 @@ class basic_string_matcher
     std::string_view to_match;
 
 public:
-    // case_sensitive => to_match assumed in capitals
+    // case_sensitive = false => to_match assumed in capitals
     explicit constexpr basic_string_matcher(std::string_view to_match)
         : to_match(to_match)
     {}
@@ -62,7 +62,7 @@ public:
                     return false;
             }
             auto in_c = *work++;
-            if constexpr (!case_sensitive)
+            if constexpr (not case_sensitive)
                 in_c = std::toupper((unsigned char)in_c);
 
             if (in_c != c)
@@ -79,7 +79,6 @@ class char_matcher_impl
     std::string_view to_match;
 
 public:
-    // case_sensitive => to_match assumed in capitals
     explicit constexpr char_matcher_impl(std::string_view to_match)
         : to_match(to_match)
     {}
@@ -136,7 +135,7 @@ constexpr auto times(Matcher&& matcher) requires(min <= max)
     };
 }
 
-template<bool empty_allowed, bool single_line>
+template<bool allow_empty_match, bool single_line>
 class space_matcher
 {
 public:
@@ -155,7 +154,7 @@ public:
                 break;
             ++work;
         }
-        if constexpr (!empty_allowed)
+        if constexpr (not allow_empty_match)
         {
             if (work == b)
                 return false;

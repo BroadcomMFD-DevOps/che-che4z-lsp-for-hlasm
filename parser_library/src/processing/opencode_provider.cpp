@@ -188,9 +188,8 @@ void opencode_provider::process_comment()
             auto skip_len = lexing::logical_distance(l.begin, l.code);
             auto code_len = lexing::logical_distance(l.begin, l.continuation);
 
-            m_src_proc->add_hl_symbol(
-                token_info(range(position(line_no, skip_len), position(line_no, skip_len + code_len)),
-                    semantics::hl_scopes::comment));
+            m_src_proc->add_hl_symbol(token_info(
+                range(position(line_no, skip_len), position(line_no, code_len)), semantics::hl_scopes::comment));
         }
         ++line_no;
     }

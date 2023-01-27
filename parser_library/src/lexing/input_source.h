@@ -15,6 +15,9 @@
 #ifndef HLASMPLUGIN_PARSER_HLASMINPUTSOURCE_H
 #define HLASMPLUGIN_PARSER_HLASMINPUTSOURCE_H
 
+#include <string>
+#include <string_view>
+
 #include "antlr4-runtime.h"
 
 #include "logical_line.h"
