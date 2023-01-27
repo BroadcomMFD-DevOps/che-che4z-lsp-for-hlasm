@@ -17,6 +17,7 @@
 
 #include "../logger.h"
 #include "dap_feature.h"
+#include "nlohmann/json.hpp"
 
 namespace hlasm_plugin::language_server::dap {
 
@@ -27,7 +28,7 @@ server::server(parser_library::workspace_manager& ws_mngr, telemetry_sink* telem
     register_feature_methods();
 }
 
-void server::request(const json&, const std::string&, const json&, method)
+void server::request(const std::string&, const json&, method)
 {
     // Currently, there are no supported DAP requests from client to server
     /*send_message_->reply(json {

@@ -19,6 +19,7 @@
 #include <utility>
 
 #include "../feature.h"
+#include "nlohmann/json.hpp"
 #include "utils/resource_location.h"
 
 namespace {

@@ -14,6 +14,8 @@
 
 #include "feature.h"
 
+#include "nlohmann/json.hpp"
+
 namespace hlasm_plugin::language_server {
 
 parser_library::range feature::parse_range(const json& range_json)

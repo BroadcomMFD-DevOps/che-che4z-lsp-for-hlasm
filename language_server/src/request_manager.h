@@ -20,8 +20,8 @@
 #include <thread>
 #include <utility>
 
+#include "nlohmann/json.hpp"
 #include "server.h"
-
 
 namespace hlasm_plugin::language_server {
 

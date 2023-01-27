@@ -16,6 +16,7 @@
 
 #include "../logger.h"
 #include "lib_config.h"
+#include "nlohmann/json.hpp"
 #include "utils/path.h"
 #include "utils/path_conversions.h"
 #include "utils/platform.h"
@@ -150,11 +151,9 @@ void feature_workspace_folders::send_configuration_request()
             json::object(),
         },
     } };
-    response_->request("config_request_" + std::to_string(config_request_number_),
-        "workspace/configuration",
+    response_->request("workspace/configuration",
         config_request_args,
         { [this](const json& id, const json& params) { configuration(id, params); }, telemetry_log_level::LOG_EVENT });
-    ++config_request_number_;
 }
 
 void feature_workspace_folders::configuration(const json&, const json& params) const

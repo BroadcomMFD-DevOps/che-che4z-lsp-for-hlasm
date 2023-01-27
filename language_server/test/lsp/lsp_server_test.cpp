@@ -51,9 +51,9 @@ TEST(lsp_server, initialize)
     json show_message =
         R"({"jsonrpc":"2.0", "method" : "window/showMessage", "params" : {"message":"The capabilities of hlasm language server were sent!", "type" : 3}})"_json;
     json register_message =
-        R"({"jsonrpc":"2.0", "id":"register1", "method" : "client/registerCapability", "params" : [{"registrations":[{"id":"configureRegister", "method":"workspace/didChangeConfiguration"}]}]})"_json;
+        R"({"jsonrpc":"2.0", "id":0, "method" : "client/registerCapability", "params" : [{"registrations":[{"id":"configureRegister", "method":"workspace/didChangeConfiguration"}]}]})"_json;
     json config_request_message =
-        R"({"id":"config_request_0","jsonrpc":"2.0","method":"workspace/configuration","params":{"items":[{"section":"hlasm"},{}]}})"_json;
+        R"({"id":1,"jsonrpc":"2.0","method":"workspace/configuration","params":{"items":[{"section":"hlasm"},{}]}})"_json;
 
     EXPECT_CALL(smpm, reply(::testing::_)).WillOnce(::testing::SaveArg<0>(&server_capab));
     EXPECT_CALL(smpm, reply(show_message)).Times(::testing::AtMost(1));
@@ -72,7 +72,7 @@ TEST(lsp_server, initialize)
     EXPECT_NE(server_capab["result"].find("capabilities"), server_capab["result"].end());
 
     // provide response to the register request
-    json register_response = R"({"jsonrpc":"2.0","id":"register1","result":null})"_json;
+    json register_response = R"({"jsonrpc":"2.0","id":0,"result":null})"_json;
     s.message_received(register_response);
 
     json shutdown_request = R"({"jsonrpc":"2.0","id":48,"method":"shutdown","params":null})"_json;
@@ -134,23 +134,21 @@ TEST(lsp_server, request_correct)
     response_provider& rp = s;
     request_handler handler;
 
-    json expected_message =
-        R"({"id":"a_request","jsonrpc":"2.0","method":"client_method","params":"a_json_parameter"})"_json;
+    json expected_message = R"({"id":0,"jsonrpc":"2.0","method":"client_method","params":"a_json_parameter"})"_json;
 
     EXPECT_CALL(message_provider, reply(expected_message));
 
-    rp.request("a_request",
-        "client_method",
+    rp.request("client_method",
         "a_json_parameter",
         { [&handler](const json& id, const json& params) { handler.handle(id, params); },
             telemetry_log_level::NO_TELEMETRY });
 
-    json request_response = R"({"id":"a_request","jsonrpc":"2.0","result":"response_result"})"_json;
+    json request_response = R"({"id":0,"jsonrpc":"2.0","result":"response_result"})"_json;
 
     s.message_received(request_response);
 
     ASSERT_EQ(handler.counter, 1);
-    EXPECT_EQ(handler.received_id, "a_request");
+    EXPECT_EQ(handler.received_id, 0);
     EXPECT_EQ(handler.received_args, "response_result");
 }
 

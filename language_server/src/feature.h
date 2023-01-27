@@ -19,7 +19,7 @@
 #include <string>
 
 #include "common_types.h"
-#include "nlohmann/json.hpp"
+#include "nlohmann/json_fwd.hpp"
 #include "workspace_manager.h"
 
 namespace hlasm_plugin::language_server {
@@ -28,7 +28,7 @@ namespace hlasm_plugin::language_server {
 class response_provider
 {
 public:
-    virtual void request(const json& id, const std::string& requested_method, const json& args, method handler) = 0;
+    virtual void request(const std::string& requested_method, const json& args, method handler) = 0;
     virtual void respond(const json& id, const std::string& requested_method, const json& args) = 0;
     virtual void notify(const std::string& method, const json& args) = 0;
     virtual void respond_error(const json& id,

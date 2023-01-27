@@ -18,23 +18,13 @@
 #include <chrono>
 #include <unordered_set>
 
-#include "json_channel.h"
-
 #include "common_types.h"
 #include "feature.h"
+#include "send_message_provider.h"
 #include "telemetry_sink.h"
 #include "workspace_manager.h"
 
 namespace hlasm_plugin::language_server {
-
-// Interface that the server uses to send messages to the LSP client.
-class send_message_provider
-{
-public:
-    // Serializes the json and sends it to the LSP client.
-    virtual void reply(const json& result) = 0;
-    virtual ~send_message_provider() = default;
-};
 
 // Abstract class that calls the correct serving method for registered LSP and DAP notifications and requests
 // Can be implemented to fit LSP or DAP. Class implementing this class must also implement response
@@ -62,7 +52,7 @@ protected:
     std::vector<std::unique_ptr<feature>> features_;
 
     std::map<std::string, method> methods_;
-    std::unordered_map<json, method> request_handlers_;
+    std::unordered_map<unsigned long long, method> request_handlers_;
 
     bool shutdown_request_received_ = false;
     bool exit_notification_received_ = false;

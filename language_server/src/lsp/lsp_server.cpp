@@ -28,6 +28,7 @@
 #include "feature_text_synchronization.h"
 #include "feature_workspace_folders.h"
 #include "lib_config.h"
+#include "nlohmann/json.hpp"
 #include "parsing_metadata_serialization.h"
 #include "utils/general_hashers.h"
 #include "utils/resource_location.h"
@@ -67,7 +68,9 @@ void server::message_received(const json& message)
             return;
         }
 
-        auto handler_found = request_handlers_.find(*id_found);
+        auto handler_found = request_handlers_.end();
+        if (id_found->is_number_unsigned())
+            handler_found = request_handlers_.find(id_found->get<unsigned long long>());
         if (handler_found == request_handlers_.end())
         {
             LOG_WARNING("A response with no registered handler received.");
@@ -75,7 +78,7 @@ void server::message_received(const json& message)
             return;
         }
 
-        method handler = handler_found->second;
+        method handler = std::move(handler_found->second);
         request_handlers_.erase(handler_found);
         handler.handler(id_found.value(), result_found.value());
         return;
@@ -122,8 +125,9 @@ telemetry_metrics_info server::get_telemetry_details()
     return telemetry_metrics_info { parsing_metadata_.data, diags_error_count, diags_warning_count };
 }
 
-void server::request(const json& id, const std::string& requested_method, const json& args, method handler)
+void server::request(const std::string& requested_method, const json& args, method handler)
 {
+    auto id = request_id_counter++;
     json reply { { "jsonrpc", "2.0" }, { "id", id }, { "method", requested_method }, { "params", args } };
     request_handlers_.emplace(id, handler);
     send_message_->reply(reply);
@@ -202,8 +206,7 @@ void server::on_initialize(json id, const json& param)
         { { "registrations", { { { "id", "configureRegister" }, { "method", "workspace/didChangeConfiguration" } } } } }
     };
 
-    request("register1",
-        "client/registerCapability",
+    request("client/registerCapability",
         register_configuration_changed_args,
         { &empty_handler, telemetry_log_level::NO_TELEMETRY });
 

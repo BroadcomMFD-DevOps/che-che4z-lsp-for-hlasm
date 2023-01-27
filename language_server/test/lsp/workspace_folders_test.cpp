@@ -19,6 +19,7 @@
 #include "../ws_mngr_mock.h"
 #include "lib_config.h"
 #include "lsp/feature_workspace_folders.h"
+#include "nlohmann/json.hpp"
 #include "utils/platform.h"
 
 using namespace hlasm_plugin;
@@ -86,13 +87,7 @@ TEST(workspace_folders, initialize_folders)
     response_provider_mock rpm;
     lsp::feature_workspace_folders f(ws_mngr, rpm);
 
-    for (int config_request_number = 0; config_request_number < 5; ++config_request_number)
-        EXPECT_CALL(rpm,
-            request(json("config_request_" + std::to_string(config_request_number)),
-                std::string("workspace/configuration"),
-                _,
-                _))
-            .Times(1);
+    EXPECT_CALL(rpm, request(std::string("workspace/configuration"), _, _)).Times(5);
 
     // workspace folders on, but no workspaces provided
     json init1 = R"({"processId":5236,
@@ -162,9 +157,8 @@ TEST(workspace_folders, did_change_configuration)
     method handler;
     json config_request_args { { "items", json::array_t { { { "section", "hlasm" } }, json::object() } } };
 
-    EXPECT_CALL(
-        provider, request(json("config_request_0"), "workspace/configuration", config_request_args, ::testing::_))
-        .WillOnce(::testing::SaveArg<3>(&handler));
+    EXPECT_CALL(provider, request("workspace/configuration", config_request_args, ::testing::_))
+        .WillOnce(::testing::SaveArg<2>(&handler));
 
     methods["workspace/didChangeConfiguration"].handler("did_change_configuration_id", "{}"_json);
 
@@ -193,9 +187,8 @@ TEST(workspace_folders, did_change_configuration_empty_configuration_params)
     method handler;
     json config_request_args { { "items", json::array_t { { { "section", "hlasm" } }, json::object() } } };
 
-    EXPECT_CALL(
-        provider, request(json("config_request_0"), "workspace/configuration", config_request_args, ::testing::_))
-        .WillOnce(::testing::SaveArg<3>(&handler));
+    EXPECT_CALL(provider, request("workspace/configuration", config_request_args, ::testing::_))
+        .WillOnce(::testing::SaveArg<2>(&handler));
 
     methods["workspace/didChangeConfiguration"].handler("did_change_configuration_id", "{}"_json);
 

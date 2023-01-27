@@ -19,6 +19,7 @@
 
 #include "dap/dap_server.h"
 #include "lsp/lsp_server.h"
+#include "nlohmann/json.hpp"
 #include "scope_exit.h"
 #include "send_message_provider_mock.h"
 #include "stream_helper.h"

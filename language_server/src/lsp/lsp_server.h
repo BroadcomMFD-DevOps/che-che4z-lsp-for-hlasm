@@ -15,13 +15,14 @@
 #ifndef HLASMPLUGIN_HLASMLANGUAGESERVER_LSP_SERVER_H
 #define HLASMPLUGIN_HLASMLANGUAGESERVER_LSP_SERVER_H
 
+#include <atomic>
 #include <string>
 #include <unordered_set>
 
 #include "../common_types.h"
 #include "../parsing_metadata_collector.h"
 #include "../server.h"
-#include "nlohmann/json.hpp"
+#include "nlohmann/json_fwd.hpp"
 #include "telemetry_sink.h"
 #include "workspace_manager.h"
 
@@ -47,7 +48,7 @@ public:
 
 protected:
     // Sends request to LSP client using send_message_provider.
-    void request(const json& id, const std::string& requested_method, const json& args, method handler) override;
+    void request(const std::string& requested_method, const json& args, method handler) override;
     // Sends respond to request to LSP client using send_message_provider.
     void respond(const json& id, const std::string& requested_method, const json& args) override;
     // Sends notification to LSP client using send_message_provider.
@@ -62,6 +63,7 @@ protected:
     telemetry_metrics_info get_telemetry_details() override;
 
 private:
+    std::atomic<unsigned long long> request_id_counter = 0;
     parsing_metadata_collector parsing_metadata_;
     size_t diags_warning_count = 0;
     size_t diags_error_count = 0;

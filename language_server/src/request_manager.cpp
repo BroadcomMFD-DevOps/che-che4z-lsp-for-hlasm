@@ -16,6 +16,8 @@
 
 #include <string_view>
 
+#include "nlohmann/json.hpp"
+
 using namespace hlasm_plugin::language_server;
 
 request::request(json message, server* executing_server)

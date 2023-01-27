@@ -17,6 +17,7 @@
 #include "gmock/gmock.h"
 
 #include "lsp/lsp_server.h"
+#include "nlohmann/json.hpp"
 #include "request_manager.h"
 
 using namespace hlasm_plugin;

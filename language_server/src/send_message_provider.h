@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Broadcom.
+ * Copyright (c) 2019 Broadcom.
  * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program and the accompanying materials are made
@@ -12,22 +12,24 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
-#ifndef HLASMPLUGIN_LANGUAGESERVER_PARSING_METADATA_SINK_H
-#define HLASMPLUGIN_LANGUAGESERVER_PARSING_METADATA_SINK_H
+#ifndef HLASMPLUGIN_LANGUAGESERVER_SEND_MESSAGE_PROVIDER_H
+#define HLASMPLUGIN_LANGUAGESERVER_SEND_MESSAGE_PROVIDER_H
 
-#include "workspace_manager.h"
+#include "nlohmann/json_fwd.hpp"
 
 namespace hlasm_plugin::language_server {
 
-struct parsing_metadata_collector final : public parser_library::parsing_metadata_consumer
+// Interface that the server uses to send messages to the LSP client.
+class send_message_provider
 {
-    void consume_parsing_metadata(const parser_library::parsing_metadata& metadata) override { data = metadata; }
+protected:
+    ~send_message_provider() = default;
 
-    parser_library::parsing_metadata data;
+public:
+    // Serializes the json and sends it to the LSP client.
+    virtual void reply(const nlohmann::json& result) = 0;
 };
 
 } // namespace hlasm_plugin::language_server
-
-
 
 #endif

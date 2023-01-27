@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Broadcom.
+ * Copyright (c) 2023 Broadcom.
  * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program and the accompanying materials are made
@@ -12,22 +12,12 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
-#ifndef HLASMPLUGIN_LANGUAGESERVER_PARSING_METADATA_SINK_H
-#define HLASMPLUGIN_LANGUAGESERVER_PARSING_METADATA_SINK_H
+#include "json_channel.h"
 
-#include "workspace_manager.h"
+#include "nlohmann/json.hpp"
 
 namespace hlasm_plugin::language_server {
-
-struct parsing_metadata_collector final : public parser_library::parsing_metadata_consumer
-{
-    void consume_parsing_metadata(const parser_library::parsing_metadata& metadata) override { data = metadata; }
-
-    parser_library::parsing_metadata data;
-};
-
+std::optional<nlohmann::json> json_channel_adapter::read() { return source.read(); }
+void json_channel_adapter::write(const nlohmann::json& j) { sink.write(j); }
+void json_channel_adapter::write(nlohmann::json&& j) { sink.write(std::move(j)); }
 } // namespace hlasm_plugin::language_server
-
-
-
-#endif

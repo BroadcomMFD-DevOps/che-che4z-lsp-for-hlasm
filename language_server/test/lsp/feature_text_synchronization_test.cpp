@@ -20,6 +20,7 @@
 #include "../response_provider_mock.h"
 #include "../ws_mngr_mock.h"
 #include "lsp/feature_text_synchronization.h"
+#include "nlohmann/json.hpp"
 #include "utils/platform.h"
 #include "utils/resource_location.h"
 

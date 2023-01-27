@@ -17,7 +17,7 @@
 
 #include <functional>
 
-#include "nlohmann/json.hpp"
+#include "nlohmann/json_fwd.hpp"
 
 // Types that are used throughout the language server component
 namespace hlasm_plugin::language_server {
@@ -36,8 +36,6 @@ struct method
     std::function<void(const json& id, const json& params)> handler;
     telemetry_log_level telemetry_level;
 };
-
-using send_message_callback = std::function<void(const json&)>;
 } // namespace hlasm_plugin::language_server
 
 #endif

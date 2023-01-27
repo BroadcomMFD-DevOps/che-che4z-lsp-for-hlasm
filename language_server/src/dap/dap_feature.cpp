@@ -14,6 +14,7 @@
 
 #include "dap_feature.h"
 
+#include "nlohmann/json.hpp"
 #include "utils/path.h"
 #include "utils/path_conversions.h"
 #include "utils/platform.h"

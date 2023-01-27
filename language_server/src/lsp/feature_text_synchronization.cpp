@@ -17,6 +17,7 @@
 #include <memory>
 
 #include "../logger.h"
+#include "nlohmann/json.hpp"
 #include "protocol.h"
 #include "utils/resource_location.h"
 

@@ -18,8 +18,10 @@
 
 #include "base_protocol_channel.h"
 #include "dispatcher.h"
+#include "nlohmann/json.hpp"
+#include "request_manager.h"
+#include "server.h"
 #include "stream_helper.h"
-
 
 using namespace hlasm_plugin;
 using namespace hlasm_plugin::language_server;
@@ -37,7 +39,7 @@ public:
 
     std::vector<json> messages;
 
-    void request(const json&, const std::string&, const json&, method) override {}
+    void request(const std::string&, const json&, method) override {}
     void respond(const json&, const std::string&, const json&) override {}
     void notify(const std::string&, const json&) override {}
     void respond_error(const json&, const std::string&, int, const std::string&, const json&) override {}

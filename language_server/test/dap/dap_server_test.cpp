@@ -20,6 +20,7 @@
 #include "gmock/gmock.h"
 
 #include "dap/dap_server.h"
+#include "nlohmann/json.hpp"
 #include "utils/path.h"
 #include "utils/platform.h"
 #include "workspace_manager.h"

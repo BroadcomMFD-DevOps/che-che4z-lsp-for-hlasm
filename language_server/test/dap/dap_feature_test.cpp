@@ -21,6 +21,7 @@
 
 #include "dap/dap_server.h"
 #include "feature.h"
+#include "nlohmann/json.hpp"
 #include "utils/path.h"
 #include "utils/path_conversions.h"
 #include "workspace_manager.h"
@@ -57,7 +58,7 @@ struct notif_mock
 
 struct response_provider_mock : public response_provider
 {
-    void request(const json&, const std::string&, const json&, method) override {};
+    void request(const std::string&, const json&, method) override {};
     void respond(const json& id, const std::string& requested_method, const json& args) override
     {
         responses.push_back({ id, requested_method, args });

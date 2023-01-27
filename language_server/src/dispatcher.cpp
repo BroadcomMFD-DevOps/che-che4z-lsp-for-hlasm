@@ -16,6 +16,8 @@
 
 #include "logger.h"
 #include "nlohmann/json.hpp"
+#include "request_manager.h"
+#include "server.h"
 
 namespace hlasm_plugin::language_server {
 
