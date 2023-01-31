@@ -46,7 +46,7 @@ public:
         processing_kind proc_kind,
         bool) override;
 
-    inline const hit_count_map& get_hit_counts() const { return m_hit_counts; };
+    inline hit_count_map&& take_hit_counts() { return std::move(m_hit_counts); };
 
 private:
     context::hlasm_context& m_ctx;

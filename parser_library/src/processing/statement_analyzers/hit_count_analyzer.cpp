@@ -18,6 +18,7 @@
 #include <optional>
 
 #include "context/id_storage.h"
+#include "processing/error_statement.h"
 #include "processing/statement.h"
 
 namespace hlasm_plugin::parser_library::processing {
@@ -43,6 +44,36 @@ size_t& emplace_hit_count(hit_count_map& hc_map, const utils::resource::resource
     return stmt_count;
 }
 
+std::optional<range> get_range(const context::hlasm_statement* stmt)
+{
+    if (!stmt)
+        return std::nullopt;
+
+    if (stmt->kind == context::statement_kind::RESOLVED)
+    {
+        if (auto resolved = stmt->access_resolved(); resolved)
+            return resolved->stmt_range_ref();
+    }
+    else if (stmt->kind == context::statement_kind::DEFERRED)
+    {
+        if (auto deferred = stmt->access_deferred(); deferred)
+            return deferred->stmt_range_ref();
+    }
+    else
+    {
+        auto err_stmt = dynamic_cast<const error_statement*>(stmt);
+        if (!err_stmt)
+            return std::nullopt;
+
+        auto r = range(err_stmt->statement_position());
+        r.end.column = 72;
+
+        return r;
+    }
+
+    return std::nullopt;
+}
+
 template<typename DEFINITION>
 void insert_external_definitions(DEFINITION definition,
     std::string_view lib_name,
@@ -53,24 +84,6 @@ void insert_external_definitions(DEFINITION definition,
         return;
 
     processed_libs.emplace(lib_name);
-
-    static constexpr auto get_range = [](const context::hlasm_statement* stmt) -> std::optional<range> {
-        if (!stmt)
-            return std::nullopt;
-
-        if (stmt->kind == context::statement_kind::RESOLVED)
-        {
-            if (auto resolved = stmt->access_resolved(); resolved)
-                return resolved->stmt_range_ref();
-        }
-        else if (stmt->kind == context::statement_kind::DEFERRED)
-        {
-            if (auto deferred = stmt->access_deferred(); deferred)
-                return deferred->stmt_range_ref();
-        }
-
-        return std::nullopt;
-    };
 
     for (const auto& stmt : definition->cached_definition)
     {
@@ -83,19 +96,17 @@ void insert_external_definitions(DEFINITION definition,
 void hit_count_analyzer::analyze(
     const context::hlasm_statement& statement, statement_provider_kind prov_kind, processing_kind proc_kind, bool)
 {
-    if (proc_kind == processing::processing_kind::MACRO || proc_kind == processing::processing_kind::COPY)
+    if (statement.kind == context::statement_kind::DEFERRED || proc_kind == processing::processing_kind::MACRO
+        || proc_kind == processing::processing_kind::COPY)
         return;
 
-    // Optimization -> we're not interested in empty opencode statements
-    if (proc_kind == processing::processing_kind::ORDINARY
-        && statement.access_resolved()->label_ref().type == semantics::label_si_type::EMPTY
-        && statement.access_resolved()->instruction_ref().type == semantics::instruction_si_type::EMPTY)
+    auto stmt_range = get_range(&statement);
+    if (!stmt_range
+        || (proc_kind == processing::processing_kind::ORDINARY && stmt_range->start == stmt_range->end
+            && stmt_range->start.column == 0))
         return;
 
     const auto& frame = m_ctx.processing_stack().frame();
-
-    assert(statement.access_resolved());
-    auto stmt_range = statement.access_resolved()->stmt_range_ref();
 
     if (prov_kind == statement_provider_kind::MACRO)
         insert_external_definitions(m_ctx.get_macro_definition(frame.member_name),
@@ -109,11 +120,11 @@ void hit_count_analyzer::analyze(
             m_processed_members);
     else
     {
-        stmt_range.end.line = m_ctx.current_source().end_index - 1;
-        stmt_range.end.column = 72;
+        stmt_range->end.line = m_ctx.current_source().end_index - 1;
+        stmt_range->end.column = 72;
     }
 
-    auto& count = emplace_hit_count(m_hit_counts, *frame.resource_loc, std::move(stmt_range));
+    auto& count = emplace_hit_count(m_hit_counts, *frame.resource_loc, std::move(*stmt_range));
 
     if (proc_kind == processing::processing_kind::ORDINARY)
         count++;

@@ -25,6 +25,22 @@
 
 namespace hlasm_plugin::parser_library::workspaces {
 
+void file_manager_impl::retrieve_fade_messages(std::vector<fade_message_s>& fms)
+{
+    processing::hit_count_map hc_map;
+
+    for (const auto& [_, file_impl] : files_)
+    {
+        file_impl->retrieve_fade_messages(fms);
+        file_impl->retrieve_hit_counts(hc_map);
+    }
+
+    for (const auto& [rl, stmt_hc_m] : hc_map)
+        for (const auto& [line, details] : stmt_hc_m)
+            if (!details.count)
+                fms.emplace_back(fade_message_s::inactive_statement(rl.get_uri(), details.r));
+}
+
 std::shared_ptr<file> file_manager_impl::add_file(const file_location& file)
 {
     std::lock_guard guard(files_mutex);

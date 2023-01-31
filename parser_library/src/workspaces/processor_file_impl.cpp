@@ -35,14 +35,6 @@ processor_file_impl::processor_file_impl(std::shared_ptr<file> file, file_manage
 void processor_file_impl::collect_diags() const {}
 bool processor_file_impl::is_once_only() const { return false; }
 
-namespace {
-void store_hit_counts(const processing::hit_count_analyzer& hc_analyzer, processing::hit_count_map& hc_map)
-{
-    const auto& hcs = hc_analyzer.get_hit_counts();
-    hc_map.insert(std::begin(hcs), std::end(hcs));
-}
-} // namespace
-
 parse_result processor_file_impl::parse(parse_lib_provider& lib_provider,
     asm_option asm_opts,
     std::vector<preprocessor_options> pp,
@@ -96,7 +88,7 @@ parse_result processor_file_impl::parse(parse_lib_provider& lib_provider,
             files_to_close_.insert(file);
     }
 
-    process_hit_counts(hc_analyzer, fms);
+    hc_map_ = std::move(hc_analyzer.take_hit_counts());
     fade_messages_ = std::move(fms);
 
     return true;
@@ -117,13 +109,12 @@ parse_result processor_file_impl::parse_macro(
             &lib_provider,
             std::move(ctx),
             data,
-            collect_hl ? collect_highlighting_info::yes : collect_highlighting_info::no,
-        });
 
     processing::hit_count_analyzer hc_analyzer(a->hlasm_ctx());
     a->register_stmt_analyzer(&hc_analyzer);
 
     a->analyze(cancel_);
+
 
     if (cancel_ && *cancel_)
         return false;
@@ -133,9 +124,6 @@ parse_result processor_file_impl::parse_macro(
 
     macro_cache_.save_macro(cache_key, *a);
     last_analyzer_ = std::move(a);
-    last_analyzer_opencode_ = false;
-    last_analyzer_with_lsp = collect_hl;
-
     hc_map_.clear();
     store_hit_counts(hc_analyzer, hc_map_);
 
@@ -189,9 +177,6 @@ bool processor_file_impl::has_lsp_info() const { return last_analyzer_ && last_a
 
 void processor_file_impl::retrieve_fade_messages(std::vector<fade_message_s>& fms) const
 {
-    fms.insert(std::end(fms), std::begin(*fade_messages_), std::end(*fade_messages_));
-}
-
 const file_location& processor_file_impl::get_location() const { return file_->get_location(); }
 
 bool processor_file_impl::current_version() const
@@ -214,6 +199,18 @@ void processor_file_impl::store_used_files(std::unordered_map<utils::resource::r
     utils::resource::resource_location_hasher> uf)
 {
     used_files = std::move(uf);
+            hc_map[rl][line].r = details.r;
+        }
+    }
+}
+
+void processor_file_impl::retrieve_hit_counts(processing::hit_count_map& hc_map)
+{
+    for (const auto& [rl, stmt_hc_m] : hc_map_)
+        if (auto [stmt_hc_it, result1] = hc_map.try_emplace(rl, stmt_hc_m); !result1)
+            for (const auto& [line, details] : stmt_hc_m)
+                if (auto [it, result2] = stmt_hc_it->second.try_emplace(line, details); !result2)
+                    it->second.count += details.count;
 }
 
 } // namespace hlasm_plugin::parser_library::workspaces
