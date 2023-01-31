@@ -40,8 +40,8 @@ parse_result processor_file_impl::parse(parse_lib_provider& lib_provider,
     std::vector<preprocessor_options> pp,
     virtual_file_monitor* vfm)
 {
-    if (!last_opencode_id_storage_)
-        last_opencode_id_storage_ = std::make_shared<context::id_storage>();
+    if (!m_last_analyzer_opencode)
+        m_last_opencode_id_storage = std::make_shared<context::id_storage>();
 
     const bool collect_hl = should_collect_hl();
     auto fms = std::make_shared<std::vector<fade_message_s>>();
@@ -52,44 +52,45 @@ parse_result processor_file_impl::parse(parse_lib_provider& lib_provider,
             std::move(asm_opts),
             collect_hl ? collect_highlighting_info::yes : collect_highlighting_info::no,
             file_is_opencode::yes,
-            last_opencode_id_storage_,
+            m_last_opencode_id_storage,
             std::move(pp),
             vfm,
             fms,
         });
 
-    auto old_dep = dependencies_;
+    auto old_dep = m_dependencies;
 
     processing::hit_count_analyzer hc_analyzer(new_analyzer->hlasm_ctx());
     new_analyzer->register_stmt_analyzer(&hc_analyzer);
 
     new_analyzer->analyze(cancel_);
 
-    if (cancel_ && *cancel_)
+    if (m_cancel && *m_cancel)
         return false;
 
     diags().clear();
     collect_diags_from_child(*new_analyzer);
 
-    last_analyzer_ = std::move(new_analyzer);
-    last_analyzer_opencode_ = true;
-    last_analyzer_with_lsp = collect_hl;
+    m_last_analyzer = std::move(new_analyzer);
+    m_last_analyzer_opencode = true;
+    m_last_analyzer_with_lsp = collect_hl;
 
-    dependencies_.clear();
-    for (auto& file : last_analyzer_->hlasm_ctx().get_visited_files())
-        if (file != file_->get_location())
-            dependencies_.insert(file);
+    m_dependencies.clear();
+    for (auto& file : m_last_analyzer->hlasm_ctx().get_visited_files())
+        if (file != m_file->get_location())
+            m_dependencies.insert(file);
 
-    files_to_close_.clear();
+    m_files_to_close.clear();
     // files that used to be dependencies but are not anymore should be closed internally
     for (const auto& file : old_dep)
     {
-        if (dependencies_.find(file) == dependencies_.end())
-            files_to_close_.insert(file);
+        if (m_dependencies.find(file) == m_dependencies.end())
+            m_files_to_close.insert(file);
     }
 
-    hc_map_ = std::move(hc_analyzer.take_hit_counts());
-    fade_messages_ = std::move(fms);
+    m_hc_map = std::move(hc_analyzer.take_hit_counts());
+    m_fade_messages = std::move(fms);
+
 
     return true;
 }
@@ -99,7 +100,7 @@ parse_result processor_file_impl::parse_macro(
 {
     auto cache_key = macro_cache_key::create_from_context(*ctx.hlasm_ctx, data);
 
-    if (macro_cache_.load_from_cache(cache_key, ctx))
+    if (m_macro_cache.load_from_cache(cache_key, ctx))
         return true;
 
     const bool collect_hl = should_collect_hl(ctx.hlasm_ctx.get());
@@ -119,23 +120,23 @@ parse_result processor_file_impl::parse_macro(
     if (cancel_ && *cancel_)
         return false;
 
-    diags().clear();
-    collect_diags_from_child(*a);
-
     macro_cache_.save_macro(cache_key, *a);
     last_analyzer_ = std::move(a);
-    hc_map_.clear();
-    store_hit_counts(hc_analyzer, hc_map_);
+
+    m_macro_cache.save_macro(cache_key, *a);
+    m_last_analyzer = std::move(a);
+    m_hc_map.clear();
+    store_hit_counts(hc_analyzer, m_hc_map);
 
     return true;
 }
 
-const std::set<utils::resource::resource_location>& processor_file_impl::dependencies() { return dependencies_; }
+const std::set<utils::resource::resource_location>& processor_file_impl::dependencies() { return m_dependencies; }
 
 const semantics::lines_info& processor_file_impl::get_hl_info()
 {
-    if (last_analyzer_)
-        return last_analyzer_->source_processor().semantic_tokens();
+    if (m_last_analyzer)
+        return m_last_analyzer->source_processor().semantic_tokens();
 
     const static semantics::lines_info empty_lines;
     return empty_lines;
@@ -143,25 +144,25 @@ const semantics::lines_info& processor_file_impl::get_hl_info()
 
 const lsp::lsp_context* processor_file_impl::get_lsp_context()
 {
-    if (last_analyzer_)
-        return last_analyzer_->context().lsp_ctx.get();
+    if (m_last_analyzer)
+        return m_last_analyzer->context().lsp_ctx.get();
 
     return nullptr;
 }
 
-const std::set<utils::resource::resource_location>& processor_file_impl::files_to_close() { return files_to_close_; }
+const std::set<utils::resource::resource_location>& processor_file_impl::files_to_close() { return m_files_to_close; }
 
 const performance_metrics& processor_file_impl::get_metrics()
 {
-    if (last_analyzer_)
-        return last_analyzer_->get_metrics();
+    if (m_last_analyzer)
+        return m_last_analyzer->get_metrics();
     const static performance_metrics metrics;
     return metrics;
 }
 
 void processor_file_impl::erase_cache_of_opencode(const utils::resource::resource_location& opencode_file_location)
 {
-    macro_cache_.erase_cache_of_opencode(opencode_file_location);
+    m_macro_cache.erase_cache_of_opencode(opencode_file_location);
 }
 
 bool processor_file_impl::should_collect_hl(context::hlasm_context* ctx) const
@@ -173,12 +174,12 @@ bool processor_file_impl::should_collect_hl(context::hlasm_context* ctx) const
     return file_->get_lsp_editing() || last_analyzer_with_lsp || ctx && ctx->processing_stack().parent().empty();
 }
 
-bool processor_file_impl::has_lsp_info() const { return last_analyzer_ && last_analyzer_with_lsp; }
+bool processor_file_impl::has_lsp_info() const { return last_analyzer_with_lsp; }
 
 void processor_file_impl::retrieve_fade_messages(std::vector<fade_message_s>& fms) const
 {
-const file_location& processor_file_impl::get_location() const { return file_->get_location(); }
-
+    fms.insert(std::end(fms), std::begin(*fade_messages_), std::end(*fade_messages_));
+}
 bool processor_file_impl::current_version() const
 {
     auto f = file_mngr_.find(get_location());
@@ -206,7 +207,7 @@ void processor_file_impl::store_used_files(std::unordered_map<utils::resource::r
 
 void processor_file_impl::retrieve_hit_counts(processing::hit_count_map& hc_map)
 {
-    for (const auto& [rl, stmt_hc_m] : hc_map_)
+    for (const auto& [rl, stmt_hc_m] : m_hc_map)
         if (auto [stmt_hc_it, result1] = hc_map.try_emplace(rl, stmt_hc_m); !result1)
             for (const auto& [line, details] : stmt_hc_m)
                 if (auto [it, result2] = stmt_hc_it->second.try_emplace(line, details); !result2)

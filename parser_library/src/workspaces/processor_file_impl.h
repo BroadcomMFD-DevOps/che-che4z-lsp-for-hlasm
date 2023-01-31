@@ -71,29 +71,31 @@ public:
         utils::resource::resource_location_hasher> used_files);
 
 private:
-    file_manager& file_mngr_;
-    std::shared_ptr<file> file_;
-    std::unique_ptr<analyzer> last_analyzer_ = nullptr;
-    std::shared_ptr<context::id_storage> last_opencode_id_storage_;
-    bool last_analyzer_opencode_ = false;
-    bool last_analyzer_with_lsp = false;
+    file_manager& m_file_mngr;
+    std::shared_ptr<file> m_file;
+    std::unique_ptr<analyzer> m_last_analyzer = nullptr;
+    std::shared_ptr<context::id_storage> m_last_opencode_id_storage;
+    bool m_last_analyzer_opencode = false;
+    bool m_last_analyzer_with_lsp = false;
 
-    std::atomic<bool>* cancel_;
+    bool parse_inner(analyzer&);
 
-    std::set<utils::resource::resource_location> dependencies_;
-    std::set<utils::resource::resource_location> files_to_close_;
+    std::atomic<bool>* m_cancel;
+
+    std::set<utils::resource::resource_location> m_dependencies;
+    std::set<utils::resource::resource_location> m_files_to_close;
+
+    macro_cache m_macro_cache_;
 
     std::unordered_map<utils::resource::resource_location,
         std::shared_ptr<file>,
         utils::resource::resource_location_hasher>
         used_files;
 
-    macro_cache macro_cache_;
-
     std::shared_ptr<const std::vector<fade_message_s>> fade_messages_ =
         std::make_shared<const std::vector<fade_message_s>>();
 
-    processing::hit_count_map hc_map_;
+    processing::hit_count_map m_hc_map;
 
     bool should_collect_hl(context::hlasm_context* ctx = nullptr) const;
 };
