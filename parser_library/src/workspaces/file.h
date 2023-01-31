@@ -22,6 +22,7 @@
 #include "fade_messages.h"
 #include "protocol.h"
 #include "utils/resource_location.h"
+#include "processing/statement_analyzers/hit_count_analyzer.h"
 
 namespace hlasm_plugin::parser_library::workspaces {
 enum class open_file_result;

@@ -36,14 +36,10 @@ void processor_file_impl::collect_diags() const {}
 bool processor_file_impl::is_once_only() const { return false; }
 
 namespace {
-void process_hit_counts(
-    const processing::hit_count_analyzer& hc_analyzer, std::shared_ptr<std::vector<fade_message_s>> fade_messages)
+void store_hit_counts(const processing::hit_count_analyzer& hc_analyzer, processing::hit_count_map& hc_map)
 {
-    for (const auto& [hit_entry, hit_details] : hc_analyzer.get_hit_counts())
-    {
-        if (!hit_details.count)
-            fade_messages->emplace_back(fade_message_s::inactive_statement(hit_entry.rl.get_uri(), hit_details.r));
-    }
+    const auto& hcs = hc_analyzer.get_hit_counts();
+    hc_map.insert(std::begin(hcs), std::end(hcs));
 }
 } // namespace
 
@@ -115,7 +111,6 @@ parse_result processor_file_impl::parse_macro(
         return true;
 
     const bool collect_hl = should_collect_hl(ctx.hlasm_ctx.get());
-    auto fms = std::make_shared<std::vector<fade_message_s>>();
     auto a = std::make_unique<analyzer>(file_->get_text(),
         analyzer_options {
             file_->get_location(),
@@ -123,11 +118,10 @@ parse_result processor_file_impl::parse_macro(
             std::move(ctx),
             data,
             collect_hl ? collect_highlighting_info::yes : collect_highlighting_info::no,
-            fms,
         });
 
     processing::hit_count_analyzer hc_analyzer(a->hlasm_ctx());
-    //a->register_stmt_analyzer(&hc_analyzer);
+    a->register_stmt_analyzer(&hc_analyzer);
 
     a->analyze(cancel_);
 
@@ -142,8 +136,8 @@ parse_result processor_file_impl::parse_macro(
     last_analyzer_opencode_ = false;
     last_analyzer_with_lsp = collect_hl;
 
-    process_hit_counts(hc_analyzer, fms);
-    fade_messages_ = std::move(fms);
+    hc_map_.clear();
+    store_hit_counts(hc_analyzer, hc_map_);
 
     return true;
 }
