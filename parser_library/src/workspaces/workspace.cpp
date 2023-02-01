@@ -28,7 +28,7 @@
 
 namespace hlasm_plugin::parser_library::workspaces {
 
-struct workspace_parse_lib_provider : public parse_lib_provider
+struct workspace_parse_lib_provider final : public parse_lib_provider
 {
     workspace& ws;
     std::vector<std::shared_ptr<library>> libraries;
@@ -141,7 +141,6 @@ std::vector<std::shared_ptr<processor_file>> workspace::find_related_opencodes(
     const utils::resource::resource_location& document_loc) const
 {
     std::vector<std::shared_ptr<processor_file>> opencodes;
-
 
     if (auto f = find_processor_file(document_loc))
         opencodes.push_back(f);
