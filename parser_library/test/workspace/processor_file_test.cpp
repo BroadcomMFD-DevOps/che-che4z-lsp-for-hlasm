@@ -50,7 +50,7 @@ TEST(processor_file, parse_macro)
 
     file_manager_impl mngr;
     lib_config config;
-    auto global_settings = make_empty_shared_json();
+    shared_json global_settings = make_empty_shared_json();
     workspace ws(mngr, config, global_settings);
     ws.open();
     files_parse_lib_provider provider(mngr, ws);
