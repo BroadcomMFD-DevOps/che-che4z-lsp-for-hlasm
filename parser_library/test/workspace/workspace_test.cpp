@@ -63,6 +63,9 @@ public:
         }
         return true;
     }
+
+    lib_config config;
+    shared_json global_settings = make_empty_shared_json();
 };
 
 namespace {
@@ -332,8 +335,6 @@ public:
 
 TEST_F(workspace_test, did_close_file)
 {
-    lib_config config;
-    shared_json global_settings = make_empty_shared_json();
     file_manager_extended file_manager;
     workspace ws(empty_loc, "workspace_name", file_manager, config, global_settings);
 
@@ -376,8 +377,6 @@ TEST_F(workspace_test, did_close_file)
 TEST_F(workspace_test, did_change_watched_files)
 {
     file_manager_extended file_manager;
-    lib_config config;
-    shared_json global_settings = make_empty_shared_json();
     workspace ws(empty_loc, "workspace_name", file_manager, config, global_settings);
     ws.open();
 
@@ -404,8 +403,6 @@ TEST_F(workspace_test, did_change_watched_files)
 TEST_F(workspace_test, diagnostics_recollection)
 {
     file_manager_opt file_manager(file_manager_opt_variant::required);
-    lib_config config;
-    shared_json global_settings = make_empty_shared_json();
     workspace ws(empty_loc, "workspace_name", file_manager, config, global_settings);
     ws.open();
 
@@ -426,8 +423,6 @@ TEST_F(workspace_test, missing_library_required)
              file_manager_opt_variant::required })
     {
         file_manager_opt file_manager(type);
-        lib_config config;
-        shared_json global_settings = make_empty_shared_json();
         workspace ws(empty_loc, "workspace_name", file_manager, config, global_settings);
         ws.open();
 
@@ -440,8 +435,6 @@ TEST_F(workspace_test, missing_library_required)
 TEST_F(workspace_test, missing_library_optional)
 {
     file_manager_opt file_manager(file_manager_opt_variant::optional);
-    lib_config config;
-    shared_json global_settings = make_empty_shared_json();
     workspace ws(empty_loc, "workspace_name", file_manager, config, global_settings);
     ws.open();
 
@@ -452,8 +445,6 @@ TEST_F(workspace_test, missing_library_optional)
 TEST_F(workspace_test, invalid_assembler_options)
 {
     file_manager_opt file_manager(file_manager_opt_variant::invalid_assembler_options);
-    lib_config config;
-    shared_json global_settings = make_empty_shared_json();
     workspace ws(empty_loc, "workspace_name", file_manager, config, global_settings);
     ws.open();
 
@@ -464,8 +455,6 @@ TEST_F(workspace_test, invalid_assembler_options)
 TEST_F(workspace_test, invalid_assembler_options_in_pgm_conf)
 {
     file_manager_opt file_manager(file_manager_opt_variant::invalid_assembler_options_in_pgm_conf);
-    lib_config config;
-    shared_json global_settings = make_empty_shared_json();
     workspace ws(empty_loc, "workspace_name", file_manager, config, global_settings);
     ws.open();
 
@@ -476,8 +465,6 @@ TEST_F(workspace_test, invalid_assembler_options_in_pgm_conf)
 TEST_F(workspace_test, invalid_preprocessor_options)
 {
     file_manager_opt file_manager(file_manager_opt_variant::invalid_preprocessor_options);
-    lib_config config;
-    shared_json global_settings = make_empty_shared_json();
     workspace ws(empty_loc, "workspace_name", file_manager, config, global_settings);
     ws.open();
 
@@ -505,8 +492,6 @@ public:
 TEST_F(workspace_test, library_list_failure)
 {
     file_manager_list_dir_failed file_manager;
-    lib_config config;
-    shared_json global_settings = make_empty_shared_json();
     workspace ws(empty_loc, "workspace_name", file_manager, config, global_settings);
     ws.open();
 
