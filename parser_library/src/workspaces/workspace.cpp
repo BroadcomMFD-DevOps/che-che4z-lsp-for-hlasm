@@ -766,49 +766,6 @@ bool workspace::is_dependency_(const utils::resource::resource_location& file_lo
     return false;
 }
 
-parse_result workspace::parse_library(const std::string& library, analyzing_context ctx, library_data data)
-{
-    utils::resource::resource_location url;
-    auto& proc_grp = get_proc_grp_by_program(ctx.hlasm_ctx->opencode_location());
-    for (auto&& lib : proc_grp.libraries())
-    {
-        if (!lib->has_file(library, &url))
-            continue;
-
-        std::shared_ptr<processor> found = add_processor_file(url);
-        assert(found);
-        return found->parse_macro(*this, std::move(ctx), data);
-    }
-
-    return false;
-}
-
-bool workspace::has_library(const std::string& library, const utils::resource::resource_location& program) const
-{
-    const auto& libs = get_proc_grp_by_program(program).libraries();
-
-    return std::any_of(libs.begin(), libs.end(), [&library](const auto& lib) { return lib->has_file(library); });
-}
-
-std::optional<std::pair<std::string, utils::resource::resource_location>> workspace::get_library(
-    const std::string& library, const utils::resource::resource_location& program) const
-{
-    utils::resource::resource_location url;
-    auto& proc_grp = get_proc_grp_by_program(program);
-    for (auto&& lib : proc_grp.libraries())
-    {
-        if (!lib->has_file(library, &url))
-            continue;
-
-        auto content = file_manager_.get_file_content(url);
-        if (!content.has_value())
-            return std::nullopt;
-
-        return std::make_pair(std::move(content).value(), std::move(url));
-    }
-    return std::nullopt;
-}
-
 std::vector<std::shared_ptr<library>> workspace::get_libraries(
     const utils::resource::resource_location& file_location) const
 {

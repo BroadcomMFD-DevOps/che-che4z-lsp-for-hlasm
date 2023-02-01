@@ -65,51 +65,6 @@ public:
     }
 };
 
-TEST_F(workspace_test, parse_lib_provider)
-{
-    using namespace hlasm_plugin::utils;
-
-    lib_config config;
-    shared_json global_settings = make_empty_shared_json();
-    file_manager_impl file_mngr;
-
-    std::string test_wks_path = path::join(path::join("test", "library"), "test_wks").string();
-
-    workspace ws(resource_location(test_wks_path), file_mngr, config, global_settings);
-
-    ws.open();
-
-    collect_diags_from_child(ws);
-    EXPECT_EQ(diags().size(), (size_t)0);
-
-    ws.add_processor_file(correct_loc);
-
-    auto [ctx_1, ctx_2] = [&ws]() {
-        ws.did_open_file(correct_loc);
-        return std::make_pair(std::make_shared<context::hlasm_context>(correct_loc),
-            std::make_shared<context::hlasm_context>(correct_loc));
-    }();
-
-    EXPECT_EQ(diags().size(), (size_t)0);
-
-    diags().clear();
-
-    auto macro1 = context::id_index("MACRO1");
-    ws.parse_library("MACRO1",
-        analyzing_context { ctx_1, std::make_shared<lsp::lsp_context>(ctx_1) },
-        library_data { processing::processing_kind::MACRO, macro1 });
-
-    // test, that macro1 is parsed, once we are able to parse macros (mby in ctx)
-
-    collect_diags_from_child(ws);
-    EXPECT_EQ(diags().size(), (size_t)0);
-
-    auto not_existing = context::id_index("NOT_EXISTING");
-    ws.parse_library("not_existing",
-        analyzing_context { ctx_2, std::make_shared<lsp::lsp_context>(ctx_2) },
-        library_data { processing::processing_kind::MACRO, not_existing });
-}
-
 namespace {
 std::string pgroups_file = R"({
   "pgroups": [

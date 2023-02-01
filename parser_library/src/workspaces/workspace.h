@@ -45,7 +45,7 @@ struct workspace_parse_lib_provider;
 // Represents a LSP workspace. It solves all dependencies between files -
 // implements parse lib provider and decides which files are to be parsed
 // when a particular file has been changed in the editor.
-class workspace : public diagnosable_impl, public parse_lib_provider
+class workspace : public diagnosable_impl
 {
 public:
     // Creates just a dummy workspace with no libraries - no dependencies
@@ -96,10 +96,6 @@ public:
 
     std::vector<token_info> semantic_tokens(const utils::resource::resource_location& document_loc) const;
 
-    parse_result parse_library(const std::string& library, analyzing_context ctx, library_data data) override;
-    bool has_library(const std::string& library, const utils::resource::resource_location& program) const override;
-    std::optional<std::pair<std::string, utils::resource::resource_location>> get_library(
-        const std::string& library, const utils::resource::resource_location& program) const override;
     virtual std::vector<std::shared_ptr<library>> get_libraries(
         const utils::resource::resource_location& file_location) const;
     virtual asm_option get_asm_options(const utils::resource::resource_location& file_location) const;
