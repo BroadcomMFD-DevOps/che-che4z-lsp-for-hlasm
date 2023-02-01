@@ -38,6 +38,7 @@
 namespace hlasm_plugin::parser_library::workspaces {
 class file_manager;
 class library;
+class processor_file_impl;
 using ws_uri = std::string;
 using ws_highlight_info = std::unordered_map<std::string, semantics::highlighting_info>;
 
@@ -75,7 +76,7 @@ public:
 
     workspace_file_info parse_file(
         const utils::resource::resource_location& file_location, open_file_result file_content_status);
-    workspace_file_info parse_successful(const processor_file_ptr& f);
+    workspace_file_info parse_successful(const std::shared_ptr<processor_file>& f);
     bool refresh_libraries(const std::vector<utils::resource::resource_location>& file_locations);
     workspace_file_info did_open_file(const utils::resource::resource_location& file_location,
         open_file_result file_content_status = open_file_result::changed_content);
@@ -110,7 +111,8 @@ public:
 
     void set_message_consumer(message_consumer* consumer);
 
-    processor_file_ptr get_processor_file(const utils::resource::resource_location& file_location);
+    std::shared_ptr<processor_file> add_processor_file(const utils::resource::resource_location& file);
+    std::shared_ptr<processor_file> find_processor_file(const utils::resource::resource_location& file) const;
 
     file_manager& get_file_manager() const;
 
@@ -121,6 +123,8 @@ public:
 
     std::vector<std::pair<std::string, size_t>> make_opcode_suggestion(
         const utils::resource::resource_location& file, std::string_view opcode, bool extended);
+
+    void retrieve_fade_messages(std::vector<fade_message_s>& fms) const;
 
     static lsp::completion_list_s generate_completion(const lsp::completion_list_source& cls,
         std::function<std::vector<std::string>(std::string_view)> instruction_suggestions = {});
@@ -157,12 +161,12 @@ private:
         opened_files_;
 
     void filter_and_close_dependencies_(
-        const std::set<utils::resource::resource_location>& dependencies, processor_file_ptr file);
+        const std::set<utils::resource::resource_location>& dependencies, std::shared_ptr<processor_file> file);
     bool is_dependency_(const utils::resource::resource_location& file_location);
 
-    std::vector<processor_file_ptr> find_related_opencodes(
+    std::vector<std::shared_ptr<processor_file>> find_related_opencodes(
         const utils::resource::resource_location& document_loc) const;
-    void delete_diags(processor_file_ptr file);
+    void delete_diags(std::shared_ptr<processor_file> file);
 
     void show_message(const std::string& message);
 
@@ -174,6 +178,16 @@ private:
 
     workspace_configuration m_configuration;
 
+    struct processor_file_compoments
+    {
+        std::shared_ptr<processor_file_impl> m_processor_file;
+    };
+
+    mutable std::unordered_map<utils::resource::resource_location,
+        processor_file_compoments,
+        utils::resource::resource_location_hasher>
+        m_processor_files;
+
     static lsp::completion_list_s generate_completion(
         std::monostate, const std::function<std::vector<std::string>(std::string_view)>& instruction_suggestions);
     static lsp::completion_list_s generate_completion(const lsp::vardef_storage*,
@@ -183,7 +197,8 @@ private:
     static lsp::completion_list_s generate_completion(const lsp::completion_list_instructions&,
         const std::function<std::vector<std::string>(std::string_view)>& instruction_suggestions);
 
-    std::vector<processor_file_ptr> collect_dependants(const utils::resource::resource_location& file_location) const;
+    std::vector<std::shared_ptr<processor_file>> collect_dependants(
+        const utils::resource::resource_location& file_location) const;
 };
 
 } // namespace hlasm_plugin::parser_library::workspaces

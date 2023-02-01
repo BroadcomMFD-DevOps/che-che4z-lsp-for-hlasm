@@ -18,8 +18,10 @@
 #include <memory>
 
 #include "context/instruction.h"
+#include "file_impl.h"
 #include "file_manager.h"
 #include "lsp/item_convertors.h"
+#include "processor_file_impl.h"
 #include "utils/bk_tree.h"
 #include "utils/levenshtein_distance.h"
 #include "utils/path.h"
@@ -67,16 +69,25 @@ void workspace::collect_diags() const
         used_b4g_configs.emplace(details.alternative_config);
 
     m_configuration.copy_diagnostics(*this, used_b4g_configs);
+
+    for (const auto& [_, pfc] : m_processor_files)
+        collect_diags_from_child(*pfc.m_processor_file);
 }
 
-std::vector<processor_file_ptr> workspace::find_related_opencodes(
+void workspace::retrieve_fade_messages(std::vector<fade_message_s>& fms) const
+{
+    for (const auto& [key, value] : m_processor_files)
+        value.m_processor_file->retrieve_fade_messages(fms);
+}
+
+std::vector<std::shared_ptr<processor_file>> workspace::find_related_opencodes(
     const utils::resource::resource_location& document_loc) const
 {
-    std::vector<processor_file_ptr> opencodes;
+    std::vector<std::shared_ptr<processor_file>> opencodes;
 
     for (const auto& dep : dependants_)
     {
-        auto f = file_manager_.find_processor_file(dep);
+        auto f = find_processor_file(dep);
         if (!f)
             continue;
         if (f->dependencies().contains(document_loc))
@@ -86,18 +97,18 @@ std::vector<processor_file_ptr> workspace::find_related_opencodes(
     if (opencodes.size())
         return opencodes;
 
-    if (auto f = file_manager_.find_processor_file(document_loc))
+    if (auto f = find_processor_file(document_loc))
         return { f };
     return {};
 }
 
-void workspace::delete_diags(processor_file_ptr file)
+void workspace::delete_diags(std::shared_ptr<processor_file> file)
 {
     file->diags().clear();
 
     for (const auto& dep : file->dependencies())
     {
-        auto dep_file = file_manager_.find_processor_file(dep);
+        auto dep_file = find_processor_file(dep);
         if (dep_file)
             dep_file->diags().clear();
     }
@@ -120,7 +131,7 @@ void workspace::reparse_after_config_refresh()
     // Reparse every opened file when configuration is changed
     for (auto& [fname, details] : opened_files_)
     {
-        auto found = file_manager_.find_processor_file(fname);
+        auto found = find_processor_file(fname);
         if (!found)
             continue;
         details.alternative_config = m_configuration.load_alternative_config_if_needed(fname);
@@ -132,7 +143,7 @@ void workspace::reparse_after_config_refresh()
 
     for (const auto& fname : dependants_)
     {
-        if (auto found = file_manager_.find_processor_file(fname); found)
+        if (auto found = find_processor_file(fname); found)
             filter_and_close_dependencies_(found->files_to_close(), found);
     }
 }
@@ -144,14 +155,14 @@ bool trigger_reparse(const utils::resource::resource_location& file_location)
 }
 } // namespace
 
-std::vector<processor_file_ptr> workspace::collect_dependants(
+std::vector<std::shared_ptr<processor_file>> workspace::collect_dependants(
     const utils::resource::resource_location& file_location) const
 {
-    std::vector<processor_file_ptr> result;
+    std::vector<std::shared_ptr<processor_file>> result;
 
     for (const auto& dep : dependants_)
     {
-        auto f = file_manager_.find_processor_file(dep);
+        auto f = find_processor_file(dep);
         if (!f)
             continue;
         for (auto& dep_location : f->dependencies())
@@ -184,19 +195,23 @@ workspace_file_info workspace::parse_file(
     }
 
     // TODO: what about removing files??? what if depentands_ points to not existing file?
-    std::vector<processor_file_ptr> files_to_parse;
+    std::vector<std::shared_ptr<processor_file>> files_to_parse;
 
     // TODO: apparently just opening a file without changing it triggers reparse
 
-    if (auto this_file = file_manager_.find_processor_file(file_location);
-        file_content_status == open_file_result::changed_content
-        || file_content_status == open_file_result::changed_lsp && !(this_file && this_file->has_lsp_info()))
+    if (std::shared_ptr<processor_file> this_file; file_content_status == open_file_result::changed_content
+        || file_content_status == open_file_result::changed_lsp
+            && !((this_file = find_processor_file(file_location)) && this_file->has_lsp_info()))
     {
         if (trigger_reparse(file_location))
             files_to_parse = collect_dependants(file_location);
 
-        if (files_to_parse.empty() && this_file)
+        if (files_to_parse.empty())
+        {
+            if (!this_file)
+                this_file = add_processor_file(file_location);
             files_to_parse.push_back(std::move(this_file));
+        }
 
         for (const auto& f : files_to_parse)
         {
@@ -220,7 +235,7 @@ workspace_file_info workspace::parse_file(
     return ws_file_info;
 }
 
-workspace_file_info workspace::parse_successful(const processor_file_ptr& f)
+workspace_file_info workspace::parse_successful(const std::shared_ptr<processor_file>& f)
 {
     workspace_file_info ws_file_info;
 
@@ -269,13 +284,13 @@ void workspace::did_close_file(const utils::resource::resource_location& file_lo
     auto fname = dependants_.find(file_location);
     if (fname != dependants_.end())
     {
-        auto file = file_manager_.find_processor_file(*fname);
+        auto file = find_processor_file(*fname);
         // filter the dependencies that should not be closed
         filter_and_close_dependencies_(file->dependencies(), file);
         // Erase macros cached for this opencode from all its dependencies
         for (const auto& dep : file->dependencies())
         {
-            auto proc_file = file_manager_.get_processor_file(dep);
+            auto proc_file = find_processor_file(dep);
             if (proc_file)
                 proc_file->erase_cache_of_opencode(file_location);
         }
@@ -284,6 +299,7 @@ void workspace::did_close_file(const utils::resource::resource_location& file_lo
     }
 
     // close the file itself
+    m_processor_files.erase(file_location);
     file_manager_.did_close_file(file_location);
     file_manager_.remove_file(file_location);
 }
@@ -628,21 +644,18 @@ std::vector<std::pair<std::string, size_t>> workspace::make_opcode_suggestion(
 }
 
 void workspace::filter_and_close_dependencies_(
-    const std::set<utils::resource::resource_location>& dependencies, processor_file_ptr file)
+    const std::set<utils::resource::resource_location>& dependencies, std::shared_ptr<processor_file> file)
 {
     std::set<utils::resource::resource_location> filtered;
     // filters out externally open files
     for (const auto& dependency : dependencies)
-    {
-        auto dependency_file = file_manager_.find_processor_file(dependency);
-        if (dependency_file && !dependency_file->get_lsp_editing())
+        if (auto dep_file = file_manager_.find(dependency); dep_file && !dep_file->get_lsp_editing())
             filtered.insert(dependency);
-    }
 
     // filters the files that are dependencies of other dependants and externally open files
     for (const auto& dependant : dependants_)
     {
-        auto fdependant = file_manager_.find_processor_file(dependant);
+        auto fdependant = find_processor_file(dependant);
         if (!fdependant)
             continue;
         for (auto& dependency : fdependant->dependencies())
@@ -655,6 +668,7 @@ void workspace::filter_and_close_dependencies_(
     // close all exclusive dependencies of file
     for (auto& dep : filtered)
     {
+        m_processor_files.erase(dep);
         file_manager_.did_close_file(dep);
         file_manager_.remove_file(dep);
     }
@@ -664,7 +678,7 @@ bool workspace::is_dependency_(const utils::resource::resource_location& file_lo
 {
     for (const auto& dependant : dependants_)
     {
-        auto fdependant = file_manager_.find_processor_file(dependant);
+        auto fdependant = find_processor_file(dependant);
         if (!fdependant)
             continue;
         for (auto& dependency : fdependant->dependencies())
@@ -685,7 +699,7 @@ parse_result workspace::parse_library(const std::string& library, analyzing_cont
         if (!lib->has_file(library, &url))
             continue;
 
-        std::shared_ptr<processor> found = file_manager_.add_processor_file(url);
+        std::shared_ptr<processor> found = add_processor_file(url);
         assert(found);
         return found->parse_macro(*this, std::move(ctx), data);
     }
@@ -758,9 +772,30 @@ std::vector<preprocessor_options> workspace::get_preprocessor_options(
     return get_proc_grp_by_program(file_location).preprocessors();
 }
 
-processor_file_ptr workspace::get_processor_file(const utils::resource::resource_location& file_location)
+std::shared_ptr<processor_file> workspace::add_processor_file(const utils::resource::resource_location& file_location)
 {
-    return get_file_manager().get_processor_file(file_location);
+    if (auto r = find_processor_file(file_location))
+        return r;
+
+    processor_file_compoments pfc {
+        std::make_shared<processor_file_impl>(file_manager_.add_file(file_location), file_manager_, cancel_),
+    };
+
+    return m_processor_files.insert_or_assign(file_location, std::move(pfc)).first->second.m_processor_file;
+}
+
+std::shared_ptr<processor_file> workspace::find_processor_file(
+    const utils::resource::resource_location& file_location) const
+{
+    if (auto it = m_processor_files.find(file_location); it != m_processor_files.end())
+    {
+        auto& result = it->second.m_processor_file;
+        if (!result->current_version())
+            it->second.m_processor_file->update_source(file_manager_.add_file(file_location));
+
+        return it->second.m_processor_file;
+    }
+    return {};
 }
 
 } // namespace hlasm_plugin::parser_library::workspaces

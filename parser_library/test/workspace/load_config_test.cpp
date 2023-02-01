@@ -570,7 +570,7 @@ TEST(workspace, lsp_file_not_processed_yet)
     ws.open();
 
     mngr.did_open_file(file_loc, 0, " LR 1,1");
-    auto file = mngr.add_processor_file(file_loc);
+    auto file = ws.add_processor_file(file_loc);
 
     // Prior to parsing, it should return default values
     const auto* fp = file->get_lsp_context();
