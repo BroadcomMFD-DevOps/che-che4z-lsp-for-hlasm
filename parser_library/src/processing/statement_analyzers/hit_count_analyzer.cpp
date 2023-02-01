@@ -44,20 +44,26 @@ size_t& emplace_hit_count(hit_count_map& hc_map, const utils::resource::resource
     return stmt_count;
 }
 
-std::optional<range> get_range(const context::hlasm_statement* stmt)
+std::optional<range> get_range(const context::hlasm_statement* stmt, processing::processing_kind proc_kind)
 {
     if (!stmt)
         return std::nullopt;
 
+    const auto r_helper = [&proc_kind](const range& r) -> std::optional<range> {
+        return (proc_kind == processing::processing_kind::ORDINARY && r.start == r.end && r.start.column == 0)
+            ? std::optional<range>()
+            : r;
+    };
+
     if (stmt->kind == context::statement_kind::RESOLVED)
     {
         if (auto resolved = stmt->access_resolved(); resolved)
-            return resolved->stmt_range_ref();
+            return r_helper(resolved->stmt_range_ref());
     }
     else if (stmt->kind == context::statement_kind::DEFERRED)
     {
         if (auto deferred = stmt->access_deferred(); deferred)
-            return deferred->stmt_range_ref();
+            return r_helper(deferred->stmt_range_ref());
     }
     else
     {
@@ -70,13 +76,12 @@ std::optional<range> get_range(const context::hlasm_statement* stmt)
 
         return r;
     }
-
-    return std::nullopt;
 }
 
 template<typename DEFINITION>
 void insert_external_definitions(DEFINITION definition,
     std::string_view lib_name,
+    processing_kind proc_kind,
     hit_count_map& hc_map,
     std::unordered_set<std::string_view>& processed_libs)
 {
@@ -87,7 +92,7 @@ void insert_external_definitions(DEFINITION definition,
 
     for (const auto& stmt : definition->cached_definition)
     {
-        if (const auto stmt_range = get_range(stmt.get_base().get()); stmt_range)
+        if (const auto stmt_range = get_range(stmt.get_base().get(), proc_kind); stmt_range)
             emplace_hit_count(hc_map, definition->definition_location.resource_loc, std::move(*stmt_range));
     }
 }
@@ -100,10 +105,8 @@ void hit_count_analyzer::analyze(
         || proc_kind == processing::processing_kind::COPY)
         return;
 
-    auto stmt_range = get_range(&statement);
-    if (!stmt_range
-        || (proc_kind == processing::processing_kind::ORDINARY && stmt_range->start == stmt_range->end
-            && stmt_range->start.column == 0))
+    auto stmt_range = get_range(&statement, proc_kind);
+    if (!stmt_range)
         return;
 
     const auto& frame = m_ctx.processing_stack().frame();
@@ -111,11 +114,13 @@ void hit_count_analyzer::analyze(
     if (prov_kind == statement_provider_kind::MACRO)
         insert_external_definitions(m_ctx.get_macro_definition(frame.member_name),
             frame.member_name.to_string_view(),
+            proc_kind,
             m_hit_counts,
             m_processed_members);
     else if (prov_kind == statement_provider_kind::COPY)
         insert_external_definitions(m_ctx.get_copy_member(frame.member_name),
             frame.member_name.to_string_view(),
+            proc_kind,
             m_hit_counts,
             m_processed_members);
     else

@@ -191,6 +191,19 @@ inline bool contains_diagnosed_line_ranges(const std::vector<Msg>& d, const C& c
         d, c, [](const auto& d) { return std::make_pair(d.diag_range.start.line, d.diag_range.end.line); });
 }
 
+template<typename Msg, typename C = std::initializer_list<std::pair<size_t, size_t>>>
+inline bool matches_faded_line_ranges(const std::vector<Msg>& d, const C& c)
+{
+    return matches_message_properties(d, c, [](const auto& d) { return std::make_pair(d.r.start.line, d.r.end.line); });
+}
+
+template<typename Msg, typename C = std::initializer_list<std::pair<size_t, size_t>>>
+inline bool contains_faded_line_ranges(const std::vector<Msg>& d, const C& c)
+{
+    return contains_message_properties(
+        d, c, [](const auto& d) { return std::make_pair(d.r.start.line, d.r.end.line); });
+}
+
 template<typename Msg, typename C = std::initializer_list<std::string>>
 inline bool matches_message_text(const std::vector<Msg>& d, const C& c)
 {
