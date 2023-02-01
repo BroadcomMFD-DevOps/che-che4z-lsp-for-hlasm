@@ -278,19 +278,10 @@ public:
             notify_diagnostics_consumers();
     }
 
-    std::vector<token_info> empty_tokens;
-    const std::vector<token_info>& semantic_tokens(const char* document_uri)
+    continuous_sequence<token_info> semantic_tokens(const char* document_uri)
     {
-        if (cancel_ && *cancel_)
-            return empty_tokens;
-
-        utils::resource::resource_location doc(document_uri);
-
-
-        if (auto file = ws_path_match(document_uri).find_processor_file(doc); file && file->current_version())
-            return file->get_hl_info();
-
-        return empty_tokens;
+        return make_continuous_sequence(
+            ws_path_match(document_uri).semantic_tokens(utils::resource::resource_location(document_uri)));
     }
 
     continuous_sequence<char> get_virtual_file_content(unsigned long long id) const

@@ -76,7 +76,7 @@ public:
     MOCK_METHOD(std::optional<std::string>,
         get_file_content,
         (const hlasm_plugin::utils::resource::resource_location&),
-        (override));
+        (const override));
 
     MOCK_METHOD(void, retrieve_fade_messages, (std::vector<fade_message_s>&), (const override));
 };

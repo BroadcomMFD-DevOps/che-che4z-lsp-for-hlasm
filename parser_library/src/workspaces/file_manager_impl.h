@@ -73,7 +73,7 @@ public:
 
     open_file_result update_file(const file_location& document_loc) override;
 
-    std::optional<std::string> get_file_content(const utils::resource::resource_location&) override;
+    std::optional<std::string> get_file_content(const utils::resource::resource_location&) const override;
 
 private:
     struct virtual_file_entry

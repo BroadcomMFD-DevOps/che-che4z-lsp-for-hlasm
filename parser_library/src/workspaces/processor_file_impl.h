@@ -36,7 +36,7 @@ class file_manager;
 class processor_file_impl : public virtual processor_file, public diagnosable_impl
 {
 public:
-    processor_file_impl(std::shared_ptr<file> file, const file_manager& file_mngr, std::atomic<bool>* cancel = nullptr);
+    processor_file_impl(std::shared_ptr<file> file, file_manager& file_mngr, std::atomic<bool>* cancel = nullptr);
 
     void collect_diags() const override;
     bool is_once_only() const override;
@@ -62,10 +62,14 @@ public:
 
     bool current_version() const override;
 
-    void update_source(std::shared_ptr<file> f);
+    void update_source();
+    std::shared_ptr<file> current_source() const { return file_; }
+    void store_used_files(std::unordered_map<utils::resource::resource_location,
+        std::shared_ptr<file>,
+        utils::resource::resource_location_hasher> used_files);
 
 private:
-    const file_manager& file_mngr_;
+    file_manager& file_mngr_;
     std::shared_ptr<file> file_;
     std::unique_ptr<analyzer> last_analyzer_ = nullptr;
     std::shared_ptr<context::id_storage> last_opencode_id_storage_;
@@ -78,6 +82,11 @@ private:
 
     std::set<utils::resource::resource_location> dependencies_;
     std::set<utils::resource::resource_location> files_to_close_;
+
+    std::unordered_map<utils::resource::resource_location,
+        std::shared_ptr<file>,
+        utils::resource::resource_location_hasher>
+        used_files;
 
     macro_cache macro_cache_;
 

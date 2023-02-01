@@ -15,6 +15,7 @@
 #include "file_manager_impl.h"
 
 #include <map>
+#include <span>
 
 #include "file_impl.h"
 #include "utils/content_loader.h"
@@ -31,7 +32,8 @@ std::shared_ptr<file> file_manager_impl::add_file(const file_location& file)
     return ret->second;
 }
 
-std::optional<std::string> file_manager_impl::get_file_content(const utils::resource::resource_location& file_name)
+std::optional<std::string> file_manager_impl::get_file_content(
+    const utils::resource::resource_location& file_name) const
 {
     std::lock_guard guard(files_mutex);
     auto it = files_.find(file_name);
@@ -100,7 +102,7 @@ open_file_result file_manager_impl::did_open_file(
 }
 
 void file_manager_impl::did_change_file(
-    const file_location& document_loc, version_t, const document_change* changes, size_t ch_size)
+    const file_location& document_loc, version_t, const document_change* changes_start, size_t ch_size)
 {
     // TODO
     // the version is the version after the changes -> I don't see how is that useful
@@ -113,16 +115,26 @@ void file_manager_impl::did_change_file(
     if (file == files_.end())
         return; // if the file does not exist, no action is taken
 
-    if (ch_size)
-        prepare_file_for_change_(file->second);
+    if (!ch_size)
+        return;
 
-    for (size_t i = 0; i < ch_size; ++i)
+    prepare_file_for_change_(file->second);
+
+    auto last_whole = changes_start + ch_size;
+    while (last_whole != changes_start)
     {
-        std::string text_s(changes[i].text, changes[i].text_length);
-        if (changes[i].whole)
+        --last_whole;
+        if (last_whole->whole)
+            break;
+    }
+
+    for (const auto& change : std::span(last_whole, changes_start + ch_size))
+    {
+        std::string text_s(change.text, change.text_length);
+        if (change.whole)
             file->second->did_change(std::move(text_s));
         else
-            file->second->did_change(changes[i].change_range, std::move(text_s));
+            file->second->did_change(change.change_range, std::move(text_s));
     }
 }
 
@@ -133,9 +145,11 @@ void file_manager_impl::did_close_file(const file_location& document_loc)
     if (file == files_.end())
         return;
 
-    prepare_file_for_change_(file->second);
-    // close the file externally
-    file->second->did_close();
+    if (!file->second->is_text_loaded()
+        || file->second->get_text() == utils::resource::load_text(file->second->get_location()))
+        file->second->did_close(); // close the file externally, content is accurate
+    else
+        file->second = std::make_shared<file_impl>(file->second->get_location()); // our version is not accurate
 
     // if the file does not exist, no action is taken
 }

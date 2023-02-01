@@ -24,8 +24,7 @@
 
 namespace hlasm_plugin::parser_library::workspaces {
 
-processor_file_impl::processor_file_impl(
-    std::shared_ptr<file> file, const file_manager& file_mngr, std::atomic<bool>* cancel)
+processor_file_impl::processor_file_impl(std::shared_ptr<file> file, file_manager& file_mngr, std::atomic<bool>* cancel)
     : file_mngr_(file_mngr)
     , file_(std::move(file))
     , cancel_(cancel)
@@ -178,7 +177,7 @@ bool processor_file_impl::should_collect_hl(context::hlasm_context* ctx) const
     return file_->get_lsp_editing() || last_analyzer_with_lsp || ctx && ctx->processing_stack().parent().empty();
 }
 
-bool processor_file_impl::has_lsp_info() const { return last_analyzer_with_lsp; }
+bool processor_file_impl::has_lsp_info() const { return last_analyzer_ && last_analyzer_with_lsp; }
 
 void processor_file_impl::retrieve_fade_messages(std::vector<fade_message_s>& fms) const
 {
@@ -193,10 +192,18 @@ bool processor_file_impl::current_version() const
     return f == file_;
 }
 
-void processor_file_impl::update_source(std::shared_ptr<file> f)
+void processor_file_impl::update_source()
 {
     last_analyzer_.reset();
-    file_ = f;
+    used_files.clear();
+    file_ = file_mngr_.add_file(get_location());
+}
+
+void processor_file_impl::store_used_files(std::unordered_map<utils::resource::resource_location,
+    std::shared_ptr<file>,
+    utils::resource::resource_location_hasher> uf)
+{
+    used_files = std::move(uf);
 }
 
 } // namespace hlasm_plugin::parser_library::workspaces

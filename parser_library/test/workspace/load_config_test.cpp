@@ -179,7 +179,7 @@ public:
 class file_manager_proc_grps_test : public file_manager_impl
 {
 public:
-    std::optional<std::string> get_file_content(const resource_location& location) override
+    std::optional<std::string> get_file_content(const resource_location& location) const override
     {
         if (hlasm_plugin::utils::resource::filename(location) == "proc_grps.json")
             return proc_grps->get_text();

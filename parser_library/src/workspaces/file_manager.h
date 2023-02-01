@@ -82,7 +82,7 @@ public:
 
     virtual open_file_result update_file(const file_location& document_loc) = 0;
 
-    virtual std::optional<std::string> get_file_content(const utils::resource::resource_location&) = 0;
+    virtual std::optional<std::string> get_file_content(const utils::resource::resource_location&) const = 0;
 
 protected:
     ~file_manager() = default;
