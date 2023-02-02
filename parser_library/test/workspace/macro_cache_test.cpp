@@ -255,7 +255,7 @@ SETA   OPSYN LR
 
 
     opencode_file->did_change({}, "L OPSYN SETB\n");
-    opencode = ws.add_processor_file(opencode_file_loc);
+    EXPECT_EQ(opencode, ws.add_processor_file(opencode_file_loc));
     opencode->parse(file_mngr, {}, {}, nullptr);
 
     analyzing_context ctx_second_opsyn1 = create_analyzing_context(opencode_file_name, file_mngr.hlasm_ctx->ids_ptr());
