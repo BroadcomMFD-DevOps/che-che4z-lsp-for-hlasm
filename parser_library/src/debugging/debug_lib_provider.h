@@ -51,7 +51,7 @@ public:
         std::atomic<bool>* cancel);
 
     workspaces::parse_result parse_library(
-        const std::string& library, analyzing_context ctx, workspaces::library_data data) override;
+        std::string_view library, analyzing_context ctx, workspaces::library_data data) override;
 
     bool has_library(std::string_view library) const override;
 

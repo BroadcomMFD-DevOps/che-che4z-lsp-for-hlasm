@@ -17,6 +17,7 @@
 #include <array>
 
 #include "file_manager.h"
+#include "lsp/lsp_context.h"
 
 namespace hlasm_plugin::parser_library::workspaces {
 

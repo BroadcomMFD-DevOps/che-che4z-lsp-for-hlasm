@@ -43,10 +43,10 @@ struct workspace_parse_lib_provider final : public parse_lib_provider
     {}
 
     // Inherited via parse_lib_provider
-    parse_result parse_library(const std::string& library, analyzing_context ctx, library_data data) override
+    parse_result parse_library(std::string_view library, analyzing_context ctx, library_data data) override
     {
         utils::resource::resource_location url;
-        for (auto&& lib : libraries)
+        for (const auto& lib : libraries)
         {
             if (!lib->has_file(library, &url))
                 continue;
@@ -70,7 +70,7 @@ struct workspace_parse_lib_provider final : public parse_lib_provider
         std::string_view library) const override
     {
         utils::resource::resource_location url;
-        for (auto&& lib : libraries)
+        for (const auto& lib : libraries)
         {
             if (!lib->has_file(library, &url))
                 continue;

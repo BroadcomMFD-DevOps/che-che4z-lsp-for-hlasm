@@ -33,7 +33,7 @@ struct files_parse_lib_provider : public workspaces::parse_lib_provider
         : file_mngr(&mngr)
         , ws(&ws)
     {}
-    parse_result parse_library(const std::string& library, analyzing_context ctx, library_data data) override
+    parse_result parse_library(std::string_view library, analyzing_context ctx, library_data data) override
     {
         auto macro = ws->add_processor_file(utils::resource::resource_location(library));
         if (!macro)

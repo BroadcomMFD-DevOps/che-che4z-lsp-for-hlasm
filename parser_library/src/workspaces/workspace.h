@@ -29,6 +29,9 @@
 #include "diagnosable_impl.h"
 #include "file_manager_vfm.h"
 #include "lib_config.h"
+#include "lsp/completion_item.h" // TODO: move around
+#include "lsp/document_symbol_item.h" // TODO: move around
+#include "lsp/lsp_context.h" // TODO: move around
 #include "message_consumer.h"
 #include "processor.h"
 #include "processor_group.h"

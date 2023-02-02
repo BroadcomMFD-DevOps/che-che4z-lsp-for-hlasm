@@ -35,7 +35,7 @@ using namespace hlasm_plugin::parser_library::workspaces;
 
 class fuzzer_lib_provider : public parse_lib_provider
 {
-    std::optional<size_t> read_library_name(const std::string& library) const
+    std::optional<size_t> read_library_name(std::string_view library) const
     {
         if (library.size() < 2 || library.size() > 8 || library[0] != '@'
             || std::any_of(library.begin() + 1, library.end(), [](unsigned char c) { return !isdigit(c); }))
@@ -50,7 +50,7 @@ class fuzzer_lib_provider : public parse_lib_provider
     }
 
 public:
-    parse_result parse_library(const std::string& library, analyzing_context ctx, library_data data) override
+    parse_result parse_library(std::string_view library, analyzing_context ctx, library_data data) override
     {
         auto lib = read_library_name(library);
         if (!lib.has_value())

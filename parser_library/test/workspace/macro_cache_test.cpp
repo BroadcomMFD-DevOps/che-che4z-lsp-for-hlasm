@@ -75,7 +75,7 @@ struct file_manager_cache_test_mock : public file_manager_impl, public parse_lib
         return it == files_by_location_.end() ? nullptr : it->second;
     };
 
-    std::pair<std::shared_ptr<file>, macro_cache*> get_proc_file_from_library(const std::string& library)
+    std::pair<std::shared_ptr<file>, macro_cache*> get_proc_file_from_library(std::string_view library)
     {
         auto it = files_by_library_.find(library);
         if (it == files_by_library_.end())
@@ -85,7 +85,7 @@ struct file_manager_cache_test_mock : public file_manager_impl, public parse_lib
     };
 
     workspaces::parse_result parse_library(
-        const std::string& library, analyzing_context ctx, const workspaces::library_data data) override
+        std::string_view library, analyzing_context ctx, const workspaces::library_data data) override
     {
         auto [m, cache] = get_proc_file_from_library(library);
         auto a = std::make_unique<analyzer>(m->get_text(), analyzer_options { m->get_location(), ctx, this, data });

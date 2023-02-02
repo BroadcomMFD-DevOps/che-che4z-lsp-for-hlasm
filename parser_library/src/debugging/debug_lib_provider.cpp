@@ -30,7 +30,7 @@ debug_lib_provider::debug_lib_provider(std::vector<std::shared_ptr<workspaces::l
 {}
 
 workspaces::parse_result debug_lib_provider::parse_library(
-    const std::string& library, analyzing_context ctx, workspaces::library_data data)
+    std::string_view library, analyzing_context ctx, workspaces::library_data data)
 {
     utils::resource::resource_location url;
     for (const auto& lib : m_libraries)

@@ -15,6 +15,7 @@
 #include "analyzer.h"
 
 #include "hlasmparser_multiline.h"
+#include "lsp/lsp_context.h"
 #include "processing/opencode_provider.h"
 #include "processing/preprocessor.h"
 

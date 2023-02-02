@@ -26,7 +26,8 @@ class mock_parse_lib_provider : public workspaces::parse_lib_provider
     std::unordered_map<std::string, std::string, utils::hashers::string_hasher, std::equal_to<>> m_files;
 
 public:
-    std::unordered_map<std::string, std::unique_ptr<analyzer>> analyzers;
+    std::unordered_map<std::string, std::unique_ptr<analyzer>, utils::hashers::string_hasher, std::equal_to<>>
+        analyzers;
 
     mock_parse_lib_provider() = default;
     mock_parse_lib_provider(std::initializer_list<std::pair<std::string, std::string>> entries)
@@ -38,7 +39,7 @@ public:
     {}
 
     workspaces::parse_result parse_library(
-        const std::string& library, analyzing_context ctx, workspaces::library_data data) override
+        std::string_view library, analyzing_context ctx, workspaces::library_data data) override
     {
         auto it = m_files.find(library);
         if (it == m_files.end())
@@ -48,7 +49,7 @@ public:
             analyzer_options { hlasm_plugin::utils::resource::resource_location(library), this, std::move(ctx), data });
         a->analyze();
         a->collect_diags();
-        analyzers[library] = std::move(a);
+        analyzers.insert_or_assign(std::string(library), std::move(a));
         return true;
     }
 

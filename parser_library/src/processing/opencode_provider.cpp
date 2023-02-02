@@ -19,6 +19,7 @@
 #include "lexing/input_source.h"
 #include "lexing/token_stream.h"
 #include "library_info_transitional.h"
+#include "lsp/lsp_context.h"
 #include "parsing/error_strategy.h"
 #include "parsing/parser_impl.h"
 #include "processing/error_statement.h"
