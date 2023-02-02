@@ -31,15 +31,12 @@ TEST(processor_file, no_lsp_context)
     resource_location file_loc("filename");
     file_manager_impl mngr;
     mngr.did_open_file(file_loc, 0, " LR 1,1");
-    lib_config config;
-    shared_json global_settings = make_empty_shared_json();
-    workspace ws(mngr, config, global_settings);
-    ws.open();
-    auto file = ws.add_processor_file(file_loc);
+
+    processor_file_impl file(mngr.find(file_loc), mngr);
 
     // Prior to parsing, there is no lsp_context available
 
-    const auto* fp = file->get_lsp_context();
+    const auto* fp = file.get_lsp_context();
     ASSERT_FALSE(fp);
 }
 
