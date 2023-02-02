@@ -56,7 +56,7 @@ struct workspace_parse_lib_provider final : public parse_lib_provider
 
             used_files.try_emplace(url, found->current_source());
 
-            return found->parse_macro(*this, std::move(ctx), data);
+            return found->parse_macro(*this, std::move(ctx), std::move(data));
         }
 
         return false;
@@ -190,13 +190,12 @@ void workspace::reparse_after_config_refresh()
         if (!comp)
             continue;
 
-        auto& found = comp->m_processor_file;
         details.alternative_config = m_configuration.load_alternative_config_if_needed(fname);
         workspace_parse_lib_provider ws_lib(*this, fname);
-        if (!found->parse(ws_lib, get_asm_options(fname), get_preprocessor_options(fname), &fm_vfm_))
+        if (!comp->m_processor_file->parse(ws_lib, get_asm_options(fname), get_preprocessor_options(fname), &fm_vfm_))
             continue;
 
-        (void)parse_successful(*comp, ws_lib);
+        (void)parse_successful(*comp, std::move(ws_lib));
     }
 
     for (const auto& fname : dependants_)
@@ -274,8 +273,8 @@ workspace_file_info workspace::parse_file(
 
         for (auto* component : files_to_parse)
         {
-            auto& f = component->m_processor_file;
-            const auto& f_loc = f->get_location();
+            const auto& f = component->m_processor_file;
+            const auto& f_loc = component->m_processor_file->get_location();
 
             auto alt_cfg = m_configuration.load_alternative_config_if_needed(f_loc);
             if (auto opened_it = opened_files_.find(f_loc); opened_it != opened_files_.end())
@@ -285,22 +284,22 @@ workspace_file_info workspace::parse_file(
             if (!f->parse(ws_lib, get_asm_options(f_loc), get_preprocessor_options(f_loc), &fm_vfm_))
                 continue;
 
-            ws_file_info = parse_successful(*component, ws_lib);
+            ws_file_info = parse_successful(*component, std::move(ws_lib));
         }
 
         // second check after all dependants are there to close all files that used to be dependencies
-        for (auto* component : files_to_parse)
+        for (const auto* component : files_to_parse)
             filter_and_close_dependencies_(component->m_processor_file->files_to_close(), component->m_processor_file);
     }
 
     return ws_file_info;
 }
 
-workspace_file_info workspace::parse_successful(processor_file_compoments& comp, workspace_parse_lib_provider& libs)
+workspace_file_info workspace::parse_successful(processor_file_compoments& comp, workspace_parse_lib_provider libs)
 {
     workspace_file_info ws_file_info;
 
-    auto& f = comp.m_processor_file;
+    const auto& f = comp.m_processor_file;
 
     if (!f->dependencies().empty())
         dependants_.insert(f->get_location());
@@ -565,7 +564,7 @@ lsp::document_symbol_list_s workspace::document_symbol(
 std::vector<token_info> workspace::semantic_tokens(const utils::resource::resource_location& document_loc) const
 {
     auto comp = find_processor_file_impl(document_loc);
-    auto& f = comp->m_processor_file;
+    const auto& f = comp->m_processor_file;
 
     if (!f || !f->current_source())
         return {};
@@ -749,7 +748,7 @@ void workspace::filter_and_close_dependencies_(
     }
 }
 
-bool workspace::is_dependency_(const utils::resource::resource_location& file_location)
+bool workspace::is_dependency_(const utils::resource::resource_location& file_location) const
 {
     for (const auto& dependant : dependants_)
     {

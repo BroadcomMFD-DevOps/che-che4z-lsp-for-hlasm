@@ -159,7 +159,7 @@ private:
 
     void filter_and_close_dependencies_(
         const std::set<utils::resource::resource_location>& dependencies, std::shared_ptr<processor_file> file);
-    bool is_dependency_(const utils::resource::resource_location& file_location);
+    bool is_dependency_(const utils::resource::resource_location& file_location) const;
 
     std::vector<std::shared_ptr<processor_file>> find_related_opencodes(
         const utils::resource::resource_location& document_loc) const;
@@ -201,7 +201,7 @@ private:
     processor_file_compoments* find_processor_file_impl(const utils::resource::resource_location& file);
     const processor_file_compoments* find_processor_file_impl(const utils::resource::resource_location& file) const;
     friend struct workspace_parse_lib_provider;
-    workspace_file_info parse_successful(processor_file_compoments& comp, workspace_parse_lib_provider&);
+    workspace_file_info parse_successful(processor_file_compoments& comp, workspace_parse_lib_provider libs);
 };
 
 } // namespace hlasm_plugin::parser_library::workspaces

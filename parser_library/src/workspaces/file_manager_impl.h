@@ -97,7 +97,7 @@ private:
         utils::resource::resource_location_hasher>
         files_;
 
-    void prepare_file_for_change_(std::shared_ptr<file_impl>& file);
+    static void prepare_file_for_change_(std::shared_ptr<file_impl>& file);
 
 protected:
     const auto& get_files() const { return files_; }

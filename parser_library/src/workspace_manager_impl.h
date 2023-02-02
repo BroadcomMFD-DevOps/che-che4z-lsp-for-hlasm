@@ -356,7 +356,7 @@ private:
         if (!proc_file)
             return;
 
-        parsing_metadata data { proc_file->get_metrics(), ws_file_info };
+        parsing_metadata data { proc_file->get_metrics(), std::move(ws_file_info) };
         for (auto consumer : parsing_metadata_consumers_)
             consumer->consume_parsing_metadata(data);
     }
