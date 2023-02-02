@@ -20,7 +20,6 @@
 #include "../workspace/empty_configs.h"
 #include "analyzer.h"
 #include "context/id_storage.h"
-#include "files_parse_lib_provider.h"
 #include "lsp/lsp_context.h"
 #include "lsp/opencode_info.h"
 #include "lsp/text_data_view.h"
@@ -381,30 +380,49 @@ TEST(macro_cache_test, overwrite_by_inline)
 )";
 
     file_manager_impl file_mngr;
-    lib_config config;
-    shared_json global_settings = make_empty_shared_json();
-    workspace ws(file_mngr, config, global_settings);
-    ws.open();
-    files_parse_lib_provider lib_provider(file_mngr, ws);
 
     file_mngr.did_open_file(opencode_file_loc, 0, opencode_text);
     file_mngr.did_open_file(macro_file_loc, 0, macro_text);
-    auto opencode = ws.add_processor_file(opencode_file_loc);
 
-    opencode->parse(lib_provider, {}, {}, nullptr);
-    opencode->collect_diags();
+    processor_file_impl opencode(file_mngr.find(opencode_file_loc), file_mngr);
+    processor_file_impl macro(file_mngr.find(macro_file_loc), file_mngr);
 
-    EXPECT_EQ(opencode->diags().size(), 2U);
-    EXPECT_TRUE(find_diag_with_filename(opencode->diags(), macro_file_loc));
-    EXPECT_TRUE(find_diag_with_filename(opencode->diags(), opencode_file_loc));
+    struct simple_provider : parse_lib_provider
+    {
+        processor_file_impl& macro_ref;
 
-    opencode->diags().clear();
+        parse_result parse_library(std::string_view lib, analyzing_context ac, library_data ld) override
+        {
+            EXPECT_EQ(lib, "MAC");
 
-    opencode->parse(lib_provider, {}, {}, nullptr);
-    opencode->collect_diags();
-    EXPECT_EQ(opencode->diags().size(), 2U);
-    EXPECT_TRUE(find_diag_with_filename(opencode->diags(), macro_file_loc));
-    EXPECT_TRUE(find_diag_with_filename(opencode->diags(), opencode_file_loc));
+            return macro_ref.parse_macro(*this, ac, ld);
+        }
+        bool has_library(std::string_view) const override { return false; }
+        std::optional<std::pair<std::string, resource_location>> get_library(std::string_view) const override
+        {
+            return std::nullopt;
+        }
+
+        simple_provider(processor_file_impl& macro_ref)
+            : macro_ref(macro_ref)
+        {}
+
+    } provider(macro);
+
+    opencode.parse(provider, {}, {}, nullptr);
+    opencode.collect_diags();
+
+    EXPECT_EQ(opencode.diags().size(), 2U);
+    EXPECT_TRUE(find_diag_with_filename(opencode.diags(), macro_file_loc));
+    EXPECT_TRUE(find_diag_with_filename(opencode.diags(), opencode_file_loc));
+
+    opencode.diags().clear();
+
+    opencode.parse(provider, {}, {}, nullptr);
+    opencode.collect_diags();
+    EXPECT_EQ(opencode.diags().size(), 2U);
+    EXPECT_TRUE(find_diag_with_filename(opencode.diags(), macro_file_loc));
+    EXPECT_TRUE(find_diag_with_filename(opencode.diags(), opencode_file_loc));
 }
 
 TEST(macro_cache_test, inline_depends_on_copy)
