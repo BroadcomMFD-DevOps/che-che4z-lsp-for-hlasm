@@ -37,7 +37,11 @@ struct file_manager_cache_test_mock : public file_manager_impl, public parse_lib
     const static inline size_t lib_prefix_length = 4;
 
     std::unordered_map<resource_location, std::shared_ptr<file>, resource_location_hasher> files_by_location_;
-    std::unordered_map<std::string, std::pair<std::shared_ptr<file>, macro_cache>> files_by_library_;
+    std::unordered_map<std::string,
+        std::pair<std::shared_ptr<file>, macro_cache>,
+        hlasm_plugin::utils::hashers::string_hasher,
+        std::equal_to<>>
+        files_by_library_;
 
     std::shared_ptr<context::hlasm_context> hlasm_ctx;
 
@@ -92,13 +96,9 @@ struct file_manager_cache_test_mock : public file_manager_impl, public parse_lib
         return true;
     }
 
-    bool has_library(const std::string& library, const resource_location&) const override
-    {
-        return files_by_library_.count(library) > 0;
-    };
+    bool has_library(std::string_view library) const override { return files_by_library_.count(library) > 0; };
 
-    std::optional<std::pair<std::string, resource_location>> get_library(
-        const std::string& library, const resource_location&) const override
+    std::optional<std::pair<std::string, resource_location>> get_library(std::string_view library) const override
     {
         auto it = files_by_library_.find(library);
         if (it == files_by_library_.end())

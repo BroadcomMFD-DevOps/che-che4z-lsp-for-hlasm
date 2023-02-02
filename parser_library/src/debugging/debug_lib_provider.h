@@ -53,10 +53,10 @@ public:
     workspaces::parse_result parse_library(
         const std::string& library, analyzing_context ctx, workspaces::library_data data) override;
 
-    bool has_library(const std::string& library, const utils::resource::resource_location& program) const override;
+    bool has_library(std::string_view library) const override;
 
     std::optional<std::pair<std::string, utils::resource::resource_location>> get_library(
-        const std::string& library, const utils::resource::resource_location& program) const override;
+        std::string_view library) const override;
 };
 
 } // namespace hlasm_plugin::parser_library::debugging

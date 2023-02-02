@@ -23,7 +23,7 @@ namespace hlasm_plugin::parser_library {
 
 class mock_parse_lib_provider : public workspaces::parse_lib_provider
 {
-    std::unordered_map<std::string, std::string> m_files;
+    std::unordered_map<std::string, std::string, utils::hashers::string_hasher, std::equal_to<>> m_files;
 
 public:
     std::unordered_map<std::string, std::unique_ptr<analyzer>> analyzers;
@@ -52,14 +52,11 @@ public:
         return true;
     }
 
-    bool has_library(const std::string& library, const utils::resource::resource_location&) const override
-    {
-        return m_files.count(library);
-    }
+    bool has_library(std::string_view library) const override { return m_files.count(library); }
 
 
     std::optional<std::pair<std::string, utils::resource::resource_location>> get_library(
-        const std::string& library, const utils::resource::resource_location&) const override
+        std::string_view library) const override
     {
         auto it = m_files.find(library);
         if (it == m_files.end())

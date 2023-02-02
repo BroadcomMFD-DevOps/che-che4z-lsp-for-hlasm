@@ -40,10 +40,10 @@ public:
     // Library data passes information whether COPY or macro is going to be parsed.
     virtual parse_result parse_library(const std::string& library, analyzing_context ctx, library_data data) = 0;
 
-    virtual bool has_library(const std::string& library, const utils::resource::resource_location& program) const = 0;
+    virtual bool has_library(std::string_view library) const = 0;
 
     virtual std::optional<std::pair<std::string, utils::resource::resource_location>> get_library(
-        const std::string& library, const utils::resource::resource_location& program) const = 0;
+        std::string_view library) const = 0;
 
 protected:
     ~parse_lib_provider() = default;
@@ -54,9 +54,9 @@ class empty_parse_lib_provider final : public parse_lib_provider
 {
 public:
     parse_result parse_library(const std::string&, analyzing_context, library_data) override { return false; };
-    bool has_library(const std::string&, const utils::resource::resource_location&) const override { return false; };
+    bool has_library(std::string_view) const override { return false; };
     std::optional<std::pair<std::string, utils::resource::resource_location>> get_library(
-        const std::string&, const utils::resource::resource_location&) const override
+        std::string_view) const override
     {
         return std::nullopt;
     }

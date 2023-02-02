@@ -40,12 +40,12 @@ struct files_parse_lib_provider : public workspaces::parse_lib_provider
             return false;
         return macro->parse_macro(*this, std::move(ctx), std::move(data));
     }
-    bool has_library(const std::string& library, const utils::resource::resource_location&) const override
+    bool has_library(std::string_view library) const override
     {
         return file_mngr->find(utils::resource::resource_location(library)) != nullptr;
     }
     std::optional<std::pair<std::string, utils::resource::resource_location>> get_library(
-        const std::string& library, const utils::resource::resource_location&) const override
+        std::string_view library) const override
     {
         auto macro = file_mngr->find(utils::resource::resource_location(library));
         if (!macro)

@@ -61,13 +61,13 @@ struct workspace_parse_lib_provider final : public parse_lib_provider
 
         return false;
     }
-    bool has_library(const std::string& library, const utils::resource::resource_location&) const override
+    bool has_library(std::string_view library) const override
     {
         return std::any_of(
             libraries.begin(), libraries.end(), [&library](const auto& lib) { return lib->has_file(library); });
     }
     std::optional<std::pair<std::string, utils::resource::resource_location>> get_library(
-        const std::string& library, const utils::resource::resource_location&) const override
+        std::string_view library) const override
     {
         utils::resource::resource_location url;
         for (auto&& lib : libraries)

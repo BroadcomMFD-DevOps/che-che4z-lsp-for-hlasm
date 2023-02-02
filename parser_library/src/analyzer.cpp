@@ -114,8 +114,7 @@ analyzer::analyzer(std::string_view text, analyzer_options opts)
                 src_proc_,
                 *this,
                 opts.get_preprocessor(
-                    [libs = &opts.get_lib_provider(), program = opts.file_loc](
-                        std::string_view library) { return libs->get_library(std::string(library), program); },
+                    [libs = &opts.get_lib_provider()](std::string_view library) { return libs->get_library(library); },
                     *this,
                     src_proc_),
                 opts.parsing_opencode == file_is_opencode::yes ? processing::opencode_provider_options { true, 10 }
