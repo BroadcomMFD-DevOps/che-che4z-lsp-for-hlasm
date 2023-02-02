@@ -17,6 +17,7 @@
 #include "../gtest_stringers.h"
 #include "../workspace/empty_configs.h"
 #include "files_parse_lib_provider.h"
+#include "lsp/lsp_context.h"
 #include "utils/resource_location.h"
 #include "workspaces/file_manager_impl.h"
 #include "workspaces/processor_file_impl.h"

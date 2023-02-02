@@ -19,6 +19,7 @@
 
 #include "../common_testing.h"
 #include "empty_configs.h"
+#include "lsp/completion_item.h"
 #include "nlohmann/json.hpp"
 #include "utils/content_loader.h"
 #include "utils/platform.h"
