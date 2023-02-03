@@ -461,6 +461,9 @@ lsp::document_symbol_list_s workspace::document_symbol(
 std::vector<token_info> workspace::semantic_tokens(const utils::resource::resource_location& document_loc) const
 {
     auto comp = find_processor_file_impl(document_loc);
+    if (!comp)
+        return {};
+
     const auto& f = comp->m_processor_file;
 
     if (!f || !f->current_source())
