@@ -700,11 +700,6 @@ std::vector<preprocessor_options> workspace::get_preprocessor_options(
     return get_proc_grp_by_program(file_location).preprocessors();
 }
 
-std::shared_ptr<processor_file> workspace::add_processor_file(const utils::resource::resource_location& file_location)
-{
-    return add_processor_file_impl(file_location).m_processor_file;
-}
-
 workspace::processor_file_compoments& workspace::add_processor_file_impl(
     const utils::resource::resource_location& file_location)
 {

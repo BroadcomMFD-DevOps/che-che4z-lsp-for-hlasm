@@ -107,7 +107,6 @@ public:
 
     void set_message_consumer(message_consumer* consumer);
 
-    std::shared_ptr<processor_file> add_processor_file(const utils::resource::resource_location& file);
     std::shared_ptr<processor_file> find_processor_file(const utils::resource::resource_location& file) const;
 
     file_manager& get_file_manager() const;
