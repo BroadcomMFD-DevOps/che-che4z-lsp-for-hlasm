@@ -187,14 +187,7 @@ void macro_cache::save_macro(const macro_cache_key& key, const analyzer& analyze
 
 void macro_cache::erase_cache_of_opencode(const utils::resource::resource_location& opencode_file_location)
 {
-    auto it = cache_.begin();
-    while (it != cache_.end())
-    {
-        if (it->first.opencode_file_location == opencode_file_location)
-            it = cache_.erase(it);
-        else
-            ++it;
-    }
+    std::erase_if(cache_, [&l = opencode_file_location](const auto& e) { return e.first.opencode_file_location == l; });
 }
 
 } // namespace hlasm_plugin::parser_library::workspaces
