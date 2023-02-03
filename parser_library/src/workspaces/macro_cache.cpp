@@ -116,7 +116,7 @@ const macro_cache_data* macro_cache::find_cached_data(const macro_cache_key& key
     return &cached_data;
 }
 
-bool macro_cache::load_from_cache(const macro_cache_key& key, const analyzing_context& ctx)
+bool macro_cache::load_from_cache(const macro_cache_key& key, const analyzing_context& ctx) const
 {
     if (auto cached_data = find_cached_data(key))
     {

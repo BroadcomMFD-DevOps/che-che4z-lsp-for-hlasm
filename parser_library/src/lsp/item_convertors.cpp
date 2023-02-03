@@ -234,7 +234,7 @@ completion_item_s generate_completion_item(const macro_info& sym, const file_inf
 
 
 completion_list_s generate_completion(const completion_list_source& cls,
-    std::function<std::vector<std::string>(std::string_view)> instruction_suggestions)
+    const std::function<std::vector<std::string>(std::string_view)>& instruction_suggestions)
 {
     return std::visit(
         [&instruction_suggestions](auto v) { return generate_completion(v, instruction_suggestions); }, cls);
@@ -272,8 +272,6 @@ completion_list_s generate_completion(
 completion_list_s generate_completion(const completion_list_instructions& cli,
     const std::function<std::vector<std::string>(std::string_view)>& instruction_suggestions)
 {
-    completion_list_s result;
-
     assert(cli.lsp_ctx);
 
     const auto& hlasm_ctx = cli.lsp_ctx->get_related_hlasm_context();
@@ -293,6 +291,7 @@ completion_list_s generate_completion(const completion_list_instructions& cli,
         return it == s.end() ? nullptr : std::to_address(it);
     };
 
+    completion_list_s result;
 
     // Store only instructions from the currently active instruction set
     for (const auto& instr : completion_item_s::m_instruction_completion_items)

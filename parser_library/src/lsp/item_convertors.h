@@ -49,7 +49,7 @@ completion_item_s generate_completion_item(const variable_symbol_definition& sym
 completion_item_s generate_completion_item(const macro_info& sym, const file_info* info);
 
 std::vector<completion_item_s> generate_completion(const completion_list_source& cls,
-    std::function<std::vector<std::string>(std::string_view)> instruction_suggestions = {});
+    const std::function<std::vector<std::string>(std::string_view)>& instruction_suggestions = {});
 std::vector<completion_item_s> generate_completion(
     std::monostate, const std::function<std::vector<std::string>(std::string_view)>& instruction_suggestions);
 std::vector<completion_item_s> generate_completion(const std::vector<variable_symbol_definition>*,
