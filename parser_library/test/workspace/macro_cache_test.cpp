@@ -104,8 +104,8 @@ TEST(macro_cache_test, copy_from_macro)
     auto macro_file = open_file(macro_file_loc, macro_text, file_mngr);
     auto copy_file = open_file(copyfile_file_loc, copyfile_text, file_mngr);
 
-    macro_cache macro_c(file_mngr, *macro_file);
-    macro_cache copy_c(file_mngr, *copy_file);
+    macro_cache macro_c(file_mngr, macro_file);
+    macro_cache copy_c(file_mngr, copy_file);
 
     auto ids = std::make_shared<context::id_storage>();
 
@@ -164,7 +164,7 @@ TEST(macro_cache_test, opsyn_change)
 )";
     file_manager_impl file_mngr;
     auto macro_file = open_file(macro_file_loc, macro_text, file_mngr);
-    macro_cache macro_c(file_mngr, *macro_file);
+    macro_cache macro_c(file_mngr, macro_file);
     constexpr context::id_index macro_id("MAC");
 
     auto ids = std::make_shared<context::id_storage>();
@@ -232,7 +232,7 @@ TEST(macro_cache_test, empty_macro)
 
     file_manager_impl file_mngr;
     auto macro_file = open_file(macro_file_loc, macro_text, file_mngr);
-    macro_cache macro_c(file_mngr, *macro_file);
+    macro_cache macro_c(file_mngr, macro_file);
     constexpr context::id_index macro_id("MAC");
 
     auto ids = std::make_shared<context::id_storage>();
@@ -385,7 +385,7 @@ TEST(macro_cache_test, inline_depends_on_copy)
     file_manager_impl file_mngr;
 
     auto copy_file = open_file(copy_file_loc, copy_text, file_mngr);
-    macro_cache copy_c(file_mngr, *copy_file);
+    macro_cache copy_c(file_mngr, copy_file);
     constexpr context::id_index copy_id("COPYFILE");
 
     auto ids = std::make_shared<context::id_storage>();

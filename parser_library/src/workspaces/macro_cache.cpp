@@ -26,9 +26,9 @@ void macro_cache::collect_diags() const
     // No collectible children
 }
 
-macro_cache::macro_cache(const file_manager& file_mngr, file& macro_file)
+macro_cache::macro_cache(const file_manager& file_mngr, std::shared_ptr<file> macro_file)
     : file_mngr_(&file_mngr)
-    , macro_file_(&macro_file)
+    , macro_file_(std::move(macro_file))
 {}
 
 std::vector<cached_opsyn_mnemo> macro_cache_key::get_opsyn_state(context::hlasm_context& ctx)

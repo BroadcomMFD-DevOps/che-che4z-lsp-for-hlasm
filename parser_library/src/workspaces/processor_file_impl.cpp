@@ -28,7 +28,7 @@ processor_file_impl::processor_file_impl(std::shared_ptr<file> file, file_manage
     : file_mngr_(file_mngr)
     , file_(std::move(file))
     , cancel_(cancel)
-    , macro_cache_(file_mngr, *file_)
+    , macro_cache_(file_mngr, file_)
 {}
 
 void processor_file_impl::collect_diags() const {}
@@ -191,6 +191,8 @@ void processor_file_impl::update_source()
     last_analyzer_.reset();
     used_files.clear();
     file_ = file_mngr_.add_file(get_location());
+    macro_cache_ = macro_cache(file_mngr_, file_);
+    diags().clear();
 }
 
 void processor_file_impl::store_used_files(std::unordered_map<utils::resource::resource_location,

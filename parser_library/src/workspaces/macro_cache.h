@@ -15,6 +15,8 @@
 #ifndef HLASMPLUGIN_PARSERLIBRARY_MACRO_CACHE_H
 #define HLASMPLUGIN_PARSERLIBRARY_MACRO_CACHE_H
 
+#include <memory>
+
 #include "analyzer.h"
 
 namespace hlasm_plugin::parser_library::workspaces {
@@ -78,10 +80,10 @@ class macro_cache final : public diagnosable_impl
 {
     std::map<macro_cache_key, macro_cache_data> cache_;
     const file_manager* file_mngr_;
-    file* macro_file_;
+    std::shared_ptr<file> macro_file_;
 
 public:
-    macro_cache(const file_manager& file_mngr, file& macro_file);
+    macro_cache(const file_manager& file_mngr, std::shared_ptr<file> macro_file);
     // Checks whether any dependencies with specified macro cache key (macro context) have changed. If not, loads the
     // cached macro to the specified context. Returns true, if the macro was loaded.
     bool load_from_cache(const macro_cache_key& key, const analyzing_context& ctx);
