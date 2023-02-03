@@ -28,6 +28,31 @@ hit_count_analyzer::hit_count_analyzer(context::hlasm_context& ctx)
 {}
 
 namespace {
+std::optional<range> get_range(const context::hlasm_statement* stmt, processing::processing_kind proc_kind)
+{
+    if (!stmt)
+        return std::nullopt;
+
+    if (stmt->kind == context::statement_kind::RESOLVED)
+    {
+        if (auto resolved = stmt->access_resolved(); resolved)
+            return resolved->stmt_range_ref();
+    }
+    else if (stmt->kind == context::statement_kind::DEFERRED)
+    {
+        if (auto deferred = stmt->access_deferred(); deferred)
+            return deferred->stmt_range_ref();
+    }
+    else
+    {
+        auto err_stmt = dynamic_cast<const error_statement*>(stmt);
+        if (!err_stmt)
+            return std::nullopt;
+
+        return range(err_stmt->statement_position());
+    }
+}
+
 size_t& emplace_hit_count(hit_count_map& hc_map, const utils::resource::resource_location& rl, range r)
 {
     auto map_emplacer = []<typename VALUE>(auto& m, const auto& k) {
@@ -43,93 +68,37 @@ size_t& emplace_hit_count(hit_count_map& hc_map, const utils::resource::resource
     stmt_r = std::move(r);
     return stmt_count;
 }
-
-std::optional<range> get_range(const context::hlasm_statement* stmt, processing::processing_kind proc_kind)
-{
-    if (!stmt)
-        return std::nullopt;
-
-    const auto r_helper = [&proc_kind](const range& r) -> std::optional<range> {
-        return (proc_kind == processing::processing_kind::ORDINARY && r.start == r.end && r.start.column == 0)
-            ? std::optional<range>()
-            : r;
-    };
-
-    if (stmt->kind == context::statement_kind::RESOLVED)
-    {
-        if (auto resolved = stmt->access_resolved(); resolved)
-            return r_helper(resolved->stmt_range_ref());
-    }
-    else if (stmt->kind == context::statement_kind::DEFERRED)
-    {
-        if (auto deferred = stmt->access_deferred(); deferred)
-            return r_helper(deferred->stmt_range_ref());
-    }
-    else
-    {
-        auto err_stmt = dynamic_cast<const error_statement*>(stmt);
-        if (!err_stmt)
-            return std::nullopt;
-
-        auto r = range(err_stmt->statement_position());
-        r.end.column = 72;
-
-        return r;
-    }
-}
-
-template<typename DEFINITION>
-void insert_external_definitions(DEFINITION definition,
-    std::string_view lib_name,
-    processing_kind proc_kind,
-    hit_count_map& hc_map,
-    std::unordered_set<std::string_view>& processed_libs)
-{
-    if (!definition || processed_libs.contains(lib_name))
-        return;
-
-    processed_libs.emplace(lib_name);
-
-    for (const auto& stmt : definition->cached_definition)
-    {
-        if (const auto stmt_range = get_range(stmt.get_base().get(), proc_kind); stmt_range)
-            emplace_hit_count(hc_map, definition->definition_location.resource_loc, std::move(*stmt_range));
-    }
-}
 } // namespace
+
 
 void hit_count_analyzer::analyze(
     const context::hlasm_statement& statement, statement_provider_kind prov_kind, processing_kind proc_kind, bool)
 {
-    if (statement.kind == context::statement_kind::DEFERRED || proc_kind == processing::processing_kind::MACRO
-        || proc_kind == processing::processing_kind::COPY)
+    if (auto res_stmt = statement.access_resolved();
+        res_stmt && res_stmt->opcode_ref().value == context::id_storage::well_known::MACRO)
+    {
+        m_expecting_macro = true;
         return;
+    }
+
+    if (m_expecting_macro)
+    {
+        m_expecting_macro = false;
+        return;
+    }
 
     auto stmt_range = get_range(&statement, proc_kind);
     if (!stmt_range)
         return;
 
-    const auto& frame = m_ctx.processing_stack().frame();
-
-    if (prov_kind == statement_provider_kind::MACRO)
-        insert_external_definitions(m_ctx.get_macro_definition(frame.member_name),
-            frame.member_name.to_string_view(),
-            proc_kind,
-            m_hit_counts,
-            m_processed_members);
-    else if (prov_kind == statement_provider_kind::COPY)
-        insert_external_definitions(m_ctx.get_copy_member(frame.member_name),
-            frame.member_name.to_string_view(),
-            proc_kind,
-            m_hit_counts,
-            m_processed_members);
-    else
-    {
+    if (prov_kind == statement_provider_kind::OPEN)
         stmt_range->end.line = m_ctx.current_source().end_index - 1;
-        stmt_range->end.column = 72;
-    }
+    stmt_range->end.column = 72;
 
-    auto& count = emplace_hit_count(m_hit_counts, *frame.resource_loc, std::move(*stmt_range));
+    assert(m_ctx.processing_stack().frame().resource_loc);
+
+    auto& count =
+        emplace_hit_count(m_hit_counts, *m_ctx.processing_stack().frame().resource_loc, std::move(*stmt_range));
 
     if (proc_kind == processing::processing_kind::ORDINARY)
         count++;

@@ -125,8 +125,7 @@ parse_result processor_file_impl::parse_macro(
 
     m_macro_cache.save_macro(cache_key, *a);
     m_last_analyzer = std::move(a);
-    m_hc_map.clear();
-    store_hit_counts(hc_analyzer, m_hc_map);
+    m_hc_map = std::move(hc_analyzer.take_hit_counts());
 
     return true;
 }

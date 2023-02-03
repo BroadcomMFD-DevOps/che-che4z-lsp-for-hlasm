@@ -52,6 +52,7 @@ private:
     context::hlasm_context& m_ctx;
     hit_count_map m_hit_counts;
     std::unordered_set<std::string_view> m_processed_members;
+    bool m_expecting_macro = false;
 };
 
 } // namespace hlasm_plugin::parser_library::processing
