@@ -14,6 +14,7 @@
 
 #include "item_convertors.h"
 
+#include <concepts>
 #include <limits>
 
 #include "completion_item.h"
@@ -31,7 +32,7 @@
 namespace hlasm_plugin::parser_library::lsp {
 namespace {
 
-template</*std::integral*/ typename T>
+template<std::integral T>
 std::string& append_hex_and_dec(std::string& t, T value)
 {
     using UT = std::make_unsigned_t<T>;
