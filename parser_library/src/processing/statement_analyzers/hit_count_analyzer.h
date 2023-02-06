@@ -31,9 +31,15 @@ struct hit_count_details
     size_t count;
 };
 
-using stmt_hit_count_map = std::unordered_map<size_t, hit_count_details>;
-using hit_count_map = std::
-    unordered_map<utils::resource::resource_location, stmt_hit_count_map, utils::resource::resource_location_hasher>;
+struct stmt_hit_count_details
+{
+    std::unordered_map<size_t, hit_count_details> stmt_hc_map;
+    bool is_external_macro = true;
+};
+
+using hit_count_map = std::unordered_map<utils::resource::resource_location,
+    stmt_hit_count_details,
+    utils::resource::resource_location_hasher>;
 
 class hit_count_analyzer final : public statement_analyzer
 {
@@ -49,10 +55,20 @@ public:
     inline hit_count_map&& take_hit_counts() { return std::move(m_hit_counts); };
 
 private:
+    enum class statement_type
+    {
+        REGULAR,
+        MACRO_INIT,
+        MACRO_NAME,
+        MACRO_BODY,
+    };
+
     context::hlasm_context& m_ctx;
     hit_count_map m_hit_counts;
     std::unordered_set<std::string_view> m_processed_members;
-    bool m_expecting_macro = false;
+    statement_type m_stmt_type = statement_type::REGULAR;
+    size_t m_in_macro_def = 0;
+    statement_type get_stmt_type(const context::hlasm_statement& statement);
 };
 
 } // namespace hlasm_plugin::parser_library::processing

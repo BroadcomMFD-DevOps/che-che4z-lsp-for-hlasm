@@ -72,6 +72,7 @@ struct test_params
 {
     std::vector<std::string> text_to_insert;
     std::vector<fade_message_s> expected_fade_messages;
+    size_t number_of_diags = 0;
 };
 
 class fade_fixture_opencode_base : public diags_retriever, public ::testing::TestWithParam<test_params>
@@ -165,7 +166,7 @@ TEST_P(fade_fixture_opencode_general, opencode)
 
     open_src_files_and_collect_fms({ { src1_loc, std::move(src1) } });
 
-    EXPECT_EQ(collect_and_get_diags_size(ws, file_manager), (size_t)0);
+    EXPECT_EQ(collect_and_get_diags_size(ws, file_manager), GetParam().number_of_diags);
     EXPECT_EQ(ws.diags().size(), (size_t)0);
 
     auto& expected_msgs = GetParam().expected_fade_messages;
@@ -212,7 +213,7 @@ $x
 
     open_src_files_and_collect_fms({ { src1_loc, std::move(src1) } });
 
-    EXPECT_EQ(collect_and_get_diags_size(ws, file_manager), (size_t)0);
+    EXPECT_EQ(collect_and_get_diags_size(ws, file_manager), GetParam().number_of_diags);
     EXPECT_EQ(ws.diags().size(), (size_t)0);
 
     auto& expected_msgs = GetParam().expected_fade_messages;
@@ -255,7 +256,7 @@ $x
 
     open_src_files_and_collect_fms({ { mac_loc, std::move(mac) }, { src1_loc, std::move(src1) } });
 
-    EXPECT_EQ(collect_and_get_diags_size(ws, file_manager), (size_t)0);
+    EXPECT_EQ(collect_and_get_diags_size(ws, file_manager), GetParam().number_of_diags);
     EXPECT_EQ(ws.diags().size(), (size_t)0);
 
     auto& expected_msgs = GetParam().expected_fade_messages;
@@ -299,7 +300,7 @@ LABEL    L 1,1
     open_src_files_and_collect_fms(
         { { cpybook_loc, std::move(cpybook) }, { src1_loc, std::move(src1) }, { src2_loc, std::move(src2) } });
 
-    EXPECT_EQ(collect_and_get_diags_size(ws, file_manager), (size_t)0);
+    EXPECT_EQ(collect_and_get_diags_size(ws, file_manager), GetParam().number_of_diags);
     EXPECT_EQ(ws.diags().size(), (size_t)0);
 
     auto& expected_msgs = GetParam().expected_fade_messages;
@@ -332,7 +333,7 @@ INSTANTIATE_TEST_SUITE_P(fade,
                 fade_message_s::inactive_statement("libs/CPYBOOK", range(position(1, 0), position(1, 72))),
                 fade_message_s::inactive_statement("libs/CPYBOOK", range(position(2, 0), position(2, 72))),
                 fade_message_s::inactive_statement("libs/mac", range(position(3, 0), position(3, 72))) } },
-        test_params { { "*        MAC 1,1" }, {} }));
+        test_params { { "*        MAC 1,1" }, {}, 2 })); // Diags related to missing members in mac and cpybook
 } // namespace
 
 TEST_P(fade_fixture_opencode_nested, nested)
@@ -359,7 +360,7 @@ $x
     open_src_files_and_collect_fms(
         { { mac_loc, std::move(mac) }, { cpybook_loc, std::move(cpybook) }, { src1_loc, std::move(src1) } });
 
-    EXPECT_EQ(collect_and_get_diags_size(ws, file_manager), (size_t)0);
+    EXPECT_EQ(collect_and_get_diags_size(ws, file_manager), GetParam().number_of_diags);
     EXPECT_EQ(ws.diags().size(), (size_t)0);
 
     auto& expected_msgs = GetParam().expected_fade_messages;

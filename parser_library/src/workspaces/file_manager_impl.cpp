@@ -14,6 +14,7 @@
 
 #include "file_manager_impl.h"
 
+#include <algorithm>
 #include <map>
 #include <span>
 
@@ -35,10 +36,18 @@ void file_manager_impl::retrieve_fade_messages(std::vector<fade_message_s>& fms)
         file_impl->retrieve_hit_counts(hc_map);
     }
 
-    for (const auto& [rl, stmt_hc_m] : hc_map)
-        for (const auto& [line, details] : stmt_hc_m)
+    for (auto& [rl, pair] : hc_map)
+    {
+        auto& [stmt_hc_m, is_external_macro] = pair;
+
+        if (is_external_macro
+            && std::all_of(stmt_hc_m.begin(), stmt_hc_m.end(), [](const auto& p) { return p.second.count == 0; }))
+            continue;
+
+        for (auto& [_, details] : stmt_hc_m)
             if (!details.count)
-                fms.emplace_back(fade_message_s::inactive_statement(rl.get_uri(), details.r));
+                fms.emplace_back(fade_message_s::inactive_statement(rl.get_uri(), std::move(details.r)));
+    }
 }
 
 std::shared_ptr<file> file_manager_impl::add_file(const file_location& file)

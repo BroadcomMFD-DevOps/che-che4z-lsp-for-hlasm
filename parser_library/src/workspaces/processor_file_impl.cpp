@@ -204,13 +204,22 @@ void processor_file_impl::store_used_files(std::unordered_map<utils::resource::r
     }
 }
 
-void processor_file_impl::retrieve_hit_counts(processing::hit_count_map& hc_map)
+void processor_file_impl::retrieve_hit_counts(processing::hit_count_map& other_hc_map)
 {
-    for (const auto& [rl, stmt_hc_m] : m_hc_map)
-        if (auto [stmt_hc_it, result1] = hc_map.try_emplace(rl, stmt_hc_m); !result1)
-            for (const auto& [line, details] : stmt_hc_m)
-                if (auto [it, result2] = stmt_hc_it->second.try_emplace(line, details); !result2)
-                    it->second.count += details.count;
+    for (const auto& [our_rl, our_stmt_hc_details] : m_hc_map)
+    {
+        if (auto [other_stmt_hc_it, emplaced_outer] = other_hc_map.try_emplace(our_rl, our_stmt_hc_details);
+            !emplaced_outer)
+        {
+            auto& [_, other_stmt_hc_details] = *other_stmt_hc_it;
+            other_stmt_hc_details.is_external_macro &= our_stmt_hc_details.is_external_macro;
+
+            for (const auto& [our_line, our_details] : our_stmt_hc_details.stmt_hc_map)
+                if (auto [it, emplaced_inner] = other_stmt_hc_details.stmt_hc_map.try_emplace(our_line, our_details);
+                    !emplaced_inner)
+                    it->second.count += our_details.count;
+        }
+    }
 }
 
 } // namespace hlasm_plugin::parser_library::workspaces
