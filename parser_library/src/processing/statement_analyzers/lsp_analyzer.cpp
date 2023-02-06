@@ -95,6 +95,7 @@ void lsp_analyzer::analyze(const context::hlasm_statement& statement,
                 update_macro_nest(*resolved_stmt);
             if (macro_nest_ > 1)
                 break; // Do not collect occurences in nested macros to avoid collecting occurences multiple times
+            collect_occurences(lsp::occurence_kind::INSTR_LIKE, statement, evaluated_model);
             collect_occurences(lsp::occurence_kind::VAR, statement, evaluated_model);
             collect_occurences(lsp::occurence_kind::SEQ, statement, evaluated_model);
             if (resolved_stmt)
@@ -172,11 +173,12 @@ void lsp_analyzer::copydef_finished(context::copy_member_ptr copydef, copy_proce
     lsp_ctx_.add_copy(std::move(copydef), lsp::text_data_view(file_text_));
 }
 
-void lsp_analyzer::opencode_finished()
+void lsp_analyzer::opencode_finished(workspaces::parse_lib_provider& libs)
 {
     lsp_ctx_.add_opencode(
         std::make_unique<lsp::opencode_info>(std::move(opencode_var_defs_), std::move(opencode_occurences_)),
-        lsp::text_data_view(file_text_));
+        lsp::text_data_view(file_text_),
+        libs);
 }
 
 void lsp_analyzer::assign_statement_occurences(const utils::resource::resource_location& doc_location)
@@ -269,6 +271,12 @@ void lsp_analyzer::collect_occurence(const semantics::instruction_si& instructio
         if (!opcode.opcode.empty() || macro_def)
             collector.occurences.emplace_back(
                 opcode.opcode, macro_def ? std::move(*macro_def) : context::macro_def_ptr {}, instruction.field_range);
+    }
+    else if (instruction.type == semantics::instruction_si_type::ORD
+        && collector.collector_kind == lsp::occurence_kind::INSTR_LIKE)
+    {
+        if (const auto& op = std::get<context::id_index>(instruction.value); !op.empty())
+            collector.occurences.emplace_back(lsp::occurence_kind::INSTR_LIKE, op, instruction.field_range, false);
     }
 }
 
