@@ -20,6 +20,7 @@
 
 #include "context/hlasm_context.h"
 #include "context/id_storage.h"
+#include "context/special_instructions.h"
 #include "lsp/lsp_context.h"
 #include "lsp/text_data_view.h"
 #include "occurence_collector.h"
@@ -95,7 +96,15 @@ void lsp_analyzer::analyze(const context::hlasm_statement& statement,
                 update_macro_nest(*resolved_stmt);
             if (macro_nest_ > 1)
                 break; // Do not collect occurences in nested macros to avoid collecting occurences multiple times
-            collect_occurences(lsp::occurence_kind::INSTR_LIKE, statement, evaluated_model);
+            if (statement.kind == context::statement_kind::DEFERRED)
+                collect_occurences(lsp::occurence_kind::INSTR_LIKE, statement, evaluated_model);
+            else if (resolved_stmt)
+            {
+                if (const auto& instr = statement.access_resolved()->instruction_ref();
+                    instr.type == semantics::instruction_si_type::ORD
+                    && context::instruction_resolved_during_macro_parsing(std::get<context::id_index>(instr.value)))
+                    collect_occurences(lsp::occurence_kind::INSTR, statement, evaluated_model);
+            }
             collect_occurences(lsp::occurence_kind::VAR, statement, evaluated_model);
             collect_occurences(lsp::occurence_kind::SEQ, statement, evaluated_model);
             if (resolved_stmt)
