@@ -227,6 +227,65 @@ $x
 }
 
 namespace {
+class fade_fixture_opencode_macros_opencode_inner : public fade_fixture_opencode_base
+{};
+
+INSTANTIATE_TEST_SUITE_P(fade,
+    fade_fixture_opencode_macros_opencode_inner,
+    ::testing::Values(test_params { { "         MAC 0" }, {} },
+        test_params { { "         MAC 1" },
+            { fade_message_s::inactive_statement("src1.hlasm", range(position(3, 0), position(3, 72))),
+                fade_message_s::inactive_statement("src1.hlasm", range(position(4, 0), position(4, 72))),
+                fade_message_s::inactive_statement("src1.hlasm", range(position(5, 0), position(5, 72))),
+                fade_message_s::inactive_statement("src1.hlasm", range(position(6, 0), position(6, 72))),
+                fade_message_s::inactive_statement("src1.hlasm", range(position(8, 0), position(8, 72))) } },
+        test_params { { "*        MAC 1" },
+            { fade_message_s::inactive_statement("src1.hlasm", range(position(3, 0), position(3, 72))),
+                fade_message_s::inactive_statement("src1.hlasm", range(position(4, 0), position(4, 72))),
+                fade_message_s::inactive_statement("src1.hlasm", range(position(5, 0), position(5, 72))),
+                fade_message_s::inactive_statement("src1.hlasm", range(position(6, 0), position(6, 72))),
+                fade_message_s::inactive_statement("src1.hlasm", range(position(7, 0), position(7, 72))),
+                fade_message_s::inactive_statement("src1.hlasm", range(position(8, 0), position(8, 72))),
+                fade_message_s::inactive_statement("src1.hlasm", range(position(9, 0), position(9, 72))),
+                fade_message_s::inactive_statement("src1.hlasm", range(position(10, 0), position(10, 72))) } }));
+} // namespace
+
+TEST_P(fade_fixture_opencode_macros_opencode_inner, macros_opencode_inner)
+{
+    std::string src1 = R"(
+         MACRO
+         MAC  &P
+         MACRO
+         MAC_INNER
+         ANOP
+         MEND
+         AIF (&P EQ 1).SKIP
+         MAC_INNER
+.SKIP    ANOP
+         MEND
+
+$x
+
+         END)";
+
+    src1 = std::regex_replace(src1, std::regex("\\$x"), GetParam().text_to_insert[0]);
+
+    open_src_files_and_collect_fms({ { src1_loc, std::move(src1) } });
+
+    EXPECT_EQ(collect_and_get_diags_size(ws, file_manager), GetParam().number_of_diags);
+    EXPECT_EQ(ws.diags().size(), (size_t)0);
+
+    auto& expected_msgs = GetParam().expected_fade_messages;
+    EXPECT_TRUE(std::is_permutation(fms.begin(),
+        fms.end(),
+        expected_msgs.begin(),
+        expected_msgs.end(),
+        [](const auto& fmsg, const auto& expected_fmsg) {
+            return fmsg.code == expected_fmsg.code && fmsg.r == expected_fmsg.r && fmsg.uri == expected_fmsg.uri;
+        }));
+}
+
+namespace {
 class fade_fixture_opencode_macros_external : public fade_fixture_opencode_base
 {};
 
@@ -245,7 +304,9 @@ TEST_P(fade_fixture_opencode_macros_external, macros_external)
          AIF (&P EQ 1).SKIP
          ANOP
 .SKIP    ANOP
-         MEND)";
+         MEND
+
+* SOME MEANINGFUL REMARKS)";
 
     std::string src1 = R"(
 $x
@@ -324,13 +385,11 @@ INSTANTIATE_TEST_SUITE_P(fade,
             { fade_message_s::inactive_statement("libs/CPYBOOK", range(position(2, 0), position(2, 72))),
                 fade_message_s::inactive_statement("libs/mac", range(position(4, 0), position(4, 72))) } },
         test_params { { "         MAC 1,0" },
-            { fade_message_s::inactive_statement("libs/CPYBOOK", range(position(0, 0), position(0, 72))),
-                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(1, 0), position(1, 72))),
+            { fade_message_s::inactive_statement("libs/CPYBOOK", range(position(1, 0), position(1, 72))),
                 fade_message_s::inactive_statement("libs/CPYBOOK", range(position(2, 0), position(2, 72))),
                 fade_message_s::inactive_statement("libs/mac", range(position(3, 0), position(3, 72))) } },
         test_params { { "         MAC 1,1" },
-            { fade_message_s::inactive_statement("libs/CPYBOOK", range(position(0, 0), position(0, 72))),
-                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(1, 0), position(1, 72))),
+            { fade_message_s::inactive_statement("libs/CPYBOOK", range(position(1, 0), position(1, 72))),
                 fade_message_s::inactive_statement("libs/CPYBOOK", range(position(2, 0), position(2, 72))),
                 fade_message_s::inactive_statement("libs/mac", range(position(3, 0), position(3, 72))) } },
         test_params { { "*        MAC 1,1" }, {}, 2 })); // Diags related to missing members in mac and cpybook

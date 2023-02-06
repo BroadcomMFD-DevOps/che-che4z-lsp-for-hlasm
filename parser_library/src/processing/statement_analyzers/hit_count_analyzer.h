@@ -15,6 +15,7 @@
 #ifndef PROCESSING_HIT_COUNT_ANALYZER_H
 #define PROCESSING_HIT_COUNT_ANALYZER_H
 
+#include <stack>
 #include <string_view>
 #include <unordered_map>
 #include <unordered_set>
@@ -67,7 +68,15 @@ private:
     hit_count_map m_hit_counts;
     std::unordered_set<std::string_view> m_processed_members;
     statement_type m_stmt_type = statement_type::REGULAR;
-    size_t m_in_macro_def = 0;
+    size_t m_macro_nest_level = 0;
+    range m_last_macro_init_r;
+
+    using macro_header_definitions_map =
+        std::unordered_map<std::string, std::pair<utils::resource::resource_location, std::pair<range, range>>>;
+    macro_header_definitions_map m_macro_header_definitions;
+
+    void use_macro_header_definitions(
+        macro_header_definitions_map& macro_header_definitions, const context::id_index& id, hit_count_map& hc_map);
     statement_type get_stmt_type(const context::hlasm_statement& statement);
 };
 
