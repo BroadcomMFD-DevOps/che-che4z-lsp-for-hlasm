@@ -63,7 +63,13 @@ public:
         return true;
     }
 
-    bool has_library(std::string_view library) const override { return read_library_name(library).has_value(); }
+    bool has_library(std::string_view library, hlasm_plugin::utils::resource::resource_location* url) const override
+    {
+        auto lib = read_library_name(library);
+        if (lib.has_value() && url)
+            *url = hlasm_plugin::utils::resource::resource_location(*library);
+        return lib.has_value();
+    }
 
     std::optional<std::pair<std::string, hlasm_plugin::utils::resource::resource_location>> get_library(
         std::string_view library) const override
