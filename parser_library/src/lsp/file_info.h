@@ -27,7 +27,6 @@
 #include "macro_info.h"
 #include "symbol_occurence.h"
 #include "text_data_view.h"
-#include "utils/general_hashers.h"
 #include "utils/resource_location.h"
 
 namespace hlasm_plugin::parser_library::lsp {

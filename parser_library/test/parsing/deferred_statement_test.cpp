@@ -86,7 +86,7 @@ TEST(deferred_statement, recognize_comment)
     EXPECT_TRUE(a.diags().empty());
 }
 
-TEST(deferred_statement, naviagation_for_nonexecuted)
+TEST(deferred_statement, navigation_for_nonexecuted)
 {
     std::string input = R"(
          MACRO
