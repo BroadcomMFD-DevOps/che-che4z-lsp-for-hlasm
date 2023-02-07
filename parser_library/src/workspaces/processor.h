@@ -15,14 +15,22 @@
 #ifndef HLASMPLUGIN_PARSERLIBRARY_PROCESSOR_H
 #define HLASMPLUGIN_PARSERLIBRARY_PROCESSOR_H
 
-#include <memory>
+#include <set>
+#include <vector>
 
+#include "analyzing_context.h"
 #include "compiler_options.h"
 #include "diagnosable.h"
+#include "fade_messages.h"
 #include "file.h"
+#include "lsp/lsp_context.h"
 #include "parse_lib_provider.h"
 #include "preprocessor_options.h"
+#include "processing/statement_analyzers/hit_count_analyzer.h"
+#include "protocol.h"
 #include "semantics/highlighting_info.h"
+#include "utils/resource_location.h"
+#include "virtual_file_monitor.h"
 
 namespace hlasm_plugin::parser_library {
 class virtual_file_monitor;
@@ -57,7 +65,7 @@ public:
     virtual void erase_cache_of_opencode(const utils::resource::resource_location& opencode_file_location) = 0;
     virtual bool has_lsp_info() const = 0;
     virtual void retrieve_fade_messages(std::vector<fade_message_s>& fms) const = 0;
-    virtual void retrieve_hit_counts(processing::hit_count_map& other_hc_map) = 0;
+    virtual void retrieve_hit_counts(processing::hit_count_map& other_hc_map) const = 0;
     virtual const file_location& get_location() const = 0;
     virtual bool current_version() const = 0;
 

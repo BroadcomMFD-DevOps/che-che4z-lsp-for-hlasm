@@ -16,6 +16,7 @@
 #include <initializer_list>
 #include <regex>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "gtest/gtest.h"
@@ -34,7 +35,6 @@ using namespace hlasm_plugin::parser_library::workspaces;
 using namespace hlasm_plugin::utils::resource;
 
 namespace {
-
 const resource_location src1_loc("src1.hlasm");
 const resource_location src2_loc("src2.hlasm");
 const resource_location pgm_conf_loc(".hlasmplugin/pgm_conf.json");
@@ -47,11 +47,15 @@ class file_manager_extended : public file_manager_impl
 public:
     list_directory_result list_directory_files(const hlasm_plugin::utils::resource::resource_location&) const override
     {
-        return { { { "CPYBOOK", cpybook_loc }, { "MAC", mac_loc } },
-            hlasm_plugin::utils::path::list_directory_rc::done };
+        return {
+            {
+                { "CPYBOOK", cpybook_loc },
+                { "MAC", mac_loc },
+            },
+            hlasm_plugin::utils::path::list_directory_rc::done,
+        };
     }
 };
-
 } // namespace
 
 namespace {
@@ -81,25 +85,16 @@ public:
         file_manager.did_open_file(proc_grps_loc, 1, proc_grps);
     }
 
-    void collect_diags() const override {}
-
-    size_t collect_and_get_diags_size()
+    void collect_diags() const override
     {
         diags().clear();
         collect_diags_from_child(ws);
+    }
+
+    size_t collect_and_get_diags_size()
+    {
+        collect_diags();
         return diags().size();
-    }
-
-    void collect_fms()
-    {
-        fms.clear();
-        ws.retrieve_fade_messages(fms);
-    }
-
-    void open_file(resource_location rl, std::string text)
-    {
-        file_manager.did_open_file(rl, 1, std::move(text));
-        ws.did_open_file(rl);
     }
 
     void open_src_files_and_collect_fms(std::initializer_list<std::pair<resource_location, std::string>> files)
@@ -133,6 +128,12 @@ private:
     }
   ]
 })";
+
+    void collect_fms()
+    {
+        fms.clear();
+        ws.retrieve_fade_messages(fms);
+    }
 };
 
 class fade_fixture_opencode_general : public fade_fixture_opencode_base
@@ -140,16 +141,24 @@ class fade_fixture_opencode_general : public fade_fixture_opencode_base
 
 INSTANTIATE_TEST_SUITE_P(fade,
     fade_fixture_opencode_general,
-    ::testing::Values(test_params { { "0" }, {} },
-        test_params { { "1" },
-            { fade_message_s::inactive_statement("src1.hlasm", range(position(2, 0), position(2, 72))),
-                fade_message_s::inactive_statement("src1.hlasm", range(position(3, 0), position(4, 72))) } }));
+    ::testing::Values(
+        test_params {
+            { "0" },
+            {},
+        },
+        test_params {
+            { "1" },
+            {
+                fade_message_s::inactive_statement("src1.hlasm", range(position(2, 0), position(2, 72))),
+                fade_message_s::inactive_statement("src1.hlasm", range(position(3, 0), position(4, 72))),
+            },
+        }));
 
 } // namespace
 
 TEST_P(fade_fixture_opencode_general, opencode)
 {
-    std::string src1 = R"(
+    static const std::string src_template = R"(
          AIF ($x EQ 1).SKIP
 &A       SETA 5
 &C       SETC '12345678901234567890123456789012345678901234567890123456X
@@ -158,14 +167,14 @@ TEST_P(fade_fixture_opencode_general, opencode)
 
          END)";
 
-    src1 = std::regex_replace(src1, std::regex("\\$x"), GetParam().text_to_insert[0]);
-
-    open_src_files_and_collect_fms({ { src1_loc, std::move(src1) } });
+    open_src_files_and_collect_fms({
+        { src1_loc, std::regex_replace(src_template, std::regex("\\$x"), GetParam().text_to_insert[0]) },
+    });
 
     EXPECT_EQ(collect_and_get_diags_size(), GetParam().number_of_diags);
     EXPECT_EQ(ws.diags().size(), (size_t)0);
 
-    auto& expected_msgs = GetParam().expected_fade_messages;
+    const auto& expected_msgs = GetParam().expected_fade_messages;
     EXPECT_TRUE(std::is_permutation(fms.begin(),
         fms.end(),
         expected_msgs.begin(),
@@ -181,19 +190,31 @@ class fade_fixture_opencode_macros_opencode : public fade_fixture_opencode_base
 
 INSTANTIATE_TEST_SUITE_P(fade,
     fade_fixture_opencode_macros_opencode,
-    ::testing::Values(test_params { { "         MAC 0" }, {} },
-        test_params { { "         MAC 1" },
-            { fade_message_s::inactive_statement("src1.hlasm", range(position(4, 0), position(4, 72))) } },
-        test_params { { "*        MAC 1" },
-            { fade_message_s::inactive_statement("src1.hlasm", range(position(3, 0), position(3, 72))),
+    ::testing::Values(
+        test_params {
+            { "         MAC 0" },
+            {},
+        },
+        test_params {
+            { "         MAC 1" },
+            {
+                fade_message_s::inactive_statement("src1.hlasm", range(position(4, 0), position(4, 72))),
+            },
+        },
+        test_params {
+            { "*        MAC 1" },
+            {
+                fade_message_s::inactive_statement("src1.hlasm", range(position(3, 0), position(3, 72))),
                 fade_message_s::inactive_statement("src1.hlasm", range(position(4, 0), position(4, 72))),
                 fade_message_s::inactive_statement("src1.hlasm", range(position(5, 0), position(5, 72))),
-                fade_message_s::inactive_statement("src1.hlasm", range(position(6, 0), position(6, 72))) } }));
+                fade_message_s::inactive_statement("src1.hlasm", range(position(6, 0), position(6, 72))),
+            },
+        }));
 } // namespace
 
 TEST_P(fade_fixture_opencode_macros_opencode, macros_opencode)
 {
-    std::string src1 = R"(
+    static const std::string src_template = R"(
          MACRO
          MAC  &P
          AIF (&P EQ 1).SKIP
@@ -205,14 +226,14 @@ $x
 
          END)";
 
-    src1 = std::regex_replace(src1, std::regex("\\$x"), GetParam().text_to_insert[0]);
-
-    open_src_files_and_collect_fms({ { src1_loc, std::move(src1) } });
+    open_src_files_and_collect_fms({
+        { src1_loc, std::regex_replace(src_template, std::regex("\\$x"), GetParam().text_to_insert[0]) },
+    });
 
     EXPECT_EQ(collect_and_get_diags_size(), GetParam().number_of_diags);
     EXPECT_EQ(ws.diags().size(), (size_t)0);
 
-    auto& expected_msgs = GetParam().expected_fade_messages;
+    const auto& expected_msgs = GetParam().expected_fade_messages;
     EXPECT_TRUE(std::is_permutation(fms.begin(),
         fms.end(),
         expected_msgs.begin(),
@@ -228,27 +249,39 @@ class fade_fixture_opencode_macros_opencode_inner : public fade_fixture_opencode
 
 INSTANTIATE_TEST_SUITE_P(fade,
     fade_fixture_opencode_macros_opencode_inner,
-    ::testing::Values(test_params { { "         MAC 0" }, {} },
-        test_params { { "         MAC 1" },
-            { fade_message_s::inactive_statement("src1.hlasm", range(position(3, 0), position(3, 72))),
+    ::testing::Values(
+        test_params {
+            { "         MAC 0" },
+            {},
+        },
+        test_params {
+            { "         MAC 1" },
+            {
+                fade_message_s::inactive_statement("src1.hlasm", range(position(3, 0), position(3, 72))),
                 fade_message_s::inactive_statement("src1.hlasm", range(position(4, 0), position(4, 72))),
                 fade_message_s::inactive_statement("src1.hlasm", range(position(5, 0), position(5, 72))),
                 fade_message_s::inactive_statement("src1.hlasm", range(position(6, 0), position(6, 72))),
-                fade_message_s::inactive_statement("src1.hlasm", range(position(8, 0), position(8, 72))) } },
-        test_params { { "*        MAC 1" },
-            { fade_message_s::inactive_statement("src1.hlasm", range(position(3, 0), position(3, 72))),
+                fade_message_s::inactive_statement("src1.hlasm", range(position(8, 0), position(8, 72))),
+            },
+        },
+        test_params {
+            { "*        MAC 1" },
+            {
+                fade_message_s::inactive_statement("src1.hlasm", range(position(3, 0), position(3, 72))),
                 fade_message_s::inactive_statement("src1.hlasm", range(position(4, 0), position(4, 72))),
                 fade_message_s::inactive_statement("src1.hlasm", range(position(5, 0), position(5, 72))),
                 fade_message_s::inactive_statement("src1.hlasm", range(position(6, 0), position(6, 72))),
                 fade_message_s::inactive_statement("src1.hlasm", range(position(7, 0), position(7, 72))),
                 fade_message_s::inactive_statement("src1.hlasm", range(position(8, 0), position(8, 72))),
                 fade_message_s::inactive_statement("src1.hlasm", range(position(9, 0), position(9, 72))),
-                fade_message_s::inactive_statement("src1.hlasm", range(position(10, 0), position(10, 72))) } }));
+                fade_message_s::inactive_statement("src1.hlasm", range(position(10, 0), position(10, 72))),
+            },
+        }));
 } // namespace
 
 TEST_P(fade_fixture_opencode_macros_opencode_inner, macros_opencode_inner)
 {
-    std::string src1 = R"(
+    static const std::string src_template = R"(
          MACRO
          MAC  &P
          MACRO
@@ -264,14 +297,14 @@ $x
 
          END)";
 
-    src1 = std::regex_replace(src1, std::regex("\\$x"), GetParam().text_to_insert[0]);
-
-    open_src_files_and_collect_fms({ { src1_loc, std::move(src1) } });
+    open_src_files_and_collect_fms({
+        { src1_loc, std::regex_replace(src_template, std::regex("\\$x"), GetParam().text_to_insert[0]) },
+    });
 
     EXPECT_EQ(collect_and_get_diags_size(), GetParam().number_of_diags);
     EXPECT_EQ(ws.diags().size(), (size_t)0);
 
-    auto& expected_msgs = GetParam().expected_fade_messages;
+    const auto& expected_msgs = GetParam().expected_fade_messages;
     EXPECT_TRUE(std::is_permutation(fms.begin(),
         fms.end(),
         expected_msgs.begin(),
@@ -287,10 +320,21 @@ class fade_fixture_opencode_macros_external : public fade_fixture_opencode_base
 
 INSTANTIATE_TEST_SUITE_P(fade,
     fade_fixture_opencode_macros_external,
-    ::testing::Values(test_params { { "         MAC 0" }, {} },
-        test_params { { "         MAC 1" },
-            { fade_message_s::inactive_statement("libs/mac", range(position(3, 0), position(3, 72))) } },
-        test_params { { "*        MAC 1" }, {} }));
+    ::testing::Values(
+        test_params {
+            { "         MAC 0" },
+            {},
+        },
+        test_params {
+            { "         MAC 1" },
+            {
+                fade_message_s::inactive_statement("libs/mac", range(position(3, 0), position(3, 72))),
+            },
+        },
+        test_params {
+            { "*        MAC 1" },
+            {},
+        }));
 } // namespace
 
 TEST_P(fade_fixture_opencode_macros_external, macros_external)
@@ -304,19 +348,20 @@ TEST_P(fade_fixture_opencode_macros_external, macros_external)
 
 * SOME MEANINGFUL REMARKS)";
 
-    std::string src1 = R"(
+    static const std::string src_template = R"(
 $x
 
          END)";
 
-    src1 = std::regex_replace(src1, std::regex("\\$x"), GetParam().text_to_insert[0]);
-
-    open_src_files_and_collect_fms({ { mac_loc, std::move(mac) }, { src1_loc, std::move(src1) } });
+    open_src_files_and_collect_fms({
+        { mac_loc, std::move(mac) },
+        { src1_loc, std::regex_replace(src_template, std::regex("\\$x"), GetParam().text_to_insert[0]) },
+    });
 
     EXPECT_EQ(collect_and_get_diags_size(), GetParam().number_of_diags);
     EXPECT_EQ(ws.diags().size(), (size_t)0);
 
-    auto& expected_msgs = GetParam().expected_fade_messages;
+    const auto& expected_msgs = GetParam().expected_fade_messages;
     EXPECT_TRUE(std::is_permutation(fms.begin(),
         fms.end(),
         expected_msgs.begin(),
@@ -332,11 +377,23 @@ class fade_fixture_cpybooks : public fade_fixture_opencode_base
 
 INSTANTIATE_TEST_SUITE_P(fade,
     fade_fixture_cpybooks,
-    ::testing::Values(test_params { { "0", "0" }, {} },
-        test_params { { "0", "1" }, {} },
-        test_params { { "1", "0" }, {} },
-        test_params { { "1", "1" },
-            { fade_message_s::inactive_statement("libs/CPYBOOK", range(position(2, 0), position(2, 72))) } }));
+    ::testing::Values(
+        test_params {
+            { "0", "0" },
+            {},
+        },
+        test_params {
+            { "0", "1" },
+            {},
+        },
+        test_params {
+            { "1", "0" },
+            {},
+        },
+        test_params {
+            { "1", "1" },
+            { fade_message_s::inactive_statement("libs/CPYBOOK", range(position(2, 0), position(2, 72))) },
+        }));
 } // namespace
 
 TEST_P(fade_fixture_cpybooks, cpybook)
@@ -346,21 +403,21 @@ TEST_P(fade_fixture_cpybooks, cpybook)
 LABEL    L 1,1
 .SKIP    ANOP)";
 
-    std::string src_base = R"(
+    static const std::string src_template = R"(
 &VAR     SETA  $x
          COPY CPYBOOK
          END)";
 
-    auto src1 = std::regex_replace(src_base, std::regex("\\$x"), GetParam().text_to_insert[0]);
-    auto src2 = std::regex_replace(src_base, std::regex("\\$x"), GetParam().text_to_insert[1]);
-
-    open_src_files_and_collect_fms(
-        { { cpybook_loc, std::move(cpybook) }, { src1_loc, std::move(src1) }, { src2_loc, std::move(src2) } });
+    open_src_files_and_collect_fms({
+        { cpybook_loc, std::move(cpybook) },
+        { src1_loc, std::regex_replace(src_template, std::regex("\\$x"), GetParam().text_to_insert[0]) },
+        { src2_loc, std::regex_replace(src_template, std::regex("\\$x"), GetParam().text_to_insert[1]) },
+    });
 
     EXPECT_EQ(collect_and_get_diags_size(), GetParam().number_of_diags);
     EXPECT_EQ(ws.diags().size(), (size_t)0);
 
-    auto& expected_msgs = GetParam().expected_fade_messages;
+    const auto& expected_msgs = GetParam().expected_fade_messages;
     EXPECT_TRUE(std::is_permutation(fms.begin(),
         fms.end(),
         expected_msgs.begin(),
@@ -376,19 +433,39 @@ class fade_fixture_opencode_nested : public fade_fixture_opencode_base
 
 INSTANTIATE_TEST_SUITE_P(fade,
     fade_fixture_opencode_nested,
-    ::testing::Values(test_params { { "         MAC 0,0" }, {} },
-        test_params { { "         MAC 0,1" },
-            { fade_message_s::inactive_statement("libs/CPYBOOK", range(position(2, 0), position(2, 72))),
-                fade_message_s::inactive_statement("libs/mac", range(position(4, 0), position(4, 72))) } },
-        test_params { { "         MAC 1,0" },
-            { fade_message_s::inactive_statement("libs/CPYBOOK", range(position(1, 0), position(1, 72))),
+    ::testing::Values(
+        test_params {
+            { "         MAC 0,0" },
+            {},
+        },
+        test_params {
+            { "         MAC 0,1" },
+            {
                 fade_message_s::inactive_statement("libs/CPYBOOK", range(position(2, 0), position(2, 72))),
-                fade_message_s::inactive_statement("libs/mac", range(position(3, 0), position(3, 72))) } },
-        test_params { { "         MAC 1,1" },
-            { fade_message_s::inactive_statement("libs/CPYBOOK", range(position(1, 0), position(1, 72))),
+                fade_message_s::inactive_statement("libs/mac", range(position(4, 0), position(4, 72))),
+            },
+        },
+        test_params {
+            { "         MAC 1,0" },
+            {
+                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(1, 0), position(1, 72))),
                 fade_message_s::inactive_statement("libs/CPYBOOK", range(position(2, 0), position(2, 72))),
-                fade_message_s::inactive_statement("libs/mac", range(position(3, 0), position(3, 72))) } },
-        test_params { { "*        MAC 1,1" }, {}, 2 })); // Diags related to missing members in mac and cpybook
+                fade_message_s::inactive_statement("libs/mac", range(position(3, 0), position(3, 72))),
+            },
+        },
+        test_params {
+            { "         MAC 1,1" },
+            {
+                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(1, 0), position(1, 72))),
+                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(2, 0), position(2, 72))),
+                fade_message_s::inactive_statement("libs/mac", range(position(3, 0), position(3, 72))),
+            },
+        },
+        test_params {
+            { "*        MAC 1,1" },
+            {},
+            2, // Diags related to missing members in mac and cpybook
+        }));
 } // namespace
 
 TEST_P(fade_fixture_opencode_nested, nested)
@@ -405,20 +482,21 @@ LABEL    L 1,1)";
 .SKIP2   ANOP
          MEND)";
 
-    std::string src1 = R"(
+    std::string src_template = R"(
 $x
 
          END)";
 
-    src1 = std::regex_replace(src1, std::regex("\\$x"), GetParam().text_to_insert[0]);
-
-    open_src_files_and_collect_fms(
-        { { mac_loc, std::move(mac) }, { cpybook_loc, std::move(cpybook) }, { src1_loc, std::move(src1) } });
+    open_src_files_and_collect_fms({
+        { mac_loc, std::move(mac) },
+        { cpybook_loc, std::move(cpybook) },
+        { src1_loc, std::regex_replace(src_template, std::regex("\\$x"), GetParam().text_to_insert[0]) },
+    });
 
     EXPECT_EQ(collect_and_get_diags_size(), GetParam().number_of_diags);
     EXPECT_EQ(ws.diags().size(), (size_t)0);
 
-    auto& expected_msgs = GetParam().expected_fade_messages;
+    const auto& expected_msgs = GetParam().expected_fade_messages;
     EXPECT_TRUE(std::is_permutation(fms.begin(),
         fms.end(),
         expected_msgs.begin(),

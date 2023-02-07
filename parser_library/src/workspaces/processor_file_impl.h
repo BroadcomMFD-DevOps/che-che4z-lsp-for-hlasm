@@ -58,7 +58,7 @@ public:
     bool has_lsp_info() const override;
 
     void retrieve_fade_messages(std::vector<fade_message_s>& fms) const override;
-    void retrieve_hit_counts(processing::hit_count_map& other_hc_map) override;
+    void retrieve_hit_counts(processing::hit_count_map& other_hc_map) const override;
 
     const file_location& get_location() const override;
 
@@ -78,19 +78,17 @@ private:
     bool m_last_analyzer_opencode = false;
     bool m_last_analyzer_with_lsp = false;
 
-    bool parse_inner(analyzer&);
-
     std::atomic<bool>* m_cancel;
 
     std::set<utils::resource::resource_location> m_dependencies;
     std::set<utils::resource::resource_location> m_files_to_close;
 
-    macro_cache m_macro_cache;
-
     std::unordered_map<utils::resource::resource_location,
         std::shared_ptr<file>,
         utils::resource::resource_location_hasher>
         used_files;
+
+    macro_cache m_macro_cache;
 
     std::shared_ptr<const std::vector<fade_message_s>> m_fade_messages =
         std::make_shared<const std::vector<fade_message_s>>();

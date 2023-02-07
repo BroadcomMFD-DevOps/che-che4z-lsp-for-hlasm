@@ -178,6 +178,29 @@ bool processor_file_impl::should_collect_hl(context::hlasm_context* ctx) const
 
 bool processor_file_impl::has_lsp_info() const { return m_last_analyzer_with_lsp; }
 
+void processor_file_impl::retrieve_fade_messages(std::vector<fade_message_s>& fms) const
+{
+    fms.insert(std::end(fms), std::begin(*m_fade_messages), std::end(*m_fade_messages));
+}
+
+void processor_file_impl::retrieve_hit_counts(processing::hit_count_map& other_hc_map) const
+{
+    for (const auto& [our_rl, our_stmt_hc_details] : m_hc_map)
+    {
+        if (auto [other_stmt_hc_it, emplaced_outer] = other_hc_map.try_emplace(our_rl, our_stmt_hc_details);
+            !emplaced_outer)
+        {
+            auto& [_, other_stmt_hc_details] = *other_stmt_hc_it;
+            other_stmt_hc_details.is_external_macro &= our_stmt_hc_details.is_external_macro;
+
+            for (const auto& [our_line, our_details] : our_stmt_hc_details.stmt_hc_map)
+                if (auto [it, emplaced_inner] = other_stmt_hc_details.stmt_hc_map.try_emplace(our_line, our_details);
+                    !emplaced_inner)
+                    it->second.count += our_details.count;
+        }
+    }
+}
+
 const file_location& processor_file_impl::get_location() const { return m_file->get_location(); }
 
 bool processor_file_impl::current_version() const
@@ -200,29 +223,6 @@ void processor_file_impl::store_used_files(std::unordered_map<utils::resource::r
     utils::resource::resource_location_hasher> uf)
 {
     used_files = std::move(uf);
-}
-
-void processor_file_impl::retrieve_fade_messages(std::vector<fade_message_s>& fms) const
-{
-    fms.insert(std::end(fms), std::begin(*m_fade_messages), std::end(*m_fade_messages));
-}
-
-void processor_file_impl::retrieve_hit_counts(processing::hit_count_map& other_hc_map)
-{
-    for (const auto& [our_rl, our_stmt_hc_details] : m_hc_map)
-    {
-        if (auto [other_stmt_hc_it, emplaced_outer] = other_hc_map.try_emplace(our_rl, our_stmt_hc_details);
-            !emplaced_outer)
-        {
-            auto& [_, other_stmt_hc_details] = *other_stmt_hc_it;
-            other_stmt_hc_details.is_external_macro &= our_stmt_hc_details.is_external_macro;
-
-            for (const auto& [our_line, our_details] : our_stmt_hc_details.stmt_hc_map)
-                if (auto [it, emplaced_inner] = other_stmt_hc_details.stmt_hc_map.try_emplace(our_line, our_details);
-                    !emplaced_inner)
-                    it->second.count += our_details.count;
-        }
-    }
 }
 
 } // namespace hlasm_plugin::parser_library::workspaces

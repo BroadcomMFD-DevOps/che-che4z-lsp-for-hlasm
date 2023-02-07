@@ -61,7 +61,7 @@ std::optional<range> get_range(const context::hlasm_statement* stmt,
 }
 
 size_t& emplace_hit_count(
-    hit_count_map& hc_map, const utils::resource::resource_location& rl, range r, bool is_external_macro)
+    hit_count_map& hc_map, const utils::resource::resource_location& rl, range r, bool can_be_external_macro)
 {
     static constexpr auto map_emplacer = []<typename VALUE>(auto& m, const auto& k) {
         if (auto m_it = m.find(k); m_it != m.end())
@@ -74,26 +74,20 @@ size_t& emplace_hit_count(
     auto& [stmt_r, stmt_count] =
         map_emplacer.template operator()<hit_count_details>(stmt_hc_details.stmt_hc_map, r.start.line)->second;
 
-    stmt_hc_details.is_external_macro &= is_external_macro;
+    stmt_hc_details.is_external_macro &= can_be_external_macro;
     stmt_r = std::move(r);
     return stmt_count;
 }
 } // namespace
 
-void hit_count_analyzer::use_macro_header_definitions(
+void hit_count_analyzer::emplace_macro_header_definitions(
     macro_header_definitions_map& macro_header_definitions, const context::id_index& id, hit_count_map& hc_map)
 {
     if (auto map_it = macro_header_definitions.find(id.to_string()); map_it != macro_header_definitions.end())
     {
-        static constexpr auto emplacer =
-            [](utils::resource::resource_location rl, range r, hit_count_map& hit_counts_map) {
-                auto& count = emplace_hit_count(hit_counts_map, std::move(rl), std::move(r), true);
-                count++;
-            };
-
-        auto& [rl, ranges] = map_it->second;
-        emplacer(rl, std::move(ranges.first), hc_map);
-        emplacer(std::move(rl), std::move(ranges.second), hc_map);
+        auto& mac_header_details = map_it->second;
+        emplace_hit_count(hc_map, mac_header_details.rl, std::move(mac_header_details.init_r), true)++;
+        emplace_hit_count(hc_map, std::move(mac_header_details.rl), std::move(mac_header_details.name_r), true)++;
 
         macro_header_definitions.erase(map_it);
     }
@@ -106,13 +100,11 @@ hit_count_analyzer::statement_type hit_count_analyzer::get_stmt_type(const conte
         return m_stmt_type;
 
     const auto macro_init_incrementer = [&nest_level = m_macro_nest_level](auto resolved_stmt) {
-        if (resolved_stmt->opcode_ref().value == context::id_storage::well_known::MACRO)
-        {
-            ++nest_level;
-            return true;
-        }
+        if (resolved_stmt->opcode_ref().value != context::id_storage::well_known::MACRO)
+            return false;
 
-        return false;
+        ++nest_level;
+        return true;
     };
 
     static constexpr auto range_adj = [](range r) {
@@ -126,7 +118,7 @@ hit_count_analyzer::statement_type hit_count_analyzer::get_stmt_type(const conte
             if (macro_init_incrementer(res_stmt))
             {
                 m_stmt_type = statement_type::MACRO_INIT;
-                m_last_macro_init_r = range_adj(res_stmt->stmt_range_ref());
+                m_last_macro_init_r = res_stmt->stmt_range_ref();
             }
             break;
 
@@ -136,8 +128,9 @@ hit_count_analyzer::statement_type hit_count_analyzer::get_stmt_type(const conte
             assert(m_ctx.processing_stack().frame().resource_loc);
 
             m_macro_header_definitions.emplace(std::make_pair(res_stmt->opcode_ref().value.to_string(),
-                std::make_pair(*m_ctx.processing_stack().frame().resource_loc,
-                    std::make_pair(std::move(m_last_macro_init_r), range_adj(res_stmt->stmt_range_ref())))));
+                macro_header_definition_details { *m_ctx.processing_stack().frame().resource_loc,
+                    range_adj(std::move(m_last_macro_init_r)),
+                    range_adj(res_stmt->stmt_range_ref()) }));
             break;
         }
 
@@ -166,7 +159,7 @@ hit_count_analyzer::statement_type hit_count_analyzer::get_stmt_type(const conte
 void hit_count_analyzer::analyze(
     const context::hlasm_statement& statement, statement_provider_kind prov_kind, processing_kind proc_kind, bool)
 {
-    bool is_external_macro = false;
+    bool can_be_external_macro = false;
 
     switch (get_stmt_type(statement))
     {
@@ -174,7 +167,7 @@ void hit_count_analyzer::analyze(
             break;
 
         case hlasm_plugin::parser_library::processing::hit_count_analyzer::statement_type::MACRO_BODY:
-            is_external_macro = true;
+            can_be_external_macro = true;
             break;
 
         case hlasm_plugin::parser_library::processing::hit_count_analyzer::statement_type::MACRO_NAME:
@@ -188,12 +181,12 @@ void hit_count_analyzer::analyze(
         return;
 
     if (auto macro_invo = m_ctx.this_macro(); macro_invo)
-        use_macro_header_definitions(m_macro_header_definitions, macro_invo->id, m_hit_counts);
+        emplace_macro_header_definitions(m_macro_header_definitions, macro_invo->id, m_hit_counts);
 
     assert(m_ctx.processing_stack().frame().resource_loc);
 
     auto& count = emplace_hit_count(
-        m_hit_counts, *m_ctx.processing_stack().frame().resource_loc, std::move(*stmt_range), is_external_macro);
+        m_hit_counts, *m_ctx.processing_stack().frame().resource_loc, std::move(*stmt_range), can_be_external_macro);
 
     if (proc_kind == processing::processing_kind::ORDINARY)
         count++;

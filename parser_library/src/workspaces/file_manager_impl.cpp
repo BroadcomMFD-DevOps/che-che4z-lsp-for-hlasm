@@ -14,7 +14,6 @@
 
 #include "file_manager_impl.h"
 
-#include <algorithm>
 #include <map>
 #include <span>
 
