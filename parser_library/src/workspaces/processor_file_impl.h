@@ -65,7 +65,7 @@ public:
     bool current_version() const override;
 
     void update_source();
-    std::shared_ptr<file> current_source() const { return file_; }
+    std::shared_ptr<file> current_source() const { return m_file; }
     void store_used_files(std::unordered_map<utils::resource::resource_location,
         std::shared_ptr<file>,
         utils::resource::resource_location_hasher> used_files);
@@ -85,14 +85,14 @@ private:
     std::set<utils::resource::resource_location> m_dependencies;
     std::set<utils::resource::resource_location> m_files_to_close;
 
-    macro_cache m_macro_cache_;
+    macro_cache m_macro_cache;
 
     std::unordered_map<utils::resource::resource_location,
         std::shared_ptr<file>,
         utils::resource::resource_location_hasher>
         used_files;
 
-    std::shared_ptr<const std::vector<fade_message_s>> fade_messages_ =
+    std::shared_ptr<const std::vector<fade_message_s>> m_fade_messages =
         std::make_shared<const std::vector<fade_message_s>>();
 
     processing::hit_count_map m_hc_map;

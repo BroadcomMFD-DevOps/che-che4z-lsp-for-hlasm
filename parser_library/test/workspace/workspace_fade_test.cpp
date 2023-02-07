@@ -42,20 +42,7 @@ const resource_location proc_grps_loc(".hlasmplugin/proc_grps.json");
 const resource_location cpybook_loc("libs/CPYBOOK");
 const resource_location mac_loc("libs/mac");
 
-class diags_retriever : public diagnosable_impl
-{
-public:
-    void collect_diags() const override {}
-    size_t collect_and_get_diags_size(workspace& ws, file_manager& file_mngr)
-    {
-        diags().clear();
-        collect_diags_from_child(ws);
-        collect_diags_from_child(file_mngr);
-        return diags().size();
-    }
-};
-
-class file_manager_extended2 : public file_manager_impl
+class file_manager_extended : public file_manager_impl
 {
 public:
     list_directory_result list_directory_files(const hlasm_plugin::utils::resource::resource_location&) const override
@@ -75,10 +62,10 @@ struct test_params
     size_t number_of_diags = 0;
 };
 
-class fade_fixture_opencode_base : public diags_retriever, public ::testing::TestWithParam<test_params>
+class fade_fixture_opencode_base : public diagnosable_impl, public ::testing::TestWithParam<test_params>
 {
 public:
-    file_manager_extended2 file_manager;
+    file_manager_extended file_manager;
     lib_config config;
     shared_json global_settings = make_empty_shared_json();
     workspace ws;
@@ -94,10 +81,19 @@ public:
         file_manager.did_open_file(proc_grps_loc, 1, proc_grps);
     }
 
+    void collect_diags() const override {}
+
+    size_t collect_and_get_diags_size()
+    {
+        diags().clear();
+        collect_diags_from_child(ws);
+        return diags().size();
+    }
+
     void collect_fms()
     {
         fms.clear();
-        file_manager.retrieve_fade_messages(fms);
+        ws.retrieve_fade_messages(fms);
     }
 
     void open_file(resource_location rl, std::string text)
@@ -166,7 +162,7 @@ TEST_P(fade_fixture_opencode_general, opencode)
 
     open_src_files_and_collect_fms({ { src1_loc, std::move(src1) } });
 
-    EXPECT_EQ(collect_and_get_diags_size(ws, file_manager), GetParam().number_of_diags);
+    EXPECT_EQ(collect_and_get_diags_size(), GetParam().number_of_diags);
     EXPECT_EQ(ws.diags().size(), (size_t)0);
 
     auto& expected_msgs = GetParam().expected_fade_messages;
@@ -213,7 +209,7 @@ $x
 
     open_src_files_and_collect_fms({ { src1_loc, std::move(src1) } });
 
-    EXPECT_EQ(collect_and_get_diags_size(ws, file_manager), GetParam().number_of_diags);
+    EXPECT_EQ(collect_and_get_diags_size(), GetParam().number_of_diags);
     EXPECT_EQ(ws.diags().size(), (size_t)0);
 
     auto& expected_msgs = GetParam().expected_fade_messages;
@@ -272,7 +268,7 @@ $x
 
     open_src_files_and_collect_fms({ { src1_loc, std::move(src1) } });
 
-    EXPECT_EQ(collect_and_get_diags_size(ws, file_manager), GetParam().number_of_diags);
+    EXPECT_EQ(collect_and_get_diags_size(), GetParam().number_of_diags);
     EXPECT_EQ(ws.diags().size(), (size_t)0);
 
     auto& expected_msgs = GetParam().expected_fade_messages;
@@ -317,7 +313,7 @@ $x
 
     open_src_files_and_collect_fms({ { mac_loc, std::move(mac) }, { src1_loc, std::move(src1) } });
 
-    EXPECT_EQ(collect_and_get_diags_size(ws, file_manager), GetParam().number_of_diags);
+    EXPECT_EQ(collect_and_get_diags_size(), GetParam().number_of_diags);
     EXPECT_EQ(ws.diags().size(), (size_t)0);
 
     auto& expected_msgs = GetParam().expected_fade_messages;
@@ -361,7 +357,7 @@ LABEL    L 1,1
     open_src_files_and_collect_fms(
         { { cpybook_loc, std::move(cpybook) }, { src1_loc, std::move(src1) }, { src2_loc, std::move(src2) } });
 
-    EXPECT_EQ(collect_and_get_diags_size(ws, file_manager), GetParam().number_of_diags);
+    EXPECT_EQ(collect_and_get_diags_size(), GetParam().number_of_diags);
     EXPECT_EQ(ws.diags().size(), (size_t)0);
 
     auto& expected_msgs = GetParam().expected_fade_messages;
@@ -419,7 +415,7 @@ $x
     open_src_files_and_collect_fms(
         { { mac_loc, std::move(mac) }, { cpybook_loc, std::move(cpybook) }, { src1_loc, std::move(src1) } });
 
-    EXPECT_EQ(collect_and_get_diags_size(ws, file_manager), GetParam().number_of_diags);
+    EXPECT_EQ(collect_and_get_diags_size(), GetParam().number_of_diags);
     EXPECT_EQ(ws.diags().size(), (size_t)0);
 
     auto& expected_msgs = GetParam().expected_fade_messages;

@@ -135,8 +135,26 @@ void workspace::collect_diags() const
 
 void workspace::retrieve_fade_messages(std::vector<fade_message_s>& fms) const
 {
+    processing::hit_count_map hc_map;
+
     for (const auto& [key, value] : m_processor_files)
+    {
         value.m_processor_file->retrieve_fade_messages(fms);
+        value.m_processor_file->retrieve_hit_counts(hc_map);
+    }
+
+    for (auto& [rl, pair] : hc_map)
+    {
+        auto& [stmt_hc_m, is_external_macro] = pair;
+
+        if (is_external_macro
+            && std::all_of(stmt_hc_m.begin(), stmt_hc_m.end(), [](const auto& p) { return p.second.count == 0; }))
+            continue;
+
+        for (auto& [_, details] : stmt_hc_m)
+            if (!details.count)
+                fms.emplace_back(fade_message_s::inactive_statement(rl.get_uri(), std::move(details.r)));
+    }
 }
 
 std::vector<std::shared_ptr<processor_file>> workspace::find_related_opencodes(
