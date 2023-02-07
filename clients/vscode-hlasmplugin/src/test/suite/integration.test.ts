@@ -47,7 +47,7 @@ suite('Integration Test Suite', () => {
         await helper.insertString(editor, new vscode.Position(3, 0), '*');
         await helper.insertString(editor, new vscode.Position(4, 0), '  AGO .SKIP');
         await helper.insertString(editor, new vscode.Position(7, 0), '.SKIP ANOP');
-        await helper.sleep(1000);
+        await helper.sleep(3000);
 
         const diags = await diagnostic_event;
         const codes = diags.map(x => x.code || '');
@@ -58,7 +58,7 @@ suite('Integration Test Suite', () => {
             edit.delete(new vscode.Range(new vscode.Position(4, 0), new vscode.Position(4, 11)));
             edit.delete(new vscode.Range(new vscode.Position(7, 0), new vscode.Position(7, 10)));
         });
-    }).timeout(10000).slow(4000);
+    }).timeout(10000).slow(6000);
 
     // change 'open' file to create diagnostic
     test('Diagnostic test', async () => {
