@@ -67,7 +67,7 @@ public:
     {
         auto lib = read_library_name(library);
         if (lib.has_value() && url)
-            *url = hlasm_plugin::utils::resource::resource_location(*library);
+            *url = hlasm_plugin::utils::resource::resource_location(library);
         return lib.has_value();
     }
 
