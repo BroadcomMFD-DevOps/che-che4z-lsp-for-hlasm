@@ -44,9 +44,7 @@ suite('Integration Test Suite', () => {
         // register callback to check for the correctness of the diagnostic
         const diagnostic_event = helper.waitForDiagnostics(workspace_file, true);
 
-        await helper.insertString(editor, new vscode.Position(3, 0), '*');
-        await helper.insertString(editor, new vscode.Position(4, 0), '  AGO .SKIP');
-        await helper.insertString(editor, new vscode.Position(7, 0), '.SKIP ANOP');
+        await helper.insertString(editor, new vscode.Position(10, 0), '  AGO .SKIP\n   ANOP\n.SKIP ANOP');
         await helper.sleep(3000);
 
         const diags = await diagnostic_event;
@@ -54,11 +52,10 @@ suite('Integration Test Suite', () => {
         assert.deepStrictEqual(codes, ['F_IN001'], editor.document.getText());
 
         await editor.edit(edit => {
-            edit.delete(new vscode.Range(new vscode.Position(3, 0), new vscode.Position(3, 1)));
-            edit.delete(new vscode.Range(new vscode.Position(4, 0), new vscode.Position(4, 11)));
-            edit.delete(new vscode.Range(new vscode.Position(7, 0), new vscode.Position(7, 10)));
+            edit.delete(new vscode.Range(new vscode.Position(10, 0), new vscode.Position(12, 10)));
         });
-    }).timeout(10000).slow(6000);
+        await helper.sleep(5000);
+    }).timeout(20000).slow(12000);
 
     // change 'open' file to create diagnostic
     test('Diagnostic test', async () => {

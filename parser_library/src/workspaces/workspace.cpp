@@ -151,9 +151,9 @@ void workspace::retrieve_fade_messages(std::vector<fade_message_s>& fms) const
             && std::all_of(stmt_hc_m.begin(), stmt_hc_m.end(), [](const auto& p) { return p.second.count == 0; }))
             continue;
 
-        for (auto& [_, details] : stmt_hc_m)
+        for (const auto& [_, details] : stmt_hc_m)
             if (!details.count)
-                fms.emplace_back(fade_message_s::inactive_statement(rl.get_uri(), std::move(details.r)));
+                fms.emplace_back(fade_message_s::inactive_statement(rl.get_uri(), details.r));
     }
 }
 

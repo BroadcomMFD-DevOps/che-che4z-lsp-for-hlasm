@@ -31,7 +31,7 @@ namespace {
 std::optional<range> get_range(const context::hlasm_statement* stmt,
     statement_provider_kind prov_kind,
     processing_kind proc_kind,
-    context::hlasm_context& ctx)
+    const context::hlasm_context& ctx)
 {
     if (!stmt)
         return std::nullopt;
@@ -80,16 +80,15 @@ size_t& emplace_hit_count(
 }
 } // namespace
 
-void hit_count_analyzer::emplace_macro_header_definitions(
-    macro_header_definitions_map& macro_header_definitions, const context::id_index& id, hit_count_map& hc_map)
+void hit_count_analyzer::emplace_macro_header_definitions(const context::id_index& id)
 {
-    if (auto map_it = macro_header_definitions.find(id.to_string()); map_it != macro_header_definitions.end())
+    if (auto map_it = m_macro_header_definitions.find(id.to_string()); map_it != m_macro_header_definitions.end())
     {
         auto& mac_header_details = map_it->second;
-        emplace_hit_count(hc_map, mac_header_details.rl, std::move(mac_header_details.init_r), true)++;
-        emplace_hit_count(hc_map, std::move(mac_header_details.rl), std::move(mac_header_details.name_r), true)++;
+        emplace_hit_count(m_hit_counts, mac_header_details.rl, std::move(mac_header_details.init_r), true)++;
+        emplace_hit_count(m_hit_counts, mac_header_details.rl, std::move(mac_header_details.name_r), true)++;
 
-        macro_header_definitions.erase(map_it);
+        m_macro_header_definitions.erase(map_it);
     }
 }
 
@@ -127,10 +126,10 @@ hit_count_analyzer::statement_type hit_count_analyzer::get_stmt_type(const conte
 
             assert(m_ctx.processing_stack().frame().resource_loc);
 
-            m_macro_header_definitions.emplace(std::make_pair(res_stmt->opcode_ref().value.to_string(),
+            m_macro_header_definitions.try_emplace(res_stmt->opcode_ref().value.to_string(),
                 macro_header_definition_details { *m_ctx.processing_stack().frame().resource_loc,
                     range_adj(std::move(m_last_macro_init_r)),
-                    range_adj(res_stmt->stmt_range_ref()) }));
+                    range_adj(res_stmt->stmt_range_ref()) });
             break;
         }
 
@@ -163,15 +162,14 @@ void hit_count_analyzer::analyze(
 
     switch (get_stmt_type(statement))
     {
-        case hlasm_plugin::parser_library::processing::hit_count_analyzer::statement_type::REGULAR:
+        using enum processing::hit_count_analyzer::statement_type;
+        case REGULAR:
             break;
 
-        case hlasm_plugin::parser_library::processing::hit_count_analyzer::statement_type::MACRO_BODY:
+        case MACRO_BODY:
             can_be_external_macro = true;
             break;
 
-        case hlasm_plugin::parser_library::processing::hit_count_analyzer::statement_type::MACRO_NAME:
-        case hlasm_plugin::parser_library::processing::hit_count_analyzer::statement_type::MACRO_INIT:
         default:
             return;
     }
@@ -181,7 +179,7 @@ void hit_count_analyzer::analyze(
         return;
 
     if (auto macro_invo = m_ctx.this_macro(); macro_invo)
-        emplace_macro_header_definitions(m_macro_header_definitions, macro_invo->id, m_hit_counts);
+        emplace_macro_header_definitions(macro_invo->id);
 
     assert(m_ctx.processing_stack().frame().resource_loc);
 

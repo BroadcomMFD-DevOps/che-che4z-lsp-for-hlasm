@@ -15,6 +15,7 @@
 #ifndef PROCESSING_HIT_COUNT_ANALYZER_H
 #define PROCESSING_HIT_COUNT_ANALYZER_H
 
+#include <functional>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -22,6 +23,7 @@
 #include "context/hlasm_context.h"
 #include "protocol.h"
 #include "statement_analyzer.h"
+#include "utils/general_hashers.h"
 #include "utils/resource_location.h"
 
 namespace hlasm_plugin::parser_library::processing {
@@ -44,7 +46,7 @@ using hit_count_map = std::unordered_map<utils::resource::resource_location,
 class hit_count_analyzer final : public statement_analyzer
 {
 public:
-    hit_count_analyzer(context::hlasm_context& ctx);
+    explicit hit_count_analyzer(context::hlasm_context& ctx);
     ~hit_count_analyzer() = default;
 
     void analyze(const context::hlasm_statement& statement,
@@ -70,17 +72,15 @@ private:
         range name_r;
     };
 
-    using macro_header_definitions_map = std::unordered_map<std::string, macro_header_definition_details>;
-
     context::hlasm_context& m_ctx;
     hit_count_map m_hit_counts;
     statement_type m_stmt_type = statement_type::REGULAR;
     size_t m_macro_nest_level = 0;
     range m_last_macro_init_r;
-    macro_header_definitions_map m_macro_header_definitions;
+    std::unordered_map<std::string, macro_header_definition_details, utils::hashers::string_hasher, std::equal_to<>>
+        m_macro_header_definitions;
 
-    void emplace_macro_header_definitions(
-        macro_header_definitions_map& macro_header_definitions, const context::id_index& id, hit_count_map& hc_map);
+    void emplace_macro_header_definitions(const context::id_index& id);
 
     statement_type get_stmt_type(const context::hlasm_statement& statement);
 };

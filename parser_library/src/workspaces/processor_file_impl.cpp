@@ -84,7 +84,7 @@ parse_result processor_file_impl::parse(parse_lib_provider& lib_provider,
     // files that used to be dependencies but are not anymore should be closed internally
     for (const auto& file : old_dep)
     {
-        if (m_dependencies.find(file) == m_dependencies.end())
+        if (!m_dependencies.contains(file))
             m_files_to_close.insert(file);
     }
 
