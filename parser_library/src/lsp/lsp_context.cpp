@@ -921,7 +921,7 @@ std::string lsp_context::find_hover(const symbol_occurence& occ, macro_info_ptr 
                 else
                     return hover_for_instruction(op->opcode);
             }
-            if (m_instr_like.count(occ.name))
+            if (m_instr_like.contains(occ.name))
                 return "Statement not executed, macro with matching name available";
             break;
         }
