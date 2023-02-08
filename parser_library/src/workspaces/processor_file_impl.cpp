@@ -215,6 +215,7 @@ void processor_file_impl::update_source()
     used_files.clear();
     m_file = m_file_mngr.add_file(get_location());
     m_macro_cache = macro_cache(m_file_mngr, m_file);
+    m_hc_map.clear();
     diags().clear();
 }
 

@@ -30,7 +30,7 @@ namespace hlasm_plugin::parser_library::processing {
 struct hit_count_details
 {
     range r;
-    size_t count;
+    size_t count = 0;
 };
 
 struct stmt_hit_count_details
@@ -54,7 +54,7 @@ public:
         processing_kind proc_kind,
         bool) override;
 
-    inline hit_count_map&& take_hit_counts() { return std::move(m_hit_counts); };
+    hit_count_map take_hit_counts() { return std::move(m_hit_counts); };
 
 private:
     enum class statement_type
