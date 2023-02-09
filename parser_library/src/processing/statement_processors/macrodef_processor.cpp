@@ -395,9 +395,13 @@ void macrodef_processor::process_COPY(const resolved_statement& statement)
     result_.definition.push_back(std::move(empty));
     add_correct_copy_nest();
 
-    if (asm_processor::process_copy(statement, ctx, provider_, this))
+    if (auto extract = asm_processor::extract_copy_id(statement, nullptr); extract.has_value())
     {
-        result_.used_copy_members.insert(ctx.hlasm_ctx->current_copy_stack().back().copy_member_definition);
+        if (auto member = asm_processor::process_copy(*extract, ctx, provider_, this); !member.empty())
+        {
+            ctx.hlasm_ctx->enter_copy_member(member);
+            result_.used_copy_members.insert(ctx.hlasm_ctx->current_copy_stack().back().copy_member_definition);
+        }
     }
 
     omit_next_ = true;

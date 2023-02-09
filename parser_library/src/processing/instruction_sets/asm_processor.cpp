@@ -455,7 +455,11 @@ void asm_processor::process_COPY(rebuilt_statement stmt)
     if (stmt.operands_ref().value.size() == 1 && stmt.operands_ref().value.front()->type == semantics::operand_type::ASM
         && stmt.operands_ref().value.front()->access_asm()->access_expr())
     {
-        process_copy(stmt, ctx, lib_provider, this);
+        if (auto extract = extract_copy_id(stmt, this); extract.has_value())
+        {
+            if (auto member = process_copy(extract.value(), ctx, lib_provider, this); !member.empty())
+                ctx.hlasm_ctx->enter_copy_member(member);
+        }
     }
     else
     {
@@ -737,54 +741,15 @@ void asm_processor::process(std::shared_ptr<const processing::resolved_statement
             lib_info);
     }
 }
-
-bool asm_processor::parse_copy(analyzing_context ctx,
-    workspaces::parse_lib_provider& lib_provider,
-    context::id_index copy_member_id,
-    const range& operand_range,
-    const range& stmt_range,
-    diagnosable_ctx* diagnoser)
-{
-    auto tmp = ctx.hlasm_ctx->copy_members().find(copy_member_id);
-
-    if (tmp == ctx.hlasm_ctx->copy_members().end())
-    {
-        bool result = lib_provider.parse_library(
-            copy_member_id.to_string(), ctx, workspaces::library_data { processing_kind::COPY, copy_member_id });
-
-        if (!result)
-        {
-            if (diagnoser)
-                diagnoser->add_diagnostic(diagnostic_op::error_E058(operand_range));
-            return false;
-        }
-    }
-
-    auto whole_copy_stack = ctx.hlasm_ctx->whole_copy_stack();
-
-    auto cycle_tmp = std::find(whole_copy_stack.begin(), whole_copy_stack.end(), copy_member_id);
-
-    if (cycle_tmp != whole_copy_stack.end())
-    {
-        if (diagnoser)
-            diagnoser->add_diagnostic(diagnostic_op::error_E062(stmt_range));
-        return false;
-    }
-
-    return true;
-}
-
-bool asm_processor::process_copy(const semantics::complete_statement& stmt,
-    analyzing_context ctx,
-    workspaces::parse_lib_provider& lib_provider,
-    diagnosable_ctx* diagnoser)
+std::optional<asm_processor::extract_copy_id_result> asm_processor::extract_copy_id(
+    const semantics::complete_statement& stmt, diagnosable_ctx* diagnoser)
 {
     if (stmt.operands_ref().value.size() != 1 || !stmt.operands_ref().value.front()->access_asm()
         || !stmt.operands_ref().value.front()->access_asm()->access_expr())
     {
         if (diagnoser)
             diagnoser->add_diagnostic(diagnostic_op::error_E058(stmt.operands_ref().field_range));
-        return false;
+        return {};
     }
 
     auto& expr = stmt.operands_ref().value.front()->access_asm()->access_expr()->expression;
@@ -794,20 +759,52 @@ bool asm_processor::process_copy(const semantics::complete_statement& stmt,
     {
         if (diagnoser)
             diagnoser->add_diagnostic(diagnostic_op::error_E058(stmt.operands_ref().value.front()->operand_range));
-        return false;
+        return {};
     }
 
-    auto result = parse_copy(ctx,
-        lib_provider,
+    return asm_processor::extract_copy_id_result {
         sym_expr->value,
         stmt.operands_ref().value.front()->operand_range,
         stmt.stmt_range_ref(),
-        diagnoser);
+    };
+}
 
-    if (result)
-        ctx.hlasm_ctx->enter_copy_member(sym_expr->value);
+context::id_index asm_processor::process_copy(const extract_copy_id_result& data,
+    analyzing_context ctx,
+    workspaces::parse_lib_provider& lib_provider,
+    diagnosable_ctx* diagnoser)
+{
+    const auto& [copy_member_id, operand_range, stmt_range] = data;
 
-    return result;
+    bool processed = ctx.hlasm_ctx->copy_members().contains(copy_member_id)
+        || lib_provider.parse_library(
+            copy_member_id.to_string(), ctx, workspaces::library_data { processing_kind::COPY, copy_member_id });
+
+    return common_copy_postprocess(processed, data, std::move(ctx), diagnoser);
+}
+
+context::id_index asm_processor::common_copy_postprocess(
+    bool processed, const extract_copy_id_result& data, analyzing_context ctx, diagnosable_ctx* diagnoser)
+{
+    if (!processed)
+    {
+        if (diagnoser)
+            diagnoser->add_diagnostic(diagnostic_op::error_E058(data.operand));
+        return context::id_index();
+    }
+
+    auto whole_copy_stack = ctx.hlasm_ctx->whole_copy_stack();
+
+    auto cycle_tmp = std::find(whole_copy_stack.begin(), whole_copy_stack.end(), data.name);
+
+    if (cycle_tmp != whole_copy_stack.end())
+    {
+        if (diagnoser)
+            diagnoser->add_diagnostic(diagnostic_op::error_E062(data.statement));
+        return context::id_index();
+    }
+
+    return data.name;
 }
 
 asm_processor::process_table_t asm_processor::create_table()

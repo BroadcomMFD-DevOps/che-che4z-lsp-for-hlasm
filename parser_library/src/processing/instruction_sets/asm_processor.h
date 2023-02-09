@@ -17,6 +17,7 @@
 
 #include <functional>
 #include <memory>
+#include <optional>
 #include <unordered_map>
 
 #include "checking/data_definition/data_def_type_base.h"
@@ -61,18 +62,20 @@ public:
         const processing_manager& proc_mgr);
 
     void process(std::shared_ptr<const processing::resolved_statement> stmt) override;
-
-    static bool parse_copy(analyzing_context ctx,
-        workspaces::parse_lib_provider& lib_provider,
-        context::id_index copy_member_id,
-        const range& operand_range,
-        const range& stmt_range,
-        diagnosable_ctx* diagnoser);
-
-    static bool process_copy(const semantics::complete_statement& stmt,
+    struct extract_copy_id_result
+    {
+        context::id_index name;
+        range operand;
+        range statement;
+    };
+    static std::optional<extract_copy_id_result> extract_copy_id(
+        const semantics::complete_statement& stmt, diagnosable_ctx* diagnoser);
+    static context::id_index process_copy(const extract_copy_id_result& data,
         analyzing_context ctx,
         workspaces::parse_lib_provider& lib_provider,
         diagnosable_ctx* diagnoser);
+    static context::id_index common_copy_postprocess(
+        bool processed, const extract_copy_id_result& data, analyzing_context ctx, diagnosable_ctx* diagnoser);
 
 private:
     opencode_provider* open_code_;

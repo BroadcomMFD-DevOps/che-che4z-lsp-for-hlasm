@@ -117,7 +117,11 @@ void lookahead_processor::process_MACRO() { ++macro_nest_; }
 void lookahead_processor::process_MEND() { macro_nest_ -= macro_nest_ == 0 ? 0 : 1; }
 void lookahead_processor::process_COPY(const resolved_statement& statement)
 {
-    asm_processor::process_copy(statement, ctx, lib_provider_, nullptr);
+    if (auto extract = asm_processor::extract_copy_id(statement, nullptr); extract.has_value())
+    {
+        if (auto member = asm_processor::process_copy(*extract, ctx, lib_provider_, nullptr); !member.empty())
+            ctx.hlasm_ctx->enter_copy_member(member);
+    }
 }
 
 lookahead_processor::process_table_t lookahead_processor::create_table()
