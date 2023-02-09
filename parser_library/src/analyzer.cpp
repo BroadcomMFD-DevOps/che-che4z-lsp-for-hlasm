@@ -142,7 +142,11 @@ const semantics::source_info_processor& analyzer::source_processor() const { ret
 
 void analyzer::analyze(std::atomic<bool>* cancel)
 {
-    mngr_.start_processing(cancel);
+    while (!cancel || !cancel->load(std::memory_order_relaxed))
+    {
+        if (!mngr_.step())
+            break;
+    }
     src_proc_.finish();
 }
 

@@ -100,32 +100,30 @@ void update_metrics(processing_kind proc_kind, statement_provider_kind prov_kind
     }
 }
 
-void processing_manager::start_processing(std::atomic<bool>* cancel)
+bool processing_manager::step()
 {
-    while (!procs_.empty())
+    if (procs_.empty())
+        return false;
+
+    statement_processor& proc = *procs_.back();
+    statement_provider& prov = find_provider();
+
+    if ((prov.finished() && proc.terminal_condition(prov.kind)) || proc.finished())
     {
-        if (cancel && *cancel)
-            break;
-
-        statement_processor& proc = *procs_.back();
-        statement_provider& prov = find_provider();
-
-        if ((prov.finished() && proc.terminal_condition(prov.kind)) || proc.finished())
-        {
-            finish_processor();
-            continue;
-        }
-
-        auto stmt = prov.get_next(proc);
-
-        if (stmt)
-        {
-            update_metrics(proc.kind, prov.kind, hlasm_ctx_.metrics);
-            run_anayzers(*stmt, prov.kind, proc.kind, false);
-
-            proc.process_statement(std::move(stmt));
-        }
+        finish_processor();
+        return true;
     }
+
+    auto stmt = prov.get_next(proc);
+
+    if (stmt)
+    {
+        update_metrics(proc.kind, prov.kind, hlasm_ctx_.metrics);
+        run_anayzers(*stmt, prov.kind, proc.kind, false);
+
+        proc.process_statement(std::move(stmt));
+    }
+    return true;
 }
 
 void processing_manager::register_stmt_analyzer(statement_analyzer* stmt_analyzer)

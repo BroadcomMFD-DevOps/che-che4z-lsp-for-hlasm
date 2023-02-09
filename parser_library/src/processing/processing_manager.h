@@ -49,7 +49,7 @@ public:
         std::shared_ptr<std::vector<fade_message_s>> fade_msgs);
 
     // method that starts the processing loop
-    void start_processing(std::atomic<bool>* cancel);
+    bool step();
 
     void register_stmt_analyzer(statement_analyzer* stmt_analyzer);
 
