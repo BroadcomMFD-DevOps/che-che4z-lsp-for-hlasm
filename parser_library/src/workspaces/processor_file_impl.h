@@ -23,6 +23,7 @@
 #include "fade_messages.h"
 #include "file.h"
 #include "macro_cache.h"
+#include "processing/statement_analyzers/hit_count_analyzer.h"
 #include "processor.h"
 #include "utils/resource_location.h"
 

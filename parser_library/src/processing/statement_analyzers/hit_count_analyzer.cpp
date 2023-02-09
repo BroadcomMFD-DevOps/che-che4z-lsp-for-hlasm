@@ -41,7 +41,7 @@ std::optional<range> get_range(const context::hlasm_statement* stmt,
             return std::nullopt;
 
         if (prov_kind == statement_provider_kind::OPEN)
-            r.end.line = ctx.current_source().end_index - 1;
+            r.end.line += ctx.current_source().end_index - ctx.current_source().begin_index - 1;
         r.end.column = 72;
         return r;
     };

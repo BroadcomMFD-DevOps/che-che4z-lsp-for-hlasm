@@ -18,25 +18,39 @@
 #include <set>
 #include <vector>
 
-#include "analyzing_context.h"
-#include "compiler_options.h"
 #include "diagnosable.h"
-#include "fade_messages.h"
-#include "file.h"
-#include "lsp/lsp_context.h"
-#include "parse_lib_provider.h"
 #include "preprocessor_options.h"
-#include "processing/statement_analyzers/hit_count_analyzer.h"
 #include "protocol.h"
 #include "semantics/highlighting_info.h"
-#include "utils/resource_location.h"
-#include "virtual_file_monitor.h"
+
+namespace hlasm_plugin::utils::resource {
+class resource_location;
+}
 
 namespace hlasm_plugin::parser_library {
+struct analyzing_context;
+struct asm_option;
+struct fade_message_s;
 class virtual_file_monitor;
+
+namespace lsp {
+class lsp_context;
+}
+
+namespace processing {
+struct stmt_hit_count_details;
+using hit_count_map = std::unordered_map<utils::resource::resource_location,
+    stmt_hit_count_details,
+    utils::resource::resource_location_hasher>;
+} // namespace processing
+
 } // namespace hlasm_plugin::parser_library
 
 namespace hlasm_plugin::parser_library::workspaces {
+struct library_data;
+class parse_lib_provider;
+using parse_result = bool;
+using file_location = utils::resource::resource_location;
 
 // Interface that represents an object that can be parsed.
 // The only implementor is processor_file

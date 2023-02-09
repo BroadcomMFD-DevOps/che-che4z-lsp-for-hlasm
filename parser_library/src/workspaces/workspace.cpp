@@ -134,6 +134,45 @@ void workspace::collect_diags() const
         collect_diags_from_child(*pfc.m_processor_file);
 }
 
+namespace {
+void generate_merged_fade_messages(const utils::resource::resource_location& rl,
+    const std::unordered_map<size_t, processing::hit_count_details>& stmt_hc_map,
+    bool is_external_macro,
+    std::vector<fade_message_s>& fms)
+{
+    static constexpr auto positive_count_pred = [](const std::pair<size_t, processing::hit_count_details>& e) {
+        return e.second.count;
+    };
+
+    const auto it_e = stmt_hc_map.end();
+    auto it_b = std::find_if_not(stmt_hc_map.begin(), it_e, positive_count_pred);
+
+    while (it_b != it_e)
+    {
+        auto last_adjacent_stmt_it = std::adjacent_find(it_b,
+            it_e,
+            [](const std::pair<size_t, processing::hit_count_details>& a,
+                const std::pair<size_t, processing::hit_count_details>& b) {
+                return b.second.count || b.second.r.start.line - a.second.r.end.line > 1;
+            });
+
+        if (last_adjacent_stmt_it != it_e)
+            fms.emplace_back(fade_message_s::inactive_statement(
+                rl.get_uri(), range(it_b->second.r.start, last_adjacent_stmt_it->second.r.end)));
+        else
+        {
+            if (it_b != stmt_hc_map.begin() || !is_external_macro) // Is not unused external macro
+                fms.emplace_back(fade_message_s::inactive_statement(
+                    rl.get_uri(), range(it_b->second.r.start, std::prev(last_adjacent_stmt_it)->second.r.end)));
+
+            break;
+        }
+
+        it_b = std::find_if_not(std::next(last_adjacent_stmt_it), it_e, positive_count_pred);
+    }
+}
+} // namespace
+
 void workspace::retrieve_fade_messages(std::vector<fade_message_s>& fms) const
 {
     processing::hit_count_map hc_map;
@@ -144,18 +183,9 @@ void workspace::retrieve_fade_messages(std::vector<fade_message_s>& fms) const
         value.m_processor_file->retrieve_hit_counts(hc_map);
     }
 
-    for (auto& [rl, pair] : hc_map)
-    {
-        auto& [stmt_hc_m, is_external_macro] = pair;
-
-        if (is_external_macro
-            && std::all_of(stmt_hc_m.begin(), stmt_hc_m.end(), [](const auto& p) { return p.second.count == 0; }))
-            continue;
-
-        for (const auto& [_, details] : stmt_hc_m)
-            if (!details.count)
-                fms.emplace_back(fade_message_s::inactive_statement(rl.get_uri(), details.r));
-    }
+    std::for_each(hc_map.begin(), hc_map.end(), [&fms](const auto& e) {
+        generate_merged_fade_messages(e.first, e.second.stmt_hc_map, e.second.is_external_macro, fms);
+    });
 }
 
 std::vector<std::shared_ptr<processor_file>> workspace::find_related_opencodes(

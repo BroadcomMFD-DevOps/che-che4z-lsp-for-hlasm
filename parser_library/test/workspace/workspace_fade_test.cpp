@@ -66,7 +66,7 @@ struct test_params
     size_t number_of_diags = 0;
 };
 
-class fade_fixture_opencode_base : public diagnosable_impl, public ::testing::TestWithParam<test_params>
+class fade_fixture_base : public diagnosable_impl, public ::testing::TestWithParam<test_params>
 {
 public:
     file_manager_extended file_manager;
@@ -75,7 +75,7 @@ public:
     workspace ws;
     std::vector<fade_message_s> fms;
 
-    fade_fixture_opencode_base()
+    fade_fixture_base()
         : ws(workspace(file_manager, config, global_settings))
     {}
 
@@ -124,7 +124,8 @@ private:
   "pgroups": [
     {
       "name": "P1",
-      "libs": ["libs"]
+      "libs": ["libs"],
+      "preprocessor": ["DB2"]
     }
   ]
 })";
@@ -136,11 +137,11 @@ private:
     }
 };
 
-class fade_fixture_opencode_general : public fade_fixture_opencode_base
+class opencode_general_fixture : public fade_fixture_base
 {};
 
 INSTANTIATE_TEST_SUITE_P(fade,
-    fade_fixture_opencode_general,
+    opencode_general_fixture,
     ::testing::Values(
         test_params {
             { "0" },
@@ -149,14 +150,13 @@ INSTANTIATE_TEST_SUITE_P(fade,
         test_params {
             { "1" },
             {
-                fade_message_s::inactive_statement("src1.hlasm", range(position(2, 0), position(2, 72))),
-                fade_message_s::inactive_statement("src1.hlasm", range(position(3, 0), position(4, 72))),
+                fade_message_s::inactive_statement("src1.hlasm", range(position(2, 0), position(4, 72))),
             },
         }));
 
 } // namespace
 
-TEST_P(fade_fixture_opencode_general, opencode)
+TEST_P(opencode_general_fixture, opencode)
 {
     static const std::string src_template = R"(
          AIF ($x EQ 1).SKIP
@@ -185,11 +185,11 @@ TEST_P(fade_fixture_opencode_general, opencode)
 }
 
 namespace {
-class fade_fixture_opencode_macros_opencode : public fade_fixture_opencode_base
+class opencode_macros_fixture : public fade_fixture_base
 {};
 
 INSTANTIATE_TEST_SUITE_P(fade,
-    fade_fixture_opencode_macros_opencode,
+    opencode_macros_fixture,
     ::testing::Values(
         test_params {
             { "         MAC 0" },
@@ -204,15 +204,12 @@ INSTANTIATE_TEST_SUITE_P(fade,
         test_params {
             { "*        MAC 1" },
             {
-                fade_message_s::inactive_statement("src1.hlasm", range(position(3, 0), position(3, 72))),
-                fade_message_s::inactive_statement("src1.hlasm", range(position(4, 0), position(4, 72))),
-                fade_message_s::inactive_statement("src1.hlasm", range(position(5, 0), position(5, 72))),
-                fade_message_s::inactive_statement("src1.hlasm", range(position(6, 0), position(6, 72))),
+                fade_message_s::inactive_statement("src1.hlasm", range(position(3, 0), position(6, 72))),
             },
         }));
 } // namespace
 
-TEST_P(fade_fixture_opencode_macros_opencode, macros_opencode)
+TEST_P(opencode_macros_fixture, macros_opencode)
 {
     static const std::string src_template = R"(
          MACRO
@@ -244,11 +241,58 @@ $x
 }
 
 namespace {
-class fade_fixture_opencode_macros_opencode_inner : public fade_fixture_opencode_base
+class opencode_deferred_fixture : public fade_fixture_base
 {};
 
 INSTANTIATE_TEST_SUITE_P(fade,
-    fade_fixture_opencode_macros_opencode_inner,
+    opencode_deferred_fixture,
+    ::testing::Values(test_params {
+        {},
+        {
+            fade_message_s::inactive_statement("src1.hlasm", range(position(2, 0), position(2, 72))),
+            fade_message_s::inactive_statement("src1.hlasm", range(position(4, 0), position(4, 72))),
+            fade_message_s::inactive_statement("src1.hlasm", range(position(6, 0), position(6, 72))),
+        },
+    }));
+} // namespace
+
+TEST_P(opencode_deferred_fixture, opencode_deferred)
+{
+    static const std::string src = R"(
+         AIF (L'X EQ 4).SKIP1
+         SAM31
+.SKIP1   ANOP
+
+         AGO .SKIP2
+X        DS F
+.SKIP2   ANOP
+
+         END
+)";
+
+    open_src_files_and_collect_fms({
+        { src1_loc, src },
+    });
+
+    EXPECT_EQ(collect_and_get_diags_size(), GetParam().number_of_diags);
+    EXPECT_EQ(ws.diags().size(), (size_t)0);
+
+    const auto& expected_msgs = GetParam().expected_fade_messages;
+    EXPECT_TRUE(std::is_permutation(fms.begin(),
+        fms.end(),
+        expected_msgs.begin(),
+        expected_msgs.end(),
+        [](const auto& fmsg, const auto& expected_fmsg) {
+            return fmsg.code == expected_fmsg.code && fmsg.r == expected_fmsg.r && fmsg.uri == expected_fmsg.uri;
+        }));
+}
+
+namespace {
+class opencode_macros_inner_fixture : public fade_fixture_base
+{};
+
+INSTANTIATE_TEST_SUITE_P(fade,
+    opencode_macros_inner_fixture,
     ::testing::Values(
         test_params {
             { "         MAC 0" },
@@ -257,29 +301,19 @@ INSTANTIATE_TEST_SUITE_P(fade,
         test_params {
             { "         MAC 1" },
             {
-                fade_message_s::inactive_statement("src1.hlasm", range(position(3, 0), position(3, 72))),
-                fade_message_s::inactive_statement("src1.hlasm", range(position(4, 0), position(4, 72))),
-                fade_message_s::inactive_statement("src1.hlasm", range(position(5, 0), position(5, 72))),
-                fade_message_s::inactive_statement("src1.hlasm", range(position(6, 0), position(6, 72))),
+                fade_message_s::inactive_statement("src1.hlasm", range(position(3, 0), position(6, 72))),
                 fade_message_s::inactive_statement("src1.hlasm", range(position(8, 0), position(8, 72))),
             },
         },
         test_params {
             { "*        MAC 1" },
             {
-                fade_message_s::inactive_statement("src1.hlasm", range(position(3, 0), position(3, 72))),
-                fade_message_s::inactive_statement("src1.hlasm", range(position(4, 0), position(4, 72))),
-                fade_message_s::inactive_statement("src1.hlasm", range(position(5, 0), position(5, 72))),
-                fade_message_s::inactive_statement("src1.hlasm", range(position(6, 0), position(6, 72))),
-                fade_message_s::inactive_statement("src1.hlasm", range(position(7, 0), position(7, 72))),
-                fade_message_s::inactive_statement("src1.hlasm", range(position(8, 0), position(8, 72))),
-                fade_message_s::inactive_statement("src1.hlasm", range(position(9, 0), position(9, 72))),
-                fade_message_s::inactive_statement("src1.hlasm", range(position(10, 0), position(10, 72))),
+                fade_message_s::inactive_statement("src1.hlasm", range(position(3, 0), position(10, 72))),
             },
         }));
 } // namespace
 
-TEST_P(fade_fixture_opencode_macros_opencode_inner, macros_opencode_inner)
+TEST_P(opencode_macros_inner_fixture, macros_opencode_inner)
 {
     static const std::string src_template = R"(
          MACRO
@@ -315,11 +349,11 @@ $x
 }
 
 namespace {
-class fade_fixture_opencode_macros_external : public fade_fixture_opencode_base
+class opencode_macros_external_fixture : public fade_fixture_base
 {};
 
 INSTANTIATE_TEST_SUITE_P(fade,
-    fade_fixture_opencode_macros_external,
+    opencode_macros_external_fixture,
     ::testing::Values(
         test_params {
             { "         MAC 0" },
@@ -337,7 +371,7 @@ INSTANTIATE_TEST_SUITE_P(fade,
         }));
 } // namespace
 
-TEST_P(fade_fixture_opencode_macros_external, macros_external)
+TEST_P(opencode_macros_external_fixture, macros_external)
 {
     std::string mac = R"(         MACRO
          MAC  &P
@@ -372,11 +406,11 @@ $x
 }
 
 namespace {
-class fade_fixture_cpybooks : public fade_fixture_opencode_base
+class cpybooks_fixture : public fade_fixture_base
 {};
 
 INSTANTIATE_TEST_SUITE_P(fade,
-    fade_fixture_cpybooks,
+    cpybooks_fixture,
     ::testing::Values(
         test_params {
             { "0", "0" },
@@ -396,7 +430,7 @@ INSTANTIATE_TEST_SUITE_P(fade,
         }));
 } // namespace
 
-TEST_P(fade_fixture_cpybooks, cpybook)
+TEST_P(cpybooks_fixture, cpybook)
 {
     std::string cpybook = R"(
          AIF (&VAR EQ 1).SKIP
@@ -428,11 +462,11 @@ LABEL    L 1,1
 }
 
 namespace {
-class fade_fixture_opencode_nested : public fade_fixture_opencode_base
+class opencode_nested_fixture : public fade_fixture_base
 {};
 
 INSTANTIATE_TEST_SUITE_P(fade,
-    fade_fixture_opencode_nested,
+    opencode_nested_fixture,
     ::testing::Values(
         test_params {
             { "         MAC 0,0" },
@@ -448,16 +482,14 @@ INSTANTIATE_TEST_SUITE_P(fade,
         test_params {
             { "         MAC 1,0" },
             {
-                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(1, 0), position(1, 72))),
-                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(2, 0), position(2, 72))),
+                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(1, 0), position(2, 72))),
                 fade_message_s::inactive_statement("libs/mac", range(position(3, 0), position(3, 72))),
             },
         },
         test_params {
             { "         MAC 1,1" },
             {
-                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(1, 0), position(1, 72))),
-                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(2, 0), position(2, 72))),
+                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(1, 0), position(2, 72))),
                 fade_message_s::inactive_statement("libs/mac", range(position(3, 0), position(3, 72))),
             },
         },
@@ -468,7 +500,7 @@ INSTANTIATE_TEST_SUITE_P(fade,
         }));
 } // namespace
 
-TEST_P(fade_fixture_opencode_nested, nested)
+TEST_P(opencode_nested_fixture, nested)
 {
     std::string cpybook = R"(
          AIF (&P2 EQ 1).SKIP2

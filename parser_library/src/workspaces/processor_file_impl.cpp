@@ -21,7 +21,6 @@
 
 #include "file.h"
 #include "file_manager.h"
-#include "processing/statement_analyzers/hit_count_analyzer.h"
 
 namespace hlasm_plugin::parser_library::workspaces {
 
