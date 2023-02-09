@@ -140,15 +140,13 @@ size_t analyzer::debug_syntax_errors() { return mngr_.opencode_parser().getNumbe
 
 const semantics::source_info_processor& analyzer::source_processor() const { return src_proc_; }
 
-void analyzer::analyze(std::atomic<bool>* cancel)
+void analyzer::analyze()
 {
-    while (!cancel || !cancel->load(std::memory_order_relaxed))
-    {
-        if (!mngr_.step())
-            break;
-    }
-    src_proc_.finish();
+    while (analyze_step())
+        ;
 }
+
+bool analyzer::analyze_step() { return mngr_.step() || (src_proc_.finish(), false); }
 
 void analyzer::collect_diags() const
 {

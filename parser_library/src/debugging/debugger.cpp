@@ -181,7 +181,11 @@ public:
 
             ctx_ = a.context().hlasm_ctx.get();
 
-            a.analyze(&cancel_);
+            do
+            {
+                if (cancel_.load(std::memory_order_relaxed))
+                    break;
+            } while (a.analyze_step());
 
             if (!disconnected_ && event_)
                 event_->exited(0);

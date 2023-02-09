@@ -51,8 +51,14 @@ workspaces::parse_result debug_lib_provider::parse_library(
                 data,
                 collect_highlighting_info::no,
             });
-        a.analyze(m_cancel);
-        return m_cancel == nullptr || !*m_cancel;
+
+        do
+        {
+            if (m_cancel && m_cancel->load(std::memory_order_relaxed))
+                return false;
+        } while (a.analyze_step());
+
+        return true;
     }
 
     return false;

@@ -60,10 +60,11 @@ parse_result processor_file_impl::parse(parse_lib_provider& lib_provider,
 
     auto old_dep = dependencies_;
 
-    new_analyzer->analyze(cancel_);
-
-    if (cancel_ && *cancel_)
-        return false;
+    do
+    {
+        if (cancel_ && cancel_->load(std::memory_order_relaxed))
+            return false;
+    } while (new_analyzer->analyze_step());
 
     diags().clear();
     collect_diags_from_child(*new_analyzer);
@@ -110,10 +111,11 @@ parse_result processor_file_impl::parse_macro(
             fms,
         });
 
-    a.analyze(cancel_);
-
-    if (cancel_ && *cancel_)
-        return false;
+    do
+    {
+        if (cancel_ && cancel_->load(std::memory_order_relaxed))
+            return false;
+    } while (a.analyze_step());
 
     diags().clear();
     collect_diags_from_child(a);
