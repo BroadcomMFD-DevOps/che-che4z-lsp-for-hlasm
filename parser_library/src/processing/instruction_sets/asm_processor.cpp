@@ -457,9 +457,15 @@ void asm_processor::process_COPY(rebuilt_statement stmt)
     {
         if (auto extract = extract_copy_id(stmt, this); extract.has_value())
         {
-            bool result = process_copy(extract->name, ctx, lib_provider);
-            if (common_copy_postprocess(result, *extract, ctx, this))
-                ctx.hlasm_ctx->enter_copy_member(extract->name);
+            if (ctx.hlasm_ctx->copy_members().contains(extract->name))
+                common_copy_postprocess(true, *extract, *ctx.hlasm_ctx, this);
+            else
+            {
+                bool result = lib_provider.parse_library(extract->name.to_string_view(),
+                    ctx,
+                    workspaces::library_data { processing_kind::COPY, extract->name });
+                common_copy_postprocess(result, *extract, *ctx.hlasm_ctx, this);
+            }
         }
     }
     else
@@ -770,16 +776,8 @@ std::optional<asm_processor::extract_copy_id_result> asm_processor::extract_copy
     };
 }
 
-bool asm_processor::process_copy(
-    context::id_index name, analyzing_context ctx, workspaces::parse_lib_provider& lib_provider)
-{
-    return ctx.hlasm_ctx->copy_members().contains(name)
-        || lib_provider.parse_library(
-            name.to_string_view(), ctx, workspaces::library_data { processing_kind::COPY, name });
-}
-
 bool asm_processor::common_copy_postprocess(
-    bool processed, const extract_copy_id_result& data, analyzing_context ctx, diagnosable_ctx* diagnoser)
+    bool processed, const extract_copy_id_result& data, context::hlasm_context& hlasm_ctx, diagnosable_ctx* diagnoser)
 {
     if (!processed)
     {
@@ -788,7 +786,7 @@ bool asm_processor::common_copy_postprocess(
         return false;
     }
 
-    auto whole_copy_stack = ctx.hlasm_ctx->whole_copy_stack();
+    auto whole_copy_stack = hlasm_ctx.whole_copy_stack();
 
     auto cycle_tmp = std::find(whole_copy_stack.begin(), whole_copy_stack.end(), data.name);
 
@@ -798,6 +796,8 @@ bool asm_processor::common_copy_postprocess(
             diagnoser->add_diagnostic(diagnostic_op::error_E062(data.statement));
         return false;
     }
+
+    hlasm_ctx.enter_copy_member(data.name);
 
     return true;
 }

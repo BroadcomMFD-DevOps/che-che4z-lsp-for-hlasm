@@ -119,9 +119,14 @@ void lookahead_processor::process_COPY(const resolved_statement& statement)
 {
     if (auto extract = asm_processor::extract_copy_id(statement, nullptr); extract.has_value())
     {
-        bool result = asm_processor::process_copy(extract->name, ctx, lib_provider_);
-        if (asm_processor::common_copy_postprocess(result, *extract, ctx, nullptr))
-            ctx.hlasm_ctx->enter_copy_member(extract->name);
+        if (ctx.hlasm_ctx->copy_members().contains(extract->name))
+            asm_processor::common_copy_postprocess(true, *extract, *ctx.hlasm_ctx, nullptr);
+        else
+        {
+            bool result = lib_provider_.parse_library(
+                extract->name.to_string_view(), ctx, workspaces::library_data { processing_kind::COPY, extract->name });
+            asm_processor::common_copy_postprocess(result, *extract, *ctx.hlasm_ctx, nullptr);
+        }
     }
 }
 
