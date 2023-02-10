@@ -34,7 +34,7 @@ processor_file_impl::processor_file_impl(std::shared_ptr<file> file, file_manage
 void processor_file_impl::collect_diags() const {}
 bool processor_file_impl::is_once_only() const { return false; }
 
-parse_result processor_file_impl::parse(parse_lib_provider& lib_provider,
+bool processor_file_impl::parse(parse_lib_provider& lib_provider,
     asm_option asm_opts,
     std::vector<preprocessor_options> pp,
     virtual_file_monitor* vfm)
@@ -91,8 +91,7 @@ parse_result processor_file_impl::parse(parse_lib_provider& lib_provider,
     return true;
 }
 
-parse_result processor_file_impl::parse_macro(
-    parse_lib_provider& lib_provider, analyzing_context ctx, library_data data)
+bool processor_file_impl::parse_macro(parse_lib_provider& lib_provider, analyzing_context ctx, library_data data)
 {
     auto cache_key = macro_cache_key::create_from_context(*ctx.hlasm_ctx, data);
 

@@ -91,6 +91,8 @@ private:
 
     std::shared_ptr<std::vector<fade_message_s>> m_fade_msgs;
 
+    std::unordered_map<std::string, bool, utils::hashers::string_hasher, std::equal_to<>> m_external_requests;
+
     bool attr_lookahead_active() const;
     bool seq_lookahead_active() const;
     bool lookahead_active() const;

@@ -308,12 +308,26 @@ void processing_manager::finish_opencode()
 std::optional<bool> processing_manager::request_external_processing(
     context::id_index name, processing::processing_kind proc_kind, std::function<void(bool)> callback)
 {
-    bool result = lib_provider_.parse_library(name.to_string_view(), ctx_, { proc_kind, name });
+    if (auto it = m_external_requests.find(name.to_string_view()); it != m_external_requests.end())
+        return it->second;
 
     if (callback)
-        callback(result);
+        lib_provider_.parse_library(name.to_string_view(),
+            ctx_,
+            { proc_kind, name },
+            [this, name, callback = std::move(callback)](bool result) {
+                m_external_requests.insert_or_assign(name.to_string(), result);
+                callback(result);
+            });
+    else
+        lib_provider_.parse_library(name.to_string_view(), ctx_, { proc_kind, name }, [this, name](bool result) {
+            m_external_requests.insert_or_assign(name.to_string(), result);
+        });
 
-    return result;
+    if (auto it = m_external_requests.find(name.to_string_view()); it != m_external_requests.end())
+        return it->second;
+    else
+        return std::nullopt;
 }
 
 void processing_manager::start_macro_definition(
