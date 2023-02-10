@@ -305,6 +305,12 @@ void processing_manager::finish_opencode()
     lsp_analyzer_.opencode_finished(lib_provider_);
 }
 
+std::optional<bool> processing_manager::request_external_processing(
+    context::id_index name, processing::processing_kind proc_kind, std::function<void(bool)> callback)
+{
+    return lib_provider_.parse_library(name.to_string_view(), ctx_, { proc_kind, name });
+}
+
 void processing_manager::start_macro_definition(
     macrodef_start_data start, std::optional<utils::resource::resource_location> file_loc)
 {

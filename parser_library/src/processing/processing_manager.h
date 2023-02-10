@@ -106,6 +106,8 @@ private:
     void start_copy_member(copy_start_data start) override;
     void finish_copy_member(copy_processing_result result) override;
     void finish_opencode() override;
+    std::optional<bool> request_external_processing(
+        context::id_index name, processing::processing_kind proc_kind, std::function<void(bool)> callback) override;
 
     void start_macro_definition(macrodef_start_data start, std::optional<utils::resource::resource_location> file_loc);
 

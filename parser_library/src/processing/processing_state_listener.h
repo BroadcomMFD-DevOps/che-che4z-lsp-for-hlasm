@@ -15,6 +15,9 @@
 #ifndef PROCESSING_PROCESSING_STATE_LISTENER_H
 #define PROCESSING_PROCESSING_STATE_LISTENER_H
 
+#include <functional>
+#include <optional>
+
 #include "statement_processors/copy_processing_info.h"
 #include "statement_processors/lookahead_processing_info.h"
 #include "statement_processors/macrodef_processing_info.h"
@@ -31,6 +34,9 @@ enum class resume_copy
 // interface for listening that a statement processor needs to be started or has finished
 class processing_state_listener
 {
+protected:
+    ~processing_state_listener() = default;
+
 public:
     virtual void start_macro_definition(macrodef_start_data start) = 0;
     virtual void finish_macro_definition(macrodef_processing_result result) = 0;
@@ -43,7 +49,8 @@ public:
 
     virtual void finish_opencode() = 0;
 
-    virtual ~processing_state_listener() = default;
+    virtual std::optional<bool> request_external_processing(
+        context::id_index name, processing::processing_kind proc_kind, std::function<void(bool)> callback) = 0;
 };
 
 } // namespace hlasm_plugin::parser_library::processing
