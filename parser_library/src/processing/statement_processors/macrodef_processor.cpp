@@ -45,7 +45,8 @@ macrodef_processor::macrodef_processor(analyzing_context ctx,
     result_.invalid = true; // result starts invalid until mandatory statements are encountered
 }
 
-processing_status macrodef_processor::get_processing_status(const semantics::instruction_si& instruction) const
+std::optional<processing_status> macrodef_processor::get_processing_status(
+    const semantics::instruction_si& instruction) const
 {
     if (expecting_prototype_ && !expecting_MACRO_)
     {

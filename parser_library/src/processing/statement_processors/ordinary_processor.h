@@ -53,7 +53,7 @@ public:
         opencode_provider& open_code,
         const processing_manager& proc_mgr);
 
-    processing_status get_processing_status(const semantics::instruction_si& instruction) const override;
+    std::optional<processing_status> get_processing_status(const semantics::instruction_si& instruction) const override;
     void process_statement(context::shared_stmt_ptr statement) override;
     void end_processing() override;
 

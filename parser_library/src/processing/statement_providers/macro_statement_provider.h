@@ -34,6 +34,7 @@ public:
 protected:
     context::statement_cache* get_next() override;
     std::vector<diagnostic_op> filter_cached_diagnostics(const semantics::deferred_statement& stmt) const override;
+    void go_back() override;
 };
 
 } // namespace hlasm_plugin::parser_library::processing

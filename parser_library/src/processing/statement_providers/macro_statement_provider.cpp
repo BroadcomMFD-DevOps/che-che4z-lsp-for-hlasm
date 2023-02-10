@@ -51,4 +51,12 @@ std::vector<diagnostic_op> macro_statement_provider::filter_cached_diagnostics(
     return std::vector<diagnostic_op>(diags.begin(), diags.end());
 }
 
+void macro_statement_provider::go_back()
+{
+    auto& invo = ctx.hlasm_ctx->scope_stack().back().this_macro;
+    assert(invo);
+    assert(invo->current_statement != invo->cached_definition.size());
+    --invo->current_statement;
+}
+
 } // namespace hlasm_plugin::parser_library::processing

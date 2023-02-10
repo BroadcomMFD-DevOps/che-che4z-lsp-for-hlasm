@@ -22,7 +22,8 @@
 
 namespace hlasm_plugin::parser_library::processing {
 
-processing_status lookahead_processor::get_processing_status(const semantics::instruction_si& instruction) const
+std::optional<processing_status> lookahead_processor::get_processing_status(
+    const semantics::instruction_si& instruction) const
 {
     if (instruction.type == semantics::instruction_si_type::ORD)
     {

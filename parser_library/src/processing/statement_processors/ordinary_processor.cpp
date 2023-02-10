@@ -45,7 +45,8 @@ ordinary_processor::ordinary_processor(analyzing_context ctx,
     , listener_(state_listener)
 {}
 
-processing_status ordinary_processor::get_processing_status(const semantics::instruction_si& instruction) const
+std::optional<processing_status> ordinary_processor::get_processing_status(
+    const semantics::instruction_si& instruction) const
 {
     context::id_index id = instruction.type == semantics::instruction_si_type::CONC
         ? resolve_instruction(std::get<semantics::concat_chain>(instruction.value), instruction.field_range)
@@ -57,6 +58,7 @@ processing_status ordinary_processor::get_processing_status(const semantics::ins
     {
         auto found =
             lib_provider.parse_library(id.to_string(), ctx, workspaces::library_data { processing_kind::MACRO, id });
+        // TODO: !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         processing_form f;
         context::instruction_type t;
         if (found)
