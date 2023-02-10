@@ -29,7 +29,7 @@ hit_count_analyzer::hit_count_analyzer(context::hlasm_context& ctx)
 {}
 
 namespace {
-static constexpr auto stmt_lines_compacter = [](const range& r) { return std::make_pair(r.start.line, r.end.line); };
+constexpr auto stmt_lines_compacter = [](const range& r) { return std::make_pair(r.start.line, r.end.line); };
 
 std::optional<stmt_lines_range> get_stmt_lines_range(const context::hlasm_statement* stmt,
     statement_provider_kind prov_kind,
@@ -46,6 +46,7 @@ std::optional<stmt_lines_range> get_stmt_lines_range(const context::hlasm_statem
         if (prov_kind == statement_provider_kind::OPEN)
         {
             const auto& source = ctx.current_source();
+            // TODO: look into the opencode range discrepancy
             return std::make_pair(r.start.line, r.end.line + source.end_index - source.begin_index - 1);
         }
 
@@ -66,40 +67,40 @@ std::optional<stmt_lines_range> get_stmt_lines_range(const context::hlasm_statem
     return std::nullopt;
 }
 
-void emplace_hit_count(hit_count_map& hc_map,
-    const utils::resource::resource_location& rl,
-    stmt_lines_range lines_range,
-    bool can_be_external_macro,
-    bool increase_hit_count)
+void update_hc_details(
+    hit_count_details& hc_details, stmt_lines_range lines_range, bool can_be_external_macro, bool increase_hit_count)
 {
-    auto& start_line = lines_range.first;
-    auto& end_line = lines_range.second;
+    const auto& [start_line, end_line] = lines_range;
 
-    auto& stmt_hc_details = hc_map.try_emplace(rl).first->second;
-    stmt_hc_details.is_external_macro &= can_be_external_macro;
-    stmt_hc_details.max_lineno = std::max(stmt_hc_details.max_lineno, start_line);
+    hc_details.is_external_macro &= can_be_external_macro;
+    hc_details.max_lineno = std::max(hc_details.max_lineno, start_line);
 
-    auto& line_hits = stmt_hc_details.line_hits;
-    while (line_hits.size() <= end_line)
-        line_hits.resize(2 * line_hits.size());
+    auto& line_hits = hc_details.line_hits;
+    if (line_hits.size() <= end_line)
+        line_hits.resize(2 * end_line + 1000);
 
-    std::for_each_n(
-        std::next(line_hits.begin(), start_line), end_line - start_line + 1, [increase_hit_count](auto& line_hit) {
-            line_hit.contains_statement = true;
-
-            if (increase_hit_count)
-                line_hit.count++;
-        });
+    for (auto i = start_line; i <= end_line; ++i)
+    {
+        auto& line_hit = line_hits[i];
+        line_hit.contains_statement = true;
+        if (increase_hit_count)
+            line_hit.count++;
+    }
 }
 } // namespace
+
+hit_count_details& hit_count_analyzer::get_hc_details_reference(const utils::resource::resource_location& rl)
+{
+    return m_hit_counts.try_emplace(rl).first->second;
+}
 
 void hit_count_analyzer::emplace_macro_header_definitions(const context::id_index& id)
 {
     if (auto map_it = m_macro_header_definitions.find(id); map_it != m_macro_header_definitions.end())
     {
         auto& mac_header_details = map_it->second;
-        emplace_hit_count(m_hit_counts, mac_header_details.rl, std::move(mac_header_details.init_line_r), true, true);
-        emplace_hit_count(m_hit_counts, mac_header_details.rl, std::move(mac_header_details.name_line_r), true, true);
+        update_hc_details(get_hc_details_reference(mac_header_details.rl), mac_header_details.init_line_r, true, true);
+        update_hc_details(get_hc_details_reference(mac_header_details.rl), mac_header_details.name_line_r, true, true);
 
         m_macro_header_definitions.erase(map_it);
     }
@@ -124,7 +125,9 @@ hit_count_analyzer::statement_type hit_count_analyzer::get_stmt_type(const conte
         case hlasm_plugin::parser_library::processing::hit_count_analyzer::statement_type::REGULAR:
             if (macro_init_incrementer(res_stmt))
             {
-                m_stmt_type = statement_type::MACRO_INIT;
+                m_stmt_type =
+                    statement_type::MACRO_INIT; // TODO think about marking "special" macro statements in a more general
+                                                // way in order to get rid of this and similar state machines
                 m_last_macro_init_line_ranges = stmt_lines_compacter(res_stmt->stmt_range_ref());
             }
             break;
@@ -191,9 +194,8 @@ void hit_count_analyzer::analyze(
 
     assert(m_ctx.processing_stack_top().resource_loc);
 
-    emplace_hit_count(m_hit_counts,
-        *m_ctx.processing_stack_top().resource_loc,
-        std::move(*stmt_lines_range),
+    update_hc_details(get_hc_details_reference(*m_ctx.processing_stack_top().resource_loc),
+        *stmt_lines_range,
         can_be_external_macro,
         proc_kind == processing::processing_kind::ORDINARY);
 }

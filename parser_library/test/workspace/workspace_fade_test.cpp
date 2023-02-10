@@ -150,7 +150,7 @@ INSTANTIATE_TEST_SUITE_P(fade,
         test_params {
             { "1" },
             {
-                fade_message_s::inactive_statement("src1.hlasm", range(position(2, 0), position(4, 72))),
+                fade_message_s::inactive_statement("src1.hlasm", range(position(2, 0), position(4, 80))),
             },
         }));
 
@@ -198,13 +198,13 @@ INSTANTIATE_TEST_SUITE_P(fade,
         test_params {
             { "         MAC 1" },
             {
-                fade_message_s::inactive_statement("src1.hlasm", range(position(4, 0), position(4, 72))),
+                fade_message_s::inactive_statement("src1.hlasm", range(position(4, 0), position(4, 80))),
             },
         },
         test_params {
             { "*        MAC 1" },
             {
-                fade_message_s::inactive_statement("src1.hlasm", range(position(3, 0), position(6, 72))),
+                fade_message_s::inactive_statement("src1.hlasm", range(position(3, 0), position(6, 80))),
             },
         }));
 } // namespace
@@ -249,9 +249,9 @@ INSTANTIATE_TEST_SUITE_P(fade,
     ::testing::Values(test_params {
         {},
         {
-            fade_message_s::inactive_statement("src1.hlasm", range(position(2, 0), position(2, 72))),
-            fade_message_s::inactive_statement("src1.hlasm", range(position(4, 0), position(4, 72))),
-            fade_message_s::inactive_statement("src1.hlasm", range(position(6, 0), position(6, 72))),
+            fade_message_s::inactive_statement("src1.hlasm", range(position(2, 0), position(2, 80))),
+            fade_message_s::inactive_statement("src1.hlasm", range(position(4, 0), position(4, 80))),
+            fade_message_s::inactive_statement("src1.hlasm", range(position(6, 0), position(6, 80))),
         },
     }));
 } // namespace
@@ -301,14 +301,14 @@ INSTANTIATE_TEST_SUITE_P(fade,
         test_params {
             { "         MAC 1" },
             {
-                fade_message_s::inactive_statement("src1.hlasm", range(position(3, 0), position(6, 72))),
-                fade_message_s::inactive_statement("src1.hlasm", range(position(8, 0), position(8, 72))),
+                fade_message_s::inactive_statement("src1.hlasm", range(position(3, 0), position(6, 80))),
+                fade_message_s::inactive_statement("src1.hlasm", range(position(8, 0), position(8, 80))),
             },
         },
         test_params {
             { "*        MAC 1" },
             {
-                fade_message_s::inactive_statement("src1.hlasm", range(position(3, 0), position(10, 72))),
+                fade_message_s::inactive_statement("src1.hlasm", range(position(3, 0), position(10, 80))),
             },
         }));
 } // namespace
@@ -362,7 +362,7 @@ INSTANTIATE_TEST_SUITE_P(fade,
         test_params {
             { "         MAC 1" },
             {
-                fade_message_s::inactive_statement("libs/mac", range(position(3, 0), position(3, 72))),
+                fade_message_s::inactive_statement("libs/mac", range(position(3, 0), position(3, 80))),
             },
         },
         test_params {
@@ -426,7 +426,7 @@ INSTANTIATE_TEST_SUITE_P(fade,
         },
         test_params {
             { "1", "1" },
-            { fade_message_s::inactive_statement("libs/CPYBOOK", range(position(2, 0), position(2, 72))) },
+            { fade_message_s::inactive_statement("libs/CPYBOOK", range(position(2, 0), position(2, 80))) },
         }));
 } // namespace
 
@@ -475,22 +475,22 @@ INSTANTIATE_TEST_SUITE_P(fade,
         test_params {
             { "         MAC 0,1" },
             {
-                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(2, 0), position(2, 72))),
-                fade_message_s::inactive_statement("libs/mac", range(position(4, 0), position(4, 72))),
+                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(2, 0), position(2, 80))),
+                fade_message_s::inactive_statement("libs/mac", range(position(4, 0), position(4, 80))),
             },
         },
         test_params {
             { "         MAC 1,0" },
             {
-                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(1, 0), position(2, 72))),
-                fade_message_s::inactive_statement("libs/mac", range(position(3, 0), position(3, 72))),
+                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(1, 0), position(2, 80))),
+                fade_message_s::inactive_statement("libs/mac", range(position(3, 0), position(3, 80))),
             },
         },
         test_params {
             { "         MAC 1,1" },
             {
-                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(1, 0), position(2, 72))),
-                fade_message_s::inactive_statement("libs/mac", range(position(3, 0), position(3, 72))),
+                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(1, 0), position(2, 80))),
+                fade_message_s::inactive_statement("libs/mac", range(position(3, 0), position(3, 80))),
             },
         },
         test_params {

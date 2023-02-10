@@ -87,7 +87,7 @@ parse_result processor_file_impl::parse(parse_lib_provider& lib_provider,
             m_files_to_close.insert(file);
     }
 
-    m_hc_map = std::move(hc_analyzer.take_hit_counts());
+    m_hc_map = hc_analyzer.take_hit_counts();
     m_fade_messages = std::move(fms);
 
     return true;
@@ -127,7 +127,7 @@ parse_result processor_file_impl::parse_macro(
     if (collect_hl)
         m_last_hl_info = a.source_processor().semantic_tokens();
 
-    m_hc_map = std::move(hc_analyzer.take_hit_counts());
+    m_hc_map = hc_analyzer.take_hit_counts();
 
     return true;
 }
@@ -177,7 +177,7 @@ void processor_file_impl::retrieve_hit_counts(processing::hit_count_map& other_h
     for (const auto& [our_rl, our_hc_details] : m_hc_map)
     {
         if (auto [other_hc_details_it, new_element] = other_hc_map.try_emplace(our_rl, our_hc_details); !new_element)
-            processing::hit_count_details::merge(other_hc_details_it->second, our_hc_details);
+            other_hc_details_it->second.merge(our_hc_details);
     }
 }
 

@@ -143,20 +143,20 @@ void generate_merged_fade_messages(
     const auto it_b =
         std::find_if(line_hits_it_b, it_e, [](const processing::hit_count& e) { return e.contains_statement; });
 
-    static constexpr auto hit_or_no_stmt_predicate = [](const processing::hit_count& e) {
-        return e.count != 0 || !e.contains_statement;
+    static constexpr auto faded_line_predicate = [](const processing::hit_count& e) {
+        return e.contains_statement && e.count == 0;
     };
 
-    auto it = std::find_if_not(it_b, it_e, hit_or_no_stmt_predicate);
-    while (it != it_e)
+    auto faded_line_it = std::find_if(it_b, it_e, faded_line_predicate);
+    while (faded_line_it != it_e)
     {
-        auto last_inactive_line = std::find_if(it, it_e, hit_or_no_stmt_predicate);
-        if (last_inactive_line != it_e || it != it_b || !hc_details.is_external_macro)
+        auto active_line = std::find_if_not(std::next(faded_line_it), it_e, faded_line_predicate);
+        if (active_line != it_e || faded_line_it != it_b || !hc_details.is_external_macro)
             fms.emplace_back(fade_message_s::inactive_statement(uri,
-                range(position(std::distance(line_hits_it_b, it), 0),
-                    position(std::distance(line_hits_it_b, std::prev(last_inactive_line)), 72))));
+                range(position(std::distance(line_hits_it_b, faded_line_it), 0),
+                    position(std::distance(line_hits_it_b, std::prev(active_line)), 80))));
 
-        it = std::find_if_not(last_inactive_line, it_e, hit_or_no_stmt_predicate);
+        faded_line_it = std::find_if(active_line, it_e, faded_line_predicate);
     }
 }
 } // namespace

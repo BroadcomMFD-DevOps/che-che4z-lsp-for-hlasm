@@ -48,23 +48,21 @@ struct hit_count_details
     bool is_external_macro = true;
     size_t max_lineno = 0;
 
-    hit_count_details()
-        : line_hits(1000)
-    {}
-
-    static void merge(hit_count_details& to, const hit_count_details& from)
+    hit_count_details& merge(const hit_count_details& other)
     {
-        to.is_external_macro &= from.is_external_macro;
-        to.max_lineno = std::max(to.max_lineno, from.max_lineno);
+        is_external_macro &= other.is_external_macro;
+        max_lineno = std::max(max_lineno, other.max_lineno);
 
-        auto& from_line_hits = from.line_hits;
-        auto& to_line_hits = to.line_hits;
+        auto& other_line_hits = other.line_hits;
+        auto& our_line_hits = line_hits;
 
-        if (from_line_hits.size() > to_line_hits.size())
-            to_line_hits.resize(from_line_hits.size());
+        if (other_line_hits.size() > our_line_hits.size())
+            our_line_hits.resize(other_line_hits.size());
 
-        for (size_t i = 0; i <= from.max_lineno; ++i)
-            to_line_hits[i] += from_line_hits[i];
+        for (size_t i = 0; i <= other.max_lineno; ++i)
+            our_line_hits[i] += other_line_hits[i];
+
+        return *this;
     }
 };
 
@@ -108,6 +106,8 @@ private:
     size_t m_macro_nest_level = 0;
     stmt_lines_range m_last_macro_init_line_ranges;
     std::unordered_map<context::id_index, macro_header_definition_details> m_macro_header_definitions;
+
+    hit_count_details& get_hc_details_reference(const utils::resource::resource_location& rl);
 
     void emplace_macro_header_definitions(const context::id_index& id);
 
