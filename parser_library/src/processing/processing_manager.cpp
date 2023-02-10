@@ -308,7 +308,12 @@ void processing_manager::finish_opencode()
 std::optional<bool> processing_manager::request_external_processing(
     context::id_index name, processing::processing_kind proc_kind, std::function<void(bool)> callback)
 {
-    return lib_provider_.parse_library(name.to_string_view(), ctx_, { proc_kind, name });
+    bool result = lib_provider_.parse_library(name.to_string_view(), ctx_, { proc_kind, name });
+
+    if (callback)
+        callback(result);
+
+    return result;
 }
 
 void processing_manager::start_macro_definition(
@@ -320,7 +325,7 @@ void processing_manager::start_macro_definition(
         hlasm_ctx_.push_statement_processing(processing_kind::MACRO);
 
     lsp_analyzer_.macrodef_started(start);
-    procs_.emplace_back(std::make_unique<macrodef_processor>(ctx_, *this, lib_provider_, std::move(start)));
+    procs_.emplace_back(std::make_unique<macrodef_processor>(ctx_, *this, *this, std::move(start)));
 }
 
 void processing_manager::jump_in_statements(context::id_index target, range symbol_range)

@@ -32,6 +32,7 @@ class ordinary_processor final : public statement_processor
     static constexpr size_t NEST_LIMIT = 100;
 
     workspaces::parse_lib_provider& lib_provider;
+    branching_provider& branch_provider_;
     library_info_transitional lib_info;
     expressions::evaluation_context eval_ctx;
 

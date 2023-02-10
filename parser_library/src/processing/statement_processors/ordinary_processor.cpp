@@ -35,6 +35,7 @@ ordinary_processor::ordinary_processor(analyzing_context ctx,
     const processing_manager& proc_mgr)
     : statement_processor(processing_kind::ORDINARY, ctx)
     , lib_provider(lib_provider)
+    , branch_provider_(branch_provider)
     , lib_info(lib_provider)
     , eval_ctx { *ctx.hlasm_ctx, lib_info, *this }
     , ca_proc_(ctx, branch_provider, lib_provider, state_listener, open_code)
@@ -56,12 +57,13 @@ std::optional<processing_status> ordinary_processor::get_processing_status(
 
     if (!status)
     {
-        auto found =
-            lib_provider.parse_library(id.to_string(), ctx, workspaces::library_data { processing_kind::MACRO, id });
-        // TODO: !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        auto found = branch_provider_.request_external_processing(id, processing_kind::MACRO, {});
+        if (!found.has_value())
+            return std::nullopt;
+
         processing_form f;
         context::instruction_type t;
-        if (found)
+        if (found.value())
         {
             f = processing_form::MAC;
             t = hlasm_ctx.find_macro(id) ? context::instruction_type::MAC : context::instruction_type::UNDEF;

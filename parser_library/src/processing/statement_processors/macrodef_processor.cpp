@@ -22,11 +22,11 @@ namespace hlasm_plugin::parser_library::processing {
 
 macrodef_processor::macrodef_processor(analyzing_context ctx,
     processing_state_listener& listener,
-    workspaces::parse_lib_provider& provider,
+    branching_provider& branching_provider_,
     macrodef_start_data start)
     : statement_processor(processing_kind::MACRO, std::move(ctx))
     , listener_(listener)
-    , provider_(provider)
+    , branching_provider_(branching_provider_)
     , start_(std::move(start))
     , initial_copy_nest_(hlasm_ctx.current_copy_stack().size())
     , macro_nest_(1)
@@ -407,12 +407,10 @@ void macrodef_processor::process_COPY(const resolved_statement& statement)
         }
         else
         {
-            bool result = provider_.parse_library(
-                extract->name.to_string_view(), ctx, workspaces::library_data { processing_kind::COPY, extract->name });
-            if (asm_processor::common_copy_postprocess(result, *extract, *ctx.hlasm_ctx, this))
-            {
-                result_.used_copy_members.insert(ctx.hlasm_ctx->current_copy_stack().back().copy_member_definition);
-            }
+            branching_provider_.request_external_processing(
+                extract->name, processing_kind::COPY, [extract, this](bool result) {
+                    asm_processor::common_copy_postprocess(result, *extract, *ctx.hlasm_ctx, this);
+                });
         }
     }
 

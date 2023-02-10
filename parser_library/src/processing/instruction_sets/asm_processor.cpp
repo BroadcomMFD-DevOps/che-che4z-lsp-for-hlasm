@@ -461,10 +461,9 @@ void asm_processor::process_COPY(rebuilt_statement stmt)
                 common_copy_postprocess(true, *extract, *ctx.hlasm_ctx, this);
             else
             {
-                bool result = lib_provider.parse_library(extract->name.to_string_view(),
-                    ctx,
-                    workspaces::library_data { processing_kind::COPY, extract->name });
-                common_copy_postprocess(result, *extract, *ctx.hlasm_ctx, this);
+                branch_provider.request_external_processing(extract->name,
+                    processing_kind::COPY,
+                    [extract, this](bool result) { common_copy_postprocess(result, *extract, *ctx.hlasm_ctx, this); });
             }
         }
     }
