@@ -218,10 +218,8 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_looka
     const std::optional<std::string>& op_text,
     const range& op_range)
 {
-    auto proc_status_o = proc.get_processing_status(collector.current_instruction());
-    if (!proc_status_o.has_value())
-        return {};
-    auto& proc_status = proc_status_o.value();
+    // Lookahead processor always returns value
+    auto proc_status = proc.get_processing_status(collector.current_instruction()).value();
 
     m_ctx->hlasm_ctx->set_source_position(collector.current_instruction().field_range.start);
 
@@ -279,7 +277,14 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordin
     m_ctx->hlasm_ctx->set_source_position(collector.current_instruction().field_range.start);
     auto proc_status_o = proc.get_processing_status(collector.current_instruction());
     if (!proc_status_o.has_value())
+    {
+        auto [statement_position, snapshot] = m_ctx->hlasm_ctx->get_begin_snapshot(false);
+
+        rewind_input(statement_position);
+        m_ctx->hlasm_ctx->apply_source_snapshot(std::move(snapshot));
+
         return nullptr;
+    }
     auto& proc_status = proc_status_o.value();
 
     if (op_text)
