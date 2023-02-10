@@ -135,40 +135,28 @@ void workspace::collect_diags() const
 }
 
 namespace {
-void generate_merged_fade_messages(const utils::resource::resource_location& rl,
-    const std::unordered_map<size_t, processing::hit_count_details>& stmt_hc_map,
-    bool is_external_macro,
-    std::vector<fade_message_s>& fms)
+void generate_merged_fade_messages(
+    const std::string& uri, const processing::hit_count_details& hc_details, std::vector<fade_message_s>& fms)
 {
-    static constexpr auto positive_count_pred = [](const std::pair<size_t, processing::hit_count_details>& e) {
-        return e.second.count;
+    const auto line_hits_it_b = hc_details.line_hits.begin();
+    const auto it_e = std::next(line_hits_it_b, hc_details.max_lineno + 1);
+    const auto it_b =
+        std::find_if(line_hits_it_b, it_e, [](const processing::hit_count& e) { return e.contains_statement; });
+
+    static constexpr auto hit_or_no_stmt_predicate = [](const processing::hit_count& e) {
+        return e.count != 0 || !e.contains_statement;
     };
 
-    const auto it_e = stmt_hc_map.end();
-    auto it_b = std::find_if_not(stmt_hc_map.begin(), it_e, positive_count_pred);
-
-    while (it_b != it_e)
+    auto it = std::find_if_not(it_b, it_e, hit_or_no_stmt_predicate);
+    while (it != it_e)
     {
-        auto last_adjacent_stmt_it = std::adjacent_find(it_b,
-            it_e,
-            [](const std::pair<size_t, processing::hit_count_details>& a,
-                const std::pair<size_t, processing::hit_count_details>& b) {
-                return b.second.count || b.second.r.start.line - a.second.r.end.line > 1;
-            });
+        auto last_inactive_line = std::find_if(it, it_e, hit_or_no_stmt_predicate);
+        if (last_inactive_line != it_e || it != it_b || !hc_details.is_external_macro)
+            fms.emplace_back(fade_message_s::inactive_statement(uri,
+                range(position(std::distance(line_hits_it_b, it), 0),
+                    position(std::distance(line_hits_it_b, std::prev(last_inactive_line)), 72))));
 
-        if (last_adjacent_stmt_it != it_e)
-            fms.emplace_back(fade_message_s::inactive_statement(
-                rl.get_uri(), range(it_b->second.r.start, last_adjacent_stmt_it->second.r.end)));
-        else
-        {
-            if (it_b != stmt_hc_map.begin() || !is_external_macro) // Is not unused external macro
-                fms.emplace_back(fade_message_s::inactive_statement(
-                    rl.get_uri(), range(it_b->second.r.start, std::prev(last_adjacent_stmt_it)->second.r.end)));
-
-            break;
-        }
-
-        it_b = std::find_if_not(std::next(last_adjacent_stmt_it), it_e, positive_count_pred);
+        it = std::find_if_not(last_inactive_line, it_e, hit_or_no_stmt_predicate);
     }
 }
 } // namespace
@@ -177,14 +165,14 @@ void workspace::retrieve_fade_messages(std::vector<fade_message_s>& fms) const
 {
     processing::hit_count_map hc_map;
 
-    for (const auto& [key, value] : m_processor_files)
+    for (const auto& [_, value] : m_processor_files)
     {
         value.m_processor_file->retrieve_fade_messages(fms);
         value.m_processor_file->retrieve_hit_counts(hc_map);
     }
 
     std::for_each(hc_map.begin(), hc_map.end(), [&fms](const auto& e) {
-        generate_merged_fade_messages(e.first, e.second.stmt_hc_map, e.second.is_external_macro, fms);
+        generate_merged_fade_messages(e.first.get_uri(), e.second, fms);
     });
 }
 

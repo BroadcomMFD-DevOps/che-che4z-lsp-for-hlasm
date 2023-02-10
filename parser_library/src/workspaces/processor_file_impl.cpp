@@ -184,19 +184,10 @@ void processor_file_impl::retrieve_fade_messages(std::vector<fade_message_s>& fm
 
 void processor_file_impl::retrieve_hit_counts(processing::hit_count_map& other_hc_map) const
 {
-    for (const auto& [our_rl, our_stmt_hc_details] : m_hc_map)
+    for (const auto& [our_rl, our_hc_details] : m_hc_map)
     {
-        if (auto [other_stmt_hc_it, emplaced_outer] = other_hc_map.try_emplace(our_rl, our_stmt_hc_details);
-            !emplaced_outer)
-        {
-            auto& [_, other_stmt_hc_details] = *other_stmt_hc_it;
-            other_stmt_hc_details.is_external_macro &= our_stmt_hc_details.is_external_macro;
-
-            for (const auto& [our_line, our_details] : our_stmt_hc_details.stmt_hc_map)
-                if (auto [it, emplaced_inner] = other_stmt_hc_details.stmt_hc_map.try_emplace(our_line, our_details);
-                    !emplaced_inner)
-                    it->second.count += our_details.count;
-        }
+        if (auto [other_hc_details_it, new_element] = other_hc_map.try_emplace(our_rl, our_hc_details); !new_element)
+            processing::hit_count_details::merge(other_hc_details_it->second, our_hc_details);
     }
 }
 

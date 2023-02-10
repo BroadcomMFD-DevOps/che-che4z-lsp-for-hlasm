@@ -14,11 +14,12 @@
 
 #include "hit_count_analyzer.h"
 
+#include <algorithm>
 #include <cassert>
+#include <iterator>
 #include <optional>
 
-#include "context/id_storage.h"
-#include "processing/error_statement.h"
+#include "context/hlasm_context.h"
 #include "processing/statement.h"
 
 namespace hlasm_plugin::parser_library::processing {
@@ -28,7 +29,9 @@ hit_count_analyzer::hit_count_analyzer(context::hlasm_context& ctx)
 {}
 
 namespace {
-std::optional<range> get_range(const context::hlasm_statement* stmt,
+static constexpr auto stmt_lines_compacter = [](const range& r) { return std::make_pair(r.start.line, r.end.line); };
+
+std::optional<stmt_lines_range> get_stmt_lines_range(const context::hlasm_statement* stmt,
     statement_provider_kind prov_kind,
     processing_kind proc_kind,
     const context::hlasm_context& ctx)
@@ -36,14 +39,17 @@ std::optional<range> get_range(const context::hlasm_statement* stmt,
     if (!stmt)
         return std::nullopt;
 
-    const auto adj_range = [prov_kind, &proc_kind, &ctx](range r) -> std::optional<range> {
+    const auto adj_range = [prov_kind, &proc_kind, &ctx](const range& r) -> std::optional<stmt_lines_range> {
         if (proc_kind != processing_kind::LOOKAHEAD && r.start == r.end)
             return std::nullopt;
 
         if (prov_kind == statement_provider_kind::OPEN)
-            r.end.line += ctx.current_source().end_index - ctx.current_source().begin_index - 1;
-        r.end.column = 72;
-        return r;
+        {
+            const auto& source = ctx.current_source();
+            return std::make_pair(r.start.line, r.end.line + source.end_index - source.begin_index - 1);
+        }
+
+        return stmt_lines_compacter(r);
     };
 
     if (stmt->kind == context::statement_kind::RESOLVED)
@@ -60,25 +66,40 @@ std::optional<range> get_range(const context::hlasm_statement* stmt,
     return std::nullopt;
 }
 
-size_t& emplace_hit_count(
-    hit_count_map& hc_map, const utils::resource::resource_location& rl, range r, bool can_be_external_macro)
+void emplace_hit_count(hit_count_map& hc_map,
+    const utils::resource::resource_location& rl,
+    stmt_lines_range lines_range,
+    bool can_be_external_macro,
+    bool increase_hit_count)
 {
-    auto& stmt_hc_details = hc_map.try_emplace(rl).first->second;
-    auto& [stmt_r, stmt_count] = stmt_hc_details.stmt_hc_map.try_emplace(r.start.line).first->second;
+    auto& start_line = lines_range.first;
+    auto& end_line = lines_range.second;
 
+    auto& stmt_hc_details = hc_map.try_emplace(rl).first->second;
     stmt_hc_details.is_external_macro &= can_be_external_macro;
-    stmt_r = std::move(r);
-    return stmt_count;
+    stmt_hc_details.max_lineno = std::max(stmt_hc_details.max_lineno, start_line);
+
+    auto& line_hits = stmt_hc_details.line_hits;
+    while (line_hits.size() <= end_line)
+        line_hits.resize(2 * line_hits.size());
+
+    std::for_each_n(
+        std::next(line_hits.begin(), start_line), end_line - start_line + 1, [increase_hit_count](auto& line_hit) {
+            line_hit.contains_statement = true;
+
+            if (increase_hit_count)
+                line_hit.count++;
+        });
 }
 } // namespace
 
 void hit_count_analyzer::emplace_macro_header_definitions(const context::id_index& id)
 {
-    if (auto map_it = m_macro_header_definitions.find(id.to_string()); map_it != m_macro_header_definitions.end())
+    if (auto map_it = m_macro_header_definitions.find(id); map_it != m_macro_header_definitions.end())
     {
         auto& mac_header_details = map_it->second;
-        emplace_hit_count(m_hit_counts, mac_header_details.rl, std::move(mac_header_details.init_r), true)++;
-        emplace_hit_count(m_hit_counts, mac_header_details.rl, std::move(mac_header_details.name_r), true)++;
+        emplace_hit_count(m_hit_counts, mac_header_details.rl, std::move(mac_header_details.init_line_r), true, true);
+        emplace_hit_count(m_hit_counts, mac_header_details.rl, std::move(mac_header_details.name_line_r), true, true);
 
         m_macro_header_definitions.erase(map_it);
     }
@@ -98,18 +119,13 @@ hit_count_analyzer::statement_type hit_count_analyzer::get_stmt_type(const conte
         return true;
     };
 
-    static constexpr auto range_adj = [](range r) {
-        r.end.column = 72;
-        return r;
-    };
-
     switch (m_stmt_type)
     {
         case hlasm_plugin::parser_library::processing::hit_count_analyzer::statement_type::REGULAR:
             if (macro_init_incrementer(res_stmt))
             {
                 m_stmt_type = statement_type::MACRO_INIT;
-                m_last_macro_init_r = res_stmt->stmt_range_ref();
+                m_last_macro_init_line_ranges = stmt_lines_compacter(res_stmt->stmt_range_ref());
             }
             break;
 
@@ -118,10 +134,10 @@ hit_count_analyzer::statement_type hit_count_analyzer::get_stmt_type(const conte
 
             assert(m_ctx.processing_stack_top().resource_loc);
 
-            m_macro_header_definitions.try_emplace(res_stmt->opcode_ref().value.to_string(),
+            m_macro_header_definitions.try_emplace(res_stmt->opcode_ref().value,
                 macro_header_definition_details { *m_ctx.processing_stack_top().resource_loc,
-                    range_adj(std::move(m_last_macro_init_r)),
-                    range_adj(res_stmt->stmt_range_ref()) });
+                    m_last_macro_init_line_ranges,
+                    stmt_lines_compacter(res_stmt->stmt_range_ref()) });
             break;
         }
 
@@ -166,8 +182,8 @@ void hit_count_analyzer::analyze(
             return;
     }
 
-    auto stmt_range = get_range(&statement, prov_kind, proc_kind, m_ctx);
-    if (!stmt_range)
+    auto stmt_lines_range = get_stmt_lines_range(&statement, prov_kind, proc_kind, m_ctx);
+    if (!stmt_lines_range)
         return;
 
     if (auto macro_invo = m_ctx.this_macro(); macro_invo)
@@ -175,10 +191,10 @@ void hit_count_analyzer::analyze(
 
     assert(m_ctx.processing_stack_top().resource_loc);
 
-    auto& count = emplace_hit_count(
-        m_hit_counts, *m_ctx.processing_stack_top().resource_loc, std::move(*stmt_range), can_be_external_macro);
-
-    if (proc_kind == processing::processing_kind::ORDINARY)
-        count++;
+    emplace_hit_count(m_hit_counts,
+        *m_ctx.processing_stack_top().resource_loc,
+        std::move(*stmt_lines_range),
+        can_be_external_macro,
+        proc_kind == processing::processing_kind::ORDINARY);
 }
 } // namespace hlasm_plugin::parser_library::processing

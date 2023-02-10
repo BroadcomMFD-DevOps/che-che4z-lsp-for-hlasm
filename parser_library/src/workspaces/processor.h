@@ -38,10 +38,9 @@ class lsp_context;
 }
 
 namespace processing {
-struct stmt_hit_count_details;
-using hit_count_map = std::unordered_map<utils::resource::resource_location,
-    stmt_hit_count_details,
-    utils::resource::resource_location_hasher>;
+struct hit_count_details;
+using hit_count_map = std::
+    unordered_map<utils::resource::resource_location, hit_count_details, utils::resource::resource_location_hasher>;
 } // namespace processing
 
 } // namespace hlasm_plugin::parser_library
