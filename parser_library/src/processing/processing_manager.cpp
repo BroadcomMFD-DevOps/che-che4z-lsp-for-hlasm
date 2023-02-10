@@ -308,23 +308,18 @@ void processing_manager::finish_opencode()
 std::optional<bool> processing_manager::request_external_processing(
     context::id_index name, processing::processing_kind proc_kind, std::function<void(bool)> callback)
 {
-    if (auto it = m_external_requests.find(name.to_string_view()); it != m_external_requests.end())
+    const auto key = std::pair(name.to_string(), proc_kind);
+    if (auto it = m_external_requests.find(key); it != m_external_requests.end())
         return it->second;
 
-    if (callback)
-        lib_provider_.parse_library(name.to_string_view(),
-            ctx_,
-            { proc_kind, name },
-            [this, name, callback = std::move(callback)](bool result) {
-                m_external_requests.insert_or_assign(name.to_string(), result);
+    lib_provider_.parse_library(
+        name.to_string_view(), ctx_, { proc_kind, name }, [this, key, callback = std::move(callback)](bool result) {
+            m_external_requests.insert_or_assign(key, result);
+            if (callback)
                 callback(result);
-            });
-    else
-        lib_provider_.parse_library(name.to_string_view(), ctx_, { proc_kind, name }, [this, name](bool result) {
-            m_external_requests.insert_or_assign(name.to_string(), result);
         });
 
-    if (auto it = m_external_requests.find(name.to_string_view()); it != m_external_requests.end())
+    if (auto it = m_external_requests.find(key); it != m_external_requests.end())
         return it->second;
     else
         return std::nullopt;
