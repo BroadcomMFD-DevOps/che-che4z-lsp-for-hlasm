@@ -34,7 +34,7 @@ class file_manager;
 // Implementation of the processor_file interface. Uses analyzer to parse the file
 // Then stores it until the next parsing so it is possible to retrieve parsing
 // information from it.
-class processor_file_impl final : public virtual processor_file, public diagnosable_impl
+class processor_file_impl final : public processor_file, public diagnosable_impl
 {
 public:
     processor_file_impl(std::shared_ptr<file> file, file_manager& file_mngr, std::atomic<bool>* cancel = nullptr);
@@ -54,7 +54,7 @@ public:
     const std::set<utils::resource::resource_location>& files_to_close() override;
     const performance_metrics& get_metrics() override;
 
-    void erase_cache_of_opencode(const utils::resource::resource_location& opencode_file_location) override;
+    void erase_unused_cache_entries() override;
 
     bool has_lsp_info() const override;
 
@@ -74,10 +74,11 @@ public:
 private:
     file_manager& m_file_mngr;
     std::shared_ptr<file> m_file;
-    std::unique_ptr<analyzer> m_last_analyzer = nullptr;
+    std::unique_ptr<analyzer> m_last_analyzer;
     std::shared_ptr<context::id_storage> m_last_opencode_id_storage;
-    bool m_last_analyzer_opencode = false;
     bool m_last_analyzer_with_lsp = false;
+
+    semantics::lines_info m_last_hl_info;
 
     std::atomic<bool>* m_cancel;
 

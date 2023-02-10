@@ -39,7 +39,7 @@ parse_result processor_file_impl::parse(parse_lib_provider& lib_provider,
     std::vector<preprocessor_options> pp,
     virtual_file_monitor* vfm)
 {
-    if (!m_last_analyzer_opencode)
+    if (!m_last_opencode_id_storage)
         m_last_opencode_id_storage = std::make_shared<context::id_storage>();
 
     const bool collect_hl = should_collect_hl();
@@ -71,8 +71,8 @@ parse_result processor_file_impl::parse(parse_lib_provider& lib_provider,
     collect_diags_from_child(*new_analyzer);
 
     m_last_analyzer = std::move(new_analyzer);
-    m_last_analyzer_opencode = true;
     m_last_analyzer_with_lsp = collect_hl;
+    m_last_hl_info = m_last_analyzer->source_processor().semantic_tokens();
 
     m_dependencies.clear();
     for (auto& file : m_last_analyzer->hlasm_ctx().get_visited_files())
@@ -102,7 +102,7 @@ parse_result processor_file_impl::parse_macro(
         return true;
 
     const bool collect_hl = should_collect_hl(ctx.hlasm_ctx.get());
-    auto a = std::make_unique<analyzer>(m_file->get_text(),
+    analyzer a(m_file->get_text(),
         analyzer_options {
             m_file->get_location(),
             &lib_provider,
@@ -111,21 +111,21 @@ parse_result processor_file_impl::parse_macro(
             collect_hl ? collect_highlighting_info::yes : collect_highlighting_info::no,
         });
 
-    processing::hit_count_analyzer hc_analyzer(a->hlasm_ctx());
-    a->register_stmt_analyzer(&hc_analyzer);
+    processing::hit_count_analyzer hc_analyzer(a.hlasm_ctx());
+    a.register_stmt_analyzer(&hc_analyzer);
 
-    a->analyze(m_cancel);
+    a.analyze(m_cancel);
 
     if (m_cancel && *m_cancel)
         return false;
 
     diags().clear();
-    collect_diags_from_child(*a);
+    collect_diags_from_child(a);
 
-    m_macro_cache.save_macro(cache_key, *a);
-    m_last_analyzer = std::move(a);
-    m_last_analyzer_opencode = false;
+    m_macro_cache.save_macro(cache_key, a);
     m_last_analyzer_with_lsp = collect_hl;
+    if (collect_hl)
+        m_last_hl_info = a.source_processor().semantic_tokens();
 
     m_hc_map = std::move(hc_analyzer.take_hit_counts());
 
@@ -134,14 +134,7 @@ parse_result processor_file_impl::parse_macro(
 
 const std::set<utils::resource::resource_location>& processor_file_impl::dependencies() { return m_dependencies; }
 
-const semantics::lines_info& processor_file_impl::get_hl_info()
-{
-    if (m_last_analyzer)
-        return m_last_analyzer->source_processor().semantic_tokens();
-
-    const static semantics::lines_info empty_lines;
-    return empty_lines;
-}
+const semantics::lines_info& processor_file_impl::get_hl_info() { return m_last_hl_info; }
 
 const lsp::lsp_context* processor_file_impl::get_lsp_context()
 {
@@ -161,10 +154,7 @@ const performance_metrics& processor_file_impl::get_metrics()
     return metrics;
 }
 
-void processor_file_impl::erase_cache_of_opencode(const utils::resource::resource_location& opencode_file_location)
-{
-    m_macro_cache.erase_cache_of_opencode(opencode_file_location);
-}
+void processor_file_impl::erase_unused_cache_entries() { m_macro_cache.erase_unused(); }
 
 bool processor_file_impl::should_collect_hl(context::hlasm_context* ctx) const
 {
@@ -202,6 +192,7 @@ bool processor_file_impl::current_version() const
 void processor_file_impl::update_source()
 {
     m_last_analyzer.reset();
+    m_last_hl_info.clear();
     used_files.clear();
     m_file = m_file_mngr.add_file(get_location());
     m_macro_cache = macro_cache(m_file_mngr, m_file);
