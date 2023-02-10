@@ -397,9 +397,10 @@ void macrodef_processor::process_COPY(const resolved_statement& statement)
 
     if (auto extract = asm_processor::extract_copy_id(statement, nullptr); extract.has_value())
     {
-        if (auto member = asm_processor::process_copy(*extract, ctx, provider_, this); !member.empty())
+        bool result = asm_processor::process_copy(extract->name, ctx, provider_);
+        if (asm_processor::common_copy_postprocess(result, *extract, ctx, this))
         {
-            ctx.hlasm_ctx->enter_copy_member(member);
+            ctx.hlasm_ctx->enter_copy_member(extract->name);
             result_.used_copy_members.insert(ctx.hlasm_ctx->current_copy_stack().back().copy_member_definition);
         }
     }

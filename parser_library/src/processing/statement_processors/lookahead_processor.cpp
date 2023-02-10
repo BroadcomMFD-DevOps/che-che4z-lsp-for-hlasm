@@ -119,8 +119,9 @@ void lookahead_processor::process_COPY(const resolved_statement& statement)
 {
     if (auto extract = asm_processor::extract_copy_id(statement, nullptr); extract.has_value())
     {
-        if (auto member = asm_processor::process_copy(*extract, ctx, lib_provider_, nullptr); !member.empty())
-            ctx.hlasm_ctx->enter_copy_member(member);
+        bool result = asm_processor::process_copy(extract->name, ctx, lib_provider_);
+        if (asm_processor::common_copy_postprocess(result, *extract, ctx, nullptr))
+            ctx.hlasm_ctx->enter_copy_member(extract->name);
     }
 }
 

@@ -70,11 +70,9 @@ public:
     };
     static std::optional<extract_copy_id_result> extract_copy_id(
         const semantics::complete_statement& stmt, diagnosable_ctx* diagnoser);
-    static context::id_index process_copy(const extract_copy_id_result& data,
-        analyzing_context ctx,
-        workspaces::parse_lib_provider& lib_provider,
-        diagnosable_ctx* diagnoser);
-    static context::id_index common_copy_postprocess(
+    static bool process_copy(
+        context::id_index name, analyzing_context ctx, workspaces::parse_lib_provider& lib_provider);
+    static bool common_copy_postprocess(
         bool processed, const extract_copy_id_result& data, analyzing_context ctx, diagnosable_ctx* diagnoser);
 
 private:

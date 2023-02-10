@@ -457,8 +457,9 @@ void asm_processor::process_COPY(rebuilt_statement stmt)
     {
         if (auto extract = extract_copy_id(stmt, this); extract.has_value())
         {
-            if (auto member = process_copy(extract.value(), ctx, lib_provider, this); !member.empty())
-                ctx.hlasm_ctx->enter_copy_member(member);
+            bool result = process_copy(extract->name, ctx, lib_provider);
+            if (common_copy_postprocess(result, *extract, ctx, this))
+                ctx.hlasm_ctx->enter_copy_member(extract->name);
         }
     }
     else
@@ -769,28 +770,22 @@ std::optional<asm_processor::extract_copy_id_result> asm_processor::extract_copy
     };
 }
 
-context::id_index asm_processor::process_copy(const extract_copy_id_result& data,
-    analyzing_context ctx,
-    workspaces::parse_lib_provider& lib_provider,
-    diagnosable_ctx* diagnoser)
+bool asm_processor::process_copy(
+    context::id_index name, analyzing_context ctx, workspaces::parse_lib_provider& lib_provider)
 {
-    const auto& [copy_member_id, operand_range, stmt_range] = data;
-
-    bool processed = ctx.hlasm_ctx->copy_members().contains(copy_member_id)
+    return ctx.hlasm_ctx->copy_members().contains(name)
         || lib_provider.parse_library(
-            copy_member_id.to_string(), ctx, workspaces::library_data { processing_kind::COPY, copy_member_id });
-
-    return common_copy_postprocess(processed, data, std::move(ctx), diagnoser);
+            name.to_string_view(), ctx, workspaces::library_data { processing_kind::COPY, name });
 }
 
-context::id_index asm_processor::common_copy_postprocess(
+bool asm_processor::common_copy_postprocess(
     bool processed, const extract_copy_id_result& data, analyzing_context ctx, diagnosable_ctx* diagnoser)
 {
     if (!processed)
     {
         if (diagnoser)
             diagnoser->add_diagnostic(diagnostic_op::error_E058(data.operand));
-        return context::id_index();
+        return false;
     }
 
     auto whole_copy_stack = ctx.hlasm_ctx->whole_copy_stack();
@@ -801,10 +796,10 @@ context::id_index asm_processor::common_copy_postprocess(
     {
         if (diagnoser)
             diagnoser->add_diagnostic(diagnostic_op::error_E062(data.statement));
-        return context::id_index();
+        return false;
     }
 
-    return data.name;
+    return true;
 }
 
 asm_processor::process_table_t asm_processor::create_table()
