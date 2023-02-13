@@ -748,10 +748,9 @@ void hlasm_context::add_mnemonic(id_index mnemo, id_index op_code)
 
 void hlasm_context::remove_mnemonic(id_index mnemo)
 {
-    {
-        [[maybe_unused]] const opcode_t* it;
-        assert((it = find_opcode_mnemo(mnemo, opcode_generation::current)) && *it);
-    }
+    [[maybe_unused]] const opcode_t* test_opcode;
+    assert((test_opcode = find_opcode_mnemo(mnemo, opcode_generation::current)) && *test_opcode);
+
     if (auto it = external_macros_.find(mnemo); it == external_macros_.end())
         opcode_mnemo_.try_emplace({ mnemo, ++m_current_opcode_generation }, opcode_t());
     else // restore external macro when available

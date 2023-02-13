@@ -114,9 +114,7 @@ bool processing_manager::step()
         return true;
     }
 
-    auto stmt = prov.get_next(proc);
-
-    if (stmt)
+    if (auto stmt = prov.get_next(proc))
     {
         update_metrics(proc.kind, prov.kind, hlasm_ctx_.metrics);
         run_anayzers(*stmt, prov.kind, proc.kind, false);

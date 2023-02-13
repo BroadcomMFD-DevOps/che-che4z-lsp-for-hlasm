@@ -231,3 +231,35 @@ MAC OPSYN
 
     EXPECT_TRUE(matches_message_text(a.diags(), { "AAA", "BBB", "AAA" }));
 }
+
+TEST_F(async_macro_parsing_fixture, unknown_instruction)
+{
+    m_files.try_emplace("MAC", R"( MACRO
+    MAC  &P
+    &P   'AAA'
+    MEND
+)");
+    m_files.try_emplace("PRT1", R"( MACRO
+    PRT1
+    MNOTE 'AAA'
+    MEND
+)");
+    m_files.try_emplace("PRT2", R"( MACRO
+    PRT2
+    MNOTE 'AAA'
+    MEND
+)");
+    m_files.try_emplace("COPYBOOK", R"(
+    &P 'AAA'
+)");
+    analyzer a(R"(
+    MAC  PRT1
+&P  SETC 'PRT2'
+    COPY COPYBOOK
+)",
+        analyzer_options(this));
+    analyze(a);
+    a.collect_diags();
+
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "MNOTE", "MNOTE" }));
+}
