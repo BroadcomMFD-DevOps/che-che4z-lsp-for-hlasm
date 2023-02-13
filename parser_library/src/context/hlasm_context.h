@@ -51,7 +51,7 @@ namespace hlasm_plugin::parser_library::context {
 // code
 class hlasm_context
 {
-    using macro_storage = std::map<std::pair<id_index, opcode_generation>, macro_def_ptr>;
+    using macro_storage = std::map<std::pair<id_index, opcode_generation>, std::pair<macro_def_ptr, bool>>;
     using copy_member_storage = std::unordered_map<id_index, copy_member_ptr>;
     using instruction_storage = std::unordered_map<id_index, opcode_t::opcode_variant>;
     using opcode_map = std::map<std::pair<id_index, opcode_generation>, opcode_t>;
@@ -237,8 +237,9 @@ public:
         copy_nest_storage copy_nests,
         label_storage labels,
         location definition_location,
-        std::unordered_set<copy_member_ptr> used_copy_members);
-    void add_macro(macro_def_ptr macro);
+        std::unordered_set<copy_member_ptr> used_copy_members,
+        bool external);
+    void add_macro(macro_def_ptr macro, bool external);
     // enters a macro with actual params
     macro_invo_ptr enter_macro(id_index name, macro_data_ptr label_param_data, std::vector<macro_arg> params);
     // leaves current macro
@@ -344,6 +345,8 @@ public:
     void set_title_name(std::string name) { m_title_name = std::move(name); }
 
     void update_mnote_max(unsigned mnote_level);
+
+    void restore_external_macro(id_index name);
 };
 
 bool test_symbol_for_read(const var_sym_ptr& var,

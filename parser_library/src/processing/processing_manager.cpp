@@ -234,7 +234,8 @@ void processing_manager::finish_macro_definition(macrodef_processing_result resu
             std::move(result.nests),
             std::move(result.sequence_symbols),
             std::move(result.definition_location),
-            std::move(result.used_copy_members));
+            std::move(result.used_copy_members),
+            result.external);
 
     lsp_analyzer_.macrodef_finished(mac, std::move(result));
 }
@@ -306,11 +307,16 @@ void processing_manager::finish_opencode()
 }
 
 std::optional<bool> processing_manager::request_external_processing(
-    context::id_index name, processing::processing_kind proc_kind, std::function<void(bool)> callback)
+    context::id_index name, processing_kind proc_kind, std::function<void(bool)> callback)
 {
     const auto key = std::pair(name.to_string(), proc_kind);
     if (auto it = m_external_requests.find(key); it != m_external_requests.end())
+    {
+        if (proc_kind == processing_kind::MACRO)
+            ctx_.hlasm_ctx->restore_external_macro(name);
+
         return it->second;
+    }
 
     lib_provider_.parse_library(
         name.to_string_view(), ctx_, { proc_kind, name }, [this, key, callback = std::move(callback)](bool result) {
