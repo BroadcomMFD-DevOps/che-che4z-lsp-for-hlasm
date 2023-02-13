@@ -53,30 +53,26 @@ std::optional<processing_status> ordinary_processor::get_processing_status(
         ? resolve_instruction(std::get<semantics::concat_chain>(instruction.value), instruction.field_range)
         : std::get<context::id_index>(instruction.value);
 
-    auto status = get_instruction_processing_status(id, hlasm_ctx);
+    if (auto status = get_instruction_processing_status(id, hlasm_ctx); status.has_value())
+        return *status;
 
-    if (!status)
+    auto found = branch_provider_.request_external_processing(id, processing_kind::MACRO, {});
+    if (!found.has_value())
+        return std::nullopt;
+
+    processing_form f;
+    context::instruction_type t;
+    if (found.value())
     {
-        auto found = branch_provider_.request_external_processing(id, processing_kind::MACRO, {});
-        if (!found.has_value())
-            return std::nullopt;
-
-        processing_form f;
-        context::instruction_type t;
-        if (found.value())
-        {
-            f = processing_form::MAC;
-            t = hlasm_ctx.find_macro(id) ? context::instruction_type::MAC : context::instruction_type::UNDEF;
-        }
-        else
-        {
-            f = processing_form::UNKNOWN;
-            t = context::instruction_type::UNDEF;
-        }
-        return std::make_pair(processing_format(processing_kind::ORDINARY, f), op_code(id, t));
+        f = processing_form::MAC;
+        t = hlasm_ctx.find_macro(id) ? context::instruction_type::MAC : context::instruction_type::UNDEF;
     }
     else
-        return *status;
+    {
+        f = processing_form::UNKNOWN;
+        t = context::instruction_type::UNDEF;
+    }
+    return std::make_pair(processing_format(processing_kind::ORDINARY, f), op_code(id, t));
 }
 
 void ordinary_processor::process_statement(context::shared_stmt_ptr s)
