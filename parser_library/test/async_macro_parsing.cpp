@@ -171,3 +171,37 @@ TEST_F(async_macro_parsing_fixture, copy_from_ainsert)
 
     EXPECT_TRUE(matches_message_codes(a.diags(), { "MNOTE" }));
 }
+
+TEST_F(async_macro_parsing_fixture, self_calling_macro)
+{
+    m_files.try_emplace("MAC", R"( MACRO
+    MAC  &P
+    AIF  (&P EQ 1).E
+    MAC  1
+.E  MEND
+)");
+    analyzer a(" MAC 0", analyzer_options(this));
+    analyze(a);
+    a.collect_diags();
+
+    EXPECT_TRUE(a.diags().empty());
+}
+
+TEST_F(async_macro_parsing_fixture, delete_macro)
+{
+    m_files.try_emplace("MAC", R"( MACRO
+    MAC
+    MNOTE 'AAA'
+    MEND
+)");
+    analyzer a(R"(
+    MAC
+MAC OPSYN
+    MAC
+)",
+        analyzer_options(this));
+    analyze(a);
+    a.collect_diags();
+
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "MNOTE", "MNOTE" }));
+}
