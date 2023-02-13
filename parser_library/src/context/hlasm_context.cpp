@@ -850,7 +850,7 @@ void hlasm_context::add_macro(macro_def_ptr macro, bool external)
     const auto& m = macros_.try_emplace({ macro->id, next_gen }, std::move(macro)).first->second;
     opcode_mnemo_.try_emplace({ m->id, next_gen }, opcode_t { m->id, m });
     if (external)
-        external_macros_.try_emplace(macro->id, m);
+        external_macros_.try_emplace(m->id, m);
 };
 
 const hlasm_context::macro_storage& hlasm_context::macros() const { return macros_; }
