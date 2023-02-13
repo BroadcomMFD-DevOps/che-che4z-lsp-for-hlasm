@@ -87,7 +87,7 @@ class debugger::impl final : public processing::statement_analyzer
     std::condition_variable con_var;
     std::atomic<bool> continue_ = false;
 
-    bool debug_ended_ = false;
+    std::atomic<bool> debug_ended_ = false;
 
     // Specifies whether the debugger stops on the next statement call.
     std::atomic<bool> stop_on_next_stmt_ = false;
@@ -98,7 +98,7 @@ class debugger::impl final : public processing::statement_analyzer
     range next_stmt_range_;
 
     // True, if disconnect request was received
-    bool disconnected_ = false;
+    std::atomic<bool> disconnected_ = false;
 
     // Cancellation token for parsing
     std::atomic<bool> cancel_ = false;
