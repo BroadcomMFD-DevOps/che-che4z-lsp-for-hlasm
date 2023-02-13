@@ -205,3 +205,29 @@ MAC OPSYN
 
     EXPECT_TRUE(matches_message_codes(a.diags(), { "MNOTE", "MNOTE" }));
 }
+
+TEST_F(async_macro_parsing_fixture, delete_inline_macro)
+{
+    m_files.try_emplace("MAC", R"( MACRO
+    MAC
+    MNOTE 'AAA'
+    MEND
+)");
+    analyzer a(R"(
+    MAC
+
+    MACRO
+    MAC
+    MNOTE 'BBB'
+    MEND
+
+    MAC
+MAC OPSYN
+    MAC
+)",
+        analyzer_options(this));
+    analyze(a);
+    a.collect_diags();
+
+    EXPECT_TRUE(matches_message_text(a.diags(), { "AAA", "BBB", "AAA" }));
+}
