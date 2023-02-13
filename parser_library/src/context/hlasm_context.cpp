@@ -748,9 +748,14 @@ void hlasm_context::add_mnemonic(id_index mnemo, id_index op_code)
 
 void hlasm_context::remove_mnemonic(id_index mnemo)
 {
-    [[maybe_unused]] const opcode_t* it;
-    assert((it = find_opcode_mnemo(mnemo, opcode_generation::current)) && *it);
-    opcode_mnemo_.try_emplace({ mnemo, ++m_current_opcode_generation }, opcode_t());
+    {
+        [[maybe_unused]] const opcode_t* it;
+        assert((it = find_opcode_mnemo(mnemo, opcode_generation::current)) && *it);
+    }
+    if (auto it = external_macros_.find(mnemo); it == external_macros_.end())
+        opcode_mnemo_.try_emplace({ mnemo, ++m_current_opcode_generation }, opcode_t());
+    else // restore external macro when available
+        opcode_mnemo_.try_emplace({ mnemo, ++m_current_opcode_generation }, opcode_t { it->first, it->second });
 }
 
 opcode_t hlasm_context::get_operation_code(id_index symbol, opcode_generation gen) const
@@ -842,8 +847,10 @@ macro_def_ptr hlasm_context::add_macro(id_index name,
 void hlasm_context::add_macro(macro_def_ptr macro, bool external)
 {
     auto next_gen = ++m_current_opcode_generation;
-    const auto& m = macros_.try_emplace({ macro->id, next_gen }, std::move(macro), external).first->second;
-    opcode_mnemo_.try_emplace({ m.first->id, next_gen }, opcode_t { m.first->id, m.first });
+    const auto& m = macros_.try_emplace({ macro->id, next_gen }, std::move(macro)).first->second;
+    opcode_mnemo_.try_emplace({ m->id, next_gen }, opcode_t { m->id, m });
+    if (external)
+        external_macros_.try_emplace(macro->id, m);
 };
 
 const hlasm_context::macro_storage& hlasm_context::macros() const { return macros_; }
@@ -854,7 +861,7 @@ const macro_def_ptr* hlasm_context::find_macro(id_index name, opcode_generation 
         it == macros_.begin() || (it = std::prev(it))->first.first != name || it->first.second > gen)
         return nullptr;
     else
-        return &it->second.first;
+        return &it->second;
 }
 
 const hlasm_context::opcode_map& hlasm_context::opcode_mnemo_storage() const { return opcode_mnemo_; }
@@ -986,24 +993,6 @@ void hlasm_context::update_mnote_max(unsigned mnote_level)
 {
     mnote_max = std::max(mnote_max, mnote_level);
     scope_stack_.back().mnote_max_in_scope = std::max(scope_stack_.back().mnote_max_in_scope, mnote_level);
-}
-
-
-void hlasm_context::restore_external_macro(id_index name)
-{
-    // TODO: maybe this should be done automatically when deleting an opcode
-    for (auto it = macros_.upper_bound({ name, opcode_generation::current }); it != macros_.begin();)
-    {
-        --it;
-        if (it->first.first != name)
-            break;
-        if (const auto& [mac, external] = it->second; external)
-        {
-            opcode_mnemo_.try_emplace({ name, ++m_current_opcode_generation }, opcode_t { name, mac });
-            return;
-        }
-    }
-    assert(false);
 }
 
 void hlasm_context::using_add(id_index label,

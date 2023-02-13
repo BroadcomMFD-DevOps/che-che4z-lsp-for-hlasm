@@ -51,7 +51,7 @@ namespace hlasm_plugin::parser_library::context {
 // code
 class hlasm_context
 {
-    using macro_storage = std::map<std::pair<id_index, opcode_generation>, std::pair<macro_def_ptr, bool>>;
+    using macro_storage = std::map<std::pair<id_index, opcode_generation>, macro_def_ptr>;
     using copy_member_storage = std::unordered_map<id_index, copy_member_ptr>;
     using instruction_storage = std::unordered_map<id_index, opcode_t::opcode_variant>;
     using opcode_map = std::map<std::pair<id_index, opcode_generation>, opcode_t>;
@@ -62,6 +62,7 @@ class hlasm_context
 
     // storage of defined macros
     macro_storage macros_;
+    std::unordered_map<id_index, macro_def_ptr> external_macros_;
     // storage of copy members
     copy_member_storage copy_members_;
     // map of OPSYN mnemonics
@@ -345,8 +346,6 @@ public:
     void set_title_name(std::string name) { m_title_name = std::move(name); }
 
     void update_mnote_max(unsigned mnote_level);
-
-    void restore_external_macro(id_index name);
 };
 
 bool test_symbol_for_read(const var_sym_ptr& var,

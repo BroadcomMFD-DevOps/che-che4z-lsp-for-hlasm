@@ -311,12 +311,7 @@ std::optional<bool> processing_manager::request_external_processing(
 {
     const auto key = std::pair(name.to_string(), proc_kind);
     if (auto it = m_external_requests.find(key); it != m_external_requests.end())
-    {
-        if (proc_kind == processing_kind::MACRO)
-            ctx_.hlasm_ctx->restore_external_macro(name);
-
         return it->second;
-    }
 
     lib_provider_.parse_library(
         name.to_string_view(), ctx_, { proc_kind, name }, [this, key, callback = std::move(callback)](bool result) {
