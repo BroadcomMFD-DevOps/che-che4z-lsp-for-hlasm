@@ -236,7 +236,7 @@ TEST_F(async_macro_parsing_fixture, unknown_instruction)
 {
     m_files.try_emplace("MAC", R"( MACRO
     MAC  &P
-    &P   'AAA'
+    &P
     MEND
 )");
     m_files.try_emplace("PRT1", R"( MACRO
@@ -250,7 +250,7 @@ TEST_F(async_macro_parsing_fixture, unknown_instruction)
     MEND
 )");
     m_files.try_emplace("COPYBOOK", R"(
-    &P 'AAA'
+    &P
 )");
     analyzer a(R"(
     MAC  PRT1
