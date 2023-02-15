@@ -31,7 +31,7 @@ void session::thread_routine()
         {
             json_channel_adapter& channel;
             void reply(const nlohmann::json& result) override { channel.write(result); }
-            smp_t(json_channel_adapter& channel)
+            explicit smp_t(json_channel_adapter& channel)
                 : channel(channel)
             {}
         } smp(channel);
@@ -43,11 +43,9 @@ void session::thread_routine()
 
         while (!server.is_exit_notification_received())
         {
-            if (queue.will_read_block())
-            {
-                if (server.idle_handler())
-                    continue;
-            }
+            if (queue.will_read_block() && server.idle_handler())
+                continue;
+
             auto msg = channel.read();
             if (!msg.has_value())
                 break;

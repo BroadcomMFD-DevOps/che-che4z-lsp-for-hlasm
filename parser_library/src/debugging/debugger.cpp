@@ -179,7 +179,7 @@ public:
         if (!continue_)
             return false;
 
-        if (auto& a = analyzers.back(); !a.done())
+        if (const auto& a = analyzers.back(); !a.done())
         {
             a();
             return true;

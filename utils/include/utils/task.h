@@ -27,14 +27,14 @@ struct task
     class awaiter;
     struct promise_type
     {
-        task get_return_object() { return { std::coroutine_handle<promise_type>::from_promise(*this) }; }
-        std::suspend_always initial_suspend() { return {}; }
+        task get_return_object() { return task(std::coroutine_handle<promise_type>::from_promise(*this)); }
+        std::suspend_always initial_suspend() const { return {}; }
         std::suspend_always final_suspend() noexcept
         {
             detach();
             return {};
         }
-        void return_void() {}
+        void return_void() const {}
         void unhandled_exception()
         {
             if (!active || pending_exception)
@@ -83,18 +83,18 @@ struct task
             to_resume = h;
             return true;
         }
-        void await_resume()
+        void await_resume() const
         {
             if (to_resume.promise().pending_exception)
                 std::rethrow_exception(std::exchange(to_resume.promise().pending_exception, {}));
         }
 
-        awaiter(std::coroutine_handle<promise_type> self)
+        explicit awaiter(std::coroutine_handle<promise_type> self)
             : self(self.promise())
         {}
     };
 
-    task(std::coroutine_handle<promise_type> handle)
+    explicit task(std::coroutine_handle<promise_type> handle)
         : m_handle(handle)
     {}
     task(task&& t) noexcept
@@ -129,11 +129,11 @@ struct task
         m_handle.promise().next_step();
     }
 
-    auto operator co_await() { return awaiter { m_handle }; }
+    auto operator co_await() && { return awaiter { m_handle }; }
 
     static std::suspend_always suspend() { return {}; }
 
-    std::exception_ptr pending_exception(bool clear = false)
+    std::exception_ptr pending_exception(bool clear = false) const
     {
         assert(m_handle);
         auto& excp = m_handle.promise().next_step.promise().pending_exception;
