@@ -17,6 +17,7 @@
 
 #include <cassert>
 #include <coroutine>
+#include <exception>
 #include <utility>
 
 namespace hlasm_plugin::utils {
@@ -34,26 +35,30 @@ struct task
             return {};
         }
         void return_void() {}
-        void unhandled_exception() { throw; }
+        void unhandled_exception()
+        {
+            if (!active || pending_exception)
+                throw;
+            pending_exception = std::current_exception();
+        }
 
         std::coroutine_handle<promise_type> next_step = std::coroutine_handle<promise_type>::from_promise(*this);
         awaiter* active = nullptr;
         std::coroutine_handle<promise_type> top_waiter = std::coroutine_handle<promise_type>::from_promise(*this);
+        std::exception_ptr pending_exception;
 
-        std::coroutine_handle<promise_type> attach(std::coroutine_handle<promise_type> current_top_waiter, awaiter* a)
+        void attach(std::coroutine_handle<promise_type> current_top_waiter, awaiter* a)
         {
-            auto to_resume = std::exchange(
-                current_top_waiter.promise().next_step, std::coroutine_handle<promise_type>::from_promise(*this));
+            current_top_waiter.promise().next_step = std::coroutine_handle<promise_type>::from_promise(*this);
             active = a;
             top_waiter = current_top_waiter;
-
-            return to_resume;
         }
 
         void detach() noexcept
         {
             if (active)
             {
+                active->to_resume.promise().pending_exception = std::exchange(pending_exception, {});
                 top_waiter.promise().next_step = active->to_resume;
 
                 next_step = std::coroutine_handle<promise_type>::from_promise(*this);
@@ -74,10 +79,15 @@ struct task
         constexpr bool await_ready() const noexcept { return false; }
         bool await_suspend(std::coroutine_handle<promise_type> h) noexcept
         {
-            to_resume = self.attach(h.promise().top_waiter, this);
+            self.attach(h.promise().top_waiter, this);
+            to_resume = h;
             return true;
         }
-        constexpr void await_resume() const noexcept {}
+        void await_resume()
+        {
+            if (to_resume.promise().pending_exception)
+                std::rethrow_exception(std::exchange(to_resume.promise().pending_exception, {}));
+        }
 
         awaiter(std::coroutine_handle<promise_type> self)
             : self(self.promise())
@@ -101,6 +111,7 @@ struct task
     {
         if (m_handle)
         {
+            // pending exception will be dropped - should we do something about it?
             m_handle.promise().detach();
             m_handle.destroy();
         }
@@ -121,6 +132,13 @@ struct task
     auto operator co_await() { return awaiter { m_handle }; }
 
     static std::suspend_always suspend() { return {}; }
+
+    std::exception_ptr pending_exception(bool clear = false)
+    {
+        assert(m_handle);
+        auto& excp = m_handle.promise().next_step.promise().pending_exception;
+        return clear ? std::exchange(excp, {}) : excp;
+    }
 
 private:
     std::coroutine_handle<promise_type> m_handle;
