@@ -18,6 +18,7 @@
 #include "lsp/lsp_context.h"
 #include "processing/opencode_provider.h"
 #include "processing/preprocessor.h"
+#include "utils/task.h"
 
 using namespace hlasm_plugin::parser_library;
 using namespace hlasm_plugin::parser_library::lexing;
@@ -147,6 +148,20 @@ void analyzer::analyze()
 }
 
 bool analyzer::analyze_step() { return mngr_.step() || (src_proc_.finish(), false); }
+
+
+hlasm_plugin::utils::task analyzer::co_analyze()
+{
+    auto steps = mngr_.co_step();
+
+    while (!steps.done())
+    {
+        co_await std::suspend_always();
+        steps();
+    }
+
+    src_proc_.finish();
+}
 
 void analyzer::collect_diags() const
 {
