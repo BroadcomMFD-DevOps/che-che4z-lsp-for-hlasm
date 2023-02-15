@@ -12,8 +12,8 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
-#ifndef HLASMPLUGIN_UTILS_CONCAT_H
-#define HLASMPLUGIN_UTILS_CONCAT_H
+#ifndef HLASMPLUGIN_UTILS_TASK_H
+#define HLASMPLUGIN_UTILS_TASK_H
 
 #include <cassert>
 #include <coroutine>
