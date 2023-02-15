@@ -20,7 +20,6 @@
 #include <deque>
 #include <mutex>
 #include <optional>
-#include <variant>
 
 namespace hlasm_plugin::language_server {
 
