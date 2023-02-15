@@ -125,12 +125,10 @@ bool processing_manager::step()
     return true;
 }
 
-hlasm_plugin::utils::task processing_manager::co_step()
+utils::task processing_manager::co_step()
 {
     while (!procs_.empty())
     {
-        co_await std::suspend_always();
-
         statement_processor& proc = *procs_.back();
         statement_provider& prov = find_provider();
 
@@ -145,10 +143,12 @@ hlasm_plugin::utils::task processing_manager::co_step()
             update_metrics(proc.kind, prov.kind, hlasm_ctx_.metrics);
             for (auto& a : stms_analyzers_)
                 if (a->analyze(*stmt, prov.kind, proc.kind, false))
-                    co_await std::suspend_always();
+                    co_await utils::task::suspend();
 
             proc.process_statement(std::move(stmt));
         }
+
+        co_await utils::task::suspend();
     }
 }
 

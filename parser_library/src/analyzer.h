@@ -159,7 +159,7 @@ public:
 
     void analyze();
     bool analyze_step();
-    utils::task co_analyze();
+    utils::task co_analyze() &;
 
     void collect_diags() const override;
     const performance_metrics& get_metrics() const;

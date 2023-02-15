@@ -49,13 +49,8 @@ void debug_lib_provider::parse_library(
             [](std::string content, analyzer_options opts, std::function<void(bool)> callback) -> utils::task {
             analyzer a(content, std::move(opts));
 
-            auto steps = a.co_analyze();
+            co_await a.co_analyze();
 
-            while (!steps.done())
-            {
-                co_await std::suspend_always();
-                steps();
-            }
             if (callback)
                 callback(true);
         };

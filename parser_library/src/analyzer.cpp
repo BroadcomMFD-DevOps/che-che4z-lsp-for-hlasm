@@ -150,15 +150,9 @@ void analyzer::analyze()
 bool analyzer::analyze_step() { return mngr_.step() || (src_proc_.finish(), false); }
 
 
-hlasm_plugin::utils::task analyzer::co_analyze()
+hlasm_plugin::utils::task analyzer::co_analyze() &
 {
-    auto steps = mngr_.co_step();
-
-    while (!steps.done())
-    {
-        co_await std::suspend_always();
-        steps();
-    }
+    co_await mngr_.co_step();
 
     src_proc_.finish();
 }
