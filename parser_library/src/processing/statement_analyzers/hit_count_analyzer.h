@@ -21,6 +21,7 @@
 #include <vector>
 
 #include "context/id_storage.h"
+#include "semantics/statement.h"
 #include "statement_analyzer.h"
 #include "utils/general_hashers.h"
 #include "utils/resource_location.h"
@@ -116,7 +117,7 @@ private:
 
     void emplace_macro_header_definitions(const context::id_index& id);
 
-    statement_type get_stmt_type(const context::hlasm_statement& statement, processing_kind proc_kind);
+    statement_type get_stmt_type(const semantics::core_statement& statement, processing_kind proc_kind);
 };
 
 } // namespace hlasm_plugin::parser_library::processing

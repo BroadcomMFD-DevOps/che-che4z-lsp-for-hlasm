@@ -180,7 +180,7 @@ void workspace::retrieve_fade_messages(std::vector<fade_message_s>& fms) const
             [&opened_files_uris](const auto& fmsg) { return opened_files_uris.contains(fmsg.uri); });
 
 
-        for (const auto& [opened_file_rl, _] : opened_files_)
+        for (const auto& [opened_file_rl, __] : opened_files_)
         {
             const auto& pf_hc_map = proc_file->hit_counts();
 

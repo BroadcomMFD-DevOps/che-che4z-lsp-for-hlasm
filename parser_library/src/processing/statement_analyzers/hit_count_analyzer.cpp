@@ -45,17 +45,12 @@ constexpr auto get_core_stmt =
     return std::nullopt;
 };
 
-std::optional<stmt_lines_range> get_stmt_lines_range(const context::hlasm_statement* stmt,
+std::optional<stmt_lines_range> get_stmt_lines_range(const semantics::core_statement& statement,
     statement_provider_kind prov_kind,
     processing_kind proc_kind,
     const context::hlasm_context& ctx)
 {
-    auto core_stmt_o = get_core_stmt(stmt);
-
-    if (!core_stmt_o.has_value() || !core_stmt_o.value())
-        return std::nullopt;
-
-    const auto& r = core_stmt_o.value()->stmt_range_ref();
+    const auto& r = statement.stmt_range_ref();
 
     if (proc_kind != processing_kind::LOOKAHEAD && r.start == r.end)
         return std::nullopt;
@@ -112,29 +107,19 @@ void hit_count_analyzer::emplace_macro_header_definitions(const context::id_inde
 }
 
 hit_count_analyzer::statement_type hit_count_analyzer::get_stmt_type(
-    const context::hlasm_statement& statement, processing_kind proc_kind)
+    const semantics::core_statement& statement, processing_kind proc_kind)
 {
-    auto core_stmt_o = get_core_stmt(&statement);
-    if (!core_stmt_o.has_value() || !core_stmt_o.value())
-        return m_next_stmt_type;
-
-    constexpr auto macro_stmt_type_checker = [](const context::id_index* id) -> std::optional<statement_type> {
-        if (!id)
-            return std::nullopt;
-        else if (*id == context::id_storage::well_known::MACRO)
-            return statement_type::MACRO_INIT;
-        else if (*id == context::id_storage::well_known::MEND)
-            return statement_type::MACRO_END;
-        else
-            return std::nullopt;
-    };
-
-    const auto instr_id = std::get_if<context::id_index>(&core_stmt_o.value()->instruction_ref().value);
-    const auto& r = core_stmt_o.value()->stmt_range_ref();
+    const auto& r = statement.stmt_range_ref();
+    const auto instr_id = std::get_if<context::id_index>(&statement.instruction_ref().value);
 
     statement_type cur_stmt_type = m_next_stmt_type;
-    if (auto stmt_type_o = macro_stmt_type_checker(instr_id); stmt_type_o)
-        cur_stmt_type = *stmt_type_o;
+    if (instr_id)
+    {
+        if (*instr_id == context::id_storage::well_known::MACRO)
+            cur_stmt_type = statement_type::MACRO_INIT;
+        else if (*instr_id == context::id_storage::well_known::MEND)
+            cur_stmt_type = statement_type::MACRO_END;
+    }
 
     switch (cur_stmt_type)
     {
@@ -196,9 +181,15 @@ hit_count_analyzer::statement_type hit_count_analyzer::get_stmt_type(
 void hit_count_analyzer::analyze(
     const context::hlasm_statement& statement, statement_provider_kind prov_kind, processing_kind proc_kind, bool)
 {
+    auto core_stmt_o = get_core_stmt(&statement);
+    if (!core_stmt_o.has_value() || !core_stmt_o.value())
+        return;
+
+    const auto& core_stmt = *core_stmt_o.value();
+
     bool can_be_external_macro = false;
 
-    switch (get_stmt_type(statement, proc_kind))
+    switch (get_stmt_type(core_stmt, proc_kind))
     {
         using enum statement_type;
         case REGULAR:
@@ -212,7 +203,7 @@ void hit_count_analyzer::analyze(
             return;
     }
 
-    auto stmt_lines_range = get_stmt_lines_range(&statement, prov_kind, proc_kind, m_ctx);
+    auto stmt_lines_range = get_stmt_lines_range(core_stmt, prov_kind, proc_kind, m_ctx);
     if (!stmt_lines_range)
         return;
 

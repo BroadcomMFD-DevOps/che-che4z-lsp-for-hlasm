@@ -550,30 +550,21 @@ INSTANTIATE_TEST_SUITE_P(fade,
         },
         test_params {
             { "         MAC 0,1" },
-            {
-                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(2, 0), position(2, 80))),
-                fade_message_s::inactive_statement("libs/mac", range(position(4, 0), position(4, 80))),
-            },
+            {},
             {
                 "E062", // Diags related to recursive copybook
             },
         },
         test_params {
             { "         MAC 1,0" },
-            {
-                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(1, 0), position(2, 80))),
-                fade_message_s::inactive_statement("libs/mac", range(position(3, 0), position(3, 80))),
-            },
+            {},
             {
                 "E062", // Diags related to recursive copybook
             },
         },
         test_params {
             { "         MAC 1,1" },
-            {
-                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(1, 0), position(2, 80))),
-                fade_message_s::inactive_statement("libs/mac", range(position(3, 0), position(3, 80))),
-            },
+            {},
             {
                 "E062", // Diags related to recursive copybook
             },
@@ -615,15 +606,7 @@ $x
     });
 
     EXPECT_TRUE(contains_message_codes(collect_and_get_diags(), GetParam().diag_message_codes));
-
-    //const auto& expected_msgs = GetParam().expected_fade_messages;
-    //EXPECT_TRUE(std::is_permutation(fms.begin(),
-    //    fms.end(),
-    //    expected_msgs.begin(),
-    //    expected_msgs.end(),
-    //    [](const auto& fmsg, const auto& expected_fmsg) {
-    //        return fmsg.code == expected_fmsg.code && fmsg.r == expected_fmsg.r && fmsg.uri == expected_fmsg.uri;
-    //    }));
+    // No check for inactive statements -> expectation is to not crash
 }
 
 namespace {
