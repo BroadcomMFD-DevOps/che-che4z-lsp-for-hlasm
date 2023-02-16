@@ -927,14 +927,14 @@ void hlasm_context::leave_macro()
     scope_stack_.pop_back();
 }
 
-macro_invo_ptr hlasm_context::this_macro() const
+macro_invo_ptr hlasm_context::current_macro() const
 {
     if (is_in_macro())
         return curr_scope()->this_macro;
     return macro_invo_ptr();
 }
 
-id_index hlasm_context::this_macro_id() const
+id_index hlasm_context::current_macro_id() const
 {
     if (is_in_macro())
     {

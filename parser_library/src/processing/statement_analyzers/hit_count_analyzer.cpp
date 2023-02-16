@@ -123,6 +123,8 @@ hit_count_analyzer::statement_type hit_count_analyzer::get_stmt_type(
 
     switch (cur_stmt_type)
     {
+        // TODO think about marking special macro statements somehow (in order not to recreate these state machines
+        // again and again)
         using enum statement_type;
         case MACRO_INIT:
             m_last_macro_init_line_ranges = stmt_lines_compacter(r);
@@ -207,7 +209,7 @@ void hit_count_analyzer::analyze(
     if (!stmt_lines_range)
         return;
 
-    if (auto macro_id = m_ctx.this_macro_id(); !macro_id.empty())
+    if (auto macro_id = m_ctx.current_macro_id(); !macro_id.empty())
         emplace_macro_header_definitions(macro_id);
 
     update_hc_details(

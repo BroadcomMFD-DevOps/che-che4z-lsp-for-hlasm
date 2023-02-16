@@ -161,6 +161,18 @@ void generate_merged_fade_messages(
         faded_line_it = std::find_if(active_line, it_e, faded_line_predicate);
     }
 }
+
+void filter_and_emplace_hc(
+    processing::hit_count_map& to, const processing::hit_count_map& from, const utils::resource::resource_location& rl)
+{
+    auto from_it = from.find(rl);
+    if (from_it == from.end())
+        return;
+
+    const auto& [from_hc_rl, from_details] = *from_it;
+    if (auto [to_hc_details_it, new_element] = to.try_emplace(from_hc_rl, from_details); !new_element)
+        to_hc_details_it->second.merge(from_details);
+}
 } // namespace
 
 void workspace::retrieve_fade_messages(std::vector<fade_message_s>& fms) const
@@ -173,27 +185,15 @@ void workspace::retrieve_fade_messages(std::vector<fade_message_s>& fms) const
 
     for (const auto& [_, proc_file_component] : m_processor_files)
     {
-        const auto& proc_file = proc_file_component.m_processor_file;
-
-        const auto& other_fade_messages = proc_file->fade_messages();
-        std::copy_if(other_fade_messages.begin(),
-            other_fade_messages.end(),
+        const auto& pf_fade_messages = proc_file_component.m_processor_file->fade_messages();
+        std::copy_if(pf_fade_messages.begin(),
+            pf_fade_messages.end(),
             std::back_inserter(fms),
             [&opened_files_uris](const auto& fmsg) { return opened_files_uris.contains(fmsg.uri); });
 
-
+        const auto& pf_hc_map = proc_file_component.m_processor_file->hit_counts();
         for (const auto& [opened_file_rl, __] : opened_files_)
-        {
-            const auto& pf_hc_map = proc_file->hit_counts();
-
-            auto pf_hc_map_it = pf_hc_map.find(opened_file_rl);
-            if (pf_hc_map_it == pf_hc_map.end())
-                continue;
-
-            const auto& [other_hc_rl, other_hc_details] = *pf_hc_map_it;
-            if (auto [our_hc_details_it, new_element] = hc_map.try_emplace(other_hc_rl, other_hc_details); !new_element)
-                our_hc_details_it->second.merge(other_hc_details);
-        }
+            filter_and_emplace_hc(hc_map, pf_hc_map, opened_file_rl);
     }
 
     std::for_each(hc_map.begin(), hc_map.end(), [&fms](const auto& e) {

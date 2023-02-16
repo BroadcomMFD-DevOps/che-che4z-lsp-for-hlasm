@@ -230,8 +230,8 @@ public:
     // checks whether processing is currently in macro
     bool is_in_macro() const;
     // returns macro we are currently in or empty shared_ptr if in open code
-    macro_invo_ptr this_macro() const;
-    id_index this_macro_id() const;
+    macro_invo_ptr current_macro() const;
+    id_index current_macro_id() const;
     // registers new macro
     macro_def_ptr add_macro(id_index name,
         id_index label_param_name,
