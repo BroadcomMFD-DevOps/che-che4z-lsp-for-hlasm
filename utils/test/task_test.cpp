@@ -135,3 +135,17 @@ TEST(task, excp_inspection)
     EXPECT_TRUE(x.done());
     EXPECT_FALSE(x.pending_exception());
 }
+
+TEST(task, direct_throw)
+{
+    static constexpr auto fail = []() -> task {
+        throw 0;
+        co_return;
+    };
+
+    auto x = fail();
+
+    EXPECT_FALSE(x.done());
+    EXPECT_ANY_THROW(x());
+    EXPECT_TRUE(x.done());
+}

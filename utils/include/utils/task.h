@@ -28,13 +28,13 @@ struct task
     struct promise_type
     {
         task get_return_object() { return task(std::coroutine_handle<promise_type>::from_promise(*this)); }
-        std::suspend_always initial_suspend() const { return {}; }
+        std::suspend_always initial_suspend() const noexcept { return {}; }
         std::suspend_always final_suspend() noexcept
         {
             detach();
             return {};
         }
-        void return_void() const {}
+        void return_void() const noexcept {}
         void unhandled_exception()
         {
             if (!active || pending_exception)
@@ -51,7 +51,7 @@ struct task
         {
             current_top_waiter.promise().next_step = std::coroutine_handle<promise_type>::from_promise(*this);
             active = a;
-            top_waiter = current_top_waiter;
+            top_waiter = std::move(current_top_waiter);
         }
 
         void detach() noexcept
@@ -80,7 +80,7 @@ struct task
         bool await_suspend(std::coroutine_handle<promise_type> h) noexcept
         {
             self.attach(h.promise().top_waiter, this);
-            to_resume = h;
+            to_resume = std::move(h);
             return true;
         }
         void await_resume() const
@@ -89,13 +89,13 @@ struct task
                 std::rethrow_exception(std::exchange(to_resume.promise().pending_exception, {}));
         }
 
-        explicit awaiter(std::coroutine_handle<promise_type> self)
-            : self(self.promise())
+        explicit awaiter(promise_type& self) noexcept
+            : self(self)
         {}
     };
 
     explicit task(std::coroutine_handle<promise_type> handle)
-        : m_handle(handle)
+        : m_handle(std::move(handle))
     {}
     task(task&& t) noexcept
         : m_handle(std::exchange(t.m_handle, {}))
@@ -129,7 +129,7 @@ struct task
         m_handle.promise().next_step();
     }
 
-    auto operator co_await() && { return awaiter { m_handle }; }
+    auto operator co_await() const&& { return awaiter(m_handle.promise()); }
 
     static std::suspend_always suspend() { return {}; }
 
