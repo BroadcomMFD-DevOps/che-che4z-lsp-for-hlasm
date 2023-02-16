@@ -58,8 +58,8 @@ public:
 
     bool has_lsp_info() const override;
 
-    void retrieve_fade_messages(std::vector<fade_message_s>& fms) const override;
-    void retrieve_hit_counts(processing::hit_count_map& other_hc_map) const override;
+    const std::vector<fade_message_s>& fade_messages() const;
+    const processing::hit_count_map& hit_counts() const;
 
     const file_location& get_location() const override;
 

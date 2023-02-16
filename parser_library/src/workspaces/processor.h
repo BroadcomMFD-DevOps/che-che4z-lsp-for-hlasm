@@ -78,8 +78,8 @@ public:
     virtual const performance_metrics& get_metrics() = 0;
     virtual void erase_unused_cache_entries() = 0;
     virtual bool has_lsp_info() const = 0;
-    virtual void retrieve_fade_messages(std::vector<fade_message_s>& fms) const = 0;
-    virtual void retrieve_hit_counts(processing::hit_count_map& other_hc_map) const = 0;
+    virtual const std::vector<fade_message_s>& fade_messages() const = 0;
+    virtual const processing::hit_count_map& hit_counts() const = 0;
     virtual const file_location& get_location() const = 0;
     virtual bool current_version() const = 0;
 

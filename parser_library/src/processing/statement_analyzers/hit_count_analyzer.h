@@ -15,6 +15,7 @@
 #ifndef PROCESSING_HIT_COUNT_ANALYZER_H
 #define PROCESSING_HIT_COUNT_ANALYZER_H
 
+#include <stack>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -91,6 +92,7 @@ private:
         MACRO_INIT,
         MACRO_NAME,
         MACRO_BODY,
+        MACRO_END
     };
 
     struct macro_header_definition_details
@@ -98,20 +100,23 @@ private:
         utils::resource::resource_location rl;
         stmt_lines_range init_line_r;
         stmt_lines_range name_line_r;
+        stmt_lines_range mend_line_r;
+        bool defined = false;
+        bool used = false;
     };
 
     context::hlasm_context& m_ctx;
     hit_count_map m_hit_counts;
-    statement_type m_stmt_type = statement_type::REGULAR;
-    size_t m_macro_nest_level = 0;
+    statement_type m_next_stmt_type = statement_type::REGULAR;
+    std::stack<context::id_index> m_nest_macro_names;
     stmt_lines_range m_last_macro_init_line_ranges;
     std::unordered_map<context::id_index, macro_header_definition_details> m_macro_header_definitions;
 
-    hit_count_details& get_hc_details_reference(const utils::resource::resource_location& rl);
+    hit_count_details& get_hc_details_reference(utils::resource::resource_location rl);
 
     void emplace_macro_header_definitions(const context::id_index& id);
 
-    statement_type get_stmt_type(const context::hlasm_statement& statement);
+    statement_type get_stmt_type(const context::hlasm_statement& statement, processing_kind proc_kind);
 };
 
 } // namespace hlasm_plugin::parser_library::processing

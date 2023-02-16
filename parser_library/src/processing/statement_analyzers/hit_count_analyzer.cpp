@@ -18,6 +18,7 @@
 #include <cassert>
 #include <iterator>
 #include <optional>
+#include <variant>
 
 #include "context/hlasm_context.h"
 #include "processing/statement.h"
@@ -31,40 +32,42 @@ hit_count_analyzer::hit_count_analyzer(context::hlasm_context& ctx)
 namespace {
 constexpr auto stmt_lines_compacter = [](const range& r) { return std::make_pair(r.start.line, r.end.line); };
 
+constexpr auto get_core_stmt =
+    [](const context::hlasm_statement* stmt) -> std::optional<const semantics::core_statement*> {
+    if (!stmt)
+        return std::nullopt;
+
+    if (stmt->kind == context::statement_kind::RESOLVED)
+        return stmt->access_resolved();
+    else if (stmt->kind == context::statement_kind::DEFERRED)
+        return stmt->access_deferred();
+
+    return std::nullopt;
+};
+
 std::optional<stmt_lines_range> get_stmt_lines_range(const context::hlasm_statement* stmt,
     statement_provider_kind prov_kind,
     processing_kind proc_kind,
     const context::hlasm_context& ctx)
 {
-    if (!stmt)
+    auto core_stmt_o = get_core_stmt(stmt);
+
+    if (!core_stmt_o.has_value() || !core_stmt_o.value())
         return std::nullopt;
 
-    const auto adj_range = [prov_kind, &proc_kind, &ctx](const range& r) -> std::optional<stmt_lines_range> {
-        if (proc_kind != processing_kind::LOOKAHEAD && r.start == r.end)
-            return std::nullopt;
+    const auto& r = core_stmt_o.value()->stmt_range_ref();
 
-        if (prov_kind == statement_provider_kind::OPEN)
-        {
-            const auto& source = ctx.current_source();
-            // TODO: look into the opencode range discrepancy
-            return std::make_pair(r.start.line, r.end.line + source.end_index - source.begin_index - 1);
-        }
+    if (proc_kind != processing_kind::LOOKAHEAD && r.start == r.end)
+        return std::nullopt;
 
-        return stmt_lines_compacter(r);
-    };
-
-    if (stmt->kind == context::statement_kind::RESOLVED)
+    if (prov_kind == statement_provider_kind::OPEN)
     {
-        if (auto resolved = stmt->access_resolved(); resolved)
-            return adj_range(resolved->stmt_range_ref());
-    }
-    else if (stmt->kind == context::statement_kind::DEFERRED)
-    {
-        if (auto deferred = stmt->access_deferred(); deferred)
-            return adj_range(deferred->stmt_range_ref());
+        const auto& source = ctx.current_source();
+        // TODO: look into the opencode range discrepancy
+        return std::make_pair(r.start.line, r.end.line + source.end_index - source.begin_index - 1);
     }
 
-    return std::nullopt;
+    return stmt_lines_compacter(r);
 }
 
 void update_hc_details(
@@ -89,81 +92,105 @@ void update_hc_details(
 }
 } // namespace
 
-hit_count_details& hit_count_analyzer::get_hc_details_reference(const utils::resource::resource_location& rl)
+hit_count_details& hit_count_analyzer::get_hc_details_reference(utils::resource::resource_location rl)
 {
-    return m_hit_counts.try_emplace(rl).first->second;
+    return m_hit_counts.try_emplace(std::move(rl)).first->second;
 }
 
 void hit_count_analyzer::emplace_macro_header_definitions(const context::id_index& id)
 {
-    if (auto map_it = m_macro_header_definitions.find(id); map_it != m_macro_header_definitions.end())
+    if (auto map_it = m_macro_header_definitions.find(id);
+        map_it != m_macro_header_definitions.end() && !map_it->second.used && map_it->second.defined)
     {
         auto& mac_header_details = map_it->second;
         update_hc_details(get_hc_details_reference(mac_header_details.rl), mac_header_details.init_line_r, true, true);
         update_hc_details(get_hc_details_reference(mac_header_details.rl), mac_header_details.name_line_r, true, true);
+        update_hc_details(get_hc_details_reference(mac_header_details.rl), mac_header_details.mend_line_r, true, true);
 
-        m_macro_header_definitions.erase(map_it);
+        mac_header_details.used = true;
     }
 }
 
-hit_count_analyzer::statement_type hit_count_analyzer::get_stmt_type(const context::hlasm_statement& statement)
+hit_count_analyzer::statement_type hit_count_analyzer::get_stmt_type(
+    const context::hlasm_statement& statement, processing_kind proc_kind)
 {
-    auto res_stmt = statement.access_resolved();
-    if (!res_stmt)
-        return m_stmt_type;
+    auto core_stmt_o = get_core_stmt(&statement);
+    if (!core_stmt_o.has_value() || !core_stmt_o.value())
+        return m_next_stmt_type;
 
-    const auto macro_init_incrementer = [&nest_level = m_macro_nest_level](auto resolved_stmt) {
-        if (resolved_stmt->opcode_ref().value != context::id_storage::well_known::MACRO)
-            return false;
-
-        ++nest_level;
-        return true;
+    constexpr auto macro_stmt_type_checker = [](const context::id_index* id) -> std::optional<statement_type> {
+        if (!id)
+            return std::nullopt;
+        else if (*id == context::id_storage::well_known::MACRO)
+            return statement_type::MACRO_INIT;
+        else if (*id == context::id_storage::well_known::MEND)
+            return statement_type::MACRO_END;
+        else
+            return std::nullopt;
     };
 
-    switch (m_stmt_type)
+    const auto instr_id = std::get_if<context::id_index>(&core_stmt_o.value()->instruction_ref().value);
+    const auto& r = core_stmt_o.value()->stmt_range_ref();
+
+    statement_type cur_stmt_type = m_next_stmt_type;
+    if (auto stmt_type_o = macro_stmt_type_checker(instr_id); stmt_type_o)
+        cur_stmt_type = *stmt_type_o;
+
+    switch (cur_stmt_type)
     {
-        case hlasm_plugin::parser_library::processing::hit_count_analyzer::statement_type::REGULAR:
-            if (macro_init_incrementer(res_stmt))
-            {
-                m_stmt_type =
-                    statement_type::MACRO_INIT; // TODO think about marking "special" macro statements in a more general
-                                                // way in order to get rid of this and similar state machines
-                m_last_macro_init_line_ranges = stmt_lines_compacter(res_stmt->stmt_range_ref());
-            }
+        using enum statement_type;
+        case MACRO_INIT:
+            m_last_macro_init_line_ranges = stmt_lines_compacter(r);
+            m_next_stmt_type = MACRO_NAME;
+            if (!m_nest_macro_names.empty())
+                cur_stmt_type = REGULAR;
             break;
 
-        case hlasm_plugin::parser_library::processing::hit_count_analyzer::statement_type::MACRO_INIT: {
-            m_stmt_type = statement_type::MACRO_NAME;
+        case MACRO_NAME: {
+            assert(instr_id);
 
-            assert(m_ctx.processing_stack_top().resource_loc);
-
-            m_macro_header_definitions.try_emplace(res_stmt->opcode_ref().value,
-                macro_header_definition_details { *m_ctx.processing_stack_top().resource_loc,
+            m_nest_macro_names.push(*instr_id);
+            m_macro_header_definitions.try_emplace(*instr_id,
+                macro_header_definition_details {
+                    m_ctx.current_statement_resource_location(proc_kind != processing_kind::LOOKAHEAD),
                     m_last_macro_init_line_ranges,
-                    stmt_lines_compacter(res_stmt->stmt_range_ref()) });
+                    stmt_lines_compacter(r) });
+
+            m_next_stmt_type = MACRO_BODY;
+            if (m_nest_macro_names.size() > 1)
+                cur_stmt_type = REGULAR;
             break;
         }
 
-        case hlasm_plugin::parser_library::processing::hit_count_analyzer::statement_type::MACRO_NAME:
-            m_stmt_type = statement_type::MACRO_BODY;
-            macro_init_incrementer(res_stmt);
-            break;
-
-        case hlasm_plugin::parser_library::processing::hit_count_analyzer::statement_type::MACRO_BODY:
-            if (res_stmt->opcode_ref().value == context::id_storage::well_known::MEND)
+        case MACRO_END:
+            if (!m_nest_macro_names.empty())
             {
-                if (--m_macro_nest_level == 0)
-                    return std::exchange(m_stmt_type, statement_type::REGULAR);
+                assert(m_macro_header_definitions.contains(m_nest_macro_names.top()));
+
+                auto& header_def = m_macro_header_definitions[m_nest_macro_names.top()];
+                header_def.mend_line_r = stmt_lines_compacter(r);
+                header_def.defined = true;
+
+                m_nest_macro_names.pop();
+            }
+
+            if (m_nest_macro_names.empty())
+            {
+                m_next_stmt_type = REGULAR;
+                cur_stmt_type = MACRO_END;
             }
             else
-                macro_init_incrementer(res_stmt);
+            {
+                m_next_stmt_type = MACRO_BODY;
+                cur_stmt_type = MACRO_BODY;
+            }
             break;
 
         default:
             break;
     }
 
-    return m_stmt_type;
+    return cur_stmt_type;
 }
 
 void hit_count_analyzer::analyze(
@@ -171,9 +198,9 @@ void hit_count_analyzer::analyze(
 {
     bool can_be_external_macro = false;
 
-    switch (get_stmt_type(statement))
+    switch (get_stmt_type(statement, proc_kind))
     {
-        using enum processing::hit_count_analyzer::statement_type;
+        using enum statement_type;
         case REGULAR:
             break;
 
@@ -189,12 +216,11 @@ void hit_count_analyzer::analyze(
     if (!stmt_lines_range)
         return;
 
-    if (auto macro_invo = m_ctx.this_macro(); macro_invo)
-        emplace_macro_header_definitions(macro_invo->id);
+    if (auto macro_id = m_ctx.this_macro_id(); !macro_id.empty())
+        emplace_macro_header_definitions(macro_id);
 
-    assert(m_ctx.processing_stack_top().resource_loc);
-
-    update_hc_details(get_hc_details_reference(*m_ctx.processing_stack_top().resource_loc),
+    update_hc_details(
+        get_hc_details_reference(m_ctx.current_statement_resource_location(proc_kind != processing_kind::LOOKAHEAD)),
         *stmt_lines_range,
         can_be_external_macro,
         proc_kind == processing::processing_kind::ORDINARY);

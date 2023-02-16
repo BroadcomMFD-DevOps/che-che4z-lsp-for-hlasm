@@ -597,6 +597,25 @@ location hlasm_context::current_statement_location() const
     }
 }
 
+utils::resource::resource_location hlasm_context::current_statement_resource_location(bool consider_macros) const
+{
+    assert(!source_stack_.empty());
+
+    if (consider_macros && source_stack_.size() == 1 && scope_stack_.size() > 1)
+    {
+        const auto& last_macro = scope_stack_.back().this_macro;
+
+        if (const auto& nest = last_macro->copy_nests[last_macro->current_statement]; !nest.empty())
+            return nest.back().loc.resource_loc;
+    }
+
+    const auto& last_source = source_stack_.back();
+    if (!last_source.copy_stack.empty())
+        return last_source.copy_stack.back().definition_location()->resource_loc;
+
+    return last_source.current_instruction.resource_loc;
+}
+
 const std::deque<code_scope>& hlasm_context::scope_stack() const { return scope_stack_; }
 
 const source_context& hlasm_context::current_source() const { return source_stack_.back(); }
@@ -906,6 +925,16 @@ macro_invo_ptr hlasm_context::this_macro() const
     if (is_in_macro())
         return curr_scope()->this_macro;
     return macro_invo_ptr();
+}
+
+id_index hlasm_context::this_macro_id() const
+{
+    if (is_in_macro())
+    {
+        if (const auto& mac = curr_scope()->this_macro; mac)
+            return mac->id;
+    }
+    return id_index();
 }
 
 const utils::resource::resource_location& hlasm_context::opencode_location() const { return opencode_file_location_; }

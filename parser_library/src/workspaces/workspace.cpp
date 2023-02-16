@@ -164,11 +164,34 @@ void generate_merged_fade_messages(
 void workspace::retrieve_fade_messages(std::vector<fade_message_s>& fms) const
 {
     processing::hit_count_map hc_map;
+    std::unordered_set<std::string, utils::hashers::string_hasher, std::equal_to<>> opened_files_uris;
 
-    for (const auto& [_, value] : m_processor_files)
+    for (const auto& [rl, _] : opened_files_)
+        opened_files_uris.emplace(rl.get_uri());
+
+    for (const auto& [_, proc_file_component] : m_processor_files)
     {
-        value.m_processor_file->retrieve_fade_messages(fms);
-        value.m_processor_file->retrieve_hit_counts(hc_map);
+        const auto& proc_file = proc_file_component.m_processor_file;
+
+        const auto& other_fade_messages = proc_file->fade_messages();
+        std::copy_if(other_fade_messages.begin(),
+            other_fade_messages.end(),
+            std::back_inserter(fms),
+            [&opened_files_uris](const auto& fmsg) { return opened_files_uris.contains(fmsg.uri); });
+
+
+        for (const auto& [opened_file_rl, _] : opened_files_)
+        {
+            const auto& pf_hc_map = proc_file->hit_counts();
+
+            auto pf_hc_map_it = pf_hc_map.find(opened_file_rl);
+            if (pf_hc_map_it == pf_hc_map.end())
+                continue;
+
+            const auto& [other_hc_rl, other_hc_details] = *pf_hc_map_it;
+            if (auto [our_hc_details_it, new_element] = hc_map.try_emplace(other_hc_rl, other_hc_details); !new_element)
+                our_hc_details_it->second.merge(other_hc_details);
+        }
     }
 
     std::for_each(hc_map.begin(), hc_map.end(), [&fms](const auto& e) {

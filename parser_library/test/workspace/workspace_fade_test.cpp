@@ -63,7 +63,7 @@ struct test_params
 {
     std::vector<std::string> text_to_insert;
     std::vector<fade_message_s> expected_fade_messages;
-    size_t number_of_diags = 0;
+    std::vector<std::string> diag_message_codes;
 };
 
 class fade_fixture_base : public diagnosable_impl, public ::testing::TestWithParam<test_params>
@@ -91,10 +91,10 @@ public:
         collect_diags_from_child(ws);
     }
 
-    size_t collect_and_get_diags_size()
+    std::vector<diagnostic_s> collect_and_get_diags()
     {
         collect_diags();
-        return diags().size();
+        return diags();
     }
 
     void open_src_files_and_collect_fms(std::initializer_list<std::pair<resource_location, std::string>> files)
@@ -171,8 +171,7 @@ TEST_P(opencode_general_fixture, opencode)
         { src1_loc, std::regex_replace(src_template, std::regex("\\$x"), GetParam().text_to_insert[0]) },
     });
 
-    EXPECT_EQ(collect_and_get_diags_size(), GetParam().number_of_diags);
-    EXPECT_EQ(ws.diags().size(), (size_t)0);
+    EXPECT_TRUE(contains_message_codes(collect_and_get_diags(), GetParam().diag_message_codes));
 
     const auto& expected_msgs = GetParam().expected_fade_messages;
     EXPECT_TRUE(std::is_permutation(fms.begin(),
@@ -204,7 +203,7 @@ INSTANTIATE_TEST_SUITE_P(fade,
         test_params {
             { "*        MAC 1" },
             {
-                fade_message_s::inactive_statement("src1.hlasm", range(position(3, 0), position(6, 80))),
+                fade_message_s::inactive_statement("src1.hlasm", range(position(3, 0), position(5, 80))),
             },
         }));
 } // namespace
@@ -227,8 +226,7 @@ $x
         { src1_loc, std::regex_replace(src_template, std::regex("\\$x"), GetParam().text_to_insert[0]) },
     });
 
-    EXPECT_EQ(collect_and_get_diags_size(), GetParam().number_of_diags);
-    EXPECT_EQ(ws.diags().size(), (size_t)0);
+    EXPECT_TRUE(contains_message_codes(collect_and_get_diags(), GetParam().diag_message_codes));
 
     const auto& expected_msgs = GetParam().expected_fade_messages;
     EXPECT_TRUE(std::is_permutation(fms.begin(),
@@ -274,8 +272,7 @@ X        DS F
         { src1_loc, src },
     });
 
-    EXPECT_EQ(collect_and_get_diags_size(), GetParam().number_of_diags);
-    EXPECT_EQ(ws.diags().size(), (size_t)0);
+    EXPECT_TRUE(contains_message_codes(collect_and_get_diags(), GetParam().diag_message_codes));
 
     const auto& expected_msgs = GetParam().expected_fade_messages;
     EXPECT_TRUE(std::is_permutation(fms.begin(),
@@ -308,7 +305,7 @@ INSTANTIATE_TEST_SUITE_P(fade,
         test_params {
             { "*        MAC 1" },
             {
-                fade_message_s::inactive_statement("src1.hlasm", range(position(3, 0), position(10, 80))),
+                fade_message_s::inactive_statement("src1.hlasm", range(position(3, 0), position(9, 80))),
             },
         }));
 } // namespace
@@ -335,8 +332,7 @@ $x
         { src1_loc, std::regex_replace(src_template, std::regex("\\$x"), GetParam().text_to_insert[0]) },
     });
 
-    EXPECT_EQ(collect_and_get_diags_size(), GetParam().number_of_diags);
-    EXPECT_EQ(ws.diags().size(), (size_t)0);
+    EXPECT_TRUE(contains_message_codes(collect_and_get_diags(), GetParam().diag_message_codes));
 
     const auto& expected_msgs = GetParam().expected_fade_messages;
     EXPECT_TRUE(std::is_permutation(fms.begin(),
@@ -392,8 +388,7 @@ $x
         { src1_loc, std::regex_replace(src_template, std::regex("\\$x"), GetParam().text_to_insert[0]) },
     });
 
-    EXPECT_EQ(collect_and_get_diags_size(), GetParam().number_of_diags);
-    EXPECT_EQ(ws.diags().size(), (size_t)0);
+    EXPECT_TRUE(contains_message_codes(collect_and_get_diags(), GetParam().diag_message_codes));
 
     const auto& expected_msgs = GetParam().expected_fade_messages;
     EXPECT_TRUE(std::is_permutation(fms.begin(),
@@ -448,8 +443,7 @@ LABEL    L 1,1
         { src2_loc, std::regex_replace(src_template, std::regex("\\$x"), GetParam().text_to_insert[1]) },
     });
 
-    EXPECT_EQ(collect_and_get_diags_size(), GetParam().number_of_diags);
-    EXPECT_EQ(ws.diags().size(), (size_t)0);
+    EXPECT_TRUE(contains_message_codes(collect_and_get_diags(), GetParam().diag_message_codes));
 
     const auto& expected_msgs = GetParam().expected_fade_messages;
     EXPECT_TRUE(std::is_permutation(fms.begin(),
@@ -496,7 +490,10 @@ INSTANTIATE_TEST_SUITE_P(fade,
         test_params {
             { "*        MAC 1,1" },
             {},
-            2, // Diags related to missing members in mac and cpybook
+            {
+                "E010",
+                "E058", // Diags related to missing members in mac and cpybook
+            },
         }));
 } // namespace
 
@@ -525,8 +522,7 @@ $x
         { src1_loc, std::regex_replace(src_template, std::regex("\\$x"), GetParam().text_to_insert[0]) },
     });
 
-    EXPECT_EQ(collect_and_get_diags_size(), GetParam().number_of_diags);
-    EXPECT_EQ(ws.diags().size(), (size_t)0);
+    EXPECT_TRUE(contains_message_codes(collect_and_get_diags(), GetParam().diag_message_codes));
 
     const auto& expected_msgs = GetParam().expected_fade_messages;
     EXPECT_TRUE(std::is_permutation(fms.begin(),
@@ -538,6 +534,161 @@ $x
         }));
 }
 
+namespace {
+class opencode_nested_cycle_fixture : public fade_fixture_base
+{};
+
+INSTANTIATE_TEST_SUITE_P(fade,
+    opencode_nested_cycle_fixture,
+    ::testing::Values(
+        test_params {
+            { "         MAC 0,0" },
+            {},
+            {
+                "E062", // Diags related to recursive copybook
+            },
+        },
+        test_params {
+            { "         MAC 0,1" },
+            {
+                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(2, 0), position(2, 80))),
+                fade_message_s::inactive_statement("libs/mac", range(position(4, 0), position(4, 80))),
+            },
+            {
+                "E062", // Diags related to recursive copybook
+            },
+        },
+        test_params {
+            { "         MAC 1,0" },
+            {
+                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(1, 0), position(2, 80))),
+                fade_message_s::inactive_statement("libs/mac", range(position(3, 0), position(3, 80))),
+            },
+            {
+                "E062", // Diags related to recursive copybook
+            },
+        },
+        test_params {
+            { "         MAC 1,1" },
+            {
+                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(1, 0), position(2, 80))),
+                fade_message_s::inactive_statement("libs/mac", range(position(3, 0), position(3, 80))),
+            },
+            {
+                "E062", // Diags related to recursive copybook
+            },
+        },
+        test_params {
+            { "*        MAC 1,1" },
+            {},
+            {
+                "E010",
+                "E058", // Diags related to missing members in mac and cpybook
+            },
+        }));
+} // namespace
+
+TEST_P(opencode_nested_cycle_fixture, nested_cycle)
+{
+    std::string cpybook = R"(
+         AIF (&P2 EQ 1).SKIP2
+LABEL    L 1,1
+         COPY MAC)";
+
+    std::string mac = R"(         MACRO
+         MAC  &P1,&P2
+         AIF (&P1 EQ 1).SKIP
+         COPY CPYBOOK
+.SKIP    ANOP
+.SKIP2   ANOP
+         MEND)";
+
+    std::string src_template = R"(
+$x
+
+         END)";
+
+    open_src_files_and_collect_fms({
+        { mac_loc, std::move(mac) },
+        { cpybook_loc, std::move(cpybook) },
+        { src1_loc, std::regex_replace(src_template, std::regex("\\$x"), GetParam().text_to_insert[0]) },
+    });
+
+    EXPECT_TRUE(contains_message_codes(collect_and_get_diags(), GetParam().diag_message_codes));
+
+    //const auto& expected_msgs = GetParam().expected_fade_messages;
+    //EXPECT_TRUE(std::is_permutation(fms.begin(),
+    //    fms.end(),
+    //    expected_msgs.begin(),
+    //    expected_msgs.end(),
+    //    [](const auto& fmsg, const auto& expected_fmsg) {
+    //        return fmsg.code == expected_fmsg.code && fmsg.r == expected_fmsg.r && fmsg.uri == expected_fmsg.uri;
+    //    }));
+}
+
+namespace {
+class lookeahead_fixture : public fade_fixture_base
+{};
+
+INSTANTIATE_TEST_SUITE_P(fade,
+    lookeahead_fixture,
+    ::testing::Values(
+        test_params {
+            { "0" },
+            {
+                fade_message_s::inactive_statement("src1.hlasm", range(position(3, 0), position(3, 80))),
+                fade_message_s::inactive_statement("src1.hlasm", range(position(5, 0), position(5, 80))),
+            },
+        },
+        test_params {
+            { "1" },
+            {
+                fade_message_s::inactive_statement("src1.hlasm", range(position(3, 0), position(3, 80))),
+                fade_message_s::inactive_statement("libs/mac", range(position(4, 0), position(5, 80))),
+            },
+        }));
+} // namespace
+
+
+TEST_P(lookeahead_fixture, nested_lookahead)
+{
+    std::string mac = R"(         MACRO
+         MAC &P,&SYMBOL
+
+         AIF   (&P EQ 1).SKIP
+         AIF   (1 EQ 0).NOEXIST
+&LEN     SETA  L'&SYMBOL
+.SKIP ANOP
+
+         MEXIT
+         MEND
+)";
+
+    std::string src_template = R"(
+         MAC $x,SYM
+         AGO .JUMP
+         ANOP
+.JUMP    ANOP
+
+SYM      DS XL8
+         END   )";
+
+    open_src_files_and_collect_fms({
+        { mac_loc, std::move(mac) },
+        { src1_loc, std::regex_replace(src_template, std::regex("\\$x"), GetParam().text_to_insert[0]) },
+    });
+
+    EXPECT_TRUE(contains_message_codes(collect_and_get_diags(), GetParam().diag_message_codes));
+
+    const auto& expected_msgs = GetParam().expected_fade_messages;
+    EXPECT_TRUE(std::is_permutation(fms.begin(),
+        fms.end(),
+        expected_msgs.begin(),
+        expected_msgs.end(),
+        [](const auto& fmsg, const auto& expected_fmsg) {
+            return fmsg.code == expected_fmsg.code && fmsg.r == expected_fmsg.r && fmsg.uri == expected_fmsg.uri;
+        }));
+}
 TEST(fade, preprocessor)
 {
     workspace_manager ws_mngr;

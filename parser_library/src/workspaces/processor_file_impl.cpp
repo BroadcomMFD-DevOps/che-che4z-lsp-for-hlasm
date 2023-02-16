@@ -167,19 +167,8 @@ bool processor_file_impl::should_collect_hl(context::hlasm_context* ctx) const
 
 bool processor_file_impl::has_lsp_info() const { return m_last_analyzer_with_lsp; }
 
-void processor_file_impl::retrieve_fade_messages(std::vector<fade_message_s>& fms) const
-{
-    fms.insert(std::end(fms), std::begin(*m_fade_messages), std::end(*m_fade_messages));
-}
-
-void processor_file_impl::retrieve_hit_counts(processing::hit_count_map& other_hc_map) const
-{
-    for (const auto& [our_rl, our_hc_details] : m_hc_map)
-    {
-        if (auto [other_hc_details_it, new_element] = other_hc_map.try_emplace(our_rl, our_hc_details); !new_element)
-            other_hc_details_it->second.merge(our_hc_details);
-    }
-}
+const std::vector<fade_message_s>& processor_file_impl::fade_messages() const { return *m_fade_messages; }
+const processing::hit_count_map& processor_file_impl::hit_counts() const { return m_hc_map; }
 
 const file_location& processor_file_impl::get_location() const { return m_file->get_location(); }
 
