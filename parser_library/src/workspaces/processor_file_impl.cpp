@@ -34,7 +34,7 @@ processor_file_impl::processor_file_impl(std::shared_ptr<file> file, file_manage
 void processor_file_impl::collect_diags() const {}
 bool processor_file_impl::is_once_only() const { return false; }
 
-parse_result processor_file_impl::parse(parse_lib_provider& lib_provider,
+bool processor_file_impl::parse(parse_lib_provider& lib_provider,
     asm_option asm_opts,
     std::vector<preprocessor_options> pp,
     virtual_file_monitor* vfm)
@@ -61,11 +61,11 @@ parse_result processor_file_impl::parse(parse_lib_provider& lib_provider,
 
     processing::hit_count_analyzer hc_analyzer(new_analyzer->hlasm_ctx());
     new_analyzer->register_stmt_analyzer(&hc_analyzer);
-
-    new_analyzer->analyze(m_cancel);
-
-    if (m_cancel && *m_cancel)
-        return false;
+    do
+    {
+        if (m_cancel && m_cancel->load(std::memory_order_relaxed))
+            return false;
+    } while (new_analyzer->analyze_step());
 
     diags().clear();
     collect_diags_from_child(*new_analyzer);
@@ -93,8 +93,7 @@ parse_result processor_file_impl::parse(parse_lib_provider& lib_provider,
     return true;
 }
 
-parse_result processor_file_impl::parse_macro(
-    parse_lib_provider& lib_provider, analyzing_context ctx, library_data data)
+bool processor_file_impl::parse_macro(parse_lib_provider& lib_provider, analyzing_context ctx, library_data data)
 {
     auto cache_key = macro_cache_key::create_from_context(*ctx.hlasm_ctx, data);
 
@@ -114,10 +113,11 @@ parse_result processor_file_impl::parse_macro(
     processing::hit_count_analyzer hc_analyzer(a.hlasm_ctx());
     a.register_stmt_analyzer(&hc_analyzer);
 
-    a.analyze(m_cancel);
-
-    if (m_cancel && *m_cancel)
-        return false;
+    do
+    {
+        if (m_cancel && m_cancel->load(std::memory_order_relaxed))
+            return false;
+    } while (a.analyze_step());
 
     diags().clear();
     collect_diags_from_child(a);
