@@ -138,7 +138,7 @@ struct feature_launch_test : public testing::Test
         for (int i = 0; !resp_provider.exited; ++i)
         {
             if (i >= 1000000)
-                throw std::runtime_error("Wait for stopped timeout.");
+                throw std::runtime_error("Wait for exited timeout.");
 
             feature.idle_handler();
         }
