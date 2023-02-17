@@ -26,28 +26,6 @@ namespace hlasm_plugin::utils {
 
 class task_base
 {
-public:
-    bool done() const noexcept
-    {
-        assert(m_handle);
-        return m_handle.done();
-    }
-
-    void operator()() const
-    {
-        assert(m_handle);
-        m_handle.promise().next_step();
-    }
-
-    std::exception_ptr pending_exception(bool clear = false) const
-    {
-        assert(m_handle);
-        auto& excp = m_handle.promise().next_step.promise().pending_exception;
-        return clear ? std::exchange(excp, {}) : excp;
-    }
-
-    bool valid() const noexcept { return !!m_handle; }
-
 protected:
     class awaiter_base;
     struct promise_type_base
@@ -150,6 +128,28 @@ protected:
     }
 
     std::coroutine_handle<promise_type_base> m_handle;
+
+public:
+    bool done() const noexcept
+    {
+        assert(m_handle);
+        return m_handle.done();
+    }
+
+    void operator()() const
+    {
+        assert(m_handle);
+        m_handle.promise().next_step();
+    }
+
+    std::exception_ptr pending_exception(bool clear = false) const
+    {
+        assert(m_handle);
+        auto& excp = m_handle.promise().next_step.promise().pending_exception;
+        return clear ? std::exchange(excp, {}) : excp;
+    }
+
+    bool valid() const noexcept { return !!m_handle; }
 };
 
 class task : task_base
