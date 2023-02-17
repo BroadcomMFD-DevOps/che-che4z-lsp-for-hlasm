@@ -1043,16 +1043,16 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
 
             static const consuming_regex_details is_crd({ "IS" }, true, true);
 
-            auto it = std::next(ll.m_db2_ll.begin(), instruction_end);
+            auto it_b = std::next(ll.m_db2_ll.begin(), instruction_end);
             auto it_e = ll.m_db2_ll.end();
-            db2_logical_line_helper::trim_left(it, it_e);
+            db2_logical_line_helper::trim_left(it_b, it_e);
 
             args.clear();
             switch (instruction_type)
             {
                 case line_type::exec_sql: {
                     process_regular_line(ll.m_db2_ll.segments, label);
-                    if (auto inc_member_details = try_process_include(it, it_e, ll.m_lineno);
+                    if (auto inc_member_details = try_process_include(it_b, it_e, ll.m_lineno);
                         inc_member_details.has_value())
                     {
                         if (inc_member_details->name.empty())
@@ -1074,8 +1074,8 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
                     {
                         static constexpr mini_parser<lexing::logical_line<std::string_view::iterator>::const_iterator>
                             parser;
-                        args = parser.get_args(it, it_e, ll.m_lineno);
-                        if (sql_has_codegen(it, it_e))
+                        args = parser.get_args(it_b, it_e, ll.m_lineno);
+                        if (sql_has_codegen(it_b, it_e))
                             generate_sql_code_mock(args.size());
                         m_result.emplace_back(replaced_line { "***$$$\n" });
                     }
@@ -1089,7 +1089,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
                     if (ll.m_db2_ll.segments.size() > 1)
                         diag_adder(diagnostic_op::warn_DB005(range(position(ll.m_lineno, 0))));
 
-                    if (!consume_words_advance_to_next(it, it_e, is_crd))
+                    if (!consume_words_advance_to_next(it_b, it_e, is_crd))
                     {
                         diag_adder(diagnostic_op::warn_DB006(range(position(ll.m_lineno, 0))));
                         break;
@@ -1097,7 +1097,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
 
                     if (label.empty())
                         label = " "; // best matches the observed behavior
-                    if (!process_sql_type_operands(label, it, it_e))
+                    if (!process_sql_type_operands(label, it_b, it_e))
                         diag_adder(diagnostic_op::error_DB004(range(position(ll.m_lineno, 0))));
                     break;
 
