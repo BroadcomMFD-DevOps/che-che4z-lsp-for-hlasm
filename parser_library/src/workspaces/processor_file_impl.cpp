@@ -60,7 +60,7 @@ bool processor_file_impl::parse(parse_lib_provider& lib_provider,
     auto old_dep = m_dependencies;
 
     processing::hit_count_analyzer hc_analyzer(new_analyzer->hlasm_ctx());
-    new_analyzer->register_stmt_analyzer(&hc_analyzer);
+    new_analyzer->register_stmt_analyzer(&hc_analyzer); // TODO dangling reference to hc_analyzer
     do
     {
         if (m_cancel && m_cancel->load(std::memory_order_relaxed))

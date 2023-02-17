@@ -153,7 +153,7 @@ void generate_merged_fade_messages(
     while (faded_line_it != it_e)
     {
         auto active_line = std::find_if_not(std::next(faded_line_it), it_e, faded_line_predicate);
-        if (active_line != it_e || faded_line_it != it_b || !hc_details.is_external_macro)
+        if (!hc_details.is_external_macro)
             fms.emplace_back(fade_message_s::inactive_statement(uri,
                 range(position(std::distance(line_hits_it_b, faded_line_it), 0),
                     position(std::distance(line_hits_it_b, std::prev(active_line)), 80))));

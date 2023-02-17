@@ -57,8 +57,8 @@ public:
 
     bool has_lsp_info() const override;
 
-    const std::vector<fade_message_s>& fade_messages() const;
-    const processing::hit_count_map& hit_counts() const;
+    const std::vector<fade_message_s>& fade_messages() const override;
+    const processing::hit_count_map& hit_counts() const override;
 
     const file_location& get_location() const override;
 

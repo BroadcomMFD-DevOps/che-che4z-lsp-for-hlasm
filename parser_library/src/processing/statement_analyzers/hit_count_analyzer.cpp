@@ -59,7 +59,7 @@ std::optional<stmt_lines_range> get_stmt_lines_range(const semantics::core_state
     {
         const auto& source = ctx.current_source();
         // TODO: look into the opencode range discrepancy
-        return std::make_pair(r.start.line, r.end.line + source.end_index - source.begin_index - 1);
+        return std::make_pair(r.start.line, r.start.line + source.end_index - source.begin_index - 1);
     }
 
     return stmt_lines_compacter(r);
@@ -87,9 +87,9 @@ void update_hc_details(
 }
 } // namespace
 
-hit_count_details& hit_count_analyzer::get_hc_details_reference(utils::resource::resource_location rl)
+hit_count_details& hit_count_analyzer::get_hc_details_reference(const utils::resource::resource_location& rl)
 {
-    return m_hit_counts.try_emplace(std::move(rl)).first->second;
+    return m_hit_counts.try_emplace(rl).first->second;
 }
 
 void hit_count_analyzer::emplace_macro_header_definitions(const context::id_index& id)
@@ -98,9 +98,10 @@ void hit_count_analyzer::emplace_macro_header_definitions(const context::id_inde
         map_it != m_macro_header_definitions.end() && !map_it->second.used && map_it->second.defined)
     {
         auto& mac_header_details = map_it->second;
-        update_hc_details(get_hc_details_reference(mac_header_details.rl), mac_header_details.init_line_r, true, true);
-        update_hc_details(get_hc_details_reference(mac_header_details.rl), mac_header_details.name_line_r, true, true);
-        update_hc_details(get_hc_details_reference(mac_header_details.rl), mac_header_details.mend_line_r, true, true);
+        auto& hc_details = get_hc_details_reference(mac_header_details.rl);
+        update_hc_details(hc_details, mac_header_details.init_line_r, true, true);
+        update_hc_details(hc_details, mac_header_details.name_line_r, true, true);
+        update_hc_details(hc_details, mac_header_details.mend_line_r, true, true);
 
         mac_header_details.used = true;
     }

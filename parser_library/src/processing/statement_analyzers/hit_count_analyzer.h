@@ -113,7 +113,7 @@ private:
     stmt_lines_range m_last_macro_init_line_ranges;
     std::unordered_map<context::id_index, macro_header_definition_details> m_macro_header_definitions;
 
-    hit_count_details& get_hc_details_reference(utils::resource::resource_location rl);
+    hit_count_details& get_hc_details_reference(const utils::resource::resource_location& rl);
 
     void emplace_macro_header_definitions(const context::id_index& id);
 
