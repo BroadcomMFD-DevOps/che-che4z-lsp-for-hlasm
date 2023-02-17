@@ -32,7 +32,7 @@
 #include "workspaces/parse_lib_provider.h"
 
 namespace hlasm_plugin::utils {
-struct task;
+class task;
 } // namespace hlasm_plugin::utils
 
 namespace hlasm_plugin::parser_library::processing {

@@ -36,6 +36,8 @@ namespace {
 const auto copy1_loc = resource_location("COPY1");
 const auto copy2_loc = resource_location("COPY2");
 const auto member_loc = resource_location("MEMBER");
+
+constexpr auto empty_library_fetcher = [](std::string_view, auto callback) { callback(std::nullopt); };
 } // namespace
 
 class db2_preprocessor_test : public testing::Test
@@ -59,8 +61,7 @@ protected:
 
 TEST_F(db2_preprocessor_test, first_line)
 {
-    auto p = create_preprocessor(
-        db2_preprocessor_options {}, [](std::string_view) { return std::nullopt; }, nullptr);
+    auto p = create_preprocessor(db2_preprocessor_options {}, empty_library_fetcher, nullptr);
     std::string_view text = "";
 
     auto result = p->generate_replacement(document());
@@ -74,8 +75,7 @@ TEST_F(db2_preprocessor_test, first_line)
 
 TEST_F(db2_preprocessor_test, last_line)
 {
-    auto p = create_preprocessor(
-        db2_preprocessor_options {}, [](std::string_view) { return std::nullopt; }, nullptr);
+    auto p = create_preprocessor(db2_preprocessor_options {}, empty_library_fetcher, nullptr);
     std::string_view text = "\n END ";
 
     auto result = p->generate_replacement(document(text));
@@ -91,10 +91,10 @@ TEST_F(db2_preprocessor_test, include)
 {
     auto p = create_preprocessor(
         db2_preprocessor_options {},
-        [](std::string_view s) {
+        [](std::string_view s, auto callback) {
             EXPECT_EQ(s, "MEMBER");
-            return std::pair<std::string, hlasm_plugin::utils::resource::resource_location>(
-                "member content", hlasm_plugin::utils::resource::resource_location());
+            callback(std::pair<std::string, hlasm_plugin::utils::resource::resource_location>(
+                "member content", hlasm_plugin::utils::resource::resource_location()));
         },
         nullptr);
     std::string_view text = "\n EXEC SQL INCLUDE MEMBER ";
@@ -114,9 +114,9 @@ TEST_F(db2_preprocessor_test, include_sqlca)
     bool called = false;
     auto p = create_preprocessor(
         db2_preprocessor_options {},
-        [&called](std::string_view) {
+        [&called](std::string_view, auto callback) {
             called = true;
-            return std::nullopt;
+            callback(std::nullopt);
         },
         nullptr);
     std::string_view text = "\n EXEC SQL INCLUDE SqLcA ";
@@ -134,9 +134,9 @@ TEST_F(db2_preprocessor_test, include_sqlda)
     bool called = false;
     auto p = create_preprocessor(
         db2_preprocessor_options {},
-        [&called](std::string_view) {
+        [&called](std::string_view, auto callback) {
             called = true;
-            return std::nullopt;
+            callback(std::nullopt);
         },
         nullptr);
     std::string_view text = "\n EXEC SQL INCLUDE SqLdA ";
@@ -154,9 +154,9 @@ TEST_F(db2_preprocessor_test, sql_like)
     bool called = false;
     auto p = create_preprocessor(
         db2_preprocessor_options {},
-        [&called](std::string_view) {
+        [&called](std::string_view, auto callback) {
             called = true;
-            return std::nullopt;
+            callback(std::nullopt);
         },
         nullptr);
     std::string_view text = "\n EXEC SQL SELECT 1 INTO :A FROM SYSIBM.SYSDUMMY1";
@@ -173,8 +173,7 @@ TEST_F(db2_preprocessor_test, sql_like)
 
 TEST_F(db2_preprocessor_test, with_label)
 {
-    auto p = create_preprocessor(
-        db2_preprocessor_options {}, [](std::string_view) { return std::nullopt; }, nullptr);
+    auto p = create_preprocessor(db2_preprocessor_options {}, empty_library_fetcher, nullptr);
     std::string_view text = "\nABC EXEC SQL WHATEVER";
 
     auto result = p->generate_replacement(document(text));
@@ -195,8 +194,7 @@ TEST_F(db2_preprocessor_test, with_label)
 
 TEST_F(db2_preprocessor_test, missing_member)
 {
-    auto p = create_preprocessor(
-        db2_preprocessor_options {}, [](std::string_view) { return std::nullopt; }, &m_diags);
+    auto p = create_preprocessor(db2_preprocessor_options {}, empty_library_fetcher, &m_diags);
 
     std::string_view text = " EXEC SQL INCLUDE MISSING";
 
@@ -208,8 +206,7 @@ TEST_F(db2_preprocessor_test, missing_member)
 
 TEST_F(db2_preprocessor_test, bad_continuation)
 {
-    auto p = create_preprocessor(
-        db2_preprocessor_options {}, [](std::string_view) { return std::nullopt; }, &m_diags);
+    auto p = create_preprocessor(db2_preprocessor_options {}, empty_library_fetcher, &m_diags);
 
     std::string_view text = R"( EXEC SQL PRETEND SQL STATEMENT                                        X
 badcontinuation)";
@@ -224,10 +221,10 @@ TEST_F(db2_preprocessor_test, no_nested_include)
 {
     auto p = create_preprocessor(
         db2_preprocessor_options {},
-        [](std::string_view s) {
+        [](std::string_view s, auto callback) {
             EXPECT_EQ(s, "MEMBER");
-            return std::pair<std::string, hlasm_plugin::utils::resource::resource_location>(
-                " EXEC SQL INCLUDE MEMBER", hlasm_plugin::utils::resource::resource_location());
+            callback(std::pair<std::string, hlasm_plugin::utils::resource::resource_location>(
+                " EXEC SQL INCLUDE MEMBER", hlasm_plugin::utils::resource::resource_location()));
         },
         &m_diags);
     std::string_view text = " EXEC SQL INCLUDE MEMBER ";
@@ -768,8 +765,7 @@ TEST(db2_preprocessor, end_sqldsect_injection)
 
 TEST_F(db2_preprocessor_test, sql_types)
 {
-    auto p = create_preprocessor(
-        db2_preprocessor_options {}, [](std::string_view) { return std::nullopt; }, &m_diags);
+    auto p = create_preprocessor(db2_preprocessor_options {}, empty_library_fetcher, &m_diags);
     std::string_view text = R"(
 RE SQL TYPE IS RESULT_SET_LOCATOR VARYING
 RO SQL TYPE IS ROWID
@@ -960,8 +956,7 @@ TEST(db2_preprocessor, sql_type_fails)
     {
         semantics::source_info_processor src_info(false);
         diagnostic_op_consumer_container diags;
-        auto p = preprocessor::create(
-            db2_preprocessor_options {}, [](std::string_view) { return std::nullopt; }, &diags, src_info);
+        auto p = preprocessor::create(db2_preprocessor_options {}, empty_library_fetcher, &diags, src_info);
 
         p->generate_replacement(document(text));
 
@@ -973,8 +968,7 @@ TEST_F(db2_preprocessor_test, sql_type_warn_on_continuation)
 {
     std::string_view text = "A SQL TYPE IS TABLE LIKE AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n"
                             "                AS LOCATOR";
-    auto p = create_preprocessor(
-        db2_preprocessor_options {}, [](std::string_view) { return std::nullopt; }, &m_diags);
+    auto p = create_preprocessor(db2_preprocessor_options {}, empty_library_fetcher, &m_diags);
 
     p->generate_replacement(document(text));
 
@@ -1009,8 +1003,7 @@ RE3                                 SQL TYPE                         ISX
 )";
 
 
-    auto p = create_preprocessor(
-        db2_preprocessor_options {}, [](std::string_view) { return std::nullopt; }, &m_diags);
+    auto p = create_preprocessor(db2_preprocessor_options {}, empty_library_fetcher, &m_diags);
 
     auto result = p->generate_replacement(document(text));
 
@@ -1035,8 +1028,7 @@ RE3                                 SQL TYPE                         ISX
                VARYING
 )";
 
-    auto p = create_preprocessor(
-        db2_preprocessor_options {}, [](std::string_view) { return std::nullopt; }, &m_diags);
+    auto p = create_preprocessor(db2_preprocessor_options {}, empty_library_fetcher, &m_diags);
 
     auto result = p->generate_replacement(document(text));
 
@@ -1139,8 +1131,7 @@ RO_LEN  EQU *-RO
 
 TEST_F(db2_preprocessor_test, conditional)
 {
-    auto p = create_preprocessor(
-        db2_preprocessor_options("", true), [](std::string_view) { return std::nullopt; }, nullptr);
+    auto p = create_preprocessor(db2_preprocessor_options("", true), empty_library_fetcher, nullptr);
     std::string_view text = "";
 
     auto result = p->generate_replacement(document());

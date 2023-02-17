@@ -46,9 +46,8 @@ struct preprocessor_statement_si;
 
 namespace hlasm_plugin::parser_library::processing {
 
-using library_fetcher =
-    std::function<std::optional<std::pair<std::string, hlasm_plugin::utils::resource::resource_location>>(
-        std::string_view)>;
+using library_fetcher = std::function<void(
+    std::string_view, std::function<void(std::optional<std::pair<std::string, utils::resource::resource_location>>)>)>;
 
 class preprocessor
 {

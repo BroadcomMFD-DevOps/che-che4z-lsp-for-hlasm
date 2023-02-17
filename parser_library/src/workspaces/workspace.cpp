@@ -71,8 +71,9 @@ struct workspace_parse_lib_provider final : public parse_lib_provider
             return lib->has_file(library, loc);
         });
     }
-    std::optional<std::pair<std::string, utils::resource::resource_location>> get_library(
-        std::string_view library) const override
+    void get_library(std::string_view library,
+        std::function<void(std::optional<std::pair<std::string, utils::resource::resource_location>>)> callback)
+        const override
     {
         utils::resource::resource_location url;
         for (const auto& lib : libraries)
@@ -82,11 +83,12 @@ struct workspace_parse_lib_provider final : public parse_lib_provider
 
             auto content = ws.file_manager_.get_file_content(url);
             if (!content.has_value())
-                return std::nullopt;
+                break;
 
-            return std::make_pair(std::move(content).value(), std::move(url));
+            callback(std::make_pair(std::move(content).value(), std::move(url)));
+            return;
         }
-        return std::nullopt;
+        callback(std::nullopt);
     }
 };
 

@@ -56,7 +56,10 @@ TEST(cics_preprocessor, asm_xopts_parsing)
         semantics::source_info_processor src_info(false);
 
         auto p = preprocessor::create(
-            cics_preprocessor_options {}, [](std::string_view) { return std::nullopt; }, nullptr, src_info);
+            cics_preprocessor_options {},
+            [](std::string_view, auto callback) { callback(std::nullopt); },
+            nullptr,
+            src_info);
 
         auto result = p->generate_replacement(document(text_template));
         EXPECT_GT(result.size(), 0);
@@ -92,7 +95,7 @@ TEST_P(cics_preprocessor_tests, basics)
     auto [text_template, config] = input;
 
     auto p = preprocessor::create(
-        config, [](std::string_view) { return std::nullopt; }, nullptr, src_info);
+        config, [](std::string_view, auto callback) { callback(std::nullopt); }, nullptr, src_info);
 
     auto result = p->generate_replacement(document(text_template));
 

@@ -116,7 +116,9 @@ analyzer::analyzer(std::string_view text, analyzer_options opts)
                 src_proc_,
                 *this,
                 opts.get_preprocessor(
-                    [libs = &opts.get_lib_provider()](std::string_view library) { return libs->get_library(library); },
+                    [libs = &opts.get_lib_provider()](std::string_view library,
+                        std::function<void(std::optional<std::pair<std::string, utils::resource::resource_location>>)>
+                            callback) { libs->get_library(library, std::move(callback)); },
                     *this,
                     src_proc_),
                 opts.parsing_opencode == file_is_opencode::yes ? processing::opencode_provider_options { true, 10 }

@@ -58,13 +58,13 @@ struct async_macro_parsing_fixture : ::testing::Test, parse_lib_provider
             *url = resource::resource_location(it->second);
         return true;
     }
-    std::optional<std::pair<std::string, resource::resource_location>> get_library(
-        std::string_view library) const override
+    void get_library(std::string_view library,
+        std::function<void(std::optional<std::pair<std::string, resource::resource_location>>)> callback) const override
     {
         if (auto it = m_files.find(library); it != m_files.end())
-            return std::make_pair(it->second, resource::resource_location(it->first));
+            callback(std::make_pair(it->second, resource::resource_location(it->first)));
         else
-            return std::nullopt;
+            callback(std::nullopt);
     }
 
     void analyze(analyzer& a)

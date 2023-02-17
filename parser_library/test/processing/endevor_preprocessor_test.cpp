@@ -38,9 +38,13 @@ public:
         : m_src_info(false)
     {}
 
-    std::unique_ptr<preprocessor> create_preprocessor(library_fetcher libs)
+    std::unique_ptr<preprocessor> create_preprocessor(auto libs)
     {
-        return preprocessor::create(endevor_preprocessor_options(), libs, &m_diags, m_src_info);
+        return preprocessor::create(
+            endevor_preprocessor_options(),
+            [libs](std::string_view s, auto callback) { callback(libs(s)); },
+            &m_diags,
+            m_src_info);
     }
 
 protected:

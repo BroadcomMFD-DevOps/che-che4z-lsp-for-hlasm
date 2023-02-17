@@ -72,8 +72,8 @@ bool debug_lib_provider::has_library(std::string_view library, utils::resource::
     return false;
 }
 
-std::optional<std::pair<std::string, utils::resource::resource_location>> debug_lib_provider::get_library(
-    std::string_view library) const
+void debug_lib_provider::get_library(std::string_view library,
+    std::function<void(std::optional<std::pair<std::string, utils::resource::resource_location>>)> callback) const
 {
     utils::resource::resource_location url;
     for (const auto& lib : m_libraries)
@@ -85,9 +85,10 @@ std::optional<std::pair<std::string, utils::resource::resource_location>> debug_
         if (!content_o.has_value())
             break;
 
-        return std::pair(std::move(content_o).value(), std::move(url));
+        callback(std::pair(std::move(content_o).value(), std::move(url)));
+        return;
     }
-    return {};
+    callback(std::nullopt);
 }
 
 } // namespace hlasm_plugin::parser_library::debugging

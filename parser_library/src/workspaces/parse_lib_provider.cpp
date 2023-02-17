@@ -26,10 +26,10 @@ bool empty_parse_lib_provider::has_library(std::string_view, utils::resource::re
 {
     return false;
 };
-std::optional<std::pair<std::string, utils::resource::resource_location>> empty_parse_lib_provider::get_library(
-    std::string_view) const
+void empty_parse_lib_provider::get_library(std::string_view,
+    std::function<void(std::optional<std::pair<std::string, utils::resource::resource_location>>)> callback) const
 {
-    return std::nullopt;
+    callback(std::nullopt);
 }
 
 empty_parse_lib_provider empty_parse_lib_provider::instance;
