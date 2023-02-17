@@ -1034,8 +1034,6 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
 
             it = ll_helper.reinit(it, end, lineno.value_or(0));
 
-            args.clear();
-
             const auto& ll = ll_helper;
             const auto instruction_end = instruction_nr.r.end.column;
             std::string_view label = label_nr.name;
@@ -1045,11 +1043,11 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
 
             static const consuming_regex_details is_crd({ "IS" }, true, true);
 
-            std::vector<semantics::preproc_details::name_range> args;
             auto it = std::next(ll.m_db2_ll.begin(), instruction_end);
             auto it_e = ll.m_db2_ll.end();
             db2_logical_line_helper::trim_left(it, it_e);
 
+            args.clear();
             switch (instruction_type)
             {
                 case line_type::exec_sql: {

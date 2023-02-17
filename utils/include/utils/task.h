@@ -16,6 +16,7 @@
 #define HLASMPLUGIN_UTILS_task_base_H
 
 #include <cassert>
+#include <concepts>
 #include <coroutine>
 #include <exception>
 #include <optional>
@@ -156,13 +157,13 @@ class task : task_base
 public:
     struct promise_type : task_base::promise_type_base
     {
-        task get_return_object() { return task(std::coroutine_handle<promise_type_base>::from_promise(*this)); }
+        task get_return_object() { return task(std::coroutine_handle<promise_type>::from_promise(*this)); }
         void return_void() const noexcept {}
     };
 
     task() = default;
-    explicit task(std::coroutine_handle<promise_type_base> handle)
-        : task_base(std::move(handle))
+    explicit task(std::coroutine_handle<promise_type> handle)
+        : task_base(std::coroutine_handle<promise_type_base>::from_promise(handle.promise()))
     {}
 
     auto operator co_await() const&&
@@ -178,6 +179,7 @@ public:
             using awaiter_base::await_resume;
             using awaiter_base::await_suspend;
         };
+        assert(m_handle);
         return awaiter(m_handle.promise());
     }
 
@@ -191,14 +193,14 @@ public:
     task& run() &
     {
         while (!done())
-            task_base::operator()();
+            operator()();
 
         return *this;
     }
     task run() &&
     {
         while (!done())
-            task_base::operator()();
+            operator()();
 
         return std::move(*this);
     }
@@ -210,18 +212,15 @@ class value_task : task_base
 public:
     struct promise_type : task_base::promise_type_base
     {
-        value_task get_return_object()
-        {
-            return value_task(std::coroutine_handle<promise_type_base>::from_promise(*this));
-        }
+        value_task get_return_object() { return value_task(std::coroutine_handle<promise_type>::from_promise(*this)); }
         void return_value(T v) noexcept(noexcept(result.emplace(std::move(v)))) { result.emplace(std::move(v)); }
 
         std::optional<T> result;
     };
 
     value_task() = default;
-    explicit value_task(std::coroutine_handle<promise_type_base> handle)
-        : task_base(std::move(handle))
+    explicit value_task(std::coroutine_handle<promise_type> handle)
+        : task_base(std::coroutine_handle<promise_type_base>::from_promise(handle.promise()))
     {}
 
     auto operator co_await() const&&
@@ -241,6 +240,7 @@ public:
                 return std::move(static_cast<promise_type&>(self).result.value());
             }
         };
+        assert(m_handle);
         return awaiter(m_handle.promise());
     }
 
@@ -265,14 +265,14 @@ public:
     value_task& run() &
     {
         while (!done())
-            task_base::operator()();
+            operator()();
 
         return *this;
     }
     value_task run() &&
     {
         while (!done())
-            task_base::operator()();
+            operator()();
 
         return std::move(*this);
     }
