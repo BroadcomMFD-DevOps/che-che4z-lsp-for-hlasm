@@ -43,16 +43,19 @@ protected:
             pending_exception = std::current_exception();
         }
 
-        std::coroutine_handle<promise_type_base> next_step =
-            std::coroutine_handle<promise_type_base>::from_promise(*this);
+        std::coroutine_handle<promise_type_base> handle()
+        {
+            return std::coroutine_handle<promise_type_base>::from_promise(*this);
+        }
+
+        std::coroutine_handle<promise_type_base> next_step = handle();
         awaiter_base* active = nullptr;
-        std::coroutine_handle<promise_type_base> top_waiter =
-            std::coroutine_handle<promise_type_base>::from_promise(*this);
+        std::coroutine_handle<promise_type_base> top_waiter = handle();
         std::exception_ptr pending_exception;
 
         void attach(std::coroutine_handle<promise_type_base> current_top_waiter, awaiter_base* a)
         {
-            current_top_waiter.promise().next_step = std::coroutine_handle<promise_type_base>::from_promise(*this);
+            current_top_waiter.promise().next_step = handle();
             active = a;
             top_waiter = std::move(current_top_waiter);
         }
@@ -64,9 +67,9 @@ protected:
                 active->to_resume.promise().pending_exception = std::exchange(pending_exception, {});
                 top_waiter.promise().next_step = active->to_resume;
 
-                next_step = std::coroutine_handle<promise_type_base>::from_promise(*this);
+                next_step = handle();
                 active = nullptr;
-                top_waiter = std::coroutine_handle<promise_type_base>::from_promise(*this);
+                top_waiter = handle();
             }
         }
     };
@@ -89,7 +92,7 @@ protected:
         template<std::derived_from<promise_type_base> T>
         bool await_suspend(std::coroutine_handle<T> h) noexcept
         {
-            return await_suspend(std::coroutine_handle<promise_type_base>::from_promise(h.promise()));
+            return await_suspend(h.promise().handle());
         }
 
         void await_resume() const
@@ -163,7 +166,7 @@ public:
 
     task() = default;
     explicit task(std::coroutine_handle<promise_type> handle)
-        : task_base(std::coroutine_handle<promise_type_base>::from_promise(handle.promise()))
+        : task_base(handle.promise().handle())
     {}
 
     auto operator co_await() const&&
@@ -220,7 +223,7 @@ public:
 
     value_task() = default;
     explicit value_task(std::coroutine_handle<promise_type> handle)
-        : task_base(std::coroutine_handle<promise_type_base>::from_promise(handle.promise()))
+        : task_base(handle.promise().handle())
     {}
 
     auto operator co_await() const&&
