@@ -45,6 +45,8 @@ public:
         return clear ? std::exchange(excp, {}) : excp;
     }
 
+    bool valid() const noexcept { return !!m_handle; }
+
 protected:
     class awaiter_base;
     struct promise_type_base
@@ -122,6 +124,7 @@ protected:
         {}
     };
 
+    task_base() = default;
     explicit task_base(std::coroutine_handle<promise_type_base> handle)
         : m_handle(std::move(handle))
     {}
@@ -157,6 +160,7 @@ public:
         void return_void() const noexcept {}
     };
 
+    task() = default;
     explicit task(std::coroutine_handle<promise_type_base> handle)
         : task_base(std::move(handle))
     {}
@@ -181,7 +185,23 @@ public:
 
     using task_base::done;
     using task_base::pending_exception;
+    using task_base::valid;
     using task_base::operator();
+
+    task& run() &
+    {
+        while (!done())
+            task_base::operator()();
+
+        return *this;
+    }
+    task run() &&
+    {
+        while (!done())
+            task_base::operator()();
+
+        return std::move(*this);
+    }
 };
 
 template<std::move_constructible T>
@@ -199,6 +219,7 @@ public:
         std::optional<T> result;
     };
 
+    value_task() = default;
     explicit value_task(std::coroutine_handle<promise_type_base> handle)
         : task_base(std::move(handle))
     {}
@@ -227,6 +248,7 @@ public:
 
     using task_base::done;
     using task_base::pending_exception;
+    using task_base::valid;
     using task_base::operator();
 
     T& value() const&
@@ -238,15 +260,21 @@ public:
 
         return static_cast<promise_type&>(p).result.value();
     }
+    T value() const&& { return std::move(std::as_const(*this).value()); }
 
-    T value() const&&
+    value_task& run() &
     {
-        assert(done());
-        auto& p = m_handle.promise();
-        if (p.pending_exception)
-            std::rethrow_exception(p.pending_exception);
+        while (!done())
+            task_base::operator()();
 
-        return std::move(static_cast<promise_type&>(p).result.value());
+        return *this;
+    }
+    value_task run() &&
+    {
+        while (!done())
+            task_base::operator()();
+
+        return std::move(*this);
     }
 };
 

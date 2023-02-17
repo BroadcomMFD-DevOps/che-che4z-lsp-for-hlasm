@@ -65,7 +65,7 @@ class endevor_preprocessor final : public preprocessor
     endevor_preprocessor_options m_options;
     semantics::source_info_processor& m_src_proc;
 
-    bool process_member(std::string_view member, std::vector<stack_entry>& stack)
+    utils::value_task<bool> process_member(std::string_view member, std::vector<stack_entry>& stack)
     {
         std::string member_upper = utils::to_upper_copy(std::string(member));
 
@@ -76,12 +76,12 @@ class endevor_preprocessor final : public preprocessor
             if (m_diags)
                 m_diags->add_diagnostic(diagnostic_op::error_END002(
                     range(position(std::prev(stack.front().current)->lineno().value_or(0), 0)), member));
-            return false;
+            co_return false;
         }
 
         std::optional<std::pair<std::string, utils::resource::resource_location>> library;
         if (m_libs)
-            library = m_libs(member_upper);
+            library = co_await m_libs(member_upper);
 
         if (!library.has_value())
         {
@@ -101,7 +101,7 @@ class endevor_preprocessor final : public preprocessor
                 included_member_details { std::move(member_upper), std::move(lib_text), std::move(lib_loc) }));
         }
 
-        return true;
+        co_return true;
     }
 
 public:
@@ -116,7 +116,7 @@ public:
     {}
 
     // Inherited via preprocessor
-    document generate_replacement(document doc) override
+    utils::value_task<document> generate_replacement(document doc) override
     {
         reset();
 
@@ -124,7 +124,7 @@ public:
                 auto text = l.text();
                 return text.starts_with("-INC ") || text.starts_with("++INCLUDE ");
             }))
-            return doc;
+            co_return doc;
 
         static std::regex include_regex(R"(^(-INC|\+\+INCLUDE)\s+(\S+)(?:\s+(.*))?)");
 
@@ -156,7 +156,7 @@ public:
             auto copy_member = get_copy_member(matches);
             auto line_no = std::prev(stack.back().current)->lineno();
 
-            if (!process_member(copy_member, stack))
+            if (!co_await process_member(copy_member, stack))
                 break;
 
             if (line_no)
@@ -169,7 +169,7 @@ public:
             }
         }
 
-        return document(std::move(result));
+        co_return document(std::move(result));
     }
 };
 

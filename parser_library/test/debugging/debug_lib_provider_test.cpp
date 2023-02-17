@@ -102,6 +102,6 @@ TEST_F(debug_lib_provider_test, get_library)
     lib.get_library("AAA", [&result](auto v) { result = std::move(v); });
     EXPECT_EQ(result, std::pair(aaa_content, aaa_location));
 
-    lib.get_library("AAA", [&result](auto v) { result = std::move(v); });
+    lib.get_library("BBB", [&result](auto v) { result = std::move(v); });
     EXPECT_EQ(result, std::nullopt);
 }

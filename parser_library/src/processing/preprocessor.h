@@ -26,6 +26,7 @@
 #include "diagnostic_consumer.h"
 #include "document.h"
 #include "utils/resource_location.h"
+#include "utils/task.h"
 
 namespace hlasm_plugin::parser_library {
 struct cics_preprocessor_options;
@@ -46,8 +47,9 @@ struct preprocessor_statement_si;
 
 namespace hlasm_plugin::parser_library::processing {
 
-using library_fetcher = std::function<void(
-    std::string_view, std::function<void(std::optional<std::pair<std::string, utils::resource::resource_location>>)>)>;
+using library_fetcher =
+    std::function<utils::value_task<std::optional<std::pair<std::string, utils::resource::resource_location>>>(
+        std::string_view)>;
 
 class preprocessor
 {
@@ -63,7 +65,7 @@ public:
 
     virtual ~preprocessor() = default;
 
-    virtual document generate_replacement(document doc) = 0;
+    virtual utils::value_task<document> generate_replacement(document doc) = 0;
 
     static std::unique_ptr<preprocessor> create(
         const cics_preprocessor_options&, library_fetcher, diagnostic_op_consumer*, semantics::source_info_processor&);

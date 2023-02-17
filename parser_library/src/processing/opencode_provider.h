@@ -77,6 +77,7 @@ enum class extract_next_logical_line_result
 // uses the parser implementation to produce statements in the opencode(-like) scenario
 class opencode_provider final : public statement_provider
 {
+    utils::value_task<document> m_preprocessor_task;
     document m_input_document;
     std::size_t m_next_line_index = 0;
 

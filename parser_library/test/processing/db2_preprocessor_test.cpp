@@ -37,7 +37,11 @@ const auto copy1_loc = resource_location("COPY1");
 const auto copy2_loc = resource_location("COPY2");
 const auto member_loc = resource_location("MEMBER");
 
-constexpr auto empty_library_fetcher = [](std::string_view, auto callback) { callback(std::nullopt); };
+constexpr auto empty_library_fetcher =
+    [](std::string_view) -> hlasm_plugin::utils::value_task<
+                             std::optional<std::pair<std::string, hlasm_plugin::utils::resource::resource_location>>> {
+    co_return std::nullopt;
+};
 } // namespace
 
 class db2_preprocessor_test : public testing::Test
@@ -64,7 +68,7 @@ TEST_F(db2_preprocessor_test, first_line)
     auto p = create_preprocessor(db2_preprocessor_options {}, empty_library_fetcher, nullptr);
     std::string_view text = "";
 
-    auto result = p->generate_replacement(document());
+    auto result = p->generate_replacement(document()).run().value();
 
     EXPECT_EQ(std::count_if(result.begin(),
                   result.end(),
@@ -78,7 +82,7 @@ TEST_F(db2_preprocessor_test, last_line)
     auto p = create_preprocessor(db2_preprocessor_options {}, empty_library_fetcher, nullptr);
     std::string_view text = "\n END ";
 
-    auto result = p->generate_replacement(document(text));
+    auto result = p->generate_replacement(document(text)).run().value();
 
     EXPECT_EQ(std::count_if(result.begin(),
                   result.end(),
@@ -91,15 +95,17 @@ TEST_F(db2_preprocessor_test, include)
 {
     auto p = create_preprocessor(
         db2_preprocessor_options {},
-        [](std::string_view s, auto callback) {
+        [](std::string_view s)
+            -> hlasm_plugin::utils::value_task<
+                std::optional<std::pair<std::string, hlasm_plugin::utils::resource::resource_location>>> {
             EXPECT_EQ(s, "MEMBER");
-            callback(std::pair<std::string, hlasm_plugin::utils::resource::resource_location>(
-                "member content", hlasm_plugin::utils::resource::resource_location()));
+            co_return std::pair<std::string, hlasm_plugin::utils::resource::resource_location>(
+                "member content", hlasm_plugin::utils::resource::resource_location());
         },
         nullptr);
     std::string_view text = "\n EXEC SQL INCLUDE MEMBER ";
 
-    auto result = p->generate_replacement(document(text));
+    auto result = p->generate_replacement(document(text)).run().value();
 
     EXPECT_EQ(
         std::count_if(result.begin(), result.end(), [](const auto& l) { return l.text() == "member content"; }), 1);
@@ -109,20 +115,32 @@ TEST_F(db2_preprocessor_test, include)
         0);
 }
 
-TEST_F(db2_preprocessor_test, include_sqlca)
+namespace {
+struct library_fetcher_call_confirmer
 {
     bool called = false;
-    auto p = create_preprocessor(
-        db2_preprocessor_options {},
-        [&called](std::string_view, auto callback) {
-            called = true;
-            callback(std::nullopt);
-        },
-        nullptr);
+
+    hlasm_plugin::utils::value_task<
+        std::optional<std::pair<std::string, hlasm_plugin::utils::resource::resource_location>>>
+    operator()(std::string_view)
+    {
+        called = true;
+        co_return std::nullopt;
+    }
+
+    bool operator==(bool b) const { return called == b; }
+};
+} // namespace
+
+TEST_F(db2_preprocessor_test, include_sqlca)
+{
+    library_fetcher_call_confirmer called;
+    auto p = create_preprocessor(db2_preprocessor_options {}, called, nullptr);
     std::string_view text = "\n EXEC SQL INCLUDE SqLcA ";
 
-    auto result = p->generate_replacement(document(text));
+    auto result = p->generate_replacement(document(text)).run().value();
 
+    EXPECT_EQ(called, false);
     EXPECT_EQ(std::count_if(result.begin(),
                   result.end(),
                   [](const auto& l) { return l.text().find("***$$$ SQLCA") != std::string::npos; }),
@@ -131,18 +149,13 @@ TEST_F(db2_preprocessor_test, include_sqlca)
 
 TEST_F(db2_preprocessor_test, include_sqlda)
 {
-    bool called = false;
-    auto p = create_preprocessor(
-        db2_preprocessor_options {},
-        [&called](std::string_view, auto callback) {
-            called = true;
-            callback(std::nullopt);
-        },
-        nullptr);
+    library_fetcher_call_confirmer called;
+    auto p = create_preprocessor(db2_preprocessor_options {}, called, nullptr);
     std::string_view text = "\n EXEC SQL INCLUDE SqLdA ";
 
-    auto result = p->generate_replacement(document(text));
+    auto result = p->generate_replacement(document(text)).run().value();
 
+    EXPECT_EQ(called, false);
     EXPECT_EQ(std::count_if(result.begin(),
                   result.end(),
                   [](const auto& l) { return l.text().find("***$$$ SQLDA") != std::string::npos; }),
@@ -151,18 +164,13 @@ TEST_F(db2_preprocessor_test, include_sqlda)
 
 TEST_F(db2_preprocessor_test, sql_like)
 {
-    bool called = false;
-    auto p = create_preprocessor(
-        db2_preprocessor_options {},
-        [&called](std::string_view, auto callback) {
-            called = true;
-            callback(std::nullopt);
-        },
-        nullptr);
+    library_fetcher_call_confirmer called;
+    auto p = create_preprocessor(db2_preprocessor_options {}, called, nullptr);
     std::string_view text = "\n EXEC SQL SELECT 1 INTO :A FROM SYSIBM.SYSDUMMY1";
 
-    auto result = p->generate_replacement(document(text));
+    auto result = p->generate_replacement(document(text)).run().value();
 
+    EXPECT_EQ(called, false);
     EXPECT_NE(std::adjacent_find(result.begin(),
                   result.end(),
                   [](const auto& l, const auto& r) {
@@ -176,7 +184,7 @@ TEST_F(db2_preprocessor_test, with_label)
     auto p = create_preprocessor(db2_preprocessor_options {}, empty_library_fetcher, nullptr);
     std::string_view text = "\nABC EXEC SQL WHATEVER";
 
-    auto result = p->generate_replacement(document(text));
+    auto result = p->generate_replacement(document(text)).run().value();
 
     const auto expected = {
         std::string_view("ABC DS 0H\n"),
@@ -198,7 +206,7 @@ TEST_F(db2_preprocessor_test, missing_member)
 
     std::string_view text = " EXEC SQL INCLUDE MISSING";
 
-    auto doc = p->generate_replacement(document(text));
+    auto doc = p->generate_replacement(document(text)).run().value();
 
     EXPECT_NE(doc.size(), 0);
     EXPECT_TRUE(matches_message_codes(m_diags.diags, { "DB002" }));
@@ -211,7 +219,7 @@ TEST_F(db2_preprocessor_test, bad_continuation)
     std::string_view text = R"( EXEC SQL PRETEND SQL STATEMENT                                        X
 badcontinuation)";
 
-    auto doc = p->generate_replacement(document(text));
+    auto doc = p->generate_replacement(document(text)).run().value();
 
     EXPECT_NE(doc.size(), 0);
     EXPECT_TRUE(matches_message_codes(m_diags.diags, { "DB001" }));
@@ -221,15 +229,17 @@ TEST_F(db2_preprocessor_test, no_nested_include)
 {
     auto p = create_preprocessor(
         db2_preprocessor_options {},
-        [](std::string_view s, auto callback) {
+        [](std::string_view s)
+            -> hlasm_plugin::utils::value_task<
+                std::optional<std::pair<std::string, hlasm_plugin::utils::resource::resource_location>>> {
             EXPECT_EQ(s, "MEMBER");
-            callback(std::pair<std::string, hlasm_plugin::utils::resource::resource_location>(
-                " EXEC SQL INCLUDE MEMBER", hlasm_plugin::utils::resource::resource_location()));
+            co_return std::pair<std::string, hlasm_plugin::utils::resource::resource_location>(
+                " EXEC SQL INCLUDE MEMBER", hlasm_plugin::utils::resource::resource_location());
         },
         &m_diags);
     std::string_view text = " EXEC SQL INCLUDE MEMBER ";
 
-    auto doc = p->generate_replacement(document(text));
+    auto doc = p->generate_replacement(document(text)).run().value();
     EXPECT_NE(doc.size(), 0);
 
     EXPECT_TRUE(matches_message_codes(m_diags.diags, { "DB003" }));
@@ -881,7 +891,7 @@ DFILE_NAME DS CL255
 )"
     };
 
-    auto doc = p->generate_replacement(document(text));
+    auto doc = p->generate_replacement(document(text)).run().value();
     EXPECT_NE(doc.size(), 0);
 
     EXPECT_NE(doc.text().find(expected), std::string_view::npos);
@@ -958,7 +968,7 @@ TEST(db2_preprocessor, sql_type_fails)
         diagnostic_op_consumer_container diags;
         auto p = preprocessor::create(db2_preprocessor_options {}, empty_library_fetcher, &diags, src_info);
 
-        p->generate_replacement(document(text));
+        p->generate_replacement(document(text)).run();
 
         EXPECT_TRUE(matches_message_codes(diags.diags, { "DB004" }));
     }
@@ -970,7 +980,7 @@ TEST_F(db2_preprocessor_test, sql_type_warn_on_continuation)
                             "                AS LOCATOR";
     auto p = create_preprocessor(db2_preprocessor_options {}, empty_library_fetcher, &m_diags);
 
-    p->generate_replacement(document(text));
+    p->generate_replacement(document(text)).run();
 
     EXPECT_TRUE(matches_message_codes(m_diags.diags, { "DB005" }));
 }
@@ -1005,7 +1015,7 @@ RE3                                 SQL TYPE                         ISX
 
     auto p = create_preprocessor(db2_preprocessor_options {}, empty_library_fetcher, &m_diags);
 
-    auto result = p->generate_replacement(document(text));
+    auto result = p->generate_replacement(document(text)).run().value();
 
     EXPECT_TRUE(matches_message_codes(m_diags.diags, { "DB005", "DB005", "DB005" }));
     EXPECT_EQ(std::count_if(result.begin(),
@@ -1030,7 +1040,7 @@ RE3                                 SQL TYPE                         ISX
 
     auto p = create_preprocessor(db2_preprocessor_options {}, empty_library_fetcher, &m_diags);
 
-    auto result = p->generate_replacement(document(text));
+    auto result = p->generate_replacement(document(text)).run().value();
 
     EXPECT_TRUE(matches_message_codes(m_diags.diags,
         {
@@ -1134,7 +1144,7 @@ TEST_F(db2_preprocessor_test, conditional)
     auto p = create_preprocessor(db2_preprocessor_options("", true), empty_library_fetcher, nullptr);
     std::string_view text = "";
 
-    auto result = p->generate_replacement(document());
+    auto result = p->generate_replacement(document()).run().value();
 
     EXPECT_EQ(std::count_if(result.begin(),
                   result.end(),

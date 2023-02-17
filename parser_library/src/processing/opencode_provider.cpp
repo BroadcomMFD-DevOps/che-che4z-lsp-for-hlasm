@@ -48,7 +48,8 @@ opencode_provider::opencode_provider(std::string_view text,
     opencode_provider_options opts,
     virtual_file_monitor* virtual_file_monitor)
     : statement_provider(statement_provider_kind::OPEN)
-    , m_input_document(preprocessor ? preprocessor->generate_replacement(document(text)) : document(text))
+    , m_preprocessor_task(preprocessor ? preprocessor->generate_replacement(document(text)) : utils::value_task<document>())
+    , m_input_document(preprocessor ? document() : document(text))
     , m_singleline { parsing::parser_holder::create(&src_proc, ctx.hlasm_ctx.get(), &diag_consumer, false),
         parsing::parser_holder::create(nullptr, ctx.hlasm_ctx.get(), nullptr, false),
         parsing::parser_holder::create(nullptr, ctx.hlasm_ctx.get(), nullptr, false), }
@@ -536,6 +537,15 @@ void opencode_provider::convert_ainsert_buffer_to_copybook()
 
 context::shared_stmt_ptr opencode_provider::get_next(const statement_processor& proc)
 {
+    if (m_preprocessor_task.valid())
+    {
+        m_preprocessor_task();
+        if (!m_preprocessor_task.done())
+            return nullptr;
+
+        m_input_document = std::move(m_preprocessor_task.value());
+        m_preprocessor_task = {};
+    }
     auto ll_res = extract_next_logical_line();
     if (ll_res == extract_next_logical_line_result::failed)
         return nullptr;
@@ -602,6 +612,8 @@ context::shared_stmt_ptr opencode_provider::get_next(const statement_processor& 
 
 bool opencode_provider::finished() const
 {
+    if (m_preprocessor_task.valid())
+        return false;
     if (m_next_line_index < m_input_document.size())
         return false;
     if (!m_ctx->hlasm_ctx->in_opencode())
@@ -623,6 +635,11 @@ parsing::hlasmparser_multiline& opencode_provider::parser()
 {
     if (!m_line_fed)
     {
+        if (m_preprocessor_task.valid())
+        {
+            m_input_document = m_preprocessor_task.run().value();
+            m_preprocessor_task = {};
+        }
         auto ll_res = extract_next_logical_line();
         feed_line(*m_multiline.m_parser, ll_res == extract_next_logical_line_result::process);
     }
