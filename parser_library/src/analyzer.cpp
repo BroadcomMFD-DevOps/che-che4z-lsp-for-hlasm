@@ -117,7 +117,7 @@ analyzer::analyzer(std::string_view text, analyzer_options opts)
               src_proc_,
               *this,
               opts.get_preprocessor(
-                  [libs = &opts.get_lib_provider()](std::string_view library)
+                  [libs = &opts.get_lib_provider()](std::string library)
                       -> utils::value_task<std::optional<std::pair<std::string, utils::resource::resource_location>>> {
                       bool called = false;
                       std::optional<std::pair<std::string, utils::resource::resource_location>> result;

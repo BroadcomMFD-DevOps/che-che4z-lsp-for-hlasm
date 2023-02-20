@@ -49,7 +49,7 @@ namespace hlasm_plugin::parser_library::processing {
 
 using library_fetcher =
     std::function<utils::value_task<std::optional<std::pair<std::string, utils::resource::resource_location>>>(
-        std::string_view)>;
+        std::string)>;
 
 class preprocessor
 {

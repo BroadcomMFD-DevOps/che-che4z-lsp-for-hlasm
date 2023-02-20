@@ -37,8 +37,8 @@ std::pair<int, std::string> test_cics_miniparser(const std::vector<std::string_v
 } // namespace hlasm_plugin::parser_library::processing::test
 
 constexpr auto empty_library_fetcher =
-    [](std::string_view) -> hlasm_plugin::utils::value_task<
-                             std::optional<std::pair<std::string, hlasm_plugin::utils::resource::resource_location>>> {
+    [](std::string) -> hlasm_plugin::utils::value_task<
+                        std::optional<std::pair<std::string, hlasm_plugin::utils::resource::resource_location>>> {
     co_return std::nullopt;
 };
 

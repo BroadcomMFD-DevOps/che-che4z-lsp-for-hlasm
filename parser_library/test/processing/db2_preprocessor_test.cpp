@@ -38,8 +38,8 @@ const auto copy2_loc = resource_location("COPY2");
 const auto member_loc = resource_location("MEMBER");
 
 constexpr auto empty_library_fetcher =
-    [](std::string_view) -> hlasm_plugin::utils::value_task<
-                             std::optional<std::pair<std::string, hlasm_plugin::utils::resource::resource_location>>> {
+    [](std::string) -> hlasm_plugin::utils::value_task<
+                        std::optional<std::pair<std::string, hlasm_plugin::utils::resource::resource_location>>> {
     co_return std::nullopt;
 };
 } // namespace
@@ -95,9 +95,8 @@ TEST_F(db2_preprocessor_test, include)
 {
     auto p = create_preprocessor(
         db2_preprocessor_options {},
-        [](std::string_view s)
-            -> hlasm_plugin::utils::value_task<
-                std::optional<std::pair<std::string, hlasm_plugin::utils::resource::resource_location>>> {
+        [](std::string s) -> hlasm_plugin::utils::value_task<
+                              std::optional<std::pair<std::string, hlasm_plugin::utils::resource::resource_location>>> {
             EXPECT_EQ(s, "MEMBER");
             co_return std::pair<std::string, hlasm_plugin::utils::resource::resource_location>(
                 "member content", hlasm_plugin::utils::resource::resource_location());
@@ -229,9 +228,8 @@ TEST_F(db2_preprocessor_test, no_nested_include)
 {
     auto p = create_preprocessor(
         db2_preprocessor_options {},
-        [](std::string_view s)
-            -> hlasm_plugin::utils::value_task<
-                std::optional<std::pair<std::string, hlasm_plugin::utils::resource::resource_location>>> {
+        [](std::string s) -> hlasm_plugin::utils::value_task<
+                              std::optional<std::pair<std::string, hlasm_plugin::utils::resource::resource_location>>> {
             EXPECT_EQ(s, "MEMBER");
             co_return std::pair<std::string, hlasm_plugin::utils::resource::resource_location>(
                 " EXEC SQL INCLUDE MEMBER", hlasm_plugin::utils::resource::resource_location());

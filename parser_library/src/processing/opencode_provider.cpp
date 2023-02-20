@@ -44,12 +44,11 @@ opencode_provider::opencode_provider(std::string_view text,
     processing_state_listener& state_listener,
     semantics::source_info_processor& src_proc,
     diagnosable_ctx& diag_consumer,
-    std::unique_ptr<preprocessor> preprocessor,
+    std::unique_ptr<preprocessor> prep,
     opencode_provider_options opts,
     virtual_file_monitor* virtual_file_monitor)
     : statement_provider(statement_provider_kind::OPEN)
-    , m_preprocessor_task(preprocessor ? preprocessor->generate_replacement(document(text)) : utils::value_task<document>())
-    , m_input_document(preprocessor ? document() : document(text))
+    , m_input_document( document(text))
     , m_singleline { parsing::parser_holder::create(&src_proc, ctx.hlasm_ctx.get(), &diag_consumer, false),
         parsing::parser_holder::create(nullptr, ctx.hlasm_ctx.get(), nullptr, false),
         parsing::parser_holder::create(nullptr, ctx.hlasm_ctx.get(), nullptr, false), }
@@ -62,9 +61,17 @@ opencode_provider::opencode_provider(std::string_view text,
     , m_src_proc(&src_proc)
     , m_diagnoser(&diag_consumer)
     , m_opts(opts)
-    , m_preprocessor(std::move(preprocessor))
+    , m_preprocessor(std::move(prep))
     , m_virtual_file_monitor(virtual_file_monitor ? virtual_file_monitor : &fallback_vfm)
-{}
+{
+    if (m_preprocessor)
+        m_helper_task = start_preprocessor();
+}
+
+utils::task opencode_provider::start_preprocessor()
+{
+    m_input_document = co_await m_preprocessor->generate_replacement(std::move(m_input_document));
+}
 
 void opencode_provider::rewind_input(context::source_position pos)
 {
@@ -102,7 +109,9 @@ std::string opencode_provider::aread()
         m_ainsert_buffer.pop_front();
     }
     else if (suspend_copy_processing(remove_empty::yes)
-        || m_preprocessor && try_running_preprocessor() && suspend_copy_processing(remove_empty::yes))
+        || m_preprocessor && try_running_preprocessor()
+            && (!m_helper_task.valid() || (m_helper_task.run(), m_helper_task = {}, true)) // TODO: This is blocking
+            && suspend_copy_processing(remove_empty::yes))
     {
         auto& opencode_stack = m_ctx->hlasm_ctx->opencode_copy_stack();
         auto& copy = opencode_stack.back();
@@ -443,9 +452,15 @@ bool opencode_provider::try_running_preprocessor()
     m_ctx->hlasm_ctx->set_source_indices(m_next_line_index, last_index);
     m_next_line_index = last_index;
 
-    if (inserted)
+
+    if (!inserted)
     {
-        analyzer a(new_file->second,
+        assert(preprocessor_text == new_file->second); // isn't moved if insert fails
+        m_ctx->hlasm_ctx->enter_copy_member(virtual_file_name);
+    }
+    else
+    {
+        m_helper_task = start_nested_parser(new_file->second,
             analyzer_options {
                 generate_virtual_file_name(
                     m_vf_handles.emplace_back(m_virtual_file_monitor->file_generated(new_file->second)).file_id(),
@@ -453,18 +468,20 @@ bool opencode_provider::try_running_preprocessor()
                 m_lib_provider,
                 *m_ctx,
                 workspaces::library_data { processing_kind::COPY, virtual_file_name },
-            });
-        a.analyze();
-        m_diagnoser->collect_diags_from_child(a);
+            },
+            virtual_file_name);
     }
-    else
-    {
-        assert(preprocessor_text == new_file->second); // isn't moved if insert fails
-    }
-
-    m_ctx->hlasm_ctx->enter_copy_member(virtual_file_name);
 
     return true;
+}
+
+utils::task opencode_provider::start_nested_parser(
+    std::string_view text, analyzer_options opts, context::id_index vf_name)
+{
+    analyzer a(text, std::move(opts));
+    co_await a.co_analyze();
+    m_diagnoser->collect_diags_from_child(a);
+    m_ctx->hlasm_ctx->enter_copy_member(vf_name);
 }
 
 bool opencode_provider::suspend_copy_processing(remove_empty re) const
@@ -507,7 +524,7 @@ bool opencode_provider::suspend_copy_processing(remove_empty re) const
     return !opencode_stack.empty();
 }
 
-void opencode_provider::convert_ainsert_buffer_to_copybook()
+utils::task opencode_provider::convert_ainsert_buffer_to_copybook()
 {
     std::string result;
     result.reserve(m_ainsert_buffer.size() * (80 + 1));
@@ -520,7 +537,7 @@ void opencode_provider::convert_ainsert_buffer_to_copybook()
 
     auto new_file = m_virtual_files.try_emplace(virtual_copy_name, std::move(result)).first;
 
-    analyzer a(new_file->second,
+    co_await start_nested_parser(new_file->second,
         analyzer_options {
             generate_virtual_file_name(
                 m_vf_handles.emplace_back(m_virtual_file_monitor->file_generated(new_file->second)).file_id(),
@@ -528,23 +545,19 @@ void opencode_provider::convert_ainsert_buffer_to_copybook()
             m_lib_provider,
             *m_ctx,
             workspaces::library_data { processing_kind::COPY, virtual_copy_name },
-        });
-    a.analyze();
-    m_diagnoser->collect_diags_from_child(a);
-
-    m_ctx->hlasm_ctx->enter_copy_member(virtual_copy_name);
+        },
+        virtual_copy_name);
 }
 
 context::shared_stmt_ptr opencode_provider::get_next(const statement_processor& proc)
 {
-    if (m_preprocessor_task.valid())
+    if (m_helper_task.valid())
     {
-        m_preprocessor_task();
-        if (!m_preprocessor_task.done())
+        m_helper_task();
+        if (!m_helper_task.done())
             return nullptr;
 
-        m_input_document = std::move(m_preprocessor_task.value());
-        m_preprocessor_task = {};
+        m_helper_task = {};
     }
     auto ll_res = extract_next_logical_line();
     if (ll_res == extract_next_logical_line_result::failed)
@@ -612,7 +625,7 @@ context::shared_stmt_ptr opencode_provider::get_next(const statement_processor& 
 
 bool opencode_provider::finished() const
 {
-    if (m_preprocessor_task.valid())
+    if (m_helper_task.valid())
         return false;
     if (m_next_line_index < m_input_document.size())
         return false;
@@ -635,10 +648,10 @@ parsing::hlasmparser_multiline& opencode_provider::parser()
 {
     if (!m_line_fed)
     {
-        if (m_preprocessor_task.valid())
+        if (m_helper_task.valid())
         {
-            m_input_document = m_preprocessor_task.run().value();
-            m_preprocessor_task = {};
+            m_helper_task.run();
+            m_helper_task = {};
         }
         auto ll_res = extract_next_logical_line();
         feed_line(*m_multiline.m_parser, ll_res == extract_next_logical_line_result::process);
@@ -756,7 +769,7 @@ extract_next_logical_line_result opencode_provider::extract_next_logical_line()
     {
         if (!m_ainsert_buffer.empty())
         {
-            convert_ainsert_buffer_to_copybook();
+            m_helper_task = convert_ainsert_buffer_to_copybook();
             return extract_next_logical_line_result::failed;
         }
 

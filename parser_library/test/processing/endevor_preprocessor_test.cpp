@@ -42,7 +42,7 @@ public:
     {
         return preprocessor::create(
             endevor_preprocessor_options(),
-            [libs](std::string_view s)
+            [libs](std::string s)
                 -> hlasm_plugin::utils::value_task<std::optional<std::pair<std::string, resource_location>>> {
                 co_return libs(s);
             },

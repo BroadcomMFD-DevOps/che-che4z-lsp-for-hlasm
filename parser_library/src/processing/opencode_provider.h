@@ -1,4 +1,5 @@
 /*
+/*
  * Copyright (c) 2019 Broadcom.
  * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
@@ -32,6 +33,7 @@
 #include "virtual_file_monitor.h"
 
 namespace hlasm_plugin::parser_library {
+class analyzer_options;
 class diagnosable_ctx;
 } // namespace hlasm_plugin::parser_library
 namespace hlasm_plugin::parser_library::parsing {
@@ -77,7 +79,6 @@ enum class extract_next_logical_line_result
 // uses the parser implementation to produce statements in the opencode(-like) scenario
 class opencode_provider final : public statement_provider
 {
-    utils::value_task<document> m_preprocessor_task;
     document m_input_document;
     std::size_t m_next_line_index = 0;
 
@@ -121,6 +122,7 @@ class opencode_provider final : public statement_provider
     bool m_line_fed = false;
 
     std::unique_ptr<preprocessor> m_preprocessor;
+    utils::task m_helper_task;
 
     virtual_file_monitor* m_virtual_file_monitor;
     std::vector<virtual_file_handle> m_vf_handles;
@@ -185,7 +187,10 @@ private:
         yes,
     };
     bool suspend_copy_processing(remove_empty re) const;
-    void convert_ainsert_buffer_to_copybook();
+    utils::task convert_ainsert_buffer_to_copybook();
+
+    utils::task start_preprocessor();
+    utils::task start_nested_parser(std::string_view text, analyzer_options opts, context::id_index vf_name);
 };
 
 } // namespace hlasm_plugin::parser_library::processing
