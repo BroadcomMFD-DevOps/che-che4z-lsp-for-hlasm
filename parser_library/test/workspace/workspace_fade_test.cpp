@@ -632,7 +632,6 @@ INSTANTIATE_TEST_SUITE_P(fade,
         }));
 } // namespace
 
-
 TEST_P(lookeahead_fixture, nested_lookahead)
 {
     std::string mac = R"(         MACRO
@@ -672,6 +671,60 @@ SYM      DS XL8
             return fmsg.code == expected_fmsg.code && fmsg.r == expected_fmsg.r && fmsg.uri == expected_fmsg.uri;
         }));
 }
+
+namespace {
+class aread_and_lookahead_fixture : public fade_fixture_base
+{};
+
+INSTANTIATE_TEST_SUITE_P(fade,
+    aread_and_lookahead_fixture,
+    ::testing::Values(test_params {
+        {},
+        {
+            fade_message_s::inactive_statement("src1.hlasm", range(position(16, 0), position(16, 80))),
+        },
+    }));
+} // namespace
+
+TEST_P(aread_and_lookahead_fixture, test)
+{
+    static const std::string src = R"(
+         MACRO
+         MAC   &LINES2READ
+         AIF (&LINES2READ EQ 0).SKIP
+&LINENO  SETA 0
+.LOOP    ANOP
+&LINENO  SETA &LINENO+1
+&TEXT    AREAD  NOSTMT
+         AIF (&LINENO LT &LINES2READ).LOOP
+.SKIP    MEND
+
+&LEN     SETA  L'SYM
+         MAC 3
+ SELECT * FROM TABLE
+ SELECT * FROM TABLE                        WHERE 'SYSTEM' = 'SOL'  AND
+ 'PLANET' = EARTH
+
+SYM      DS XL8
+         END 
+)";
+
+    open_src_files_and_collect_fms({
+        { src1_loc, src },
+    });
+
+    EXPECT_TRUE(contains_message_codes(collect_and_get_diags(), GetParam().diag_message_codes));
+
+    const auto& expected_msgs = GetParam().expected_fade_messages;
+    EXPECT_TRUE(std::is_permutation(fms.begin(),
+        fms.end(),
+        expected_msgs.begin(),
+        expected_msgs.end(),
+        [](const auto& fmsg, const auto& expected_fmsg) {
+            return fmsg.code == expected_fmsg.code && fmsg.r == expected_fmsg.r && fmsg.uri == expected_fmsg.uri;
+        }));
+}
+
 TEST(fade, preprocessor)
 {
     workspace_manager ws_mngr;

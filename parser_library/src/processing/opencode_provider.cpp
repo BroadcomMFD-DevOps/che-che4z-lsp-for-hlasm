@@ -14,6 +14,8 @@
 
 #include "opencode_provider.h"
 
+#include <algorithm>
+
 #include "analyzer.h"
 #include "hlasmparser_multiline.h"
 #include "lexing/input_source.h"
@@ -64,6 +66,12 @@ opencode_provider::opencode_provider(std::string_view text,
     , m_preprocessor(std::move(preprocessor))
     , m_virtual_file_monitor(virtual_file_monitor ? virtual_file_monitor : &fallback_vfm)
 {}
+
+void opencode_provider::register_aread_callback(std::function<void(size_t, std::string_view)> cb)
+{
+    if (cb)
+        m_aread_callbacks.emplace_back(cb);
+}
 
 void opencode_provider::rewind_input(context::source_position pos)
 {
@@ -123,7 +131,13 @@ std::string opencode_provider::aread()
         auto line_text = line.text();
         result = lexing::extract_line(line_text).first;
         if (auto lineno = line.lineno(); lineno.has_value())
+        {
+            std::for_each(m_aread_callbacks.begin(), m_aread_callbacks.end(), [&result, ln = *lineno](const auto& cb) {
+                if (cb)
+                    cb(ln, result);
+            });
             generate_aread_highlighting(result, *lineno);
+        }
     }
     else
         adjust_length = false;

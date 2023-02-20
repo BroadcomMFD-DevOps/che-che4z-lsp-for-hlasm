@@ -124,9 +124,14 @@ bool processing_manager::step()
     return true;
 }
 
-void processing_manager::register_stmt_analyzer(statement_analyzer* stmt_analyzer)
+void processing_manager::register_stmt_analyzer(statement_analyzer* stmt_analyzer,
+    std::function<void(const utils::resource::resource_location&, size_t, std::string_view)> aread_callback)
 {
     stms_analyzers_.push_back(stmt_analyzer);
+
+    if (aread_callback)
+        opencode_prov_.register_aread_callback(
+            std::bind(aread_callback, file_loc_, std::placeholders::_1, std::placeholders::_2));
 }
 
 void processing_manager::run_analyzers(const context::hlasm_statement& statement, bool evaluated_model) const

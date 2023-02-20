@@ -219,4 +219,11 @@ void hit_count_analyzer::analyze(
         can_be_external_macro,
         proc_kind == processing::processing_kind::ORDINARY);
 }
+
+void hit_count_analyzer::analyze_aread_line(
+    const utils::resource::resource_location& rl, size_t lineno, std::string_view)
+{
+    update_hc_details(get_hc_details_reference(rl), std::make_pair(lineno, lineno), false, true);
+}
+
 } // namespace hlasm_plugin::parser_library::processing

@@ -84,6 +84,8 @@ public:
         processing_kind proc_kind,
         bool) override;
 
+    void analyze_aread_line(const utils::resource::resource_location& rl, size_t lineno, std::string_view);
+
     hit_count_map take_hit_counts() { return std::move(m_hit_counts); };
 
 private:

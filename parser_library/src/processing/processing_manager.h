@@ -15,6 +15,7 @@
 #ifndef PROCESSING_PROCESSING_MANAGER_H
 #define PROCESSING_PROCESSING_MANAGER_H
 
+#include <functional>
 #include <map>
 #include <memory>
 #include <set>
@@ -52,7 +53,8 @@ public:
     // method that starts the processing loop
     bool step();
 
-    void register_stmt_analyzer(statement_analyzer* stmt_analyzer);
+    void register_stmt_analyzer(statement_analyzer* stmt_analyzer,
+        std::function<void(const utils::resource::resource_location&, size_t, std::string_view)> aread_callback);
 
     void run_analyzers(const context::hlasm_statement& statement, bool evaluated_model) const;
     void run_analyzers(const context::hlasm_statement& statement,

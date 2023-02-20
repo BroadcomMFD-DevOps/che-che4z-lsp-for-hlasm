@@ -16,6 +16,7 @@
 #define PROCESSING_OPENCODE_PROVIDER_H
 
 #include <deque>
+#include <functional>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -124,11 +125,14 @@ class opencode_provider final : public statement_provider
     virtual_file_monitor* m_virtual_file_monitor;
     std::vector<virtual_file_handle> m_vf_handles;
 
+    std::vector<std::function<void(size_t, std::string_view)>> m_aread_callbacks;
+
 public:
     // rewinds position in file
     void rewind_input(context::source_position pos);
     std::string aread();
     void ainsert(const std::string& rec, ainsert_destination dest);
+    void register_aread_callback(std::function<void(size_t, std::string_view)> cb);
 
     opencode_provider(std::string_view text,
         analyzing_context& ctx,
