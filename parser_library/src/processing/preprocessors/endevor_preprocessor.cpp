@@ -30,6 +30,7 @@
 #include "semantics/source_info_processor.h"
 #include "utils/resource_location.h"
 #include "utils/string_operations.h"
+#include "utils/task.h"
 
 namespace hlasm_plugin::parser_library::processing {
 

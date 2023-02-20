@@ -17,6 +17,7 @@
 #include "expressions/conditional_assembly/terms/ca_symbol.h"
 #include "semantics/operand_impls.h"
 #include "semantics/range_provider.h"
+#include "utils/task.h"
 #include "utils/time.h"
 
 using namespace hlasm_plugin::parser_library;

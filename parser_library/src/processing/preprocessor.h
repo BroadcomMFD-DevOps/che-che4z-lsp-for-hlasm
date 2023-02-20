@@ -15,6 +15,7 @@
 #ifndef HLASMPARSER_PARSERLIBRARY_PROCESSING_PREPROCESSOR_H
 #define HLASMPARSER_PARSERLIBRARY_PROCESSING_PREPROCESSOR_H
 
+#include <concepts>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -26,7 +27,6 @@
 #include "diagnostic_consumer.h"
 #include "document.h"
 #include "utils/resource_location.h"
-#include "utils/task.h"
 
 namespace hlasm_plugin::parser_library {
 struct cics_preprocessor_options;
@@ -44,6 +44,11 @@ class source_info_processor;
 struct preprocessor_statement_si;
 } // namespace semantics
 } // namespace hlasm_plugin::parser_library
+
+namespace hlasm_plugin::utils {
+template<std::move_constructible T>
+class value_task;
+} // namespace hlasm_plugin::utils
 
 namespace hlasm_plugin::parser_library::processing {
 

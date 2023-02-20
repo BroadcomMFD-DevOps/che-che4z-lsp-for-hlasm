@@ -38,6 +38,7 @@
 #include "semantics/statement.h"
 #include "utils/concat.h"
 #include "utils/string_operations.h"
+#include "utils/task.h"
 #include "utils/text_matchers.h"
 #include "utils/unicode_text.h"
 #include "workspaces/parse_lib_provider.h"
