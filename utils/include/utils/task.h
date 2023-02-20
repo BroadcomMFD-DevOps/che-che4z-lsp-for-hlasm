@@ -153,6 +153,13 @@ public:
     }
 
     bool valid() const noexcept { return !!m_handle; }
+
+    void run() const
+    {
+        assert(m_handle);
+        while (!m_handle.done())
+            m_handle.promise().next_step();
+    }
 };
 
 class task : task_base
@@ -174,7 +181,7 @@ public:
         class awaiter : awaiter_base
         {
         public:
-            awaiter(promise_type_base& self)
+            explicit awaiter(promise_type_base& self)
                 : awaiter_base(self)
             {}
 
@@ -195,16 +202,12 @@ public:
 
     task& run() &
     {
-        while (!done())
-            operator()();
-
+        task_base::run();
         return *this;
     }
     task run() &&
     {
-        while (!done())
-            operator()();
-
+        task_base::run();
         return std::move(*this);
     }
 };
@@ -231,7 +234,7 @@ public:
         class awaiter : awaiter_base
         {
         public:
-            awaiter(promise_type_base& self)
+            explicit awaiter(promise_type_base& self)
                 : awaiter_base(self)
             {}
 
@@ -267,16 +270,12 @@ public:
 
     value_task& run() &
     {
-        while (!done())
-            operator()();
-
+        task_base::run();
         return *this;
     }
     value_task run() &&
     {
-        while (!done())
-            operator()();
-
+        task_base::run();
         return std::move(*this);
     }
 };
