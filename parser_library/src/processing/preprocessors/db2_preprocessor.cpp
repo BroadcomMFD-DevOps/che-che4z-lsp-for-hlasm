@@ -16,6 +16,7 @@
 #include <array>
 #include <cassert>
 #include <cctype>
+#include <concepts>
 #include <initializer_list>
 #include <iterator>
 #include <limits>
@@ -107,7 +108,7 @@ public:
         return it;
     }
 
-    template<typename It>
+    template<std::forward_iterator It>
     static void trim_left(It& it, const It& it_e)
     {
         while (it != it_e)
@@ -1020,7 +1021,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         }
     }
 
-    template<typename It>
+    template<std::forward_iterator It>
     static std::pair<It, It> skip_to_operands(It b, It e, size_t instruction_end)
     {
         std::advance(b, instruction_end);

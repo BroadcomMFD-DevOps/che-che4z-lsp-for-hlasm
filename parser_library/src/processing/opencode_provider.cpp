@@ -476,7 +476,7 @@ bool opencode_provider::try_running_preprocessor()
 }
 
 utils::task opencode_provider::start_nested_parser(
-    std::string_view text, analyzer_options opts, context::id_index vf_name)
+    std::string_view text, analyzer_options opts, context::id_index vf_name) const
 {
     analyzer a(text, std::move(opts));
     co_await a.co_analyze();

@@ -189,7 +189,7 @@ private:
     utils::task convert_ainsert_buffer_to_copybook();
 
     utils::task start_preprocessor();
-    utils::task start_nested_parser(std::string_view text, analyzer_options opts, context::id_index vf_name);
+    utils::task start_nested_parser(std::string_view text, analyzer_options opts, context::id_index vf_name) const;
 };
 
 } // namespace hlasm_plugin::parser_library::processing

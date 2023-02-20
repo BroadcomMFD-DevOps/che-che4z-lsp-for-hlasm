@@ -49,12 +49,12 @@ struct stack_entry
     bool end() const { return current == doc.end(); }
 };
 
-std::string_view get_copy_member(const std::match_results<std::string_view::iterator>& matches)
+std::string get_copy_member(const std::match_results<std::string_view::iterator>& matches)
 {
     if (matches.size() != 4)
         return "";
 
-    return std::string_view(matches[2].first, matches[2].second);
+    return std::string(matches[2].first, matches[2].second);
 }
 } // namespace
 
@@ -65,13 +65,11 @@ class endevor_preprocessor final : public preprocessor
     endevor_preprocessor_options m_options;
     semantics::source_info_processor& m_src_proc;
 
-    utils::value_task<bool> process_member(std::string_view member, std::vector<stack_entry>& stack)
+    utils::value_task<bool> process_member(std::string member, std::vector<stack_entry>& stack)
     {
-        std::string member_upper = utils::to_upper_copy(std::string(member));
+        std::string member_upper = utils::to_upper_copy(member);
 
-        if (std::any_of(stack.begin(), stack.end(), [member = std::string_view(member_upper)](const auto& e) {
-                return e.name == member;
-            }))
+        if (std::any_of(stack.begin(), stack.end(), [&member_upper](const auto& e) { return e.name == member_upper; }))
         {
             if (m_diags)
                 m_diags->add_diagnostic(diagnostic_op::error_END002(
@@ -153,10 +151,9 @@ public:
                 continue;
             }
 
-            auto copy_member = get_copy_member(matches);
             auto line_no = std::prev(stack.back().current)->lineno();
 
-            if (!co_await process_member(copy_member, stack))
+            if (!co_await process_member(get_copy_member(matches), stack))
                 break;
 
             if (line_no)

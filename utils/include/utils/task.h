@@ -110,9 +110,11 @@ protected:
     explicit task_base(std::coroutine_handle<promise_type_base> handle)
         : m_handle(std::move(handle))
     {}
+    task_base(const task_base& t) = delete;
     task_base(task_base&& t) noexcept
         : m_handle(std::exchange(t.m_handle, {}))
     {}
+    task_base& operator=(const task_base& t) = delete;
     task_base& operator=(task_base&& t) noexcept
     {
         task_base tmp(std::move(t));
@@ -130,7 +132,11 @@ protected:
         }
     }
 
-    std::coroutine_handle<promise_type_base> m_handle;
+    promise_type_base& promise() const
+    {
+        assert(m_handle);
+        return m_handle.promise();
+    }
 
 public:
     bool done() const noexcept
@@ -160,6 +166,9 @@ public:
         while (!m_handle.done())
             m_handle.promise().next_step();
     }
+
+private:
+    std::coroutine_handle<promise_type_base> m_handle;
 };
 
 class task : task_base
@@ -181,16 +190,12 @@ public:
         class awaiter : awaiter_base
         {
         public:
-            explicit awaiter(promise_type_base& self)
-                : awaiter_base(self)
-            {}
-
             using awaiter_base::await_ready;
             using awaiter_base::await_resume;
             using awaiter_base::await_suspend;
+            using awaiter_base::awaiter_base;
         };
-        assert(m_handle);
-        return awaiter(m_handle.promise());
+        return awaiter(promise());
     }
 
     static std::suspend_always suspend() { return {}; }
@@ -234,20 +239,17 @@ public:
         class awaiter : awaiter_base
         {
         public:
-            explicit awaiter(promise_type_base& self)
-                : awaiter_base(self)
-            {}
-
             using awaiter_base::await_ready;
             using awaiter_base::await_suspend;
+            using awaiter_base::awaiter_base;
+
             T await_resume() const
             {
                 awaiter_base::await_resume();
                 return std::move(static_cast<promise_type&>(self).result.value());
             }
         };
-        assert(m_handle);
-        return awaiter(m_handle.promise());
+        return awaiter(promise());
     }
 
     static std::suspend_always suspend() { return {}; }
@@ -260,7 +262,8 @@ public:
     T& value() const&
     {
         assert(done());
-        auto& p = m_handle.promise();
+
+        auto& p = promise();
         if (p.pending_exception)
             std::rethrow_exception(p.pending_exception);
 
