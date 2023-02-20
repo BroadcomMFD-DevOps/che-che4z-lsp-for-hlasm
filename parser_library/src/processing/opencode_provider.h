@@ -189,7 +189,8 @@ private:
         const range& op_range,
         diagnostic_op_consumer* diags);
 
-    std::variant<bool, utils::task> try_running_preprocessor();
+    bool should_run_preprocessor() const noexcept;
+    utils::task run_preprocessor();
     enum class remove_empty : bool
     {
         no,
@@ -201,7 +202,7 @@ private:
     utils::task start_preprocessor();
     utils::task start_nested_parser(std::string_view text, analyzer_options opts, context::id_index vf_name) const;
 
-    std::string aread_from_copybook();
+    std::string aread_from_copybook() const;
     std::string try_aread_from_document();
 
     utils::value_task<std::string> deferred_aread(utils::task prep_task);

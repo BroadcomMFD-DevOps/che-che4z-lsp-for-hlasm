@@ -116,14 +116,13 @@ std::variant<std::string, utils::value_task<std::string>> opencode_provider::are
     if (suspend_copy_processing(remove_empty::yes))
         return aread_from_copybook();
 
-    std::variant<bool, utils::task> prep_result = false;
-    if (m_preprocessor)
-        prep_result = try_running_preprocessor();
-
-    if (std::holds_alternative<utils::task>(prep_result))
-        return deferred_aread(std::move(std::get<utils::task>(prep_result)));
-    else if (std::get<bool>(prep_result) && suspend_copy_processing(remove_empty::yes))
-        return aread_from_copybook();
+    if (should_run_preprocessor())
+    {
+        if (auto t = run_preprocessor(); t.valid())
+            return deferred_aread(std::move(t));
+        if (suspend_copy_processing(remove_empty::yes))
+            return aread_from_copybook();
+    }
 
     return try_aread_from_document();
 }
@@ -138,7 +137,7 @@ utils::value_task<std::string> opencode_provider::deferred_aread(utils::task pre
     co_return try_aread_from_document();
 }
 
-std::string opencode_provider::aread_from_copybook()
+std::string opencode_provider::aread_from_copybook() const
 {
     auto& opencode_stack = m_ctx->hlasm_ctx->opencode_copy_stack();
     auto& copy = opencode_stack.back();
@@ -454,11 +453,14 @@ size_t extract_current_line(size_t next_line_index, const document& doc)
 }
 } // namespace
 
-std::variant<bool, utils::task> opencode_provider::try_running_preprocessor()
+bool opencode_provider::should_run_preprocessor() const noexcept
 {
-    if (m_next_line_index >= m_input_document.size() || m_input_document.at(m_next_line_index).is_original())
-        return false;
+    return m_preprocessor && m_next_line_index < m_input_document.size()
+        && !m_input_document.at(m_next_line_index).is_original();
+}
 
+utils::task opencode_provider::run_preprocessor()
+{
     const auto current_line = extract_current_line(m_next_line_index, m_input_document);
 
     std::string preprocessor_text;
@@ -488,7 +490,7 @@ std::variant<bool, utils::task> opencode_provider::try_running_preprocessor()
     {
         assert(preprocessor_text == new_file->second); // isn't moved if insert fails
         m_ctx->hlasm_ctx->enter_copy_member(virtual_file_name);
-        return true;
+        return utils::task();
     }
     else
     {
@@ -823,16 +825,11 @@ extract_next_logical_line_result opencode_provider::extract_next_logical_line()
         }
     }
 
-    if (m_preprocessor)
+    if (should_run_preprocessor())
     {
-        auto prep_res = try_running_preprocessor();
-        if (std::holds_alternative<bool>(prep_res) && std::get<bool>(prep_res))
-            return extract_next_logical_line_result::failed;
-        if (std::holds_alternative<utils::task>(prep_res))
-        {
-            m_state_listener->schedule_helper_task(std::move(std::get<utils::task>(prep_res)));
-            return extract_next_logical_line_result::failed;
-        }
+        if (auto t = run_preprocessor(); t.valid())
+            m_state_listener->schedule_helper_task(std::move(t));
+        return extract_next_logical_line_result::failed;
     }
 
     const auto first_index = m_next_line_index;

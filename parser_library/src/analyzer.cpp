@@ -153,14 +153,7 @@ size_t analyzer::debug_syntax_errors() { return mngr_.opencode_parser().getNumbe
 
 const semantics::source_info_processor& analyzer::source_processor() const { return src_proc_; }
 
-void analyzer::analyze()
-{
-    while (analyze_step())
-        ;
-}
-
-bool analyzer::analyze_step() { return mngr_.step() || (src_proc_.finish(), false); }
-
+void analyzer::analyze() { co_analyze().run(); }
 
 hlasm_plugin::utils::task analyzer::co_analyze() &
 {

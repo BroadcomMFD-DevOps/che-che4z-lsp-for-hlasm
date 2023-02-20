@@ -75,9 +75,10 @@ protected:
     };
     class awaiter_base
     {
+        std::coroutine_handle<promise_type_base> to_resume {};
+
     protected:
         promise_type_base& self;
-        std::coroutine_handle<promise_type_base> to_resume {};
 
         friend struct promise_type_base;
 

@@ -43,7 +43,8 @@ protected:
 
     void analyze(analyzer& a)
     {
-        while (true)
+        auto main = a.co_analyze();
+        while (!main.done())
         {
             if (!nested_analyzers.empty())
             {
@@ -56,8 +57,7 @@ protected:
                 na();
                 continue;
             }
-            if (!a.analyze_step())
-                break;
+            main();
         }
     }
 };
