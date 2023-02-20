@@ -591,9 +591,21 @@ void ca_processor::process_AREAD(const semantics::complete_statement& stmt)
     std::string value_to_set;
     switch (variant)
     {
-        case aread_variant::reader:
-            value_to_set = open_code_->aread();
+        case aread_variant::reader: {
+            auto aread_result = open_code_->aread();
+            if (std::holds_alternative<std::string>(aread_result))
+                value_to_set = std::move(std::get<std::string>(aread_result));
+            else
+            {
+                listener_.schedule_helper_task(
+                    [](utils::value_task<std::string> t, context::set_symbol_base* set_sym, int index) -> utils::task {
+                        auto value = co_await std::move(t);
+                        set_sym->access_set_symbol<context::C_t>()->set_value(std::move(value), index - 1);
+                    }(std::move(std::get<utils::value_task<std::string>>(aread_result)), set_symbol, index));
+                return;
+            }
             break;
+        }
 
         case aread_variant::clockb:
             value_to_set = time_to_clockb(since_midnight());

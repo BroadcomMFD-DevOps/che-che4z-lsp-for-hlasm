@@ -63,15 +63,19 @@ opencode_provider::opencode_provider(std::string_view text,
     , m_opts(opts)
     , m_preprocessor(std::move(prep))
     , m_virtual_file_monitor(virtual_file_monitor ? virtual_file_monitor : &fallback_vfm)
-{
-    if (m_preprocessor)
-        m_helper_task = start_preprocessor();
-}
+{}
 
 utils::task opencode_provider::start_preprocessor()
 {
     m_input_document = co_await m_preprocessor->generate_replacement(std::move(m_input_document));
 }
+
+void opencode_provider::onetime_action()
+{
+    if (m_preprocessor)
+        m_state_listener->schedule_helper_task(start_preprocessor());
+}
+
 
 void opencode_provider::rewind_input(context::source_position pos)
 {
@@ -99,47 +103,74 @@ void opencode_provider::generate_aread_highlighting(std::string_view text, size_
                 semantics::hl_scopes::ignored));
 }
 
-std::string opencode_provider::aread()
+std::variant<std::string, utils::value_task<std::string>> opencode_provider::aread()
 {
-    bool adjust_length = true;
-    std::string result;
     if (!m_ainsert_buffer.empty())
     {
-        result = std::move(m_ainsert_buffer.front());
+        auto result = std::move(m_ainsert_buffer.front());
         m_ainsert_buffer.pop_front();
-    }
-    else if (suspend_copy_processing(remove_empty::yes)
-        || m_preprocessor && try_running_preprocessor()
-            && (!m_helper_task.valid() || (m_helper_task.run(), m_helper_task = {}, true)) // TODO: This is blocking
-            && suspend_copy_processing(remove_empty::yes))
-    {
-        auto& opencode_stack = m_ctx->hlasm_ctx->opencode_copy_stack();
-        auto& copy = opencode_stack.back();
-        const auto line = copy.suspended_at;
-        std::string_view remaining_text = m_ctx->lsp_ctx->get_file_info(copy.definition_location()->resource_loc)
-                                              ->data.get_lines_beginning_at({ line, 0 });
-        result = lexing::extract_line(remaining_text).first;
-        if (remaining_text.empty())
-            copy.resume();
-        else
-            copy.suspend(line + 1);
-
-        while (!opencode_stack.empty() && !opencode_stack.back().suspended())
-            opencode_stack.pop_back();
-    }
-    else if (m_next_line_index < m_input_document.size())
-    {
-        const auto& line = m_input_document.at(m_next_line_index++);
-        auto line_text = line.text();
-        result = lexing::extract_line(line_text).first;
-        if (auto lineno = line.lineno(); lineno.has_value())
-            generate_aread_highlighting(result, *lineno);
-    }
-    else
-        adjust_length = false;
-
-    if (adjust_length)
         result.resize(80, ' ');
+        return result;
+    }
+
+    if (suspend_copy_processing(remove_empty::yes))
+        return aread_from_copybook();
+
+    std::variant<bool, utils::task> prep_result = false;
+    if (m_preprocessor)
+        prep_result = try_running_preprocessor();
+
+    if (std::holds_alternative<utils::task>(prep_result))
+        return deferred_aread(std::move(std::get<utils::task>(prep_result)));
+    else if (std::get<bool>(prep_result) && suspend_copy_processing(remove_empty::yes))
+        return aread_from_copybook();
+
+    return try_aread_from_document();
+}
+
+utils::value_task<std::string> opencode_provider::deferred_aread(utils::task prep_task)
+{
+    co_await std::move(prep_task);
+
+    if (suspend_copy_processing(remove_empty::yes))
+        co_return aread_from_copybook();
+
+    co_return try_aread_from_document();
+}
+
+std::string opencode_provider::aread_from_copybook()
+{
+    auto& opencode_stack = m_ctx->hlasm_ctx->opencode_copy_stack();
+    auto& copy = opencode_stack.back();
+    const auto line = copy.suspended_at;
+    std::string_view remaining_text = m_ctx->lsp_ctx->get_file_info(copy.definition_location()->resource_loc)
+                                          ->data.get_lines_beginning_at({ line, 0 });
+    std::string result(lexing::extract_line(remaining_text).first);
+    if (remaining_text.empty())
+        copy.resume();
+    else
+        copy.suspend(line + 1);
+
+    while (!opencode_stack.empty() && !opencode_stack.back().suspended())
+        opencode_stack.pop_back();
+
+    result.resize(80, ' ');
+
+    return result;
+}
+std::string opencode_provider::try_aread_from_document()
+{
+    if (m_next_line_index >= m_input_document.size())
+        return std::string();
+
+    const auto& line = m_input_document.at(m_next_line_index++);
+    auto line_text = line.text();
+    std::string result(lexing::extract_line(line_text).first);
+    if (auto lineno = line.lineno(); lineno.has_value())
+        generate_aread_highlighting(result, *lineno);
+
+    result.resize(80, ' ');
+
     return result;
 }
 
@@ -423,7 +454,7 @@ size_t extract_current_line(size_t next_line_index, const document& doc)
 }
 } // namespace
 
-bool opencode_provider::try_running_preprocessor()
+std::variant<bool, utils::task> opencode_provider::try_running_preprocessor()
 {
     if (m_next_line_index >= m_input_document.size() || m_input_document.at(m_next_line_index).is_original())
         return false;
@@ -457,10 +488,11 @@ bool opencode_provider::try_running_preprocessor()
     {
         assert(preprocessor_text == new_file->second); // isn't moved if insert fails
         m_ctx->hlasm_ctx->enter_copy_member(virtual_file_name);
+        return true;
     }
     else
     {
-        m_helper_task = start_nested_parser(new_file->second,
+        return start_nested_parser(new_file->second,
             analyzer_options {
                 generate_virtual_file_name(
                     m_vf_handles.emplace_back(m_virtual_file_monitor->file_generated(new_file->second)).file_id(),
@@ -471,8 +503,6 @@ bool opencode_provider::try_running_preprocessor()
             },
             virtual_file_name);
     }
-
-    return true;
 }
 
 utils::task opencode_provider::start_nested_parser(
@@ -551,14 +581,6 @@ utils::task opencode_provider::convert_ainsert_buffer_to_copybook()
 
 context::shared_stmt_ptr opencode_provider::get_next(const statement_processor& proc)
 {
-    if (m_helper_task.valid())
-    {
-        m_helper_task();
-        if (!m_helper_task.done())
-            return nullptr;
-
-        m_helper_task = {};
-    }
     auto ll_res = extract_next_logical_line();
     if (ll_res == extract_next_logical_line_result::failed)
         return nullptr;
@@ -625,8 +647,6 @@ context::shared_stmt_ptr opencode_provider::get_next(const statement_processor& 
 
 bool opencode_provider::finished() const
 {
-    if (m_helper_task.valid())
-        return false;
     if (m_next_line_index < m_input_document.size())
         return false;
     if (!m_ctx->hlasm_ctx->in_opencode())
@@ -648,11 +668,6 @@ parsing::hlasmparser_multiline& opencode_provider::parser()
 {
     if (!m_line_fed)
     {
-        if (m_helper_task.valid())
-        {
-            m_helper_task.run();
-            m_helper_task = {};
-        }
         auto ll_res = extract_next_logical_line();
         feed_line(*m_multiline.m_parser, ll_res == extract_next_logical_line_result::process);
     }
@@ -769,7 +784,7 @@ extract_next_logical_line_result opencode_provider::extract_next_logical_line()
     {
         if (!m_ainsert_buffer.empty())
         {
-            m_helper_task = convert_ainsert_buffer_to_copybook();
+            m_state_listener->schedule_helper_task(convert_ainsert_buffer_to_copybook());
             return extract_next_logical_line_result::failed;
         }
 
@@ -808,8 +823,17 @@ extract_next_logical_line_result opencode_provider::extract_next_logical_line()
         }
     }
 
-    if (m_preprocessor && try_running_preprocessor())
-        return extract_next_logical_line_result::failed;
+    if (m_preprocessor)
+    {
+        auto prep_res = try_running_preprocessor();
+        if (std::holds_alternative<bool>(prep_res) && std::get<bool>(prep_res))
+            return extract_next_logical_line_result::failed;
+        if (std::holds_alternative<utils::task>(prep_res))
+        {
+            m_state_listener->schedule_helper_task(std::move(std::get<utils::task>(prep_res)));
+            return extract_next_logical_line_result::failed;
+        }
+    }
 
     const auto first_index = m_next_line_index;
     const auto current_lineno = m_input_document.at(m_next_line_index).lineno().value();

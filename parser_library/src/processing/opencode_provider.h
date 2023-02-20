@@ -15,11 +15,13 @@
 #ifndef PROCESSING_OPENCODE_PROVIDER_H
 #define PROCESSING_OPENCODE_PROVIDER_H
 
+#include <concepts>
 #include <deque>
 #include <memory>
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <variant>
 #include <vector>
 
 #include "context/source_snapshot.h"
@@ -30,6 +32,13 @@
 #include "statement_providers/statement_provider.h"
 #include "utils/unicode_text.h"
 #include "virtual_file_monitor.h"
+
+
+namespace hlasm_plugin::utils {
+class task;
+template<std::move_constructible T>
+class value_task;
+} // namespace hlasm_plugin::utils
 
 namespace hlasm_plugin::parser_library {
 class analyzer_options;
@@ -121,7 +130,6 @@ class opencode_provider final : public statement_provider
     bool m_line_fed = false;
 
     std::unique_ptr<preprocessor> m_preprocessor;
-    utils::task m_helper_task;
 
     virtual_file_monitor* m_virtual_file_monitor;
     std::vector<virtual_file_handle> m_vf_handles;
@@ -129,7 +137,7 @@ class opencode_provider final : public statement_provider
 public:
     // rewinds position in file
     void rewind_input(context::source_position pos);
-    std::string aread();
+    std::variant<std::string, utils::value_task<std::string>> aread();
     void ainsert(const std::string& rec, ainsert_destination dest);
 
     opencode_provider(std::string_view text,
@@ -149,6 +157,8 @@ public:
     bool finished() const override;
 
     processing::preprocessor* get_preprocessor();
+
+    void onetime_action();
 
 private:
     void feed_line(const parsing::parser_holder& p, bool is_process);
@@ -179,7 +189,7 @@ private:
         const range& op_range,
         diagnostic_op_consumer* diags);
 
-    bool try_running_preprocessor();
+    std::variant<bool, utils::task> try_running_preprocessor();
     enum class remove_empty : bool
     {
         no,
@@ -190,6 +200,11 @@ private:
 
     utils::task start_preprocessor();
     utils::task start_nested_parser(std::string_view text, analyzer_options opts, context::id_index vf_name) const;
+
+    std::string aread_from_copybook();
+    std::string try_aread_from_document();
+
+    utils::value_task<std::string> deferred_aread(utils::task prep_task);
 };
 
 } // namespace hlasm_plugin::parser_library::processing
