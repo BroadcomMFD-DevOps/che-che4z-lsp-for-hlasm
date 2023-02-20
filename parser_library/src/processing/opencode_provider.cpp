@@ -48,7 +48,7 @@ opencode_provider::opencode_provider(std::string_view text,
     opencode_provider_options opts,
     virtual_file_monitor* virtual_file_monitor)
     : statement_provider(statement_provider_kind::OPEN)
-    , m_input_document( document(text))
+    , m_input_document(text)
     , m_singleline { parsing::parser_holder::create(&src_proc, ctx.hlasm_ctx.get(), &diag_consumer, false),
         parsing::parser_holder::create(nullptr, ctx.hlasm_ctx.get(), nullptr, false),
         parsing::parser_holder::create(nullptr, ctx.hlasm_ctx.get(), nullptr, false), }
