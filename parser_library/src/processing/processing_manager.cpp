@@ -108,11 +108,11 @@ bool processing_manager::step()
     if (procs_.empty())
         return false;
 
-    if (helper_task.valid())
+    if (helper_task_.valid())
     {
-        helper_task();
-        if (helper_task.done())
-            helper_task = {};
+        helper_task_();
+        if (helper_task_.done())
+            helper_task_ = {};
         return true;
     }
 
@@ -139,8 +139,8 @@ utils::task processing_manager::co_step()
 {
     while (!procs_.empty())
     {
-        if (helper_task.valid())
-            co_await std::exchange(helper_task, {});
+        if (helper_task_.valid())
+            co_await std::exchange(helper_task_, {});
 
         statement_processor& proc = *procs_.back();
         statement_provider& prov = find_provider();
@@ -371,8 +371,8 @@ std::optional<bool> processing_manager::request_external_processing(
 
 void processing_manager::schedule_helper_task(utils::task t)
 {
-    assert(!helper_task.valid());
-    helper_task = std::move(t);
+    assert(!helper_task_.valid());
+    helper_task_ = std::move(t);
 }
 
 void processing_manager::start_macro_definition(
@@ -491,8 +491,8 @@ void processing_manager::collect_diags() const
 
 parsing::hlasmparser_multiline& processing_manager::opencode_parser() // for testing only
 {
-    if (helper_task.valid())
-        std::exchange(helper_task, {}).run();
+    if (helper_task_.valid())
+        std::exchange(helper_task_, {}).run();
     return opencode_prov_.parser();
 }
 

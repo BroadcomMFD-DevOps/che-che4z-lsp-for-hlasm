@@ -15,6 +15,7 @@
 #include "workspace.h"
 
 #include <algorithm>
+#include <cassert>
 #include <memory>
 
 #include "context/instruction.h"
@@ -48,6 +49,7 @@ struct workspace_parse_lib_provider final : public parse_lib_provider
     void parse_library(
         std::string_view library, analyzing_context ctx, library_data data, std::function<void(bool)> callback) override
     {
+        assert(callback);
         utils::resource::resource_location url;
         for (const auto& lib : libraries)
         {
@@ -75,6 +77,7 @@ struct workspace_parse_lib_provider final : public parse_lib_provider
         std::function<void(std::optional<std::pair<std::string, utils::resource::resource_location>>)> callback)
         const override
     {
+        assert(callback);
         utils::resource::resource_location url;
         for (const auto& lib : libraries)
         {

@@ -80,7 +80,7 @@ private:
     std::vector<processor_ptr> procs_;
     std::vector<provider_ptr> provs_;
 
-    utils::task helper_task;
+    utils::task helper_task_;
 
     lsp_analyzer lsp_analyzer_;
     std::vector<statement_analyzer*> stms_analyzers_;

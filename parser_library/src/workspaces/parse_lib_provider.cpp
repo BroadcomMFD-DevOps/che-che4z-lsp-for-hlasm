@@ -14,12 +14,15 @@
 
 #include "parse_lib_provider.h"
 
+#include <cassert>
+
 namespace hlasm_plugin::parser_library::workspaces {
 
 
 void empty_parse_lib_provider::parse_library(
     std::string_view, analyzing_context, library_data, std::function<void(bool)> callback)
 {
+    assert(callback);
     callback(false);
 };
 bool empty_parse_lib_provider::has_library(std::string_view, utils::resource::resource_location*) const
@@ -29,6 +32,7 @@ bool empty_parse_lib_provider::has_library(std::string_view, utils::resource::re
 void empty_parse_lib_provider::get_library(std::string_view,
     std::function<void(std::optional<std::pair<std::string, utils::resource::resource_location>>)> callback) const
 {
+    assert(callback);
     callback(std::nullopt);
 }
 
