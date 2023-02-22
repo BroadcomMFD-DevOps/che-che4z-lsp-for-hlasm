@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <memory>
+#include <unordered_set>
 
 #include "context/instruction.h"
 #include "file_impl.h"
@@ -137,47 +138,84 @@ void workspace::collect_diags() const
 }
 
 namespace {
-void generate_merged_fade_messages(
-    const std::string& uri, const processing::hit_count_details& hc_details, std::vector<fade_message_s>& fms)
+void generate_merged_fade_messages(const std::string& uri,
+    const processing::hit_count_detail& hc_detail,
+    const std::unordered_map<context::id_index, processing::macro_detail>& mac_detail,
+    std::vector<fade_message_s>& fms)
 {
-    const auto line_hits_it_b = hc_details.line_hits.begin();
-    const auto it_e = std::next(line_hits_it_b, hc_details.max_lineno + 1);
-    const auto it_b =
-        std::find_if(line_hits_it_b, it_e, [](const processing::hit_count& e) { return e.contains_statement; });
+    if (!hc_detail.has_sections)
+        return;
 
-    static constexpr auto faded_line_predicate = [](const processing::hit_count& e) {
-        return e.contains_statement && e.count == 0;
+    const auto line_hits_it_b = hc_detail.hits.line_details.begin();
+    const auto it_e = std::next(line_hits_it_b, hc_detail.hits.max_lineno + 1);
+    const auto it_b =
+        std::find_if(line_hits_it_b, it_e, [](const processing::line_detail& e) { return e.contains_statement; });
+
+    const auto faded_line_predicate = [&mac_detail](const processing::line_detail& e) {
+        if (!e.macro_affiliation.empty()
+            && std::none_of(e.macro_affiliation.begin(),
+                e.macro_affiliation.end(),
+                [&mac_detail](const context::id_index& line_mac_id) {
+                    auto mac_det_it = mac_detail.find(line_mac_id);
+                    return mac_det_it == mac_detail.end() ? false : mac_det_it->second.used;
+                }))
+            return false;
+
+        return (e.contains_statement && e.count == 0);
     };
 
     auto faded_line_it = std::find_if(it_b, it_e, faded_line_predicate);
     while (faded_line_it != it_e)
     {
         auto active_line = std::find_if_not(std::next(faded_line_it), it_e, faded_line_predicate);
-        if (!hc_details.is_external_macro)
-            fms.emplace_back(fade_message_s::inactive_statement(uri,
-                range(position(std::distance(line_hits_it_b, faded_line_it), 0),
-                    position(std::distance(line_hits_it_b, std::prev(active_line)), 80))));
+        fms.emplace_back(fade_message_s::inactive_statement(uri,
+            range(position(std::distance(line_hits_it_b, faded_line_it), 0),
+                position(std::distance(line_hits_it_b, std::prev(active_line)), 80))));
 
         faded_line_it = std::find_if(active_line, it_e, faded_line_predicate);
     }
 }
 
-void filter_and_emplace_hc(
-    processing::hit_count_map& to, const processing::hit_count_map& from, const utils::resource::resource_location& rl)
+void filter_and_emplace_hc_map(auto& to, const auto& from, const utils::resource::resource_location& rl)
 {
     auto from_it = from.find(rl);
     if (from_it == from.end())
         return;
 
-    const auto& [from_hc_rl, from_details] = *from_it;
-    if (auto [to_hc_details_it, new_element] = to.try_emplace(from_hc_rl, from_details); !new_element)
-        to_hc_details_it->second.merge(from_details);
+    const auto& [from_hc_rl, from_hc] = *from_it;
+    if (auto [to_hc_it, new_element] = to.try_emplace(from_hc_rl, from_hc); !new_element)
+        to_hc_it->second.merge(from_hc);
+}
+
+void filter_and_emplace_mac_detail(auto& to, const auto& from, const utils::resource::resource_location& rl)
+{
+    for (const auto& [from_mac_id, from_mac_details] : from)
+    {
+        if (from_mac_details.rl != rl)
+            continue;
+
+        to[from_mac_id].merge(from_mac_details);
+    }
+}
+
+void fade_unused_mac_names(processing::hit_count& hc)
+{
+    for (auto& [id, details] : hc.macro_details_map)
+    {
+        if (details.used)
+            continue;
+
+        auto& hc_map = hc.hc_map;
+        if (auto it = hc_map.find(details.rl); it != hc_map.end())
+            it->second.hits.add(details.macro_name_line, 0, true, std::nullopt);
+    }
 }
 } // namespace
 
 void workspace::retrieve_fade_messages(std::vector<fade_message_s>& fms) const
 {
-    processing::hit_count_map hc_map;
+    processing::hit_count hc;
+
     std::unordered_set<std::string, utils::hashers::string_hasher, std::equal_to<>> opened_files_uris;
 
     for (const auto& [rl, _] : opened_files_)
@@ -191,13 +229,18 @@ void workspace::retrieve_fade_messages(std::vector<fade_message_s>& fms) const
             std::back_inserter(fms),
             [&opened_files_uris](const auto& fmsg) { return opened_files_uris.contains(fmsg.uri); });
 
-        const auto& pf_hc_map = proc_file_component.m_processor_file->hit_counts();
+        const auto& pf_hc = proc_file_component.m_processor_file->hit_count();
         for (const auto& [opened_file_rl, __] : opened_files_)
-            filter_and_emplace_hc(hc_map, pf_hc_map, opened_file_rl);
+        {
+            filter_and_emplace_hc_map(hc.hc_map, pf_hc.hc_map, opened_file_rl);
+            filter_and_emplace_mac_detail(hc.macro_details_map, pf_hc.macro_details_map, opened_file_rl);
+        }
     }
 
-    std::for_each(hc_map.begin(), hc_map.end(), [&fms](const auto& e) {
-        generate_merged_fade_messages(e.first.get_uri(), e.second, fms);
+    fade_unused_mac_names(hc);
+
+    std::for_each(hc.hc_map.begin(), hc.hc_map.end(), [&fms, &mac_details_map = hc.macro_details_map](const auto& e) {
+        generate_merged_fade_messages(e.first.get_uri(), e.second, mac_details_map, fms);
     });
 }
 

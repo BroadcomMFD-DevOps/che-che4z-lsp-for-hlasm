@@ -576,9 +576,9 @@ processing_stack_details_t hlasm_context::processing_stack_details()
     return res;
 }
 
-location hlasm_context::current_statement_location() const
+location hlasm_context::current_statement_location(bool consider_macros) const
 {
-    if (source_stack_.size() > 1 || scope_stack_.size() == 1)
+    if (!consider_macros || source_stack_.size() > 1 || scope_stack_.size() == 1)
     {
         if (source_stack_.back().copy_stack.size())
         {
@@ -595,25 +595,6 @@ location hlasm_context::current_statement_location() const
 
         return mac_invo->copy_nests[mac_invo->current_statement].back().loc;
     }
-}
-
-utils::resource::resource_location hlasm_context::current_statement_resource_location(bool consider_macros) const
-{
-    assert(!source_stack_.empty());
-
-    if (consider_macros && source_stack_.size() == 1 && scope_stack_.size() > 1)
-    {
-        const auto& last_macro = scope_stack_.back().this_macro;
-
-        if (const auto& nest = last_macro->copy_nests[last_macro->current_statement]; !nest.empty())
-            return nest.back().loc.resource_loc;
-    }
-
-    const auto& last_source = source_stack_.back();
-    if (!last_source.copy_stack.empty())
-        return last_source.copy_stack.back().definition_location()->resource_loc;
-
-    return last_source.current_instruction.resource_loc;
 }
 
 const std::deque<code_scope>& hlasm_context::scope_stack() const { return scope_stack_; }

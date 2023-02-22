@@ -39,9 +39,7 @@ class lsp_context;
 }
 
 namespace processing {
-struct hit_count_details;
-using hit_count_map = std::
-    unordered_map<utils::resource::resource_location, hit_count_details, utils::resource::resource_location_hasher>;
+struct hit_count;
 } // namespace processing
 
 } // namespace hlasm_plugin::parser_library
@@ -49,7 +47,6 @@ using hit_count_map = std::
 namespace hlasm_plugin::parser_library::workspaces {
 struct library_data;
 class parse_lib_provider;
-using parse_result = bool;
 using file_location = utils::resource::resource_location;
 
 // Interface that represents an object that can be parsed.
@@ -78,7 +75,7 @@ public:
     virtual void erase_unused_cache_entries() = 0;
     virtual bool has_lsp_info() const = 0;
     virtual const std::vector<fade_message_s>& fade_messages() const = 0;
-    virtual const processing::hit_count_map& hit_counts() const = 0;
+    virtual const processing::hit_count& hit_count() const = 0;
     virtual const file_location& get_location() const = 0;
     virtual bool current_version() const = 0;
 

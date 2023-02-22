@@ -58,7 +58,7 @@ public:
     bool has_lsp_info() const override;
 
     const std::vector<fade_message_s>& fade_messages() const override;
-    const processing::hit_count_map& hit_counts() const override;
+    const processing::hit_count& hit_count() const override;
 
     const file_location& get_location() const override;
 
@@ -94,7 +94,7 @@ private:
     std::shared_ptr<const std::vector<fade_message_s>> m_fade_messages =
         std::make_shared<const std::vector<fade_message_s>>();
 
-    processing::hit_count_map m_hc_map;
+    processing::hit_count m_hc;
 
     bool should_collect_hl(context::hlasm_context* ctx = nullptr) const;
 };

@@ -157,8 +157,8 @@ public:
     processing_stack_t processing_stack();
     processing_frame processing_stack_top(bool consider_macros = true);
     processing_stack_details_t processing_stack_details();
-    location current_statement_location() const;
-    utils::resource::resource_location current_statement_resource_location(bool consider_macros) const;
+    location current_statement_location(bool consider_macros = true) const;
+
     // gets macro nest
     const std::deque<code_scope>& scope_stack() const;
     // gets copy nest of current statement processing

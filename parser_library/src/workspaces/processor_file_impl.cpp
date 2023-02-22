@@ -94,7 +94,7 @@ bool processor_file_impl::parse(parse_lib_provider& lib_provider,
             m_files_to_close.insert(file);
     }
 
-    m_hc_map = hc_analyzer.take_hit_counts();
+    m_hc = hc_analyzer.take_hit_count();
     m_fade_messages = std::move(fms);
 
     return true;
@@ -134,7 +134,7 @@ bool processor_file_impl::parse_macro(parse_lib_provider& lib_provider, analyzin
     if (collect_hl)
         m_last_hl_info = a.source_processor().semantic_tokens();
 
-    m_hc_map = hc_analyzer.take_hit_counts();
+    m_hc = hc_analyzer.take_hit_count();
 
     return true;
 }
@@ -175,7 +175,7 @@ bool processor_file_impl::should_collect_hl(context::hlasm_context* ctx) const
 bool processor_file_impl::has_lsp_info() const { return m_last_analyzer_with_lsp; }
 
 const std::vector<fade_message_s>& processor_file_impl::fade_messages() const { return *m_fade_messages; }
-const processing::hit_count_map& processor_file_impl::hit_counts() const { return m_hc_map; }
+const processing::hit_count& processor_file_impl::hit_count() const { return m_hc; }
 
 const file_location& processor_file_impl::get_location() const { return m_file->get_location(); }
 
@@ -192,7 +192,8 @@ void processor_file_impl::update_source()
     used_files.clear();
     m_file = m_file_mngr.add_file(get_location());
     m_macro_cache = macro_cache(m_file_mngr, m_file);
-    m_hc_map.clear();
+    m_hc.hc_map.clear();
+    m_hc.macro_details_map.clear();
     diags().clear();
 }
 
