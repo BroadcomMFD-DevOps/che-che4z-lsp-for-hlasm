@@ -41,31 +41,43 @@ dummy_vfm fallback_vfm;
 } // namespace
 
 opencode_provider::opencode_provider(std::string_view text,
-    analyzing_context& ctx,
-    workspaces::parse_lib_provider& lib_provider,
-    processing_state_listener& state_listener,
-    semantics::source_info_processor& src_proc,
-    diagnosable_ctx& diag_consumer,
-    std::unique_ptr<preprocessor> preprocessor,
-    opencode_provider_options opts,
-    virtual_file_monitor* virtual_file_monitor)
-    : statement_provider(statement_provider_kind::OPEN)
-    , m_input_document(preprocessor ? preprocessor->generate_replacement(document(text)) : document(text))
-    , m_singleline { parsing::parser_holder::create(&src_proc, ctx.hlasm_ctx.get(), &diag_consumer, false),
-        parsing::parser_holder::create(nullptr, ctx.hlasm_ctx.get(), nullptr, false),
-        parsing::parser_holder::create(nullptr, ctx.hlasm_ctx.get(), nullptr, false), }
-    , m_multiline { parsing::parser_holder::create(&src_proc, ctx.hlasm_ctx.get(), &diag_consumer,true),
-        parsing::parser_holder::create(nullptr, ctx.hlasm_ctx.get(), nullptr,true),
-        parsing::parser_holder::create(nullptr, ctx.hlasm_ctx.get(), nullptr,true), }
-    , m_ctx(&ctx)
-    , m_lib_provider(&lib_provider)
-    , m_state_listener(&state_listener)
-    , m_src_proc(&src_proc)
-    , m_diagnoser(&diag_consumer)
-    , m_opts(opts)
-    , m_preprocessor(std::move(preprocessor))
-    , m_virtual_file_monitor(virtual_file_monitor ? virtual_file_monitor : &fallback_vfm)
+		analyzing_context& ctx,
+		workspaces::parse_lib_provider& lib_provider,
+		processing_state_listener& state_listener,
+		semantics::source_info_processor& src_proc,
+		diagnosable_ctx& diag_consumer,
+		std::unique_ptr<preprocessor> prep,
+		opencode_provider_options opts,
+		virtual_file_monitor* virtual_file_monitor)
+		: statement_provider(statement_provider_kind::OPEN)
+		, m_input_document(text)
+		, m_singleline{ parsing::parser_holder::create(&src_proc, ctx.hlasm_ctx.get(), &diag_consumer, false),
+			parsing::parser_holder::create(nullptr, ctx.hlasm_ctx.get(), nullptr, false),
+			parsing::parser_holder::create(nullptr, ctx.hlasm_ctx.get(), nullptr, false), }
+		, m_multiline{ parsing::parser_holder::create(&src_proc, ctx.hlasm_ctx.get(), &diag_consumer,true),
+			parsing::parser_holder::create(nullptr, ctx.hlasm_ctx.get(), nullptr,true),
+			parsing::parser_holder::create(nullptr, ctx.hlasm_ctx.get(), nullptr,true), }
+		, m_ctx(&ctx)
+		, m_lib_provider(&lib_provider)
+		, m_state_listener(&state_listener)
+		, m_src_proc(&src_proc)
+		, m_diagnoser(&diag_consumer)
+		, m_opts(opts)
+		, m_preprocessor(std::move(prep))
+		, m_virtual_file_monitor(virtual_file_monitor ? virtual_file_monitor : &fallback_vfm)
 {}
+
+utils::task opencode_provider::start_preprocessor()
+{
+    m_input_document = co_await m_preprocessor->generate_replacement(std::move(m_input_document));
+}
+
+void opencode_provider::onetime_action()
+{
+    if (m_preprocessor)
+        m_state_listener->schedule_helper_task(start_preprocessor());
+}
+
 
 void opencode_provider::register_aread_callback(std::function<void(size_t, std::string_view)> cb)
 {
@@ -99,51 +111,80 @@ void opencode_provider::generate_aread_highlighting(std::string_view text, size_
                 semantics::hl_scopes::ignored));
 }
 
-std::string opencode_provider::aread()
+std::variant<std::string, utils::value_task<std::string>> opencode_provider::aread()
 {
-    bool adjust_length = true;
-    std::string result;
     if (!m_ainsert_buffer.empty())
     {
-        result = std::move(m_ainsert_buffer.front());
+        auto result = std::move(m_ainsert_buffer.front());
         m_ainsert_buffer.pop_front();
-    }
-    else if (suspend_copy_processing(remove_empty::yes)
-        || m_preprocessor && try_running_preprocessor() && suspend_copy_processing(remove_empty::yes))
-    {
-        auto& opencode_stack = m_ctx->hlasm_ctx->opencode_copy_stack();
-        auto& copy = opencode_stack.back();
-        const auto line = copy.suspended_at;
-        std::string_view remaining_text = m_ctx->lsp_ctx->get_file_info(copy.definition_location()->resource_loc)
-                                              ->data.get_lines_beginning_at({ line, 0 });
-        result = lexing::extract_line(remaining_text).first;
-        if (remaining_text.empty())
-            copy.resume();
-        else
-            copy.suspend(line + 1);
-
-        while (!opencode_stack.empty() && !opencode_stack.back().suspended())
-            opencode_stack.pop_back();
-    }
-    else if (m_next_line_index < m_input_document.size())
-    {
-        const auto& line = m_input_document.at(m_next_line_index++);
-        auto line_text = line.text();
-        result = lexing::extract_line(line_text).first;
-        if (auto lineno = line.lineno(); lineno.has_value())
-        {
-            std::for_each(m_aread_callbacks.begin(), m_aread_callbacks.end(), [&result, ln = *lineno](const auto& cb) {
-                if (cb)
-                    cb(ln, result);
-            });
-            generate_aread_highlighting(result, *lineno);
-        }
-    }
-    else
-        adjust_length = false;
-
-    if (adjust_length)
         result.resize(80, ' ');
+        return result;
+    }
+
+    if (suspend_copy_processing(remove_empty::yes))
+        return aread_from_copybook();
+
+    if (should_run_preprocessor())
+    {
+        if (auto t = run_preprocessor(); t.valid())
+            return deferred_aread(std::move(t));
+        if (suspend_copy_processing(remove_empty::yes))
+            return aread_from_copybook();
+    }
+
+    return try_aread_from_document();
+}
+
+utils::value_task<std::string> opencode_provider::deferred_aread(utils::task prep_task)
+{
+    co_await std::move(prep_task);
+
+    if (suspend_copy_processing(remove_empty::yes))
+        co_return aread_from_copybook();
+
+    co_return try_aread_from_document();
+}
+
+std::string opencode_provider::aread_from_copybook() const
+{
+    auto& opencode_stack = m_ctx->hlasm_ctx->opencode_copy_stack();
+    auto& copy = opencode_stack.back();
+    const auto line = copy.suspended_at;
+    std::string_view remaining_text = m_ctx->lsp_ctx->get_file_info(copy.definition_location()->resource_loc)
+                                          ->data.get_lines_beginning_at({ line, 0 });
+    std::string result(lexing::extract_line(remaining_text).first);
+    if (remaining_text.empty())
+        copy.resume();
+    else
+        copy.suspend(line + 1);
+
+    while (!opencode_stack.empty() && !opencode_stack.back().suspended())
+        opencode_stack.pop_back();
+
+    result.resize(80, ' ');
+
+    return result;
+}
+std::string opencode_provider::try_aread_from_document()
+{
+    if (m_next_line_index >= m_input_document.size())
+        return std::string();
+
+    const auto& line = m_input_document.at(m_next_line_index++);
+    auto line_text = line.text();
+    std::string result(lexing::extract_line(line_text).first);
+    if (auto lineno = line.lineno(); lineno.has_value())
+    {
+        std::for_each(m_aread_callbacks.begin(), m_aread_callbacks.end(), [&result, ln = *lineno](const auto& cb) {
+            if (cb)
+                cb(ln, result);
+        });
+
+        generate_aread_highlighting(result, *lineno);
+    }
+
+    result.resize(80, ' ');
+
     return result;
 }
 
@@ -427,11 +468,14 @@ size_t extract_current_line(size_t next_line_index, const document& doc)
 }
 } // namespace
 
-bool opencode_provider::try_running_preprocessor()
+bool opencode_provider::should_run_preprocessor() const noexcept
 {
-    if (m_next_line_index >= m_input_document.size() || m_input_document.at(m_next_line_index).is_original())
-        return false;
+    return m_preprocessor && m_next_line_index < m_input_document.size()
+        && !m_input_document.at(m_next_line_index).is_original();
+}
 
+utils::task opencode_provider::run_preprocessor()
+{
     const auto current_line = extract_current_line(m_next_line_index, m_input_document);
 
     std::string preprocessor_text;
@@ -456,9 +500,16 @@ bool opencode_provider::try_running_preprocessor()
     m_ctx->hlasm_ctx->set_source_indices(m_next_line_index, last_index);
     m_next_line_index = last_index;
 
-    if (inserted)
+
+    if (!inserted)
     {
-        analyzer a(new_file->second,
+        assert(preprocessor_text == new_file->second); // isn't moved if insert fails
+        m_ctx->hlasm_ctx->enter_copy_member(virtual_file_name);
+        return utils::task();
+    }
+    else
+    {
+        return start_nested_parser(new_file->second,
             analyzer_options {
                 generate_virtual_file_name(
                     m_vf_handles.emplace_back(m_virtual_file_monitor->file_generated(new_file->second)).file_id(),
@@ -466,18 +517,18 @@ bool opencode_provider::try_running_preprocessor()
                 m_lib_provider,
                 *m_ctx,
                 workspaces::library_data { processing_kind::COPY, virtual_file_name },
-            });
-        a.analyze();
-        m_diagnoser->collect_diags_from_child(a);
+            },
+            virtual_file_name);
     }
-    else
-    {
-        assert(preprocessor_text == new_file->second); // isn't moved if insert fails
-    }
+}
 
-    m_ctx->hlasm_ctx->enter_copy_member(virtual_file_name);
-
-    return true;
+utils::task opencode_provider::start_nested_parser(
+    std::string_view text, analyzer_options opts, context::id_index vf_name) const
+{
+    analyzer a(text, std::move(opts));
+    co_await a.co_analyze();
+    m_diagnoser->collect_diags_from_child(a);
+    m_ctx->hlasm_ctx->enter_copy_member(vf_name);
 }
 
 bool opencode_provider::suspend_copy_processing(remove_empty re) const
@@ -520,7 +571,7 @@ bool opencode_provider::suspend_copy_processing(remove_empty re) const
     return !opencode_stack.empty();
 }
 
-void opencode_provider::convert_ainsert_buffer_to_copybook()
+utils::task opencode_provider::convert_ainsert_buffer_to_copybook()
 {
     std::string result;
     result.reserve(m_ainsert_buffer.size() * (80 + 1));
@@ -533,7 +584,7 @@ void opencode_provider::convert_ainsert_buffer_to_copybook()
 
     auto new_file = m_virtual_files.try_emplace(virtual_copy_name, std::move(result)).first;
 
-    analyzer a(new_file->second,
+    co_await start_nested_parser(new_file->second,
         analyzer_options {
             generate_virtual_file_name(
                 m_vf_handles.emplace_back(m_virtual_file_monitor->file_generated(new_file->second)).file_id(),
@@ -541,11 +592,8 @@ void opencode_provider::convert_ainsert_buffer_to_copybook()
             m_lib_provider,
             *m_ctx,
             workspaces::library_data { processing_kind::COPY, virtual_copy_name },
-        });
-    a.analyze();
-    m_diagnoser->collect_diags_from_child(a);
-
-    m_ctx->hlasm_ctx->enter_copy_member(virtual_copy_name);
+        },
+        virtual_copy_name);
 }
 
 context::shared_stmt_ptr opencode_provider::get_next(const statement_processor& proc)
@@ -753,7 +801,7 @@ extract_next_logical_line_result opencode_provider::extract_next_logical_line()
     {
         if (!m_ainsert_buffer.empty())
         {
-            convert_ainsert_buffer_to_copybook();
+            m_state_listener->schedule_helper_task(convert_ainsert_buffer_to_copybook());
             return extract_next_logical_line_result::failed;
         }
 
@@ -792,8 +840,12 @@ extract_next_logical_line_result opencode_provider::extract_next_logical_line()
         }
     }
 
-    if (m_preprocessor && try_running_preprocessor())
+    if (should_run_preprocessor())
+    {
+        if (auto t = run_preprocessor(); t.valid())
+            m_state_listener->schedule_helper_task(std::move(t));
         return extract_next_logical_line_result::failed;
+    }
 
     const auto first_index = m_next_line_index;
     const auto current_lineno = m_input_document.at(m_next_line_index).lineno().value();

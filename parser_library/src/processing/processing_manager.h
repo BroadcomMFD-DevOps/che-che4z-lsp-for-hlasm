@@ -30,7 +30,12 @@
 #include "processing_state_listener.h"
 #include "statement_analyzers/lsp_analyzer.h"
 #include "statement_fields_parser.h"
+#include "utils/task.h"
 #include "workspaces/parse_lib_provider.h"
+
+namespace hlasm_plugin::parser_library::parsing {
+class hlasmparser_multiline;
+} // namespace hlasm_plugin::parser_library::parsing
 
 namespace hlasm_plugin::parser_library::processing {
 
@@ -53,6 +58,8 @@ public:
     // method that starts the processing loop
     bool step();
 
+    utils::task co_step();
+
     void register_stmt_analyzer(statement_analyzer* stmt_analyzer,
         std::function<void(const utils::resource::resource_location&, size_t, std::string_view)> aread_callback);
 
@@ -64,7 +71,7 @@ public:
 
     void collect_diags() const override;
 
-    auto& opencode_parser() { return opencode_prov_.parser(); } // for testing only
+    parsing::hlasmparser_multiline& opencode_parser(); // for testing only
 
 private:
     analyzing_context ctx_;
@@ -74,6 +81,8 @@ private:
 
     std::vector<processor_ptr> procs_;
     std::vector<provider_ptr> provs_;
+
+    utils::task helper_task_;
 
     lsp_analyzer lsp_analyzer_;
     std::vector<statement_analyzer*> stms_analyzers_;
@@ -113,6 +122,8 @@ private:
     void finish_opencode() override;
     std::optional<bool> request_external_processing(
         context::id_index name, processing::processing_kind proc_kind, std::function<void(bool)> callback) override;
+
+    void schedule_helper_task(utils::task t) override;
 
     void start_macro_definition(macrodef_start_data start, std::optional<utils::resource::resource_location> file_loc);
 

@@ -122,22 +122,22 @@ hit_count_analyzer::statement_type hit_count_analyzer::get_stmt_type(const seman
     return cur_stmt_type;
 }
 
-void hit_count_analyzer::analyze(
+bool hit_count_analyzer::analyze(
     const context::hlasm_statement& statement, statement_provider_kind prov_kind, processing_kind proc_kind, bool)
 {
     auto core_stmt_o = get_core_stmt(&statement);
     if (!core_stmt_o.has_value() || !core_stmt_o.value())
-        return;
+        return false;
 
     const auto& core_stmt = *core_stmt_o.value();
 
     auto stmt_type = get_stmt_type(core_stmt);
     if (stmt_type == statement_type::MACRO_INIT || stmt_type == statement_type::MACRO_END)
-        return;
+        return false;
 
     auto stmt_lines_range = get_stmt_lines_range(core_stmt, prov_kind, proc_kind, m_ctx);
     if (!stmt_lines_range)
-        return;
+        return false;
 
     auto rl = m_ctx.current_statement_location(proc_kind != processing_kind::LOOKAHEAD).resource_loc;
 
@@ -178,6 +178,8 @@ void hit_count_analyzer::analyze(
             assert(false);
             break;
     }
+
+    return false;
 }
 
 void hit_count_analyzer::analyze_aread_line(

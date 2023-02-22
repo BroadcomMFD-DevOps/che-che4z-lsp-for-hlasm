@@ -68,11 +68,11 @@ bool processor_file_impl::parse(parse_lib_provider& lib_provider,
             std::placeholders::_2,
             std::placeholders::_3));
 
-    do
+    for (auto a = new_analyzer->co_analyze(); !a.done(); a())
     {
         if (m_cancel && m_cancel->load(std::memory_order_relaxed))
             return false;
-    } while (new_analyzer->analyze_step());
+    }
 
     diags().clear();
     collect_diags_from_child(*new_analyzer);
@@ -120,11 +120,11 @@ bool processor_file_impl::parse_macro(parse_lib_provider& lib_provider, analyzin
     processing::hit_count_analyzer hc_analyzer(a.hlasm_ctx());
     a.register_stmt_analyzer(&hc_analyzer);
 
-    do
+    for (auto co_a = a.co_analyze(); !co_a.done(); co_a())
     {
         if (m_cancel && m_cancel->load(std::memory_order_relaxed))
             return false;
-    } while (a.analyze_step());
+    }
 
     diags().clear();
     collect_diags_from_child(a);

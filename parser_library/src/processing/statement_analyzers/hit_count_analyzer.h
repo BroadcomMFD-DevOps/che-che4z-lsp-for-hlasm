@@ -158,7 +158,7 @@ public:
     explicit hit_count_analyzer(context::hlasm_context& ctx);
     ~hit_count_analyzer() = default;
 
-    void analyze(const context::hlasm_statement& statement,
+    bool analyze(const context::hlasm_statement& statement,
         statement_provider_kind prov_kind,
         processing_kind proc_kind,
         bool) override;

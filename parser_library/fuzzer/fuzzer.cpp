@@ -14,6 +14,7 @@
 
 #include <array>
 #include <bitset>
+#include <cassert>
 #include <charconv>
 #include <cstring>
 #include <optional>
@@ -53,6 +54,7 @@ public:
     void parse_library(
         std::string_view library, analyzing_context ctx, library_data data, std::function<void(bool)> callback) override
     {
+        assert(callback);
         auto lib = read_library_name(library);
         if (!lib.has_value())
         {
@@ -75,15 +77,17 @@ public:
         return lib.has_value();
     }
 
-    std::optional<std::pair<std::string, hlasm_plugin::utils::resource::resource_location>> get_library(
-        std::string_view library) const override
+    void get_library(std::string_view library,
+        std::function<void(std::optional<std::pair<std::string, utils::resource::resource_location>>)> callback)
+        const override
     {
+        assert(callback);
         auto lib = read_library_name(library);
         if (!lib.has_value())
-            return std::nullopt;
+            return callback(std::nullopt);
 
-        return std::pair<std::string, hlasm_plugin::utils::resource::resource_location>(
-            files[lib.value()], hlasm_plugin::utils::resource::resource_location(library));
+        return callback(std::pair<std::string, hlasm_plugin::utils::resource::resource_location>(
+            files[lib.value()], hlasm_plugin::utils::resource::resource_location(library)));
     }
 
     std::vector<std::string> files;
