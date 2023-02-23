@@ -156,6 +156,43 @@ nlohmann::json feature_language_features::register_capabilities()
     };
 }
 
+namespace {
+
+template<typename T, typename U>
+auto make_response(nlohmann::json id, response_provider* response, U handler)
+{
+    class response_t
+    {
+        nlohmann::json m_id;
+        response_provider* m_response;
+        U m_handler;
+        workspace_manager_response<T>* m_wm_resp = nullptr;
+
+    public:
+        response_t(nlohmann::json id, response_provider* response, U handler)
+            : m_id(std::move(id))
+            , m_response(response)
+            , m_handler(std::move(handler))
+        {}
+        response_t(response_t self, workspace_manager_response<T>* wm_resp)
+            : m_id(std::move(self.m_id))
+            , m_response(self.m_response)
+            , m_handler(std::move(self.m_handler))
+            , m_wm_resp(wm_resp)
+        {}
+
+        bool valid() const { return true; }
+        void error(int ec, sequence<char> error) const
+        {
+            m_response->respond_error(m_id, "", ec, std::string(error), {});
+        }
+        void provide(T r) const { m_response->respond(m_id, "", m_handler(std::move(r))); }
+    };
+    return make_workspace_manager_response<T>(response_t(std::move(id), response, std::move(handler)));
+}
+
+} // namespace
+
 void feature_language_features::initialize_feature(const nlohmann::json&)
 {
     // No need for initialization in this feature.
@@ -166,41 +203,44 @@ void feature_language_features::definition(const nlohmann::json& id, const nlohm
     auto document_uri = extract_document_uri(params);
     auto pos = extract_position(params);
 
-    auto definition_position_uri = ws_mngr_.definition(document_uri.c_str(), pos);
-    nlohmann::json to_ret {
-        { "uri", definition_position_uri.file_uri() },
-        { "range", range_to_json({ definition_position_uri.pos(), definition_position_uri.pos() }) },
-    };
-    response_->respond(id, "", to_ret);
+    ws_mngr_.definition(
+        document_uri.c_str(), pos, make_response<position_uri>(id, response_, [](position_uri definition_position_uri) {
+            return nlohmann::json {
+                { "uri", definition_position_uri.file_uri() },
+                { "range", range_to_json({ definition_position_uri.pos(), definition_position_uri.pos() }) },
+            };
+        }));
 }
 
 void feature_language_features::references(const nlohmann::json& id, const nlohmann::json& params)
 {
     auto document_uri = extract_document_uri(params);
     auto pos = extract_position(params);
-    auto to_ret = nlohmann::json::array();
-    auto references = ws_mngr_.references(document_uri.c_str(), pos);
-    for (size_t i = 0; i < references.size(); ++i)
-    {
-        auto ref = references.item(i);
-        to_ret.push_back(
-            nlohmann::json { { "uri", ref.file_uri() }, { "range", range_to_json({ ref.pos(), ref.pos() }) } });
-    }
-    response_->respond(id, "", to_ret);
+
+    ws_mngr_.references(
+        document_uri.c_str(), pos, make_response<position_uri_list>(id, response_, [](position_uri_list references) {
+            auto to_ret = nlohmann::json::array();
+            for (size_t i = 0; i < references.size(); ++i)
+            {
+                auto ref = references.item(i);
+                to_ret.push_back(
+                    nlohmann::json { { "uri", ref.file_uri() }, { "range", range_to_json({ ref.pos(), ref.pos() }) } });
+            }
+            return to_ret;
+        }));
 }
 void feature_language_features::hover(const nlohmann::json& id, const nlohmann::json& params)
 {
     auto document_uri = extract_document_uri(params);
     auto pos = extract_position(params);
 
-
-    auto hover_list = std::string_view(ws_mngr_.hover(document_uri.c_str(), pos));
-
-    response_->respond(id,
-        "",
-        nlohmann::json {
-            { "contents", hover_list.empty() ? "" : get_markup_content(hover_list) },
-        });
+    ws_mngr_.hover(
+        document_uri.c_str(), pos, make_response<sequence<char>>(id, response_, [](sequence<char> hover_list_result) {
+            std::string_view hover_list(hover_list_result);
+            return nlohmann::json {
+                { "contents", hover_list.empty() ? "" : get_markup_content(hover_list) },
+            };
+        }));
 }
 
 // Completion item kinds from the LSP specification
@@ -266,32 +306,37 @@ void feature_language_features::completion(const nlohmann::json& id, const nlohm
 
     auto [trigger_kind, trigger_char] = extract_trigger(params);
 
-    auto completion_list = ws_mngr_.completion(document_uri.c_str(), pos, trigger_char, trigger_kind);
-    auto to_ret = nlohmann::json::object();
-    auto completion_item_array = nlohmann::json::array();
-    for (size_t i = 0; i < completion_list.size(); ++i)
-    {
-        const auto& item = completion_list.item(i);
-        auto& json_item = completion_item_array.emplace_back(nlohmann::json {
-            { "label", item.label() },
-            { "kind", completion_item_kind_mapping.at(item.kind()) },
-            { "detail", item.detail() },
-            { "documentation", get_markup_content(item.documentation()) },
-            { "insertText", item.insert_text() },
-            { "insertTextFormat", 1 + (int)item.is_snippet() },
-        });
-        if (auto suggestion = item.suggestion_for(); !suggestion.empty())
-        {
-            json_item["filterText"] = std::string("~~~") + decorate_suggestion(suggestion);
-            json_item["sortText"] = std::string("~~~") + std::string(item.label());
-        }
-    }
-    // needs to be incomplete, otherwise we are unable to include new suggestions
-    // when user continues typing (vscode keeps using the first list)
-    to_ret["isIncomplete"] = true;
-    to_ret["items"] = std::move(completion_item_array);
+    ws_mngr_.completion(document_uri.c_str(),
+        pos,
+        trigger_char,
+        trigger_kind,
+        make_response<completion_list>(id, response_, [](completion_list list) {
+            auto to_ret = nlohmann::json::object();
+            auto completion_item_array = nlohmann::json::array();
+            for (size_t i = 0; i < list.size(); ++i)
+            {
+                const auto& item = list.item(i);
+                auto& json_item = completion_item_array.emplace_back(nlohmann::json {
+                    { "label", item.label() },
+                    { "kind", completion_item_kind_mapping.at(item.kind()) },
+                    { "detail", item.detail() },
+                    { "documentation", get_markup_content(item.documentation()) },
+                    { "insertText", item.insert_text() },
+                    { "insertTextFormat", 1 + (int)item.is_snippet() },
+                });
+                if (auto suggestion = item.suggestion_for(); !suggestion.empty())
+                {
+                    json_item["filterText"] = std::string("~~~") + decorate_suggestion(suggestion);
+                    json_item["sortText"] = std::string("~~~") + std::string(item.label());
+                }
+            }
+            // needs to be incomplete, otherwise we are unable to include new suggestions
+            // when user continues typing (vscode keeps using the first list)
+            to_ret["isIncomplete"] = true;
+            to_ret["items"] = std::move(completion_item_array);
 
-    response_->respond(id, "", to_ret);
+            return to_ret;
+        }));
 }
 
 void add_token(nlohmann::json& encoded_tokens,
@@ -401,9 +446,12 @@ void feature_language_features::semantic_tokens(const nlohmann::json& id, const 
 {
     auto document_uri = extract_document_uri(params);
 
-    auto tokens = std::vector<parser_library::token_info>(ws_mngr_.semantic_tokens(document_uri.c_str()));
-
-    response_->respond(id, "", { { "data", convert_tokens_to_num_array(tokens) } });
+    ws_mngr_.semantic_tokens(document_uri.c_str(),
+        make_response<continuous_sequence<token_info>>(id, response_, [](continuous_sequence<token_info> token_list) {
+            return nlohmann::json {
+                { "data", convert_tokens_to_num_array(std::vector<parser_library::token_info>(std::move(token_list))) },
+            };
+        }));
 }
 
 // document symbol item kinds from the LSP specification
@@ -483,9 +531,11 @@ void feature_language_features::document_symbol(const nlohmann::json& id, const 
     auto document_uri = extract_document_uri(params);
 
     const auto limit = 5000LL;
-    auto symbol_list = ws_mngr_.document_symbol(document_uri.c_str(), limit);
-
-    response_->respond(id, "", document_symbol_list_json(symbol_list));
+    ws_mngr_.document_symbol(document_uri.c_str(),
+        limit,
+        make_response<document_symbol_list>(id, response_, [this](document_symbol_list symbol_list) {
+            return document_symbol_list_json(symbol_list);
+        }));
 }
 
 void feature_language_features::opcode_suggestion(const nlohmann::json& id, const nlohmann::json& params)

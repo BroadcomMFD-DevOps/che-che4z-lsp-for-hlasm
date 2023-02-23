@@ -113,37 +113,42 @@ void workspace_manager::unregister_parsing_metadata_consumer(parsing_metadata_co
 
 void workspace_manager::set_message_consumer(message_consumer* consumer) { impl_->set_message_consumer(consumer); }
 
-position_uri workspace_manager::definition(const char* document_uri, position pos)
+void workspace_manager::definition(const char* document_uri, position pos, workspace_manager_response<position_uri> r)
 {
-    return impl_->definition(document_uri, pos);
+    r.provide(impl_->definition(document_uri, pos));
 }
 
-position_uri_list workspace_manager::references(const char* document_uri, position pos)
+void workspace_manager::references(
+    const char* document_uri, position pos, workspace_manager_response<position_uri_list> r)
 {
-    return impl_->references(document_uri, pos);
+    r.provide(impl_->references(document_uri, pos));
 }
 
-sequence<char> workspace_manager::hover(const char* document_uri, position pos)
+void workspace_manager::hover(const char* document_uri, position pos, workspace_manager_response<sequence<char>> r)
 {
-    return sequence<char>(impl_->hover(document_uri, pos));
+    r.provide(sequence<char>(impl_->hover(document_uri, pos)));
 }
 
-completion_list workspace_manager::completion(
-    const char* document_uri, position pos, const char trigger_char, completion_trigger_kind trigger_kind)
+void workspace_manager::completion(const char* document_uri,
+    position pos,
+    const char trigger_char,
+    completion_trigger_kind trigger_kind,
+    workspace_manager_response<completion_list> r)
 {
-    return impl_->completion(document_uri, pos, trigger_char, trigger_kind);
+    r.provide(impl_->completion(document_uri, pos, trigger_char, trigger_kind));
 }
 
-continuous_sequence<token_info> workspace_manager::semantic_tokens(const char* document_uri)
+void workspace_manager::semantic_tokens(
+    const char* document_uri, workspace_manager_response<continuous_sequence<token_info>> r)
 {
-    return impl_->semantic_tokens(document_uri);
+    r.provide(impl_->semantic_tokens(document_uri));
 }
 
-document_symbol_list workspace_manager::document_symbol(const char* document_uri, long long limit)
+void workspace_manager::document_symbol(
+    const char* document_uri, long long limit, workspace_manager_response<document_symbol_list> r)
 {
-    return impl_->document_symbol(document_uri, limit);
+    r.provide(impl_->document_symbol(document_uri, limit));
 }
-
 
 continuous_sequence<char> workspace_manager::get_virtual_file_content(unsigned long long id) const
 {

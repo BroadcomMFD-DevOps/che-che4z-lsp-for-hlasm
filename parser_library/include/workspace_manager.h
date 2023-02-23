@@ -22,7 +22,9 @@
 #include <atomic>
 #include <set>
 #include <string>
+#include <type_traits>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include "lib_config.h"
@@ -82,6 +84,133 @@ struct opcode_suggestion
     size_t distance;
 };
 
+template<typename T>
+class workspace_manager_response
+{
+    struct impl_actions
+    {
+        void (*deleter)(void*) noexcept = nullptr;
+        bool (*valid)(void*) noexcept = nullptr;
+        void (*error)(void*, int, sequence<char>) = nullptr;
+        void (*provide)(void*, T) = nullptr;
+    };
+    template<typename U>
+    static constexpr impl_actions get_actions = {
+        .deleter = +[](void* p) noexcept { delete static_cast<U*>(p); },
+        .valid = +[](void* p) noexcept { return static_cast<U*>(p)->valid(); },
+        .error = +[](void* p, int ec, sequence<char> error) { static_cast<U*>(p)->error(ec, error); },
+        .provide = +[](void* p, T t) { static_cast<U*>(p)->provide(std::move(t)); },
+    };
+
+    void* impl = nullptr;
+    const impl_actions* actions = nullptr;
+
+    void* invalidation_impl = nullptr;
+    void (*invalidation_deleter)(void*) = nullptr;
+    union
+    {
+        void (*complex)(void*);
+        void (*simple)();
+    } invalidation = { .complex = nullptr };
+
+    workspace_manager_response(void* impl, const impl_actions* actions) noexcept
+        : impl(impl)
+        , actions(actions)
+    {}
+
+public:
+    workspace_manager_response() = default;
+    template<typename U>
+    workspace_manager_response(U u) noexcept
+        : workspace_manager_response(new U(std::move(u), this), &get_actions<U>)
+    {}
+    workspace_manager_response(const workspace_manager_response&) = delete;
+    workspace_manager_response(workspace_manager_response&& o) noexcept
+        : impl(std::exchange(o.impl, nullptr))
+        , actions(std::exchange(o.actions, nullptr))
+        , invalidation_impl(std::exchange(o.invalidation_impl, nullptr))
+        , invalidation_deleter(std::exchange(o.invalidation_deleter, nullptr))
+        , invalidation(std::exchange(o.invalidation, {}))
+    {
+        if (invalidation_impl == &o)
+            invalidation_impl = this;
+    }
+    workspace_manager_response& operator=(const workspace_manager_response&) = delete;
+    workspace_manager_response& operator=(workspace_manager_response&& o) noexcept
+    {
+        if (this != &o)
+        {
+            if (impl)
+                actions->deleter(impl);
+            if (invalidation_deleter)
+                invalidation_deleter(invalidation_impl);
+
+            impl = std::exchange(o.impl, nullptr);
+            actions = std::exchange(o.actions, nullptr);
+
+            invalidation_impl = std::exchange(o.invalidation_impl, nullptr);
+            invalidation_deleter = std::exchange(o.invalidation_deleter, nullptr);
+            invalidation = std::exchange(o.invalidation, {});
+
+            if (invalidation_impl == &o)
+                invalidation_impl = this;
+        }
+        return *this;
+    }
+    ~workspace_manager_response()
+    {
+        if (impl)
+            actions->deleter(impl);
+        if (invalidation_deleter)
+            invalidation_deleter(invalidation_impl);
+    }
+
+    bool valid() const { return actions->valid(impl); }
+    void error(int ec, sequence<char> error) const { return actions->error(impl, ec, error); }
+    void invalidate() const
+    {
+        if (invalidation_impl == this)
+            invalidation.simple();
+        else if (invalidation_impl)
+            invalidation.complex(invalidation_impl);
+    }
+
+    template<typename C>
+    bool set_invalidation_callback(C t)
+    {
+        remove_invalidation_handler();
+        invalidation_impl = new C(std::move(t));
+        invalidation_deleter = +[](void* p) { delete static_cast<C*>(p); };
+        invalidation.complex = +[](void* p) { (*static_cast<C*>(p))(); };
+    }
+
+    template<typename C>
+    bool set_invalidation_callback(C t) noexcept requires std::is_function_v<C>
+    {
+        remove_invalidation_handler();
+        invalidation_impl = this;
+        invalidation_deleter = nullptr;
+        invalidation.simple = t;
+    }
+
+    void remove_invalidation_handler() noexcept
+    {
+        if (invalidation_deleter)
+            invalidation_deleter(invalidation_impl);
+        invalidation_impl = nullptr;
+        invalidation_deleter = nullptr;
+        invalidation.simple = nullptr;
+    }
+
+    void provide(T t) const { actions->provide(impl, std::move(t)); }
+};
+
+template<typename T, typename U>
+inline auto make_workspace_manager_response(U u)
+{
+    return workspace_manager_response<T>(std::move(u));
+}
+
 // The main class that encapsulates all functionality of parser library.
 // All the methods are C++ version of LSP and DAP methods.
 class PARSER_LIBRARY_EXPORT workspace_manager
@@ -113,14 +242,19 @@ public:
     virtual void did_close_file(const char* document_uri);
     virtual void did_change_watched_files(sequence<fs_change> changes);
 
-    virtual position_uri definition(const char* document_uri, position pos);
-    virtual position_uri_list references(const char* document_uri, position pos);
-    virtual sequence<char> hover(const char* document_uri, position pos);
-    virtual completion_list completion(
-        const char* document_uri, position pos, char trigger_char, completion_trigger_kind trigger_kind);
+    virtual void definition(const char* document_uri, position pos, workspace_manager_response<position_uri> resp);
+    virtual void references(const char* document_uri, position pos, workspace_manager_response<position_uri_list> resp);
+    virtual void hover(const char* document_uri, position pos, workspace_manager_response<sequence<char>> resp);
+    virtual void completion(const char* document_uri,
+        position pos,
+        char trigger_char,
+        completion_trigger_kind trigger_kind,
+        workspace_manager_response<completion_list> resp);
 
-    virtual continuous_sequence<token_info> semantic_tokens(const char* document_uri);
-    virtual document_symbol_list document_symbol(const char* document_uri, long long limit);
+    virtual void semantic_tokens(
+        const char* document_uri, workspace_manager_response<continuous_sequence<token_info>> resp);
+    virtual void document_symbol(
+        const char* document_uri, long long limit, workspace_manager_response<document_symbol_list> resp);
 
     virtual void configuration_changed(const lib_config& new_config, const char* whole_settings);
 

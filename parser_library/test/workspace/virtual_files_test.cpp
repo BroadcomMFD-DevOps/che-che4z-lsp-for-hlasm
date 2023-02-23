@@ -173,7 +173,27 @@ MY  DSECT
 
     ASSERT_TRUE(vf.starts_with("hlasm://"));
 
-    std::string hover_text(wm.hover(vf.c_str(), position(0, 0)));
+    bool called = false;
+    struct check_hover_t
+    {
+        bool& m_called;
+        check_hover_t(bool& called)
+            : m_called(called)
+        {}
+        check_hover_t(check_hover_t o, void*) noexcept
+            : m_called(o.m_called)
+        {}
 
-    EXPECT_NE(hover_text.find("MY + X'4' (4)"), std::string::npos);
+        bool valid() const { return true; }
+        void error(int, sequence<char>) { assert(false); }
+        void provide(sequence<char> hover_text)
+        {
+            m_called = true;
+            EXPECT_NE(std::string_view(hover_text).find("MY + X'4' (4)"), std::string::npos);
+        }
+    };
+
+    wm.hover(vf.c_str(), position(0, 0), make_workspace_manager_response<sequence<char>>(check_hover_t(called)));
+
+    EXPECT_TRUE(called);
 }
