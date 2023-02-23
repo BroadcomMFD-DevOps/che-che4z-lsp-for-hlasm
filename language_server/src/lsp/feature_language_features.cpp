@@ -21,6 +21,7 @@
 #include "../feature.h"
 #include "nlohmann/json.hpp"
 #include "utils/resource_location.h"
+#include "workspace_manager_response.h"
 
 namespace {
 using namespace hlasm_plugin::parser_library;
@@ -158,9 +159,33 @@ nlohmann::json feature_language_features::register_capabilities()
 
 namespace {
 
-template<typename T, typename U>
+template<typename T>
+struct first_arg;
+template<typename T, typename Arg, typename... Args>
+struct first_arg<T (*)(Arg, Args...)>
+{
+    using type = Arg;
+};
+template<typename T, class C, typename Arg, typename... Args>
+struct first_arg<T (C::*)(Arg, Args...)>
+{
+    using type = Arg;
+};
+template<typename T, class C, typename Arg, typename... Args>
+struct first_arg<T (C::*)(Arg, Args...) const>
+{
+    using type = Arg;
+};
+template<typename T>
+struct first_arg
+{
+    using type = typename first_arg<decltype(&T::operator())>::type;
+};
+
+template<typename U>
 auto make_response(nlohmann::json id, response_provider* response, U handler)
 {
+    using T = typename first_arg<U>::type;
     class response_t
     {
         nlohmann::json m_id;
@@ -174,21 +199,12 @@ auto make_response(nlohmann::json id, response_provider* response, U handler)
             , m_response(response)
             , m_handler(std::move(handler))
         {}
-        response_t(response_t self, workspace_manager_response<T>* wm_resp)
-            : m_id(std::move(self.m_id))
-            , m_response(self.m_response)
-            , m_handler(std::move(self.m_handler))
-            , m_wm_resp(wm_resp)
-        {}
 
         bool valid() const { return true; }
-        void error(int ec, sequence<char> error) const
-        {
-            m_response->respond_error(m_id, "", ec, std::string(error), {});
-        }
+        void error(int ec, const char* error) const { m_response->respond_error(m_id, "", ec, std::string(error), {}); }
         void provide(T r) const { m_response->respond(m_id, "", m_handler(std::move(r))); }
     };
-    return make_workspace_manager_response<T>(response_t(std::move(id), response, std::move(handler)));
+    return workspace_manager_response<T>(response_t(std::move(id), response, std::move(handler)));
 }
 
 } // namespace
@@ -204,7 +220,7 @@ void feature_language_features::definition(const nlohmann::json& id, const nlohm
     auto pos = extract_position(params);
 
     ws_mngr_.definition(
-        document_uri.c_str(), pos, make_response<position_uri>(id, response_, [](position_uri definition_position_uri) {
+        document_uri.c_str(), pos, make_response(id, response_, [](position_uri definition_position_uri) {
             return nlohmann::json {
                 { "uri", definition_position_uri.file_uri() },
                 { "range", range_to_json({ definition_position_uri.pos(), definition_position_uri.pos() }) },
@@ -217,30 +233,28 @@ void feature_language_features::references(const nlohmann::json& id, const nlohm
     auto document_uri = extract_document_uri(params);
     auto pos = extract_position(params);
 
-    ws_mngr_.references(
-        document_uri.c_str(), pos, make_response<position_uri_list>(id, response_, [](position_uri_list references) {
-            auto to_ret = nlohmann::json::array();
-            for (size_t i = 0; i < references.size(); ++i)
-            {
-                auto ref = references.item(i);
-                to_ret.push_back(
-                    nlohmann::json { { "uri", ref.file_uri() }, { "range", range_to_json({ ref.pos(), ref.pos() }) } });
-            }
-            return to_ret;
-        }));
+    ws_mngr_.references(document_uri.c_str(), pos, make_response(id, response_, [](position_uri_list references) {
+        auto to_ret = nlohmann::json::array();
+        for (size_t i = 0; i < references.size(); ++i)
+        {
+            auto ref = references.item(i);
+            to_ret.push_back(
+                nlohmann::json { { "uri", ref.file_uri() }, { "range", range_to_json({ ref.pos(), ref.pos() }) } });
+        }
+        return to_ret;
+    }));
 }
 void feature_language_features::hover(const nlohmann::json& id, const nlohmann::json& params)
 {
     auto document_uri = extract_document_uri(params);
     auto pos = extract_position(params);
 
-    ws_mngr_.hover(
-        document_uri.c_str(), pos, make_response<sequence<char>>(id, response_, [](sequence<char> hover_list_result) {
-            std::string_view hover_list(hover_list_result);
-            return nlohmann::json {
-                { "contents", hover_list.empty() ? "" : get_markup_content(hover_list) },
-            };
-        }));
+    ws_mngr_.hover(document_uri.c_str(), pos, make_response(id, response_, [](sequence<char> hover_list_result) {
+        std::string_view hover_list(hover_list_result);
+        return nlohmann::json {
+            { "contents", hover_list.empty() ? "" : get_markup_content(hover_list) },
+        };
+    }));
 }
 
 // Completion item kinds from the LSP specification
@@ -306,11 +320,8 @@ void feature_language_features::completion(const nlohmann::json& id, const nlohm
 
     auto [trigger_kind, trigger_char] = extract_trigger(params);
 
-    ws_mngr_.completion(document_uri.c_str(),
-        pos,
-        trigger_char,
-        trigger_kind,
-        make_response<completion_list>(id, response_, [](completion_list list) {
+    ws_mngr_.completion(
+        document_uri.c_str(), pos, trigger_char, trigger_kind, make_response(id, response_, [](completion_list list) {
             auto to_ret = nlohmann::json::object();
             auto completion_item_array = nlohmann::json::array();
             for (size_t i = 0; i < list.size(); ++i)
@@ -446,8 +457,8 @@ void feature_language_features::semantic_tokens(const nlohmann::json& id, const 
 {
     auto document_uri = extract_document_uri(params);
 
-    ws_mngr_.semantic_tokens(document_uri.c_str(),
-        make_response<continuous_sequence<token_info>>(id, response_, [](continuous_sequence<token_info> token_list) {
+    ws_mngr_.semantic_tokens(
+        document_uri.c_str(), make_response(id, response_, [](continuous_sequence<token_info> token_list) {
             return nlohmann::json {
                 { "data", convert_tokens_to_num_array(std::vector<parser_library::token_info>(std::move(token_list))) },
             };
@@ -531,9 +542,8 @@ void feature_language_features::document_symbol(const nlohmann::json& id, const 
     auto document_uri = extract_document_uri(params);
 
     const auto limit = 5000LL;
-    ws_mngr_.document_symbol(document_uri.c_str(),
-        limit,
-        make_response<document_symbol_list>(id, response_, [this](document_symbol_list symbol_list) {
+    ws_mngr_.document_symbol(
+        document_uri.c_str(), limit, make_response(id, response_, [this](document_symbol_list symbol_list) {
             return document_symbol_list_json(symbol_list);
         }));
 }

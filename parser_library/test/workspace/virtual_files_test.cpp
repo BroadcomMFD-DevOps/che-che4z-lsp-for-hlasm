@@ -25,6 +25,7 @@
 #include "utils/resource_location.h"
 #include "virtual_file_monitor.h"
 #include "workspace_manager.h"
+#include "workspace_manager_response.h"
 #include "workspaces/file_manager_impl.h"
 #include "workspaces/file_manager_vfm.h"
 
@@ -180,20 +181,17 @@ MY  DSECT
         check_hover_t(bool& called)
             : m_called(called)
         {}
-        check_hover_t(check_hover_t o, void*) noexcept
-            : m_called(o.m_called)
-        {}
 
         bool valid() const { return true; }
-        void error(int, sequence<char>) { assert(false); }
-        void provide(sequence<char> hover_text)
+        void error(int, const char*) { assert(false); }
+        void provide(sequence<char> hover_text) const
         {
             m_called = true;
             EXPECT_NE(std::string_view(hover_text).find("MY + X'4' (4)"), std::string::npos);
         }
     };
 
-    wm.hover(vf.c_str(), position(0, 0), make_workspace_manager_response<sequence<char>>(check_hover_t(called)));
+    wm.hover(vf.c_str(), position(0, 0), make_workspace_manager_response(check_hover_t(called)));
 
     EXPECT_TRUE(called);
 }

@@ -18,6 +18,7 @@
 #include "gmock/gmock.h"
 
 #include "workspace_manager.h"
+#include "workspace_manager_response.h"
 
 namespace hlasm_plugin::language_server::test {
 

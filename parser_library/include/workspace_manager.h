@@ -20,12 +20,7 @@
 // It implements LSP requests and notifications and is used by the language server.
 
 #include <atomic>
-#include <set>
-#include <string>
-#include <type_traits>
-#include <unordered_map>
 #include <utility>
-#include <vector>
 
 #include "lib_config.h"
 #include "message_consumer.h"
@@ -85,131 +80,7 @@ struct opcode_suggestion
 };
 
 template<typename T>
-class workspace_manager_response
-{
-    struct impl_actions
-    {
-        void (*deleter)(void*) noexcept = nullptr;
-        bool (*valid)(void*) noexcept = nullptr;
-        void (*error)(void*, int, sequence<char>) = nullptr;
-        void (*provide)(void*, T) = nullptr;
-    };
-    template<typename U>
-    static constexpr impl_actions get_actions = {
-        .deleter = +[](void* p) noexcept { delete static_cast<U*>(p); },
-        .valid = +[](void* p) noexcept { return static_cast<U*>(p)->valid(); },
-        .error = +[](void* p, int ec, sequence<char> error) { static_cast<U*>(p)->error(ec, error); },
-        .provide = +[](void* p, T t) { static_cast<U*>(p)->provide(std::move(t)); },
-    };
-
-    void* impl = nullptr;
-    const impl_actions* actions = nullptr;
-
-    void* invalidation_impl = nullptr;
-    void (*invalidation_deleter)(void*) = nullptr;
-    union
-    {
-        void (*complex)(void*);
-        void (*simple)();
-    } invalidation = { .complex = nullptr };
-
-    workspace_manager_response(void* impl, const impl_actions* actions) noexcept
-        : impl(impl)
-        , actions(actions)
-    {}
-
-public:
-    workspace_manager_response() = default;
-    template<typename U>
-    workspace_manager_response(U u) noexcept
-        : workspace_manager_response(new U(std::move(u), this), &get_actions<U>)
-    {}
-    workspace_manager_response(const workspace_manager_response&) = delete;
-    workspace_manager_response(workspace_manager_response&& o) noexcept
-        : impl(std::exchange(o.impl, nullptr))
-        , actions(std::exchange(o.actions, nullptr))
-        , invalidation_impl(std::exchange(o.invalidation_impl, nullptr))
-        , invalidation_deleter(std::exchange(o.invalidation_deleter, nullptr))
-        , invalidation(std::exchange(o.invalidation, {}))
-    {
-        if (invalidation_impl == &o)
-            invalidation_impl = this;
-    }
-    workspace_manager_response& operator=(const workspace_manager_response&) = delete;
-    workspace_manager_response& operator=(workspace_manager_response&& o) noexcept
-    {
-        if (this != &o)
-        {
-            if (impl)
-                actions->deleter(impl);
-            if (invalidation_deleter)
-                invalidation_deleter(invalidation_impl);
-
-            impl = std::exchange(o.impl, nullptr);
-            actions = std::exchange(o.actions, nullptr);
-
-            invalidation_impl = std::exchange(o.invalidation_impl, nullptr);
-            invalidation_deleter = std::exchange(o.invalidation_deleter, nullptr);
-            invalidation = std::exchange(o.invalidation, {});
-
-            if (invalidation_impl == &o)
-                invalidation_impl = this;
-        }
-        return *this;
-    }
-    ~workspace_manager_response()
-    {
-        if (impl)
-            actions->deleter(impl);
-        if (invalidation_deleter)
-            invalidation_deleter(invalidation_impl);
-    }
-
-    bool valid() const { return actions->valid(impl); }
-    void error(int ec, sequence<char> error) const { return actions->error(impl, ec, error); }
-    void invalidate() const
-    {
-        if (invalidation_impl == this)
-            invalidation.simple();
-        else if (invalidation_impl)
-            invalidation.complex(invalidation_impl);
-    }
-
-    template<typename C>
-    bool set_invalidation_callback(C t)
-    {
-        remove_invalidation_handler();
-        invalidation_impl = new C(std::move(t));
-        invalidation_deleter = +[](void* p) { delete static_cast<C*>(p); };
-        invalidation.complex = +[](void* p) { (*static_cast<C*>(p))(); };
-    }
-
-    template<typename C>
-    bool set_invalidation_callback(C t) noexcept requires std::is_function_v<C>
-    {
-        remove_invalidation_handler();
-        invalidation_impl = this;
-        invalidation_deleter = nullptr;
-        invalidation.simple = t;
-    }
-
-    void remove_invalidation_handler() noexcept
-    {
-        if (invalidation_deleter)
-            invalidation_deleter(invalidation_impl);
-        invalidation_impl = nullptr;
-        invalidation_deleter = nullptr;
-        invalidation.simple = nullptr;
-    }
-
-    void provide(T t) const { actions->provide(impl, std::move(t)); }
-};
-
-template<typename T, typename U>
-inline auto make_workspace_manager_response(U u)
-{
-    return workspace_manager_response<T>(std::move(u));
-}
+class workspace_manager_response;
 
 // The main class that encapsulates all functionality of parser library.
 // All the methods are C++ version of LSP and DAP methods.

@@ -25,6 +25,7 @@
 #include "nlohmann/json.hpp"
 #include "utils/resource_location.h"
 #include "workspace_manager_impl.h"
+#include "workspace_manager_response.h"
 #include "workspaces/file_manager_impl.h"
 #include "workspaces/workspace.h"
 
