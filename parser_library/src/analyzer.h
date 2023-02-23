@@ -16,7 +16,6 @@
 #define HLASMPARSER_PARSERLIBRARY_ANALYZER_H
 
 #include <atomic>
-#include <functional>
 #include <memory>
 #include <optional>
 #include <string_view>
@@ -164,9 +163,7 @@ public:
     void collect_diags() const override;
     const performance_metrics& get_metrics() const;
 
-    void register_stmt_analyzer(processing::statement_analyzer* stmt_analyzer,
-        std::function<void(const utils::resource::resource_location&, size_t, std::string_view)> aread_callback =
-            nullptr);
+    void register_stmt_analyzer(processing::statement_analyzer* stmt_analyzer);
 
     parsing::hlasmparser_multiline& parser(); // for testing only
     size_t debug_syntax_errors(); // for testing only

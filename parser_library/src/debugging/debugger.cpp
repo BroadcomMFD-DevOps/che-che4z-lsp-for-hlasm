@@ -262,6 +262,8 @@ public:
         return !continue_;
     }
 
+    void analyze_aread_line(const utils::resource::resource_location&, size_t, std::string_view) override {}
+
     // User controls of debugging.
     void next()
     {

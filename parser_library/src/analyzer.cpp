@@ -174,8 +174,7 @@ const performance_metrics& analyzer::get_metrics() const
     return ctx_.hlasm_ctx->metrics;
 }
 
-void analyzer::register_stmt_analyzer(statement_analyzer* stmt_analyzer,
-    std::function<void(const utils::resource::resource_location&, size_t, std::string_view)> aread_callback)
+void analyzer::register_stmt_analyzer(statement_analyzer* stmt_analyzer)
 {
-    mngr_.register_stmt_analyzer(stmt_analyzer, aread_callback);
+    mngr_.register_stmt_analyzer(stmt_analyzer);
 }

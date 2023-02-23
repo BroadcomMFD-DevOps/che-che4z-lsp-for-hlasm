@@ -60,8 +60,7 @@ public:
 
     utils::task co_step();
 
-    void register_stmt_analyzer(statement_analyzer* stmt_analyzer,
-        std::function<void(const utils::resource::resource_location&, size_t, std::string_view)> aread_callback);
+    void register_stmt_analyzer(statement_analyzer* stmt_analyzer);
 
     void run_analyzers(const context::hlasm_statement& statement, bool evaluated_model) const;
     void run_analyzers(const context::hlasm_statement& statement,
@@ -133,6 +132,8 @@ private:
         context::id_index name, range symbol_range);
 
     void perform_opencode_jump(context::source_position statement_position, context::source_snapshot snapshot);
+
+    void aread_cb(size_t line, std::string_view text);
 };
 
 } // namespace hlasm_plugin::parser_library::processing

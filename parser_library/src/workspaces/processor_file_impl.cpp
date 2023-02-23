@@ -15,7 +15,6 @@
 #include "processor_file_impl.h"
 
 #include <cassert>
-#include <functional>
 #include <memory>
 #include <string>
 #include <utility>
@@ -61,12 +60,7 @@ bool processor_file_impl::parse(parse_lib_provider& lib_provider,
     auto old_dep = m_dependencies;
 
     processing::hit_count_analyzer hc_analyzer(new_analyzer->hlasm_ctx());
-    new_analyzer->register_stmt_analyzer(&hc_analyzer, // TODO dangling reference to hc_analyzer
-        std::bind(&processing::hit_count_analyzer::analyze_aread_line,
-            &hc_analyzer,
-            std::placeholders::_1,
-            std::placeholders::_2,
-            std::placeholders::_3));
+    new_analyzer->register_stmt_analyzer(&hc_analyzer); // TODO dangling reference to hc_analyzer
 
     for (auto a = new_analyzer->co_analyze(); !a.done(); a())
     {

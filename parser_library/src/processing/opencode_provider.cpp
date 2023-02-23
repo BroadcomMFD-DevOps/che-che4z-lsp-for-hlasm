@@ -82,7 +82,7 @@ void opencode_provider::onetime_action()
 void opencode_provider::register_aread_callback(std::function<void(size_t, std::string_view)> cb)
 {
     if (cb)
-        m_aread_callbacks.emplace_back(cb);
+        m_aread_callbacks.emplace_back(std::move(cb));
 }
 
 void opencode_provider::rewind_input(context::source_position pos)

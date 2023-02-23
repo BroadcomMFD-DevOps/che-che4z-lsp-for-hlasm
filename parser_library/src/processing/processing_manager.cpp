@@ -70,6 +70,8 @@ processing_manager::processing_manager(std::unique_ptr<opencode_provider> base_p
     provs_.emplace_back(std::make_unique<copy_statement_provider>(ctx_, parser, lib_provider, *this, *this));
     provs_.emplace_back(std::move(base_provider));
 
+    opencode_prov_.register_aread_callback(std::bind_front(&processing_manager::aread_cb, this));
+
     opencode_prov_.onetime_action();
 }
 
@@ -165,14 +167,15 @@ utils::task processing_manager::co_step()
     }
 }
 
-void processing_manager::register_stmt_analyzer(statement_analyzer* stmt_analyzer,
-    std::function<void(const utils::resource::resource_location&, size_t, std::string_view)> aread_callback)
+void processing_manager::register_stmt_analyzer(statement_analyzer* stmt_analyzer)
 {
     stms_analyzers_.push_back(stmt_analyzer);
+}
 
-    if (aread_callback)
-        opencode_prov_.register_aread_callback(
-            std::bind(aread_callback, file_loc_, std::placeholders::_1, std::placeholders::_2));
+void processing_manager::aread_cb(size_t line, std::string_view text)
+{
+    for (auto& a : stms_analyzers_)
+        a->analyze_aread_line(file_loc_, line, text);
 }
 
 void processing_manager::run_analyzers(const context::hlasm_statement& statement, bool evaluated_model) const
