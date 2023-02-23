@@ -163,7 +163,7 @@ public:
         processing_kind proc_kind,
         bool) override;
 
-    void analyze_aread_line(const utils::resource::resource_location& rl, size_t lineno, std::string_view);
+    void analyze_aread_line(const utils::resource::resource_location& rl, size_t lineno, std::string_view) override;
 
     hit_count take_hit_count();
 
