@@ -165,7 +165,7 @@ public:
 
     void analyze_aread_line(const utils::resource::resource_location& rl, size_t lineno, std::string_view);
 
-    hit_count take_hit_count() { return std::move(m_hit_count); };
+    hit_count take_hit_count();
 
 private:
     enum class statement_type
@@ -181,11 +181,6 @@ private:
     hit_count m_hit_count;
     statement_type m_next_stmt_type = statement_type::REGULAR;
     std::stack<context::id_index> m_nest_macro_names;
-
-    void update_hc_detail(hit_count_detail& hc_detail,
-        stmt_lines_range lines_range,
-        bool increase_hit_count,
-        const std::optional<context::id_index>& macro_affiliation);
 
     hit_count_detail& get_hc_detail_reference(const utils::resource::resource_location& rl);
 

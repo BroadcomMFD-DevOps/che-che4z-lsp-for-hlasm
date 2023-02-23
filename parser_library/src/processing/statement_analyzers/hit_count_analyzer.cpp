@@ -28,17 +28,16 @@ hit_count_analyzer::hit_count_analyzer(context::hlasm_context& ctx)
 {}
 
 namespace {
-constexpr auto get_core_stmt =
-    [](const context::hlasm_statement* stmt) -> std::optional<const semantics::core_statement*> {
+constexpr auto get_core_stmt = [](const context::hlasm_statement* stmt) -> const semantics::core_statement* {
     if (!stmt)
-        return std::nullopt;
+        return nullptr;
 
     if (stmt->kind == context::statement_kind::RESOLVED)
         return stmt->access_resolved();
     else if (stmt->kind == context::statement_kind::DEFERRED)
         return stmt->access_deferred();
 
-    return std::nullopt;
+    return nullptr;
 };
 
 std::optional<stmt_lines_range> get_stmt_lines_range(const semantics::core_statement& statement,
@@ -60,16 +59,15 @@ std::optional<stmt_lines_range> get_stmt_lines_range(const semantics::core_state
 
     return std::make_pair(r.start.line, r.end.line);
 }
-} // namespace
 
-void hit_count_analyzer::update_hc_detail(hit_count_detail& hc_detail,
+void update_hc_detail(hit_count_detail& hc_detail,
     stmt_lines_range lines_range,
     bool increase_hit_count,
     const std::optional<context::id_index>& macro_affiliation)
 {
-    hc_detail.has_sections |= !m_ctx.ord_ctx.sections().empty();
     hc_detail.hits.add(lines_range, increase_hit_count, true, macro_affiliation);
 }
+} // namespace
 
 hit_count_detail& hit_count_analyzer::get_hc_detail_reference(const utils::resource::resource_location& rl)
 {
@@ -125,11 +123,11 @@ hit_count_analyzer::statement_type hit_count_analyzer::get_stmt_type(const seman
 bool hit_count_analyzer::analyze(
     const context::hlasm_statement& statement, statement_provider_kind prov_kind, processing_kind proc_kind, bool)
 {
-    auto core_stmt_o = get_core_stmt(&statement);
-    if (!core_stmt_o.has_value() || !core_stmt_o.value())
+    auto core_stmt_ptr = get_core_stmt(&statement);
+    if (!core_stmt_ptr)
         return false;
 
-    const auto& core_stmt = *core_stmt_o.value();
+    const auto& core_stmt = *core_stmt_ptr;
 
     auto stmt_type = get_stmt_type(core_stmt);
     if (stmt_type == statement_type::MACRO_INIT || stmt_type == statement_type::MACRO_END)
@@ -139,7 +137,7 @@ bool hit_count_analyzer::analyze(
     if (!stmt_lines_range)
         return false;
 
-    auto rl = m_ctx.current_statement_location(proc_kind != processing_kind::LOOKAHEAD).resource_loc;
+    const auto& rl = m_ctx.current_statement_location(proc_kind != processing_kind::LOOKAHEAD).resource_loc;
 
     switch (stmt_type)
     {
@@ -154,7 +152,7 @@ bool hit_count_analyzer::analyze(
             {
                 auto& item = m_hit_count.macro_details_map[macro_id];
                 item.used = true;
-                item.rl = std::move(rl);
+                item.rl = rl;
             }
 
             break;
@@ -169,7 +167,7 @@ bool hit_count_analyzer::analyze(
             assert(!m_nest_macro_names.empty());
             auto& item = m_hit_count.macro_details_map[m_nest_macro_names.top()];
             item.macro_name_line = stmt_lines_range->first;
-            item.rl = std::move(rl);
+            item.rl = rl;
 
             break;
         }
@@ -186,6 +184,15 @@ void hit_count_analyzer::analyze_aread_line(
     const utils::resource::resource_location& rl, size_t lineno, std::string_view)
 {
     update_hc_detail(get_hc_detail_reference(rl), std::make_pair(lineno, lineno), true, std::nullopt);
+}
+
+hit_count hit_count_analyzer::take_hit_count()
+{
+    auto has_sections = !m_ctx.ord_ctx.sections().empty();
+    for (auto& m : m_hit_count.hc_map)
+        m.second.has_sections = has_sections;
+
+    return std::move(m_hit_count);
 }
 
 } // namespace hlasm_plugin::parser_library::processing

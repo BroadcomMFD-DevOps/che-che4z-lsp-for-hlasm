@@ -205,7 +205,7 @@ void filter_and_emplace_mac_detail(auto& to, const auto& from, const utils::reso
 
 void fade_unused_mac_names(processing::hit_count& hc)
 {
-    for (auto& [id, details] : hc.macro_details_map)
+    for (const auto& [id, details] : hc.macro_details_map)
     {
         if (details.used)
             continue;
