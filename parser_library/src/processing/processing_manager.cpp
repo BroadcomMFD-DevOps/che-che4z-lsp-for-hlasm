@@ -70,8 +70,6 @@ processing_manager::processing_manager(std::unique_ptr<opencode_provider> base_p
     provs_.emplace_back(std::make_unique<copy_statement_provider>(ctx_, parser, lib_provider, *this, *this));
     provs_.emplace_back(std::move(base_provider));
 
-    opencode_prov_.register_aread_callback(std::bind_front(&processing_manager::aread_cb, this));
-
     opencode_prov_.onetime_action();
 }
 
@@ -172,7 +170,7 @@ void processing_manager::register_stmt_analyzer(statement_analyzer* stmt_analyze
     stms_analyzers_.push_back(stmt_analyzer);
 }
 
-void processing_manager::aread_cb(size_t line, std::string_view text)
+void processing_manager::aread_cb(size_t line, std::string_view text) const
 {
     for (auto& a : stms_analyzers_)
         a->analyze_aread_line(file_loc_, line, text);

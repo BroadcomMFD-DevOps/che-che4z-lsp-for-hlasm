@@ -25,6 +25,7 @@
 #include "parsing/error_strategy.h"
 #include "parsing/parser_impl.h"
 #include "processing/error_statement.h"
+#include "processing/processing_manager.h"
 #include "semantics/collector.h"
 #include "semantics/range_provider.h"
 #include "utils/text_matchers.h"
@@ -44,6 +45,7 @@ opencode_provider::opencode_provider(std::string_view text,
 		analyzing_context& ctx,
 		workspaces::parse_lib_provider& lib_provider,
 		processing_state_listener& state_listener,
+        const processing::processing_manager& proc_manager,
 		semantics::source_info_processor& src_proc,
 		diagnosable_ctx& diag_consumer,
 		std::unique_ptr<preprocessor> prep,
@@ -60,6 +62,7 @@ opencode_provider::opencode_provider(std::string_view text,
 		, m_ctx(&ctx)
 		, m_lib_provider(&lib_provider)
 		, m_state_listener(&state_listener)
+        , m_processing_manager(proc_manager)
 		, m_src_proc(&src_proc)
 		, m_diagnoser(&diag_consumer)
 		, m_opts(opts)
@@ -76,13 +79,6 @@ void opencode_provider::onetime_action()
 {
     if (m_preprocessor)
         m_state_listener->schedule_helper_task(start_preprocessor());
-}
-
-
-void opencode_provider::register_aread_callback(std::function<void(size_t, std::string_view)> cb)
-{
-    if (cb)
-        m_aread_callbacks.emplace_back(std::move(cb));
 }
 
 void opencode_provider::rewind_input(context::source_position pos)
@@ -175,11 +171,7 @@ std::string opencode_provider::try_aread_from_document()
     std::string result(lexing::extract_line(line_text).first);
     if (auto lineno = line.lineno(); lineno.has_value())
     {
-        std::for_each(m_aread_callbacks.begin(), m_aread_callbacks.end(), [&result, ln = *lineno](const auto& cb) {
-            if (cb)
-                cb(ln, result);
-        });
-
+        m_processing_manager.aread_cb(*lineno, result);
         generate_aread_highlighting(result, *lineno);
     }
 

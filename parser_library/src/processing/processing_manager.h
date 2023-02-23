@@ -68,6 +68,8 @@ public:
         processing_kind proc_kind,
         bool evaluated_model) const;
 
+    void aread_cb(size_t line, std::string_view text) const;
+
     void collect_diags() const override;
 
     parsing::hlasmparser_multiline& opencode_parser(); // for testing only
@@ -132,8 +134,6 @@ private:
         context::id_index name, range symbol_range);
 
     void perform_opencode_jump(context::source_position statement_position, context::source_snapshot snapshot);
-
-    void aread_cb(size_t line, std::string_view text);
 };
 
 } // namespace hlasm_plugin::parser_library::processing

@@ -17,7 +17,6 @@
 
 #include <concepts>
 #include <deque>
-#include <functional>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -64,6 +63,7 @@ class parse_lib_provider;
 } // namespace hlasm_plugin::parser_library::workspaces
 
 namespace hlasm_plugin::parser_library::processing {
+class processing_manager;
 
 enum class ainsert_destination
 {
@@ -123,6 +123,7 @@ class opencode_provider final : public statement_provider
     analyzing_context* m_ctx;
     workspaces::parse_lib_provider* m_lib_provider;
     processing::processing_state_listener* m_state_listener;
+    const processing::processing_manager& m_processing_manager;
     semantics::source_info_processor* m_src_proc;
     diagnosable_ctx* m_diagnoser;
 
@@ -135,19 +136,18 @@ class opencode_provider final : public statement_provider
     virtual_file_monitor* m_virtual_file_monitor;
     std::vector<virtual_file_handle> m_vf_handles;
 
-    std::vector<std::function<void(size_t, std::string_view)>> m_aread_callbacks;
 
 public:
     // rewinds position in file
     void rewind_input(context::source_position pos);
     std::variant<std::string, utils::value_task<std::string>> aread();
     void ainsert(const std::string& rec, ainsert_destination dest);
-    void register_aread_callback(std::function<void(size_t, std::string_view)> cb);
 
     opencode_provider(std::string_view text,
         analyzing_context& ctx,
         workspaces::parse_lib_provider& lib_provider,
         processing::processing_state_listener& state_listener,
+        const processing::processing_manager& proc_manager,
         semantics::source_info_processor& src_proc,
         diagnosable_ctx& diag_consumer,
         std::unique_ptr<preprocessor> preprocessor,
