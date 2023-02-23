@@ -203,16 +203,17 @@ void filter_and_emplace_mac_detail(auto& to, const auto& from, const utils::reso
     }
 }
 
-void fade_unused_mac_names(processing::hit_count& hc)
+void fade_unused_mac_names(const processing::hit_count& hc, std::vector<fade_message_s>& fms)
 {
-    for (const auto& [id, details] : hc.macro_details_map)
+    for (const auto& [_, mac_details] : hc.macro_details_map)
     {
-        if (details.used)
+        if (mac_details.used)
             continue;
 
-        auto& hc_map = hc.hc_map;
-        if (auto it = hc_map.find(details.rl); it != hc_map.end())
-            it->second.hits.add(details.macro_name_line, 0, true, std::nullopt);
+        const auto& hc_map = hc.hc_map;
+        if (auto it = hc_map.find(mac_details.rl); it != hc_map.end() && it->second.has_sections)
+            fms.emplace_back(fade_message_s::unused_macro(it->first.get_uri(),
+                range(position(mac_details.macro_name_line, 0), position(mac_details.macro_name_line, 80))));
     }
 }
 } // namespace
@@ -242,7 +243,7 @@ void workspace::retrieve_fade_messages(std::vector<fade_message_s>& fms) const
         }
     }
 
-    fade_unused_mac_names(hc);
+    fade_unused_mac_names(hc, fms);
 
     std::for_each(hc.hc_map.begin(), hc.hc_map.end(), [&fms, &mac_details_map = hc.macro_details_map](const auto& e) {
         generate_merged_fade_messages(e.first.get_uri(), e.second, mac_details_map, fms);

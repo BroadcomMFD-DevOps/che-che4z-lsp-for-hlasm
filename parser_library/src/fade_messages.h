@@ -37,6 +37,7 @@ struct fade_message_s
 
     static fade_message_s preprocessor_statement(std::string uri, const range& range);
     static fade_message_s inactive_statement(std::string uri, const range& range);
+    static fade_message_s unused_macro(std::string uri, const range& range);
 };
 
 } // namespace hlasm_plugin::parser_library

@@ -204,7 +204,7 @@ INSTANTIATE_TEST_SUITE_P(fade,
         test_params {
             { "*        MAC 1" },
             {
-                fade_message_s::inactive_statement("src1.hlasm", range(position(3, 0), position(3, 80))),
+                fade_message_s::unused_macro("src1.hlasm", range(position(3, 0), position(3, 80))),
             },
         }));
 } // namespace
@@ -322,15 +322,15 @@ INSTANTIATE_TEST_SUITE_P(fade,
         test_params {
             { "         MAC 1" },
             {
-                fade_message_s::inactive_statement("src1.hlasm", range(position(5, 0), position(5, 80))),
+                fade_message_s::unused_macro("src1.hlasm", range(position(5, 0), position(5, 80))),
                 fade_message_s::inactive_statement("src1.hlasm", range(position(9, 0), position(9, 80))),
             },
         },
         test_params {
             { "*        MAC 1" },
             {
-                fade_message_s::inactive_statement("src1.hlasm", range(position(3, 0), position(3, 80))),
-                fade_message_s::inactive_statement("src1.hlasm", range(position(5, 0), position(5, 80))),
+                fade_message_s::unused_macro("src1.hlasm", range(position(3, 0), position(3, 80))),
+                fade_message_s::unused_macro("src1.hlasm", range(position(5, 0), position(5, 80))),
             },
         }));
 } // namespace
@@ -440,8 +440,8 @@ INSTANTIATE_TEST_SUITE_P(fade,
                 "*        MAC3 0",
             },
             {
-                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(10, 0), position(10, 80))),
-                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(20, 0), position(20, 80))),
+                fade_message_s::unused_macro("libs/CPYBOOK", range(position(10, 0), position(10, 80))),
+                fade_message_s::unused_macro("libs/CPYBOOK", range(position(20, 0), position(20, 80))),
             },
         },
         test_params {
@@ -451,8 +451,8 @@ INSTANTIATE_TEST_SUITE_P(fade,
             },
             {
                 fade_message_s::inactive_statement("libs/CPYBOOK", range(position(3, 0), position(3, 80))),
-                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(10, 0), position(10, 80))),
-                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(20, 0), position(20, 80))),
+                fade_message_s::unused_macro("libs/CPYBOOK", range(position(10, 0), position(10, 80))),
+                fade_message_s::unused_macro("libs/CPYBOOK", range(position(20, 0), position(20, 80))),
             },
         },
         test_params {
@@ -461,8 +461,8 @@ INSTANTIATE_TEST_SUITE_P(fade,
                 "         MAC3 0",
             },
             {
-                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(1, 0), position(1, 80))),
-                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(10, 0), position(10, 80))),
+                fade_message_s::unused_macro("libs/CPYBOOK", range(position(1, 0), position(1, 80))),
+                fade_message_s::unused_macro("libs/CPYBOOK", range(position(10, 0), position(10, 80))),
             },
         },
         test_params {
@@ -471,8 +471,8 @@ INSTANTIATE_TEST_SUITE_P(fade,
                 "         MAC3 1",
             },
             {
-                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(1, 0), position(1, 80))),
-                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(10, 0), position(10, 80))),
+                fade_message_s::unused_macro("libs/CPYBOOK", range(position(1, 0), position(1, 80))),
+                fade_message_s::unused_macro("libs/CPYBOOK", range(position(10, 0), position(10, 80))),
                 fade_message_s::inactive_statement("libs/CPYBOOK", range(position(22, 0), position(22, 80))),
             },
         },
@@ -482,7 +482,7 @@ INSTANTIATE_TEST_SUITE_P(fade,
                 "         MAC3 0",
             },
             {
-                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(10, 0), position(10, 80))),
+                fade_message_s::unused_macro("libs/CPYBOOK", range(position(10, 0), position(10, 80))),
             },
         },
         test_params {
@@ -492,7 +492,7 @@ INSTANTIATE_TEST_SUITE_P(fade,
             },
             {
                 fade_message_s::inactive_statement("libs/CPYBOOK", range(position(3, 0), position(3, 80))),
-                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(10, 0), position(10, 80))),
+                fade_message_s::unused_macro("libs/CPYBOOK", range(position(10, 0), position(10, 80))),
             },
         },
         test_params {
@@ -501,7 +501,7 @@ INSTANTIATE_TEST_SUITE_P(fade,
                 "         MAC3 1",
             },
             {
-                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(10, 0), position(10, 80))),
+                fade_message_s::unused_macro("libs/CPYBOOK", range(position(10, 0), position(10, 80))),
                 fade_message_s::inactive_statement("libs/CPYBOOK", range(position(22, 0), position(22, 80))),
             },
         },
@@ -512,7 +512,7 @@ INSTANTIATE_TEST_SUITE_P(fade,
             },
             {
                 fade_message_s::inactive_statement("libs/CPYBOOK", range(position(3, 0), position(3, 80))),
-                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(10, 0), position(10, 80))),
+                fade_message_s::unused_macro("libs/CPYBOOK", range(position(10, 0), position(10, 80))),
                 fade_message_s::inactive_statement("libs/CPYBOOK", range(position(22, 0), position(22, 80))),
             },
         },
@@ -522,8 +522,8 @@ INSTANTIATE_TEST_SUITE_P(fade,
                 "         MAC3 0",
             },
             {
-                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(1, 0), position(1, 80))),
-                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(10, 0), position(10, 80))),
+                fade_message_s::unused_macro("libs/CPYBOOK", range(position(1, 0), position(1, 80))),
+                fade_message_s::unused_macro("libs/CPYBOOK", range(position(10, 0), position(10, 80))),
             },
         },
         test_params {
@@ -532,8 +532,8 @@ INSTANTIATE_TEST_SUITE_P(fade,
                 "         MAC3 0",
             },
             {
-                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(1, 0), position(1, 80))),
-                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(10, 0), position(10, 80))),
+                fade_message_s::unused_macro("libs/CPYBOOK", range(position(1, 0), position(1, 80))),
+                fade_message_s::unused_macro("libs/CPYBOOK", range(position(10, 0), position(10, 80))),
             },
         },
         test_params {
@@ -542,8 +542,8 @@ INSTANTIATE_TEST_SUITE_P(fade,
                 "         MAC3 1",
             },
             {
-                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(1, 0), position(1, 80))),
-                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(10, 0), position(10, 80))),
+                fade_message_s::unused_macro("libs/CPYBOOK", range(position(1, 0), position(1, 80))),
+                fade_message_s::unused_macro("libs/CPYBOOK", range(position(10, 0), position(10, 80))),
             },
         },
         test_params {
@@ -552,8 +552,8 @@ INSTANTIATE_TEST_SUITE_P(fade,
                 "         MAC3 1",
             },
             {
-                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(1, 0), position(1, 80))),
-                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(10, 0), position(10, 80))),
+                fade_message_s::unused_macro("libs/CPYBOOK", range(position(1, 0), position(1, 80))),
+                fade_message_s::unused_macro("libs/CPYBOOK", range(position(10, 0), position(10, 80))),
                 fade_message_s::inactive_statement("libs/CPYBOOK", range(position(22, 0), position(22, 80))),
             },
         }));
