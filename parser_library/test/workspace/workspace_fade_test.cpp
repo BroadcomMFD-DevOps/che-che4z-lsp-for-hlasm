@@ -428,6 +428,192 @@ $x
 }
 
 namespace {
+class multiple_opencodes_and_macros_fixture : public fade_fixture_base
+{};
+
+INSTANTIATE_TEST_SUITE_P(fade,
+    multiple_opencodes_and_macros_fixture,
+    ::testing::Values(
+        test_params {
+            {
+                "         MAC1 0",
+                "*        MAC3 0",
+            },
+            {
+                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(10, 0), position(10, 80))),
+                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(20, 0), position(20, 80))),
+            },
+        },
+        test_params {
+            {
+                "         MAC1 1",
+                "*        MAC3 1",
+            },
+            {
+                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(3, 0), position(3, 80))),
+                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(10, 0), position(10, 80))),
+                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(20, 0), position(20, 80))),
+            },
+        },
+        test_params {
+            {
+                "*        MAC1 0",
+                "         MAC3 0",
+            },
+            {
+                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(1, 0), position(1, 80))),
+                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(10, 0), position(10, 80))),
+            },
+        },
+        test_params {
+            {
+                "*        MAC1 1",
+                "         MAC3 1",
+            },
+            {
+                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(1, 0), position(1, 80))),
+                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(10, 0), position(10, 80))),
+                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(22, 0), position(22, 80))),
+            },
+        },
+        test_params {
+            {
+                "         MAC1 0",
+                "         MAC3 0",
+            },
+            {
+                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(10, 0), position(10, 80))),
+            },
+        },
+        test_params {
+            {
+                "         MAC1 1",
+                "         MAC3 0",
+            },
+            {
+                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(3, 0), position(3, 80))),
+                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(10, 0), position(10, 80))),
+            },
+        },
+        test_params {
+            {
+                "         MAC1 0",
+                "         MAC3 1",
+            },
+            {
+                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(10, 0), position(10, 80))),
+                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(22, 0), position(22, 80))),
+            },
+        },
+        test_params {
+            {
+                "         MAC1 1",
+                "         MAC3 1",
+            },
+            {
+                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(3, 0), position(3, 80))),
+                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(10, 0), position(10, 80))),
+                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(22, 0), position(22, 80))),
+            },
+        },
+        test_params {
+            {
+                "         MAC3 0",
+                "         MAC3 0",
+            },
+            {
+                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(1, 0), position(1, 80))),
+                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(10, 0), position(10, 80))),
+            },
+        },
+        test_params {
+            {
+                "         MAC3 1",
+                "         MAC3 0",
+            },
+            {
+                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(1, 0), position(1, 80))),
+                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(10, 0), position(10, 80))),
+            },
+        },
+        test_params {
+            {
+                "         MAC3 0",
+                "         MAC3 1",
+            },
+            {
+                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(1, 0), position(1, 80))),
+                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(10, 0), position(10, 80))),
+            },
+        },
+        test_params {
+            {
+                "         MAC3 1",
+                "         MAC3 1",
+            },
+            {
+                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(1, 0), position(1, 80))),
+                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(10, 0), position(10, 80))),
+                fade_message_s::inactive_statement("libs/CPYBOOK", range(position(22, 0), position(22, 80))),
+            },
+        }));
+} // namespace
+
+TEST_P(multiple_opencodes_and_macros_fixture, macros_external)
+{
+    std::string cpybook = R"(         MACRO
+         MAC1  &P 
+         AIF (&P EQ 1).SKIP1
+         ANOP
+.SKIP1   ANOP
+         MEND
+
+* * SOME MEANINGFUL REMARKS
+
+         MACRO
+         MAC_UNUSED  &P
+         AIF (&P EQ 1).SKIP2
+         ANOP
+.SKIP2   ANOP
+         MEND
+
+         GBLC &A
+         GBLC &B
+
+         MACRO
+         MAC3  &P
+         AIF (&P EQ 1).SKIP3
+         ANOP
+.SKIP3   ANOP
+         MEND
+)";
+
+    static const std::string src_template = R"(
+         CSECT
+         COPY CPYBOOK
+$x
+
+         END)";
+
+    open_src_files_and_collect_fms({
+        { cpybook_loc, std::move(cpybook) },
+        { src1_loc, std::regex_replace(src_template, std::regex("\\$x"), GetParam().text_to_insert[0]) },
+        { src2_loc, std::regex_replace(src_template, std::regex("\\$x"), GetParam().text_to_insert[1]) },
+    });
+
+    EXPECT_TRUE(contains_message_codes(collect_and_get_diags(), GetParam().diag_message_codes));
+
+    const auto& expected_msgs = GetParam().expected_fade_messages;
+    EXPECT_TRUE(std::is_permutation(fms.begin(),
+        fms.end(),
+        expected_msgs.begin(),
+        expected_msgs.end(),
+        [](const auto& fmsg, const auto& expected_fmsg) {
+            return fmsg.code == expected_fmsg.code && fmsg.r == expected_fmsg.r && fmsg.uri == expected_fmsg.uri;
+        }));
+}
+
+namespace {
 class cpybooks_fixture : public fade_fixture_base
 {};
 
