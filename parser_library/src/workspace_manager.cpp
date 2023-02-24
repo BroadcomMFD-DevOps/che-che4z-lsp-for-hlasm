@@ -116,18 +116,18 @@ void workspace_manager::set_message_consumer(message_consumer* consumer) { impl_
 
 void workspace_manager::definition(const char* document_uri, position pos, workspace_manager_response<position_uri> r)
 {
-    r.provide(impl_->definition(document_uri, pos));
+    impl_->definition(document_uri, pos, std::move(r));
 }
 
 void workspace_manager::references(
     const char* document_uri, position pos, workspace_manager_response<position_uri_list> r)
 {
-    r.provide(impl_->references(document_uri, pos));
+    impl_->references(document_uri, pos, std::move(r));
 }
 
 void workspace_manager::hover(const char* document_uri, position pos, workspace_manager_response<sequence<char>> r)
 {
-    r.provide(sequence<char>(impl_->hover(document_uri, pos)));
+    impl_->hover(document_uri, pos, std::move(r));
 }
 
 void workspace_manager::completion(const char* document_uri,
@@ -136,19 +136,19 @@ void workspace_manager::completion(const char* document_uri,
     completion_trigger_kind trigger_kind,
     workspace_manager_response<completion_list> r)
 {
-    r.provide(impl_->completion(document_uri, pos, trigger_char, trigger_kind));
+    impl_->completion(document_uri, pos, trigger_char, trigger_kind, std::move(r));
 }
 
 void workspace_manager::semantic_tokens(
     const char* document_uri, workspace_manager_response<continuous_sequence<token_info>> r)
 {
-    r.provide(impl_->semantic_tokens(document_uri));
+    impl_->semantic_tokens(document_uri, std::move(r));
 }
 
 void workspace_manager::document_symbol(
     const char* document_uri, long long limit, workspace_manager_response<document_symbol_list> r)
 {
-    r.provide(impl_->document_symbol(document_uri, limit));
+    impl_->document_symbol(document_uri, limit, std::move(r));
 }
 
 continuous_sequence<char> workspace_manager::get_virtual_file_content(unsigned long long id) const
@@ -156,10 +156,12 @@ continuous_sequence<char> workspace_manager::get_virtual_file_content(unsigned l
     return impl_->get_virtual_file_content(id);
 }
 
-continuous_sequence<opcode_suggestion> workspace_manager::make_opcode_suggestion(
-    const char* document_uri, const char* opcode, bool extended) const
+void workspace_manager::make_opcode_suggestion(const char* document_uri,
+    const char* opcode,
+    bool extended,
+    workspace_manager_response<continuous_sequence<opcode_suggestion>> r) const
 {
-    return impl_->make_opcode_suggestion(document_uri, opcode, extended);
+    impl_->make_opcode_suggestion(document_uri, opcode, extended, std::move(r));
 }
 
 } // namespace hlasm_plugin::parser_library

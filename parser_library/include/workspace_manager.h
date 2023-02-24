@@ -26,6 +26,7 @@
 #include "message_consumer.h"
 #include "parser_library_export.h"
 #include "protocol.h"
+#include "sequence.h"
 
 namespace hlasm_plugin::parser_library {
 
@@ -138,8 +139,10 @@ public:
 
     virtual continuous_sequence<char> get_virtual_file_content(unsigned long long id) const;
 
-    virtual continuous_sequence<opcode_suggestion> make_opcode_suggestion(
-        const char* document_uri, const char* opcode, bool extended) const;
+    virtual void make_opcode_suggestion(const char* document_uri,
+        const char* opcode,
+        bool extended,
+        workspace_manager_response<continuous_sequence<opcode_suggestion>>) const;
 
 private:
     impl* impl_;

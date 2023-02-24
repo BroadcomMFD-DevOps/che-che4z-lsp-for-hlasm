@@ -191,7 +191,6 @@ auto make_response(nlohmann::json id, response_provider* response, U handler)
         nlohmann::json m_id;
         response_provider* m_response;
         U m_handler;
-        workspace_manager_response<T>* m_wm_resp = nullptr;
 
     public:
         response_t(nlohmann::json id, response_provider* response, U handler)
@@ -552,38 +551,135 @@ void feature_language_features::opcode_suggestion(const nlohmann::json& id, cons
 {
     auto document_uri = extract_document_uri(params);
 
-    auto suggestions = nlohmann::json::object();
-
     bool extended = false;
     if (auto e = params.find("extended"); e != params.end() && e->is_boolean())
         extended = e->get<bool>();
 
-    if (auto opcodes = params.find("opcodes"); opcodes != params.end() && opcodes->is_array())
+    auto opcodes = params.find("opcodes");
+    if (opcodes == params.end() || !opcodes->is_array())
     {
+        response_->respond(id,
+            "",
+            nlohmann::json {
+                { "uri", document_uri },
+                { "suggestions", nlohmann::json::object() },
+            });
+        return;
+    }
+
+    class composite_response_t
+    {
+        nlohmann::json m_id;
+        response_provider* m_response;
+        std::string m_document_uri;
+
+        nlohmann::json m_suggestions = nlohmann::json::object();
+
+        size_t m_pending_responses = 1;
+        bool m_failed = false;
+
+        void send()
+        {
+            if (m_failed)
+                return;
+
+            m_response->respond(m_id,
+                "",
+                nlohmann::json {
+                    { "uri", std::move(m_document_uri) },
+                    { "suggestions", std::move(m_suggestions) },
+                });
+        }
+
+    public:
+        composite_response_t(nlohmann::json id, response_provider* response, std::string document_uri)
+            : m_id(std::move(id))
+            , m_response(response)
+            , m_document_uri(std::move(document_uri))
+        {}
+
+        bool valid() const { return !m_failed; }
+        void error(int ec, const char* error)
+        {
+            m_failed = true;
+            m_response->respond_error(m_id, "", ec, std::string(error), {});
+        }
+
+        void provide(std::optional<std::pair<std::string, nlohmann::json>> r)
+        {
+            if (m_failed)
+                return;
+
+            if (r.has_value())
+                m_suggestions[std::move(r->first)] = std::move(r->second);
+
+            if (--m_pending_responses == 0)
+                send();
+        }
+
+        void requests_submitted()
+        {
+            if (--m_pending_responses == 0)
+                send();
+        }
+
+        auto start_request(
+            workspace_manager_response<std::optional<std::pair<std::string, nlohmann::json>>> self, std::string opcode)
+        {
+            struct subrequest_t
+            {
+                workspace_manager_response<std::optional<std::pair<std::string, nlohmann::json>>> m_self;
+                std::string m_opcode;
+
+                bool valid() const { return m_self.valid(); }
+                void error(int ec, const char* error) const { m_self.error(ec, error); }
+
+                void provide(continuous_sequence<hlasm_plugin::parser_library::opcode_suggestion> opcode_suggestions)
+                {
+                    if (opcode_suggestions.size() == 0)
+                    {
+                        m_self.provide(std::nullopt);
+                        return;
+                    }
+                    auto result = nlohmann::json::array();
+                    for (const auto& s : opcode_suggestions)
+                    {
+                        result.push_back(nlohmann::json {
+                            { "opcode", std::string_view(s.opcode.data(), s.opcode.size()) },
+                            { "distance", s.distance },
+                        });
+                    }
+                    m_self.provide(std::make_pair(std::move(m_opcode), std::move(result)));
+                }
+            };
+            auto result = make_workspace_manager_response(subrequest_t { std::move(self), std::move(opcode) });
+
+            ++m_pending_responses;
+
+            return result;
+        }
+    };
+
+    auto response = make_workspace_manager_response(composite_response_t(id, response_, document_uri));
+
+    try
+    {
+        auto* composite = response.get_impl<composite_response_t>();
         for (const auto& opcode : *opcodes)
         {
             if (!opcode.is_string())
                 continue;
             auto op = opcode.get<std::string>();
-            auto opcode_suggestions = ws_mngr_.make_opcode_suggestion(document_uri.c_str(), op.c_str(), extended);
-            if (opcode_suggestions.size() == 0)
-                continue;
-            auto& ar = suggestions[op] = nlohmann::json::array();
-            for (const auto& s : opcode_suggestions)
-            {
-                ar.push_back(nlohmann::json {
-                    { "opcode", std::string_view(s.opcode.data(), s.opcode.size()) },
-                    { "distance", s.distance },
-                });
-            }
+            ws_mngr_.make_opcode_suggestion(
+                document_uri.c_str(), op.c_str(), extended, composite->start_request(response, op));
         }
-    }
 
-    nlohmann::json to_ret {
-        { "uri", document_uri },
-        { "suggestions", std::move(suggestions) },
-    };
-    response_->respond(id, "", to_ret);
+        composite->requests_submitted();
+    }
+    catch (const std::exception& e)
+    {
+        response.error(-32603, e.what());
+    }
 }
 
 } // namespace hlasm_plugin::language_server::lsp

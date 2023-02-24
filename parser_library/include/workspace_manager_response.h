@@ -123,6 +123,8 @@ protected:
 
     void provide(void* t) const { actions->provide(impl, t); }
 
+    void* get_impl() const noexcept { return impl; }
+
 private:
     void* impl = nullptr;
     const impl_actions* actions = nullptr;
@@ -172,6 +174,12 @@ public:
     using workspace_manager_response_base::valid;
 
     void provide(T t) const { workspace_manager_response_base::provide(&t); }
+
+    template<typename U>
+    U* get_impl() const
+    {
+        return &static_cast<shared_data<U>*>(workspace_manager_response_base::get_impl())->data;
+    }
 };
 
 class
