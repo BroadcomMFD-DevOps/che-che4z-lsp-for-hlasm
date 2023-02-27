@@ -633,17 +633,12 @@ lsp::completion_list_s workspace::completion(const utils::resource::resource_loc
         return {};
 
     auto comp = lsp_context->completion(document_loc, pos, trigger_char, trigger_kind);
-    if (std::holds_alternative<lsp::completion_list_instructions>(comp))
+    if (auto* cli = std::get_if<lsp::completion_list_instructions>(&comp); cli && !cli->completed_text.empty())
     {
-        auto& cli = std::get<lsp::completion_list_instructions>(comp);
-        std::string_view completed_text = cli.completed_text;
-        if (!completed_text.empty())
-        {
-            auto raw_suggestions = make_opcode_suggestion(document_loc, completed_text, true);
-            cli.additional_instructions.reserve(raw_suggestions.size());
-            for (auto&& s : raw_suggestions)
-                cli.additional_instructions.emplace_back(std::move(s.first));
-        }
+        auto raw_suggestions = make_opcode_suggestion(document_loc, cli->completed_text, true);
+        cli->additional_instructions.reserve(raw_suggestions.size());
+        for (auto&& s : raw_suggestions)
+            cli->additional_instructions.emplace_back(std::move(s.first));
     }
     return lsp::generate_completion(std::move(comp));
 }
