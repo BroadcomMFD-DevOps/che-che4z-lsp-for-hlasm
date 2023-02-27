@@ -637,10 +637,10 @@ lsp::completion_list_s workspace::completion(const utils::resource::resource_loc
     {
         auto raw_suggestions = make_opcode_suggestion(document_loc, cli->completed_text, true);
         cli->additional_instructions.reserve(raw_suggestions.size());
-        for (auto&& s : raw_suggestions)
-            cli->additional_instructions.emplace_back(std::move(s.first));
+        for (auto&& [suggestion, rank] : raw_suggestions)
+            cli->additional_instructions.emplace_back(std::move(suggestion));
     }
-    return lsp::generate_completion(std::move(comp));
+    return lsp::generate_completion(comp);
 }
 
 lsp::document_symbol_list_s workspace::document_symbol(

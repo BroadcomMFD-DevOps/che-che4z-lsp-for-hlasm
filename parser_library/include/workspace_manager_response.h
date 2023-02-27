@@ -19,7 +19,6 @@
 
 namespace hlasm_plugin::parser_library {
 
-namespace {
 namespace detail {
 template<typename T>
 struct is_in_place_type_t
@@ -32,7 +31,6 @@ struct is_in_place_type_t<std::in_place_type_t<T>>
     static constexpr bool value = true;
 };
 } // namespace detail
-} // namespace
 
 class workspace_manager_response_base
 {

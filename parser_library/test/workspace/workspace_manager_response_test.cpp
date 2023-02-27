@@ -201,3 +201,33 @@ TEST(workspace_manager_response, invalidator_deleter)
 
     EXPECT_EQ(deleter_called, 2);
 }
+
+TEST(workspace_manager_response, invalidator_remove)
+{
+    int deleter_called = 0;
+
+    auto p = make_workspace_manager_response(std::in_place_type<workspace_manager_response_mock<int>>);
+
+    struct invalitor_t
+    {
+        int* d;
+        void operator()() const {}
+
+        invalitor_t(int& d)
+            : d(&d)
+        {}
+        invalitor_t(invalitor_t&& o) noexcept
+            : d(std::exchange(o.d, nullptr))
+        {}
+        ~invalitor_t()
+        {
+            if (d)
+                ++*d;
+        }
+    };
+    p.set_invalidation_callback(invalitor_t(deleter_called));
+
+    EXPECT_EQ(deleter_called, 0);
+    p.remove_invalidation_handler();
+    EXPECT_EQ(deleter_called, 1);
+}

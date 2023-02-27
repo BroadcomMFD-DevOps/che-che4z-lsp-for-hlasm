@@ -614,7 +614,7 @@ void feature_language_features::opcode_suggestion(const nlohmann::json& id, cons
                 return;
 
             if (r.has_value())
-                m_suggestions[std::move(r->first)] = std::move(r->second);
+                m_suggestions[r->first] = std::move(r->second);
 
             if (--m_pending_responses == 0)
                 send();
