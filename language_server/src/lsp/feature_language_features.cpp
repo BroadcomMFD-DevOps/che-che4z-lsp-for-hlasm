@@ -23,6 +23,9 @@
 #include "utils/resource_location.h"
 #include "workspace_manager_response.h"
 
+
+namespace hlasm_plugin::language_server::lsp {
+
 namespace {
 using namespace hlasm_plugin::parser_library;
 std::string extract_document_uri(const nlohmann::json& j)
@@ -78,9 +81,141 @@ auto extract_trigger(const nlohmann::json& j)
     return result;
 }
 
-} // namespace
+// Completion item kinds from the LSP specification
+enum class lsp_completion_item_kind
+{
+    text = 1,
+    method = 2,
+    function = 3,
+    constructor = 4,
+    field = 5,
+    variable = 6,
+    class_v = 7,
+    interface = 8,
+    module_v = 9,
+    property = 10,
+    unit = 11,
+    value = 12,
+    enum_v = 13,
+    keyword = 14,
+    snippet = 15,
+    color = 16,
+    file = 17,
+    reference = 18,
+    folder = 19,
+    enum_member = 20,
+    constant = 21,
+    struct_v = 22,
+    event = 23,
+    operator_v = 24,
+    type_parameter = 25
+};
 
-namespace hlasm_plugin::language_server::lsp {
+
+const std::unordered_map<completion_item_kind, lsp_completion_item_kind> completion_item_kind_mapping {
+    { completion_item_kind::mach_instr, lsp_completion_item_kind::function },
+    { completion_item_kind::asm_instr, lsp_completion_item_kind::function },
+    { completion_item_kind::ca_instr, lsp_completion_item_kind::function },
+    { completion_item_kind::macro, lsp_completion_item_kind::file },
+    { completion_item_kind::var_sym, lsp_completion_item_kind::variable },
+    { completion_item_kind::seq_sym, lsp_completion_item_kind::reference },
+};
+
+nlohmann::json get_markup_content(std::string_view content)
+{
+    return nlohmann::json {
+        { "kind", "markdown" },
+        { "value", content },
+    };
+}
+
+std::string decorate_suggestion(std::string_view s)
+{
+    std::string result("##");
+
+    for (char c : s)
+        result.append(1, c).append(2, '#');
+
+    return result;
+}
+
+nlohmann::json translate_completion_list(completion_list list)
+{
+    auto to_ret = nlohmann::json::object();
+    auto completion_item_array = nlohmann::json::array();
+    for (size_t i = 0; i < list.size(); ++i)
+    {
+        const auto& item = list.item(i);
+        auto& json_item = completion_item_array.emplace_back(nlohmann::json {
+            { "label", item.label() },
+            { "kind", completion_item_kind_mapping.at(item.kind()) },
+            { "detail", item.detail() },
+            { "documentation", get_markup_content(item.documentation()) },
+            { "insertText", item.insert_text() },
+            { "insertTextFormat", 1 + (int)item.is_snippet() },
+        });
+        if (auto suggestion = item.suggestion_for(); !suggestion.empty())
+        {
+            json_item["filterText"] = std::string("~~~") + decorate_suggestion(suggestion);
+            json_item["sortText"] = std::string("~~~") + std::string(item.label());
+        }
+    }
+    // needs to be incomplete, otherwise we are unable to include new suggestions
+    // when user continues typing (vscode keeps using the first list)
+    to_ret["isIncomplete"] = true;
+    to_ret["items"] = std::move(completion_item_array);
+
+    return to_ret;
+}
+
+template<typename T>
+struct first_arg;
+template<typename T, typename Arg, typename... Args>
+struct first_arg<T (*)(Arg, Args...)>
+{
+    using type = Arg;
+};
+template<typename T, class C, typename Arg, typename... Args>
+struct first_arg<T (C::*)(Arg, Args...)>
+{
+    using type = Arg;
+};
+template<typename T, class C, typename Arg, typename... Args>
+struct first_arg<T (C::*)(Arg, Args...) const>
+{
+    using type = Arg;
+};
+template<typename T>
+struct first_arg
+{
+    using type = typename first_arg<decltype(&T::operator())>::type;
+};
+
+template<typename U>
+auto make_response(nlohmann::json id, response_provider* response, U handler)
+{
+    using T = typename first_arg<U>::type;
+    class response_t
+    {
+        nlohmann::json m_id;
+        response_provider* m_response;
+        [[no_unique_address]] U m_handler;
+
+    public:
+        response_t(nlohmann::json id, response_provider* response, U handler)
+            : m_id(std::move(id))
+            , m_response(response)
+            , m_handler(std::move(handler))
+        {}
+
+        bool valid() const { return true; }
+        void error(int ec, const char* error) const { m_response->respond_error(m_id, "", ec, std::string(error), {}); }
+        void provide(T r) const { m_response->respond(m_id, "", m_handler(std::move(r))); }
+    };
+    return workspace_manager_response<T>(response_t(std::move(id), response, std::move(handler)));
+}
+
+} // namespace
 
 feature_language_features::feature_language_features(
     parser_library::workspace_manager& ws_mngr, response_provider& response_provider)
@@ -157,57 +292,6 @@ nlohmann::json feature_language_features::register_capabilities()
     };
 }
 
-namespace {
-
-template<typename T>
-struct first_arg;
-template<typename T, typename Arg, typename... Args>
-struct first_arg<T (*)(Arg, Args...)>
-{
-    using type = Arg;
-};
-template<typename T, class C, typename Arg, typename... Args>
-struct first_arg<T (C::*)(Arg, Args...)>
-{
-    using type = Arg;
-};
-template<typename T, class C, typename Arg, typename... Args>
-struct first_arg<T (C::*)(Arg, Args...) const>
-{
-    using type = Arg;
-};
-template<typename T>
-struct first_arg
-{
-    using type = typename first_arg<decltype(&T::operator())>::type;
-};
-
-template<typename U>
-auto make_response(nlohmann::json id, response_provider* response, U handler)
-{
-    using T = typename first_arg<U>::type;
-    class response_t
-    {
-        nlohmann::json m_id;
-        response_provider* m_response;
-        U m_handler;
-
-    public:
-        response_t(nlohmann::json id, response_provider* response, U handler)
-            : m_id(std::move(id))
-            , m_response(response)
-            , m_handler(std::move(handler))
-        {}
-
-        bool valid() const { return true; }
-        void error(int ec, const char* error) const { m_response->respond_error(m_id, "", ec, std::string(error), {}); }
-        void provide(T r) const { m_response->respond(m_id, "", m_handler(std::move(r))); }
-    };
-    return workspace_manager_response<T>(response_t(std::move(id), response, std::move(handler)));
-}
-
-} // namespace
-
 void feature_language_features::initialize_feature(const nlohmann::json&)
 {
     // No need for initialization in this feature.
@@ -256,61 +340,6 @@ void feature_language_features::hover(const nlohmann::json& id, const nlohmann::
     }));
 }
 
-// Completion item kinds from the LSP specification
-enum class lsp_completion_item_kind
-{
-    text = 1,
-    method = 2,
-    function = 3,
-    constructor = 4,
-    field = 5,
-    variable = 6,
-    class_v = 7,
-    interface = 8,
-    module_v = 9,
-    property = 10,
-    unit = 11,
-    value = 12,
-    enum_v = 13,
-    keyword = 14,
-    snippet = 15,
-    color = 16,
-    file = 17,
-    reference = 18,
-    folder = 19,
-    enum_member = 20,
-    constant = 21,
-    struct_v = 22,
-    event = 23,
-    operator_v = 24,
-    type_parameter = 25
-};
-
-
-const std::unordered_map<parser_library::completion_item_kind, lsp_completion_item_kind> completion_item_kind_mapping {
-    { parser_library::completion_item_kind::mach_instr, lsp_completion_item_kind::function },
-    { parser_library::completion_item_kind::asm_instr, lsp_completion_item_kind::function },
-    { parser_library::completion_item_kind::ca_instr, lsp_completion_item_kind::function },
-    { parser_library::completion_item_kind::macro, lsp_completion_item_kind::file },
-    { parser_library::completion_item_kind::var_sym, lsp_completion_item_kind::variable },
-    { parser_library::completion_item_kind::seq_sym, lsp_completion_item_kind::reference }
-};
-
-
-nlohmann::json feature_language_features::get_markup_content(std::string_view content)
-{
-    return nlohmann::json { { "kind", "markdown" }, { "value", content } };
-}
-
-std::string decorate_suggestion(std::string_view s)
-{
-    std::string result("##");
-
-    for (char c : s)
-        result.append(1, c).append(2, '#');
-
-    return result;
-}
 
 void feature_language_features::completion(const nlohmann::json& id, const nlohmann::json& params)
 {
@@ -320,33 +349,7 @@ void feature_language_features::completion(const nlohmann::json& id, const nlohm
     auto [trigger_kind, trigger_char] = extract_trigger(params);
 
     ws_mngr_.completion(
-        document_uri.c_str(), pos, trigger_char, trigger_kind, make_response(id, response_, [](completion_list list) {
-            auto to_ret = nlohmann::json::object();
-            auto completion_item_array = nlohmann::json::array();
-            for (size_t i = 0; i < list.size(); ++i)
-            {
-                const auto& item = list.item(i);
-                auto& json_item = completion_item_array.emplace_back(nlohmann::json {
-                    { "label", item.label() },
-                    { "kind", completion_item_kind_mapping.at(item.kind()) },
-                    { "detail", item.detail() },
-                    { "documentation", get_markup_content(item.documentation()) },
-                    { "insertText", item.insert_text() },
-                    { "insertTextFormat", 1 + (int)item.is_snippet() },
-                });
-                if (auto suggestion = item.suggestion_for(); !suggestion.empty())
-                {
-                    json_item["filterText"] = std::string("~~~") + decorate_suggestion(suggestion);
-                    json_item["sortText"] = std::string("~~~") + std::string(item.label());
-                }
-            }
-            // needs to be incomplete, otherwise we are unable to include new suggestions
-            // when user continues typing (vscode keeps using the first list)
-            to_ret["isIncomplete"] = true;
-            to_ret["items"] = std::move(completion_item_array);
-
-            return to_ret;
-        }));
+        document_uri.c_str(), pos, trigger_char, trigger_kind, make_response(id, response_, translate_completion_list));
 }
 
 void add_token(nlohmann::json& encoded_tokens,

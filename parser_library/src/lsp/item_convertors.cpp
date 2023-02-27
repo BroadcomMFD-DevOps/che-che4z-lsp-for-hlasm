@@ -304,8 +304,8 @@ completion_list_s generate_completion(const completion_list_instructions& cli)
 
     std::vector<std::pair<std::string, bool>> suggestions;
     suggestions.reserve(cli.additional_instructions.size());
-    for (auto&& s : cli.additional_instructions)
-        suggestions.emplace_back(std::move(s), false);
+    for (const auto& s : cli.additional_instructions)
+        suggestions.emplace_back(s, false);
 
     const auto locate_suggestion = [&s = suggestions](std::string_view text) {
         auto it = std::find_if(s.begin(), s.end(), [text](const auto& e) { return e.first == text; });
