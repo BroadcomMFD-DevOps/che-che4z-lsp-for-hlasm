@@ -119,7 +119,7 @@ protected:
     }
 
     template<typename C>
-    bool set_invalidation_callback(C t)
+    void set_invalidation_callback(C t)
     {
         change_invalidation_callback(invalidator_t {
             new C(std::move(t)),
@@ -129,7 +129,7 @@ protected:
     }
 
     template<typename C>
-    bool set_invalidation_callback(C t) noexcept requires std::is_function_v<C>
+    void set_invalidation_callback(C t) noexcept requires std::is_function_v<C>
     {
         change_invalidation_callback(invalidator_t { impl, nullptr, t });
     }

@@ -15,10 +15,10 @@
 #include <optional>
 #include <utility>
 
-#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
 #include "../common_testing.h"
+#include "../workspace_manager_response_mock.h"
 #include "consume_diagnostics_mock.h"
 #include "diagnosable_impl.h"
 #include "file_manager_mock.h"
@@ -154,15 +154,6 @@ TEST(virtual_files, workspace_auto_cleanup)
 )";
     wm.did_open_file("ws/file", 1, input.data(), input.size());
 }
-
-template<typename T>
-class workspace_manager_response_mock
-{
-public:
-    MOCK_METHOD(bool, valid, (), (const));
-    MOCK_METHOD(void, error, (int, const char*), ());
-    MOCK_METHOD(void, provide, (T), ());
-};
 
 TEST(virtual_files, hover)
 {
