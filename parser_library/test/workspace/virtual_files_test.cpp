@@ -15,6 +15,7 @@
 #include <optional>
 #include <utility>
 
+#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
 #include "../common_testing.h"
@@ -154,6 +155,15 @@ TEST(virtual_files, workspace_auto_cleanup)
     wm.did_open_file("ws/file", 1, input.data(), input.size());
 }
 
+template<typename T>
+class workspace_manager_response_mock
+{
+public:
+    MOCK_METHOD(bool, valid, (), (const));
+    MOCK_METHOD(void, error, (int, const char*), ());
+    MOCK_METHOD(void, provide, (T), ());
+};
+
 TEST(virtual_files, hover)
 {
     diag_consumer_mock diag_mock;
@@ -174,24 +184,12 @@ MY  DSECT
 
     ASSERT_TRUE(vf.starts_with("hlasm://"));
 
-    bool called = false;
-    struct check_hover_t
-    {
-        bool& m_called;
-        check_hover_t(bool& called)
-            : m_called(called)
-        {}
+    auto resp = make_workspace_manager_response(std::in_place_type<workspace_manager_response_mock<sequence<char>>>);
+    auto* mock = resp.get_impl<workspace_manager_response_mock<sequence<char>>>();
 
-        bool valid() const { return true; }
-        void error(int, const char*) { assert(false); }
-        void provide(sequence<char> hover_text) const
-        {
-            m_called = true;
-            EXPECT_NE(std::string_view(hover_text).find("MY + X'4' (4)"), std::string::npos);
-        }
-    };
+    EXPECT_CALL(*mock, provide(Truly([](sequence<char> hover_text) {
+        return std::string_view(hover_text).find("MY + X'4' (4)") != std::string::npos;
+    })));
 
-    wm.hover(vf.c_str(), position(0, 0), make_workspace_manager_response(check_hover_t(called)));
-
-    EXPECT_TRUE(called);
+    wm.hover(vf.c_str(), position(0, 0), resp);
 }

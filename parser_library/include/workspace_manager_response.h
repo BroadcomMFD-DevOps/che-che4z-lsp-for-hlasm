@@ -19,6 +19,21 @@
 
 namespace hlasm_plugin::parser_library {
 
+namespace {
+namespace detail {
+template<typename T>
+struct is_in_place_type_t
+{
+    static constexpr bool value = false;
+};
+template<typename T>
+struct is_in_place_type_t<std::in_place_type_t<T>>
+{
+    static constexpr bool value = true;
+};
+} // namespace detail
+} // namespace
+
 class workspace_manager_response_base
 {
 protected:
@@ -148,8 +163,12 @@ class workspace_manager_response : workspace_manager_response_base
     {
         U data;
 
-        shared_data(U data)
+        explicit shared_data(U data) requires(!detail::is_in_place_type_t<U>::value)
             : data(std::move(data))
+        {}
+        template<typename... Args>
+        explicit shared_data(std::in_place_type_t<U>, Args&&... args)
+            : data(std::forward<Args>(args)...)
         {}
     };
     template<typename U>
@@ -163,8 +182,13 @@ class workspace_manager_response : workspace_manager_response_base
 public:
     workspace_manager_response() = default;
     template<typename U>
-    workspace_manager_response(U u)
+    explicit workspace_manager_response(U u) requires(!detail::is_in_place_type_t<U>::value)
         : workspace_manager_response_base(new shared_data<U>(std::move(u)), &get_actions<U>)
+    {}
+    template<typename U, typename... Args>
+    explicit workspace_manager_response(std::in_place_type_t<U> u, Args&&... args)
+        : workspace_manager_response_base(
+            new shared_data<U>(std::move(u), std::forward<Args>(args)...), &get_actions<U>)
     {}
 
     using workspace_manager_response_base::error;
@@ -185,21 +209,21 @@ public:
 class
 {
     template<typename U, typename T>
-    auto operator()(U u, void (U::*)(T)) const
-    {
-        return workspace_manager_response<T>(std::move(u));
-    }
+    T provide_type(void (U::*)(T)) const;
     template<typename U, typename T>
-    auto operator()(U u, void (U::*)(T) const) const
-    {
-        return workspace_manager_response<T>(std::move(u));
-    }
+    T provide_type(void (U::*)(T) const) const;
 
 public:
     template<typename U>
-    auto operator()(U u) const
+    auto operator()(U u) const requires(!detail::is_in_place_type_t<U>::value)
     {
-        return operator()(std::move(u), &U::provide);
+        return workspace_manager_response<decltype(provide_type(&U::provide))>(std::move(u));
+    }
+    template<typename U, typename... Args>
+    auto operator()(std::in_place_type_t<U> u, Args&&... args) const
+    {
+        return workspace_manager_response<decltype(provide_type(&U::provide))>(
+            std::move(u), std::forward<Args>(args)...);
     }
 
 } inline constexpr make_workspace_manager_response;
