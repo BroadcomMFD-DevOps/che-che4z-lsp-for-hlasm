@@ -522,15 +522,15 @@ INSTANTIATE_TEST_SUITE_P(fade,
     ::testing::Values(
         test_params {
             {
-                "         MAC 0",
                 "         NEST",
+                "         MAC 0",
             },
             {},
         },
         test_params {
             {
-                "         MAC 1",
                 "         NEST",
+                "         MAC 1",
             },
             {
                 fade_message_s::inactive_statement("libs/mac", range(position(3, 0), position(3, 80))),
@@ -538,8 +538,8 @@ INSTANTIATE_TEST_SUITE_P(fade,
         },
         test_params {
             {
-                "         MAC 0",
                 "*        NEST",
+                "         MAC 0",
             },
             {
                 fade_message_s::unused_macro("libs/mac", range(position(7, 0), position(7, 80))),
@@ -547,8 +547,8 @@ INSTANTIATE_TEST_SUITE_P(fade,
         },
         test_params {
             {
-                "         MAC 1",
                 "*        NEST",
+                "         MAC 1",
             },
             {
                 fade_message_s::inactive_statement("libs/mac", range(position(3, 0), position(3, 80))),
@@ -557,15 +557,15 @@ INSTANTIATE_TEST_SUITE_P(fade,
         },
         test_params {
             {
-                "*        MAC 1",
                 "         NEST",
+                "*        MAC 1",
             },
             {},
         },
         test_params {
             {
-                "*        MAC 1",
                 "*        NEST",
+                "*        MAC 1",
             },
             {},
         }));
@@ -597,8 +597,8 @@ $x
          END)";
 
     open_src_files_and_collect_fms({
-        { mac_loc, std::regex_replace(mac_template, std::regex("\\$y"), GetParam().text_to_insert[1]) },
-        { src1_loc, std::regex_replace(src_template, std::regex("\\$x"), GetParam().text_to_insert[0]) },
+        { mac_loc, std::regex_replace(mac_template, std::regex("\\$y"), GetParam().text_to_insert[0]) },
+        { src1_loc, std::regex_replace(src_template, std::regex("\\$x"), GetParam().text_to_insert[1]) },
     });
 
     EXPECT_TRUE(contains_message_codes(collect_and_get_diags(), GetParam().diag_message_codes));

@@ -136,7 +136,6 @@ class opencode_provider final : public statement_provider
     virtual_file_monitor* m_virtual_file_monitor;
     std::vector<virtual_file_handle> m_vf_handles;
 
-
 public:
     // rewinds position in file
     void rewind_input(context::source_position pos);
