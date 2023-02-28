@@ -15,11 +15,12 @@
 #include "hit_count_analyzer.h"
 
 #include <cassert>
-#include <iterator>
+#include <optional>
 #include <variant>
 
 #include "context/hlasm_context.h"
 #include "processing/statement.h"
+#include "semantics/statement.h"
 
 namespace hlasm_plugin::parser_library::processing {
 
@@ -59,31 +60,26 @@ std::optional<stmt_lines_range> get_stmt_lines_range(const semantics::core_state
 
     return std::make_pair(r.start.line, r.end.line);
 }
-
-void update_hc_detail(hit_count_detail& hc_detail,
-    stmt_lines_range lines_range,
-    bool increase_hit_count,
-    const std::optional<context::id_index>& macro_affiliation)
-{
-    hc_detail.hits.add(lines_range, increase_hit_count, true, macro_affiliation);
-}
 } // namespace
 
-hit_count_detail& hit_count_analyzer::get_hc_detail_reference(const utils::resource::resource_location& rl)
+utils::resource::resource_location hit_count_analyzer::get_current_stmt_rl(processing_kind proc_kind)
 {
-    return m_hit_count.hc_map.try_emplace(rl).first->second;
+    return m_ctx.current_statement_location(proc_kind != processing_kind::LOOKAHEAD).resource_loc;
+}
+
+hit_count_entry& hit_count_analyzer::get_hc_entry_reference(const utils::resource::resource_location& rl)
+{
+    return m_hit_count_map.try_emplace(rl).first->second;
 }
 
 hit_count_analyzer::statement_type hit_count_analyzer::get_stmt_type(const semantics::core_statement& statement)
 {
-    const auto instr_id = std::get_if<context::id_index>(&statement.instruction_ref().value);
-
     statement_type cur_stmt_type = m_next_stmt_type;
-    if (instr_id)
+    if (const auto instr_id = std::get_if<context::id_index>(&statement.instruction_ref().value); instr_id)
     {
         if (*instr_id == context::id_storage::well_known::MACRO)
             cur_stmt_type = statement_type::MACRO_INIT;
-        else if (!m_nest_macro_names.empty() && *instr_id == context::id_storage::well_known::MEND)
+        else if (m_macro_level > 0 && *instr_id == context::id_storage::well_known::MEND)
             cur_stmt_type = statement_type::MACRO_END;
     }
 
@@ -93,21 +89,19 @@ hit_count_analyzer::statement_type hit_count_analyzer::get_stmt_type(const seman
         // again and again)
         using enum statement_type;
         case MACRO_INIT:
+            m_macro_level++;
             m_next_stmt_type = MACRO_NAME;
             break;
 
-        case MACRO_NAME: {
-            assert(instr_id);
-            m_nest_macro_names.push(*instr_id);
+        case MACRO_NAME:
             m_next_stmt_type = MACRO_BODY;
             break;
-        }
 
         case MACRO_END:
-            if (!m_nest_macro_names.empty())
-                m_nest_macro_names.pop();
+            if (m_macro_level > 0)
+                m_macro_level--;
 
-            if (m_nest_macro_names.empty())
+            if (m_macro_level == 0)
                 m_next_stmt_type = REGULAR;
             else
                 m_next_stmt_type = MACRO_BODY;
@@ -130,47 +124,29 @@ bool hit_count_analyzer::analyze(
     const auto& core_stmt = *core_stmt_ptr;
 
     auto stmt_type = get_stmt_type(core_stmt);
-    if (stmt_type == statement_type::MACRO_INIT || stmt_type == statement_type::MACRO_END)
+    if (stmt_type != statement_type::REGULAR && stmt_type != statement_type::MACRO_BODY)
         return false;
 
     auto stmt_lines_range = get_stmt_lines_range(core_stmt, prov_kind, proc_kind, m_ctx);
     if (!stmt_lines_range)
         return false;
 
-    const auto& rl = m_ctx.current_statement_location(proc_kind != processing_kind::LOOKAHEAD).resource_loc;
-
     switch (stmt_type)
     {
         using enum statement_type;
-        case REGULAR:
-            update_hc_detail(get_hc_detail_reference(rl),
-                *stmt_lines_range,
-                proc_kind == processing::processing_kind::ORDINARY,
-                std::nullopt);
+        case REGULAR: {
+            auto& hc_ref = get_hc_entry_reference(get_current_stmt_rl(proc_kind));
+            hc_ref.hits.add(*stmt_lines_range, proc_kind == processing::processing_kind::ORDINARY, false);
 
-            if (auto macro_id = m_ctx.current_macro_id(); !macro_id.empty())
-            {
-                auto& item = m_hit_count.macro_details_map[macro_id];
-                item.used = true;
-                item.rl = rl;
-            }
-
-            break;
-
-        case MACRO_BODY:
-            assert(!m_nest_macro_names.empty());
-            update_hc_detail(get_hc_detail_reference(rl), *stmt_lines_range, false, m_nest_macro_names.top());
-
-            break;
-
-        case MACRO_NAME: {
-            assert(!m_nest_macro_names.empty());
-            auto& item = m_hit_count.macro_details_map[m_nest_macro_names.top()];
-            item.macro_name_line = stmt_lines_range->first;
-            item.rl = rl;
+            if (auto mac_invo_loc = m_ctx.current_macro_definition_location(); mac_invo_loc)
+                hc_ref.macro_definition_lines.emplace(mac_invo_loc->pos.line);
 
             break;
         }
+
+        case MACRO_BODY:
+            get_hc_entry_reference(get_current_stmt_rl(proc_kind)).hits.add(*stmt_lines_range, false, true);
+            break;
 
         default:
             assert(false);
@@ -183,16 +159,16 @@ bool hit_count_analyzer::analyze(
 void hit_count_analyzer::analyze_aread_line(
     const utils::resource::resource_location& rl, size_t lineno, std::string_view)
 {
-    update_hc_detail(get_hc_detail_reference(rl), std::make_pair(lineno, lineno), true, std::nullopt);
+    get_hc_entry_reference(rl).hits.add(std::make_pair(lineno, lineno), true, false);
 }
 
-hit_count hit_count_analyzer::take_hit_count()
+hit_count_map hit_count_analyzer::take_hit_count_map()
 {
     auto has_sections = !m_ctx.ord_ctx.sections().empty();
-    for (auto& m : m_hit_count.hc_map)
+    for (auto& m : m_hit_count_map)
         m.second.has_sections = has_sections;
 
-    return std::move(m_hit_count);
+    return std::move(m_hit_count_map);
 }
 
 } // namespace hlasm_plugin::parser_library::processing

@@ -16,23 +16,26 @@
 #define PROCESSING_HIT_COUNT_ANALYZER_H
 
 #include <algorithm>
-#include <optional>
-#include <stack>
 #include <string_view>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
 
-#include "context/id_storage.h"
-#include "semantics/statement.h"
+#include "processing/processing_format.h"
+#include "processing/statement_providers/statement_provider_kind.h"
 #include "statement_analyzer.h"
-#include "utils/general_hashers.h"
 #include "utils/resource_location.h"
 
-namespace hlasm_plugin::parser_library::context {
+namespace hlasm_plugin::parser_library {
+namespace context {
 class hlasm_context;
-} // namespace hlasm_plugin::parser_library::context
+} // namespace context
+
+namespace semantics {
+struct core_statement;
+} // namespace semantics
+} // namespace hlasm_plugin::parser_library
 
 namespace hlasm_plugin::parser_library::processing {
 using stmt_lines_range = std::pair<size_t, size_t>;
@@ -41,23 +44,21 @@ struct line_detail
 {
     size_t count = 0;
     bool contains_statement = false;
-    std::unordered_set<context::id_index> macro_affiliation;
+    bool macro_definition = false;
 
     line_detail& operator+=(const line_detail& other)
     {
         count += other.count;
         contains_statement |= other.contains_statement;
-        macro_affiliation.insert(other.macro_affiliation.begin(), other.macro_affiliation.end());
+        macro_definition |= other.macro_definition;
         return *this;
     }
 
-    line_detail& add(
-        size_t other_count, bool other_contains_statement, const std::optional<context::id_index>& other_mac_id)
+    line_detail& add(size_t other_count, bool is_macro)
     {
         count += other_count;
-        contains_statement |= other_contains_statement;
-        if (other_mac_id)
-            macro_affiliation.emplace(*other_mac_id);
+        contains_statement = true;
+        macro_definition |= is_macro;
         return *this;
     }
 };
@@ -86,23 +87,19 @@ struct line_hits
         return *this;
     }
 
-    void add(
-        size_t line, size_t count, bool contains_statement, const std::optional<context::id_index>& macro_affiliation)
+    void add(size_t line, size_t count, bool is_macro)
     {
         update_max_and_resize(line);
-        line_details[line].add(count, contains_statement, macro_affiliation);
+        line_details[line].add(count, is_macro);
     }
 
-    void add(const stmt_lines_range& lines_range,
-        size_t count,
-        bool contains_statement,
-        const std::optional<context::id_index>& macro_affiliation)
+    void add(const stmt_lines_range& lines_range, size_t count, bool is_macro)
     {
         const auto& [start_line, end_line] = lines_range;
 
         update_max_and_resize(end_line);
         for (auto i = start_line; i <= end_line; ++i)
-            line_details[i].add(count, contains_statement, macro_affiliation);
+            line_details[i].add(count, is_macro);
     }
 
 private:
@@ -115,42 +112,27 @@ private:
     }
 };
 
-struct hit_count_detail
+struct hit_count_entry
 {
-    line_hits hits;
     bool has_sections = false;
+    line_hits hits;
+    std::unordered_set<size_t> macro_definition_lines;
 
-    hit_count_detail& merge(const hit_count_detail& other)
+    hit_count_entry& merge(const hit_count_entry& other)
     {
         has_sections |= other.has_sections;
+
         hits.merge(other.hits);
 
-        return *this;
-    }
-};
-
-struct macro_detail
-{
-    bool used = false;
-    size_t macro_name_line;
-    utils::resource::resource_location rl;
-
-    macro_detail& merge(const macro_detail& other)
-    {
-        used |= other.used;
-        macro_name_line = other.macro_name_line;
-        rl = other.rl;
+        const auto& other_mac_def_lines = other.macro_definition_lines;
+        macro_definition_lines.insert(other_mac_def_lines.begin(), other_mac_def_lines.end());
 
         return *this;
     }
 };
 
-struct hit_count
-{
-    std::unordered_map<utils::resource::resource_location, hit_count_detail, utils::resource::resource_location_hasher>
-        hc_map;
-    std::unordered_map<context::id_index, macro_detail> macro_details_map;
-};
+using hit_count_map =
+    std::unordered_map<utils::resource::resource_location, hit_count_entry, utils::resource::resource_location_hasher>;
 
 class hit_count_analyzer final : public statement_analyzer
 {
@@ -165,7 +147,7 @@ public:
 
     void analyze_aread_line(const utils::resource::resource_location& rl, size_t lineno, std::string_view) override;
 
-    hit_count take_hit_count();
+    hit_count_map take_hit_count_map();
 
 private:
     enum class statement_type
@@ -178,11 +160,12 @@ private:
     };
 
     context::hlasm_context& m_ctx;
-    hit_count m_hit_count;
+    hit_count_map m_hit_count_map;
     statement_type m_next_stmt_type = statement_type::REGULAR;
-    std::stack<context::id_index> m_nest_macro_names;
+    size_t m_macro_level = 0;
 
-    hit_count_detail& get_hc_detail_reference(const utils::resource::resource_location& rl);
+    utils::resource::resource_location get_current_stmt_rl(processing_kind proc_kind);
+    hit_count_entry& get_hc_entry_reference(const utils::resource::resource_location& rl);
 
     statement_type get_stmt_type(const semantics::core_statement& statement);
 };

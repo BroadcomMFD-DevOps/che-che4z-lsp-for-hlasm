@@ -143,41 +143,78 @@ void workspace::collect_diags() const
 }
 
 namespace {
-void generate_merged_fade_messages(const std::string& uri,
-    const processing::hit_count_detail& hc_detail,
-    const std::unordered_map<context::id_index, processing::macro_detail>& mac_detail,
+struct mac_cpybook_definition_details
+{
+    bool cpy_book = false;
+    size_t end_line;
+    size_t prototype_line = 0;
+};
+
+using mac_cpy_definitions_map = std::map<size_t, mac_cpybook_definition_details, std::greater<size_t>>;
+using rl_mac_cpy_map = std::unordered_map<utils::resource::resource_location,
+    mac_cpy_definitions_map,
+    utils::resource::resource_location_hasher>;
+
+void generate_merged_fade_messages(const utils::resource::resource_location& rl,
+    const processing::hit_count_entry& hc_entry,
+    const rl_mac_cpy_map& active_rl_mac_cpy_map,
     std::vector<fade_message_s>& fms)
 {
-    if (!hc_detail.has_sections)
+    const auto& [has_sections, line_hits, encountered_macro_defs] = hc_entry;
+    if (!has_sections)
         return;
 
-    const auto line_hits_it_b = hc_detail.hits.line_details.begin();
-    const auto it_e = std::next(line_hits_it_b, hc_detail.hits.max_lineno + 1);
-    const auto it_b =
-        std::find_if(line_hits_it_b, it_e, [](const processing::line_detail& e) { return e.contains_statement; });
+    const auto line_details_it_b = line_hits.line_details.begin();
+    const auto line_details_it_e = std::next(line_details_it_b, line_hits.max_lineno + 1);
 
-    const auto faded_line_predicate = [&mac_detail](const processing::line_detail& e) {
-        if (!e.macro_affiliation.empty()
-            && std::none_of(e.macro_affiliation.begin(),
-                e.macro_affiliation.end(),
-                [&mac_detail](const context::id_index& line_mac_id) {
-                    auto mac_det_it = mac_detail.find(line_mac_id);
-                    return mac_det_it == mac_detail.end() ? false : mac_det_it->second.used;
-                }))
-            return false;
+    const auto faded_line_predicate =
+        [&active_rl_mac_cpy_map, &rl, &encountered_macro_defs, line_details_addr = std::to_address(line_details_it_b)](
+            const processing::line_detail& e) {
+            if (e.macro_definition)
+            {
+                auto active_rl_mac_cpy_map_it = active_rl_mac_cpy_map.find(rl);
+                if (active_rl_mac_cpy_map_it == active_rl_mac_cpy_map.end())
+                    return false;
 
-        return (e.contains_statement && e.count == 0);
-    };
+                auto lineno = static_cast<size_t>(std::distance(line_details_addr, &e));
 
-    auto faded_line_it = std::find_if(it_b, it_e, faded_line_predicate);
-    while (faded_line_it != it_e)
+                const auto& active_mac_cpy_defs_map = active_rl_mac_cpy_map_it->second;
+                auto active_mac_cpy_defs_map_it = active_mac_cpy_defs_map.lower_bound(lineno);
+                while (active_mac_cpy_defs_map_it != active_mac_cpy_defs_map.end())
+                {
+                    const auto& [active_mac_cpy_start_line, active_mac_cpy_def_detail] = *active_mac_cpy_defs_map_it;
+
+                    if (lineno < active_mac_cpy_start_line)
+                    {
+                        std::advance(active_mac_cpy_defs_map_it, 1);
+                        continue;
+                    }
+
+                    if (!active_mac_cpy_def_detail.cpy_book && lineno <= active_mac_cpy_def_detail.end_line
+                        && !encountered_macro_defs.contains(active_mac_cpy_start_line))
+                        return false;
+
+                    break;
+                }
+            }
+
+            return (e.contains_statement && e.count == 0);
+        };
+
+    const auto& uri = rl.get_uri();
+
+    const auto it_b = std::find_if(
+        line_details_it_b, line_details_it_e, [](const processing::line_detail& e) { return e.contains_statement; });
+    auto faded_line_it = std::find_if(it_b, line_details_it_e, faded_line_predicate);
+
+    while (faded_line_it != line_details_it_e)
     {
-        auto active_line = std::find_if_not(std::next(faded_line_it), it_e, faded_line_predicate);
+        auto active_line = std::find_if_not(std::next(faded_line_it), line_details_it_e, faded_line_predicate);
         fms.emplace_back(fade_message_s::inactive_statement(uri,
-            range(position(std::distance(line_hits_it_b, faded_line_it), 0),
-                position(std::distance(line_hits_it_b, std::prev(active_line)), 80))));
+            range(position(std::distance(line_details_it_b, faded_line_it), 0),
+                position(std::distance(line_details_it_b, std::prev(active_line)), 80))));
 
-        faded_line_it = std::find_if(active_line, it_e, faded_line_predicate);
+        faded_line_it = std::find_if(active_line, line_details_it_e, faded_line_predicate);
     }
 }
 
@@ -187,40 +224,82 @@ void filter_and_emplace_hc_map(auto& to, const auto& from, const utils::resource
     if (from_it == from.end())
         return;
 
-    const auto& [from_hc_rl, from_hc] = *from_it;
-    if (auto [to_hc_it, new_element] = to.try_emplace(from_hc_rl, from_hc); !new_element)
-        to_hc_it->second.merge(from_hc);
+    const auto& from_hc_entry = from_it->second;
+    if (auto [to_hc_it, new_element] = to.try_emplace(rl, from_hc_entry); !new_element)
+        to_hc_it->second.merge(from_hc_entry);
 }
 
-void filter_and_emplace_mac_detail(auto& to, const auto& from, const utils::resource::resource_location& rl)
+void filter_and_emplace_mac_cpy_definitions(rl_mac_cpy_map& active_rl_mac_cpy_map,
+    const lsp::lsp_context* lsp_ctx,
+    const utils::resource::resource_location& rl)
 {
-    for (const auto& [from_mac_id, from_mac_details] : from)
+    if (!lsp_ctx)
+        return;
+
+    for (const auto& [_, mac_info_ptr] : lsp_ctx->macros())
     {
-        if (from_mac_details.rl != rl)
+        if (!mac_info_ptr || !mac_info_ptr->macro_definition)
             continue;
 
-        to[from_mac_id].merge(from_mac_details);
+        const auto mac_definition_emplacer = [&active_rl_mac_cpy_map, &rl](const auto& definition,
+                                                 bool cpy_book) -> mac_cpybook_definition_details* {
+            const auto& def_location = definition->definition_location;
+            if (def_location.resource_loc != rl)
+                return nullptr;
+
+            const auto& lines = definition->cached_definition;
+            if (lines.empty())
+                return nullptr;
+
+            const auto& first_line = lines.front().get_base();
+            const auto& last_line = lines.back().get_base();
+            if (!first_line || !last_line)
+                return nullptr;
+
+            return &active_rl_mac_cpy_map[rl]
+                        .emplace(def_location.pos.line,
+                            mac_cpybook_definition_details { cpy_book, last_line->statement_position().line })
+                        .first->second;
+        };
+
+        const auto& mac_def = mac_info_ptr->macro_definition;
+        if (auto entry = mac_definition_emplacer(mac_def, false); entry != nullptr)
+            entry->prototype_line = mac_info_ptr->definition_location.pos.line;
+
+        for (const auto& cpy_member : mac_def->used_copy_members)
+        {
+            if (cpy_member)
+                mac_definition_emplacer(cpy_member, true);
+        }
     }
 }
 
-void fade_unused_mac_names(const processing::hit_count& hc, std::vector<fade_message_s>& fms)
+void fade_unused_mac_names(const processing::hit_count_map& hc_map,
+    const rl_mac_cpy_map& active_rl_mac_cpy_map,
+    std::vector<fade_message_s>& fms)
 {
-    for (const auto& [_, mac_details] : hc.macro_details_map)
+    for (const auto& [active_rl, active_mac_cpy_defs] : active_rl_mac_cpy_map)
     {
-        if (mac_details.used)
+        auto hc_map_it = hc_map.find(active_rl);
+        if (hc_map_it == hc_map.end() || !hc_map_it->second.has_sections)
             continue;
 
-        const auto& hc_map = hc.hc_map;
-        if (auto it = hc_map.find(mac_details.rl); it != hc_map.end() && it->second.has_sections)
-            fms.emplace_back(fade_message_s::unused_macro(it->first.get_uri(),
-                range(position(mac_details.macro_name_line, 0), position(mac_details.macro_name_line, 80))));
+        const auto& encountered_macro_def_lines = hc_map_it->second.macro_definition_lines;
+        for (const auto& [mac_cpy_def_start_line, mac_cpy_def_details] : active_mac_cpy_defs)
+        {
+            if (!mac_cpy_def_details.cpy_book && !encountered_macro_def_lines.contains(mac_cpy_def_start_line))
+                fms.emplace_back(fade_message_s::unused_macro(active_rl.get_uri(),
+                    range(position(mac_cpy_def_details.prototype_line, 0),
+                        position(mac_cpy_def_details.prototype_line, 80))));
+        }
     }
 }
 } // namespace
 
 void workspace::retrieve_fade_messages(std::vector<fade_message_s>& fms) const
 {
-    processing::hit_count hc;
+    processing::hit_count_map hc_map;
+    rl_mac_cpy_map active_rl_mac_cpy_map;
 
     std::unordered_set<std::string, utils::hashers::string_hasher, std::equal_to<>> opened_files_uris;
 
@@ -229,24 +308,24 @@ void workspace::retrieve_fade_messages(std::vector<fade_message_s>& fms) const
 
     for (const auto& [_, proc_file_component] : m_processor_files)
     {
-        const auto& pf_fade_messages = proc_file_component.m_processor_file->fade_messages();
+        const auto& pf = *proc_file_component.m_processor_file;
+        const auto& pf_fade_messages = pf.fade_messages();
         std::copy_if(pf_fade_messages.begin(),
             pf_fade_messages.end(),
             std::back_inserter(fms),
             [&opened_files_uris](const auto& fmsg) { return opened_files_uris.contains(fmsg.uri); });
 
-        const auto& pf_hc = proc_file_component.m_processor_file->hit_count();
         for (const auto& [opened_file_rl, __] : opened_files_)
         {
-            filter_and_emplace_hc_map(hc.hc_map, pf_hc.hc_map, opened_file_rl);
-            filter_and_emplace_mac_detail(hc.macro_details_map, pf_hc.macro_details_map, opened_file_rl);
+            filter_and_emplace_hc_map(hc_map, pf.hit_count_map(), opened_file_rl);
+            filter_and_emplace_mac_cpy_definitions(active_rl_mac_cpy_map, pf.get_lsp_context(), opened_file_rl);
         }
     }
 
-    fade_unused_mac_names(hc, fms);
+    fade_unused_mac_names(hc_map, active_rl_mac_cpy_map, fms);
 
-    std::for_each(hc.hc_map.begin(), hc.hc_map.end(), [&fms, &mac_details_map = hc.macro_details_map](const auto& e) {
-        generate_merged_fade_messages(e.first.get_uri(), e.second, mac_details_map, fms);
+    std::for_each(hc_map.begin(), hc_map.end(), [&fms, &hc_map, &active_rl_mac_cpy_map](const auto& e) {
+        generate_merged_fade_messages(e.first, e.second, active_rl_mac_cpy_map, fms);
     });
 }
 

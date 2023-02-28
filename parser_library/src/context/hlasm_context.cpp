@@ -915,14 +915,14 @@ macro_invo_ptr hlasm_context::current_macro() const
     return macro_invo_ptr();
 }
 
-id_index hlasm_context::current_macro_id() const
+const location* hlasm_context::current_macro_definition_location() const
 {
     if (is_in_macro())
     {
         if (const auto& mac = curr_scope()->this_macro; mac)
-            return mac->id;
+            return &mac->definition_location;
     }
-    return id_index();
+    return nullptr;
 }
 
 const utils::resource::resource_location& hlasm_context::opencode_location() const { return opencode_file_location_; }

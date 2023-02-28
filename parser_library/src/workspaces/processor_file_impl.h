@@ -49,7 +49,7 @@ public:
     const std::set<utils::resource::resource_location>& dependencies() override;
 
     const semantics::lines_info& get_hl_info() override;
-    const lsp::lsp_context* get_lsp_context() override;
+    const lsp::lsp_context* get_lsp_context() const override;
     const std::set<utils::resource::resource_location>& files_to_close() override;
     const performance_metrics& get_metrics() override;
 
@@ -58,7 +58,7 @@ public:
     bool has_lsp_info() const override;
 
     const std::vector<fade_message_s>& fade_messages() const override;
-    const processing::hit_count& hit_count() const override;
+    const processing::hit_count_map& hit_count_map() const override;
 
     const file_location& get_location() const override;
 
@@ -94,7 +94,7 @@ private:
     std::shared_ptr<const std::vector<fade_message_s>> m_fade_messages =
         std::make_shared<const std::vector<fade_message_s>>();
 
-    processing::hit_count m_hc;
+    processing::hit_count_map m_hc_map;
 
     bool should_collect_hl(context::hlasm_context* ctx = nullptr) const;
 };

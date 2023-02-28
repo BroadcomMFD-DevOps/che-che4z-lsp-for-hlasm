@@ -231,7 +231,7 @@ public:
     bool is_in_macro() const;
     // returns macro we are currently in or empty shared_ptr if in open code
     macro_invo_ptr current_macro() const;
-    id_index current_macro_id() const;
+    const location* current_macro_definition_location() const;
     // registers new macro
     macro_def_ptr add_macro(id_index name,
         id_index label_param_name,

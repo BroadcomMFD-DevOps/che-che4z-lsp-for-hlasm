@@ -330,7 +330,6 @@ INSTANTIATE_TEST_SUITE_P(fade,
             { "*        MAC 1" },
             {
                 fade_message_s::unused_macro("src1.hlasm", range(position(3, 0), position(3, 80))),
-                fade_message_s::unused_macro("src1.hlasm", range(position(5, 0), position(5, 80))),
             },
         }));
 } // namespace
@@ -348,6 +347,93 @@ TEST_P(opencode_macros_inner_fixture, macros_opencode_inner)
          AIF (&P EQ 1).SKIP
          MAC_INNER
 .SKIP    ANOP
+         MEND
+
+$x
+
+         END)";
+
+    open_src_files_and_collect_fms({
+        { src1_loc, std::regex_replace(src_template, std::regex("\\$x"), GetParam().text_to_insert[0]) },
+    });
+
+    EXPECT_TRUE(contains_message_codes(collect_and_get_diags(), GetParam().diag_message_codes));
+
+    const auto& expected_msgs = GetParam().expected_fade_messages;
+    EXPECT_TRUE(std::is_permutation(fms.begin(),
+        fms.end(),
+        expected_msgs.begin(),
+        expected_msgs.end(),
+        [](const auto& fmsg, const auto& expected_fmsg) {
+            return fmsg.code == expected_fmsg.code && fmsg.r == expected_fmsg.r && fmsg.uri == expected_fmsg.uri;
+        }));
+}
+
+namespace {
+class opencode_multiple_macros_inner_fixture : public fade_fixture_base
+{};
+
+INSTANTIATE_TEST_SUITE_P(fade,
+    opencode_multiple_macros_inner_fixture,
+    ::testing::Values(
+        test_params {
+            {
+                R"(
+        OPEN
+        INNER)",
+            },
+            {
+                fade_message_s::unused_macro("src1.hlasm", range(position(10, 0), position(10, 80))),
+            },
+        },
+        test_params {
+            {
+                R"(
+*       OPEN
+        INNER)",
+            },
+            {
+                fade_message_s::unused_macro("src1.hlasm", range(position(2, 0), position(2, 80))),
+            },
+        },
+        test_params {
+            {
+                R"(
+        OPEN
+*       INNER)",
+            },
+            {
+                fade_message_s::unused_macro("src1.hlasm", range(position(4, 0), position(4, 80))),
+                fade_message_s::unused_macro("src1.hlasm", range(position(10, 0), position(10, 80))),
+            },
+        },
+        test_params {
+            {
+                R"(
+*       OPEN
+*       INNER)",
+            },
+            {
+                fade_message_s::unused_macro("src1.hlasm", range(position(2, 0), position(2, 80))),
+                fade_message_s::unused_macro("src1.hlasm", range(position(10, 0), position(10, 80))),
+            },
+        }));
+} // namespace
+
+TEST_P(opencode_multiple_macros_inner_fixture, multiple_macros_opencode_inner)
+{
+    static const std::string src_template = R"(         CSECT
+         MACRO
+         OPEN
+         MACRO
+         INNER
+         ANOP
+         MEND
+         MEND
+
+         MACRO
+         INNER
+         ANOP
          MEND
 
 $x
@@ -412,6 +498,106 @@ $x
 
     open_src_files_and_collect_fms({
         { mac_loc, std::move(mac) },
+        { src1_loc, std::regex_replace(src_template, std::regex("\\$x"), GetParam().text_to_insert[0]) },
+    });
+
+    EXPECT_TRUE(contains_message_codes(collect_and_get_diags(), GetParam().diag_message_codes));
+
+    const auto& expected_msgs = GetParam().expected_fade_messages;
+    EXPECT_TRUE(std::is_permutation(fms.begin(),
+        fms.end(),
+        expected_msgs.begin(),
+        expected_msgs.end(),
+        [](const auto& fmsg, const auto& expected_fmsg) {
+            return fmsg.code == expected_fmsg.code && fmsg.r == expected_fmsg.r && fmsg.uri == expected_fmsg.uri;
+        }));
+}
+
+namespace {
+class opencode_macros_external_nested_fixture : public fade_fixture_base
+{};
+
+INSTANTIATE_TEST_SUITE_P(fade,
+    opencode_macros_external_nested_fixture,
+    ::testing::Values(
+        test_params {
+            {
+                "         MAC 0",
+                "         NEST",
+            },
+            {},
+        },
+        test_params {
+            {
+                "         MAC 1",
+                "         NEST",
+            },
+            {
+                fade_message_s::inactive_statement("libs/mac", range(position(3, 0), position(3, 80))),
+            },
+        },
+        test_params {
+            {
+                "         MAC 0",
+                "*        NEST",
+            },
+            {
+                fade_message_s::unused_macro("libs/mac", range(position(7, 0), position(7, 80))),
+            },
+        },
+        test_params {
+            {
+                "         MAC 1",
+                "*        NEST",
+            },
+            {
+                fade_message_s::inactive_statement("libs/mac", range(position(3, 0), position(3, 80))),
+                fade_message_s::unused_macro("libs/mac", range(position(7, 0), position(7, 80))),
+            },
+        },
+        test_params {
+            {
+                "*        MAC 1",
+                "         NEST",
+            },
+            {},
+        },
+        test_params {
+            {
+                "*        MAC 1",
+                "*        NEST",
+            },
+            {},
+        }));
+} // namespace
+
+TEST_P(opencode_macros_external_nested_fixture, macros_external_nested)
+{
+    std::string mac_template = R"(         MACRO
+         MAC  &P
+         AIF (&P EQ 1).SKIP
+         ANOP
+.SKIP    ANOP
+
+         MACRO
+         NEST
+         ANOP
+         MEND
+
+$y
+
+         MEND
+
+* SOME MEANINGFUL REMARKS)";
+
+    static const std::string src_template = R"(
+         CSECT
+$x
+
+         END)";
+
+    open_src_files_and_collect_fms({
+        { mac_loc, std::regex_replace(mac_template, std::regex("\\$y"), GetParam().text_to_insert[1]) },
         { src1_loc, std::regex_replace(src_template, std::regex("\\$x"), GetParam().text_to_insert[0]) },
     });
 
