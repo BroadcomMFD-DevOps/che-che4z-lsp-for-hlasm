@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <map>
 #include <memory>
 #include <unordered_set>
 

@@ -16,6 +16,7 @@
 #define HLASMPLUGIN_PARSERLIBRARY_PROCESSOR_H
 
 #include <set>
+#include <unordered_map>
 #include <vector>
 
 #include "diagnosable.h"
