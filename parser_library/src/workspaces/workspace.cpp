@@ -173,39 +173,40 @@ void generate_merged_fade_messages(const utils::resource::resource_location& rl,
     const auto line_details_it_b = line_hits.line_details.begin();
     const auto line_details_it_e = std::next(line_details_it_b, line_hits.max_lineno + 1);
 
-    const auto faded_line_predicate =
-        [&active_mac_cpy_defs_map, &encountered_macro_defs, line_details_addr = std::to_address(line_details_it_b)](
-            const processing::line_detail& e) {
-            if (e.macro_definition)
+    const auto faded_line_predicate = [&active_mac_cpy_defs_map,
+                                          &encountered_mac_defs = encountered_macro_defs,
+                                          line_details_addr = std::to_address(line_details_it_b)](
+                                          const processing::line_detail& e) {
+        if (e.macro_definition)
+        {
+            if (!active_mac_cpy_defs_map)
+                return false;
+
+            auto lineno = static_cast<size_t>(std::distance(line_details_addr, &e));
+
+            const auto active_macro_predicate =
+                [&lineno](const std::pair<size_t, mac_cpybook_definition_details>& mac_cpy_def) {
+                    const auto& [active_mac_cpy_start_line, active_mac_cpy_def_detail] = mac_cpy_def;
+                    return !active_mac_cpy_def_detail.cpy_book && lineno >= active_mac_cpy_start_line
+                        && lineno <= active_mac_cpy_def_detail.end_line;
+                };
+
+            auto mac_def_it = active_mac_cpy_defs_map->lower_bound(lineno);
+            const auto mac_def_it_e = active_mac_cpy_defs_map->end();
+            auto active_mac_it = std::find_if(mac_def_it, mac_def_it_e, active_macro_predicate);
+
+            while (active_mac_it != mac_def_it_e)
             {
-                if (!active_mac_cpy_defs_map)
+                if (!encountered_mac_defs.contains(active_mac_it->first))
                     return false;
 
-                auto lineno = static_cast<size_t>(std::distance(line_details_addr, &e));
-
-                const auto active_macro_predicate =
-                    [&lineno](const std::pair<size_t, mac_cpybook_definition_details>& mac_cpy_def) {
-                        const auto& [active_mac_cpy_start_line, active_mac_cpy_def_detail] = mac_cpy_def;
-                        return !active_mac_cpy_def_detail.cpy_book && lineno >= active_mac_cpy_start_line
-                            && lineno <= active_mac_cpy_def_detail.end_line;
-                    };
-
-                auto mac_def_it = active_mac_cpy_defs_map->lower_bound(lineno);
-                const auto mac_def_it_e = active_mac_cpy_defs_map->end();
-                auto active_mac_it = std::find_if(mac_def_it, mac_def_it_e, active_macro_predicate);
-
-                while (active_mac_it != mac_def_it_e)
-                {
-                    if (!encountered_macro_defs.contains(active_mac_it->first))
-                        return false;
-
-                    std::advance(mac_def_it, 1);
-                    active_mac_it = std::find_if(mac_def_it, mac_def_it_e, active_macro_predicate);
-                }
+                std::advance(mac_def_it, 1);
+                active_mac_it = std::find_if(mac_def_it, mac_def_it_e, active_macro_predicate);
             }
+        }
 
-            return (e.contains_statement && e.count == 0);
-        };
+        return (e.contains_statement && e.count == 0);
+    };
 
     const auto& uri = rl.get_uri();
 
