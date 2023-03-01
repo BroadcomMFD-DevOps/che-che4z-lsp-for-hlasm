@@ -1110,8 +1110,7 @@ public:
         const preprocessor::line_iterator& end,
         const std::optional<size_t>& potential_lineno)
     {
-        static const std::regex exec_cics(
-            "^([^ ]*)[ ]+(?:([eE][xX][eE][cC][ ]+[cC][iI][cC][sS])(?:[ ]+(\\S+))?)(?= |$)");
+        static const std::regex exec_cics("^([^ ]*)[ ]+([eE][xX][eE][cC][ ]+[cC][iI][cC][sS])(?:[ ]+(\\S+))?(?= |$)");
 
         it = extract_nonempty_logical_line(m_logical_line, it, end, cics_extract);
         bool exec_cics_continuation_error = false;
