@@ -171,26 +171,26 @@ TEST(workspace_manager_response, invalidator_deleter)
     {
         auto [p, _impl] = make_workspace_manager_response(std::in_place_type<workspace_manager_response_mock<int>>);
 
-        struct invalitor_t
+        struct invalidator_t
         {
             int* d;
             void operator()() const {}
 
-            invalitor_t(int& d)
+            invalidator_t(int& d)
                 : d(&d)
             {}
-            invalitor_t(invalitor_t&& o) noexcept
+            invalidator_t(invalidator_t&& o) noexcept
                 : d(std::exchange(o.d, nullptr))
             {}
-            ~invalitor_t()
+            ~invalidator_t()
             {
                 if (d)
                     ++*d;
             }
         };
-        p.set_invalidation_callback(invalitor_t(deleter_called));
+        p.set_invalidation_callback(invalidator_t(deleter_called));
         EXPECT_EQ(deleter_called, 0);
-        p.set_invalidation_callback(invalitor_t(deleter_called));
+        p.set_invalidation_callback(invalidator_t(deleter_called));
         EXPECT_EQ(deleter_called, 1);
     }
 
@@ -203,24 +203,24 @@ TEST(workspace_manager_response, invalidator_remove)
 
     auto [p, _impl] = make_workspace_manager_response(std::in_place_type<workspace_manager_response_mock<int>>);
 
-    struct invalitor_t
+    struct invalidator_t
     {
         int* d;
         void operator()() const {}
 
-        invalitor_t(int& d)
+        invalidator_t(int& d)
             : d(&d)
         {}
-        invalitor_t(invalitor_t&& o) noexcept
+        invalidator_t(invalidator_t&& o) noexcept
             : d(std::exchange(o.d, nullptr))
         {}
-        ~invalitor_t()
+        ~invalidator_t()
         {
             if (d)
                 ++*d;
         }
     };
-    p.set_invalidation_callback(invalitor_t(deleter_called));
+    p.set_invalidation_callback(invalidator_t(deleter_called));
 
     EXPECT_EQ(deleter_called, 0);
     p.remove_invalidation_handler();

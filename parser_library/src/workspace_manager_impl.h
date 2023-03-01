@@ -225,7 +225,7 @@ public:
             return;
         }
 
-        location_list references_result =
+        auto references_result =
             ws_path_match(document_uri).references(utils::resource::resource_location(document_uri), pos);
 
         r.provide({ references_result.data(), references_result.size() });
@@ -257,7 +257,7 @@ public:
             return;
         }
 
-        lsp::completion_list_s completion_result =
+        auto completion_result =
             ws_path_match(document_uri)
                 .completion(utils::resource::resource_location(document_uri), pos, trigger_char, trigger_kind);
 
@@ -273,7 +273,7 @@ public:
             return;
         }
 
-        lsp::document_symbol_list_s document_symbol_result =
+        auto document_symbol_result =
             ws_path_match(document_uri).document_symbol(utils::resource::resource_location(document_uri), limit);
 
         r.provide(document_symbol_list(document_symbol_result.data(), document_symbol_result.size()));
