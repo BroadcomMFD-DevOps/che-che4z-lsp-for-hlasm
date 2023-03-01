@@ -655,19 +655,18 @@ void feature_language_features::opcode_suggestion(const nlohmann::json& id, cons
                     m_self.provide(std::make_pair(std::move(m_opcode), std::move(result)));
                 }
             };
-            auto result = make_workspace_manager_response(subrequest_t { std::move(self), std::move(opcode) });
+            auto [result, _] = make_workspace_manager_response(subrequest_t { std::move(self), std::move(opcode) });
 
             ++m_pending_responses;
 
-            return result;
+            return std::move(result);
         }
     };
 
-    auto response = make_workspace_manager_response(composite_response_t(id, response_, document_uri));
+    auto [response, composite] = make_workspace_manager_response(composite_response_t(id, response_, document_uri));
 
     try
     {
-        auto* composite = response.get_impl<composite_response_t>();
         for (const auto& opcode : *opcodes)
         {
             if (!opcode.is_string())

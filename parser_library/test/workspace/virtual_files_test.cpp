@@ -175,8 +175,8 @@ MY  DSECT
 
     ASSERT_TRUE(vf.starts_with("hlasm://"));
 
-    auto resp = make_workspace_manager_response(std::in_place_type<workspace_manager_response_mock<sequence<char>>>);
-    auto* mock = resp.get_impl<workspace_manager_response_mock<sequence<char>>>();
+    auto [resp, mock] =
+        make_workspace_manager_response(std::in_place_type<workspace_manager_response_mock<sequence<char>>>);
 
     EXPECT_CALL(*mock, provide(Truly([](sequence<char> hover_text) {
         return std::string_view(hover_text).find("MY + X'4' (4)") != std::string::npos;

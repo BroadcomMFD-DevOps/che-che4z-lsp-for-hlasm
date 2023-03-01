@@ -29,16 +29,14 @@ struct lifetime_mock : workspace_manager_response_mock<int>
 
 TEST(workspace_manager_response, destructor_called)
 {
-    auto p = make_workspace_manager_response(std::in_place_type<lifetime_mock>);
-    auto* impl = p.get_impl<lifetime_mock>();
+    auto [p, impl] = make_workspace_manager_response(std::in_place_type<lifetime_mock>);
 
     EXPECT_CALL(*impl, destructor());
 }
 
 TEST(workspace_manager_response, copy)
 {
-    auto p = make_workspace_manager_response(std::in_place_type<lifetime_mock>);
-    auto* impl = p.get_impl<lifetime_mock>();
+    auto [p, impl] = make_workspace_manager_response(std::in_place_type<lifetime_mock>);
 
     {
         auto q = p;
@@ -49,8 +47,7 @@ TEST(workspace_manager_response, copy)
 
 TEST(workspace_manager_response, move)
 {
-    auto p = make_workspace_manager_response(std::in_place_type<lifetime_mock>);
-    auto* impl = p.get_impl<lifetime_mock>();
+    auto [p, impl] = make_workspace_manager_response(std::in_place_type<lifetime_mock>);
 
     auto q = std::move(p);
 
@@ -63,9 +60,9 @@ TEST(workspace_manager_response, copy_assign)
     lifetime_mock* impl;
 
     {
-        auto p = make_workspace_manager_response(std::in_place_type<lifetime_mock>);
-        impl = p.get_impl<lifetime_mock>();
+        auto [p, p_impl] = make_workspace_manager_response(std::in_place_type<lifetime_mock>);
 
+        impl = p_impl;
         q = p;
     }
 
@@ -78,9 +75,9 @@ TEST(workspace_manager_response, move_assign)
     lifetime_mock* impl;
 
     {
-        auto p = make_workspace_manager_response(std::in_place_type<lifetime_mock>);
-        impl = p.get_impl<lifetime_mock>();
+        auto [p, p_impl] = make_workspace_manager_response(std::in_place_type<lifetime_mock>);
 
+        impl = p_impl;
         q = std::move(p);
     }
 
@@ -89,8 +86,7 @@ TEST(workspace_manager_response, move_assign)
 
 TEST(workspace_manager_response, provide)
 {
-    auto p = make_workspace_manager_response(std::in_place_type<workspace_manager_response_mock<int>>);
-    auto* impl = p.get_impl<workspace_manager_response_mock<int>>();
+    auto [p, impl] = make_workspace_manager_response(std::in_place_type<workspace_manager_response_mock<int>>);
 
     EXPECT_CALL(*impl, provide(5));
 
@@ -99,8 +95,7 @@ TEST(workspace_manager_response, provide)
 
 TEST(workspace_manager_response, error)
 {
-    auto p = make_workspace_manager_response(std::in_place_type<workspace_manager_response_mock<int>>);
-    auto* impl = p.get_impl<workspace_manager_response_mock<int>>();
+    auto [p, impl] = make_workspace_manager_response(std::in_place_type<workspace_manager_response_mock<int>>);
 
     EXPECT_CALL(*impl, error(5, StrEq("Error message")));
 
@@ -109,7 +104,7 @@ TEST(workspace_manager_response, error)
 
 TEST(workspace_manager_response, invalidate_without_handler)
 {
-    auto p = make_workspace_manager_response(std::in_place_type<workspace_manager_response_mock<int>>);
+    auto [p, _impl] = make_workspace_manager_response(std::in_place_type<workspace_manager_response_mock<int>>);
 
     EXPECT_TRUE(p.valid());
 
@@ -120,7 +115,7 @@ TEST(workspace_manager_response, invalidate_without_handler)
 
 TEST(workspace_manager_response, invalidate)
 {
-    auto p = make_workspace_manager_response(std::in_place_type<workspace_manager_response_mock<int>>);
+    auto [p, _impl] = make_workspace_manager_response(std::in_place_type<workspace_manager_response_mock<int>>);
 
     MockFunction<void()> invalidator;
     p.set_invalidation_callback(invalidator.AsStdFunction());
@@ -136,7 +131,7 @@ TEST(workspace_manager_response, invalidate)
 
 TEST(workspace_manager_response, change_invalidator)
 {
-    auto p = make_workspace_manager_response(std::in_place_type<workspace_manager_response_mock<int>>);
+    auto [p, _impl] = make_workspace_manager_response(std::in_place_type<workspace_manager_response_mock<int>>);
 
     MockFunction<void()> invalidator;
     p.set_invalidation_callback(invalidator.AsStdFunction());
@@ -158,7 +153,7 @@ void simple_invalidator() { ++simple_invalidator_counter; }
 
 TEST(workspace_manager_response, simple_invalidator)
 {
-    auto p = make_workspace_manager_response(std::in_place_type<workspace_manager_response_mock<int>>);
+    auto [p, _impl] = make_workspace_manager_response(std::in_place_type<workspace_manager_response_mock<int>>);
 
     p.set_invalidation_callback(simple_invalidator);
 
@@ -174,7 +169,7 @@ TEST(workspace_manager_response, invalidator_deleter)
     int deleter_called = 0;
 
     {
-        auto p = make_workspace_manager_response(std::in_place_type<workspace_manager_response_mock<int>>);
+        auto [p, _impl] = make_workspace_manager_response(std::in_place_type<workspace_manager_response_mock<int>>);
 
         struct invalitor_t
         {
@@ -206,7 +201,7 @@ TEST(workspace_manager_response, invalidator_remove)
 {
     int deleter_called = 0;
 
-    auto p = make_workspace_manager_response(std::in_place_type<workspace_manager_response_mock<int>>);
+    auto [p, _impl] = make_workspace_manager_response(std::in_place_type<workspace_manager_response_mock<int>>);
 
     struct invalitor_t
     {

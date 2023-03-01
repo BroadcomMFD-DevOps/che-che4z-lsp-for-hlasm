@@ -154,6 +154,34 @@ private:
 };
 
 template<typename T>
+class workspace_manager_response;
+
+class
+{
+    template<typename U, typename T>
+    T provide_type(void (U::*)(T)) const;
+    template<typename U, typename T>
+    T provide_type(void (U::*)(T) const) const;
+
+public:
+    template<typename U>
+    auto operator()(U u) const requires(!detail::is_in_place_type_t<U>::value)
+    {
+        auto result = workspace_manager_response<decltype(provide_type(&U::provide))>(std::move(u));
+
+        return std::make_pair(std::move(result), result.template get_impl<U>());
+    }
+    template<typename U, typename... Args>
+    auto operator()(std::in_place_type_t<U> u, Args&&... args) const
+    {
+        auto result =
+            workspace_manager_response<decltype(provide_type(&U::provide))>(std::move(u), std::forward<Args>(args)...);
+        return std::make_pair(std::move(result), result.template get_impl<U>());
+    }
+
+} inline constexpr make_workspace_manager_response;
+
+template<typename T>
 class workspace_manager_response : workspace_manager_response_base
 {
     template<typename U>
@@ -177,6 +205,12 @@ class workspace_manager_response : workspace_manager_response_base
             +[](void* p, void* t) { static_cast<shared_data<U>*>(p)->data.provide(std::move(*static_cast<T*>(t))); },
     };
 
+    template<typename U>
+    U* get_impl() const
+    {
+        return &static_cast<shared_data<U>*>(workspace_manager_response_base::get_impl())->data;
+    }
+
 public:
     workspace_manager_response() = default;
     template<typename U>
@@ -197,34 +231,8 @@ public:
 
     void provide(T t) const { workspace_manager_response_base::provide(&t); }
 
-    template<typename U>
-    U* get_impl() const
-    {
-        return &static_cast<shared_data<U>*>(workspace_manager_response_base::get_impl())->data;
-    }
+    friend decltype(make_workspace_manager_response);
 };
-
-class
-{
-    template<typename U, typename T>
-    T provide_type(void (U::*)(T)) const;
-    template<typename U, typename T>
-    T provide_type(void (U::*)(T) const) const;
-
-public:
-    template<typename U>
-    auto operator()(U u) const requires(!detail::is_in_place_type_t<U>::value)
-    {
-        return workspace_manager_response<decltype(provide_type(&U::provide))>(std::move(u));
-    }
-    template<typename U, typename... Args>
-    auto operator()(std::in_place_type_t<U> u, Args&&... args) const
-    {
-        return workspace_manager_response<decltype(provide_type(&U::provide))>(
-            std::move(u), std::forward<Args>(args)...);
-    }
-
-} inline constexpr make_workspace_manager_response;
 
 } // namespace hlasm_plugin::parser_library
 
