@@ -332,7 +332,7 @@ void workspace::retrieve_fade_messages(std::vector<fade_message_s>& fms) const
 
     fade_unused_mac_names(hc_map, active_rl_mac_cpy_map, fms);
 
-    std::for_each(hc_map.begin(), hc_map.end(), [&fms, &hc_map, &active_rl_mac_cpy_map](const auto& e) {
+    std::for_each(hc_map.begin(), hc_map.end(), [&active_rl_mac_cpy_map, &fms](const auto& e) {
         generate_merged_fade_messages(e.first, e.second, active_rl_mac_cpy_map, fms);
     });
 }

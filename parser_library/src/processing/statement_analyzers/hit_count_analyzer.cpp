@@ -62,7 +62,7 @@ std::optional<stmt_lines_range> get_stmt_lines_range(const semantics::core_state
 }
 } // namespace
 
-utils::resource::resource_location hit_count_analyzer::get_current_stmt_rl(processing_kind proc_kind)
+utils::resource::resource_location hit_count_analyzer::get_current_stmt_rl(processing_kind proc_kind) const
 {
     return m_ctx.current_statement_location(proc_kind != processing_kind::LOOKAHEAD).resource_loc;
 }
@@ -165,8 +165,8 @@ void hit_count_analyzer::analyze_aread_line(
 hit_count_map hit_count_analyzer::take_hit_count_map()
 {
     auto has_sections = !m_ctx.ord_ctx.sections().empty();
-    for (auto& m : m_hit_count_map)
-        m.second.has_sections = has_sections;
+    for (auto& [_, hc_entry] : m_hit_count_map)
+        hc_entry.has_sections = has_sections;
 
     return std::move(m_hit_count_map);
 }
