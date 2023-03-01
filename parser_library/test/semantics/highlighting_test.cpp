@@ -399,8 +399,6 @@ TEST(highlighting, endevor_preprocessor_statement)
     const std::string contents = R"(
 -INC  MEMBER bla bla)";
 
-    auto fms = std::make_shared<std::vector<fade_message_s>>();
-
     analyzer a(
         contents, analyzer_options { source_file_loc, endevor_preprocessor_options(), collect_highlighting_info::yes });
     a.analyze();
