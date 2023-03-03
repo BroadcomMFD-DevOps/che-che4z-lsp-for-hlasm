@@ -14,8 +14,21 @@
 import * as vscode from 'vscode';
 import { hlasmplugin_folder, proc_grps_file, pgm_conf_file, ebg_folder } from './constants';
 
-export async function uriExists(uri: vscode.Uri): Promise<boolean> {
-    return vscode.workspace.fs.stat(uri).then(() => { return true; }, () => { return false; })
+export async function uriExists(uri: vscode.Uri, fs: vscode.FileSystem = vscode.workspace.fs): Promise<boolean> {
+    return fs.stat(uri).then(() => { return true; }, () => { return false; });
+}
+
+export async function resourceExistsInAnyParent(baseUri: vscode.Uri, resourceName: string, fs: vscode.FileSystem = vscode.workspace.fs): Promise<boolean> {
+    var lastBase: vscode.Uri;
+    do {
+        if (await uriExists(vscode.Uri.joinPath(baseUri, resourceName), fs))
+            return true;
+
+        lastBase = baseUri;
+        baseUri = vscode.Uri.joinPath(baseUri, '..');
+    } while (lastBase != baseUri);
+
+    return false;
 }
 
 export async function configurationExists(workspace: vscode.Uri) {
@@ -25,6 +38,6 @@ export async function configurationExists(workspace: vscode.Uri) {
     return Promise.all([
         uriExists(procGrps).then(b => { return { uri: procGrps, exists: b }; }),
         uriExists(pgmConf).then(b => { return { uri: pgmConf, exists: b }; }),
-        uriExists(ebgPath).then(b => { return { uri: ebgPath, exists: b }; }),
+        resourceExistsInAnyParent(workspace, ebg_folder).then(b => { return { uri: ebgPath, exists: b }; }),
     ]);
 }

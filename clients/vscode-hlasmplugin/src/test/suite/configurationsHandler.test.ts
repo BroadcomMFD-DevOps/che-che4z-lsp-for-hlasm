@@ -13,11 +13,11 @@
  */
 
 import * as assert from 'assert';
-import * as path from 'path';
 import * as vscode from 'vscode';
 
 import { ConfigurationsHandler } from '../../configurationsHandler';
-import { hlasmplugin_folder, pgm_conf_file, proc_grps_file } from '../../constants';
+import { FileSystemMock } from '../mocks';
+import { resourceExistsInAnyParent } from '../../helpers'
 
 suite('Configurations Handler Test Suite', () => {
     const handler = new ConfigurationsHandler();
@@ -34,5 +34,36 @@ suite('Configurations Handler Test Suite', () => {
         handler.setWildcards((await handler.generateWildcards(workspaceUri)).map(regex => { return { regex, workspaceUri }; }));
         assert.ok(handler.match(vscode.Uri.joinPath(workspaceUri, 'file.asm')));
         assert.ok(handler.match(vscode.Uri.joinPath(workspaceUri, 'pgms/file')));
+    });
+
+    test('Existing ebg - workspace root', async () => {
+        const resource: string = '.ebg';
+        const fsMock = new FileSystemMock();
+        fsMock.addUrifsPair(vscode.Uri.joinPath(workspaceUri, resource));
+
+        assert.equal(await resourceExistsInAnyParent(workspaceUri, resource, fsMock), true);
+    });
+
+    test('Existing ebg - up 2 levels', async () => {
+        const resource: string = '.ebg';
+        const fsMock = new FileSystemMock();
+        fsMock.addUrifsPair(vscode.Uri.joinPath(workspaceUri, '..', '..', resource));
+
+        assert.equal(await resourceExistsInAnyParent(workspaceUri, resource, fsMock), true);
+    });
+
+    test('Non-existing ebg - not present', async () => {
+        const resource: string = '.ebg';
+        const fsMock = new FileSystemMock();
+
+        assert.equal(await resourceExistsInAnyParent(workspaceUri, resource, fsMock), false);
+    });
+
+    test('Non-existing ebg - sub folder', async () => {
+        const resource: string = '.ebg';
+        const fsMock = new FileSystemMock();
+        fsMock.addUrifsPair(vscode.Uri.joinPath(workspaceUri, 'sub', resource));
+
+        assert.equal(await resourceExistsInAnyParent(workspaceUri, resource, fsMock), false);
     });
 });
