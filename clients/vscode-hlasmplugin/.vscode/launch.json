@@ -1,6 +1,7 @@
 // A launch configuration that compiles the extension and then opens it inside a new window
+// For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
 {
-    "version": "0.1.0",
+    "version": "0.2.0",
     "configurations": [
         {
             "name": "Extension Tests",
@@ -8,12 +9,14 @@
             "request": "launch",
             "runtimeExecutable": "${execPath}",
             "args": [
-              "${workspaceFolder}/lib/test/workspace/",
-              "--disable-extensions",
-              "--extensionDevelopmentPath=${workspaceFolder}",
-              "--extensionTestsPath=${workspaceFolder}/lib/test/suite/index"
+                "${workspaceFolder}/lib/test/workspace/",
+                "--disable-extensions",
+                "--extensionDevelopmentPath=${workspaceFolder}",
+                "--extensionTestsPath=${workspaceFolder}/lib/test/suite/index"
             ],
-            "outFiles": ["${workspaceFolder}/lib/test/**/*.js"],
+            "outFiles": [
+                "${workspaceFolder}/lib/**/*.js"
+            ],
             "preLaunchTask": "prepareTest"
         },
         {
@@ -21,10 +24,13 @@
             "type": "extensionHost",
             "request": "launch",
             "runtimeExecutable": "${execPath}",
-            "args": ["--extensionDevelopmentPath=${workspaceRoot}" ],
-            "stopOnEntry": false,
+            "args": [
+                "--extensionDevelopmentPath=${workspaceRoot}"
+            ],
             "sourceMaps": true,
-            "outFiles": [ "${workspaceRoot}lib/extension.js" ],
+            "outFiles": [
+                "${workspaceFolder}/lib/**/*.js"
+            ],
             "preLaunchTask": "npm"
         }
     ]

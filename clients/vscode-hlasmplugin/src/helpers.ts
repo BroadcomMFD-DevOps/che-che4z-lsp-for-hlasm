@@ -19,7 +19,7 @@ export async function uriExists(uri: vscode.Uri, fs: vscode.FileSystem = vscode.
 }
 
 export async function resourceExistsInAnyParent(baseUri: vscode.Uri, resourceName: string, fs: vscode.FileSystem = vscode.workspace.fs): Promise<boolean> {
-    var lastBase: vscode.Uri;
+    let lastBase: vscode.Uri;
     do {
         if (await uriExists(vscode.Uri.joinPath(baseUri, resourceName), fs))
             return true;
