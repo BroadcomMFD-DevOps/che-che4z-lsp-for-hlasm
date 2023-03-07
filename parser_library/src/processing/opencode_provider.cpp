@@ -337,7 +337,7 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordin
             *op_text, *m_ctx->hlasm_ctx, diags, semantics::range_provider(), op_range, proc_status, false);
 
         const auto& [format, opcode] = proc_status;
-        if (format.occurence == operand_occurence::ABSENT || format.form == processing_form::UNKNOWN)
+        if (format.occurence == operand_occurence::ABSENT)
             h.op_rem_body_noop();
         else
         {
@@ -364,7 +364,18 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordin
                     (void)h.parser->get_collector().take_literals(); // drop literals
                     break;
                 }
-                case processing_form::MAC: {
+                case processing_form::ASM:
+                    h.op_rem_body_asm();
+                    break;
+                case processing_form::MACH:
+                    h.op_rem_body_mach();
+                    if (auto& h_collector = h.parser->get_collector(); h_collector.has_operands())
+                        transform_reloc_imm_operands(h_collector.current_operands().value, opcode.value);
+                    break;
+                case processing_form::DAT:
+                    h.op_rem_body_dat();
+                    break;
+                default: {
                     auto [line, line_range] = h.op_rem_body_mac();
 
                     if (h.error_handler->error_reported())
@@ -393,21 +404,9 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordin
 
                     h.parser->get_collector().set_operand_remark_field(
                         std::move(line.operands), std::move(line.remarks), line_range);
+
+                    break;
                 }
-                break;
-                case processing_form::ASM:
-                    h.op_rem_body_asm();
-                    break;
-                case processing_form::MACH:
-                    h.op_rem_body_mach();
-                    if (auto& h_collector = h.parser->get_collector(); h_collector.has_operands())
-                        transform_reloc_imm_operands(h_collector.current_operands().value, opcode.value);
-                    break;
-                case processing_form::DAT:
-                    h.op_rem_body_dat();
-                    break;
-                default:
-                    break;
             }
         }
 

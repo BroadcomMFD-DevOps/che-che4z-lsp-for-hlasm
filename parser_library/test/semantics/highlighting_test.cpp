@@ -18,6 +18,7 @@
 
 #include "gtest/gtest.h"
 
+#include "../common_testing.h"
 #include "../gtest_stringers.h"
 #include "../mock_parse_lib_provider.h"
 #include "analyzer.h"
@@ -352,10 +353,7 @@ TEST(highlighting, multiline_macro_param)
 
     EXPECT_TRUE(a.diags().empty());
 
-    auto tokens = a.source_processor().semantic_tokens();
-    std::sort(tokens.begin(), tokens.end(), [](const auto& l, const auto& r) {
-        return position::min(l.token_range.start, r.token_range.start) != r.token_range.start;
-    });
+    const auto& tokens = a.source_processor().semantic_tokens();
     semantics::lines_info expected = {
         token_info({ { 1, 8 }, { 1, 13 } }, hl_scopes::instruction),
         token_info({ { 2, 8 }, { 2, 11 } }, hl_scopes::instruction),
@@ -389,6 +387,55 @@ TEST(highlighting, multiline_macro_param)
         token_info({ { 8, 15 }, { 8, 17 } }, hl_scopes::operand),
         token_info({ { 8, 17 }, { 8, 18 } }, hl_scopes::operator_symbol),
         token_info({ { 8, 39 }, { 8, 71 } }, hl_scopes::remark),
+    };
+
+    EXPECT_EQ(tokens, expected);
+}
+
+TEST(highlighting, multiline_macro_param_no_definition)
+{
+    const std::string contents = R"(
+        MAC   (L1,                     comment                         X
+               L2,                     comment                         X
+               L3,                     comment                         X
+               L4)                     comment                         
+)";
+    analyzer a(contents, analyzer_options { collect_highlighting_info::yes });
+    a.analyze();
+    a.collect_diags();
+
+    matches_message_codes(a.diags(), { "E049" });
+
+    const auto& tokens = a.source_processor().semantic_tokens();
+    semantics::lines_info expected = {
+        token_info({ { 1, 8 }, { 1, 11 } }, hl_scopes::instruction),
+
+        token_info({ { 1, 14 }, { 1, 15 } }, hl_scopes::operator_symbol),
+
+        token_info({ { 1, 15 }, { 1, 17 } }, hl_scopes::operand),
+        token_info({ { 1, 17 }, { 1, 18 } }, hl_scopes::operator_symbol),
+        token_info({ { 1, 39 }, { 1, 71 } }, hl_scopes::remark),
+
+        token_info({ { 1, 71 }, { 1, 72 } }, hl_scopes::continuation),
+        token_info({ { 2, 0 }, { 2, 15 } }, hl_scopes::ignored),
+
+        token_info({ { 2, 15 }, { 2, 17 } }, hl_scopes::operand),
+        token_info({ { 2, 17 }, { 2, 18 } }, hl_scopes::operator_symbol),
+        token_info({ { 2, 39 }, { 2, 71 } }, hl_scopes::remark),
+
+        token_info({ { 2, 71 }, { 2, 72 } }, hl_scopes::continuation),
+        token_info({ { 3, 0 }, { 3, 15 } }, hl_scopes::ignored),
+
+        token_info({ { 3, 15 }, { 3, 17 } }, hl_scopes::operand),
+        token_info({ { 3, 17 }, { 3, 18 } }, hl_scopes::operator_symbol),
+        token_info({ { 3, 39 }, { 3, 71 } }, hl_scopes::remark),
+
+        token_info({ { 3, 71 }, { 3, 72 } }, hl_scopes::continuation),
+        token_info({ { 4, 0 }, { 4, 15 } }, hl_scopes::ignored),
+
+        token_info({ { 4, 15 }, { 4, 17 } }, hl_scopes::operand),
+        token_info({ { 4, 17 }, { 4, 18 } }, hl_scopes::operator_symbol),
+        token_info({ { 4, 39 }, { 4, 71 } }, hl_scopes::remark),
     };
 
     EXPECT_EQ(tokens, expected);
