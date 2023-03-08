@@ -73,7 +73,7 @@ bool processor_file_impl::parse(parse_lib_provider& lib_provider,
     collect_diags_from_child(new_analyzer);
 
     m_last_analyzer_with_lsp = collect_hl;
-    m_last_results.hl_info = new_analyzer.source_processor().semantic_tokens();
+    m_last_results.hl_info = new_analyzer.take_semantic_tokens();
     m_last_results.lsp_context = new_analyzer.context().lsp_ctx;
     m_last_results.fade_messages = std::move(fms);
     m_last_results.metrics = new_analyzer.get_metrics();
@@ -128,7 +128,7 @@ bool processor_file_impl::parse_macro(parse_lib_provider& lib_provider, analyzin
     m_macro_cache.save_macro(cache_key, a);
     m_last_analyzer_with_lsp = collect_hl;
     if (collect_hl)
-        m_last_results.hl_info = a.source_processor().semantic_tokens();
+        m_last_results.hl_info = a.take_semantic_tokens();
 
     m_last_results.hc_map = hc_analyzer.take_hit_count_map();
 

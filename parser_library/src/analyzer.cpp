@@ -153,7 +153,7 @@ parsing::hlasmparser_multiline& analyzer::parser() { return mngr_.opencode_parse
 
 size_t analyzer::debug_syntax_errors() { return mngr_.opencode_parser().getNumberOfSyntaxErrors(); }
 
-const semantics::source_info_processor& analyzer::source_processor() const { return src_proc_; }
+lines_info analyzer::take_semantic_tokens() { return src_proc_.take_semantic_tokens(); }
 
 void analyzer::analyze() { co_analyze().run(); }
 

@@ -158,7 +158,7 @@ public:
     analyzing_context context() const;
 
     context::hlasm_context& hlasm_ctx();
-    const semantics::source_info_processor& source_processor() const;
+    semantics::lines_info take_semantic_tokens();
 
     void analyze();
     utils::task co_analyze() &;
