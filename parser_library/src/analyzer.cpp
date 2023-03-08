@@ -134,7 +134,8 @@ analyzer::analyzer(std::string_view text, analyzer_options opts)
                   src_proc_),
               opts.parsing_opencode == file_is_opencode::yes ? processing::opencode_provider_options { true, 10 }
                                                              : processing::opencode_provider_options {},
-              opts.vf_monitor),
+              opts.vf_monitor,
+              vf_handles_),
           ctx_,
           opts.library_data,
           opts.file_loc,
