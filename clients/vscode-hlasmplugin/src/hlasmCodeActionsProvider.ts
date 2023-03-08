@@ -34,7 +34,6 @@ function unique(a: string[]) {
 }
 
 async function gatherOpcodeSuggestions(opcodes: string[], client: vscodelc.BaseLanguageClient, uri: vscode.Uri): Promise<OpcodeSuggestionList> {
-    await client.onReady();
     const suggestionsResponse = await client.sendRequest<OpcodeSuggestionResponse>("textDocument/$/opcode_suggestion", {
         textDocument: { uri: uri.toString() },
         opcodes: opcodes,

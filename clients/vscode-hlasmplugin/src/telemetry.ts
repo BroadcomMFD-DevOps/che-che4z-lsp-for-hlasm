@@ -11,10 +11,8 @@
  * Contributors:
  *   Broadcom, Inc. - initial API and implementation
  */
-import * as vscode from "vscode";
 
-import TelemetryReporter, { TelemetryEventMeasurements, TelemetryEventProperties } from 'vscode-extension-telemetry';
-import { EXTENSION_ID } from "./extension";
+import TelemetryReporter, { TelemetryEventMeasurements, TelemetryEventProperties } from '@vscode/extension-telemetry';
 
 const TELEMETRY_DEFAULT_KEY = "NOT_TELEMETRY_KEY";
 
@@ -26,10 +24,6 @@ export class Telemetry {
     private reporter: TelemetryReporter;
     private telemetry_key: string = undefined;
 
-    private getExtensionVersion(): string {
-        return vscode.extensions.getExtension(EXTENSION_ID).packageJSON.version;
-    }
-
     private getTelemetryKey(): string {
         if (this.telemetry_key === undefined)
             this.telemetry_key = Buffer.from(TELEMETRY_KEY_ENCODED, "base64").toString().trim();
@@ -37,7 +31,7 @@ export class Telemetry {
     }
 
     constructor() {
-        this.reporter = new TelemetryReporter(EXTENSION_ID, this.getExtensionVersion(), this.getTelemetryKey());
+        this.reporter = new TelemetryReporter(this.getTelemetryKey());
     }
 
     public reportEvent(eventName: string, properties?: TelemetryEventProperties, measurements?: TelemetryEventMeasurements): void {
