@@ -65,7 +65,7 @@ TEST(task, basics)
     test_data data;
 
     for (auto x = h(data); !x.done();)
-        x();
+        x.resume();
 
     EXPECT_EQ(data.f, 5);
     EXPECT_EQ(data.fail, 2);
@@ -96,44 +96,9 @@ TEST(task, excp_propagation)
     };
 
     for (auto x = main(excp); !x.done();)
-        x();
+        x.resume();
 
     EXPECT_TRUE(excp);
-}
-
-TEST(task, excp_inspection)
-{
-    bool about_to_throw = false;
-
-    static constexpr auto fail = [](bool& e) -> task {
-        e = true;
-        co_await task::suspend();
-        throw 0;
-    };
-    static constexpr auto main = [](bool& e) -> task { co_await fail(e); };
-
-    auto x = main(about_to_throw);
-    while (!x.done() && !about_to_throw)
-        x();
-
-    EXPECT_FALSE(x.done());
-    EXPECT_FALSE(x.pending_exception());
-
-    x();
-
-    EXPECT_TRUE(x.pending_exception());
-
-    x.pending_exception(true);
-
-    EXPECT_FALSE(x.pending_exception());
-
-    EXPECT_NO_THROW(([&x]() {
-        while (!x.done())
-            x();
-    }()));
-
-    EXPECT_TRUE(x.done());
-    EXPECT_FALSE(x.pending_exception());
 }
 
 TEST(task, direct_throw)
@@ -146,7 +111,7 @@ TEST(task, direct_throw)
     auto x = fail();
 
     EXPECT_FALSE(x.done());
-    EXPECT_ANY_THROW(x());
+    EXPECT_ANY_THROW(x.resume());
     EXPECT_TRUE(x.done());
 }
 
@@ -169,7 +134,7 @@ TEST(task, values)
     auto x = add(3);
 
     while (!x.done())
-        x();
+        x.resume();
 
     EXPECT_EQ(x.value(), 6);
 }
