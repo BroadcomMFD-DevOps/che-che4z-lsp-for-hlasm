@@ -346,14 +346,15 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordin
 
         const auto& h = prepare_operand_parser(*op_text,
             *m_ctx->hlasm_ctx,
-            (format.occurence == operand_occurence::PRESENT && format.form == processing_form::UNKNOWN) ? &diags_filter
-                                                                                                        : diags,
+            (format.occurrence == operand_occurrence::PRESENT && format.form == processing_form::UNKNOWN)
+                ? &diags_filter
+                : diags,
             semantics::range_provider(),
             op_range,
             proc_status,
             false);
 
-        if (format.occurence == operand_occurence::ABSENT)
+        if (format.occurrence == operand_occurrence::ABSENT)
             h.op_rem_body_noop();
         else
         {
