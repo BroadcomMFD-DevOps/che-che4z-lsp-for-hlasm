@@ -2,6 +2,8 @@
 
 ## ****Unreleased****
 
+## [1.7.0](https://github.com/eclipse/che-che4z-lsp-for-hlasm/compare/1.6.0...1.7.0) (2023-03-08)
+
 #### Added
 - Provide more details about machine instructions in hover texts
 - Visually identify preprocessor and inactive statements
