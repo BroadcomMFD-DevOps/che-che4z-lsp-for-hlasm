@@ -27,8 +27,8 @@ class hlasm_context;
 namespace hlasm_plugin::parser_library::processing {
 
 class occurrence_collector : public semantics::operand_visitor,
-                            public expressions::mach_expr_visitor,
-                            public expressions::ca_expr_visitor
+                             public expressions::mach_expr_visitor,
+                             public expressions::ca_expr_visitor
 {
 public:
     lsp::occurrence_kind collector_kind;
