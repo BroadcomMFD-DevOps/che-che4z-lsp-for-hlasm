@@ -313,7 +313,7 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordin
     const range& op_range,
     diagnostic_op_consumer* diags)
 {
-    diagnostic_consumer_transform drop_diags([](diagnostic_op) {});
+    static diagnostic_consumer_transform drop_diags([](diagnostic_op) {});
 
     if (proc.kind == processing_kind::ORDINARY
         && try_trigger_attribute_lookahead(collector.current_instruction(),
@@ -333,10 +333,24 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordin
     if (op_text)
     {
         collector.starting_operand_parsing();
-        const auto& h = prepare_operand_parser(
-            *op_text, *m_ctx->hlasm_ctx, diags, semantics::range_provider(), op_range, proc_status, false);
+
+        diagnostic_consumer_transform diags_filter([&diags](diagnostic_op diag) {
+            if (static const auto template_diag = diagnostic_op::error_E049("", range());
+                diags && template_diag.code == diag.code)
+                diags->add_diagnostic(diag);
+        });
 
         const auto& [format, opcode] = proc_status;
+
+        const auto& h = prepare_operand_parser(*op_text,
+            *m_ctx->hlasm_ctx,
+            (format.occurence == operand_occurence::PRESENT && format.form == processing_form::UNKNOWN) ? &diags_filter
+                                                                                                        : diags,
+            semantics::range_provider(),
+            op_range,
+            proc_status,
+            false);
+
         if (format.occurence == operand_occurence::ABSENT)
             h.op_rem_body_noop();
         else
@@ -388,8 +402,13 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordin
 
                         semantics::range_provider tmp_provider(r, ranges, semantics::adjusting_state::MACRO_REPARSE);
 
-                        const auto& h_second = prepare_operand_parser(
-                            to_parse, *m_ctx->hlasm_ctx, diags, std::move(tmp_provider), r, proc_status, true);
+                        const auto& h_second = prepare_operand_parser(to_parse,
+                            *m_ctx->hlasm_ctx,
+                            format.form == processing_form::UNKNOWN ? &diags_filter : diags,
+                            std::move(tmp_provider),
+                            r,
+                            proc_status,
+                            true);
 
                         line.operands = h_second.macro_ops();
 

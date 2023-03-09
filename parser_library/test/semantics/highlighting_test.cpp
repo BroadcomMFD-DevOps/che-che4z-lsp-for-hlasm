@@ -392,53 +392,147 @@ TEST(highlighting, multiline_macro_param)
     EXPECT_EQ(tokens, expected);
 }
 
-TEST(highlighting, multiline_macro_param_no_definition)
+namespace {
+struct test_params
 {
-    const std::string contents = R"(
+    std::string text_to_test;
+    semantics::lines_info expected;
+};
+
+class highlighting_fixture : public ::testing::TestWithParam<test_params>
+{};
+
+INSTANTIATE_TEST_SUITE_P(highlighting,
+    highlighting_fixture,
+    ::testing::Values(
+        test_params {
+            R"(
         MAC   (L1,                     comment                         X
                L2,                     comment                         X
                L3,                     comment                         X
-               L4)                     comment                         
-)";
-    analyzer a(contents, analyzer_options { collect_highlighting_info::yes });
+               L4)                     comment
+)",
+            semantics::lines_info {
+                token_info({ { 1, 8 }, { 1, 11 } }, hl_scopes::instruction),
+
+                token_info({ { 1, 14 }, { 1, 15 } }, hl_scopes::operator_symbol),
+                token_info({ { 1, 15 }, { 1, 17 } }, hl_scopes::operand),
+                token_info({ { 1, 17 }, { 1, 18 } }, hl_scopes::operator_symbol),
+                token_info({ { 1, 39 }, { 1, 71 } }, hl_scopes::remark),
+                token_info({ { 1, 71 }, { 1, 72 } }, hl_scopes::continuation),
+
+                token_info({ { 2, 0 }, { 2, 15 } }, hl_scopes::ignored),
+                token_info({ { 2, 15 }, { 2, 17 } }, hl_scopes::operand),
+                token_info({ { 2, 17 }, { 2, 18 } }, hl_scopes::operator_symbol),
+                token_info({ { 2, 39 }, { 2, 71 } }, hl_scopes::remark),
+                token_info({ { 2, 71 }, { 2, 72 } }, hl_scopes::continuation),
+
+                token_info({ { 3, 0 }, { 3, 15 } }, hl_scopes::ignored),
+                token_info({ { 3, 15 }, { 3, 17 } }, hl_scopes::operand),
+                token_info({ { 3, 17 }, { 3, 18 } }, hl_scopes::operator_symbol),
+                token_info({ { 3, 39 }, { 3, 71 } }, hl_scopes::remark),
+                token_info({ { 3, 71 }, { 3, 72 } }, hl_scopes::continuation),
+
+                token_info({ { 4, 0 }, { 4, 15 } }, hl_scopes::ignored),
+                token_info({ { 4, 15 }, { 4, 17 } }, hl_scopes::operand),
+                token_info({ { 4, 17 }, { 4, 18 } }, hl_scopes::operator_symbol),
+                token_info({ { 4, 39 }, { 4, 46 } }, hl_scopes::remark),
+            },
+        },
+        test_params {
+            R"(
+        MAC   (A                                                       X
+               ,X)
+)",
+            semantics::lines_info {
+                token_info({ { 1, 8 }, { 1, 11 } }, hl_scopes::instruction),
+
+                token_info({ { 1, 14 }, { 1, 15 } }, hl_scopes::operator_symbol),
+                token_info({ { 1, 15 }, { 1, 16 } }, hl_scopes::operand),
+                token_info({ { 1, 71 }, { 1, 72 } }, hl_scopes::continuation),
+
+                token_info({ { 2, 0 }, { 2, 15 } }, hl_scopes::ignored),
+                token_info({ { 2, 15 }, { 2, 18 } }, hl_scopes::remark),
+            },
+        },
+        test_params {
+            R"(
+        MAC   L1
+)",
+            semantics::lines_info {
+                token_info({ { 1, 8 }, { 1, 11 } }, hl_scopes::instruction),
+
+                token_info({ { 1, 14 }, { 1, 16 } }, hl_scopes::operand),
+            },
+        },
+        test_params {
+            R"(
+        MAC   ( L1
+)",
+            semantics::lines_info {
+                token_info({ { 1, 8 }, { 1, 11 } }, hl_scopes::instruction),
+
+                token_info({ { 1, 14 }, { 1, 15 } }, hl_scopes::operator_symbol),
+                token_info({ { 1, 16 }, { 1, 18 } }, hl_scopes::remark),
+            },
+        },
+        test_params {
+            R"(
+        MAC   L1)
+)",
+            semantics::lines_info {
+                token_info({ { 1, 8 }, { 1, 11 } }, hl_scopes::instruction),
+
+                token_info({ { 1, 14 }, { 1, 16 } }, hl_scopes::operand),
+            },
+        },
+        test_params {
+            R"(
+        MAC   'L1
+)",
+            semantics::lines_info {
+                token_info({ { 1, 8 }, { 1, 11 } }, hl_scopes::instruction),
+            },
+        },
+        test_params {
+            R"(
+        MAC   L'
+)",
+            semantics::lines_info {
+                token_info({ { 1, 8 }, { 1, 11 } }, hl_scopes::instruction),
+
+                token_info({ { 1, 14 }, { 1, 15 } }, hl_scopes::operand),
+            },
+        },
+        test_params {
+            R"(
+        MAC   &
+)",
+            semantics::lines_info {
+                token_info({ { 1, 8 }, { 1, 11 } }, hl_scopes::instruction),
+            },
+        },
+        test_params {
+            R"(
+        MAC   &VAR
+)",
+            semantics::lines_info {
+                token_info({ { 1, 8 }, { 1, 11 } }, hl_scopes::instruction),
+
+                token_info({ { 1, 14 }, { 1, 18 } }, hl_scopes::var_symbol),
+            },
+        }));
+
+} // namespace
+TEST_P(highlighting_fixture, macro_params_no_definition)
+{
+    analyzer a(GetParam().text_to_test, analyzer_options { collect_highlighting_info::yes });
     a.analyze();
     a.collect_diags();
 
     matches_message_codes(a.diags(), { "E049" });
 
-    const auto& tokens = a.source_processor().semantic_tokens();
-    semantics::lines_info expected = {
-        token_info({ { 1, 8 }, { 1, 11 } }, hl_scopes::instruction),
-
-        token_info({ { 1, 14 }, { 1, 15 } }, hl_scopes::operator_symbol),
-
-        token_info({ { 1, 15 }, { 1, 17 } }, hl_scopes::operand),
-        token_info({ { 1, 17 }, { 1, 18 } }, hl_scopes::operator_symbol),
-        token_info({ { 1, 39 }, { 1, 71 } }, hl_scopes::remark),
-
-        token_info({ { 1, 71 }, { 1, 72 } }, hl_scopes::continuation),
-        token_info({ { 2, 0 }, { 2, 15 } }, hl_scopes::ignored),
-
-        token_info({ { 2, 15 }, { 2, 17 } }, hl_scopes::operand),
-        token_info({ { 2, 17 }, { 2, 18 } }, hl_scopes::operator_symbol),
-        token_info({ { 2, 39 }, { 2, 71 } }, hl_scopes::remark),
-
-        token_info({ { 2, 71 }, { 2, 72 } }, hl_scopes::continuation),
-        token_info({ { 3, 0 }, { 3, 15 } }, hl_scopes::ignored),
-
-        token_info({ { 3, 15 }, { 3, 17 } }, hl_scopes::operand),
-        token_info({ { 3, 17 }, { 3, 18 } }, hl_scopes::operator_symbol),
-        token_info({ { 3, 39 }, { 3, 71 } }, hl_scopes::remark),
-
-        token_info({ { 3, 71 }, { 3, 72 } }, hl_scopes::continuation),
-        token_info({ { 4, 0 }, { 4, 15 } }, hl_scopes::ignored),
-
-        token_info({ { 4, 15 }, { 4, 17 } }, hl_scopes::operand),
-        token_info({ { 4, 17 }, { 4, 18 } }, hl_scopes::operator_symbol),
-        token_info({ { 4, 39 }, { 4, 71 } }, hl_scopes::remark),
-    };
-
-    EXPECT_EQ(tokens, expected);
+    EXPECT_EQ(a.source_processor().semantic_tokens(), GetParam().expected);
 }
 
 TEST(highlighting, endevor_preprocessor_statement)
