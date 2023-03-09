@@ -524,6 +524,7 @@ INSTANTIATE_TEST_SUITE_P(highlighting,
         }));
 
 } // namespace
+
 TEST_P(highlighting_fixture, macro_params_no_definition)
 {
     analyzer a(GetParam().text_to_test, analyzer_options { collect_highlighting_info::yes });
@@ -532,7 +533,7 @@ TEST_P(highlighting_fixture, macro_params_no_definition)
 
     matches_message_codes(a.diags(), { "E049" });
 
-    EXPECT_EQ(a.source_processor().semantic_tokens(), GetParam().expected);
+    EXPECT_EQ(a.take_semantic_tokens(), GetParam().expected);
 }
 
 TEST(highlighting, endevor_preprocessor_statement)
