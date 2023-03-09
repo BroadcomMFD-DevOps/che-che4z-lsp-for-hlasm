@@ -339,7 +339,7 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordin
         diagnostic_consumer_transform diags_filter([&diags](diagnostic_op diag) {
             if (static const auto template_diag = diagnostic_op::error_E049("", range());
                 diags && template_diag.code == diag.code)
-                diags->add_diagnostic(diag);
+                diags->add_diagnostic(std::move(diag));
         });
 
         const auto& [format, opcode] = proc_status;
