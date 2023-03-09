@@ -35,7 +35,7 @@ For more information about the Zowe Explorer extension, see [Zowe Explorer](http
 
 Follow these steps to open a HLASM project:
 
-1. In **File** -> **Open Folder...** select the folder with the HLASM sources. You may find useful downloading and opening an <nobr>`example workspace`</nobr> from our [GitHub repository](https://github.com/eclipse/che-che4z-lsp-for-hlasm/tree/master/example_workspace) first.
+1. In **File** -> **Open Folder...** select the folder with the HLASM sources. You can download and open an <nobr>`example workspace`</nobr> from our [GitHub repository](https://github.com/eclipse/che-che4z-lsp-for-hlasm/tree/master/example_workspace).
 2. Open any HLASM source file (note that HLASM does not have a standard filename extension) or create a new file.
 3. If the auto-detection of HLASM language does not recognize the file, set it manually in the bottom-right corner of the VS Code window.  
 4. The extension is now enabled on the open file. If you have macro definitions in separate files or use the COPY instruction, you must set up a workspace.
