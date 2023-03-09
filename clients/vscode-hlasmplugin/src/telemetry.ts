@@ -32,10 +32,10 @@ export class Telemetry {
 
     constructor() {
         try {
-            // This is mainly to handler Theia lack of support
+            // This is mainly to handle Theia's lack of support
             this.reporter = new TelemetryReporter(this.getTelemetryKey());
         } catch (e) {
-            console.log('Error encountered while creating TelemetryReporter', e);
+            console.log('Error encountered while creating TelemetryReporter:', e);
         }
     }
 
