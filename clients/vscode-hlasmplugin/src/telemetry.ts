@@ -21,7 +21,7 @@ const TELEMETRY_KEY_ENCODED = TELEMETRY_DEFAULT_KEY;
 
 export class Telemetry {
 
-    private reporter: TelemetryReporter;
+    private reporter: TelemetryReporter = null;
     private telemetry_key: string = undefined;
 
     private getTelemetryKey(): string {
@@ -31,17 +31,22 @@ export class Telemetry {
     }
 
     constructor() {
-        this.reporter = new TelemetryReporter(this.getTelemetryKey());
+        try {
+            // This is mainly to handler Theia lack of support
+            this.reporter = new TelemetryReporter(this.getTelemetryKey());
+        } catch (e) {
+            console.log('Error encountered while creating TelemetryReporter', e);
+        }
     }
 
     public reportEvent(eventName: string, properties?: TelemetryEventProperties, measurements?: TelemetryEventMeasurements): void {
         if (this.isValidTelemetryKey()) {
-            this.reporter.sendTelemetryEvent(eventName, properties, measurements);
+            this.reporter?.sendTelemetryEvent(eventName, properties, measurements);
         }
     }
 
     public dispose(): any {
-        this.reporter.dispose();
+        this.reporter?.dispose();
     }
 
     private isValidTelemetryKey(): boolean {
