@@ -223,7 +223,13 @@ public:
     struct promise_type : task_base::promise_type_base
     {
         value_task get_return_object() { return value_task(std::coroutine_handle<promise_type>::from_promise(*this)); }
-        void return_value(T v) noexcept(noexcept(result.emplace(std::move(v)))) { result.emplace(std::move(v)); }
+        void return_value(T v)
+#ifndef _MSC_VER
+            noexcept(noexcept(result.emplace(std::move(v))))
+#endif // !_MSC_VER
+        {
+            result.emplace(std::move(v));
+        }
 
         std::optional<T> result;
     };
