@@ -246,3 +246,42 @@ TEST(task, values_with_suspends)
     EXPECT_GT(resume_count, 1);
     EXPECT_EQ(x.value(), 6);
 }
+
+TEST(task, await_partially_started_coroutine)
+{
+    static constexpr auto f1 = []() -> value_task<int> {
+        co_await task::suspend();
+        co_await task::suspend();
+        co_return 1;
+    };
+    static constexpr auto nested_suspend = [](bool& stop) -> task {
+        stop = true;
+        co_await task::suspend();
+    };
+    static constexpr auto inner = [](bool& stop) -> value_task<int> {
+        co_await task::suspend();
+        int a = co_await f1();
+
+        co_await nested_suspend(stop);
+
+        int b = co_await f1();
+        co_await task::suspend();
+
+        co_return a + b;
+    };
+
+    bool stop = false;
+    auto i_task = inner(stop);
+
+    while (!stop)
+        i_task.resume();
+
+    static constexpr auto outer = [](value_task<int> v) -> value_task<int> {
+        int value = co_await std::move(v);
+        co_return value + 1;
+    };
+
+    auto o_task = outer(std::move(i_task));
+
+    EXPECT_EQ(o_task.run().value(), 3);
+}
