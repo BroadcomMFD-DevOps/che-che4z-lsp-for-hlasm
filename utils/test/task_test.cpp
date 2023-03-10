@@ -19,7 +19,6 @@
 
 using namespace hlasm_plugin::utils;
 
-
 TEST(task, basics)
 {
     struct test_data
@@ -64,9 +63,81 @@ TEST(task, basics)
 
     test_data data;
 
+    int resume_count = 0;
     for (auto x = h(data); !x.done();)
+    {
+        ++resume_count;
         x.resume();
+    }
 
+    EXPECT_EQ(resume_count, 1);
+    EXPECT_EQ(data.f, 5);
+    EXPECT_EQ(data.fail, 2);
+    EXPECT_EQ(data.g, 2);
+    EXPECT_EQ(data.h, 1);
+    EXPECT_EQ(data.excp, 2);
+}
+
+TEST(task, basics_with_suspends)
+{
+    struct test_data
+    {
+        int f = 0;
+        int fail = 0;
+        int g = 0;
+        int h = 0;
+
+        int excp = 0;
+    };
+    static constexpr auto f = [](test_data& data) -> task {
+        co_await task::suspend();
+        data.f++;
+        co_await task::suspend();
+        co_return;
+    };
+    static constexpr auto fail = [](test_data& data) -> task {
+        co_await task::suspend();
+        data.fail++;
+        co_await task::suspend();
+        static int i = 0;
+        co_await task::suspend();
+        throw &i;
+        co_await task::suspend();
+        co_return;
+    };
+    static constexpr auto g = [](test_data& data) -> task {
+        co_await task::suspend();
+        data.g++;
+        co_await f(data);
+        try
+        {
+            co_await fail(data);
+        }
+        catch (int*)
+        {
+            data.excp++;
+        }
+        co_await f(data); // await suspend
+    };
+
+    static constexpr auto h = [](test_data& data) -> task {
+        co_await task::suspend();
+        data.h++;
+        co_await g(data);
+        co_await f(data);
+        co_await g(data);
+    };
+
+    test_data data;
+
+    int resume_count = 0;
+    for (auto x = h(data); !x.done();)
+    {
+        ++resume_count;
+        x.resume();
+    }
+
+    EXPECT_GT(resume_count, 1);
     EXPECT_EQ(data.f, 5);
     EXPECT_EQ(data.fail, 2);
     EXPECT_EQ(data.g, 2);
@@ -133,8 +204,45 @@ TEST(task, values)
 
     auto x = add(3);
 
+    int resume_count = 0;
     while (!x.done())
+    {
+        ++resume_count;
         x.resume();
+    }
 
+    EXPECT_EQ(resume_count, 1);
+    EXPECT_EQ(x.value(), 6);
+}
+
+TEST(task, values_with_suspends)
+{
+    static constexpr auto stall = []() -> task {
+        co_await task::suspend();
+        co_return;
+    };
+    static constexpr auto f1 = []() -> value_task<int> {
+        co_await stall();
+        co_return 1;
+    };
+    static constexpr auto f2 = []() -> value_task<int> {
+        co_await stall();
+        co_return 2;
+    };
+    static constexpr auto add = [](int v) -> value_task<int> {
+        co_await stall();
+        co_return v + co_await f1() + co_await f2();
+    };
+
+    auto x = add(3);
+
+    int resume_count = 0;
+    while (!x.done())
+    {
+        ++resume_count;
+        x.resume();
+    }
+
+    EXPECT_GT(resume_count, 1);
     EXPECT_EQ(x.value(), 6);
 }
