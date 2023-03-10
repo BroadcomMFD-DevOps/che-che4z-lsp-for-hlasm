@@ -20,6 +20,7 @@
 #include <coroutine>
 #include <exception>
 #include <optional>
+#include <type_traits>
 #include <utility>
 
 namespace hlasm_plugin::utils {
@@ -31,31 +32,32 @@ class value_task;
 class task_base
 {
 protected:
-    struct promise_type_base;
-    struct awaiter_base
-    {
-        std::coroutine_handle<promise_type_base> to_resume;
-        std::coroutine_handle<promise_type_base> task_handle;
-
-        void detach() const noexcept
-        {
-            task_handle.promise().top_waiter.promise().next_step = to_resume;
-            to_resume.promise().top_waiter = task_handle.promise().top_waiter;
-        }
-    };
     struct promise_type_base
     {
         std::suspend_always initial_suspend() const noexcept { return {}; }
-        std::suspend_always final_suspend() const noexcept
-        {
-            if (active_awaiter)
-                active_awaiter->detach();
 
-            return {};
-        }
+        struct final_awaiter
+        {
+            constexpr bool await_ready() const noexcept { return false; }
+            template<std::derived_from<promise_type_base> T>
+            std::coroutine_handle<> await_suspend(std::coroutine_handle<T> self_h) const noexcept
+            {
+                if (auto& self = self_h.promise(); self.to_resume)
+                {
+                    self.top_waiter.promise().next_step = self.to_resume;
+                    self.to_resume.promise().top_waiter = self.top_waiter;
+                    return self.to_resume;
+                }
+                else
+                    return std::noop_coroutine();
+            }
+            constexpr void await_resume() const noexcept {}
+        };
+        auto final_suspend() const noexcept { return final_awaiter(); }
+
         void unhandled_exception()
         {
-            if (!active_awaiter)
+            if (!to_resume)
                 throw;
             pending_exception = std::current_exception();
         }
@@ -67,27 +69,35 @@ protected:
 
         std::coroutine_handle<promise_type_base> next_step = handle();
         std::coroutine_handle<promise_type_base> top_waiter = handle();
+        std::coroutine_handle<promise_type_base> to_resume = {};
         std::exception_ptr pending_exception;
-        const awaiter_base* active_awaiter = nullptr;
 
         template<typename T>
-        T await_transform(T t)
+        T&& await_transform(T&& t) const noexcept
         {
-            return t;
+            return static_cast<T&&>(t);
         }
 
         template<typename T>
-        class awaiter : awaiter_base
+        class awaiter
         {
+            std::coroutine_handle<promise_type_base> task_handle;
+
         public:
             bool await_ready() const noexcept { return task_handle.done(); }
-            template<std::derived_from<promise_type_base> T>
-            void await_suspend(std::coroutine_handle<T>) const noexcept
-            {}
+            template<std::derived_from<promise_type_base> U>
+            std::coroutine_handle<> await_suspend(std::coroutine_handle<U> to_resume) const noexcept
+            {
+                auto& task_promise = task_handle.promise();
+                task_promise.top_waiter.promise().next_step = task_promise.next_step;
+                task_promise.to_resume = to_resume.promise().handle();
+                return task_promise.next_step;
+            }
             T await_resume() const
             {
-                if (task_handle.promise().pending_exception)
-                    std::rethrow_exception(std::move(task_handle.promise().pending_exception));
+                if (auto& task_promise = task_handle.promise(); task_promise.pending_exception)
+                    std::rethrow_exception(std::move(task_promise.pending_exception));
+
                 if constexpr (!std::is_void_v<T>)
                 {
                     auto& p = static_cast<typename value_task<T>::promise_type&>(task_handle.promise());
@@ -102,12 +112,9 @@ protected:
 
             ~awaiter() { task_handle.destroy(); }
 
-            explicit awaiter(std::coroutine_handle<promise_type_base> to_resume,
-                std::coroutine_handle<promise_type_base> task_handle)
-                : awaiter_base { std::move(to_resume), std::move(task_handle) }
-            {
-                awaiter_base::task_handle.promise().active_awaiter = this;
-            }
+            explicit awaiter(std::coroutine_handle<promise_type_base> task_handle)
+                : task_handle(std::move(task_handle))
+            {}
         };
         auto await_transform(task t) noexcept;
         template<std::move_constructible T>
@@ -181,6 +188,10 @@ public:
     {
         task get_return_object() { return task(std::coroutine_handle<promise_type>::from_promise(*this)); }
         void return_void() const noexcept {}
+        std::coroutine_handle<promise_type> typed_handle() noexcept
+        {
+            return std::coroutine_handle<promise_type>::from_promise(*this);
+        }
     };
 
     task() = default;
@@ -259,9 +270,8 @@ inline auto task_base::promise_type_base::await_transform(task t) noexcept
     auto h = std::exchange(t.m_handle, {});
 
     h.promise().next_step.promise().top_waiter = top_waiter;
-    top_waiter.promise().next_step = h.promise().next_step;
 
-    return awaiter<void>(handle(), std::move(h));
+    return awaiter<void>(std::move(h));
 }
 
 template<std::move_constructible T>
@@ -270,9 +280,8 @@ inline auto task_base::promise_type_base::await_transform(value_task<T> t) noexc
     auto h = std::exchange(t.m_handle, {});
 
     h.promise().next_step.promise().top_waiter = top_waiter;
-    top_waiter.promise().next_step = h.promise().next_step;
 
-    return awaiter<T>(handle(), std::move(h));
+    return awaiter<T>(std::move(h));
 }
 
 
