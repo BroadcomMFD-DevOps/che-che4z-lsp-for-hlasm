@@ -112,7 +112,7 @@ protected:
 
             ~awaiter() { task_handle.destroy(); }
 
-            explicit awaiter(std::coroutine_handle<promise_type_base> task_handle)
+            explicit awaiter(std::coroutine_handle<promise_type_base> task_handle) noexcept
                 : task_handle(std::move(task_handle))
             {}
         };
@@ -188,10 +188,6 @@ public:
     {
         task get_return_object() { return task(std::coroutine_handle<promise_type>::from_promise(*this)); }
         void return_void() const noexcept {}
-        std::coroutine_handle<promise_type> typed_handle() noexcept
-        {
-            return std::coroutine_handle<promise_type>::from_promise(*this);
-        }
     };
 
     task() = default;

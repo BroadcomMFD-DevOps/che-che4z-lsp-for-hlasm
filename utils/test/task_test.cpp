@@ -285,3 +285,16 @@ TEST(task, await_partially_started_coroutine)
 
     EXPECT_EQ(o_task.run().value(), 3);
 }
+
+TEST(task, await_done_task)
+{
+    static constexpr auto inner = []() -> value_task<int> { co_return 1; };
+    static constexpr auto outer = [](value_task<int> t) -> value_task<int> { co_return co_await std::move(t); };
+
+    auto i_task = inner();
+    i_task.resume();
+
+    EXPECT_TRUE(i_task.done());
+
+    EXPECT_EQ(outer(std::move(i_task)).run().value(), 1);
+}
