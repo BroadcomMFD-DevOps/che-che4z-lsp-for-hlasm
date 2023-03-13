@@ -47,7 +47,7 @@ async function primeExtension(): Promise<vscode.Disposable[]> {
 }
 
 export async function run(): Promise<void> {
-	const is_theia = 'THEIA_DEFAULT_PLUGINS' in process.env;
+	const is_theia = 'THEIA_PARENT_PID' in process.env;
 
 	// Create the mocha test
 	const mocha = new Mocha({ ui: 'tdd', color: true });
