@@ -179,6 +179,16 @@ private:
     std::coroutine_handle<promise_type_base> m_handle;
 };
 
+template<typename T>
+struct is_task : std::false_type
+{};
+template<>
+struct is_task<task> : std::true_type
+{};
+template<typename T>
+struct is_task<value_task<T>> : std::true_type
+{};
+
 class task : task_base
 {
     friend struct task_base::promise_type_base;
@@ -211,6 +221,26 @@ public:
     {
         task_base::run();
         return std::move(*this);
+    }
+
+    template<typename U>
+    auto then(U&& t) &&
+    {
+        if constexpr (is_task<std::invoke_result_t<U&>>::value)
+            return [](task self, U t) -> std::invoke_result_t<U&> {
+                co_await std::move(self);
+                co_return co_await t();
+            }(std::move(*this), std::forward<U>(t));
+        else if constexpr (std::is_void_v<std::invoke_result_t<U&>>)
+            return [](task self, U t) -> task {
+                co_await std::move(self);
+                t();
+            }(std::move(*this), std::forward<U>(t));
+        else
+            return [](task self, U t) -> value_task<std::invoke_result_t<U&>> {
+                co_await std::move(self);
+                co_return t();
+            }(std::move(*this), std::forward<U>(t));
     }
 };
 
@@ -264,6 +294,22 @@ public:
     {
         task_base::run();
         return std::move(*this);
+    }
+
+    template<typename U>
+    auto then(U&& t) &&
+    {
+        if constexpr (is_task<std::invoke_result_t<U&, T>>::value)
+            return [](value_task self, U t) -> std::invoke_result_t<U&, T> {
+                co_return co_await t(co_await std::move(self));
+            }(std::move(*this), std::forward<U>(t));
+        else if constexpr (std::is_void_v<std::invoke_result_t<U&, T>>)
+            return
+                [](value_task self, U t) -> task { t(co_await std::move(self)); }(std::move(*this), std::forward<U>(t));
+        else
+            return [](value_task self, U t) -> value_task<std::invoke_result_t<U&, T>> {
+                co_return t(co_await std::move(self));
+            }(std::move(*this), std::forward<U>(t));
     }
 };
 
