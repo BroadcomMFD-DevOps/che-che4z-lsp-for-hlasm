@@ -135,9 +135,6 @@ private:
 
     void reparse_after_config_refresh();
 
-    // files, that depend on others (e.g. open code files that use macros)
-    std::set<utils::resource::resource_location> dependants_;
-
     struct opened_file_details
     {
         opened_file_details() = default;

@@ -337,13 +337,10 @@ std::vector<std::shared_ptr<processor_file>> workspace::find_related_opencodes(
     if (auto f = find_processor_file(document_loc))
         opencodes.push_back(f);
 
-    for (const auto& dep : dependants_)
+    for (const auto& [_, component] : m_processor_files)
     {
-        auto f = find_processor_file(dep);
-        if (!f)
-            continue;
-        if (f->dependencies().contains(document_loc))
-            opencodes.push_back(std::move(f));
+        if (component.m_processor_file->dependencies().contains(document_loc))
+            opencodes.push_back(component.m_processor_file);
     }
 
     return opencodes;
@@ -390,10 +387,9 @@ void workspace::reparse_after_config_refresh()
         (void)parse_successful(*comp, std::move(ws_lib));
     }
 
-    for (const auto& fname : dependants_)
+    for (const auto& [_, component] : m_processor_files)
     {
-        if (auto found = find_processor_file(fname); found)
-            filter_and_close_dependencies_(found->files_to_close(), found);
+        filter_and_close_dependencies_(component.m_processor_file->files_to_close(), component.m_processor_file);
     }
 }
 
@@ -409,16 +405,13 @@ std::vector<workspace::processor_file_compoments*> workspace::collect_dependants
 {
     std::vector<processor_file_compoments*> result;
 
-    for (const auto& dep : dependants_)
+    for (auto& [_, component] : m_processor_files)
     {
-        auto component = find_processor_file_impl(dep);
-        if (!component)
-            continue;
-        for (auto& dep_location : component->m_processor_file->dependencies())
+        for (auto& dep_location : component.m_processor_file->dependencies())
         {
             if (dep_location == file_location)
             {
-                result.push_back(component);
+                result.push_back(&component);
                 break;
             }
         }
@@ -493,8 +486,6 @@ workspace_file_info workspace::parse_successful(processor_file_compoments& comp,
 
     const auto& f = comp.m_processor_file;
 
-    if (!f->dependencies().empty())
-        dependants_.insert(f->get_location());
     f->store_used_files(std::move(libs.used_files));
 
     const processor_group& grp = get_proc_grp_by_program(f->get_location());
@@ -538,23 +529,20 @@ void workspace::did_close_file(const utils::resource::resource_location& file_lo
     std::vector<utils::resource::resource_location> deps_to_cleanup;
 
     // find if the file is a dependant
-    auto fname = dependants_.find(file_location);
-    if (fname != dependants_.end())
+    if (auto fcomp = m_processor_files.find(file_location); fcomp != m_processor_files.end())
     {
-        auto file = find_processor_file(*fname);
-
+        const auto& file = fcomp->second.m_processor_file;
         const auto& deps = file->dependencies();
 
         // filter the dependencies that should not be closed
         filter_and_close_dependencies_(deps, file);
         deps_to_cleanup.reserve(deps.size());
         deps_to_cleanup.assign(deps.begin(), deps.end());
-        // remove it from dependants
-        dependants_.erase(fname);
+
+        m_processor_files.erase(fcomp);
     }
 
     // close the file itself
-    m_processor_files.erase(file_location);
     file_manager_.did_close_file(file_location);
     file_manager_.remove_file(file_location);
 
@@ -824,15 +812,15 @@ void workspace::filter_and_close_dependencies_(
         if (auto dep_file = file_manager_.find(dependency); dep_file && !dep_file->get_lsp_editing())
             filtered.insert(dependency);
 
+    if (filtered.empty())
+        return;
+
     // filters the files that are dependencies of other dependants and externally open files
-    for (const auto& dependant : dependants_)
+    for (const auto& [_, component] : m_processor_files)
     {
-        auto fdependant = find_processor_file(dependant);
-        if (!fdependant)
-            continue;
-        for (auto& dependency : fdependant->dependencies())
+        for (auto& dependency : component.m_processor_file->dependencies())
         {
-            if (fdependant->get_location() != file->get_location() && filtered.contains(dependency))
+            if (component.m_processor_file->get_location() != file->get_location() && filtered.contains(dependency))
                 filtered.erase(dependency);
         }
     }
@@ -848,12 +836,9 @@ void workspace::filter_and_close_dependencies_(
 
 bool workspace::is_dependency_(const utils::resource::resource_location& file_location) const
 {
-    for (const auto& dependant : dependants_)
+    for (const auto& [_, component] : m_processor_files)
     {
-        auto fdependant = find_processor_file(dependant);
-        if (!fdependant)
-            continue;
-        for (auto& dependency : fdependant->dependencies())
+        for (auto& dependency : component.m_processor_file->dependencies())
         {
             if (dependency == file_location)
                 return true;
