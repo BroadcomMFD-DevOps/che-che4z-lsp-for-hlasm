@@ -456,11 +456,13 @@ workspace_file_info workspace::parse_file(
         if (trigger_reparse(file_location))
             files_to_parse = collect_dependants(file_location);
 
-        if (files_to_parse.empty())
+        if (files_to_parse.empty() && !this_file)
         {
-            if (!this_file)
+            if (opened_files_.find(file_location) != opened_files_.end())
+            {
                 this_file = &add_processor_file_impl(file_location);
-            files_to_parse.push_back(this_file);
+                files_to_parse.push_back(this_file);
+            }
         }
 
         for (auto* component : files_to_parse)
