@@ -134,8 +134,9 @@ void workspace::collect_diags() const
 {
     std::unordered_set<utils::resource::resource_location, utils::resource::resource_location_hasher> used_b4g_configs;
 
-    for (const auto& [_, details] : opened_files_)
-        used_b4g_configs.emplace(details.alternative_config);
+    for (const auto& [_, component] : m_processor_files)
+        if (component.opened)
+            used_b4g_configs.emplace(component.alternative_config);
 
     m_configuration.copy_diagnostics(*this, used_b4g_configs);
 
@@ -303,8 +304,9 @@ void workspace::retrieve_fade_messages(std::vector<fade_message_s>& fms) const
 
     std::unordered_set<std::string, utils::hashers::string_hasher, std::equal_to<>> opened_files_uris;
 
-    for (const auto& [rl, _] : opened_files_)
-        opened_files_uris.emplace(rl.get_uri());
+    for (const auto& [rl, component] : m_processor_files)
+        if (component.opened)
+            opened_files_uris.emplace(rl.get_uri());
 
     for (const auto& [_, proc_file_component] : m_processor_files)
     {
@@ -315,8 +317,10 @@ void workspace::retrieve_fade_messages(std::vector<fade_message_s>& fms) const
             std::back_inserter(fms),
             [&opened_files_uris](const auto& fmsg) { return opened_files_uris.contains(fmsg.uri); });
 
-        for (const auto& [opened_file_rl, __] : opened_files_)
+        for (const auto& [opened_file_rl, component] : m_processor_files)
         {
+            if (!component.opened)
+                continue;
             filter_and_emplace_hc_map(hc_map, pf.hit_count_map(), opened_file_rl);
             filter_and_emplace_mac_cpy_definitions(active_rl_mac_cpy_map, pf.get_lsp_context(), opened_file_rl);
         }
@@ -373,18 +377,17 @@ const ws_uri& workspace::uri() const { return location_.get_uri(); }
 void workspace::reparse_after_config_refresh()
 {
     // Reparse every opened file when configuration is changed
-    for (auto& [fname, details] : opened_files_)
+    for (auto& [fname, comp] : m_processor_files)
     {
-        auto comp = find_processor_file_impl(fname);
-        if (!comp)
+        if (!comp.opened)
             continue;
 
-        details.alternative_config = m_configuration.load_alternative_config_if_needed(fname);
+        comp.alternative_config = m_configuration.load_alternative_config_if_needed(fname);
         workspace_parse_lib_provider ws_lib(*this, fname);
-        if (!comp->m_processor_file->parse(ws_lib, get_asm_options(fname), get_preprocessor_options(fname), &fm_vfm_))
+        if (!comp.m_processor_file->parse(ws_lib, get_asm_options(fname), get_preprocessor_options(fname), &fm_vfm_))
             continue;
 
-        (void)parse_successful(*comp, std::move(ws_lib));
+        (void)parse_successful(comp, std::move(ws_lib));
     }
 
     for (const auto& [_, component] : m_processor_files)
@@ -441,18 +444,16 @@ workspace_file_info workspace::parse_file(
 
     // TODO: apparently just opening a file without changing it triggers reparse
 
-    if (processor_file_compoments* this_file = nullptr; file_content_status == open_file_result::changed_content
+    if (processor_file_compoments* this_file = find_processor_file_impl(file_location);
+        file_content_status == open_file_result::changed_content
         || file_content_status == open_file_result::changed_lsp
-            && !((this_file = find_processor_file_impl(file_location)) != nullptr
-                && this_file->m_processor_file->has_lsp_info()))
+            && !(this_file && this_file->m_processor_file->has_lsp_info()))
     {
         if (trigger_reparse(file_location))
             files_to_parse = collect_dependants(file_location);
 
-        if (files_to_parse.empty() && opened_files_.contains(file_location))
+        if (files_to_parse.empty() && this_file && this_file->opened)
         {
-            if (!this_file)
-                this_file = &add_processor_file_impl(file_location);
             files_to_parse.push_back(this_file);
         }
 
@@ -462,7 +463,8 @@ workspace_file_info workspace::parse_file(
             const auto& f_loc = component->m_processor_file->get_location();
 
             auto alt_cfg = m_configuration.load_alternative_config_if_needed(f_loc);
-            if (auto opened_it = opened_files_.find(f_loc); opened_it != opened_files_.end())
+            if (auto opened_it = m_processor_files.find(f_loc);
+                opened_it != m_processor_files.end() && opened_it->second.opened)
                 opened_it->second.alternative_config = std::move(alt_cfg);
 
             workspace_parse_lib_provider ws_lib(*this, f_loc);
@@ -509,14 +511,18 @@ workspace_file_info workspace::did_open_file(
     const utils::resource::resource_location& file_location, open_file_result file_content_status)
 {
     if (!m_configuration.is_configuration_file(file_location))
-        opened_files_.try_emplace(file_location);
+        add_processor_file_impl(file_location).opened = true;
 
     return parse_file(file_location, file_content_status);
 }
 
 void workspace::did_close_file(const utils::resource::resource_location& file_location)
 {
-    opened_files_.erase(file_location);
+    auto fcomp = m_processor_files.find(file_location);
+    if (fcomp == m_processor_files.end())
+        return; // this indicates some kind of double close
+
+    fcomp->second.opened = false;
 
     // first check whether the file is a dependency
     // if so, simply close it, no other action is needed
@@ -529,20 +535,16 @@ void workspace::did_close_file(const utils::resource::resource_location& file_lo
     std::vector<utils::resource::resource_location> deps_to_cleanup;
 
     // find if the file is a dependant
-    if (auto fcomp = m_processor_files.find(file_location); fcomp != m_processor_files.end())
-    {
-        const auto& file = fcomp->second.m_processor_file;
-        const auto& deps = file->dependencies();
+    const auto& file = fcomp->second.m_processor_file;
+    const auto& deps = file->dependencies();
 
-        // filter the dependencies that should not be closed
-        filter_and_close_dependencies_(deps, file);
-        deps_to_cleanup.reserve(deps.size());
-        deps_to_cleanup.assign(deps.begin(), deps.end());
-
-        m_processor_files.erase(fcomp);
-    }
+    // filter the dependencies that should not be closed
+    filter_and_close_dependencies_(deps, file);
+    deps_to_cleanup.reserve(deps.size());
+    deps_to_cleanup.assign(deps.begin(), deps.end());
 
     // close the file itself
+    m_processor_files.erase(fcomp);
     file_manager_.did_close_file(file_location);
     file_manager_.remove_file(file_location);
 

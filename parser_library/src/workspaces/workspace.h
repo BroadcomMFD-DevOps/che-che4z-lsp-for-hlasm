@@ -135,20 +135,6 @@ private:
 
     void reparse_after_config_refresh();
 
-    struct opened_file_details
-    {
-        opened_file_details() = default;
-        explicit opened_file_details(utils::resource::resource_location alternative_config)
-            : alternative_config(std::move(alternative_config))
-        {}
-        utils::resource::resource_location alternative_config;
-    };
-
-    std::unordered_map<utils::resource::resource_location,
-        opened_file_details,
-        utils::resource::resource_location_hasher>
-        opened_files_;
-
     void filter_and_close_dependencies_(
         const std::set<utils::resource::resource_location>& dependencies, std::shared_ptr<processor_file> file);
     bool is_dependency_(const utils::resource::resource_location& file_location) const;
@@ -170,6 +156,10 @@ private:
     struct processor_file_compoments
     {
         std::shared_ptr<processor_file_impl> m_processor_file;
+        utils::resource::resource_location alternative_config = utils::resource::resource_location();
+
+        bool opened = false;
+
         void update_source_if_needed() const;
     };
 
