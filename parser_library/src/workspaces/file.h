@@ -49,6 +49,8 @@ public:
     virtual bool get_lsp_editing() const = 0;
 
     // Gets LSP version of file.
+    virtual version_t get_lsp_version() = 0;
+    // Internal unique version
     virtual version_t get_version() = 0;
 
     // LSP notifications

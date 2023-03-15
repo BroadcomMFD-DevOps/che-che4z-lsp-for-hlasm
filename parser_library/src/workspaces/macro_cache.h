@@ -131,6 +131,7 @@ struct macro_cache_data
     // definition and the statements are part of macro definition)
     version_stamp stamps;
     std::variant<lsp::macro_info_ptr, context::copy_member_ptr> cached_member;
+    mutable bool invalid = false;
 };
 
 class macro_cache final

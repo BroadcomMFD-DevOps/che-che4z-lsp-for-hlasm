@@ -33,30 +33,30 @@ TEST(file, text_synchronization_rn)
 
     std::string expected1 = "this is first line \r\nseconine    \r\nfifthline\r\n";
     EXPECT_EQ(file_rn.get_text(), expected1);
-    EXPECT_EQ(file_rn.get_version(), 48);
+    EXPECT_EQ(file_rn.get_lsp_version(), 48);
 
     file_rn.did_change({ { 1, 5 }, { 1, 5 } }, "THIS ARE NEW LINES\r\nANDSECOND");
     std::string expected2 = "this is first line \r\nseconTHIS ARE NEW LINES\r\nANDSECONDine    \r\nfifthline\r\n";
     EXPECT_EQ(file_rn.get_text(), expected2);
-    EXPECT_EQ(file_rn.get_version(), 49);
+    EXPECT_EQ(file_rn.get_lsp_version(), 49);
 
     file_rn.did_change({ { 0, 1 }, { 1, 4 } }, "THIS ARE NEW LINES BUT NO NEWLINE");
     std::string expected3 =
         "tTHIS ARE NEW LINES BUT NO NEWLINEnTHIS ARE NEW LINES\r\nANDSECONDine    \r\nfifthline\r\n";
     EXPECT_EQ(file_rn.get_text(), expected3);
-    EXPECT_EQ(file_rn.get_version(), 50);
+    EXPECT_EQ(file_rn.get_lsp_version(), 50);
 
     file_rn.did_change({ { 3, 0 }, { 3, 0 } }, "ADD TO THE END");
     std::string expected4 =
         "tTHIS ARE NEW LINES BUT NO NEWLINEnTHIS ARE NEW LINES\r\nANDSECONDine    \r\nfifthline\r\nADD TO THE END";
     EXPECT_EQ(file_rn.get_text(), expected4);
-    EXPECT_EQ(file_rn.get_version(), 51);
+    EXPECT_EQ(file_rn.get_lsp_version(), 51);
 
     file_rn.did_change({ { 3, 14 }, { 3, 14 } }, "and again\r\n");
     std::string expected5 = "tTHIS ARE NEW LINES BUT NO NEWLINEnTHIS ARE NEW LINES\r\nANDSECONDine    "
                             "\r\nfifthline\r\nADD TO THE ENDand again\r\n";
     EXPECT_EQ(file_rn.get_text(), expected5);
-    EXPECT_EQ(file_rn.get_version(), 52);
+    EXPECT_EQ(file_rn.get_lsp_version(), 52);
 
     file_rn.did_change({ { 0, 0 }, { 0, 0 } }, "\r\n");
     std::string expected6 = "\r\ntTHIS ARE NEW LINES BUT NO NEWLINEnTHIS ARE NEW LINES\r\nANDSECONDine    "

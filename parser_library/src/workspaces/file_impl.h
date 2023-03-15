@@ -41,6 +41,7 @@ public:
 
     const file_location& get_location() override;
     const std::string& get_text() override;
+    version_t get_lsp_version() override;
     version_t get_version() override;
     update_file_result update_and_get_bad() override;
     bool get_lsp_editing() const override;
@@ -65,6 +66,8 @@ protected:
     const std::string& get_text_ref();
 
 private:
+    void replace_text(std::string s);
+
     file_location file_location_;
     std::string text_;
     // Array of "pointers" to text_ where lines start.
@@ -74,7 +77,8 @@ private:
     bool editing_ = false;
     bool bad_ = false;
 
-    version_t version_ = 0;
+    version_t lsp_version_ = 0;
+    version_t version_;
 
     update_file_result load_text();
 };

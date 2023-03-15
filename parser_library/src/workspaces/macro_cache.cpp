@@ -74,18 +74,18 @@ void macro_cache_key::sort_opsyn_state(std::vector<cached_opsyn_mnemo>& opsyn_st
 const macro_cache_data* macro_cache::find_cached_data(const macro_cache_key& key) const
 {
     auto it = cache_.find(key);
-    if (it == cache_.end())
+    if (it == cache_.end() || it->second.invalid)
         return nullptr;
 
     const auto& cached_data = it->second;
 
     for (const auto& [fname, cached_version] : cached_data.stamps)
     {
-        auto file = file_mngr_->find(fname);
-        if (!file)
+        if (auto file = file_mngr_->find(fname); !file || file->get_version() != cached_version)
+        {
+            it->second.invalid = true;
             return nullptr; // Reparse needed
-        if (file->get_version() != cached_version)
-            return nullptr;
+        }
     }
 
     // Version of all dependent files are the same.
@@ -159,11 +159,13 @@ void macro_cache::save_macro(const macro_cache_key& key, const analyzer& analyze
             analyzer.context().lsp_ctx->get_macro_info(key.data.library_member, context::opcode_generation::current);
     else if (key.data.proc_kind == processing::processing_kind::COPY)
         cache_data.cached_member = analyzer.context().hlasm_ctx->get_copy_member(key.data.library_member);
+
+    cache_data.invalid = false;
 }
 
 void macro_cache::erase_unused()
 {
-    std::erase_if(cache_, [](const auto& e) { return e.first.related_open_code.expired(); });
+    std::erase_if(cache_, [](const auto& e) { return e.first.related_open_code.expired() || e.second.invalid; });
 }
 
 } // namespace hlasm_plugin::parser_library::workspaces
