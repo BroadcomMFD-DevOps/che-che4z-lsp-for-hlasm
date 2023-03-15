@@ -178,8 +178,6 @@ workspace::workspace(file_manager& file_manager,
         implicit_proc_grp.add_library(std::move(implicit_library));
 }
 
-workspace::~workspace() = default;
-
 void workspace::collect_diags() const
 {
     std::unordered_set<utils::resource::resource_location, utils::resource::resource_location_hasher> used_b4g_configs;

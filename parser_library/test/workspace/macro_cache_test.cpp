@@ -118,8 +118,8 @@ TEST(macro_cache_test, copy_from_macro)
 
     constexpr context::id_index macro_id("MAC");
     constexpr context::id_index copy_id("COPYFILE");
-    macro_cache_key macro_key { comparable_weak_ptr(ids), { processing::processing_kind::MACRO, macro_id }, {} };
-    macro_cache_key copy_key { comparable_weak_ptr(ids), { processing::processing_kind::COPY, copy_id }, {} };
+    macro_cache_key macro_key { { processing::processing_kind::MACRO, macro_id }, {} };
+    macro_cache_key copy_key { { processing::processing_kind::COPY, copy_id }, {} };
 
     // try recalling the cached results
     analyzing_context new_ctx = create_analyzing_context(opencode_file_name, ids);
@@ -183,9 +183,8 @@ TEST(macro_cache_test, opsyn_change)
     }
 
     // try loading with and without OPSYN change
-    macro_cache_key macro_key { comparable_weak_ptr(ids), { processing::processing_kind::MACRO, macro_id }, {} };
-    macro_cache_key macro_key_one_opsyn { comparable_weak_ptr(ids),
-        { processing::processing_kind::MACRO, macro_id },
+    macro_cache_key macro_key { { processing::processing_kind::MACRO, macro_id }, {} };
+    macro_cache_key macro_key_one_opsyn { { processing::processing_kind::MACRO, macro_id },
         { cached_opsyn_mnemo { context::id_storage::well_known::SETA, LR, false } } };
     {
         analyzing_context ctx = create_analyzing_context(opencode_file_name, ids);
@@ -245,7 +244,7 @@ TEST(macro_cache_test, empty_macro)
 
     analyzing_context new_ctx = create_analyzing_context(opencode_file_name, ids);
 
-    macro_cache_key macro_key { comparable_weak_ptr(ids), { processing::processing_kind::MACRO, macro_id }, {} };
+    macro_cache_key macro_key { { processing::processing_kind::MACRO, macro_id }, {} };
     EXPECT_TRUE(macro_c.load_from_cache(macro_key, new_ctx));
     EXPECT_FALSE(new_ctx.hlasm_ctx->find_macro(macro_id));
 }
@@ -384,7 +383,7 @@ TEST(macro_cache_test, inline_depends_on_copy)
     opencode.collect_diags();
     EXPECT_TRUE(opencode.diags().empty());
 
-    macro_cache_key copy_key { comparable_weak_ptr(ids), { processing::processing_kind::COPY, copy_id }, {} };
+    macro_cache_key copy_key { { processing::processing_kind::COPY, copy_id }, {} };
 
     analyzing_context new_ctx = create_analyzing_context(opencode_file_name, ids);
     EXPECT_TRUE(copy_c.load_from_cache(copy_key, new_ctx));

@@ -75,8 +75,6 @@ public:
     workspace(workspace&& ws) = default;
     workspace& operator=(workspace&&) = delete;
 
-    ~workspace();
-
     void collect_diags() const override;
 
     workspace_file_info parse_file(const resource_location& file_location, open_file_result file_content_status);
