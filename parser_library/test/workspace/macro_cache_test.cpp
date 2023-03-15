@@ -15,11 +15,13 @@
 #include <algorithm>
 #include <iterator>
 
+#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
 #include "../workspace/empty_configs.h"
 #include "analyzer.h"
 #include "context/id_storage.h"
+#include "library_mock.h"
 #include "lsp/lsp_context.h"
 #include "lsp/opencode_info.h"
 #include "lsp/text_data_view.h"
@@ -324,47 +326,28 @@ TEST(macro_cache_test, overwrite_by_inline)
     file_mngr.did_open_file(opencode_file_loc, 0, opencode_text);
     file_mngr.did_open_file(macro_file_loc, 0, macro_text);
 
-    processor_file_impl opencode(open_file(opencode_file_loc, opencode_text, file_mngr), file_mngr);
-    processor_file_impl macro(open_file(macro_file_loc, macro_text, file_mngr), file_mngr);
+    auto global_settings = make_empty_shared_json();
+    using namespace ::testing;
+    auto library = std::make_shared<NiceMock<library_mock>>();
+    workspace ws(file_mngr, {}, global_settings, nullptr, library);
 
-    struct simple_provider : parse_lib_provider
-    {
-        processor_file_impl& macro_ref;
+    EXPECT_CALL(*library, has_file(std::string_view("MAC"), _))
+        .WillRepeatedly(DoAll(SetArgPointee<1>(macro_file_loc), Return(true)));
 
-        void parse_library(
-            std::string_view lib, analyzing_context ac, library_data ld, std::function<void(bool)> callback) override
-        {
-            EXPECT_EQ(lib, "MAC");
+    ws.did_open_file(opencode_file_loc);
+    auto opencode = ws.find_processor_file(opencode_file_loc);
 
-            callback(macro_ref.parse_macro(*this, ac, ld));
-        }
-        bool has_library(std::string_view, resource_location*) const override { return false; }
-        void get_library(std::string_view,
-            std::function<void(std::optional<std::pair<std::string, resource_location>>)> callback) const override
-        {
-            callback(std::nullopt);
-        }
+    EXPECT_EQ(opencode->diags().size(), 2U);
+    EXPECT_TRUE(find_diag_with_filename(opencode->diags(), macro_file_loc));
+    EXPECT_TRUE(find_diag_with_filename(opencode->diags(), opencode_file_loc));
 
-        simple_provider(processor_file_impl& macro_ref)
-            : macro_ref(macro_ref)
-        {}
+    opencode->diags().clear();
 
-    } provider(macro);
-
-    opencode.parse(provider, {}, {}, nullptr);
-    opencode.collect_diags();
-
-    EXPECT_EQ(opencode.diags().size(), 2U);
-    EXPECT_TRUE(find_diag_with_filename(opencode.diags(), macro_file_loc));
-    EXPECT_TRUE(find_diag_with_filename(opencode.diags(), opencode_file_loc));
-
-    opencode.diags().clear();
-
-    opencode.parse(provider, {}, {}, nullptr);
-    opencode.collect_diags();
-    EXPECT_EQ(opencode.diags().size(), 2U);
-    EXPECT_TRUE(find_diag_with_filename(opencode.diags(), macro_file_loc));
-    EXPECT_TRUE(find_diag_with_filename(opencode.diags(), opencode_file_loc));
+    document_change change(range(), "", 0);
+    ws.did_change_file(opencode_file_loc, &change, 1);
+    EXPECT_EQ(opencode->diags().size(), 2U);
+    EXPECT_TRUE(find_diag_with_filename(opencode->diags(), macro_file_loc));
+    EXPECT_TRUE(find_diag_with_filename(opencode->diags(), opencode_file_loc));
 }
 
 TEST(macro_cache_test, inline_depends_on_copy)

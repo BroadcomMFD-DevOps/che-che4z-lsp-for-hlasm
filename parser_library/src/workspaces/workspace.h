@@ -52,7 +52,8 @@ public:
     workspace(file_manager& file_manager,
         const lib_config& global_config,
         const shared_json& global_settings,
-        std::atomic<bool>* cancel = nullptr);
+        std::atomic<bool>* cancel = nullptr,
+        std::shared_ptr<library> implicit_library = nullptr);
     workspace(const utils::resource::resource_location& location,
         file_manager& file_manager,
         const lib_config& global_config,

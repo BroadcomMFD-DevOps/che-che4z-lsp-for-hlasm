@@ -124,10 +124,13 @@ workspace::workspace(const utils::resource::resource_location& location,
 workspace::workspace(file_manager& file_manager,
     const lib_config& global_config,
     const shared_json& global_settings,
-    std::atomic<bool>* cancel)
+    std::atomic<bool>* cancel,
+    std::shared_ptr<library> implicit_library)
     : workspace(utils::resource::resource_location(""), file_manager, global_config, global_settings, cancel)
 {
     opened_ = true;
+    if (implicit_library)
+        implicit_proc_grp.add_library(std::move(implicit_library));
 }
 
 void workspace::collect_diags() const
