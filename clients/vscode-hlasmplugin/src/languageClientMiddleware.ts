@@ -36,6 +36,7 @@ export function getLanguageClientMiddleware(): Middleware {
             if (didOpenEvent) {
                 console.error('Double open detected for', uri);
                 pendingOpens.delete(uri);
+                didOpenEvent.clearTimeout();
                 didOpenEvent.send();
             }
 
