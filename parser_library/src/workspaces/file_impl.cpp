@@ -15,6 +15,7 @@
 
 #include "file_impl.h"
 
+#include <atomic>
 #include <stdexcept>
 
 #include "file_manager.h"
