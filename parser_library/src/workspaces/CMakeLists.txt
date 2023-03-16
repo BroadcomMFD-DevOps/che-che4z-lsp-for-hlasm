@@ -12,8 +12,6 @@
 
 target_sources(parser_library PRIVATE
 	file.h
-	file_impl.cpp
-	file_impl.h
 	file_manager.h
 	file_manager_impl.cpp
 	file_manager_impl.h

@@ -16,10 +16,9 @@
 #define HLASMPLUGIN_PARSERLIBRARY_FILE_H
 
 #include <string>
+#include <string_view>
 #include <vector>
 
-#include "diagnosable.h"
-#include "fade_messages.h"
 #include "protocol.h"
 #include "utils/resource_location.h"
 
@@ -45,7 +44,7 @@ public:
     // Returns whether file is open by LSP.
     virtual bool get_lsp_editing() const = 0;
     // Internal unique version
-    virtual version_t get_version() = 0;
+    virtual version_t get_version() const = 0;
 
 protected:
     ~file() = default;

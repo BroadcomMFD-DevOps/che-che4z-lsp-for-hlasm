@@ -28,9 +28,6 @@
 #include "utils/resource_location.h"
 
 namespace hlasm_plugin::parser_library::workspaces {
-class file_impl;
-#pragma warning(push)
-#pragma warning(disable : 4250)
 
 // Implementation of the file_manager interface.
 class file_manager_impl : public file_manager
@@ -98,15 +95,13 @@ private:
     std::unordered_map<utils::resource::resource_location, mapped_file*, utils::resource::resource_location_hasher>
         m_files;
 
-    std::shared_ptr<file_impl> prepare_edited_file_for_change(mapped_file*& file);
+    std::shared_ptr<mapped_file> prepare_edited_file_for_change(mapped_file*& file);
 
-    std::pair<std::shared_ptr<file_impl>, decltype(m_files)::iterator> add_file_unsafe(const file_location&);
+    std::pair<std::shared_ptr<mapped_file>, decltype(m_files)::iterator> add_file_unsafe(const file_location&);
 
 protected:
     const auto& get_files() const { return m_files; }
 };
-
-#pragma warning(pop)
 
 } // namespace hlasm_plugin::parser_library::workspaces
 
