@@ -67,44 +67,6 @@ update_file_result file_impl::load_text()
     return update_file_result::bad;
 }
 
-// adds positions of newlines into vector 'lines'
-size_t find_newlines(std::string_view text, std::vector<size_t>& lines)
-{
-    size_t before = lines.size();
-    bool was_r = false;
-    for (size_t i = 0; i < text.size(); ++i)
-    {
-        char ch = text[i];
-        if (was_r)
-        {
-            if (ch == '\n')
-            {
-                lines.push_back(i + 1);
-                was_r = false;
-            }
-            else if (ch == '\r')
-                lines.push_back(i);
-            else
-            {
-                lines.push_back(i);
-                was_r = false;
-            }
-        }
-        else
-        {
-            if (ch == '\n')
-                lines.push_back(i + 1);
-            else if (ch == '\r')
-                was_r = true;
-        }
-    }
-
-    if (was_r)
-        lines.push_back(text.size());
-
-    return lines.size() - before;
-}
-
 open_file_result file_impl::did_open(std::string new_text, version_t version)
 {
     bool identical = get_text_ref() == new_text;
@@ -115,10 +77,7 @@ open_file_result file_impl::did_open(std::string new_text, version_t version)
 
     lsp_version_ = version;
 
-    lines_ind_.clear();
-    lines_ind_.push_back(0);
-
-    find_newlines(get_text_ref(), lines_ind_);
+    create_line_indices(lines_ind_, get_text_ref());
     up_to_date_ = true;
     bad_ = false;
     editing_ = true;
@@ -143,8 +102,7 @@ void file_impl::did_change(range range, std::string new_text)
     ++lsp_version_;
 
     std::vector<size_t> new_lines;
-
-    find_newlines(new_text, new_lines);
+    find_newlines(new_lines, new_text);
 
     size_t old_lines_count = range_end_line - range_start_line;
     size_t new_lines_count = new_lines.size();
@@ -185,9 +143,7 @@ void file_impl::did_change(range range, std::string new_text)
 void file_impl::did_change(std::string new_text)
 {
     replace_text(std::move(new_text));
-    lines_ind_.clear();
-    lines_ind_.push_back(0);
-    find_newlines(get_text_ref(), lines_ind_);
+    create_line_indices(lines_ind_, get_text_ref());
     ++lsp_version_;
 }
 
@@ -203,43 +159,5 @@ void file_impl::replace_text(std::string s)
     text_ = std::move(s);
     version_ = ++global_version;
 }
-
-size_t file_impl::index_from_position(std::string_view text, const std::vector<size_t>& line_indices, position loc)
-{
-    size_t end = (size_t)loc.column;
-    if (loc.line >= line_indices.size())
-        return text.size();
-    size_t i = line_indices[loc.line];
-    size_t utf16_counter = 0;
-
-    while (utf16_counter < end && i < text.size())
-    {
-        if (!utils::utf8_one_byte_begin(text[i]))
-        {
-            const auto cs = utils::utf8_prefix_sizes[(unsigned char)text[i]];
-
-            if (!cs.utf8)
-                throw std::runtime_error("The text of the file is not in utf-8."); // WRONG UTF-8 input
-
-            i += cs.utf8;
-            utf16_counter += cs.utf16;
-        }
-        else
-        {
-            ++i;
-            ++utf16_counter;
-        }
-    }
-    return i;
-}
-
-std::vector<size_t> file_impl::create_line_indices(std::string_view text)
-{
-    std::vector<size_t> ret;
-    ret.push_back(0);
-    find_newlines(text, ret);
-    return ret;
-}
-
 
 } // namespace hlasm_plugin::parser_library::workspaces

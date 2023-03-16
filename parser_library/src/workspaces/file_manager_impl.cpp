@@ -26,6 +26,85 @@
 
 namespace hlasm_plugin::parser_library::workspaces {
 
+size_t index_from_position(std::string_view text, const std::vector<size_t>& line_indices, position loc)
+{
+    size_t end = (size_t)loc.column;
+    if (loc.line >= line_indices.size())
+        return text.size();
+    size_t i = line_indices[loc.line];
+    size_t utf16_counter = 0;
+
+    while (utf16_counter < end && i < text.size())
+    {
+        unsigned char c = text[i];
+        if (!utils::utf8_one_byte_begin(c))
+        {
+            const auto cs = utils::utf8_prefix_sizes[c];
+
+            if (!cs.utf8)
+                throw std::runtime_error("The text of the file is not in utf-8."); // WRONG UTF-8 input
+
+            i += cs.utf8;
+            utf16_counter += cs.utf16;
+        }
+        else
+        {
+            ++i;
+            ++utf16_counter;
+        }
+    }
+    return i;
+}
+
+void find_newlines(std::vector<size_t>& output, std::string_view text)
+{
+    bool was_r = false;
+    for (size_t i = 0; i < text.size(); ++i)
+    {
+        char ch = text[i];
+        if (was_r)
+        {
+            if (ch == '\n')
+            {
+                output.push_back(i + 1);
+                was_r = false;
+            }
+            else if (ch == '\r')
+                output.push_back(i);
+            else
+            {
+                output.push_back(i);
+                was_r = false;
+            }
+        }
+        else
+        {
+            if (ch == '\n')
+                output.push_back(i + 1);
+            else if (ch == '\r')
+                was_r = true;
+        }
+    }
+
+    if (was_r)
+        output.push_back(text.size());
+}
+
+std::vector<size_t> create_line_indices(std::string_view text)
+{
+    std::vector<size_t> ret;
+    create_line_indices(ret, text);
+    return ret;
+}
+
+void create_line_indices(std::vector<size_t>& output, std::string_view text)
+{
+    output.clear();
+    output.push_back(0);
+    find_newlines(output, text);
+}
+
+
 struct file_manager_impl::mapped_file : std::enable_shared_from_this<mapped_file>
 {
     file_impl file;
