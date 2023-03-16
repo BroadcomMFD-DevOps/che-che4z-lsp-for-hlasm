@@ -80,6 +80,54 @@ void create_line_indices(std::vector<size_t>& output, std::string_view text)
     find_newlines(output, text);
 }
 
+void apply_text_diff(std::string& text, std::vector<size_t>& lines, range r, std::string_view replacement)
+{
+    size_t range_end_line = (size_t)r.end.line;
+    size_t range_start_line = (size_t)r.start.line;
+
+    size_t begin = index_from_position(text, lines, r.start);
+    size_t end = index_from_position(text, lines, r.end);
+
+    text.replace(begin, end - begin, replacement);
+
+    std::vector<size_t> new_lines;
+    find_newlines(new_lines, replacement);
+
+    size_t old_lines_count = range_end_line - range_start_line;
+    size_t new_lines_count = new_lines.size();
+
+    size_t char_diff = replacement.size() - (end - begin);
+
+    // add or remove lines depending on the difference
+    if (new_lines_count > old_lines_count)
+    {
+        size_t diff = new_lines_count - old_lines_count;
+        lines.insert(lines.end(), diff, 0);
+
+        for (size_t i = lines.size() - 1; i > range_end_line + diff; --i)
+        {
+            lines[i] = lines[i - diff] + char_diff;
+        }
+    }
+    else
+    {
+        size_t diff = old_lines_count - new_lines_count;
+
+        for (size_t i = range_start_line + 1 + new_lines_count; i < lines.size() - diff; ++i)
+        {
+            lines[i] = lines[i + diff] + char_diff;
+        }
+
+        for (size_t i = 0; i < diff; ++i)
+            lines.pop_back();
+    }
+
+
+    for (size_t i = range_start_line + 1; i <= range_start_line + new_lines_count; ++i)
+    {
+        lines[i] = new_lines[i - (size_t)range_start_line - 1] + begin;
+    }
+}
 
 struct file_manager_impl::mapped_file : std::enable_shared_from_this<mapped_file>
 {

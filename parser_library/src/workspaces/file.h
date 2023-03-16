@@ -68,6 +68,8 @@ void create_line_indices(std::vector<size_t>& output, std::string_view text);
 // Returns the location in text that corresponds to utf-16 based location
 // The position may point beyond the last character -> returns text.size()
 size_t index_from_position(std::string_view text, const std::vector<size_t>& line_indices, position pos);
+// apply incremental change
+void apply_text_diff(std::string& text, std::vector<size_t>& lines, range r, std::string_view replacement);
 
 
 } // namespace hlasm_plugin::parser_library::workspaces

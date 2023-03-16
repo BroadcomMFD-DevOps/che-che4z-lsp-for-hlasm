@@ -21,7 +21,6 @@
 #include <unordered_set>
 
 #include "context/instruction.h"
-#include "file_impl.h"
 #include "file_manager.h"
 #include "lsp/document_symbol_item.h"
 #include "lsp/item_convertors.h"

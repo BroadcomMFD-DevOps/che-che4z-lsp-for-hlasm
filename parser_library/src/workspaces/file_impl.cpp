@@ -91,53 +91,9 @@ bool file_impl::get_lsp_editing() const { return editing_; }
 // applies a change to the text and updates line beginnings
 void file_impl::did_change(range range, std::string new_text)
 {
-    size_t range_end_line = (size_t)range.end.line;
-    size_t range_start_line = (size_t)range.start.line;
-
-    size_t begin = index_from_position(get_text_ref(), lines_ind_, range.start);
-    size_t end = index_from_position(get_text_ref(), lines_ind_, range.end);
-
-    text_.replace(begin, end - begin, new_text);
+    apply_text_diff(text_, lines_ind_, range, new_text);
     version_ = ++global_version;
     ++lsp_version_;
-
-    std::vector<size_t> new_lines;
-    find_newlines(new_lines, new_text);
-
-    size_t old_lines_count = range_end_line - range_start_line;
-    size_t new_lines_count = new_lines.size();
-
-    size_t char_diff = new_text.size() - (end - begin);
-
-    // add or remove lines depending on the difference
-    if (new_lines_count > old_lines_count)
-    {
-        size_t diff = new_lines_count - old_lines_count;
-        lines_ind_.insert(lines_ind_.end(), diff, 0);
-
-        for (size_t i = lines_ind_.size() - 1; i > range_end_line + diff; --i)
-        {
-            lines_ind_[i] = lines_ind_[i - diff] + char_diff;
-        }
-    }
-    else
-    {
-        size_t diff = old_lines_count - new_lines_count;
-
-        for (size_t i = range_start_line + 1 + new_lines_count; i < lines_ind_.size() - diff; ++i)
-        {
-            lines_ind_[i] = lines_ind_[i + diff] + char_diff;
-        }
-
-        for (size_t i = 0; i < diff; ++i)
-            lines_ind_.pop_back();
-    }
-
-
-    for (size_t i = range_start_line + 1; i <= range_start_line + new_lines_count; ++i)
-    {
-        lines_ind_[i] = new_lines[i - (size_t)range_start_line - 1] + begin;
-    }
 }
 
 void file_impl::did_change(std::string new_text)

@@ -14,7 +14,7 @@
 
 #include "text_data_view.h"
 
-#include "workspaces/file_impl.h"
+#include "workspaces/file.h"
 
 namespace hlasm_plugin::parser_library::lsp {
 
