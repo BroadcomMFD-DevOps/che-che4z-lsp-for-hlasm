@@ -62,12 +62,14 @@ struct workspace_parse_lib_provider final : public parse_lib_provider
             assert(found);
 
             auto file = found->current_source();
+            const auto& loaded_text = file->get_text();
+            auto loaded_version = file->get_version();
 
             auto cache_key = macro_cache_key::create_from_context(*ctx.hlasm_ctx, data);
 
             auto& macro_cache =
                 pfc.m_macro_cache
-                    .try_emplace(std::make_pair(std::move(url), file->get_version()), ws.get_file_manager(), file)
+                    .try_emplace(std::make_pair(std::move(url), loaded_version), ws.get_file_manager(), file)
                     .first->second;
 
             if (macro_cache.load_from_cache(cache_key, ctx))
@@ -77,7 +79,7 @@ struct workspace_parse_lib_provider final : public parse_lib_provider
             }
 
             const bool collect_hl = found->should_collect_hl(ctx.hlasm_ctx.get());
-            analyzer a(file->get_text(),
+            analyzer a(loaded_text,
                 analyzer_options {
                     file->get_location(),
                     this,
