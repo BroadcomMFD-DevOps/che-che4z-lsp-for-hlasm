@@ -41,14 +41,14 @@ public:
 
     const file_location& get_location() override;
     const std::string& get_text() override;
-    version_t get_lsp_version() override;
+    version_t get_lsp_version() /*override*/;
     version_t get_version() override;
     bool get_lsp_editing() const override;
 
-    open_file_result did_open(std::string new_text, version_t version) override;
-    void did_change(std::string new_text) override;
-    void did_change(range range, std::string new_text) override;
-    void did_close() override;
+    open_file_result did_open(std::string new_text, version_t version) /*override*/;
+    void did_change(std::string new_text) /*override*/;
+    void did_change(range range, std::string new_text) /*override*/;
+    void did_close() /*override*/;
 
     virtual ~file_impl() = default;
 

@@ -44,17 +44,8 @@ public:
     virtual const std::string& get_text() = 0;
     // Returns whether file is open by LSP.
     virtual bool get_lsp_editing() const = 0;
-
-    // Gets LSP version of file.
-    virtual version_t get_lsp_version() = 0;
     // Internal unique version
     virtual version_t get_version() = 0;
-
-    // LSP notifications
-    virtual open_file_result did_open(std::string new_text, version_t version) = 0;
-    virtual void did_change(std::string new_text) = 0;
-    virtual void did_change(range range, std::string new_text) = 0;
-    virtual void did_close() = 0;
 
 protected:
     ~file() = default;
