@@ -58,36 +58,12 @@ size_t index_from_position(std::string_view text, const std::vector<size_t>& lin
 
 void find_newlines(std::vector<size_t>& output, std::string_view text)
 {
-    bool was_r = false;
-    for (size_t i = 0; i < text.size(); ++i)
+    static constexpr std::string_view nl("\r\n");
+    for (auto i = text.find_first_of(nl); i != std::string_view::npos; i = text.find_first_of(nl, i))
     {
-        char ch = text[i];
-        if (was_r)
-        {
-            if (ch == '\n')
-            {
-                output.push_back(i + 1);
-                was_r = false;
-            }
-            else if (ch == '\r')
-                output.push_back(i);
-            else
-            {
-                output.push_back(i);
-                was_r = false;
-            }
-        }
-        else
-        {
-            if (ch == '\n')
-                output.push_back(i + 1);
-            else if (ch == '\r')
-                was_r = true;
-        }
+        i += 1 + text.substr(i).starts_with(nl);
+        output.push_back(i);
     }
-
-    if (was_r)
-        output.push_back(text.size());
 }
 
 std::vector<size_t> create_line_indices(std::string_view text)
