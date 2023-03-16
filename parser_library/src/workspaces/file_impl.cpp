@@ -204,15 +204,6 @@ void file_impl::replace_text(std::string s)
     version_ = ++global_version;
 }
 
-update_file_result file_impl::update_and_get_bad()
-{
-    // If user is editing file through LSP, do not load from disk.
-    if (editing_)
-        return update_file_result::identical;
-
-    return load_text();
-}
-
 size_t file_impl::index_from_position(std::string_view text, const std::vector<size_t>& line_indices, position loc)
 {
     size_t end = (size_t)loc.column;

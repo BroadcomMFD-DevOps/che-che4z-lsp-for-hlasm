@@ -42,9 +42,6 @@ public:
     virtual const file_location& get_location() = 0;
     // Gets contents of file either by loading from disk or from LSP.
     virtual const std::string& get_text() = 0;
-    // Returns whether file is bad - bad file cannot be loaded from disk.
-    // LSP files are never bad.
-    virtual update_file_result update_and_get_bad() = 0;
     // Returns whether file is open by LSP.
     virtual bool get_lsp_editing() const = 0;
 

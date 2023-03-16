@@ -15,6 +15,7 @@
 #include "file_manager_impl.h"
 
 #include <map>
+#include <memory>
 #include <span>
 
 #include "file_impl.h"
@@ -25,19 +26,62 @@
 
 namespace hlasm_plugin::parser_library::workspaces {
 
-std::shared_ptr<file> file_manager_impl::add_file(const file_location& file)
+struct file_manager_impl::mapped_file : std::enable_shared_from_this<mapped_file>
+{
+    file_impl file;
+    file_manager_impl& fm;
+    decltype(file_manager_impl::m_files)::const_iterator it;
+    std::shared_ptr<void> editing_self_reference;
+
+    mapped_file(const file_location& file_name, file_manager_impl& fm)
+        : file(file_name)
+        , fm(fm)
+    {}
+
+    mapped_file(const file_impl& file, file_manager_impl& fm)
+        : file(file)
+        , fm(fm)
+    {}
+
+    ~mapped_file()
+    {
+        if (it != fm.m_files.end())
+        {
+            std::lock_guard guard(fm.files_mutex);
+            fm.m_files.erase(it);
+        }
+    }
+};
+
+std::shared_ptr<file> file_manager_impl::add_file(const file_location& file_name)
 {
     std::lock_guard guard(files_mutex);
-    auto [ret, _] = files_.try_emplace(file, std::make_shared<file_impl>(file));
-    return ret->second;
+    return add_file_unsafe(file_name).first;
 }
 
-std::optional<std::string> file_manager_impl::get_file_content(
-    const utils::resource::resource_location& file_name) const
+std::pair<std::shared_ptr<file_impl>, decltype(file_manager_impl::m_files)::iterator>
+file_manager_impl::add_file_unsafe(const file_location& file_name)
 {
+    std::shared_ptr<mapped_file> mf;
+    auto it = m_files.find(file_name);
+    if (it == m_files.end())
+    {
+        mf = std::make_shared<mapped_file>(file_name, *this);
+        mf->it = it = m_files.emplace(file_name, mf.get()).first;
+    }
+    else
+        mf = it->second->shared_from_this();
+
+    return { std::shared_ptr<file_impl>(std::move(mf), &mf->file), it };
+}
+
+std::optional<std::string> file_manager_impl::get_file_content(const utils::resource::resource_location& file_name)
+{
+    std::shared_ptr<file_impl> file;
+
     std::lock_guard guard(files_mutex);
-    auto it = files_.find(file_name);
-    auto file = it == files_.end() ? std::make_shared<file_impl>(file_name) : it->second;
+
+    file = add_file_unsafe(file_name).first;
 
     std::optional<std::string> result(file->get_text());
     if (file->is_bad())
@@ -46,24 +90,15 @@ std::optional<std::string> file_manager_impl::get_file_content(
     return result;
 }
 
-void file_manager_impl::remove_file(const file_location& file)
-{
-    std::lock_guard guard(files_mutex);
-    if (!files_.contains(file))
-        return;
-
-    // close the file internally
-    files_.erase(file);
-}
-
 std::shared_ptr<file> file_manager_impl::find(const utils::resource::resource_location& key) const
 {
     std::lock_guard guard(files_mutex);
-    auto ret = files_.find(key);
-    if (ret == files_.end())
+    auto ret = m_files.find(key);
+    if (ret == m_files.end())
         return nullptr;
 
-    return ret->second;
+    auto mf = ret->second->shared_from_this();
+    return std::shared_ptr<file>(std::move(mf), &mf->file);
 }
 
 list_directory_result file_manager_impl::list_directory_files(const utils::resource::resource_location& directory) const
@@ -82,43 +117,56 @@ std::string file_manager_impl::canonical(const utils::resource::resource_locatio
     return utils::resource::canonical(res_loc, ec);
 }
 
-void file_manager_impl::prepare_file_for_change_(std::shared_ptr<file_impl>& file)
+std::shared_ptr<file_impl> file_manager_impl::prepare_edited_file_for_change(mapped_file*& file)
 {
-    if (file.use_count() == 1) // TODO: possible weak_ptr issue
-        return;
-    // another shared ptr to this file exists, we need to create a copy
-    file = std::make_shared<file_impl>(*file);
+    auto old_file = file->shared_from_this();
+    auto new_file = std::make_shared<mapped_file>(old_file->file, *this);
+
+    old_file->it = m_files.end();
+    old_file->editing_self_reference.reset();
+
+    file = new_file.get();
+
+    new_file->editing_self_reference = new_file;
+
+    return std::shared_ptr<file_impl>(std::move(new_file), &new_file->file);
 }
 
 open_file_result file_manager_impl::did_open_file(
     const file_location& document_loc, version_t version, std::string text)
 {
     std::lock_guard guard(files_mutex);
-    auto [ret, inserted] = files_.try_emplace(document_loc, std::make_shared<file_impl>(document_loc));
-    if (ret->second->is_text_loaded() && ret->second->get_text() != text)
-        prepare_file_for_change_(ret->second);
-    auto changed = ret->second->did_open(std::move(text), version);
-    return inserted ? open_file_result::changed_content : changed;
+
+    auto [file, it] = add_file_unsafe(document_loc);
+
+    assert(!file->get_lsp_editing());
+    if (file.use_count() == 1)
+    {
+        it->second->editing_self_reference = file;
+        file->did_open(std::move(text), version);
+        return open_file_result::changed_content;
+    }
+
+    if (file->is_text_loaded() && file->get_text() != text)
+        file = prepare_edited_file_for_change(it->second);
+    return file->did_open(std::move(text), version);
 }
 
 void file_manager_impl::did_change_file(
     const file_location& document_loc, version_t, const document_change* changes_start, size_t ch_size)
 {
-    // TODO
-    // the version is the version after the changes -> I don't see how is that useful
-    // should we just overwrite the version??
-    // on the other hand, the spec clearly specifies that each change increments version by one.
-
-    std::lock_guard guard(files_mutex);
-
-    auto file = files_.find(document_loc);
-    if (file == files_.end())
-        return; // if the file does not exist, no action is taken
-
     if (!ch_size)
         return;
 
-    prepare_file_for_change_(file->second);
+    std::lock_guard guard(files_mutex);
+
+    auto it = m_files.find(document_loc);
+    if (it == m_files.end())
+        return; // if the file does not exist, no action is taken
+
+    auto file = std::shared_ptr<file_impl>(it->second->shared_from_this(), &it->second->file);
+    if (file.use_count() > 1 + (it->second->editing_self_reference != nullptr))
+        file = prepare_edited_file_for_change(it->second);
 
     auto last_whole = changes_start + ch_size;
     while (last_whole != changes_start)
@@ -132,26 +180,30 @@ void file_manager_impl::did_change_file(
     {
         std::string text_s(change.text, change.text_length);
         if (change.whole)
-            file->second->did_change(std::move(text_s));
+            file->did_change(std::move(text_s));
         else
-            file->second->did_change(change.change_range, std::move(text_s));
+            file->did_change(change.change_range, std::move(text_s));
     }
 }
 
 void file_manager_impl::did_close_file(const file_location& document_loc)
 {
+    std::shared_ptr<void> to_release;
+
     std::lock_guard guard(files_mutex);
-    auto file = files_.find(document_loc);
-    if (file == files_.end())
+    auto file = m_files.find(document_loc);
+    if (file == m_files.end())
         return;
 
-    if (!file->second->is_text_loaded()
-        || file->second->get_text() == utils::resource::load_text(file->second->get_location()))
-        file->second->did_close(); // close the file externally, content is accurate
+    std::swap(to_release, file->second->editing_self_reference);
+    if (!file->second->file.is_text_loaded()
+        || file->second->file.get_text() == utils::resource::load_text(file->second->file.get_location()))
+        file->second->file.did_close(); // close the file externally, content is accurate
     else
-        file->second = std::make_shared<file_impl>(file->second->get_location()); // our version is not accurate
-
-    // if the file does not exist, no action is taken
+    {
+        file->second->it = m_files.end();
+        m_files.erase(file);
+    }
 }
 
 bool file_manager_impl::dir_exists(const utils::resource::resource_location& dir_loc) const
@@ -191,14 +243,36 @@ utils::resource::resource_location file_manager_impl::get_virtual_file_workspace
 open_file_result file_manager_impl::update_file(const file_location& document_loc)
 {
     std::lock_guard guard(files_mutex);
-    auto f = files_.find(document_loc);
-    if (f == files_.end())
+    auto f = m_files.find(document_loc);
+    if (f == m_files.end())
         return open_file_result::identical;
 
-    if (f->second->update_and_get_bad() == update_file_result::identical)
+    if (f->second->file.get_lsp_editing())
         return open_file_result::identical;
-    else
-        return open_file_result::changed_content;
+
+    // the mere existence of m_files entry indicates live handle
+
+    auto result = open_file_result::identical;
+
+    auto current_text = utils::resource::load_text(document_loc);
+
+    if (f->second->file.is_bad())
+    {
+        if (current_text.has_value())
+            result = open_file_result::changed_content;
+    }
+    else if (!f->second->file.is_text_loaded())
+        result = open_file_result::changed_content;
+    else if (f->second->file.get_text() != current_text.value())
+        result = open_file_result::changed_content;
+
+    if (result == open_file_result::changed_content)
+    {
+        f->second->it = m_files.end();
+        m_files.erase(f);
+    }
+
+    return result;
 }
 
 } // namespace hlasm_plugin::parser_library::workspaces

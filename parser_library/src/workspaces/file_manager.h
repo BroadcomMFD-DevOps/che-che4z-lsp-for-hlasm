@@ -51,8 +51,6 @@ public:
     // If such processor file already exists, it is returned.
     virtual std::shared_ptr<file> add_file(const file_location&) = 0;
 
-    virtual void remove_file(const file_location&) = 0;
-
     // Finds file with specified file name, return nullptr if not found.
     virtual std::shared_ptr<file> find(const file_location& key) const = 0;
 
@@ -82,7 +80,7 @@ public:
 
     virtual open_file_result update_file(const file_location& document_loc) = 0;
 
-    virtual std::optional<std::string> get_file_content(const utils::resource::resource_location&) const = 0;
+    virtual std::optional<std::string> get_file_content(const utils::resource::resource_location&) = 0;
 
 protected:
     ~file_manager() = default;

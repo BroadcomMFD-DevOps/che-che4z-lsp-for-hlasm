@@ -47,7 +47,6 @@ public:
     file_manager_impl& operator=(file_manager_impl&&) = delete;
 
     std::shared_ptr<file> add_file(const file_location&) override;
-    void remove_file(const file_location&) override;
 
     std::shared_ptr<file> find(const utils::resource::resource_location& key) const override;
 
@@ -74,7 +73,7 @@ public:
 
     open_file_result update_file(const file_location& document_loc) override;
 
-    std::optional<std::string> get_file_content(const utils::resource::resource_location&) const override;
+    std::optional<std::string> get_file_content(const utils::resource::resource_location&) override;
 
 private:
     struct virtual_file_entry
@@ -92,16 +91,19 @@ private:
         {}
     };
     std::unordered_map<unsigned long long, virtual_file_entry> m_virtual_files;
-    // m_virtual_files must outlive the files_
-    std::unordered_map<utils::resource::resource_location,
-        std::shared_ptr<file_impl>,
-        utils::resource::resource_location_hasher>
-        files_;
 
-    static void prepare_file_for_change_(std::shared_ptr<file_impl>& file);
+    struct mapped_file;
+
+    // m_virtual_files must outlive the m_files
+    std::unordered_map<utils::resource::resource_location, mapped_file*, utils::resource::resource_location_hasher>
+        m_files;
+
+    std::shared_ptr<file_impl> prepare_edited_file_for_change(mapped_file*& file);
+
+    std::pair<std::shared_ptr<file_impl>, decltype(m_files)::iterator> add_file_unsafe(const file_location&);
 
 protected:
-    const auto& get_files() const { return files_; }
+    const auto& get_files() const { return m_files; }
 };
 
 #pragma warning(pop)

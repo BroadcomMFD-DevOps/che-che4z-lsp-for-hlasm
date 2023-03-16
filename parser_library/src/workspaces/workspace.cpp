@@ -590,10 +590,7 @@ void workspace::did_close_file(const utils::resource::resource_location& file_lo
     // first check whether the file is a dependency
     // if so, simply close it, no other action is needed
     if (is_dependency_(file_location))
-    {
-        file_manager_.did_close_file(file_location);
         return;
-    }
 
     std::vector<utils::resource::resource_location> deps_to_cleanup;
 
@@ -608,8 +605,6 @@ void workspace::did_close_file(const utils::resource::resource_location& file_lo
 
     // close the file itself
     m_processor_files.erase(fcomp);
-    file_manager_.did_close_file(file_location);
-    file_manager_.remove_file(file_location);
 }
 
 void workspace::did_change_file(
@@ -861,33 +856,28 @@ std::vector<std::pair<std::string, size_t>> workspace::make_opcode_suggestion(
 }
 
 void workspace::filter_and_close_dependencies_(
-    const std::set<utils::resource::resource_location>& dependencies, std::shared_ptr<processor_file> file)
+    std::set<utils::resource::resource_location> dependencies, std::shared_ptr<processor_file> file)
 {
-    std::set<utils::resource::resource_location> filtered;
-    // filters out externally open files
-    for (const auto& dependency : dependencies)
-        if (auto dep_file = file_manager_.find(dependency); dep_file && !dep_file->get_lsp_editing())
-            filtered.insert(dependency);
-
-    if (filtered.empty())
+    if (dependencies.empty())
         return;
 
     // filters the files that are dependencies of other dependants and externally open files
     for (const auto& [_, component] : m_processor_files)
     {
-        for (auto& dependency : component.m_processor_file->dependencies())
+        if (component.m_opened)
+            dependencies.erase(component.m_processor_file->get_location());
+
+        for (const auto& dependency : component.m_processor_file->dependencies())
         {
-            if (component.m_processor_file->get_location() != file->get_location() && filtered.contains(dependency))
-                filtered.erase(dependency);
+            if (component.m_processor_file->get_location() != file->get_location() && dependencies.contains(dependency))
+                dependencies.erase(dependency);
         }
     }
 
     // close all exclusive dependencies of file
-    for (auto& dep : filtered)
+    for (const auto& dep : dependencies)
     {
         m_processor_files.erase(dep);
-        file_manager_.did_close_file(dep);
-        file_manager_.remove_file(dep);
     }
 }
 
