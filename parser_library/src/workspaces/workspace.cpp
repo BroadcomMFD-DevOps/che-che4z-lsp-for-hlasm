@@ -616,8 +616,8 @@ void workspace::did_change_watched_files(const std::vector<utils::resource::reso
     bool refreshed = refresh_libraries(file_locations);
     for (const auto& file_location : file_locations)
     {
-        parse_file(
-            file_location, refreshed ? open_file_result::changed_content : file_manager_.update_file(file_location));
+        auto from_fm = file_manager_.update_file(file_location);
+        parse_file(file_location, refreshed ? open_file_result::changed_content : from_fm);
     }
 }
 

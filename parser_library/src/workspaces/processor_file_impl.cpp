@@ -121,11 +121,7 @@ const processing::hit_count_map& processor_file_impl::hit_count_map() const { re
 
 const file_location& processor_file_impl::get_location() const { return m_file->get_location(); }
 
-bool processor_file_impl::current_version() const
-{
-    auto f = m_file_mngr.find(get_location());
-    return f == m_file;
-}
+bool processor_file_impl::current_version() const { return m_file->up_to_date(); }
 
 void processor_file_impl::update_source()
 {

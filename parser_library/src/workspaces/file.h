@@ -47,6 +47,8 @@ public:
     virtual version_t get_version() const = 0;
     // file is in error state
     virtual bool error() const = 0;
+    // Tests if the file is up-to-date
+    virtual bool up_to_date() const = 0;
 
 protected:
     ~file() = default;

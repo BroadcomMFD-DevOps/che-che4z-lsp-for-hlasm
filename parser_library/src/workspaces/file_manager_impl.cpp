@@ -196,6 +196,12 @@ struct file_manager_impl::mapped_file final : std::enable_shared_from_this<mappe
     bool get_lsp_editing() const override { return m_editing_self_reference != nullptr; }
     version_t get_version() const override { return m_version; }
     bool error() const override { return m_error.has_value(); }
+
+    bool up_to_date() const override
+    {
+        std::lock_guard guard(m_fm.files_mutex);
+        return m_it != m_fm.m_files.end() || m_closed_it != m_fm.m_files_closed.end();
+    }
 };
 
 class : public external_file_reader
@@ -307,7 +313,8 @@ open_file_result file_manager_impl::did_open_file(
     auto it = m_files.find(document_loc);
     if (it == m_files.end() || it->second->m_error || it->second->m_text != new_text)
     {
-        std::shared_ptr<mapped_file> result;
+        auto result = open_file_result::changed_content;
+        std::shared_ptr<mapped_file> file;
 
         if (it != m_files.end())
         {
@@ -315,17 +322,19 @@ open_file_result file_manager_impl::did_open_file(
             it->second->m_it = m_files.end();
         }
         else
-            result = revive_file(document_loc, new_text);
+            file = revive_file(document_loc, new_text);
 
-        if (!result)
-            result = std::make_shared<mapped_file>(document_loc, *this, new_text);
+        if (!file)
+            file = std::make_shared<mapped_file>(document_loc, *this, new_text);
+        else
+            result = open_file_result::changed_lsp;
 
-        result->m_lsp_version = version;
+        file->m_lsp_version = version;
 
-        result->m_it = m_files.insert_or_assign(document_loc, result.get()).first;
-        result->m_editing_self_reference = result;
+        file->m_it = m_files.insert_or_assign(document_loc, file.get()).first;
+        file->m_editing_self_reference = file;
 
-        return open_file_result::changed_content;
+        return result;
     }
     else
     {
@@ -452,6 +461,13 @@ utils::resource::resource_location file_manager_impl::get_virtual_file_workspace
 open_file_result file_manager_impl::update_file(const file_location& document_loc)
 {
     std::unique_lock lock(files_mutex);
+
+    if (auto f = m_files_closed.find(document_loc); f != m_files_closed.end())
+    {
+        f->second.lock()->m_closed_it = m_files_closed.end();
+        m_files_closed.erase(f);
+    }
+
     auto f = m_files.find(document_loc);
     if (f == m_files.end())
         return open_file_result::identical;
