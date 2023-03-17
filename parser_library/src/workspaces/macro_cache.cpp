@@ -84,6 +84,7 @@ const macro_cache_data* macro_cache::find_cached_data(const macro_cache_key& key
         if (auto file = file_mngr_->find(fname); !file || file->get_version() != cached_version)
         {
             it->second.invalid = true;
+            has_invalid_entires = true;
             return nullptr; // Reparse needed
         }
     }
@@ -165,7 +166,10 @@ void macro_cache::save_macro(const macro_cache_key& key, const analyzer& analyze
 
 void macro_cache::erase_unused()
 {
+    if (!has_invalid_entires)
+        return;
     std::erase_if(cache_, [](const auto& e) { return e.second.invalid; });
+    has_invalid_entires = false;
 }
 
 } // namespace hlasm_plugin::parser_library::workspaces

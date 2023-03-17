@@ -92,6 +92,7 @@ class macro_cache final
     std::map<macro_cache_key, macro_cache_data> cache_;
     const file_manager* file_mngr_;
     std::shared_ptr<file> macro_file_;
+    mutable bool has_invalid_entires = false;
 
 public:
     macro_cache(const file_manager& file_mngr, std::shared_ptr<file> macro_file);

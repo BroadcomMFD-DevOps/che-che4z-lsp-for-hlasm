@@ -152,7 +152,10 @@ private:
     struct processor_file_compoments
     {
         std::shared_ptr<processor_file_impl> m_processor_file;
-        std::map<std::pair<resource_location, version_t>, macro_cache> m_macro_cache;
+        std::unordered_map<resource_location,
+            std::shared_ptr<std::pair<version_t, macro_cache>>,
+            resource_location_hasher>
+            m_macro_cache;
 
         resource_location m_alternative_config = resource_location();
 

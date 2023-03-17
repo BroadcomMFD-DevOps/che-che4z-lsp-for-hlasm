@@ -28,6 +28,7 @@
 #include "macro_cache.h"
 #include "processor_file_impl.h"
 #include "utils/bk_tree.h"
+#include "utils/factory.h"
 #include "utils/levenshtein_distance.h"
 #include "utils/path.h"
 
@@ -38,6 +39,10 @@ struct workspace_parse_lib_provider final : public parse_lib_provider
     workspace& ws;
     std::vector<std::shared_ptr<library>> libraries;
     workspace::processor_file_compoments& pfc;
+    std::unordered_map<utils::resource::resource_location,
+        std::shared_ptr<std::pair<version_t, macro_cache>>,
+        utils::resource::resource_location_hasher>
+        next_macro_cache;
 
     workspace_parse_lib_provider(workspace& ws, workspace::processor_file_compoments& pfc)
         : ws(ws)
@@ -61,26 +66,31 @@ struct workspace_parse_lib_provider final : public parse_lib_provider
             assert(found);
 
             auto file = found->current_source();
-            const auto& loaded_text = file->get_text();
-            auto loaded_version = file->get_version();
 
             auto cache_key = macro_cache_key::create_from_context(*ctx.hlasm_ctx, data);
 
-            auto& macro_cache =
-                pfc.m_macro_cache
-                    .try_emplace(std::make_pair(std::move(url), loaded_version), ws.get_file_manager(), file)
-                    .first->second;
+            auto& mc = next_macro_cache
+                           .try_emplace(url, utils::factory([&url, &file, this]() {
+                               auto version = file->get_version();
+                               if (auto it = pfc.m_macro_cache.find(url);
+                                   it != pfc.m_macro_cache.end() && it->second->first == version)
+                                   return it->second;
 
-            if (macro_cache.load_from_cache(cache_key, ctx))
+                               return std::make_shared<std::pair<version_t, macro_cache>>(
+                                   std::piecewise_construct, std::tie(version), std::tie(ws.get_file_manager(), file));
+                           }))
+                           .first->second->second;
+
+            if (mc.load_from_cache(cache_key, ctx))
             {
                 callback(true);
                 return;
             }
 
             const bool collect_hl = found->should_collect_hl(ctx.hlasm_ctx.get());
-            analyzer a(loaded_text,
+            analyzer a(file->get_text(),
                 analyzer_options {
-                    file->get_location(),
+                    std::move(url),
                     this,
                     std::move(ctx),
                     data,
@@ -102,7 +112,7 @@ struct workspace_parse_lib_provider final : public parse_lib_provider
             found->diags().clear();
             found->collect_diags_from_child(a);
 
-            macro_cache.save_macro(cache_key, a);
+            mc.save_macro(cache_key, a);
             found->m_last_analyzer_with_lsp = collect_hl;
             if (collect_hl)
                 found->m_last_results.hl_info = a.take_semantic_tokens();
@@ -546,20 +556,9 @@ workspace_file_info workspace::parse_successful(processor_file_compoments& comp,
         delete_diags(f);
     }
 
-    // now we can delete old cached files
-    for (auto it = comp.m_macro_cache.begin(); it != comp.m_macro_cache.end();)
-    {
-        auto n = std::next(it);
-        if (n == comp.m_macro_cache.end())
-            break;
-
-        if (it->first.first == n->first.first)
-            comp.m_macro_cache.erase(it);
-
-        it = n;
-    }
-    for (auto& c : comp.m_macro_cache)
-        c.second.erase_unused();
+    comp.m_macro_cache = std::move(libs.next_macro_cache);
+    for (auto& [_, ver_cache] : comp.m_macro_cache)
+        ver_cache->second.erase_unused();
 
     return ws_file_info;
 }
