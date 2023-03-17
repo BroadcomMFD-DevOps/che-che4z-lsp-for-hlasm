@@ -29,6 +29,15 @@
 
 namespace hlasm_plugin::parser_library::workspaces {
 
+class external_file_reader
+{
+public:
+    virtual std::optional<std::string> load_text(const utils::resource::resource_location& document_loc) = 0;
+
+protected:
+    ~external_file_reader() = default;
+};
+
 // Implementation of the file_manager interface.
 class file_manager_impl : public file_manager
 {
@@ -36,7 +45,8 @@ class file_manager_impl : public file_manager
     mutable std::mutex virtual_files_mutex;
 
 public:
-    file_manager_impl() = default;
+    file_manager_impl();
+    file_manager_impl(external_file_reader& file_reader);
     file_manager_impl(const file_manager_impl&) = delete;
     file_manager_impl& operator=(const file_manager_impl&) = delete;
 
@@ -73,6 +83,7 @@ public:
     std::optional<std::string> get_file_content(const utils::resource::resource_location&) override;
 
 private:
+    external_file_reader* m_file_reader;
     struct virtual_file_entry
     {
         std::string text;
@@ -94,10 +105,13 @@ private:
     // m_virtual_files must outlive the m_files
     std::unordered_map<utils::resource::resource_location, mapped_file*, utils::resource::resource_location_hasher>
         m_files;
+    std::unordered_map<utils::resource::resource_location,
+        std::weak_ptr<mapped_file>,
+        utils::resource::resource_location_hasher>
+        m_files_closed;
 
-    std::shared_ptr<mapped_file> prepare_edited_file_for_change(mapped_file*& file);
-
-    std::pair<std::shared_ptr<mapped_file>, decltype(m_files)::iterator> add_file_unsafe(const file_location&);
+    std::shared_ptr<mapped_file> revive_file(
+        const utils::resource::resource_location& file_name, std::optional<std::string_view> expected_text);
 
 protected:
     const auto& get_files() const { return m_files; }

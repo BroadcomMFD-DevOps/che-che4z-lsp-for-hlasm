@@ -45,6 +45,8 @@ public:
     virtual bool get_lsp_editing() const = 0;
     // Internal unique version
     virtual version_t get_version() const = 0;
+    // file is in error state
+    virtual bool error() const = 0;
 
 protected:
     ~file() = default;

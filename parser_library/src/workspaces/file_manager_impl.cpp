@@ -138,132 +138,137 @@ void apply_text_diff(std::string& text, std::vector<size_t>& lines, range r, std
 
 struct file_manager_impl::mapped_file final : std::enable_shared_from_this<mapped_file>, file
 {
+    file_location m_location;
+    std::string m_text;
     struct file_error
     {};
-    file_location m_location;
-    std::variant<std::monostate, file_error, std::string> m_text;
-    // Array of "pointers" to text_ where lines start.
+    std::optional<file_error> m_error;
+    // Array of "pointers" to m_text where lines start.
     std::vector<size_t> m_lines;
 
+    file_manager_impl& m_fm;
+
     version_t m_lsp_version = 0;
+
     version_t m_version = next_global_version();
 
-    file_manager_impl& m_fm;
-    decltype(file_manager_impl::m_files)::const_iterator m_it;
     std::shared_ptr<void> m_editing_self_reference;
+    decltype(file_manager_impl::m_files)::const_iterator m_it = m_fm.m_files.end();
+    decltype(file_manager_impl::m_files_closed)::const_iterator m_closed_it = m_fm.m_files_closed.end();
 
-    mapped_file(const file_location& file_name, file_manager_impl& fm)
+    mapped_file(const file_location& file_name, file_manager_impl& fm, std::string text)
         : m_location(file_name)
+        , m_text(std::move(text))
+        , m_lines(create_line_indices(m_text))
+        , m_fm(fm)
+    {}
+
+    mapped_file(const file_location& file_name, file_manager_impl& fm, file_error error)
+        : m_location(file_name)
+        , m_error(std::move(error))
         , m_fm(fm)
     {}
 
     mapped_file(const mapped_file& that)
         : m_location(that.m_location)
         , m_text(that.m_text)
+        , m_error(that.m_error)
         , m_lines(that.m_lines)
-        , m_lsp_version(that.m_lsp_version)
         , m_fm(that.m_fm)
-        , m_it(that.m_it)
+        , m_lsp_version(that.m_lsp_version)
     {}
 
     ~mapped_file()
     {
+        if (m_it == m_fm.m_files.end() && m_closed_it == m_fm.m_files_closed.end())
+            return;
+
+        std::lock_guard guard(m_fm.files_mutex);
         if (m_it != m_fm.m_files.end())
-        {
-            std::lock_guard guard(m_fm.files_mutex);
             m_fm.m_files.erase(m_it);
-        }
+        if (m_closed_it != m_fm.m_files_closed.end())
+            m_fm.m_files_closed.erase(m_closed_it);
     }
 
     // Inherited via file
     const file_location& get_location() override { return m_location; }
-    const std::string& get_text() override
-    {
-        static std::string empty_string;
-        if (std::holds_alternative<std::monostate>(m_text))
-            load_text();
-
-        if (std::holds_alternative<std::string>(m_text))
-            return std::get<std::string>(m_text);
-        else
-            return empty_string;
-    }
+    const std::string& get_text() override { return m_text; }
     bool get_lsp_editing() const override { return m_editing_self_reference != nullptr; }
     version_t get_version() const override { return m_version; }
-
-    update_file_result load_text()
-    {
-        if (auto loaded_text = utils::resource::load_text(m_location); loaded_text.has_value())
-        {
-            bool was_up_to_date = !std::holds_alternative<std::monostate>(m_text);
-            bool identical =
-                std::holds_alternative<std::string>(m_text) && std::get<std::string>(m_text) == loaded_text.value();
-            if (!identical)
-            {
-                replace_text(utils::replace_non_utf8_chars(loaded_text.value()));
-            }
-            return identical && was_up_to_date ? update_file_result::identical : update_file_result::changed;
-        }
-
-        m_text.emplace<file_error>();
-        m_version = next_global_version();
-
-        // TODO Figure out how to present this error in VSCode.
-        // Also think about the lifetime of the error as it seems that it will stay in Problem panel forever
-        // add_diagnostic(diagnostic_s::error_W0001(file_location_.to_presentable()));
-
-        return update_file_result::bad;
-    }
-
-    void replace_text(std::string&& s)
-    {
-        m_text = std::move(s);
-        create_line_indices(m_lines, std::get<std::string>(m_text));
-        m_version = next_global_version();
-    }
-    void replace_text(std::string_view s)
-    {
-        m_text.emplace<std::string>(std::move(s));
-        create_line_indices(m_lines, std::get<std::string>(m_text));
-        m_version = next_global_version();
-    }
+    bool error() const override { return m_error.has_value(); }
 };
+
+class : public external_file_reader
+{
+    std::optional<std::string> load_text(const utils::resource::resource_location& document_loc) final
+    {
+        return utils::resource::load_text(document_loc);
+    }
+} default_reader;
+
+file_manager_impl::file_manager_impl()
+    : file_manager_impl(default_reader)
+{}
+
+file_manager_impl::file_manager_impl(external_file_reader& file_reader)
+    : m_file_reader(&file_reader)
+{}
 
 std::shared_ptr<file> file_manager_impl::add_file(const file_location& file_name)
 {
-    std::lock_guard guard(files_mutex);
-    return add_file_unsafe(file_name).first;
+    std::unique_lock lock(files_mutex);
+    auto it = m_files.find(file_name);
+    if (it != m_files.end())
+        return it->second->shared_from_this();
+
+    lock.unlock();
+
+    auto loaded_text = m_file_reader->load_text(file_name);
+
+    lock.lock();
+
+    it = m_files.find(file_name);
+    if (it != m_files.end())
+        return it->second->shared_from_this();
+
+    auto result = revive_file(file_name, loaded_text);
+
+    if (!result)
+        result = loaded_text.has_value() ? std::make_shared<mapped_file>(file_name, *this, loaded_text.value())
+                                         : std::make_shared<mapped_file>(file_name, *this, mapped_file::file_error());
+
+    result->m_it = m_files.try_emplace(file_name, result.get()).first;
+
+    return result;
 }
 
-std::pair<std::shared_ptr<file_manager_impl::mapped_file>, decltype(file_manager_impl::m_files)::iterator>
-file_manager_impl::add_file_unsafe(const file_location& file_name)
-{
-    std::shared_ptr<mapped_file> mf;
-    auto it = m_files.find(file_name);
-    if (it == m_files.end())
-    {
-        mf = std::make_shared<mapped_file>(file_name, *this);
-        mf->m_it = it = m_files.emplace(file_name, mf.get()).first;
-    }
-    else
-        mf = it->second->shared_from_this();
 
-    return { std::move(mf), it };
+std::shared_ptr<file_manager_impl::mapped_file> file_manager_impl::revive_file(
+    const utils::resource::resource_location& file_name, std::optional<std::string_view> expected_text)
+{
+    auto closed = m_files_closed.find(file_name);
+    if (closed == m_files_closed.end())
+        return {};
+
+    auto result = closed->second.lock();
+    assert(result); // it should have been removed from m_files_closed on end of life
+
+    result->m_closed_it = m_files_closed.end();
+    m_files_closed.erase(closed);
+
+    if (expected_text.has_value() && result->m_text == expected_text.value())
+        return result;
+    else
+        return {};
 }
 
 std::optional<std::string> file_manager_impl::get_file_content(const utils::resource::resource_location& file_name)
 {
-    std::shared_ptr<mapped_file> file;
-
-    std::lock_guard guard(files_mutex);
-
-    file = add_file_unsafe(file_name).first;
-
-    std::optional<std::string> result(file->get_text());
-    if (std::holds_alternative<mapped_file::file_error>(file->m_text))
-        result.reset();
-
-    return result;
+    auto f = add_file(file_name);
+    if (f->error())
+        return std::nullopt;
+    else
+        return f->get_text();
 }
 
 std::shared_ptr<file> file_manager_impl::find(const utils::resource::resource_location& key) const
@@ -292,46 +297,43 @@ std::string file_manager_impl::canonical(const utils::resource::resource_locatio
     return utils::resource::canonical(res_loc, ec);
 }
 
-std::shared_ptr<file_manager_impl::mapped_file> file_manager_impl::prepare_edited_file_for_change(mapped_file*& file)
-{
-    auto old_file = file->shared_from_this();
-    auto new_file = std::make_shared<mapped_file>(*old_file);
-
-    old_file->m_it = m_files.end();
-    old_file->m_editing_self_reference.reset();
-
-    file = new_file.get();
-
-    new_file->m_editing_self_reference = new_file;
-
-    return new_file;
-}
-
 open_file_result file_manager_impl::did_open_file(
     const file_location& document_loc, version_t version, std::string new_text)
 {
+    std::shared_ptr<void> to_release;
+
     std::lock_guard guard(files_mutex);
 
-    auto [file, it] = add_file_unsafe(document_loc);
-
-    auto result = open_file_result::changed_lsp;
-    if (file.use_count() == 1 + file->get_lsp_editing())
+    auto it = m_files.find(document_loc);
+    if (it == m_files.end() || it->second->m_error || it->second->m_text != new_text)
     {
-        it->second->m_editing_self_reference = file;
-        file->replace_text(std::move(new_text));
-        result = open_file_result::changed_content;
+        std::shared_ptr<mapped_file> result;
+
+        if (it != m_files.end())
+        {
+            std::swap(to_release, it->second->m_editing_self_reference);
+            it->second->m_it = m_files.end();
+        }
+        else
+            result = revive_file(document_loc, new_text);
+
+        if (!result)
+            result = std::make_shared<mapped_file>(document_loc, *this, new_text);
+
+        result->m_lsp_version = version;
+
+        result->m_it = m_files.insert_or_assign(document_loc, result.get()).first;
+        result->m_editing_self_reference = result;
+
+        return open_file_result::changed_content;
     }
-    else if (!std::holds_alternative<std::string>(file->m_text) || std::get<std::string>(file->m_text) != new_text)
+    else
     {
-        file = prepare_edited_file_for_change(it->second);
-        file->replace_text(std::move(new_text));
-        result = open_file_result::changed_content;
+        it->second->m_lsp_version = version;
+        it->second->m_editing_self_reference = it->second->shared_from_this();
+
+        return open_file_result::changed_lsp;
     }
-
-    file->m_lsp_version = version;
-    file->m_editing_self_reference = file;
-
-    return result;
 }
 
 void file_manager_impl::did_change_file(
@@ -339,6 +341,8 @@ void file_manager_impl::did_change_file(
 {
     if (!ch_size)
         return;
+
+    std::shared_ptr<void> to_release;
 
     std::lock_guard guard(files_mutex);
 
@@ -348,7 +352,22 @@ void file_manager_impl::did_change_file(
 
     auto file = it->second->shared_from_this();
     if (file.use_count() > 1 + (it->second->m_editing_self_reference != nullptr))
-        file = prepare_edited_file_for_change(it->second);
+    {
+        // this file is already being used by others
+        auto new_file = std::make_shared<mapped_file>(*file);
+
+        new_file->m_editing_self_reference = new_file;
+        new_file->m_it = it;
+
+        it->second->m_it = m_files.end();
+        std::swap(to_release, it->second->m_editing_self_reference);
+
+        it->second = new_file.get();
+
+        std::swap(file, new_file);
+    }
+
+    // now we can be sure that we are the only ones who have access to file
 
     auto last_whole = changes_start + ch_size;
     while (last_whole != changes_start)
@@ -358,22 +377,18 @@ void file_manager_impl::did_change_file(
             break;
     }
 
-    if (!std::holds_alternative<std::string>(file->m_text)) // this should never really happen
-        file->m_text.emplace<std::string>();
+    if (last_whole->whole)
+    {
+        file->m_text = std::string_view(last_whole->text, last_whole->text_length);
+        ++last_whole;
+    }
 
     for (const auto& change : std::span(last_whole, changes_start + ch_size))
     {
         std::string_view text_s(change.text, change.text_length);
-        if (change.whole)
-        {
-            file->replace_text(text_s);
-            ++file->m_lsp_version;
-        }
-        else
-        {
-            apply_text_diff(std::get<std::string>(file->m_text), file->m_lines, change.change_range, text_s);
-        }
+        apply_text_diff(file->m_text, file->m_lines, change.change_range, text_s);
     }
+
     file->m_lsp_version += ch_size;
     file->m_version = next_global_version();
 }
@@ -383,16 +398,20 @@ void file_manager_impl::did_close_file(const file_location& document_loc)
     std::shared_ptr<void> to_release;
 
     std::lock_guard guard(files_mutex);
-    auto file = m_files.find(document_loc);
-    if (file == m_files.end())
+
+    auto it = m_files.find(document_loc);
+    if (it == m_files.end())
         return;
 
-    std::swap(to_release, file->second->m_editing_self_reference);
-    if (std::holds_alternative<std::string>(file->second->m_text)
-        && std::get<std::string>(file->second->m_text) != utils::resource::load_text(file->second->m_location))
+    auto file = it->second->shared_from_this();
+    std::swap(to_release, file->m_editing_self_reference);
+    file->m_it = m_files.end();
+    m_files.erase(it);
+
+    if (file.use_count() > 1 + (to_release != nullptr) && !file->m_error)
     {
-        file->second->m_it = m_files.end();
-        m_files.erase(file);
+        // somebody still uses the file, save it for possible re-open
+        file->m_closed_it = m_files_closed.insert_or_assign(document_loc, file).first;
     }
 }
 
@@ -432,7 +451,7 @@ utils::resource::resource_location file_manager_impl::get_virtual_file_workspace
 
 open_file_result file_manager_impl::update_file(const file_location& document_loc)
 {
-    std::lock_guard guard(files_mutex);
+    std::unique_lock lock(files_mutex);
     auto f = m_files.find(document_loc);
     if (f == m_files.end())
         return open_file_result::identical;
@@ -440,29 +459,25 @@ open_file_result file_manager_impl::update_file(const file_location& document_lo
     if (f->second->get_lsp_editing())
         return open_file_result::identical;
 
-    // the mere existence of m_files entry indicates live handle
+    lock.unlock();
 
-    auto result = open_file_result::identical;
+    auto current_text = m_file_reader->load_text(document_loc);
 
-    auto current_text = utils::resource::load_text(document_loc);
+    lock.lock();
 
-    if (std::holds_alternative<mapped_file::file_error>(f->second->m_text))
-    {
-        if (current_text.has_value())
-            result = open_file_result::changed_content;
-    }
-    else if (std::holds_alternative<std::monostate>(f->second->m_text))
-        result = open_file_result::changed_content;
-    else if (std::get<std::string>(f->second->m_text) != current_text.value())
-        result = open_file_result::changed_content;
+    f = m_files.find(document_loc);
+    if (f == m_files.end())
+        return open_file_result::identical;
 
-    if (result == open_file_result::changed_content)
-    {
-        f->second->m_it = m_files.end();
-        m_files.erase(f);
-    }
+    if (f->second->get_lsp_editing())
+        return open_file_result::identical;
 
-    return result;
+    if (f->second->m_error.has_value() && !current_text.has_value() || f->second->m_text == current_text)
+        return open_file_result::identical;
+
+    f->second->m_it = m_files.end();
+    m_files.erase(f);
+    return open_file_result::changed_content;
 }
 
 } // namespace hlasm_plugin::parser_library::workspaces
