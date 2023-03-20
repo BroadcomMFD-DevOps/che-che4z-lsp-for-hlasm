@@ -469,14 +469,8 @@ std::vector<workspace::processor_file_compoments*> workspace::collect_dependants
 
     for (auto& [_, component] : m_processor_files)
     {
-        for (auto& dep_location : component.m_processor_file->dependencies())
-        {
-            if (dep_location == file_location)
-            {
-                result.push_back(&component);
-                break;
-            }
-        }
+        if (component.m_processor_file->dependencies().contains(file_location))
+            result.push_back(&component);
     }
 
     return result;
@@ -883,11 +877,8 @@ bool workspace::is_dependency_(const utils::resource::resource_location& file_lo
 {
     for (const auto& [_, component] : m_processor_files)
     {
-        for (auto& dependency : component.m_processor_file->dependencies())
-        {
-            if (dependency == file_location)
-                return true;
-        }
+        if (component.m_processor_file->dependencies().contains(file_location))
+            return true;
     }
     return false;
 }
