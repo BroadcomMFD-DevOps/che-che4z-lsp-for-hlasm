@@ -105,10 +105,10 @@ private:
     // m_virtual_files must outlive the m_files
     std::unordered_map<utils::resource::resource_location, mapped_file*, utils::resource::resource_location_hasher>
         m_files;
-    std::unordered_map<utils::resource::resource_location,
-        std::weak_ptr<mapped_file>,
-        utils::resource::resource_location_hasher>
+    std::unordered_map<utils::resource::resource_location, mapped_file*, utils::resource::resource_location_hasher>
         m_files_closed;
+
+    std::shared_ptr<mapped_file> try_obtaining_file(const utils::resource::resource_location& file_name);
 
     std::shared_ptr<mapped_file> revive_file(
         const utils::resource::resource_location& file_name, std::optional<std::string_view> expected_text);
