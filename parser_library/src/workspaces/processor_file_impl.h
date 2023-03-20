@@ -55,10 +55,9 @@ public:
 
     void erase_unused_cache_entries() override;
 
-    bool has_lsp_info() const override;
-
     const std::vector<fade_message_s>& fade_messages() const override;
-    const processing::hit_count_map& hit_count_map() const override;
+    const processing::hit_count_map& hit_count_opencode_map() const override;
+    const processing::hit_count_map& hit_count_macro_map() const override;
 
     const file_location& get_location() const override;
 
@@ -84,7 +83,8 @@ private:
             std::make_shared<const std::vector<fade_message_s>>();
         performance_metrics metrics;
         std::vector<virtual_file_handle> vf_handles;
-        processing::hit_count_map hc_map;
+        processing::hit_count_map hc_opencode_map;
+        processing::hit_count_map hc_macro_map;
     } m_last_results;
 
     std::atomic<bool>* m_cancel;

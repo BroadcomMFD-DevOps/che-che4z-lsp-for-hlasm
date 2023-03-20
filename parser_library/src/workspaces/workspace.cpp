@@ -315,9 +315,16 @@ void workspace::retrieve_fade_messages(std::vector<fade_message_s>& fms) const
             std::back_inserter(fms),
             [&opened_files_uris](const auto& fmsg) { return opened_files_uris.contains(fmsg.uri); });
 
+        bool take_also_opencode_hc = true;
+        if (const auto& pf_rl = pf.get_location();
+            &get_proc_grp_by_program(pf_rl) == &implicit_proc_grp && is_dependency_(pf_rl))
+            take_also_opencode_hc = false;
+
         for (const auto& [opened_file_rl, __] : opened_files_)
         {
-            filter_and_emplace_hc_map(hc_map, pf.hit_count_map(), opened_file_rl);
+            filter_and_emplace_hc_map(hc_map, pf.hit_count_macro_map(), opened_file_rl);
+            if (take_also_opencode_hc)
+                filter_and_emplace_hc_map(hc_map, pf.hit_count_opencode_map(), opened_file_rl);
             filter_and_emplace_mac_cpy_definitions(active_rl_mac_cpy_map, pf.get_lsp_context(), opened_file_rl);
         }
     }
@@ -448,19 +455,19 @@ workspace_file_info workspace::parse_file(
 
     // TODO: apparently just opening a file without changing it triggers reparse
 
-    if (processor_file_compoments* this_file = nullptr; file_content_status == open_file_result::changed_content
+    if (processor_file_compoments* this_proc_file = nullptr; file_content_status == open_file_result::changed_content
         || file_content_status == open_file_result::changed_lsp
-            && !((this_file = find_processor_file_impl(file_location)) != nullptr
-                && this_file->m_processor_file->has_lsp_info()))
+            && (this_proc_file = find_processor_file_impl(file_location)) != nullptr)
     {
         if (trigger_reparse(file_location))
             files_to_parse = collect_dependants(file_location);
 
-        if (files_to_parse.empty() && opened_files_.contains(file_location))
+        if (opened_files_.contains(file_location)
+            && (files_to_parse.empty() || &get_proc_grp_by_program(file_location) != &implicit_proc_grp))
         {
-            if (!this_file)
-                this_file = &add_processor_file_impl(file_location);
-            files_to_parse.push_back(this_file);
+            if (!this_proc_file)
+                this_proc_file = &add_processor_file_impl(file_location);
+            files_to_parse.push_back(this_proc_file);
         }
 
         for (auto* component : files_to_parse)
@@ -853,12 +860,11 @@ bool workspace::is_dependency_(const utils::resource::resource_location& file_lo
         auto fdependant = find_processor_file(dependant);
         if (!fdependant)
             continue;
-        for (auto& dependency : fdependant->dependencies())
-        {
-            if (dependency == file_location)
-                return true;
-        }
+
+        if (fdependant->dependencies().contains(file_location))
+            return true;
     }
+
     return false;
 }
 
