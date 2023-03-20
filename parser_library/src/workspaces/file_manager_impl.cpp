@@ -88,6 +88,9 @@ void create_line_indices(std::vector<size_t>& output, std::string_view text)
 
 void apply_text_diff(std::string& text, std::vector<size_t>& lines, range r, std::string_view replacement)
 {
+    if (r.start > r.end || r.end.line > lines.size())
+        return;
+
     size_t range_end_line = (size_t)r.end.line;
     size_t range_start_line = (size_t)r.start.line;
 
@@ -124,8 +127,7 @@ void apply_text_diff(std::string& text, std::vector<size_t>& lines, range r, std
             lines[i] = lines[i + diff] + char_diff;
         }
 
-        for (size_t i = 0; i < diff; ++i)
-            lines.pop_back();
+        lines.erase(lines.end() - diff, lines.end());
     }
 
 
