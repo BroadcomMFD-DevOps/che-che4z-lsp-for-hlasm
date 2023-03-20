@@ -55,6 +55,9 @@ public:
 
     void erase_unused_cache_entries() override;
 
+    bool has_opencode_lsp_info() const override;
+    bool has_macro_lsp_info() const override;
+
     const std::vector<fade_message_s>& fade_messages() const override;
     const processing::hit_count_map& hit_count_opencode_map() const override;
     const processing::hit_count_map& hit_count_macro_map() const override;
@@ -73,7 +76,8 @@ private:
     file_manager& m_file_mngr;
     std::shared_ptr<file> m_file;
     std::shared_ptr<context::id_storage> m_last_opencode_id_storage;
-    bool m_last_analyzer_with_lsp = false;
+    bool m_last_opencode_analyzer_with_lsp = false;
+    bool m_last_macro_analyzer_with_lsp = false;
 
     struct
     {
