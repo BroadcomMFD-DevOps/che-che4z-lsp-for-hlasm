@@ -38,9 +38,9 @@ enum class update_file_result
 class file
 {
 public:
-    virtual const file_location& get_location() = 0;
+    virtual const file_location& get_location() const = 0;
     // Gets contents of file either by loading from disk or from LSP.
-    virtual const std::string& get_text() = 0;
+    virtual const std::string& get_text() const = 0;
     // Returns whether file is open by LSP.
     virtual bool get_lsp_editing() const = 0;
     // Internal unique version

@@ -102,11 +102,19 @@ private:
 
     struct mapped_file;
 
+    struct mapped_file_entry
+    {
+        mapped_file* file;
+        bool closed = false;
+
+        mapped_file_entry(mapped_file* file)
+            : file(file)
+        {}
+    };
+
     // m_virtual_files must outlive the m_files
-    std::unordered_map<utils::resource::resource_location, mapped_file*, utils::resource::resource_location_hasher>
+    std::unordered_map<utils::resource::resource_location, mapped_file_entry, utils::resource::resource_location_hasher>
         m_files;
-    std::unordered_map<utils::resource::resource_location, mapped_file*, utils::resource::resource_location_hasher>
-        m_files_closed;
 
     std::shared_ptr<mapped_file> try_obtaining_file(const utils::resource::resource_location& file_name);
 
