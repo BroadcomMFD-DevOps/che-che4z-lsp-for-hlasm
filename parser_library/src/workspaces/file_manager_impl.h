@@ -116,10 +116,8 @@ private:
     std::unordered_map<utils::resource::resource_location, mapped_file_entry, utils::resource::resource_location_hasher>
         m_files;
 
-    std::shared_ptr<mapped_file> try_obtaining_file(const utils::resource::resource_location& file_name);
-
-    std::shared_ptr<mapped_file> revive_file(
-        const utils::resource::resource_location& file_name, std::optional<std::string_view> expected_text);
+    std::shared_ptr<mapped_file> try_obtaining_file(
+        const utils::resource::resource_location& file_name, const std::optional<std::string>* expected_text);
 
 protected:
     const auto& get_files() const { return m_files; }

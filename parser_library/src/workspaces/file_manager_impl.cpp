@@ -218,7 +218,7 @@ std::shared_ptr<file> file_manager_impl::add_file(const file_location& file_name
 {
     std::unique_lock lock(files_mutex);
 
-    if (auto result = try_obtaining_file(file_name))
+    if (auto result = try_obtaining_file(file_name, nullptr))
         return result;
 
     lock.unlock();
@@ -227,14 +227,12 @@ std::shared_ptr<file> file_manager_impl::add_file(const file_location& file_name
 
     lock.lock();
 
-    if (auto result = try_obtaining_file(file_name))
+    auto result = try_obtaining_file(file_name, &loaded_text);
+    if (result)
         return result;
 
-    auto result = revive_file(file_name, loaded_text);
-
-    if (!result)
-        result = loaded_text.has_value() ? std::make_shared<mapped_file>(file_name, *this, loaded_text.value())
-                                         : std::make_shared<mapped_file>(file_name, *this, mapped_file::file_error());
+    result = loaded_text.has_value() ? std::make_shared<mapped_file>(file_name, *this, loaded_text.value())
+                                     : std::make_shared<mapped_file>(file_name, *this, mapped_file::file_error());
 
     result->m_it = m_files.try_emplace(file_name, result.get()).first;
 
@@ -242,38 +240,38 @@ std::shared_ptr<file> file_manager_impl::add_file(const file_location& file_name
 }
 
 std::shared_ptr<file_manager_impl::mapped_file> file_manager_impl::try_obtaining_file(
-    const utils::resource::resource_location& file_name)
+    const utils::resource::resource_location& file_name, const std::optional<std::string>* expected_text)
 {
     auto it = m_files.find(file_name);
-    if (it == m_files.end() || it->second.closed)
+    if (it == m_files.end())
         return {};
 
-    auto result = it->second.file->shared_from_this();
-    if (result)
-        return result;
+    auto& [file, closed] = it->second;
 
-    it->second.file->m_it = m_files.end();
-    m_files.erase(it);
-
-    return {};
-}
-
-std::shared_ptr<file_manager_impl::mapped_file> file_manager_impl::revive_file(
-    const utils::resource::resource_location& file_name, std::optional<std::string_view> expected_text)
-{
-    auto closed = m_files.find(file_name);
-    if (closed == m_files.end() || !closed->second.closed)
+    auto result = file->shared_from_this();
+    if (!result)
+    {
+        file->m_it = m_files.end();
+        m_files.erase(it);
         return {};
+    }
 
-    auto result = closed->second.file->shared_from_this();
+    if (closed)
+    {
+        if (!expected_text)
+            return {};
 
-    closed->second.file->m_it = m_files.end();
-    m_files.erase(closed);
+        if (!expected_text->has_value() || file->m_text != expected_text->value())
+        {
+            file->m_it = m_files.end();
+            m_files.erase(it);
+            return {};
+        }
 
-    if (result && expected_text.has_value() && result->m_text == expected_text.value())
-        return result;
-    else
-        return {};
+        closed = false;
+    }
+
+    return result;
 }
 
 std::optional<std::string> file_manager_impl::get_file_content(const utils::resource::resource_location& file_name)
