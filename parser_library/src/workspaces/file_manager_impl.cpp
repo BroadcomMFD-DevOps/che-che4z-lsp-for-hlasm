@@ -196,6 +196,14 @@ struct file_manager_impl::mapped_file final : std::enable_shared_from_this<mappe
         std::lock_guard guard(m_fm.files_mutex);
         return m_it != m_fm.m_files.end();
     }
+
+    std::optional<std::string_view> get_text_or_error() const
+    {
+        if (m_error.has_value())
+            return std::nullopt;
+        else
+            return m_text;
+    }
 };
 
 class : public external_file_reader
@@ -227,12 +235,11 @@ std::shared_ptr<file> file_manager_impl::add_file(const file_location& file_name
 
     lock.lock();
 
-    auto result = try_obtaining_file_unsafe(file_name, &loaded_text);
-    if (result)
+    if (auto result = try_obtaining_file_unsafe(file_name, &loaded_text))
         return result;
 
-    result = loaded_text.has_value() ? std::make_shared<mapped_file>(file_name, *this, loaded_text.value())
-                                     : std::make_shared<mapped_file>(file_name, *this, mapped_file::file_error());
+    auto result = loaded_text.has_value() ? std::make_shared<mapped_file>(file_name, *this, loaded_text.value())
+                                          : std::make_shared<mapped_file>(file_name, *this, mapped_file::file_error());
 
     result->m_it = m_files.try_emplace(file_name, result.get()).first;
 
@@ -248,7 +255,7 @@ std::shared_ptr<file_manager_impl::mapped_file> file_manager_impl::try_obtaining
 
     auto& [file, closed] = it->second;
 
-    auto result = file->shared_from_this();
+    auto result = file->weak_from_this().lock();
     if (!result)
     {
         file->m_it = m_files.end();
@@ -261,7 +268,7 @@ std::shared_ptr<file_manager_impl::mapped_file> file_manager_impl::try_obtaining
         if (!expected_text)
             return {};
 
-        if (!expected_text->has_value() || file->m_text != expected_text->value())
+        if (file->m_text != *expected_text)
         {
             file->m_it = m_files.end();
             m_files.erase(it);
@@ -290,7 +297,7 @@ std::shared_ptr<file> file_manager_impl::find(const utils::resource::resource_lo
     if (ret == m_files.end() || ret->second.closed)
         return nullptr;
 
-    return ret->second.file->shared_from_this();
+    return ret->second.file->weak_from_this().lock();
 }
 
 list_directory_result file_manager_impl::list_directory_files(const utils::resource::resource_location& directory) const
@@ -318,7 +325,7 @@ open_file_result file_manager_impl::did_open_file(
 
     auto it = m_files.find(document_loc);
     if (it != m_files.end())
-        locked = it->second.file->shared_from_this();
+        locked = it->second.file->weak_from_this().lock();
 
     if (!locked || locked->m_error || locked->m_text != new_text)
     {
@@ -332,7 +339,7 @@ open_file_result file_manager_impl::did_open_file(
 
         file->m_lsp_version = version;
         file->m_it = m_files.try_emplace(document_loc, file.get()).first;
-        file->m_editing_self_reference = file;
+        file->m_editing_self_reference = std::move(file);
 
         return open_file_result::changed_content;
     }
@@ -360,7 +367,7 @@ void file_manager_impl::did_change_file(
     if (it == m_files.end() || it->second.closed)
         return; // if the file does not exist, no action is taken
 
-    auto file = it->second.file->shared_from_this();
+    auto file = it->second.file->weak_from_this().lock();
     if (!file)
         return;
 
@@ -416,8 +423,8 @@ void file_manager_impl::did_close_file(const file_location& document_loc)
     if (it == m_files.end())
         return;
 
-    if (auto file = it->second.file->shared_from_this();
-        file && file.use_count() > 1 + (to_release != nullptr) && !file->m_error)
+    if (auto file = it->second.file->weak_from_this().lock();
+        file && file.use_count() > 1 + (file->m_editing_self_reference != nullptr) && !file->m_error)
     {
         std::swap(to_release, file->m_editing_self_reference);
         it->second.closed = true;
@@ -467,11 +474,7 @@ open_file_result file_manager_impl::update_file(const file_location& document_lo
 {
     std::unique_lock lock(files_mutex);
 
-    auto f = m_files.find(document_loc);
-    if (f == m_files.end())
-        return open_file_result::identical;
-
-    if (f->second.file->get_lsp_editing())
+    if (auto f = m_files.find(document_loc); f == m_files.end() || f->second.file->get_lsp_editing())
         return open_file_result::identical;
 
     lock.unlock();
@@ -480,14 +483,11 @@ open_file_result file_manager_impl::update_file(const file_location& document_lo
 
     lock.lock();
 
-    f = m_files.find(document_loc);
-    if (f == m_files.end())
+    auto f = m_files.find(document_loc);
+    if (f == m_files.end() || f->second.file->get_lsp_editing())
         return open_file_result::identical;
 
-    if (f->second.file->get_lsp_editing())
-        return open_file_result::identical;
-
-    if (f->second.file->m_error.has_value() && !current_text.has_value() || f->second.file->m_text == current_text)
+    if (f->second.file->get_text_or_error() == current_text)
     {
         f->second.closed = false;
         return open_file_result::identical;
