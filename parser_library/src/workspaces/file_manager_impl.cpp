@@ -136,8 +136,12 @@ void apply_text_diff(std::string& text, std::vector<size_t>& lines, range r, std
 }
 
 
-struct file_manager_impl::mapped_file final : std::enable_shared_from_this<mapped_file>, file
+struct file_manager_impl::mapped_file final : file
 {
+    // there is no noexcept version of std::enable_shared_from_this::shared_from_this
+    std::weak_ptr<mapped_file> m_self;
+    std::shared_ptr<mapped_file> shared_from_this() const noexcept { return m_self.lock(); }
+
     file_location m_location;
     std::string m_text;
     struct file_error
@@ -222,6 +226,14 @@ file_manager_impl::file_manager_impl(external_file_reader& file_reader)
     : m_file_reader(&file_reader)
 {}
 
+template<typename... Args>
+std::shared_ptr<file_manager_impl::mapped_file> file_manager_impl::make_mapped_file(Args&&... args)
+{
+    auto result = std::make_shared<mapped_file>(std::forward<Args>(args)...);
+    result->m_self = result;
+    return result;
+}
+
 std::shared_ptr<file> file_manager_impl::add_file(const file_location& file_name)
 {
     std::unique_lock lock(files_mutex);
@@ -238,8 +250,8 @@ std::shared_ptr<file> file_manager_impl::add_file(const file_location& file_name
     if (auto result = try_obtaining_file_unsafe(file_name, &loaded_text))
         return result;
 
-    auto result = loaded_text.has_value() ? std::make_shared<mapped_file>(file_name, *this, loaded_text.value())
-                                          : std::make_shared<mapped_file>(file_name, *this, mapped_file::file_error());
+    auto result = loaded_text.has_value() ? make_mapped_file(file_name, *this, loaded_text.value())
+                                          : make_mapped_file(file_name, *this, mapped_file::file_error());
 
     result->m_it = m_files.try_emplace(file_name, result.get()).first;
 
@@ -255,7 +267,7 @@ std::shared_ptr<file_manager_impl::mapped_file> file_manager_impl::try_obtaining
 
     auto& [file, closed] = it->second;
 
-    auto result = file->weak_from_this().lock();
+    auto result = file->shared_from_this();
     if (!result)
     {
         file->m_it = m_files.end();
@@ -297,7 +309,7 @@ std::shared_ptr<file> file_manager_impl::find(const utils::resource::resource_lo
     if (ret == m_files.end() || ret->second.closed)
         return nullptr;
 
-    return ret->second.file->weak_from_this().lock();
+    return ret->second.file->shared_from_this();
 }
 
 list_directory_result file_manager_impl::list_directory_files(const utils::resource::resource_location& directory) const
@@ -325,7 +337,7 @@ open_file_result file_manager_impl::did_open_file(
 
     auto it = m_files.find(document_loc);
     if (it != m_files.end())
-        locked = it->second.file->weak_from_this().lock();
+        locked = it->second.file->shared_from_this();
 
     if (!locked || locked->m_error || locked->m_text != new_text)
     {
@@ -335,7 +347,7 @@ open_file_result file_manager_impl::did_open_file(
             m_files.erase(it);
         }
 
-        auto file = std::make_shared<mapped_file>(document_loc, *this, std::move(new_text));
+        auto file = make_mapped_file(document_loc, *this, std::move(new_text));
 
         file->m_lsp_version = version;
         file->m_it = m_files.try_emplace(document_loc, file.get()).first;
@@ -367,14 +379,14 @@ void file_manager_impl::did_change_file(
     if (it == m_files.end() || it->second.closed)
         return; // if the file does not exist, no action is taken
 
-    auto file = it->second.file->weak_from_this().lock();
+    auto file = it->second.file->shared_from_this();
     if (!file)
         return;
 
     if (file.use_count() > 1 + (file->m_editing_self_reference != nullptr))
     {
         // this file is already being used by others
-        auto new_file = std::make_shared<mapped_file>(*file);
+        auto new_file = make_mapped_file(*file);
 
         new_file->m_editing_self_reference = new_file;
         new_file->m_it = it;
@@ -423,7 +435,7 @@ void file_manager_impl::did_close_file(const file_location& document_loc)
     if (it == m_files.end())
         return;
 
-    if (auto file = it->second.file->weak_from_this().lock();
+    if (auto file = it->second.file->shared_from_this();
         file && file.use_count() > 1 + (file->m_editing_self_reference != nullptr) && !file->m_error)
     {
         std::swap(to_release, file->m_editing_self_reference);

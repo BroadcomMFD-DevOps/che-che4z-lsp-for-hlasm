@@ -101,6 +101,8 @@ private:
     std::unordered_map<unsigned long long, virtual_file_entry> m_virtual_files;
 
     struct mapped_file;
+    template<typename... Args>
+    static std::shared_ptr<mapped_file> make_mapped_file(Args&&... args);
 
     struct mapped_file_entry
     {
