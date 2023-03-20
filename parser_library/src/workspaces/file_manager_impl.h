@@ -116,7 +116,7 @@ private:
     std::unordered_map<utils::resource::resource_location, mapped_file_entry, utils::resource::resource_location_hasher>
         m_files;
 
-    std::shared_ptr<mapped_file> try_obtaining_file(
+    std::shared_ptr<mapped_file> try_obtaining_file_unsafe(
         const utils::resource::resource_location& file_name, const std::optional<std::string>* expected_text);
 
 protected:

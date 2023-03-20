@@ -218,7 +218,7 @@ std::shared_ptr<file> file_manager_impl::add_file(const file_location& file_name
 {
     std::unique_lock lock(files_mutex);
 
-    if (auto result = try_obtaining_file(file_name, nullptr))
+    if (auto result = try_obtaining_file_unsafe(file_name, nullptr))
         return result;
 
     lock.unlock();
@@ -227,7 +227,7 @@ std::shared_ptr<file> file_manager_impl::add_file(const file_location& file_name
 
     lock.lock();
 
-    auto result = try_obtaining_file(file_name, &loaded_text);
+    auto result = try_obtaining_file_unsafe(file_name, &loaded_text);
     if (result)
         return result;
 
@@ -239,7 +239,7 @@ std::shared_ptr<file> file_manager_impl::add_file(const file_location& file_name
     return result;
 }
 
-std::shared_ptr<file_manager_impl::mapped_file> file_manager_impl::try_obtaining_file(
+std::shared_ptr<file_manager_impl::mapped_file> file_manager_impl::try_obtaining_file_unsafe(
     const utils::resource::resource_location& file_name, const std::optional<std::string>* expected_text)
 {
     auto it = m_files.find(file_name);
