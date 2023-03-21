@@ -168,6 +168,9 @@ private:
 
     std::vector<processor_file_compoments*> collect_dependants(const resource_location& file_location);
 
+    std::vector<processor_file_compoments*> populate_files_to_parse(
+        const utils::resource::resource_location& file_location, open_file_result file_content_status);
+
     processor_file_compoments& add_processor_file_impl(const resource_location& file);
     processor_file_compoments* find_processor_file_impl(const resource_location& file);
     const processor_file_compoments* find_processor_file_impl(const resource_location& file) const;

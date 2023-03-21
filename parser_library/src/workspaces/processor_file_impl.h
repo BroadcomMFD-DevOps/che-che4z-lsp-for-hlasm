@@ -55,10 +55,12 @@ public:
     const std::set<resource_location>& files_to_close() override;
     const performance_metrics& get_metrics() override;
 
-    bool has_lsp_info() const override;
+    bool has_opencode_lsp_info() const override;
+    bool has_macro_lsp_info() const override;
 
     const std::vector<fade_message_s>& fade_messages() const override;
-    const processing::hit_count_map& hit_count_map() const override;
+    const processing::hit_count_map& hit_count_opencode_map() const override;
+    const processing::hit_count_map& hit_count_macro_map() const override;
 
     const file_location& get_location() const override;
 
@@ -73,7 +75,8 @@ private:
     file_manager& m_file_mngr;
     std::shared_ptr<file> m_file;
     std::shared_ptr<context::id_storage> m_last_opencode_id_storage;
-    bool m_last_analyzer_with_lsp = false;
+    bool m_last_opencode_analyzer_with_lsp = false;
+    bool m_last_macro_analyzer_with_lsp = false;
 
     struct
     {
@@ -83,7 +86,8 @@ private:
             std::make_shared<const std::vector<fade_message_s>>();
         performance_metrics metrics;
         std::vector<virtual_file_handle> vf_handles;
-        processing::hit_count_map hc_map;
+        processing::hit_count_map hc_opencode_map;
+        processing::hit_count_map hc_macro_map;
     } m_last_results;
 
     std::atomic<bool>* m_cancel;
