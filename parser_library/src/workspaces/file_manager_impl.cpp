@@ -235,12 +235,12 @@ file_manager_impl::~file_manager_impl()
 
     std::unique_lock lock(files_mutex);
 
-    for (auto& f : m_files)
+    for (auto& [_, mf] : m_files)
     {
-        if (f.second.file->m_editing_self_reference)
+        if (mf.file->m_editing_self_reference)
         {
-            *release = std::move(f.second.file->m_editing_self_reference);
-            release = &f.second.file->m_editing_self_reference;
+            *release = std::move(mf.file->m_editing_self_reference);
+            release = &mf.file->m_editing_self_reference;
         }
     }
 
@@ -421,7 +421,7 @@ void file_manager_impl::did_change_file(
         file->m_it = m_files.end();
         std::swap(to_release, file->m_editing_self_reference);
 
-        it->second = new_file.get();
+        it->second = mapped_file_entry(new_file.get());
 
         std::swap(file, new_file);
     }

@@ -326,10 +326,11 @@ TEST(macro_cache_test, overwrite_by_inline)
     file_mngr.did_open_file(opencode_file_loc, 0, opencode_text);
     file_mngr.did_open_file(macro_file_loc, 0, macro_text);
 
-    auto global_settings = make_empty_shared_json();
+    shared_json global_settings = make_empty_shared_json();
+    lib_config config;
     using namespace ::testing;
     auto library = std::make_shared<NiceMock<library_mock>>();
-    workspace ws(file_mngr, {}, global_settings, nullptr, library);
+    workspace ws(file_mngr, config, global_settings, nullptr, library);
 
     EXPECT_CALL(*library, has_file(std::string_view("MAC"), _))
         .WillRepeatedly(DoAll(SetArgPointee<1>(macro_file_loc), Return(true)));

@@ -46,7 +46,7 @@ class file_manager_impl : public file_manager
 
 public:
     file_manager_impl();
-    file_manager_impl(external_file_reader& file_reader);
+    explicit file_manager_impl(external_file_reader& file_reader);
     file_manager_impl(const file_manager_impl&) = delete;
     file_manager_impl& operator=(const file_manager_impl&) = delete;
 
@@ -109,7 +109,7 @@ private:
         mapped_file* file;
         bool closed = false;
 
-        mapped_file_entry(mapped_file* file)
+        explicit mapped_file_entry(mapped_file* file)
             : file(file)
         {}
     };

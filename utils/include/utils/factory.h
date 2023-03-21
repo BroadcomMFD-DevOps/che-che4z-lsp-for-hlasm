@@ -23,11 +23,11 @@ class factory
     T m_f;
 
 public:
-    factory(T f)
+    explicit factory(T f)
         : m_f(static_cast<T&&>(f))
     {}
 
-    operator decltype(m_f())() const { return m_f(); }
+    explicit(false) operator decltype(m_f())() const { return m_f(); }
 };
 
 
