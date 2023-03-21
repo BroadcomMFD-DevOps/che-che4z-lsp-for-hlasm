@@ -361,11 +361,12 @@ void workspace::retrieve_fade_messages(std::vector<fade_message_s>& fms) const
     processing::hit_count_map hc_map;
     rl_mac_cpy_map active_rl_mac_cpy_map;
 
-    std::unordered_set<std::string, utils::hashers::string_hasher, std::equal_to<>> opened_files_uris;
+    std::unordered_map<std::string, const resource_location*, utils::hashers::string_hasher, std::equal_to<>>
+        opened_files_uris;
 
     for (const auto& [rl, component] : m_processor_files)
         if (component.m_opened)
-            opened_files_uris.emplace(rl.get_uri());
+            opened_files_uris.emplace(rl.get_uri(), &rl);
 
     for (const auto& [_, proc_file_component] : m_processor_files)
     {
@@ -376,12 +377,10 @@ void workspace::retrieve_fade_messages(std::vector<fade_message_s>& fms) const
             std::back_inserter(fms),
             [&opened_files_uris](const auto& fmsg) { return opened_files_uris.contains(fmsg.uri); });
 
-        for (const auto& [opened_file_rl, component] : m_processor_files)
+        for (const auto& [__, opened_file_rl] : opened_files_uris)
         {
-            if (!component.m_opened)
-                continue;
-            filter_and_emplace_hc_map(hc_map, pf.hit_count_map(), opened_file_rl);
-            filter_and_emplace_mac_cpy_definitions(active_rl_mac_cpy_map, pf.get_lsp_context(), opened_file_rl);
+            filter_and_emplace_hc_map(hc_map, pf.hit_count_map(), *opened_file_rl);
+            filter_and_emplace_mac_cpy_definitions(active_rl_mac_cpy_map, pf.get_lsp_context(), *opened_file_rl);
         }
     }
 
