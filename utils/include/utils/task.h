@@ -224,23 +224,23 @@ public:
     }
 
     template<typename U>
-    auto then(U&& t) &&
+    auto then(U&& next) &&
     {
         if constexpr (is_task<std::invoke_result_t<U&>>::value)
-            return [](task self, U t) -> std::invoke_result_t<U&> {
+            return [](task self, U u) -> std::invoke_result_t<U&> {
                 co_await std::move(self);
-                co_return co_await t();
-            }(std::move(*this), std::forward<U>(t));
+                co_return co_await u();
+            }(std::move(*this), std::forward<U>(next));
         else if constexpr (std::is_void_v<std::invoke_result_t<U&>>)
-            return [](task self, U t) -> task {
+            return [](task self, U u) -> task {
                 co_await std::move(self);
-                t();
-            }(std::move(*this), std::forward<U>(t));
+                u();
+            }(std::move(*this), std::forward<U>(next));
         else
-            return [](task self, U t) -> value_task<std::invoke_result_t<U&>> {
+            return [](task self, U u) -> value_task<std::invoke_result_t<U&>> {
                 co_await std::move(self);
-                co_return t();
-            }(std::move(*this), std::forward<U>(t));
+                co_return u();
+            }(std::move(*this), std::forward<U>(next));
     }
 };
 
@@ -297,19 +297,19 @@ public:
     }
 
     template<typename U>
-    auto then(U&& t) &&
+    auto then(U&& next) &&
     {
         if constexpr (is_task<std::invoke_result_t<U&, T>>::value)
-            return [](value_task self, U t) -> std::invoke_result_t<U&, T> {
-                co_return co_await t(co_await std::move(self));
-            }(std::move(*this), std::forward<U>(t));
+            return [](value_task self, U u) -> std::invoke_result_t<U&, T> {
+                co_return co_await u(co_await std::move(self));
+            }(std::move(*this), std::forward<U>(next));
         else if constexpr (std::is_void_v<std::invoke_result_t<U&, T>>)
-            return
-                [](value_task self, U t) -> task { t(co_await std::move(self)); }(std::move(*this), std::forward<U>(t));
+            return [](value_task self, U u) -> task { u(co_await std::move(self)); }(
+                                                std::move(*this), std::forward<U>(next));
         else
-            return [](value_task self, U t) -> value_task<std::invoke_result_t<U&, T>> {
-                co_return t(co_await std::move(self));
-            }(std::move(*this), std::forward<U>(t));
+            return [](value_task self, U u) -> value_task<std::invoke_result_t<U&, T>> {
+                co_return u(co_await std::move(self));
+            }(std::move(*this), std::forward<U>(next));
     }
 };
 

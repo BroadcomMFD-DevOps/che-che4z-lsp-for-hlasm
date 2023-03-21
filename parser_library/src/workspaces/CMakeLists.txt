@@ -11,6 +11,7 @@
 #   Broadcom, Inc. - initial API and implementation
 
 target_sources(parser_library PRIVATE
+	file.cpp
 	file.h
 	file_manager.h
 	file_manager_impl.cpp

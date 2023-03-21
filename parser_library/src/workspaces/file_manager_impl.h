@@ -32,7 +32,7 @@ namespace hlasm_plugin::parser_library::workspaces {
 class external_file_reader
 {
 public:
-    virtual std::optional<std::string> load_text(const utils::resource::resource_location& document_loc) = 0;
+    virtual std::optional<std::string> load_text(const utils::resource::resource_location& document_loc) const = 0;
 
 protected:
     ~external_file_reader() = default;
@@ -46,7 +46,7 @@ class file_manager_impl : public file_manager
 
 public:
     file_manager_impl();
-    explicit file_manager_impl(external_file_reader& file_reader);
+    explicit file_manager_impl(const external_file_reader& file_reader);
     file_manager_impl(const file_manager_impl&) = delete;
     file_manager_impl& operator=(const file_manager_impl&) = delete;
 
@@ -83,7 +83,7 @@ public:
     std::optional<std::string> get_file_content(const utils::resource::resource_location&) override;
 
 private:
-    external_file_reader* m_file_reader;
+    const external_file_reader* m_file_reader;
     struct virtual_file_entry
     {
         std::string text;

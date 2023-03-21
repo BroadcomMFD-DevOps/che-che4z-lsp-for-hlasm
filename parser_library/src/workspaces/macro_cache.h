@@ -83,7 +83,6 @@ struct macro_cache_data
     // definition and the statements are part of macro definition)
     version_stamp stamps;
     std::variant<lsp::macro_info_ptr, context::copy_member_ptr> cached_member;
-    mutable bool invalid = false;
 };
 
 // Macro cache is tied to a specific id_storage
@@ -92,7 +91,6 @@ class macro_cache final
     std::map<macro_cache_key, macro_cache_data> cache_;
     const file_manager* file_mngr_;
     std::shared_ptr<file> macro_file_;
-    mutable bool has_invalid_entires = false;
 
 public:
     macro_cache(const file_manager& file_mngr, std::shared_ptr<file> macro_file);
@@ -100,7 +98,6 @@ public:
     // cached macro to the specified context. Returns true, if the macro was loaded.
     bool load_from_cache(const macro_cache_key& key, const analyzing_context& ctx) const;
     void save_macro(const macro_cache_key& key, const analyzer& analyzer);
-    void erase_unused();
 
 private:
     [[nodiscard]] const macro_cache_data* find_cached_data(const macro_cache_key& key) const;

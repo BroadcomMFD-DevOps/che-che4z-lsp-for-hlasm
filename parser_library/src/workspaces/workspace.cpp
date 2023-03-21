@@ -32,6 +32,9 @@
 #include "utils/levenshtein_distance.h"
 #include "utils/path.h"
 
+using hlasm_plugin::utils::resource::resource_location;
+using hlasm_plugin::utils::resource::resource_location_hasher;
+
 namespace hlasm_plugin::parser_library::workspaces {
 
 struct workspace_parse_lib_provider final : public parse_lib_provider
@@ -39,9 +42,7 @@ struct workspace_parse_lib_provider final : public parse_lib_provider
     workspace& ws;
     std::vector<std::shared_ptr<library>> libraries;
     workspace::processor_file_compoments& pfc;
-    std::unordered_map<utils::resource::resource_location,
-        std::shared_ptr<std::pair<version_t, macro_cache>>,
-        utils::resource::resource_location_hasher>
+    std::unordered_map<resource_location, std::shared_ptr<std::pair<version_t, macro_cache>>, resource_location_hasher>
         next_macro_cache;
 
     workspace_parse_lib_provider(workspace& ws, workspace::processor_file_compoments& pfc)
@@ -55,7 +56,7 @@ struct workspace_parse_lib_provider final : public parse_lib_provider
         std::string_view library, analyzing_context ctx, library_data data, std::function<void(bool)> callback) override
     {
         assert(callback);
-        utils::resource::resource_location url;
+        resource_location url;
         for (const auto& lib : libraries)
         {
             if (!lib->has_file(library, &url))
@@ -125,18 +126,17 @@ struct workspace_parse_lib_provider final : public parse_lib_provider
 
         callback(false);
     }
-    bool has_library(std::string_view library, utils::resource::resource_location* loc) const override
+    bool has_library(std::string_view library, resource_location* loc) const override
     {
         return std::any_of(libraries.begin(), libraries.end(), [&library, loc](const auto& lib) {
             return lib->has_file(library, loc);
         });
     }
     void get_library(std::string_view library,
-        std::function<void(std::optional<std::pair<std::string, utils::resource::resource_location>>)> callback)
-        const override
+        std::function<void(std::optional<std::pair<std::string, resource_location>>)> callback) const override
     {
         assert(callback);
-        utils::resource::resource_location url;
+        resource_location url;
         for (const auto& lib : libraries)
         {
             if (!lib->has_file(library, &url))
@@ -153,7 +153,7 @@ struct workspace_parse_lib_provider final : public parse_lib_provider
     }
 };
 
-workspace::workspace(const utils::resource::resource_location& location,
+workspace::workspace(const resource_location& location,
     const std::string& name,
     file_manager& file_manager,
     const lib_config& global_config,
@@ -169,7 +169,7 @@ workspace::workspace(const utils::resource::resource_location& location,
     , m_configuration(file_manager, location_, global_settings)
 {}
 
-workspace::workspace(const utils::resource::resource_location& location,
+workspace::workspace(const resource_location& location,
     file_manager& file_manager,
     const lib_config& global_config,
     const shared_json& global_settings,
@@ -182,7 +182,7 @@ workspace::workspace(file_manager& file_manager,
     const shared_json& global_settings,
     std::atomic<bool>* cancel,
     std::shared_ptr<library> implicit_library)
-    : workspace(utils::resource::resource_location(""), file_manager, global_config, global_settings, cancel)
+    : workspace(resource_location(""), file_manager, global_config, global_settings, cancel)
 {
     opened_ = true;
     if (implicit_library)
@@ -191,7 +191,7 @@ workspace::workspace(file_manager& file_manager,
 
 void workspace::collect_diags() const
 {
-    std::unordered_set<utils::resource::resource_location, utils::resource::resource_location_hasher> used_b4g_configs;
+    std::unordered_set<resource_location, resource_location_hasher> used_b4g_configs;
 
     for (const auto& [_, component] : m_processor_files)
         if (component.m_opened)
@@ -212,11 +212,9 @@ struct mac_cpybook_definition_details
 };
 
 using mac_cpy_definitions_map = std::map<size_t, mac_cpybook_definition_details, std::greater<size_t>>;
-using rl_mac_cpy_map = std::unordered_map<utils::resource::resource_location,
-    mac_cpy_definitions_map,
-    utils::resource::resource_location_hasher>;
+using rl_mac_cpy_map = std::unordered_map<resource_location, mac_cpy_definitions_map, resource_location_hasher>;
 
-void generate_merged_fade_messages(const utils::resource::resource_location& rl,
+void generate_merged_fade_messages(const resource_location& rl,
     const processing::hit_count_entry& hc_entry,
     const rl_mac_cpy_map& active_rl_mac_cpy_map,
     std::vector<fade_message_s>& fms)
@@ -278,7 +276,7 @@ void generate_merged_fade_messages(const utils::resource::resource_location& rl,
 }
 
 void filter_and_emplace_hc_map(
-    processing::hit_count_map& to, const processing::hit_count_map& from, const utils::resource::resource_location& rl)
+    processing::hit_count_map& to, const processing::hit_count_map& from, const resource_location& rl)
 {
     auto from_it = from.find(rl);
     if (from_it == from.end())
@@ -289,9 +287,8 @@ void filter_and_emplace_hc_map(
         to_hc_it->second.merge(from_hc_entry);
 }
 
-void filter_and_emplace_mac_cpy_definitions(rl_mac_cpy_map& active_rl_mac_cpy_map,
-    const lsp::lsp_context* lsp_ctx,
-    const utils::resource::resource_location& rl)
+void filter_and_emplace_mac_cpy_definitions(
+    rl_mac_cpy_map& active_rl_mac_cpy_map, const lsp::lsp_context* lsp_ctx, const resource_location& rl)
 {
     if (!lsp_ctx)
         return;
@@ -366,7 +363,7 @@ void workspace::retrieve_fade_messages(std::vector<fade_message_s>& fms) const
 
     for (const auto& [rl, component] : m_processor_files)
         if (component.m_opened)
-            opened_files_uris.emplace(rl.get_uri(), &rl);
+            opened_files_uris.try_emplace(rl.get_uri(), &rl);
 
     for (const auto& [_, proc_file_component] : m_processor_files)
     {
@@ -399,7 +396,7 @@ void workspace::retrieve_fade_messages(std::vector<fade_message_s>& fms) const
 }
 
 std::vector<std::shared_ptr<processor_file>> workspace::find_related_opencodes(
-    const utils::resource::resource_location& document_loc) const
+    const resource_location& document_loc) const
 {
     std::vector<std::shared_ptr<processor_file>> opencodes;
 
@@ -462,14 +459,10 @@ void workspace::reparse_after_config_refresh()
 }
 
 namespace {
-bool trigger_reparse(const utils::resource::resource_location& file_location)
-{
-    return !file_location.get_uri().starts_with("hlasm:");
-}
+bool trigger_reparse(const resource_location& file_location) { return !file_location.get_uri().starts_with("hlasm:"); }
 } // namespace
 
-std::vector<workspace::processor_file_compoments*> workspace::collect_dependants(
-    const utils::resource::resource_location& file_location)
+std::vector<workspace::processor_file_compoments*> workspace::collect_dependants(const resource_location& file_location)
 {
     std::vector<processor_file_compoments*> result;
 
@@ -483,7 +476,7 @@ std::vector<workspace::processor_file_compoments*> workspace::collect_dependants
 }
 
 std::vector<workspace::processor_file_compoments*> workspace::populate_files_to_parse(
-    const utils::resource::resource_location& file_location, open_file_result file_content_status)
+    const resource_location& file_location, open_file_result file_content_status)
 {
     assert(file_content_status != open_file_result::identical);
 
@@ -509,8 +502,7 @@ std::vector<workspace::processor_file_compoments*> workspace::populate_files_to_
     return files_to_parse;
 }
 
-workspace_file_info workspace::parse_file(
-    const utils::resource::resource_location& file_location, open_file_result file_content_status)
+workspace_file_info workspace::parse_file(const resource_location& file_location, open_file_result file_content_status)
 {
     workspace_file_info ws_file_info;
 
@@ -570,19 +562,17 @@ workspace_file_info workspace::parse_successful(processor_file_compoments& comp,
     }
 
     comp.m_macro_cache = std::move(libs.next_macro_cache);
-    for (auto& [_, ver_cache] : comp.m_macro_cache)
-        ver_cache->second.erase_unused();
 
     return ws_file_info;
 }
 
-bool workspace::refresh_libraries(const std::vector<utils::resource::resource_location>& file_locations)
+bool workspace::refresh_libraries(const std::vector<resource_location>& file_locations)
 {
     return m_configuration.refresh_libraries(file_locations);
 }
 
 workspace_file_info workspace::did_open_file(
-    const utils::resource::resource_location& file_location, open_file_result file_content_status)
+    const resource_location& file_location, open_file_result file_content_status)
 {
     if (!m_configuration.is_configuration_file(file_location))
         add_processor_file_impl(file_location).m_opened = true;
@@ -590,7 +580,7 @@ workspace_file_info workspace::did_open_file(
     return parse_file(file_location, file_content_status);
 }
 
-void workspace::did_close_file(const utils::resource::resource_location& file_location)
+void workspace::did_close_file(const resource_location& file_location)
 {
     auto fcomp = m_processor_files.find(file_location);
     if (fcomp == m_processor_files.end())
@@ -603,7 +593,7 @@ void workspace::did_close_file(const utils::resource::resource_location& file_lo
     if (is_dependency_(file_location))
         return;
 
-    std::vector<utils::resource::resource_location> deps_to_cleanup;
+    std::vector<resource_location> deps_to_cleanup;
 
     // find if the file is a dependant
     const auto& file = fcomp->second.m_processor_file;
@@ -618,13 +608,12 @@ void workspace::did_close_file(const utils::resource::resource_location& file_lo
     m_processor_files.erase(fcomp);
 }
 
-void workspace::did_change_file(
-    const utils::resource::resource_location& file_location, const document_change*, size_t cnt)
+void workspace::did_change_file(const resource_location& file_location, const document_change*, size_t cnt)
 {
     parse_file(file_location, cnt ? open_file_result::changed_content : open_file_result::identical);
 }
 
-void workspace::did_change_watched_files(const std::vector<utils::resource::resource_location>& file_locations)
+void workspace::did_change_watched_files(const std::vector<resource_location>& file_locations)
 {
     bool refreshed = refresh_libraries(file_locations);
     for (const auto& file_location : file_locations)
@@ -634,7 +623,7 @@ void workspace::did_change_watched_files(const std::vector<utils::resource::reso
     }
 }
 
-location workspace::definition(const utils::resource::resource_location& document_loc, position pos) const
+location workspace::definition(const resource_location& document_loc, position pos) const
 {
     auto opencodes = find_related_opencodes(document_loc);
     if (opencodes.empty())
@@ -646,7 +635,7 @@ location workspace::definition(const utils::resource::resource_location& documen
         return { pos, document_loc };
 }
 
-location_list workspace::references(const utils::resource::resource_location& document_loc, position pos) const
+location_list workspace::references(const resource_location& document_loc, position pos) const
 {
     auto opencodes = find_related_opencodes(document_loc);
     if (opencodes.empty())
@@ -658,7 +647,7 @@ location_list workspace::references(const utils::resource::resource_location& do
         return {};
 }
 
-std::string workspace::hover(const utils::resource::resource_location& document_loc, position pos) const
+std::string workspace::hover(const resource_location& document_loc, position pos) const
 {
     auto opencodes = find_related_opencodes(document_loc);
     if (opencodes.empty())
@@ -670,10 +659,8 @@ std::string workspace::hover(const utils::resource::resource_location& document_
         return {};
 }
 
-lsp::completion_list_s workspace::completion(const utils::resource::resource_location& document_loc,
-    position pos,
-    const char trigger_char,
-    completion_trigger_kind trigger_kind)
+lsp::completion_list_s workspace::completion(
+    const resource_location& document_loc, position pos, const char trigger_char, completion_trigger_kind trigger_kind)
 {
     auto opencodes = find_related_opencodes(document_loc);
     if (opencodes.empty())
@@ -694,8 +681,7 @@ lsp::completion_list_s workspace::completion(const utils::resource::resource_loc
     return lsp::generate_completion(comp);
 }
 
-lsp::document_symbol_list_s workspace::document_symbol(
-    const utils::resource::resource_location& document_loc, long long limit) const
+lsp::document_symbol_list_s workspace::document_symbol(const resource_location& document_loc, long long limit) const
 {
     auto opencodes = find_related_opencodes(document_loc);
     if (opencodes.empty())
@@ -707,7 +693,7 @@ lsp::document_symbol_list_s workspace::document_symbol(
         return {};
 }
 
-std::vector<token_info> workspace::semantic_tokens(const utils::resource::resource_location& document_loc) const
+std::vector<token_info> workspace::semantic_tokens(const resource_location& document_loc) const
 {
     auto comp = find_processor_file_impl(document_loc);
     if (!comp)
@@ -744,7 +730,7 @@ bool workspace::settings_updated()
     return updated;
 }
 
-const processor_group& workspace::get_proc_grp_by_program(const utils::resource::resource_location& file) const
+const processor_group& workspace::get_proc_grp_by_program(const resource_location& file) const
 {
     if (const auto* pgm = m_configuration.get_program(file); pgm)
         return m_configuration.get_proc_grp_by_program(*pgm);
@@ -837,7 +823,7 @@ std::vector<std::pair<std::string, size_t>> generate_instruction_suggestions(
 } // namespace
 
 std::vector<std::pair<std::string, size_t>> workspace::make_opcode_suggestion(
-    const utils::resource::resource_location& file, std::string_view opcode_, bool extended)
+    const resource_location& file, std::string_view opcode_, bool extended)
 {
     std::string opcode(opcode_);
     for (auto& c : opcode)
@@ -867,7 +853,7 @@ std::vector<std::pair<std::string, size_t>> workspace::make_opcode_suggestion(
 }
 
 void workspace::filter_and_close_dependencies_(
-    std::set<utils::resource::resource_location> dependencies, std::shared_ptr<processor_file> file)
+    std::set<resource_location> dependencies, std::shared_ptr<processor_file> file)
 {
     if (dependencies.empty())
         return;
@@ -892,7 +878,7 @@ void workspace::filter_and_close_dependencies_(
     }
 }
 
-bool workspace::is_dependency_(const utils::resource::resource_location& file_location) const
+bool workspace::is_dependency_(const resource_location& file_location) const
 {
     for (const auto& [_, component] : m_processor_files)
     {
@@ -902,13 +888,12 @@ bool workspace::is_dependency_(const utils::resource::resource_location& file_lo
     return false;
 }
 
-std::vector<std::shared_ptr<library>> workspace::get_libraries(
-    const utils::resource::resource_location& file_location) const
+std::vector<std::shared_ptr<library>> workspace::get_libraries(const resource_location& file_location) const
 {
     return get_proc_grp_by_program(file_location).libraries();
 }
 
-asm_option workspace::get_asm_options(const utils::resource::resource_location& file_location) const
+asm_option workspace::get_asm_options(const resource_location& file_location) const
 {
     asm_option result;
 
@@ -923,8 +908,7 @@ asm_option workspace::get_asm_options(const utils::resource::resource_location& 
         implicit_proc_grp.apply_options_to(result);
     }
 
-    utils::resource::resource_location relative_to_location(
-        file_location.lexically_relative(location_).lexically_normal());
+    resource_location relative_to_location(file_location.lexically_relative(location_).lexically_normal());
 
     const auto& sysin_path = !pgm && (relative_to_location.empty() || relative_to_location.lexically_out_of_scope())
         ? file_location
@@ -935,14 +919,12 @@ asm_option workspace::get_asm_options(const utils::resource::resource_location& 
     return result;
 }
 
-std::vector<preprocessor_options> workspace::get_preprocessor_options(
-    const utils::resource::resource_location& file_location) const
+std::vector<preprocessor_options> workspace::get_preprocessor_options(const resource_location& file_location) const
 {
     return get_proc_grp_by_program(file_location).preprocessors();
 }
 
-workspace::processor_file_compoments& workspace::add_processor_file_impl(
-    const utils::resource::resource_location& file_location)
+workspace::processor_file_compoments& workspace::add_processor_file_impl(const resource_location& file_location)
 {
     if (auto p = find_processor_file_impl(file_location))
         return *p;
@@ -954,8 +936,7 @@ workspace::processor_file_compoments& workspace::add_processor_file_impl(
     return m_processor_files.insert_or_assign(file_location, std::move(pfc)).first->second;
 }
 
-std::shared_ptr<processor_file> workspace::find_processor_file(
-    const utils::resource::resource_location& file_location) const
+std::shared_ptr<processor_file> workspace::find_processor_file(const resource_location& file_location) const
 {
     auto p = find_processor_file_impl(file_location);
     if (!p)
@@ -971,8 +952,7 @@ void workspace::processor_file_compoments::update_source_if_needed() const
     }
 }
 
-workspace::processor_file_compoments* workspace::find_processor_file_impl(
-    const utils::resource::resource_location& file_location)
+workspace::processor_file_compoments* workspace::find_processor_file_impl(const resource_location& file_location)
 {
     if (auto it = m_processor_files.find(file_location); it != m_processor_files.end())
     {
@@ -983,7 +963,7 @@ workspace::processor_file_compoments* workspace::find_processor_file_impl(
 }
 
 const workspace::processor_file_compoments* workspace::find_processor_file_impl(
-    const utils::resource::resource_location& file_location) const
+    const resource_location& file_location) const
 {
     if (auto it = m_processor_files.find(file_location); it != m_processor_files.end())
     {

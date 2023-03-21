@@ -74,7 +74,7 @@ void macro_cache_key::sort_opsyn_state(std::vector<cached_opsyn_mnemo>& opsyn_st
 const macro_cache_data* macro_cache::find_cached_data(const macro_cache_key& key) const
 {
     auto it = cache_.find(key);
-    if (it == cache_.end() || it->second.invalid)
+    if (it == cache_.end())
         return nullptr;
 
     const auto& cached_data = it->second;
@@ -83,8 +83,6 @@ const macro_cache_data* macro_cache::find_cached_data(const macro_cache_key& key
     {
         if (auto file = file_mngr_->find(fname); !file || file->get_version() != cached_version)
         {
-            it->second.invalid = true;
-            has_invalid_entires = true;
             return nullptr; // Reparse needed
         }
     }
@@ -160,16 +158,6 @@ void macro_cache::save_macro(const macro_cache_key& key, const analyzer& analyze
             analyzer.context().lsp_ctx->get_macro_info(key.data.library_member, context::opcode_generation::current);
     else if (key.data.proc_kind == processing::processing_kind::COPY)
         cache_data.cached_member = analyzer.context().hlasm_ctx->get_copy_member(key.data.library_member);
-
-    cache_data.invalid = false;
-}
-
-void macro_cache::erase_unused()
-{
-    if (!has_invalid_entires)
-        return;
-    std::erase_if(cache_, [](const auto& e) { return e.second.invalid; });
-    has_invalid_entires = false;
 }
 
 } // namespace hlasm_plugin::parser_library::workspaces

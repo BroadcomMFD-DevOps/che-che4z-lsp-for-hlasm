@@ -23,15 +23,7 @@
 #include "utils/resource_location.h"
 
 namespace hlasm_plugin::parser_library::workspaces {
-enum class open_file_result;
 using file_location = utils::resource::resource_location;
-
-enum class update_file_result
-{
-    identical,
-    changed,
-    bad,
-};
 
 // Interface that represents both file opened in LSP
 // as well as a file opened by parser library from the disk.

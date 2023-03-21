@@ -25,7 +25,7 @@ using namespace ::testing;
 namespace {
 struct external_file_reader_mock : external_file_reader
 {
-    MOCK_METHOD(std::optional<std::string>, load_text, (const resource_location& document_loc), ());
+    MOCK_METHOD(std::optional<std::string>, load_text, (const resource_location& document_loc), (const));
 };
 } // namespace
 
