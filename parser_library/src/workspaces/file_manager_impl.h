@@ -53,6 +53,8 @@ public:
     file_manager_impl(file_manager_impl&&) = delete;
     file_manager_impl& operator=(file_manager_impl&&) = delete;
 
+    ~file_manager_impl();
+
     std::shared_ptr<file> add_file(const file_location&) override;
 
     std::shared_ptr<file> find(const utils::resource::resource_location& key) const override;
@@ -69,8 +71,6 @@ public:
     void did_close_file(const file_location& document_loc) override;
 
     bool dir_exists(const utils::resource::resource_location& dir_loc) const override;
-
-    virtual ~file_manager_impl() = default;
 
     void put_virtual_file(
         unsigned long long id, std::string_view text, utils::resource::resource_location related_workspace) override;

@@ -158,7 +158,7 @@ struct file_manager_impl::mapped_file final : file
 
     version_t m_version = next_global_version();
 
-    std::shared_ptr<void> m_editing_self_reference;
+    std::shared_ptr<mapped_file> m_editing_self_reference;
     decltype(file_manager_impl::m_files)::const_iterator m_it = m_fm.m_files.end();
 
     mapped_file(const file_location& file_name, file_manager_impl& fm, std::string text)
@@ -227,6 +227,31 @@ file_manager_impl::file_manager_impl()
 file_manager_impl::file_manager_impl(external_file_reader& file_reader)
     : m_file_reader(&file_reader)
 {}
+
+file_manager_impl::~file_manager_impl()
+{
+    std::shared_ptr<mapped_file> to_release;
+    std::shared_ptr<mapped_file>* release = &to_release;
+
+    std::unique_lock lock(files_mutex);
+
+    for (auto& f : m_files)
+    {
+        if (f.second.file->m_editing_self_reference)
+        {
+            *release = std::move(f.second.file->m_editing_self_reference);
+            release = &f.second.file->m_editing_self_reference;
+        }
+    }
+
+    lock.unlock();
+
+    while (to_release)
+    {
+        auto next = std::move(to_release->m_editing_self_reference);
+        std::swap(next, to_release);
+    }
+}
 
 template<typename... Args>
 std::shared_ptr<file_manager_impl::mapped_file> file_manager_impl::make_mapped_file(Args&&... args)
@@ -373,7 +398,7 @@ void file_manager_impl::did_change_file(
     if (!ch_size)
         return;
 
-    std::shared_ptr<void> to_release;
+    std::shared_ptr<mapped_file> to_release;
 
     std::lock_guard guard(files_mutex);
 
@@ -429,7 +454,7 @@ void file_manager_impl::did_change_file(
 
 void file_manager_impl::did_close_file(const file_location& document_loc)
 {
-    std::shared_ptr<void> to_release;
+    std::shared_ptr<mapped_file> to_release;
 
     std::lock_guard guard(files_mutex);
 
