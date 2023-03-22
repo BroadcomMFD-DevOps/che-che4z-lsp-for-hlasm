@@ -513,10 +513,7 @@ workspace_file_info workspace::parse_file(const resource_location& file_location
         const auto& f = component->m_processor_file;
         const auto& f_loc = f->get_location();
 
-        auto alt_cfg = m_configuration.load_alternative_config_if_needed(f_loc);
-        if (auto opened_it = m_processor_files.find(f_loc);
-            opened_it != m_processor_files.end() && opened_it->second.m_opened)
-            opened_it->second.m_alternative_config = std::move(alt_cfg);
+        component->m_alternative_config = m_configuration.load_alternative_config_if_needed(f_loc);
 
         workspace_parse_lib_provider ws_lib(*this, *component);
         if (!f->parse(ws_lib, get_asm_options(f_loc), get_preprocessor_options(f_loc), &fm_vfm_))
