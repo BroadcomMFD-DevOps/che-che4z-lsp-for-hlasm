@@ -835,23 +835,39 @@ std::vector<std::pair<std::string, size_t>> workspace::make_opcode_suggestion(
     return result;
 }
 
+template<typename T>
+void erase_unique_ordered(T& from, const T& what)
+{
+    for (auto f = from.begin(), w = what.begin(); f != from.end() && w != what.end();)
+    {
+        if (auto c = (*f) <=> (*w); c == 0)
+        {
+            f = from.erase(f);
+            ++w;
+        }
+        else if (c < 0)
+            f = from.lower_bound(*w);
+        else
+            w = what.lower_bound(*f);
+    }
+}
+
 void workspace::filter_and_close_dependencies_(
     std::set<resource_location> dependencies, std::shared_ptr<processor_file> file)
 {
-    if (dependencies.empty())
-        return;
-
     // filters the files that are dependencies of other dependants and externally open files
     for (const auto& [_, component] : m_processor_files)
     {
+        if (dependencies.empty())
+            return;
+
         if (component.m_opened)
             dependencies.erase(component.m_processor_file->get_location());
 
         if (component.m_processor_file->get_location() == file->get_location())
             continue;
 
-        for (const auto& dependency : component.m_processor_file->dependencies())
-            dependencies.erase(dependency);
+        erase_unique_ordered(dependencies, component.m_processor_file->dependencies());
     }
 
     // close all exclusive dependencies of file
