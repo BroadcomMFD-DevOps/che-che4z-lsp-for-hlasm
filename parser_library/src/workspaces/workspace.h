@@ -166,8 +166,6 @@ private:
 
     std::unordered_map<resource_location, processor_file_compoments, resource_location_hasher> m_processor_files;
 
-    std::vector<processor_file_compoments*> collect_dependants(const resource_location& file_location);
-
     std::vector<processor_file_compoments*> populate_files_to_parse(
         const utils::resource::resource_location& file_location, open_file_result file_content_status);
 

@@ -462,19 +462,6 @@ namespace {
 bool trigger_reparse(const resource_location& file_location) { return !file_location.get_uri().starts_with("hlasm:"); }
 } // namespace
 
-std::vector<workspace::processor_file_compoments*> workspace::collect_dependants(const resource_location& file_location)
-{
-    std::vector<processor_file_compoments*> result;
-
-    for (auto& [_, component] : m_processor_files)
-    {
-        if (component.m_processor_file->dependencies().contains(file_location))
-            result.push_back(&component);
-    }
-
-    return result;
-}
-
 std::vector<workspace::processor_file_compoments*> workspace::populate_files_to_parse(
     const resource_location& file_location, open_file_result file_content_status)
 {
@@ -485,19 +472,18 @@ std::vector<workspace::processor_file_compoments*> workspace::populate_files_to_
     // TODO: apparently just opening a file without changing it triggers reparse
 
     if (file_content_status == open_file_result::changed_content && trigger_reparse(file_location))
-        files_to_parse = collect_dependants(file_location);
-
-    if (auto proc_file = find_processor_file_impl(file_location);
-        (proc_file && proc_file->m_opened || file_content_status == open_file_result::changed_lsp)
-        && (files_to_parse.empty() || &get_proc_grp_by_program(file_location) != &implicit_proc_grp))
     {
-        if (file_content_status == open_file_result::changed_content)
-            files_to_parse.emplace_back(&add_processor_file_impl(file_location));
-        else if (proc_file == nullptr)
-            files_to_parse.emplace_back(&add_processor_file_impl(file_location));
-        else if (!proc_file->m_processor_file->has_opencode_lsp_info())
-            files_to_parse.emplace_back(proc_file);
+        for (auto& [_, component] : m_processor_files)
+        {
+            if (!component.m_opened)
+                continue;
+            if (component.m_processor_file->dependencies().contains(file_location))
+                files_to_parse.push_back(&component);
+        }
     }
+
+    if (auto proc_file = find_processor_file_impl(file_location); proc_file && proc_file->m_opened)
+        files_to_parse.emplace_back(proc_file);
 
     return files_to_parse;
 }
