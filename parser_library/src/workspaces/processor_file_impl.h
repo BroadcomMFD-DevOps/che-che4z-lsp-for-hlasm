@@ -52,7 +52,6 @@ public:
 
     const semantics::lines_info& get_hl_info() override;
     const lsp::lsp_context* get_lsp_context() const override;
-    const std::set<resource_location>& files_to_close() override;
     const performance_metrics& get_metrics() override;
 
     bool has_opencode_lsp_info() const override;
@@ -70,6 +69,7 @@ public:
     std::shared_ptr<file> current_source() const { return m_file; }
 
     bool should_collect_hl(context::hlasm_context* ctx = nullptr) const;
+    std::set<resource_location> take_files_to_close();
 
 private:
     file_manager& m_file_mngr;

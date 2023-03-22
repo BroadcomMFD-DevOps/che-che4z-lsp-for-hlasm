@@ -133,8 +133,9 @@ private:
 
     void reparse_after_config_refresh();
 
-    void filter_and_close_dependencies_(std::set<resource_location> dependencies, std::shared_ptr<processor_file> file);
-    bool is_dependency_(const resource_location& file_location) const;
+    void filter_and_close_dependencies(
+        std::set<resource_location> files_to_close_candidates, const processor_file_impl* file_to_ignore = nullptr);
+    bool is_dependency(const resource_location& file_location) const;
 
     std::vector<std::shared_ptr<processor_file>> find_related_opencodes(const resource_location& document_loc) const;
     void delete_diags(std::shared_ptr<processor_file> file);

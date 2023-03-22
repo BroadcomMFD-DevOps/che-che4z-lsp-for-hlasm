@@ -376,7 +376,7 @@ void workspace::retrieve_fade_messages(std::vector<fade_message_s>& fms) const
 
         bool take_also_opencode_hc = true;
         if (const auto& pf_rl = pf.get_location();
-            &get_proc_grp_by_program(pf_rl) == &implicit_proc_grp && is_dependency_(pf_rl))
+            &get_proc_grp_by_program(pf_rl) == &implicit_proc_grp && is_dependency(pf_rl))
             take_also_opencode_hc = false;
 
         for (const auto& [__, opened_file_rl] : opened_files_uris)
@@ -438,6 +438,7 @@ const ws_uri& workspace::uri() const { return location_.get_uri(); }
 
 void workspace::reparse_after_config_refresh()
 {
+    std::set<resource_location> files_to_close;
     // Reparse every opened file when configuration is changed
     for (auto& [fname, comp] : m_processor_files)
     {
@@ -450,12 +451,11 @@ void workspace::reparse_after_config_refresh()
             continue;
 
         (void)parse_successful(comp, std::move(ws_lib));
+
+        files_to_close.merge(comp.m_processor_file->take_files_to_close());
     }
 
-    for (const auto& [_, component] : m_processor_files)
-    {
-        filter_and_close_dependencies_(component.m_processor_file->files_to_close(), component.m_processor_file);
-    }
+    filter_and_close_dependencies(std::move(files_to_close));
 }
 
 namespace {
@@ -505,9 +505,9 @@ workspace_file_info workspace::parse_file(const resource_location& file_location
     }
 
     // TODO: what about removing files??? what if depentands_ points to not existing file?
-    auto files_to_parse = populate_files_to_parse(file_location, file_content_status);
 
-    for (auto* component : files_to_parse)
+    std::set<resource_location> files_to_close;
+    for (auto* component : populate_files_to_parse(file_location, file_content_status))
     {
         assert(component);
         const auto& f = component->m_processor_file;
@@ -520,11 +520,13 @@ workspace_file_info workspace::parse_file(const resource_location& file_location
             continue;
 
         ws_file_info = parse_successful(*component, std::move(ws_lib));
+
+        files_to_close.merge(f->take_files_to_close());
     }
 
     // second check after all dependants are there to close all files that used to be dependencies
-    for (const auto* component : files_to_parse)
-        filter_and_close_dependencies_(component->m_processor_file->files_to_close(), component->m_processor_file);
+
+    filter_and_close_dependencies(std::move(files_to_close));
 
     return ws_file_info;
 }
@@ -573,19 +575,14 @@ void workspace::did_close_file(const resource_location& file_location)
 
     // first check whether the file is a dependency
     // if so, simply close it, no other action is needed
-    if (is_dependency_(file_location))
+    if (is_dependency(file_location))
         return;
-
-    std::vector<resource_location> deps_to_cleanup;
 
     // find if the file is a dependant
     const auto& file = fcomp->second.m_processor_file;
-    const auto& deps = file->dependencies();
 
     // filter the dependencies that should not be closed
-    filter_and_close_dependencies_(deps, file);
-    deps_to_cleanup.reserve(deps.size());
-    deps_to_cleanup.assign(deps.begin(), deps.end());
+    filter_and_close_dependencies(file->dependencies(), file.get());
 
     // close the file itself
     m_processor_files.erase(fcomp);
@@ -852,32 +849,32 @@ void erase_unique_ordered(T& from, const T& what)
     }
 }
 
-void workspace::filter_and_close_dependencies_(
-    std::set<resource_location> dependencies, std::shared_ptr<processor_file> file)
+void workspace::filter_and_close_dependencies(
+    std::set<resource_location> files_to_close_candidates, const processor_file_impl* file_to_ignore)
 {
     // filters the files that are dependencies of other dependants and externally open files
     for (const auto& [_, component] : m_processor_files)
     {
-        if (dependencies.empty())
+        if (files_to_close_candidates.empty())
             return;
 
-        if (component.m_opened)
-            dependencies.erase(component.m_processor_file->get_location());
-
-        if (component.m_processor_file->get_location() == file->get_location())
+        if (component.m_processor_file.get() == file_to_ignore)
             continue;
 
-        erase_unique_ordered(dependencies, component.m_processor_file->dependencies());
+        if (component.m_opened)
+            files_to_close_candidates.erase(component.m_processor_file->get_location());
+
+        erase_unique_ordered(files_to_close_candidates, component.m_processor_file->dependencies());
     }
 
     // close all exclusive dependencies of file
-    for (const auto& dep : dependencies)
+    for (const auto& dep : files_to_close_candidates)
     {
         m_processor_files.erase(dep);
     }
 }
 
-bool workspace::is_dependency_(const resource_location& file_location) const
+bool workspace::is_dependency(const resource_location& file_location) const
 {
     for (const auto& [_, component] : m_processor_files)
     {

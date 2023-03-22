@@ -101,7 +101,10 @@ const semantics::lines_info& processor_file_impl::get_hl_info() { return m_last_
 
 const lsp::lsp_context* processor_file_impl::get_lsp_context() const { return m_last_results.lsp_context.get(); }
 
-const std::set<utils::resource::resource_location>& processor_file_impl::files_to_close() { return m_files_to_close; }
+std::set<utils::resource::resource_location> processor_file_impl::take_files_to_close()
+{
+    return std::move(m_files_to_close);
+}
 
 const performance_metrics& processor_file_impl::get_metrics() { return m_last_results.metrics; }
 
