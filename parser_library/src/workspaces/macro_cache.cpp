@@ -19,6 +19,7 @@
 #include "analyzer.h"
 #include "context/hlasm_context.h"
 #include "context/special_instructions.h"
+#include "file.h"
 #include "file_manager.h"
 #include "lsp/lsp_context.h"
 

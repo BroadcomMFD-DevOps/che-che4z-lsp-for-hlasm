@@ -864,11 +864,11 @@ void workspace::filter_and_close_dependencies_(
         if (component.m_opened)
             dependencies.erase(component.m_processor_file->get_location());
 
+        if (component.m_processor_file->get_location() == file->get_location())
+            continue;
+
         for (const auto& dependency : component.m_processor_file->dependencies())
-        {
-            if (component.m_processor_file->get_location() != file->get_location() && dependencies.contains(dependency))
-                dependencies.erase(dependency);
-        }
+            dependencies.erase(dependency);
     }
 
     // close all exclusive dependencies of file
