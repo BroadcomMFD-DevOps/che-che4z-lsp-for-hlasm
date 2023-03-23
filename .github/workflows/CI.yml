@@ -382,7 +382,7 @@ jobs:
     needs: VSIX
     strategy:
       matrix:
-        theia: ["ghcr.io/slavek-kucera/blueprint:latest"]
+        theia: ["ghcr.io/eclipse-theia/theia-blueprint/blueprint:1.35.0"]
 # theiaide images not supported anymore, replaced with a quay mirror until there is something official again. See also https://github.com/theia-ide/theia-apps/issues/496
     container:
       image: ${{ matrix.theia }}
