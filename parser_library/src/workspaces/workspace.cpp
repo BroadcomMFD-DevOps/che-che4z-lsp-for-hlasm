@@ -629,9 +629,28 @@ void workspace::did_close_file(const resource_location& file_location)
 
     fcomp->second.m_opened = false;
 
+    bool found_dependency = false;
     // first check whether the file is a dependency
-    // if so, simply close it, no other action is needed
-    if (is_dependency(file_location))
+    for (std::shared_ptr<file> file; const auto& [_, component] : m_processor_files)
+    {
+        auto it = component.m_dependencies.find(file_location);
+        if (it == component.m_dependencies.end())
+            continue;
+        if (!std::holds_alternative<std::shared_ptr<dependency_cache>>(it->second))
+            continue;
+
+        found_dependency = true;
+
+        if (!file)
+            file = file_manager_.add_file(file_location);
+
+        if (file->get_version() == std::get<std::shared_ptr<dependency_cache>>(it->second)->version)
+            continue;
+
+        parse_file(file_location, open_file_result::changed_content);
+        break;
+    }
+    if (found_dependency)
         return;
 
     // find if the file is a dependant
