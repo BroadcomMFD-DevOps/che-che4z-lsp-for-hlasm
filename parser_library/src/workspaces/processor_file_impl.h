@@ -68,7 +68,7 @@ public:
 
     bool should_collect_hl(context::hlasm_context* ctx = nullptr) const;
 
-    auto take_vf_handles() const noexcept { return std::move(m_last_results.vf_handles); }
+    auto take_vf_handles() noexcept { return std::move(m_last_results.vf_handles); }
 
 private:
     file_manager& m_file_mngr;

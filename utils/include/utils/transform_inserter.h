@@ -39,9 +39,10 @@ public:
         , transform(std::move(t))
     {}
 
-    transform_inserter& operator=(auto&& value)
+    template<typename V>
+    transform_inserter& operator=(V&& value)
     {
-        container->insert(std::invoke(transform, static_cast<decltype(value)&&>(value)));
+        container->insert(std::invoke(transform, std::forward<V>(value)));
         return *this;
     }
     transform_inserter& operator*() { return *this; }

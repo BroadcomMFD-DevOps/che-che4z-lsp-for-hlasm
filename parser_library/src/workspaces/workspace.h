@@ -153,7 +153,7 @@ private:
 
     struct dependency_cache
     {
-        dependency_cache(version_t version, file_manager& fm, std::shared_ptr<file> file)
+        dependency_cache(version_t version, const file_manager& fm, std::shared_ptr<file> file)
             : version(version)
             , cache(fm, std::move(file))
         {}
