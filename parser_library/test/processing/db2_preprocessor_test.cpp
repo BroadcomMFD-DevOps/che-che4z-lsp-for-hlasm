@@ -36,7 +36,7 @@ namespace {
 const auto copy1_loc = resource_location("COPY1");
 const auto copy2_loc = resource_location("COPY2");
 const auto member_loc = resource_location("MEMBER");
-const mock_file_stats_t invalid_stats { -1, -1, -1 };
+const mock_file_stats_t invalid_stats { (size_t)-1, (size_t)-1, (size_t)-1 };
 
 constexpr auto empty_library_fetcher =
     [](std::string) -> hlasm_plugin::utils::value_task<
