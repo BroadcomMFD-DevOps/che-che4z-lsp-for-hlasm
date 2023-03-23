@@ -188,15 +188,10 @@ struct workspace_parse_lib_provider final : public parse_lib_provider
         std::function<void(std::optional<std::pair<std::string, resource_location>>)> callback) override
     {
         assert(callback);
-        auto url = get_url(library);
-        if (url.empty())
-        {
+        if (auto url = get_url(library); url.empty())
             callback(std::nullopt);
-        }
         else
-        {
             callback(std::make_pair(get_file(url)->get_text(), std::move(url)));
-        }
     }
 };
 
