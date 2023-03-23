@@ -65,7 +65,6 @@ protected:
 class processor_file : public processor
 {
 public:
-    virtual const std::set<utils::resource::resource_location>& dependencies() = 0;
     virtual const semantics::lines_info& get_hl_info() = 0;
     virtual const lsp::lsp_context* get_lsp_context() const = 0;
     virtual const performance_metrics& get_metrics() = 0;

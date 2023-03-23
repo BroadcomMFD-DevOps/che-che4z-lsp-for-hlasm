@@ -24,7 +24,7 @@ void to_json(nlohmann::json& j, const parser_library::workspace_file_info& info)
         { "config_parsing", info.config_parsing },
         { "diagnostics_suppressed", info.diagnostics_suppressed },
         { "processor_group_found", info.processor_group_found },
-        { "Files", info.files_processed },
+        { "files_processed", info.files_processed },
     };
 }
 

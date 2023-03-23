@@ -31,6 +31,7 @@
 #include "utils/factory.h"
 #include "utils/levenshtein_distance.h"
 #include "utils/path.h"
+#include "utils/transform_inserter.h"
 
 using hlasm_plugin::utils::resource::resource_location;
 using hlasm_plugin::utils::resource::resource_location_hasher;
@@ -42,8 +43,14 @@ struct workspace_parse_lib_provider final : public parse_lib_provider
     workspace& ws;
     std::vector<std::shared_ptr<library>> libraries;
     workspace::processor_file_compoments& pfc;
-    std::unordered_map<resource_location, std::shared_ptr<std::pair<version_t, macro_cache>>, resource_location_hasher>
-        next_macro_cache;
+
+    std::map<resource_location,
+        std::variant<std::shared_ptr<workspace::dependency_cache>, virtual_file_handle>,
+        std::less<>>
+        next_dependencies;
+    std::map<std::string, resource_location, std::less<>> next_member_map;
+    std::unordered_map<resource_location, std::shared_ptr<file>, resource_location_hasher, std::equal_to<>>
+        current_file_map;
 
     workspace_parse_lib_provider(workspace& ws, workspace::processor_file_compoments& pfc)
         : ws(ws)
@@ -51,105 +58,145 @@ struct workspace_parse_lib_provider final : public parse_lib_provider
         , pfc(pfc)
     {}
 
+    void append_files_to_close(std::set<resource_location>& files_to_close)
+    {
+        std::set_difference(pfc.m_dependencies.begin(),
+            pfc.m_dependencies.end(),
+            next_dependencies.begin(),
+            next_dependencies.end(),
+            utils::transform_inserter(
+                files_to_close, [](const auto& v) -> const auto& { return v.first; }),
+            [](const auto& l, const auto& r) { return l.first < r.first; });
+    }
+
+    resource_location get_url(std::string_view library)
+    {
+        if (auto it = next_member_map.find(library); it != next_member_map.end())
+        {
+            return it->second;
+        }
+        else if (resource_location url; std::none_of(libraries.begin(),
+                     libraries.end(),
+                     [&url, &library](const auto& lib) { return lib->has_file(library, &url); }))
+        {
+            next_member_map.emplace(library, resource_location());
+            return resource_location();
+        }
+        else
+        {
+            next_member_map.emplace(library, url);
+            return url;
+        }
+    }
+
+    std::shared_ptr<file> get_file(const resource_location& url)
+    {
+        return current_file_map
+            .try_emplace(url, utils::factory([this, &url]() { return ws.file_manager_.add_file(url); }))
+            .first->second;
+    }
+
+    auto& get_cache(const resource_location& url, const std::shared_ptr<file>& file)
+    {
+        return std::get<std::shared_ptr<workspace::dependency_cache>>(
+            next_dependencies
+                .try_emplace(url, utils::factory([&url, &file, this]() {
+                    auto version = file->get_version();
+                    if (auto it = pfc.m_dependencies.find(url); it != pfc.m_dependencies.end()
+                        && std::get<std::shared_ptr<workspace::dependency_cache>>(it->second)->version == version)
+                        return std::get<std::shared_ptr<workspace::dependency_cache>>(it->second);
+
+                    return std::make_shared<workspace::dependency_cache>(version, ws.get_file_manager(), file);
+                }))
+                .first->second)
+            ->cache;
+    }
+
     // Inherited via parse_lib_provider
     void parse_library(
         std::string_view library, analyzing_context ctx, library_data data, std::function<void(bool)> callback) override
     {
         assert(callback);
-        resource_location url;
-        for (const auto& lib : libraries)
+        resource_location url = get_url(library);
+        if (url.empty())
         {
-            if (!lib->has_file(library, &url))
-                continue;
+            callback(false);
+            return;
+        }
+        std::shared_ptr<file> file = get_file(url);
+        // TODO: if file is in error do something?
 
-            auto& macro_pfc = ws.add_processor_file_impl(url);
-            auto found = macro_pfc.m_processor_file;
-            assert(found);
+        auto& macro_pfc = ws.add_processor_file_impl(file);
+        auto found = macro_pfc.m_processor_file;
+        assert(found);
 
-            auto file = found->current_source();
+        auto cache_key = macro_cache_key::create_from_context(*ctx.hlasm_ctx, data);
 
-            auto cache_key = macro_cache_key::create_from_context(*ctx.hlasm_ctx, data);
+        auto& mc = get_cache(url, file);
 
-            auto& mc = next_macro_cache
-                           .try_emplace(url, utils::factory([&url, &file, this]() {
-                               auto version = file->get_version();
-                               if (auto it = pfc.m_macro_cache.find(url);
-                                   it != pfc.m_macro_cache.end() && it->second->first == version)
-                                   return it->second;
-
-                               return std::make_shared<std::pair<version_t, macro_cache>>(
-                                   std::piecewise_construct, std::tie(version), std::tie(ws.get_file_manager(), file));
-                           }))
-                           .first->second->second;
-
-            if (mc.load_from_cache(cache_key, ctx))
-            {
-                callback(true);
-                return;
-            }
-
-            const bool collect_hl = found->should_collect_hl(ctx.hlasm_ctx.get());
-            analyzer a(file->get_text(),
-                analyzer_options {
-                    std::move(url),
-                    this,
-                    std::move(ctx),
-                    data,
-                    collect_hl ? collect_highlighting_info::yes : collect_highlighting_info::no,
-                });
-
-            processing::hit_count_analyzer hc_analyzer(a.hlasm_ctx());
-            a.register_stmt_analyzer(&hc_analyzer);
-
-            for (auto co_a = a.co_analyze(); !co_a.done(); co_a.resume())
-            {
-                if (ws.cancel_ && ws.cancel_->load(std::memory_order_relaxed))
-                {
-                    callback(false);
-                    return;
-                }
-            }
-
-            found->diags().clear();
-            found->collect_diags_from_child(a);
-
-            mc.save_macro(cache_key, a);
-            found->m_last_macro_analyzer_with_lsp = collect_hl;
-            if (collect_hl)
-                found->m_last_results.hl_info = a.take_semantic_tokens();
-
-            found->m_last_results.hc_macro_map = hc_analyzer.take_hit_count_map();
-
+        if (mc.load_from_cache(cache_key, ctx))
+        {
             callback(true);
             return;
         }
 
-        callback(false);
+        const bool collect_hl = found->should_collect_hl(ctx.hlasm_ctx.get());
+        analyzer a(file->get_text(),
+            analyzer_options {
+                std::move(url),
+                this,
+                std::move(ctx),
+                data,
+                collect_hl ? collect_highlighting_info::yes : collect_highlighting_info::no,
+            });
+
+        processing::hit_count_analyzer hc_analyzer(a.hlasm_ctx());
+        a.register_stmt_analyzer(&hc_analyzer);
+
+        for (auto co_a = a.co_analyze(); !co_a.done(); co_a.resume())
+        {
+            if (ws.cancel_ && ws.cancel_->load(std::memory_order_relaxed))
+            {
+                callback(false);
+                return;
+            }
+        }
+
+        found->diags().clear();
+        found->collect_diags_from_child(a);
+
+        mc.save_macro(cache_key, a);
+        found->m_last_macro_analyzer_with_lsp = collect_hl;
+        if (collect_hl)
+            found->m_last_results.hl_info = a.take_semantic_tokens();
+
+        found->m_last_results.hc_macro_map = hc_analyzer.take_hit_count_map();
+
+        callback(true);
     }
-    bool has_library(std::string_view library, resource_location* loc) const override
+
+    bool has_library(std::string_view library, resource_location* loc) override
     {
-        return std::any_of(libraries.begin(), libraries.end(), [&library, loc](const auto& lib) {
-            return lib->has_file(library, loc);
-        });
+        auto url = get_url(library);
+        bool result = !url.empty();
+        if (loc)
+            *loc = std::move(url);
+        return result;
     }
+
     void get_library(std::string_view library,
-        std::function<void(std::optional<std::pair<std::string, resource_location>>)> callback) const override
+        std::function<void(std::optional<std::pair<std::string, resource_location>>)> callback) override
     {
         assert(callback);
-        resource_location url;
-        for (const auto& lib : libraries)
+        auto url = get_url(library);
+        if (url.empty())
         {
-            if (!lib->has_file(library, &url))
-                continue;
-
-            auto content = ws.file_manager_.get_file_content(url);
-            if (!content.has_value())
-                break;
-
-            callback(std::make_pair(std::move(content).value(), std::move(url)));
-            return;
+            callback(std::nullopt);
         }
-        callback(std::nullopt);
+        else
+        {
+            callback(std::make_pair(get_file(url)->get_text(), std::move(url)));
+        }
     }
 };
 
@@ -405,25 +452,28 @@ std::vector<std::shared_ptr<processor_file>> workspace::find_related_opencodes(
 
     for (const auto& [_, component] : m_processor_files)
     {
-        if (component.m_processor_file->dependencies().contains(document_loc))
+        if (component.m_dependencies.contains(document_loc))
             opencodes.push_back(component.m_processor_file);
     }
 
     return opencodes;
 }
 
-void workspace::delete_diags(std::shared_ptr<processor_file> file)
+void workspace::delete_diags(processor_file_compoments& pfc)
 {
-    file->diags().clear();
+    // TODO:
+    // this function just looks wrong, we delete diagnostics for dependencies
+    // regardless of in what files they are used
+    pfc.m_processor_file->diags().clear();
 
-    for (const auto& dep : file->dependencies())
+    for (const auto& [dep, _] : pfc.m_dependencies)
     {
         auto dep_file = find_processor_file(dep);
         if (dep_file)
             dep_file->diags().clear();
     }
 
-    file->diags().push_back(diagnostic_s::info_SUP(file->get_location()));
+    pfc.m_processor_file->diags().push_back(diagnostic_s::info_SUP(pfc.m_processor_file->get_location()));
 }
 
 void workspace::show_message(const std::string& message)
@@ -450,9 +500,9 @@ void workspace::reparse_after_config_refresh()
         if (!comp.m_processor_file->parse(ws_lib, get_asm_options(fname), get_preprocessor_options(fname), &fm_vfm_))
             continue;
 
-        (void)parse_successful(comp, std::move(ws_lib));
+        ws_lib.append_files_to_close(files_to_close);
 
-        files_to_close.merge(comp.m_processor_file->take_files_to_close());
+        (void)parse_successful(comp, std::move(ws_lib));
     }
 
     filter_and_close_dependencies(std::move(files_to_close));
@@ -477,7 +527,7 @@ std::vector<workspace::processor_file_compoments*> workspace::populate_files_to_
         {
             if (!component.m_opened)
                 continue;
-            if (component.m_processor_file->dependencies().contains(file_location))
+            if (component.m_dependencies.contains(file_location))
                 files_to_parse.push_back(&component);
         }
     }
@@ -519,9 +569,9 @@ workspace_file_info workspace::parse_file(const resource_location& file_location
         if (!f->parse(ws_lib, get_asm_options(f_loc), get_preprocessor_options(f_loc), &fm_vfm_))
             continue;
 
-        ws_file_info = parse_successful(*component, std::move(ws_lib));
+        ws_lib.append_files_to_close(files_to_close);
 
-        files_to_close.merge(f->take_files_to_close());
+        ws_file_info = parse_successful(*component, std::move(ws_lib));
     }
 
     // second check after all dependants are there to close all files that used to be dependencies
@@ -543,10 +593,16 @@ workspace_file_info workspace::parse_successful(processor_file_compoments& comp,
     if (&grp == &implicit_proc_grp && (int64_t)f->diags().size() > get_config().diag_supress_limit)
     {
         ws_file_info.diagnostics_suppressed = true;
-        delete_diags(f);
+        delete_diags(comp);
     }
 
-    comp.m_macro_cache = std::move(libs.next_macro_cache);
+    for (auto&& [vfh, url] : f->take_vf_handles())
+        libs.next_dependencies.try_emplace(std::move(url), std::move(vfh));
+
+    ws_file_info.files_processed = libs.next_dependencies.size() + 1; // TODO: identify error states?
+
+    comp.m_dependencies = std::move(libs.next_dependencies);
+    comp.m_member_map = std::move(libs.next_member_map);
 
     return ws_file_info;
 }
@@ -560,7 +616,7 @@ workspace_file_info workspace::did_open_file(
     const resource_location& file_location, open_file_result file_content_status)
 {
     if (!m_configuration.is_configuration_file(file_location))
-        add_processor_file_impl(file_location).m_opened = true;
+        add_processor_file_impl(file_manager_.add_file(file_location)).m_opened = true;
 
     return parse_file(file_location, file_content_status);
 }
@@ -581,8 +637,11 @@ void workspace::did_close_file(const resource_location& file_location)
     // find if the file is a dependant
     const auto& file = fcomp->second.m_processor_file;
 
+    std::set<resource_location> files_to_close;
+    for (const auto& [dep, _] : fcomp->second.m_dependencies)
+        files_to_close.insert(dep);
     // filter the dependencies that should not be closed
-    filter_and_close_dependencies(file->dependencies(), file.get());
+    filter_and_close_dependencies(std::move(files_to_close), file.get());
 
     // close the file itself
     m_processor_files.erase(fcomp);
@@ -832,18 +891,21 @@ std::vector<std::pair<std::string, size_t>> workspace::make_opcode_suggestion(
     return result;
 }
 
-template<typename T>
-void erase_unique_ordered(T& from, const T& what)
+template<bool Multi = false, typename T, typename U, typename Projector = std::identity>
+void erase_ordered(T& from, const U& what, Projector p = Projector())
 {
-    for (auto f = from.begin(), w = what.begin(); f != from.end() && w != what.end();)
+    auto f = from.begin();
+    auto w = what.begin();
+    while (f != from.end() && w != what.end())
     {
-        if (auto c = (*f) <=> (*w); c == 0)
+        if (auto c = *f <=> std::invoke(p, *w); c == 0)
         {
             f = from.erase(f);
-            ++w;
+            if constexpr (!Multi)
+                ++w;
         }
         else if (c < 0)
-            f = from.lower_bound(*w);
+            f = from.lower_bound(std::invoke(p, *w));
         else
             w = what.lower_bound(*f);
     }
@@ -864,7 +926,9 @@ void workspace::filter_and_close_dependencies(
         if (component.m_opened)
             files_to_close_candidates.erase(component.m_processor_file->get_location());
 
-        erase_unique_ordered(files_to_close_candidates, component.m_processor_file->dependencies());
+        erase_ordered(files_to_close_candidates,
+            component.m_dependencies,
+            &decltype(component.m_dependencies)::value_type::first);
     }
 
     // close all exclusive dependencies of file
@@ -878,7 +942,7 @@ bool workspace::is_dependency(const resource_location& file_location) const
 {
     for (const auto& [_, component] : m_processor_files)
     {
-        if (component.m_processor_file->dependencies().contains(file_location))
+        if (component.m_dependencies.contains(file_location))
             return true;
     }
     return false;
@@ -920,16 +984,17 @@ std::vector<preprocessor_options> workspace::get_preprocessor_options(const reso
     return get_proc_grp_by_program(file_location).preprocessors();
 }
 
-workspace::processor_file_compoments& workspace::add_processor_file_impl(const resource_location& file_location)
+workspace::processor_file_compoments& workspace::add_processor_file_impl(std::shared_ptr<file> f)
 {
-    if (auto p = find_processor_file_impl(file_location))
+    const auto& loc = f->get_location();
+    if (auto p = find_processor_file_impl(loc))
         return *p;
 
     processor_file_compoments pfc {
-        std::make_shared<processor_file_impl>(file_manager_.add_file(file_location), file_manager_, cancel_),
+        std::make_shared<processor_file_impl>(std::move(f), file_manager_, cancel_),
     };
 
-    return m_processor_files.insert_or_assign(file_location, std::move(pfc)).first->second;
+    return m_processor_files.insert_or_assign(loc, std::move(pfc)).first->second;
 }
 
 std::shared_ptr<processor_file> workspace::find_processor_file(const resource_location& file_location) const

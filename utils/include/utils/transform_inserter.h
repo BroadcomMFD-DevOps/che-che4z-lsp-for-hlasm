@@ -15,6 +15,7 @@
 #ifndef HLASMPLUGIN_UTILS_TRANSFORM_INSERTER_H
 #define HLASMPLUGIN_UTILS_TRANSFORM_INSERTER_H
 
+#include <functional>
 #include <iterator>
 #include <utility>
 
@@ -40,7 +41,7 @@ public:
 
     transform_inserter& operator=(auto&& value)
     {
-        container->insert(transform(static_cast<decltype(value)&&>(value)));
+        container->insert(std::invoke(transform, static_cast<decltype(value)&&>(value)));
         return *this;
     }
     transform_inserter& operator*() { return *this; }

@@ -60,7 +60,11 @@ public:
         , a(contents, analyzer_options { source_loc, lib_provider.get(), preproc_options, &vf_monitor })
     {}
 
-    void SetUp() override { a.analyze(); }
+    void SetUp() override
+    {
+        a.analyze();
+        vf_files = a.take_vf_handles();
+    }
 
 protected:
     std::shared_ptr<workspaces::parse_lib_provider> lib_provider;
@@ -68,27 +72,23 @@ protected:
     {
         unsigned long long next_id = 12345;
         std::vector<unsigned long long> generated_handles;
-        virtual_file_handle file_generated(std::string_view content) final
+        virtual_file_handle file_generated(std::string_view) final
         {
             generated_handles.emplace_back(next_id++);
 
-            return virtual_file_handle();
+            return virtual_file_handle(std::make_shared<virtual_file_id>(generated_handles.back()));
         }
     } vf_monitor;
     analyzer a;
+    std::vector<std::pair<virtual_file_handle, resource_location>> vf_files;
 
-    std::optional<resource_location> find_preproc_file(std::string_view name, size_t index)
+    std::optional<resource_location> find_preproc_file(std::string_view name)
     {
-        if (index >= vf_monitor.generated_handles.size())
-            return std::nullopt;
+        for (const auto& [_, url] : vf_files)
+            if (url.get_uri().ends_with(name))
+                return url;
 
-        std::string result;
-        result += "hlasm://";
-        result += std::to_string(vf_monitor.generated_handles[index]);
-        result += "/";
-        result += name;
-        result += ".hlasm";
-        return resource_location(std::move(result));
+        return std::nullopt;
     }
 
     inline bool reloc_symbol_checker(std::string_view source)
@@ -217,8 +217,8 @@ public:
     {
         lsp_context_preprocessor_test::SetUp();
 
-        preproc1_loc = find_preproc_file("PREPROCESSOR_1.hlasm", 0);
-        preproc6_loc = find_preproc_file("PREPROCESSOR_6.hlasm", 1);
+        preproc1_loc = find_preproc_file("PREPROCESSOR_1.hlasm");
+        preproc6_loc = find_preproc_file("PREPROCESSOR_6.hlasm");
 
         ASSERT_TRUE(preproc1_loc.has_value());
         ASSERT_TRUE(preproc6_loc.has_value());
@@ -361,8 +361,9 @@ public:
 
     void SetUp() override
     {
-        a.analyze();
-        preproc1_loc = find_preproc_file("PREPROCESSOR_1.hlasm", 0);
+        lsp_context_preprocessor_test::SetUp();
+
+        preproc1_loc = find_preproc_file("PREPROCESSOR_1.hlasm");
 
         ASSERT_TRUE(preproc1_loc.has_value());
     }

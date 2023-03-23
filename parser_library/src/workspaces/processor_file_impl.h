@@ -48,8 +48,6 @@ public:
     // Starts parser with new (empty) context
     bool parse(parse_lib_provider&, asm_option, std::vector<preprocessor_options>, virtual_file_monitor*) override;
 
-    const std::set<resource_location>& dependencies() override;
-
     const semantics::lines_info& get_hl_info() override;
     const lsp::lsp_context* get_lsp_context() const override;
     const performance_metrics& get_metrics() override;
@@ -69,7 +67,8 @@ public:
     std::shared_ptr<file> current_source() const { return m_file; }
 
     bool should_collect_hl(context::hlasm_context* ctx = nullptr) const;
-    std::set<resource_location> take_files_to_close();
+
+    auto take_vf_handles() const noexcept { return std::move(m_last_results.vf_handles); }
 
 private:
     file_manager& m_file_mngr;
@@ -85,15 +84,12 @@ private:
         std::shared_ptr<const std::vector<fade_message_s>> fade_messages =
             std::make_shared<const std::vector<fade_message_s>>();
         performance_metrics metrics;
-        std::vector<virtual_file_handle> vf_handles;
+        std::vector<std::pair<virtual_file_handle, resource_location>> vf_handles;
         processing::hit_count_map hc_opencode_map;
         processing::hit_count_map hc_macro_map;
     } m_last_results;
 
     std::atomic<bool>* m_cancel;
-
-    std::set<resource_location> m_dependencies;
-    std::set<resource_location> m_files_to_close;
 };
 
 } // namespace hlasm_plugin::parser_library::workspaces
