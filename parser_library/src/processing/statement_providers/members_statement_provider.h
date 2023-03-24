@@ -49,21 +49,15 @@ public:
 
 
 protected:
-    union rollback_token
-    {
-        void* p = nullptr;
-        context::macro_invocation* mi;
-        context::copy_member_invocation* cmi;
-    };
-
     analyzing_context ctx;
     statement_fields_parser& parser;
     workspaces::parse_lib_provider& lib_provider;
     processing::processing_state_listener& listener;
     diagnostic_op_consumer& diagnoser;
-    virtual std::pair<context::statement_cache*, rollback_token> get_next() = 0;
+    bool went_back = false;
+    virtual context::statement_cache* get_next() = 0;
     virtual std::vector<diagnostic_op> filter_cached_diagnostics(const semantics::deferred_statement& stmt) const = 0;
-    virtual void go_back(rollback_token t) = 0;
+    void go_back() { went_back = true; }
 
 private:
     const semantics::instruction_si* retrieve_instruction(const context::statement_cache& cache) const;

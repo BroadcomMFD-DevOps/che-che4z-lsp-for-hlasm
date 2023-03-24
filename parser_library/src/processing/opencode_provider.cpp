@@ -264,13 +264,14 @@ void opencode_provider::generate_continuation_error_messages(diagnostic_op_consu
 
 std::shared_ptr<const context::hlasm_statement> opencode_provider::process_lookahead(const statement_processor& proc,
     semantics::collector& collector,
-    const std::optional<std::string>& op_text,
-    const range& op_range)
+    std::pair<std::optional<std::string>, range> operands)
 {
     // Lookahead processor always returns value
     auto proc_status = proc.get_processing_status(collector.current_instruction()).value();
 
     m_ctx->hlasm_ctx->set_source_position(collector.current_instruction().field_range.start);
+
+    const auto& [op_text, op_range] = operands;
 
     if (op_text
         && proc_status.first.form != processing_form::IGNORED
@@ -311,13 +312,13 @@ constexpr bool is_multiline(std::string_view v)
 
 std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordinary(const statement_processor& proc,
     semantics::collector& collector,
-    const std::optional<std::string>& op_text,
-    const range& op_range,
-    diagnostic_op_consumer* diags)
+    std::pair<std::optional<std::string>, range> operands,
+    diagnostic_op_consumer* diags,
+    bool restart)
 {
     static diagnostic_consumer_transform drop_diags([](diagnostic_op) {});
 
-    if (proc.kind == processing_kind::ORDINARY
+    if (!restart && proc.kind == processing_kind::ORDINARY
         && try_trigger_attribute_lookahead(collector.current_instruction(),
             { *m_ctx->hlasm_ctx, library_info_transitional(*m_lib_provider), drop_diags },
             *m_state_listener))
@@ -327,10 +328,13 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordin
     const auto proc_status_o = proc.get_processing_status(collector.current_instruction());
     if (!proc_status_o.has_value())
     {
-        m_next_line_index = m_current_logical_line_source.first_index;
+        m_restart_process_ordinary.emplace(
+            process_ordinary_restart_data { proc, collector, std::move(operands), diags });
         return nullptr;
     }
     const auto& proc_status = proc_status_o.value();
+
+    const auto& [op_text, op_range] = operands;
 
     if (op_text)
     {
@@ -613,6 +617,14 @@ utils::task opencode_provider::convert_ainsert_buffer_to_copybook()
 
 context::shared_stmt_ptr opencode_provider::get_next(const statement_processor& proc)
 {
+    if (m_restart_process_ordinary) [[unlikely]]
+    {
+        auto& [p, collector, operands, diags] = *m_restart_process_ordinary;
+        assert(&p == &proc);
+        auto result = process_ordinary(p, collector, std::move(operands), diags, true);
+        m_restart_process_ordinary.reset();
+        return result;
+    }
     auto ll_res = extract_next_logical_line();
     if (ll_res == extract_next_logical_line_result::failed)
         return nullptr;
@@ -649,7 +661,7 @@ context::shared_stmt_ptr opencode_provider::get_next(const statement_processor& 
     if (!lookahead)
         ph.parser->set_diagnoser(diag_target);
 
-    const auto& [op_text, op_range] = lookahead ? ph.look_lab_instr() : ph.lab_instr();
+    auto operands = lookahead ? ph.look_lab_instr() : ph.lab_instr();
     ph.parser->get_collector().resolve_first_part();
 
     if (!collector.has_instruction())
@@ -673,12 +685,14 @@ context::shared_stmt_ptr opencode_provider::get_next(const statement_processor& 
     m_ctx->hlasm_ctx->set_source_indices(
         m_current_logical_line_source.first_index, m_current_logical_line_source.last_index);
 
-    return lookahead ? process_lookahead(proc, collector, op_text, op_range)
-                     : process_ordinary(proc, collector, op_text, op_range, diag_target);
+    return lookahead ? process_lookahead(proc, collector, std::move(operands))
+                     : process_ordinary(proc, collector, std::move(operands), diag_target, false);
 }
 
 bool opencode_provider::finished() const
 {
+    if (m_restart_process_ordinary.has_value())
+        return false;
     if (m_next_line_index < m_input_document.size())
         return false;
     if (!m_ctx->hlasm_ctx->in_opencode())
