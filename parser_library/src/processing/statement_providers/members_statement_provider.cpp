@@ -34,8 +34,6 @@ members_statement_provider::members_statement_provider(const statement_provider_
 
 context::shared_stmt_ptr members_statement_provider::get_next(const statement_processor& processor)
 {
-    diagnostic_consumer_transform drop_diags([](diagnostic_op) {});
-
     if (finished())
         throw std::runtime_error("provider already finished");
 
@@ -49,7 +47,7 @@ context::shared_stmt_ptr members_statement_provider::get_next(const statement_pr
         if (const auto* instr = retrieve_instruction(*cache))
         {
             if (try_trigger_attribute_lookahead(
-                    *instr, { *ctx.hlasm_ctx, library_info_transitional(lib_provider), drop_diags }, listener))
+                    *instr, { *ctx.hlasm_ctx, library_info_transitional(lib_provider), drop_diagnostic_op }, listener))
                 return nullptr;
         }
     }
@@ -85,7 +83,7 @@ context::shared_stmt_ptr members_statement_provider::get_next(const statement_pr
 
     if (processor.kind == processing_kind::ORDINARY
         && try_trigger_attribute_lookahead(
-            *stmt, { *ctx.hlasm_ctx, library_info_transitional(lib_provider), drop_diags }, listener))
+            *stmt, { *ctx.hlasm_ctx, library_info_transitional(lib_provider), drop_diagnostic_op }, listener))
         return nullptr;
 
     return stmt;

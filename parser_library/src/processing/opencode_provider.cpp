@@ -318,8 +318,6 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordin
     diagnostic_op_consumer* diags,
     std::optional<context::id_index> resolved_instr)
 {
-    static diagnostic_consumer_transform drop_diags([](diagnostic_op) {});
-
     const auto& current_instr = collector.current_instruction();
     m_ctx->hlasm_ctx->set_source_position(current_instr.field_range.start);
 
@@ -443,8 +441,9 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordin
     auto result = collector.extract_statement(proc_status, statement_range);
 
     if (proc.kind == processing_kind::ORDINARY
-        && try_trigger_attribute_lookahead(
-            *result, { *m_ctx->hlasm_ctx, library_info_transitional(*m_lib_provider), drop_diags }, *m_state_listener))
+        && try_trigger_attribute_lookahead(*result,
+            { *m_ctx->hlasm_ctx, library_info_transitional(*m_lib_provider), drop_diagnostic_op },
+            *m_state_listener))
         return nullptr;
 
     if (m_current_logical_line.segments.size() > 1)
@@ -686,11 +685,9 @@ context::shared_stmt_ptr opencode_provider::get_next(const statement_processor& 
     if (lookahead)
         return process_lookahead(proc, collector, std::move(operands));
 
-    static diagnostic_consumer_transform drop_diags([](diagnostic_op) {});
-
     if (proc.kind == processing_kind::ORDINARY
         && try_trigger_attribute_lookahead(collector.current_instruction(),
-            { *m_ctx->hlasm_ctx, library_info_transitional(*m_lib_provider), drop_diags },
+            { *m_ctx->hlasm_ctx, library_info_transitional(*m_lib_provider), drop_diagnostic_op },
             *m_state_listener))
         return nullptr;
 
