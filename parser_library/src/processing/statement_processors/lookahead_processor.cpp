@@ -22,14 +22,20 @@
 
 namespace hlasm_plugin::parser_library::processing {
 
+
+std::optional<context::id_index> lookahead_processor::resolve_concatenation(
+    const semantics::concat_chain&, const range&) const
+{
+    return std::nullopt;
+}
+
 std::optional<processing_status> lookahead_processor::get_processing_status(
-    const semantics::instruction_si& instruction) const
+    const std::optional<context::id_index>& instruction, const range&) const
 {
     // Lookahead processor always returns value
-    if (instruction.type == semantics::instruction_si_type::ORD)
+    if (instruction.has_value() && !instruction->empty())
     {
-        auto status = ordinary_processor::get_instruction_processing_status(
-            std::get<context::id_index>(instruction.value), hlasm_ctx);
+        auto status = ordinary_processor::get_instruction_processing_status(*instruction, hlasm_ctx);
 
         if (status)
         {

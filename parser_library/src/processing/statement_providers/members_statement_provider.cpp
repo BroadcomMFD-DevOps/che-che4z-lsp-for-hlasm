@@ -39,7 +39,7 @@ context::shared_stmt_ptr members_statement_provider::get_next(const statement_pr
     if (finished())
         throw std::runtime_error("provider already finished");
 
-    auto cache = get_next();
+    auto [cache, resolved_instruction] = get_next();
 
     if (!cache)
         return nullptr;
@@ -63,14 +63,17 @@ context::shared_stmt_ptr members_statement_provider::get_next(const statement_pr
             break;
         case context::statement_kind::DEFERRED: {
             stmt = cache->get_base();
-            auto proc_status_o = processor.get_processing_status(stmt->access_deferred()->instruction_ref());
+            const auto& current_instr = stmt->access_deferred()->instruction_ref();
+            if (!resolved_instruction.has_value())
+                resolved_instruction.emplace(current_instr.resolve_id(processor));
+            auto proc_status_o = processor.get_processing_status(*resolved_instruction, current_instr.field_range);
             if (!proc_status_o.has_value())
             {
-                go_back();
+                go_back(std::move(*resolved_instruction));
                 return nullptr;
             }
             if (proc_status_o->first.form != processing_form::DEFERRED)
-                stmt = preprocess_deferred(processor, *cache, proc_status_o.value(), std::move(stmt));
+                stmt = preprocess_deferred(processor, *cache, *proc_status_o, std::move(stmt));
             break;
         }
         case context::statement_kind::ERROR:

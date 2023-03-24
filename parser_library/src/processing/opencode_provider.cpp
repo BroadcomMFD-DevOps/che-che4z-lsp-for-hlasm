@@ -266,8 +266,10 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_looka
     semantics::collector& collector,
     std::pair<std::optional<std::string>, range> operands)
 {
+    const auto& current_instr = collector.current_instruction();
+
     // Lookahead processor always returns value
-    auto proc_status = proc.get_processing_status(collector.current_instruction()).value();
+    auto proc_status = proc.get_processing_status(current_instr.resolve_id(proc), current_instr.field_range).value();
 
     m_ctx->hlasm_ctx->set_source_position(collector.current_instruction().field_range.start);
 
@@ -314,22 +316,18 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordin
     semantics::collector& collector,
     std::pair<std::optional<std::string>, range> operands,
     diagnostic_op_consumer* diags,
-    bool restart)
+    std::optional<context::id_index> resolved_instr)
 {
     static diagnostic_consumer_transform drop_diags([](diagnostic_op) {});
 
-    if (!restart && proc.kind == processing_kind::ORDINARY
-        && try_trigger_attribute_lookahead(collector.current_instruction(),
-            { *m_ctx->hlasm_ctx, library_info_transitional(*m_lib_provider), drop_diags },
-            *m_state_listener))
-        return nullptr;
+    const auto& current_instr = collector.current_instruction();
+    m_ctx->hlasm_ctx->set_source_position(current_instr.field_range.start);
 
-    m_ctx->hlasm_ctx->set_source_position(collector.current_instruction().field_range.start);
-    const auto proc_status_o = proc.get_processing_status(collector.current_instruction());
+    const auto proc_status_o = proc.get_processing_status(resolved_instr, current_instr.field_range);
     if (!proc_status_o.has_value())
     {
         m_restart_process_ordinary.emplace(
-            process_ordinary_restart_data { proc, collector, std::move(operands), diags });
+            process_ordinary_restart_data { proc, collector, std::move(operands), diags, std::move(resolved_instr) });
         return nullptr;
     }
     const auto& proc_status = proc_status_o.value();
@@ -619,9 +617,9 @@ context::shared_stmt_ptr opencode_provider::get_next(const statement_processor& 
 {
     if (m_restart_process_ordinary) [[unlikely]]
     {
-        auto& [p, collector, operands, diags] = *m_restart_process_ordinary;
+        auto& [p, collector, operands, diags, resolved_instr] = *m_restart_process_ordinary;
         assert(&p == &proc);
-        auto result = process_ordinary(p, collector, std::move(operands), diags, true);
+        auto result = process_ordinary(p, collector, std::move(operands), diags, std::move(resolved_instr));
         m_restart_process_ordinary.reset();
         return result;
     }
@@ -685,8 +683,21 @@ context::shared_stmt_ptr opencode_provider::get_next(const statement_processor& 
     m_ctx->hlasm_ctx->set_source_indices(
         m_current_logical_line_source.first_index, m_current_logical_line_source.last_index);
 
-    return lookahead ? process_lookahead(proc, collector, std::move(operands))
-                     : process_ordinary(proc, collector, std::move(operands), diag_target, false);
+    if (lookahead)
+        return process_lookahead(proc, collector, std::move(operands));
+
+    static diagnostic_consumer_transform drop_diags([](diagnostic_op) {});
+
+    if (proc.kind == processing_kind::ORDINARY
+        && try_trigger_attribute_lookahead(collector.current_instruction(),
+            { *m_ctx->hlasm_ctx, library_info_transitional(*m_lib_provider), drop_diags },
+            *m_state_listener))
+        return nullptr;
+
+    const auto& current_instr = collector.current_instruction();
+    m_ctx->hlasm_ctx->set_source_position(current_instr.field_range.start);
+
+    return process_ordinary(proc, collector, std::move(operands), diag_target, current_instr.resolve_id(proc));
 }
 
 bool opencode_provider::finished() const

@@ -29,19 +29,21 @@ macro_statement_provider::macro_statement_provider(analyzing_context ctx,
 
 bool macro_statement_provider::finished() const { return ctx.hlasm_ctx->scope_stack().size() == 1; }
 
-context::statement_cache* macro_statement_provider::get_next()
+std::pair<context::statement_cache*, std::optional<std::optional<context::id_index>>>
+macro_statement_provider::get_next()
 {
     auto& invo = ctx.hlasm_ctx->scope_stack().back().this_macro;
     assert(invo);
 
-    invo->current_statement += !std::exchange(went_back, false);
+    invo->current_statement += !resolved_instruction.has_value();
     if (invo->current_statement == invo->cached_definition.size())
     {
+        resolved_instruction.reset();
         ctx.hlasm_ctx->leave_macro();
         return {};
     }
 
-    return &invo->cached_definition[invo->current_statement];
+    return { &invo->cached_definition[invo->current_statement], std::exchange(resolved_instruction, {}) };
 }
 
 std::vector<diagnostic_op> macro_statement_provider::filter_cached_diagnostics(

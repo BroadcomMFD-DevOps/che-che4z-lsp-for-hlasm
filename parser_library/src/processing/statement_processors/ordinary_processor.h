@@ -53,7 +53,11 @@ public:
         opencode_provider& open_code,
         const processing_manager& proc_mgr);
 
-    std::optional<processing_status> get_processing_status(const semantics::instruction_si& instruction) const override;
+
+    std::optional<context::id_index> resolve_concatenation(
+        const semantics::concat_chain& concat, const range& r) const override;
+    std::optional<processing_status> get_processing_status(
+        const std::optional<context::id_index>& instruction, const range& r) const override;
     void process_statement(context::shared_stmt_ptr statement) override;
     void end_processing() override;
 

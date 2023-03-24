@@ -143,6 +143,7 @@ class opencode_provider final : public statement_provider
         semantics::collector& collector;
         std::pair<std::optional<std::string>, range> operands;
         diagnostic_op_consumer* diags;
+        std::optional<context::id_index> resolved_instr;
     };
 
     std::optional<process_ordinary_restart_data> m_restart_process_ordinary;
@@ -202,7 +203,7 @@ private:
         semantics::collector& collector,
         std::pair<std::optional<std::string>, range> operands,
         diagnostic_op_consumer* diags,
-        bool restart);
+        std::optional<context::id_index> resolved_instr);
 
     bool should_run_preprocessor() const noexcept;
     utils::task run_preprocessor();

@@ -45,12 +45,18 @@ ordinary_processor::ordinary_processor(analyzing_context ctx,
     , listener_(state_listener)
 {}
 
-std::optional<processing_status> ordinary_processor::get_processing_status(
-    const semantics::instruction_si& instruction) const
+
+std::optional<context::id_index> ordinary_processor::resolve_concatenation(
+    const semantics::concat_chain& concat, const range& r) const
 {
-    context::id_index id = instruction.type == semantics::instruction_si_type::CONC
-        ? resolve_instruction(std::get<semantics::concat_chain>(instruction.value), instruction.field_range)
-        : std::get<context::id_index>(instruction.value);
+    return resolve_instruction(concat, r);
+}
+
+std::optional<processing_status> ordinary_processor::get_processing_status(
+    const std::optional<context::id_index>& instruction, const range& r) const
+{
+    assert(instruction.has_value());
+    const auto& id = *instruction;
 
     if (auto status = get_instruction_processing_status(id, hlasm_ctx); status.has_value())
         return *status;

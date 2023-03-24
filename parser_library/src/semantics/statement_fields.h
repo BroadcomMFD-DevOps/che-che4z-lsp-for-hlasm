@@ -25,6 +25,10 @@
 
 // this file contains structures representing each statement field
 
+namespace hlasm_plugin::parser_library::processing {
+class statement_processor;
+} // namespace hlasm_plugin::parser_library::processing
+
 namespace hlasm_plugin::parser_library::semantics {
 
 enum class label_si_type
@@ -128,6 +132,8 @@ struct instruction_si
     instruction_si_value_t value;
 
     void resolve(diagnostic_op_consumer& diags);
+
+    std::optional<context::id_index> resolve_id(const processing::statement_processor& processor) const;
 };
 
 // struct holding semantic information (si) about operand field

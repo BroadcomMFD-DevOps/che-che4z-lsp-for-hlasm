@@ -53,14 +53,17 @@ public:
         branching_provider& branching_provider_,
         macrodef_start_data start);
 
-    std::optional<processing_status> get_processing_status(const semantics::instruction_si& instruction) const override;
+    std::optional<context::id_index> resolve_concatenation(
+        const semantics::concat_chain& concat, const range& r) const override;
+    std::optional<processing_status> get_processing_status(
+        const std::optional<context::id_index>& instruction, const range& r) const override;
     void process_statement(context::shared_stmt_ptr statement) override;
     void end_processing() override;
     bool terminal_condition(const statement_provider_kind kind) const override;
     bool finished() override;
 
     static processing_status get_macro_processing_status(
-        const semantics::instruction_si& instruction, context::hlasm_context& hlasm_ctx);
+        const std::optional<context::id_index>& instruction, context::hlasm_context& hlasm_ctx);
 
     void collect_diags() const override;
 

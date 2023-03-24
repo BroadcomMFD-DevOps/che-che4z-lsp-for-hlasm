@@ -31,20 +31,22 @@ bool copy_statement_provider::finished() const
     return current_stack.empty() || ctx.hlasm_ctx->in_opencode() && current_stack.back().suspended();
 }
 
-context::statement_cache* copy_statement_provider::get_next()
+std::pair<context::statement_cache*, std::optional<std::optional<context::id_index>>>
+copy_statement_provider::get_next()
 {
     // LIFETIME: copy stack should not move even if source stack changes
     // due to std::vector iterator invalidation rules for move
     auto& invo = ctx.hlasm_ctx->current_copy_stack().back();
 
-    invo.current_statement += !std::exchange(went_back, false);
+    invo.current_statement += !resolved_instruction.has_value();
     if (invo.current_statement == invo.cached_definition()->size())
     {
+        resolved_instruction.reset();
         ctx.hlasm_ctx->leave_copy_member();
         return {};
     }
 
-    return &invo.cached_definition()->at(invo.current_statement);
+    return { &invo.cached_definition()->at(invo.current_statement), std::exchange(resolved_instruction, {}) };
 }
 
 std::vector<diagnostic_op> copy_statement_provider::filter_cached_diagnostics(
