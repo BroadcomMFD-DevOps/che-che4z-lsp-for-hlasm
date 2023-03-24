@@ -53,8 +53,6 @@ public:
         branching_provider& branching_provider_,
         macrodef_start_data start);
 
-    std::optional<context::id_index> resolve_concatenation(
-        const semantics::concat_chain& concat, const range& r) const override;
     std::optional<processing_status> get_processing_status(
         const std::optional<context::id_index>& instruction, const range& r) const override;
     void process_statement(context::shared_stmt_ptr statement) override;
@@ -93,6 +91,9 @@ private:
     void process_sequence_symbol(const semantics::label_si& label);
 
     void add_correct_copy_nest();
+
+    std::optional<context::id_index> resolve_concatenation(
+        const semantics::concat_chain& concat, const range& r) const override;
 };
 
 } // namespace hlasm_plugin::parser_library::processing

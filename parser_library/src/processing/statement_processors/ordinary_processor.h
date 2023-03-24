@@ -53,9 +53,6 @@ public:
         opencode_provider& open_code,
         const processing_manager& proc_mgr);
 
-
-    std::optional<context::id_index> resolve_concatenation(
-        const semantics::concat_chain& concat, const range& r) const override;
     std::optional<processing_status> get_processing_status(
         const std::optional<context::id_index>& instruction, const range& r) const override;
     void process_statement(context::shared_stmt_ptr statement) override;
@@ -74,7 +71,11 @@ private:
         const std::vector<std::pair<context::post_stmt_ptr, context::dependency_evaluation_context>>& stmts);
     bool check_fatals(range line_range);
 
-    context::id_index resolve_instruction(const semantics::concat_chain& chain, range instruction_range) const;
+    context::id_index resolve_instruction_concat_chain(
+        const semantics::concat_chain& chain, range instruction_range) const;
+
+    std::optional<context::id_index> resolve_concatenation(
+        const semantics::concat_chain& concat, const range& r) const override;
 };
 
 } // namespace hlasm_plugin::parser_library::processing

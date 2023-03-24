@@ -36,8 +36,6 @@ class copy_processor final : public statement_processor
 public:
     copy_processor(analyzing_context ctx, processing_state_listener& listener, copy_start_data start);
 
-    std::optional<context::id_index> resolve_concatenation(
-        const semantics::concat_chain& concat, const range& r) const override;
     std::optional<processing_status> get_processing_status(
         const std::optional<context::id_index>& instruction, const range& r) const override;
     void process_statement(context::shared_stmt_ptr statement) override;
@@ -50,6 +48,9 @@ public:
 private:
     void process_MACRO();
     void process_MEND();
+
+    std::optional<context::id_index> resolve_concatenation(
+        const semantics::concat_chain& concat, const range& r) const override;
 };
 
 } // namespace hlasm_plugin::parser_library::processing

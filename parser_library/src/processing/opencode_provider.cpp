@@ -269,7 +269,8 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_looka
     const auto& current_instr = collector.current_instruction();
 
     // Lookahead processor always returns value
-    auto proc_status = proc.get_processing_status(current_instr.resolve_id(proc), current_instr.field_range).value();
+    auto proc_status =
+        proc.get_processing_status(proc.resolve_instruction(current_instr), current_instr.field_range).value();
 
     m_ctx->hlasm_ctx->set_source_position(collector.current_instruction().field_range.start);
 
@@ -694,7 +695,7 @@ context::shared_stmt_ptr opencode_provider::get_next(const statement_processor& 
     const auto& current_instr = collector.current_instruction();
     m_ctx->hlasm_ctx->set_source_position(current_instr.field_range.start);
 
-    return process_ordinary(proc, collector, std::move(operands), diag_target, current_instr.resolve_id(proc));
+    return process_ordinary(proc, collector, std::move(operands), diag_target, proc.resolve_instruction(current_instr));
 }
 
 bool opencode_provider::finished() const

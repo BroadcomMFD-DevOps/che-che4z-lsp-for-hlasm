@@ -63,7 +63,7 @@ context::shared_stmt_ptr members_statement_provider::get_next(const statement_pr
             stmt = cache->get_base();
             const auto& current_instr = stmt->access_deferred()->instruction_ref();
             if (!resolved_instruction.has_value())
-                resolved_instruction.emplace(current_instr.resolve_id(processor));
+                resolved_instruction.emplace(processor.resolve_instruction(current_instr));
             auto proc_status_o = processor.get_processing_status(*resolved_instruction, current_instr.field_range);
             if (!proc_status_o.has_value())
             {

@@ -14,7 +14,6 @@
 
 #include "statement_fields.h"
 
-#include "processing/statement_processors/statement_processor.h"
 #include "utils/similar.h"
 
 namespace hlasm_plugin::parser_library::semantics {
@@ -54,14 +53,6 @@ void instruction_si::resolve(diagnostic_op_consumer& diag)
         case instruction_si_type::EMPTY:
             break;
     }
-}
-
-std::optional<context::id_index> instruction_si::resolve_id(const processing::statement_processor& processor) const
-{
-    if (type == semantics::instruction_si_type::CONC)
-        return processor.resolve_concatenation(std::get<semantics::concat_chain>(value), field_range);
-    else
-        return std::get<context::id_index>(value);
 }
 
 bool literal_si_data::is_similar(const literal_si_data& other) const
