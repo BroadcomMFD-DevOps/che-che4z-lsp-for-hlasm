@@ -323,7 +323,7 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordin
     m_ctx->hlasm_ctx->set_source_position(current_instr.field_range.start);
 
     const auto proc_status_o = proc.get_processing_status(resolved_instr, current_instr.field_range);
-    if (!proc_status_o.has_value())
+    if (!proc_status_o.has_value()) [[unlikely]]
     {
         m_restart_process_ordinary.emplace(
             process_ordinary_restart_data { proc, collector, std::move(operands), diags, std::move(resolved_instr) });
