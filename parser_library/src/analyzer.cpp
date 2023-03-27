@@ -116,10 +116,8 @@ analyzer::analyzer(std::string_view text, analyzer_options opts)
                 mngr_,
                 src_proc_,
                 *this,
-                opts.get_preprocessor([libs = &opts.get_lib_provider()](
-                                          std::string library) { return libs->get_library(std::move(library)); },
-                    *this,
-                    src_proc_),
+                opts.get_preprocessor(
+                    std::bind_front(&parse_lib_provider::get_library, &opts.get_lib_provider()), *this, src_proc_),
                 opts.parsing_opencode == file_is_opencode::yes ? processing::opencode_provider_options { true, 10 }
                                                                : processing::opencode_provider_options {},
                 opts.vf_monitor,
