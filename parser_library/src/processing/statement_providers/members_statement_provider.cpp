@@ -25,11 +25,11 @@ members_statement_provider::members_statement_provider(const statement_provider_
     processing::processing_state_listener& listener,
     diagnostic_op_consumer& diag_consumer)
     : statement_provider(kind)
-    , ctx(std::move(ctx))
-    , parser(parser)
-    , lib_provider(lib_provider)
-    , listener(listener)
-    , diagnoser(diag_consumer)
+    , m_ctx(std::move(ctx))
+    , m_parser(parser)
+    , m_lib_provider(lib_provider)
+    , m_listener(listener)
+    , m_diagnoser(diag_consumer)
 {}
 
 context::shared_stmt_ptr members_statement_provider::get_next(const statement_processor& processor)
@@ -46,8 +46,9 @@ context::shared_stmt_ptr members_statement_provider::get_next(const statement_pr
     {
         if (const auto* instr = retrieve_instruction(*cache))
         {
-            if (try_trigger_attribute_lookahead(
-                    *instr, { *ctx.hlasm_ctx, library_info_transitional(lib_provider), drop_diagnostic_op }, listener))
+            if (try_trigger_attribute_lookahead(*instr,
+                    { *m_ctx.hlasm_ctx, library_info_transitional(m_lib_provider), drop_diagnostic_op },
+                    m_listener))
                 return nullptr;
         }
     }
@@ -83,7 +84,7 @@ context::shared_stmt_ptr members_statement_provider::get_next(const statement_pr
 
     if (processor.kind == processing_kind::ORDINARY
         && try_trigger_attribute_lookahead(
-            *stmt, { *ctx.hlasm_ctx, library_info_transitional(lib_provider), drop_diagnostic_op }, listener))
+            *stmt, { *m_ctx.hlasm_ctx, library_info_transitional(m_lib_provider), drop_diagnostic_op }, m_listener))
         return nullptr;
 
     return stmt;
@@ -124,7 +125,7 @@ void members_statement_provider::fill_cache(context::statement_cache& cache,
     {
         diagnostic_consumer_transform diag_consumer(
             [&reparsed_stmt](diagnostic_op diag) { reparsed_stmt.diags.push_back(std::move(diag)); });
-        auto [op, rem, lits] = parser.parse_operand_field(def_stmt->deferred_ref().value,
+        auto [op, rem, lits] = m_parser.parse_operand_field(def_stmt->deferred_ref().value,
             false,
             semantics::range_provider(def_stmt->deferred_ref().field_range, semantics::adjusting_state::NONE),
             status,
@@ -153,7 +154,7 @@ context::shared_stmt_ptr members_statement_provider::preprocess_deferred(const s
     if (processor.kind != processing_kind::LOOKAHEAD)
     {
         for (const diagnostic_op& diag : cache_item->diags)
-            diagnoser.add_diagnostic(diag);
+            m_diagnoser.add_diagnostic(diag);
     }
 
     return std::make_shared<resolved_statement_impl>(cache_item->stmt, status);

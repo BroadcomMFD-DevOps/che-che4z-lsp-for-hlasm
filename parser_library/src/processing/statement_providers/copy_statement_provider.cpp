@@ -27,8 +27,8 @@ copy_statement_provider::copy_statement_provider(analyzing_context ctx,
 
 bool copy_statement_provider::finished() const
 {
-    const auto& current_stack = ctx.hlasm_ctx->current_copy_stack();
-    return current_stack.empty() || ctx.hlasm_ctx->in_opencode() && current_stack.back().suspended();
+    const auto& current_stack = m_ctx.hlasm_ctx->current_copy_stack();
+    return current_stack.empty() || m_ctx.hlasm_ctx->in_opencode() && current_stack.back().suspended();
 }
 
 std::pair<context::statement_cache*, std::optional<std::optional<context::id_index>>>
@@ -36,17 +36,17 @@ copy_statement_provider::get_next()
 {
     // LIFETIME: copy stack should not move even if source stack changes
     // due to std::vector iterator invalidation rules for move
-    auto& invo = ctx.hlasm_ctx->current_copy_stack().back();
+    auto& invo = m_ctx.hlasm_ctx->current_copy_stack().back();
 
-    invo.current_statement += !resolved_instruction.has_value();
+    invo.current_statement += !m_resolved_instruction.has_value();
     if (invo.current_statement == invo.cached_definition()->size())
     {
-        resolved_instruction.reset();
-        ctx.hlasm_ctx->leave_copy_member();
+        m_resolved_instruction.reset();
+        m_ctx.hlasm_ctx->leave_copy_member();
         return {};
     }
 
-    return { &invo.cached_definition()->at(invo.current_statement), std::exchange(resolved_instruction, {}) };
+    return { &invo.cached_definition()->at(invo.current_statement), std::exchange(m_resolved_instruction, {}) };
 }
 
 std::vector<diagnostic_op> copy_statement_provider::filter_cached_diagnostics(
