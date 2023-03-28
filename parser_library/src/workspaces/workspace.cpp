@@ -133,7 +133,8 @@ struct workspace_parse_lib_provider final : public parse_lib_provider
         if (mc.load_from_cache(cache_key, ctx))
             co_return true;
 
-        const bool collect_hl = found->should_collect_hl(ctx.hlasm_ctx.get());
+        const bool collect_hl = file->get_lsp_editing() || found->m_last_opencode_analyzer_with_lsp
+            || found->m_last_macro_analyzer_with_lsp || ctx.hlasm_ctx->processing_stack().parent().empty();
         analyzer a(file->get_text(),
             analyzer_options {
                 std::move(url),
@@ -566,6 +567,7 @@ workspace_file_info workspace::parse_successful(processor_file_compoments& comp,
     workspace_file_info ws_file_info;
 
     const auto& f = comp.m_processor_file;
+    comp.m_collect_perf_metrics = false; // only on open/first parsing
 
     const processor_group& grp = get_proc_grp_by_program(f->get_location());
     f->collect_diags();
@@ -596,7 +598,11 @@ workspace_file_info workspace::did_open_file(
     const resource_location& file_location, open_file_result file_content_status)
 {
     if (!m_configuration.is_configuration_file(file_location))
-        add_processor_file_impl(file_manager_.add_file(file_location)).m_opened = true;
+    {
+        auto& file = add_processor_file_impl(file_manager_.add_file(file_location));
+        file.m_opened = true;
+        file.m_collect_perf_metrics = true;
+    }
 
     return parse_file(file_location, file_content_status);
 }

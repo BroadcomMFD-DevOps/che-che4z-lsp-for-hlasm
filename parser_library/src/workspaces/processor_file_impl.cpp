@@ -42,14 +42,13 @@ bool processor_file_impl::parse(parse_lib_provider& lib_provider,
     if (!m_last_opencode_id_storage)
         m_last_opencode_id_storage = std::make_shared<context::id_storage>();
 
-    const bool collect_hl = should_collect_hl();
     auto fms = std::make_shared<std::vector<fade_message_s>>();
     analyzer new_analyzer(m_file->get_text(),
         analyzer_options {
             m_file->get_location(),
             &lib_provider,
             std::move(asm_opts),
-            collect_hl ? collect_highlighting_info::yes : collect_highlighting_info::no,
+            collect_highlighting_info::yes,
             file_is_opencode::yes,
             m_last_opencode_id_storage,
             std::move(pp),
@@ -69,7 +68,7 @@ bool processor_file_impl::parse(parse_lib_provider& lib_provider,
     diags().clear();
     collect_diags_from_child(new_analyzer);
 
-    m_last_opencode_analyzer_with_lsp = collect_hl;
+    m_last_opencode_analyzer_with_lsp = true;
     m_last_results.hl_info = new_analyzer.take_semantic_tokens();
     m_last_results.lsp_context = new_analyzer.context().lsp_ctx;
     m_last_results.fade_messages = std::move(fms);
@@ -85,16 +84,6 @@ const semantics::lines_info& processor_file_impl::get_hl_info() { return m_last_
 const lsp::lsp_context* processor_file_impl::get_lsp_context() const { return m_last_results.lsp_context.get(); }
 
 const performance_metrics& processor_file_impl::get_metrics() { return m_last_results.metrics; }
-
-bool processor_file_impl::should_collect_hl(context::hlasm_context* ctx) const
-{
-    // collect highlighting information in any of the following cases:
-    // 1) The file is opened in the editor
-    // 2) HL information was previously requested
-    // 3) this macro is a top-level macro
-    return m_file->get_lsp_editing() || m_last_opencode_analyzer_with_lsp || m_last_macro_analyzer_with_lsp
-        || ctx && ctx->processing_stack().parent().empty();
-}
 
 bool processor_file_impl::has_opencode_lsp_info() const { return m_last_opencode_analyzer_with_lsp; }
 bool processor_file_impl::has_macro_lsp_info() const { return m_last_macro_analyzer_with_lsp; }

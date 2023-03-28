@@ -48,20 +48,8 @@ namespace hlasm_plugin::parser_library::workspaces {
 struct library_data;
 class parse_lib_provider;
 
-// Interface that represents an object that can be parsed.
-// The only implementor is processor_file
-class processor : public virtual diagnosable
-{
-public:
-    // starts parser with new (empty) context
-    virtual bool parse(parse_lib_provider&, asm_option, std::vector<preprocessor_options>, virtual_file_monitor*) = 0;
-
-protected:
-    ~processor() = default;
-};
-
 // Interface that represents a file that can be parsed.
-class processor_file : public processor
+class processor_file : public virtual diagnosable
 {
 public:
     virtual const semantics::lines_info& get_hl_info() = 0;

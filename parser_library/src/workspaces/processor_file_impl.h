@@ -46,7 +46,7 @@ public:
     void collect_diags() const override;
     bool is_once_only() const override;
     // Starts parser with new (empty) context
-    bool parse(parse_lib_provider&, asm_option, std::vector<preprocessor_options>, virtual_file_monitor*) override;
+    bool parse(parse_lib_provider&, asm_option, std::vector<preprocessor_options>, virtual_file_monitor*);
 
     const semantics::lines_info& get_hl_info() override;
     const lsp::lsp_context* get_lsp_context() const override;
@@ -65,8 +65,6 @@ public:
 
     void update_source();
     std::shared_ptr<file> current_source() const { return m_file; }
-
-    bool should_collect_hl(context::hlasm_context* ctx = nullptr) const;
 
     auto take_vf_handles() noexcept { return std::move(m_last_results.vf_handles); }
 
