@@ -25,11 +25,32 @@
 #include "processing/statement_analyzers/hit_count_analyzer.h"
 #include "processor.h"
 #include "utils/resource_location.h"
+#include "utils/task.h"
 
 namespace hlasm_plugin::parser_library::workspaces {
 
 class file_manager;
 struct workspace_parse_lib_provider;
+
+struct parsing_results
+{
+    semantics::lines_info hl_info;
+    std::shared_ptr<lsp::lsp_context> lsp_context;
+    std::shared_ptr<const std::vector<fade_message_s>> fade_messages;
+    performance_metrics metrics;
+    std::vector<std::pair<virtual_file_handle, utils::resource::resource_location>> vf_handles;
+    processing::hit_count_map hc_opencode_map;
+    processing::hit_count_map hc_macro_map;
+
+    std::vector<diagnostic_s> diagnostics;
+};
+
+utils::value_task<parsing_results> parse_file(std::shared_ptr<context::id_storage> ids,
+    std::shared_ptr<file> file,
+    parse_lib_provider&,
+    asm_option,
+    std::vector<preprocessor_options>,
+    virtual_file_monitor*);
 
 // Implementation of the processor_file interface. Uses analyzer to parse the file
 // Then stores it until the next parsing so it is possible to retrieve parsing
@@ -75,17 +96,7 @@ private:
     bool m_last_opencode_analyzer_with_lsp = false;
     bool m_last_macro_analyzer_with_lsp = false;
 
-    struct
-    {
-        semantics::lines_info hl_info;
-        std::shared_ptr<lsp::lsp_context> lsp_context;
-        std::shared_ptr<const std::vector<fade_message_s>> fade_messages =
-            std::make_shared<const std::vector<fade_message_s>>();
-        performance_metrics metrics;
-        std::vector<std::pair<virtual_file_handle, resource_location>> vf_handles;
-        processing::hit_count_map hc_opencode_map;
-        processing::hit_count_map hc_macro_map;
-    } m_last_results;
+    parsing_results m_last_results;
 
     std::atomic<bool>* m_cancel;
 };
