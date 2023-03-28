@@ -26,27 +26,6 @@ using namespace hlasm_plugin::parser_library;
 using namespace hlasm_plugin::parser_library::workspaces;
 using namespace hlasm_plugin::utils::resource;
 
-TEST(processor_file, no_lsp_context)
-{
-    resource_location file_loc("filename");
-    file_manager_impl mngr;
-    mngr.did_open_file(file_loc, 0, " LR 1,1");
-
-    shared_json global_settings = make_empty_shared_json();
-    lib_config config;
-    std::atomic<bool> cancel = true;
-    workspace ws(mngr, config, global_settings, &cancel);
-    ws.did_open_file(file_loc);
-
-    auto file = ws.find_processor_file(file_loc);
-    ASSERT_TRUE(file);
-
-    // Prior to parsing, there is no lsp_context available
-
-    const auto* fp = file->get_lsp_context();
-    ASSERT_FALSE(fp);
-}
-
 TEST(processor_file, parse_macro)
 {
     resource_location opencode_loc("filename");
@@ -96,7 +75,7 @@ TEST(processor_file, parse_macro)
     expected_metrics.macro_statements = 2;
     expected_metrics.non_continued_statements = 6;
     expected_metrics.open_code_statements = 2;
-    EXPECT_EQ(ws.find_processor_file(opencode_loc)->get_metrics(), expected_metrics);
+    EXPECT_EQ(ws.last_metrics(opencode_loc), expected_metrics);
     EXPECT_EQ(wf_info.files_processed, 2);
 
     // Macro file tests

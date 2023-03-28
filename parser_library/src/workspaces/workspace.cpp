@@ -428,8 +428,8 @@ std::vector<std::shared_ptr<processor_file>> workspace::find_related_opencodes(
 {
     std::vector<std::shared_ptr<processor_file>> opencodes;
 
-    if (auto f = find_processor_file(document_loc))
-        opencodes.push_back(f);
+    if (auto f = find_processor_file_impl(document_loc); f && f->m_processor_file)
+        opencodes.push_back(f->m_processor_file);
 
     for (const auto& [_, component] : m_processor_files)
     {
@@ -449,9 +449,9 @@ void workspace::delete_diags(processor_file_compoments& pfc)
 
     for (const auto& [dep, _] : pfc.m_dependencies)
     {
-        auto dep_file = find_processor_file(dep);
-        if (dep_file)
-            dep_file->diags().clear();
+        auto dep_file = find_processor_file_impl(dep);
+        if (dep_file && dep_file->m_processor_file)
+            dep_file->m_processor_file->diags().clear();
     }
 
     pfc.m_processor_file->diags().push_back(diagnostic_s::info_SUP(pfc.m_processor_file->get_location()));
@@ -751,6 +751,20 @@ std::vector<token_info> workspace::semantic_tokens(const resource_location& docu
     return f->get_hl_info();
 }
 
+std::optional<performance_metrics> workspace::last_metrics(const resource_location& document_loc) const
+{
+    auto comp = find_processor_file_impl(document_loc);
+    if (!comp)
+        return {};
+
+    const auto& f = comp->m_processor_file;
+
+    if (!f)
+        return {};
+
+    return f->get_metrics();
+}
+
 void workspace::open()
 {
     opened_ = true;
@@ -1000,14 +1014,6 @@ workspace::processor_file_compoments& workspace::add_processor_file_impl(std::sh
     };
 
     return m_processor_files.insert_or_assign(loc, std::move(pfc)).first->second;
-}
-
-std::shared_ptr<processor_file> workspace::find_processor_file(const resource_location& file_location) const
-{
-    auto p = find_processor_file_impl(file_location);
-    if (!p)
-        return {};
-    return p->m_processor_file;
 }
 
 void workspace::processor_file_compoments::update_source_if_needed() const

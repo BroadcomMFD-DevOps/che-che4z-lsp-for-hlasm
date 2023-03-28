@@ -336,19 +336,19 @@ TEST(macro_cache_test, overwrite_by_inline)
         .WillRepeatedly(DoAll(SetArgPointee<1>(macro_file_loc), Return(true)));
 
     ws.did_open_file(opencode_file_loc);
-    auto opencode = ws.find_processor_file(opencode_file_loc);
+    ws.collect_diags();
 
-    EXPECT_EQ(opencode->diags().size(), 2U);
-    EXPECT_TRUE(find_diag_with_filename(opencode->diags(), macro_file_loc));
-    EXPECT_TRUE(find_diag_with_filename(opencode->diags(), opencode_file_loc));
-
-    opencode->diags().clear();
+    EXPECT_EQ(ws.diags().size(), 2U);
+    EXPECT_TRUE(find_diag_with_filename(ws.diags(), macro_file_loc));
+    EXPECT_TRUE(find_diag_with_filename(ws.diags(), opencode_file_loc));
 
     document_change change(range(), "", 0);
     ws.did_change_file(opencode_file_loc, &change, 1);
-    EXPECT_EQ(opencode->diags().size(), 2U);
-    EXPECT_TRUE(find_diag_with_filename(opencode->diags(), macro_file_loc));
-    EXPECT_TRUE(find_diag_with_filename(opencode->diags(), opencode_file_loc));
+    ws.diags().clear();
+    ws.collect_diags();
+    EXPECT_EQ(ws.diags().size(), 2U);
+    EXPECT_TRUE(find_diag_with_filename(ws.diags(), macro_file_loc));
+    EXPECT_TRUE(find_diag_with_filename(ws.diags(), opencode_file_loc));
 }
 
 TEST(macro_cache_test, inline_depends_on_copy)

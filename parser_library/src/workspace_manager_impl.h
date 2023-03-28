@@ -373,11 +373,11 @@ private:
     void notify_performance_consumers(
         const utils::resource::resource_location& document_uri, workspace_file_info ws_file_info) const
     {
-        auto proc_file = ws_path_match(document_uri.get_uri()).find_processor_file(document_uri);
-        if (!proc_file)
+        auto metrics = ws_path_match(document_uri.get_uri()).last_metrics(document_uri);
+        if (!metrics)
             return;
 
-        parsing_metadata data { proc_file->get_metrics(), std::move(ws_file_info) };
+        parsing_metadata data { std::move(metrics).value(), std::move(ws_file_info) };
         for (auto consumer : parsing_metadata_consumers_)
             consumer->consume_parsing_metadata(data);
     }

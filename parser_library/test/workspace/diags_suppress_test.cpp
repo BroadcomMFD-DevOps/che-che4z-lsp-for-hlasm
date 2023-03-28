@@ -64,11 +64,9 @@ TEST(diags_suppress, no_suppress)
     ws.open();
     ws.did_open_file(file_loc);
 
-    auto pfile = ws.find_processor_file(file_loc);
-    ASSERT_TRUE(pfile);
+    ws.collect_diags();
 
-    pfile->collect_diags();
-    EXPECT_EQ(pfile->diags().size(), 6U);
+    EXPECT_EQ(ws.diags().size(), 6U);
 }
 
 TEST(diags_suppress, do_suppress)
@@ -96,11 +94,9 @@ TEST(diags_suppress, do_suppress)
     ws.open();
     ws.did_open_file(file_loc);
 
-    auto pfile = ws.find_processor_file(file_loc);
-    ASSERT_TRUE(pfile);
+    ws.collect_diags();
 
-    pfile->collect_diags();
-    EXPECT_TRUE(matches_message_codes(pfile->diags(), { "SUP" }));
+    EXPECT_TRUE(matches_message_codes(ws.diags(), { "SUP" }));
     EXPECT_TRUE(msg_consumer.messages.empty());
 }
 
@@ -126,12 +122,8 @@ TEST(diags_suppress, pgm_supress_limit_changed)
     ws.open();
     ws.did_open_file(file_loc);
 
-    auto pfile = ws.find_processor_file(file_loc);
-    ASSERT_TRUE(pfile);
-
-    pfile->collect_diags();
-    EXPECT_EQ(pfile->diags().size(), 6U);
-    pfile->diags().clear();
+    ws.collect_diags();
+    EXPECT_EQ(ws.diags().size(), 6U);
 
     std::string new_limit_str = R"("diagnosticsSuppressLimit":5,)";
     document_change ch(range({ 0, 1 }, { 0, 1 }), new_limit_str.c_str(), new_limit_str.size());
@@ -141,10 +133,9 @@ TEST(diags_suppress, pgm_supress_limit_changed)
 
     ws.did_change_file(file_loc, &ch, 1);
 
-    pfile = ws.find_processor_file(file_loc);
-    ASSERT_TRUE(pfile);
-    pfile->collect_diags();
-    EXPECT_TRUE(matches_message_codes(pfile->diags(), { "SUP" }));
+    ws.diags().clear();
+    ws.collect_diags();
+    EXPECT_TRUE(matches_message_codes(ws.diags(), { "SUP" }));
 }
 
 TEST(diags_suppress, cancel_token)
@@ -170,9 +161,6 @@ TEST(diags_suppress, cancel_token)
     ws.open();
     ws.did_open_file(file_loc);
 
-    auto pfile = ws.find_processor_file(file_loc);
-    ASSERT_TRUE(pfile);
-
-    pfile->collect_diags();
-    EXPECT_TRUE(pfile->diags().empty());
+    ws.collect_diags();
+    EXPECT_TRUE(ws.diags().empty());
 }
