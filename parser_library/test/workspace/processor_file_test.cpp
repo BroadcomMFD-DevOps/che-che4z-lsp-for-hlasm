@@ -18,6 +18,7 @@
 #include "../workspace/empty_configs.h"
 #include "library_mock.h"
 #include "lsp/lsp_context.h"
+#include "semantics/highlighting_info.h"
 #include "utils/resource_location.h"
 #include "workspaces/file_manager_impl.h"
 #include "workspaces/workspace.h"

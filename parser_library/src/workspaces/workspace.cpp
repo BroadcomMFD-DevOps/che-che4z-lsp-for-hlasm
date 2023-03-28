@@ -423,18 +423,18 @@ void workspace::retrieve_fade_messages(std::vector<fade_message_s>& fms) const
     });
 }
 
-std::vector<std::shared_ptr<processor_file>> workspace::find_related_opencodes(
+std::vector<const workspace::processor_file_compoments*> workspace::find_related_opencodes(
     const resource_location& document_loc) const
 {
-    std::vector<std::shared_ptr<processor_file>> opencodes;
+    std::vector<const processor_file_compoments*> opencodes;
 
-    if (auto f = find_processor_file_impl(document_loc); f && f->m_processor_file)
-        opencodes.push_back(f->m_processor_file);
+    if (auto f = find_processor_file_impl(document_loc); f)
+        opencodes.push_back(f);
 
     for (const auto& [_, component] : m_processor_files)
     {
-        if (component.m_dependencies.contains(document_loc))
-            opencodes.push_back(component.m_processor_file);
+        if (component.m_processor_file && component.m_dependencies.contains(document_loc))
+            opencodes.push_back(&component);
     }
 
     return opencodes;
@@ -673,7 +673,7 @@ location workspace::definition(const resource_location& document_loc, position p
     if (opencodes.empty())
         return { pos, document_loc };
     // for now take last opencode
-    if (const auto* lsp_context = opencodes.back()->get_lsp_context())
+    if (const auto* lsp_context = opencodes.back()->m_processor_file->get_lsp_context())
         return lsp_context->definition(document_loc, pos);
     else
         return { pos, document_loc };
@@ -685,7 +685,7 @@ location_list workspace::references(const resource_location& document_loc, posit
     if (opencodes.empty())
         return {};
     // for now take last opencode
-    if (const auto* lsp_context = opencodes.back()->get_lsp_context())
+    if (const auto* lsp_context = opencodes.back()->m_processor_file->get_lsp_context())
         return lsp_context->references(document_loc, pos);
     else
         return {};
@@ -697,7 +697,7 @@ std::string workspace::hover(const resource_location& document_loc, position pos
     if (opencodes.empty())
         return {};
     // for now take last opencode
-    if (const auto* lsp_context = opencodes.back()->get_lsp_context())
+    if (const auto* lsp_context = opencodes.back()->m_processor_file->get_lsp_context())
         return lsp_context->hover(document_loc, pos);
     else
         return {};
@@ -710,7 +710,7 @@ lsp::completion_list_s workspace::completion(
     if (opencodes.empty())
         return {};
     // for now take last opencode
-    const auto* lsp_context = opencodes.back()->get_lsp_context();
+    const auto* lsp_context = opencodes.back()->m_processor_file->get_lsp_context();
     if (!lsp_context)
         return {};
 
@@ -731,7 +731,7 @@ lsp::document_symbol_list_s workspace::document_symbol(const resource_location& 
     if (opencodes.empty())
         return {};
     // for now take last opencode
-    if (const auto* lsp_context = opencodes.back()->get_lsp_context())
+    if (const auto* lsp_context = opencodes.back()->m_processor_file->get_lsp_context())
         return lsp_context->document_symbol(document_loc, limit);
     else
         return {};

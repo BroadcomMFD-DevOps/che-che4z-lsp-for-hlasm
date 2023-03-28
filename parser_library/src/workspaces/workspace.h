@@ -23,6 +23,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -96,6 +97,7 @@ public:
         const resource_location& document_loc, long long limit) const;
 
     std::vector<token_info> semantic_tokens(const resource_location& document_loc) const;
+    std::optional<performance_metrics> last_metrics(const resource_location& document_loc) const;
 
     virtual std::vector<std::shared_ptr<library>> get_libraries(const resource_location& file_location) const;
     virtual asm_option get_asm_options(const resource_location& file_location) const;
@@ -106,8 +108,6 @@ public:
     void close();
 
     void set_message_consumer(message_consumer* consumer);
-
-    std::shared_ptr<processor_file> find_processor_file(const resource_location& file) const;
 
     file_manager& get_file_manager() const;
 
@@ -138,8 +138,6 @@ private:
     void filter_and_close_dependencies(
         std::set<resource_location> files_to_close_candidates, const processor_file_impl* file_to_ignore = nullptr);
     bool is_dependency(const resource_location& file_location) const;
-
-    std::vector<std::shared_ptr<processor_file>> find_related_opencodes(const resource_location& document_loc) const;
 
     void show_message(const std::string& message);
 
@@ -186,6 +184,8 @@ private:
     friend struct workspace_parse_lib_provider;
     workspace_file_info parse_successful(processor_file_compoments& comp, workspace_parse_lib_provider libs);
     void delete_diags(processor_file_compoments& pfc);
+
+    std::vector<const processor_file_compoments*> find_related_opencodes(const resource_location& document_loc) const;
 };
 
 } // namespace hlasm_plugin::parser_library::workspaces

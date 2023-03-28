@@ -23,7 +23,6 @@
 #include "fade_messages.h"
 #include "file.h"
 #include "processing/statement_analyzers/hit_count_analyzer.h"
-#include "processor.h"
 #include "utils/resource_location.h"
 #include "utils/task.h"
 
@@ -55,7 +54,7 @@ utils::value_task<parsing_results> parse_file(std::shared_ptr<context::id_storag
 // Implementation of the processor_file interface. Uses analyzer to parse the file
 // Then stores it until the next parsing so it is possible to retrieve parsing
 // information from it.
-class processor_file_impl final : public processor_file, public diagnosable_impl
+class processor_file_impl final : public diagnosable_impl
 {
     using resource_location = utils::resource::resource_location;
     using resource_location_hasher = utils::resource::resource_location_hasher;
@@ -69,20 +68,20 @@ public:
     // Starts parser with new (empty) context
     bool parse(parse_lib_provider&, asm_option, std::vector<preprocessor_options>, virtual_file_monitor*);
 
-    const semantics::lines_info& get_hl_info() override;
-    const lsp::lsp_context* get_lsp_context() const override;
-    const performance_metrics& get_metrics() override;
+    const semantics::lines_info& get_hl_info();
+    const lsp::lsp_context* get_lsp_context() const;
+    const performance_metrics& get_metrics();
 
-    bool has_opencode_lsp_info() const override;
-    bool has_macro_lsp_info() const override;
+    bool has_opencode_lsp_info() const;
+    bool has_macro_lsp_info() const;
 
-    const std::vector<fade_message_s>& fade_messages() const override;
-    const processing::hit_count_map& hit_count_opencode_map() const override;
-    const processing::hit_count_map& hit_count_macro_map() const override;
+    const std::vector<fade_message_s>& fade_messages() const;
+    const processing::hit_count_map& hit_count_opencode_map() const;
+    const processing::hit_count_map& hit_count_macro_map() const;
 
-    const utils::resource::resource_location& get_location() const override;
+    const utils::resource::resource_location& get_location() const;
 
-    bool current_version() const override;
+    bool current_version() const;
 
     void update_source();
     std::shared_ptr<file> current_source() const { return m_file; }
