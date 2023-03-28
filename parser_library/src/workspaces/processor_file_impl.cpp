@@ -111,7 +111,7 @@ const processing::hit_count_map& processor_file_impl::hit_count_macro_map() cons
     return m_last_results.hc_macro_map;
 }
 
-const file_location& processor_file_impl::get_location() const { return m_file->get_location(); }
+const utils::resource::resource_location& processor_file_impl::get_location() const { return m_file->get_location(); }
 
 bool processor_file_impl::current_version() const { return m_file->up_to_date(); }
 

@@ -26,8 +26,8 @@
 #include "lsp/opencode_info.h"
 #include "lsp/text_data_view.h"
 #include "utils/resource_location.h"
+#include "workspaces/file.h"
 #include "workspaces/file_manager_impl.h"
-#include "workspaces/processor_file_impl.h"
 #include "workspaces/workspace.h"
 
 using namespace hlasm_plugin::parser_library;

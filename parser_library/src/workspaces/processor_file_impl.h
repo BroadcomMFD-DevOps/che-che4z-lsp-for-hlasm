@@ -59,7 +59,7 @@ public:
     const processing::hit_count_map& hit_count_opencode_map() const override;
     const processing::hit_count_map& hit_count_macro_map() const override;
 
-    const file_location& get_location() const override;
+    const utils::resource::resource_location& get_location() const override;
 
     bool current_version() const override;
 

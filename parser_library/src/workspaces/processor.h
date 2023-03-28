@@ -47,7 +47,6 @@ struct hit_count_entry;
 namespace hlasm_plugin::parser_library::workspaces {
 struct library_data;
 class parse_lib_provider;
-using file_location = utils::resource::resource_location;
 
 // Interface that represents an object that can be parsed.
 // The only implementor is processor_file
@@ -79,7 +78,7 @@ public:
         processing::hit_count_entry,
         utils::resource::resource_location_hasher>&
     hit_count_macro_map() const = 0;
-    virtual const file_location& get_location() const = 0;
+    virtual const utils::resource::resource_location& get_location() const = 0;
     virtual bool current_version() const = 0;
 
 protected:
