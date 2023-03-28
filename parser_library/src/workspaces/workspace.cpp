@@ -20,13 +20,16 @@
 #include <memory>
 #include <unordered_set>
 
+#include "analyzer.h"
 #include "context/instruction.h"
+#include "file.h"
 #include "file_manager.h"
 #include "lsp/document_symbol_item.h"
 #include "lsp/item_convertors.h"
 #include "lsp/lsp_context.h"
 #include "macro_cache.h"
-#include "processor_file_impl.h"
+#include "processing/statement_analyzers/hit_count_analyzer.h"
+#include "semantics/highlighting_info.h"
 #include "utils/bk_tree.h"
 #include "utils/factory.h"
 #include "utils/levenshtein_distance.h"
@@ -37,6 +40,59 @@ using hlasm_plugin::utils::resource::resource_location;
 using hlasm_plugin::utils::resource::resource_location_hasher;
 
 namespace hlasm_plugin::parser_library::workspaces {
+
+struct parsing_results
+{
+    semantics::lines_info hl_info;
+    std::shared_ptr<lsp::lsp_context> lsp_context;
+    std::shared_ptr<const std::vector<fade_message_s>> fade_messages;
+    performance_metrics metrics;
+    std::vector<std::pair<virtual_file_handle, utils::resource::resource_location>> vf_handles;
+    processing::hit_count_map hc_opencode_map;
+    processing::hit_count_map hc_macro_map;
+
+    std::vector<diagnostic_s> diagnostics;
+};
+
+utils::value_task<parsing_results> parse_one_file(std::shared_ptr<context::id_storage> ids,
+    std::shared_ptr<file> file,
+    parse_lib_provider& lib_provider,
+    asm_option asm_opts,
+    std::vector<preprocessor_options> pp,
+    virtual_file_monitor* vfm)
+{
+    auto fms = std::make_shared<std::vector<fade_message_s>>();
+    analyzer a(file->get_text(),
+        analyzer_options {
+            file->get_location(),
+            &lib_provider,
+            std::move(asm_opts),
+            collect_highlighting_info::yes,
+            file_is_opencode::yes,
+            std::move(ids),
+            std::move(pp),
+            vfm,
+            fms,
+        });
+
+    processing::hit_count_analyzer hc_analyzer(a.hlasm_ctx());
+    a.register_stmt_analyzer(&hc_analyzer);
+
+    co_await a.co_analyze();
+
+    a.collect_diags();
+
+    parsing_results result;
+    result.diagnostics = std::move(a.diags());
+    result.hl_info = a.take_semantic_tokens();
+    result.lsp_context = a.context().lsp_ctx;
+    result.fade_messages = std::move(fms);
+    result.metrics = a.get_metrics();
+    result.vf_handles = a.take_vf_handles();
+    result.hc_opencode_map = hc_analyzer.take_hit_count_map();
+
+    co_return result;
+}
 
 struct workspace_parse_lib_provider final : public parse_lib_provider
 {
@@ -54,7 +110,7 @@ struct workspace_parse_lib_provider final : public parse_lib_provider
 
     workspace_parse_lib_provider(workspace& ws, workspace::processor_file_compoments& pfc)
         : ws(ws)
-        , libraries(ws.get_proc_grp_by_program(pfc.m_processor_file->get_location()).libraries())
+        , libraries(ws.get_proc_grp_by_program(pfc.m_file->get_location()).libraries())
         , pfc(pfc)
     {}
 
@@ -123,8 +179,6 @@ struct workspace_parse_lib_provider final : public parse_lib_provider
         // TODO: if file is in error do something?
 
         auto& macro_pfc = ws.add_processor_file_impl(file);
-        auto found = macro_pfc.m_processor_file;
-        assert(found);
 
         auto cache_key = macro_cache_key::create_from_context(*ctx.hlasm_ctx, data);
 
@@ -133,8 +187,8 @@ struct workspace_parse_lib_provider final : public parse_lib_provider
         if (mc.load_from_cache(cache_key, ctx))
             co_return true;
 
-        const bool collect_hl = file->get_lsp_editing() || found->m_last_opencode_analyzer_with_lsp
-            || found->m_last_macro_analyzer_with_lsp || ctx.hlasm_ctx->processing_stack().parent().empty();
+        const bool collect_hl = file->get_lsp_editing() || macro_pfc.m_last_opencode_analyzer_with_lsp
+            || macro_pfc.m_last_macro_analyzer_with_lsp || ctx.hlasm_ctx->processing_stack().parent().empty();
         analyzer a(file->get_text(),
             analyzer_options {
                 std::move(url),
@@ -148,16 +202,16 @@ struct workspace_parse_lib_provider final : public parse_lib_provider
         a.register_stmt_analyzer(&hc_analyzer);
 
         co_await a.co_analyze();
+        a.collect_diags();
 
-        found->diags().clear();
-        found->collect_diags_from_child(a);
+        macro_pfc.m_last_results->diagnostics = std::move(a.diags());
 
         mc.save_macro(cache_key, a);
-        found->m_last_macro_analyzer_with_lsp = collect_hl;
+        macro_pfc.m_last_macro_analyzer_with_lsp = collect_hl;
         if (collect_hl)
-            found->m_last_results.hl_info = a.take_semantic_tokens();
+            macro_pfc.m_last_results->hl_info = a.take_semantic_tokens();
 
-        found->m_last_results.hc_macro_map = hc_analyzer.take_hit_count_map();
+        macro_pfc.m_last_results->hc_macro_map = hc_analyzer.take_hit_count_map();
 
         co_return true;
     }
@@ -217,6 +271,8 @@ workspace::workspace(file_manager& file_manager,
         implicit_proc_grp.add_library(std::move(implicit_library));
 }
 
+workspace::~workspace() = default;
+
 void workspace::collect_diags() const
 {
     std::unordered_set<resource_location, resource_location_hasher> used_b4g_configs;
@@ -228,7 +284,7 @@ void workspace::collect_diags() const
     m_configuration.copy_diagnostics(*this, used_b4g_configs);
 
     for (const auto& [_, pfc] : m_processor_files)
-        collect_diags_from_child(*pfc.m_processor_file);
+        diags().insert(diags().end(), pfc.m_last_results->diagnostics.begin(), pfc.m_last_results->diagnostics.end());
 }
 
 namespace {
@@ -395,24 +451,23 @@ void workspace::retrieve_fade_messages(std::vector<fade_message_s>& fms) const
 
     for (const auto& [_, proc_file_component] : m_processor_files)
     {
-        const auto& pf = *proc_file_component.m_processor_file;
-        const auto& pf_fade_messages = pf.fade_messages();
-        std::copy_if(pf_fade_messages.begin(),
-            pf_fade_messages.end(),
-            std::back_inserter(fms),
-            [&opened_files_uris](const auto& fmsg) { return opened_files_uris.contains(fmsg.uri); });
+        if (const auto& pfm = proc_file_component.m_last_results->fade_messages)
+            std::copy_if(pfm->begin(), pfm->end(), std::back_inserter(fms), [&opened_files_uris](const auto& fmsg) {
+                return opened_files_uris.contains(fmsg.uri);
+            });
 
         bool take_also_opencode_hc = true;
-        if (const auto& pf_rl = pf.get_location();
+        if (const auto& pf_rl = proc_file_component.m_file->get_location();
             &get_proc_grp_by_program(pf_rl) == &implicit_proc_grp && is_dependency(pf_rl))
             take_also_opencode_hc = false;
 
         for (const auto& [__, opened_file_rl] : opened_files_uris)
         {
-            filter_and_emplace_hc_map(hc_map, pf.hit_count_macro_map(), *opened_file_rl);
+            filter_and_emplace_hc_map(hc_map, proc_file_component.m_last_results->hc_macro_map, *opened_file_rl);
             if (take_also_opencode_hc)
-                filter_and_emplace_hc_map(hc_map, pf.hit_count_opencode_map(), *opened_file_rl);
-            filter_and_emplace_mac_cpy_definitions(active_rl_mac_cpy_map, pf.get_lsp_context(), *opened_file_rl);
+                filter_and_emplace_hc_map(hc_map, proc_file_component.m_last_results->hc_opencode_map, *opened_file_rl);
+            filter_and_emplace_mac_cpy_definitions(
+                active_rl_mac_cpy_map, proc_file_component.m_last_results->lsp_context.get(), *opened_file_rl);
         }
     }
 
@@ -433,7 +488,7 @@ std::vector<const workspace::processor_file_compoments*> workspace::find_related
 
     for (const auto& [_, component] : m_processor_files)
     {
-        if (component.m_processor_file && component.m_dependencies.contains(document_loc))
+        if (component.m_dependencies.contains(document_loc))
             opencodes.push_back(&component);
     }
 
@@ -445,16 +500,16 @@ void workspace::delete_diags(processor_file_compoments& pfc)
     // TODO:
     // this function just looks wrong, we delete diagnostics for dependencies
     // regardless of in what files they are used
-    pfc.m_processor_file->diags().clear();
+    pfc.m_last_results->diagnostics.clear();
 
     for (const auto& [dep, _] : pfc.m_dependencies)
     {
         auto dep_file = find_processor_file_impl(dep);
-        if (dep_file && dep_file->m_processor_file)
-            dep_file->m_processor_file->diags().clear();
+        if (dep_file)
+            pfc.m_last_results->diagnostics.clear();
     }
 
-    pfc.m_processor_file->diags().push_back(diagnostic_s::info_SUP(pfc.m_processor_file->get_location()));
+    pfc.m_last_results->diagnostics.push_back(diagnostic_s::info_SUP(pfc.m_file->get_location()));
 }
 
 void workspace::show_message(const std::string& message)
@@ -478,8 +533,25 @@ void workspace::reparse_after_config_refresh()
 
         comp.m_alternative_config = m_configuration.load_alternative_config_if_needed(fname);
         workspace_parse_lib_provider ws_lib(*this, comp);
-        if (!comp.m_processor_file->parse(ws_lib, get_asm_options(fname), get_preprocessor_options(fname), &fm_vfm_))
-            continue;
+
+        if (!comp.m_last_opencode_id_storage)
+            comp.m_last_opencode_id_storage = std::make_shared<context::id_storage>();
+
+        auto parse_task = parse_one_file(comp.m_last_opencode_id_storage,
+            comp.m_file,
+            ws_lib,
+            get_asm_options(fname),
+            get_preprocessor_options(fname),
+            &fm_vfm_);
+
+        while (!parse_task.done())
+        {
+            parse_task.resume();
+            if (cancel_ && cancel_->load(std::memory_order_relaxed))
+                return;
+        }
+
+        *comp.m_last_results = std::move(parse_task).value();
 
         ws_lib.append_files_to_close(files_to_close);
 
@@ -513,8 +585,11 @@ std::vector<workspace::processor_file_compoments*> workspace::populate_files_to_
         }
     }
 
-    if (auto proc_file = find_processor_file_impl(file_location); proc_file && proc_file->m_opened)
-        files_to_parse.emplace_back(proc_file);
+    if (auto it = m_processor_files.find(file_location); it != m_processor_files.end() && it->second.m_opened)
+    {
+        it->second.update_source_if_needed(file_manager_);
+        files_to_parse.emplace_back(&it->second);
+    }
 
     return files_to_parse;
 }
@@ -541,14 +616,31 @@ workspace_file_info workspace::parse_file(const resource_location& file_location
     for (auto* component : populate_files_to_parse(file_location, file_content_status))
     {
         assert(component);
-        const auto& f = component->m_processor_file;
-        const auto& f_loc = f->get_location();
+        const auto& f_loc = component->m_file->get_location();
 
         component->m_alternative_config = m_configuration.load_alternative_config_if_needed(f_loc);
 
         workspace_parse_lib_provider ws_lib(*this, *component);
-        if (!f->parse(ws_lib, get_asm_options(f_loc), get_preprocessor_options(f_loc), &fm_vfm_))
+        if (!component->m_last_opencode_id_storage)
+            component->m_last_opencode_id_storage = std::make_shared<context::id_storage>();
+
+        auto parse_task = parse_one_file(component->m_last_opencode_id_storage,
+            component->m_file,
+            ws_lib,
+            get_asm_options(f_loc),
+            get_preprocessor_options(f_loc),
+            &fm_vfm_);
+
+        while (!parse_task.done())
+        {
+            parse_task.resume();
+            if (cancel_ && cancel_->load(std::memory_order_relaxed))
+                break;
+        }
+        if (!parse_task.done())
             continue;
+
+        *component->m_last_results = std::move(parse_task).value();
 
         ws_lib.append_files_to_close(files_to_close);
 
@@ -566,20 +658,20 @@ workspace_file_info workspace::parse_successful(processor_file_compoments& comp,
 {
     workspace_file_info ws_file_info;
 
-    const auto& f = comp.m_processor_file;
     comp.m_collect_perf_metrics = false; // only on open/first parsing
 
-    const processor_group& grp = get_proc_grp_by_program(f->get_location());
-    f->collect_diags();
+    const processor_group& grp = get_proc_grp_by_program(comp.m_file->get_location());
     ws_file_info.processor_group_found = &grp != &implicit_proc_grp;
-    if (&grp == &implicit_proc_grp && (int64_t)f->diags().size() > get_config().diag_supress_limit)
+    if (&grp == &implicit_proc_grp
+        && (int64_t)comp.m_last_results->diagnostics.size() > get_config().diag_supress_limit)
     {
         ws_file_info.diagnostics_suppressed = true;
         delete_diags(comp);
     }
 
-    for (auto&& [vfh, url] : f->take_vf_handles())
+    for (auto&& [vfh, url] : comp.m_last_results->vf_handles)
         libs.next_dependencies.try_emplace(std::move(url), std::move(vfh));
+    comp.m_last_results->vf_handles.clear();
 
     ws_file_info.files_processed = libs.next_dependencies.size() + 1; // TODO: identify error states?
 
@@ -640,13 +732,12 @@ void workspace::did_close_file(const resource_location& file_location)
         return;
 
     // find if the file is a dependant
-    const auto& file = fcomp->second.m_processor_file;
 
     std::set<resource_location> files_to_close;
     for (const auto& [dep, _] : fcomp->second.m_dependencies)
         files_to_close.insert(dep);
     // filter the dependencies that should not be closed
-    filter_and_close_dependencies(std::move(files_to_close), file.get());
+    filter_and_close_dependencies(std::move(files_to_close), &fcomp->second);
 
     // close the file itself
     m_processor_files.erase(fcomp);
@@ -673,7 +764,7 @@ location workspace::definition(const resource_location& document_loc, position p
     if (opencodes.empty())
         return { pos, document_loc };
     // for now take last opencode
-    if (const auto* lsp_context = opencodes.back()->m_processor_file->get_lsp_context())
+    if (const auto* lsp_context = opencodes.back()->m_last_results->lsp_context.get())
         return lsp_context->definition(document_loc, pos);
     else
         return { pos, document_loc };
@@ -685,7 +776,7 @@ location_list workspace::references(const resource_location& document_loc, posit
     if (opencodes.empty())
         return {};
     // for now take last opencode
-    if (const auto* lsp_context = opencodes.back()->m_processor_file->get_lsp_context())
+    if (const auto* lsp_context = opencodes.back()->m_last_results->lsp_context.get())
         return lsp_context->references(document_loc, pos);
     else
         return {};
@@ -697,7 +788,7 @@ std::string workspace::hover(const resource_location& document_loc, position pos
     if (opencodes.empty())
         return {};
     // for now take last opencode
-    if (const auto* lsp_context = opencodes.back()->m_processor_file->get_lsp_context())
+    if (const auto* lsp_context = opencodes.back()->m_last_results->lsp_context.get())
         return lsp_context->hover(document_loc, pos);
     else
         return {};
@@ -710,7 +801,7 @@ lsp::completion_list_s workspace::completion(
     if (opencodes.empty())
         return {};
     // for now take last opencode
-    const auto* lsp_context = opencodes.back()->m_processor_file->get_lsp_context();
+    const auto* lsp_context = opencodes.back()->m_last_results->lsp_context.get();
     if (!lsp_context)
         return {};
 
@@ -731,7 +822,7 @@ lsp::document_symbol_list_s workspace::document_symbol(const resource_location& 
     if (opencodes.empty())
         return {};
     // for now take last opencode
-    if (const auto* lsp_context = opencodes.back()->m_processor_file->get_lsp_context())
+    if (const auto* lsp_context = opencodes.back()->m_last_results->lsp_context.get())
         return lsp_context->document_symbol(document_loc, limit);
     else
         return {};
@@ -743,12 +834,7 @@ std::vector<token_info> workspace::semantic_tokens(const resource_location& docu
     if (!comp)
         return {};
 
-    const auto& f = comp->m_processor_file;
-
-    if (!f || !f->current_source())
-        return {};
-
-    return f->get_hl_info();
+    return comp->m_last_results->hl_info;
 }
 
 std::optional<performance_metrics> workspace::last_metrics(const resource_location& document_loc) const
@@ -757,12 +843,7 @@ std::optional<performance_metrics> workspace::last_metrics(const resource_locati
     if (!comp)
         return {};
 
-    const auto& f = comp->m_processor_file;
-
-    if (!f)
-        return {};
-
-    return f->get_metrics();
+    return comp->m_last_results->metrics;
 }
 
 void workspace::open()
@@ -931,7 +1012,7 @@ void erase_ordered(T& from, const U& what, Projector p = Projector())
 }
 
 void workspace::filter_and_close_dependencies(
-    std::set<resource_location> files_to_close_candidates, const processor_file_impl* file_to_ignore)
+    std::set<resource_location> files_to_close_candidates, const processor_file_compoments* file_to_ignore)
 {
     // filters the files that are dependencies of other dependants and externally open files
     for (const auto& [_, component] : m_processor_files)
@@ -939,11 +1020,11 @@ void workspace::filter_and_close_dependencies(
         if (files_to_close_candidates.empty())
             return;
 
-        if (component.m_processor_file.get() == file_to_ignore)
+        if (&component == file_to_ignore)
             continue;
 
         if (component.m_opened)
-            files_to_close_candidates.erase(component.m_processor_file->get_location());
+            files_to_close_candidates.erase(component.m_file->get_location());
 
         erase_ordered(files_to_close_candidates,
             component.m_dependencies,
@@ -1003,45 +1084,42 @@ std::vector<preprocessor_options> workspace::get_preprocessor_options(const reso
     return get_proc_grp_by_program(file_location).preprocessors();
 }
 
+workspace::processor_file_compoments::processor_file_compoments(std::shared_ptr<file> file)
+    : m_file(std::move(file))
+    , m_last_results(std::make_unique<parsing_results>())
+{}
+workspace::processor_file_compoments::processor_file_compoments(processor_file_compoments&&) = default;
+workspace::processor_file_compoments& workspace::processor_file_compoments::operator=(
+    processor_file_compoments&&) = default;
+workspace::processor_file_compoments::~processor_file_compoments() = default;
+
+void workspace::processor_file_compoments::update_source_if_needed(file_manager& fm)
+{
+    if (!m_file->up_to_date())
+    {
+        m_file = fm.add_file(m_file->get_location());
+        *m_last_results = {};
+    }
+}
+
 workspace::processor_file_compoments& workspace::add_processor_file_impl(std::shared_ptr<file> f)
 {
     const auto& loc = f->get_location();
-    if (auto p = find_processor_file_impl(loc))
-        return *p;
-
-    processor_file_compoments pfc {
-        std::make_shared<processor_file_impl>(std::move(f), file_manager_, cancel_),
-    };
-
-    return m_processor_files.insert_or_assign(loc, std::move(pfc)).first->second;
-}
-
-void workspace::processor_file_compoments::update_source_if_needed() const
-{
-    if (!m_processor_file->current_version())
+    if (auto it = m_processor_files.find(loc); it != m_processor_files.end())
     {
-        m_processor_file->update_source();
+        it->second.update_source_if_needed(file_manager_);
+        return it->second;
     }
-}
 
-workspace::processor_file_compoments* workspace::find_processor_file_impl(const resource_location& file_location)
-{
-    if (auto it = m_processor_files.find(file_location); it != m_processor_files.end())
-    {
-        it->second.update_source_if_needed();
-        return &it->second;
-    }
-    return nullptr;
+    return m_processor_files.try_emplace(loc, std::move(f)).first->second;
 }
 
 const workspace::processor_file_compoments* workspace::find_processor_file_impl(
     const resource_location& file_location) const
 {
-    if (auto it = m_processor_files.find(file_location); it != m_processor_files.end())
-    {
-        it->second.update_source_if_needed();
+    if (auto it = m_processor_files.find(file_location);
+        it != m_processor_files.end() && it->second.m_file->up_to_date())
         return &it->second;
-    }
     return nullptr;
 }
 

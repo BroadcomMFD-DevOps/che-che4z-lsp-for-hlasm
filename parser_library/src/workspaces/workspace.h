@@ -33,7 +33,6 @@
 #include "lib_config.h"
 #include "macro_cache.h"
 #include "message_consumer.h"
-#include "processor.h"
 #include "processor_group.h"
 #include "utils/resource_location.h"
 #include "workspace_configuration.h"
@@ -45,6 +44,7 @@ class processor_file_impl;
 using ws_uri = std::string;
 using ws_highlight_info = std::unordered_map<std::string, semantics::highlighting_info>;
 struct workspace_parse_lib_provider;
+struct parsing_results;
 // Represents a LSP workspace. It solves all dependencies between files -
 // implements parse lib provider and decides which files are to be parsed
 // when a particular file has been changed in the editor.
@@ -77,6 +77,8 @@ public:
 
     workspace(workspace&& ws) = default;
     workspace& operator=(workspace&&) = delete;
+
+    ~workspace();
 
     void collect_diags() const override;
 
@@ -135,8 +137,6 @@ private:
 
     void reparse_after_config_refresh();
 
-    void filter_and_close_dependencies(
-        std::set<resource_location> files_to_close_candidates, const processor_file_impl* file_to_ignore = nullptr);
     bool is_dependency(const resource_location& file_location) const;
 
     void show_message(const std::string& message);
@@ -161,7 +161,9 @@ private:
 
     struct processor_file_compoments
     {
-        std::shared_ptr<processor_file_impl> m_processor_file;
+        std::shared_ptr<file> m_file;
+        std::unique_ptr<parsing_results> m_last_results;
+
         std::map<resource_location, std::variant<std::shared_ptr<dependency_cache>, virtual_file_handle>, std::less<>>
             m_dependencies;
         std::map<std::string, resource_location, std::less<>> m_member_map;
@@ -169,23 +171,37 @@ private:
         resource_location m_alternative_config = resource_location();
 
         bool m_opened = false;
+        bool m_collect_perf_metrics = false;
 
-        void update_source_if_needed() const;
+        std::shared_ptr<context::id_storage> m_last_opencode_id_storage;
+        bool m_last_opencode_analyzer_with_lsp = false;
+        bool m_last_macro_analyzer_with_lsp = false;
+
+        processor_file_compoments(std::shared_ptr<file> file);
+        processor_file_compoments(const processor_file_compoments&) = delete;
+        processor_file_compoments(processor_file_compoments&&);
+        processor_file_compoments& operator=(const processor_file_compoments&) = delete;
+        processor_file_compoments& operator=(processor_file_compoments&&);
+        ~processor_file_compoments();
+
+        void update_source_if_needed(file_manager& fm);
     };
 
     std::unordered_map<resource_location, processor_file_compoments, resource_location_hasher> m_processor_files;
+    std::unordered_set<resource_location, resource_location_hasher> m_parsing_pending;
 
     std::vector<processor_file_compoments*> populate_files_to_parse(
         const utils::resource::resource_location& file_location, open_file_result file_content_status);
 
     processor_file_compoments& add_processor_file_impl(std::shared_ptr<file> f);
-    processor_file_compoments* find_processor_file_impl(const resource_location& file);
     const processor_file_compoments* find_processor_file_impl(const resource_location& file) const;
     friend struct workspace_parse_lib_provider;
     workspace_file_info parse_successful(processor_file_compoments& comp, workspace_parse_lib_provider libs);
     void delete_diags(processor_file_compoments& pfc);
 
     std::vector<const processor_file_compoments*> find_related_opencodes(const resource_location& document_loc) const;
+    void filter_and_close_dependencies(std::set<resource_location> files_to_close_candidates,
+        const processor_file_compoments* file_to_ignore = nullptr);
 };
 
 } // namespace hlasm_plugin::parser_library::workspaces
