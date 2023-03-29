@@ -54,7 +54,7 @@ protected:
 class parsing_metadata_consumer
 {
 public:
-    virtual void consume_parsing_metadata(const parsing_metadata& metrics) = 0;
+    virtual void consume_parsing_metadata(sequence<char> uri, double duration, const parsing_metadata& metrics) = 0;
 
 protected:
     ~parsing_metadata_consumer() = default;

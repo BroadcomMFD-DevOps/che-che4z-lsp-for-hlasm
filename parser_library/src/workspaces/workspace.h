@@ -35,6 +35,7 @@
 #include "message_consumer.h"
 #include "processor_group.h"
 #include "utils/resource_location.h"
+#include "utils/task.h"
 #include "workspace_configuration.h"
 
 namespace hlasm_plugin::parser_library::workspaces {
@@ -45,6 +46,14 @@ using ws_uri = std::string;
 using ws_highlight_info = std::unordered_map<std::string, semantics::highlighting_info>;
 struct workspace_parse_lib_provider;
 struct parsing_results;
+struct parse_file_result
+{
+    utils::resource::resource_location filename;
+    workspace_file_info parse_results;
+    std::optional<performance_metrics> metrics_to_report;
+    size_t errors = 0;
+    size_t warnings = 0;
+};
 // Represents a LSP workspace. It solves all dependencies between files -
 // implements parse lib provider and decides which files are to be parsed
 // when a particular file has been changed in the editor.
@@ -82,13 +91,15 @@ public:
 
     void collect_diags() const override;
 
-    workspace_file_info parse_file(const resource_location& file_location, open_file_result file_content_status);
+    void mark_file_for_parsing(const resource_location& file_location, open_file_result file_content_status);
     bool refresh_libraries(const std::vector<resource_location>& file_locations);
-    workspace_file_info did_open_file(const resource_location& file_location,
+    void did_open_file(const resource_location& file_location,
         open_file_result file_content_status = open_file_result::changed_content);
-    void did_close_file(const resource_location& file_location);
     void did_change_file(const resource_location& file_location, const document_change* changes, size_t ch_size);
+    void did_close_file(const resource_location& file_location);
     void did_change_watched_files(const std::vector<resource_location>& file_locations);
+
+    utils::value_task<parse_file_result> parse_file(const resource_location& preferred_file = resource_location());
 
     location definition(const resource_location& document_loc, position pos) const;
     std::vector<location> references(const resource_location& document_loc, position pos) const;
@@ -134,8 +145,6 @@ private:
     processor_group implicit_proc_grp;
 
     bool opened_ = false;
-
-    void reparse_after_config_refresh();
 
     bool is_dependency(const resource_location& file_location) const;
 

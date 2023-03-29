@@ -106,6 +106,7 @@ public:
             file_manager.did_open_file(rl, 1, text);
             ws.did_open_file(rl);
         }
+        parse_all_files(ws);
 
         collect_fms();
     }
@@ -1121,6 +1122,7 @@ public:
         ws.open();
         for (const auto& [rl, _, open_file_res] : files_to_open)
             ws.did_open_file(rl, open_file_res);
+        parse_all_files(ws);
     }
 
     std::vector<fade_message_s>& fade_messages()
@@ -1130,11 +1132,16 @@ public:
         return m_fmsgs;
     }
 
-    void did_close_file(resource_location rl) { ws.did_close_file(rl); }
+    void did_close_file(resource_location rl)
+    {
+        ws.did_close_file(rl);
+        parse_all_files(ws);
+    }
     void did_open_file(resource_location rl)
     {
         m_fm.did_open_file(rl, 1, source_template);
         ws.did_open_file(rl);
+        parse_all_files(ws);
     }
 
 

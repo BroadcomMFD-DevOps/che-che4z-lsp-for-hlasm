@@ -32,7 +32,7 @@ void feature_text_synchronization::register_methods(std::map<std::string, method
 {
     methods.try_emplace("textDocument/didOpen",
         method { [this](const nlohmann::json& id, const nlohmann::json& args) { on_did_open(id, args); },
-            telemetry_log_level::LOG_WITH_PARSE_DATA });
+            telemetry_log_level::LOG_EVENT });
     methods.try_emplace("textDocument/didChange",
         method { [this](const nlohmann::json& id, const nlohmann::json& args) { on_did_change(id, args); },
             telemetry_log_level::NO_TELEMETRY });

@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <atomic>
 #include <charconv>
+#include <chrono>
 #include <limits>
 #include <optional>
 #include <string_view>
@@ -123,36 +124,58 @@ public:
         notify_diagnostics_consumers();
     }
 
+    void run_parse_loop(workspaces::workspace& ws)
+    {
+        for (auto task = ws.parse_file(); task.valid(); task = ws.parse_file())
+        {
+            auto start = std::chrono::steady_clock::now();
+            while (!task.done())
+            {
+                if (cancel_ && cancel_->load(std::memory_order_relaxed))
+                    return;
+                task.resume();
+            }
+            std::chrono::duration<double> duration = std::chrono::steady_clock::now() - start;
+            const auto& [url, metadata, perf_metrics, errors, warnings] = task.value();
+
+            if (perf_metrics)
+            {
+                parsing_metadata data { perf_metrics.value(), std::move(metadata), errors, warnings };
+                for (auto consumer : parsing_metadata_consumers_)
+                    consumer->consume_parsing_metadata(sequence<char>(url.get_uri()), duration.count(), data);
+            }
+        }
+    }
+
+    void run_parse_loop()
+    {
+        for (auto& [_, ws] : workspaces_)
+            run_parse_loop(ws);
+        run_parse_loop(implicit_workspace_);
+        run_parse_loop(quiet_implicit_workspace_);
+
+        notify_diagnostics_consumers();
+    }
+
     void did_open_file(const utils::resource::resource_location& document_loc, version_t version, std::string text)
     {
         auto file_changed = file_manager_.did_open_file(document_loc, version, std::move(text));
-        if (cancel_ && *cancel_)
-            return;
-
         workspaces::workspace& ws = ws_path_match(document_loc.get_uri());
-        auto metadata = ws.did_open_file(document_loc, file_changed);
-        if (cancel_ && *cancel_)
-            return;
+        ws.did_open_file(document_loc, file_changed);
 
-        notify_diagnostics_consumers();
-        // only on open
-        notify_performance_consumers(document_loc, metadata);
+        run_parse_loop();
     }
+
     void did_change_file(const utils::resource::resource_location& document_loc,
         version_t version,
         const document_change* changes,
         size_t ch_size)
     {
         file_manager_.did_change_file(document_loc, version, changes, ch_size);
-        if (cancel_ && *cancel_)
-            return;
-
         workspaces::workspace& ws = ws_path_match(document_loc.get_uri());
         ws.did_change_file(document_loc, changes, ch_size);
-        if (cancel_ && *cancel_)
-            return;
 
-        notify_diagnostics_consumers();
+        run_parse_loop();
     }
 
     void did_close_file(const utils::resource::resource_location& document_loc)
@@ -162,7 +185,7 @@ public:
         workspaces::workspace& ws = ws_path_match(document_loc.get_uri());
         ws.did_close_file(document_loc);
 
-        notify_diagnostics_consumers();
+        run_parse_loop();
     }
 
     void did_change_watched_files(std::vector<utils::resource::resource_location> paths)
@@ -174,7 +197,7 @@ public:
         for (const auto& [ws, path_list] : paths_for_ws)
             ws->did_change_watched_files(path_list);
 
-        notify_diagnostics_consumers();
+        run_parse_loop();
     }
 
     void register_diagnostics_consumer(diagnostics_consumer* consumer) { diag_consumers_.push_back(consumer); }
@@ -368,18 +391,6 @@ private:
         for (auto consumer : diag_consumers_)
             consumer->consume_diagnostics(diagnostic_list(diags().data(), diags().size()),
                 fade_message_list(fade_messages_.data(), fade_messages_.size()));
-    }
-
-    void notify_performance_consumers(
-        const utils::resource::resource_location& document_uri, workspace_file_info ws_file_info) const
-    {
-        auto metrics = ws_path_match(document_uri.get_uri()).last_metrics(document_uri);
-        if (!metrics)
-            return;
-
-        parsing_metadata data { std::move(metrics).value(), std::move(ws_file_info) };
-        for (auto consumer : parsing_metadata_consumers_)
-            consumer->consume_parsing_metadata(data);
     }
 
     static size_t prefix_match(std::string_view first, std::string_view second)

@@ -18,6 +18,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
+#include "../common_testing.h"
 #include "../workspace/empty_configs.h"
 #include "analyzer.h"
 #include "context/id_storage.h"
@@ -336,6 +337,7 @@ TEST(macro_cache_test, overwrite_by_inline)
         .WillRepeatedly(DoAll(SetArgPointee<1>(macro_file_loc), Return(true)));
 
     ws.did_open_file(opencode_file_loc);
+    parse_all_files(ws);
     ws.collect_diags();
 
     EXPECT_EQ(ws.diags().size(), 2U);
@@ -344,6 +346,7 @@ TEST(macro_cache_test, overwrite_by_inline)
 
     document_change change(range(), "", 0);
     ws.did_change_file(opencode_file_loc, &change, 1);
+    parse_all_files(ws);
     ws.diags().clear();
     ws.collect_diags();
     EXPECT_EQ(ws.diags().size(), 2U);

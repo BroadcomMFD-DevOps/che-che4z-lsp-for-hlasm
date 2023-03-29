@@ -522,43 +522,57 @@ lib_config workspace::get_config() const { return m_configuration.get_config().f
 
 const ws_uri& workspace::uri() const { return location_.get_uri(); }
 
-void workspace::reparse_after_config_refresh()
+utils::value_task<parse_file_result> workspace::parse_file(const resource_location& preferred_file)
 {
-    std::set<resource_location> files_to_close;
-    // Reparse every opened file when configuration is changed
-    for (auto& [fname, comp] : m_processor_files)
-    {
-        if (!comp.m_opened)
-            continue;
+    if (m_parsing_pending.empty())
+        return {};
 
-        comp.m_alternative_config = m_configuration.load_alternative_config_if_needed(fname);
-        workspace_parse_lib_provider ws_lib(*this, comp);
+    processor_file_compoments& comp =
+        m_processor_files.at(m_parsing_pending.contains(preferred_file) ? preferred_file : *m_parsing_pending.begin());
 
-        if (!comp.m_last_opencode_id_storage)
-            comp.m_last_opencode_id_storage = std::make_shared<context::id_storage>();
+    assert(comp.m_opened);
 
-        auto parse_task = parse_one_file(comp.m_last_opencode_id_storage,
+    if (!comp.m_last_opencode_id_storage)
+        comp.m_last_opencode_id_storage = std::make_shared<context::id_storage>();
+
+    return [](processor_file_compoments& comp, workspace& self) -> utils::value_task<parse_file_result> {
+        const auto& url = comp.m_file->get_location();
+
+        comp.m_alternative_config = self.m_configuration.load_alternative_config_if_needed(url);
+        workspace_parse_lib_provider ws_lib(self, comp);
+
+        bool collect_perf_metrics = comp.m_collect_perf_metrics;
+
+        *comp.m_last_results = co_await parse_one_file(comp.m_last_opencode_id_storage,
             comp.m_file,
             ws_lib,
-            get_asm_options(fname),
-            get_preprocessor_options(fname),
-            &fm_vfm_);
+            self.get_asm_options(url),
+            self.get_preprocessor_options(url),
+            &self.fm_vfm_);
 
-        while (!parse_task.done())
-        {
-            parse_task.resume();
-            if (cancel_ && cancel_->load(std::memory_order_relaxed))
-                return;
-        }
-
-        *comp.m_last_results = std::move(parse_task).value();
-
+        std::set<resource_location> files_to_close;
         ws_lib.append_files_to_close(files_to_close);
 
-        (void)parse_successful(comp, std::move(ws_lib));
-    }
+        auto result = self.parse_successful(comp, std::move(ws_lib));
 
-    filter_and_close_dependencies(std::move(files_to_close));
+        self.filter_and_close_dependencies(std::move(files_to_close));
+
+        auto [errors, warnings] = std::pair<size_t, size_t>();
+        for (const auto& d : comp.m_last_results->diagnostics)
+        {
+            errors += d.severity == diagnostic_severity::error;
+            warnings += d.severity == diagnostic_severity::warning;
+        }
+
+        co_return parse_file_result {
+            .filename = url,
+            .parse_results = std::move(result),
+            .metrics_to_report = collect_perf_metrics ? std::optional<performance_metrics>(comp.m_last_results->metrics)
+                                                      : std::optional<performance_metrics>(),
+            .errors = errors,
+            .warnings = warnings,
+        };
+    }(comp, *this);
 }
 
 namespace {
@@ -594,64 +608,28 @@ std::vector<workspace::processor_file_compoments*> workspace::populate_files_to_
     return files_to_parse;
 }
 
-workspace_file_info workspace::parse_file(const resource_location& file_location, open_file_result file_content_status)
+void workspace::mark_file_for_parsing(const resource_location& file_location, open_file_result file_content_status)
 {
-    workspace_file_info ws_file_info;
-
     if (file_content_status == open_file_result::identical)
-        return ws_file_info;
+        return;
 
     // TODO: add support for hlasm to vscode (auto detection??) and do the decision based on languageid
     if (m_configuration.is_configuration_file(file_location))
     {
         if (m_configuration.parse_configuration_file(file_location) == parse_config_file_result::parsed)
-            reparse_after_config_refresh();
-        ws_file_info.config_parsing = true;
-        return ws_file_info;
+        {
+            for (auto& [fname, comp] : m_processor_files)
+                if (comp.m_opened)
+                    m_parsing_pending.emplace(fname);
+        }
+        return;
     }
 
     // TODO: what about removing files??? what if depentands_ points to not existing file?
 
     std::set<resource_location> files_to_close;
     for (auto* component : populate_files_to_parse(file_location, file_content_status))
-    {
-        assert(component);
-        const auto& f_loc = component->m_file->get_location();
-
-        component->m_alternative_config = m_configuration.load_alternative_config_if_needed(f_loc);
-
-        workspace_parse_lib_provider ws_lib(*this, *component);
-        if (!component->m_last_opencode_id_storage)
-            component->m_last_opencode_id_storage = std::make_shared<context::id_storage>();
-
-        auto parse_task = parse_one_file(component->m_last_opencode_id_storage,
-            component->m_file,
-            ws_lib,
-            get_asm_options(f_loc),
-            get_preprocessor_options(f_loc),
-            &fm_vfm_);
-
-        while (!parse_task.done())
-        {
-            parse_task.resume();
-            if (cancel_ && cancel_->load(std::memory_order_relaxed))
-                break;
-        }
-        if (!parse_task.done())
-            continue;
-
-        *component->m_last_results = std::move(parse_task).value();
-
-        ws_lib.append_files_to_close(files_to_close);
-
-        ws_file_info = parse_successful(*component, std::move(ws_lib));
-    }
-
-    // second check after all dependants are there to close all files that used to be dependencies
-
-    filter_and_close_dependencies(std::move(files_to_close));
-
-    return ws_file_info;
+        m_parsing_pending.emplace(component->m_file->get_location());
 }
 
 workspace_file_info workspace::parse_successful(processor_file_compoments& comp, workspace_parse_lib_provider libs)
@@ -659,6 +637,7 @@ workspace_file_info workspace::parse_successful(processor_file_compoments& comp,
     workspace_file_info ws_file_info;
 
     comp.m_collect_perf_metrics = false; // only on open/first parsing
+    m_parsing_pending.erase(comp.m_file->get_location());
 
     const processor_group& grp = get_proc_grp_by_program(comp.m_file->get_location());
     ws_file_info.processor_group_found = &grp != &implicit_proc_grp;
@@ -678,6 +657,7 @@ workspace_file_info workspace::parse_successful(processor_file_compoments& comp,
     comp.m_dependencies = std::move(libs.next_dependencies);
     comp.m_member_map = std::move(libs.next_member_map);
 
+
     return ws_file_info;
 }
 
@@ -686,17 +666,17 @@ bool workspace::refresh_libraries(const std::vector<resource_location>& file_loc
     return m_configuration.refresh_libraries(file_locations);
 }
 
-workspace_file_info workspace::did_open_file(
-    const resource_location& file_location, open_file_result file_content_status)
+void workspace::did_open_file(const resource_location& file_location, open_file_result file_content_status)
 {
     if (!m_configuration.is_configuration_file(file_location))
     {
         auto& file = add_processor_file_impl(file_manager_.add_file(file_location));
         file.m_opened = true;
         file.m_collect_perf_metrics = true;
+        m_parsing_pending.emplace(file_location);
     }
 
-    return parse_file(file_location, file_content_status);
+    mark_file_for_parsing(file_location, file_content_status);
 }
 
 void workspace::did_close_file(const resource_location& file_location)
@@ -706,6 +686,7 @@ void workspace::did_close_file(const resource_location& file_location)
         return; // this indicates some kind of double close
 
     fcomp->second.m_opened = false;
+    m_parsing_pending.erase(file_location);
 
     bool found_dependency = false;
     // first check whether the file is a dependency
@@ -725,7 +706,7 @@ void workspace::did_close_file(const resource_location& file_location)
         if (file->get_version() == std::get<std::shared_ptr<dependency_cache>>(it->second)->version)
             continue;
 
-        parse_file(file_location, open_file_result::changed_content);
+        mark_file_for_parsing(file_location, open_file_result::changed_content);
         break;
     }
     if (found_dependency)
@@ -745,7 +726,7 @@ void workspace::did_close_file(const resource_location& file_location)
 
 void workspace::did_change_file(const resource_location& file_location, const document_change*, size_t cnt)
 {
-    parse_file(file_location, cnt ? open_file_result::changed_content : open_file_result::identical);
+    mark_file_for_parsing(file_location, cnt ? open_file_result::changed_content : open_file_result::identical);
 }
 
 void workspace::did_change_watched_files(const std::vector<resource_location>& file_locations)
@@ -754,7 +735,7 @@ void workspace::did_change_watched_files(const std::vector<resource_location>& f
     for (const auto& file_location : file_locations)
     {
         auto from_fm = file_manager_.update_file(file_location);
-        parse_file(file_location, refreshed ? open_file_result::changed_content : from_fm);
+        mark_file_for_parsing(file_location, refreshed ? open_file_result::changed_content : from_fm);
     }
 }
 
@@ -864,7 +845,9 @@ bool workspace::settings_updated()
     bool updated = m_configuration.settings_updated();
     if (updated && m_configuration.parse_configuration_file() == parse_config_file_result::parsed)
     {
-        reparse_after_config_refresh();
+        for (auto& [fname, comp] : m_processor_files)
+            if (comp.m_opened)
+                m_parsing_pending.emplace(fname);
     }
     return updated;
 }

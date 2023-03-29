@@ -50,7 +50,11 @@ TEST(processor_file, parse_macro)
     EXPECT_CALL(*library, has_file(std::string_view("MAC"), _))
         .WillRepeatedly(DoAll(SetArgPointee<1>(macro_loc), Return(true)));
 
-    auto wf_info = ws.did_open_file(opencode_loc, open_file_result::changed_content);
+    ws.did_open_file(opencode_loc, open_file_result::changed_content);
+
+    auto [url, wf_info, metrics, errors, warnings] = ws.parse_file().run().value();
+    EXPECT_EQ(url, opencode_loc);
+    EXPECT_TRUE(metrics);
 
     // Opencode file tests
 
@@ -76,6 +80,7 @@ TEST(processor_file, parse_macro)
     expected_metrics.macro_statements = 2;
     expected_metrics.non_continued_statements = 6;
     expected_metrics.open_code_statements = 2;
+    EXPECT_EQ(metrics, expected_metrics);
     EXPECT_EQ(ws.last_metrics(opencode_loc), expected_metrics);
     EXPECT_EQ(wf_info.files_processed, 2);
 

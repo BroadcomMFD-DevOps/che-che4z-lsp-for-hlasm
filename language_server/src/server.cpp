@@ -90,8 +90,6 @@ void server::call_method(const std::string& method, const nlohmann::json& id, co
     }
 }
 
-telemetry_metrics_info server::get_telemetry_details() { return {}; }
-
 void server::send_telemetry_error(std::string where, std::string what)
 {
     if (!telemetry_provider_)
@@ -108,9 +106,6 @@ void server::telemetry_method_call(const std::string& method_name, telemetry_log
         return;
 
     telemetry_info info { method_name, seconds };
-
-    if (log_level == telemetry_log_level::LOG_WITH_PARSE_DATA)
-        info.metrics = get_telemetry_details();
 
     telemetry_provider_->send_telemetry(info);
 }

@@ -63,6 +63,7 @@ TEST(diags_suppress, no_suppress)
     workspace ws(fm, config, global_settings);
     ws.open();
     ws.did_open_file(file_loc);
+    parse_all_files(ws);
 
     ws.collect_diags();
 
@@ -93,6 +94,7 @@ TEST(diags_suppress, do_suppress)
     ws.set_message_consumer(&msg_consumer);
     ws.open();
     ws.did_open_file(file_loc);
+    parse_all_files(ws);
 
     ws.collect_diags();
 
@@ -121,6 +123,7 @@ TEST(diags_suppress, pgm_supress_limit_changed)
     workspace ws(fm, config, global_settings);
     ws.open();
     ws.did_open_file(file_loc);
+    parse_all_files(ws);
 
     ws.collect_diags();
     EXPECT_EQ(ws.diags().size(), 6U);
@@ -130,15 +133,17 @@ TEST(diags_suppress, pgm_supress_limit_changed)
 
     fm.did_change_file(pgm_conf_name, 1, &ch, 1);
     ws.did_change_file(pgm_conf_name, &ch, 1);
+    parse_all_files(ws);
 
     ws.did_change_file(file_loc, &ch, 1);
+    parse_all_files(ws);
 
     ws.diags().clear();
     ws.collect_diags();
     EXPECT_TRUE(matches_message_codes(ws.diags(), { "SUP" }));
 }
 
-TEST(diags_suppress, cancel_token)
+TEST(diags_suppress, mark_for_parsing_only)
 {
     file_manager_impl fm;
     fm.did_open_file(pgm_conf_name, 0, empty_pgm_conf);
@@ -160,6 +165,7 @@ TEST(diags_suppress, cancel_token)
     workspace ws(fm, config, global_settings, &cancel);
     ws.open();
     ws.did_open_file(file_loc);
+    // parsing not done yet
 
     ws.collect_diags();
     EXPECT_TRUE(ws.diags().empty());

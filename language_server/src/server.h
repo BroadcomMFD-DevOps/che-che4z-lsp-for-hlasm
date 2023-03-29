@@ -65,8 +65,6 @@ protected:
     // Calls a method that is registered in methods_ with the specified name with arguments and id of request.
     void call_method(const std::string& method, const nlohmann::json& id, const nlohmann::json& args);
 
-    virtual telemetry_metrics_info get_telemetry_details();
-
     void send_telemetry_error(std::string where, std::string what = "");
 
 private:

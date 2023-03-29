@@ -28,7 +28,6 @@ enum class telemetry_log_level
 {
     NO_TELEMETRY,
     LOG_EVENT,
-    LOG_WITH_PARSE_DATA
 };
 
 struct method

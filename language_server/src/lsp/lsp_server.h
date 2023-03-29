@@ -19,7 +19,6 @@
 #include <string>
 #include <unordered_set>
 
-#include "../parsing_metadata_collector.h"
 #include "../server.h"
 #include "nlohmann/json_fwd.hpp"
 #include "telemetry_sink.h"
@@ -33,7 +32,8 @@ namespace hlasm_plugin::language_server::lsp {
 class server final : public hlasm_plugin::language_server::server,
                      public parser_library::diagnostics_consumer,
                      public parser_library::message_consumer,
-                     public telemetry_sink
+                     public telemetry_sink,
+                     parser_library::parsing_metadata_consumer
 {
 public:
     // Creates the server with workspace_manager as entry point to parser library.
@@ -59,13 +59,8 @@ protected:
         const std::string& err_message,
         const nlohmann::json& error) override;
 
-    telemetry_metrics_info get_telemetry_details() override;
-
 private:
     std::atomic<unsigned long long> request_id_counter = 0;
-    parsing_metadata_collector parsing_metadata_;
-    size_t diags_warning_count = 0;
-    size_t diags_error_count = 0;
 
     // requests
     // Implements initialize request.
@@ -96,6 +91,10 @@ private:
 
     // Registers LSP methods implemented by this server (not by features).
     void register_methods();
+
+    // Ingest parsing metadata and forward them to telemetry client
+    void consume_parsing_metadata(
+        parser_library::sequence<char> uri, double duration, const parser_library::parsing_metadata& metadata) override;
 };
 
 } // namespace hlasm_plugin::language_server::lsp

@@ -59,18 +59,14 @@ TEST(telemetry, lsp_server_did_open)
     send_message_provider_mock lsp_smpm;
     lsp_server.set_send_message_provider(&lsp_smpm);
 
-
-
     nlohmann::json diags_reply;
     nlohmann::json telemetry_reply;
-
 
     EXPECT_CALL(lsp_smpm, reply(Truly(get_method_matcher("textDocument/publishDiagnostics"))))
         .WillOnce(SaveArg<0>(&diags_reply));
 
-    EXPECT_CALL(lsp_smpm, reply(Truly(get_method_matcher("telemetry/event")))).WillOnce(SaveArg<0>(&telemetry_reply));
-
-
+    EXPECT_CALL(lsp_smpm, reply(Truly(get_telemetry_method_matcher("parsing")))).WillOnce(SaveArg<0>(&telemetry_reply));
+    EXPECT_CALL(lsp_smpm, reply(Truly(get_telemetry_method_matcher("textDocument/didOpen"))));
 
     lsp_server.message_received(open_file_message);
 
@@ -98,6 +94,7 @@ TEST(telemetry, telemetry_broker)
     EXPECT_CALL(lsp_smpm, reply(Truly(get_method_matcher("textDocument/publishDiagnostics"))));
 
 
+    EXPECT_CALL(lsp_smpm, reply(Truly(get_telemetry_method_matcher("parsing"))));
     EXPECT_CALL(lsp_smpm, reply(Truly(get_telemetry_method_matcher("textDocument/didOpen"))));
 
     EXPECT_CALL(

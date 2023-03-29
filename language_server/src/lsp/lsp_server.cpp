@@ -47,7 +47,22 @@ server::server(parser_library::workspace_manager& ws_mngr)
     ws_mngr_.register_diagnostics_consumer(this);
     ws_mngr_.set_message_consumer(this);
 
-    ws_mngr_.register_parsing_metadata_consumer(&parsing_metadata_);
+    ws_mngr_.register_parsing_metadata_consumer(this);
+}
+
+void server::consume_parsing_metadata(
+    parser_library::sequence<char>, double duration, const parser_library::parsing_metadata& metadata)
+{
+    if (!telemetry_provider_)
+        return;
+
+    telemetry_info info {
+        "parsing",
+        duration,
+        telemetry_metrics_info { metadata },
+    };
+
+    telemetry_provider_->send_telemetry(info);
 }
 
 void server::message_received(const nlohmann::json& message)
@@ -118,11 +133,6 @@ void server::message_received(const nlohmann::json& message)
         send_telemetry_error("lsp_server/method_unknown_error");
         return;
     }
-}
-
-telemetry_metrics_info server::get_telemetry_details()
-{
-    return telemetry_metrics_info { parsing_metadata_.data, diags_error_count, diags_warning_count };
 }
 
 void server::request(const std::string& requested_method, const nlohmann::json& args, method handler)
@@ -337,8 +347,6 @@ nlohmann::json create_diag_json(const parser_library::range& r,
 void server::consume_diagnostics(
     parser_library::diagnostic_list diagnostics, parser_library::fade_message_list fade_messages)
 {
-    diags_error_count = 0;
-    diags_warning_count = 0;
     std::unordered_map<std::string, nlohmann::json::array_t, utils::hashers::string_hasher, std::equal_to<>> diag_jsons;
 
     for (size_t i = 0; i < diagnostics.diagnostics_size(); ++i)
@@ -352,11 +360,6 @@ void server::consume_diagnostics(
             diagnostic_related_info_to_json(d),
             d.severity(),
             d.tags()));
-
-        if (d.severity() == parser_library::diagnostic_severity::error)
-            ++diags_error_count;
-        else if (d.severity() == parser_library::diagnostic_severity::warning)
-            ++diags_warning_count;
     }
 
     for (size_t i = 0; i < fade_messages.size(); ++i)
