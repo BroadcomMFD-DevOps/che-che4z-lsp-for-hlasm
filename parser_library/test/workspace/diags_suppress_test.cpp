@@ -158,15 +158,18 @@ TEST(diags_suppress, mark_for_parsing_only)
     LR 1,
 )");
 
-    std::atomic<bool> cancel = true;
     auto config = lib_config::load_from_json(R"({"diagnosticsSuppressLimit":5})"_json);
     shared_json global_settings = make_empty_shared_json();
 
-    workspace ws(fm, config, global_settings, &cancel);
+    workspace ws(fm, config, global_settings);
     ws.open();
     ws.did_open_file(file_loc);
     // parsing not done yet
 
     ws.collect_diags();
     EXPECT_TRUE(ws.diags().empty());
+
+    parse_all_files(ws);
+    ws.collect_diags();
+    EXPECT_FALSE(ws.diags().empty());
 }

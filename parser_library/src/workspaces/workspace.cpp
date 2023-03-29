@@ -239,10 +239,8 @@ workspace::workspace(const resource_location& location,
     const std::string& name,
     file_manager& file_manager,
     const lib_config& global_config,
-    const shared_json& global_settings,
-    std::atomic<bool>* cancel)
-    : cancel_(cancel)
-    , name_(name)
+    const shared_json& global_settings)
+    : name_(name)
     , location_(location.lexically_normal())
     , file_manager_(file_manager)
     , fm_vfm_(file_manager_, location)
@@ -254,17 +252,15 @@ workspace::workspace(const resource_location& location,
 workspace::workspace(const resource_location& location,
     file_manager& file_manager,
     const lib_config& global_config,
-    const shared_json& global_settings,
-    std::atomic<bool>* cancel)
-    : workspace(location, location.get_uri(), file_manager, global_config, global_settings, cancel)
+    const shared_json& global_settings)
+    : workspace(location, location.get_uri(), file_manager, global_config, global_settings)
 {}
 
 workspace::workspace(file_manager& file_manager,
     const lib_config& global_config,
     const shared_json& global_settings,
-    std::atomic<bool>* cancel,
     std::shared_ptr<library> implicit_library)
-    : workspace(resource_location(""), file_manager, global_config, global_settings, cancel)
+    : workspace(resource_location(""), file_manager, global_config, global_settings)
 {
     opened_ = true;
     if (implicit_library)

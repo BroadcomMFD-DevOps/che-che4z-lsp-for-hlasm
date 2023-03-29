@@ -331,7 +331,7 @@ TEST(macro_cache_test, overwrite_by_inline)
     lib_config config;
     using namespace ::testing;
     auto library = std::make_shared<NiceMock<library_mock>>();
-    workspace ws(file_mngr, config, global_settings, nullptr, library);
+    workspace ws(file_mngr, config, global_settings, library);
 
     EXPECT_CALL(*library, has_file(std::string_view("MAC"), _))
         .WillRepeatedly(DoAll(SetArgPointee<1>(macro_file_loc), Return(true)));

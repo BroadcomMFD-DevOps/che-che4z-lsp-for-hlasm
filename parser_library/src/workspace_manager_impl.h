@@ -45,8 +45,8 @@ class workspace_manager::impl final : public diagnosable_impl
 public:
     impl(std::atomic<bool>* cancel = nullptr)
         : cancel_(cancel)
-        , implicit_workspace_(file_manager_, global_config_, m_global_settings, cancel)
-        , quiet_implicit_workspace_(file_manager_, supress_all, m_global_settings, cancel)
+        , implicit_workspace_(file_manager_, global_config_, m_global_settings)
+        , quiet_implicit_workspace_(file_manager_, supress_all, m_global_settings)
     {}
     impl(const impl&) = delete;
     impl& operator=(const impl&) = delete;
@@ -107,8 +107,7 @@ public:
                 name,
                 file_manager_,
                 global_config_,
-                m_global_settings,
-                cancel_));
+                m_global_settings));
         ws.first->second.set_message_consumer(message_consumer_);
         ws.first->second.open();
 

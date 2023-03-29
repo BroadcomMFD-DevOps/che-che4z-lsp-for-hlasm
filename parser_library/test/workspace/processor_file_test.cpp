@@ -45,7 +45,7 @@ TEST(processor_file, parse_macro)
     shared_json global_settings = make_empty_shared_json();
     lib_config config;
     auto library = std::make_shared<NiceMock<library_mock>>();
-    workspace ws(mngr, config, global_settings, nullptr, library);
+    workspace ws(mngr, config, global_settings, library);
 
     EXPECT_CALL(*library, has_file(std::string_view("MAC"), _))
         .WillRepeatedly(DoAll(SetArgPointee<1>(macro_loc), Return(true)));

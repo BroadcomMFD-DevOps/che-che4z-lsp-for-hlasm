@@ -67,19 +67,16 @@ public:
     workspace(file_manager& file_manager,
         const lib_config& global_config,
         const shared_json& global_settings,
-        std::atomic<bool>* cancel = nullptr,
         std::shared_ptr<library> implicit_library = nullptr);
     workspace(const resource_location& location,
         file_manager& file_manager,
         const lib_config& global_config,
-        const shared_json& global_settings,
-        std::atomic<bool>* cancel = nullptr);
+        const shared_json& global_settings);
     workspace(const resource_location& location,
         const std::string& name,
         file_manager& file_manager,
         const lib_config& global_config,
-        const shared_json& global_settings,
-        std::atomic<bool>* cancel = nullptr);
+        const shared_json& global_settings);
 
     workspace(const workspace& ws) = delete;
     workspace& operator=(const workspace&) = delete;
@@ -135,8 +132,6 @@ public:
     void retrieve_fade_messages(std::vector<fade_message_s>& fms) const;
 
 private:
-    std::atomic<bool>* cancel_;
-
     std::string name_;
     resource_location location_;
     file_manager& file_manager_;
