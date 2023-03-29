@@ -123,18 +123,22 @@ public:
         notify_diagnostics_consumers();
     }
 
-    void run_parse_loop(workspaces::workspace& ws)
+    std::pair<bool, bool> run_parse_loop(workspaces::workspace& ws)
     {
+        auto result = std::pair<bool, bool>(false, true);
         for (auto task = ws.parse_file(); task.valid(); task = ws.parse_file())
         {
             auto start = std::chrono::steady_clock::now();
             while (!task.done())
             {
                 if (cancel_ && cancel_->load(std::memory_order_relaxed))
-                    return;
+                    return result;
                 task.resume();
             }
             std::chrono::duration<double> duration = std::chrono::steady_clock::now() - start;
+
+            result.first = true;
+
             const auto& [url, metadata, perf_metrics, errors, warnings] = task.value();
 
             if (perf_metrics)
@@ -144,16 +148,27 @@ public:
                     consumer->consume_parsing_metadata(sequence<char>(url.get_uri()), duration.count(), data);
             }
         }
+        result.second = false;
+        return result;
     }
 
-    void run_parse_loop()
+    bool run_parse_loop()
     {
+        constexpr auto combine = [](std::pair<bool, bool>& r, std::pair<bool, bool> n) {
+            r.first |= n.first;
+            r.second |= n.second;
+        };
+        auto result = run_parse_loop(implicit_workspace_);
+        combine(result, run_parse_loop(quiet_implicit_workspace_));
         for (auto& [_, ws] : workspaces_)
-            run_parse_loop(ws);
-        run_parse_loop(implicit_workspace_);
-        run_parse_loop(quiet_implicit_workspace_);
+            combine(result, run_parse_loop(ws));
 
-        notify_diagnostics_consumers();
+        const auto& [progress, stuff_to_do] = result;
+
+        if (progress)
+            notify_diagnostics_consumers();
+
+        return stuff_to_do;
     }
 
     void did_open_file(const utils::resource::resource_location& document_loc, version_t version, std::string text)
