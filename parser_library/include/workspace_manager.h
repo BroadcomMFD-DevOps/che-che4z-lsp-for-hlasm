@@ -90,7 +90,7 @@ class PARSER_LIBRARY_EXPORT workspace_manager
     class impl;
 
 public:
-    workspace_manager(std::atomic<bool>* cancel = nullptr);
+    workspace_manager();
 
     workspace_manager(const workspace_manager&) = delete;
     workspace_manager& operator=(const workspace_manager&) = delete;
@@ -143,6 +143,8 @@ public:
         const char* opcode,
         bool extended,
         workspace_manager_response<continuous_sequence<opcode_suggestion>>) const;
+
+    virtual bool idle_handler(const std::atomic<unsigned char>* yield_indicator = nullptr);
 
 private:
     impl* impl_;

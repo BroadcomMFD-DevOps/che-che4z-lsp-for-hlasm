@@ -15,9 +15,10 @@
 #include "common_testing.h"
 
 #include "hlasmparser_multiline.h"
+#include "workspace_manager.h"
 #include "workspaces/workspace.h"
 
-void parse_all_files(workspace& ws)
+void parse_all_files(hlasm_plugin::parser_library::workspaces::workspace& ws)
 {
     for (auto t = ws.parse_file(); t.valid(); t = ws.parse_file())
         t.run();

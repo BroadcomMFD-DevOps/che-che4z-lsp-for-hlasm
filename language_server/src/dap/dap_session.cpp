@@ -14,8 +14,6 @@
 
 #include "dap_session.h"
 
-#include "../dispatcher.h"
-#include "../request_manager.h"
 #include "../scope_exit.h"
 #include "dap_server.h"
 #include "logger.h"

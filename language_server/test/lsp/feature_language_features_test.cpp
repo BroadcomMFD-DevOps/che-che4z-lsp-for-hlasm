@@ -76,6 +76,8 @@ TEST(language_features, definition)
 
     EXPECT_CALL(response_mock, respond(nlohmann::json(""), "", _));
     notifs["textDocument/definition"].handler("", params1);
+
+    EXPECT_FALSE(ws_mngr.idle_handler());
 }
 TEST(language_features, references)
 {
@@ -117,6 +119,8 @@ TEST(language_features, document_symbol)
     });
     EXPECT_CALL(response_mock, respond(nlohmann::json(""), std::string(""), response));
     notifs["textDocument/documentSymbol"].handler("", params1);
+
+    EXPECT_FALSE(ws_mngr.idle_handler());
 }
 
 TEST(language_features, semantic_tokens)
@@ -136,6 +140,8 @@ TEST(language_features, semantic_tokens)
     EXPECT_CALL(response_mock, respond(nlohmann::json(""), std::string(""), response));
 
     notifs["textDocument/semanticTokens/full"].handler("", params1);
+
+    EXPECT_FALSE(ws_mngr.idle_handler());
 }
 
 TEST(language_features, semantic_tokens_multiline)
@@ -168,6 +174,8 @@ IIIIIIIIIIIIIII1
     EXPECT_CALL(response_mock, respond(nlohmann::json(""), std::string(""), response));
 
     notifs["textDocument/semanticTokens/full"].handler("", params1);
+
+    EXPECT_FALSE(ws_mngr.idle_handler());
 }
 
 TEST(language_features, semantic_tokens_multiline_overlap)
@@ -211,6 +219,8 @@ TEST(language_features, semantic_tokens_multiline_overlap)
     EXPECT_CALL(response_mock, respond(nlohmann::json(""), std::string(""), response));
 
     notifs["textDocument/semanticTokens/full"].handler("", params1);
+
+    EXPECT_FALSE(ws_mngr.idle_handler());
 }
 
 

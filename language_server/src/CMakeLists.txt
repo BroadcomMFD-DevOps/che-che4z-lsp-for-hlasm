@@ -14,8 +14,6 @@ target_sources(language_server_base PRIVATE
 	base_protocol_channel.cpp
 	base_protocol_channel.h
 	blocking_queue.h
-	dispatcher.cpp
-	dispatcher.h
 	feature.cpp
 	feature.h
 	json_channel.cpp
@@ -28,8 +26,6 @@ target_sources(language_server_base PRIVATE
 	message_router.h
 	parsing_metadata_serialization.cpp
 	parsing_metadata_serialization.h
-	request_manager.cpp
-	request_manager.h
 	scope_exit.h
 	send_message_provider.h
 	server.cpp

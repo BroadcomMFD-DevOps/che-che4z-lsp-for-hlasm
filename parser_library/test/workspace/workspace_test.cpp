@@ -177,11 +177,11 @@ std::string pgmconf_file = R"({
       "program": "source1",
       "pgroup": "P1"
     },
-	{
+    {
       "program": "source2",
       "pgroup": "P1"
     },
-	{
+    {
       "program": "source3",
       "pgroup": "P1"
     }
@@ -194,15 +194,15 @@ std::string pgmconf_file_invalid_assembler_options = R"({
       "program": "source1",
       "pgroup": "P1"
     },
-	{
+    {
       "program": "source2",
       "pgroup": "P1"
     },
-	{
+    {
       "program": "source3",
       "pgroup": "P1"
     },
-	{
+    {
       "program": "invalid",
       "pgroup": "P1",
       "asm_options": {
