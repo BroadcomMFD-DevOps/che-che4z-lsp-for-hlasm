@@ -38,7 +38,7 @@ void server::register_feature_methods()
     }
 }
 
-void server::call_method(const std::string& method, const nlohmann::json& id, const nlohmann::json& args)
+void server::call_method(const std::string& method, std::optional<request_id> id, const nlohmann::json& args)
 {
     if (shutdown_request_received_)
     {
@@ -48,10 +48,19 @@ void server::call_method(const std::string& method, const nlohmann::json& id, co
     auto found = methods_.find(method);
     if (found != methods_.end())
     {
+        if (found->second.is_request_handler() && !id)
+        {
+            LOG_WARNING("Missing request id for method:" + method);
+            send_telemetry_error("call_method/missing_id");
+            return;
+        }
         try
         {
             auto start = std::chrono::steady_clock::now();
-            (*found).second.handler(id.is_null() ? /* for compatibility */ nlohmann::json("") : id, args);
+            if (found->second.is_request_handler())
+                found->second.as_request_handler()(*id, args);
+            if (found->second.is_notification_handler())
+                found->second.as_notification_handler()(args);
             std::chrono::duration<double> duration = std::chrono::steady_clock::now() - start;
 
             telemetry_method_call(method, (*found).second.telemetry_level, duration.count());
@@ -68,9 +77,9 @@ void server::call_method(const std::string& method, const nlohmann::json& id, co
         // LSP spec says:
         // - notification can be ignored
         // - requests should be responded to with MethodNotFound
-        if (!id.is_null())
+        if (id)
             send_message_->reply(nlohmann::json {
-                { "id", id },
+                { "id", nlohmann ::json(*id) },
                 {
                     "error",
                     {
@@ -108,6 +117,19 @@ void server::telemetry_method_call(const std::string& method_name, telemetry_log
     telemetry_info info { method_name, seconds };
 
     telemetry_provider_->send_telemetry(info);
+}
+
+void server::cancel_request_handler(const nlohmann::json& args)
+{
+    auto cancel_id = args.find("id");
+    std::optional<request_id> cid;
+    if (cancel_id == args.end() || !cancel_id->get_to(cid))
+    {
+        LOG_WARNING("Missing id to cancel");
+        send_telemetry_error("call_method/missing_cancel_id");
+    }
+    else if (auto req = cancellable_requests_.extract(*cid); req)
+        req.mapped()();
 }
 
 bool server::is_exit_notification_received() const { return exit_notification_received_; }

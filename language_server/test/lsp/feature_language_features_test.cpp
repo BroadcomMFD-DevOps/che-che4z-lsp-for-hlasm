@@ -43,7 +43,7 @@ TEST(language_features, completion)
     EXPECT_CALL(ws_mngr,
         completion(
             StrEq(uri), parser_library::position(0, 1), '\0', parser_library::completion_trigger_kind::invoked, _));
-    notifs["textDocument/completion"].handler("", params1);
+    notifs["textDocument/completion"].as_request_handler()(request_id(), params1);
 }
 
 TEST(language_features, hover)
@@ -59,7 +59,7 @@ TEST(language_features, hover)
 
     std::string s("test");
     EXPECT_CALL(ws_mngr, hover(StrEq(uri), parser_library::position(0, 1), _));
-    notifs["textDocument/hover"].handler("", params1);
+    notifs["textDocument/hover"].as_request_handler()(request_id(), params1);
 }
 
 TEST(language_features, definition)
@@ -74,8 +74,8 @@ TEST(language_features, definition)
     auto params1 = nlohmann::json::parse(
         R"({"textDocument":{"uri":")" + uri + R"("},"position":{"line":0,"character":1},"context":{"triggerKind":1}})");
 
-    EXPECT_CALL(response_mock, respond(nlohmann::json(""), "", _));
-    notifs["textDocument/definition"].handler("", params1);
+    EXPECT_CALL(response_mock, respond(request_id(), "", _));
+    notifs["textDocument/definition"].as_request_handler()(request_id(), params1);
 
     EXPECT_FALSE(ws_mngr.idle_handler());
 }
@@ -91,7 +91,7 @@ TEST(language_features, references)
         R"({"textDocument":{"uri":")" + uri + R"("},"position":{"line":0,"character":1},"context":{"triggerKind":1}})");
 
     EXPECT_CALL(ws_mngr, references(StrEq(uri), parser_library::position(0, 1), _));
-    notifs["textDocument/references"].handler("", params1);
+    notifs["textDocument/references"].as_request_handler()(request_id(), params1);
 }
 
 TEST(language_features, document_symbol)
@@ -117,8 +117,8 @@ TEST(language_features, document_symbol)
         { "selectionRange", r },
         { "children", nlohmann::json::array() },
     });
-    EXPECT_CALL(response_mock, respond(nlohmann::json(""), std::string(""), response));
-    notifs["textDocument/documentSymbol"].handler("", params1);
+    EXPECT_CALL(response_mock, respond(request_id(), std::string(""), response));
+    notifs["textDocument/documentSymbol"].as_request_handler()(request_id(), params1);
 
     EXPECT_FALSE(ws_mngr.idle_handler());
 }
@@ -137,9 +137,9 @@ TEST(language_features, semantic_tokens)
     nlohmann::json params1 = nlohmann::json::parse(R"({"textDocument":{"uri":")" + uri + "\"}}");
 
     nlohmann::json response { { "data", { 0, 0, 1, 0, 0, 0, 2, 3, 1, 0, 0, 4, 1, 10, 0, 1, 1, 5, 1, 0 } } };
-    EXPECT_CALL(response_mock, respond(nlohmann::json(""), std::string(""), response));
+    EXPECT_CALL(response_mock, respond(request_id(), std::string(""), response));
 
-    notifs["textDocument/semanticTokens/full"].handler("", params1);
+    notifs["textDocument/semanticTokens/full"].as_request_handler()(request_id(), params1);
 
     EXPECT_FALSE(ws_mngr.idle_handler());
 }
@@ -171,9 +171,9 @@ IIIIIIIIIIIIIII1
             0,15,1,10,0   // number        1
         } } };
     // clang-format on
-    EXPECT_CALL(response_mock, respond(nlohmann::json(""), std::string(""), response));
+    EXPECT_CALL(response_mock, respond(request_id(), std::string(""), response));
 
-    notifs["textDocument/semanticTokens/full"].handler("", params1);
+    notifs["textDocument/semanticTokens/full"].as_request_handler()(request_id(), params1);
 
     EXPECT_FALSE(ws_mngr.idle_handler());
 }
@@ -216,9 +216,9 @@ TEST(language_features, semantic_tokens_multiline_overlap)
             0,3,4,1,0     // instruction   ANOP
         } } };
     // clang-format on
-    EXPECT_CALL(response_mock, respond(nlohmann::json(""), std::string(""), response));
+    EXPECT_CALL(response_mock, respond(request_id(), std::string(""), response));
 
-    notifs["textDocument/semanticTokens/full"].handler("", params1);
+    notifs["textDocument/semanticTokens/full"].as_request_handler()(request_id(), params1);
 
     EXPECT_FALSE(ws_mngr.idle_handler());
 }
@@ -338,5 +338,5 @@ TEST(language_features, opcode_suggestion)
         nlohmann::json::parse(R"({"uri":")" + uri + R"(","suggestions":{"LHIXXX":[{"opcode":"LHI","distance":3}]}})");
     EXPECT_CALL(response_mock, respond(_, _, expected_json));
 
-    notifs["textDocument/$/opcode_suggestion"].handler("", params1);
+    notifs["textDocument/$/opcode_suggestion"].as_request_handler()(request_id(), params1);
 }

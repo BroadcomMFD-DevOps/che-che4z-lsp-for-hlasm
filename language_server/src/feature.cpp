@@ -18,6 +18,32 @@
 
 namespace hlasm_plugin::language_server {
 
+void to_json(nlohmann::json& j, const request_id& rid)
+{
+    if (std::holds_alternative<long>(rid.id))
+        j = std::get<long>(rid.id);
+    else
+        j = std::get<std::string>(rid.id);
+}
+void from_json(const nlohmann::json& j, request_id& rid)
+{
+    if (j.is_number_integer())
+        rid.id = j.get<long>();
+    else if (j.is_string())
+        rid.id = j.get<std::string>();
+    else
+        throw nlohmann::json::other_error::create(501, "Request id must be either integer or string", j);
+}
+void from_json(const nlohmann::json& j, std::optional<request_id>& rid)
+{
+    if (j.is_number_integer())
+        rid.emplace(j.get<long>());
+    else if (j.is_string())
+        rid.emplace(j.get<std::string>());
+    else
+        rid.reset();
+}
+
 parser_library::range feature::parse_range(const nlohmann::json& range_json)
 {
     return { parse_position(range_json["start"]), parse_position(range_json["end"]) };

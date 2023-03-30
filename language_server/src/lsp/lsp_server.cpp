@@ -67,7 +67,16 @@ void server::consume_parsing_metadata(
 
 void server::message_received(const nlohmann::json& message)
 {
-    auto id_found = message.find("id");
+    std::optional<request_id> id;
+    if (auto id_found = message.find("id"); id_found != message.end())
+    {
+        if (!id_found->get_to(id))
+        {
+            LOG_WARNING("Invalid id field received.");
+            send_telemetry_error("lsp_server/invliad_id");
+            return;
+        }
+    }
 
 
     auto result_found = message.find("result");
@@ -76,7 +85,7 @@ void server::message_received(const nlohmann::json& message)
     if (result_found != message.end())
     {
         // we received a response to our request that was successful
-        if (id_found == message.end())
+        if (!id)
         {
             LOG_WARNING("A response with no id field received.");
             send_telemetry_error("lsp_server/response_no_id");
@@ -84,8 +93,8 @@ void server::message_received(const nlohmann::json& message)
         }
 
         auto handler_found = request_handlers_.end();
-        if (id_found->is_number_unsigned())
-            handler_found = request_handlers_.find(id_found->get<unsigned long long>());
+        if (std::holds_alternative<long>(id->id))
+            handler_found = request_handlers_.find(std::get<long>(id->id));
         if (handler_found == request_handlers_.end())
         {
             LOG_WARNING("A response with no registered handler received.");
@@ -93,9 +102,7 @@ void server::message_received(const nlohmann::json& message)
             return;
         }
 
-        method handler = std::move(handler_found->second);
-        request_handlers_.erase(handler_found);
-        handler.handler(id_found.value(), result_found.value());
+        request_handlers_.extract(handler_found).mapped()(result_found.value());
         return;
     }
     else if (error_result_found != message.end())
@@ -105,7 +112,7 @@ void server::message_received(const nlohmann::json& message)
         if (message_found != error_result_found->end())
             warn_message = message_found->dump();
         else
-            warn_message = "Request with id " + id_found->dump() + " returned with unspecified error.";
+            warn_message = "Request with id " + (id ? id->to_string() : "<null>") + " returned with unspecified error.";
         LOG_WARNING(warn_message);
         send_telemetry_error("lsp_server/response_error_returned", warn_message);
         return;
@@ -124,7 +131,7 @@ void server::message_received(const nlohmann::json& message)
     try
     {
         call_method(method_found.value().get<std::string>(),
-            id_found == message.end() ? nlohmann::json() : id_found.value(),
+            std::move(id),
             params_found == message.end() ? nlohmann::json() : params_found.value());
     }
     catch (const std::exception& e)
@@ -135,7 +142,9 @@ void server::message_received(const nlohmann::json& message)
     }
 }
 
-void server::request(const std::string& requested_method, const nlohmann::json& args, method handler)
+void server::request(const std::string& requested_method,
+    const nlohmann::json& args,
+    std::function<void(const nlohmann::json& params)> handler)
 {
     auto id = request_id_counter++;
     nlohmann::json reply {
@@ -144,12 +153,13 @@ void server::request(const std::string& requested_method, const nlohmann::json& 
         { "method", requested_method },
         { "params", args },
     };
-    request_handlers_.emplace(id, handler);
+    request_handlers_.emplace(id, std::move(handler));
     send_message_->reply(reply);
 }
 
-void server::respond(const nlohmann::json& id, const std::string&, const nlohmann::json& args)
+void server::respond(const request_id& id, const std::string&, const nlohmann::json& args)
 {
+    cancellable_requests_.erase(id);
     nlohmann::json reply {
         { "jsonrpc", "2.0" },
         { "id", id },
@@ -168,12 +178,10 @@ void server::notify(const std::string& method, const nlohmann::json& args)
     send_message_->reply(reply);
 }
 
-void server::respond_error(const nlohmann::json& id,
-    const std::string&,
-    int err_code,
-    const std::string& err_message,
-    const nlohmann::json& error)
+void server::respond_error(
+    const request_id& id, const std::string&, int err_code, const std::string& err_message, const nlohmann::json& error)
 {
+    cancellable_requests_.erase(id);
     nlohmann::json reply { { "jsonrpc", "2.0" },
         { "id", id },
         { "error",
@@ -185,36 +193,37 @@ void server::respond_error(const nlohmann::json& id,
     send_message_->reply(reply);
 }
 
+void server::register_cancellable_request(const request_id& id, std::function<void()> cancel_handler)
+{
+    cancellable_requests_.try_emplace(id, std::move(cancel_handler));
+}
+
 void server::register_methods()
 {
     methods_.try_emplace("initialize",
-        method { [this](const nlohmann::json& id, const nlohmann::json& params) { on_initialize(id, params); },
+        method { [this](const request_id& id, const nlohmann::json& params) { on_initialize(id, params); },
             telemetry_log_level::LOG_EVENT });
     methods_.try_emplace("initialized",
-        method { [](const nlohmann::json&,
-                     const nlohmann::json&) { /*no implementation, silences uninteresting telemetry*/ },
+        method { [](const nlohmann::json&) { /*no implementation, silences uninteresting telemetry*/ },
             telemetry_log_level::NO_TELEMETRY });
     methods_.try_emplace("shutdown",
-        method { [this](const nlohmann::json& id, const nlohmann::json& params) { on_shutdown(id, params); },
+        method { [this](const request_id& id, const nlohmann::json& params) { on_shutdown(id, params); },
             telemetry_log_level::NO_TELEMETRY });
     methods_.try_emplace("exit",
-        method { [this](const nlohmann::json& id, const nlohmann::json& params) { on_exit(id, params); },
-            telemetry_log_level::NO_TELEMETRY });
+        method { [this](const nlohmann::json& params) { on_exit(params); }, telemetry_log_level::NO_TELEMETRY });
     methods_.try_emplace("$/cancelRequest",
-        method { [](const nlohmann::json&, const nlohmann::json&) {
-                    /*no implementation, silences telemetry reporting*/
-                },
-            telemetry_log_level::NO_TELEMETRY });
+        method {
+            [this](const nlohmann::json& args) { cancel_request_handler(args); }, telemetry_log_level::NO_TELEMETRY });
 }
 
 void server::send_telemetry(const telemetry_message& message) { notify("telemetry/event", nlohmann::json(message)); }
 
-void empty_handler(nlohmann::json, const nlohmann::json&)
+void empty_handler(const nlohmann::json&)
 {
     // Does nothing
 }
 
-void server::on_initialize(nlohmann::json id, const nlohmann::json& param)
+void server::on_initialize(const request_id& id, const nlohmann::json& param)
 {
     // send server capabilities back
     auto capabilities = nlohmann::json {
@@ -252,9 +261,7 @@ void server::on_initialize(nlohmann::json id, const nlohmann::json& param)
         } },
     };
 
-    request("client/registerCapability",
-        register_configuration_changed_args,
-        { &empty_handler, telemetry_log_level::NO_TELEMETRY });
+    request("client/registerCapability", register_configuration_changed_args, &empty_handler);
 
 
     for (auto& f : features_)
@@ -263,7 +270,7 @@ void server::on_initialize(nlohmann::json id, const nlohmann::json& param)
     }
 }
 
-void server::on_shutdown(nlohmann::json id, const nlohmann::json&)
+void server::on_shutdown(const request_id& id, const nlohmann::json&)
 {
     shutdown_request_received_ = true;
 
@@ -271,7 +278,7 @@ void server::on_shutdown(nlohmann::json id, const nlohmann::json&)
     respond(id, "", nlohmann::json());
 }
 
-void server::on_exit(nlohmann::json, const nlohmann::json&) { exit_notification_received_ = true; }
+void server::on_exit(const nlohmann::json&) { exit_notification_received_ = true; }
 
 void server::show_message(const std::string& message, parser_library::message_type type)
 {
