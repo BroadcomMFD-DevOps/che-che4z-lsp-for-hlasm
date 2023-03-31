@@ -79,66 +79,53 @@ void server::message_received(const nlohmann::json& message)
     }
 
 
-    auto result_found = message.find("result");
-    auto error_result_found = message.find("error");
-
-    if (result_found != message.end())
+    if (auto result_found = message.find("result"); result_found != message.end())
     {
         // we received a response to our request that was successful
         if (!id)
         {
             LOG_WARNING("A response with no id field received.");
             send_telemetry_error("lsp_server/response_no_id");
-            return;
         }
-
-        auto handler_found = request_handlers_.end();
-        if (std::holds_alternative<long>(id->id))
-            handler_found = request_handlers_.find(std::get<long>(id->id));
-        if (handler_found == request_handlers_.end())
+        else if (auto handler = request_handlers_.extract(*id))
+        {
+            handler.mapped()(result_found.value());
+        }
+        else
         {
             LOG_WARNING("A response with no registered handler received.");
             send_telemetry_error("lsp_server/response_no_handler");
-            return;
         }
-
-        request_handlers_.extract(handler_found).mapped()(result_found.value());
-        return;
     }
-    else if (error_result_found != message.end())
+    else if (auto error_result_found = message.find("error"); error_result_found != message.end())
     {
-        auto message_found = error_result_found->find("message");
         std::string warn_message;
-        if (message_found != error_result_found->end())
+        if (auto message_found = error_result_found->find("message"); message_found != error_result_found->end())
             warn_message = message_found->dump();
         else
             warn_message = "Request with id " + (id ? id->to_string() : "<null>") + " returned with unspecified error.";
         LOG_WARNING(warn_message);
         send_telemetry_error("lsp_server/response_error_returned", warn_message);
-        return;
     }
-
-    auto params_found = message.find("params");
-    auto method_found = message.find("method");
-
-    if (method_found == message.end())
+    else if (auto method_found = message.find("method"); method_found == message.end())
     {
         LOG_WARNING("Method missing from received request or notification");
         send_telemetry_error("lsp_server/method_missing");
-        return;
     }
-
-    try
+    else
     {
-        call_method(method_found.value().get<std::string>(),
-            std::move(id),
-            params_found == message.end() ? nlohmann::json() : params_found.value());
-    }
-    catch (const std::exception& e)
-    {
-        LOG_ERROR(e.what());
-        send_telemetry_error("lsp_server/method_unknown_error");
-        return;
+        try
+        {
+            auto params_found = message.find("params");
+            call_method(method_found.value().get<std::string>(),
+                std::move(id),
+                params_found == message.end() ? nlohmann::json() : params_found.value());
+        }
+        catch (const std::exception& e)
+        {
+            LOG_ERROR(e.what());
+            send_telemetry_error("lsp_server/method_unknown_error");
+        }
     }
 }
 
@@ -159,7 +146,9 @@ void server::request(const std::string& requested_method,
 
 void server::respond(const request_id& id, const std::string&, const nlohmann::json& args)
 {
-    cancellable_requests_.erase(id);
+    if (auto node = cancellable_requests_.extract(id))
+        telemetry_request_done(node.mapped().second);
+
     nlohmann::json reply {
         { "jsonrpc", "2.0" },
         { "id", id },
@@ -195,7 +184,7 @@ void server::respond_error(
 
 void server::register_cancellable_request(const request_id& id, std::function<void()> cancel_handler)
 {
-    cancellable_requests_.try_emplace(id, std::move(cancel_handler));
+    cancellable_requests_.try_emplace(id, std::move(cancel_handler), std::exchange(method_inflight, {}));
 }
 
 void server::register_methods()

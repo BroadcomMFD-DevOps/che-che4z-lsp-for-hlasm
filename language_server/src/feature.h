@@ -32,13 +32,11 @@ enum class telemetry_log_level
     LOG_EVENT,
 };
 
-struct request_id
+class request_id
 {
     std::variant<long, std::string> id;
 
-    request_id()
-        : id(0)
-    {}
+public:
     explicit request_id(long l)
         : id(l)
     {}
@@ -55,11 +53,12 @@ struct request_id
         else
             return "\"" + std::get<std::string>(id) + "\"";
     }
-};
 
-void to_json(nlohmann::json& j, const request_id& rid);
-void from_json(const nlohmann::json& j, request_id& rid);
-void from_json(const nlohmann::json& j, std::optional<request_id>& rid);
+    auto hash() const { return std::hash<std::variant<long, std::string>>()(id); }
+
+    friend struct ::nlohmann::adl_serializer<hlasm_plugin::language_server::request_id>;
+    friend void from_json(const nlohmann::json& j, std::optional<request_id>& rid);
+};
 
 struct method
 {
@@ -149,5 +148,22 @@ protected:
 };
 
 } // namespace hlasm_plugin::language_server
+
+namespace std {
+template<>
+struct hash<hlasm_plugin::language_server::request_id>
+{
+    size_t operator()(const hlasm_plugin::language_server::request_id& rid) const { return rid.hash(); }
+};
+} // namespace std
+
+namespace nlohmann {
+template<>
+struct adl_serializer<hlasm_plugin::language_server::request_id>
+{
+    static hlasm_plugin::language_server::request_id from_json(const json& j);
+    static void to_json(json& j, const hlasm_plugin::language_server::request_id& p);
+};
+} // namespace nlohmann
 
 #endif // !HLASMPLUGIN_LANGUAGESERVER_FEATURE_H

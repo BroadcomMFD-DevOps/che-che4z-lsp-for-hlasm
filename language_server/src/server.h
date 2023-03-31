@@ -15,6 +15,7 @@
 #ifndef HLASMPLUGIN_LANGUAGESERVER_SERVER
 #define HLASMPLUGIN_LANGUAGESERVER_SERVER
 
+#include <chrono>
 #include <map>
 #include <string>
 #include <unordered_map>
@@ -54,9 +55,16 @@ protected:
     std::vector<std::unique_ptr<feature>> features_;
 
     std::map<std::string, method> methods_;
-    std::unordered_map<unsigned long long, std::function<void(const nlohmann::json& params)>> request_handlers_;
+    std::unordered_map<request_id, std::function<void(const nlohmann::json& params)>> request_handlers_;
 
-    std::map<request_id, std::function<void()>> cancellable_requests_;
+    struct method_telemetry_data
+    {
+        std::string_view method_name;
+        std::chrono::steady_clock::time_point start;
+    };
+    method_telemetry_data method_inflight;
+
+    std::map<request_id, std::pair<std::function<void()>, method_telemetry_data>> cancellable_requests_;
 
     bool shutdown_request_received_ = false;
     bool exit_notification_received_ = false;
@@ -73,8 +81,7 @@ protected:
 
     void cancel_request_handler(const nlohmann::json& args);
 
-private:
-    void telemetry_method_call(const std::string& method_name, telemetry_log_level log_level, double seconds);
+    void telemetry_request_done(method_telemetry_data start);
 };
 
 } // namespace hlasm_plugin::language_server

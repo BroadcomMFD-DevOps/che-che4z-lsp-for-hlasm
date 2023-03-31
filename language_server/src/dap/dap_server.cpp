@@ -90,13 +90,9 @@ void server::message_received(const nlohmann::json& message)
             send_telemetry_error("dap_server/invalid_message");
             return;
         }
-        auto arguments = message.find("arguments");
-        if (arguments == message.end())
-            call_method(
-                message.at("command").get<std::string>(), message.at("seq").get<request_id>(), nlohmann::json());
-        else
-            call_method(
-                message.at("command").get<std::string>(), message.at("seq").get<request_id>(), arguments.value());
+        call_method(message.at("command").get<std::string>(),
+            message.at("seq").get<request_id>(),
+            message.value("arguments", nlohmann::json()));
     }
     catch (const nlohmann::json::exception& e)
     {

@@ -56,14 +56,17 @@ void server::call_method(const std::string& method, std::optional<request_id> id
         }
         try
         {
-            auto start = std::chrono::steady_clock::now();
+            if (found->second.telemetry_level == telemetry_log_level::NO_TELEMETRY)
+                method_inflight = {};
+            else
+                method_inflight = { found->first, std::chrono::steady_clock::now() };
+
             if (found->second.is_request_handler())
                 found->second.as_request_handler()(*id, args);
             if (found->second.is_notification_handler())
                 found->second.as_notification_handler()(args);
-            std::chrono::duration<double> duration = std::chrono::steady_clock::now() - start;
 
-            telemetry_method_call(method, (*found).second.telemetry_level, duration.count());
+            telemetry_request_done(method_inflight);
         }
         catch (const nlohmann::basic_json<>::exception& e)
         {
@@ -107,16 +110,13 @@ void server::send_telemetry_error(std::string where, std::string what)
     telemetry_provider_->send_telemetry(telemetry_error { where, what });
 }
 
-void server::telemetry_method_call(const std::string& method_name, telemetry_log_level log_level, double seconds)
+void server::telemetry_request_done(method_telemetry_data start)
 {
-    if (log_level == telemetry_log_level::NO_TELEMETRY)
-        return;
-    if (!telemetry_provider_)
-        return;
-
-    telemetry_info info { method_name, seconds };
-
-    telemetry_provider_->send_telemetry(info);
+    if (telemetry_provider_ && !start.method_name.empty())
+        telemetry_provider_->send_telemetry(telemetry_info {
+            std::string(start.method_name),
+            std::chrono::duration<double>(std::chrono::steady_clock::now() - start.start).count(),
+        });
 }
 
 void server::cancel_request_handler(const nlohmann::json& args)
@@ -129,7 +129,7 @@ void server::cancel_request_handler(const nlohmann::json& args)
         send_telemetry_error("call_method/missing_cancel_id");
     }
     else if (auto req = cancellable_requests_.extract(*cid); req)
-        req.mapped()();
+        req.mapped().first();
 }
 
 bool server::is_exit_notification_received() const { return exit_notification_received_; }
