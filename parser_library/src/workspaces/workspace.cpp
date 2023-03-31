@@ -539,12 +539,14 @@ utils::value_task<parse_file_result> workspace::parse_file(const resource_locati
 
         bool collect_perf_metrics = comp.m_collect_perf_metrics;
 
-        *comp.m_last_results = co_await parse_one_file(comp.m_last_opencode_id_storage,
+        auto results = co_await parse_one_file(comp.m_last_opencode_id_storage,
             comp.m_file,
             ws_lib,
             self.get_asm_options(url),
             self.get_preprocessor_options(url),
             &self.fm_vfm_);
+        results.hc_macro_map = std::move(comp.m_last_results->hc_macro_map); // save hc_macro_map
+        *comp.m_last_results = std::move(results);
 
         std::set<resource_location> files_to_close;
         ws_lib.append_files_to_close(files_to_close);
