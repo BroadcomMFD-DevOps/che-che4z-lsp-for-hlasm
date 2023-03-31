@@ -52,7 +52,17 @@ public:
     {
         if (auto c = id.index() <=> o.id.index(); c != 0)
             return c;
-        return std::visit([&o]<typename T>(const T& v) { return v <=> std::get<T>(o.id); }, id);
+        if (std::holds_alternative<long>(id))
+            return std::get<long>(id) <=> std::get<long>(o.id);
+        else
+        {
+            auto c = std::get<std::string>(id).compare(std::get<std::string>(o.id));
+            if (c < 0)
+                return std::strong_ordering::less;
+            else if (c > 0)
+                return std::strong_ordering::greater;
+            return std::strong_ordering::equal;
+        }
     }
 #endif
 

@@ -64,7 +64,7 @@ protected:
     void register_cancellable_request(const request_id&, std::function<void()>) override;
 
 private:
-    std::atomic<unsigned long long> request_id_counter = 0;
+    std::atomic<long> request_id_counter = 0;
 
     // requests
     // Implements initialize request.
