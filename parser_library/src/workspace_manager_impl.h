@@ -354,7 +354,7 @@ public:
         for (auto& [ws, path_list] : paths_for_ws)
             m_work_queue.push_back(work_item {
                 ws,
-                [this, path_list = std::move(path_list), ws](bool workspace_removed) {
+                [this, path_list = std::move(path_list), &ws = ws](bool workspace_removed) {
                     if (!workspace_removed)
                         ws->did_change_watched_files(path_list);
                 },
