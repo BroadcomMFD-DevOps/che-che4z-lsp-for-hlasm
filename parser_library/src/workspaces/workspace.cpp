@@ -51,7 +51,8 @@ struct parsing_results
     processing::hit_count_map hc_opencode_map;
     processing::hit_count_map hc_macro_map;
 
-    std::vector<diagnostic_s> diagnostics;
+    std::vector<diagnostic_s> opencode_diagnostics;
+    std::vector<diagnostic_s> macro_diagnostics;
 };
 
 utils::value_task<parsing_results> parse_one_file(std::shared_ptr<context::id_storage> ids,
@@ -83,7 +84,7 @@ utils::value_task<parsing_results> parse_one_file(std::shared_ptr<context::id_st
     a.collect_diags();
 
     parsing_results result;
-    result.diagnostics = std::move(a.diags());
+    result.opencode_diagnostics = std::move(a.diags());
     result.hl_info = a.take_semantic_tokens();
     result.lsp_context = a.context().lsp_ctx;
     result.fade_messages = std::move(fms);
@@ -204,7 +205,7 @@ struct workspace_parse_lib_provider final : public parse_lib_provider
         co_await a.co_analyze();
         a.collect_diags();
 
-        macro_pfc.m_last_results->diagnostics = std::move(a.diags());
+        macro_pfc.m_last_results->macro_diagnostics = std::move(a.diags());
 
         mc.save_macro(cache_key, a);
         macro_pfc.m_last_macro_analyzer_with_lsp = collect_hl;
@@ -279,8 +280,17 @@ void workspace::collect_diags() const
 
     m_configuration.copy_diagnostics(*this, used_b4g_configs);
 
-    for (const auto& [_, pfc] : m_processor_files)
-        diags().insert(diags().end(), pfc.m_last_results->diagnostics.begin(), pfc.m_last_results->diagnostics.end());
+    for (const auto& [url, pfc] : m_processor_files)
+    {
+        if (is_dependency(url))
+            diags().insert(diags().end(),
+                pfc.m_last_results->macro_diagnostics.begin(),
+                pfc.m_last_results->macro_diagnostics.end());
+        else
+            diags().insert(diags().end(),
+                pfc.m_last_results->opencode_diagnostics.begin(),
+                pfc.m_last_results->opencode_diagnostics.end());
+    }
 }
 
 namespace {
@@ -496,16 +506,17 @@ void workspace::delete_diags(processor_file_compoments& pfc)
     // TODO:
     // this function just looks wrong, we delete diagnostics for dependencies
     // regardless of in what files they are used
-    pfc.m_last_results->diagnostics.clear();
+    pfc.m_last_results->opencode_diagnostics.clear();
 
     for (const auto& [dep, _] : pfc.m_dependencies)
     {
-        auto dep_file = find_processor_file_impl(dep);
-        if (dep_file)
-            pfc.m_last_results->diagnostics.clear();
+        if (auto dep_file = find_processor_file_impl(dep))
+        {
+            pfc.m_last_results->macro_diagnostics.clear();
+        }
     }
 
-    pfc.m_last_results->diagnostics.push_back(diagnostic_s::info_SUP(pfc.m_file->get_location()));
+    pfc.m_last_results->opencode_diagnostics.push_back(diagnostic_s::info_SUP(pfc.m_file->get_location()));
 }
 
 void workspace::show_message(const std::string& message)
@@ -545,7 +556,8 @@ utils::value_task<parse_file_result> workspace::parse_file(const resource_locati
             self.get_asm_options(url),
             self.get_preprocessor_options(url),
             &self.fm_vfm_);
-        results.hc_macro_map = std::move(comp.m_last_results->hc_macro_map); // save hc_macro_map
+        results.hc_macro_map = std::move(comp.m_last_results->hc_macro_map); // save macro stuff
+        results.macro_diagnostics = std::move(comp.m_last_results->macro_diagnostics);
         *comp.m_last_results = std::move(results);
 
         std::set<resource_location> files_to_close;
@@ -556,7 +568,7 @@ utils::value_task<parse_file_result> workspace::parse_file(const resource_locati
         self.filter_and_close_dependencies(std::move(files_to_close));
 
         auto [errors, warnings] = std::pair<size_t, size_t>();
-        for (const auto& d : comp.m_last_results->diagnostics)
+        for (const auto& d : comp.m_last_results->opencode_diagnostics)
         {
             errors += d.severity == diagnostic_severity::error;
             warnings += d.severity == diagnostic_severity::warning;
@@ -640,7 +652,7 @@ workspace_file_info workspace::parse_successful(processor_file_compoments& comp,
     const processor_group& grp = get_proc_grp_by_program(comp.m_file->get_location());
     ws_file_info.processor_group_found = &grp != &implicit_proc_grp;
     if (&grp == &implicit_proc_grp
-        && (int64_t)comp.m_last_results->diagnostics.size() > get_config().diag_supress_limit)
+        && (int64_t)comp.m_last_results->opencode_diagnostics.size() > get_config().diag_supress_limit)
     {
         ws_file_info.diagnostics_suppressed = true;
         delete_diags(comp);
