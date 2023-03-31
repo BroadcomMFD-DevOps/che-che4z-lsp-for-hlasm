@@ -31,13 +31,26 @@ supports input rewinding, appending and resetting
 class input_source final : public antlr4::ANTLRInputStream
 {
 public:
+    struct char_substitution
+    {
+        uint8_t server : 1;
+        uint8_t client : 1;
+
+        char_substitution& operator|=(const char_substitution& other)
+        {
+            server |= other.server;
+            client |= other.client;
+            return *this;
+        }
+    };
+
     input_source(const std::string& input);
 
-    void append(const std::u32string& str);
-    void append(std::string_view str);
-    using antlr4::ANTLRInputStream::reset;
-    void reset(std::string_view str);
-    void reset(const logical_line<utils::utf8_iterator<std::string_view::iterator, utils::utf8_utf16_counter>>& l);
+    char_substitution append(const std::u32string& str);
+    char_substitution append(std::string_view str);
+    char_substitution reset(std::string_view str);
+    char_substitution reset(
+        const logical_line<utils::utf8_iterator<std::string_view::iterator, utils::utf8_utf16_counter>>& l);
 
     input_source(const input_source&) = delete;
     input_source& operator=(const input_source&) = delete;
