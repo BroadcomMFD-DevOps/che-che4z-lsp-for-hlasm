@@ -404,10 +404,16 @@ TEST_F(workspace_test, did_close_file_without_save)
     parse_all_files(ws);
     EXPECT_EQ(collect_and_get_diags_size(ws), 0);
 
-    document_change c(range(), "ERR", 3);
+    document_change c(range(position(2, 0), position(2, 0)), "ERR\n", 4);
     file_manager.did_change_file(correct_macro_loc, 2, &c, 1);
     ws.did_change_file(correct_macro_loc, &c, 1);
     parse_all_files(ws);
+
+    // TODO: This was modified due to very specific behavior of W010 diagnostic.
+    // It is not associated with any statement, so it is only displayed
+    // when a file is interpreted as an opencode.
+    // This is part of the problem, where it is not clear what diagnostic to display
+    // when a macro is being browsed with another opencode as a context.
 
     EXPECT_EQ(collect_and_get_diags_size(ws), (size_t)1);
     EXPECT_TRUE(match_strings({ correct_macro_loc }));
