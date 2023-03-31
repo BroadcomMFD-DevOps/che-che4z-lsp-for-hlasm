@@ -18,15 +18,8 @@
 #include <iterator>
 
 #include "logical_line.h"
-#include "utils/unicode_text.h"
 
 namespace hlasm_plugin::parser_library::lexing {
-
-
-input_source::input_source(const std::string& input)
-    : ANTLRInputStream(input)
-{}
-
 namespace {
 input_source::char_substitution append_utf8_to_utf32(std::u32string& t, std::string_view s)
 {
@@ -66,7 +59,13 @@ input_source::char_substitution append_utf8_to_utf32(std::u32string& t, std::str
 }
 } // namespace
 
-input_source::char_substitution input_source::append(const std::u32string& str)
+input_source::input_source(std::string_view input)
+    : ANTLRInputStream()
+{
+    append(input);
+}
+
+input_source::char_substitution input_source::append(std::u32string_view str)
 {
     _data.append(str);
     return {};
@@ -78,7 +77,7 @@ input_source::char_substitution input_source::append(std::string_view str)
     return append_utf8_to_utf32(_data, str);
 }
 
-input_source::char_substitution input_source::reset(std::string_view str)
+input_source::char_substitution input_source::new_input(std::string_view str)
 {
     p = 0;
     _data.clear();
@@ -86,11 +85,11 @@ input_source::char_substitution input_source::reset(std::string_view str)
 }
 
 
-input_source::char_substitution input_source::reset(
+input_source::char_substitution input_source::new_input(
     const logical_line<utils::utf8_iterator<std::string_view::iterator, utils::utf8_utf16_counter>>& l)
 {
     input_source::char_substitution subs {};
-    reset("");
+    new_input("");
 
     for (size_t i = 0; i < l.segments.size(); ++i)
     {
@@ -120,7 +119,7 @@ input_source::char_substitution input_source::reset(
         }
     }
 
-    antlr4::ANTLRInputStream::reset();
+    reset();
     return subs;
 }
 

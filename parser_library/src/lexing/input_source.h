@@ -22,6 +22,7 @@
 
 #include "logical_line.h"
 #include "parser_library_export.h"
+#include "utils/unicode_text.h"
 
 namespace hlasm_plugin::parser_library::lexing {
 /*
@@ -44,12 +45,13 @@ public:
         }
     };
 
-    input_source(const std::string& input);
+    input_source() = default;
+    input_source(std::string_view input); // for testing only
 
-    char_substitution append(const std::u32string& str);
+    char_substitution append(std::u32string_view str);
     char_substitution append(std::string_view str);
-    char_substitution reset(std::string_view str);
-    char_substitution reset(
+    char_substitution new_input(std::string_view str);
+    char_substitution new_input(
         const logical_line<utils::utf8_iterator<std::string_view::iterator, utils::utf8_utf16_counter>>& l);
 
     input_source(const input_source&) = delete;

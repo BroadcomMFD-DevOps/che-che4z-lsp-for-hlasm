@@ -202,7 +202,7 @@ void opencode_provider::feed_line(const parsing::parser_holder& p, bool is_proce
 {
     m_line_fed = true;
 
-    const auto& subs = p.input->reset(m_current_logical_line);
+    const auto& subs = p.input->new_input(m_current_logical_line);
 
     if (subs.server)
         m_diagnoser->add_diagnostic(
