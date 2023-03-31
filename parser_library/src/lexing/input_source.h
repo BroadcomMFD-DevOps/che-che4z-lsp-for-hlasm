@@ -46,7 +46,7 @@ public:
     };
 
     input_source() = default;
-    input_source(std::string_view input); // for testing only
+    explicit input_source(std::string_view input); // for testing only
 
     char_substitution append(std::u32string_view str);
     char_substitution append(std::string_view str);
