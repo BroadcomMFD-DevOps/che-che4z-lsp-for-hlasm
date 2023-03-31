@@ -205,7 +205,7 @@ public:
         return result;
     }
 
-    bool run_parse_loop(const std::atomic<unsigned char>* yield_indicator)
+    bool run_parse_loop(const std::atomic<unsigned char>* yield_indicator, bool previous_progress)
     {
         constexpr auto combine = [](std::pair<bool, bool>& r, std::pair<bool, bool> n) {
             r.first |= n.first;
@@ -218,7 +218,7 @@ public:
 
         const auto& [progress, stuff_to_do] = result;
 
-        if (progress)
+        if (progress || previous_progress)
             notify_diagnostics_consumers();
 
         return stuff_to_do;
@@ -232,6 +232,7 @@ public:
     bool idle_handler(const std::atomic<unsigned char>* yield_indicator)
     {
         bool parsing_done = false;
+        bool finished_inflight_task = false;
         while (true)
         {
             if (!m_work_queue.empty())
@@ -253,10 +254,14 @@ public:
             else if (parsing_done)
                 return false;
 
-            if (m_active_task.valid() && !run_active_task(yield_indicator))
-                return true;
+            if (m_active_task.valid())
+            {
+                if (!run_active_task(yield_indicator))
+                    return true;
+                finished_inflight_task = true;
+            }
 
-            if (run_parse_loop(yield_indicator))
+            if (run_parse_loop(yield_indicator, std::exchange(finished_inflight_task, false)))
                 return true;
 
             parsing_done = true;
