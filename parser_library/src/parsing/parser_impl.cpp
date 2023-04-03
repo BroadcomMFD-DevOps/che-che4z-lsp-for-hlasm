@@ -78,15 +78,15 @@ struct parser_holder_impl final : parser_holder
     }
     auto& get_parser() const { return static_cast<parser_t&>(*parser); }
 
-    std::pair<std::optional<std::string>, range> lab_instr() const override
+    std::pair<std::optional<std::pair<antlr4::Token*, antlr4::Token*>>, range> lab_instr() const override
     {
         auto rule = get_parser().lab_instr();
-        return { std::move(rule->op_text), rule->op_range };
+        return { std::move(rule->op_tokens), rule->op_range };
     }
-    std::pair<std::optional<std::string>, range> look_lab_instr() const override
+    std::pair<std::optional<std::pair<antlr4::Token*, antlr4::Token*>>, range> look_lab_instr() const override
     {
         auto rule = get_parser().look_lab_instr();
-        return { std::move(rule->op_text), rule->op_range };
+        return { std::move(rule->op_tokens), rule->op_range };
     }
 
     void op_rem_body_noop() const override { get_parser().op_rem_body_noop(); }

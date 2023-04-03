@@ -123,6 +123,58 @@ input_source::char_substitution input_source::new_input(
     return subs;
 }
 
+// namespace {
+// std::string getText(const antlr4::misc::Interval& interval)
+//{
+//     size_t start = interval.a;
+//     size_t stop = interval.b;
+//     if (start == INVALID_INDEX || stop == INVALID_INDEX)
+//     {
+//         return "";
+//     }
+//     if (stop >= _tokens.size())
+//     {
+//         stop = _tokens.size() - 1;
+//     }
+//
+//     std::stringstream ss;
+//     for (size_t i = start; i <= stop; i++)
+//     {
+//         Token* t = _tokens[i].get();
+//         if (t->getType() == Token::EOF)
+//         {
+//             break;
+//         }
+//         ss << t->getText();
+//     }
+//     return ss.str();
+// }
+// } // namespace
+
+std::u32string input_source::getTextu32(const antlr4::misc::Interval& interval)
+{
+    std::u32string n;
+    n.insert(n.begin(), _data[interval.a], _data[interval.b]);
+
+    return n;
+}
+
+std::u32string input_source::getTextu32(const antlr4::Token& start_token, const antlr4::Token& stop_token)
+{
+    std::u32string n;
+    n.insert(0, _data, start_token.getStartIndex(), stop_token.getStopIndex() - start_token.getStartIndex() + 1);
+
+    return n;
+}
+
+std::u32string input_source::getTextu32(const std::vector<antlr4::Token*>& interval)
+{
+    if (interval.empty())
+        return {};
+
+    return getTextu32(*interval.front(), *interval.back());
+}
+
 std::string input_source::getText(const antlr4::misc::Interval& interval)
 {
     std::string n;

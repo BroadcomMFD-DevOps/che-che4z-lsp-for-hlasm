@@ -141,7 +141,7 @@ class opencode_provider final : public statement_provider
     {
         const statement_processor& proc;
         semantics::collector& collector;
-        std::pair<std::optional<std::string>, range> operands;
+        std::pair<std::optional<std::u32string>, range> operands;
         diagnostic_op_consumer* diags;
         std::optional<context::id_index> resolved_instr;
     };
@@ -203,13 +203,21 @@ private:
         const processing_status& proc_status,
         bool unlimited_line);
 
+    const parsing::parser_holder& prepare_operand_parser(std::u32string_view text,
+        context::hlasm_context& hlasm_ctx,
+        diagnostic_op_consumer* diag_collector,
+        semantics::range_provider range_prov,
+        range text_range,
+        const processing_status& proc_status,
+        bool unlimited_line);
+
     std::shared_ptr<const context::hlasm_statement> process_lookahead(const statement_processor& proc,
         semantics::collector& collector,
 
-        std::pair<std::optional<std::string>, range> operands);
+        std::pair<std::optional<std::u32string>, range> operands);
     std::shared_ptr<const context::hlasm_statement> process_ordinary(const statement_processor& proc,
         semantics::collector& collector,
-        std::pair<std::optional<std::string>, range> operands,
+        std::pair<std::optional<std::u32string>, range> operands,
         diagnostic_op_consumer* diags,
         std::optional<context::id_index> resolved_instr);
 

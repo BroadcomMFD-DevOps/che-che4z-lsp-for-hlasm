@@ -15,7 +15,7 @@
  //rules for lookahead statement
 parser grammar lookahead_rules; 
 
-look_lab_instr  returns [std::optional<std::string> op_text, range op_range]
+look_lab_instr  returns [std::optional<std::pair<antlr4::Token *, antlr4::Token *>> op_tokens, range op_range]
 	: seq_symbol SPACE ORDSYMBOL (SPACE .*?)? EOF
 	{
 		collector.set_label_field($seq_symbol.ss,provider.get_range($seq_symbol.ctx));
@@ -39,8 +39,8 @@ look_lab_instr  returns [std::optional<std::string> op_text, range op_range]
 			collector.set_label_field(id,std::move(ord_symbol),nullptr,r);
 		}
 		
-		$op_text = $operand_field_rest.ctx->getText();
 		$op_range = provider.get_range($operand_field_rest.ctx);
+		$op_tokens = std::make_pair($operand_field_rest.ctx->getStart(), $operand_field_rest.ctx->getStop());
 	}
 	| bad_look EOF
 	{

@@ -272,7 +272,7 @@ void opencode_provider::generate_continuation_error_messages(diagnostic_op_consu
 
 std::shared_ptr<const context::hlasm_statement> opencode_provider::process_lookahead(const statement_processor& proc,
     semantics::collector& collector,
-    std::pair<std::optional<std::string>, range> operands)
+    std::pair<std::optional<std::u32string>, range> operands)
 {
     const auto& current_instr = collector.current_instruction();
 
@@ -321,9 +321,20 @@ constexpr bool is_multiline(std::string_view v)
     return !v.empty();
 }
 
+constexpr bool is_multiline(std::u32string_view v)
+{
+    // auto nl = v.find_first_of("\r\n");
+    // if (nl == std::string_view::npos)
+    //     return false;
+    // v.remove_prefix(nl);
+    // v.remove_prefix(1 + v.starts_with("\r\n"));
+
+    return !v.empty();
+}
+
 std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordinary(const statement_processor& proc,
     semantics::collector& collector,
-    std::pair<std::optional<std::string>, range> operands,
+    std::pair<std::optional<std::u32string>, range> operands,
     diagnostic_op_consumer* diags,
     std::optional<context::id_index> resolved_instr)
 {
@@ -667,7 +678,18 @@ context::shared_stmt_ptr opencode_provider::get_next(const statement_processor& 
     if (!lookahead)
         ph.parser->set_diagnoser(diag_target);
 
-    auto operands = lookahead ? ph.look_lab_instr() : ph.lab_instr();
+    auto operand_intervals = lookahead ? ph.look_lab_instr() : ph.lab_instr();
+
+    std::pair<std::optional<std::u32string>, range> operands;
+    operands.second = operand_intervals.second;
+    if (operand_intervals.first)
+    {
+        operands.first =
+            ph.input->getTextu32(*operand_intervals.first.value().first, *operand_intervals.first.value().second);
+        // operands.first = ph.input->getTextu32(
+        //     ph.stream->getTokens(operand_intervals.first.value().a, operand_intervals.first.value().b));
+    }
+
     ph.parser->get_collector().resolve_first_part();
 
     if (!collector.has_instruction())
@@ -921,6 +943,21 @@ extract_next_logical_line_result opencode_provider::extract_next_logical_line()
 }
 
 const parsing::parser_holder& opencode_provider::prepare_operand_parser(const std::string& text,
+    context::hlasm_context& hlasm_ctx,
+    diagnostic_op_consumer* diags,
+    semantics::range_provider range_prov,
+    range text_range,
+    const processing_status& proc_status,
+    bool unlimited_line)
+{
+    auto& h = is_multiline(text) ? *m_multiline.m_operand_parser : *m_singleline.m_operand_parser;
+
+    h.prepare_parser(text, &hlasm_ctx, diags, std::move(range_prov), text_range, proc_status, unlimited_line);
+
+    return h;
+}
+
+const parsing::parser_holder& opencode_provider::prepare_operand_parser(std::u32string_view text,
     context::hlasm_context& hlasm_ctx,
     diagnostic_op_consumer* diags,
     semantics::range_provider range_prov,

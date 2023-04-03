@@ -59,6 +59,10 @@ public:
     input_source& operator=(input_source&&) = delete;
     input_source(input_source&&) = delete;
 
+    std::u32string getTextu32(const antlr4::Token& start_token, const antlr4::Token& stop_token);
+    std::u32string getTextu32(const antlr4::misc::Interval& interval);
+    std::u32string getTextu32(const std::vector<antlr4::Token*>& interval);
+
     std::string getText(const antlr4::misc::Interval& interval) override;
 };
 
