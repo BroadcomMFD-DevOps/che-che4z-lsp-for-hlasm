@@ -68,14 +68,11 @@ void server::consume_parsing_metadata(
 void server::message_received(const nlohmann::json& message)
 {
     std::optional<request_id> id;
-    if (auto id_found = message.find("id"); id_found != message.end())
+    if (auto id_found = message.find("id"); id_found != message.end() && !id_found->get_to(id))
     {
-        if (!id_found->get_to(id))
-        {
-            LOG_WARNING("Invalid id field received.");
-            send_telemetry_error("lsp_server/invliad_id");
-            return;
-        }
+        LOG_WARNING("Invalid id field received.");
+        send_telemetry_error("lsp_server/invliad_id");
+        return;
     }
 
 

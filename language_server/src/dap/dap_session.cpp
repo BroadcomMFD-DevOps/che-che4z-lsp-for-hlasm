@@ -34,7 +34,7 @@ void session::thread_routine()
             {}
         } smp(channel);
 
-        utils::scope_exit indicate_end([this]() { running = false; });
+        utils::scope_exit indicate_end([this]() noexcept { running = false; });
 
         dap::server server(*ws_mngr, telemetry_reporter);
         server.set_send_message_provider(&smp);

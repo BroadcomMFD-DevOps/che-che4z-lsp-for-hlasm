@@ -163,7 +163,7 @@ public:
 
     bool run_active_task(const std::atomic<unsigned char>* yield_indicator)
     {
-        auto& [task, ws, start] = m_active_task;
+        const auto& [task, ws, start] = m_active_task;
         while (!task.done())
         {
             if (yield_indicator && yield_indicator->load(std::memory_order_relaxed))
@@ -176,7 +176,7 @@ public:
 
         if (perf_metrics)
         {
-            parsing_metadata data { perf_metrics.value(), std::move(metadata), errors, warnings };
+            parsing_metadata data { perf_metrics.value(), metadata, errors, warnings };
             for (auto consumer : parsing_metadata_consumers_)
                 consumer->consume_parsing_metadata(sequence<char>(url.get_uri()), duration.count(), data);
         }
@@ -238,10 +238,10 @@ public:
         {
             if (!m_work_queue.empty())
             {
-                auto& item = m_work_queue.front();
+                const auto& item = m_work_queue.front();
                 if (item.workspace_removed || !item.is_valid() || parsing_done || !parsing_must_be_done(item))
                 {
-                    utils::scope_exit pop_front([this]() { m_work_queue.pop_front(); });
+                    utils::scope_exit pop_front([this]() noexcept { m_work_queue.pop_front(); });
 
                     if (item.request_type == work_item_type::file_change)
                     {
@@ -274,9 +274,9 @@ public:
     void did_open_file(const utils::resource::resource_location& document_loc, version_t version, std::string text)
     {
         workspaces::workspace& ws = ws_path_match(document_loc.get_uri());
-        m_work_queue.push_back(work_item {
+        m_work_queue.emplace_back(work_item {
             &ws,
-            [this, document_loc, version, text = std::move(text), &ws](bool workspace_removed) {
+            [this, document_loc, version, text = std::move(text), &ws](bool workspace_removed) mutable {
                 auto file_changed = file_manager_.did_open_file(document_loc, version, std::move(text));
                 if (!workspace_removed)
                     ws.did_open_file(document_loc, file_changed);
@@ -311,7 +311,7 @@ public:
                 };
             });
 
-        m_work_queue.push_back(work_item {
+        m_work_queue.emplace_back(work_item {
             &ws,
             [this, document_loc, version, captured_changes = std::move(captured_changes), &ws](bool workspace_removed) {
                 std::vector<document_change> list;
@@ -336,7 +336,7 @@ public:
     {
         workspaces::workspace& ws = ws_path_match(document_loc.get_uri());
 
-        m_work_queue.push_back(work_item {
+        m_work_queue.emplace_back(work_item {
             &ws,
             [this, document_loc, &ws](bool workspace_removed) {
                 file_manager_.did_close_file(document_loc);
@@ -355,9 +355,9 @@ public:
             paths_for_ws[&ws_path_match(path.get_uri())].push_back(std::move(path));
 
         for (auto& [ws, path_list] : paths_for_ws)
-            m_work_queue.push_back(work_item {
+            m_work_queue.emplace_back(work_item {
                 ws,
-                [this, path_list = std::move(path_list), ws = ws](bool workspace_removed) {
+                [path_list = std::move(path_list), ws = ws](bool workspace_removed) {
                     if (!workspace_removed)
                         ws->did_change_watched_files(path_list);
                 },
@@ -415,7 +415,7 @@ public:
     {
         auto& ws = ws_path_match(document_uri);
 
-        m_work_queue.push_back(work_item {
+        m_work_queue.emplace_back(work_item {
             &ws,
             response_handle(r,
                 [&ws, doc_loc = resource_location(document_uri), pos](
@@ -431,7 +431,7 @@ public:
     {
         auto& ws = ws_path_match(document_uri);
 
-        m_work_queue.push_back(work_item {
+        m_work_queue.emplace_back(work_item {
             &ws,
             response_handle(r,
                 [&ws, doc_loc = resource_location(document_uri), pos](
@@ -448,7 +448,7 @@ public:
     {
         auto& ws = ws_path_match(document_uri);
 
-        m_work_queue.push_back(work_item {
+        m_work_queue.emplace_back(work_item {
             &ws,
             response_handle(r,
                 [&ws, doc_loc = resource_location(document_uri), pos](
@@ -470,7 +470,7 @@ public:
     {
         auto& ws = ws_path_match(document_uri);
 
-        m_work_queue.push_back(work_item {
+        m_work_queue.emplace_back(work_item {
             &ws,
             response_handle(r,
                 [&ws, doc_loc = resource_location(document_uri), pos, trigger_char, trigger_kind](
@@ -488,7 +488,7 @@ public:
     {
         auto& ws = ws_path_match(document_uri);
 
-        m_work_queue.push_back(work_item {
+        m_work_queue.emplace_back(work_item {
             &ws,
             response_handle(r,
                 [&ws, doc_loc = resource_location(document_uri), limit](
@@ -522,7 +522,7 @@ public:
     {
         auto& ws = ws_path_match(document_uri);
 
-        m_work_queue.push_back(work_item {
+        m_work_queue.emplace_back(work_item {
             &ws,
             response_handle(r,
                 [&ws, doc_loc = resource_location(document_uri)](

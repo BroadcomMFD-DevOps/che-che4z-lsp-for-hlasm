@@ -17,16 +17,28 @@
 
 namespace hlasm_plugin::utils {
 template<typename T>
+concept scope_exit_handler = requires(T t)
+{
+    {
+        t()
+    }
+    noexcept;
+};
+
+template<scope_exit_handler T>
 class scope_exit
 {
-    T scope_exit_;
+    T m_scope_exit;
 
 public:
     explicit scope_exit(T&& t)
-        : scope_exit_(std::move(t))
+        : m_scope_exit(static_cast<T&&>(t))
     {}
     scope_exit(const scope_exit&) = delete;
-    ~scope_exit() { scope_exit_(); }
+    scope_exit(scope_exit&&) = delete;
+    scope_exit& operator=(const scope_exit&) = delete;
+    scope_exit& operator=(scope_exit&&) = delete;
+    ~scope_exit() { m_scope_exit(); }
 };
 } // namespace hlasm_plugin::utils
 

@@ -34,13 +34,11 @@
 #include "workspace_manager.h"
 
 using namespace hlasm_plugin::language_server;
-using namespace hlasm_plugin::utils;
 
 namespace {
 
 class main_program : public json_sink, send_message_provider
 {
-    std::atomic<bool> cancel = false;
     hlasm_plugin::parser_library::workspace_manager ws_mngr;
 
     json_sink& json_output;
@@ -65,12 +63,13 @@ public:
         router.register_route(dap_sessions.get_filtering_predicate(), dap_sessions);
         router.register_route(virtual_files.get_filtering_predicate(), virtual_files);
 
-        lsp_thread = std::thread([&ret, this, &json_output]() {
+        lsp_thread = std::thread([&ret, this]() {
             try
             {
                 lsp::server server(ws_mngr);
                 server.set_send_message_provider(this);
-                scope_exit disconnect_telemetry([this]() { dap_telemetry_broker.set_telemetry_sink(nullptr); });
+                hlasm_plugin::utils::scope_exit disconnect_telemetry(
+                    [this]() noexcept { dap_telemetry_broker.set_telemetry_sink(nullptr); });
                 dap_telemetry_broker.set_telemetry_sink(&server);
 
                 for (;;)
@@ -110,7 +109,6 @@ public:
     }
     ~main_program()
     {
-        cancel = true;
         lsp_queue.terminate();
         if (lsp_thread.joinable())
             lsp_thread.join();

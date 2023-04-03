@@ -89,6 +89,7 @@ public:
     void collect_diags() const override;
 
     void mark_file_for_parsing(const resource_location& file_location, open_file_result file_content_status);
+    void mark_all_opened_files();
     bool refresh_libraries(const std::vector<resource_location>& file_locations);
     void did_open_file(const resource_location& file_location,
         open_file_result file_content_status = open_file_result::changed_content);
@@ -181,11 +182,11 @@ private:
         bool m_last_opencode_analyzer_with_lsp = false;
         bool m_last_macro_analyzer_with_lsp = false;
 
-        processor_file_compoments(std::shared_ptr<file> file);
+        explicit processor_file_compoments(std::shared_ptr<file> file);
         processor_file_compoments(const processor_file_compoments&) = delete;
-        processor_file_compoments(processor_file_compoments&&);
+        processor_file_compoments(processor_file_compoments&&) noexcept;
         processor_file_compoments& operator=(const processor_file_compoments&) = delete;
-        processor_file_compoments& operator=(processor_file_compoments&&);
+        processor_file_compoments& operator=(processor_file_compoments&&) noexcept;
         ~processor_file_compoments();
 
         void update_source_if_needed(file_manager& fm);
@@ -193,9 +194,6 @@ private:
 
     std::unordered_map<resource_location, processor_file_compoments, resource_location_hasher> m_processor_files;
     std::unordered_set<resource_location, resource_location_hasher> m_parsing_pending;
-
-    std::vector<processor_file_compoments*> populate_files_to_parse(
-        const utils::resource::resource_location& file_location, open_file_result file_content_status);
 
     processor_file_compoments& add_processor_file_impl(std::shared_ptr<file> f);
     const processor_file_compoments* find_processor_file_impl(const resource_location& file) const;

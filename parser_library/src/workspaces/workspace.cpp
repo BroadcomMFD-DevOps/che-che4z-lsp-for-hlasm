@@ -589,33 +589,11 @@ namespace {
 bool trigger_reparse(const resource_location& file_location) { return !file_location.get_uri().starts_with("hlasm:"); }
 } // namespace
 
-std::vector<workspace::processor_file_compoments*> workspace::populate_files_to_parse(
-    const resource_location& file_location, open_file_result file_content_status)
+void workspace::mark_all_opened_files()
 {
-    assert(file_content_status != open_file_result::identical);
-
-    std::vector<workspace::processor_file_compoments*> files_to_parse;
-
-    // TODO: apparently just opening a file without changing it triggers reparse
-
-    if (file_content_status == open_file_result::changed_content && trigger_reparse(file_location))
-    {
-        for (auto& [_, component] : m_processor_files)
-        {
-            if (!component.m_opened)
-                continue;
-            if (component.m_dependencies.contains(file_location))
-                files_to_parse.push_back(&component);
-        }
-    }
-
-    if (auto it = m_processor_files.find(file_location); it != m_processor_files.end() && it->second.m_opened)
-    {
-        it->second.update_source_if_needed(file_manager_);
-        files_to_parse.emplace_back(&it->second);
-    }
-
-    return files_to_parse;
+    for (const auto& [fname, comp] : m_processor_files)
+        if (comp.m_opened)
+            m_parsing_pending.emplace(fname);
 }
 
 void workspace::mark_file_for_parsing(const resource_location& file_location, open_file_result file_content_status)
@@ -627,19 +605,29 @@ void workspace::mark_file_for_parsing(const resource_location& file_location, op
     if (m_configuration.is_configuration_file(file_location))
     {
         if (m_configuration.parse_configuration_file(file_location) == parse_config_file_result::parsed)
-        {
-            for (auto& [fname, comp] : m_processor_files)
-                if (comp.m_opened)
-                    m_parsing_pending.emplace(fname);
-        }
+            mark_all_opened_files();
         return;
     }
 
     // TODO: what about removing files??? what if depentands_ points to not existing file?
+    // TODO: apparently just opening a file without changing it triggers reparse
 
-    std::set<resource_location> files_to_close;
-    for (auto* component : populate_files_to_parse(file_location, file_content_status))
-        m_parsing_pending.emplace(component->m_file->get_location());
+    if (file_content_status == open_file_result::changed_content && trigger_reparse(file_location))
+    {
+        for (auto& [_, component] : m_processor_files)
+        {
+            if (!component.m_opened)
+                continue;
+            if (component.m_dependencies.contains(file_location))
+                m_parsing_pending.emplace(component.m_file->get_location());
+        }
+    }
+
+    if (auto it = m_processor_files.find(file_location); it != m_processor_files.end() && it->second.m_opened)
+    {
+        it->second.update_source_if_needed(file_manager_);
+        m_parsing_pending.emplace(it->second.m_file->get_location());
+    }
 }
 
 workspace_file_info workspace::parse_successful(processor_file_compoments& comp, workspace_parse_lib_provider libs)
@@ -854,11 +842,7 @@ bool workspace::settings_updated()
 {
     bool updated = m_configuration.settings_updated();
     if (updated && m_configuration.parse_configuration_file() == parse_config_file_result::parsed)
-    {
-        for (auto& [fname, comp] : m_processor_files)
-            if (comp.m_opened)
-                m_parsing_pending.emplace(fname);
-    }
+        mark_all_opened_files();
     return updated;
 }
 
@@ -1081,9 +1065,9 @@ workspace::processor_file_compoments::processor_file_compoments(std::shared_ptr<
     : m_file(std::move(file))
     , m_last_results(std::make_unique<parsing_results>())
 {}
-workspace::processor_file_compoments::processor_file_compoments(processor_file_compoments&&) = default;
+workspace::processor_file_compoments::processor_file_compoments(processor_file_compoments&&) noexcept = default;
 workspace::processor_file_compoments& workspace::processor_file_compoments::operator=(
-    processor_file_compoments&&) = default;
+    processor_file_compoments&&) noexcept = default;
 workspace::processor_file_compoments::~processor_file_compoments() = default;
 
 void workspace::processor_file_compoments::update_source_if_needed(file_manager& fm)
