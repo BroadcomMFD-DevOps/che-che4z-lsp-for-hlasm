@@ -204,11 +204,11 @@ void opencode_provider::feed_line(const parsing::parser_holder& p, bool is_proce
 
     const auto& subs = p.input->new_input(m_current_logical_line);
 
-    if (subs.server)
+    if (subs.server && !std::exchange(m_encoding_warning_issued.server, true))
         m_diagnoser->add_diagnostic(
             diagnostic_op::warning_W017(range(position(m_current_logical_line_source.begin_line, 0))));
 
-    if (subs.client)
+    if (subs.client && !std::exchange(m_encoding_warning_issued.client, true))
         m_diagnoser->add_diagnostic(
             diagnostic_op::warning_W018(range(position(m_current_logical_line_source.begin_line, 0))));
 

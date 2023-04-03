@@ -164,9 +164,7 @@ TEST(replace_non_utf8_chars, middle_char)
 
 TEST(encoding, server_substitution)
 {
-    std::string input = "&VAR SETC 'PARAM";
-    input.insert(input.end(), (unsigned char)0xA2); // ¢ in ISO/IEC 8859-1
-    input.push_back('\'');
+    std::string input = "&VAR SETC 'PARAM\xA2'"; // 'PARAM¢' in ISO/IEC 8859-1
 
     analyzer a(input);
     a.analyze();
@@ -177,11 +175,7 @@ TEST(encoding, server_substitution)
 
 TEST(encoding, client_substitution_vscode)
 {
-    std::string input = "&VAR SETC 'PARAM";
-    input.insert(input.end(), (unsigned char)0xEF);
-    input.insert(input.end(), (unsigned char)0xBF);
-    input.insert(input.end(), (unsigned char)0xBD); // Replacement characters from VSCode
-    input.push_back('\'');
+    std::string input = "&VAR SETC 'PARAM\xEF\xBF\xBD'"; // 'PARAMï¿½' - Replacement characters from VSCode
 
     analyzer a(input);
     a.analyze();
@@ -190,14 +184,9 @@ TEST(encoding, client_substitution_vscode)
     EXPECT_TRUE(matches_message_codes(a.diags(), { "W018" }));
 }
 
-TEST(encoding, client_server_substitution_vscode)
+TEST(encoding, client_server_substitution_multiple_vscode)
 {
-    std::string input = "&VAR SETC 'PARAM";
-    input.insert(input.end(), (unsigned char)0xEF);
-    input.insert(input.end(), (unsigned char)0xBF);
-    input.insert(input.end(), (unsigned char)0xBD); // Replacement characters from VSCode
-    input.insert(input.end(), (unsigned char)0xA2); // ¢ in ISO/IEC 8859-1
-    input.push_back('\'');
+    std::string input = "&VAR1 SETC 'PARAM\xEF\xBF\xBD\xA2'\n&VAR2 SETC 'PARAM\xA2\xEF\xBF\xBD'";
 
     analyzer a(input);
     a.analyze();
