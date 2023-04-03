@@ -587,7 +587,7 @@ void feature_language_features::opcode_suggestion(const request_id& id, const nl
         return;
     }
 
-    class composite_response_t
+    class composite_response_t : public std::enable_shared_from_this<composite_response_t>
     {
         request_id m_id;
         response_provider* m_response;
@@ -642,21 +642,22 @@ void feature_language_features::opcode_suggestion(const request_id& id, const nl
                 send();
         }
 
-        auto start_request(
-            workspace_manager_response<std::optional<std::pair<std::string, nlohmann::json>>> self, std::string opcode)
+        using subrequest_t =
+            workspace_manager_response<continuous_sequence<hlasm_plugin::parser_library::opcode_suggestion>>;
+        subrequest_t start_request(std::string opcode)
         {
             struct subrequest_t
             {
-                workspace_manager_response<std::optional<std::pair<std::string, nlohmann::json>>> m_self;
+                std::shared_ptr<composite_response_t> m_self;
                 std::string m_opcode;
 
-                void error(int ec, const char* error) const { m_self.error(ec, error); }
+                void error(int ec, const char* error) const { m_self->error(ec, error); }
 
                 void provide(continuous_sequence<hlasm_plugin::parser_library::opcode_suggestion> opcode_suggestions)
                 {
                     if (opcode_suggestions.size() == 0)
                     {
-                        m_self.provide(std::nullopt);
+                        m_self->provide(std::nullopt);
                         return;
                     }
                     auto result = nlohmann::json::array();
@@ -667,38 +668,58 @@ void feature_language_features::opcode_suggestion(const request_id& id, const nl
                             { "distance", s.distance },
                         });
                     }
-                    m_self.provide(std::make_pair(std::move(m_opcode), std::move(result)));
+                    m_self->provide(std::make_pair(std::move(m_opcode), std::move(result)));
                 }
             };
-            auto [result, _] = make_workspace_manager_response(subrequest_t { std::move(self), std::move(opcode) });
+
+            auto [result, _] = make_workspace_manager_response(subrequest_t { shared_from_this(), std::move(opcode) });
 
             ++m_pending_responses;
 
             return std::move(result);
         }
+
+        auto get_invalidator(std::vector<composite_response_t::subrequest_t> collected_subrequests)
+        {
+            struct
+            {
+                std::shared_ptr<composite_response_t> m_self;
+                std::vector<composite_response_t::subrequest_t> subrequests;
+
+                bool resolved() const { return m_self->m_failed || m_self->m_pending_responses == 0; }
+                void invalidate() const
+                {
+                    for (const auto& subreq : subrequests)
+                        subreq.invalidate();
+                }
+            } result { shared_from_this(), std::move(collected_subrequests) };
+            return result;
+        }
     };
 
-    auto [response, composite] = make_workspace_manager_response(composite_response_t(id, response_, document_uri));
+    auto composite = std::make_shared<composite_response_t>(id, response_, document_uri);
 
     try
     {
+        std::vector<composite_response_t::subrequest_t> subrequests;
         for (const auto& opcode : *opcodes)
         {
             if (!opcode.is_string())
                 continue;
             auto op = opcode.get<std::string>();
 
-            auto resp = composite->start_request(response, op);
-
-            ws_mngr_.make_opcode_suggestion(document_uri.c_str(), op.c_str(), extended, std::move(resp));
+            ws_mngr_.make_opcode_suggestion(
+                document_uri.c_str(), op.c_str(), extended, subrequests.emplace_back(composite->start_request(op)));
         }
+
+        response_->register_cancellable_request(id, composite->get_invalidator(std::move(subrequests)));
 
         composite->requests_submitted();
     }
     catch (const std::exception& e)
     {
         constexpr int internal_error = -32603;
-        response.error(internal_error, e.what());
+        composite->error(internal_error, e.what());
     }
 }
 
