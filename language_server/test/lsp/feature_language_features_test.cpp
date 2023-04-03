@@ -79,6 +79,7 @@ TEST(language_features, definition)
 
     EXPECT_FALSE(ws_mngr.idle_handler());
 }
+
 TEST(language_features, references)
 {
     test::ws_mngr_mock ws_mngr;
@@ -141,6 +142,33 @@ TEST(language_features, semantic_tokens)
 
     notifs["textDocument/semanticTokens/full"].as_request_handler()(request_id(0), params1);
 
+    EXPECT_FALSE(ws_mngr.idle_handler());
+}
+
+TEST(language_features, semantic_tokens_cancelled)
+{
+    parser_library::workspace_manager ws_mngr;
+    response_provider_mock response_mock;
+    lsp::feature_language_features f(ws_mngr, response_mock);
+    std::map<std::string, method> notifs;
+    f.register_methods(notifs);
+
+    std::string file_text = "A EQU 1\n SAM31";
+
+    ws_mngr.did_open_file(uri.c_str(), 0, file_text.c_str(), file_text.size());
+    nlohmann::json params1 = nlohmann::json::parse(R"({"textDocument":{"uri":")" + uri + "\"}}");
+
+    nlohmann::json response { { "data", { 0, 0, 1, 0, 0, 0, 2, 3, 1, 0, 0, 4, 1, 10, 0, 1, 1, 5, 1, 0 } } };
+
+    std::function<void()> request_invalidator;
+    EXPECT_CALL(response_mock, register_cancellable_request(request_id(0), _))
+        .WillOnce(WithArg<1>([&request_invalidator](auto x) { request_invalidator = x.take_invalidator(); }));
+    notifs["textDocument/semanticTokens/full"].as_request_handler()(request_id(0), params1);
+    ASSERT_TRUE(request_invalidator);
+
+    request_invalidator();
+
+    EXPECT_CALL(response_mock, respond_error(request_id(0), _, -32800, "Canceled", _));
     EXPECT_FALSE(ws_mngr.idle_handler());
 }
 
