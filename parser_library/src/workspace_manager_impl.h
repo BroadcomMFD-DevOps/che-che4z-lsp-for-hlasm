@@ -243,12 +243,13 @@ public:
                 {
                     utils::scope_exit pop_front([this]() { m_work_queue.pop_front(); });
 
-                    item.action(item.workspace_removed);
                     if (item.request_type == work_item_type::file_change)
                     {
                         parsing_done = false;
                         m_active_task = {};
                     }
+
+                    item.action(item.workspace_removed);
 
                     continue;
                 }
