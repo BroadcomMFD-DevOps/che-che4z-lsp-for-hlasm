@@ -30,6 +30,7 @@
 #include "lsp/completion_item.h"
 #include "lsp/document_symbol_item.h"
 #include "protocol.h"
+#include "utils/scope_exit.h"
 #include "workspace_manager.h"
 #include "workspace_manager_response.h"
 #include "workspaces/file_manager_impl.h"
@@ -240,6 +241,8 @@ public:
                 auto& item = m_work_queue.front();
                 if (item.workspace_removed || !item.is_valid() || parsing_done || !parsing_must_be_done(item))
                 {
+                    utils::scope_exit pop_front([this]() { m_work_queue.pop_front(); });
+
                     item.action(item.workspace_removed);
                     if (item.request_type == work_item_type::file_change)
                     {
@@ -247,7 +250,6 @@ public:
                         m_active_task = {};
                     }
 
-                    m_work_queue.pop_front();
                     continue;
                 }
             }

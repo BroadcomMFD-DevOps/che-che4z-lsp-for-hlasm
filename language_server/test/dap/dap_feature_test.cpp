@@ -75,7 +75,7 @@ struct response_provider_mock : public response_provider
     void respond_error(const request_id&, const std::string&, int, const std::string&, const nlohmann::json&) override
     {}
 
-    void register_cancellable_request(const request_id&, std::function<void()>) override {}
+    void register_cancellable_request(const request_id&, request_invalidator) override {}
 
     std::vector<response_mock> responses;
     std::vector<notif_mock> notifs;

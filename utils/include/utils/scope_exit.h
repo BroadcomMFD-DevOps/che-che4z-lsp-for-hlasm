@@ -12,10 +12,10 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
-#ifndef HLASMPLUGIN_LANGUAGESERVER_SCOPE_EXIT_H
-#define HLASMPLUGIN_LANGUAGESERVER_SCOPE_EXIT_H
+#ifndef HLASMPLUGIN_UTILS_SCOPE_EXIT_H
+#define HLASMPLUGIN_UTILS_SCOPE_EXIT_H
 
-namespace hlasm_plugin::language_server {
+namespace hlasm_plugin::utils {
 template<typename T>
 class scope_exit
 {
@@ -28,6 +28,6 @@ public:
     scope_exit(const scope_exit&) = delete;
     ~scope_exit() { scope_exit_(); }
 };
-} // namespace hlasm_plugin::language_server
+} // namespace hlasm_plugin::utils
 
-#endif // HLASMPLUGIN_LANGUAGESERVER_SCOPE_EXIT_H
+#endif // HLASMPLUGIN_UTILS_SCOPE_EXIT_H

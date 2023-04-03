@@ -27,13 +27,14 @@
 #include "lsp/lsp_server.h"
 #include "message_router.h"
 #include "nlohmann/json.hpp"
-#include "scope_exit.h"
 #include "server_streams.h"
 #include "telemetry_broker.h"
+#include "utils/scope_exit.h"
 #include "virtual_file_provider.h"
 #include "workspace_manager.h"
 
 using namespace hlasm_plugin::language_server;
+using namespace hlasm_plugin::utils;
 
 namespace {
 

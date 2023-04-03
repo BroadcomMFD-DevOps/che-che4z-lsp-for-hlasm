@@ -26,7 +26,6 @@ target_sources(language_server_base PRIVATE
 	message_router.h
 	parsing_metadata_serialization.cpp
 	parsing_metadata_serialization.h
-	scope_exit.h
 	send_message_provider.h
 	server.cpp
 	server.h

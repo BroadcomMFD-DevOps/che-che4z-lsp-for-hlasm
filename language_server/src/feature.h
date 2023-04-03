@@ -16,6 +16,7 @@
 #define HLASMPLUGIN_LANGUAGESERVER_FEATURE_H
 
 #include <compare>
+#include <concepts>
 #include <functional>
 #include <map>
 #include <string>
@@ -105,6 +106,29 @@ struct method
     }
 };
 
+template<typename T>
+concept cancellable_request = requires(const T& t)
+{
+    t.invalidate();
+    bool(t.resolved());
+};
+
+class request_invalidator
+{
+    std::function<void()> invalidator;
+
+public:
+    auto take_invalidator() { return std::move(invalidator); }
+
+    explicit operator bool() const { return !!invalidator; }
+
+    template<cancellable_request Request>
+    explicit(false) request_invalidator(Request r)
+        : invalidator(
+            r.resolved() ? std::function<void()>() : std::function<void()>([r = std::move(r)]() { r.invalidate(); }))
+    {}
+};
+
 // Provides methods to send notification, respond to request and respond with error respond
 class response_provider
 {
@@ -120,7 +144,7 @@ public:
         const std::string& err_message,
         const nlohmann::json& error) = 0;
 
-    virtual void register_cancellable_request(const request_id& id, std::function<void()> cancel_handler) = 0;
+    virtual void register_cancellable_request(const request_id& id, request_invalidator cancel_handler) = 0;
 
 protected:
     ~response_provider() = default;

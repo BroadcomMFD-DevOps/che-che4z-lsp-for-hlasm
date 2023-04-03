@@ -182,9 +182,10 @@ void server::respond_error(
     send_message_->reply(reply);
 }
 
-void server::register_cancellable_request(const request_id& id, std::function<void()> cancel_handler)
+void server::register_cancellable_request(const request_id& id, request_invalidator cancel_handler)
 {
-    cancellable_requests_.try_emplace(id, std::move(cancel_handler), std::exchange(method_inflight, {}));
+    if (cancel_handler)
+        cancellable_requests_.try_emplace(id, cancel_handler.take_invalidator(), std::exchange(method_inflight, {}));
 }
 
 void server::register_methods()

@@ -46,7 +46,7 @@ public:
         const std::string& err_message,
         const nlohmann::json& error) override;
 
-    void register_cancellable_request(const request_id& id, std::function<void()> cancel_handler) override;
+    void register_cancellable_request(const request_id& id, request_invalidator cancel_handler) override;
 
     void message_received(const nlohmann::json& message) override;
 

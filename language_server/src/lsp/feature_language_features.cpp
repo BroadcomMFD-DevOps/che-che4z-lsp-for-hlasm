@@ -309,9 +309,10 @@ void feature_language_features::definition(const request_id& id, const nlohmann:
             { "range", range_to_json({ definition_position_uri.pos(), definition_position_uri.pos() }) },
         };
     });
-    response_->register_cancellable_request(id, [resp]() { resp.invalidate(); });
 
-    ws_mngr_.definition(document_uri.c_str(), pos, std::move(resp));
+    ws_mngr_.definition(document_uri.c_str(), pos, resp);
+
+    response_->register_cancellable_request(id, std::move(resp));
 }
 
 void feature_language_features::references(const request_id& id, const nlohmann::json& params)
@@ -329,9 +330,9 @@ void feature_language_features::references(const request_id& id, const nlohmann:
         }
         return to_ret;
     });
-    response_->register_cancellable_request(id, [resp]() { resp.invalidate(); });
+    ws_mngr_.references(document_uri.c_str(), pos, resp);
 
-    ws_mngr_.references(document_uri.c_str(), pos, std::move(resp));
+    response_->register_cancellable_request(id, std::move(resp));
 }
 void feature_language_features::hover(const request_id& id, const nlohmann::json& params)
 {
@@ -344,9 +345,9 @@ void feature_language_features::hover(const request_id& id, const nlohmann::json
             { "contents", hover_list.empty() ? "" : get_markup_content(hover_list) },
         };
     });
-    response_->register_cancellable_request(id, [resp]() { resp.invalidate(); });
+    ws_mngr_.hover(document_uri.c_str(), pos, resp);
 
-    ws_mngr_.hover(document_uri.c_str(), pos, std::move(resp));
+    response_->register_cancellable_request(id, std::move(resp));
 }
 
 
@@ -358,9 +359,9 @@ void feature_language_features::completion(const request_id& id, const nlohmann:
     auto [trigger_kind, trigger_char] = extract_trigger(params);
 
     auto resp = make_response(id, response_, translate_completion_list);
-    response_->register_cancellable_request(id, [resp]() { resp.invalidate(); });
+    ws_mngr_.completion(document_uri.c_str(), pos, trigger_char, trigger_kind, resp);
 
-    ws_mngr_.completion(document_uri.c_str(), pos, trigger_char, trigger_kind, std::move(resp));
+    response_->register_cancellable_request(id, std::move(resp));
 }
 
 void add_token(nlohmann::json& encoded_tokens,
@@ -475,9 +476,9 @@ void feature_language_features::semantic_tokens(const request_id& id, const nloh
             { "data", convert_tokens_to_num_array(std::vector<parser_library::token_info>(std::move(token_list))) },
         };
     });
-    response_->register_cancellable_request(id, [resp]() { resp.invalidate(); });
+    ws_mngr_.semantic_tokens(document_uri.c_str(), resp);
 
-    ws_mngr_.semantic_tokens(document_uri.c_str(), std::move(resp));
+    response_->register_cancellable_request(id, std::move(resp));
 }
 
 // document symbol item kinds from the LSP specification
@@ -560,9 +561,10 @@ void feature_language_features::document_symbol(const request_id& id, const nloh
 
     auto resp = make_response(
         id, response_, [this](document_symbol_list symbol_list) { return document_symbol_list_json(symbol_list); });
-    response_->register_cancellable_request(id, [resp]() { resp.invalidate(); });
 
-    ws_mngr_.document_symbol(document_uri.c_str(), limit, std::move(resp));
+    ws_mngr_.document_symbol(document_uri.c_str(), limit, resp);
+
+    response_->register_cancellable_request(id, std::move(resp));
 }
 
 void feature_language_features::opcode_suggestion(const request_id& id, const nlohmann::json& params)
@@ -616,7 +618,6 @@ void feature_language_features::opcode_suggestion(const request_id& id, const nl
             , m_document_uri(std::move(document_uri))
         {}
 
-        bool valid() const { return !m_failed; }
         void error(int ec, const char* error)
         {
             m_failed = true;
@@ -649,7 +650,6 @@ void feature_language_features::opcode_suggestion(const request_id& id, const nl
                 workspace_manager_response<std::optional<std::pair<std::string, nlohmann::json>>> m_self;
                 std::string m_opcode;
 
-                bool valid() const { return m_self.valid(); }
                 void error(int ec, const char* error) const { m_self.error(ec, error); }
 
                 void provide(continuous_sequence<hlasm_plugin::parser_library::opcode_suggestion> opcode_suggestions)
@@ -689,7 +689,6 @@ void feature_language_features::opcode_suggestion(const request_id& id, const nl
             auto op = opcode.get<std::string>();
 
             auto resp = composite->start_request(response, op);
-            response_->register_cancellable_request(id, [resp]() { resp.invalidate(); });
 
             ws_mngr_.make_opcode_suggestion(document_uri.c_str(), op.c_str(), extended, std::move(resp));
         }

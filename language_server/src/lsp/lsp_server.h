@@ -61,7 +61,7 @@ protected:
         const std::string& err_message,
         const nlohmann::json& error) override;
 
-    void register_cancellable_request(const request_id&, std::function<void()>) override;
+    void register_cancellable_request(const request_id&, request_invalidator) override;
 
 private:
     std::atomic<long> request_id_counter = 0;
