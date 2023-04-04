@@ -235,7 +235,7 @@ void server::on_initialize(const request_id& id, const nlohmann::json& param)
     respond(id, "", capabilities);
 
     nlohmann::json register_configuration_changed_args {
-        { {
+        {
             "registrations",
             {
                 {
@@ -243,7 +243,7 @@ void server::on_initialize(const request_id& id, const nlohmann::json& param)
                     { "method", "workspace/didChangeConfiguration" },
                 },
             },
-        } },
+        },
     };
 
     request("client/registerCapability", register_configuration_changed_args, &empty_handler);

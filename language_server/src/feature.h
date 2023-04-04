@@ -166,7 +166,7 @@ public:
 
     // Can be implemented to set feature specific to client capabilities that
     // are sent in initialize request.
-    void virtual initialize_feature(const nlohmann::json& client_capabilities) = 0;
+    virtual void initialize_feature(const nlohmann::json& client_capabilities) = 0;
 
     // Converts LSP json representation of range into parse_library::range.
     static parser_library::range parse_range(const nlohmann::json& range_json);
