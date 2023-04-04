@@ -185,8 +185,8 @@ struct parser_holder
 
     virtual ~parser_holder();
 
-    virtual std::pair<std::optional<std::pair<antlr4::Token *, antlr4::Token *>>, range> lab_instr() const = 0;
-    virtual std::pair<std::optional<std::pair<antlr4::Token *, antlr4::Token *>>, range> look_lab_instr() const = 0;
+    virtual std::pair<std::optional<std::pair<antlr4::Token*, antlr4::Token*>>, range> lab_instr() const = 0;
+    virtual std::pair<std::optional<std::pair<antlr4::Token*, antlr4::Token*>>, range> look_lab_instr() const = 0;
 
     virtual void op_rem_body_noop() const = 0;
     virtual void op_rem_body_ignored() const = 0;
@@ -211,15 +211,8 @@ struct parser_holder
 
     virtual semantics::literal_si literal_reparse() const = 0;
 
-    void prepare_parser(const std::string& text,
-        context::hlasm_context* hlasm_ctx,
-        diagnostic_op_consumer* diags,
-        semantics::range_provider range_prov,
-        range text_range,
-        const processing::processing_status& proc_status,
-        bool unlimited_line) const;
-
-    void prepare_parser(std::u32string_view text,
+    template<typename T>
+    void prepare_parser(std::basic_string_view<T> text,
         context::hlasm_context* hlasm_ctx,
         diagnostic_op_consumer* diags,
         semantics::range_provider range_prov,

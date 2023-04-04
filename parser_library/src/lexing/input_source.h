@@ -50,6 +50,7 @@ public:
 
     char_substitution append(std::u32string_view str);
     char_substitution append(std::string_view str);
+    char_substitution new_input(std::u32string_view str);
     char_substitution new_input(std::string_view str);
     char_substitution new_input(
         const logical_line<utils::utf8_iterator<std::string_view::iterator, utils::utf8_utf16_counter>>& l);
@@ -59,9 +60,7 @@ public:
     input_source& operator=(input_source&&) = delete;
     input_source(input_source&&) = delete;
 
-    std::u32string getTextu32(const antlr4::Token& start_token, const antlr4::Token& stop_token);
-    std::u32string getTextu32(const antlr4::misc::Interval& interval);
-    std::u32string getTextu32(const std::vector<antlr4::Token*>& interval);
+    std::u32string_view getu32TextuView(const antlr4::Token& start_token, const antlr4::Token& stop_token) const;
 
     std::string getText(const antlr4::misc::Interval& interval) override;
 };

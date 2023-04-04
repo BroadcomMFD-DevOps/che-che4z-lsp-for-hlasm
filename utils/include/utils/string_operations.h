@@ -71,6 +71,36 @@ size_t trim_left(T& b, const T& e, std::initializer_list<std::string_view> to_tr
 std::string& to_upper(std::string& s);
 std::string to_upper_copy(std::string s);
 
+template<typename T>
+constexpr bool is_multiline(std::basic_string_view<T> s)
+{
+    std::basic_string_view<T> nl;
+
+    if constexpr (std::is_same_v<decltype(s), std::string_view>)
+        nl = std::basic_string_view<T>("\r\n");
+    else if constexpr (std::is_same_v<decltype(s), std::wstring_view>)
+        nl = std::basic_string_view<T>(L"\r\n");
+    else if constexpr (std::is_same_v<decltype(s), std::u8string_view>)
+        nl = std::basic_string_view<T>(u8"\r\n");
+    else if constexpr (std::is_same_v<decltype(s), std::u16string_view>)
+        nl = std::basic_string_view<T>(u"\r\n");
+    else if constexpr (std::is_same_v<decltype(s), std::u32string_view>)
+        nl = std::basic_string_view<T>(U"\r\n");
+    else
+    {
+        []<bool flag = false>() { static_assert(flag, "Missing implementation"); }
+        ();
+    }
+
+    auto nl_index = s.find_first_of(nl);
+    if (nl_index == decltype(s)::npos)
+        return false;
+    s.remove_prefix(nl_index);
+    s.remove_prefix(1 + s.starts_with(nl));
+
+    return !s.empty();
+}
+
 } // namespace hlasm_plugin::utils
 
 #endif

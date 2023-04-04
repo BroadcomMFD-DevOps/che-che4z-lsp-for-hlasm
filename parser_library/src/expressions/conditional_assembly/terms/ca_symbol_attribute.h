@@ -67,7 +67,7 @@ private:
         const evaluation_context& eval_ctx) const;
     context::SET_t evaluate_literal(const semantics::literal_si& lit, const evaluation_context& eval_ctx) const;
     semantics::literal_si reparse_substituted_literal(
-        const std::string& text, range var_range, const evaluation_context& eval_ctx) const;
+        std::string_view text, range var_range, const evaluation_context& eval_ctx) const;
 };
 
 } // namespace hlasm_plugin::parser_library::expressions

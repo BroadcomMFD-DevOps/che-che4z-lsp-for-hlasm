@@ -19,6 +19,7 @@
 #include "parsing/error_strategy.h"
 #include "parsing/parser_impl.h"
 #include "semantics/operand_impls.h"
+#include "utils/string_operations.h"
 
 namespace hlasm_plugin::parser_library::processing {
 
@@ -29,17 +30,6 @@ statement_fields_parser::statement_fields_parser(context::hlasm_context* hlasm_c
 {}
 
 statement_fields_parser::~statement_fields_parser() = default;
-
-constexpr bool is_multiline(std::string_view v)
-{
-    auto nl = v.find_first_of("\r\n");
-    if (nl == std::string_view::npos)
-        return false;
-    v.remove_prefix(nl);
-    v.remove_prefix(1 + v.starts_with("\r\n"));
-
-    return !v.empty();
-}
 
 statement_fields_parser::parse_result statement_fields_parser::parse_operand_field(std::string field,
     bool after_substitution,
@@ -56,9 +46,11 @@ statement_fields_parser::parse_result statement_fields_parser::parse_operand_fie
             diag.message = diagnostic_decorate_message(field, diag.message);
         add_diag.add_diagnostic(std::move(diag));
     });
-    const auto& h = is_multiline(field) ? *m_parser_multiline : *m_parser_singleline;
+
+    auto field_sv = std::string_view(field);
+    const auto& h = utils::is_multiline(field_sv) ? *m_parser_multiline : *m_parser_singleline;
     h.prepare_parser(
-        field, m_hlasm_ctx, &add_diag_subst, std::move(field_range), original_range, status, after_substitution);
+        field_sv, m_hlasm_ctx, &add_diag_subst, std::move(field_range), original_range, status, after_substitution);
 
     semantics::op_rem line;
     std::vector<semantics::literal_si> literals;
@@ -84,7 +76,7 @@ statement_fields_parser::parse_result statement_fields_parser::parse_operand_fie
                     auto [to_parse, ranges, r] = join_operands(line.operands);
 
                     const auto& h_second = *m_parser_singleline;
-                    h_second.prepare_parser(to_parse,
+                    h_second.prepare_parser(std::string_view(to_parse),
                         m_hlasm_ctx,
                         &add_diag_subst,
                         semantics::range_provider(r, std::move(ranges), semantics::adjusting_state::MACRO_REPARSE),

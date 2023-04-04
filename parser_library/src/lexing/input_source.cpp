@@ -77,6 +77,13 @@ input_source::char_substitution input_source::append(std::string_view str)
     return append_utf8_to_utf32(_data, str);
 }
 
+input_source::char_substitution input_source::new_input(std::u32string_view str)
+{
+    p = 0;
+    _data = str;
+    return {};
+}
+
 input_source::char_substitution input_source::new_input(std::string_view str)
 {
     p = 0;
@@ -123,56 +130,16 @@ input_source::char_substitution input_source::new_input(
     return subs;
 }
 
-// namespace {
-// std::string getText(const antlr4::misc::Interval& interval)
-//{
-//     size_t start = interval.a;
-//     size_t stop = interval.b;
-//     if (start == INVALID_INDEX || stop == INVALID_INDEX)
-//     {
-//         return "";
-//     }
-//     if (stop >= _tokens.size())
-//     {
-//         stop = _tokens.size() - 1;
-//     }
-//
-//     std::stringstream ss;
-//     for (size_t i = start; i <= stop; i++)
-//     {
-//         Token* t = _tokens[i].get();
-//         if (t->getType() == Token::EOF)
-//         {
-//             break;
-//         }
-//         ss << t->getText();
-//     }
-//     return ss.str();
-// }
-// } // namespace
-
-std::u32string input_source::getTextu32(const antlr4::misc::Interval& interval)
+std::u32string_view input_source::getu32TextuView(
+    const antlr4::Token& start_token, const antlr4::Token& stop_token) const
 {
-    std::u32string n;
-    n.insert(n.begin(), _data[interval.a], _data[interval.b]);
+    auto start_index = start_token.getStartIndex();
+    auto stop_index = stop_token.getStopIndex();
 
-    return n;
-}
-
-std::u32string input_source::getTextu32(const antlr4::Token& start_token, const antlr4::Token& stop_token)
-{
-    std::u32string n;
-    n.insert(0, _data, start_token.getStartIndex(), stop_token.getStopIndex() - start_token.getStartIndex() + 1);
-
-    return n;
-}
-
-std::u32string input_source::getTextu32(const std::vector<antlr4::Token*>& interval)
-{
-    if (interval.empty())
+    if (stop_index < start_index)
         return {};
 
-    return getTextu32(*interval.front(), *interval.back());
+    return std::u32string_view(_data).substr(start_index, stop_index - start_index + 1);
 }
 
 std::string input_source::getText(const antlr4::misc::Interval& interval)

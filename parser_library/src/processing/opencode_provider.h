@@ -195,15 +195,8 @@ private:
     extract_next_logical_line_result extract_next_logical_line_from_copy_buffer();
     extract_next_logical_line_result extract_next_logical_line();
 
-    const parsing::parser_holder& prepare_operand_parser(const std::string& text,
-        context::hlasm_context& hlasm_ctx,
-        diagnostic_op_consumer* diag_collector,
-        semantics::range_provider range_prov,
-        range text_range,
-        const processing_status& proc_status,
-        bool unlimited_line);
-
-    const parsing::parser_holder& prepare_operand_parser(std::u32string_view text,
+    template<typename TEXT_VIEW>
+    const parsing::parser_holder& prepare_operand_parser(TEXT_VIEW text,
         context::hlasm_context& hlasm_ctx,
         diagnostic_op_consumer* diag_collector,
         semantics::range_provider range_prov,
@@ -214,10 +207,10 @@ private:
     std::shared_ptr<const context::hlasm_statement> process_lookahead(const statement_processor& proc,
         semantics::collector& collector,
 
-        std::pair<std::optional<std::u32string>, range> operands);
+        std::pair<std::optional<std::u32string_view>, range> operands);
     std::shared_ptr<const context::hlasm_statement> process_ordinary(const statement_processor& proc,
         semantics::collector& collector,
-        std::pair<std::optional<std::u32string>, range> operands,
+        std::pair<std::optional<std::u32string_view>, range> operands,
         diagnostic_op_consumer* diags,
         std::optional<context::id_index> resolved_instr);
 

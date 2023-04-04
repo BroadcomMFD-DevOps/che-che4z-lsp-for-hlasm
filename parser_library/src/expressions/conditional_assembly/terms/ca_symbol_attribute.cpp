@@ -441,7 +441,7 @@ context::SET_t ca_symbol_attribute::evaluate_substituted(context::id_index var_n
 }
 
 semantics::literal_si ca_symbol_attribute::reparse_substituted_literal(
-    const std::string& text, range var_range, const evaluation_context& eval_ctx) const
+    std::string_view text, range var_range, const evaluation_context& eval_ctx) const
 {
     // error production is suppressed when evaluating D', T' and O' attributes
     using attr_kind = context::data_attr_kind;

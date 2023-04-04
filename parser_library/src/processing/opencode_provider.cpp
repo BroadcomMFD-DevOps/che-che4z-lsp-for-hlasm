@@ -28,6 +28,7 @@
 #include "processing/processing_manager.h"
 #include "semantics/collector.h"
 #include "semantics/range_provider.h"
+#include "utils/string_operations.h"
 #include "utils/text_matchers.h"
 #include "utils/unicode_text.h"
 
@@ -272,7 +273,7 @@ void opencode_provider::generate_continuation_error_messages(diagnostic_op_consu
 
 std::shared_ptr<const context::hlasm_statement> opencode_provider::process_lookahead(const statement_processor& proc,
     semantics::collector& collector,
-    std::pair<std::optional<std::u32string>, range> operands)
+    std::pair<std::optional<std::u32string_view>, range> operands)
 {
     const auto& current_instr = collector.current_instruction();
 
@@ -310,31 +311,9 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_looka
     return result;
 }
 
-constexpr bool is_multiline(std::string_view v)
-{
-    auto nl = v.find_first_of("\r\n");
-    if (nl == std::string_view::npos)
-        return false;
-    v.remove_prefix(nl);
-    v.remove_prefix(1 + v.starts_with("\r\n"));
-
-    return !v.empty();
-}
-
-constexpr bool is_multiline(std::u32string_view v)
-{
-    // auto nl = v.find_first_of("\r\n");
-    // if (nl == std::string_view::npos)
-    //     return false;
-    // v.remove_prefix(nl);
-    // v.remove_prefix(1 + v.starts_with("\r\n"));
-
-    return !v.empty();
-}
-
 std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordinary(const statement_processor& proc,
     semantics::collector& collector,
-    std::pair<std::optional<std::u32string>, range> operands,
+    std::pair<std::optional<std::u32string_view>, range> operands,
     diagnostic_op_consumer* diags,
     std::optional<context::id_index> resolved_instr)
 {
@@ -344,8 +323,11 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordin
     const auto proc_status_o = proc.get_processing_status(resolved_instr, current_instr.field_range);
     if (!proc_status_o.has_value()) [[unlikely]]
     {
-        m_restart_process_ordinary.emplace(
-            process_ordinary_restart_data { proc, collector, std::move(operands), diags, std::move(resolved_instr) });
+        m_restart_process_ordinary.emplace(process_ordinary_restart_data { proc,
+            collector,
+            std::make_pair(std::u32string(*operands.first), operands.second),
+            diags,
+            std::move(resolved_instr) });
         return nullptr;
     }
     const auto& proc_status = proc_status_o.value();
@@ -425,7 +407,7 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordin
 
                         semantics::range_provider tmp_provider(r, ranges, semantics::adjusting_state::MACRO_REPARSE);
 
-                        const auto& h_second = prepare_operand_parser(to_parse,
+                        const auto& h_second = prepare_operand_parser(std::string_view(to_parse),
                             *m_ctx->hlasm_ctx,
                             format.form == processing_form::UNKNOWN ? &diags_filter : diags,
                             std::move(tmp_provider),
@@ -678,17 +660,7 @@ context::shared_stmt_ptr opencode_provider::get_next(const statement_processor& 
     if (!lookahead)
         ph.parser->set_diagnoser(diag_target);
 
-    auto operand_intervals = lookahead ? ph.look_lab_instr() : ph.lab_instr();
-
-    std::pair<std::optional<std::u32string>, range> operands;
-    operands.second = operand_intervals.second;
-    if (operand_intervals.first)
-    {
-        operands.first =
-            ph.input->getTextu32(*operand_intervals.first.value().first, *operand_intervals.first.value().second);
-        // operands.first = ph.input->getTextu32(
-        //     ph.stream->getTokens(operand_intervals.first.value().a, operand_intervals.first.value().b));
-    }
+    auto operands = lookahead ? ph.look_lab_instr() : ph.lab_instr();
 
     ph.parser->get_collector().resolve_first_part();
 
@@ -713,8 +685,22 @@ context::shared_stmt_ptr opencode_provider::get_next(const statement_processor& 
     m_ctx->hlasm_ctx->set_source_indices(
         m_current_logical_line_source.first_index, m_current_logical_line_source.last_index);
 
+    static constexpr auto operands_retrieval =
+        [](std::pair<std::optional<std::pair<antlr4::Token*, antlr4::Token*>>, range>& operands,
+            const parsing::parser_holder& ph) -> std::pair<std::optional<std::u32string_view>, range> {
+        auto& [op_tokens, op_range] = operands;
+
+        if (!op_tokens.has_value())
+            return std::make_pair(std::optional<std::u32string_view> {}, std::move(op_range));
+
+        auto& [token_b, token_e] = *op_tokens;
+        assert(token_b && token_e);
+
+        return std::make_pair(ph.input->getu32TextuView(*token_b, *token_e), std::move(op_range));
+    };
+
     if (lookahead)
-        return process_lookahead(proc, collector, std::move(operands));
+        return process_lookahead(proc, collector, operands_retrieval(operands, ph));
 
     if (proc.kind == processing_kind::ORDINARY
         && try_trigger_attribute_lookahead(collector.current_instruction(),
@@ -725,7 +711,8 @@ context::shared_stmt_ptr opencode_provider::get_next(const statement_processor& 
     const auto& current_instr = collector.current_instruction();
     m_ctx->hlasm_ctx->set_source_position(current_instr.field_range.start);
 
-    return process_ordinary(proc, collector, std::move(operands), diag_target, proc.resolve_instruction(current_instr));
+    return process_ordinary(
+        proc, collector, operands_retrieval(operands, ph), diag_target, proc.resolve_instruction(current_instr));
 }
 
 bool opencode_provider::finished() const
@@ -942,34 +929,36 @@ extract_next_logical_line_result opencode_provider::extract_next_logical_line()
     return extract_next_logical_line_result::normal;
 }
 
-const parsing::parser_holder& opencode_provider::prepare_operand_parser(const std::string& text,
+template<typename TEXT_VIEW>
+const parsing::parser_holder& opencode_provider::prepare_operand_parser(TEXT_VIEW text,
     context::hlasm_context& hlasm_ctx,
-    diagnostic_op_consumer* diags,
+    diagnostic_op_consumer* diag_collector,
     semantics::range_provider range_prov,
     range text_range,
     const processing_status& proc_status,
     bool unlimited_line)
 {
-    auto& h = is_multiline(text) ? *m_multiline.m_operand_parser : *m_singleline.m_operand_parser;
+    auto& h = utils::is_multiline(text) ? *m_multiline.m_operand_parser : *m_singleline.m_operand_parser;
 
-    h.prepare_parser(text, &hlasm_ctx, diags, std::move(range_prov), text_range, proc_status, unlimited_line);
+    h.prepare_parser(text, &hlasm_ctx, diag_collector, std::move(range_prov), text_range, proc_status, unlimited_line);
 
     return h;
 }
 
-const parsing::parser_holder& opencode_provider::prepare_operand_parser(std::u32string_view text,
+template const parsing::parser_holder& opencode_provider::prepare_operand_parser(std::string_view text,
     context::hlasm_context& hlasm_ctx,
-    diagnostic_op_consumer* diags,
+    diagnostic_op_consumer* diag_collector,
     semantics::range_provider range_prov,
     range text_range,
     const processing_status& proc_status,
-    bool unlimited_line)
-{
-    auto& h = is_multiline(text) ? *m_multiline.m_operand_parser : *m_singleline.m_operand_parser;
+    bool unlimited_line);
 
-    h.prepare_parser(text, &hlasm_ctx, diags, std::move(range_prov), text_range, proc_status, unlimited_line);
-
-    return h;
-}
+template const parsing::parser_holder& opencode_provider::prepare_operand_parser(std::u32string_view text,
+    context::hlasm_context& hlasm_ctx,
+    diagnostic_op_consumer* diag_collector,
+    semantics::range_provider range_prov,
+    range text_range,
+    const processing_status& proc_status,
+    bool unlimited_line);
 
 } // namespace hlasm_plugin::parser_library::processing

@@ -412,7 +412,8 @@ context::id_index parser_impl::add_id(std::string_view s) const { return hlasm_c
 
 parser_holder::~parser_holder() = default;
 
-void parser_holder::prepare_parser(const std::string& text,
+template<typename T>
+void parser_holder::prepare_parser(std::basic_string_view<T> text,
     context::hlasm_context* hlasm_ctx,
     diagnostic_op_consumer* diags,
     semantics::range_provider range_prov,
@@ -434,5 +435,21 @@ void parser_holder::prepare_parser(const std::string& text,
 
     parser->get_collector().prepare_for_next_statement();
 }
+
+template void parser_holder::prepare_parser(std::string_view text,
+    context::hlasm_context* hlasm_ctx,
+    diagnostic_op_consumer* diags,
+    semantics::range_provider range_prov,
+    range text_range,
+    const processing::processing_status& proc_status,
+    bool unlimited_line) const;
+
+template void parser_holder::prepare_parser(std::u32string_view text,
+    context::hlasm_context* hlasm_ctx,
+    diagnostic_op_consumer* diags,
+    semantics::range_provider range_prov,
+    range text_range,
+    const processing::processing_status& proc_status,
+    bool unlimited_line) const;
 
 } // namespace hlasm_plugin::parser_library::parsing
