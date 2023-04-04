@@ -122,6 +122,7 @@ public:
 
     enum class work_item_type
     {
+        initialization,
         workspace_open,
         settings_change,
         file_change,
@@ -146,20 +147,7 @@ public:
         bool is_valid() const { return !validator || validator(); }
         bool remove_pending_request(unsigned long long rid)
         {
-            auto it = std::find_if(
-                pending_requests.begin(), pending_requests.end(), [rid](const auto& e) { return e.first == rid; });
-
-            if (it == pending_requests.end())
-                return false;
-
-            pending_requests.erase(it);
-            return true;
-        }
-        void cancel_pending_requests()
-        {
-            for (const auto& [_, h] : pending_requests)
-                h();
-            pending_requests.clear();
+            return std::erase_if(pending_requests, [rid](const auto& e) { return e.first == rid; }) > 0;
         }
     };
     std::deque<work_item> m_work_queue;
@@ -253,7 +241,9 @@ public:
                 continue;
 
             e.workspace_removed = true;
-            e.cancel_pending_requests();
+            for (const auto& [_, h] : e.pending_requests)
+                h();
+            e.pending_requests.clear();
         }
         if (m_active_task.ows == ows)
             m_active_task = {};
@@ -348,14 +338,12 @@ public:
         {
             if (!m_work_queue.empty())
             {
-                auto& item = m_work_queue.front();
-                if (!item.pending_requests.empty() && item.is_valid())
+                const auto& item = m_work_queue.front();
+                if (!item.pending_requests.empty())
                     return false;
                 if (item.workspace_removed || !item.is_valid() || parsing_done || !parsing_must_be_done(item))
                 {
                     utils::scope_exit pop_front([this]() noexcept { m_work_queue.pop_front(); });
-
-                    item.cancel_pending_requests();
 
                     if (item.request_type == work_item_type::file_change)
                     {
