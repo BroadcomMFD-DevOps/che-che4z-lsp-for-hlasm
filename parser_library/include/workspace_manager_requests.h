@@ -22,6 +22,9 @@ namespace hlasm_plugin::parser_library {
 
 class workspace_manager_requests
 {
+protected:
+    ~workspace_manager_requests() = default;
+
 public:
     virtual void request_workspace_configuration(
         const char* url, workspace_manager_response<sequence<char>> json_text) = 0;

@@ -180,7 +180,7 @@ public:
         ows.ws.set_message_consumer(message_consumer_);
 
         auto& new_workspace = m_work_queue.emplace_back(work_item {
-            ++unique_id_sequence,
+            next_unique_id(),
             &ows,
             [this, &ws = ows.ws](bool workspace_removed) {
                 if (workspace_removed)
@@ -201,7 +201,7 @@ public:
         if (!requests_)
             return false;
 
-        auto configuration_request = ++unique_id_sequence;
+        auto configuration_request = next_unique_id();
 
         struct open_workspace_t
         {
@@ -389,7 +389,7 @@ public:
     {
         auto& ows = ws_path_match(document_loc.get_uri());
         m_work_queue.emplace_back(work_item {
-            ++unique_id_sequence,
+            next_unique_id(),
             &ows,
             [this, document_loc, version, text = std::move(text), &ws = ows.ws](bool workspace_removed) mutable {
                 auto file_changed = file_manager_.did_open_file(document_loc, version, std::move(text));
@@ -427,7 +427,7 @@ public:
             });
 
         m_work_queue.emplace_back(work_item {
-            ++unique_id_sequence,
+            next_unique_id(),
             &ows,
             [this, document_loc, version, captured_changes = std::move(captured_changes), &ws = ows.ws](
                 bool workspace_removed) {
@@ -454,7 +454,7 @@ public:
         auto& ows = ws_path_match(document_loc.get_uri());
 
         m_work_queue.emplace_back(work_item {
-            ++unique_id_sequence,
+            next_unique_id(),
             &ows,
             [this, document_loc, &ws = ows.ws](bool workspace_removed) {
                 file_manager_.did_close_file(document_loc);
@@ -474,7 +474,7 @@ public:
 
         for (auto& [ows, path_list] : paths_for_ws)
             m_work_queue.emplace_back(work_item {
-                ++unique_id_sequence,
+                next_unique_id(),
                 ows,
                 [path_list = std::move(path_list), &ws = ows->ws](bool workspace_removed) {
                     if (!workspace_removed)
@@ -537,7 +537,7 @@ public:
         auto& ows = ws_path_match(document_uri);
 
         m_work_queue.emplace_back(work_item {
-            ++unique_id_sequence,
+            next_unique_id(),
             &ows,
             response_handle(r,
                 [&ws = ows.ws, doc_loc = resource_location(document_uri), pos](
@@ -554,7 +554,7 @@ public:
         auto& ows = ws_path_match(document_uri);
 
         m_work_queue.emplace_back(work_item {
-            ++unique_id_sequence,
+            next_unique_id(),
             &ows,
             response_handle(r,
                 [&ws = ows.ws, doc_loc = resource_location(document_uri), pos](
@@ -572,7 +572,7 @@ public:
         auto& ows = ws_path_match(document_uri);
 
         m_work_queue.emplace_back(work_item {
-            ++unique_id_sequence,
+            next_unique_id(),
             &ows,
             response_handle(r,
                 [&ws = ows.ws, doc_loc = resource_location(document_uri), pos](
@@ -595,7 +595,7 @@ public:
         auto& ows = ws_path_match(document_uri);
 
         m_work_queue.emplace_back(work_item {
-            ++unique_id_sequence,
+            next_unique_id(),
             &ows,
             response_handle(r,
                 [&ws = ows.ws, doc_loc = resource_location(document_uri), pos, trigger_char, trigger_kind](
@@ -614,7 +614,7 @@ public:
         auto& ows = ws_path_match(document_uri);
 
         m_work_queue.emplace_back(work_item {
-            ++unique_id_sequence,
+            next_unique_id(),
             &ows,
             response_handle(r,
                 [&ws = ows.ws, doc_loc = resource_location(document_uri), limit](
@@ -642,7 +642,7 @@ public:
         for (auto& [_, ows] : workspaces_)
         {
             auto& refersh_settings = m_work_queue.emplace_back(work_item {
-                ++unique_id_sequence,
+                next_unique_id(),
                 &ows,
                 [this, &ws = ows.ws](bool workspace_removed) {
                     if (workspace_removed)
@@ -663,7 +663,7 @@ public:
         auto& ows = ws_path_match(document_uri);
 
         m_work_queue.emplace_back(work_item {
-            ++unique_id_sequence,
+            next_unique_id(),
             &ows,
             response_handle(r,
                 [&ws = ows.ws, doc_loc = resource_location(document_uri)](
@@ -748,6 +748,8 @@ private:
         auto [f, s] = std::mismatch(first.begin(), first.end(), second.begin(), second.end());
         return static_cast<size_t>(std::min(f - first.begin(), s - second.begin()));
     }
+
+    unsigned long long next_unique_id() { return ++unique_id_sequence; }
 
     workspaces::file_manager_impl file_manager_;
 

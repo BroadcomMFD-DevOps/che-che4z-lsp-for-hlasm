@@ -195,7 +195,7 @@ void server::register_methods()
             telemetry_log_level::LOG_EVENT });
     methods_.try_emplace("initialized",
         method { [this](const nlohmann::json&) {
-                    for (auto& f : features_)
+                    for (const auto& f : features_)
                         f->initialized();
                 },
             telemetry_log_level::NO_TELEMETRY });
