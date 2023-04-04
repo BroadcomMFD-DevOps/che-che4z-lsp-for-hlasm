@@ -130,7 +130,7 @@ input_source::char_substitution input_source::new_input(
     return subs;
 }
 
-std::u32string_view input_source::getu32TextuView(
+std::u32string_view input_source::getu32TextView(
     const antlr4::Token& start_token, const antlr4::Token& stop_token) const
 {
     auto start_index = start_token.getStartIndex();

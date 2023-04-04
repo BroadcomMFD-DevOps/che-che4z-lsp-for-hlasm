@@ -661,7 +661,6 @@ context::shared_stmt_ptr opencode_provider::get_next(const statement_processor& 
         ph.parser->set_diagnoser(diag_target);
 
     auto operands = lookahead ? ph.look_lab_instr() : ph.lab_instr();
-
     ph.parser->get_collector().resolve_first_part();
 
     if (!collector.has_instruction())
@@ -696,7 +695,7 @@ context::shared_stmt_ptr opencode_provider::get_next(const statement_processor& 
         auto& [token_b, token_e] = *op_tokens;
         assert(token_b && token_e);
 
-        return std::make_pair(ph.input->getu32TextuView(*token_b, *token_e), std::move(op_range));
+        return std::make_pair(ph.input->getu32TextView(*token_b, *token_e), std::move(op_range));
     };
 
     if (lookahead)

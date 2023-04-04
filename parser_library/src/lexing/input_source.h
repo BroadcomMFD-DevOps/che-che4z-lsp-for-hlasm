@@ -60,7 +60,7 @@ public:
     input_source& operator=(input_source&&) = delete;
     input_source(input_source&&) = delete;
 
-    std::u32string_view getu32TextuView(const antlr4::Token& start_token, const antlr4::Token& stop_token) const;
+    std::u32string_view getu32TextView(const antlr4::Token& start_token, const antlr4::Token& stop_token) const;
 
     std::string getText(const antlr4::misc::Interval& interval) override;
 };

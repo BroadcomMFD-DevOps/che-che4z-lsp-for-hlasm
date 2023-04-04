@@ -39,8 +39,8 @@ look_lab_instr  returns [std::optional<std::pair<antlr4::Token *, antlr4::Token 
 			collector.set_label_field(id,std::move(ord_symbol),nullptr,r);
 		}
 		
-		$op_range = provider.get_range($operand_field_rest.ctx);
 		$op_tokens = std::make_pair($operand_field_rest.ctx->getStart(), $operand_field_rest.ctx->getStop());
+		$op_range = provider.get_range($operand_field_rest.ctx);
 	}
 	| bad_look EOF
 	{
