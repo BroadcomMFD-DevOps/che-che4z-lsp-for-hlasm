@@ -563,7 +563,7 @@ utils::value_task<parse_file_result> workspace::parse_file(const resource_locati
         std::set<resource_location> files_to_close;
         ws_lib.append_files_to_close(files_to_close);
 
-        auto result = self.parse_successful(comp, std::move(ws_lib));
+        auto parse_results = self.parse_successful(comp, std::move(ws_lib));
 
         self.filter_and_close_dependencies(std::move(files_to_close));
 
@@ -576,7 +576,7 @@ utils::value_task<parse_file_result> workspace::parse_file(const resource_locati
 
         co_return parse_file_result {
             .filename = url,
-            .parse_results = std::move(result),
+            .parse_results = std::move(parse_results),
             .metrics_to_report = collect_perf_metrics ? std::optional<performance_metrics>(comp.m_last_results->metrics)
                                                       : std::optional<performance_metrics>(),
             .errors = errors,
@@ -654,7 +654,6 @@ workspace_file_info workspace::parse_successful(processor_file_compoments& comp,
 
     comp.m_dependencies = std::move(libs.next_dependencies);
     comp.m_member_map = std::move(libs.next_member_map);
-
 
     return ws_file_info;
 }

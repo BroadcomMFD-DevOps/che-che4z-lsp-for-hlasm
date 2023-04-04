@@ -56,13 +56,11 @@ void server::consume_parsing_metadata(
     if (!telemetry_provider_)
         return;
 
-    telemetry_info info {
+    telemetry_provider_->send_telemetry(telemetry_info {
         "parsing",
         duration,
         telemetry_metrics_info { metadata },
-    };
-
-    telemetry_provider_->send_telemetry(info);
+    });
 }
 
 void server::message_received(const nlohmann::json& message)
