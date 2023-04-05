@@ -325,7 +325,7 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordin
     {
         m_restart_process_ordinary.emplace(process_ordinary_restart_data { proc,
             collector,
-            std::make_pair(std::u32string(*operands.first), operands.second),
+            std::make_pair(std::u32string(operands.first->data(), operands.first->size()), operands.second),
             diags,
             std::move(resolved_instr) });
         return nullptr;
@@ -614,22 +614,6 @@ utils::task opencode_provider::convert_ainsert_buffer_to_copybook()
         virtual_copy_name);
 }
 
-namespace {
-constexpr auto operands_retrieval =
-    [](std::pair<std::optional<std::pair<antlr4::Token*, antlr4::Token*>>, range>& operands,
-        const parsing::parser_holder& ph) -> std::pair<std::optional<std::u32string_view>, range> {
-    auto& [op_tokens, op_range] = operands;
-
-    if (!op_tokens.has_value())
-        return std::make_pair(std::optional<std::u32string_view> {}, std::move(op_range));
-
-    auto& [token_b, token_e] = *op_tokens;
-    assert(token_b && token_e);
-
-    return std::make_pair(ph.input->getu32TextView(*token_b, *token_e), std::move(op_range));
-};
-}
-
 context::shared_stmt_ptr opencode_provider::get_next(const statement_processor& proc)
 {
     if (m_restart_process_ordinary) [[unlikely]]
@@ -699,6 +683,20 @@ context::shared_stmt_ptr opencode_provider::get_next(const statement_processor& 
 
     m_ctx->hlasm_ctx->set_source_indices(
         m_current_logical_line_source.first_index, m_current_logical_line_source.last_index);
+
+    constexpr auto operands_retrieval =
+        [](std::pair<std::optional<std::pair<antlr4::Token*, antlr4::Token*>>, range>& operands,
+            const parsing::parser_holder& ph) -> std::pair<std::optional<std::u32string_view>, range> {
+        auto& [op_tokens, op_range] = operands;
+
+        if (!op_tokens.has_value())
+            return std::make_pair(std::optional<std::u32string_view> {}, std::move(op_range));
+
+        auto& [token_b, token_e] = *op_tokens;
+        assert(token_b && token_e);
+
+        return std::make_pair(ph.input->getu32TextView(*token_b, *token_e), std::move(op_range));
+    };
 
     if (lookahead)
         return process_lookahead(proc, collector, operands_retrieval(operands, ph));
