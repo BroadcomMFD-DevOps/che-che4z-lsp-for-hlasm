@@ -325,7 +325,7 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordin
     {
         m_restart_process_ordinary.emplace(process_ordinary_restart_data { proc,
             collector,
-            std::make_pair(std::u32string(operands.first->data(), operands.first->size()), operands.second),
+            std::make_pair(std::u32string(operands.first->begin(), operands.first->end()), operands.second),
             diags,
             std::move(resolved_instr) });
         return nullptr;
