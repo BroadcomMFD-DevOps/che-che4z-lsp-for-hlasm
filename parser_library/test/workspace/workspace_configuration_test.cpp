@@ -84,7 +84,8 @@ TEST(workspace_configuration, refresh_needed)
 
     EXPECT_CALL(fm, get_file_content(_)).WillRepeatedly(Return(std::nullopt));
 
-    workspace_configuration cfg(fm, resource_location("test://workspace"), global_settings);
+    processor_group proc_group("pg_implicit", {}, {});
+    workspace_configuration cfg(fm, resource_location("test://workspace"), global_settings, proc_group);
 
     EXPECT_TRUE(cfg.refresh_libraries({ resource_location("test://workspace/.hlasmplugin") }));
     EXPECT_TRUE(cfg.refresh_libraries({ resource_location("test://workspace/.hlasmplugin/proc_grps.json") }));

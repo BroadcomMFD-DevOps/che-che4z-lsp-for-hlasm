@@ -178,6 +178,7 @@ class workspace_configuration
     file_manager& m_file_manager;
     utils::resource::resource_location m_location;
     const shared_json& m_global_settings;
+    const processor_group& m_implicit_proc_group;
 
     utils::resource::resource_location m_proc_grps_loc;
     utils::resource::resource_location m_pgm_conf_loc;
@@ -261,8 +262,10 @@ class workspace_configuration
         std::vector<diagnostic_s>& diags);
 
 public:
-    workspace_configuration(
-        file_manager& fm, utils::resource::resource_location location, const shared_json& global_settings);
+    workspace_configuration(file_manager& fm,
+        utils::resource::resource_location location,
+        const shared_json& global_settings,
+        const processor_group& implicit_proc_group);
 
     bool is_configuration_file(const utils::resource::resource_location& file) const;
     parse_config_file_result parse_configuration_file(

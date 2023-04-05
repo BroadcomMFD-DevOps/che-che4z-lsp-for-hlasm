@@ -268,8 +268,7 @@ TEST(workspace, pgm_conf_malformed)
     ws.open();
 
     ws.collect_diags();
-    ASSERT_EQ(ws.diags().size(), 1U);
-    EXPECT_EQ(ws.diags()[0].code, "W0003");
+    EXPECT_TRUE(matches_message_codes(ws.diags(), { "W0003" }));
 }
 
 TEST(workspace, proc_grps_malformed)
@@ -285,8 +284,7 @@ TEST(workspace, proc_grps_malformed)
     ws.open();
 
     ws.collect_diags();
-    ASSERT_EQ(ws.diags().size(), 1U);
-    EXPECT_EQ(ws.diags()[0].code, "W0002");
+    EXPECT_TRUE(matches_message_codes(ws.diags(), { "W0002" }));
 }
 
 TEST(workspace, pgm_conf_missing)
@@ -300,7 +298,7 @@ TEST(workspace, pgm_conf_missing)
     ws.open();
 
     ws.collect_diags();
-    ASSERT_EQ(ws.diags().size(), 0U);
+    EXPECT_EQ(ws.diags().size(), 0U);
 }
 
 TEST(workspace, proc_grps_missing)
@@ -314,8 +312,53 @@ TEST(workspace, proc_grps_missing)
     ws.open();
 
     ws.collect_diags();
-    ASSERT_EQ(ws.diags().size(), 0U);
+    EXPECT_EQ(ws.diags().size(), 0U);
 }
+
+TEST(workspace, pgm_conf_noproc_proc_group)
+{
+    file_manager_impl fm;
+    fm.did_open_file(pgm_conf_name, 0, R"({
+  "pgms": [
+    {
+      "program": "temp.hlasm",
+      "pgroup": "*NOPROC*"
+    }
+  ]
+})");
+    fm.did_open_file(proc_grps_name, 0, empty_proc_grps);
+
+    lib_config config;
+    shared_json global_settings = make_empty_shared_json();
+    workspace ws(fm, config, global_settings);
+    ws.open();
+
+    ws.collect_diags();
+    EXPECT_EQ(ws.diags().size(), 0U);
+}
+
+TEST(workspace, pgm_conf_unknown_proc_group)
+{
+    file_manager_impl fm;
+    fm.did_open_file(pgm_conf_name, 0, R"({
+  "pgms": [
+    {
+      "program": "temp.hlasm",
+      "pgroup": "UNKNOWN"
+    }
+  ]
+})");
+    fm.did_open_file(proc_grps_name, 0, empty_proc_grps);
+
+    lib_config config;
+    shared_json global_settings = make_empty_shared_json();
+    workspace ws(fm, config, global_settings);
+    ws.open();
+
+    ws.collect_diags();
+    EXPECT_TRUE(matches_message_codes(ws.diags(), { "W0004" }));
+}
+
 TEST(workspace, asm_options_invalid)
 {
     std::string proc_file = R"({
@@ -340,8 +383,7 @@ TEST(workspace, asm_options_invalid)
     ws.open();
 
     ws.collect_diags();
-    ASSERT_EQ(ws.diags().size(), 1U);
-    EXPECT_EQ(ws.diags()[0].code, "W0002");
+    EXPECT_TRUE(matches_message_codes(ws.diags(), { "W0002" }));
 }
 
 class file_manager_asm_test : public file_manager_proc_grps_test
@@ -373,13 +415,9 @@ TEST(workspace, asm_options_goff_xobject_redefinition)
     lib_config config;
     shared_json global_settings = make_empty_shared_json();
     workspace ws(ws_loc, "test_proc_grps_name", file_manager, config, global_settings);
-
     ws.open();
-
     ws.collect_diags();
-
-    ASSERT_NE(ws.diags().size(), 0);
-    EXPECT_EQ(ws.diags()[0].code, "W0002");
+    EXPECT_TRUE(contains_message_codes(ws.diags(), { "W0002" }));
 }
 
 TEST(workspace, proc_grps_with_substitutions)

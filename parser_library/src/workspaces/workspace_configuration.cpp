@@ -215,11 +215,14 @@ const std::regex json_settings_replacer::config_reference(R"(\$\{([^}]+)\})");
 
 } // namespace
 
-workspace_configuration::workspace_configuration(
-    file_manager& fm, utils::resource::resource_location location, const shared_json& global_settings)
+workspace_configuration::workspace_configuration(file_manager& fm,
+    utils::resource::resource_location location,
+    const shared_json& global_settings,
+    const processor_group& implicit_proc_group)
     : m_file_manager(fm)
     , m_location(std::move(location))
     , m_global_settings(global_settings)
+    , m_implicit_proc_group(implicit_proc_group)
 {
     auto hlasm_folder = utils::resource::resource_location::join(m_location, HLASM_PLUGIN_FOLDER);
     m_proc_grps_loc = utils::resource::resource_location::join(hlasm_folder, FILENAME_PROC_GRPS);
@@ -310,6 +313,8 @@ void workspace_configuration::process_processor_group_and_cleanup_libraries(
 
     for (const auto& pg : pgs)
         process_processor_group(pg, fallback_macro_extensions, alternative_root, diags);
+
+    m_proc_grps.try_emplace(std::make_pair("*NOPROC*", utils::resource::resource_location()), m_implicit_proc_group);
 
     std::erase_if(m_libraries, [](const auto& kv) { return !kv.second.second; }); // sweep
 }
