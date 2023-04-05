@@ -658,11 +658,6 @@ workspace_file_info workspace::parse_successful(processor_file_compoments& comp,
     return ws_file_info;
 }
 
-bool workspace::refresh_libraries(const std::vector<resource_location>& file_locations)
-{
-    return m_configuration.refresh_libraries(file_locations);
-}
-
 void workspace::did_open_file(const resource_location& file_location, open_file_result file_content_status)
 {
     if (!m_configuration.is_configuration_file(file_location))
@@ -728,7 +723,7 @@ void workspace::did_change_file(const resource_location& file_location, const do
 
 void workspace::did_change_watched_files(const std::vector<resource_location>& file_locations)
 {
-    bool refreshed = refresh_libraries(file_locations);
+    bool refreshed = m_configuration.refresh_libraries(file_locations);
     for (const auto& file_location : file_locations)
     {
         auto from_fm = file_manager_.update_file(file_location);

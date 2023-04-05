@@ -90,7 +90,6 @@ public:
 
     void mark_file_for_parsing(const resource_location& file_location, open_file_result file_content_status);
     void mark_all_opened_files();
-    bool refresh_libraries(const std::vector<resource_location>& file_locations);
     void did_open_file(const resource_location& file_location,
         open_file_result file_content_status = open_file_result::changed_content);
     void did_change_file(const resource_location& file_location, const document_change* changes, size_t ch_size);
