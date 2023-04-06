@@ -134,7 +134,7 @@ public:
 
         opened_workspace* ows;
 
-        std::function<void(bool)> action; // true on workspace removal
+        std::variant<std::function<void()>, std::function<void(bool)>, utils::task> action;
         std::function<bool()> validator; // maybe empty
 
         work_item_type request_type;
@@ -161,6 +161,36 @@ public:
                 h();
             pending_requests.clear();
         }
+
+        bool is_task() const { return action.index() == 2; }
+
+        bool perform_action() const
+        {
+            switch (action.index())
+            {
+                case 0:
+                    if (!workspace_removed)
+                        std::get<0>(action)();
+                    return true;
+
+                case 1:
+                    std::get<1>(action)(workspace_removed);
+                    return true;
+
+                case 2: {
+                    if (workspace_removed)
+                        return true;
+
+                    auto& task = std::get<2>(action);
+                    if (!task.done())
+                        task.resume(nullptr);
+
+                    return task.done();
+                }
+                default:
+                    return true;
+            }
+        }
     };
     std::deque<work_item> m_work_queue;
 
@@ -182,9 +212,7 @@ public:
         auto& new_workspace = m_work_queue.emplace_back(work_item {
             next_unique_id(),
             &ows,
-            [this, &ws = ows.ws](bool workspace_removed) {
-                if (workspace_removed)
-                    return;
+            [this, &ws = ows.ws]() {
                 ws.open();
 
                 notify_diagnostics_consumers();
@@ -349,11 +377,17 @@ public:
                 auto& item = m_work_queue.front();
                 if (!item.pending_requests.empty() && item.is_valid())
                     return false;
-                if (item.workspace_removed || !item.is_valid() || parsing_done || !parsing_must_be_done(item))
+                if (item.is_task() || item.workspace_removed || !item.is_valid() || parsing_done
+                    || !parsing_must_be_done(item))
                 {
-                    utils::scope_exit pop_front([this]() noexcept { m_work_queue.pop_front(); });
-
-                    item.cancel_pending_requests();
+                    bool done = true;
+                    utils::scope_exit pop_front([this, &done]() noexcept {
+                        if (done)
+                        {
+                            m_work_queue.front().cancel_pending_requests();
+                            m_work_queue.pop_front();
+                        }
+                    });
 
                     if (item.request_type == work_item_type::file_change)
                     {
@@ -361,7 +395,10 @@ public:
                         m_active_task = {};
                     }
 
-                    item.action(item.workspace_removed);
+                    done = item.perform_action();
+
+                    if (!done)
+                        return false;
 
                     continue;
                 }
@@ -474,10 +511,7 @@ public:
             m_work_queue.emplace_back(work_item {
                 next_unique_id(),
                 ows,
-                [path_list = std::move(path_list), &ws = ows->ws](bool workspace_removed) {
-                    if (!workspace_removed)
-                        ws.did_change_watched_files(path_list);
-                },
+                [path_list = std::move(path_list), &ws = ows->ws]() { ws.did_change_watched_files(path_list); },
                 {},
                 work_item_type::file_change,
             });
@@ -642,9 +676,7 @@ public:
             auto& refersh_settings = m_work_queue.emplace_back(work_item {
                 next_unique_id(),
                 &ows,
-                [this, &ws = ows.ws](bool workspace_removed) {
-                    if (workspace_removed)
-                        return;
+                [this, &ws = ows.ws]() {
                     if (ws.settings_updated())
                         notify_diagnostics_consumers();
                 },
