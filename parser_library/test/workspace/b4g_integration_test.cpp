@@ -27,7 +27,8 @@ using hlasm_plugin::utils::resource::resource_location;
 
 struct file_manager_impl_test : public file_manager_impl
 {
-    list_directory_result list_directory_files(const resource_location& directory) const override
+    hlasm_plugin::utils::value_task<list_directory_result> list_directory_files(
+        const resource_location& directory) const override
     {
         list_directory_result result;
 
@@ -45,7 +46,7 @@ struct file_manager_impl_test : public file_manager_impl
 
         result.second = hlasm_plugin::utils::path::list_directory_rc::done;
 
-        return result;
+        return hlasm_plugin::utils::value_task<list_directory_result>::from_value(std::move(result));
     }
     list_directory_result list_directory_subdirs_and_symlinks(const resource_location& directory) const override
     {

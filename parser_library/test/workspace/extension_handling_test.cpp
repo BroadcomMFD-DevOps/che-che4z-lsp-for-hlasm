@@ -30,10 +30,14 @@ const auto lib_loc =
 
 class file_manager_extension_mock : public file_manager_impl
 {
-    list_directory_result list_directory_files(const resource_location&) const override
+    hlasm_plugin::utils::value_task<list_directory_result> list_directory_files(const resource_location&) const override
     {
-        return { { { "Mac.hlasm", resource_location::join(lib_loc, "Mac.hlasm") } },
-            hlasm_plugin::utils::path::list_directory_rc::done };
+        return hlasm_plugin::utils::value_task<list_directory_result>::from_value({
+            {
+                { "Mac.hlasm", resource_location::join(lib_loc, "Mac.hlasm") },
+            },
+            hlasm_plugin::utils::path::list_directory_rc::done,
+        });
     }
 };
 
@@ -85,11 +89,15 @@ TEST(extension_handling_test, legacy_extension_selection)
 
 class file_manager_extension_mock2 : public file_manager_impl
 {
-    list_directory_result list_directory_files(const resource_location&) const override
+    hlasm_plugin::utils::value_task<list_directory_result> list_directory_files(const resource_location&) const override
     {
-        return { { { "Mac.hlasm", resource_location::join(lib_loc, "Mac.hlasm") },
-                     { "Mac", resource_location::join(lib_loc, "Mac") } },
-            hlasm_plugin::utils::path::list_directory_rc::done };
+        return hlasm_plugin::utils::value_task<list_directory_result>::from_value({
+            {
+                { "Mac.hlasm", resource_location::join(lib_loc, "Mac.hlasm") },
+                { "Mac", resource_location::join(lib_loc, "Mac") },
+            },
+            hlasm_plugin::utils::path::list_directory_rc::done,
+        });
     }
 };
 
@@ -131,10 +139,14 @@ TEST(extension_handling_test, multiple_macros_extensions_not_provided)
 
 class file_manager_extension_mock_no_ext : public file_manager_impl
 {
-    list_directory_result list_directory_files(const resource_location&) const override
+    hlasm_plugin::utils::value_task<list_directory_result> list_directory_files(const resource_location&) const override
     {
-        return { { { "Mac", resource_location::join(lib_loc, "Mac") } },
-            hlasm_plugin::utils::path::list_directory_rc::done };
+        return hlasm_plugin::utils::value_task<list_directory_result>::from_value({
+            {
+                { "Mac", resource_location::join(lib_loc, "Mac") },
+            },
+            hlasm_plugin::utils::path::list_directory_rc::done,
+        });
     }
 };
 

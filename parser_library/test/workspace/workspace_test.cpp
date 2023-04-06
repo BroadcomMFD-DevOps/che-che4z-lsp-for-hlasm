@@ -262,20 +262,32 @@ public:
             did_open_file(loc, 1, content);
     }
 
-    list_directory_result list_directory_files(const hlasm_plugin::utils::resource::resource_location&) const override
+    hlasm_plugin::utils::value_task<list_directory_result> list_directory_files(
+        const hlasm_plugin::utils::resource::resource_location&) const override
     {
         if (insert_correct_macro)
-            return { { { "ERROR", faulty_macro_loc }, { "CORRECT", correct_macro_loc } },
-                hlasm_plugin::utils::path::list_directory_rc::done };
-        return { { { "ERROR", faulty_macro_loc } }, hlasm_plugin::utils::path::list_directory_rc::done };
+            return hlasm_plugin::utils::value_task<list_directory_result>::from_value({
+                {
+                    { "ERROR", faulty_macro_loc },
+                    { "CORRECT", correct_macro_loc },
+                },
+                hlasm_plugin::utils::path::list_directory_rc::done,
+            });
+        return hlasm_plugin::utils::value_task<list_directory_result>::from_value({
+            {
+                { "ERROR", faulty_macro_loc },
+            },
+            hlasm_plugin::utils::path::list_directory_rc::done,
+        });
     }
 
 
-    std::optional<std::string> load_text(const resource_location& document_loc) const override
+    hlasm_plugin::utils::value_task<std::optional<std::string>> load_text(
+        const resource_location& document_loc) const override
     {
         if (auto it = file_contents.find(document_loc); it != file_contents.end())
-            return it->second;
-        return std::nullopt;
+            return hlasm_plugin::utils::value_task<std::optional<std::string>>::from_value(it->second);
+        return hlasm_plugin::utils::value_task<std::optional<std::string>>::from_value(std::nullopt);
     }
 
     bool insert_correct_macro = true;
@@ -335,13 +347,21 @@ public:
         did_open_file(correct_macro_loc, 1, correct_macro_file);
     }
 
-    list_directory_result list_directory_files(
+    hlasm_plugin::utils::value_task<list_directory_result> list_directory_files(
         const hlasm_plugin::utils::resource::resource_location& location) const override
     {
         if (location == resource_location("lib/"))
-            return { { { "CORRECT", correct_macro_loc } }, hlasm_plugin::utils::path::list_directory_rc::done };
+            return hlasm_plugin::utils::value_task<list_directory_result>::from_value({
+                {
+                    { "CORRECT", correct_macro_loc },
+                },
+                hlasm_plugin::utils::path::list_directory_rc::done,
+            });
 
-        return { {}, hlasm_plugin::utils::path::list_directory_rc::not_exists };
+        return hlasm_plugin::utils::value_task<list_directory_result>::from_value({
+            {},
+            hlasm_plugin::utils::path::list_directory_rc::not_exists,
+        });
     }
 };
 
@@ -547,13 +567,19 @@ public:
         : file_manager_opt(file_manager_opt_variant::old_school)
     {}
 
-    list_directory_result list_directory_files(
+    hlasm_plugin::utils::value_task<list_directory_result> list_directory_files(
         const hlasm_plugin::utils::resource::resource_location& location) const override
     {
         if (location == resource_location("lib/"))
-            return { {}, hlasm_plugin::utils::path::list_directory_rc::other_failure };
+            return hlasm_plugin::utils::value_task<list_directory_result>::from_value({
+                {},
+                hlasm_plugin::utils::path::list_directory_rc::other_failure,
+            });
 
-        return { {}, hlasm_plugin::utils::path::list_directory_rc::not_exists };
+        return hlasm_plugin::utils::value_task<list_directory_result>::from_value({
+            {},
+            hlasm_plugin::utils::path::list_directory_rc::not_exists,
+        });
     }
 };
 

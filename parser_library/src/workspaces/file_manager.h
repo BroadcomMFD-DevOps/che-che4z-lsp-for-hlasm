@@ -26,6 +26,7 @@
 #include "protocol.h"
 #include "utils/list_directory_rc.h"
 #include "utils/resource_location.h"
+#include "utils/task.h"
 
 namespace hlasm_plugin::parser_library::workspaces {
 
@@ -46,13 +47,14 @@ class file_manager
 {
 public:
     // Adds a file with specified file name and returns it.
-    virtual std::shared_ptr<file> add_file(const utils::resource::resource_location&) = 0;
+    virtual utils::value_task<std::shared_ptr<file>> add_file(const utils::resource::resource_location&) = 0;
 
     // Finds file with specified file name, return nullptr if not found.
     virtual std::shared_ptr<file> find(const utils::resource::resource_location& key) const = 0;
 
     // Returns list of all files in a directory. Returns associative array with pairs file name - file location.
-    virtual list_directory_result list_directory_files(const utils::resource::resource_location& directory) const = 0;
+    virtual utils::value_task<list_directory_result> list_directory_files(
+        const utils::resource::resource_location& directory) const = 0;
 
     // Returns list of all sub directories and symbolic links. Returns associative array with pairs {canonical path -
     // file location}.
@@ -78,9 +80,10 @@ public:
     virtual std::string get_virtual_file(unsigned long long id) const = 0;
     virtual utils::resource::resource_location get_virtual_file_workspace(unsigned long long id) const = 0;
 
-    virtual open_file_result update_file(const utils::resource::resource_location& document_loc) = 0;
+    virtual utils::value_task<open_file_result> update_file(const utils::resource::resource_location& document_loc) = 0;
 
-    virtual std::optional<std::string> get_file_content(const utils::resource::resource_location&) = 0;
+    virtual utils::value_task<std::optional<std::string>> get_file_content(
+        const utils::resource::resource_location&) = 0;
 
 protected:
     ~file_manager() = default;

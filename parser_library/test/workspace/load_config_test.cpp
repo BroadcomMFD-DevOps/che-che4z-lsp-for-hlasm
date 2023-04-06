@@ -147,14 +147,16 @@ const std::string file_pgm_conf_content = is_windows() ? R"({
 class file_manager_proc_grps_test : public file_manager_impl
 {
 public:
-    std::optional<std::string> get_file_content(const resource_location& location) override
+    hlasm_plugin::utils::value_task<std::optional<std::string>> get_file_content(
+        const resource_location& location) override
     {
+        using hlasm_plugin::utils::value_task;
         if (hlasm_plugin::utils::resource::filename(location) == "proc_grps.json")
-            return file_proc_grps_content;
+            return value_task<std::optional<std::string>>::from_value(file_proc_grps_content);
         else if (hlasm_plugin::utils::resource::filename(location) == "pgm_conf.json")
-            return file_pgm_conf_content;
+            return value_task<std::optional<std::string>>::from_value(file_pgm_conf_content);
         else
-            return std::nullopt;
+            return value_task<std::optional<std::string>>::from_value(std::nullopt);
     }
 
     // Inherited via file_manager
@@ -347,10 +349,11 @@ TEST(workspace, asm_options_invalid)
 class file_manager_asm_test : public file_manager_proc_grps_test
 {
 public:
-    std::optional<std::string> get_file_content(const resource_location& location) override
+    hlasm_plugin::utils::value_task<std::optional<std::string>> get_file_content(
+        const resource_location& location) override
     {
         if (hlasm_plugin::utils::resource::filename(location) == "proc_grps.json")
-            return R"({
+            return hlasm_plugin::utils::value_task<std::optional<std::string>>::from_value(R"({
   "pgroups": [
     {
       "name": "P1",
@@ -361,7 +364,7 @@ public:
       }
     }
   ]
-})";
+})");
         else
             return file_manager_proc_grps_test::get_file_content(location);
     }

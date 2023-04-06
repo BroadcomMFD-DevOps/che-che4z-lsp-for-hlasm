@@ -82,7 +82,10 @@ TEST(workspace_configuration, refresh_needed)
     NiceMock<file_manager_mock> fm;
     shared_json global_settings = make_empty_shared_json();
 
-    EXPECT_CALL(fm, get_file_content(_)).WillRepeatedly(Return(std::nullopt));
+    EXPECT_CALL(fm, get_file_content(_))
+        .WillRepeatedly(Invoke([](const auto&) -> hlasm_plugin::utils::value_task<std::optional<std::string>> {
+            co_return std::nullopt;
+        }));
 
     workspace_configuration cfg(fm, resource_location("test://workspace"), global_settings);
 

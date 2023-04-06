@@ -33,6 +33,7 @@
 using namespace hlasm_plugin::parser_library;
 using namespace hlasm_plugin::parser_library::workspaces;
 using namespace hlasm_plugin::utils::resource;
+using namespace hlasm_plugin::utils;
 
 namespace {
 const resource_location src1_loc("src1.hlasm");
@@ -45,15 +46,16 @@ const resource_location mac_loc("libs/mac");
 class file_manager_extended : public file_manager_impl
 {
 public:
-    list_directory_result list_directory_files(const hlasm_plugin::utils::resource::resource_location&) const override
+    value_task<list_directory_result> list_directory_files(
+        const hlasm_plugin::utils::resource::resource_location&) const override
     {
-        return {
+        return value_task<list_directory_result>::from_value({
             {
                 { "CPYBOOK", cpybook_loc },
                 { "MAC", mac_loc },
             },
             hlasm_plugin::utils::path::list_directory_rc::done,
-        };
+        });
     }
 };
 } // namespace
@@ -1037,18 +1039,18 @@ SYM      DS XL8
 namespace {
 class file_manager_impl_test : public file_manager_impl
 {
-    std::optional<std::string> get_file_content(const resource_location& rl) override
+    value_task<std::optional<std::string>> get_file_content(const resource_location& rl) override
     {
         if (rl.get_uri().ends_with("proc_grps.json"))
-            return proc_grps;
+            return value_task<std::optional<std::string>>::from_value(proc_grps);
 
         if (rl.get_uri().ends_with("pgm_conf.json"))
-            return pgm_conf;
+            return value_task<std::optional<std::string>>::from_value(pgm_conf);
 
-        return std::nullopt;
+        return value_task<std::optional<std::string>>::from_value(std::nullopt);
     }
 
-    list_directory_result list_directory_files(const resource_location& directory) const override
+    value_task<list_directory_result> list_directory_files(const resource_location& directory) const override
     {
         list_directory_result result;
 
@@ -1064,7 +1066,7 @@ class file_manager_impl_test : public file_manager_impl
 
         result.second = hlasm_plugin::utils::path::list_directory_rc::done;
 
-        return result;
+        return value_task<list_directory_result>::from_value(std::move(result));
     }
 
 private:

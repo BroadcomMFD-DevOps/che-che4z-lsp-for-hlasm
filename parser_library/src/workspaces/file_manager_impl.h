@@ -31,7 +31,10 @@ namespace hlasm_plugin::parser_library::workspaces {
 class external_file_reader
 {
 public:
-    virtual std::optional<std::string> load_text(const utils::resource::resource_location& document_loc) const = 0;
+    virtual utils::value_task<std::optional<std::string>> load_text(
+        const utils::resource::resource_location& document_loc) const = 0;
+    virtual utils::value_task<list_directory_result> list_directory_files(
+        const utils::resource::resource_location& directory) const = 0;
 
 protected:
     ~external_file_reader() = default;
@@ -54,11 +57,12 @@ public:
 
     ~file_manager_impl();
 
-    std::shared_ptr<file> add_file(const utils::resource::resource_location&) override;
+    utils::value_task<std::shared_ptr<file>> add_file(const utils::resource::resource_location&) override;
 
     std::shared_ptr<file> find(const utils::resource::resource_location& key) const override;
 
-    list_directory_result list_directory_files(const utils::resource::resource_location& directory) const override;
+    utils::value_task<list_directory_result> list_directory_files(
+        const utils::resource::resource_location& directory) const override;
     list_directory_result list_directory_subdirs_and_symlinks(
         const utils::resource::resource_location& directory) const override;
 
@@ -80,9 +84,9 @@ public:
     std::string get_virtual_file(unsigned long long id) const override;
     utils::resource::resource_location get_virtual_file_workspace(unsigned long long id) const override;
 
-    open_file_result update_file(const utils::resource::resource_location& document_loc) override;
+    utils::value_task<open_file_result> update_file(const utils::resource::resource_location& document_loc) override;
 
-    std::optional<std::string> get_file_content(const utils::resource::resource_location&) override;
+    utils::value_task<std::optional<std::string>> get_file_content(const utils::resource::resource_location&) override;
 
 private:
     const external_file_reader* m_file_reader;

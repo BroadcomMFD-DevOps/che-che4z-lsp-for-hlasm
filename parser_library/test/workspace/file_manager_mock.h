@@ -23,15 +23,18 @@ namespace {
 class file_manager_mock : public file_manager, public diagnosable_impl
 {
     using resource_location = hlasm_plugin::utils::resource::resource_location;
+    template<typename T>
+    using value_task = hlasm_plugin::utils::value_task<T>;
 
 public:
     void collect_diags() const override
     {
         // nothing to do
     }
-    MOCK_METHOD(std::shared_ptr<file>, add_file, (const resource_location&), (override));
+    MOCK_METHOD(value_task<std::shared_ptr<file>>, add_file, (const resource_location&), (override));
     MOCK_METHOD(std::shared_ptr<file>, find, (const resource_location& key), (const override));
-    MOCK_METHOD(list_directory_result, list_directory_files, (const resource_location& path), (const override));
+    MOCK_METHOD(
+        value_task<list_directory_result>, list_directory_files, (const resource_location& path), (const override));
     MOCK_METHOD(
         list_directory_result, list_directory_subdirs_and_symlinks, (const resource_location& path), (const override));
     MOCK_METHOD(std::string, canonical, (const resource_location& res_loc, std::error_code& ec), (const override));
@@ -56,9 +59,9 @@ public:
     MOCK_METHOD(std::string, get_virtual_file, (unsigned long long id), (const override));
     MOCK_METHOD(resource_location, get_virtual_file_workspace, (unsigned long long id), (const override));
 
-    MOCK_METHOD(open_file_result, update_file, (const resource_location& document_loc), (override));
+    MOCK_METHOD(value_task<open_file_result>, update_file, (const resource_location& document_loc), (override));
 
-    MOCK_METHOD(std::optional<std::string>, get_file_content, (const resource_location&), (override));
+    MOCK_METHOD(value_task<std::optional<std::string>>, get_file_content, (const resource_location&), (override));
 };
 
 } // namespace

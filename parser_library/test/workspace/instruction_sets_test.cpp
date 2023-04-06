@@ -135,14 +135,22 @@ public:
         did_open_file(sam31_macro_loc, 1, sam31_macro);
     }
 
-    list_directory_result list_directory_files(
+    hlasm_plugin::utils::value_task<list_directory_result> list_directory_files(
         const hlasm_plugin::utils::resource::resource_location& location) const override
     {
+        using hlasm_plugin::utils::value_task;
         if (location == resource_location("lib/"))
-            return { { { "SAM31", resource_location(sam31_macro_path) } },
-                hlasm_plugin::utils::path::list_directory_rc::done };
+            return value_task<list_directory_result>::from_value({
+                {
+                    { "SAM31", resource_location(sam31_macro_path) },
+                },
+                hlasm_plugin::utils::path::list_directory_rc::done,
+            });
 
-        return { {}, hlasm_plugin::utils::path::list_directory_rc::not_exists };
+        return value_task<list_directory_result>::from_value({
+            {},
+            hlasm_plugin::utils::path::list_directory_rc::not_exists,
+        });
     }
 };
 

@@ -337,6 +337,22 @@ public:
                 co_return u(co_await std::move(self));
             }(std::move(*this), std::forward<U>(next));
     }
+
+    static value_task from_value(const T& v)
+    {
+        const auto cortn = [&v]() -> value_task { co_return v; };
+        auto result = cortn();
+        result.run();
+        return result;
+    }
+
+    static value_task from_value(T&& v)
+    {
+        const auto cortn = [&v]() -> value_task { co_return std::move(v); };
+        auto result = cortn();
+        result.run();
+        return result;
+    }
 };
 
 inline auto task_base::promise_type_base::await_transform(task t) const noexcept
