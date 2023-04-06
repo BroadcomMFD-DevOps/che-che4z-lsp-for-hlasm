@@ -47,8 +47,8 @@ protected:
         void (*deleter)(void*) noexcept = nullptr;
         union
         {
-            void (*complex)(void*) = nullptr;
-            void (*simple)();
+            void (*complex)(void*) noexcept = nullptr;
+            void (*simple)() noexcept;
         };
     };
     struct shared_data_base
@@ -108,7 +108,7 @@ protected:
         static_cast<shared_data_base*>(impl)->resolved = true;
         return actions->error(impl, ec, error);
     }
-    void invalidate() const
+    void invalidate() const noexcept
     {
         auto* base = static_cast<shared_data_base*>(impl);
         if (!base->valid)
@@ -123,17 +123,17 @@ protected:
     }
 
     template<typename C>
-    void set_invalidation_callback(C t)
+    void set_invalidation_callback(C t) requires std::is_nothrow_invocable_v<C>
     {
         change_invalidation_callback(invalidator_t {
             new C(std::move(t)),
             +[](void* p) noexcept { delete static_cast<C*>(p); },
-            +[](void* p) { (*static_cast<C*>(p))(); },
+            +[](void* p) noexcept { (*static_cast<C*>(p))(); },
         });
     }
 
     template<typename C>
-    void set_invalidation_callback(C t) noexcept requires std::is_function_v<C>
+    void set_invalidation_callback(C t) noexcept requires(std::is_nothrow_invocable_v<C>&& std::is_function_v<C>)
     {
         change_invalidation_callback(invalidator_t { impl, nullptr, t });
     }

@@ -118,7 +118,7 @@ TEST(workspace_manager_response, invalidate)
     auto [p, _impl] = make_workspace_manager_response(std::in_place_type<workspace_manager_response_mock<int>>);
 
     MockFunction<void()> invalidator;
-    p.set_invalidation_callback(invalidator.AsStdFunction());
+    p.set_invalidation_callback([&invalidator]() noexcept { invalidator.Call(); });
 
     EXPECT_CALL(invalidator, Call());
 
@@ -134,9 +134,9 @@ TEST(workspace_manager_response, change_invalidator)
     auto [p, _impl] = make_workspace_manager_response(std::in_place_type<workspace_manager_response_mock<int>>);
 
     MockFunction<void()> invalidator;
-    p.set_invalidation_callback(invalidator.AsStdFunction());
+    p.set_invalidation_callback([&invalidator]() noexcept { invalidator.Call(); });
     MockFunction<void()> invalidator2;
-    p.set_invalidation_callback(invalidator2.AsStdFunction());
+    p.set_invalidation_callback([&invalidator2]() noexcept { invalidator2.Call(); });
 
     EXPECT_TRUE(p.valid());
     EXPECT_CALL(invalidator, Call()).Times(0);
@@ -149,7 +149,7 @@ TEST(workspace_manager_response, change_invalidator)
 
 thread_local int simple_invalidator_counter = 0;
 
-void simple_invalidator() { ++simple_invalidator_counter; }
+void simple_invalidator() noexcept { ++simple_invalidator_counter; }
 
 TEST(workspace_manager_response, simple_invalidator)
 {
@@ -174,7 +174,7 @@ TEST(workspace_manager_response, invalidator_deleter)
         struct invalidator_t
         {
             int* d;
-            void operator()() const {}
+            void operator()() const noexcept {}
 
             invalidator_t(int& d)
                 : d(&d)
@@ -206,7 +206,7 @@ TEST(workspace_manager_response, invalidator_remove)
     struct invalidator_t
     {
         int* d;
-        void operator()() const {}
+        void operator()() const noexcept {}
 
         invalidator_t(int& d)
             : d(&d)

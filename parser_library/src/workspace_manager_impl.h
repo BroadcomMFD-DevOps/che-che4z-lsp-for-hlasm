@@ -155,7 +155,7 @@ public:
             pending_requests.erase(it);
             return true;
         }
-        void cancel_pending_requests()
+        void cancel_pending_requests() noexcept
         {
             for (const auto& [_, h] : pending_requests)
                 h();
@@ -231,7 +231,7 @@ public:
 
         auto [resp, _] = make_workspace_manager_response(open_workspace_t { wi.id, configuration_request, this });
 
-        wi.pending_requests.emplace_back(configuration_request, [resp = resp]() { resp.invalidate(); });
+        wi.pending_requests.emplace_back(configuration_request, [resp = resp]() noexcept { resp.invalidate(); });
 
         requests_->request_workspace_configuration(wi.ows->ws.uri().c_str(), std::move(resp));
 
