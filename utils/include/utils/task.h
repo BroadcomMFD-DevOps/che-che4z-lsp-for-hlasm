@@ -248,7 +248,7 @@ public:
     }
 
     template<typename U>
-    auto then(U&& next) &&
+    [[nodiscard]] auto then(U&& next) &&
     {
         if constexpr (is_task<U>::value)
             return [](task self, U u) -> U {
@@ -337,7 +337,7 @@ public:
     }
 
     template<typename U>
-    auto then(U&& next) &&
+    [[nodiscard]] auto then(U&& next) &&
     {
         if constexpr (is_task<std::invoke_result_t<U&, T>>::value)
             return [](value_task self, U u) -> std::invoke_result_t<U&, T> {
@@ -352,7 +352,7 @@ public:
             }(std::move(*this), std::forward<U>(next));
     }
 
-    static value_task from_value(const T& v) requires(!std::is_reference_v<T>)
+    [[nodiscard]] static value_task from_value(const T& v) requires(!std::is_reference_v<T>)
     {
         const auto cortn = [&v]() -> value_task { co_return v; };
         auto result = cortn();
@@ -360,7 +360,7 @@ public:
         return result;
     }
 
-    static value_task from_value(T&& v)
+    [[nodiscard]] static value_task from_value(T&& v)
     {
         const auto cortn = [&v]() -> value_task {
             if constexpr (std::is_reference_v<T>)

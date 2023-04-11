@@ -81,9 +81,9 @@ public:
 
     const utils::resource::resource_location& get_location() const;
 
-    utils::task refresh() override;
+    [[nodiscard]] utils::task refresh() override;
 
-    utils::task prefetch() override;
+    [[nodiscard]] utils::task prefetch() override;
 
     std::vector<std::string> list_files() override;
 

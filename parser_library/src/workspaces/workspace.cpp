@@ -55,7 +55,7 @@ struct parsing_results
     std::vector<diagnostic_s> macro_diagnostics;
 };
 
-utils::value_task<parsing_results> parse_one_file(std::shared_ptr<context::id_storage> ids,
+[[nodiscard]] utils::value_task<parsing_results> parse_one_file(std::shared_ptr<context::id_storage> ids,
     std::shared_ptr<file> file,
     parse_lib_provider& lib_provider,
     asm_option asm_opts,
@@ -146,7 +146,7 @@ struct workspace_parse_lib_provider final : public parse_lib_provider
         }
     }
 
-    utils::value_task<std::shared_ptr<file>> get_file(const resource_location& url)
+    [[nodiscard]] utils::value_task<std::shared_ptr<file>> get_file(const resource_location& url)
     {
         if (auto it = current_file_map.find(url); it != current_file_map.end())
             co_return it->second;
@@ -171,7 +171,8 @@ struct workspace_parse_lib_provider final : public parse_lib_provider
     }
 
     // Inherited via parse_lib_provider
-    utils::value_task<bool> parse_library(std::string library, analyzing_context ctx, library_data data) override
+    [[nodiscard]] utils::value_task<bool> parse_library(
+        std::string library, analyzing_context ctx, library_data data) override
     {
         resource_location url = get_url(library);
         if (url.empty())
@@ -227,8 +228,8 @@ struct workspace_parse_lib_provider final : public parse_lib_provider
         return result;
     }
 
-    utils::value_task<std::optional<std::pair<std::string, utils::resource::resource_location>>> get_library(
-        std::string library) override
+    [[nodiscard]] utils::value_task<std::optional<std::pair<std::string, utils::resource::resource_location>>>
+    get_library(std::string library) override
     {
         if (auto url = get_url(library); url.empty())
             co_return std::nullopt;
@@ -236,7 +237,7 @@ struct workspace_parse_lib_provider final : public parse_lib_provider
             co_return std::make_pair((co_await get_file(url))->get_text(), std::move(url));
     }
 
-    utils::task prefetch_libraries()
+    [[nodiscard]] utils::task prefetch_libraries()
     {
         std::vector<utils::task> pending_prefetches;
         for (const auto& lib : libraries)

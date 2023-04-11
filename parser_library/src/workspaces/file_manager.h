@@ -47,13 +47,14 @@ class file_manager
 {
 public:
     // Adds a file with specified file name and returns it.
-    virtual utils::value_task<std::shared_ptr<file>> add_file(const utils::resource::resource_location&) = 0;
+    [[nodiscard]] virtual utils::value_task<std::shared_ptr<file>> add_file(
+        const utils::resource::resource_location&) = 0;
 
     // Finds file with specified file name, return nullptr if not found.
     virtual std::shared_ptr<file> find(const utils::resource::resource_location& key) const = 0;
 
     // Returns list of all files in a directory. Returns associative array with pairs file name - file location.
-    virtual utils::value_task<list_directory_result> list_directory_files(
+    [[nodiscard]] virtual utils::value_task<list_directory_result> list_directory_files(
         const utils::resource::resource_location& directory) const = 0;
 
     // Returns list of all sub directories and symbolic links. Returns associative array with pairs {canonical path -
@@ -80,9 +81,10 @@ public:
     virtual std::string get_virtual_file(unsigned long long id) const = 0;
     virtual utils::resource::resource_location get_virtual_file_workspace(unsigned long long id) const = 0;
 
-    virtual utils::value_task<open_file_result> update_file(const utils::resource::resource_location& document_loc) = 0;
+    [[nodiscard]] virtual utils::value_task<open_file_result> update_file(
+        const utils::resource::resource_location& document_loc) = 0;
 
-    virtual utils::value_task<std::optional<std::string>> get_file_content(
+    [[nodiscard]] virtual utils::value_task<std::optional<std::string>> get_file_content(
         const utils::resource::resource_location&) = 0;
 
 protected:
