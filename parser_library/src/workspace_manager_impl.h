@@ -31,9 +31,11 @@
 #include "lsp/document_symbol_item.h"
 #include "nlohmann/json.hpp"
 #include "protocol.h"
+#include "utils/content_loader.h"
 #include "utils/scope_exit.h"
 #include "utils/task.h"
 #include "workspace_manager.h"
+#include "workspace_manager_external_file_requests.h"
 #include "workspace_manager_response.h"
 #include "workspaces/file_manager_impl.h"
 #include "workspaces/workspace.h"
@@ -44,7 +46,7 @@ namespace hlasm_plugin::parser_library {
 // Holds workspaces, file manager and macro tracer and handles LSP and DAP
 // notifications and requests.
 
-class workspace_manager::impl final : public diagnosable_impl
+class workspace_manager::impl final : public diagnosable_impl, workspaces::external_file_reader
 {
     static constexpr lib_config supress_all { 0 };
     using resource_location = utils::resource::resource_location;
@@ -65,8 +67,10 @@ class workspace_manager::impl final : public diagnosable_impl
     };
 
 public:
-    impl()
-        : implicit_workspace_(file_manager_, global_config_)
+    impl(workspace_manager_external_file_requests* external_file_requests)
+        : external_file_requests(external_file_requests)
+        , file_manager_(*this)
+        , implicit_workspace_(file_manager_, global_config_)
         , quiet_implicit_workspace_(file_manager_, supress_all)
     {}
     impl(const impl&) = delete;
@@ -863,6 +867,93 @@ private:
 
     unsigned long long next_unique_id() { return ++unique_id_sequence; }
 
+    static constexpr std::string_view hlasm_external_schema = "hlasm-external://";
+
+    [[nodiscard]] utils::value_task<std::optional<std::string>> load_text_external(
+        utils::resource::resource_location document_loc) const
+    {
+        struct content_t
+        {
+            std::optional<std::string> result;
+
+            void provide(sequence<char> c) { result = std::string(c); }
+            void error(int, const char*) { result.reset(); }
+        };
+        auto [channel, data] = make_workspace_manager_response(std::in_place_type<content_t>);
+        external_file_requests->read_external_file(document_loc.get_uri().c_str(), channel);
+
+        while (!channel.resolved())
+            co_await utils::task::suspend();
+
+        co_return std::move(data->result);
+    }
+
+    [[nodiscard]] utils::value_task<std::optional<std::string>> load_text(
+        const utils::resource::resource_location& document_loc) const override
+    {
+        if (!document_loc.get_uri().starts_with(hlasm_external_schema))
+            return utils::value_task<std::optional<std::string>>::from_value(utils::resource::load_text(document_loc));
+
+        if (!external_file_requests)
+            return utils::value_task<std::optional<std::string>>::from_value(std::nullopt);
+
+        return load_text_external(document_loc);
+    }
+
+    [[nodiscard]] utils::value_task<std::pair<std::vector<std::pair<std::string, utils::resource::resource_location>>,
+        utils::path::list_directory_rc>>
+    list_directory_files_external(utils::resource::resource_location directory) const
+    {
+        struct content_t
+        {
+            content_t(utils::resource::resource_location dir)
+                : dir(std::move(dir))
+            {}
+            utils::resource::resource_location dir;
+            std::pair<std::vector<std::pair<std::string, utils::resource::resource_location>>,
+                utils::path::list_directory_rc>
+                result;
+
+            void provide(sequence<sequence<char>> c)
+            {
+                try
+                {
+                    auto& dirs = result.first;
+                    for (auto s : c)
+                        dirs.emplace_back(std::string(s), dir.join(std::string_view(s)));
+                }
+                catch (...)
+                {
+                    result = { {}, utils::path::list_directory_rc::other_failure };
+                }
+            }
+            void error(int, const char*) { result.second = utils::path::list_directory_rc::not_exists; }
+        };
+        auto [channel, data] = make_workspace_manager_response(std::in_place_type<content_t>, std::move(directory));
+        external_file_requests->read_external_directory(data->dir.get_uri().c_str(), channel);
+
+        while (!channel.resolved())
+            co_await utils::task::suspend();
+
+        co_return std::move(data->result);
+    }
+
+    [[nodiscard]] utils::value_task<std::pair<std::vector<std::pair<std::string, utils::resource::resource_location>>,
+        utils::path::list_directory_rc>>
+    list_directory_files(const utils::resource::resource_location& directory) const override
+    {
+        if (!directory.get_uri().starts_with(hlasm_external_schema))
+            return utils::value_task<std::pair<std::vector<std::pair<std::string, utils::resource::resource_location>>,
+                utils::path::list_directory_rc>>::from_value(utils::resource::list_directory_files(directory));
+
+        if (!external_file_requests)
+            return utils::value_task<std::pair<std::vector<std::pair<std::string, utils::resource::resource_location>>,
+                utils::path::list_directory_rc>>::from_value({ {}, utils::path::list_directory_rc::not_exists });
+
+        return list_directory_files_external(directory);
+    }
+
+    workspace_manager_external_file_requests* external_file_requests = nullptr;
     workspaces::file_manager_impl file_manager_;
 
     std::unordered_map<std::string, opened_workspace> workspaces_;
