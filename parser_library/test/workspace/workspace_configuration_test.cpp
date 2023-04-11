@@ -89,8 +89,10 @@ TEST(workspace_configuration, refresh_needed)
 
     workspace_configuration cfg(fm, resource_location("test://workspace"), global_settings);
 
-    EXPECT_TRUE(cfg.refresh_libraries({ resource_location("test://workspace/.hlasmplugin") }));
-    EXPECT_TRUE(cfg.refresh_libraries({ resource_location("test://workspace/.hlasmplugin/proc_grps.json") }));
-    EXPECT_TRUE(cfg.refresh_libraries({ resource_location("test://workspace/.hlasmplugin/pgm_conf.json") }));
-    EXPECT_FALSE(cfg.refresh_libraries({ resource_location("test://workspace/something/else") }));
+    EXPECT_TRUE(cfg.refresh_libraries({ resource_location("test://workspace/.hlasmplugin") }).run().value());
+    EXPECT_TRUE(
+        cfg.refresh_libraries({ resource_location("test://workspace/.hlasmplugin/proc_grps.json") }).run().value());
+    EXPECT_TRUE(
+        cfg.refresh_libraries({ resource_location("test://workspace/.hlasmplugin/pgm_conf.json") }).run().value());
+    EXPECT_FALSE(cfg.refresh_libraries({ resource_location("test://workspace/something/else") }).run().value());
 }

@@ -90,12 +90,12 @@ public:
 
     utils::task mark_file_for_parsing(const resource_location& file_location, open_file_result file_content_status);
     void mark_all_opened_files();
-    utils::task did_open_file(const resource_location& file_location,
-        open_file_result file_content_status = open_file_result::changed_content);
-    utils::task did_change_file(const resource_location& file_location, open_file_result file_content_status);
-    utils::task did_close_file(const resource_location& file_location);
+    utils::task did_open_file(
+        resource_location file_location, open_file_result file_content_status = open_file_result::changed_content);
+    utils::task did_change_file(resource_location file_location, open_file_result file_content_status);
+    utils::task did_close_file(resource_location file_location);
     utils::task did_change_watched_files(
-        const std::vector<resource_location>& file_locations, const std::vector<open_file_result>& file_change_status);
+        std::vector<resource_location> file_locations, std::vector<open_file_result> file_change_status);
 
     utils::value_task<parse_file_result> parse_file(const resource_location& preferred_file = resource_location());
 

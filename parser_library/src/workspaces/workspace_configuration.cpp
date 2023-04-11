@@ -655,7 +655,8 @@ utils::value_task<parse_config_file_result> workspace_configuration::parse_confi
     co_return parse_config_file_result::not_found;
 }
 
-bool workspace_configuration::refresh_libraries(const std::vector<utils::resource::resource_location>& file_locations)
+utils::value_task<bool> workspace_configuration::refresh_libraries(
+    const std::vector<utils::resource::resource_location>& file_locations)
 {
     bool refreshed = false;
 
@@ -664,13 +665,15 @@ bool workspace_configuration::refresh_libraries(const std::vector<utils::resourc
             [this, hlasm_folder = utils::resource::resource_location::join(m_location, HLASM_PLUGIN_FOLDER)](
                 const auto& uri) { return uri == m_pgm_conf_loc || uri == m_proc_grps_loc || uri == hlasm_folder; }))
     {
-        parse_configuration_file();
-        return true;
+        co_await parse_configuration_file();
+        co_return true;
     }
 
     std::unordered_set<const library*> refreshed_libs;
+    std::vector<utils::task> pending_refreshes;
     for (auto& [_, proc_grp] : m_proc_grps)
     {
+        bool pending_refresh = false;
         if (!proc_grp.refresh_needed(file_locations))
             continue;
         refreshed = true;
@@ -678,11 +681,25 @@ bool workspace_configuration::refresh_libraries(const std::vector<utils::resourc
         {
             if (!refreshed_libs.emplace(std::to_address(lib)).second)
                 continue;
-            lib->refresh();
+            if (auto refresh = lib->refresh(); refresh.valid() && !refresh.done())
+            {
+                pending_refreshes.emplace_back(std::move(refresh));
+                pending_refresh = true;
+            }
         }
-        proc_grp.invalidate_suggestions();
+        if (!pending_refresh)
+            proc_grp.invalidate_suggestions();
+        else
+            pending_refreshes.emplace_back([](auto& pg) -> utils::task {
+                pg.invalidate_suggestions();
+                co_return;
+            }(proc_grp));
     }
-    return refreshed;
+
+    for (auto& r : pending_refreshes)
+        co_await std::move(r);
+
+    co_return refreshed;
 }
 
 const processor_group& workspace_configuration::get_proc_grp_by_program(const program& pgm) const

@@ -278,7 +278,7 @@ public:
     const lib_config& get_config() const { return m_local_config; }
 
     bool settings_updated() const;
-    bool refresh_libraries(const std::vector<utils::resource::resource_location>& file_locations);
+    utils::value_task<bool> refresh_libraries(const std::vector<utils::resource::resource_location>& file_locations);
 
     void copy_diagnostics(const diagnosable& target,
         const std::unordered_set<utils::resource::resource_location, utils::resource::resource_location_hasher>&

@@ -129,6 +129,10 @@ class debugger::impl final : public processing::statement_analyzer
             co_return;
         }
         resp.provide(true);
+
+        if (auto prefetch = debug_provider.prefetch_libraries(); prefetch.valid())
+            co_await std::move(prefetch);
+
         analyzer a(open_code_text.value(),
             analyzer_options {
                 std::move(open_code_location),
@@ -183,7 +187,7 @@ public:
         if (!analyzer_task.done())
         {
             analyzer_task.resume(yield_indicator);
-            return true;
+            return false;
         }
 
         analyzer_task = {};

@@ -925,6 +925,11 @@ void verify_infinit_loop(pgroup_symlinks_variants pgroup_variant, pgmconf_varian
     lib_config config;
     shared_json global_settings = make_empty_shared_json();
 
+    EXPECT_CALL(file_manager, list_directory_files)
+        .WillRepeatedly(::testing::Invoke([](auto) -> hlasm_plugin::utils::value_task<list_directory_result> {
+            co_return { {}, hlasm_plugin::utils::path::list_directory_rc::done };
+        }));
+
     workspace ws(ws_loc, "workspace_name", file_manager, config, global_settings);
     ws.open().run();
     run_if_valid(ws.did_open_file(pattern_test_source_loc));

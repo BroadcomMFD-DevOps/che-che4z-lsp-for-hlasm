@@ -448,8 +448,8 @@ public:
         m_work_queue.emplace_back(work_item {
             next_unique_id(),
             &ows,
-            std::function<utils::task()>([this, document_loc, &ws = ows.ws, open_result]() {
-                return ws.did_open_file(document_loc, *open_result);
+            std::function<utils::task()>([this, document_loc, &ws = ows.ws, open_result]() mutable {
+                return ws.did_open_file(std::move(document_loc), *open_result);
             }),
             {},
             work_item_type::file_change,
@@ -508,8 +508,8 @@ public:
                     document_loc,
                     &ws = ows.ws,
                     file_content_status = ch_size ? workspaces::open_file_result::changed_content
-                                                  : workspaces::open_file_result::identical]() -> utils::task {
-                    return ws.did_change_file(document_loc, file_content_status);
+                                                  : workspaces::open_file_result::identical]() mutable -> utils::task {
+                    return ws.did_change_file(std::move(document_loc), file_content_status);
                 }),
             {},
             work_item_type::file_change,
@@ -529,8 +529,9 @@ public:
         m_work_queue.emplace_back(work_item {
             next_unique_id(),
             &ows,
-            std::function<utils::task()>(
-                [this, document_loc, &ws = ows.ws]() -> utils::task { return ws.did_close_file(document_loc); }),
+            std::function<utils::task()>([this, document_loc, &ws = ows.ws]() mutable -> utils::task {
+                return ws.did_close_file(std::move(document_loc));
+            }),
             {},
             work_item_type::file_change,
         });
@@ -584,7 +585,8 @@ public:
                          std::pair<std::vector<resource_location>, std::vector<workspaces::open_file_result>>>(
                          paths_for_ws, &path_change_list),
                         &ws = ows->ws]() -> utils::task {
-                        return ws.did_change_watched_files(path_change_list_p->first, path_change_list_p->second);
+                        return ws.did_change_watched_files(
+                            std::move(path_change_list_p->first), std::move(path_change_list_p->second));
                     }),
                 {},
                 work_item_type::file_change,

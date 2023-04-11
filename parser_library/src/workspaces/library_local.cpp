@@ -68,9 +68,18 @@ library_local::library_local(library_local&& l) noexcept
     , m_proc_grps_loc(std::move(l.m_proc_grps_loc))
 {}
 
-utils::task library_local::refresh() { co_await load_files(); }
+utils::task library_local::refresh()
+{
+    return m_file_manager.list_directory_files(m_lib_loc).then([this](auto res) { load_files(std::move(res)); });
+}
 
-utils::task library_local::prefetch() { co_await load_files(); }
+utils::task library_local::prefetch()
+{
+    if (m_files_collection.load())
+        return {};
+    else
+        return refresh();
+}
 
 std::vector<std::string> library_local::list_files()
 {
@@ -110,9 +119,11 @@ void library_local::copy_diagnostics(std::vector<diagnostic_s>& target) const
         target.insert(target.end(), files->second.begin(), files->second.end());
 }
 
-utils::value_task<library_local::files_collection_t> library_local::load_files()
+library_local::files_collection_t library_local::load_files(
+    std::pair<std::vector<std::pair<std::string, utils::resource::resource_location>>, utils::path::list_directory_rc>
+        res)
 {
-    auto [files_list, rc] = co_await m_file_manager.list_directory_files(m_lib_loc);
+    auto& [files_list, rc] = res;
     auto new_state = std::make_shared<std::pair<std::unordered_map<std::string,
                                                     utils::resource::resource_location,
                                                     utils::hashers::string_hasher,
@@ -188,7 +199,7 @@ utils::value_task<library_local::files_collection_t> library_local::load_files()
 
     m_files_collection.store(new_state);
 
-    co_return new_state;
+    return new_state;
 }
 
 } // namespace hlasm_plugin::parser_library::workspaces

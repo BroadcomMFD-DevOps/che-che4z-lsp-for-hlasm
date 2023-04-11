@@ -14,6 +14,7 @@
 
 #include "gtest/gtest.h"
 
+#include "../common_testing.h"
 #include "diagnostic.h"
 #include "utils/platform.h"
 #include "workspaces/file_manager_impl.h"
@@ -48,30 +49,37 @@ TEST(extension_handling_test, extension_removal)
 
     // file must end with hlasm
     library_local lib(file_mngr, lib_loc, { { ".hlasm" } }, empty_loc);
+    run_if_valid(lib.prefetch());
     EXPECT_TRUE(lib.has_file("MAC"));
 
     // file must end with hlasm
     library_local lib2(file_mngr, lib_loc, { { ".hlasm" } }, empty_loc);
+    run_if_valid(lib2.prefetch());
     EXPECT_TRUE(lib2.has_file("MAC"));
 
     // file must end with asm
     library_local lib3(file_mngr, lib_loc, { { ".asm" } }, empty_loc);
+    run_if_valid(lib3.prefetch());
     EXPECT_FALSE(lib3.has_file("MAC"));
 
     // test multiple extensions
     library_local lib4(file_mngr, lib_loc, { { ".hlasm", ".asm" } }, empty_loc);
+    run_if_valid(lib4.prefetch());
     EXPECT_TRUE(lib4.has_file("MAC"));
 
     // test no extensions
     library_local lib5(file_mngr, lib_loc, { {} }, empty_loc);
+    run_if_valid(lib5.prefetch());
     EXPECT_TRUE(lib5.has_file("MAC"));
 
     // test empty extension
     library_local lib6(file_mngr, lib_loc, { { "" } }, empty_loc);
+    run_if_valid(lib6.prefetch());
     EXPECT_FALSE(lib6.has_file("MAC"));
 
     // tolerate missing dot
     library_local lib7(file_mngr, lib_loc, { { "hlasm", "asm" } }, empty_loc);
+    run_if_valid(lib7.prefetch());
     EXPECT_TRUE(lib7.has_file("MAC"));
 }
 
@@ -80,6 +88,7 @@ TEST(extension_handling_test, legacy_extension_selection)
     file_manager_extension_mock file_mngr;
     resource_location empty_loc;
     library_local lib(file_mngr, lib_loc, { { ".hlasm" } }, empty_loc);
+    run_if_valid(lib.prefetch());
 
     EXPECT_TRUE(lib.has_file("MAC"));
     std::vector<hlasm_plugin::parser_library::diagnostic_s> diags;
@@ -106,6 +115,7 @@ TEST(extension_handling_test, multiple_macro_definitions)
     file_manager_extension_mock2 file_mngr;
     resource_location empty_loc;
     library_local lib(file_mngr, lib_loc, { { ".hlasm", "" } }, empty_loc);
+    run_if_valid(lib.prefetch());
 
     EXPECT_TRUE(lib.has_file("MAC"));
     std::vector<hlasm_plugin::parser_library::diagnostic_s> diags;
@@ -118,6 +128,7 @@ TEST(extension_handling_test, no_multiple_macro_definitions)
     file_manager_extension_mock2 file_mngr;
     resource_location empty_loc;
     library_local lib(file_mngr, lib_loc, { { ".hlasm" } }, empty_loc);
+    run_if_valid(lib.prefetch());
 
     EXPECT_TRUE(lib.has_file("MAC"));
     std::vector<hlasm_plugin::parser_library::diagnostic_s> diags;
@@ -130,6 +141,7 @@ TEST(extension_handling_test, multiple_macros_extensions_not_provided)
     file_manager_extension_mock2 file_mngr;
     resource_location empty_loc;
     library_local lib(file_mngr, lib_loc, {}, empty_loc);
+    run_if_valid(lib.prefetch());
 
     EXPECT_TRUE(lib.has_file("MAC"));
     std::vector<hlasm_plugin::parser_library::diagnostic_s> diags;
@@ -155,6 +167,7 @@ TEST(extension_handling_test, legacy_extension_selection_file_without_ext)
     file_manager_extension_mock_no_ext file_mngr;
     resource_location empty_loc;
     library_local lib(file_mngr, lib_loc, { { ".hlasm" } }, empty_loc);
+    run_if_valid(lib.prefetch());
 
     EXPECT_FALSE(lib.has_file("MAC"));
     std::vector<hlasm_plugin::parser_library::diagnostic_s> diags;

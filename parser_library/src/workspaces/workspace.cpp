@@ -240,18 +240,15 @@ struct workspace_parse_lib_provider final : public parse_lib_provider
     {
         std::vector<utils::task> pending_prefetches;
         for (const auto& lib : libraries)
-        {
-            auto t = lib->prefetch();
-            if (!t.valid() || t.done())
-                continue;
-            pending_prefetches.emplace_back(std::move(t));
-        }
+            if (auto p = lib->prefetch(); p.valid() && !p.done())
+                pending_prefetches.emplace_back(std::move(p));
+
         if (pending_prefetches.empty())
             return {};
 
         return [](auto pp) -> utils::task {
-            for (auto& t : pp)
-                co_await std::move(t);
+            for (auto& p : pp)
+                co_await std::move(p);
         }(std::move(pending_prefetches));
     }
 };
@@ -568,6 +565,9 @@ utils::value_task<parse_file_result> workspace::parse_file(const resource_locati
         comp.m_alternative_config = co_await self.m_configuration.load_alternative_config_if_needed(url);
         workspace_parse_lib_provider ws_lib(self, comp);
 
+        if (auto prefetch = ws_lib.prefetch_libraries(); prefetch.valid())
+            co_await std::move(prefetch);
+
         bool collect_perf_metrics = comp.m_collect_perf_metrics;
 
         auto results = co_await parse_one_file(comp.m_last_opencode_id_storage,
@@ -674,7 +674,7 @@ workspace_file_info workspace::parse_successful(processor_file_compoments& comp,
     return ws_file_info;
 }
 
-utils::task workspace::did_open_file(const resource_location& file_location, open_file_result file_content_status)
+utils::task workspace::did_open_file(resource_location file_location, open_file_result file_content_status)
 {
     if (!m_configuration.is_configuration_file(file_location))
     {
@@ -692,7 +692,7 @@ utils::task workspace::did_open_file(const resource_location& file_location, ope
     }
 }
 
-utils::task workspace::did_close_file(const resource_location& file_location)
+utils::task workspace::did_close_file(resource_location file_location)
 {
     auto fcomp = m_processor_files.find(file_location);
     if (fcomp == m_processor_files.end())
@@ -741,7 +741,7 @@ utils::task workspace::did_close_file(const resource_location& file_location)
     m_processor_files.erase(fcomp);
 }
 
-utils::task workspace::did_change_file(const resource_location& file_location, open_file_result file_content_status)
+utils::task workspace::did_change_file(resource_location file_location, open_file_result file_content_status)
 {
     if (m_configuration.is_configuration_file(file_location))
     {
@@ -755,11 +755,11 @@ utils::task workspace::did_change_file(const resource_location& file_location, o
 }
 
 utils::task workspace::did_change_watched_files(
-    const std::vector<resource_location>& file_locations, const std::vector<open_file_result>& file_change_status)
+    std::vector<resource_location> file_locations, std::vector<open_file_result> file_change_status)
 {
     assert(file_locations.size() == file_change_status.size());
 
-    bool refreshed = m_configuration.refresh_libraries(file_locations);
+    bool refreshed = co_await m_configuration.refresh_libraries(file_locations);
     auto cit = file_change_status.begin();
 
     std::vector<utils::task> pending_updates;

@@ -30,6 +30,10 @@
 #include "utils/resource_location.h"
 #include "utils/task.h"
 
+namespace hlasm_plugin::utils::path {
+enum class list_directory_rc;
+} // namespace hlasm_plugin::utils::path
+
 namespace hlasm_plugin::parser_library::workspaces {
 
 class file_manager;
@@ -121,7 +125,8 @@ private:
     bool m_optional = false;
     utils::resource::resource_location m_proc_grps_loc;
 
-    utils::value_task<files_collection_t> load_files();
+    files_collection_t load_files(std::pair<std::vector<std::pair<std::string, utils::resource::resource_location>>,
+        utils::path::list_directory_rc>);
 };
 #pragma warning(pop)
 

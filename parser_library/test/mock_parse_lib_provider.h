@@ -102,8 +102,6 @@ public:
             it->second.content, utils::resource::resource_location(std::move(library)));
     }
 
-    utils::task prefetch_libraries() override { return {}; }
-
     std::optional<mock_file_stats_t> get_stats(std::string_view library) const
     {
         auto it = m_files.find(library);
