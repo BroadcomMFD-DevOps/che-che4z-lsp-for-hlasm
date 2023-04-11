@@ -79,6 +79,8 @@ utils::task opencode_provider::start_preprocessor()
 
 void opencode_provider::onetime_action()
 {
+    m_state_listener->schedule_helper_task(m_lib_provider->prefetch_libraries());
+
     if (m_preprocessor)
         m_state_listener->schedule_helper_task(start_preprocessor());
 }

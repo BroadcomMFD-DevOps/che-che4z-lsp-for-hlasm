@@ -401,7 +401,12 @@ public:
         struct debugger_mock_library : library
         {
             file_manager& fm;
-            void refresh() override { assert(false); }
+            hlasm_plugin::utils::task refresh() override
+            {
+                assert(false);
+                return {};
+            }
+            hlasm_plugin::utils::task prefetch() override { return {}; }
 
             std::vector<std::string> list_files() override
             {

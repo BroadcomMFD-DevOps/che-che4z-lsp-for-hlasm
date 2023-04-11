@@ -29,6 +29,7 @@ empty_parse_lib_provider::get_library(std::string)
 {
     co_return std::nullopt;
 }
+utils::task empty_parse_lib_provider::prefetch_libraries() { return {}; }
 
 empty_parse_lib_provider empty_parse_lib_provider::instance;
 

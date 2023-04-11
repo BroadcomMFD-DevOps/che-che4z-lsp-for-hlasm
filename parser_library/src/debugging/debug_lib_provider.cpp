@@ -80,4 +80,21 @@ debug_lib_provider::get_library(std::string library)
     co_return std::nullopt;
 }
 
+
+utils::task debug_lib_provider::prefetch_libraries()
+{
+    std::vector<utils::task> pending_prefetches;
+    for (const auto& lib : m_libraries)
+        if (auto p = lib->prefetch(); p.valid() && !p.done())
+            pending_prefetches.emplace_back(std::move(p));
+
+    if (pending_prefetches.empty())
+        return {};
+
+    return [](auto pp) -> utils::task {
+        for (auto& p : pp)
+            co_await std::move(p);
+    }(std::move(pending_prefetches));
+}
+
 } // namespace hlasm_plugin::parser_library::debugging

@@ -67,6 +67,8 @@ struct async_macro_parsing_fixture : ::testing::Test, parse_lib_provider
             co_return std::nullopt;
     }
 
+    task prefetch_libraries() override { return {}; }
+
     void analyze(analyzer& a)
     {
         current = &a;

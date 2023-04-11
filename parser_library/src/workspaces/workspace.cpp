@@ -235,6 +235,25 @@ struct workspace_parse_lib_provider final : public parse_lib_provider
         else
             co_return std::make_pair((co_await get_file(url))->get_text(), std::move(url));
     }
+
+    utils::task prefetch_libraries()
+    {
+        std::vector<utils::task> pending_prefetches;
+        for (const auto& lib : libraries)
+        {
+            auto t = lib->prefetch();
+            if (!t.valid() || t.done())
+                continue;
+            pending_prefetches.emplace_back(std::move(t));
+        }
+        if (pending_prefetches.empty())
+            return {};
+
+        return [](auto pp) -> utils::task {
+            for (auto& t : pp)
+                co_await std::move(t);
+        }(std::move(pending_prefetches));
+    }
 };
 
 workspace::workspace(const resource_location& location,

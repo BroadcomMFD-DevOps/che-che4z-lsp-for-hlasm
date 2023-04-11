@@ -51,6 +51,8 @@ public:
     virtual utils::value_task<std::optional<std::pair<std::string, utils::resource::resource_location>>> get_library(
         std::string library) = 0;
 
+    virtual utils::task prefetch_libraries() = 0;
+
 protected:
     ~parse_lib_provider() = default;
 };
@@ -63,6 +65,7 @@ public:
     bool has_library(std::string_view, utils::resource::resource_location*) override;
     utils::value_task<std::optional<std::pair<std::string, utils::resource::resource_location>>> get_library(
         std::string) override;
+    utils::task prefetch_libraries() override;
 
     static empty_parse_lib_provider instance;
 };

@@ -86,6 +86,8 @@ public:
         co_return std::pair<std::string, resource_location>(files[lib.value()], resource_location(std::move(library)));
     }
 
+    task prefetch_libraries() override { return {}; }
+
     std::vector<std::string> files;
 };
 

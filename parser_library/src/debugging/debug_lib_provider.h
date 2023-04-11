@@ -62,6 +62,9 @@ public:
 
     utils::value_task<std::optional<std::pair<std::string, utils::resource::resource_location>>> get_library(
         std::string library) override;
+
+
+    utils::task prefetch_libraries() override;
 };
 
 } // namespace hlasm_plugin::parser_library::debugging
