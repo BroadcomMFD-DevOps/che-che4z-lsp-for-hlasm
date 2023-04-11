@@ -105,7 +105,10 @@ protected:
                 if constexpr (!std::is_void_v<T>)
                 {
                     auto& p = static_cast<typename value_task<T>::promise_type&>(task_handle.promise());
-                    return std::move(p.result.value());
+                    if constexpr (std::is_reference_v<T>)
+                        return *p.result;
+                    else
+                        return std::move(p.result.value());
                 }
             }
 
@@ -279,15 +282,17 @@ public:
     struct promise_type : task_base::promise_type_base
     {
         value_task get_return_object() { return value_task(std::coroutine_handle<promise_type>::from_promise(*this)); }
+        void return_value(T v) noexcept requires std::is_reference_v<T> { result = &v; }
         void return_value(T v)
 #ifndef _MSC_VER
             noexcept(noexcept(result.emplace(std::move(v))))
 #endif // !_MSC_VER
+                requires(!std::is_reference_v<T>)
         {
             result.emplace(std::move(v));
         }
 
-        std::optional<T> result;
+        std::conditional_t<std::is_reference_v<T>, std::remove_reference_t<T>*, std::optional<T>> result = {};
     };
 
     value_task() = default;
@@ -307,9 +312,18 @@ public:
         if (p.pending_exception)
             std::rethrow_exception(p.pending_exception);
 
-        return static_cast<promise_type&>(p).result.value();
+        if constexpr (std::is_reference_v<T>)
+            return *static_cast<promise_type&>(p).result;
+        else
+            return static_cast<promise_type&>(p).result.value();
     }
-    T value() const&& { return std::move(std::as_const(*this).value()); }
+    T value() const&&
+    {
+        if constexpr (std::is_reference_v<T>)
+            return std::as_const(*this).value();
+        else
+            return std::move(std::as_const(*this).value());
+    }
 
     value_task& run() &
     {
@@ -338,7 +352,7 @@ public:
             }(std::move(*this), std::forward<U>(next));
     }
 
-    static value_task from_value(const T& v)
+    static value_task from_value(const T& v) requires(!std::is_reference_v<T>)
     {
         const auto cortn = [&v]() -> value_task { co_return v; };
         auto result = cortn();
@@ -348,7 +362,12 @@ public:
 
     static value_task from_value(T&& v)
     {
-        const auto cortn = [&v]() -> value_task { co_return std::move(v); };
+        const auto cortn = [&v]() -> value_task {
+            if constexpr (std::is_reference_v<T>)
+                co_return v;
+            else
+                co_return std::move(v);
+        };
         auto result = cortn();
         result.run();
         return result;

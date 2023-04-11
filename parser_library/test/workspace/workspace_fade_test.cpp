@@ -101,12 +101,12 @@ public:
 
     void open_src_files_and_collect_fms(std::initializer_list<std::pair<resource_location, std::string>> files)
     {
-        ws.open();
+        ws.open().run();
 
         for (const auto& [rl, text] : files)
         {
             file_manager.did_open_file(rl, 1, text);
-            ws.did_open_file(rl);
+            run_if_valid(ws.did_open_file(rl));
         }
         parse_all_files(ws);
 
@@ -1121,9 +1121,9 @@ public:
         for (const auto& [rl, is_cpybook, _] : files_to_open)
             m_fm.did_open_file(rl, 1, is_cpybook ? cpybook : source_template);
 
-        ws.open();
+        ws.open().run();
         for (const auto& [rl, _, open_file_res] : files_to_open)
-            ws.did_open_file(rl, open_file_res);
+            run_if_valid(ws.did_open_file(rl, open_file_res));
         parse_all_files(ws);
     }
 
@@ -1136,13 +1136,13 @@ public:
 
     void did_close_file(resource_location rl)
     {
-        ws.did_close_file(rl);
+        run_if_valid(ws.did_close_file(rl));
         parse_all_files(ws);
     }
     void did_open_file(resource_location rl)
     {
         m_fm.did_open_file(rl, 1, source_template);
-        ws.did_open_file(rl);
+        run_if_valid(ws.did_open_file(rl));
         parse_all_files(ws);
     }
 

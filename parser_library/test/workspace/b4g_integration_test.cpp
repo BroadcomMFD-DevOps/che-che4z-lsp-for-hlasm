@@ -126,25 +126,25 @@ TEST(b4g_integration_test, basic_pgm_conf_retrieval)
     lib_config config;
     shared_json global_settings = make_empty_shared_json();
     workspace ws(resource_location(), "workspace_name", file_manager, config, global_settings);
-    ws.open();
+    ws.open().run();
 
-    ws.did_open_file(resource_location("SYS/SUB/ASMPGM/A"));
+    run_if_valid(ws.did_open_file(resource_location("SYS/SUB/ASMPGM/A")));
     parse_all_files(ws);
     ws.collect_diags();
 
     EXPECT_TRUE(matches_message_text(ws.diags(), { "SYS/SUB/ASMMACP1/MAC1", "ASMMACP1/MAC2" }));
     ws.diags().clear();
 
-    ws.did_close_file(resource_location("SYS/SUB/ASMPGM/A"));
+    run_if_valid(ws.did_close_file(resource_location("SYS/SUB/ASMPGM/A")));
     parse_all_files(ws);
 
-    ws.did_open_file(resource_location("SYS/SUB/ASMPGM/B"));
+    run_if_valid(ws.did_open_file(resource_location("SYS/SUB/ASMPGM/B")));
     parse_all_files(ws);
     ws.collect_diags();
 
     EXPECT_TRUE(matches_message_text(ws.diags(), { "SYS/SUB/ASMMACP2/MAC1", "ASMMACP2/MAC2" }));
 
-    ws.did_close_file(resource_location("SYS/SUB/ASMPGM/B"));
+    run_if_valid(ws.did_close_file(resource_location("SYS/SUB/ASMPGM/B")));
 }
 
 TEST(b4g_integration_test, invalid_bridge_json)
@@ -158,9 +158,9 @@ TEST(b4g_integration_test, invalid_bridge_json)
     lib_config config;
     shared_json global_settings = make_empty_shared_json();
     workspace ws(resource_location(), "workspace_name", file_manager, config, global_settings);
-    ws.open();
+    ws.open().run();
 
-    ws.did_open_file(resource_location("SYS/SUB/ASMPGM/A"));
+    run_if_valid(ws.did_open_file(resource_location("SYS/SUB/ASMPGM/A")));
     parse_all_files(ws);
     ws.collect_diags();
 
@@ -180,9 +180,9 @@ TEST(b4g_integration_test, missing_pgroup)
     lib_config config;
     shared_json global_settings = make_empty_shared_json();
     workspace ws(resource_location(), "workspace_name", file_manager, config, global_settings);
-    ws.open();
+    ws.open().run();
 
-    ws.did_open_file(resource_location("SYS/SUB/ASMPGM/A"));
+    run_if_valid(ws.did_open_file(resource_location("SYS/SUB/ASMPGM/A")));
     parse_all_files(ws);
     ws.collect_diags();
 
@@ -202,11 +202,11 @@ TEST(b4g_integration_test, missing_pgroup_but_not_used)
     lib_config config;
     shared_json global_settings = make_empty_shared_json();
     workspace ws(resource_location(), "workspace_name", file_manager, config, global_settings);
-    ws.open();
+    ws.open().run();
 
-    ws.did_open_file(resource_location("SYS/SUB/ASMPGM/A"));
+    run_if_valid(ws.did_open_file(resource_location("SYS/SUB/ASMPGM/A")));
     parse_all_files(ws);
-    ws.did_close_file(resource_location("SYS/SUB/ASMPGM/A"));
+    run_if_valid(ws.did_close_file(resource_location("SYS/SUB/ASMPGM/A")));
     parse_all_files(ws);
 
     ws.collect_diags();
@@ -234,9 +234,9 @@ TEST(b4g_integration_test, bridge_config_changed)
     lib_config config;
     shared_json global_settings = make_empty_shared_json();
     workspace ws(resource_location(), "workspace_name", file_manager, config, global_settings);
-    ws.open();
+    ws.open().run();
 
-    ws.did_open_file(resource_location("SYS/SUB/ASMPGM/A"));
+    run_if_valid(ws.did_open_file(resource_location("SYS/SUB/ASMPGM/A")));
     parse_all_files(ws);
     ws.collect_diags();
 
@@ -247,7 +247,8 @@ TEST(b4g_integration_test, bridge_config_changed)
     std::string_view new_bridge_json = R"({"elements":{},"defaultProcessorGroup":"P1","fileExtension":""})";
     document_change doc_change(new_bridge_json.data(), new_bridge_json.size());
     file_manager.did_change_file(resource_location("SYS/SUB/ASMPGM/.bridge.json"), 2, &doc_change, 1);
-    ws.did_change_file(resource_location("SYS/SUB/ASMPGM/.bridge.json"), &doc_change, 1);
+    run_if_valid(
+        ws.did_change_file(resource_location("SYS/SUB/ASMPGM/.bridge.json"), open_file_result::changed_content));
     parse_all_files(ws);
 
     ws.collect_diags();
@@ -275,9 +276,9 @@ TEST(b4g_integration_test, proc_config_changed)
     lib_config config;
     shared_json global_settings = make_empty_shared_json();
     workspace ws(resource_location(), "workspace_name", file_manager, config, global_settings);
-    ws.open();
+    ws.open().run();
 
-    ws.did_open_file(resource_location("SYS/SUB/ASMPGM/A"));
+    run_if_valid(ws.did_open_file(resource_location("SYS/SUB/ASMPGM/A")));
     parse_all_files(ws);
     ws.collect_diags();
 
@@ -289,7 +290,8 @@ TEST(b4g_integration_test, proc_config_changed)
         R"({"pgroups":[{"name":"P1","libs":[{"path":"ASMMAC","prefer_alternate_root":true}]}]})";
     document_change doc_change(new_bridge_json.data(), new_bridge_json.size());
     file_manager.did_change_file(resource_location(".hlasmplugin/proc_grps.json"), 2, &doc_change, 1);
-    ws.did_change_file(resource_location(".hlasmplugin/proc_grps.json"), &doc_change, 1);
+    run_if_valid(
+        ws.did_change_file(resource_location(".hlasmplugin/proc_grps.json"), open_file_result::changed_content));
     parse_all_files(ws);
 
     ws.collect_diags();

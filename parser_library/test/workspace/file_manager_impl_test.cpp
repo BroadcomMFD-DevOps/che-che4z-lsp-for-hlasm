@@ -36,6 +36,15 @@ auto load_text_coroutine(std::optional<std::string> v)
     return [v]() { return hlasm_plugin::utils::value_task<std::optional<std::string>>::from_value(v); };
 }
 
+template<typename T>
+T run_or_default(value_task<T> t, T default_value)
+{
+    if (!t.valid())
+        return default_value;
+
+    return std::move(t).run().value();
+}
+
 } // namespace
 
 TEST(file_manager, update_file)
@@ -48,7 +57,7 @@ TEST(file_manager, update_file)
     file_manager_impl fm(reader_mock);
 
     // nobody is working with the file, so assume it has not changed
-    EXPECT_EQ(fm.update_file(file).run().value(), open_file_result::identical);
+    EXPECT_EQ(run_or_default(fm.update_file(file), open_file_result::identical), open_file_result::identical);
 
     EXPECT_CALL(reader_mock, load_text(file)).WillOnce(Invoke(load_text_coroutine(text1)));
 
@@ -58,14 +67,14 @@ TEST(file_manager, update_file)
 
     EXPECT_CALL(reader_mock, load_text(file)).WillRepeatedly(Invoke(load_text_coroutine(text2)));
 
-    EXPECT_EQ(fm.update_file(file).run().value(), open_file_result::changed_content);
+    EXPECT_EQ(run_or_default(fm.update_file(file), open_file_result::identical), open_file_result::changed_content);
     EXPECT_EQ(f->get_text(), text1); // old file version
-    EXPECT_EQ(fm.update_file(file).run().value(), open_file_result::identical);
+    EXPECT_EQ(run_or_default(fm.update_file(file), open_file_result::identical), open_file_result::identical);
 
     f = fm.add_file(file).run().value();
     EXPECT_EQ(f->get_text(), text2);
 
-    EXPECT_EQ(fm.update_file(file).run().value(), open_file_result::identical);
+    EXPECT_EQ(run_or_default(fm.update_file(file), open_file_result::identical), open_file_result::identical);
 }
 
 TEST(file_manger, keep_content_on_close)

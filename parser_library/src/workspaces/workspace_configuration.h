@@ -37,6 +37,7 @@
 #include "processor_group.h"
 #include "utils/general_hashers.h"
 #include "utils/resource_location.h"
+#include "utils/task.h"
 
 namespace hlasm_plugin::parser_library::workspaces {
 using program_id = utils::resource::resource_location;
@@ -241,17 +242,18 @@ class workspace_configuration
     bool is_b4g_config_file(const utils::resource::resource_location& file) const;
     const program* get_program_normalized(const utils::resource::resource_location& file_location_normalized) const;
 
-    parse_config_file_result parse_b4g_config_file(const utils::resource::resource_location& file_location);
-
-    std::pair<parse_config_file_result, utils::resource::resource_location> try_loading_alternative_configuration(
+    utils::value_task<parse_config_file_result> parse_b4g_config_file(
         const utils::resource::resource_location& file_location);
 
-    parse_config_file_result load_and_process_config(std::vector<diagnostic_s>& diags);
+    utils::value_task<std::pair<parse_config_file_result, utils::resource::resource_location>>
+    try_loading_alternative_configuration(const utils::resource::resource_location& file_location);
 
-    parse_config_file_result load_proc_config(config::proc_grps& proc_groups,
+    utils::value_task<parse_config_file_result> load_and_process_config(std::vector<diagnostic_s>& diags);
+
+    utils::value_task<parse_config_file_result> load_proc_config(config::proc_grps& proc_groups,
         global_settings_map& utilized_settings_values,
         std::vector<diagnostic_s>& diags);
-    parse_config_file_result load_pgm_config(
+    utils::value_task<parse_config_file_result> load_pgm_config(
         config::pgm_conf& pgm_config, global_settings_map& utilized_settings_values, std::vector<diagnostic_s>& diags);
 
     void find_and_add_libs(const utils::resource::resource_location& root,
@@ -265,9 +267,9 @@ public:
         file_manager& fm, utils::resource::resource_location location, const shared_json& global_settings);
 
     bool is_configuration_file(const utils::resource::resource_location& file) const;
-    parse_config_file_result parse_configuration_file(
+    utils::value_task<parse_config_file_result> parse_configuration_file(
         std::optional<utils::resource::resource_location> file = std::nullopt);
-    utils::resource::resource_location load_alternative_config_if_needed(
+    utils::value_task<utils::resource::resource_location> load_alternative_config_if_needed(
         const utils::resource::resource_location& file_location);
 
     const program* get_program(const utils::resource::resource_location& program) const;

@@ -347,7 +347,8 @@ bool workspace_configuration::is_b4g_config_file(const utils::resource::resource
 }
 
 // open config files and parse them
-parse_config_file_result workspace_configuration::load_and_process_config(std::vector<diagnostic_s>& diags)
+utils::value_task<parse_config_file_result> workspace_configuration::load_and_process_config(
+    std::vector<diagnostic_s>& diags)
 {
     diags.clear();
 
@@ -359,11 +360,12 @@ parse_config_file_result workspace_configuration::load_and_process_config(std::v
     m_regex_pgm_conf.clear();
     m_b4g_config_cache.clear();
 
-    if (auto l = load_proc_config(proc_groups, utilized_settings_values, diags); l != parse_config_file_result::parsed)
-        return l;
+    if (auto l = co_await load_proc_config(proc_groups, utilized_settings_values, diags);
+        l != parse_config_file_result::parsed)
+        co_return l;
 
     config::pgm_conf pgm_config;
-    const auto pgm_conf_loaded = load_pgm_config(pgm_config, utilized_settings_values, diags);
+    const auto pgm_conf_loaded = co_await load_pgm_config(pgm_config, utilized_settings_values, diags);
 
     process_processor_group_and_cleanup_libraries(
         proc_groups.pgroups, proc_groups.macro_extensions, utils::resource::resource_location(), diags);
@@ -388,19 +390,19 @@ parse_config_file_result workspace_configuration::load_and_process_config(std::v
     m_proc_grps_source = std::move(proc_groups);
 
     // we need to tolerate pgm_conf processing failure, because other products may provide the info
-    return parse_config_file_result::parsed;
+    co_return parse_config_file_result::parsed;
 }
 
-parse_config_file_result workspace_configuration::load_proc_config(
+utils::value_task<parse_config_file_result> workspace_configuration::load_proc_config(
     config::proc_grps& proc_groups, global_settings_map& utilized_settings_values, std::vector<diagnostic_s>& diags)
 {
     const auto current_settings = m_global_settings.load();
     json_settings_replacer json_visitor { *current_settings, utilized_settings_values, m_location };
 
     // proc_grps.json parse
-    auto proc_grps_content = m_file_manager.get_file_content(m_proc_grps_loc);
+    auto proc_grps_content = co_await m_file_manager.get_file_content(m_proc_grps_loc);
     if (!proc_grps_content.has_value())
-        return parse_config_file_result::not_found;
+        co_return parse_config_file_result::not_found;
 
     try
     {
@@ -412,7 +414,7 @@ parse_config_file_result workspace_configuration::load_proc_config(
     {
         // could not load proc_grps
         diags.push_back(diagnostic_s::error_W0002(m_proc_grps_loc));
-        return parse_config_file_result::error;
+        co_return parse_config_file_result::error;
     }
 
     for (const auto& var : json_visitor.unavailable)
@@ -429,19 +431,19 @@ parse_config_file_result workspace_configuration::load_proc_config(
         }
     }
 
-    return parse_config_file_result::parsed;
+    co_return parse_config_file_result::parsed;
 }
 
-parse_config_file_result workspace_configuration::load_pgm_config(
+utils::value_task<parse_config_file_result> workspace_configuration::load_pgm_config(
     config::pgm_conf& pgm_config, global_settings_map& utilized_settings_values, std::vector<diagnostic_s>& diags)
 {
     const auto current_settings = m_global_settings.load();
     json_settings_replacer json_visitor { *current_settings, utilized_settings_values, m_location };
 
     // pgm_conf.json parse
-    auto pgm_conf_content = m_file_manager.get_file_content(m_pgm_conf_loc);
+    auto pgm_conf_content = co_await m_file_manager.get_file_content(m_pgm_conf_loc);
     if (!pgm_conf_content.has_value())
-        return parse_config_file_result::not_found;
+        co_return parse_config_file_result::not_found;
 
     try
     {
@@ -452,7 +454,7 @@ parse_config_file_result workspace_configuration::load_pgm_config(
     catch (const nlohmann::json::exception&)
     {
         diags.push_back(diagnostic_s::error_W0003(m_pgm_conf_loc));
-        return parse_config_file_result::error;
+        co_return parse_config_file_result::error;
     }
 
     for (const auto& var : json_visitor.unavailable)
@@ -464,7 +466,7 @@ parse_config_file_result workspace_configuration::load_pgm_config(
             diags.push_back(diagnostic_s::error_W0005(m_pgm_conf_loc, pgm.program, "program"));
     }
 
-    return parse_config_file_result::parsed;
+    co_return parse_config_file_result::parsed;
 }
 
 bool workspace_configuration::settings_updated() const
@@ -478,7 +480,7 @@ bool workspace_configuration::settings_updated() const
     return false;
 }
 
-parse_config_file_result workspace_configuration::parse_b4g_config_file(
+utils::value_task<parse_config_file_result> workspace_configuration::parse_b4g_config_file(
     const utils::resource::resource_location& file_location)
 {
     // keep in sync with try_loading_alternative_configuration
@@ -494,9 +496,9 @@ parse_config_file_result workspace_configuration::parse_b4g_config_file(
         it->second = {};
     }
 
-    auto b4g_config_content = m_file_manager.get_file_content(file_location);
+    auto b4g_config_content = co_await m_file_manager.get_file_content(file_location);
     if (!b4g_config_content.has_value())
-        return parse_config_file_result::not_found;
+        co_return parse_config_file_result::not_found;
 
     const void* new_tag = std::to_address(it);
     auto& conf = it->second;
@@ -508,7 +510,7 @@ parse_config_file_result workspace_configuration::parse_b4g_config_file(
     catch (const nlohmann::json::exception&)
     {
         conf.diags.push_back(diagnostic_s::error_B4G001(file_location));
-        return parse_config_file_result::error;
+        co_return parse_config_file_result::error;
     }
 
     process_processor_group_and_cleanup_libraries(
@@ -553,7 +555,7 @@ parse_config_file_result workspace_configuration::parse_b4g_config_file(
     for (const auto& pgroup : missing_pgroups)
         conf.diags.push_back(diagnostic_s::error_B4G002(file_location, pgroup));
 
-    return parse_config_file_result::parsed;
+    co_return parse_config_file_result::parsed;
 }
 
 
@@ -641,17 +643,16 @@ void workspace_configuration::copy_diagnostics(const diagnosable& target,
     }
 }
 
-parse_config_file_result workspace_configuration::parse_configuration_file(
+utils::value_task<parse_config_file_result> workspace_configuration::parse_configuration_file(
     std::optional<utils::resource::resource_location> file)
 {
     if (!file.has_value() || is_config_file(*file))
-        return load_and_process_config(m_config_diags);
+        co_return co_await load_and_process_config(m_config_diags);
 
     if (is_b4g_config_file(*file))
-        return parse_b4g_config_file(*file);
+        co_return co_await parse_b4g_config_file(*file);
 
-
-    return parse_config_file_result::not_found;
+    co_return parse_config_file_result::not_found;
 }
 
 bool workspace_configuration::refresh_libraries(const std::vector<utils::resource::resource_location>& file_locations)
@@ -716,7 +717,7 @@ const program* workspace_configuration::get_program_normalized(
     return nullptr;
 }
 
-std::pair<parse_config_file_result, utils::resource::resource_location>
+utils::value_task<std::pair<parse_config_file_result, utils::resource::resource_location>>
 workspace_configuration::try_loading_alternative_configuration(const utils::resource::resource_location& file_location)
 {
     auto result = std::pair(parse_config_file_result::parsed,
@@ -724,27 +725,27 @@ workspace_configuration::try_loading_alternative_configuration(const utils::reso
     auto& [parsed, configuration_url] = result;
 
     if (auto it = m_b4g_config_cache.find(configuration_url); it == m_b4g_config_cache.end())
-        parsed = parse_b4g_config_file(configuration_url);
+        parsed = co_await parse_b4g_config_file(configuration_url);
     else if (!it->second.config.has_value()) // keep in sync with parse_b4g_config_file
         parsed = it->second.diags.empty() ? parse_config_file_result::not_found : parse_config_file_result::error;
 
-    return result;
+    co_return result;
 }
 
-utils::resource::resource_location workspace_configuration::load_alternative_config_if_needed(
+utils::value_task<utils::resource::resource_location> workspace_configuration::load_alternative_config_if_needed(
     const utils::resource::resource_location& file_location)
 {
     const auto rl = file_location.lexically_normal();
 
     if (get_program_normalized(rl))
-        return utils::resource::resource_location();
+        co_return utils::resource::resource_location();
 
-    auto [result, uri] = try_loading_alternative_configuration(rl);
+    auto [result, uri] = co_await try_loading_alternative_configuration(rl);
 
     if (result == parse_config_file_result::not_found)
-        return utils::resource::resource_location();
+        co_return utils::resource::resource_location();
 
-    return std::move(uri);
+    co_return std::move(uri);
 }
 
 } // namespace hlasm_plugin::parser_library::workspaces

@@ -461,7 +461,7 @@ public:
         , global_settings(make_empty_shared_json())
         , ws(ws_loc, "workspace_name", file_manager, config, global_settings)
     {
-        ws.open();
+        ws.open().run();
     };
 };
 
@@ -481,7 +481,7 @@ void verify_absolute(pgmconf_variants pgmconf_variant)
     EXPECT_CALL(vars.file_manager, list_directory_files(temp_lib2_libs_subdir))
         .WillOnce(::testing::Invoke(list_directory_cortn({ {}, hlasm_plugin::utils::path::list_directory_rc::done })));
 
-    vars.ws.did_open_file(pattern_test_source_loc);
+    run_if_valid(vars.ws.did_open_file(pattern_test_source_loc));
     parse_all_files(vars.ws);
 }
 
@@ -498,7 +498,7 @@ void verify_relative_1(pgmconf_variants pgmconf_variant)
         .WillOnce(::testing::Invoke(list_directory_cortn(
             { { { "mac2", pattern_test_macro2_loc } }, hlasm_plugin::utils::path::list_directory_rc::done })));
 
-    vars.ws.did_open_file(pattern_test_source_loc);
+    run_if_valid(vars.ws.did_open_file(pattern_test_source_loc));
     parse_all_files(vars.ws);
 }
 
@@ -513,7 +513,7 @@ void verify_relative_2(pgmconf_variants pgmconf_variant)
     EXPECT_CALL(vars.file_manager, list_directory_files(pattern_test_lib_sublib2_loc))
         .WillOnce(::testing::Invoke(list_directory_cortn({ {}, hlasm_plugin::utils::path::list_directory_rc::done })));
 
-    vars.ws.did_open_file(pattern_test_source_loc);
+    run_if_valid(vars.ws.did_open_file(pattern_test_source_loc));
     parse_all_files(vars.ws);
 }
 
@@ -528,7 +528,7 @@ void verify_relative_3(pgmconf_variants pgmconf_variant)
     EXPECT_CALL(vars.file_manager, list_directory_files(pattern_est_dir_loc))
         .WillOnce(::testing::Invoke(list_directory_cortn({ {}, hlasm_plugin::utils::path::list_directory_rc::done })));
 
-    vars.ws.did_open_file(pattern_test_source_loc);
+    run_if_valid(vars.ws.did_open_file(pattern_test_source_loc));
     parse_all_files(vars.ws);
 }
 
@@ -545,7 +545,7 @@ void verify_uri_1(pgmconf_variants pgmconf_variant)
         .WillOnce(::testing::Invoke(list_directory_cortn(
             { { { "mac2", pattern_test_macro2_loc } }, hlasm_plugin::utils::path::list_directory_rc::done })));
 
-    vars.ws.did_open_file(pattern_test_source_loc);
+    run_if_valid(vars.ws.did_open_file(pattern_test_source_loc));
     parse_all_files(vars.ws);
 }
 
@@ -560,7 +560,7 @@ void verify_uri_2_3(pgmconf_variants pgmconf_variant)
         .WillOnce(::testing::Invoke(list_directory_cortn(
             { { { "mac2", pattern_test_macro2_loc } }, hlasm_plugin::utils::path::list_directory_rc::done })));
 
-    vars.ws.did_open_file(pattern_test_source_loc);
+    run_if_valid(vars.ws.did_open_file(pattern_test_source_loc));
     parse_all_files(vars.ws);
 }
 
@@ -577,7 +577,7 @@ void verify_uri_non_standard(pgroup_variants pgroup_variant, pgmconf_variants pg
         .WillOnce(::testing::Invoke(list_directory_cortn(
             { { { "mac2", pattern_test_macro2_loc } }, hlasm_plugin::utils::path::list_directory_rc::done })));
 
-    vars.ws.did_open_file(pattern_test_source_loc);
+    run_if_valid(vars.ws.did_open_file(pattern_test_source_loc));
     parse_all_files(vars.ws);
 }
 
@@ -604,7 +604,7 @@ void verify_combination(pgmconf_variants pgmconf_variant)
         .WillOnce(::testing::Invoke(list_directory_cortn(
             { { { "mac2", pattern_test_macro2_loc } }, hlasm_plugin::utils::path::list_directory_rc::done })));
 
-    vars.ws.did_open_file(pattern_test_source_loc);
+    run_if_valid(vars.ws.did_open_file(pattern_test_source_loc));
     parse_all_files(vars.ws);
 }
 
@@ -621,7 +621,7 @@ void verify_double_dot(pgroup_variants pgroup_variant, pgmconf_variants pgmconf_
         .WillOnce(::testing::Invoke(list_directory_cortn(
             { { { "mac2", pattern_test_macro2_loc } }, hlasm_plugin::utils::path::list_directory_rc::done })));
 
-    vars.ws.did_open_file(pattern_test_source_loc);
+    run_if_valid(vars.ws.did_open_file(pattern_test_source_loc));
     parse_all_files(vars.ws);
 }
 
@@ -638,7 +638,7 @@ void verify_root_asterisk()
         .WillOnce(::testing::Invoke(list_directory_cortn(
             { { { "mac2", pattern_test_macro2_loc } }, hlasm_plugin::utils::path::list_directory_rc::done })));
 
-    vars.ws.did_open_file(root_source_file);
+    run_if_valid(vars.ws.did_open_file(root_source_file));
     parse_all_files(vars.ws);
 }
 } // namespace
@@ -926,8 +926,8 @@ void verify_infinit_loop(pgroup_symlinks_variants pgroup_variant, pgmconf_varian
     shared_json global_settings = make_empty_shared_json();
 
     workspace ws(ws_loc, "workspace_name", file_manager, config, global_settings);
-    ws.open();
-    ws.did_open_file(pattern_test_source_loc);
+    ws.open().run();
+    run_if_valid(ws.did_open_file(pattern_test_source_loc));
     parse_all_files(ws);
 
     // No explicit expectations - it is just expected that this will not crash or end up in a loop.

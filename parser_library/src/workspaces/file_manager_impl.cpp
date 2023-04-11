@@ -421,30 +421,31 @@ utils::resource::resource_location file_manager_impl::get_virtual_file_workspace
 utils::value_task<open_file_result> file_manager_impl::update_file(
     const utils::resource::resource_location& document_loc)
 {
-    std::unique_lock lock(files_mutex);
-
-    if (auto f = m_files.find(document_loc); f == m_files.end() || f->second.file->get_lsp_editing())
-        co_return open_file_result::identical;
-
-    lock.unlock();
-
-    auto current_text = co_await m_file_reader->load_text(document_loc);
-
-    lock.lock();
-
-    auto f = m_files.find(document_loc);
-    if (f == m_files.end() || f->second.file->get_lsp_editing())
-        co_return open_file_result::identical;
-
-    if (f->second.file->get_text_or_error() == current_text)
     {
-        f->second.closed = false;
-        co_return open_file_result::identical;
+        std::lock_guard lock(files_mutex);
+
+        if (auto f = m_files.find(document_loc); f == m_files.end() || f->second.file->get_lsp_editing())
+            return {};
     }
 
-    f->second.file->m_it = m_files.end();
-    m_files.erase(f);
-    co_return open_file_result::changed_content;
+    return m_file_reader->load_text(document_loc)
+        .then([this, document_loc](auto current_text) -> utils::value_task<open_file_result> {
+            std::lock_guard lock(files_mutex);
+
+            auto f = m_files.find(document_loc);
+            if (f == m_files.end() || f->second.file->get_lsp_editing())
+                co_return open_file_result::identical;
+
+            if (f->second.file->get_text_or_error() == current_text)
+            {
+                f->second.closed = false;
+                co_return open_file_result::identical;
+            }
+
+            f->second.file->m_it = m_files.end();
+            m_files.erase(f);
+            co_return open_file_result::changed_content;
+        });
 }
 
 } // namespace hlasm_plugin::parser_library::workspaces

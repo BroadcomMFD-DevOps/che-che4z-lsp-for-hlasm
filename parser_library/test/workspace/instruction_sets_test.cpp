@@ -161,7 +161,7 @@ void change_instruction_set(
     changes.push_back(document_change({ change_range }, process_group.c_str(), process_group.size()));
 
     fm.did_change_file(proc_grps_loc, 1, changes.data(), changes.size());
-    ws.did_change_file(proc_grps_loc, changes.data(), changes.size());
+    run_if_valid(ws.did_change_file(proc_grps_loc, open_file_result::changed_content));
     parse_all_files(ws);
 }
 } // namespace
@@ -172,9 +172,9 @@ TEST_F(workspace_instruction_sets_test, changed_instr_set_370_Z10)
     lib_config config;
     shared_json global_settings = make_empty_shared_json();
     workspace ws(file_manager, config, global_settings);
-    ws.open();
+    ws.open().run();
 
-    ws.did_open_file(source_loc);
+    run_if_valid(ws.did_open_file(source_loc));
     parse_all_files(ws);
     EXPECT_EQ(collect_and_get_diags_size(ws), (size_t)0);
 
@@ -191,9 +191,9 @@ TEST_F(workspace_instruction_sets_test, changed_instr_set_Z10_370)
     lib_config config;
     shared_json global_settings = make_empty_shared_json();
     workspace ws(file_manager, config, global_settings);
-    ws.open();
+    ws.open().run();
 
-    ws.did_open_file(source_loc);
+    run_if_valid(ws.did_open_file(source_loc));
     parse_all_files(ws);
     collect_and_get_diags_size(ws);
     EXPECT_TRUE(matches_message_codes(diags(), { "E049" }));

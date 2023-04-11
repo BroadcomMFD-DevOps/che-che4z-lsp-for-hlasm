@@ -188,7 +188,7 @@ TEST(workspace, load_config_synthetic)
     shared_json global_settings = make_empty_shared_json();
     workspace ws(ws_loc, "test_proc_grps_name", file_manager, config, global_settings);
 
-    ws.open();
+    ws.open().run();
 
     // Check P1
     auto& pg = ws.get_proc_grp({ "P1", resource_location() });
@@ -267,7 +267,7 @@ TEST(workspace, pgm_conf_malformed)
     lib_config config;
     shared_json global_settings = make_empty_shared_json();
     workspace ws(fm, config, global_settings);
-    ws.open();
+    ws.open().run();
 
     ws.collect_diags();
     ASSERT_EQ(ws.diags().size(), 1U);
@@ -284,7 +284,7 @@ TEST(workspace, proc_grps_malformed)
     lib_config config;
     shared_json global_settings = make_empty_shared_json();
     workspace ws(fm, config, global_settings);
-    ws.open();
+    ws.open().run();
 
     ws.collect_diags();
     ASSERT_EQ(ws.diags().size(), 1U);
@@ -299,7 +299,7 @@ TEST(workspace, pgm_conf_missing)
     lib_config config;
     shared_json global_settings = make_empty_shared_json();
     workspace ws(fm, config, global_settings);
-    ws.open();
+    ws.open().run();
 
     ws.collect_diags();
     ASSERT_EQ(ws.diags().size(), 0U);
@@ -313,7 +313,7 @@ TEST(workspace, proc_grps_missing)
     lib_config config;
     shared_json global_settings = make_empty_shared_json();
     workspace ws(fm, config, global_settings);
-    ws.open();
+    ws.open().run();
 
     ws.collect_diags();
     ASSERT_EQ(ws.diags().size(), 0U);
@@ -339,7 +339,7 @@ TEST(workspace, asm_options_invalid)
     lib_config config;
     shared_json global_settings = make_empty_shared_json();
     workspace ws(fm, config, global_settings);
-    ws.open();
+    ws.open().run();
 
     ws.collect_diags();
     ASSERT_EQ(ws.diags().size(), 1U);
@@ -377,7 +377,7 @@ TEST(workspace, asm_options_goff_xobject_redefinition)
     shared_json global_settings = make_empty_shared_json();
     workspace ws(ws_loc, "test_proc_grps_name", file_manager, config, global_settings);
 
-    ws.open();
+    ws.open().run();
 
     ws.collect_diags();
 
@@ -397,7 +397,7 @@ TEST(workspace, proc_grps_with_substitutions)
     shared_json global_settings = std::make_shared<const nlohmann::json>(
         nlohmann::json::parse(R"({"name":"proc_group","lib1":"library1","lib2":"library2"})"));
     workspace ws(fm, config, global_settings);
-    ws.open();
+    ws.open().run();
     ws.collect_diags();
 
     EXPECT_TRUE(ws.diags().empty());
@@ -426,7 +426,7 @@ TEST(workspace, pgm_conf_with_substitutions)
     shared_json global_settings = std::make_shared<const nlohmann::json>(
         nlohmann::json::parse(R"({"pgm_mask":["file_name"],"sysparm":"DEBUG"})"));
     workspace ws(fm, config, global_settings);
-    ws.open();
+    ws.open().run();
     ws.collect_diags();
 
     EXPECT_TRUE(ws.diags().empty());
@@ -448,7 +448,7 @@ TEST(workspace, missing_substitutions)
     lib_config config;
     shared_json global_settings = std::make_shared<const nlohmann::json>(nlohmann::json::object());
     workspace ws(fm, config, global_settings);
-    ws.open();
+    ws.open().run();
     ws.collect_diags();
 
     EXPECT_TRUE(matches_message_codes(ws.diags(), { "W0007", "W0007" }));
@@ -467,7 +467,7 @@ TEST(workspace, refresh_settings)
     shared_json global_settings = std::make_shared<const nlohmann::json>(
         nlohmann::json::parse(R"({"pgm_mask":["file_name"],"sysparm":"DEBUG"})"));
     workspace ws(fm, config, global_settings);
-    ws.open();
+    ws.open().run();
     ws.collect_diags();
 
     EXPECT_TRUE(ws.diags().empty());
@@ -476,11 +476,11 @@ TEST(workspace, refresh_settings)
 
     EXPECT_EQ(
         ws.get_asm_options(resource_location::join(resource_location("test"), "file_name")).sysparm, "DEBUGDEBUG");
-    EXPECT_FALSE(ws.settings_updated());
+    EXPECT_FALSE(ws.settings_updated().run().value());
 
     global_settings = std::make_shared<const nlohmann::json>(
         nlohmann::json::parse(R"({"pgm_mask":["different_file"],"sysparm":"RELEASE"})"));
-    EXPECT_TRUE(ws.settings_updated());
+    EXPECT_TRUE(ws.settings_updated().run().value());
 
     EXPECT_EQ(ws.get_asm_options(resource_location::join(resource_location("test"), "file_name")).sysparm, "");
     EXPECT_EQ(ws.get_asm_options(resource_location::join(resource_location("test"), "different_file")).sysparm,
@@ -497,7 +497,7 @@ TEST(workspace, opcode_suggestions)
     lib_config config;
     shared_json global_settings = make_empty_shared_json();
     workspace ws(fm, config, global_settings);
-    ws.open();
+    ws.open().run();
     ws.collect_diags();
 
     EXPECT_TRUE(ws.diags().empty());
@@ -515,7 +515,7 @@ TEST(workspace, lsp_file_not_processed_yet)
     lib_config config;
     shared_json global_settings = make_empty_shared_json();
     workspace ws(mngr, config, global_settings);
-    ws.open();
+    ws.open().run();
 
     mngr.did_open_file(file_loc, 0, " LR 1,1");
 
@@ -524,7 +524,7 @@ TEST(workspace, lsp_file_not_processed_yet)
     EXPECT_EQ(ws.hover(file_loc, { 0, 5 }), "");
     EXPECT_EQ(ws.completion(file_loc, { 0, 5 }, '\0', completion_trigger_kind::invoked), lsp::completion_list_s());
 
-    ws.did_open_file(file_loc);
+    run_if_valid(ws.did_open_file(file_loc));
     // parsing not done yet
 
     EXPECT_EQ(ws.definition(file_loc, { 0, 5 }), location({ 0, 5 }, file_loc));
