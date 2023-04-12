@@ -927,7 +927,15 @@ private:
                     result = { {}, utils::path::list_directory_rc::other_failure };
                 }
             }
-            void error(int, const char*) { result.second = utils::path::list_directory_rc::not_exists; }
+            void error(int err, const char*)
+            {
+                if (err > 0)
+                    result.second = utils::path::list_directory_rc::not_a_directory;
+                else if (err == 0)
+                    result.second = utils::path::list_directory_rc::not_exists;
+                else
+                    result.second = utils::path::list_directory_rc::other_failure;
+            }
         };
         auto [channel, data] = make_workspace_manager_response(std::in_place_type<content_t>, std::move(directory));
         external_file_requests->read_external_directory(data->dir.get_uri().c_str(), channel);
