@@ -55,8 +55,14 @@ struct program
         , asm_opts(std::move(asm_opts))
     {}
 
+    program(program_id prog_id, std::optional<proc_grp_id> pgroup, config::assembler_options asm_opts)
+        : prog_id(std::move(prog_id))
+        , pgroup(std::move(pgroup))
+        , asm_opts(std::move(asm_opts))
+    {}
+
     program_id prog_id;
-    proc_grp_id pgroup;
+    std::optional<proc_grp_id> pgroup;
     config::assembler_options asm_opts;
 };
 
@@ -242,10 +248,32 @@ class workspace_configuration
     bool is_b4g_config_file(const utils::resource::resource_location& file) const;
     const program* get_program_normalized(const utils::resource::resource_location& file_location_normalized) const;
 
-    parse_config_file_result parse_b4g_config_file(const utils::resource::resource_location& file_location);
+    template<bool DEFAULT_B4G_PROC_GROUP>
+    struct rl_tagged_pgm_pair
+    {};
 
-    std::pair<parse_config_file_result, utils::resource::resource_location> try_loading_alternative_configuration(
-        const utils::resource::resource_location& file_location);
+    template<>
+    struct rl_tagged_pgm_pair<false>
+    {
+        typedef std::pair<utils::resource::resource_location, workspace_configuration::tagged_program> type;
+    };
+
+    template<>
+    struct rl_tagged_pgm_pair<true>
+    {
+        typedef std::optional<std::pair<utils::resource::resource_location, workspace_configuration::tagged_program>>
+            type;
+    };
+
+    template<bool DEFAULT_B4G_PROC_GROUP>
+    rl_tagged_pgm_pair<DEFAULT_B4G_PROC_GROUP>::type try_creating_rl_tagged_pgm_pair(
+        std::unordered_set<std::string>& missing_pgroups,
+        proc_grp_id grp_id,
+        const void* tag,
+        const utils::resource::resource_location& file_root,
+        std::string_view filename = "");
+
+    parse_config_file_result parse_b4g_config_file(const utils::resource::resource_location& file_location);
 
     parse_config_file_result load_and_process_config(std::vector<diagnostic_s>& diags);
 
@@ -274,8 +302,10 @@ public:
         const utils::resource::resource_location& file_location);
 
     const program* get_program(const utils::resource::resource_location& program) const;
-    const processor_group& get_proc_grp_by_program(const program& p) const;
-    processor_group& get_proc_grp_by_program(const program& p);
+    const processor_group* get_proc_grp_by_program(const program& p) const;
+    processor_group* get_proc_grp_by_program(const program& p);
+    const processor_group* get_proc_grp_by_program(const program* p) const;
+    processor_group* get_proc_grp_by_program(const program* p);
     const lib_config& get_config() const { return m_local_config; }
 
     bool settings_updated() const;

@@ -224,12 +224,12 @@ TEST(workspace, load_config_synthetic)
     check_process_group(pg2, expected2);
 
     // Check PGM1
-    // test of pgm_conf and workspace::get_proc_grp_by_program
-    auto& pg3 = ws.get_proc_grp_by_program(pgm1_loc);
+    // test of pgm_conf and workspace::get_proc_grp
+    auto& pg3 = ws.get_proc_grp(pgm1_loc);
     check_process_group(pg3, expected);
 
     // Check PGM anything
-    auto& pg4 = ws.get_proc_grp_by_program(pgm_anything_loc);
+    auto& pg4 = ws.get_proc_grp(pgm_anything_loc);
     check_process_group(pg4, expected2);
 
     // test of asm_options
@@ -327,11 +327,14 @@ TEST(workspace, pgm_conf_noproc_proc_group)
   ]
 })");
     fm.did_open_file(proc_grps_name, 0, empty_proc_grps);
+    fm.did_open_file(resource_location("temp.hlasm"), 1, "");
 
     lib_config config;
     shared_json global_settings = make_empty_shared_json();
     workspace ws(fm, config, global_settings);
     ws.open();
+    ws.did_open_file(resource_location("temp.hlasm"));
+    parse_all_files(ws);
 
     ws.collect_diags();
     EXPECT_EQ(ws.diags().size(), 0U);
@@ -349,11 +352,14 @@ TEST(workspace, pgm_conf_unknown_proc_group)
   ]
 })");
     fm.did_open_file(proc_grps_name, 0, empty_proc_grps);
+    fm.did_open_file(resource_location("temp.hlasm"), 1, "");
 
     lib_config config;
     shared_json global_settings = make_empty_shared_json();
     workspace ws(fm, config, global_settings);
     ws.open();
+    ws.did_open_file(resource_location("temp.hlasm"));
+    parse_all_files(ws);
 
     ws.collect_diags();
     EXPECT_TRUE(matches_message_codes(ws.diags(), { "W0004" }));
