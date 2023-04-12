@@ -847,8 +847,11 @@ bool workspace::settings_updated()
 
 const processor_group& workspace::get_proc_grp(const resource_location& file) const
 {
-    if (auto proc_grp = m_configuration.get_proc_grp_by_program(m_configuration.get_program(file)); proc_grp)
-        return *proc_grp;
+    if (const auto* pgm = m_configuration.get_program(file); pgm)
+    {
+        if (auto proc_grp = m_configuration.get_proc_grp_by_program(*pgm); proc_grp)
+            return *proc_grp;
+    }
 
     return implicit_proc_grp;
 }
@@ -947,16 +950,18 @@ std::vector<std::pair<std::string, size_t>> workspace::make_opcode_suggestion(
     std::vector<std::pair<std::string, size_t>> result;
 
     asm_option opts;
-    const auto* pgm = m_configuration.get_program(file);
-    if (auto proc_grp = m_configuration.get_proc_grp_by_program(pgm); proc_grp)
+
+    if (auto pgm = m_configuration.get_program(file); !pgm)
+        implicit_proc_grp.apply_options_to(opts);
+    else if (auto proc_grp = m_configuration.get_proc_grp_by_program(*pgm); !proc_grp)
+        implicit_proc_grp.apply_options_to(opts);
+    else
     {
         proc_grp->apply_options_to(opts);
         pgm->asm_opts.apply_options_to(opts);
 
         result = proc_grp->suggest(opcode, extended);
     }
-    else
-        implicit_proc_grp.apply_options_to(opts);
 
     for (auto&& s : generate_instruction_suggestions(opcode, opts.instr_set, extended))
         result.emplace_back(std::move(s));
@@ -1031,14 +1036,16 @@ asm_option workspace::get_asm_options(const resource_location& file_location) co
 {
     asm_option result;
 
-    const auto* pgm = m_configuration.get_program(file_location);
-    if (auto proc_grp = m_configuration.get_proc_grp_by_program(pgm); proc_grp)
+    auto pgm = m_configuration.get_program(file_location);
+    if (!pgm)
+        implicit_proc_grp.apply_options_to(result);
+    else if (auto proc_grp = m_configuration.get_proc_grp_by_program(*pgm); !proc_grp)
+        implicit_proc_grp.apply_options_to(result);
+    else
     {
         proc_grp->apply_options_to(result);
         pgm->asm_opts.apply_options_to(result);
     }
-    else
-        implicit_proc_grp.apply_options_to(result);
 
     resource_location relative_to_location(file_location.lexically_relative(location_).lexically_normal());
 

@@ -49,12 +49,6 @@ struct library_local_options;
 // information that a program uses certain processor group
 struct program
 {
-    program(program_id prog_id, proc_grp_id pgroup, config::assembler_options asm_opts)
-        : prog_id(std::move(prog_id))
-        , pgroup(std::move(pgroup))
-        , asm_opts(std::move(asm_opts))
-    {}
-
     program(program_id prog_id, std::optional<proc_grp_id> pgroup, config::assembler_options asm_opts)
         : prog_id(std::move(prog_id))
         , pgroup(std::move(pgroup))
@@ -304,8 +298,6 @@ public:
     const program* get_program(const utils::resource::resource_location& program) const;
     const processor_group* get_proc_grp_by_program(const program& p) const;
     processor_group* get_proc_grp_by_program(const program& p);
-    const processor_group* get_proc_grp_by_program(const program* p) const;
-    processor_group* get_proc_grp_by_program(const program* p);
     const lib_config& get_config() const { return m_local_config; }
 
     bool settings_updated() const;

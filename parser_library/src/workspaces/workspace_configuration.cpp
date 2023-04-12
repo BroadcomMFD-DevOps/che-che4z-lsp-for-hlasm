@@ -319,9 +319,13 @@ void workspace_configuration::process_processor_group_and_cleanup_libraries(
 
 bool workspace_configuration::process_program(const config::program_mapping& pgm, std::vector<diagnostic_s>& diags)
 {
-    const auto key = std::make_pair(pgm.pgroup, utils::resource::resource_location());
-    if (!m_proc_grps.contains(key) && pgm.pgroup != "*NOPROC*")
-        return false;
+    std::optional<proc_grp_id> grp_id;
+    if (pgm.pgroup != "*NOPROC*")
+    {
+        grp_id = proc_grp_id { pgm.pgroup, utils::resource::resource_location() };
+        if (!m_proc_grps.contains(*grp_id))
+            return false;
+    }
 
     std::optional<std::string> pgm_name = substitute_home_directory(pgm.program);
     if (!pgm_name.has_value())
@@ -332,9 +336,10 @@ bool workspace_configuration::process_program(const config::program_mapping& pgm
 
     if (auto rl = transform_to_resource_location(*pgm_name, m_location);
         pgm_name->find_first_of("*?") == std::string::npos)
-        m_exact_pgm_conf.try_emplace(rl, tagged_program { program(rl, key, pgm.opts) });
+        m_exact_pgm_conf.try_emplace(rl, tagged_program { program(rl, grp_id, pgm.opts) });
     else
-        m_regex_pgm_conf.emplace_back(tagged_program { program { rl, key, pgm.opts } }, wildcard2regex(rl.get_uri()));
+        m_regex_pgm_conf.emplace_back(
+            tagged_program { program { rl, grp_id, pgm.opts } }, wildcard2regex(rl.get_uri()));
 
     return true;
 }
@@ -490,9 +495,9 @@ workspace_configuration::try_creating_rl_tagged_pgm_pair(std::unordered_set<std:
     std::string_view filename)
 {
     std::optional<proc_grp_id> grp_id_o;
-    if (m_proc_grps.contains(grp_id) || grp_id.first == "*NOPROC*")
+    if (m_proc_grps.contains(grp_id))
         grp_id_o = std::move(grp_id);
-    else
+    else if (grp_id.first != "*NOPROC*")
     {
         missing_pgroups.emplace(grp_id.first);
 
@@ -736,28 +741,6 @@ processor_group* workspace_configuration::get_proc_grp_by_program(const program&
     return nullptr;
 }
 
-const processor_group* workspace_configuration::get_proc_grp_by_program(const program* pgm) const
-{
-    if (pgm && pgm->pgroup.has_value())
-    {
-        if (auto it = m_proc_grps.find(*pgm->pgroup); it != m_proc_grps.end())
-            return &it->second;
-    }
-
-    return nullptr;
-}
-
-processor_group* workspace_configuration::get_proc_grp_by_program(const program* pgm)
-{
-    if (pgm && pgm->pgroup.has_value())
-    {
-        if (auto it = m_proc_grps.find(*pgm->pgroup); it != m_proc_grps.end())
-            return &it->second;
-    }
-
-    return nullptr;
-}
-
 const processor_group& workspace_configuration::get_proc_grp(const proc_grp_id& p) const { return m_proc_grps.at(p); }
 
 const program* workspace_configuration::get_program(const utils::resource::resource_location& file_location) const
@@ -768,18 +751,14 @@ const program* workspace_configuration::get_program(const utils::resource::resou
 const program* workspace_configuration::get_program_normalized(
     const utils::resource::resource_location& file_location_normalized) const
 {
-    static constexpr auto retrieve_program = [](const program& pgm) -> const program* {
-        return pgm.pgroup && pgm.pgroup->first == "*NOPROC*" ? nullptr : &pgm;
-    };
-
     // direct match
     if (auto program = m_exact_pgm_conf.find(file_location_normalized); program != m_exact_pgm_conf.cend())
-        return retrieve_program(program->second.pgm);
+        return &program->second.pgm;
 
     for (const auto& [program, pattern] : m_regex_pgm_conf)
     {
         if (std::regex_match(file_location_normalized.get_uri(), pattern))
-            return retrieve_program(program.pgm);
+            return &program.pgm;
     }
     return nullptr;
 }
