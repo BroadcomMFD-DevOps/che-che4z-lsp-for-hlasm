@@ -15,6 +15,7 @@
 - Source code colorization may be flickering while typing
 - Configuration request sent before initialization is done
 - VSCode enters an infinite loop of opening and closing files
+- bridge.json is not reparsed when changed
 
 #### Changed
 - Programs assigned to "\*NOPROC\*" processor group no longer need its definition in pgm_conf.json
