@@ -166,7 +166,11 @@ void dap_feature::on_launch(const request_id& request_seq, const nlohmann::json&
                 rp->respond_error(rs, "launch", 0, "File not found", nlohmann::json());
         }
 
-        void error(int err, const char* msg) const { rp->respond_error(rs, "launch", err, msg, nlohmann::json()); }
+        void error(int err, const char* msg) const noexcept
+        {
+            // terminates on throw
+            rp->respond_error(rs, "launch", err, msg, nlohmann::json());
+        }
     };
 
     debugger->launch(program_path.c_str(),

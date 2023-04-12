@@ -266,10 +266,11 @@ public:
                         std::make_shared<const nlohmann::json>(nlohmann::json::parse(std::string_view(json_text)));
             }
 
-            void error(int, const char*) const
+            void error(int, const char*) const noexcept
             {
+                static const auto empty = std::make_shared<const nlohmann::json>();
                 if (auto* wi = get_wi())
-                    wi->ows->settings = std::make_shared<const nlohmann::json>();
+                    wi->ows->settings = empty;
             }
         };
 
@@ -877,7 +878,7 @@ private:
             std::optional<std::string> result;
 
             void provide(sequence<char> c) { result = std::string(c); }
-            void error(int, const char*) { result.reset(); }
+            void error(int, const char*) noexcept { result.reset(); }
         };
         auto [channel, data] = make_workspace_manager_response(std::in_place_type<content_t>);
         external_file_requests->read_external_file(document_loc.get_uri().c_str(), channel);
@@ -927,7 +928,7 @@ private:
                     result = { {}, utils::path::list_directory_rc::other_failure };
                 }
             }
-            void error(int err, const char*)
+            void error(int err, const char*) noexcept
             {
                 if (err > 0)
                     result.second = utils::path::list_directory_rc::not_a_directory;
