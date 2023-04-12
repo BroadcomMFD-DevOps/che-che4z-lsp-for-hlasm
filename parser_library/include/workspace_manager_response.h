@@ -107,7 +107,7 @@ protected:
     bool resolved() const noexcept { return actions->resolved(impl); }
     void error(int ec, const char* error) const noexcept { return actions->error(impl, ec, error); }
     void invalidate() const noexcept { actions->invalidate(impl); }
-    void provide(void* t) const { actions->provide(impl, t); }
+    void provide(void* t) const noexcept { actions->provide(impl, t); }
 
     void* get_impl() const noexcept { return impl; }
 
@@ -223,7 +223,7 @@ public:
     using workspace_manager_response_base::resolved;
     using workspace_manager_response_base::valid;
 
-    void provide(T t) const { workspace_manager_response_base::provide(&t); }
+    void provide(T t) const noexcept { workspace_manager_response_base::provide(&t); }
 
     friend decltype(make_workspace_manager_response);
 };
