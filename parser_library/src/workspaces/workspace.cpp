@@ -247,7 +247,7 @@ workspace::workspace(const resource_location& location,
     , fm_vfm_(file_manager_, location)
     , implicit_proc_grp("pg_implicit", {}, {})
     , global_config_(global_config)
-    , m_configuration(file_manager, location_, global_settings, implicit_proc_grp)
+    , m_configuration(file_manager, location_, global_settings)
 {}
 
 workspace::workspace(const resource_location& location,

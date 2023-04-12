@@ -215,14 +215,11 @@ const std::regex json_settings_replacer::config_reference(R"(\$\{([^}]+)\})");
 
 } // namespace
 
-workspace_configuration::workspace_configuration(file_manager& fm,
-    utils::resource::resource_location location,
-    const shared_json& global_settings,
-    const processor_group& implicit_proc_group)
+workspace_configuration::workspace_configuration(
+    file_manager& fm, utils::resource::resource_location location, const shared_json& global_settings)
     : m_file_manager(fm)
     , m_location(std::move(location))
     , m_global_settings(global_settings)
-    , m_implicit_proc_group(implicit_proc_group)
 {
     auto hlasm_folder = utils::resource::resource_location::join(m_location, HLASM_PLUGIN_FOLDER);
     m_proc_grps_loc = utils::resource::resource_location::join(hlasm_folder, FILENAME_PROC_GRPS);
