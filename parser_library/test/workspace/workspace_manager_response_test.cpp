@@ -12,6 +12,8 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
+#include <thread>
+
 #include "gtest/gtest.h"
 
 #include "../workspace_manager_response_mock.h"
@@ -111,4 +113,42 @@ TEST(workspace_manager_response, invalidate_without_handler)
     EXPECT_NO_FATAL_FAILURE(p.invalidate());
 
     EXPECT_FALSE(p.valid());
+}
+
+
+TEST(workspace_manager_response, multithreaded)
+{
+    using namespace std::chrono_literals;
+
+    struct test_t
+    {
+        int result = 0;
+        void error(int, const char*) noexcept {}
+        void provide(int v) noexcept { result = v; }
+    };
+    auto [p, _impl] = make_workspace_manager_response(std::in_place_type<test_t>);
+
+    EXPECT_TRUE(p.valid());
+    EXPECT_FALSE(p.resolved());
+
+    std::thread receiver([p = p, _impl = _impl]() {
+        while (!p.resolved())
+        {
+            std::this_thread::sleep_for(10ms);
+        }
+        EXPECT_EQ(_impl->result, 5);
+    });
+    std::thread sender([p = p]() {
+        std::this_thread::sleep_for(200ms);
+        p.provide(5);
+    });
+
+    sender.join();
+    receiver.join();
+
+    EXPECT_NO_FATAL_FAILURE(p.invalidate());
+
+    EXPECT_FALSE(p.valid());
+    EXPECT_TRUE(p.resolved());
+    EXPECT_EQ(_impl->result, 5);
 }
