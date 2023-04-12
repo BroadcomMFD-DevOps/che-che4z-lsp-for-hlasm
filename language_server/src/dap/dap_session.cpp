@@ -24,6 +24,13 @@ void session::thread_routine()
 {
     try
     {
+        const auto ext = [this]() {
+            if (ext_files)
+                return ext_files->register_thread([this]() { queue.write(nlohmann::json::value_t::discarded); });
+            else
+                return external_file_reader::thread_registration();
+        }();
+
         json_channel_adapter channel(msg_unwrapper, msg_wrapper);
         struct smp_t final : send_message_provider
         {
@@ -47,6 +54,10 @@ void session::thread_routine()
             auto msg = channel.read();
             if (!msg.has_value())
                 break;
+
+            if (msg->is_discarded())
+                continue;
+
             server.message_received(msg.value());
         }
     }

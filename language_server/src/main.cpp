@@ -66,6 +66,9 @@ public:
         lsp_thread = std::thread([&ret, this]() {
             try
             {
+                auto ext_reg =
+                    external_files.register_thread([this]() { lsp_queue.write(nlohmann::json::value_t::discarded); });
+
                 lsp::server server(ws_mngr);
                 server.set_send_message_provider(this);
                 hlasm_plugin::utils::scope_exit disconnect_telemetry(
@@ -83,6 +86,9 @@ public:
                         ret = 1;
                         break;
                     }
+
+                    if (message->is_discarded())
+                        continue;
 
                     server.message_received(message.value());
 
