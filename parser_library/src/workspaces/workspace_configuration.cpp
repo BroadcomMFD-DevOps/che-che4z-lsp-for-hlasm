@@ -484,7 +484,7 @@ bool workspace_configuration::settings_updated() const
 }
 
 template<bool DEFAULT_B4G_PROC_GROUP>
-workspace_configuration::rl_tagged_pgm_pair<DEFAULT_B4G_PROC_GROUP>::type
+typename workspace_configuration::rl_tagged_pgm_pair<DEFAULT_B4G_PROC_GROUP>::type
 workspace_configuration::try_creating_rl_tagged_pgm_pair(std::unordered_set<std::string>& missing_pgroups,
     proc_grp_id grp_id,
     const void* tag,
