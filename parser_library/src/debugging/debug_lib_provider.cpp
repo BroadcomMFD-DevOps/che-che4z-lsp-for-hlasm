@@ -90,10 +90,7 @@ utils::task debug_lib_provider::prefetch_libraries() const
     if (pending_prefetches.empty())
         return {};
 
-    return [](auto pp) -> utils::task {
-        for (auto& p : pp)
-            co_await std::move(p);
-    }(std::move(pending_prefetches));
+    return utils::task::wait_all(std::move(pending_prefetches));
 }
 
 } // namespace hlasm_plugin::parser_library::debugging

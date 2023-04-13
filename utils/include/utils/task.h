@@ -23,6 +23,7 @@
 #include <optional>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 namespace hlasm_plugin::utils {
 
@@ -271,6 +272,8 @@ public:
                 co_return u();
             }(std::move(*this), std::forward<U>(next));
     }
+
+    static task wait_all(std::vector<task> tasks);
 };
 
 template<std::move_constructible T>
@@ -395,6 +398,11 @@ inline auto task_base::promise_type_base::await_transform(value_task<T> t) const
     return awaiter<T>(std::move(h));
 }
 
+inline task task::wait_all(std::vector<task> tasks)
+{
+    for (auto& t : tasks)
+        co_await std::move(t);
+}
 
 } // namespace hlasm_plugin::utils
 

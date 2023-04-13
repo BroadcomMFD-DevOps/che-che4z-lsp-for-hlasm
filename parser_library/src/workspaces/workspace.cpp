@@ -247,10 +247,7 @@ struct workspace_parse_lib_provider final : public parse_lib_provider
         if (pending_prefetches.empty())
             return {};
 
-        return [](auto pp) -> utils::task {
-            for (auto& p : pp)
-                co_await std::move(p);
-        }(std::move(pending_prefetches));
+        return utils::task::wait_all(std::move(pending_prefetches));
     }
 };
 
@@ -725,8 +722,7 @@ utils::task workspace::did_close_file(resource_location file_location)
             pending_updates.emplace_back(std::move(t));
         break;
     }
-    for (auto& t : pending_updates)
-        co_await std::move(t);
+    co_await utils::task::wait_all(std::move(pending_updates));
     if (found_dependency)
         co_return;
 
@@ -773,8 +769,7 @@ utils::task workspace::did_change_watched_files(
 
         pending_updates.emplace_back(std::move(t));
     }
-    for (auto& t : pending_updates)
-        co_await std::move(t);
+    co_await utils::task::wait_all(std::move(pending_updates));
 }
 
 location workspace::definition(const resource_location& document_loc, position pos) const

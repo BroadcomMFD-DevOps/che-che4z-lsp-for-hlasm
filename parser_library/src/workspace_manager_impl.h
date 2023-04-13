@@ -228,9 +228,7 @@ public:
             next_unique_id(),
             &ows,
             std::function<utils::task()>([this, &ws = ows.ws]() -> utils::task {
-                co_await ws.open();
-
-                notify_diagnostics_consumers();
+                return ws.open().then([this]() { notify_diagnostics_consumers(); });
             }),
             {},
             work_item_type::workspace_open,
@@ -562,8 +560,9 @@ public:
                             pending_updates.emplace_back(std::move(update).then([&change](auto c) { change = c; }));
                     }
                 }
-                for (auto& t : pending_updates)
-                    co_await std::move(t);
+                if (pending_updates.empty())
+                    return {};
+                return utils::task::wait_all(std::move(pending_updates));
             }),
             {},
             work_item_type::file_change,
@@ -738,8 +737,10 @@ public:
             next_unique_id(),
             &implicit_workspace_,
             std::function<utils::task()>([this, &ws = implicit_workspace_.ws]() -> utils::task {
-                if (co_await ws.settings_updated())
-                    notify_diagnostics_consumers();
+                return ws.settings_updated().then([this](bool u) {
+                    if (u)
+                        notify_diagnostics_consumers();
+                });
             }),
             {},
             work_item_type::settings_change,
@@ -751,8 +752,10 @@ public:
                 next_unique_id(),
                 &ows,
                 std::function<utils::task()>([this, &ws = ows.ws]() -> utils::task {
-                    if (co_await ws.settings_updated())
-                        notify_diagnostics_consumers();
+                    return ws.settings_updated().then([this](bool u) {
+                        if (u)
+                            notify_diagnostics_consumers();
+                    });
                 }),
                 {},
                 work_item_type::settings_change,
