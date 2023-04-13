@@ -31,6 +31,7 @@ import { HLASMCodeActionsProvider } from './hlasmCodeActionsProvider';
 import { hlasmplugin_folder } from './constants';
 import { ConfigurationsHandler } from './configurationsHandler';
 import { getLanguageClientMiddleware } from './languageClientMiddleware';
+import { HLASMExternalFiles } from './hlasmExternalFiles';
 
 export const EXTENSION_ID = "broadcommfd.hlasm-language-support";
 
@@ -164,6 +165,7 @@ async function registerToContext(context: vscode.ExtensionContext, client: vscod
     context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('hlasm', new HLASMDebugAdapterFactory(client)));
     context.subscriptions.push(vscode.languages.registerCodeActionsProvider('hlasm', new HLASMCodeActionsProvider(client)));
 
+    context.subscriptions.push(new HLASMExternalFiles(client));
 
     // overrides should happen only if the user wishes
     if (getConfig<boolean>('continuationHandling', false)) {
