@@ -16,6 +16,7 @@
 #include <sstream>
 
 #include "gmock/gmock.h"
+#include "json_channel_mock.h"
 #include "json_queue_channel.h"
 
 #include "base_protocol_channel.h"
@@ -23,7 +24,6 @@
 #include "message_router.h"
 #include "nlohmann/json.hpp"
 #include "stream_helper.h"
-#include "json_channel_mock.h"
 
 using namespace hlasm_plugin::language_server;
 
