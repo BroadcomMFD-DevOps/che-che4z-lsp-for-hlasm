@@ -241,26 +241,10 @@ class workspace_configuration
     bool is_b4g_config_file(const utils::resource::resource_location& file) const;
     const program* get_program_normalized(const utils::resource::resource_location& file_location_normalized) const;
 
-    template<bool DEFAULT_B4G_PROC_GROUP>
-    struct rl_tagged_pgm_pair
-    {};
-
-    template<>
-    struct rl_tagged_pgm_pair<false>
-    {
-        typedef std::pair<utils::resource::resource_location, workspace_configuration::tagged_program> type;
-    };
-
-    template<>
-    struct rl_tagged_pgm_pair<true>
-    {
-        typedef std::optional<std::pair<utils::resource::resource_location, workspace_configuration::tagged_program>>
-            type;
-    };
-
-    template<bool DEFAULT_B4G_PROC_GROUP>
-    typename rl_tagged_pgm_pair<DEFAULT_B4G_PROC_GROUP>::type try_creating_rl_tagged_pgm_pair(
-        std::unordered_set<std::string>& missing_pgroups,
+    std::optional<std::pair<utils::resource::resource_location, workspace_configuration::tagged_program>>
+    try_creating_rl_tagged_pgm_pair(
+        std::unordered_set<std::string, utils::hashers::string_hasher, std::equal_to<>>& missing_pgroups,
+        bool default_b4g_proc_group,
         proc_grp_id grp_id,
         const void* tag,
         const utils::resource::resource_location& file_root,

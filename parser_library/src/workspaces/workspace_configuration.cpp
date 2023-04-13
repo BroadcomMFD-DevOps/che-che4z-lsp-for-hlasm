@@ -483,9 +483,10 @@ bool workspace_configuration::settings_updated() const
     return false;
 }
 
-template<bool DEFAULT_B4G_PROC_GROUP>
-typename workspace_configuration::rl_tagged_pgm_pair<DEFAULT_B4G_PROC_GROUP>::type
-workspace_configuration::try_creating_rl_tagged_pgm_pair(std::unordered_set<std::string>& missing_pgroups,
+std::optional<std::pair<utils::resource::resource_location, workspace_configuration::tagged_program>>
+workspace_configuration::try_creating_rl_tagged_pgm_pair(
+    std::unordered_set<std::string, utils::hashers::string_hasher, std::equal_to<>>& missing_pgroups,
+    bool default_b4g_proc_group,
     proc_grp_id grp_id,
     const void* tag,
     const utils::resource::resource_location& file_root,
@@ -498,7 +499,7 @@ workspace_configuration::try_creating_rl_tagged_pgm_pair(std::unordered_set<std:
     {
         missing_pgroups.emplace(grp_id.first);
 
-        if constexpr (DEFAULT_B4G_PROC_GROUP)
+        if (default_b4g_proc_group)
             return {};
     }
 
@@ -514,7 +515,7 @@ workspace_configuration::try_creating_rl_tagged_pgm_pair(std::unordered_set<std:
             });
     };
 
-    if constexpr (DEFAULT_B4G_PROC_GROUP)
+    if (default_b4g_proc_group)
         return make_ret_val(utils::resource::resource_location::join(file_root, "*"), std::move(grp_id_o), tag);
     else
         return make_ret_val(utils::resource::resource_location::join(file_root, filename), std::move(grp_id_o), tag);
@@ -542,7 +543,7 @@ parse_config_file_result workspace_configuration::parse_b4g_config_file(
 
     const void* new_tag = std::to_address(it);
     auto& conf = it->second;
-    std::unordered_set<std::string> missing_pgroups;
+    std::unordered_set<std::string, utils::hashers::string_hasher, std::equal_to<>> missing_pgroups;
     try
     {
         conf.config.emplace(nlohmann::json::parse(b4g_config_content.value()).get<config::b4g_map>());
@@ -559,18 +560,20 @@ parse_config_file_result workspace_configuration::parse_b4g_config_file(
     const auto file_root = file_location.parent();
 
     for (const auto& [name, details] : conf.config.value().files)
-        m_exact_pgm_conf.insert(try_creating_rl_tagged_pgm_pair<false>(missing_pgroups,
+        m_exact_pgm_conf.insert(*try_creating_rl_tagged_pgm_pair(missing_pgroups,
+            false,
             proc_grp_id {
                 details.processor_group_name,
                 alternative_root,
             },
             new_tag,
             file_root,
-            name));
+            name)); // Returned optional is always valid for 'default_b4g_proc_group = false'
 
     if (const auto& def_grp = conf.config.value().default_processor_group_name; !def_grp.empty())
     {
-        if (auto rl_tagged_pgm = try_creating_rl_tagged_pgm_pair<true>(missing_pgroups,
+        if (auto rl_tagged_pgm = try_creating_rl_tagged_pgm_pair(missing_pgroups,
+                true,
                 proc_grp_id {
                     def_grp,
                     alternative_root,
