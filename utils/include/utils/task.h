@@ -139,9 +139,9 @@ protected:
             };
             return yield_awaiter { top_waiter.promise().yield_indicator };
         }
-        auto await_transform(task t) const noexcept;
+        awaiter<void> await_transform(task t) const noexcept;
         template<std::move_constructible T>
-        auto await_transform(value_task<T> t) const noexcept;
+        awaiter<T> await_transform(value_task<T> t) const noexcept;
     };
 
     task_base() = default;
@@ -273,7 +273,14 @@ public:
             }(std::move(*this), std::forward<U>(next));
     }
 
-    static task wait_all(std::vector<task> tasks);
+    struct
+    {
+        task operator()(std::vector<task> tasks) const
+        {
+            for (auto& t : tasks)
+                co_await std::move(t);
+        }
+    } static constexpr wait_all = {}; // clang-14 workaround
 };
 
 template<std::move_constructible T>
@@ -377,7 +384,7 @@ public:
     }
 };
 
-inline auto task_base::promise_type_base::await_transform(task t) const noexcept
+inline task_base::promise_type_base::awaiter<void> task_base::promise_type_base::await_transform(task t) const noexcept
 {
     auto h = std::exchange(t.m_handle, {});
 
@@ -388,7 +395,8 @@ inline auto task_base::promise_type_base::await_transform(task t) const noexcept
 }
 
 template<std::move_constructible T>
-inline auto task_base::promise_type_base::await_transform(value_task<T> t) const noexcept
+inline task_base::promise_type_base::awaiter<T> task_base::promise_type_base::await_transform(
+    value_task<T> t) const noexcept
 {
     auto h = std::exchange(t.m_handle, {});
 
@@ -396,12 +404,6 @@ inline auto task_base::promise_type_base::await_transform(value_task<T> t) const
     h.promise().next_step.promise().top_waiter = top_waiter;
 
     return awaiter<T>(std::move(h));
-}
-
-inline task task::wait_all(std::vector<task> tasks)
-{
-    for (auto& t : tasks)
-        co_await std::move(t);
 }
 
 } // namespace hlasm_plugin::utils
