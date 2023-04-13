@@ -15,6 +15,7 @@
 #include "dap_session.h"
 
 #include "dap_server.h"
+#include "external_file_reader.h"
 #include "logger.h"
 #include "nlohmann/json.hpp"
 #include "utils/scope_exit.h"
@@ -70,13 +71,17 @@ void session::thread_routine()
         LOG_ERROR("DAP Thread encountered an unknown exception.");
     }
 }
-session::session(
-    size_t s_id, hlasm_plugin::parser_library::workspace_manager& ws, json_sink& out, telemetry_sink* telem_reporter)
+session::session(size_t s_id,
+    hlasm_plugin::parser_library::workspace_manager& ws,
+    json_sink& out,
+    telemetry_sink* telem_reporter,
+    external_file_reader* ext_files)
     : session_id(message_wrapper::generate_method_name(s_id))
     , ws_mngr(&ws)
     , msg_wrapper(out, s_id)
     , msg_unwrapper(queue)
     , telemetry_reporter(telem_reporter)
+    , ext_files(ext_files)
 {
     worker = std::thread([this]() { this->thread_routine(); });
 }
