@@ -12,6 +12,9 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
+#include <string>
+#include <string_view>
+
 #include "gtest/gtest.h"
 
 #include "../common_testing.h"
@@ -26,6 +29,8 @@ using namespace hlasm_plugin::parser_library::workspaces;
 using hlasm_plugin::utils::resource::resource_location;
 
 namespace {
+inline const std::string empty_b4g_conf = R"({})";
+inline const auto b4g_conf_name = hlasm_plugin::utils::resource::resource_location("SYS/SUB/ASMPGM/.bridge.json");
 const resource_location pgm_a("SYS/SUB/ASMPGM/A");
 const resource_location pgm_b("SYS/SUB/ASMPGM/B");
 const resource_location mac1("SYS/SUB/ASMMAC/MAC1");

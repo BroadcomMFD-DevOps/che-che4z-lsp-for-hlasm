@@ -317,7 +317,7 @@ void workspace_configuration::process_processor_group_and_cleanup_libraries(
 bool workspace_configuration::process_program(const config::program_mapping& pgm, std::vector<diagnostic_s>& diags)
 {
     std::optional<proc_grp_id> grp_id;
-    if (pgm.pgroup != "*NOPROC*")
+    if (pgm.pgroup != NOPROC_GROUP_ID)
     {
         grp_id = proc_grp_id { pgm.pgroup, utils::resource::resource_location() };
         if (!m_proc_grps.contains(*grp_id))
@@ -495,7 +495,7 @@ workspace_configuration::try_creating_rl_tagged_pgm_pair(
     std::optional<proc_grp_id> grp_id_o;
     if (m_proc_grps.contains(grp_id))
         grp_id_o = std::move(grp_id);
-    else if (grp_id.first != "*NOPROC*")
+    else if (grp_id.first != NOPROC_GROUP_ID)
     {
         missing_pgroups.emplace(grp_id.first);
 
@@ -503,22 +503,18 @@ workspace_configuration::try_creating_rl_tagged_pgm_pair(
             return {};
     }
 
-    static constexpr auto make_ret_val = [](auto rl, auto grp, const void* t) {
-        return std::make_pair(rl,
-            tagged_program {
-                program {
-                    rl,
-                    std::move(grp),
-                    {},
-                },
-                t,
-            });
-    };
+    auto rl = default_b4g_proc_group ? utils::resource::resource_location::join(file_root, "*")
+                                     : utils::resource::resource_location::join(file_root, filename);
 
-    if (default_b4g_proc_group)
-        return make_ret_val(utils::resource::resource_location::join(file_root, "*"), std::move(grp_id_o), tag);
-    else
-        return make_ret_val(utils::resource::resource_location::join(file_root, filename), std::move(grp_id_o), tag);
+    return std::make_pair(std::move(rl),
+        tagged_program {
+            program {
+                rl,
+                std::move(grp_id_o),
+                {},
+            },
+            tag,
+        });
 }
 
 parse_config_file_result workspace_configuration::parse_b4g_config_file(

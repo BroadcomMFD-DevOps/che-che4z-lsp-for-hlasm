@@ -174,6 +174,7 @@ class workspace_configuration
     static constexpr const char FILENAME_PGM_CONF[] = "pgm_conf.json";
     static constexpr const char HLASM_PLUGIN_FOLDER[] = ".hlasmplugin";
     static constexpr const char B4G_CONF_FILE[] = ".bridge.json";
+    static constexpr std::string_view NOPROC_GROUP_ID = "*NOPROC*";
 
     file_manager& m_file_manager;
     utils::resource::resource_location m_location;
