@@ -76,6 +76,46 @@ TEST(external_file_reader, file_reading)
 })"_json);
 }
 
+TEST(external_file_reader, file_reading_bad)
+{
+    NiceMock<mock_json_sink> sink;
+    MockFunction<void()> wakeup;
+
+    auto [r, resp] =
+        make_workspace_manager_response(std::in_place_type<NiceMock<workspace_manager_response_mock<sequence<char>>>>);
+    external_file_reader reader(sink);
+
+    auto reg = reader.register_thread(wakeup.AsStdFunction());
+
+    EXPECT_CALL(sink,
+        write_rvr(
+            R"(
+{
+  "jsonrpc": "2.0",
+  "method":"external_file_request",
+  "params":{
+    "id":1,
+    "op":"read_file",
+    "url":"AAA"
+  }
+})"_json));
+
+    reader.read_external_file("AAA", r);
+
+    EXPECT_CALL(*resp, error(_, _));
+    EXPECT_CALL(wakeup, Call());
+
+    reader.write(R"(
+{
+  "jsonrpc": "2.0",
+  "method":"external_file_response",
+  "params":{
+    "id":1,
+    "data":[]
+  }
+})"_json);
+}
+
 TEST(external_file_reader, file_reading_error)
 {
     NiceMock<mock_json_sink> sink;
@@ -159,6 +199,86 @@ TEST(external_file_reader, directory_reading)
     "data":[
       "A", "B"
     ]
+  }
+})"_json);
+}
+
+TEST(external_file_reader, directory_reading_bad)
+{
+    NiceMock<mock_json_sink> sink;
+    MockFunction<void()> wakeup;
+
+    auto [r, resp] = make_workspace_manager_response(
+        std::in_place_type<NiceMock<workspace_manager_response_mock<sequence<sequence<char>>>>>);
+    external_file_reader reader(sink);
+
+    auto reg = reader.register_thread(wakeup.AsStdFunction());
+
+    EXPECT_CALL(sink,
+        write_rvr(
+            R"(
+{
+  "jsonrpc": "2.0",
+  "method":"external_file_request",
+  "params":{
+    "id":1,
+    "op":"read_directory",
+    "url":"CCC"
+  }
+})"_json));
+
+    reader.read_external_directory("CCC", r);
+
+    EXPECT_CALL(*resp, error(_, _));
+    EXPECT_CALL(wakeup, Call());
+
+    reader.write(R"(
+{
+  "jsonrpc": "2.0",
+  "method":"external_file_response",
+  "params":{
+    "id":1,
+    "data":""
+  }
+})"_json);
+}
+
+TEST(external_file_reader, directory_reading_bad2)
+{
+    NiceMock<mock_json_sink> sink;
+    MockFunction<void()> wakeup;
+
+    auto [r, resp] = make_workspace_manager_response(
+        std::in_place_type<NiceMock<workspace_manager_response_mock<sequence<sequence<char>>>>>);
+    external_file_reader reader(sink);
+
+    auto reg = reader.register_thread(wakeup.AsStdFunction());
+
+    EXPECT_CALL(sink,
+        write_rvr(
+            R"(
+{
+  "jsonrpc": "2.0",
+  "method":"external_file_request",
+  "params":{
+    "id":1,
+    "op":"read_directory",
+    "url":"CCC"
+  }
+})"_json));
+
+    reader.read_external_directory("CCC", r);
+
+    EXPECT_CALL(*resp, error(_, _));
+    EXPECT_CALL(wakeup, Call());
+
+    reader.write(R"(
+{
+  "jsonrpc": "2.0",
+  "method":"external_file_response",
+  "params":{
+    "id":1,
+    "data":[5]
   }
 })"_json);
 }

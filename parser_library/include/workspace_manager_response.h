@@ -33,9 +33,9 @@ struct is_in_place_type_t<std::in_place_type_t<T>>
 };
 
 template<typename U, typename T>
-concept workspace_manager_response_compatible = requires(U& u)
+concept workspace_manager_response_compatible = requires(U& u, T t)
 {
-    u.provide(std::declval<T>());
+    u.provide(std::move(t));
     {
         u.error(0, "")
     }

@@ -80,7 +80,7 @@ debug_lib_provider::get_library(std::string library)
     co_return std::nullopt;
 }
 
-utils::task debug_lib_provider::prefetch_libraries()
+utils::task debug_lib_provider::prefetch_libraries() const
 {
     std::vector<utils::task> pending_prefetches;
     for (const auto& lib : m_libraries)

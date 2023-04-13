@@ -168,26 +168,25 @@ std::shared_ptr<file_manager_impl::mapped_file> file_manager_impl::make_mapped_f
 utils::value_task<std::shared_ptr<file>> file_manager_impl::add_file(
     const utils::resource::resource_location& file_name)
 {
-    std::unique_lock lock(files_mutex);
+    {
+        std::lock_guard g(files_mutex);
 
-    if (auto result = try_obtaining_file_unsafe(file_name, nullptr))
-        co_return result;
+        if (auto result = try_obtaining_file_unsafe(file_name, nullptr))
+            return utils::value_task<std::shared_ptr<file>>::from_value(result);
+    }
+    return m_file_reader->load_text(file_name).then([this, file_name](auto loaded_text) -> std::shared_ptr<file> {
+        std::lock_guard g(files_mutex);
 
-    lock.unlock();
+        if (auto result = try_obtaining_file_unsafe(file_name, &loaded_text))
+            return result;
 
-    auto loaded_text = co_await m_file_reader->load_text(file_name);
+        auto result = loaded_text.has_value() ? make_mapped_file(file_name, *this, loaded_text.value())
+                                              : make_mapped_file(file_name, *this, mapped_file::file_error());
 
-    lock.lock();
+        result->m_it = m_files.try_emplace(file_name, result.get()).first;
 
-    if (auto result = try_obtaining_file_unsafe(file_name, &loaded_text))
-        co_return result;
-
-    auto result = loaded_text.has_value() ? make_mapped_file(file_name, *this, loaded_text.value())
-                                          : make_mapped_file(file_name, *this, mapped_file::file_error());
-
-    result->m_it = m_files.try_emplace(file_name, result.get()).first;
-
-    co_return result;
+        return result;
+    });
 }
 
 std::shared_ptr<file_manager_impl::mapped_file> file_manager_impl::try_obtaining_file_unsafe(
@@ -228,11 +227,12 @@ std::shared_ptr<file_manager_impl::mapped_file> file_manager_impl::try_obtaining
 utils::value_task<std::optional<std::string>> file_manager_impl::get_file_content(
     const utils::resource::resource_location& file_name)
 {
-    auto f = co_await add_file(file_name);
-    if (f->error())
-        co_return std::nullopt;
-    else
-        co_return f->get_text();
+    return add_file(file_name).then([](auto f) -> std::optional<std::string> {
+        if (f->error())
+            return std::nullopt;
+        else
+            return f->get_text();
+    });
 }
 
 std::shared_ptr<file> file_manager_impl::find(const utils::resource::resource_location& key) const
@@ -427,25 +427,23 @@ utils::value_task<open_file_result> file_manager_impl::update_file(
         if (auto f = m_files.find(document_loc); f == m_files.end() || f->second.file->get_lsp_editing())
             return {};
     }
+    return m_file_reader->load_text(document_loc).then([this, document_loc](auto current_text) -> open_file_result {
+        std::lock_guard lock(files_mutex);
 
-    return m_file_reader->load_text(document_loc)
-        .then([this, document_loc](auto current_text) -> utils::value_task<open_file_result> {
-            std::lock_guard lock(files_mutex);
+        auto f = m_files.find(document_loc);
+        if (f == m_files.end() || f->second.file->get_lsp_editing())
+            return open_file_result::identical;
 
-            auto f = m_files.find(document_loc);
-            if (f == m_files.end() || f->second.file->get_lsp_editing())
-                co_return open_file_result::identical;
+        if (f->second.file->get_text_or_error() == current_text)
+        {
+            f->second.closed = false;
+            return open_file_result::identical;
+        }
 
-            if (f->second.file->get_text_or_error() == current_text)
-            {
-                f->second.closed = false;
-                co_return open_file_result::identical;
-            }
-
-            f->second.file->m_it = m_files.end();
-            m_files.erase(f);
-            co_return open_file_result::changed_content;
-        });
+        f->second.file->m_it = m_files.end();
+        m_files.erase(f);
+        return open_file_result::changed_content;
+    });
 }
 
 } // namespace hlasm_plugin::parser_library::workspaces

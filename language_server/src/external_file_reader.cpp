@@ -64,8 +64,8 @@ void external_file_reader::read_external_file(const char* url, workspace_manager
     std::function handler = [content](bool error, const nlohmann::json& result) noexcept {
         if (error)
         {
-            auto [err, msg] = extract_error(result);
-            content.error(err, msg.c_str());
+            auto [err, errmsg] = extract_error(result);
+            content.error(err, errmsg.c_str());
         }
         else if (!result.is_string())
             content.error(-100, "Invalid JSON content");
@@ -90,8 +90,8 @@ void external_file_reader::read_external_directory(
     std::function handler = [members](bool error, const nlohmann::json& result) noexcept {
         if (error)
         {
-            auto [err, msg] = extract_error(result);
-            members.error(err, msg.c_str());
+            auto [err, errmsg] = extract_error(result);
+            members.error(err, errmsg.c_str());
             return;
         }
         if (!result.is_array())
@@ -130,11 +130,9 @@ void external_file_reader::read_external_directory(
 void external_file_reader::wakeup_thread(std::thread::id id)
 {
     std::lock_guard g(m_mutex);
-    auto it = m_registrations.find(id);
-    if (it == m_registrations.end())
-        return;
 
-    it->second();
+    if (auto it = m_registrations.find(id); it != m_registrations.end())
+        it->second();
 }
 
 external_file_reader::thread_registration external_file_reader::register_thread(std::function<void()> wakeup_rtn)
@@ -173,7 +171,7 @@ void external_file_reader::write(const nlohmann::json& msg)
 
     if (const auto node = ((void)std::lock_guard(m_mutex), m_pending_requests.extract(id)))
     {
-        auto& [tid, handler] = node.mapped();
+        const auto& [tid, handler] = node.mapped();
         if (error != params->end())
             handler(true, *error);
         else if (data == params->end())

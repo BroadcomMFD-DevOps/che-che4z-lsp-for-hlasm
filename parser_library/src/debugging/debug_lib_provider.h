@@ -63,7 +63,7 @@ public:
     [[nodiscard]] utils::value_task<std::optional<std::pair<std::string, utils::resource::resource_location>>>
     get_library(std::string library) override;
 
-    [[nodiscard]] utils::task prefetch_libraries();
+    [[nodiscard]] utils::task prefetch_libraries() const;
 };
 
 } // namespace hlasm_plugin::parser_library::debugging

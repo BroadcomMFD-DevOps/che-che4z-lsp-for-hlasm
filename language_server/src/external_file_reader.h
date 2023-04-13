@@ -48,7 +48,7 @@ class external_file_reader final : public parser_library::workspace_manager_exte
     void wakeup_thread(std::thread::id id);
 
 public:
-    external_file_reader(json_sink& output)
+    explicit external_file_reader(json_sink& output)
         : m_output(output)
     {}
 
@@ -65,7 +65,7 @@ public:
 
     public:
         thread_registration() = default;
-        thread_registration(external_file_reader& self)
+        explicit thread_registration(external_file_reader& self)
             : m_self(&self)
         {}
         thread_registration(const thread_registration&) = delete;

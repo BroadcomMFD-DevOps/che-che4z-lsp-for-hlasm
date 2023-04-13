@@ -67,7 +67,7 @@ class workspace_manager::impl final : public diagnosable_impl, workspaces::exter
     };
 
 public:
-    impl(workspace_manager_external_file_requests* external_file_requests)
+    explicit impl(workspace_manager_external_file_requests* external_file_requests)
         : external_file_requests(external_file_requests)
         , file_manager_(*this)
         , implicit_workspace_(file_manager_, global_config_)
@@ -197,7 +197,7 @@ public:
                     if (workspace_removed)
                         return true;
 
-                    auto& task = std::get<2>(action);
+                    const auto& task = std::get<2>(action);
                     if (!task.done())
                         task.resume(nullptr);
 
@@ -208,7 +208,6 @@ public:
             }
         }
     };
-    std::deque<work_item> m_work_queue;
 
     work_item* find_work_item(unsigned long long id)
     {
@@ -306,15 +305,6 @@ public:
         workspaces_.erase(it);
         notify_diagnostics_consumers();
     }
-
-    struct
-    {
-        utils::value_task<workspaces::parse_file_result> task;
-        opened_workspace* ows = nullptr;
-        std::chrono::steady_clock::time_point start_time;
-
-        bool valid() const noexcept { return task.valid(); }
-    } m_active_task;
 
     bool run_active_task(const std::atomic<unsigned char>* yield_indicator)
     {
@@ -444,7 +434,7 @@ public:
         m_work_queue.emplace_back(work_item {
             next_unique_id(),
             nullptr,
-            [this, document_loc, version, text = std::move(text), &ws = ows.ws, open_result]() mutable {
+            [this, document_loc, version, text = std::move(text), open_result]() mutable {
                 *open_result = file_manager_.did_open_file(document_loc, version, std::move(text));
             },
             {},
@@ -453,7 +443,7 @@ public:
         m_work_queue.emplace_back(work_item {
             next_unique_id(),
             &ows,
-            std::function<utils::task()>([this, document_loc, &ws = ows.ws, open_result]() mutable {
+            std::function<utils::task()>([document_loc, &ws = ows.ws, open_result]() mutable {
                 return ws.did_open_file(std::move(document_loc), *open_result);
             }),
             {},
@@ -489,7 +479,7 @@ public:
         m_work_queue.emplace_back(work_item {
             next_unique_id(),
             nullptr,
-            [this, document_loc, version, captured_changes = std::move(captured_changes), &ws = ows.ws]() {
+            [this, document_loc, version, captured_changes = std::move(captured_changes)]() {
                 std::vector<document_change> list;
                 list.reserve(captured_changes.size());
                 std::transform(captured_changes.begin(),
@@ -509,11 +499,10 @@ public:
             next_unique_id(),
             &ows,
             std::function<utils::task()>(
-                [this,
-                    document_loc,
+                [document_loc,
                     &ws = ows.ws,
                     file_content_status = ch_size ? workspaces::open_file_result::changed_content
-                                                  : workspaces::open_file_result::identical]() mutable -> utils::task {
+                                                  : workspaces::open_file_result::identical]() mutable {
                     return ws.did_change_file(std::move(document_loc), file_content_status);
                 }),
             {},
@@ -527,26 +516,25 @@ public:
         m_work_queue.emplace_back(work_item {
             next_unique_id(),
             nullptr,
-            [this, document_loc, &ws = ows.ws]() { file_manager_.did_close_file(document_loc); },
+            [this, document_loc]() { file_manager_.did_close_file(document_loc); },
             {},
             work_item_type::file_change,
         });
         m_work_queue.emplace_back(work_item {
             next_unique_id(),
             &ows,
-            std::function<utils::task()>([this, document_loc, &ws = ows.ws]() mutable -> utils::task {
-                return ws.did_close_file(std::move(document_loc));
-            }),
+            std::function<utils::task()>(
+                [document_loc, &ws = ows.ws]() mutable { return ws.did_close_file(std::move(document_loc)); }),
             {},
             work_item_type::file_change,
         });
     }
 
-    void did_change_watched_files(std::vector<utils::resource::resource_location> paths)
+    void did_change_watched_files(std::vector<utils::resource::resource_location> affected_paths)
     {
         auto paths_for_ws = std::make_shared<std::unordered_map<opened_workspace*,
             std::pair<std::vector<resource_location>, std::vector<workspaces::open_file_result>>>>();
-        for (auto& path : paths)
+        for (auto& path : affected_paths)
         {
             auto& [path_list, changes] = (*paths_for_ws)[&ws_path_match(path.get_uri())];
             path_list.emplace_back(std::move(path));
@@ -589,7 +577,7 @@ public:
                     [path_change_list_p = std::shared_ptr<
                          std::pair<std::vector<resource_location>, std::vector<workspaces::open_file_result>>>(
                          paths_for_ws, &path_change_list),
-                        &ws = ows->ws]() -> utils::task {
+                        &ws = ows->ws]() {
                         return ws.did_change_watched_files(
                             std::move(path_change_list_p->first), std::move(path_change_list_p->second));
                     }),
@@ -740,7 +728,6 @@ public:
         });
     }
 
-    lib_config global_config_;
     void configuration_changed(const lib_config& new_config)
     {
         // TODO: should this action be also performed IN ORDER?
@@ -905,9 +892,10 @@ private:
         utils::path::list_directory_rc>>
     list_directory_files_external(utils::resource::resource_location directory) const
     {
+        using enum utils::path::list_directory_rc;
         struct content_t
         {
-            content_t(utils::resource::resource_location dir)
+            explicit content_t(utils::resource::resource_location dir)
                 : dir(std::move(dir))
             {}
             utils::resource::resource_location dir;
@@ -925,17 +913,17 @@ private:
                 }
                 catch (...)
                 {
-                    result = { {}, utils::path::list_directory_rc::other_failure };
+                    result = { {}, other_failure };
                 }
             }
             void error(int err, const char*) noexcept
             {
                 if (err > 0)
-                    result.second = utils::path::list_directory_rc::not_a_directory;
+                    result.second = not_a_directory;
                 else if (err == 0)
-                    result.second = utils::path::list_directory_rc::not_exists;
+                    result.second = not_exists;
                 else
-                    result.second = utils::path::list_directory_rc::other_failure;
+                    result.second = other_failure;
             }
         };
         auto [channel, data] = make_workspace_manager_response(std::in_place_type<content_t>, std::move(directory));
@@ -961,6 +949,19 @@ private:
 
         return list_directory_files_external(directory);
     }
+
+    std::deque<work_item> m_work_queue;
+
+    struct
+    {
+        utils::value_task<workspaces::parse_file_result> task;
+        opened_workspace* ows = nullptr;
+        std::chrono::steady_clock::time_point start_time;
+
+        bool valid() const noexcept { return task.valid(); }
+    } m_active_task;
+
+    lib_config global_config_;
 
     workspace_manager_external_file_requests* external_file_requests = nullptr;
     workspaces::file_manager_impl file_manager_;
