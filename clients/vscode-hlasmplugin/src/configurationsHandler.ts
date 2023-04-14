@@ -185,7 +185,7 @@ export class ConfigurationsHandler {
      * Checks if the configs are there and stores their complete paths
      */
     public static async configFilesExist(workspace: vscode.Uri): Promise<boolean> {
-        const [g, p, b, e] = await configurationExists(workspace, undefined);
+        const [g, p] = await configurationExists(workspace, undefined);
         return g.exists && p.exists;
     }
     public static createCompleteConfig(workspace: vscode.Uri, program: string, group: string) {
