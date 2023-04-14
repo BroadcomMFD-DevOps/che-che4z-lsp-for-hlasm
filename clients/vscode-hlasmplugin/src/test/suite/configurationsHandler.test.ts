@@ -43,9 +43,9 @@ suite('Configurations Handler Test Suite', () => {
         const bridgeJsonUri = vscode.Uri.joinPath(workspaceUri, "SYS/SUB", bridge_json_file);
         const ebgUri = vscode.Uri.joinPath(workspaceUri, ebg_folder);
 
-        fsMock.addUrifsPair(bridgeJsonUri);
-        fsMock.addUrifsPair(ebgUri);
-        fsMock.addUrifsPair(pgmUri);
+        fsMock.addResource(bridgeJsonUri);
+        fsMock.addResource(ebgUri);
+        fsMock.addResource(pgmUri);
 
         const [g, p, b, e] = await configurationExists(workspaceUri, pgmUri, fsMock);
         assert.equal(b.exists, true);
@@ -58,7 +58,7 @@ suite('Configurations Handler Test Suite', () => {
         const fsMock = new FileSystemMock();
         const pgmUri = vscode.Uri.joinPath(workspaceUri, "SYS/SUB/PGM");
 
-        fsMock.addUrifsPair(pgmUri);
+        fsMock.addResource(pgmUri);
 
         const [g, p, b, e] = await configurationExists(workspaceUri, pgmUri, fsMock);
         assert.equal(b.exists, false);

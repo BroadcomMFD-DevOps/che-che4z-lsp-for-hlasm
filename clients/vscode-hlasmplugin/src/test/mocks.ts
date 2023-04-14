@@ -250,16 +250,16 @@ export class TextDocumentMock implements vscode.TextDocument {
 }
 
 export class FileSystemMock implements vscode.FileSystem {
-    resourceUris = new Set<string>();
+    resource = new Set<string>();
     dummyStat: vscode.FileStat;
 
-    public addUrifsPair(uri: vscode.Uri) {
-        this.resourceUris.add(uri.path);
+    public addResource(uri: vscode.Uri) {
+        this.resource.add(uri.path);
     }
 
     stat(uri: vscode.Uri): Thenable<vscode.FileStat> {
         return new Promise<vscode.FileStat>((resolve, reject) => {
-            this.resourceUris.has(uri.path) ? resolve(this.dummyStat) : reject("Resource not found");
+            this.resource.has(uri.path) ? resolve(this.dummyStat) : reject("Resource not found");
         });
     }
 
