@@ -204,28 +204,6 @@ private:
     std::vector<const processor_file_compoments*> find_related_opencodes(const resource_location& document_loc) const;
     void filter_and_close_dependencies(std::set<resource_location> files_to_close_candidates,
         const processor_file_compoments* file_to_ignore = nullptr);
-
-    template<typename WS_INSTANCE>
-    static auto apply_options_to(WS_INSTANCE& ws_instance, const resource_location& pgm_location, asm_option& opts)
-    {
-        using PROC_GROUP_T = decltype(ws_instance.m_configuration.get_proc_grp_by_program(
-            program { resource_location(), std::nullopt, config::assembler_options {} }));
-
-        std::pair<const program*, PROC_GROUP_T> pgm_proc_grp_pair;
-        auto& [pgm, proc_grp] = pgm_proc_grp_pair;
-
-        if (pgm = ws_instance.m_configuration.get_program(pgm_location); !pgm)
-            ws_instance.implicit_proc_grp.apply_options_to(opts);
-        else
-        {
-            if (proc_grp = ws_instance.m_configuration.get_proc_grp_by_program(*pgm); proc_grp)
-                proc_grp->apply_options_to(opts);
-
-            pgm->asm_opts.apply_options_to(opts);
-        }
-
-        return pgm_proc_grp_pair;
-    }
 };
 
 } // namespace hlasm_plugin::parser_library::workspaces

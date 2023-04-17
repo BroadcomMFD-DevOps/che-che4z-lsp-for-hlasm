@@ -12,6 +12,7 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
+#include <regex>
 #include <string>
 #include <string_view>
 
@@ -29,13 +30,27 @@ using namespace hlasm_plugin::parser_library::workspaces;
 using hlasm_plugin::utils::resource::resource_location;
 
 namespace {
-inline const std::string empty_b4g_conf = R"({})";
-inline const auto b4g_conf_name = hlasm_plugin::utils::resource::resource_location("SYS/SUB/ASMPGM/.bridge.json");
+const std::string empty_b4g_conf(R"({})");
+const resource_location b4g_conf_name("SYS/SUB/ASMPGM/.bridge.json");
 const resource_location pgm_a("SYS/SUB/ASMPGM/A");
 const resource_location pgm_b("SYS/SUB/ASMPGM/B");
-const resource_location mac1("SYS/SUB/ASMMAC/MAC1");
-const resource_location mac1_p1("SYS/SUB/ASMMACP1/MAC1");
-const resource_location mac1_p2("SYS/SUB/ASMMACP2/MAC1");
+const resource_location sys_sub_p1_mac1("SYS/SUB/ASMMACP1/MAC1");
+const resource_location sys_sub_p2_mac1("SYS/SUB/ASMMACP2/MAC1");
+const resource_location p1_mac2("ASMMACP1/MAC2");
+const resource_location p2_mac2("ASMMACP2/MAC2");
+const resource_location empty_rl("");
+
+std::string macro_template(R"(        MACRO
+        MAC$x
+        MNOTE 4,'$y'
+        MEND
+)");
+
+std::string get_macro_content(std::string mac_template, std::string mac_id, std::string mac_path)
+{
+    return std::regex_replace(
+        std::regex_replace(mac_template, std::regex("\\$x"), mac_id), std::regex("\\$y"), mac_path);
+}
 
 void change_and_reparse(file_manager& fm, workspace& ws, const resource_location& rl, std::string_view new_content)
 {
@@ -92,7 +107,6 @@ struct file_manager_impl_test : public file_manager_impl
         return result;
     }
 };
-
 TEST(b4g_integration_test, basic_pgm_conf_retrieval)
 {
     file_manager_impl_test file_manager;
@@ -103,57 +117,28 @@ TEST(b4g_integration_test, basic_pgm_conf_retrieval)
     file_manager.did_open_file(b4g_conf_name,
         1,
         R"({"elements":{"A":{"processorGroup":"P1"}},"defaultProcessorGroup":"P2","fileExtension":""})");
-    file_manager.did_open_file(mac1_p1,
-        1,
-        R"(        MACRO
-        MAC1
-        MNOTE 4,'SYS/SUB/ASMMACP1/MAC1'
-        MEND
-)");
-    file_manager.did_open_file(mac1_p2,
-        1,
-        R"(        MACRO
-        MAC1
-        MNOTE 4,'SYS/SUB/ASMMACP2/MAC1'
-        MEND
-)");
-    file_manager.did_open_file(resource_location("ASMMACP1/MAC2"),
-        1,
-        R"(        MACRO
-        MAC2
-        MNOTE 4,'ASMMACP1/MAC2'
-        MEND
-)");
-    file_manager.did_open_file(resource_location("ASMMACP2/MAC2"),
-        1,
-        R"(        MACRO
-        MAC2
-        MNOTE 4,'ASMMACP2/MAC2'
-        MEND
-)");
-    file_manager.did_open_file(pgm_a,
-        1,
-        R"(
+    file_manager.did_open_file(sys_sub_p1_mac1, 1, get_macro_content(macro_template, "1", sys_sub_p1_mac1.get_uri()));
+    file_manager.did_open_file(sys_sub_p2_mac1, 1, get_macro_content(macro_template, "1", sys_sub_p2_mac1.get_uri()));
+    file_manager.did_open_file(p1_mac2, 1, get_macro_content(macro_template, "2", p1_mac2.get_uri()));
+    file_manager.did_open_file(p2_mac2, 1, get_macro_content(macro_template, "2", p2_mac2.get_uri()));
+
+    std::string pgm_template(R"(
         MAC1
         MAC2
 )");
-    file_manager.did_open_file(pgm_b,
-        1,
-        R"(
-        MAC1
-        MAC2
-)");
+    file_manager.did_open_file(pgm_a, 1, pgm_template);
+    file_manager.did_open_file(pgm_b, 1, pgm_template);
 
     lib_config config;
     shared_json global_settings = make_empty_shared_json();
-    workspace ws(resource_location(), "workspace_name", file_manager, config, global_settings);
+    workspace ws(empty_rl, "workspace_name", file_manager, config, global_settings);
     ws.open();
 
     ws.did_open_file(pgm_a);
     parse_all_files(ws);
     ws.collect_diags();
 
-    EXPECT_TRUE(matches_message_text(ws.diags(), { "SYS/SUB/ASMMACP1/MAC1", "ASMMACP1/MAC2" }));
+    EXPECT_TRUE(matches_message_text(ws.diags(), { sys_sub_p1_mac1.get_uri(), p1_mac2.get_uri() }));
     ws.diags().clear();
 
     ws.did_close_file(pgm_a);
@@ -163,7 +148,7 @@ TEST(b4g_integration_test, basic_pgm_conf_retrieval)
     parse_all_files(ws);
     ws.collect_diags();
 
-    EXPECT_TRUE(matches_message_text(ws.diags(), { "SYS/SUB/ASMMACP2/MAC1", "ASMMACP2/MAC2" }));
+    EXPECT_TRUE(matches_message_text(ws.diags(), { sys_sub_p2_mac1.get_uri(), p2_mac2.get_uri() }));
 
     ws.did_close_file(pgm_b);
 }
@@ -178,7 +163,7 @@ TEST(b4g_integration_test, invalid_bridge_json)
 
     lib_config config;
     shared_json global_settings = make_empty_shared_json();
-    workspace ws(resource_location(), "workspace_name", file_manager, config, global_settings);
+    workspace ws(empty_rl, "workspace_name", file_manager, config, global_settings);
     ws.open();
 
     ws.did_open_file(pgm_a);
@@ -200,7 +185,7 @@ TEST(b4g_integration_test, missing_pgroup)
 
     lib_config config;
     shared_json global_settings = make_empty_shared_json();
-    workspace ws(resource_location(), "workspace_name", file_manager, config, global_settings);
+    workspace ws(empty_rl, "workspace_name", file_manager, config, global_settings);
     ws.open();
 
     ws.did_open_file(pgm_a);
@@ -222,7 +207,7 @@ TEST(b4g_integration_test, missing_pgroup_but_not_used)
 
     lib_config config;
     shared_json global_settings = make_empty_shared_json();
-    workspace ws(resource_location(), "workspace_name", file_manager, config, global_settings);
+    workspace ws(empty_rl, "workspace_name", file_manager, config, global_settings);
     ws.open();
 
     ws.did_open_file(pgm_a);
@@ -240,20 +225,14 @@ TEST(b4g_integration_test, bridge_config_changed)
     file_manager_impl_test file_manager;
 
     file_manager.did_open_file(
-        proc_grps_name, 1, R"({"pgroups":[{"name":"P1","libs":[{"path":"ASMMAC","prefer_alternate_root":true}]}]})");
+        proc_grps_name, 1, R"({"pgroups":[{"name":"P1","libs":[{"path":"ASMMACP1","prefer_alternate_root":true}]}]})");
     file_manager.did_open_file(b4g_conf_name, 1, empty_b4g_conf);
     file_manager.did_open_file(pgm_a, 1, " MAC1");
-    file_manager.did_open_file(mac1,
-        1,
-        R"(        MACRO
-        MAC1
-        MNOTE 4,'MACRO'
-        MEND
-)");
+    file_manager.did_open_file(sys_sub_p1_mac1, 1, get_macro_content(macro_template, "1", sys_sub_p1_mac1.get_uri()));
 
     lib_config config;
     shared_json global_settings = make_empty_shared_json();
-    workspace ws(resource_location(), "workspace_name", file_manager, config, global_settings);
+    workspace ws(empty_rl, "workspace_name", file_manager, config, global_settings);
     ws.open();
 
     ws.did_open_file(pgm_a);
@@ -291,17 +270,11 @@ TEST(b4g_integration_test, proc_config_changed)
     file_manager.did_open_file(proc_grps_name, 1, empty_proc_grps);
     file_manager.did_open_file(b4g_conf_name, 1, R"({"elements":{},"defaultProcessorGroup":"P1","fileExtension":""})");
     file_manager.did_open_file(pgm_a, 1, " MAC1");
-    file_manager.did_open_file(mac1,
-        1,
-        R"(        MACRO
-        MAC1
-        MNOTE 4,'MACRO'
-        MEND
-)");
+    file_manager.did_open_file(sys_sub_p1_mac1, 1, get_macro_content(macro_template, "1", sys_sub_p1_mac1.get_uri()));
 
     lib_config config;
     shared_json global_settings = make_empty_shared_json();
-    workspace ws(resource_location(), "workspace_name", file_manager, config, global_settings);
+    workspace ws(empty_rl, "workspace_name", file_manager, config, global_settings);
     ws.open();
 
     ws.did_open_file(pgm_a);
@@ -315,7 +288,7 @@ TEST(b4g_integration_test, proc_config_changed)
     change_and_reparse(file_manager,
         ws,
         proc_grps_name,
-        R"({"pgroups":[{"name":"P1","libs":[{"path":"ASMMAC","prefer_alternate_root":true}]}]})");
+        R"({"pgroups":[{"name":"P1","libs":[{"path":"ASMMACP1","prefer_alternate_root":true}]}]})");
     ws.collect_diags();
 
     EXPECT_TRUE(matches_message_codes(ws.diags(), { "MNOTE" }));
