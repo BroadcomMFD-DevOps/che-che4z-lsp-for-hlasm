@@ -32,6 +32,7 @@
 #include "nlohmann/json.hpp"
 #include "protocol.h"
 #include "utils/content_loader.h"
+#include "utils/error_codes.h"
 #include "utils/scope_exit.h"
 #include "utils/task.h"
 #include "workspace_manager.h"
@@ -613,20 +614,13 @@ public:
 
     void set_request_interface(workspace_manager_requests* requests) { m_requests = requests; }
 
-    struct
-    {
-        int code;
-        const char* msg;
-    } static constexpr request_cancelled { -32800, "Canceled" }, request_failed { -32803, "Unknown reason" },
-        removing_workspace { -32803, "Workspace removal in progress" };
-
     static auto response_handle(auto r, auto f)
     {
         return [r = std::move(r), f = std::move(f)](bool workspace_removed) {
             if (!r.valid())
-                r.error(request_cancelled.code, request_cancelled.msg);
+                r.error(utils::error::lsp::request_cancelled);
             else if (workspace_removed)
-                r.error(removing_workspace.code, removing_workspace.msg);
+                r.error(utils::error::lsp::removing_workspace);
             else
                 f(r);
         };

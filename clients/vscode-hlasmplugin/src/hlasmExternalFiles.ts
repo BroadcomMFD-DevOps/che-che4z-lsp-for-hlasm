@@ -114,7 +114,7 @@ export class HLASMExternalFiles {
         if (msg.op === ExternalRequestType.read_directory && typeof msg.url === 'string')
             return this.handleDirMessage(msg);
 
-        return Promise.resolve({ id: msg.id, error: { code: -1, msg: 'Invalid request' } });
+        return Promise.resolve({ id: msg.id, error: { code: -5, msg: 'Invalid request' } });
     }
 
 }

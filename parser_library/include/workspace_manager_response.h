@@ -105,7 +105,12 @@ protected:
 
     bool valid() const noexcept { return actions->valid(impl); }
     bool resolved() const noexcept { return actions->resolved(impl); }
-    void error(int ec, const char* error) const noexcept { return actions->error(impl, ec, error); }
+    void error(int ec, const char* error) const noexcept { actions->error(impl, ec, error); }
+    template<typename E>
+    void error(const E& e) const noexcept
+    {
+        error(e.code, e.msg);
+    }
     void invalidate() const noexcept { actions->invalidate(impl); }
     void provide(void* t) const noexcept { actions->provide(impl, t); }
 
@@ -188,7 +193,7 @@ class workspace_manager_response : workspace_manager_response_base
                 }
                 catch (...)
                 {
-                    ptr->data.error(-1, "Exception thrown while providing result");
+                    ptr->data.error(-2, "Exception thrown while providing result");
                 }
                 ptr->resolved.store(true, std::memory_order_release);
             },

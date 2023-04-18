@@ -18,6 +18,7 @@
 #include <string_view>
 
 #include "nlohmann/json.hpp"
+#include "utils/error_codes.h"
 
 using namespace hlasm_plugin;
 using namespace hlasm_plugin::parser_library;
@@ -68,13 +69,13 @@ void external_file_reader::read_external_file(const char* url, workspace_manager
             content.error(err, errmsg.c_str());
         }
         else if (!result.is_string())
-            content.error(-100, "Invalid JSON content");
+            content.error(utils::error::invalid_json);
         else
             content.provide(sequence<char>(result.get<std::string_view>()));
     };
 
     if (!enqueue_message(next_id, std::move(msg), std::move(handler)))
-        content.error(-200, "Error while sending a message");
+        content.error(utils::error::message_send);
 }
 
 void external_file_reader::read_external_directory(
@@ -96,7 +97,7 @@ void external_file_reader::read_external_directory(
         }
         if (!result.is_array())
         {
-            members.error(-100, "Invalid JSON content");
+            members.error(utils::error::invalid_json);
             return;
         }
         std::vector<sequence<char>> tmp;
@@ -106,14 +107,14 @@ void external_file_reader::read_external_directory(
         }
         catch (const std::bad_alloc&)
         {
-            members.error(-1, "Allocation failed");
+            members.error(utils::error::allocation);
             return;
         }
         for (const auto& item : result)
         {
             if (!item.is_string())
             {
-                members.error(-100, "Invalid JSON content");
+                members.error(utils::error::invalid_json);
                 return;
             }
             tmp.emplace_back(sequence<char>(item.get<std::string_view>()));
@@ -123,7 +124,7 @@ void external_file_reader::read_external_directory(
     };
 
     if (!enqueue_message(next_id, std::move(msg), std::move(handler)))
-        members.error(-200, "Error while sending a message");
+        members.error(utils::error::message_send);
 }
 
 

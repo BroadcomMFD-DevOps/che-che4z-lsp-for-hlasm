@@ -20,9 +20,9 @@
 
 #include "../feature.h"
 #include "nlohmann/json.hpp"
+#include "utils/error_codes.h"
 #include "utils/resource_location.h"
 #include "workspace_manager_response.h"
-
 
 namespace hlasm_plugin::language_server::lsp {
 
@@ -723,8 +723,7 @@ void feature_language_features::opcode_suggestion(const request_id& id, const nl
     }
     catch (const std::exception& e)
     {
-        constexpr int internal_error = -32603;
-        composite->error(internal_error, e.what());
+        composite->error(utils::error::lsp::internal_error, e.what());
     }
 }
 
