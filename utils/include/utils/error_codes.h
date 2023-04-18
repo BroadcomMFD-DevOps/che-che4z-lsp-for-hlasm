@@ -27,7 +27,7 @@ struct error_code
 
 namespace lsp {
 constexpr int internal_error = -32603;
-constexpr error_code request_cancelled { -32800, "Canceled" };
+constexpr error_code request_canceled { -32800, "Canceled" };
 constexpr error_code request_failed { -32803, "Unknown reason" };
 constexpr error_code removing_workspace { -32803, "Workspace removal in progress" };
 } // namespace lsp

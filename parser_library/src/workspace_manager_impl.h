@@ -618,7 +618,7 @@ public:
     {
         return [r = std::move(r), f = std::move(f)](bool workspace_removed) {
             if (!r.valid())
-                r.error(utils::error::lsp::request_cancelled);
+                r.error(utils::error::lsp::request_canceled);
             else if (workspace_removed)
                 r.error(utils::error::lsp::removing_workspace);
             else
