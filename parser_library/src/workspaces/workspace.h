@@ -89,14 +89,14 @@ public:
     void collect_diags() const override;
 
     [[nodiscard]] utils::task mark_file_for_parsing(
-        const resource_location& file_location, open_file_result file_content_status);
+        const resource_location& file_location, file_content_state file_content_status);
     void mark_all_opened_files();
     [[nodiscard]] utils::task did_open_file(
-        resource_location file_location, open_file_result file_content_status = open_file_result::changed_content);
-    [[nodiscard]] utils::task did_change_file(resource_location file_location, open_file_result file_content_status);
+        resource_location file_location, file_content_state file_content_status = file_content_state::changed_content);
+    [[nodiscard]] utils::task did_change_file(resource_location file_location, file_content_state file_content_status);
     [[nodiscard]] utils::task did_close_file(resource_location file_location);
     [[nodiscard]] utils::task did_change_watched_files(
-        std::vector<resource_location> file_locations, std::vector<open_file_result> file_change_status);
+        std::vector<resource_location> file_locations, std::vector<file_content_state> file_change_status);
 
     [[nodiscard]] utils::value_task<parse_file_result> parse_file(
         const resource_location& preferred_file = resource_location());

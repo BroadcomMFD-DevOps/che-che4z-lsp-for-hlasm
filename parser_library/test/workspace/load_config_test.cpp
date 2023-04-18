@@ -160,9 +160,9 @@ public:
     }
 
     // Inherited via file_manager
-    open_file_result did_open_file(const resource_location&, version_t, std::string) override
+    file_content_state did_open_file(const resource_location&, version_t, std::string) override
     {
-        return open_file_result::changed_content;
+        return file_content_state::changed_content;
     }
     void did_change_file(const resource_location&, version_t, const document_change*, size_t) override {}
     void did_close_file(const resource_location&) override {}

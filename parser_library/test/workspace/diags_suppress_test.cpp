@@ -132,10 +132,10 @@ TEST(diags_suppress, pgm_supress_limit_changed)
     document_change ch(range({ 0, 1 }, { 0, 1 }), new_limit_str.c_str(), new_limit_str.size());
 
     fm.did_change_file(pgm_conf_name, 1, &ch, 1);
-    run_if_valid(ws.did_change_file(pgm_conf_name, open_file_result::changed_content));
+    run_if_valid(ws.did_change_file(pgm_conf_name, file_content_state::changed_content));
     parse_all_files(ws);
 
-    run_if_valid(ws.did_change_file(file_loc, open_file_result::changed_content));
+    run_if_valid(ws.did_change_file(file_loc, file_content_state::changed_content));
     parse_all_files(ws);
 
     ws.diags().clear();

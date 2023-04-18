@@ -42,7 +42,7 @@ public:
     MOCK_METHOD(
         bool, lib_file_exists, (const resource_location& lib_root, std::string_view file_name), (const override));
     MOCK_METHOD(bool, dir_exists, (const resource_location& dir_loc), (const override));
-    MOCK_METHOD(open_file_result,
+    MOCK_METHOD(file_content_state,
         did_open_file,
         (const resource_location& document_loc, version_t version, std::string text),
         (override));
@@ -59,7 +59,7 @@ public:
     MOCK_METHOD(std::string, get_virtual_file, (unsigned long long id), (const override));
     MOCK_METHOD(resource_location, get_virtual_file_workspace, (unsigned long long id), (const override));
 
-    MOCK_METHOD(value_task<open_file_result>, update_file, (const resource_location& document_loc), (override));
+    MOCK_METHOD(value_task<file_content_state>, update_file, (const resource_location& document_loc), (override));
 
     MOCK_METHOD(value_task<std::optional<std::string>>, get_file_content, (const resource_location&), (override));
 };

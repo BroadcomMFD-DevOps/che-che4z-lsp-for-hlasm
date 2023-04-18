@@ -248,7 +248,7 @@ TEST(b4g_integration_test, bridge_config_changed)
     document_change doc_change(new_bridge_json.data(), new_bridge_json.size());
     file_manager.did_change_file(resource_location("SYS/SUB/ASMPGM/.bridge.json"), 2, &doc_change, 1);
     run_if_valid(
-        ws.did_change_file(resource_location("SYS/SUB/ASMPGM/.bridge.json"), open_file_result::changed_content));
+        ws.did_change_file(resource_location("SYS/SUB/ASMPGM/.bridge.json"), file_content_state::changed_content));
     parse_all_files(ws);
 
     ws.collect_diags();
@@ -291,7 +291,7 @@ TEST(b4g_integration_test, proc_config_changed)
     document_change doc_change(new_bridge_json.data(), new_bridge_json.size());
     file_manager.did_change_file(resource_location(".hlasmplugin/proc_grps.json"), 2, &doc_change, 1);
     run_if_valid(
-        ws.did_change_file(resource_location(".hlasmplugin/proc_grps.json"), open_file_result::changed_content));
+        ws.did_change_file(resource_location(".hlasmplugin/proc_grps.json"), file_content_state::changed_content));
     parse_all_files(ws);
 
     ws.collect_diags();

@@ -615,16 +615,16 @@ void workspace::mark_all_opened_files()
 }
 
 utils::task workspace::mark_file_for_parsing(
-    const resource_location& file_location, open_file_result file_content_status)
+    const resource_location& file_location, file_content_state file_content_status)
 {
-    if (file_content_status == open_file_result::identical)
+    if (file_content_status == file_content_state::identical)
         return {};
 
     // TODO: add support for hlasm to vscode (auto detection??) and do the decision based on languageid
     // TODO: what about removing files??? what if depentands_ points to not existing file?
     // TODO: apparently just opening a file without changing it triggers reparse
 
-    if (file_content_status == open_file_result::changed_content && trigger_reparse(file_location))
+    if (file_content_status == file_content_state::changed_content && trigger_reparse(file_location))
     {
         for (auto& [_, component] : m_processor_files)
         {
@@ -672,7 +672,7 @@ workspace_file_info workspace::parse_successful(processor_file_compoments& comp,
     return ws_file_info;
 }
 
-utils::task workspace::did_open_file(resource_location file_location, open_file_result file_content_status)
+utils::task workspace::did_open_file(resource_location file_location, file_content_state file_content_status)
 {
     if (!m_configuration.is_configuration_file(file_location))
     {
@@ -718,7 +718,7 @@ utils::task workspace::did_close_file(resource_location file_location)
         if (file->get_version() == std::get<std::shared_ptr<dependency_cache>>(it->second)->version)
             continue;
 
-        if (auto t = mark_file_for_parsing(file_location, open_file_result::changed_content); t.valid() && !t.done())
+        if (auto t = mark_file_for_parsing(file_location, file_content_state::changed_content); t.valid() && !t.done())
             pending_updates.emplace_back(std::move(t));
         break;
     }
@@ -738,7 +738,7 @@ utils::task workspace::did_close_file(resource_location file_location)
     m_processor_files.erase(fcomp);
 }
 
-utils::task workspace::did_change_file(resource_location file_location, open_file_result file_content_status)
+utils::task workspace::did_change_file(resource_location file_location, file_content_state file_content_status)
 {
     if (m_configuration.is_configuration_file(file_location))
     {
@@ -752,7 +752,7 @@ utils::task workspace::did_change_file(resource_location file_location, open_fil
 }
 
 utils::task workspace::did_change_watched_files(
-    std::vector<resource_location> file_locations, std::vector<open_file_result> file_change_status)
+    std::vector<resource_location> file_locations, std::vector<file_content_state> file_change_status)
 {
     assert(file_locations.size() == file_change_status.size());
 
@@ -763,7 +763,7 @@ utils::task workspace::did_change_watched_files(
     for (const auto& file_location : file_locations)
     {
         auto change_status = *cit++;
-        auto t = mark_file_for_parsing(file_location, refreshed ? open_file_result::changed_content : change_status);
+        auto t = mark_file_for_parsing(file_location, refreshed ? file_content_state::changed_content : change_status);
         if (!t.valid() || t.done())
             continue;
 

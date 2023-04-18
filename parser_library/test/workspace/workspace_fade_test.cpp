@@ -1113,7 +1113,7 @@ public:
     {
         resource_location rl;
         bool is_cpybook;
-        workspaces::open_file_result open_file_res;
+        workspaces::file_content_state open_file_res;
     };
 
     fade_helper(const std::vector<files_details>& files_to_open)
@@ -1186,9 +1186,9 @@ TEST(fade, cpybook_as_pgm)
     static const resource_location srcC_loc("C.hlasm");
 
     fade_helper fh(std::vector<fade_helper::files_details>({
-        fade_helper::files_details { srcA_loc, false, workspaces::open_file_result::changed_content },
-        fade_helper::files_details { srcB_loc, false, workspaces::open_file_result::changed_content },
-        fade_helper::files_details { srcC_loc, true, workspaces::open_file_result::changed_lsp },
+        fade_helper::files_details { srcA_loc, false, workspaces::file_content_state::changed_content },
+        fade_helper::files_details { srcB_loc, false, workspaces::file_content_state::changed_content },
+        fade_helper::files_details { srcC_loc, true, workspaces::file_content_state::changed_lsp },
     }));
 
     EXPECT_TRUE(matches_fade_messages(fh.fade_messages(),

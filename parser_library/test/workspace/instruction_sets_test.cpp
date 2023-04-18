@@ -161,7 +161,7 @@ void change_instruction_set(
     changes.push_back(document_change({ change_range }, process_group.c_str(), process_group.size()));
 
     fm.did_change_file(proc_grps_loc, 1, changes.data(), changes.size());
-    run_if_valid(ws.did_change_file(proc_grps_loc, open_file_result::changed_content));
+    run_if_valid(ws.did_change_file(proc_grps_loc, file_content_state::changed_content));
     parse_all_files(ws);
 }
 } // namespace

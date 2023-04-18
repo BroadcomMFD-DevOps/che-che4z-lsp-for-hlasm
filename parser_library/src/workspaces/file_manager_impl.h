@@ -68,7 +68,7 @@ public:
 
     std::string canonical(const utils::resource::resource_location& res_loc, std::error_code& ec) const override;
 
-    open_file_result did_open_file(
+    file_content_state did_open_file(
         const utils::resource::resource_location& document_loc, version_t version, std::string text) override;
     void did_change_file(const utils::resource::resource_location& document_loc,
         version_t version,
@@ -84,7 +84,7 @@ public:
     std::string get_virtual_file(unsigned long long id) const override;
     utils::resource::resource_location get_virtual_file_workspace(unsigned long long id) const override;
 
-    [[nodiscard]] utils::value_task<open_file_result> update_file(
+    [[nodiscard]] utils::value_task<file_content_state> update_file(
         const utils::resource::resource_location& document_loc) override;
 
     [[nodiscard]] utils::value_task<std::optional<std::string>> get_file_content(

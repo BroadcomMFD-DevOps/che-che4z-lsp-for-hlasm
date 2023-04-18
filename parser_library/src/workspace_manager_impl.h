@@ -428,7 +428,7 @@ public:
     void did_open_file(const utils::resource::resource_location& document_loc, version_t version, std::string text)
     {
         auto& ows = ws_path_match(document_loc.get_uri());
-        auto open_result = std::make_shared<workspaces::open_file_result>();
+        auto open_result = std::make_shared<workspaces::file_content_state>();
         m_work_queue.emplace_back(work_item {
             next_unique_id(),
             nullptr,
@@ -499,8 +499,8 @@ public:
             std::function<utils::task()>(
                 [document_loc,
                     &ws = ows.ws,
-                    file_content_status = ch_size ? workspaces::open_file_result::changed_content
-                                                  : workspaces::open_file_result::identical]() mutable {
+                    file_content_status = ch_size ? workspaces::file_content_state::changed_content
+                                                  : workspaces::file_content_state::identical]() mutable {
                     return ws.did_change_file(std::move(document_loc), file_content_status);
                 }),
             {},
@@ -531,7 +531,7 @@ public:
     void did_change_watched_files(std::vector<utils::resource::resource_location> affected_paths)
     {
         auto paths_for_ws = std::make_shared<std::unordered_map<opened_workspace*,
-            std::pair<std::vector<resource_location>, std::vector<workspaces::open_file_result>>>>();
+            std::pair<std::vector<resource_location>, std::vector<workspaces::file_content_state>>>>();
         for (auto& path : affected_paths)
         {
             auto& [path_list, _] = (*paths_for_ws)[&ws_path_match(path.get_uri())];
@@ -553,7 +553,7 @@ public:
                         auto update = m_file_manager.update_file(path);
                         auto& change = *cit++;
                         if (!update.valid())
-                            change = workspaces::open_file_result::identical;
+                            change = workspaces::file_content_state::identical;
                         else if (update.done())
                             change = update.value();
                         else
@@ -574,7 +574,7 @@ public:
                 ows,
                 std::function<utils::task()>(
                     [path_change_list_p = std::shared_ptr<
-                         std::pair<std::vector<resource_location>, std::vector<workspaces::open_file_result>>>(
+                         std::pair<std::vector<resource_location>, std::vector<workspaces::file_content_state>>>(
                          paths_for_ws, &path_change_list),
                         &ws = ows->ws]() {
                         return ws.did_change_watched_files(

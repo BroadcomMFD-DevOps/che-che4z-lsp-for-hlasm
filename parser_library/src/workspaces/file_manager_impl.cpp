@@ -262,7 +262,7 @@ std::string file_manager_impl::canonical(const utils::resource::resource_locatio
     return utils::resource::canonical(res_loc, ec);
 }
 
-open_file_result file_manager_impl::did_open_file(
+file_content_state file_manager_impl::did_open_file(
     const utils::resource::resource_location& document_loc, version_t version, std::string new_text)
 {
     std::shared_ptr<mapped_file> locked;
@@ -287,7 +287,7 @@ open_file_result file_manager_impl::did_open_file(
         file->m_it = m_files.try_emplace(document_loc, file.get()).first;
         file->m_editing_self_reference = std::move(file);
 
-        return open_file_result::changed_content;
+        return file_content_state::changed_content;
     }
     else
     {
@@ -295,7 +295,7 @@ open_file_result file_manager_impl::did_open_file(
         locked->m_editing_self_reference = std::move(locked);
         it->second.closed = false;
 
-        return open_file_result::changed_lsp;
+        return file_content_state::changed_lsp;
     }
 }
 
@@ -418,7 +418,7 @@ utils::resource::resource_location file_manager_impl::get_virtual_file_workspace
     return utils::resource::resource_location();
 }
 
-utils::value_task<open_file_result> file_manager_impl::update_file(
+utils::value_task<file_content_state> file_manager_impl::update_file(
     const utils::resource::resource_location& document_loc)
 {
     {
@@ -427,22 +427,22 @@ utils::value_task<open_file_result> file_manager_impl::update_file(
         if (auto f = m_files.find(document_loc); f == m_files.end() || f->second.file->get_lsp_editing())
             return {};
     }
-    return m_file_reader->load_text(document_loc).then([this, document_loc](auto current_text) -> open_file_result {
+    return m_file_reader->load_text(document_loc).then([this, document_loc](auto current_text) -> file_content_state {
         std::lock_guard lock(files_mutex);
 
         auto f = m_files.find(document_loc);
         if (f == m_files.end() || f->second.file->get_lsp_editing())
-            return open_file_result::identical;
+            return file_content_state::identical;
 
         if (f->second.file->get_text_or_error() == current_text)
         {
             f->second.closed = false;
-            return open_file_result::identical;
+            return file_content_state::identical;
         }
 
         f->second.file->m_it = m_files.end();
         m_files.erase(f);
-        return open_file_result::changed_content;
+        return file_content_state::changed_content;
     });
 }
 

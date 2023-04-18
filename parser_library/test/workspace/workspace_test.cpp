@@ -401,7 +401,7 @@ TEST_F(workspace_test, did_close_file)
     std::string new_text = "";
     changes.push_back(document_change({ { 0, 0 }, { 0, 6 } }, new_text.c_str(), new_text.size()));
     file_manager.did_change_file(source2_loc, 1, changes.data(), changes.size());
-    run_if_valid(ws.did_change_file(source2_loc, open_file_result::changed_content));
+    run_if_valid(ws.did_change_file(source2_loc, file_content_state::changed_content));
     parse_all_files(ws);
     EXPECT_EQ(collect_and_get_diags_size(ws), (size_t)1);
     EXPECT_TRUE(match_strings({ source2_loc }));
@@ -426,7 +426,7 @@ TEST_F(workspace_test, did_close_file_without_save)
 
     document_change c(range(position(2, 0), position(2, 0)), "ERR\n", 4);
     file_manager.did_change_file(correct_macro_loc, 2, &c, 1);
-    run_if_valid(ws.did_change_file(correct_macro_loc, open_file_result::changed_content));
+    run_if_valid(ws.did_change_file(correct_macro_loc, file_content_state::changed_content));
     parse_all_files(ws);
 
     // TODO: This was modified due to very specific behavior of W010 diagnostic.
@@ -455,14 +455,14 @@ TEST_F(workspace_test, did_change_watched_files)
     EXPECT_EQ(collect_and_get_diags_size(ws), (size_t)0);
 
     file_manager.insert_correct_macro = false;
-    run_if_valid(ws.did_change_watched_files({ correct_macro_loc }, { workspaces::open_file_result::identical }));
+    run_if_valid(ws.did_change_watched_files({ correct_macro_loc }, { workspaces::file_content_state::identical }));
     parse_all_files(ws);
     ASSERT_EQ(collect_and_get_diags_size(ws), (size_t)1);
     EXPECT_STREQ(diags()[0].code.c_str(), "E049");
 
     file_manager.insert_correct_macro = true;
-    run_if_valid(ws.did_change_watched_files({ correct_macro_loc }, { workspaces::open_file_result::identical }));
-    run_if_valid(ws.did_change_file(source3_loc, open_file_result::changed_content));
+    run_if_valid(ws.did_change_watched_files({ correct_macro_loc }, { workspaces::file_content_state::identical }));
+    run_if_valid(ws.did_change_file(source3_loc, file_content_state::changed_content));
     parse_all_files(ws);
     ASSERT_EQ(collect_and_get_diags_size(ws), (size_t)0);
 }
@@ -477,7 +477,7 @@ TEST_F(workspace_test, did_change_watched_files_not_opened_file)
     parse_all_files(ws);
     EXPECT_EQ(collect_and_get_diags_size(ws), (size_t)0);
 
-    run_if_valid(ws.did_change_watched_files({ faulty_macro_loc }, { workspaces::open_file_result::identical }));
+    run_if_valid(ws.did_change_watched_files({ faulty_macro_loc }, { workspaces::file_content_state::identical }));
     parse_all_files(ws);
     EXPECT_EQ(collect_and_get_diags_size(ws), (size_t)0);
 }
