@@ -36,6 +36,7 @@ const resource_location pgm_a("SYS/SUB/ASMPGM/A");
 const resource_location pgm_b("SYS/SUB/ASMPGM/B");
 const resource_location sys_sub_p1_mac1("SYS/SUB/ASMMACP1/MAC1");
 const resource_location sys_sub_p2_mac1("SYS/SUB/ASMMACP2/MAC1");
+const resource_location sys_sub_p3_mac1("SYS/SUB/ASMMACP3/MAC1");
 const resource_location p1_mac2("ASMMACP1/MAC2");
 const resource_location p2_mac2("ASMMACP2/MAC2");
 const resource_location empty_rl("");
@@ -151,6 +152,87 @@ TEST(b4g_integration_test, basic_pgm_conf_retrieval)
     EXPECT_TRUE(matches_message_text(ws.diags(), { sys_sub_p2_mac1.get_uri(), p2_mac2.get_uri() }));
 
     ws.did_close_file(pgm_b);
+}
+
+class pgm_conf_preference_helper
+{
+public:
+    file_manager_impl_test fm;
+    lib_config config;
+    shared_json global_settings = make_empty_shared_json();
+    workspace ws = workspace(resource_location(), "workspace_name", fm, config, global_settings);
+
+    const std::string pgm_conf_template = R"({
+  "pgms": [
+    {
+      "program": "SYS/SUB/ASMPGM/$x",
+      "pgroup": "P1"
+    }
+  ]
+})";
+
+    pgm_conf_preference_helper(std::string pgm_name)
+    {
+        fm.did_open_file(proc_grps_name,
+            1,
+            R"({"pgroups":[{"name":"P1","libs":["SYS/SUB/ASMMACP1"]},{"name":"P2","libs":["SYS/SUB/ASMMACP2"]},{"name":"P3","libs":["SYS/SUB/ASMMACP3"]}]})");
+
+        fm.did_open_file(pgm_conf_name, 0, std::regex_replace(pgm_conf_template, std::regex("\\$x"), pgm_name));
+        fm.did_open_file(b4g_conf_name,
+            0,
+            R"({"elements":{"A":{"processorGroup":"P2"},"B":{"processorGroup":"P2"}},"defaultProcessorGroup":"P3","fileExtension":""})");
+
+        fm.did_open_file(pgm_a, 1, " MAC1");
+        fm.did_open_file(pgm_b, 1, " MAC1");
+        fm.did_open_file(sys_sub_p1_mac1, 1, get_macro_content(macro_template, "1", sys_sub_p1_mac1.get_uri()));
+        fm.did_open_file(sys_sub_p2_mac1, 1, get_macro_content(macro_template, "1", sys_sub_p2_mac1.get_uri()));
+        fm.did_open_file(sys_sub_p3_mac1, 1, get_macro_content(macro_template, "1", sys_sub_p3_mac1.get_uri()));
+
+        ws.open();
+    }
+};
+
+TEST(b4g_integration_test, pgm_conf_preference_exact_path)
+{
+    pgm_conf_preference_helper helper("A");
+    auto& ws = helper.ws;
+    auto& fm = helper.fm;
+
+    ws.did_open_file(pgm_b);
+    parse_all_files(ws);
+    ws.collect_diags();
+
+    EXPECT_TRUE(matches_message_text(ws.diags(), { sys_sub_p2_mac1.get_uri() }));
+
+    ws.diags().clear();
+
+    ws.did_open_file(pgm_a);
+    parse_all_files(ws);
+    ws.collect_diags();
+
+    EXPECT_TRUE(matches_message_text(ws.diags(), { sys_sub_p1_mac1.get_uri(), sys_sub_p2_mac1.get_uri() }));
+}
+
+TEST(b4g_integration_test, pgm_conf_preference_regex_path)
+{
+    pgm_conf_preference_helper helper("A");
+    auto& ws = helper.ws;
+    auto& fm = helper.fm;
+
+    ws.did_open_file(pgm_b);
+    parse_all_files(ws);
+    ws.collect_diags();
+
+    EXPECT_TRUE(matches_message_text(ws.diags(), { sys_sub_p2_mac1.get_uri() }));
+
+    ws.diags().clear();
+    change_and_reparse(fm, ws, pgm_conf_name, std::regex_replace(helper.pgm_conf_template, std::regex("\\$x"), "*"));
+
+    ws.did_open_file(pgm_a);
+    parse_all_files(ws);
+    ws.collect_diags();
+
+    EXPECT_TRUE(matches_message_text(ws.diags(), { sys_sub_p1_mac1.get_uri(), sys_sub_p1_mac1.get_uri() }));
 }
 
 TEST(b4g_integration_test, invalid_bridge_json)

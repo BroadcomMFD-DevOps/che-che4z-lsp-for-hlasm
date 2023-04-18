@@ -762,6 +762,10 @@ const program* workspace_configuration::get_program_normalized(
 utils::resource::resource_location workspace_configuration::load_alternative_config_if_needed(
     const utils::resource::resource_location& file_location)
 {
+    if (auto pgm = get_program_normalized(file_location);
+        pgm && pgm->pgroup.has_value() && pgm->pgroup.value().second == utils::resource::resource_location())
+        return utils::resource::resource_location();
+
     auto configuration_url =
         utils::resource::resource_location::replace_filename(file_location.lexically_normal(), B4G_CONF_FILE);
 
