@@ -51,7 +51,7 @@ function generateFileContent(uriPath: string) {
          MEND`
 }
 
-const magicSchema = 'hlasm-external';
+const magicScheme = 'hlasm-external';
 export class HLASMExternalFiles {
     private toDispose: vscode.Disposable[] = [];
 
@@ -65,9 +65,9 @@ export class HLASMExternalFiles {
                 this.reset();
         }, this, this.toDispose);
 
-        this.toDispose.push(vscode.workspace.registerTextDocumentContentProvider(magicSchema, {
+        this.toDispose.push(vscode.workspace.registerTextDocumentContentProvider(magicScheme, {
             provideTextDocumentContent(uri: vscode.Uri, token: vscode.CancellationToken): vscode.ProviderResult<string> {
-                if (uri.scheme === magicSchema && /\/MAC[A-C]$/.test(uri.path))
+                if (uri.scheme === magicScheme && /\/MAC[A-C]$/.test(uri.path))
                     return generateFileContent(uri.path);
                 return null;
             }
@@ -81,7 +81,7 @@ export class HLASMExternalFiles {
     }
 
     private handleFileMessage(msg: ExternalRequest): Promise<ExternalReadFileResponse | ExternalReadDirectoryResponse | ExternalErrorResponse> {
-        if (msg.url.startsWith(magicSchema) && /\/MAC[A-C]$/.test(msg.url))
+        if (msg.url.startsWith(magicScheme) && /\/MAC[A-C]$/.test(msg.url))
             return Promise.resolve({
                 id: msg.id,
                 data: generateFileContent(msg.url)
@@ -93,7 +93,7 @@ export class HLASMExternalFiles {
             });
     }
     private handleDirMessage(msg: ExternalRequest): Promise<ExternalReadFileResponse | ExternalReadDirectoryResponse | ExternalErrorResponse> {
-        if (msg.url.startsWith(magicSchema))
+        if (msg.url.startsWith(magicScheme))
             return Promise.resolve({
                 id: msg.id,
                 data: ['MACA', 'MACB', 'MACC', 'MACD']

@@ -68,10 +68,10 @@ class workspace_manager::impl final : public diagnosable_impl, workspaces::exter
 
 public:
     explicit impl(workspace_manager_external_file_requests* external_file_requests)
-        : external_file_requests(external_file_requests)
-        , file_manager_(*this)
-        , implicit_workspace_(file_manager_, global_config_)
-        , quiet_implicit_workspace_(file_manager_, supress_all)
+        : m_external_file_requests(external_file_requests)
+        , m_file_manager(*this)
+        , m_implicit_workspace(m_file_manager, m_global_config)
+        , m_quiet_implicit_workspace(m_file_manager, supress_all)
     {}
     impl(const impl&) = delete;
     impl& operator=(const impl&) = delete;
@@ -83,15 +83,15 @@ public:
     {
         if (auto hlasm_id = extract_hlasm_id(document_uri); hlasm_id.has_value())
         {
-            if (auto related_ws = self.file_manager_.get_virtual_file_workspace(hlasm_id.value()); !related_ws.empty())
-                for (auto& [_, ows] : self.workspaces_)
+            if (auto related_ws = self.m_file_manager.get_virtual_file_workspace(hlasm_id.value()); !related_ws.empty())
+                for (auto& [_, ows] : self.m_workspaces)
                     if (ows.ws.uri() == related_ws.get_uri())
                         return ows;
         }
 
         size_t max = 0;
-        decltype(&self.workspaces_.begin()->second) max_ows = nullptr;
-        for (auto& [name, ows] : self.workspaces_)
+        decltype(&self.m_workspaces.begin()->second) max_ows = nullptr;
+        for (auto& [name, ows] : self.m_workspaces)
         {
             size_t match = prefix_match(document_uri, ows.ws.uri());
             if (match > max && match >= name.size())
@@ -103,9 +103,9 @@ public:
         if (max_ows != nullptr)
             return *max_ows;
         else if (document_uri.starts_with("file:") || document_uri.starts_with("untitled:"))
-            return self.implicit_workspace_;
+            return self.m_implicit_workspace;
         else
-            return self.quiet_implicit_workspace_;
+            return self.m_quiet_implicit_workspace;
     }
 
     // returns implicit workspace, if the file does not belong to any workspace
@@ -116,14 +116,14 @@ public:
     {
         size_t size = 0;
 
-        for (auto it = workspaces_.begin(); size < max_size && it != workspaces_.end(); ++size, ++it)
+        for (auto it = m_workspaces.begin(); size < max_size && it != m_workspaces.end(); ++size, ++it)
         {
             workspaces[size] = &it->second.ws;
         }
         return size;
     }
 
-    size_t get_workspaces_count() const { return workspaces_.size(); }
+    size_t get_workspaces_count() const { return m_workspaces.size(); }
 
     enum class work_item_type
     {
@@ -220,9 +220,9 @@ public:
     void add_workspace(std::string name, std::string uri)
     {
         auto& ows =
-            workspaces_.try_emplace(name, resource_location(std::move(uri)), name, file_manager_, global_config_)
+            m_workspaces.try_emplace(name, resource_location(std::move(uri)), name, m_file_manager, m_global_config)
                 .first->second;
-        ows.ws.set_message_consumer(message_consumer_);
+        ows.ws.set_message_consumer(m_message_consumer);
 
         auto& new_workspace = m_work_queue.emplace_back(work_item {
             next_unique_id(),
@@ -239,7 +239,7 @@ public:
 
     bool attach_configuration_request(work_item& wi)
     {
-        if (!requests_)
+        if (!m_requests)
             return false;
 
         auto configuration_request = next_unique_id();
@@ -275,7 +275,7 @@ public:
 
         wi.pending_requests.emplace_back(configuration_request, [resp = resp]() noexcept { resp.invalidate(); });
 
-        requests_->request_workspace_configuration(wi.ows->ws.uri().c_str(), std::move(resp));
+        m_requests->request_workspace_configuration(wi.ows->ws.uri().c_str(), std::move(resp));
 
         return true;
     }
@@ -283,8 +283,8 @@ public:
     ws_id find_workspace(const std::string& document_uri) { return &ws_path_match(document_uri).ws; }
     void remove_workspace(std::string uri)
     {
-        auto it = workspaces_.find(uri);
-        if (it == workspaces_.end())
+        auto it = m_workspaces.find(uri);
+        if (it == m_workspaces.end())
             return; // erase does no action, if the key does not exist
 
         auto* ows = &it->second;
@@ -300,7 +300,7 @@ public:
         if (m_active_task.ows == ows)
             m_active_task = {};
 
-        workspaces_.erase(it);
+        m_workspaces.erase(it);
         notify_diagnostics_consumers();
     }
 
@@ -318,7 +318,7 @@ public:
         if (perf_metrics)
         {
             parsing_metadata data { perf_metrics.value(), metadata, errors, warnings };
-            for (auto consumer : parsing_metadata_consumers_)
+            for (auto consumer : m_parsing_metadata_consumers)
                 consumer->consume_parsing_metadata(sequence<char>(url.get_uri()), duration.count(), data);
         }
 
@@ -353,9 +353,9 @@ public:
             r.first |= n.first;
             r.second |= n.second;
         };
-        auto result = run_parse_loop(implicit_workspace_, yield_indicator);
-        combine(result, run_parse_loop(quiet_implicit_workspace_, yield_indicator));
-        for (auto& [_, ows] : workspaces_)
+        auto result = run_parse_loop(m_implicit_workspace, yield_indicator);
+        combine(result, run_parse_loop(m_quiet_implicit_workspace, yield_indicator));
+        for (auto& [_, ows] : m_workspaces)
             combine(result, run_parse_loop(ows, yield_indicator));
 
         const auto& [progress, stuff_to_do] = result;
@@ -433,7 +433,7 @@ public:
             next_unique_id(),
             nullptr,
             [this, document_loc, version, text = std::move(text), open_result]() mutable {
-                *open_result = file_manager_.did_open_file(document_loc, version, std::move(text));
+                *open_result = m_file_manager.did_open_file(document_loc, version, std::move(text));
             },
             {},
             work_item_type::file_change,
@@ -487,7 +487,7 @@ public:
                         return cc.whole ? document_change(cc.text.data(), cc.text.size())
                                         : document_change(cc.change_range, cc.text.data(), cc.text.size());
                     });
-                file_manager_.did_change_file(document_loc, version, list.data(), list.size());
+                m_file_manager.did_change_file(document_loc, version, list.data(), list.size());
             },
             {},
             work_item_type::file_change,
@@ -514,7 +514,7 @@ public:
         m_work_queue.emplace_back(work_item {
             next_unique_id(),
             nullptr,
-            [this, document_loc]() { file_manager_.did_close_file(document_loc); },
+            [this, document_loc]() { m_file_manager.did_close_file(document_loc); },
             {},
             work_item_type::file_change,
         });
@@ -534,7 +534,7 @@ public:
             std::pair<std::vector<resource_location>, std::vector<workspaces::open_file_result>>>>();
         for (auto& path : affected_paths)
         {
-            auto& [path_list, changes] = (*paths_for_ws)[&ws_path_match(path.get_uri())];
+            auto& [path_list, _] = (*paths_for_ws)[&ws_path_match(path.get_uri())];
             path_list.emplace_back(std::move(path));
         }
 
@@ -550,7 +550,7 @@ public:
                     auto cit = changes.begin();
                     for (const auto& path : paths)
                     {
-                        auto update = file_manager_.update_file(path);
+                        auto update = m_file_manager.update_file(path);
                         auto& change = *cit++;
                         if (!update.valid())
                             change = workspaces::open_file_result::identical;
@@ -585,33 +585,33 @@ public:
             });
     }
 
-    void register_diagnostics_consumer(diagnostics_consumer* consumer) { diag_consumers_.push_back(consumer); }
+    void register_diagnostics_consumer(diagnostics_consumer* consumer) { m_diag_consumers.push_back(consumer); }
     void unregister_diagnostics_consumer(diagnostics_consumer* consumer)
     {
-        diag_consumers_.erase(
-            std::remove(diag_consumers_.begin(), diag_consumers_.end(), consumer), diag_consumers_.end());
+        m_diag_consumers.erase(
+            std::remove(m_diag_consumers.begin(), m_diag_consumers.end(), consumer), m_diag_consumers.end());
     }
 
     void register_parsing_metadata_consumer(parsing_metadata_consumer* consumer)
     {
-        parsing_metadata_consumers_.push_back(consumer);
+        m_parsing_metadata_consumers.push_back(consumer);
     }
 
     void unregister_parsing_metadata_consumer(parsing_metadata_consumer* consumer)
     {
-        auto& pmc = parsing_metadata_consumers_;
+        auto& pmc = m_parsing_metadata_consumers;
         pmc.erase(std::remove(pmc.begin(), pmc.end(), consumer), pmc.end());
     }
 
     void set_message_consumer(message_consumer* consumer)
     {
-        message_consumer_ = consumer;
-        implicit_workspace_.ws.set_message_consumer(consumer);
-        for (auto& wks : workspaces_)
+        m_message_consumer = consumer;
+        m_implicit_workspace.ws.set_message_consumer(consumer);
+        for (auto& wks : m_workspaces)
             wks.second.ws.set_message_consumer(consumer);
     }
 
-    void set_request_interface(workspace_manager_requests* requests) { requests_ = requests; }
+    void set_request_interface(workspace_manager_requests* requests) { m_requests = requests; }
 
     struct
     {
@@ -731,12 +731,12 @@ public:
     {
         // TODO: should this action be also performed IN ORDER?
 
-        global_config_ = new_config;
+        m_global_config = new_config;
 
         m_work_queue.emplace_back(work_item {
             next_unique_id(),
-            &implicit_workspace_,
-            std::function<utils::task()>([this, &ws = implicit_workspace_.ws]() -> utils::task {
+            &m_implicit_workspace,
+            std::function<utils::task()>([this, &ws = m_implicit_workspace.ws]() -> utils::task {
                 return ws.settings_updated().then([this](bool u) {
                     if (u)
                         notify_diagnostics_consumers();
@@ -746,7 +746,7 @@ public:
             work_item_type::settings_change,
         });
 
-        for (auto& [_, ows] : workspaces_)
+        for (auto& [_, ows] : m_workspaces)
         {
             auto& refersh_settings = m_work_queue.emplace_back(work_item {
                 next_unique_id(),
@@ -784,7 +784,7 @@ public:
 
     continuous_sequence<char> get_virtual_file_content(unsigned long long id) const
     {
-        return make_continuous_sequence(file_manager_.get_virtual_file(id));
+        return make_continuous_sequence(m_file_manager.get_virtual_file(id));
     }
 
     void make_opcode_suggestion(const std::string& document_uri,
@@ -808,9 +808,9 @@ public:
 private:
     void collect_diags() const override
     {
-        collect_diags_from_child(implicit_workspace_.ws);
-        collect_diags_from_child(quiet_implicit_workspace_.ws);
-        for (auto& it : workspaces_)
+        collect_diags_from_child(m_implicit_workspace.ws);
+        collect_diags_from_child(m_quiet_implicit_workspace.ws);
+        for (auto& it : m_workspaces)
             collect_diags_from_child(it.second.ws);
     }
 
@@ -839,15 +839,15 @@ private:
         diags().clear();
         collect_diags();
 
-        fade_messages_.clear();
-        implicit_workspace_.ws.retrieve_fade_messages(fade_messages_);
-        quiet_implicit_workspace_.ws.retrieve_fade_messages(fade_messages_);
-        for (const auto& [_, ows] : workspaces_)
-            ows.ws.retrieve_fade_messages(fade_messages_);
+        m_fade_messages.clear();
+        m_implicit_workspace.ws.retrieve_fade_messages(m_fade_messages);
+        m_quiet_implicit_workspace.ws.retrieve_fade_messages(m_fade_messages);
+        for (const auto& [_, ows] : m_workspaces)
+            ows.ws.retrieve_fade_messages(m_fade_messages);
 
-        for (auto consumer : diag_consumers_)
+        for (auto consumer : m_diag_consumers)
             consumer->consume_diagnostics(diagnostic_list(diags().data(), diags().size()),
-                fade_message_list(fade_messages_.data(), fade_messages_.size()));
+                fade_message_list(m_fade_messages.data(), m_fade_messages.size()));
     }
 
     static size_t prefix_match(std::string_view first, std::string_view second)
@@ -856,9 +856,9 @@ private:
         return static_cast<size_t>(std::min(f - first.begin(), s - second.begin()));
     }
 
-    unsigned long long next_unique_id() { return ++unique_id_sequence; }
+    unsigned long long next_unique_id() { return ++m_unique_id_sequence; }
 
-    static constexpr std::string_view hlasm_external_schema = "hlasm-external://";
+    static constexpr std::string_view hlasm_external_scheme = "hlasm-external://";
 
     [[nodiscard]] utils::value_task<std::optional<std::string>> load_text_external(
         utils::resource::resource_location document_loc) const
@@ -871,7 +871,7 @@ private:
             void error(int, const char*) noexcept { result.reset(); }
         };
         auto [channel, data] = make_workspace_manager_response(std::in_place_type<content_t>);
-        external_file_requests->read_external_file(document_loc.get_uri().c_str(), channel);
+        m_external_file_requests->read_external_file(document_loc.get_uri().c_str(), channel);
 
         while (!channel.resolved())
             co_await utils::task::suspend();
@@ -882,10 +882,10 @@ private:
     [[nodiscard]] utils::value_task<std::optional<std::string>> load_text(
         const utils::resource::resource_location& document_loc) const override
     {
-        if (!document_loc.get_uri().starts_with(hlasm_external_schema))
+        if (!document_loc.get_uri().starts_with(hlasm_external_scheme))
             return utils::value_task<std::optional<std::string>>::from_value(utils::resource::load_text(document_loc));
 
-        if (!external_file_requests)
+        if (!m_external_file_requests)
             return utils::value_task<std::optional<std::string>>::from_value(std::nullopt);
 
         return load_text_external(document_loc);
@@ -930,7 +930,7 @@ private:
             }
         };
         auto [channel, data] = make_workspace_manager_response(std::in_place_type<content_t>, std::move(directory));
-        external_file_requests->read_external_directory(data->dir.get_uri().c_str(), channel);
+        m_external_file_requests->read_external_directory(data->dir.get_uri().c_str(), channel);
 
         while (!channel.resolved())
             co_await utils::task::suspend();
@@ -942,11 +942,11 @@ private:
         utils::path::list_directory_rc>>
     list_directory_files(const utils::resource::resource_location& directory) const override
     {
-        if (!directory.get_uri().starts_with(hlasm_external_schema))
+        if (!directory.get_uri().starts_with(hlasm_external_scheme))
             return utils::value_task<std::pair<std::vector<std::pair<std::string, utils::resource::resource_location>>,
                 utils::path::list_directory_rc>>::from_value(utils::resource::list_directory_files(directory));
 
-        if (!external_file_requests)
+        if (!m_external_file_requests)
             return utils::value_task<std::pair<std::vector<std::pair<std::string, utils::resource::resource_location>>,
                 utils::path::list_directory_rc>>::from_value({ {}, utils::path::list_directory_rc::not_exists });
 
@@ -964,21 +964,21 @@ private:
         bool valid() const noexcept { return task.valid(); }
     } m_active_task;
 
-    lib_config global_config_;
+    lib_config m_global_config;
 
-    workspace_manager_external_file_requests* external_file_requests = nullptr;
-    workspaces::file_manager_impl file_manager_;
+    workspace_manager_external_file_requests* m_external_file_requests = nullptr;
+    workspaces::file_manager_impl m_file_manager;
 
-    std::unordered_map<std::string, opened_workspace> workspaces_;
-    opened_workspace implicit_workspace_;
-    opened_workspace quiet_implicit_workspace_;
+    std::unordered_map<std::string, opened_workspace> m_workspaces;
+    opened_workspace m_implicit_workspace;
+    opened_workspace m_quiet_implicit_workspace;
 
-    std::vector<diagnostics_consumer*> diag_consumers_;
-    std::vector<parsing_metadata_consumer*> parsing_metadata_consumers_;
-    message_consumer* message_consumer_ = nullptr;
-    workspace_manager_requests* requests_ = nullptr;
-    std::vector<fade_message_s> fade_messages_;
-    unsigned long long unique_id_sequence = 0;
+    std::vector<diagnostics_consumer*> m_diag_consumers;
+    std::vector<parsing_metadata_consumer*> m_parsing_metadata_consumers;
+    message_consumer* m_message_consumer = nullptr;
+    workspace_manager_requests* m_requests = nullptr;
+    std::vector<fade_message_s> m_fade_messages;
+    unsigned long long m_unique_id_sequence = 0;
 };
 } // namespace hlasm_plugin::parser_library
 

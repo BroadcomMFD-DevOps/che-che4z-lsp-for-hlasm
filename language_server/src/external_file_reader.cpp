@@ -137,6 +137,8 @@ void external_file_reader::wakeup_thread(std::thread::id id)
 
 external_file_reader::thread_registration external_file_reader::register_thread(std::function<void()> wakeup_rtn)
 {
+    assert(wakeup_rtn);
+
     auto tid = std::this_thread::get_id();
 
     std::lock_guard g(m_mutex);
