@@ -422,6 +422,7 @@ TEST(workspace, asm_options_goff_xobject_redefinition)
     shared_json global_settings = make_empty_shared_json();
     workspace ws(ws_loc, "test_proc_grps_name", file_manager, config, global_settings);
     ws.open();
+
     ws.collect_diags();
     EXPECT_TRUE(contains_message_codes(ws.diags(), { "W0002" }));
 }
