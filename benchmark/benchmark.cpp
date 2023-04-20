@@ -97,6 +97,7 @@ public:
     bool do_reparse = true;
     std::string message;
     std::vector<std::string> pgm_names;
+    std::optional<std::string> b4g_pgms_dir = std::nullopt;
 
     bool load(int argc, char** argv)
     {
@@ -122,8 +123,6 @@ public:
     }
 
 private:
-    std::optional<std::string> b4g_pgms_dir = std::nullopt;
-
     bool load_options(int argc, char** argv)
     {
         const auto advance_and_retrieve = [argc, &argv](std::string_view option, auto& i, auto& s) {
@@ -133,7 +132,7 @@ private:
                 return false;
             }
 
-            s = static_cast<std::string>(argv[i++ + 1]);
+            s = static_cast<std::string>(argv[++i]);
             return true;
         };
 
@@ -227,9 +226,9 @@ private:
     }
 
     template<typename T>
-    bool retrieve_config(T& configuration, std::string relative_cfg_file_path)
+    bool retrieve_config(T& configuration, std::string_view relative_cfg_file_path)
     {
-        const auto cfg_json_path = ws_folder + "/" + relative_cfg_file_path;
+        const auto cfg_json_path = ws_folder.assign("/").append(relative_cfg_file_path);
         auto cfg_o = utils::platform::read_file(cfg_json_path);
 
         if (!cfg_o.has_value())
@@ -273,7 +272,7 @@ public:
                                  .dump(2)
                           << std::flush;
         }
-        else if (bc.pgm_names.size() > 0)
+        else if (!bc.pgm_names.empty())
         {
             if (bc.start_range >= bc.pgm_names.size() - 1)
             {
@@ -309,8 +308,8 @@ public:
                       << "Analyzer crashes (reparsing): " << s.reparsing_crashes << '\n'
                       << "Failed program opens: " << s.failed_file_opens << '\n'
                       << "Benchmark time: " << s.whole_time << " ms" << '\n'
-                      << "Average statement/ms: " << s.average_stmt_ms / bc.pgm_names.size() << '\n'
-                      << "Average line/ms: " << s.average_line_ms / bc.pgm_names.size() << "\n\n"
+                      << "Average statement/ms: " << s.average_stmt_ms / (double)bc.pgm_names.size() << '\n'
+                      << "Average line/ms: " << s.average_line_ms / (double)bc.pgm_names.size() << "\n\n"
                       << std::endl;
 
             std::cout << json({ { "Programs", s.program_count },
@@ -376,12 +375,13 @@ private:
         }
 
     private:
-        std::string get_file_message(size_t iteration, const bench_configuration& bc)
+        std::string get_file_message(size_t iteration, const bench_configuration& bc) const
         {
-            return bc.message.empty()
-                ? ""
-                : "[" + bc.message + " " + std::to_string(iteration) + "/(" + std::to_string(bc.start_range) + "-"
-                    + std::to_string(bc.end_range ? bc.end_range - 1 : bc.end_range) + ")]";
+            if (bc.message.empty())
+                return "";
+
+            return "[" + bc.message + " " + std::to_string(iteration) + "/(" + std::to_string(bc.start_range) + "-"
+                + std::to_string(bc.end_range ? bc.end_range - 1 : bc.end_range) + ")]";
         }
     };
 
@@ -439,8 +439,8 @@ private:
                       << "Continued Statements: " << first_parse_metrics.continued_statements << '\n'
                       << "Non-continued Statements: " << first_parse_metrics.non_continued_statements << '\n'
                       << "Lines: " << first_parse_metrics.lines << '\n'
-                      << "Executed Statement/ms: " << exec_statements / (double)parse_time << '\n'
-                      << "Line/ms: " << first_parse_metrics.lines / (double)parse_time << '\n'
+                      << "Executed Statement/ms: " << (double)exec_statements / (double)parse_time << '\n'
+                      << "Line/ms: " << (double)first_parse_metrics.lines / (double)parse_time << '\n'
                       << "Files: " << first_ws_info.files_processed << '\n'
                       << "Top messages: " << first_parse_top_messages.dump() << '\n'
                       << '\n'
