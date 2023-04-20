@@ -228,7 +228,7 @@ private:
     template<typename T>
     bool retrieve_config(T& configuration, std::string_view relative_cfg_file_path)
     {
-        const auto cfg_json_path = ws_folder.assign("/").append(relative_cfg_file_path);
+        const auto cfg_json_path = ws_folder.append("/").append(relative_cfg_file_path);
         auto cfg_o = utils::platform::read_file(cfg_json_path);
 
         if (!cfg_o.has_value())
