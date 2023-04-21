@@ -116,8 +116,7 @@ json parse_one_file(const std::string& source_file,
     ws.register_parsing_metadata_consumer(&collector);
     // input folder as new workspace
     ws.add_workspace(ws_folder.c_str(), ws_folder.c_str());
-    if (ws.idle_handler())
-        abort();
+    ws.idle_handler();
 
     // start counting
     auto c_start = std::clock();
@@ -127,8 +126,7 @@ json parse_one_file(const std::string& source_file,
     try
     {
         ws.did_open_file(source_path.c_str(), 1, content.c_str(), content.length());
-        if (ws.idle_handler())
-            abort();
+        ws.idle_handler();
     }
     catch (const std::exception& e)
     {
@@ -207,8 +205,7 @@ json parse_one_file(const std::string& source_file,
             // pass in a dummy change, as to not skew reparse results by optimizations
             parser_library::document_change dummy({}, "", 0);
             ws.did_change_file(source_path.c_str(), 1, &dummy, 1);
-            if (ws.idle_handler())
-                abort();
+            ws.idle_handler();
         }
         catch (const std::exception& e)
         {

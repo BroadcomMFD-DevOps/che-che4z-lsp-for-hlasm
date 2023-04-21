@@ -386,7 +386,7 @@ public:
         return item.request_type == work_item_type::query;
     }
 
-    bool idle_handler(const std::atomic<unsigned char>* yield_indicator)
+    void idle_handler(const std::atomic<unsigned char>* yield_indicator)
     {
         bool parsing_done = false;
         bool finished_inflight_task = false;
@@ -396,7 +396,7 @@ public:
             {
                 auto& item = m_work_queue.front();
                 if (!item.pending_requests.empty() && item.is_valid())
-                    return false;
+                    return;
                 if (item.is_task() || item.workspace_removed || !item.is_valid() || parsing_done
                     || !parsing_must_be_done(item))
                 {
@@ -418,23 +418,23 @@ public:
                     done = item.perform_action();
 
                     if (!done)
-                        return false;
+                        return;
 
                     continue;
                 }
             }
             else if (parsing_done)
-                return false;
+                return;
 
             if (m_active_task.valid())
             {
                 if (!run_active_task(yield_indicator))
-                    return true;
+                    return;
                 finished_inflight_task = true;
             }
 
             if (run_parse_loop(yield_indicator, std::exchange(finished_inflight_task, false)))
-                return true;
+                return;
 
             parsing_done = true;
         }
