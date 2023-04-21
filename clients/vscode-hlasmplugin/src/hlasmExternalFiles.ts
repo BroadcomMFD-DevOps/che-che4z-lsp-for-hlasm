@@ -179,6 +179,9 @@ export class HLASMExternalFiles {
     }>();
 
     setClient(service: string, client: ExternalFilesClient) {
+        if (!/^[A-Z]+$/.test(service))
+            throw Error('Invalid service name');
+
         const oldClient = this.clients.get(service);
         if (oldClient) {
             this.clients.delete(service);

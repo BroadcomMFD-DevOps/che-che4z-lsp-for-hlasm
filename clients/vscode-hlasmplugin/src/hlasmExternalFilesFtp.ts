@@ -74,6 +74,7 @@ export class HLASMExternalFilesFtp implements ExternalFilesClient {
 
     dispose(): void {
         clearTimeout(this.pooledClientTimeout);
+        this.stateChanged.dispose();
         if (this.pooledClient) {
             const client = this.pooledClient;
             this.pooledClient = null;

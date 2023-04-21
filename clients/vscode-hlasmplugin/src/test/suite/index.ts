@@ -28,6 +28,28 @@ async function primeExtension(): Promise<vscode.Disposable[]> {
 	// prime opcode suggestions to avoid timeouts
 	await Promise.race([lang.sendRequest<object>('textDocument/$/opcode_suggestion', { opcodes: ['OPCODE'] }), timeout(30000, 'Opcode suggestion request failed')]);
 
+	ext.registerExternalFileClient('TEST', {
+		listMembers(dataset: string) { return Promise.resolve(['MACA', 'MACB', 'MACC']) },
+		readMember(dataset: string, member: string) {
+			if (/^MAC[A-C]$/.test(member))
+				return Promise.resolve(`.*
+         MACRO
+		 ${member}
+		 MEND`);
+
+			return Promise.resolve(null);
+		},
+
+		onStateChange(x: unknown) { return { dispose() { } }; },
+
+		suspend() { },
+		resume() { },
+
+		suspended() { return false; },
+
+		dispose() { },
+	});
+
 	return [vscode.debug.registerDebugAdapterTrackerFactory('hlasm', {
 		createDebugAdapterTracker: function (session: vscode.DebugSession): vscode.ProviderResult<vscode.DebugAdapterTracker> {
 			return {
