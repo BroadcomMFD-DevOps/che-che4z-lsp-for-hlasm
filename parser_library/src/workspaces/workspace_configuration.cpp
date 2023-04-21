@@ -289,7 +289,7 @@ void workspace_configuration::process_processor_group_library(const config::data
     new_uri_components.scheme = "hlasm-external";
     new_uri_components.auth.emplace().host =
         utils::encoding::percent_encode(utils::encoding::uri_friendly_base16_encode(m_location.get_uri()));
-    new_uri_components.path = "/" + utils::encoding::percent_encode(dsn.dsn);
+    new_uri_components.path = "/DATASET/" + utils::encoding::percent_encode(dsn.dsn);
     auto new_uri = utils::resource::resource_location(utils::path::reconstruct_uri(new_uri_components));
 
     prc_grp.add_library(get_local_library(std::move(new_uri), { .optional_library = dsn.optional }));
