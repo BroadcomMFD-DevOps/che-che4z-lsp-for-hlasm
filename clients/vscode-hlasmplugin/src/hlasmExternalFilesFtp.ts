@@ -14,7 +14,7 @@
 
 import * as vscode from 'vscode';
 import * as ftp from 'basic-ftp';
-import { ExternalFilesClient } from './hlasmExternalFiles';
+import { ClientUriDetails, ExternalFilesClient, ExternalRequestType } from './hlasmExternalFiles';
 import { ConnectionInfo, connectionSecurityLevel, gatherConnectionInfo, getLastRunConfig, updateLastRunConfig } from './ftpCreds';
 import { AsyncMutex } from './asyncMutex';
 import { FBWritable } from './FBWritable';
@@ -29,6 +29,23 @@ const checkedCommand = async (client: ftp.Client, command: string): Promise<stri
     checkResponse(resp);
     return resp.message
 }
+
+class DatasetUriDetails implements ClientUriDetails {
+    constructor(
+        public readonly dataset: string,
+        public readonly member: string | null) { }
+
+    toString() {
+        if (this.member)
+            return `${this.dataset}(${this.member})`;
+        else
+            return this.dataset;
+    }
+
+    normalizedPath() {
+        return `/${this.dataset}/${this.member}`;
+    }
+};
 
 export class HLASMExternalFilesFtp implements ExternalFilesClient {
     private activeConnectionInfo: ConnectionInfo = null;
@@ -189,9 +206,9 @@ export class HLASMExternalFilesFtp implements ExternalFilesClient {
         }
     }
 
-    async listMembers(dataset: string): Promise<string[] | null> {
+    async listMembers(args: DatasetUriDetails): Promise<string[] | null> {
         const client = await this.getConnectedClient();
-        return this.listMembersImpl(client, dataset).finally(() => { this.requestEndHandle(client) });
+        return this.listMembersImpl(client, args.dataset).finally(() => { this.requestEndHandle(client) });
     }
 
     async readMemberImpl(client: ftp.Client, dataset: string, member: string): Promise<string | null> {
@@ -210,8 +227,24 @@ export class HLASMExternalFilesFtp implements ExternalFilesClient {
             throw e;
         }
     }
-    async readMember(dataset: string, member: string): Promise<string | null> {
+    async readMember(args: DatasetUriDetails): Promise<string | null> {
         const client = await this.getConnectedClient();
-        return this.readMemberImpl(client, dataset, member).finally(() => { this.requestEndHandle(client); });
+        return this.readMemberImpl(client, args.dataset, args.member).finally(() => { this.requestEndHandle(client); });
+    }
+
+    parseArgs(path: string, purpose: ExternalRequestType): ClientUriDetails {
+        const [dataset, member] = path.split('/').slice(1).map(x => x.toUpperCase());
+
+        if (!dataset || !/^(?:[A-Z$#@][A-Z$#@0-9]{1,7})(?:\.(?:[A-Z$#@][A-Z$#@0-9]{1,7}))*$/.test(dataset) || dataset.length > 44) return null;
+        switch (purpose) {
+            case ExternalRequestType.read_file:
+                if (!member || !/^[A-Z$#@][A-Z$#@0-9]{1,7}(?:\..*)?$/.test(member)) return null; // ignore extension
+                break;
+            case ExternalRequestType.read_directory:
+                if (member) return null;
+                break;
+        }
+
+        return new DatasetUriDetails(dataset, member?.split('.', 1)[0]);
     }
 }

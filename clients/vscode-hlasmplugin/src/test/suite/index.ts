@@ -29,12 +29,12 @@ async function primeExtension(): Promise<vscode.Disposable[]> {
 	await Promise.race([lang.sendRequest<object>('textDocument/$/opcode_suggestion', { opcodes: ['OPCODE'] }), timeout(30000, 'Opcode suggestion request failed')]);
 
 	ext.registerExternalFileClient('TEST', {
-		listMembers(dataset: string) { return Promise.resolve(['MACA', 'MACB', 'MACC']) },
-		readMember(dataset: string, member: string) {
-			if (/^MAC[A-C]$/.test(member))
+		listMembers(args: { path: string, file: string }) { return Promise.resolve(['MACA', 'MACB', 'MACC']) },
+		readMember(args: { path: string, file: string }) {
+			if (/^MAC[A-C]$/.test(args.file))
 				return Promise.resolve(`.*
          MACRO
-		 ${member}
+		 ${args.file}
 		 MEND`);
 
 			return Promise.resolve(null);
@@ -48,6 +48,16 @@ async function primeExtension(): Promise<vscode.Disposable[]> {
 		suspended() { return false; },
 
 		dispose() { },
+
+		parseArgs(p: string) {
+			const [path, file] = p.split('/').slice(1).map(x => x.toUpperCase());
+			return {
+				path: path || '',
+				file: (file || '').split('.')[0],
+				toString() { return `${this.path}/${this.file}`; },
+				normalizedPath() { return `/${this.path}/${this.file}`; },
+			}
+		}
 	});
 
 	return [vscode.debug.registerDebugAdapterTrackerFactory('hlasm', {
@@ -73,7 +83,7 @@ export async function run(): Promise<void> {
 	const testsPath = path.join(__dirname, '..');
 
 	const files = await new Promise<string[]>((resolve, reject) => {
-		glob((!is_theia) ? '**/**.test.js' : '**/integration.test.js', { cwd: testsPath }, (err, files) => {
+		glob((!!is_theia) ? '**/**.test.js' : '**/integration.test.js', { cwd: testsPath }, (err, files) => {
 			if (err)
 				reject(err);
 			else

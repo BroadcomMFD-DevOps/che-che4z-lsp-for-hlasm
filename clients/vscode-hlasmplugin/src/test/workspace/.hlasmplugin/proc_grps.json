@@ -58,7 +58,7 @@
       "comment": "Temporary test only",
       "name": "remote",
       "libs": [
-        "hlasm-external:///TEST/SOME.THING"
+        "hlasm-external:///TEST/something"
       ]
     }
   ],

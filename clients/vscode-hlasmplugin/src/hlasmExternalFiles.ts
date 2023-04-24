@@ -19,7 +19,7 @@ import { isCancellationError } from "./helpers";
 
 // This is a temporary demo implementation
 
-enum ExternalRequestType {
+export enum ExternalRequestType {
     read_file = 'read_file',
     read_directory = 'read_directory',
 }
@@ -49,9 +49,14 @@ interface ExternalErrorResponse {
     },
 }
 
+export interface ClientUriDetails {
+    toString(): string;
+    normalizedPath(): string;
+}
+
 export interface ExternalFilesClient extends vscode.Disposable {
-    listMembers(dataset: string): Promise<string[] | null>;
-    readMember(dataset: string, member: string): Promise<string | null>;
+    listMembers(arg: ClientUriDetails): Promise<string[] | null>;
+    readMember(arg: ClientUriDetails): Promise<string | null>;
 
     onStateChange: vscode.Event<boolean>;
 
@@ -59,58 +64,11 @@ export interface ExternalFilesClient extends vscode.Disposable {
     resume(): void;
 
     suspended(): boolean;
+
+    parseArgs(path: string, purpose: ExternalRequestType): ClientUriDetails;
 }
 
 const magicScheme = 'hlasm-external';
-
-class UriDetails {
-    constructor(public readonly service: string,
-        public readonly dataset: string,
-        public readonly member: string | null) { }
-
-    toString() {
-        if (this.member)
-            return `${this.dataset}(${this.member})`;
-        else
-            return this.dataset;
-    }
-    toPath(): string {
-        if (this.member)
-            return `/${this.service}/${this.dataset}/${this.member}.hlasm`;
-        else
-            return `/${this.service}/${this.dataset}`;
-    }
-};
-
-function extractUriDetails(uri: string | vscode.Uri): { details: UriDetails, associatedWorkspace: string } | null {
-    if (typeof uri === 'string')
-        uri = vscode.Uri.parse(uri, true);
-
-    if (uri.scheme !== magicScheme) return null;
-
-    const [service, dataset, member] = uri.path.split('/').slice(1).map(x => x.toUpperCase());
-
-    if (!service || !/^[A-Z]+$/.test(service)) return null;
-    if (!dataset || !/^(?:[A-Z$#@][A-Z$#@0-9]{1,7})(?:\.(?:[A-Z$#@][A-Z$#@0-9]{1,7}))*$/.test(dataset)) return null;
-    if (member && !/^[A-Z$#@][A-Z$#@0-9]{1,7}(?:\..*)?$/.test(member)) return null; // ignore extension
-
-    return {
-        details: new UriDetails(
-            service,
-            dataset,
-            member ? member.split('.')[0] : null
-        ),
-        associatedWorkspace: uriFriendlyBase16Decode(uri.authority)
-    };
-}
-
-function toContentKey(d: UriDetails) {
-    return JSON.stringify({ service: d.service, dataset: d.dataset, member: d.member });
-}
-function fromContentKey(s: string): UriDetails {
-    const resultData = JSON.parse(s);
-    return new UriDetails(resultData.service, resultData.dataset, resultData.member);
-}
 
 function invalidResponse(msg: ExternalRequest) {
     return Promise.resolve({ id: msg.id, error: { code: -5, msg: 'Invalid request' } });
@@ -161,15 +119,22 @@ function take<T>(it: IterableIterator<T>, n: number): T[] {
     return result;
 }
 
-const not_exists = {};
-const no_client = {};
+const not_exists = Object.freeze({});
+const no_client = Object.freeze({});
 interface in_error { message: string };
+
+interface CacheEntry<T> {
+    service: string,
+    parsedArgs: ClientUriDetails,
+    result: T | in_error | typeof not_exists | typeof no_client,
+    references: Set<string>;
+};
 
 export class HLASMExternalFiles {
     private toDispose: vscode.Disposable[] = [];
 
-    private memberLists = new Map<string, string[] | in_error | typeof not_exists | typeof no_client>();
-    private memberContent = new Map<string, string | in_error | typeof not_exists | typeof no_client>();
+    private memberLists = new Map<string, CacheEntry<string[]>>();
+    private memberContent = new Map<string, CacheEntry<string>>();
 
     private pendingRequests = new Set<{ topic: string }>();
 
@@ -207,34 +172,66 @@ export class HLASMExternalFiles {
                 vscode.window.showInformationMessage("Retrieval of remote files has been suspended.");
             }
             else
-                this.notifyAllWorkspaces(service);
+                this.notifyAllWorkspaces(service, false);
         }));
-        if (!client.suspended())
-            this.notifyAllWorkspaces(service);
+        if (oldClient || !client.suspended())
+            this.notifyAllWorkspaces(service, !!oldClient);
     }
 
     private getClient(service: string) { const c = this.clients.get(service); return c && c.client; }
 
-    private prepareChangeNotification<T>(service: string, cache: Map<string, T>) {
-        const reissue = [...cache].filter(v => typeof v[1] === 'object' && (v[1] === no_client || 'message' in v[1]));
 
-        const changes = reissue.map(([d]) => fromContentKey(d)).filter(x => x.service === service).map(x => x.toPath());
+    private extractUriDetails(uri: string | vscode.Uri, purpose: ExternalRequestType): { cacheKey: string, service: string, client: ExternalFilesClient, details: ClientUriDetails, associatedWorkspace: string } | null {
+        if (typeof uri === 'string')
+            uri = vscode.Uri.parse(uri, true);
 
-        reissue.forEach(x => cache.delete(x[0]));
+        const pathParser = /^\/([A-Z]+)(\/.*)?/;
 
-        // NxM...
-        return (vscode.workspace.workspaceFolders || []).map(w => {
-            const base = `${magicScheme}://${uriFriendlyBase16Encode(w.uri.toString())}`;
-            return changes.map(x => {
-                return {
-                    uri: base + x,
-                    type: vscodelc.FileChangeType.Changed
-                }
-            })
-        }).flat();
+        const matches = pathParser.exec(uri.path);
+
+        if (uri.scheme !== magicScheme || !matches)
+            return {
+                cacheKey: null,
+                service: null,
+                client: null,
+                details: null,
+                associatedWorkspace: null,
+            };
+
+        const service = matches[1];
+        const subpath = matches[2] || '';
+
+        const client = this.clients.get(service);
+        const details = client?.client.parseArgs(subpath, purpose);
+
+        return {
+            cacheKey: details ? `/${service}${details.normalizedPath()}` : uri.path,
+            service: client ? service : null,
+            client: client?.client,
+            details: details,
+            associatedWorkspace: uriFriendlyBase16Decode(uri.authority)
+        };
     }
 
-    private notifyAllWorkspaces(service: string) {
+    private prepareChangeNotification<T>(service: string, cache: Map<string, CacheEntry<T>>, all: boolean) {
+        const changes = [...cache]
+            .filter(([, v]) => v.service === service && (
+                all ||
+                typeof v.result === 'object' && (v.result === no_client || 'message' in v.result)
+            ))
+            .map(([path, value]) => { return { path: path, refs: value.references }; });
+
+        changes.forEach(x => cache.delete(x.path));
+
+        return changes.map(x => [...x.refs]).flat().map(x => {
+            return {
+                uri: x,
+                type: vscodelc.FileChangeType.Changed
+            };
+        });
+    }
+
+    private notifyAllWorkspaces(service: string, all: boolean) {
         this.lspClient.sendNotification(vscodelc.DidChangeWatchedFilesNotification.type, {
             changes: (vscode.workspace.workspaceFolders || []).map(w => {
                 return {
@@ -242,23 +239,23 @@ export class HLASMExternalFiles {
                     type: vscodelc.FileChangeType.Changed
                 };
             })
-                .concat(this.prepareChangeNotification(service, this.memberContent))
-                .concat(this.prepareChangeNotification(service, this.memberLists))
+                .concat(this.prepareChangeNotification(service, this.memberContent, all))
+                .concat(this.prepareChangeNotification(service, this.memberLists, all))
         });
     }
 
     activeProgress: { progressUpdater: vscode.Progress<{ message?: string; increment?: number }>, done: () => void } = null;
     pendingActiveProgressCancellation: ReturnType<typeof setTimeout> = null;
-    addWIP(details: UriDetails) {
+    addWIP<T>(service: string, topic: string) {
         clearTimeout(this.pendingActiveProgressCancellation);
-        if (!this.activeProgress && !this.getClient(details.service).suspended()) {
+        if (!this.activeProgress && !this.getClient(service).suspended()) {
             vscode.window.withProgress({ title: 'Retrieving remote files', location: vscode.ProgressLocation.Notification }, (progress, c) => {
                 return new Promise<void>((resolve) => {
                     this.activeProgress = { progressUpdater: progress, done: resolve };
                 });
             });
         }
-        const wip = { topic: details.toString() };
+        const wip = { topic };
         this.pendingRequests.add(wip);
 
         if (this.activeProgress)
@@ -305,11 +302,10 @@ export class HLASMExternalFiles {
             provideTextDocumentContent(uri: vscode.Uri, token: vscode.CancellationToken): vscode.ProviderResult<string> {
                 if (uri.scheme !== magicScheme)
                     return null;
-                const { details } = extractUriDetails(uri) || { details: null };
-                if (!details || !details.member) return null;
-                const content = me.memberContent.get(toContentKey(details));
-                if (typeof content === 'string')
-                    return content;
+                const { cacheKey } = me.extractUriDetails(uri, ExternalRequestType.read_file);
+                const content = me.memberContent.get(cacheKey);
+                if (typeof content?.result === 'string')
+                    return content?.result;
                 else
                     return null;
             }
@@ -325,15 +321,11 @@ export class HLASMExternalFiles {
         [...this.clients.keys()].forEach(x => this.setClient(x, null));
     }
 
-    private async getFile(details: UriDetails): Promise<string | in_error | typeof not_exists | typeof no_client | null> {
-        const client = this.getClient(details.service);
-        if (!client)
-            return no_client;
-
-        const interest = this.addWIP(details);
+    private async getFile(client: ExternalFilesClient, service: string, parsedArgs: ClientUriDetails): Promise<string | in_error | typeof not_exists | typeof no_client | null> {
+        const interest = this.addWIP(service, parsedArgs.toString());
 
         try {
-            const result = await client.readMember(details.dataset, details.member);
+            const result = await client.readMember(parsedArgs);
 
             if (!interest()) return null;
 
@@ -355,52 +347,64 @@ export class HLASMExternalFiles {
     }
 
     private async handleFileMessage(msg: ExternalRequest): Promise<ExternalReadFileResponse | ExternalReadDirectoryResponse | ExternalErrorResponse | null> {
-        const { details } = extractUriDetails(msg.url) || { details: null };
-        if (!details || !details.member)
+        const { cacheKey, service, client, details, associatedWorkspace } = this.extractUriDetails(msg.url, ExternalRequestType.read_file);
+        if (!cacheKey || client && !details)
             return invalidResponse(msg);
 
-        let content = this.memberContent.get(toContentKey(details));
+        let content = this.memberContent.get(cacheKey);
         if (content === undefined) {
-            content = await this.getFile(details);
-            if (content !== null)
-                this.memberContent.set(toContentKey(details), content);
-        }
+            if (!client) {
+                content = {
+                    service: service,
+                    parsedArgs: details,
+                    result: no_client,
+                    references: new Set<string>(),
+                };
+            }
+            else {
+                const result = await this.getFile(client, service, details);
+                if (!result) return Promise.resolve(null);
+                content = {
+                    service: service,
+                    parsedArgs: details,
+                    result: result,
+                    references: new Set<string>(),
+                };
+            }
 
-        if (content === null)
-            return Promise.resolve(null);
-        else if (content === not_exists)
+            this.memberContent.set(cacheKey, content);
+        }
+        content.references.add(msg.url)
+
+        if (content.result === not_exists)
             return Promise.resolve({
                 id: msg.id,
                 error: { code: 0, msg: 'Not found' }
             });
-        else if (content === no_client)
+        else if (content.result === no_client)
             return Promise.resolve({
                 id: msg.id,
                 error: { code: -1000, msg: 'No client' }
             });
-        else if (typeof content === 'object' && 'message' in content)
+        else if (typeof content.result === 'object' && 'message' in content.result)
             return Promise.resolve({
                 id: msg.id,
-                error: { code: -1000, msg: content.message }
+                error: { code: -1000, msg: content.result.message }
             });
-        else if (typeof content === 'string')
+        else if (typeof content.result === 'string')
             return Promise.resolve({
                 id: msg.id,
-                data: content
+                data: content.result
             });
         else // should never happen
             return Promise.resolve(null);
     }
 
-    private async getDir(details: UriDetails): Promise<string[] | in_error | typeof not_exists | typeof no_client | null> {
-        const client = this.getClient(details.service);
-        if (!client)
-            return no_client;
-
-        const interest = this.addWIP(details);
+    private async getDir(client: ExternalFilesClient, service: string, parsedArgs: ClientUriDetails): Promise<string[] | in_error | typeof not_exists | typeof no_client | null> {
+        const interest = this.addWIP(service, parsedArgs.toString());
 
         try {
-            const result = await client.listMembers(details.dataset);
+            const result = await client.listMembers(parsedArgs);
 
             if (!interest()) return null;
 
@@ -422,40 +426,55 @@ export class HLASMExternalFiles {
     }
 
     private async handleDirMessage(msg: ExternalRequest): Promise<ExternalReadFileResponse | ExternalReadDirectoryResponse | ExternalErrorResponse | null> {
-        const { details } = extractUriDetails(msg.url) || { details: null };
-        if (!details || details.member)
+        const { cacheKey, service, client, details, associatedWorkspace } = this.extractUriDetails(msg.url, ExternalRequestType.read_directory);
+        if (!cacheKey || client && !details)
             return invalidResponse(msg);
 
-        let content = this.memberLists.get(toContentKey(details));
-
+        let content = this.memberLists.get(cacheKey);
         if (content === undefined) {
-            content = await this.getDir(details);
-            if (content !== null)
-                this.memberLists.set(toContentKey(details), content);
-        }
+            if (!client) {
+                content = {
+                    service: service,
+                    parsedArgs: details,
+                    result: no_client,
+                    references: new Set<string>(),
+                };
+            }
+            else {
+                const result = await this.getDir(client, service, details);
+                if (!result) return Promise.resolve(null);
+                content = {
+                    service: service,
+                    parsedArgs: details,
+                    result: result,
+                    references: new Set<string>(),
+                };
+            }
 
-        if (content === null)
-            return Promise.resolve(null);
-        else if (content === not_exists)
+            this.memberLists.set(cacheKey, content);
+        }
+        content.references.add(msg.url);
+
+        if (content.result === not_exists)
             return Promise.resolve({
                 id: msg.id,
                 error: { code: 0, msg: 'Not found' }
             });
-        else if (content === no_client)
+        else if (content.result === no_client)
             return Promise.resolve({
                 id: msg.id,
-                error: { code: 0, msg: 'No client' }
+                error: { code: -1000, msg: 'No client' }
             });
-        else if ('message' in content)
+        else if (typeof content.result === 'object' && 'message' in content.result)
             return Promise.resolve({
                 id: msg.id,
-                error: { code: -1000, msg: content.message }
+                error: { code: -1000, msg: content.result.message }
             });
-        else if (Array.isArray(content))
+        else if (Array.isArray(content.result))
             return Promise.resolve({
                 id: msg.id,
                 data: {
-                    members: content,
+                    members: content.result,
                     suggested_extension: '.hlasm',
                 }
             });

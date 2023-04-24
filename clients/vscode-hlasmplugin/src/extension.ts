@@ -117,6 +117,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
     const extFiles = new HLASMExternalFiles(hlasmpluginClient);
     context.subscriptions.push(extFiles);
+    extFiles.setClient('DATASET', new HLASMExternalFilesFtp(context));
 
     // register all commands and objects to context
     await registerToContext(context, hlasmpluginClient, telemetry, extFiles);
