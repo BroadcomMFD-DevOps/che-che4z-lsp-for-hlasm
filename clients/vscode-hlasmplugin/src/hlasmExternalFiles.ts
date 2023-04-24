@@ -343,7 +343,7 @@ export class HLASMExternalFiles {
         }
     }
 
-    private async handleFileMessage(msg: ExternalRequest): Promise<ExternalReadFileResponse | ExternalReadDirectoryResponse | ExternalErrorResponse | null> {
+    private async handleFileMessage(msg: ExternalRequest): Promise<ExternalReadFileResponse | ExternalErrorResponse | null> {
         const { cacheKey, service, client, details, associatedWorkspace } = this.extractUriDetails(msg.url, ExternalRequestType.read_file);
         if (!cacheKey || client && !details)
             return invalidResponse(msg);
@@ -363,28 +363,7 @@ export class HLASMExternalFiles {
         }
         content.references.add(msg.url)
 
-        if (content.result === not_exists)
-            return Promise.resolve({
-                id: msg.id,
-                error: { code: 0, msg: 'Not found' }
-            });
-        else if (content.result === no_client)
-            return Promise.resolve({
-                id: msg.id,
-                error: { code: -1000, msg: 'No client' }
-            });
-        else if (typeof content.result === 'object' && 'message' in content.result)
-            return Promise.resolve({
-                id: msg.id,
-                error: { code: -1000, msg: content.result.message }
-            });
-        else if (typeof content.result === 'string')
-            return Promise.resolve({
-                id: msg.id,
-                data: content.result
-            });
-        else // should never happen
-            return Promise.resolve(null);
+        return this.transformResult(msg.id, content, result => result);
     }
 
     private async getDir(client: ExternalFilesClient, service: string, parsedArgs: ClientUriDetails): Promise<string[] | in_error | typeof not_exists | typeof no_client | null> {
@@ -412,7 +391,7 @@ export class HLASMExternalFiles {
         }
     }
 
-    private async handleDirMessage(msg: ExternalRequest): Promise<ExternalReadFileResponse | ExternalReadDirectoryResponse | ExternalErrorResponse | null> {
+    private async handleDirMessage(msg: ExternalRequest): Promise<ExternalReadDirectoryResponse | ExternalErrorResponse | null> {
         const { cacheKey, service, client, details, associatedWorkspace } = this.extractUriDetails(msg.url, ExternalRequestType.read_directory);
         if (!cacheKey || client && !details)
             return invalidResponse(msg);
@@ -432,31 +411,41 @@ export class HLASMExternalFiles {
         }
         content.references.add(msg.url);
 
+        return this.transformResult(msg.id, content, (result) => {
+            return {
+                members: result,
+                suggested_extension: '.hlasm',
+            };
+        });
+    }
+
+    private transformResult<T>(
+        id: number,
+        content: CacheEntry<T>,
+        transform: (result: T) => (T extends string[] ? ExternalReadDirectoryResponse : ExternalReadFileResponse)['data']
+    ): Promise<(T extends string[] ? ExternalReadDirectoryResponse : ExternalReadFileResponse) | ExternalErrorResponse> {
+
         if (content.result === not_exists)
             return Promise.resolve({
-                id: msg.id,
+                id,
                 error: { code: 0, msg: 'Not found' }
             });
         else if (content.result === no_client)
             return Promise.resolve({
-                id: msg.id,
+                id,
                 error: { code: -1000, msg: 'No client' }
             });
         else if (typeof content.result === 'object' && 'message' in content.result)
             return Promise.resolve({
-                id: msg.id,
+                id,
                 error: { code: -1000, msg: content.result.message }
             });
-        else if (Array.isArray(content.result))
-            return Promise.resolve({
-                id: msg.id,
-                data: {
-                    members: content.result,
-                    suggested_extension: '.hlasm',
-                }
+        else
+            return Promise.resolve(<T extends string[] ? ExternalReadDirectoryResponse : ExternalReadFileResponse>{
+                id,
+                data: transform(<T>content.result),
             });
-        else // should never happen
-            return Promise.resolve(null);
+
     }
 
     public handleRawMessage(msg: any): Promise<ExternalReadFileResponse | ExternalReadDirectoryResponse | ExternalErrorResponse | null> {
