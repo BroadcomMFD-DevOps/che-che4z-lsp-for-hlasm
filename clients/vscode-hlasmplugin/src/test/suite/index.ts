@@ -83,7 +83,7 @@ export async function run(): Promise<void> {
 	const testsPath = path.join(__dirname, '..');
 
 	const files = await new Promise<string[]>((resolve, reject) => {
-		glob((!!is_theia) ? '**/**.test.js' : '**/integration.test.js', { cwd: testsPath }, (err, files) => {
+		glob((!is_theia) ? '**/**.test.js' : '**/integration.test.js', { cwd: testsPath }, (err, files) => {
 			if (err)
 				reject(err);
 			else
