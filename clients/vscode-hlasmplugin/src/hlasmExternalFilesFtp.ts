@@ -116,10 +116,9 @@ export class HLASMExternalFilesFtp implements ExternalFilesClient {
             return connection;
         }
         catch (e) {
-            if (isCancellationError(e)) {
+            if (isCancellationError(e))
                 this.suspend();
-                throw new vscode.CancellationError();
-            }
+                
             throw e;
         }
     }
