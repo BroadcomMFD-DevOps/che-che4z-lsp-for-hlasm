@@ -43,7 +43,7 @@ class DatasetUriDetails implements ClientUriDetails {
     }
 
     normalizedPath() {
-        return `/${this.dataset}/${this.member}`;
+        return `/${this.dataset}/${this.member || ''}`;
     }
 };
 
@@ -118,7 +118,7 @@ export class HLASMExternalFilesFtp implements ExternalFilesClient {
         catch (e) {
             if (isCancellationError(e))
                 this.suspend();
-                
+
             throw e;
         }
     }
@@ -244,6 +244,6 @@ export class HLASMExternalFilesFtp implements ExternalFilesClient {
                 break;
         }
 
-        return new DatasetUriDetails(dataset, member?.split('.', 1)[0]);
+        return new DatasetUriDetails(dataset, member?.split('.', 1)[0] || null);
     }
 }

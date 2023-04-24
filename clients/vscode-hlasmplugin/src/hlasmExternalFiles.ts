@@ -318,11 +318,15 @@ export class HLASMExternalFiles {
         [...this.clients.keys()].forEach(x => this.setClient(x, null));
     }
 
-    private async getFile(client: ExternalFilesClient, service: string, parsedArgs: ClientUriDetails): Promise<string | in_error | typeof not_exists | typeof no_client | null> {
+    private async askClient<T>(
+        service: string,
+        parsedArgs: ClientUriDetails,
+        func: (args: ClientUriDetails) => T | null
+    ): Promise<T | in_error | typeof not_exists | typeof no_client | null> {
         const interest = this.addWIP(service, parsedArgs.toString());
 
         try {
-            const result = await client.readMember(parsedArgs);
+            const result = await func(parsedArgs);
 
             if (!interest()) return null;
 
@@ -341,64 +345,30 @@ export class HLASMExternalFiles {
 
             return { message: e.message };
         }
+
     }
 
-    private async handleFileMessage(msg: ExternalRequest): Promise<ExternalReadFileResponse | ExternalErrorResponse | null> {
-        const { cacheKey, service, client, details, associatedWorkspace } = this.extractUriDetails(msg.url, ExternalRequestType.read_file);
-        if (!cacheKey || client && !details)
-            return invalidResponse(msg);
-
-        let content = this.memberContent.get(cacheKey);
-        if (content === undefined) {
-            const result = client ? await this.getFile(client, service, details) : no_client;
-            if (!result) return Promise.resolve(null);
-            content = {
-                service: service,
-                parsedArgs: details,
-                result: result,
-                references: new Set<string>(),
-            };
-
-            this.memberContent.set(cacheKey, content);
-        }
-        content.references.add(msg.url)
-
-        return this.transformResult(msg.id, content, result => result);
+    private async getFile(client: ExternalFilesClient, service: string, parsedArgs: ClientUriDetails): Promise<string | in_error | typeof not_exists | typeof no_client | null> {
+        return this.askClient(service, parsedArgs, client.readMember.bind(client));
     }
 
     private async getDir(client: ExternalFilesClient, service: string, parsedArgs: ClientUriDetails): Promise<string[] | in_error | typeof not_exists | typeof no_client | null> {
-        const interest = this.addWIP(service, parsedArgs.toString());
-
-        try {
-            const result = await client.listMembers(parsedArgs);
-
-            if (!interest()) return null;
-
-            if (!result)
-                return not_exists;
-
-            return result;
-        }
-        catch (e) {
-            if (!isCancellationError(e)) {
-                this.suspendAll();
-                vscode.window.showErrorMessage(e.message);
-            }
-
-            if (!interest()) return null;
-
-            return { message: e.message };
-        }
+        return this.askClient(service, parsedArgs, client.listMembers.bind(client));
     }
 
-    private async handleDirMessage(msg: ExternalRequest): Promise<ExternalReadDirectoryResponse | ExternalErrorResponse | null> {
-        const { cacheKey, service, client, details, associatedWorkspace } = this.extractUriDetails(msg.url, ExternalRequestType.read_directory);
+    private async handleMessage<T>(
+        msg: ExternalRequest,
+        getData: (client: ExternalFilesClient, service: string, details: ClientUriDetails) => Promise<CacheEntry<T>['result'] | null>,
+        cache: Map<string, CacheEntry<T>>,
+        responseTransform: (result: T) => (T extends string[] ? ExternalReadDirectoryResponse : ExternalReadFileResponse)['data']):
+        Promise<(T extends string[] ? ExternalReadDirectoryResponse : ExternalReadFileResponse) | ExternalErrorResponse | null> {
+        const { cacheKey, service, client, details, associatedWorkspace } = this.extractUriDetails(msg.url, msg.op);
         if (!cacheKey || client && !details)
             return invalidResponse(msg);
 
-        let content = this.memberLists.get(cacheKey);
+        let content = cache.get(cacheKey);
         if (content === undefined) {
-            const result = client ? await this.getDir(client, service, details) : no_client;
+            const result = client ? await getData(client, service, details) : no_client;
             if (!result) return Promise.resolve(null);
             content = {
                 service: service,
@@ -407,16 +377,11 @@ export class HLASMExternalFiles {
                 references: new Set<string>(),
             };
 
-            this.memberLists.set(cacheKey, content);
+            cache.set(cacheKey, content);
         }
         content.references.add(msg.url);
 
-        return this.transformResult(msg.id, content, (result) => {
-            return {
-                members: result,
-                suggested_extension: '.hlasm',
-            };
-        });
+        return this.transformResult(msg.id, content, responseTransform);
     }
 
     private transformResult<T>(
@@ -424,7 +389,6 @@ export class HLASMExternalFiles {
         content: CacheEntry<T>,
         transform: (result: T) => (T extends string[] ? ExternalReadDirectoryResponse : ExternalReadFileResponse)['data']
     ): Promise<(T extends string[] ? ExternalReadDirectoryResponse : ExternalReadFileResponse) | ExternalErrorResponse> {
-
         if (content.result === not_exists)
             return Promise.resolve({
                 id,
@@ -445,7 +409,18 @@ export class HLASMExternalFiles {
                 id,
                 data: transform(<T>content.result),
             });
+    }
 
+    private handleFileMessage(msg: ExternalRequest) {
+        return this.handleMessage(msg, this.getFile.bind(this), this.memberContent, x => x);
+    }
+    private handleDirMessage(msg: ExternalRequest) {
+        return this.handleMessage(msg, this.getDir.bind(this), this.memberLists, (result) => {
+            return {
+                members: result,
+                suggested_extension: '.hlasm',
+            };
+        });
     }
 
     public handleRawMessage(msg: any): Promise<ExternalReadFileResponse | ExternalReadDirectoryResponse | ExternalErrorResponse | null> {
