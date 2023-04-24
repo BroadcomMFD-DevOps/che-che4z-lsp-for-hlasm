@@ -350,24 +350,14 @@ export class HLASMExternalFiles {
 
         let content = this.memberContent.get(cacheKey);
         if (content === undefined) {
-            if (!client) {
-                content = {
-                    service: service,
-                    parsedArgs: details,
-                    result: no_client,
-                    references: new Set<string>(),
-                };
-            }
-            else {
-                const result = await this.getFile(client, service, details);
-                if (!result) return Promise.resolve(null);
-                content = {
-                    service: service,
-                    parsedArgs: details,
-                    result: result,
-                    references: new Set<string>(),
-                };
-            }
+            const result = client ? await this.getFile(client, service, details) : no_client;
+            if (!result) return Promise.resolve(null);
+            content = {
+                service: service,
+                parsedArgs: details,
+                result: result,
+                references: new Set<string>(),
+            };
 
             this.memberContent.set(cacheKey, content);
         }
@@ -429,24 +419,14 @@ export class HLASMExternalFiles {
 
         let content = this.memberLists.get(cacheKey);
         if (content === undefined) {
-            if (!client) {
-                content = {
-                    service: service,
-                    parsedArgs: details,
-                    result: no_client,
-                    references: new Set<string>(),
-                };
-            }
-            else {
-                const result = await this.getDir(client, service, details);
-                if (!result) return Promise.resolve(null);
-                content = {
-                    service: service,
-                    parsedArgs: details,
-                    result: result,
-                    references: new Set<string>(),
-                };
-            }
+            const result = client ? await this.getDir(client, service, details) : no_client;
+            if (!result) return Promise.resolve(null);
+            content = {
+                service: service,
+                parsedArgs: details,
+                result: result,
+                references: new Set<string>(),
+            };
 
             this.memberLists.set(cacheKey, content);
         }
