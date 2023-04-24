@@ -19,9 +19,9 @@ export class AsyncSemaphore {
 
     public async locked<T>(action: () => T | PromiseLike<T>): Promise<T> {
         let resolve: () => void;
-        while (this.queue.size >= this.limit) {
-            await this.queue.values().next().value;
-        }
+        while (this.queue.size >= this.limit)
+            await Promise.race([...this.queue.values()]);
+
         const p = new Promise<void>((r) => resolve = r);
         try {
             this.queue.add(p);
