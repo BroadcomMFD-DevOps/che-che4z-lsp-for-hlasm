@@ -87,6 +87,10 @@ struct parsing_metadata_collector final : public parser_library::parsing_metadat
     std::vector<parser_library::parsing_metadata> data;
 };
 
+void log_i(std::string msg, bool flush = false) { flush ? std::clog << msg << std::endl : std::clog << msg; }
+void log_e(std::string msg) { std::clog << "Error: " + msg << std::endl; }
+void log_w(std::string msg) { std::clog << "Warning: " + msg << std::endl; }
+
 class bench_configuration
 {
 public:
@@ -112,13 +116,13 @@ public:
     {
         if (write_details)
         {
-            std::clog << "ws_folder: " << ws_folder << '\n';
-            std::clog << "single_file: " << single_file << '\n';
-            std::clog << "start_range-end_range: " << start_range << "-" << end_range - 1 << '\n';
-            std::clog << "write_details: " << write_details << '\n';
-            std::clog << "do_reparse: " << do_reparse << '\n';
-            std::clog << "message: " << message << '\n';
-            std::clog << "number of pgms: " << pgm_names.size() << std::endl;
+            log_i("ws_folder: " + ws_folder + '\n');
+            log_i("single_file: " + single_file + '\n');
+            log_i("start_range-end_range: " + start_range + '-' + end_range - 1 + '\n');
+            log_i("write_details: " + write_details + '\n');
+            log_i("do_reparse: " + do_reparse + '\n');
+            log_i("message: " + message + '\n');
+            log_i("number of pgms: " + pgm_names.size() + '\n', true);
         }
     }
 
@@ -128,7 +132,7 @@ private:
         const auto advance_and_retrieve = [argc, &argv](std::string_view option, auto& i, auto& s) {
             if (i + 1 >= argc)
             {
-                std::clog << "Missing parameter for option " << option << '\n';
+                log_e(std::string("Missing parameter for option ").append(option));
                 return false;
             }
 
@@ -147,7 +151,7 @@ private:
                 auto pos = val.find('-');
                 if (pos == val.npos)
                 {
-                    std::clog << "Range parameter should be in format Start-End" << '\n';
+                    log_e("Range parameter should be in format Start-End");
                     return false;
                 }
 
@@ -158,7 +162,7 @@ private:
                 }
                 catch (...)
                 {
-                    std::clog << "Range values must be integers" << '\n';
+                    log_e("Range values must be integers");
                     return false;
                 }
             }
@@ -188,7 +192,7 @@ private:
             }
             else
             {
-                std::clog << "Unknown parameter " << arg << '\n';
+                log_e("Unknown parameter " + arg);
                 return false;
             }
         }
@@ -217,11 +221,10 @@ private:
 
         if (!some_config_exists)
         {
-            std::clog << "Non-existing configuration file: "
-                      << ".hlasmplugin/pgm_conf.json" << '\n';
+            log_e("Non-existing configuration file: .hlasmplugin/pgm_conf.json");
 
             if (b4g_pgms_dir.has_value())
-                std::clog << "Non-existing configuration file: " << b4g_pgms_dir.value() + "/.bridge.json" << '\n';
+                log_e("Non-existing configuration file: " + b4g_pgms_dir.value() + "/.bridge.json");
         }
     }
 
@@ -274,11 +277,16 @@ public:
         }
         else if (!bc.pgm_names.empty())
         {
-            if (bc.start_range >= bc.pgm_names.size() - 1)
+            if (bc.start_range >= bc.pgm_names.size())
             {
-                std::clog << "Start range > program count (" << bc.start_range << " > " << s.program_count << ")\n";
+                log_e("Start range > detected number of programs (" + std::to_string(bc.start_range) + " > "
+                    + std::to_string(bc.pgm_names.size()) + ')');
                 return false;
             }
+            else if (bc.end_range - bc.start_range + 1 > bc.pgm_names.size())
+                log_w("Requested range size > detected number of programs ("
+                    + std::to_string(bc.end_range - bc.start_range + 1) + " > " + std::to_string(bc.pgm_names.size())
+                    + ')');
 
             std::cout << "{\n\"pgms\" : [" << std::flush;
 
@@ -302,15 +310,14 @@ public:
             }
             std::cout << "],\n\"total\" : ";
 
-            std::clog << "Programs: " << s.program_count << '\n'
-                      << "Benchmarked files: " << s.all_files << '\n'
-                      << "Analyzer crashes: " << s.parsing_crashes << '\n'
-                      << "Analyzer crashes (reparsing): " << s.reparsing_crashes << '\n'
-                      << "Failed program opens: " << s.failed_file_opens << '\n'
-                      << "Benchmark time: " << s.whole_time << " ms" << '\n'
-                      << "Average statement/ms: " << s.average_stmt_ms / (double)bc.pgm_names.size() << '\n'
-                      << "Average line/ms: " << s.average_line_ms / (double)bc.pgm_names.size() << "\n\n"
-                      << std::endl;
+            log_i("Programs: " + s.program_count + '\n');
+            log_i("Benchmarked files: " + s.all_files + '\n');
+            log_i("Analyzer crashes: " + s.parsing_crashes + '\n');
+            log_i("Analyzer crashes (reparsing): " + s.reparsing_crashes + '\n');
+            log_i("Failed program opens: " + s.failed_file_opens + '\n');
+            log_i("Benchmark time: " + std::to_string(s.whole_time) + " ms" + '\n');
+            log_i("Average statement/ms: " + std::to_string(s.average_stmt_ms / (double)bc.pgm_names.size()) + '\n');
+            log_i("Average line/ms: " + std::to_string(s.average_line_ms / (double)bc.pgm_names.size()) + '\n', true);
 
             std::cout << json({ { "Programs", s.program_count },
                                   { "Benchmarked files", s.all_files },
@@ -321,7 +328,7 @@ public:
                                   { "Average line/ms", s.average_line_ms / bc.pgm_names.size() } })
                              .dump(2);
             std::cout << "}\n";
-            std::clog << "Parse finished\n\n" << std::endl;
+            log_i("Parse finished\n\n", true);
         }
 
         return true;
@@ -391,7 +398,7 @@ private:
         if (!content_o.has_value())
         {
             ++s.failed_file_opens;
-            std::clog << parse_params.annotation << "File read error: " << parse_params.source_path << std::endl;
+            log_e(parse_params.annotation + "File read error: " + parse_params.source_path);
             return json({ { "File", parse_params.source_file }, { "Success", false }, { "Reason", "Read error" } });
         }
 
@@ -425,26 +432,27 @@ private:
             + first_parse_metrics.reparsed_statements;
 
         if (write_details)
-            std::clog << "Time: " << parse_time << " ms" << '\n'
-                      << "Reparse time: " << reparse_time << " ms" << '\n'
-                      << "Errors: " << first_diag_counter.error_count << '\n'
-                      << "Reparse errors: " << parse_params.diag_counter.error_count << '\n'
-                      << "Open Code Statements: " << first_parse_metrics.open_code_statements << '\n'
-                      << "Copy Statements: " << first_parse_metrics.copy_statements << '\n'
-                      << "Macro Statements: " << first_parse_metrics.macro_statements << '\n'
-                      << "Copy Def Statements: " << first_parse_metrics.copy_def_statements << '\n'
-                      << "Macro Def Statements: " << first_parse_metrics.macro_def_statements << '\n'
-                      << "Lookahead Statements: " << first_parse_metrics.lookahead_statements << '\n'
-                      << "Reparsed Statements: " << first_parse_metrics.reparsed_statements << '\n'
-                      << "Continued Statements: " << first_parse_metrics.continued_statements << '\n'
-                      << "Non-continued Statements: " << first_parse_metrics.non_continued_statements << '\n'
-                      << "Lines: " << first_parse_metrics.lines << '\n'
-                      << "Executed Statement/ms: " << (double)exec_statements / (double)parse_time << '\n'
-                      << "Line/ms: " << (double)first_parse_metrics.lines / (double)parse_time << '\n'
-                      << "Files: " << first_ws_info.files_processed << '\n'
-                      << "Top messages: " << first_parse_top_messages.dump() << '\n'
-                      << '\n'
-                      << std::endl;
+        {
+            log_i("Time: " + std::to_string(parse_time) + " ms" + '\n');
+            log_i("Reparse time: " + std::to_string(reparse_time) + " ms" + '\n');
+            log_i("Errors: " + first_diag_counter.error_count + '\n');
+            log_i("Reparse errors: " + parse_params.diag_counter.error_count + '\n');
+            log_i("Open Code Statements: " + first_parse_metrics.open_code_statements + '\n');
+            log_i("Copy Statements: " + first_parse_metrics.copy_statements + '\n');
+            log_i("Macro Statements: " + first_parse_metrics.macro_statements + '\n');
+            log_i("Copy Def Statements: " + first_parse_metrics.copy_def_statements + '\n');
+            log_i("Macro Def Statements: " + first_parse_metrics.macro_def_statements + '\n');
+            log_i("Lookahead Statements: " + first_parse_metrics.lookahead_statements + '\n');
+            log_i("Reparsed Statements: " + first_parse_metrics.reparsed_statements + '\n');
+            log_i("Continued Statements: " + first_parse_metrics.continued_statements + '\n');
+            log_i("Non-continued Statements: " + first_parse_metrics.non_continued_statements + '\n');
+            log_i("Lines: " + first_parse_metrics.lines + '\n');
+            log_i("Executed Statement/ms: " + std::to_string((double)exec_statements / (double)parse_time) + '\n');
+            log_i("Line/ms: " + std::to_string((double)first_parse_metrics.lines / (double)parse_time) + '\n');
+            log_i("Files: " + first_ws_info.files_processed + '\n');
+            log_i("Top messages: " + first_parse_top_messages.dump() + '\n');
+            log_i("\n", true);
+        }
 
         return json_res;
     }
@@ -467,7 +475,7 @@ private:
         else if (parse_params.collector.data.size() != 1)
         {
             ++s.parsing_crashes;
-            std::clog << "Parsing error: Unexpected parsing metadata" << std::endl;
+            log_e("Parsing error: Unexpected parsing metadata");
             return parse_results {
                 false,
                 json({
@@ -563,7 +571,7 @@ private:
         static const parser_library::document_change dummy_change({}, "", 0);
 
         // Log a message before starting the clock
-        std::clog << annotation << "file: " << parse_params.source_file << std::endl;
+        log_i(annotation + "file: " + parse_params.source_file, true);
 
         // ******************    START THE CLOCK    ******************
         auto c_start = std::clock();
@@ -580,12 +588,12 @@ private:
         }
         catch (const std::exception& e)
         {
-            std::clog << annotation << "error: " << e.what() << std::endl;
+            log_e(annotation + "error: " + e.what());
             return std::nullopt;
         }
         catch (...)
         {
-            std::clog << annotation << "failed\n\n" << std::endl;
+            log_e(annotation + "failed\n\n");
             return std::nullopt;
         }
 
@@ -608,7 +616,7 @@ int main(int argc, char** argv)
 
     if (bench_config.pgm_names.empty())
     {
-        std::clog << "Didn't manage to load any programs to benchmark" << std::endl;
+        log_w("Didn't manage to load any programs to benchmark");
         return false;
     }
 
