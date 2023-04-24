@@ -272,7 +272,7 @@ export class HLASMExternalFiles {
                 this.pendingActiveProgressCancellation = setTimeout(() => {
                     this.activeProgress.done();
                     this.activeProgress = null;
-                }, 5000);
+                }, 2500);
             }
 
             return result;
@@ -299,13 +299,10 @@ export class HLASMExternalFiles {
 
         const me = this;
         this.toDispose.push(vscode.workspace.registerTextDocumentContentProvider(magicScheme, {
-            provideTextDocumentContent(uri: vscode.Uri, token: vscode.CancellationToken): vscode.ProviderResult<string> {
-                if (uri.scheme !== magicScheme)
-                    return null;
-                const { cacheKey } = me.extractUriDetails(uri, ExternalRequestType.read_file);
-                const content = me.memberContent.get(cacheKey);
-                if (typeof content?.result === 'string')
-                    return content?.result;
+            async provideTextDocumentContent(uri: vscode.Uri, token: vscode.CancellationToken): Promise<string | null> {
+                const result = await me.handleFileMessage({ url: uri.toString(), id: -1, op: ExternalRequestType.read_file });
+                if (result && 'data' in result && typeof result.data === 'string')
+                    return result.data;
                 else
                     return null;
             }
