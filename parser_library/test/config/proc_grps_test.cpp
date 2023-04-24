@@ -46,6 +46,27 @@ TEST(proc_grps, library_write)
 
     EXPECT_EQ(nlohmann::json(l), expected);
 }
+TEST(proc_grps, dataset_read)
+{
+    const auto cases = {
+        std::make_pair(R"({"dataset":"ds.name"})"_json, dataset { "ds.name", false }),
+        std::make_pair(R"({"dataset":"ds.name","optional":false})"_json, dataset { "ds.name", false }),
+        std::make_pair(R"({"dataset":"ds.name","optional":true})"_json, dataset { "ds.name", true }),
+    };
+
+    for (const auto& [input, expected] : cases)
+    {
+        EXPECT_EQ(input.get<dataset>(), expected);
+    }
+}
+
+TEST(proc_grps, dataset_write)
+{
+    const dataset l = dataset { "ds.name", true };
+    const auto expected = R"({"dataset":"ds.name","optional":true})"_json;
+
+    EXPECT_EQ(nlohmann::json(l), expected);
+}
 
 static void compare_proc_grps(const proc_grps& pg, const proc_grps& expected)
 {
@@ -56,15 +77,7 @@ static void compare_proc_grps(const proc_grps& pg, const proc_grps& expected)
         EXPECT_EQ(pg.pgroups[i].asm_options.profile, expected.pgroups[i].asm_options.profile);
         EXPECT_EQ(pg.pgroups[i].asm_options.sysparm, expected.pgroups[i].asm_options.sysparm);
         EXPECT_EQ(pg.pgroups[i].preprocessors, expected.pgroups[i].preprocessors);
-        ASSERT_EQ(pg.pgroups[i].libs.size(), expected.pgroups[i].libs.size());
-        for (size_t j = 0; j < pg.pgroups[i].libs.size(); ++j)
-        {
-            const auto& lib = std::get<library>(pg.pgroups[i].libs[j]);
-            const auto& elib = std::get<library>(expected.pgroups[i].libs[j]);
-            EXPECT_EQ(lib.optional, elib.optional);
-            EXPECT_EQ(lib.path, elib.path);
-            EXPECT_EQ(lib.macro_extensions, elib.macro_extensions);
-        }
+        EXPECT_EQ(pg.pgroups[i].libs, expected.pgroups[i].libs);
     }
 }
 
@@ -121,6 +134,8 @@ TEST(proc_grps, full_content_read)
             proc_grps { { { "P1", { library { "lib2", {}, false, processor_group_root_folder::alternate_root } } } } }),
         std::make_pair(R"({"pgroups":[{"name":"P1", "libs":[{"path": "lib2", "prefer_alternate_root":false}]}]})"_json,
             proc_grps { { { "P1", { library { "lib2", {}, false, processor_group_root_folder::workspace } } } } }),
+        std::make_pair(R"({"pgroups":[{"name":"P1", "libs":[{"dataset": "ds.name", "optional":true}]}]})"_json,
+            proc_grps { { { "P1", { dataset { "ds.name", true } } } } }),
     };
 
     for (const auto& [input, expected] : cases)
@@ -174,6 +189,8 @@ TEST(proc_grps, full_content_write)
         std::make_pair(
             R"({"pgroups":[{"name":"P1", "libs":[{"path":"lib1","optional":false,"prefer_alternate_root":true}]}]})"_json,
             proc_grps { { { "P1", { library { "lib1", {}, false, processor_group_root_folder::alternate_root } } } } }),
+        std::make_pair(R"({"pgroups":[{"name":"P1", "libs":[{"dataset": "ds.name", "optional":true}]}]})"_json,
+            proc_grps { { { "P1", { dataset { "ds.name", true } } } } }),
     };
 
     for (const auto& [expected, input] : cases)
@@ -198,6 +215,8 @@ TEST(proc_grps, invalid)
         R"({"pgroups":[{"name":"","libs":[{}]}],"preprocessor":{"name":"DB2","options":{"conditional":1}}})"_json,
         R"({"pgroups":[{"name":"","libs":[{}]}],"preprocessor":{"name":"DB2","options":{"conditional":{}}}})"_json,
         R"({"pgroups":[{"libs":[{"path":"a","prefer_alternate_root":"AAA"}]}]})"_json,
+        R"({"pgroups":[{"libs":[{"dataset":3}]}]})"_json,
+        R"({"pgroups":[{"libs":[{"dataset":false}]}]})"_json,
     };
 
     for (const auto& input : cases)

@@ -15,6 +15,7 @@
 #ifndef HLASMPARSER_PARSERLIBRARY_CONFIG_PROC_GRPS_H
 #define HLASMPARSER_PARSERLIBRARY_CONFIG_PROC_GRPS_H
 
+#include <compare>
 #include <optional>
 #include <string>
 #include <variant>
@@ -39,6 +40,8 @@ struct library
     std::vector<std::string> macro_extensions;
     bool optional = false;
     processor_group_root_folder root_folder = processor_group_root_folder::workspace;
+
+    auto operator<=>(const library&) const = default;
 };
 void to_json(nlohmann::json& j, const library& p);
 void from_json(const nlohmann::json& j, library& p);
@@ -47,6 +50,8 @@ struct dataset
 {
     std::string dsn;
     bool optional = false;
+
+    auto operator<=>(const dataset&) const = default;
 };
 void to_json(nlohmann::json& j, const dataset& p);
 void from_json(const nlohmann::json& j, dataset& p);
