@@ -79,7 +79,9 @@ namespace {
 template<typename T>
 void log_(bool flush, T text)
 {
-    flush ? std::clog << text << std::endl : std::clog << text;
+    std::clog << text;
+    if (flush)
+        std::clog.flush();
 }
 
 template<typename T, typename... Args>
@@ -92,25 +94,25 @@ void log_(bool flush, T text, Args... args)
 template<typename... Args>
 void log_i(Args... args)
 {
-    log_(false, args...);
+    log_(false, args..., '\n');
 }
 
 template<typename... Args>
 void log_if(Args... args)
 {
-    log_(true, args...);
+    log_(true, args..., '\n');
 }
 
 template<typename... Args>
 void log_e(Args... args)
 {
-    log_(true, "Error: ", args...);
+    log_(true, "Error: ", args..., '\n');
 }
 
 template<typename... Args>
 void log_w(Args... args)
 {
-    log_(true, "Warning: ", args...);
+    log_(true, "Warning: ", args..., '\n');
 }
 
 struct parsing_metadata_collector final : public parser_library::parsing_metadata_consumer
@@ -149,13 +151,13 @@ public:
     {
         if (write_details)
         {
-            log_i("ws_folder: ", ws_folder, '\n');
-            log_i("single_file: ", single_file, '\n');
-            log_i("start_range-end_range: ", start_range, '-', end_range - 1, '\n');
-            log_i("write_details: ", write_details, '\n');
-            log_i("do_reparse: ", do_reparse, '\n');
-            log_i("message: ", message, '\n');
-            log_if("number of pgms: ", pgm_names.size(), '\n');
+            log_i("ws_folder: ", ws_folder);
+            log_i("single_file: ", single_file);
+            log_i("start_range-end_range: ", start_range, '-', end_range - 1);
+            log_i("write_details: ", write_details);
+            log_i("do_reparse: ", do_reparse);
+            log_i("message: ", message);
+            log_if("number of pgms: ", pgm_names.size(), "\n\n");
         }
     }
 
@@ -343,14 +345,14 @@ public:
             }
             std::cout << "],\n\"total\" : ";
 
-            log_i("Programs: ", s.program_count, '\n');
-            log_i("Benchmarked files: ", s.all_files, '\n');
-            log_i("Analyzer crashes: ", s.parsing_crashes, '\n');
-            log_i("Analyzer crashes (reparsing): ", s.reparsing_crashes, '\n');
-            log_i("Failed program opens: ", s.failed_file_opens, '\n');
-            log_i("Benchmark time: ", s.whole_time, " ms", '\n');
-            log_i("Average statement/ms: ", s.average_stmt_ms / (double)bc.pgm_names.size(), '\n');
-            log_if("Average line/ms: ", s.average_line_ms / (double)bc.pgm_names.size(), '\n');
+            log_i("Programs: ", s.program_count);
+            log_i("Benchmarked files: ", s.all_files);
+            log_i("Analyzer crashes: ", s.parsing_crashes);
+            log_i("Analyzer crashes (reparsing): ", s.reparsing_crashes);
+            log_i("Failed program opens: ", s.failed_file_opens);
+            log_i("Benchmark time: ", s.whole_time, " ms");
+            log_i("Average statement/ms: ", s.average_stmt_ms / (double)bc.pgm_names.size());
+            log_if("Average line/ms: ", s.average_line_ms / (double)bc.pgm_names.size(), "\n\n");
 
             std::cout << json({ { "Programs", s.program_count },
                                   { "Benchmarked files", s.all_files },
@@ -466,25 +468,24 @@ private:
 
         if (write_details)
         {
-            log_i("Time: ", parse_time, " ms", '\n');
-            log_i("Reparse time: ", reparse_time, " ms", '\n');
-            log_i("Errors: ", first_diag_counter.error_count, '\n');
-            log_i("Reparse errors: ", parse_params.diag_counter.error_count, '\n');
-            log_i("Open Code Statements: ", first_parse_metrics.open_code_statements, '\n');
-            log_i("Copy Statements: ", first_parse_metrics.copy_statements, '\n');
-            log_i("Macro Statements: ", first_parse_metrics.macro_statements, '\n');
-            log_i("Copy Def Statements: ", first_parse_metrics.copy_def_statements, '\n');
-            log_i("Macro Def Statements: ", first_parse_metrics.macro_def_statements, '\n');
-            log_i("Lookahead Statements: ", first_parse_metrics.lookahead_statements, '\n');
-            log_i("Reparsed Statements: ", first_parse_metrics.reparsed_statements, '\n');
-            log_i("Continued Statements: ", first_parse_metrics.continued_statements, '\n');
-            log_i("Non-continued Statements: ", first_parse_metrics.non_continued_statements, '\n');
-            log_i("Lines: ", first_parse_metrics.lines, '\n');
-            log_i("Executed Statement/ms: ", (double)exec_statements / (double)parse_time, '\n');
-            log_i("Line/ms: ", (double)first_parse_metrics.lines / (double)parse_time, '\n');
-            log_i("Files: ", first_ws_info.files_processed, '\n');
-            log_i("Top messages: ", first_parse_top_messages.dump(), '\n');
-            log_if("\n");
+            log_i("Time: ", parse_time, " ms");
+            log_i("Reparse time: ", reparse_time, " ms");
+            log_i("Errors: ", first_diag_counter.error_count);
+            log_i("Reparse errors: ", parse_params.diag_counter.error_count);
+            log_i("Open Code Statements: ", first_parse_metrics.open_code_statements);
+            log_i("Copy Statements: ", first_parse_metrics.copy_statements);
+            log_i("Macro Statements: ", first_parse_metrics.macro_statements);
+            log_i("Copy Def Statements: ", first_parse_metrics.copy_def_statements);
+            log_i("Macro Def Statements: ", first_parse_metrics.macro_def_statements);
+            log_i("Lookahead Statements: ", first_parse_metrics.lookahead_statements);
+            log_i("Reparsed Statements: ", first_parse_metrics.reparsed_statements);
+            log_i("Continued Statements: ", first_parse_metrics.continued_statements);
+            log_i("Non-continued Statements: ", first_parse_metrics.non_continued_statements);
+            log_i("Lines: ", first_parse_metrics.lines);
+            log_i("Executed Statement/ms: ", (double)exec_statements / (double)parse_time);
+            log_i("Line/ms: ", (double)first_parse_metrics.lines / (double)parse_time);
+            log_i("Files: ", first_ws_info.files_processed);
+            log_if("Top messages: ", first_parse_top_messages.dump(), "\n\n");
         }
 
         return json_res;
