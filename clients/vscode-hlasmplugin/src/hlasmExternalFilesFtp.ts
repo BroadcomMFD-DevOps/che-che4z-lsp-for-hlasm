@@ -21,13 +21,12 @@ import { FBWritable } from './FBWritable';
 import { isCancellationError } from './helpers';
 
 const checkResponse = (resp: ftp.FTPResponse) => {
-    if (resp.code < 200 || resp.code > 299)
-        throw Error("FTP Error: " + resp.message);
+    if (resp.code < 200 || resp.code > 299) throw Error("FTP Error: " + resp.message);
+    return resp;
 }
+
 const checkedCommand = async (client: ftp.Client, command: string): Promise<string> => {
-    const resp = await client.send(command);
-    checkResponse(resp);
-    return resp.message
+    return checkResponse(await client.send(command)).message
 }
 
 class DatasetUriDetails implements ClientUriDetails {
@@ -64,15 +63,18 @@ export class HLASMExternalFilesFtp implements ExternalFilesClient {
         return this.stateChanged.event;
     }
 
+    private clearPoolClient() {
+        clearTimeout(this.pooledClientTimeout);
+        const client = this.pooledClient;
+        this.pooledClient = null;
+        if (client)
+            client.close();
+    }
+
     suspend() {
         if (this.clientSuspended) return;
         try {
-            if (this.pooledClient) {
-                clearTimeout(this.pooledClientTimeout);
-                const client = this.pooledClient;
-                this.pooledClient = null;
-                client.close();
-            }
+            this.clearPoolClient();
         }
         finally {
             this.clientSuspended = true;
@@ -90,13 +92,8 @@ export class HLASMExternalFilesFtp implements ExternalFilesClient {
     }
 
     dispose(): void {
-        clearTimeout(this.pooledClientTimeout);
         this.stateChanged.dispose();
-        if (this.pooledClient) {
-            const client = this.pooledClient;
-            this.pooledClient = null;
-            client.close();
-        }
+        this.clearPoolClient();
     }
 
     constructor(private context: vscode.ExtensionContext) { }
@@ -132,12 +129,7 @@ export class HLASMExternalFilesFtp implements ExternalFilesClient {
             return;
         }
 
-        this.pooledClientTimeout = setTimeout(() => {
-            const client = this.pooledClient;
-            this.pooledClient = null;
-            client.close();
-        }, HLASMExternalFilesFtp.pooledClientReleaseTimeout);
-
+        this.pooledClientTimeout = setTimeout(() => this.clearPoolClient(), HLASMExternalFilesFtp.pooledClientReleaseTimeout);
         this.pooledClient = client;
     }
 
