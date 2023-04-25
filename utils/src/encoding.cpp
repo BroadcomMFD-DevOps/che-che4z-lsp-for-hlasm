@@ -160,7 +160,10 @@ std::string uri_friendly_base16_encode(std::string_view s)
 
 
     for (unsigned char c : s)
-        result.push_back(uri_friendly_base16[c >> 4]), result.push_back(uri_friendly_base16[c & 15]);
+    {
+        result.push_back(uri_friendly_base16[c >> 4]);
+        result.push_back(uri_friendly_base16[c & 15]);
+    }
 
     return result;
 }
@@ -176,7 +179,10 @@ std::string uri_friendly_base16_decode(std::string_view s)
             c = -1;
 
         for (int i = 0; i < 16; ++i)
-            result[(unsigned char)uri_friendly_base16[i]] = i, result[(unsigned char)uri_friendly_base16uc[i]] = i;
+        {
+            result[(unsigned char)uri_friendly_base16[i]] = i;
+            result[(unsigned char)uri_friendly_base16uc[i]] = i;
+        }
 
         return result;
     }();

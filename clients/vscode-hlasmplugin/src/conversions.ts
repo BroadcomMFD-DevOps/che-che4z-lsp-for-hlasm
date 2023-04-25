@@ -13,6 +13,7 @@
  */
 
 import { EOL } from 'os';
+import { TextDecoder, TextEncoder } from 'util';
 
 function toBufferArray(s: string): Buffer[] {
     if (s.length != 256)
@@ -38,4 +39,37 @@ export function convertBuffer(buffer: Buffer, lrecl: number) {
         ++i;
     }
     return result.subarray(0, pos);
+}
+
+const uriFriendlyBase16Stirng = 'abcdefghihjkmnop';
+const uriFriendlyBase16StirngUC = 'ABCDEFGHIHJKMNOP';
+const uriFriendlyBase16StirngBoth = 'abcdefghihjkmnopABCDEFGHIHJKMNOP';
+
+const uriFriendlyBase16Map = (() => {
+    const result = [];
+    for (const c0 of uriFriendlyBase16Stirng)
+        for (const c1 of uriFriendlyBase16Stirng)
+            result.push(c0 + c1);
+
+    return result;
+})();
+
+export function uriFriendlyBase16Encode(s: string) {
+    return [...new TextEncoder().encode(s)].map(x => uriFriendlyBase16Map[x]).join('');
+}
+
+export function uriFriendlyBase16Decode(s: string) {
+    if (s.length & 1) return '';
+    const array = [];
+    for (let i = 0; i < s.length; i += 2) {
+        const c0 = uriFriendlyBase16StirngBoth.indexOf(s[i]);
+        const c1 = uriFriendlyBase16StirngBoth.indexOf(s[i + 1]);
+        if (c0 < 0 || c1 < 0) return '';
+        array.push((c0 & 15) << 4 | (c1 & 15));
+    }
+    try {
+        return new TextDecoder(undefined, { fatal: true, ignoreBOM: false }).decode(Uint8Array.from(array));
+    } catch (e) {
+        return '';
+    }
 }

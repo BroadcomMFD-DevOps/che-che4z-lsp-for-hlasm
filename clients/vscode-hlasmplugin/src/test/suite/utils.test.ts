@@ -16,7 +16,8 @@ import { Readable, Stream } from "stream";
 import { FBWritable } from "../../FBWritable";
 import * as assert from 'assert';
 import { AsyncMutex, AsyncSemaphore } from "../../asyncMutex";
-import { sleep } from "./testHelper";
+import { isCancellationError } from "../../helpers";
+import { CancellationError } from "vscode";
 
 
 suite('Utilities', () => {
@@ -36,7 +37,7 @@ suite('Utilities', () => {
         let i = 0;
 
         let wakeupCallback: () => void;
-        let wakeup = new Promise<void>(r => { wakeupCallback = r; });
+        const wakeup = new Promise<void>(r => { wakeupCallback = r; });
 
         const a1 = mutex.locked(async () => {
             assert.strictEqual(i, 0);
@@ -64,7 +65,7 @@ suite('Utilities', () => {
         let i = 0;
 
         let wakeupCallback: () => void;
-        let wakeup = new Promise<void>(r => { wakeupCallback = r; });
+        const wakeup = new Promise<void>(r => { wakeupCallback = r; });
 
         const a1 = mutex.locked(async () => {
             assert.strictEqual(i, 0);
@@ -97,5 +98,11 @@ suite('Utilities', () => {
         assert.strictEqual(i, 2);
 
     }).timeout(10000).slow(2000);
+
+    test('Cancellation error detection', () => {
+        assert.ok(isCancellationError(new CancellationError()));
+        assert.ok(isCancellationError(new Error("Canceled")));
+        assert.ok(!isCancellationError(new Error("Something")));
+    });
 
 });

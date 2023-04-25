@@ -221,4 +221,22 @@ suite('Integration Test Suite', () => {
         assert.ok(doc);
         assert.match(doc.getText(), /MACA/);
     }).timeout(10000).slow(2500);
+
+    test('Remote files suspended', async () => {
+        await vscode.commands.executeCommand('extension.hlasm-plugin.suspendRemoteActivity');
+
+        const diags = await helper.diagsFor('remote2.hlasm', true, async () => { await helper.showDocument('remote2.hlasm'); });
+
+        assert.ok(diags);
+
+        const mentionedMacros = diags.map(x => [...x.message.matchAll(/\b(MAC.)\b/g)]).flat(1).map(x => x[1]);
+        const uniqueMacros = [...new Set(mentionedMacros)].sort();
+
+        assert.deepStrictEqual(uniqueMacros, ['MACA', 'MACB', 'MACC']);
+
+        const diags2 = await helper.diagsFor('remote2.hlasm', false, async () => vscode.commands.executeCommand('extension.hlasm-plugin.resumeRemoteActivity'));
+
+        assert.ok(diags2);
+        assert.strictEqual(diags2.length, 0);
+    }).timeout(10000).slow(2500);
 });

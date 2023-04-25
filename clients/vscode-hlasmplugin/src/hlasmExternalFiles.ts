@@ -12,10 +12,10 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
-import { TextDecoder, TextEncoder } from "util";
 import * as vscode from "vscode";
 import * as vscodelc from "vscode-languageclient";
 import { isCancellationError } from "./helpers";
+import { uriFriendlyBase16Decode, uriFriendlyBase16Encode } from "./conversions";
 
 // This is a temporary demo implementation
 
@@ -74,39 +74,6 @@ function invalidResponse(msg: ExternalRequest) {
     return Promise.resolve({ id: msg.id, error: { code: -5, msg: 'Invalid request' } });
 }
 
-const uriFriendlyBase16Stirng = 'abcdefghihjkmnop';
-const uriFriendlyBase16StirngUC = 'ABCDEFGHIHJKMNOP';
-const uriFriendlyBase16StirngBoth = 'abcdefghihjkmnopABCDEFGHIHJKMNOP';
-
-const uriFriendlyBase16Map = (() => {
-    const result = [];
-    for (const c0 of uriFriendlyBase16Stirng)
-        for (const c1 of uriFriendlyBase16Stirng)
-            result.push(c0 + c1);
-
-    return result;
-})();
-
-function uriFriendlyBase16Encode(s: string) {
-    return [...new TextEncoder().encode(s)].map(x => uriFriendlyBase16Map[x]).join('');
-}
-
-function uriFriendlyBase16Decode(s: string) {
-    if (s.length & 1) return '';
-    const array = [];
-    for (let i = 0; i < s.length; i += 2) {
-        const c0 = uriFriendlyBase16StirngBoth.indexOf(s[i]);
-        const c1 = uriFriendlyBase16StirngBoth.indexOf(s[i + 1]);
-        if (c0 < 0 || c1 < 0) return '';
-        array.push((c0 & 15) << 4 | (c1 & 15));
-    }
-    try {
-        return new TextDecoder(undefined, { fatal: true, ignoreBOM: false }).decode(Uint8Array.from(array));
-    } catch (e) {
-        return '';
-    }
-}
-
 function take<T>(it: IterableIterator<T>, n: number): T[] {
     const result: T[] = [];
     while (n) {
@@ -121,12 +88,12 @@ function take<T>(it: IterableIterator<T>, n: number): T[] {
 
 const not_exists = Object.freeze({});
 const no_client = Object.freeze({});
-interface in_error { message: string };
+interface inError { message: string };
 
 interface CacheEntry<T> {
     service: string,
     parsedArgs: ClientUriDetails,
-    result: T | in_error | typeof not_exists | typeof no_client,
+    result: T | inError | typeof not_exists | typeof no_client,
     references: Set<string>;
 };
 
@@ -180,7 +147,13 @@ export class HLASMExternalFiles {
 
     private getClient(service: string) { const c = this.clients.get(service); return c && c.client; }
 
-
+    private static readonly emptyUriDetails = Object.freeze({
+        cacheKey: null,
+        service: null,
+        client: null,
+        details: null,
+        associatedWorkspace: null,
+    });
     private extractUriDetails(uri: string | vscode.Uri, purpose: ExternalRequestType): { cacheKey: string, service: string, client: ExternalFilesClient, details: ClientUriDetails, associatedWorkspace: string } | null {
         if (typeof uri === 'string')
             uri = vscode.Uri.parse(uri, true);
@@ -190,13 +163,7 @@ export class HLASMExternalFiles {
         const matches = pathParser.exec(uri.path);
 
         if (uri.scheme !== magicScheme || !matches)
-            return {
-                cacheKey: null,
-                service: null,
-                client: null,
-                details: null,
-                associatedWorkspace: null,
-            };
+            return HLASMExternalFiles.emptyUriDetails;
 
         const service = matches[1];
         const subpath = matches[2] || '';
@@ -235,7 +202,7 @@ export class HLASMExternalFiles {
         this.lspClient.sendNotification(vscodelc.DidChangeWatchedFilesNotification.type, {
             changes: (vscode.workspace.workspaceFolders || []).map(w => {
                 return {
-                    uri: `${magicScheme}://${uriFriendlyBase16Encode(w.uri.toString())}`,
+                    uri: `${magicScheme}://${uriFriendlyBase16Encode(w.uri.toString())}/${service}`,
                     type: vscodelc.FileChangeType.Changed
                 };
             })
@@ -246,7 +213,7 @@ export class HLASMExternalFiles {
 
     activeProgress: { progressUpdater: vscode.Progress<{ message?: string; increment?: number }>, done: () => void } = null;
     pendingActiveProgressCancellation: ReturnType<typeof setTimeout> = null;
-    addWIP<T>(service: string, topic: string) {
+    addWIP(service: string, topic: string) {
         clearTimeout(this.pendingActiveProgressCancellation);
         if (!this.activeProgress && !this.getClient(service).suspended()) {
             vscode.window.withProgress({ title: 'Retrieving remote files', location: vscode.ProgressLocation.Notification }, (progress, c) => {
@@ -268,7 +235,7 @@ export class HLASMExternalFiles {
         return () => {
             const result = this.pendingRequests.delete(wip);
 
-            if (this.pendingRequests.size === 0) {
+            if (this.activeProgress && this.pendingRequests.size === 0) {
                 this.pendingActiveProgressCancellation = setTimeout(() => {
                     this.activeProgress.done();
                     this.activeProgress = null;
@@ -321,8 +288,8 @@ export class HLASMExternalFiles {
     private async askClient<T>(
         service: string,
         parsedArgs: ClientUriDetails,
-        func: (args: ClientUriDetails) => T | null
-    ): Promise<T | in_error | typeof not_exists | typeof no_client | null> {
+        func: (args: ClientUriDetails) => Promise<T | null>
+    ): Promise<T | inError | typeof not_exists | typeof no_client | null> {
         const interest = this.addWIP(service, parsedArgs.toString());
 
         try {
@@ -348,11 +315,11 @@ export class HLASMExternalFiles {
 
     }
 
-    private async getFile(client: ExternalFilesClient, service: string, parsedArgs: ClientUriDetails): Promise<string | in_error | typeof not_exists | typeof no_client | null> {
+    private async getFile(client: ExternalFilesClient, service: string, parsedArgs: ClientUriDetails): Promise<string | inError | typeof not_exists | typeof no_client | null> {
         return this.askClient(service, parsedArgs, client.readMember.bind(client));
     }
 
-    private async getDir(client: ExternalFilesClient, service: string, parsedArgs: ClientUriDetails): Promise<string[] | in_error | typeof not_exists | typeof no_client | null> {
+    private async getDir(client: ExternalFilesClient, service: string, parsedArgs: ClientUriDetails): Promise<string[] | inError | typeof not_exists | typeof no_client | null> {
         return this.askClient(service, parsedArgs, client.listMembers.bind(client));
     }
 
@@ -362,7 +329,7 @@ export class HLASMExternalFiles {
         cache: Map<string, CacheEntry<T>>,
         responseTransform: (result: T) => (T extends string[] ? ExternalReadDirectoryResponse : ExternalReadFileResponse)['data']):
         Promise<(T extends string[] ? ExternalReadDirectoryResponse : ExternalReadFileResponse) | ExternalErrorResponse | null> {
-        const { cacheKey, service, client, details, associatedWorkspace } = this.extractUriDetails(msg.url, msg.op);
+        const { cacheKey, service, client, details } = this.extractUriDetails(msg.url, msg.op);
         if (!cacheKey || client && !details)
             return invalidResponse(msg);
 
@@ -384,26 +351,21 @@ export class HLASMExternalFiles {
         return this.transformResult(msg.id, content, responseTransform);
     }
 
+    private generateError(id: number, code: number, msg: string): ExternalErrorResponse {
+        return { id, error: { code, msg } };
+    }
+
     private transformResult<T>(
         id: number,
         content: CacheEntry<T>,
         transform: (result: T) => (T extends string[] ? ExternalReadDirectoryResponse : ExternalReadFileResponse)['data']
     ): Promise<(T extends string[] ? ExternalReadDirectoryResponse : ExternalReadFileResponse) | ExternalErrorResponse> {
         if (content.result === not_exists)
-            return Promise.resolve({
-                id,
-                error: { code: 0, msg: 'Not found' }
-            });
+            return Promise.resolve(this.generateError(id, 0, 'Not found'));
         else if (content.result === no_client)
-            return Promise.resolve({
-                id,
-                error: { code: -1000, msg: 'No client' }
-            });
+            return Promise.resolve(this.generateError(id, -1000, 'No client'));
         else if (typeof content.result === 'object' && 'message' in content.result)
-            return Promise.resolve({
-                id,
-                error: { code: -1000, msg: content.result.message }
-            });
+            return Promise.resolve(this.generateError(id, -1000, content.result.message));
         else
             return Promise.resolve(<T extends string[] ? ExternalReadDirectoryResponse : ExternalReadFileResponse>{
                 id,

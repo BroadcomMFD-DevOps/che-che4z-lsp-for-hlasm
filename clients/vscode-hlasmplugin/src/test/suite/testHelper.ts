@@ -180,3 +180,9 @@ export async function waitForDiagnostics(file: string | vscode.Uri, nonEmptyOnly
 
     return result;
 }
+
+export async function diagsFor(file: string | vscode.Uri, nonEmptyOnly: boolean = false, action: () => PromiseLike<void>) {
+    const diags = waitForDiagnostics(file, nonEmptyOnly);
+    await Promise.resolve(action());
+    return await diags;
+}

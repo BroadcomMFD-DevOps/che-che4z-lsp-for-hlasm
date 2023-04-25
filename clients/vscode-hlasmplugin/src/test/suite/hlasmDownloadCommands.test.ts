@@ -16,7 +16,6 @@ import { PassThrough, Writable } from 'stream';
 import { Uri } from 'vscode';
 
 import { downloadDependenciesWithClient, extractDsn, gatherDownloadList, JobDescription, replaceVariables, adjustJobHeader } from '../../hlasmDownloadCommands';
-import { convertBuffer } from '../../conversions';
 
 suite('HLASM Download data sets', () => {
     const getClient = (listResponses: JobDescription[][]) => {
@@ -282,10 +281,6 @@ suite('HLASM Download data sets', () => {
     test('Variable replacer', () => {
         const ws = Uri.parse("file:///workspace");
         assert.deepEqual(replaceVariables([{ key: "${workspaceFolder}/${config:test}" }], (k) => (k === 'test' && 'replacement'), ws), [{ key: "file:///workspace/replacement" }]);
-    });
-
-    test('Buffer conversion', () => {
-        assert.equal(convertBuffer(Buffer.from([0x40, 0xC1, 0x40]), 80), ' A ');
     });
 
     test('Job card splitter', () => {

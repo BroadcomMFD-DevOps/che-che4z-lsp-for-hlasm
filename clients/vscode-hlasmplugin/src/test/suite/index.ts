@@ -29,8 +29,14 @@ async function primeExtension(): Promise<vscode.Disposable[]> {
 	await Promise.race([lang.sendRequest<object>('textDocument/$/opcode_suggestion', { opcodes: ['OPCODE'] }), timeout(30000, 'Opcode suggestion request failed')]);
 
 	ext.registerExternalFileClient('TEST', {
-		listMembers(args: { path: string, file: string }) { return Promise.resolve(['MACA', 'MACB', 'MACC']) },
+		listMembers(args: { path: string, file: string }) {
+			if (this.clientSuspended)
+				throw new vscode.CancellationError();
+			return Promise.resolve(['MACA', 'MACB', 'MACC']);
+		},
 		readMember(args: { path: string, file: string }) {
+			if (this.clientSuspended)
+				throw new vscode.CancellationError();
 			if (/^MAC[A-C]$/.test(args.file))
 				return Promise.resolve(`.*
          MACRO
@@ -40,12 +46,15 @@ async function primeExtension(): Promise<vscode.Disposable[]> {
 			return Promise.resolve(null);
 		},
 
-		onStateChange(x: unknown) { return { dispose() { } }; },
+		clientSuspended: false,
+		eventEmitter: new vscode.EventEmitter<boolean>(),
 
-		suspend() { },
-		resume() { },
+		get onStateChange() { return this.eventEmitter.event; },
 
-		suspended() { return false; },
+		suspend() { !this.clientSuspended && this.eventEmitter.fire(this.clientSuspended = true); },
+		resume() { this.clientSuspended && this.eventEmitter.fire(this.clientSuspended = false); },
+
+		suspended() { return this.clientSuspended; },
 
 		dispose() { },
 
