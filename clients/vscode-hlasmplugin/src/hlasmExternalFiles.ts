@@ -68,7 +68,6 @@ export interface ExternalFilesClient extends vscode.Disposable {
     parseArgs(path: string, purpose: ExternalRequestType): ClientUriDetails;
 }
 
-const magicScheme = 'hlasm-external';
 
 function invalidResponse(msg: ExternalRequest) {
     return Promise.resolve({ id: msg.id, error: { code: -5, msg: 'Invalid request' } });
@@ -96,7 +95,6 @@ interface CacheEntry<T> {
     result: T | inError | typeof not_exists | typeof no_client,
     references: Set<string>;
 };
-
 export class HLASMExternalFiles {
     private toDispose: vscode.Disposable[] = [];
 
@@ -109,6 +107,16 @@ export class HLASMExternalFiles {
         client: ExternalFilesClient;
         clientDisposables: vscode.Disposable[];
     }>();
+
+    constructor(private magicScheme: string, private channel: {
+        onNotification(method: string, handler: vscodelc.GenericNotificationHandler): vscode.Disposable;
+        sendNotification<P>(type: vscodelc.NotificationType<P>, params?: P): Promise<void>;
+        sendNotification(method: string, params: any): Promise<void>;
+    }) {
+        this.toDispose.push(this.channel.onNotification('external_file_request', params => this.handleRawMessage(params).then(
+            msg => { if (msg) this.channel.sendNotification('external_file_response', msg); }
+        )));
+    }
 
     setClient(service: string, client: ExternalFilesClient) {
         if (!/^[A-Z]+$/.test(service))
@@ -162,7 +170,7 @@ export class HLASMExternalFiles {
 
         const matches = pathParser.exec(uri.path);
 
-        if (uri.scheme !== magicScheme || !matches)
+        if (uri.scheme !== this.magicScheme || !matches)
             return HLASMExternalFiles.emptyUriDetails;
 
         const service = matches[1];
@@ -199,10 +207,10 @@ export class HLASMExternalFiles {
     }
 
     private notifyAllWorkspaces(service: string, all: boolean) {
-        this.lspClient.sendNotification(vscodelc.DidChangeWatchedFilesNotification.type, {
+        this.channel.sendNotification(vscodelc.DidChangeWatchedFilesNotification.type, {
             changes: (vscode.workspace.workspaceFolders || []).map(w => {
                 return {
-                    uri: `${magicScheme}://${uriFriendlyBase16Encode(w.uri.toString())}/${service}`,
+                    uri: `${this.magicScheme}://${uriFriendlyBase16Encode(w.uri.toString())}/${service}`,
                     type: vscodelc.FileChangeType.Changed
                 };
             })
@@ -254,18 +262,9 @@ export class HLASMExternalFiles {
         this.clients.forEach(({ client }) => { client.resume() });
     }
 
-    constructor(private lspClient: vscodelc.BaseLanguageClient) {
-        this.toDispose.push(lspClient.onNotification('external_file_request', params => this.handleRawMessage(params).then(
-            msg => { if (msg) lspClient.sendNotification('external_file_response', msg); }
-        )));
-
-        lspClient.onDidChangeState(e => {
-            if (e.newState === vscodelc.State.Starting)
-                this.reset();
-        }, this, this.toDispose);
-
+    public getTextDocumentContentProvider(): vscode.TextDocumentContentProvider {
         const me = this;
-        this.toDispose.push(vscode.workspace.registerTextDocumentContentProvider(magicScheme, {
+        return {
             async provideTextDocumentContent(uri: vscode.Uri, token: vscode.CancellationToken): Promise<string | null> {
                 const result = await me.handleFileMessage({ url: uri.toString(), id: -1, op: ExternalRequestType.read_file });
                 if (result && 'data' in result && typeof result.data === 'string')
@@ -273,10 +272,10 @@ export class HLASMExternalFiles {
                 else
                     return null;
             }
-        }));
+        }
     }
 
-    reset() {
+    public reset() {
         this.pendingRequests.clear();
     }
 
