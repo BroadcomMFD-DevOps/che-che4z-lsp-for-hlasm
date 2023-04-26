@@ -150,8 +150,8 @@ std::string percent_encode_and_ignore_utf8(std::string_view s)
     return uri;
 }
 
-constexpr const char* uri_friendly_base16 = "abcdefghihjkmnop";
-constexpr const char* uri_friendly_base16uc = "ABCDEFGHIHJKMNOP";
+constexpr const char* uri_friendly_base16 = "abcdefghijklmnop";
+constexpr const char* uri_friendly_base16uc = "ABCDEFGHIJKLMNOP";
 
 std::string uri_friendly_base16_encode(std::string_view s)
 {

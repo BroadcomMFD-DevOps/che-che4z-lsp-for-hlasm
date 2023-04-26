@@ -64,3 +64,12 @@ TEST(encoding, uri_friendly_base16_decode)
     EXPECT_EQ(uri_friendly_base16_decode("ax"), "");
     EXPECT_EQ(uri_friendly_base16_decode("xa"), "");
 }
+
+TEST(encoding, uri_friendly_base16_roundtrip)
+{
+    std::string s;
+    for (int i = 0; i < 256; ++i)
+        s.push_back(i);
+
+    EXPECT_EQ(uri_friendly_base16_decode(uri_friendly_base16_encode(s)), s);
+}

@@ -14,6 +14,7 @@
 
 import * as assert from 'assert';
 import { convertBuffer, uriFriendlyBase16Decode, uriFriendlyBase16Encode } from '../../conversions';
+import { TextDecoder } from 'util';
 
 suite('Conversions', () => {
     test('Buffer conversion', () => {
@@ -38,6 +39,11 @@ suite('Conversions', () => {
         assert.strictEqual(uriFriendlyBase16Decode("Xa"), "");
         assert.strictEqual(uriFriendlyBase16Decode("ax"), "");
         assert.strictEqual(uriFriendlyBase16Decode("xa"), "");
+    });
+
+    test('URI friendly Base16 roundtrip', () => {
+        const str = Array(256).map((_, i) => String.fromCharCode(i)).join('');
+        assert.strictEqual(uriFriendlyBase16Decode(uriFriendlyBase16Encode(str)), str);
     });
 });
 

@@ -41,14 +41,13 @@ export function convertBuffer(buffer: Buffer, lrecl: number) {
     return result.subarray(0, pos);
 }
 
-const uriFriendlyBase16Stirng = 'abcdefghihjkmnop';
-const uriFriendlyBase16StirngUC = 'ABCDEFGHIHJKMNOP';
-const uriFriendlyBase16StirngBoth = 'abcdefghihjkmnopABCDEFGHIHJKMNOP';
+const uriFriendlyBase16String = 'abcdefghijklmnop';
+const uriFriendlyBase16StringBoth = uriFriendlyBase16String + uriFriendlyBase16String.toUpperCase();
 
 const uriFriendlyBase16Map = (() => {
     const result = [];
-    for (const c0 of uriFriendlyBase16Stirng)
-        for (const c1 of uriFriendlyBase16Stirng)
+    for (const c0 of uriFriendlyBase16String)
+        for (const c1 of uriFriendlyBase16String)
             result.push(c0 + c1);
 
     return result;
@@ -62,8 +61,8 @@ export function uriFriendlyBase16Decode(s: string) {
     if (s.length & 1) return '';
     const array = [];
     for (let i = 0; i < s.length; i += 2) {
-        const c0 = uriFriendlyBase16StirngBoth.indexOf(s[i]);
-        const c1 = uriFriendlyBase16StirngBoth.indexOf(s[i + 1]);
+        const c0 = uriFriendlyBase16StringBoth.indexOf(s[i]);
+        const c1 = uriFriendlyBase16StringBoth.indexOf(s[i + 1]);
         if (c0 < 0 || c1 < 0) return '';
         array.push((c0 & 15) << 4 | (c1 & 15));
     }
