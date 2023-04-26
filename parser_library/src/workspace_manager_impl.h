@@ -951,7 +951,7 @@ private:
                     result.second = other_failure;
             }
         };
-        auto [channel, data] = make_workspace_manager_response(std::in_place_type<content_t>, std::move(directory));
+        auto [channel, data] = make_workspace_manager_response(std::in_place_type<content_t>, directory);
         m_external_file_requests->read_external_directory(data->dir.get_uri().c_str(), channel);
 
         return async_busy_wait(std::move(channel), &data->result);
