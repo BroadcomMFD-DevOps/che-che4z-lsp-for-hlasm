@@ -225,7 +225,7 @@ suite('Integration Test Suite', () => {
     test('Remote files suspended', async () => {
         await vscode.commands.executeCommand('extension.hlasm-plugin.suspendRemoteActivity');
 
-        const diags = await helper.diagsFor('remote2.hlasm', true, async () => { await helper.showDocument('remote2.hlasm'); });
+        const diags = await helper.waitForDiagnosticsChange('remote2.hlasm', async () => { await helper.showDocument('remote2.hlasm'); });
 
         assert.ok(diags);
 
@@ -234,7 +234,7 @@ suite('Integration Test Suite', () => {
 
         assert.deepStrictEqual(uniqueMacros, ['MACA', 'MACB', 'MACC']);
 
-        const diags2 = await helper.diagsFor('remote2.hlasm', false, async () => vscode.commands.executeCommand('extension.hlasm-plugin.resumeRemoteActivity'));
+        const diags2 = await helper.waitForDiagnosticsChange('remote2.hlasm', async () => vscode.commands.executeCommand('extension.hlasm-plugin.resumeRemoteActivity'));
 
         assert.ok(diags2);
         assert.strictEqual(diags2.length, 0);

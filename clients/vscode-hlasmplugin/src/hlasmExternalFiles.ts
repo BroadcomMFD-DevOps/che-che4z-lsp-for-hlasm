@@ -82,12 +82,12 @@ function take<T>(it: IterableIterator<T>, n: number): T[] {
 
 const not_exists = Object.freeze({});
 const no_client = Object.freeze({});
-interface inError { message: string };
+interface InError { message: string };
 
 interface CacheEntry<T> {
     service: string,
     parsedArgs: ClientUriDetails,
-    result: T | inError | typeof not_exists | typeof no_client,
+    result: T | InError | typeof not_exists | typeof no_client,
     references: Set<string>;
 };
 export class HLASMExternalFiles {
@@ -283,7 +283,7 @@ export class HLASMExternalFiles {
         service: string,
         parsedArgs: ClientUriDetails,
         func: (args: ClientUriDetails) => Promise<T | null>
-    ): Promise<T | inError | typeof not_exists | typeof no_client | null> {
+    ): Promise<T | InError | typeof not_exists | typeof no_client | null> {
         const interest = this.addWIP(service, parsedArgs.toString());
 
         try {
@@ -309,11 +309,11 @@ export class HLASMExternalFiles {
 
     }
 
-    private async getFile(client: ExternalFilesClient, service: string, parsedArgs: ClientUriDetails): Promise<string | inError | typeof not_exists | typeof no_client | null> {
+    private async getFile(client: ExternalFilesClient, service: string, parsedArgs: ClientUriDetails): Promise<string | InError | typeof not_exists | typeof no_client | null> {
         return this.askClient(service, parsedArgs, client.readMember.bind(client));
     }
 
-    private async getDir(client: ExternalFilesClient, service: string, parsedArgs: ClientUriDetails): Promise<string[] | inError | typeof not_exists | typeof no_client | null> {
+    private async getDir(client: ExternalFilesClient, service: string, parsedArgs: ClientUriDetails): Promise<string[] | InError | typeof not_exists | typeof no_client | null> {
         return this.askClient(service, parsedArgs, client.listMembers.bind(client));
     }
 
@@ -392,4 +392,3 @@ export class HLASMExternalFiles {
     }
 
 }
-
