@@ -76,43 +76,34 @@ using namespace hlasm_plugin;
 using json = nlohmann::json;
 
 namespace {
-template<typename T>
-void log_(bool flush, T text)
+template<typename... Args>
+std::ostream& log_(Args&&... args)
 {
-    std::clog << text;
-    if (flush)
-        std::clog.flush();
-}
-
-template<typename T, typename... Args>
-void log_(bool flush, T text, Args... args)
-{
-    log_(false, text);
-    log_(flush, args...);
+    return (std::clog << ... << args);
 }
 
 template<typename... Args>
 void log_i(Args... args)
 {
-    log_(false, args..., '\n');
+    log_(std::forward<Args>(args)..., '\n');
 }
 
 template<typename... Args>
 void log_if(Args... args)
 {
-    log_(true, args..., '\n');
+    log_(std::forward<Args>(args)...) << std::endl;
 }
 
 template<typename... Args>
 void log_e(Args... args)
 {
-    log_(true, "Error: ", args..., '\n');
+    log_("Error: ", std::forward<Args>(args)...) << std::endl;
 }
 
 template<typename... Args>
 void log_w(Args... args)
 {
-    log_(true, "Warning: ", args..., '\n');
+    log_("Warning: ", std::forward<Args>(args)...) << std::endl;
 }
 
 struct parsing_metadata_collector final : public parser_library::parsing_metadata_consumer
