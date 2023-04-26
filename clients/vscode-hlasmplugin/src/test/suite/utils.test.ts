@@ -106,11 +106,13 @@ suite('Utilities', () => {
         assert.ok(!isCancellationError(new Error("Something")));
     });
 
-    test('Semaphore argument validation', () => {
-        try { const mutex = new AsyncSemaphore(0); throw Error("Failed"); } catch (e) { }
-        try { const mutex = new AsyncSemaphore(-1); throw Error("Failed"); } catch (e) { }
-        try { const mutex = new AsyncSemaphore(null); throw Error("Failed"); } catch (e) { }
-        try { const mutex = new AsyncSemaphore(undefined); throw Error("Failed"); } catch (e) { }
+    test('Semaphore argument validation', (done) => {
+        try { new AsyncSemaphore(0); done(Error("Failed")); } catch (e) { }
+        try { new AsyncSemaphore(-1); done(Error("Failed")); } catch (e) { }
+        try { new AsyncSemaphore(null); done(Error("Failed")); } catch (e) { }
+        try { new AsyncSemaphore(undefined); done(Error("Failed")); } catch (e) { }
+
+        done();
     });
 
     test('zowe profile translation', () => {
