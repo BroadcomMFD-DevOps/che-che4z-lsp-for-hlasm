@@ -270,9 +270,7 @@ export class HLASMExternalFiles {
         }
     }
 
-    public reset() {
-        this.pendingRequests.clear();
-    }
+    public reset() { this.pendingRequests.clear(); }
 
     dispose() {
         this.toDispose.forEach(x => x.dispose());

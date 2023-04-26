@@ -45,5 +45,9 @@ suite('Conversions', () => {
         const str = Array(256).map((_, i) => String.fromCharCode(i)).join('');
         assert.strictEqual(uriFriendlyBase16Decode(uriFriendlyBase16Encode(str)), str);
     });
+
+    test('URI friendly non-utf8', () => {
+        assert.strictEqual(uriFriendlyBase16Decode("pp"), "");
+    })
 });
 

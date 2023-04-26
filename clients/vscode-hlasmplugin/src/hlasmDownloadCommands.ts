@@ -22,7 +22,7 @@ import { promises as fsp } from "fs";
 import { hlasmplugin_folder, proc_grps_file } from './constants';
 import { Telemetry } from './telemetry';
 import { askUser } from './uiUtils';
-import { connectionSecurityLevel, gatherConnectionInfo, getLastRunConfig, updateLastRunConfig } from './ftpCreds';
+import { connectionSecurityLevel, gatherConnectionInfo, getLastRunConfig, translateConnectionInfo, updateLastRunConfig } from './ftpCreds';
 import { convertBuffer } from './conversions';
 
 export type JobId = string;
@@ -58,14 +58,7 @@ async function basicFtpJobClient(connection: {
     client.parseList = (rawList: string): FileInfo[] => {
         return rawList.split(/\r?\n/).slice(1).filter(x => !/^\s*$/.test(x)).map((value) => new FileInfo(value));
     };
-    await client.access({
-        host: connection.host,
-        user: connection.user,
-        password: connection.password,
-        port: connection.port,
-        secure: connection.securityLevel !== connectionSecurityLevel.unsecure,
-        secureOptions: connection.securityLevel === connectionSecurityLevel.unsecure ? undefined : { rejectUnauthorized: connection.securityLevel !== connectionSecurityLevel.rejectUnauthorized }
-    });
+    await client.access(translateConnectionInfo(connection));
 
     const checkResponse = (resp: FTPResponse) => {
         if (resp.code < 200 || resp.code > 299)

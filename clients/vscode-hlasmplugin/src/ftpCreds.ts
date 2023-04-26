@@ -14,6 +14,7 @@
 
 import * as vscode from 'vscode';
 import { askUser, pickUser } from './uiUtils';
+import { AccessOptions } from 'basic-ftp';
 
 export enum connectionSecurityLevel {
     "rejectUnauthorized",
@@ -30,6 +31,23 @@ export interface ConnectionInfo {
     securityLevel: connectionSecurityLevel;
 
     zowe: boolean;
+}
+
+export function translateConnectionInfo(connection: {
+    host: string;
+    port?: number;
+    user: string;
+    password: string;
+    securityLevel: connectionSecurityLevel
+}): AccessOptions {
+    return {
+        host: connection.host,
+        user: connection.user,
+        password: connection.password,
+        port: connection.port,
+        secure: connection.securityLevel !== connectionSecurityLevel.unsecure,
+        secureOptions: connection.securityLevel === connectionSecurityLevel.unsecure ? undefined : { rejectUnauthorized: connection.securityLevel !== connectionSecurityLevel.acceptUnauthorized }
+    }
 }
 
 export function gatherSecurityLevelFromZowe(profile: any) {
@@ -49,25 +67,20 @@ async function gatherConnectionInfoFromZowe(zowe: vscode.Extension<any>, profile
     if (!zowe.isActive)
         throw Error("Unable to activate ZOWE Explorer extension");
     const zoweExplorerApi = zowe?.exports;
-    await zoweExplorerApi
-        .getExplorerExtenderApi()
-        .getProfilesCache()
-        .refresh(zoweExplorerApi);
-    const loadedProfile = zoweExplorerApi
-        .getExplorerExtenderApi()
-        .getProfilesCache()
-        .loadNamedProfile(profileName);
+    const profileCache = zoweExplorerApi.getExplorerExtenderApi().getProfilesCache();
+    await profileCache.refresh(zoweExplorerApi);
+    const loadedProfile = profileCache.loadNamedProfile(profileName);
+    const { host, port, user, password } = loadedProfile.profile;
+    const securityLevel = gatherSecurityLevelFromZowe(loadedProfile.profile);
 
-    return {
-        host: loadedProfile.profile.host,
-        port: loadedProfile.profile.port,
-        user: loadedProfile.profile.user,
-        password: loadedProfile.profile.password,
-        hostInput: '@' + profileName,
-        securityLevel: gatherSecurityLevelFromZowe(loadedProfile.profile),
-        zowe: true,
-    };
+    return { host, port, user, password, hostInput: '@' + profileName, securityLevel, zowe: true };
 }
+
+const securityOptions = Object.freeze([
+    { label: "Use TLS, reject unauthorized certificated", value: connectionSecurityLevel.rejectUnauthorized },
+    { label: "Use TLS, accept unauthorized certificated", value: connectionSecurityLevel.acceptUnauthorized },
+    { label: "Unsecured connection", value: connectionSecurityLevel.unsecure },
+]);
 
 export async function gatherConnectionInfo(lastInput: {
     host: string;
@@ -88,11 +101,7 @@ export async function gatherConnectionInfo(lastInput: {
 
     const user = await askUser("user name", false, lastInput.user);
     const password = await askUser("password", true);
-    const securityLevel = await pickUser("Select security option", [
-        { label: "Use TLS, reject unauthorized certificated", value: connectionSecurityLevel.rejectUnauthorized },
-        { label: "Use TLS, accept unauthorized certificated", value: connectionSecurityLevel.acceptUnauthorized },
-        { label: "Unsecured connection", value: connectionSecurityLevel.unsecure },
-    ]);
+    const securityLevel = await pickUser("Select security option", securityOptions);
     return { host, port, user, password, hostInput, securityLevel, zowe: false };
 }
 
@@ -107,10 +116,10 @@ export function getLastRunConfig(context: vscode.ExtensionContext) {
     };
 }
 
-export async function updateLastRunConfig(context: vscode.ExtensionContext, lastInput: {
+interface DownloadDependenciesInputMemento {
     host: string;
     user: string;
     jobcard: string;
-}) {
-    await context.globalState.update(mementoKey, lastInput);
-}
+};
+
+export const updateLastRunConfig = (context: vscode.ExtensionContext, lastInput: DownloadDependenciesInputMemento) => context.globalState.update(mementoKey, lastInput);

@@ -27,7 +27,7 @@ export function askUser(prompt: string, password: boolean, defaultValue: string 
     }).finally(() => { input.dispose(); });
 }
 
-export function pickUser<T>(title: string, options: { label: string, value: T }[]): Promise<T> {
+export function pickUser<T>(title: string, options: readonly { label: string, value: T }[]): Promise<T> {
     const input = vscode.window.createQuickPick();
     return new Promise<T>((resolve, reject) => {
         input.ignoreFocusOut = true;

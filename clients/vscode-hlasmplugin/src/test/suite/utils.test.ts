@@ -18,7 +18,7 @@ import * as assert from 'assert';
 import { AsyncMutex, AsyncSemaphore } from "../../asyncMutex";
 import { isCancellationError } from "../../helpers";
 import { CancellationError } from "vscode";
-import { connectionSecurityLevel, gatherSecurityLevelFromZowe } from "../../ftpCreds";
+import { connectionSecurityLevel, gatherSecurityLevelFromZowe, translateConnectionInfo } from "../../ftpCreds";
 
 
 suite('Utilities', () => {
@@ -128,6 +128,51 @@ suite('Utilities', () => {
         assert.strictEqual(gatherSecurityLevelFromZowe({ secureFtp: true, rejectUnauthorized: '' }), connectionSecurityLevel.rejectUnauthorized);
 
         assert.strictEqual(gatherSecurityLevelFromZowe({ secureFtp: true, rejectUnauthorized: false }), connectionSecurityLevel.acceptUnauthorized);
+    });
+
+    test('Connection info translation', () => {
+        assert.deepStrictEqual(translateConnectionInfo({
+            host: 'h',
+            port: 12345,
+            user: 'u',
+            password: 'p',
+            securityLevel: connectionSecurityLevel.unsecure
+        }), {
+            host: 'h',
+            user: 'u',
+            password: 'p',
+            port: 12345,
+            secure: false,
+            secureOptions: undefined
+        });
+        assert.deepStrictEqual(translateConnectionInfo({
+            host: 'h',
+            port: 12345,
+            user: 'u',
+            password: 'p',
+            securityLevel: connectionSecurityLevel.acceptUnauthorized
+        }), {
+            host: 'h',
+            user: 'u',
+            password: 'p',
+            port: 12345,
+            secure: true,
+            secureOptions: { rejectUnauthorized: false }
+        });
+        assert.deepStrictEqual(translateConnectionInfo({
+            host: 'h',
+            port: 12345,
+            user: 'u',
+            password: 'p',
+            securityLevel: connectionSecurityLevel.rejectUnauthorized
+        }), {
+            host: 'h',
+            user: 'u',
+            password: 'p',
+            port: 12345,
+            secure: true,
+            secureOptions: { rejectUnauthorized: true }
+        });
     });
 
 });

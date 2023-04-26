@@ -15,7 +15,7 @@
 import * as vscode from 'vscode';
 import * as ftp from 'basic-ftp';
 import { ClientUriDetails, ExternalFilesClient, ExternalRequestType } from './hlasmExternalFiles';
-import { ConnectionInfo, connectionSecurityLevel, gatherConnectionInfo, getLastRunConfig, updateLastRunConfig } from './ftpCreds';
+import { ConnectionInfo, connectionSecurityLevel, gatherConnectionInfo, getLastRunConfig, translateConnectionInfo, updateLastRunConfig } from './ftpCreds';
 import { AsyncMutex } from './asyncMutex';
 import { FBWritable } from './FBWritable';
 import { isCancellationError } from './helpers';
@@ -150,14 +150,7 @@ export class HLASMExternalFilesFtp implements ExternalFilesClient {
                 await this.mutex.locked(async () => {
                     const connection = await this.getConnInfo();
 
-                    await client.access({
-                        host: connection.host,
-                        user: connection.user,
-                        password: connection.password,
-                        port: connection.port,
-                        secure: connection.securityLevel !== connectionSecurityLevel.unsecure,
-                        secureOptions: connection.securityLevel === connectionSecurityLevel.unsecure ? undefined : { rejectUnauthorized: connection.securityLevel !== connectionSecurityLevel.rejectUnauthorized }
-                    });
+                    await client.access(translateConnectionInfo(connection));
 
                     client.parseList = (rawList: string): ftp.FileInfo[] => {
                         return rawList.split(/\r?\n/).slice(1).filter(x => !/^\s*$/.test(x)).map(value => new ftp.FileInfo(value.split(/\s/, 1)[0]));
