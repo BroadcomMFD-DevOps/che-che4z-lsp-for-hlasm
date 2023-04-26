@@ -18,6 +18,7 @@ import * as assert from 'assert';
 import { AsyncMutex, AsyncSemaphore } from "../../asyncMutex";
 import { isCancellationError } from "../../helpers";
 import { CancellationError } from "vscode";
+import { connectionSecurityLevel, gatherSecurityLevelFromZowe } from "../../ftpCreds";
 
 
 suite('Utilities', () => {
@@ -103,6 +104,30 @@ suite('Utilities', () => {
         assert.ok(isCancellationError(new CancellationError()));
         assert.ok(isCancellationError(new Error("Canceled")));
         assert.ok(!isCancellationError(new Error("Something")));
+    });
+
+    test('Semaphore argument validation', () => {
+        try { const mutex = new AsyncSemaphore(0); throw Error("Failed"); } catch (e) { }
+        try { const mutex = new AsyncSemaphore(-1); throw Error("Failed"); } catch (e) { }
+        try { const mutex = new AsyncSemaphore(null); throw Error("Failed"); } catch (e) { }
+        try { const mutex = new AsyncSemaphore(undefined); throw Error("Failed"); } catch (e) { }
+    });
+
+    test('zowe profile translation', () => {
+        assert.strictEqual(gatherSecurityLevelFromZowe({ secureFtp: false }), connectionSecurityLevel.unsecure);
+
+        assert.strictEqual(gatherSecurityLevelFromZowe({ secureFtp: true }), connectionSecurityLevel.rejectUnauthorized);
+        assert.strictEqual(gatherSecurityLevelFromZowe({}), connectionSecurityLevel.rejectUnauthorized);
+        assert.strictEqual(gatherSecurityLevelFromZowe({ secureFtp: '' }), connectionSecurityLevel.rejectUnauthorized);
+        assert.strictEqual(gatherSecurityLevelFromZowe({ secureFtp: 0 }), connectionSecurityLevel.rejectUnauthorized);
+        assert.strictEqual(gatherSecurityLevelFromZowe({}), connectionSecurityLevel.rejectUnauthorized);
+
+        assert.strictEqual(gatherSecurityLevelFromZowe({ secureFtp: true, rejectUnauthorized: true }), connectionSecurityLevel.rejectUnauthorized);
+        assert.strictEqual(gatherSecurityLevelFromZowe({ secureFtp: true, rejectUnauthorized: '' }), connectionSecurityLevel.rejectUnauthorized);
+        assert.strictEqual(gatherSecurityLevelFromZowe({ secureFtp: true, rejectUnauthorized: 0 }), connectionSecurityLevel.rejectUnauthorized);
+        assert.strictEqual(gatherSecurityLevelFromZowe({ secureFtp: true, rejectUnauthorized: '' }), connectionSecurityLevel.rejectUnauthorized);
+
+        assert.strictEqual(gatherSecurityLevelFromZowe({ secureFtp: true, rejectUnauthorized: false }), connectionSecurityLevel.acceptUnauthorized);
     });
 
 });

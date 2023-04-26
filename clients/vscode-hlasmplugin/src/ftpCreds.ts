@@ -32,7 +32,7 @@ export interface ConnectionInfo {
     zowe: boolean;
 }
 
-function gatherSecurityLevelFromZowe(profile: any) {
+export function gatherSecurityLevelFromZowe(profile: any) {
     if (profile.secureFtp !== false) {
         if (profile.rejectUnauthorized !== false)
             return connectionSecurityLevel.rejectUnauthorized;

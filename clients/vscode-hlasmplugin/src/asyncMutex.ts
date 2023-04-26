@@ -13,28 +13,39 @@
  */
 
 export class AsyncSemaphore {
-    private queue = new Set<Promise<void>>();
+    private queue: (() => void)[] = [];
+    private availableSlots = 0;
 
-    constructor(private limit: number) { }
+    constructor(private readonly slots: number) {
+        if (slots > 0)
+            this.availableSlots = slots;
+        else
+            throw Error('Positive number of slots required');
+    }
 
     public async locked<T>(action: () => T | PromiseLike<T>): Promise<T> {
-        let resolve: () => void;
-        while (this.queue.size >= this.limit)
-            await Promise.race([...this.queue.values()]);
-
-        const p = new Promise<void>((r) => resolve = r);
         try {
-            this.queue.add(p);
+            if (this.availableSlots > 0)
+                --this.availableSlots;
+            else
+                await new Promise<void>((resolve) => {
+                    this.queue.push(resolve);
+                });
 
             return await Promise.resolve(action());
         }
         finally {
-            this.queue.delete(p);
-            resolve();
+            const next = this.queue.shift();
+            if (next)
+                next();
+            else
+                ++this.availableSlots;
         }
     }
 }
 
 export class AsyncMutex extends AsyncSemaphore {
-    constructor() { super(1); }
+    constructor() {
+        super(1);
+    }
 }

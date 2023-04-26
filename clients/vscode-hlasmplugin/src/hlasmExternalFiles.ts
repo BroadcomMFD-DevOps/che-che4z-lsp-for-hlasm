@@ -68,11 +68,6 @@ export interface ExternalFilesClient extends vscode.Disposable {
     parseArgs(path: string, purpose: ExternalRequestType): ClientUriDetails;
 }
 
-
-function invalidResponse(msg: ExternalRequest) {
-    return Promise.resolve({ id: msg.id, error: { code: -5, msg: 'Invalid request' } });
-}
-
 function take<T>(it: IterableIterator<T>, n: number): T[] {
     const result: T[] = [];
     while (n) {
@@ -330,7 +325,7 @@ export class HLASMExternalFiles {
         Promise<(T extends string[] ? ExternalReadDirectoryResponse : ExternalReadFileResponse) | ExternalErrorResponse | null> {
         const { cacheKey, service, client, details } = this.extractUriDetails(msg.url, msg.op);
         if (!cacheKey || client && !details)
-            return invalidResponse(msg);
+            return this.generateError(msg.id, -5, 'Invalid request');
 
         let content = cache.get(cacheKey);
         if (content === undefined) {
@@ -393,7 +388,7 @@ export class HLASMExternalFiles {
         if (msg.op === ExternalRequestType.read_directory && typeof msg.url === 'string')
             return this.handleDirMessage(msg);
 
-        return invalidResponse(msg);
+        return Promise.resolve(this.generateError(msg.id, -5, 'Invalid request'));
     }
 
 }
