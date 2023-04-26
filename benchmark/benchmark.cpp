@@ -77,33 +77,27 @@ using json = nlohmann::json;
 
 namespace {
 template<typename... Args>
-std::ostream& log_(Args&&... args)
-{
-    return (std::clog << ... << args);
-}
-
-template<typename... Args>
 void log_i(Args... args)
 {
-    log_(std::forward<Args>(args)..., '\n');
+    (std::clog << ... << args) << '\n';
 }
 
 template<typename... Args>
 void log_if(Args... args)
 {
-    log_(std::forward<Args>(args)...) << std::endl;
+    (std::clog << ... << args) << std::endl;
 }
 
 template<typename... Args>
 void log_e(Args... args)
 {
-    log_("Error: ", std::forward<Args>(args)...) << std::endl;
+    ((std::clog << "Error: ") << ... << args) << std::endl;
 }
 
 template<typename... Args>
 void log_w(Args... args)
 {
-    log_("Warning: ", std::forward<Args>(args)...) << std::endl;
+    ((std::clog << "Warning: ") << ... << args) << std::endl;
 }
 
 struct parsing_metadata_collector final : public parser_library::parsing_metadata_consumer
@@ -305,12 +299,13 @@ public:
         {
             if (bc.start_range >= bc.pgm_names.size())
             {
-                log_e("Start range > detected number of programs (", bc.start_range, " > ", bc.pgm_names.size() + ')');
+                log_e("Start range > detected number of programs (", bc.start_range, " > ", bc.pgm_names.size(), ')');
                 return false;
             }
             else if (bc.end_range - bc.start_range + 1 > bc.pgm_names.size())
                 log_w("Requested range size > detected number of programs (",
-                    bc.end_range - bc.start_range + 1 + " > ",
+                    bc.end_range - bc.start_range + 1,
+                    " > ",
                     bc.pgm_names.size(),
                     ')');
 
