@@ -28,7 +28,7 @@
                                         },
                                         "optional": {
                                             "type": "boolean",
-                                            "description": "Specifies whether it is acceptable to not locate the folder."
+                                            "description": "Specify 'true' if it is acceptable to not locate the folder."
                                         },
                                         "macro_extensions": {
                                             "type": "array",
@@ -56,7 +56,7 @@
                                         },
                                         "optional": {
                                             "type": "boolean",
-                                            "description": "Specifies whether it is acceptable to not locate the folder."
+                                            "description": "Specify 'true' if it is acceptable to not locate the data set."
                                         }
                                     },
                                     "required": [

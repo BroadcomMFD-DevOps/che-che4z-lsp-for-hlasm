@@ -124,7 +124,7 @@ Visual Studio Code workspace variables can be referenced in both configuration f
 
 The following example defines two processor groups, GROUP1 and GROUP2, and a list of directories to search for macros and COPY files, it also defines the _SYSPARM_ assembler parameter for GROUP1. Additionally, if the library `MACLIB/` does not exist in the workspace, the plugin does not report it as an error.
 
-The `SYS1.MACLIB` data set will be accessed via an FTP client and required member will be downloaded as needed.
+The `SYS1.MACLIB` data set is accessed via an FTP client and required members are downloaded.
 
 Wildcards can be used to locate libraries and/or programs as is shown in the path mask `C:/common/**/maclib` below. The following wildcards are supported:
 - `?` -  Matches a single character but not a directory separator 
