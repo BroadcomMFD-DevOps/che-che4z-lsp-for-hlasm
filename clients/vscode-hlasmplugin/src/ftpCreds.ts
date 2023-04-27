@@ -51,6 +51,7 @@ export function translateConnectionInfo(connection: {
 }
 
 export function gatherSecurityLevelFromZowe(profile: any) {
+    // tested with Zowe Explorer v2.7.0
     if (profile.secureFtp !== false) {
         if (profile.rejectUnauthorized !== false)
             return connectionSecurityLevel.rejectUnauthorized;

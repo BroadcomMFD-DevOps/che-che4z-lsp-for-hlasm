@@ -61,14 +61,14 @@ suite('Utilities', () => {
     }).timeout(10000).slow(2000);
 
     test('Async semaphore', async () => {
-        const mutex = new AsyncSemaphore(2);
+        const sem = new AsyncSemaphore(2);
 
         let i = 0;
 
         let wakeupCallback: () => void;
         const wakeup = new Promise<void>(r => { wakeupCallback = r; });
 
-        const a1 = mutex.locked(async () => {
+        const a1 = sem.locked(async () => {
             assert.strictEqual(i, 0);
 
             await wakeup;
@@ -78,7 +78,7 @@ suite('Utilities', () => {
             ++i;
         });
 
-        const a2 = mutex.locked(async () => {
+        const a2 = sem.locked(async () => {
             assert.strictEqual(i, 0);
 
             await wakeup;
@@ -88,7 +88,7 @@ suite('Utilities', () => {
             ++i;
         });
 
-        const a3 = mutex.locked(async () => {
+        const a3 = sem.locked(async () => {
             assert.notStrictEqual(i, 0);
         });
 

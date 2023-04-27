@@ -128,22 +128,25 @@ export class HLASMExternalFiles {
 
         if (!client) return;
 
-        const newClient = { client: client, clientDisposables: [] as vscode.Disposable[] };
+        const newClient = {
+            client: client,
+            clientDisposables: [
+                client.onStateChange((suspended) => {
+                    if (suspended) {
+                        if (this.activeProgress) {
+                            clearTimeout(this.pendingActiveProgressCancellation);
+                            this.activeProgress.done();
+                            this.activeProgress = null;
+                        }
+                        vscode.window.showInformationMessage("Retrieval of remote files has been suspended.");
+                    }
+                    else
+                        this.notifyAllWorkspaces(service, false);
+                })
+            ]
+        };
         this.clients.set(service, newClient);
 
-        newClient.client = client;
-        newClient.clientDisposables.push(client.onStateChange((suspended) => {
-            if (suspended) {
-                if (this.activeProgress) {
-                    clearTimeout(this.pendingActiveProgressCancellation);
-                    this.activeProgress.done();
-                    this.activeProgress = null;
-                }
-                vscode.window.showInformationMessage("Retrieval of remote files has been suspended.");
-            }
-            else
-                this.notifyAllWorkspaces(service, false);
-        }));
         if (oldClient || !client.suspended())
             this.notifyAllWorkspaces(service, !!oldClient);
     }

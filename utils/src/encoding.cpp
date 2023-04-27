@@ -150,8 +150,11 @@ std::string percent_encode_and_ignore_utf8(std::string_view s)
     return uri;
 }
 
-constexpr const char* uri_friendly_base16 = "abcdefghijklmnop";
-constexpr const char* uri_friendly_base16uc = "ABCDEFGHIJKLMNOP";
+constexpr std::string_view uri_friendly_base16 = "abcdefghijklmnop";
+constexpr std::string_view uri_friendly_base16uc = "ABCDEFGHIJKLMNOP";
+
+static_assert(uri_friendly_base16.size() == 16);
+static_assert(uri_friendly_base16uc.size() == 16);
 
 std::string uri_friendly_base16_encode(std::string_view s)
 {
@@ -178,7 +181,7 @@ std::string uri_friendly_base16_decode(std::string_view s)
         for (auto& c : result)
             c = -1;
 
-        for (int i = 0; i < 16; ++i)
+        for (size_t i = 0; i < uri_friendly_base16.size(); ++i)
         {
             result[(unsigned char)uri_friendly_base16[i]] = i;
             result[(unsigned char)uri_friendly_base16uc[i]] = i;

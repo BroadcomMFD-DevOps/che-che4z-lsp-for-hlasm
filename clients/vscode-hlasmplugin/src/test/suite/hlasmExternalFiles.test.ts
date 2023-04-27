@@ -45,6 +45,8 @@ suite('External files (FTP)', () => {
         assert.strictEqual(ftpClient.parseArgs('/AAAAAAAA.AAAAAAAA.AAAAAAAA.AAAAAAAA.AAAAAAAA', ExternalRequestType.read_file), null);
         assert.strictEqual(ftpClient.parseArgs('/AAAAAAAA.AAAAAAAA.AAAAAAAA.AAAAAAAA.AAAAAAAA/0', ExternalRequestType.read_file), null);
 
+        assert.strictEqual(ftpClient.parseArgs('/AAAAAAAA.AAAAAAAA.AAAAAAAA.AAAAAAAA.AAAAAAAA/BBBBBBBBB', ExternalRequestType.read_file), null);
+
         const full_length = ftpClient.parseArgs('/aaaaaaaa.aaaaaaaa.aaaaaaaa.aaaaaaaa.aaaaaaaa/bbbbbbbb', ExternalRequestType.read_file);
         assert.ok(full_length);
         assert.strictEqual(full_length.toString(), 'AAAAAAAA.AAAAAAAA.AAAAAAAA.AAAAAAAA.AAAAAAAA(BBBBBBBB)');

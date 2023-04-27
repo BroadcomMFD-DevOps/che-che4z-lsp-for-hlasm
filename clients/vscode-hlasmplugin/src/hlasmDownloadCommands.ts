@@ -24,6 +24,7 @@ import { Telemetry } from './telemetry';
 import { askUser } from './uiUtils';
 import { connectionSecurityLevel, gatherConnectionInfo, getLastRunConfig, translateConnectionInfo, updateLastRunConfig } from './ftpCreds';
 import { convertBuffer } from './conversions';
+import { isCancellationError } from './helpers';
 
 export type JobId = string;
 export interface JobDescription {
@@ -632,7 +633,7 @@ export async function downloadDependencies(context: vscode.ExtensionContext, tel
         telemetry.reportEvent("downloadDependencies/finished", { zowe: zowe ? 'yes' : 'no' }, { failed: result.failed.length, total: result.total, elapsedTime: (endTime - startTime) / 1000 });
     }
     catch (e) {
-        if (e instanceof vscode.CancellationError || e instanceof Error && e.message == new vscode.CancellationError().message)
+        if (isCancellationError(e))
             return;
         vscode.window.showErrorMessage("Error occured while downloading dependencies: " + (e.message || e));
     }
