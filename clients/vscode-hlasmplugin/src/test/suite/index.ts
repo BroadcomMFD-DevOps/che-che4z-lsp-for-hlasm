@@ -21,7 +21,7 @@ import { popWaitRequestResolver, timeout } from './testHelper';
 import { EXTENSION_ID } from '../../extension';
 
 async function primeExtension(): Promise<vscode.Disposable[]> {
-	const ext = await vscode.extensions.getExtension(EXTENSION_ID).activate();
+	const ext = await vscode.extensions.getExtension(EXTENSION_ID)!.activate();
 	const lang: {
 		sendRequest<R>(method: string, param: any, token?: vscode.CancellationToken): Promise<R>;
 	} = ext!.getExtension()!;

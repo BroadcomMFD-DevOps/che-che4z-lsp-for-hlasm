@@ -43,7 +43,7 @@ class DatasetUriDetails implements ClientUriDetails {
     }
 
     normalizedPath() {
-        return `/${this.dataset}/${this.member || ''}`;
+        return `/${this.dataset}/${this.member ?? ''}`;
     }
 };
 
