@@ -247,9 +247,9 @@ suite('HLASM Download data sets', () => {
 
     test('Data set name extractor', () => {
         const ws = Uri.parse("file:///workspace");
-        assert.equal(extractDsn("~/dir/MY.DATA.SET", ws)!.dsn, "MY.DATA.SET");
-        assert.equal(extractDsn("~/dir/MY.DATA.SET/", ws)!.dsn, "MY.DATA.SET");
-        assert.equal(extractDsn("~/dir/MY.DATA.SET//", ws)!.dsn, "MY.DATA.SET");
+        assert.strictEqual(extractDsn("~/dir/MY.DATA.SET", ws)?.dsn, "MY.DATA.SET");
+        assert.strictEqual(extractDsn("~/dir/MY.DATA.SET/", ws)?.dsn, "MY.DATA.SET");
+        assert.strictEqual(extractDsn("~/dir/MY.DATA.SET//", ws)?.dsn, "MY.DATA.SET");
 
         if (process.platform === "win32")
             assert.deepEqual(extractDsn("C:\\dir\\my.data.set\\\\", ws), { dsn: "MY.DATA.SET", path: "c:/dir/my.data.set" });

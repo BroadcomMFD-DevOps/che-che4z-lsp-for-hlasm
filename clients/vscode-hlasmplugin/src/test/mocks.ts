@@ -89,7 +89,7 @@ export class TextEditorEditMock implements vscode.TextEditorEdit {
     )[] = [];
     private _text: string;
     public get text(): string {
-        this.thing_to_do.sort((x, y) => -TextEditorEditMock.get_pos(x.loc)!.compareTo(TextEditorEditMock.get_pos(y.loc)!));
+        this.thing_to_do.sort((x, y) => -TextEditorEditMock.get_pos(x.loc).compareTo(TextEditorEditMock.get_pos(y.loc)));
         for (const action of this.thing_to_do) {
             switch (action.what) {
                 case 'replace':

@@ -33,7 +33,9 @@ suite('Configurations Handler Test Suite', () => {
 
     // 2 files matching the wildcards
     test('Check language test', async () => {
-        handler.setWildcards((await handler.generateWildcards(workspaceUri))!.map(regex => { return { regex, workspaceUri }; }));
+        const wildcards = await handler.generateWildcards(workspaceUri);
+        assert.ok(wildcards);
+        handler.setWildcards(wildcards.map(regex => { return { regex, workspaceUri }; }));
         assert.ok(handler.match(vscode.Uri.joinPath(workspaceUri, 'file.asm')));
         assert.ok(handler.match(vscode.Uri.joinPath(workspaceUri, 'pgms/file')));
     });

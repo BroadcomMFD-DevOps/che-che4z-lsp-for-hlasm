@@ -24,24 +24,26 @@ suite('Debug Provider Test Suite', () => {
         await helper.closeAllEditors();
     });
 
-    test('Debug Configuration Provider test', () => {
+    test('Debug Configuration Provider test', async () => {
         const debugProvider = new HLASMConfigurationProvider();
 
         // resolve empty configuration
-        let result = <vscode.DebugConfiguration>(debugProvider.resolveDebugConfiguration(vscode.workspace.workspaceFolders![0], {
+        let result = await Promise.resolve(debugProvider.resolveDebugConfiguration(vscode.workspace.workspaceFolders![0], {
             name: '',
             request: '',
             type: ''
         }));
+        assert.ok(result);
         assert.equal(result.type, 'hlasm');
         assert.equal(result.name, 'Macro tracer: current program');
 
         // resolve defined configuration
-        result = <vscode.DebugConfiguration>(debugProvider.resolveDebugConfiguration(vscode.workspace.workspaceFolders![0], {
+        result = await Promise.resolve(debugProvider.resolveDebugConfiguration(vscode.workspace.workspaceFolders![0], {
             name: 'Macro tracer: Ask for file name',
             request: 'launch',
             type: 'hlasm'
         }));
+        assert.ok(result);
         assert.equal(result.type, 'hlasm');
         assert.equal(result.name, 'Macro tracer: Ask for file name');
     });
