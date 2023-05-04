@@ -47,6 +47,9 @@ class DatasetUriDetails implements ClientUriDetails {
     }
 };
 
+const connectionPoolSize = 4;
+const connectionPoolTimeout = 30000;
+
 export class HLASMExternalFilesFtp implements ExternalFilesClient {
     private activeConnectionInfo: ConnectionInfo | null = null;
     private clientSuspended = false;
@@ -61,7 +64,7 @@ export class HLASMExternalFilesFtp implements ExternalFilesClient {
             create: () => this.getConnectedClient(),
             reusable: (client: ftp.Client) => !client.closed && !this.clientSuspended,
             close: (client: ftp.Client) => { try { client.close(); } catch (e) { } }
-        }, 4, 30000);
+        }, connectionPoolSize, connectionPoolTimeout);
     }
 
     get onStateChange() {
