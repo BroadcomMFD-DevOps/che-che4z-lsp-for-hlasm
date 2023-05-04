@@ -40,9 +40,9 @@ async function primeExtension(): Promise<vscode.Disposable[]> {
 				throw new vscode.CancellationError();
 			if (/^MAC[A-C]$/.test(args.file))
 				return Promise.resolve(`.*
-	 MACRO
-	 ${args.file}
-	 MEND`);
+          MACRO
+          ${args.file}
+          MEND`);
 
 			return Promise.resolve(null);
 		},
