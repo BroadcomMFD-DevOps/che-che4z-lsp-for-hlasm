@@ -19,6 +19,7 @@
 - "pgm_conf.json not found" prompt shows up even when `.bridge.json` exists
 - `.bridge.json` is not reparsed when changed
 - Source code not reparsed after missing dependency is provided
+- Only refresh libraries that are caching content
 - Best-effort support for setting breakpoints in non-filesystem documents
 
 #### Changed
