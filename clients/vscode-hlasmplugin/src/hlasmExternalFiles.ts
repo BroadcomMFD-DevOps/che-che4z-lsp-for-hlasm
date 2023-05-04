@@ -195,14 +195,14 @@ export class HLASMExternalFiles {
         const subpath = matches[2] || '';
 
         const client = this.clients.get(service);
-        const details = client?.client.parseArgs(subpath, purpose);
+        const details = client?.client.parseArgs(subpath, purpose) ?? null;
 
         if (details) {
             return {
                 cacheKey: `/${service}${details.normalizedPath()}`,
                 service: service,
                 client: client!.client,
-                details: details ?? null,
+                details: details,
                 associatedWorkspace: uriFriendlyBase16Decode(uri.authority)
             };
         }

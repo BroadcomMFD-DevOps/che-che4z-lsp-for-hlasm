@@ -15,7 +15,7 @@
 
 import * as assert from 'assert';
 import { HLASMExternalFilesFtp } from '../../hlasmExternalFilesFtp';
-import { ExternalRequestType } from '../../hlasmExternalFiles';
+import { ExternalRequestType, HLASMExternalFiles } from '../../hlasmExternalFiles';
 
 suite('External files (FTP)', () => {
 
@@ -80,5 +80,27 @@ suite('External files (FTP)', () => {
         assert.strictEqual(await p, false);
 
         ftpClient.dispose();
+    });
+
+    test('Invalid messages', async () => {
+        const ext = new HLASMExternalFiles('test', {
+            onNotification: (_, __) => { return { dispose: () => { } }; },
+            sendNotification: (_: any, __: any) => Promise.resolve(),
+        });
+
+        assert.strictEqual(await ext.handleRawMessage(null), null);
+        assert.strictEqual(await ext.handleRawMessage(undefined), null);
+        assert.strictEqual(await ext.handleRawMessage({}), null);
+        assert.strictEqual(await ext.handleRawMessage(5), null);
+        assert.strictEqual(await ext.handleRawMessage({ id: 'id', op: '' }), null);
+        assert.strictEqual(await ext.handleRawMessage({ id: 5, op: 5 }), null);
+
+        assert.deepEqual(await ext.handleRawMessage({ id: 5, op: '' }), { id: 5, error: { code: -5, msg: 'Invalid request' } });
+        assert.deepEqual(await ext.handleRawMessage({ id: 5, op: 'read_file', url: 5 }), { id: 5, error: { code: -5, msg: 'Invalid request' } });
+        assert.deepEqual(await ext.handleRawMessage({ id: 5, op: 'read_file', url: {} }), { id: 5, error: { code: -5, msg: 'Invalid request' } });
+
+        assert.deepEqual(await ext.handleRawMessage({ id: 5, op: 'read_file', url: 'unknown:scheme' }), { id: 5, error: { code: -5, msg: 'Invalid request' } });
+
+        assert.deepEqual(await ext.handleRawMessage({ id: 5, op: 'read_file', url: 'test:/SERVICE' }), { id: 5, error: { code: -1000, msg: 'No client' } });
     });
 });
