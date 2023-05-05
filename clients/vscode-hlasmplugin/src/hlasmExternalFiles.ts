@@ -17,6 +17,10 @@ import * as vscodelc from "vscode-languageclient";
 import { isCancellationError } from "./helpers";
 import { uriFriendlyBase16Decode, uriFriendlyBase16Encode } from "./conversions";
 
+import * as crypto from "crypto";
+import { TextDecoder, TextEncoder, promisify } from "util";
+import { deflate, inflate } from "zlib";
+
 // This is a temporary demo implementation
 
 export enum ExternalRequestType {
@@ -66,6 +70,8 @@ export interface ExternalFilesClient extends vscode.Disposable {
     suspended(): boolean;
 
     parseArgs(path: string, purpose: ExternalRequestType): ClientUriDetails | null;
+
+    uniqueId(): Promise<string | undefined>;
 }
 
 function take<T>(it: IterableIterator<T>, n: number): T[] {
@@ -90,6 +96,9 @@ interface CacheEntry<T> {
     result: T | InError | typeof not_exists | typeof no_client,
     references: Set<string>;
 };
+
+const cacheVersion = 'v1';
+
 export class HLASMExternalFiles {
     private toDispose: vscode.Disposable[] = [];
 
@@ -103,11 +112,14 @@ export class HLASMExternalFiles {
         clientDisposables: vscode.Disposable[];
     }>();
 
-    constructor(private magicScheme: string, private channel: {
-        onNotification(method: string, handler: vscodelc.GenericNotificationHandler): vscode.Disposable;
-        sendNotification<P>(type: vscodelc.NotificationType<P>, params?: P): Promise<void>;
-        sendNotification(method: string, params: any): Promise<void>;
-    }) {
+    constructor(
+        private magicScheme: string,
+        private channel: {
+            onNotification(method: string, handler: vscodelc.GenericNotificationHandler): vscode.Disposable;
+            sendNotification<P>(type: vscodelc.NotificationType<P>, params?: P): Promise<void>;
+            sendNotification(method: string, params: any): Promise<void>;
+        },
+        private cache?: { uri: vscode.Uri, fs: vscode.FileSystem }) {
         this.toDispose.push(this.channel.onNotification('external_file_request', params => this.handleRawMessage(params).then(
             msg => { if (msg) this.channel.sendNotification('external_file_response', msg); }
         )));
@@ -341,12 +353,77 @@ export class HLASMExternalFiles {
 
     }
 
+    private deriveCacheEntryName(clientId: string, service: string, normalizedPath: string) {
+        return cacheVersion + '.' + crypto.createHash('sha256').update(JSON.stringify({
+            // keep the explicit names!
+            clientId: clientId,
+            service: service,
+            normalizedPath: normalizedPath
+        })).digest().toString('hex');
+    }
+
+    private async getCachedResult(client: ExternalFilesClient, service: string, normalizedPath: string, expect: 'string'): Promise<string | typeof not_exists | undefined>;
+    private async getCachedResult(client: ExternalFilesClient, service: string, normalizedPath: string, expect: 'arrayOfStrings'): Promise<string[] | typeof not_exists | undefined>;
+    private async getCachedResult(client: ExternalFilesClient, service: string, normalizedPath: string, expect: 'string' | 'arrayOfStrings') {
+        if (!this.cache) return undefined;
+        const clientId = await client.uniqueId();
+        if (!clientId) return undefined;
+
+        const cacheEntryName = vscode.Uri.joinPath(this.cache.uri, this.deriveCacheEntryName(clientId, service, normalizedPath));
+
+        try {
+            const cachedResult = JSON.parse(new TextDecoder().decode(await promisify(inflate)(await this.cache.fs.readFile(cacheEntryName))));
+
+            if (cachedResult === 'not_exists') return not_exists;
+            if (cachedResult instanceof Object && 'data' in cachedResult) {
+                const data = cachedResult.data;
+
+                if (expect === 'string' && typeof data === 'string')
+                    return data;
+                if (expect === 'arrayOfStrings' && Array.isArray(data) && data.every(x => typeof x === 'string'))
+                    return data;
+            }
+        }
+        catch (e) { }
+
+        return undefined;
+    }
+
+    private async storeCachedResult(client: ExternalFilesClient, service: string, normalizedPath: string, value: string | string[] | typeof not_exists) {
+        if (!this.cache) return;
+        const clientId = await client.uniqueId();
+        if (!clientId) return;
+
+        const cacheEntryName = vscode.Uri.joinPath(this.cache.uri, this.deriveCacheEntryName(clientId, service, normalizedPath));
+
+        try {
+            const data = value === not_exists
+                ? new TextEncoder().encode(JSON.stringify("not_exists"))
+                : new TextEncoder().encode(JSON.stringify({ data: value }));
+
+            await this.cache.fs.writeFile(cacheEntryName, await promisify(deflate)(data));
+        }
+        catch (e) { }
+    }
+
     private async getFile(client: ExternalFilesClient, service: string, parsedArgs: ClientUriDetails): Promise<string | InError | typeof not_exists | typeof no_client | null> {
-        return this.askClient(service, parsedArgs, client.readMember.bind(client));
+        const normalizedPath = parsedArgs.normalizedPath();
+        const result = await this.getCachedResult(client, service, normalizedPath, 'string') ?? await this.askClient(service, parsedArgs, client.readMember.bind(client));
+
+        if (typeof result === 'string' || result === not_exists)
+            await this.storeCachedResult(client, service, normalizedPath, result);
+
+        return result;
     }
 
     private async getDir(client: ExternalFilesClient, service: string, parsedArgs: ClientUriDetails): Promise<string[] | InError | typeof not_exists | typeof no_client | null> {
-        return this.askClient(service, parsedArgs, client.listMembers.bind(client));
+        const normalizedPath = parsedArgs.normalizedPath();
+        const result = await this.getCachedResult(client, service, normalizedPath, 'arrayOfStrings') ?? await this.askClient(service, parsedArgs, client.listMembers.bind(client));
+
+        if (Array.isArray(result) || result === not_exists)
+            await this.storeCachedResult(client, service, normalizedPath, result);
+
+        return result;
     }
 
     private async handleMessage<T>(

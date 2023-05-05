@@ -55,6 +55,17 @@ function objectToString(o: any) {
     return o;
 }
 
+const getCacheInfo = async (uri: vscode.Uri, fs: vscode.FileSystem) => {
+    try {
+        await fs.createDirectory(uri);
+        return { uri, fs };
+    }
+    catch (e) {
+        vscode.window.showErrorMessage('Unable to create cache directory for external resources', ...(e instanceof Error ? [e.message] : []));
+        return undefined;
+    }
+}
+
 /**
  * ACTIVATION
  * activates the extension
@@ -116,7 +127,11 @@ export async function activate(context: vscode.ExtensionContext) {
         throw e;
     }
 
-    const extFiles = new HLASMExternalFiles(externalFilesScheme, hlasmpluginClient);
+    const extFiles = new HLASMExternalFiles(
+        externalFilesScheme,
+        hlasmpluginClient,
+        await getCacheInfo(vscode.Uri.joinPath(context.globalStorageUri, 'external.files.cache'), vscode.workspace.fs)
+    );
     context.subscriptions.push(extFiles);
 
     // register all commands and objects to context
