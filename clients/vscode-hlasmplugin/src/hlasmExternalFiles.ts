@@ -500,4 +500,29 @@ export class HLASMExternalFiles {
         return Promise.resolve(this.generateError(msg.id, -5, 'Invalid request'));
     }
 
+    public async clearCache() {
+        if (this.cache) {
+            const { uri, fs } = this.cache;
+
+            const files = await fs.readDirectory(uri);
+
+            let errors = 0;
+            const pending = new Set<Promise<void>>();
+
+            for (const [filename] of files) {
+                const p = Promise.resolve(fs.delete(vscode.Uri.joinPath(uri, filename)));
+                pending.add(p);
+                p.catch(() => ++errors).finally(() => pending.delete(p));
+
+                if (pending.size > 16)
+                    await Promise.race(pending);
+            }
+            await Promise.allSettled(pending);
+
+            if (errors > 0)
+                vscode.window.showErrorMessage(`Errors (${errors}) occurred while clearing out the cache`);
+        }
+        for (const [service] of this.clients)
+            this.notifyAllWorkspaces(service, true);
+    }
 }
