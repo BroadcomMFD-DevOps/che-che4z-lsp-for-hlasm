@@ -354,12 +354,11 @@ export class HLASMExternalFiles {
     }
 
     private deriveCacheEntryName(clientId: string, service: string, normalizedPath: string) {
-        return cacheVersion + '.' + crypto.createHash('sha256').update(JSON.stringify({
-            // keep the explicit names!
-            clientId: clientId,
-            service: service,
-            normalizedPath: normalizedPath
-        })).digest().toString('hex');
+        return cacheVersion + '.' + crypto.createHash('sha256').update(JSON.stringify([
+            clientId,
+            service,
+            normalizedPath
+        ])).digest().toString('hex');
     }
 
     private async getCachedResult(client: ExternalFilesClient, service: string, normalizedPath: string, expect: 'string'): Promise<string | typeof not_exists | undefined>;
