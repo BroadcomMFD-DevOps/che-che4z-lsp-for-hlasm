@@ -23,7 +23,7 @@ const extensionContextMock = undefined as any as ExtensionContext;
 suite('External files (FTP)', () => {
 
     test('Dataset parsing', async () => {
-        const ftpClient = new HLASMExternalFilesFtp(extensionContextMock);
+        const ftpClient = HLASMExternalFilesFtp(extensionContextMock);
 
         assert.strictEqual(ftpClient.parseArgs('aaa', ExternalRequestType.read_directory), null);
         assert.strictEqual(ftpClient.parseArgs('/0', ExternalRequestType.read_directory), null);
@@ -38,7 +38,7 @@ suite('External files (FTP)', () => {
     });
 
     test('Dataset member parsing', async () => {
-        const ftpClient = new HLASMExternalFilesFtp(extensionContextMock);
+        const ftpClient = HLASMExternalFilesFtp(extensionContextMock);
 
         assert.strictEqual(ftpClient.parseArgs('aaa', ExternalRequestType.read_file), null);
         assert.strictEqual(ftpClient.parseArgs('/0', ExternalRequestType.read_file), null);
@@ -54,34 +54,5 @@ suite('External files (FTP)', () => {
         assert.ok(full_length);
         assert.strictEqual(full_length.toString(), 'AAAAAAAA.AAAAAAAA.AAAAAAAA.AAAAAAAA.AAAAAAAA(BBBBBBBB)');
         assert.strictEqual(full_length.normalizedPath(), '/AAAAAAAA.AAAAAAAA.AAAAAAAA.AAAAAAAA.AAAAAAAA/BBBBBBBB');
-    });
-
-    test('Suspend', async () => {
-        const ftpClient = new HLASMExternalFilesFtp(extensionContextMock);
-
-        assert.strictEqual(ftpClient.suspended(), false);
-
-        const p = new Promise<boolean>(resolve => ftpClient.onStateChange(resolve));
-
-        ftpClient.suspend();
-
-        assert.strictEqual(await p, true);
-
-        ftpClient.dispose();
-    });
-
-    test('Resume', async () => {
-        const ftpClient = new HLASMExternalFilesFtp(extensionContextMock);
-        ftpClient.suspend();
-
-        assert.strictEqual(ftpClient.suspended(), true);
-
-        const p = new Promise<boolean>(resolve => ftpClient.onStateChange(resolve));
-
-        ftpClient.resume();
-
-        assert.strictEqual(await p, false);
-
-        ftpClient.dispose();
     });
 });

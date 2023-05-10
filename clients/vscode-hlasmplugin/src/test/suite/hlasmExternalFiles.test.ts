@@ -15,7 +15,7 @@
 
 import * as assert from 'assert';
 import * as crypto from "crypto";
-import { ClientUriDetails, ExternalFilesClient, ExternalRequestType, HLASMExternalFiles } from '../../hlasmExternalFiles';
+import { ClientInterface, ClientUriDetails, ExternalFilesClient, ExternalRequestType, HLASMExternalFiles } from '../../hlasmExternalFiles';
 import { FileSystem, Uri } from 'vscode';
 import { FileType } from 'vscode';
 import { TextEncoder } from 'util';
@@ -129,10 +129,7 @@ suite('External files', () => {
         });
 
         ext.setClient('TEST', {
-            dispose: () => { },
-
-            onStateChange: () => { return { dispose: () => { } }; },
-
+            getConnInfo: () => Promise.resolve({ info: '', uniqueId: 'SERVER' }),
             parseArgs: (path: string, purpose: ExternalRequestType): ClientUriDetails | null => {
                 if (purpose === ExternalRequestType.read_file)
                     return {
@@ -148,11 +145,19 @@ suite('External files', () => {
                     };
                 return null;
             },
+            createClient: () => {
+                return {
+                    dispose: () => { },
 
-            suspended: () => false,
+                    connect: (_: string) => Promise.resolve(),
 
-            uniqueId: () => Promise.resolve('SERVER'),
-        } as any as ExternalFilesClient);
+                    listMembers: (_: ClientUriDetails) => Promise.resolve(null),
+                    readMember: (_: ClientUriDetails) => Promise.resolve(null),
+
+                    reusable: () => false,
+                };
+            }
+        } as any as ClientInterface<string, ClientUriDetails, ClientUriDetails>);
 
         const dir = await ext.handleRawMessage({ id: 4, op: 'read_directory', url: 'test:/TEST/DIR' });
         assert.ok(dir);
