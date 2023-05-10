@@ -101,6 +101,7 @@ interface CacheEntry<T> {
     parsedArgs: ClientUriDetails | null,
     result: T | InError | typeof not_exists | typeof no_client,
     references: Set<string>;
+    cached: boolean;
 };
 
 const cacheVersion = 'v1';
@@ -113,7 +114,7 @@ interface ClientInstance<ConnectArgs, ReadArgs extends ClientUriDetails, ListArg
     pool: ConnectionPool<ExternalFilesClient<ConnectArgs, ReadArgs, ListArgs>>,
     suspended: boolean,
     parseArgs: (path: string, purpose: ExternalRequestType) => ExternalRequestDetails<ReadArgs, ListArgs>[typeof purpose] | null,
-    ensureConnectionInfo: () => Promise<void>,
+    ensureConnectionInfo: () => Promise<string | undefined>,
 };
 
 export const connectionFailed = Object.freeze({});
@@ -147,29 +148,29 @@ export class HLASMExternalFiles {
         getConnInfo: () => Promise<{ info: ConnectArgs, uniqueId?: string }>,
         clientType: ClientInstance<ConnectArgs, ReadArgs, ListArgs>) {
         const client = createClient();
-        while (true) {
-            try {
-                await this.mutex.locked(async () => {
+        return await this.mutex.locked(async () => {
+            while (true) {
+                try {
                     if (clientType.suspended)
                         throw new vscode.CancellationError();
                     const connection = clientType.activeConnectionInfo ?? await getConnInfo();
                     clientType.activeConnectionInfo = null;
                     await client.connect(connection.info);
                     clientType.activeConnectionInfo = connection;
-                });
-                return client;
-            }
-            catch (e) {
-                if (e === connectionFailed)
-                    continue;
-                if (isCancellationError(e))
-                    this.suspendAll();
+                    return client;
+                }
+                catch (e) {
+                    if (e === connectionFailed)
+                        continue;
+                    if (isCancellationError(e))
+                        this.suspendAll();
 
-                clientType.pool.closeClients();
-                try { client.dispose(); } catch (e) { }
-                throw e;
+                    clientType.pool.closeClients();
+                    try { client.dispose(); } catch (e) { }
+                    throw e;
+                }
             }
-        }
+        });
     }
 
     setClient<ConnectArgs, ReadArgs extends ClientUriDetails, ListArgs extends ClientUriDetails>(
@@ -195,13 +196,22 @@ export class HLASMExternalFiles {
                 close: (c) => { try { c.dispose(); } catch (e) { } },
             }, connectionPoolSize, connectionPoolTimeout),
             parseArgs: client.parseArgs,
-            ensureConnectionInfo: async () => {
-                await this.mutex.locked(async () => {
-                    if (newClient.activeConnectionInfo) return;
-                    if (newClient.suspended) throw new vscode.CancellationError();
+            ensureConnectionInfo: () => this.mutex.locked(async () => {
+                if (newClient.suspended) return undefined;
+                if (newClient.activeConnectionInfo) return newClient.activeConnectionInfo.uniqueId;
+                try {
                     newClient.activeConnectionInfo = await client.getConnInfo();
-                });
-            },
+                    return newClient.activeConnectionInfo.uniqueId;
+                }
+                catch (x) {
+                    const e = x instanceof Error ? x : Error('Unknown error:' + x);
+                    this.suspendAll();
+                    if (!isCancellationError(e))
+                        vscode.window.showErrorMessage(e.message);
+
+                    return undefined;
+                }
+            }),
         };
         this.clients.set(service, newClient);
 
@@ -421,11 +431,11 @@ export class HLASMExternalFiles {
         ])).digest().toString('hex');
     }
 
-    private async getCachedResult<ConnectArgs, ReadArgs extends ClientUriDetails, ListArgs extends ClientUriDetails>(client: ClientInstance<ConnectArgs, ReadArgs, ListArgs>, service: string, normalizedPath: string, expect: 'string'): Promise<string | typeof not_exists | undefined>;
-    private async getCachedResult<ConnectArgs, ReadArgs extends ClientUriDetails, ListArgs extends ClientUriDetails>(client: ClientInstance<ConnectArgs, ReadArgs, ListArgs>, service: string, normalizedPath: string, expect: 'arrayOfStrings'): Promise<string[] | typeof not_exists | undefined>;
+    private async getCachedResult<ConnectArgs, ReadArgs extends ClientUriDetails, ListArgs extends ClientUriDetails>(client: ClientInstance<ConnectArgs, ReadArgs, ListArgs>, service: string, normalizedPath: string, expect: 'string'): Promise<string | InError | typeof not_exists | undefined>;
+    private async getCachedResult<ConnectArgs, ReadArgs extends ClientUriDetails, ListArgs extends ClientUriDetails>(client: ClientInstance<ConnectArgs, ReadArgs, ListArgs>, service: string, normalizedPath: string, expect: 'arrayOfStrings'): Promise<string[] | InError | typeof not_exists | undefined>;
     private async getCachedResult<ConnectArgs, ReadArgs extends ClientUriDetails, ListArgs extends ClientUriDetails>(client: ClientInstance<ConnectArgs, ReadArgs, ListArgs>, service: string, normalizedPath: string, expect: 'string' | 'arrayOfStrings') {
         if (!this.cache) return undefined;
-        const clientId = client.activeConnectionInfo?.uniqueId;
+        const clientId = await client.ensureConnectionInfo();
         if (!clientId) return undefined;
 
         const cacheEntryName = vscode.Uri.joinPath(this.cache.uri, this.deriveCacheEntryName(clientId, service, normalizedPath));
@@ -449,9 +459,9 @@ export class HLASMExternalFiles {
     }
 
     private async storeCachedResult<T, ConnectArgs, ReadArgs extends ClientUriDetails, ListArgs extends ClientUriDetails>(client: ClientInstance<ConnectArgs, ReadArgs, ListArgs>, service: string, normalizedPath: string, value: T | typeof not_exists) {
-        if (!this.cache) return;
+        if (!this.cache) return false;
         const clientId = client.activeConnectionInfo?.uniqueId;
-        if (!clientId) return;
+        if (!clientId) return false;
 
         const cacheEntryName = vscode.Uri.joinPath(this.cache.uri, this.deriveCacheEntryName(clientId, service, normalizedPath));
 
@@ -461,8 +471,11 @@ export class HLASMExternalFiles {
                 : new TextEncoder().encode(JSON.stringify({ data: value }));
 
             await this.cache.fs.writeFile(cacheEntryName, await promisify(deflate)(data));
+            return true;
         }
         catch (e) { }
+
+        return false;
     }
 
     private async getFile<ConnectArgs, ReadArgs extends ClientUriDetails, ListArgs extends ClientUriDetails>(client: ClientInstance<ConnectArgs, ReadArgs, ListArgs>, service: string, parsedArgs: ReadArgs): Promise<string | InError | typeof not_exists | typeof no_client | null> {
@@ -486,7 +499,6 @@ export class HLASMExternalFiles {
 
         let content = inMemoryCache.get(cacheKey);
         if (content === undefined) {
-            await client?.ensureConnectionInfo();
             const result = client ? await getData(client, service, details) : no_client;
             if (!result) return Promise.resolve(null);
             content = {
@@ -494,6 +506,7 @@ export class HLASMExternalFiles {
                 parsedArgs: details,
                 result: result,
                 references: new Set<string>(),
+                cached: false,
             };
 
             inMemoryCache.set(cacheKey, content);
@@ -502,8 +515,8 @@ export class HLASMExternalFiles {
 
         const { response, cache } = await this.transformResult(msg.id, content, responseTransform);
 
-        if (cache && client)
-            await this.storeCachedResult(client, service, details.normalizedPath(), content.result);
+        if (cache && client && !content.cached)
+            content.cached = await this.storeCachedResult(client, service, details.normalizedPath(), content.result);
 
         return response;
     }
