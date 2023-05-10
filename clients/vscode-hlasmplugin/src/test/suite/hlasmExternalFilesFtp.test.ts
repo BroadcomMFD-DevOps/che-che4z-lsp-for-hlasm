@@ -33,7 +33,7 @@ suite('External files (FTP)', () => {
 
         const full_length = ftpClient.parseArgs('/aaaaaaaa.aaaaaaaa.aaaaaaaa.aaaaaaaa.aaaaaaaa', ExternalRequestType.read_directory);
         assert.ok(full_length);
-        assert.strictEqual(full_length.toString(), 'AAAAAAAA.AAAAAAAA.AAAAAAAA.AAAAAAAA.AAAAAAAA');
+        assert.strictEqual(full_length.toDisplayString(), 'AAAAAAAA.AAAAAAAA.AAAAAAAA.AAAAAAAA.AAAAAAAA');
         assert.strictEqual(full_length.normalizedPath(), '/AAAAAAAA.AAAAAAAA.AAAAAAAA.AAAAAAAA.AAAAAAAA/');
     });
 
@@ -52,7 +52,16 @@ suite('External files (FTP)', () => {
 
         const full_length = ftpClient.parseArgs('/aaaaaaaa.aaaaaaaa.aaaaaaaa.aaaaaaaa.aaaaaaaa/bbbbbbbb', ExternalRequestType.read_file);
         assert.ok(full_length);
-        assert.strictEqual(full_length.toString(), 'AAAAAAAA.AAAAAAAA.AAAAAAAA.AAAAAAAA.AAAAAAAA(BBBBBBBB)');
+        assert.strictEqual(full_length.toDisplayString(), 'AAAAAAAA.AAAAAAAA.AAAAAAAA.AAAAAAAA.AAAAAAAA(BBBBBBBB)');
         assert.strictEqual(full_length.normalizedPath(), '/AAAAAAAA.AAAAAAAA.AAAAAAAA.AAAAAAAA.AAAAAAAA/BBBBBBBB');
+    });
+
+    test('Create client', async () => {
+        const ftpClient = HLASMExternalFilesFtp(extensionContextMock);
+
+        const client = ftpClient.createClient();
+        assert.ok(client);
+        assert.strictEqual(client.reusable(), false);
+        client.dispose();
     });
 });

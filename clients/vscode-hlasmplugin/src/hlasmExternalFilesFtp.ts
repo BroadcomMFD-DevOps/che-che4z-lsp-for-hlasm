@@ -14,7 +14,7 @@
 
 import * as vscode from 'vscode';
 import * as ftp from 'basic-ftp';
-import { ClientInterface, ClientUriDetails, ExternalFilesClient, ExternalRequestType, connectionFailed } from './hlasmExternalFiles';
+import { ClientInterface, ClientUriDetails, ExternalRequestType } from './hlasmExternalFiles';
 import { ConnectionInfo, gatherConnectionInfo, getLastRunConfig, translateConnectionInfo, updateLastRunConfig } from './ftpCreds';
 import { FBWritable } from './FBWritable';
 
@@ -32,7 +32,7 @@ class DatasetUriDetails implements ClientUriDetails {
         public readonly dataset: string,
         public readonly member: string | null) { }
 
-    toString() {
+    toDisplayString() {
         if (this.member)
             return `${this.dataset}(${this.member})`;
         else
@@ -76,19 +76,7 @@ export function HLASMExternalFilesFtp(context: vscode.ExtensionContext): ClientI
             return {
                 dispose: () => { client.close(); },
 
-                connect: async (arg: ConnectionInfo) => {
-                    try {
-                        await client.access(translateConnectionInfo(arg));
-                    }
-                    catch (e) {
-                        if (e instanceof ftp.FTPError) {
-                            vscode.window.showErrorMessage(e.message);
-                            throw connectionFailed;
-                        }
-                        throw e;
-                    }
-                },
-
+                connect: async (arg: ConnectionInfo) => { await client.access(translateConnectionInfo(arg)) },
 
                 listMembers: async (args: DatasetUriDetails): Promise<string[] | null> => {
                     try {

@@ -36,7 +36,7 @@ async function primeExtension(): Promise<vscode.Disposable[]> {
 			return {
 				path: path || '',
 				file: (file || '').split('.')[0],
-				toString() { return `${this.path}/${this.file}`; },
+				toDisplayString() { return `${this.path}/${this.file}`; },
 				normalizedPath() { return `/${this.path}/${this.file}`; },
 			}
 		},
