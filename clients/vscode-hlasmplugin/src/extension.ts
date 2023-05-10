@@ -144,7 +144,7 @@ export async function activate(context: vscode.ExtensionContext) {
         getTelemetry(): Telemetry {
             return telemetry;
         },
-        registerExternalFileClient<C, L extends ClientUriDetails, R extends ClientUriDetails>(service: string, client: ClientInterface<C, L, R>) {
+        registerExternalFileClient<ConnectArgs, ReadArgs extends ClientUriDetails, ListArgs extends ClientUriDetails>(service: string, client: ClientInterface<ConnectArgs, ReadArgs, ListArgs>) {
             extFiles.setClient(service, client);
         }
     };

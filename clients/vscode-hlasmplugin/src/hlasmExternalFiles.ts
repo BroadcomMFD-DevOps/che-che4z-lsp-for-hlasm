@@ -32,7 +32,7 @@ export enum ExternalRequestType {
 
 interface ExternalRequest {
     id: number,
-    op: ExternalRequestType.read_file | ExternalRequestType.read_directory,
+    op: ExternalRequestType,
     url: string,
 }
 
@@ -40,6 +40,7 @@ interface ExternalReadFileResponse {
     id: number,
     data: string,
 }
+
 interface ExternalReadDirectoryResponse {
     id: number,
     data: {
@@ -52,6 +53,7 @@ type ExternalRequestDetails<R, L> = {
     [ExternalRequestType.read_file]: R,
     [ExternalRequestType.read_directory]: L,
 };
+
 interface ExternalErrorResponse {
     id: number,
     error: {
