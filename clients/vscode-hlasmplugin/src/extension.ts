@@ -31,7 +31,7 @@ import { HLASMCodeActionsProvider } from './hlasmCodeActionsProvider';
 import { hlasmplugin_folder } from './constants';
 import { ConfigurationsHandler } from './configurationsHandler';
 import { getLanguageClientMiddleware } from './languageClientMiddleware';
-import { ClientInterface, ClientUriDetails, ExternalFilesClient, HLASMExternalFiles } from './hlasmExternalFiles';
+import { ClientInterface, ClientUriDetails, HLASMExternalFiles } from './hlasmExternalFiles';
 import { HLASMExternalFilesFtp } from './hlasmExternalFilesFtp';
 
 export const EXTENSION_ID = "broadcommfd.hlasm-language-support";
