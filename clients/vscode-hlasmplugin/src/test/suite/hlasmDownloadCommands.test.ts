@@ -56,7 +56,6 @@ suite('HLASM Download data sets', () => {
     const getIoOps = () => {
         return {
             unterseCalls: new Array<string>(),
-            translateCalls: new Array<string>(),
             copyCalls: new Array<{ source: string, target: string }>(),
             async unterse(outDir: string) {
                 this.unterseCalls.push(outDir);
@@ -64,9 +63,6 @@ suite('HLASM Download data sets', () => {
                 const process = Promise.resolve();
                 const input = new PassThrough();
                 return { process, input };
-            },
-            async translateFiles(dir: string) {
-                this.translateCalls.push(dir);
             },
             async copyDirectory(source: string, target: string) {
                 this.copyCalls.push({ source, target });
@@ -110,9 +106,8 @@ suite('HLASM Download data sets', () => {
         assert.equal(client.listCalls, 2);
         assert.deepEqual(client.setListMaskCalls, ['JOBNAME']);
         assert.equal(io.copyCalls.length, 0);
-        assert.deepEqual(io.translateCalls, ['/dir1']);
         assert.deepEqual(io.unterseCalls, ['/dir1']);
-        assert.equal(stages.stages, 4);
+        assert.equal(stages.stages, 3);
     });
 
     test('Jobcard pattern', async () => {
@@ -140,9 +135,8 @@ suite('HLASM Download data sets', () => {
         assert.equal(client.listCalls, 1);
         assert.deepEqual(client.setListMaskCalls, ['JOBNAME*']);
         assert.equal(io.copyCalls.length, 0);
-        assert.deepEqual(io.translateCalls, ['/dir1']);
         assert.deepEqual(io.unterseCalls, ['/dir1']);
-        assert.equal(stages.stages, 4);
+        assert.equal(stages.stages, 3);
     });
 
     test('Cancelled', async () => {
@@ -172,7 +166,6 @@ suite('HLASM Download data sets', () => {
         assert.equal(client.listCalls, 0);
         assert.deepEqual(client.setListMaskCalls, []);
         assert.equal(io.copyCalls.length, 0);
-        assert.deepEqual(io.translateCalls, []);
         assert.deepEqual(io.unterseCalls, []);
         assert.equal(stages.stages, 0);
     });
@@ -212,9 +205,8 @@ suite('HLASM Download data sets', () => {
         assert.equal(client.listCalls, 2);
         assert.deepEqual(client.setListMaskCalls, ['JOBNAME*']);
         assert.deepEqual(io.copyCalls, [{ source: '/dir2', target: '/dir3' }]);
-        assert.deepEqual(io.translateCalls, ['/dir1', '/dir2']);
         assert.deepEqual(io.unterseCalls, ['/dir1', '/dir2']);
-        assert.equal(stages.stages, 4 + 5);
+        assert.equal(stages.stages, 3 + 4);
     });
 
     test('Failed job', async () => {
