@@ -40,6 +40,7 @@ suite('Utilities', () => {
         convertor.write(Uint8Array.from([0xc2, 0xc2, 0xc2, 0xc2, 0xc2, 0xc2]));
 
         assert.deepStrictEqual(convertor.getResult().split(/\r?\n/), ["AAAAAAAAAA", "BBBBBBBBBB", ""]);
+        // subsequent call should return the same content
         assert.deepStrictEqual(convertor.getResult().split(/\r?\n/), ["AAAAAAAAAA", "BBBBBBBBBB", ""]);
     });
 
