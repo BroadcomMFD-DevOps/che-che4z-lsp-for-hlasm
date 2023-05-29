@@ -251,7 +251,7 @@ function fixPath(p: string): string {
     return p;
 }
 
-async function unterse(outDir: string): Promise<{ process: Promise<void>, input: Writable }> {
+export async function unterse(outDir: string): Promise<{ process: Promise<void>, input: Writable }> {
     await fsp.mkdir(outDir, { recursive: true });
 
     class DownloadStream extends Writable {
@@ -263,7 +263,6 @@ async function unterse(outDir: string): Promise<{ process: Promise<void>, input:
         _write(chunk: Buffer, encoding: BufferEncoding, callback: (error?: Error | null) => void) {
             if (this.notinterested) return;
             this.chunks.push(chunk);
-            this.pendingFetch = (this.pendingFetch?.resolve(), undefined);
             this.getCallback()?.resolve();
 
             callback();
@@ -305,7 +304,7 @@ async function unterse(outDir: string): Promise<{ process: Promise<void>, input:
     const { resolve, error, process } = (() => {
         let _resolve: (() => void) | undefined;
         let _error: ((e: Error) => void) | undefined;
-        const process = new Promise<void>((r, e) => { _resolve = r, _error = e; });
+        const process = new Promise<void>((r, e) => { _resolve = r; _error = e; });
         return { resolve: _resolve!, error: _error!, process };
     })();
 
