@@ -301,6 +301,23 @@ export async function unterse(outDir: string): Promise<{ process: Promise<void>,
     let fb: FBStreamingConvertor | undefined;
     let currentMember = '';
 
+    const scheduleAction = (action: () => Promise<void>) => {
+        ++activeActions;
+        pendingAction = pendingAction.then(action).finally(() => --activeActions);
+    };
+
+    const writeCurrentMember = () => {
+        if (!fb) return;
+
+        const _currentMember = currentMember;
+        const _fb = fb;
+
+        scheduleAction(() => fsp.writeFile(path.join(outDir, _currentMember), _fb.getResult()));
+
+        fb = undefined;
+        currentMember = '';
+    };
+
     const { resolve, error, process } = (() => {
         let _resolve: (() => void) | undefined;
         let _error: ((e: Error) => void) | undefined;
@@ -340,41 +357,25 @@ export async function unterse(outDir: string): Promise<{ process: Promise<void>,
                     throw Error("Invalid member name");
             },
             start_member: (name: string) => {
-                if (fb) {
-                    const _currentMember = currentMember;
-                    const _fb = fb;
+                writeCurrentMember();
 
-                    ++activeActions;
-                    pendingAction = pendingAction.then(
-                        () => fsp.writeFile(path.join(outDir, _currentMember), _fb.getResult())
-                    ).finally(() => --activeActions);
-                }
                 fb = new FBStreamingConvertor(80);
                 currentMember = name;
             },
             alias_member: (name: string, target: string) => {
-                ++activeActions;
-                pendingAction = pendingAction.then(
-                    () => fsp.symlink(path.join(outDir, target), path.join(outDir, name)).catch(
-                        () => fsp.copyFile(path.join(outDir, name), path.join(outDir, target))
-                    )
-                ).finally(() => --activeActions);
+                writeCurrentMember();
+
+                scheduleAction(() => fsp.symlink(path.join(outDir, target), path.join(outDir, name)).catch(
+                    () => fsp.copyFile(path.join(outDir, name), path.join(outDir, target))
+                ));
             },
         };
     }).then(() => {
         input.lostInterest();
 
-        const _currentMember = currentMember;
-        const _fb = fb;
-        if (!_fb) return pendingAction;
-        return new Promise<void>((resolve_, reject_) => {
-            ++activeActions;
-            pendingAction = pendingAction.then(
-                () => fsp.writeFile(path.join(outDir, _currentMember), _fb.getResult())
-            ).finally(
-                () => --activeActions
-            ).then(resolve_).catch(reject_);
-        });
+        writeCurrentMember();
+
+        return pendingAction;
     }).then(resolve).catch(error);
     return { process, input };
 }
