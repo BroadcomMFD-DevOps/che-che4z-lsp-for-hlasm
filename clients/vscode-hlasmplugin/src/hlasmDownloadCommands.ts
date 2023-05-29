@@ -366,7 +366,7 @@ export async function unterse(outDir: string): Promise<{ process: Promise<void>,
                 writeCurrentMember();
 
                 scheduleAction(() => fsp.symlink(path.join(outDir, target), path.join(outDir, name)).catch(
-                    () => fsp.copyFile(path.join(outDir, name), path.join(outDir, target))
+                    () => fsp.copyFile(path.join(outDir, target), path.join(outDir, name))
                 ));
             },
         };
