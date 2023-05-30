@@ -77,6 +77,7 @@ private:
         hlasm_plugin::parser_library::sequence<char> addtl_info) override;
     void exited(int exit_code) override;
 
+    parser_library::workspace_manager& ws_mngr_;
     std::optional<hlasm_plugin::parser_library::debugging::debugger> debugger;
 
     int column_1_based_ = 0;

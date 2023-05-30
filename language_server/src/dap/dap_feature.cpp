@@ -68,7 +68,8 @@ void dap_feature::initialize_feature(const nlohmann::json&)
 dap_feature::dap_feature(parser_library::workspace_manager& ws_mngr,
     response_provider& response_provider,
     dap_disconnect_listener* disconnect_listener)
-    : feature(ws_mngr, response_provider)
+    : feature(response_provider)
+    , ws_mngr_(ws_mngr)
     , disconnect_listener_(disconnect_listener)
 {}
 
