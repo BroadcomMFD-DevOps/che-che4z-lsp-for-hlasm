@@ -22,6 +22,7 @@
 #include <variant>
 #include <vector>
 
+#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
 #include "../workspace/empty_configs.h"
@@ -35,6 +36,7 @@
 #include "workspaces/file_manager_impl.h"
 #include "workspaces/workspace.h"
 
+using namespace ::testing;
 using namespace hlasm_plugin::parser_library;
 using namespace hlasm_plugin::parser_library::debugging;
 using namespace hlasm_plugin::parser_library::workspaces;
@@ -79,6 +81,72 @@ struct expected_stack_frame
     }
 };
 
+class ws_mngr_mock : public workspace_manager
+{
+public:
+    MOCK_METHOD2(add_workspace, void(const char* name, const char* uri));
+    MOCK_METHOD(workspaces::workspace*, find_workspace, (const char* uri), (override));
+    MOCK_METHOD1(remove_workspace, void(const char* uri));
+
+    MOCK_METHOD4(
+        did_open_file, void(const char* document_uri, version_t version, const char* text, size_t text_length));
+    MOCK_METHOD4(did_change_file,
+        void(const char* document_uri, version_t version, const document_change* changes, size_t ch_size));
+    MOCK_METHOD1(did_close_file, void(const char* document_uri));
+    MOCK_METHOD(void, did_change_watched_files, (sequence<fs_change> changes), (override));
+
+    MOCK_METHOD(void,
+        definition,
+        (const char* document_uri, position pos, workspace_manager_response<position_uri>),
+        (override));
+    MOCK_METHOD(void,
+        references,
+        (const char* document_uri, position pos, workspace_manager_response<position_uri_list>),
+        (override));
+    MOCK_METHOD(
+        void, hover, (const char* document_uri, position pos, workspace_manager_response<sequence<char>>), (override));
+    MOCK_METHOD(void,
+        completion,
+        (const char* document_uri,
+            position pos,
+            const char trigger_char,
+            completion_trigger_kind trigger_kind,
+            workspace_manager_response<completion_list>),
+        (override));
+
+
+    MOCK_METHOD(
+        void, semantic_tokens, (const char*, workspace_manager_response<continuous_sequence<token_info>>), (override));
+    MOCK_METHOD(void,
+        document_symbol,
+        (const char*, long long limit, workspace_manager_response<document_symbol_list>),
+        (override));
+
+    MOCK_METHOD(void, configuration_changed, (const lib_config& new_config), (override));
+
+    MOCK_METHOD(void, register_diagnostics_consumer, (diagnostics_consumer * consumer), (override));
+    MOCK_METHOD(void, unregister_diagnostics_consumer, (diagnostics_consumer * consumer), (override));
+    MOCK_METHOD(void, register_parsing_metadata_consumer, (parsing_metadata_consumer * consumer), (override));
+    MOCK_METHOD(void, unregister_parsing_metadata_consumer, (parsing_metadata_consumer * consumer), (override));
+    MOCK_METHOD(void, set_message_consumer, (message_consumer * consumer), (override));
+    MOCK_METHOD(void, set_request_interface, (workspace_manager_requests * requests), (override));
+
+    MOCK_METHOD(continuous_sequence<char>, get_virtual_file_content, (unsigned long long id), (const override));
+
+
+    MOCK_METHOD(void,
+        make_opcode_suggestion,
+        (const char* document_uri,
+            const char* opcode,
+            bool extended,
+            workspace_manager_response<continuous_sequence<opcode_suggestion>>),
+        (override));
+
+    MOCK_METHOD(void, idle_handler, (const std::atomic<unsigned char>* yield_indicator), (override));
+
+    MOCK_METHOD(
+        bool, provide_debugger_configuration, (const char* document_uri, debugger_configuration& conf), (override));
+};
 } // namespace
 
 TEST(debugger, stopped_on_entry)
@@ -87,6 +155,8 @@ TEST(debugger, stopped_on_entry)
     lib_config config;
     shared_json global_settings = make_empty_shared_json();
     workspace ws(file_manager, config, global_settings);
+    NiceMock<ws_mngr_mock> ws_mngr;
+    EXPECT_CALL(ws_mngr, find_workspace).WillRepeatedly(Return(&ws));
 
     debugger d;
     debug_event_consumer_s_mock m(d);
@@ -97,7 +167,7 @@ TEST(debugger, stopped_on_entry)
 
     auto [resp, mock] = make_workspace_manager_response(std::in_place_type<workspace_manager_response_mock<bool>>);
     EXPECT_CALL(*mock, provide(true));
-    d.launch(file_name.c_str(), ws, true, resp);
+    d.launch(file_name.c_str(), ws_mngr, true, resp);
 
     m.wait_for_stopped();
 
@@ -128,6 +198,8 @@ TEST(debugger, disconnect)
     lib_config config;
     shared_json global_settings = make_empty_shared_json();
     workspace ws(file_manager, config, global_settings);
+    NiceMock<ws_mngr_mock> ws_mngr;
+    EXPECT_CALL(ws_mngr, find_workspace).WillRepeatedly(Return(&ws));
 
     debugger d;
     debug_event_consumer_s_mock m(d);
@@ -137,7 +209,7 @@ TEST(debugger, disconnect)
     file_manager.did_open_file(file_loc, 0, "   LR 1,2");
     auto [resp, mock] = make_workspace_manager_response(std::in_place_type<workspace_manager_response_mock<bool>>);
     EXPECT_CALL(*mock, provide(true));
-    d.launch(file_name.c_str(), ws, true, resp);
+    d.launch(file_name.c_str(), ws_mngr, true, resp);
     m.wait_for_stopped();
 
     d.disconnect();
@@ -480,6 +552,8 @@ TEST(debugger, test)
     file_manager.did_open_file(copy1_file_loc, 0, copy1_source);
     file_manager.did_open_file(copy2_file_loc, 0, copy2_source);
     workspace_mock lib_provider(file_manager);
+    NiceMock<ws_mngr_mock> ws_mngr;
+    EXPECT_CALL(ws_mngr, find_workspace).WillRepeatedly(Return(&lib_provider));
 
     debugger d;
     debug_event_consumer_s_mock m(d);
@@ -489,7 +563,7 @@ TEST(debugger, test)
     file_manager.did_open_file(file_loc, 0, open_code);
     auto [resp, mock] = make_workspace_manager_response(std::in_place_type<workspace_manager_response_mock<bool>>);
     EXPECT_CALL(*mock, provide(true));
-    d.launch(filename, lib_provider, true, resp);
+    d.launch(filename, ws_mngr, true, resp);
     m.wait_for_stopped();
     std::vector<expected_stack_frame> exp_frames { { 1, 1, 0, "OPENCODE", file_loc.get_uri() } };
     std::vector<frame_vars> exp_frame_vars { { {}, {}, {} } };
@@ -573,6 +647,8 @@ TEST(debugger, sysstmt)
 
     file_manager_impl file_manager;
     workspace_mock lib_provider(file_manager);
+    NiceMock<ws_mngr_mock> ws_mngr;
+    EXPECT_CALL(ws_mngr, find_workspace).WillRepeatedly(Return(&lib_provider));
 
     debugger d;
     debug_event_consumer_s_mock m(d);
@@ -582,7 +658,7 @@ TEST(debugger, sysstmt)
     file_manager.did_open_file(file_loc, 0, open_code);
     auto [resp, mock] = make_workspace_manager_response(std::in_place_type<workspace_manager_response_mock<bool>>);
     EXPECT_CALL(*mock, provide(true));
-    d.launch(filename, lib_provider, true, resp);
+    d.launch(filename, ws_mngr, true, resp);
     m.wait_for_stopped();
     std::vector<expected_stack_frame> exp_frames { { 1, 1, 0, "OPENCODE", file_loc.get_uri() } };
     std::vector<frame_vars> exp_frame_vars { { { {
@@ -636,6 +712,8 @@ A  MAC_IN ()
     file_manager_impl file_manager;
     file_manager.did_open_file(copy1_file_loc, 0, copy1_source);
     workspace_mock lib_provider(file_manager);
+    NiceMock<ws_mngr_mock> ws_mngr;
+    EXPECT_CALL(ws_mngr, find_workspace).WillRepeatedly(Return(&lib_provider));
 
     debugger d;
     debug_event_consumer_s_mock m(d);
@@ -645,7 +723,7 @@ A  MAC_IN ()
     file_manager.did_open_file(file_loc, 0, open_code);
     auto [resp, mock] = make_workspace_manager_response(std::in_place_type<workspace_manager_response_mock<bool>>);
     EXPECT_CALL(*mock, provide(true));
-    d.launch(filename, lib_provider, true, resp);
+    d.launch(filename, ws_mngr, true, resp);
     m.wait_for_stopped();
     std::vector<expected_stack_frame> exp_frames { { 1, 1, 0, "OPENCODE", file_loc.get_uri() } };
     std::vector<frame_vars> exp_frame_vars { { {}, {}, {} } };
@@ -804,6 +882,8 @@ TEST(debugger, positional_parameters)
 
     file_manager_impl file_manager;
     workspace_mock lib_provider(file_manager);
+    NiceMock<ws_mngr_mock> ws_mngr;
+    EXPECT_CALL(ws_mngr, find_workspace).WillRepeatedly(Return(&lib_provider));
     debugger d;
     debug_event_consumer_s_mock m(d);
     std::string filename = "ws\\test";
@@ -813,7 +893,7 @@ TEST(debugger, positional_parameters)
 
     auto [resp, mock] = make_workspace_manager_response(std::in_place_type<workspace_manager_response_mock<bool>>);
     EXPECT_CALL(*mock, provide(true));
-    d.launch(filename, lib_provider, true, resp);
+    d.launch(filename, ws_mngr, true, resp);
     m.wait_for_stopped();
 
     d.next();
@@ -926,6 +1006,8 @@ TEST(debugger, arrays)
 
     file_manager_impl file_manager;
     workspace_mock lib_provider(file_manager);
+    NiceMock<ws_mngr_mock> ws_mngr;
+    EXPECT_CALL(ws_mngr, find_workspace).WillRepeatedly(Return(&lib_provider));
     debugger d;
     debug_event_consumer_s_mock m(d);
     std::string filename = "ws\\test";
@@ -935,7 +1017,7 @@ TEST(debugger, arrays)
 
     auto [resp, mock] = make_workspace_manager_response(std::in_place_type<workspace_manager_response_mock<bool>>);
     EXPECT_CALL(*mock, provide(true));
-    d.launch(filename, lib_provider, true, resp);
+    d.launch(filename, ws_mngr, true, resp);
     m.wait_for_stopped();
     std::vector<expected_stack_frame> exp_frames { { 1, 1, 0, "OPENCODE", file_loc.get_uri() } };
     std::vector<frame_vars> exp_frame_vars { { {}, {}, {} } };
@@ -983,6 +1065,8 @@ B EQU A
 
     file_manager_impl file_manager;
     workspace_mock lib_provider(file_manager);
+    NiceMock<ws_mngr_mock> ws_mngr;
+    EXPECT_CALL(ws_mngr, find_workspace).WillRepeatedly(Return(&lib_provider));
     debugger d;
     debug_event_consumer_s_mock m(d);
     std::string filename = "ws\\test";
@@ -992,7 +1076,7 @@ B EQU A
 
     auto [resp, mock] = make_workspace_manager_response(std::in_place_type<workspace_manager_response_mock<bool>>);
     EXPECT_CALL(*mock, provide(true));
-    d.launch(file_loc.get_uri(), lib_provider, true, resp);
+    d.launch(file_loc.get_uri(), ws_mngr, true, resp);
 
     m.wait_for_stopped();
     std::vector<expected_stack_frame> exp_frames { { 1, 1, 0, "OPENCODE", file_loc.get_uri() } };
@@ -1031,6 +1115,8 @@ TEST(debugger, ainsert)
 
     file_manager_impl file_manager;
     workspace_mock lib_provider(file_manager);
+    NiceMock<ws_mngr_mock> ws_mngr;
+    EXPECT_CALL(ws_mngr, find_workspace).WillRepeatedly(Return(&lib_provider));
     debugger d;
     debug_event_consumer_s_mock m(d);
     std::string filename = "ws\\test";
@@ -1040,7 +1126,7 @@ TEST(debugger, ainsert)
 
     auto [resp, mock] = make_workspace_manager_response(std::in_place_type<workspace_manager_response_mock<bool>>);
     EXPECT_CALL(*mock, provide(true));
-    d.launch(file_loc.get_uri(), lib_provider, true, resp);
+    d.launch(file_loc.get_uri(), ws_mngr, true, resp);
 
     m.wait_for_stopped();
     std::vector<expected_stack_frame> exp_frames { { 1, 1, 0, "OPENCODE", file_loc.get_uri() } };
@@ -1096,6 +1182,8 @@ TEST(debugger, concurrent_next_and_file_change)
     file_manager_impl file_manager;
     file_manager.did_open_file(copy1_file_loc, 0, copy1_source);
     workspace_mock lib_provider(file_manager);
+    NiceMock<ws_mngr_mock> ws_mngr;
+    EXPECT_CALL(ws_mngr, find_workspace).WillRepeatedly(Return(&lib_provider));
 
     debugger d;
     debug_event_consumer_s_mock m(d);
@@ -1105,7 +1193,7 @@ TEST(debugger, concurrent_next_and_file_change)
     file_manager.did_open_file(file_loc, 0, open_code);
     auto [resp, mock] = make_workspace_manager_response(std::in_place_type<workspace_manager_response_mock<bool>>);
     EXPECT_CALL(*mock, provide(true));
-    d.launch(filename, lib_provider, true, resp);
+    d.launch(filename, ws_mngr, true, resp);
     m.wait_for_stopped();
     std::string new_string = "SOME NEW FILE DOES NOT MATTER";
     std::vector<document_change> chs;
@@ -1147,6 +1235,8 @@ TEST(debugger, invalid_file)
     lib_config config;
     shared_json global_settings = make_empty_shared_json();
     workspace ws(file_manager, config, global_settings);
+    NiceMock<ws_mngr_mock> ws_mngr;
+    EXPECT_CALL(ws_mngr, find_workspace).WillRepeatedly(Return(&ws));
 
     debugger d;
     debug_event_consumer_s_mock m(d);
@@ -1155,7 +1245,7 @@ TEST(debugger, invalid_file)
 
     auto [resp, mock] = make_workspace_manager_response(std::in_place_type<workspace_manager_response_mock<bool>>);
     EXPECT_CALL(*mock, provide(false));
-    d.launch(file_name.c_str(), ws, true, resp);
+    d.launch(file_name.c_str(), ws_mngr, true, resp);
 
     while (!resp.resolved())
         d.analysis_step(nullptr);

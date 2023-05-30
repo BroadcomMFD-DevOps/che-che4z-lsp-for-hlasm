@@ -152,11 +152,16 @@ class debugger::impl final : public processing::statement_analyzer
 public:
     impl() = default;
 
-    bool launch(std::string_view source,
-        workspaces::workspace& workspace,
-        bool stop_on_entry,
-        workspace_manager_response<bool> resp)
+    void launch(
+        std::string_view source, workspace_manager& ws_mngr, bool stop_on_entry, workspace_manager_response<bool> resp)
     {
+        auto ws = ws_mngr.find_workspace(std::string(source).c_str());
+        if (!ws)
+        {
+            resp.provide(false);
+            return;
+        }
+        auto& workspace = *ws;
         // still has data races
         utils::resource::resource_location open_code_location(source);
         opencode_source_uri_ = open_code_location.get_uri();
@@ -172,8 +177,6 @@ public:
             workspace.get_preprocessor_options(open_code_location),
             open_code_location,
             std::move(resp));
-
-        return true;
     }
 
     void step(const std::atomic<unsigned char>* yield_indicator)
@@ -459,12 +462,10 @@ debugger::~debugger()
         delete pimpl;
 }
 
-void debugger::launch(sequence<char> source,
-    workspaces::workspace& source_workspace,
-    bool stop_on_entry,
-    workspace_manager_response<bool> resp)
+void debugger::launch(
+    sequence<char> source, workspace_manager& ws_mngr, bool stop_on_entry, workspace_manager_response<bool> resp)
 {
-    pimpl->launch(std::string_view(source), source_workspace, stop_on_entry, std::move(resp));
+    pimpl->launch(std::string_view(source), ws_mngr, stop_on_entry, std::move(resp));
 }
 
 void debugger::set_event_consumer(debug_event_consumer* event) { pimpl->set_event_consumer(event); }

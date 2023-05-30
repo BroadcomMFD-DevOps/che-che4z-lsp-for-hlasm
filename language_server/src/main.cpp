@@ -41,7 +41,7 @@ namespace {
 class main_program : public json_sink, send_message_provider
 {
     external_file_reader external_files;
-    hlasm_plugin::parser_library::workspace_manager ws_mngr;
+    std::unique_ptr<hlasm_plugin::parser_library::workspace_manager> ws_mngr;
 
     json_sink& json_output;
     json_queue_channel lsp_queue;
@@ -58,11 +58,11 @@ class main_program : public json_sink, send_message_provider
 public:
     main_program(json_sink& json_output, int& ret)
         : external_files(json_output)
-        , ws_mngr(&external_files)
+        , ws_mngr(hlasm_plugin::parser_library::create_workspace_manager(&external_files))
         , json_output(json_output)
         , router(&lsp_queue)
-        , dap_sessions(ws_mngr, json_output, &dap_telemetry_broker)
-        , virtual_files(ws_mngr, json_output)
+        , dap_sessions(*ws_mngr, json_output, &dap_telemetry_broker)
+        , virtual_files(*ws_mngr, json_output)
     {
         router.register_route(dap_sessions.get_filtering_predicate(), dap_sessions);
         router.register_route(virtual_files.get_filtering_predicate(), virtual_files);
@@ -74,7 +74,7 @@ public:
                 auto ext_reg =
                     external_files.register_thread([this]() { lsp_queue.write(nlohmann::json::value_t::discarded); });
 
-                lsp::server server(ws_mngr);
+                lsp::server server(*ws_mngr);
                 server.set_send_message_provider(this);
 
                 hlasm_plugin::utils::scope_exit disconnect_telemetry(
@@ -84,7 +84,7 @@ public:
                 for (;;)
                 {
                     if (lsp_queue.will_read_block())
-                        ws_mngr.idle_handler(lsp_queue.will_block_preview());
+                        ws_mngr->idle_handler(lsp_queue.will_block_preview());
 
                     auto message = lsp_queue.read();
                     if (!message.has_value())
