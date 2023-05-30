@@ -31,6 +31,7 @@
 #include "debug_event_consumer_s_mock.h"
 #include "debugger.h"
 #include "debugging/debug_types.h"
+#include "debugging/debugger_configuration.h"
 #include "protocol.h"
 #include "utils/resource_location.h"
 #include "workspaces/file_manager_impl.h"
@@ -85,7 +86,6 @@ class ws_mngr_mock : public workspace_manager
 {
 public:
     MOCK_METHOD2(add_workspace, void(const char* name, const char* uri));
-    MOCK_METHOD(workspaces::workspace*, find_workspace, (const char* uri), (override));
     MOCK_METHOD1(remove_workspace, void(const char* uri));
 
     MOCK_METHOD4(
@@ -144,19 +144,20 @@ public:
 
     MOCK_METHOD(void, idle_handler, (const std::atomic<unsigned char>* yield_indicator), (override));
 
-    MOCK_METHOD(
-        bool, provide_debugger_configuration, (const char* document_uri, debugger_configuration& conf), (override));
+    MOCK_METHOD(void,
+        provide_debugger_configuration,
+        (sequence<char> document_uri, workspace_manager_response<debugger_configuration> conf),
+        (override));
 };
 } // namespace
 
 TEST(debugger, stopped_on_entry)
 {
     file_manager_impl file_manager;
-    lib_config config;
-    shared_json global_settings = make_empty_shared_json();
-    workspace ws(file_manager, config, global_settings);
     NiceMock<ws_mngr_mock> ws_mngr;
-    EXPECT_CALL(ws_mngr, find_workspace).WillRepeatedly(Return(&ws));
+    EXPECT_CALL(ws_mngr, provide_debugger_configuration).WillRepeatedly(Invoke([&file_manager](auto, auto r) {
+        r.provide({ .fm = &file_manager });
+    }));
 
     debugger d;
     debug_event_consumer_s_mock m(d);
@@ -195,11 +196,10 @@ TEST(debugger, stopped_on_entry)
 TEST(debugger, disconnect)
 {
     file_manager_impl file_manager;
-    lib_config config;
-    shared_json global_settings = make_empty_shared_json();
-    workspace ws(file_manager, config, global_settings);
     NiceMock<ws_mngr_mock> ws_mngr;
-    EXPECT_CALL(ws_mngr, find_workspace).WillRepeatedly(Return(&ws));
+    EXPECT_CALL(ws_mngr, provide_debugger_configuration).WillRepeatedly(Invoke([&file_manager](auto, auto r) {
+        r.provide({ .fm = &file_manager });
+    }));
 
     debugger d;
     debug_event_consumer_s_mock m(d);
@@ -553,7 +553,17 @@ TEST(debugger, test)
     file_manager.did_open_file(copy2_file_loc, 0, copy2_source);
     workspace_mock lib_provider(file_manager);
     NiceMock<ws_mngr_mock> ws_mngr;
-    EXPECT_CALL(ws_mngr, find_workspace).WillRepeatedly(Return(&lib_provider));
+    EXPECT_CALL(ws_mngr, provide_debugger_configuration)
+        .WillRepeatedly(Invoke([&file_manager, &lib_provider](auto uri, auto r) {
+            resource_location res = resource_location(std::string_view(uri));
+            r.provide({
+                .fm = &file_manager,
+                .libraries = lib_provider.get_libraries(res),
+                .workspace_uri = resource_location(lib_provider.uri()),
+                .opts = lib_provider.get_asm_options(res),
+                .pp_opts = lib_provider.get_preprocessor_options(res),
+            });
+        }));
 
     debugger d;
     debug_event_consumer_s_mock m(d);
@@ -648,7 +658,17 @@ TEST(debugger, sysstmt)
     file_manager_impl file_manager;
     workspace_mock lib_provider(file_manager);
     NiceMock<ws_mngr_mock> ws_mngr;
-    EXPECT_CALL(ws_mngr, find_workspace).WillRepeatedly(Return(&lib_provider));
+    EXPECT_CALL(ws_mngr, provide_debugger_configuration)
+        .WillRepeatedly(Invoke([&file_manager, &lib_provider](auto uri, auto r) {
+            resource_location res = resource_location(std::string_view(uri));
+            r.provide({
+                .fm = &file_manager,
+                .libraries = lib_provider.get_libraries(res),
+                .workspace_uri = resource_location(lib_provider.uri()),
+                .opts = lib_provider.get_asm_options(res),
+                .pp_opts = lib_provider.get_preprocessor_options(res),
+            });
+        }));
 
     debugger d;
     debug_event_consumer_s_mock m(d);
@@ -713,7 +733,17 @@ A  MAC_IN ()
     file_manager.did_open_file(copy1_file_loc, 0, copy1_source);
     workspace_mock lib_provider(file_manager);
     NiceMock<ws_mngr_mock> ws_mngr;
-    EXPECT_CALL(ws_mngr, find_workspace).WillRepeatedly(Return(&lib_provider));
+    EXPECT_CALL(ws_mngr, provide_debugger_configuration)
+        .WillRepeatedly(Invoke([&file_manager, &lib_provider](auto uri, auto r) {
+            resource_location res = resource_location(std::string_view(uri));
+            r.provide({
+                .fm = &file_manager,
+                .libraries = lib_provider.get_libraries(res),
+                .workspace_uri = resource_location(lib_provider.uri()),
+                .opts = lib_provider.get_asm_options(res),
+                .pp_opts = lib_provider.get_preprocessor_options(res),
+            });
+        }));
 
     debugger d;
     debug_event_consumer_s_mock m(d);
@@ -883,7 +913,17 @@ TEST(debugger, positional_parameters)
     file_manager_impl file_manager;
     workspace_mock lib_provider(file_manager);
     NiceMock<ws_mngr_mock> ws_mngr;
-    EXPECT_CALL(ws_mngr, find_workspace).WillRepeatedly(Return(&lib_provider));
+    EXPECT_CALL(ws_mngr, provide_debugger_configuration)
+        .WillRepeatedly(Invoke([&file_manager, &lib_provider](auto uri, auto r) {
+            resource_location res = resource_location(std::string_view(uri));
+            r.provide({
+                .fm = &file_manager,
+                .libraries = lib_provider.get_libraries(res),
+                .workspace_uri = resource_location(lib_provider.uri()),
+                .opts = lib_provider.get_asm_options(res),
+                .pp_opts = lib_provider.get_preprocessor_options(res),
+            });
+        }));
     debugger d;
     debug_event_consumer_s_mock m(d);
     std::string filename = "ws\\test";
@@ -1007,7 +1047,17 @@ TEST(debugger, arrays)
     file_manager_impl file_manager;
     workspace_mock lib_provider(file_manager);
     NiceMock<ws_mngr_mock> ws_mngr;
-    EXPECT_CALL(ws_mngr, find_workspace).WillRepeatedly(Return(&lib_provider));
+    EXPECT_CALL(ws_mngr, provide_debugger_configuration)
+        .WillRepeatedly(Invoke([&file_manager, &lib_provider](auto uri, auto r) {
+            resource_location res = resource_location(std::string_view(uri));
+            r.provide({
+                .fm = &file_manager,
+                .libraries = lib_provider.get_libraries(res),
+                .workspace_uri = resource_location(lib_provider.uri()),
+                .opts = lib_provider.get_asm_options(res),
+                .pp_opts = lib_provider.get_preprocessor_options(res),
+            });
+        }));
     debugger d;
     debug_event_consumer_s_mock m(d);
     std::string filename = "ws\\test";
@@ -1066,7 +1116,17 @@ B EQU A
     file_manager_impl file_manager;
     workspace_mock lib_provider(file_manager);
     NiceMock<ws_mngr_mock> ws_mngr;
-    EXPECT_CALL(ws_mngr, find_workspace).WillRepeatedly(Return(&lib_provider));
+    EXPECT_CALL(ws_mngr, provide_debugger_configuration)
+        .WillRepeatedly(Invoke([&file_manager, &lib_provider](auto uri, auto r) {
+            resource_location res = resource_location(std::string_view(uri));
+            r.provide({
+                .fm = &file_manager,
+                .libraries = lib_provider.get_libraries(res),
+                .workspace_uri = resource_location(lib_provider.uri()),
+                .opts = lib_provider.get_asm_options(res),
+                .pp_opts = lib_provider.get_preprocessor_options(res),
+            });
+        }));
     debugger d;
     debug_event_consumer_s_mock m(d);
     std::string filename = "ws\\test";
@@ -1116,7 +1176,17 @@ TEST(debugger, ainsert)
     file_manager_impl file_manager;
     workspace_mock lib_provider(file_manager);
     NiceMock<ws_mngr_mock> ws_mngr;
-    EXPECT_CALL(ws_mngr, find_workspace).WillRepeatedly(Return(&lib_provider));
+    EXPECT_CALL(ws_mngr, provide_debugger_configuration)
+        .WillRepeatedly(Invoke([&file_manager, &lib_provider](auto uri, auto r) {
+            resource_location res = resource_location(std::string_view(uri));
+            r.provide({
+                .fm = &file_manager,
+                .libraries = lib_provider.get_libraries(res),
+                .workspace_uri = resource_location(lib_provider.uri()),
+                .opts = lib_provider.get_asm_options(res),
+                .pp_opts = lib_provider.get_preprocessor_options(res),
+            });
+        }));
     debugger d;
     debug_event_consumer_s_mock m(d);
     std::string filename = "ws\\test";
@@ -1183,7 +1253,17 @@ TEST(debugger, concurrent_next_and_file_change)
     file_manager.did_open_file(copy1_file_loc, 0, copy1_source);
     workspace_mock lib_provider(file_manager);
     NiceMock<ws_mngr_mock> ws_mngr;
-    EXPECT_CALL(ws_mngr, find_workspace).WillRepeatedly(Return(&lib_provider));
+    EXPECT_CALL(ws_mngr, provide_debugger_configuration)
+        .WillRepeatedly(Invoke([&file_manager, &lib_provider](auto uri, auto r) {
+            resource_location res = resource_location(std::string_view(uri));
+            r.provide({
+                .fm = &file_manager,
+                .libraries = lib_provider.get_libraries(res),
+                .workspace_uri = resource_location(lib_provider.uri()),
+                .opts = lib_provider.get_asm_options(res),
+                .pp_opts = lib_provider.get_preprocessor_options(res),
+            });
+        }));
 
     debugger d;
     debug_event_consumer_s_mock m(d);
@@ -1232,11 +1312,10 @@ TEST(debugger, breakpoints_set_get)
 TEST(debugger, invalid_file)
 {
     file_manager_impl file_manager;
-    lib_config config;
-    shared_json global_settings = make_empty_shared_json();
-    workspace ws(file_manager, config, global_settings);
     NiceMock<ws_mngr_mock> ws_mngr;
-    EXPECT_CALL(ws_mngr, find_workspace).WillRepeatedly(Return(&ws));
+    EXPECT_CALL(ws_mngr, provide_debugger_configuration).WillRepeatedly(Invoke([&file_manager](auto, auto r) {
+        r.provide({ .fm = &file_manager });
+    }));
 
     debugger d;
     debug_event_consumer_s_mock m(d);

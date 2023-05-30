@@ -28,7 +28,6 @@ class ws_mngr_mock : public workspace_manager
 {
 public:
     MOCK_METHOD2(add_workspace, void(const char* name, const char* uri));
-    MOCK_METHOD(workspaces::workspace*, find_workspace, (const char* uri), (override));
     MOCK_METHOD1(remove_workspace, void(const char* uri));
 
     MOCK_METHOD4(
@@ -87,9 +86,9 @@ public:
 
     MOCK_METHOD(void, idle_handler, (const std::atomic<unsigned char>* yield_indicator), (override));
 
-    MOCK_METHOD(bool,
+    MOCK_METHOD(void,
         provide_debugger_configuration,
-        (const char* document_uri, debugging::debugger_configuration& conf),
+        (sequence<char> document_uri, workspace_manager_response<debugging::debugger_configuration> conf),
         (override));
 };
 

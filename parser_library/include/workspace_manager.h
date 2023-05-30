@@ -90,7 +90,6 @@ class workspace_manager
 public:
     virtual ~workspace_manager() = default;
     virtual void add_workspace(const char* name, const char* uri) = 0;
-    virtual workspaces::workspace* find_workspace(const char* uri) = 0;
     virtual void remove_workspace(const char* uri) = 0;
 
     virtual void did_open_file(const char* document_uri, version_t version, const char* text, size_t text_size) = 0;
@@ -133,7 +132,8 @@ public:
 
     virtual void idle_handler(const std::atomic<unsigned char>* yield_indicator = nullptr) = 0;
 
-    virtual bool provide_debugger_configuration(const char* document_uri, debugging::debugger_configuration& conf) = 0;
+    virtual void provide_debugger_configuration(
+        sequence<char> document_uri, workspace_manager_response<debugging::debugger_configuration> conf) = 0;
 };
 
 workspace_manager* create_workspace_manager_impl(workspace_manager_external_file_requests* external_requests);

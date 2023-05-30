@@ -31,6 +31,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "debugging/debugger_configuration.h"
 #include "lsp/completion_item.h"
 #include "lsp/document_symbol_item.h"
 #include "nlohmann/json.hpp"
@@ -982,7 +983,7 @@ private:
 
         attach_configuration_request(new_workspace);
     }
-    workspaces::workspace* find_workspace(const char* uri) override { return &ws_path_match(*this, uri).ws; }
+
     void remove_workspace(const char* uri) override
     {
         auto it = m_workspaces.find(uri);
@@ -1006,10 +1007,27 @@ private:
         notify_diagnostics_consumers();
     }
 
-    bool provide_debugger_configuration(const char* document_uri, debugging::debugger_configuration& conf) override
+    void provide_debugger_configuration(
+        sequence<char> document_uri, workspace_manager_response<debugging::debugger_configuration> conf) override
     {
-        // TODO:
-        return false;
+        std::string_view uri(document_uri);
+        auto& workspace = ws_path_match(uri).ws;
+        utils::resource::resource_location open_code_location(uri);
+
+        try
+        {
+            conf.provide({
+                .fm = &m_file_manager,
+                .libraries = workspace.get_libraries(open_code_location),
+                .workspace_uri = utils::resource::resource_location(workspace.uri()),
+                .opts = workspace.get_asm_options(open_code_location),
+                .pp_opts = workspace.get_preprocessor_options(open_code_location),
+            });
+        }
+        catch (const std::exception& ex)
+        {
+            conf.error(-1, ex.what());
+        }
     }
 };
 

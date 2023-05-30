@@ -24,20 +24,23 @@
 #include <thread>
 #include <unordered_map>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include "analyzer.h"
 #include "debug_lib_provider.h"
 #include "debug_types.h"
+#include "debugger_configuration.h"
 #include "macro_param_variable.h"
 #include "ordinary_symbol_variable.h"
 #include "set_symbol_variable.h"
 #include "utils/task.h"
 #include "variable.h"
 #include "virtual_file_monitor.h"
+#include "workspace_manager.h"
+#include "workspace_manager_response.h"
 #include "workspaces/file_manager.h"
 #include "workspaces/file_manager_vfm.h"
-#include "workspaces/workspace.h"
 
 using namespace hlasm_plugin::parser_library::workspaces;
 
@@ -114,21 +117,24 @@ class debugger::impl final : public processing::statement_analyzer
 
     utils::task analyzer_task;
 
-    utils::task start_main_analyzer(file_manager& fm,
-        debug_lib_provider debug_provider,
-        workspaces::file_manager_vfm vfm,
-        asm_option asm_opts,
-        std::vector<preprocessor_options> pp_opts,
+    utils::task start_main_analyzer(debugger_configuration dc,
         utils::resource::resource_location open_code_location,
         workspace_manager_response<bool> resp)
     {
-        auto open_code_text = co_await fm.get_file_content(open_code_location);
+        if (!dc.fm)
+        {
+            resp.provide(false);
+            co_return;
+        }
+        auto open_code_text = co_await dc.fm->get_file_content(open_code_location);
         if (!open_code_text.has_value())
         {
             resp.provide(false);
             co_return;
         }
         resp.provide(true);
+        debug_lib_provider debug_provider(std::move(dc.libraries), *dc.fm);
+        workspaces::file_manager_vfm vfm(*dc.fm, std::move(dc.workspace_uri));
 
         if (auto prefetch = debug_provider.prefetch_libraries(); prefetch.valid())
             co_await std::move(prefetch);
@@ -137,8 +143,8 @@ class debugger::impl final : public processing::statement_analyzer
             analyzer_options {
                 std::move(open_code_location),
                 &debug_provider,
-                std::move(asm_opts),
-                std::move(pp_opts),
+                std::move(dc.opts),
+                std::move(dc.pp_opts),
                 &vfm,
             });
 
@@ -155,28 +161,32 @@ public:
     void launch(
         std::string_view source, workspace_manager& ws_mngr, bool stop_on_entry, workspace_manager_response<bool> resp)
     {
-        auto ws = ws_mngr.find_workspace(std::string(source).c_str());
-        if (!ws)
+        struct conf_t
         {
-            resp.provide(false);
-            return;
-        }
-        auto& workspace = *ws;
-        // still has data races
+            debugger_configuration conf;
+
+            void provide(debugger_configuration v) { conf = std::move(v); }
+            void error(int, const char*) noexcept {}
+        };
+        auto [conf_resp, conf] = make_workspace_manager_response(std::in_place_type<conf_t>);
+        ws_mngr.provide_debugger_configuration(sequence<char>(source), conf_resp);
+
         utils::resource::resource_location open_code_location(source);
         opencode_source_uri_ = open_code_location.get_uri();
         continue_ = true;
         stop_on_next_stmt_ = stop_on_entry;
         stop_on_stack_changes_ = false;
 
-        auto& fm = workspace.get_file_manager();
-        analyzer_task = start_main_analyzer(fm,
-            debug_lib_provider(workspace.get_libraries(open_code_location), fm),
-            workspaces::file_manager_vfm(fm, utils::resource::resource_location(workspace.uri())),
-            workspace.get_asm_options(open_code_location),
-            workspace.get_preprocessor_options(open_code_location),
-            open_code_location,
-            std::move(resp));
+        analyzer_task = [](auto conf_resp, auto conf, workspace_manager_response<bool> launch_resp)
+            -> utils::value_task<debugger_configuration> {
+            while (!conf_resp.resolved())
+                co_await utils::task::suspend();
+            co_return conf->conf;
+        }(std::move(conf_resp), conf, resp)
+                   .then([this, resp, open_code_location = std::move(open_code_location)](
+                             debugger_configuration dc) -> utils::task {
+                       co_await start_main_analyzer(dc, open_code_location, resp);
+                   });
     }
 
     void step(const std::atomic<unsigned char>* yield_indicator)
