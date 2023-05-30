@@ -228,7 +228,7 @@ public:
     using workspace_manager_response_base::resolved;
     using workspace_manager_response_base::valid;
 
-    void provide(T t) const noexcept { workspace_manager_response_base::provide(&t); }
+    void provide(T&& t) const noexcept { workspace_manager_response_base::provide(&t); }
 
     friend decltype(make_workspace_manager_response);
 };
