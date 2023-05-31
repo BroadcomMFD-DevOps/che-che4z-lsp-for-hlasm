@@ -151,7 +151,7 @@ public:
     // All the requests and notification are passed to the workspace manager
     explicit feature() = default;
     // Constructs the feature with workspace_manager and response_provider through which the feature can send messages.
-    feature(response_provider& response_provider)
+    explicit feature(response_provider& response_provider)
         : response_(&response_provider)
     {}
 

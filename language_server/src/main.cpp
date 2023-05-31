@@ -38,9 +38,9 @@ using namespace hlasm_plugin::language_server;
 
 namespace {
 
-class main_program : public json_sink,
-                     send_message_provider,
-                     hlasm_plugin::parser_library::debugger_configuration_provider
+class main_program final : public json_sink,
+                           send_message_provider,
+                           hlasm_plugin::parser_library::debugger_configuration_provider
 {
     external_file_reader external_files;
     std::unique_ptr<hlasm_plugin::parser_library::workspace_manager> ws_mngr;
@@ -63,10 +63,10 @@ class main_program : public json_sink,
 
     void provide_debugger_configuration(hlasm_plugin::parser_library::sequence<char> document_uri,
         hlasm_plugin::parser_library::workspace_manager_response<
-            hlasm_plugin::parser_library::debugging::debugger_configuration> conf)
+            hlasm_plugin::parser_library::debugging::debugger_configuration> conf) override
     {
         std::unique_lock g(proxies_mutex);
-        proxies.push_back([this, uri = std::string(document_uri), conf = std::move(conf)]() {
+        proxies.emplace_back([this, uri = std::string(document_uri), conf = std::move(conf)]() {
             dc_provider.provide_debugger_configuration(hlasm_plugin::parser_library::sequence<char>(uri), conf);
         });
         g.unlock();
