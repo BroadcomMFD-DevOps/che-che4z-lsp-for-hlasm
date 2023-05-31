@@ -130,6 +130,10 @@ class
     T provide_type(void (U::*)(T)) const;
     template<typename U, typename T>
     T provide_type(void (U::*)(T) const) const;
+    template<typename U, typename T>
+    T provide_type(void (U::*)(T&&)) const;
+    template<typename U, typename T>
+    T provide_type(void (U::*)(T&&) const) const;
 
 public:
     template<typename U>
