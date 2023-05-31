@@ -383,7 +383,7 @@ private:
 
     struct parse_parameters
     {
-        std::unique_ptr<parser_library::workspace_manager> ws;
+        std::unique_ptr<parser_library::workspace_manager> ws = parser_library::create_workspace_manager();
         benchmark::diagnostic_counter diag_counter;
         parsing_metadata_collector collector;
         const std::string& source_file;
@@ -391,8 +391,7 @@ private:
         std::string annotation;
 
         parse_parameters(const std::string& source_file, size_t current_iteration, const bench_configuration& bc)
-            : ws(parser_library::create_workspace_manager())
-            , source_file(source_file)
+            : source_file(source_file)
             , source_path(bc.ws_folder + "/" + source_file)
         {
             annotation = get_file_message(current_iteration, bc);
