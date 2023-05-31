@@ -15,6 +15,7 @@
 #include "gtest/gtest.h"
 
 #include "common_testing.h"
+#include "debugging/debugger_configuration.h"
 #include "lib_config.h"
 #include "message_consumer_mock.h"
 #include "nlohmann/json.hpp"
@@ -22,6 +23,8 @@
 #include "utils/platform.h"
 #include "workspace/consume_diagnostics_mock.h"
 #include "workspace_manager.h"
+#include "workspace_manager_response.h"
+#include "workspace_manager_response_mock.h"
 
 using namespace hlasm_plugin::parser_library;
 
@@ -96,4 +99,23 @@ TEST(workspace_manager, did_change_file)
     ws_mngr->idle_handler();
 
     EXPECT_GT(consumer.diags.diagnostics_size(), (size_t)0);
+}
+
+TEST(workspace_manager, cancel_debugger_configuration_request)
+{
+    auto [p, impl] = make_workspace_manager_response(
+        std::in_place_type<workspace_manager_response_mock<debugging::debugger_configuration>>);
+
+    EXPECT_CALL(*impl, error(-104, ::testing::StrEq("Workspace removed")));
+
+    auto ws_mngr = create_workspace_manager();
+    auto& dc = ws_mngr->get_debugger_configuration_provider();
+
+    ws_mngr->add_workspace("workspace", "not_existing");
+
+    dc.provide_debugger_configuration(sequence<char>(std::string_view("not_existing/file")), p);
+
+    ws_mngr->remove_workspace("workspace");
+
+    ws_mngr->idle_handler();
 }

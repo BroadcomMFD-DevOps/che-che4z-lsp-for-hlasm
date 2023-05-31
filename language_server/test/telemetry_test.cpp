@@ -117,6 +117,7 @@ TEST(telemetry, telemetry_broker)
             R"({"jsonrpc":"2.0","id":48,"method":"textDocument/hover","params":{"textDocument":{"uri":"file:///test_file"},"position":{"line":0,"character":2} }})"_json);
         ws_mngr->idle_handler();
     });
+    lsp_thread.join();
 
 
     std::thread dap_thread([&]() {
@@ -134,13 +135,13 @@ TEST(telemetry, telemetry_broker)
             R"({"command":"launch","arguments":{"program":"file:///test_file","stopOnEntry":true,"restart":false},"type":"request","seq":10})"_json;
 
         dap_server.message_received(launch_message);
+        ws_mngr->idle_handler();
+        dap_server.idle_handler(nullptr);
 
         auto disconnect_message =
             R"({"command":"disconnect","arguments":{"restart":false},"type":"request","seq":10})"_json;
 
         dap_server.message_received(disconnect_message);
     });
-
     dap_thread.join();
-    lsp_thread.join();
 }

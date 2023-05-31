@@ -142,6 +142,7 @@ public:
         settings_change,
         file_change,
         query,
+        dc_request,
     };
 
     struct work_item
@@ -155,6 +156,8 @@ public:
         std::function<bool()> validator; // maybe empty
 
         work_item_type request_type;
+
+        std::function<void(work_item&)> on_workspace_delete;
 
         std::vector<std::pair<unsigned long long, std::function<void()>>> pending_requests;
 
@@ -1002,6 +1005,8 @@ private:
 
             e.workspace_removed = true;
             e.cancel_pending_requests();
+            if (e.on_workspace_delete)
+                e.on_workspace_delete(e);
         }
         if (m_active_task.ows == ows)
             m_active_task = {};
@@ -1015,23 +1020,29 @@ private:
     void provide_debugger_configuration(
         sequence<char> document_uri, workspace_manager_response<debugging::debugger_configuration> conf) override
     {
-        try
-        {
-            std::string_view uri(document_uri);
-            auto& workspace = ws_path_match(uri).ws;
-            utils::resource::resource_location open_code_location(uri);
-            conf.provide({
-                .fm = &m_file_manager,
-                .libraries = workspace.get_libraries(open_code_location),
-                .workspace_uri = utils::resource::resource_location(workspace.uri()),
-                .opts = workspace.get_asm_options(open_code_location),
-                .pp_opts = workspace.get_preprocessor_options(open_code_location),
-            });
-        }
-        catch (const std::exception& ex)
-        {
-            conf.error(-1, ex.what());
-        }
+        std::string_view uri(document_uri);
+        auto& ows = ws_path_match(uri);
+        work_item wi {
+            next_unique_id(),
+            &ows,
+            ows.ws.get_debugger_configuration(resource_location(uri))
+                .then([conf](debugging::debugger_configuration dc) { conf.provide(std::move(dc)); }),
+            {},
+            work_item_type::dc_request,
+            [conf](work_item& me) {
+                conf.error(utils::error::workspace_removed);
+                me.action = []() {};
+            },
+        };
+        const auto matching_open_request = [&ows](const auto& w) {
+            return w.request_type == work_item_type::workspace_open && w.ows == &ows;
+        };
+        // insert as a priority request, but after matching workspace_open request if present
+        if (auto it = std::find_if(m_work_queue.begin(), m_work_queue.end(), matching_open_request);
+            it != m_work_queue.end())
+            m_work_queue.insert(++it, std::move(wi));
+        else
+            m_work_queue.push_front(std::move(wi));
     }
 };
 
