@@ -65,11 +65,11 @@ void dap_feature::initialize_feature(const nlohmann::json&)
 { /* nothing to do */
 }
 
-dap_feature::dap_feature(parser_library::workspace_manager& ws_mngr,
+dap_feature::dap_feature(parser_library::debugger_configuration_provider& dc_provider,
     response_provider& response_provider,
     dap_disconnect_listener* disconnect_listener)
     : feature(response_provider)
-    , ws_mngr_(ws_mngr)
+    , dc_provider(dc_provider)
     , disconnect_listener_(disconnect_listener)
 {}
 
@@ -174,7 +174,7 @@ void dap_feature::on_launch(const request_id& request_seq, const nlohmann::json&
     };
 
     debugger->launch(program_path.c_str(),
-        ws_mngr_,
+        dc_provider,
         stop_on_entry,
         parser_library::make_workspace_manager_response(launch_handler { request_seq, response_ }).first);
 }

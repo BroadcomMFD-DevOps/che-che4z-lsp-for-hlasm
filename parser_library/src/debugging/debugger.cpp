@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <atomic>
 #include <condition_variable>
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -117,9 +118,9 @@ class debugger::impl final : public processing::statement_analyzer
 
     utils::task analyzer_task;
 
-    utils::task start_main_analyzer(debugger_configuration dc,
-        utils::resource::resource_location open_code_location,
-        workspace_manager_response<bool> resp)
+    utils::task start_main_analyzer(utils::resource::resource_location open_code_location,
+        workspace_manager_response<bool> resp,
+        debugger_configuration dc)
     {
         if (!dc.fm)
         {
@@ -158,9 +159,28 @@ class debugger::impl final : public processing::statement_analyzer
 public:
     impl() = default;
 
-    void launch(
-        std::string_view source, workspace_manager& ws_mngr, bool stop_on_entry, workspace_manager_response<bool> resp)
+    struct
     {
+        template<typename Channel, typename T>
+        utils::value_task<T> operator()(Channel channel, T* result) const
+        {
+            while (!channel.resolved())
+                co_await utils::task::suspend();
+
+            co_return std::move(*result);
+        }
+    } static constexpr async_busy_wait = {}; // clang 14
+
+    void launch(std::string_view source,
+        debugger_configuration_provider& dc_provider,
+        bool stop_on_entry,
+        workspace_manager_response<bool> resp)
+    {
+        opencode_source_uri_ = source;
+        continue_ = true;
+        stop_on_next_stmt_ = stop_on_entry;
+        stop_on_stack_changes_ = false;
+
         struct conf_t
         {
             debugger_configuration conf;
@@ -169,24 +189,11 @@ public:
             void error(int, const char*) noexcept {}
         };
         auto [conf_resp, conf] = make_workspace_manager_response(std::in_place_type<conf_t>);
-        ws_mngr.provide_debugger_configuration(sequence<char>(source), conf_resp);
-
-        utils::resource::resource_location open_code_location(source);
-        opencode_source_uri_ = open_code_location.get_uri();
-        continue_ = true;
-        stop_on_next_stmt_ = stop_on_entry;
-        stop_on_stack_changes_ = false;
-
-        analyzer_task = [](auto conf_resp, auto conf, workspace_manager_response<bool> launch_resp)
-            -> utils::value_task<debugger_configuration> {
-            while (!conf_resp.resolved())
-                co_await utils::task::suspend();
-            co_return conf->conf;
-        }(std::move(conf_resp), conf, resp)
-                   .then([this, resp, open_code_location = std::move(open_code_location)](
-                             debugger_configuration dc) -> utils::task {
-                       co_await start_main_analyzer(dc, open_code_location, resp);
-                   });
+        dc_provider.provide_debugger_configuration(sequence<char>(source), conf_resp);
+        analyzer_task =
+            async_busy_wait(std::move(conf_resp), &conf->conf)
+                .then(std::bind_front(
+                    &impl::start_main_analyzer, this, utils::resource::resource_location(source), std::move(resp)));
     }
 
     void step(const std::atomic<unsigned char>* yield_indicator)
@@ -472,10 +479,12 @@ debugger::~debugger()
         delete pimpl;
 }
 
-void debugger::launch(
-    sequence<char> source, workspace_manager& ws_mngr, bool stop_on_entry, workspace_manager_response<bool> resp)
+void debugger::launch(sequence<char> source,
+    debugger_configuration_provider& dc_provider,
+    bool stop_on_entry,
+    workspace_manager_response<bool> resp)
 {
-    pimpl->launch(std::string_view(source), ws_mngr, stop_on_entry, std::move(resp));
+    pimpl->launch(std::string_view(source), dc_provider, stop_on_entry, std::move(resp));
 }
 
 void debugger::set_event_consumer(debug_event_consumer* event) { pimpl->set_event_consumer(event); }

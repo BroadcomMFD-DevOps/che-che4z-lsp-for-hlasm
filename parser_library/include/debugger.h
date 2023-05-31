@@ -23,7 +23,6 @@
 #include "workspace_manager_response.h"
 
 namespace hlasm_plugin::parser_library::debugging {
-
 struct debugger_configuration;
 
 // Interface that a listener can implement to be notified about debugging events.
@@ -73,12 +72,16 @@ public:
     debugger& operator=(debugger&&) & noexcept;
     ~debugger();
 
-    void launch(
-        sequence<char> source, workspace_manager& ws_mngr, bool stop_on_entry, workspace_manager_response<bool> resp);
-    void launch(
-        std::string_view source, workspace_manager& ws_mngr, bool stop_on_entry, workspace_manager_response<bool> resp)
+    void launch(sequence<char> source,
+        debugger_configuration_provider& dc_provider,
+        bool stop_on_entry,
+        workspace_manager_response<bool> resp);
+    void launch(std::string_view source,
+        debugger_configuration_provider& dc_provider,
+        bool stop_on_entry,
+        workspace_manager_response<bool> resp)
     {
-        launch(sequence(source), ws_mngr, stop_on_entry, std::move(resp));
+        launch(sequence(source), dc_provider, stop_on_entry, std::move(resp));
     }
 
     void set_event_consumer(debug_event_consumer* event);

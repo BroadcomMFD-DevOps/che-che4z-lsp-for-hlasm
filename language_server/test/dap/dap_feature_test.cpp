@@ -93,7 +93,7 @@ struct response_provider_mock : public response_provider
 struct feature_launch_test : public testing::Test
 {
     feature_launch_test()
-        : feature(*ws_mngr, resp_provider, nullptr)
+        : feature(ws_mngr->get_debugger_configuration_provider(), resp_provider, nullptr)
     {
         feature.on_initialize(
             request_id(0), R"({"linesStartAt1":false, "columnsStartAt1":false, "pathFormat":"path"})"_json);

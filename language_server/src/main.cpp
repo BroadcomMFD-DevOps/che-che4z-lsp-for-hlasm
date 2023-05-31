@@ -61,7 +61,7 @@ public:
         , ws_mngr(hlasm_plugin::parser_library::create_workspace_manager(&external_files))
         , json_output(json_output)
         , router(&lsp_queue)
-        , dap_sessions(*ws_mngr, json_output, &dap_telemetry_broker)
+        , dap_sessions(ws_mngr->get_debugger_configuration_provider(), json_output, &dap_telemetry_broker)
         , virtual_files(*ws_mngr, json_output)
     {
         router.register_route(dap_sessions.get_filtering_predicate(), dap_sessions);

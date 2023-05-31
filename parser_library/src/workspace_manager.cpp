@@ -55,7 +55,10 @@ namespace hlasm_plugin::parser_library {
 // Holds workspaces, file manager and macro tracer and handles LSP and DAP
 // notifications and requests.
 
-class workspace_manager_impl final : public workspace_manager, public diagnosable_impl, workspaces::external_file_reader
+class workspace_manager_impl final : public workspace_manager,
+                                     debugger_configuration_provider,
+                                     public diagnosable_impl,
+                                     workspaces::external_file_reader
 {
     static constexpr lib_config supress_all { 0 };
     using resource_location = utils::resource::resource_location;
@@ -1007,15 +1010,16 @@ private:
         notify_diagnostics_consumers();
     }
 
+    debugger_configuration_provider& get_debugger_configuration_provider() override { return *this; }
+
     void provide_debugger_configuration(
         sequence<char> document_uri, workspace_manager_response<debugging::debugger_configuration> conf) override
     {
-        std::string_view uri(document_uri);
-        auto& workspace = ws_path_match(uri).ws;
-        utils::resource::resource_location open_code_location(uri);
-
         try
         {
+            std::string_view uri(document_uri);
+            auto& workspace = ws_path_match(uri).ws;
+            utils::resource::resource_location open_code_location(uri);
             conf.provide({
                 .fm = &m_file_manager,
                 .libraries = workspace.get_libraries(open_code_location),

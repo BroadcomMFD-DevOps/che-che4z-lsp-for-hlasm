@@ -44,7 +44,7 @@ void session::thread_routine()
 
         utils::scope_exit indicate_end([this]() noexcept { running = false; });
 
-        dap::server server(*ws_mngr, telemetry_reporter);
+        dap::server server(*dc_provider, telemetry_reporter);
         server.set_send_message_provider(&smp);
 
         while (!server.is_exit_notification_received())
@@ -72,12 +72,12 @@ void session::thread_routine()
     }
 }
 session::session(size_t s_id,
-    hlasm_plugin::parser_library::workspace_manager& ws,
+    parser_library::debugger_configuration_provider& dc_provider,
     json_sink& out,
     telemetry_sink* telem_reporter,
     external_file_reader* ext_files)
     : session_id(message_wrapper::generate_method_name(s_id))
-    , ws_mngr(&ws)
+    , dc_provider(&dc_provider)
     , msg_wrapper(out, s_id)
     , msg_unwrapper(queue)
     , telemetry_reporter(telem_reporter)

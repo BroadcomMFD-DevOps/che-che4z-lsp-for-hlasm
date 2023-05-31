@@ -35,9 +35,6 @@ class workspace_manager_external_file_requests;
 namespace debugging {
 struct debugger_configuration;
 } // namespace debugging
-namespace workspaces {
-class workspace;
-}
 
 // Interface that can be implemented to be able to get list of
 // diagnostics from workspace manager whenever a file is parsed
@@ -84,6 +81,16 @@ struct opcode_suggestion
 
 template<typename T>
 class workspace_manager_response;
+
+class debugger_configuration_provider
+{
+protected:
+    ~debugger_configuration_provider() = default;
+
+public:
+    virtual void provide_debugger_configuration(
+        sequence<char> document_uri, workspace_manager_response<debugging::debugger_configuration> conf) = 0;
+};
 
 class workspace_manager
 {
@@ -132,8 +139,7 @@ public:
 
     virtual void idle_handler(const std::atomic<unsigned char>* yield_indicator = nullptr) = 0;
 
-    virtual void provide_debugger_configuration(
-        sequence<char> document_uri, workspace_manager_response<debugging::debugger_configuration> conf) = 0;
+    virtual debugger_configuration_provider& get_debugger_configuration_provider() = 0;
 };
 
 workspace_manager* create_workspace_manager_impl(workspace_manager_external_file_requests* external_requests);
