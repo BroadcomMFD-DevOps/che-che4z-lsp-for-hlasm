@@ -36,6 +36,7 @@
 #include "lsp/document_symbol_item.h"
 #include "nlohmann/json.hpp"
 #include "protocol.h"
+#include "utils/async_busy_wait.h"
 #include "utils/content_loader.h"
 #include "utils/encoding.h"
 #include "utils/error_codes.h"
@@ -839,18 +840,6 @@ private:
 
     static constexpr std::string_view hlasm_external_scheme = "hlasm-external://";
 
-    struct
-    {
-        template<typename Channel, typename T>
-        utils::value_task<T> operator()(Channel channel, T* result) const
-        {
-            while (!channel.resolved())
-                co_await utils::task::suspend();
-
-            co_return std::move(*result);
-        }
-    } static constexpr async_busy_wait = {}; // clang 14
-
     [[nodiscard]] utils::value_task<std::optional<std::string>> load_text_external(
         const utils::resource::resource_location& document_loc) const
     {
@@ -864,7 +853,7 @@ private:
         auto [channel, data] = make_workspace_manager_response(std::in_place_type<content_t>);
         m_external_file_requests->read_external_file(document_loc.get_uri().c_str(), channel);
 
-        return async_busy_wait(std::move(channel), &data->result);
+        return utils::async_busy_wait(std::move(channel), &data->result);
     }
 
     [[nodiscard]] utils::value_task<std::optional<std::string>> load_text(
@@ -924,7 +913,7 @@ private:
         auto [channel, data] = make_workspace_manager_response(std::in_place_type<content_t>, directory);
         m_external_file_requests->read_external_directory(data->dir.get_uri().c_str(), channel);
 
-        return async_busy_wait(std::move(channel), &data->result);
+        return utils::async_busy_wait(std::move(channel), &data->result);
     }
 
     [[nodiscard]] utils::value_task<std::pair<std::vector<std::pair<std::string, utils::resource::resource_location>>,
