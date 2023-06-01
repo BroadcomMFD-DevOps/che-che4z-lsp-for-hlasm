@@ -51,7 +51,8 @@ protected:
     // Sends request to LSP client using send_message_provider.
     void request(const std::string& requested_method,
         const nlohmann::json& args,
-        std::function<void(const nlohmann::json& params)> handler) override;
+        std::function<void(const nlohmann::json& params)> handler,
+        std::function<void(int, const char*)> error_handler) override;
     // Sends respond to request to LSP client using send_message_provider.
     void respond(const request_id& id, const std::string& requested_method, const nlohmann::json& args) override;
     // Sends notification to LSP client using send_message_provider.
@@ -103,6 +104,8 @@ private:
 
     void request_workspace_configuration(
         const char* url, parser_library::workspace_manager_response<parser_library::sequence<char>> json_text) override;
+    void request_file_configuration(parser_library::sequence<char> url,
+        parser_library::workspace_manager_response<parser_library::sequence<char>> json_text) override;
 };
 
 } // namespace hlasm_plugin::language_server::lsp

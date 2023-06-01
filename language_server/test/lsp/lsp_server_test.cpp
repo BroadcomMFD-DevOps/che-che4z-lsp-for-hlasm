@@ -137,7 +137,10 @@ TEST(lsp_server, request_correct)
     EXPECT_CALL(message_provider, reply(expected_message));
 
     rp.request(
-        "client_method", "a_json_parameter", [&handler](const nlohmann::json& params) { handler.handle(params); });
+        "client_method",
+        "a_json_parameter",
+        [&handler](const nlohmann::json& params) { handler.handle(params); },
+        [](int, const char*) { std::terminate(); });
 
     auto request_response = R"({"id":0,"jsonrpc":"2.0","result":"response_result"})"_json;
 
@@ -191,9 +194,7 @@ TEST(lsp_server, request_no_id)
     s.message_received(request_response);
 }
 
-
-
-TEST(lsp_server, request_error)
+TEST(lsp_server, request_error_unknown)
 {
     auto ws_mngr = parser_library::create_workspace_manager();
     send_message_provider_mock message_provider;
@@ -211,6 +212,26 @@ TEST(lsp_server, request_error)
 
     // Only telemetry expected
     EXPECT_CALL(message_provider, reply(expected_telemetry));
+
+    s.message_received(request_response);
+}
+
+TEST(lsp_server, request_error)
+{
+    auto ws_mngr = parser_library::create_workspace_manager();
+    ::testing::NiceMock<send_message_provider_mock> message_provider;
+    ::testing::MockFunction<void(int, const char*)> error_handler;
+    lsp::server s(*ws_mngr);
+    response_provider& rp = s;
+    s.set_send_message_provider(&message_provider);
+
+    auto request_response = R"({"id":0,"jsonrpc":"2.0","error":{"code":-123456,"message":"the_error_message"}})"_json;
+
+    // Only telemetry expected
+    EXPECT_CALL(error_handler, Call(-123456, ::testing::StrEq("the_error_message")));
+
+    rp.request(
+        "client_method", "args", [](const nlohmann::json&) { std::terminate(); }, error_handler.AsStdFunction());
 
     s.message_received(request_response);
 }
