@@ -137,10 +137,7 @@ TEST(lsp_server, request_correct)
     EXPECT_CALL(message_provider, reply(expected_message));
 
     rp.request(
-        "client_method",
-        "a_json_parameter",
-        [&handler](const nlohmann::json& params) { handler.handle(params); },
-        [](int, const char*) { std::terminate(); });
+        "client_method", "a_json_parameter", [&handler](const nlohmann::json& params) { handler.handle(params); }, {});
 
     auto request_response = R"({"id":0,"jsonrpc":"2.0","result":"response_result"})"_json;
 
@@ -230,8 +227,7 @@ TEST(lsp_server, request_error)
     // Only telemetry expected
     EXPECT_CALL(error_handler, Call(-123456, ::testing::StrEq("the_error_message")));
 
-    rp.request(
-        "client_method", "args", [](const nlohmann::json&) { std::terminate(); }, error_handler.AsStdFunction());
+    rp.request("client_method", "args", {}, error_handler.AsStdFunction());
 
     s.message_received(request_response);
 }
