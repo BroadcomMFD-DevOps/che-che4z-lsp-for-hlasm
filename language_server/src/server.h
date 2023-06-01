@@ -36,8 +36,6 @@ namespace hlasm_plugin::language_server {
 class server : public response_provider
 {
 public:
-    // Constructs the server with workspace_manager.
-    // All the requests and notifications are passed to the workspace manager
     explicit server(telemetry_sink* telemetry_provider = nullptr);
 
     // Tells the server that a massage was received. The server carries out the notification or request.

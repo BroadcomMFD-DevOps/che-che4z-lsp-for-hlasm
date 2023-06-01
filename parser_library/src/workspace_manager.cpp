@@ -512,9 +512,9 @@ public:
     {
         auto paths_for_ws = std::make_shared<std::unordered_map<opened_workspace*,
             std::pair<std::vector<resource_location>, std::vector<workspaces::file_content_state>>>>();
-        for (auto& path : changes)
+        for (auto& change : changes)
         {
-            std::string_view uri(path.uri);
+            std::string_view uri(change.uri);
             auto& [path_list, _] = (*paths_for_ws)[&ws_path_match(uri)];
             path_list.emplace_back(uri);
         }

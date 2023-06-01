@@ -147,10 +147,8 @@ protected:
 class feature
 {
 public:
-    // Constructs the feature with workspace_manager.
-    // All the requests and notification are passed to the workspace manager
     explicit feature() = default;
-    // Constructs the feature with workspace_manager and response_provider through which the feature can send messages.
+    // Constructs the feature with response_provider through which the feature can send messages.
     explicit feature(response_provider& response_provider)
         : response_(&response_provider)
     {}
