@@ -16,6 +16,7 @@
 #define HLASMPLUGIN_PARSERLIBRARY_WORKSPACE_CONFIGURATION_H
 
 #include <atomic>
+#include <compare>
 #include <map>
 #include <memory>
 #include <optional>
@@ -46,7 +47,43 @@ namespace hlasm_plugin::parser_library::workspaces {
 using program_id = utils::resource::resource_location;
 using global_settings_map =
     std::unordered_map<std::string, std::optional<std::string>, utils::hashers::string_hasher, std::equal_to<>>;
-using proc_grp_id = std::pair<std::string, utils::resource::resource_location>;
+
+struct basic_conf
+{
+    std::string name;
+
+    auto operator<=>(const basic_conf&) const = default;
+
+    size_t hash() const noexcept { return std::hash<std::string_view>()(name); }
+};
+
+struct b4g_conf
+{
+    std::string name;
+    utils::resource::resource_location bridge_json_uri;
+
+    auto operator<=>(const b4g_conf&) const = default;
+
+    size_t hash() const noexcept
+    {
+        return std::hash<std::string_view>()(name) ^ utils::resource::resource_location_hasher()(bridge_json_uri);
+    }
+};
+
+struct external_conf
+{
+    std::shared_ptr<std::string> definition;
+
+    bool operator==(const external_conf& o) const { return *definition == *o.definition; }
+    auto operator<=>(const external_conf& o) const { return *definition <=> *o.definition; }
+
+    bool operator==(const std::string& o) const { return *definition == o; }
+    auto operator<=>(const std::string& o) const { return *definition <=> o; }
+
+    size_t hash() const noexcept { return std::hash<std::string_view>()(*definition); }
+};
+
+using proc_grp_id = std::variant<basic_conf, b4g_conf, external_conf>;
 class file_manager;
 struct library_local_options;
 // represents pair program => processor group - saves
@@ -187,16 +224,44 @@ class workspace_configuration
     utils::resource::resource_location m_proc_grps_loc;
     utils::resource::resource_location m_pgm_conf_loc;
 
+    template<typename T>
+    struct tagged_string_view
+    {
+        std::string_view value;
+    };
+    ;
+
     struct proc_grp_id_hasher
     {
-        size_t operator()(const proc_grp_id& pgid) const
+        using is_transparent = void;
+
+        size_t operator()(const proc_grp_id& pgid) const noexcept
         {
-            return std::hash<std::string>()(pgid.first) ^ utils::resource::resource_location_hasher()(pgid.second);
+            return std::visit([](const auto& x) { return x.hash(); }, pgid);
+        }
+
+        size_t operator()(const tagged_string_view<external_conf>& external_conf_candidate) const noexcept
+        {
+            return std::hash<std::string_view>()(external_conf_candidate.value);
+        }
+    };
+    struct proc_grp_id_equal
+    {
+        using is_transparent = void;
+
+        bool operator()(const proc_grp_id& l, const proc_grp_id& r) const noexcept { return l == r; }
+        bool operator()(const proc_grp_id& l, const tagged_string_view<external_conf>& r) const noexcept
+        {
+            return std::holds_alternative<external_conf>(l) && *std::get<external_conf>(l).definition == r.value;
+        }
+        bool operator()(const tagged_string_view<external_conf>& l, const proc_grp_id& r) const noexcept
+        {
+            return operator()(r, l);
         }
     };
 
     config::proc_grps m_proc_grps_source;
-    std::unordered_map<proc_grp_id, processor_group, proc_grp_id_hasher> m_proc_grps;
+    std::unordered_map<proc_grp_id, processor_group, proc_grp_id_hasher, proc_grp_id_equal> m_proc_grps;
 
     struct tagged_program
     {

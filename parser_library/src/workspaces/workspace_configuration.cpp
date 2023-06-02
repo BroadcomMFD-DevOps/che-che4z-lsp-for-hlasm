@@ -281,7 +281,10 @@ void workspace_configuration::process_processor_group(const config::processor_gr
             },
             lib_or_dataset);
     }
-    m_proc_grps.try_emplace(std::make_pair(prc_grp.name(), alternative_root), std::move(prc_grp));
+    if (alternative_root.empty())
+        m_proc_grps.try_emplace(basic_conf { prc_grp.name() }, std::move(prc_grp));
+    else
+        m_proc_grps.try_emplace(b4g_conf { prc_grp.name(), alternative_root }, std::move(prc_grp));
 }
 
 constexpr std::string_view external_uri_scheme = "hlasm-external";
@@ -378,7 +381,7 @@ bool workspace_configuration::process_program(const config::program_mapping& pgm
     std::optional<proc_grp_id> grp_id;
     if (pgm.pgroup != NOPROC_GROUP_ID)
     {
-        grp_id = proc_grp_id { pgm.pgroup, utils::resource::resource_location() };
+        grp_id.emplace(basic_conf { pgm.pgroup });
         if (!m_proc_grps.contains(*grp_id))
             return false;
     }
@@ -544,6 +547,13 @@ bool workspace_configuration::settings_updated() const
     return false;
 }
 
+struct
+{
+    std::string_view operator()(const basic_conf& c) const noexcept { return c.name; }
+    std::string_view operator()(const b4g_conf& c) const noexcept { return c.name; }
+    std::string_view operator()(const external_conf&) const noexcept { return {}; }
+} static constexpr proc_group_name;
+
 std::optional<std::pair<utils::resource::resource_location, workspace_configuration::tagged_program>>
 workspace_configuration::try_creating_rl_tagged_pgm_pair(
     std::unordered_set<std::string, utils::hashers::string_hasher, std::equal_to<>>& missing_pgroups,
@@ -556,9 +566,9 @@ workspace_configuration::try_creating_rl_tagged_pgm_pair(
     std::optional<proc_grp_id> grp_id_o;
     if (m_proc_grps.contains(grp_id))
         grp_id_o = std::move(grp_id);
-    else if (grp_id.first != NOPROC_GROUP_ID)
+    else if (auto pg_name = std::visit(proc_group_name, grp_id); pg_name != NOPROC_GROUP_ID)
     {
-        missing_pgroups.emplace(grp_id.first);
+        missing_pgroups.emplace(pg_name);
 
         if (default_b4g_proc_group)
             return {};
@@ -590,7 +600,10 @@ utils::value_task<parse_config_file_result> workspace_configuration::parse_b4g_c
     {
         std::erase_if(m_exact_pgm_conf, [tag = std::to_address(it)](const auto& e) { return e.second.tag == tag; });
         std::erase_if(m_regex_pgm_conf, [tag = std::to_address(it)](const auto& e) { return e.first.tag == tag; });
-        std::erase_if(m_proc_grps, [&alternative_root](const auto& e) { return e.first.second == alternative_root; });
+        std::erase_if(m_proc_grps, [&alternative_root](const auto& e) {
+            const auto* b4g = std::get_if<b4g_conf>(&e.first);
+            return b4g && b4g->bridge_json_uri == alternative_root;
+        });
         it->second = {};
     }
 
@@ -619,7 +632,7 @@ utils::value_task<parse_config_file_result> workspace_configuration::parse_b4g_c
     for (const auto& [name, details] : conf.config.value().files)
         m_exact_pgm_conf.insert(*try_creating_rl_tagged_pgm_pair(missing_pgroups,
             false,
-            proc_grp_id {
+            b4g_conf {
                 details.processor_group_name,
                 alternative_root,
             },
@@ -631,7 +644,7 @@ utils::value_task<parse_config_file_result> workspace_configuration::parse_b4g_c
     {
         if (auto rl_tagged_pgm = try_creating_rl_tagged_pgm_pair(missing_pgroups,
                 true,
-                proc_grp_id {
+                b4g_conf {
                     def_grp,
                     alternative_root,
                 },
@@ -862,8 +875,7 @@ utils::value_task<utils::resource::resource_location> workspace_configuration::l
         auto json_data = co_await utils::async_busy_wait(std::move(c), &i->json_data);
     }
 
-    if (auto pgm = get_program_normalized(rl);
-        pgm && pgm->pgroup.has_value() && pgm->pgroup.value().second == utils::resource::resource_location())
+    if (auto pgm = get_program_normalized(rl); pgm && pgm->pgroup && std::holds_alternative<basic_conf>(*pgm->pgroup))
         co_return utils::resource::resource_location();
 
     auto configuration_url = utils::resource::resource_location::replace_filename(rl, B4G_CONF_FILE);
