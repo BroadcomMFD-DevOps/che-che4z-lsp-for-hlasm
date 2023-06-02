@@ -68,6 +68,7 @@ protected:
 
 private:
     std::atomic<long> request_id_counter = 0;
+    parser_library::workspace_manager& ws_mngr;
 
     // requests
     // Implements initialize request.
@@ -106,6 +107,8 @@ private:
         const char* url, parser_library::workspace_manager_response<parser_library::sequence<char>> json_text) override;
     void request_file_configuration(parser_library::sequence<char> url,
         parser_library::workspace_manager_response<parser_library::sequence<char>> json_text) override;
+
+    void invalidate_external_configuration(const nlohmann::json& error);
 };
 
 } // namespace hlasm_plugin::language_server::lsp

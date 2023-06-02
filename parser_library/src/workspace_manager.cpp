@@ -1053,6 +1053,21 @@ private:
 
         m_requests->request_file_configuration(uri, content);
     }
+
+    void invalidate_external_configuration(sequence<char> uri) override
+    {
+        if (uri.size() == 0)
+        {
+            resource_location res;
+            for (auto& [_, ows] : m_workspaces)
+                ows.ws.invalidate_external_configuration(res);
+            m_implicit_workspace.ws.invalidate_external_configuration(res);
+            m_quiet_implicit_workspace.ws.invalidate_external_configuration(res);
+        }
+        else
+            ws_path_match(std::string_view(uri))
+                .ws.invalidate_external_configuration(resource_location(std::string_view(uri)));
+    }
 };
 
 workspace_manager* create_workspace_manager_impl(workspace_manager_external_file_requests* external_requests)

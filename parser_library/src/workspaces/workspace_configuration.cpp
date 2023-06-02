@@ -727,8 +727,10 @@ void workspace_configuration::copy_diagnostics(const diagnosable& target,
     const std::unordered_set<utils::resource::resource_location, utils::resource::resource_location_hasher>& b4g_filter)
     const
 {
-    for (auto& [_, pg] : m_proc_grps)
+    for (auto& [key, pg] : m_proc_grps)
     {
+        if (const auto* e = std::get_if<external_conf>(&key); e && e->definition.use_count() <= 1)
+            continue;
         pg.collect_diags();
         for (const auto& d : pg.diags())
             target.add_diagnostic(d);
@@ -925,6 +927,22 @@ void workspace_configuration::update_external_configuration(
             program(normalized_location, pg->first, {}),
             std::to_address(pg), // TODO: not sure about this at the moment, pg->first can be used just fine
         });
+}
+
+
+void workspace_configuration::prune_external_processor_groups(const utils::resource::resource_location& location)
+{
+    if (!location.empty())
+    {
+        if (auto p = m_exact_pgm_conf.find(location.lexically_normal()); p != m_exact_pgm_conf.end()
+            && p->second.pgm.pgroup && std::holds_alternative<external_conf>(*p->second.pgm.pgroup))
+            m_exact_pgm_conf.erase(p);
+    }
+
+    std::erase_if(m_proc_grps, [](const auto& pg) {
+        const auto* e = std::get_if<external_conf>(&pg.first);
+        return e && e->definition.use_count() == 1;
+    });
 }
 
 utils::value_task<utils::resource::resource_location> workspace_configuration::load_alternative_config_if_needed(

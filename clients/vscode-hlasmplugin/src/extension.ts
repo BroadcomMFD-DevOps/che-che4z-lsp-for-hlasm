@@ -152,7 +152,7 @@ export async function activate(context: vscode.ExtensionContext) {
             extFiles.setClient(service, client);
         },
         registerExternalConfigurationProvider(h: HLASMExternalConfigurationProviderHandler) {
-            extConfProvider.addHandler(h);
+            return extConfProvider.addHandler(h);
         },
     };
     return api;

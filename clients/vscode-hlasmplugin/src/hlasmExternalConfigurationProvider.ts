@@ -41,6 +41,7 @@ export class HLASMExternalConfigurationProvider {
     constructor(
         private channel: {
             onRequest<R, E>(method: string, handler: vscodelc.GenericRequestHandler<R, E>): vscode.Disposable;
+            sendNotification(method: string, params: any): Promise<void>;
         }) {
         this.toDispose.push(this.channel.onRequest('external_configuration_request', (...params: any[]) => this.handleRawMessage(...params)));
     }
@@ -76,7 +77,15 @@ export class HLASMExternalConfigurationProvider {
         }
     }
 
+    private invalidateConfiguration(uri: vscode.Uri | null) {
+        return this.channel.sendNotification('invalidate_external_configuration', uri ? { uri: uri.toString() } : {});
+    }
+
     public addHandler(h: HLASMExternalConfigurationProviderHandler) {
         this.requestHandlers.push(h);
+
+        return {
+            invalidate: (uri: vscode.Uri | null) => this.invalidateConfiguration(uri)
+        };
     }
 }

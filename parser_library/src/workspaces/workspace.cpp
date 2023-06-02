@@ -665,6 +665,16 @@ utils::task workspace::mark_file_for_parsing(
     return {};
 }
 
+
+void workspace::invalidate_external_configuration(const resource_location& url)
+{
+    m_configuration.prune_external_processor_groups(url);
+    if (url.empty())
+        mark_all_opened_files();
+    else
+        mark_file_for_parsing(url, file_content_state::changed_content);
+}
+
 workspace_file_info workspace::parse_successful(processor_file_compoments& comp, workspace_parse_lib_provider libs)
 {
     workspace_file_info ws_file_info;
@@ -713,6 +723,8 @@ utils::task workspace::did_open_file(resource_location file_location, file_conte
 
 utils::task workspace::did_close_file(resource_location file_location)
 {
+    m_configuration.prune_external_processor_groups(file_location);
+
     auto fcomp = m_processor_files.find(file_location);
     if (fcomp == m_processor_files.end())
         co_return; // this indicates some kind of double close or configuration file close

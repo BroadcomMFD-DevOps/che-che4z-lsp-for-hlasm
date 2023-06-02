@@ -38,6 +38,7 @@ namespace hlasm_plugin::language_server::lsp {
 
 server::server(parser_library::workspace_manager& ws_mngr)
     : language_server::server(this)
+    , ws_mngr(ws_mngr)
 {
     features_.push_back(std::make_unique<feature_workspace_folders>(ws_mngr, *this));
     features_.push_back(std::make_unique<feature_text_synchronization>(ws_mngr, *this));
@@ -237,6 +238,9 @@ void server::register_methods()
     methods_.try_emplace("$/cancelRequest",
         method {
             [this](const nlohmann::json& args) { cancel_request_handler(args); }, telemetry_log_level::NO_TELEMETRY });
+    methods_.try_emplace("invalidate_external_configuration",
+        method {
+            std::bind_front(&server::invalidate_external_configuration, this), telemetry_log_level::NO_TELEMETRY });
 }
 
 void server::send_telemetry(const telemetry_message& message) { notify("telemetry/event", nlohmann::json(message)); }
@@ -474,6 +478,15 @@ void server::request_file_configuration(parser_library::sequence<char> uri,
                 json_text.provide(parser_library::sequence<char>(params.at("configuration").dump()));
         },
         [json_text](int err, const char* msg) { json_text.error(err, msg); });
+}
+
+void server::invalidate_external_configuration(const nlohmann::json& data)
+{
+    auto uri = data.find("uri");
+    if (uri != data.end() && uri->is_string())
+        ws_mngr.invalidate_external_configuration(parser_library::sequence<char>(*uri->get_ptr<const std::string*>()));
+    else
+        ws_mngr.invalidate_external_configuration({});
 }
 
 } // namespace hlasm_plugin::language_server::lsp

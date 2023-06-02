@@ -36,7 +36,7 @@ constexpr error_code not_found { 0, "Not found" };
 
 constexpr error_code allocation { -1, "Allocation failed" };
 // constexpr error_code provide { -2, "Exception thrown while providing result" };
-constexpr error_code invalid_request { -5, "Invalid request" };
+// constexpr error_code invalid_request_sent { -5, "Invalid request" };
 constexpr error_code invalid_json { -100, "Invalid JSON content" };
 constexpr error_code message_send { -101, "Error occured while sending a message" };
 constexpr error_code invalid_conf_response { -102, "Invalid response to 'workspace/configuration'" };

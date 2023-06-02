@@ -382,6 +382,8 @@ public:
         const utils::resource::resource_location& normalized_location, std::string group_json);
     decltype(m_proc_grps)::iterator make_external_proc_group(
         const utils::resource::resource_location& normalized_location, std::string group_json);
+
+    void prune_external_processor_groups(const utils::resource::resource_location& location);
 };
 
 } // namespace hlasm_plugin::parser_library::workspaces

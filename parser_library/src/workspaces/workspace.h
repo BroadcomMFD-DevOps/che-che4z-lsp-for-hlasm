@@ -138,6 +138,8 @@ public:
 
     utils::value_task<debugging::debugger_configuration> get_debugger_configuration(resource_location url);
 
+    void invalidate_external_configuration(const resource_location& url);
+
 private:
     std::string name_;
     resource_location location_;
