@@ -294,4 +294,7 @@ TEST(processor_group, refresh_needed)
     EXPECT_FALSE(grp.refresh_needed({ resource_location("test://workspace/externals/library4") }));
     EXPECT_FALSE(grp.refresh_needed({ resource_location("test://workspace/externals/library/") }));
     EXPECT_FALSE(grp.refresh_needed({ resource_location("test://workspace/externals/library4/") }));
+
+    // different scheme
+    EXPECT_FALSE(grp.refresh_needed({ resource_location("aaa://workspace/externals/library1") }));
 }

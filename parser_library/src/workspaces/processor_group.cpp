@@ -113,8 +113,11 @@ std::vector<std::pair<std::string, size_t>> processor_group::suggest(std::string
 
 bool processor_group::refresh_needed(const std::vector<utils::resource::resource_location>& urls) const
 {
-    return std::any_of(urls.begin(), urls.end(), [&libs = m_libs](const auto& res_location) {
-        return std::any_of(libs.begin(), libs.end(), [&res_location](const auto& lib) {
+    return std::any_of(m_libs.begin(), m_libs.end(), [&urls](const auto& lib) {
+        if (!lib->has_cached_content())
+            return false;
+
+        return std::any_of(urls.begin(), urls.end(), [&lib](const auto& res_location) {
             constexpr auto is_parent = [](std::string_view u) {
                 while (u.starts_with(".."))
                 {
@@ -128,7 +131,7 @@ bool processor_group::refresh_needed(const std::vector<utils::resource::resource
 
             const auto lex_rel = res_location.lexically_relative(lib->get_location());
             const auto& u = lex_rel.get_uri();
-            return lib->has_cached_content() && (u == "." || !u.starts_with(".") || is_parent(u));
+            return !u.empty() && (u == "." || !u.starts_with(".") || is_parent(u));
         });
     });
 }
