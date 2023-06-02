@@ -22,9 +22,11 @@
 #include <string_view>
 #include <tuple>
 
+#include "external_configuration_requests.h"
 #include "file_manager.h"
 #include "library_local.h"
 #include "nlohmann/json.hpp"
+#include "utils/async_busy_wait.h"
 #include "utils/content_loader.h"
 #include "utils/encoding.h"
 #include "utils/path.h"
@@ -215,11 +217,14 @@ const std::regex json_settings_replacer::config_reference(R"(\$\{([^}]+)\})");
 
 } // namespace
 
-workspace_configuration::workspace_configuration(
-    file_manager& fm, utils::resource::resource_location location, const shared_json& global_settings)
+workspace_configuration::workspace_configuration(file_manager& fm,
+    utils::resource::resource_location location,
+    const shared_json& global_settings,
+    external_configuration_requests* ecr)
     : m_file_manager(fm)
     , m_location(std::move(location))
     , m_global_settings(global_settings)
+    , m_external_configuration_requests(ecr)
 {
     auto hlasm_folder = utils::resource::resource_location::join(m_location, HLASM_PLUGIN_FOLDER);
     m_proc_grps_loc = utils::resource::resource_location::join(hlasm_folder, FILENAME_PROC_GRPS);
@@ -843,6 +848,20 @@ utils::value_task<utils::resource::resource_location> workspace_configuration::l
     const utils::resource::resource_location& file_location)
 {
     const auto rl = file_location.lexically_normal();
+
+    if (m_external_configuration_requests)
+    {
+        struct resp
+        {
+            std::variant<int, std::string> json_data;
+            void provide(sequence<char> c) { json_data = std::string(c); }
+            void error(int err, const char*) noexcept { json_data = err; }
+        };
+        auto [c, i] = make_workspace_manager_response(std::in_place_type<resp>);
+        m_external_configuration_requests->read_external_configuration(sequence<char>(rl.get_uri()), c);
+        auto json_data = co_await utils::async_busy_wait(std::move(c), &i->json_data);
+    }
+
     if (auto pgm = get_program_normalized(rl);
         pgm && pgm->pgroup.has_value() && pgm->pgroup.value().second == utils::resource::resource_location())
         co_return utils::resource::resource_location();

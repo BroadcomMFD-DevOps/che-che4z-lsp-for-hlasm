@@ -39,6 +39,9 @@
 #include "utils/resource_location.h"
 #include "utils/task.h"
 
+namespace hlasm_plugin::parser_library {
+class external_configuration_requests;
+} // namespace hlasm_plugin::parser_library
 namespace hlasm_plugin::parser_library::workspaces {
 using program_id = utils::resource::resource_location;
 using global_settings_map =
@@ -224,6 +227,8 @@ class workspace_configuration
         std::less<>>
         m_libraries;
 
+    external_configuration_requests* m_external_configuration_requests;
+
     std::shared_ptr<library> get_local_library(
         const utils::resource::resource_location& url, const library_local_options& opts);
 
@@ -281,8 +286,10 @@ class workspace_configuration
         std::vector<diagnostic_s>& diags);
 
 public:
-    workspace_configuration(
-        file_manager& fm, utils::resource::resource_location location, const shared_json& global_settings);
+    workspace_configuration(file_manager& fm,
+        utils::resource::resource_location location,
+        const shared_json& global_settings,
+        external_configuration_requests* ecr);
 
     bool is_configuration_file(const utils::resource::resource_location& file) const;
     [[nodiscard]] utils::value_task<parse_config_file_result> parse_configuration_file(

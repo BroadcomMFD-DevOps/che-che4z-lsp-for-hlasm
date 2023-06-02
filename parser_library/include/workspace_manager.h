@@ -32,6 +32,7 @@
 
 namespace hlasm_plugin::parser_library {
 class workspace_manager_external_file_requests;
+class external_configuration_requests;
 namespace debugging {
 struct debugger_configuration;
 } // namespace debugging

@@ -87,7 +87,7 @@ TEST(workspace_configuration, refresh_needed)
             co_return std::nullopt;
         }));
 
-    workspace_configuration cfg(fm, resource_location("test://workspace"), global_settings);
+    workspace_configuration cfg(fm, resource_location("test://workspace"), global_settings, nullptr);
 
     EXPECT_TRUE(cfg.refresh_libraries({ resource_location("test://workspace/.hlasmplugin") }).run().value());
     EXPECT_TRUE(

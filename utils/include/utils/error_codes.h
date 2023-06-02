@@ -41,6 +41,7 @@ constexpr error_code message_send { -101, "Error occured while sending a message
 constexpr error_code invalid_conf_response { -102, "Invalid response to 'workspace/configuration'" };
 constexpr error_code invalid_request { -103, "Invalid request" };
 constexpr error_code workspace_removed { -104, "Workspace removed" };
+constexpr error_code invalid_external_configuration { -105, "Invalid external configuration response" };
 
 
 } // namespace hlasm_plugin::utils::error

@@ -32,6 +32,7 @@
 #include <vector>
 
 #include "debugging/debugger_configuration.h"
+#include "external_configuration_requests.h"
 #include "lsp/completion_item.h"
 #include "lsp/document_symbol_item.h"
 #include "nlohmann/json.hpp"
@@ -59,7 +60,8 @@ namespace hlasm_plugin::parser_library {
 class workspace_manager_impl final : public workspace_manager,
                                      debugger_configuration_provider,
                                      public diagnosable_impl,
-                                     workspaces::external_file_reader
+                                     workspaces::external_file_reader,
+                                     external_configuration_requests
 {
     static constexpr lib_config supress_all { 0 };
     using resource_location = utils::resource::resource_location;
@@ -69,8 +71,9 @@ class workspace_manager_impl final : public workspace_manager,
         opened_workspace(const resource_location& location,
             const std::string& name,
             workspaces::file_manager& file_manager,
-            const lib_config& global_config)
-            : ws(location, name, file_manager, global_config, settings)
+            const lib_config& global_config,
+            external_configuration_requests* ecr)
+            : ws(location, name, file_manager, global_config, settings, ecr)
         {}
         opened_workspace(workspaces::file_manager& file_manager, const lib_config& global_config)
             : ws(file_manager, global_config, settings)
@@ -961,9 +964,14 @@ private:
 
     void add_workspace(const char* name, const char* uri) override
     {
-        auto& ows =
-            m_workspaces.try_emplace(name, resource_location(std::move(uri)), name, m_file_manager, m_global_config)
-                .first->second;
+        auto& ows = m_workspaces
+                        .try_emplace(name,
+                            resource_location(std::move(uri)),
+                            name,
+                            m_file_manager,
+                            m_global_config,
+                            static_cast<external_configuration_requests*>(this))
+                        .first->second;
         ows.ws.set_message_consumer(m_message_consumer);
 
         auto& new_workspace = m_work_queue.emplace_back(work_item {
@@ -1032,6 +1040,18 @@ private:
             m_work_queue.insert(++it, std::move(wi));
         else
             m_work_queue.push_front(std::move(wi));
+    }
+
+
+    void read_external_configuration(sequence<char> uri, workspace_manager_response<sequence<char>> content) override
+    {
+        if (!m_requests)
+        {
+            content.error(utils::error::not_found);
+            return;
+        }
+
+        m_requests->request_file_configuration(uri, content);
     }
 };
 
