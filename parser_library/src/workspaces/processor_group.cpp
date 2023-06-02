@@ -16,7 +16,6 @@
 
 #include <algorithm>
 #include <span>
-#include <string_view>
 #include <variant>
 
 namespace hlasm_plugin::parser_library::workspaces {
@@ -114,37 +113,32 @@ std::vector<std::pair<std::string, size_t>> processor_group::suggest(std::string
 
 bool processor_group::refresh_needed(const std::vector<utils::resource::resource_location>& urls) const
 {
-    return std::any_of(urls.begin(), urls.end(), [this](const auto& res_location) {
-        constexpr auto matching_prefix = [](std::string_view l, std::string_view r) {
-            const auto common_len = std::min(l.size(), r.size());
-            return l.substr(0, common_len) == r.substr(0, common_len);
-        };
-        const auto has_cached_content = [this](std::span<const size_t> idx) {
-            return std::any_of(idx.begin(), idx.end(), [this](auto i) { return m_libs[i]->has_cached_content(); });
-        };
+    return std::any_of(urls.begin(), urls.end(), [&libs = m_libs](const auto& res_location) {
+        return std::any_of(libs.begin(), libs.end(), [&res_location](const auto& lib) {
+            constexpr auto is_parent = [](std::string_view u) {
+                while (u.starts_with(".."))
+                {
+                    u.remove_prefix(2);
+                    if (u.starts_with("/") || u.starts_with("\\"))
+                        u.remove_prefix(1);
+                }
 
-        const std::string_view url = res_location.get_uri();
-        const auto candidate = m_refresh_prefix.lower_bound(url);
-        return candidate != m_refresh_prefix.end() && matching_prefix(url, candidate->first)
-            && has_cached_content(candidate->second)
-            || candidate != m_refresh_prefix.begin() && matching_prefix(url, std::prev(candidate)->first)
-            && has_cached_content(std::prev(candidate)->second);
+                return u.empty();
+            };
+
+            const auto lex_rel = res_location.lexically_relative(lib->get_location());
+            const auto& u = lex_rel.get_uri();
+            return lib->has_cached_content() && (u == "." || !u.starts_with(".") || is_parent(u));
+        });
     });
 }
 
 void processor_group::collect_diags() const
 {
     for (auto&& lib : m_libs)
-    {
         lib->copy_diagnostics(diags());
-    }
 }
 
-void processor_group::add_library(std::shared_ptr<library> library)
-{
-    auto next_id = m_libs.size();
-    const auto& lib = m_libs.emplace_back(std::move(library));
-    m_refresh_prefix[lib->refresh_url_prefix()].emplace_back(next_id);
-}
+void processor_group::add_library(std::shared_ptr<library> library) { m_libs.emplace_back(std::move(library)); }
 
 } // namespace hlasm_plugin::parser_library::workspaces

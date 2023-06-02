@@ -15,9 +15,11 @@
 #ifndef HLASMPLUGIN_PARSERLIBRARY_PROCESSOR_GROUP_H
 #define HLASMPLUGIN_PARSERLIBRARY_PROCESSOR_GROUP_H
 
-#include <map>
 #include <memory>
+#include <optional>
 #include <string>
+#include <string_view>
+#include <utility>
 #include <vector>
 
 #include "config/proc_grps.h"
@@ -71,8 +73,6 @@ private:
     static constexpr size_t suggestion_limit = 32;
 
     std::optional<utils::bk_tree<std::string, utils::levenshtein_distance_t<suggestion_limit>>> m_suggestions;
-
-    std::map<std::string, std::vector<size_t>, std::less<>> m_refresh_prefix;
 };
 } // namespace hlasm_plugin::parser_library::workspaces
 #endif // !HLASMPLUGIN_PARSERLIBRARY_PROCESSOR_GROUP_H
