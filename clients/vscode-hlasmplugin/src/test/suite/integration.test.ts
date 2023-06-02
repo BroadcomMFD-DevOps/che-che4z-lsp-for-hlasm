@@ -239,4 +239,19 @@ suite('Integration Test Suite', () => {
         assert.ok(diags2);
         assert.strictEqual(diags2.length, 0);
     }).timeout(10000).slow(2500);
+
+    test('External configuration', async () => {
+        const testFile = (s: string) => helper.waitForDiagnosticsChange(s, async () => { await helper.showDocument(s); })
+        const diagsA = await testFile('AAAAA.hlasm');
+        assert.ok(diagsA);
+        assert.deepStrictEqual(diagsA.map(x => [x.code, x.message]), [['MNOTE', 'AAAAA']]);
+
+        const diagsB = await testFile('BBBBB.hlasm');
+        assert.ok(diagsB);
+        assert.deepStrictEqual(diagsB.map(x => [x.code, x.message]), [['MNOTE', 'DONE']]);
+
+        const diagsC = await testFile('CCCCC.hlasm');
+        assert.ok(diagsC);
+        assert.deepStrictEqual(diagsC.map(x => x.code), ['E049']);
+    }).timeout(10000).slow(2500);
 });

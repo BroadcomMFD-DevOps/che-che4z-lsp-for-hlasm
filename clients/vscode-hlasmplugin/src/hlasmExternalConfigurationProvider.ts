@@ -24,12 +24,19 @@ interface ExternalConfigurationResponse {
     configuration: string | Proc_Grps_Schema_json;
 };
 
+export type HLASMExternalConfigurationProviderHandler = (uri: vscode.Uri) => PromiseLike<ExternalConfigurationResponse | null> | ExternalConfigurationResponse | null;
+
 function isExternalConfigurationRequest(p: any): p is ExternalConfigurationRequest {
     return typeof p === 'object' && ('uri' in p);
 }
 
+function isError(e: any): e is Error {
+    return e instanceof Error;
+}
+
 export class HLASMExternalConfigurationProvider {
     private toDispose: vscode.Disposable[] = [];
+    private requestHandlers: HLASMExternalConfigurationProviderHandler[] = [];
 
     constructor(
         private channel: {
@@ -42,14 +49,34 @@ export class HLASMExternalConfigurationProvider {
         this.toDispose.forEach(x => x.dispose());
     }
 
-    async handleRequest(r: ExternalConfigurationRequest): Promise<ExternalConfigurationResponse | vscodelc.ResponseError> {
+    private async handleRequest(r: ExternalConfigurationRequest): Promise<ExternalConfigurationResponse | vscodelc.ResponseError> {
+        const uri = vscode.Uri.parse(r.uri);
+        for (const h of this.requestHandlers) {
+            try {
+                const resp = await h(uri);
+                if (resp)
+                    return resp;
+            }
+            catch (e) {
+                return new vscodelc.ResponseError(-106, isError(e) ? e.message : 'Unknown error');
+            }
+        }
+
         return new vscodelc.ResponseError(0, 'Not found');
     }
 
-    async handleRawMessage(...params: any[]): Promise<ExternalConfigurationResponse | vscodelc.ResponseError> {
-        if (params.length !== 1 || !isExternalConfigurationRequest(params[0]))
+    public async handleRawMessage(...params: any[]): Promise<ExternalConfigurationResponse | vscodelc.ResponseError> {
+        if (params.length < 1 || !isExternalConfigurationRequest(params[0]))
             return new vscodelc.ResponseError(-5, 'Invalid request');
 
-        return this.handleRequest(params[0]);
+        try {
+            return this.handleRequest(params[0]);
+        } catch (e) {
+            return new vscodelc.ResponseError(-5, 'Invalid request');
+        }
+    }
+
+    public addHandler(h: HLASMExternalConfigurationProviderHandler) {
+        this.requestHandlers.push(h);
     }
 }
