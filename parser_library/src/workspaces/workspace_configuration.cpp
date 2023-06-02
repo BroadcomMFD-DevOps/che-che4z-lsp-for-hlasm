@@ -32,6 +32,7 @@
 #include "utils/path.h"
 #include "utils/path_conversions.h"
 #include "utils/platform.h"
+#include "utils/string_operations.h"
 #include "wildcard.h"
 
 namespace hlasm_plugin::parser_library::workspaces {
@@ -839,43 +840,137 @@ const processor_group& workspace_configuration::get_proc_grp(const proc_grp_id& 
 
 const program* workspace_configuration::get_program(const utils::resource::resource_location& file_location) const
 {
-    return get_program_normalized(file_location.lexically_normal());
+    return get_program_normalized(file_location.lexically_normal()).first;
 }
 
-const program* workspace_configuration::get_program_normalized(
+std::pair<const program*, bool> workspace_configuration::get_program_normalized(
     const utils::resource::resource_location& file_location_normalized) const
 {
     // direct match
     if (auto program = m_exact_pgm_conf.find(file_location_normalized); program != m_exact_pgm_conf.cend())
-        return &program->second.pgm;
+        return { &program->second.pgm, true };
 
     for (const auto& [program, pattern] : m_regex_pgm_conf)
     {
         if (std::regex_match(file_location_normalized.get_uri(), pattern))
-            return &program.pgm;
+            return { &program.pgm, false };
     }
-    return nullptr;
+    return { nullptr, false };
+}
+
+
+decltype(workspace_configuration::m_proc_grps)::iterator workspace_configuration::make_external_proc_group(
+    const utils::resource::resource_location& normalized_location, std::string group_json)
+{
+    config::processor_group pg;
+    global_settings_map utilized_settings_values;
+
+    const auto current_settings = m_global_settings.load();
+    json_settings_replacer json_visitor { *current_settings, utilized_settings_values, m_location };
+
+    std::vector<diagnostic_s> diags;
+
+    auto proc_json = nlohmann::json::parse(group_json);
+    json_visitor(proc_json);
+    proc_json.get_to(pg);
+
+    if (!pg.asm_options.valid())
+        diags.push_back(diagnostic_s::error_W0005(normalized_location, pg.name, "external processor group"));
+    for (const auto& p : pg.preprocessors)
+    {
+        if (!p.valid())
+            diags.push_back(diagnostic_s::error_W0006(normalized_location, pg.name, p.type()));
+    }
+
+    processor_group prc_grp("", pg.asm_options, pg.preprocessors);
+
+    for (auto& lib_or_dataset : pg.libs)
+    {
+        std::visit(
+            [this, &diags, &prc_grp](const auto& lib) {
+                process_processor_group_library(lib, utils::resource::resource_location(), diags, {}, prc_grp);
+            },
+            lib_or_dataset);
+    }
+    m_utilized_settings_values.merge(std::move(utilized_settings_values));
+
+    // TODO: what to do with diags?
+    for (auto&& d : diags)
+        prc_grp.add_diagnostic(std::move(d));
+
+    return m_proc_grps
+        .try_emplace(external_conf { std::make_shared<std::string>(std::move(group_json)) }, std::move(prc_grp))
+        .first;
+}
+
+void workspace_configuration::update_external_configuration(
+    const utils::resource::resource_location& normalized_location, std::string group_json)
+{
+    if (std::string_view group_name(group_json); utils::trim_left(group_name), group_name.starts_with("\""))
+    {
+        m_exact_pgm_conf.insert_or_assign(normalized_location,
+            tagged_program { program(
+                normalized_location, basic_conf { nlohmann::json::parse(group_json).get<std::string>() }, {}) });
+        return;
+    }
+
+    auto pg = m_proc_grps.find(tagged_string_view<external_conf> { group_json });
+    if (pg == m_proc_grps.end())
+    {
+        pg = make_external_proc_group(normalized_location, std::move(group_json));
+    }
+
+    m_exact_pgm_conf.insert_or_assign(normalized_location,
+        tagged_program {
+            program(normalized_location, pg->first, {}),
+            std::to_address(pg), // TODO: not sure about this at the moment, pg->first can be used just fine
+        });
 }
 
 utils::value_task<utils::resource::resource_location> workspace_configuration::load_alternative_config_if_needed(
     const utils::resource::resource_location& file_location)
 {
     const auto rl = file_location.lexically_normal();
+    auto [pgm, direct] = get_program_normalized(rl);
+
+    if (direct && pgm && pgm->pgroup
+        && (std::holds_alternative<basic_conf>(*pgm->pgroup) || std::holds_alternative<external_conf>(*pgm->pgroup)))
+        co_return utils::resource::resource_location();
+
+    // TODO: invalidation mechanism?
 
     if (m_external_configuration_requests)
     {
         struct resp
         {
-            std::variant<int, std::string> json_data;
-            void provide(sequence<char> c) { json_data = std::string(c); }
-            void error(int err, const char*) noexcept { json_data = err; }
+            std::variant<int, std::string> result;
+            void provide(sequence<char> c) { result = std::string(c); }
+            void error(int err, const char*) noexcept { result = err; }
         };
         auto [c, i] = make_workspace_manager_response(std::in_place_type<resp>);
         m_external_configuration_requests->read_external_configuration(sequence<char>(rl.get_uri()), c);
-        auto json_data = co_await utils::async_busy_wait(std::move(c), &i->json_data);
+
+        auto json_data = co_await utils::async_busy_wait(std::move(c), &i->result);
+        if (std::holds_alternative<std::string>(json_data))
+        {
+            try
+            {
+                update_external_configuration(rl, std::move(std::get<std::string>(json_data)));
+                co_return utils::resource::resource_location();
+            }
+            catch (const nlohmann::json&)
+            {
+                json_data = -1; // TODO: error handling
+            }
+        }
+
+        if (std::get<int>(json_data) != 0)
+        {
+            // TODO: do we do something with the error?
+        }
     }
 
-    if (auto pgm = get_program_normalized(rl); pgm && pgm->pgroup && std::holds_alternative<basic_conf>(*pgm->pgroup))
+    if (pgm && pgm->pgroup && std::holds_alternative<basic_conf>(*pgm->pgroup))
         co_return utils::resource::resource_location();
 
     auto configuration_url = utils::resource::resource_location::replace_filename(rl, B4G_CONF_FILE);

@@ -322,7 +322,8 @@ class workspace_configuration
 
     bool is_config_file(const utils::resource::resource_location& file_location) const;
     bool is_b4g_config_file(const utils::resource::resource_location& file) const;
-    const program* get_program_normalized(const utils::resource::resource_location& file_location_normalized) const;
+    std::pair<const program*, bool> get_program_normalized(
+        const utils::resource::resource_location& file_location_normalized) const;
 
     std::optional<std::pair<utils::resource::resource_location, workspace_configuration::tagged_program>>
     try_creating_rl_tagged_pgm_pair(
@@ -376,6 +377,11 @@ public:
             b4g_filter) const;
 
     const processor_group& get_proc_grp(const proc_grp_id& p) const; // test only
+
+    void update_external_configuration(
+        const utils::resource::resource_location& normalized_location, std::string group_json);
+    decltype(m_proc_grps)::iterator make_external_proc_group(
+        const utils::resource::resource_location& normalized_location, std::string group_json);
 };
 
 } // namespace hlasm_plugin::parser_library::workspaces
