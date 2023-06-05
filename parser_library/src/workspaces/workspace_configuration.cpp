@@ -909,7 +909,7 @@ decltype(workspace_configuration::m_proc_grps)::iterator workspace_configuration
 void workspace_configuration::update_external_configuration(
     const utils::resource::resource_location& normalized_location, std::string group_json)
 {
-    if (std::string_view group_name(group_json); utils::trim_left(group_name), group_name.starts_with("\""))
+    if (std::string_view group_name(group_json); utils::trim_left(group_name, " \t\n\r"), group_name.starts_with("\""))
     {
         m_exact_pgm_conf.insert_or_assign(normalized_location,
             tagged_program {
@@ -967,8 +967,6 @@ utils::value_task<utils::resource::resource_location> workspace_configuration::l
         && (std::holds_alternative<basic_conf>(*pgm->pgroup) || std::holds_alternative<external_conf>(*pgm->pgroup)))
         co_return utils::resource::resource_location();
 
-    // TODO: invalidation mechanism?
-
     if (m_external_configuration_requests)
     {
         struct resp
@@ -990,13 +988,16 @@ utils::value_task<utils::resource::resource_location> workspace_configuration::l
             }
             catch (const nlohmann::json&)
             {
-                json_data = -1; // TODO: error handling
+                // incompatible json in the response
+                json_data = -1;
             }
         }
 
         if (std::get<int>(json_data) != 0)
         {
             // TODO: do we do something with the error?
+            // this basically indicates either an error on the client side,
+            //  or an allocation failure while processing the response
         }
     }
 
