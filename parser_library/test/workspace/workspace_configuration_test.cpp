@@ -241,3 +241,42 @@ TEST(workspace_configuration, external_configurations_prune)
 
     EXPECT_THROW(cfg.get_proc_grp(external_conf { std::make_shared<std::string>(grp_def) }), std::out_of_range);
 }
+
+TEST(workspace_configuration, external_configurations_prune_all)
+{
+    NiceMock<file_manager_mock> fm;
+    shared_json global_settings = make_empty_shared_json();
+    NiceMock<external_configuration_requests_mock> ext_confg;
+
+    EXPECT_CALL(fm, get_file_content(_)).WillRepeatedly(Invoke([]() {
+        return value_task<std::optional<std::string>>::from_value(std::nullopt);
+    }));
+
+    workspace_configuration cfg(fm, resource_location("test://workspace"), global_settings, &ext_confg);
+    cfg.parse_configuration_file().run();
+
+    static constexpr std::string_view grp_def(R"({
+      "name": "GRP1",
+      "libs": [
+        "path"
+      ],
+      "asm_options": {"SYSPARM": "PARM1"}
+    })");
+
+    EXPECT_CALL(ext_confg,
+        read_external_configuration(
+            Truly([](sequence<char> v) { return std::string_view(v) == "test://workspace/file1.hlasm"; }), _))
+        .WillOnce(Invoke([](auto, auto channel) { channel.provide(sequence<char>(grp_def)); }));
+
+    const resource_location pgm_loc("test://workspace/file1.hlasm");
+
+    cfg.load_alternative_config_if_needed(pgm_loc).run();
+
+    cfg.prune_external_processor_groups(resource_location());
+
+    const auto* pgm = cfg.get_program(pgm_loc);
+
+    EXPECT_EQ(pgm, nullptr);
+
+    EXPECT_THROW(cfg.get_proc_grp(external_conf { std::make_shared<std::string>(grp_def) }), std::out_of_range);
+}

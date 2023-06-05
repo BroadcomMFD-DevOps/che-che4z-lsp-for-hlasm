@@ -948,6 +948,8 @@ void workspace_configuration::prune_external_processor_groups(const utils::resou
             p != m_exact_pgm_conf.end() && p->second.pgm.external)
             m_exact_pgm_conf.erase(p);
     }
+    else
+        std::erase_if(m_exact_pgm_conf, [](const auto& p) { return p.second.pgm.external; });
 
     std::erase_if(m_proc_grps, [](const auto& pg) {
         const auto* e = std::get_if<external_conf>(&pg.first);
