@@ -33,7 +33,7 @@ server::server(parser_library::debugger_configuration_provider& dc_provider, tel
 void server::request(const std::string&,
     const nlohmann::json&,
     std::function<void(const nlohmann::json& params)>,
-    std::function<void(int, const char*)> error_handler)
+    std::function<void(int, const char*)>)
 {
     // Currently, there are no supported DAP requests from client to server
     /*send_message_->reply(nlohmann::json {

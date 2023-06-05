@@ -169,7 +169,7 @@ void feature_workspace_folders::send_configuration_request()
         "workspace/configuration",
         config_request_args,
         [this](const nlohmann::json& params) { configuration(params); },
-        [](int, const char* msg) {
+        [](int, [[maybe_unused]] const char* msg) {
             LOG_WARNING("Unexpected error configuration response received: " + std::string(msg));
         });
 }

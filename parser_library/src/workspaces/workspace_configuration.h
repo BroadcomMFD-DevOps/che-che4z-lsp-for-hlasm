@@ -258,7 +258,7 @@ class workspace_configuration
         }
         bool operator()(const tagged_string_view<external_conf>& l, const proc_grp_id& r) const noexcept
         {
-            return operator()(r, l);
+            return std::holds_alternative<external_conf>(r) && l.value == *std::get<external_conf>(r).definition;
         }
     };
 

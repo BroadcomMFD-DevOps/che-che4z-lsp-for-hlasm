@@ -18,9 +18,9 @@ import * as vscodelc from 'vscode-languageclient';
 interface ExternalConfigurationRequest {
     uri: string;
 };
-interface Proc_Grps_Schema_json { };
+interface ProcGrpsSchemaJson { };
 interface ExternalConfigurationResponse {
-    configuration: string | Proc_Grps_Schema_json;
+    configuration: string | ProcGrpsSchemaJson;
 };
 
 export type HLASMExternalConfigurationProviderHandler = (uri: vscode.Uri) => PromiseLike<ExternalConfigurationResponse | null> | ExternalConfigurationResponse | null;
@@ -49,8 +49,7 @@ export class HLASMExternalConfigurationProvider {
         this.toDispose.forEach(x => x.dispose());
     }
 
-    private async handleRequest(r: ExternalConfigurationRequest): Promise<ExternalConfigurationResponse | vscodelc.ResponseError> {
-        const uri = vscode.Uri.parse(r.uri);
+    private async handleRequest(uri: vscode.Uri): Promise<ExternalConfigurationResponse | vscodelc.ResponseError> {
         for (const h of this.requestHandlers) {
             try {
                 const resp = await h(uri);
@@ -70,7 +69,8 @@ export class HLASMExternalConfigurationProvider {
             return new vscodelc.ResponseError(-5, 'Invalid request');
 
         try {
-            return this.handleRequest(params[0]);
+            const uri = vscode.Uri.parse(params[0].uri);
+            return this.handleRequest(uri);
         } catch (e) {
             return new vscodelc.ResponseError(-5, 'Invalid request');
         }
@@ -88,7 +88,7 @@ export class HLASMExternalConfigurationProvider {
                 const idx = this.requestHandlers.indexOf(h);
                 if (idx >= 0)
                     this.requestHandlers.splice(idx, 1);
-                this.invalidateConfiguration(null);
+                return this.invalidateConfiguration(null);
             },
             invalidate: (uri: vscode.Uri | null) => this.invalidateConfiguration(uri)
         };

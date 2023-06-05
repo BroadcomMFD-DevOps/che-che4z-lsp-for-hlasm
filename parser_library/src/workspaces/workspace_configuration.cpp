@@ -897,7 +897,6 @@ decltype(workspace_configuration::m_proc_grps)::iterator workspace_configuration
     }
     m_utilized_settings_values.merge(std::move(utilized_settings_values));
 
-    // TODO: what to do with diags?
     for (auto&& d : diags)
         prc_grp.add_diagnostic(std::move(d));
 
@@ -937,7 +936,6 @@ void workspace_configuration::update_external_configuration(
                 {},
                 true,
             },
-            std::to_address(pg), // TODO: not sure about this at the moment, pg->first can be used just fine
         });
 }
 
