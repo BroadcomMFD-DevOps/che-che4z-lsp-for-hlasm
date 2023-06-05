@@ -671,8 +671,8 @@ void workspace::invalidate_external_configuration(const resource_location& url)
     m_configuration.prune_external_processor_groups(url);
     if (url.empty())
         mark_all_opened_files();
-    else
-        mark_file_for_parsing(url, file_content_state::changed_content);
+    else if (auto it = m_processor_files.find(url); it != m_processor_files.end() && it->second.m_opened)
+        m_parsing_pending.emplace(url);
 }
 
 workspace_file_info workspace::parse_successful(processor_file_compoments& comp, workspace_parse_lib_provider libs)
