@@ -12,9 +12,8 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
-
-import * as vscode from "vscode";
-import * as vscodelc from "vscode-languageclient";
+import * as vscode from 'vscode';
+import * as vscodelc from 'vscode-languageclient';
 
 interface ExternalConfigurationRequest {
     uri: string;
