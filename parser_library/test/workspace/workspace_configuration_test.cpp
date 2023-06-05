@@ -218,4 +218,9 @@ TEST_F(refresh_needed_test, refreshed)
     EXPECT_TRUE(refresh_libs({ resource_location("test://workspace/externals/") }));
     EXPECT_TRUE(refresh_libs({ resource_location("test://workspace/externals/library2") }));
     EXPECT_TRUE(refresh_libs({ resource_location("test://workspace/externals/library2/") }));
+
+    EXPECT_TRUE(refresh_libs({ resource_location("test://home"), resource_location("test://workspace") }));
+    EXPECT_TRUE(refresh_libs({ resource_location("test://home/"), resource_location("test://workspace/") }));
+    EXPECT_TRUE(refresh_libs({ resource_location("test://workspace"), resource_location("test://home") }));
+    EXPECT_TRUE(refresh_libs({ resource_location("test://workspace/"), resource_location("test://home/") }));
 }

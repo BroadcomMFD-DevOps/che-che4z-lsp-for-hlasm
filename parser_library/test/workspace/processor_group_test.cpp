@@ -285,6 +285,10 @@ TEST(processor_group, refresh_needed)
     EXPECT_TRUE(grp.refresh_needed({ resource_location("test://workspace/externals/library1/mac") }));
     EXPECT_TRUE(grp.refresh_needed({ resource_location("test://workspace/externals/library1") }));
     // whole tree gets deleted
+    EXPECT_TRUE(grp.refresh_needed({ resource_location("test://workspace") }));
+    EXPECT_TRUE(grp.refresh_needed({ resource_location("test:///workspace") }));
+    EXPECT_TRUE(grp.refresh_needed({ resource_location("test://workspace/") }));
+    EXPECT_TRUE(grp.refresh_needed({ resource_location("test:///workspace/") }));
     EXPECT_TRUE(grp.refresh_needed({ resource_location("test://workspace/externals") }));
     EXPECT_TRUE(grp.refresh_needed({ resource_location("test://workspace/externals/library2") }));
     // nothing to refresh
@@ -295,6 +299,11 @@ TEST(processor_group, refresh_needed)
     EXPECT_FALSE(grp.refresh_needed({ resource_location("test://workspace/externals/library/") }));
     EXPECT_FALSE(grp.refresh_needed({ resource_location("test://workspace/externals/library4/") }));
 
+    // different root
+    EXPECT_FALSE(grp.refresh_needed({ resource_location("test://home") }));
+    EXPECT_FALSE(grp.refresh_needed({ resource_location("test:///home") }));
+    EXPECT_FALSE(grp.refresh_needed({ resource_location("test://home/") }));
+    EXPECT_FALSE(grp.refresh_needed({ resource_location("test:///home/") }));
     // different scheme
     EXPECT_FALSE(grp.refresh_needed({ resource_location("aaa://workspace/externals/library1") }));
 }
