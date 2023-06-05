@@ -396,10 +396,10 @@ bool workspace_configuration::process_program(const config::program_mapping& pgm
 
     if (auto rl = transform_to_resource_location(*pgm_name, m_location);
         pgm_name->find_first_of("*?") == std::string::npos)
-        m_exact_pgm_conf.try_emplace(rl, tagged_program { program(rl, grp_id, pgm.opts) });
+        m_exact_pgm_conf.try_emplace(rl, tagged_program { program(rl, grp_id, pgm.opts, false) });
     else
         m_regex_pgm_conf.emplace_back(
-            tagged_program { program { rl, grp_id, pgm.opts } }, wildcard2regex(rl.get_uri()));
+            tagged_program { program { rl, grp_id, pgm.opts, false } }, wildcard2regex(rl.get_uri()));
 
     return true;
 }
@@ -584,6 +584,7 @@ workspace_configuration::try_creating_rl_tagged_pgm_pair(
                 rl,
                 std::move(grp_id_o),
                 {},
+                false,
             },
             tag,
         });
@@ -911,8 +912,14 @@ void workspace_configuration::update_external_configuration(
     if (std::string_view group_name(group_json); utils::trim_left(group_name), group_name.starts_with("\""))
     {
         m_exact_pgm_conf.insert_or_assign(normalized_location,
-            tagged_program { program(
-                normalized_location, basic_conf { nlohmann::json::parse(group_json).get<std::string>() }, {}) });
+            tagged_program {
+                program {
+                    normalized_location,
+                    basic_conf { nlohmann::json::parse(group_json).get<std::string>() },
+                    {},
+                    true,
+                },
+            });
         return;
     }
 
@@ -924,7 +931,12 @@ void workspace_configuration::update_external_configuration(
 
     m_exact_pgm_conf.insert_or_assign(normalized_location,
         tagged_program {
-            program(normalized_location, pg->first, {}),
+            program {
+                normalized_location,
+                pg->first,
+                {},
+                true,
+            },
             std::to_address(pg), // TODO: not sure about this at the moment, pg->first can be used just fine
         });
 }
@@ -934,8 +946,8 @@ void workspace_configuration::prune_external_processor_groups(const utils::resou
 {
     if (!location.empty())
     {
-        if (auto p = m_exact_pgm_conf.find(location.lexically_normal()); p != m_exact_pgm_conf.end()
-            && p->second.pgm.pgroup && std::holds_alternative<external_conf>(*p->second.pgm.pgroup))
+        if (auto p = m_exact_pgm_conf.find(location.lexically_normal());
+            p != m_exact_pgm_conf.end() && p->second.pgm.external)
             m_exact_pgm_conf.erase(p);
     }
 

@@ -77,8 +77,8 @@ struct external_conf
     bool operator==(const external_conf& o) const { return *definition == *o.definition; }
     auto operator<=>(const external_conf& o) const { return *definition <=> *o.definition; }
 
-    bool operator==(const std::string& o) const { return *definition == o; }
-    auto operator<=>(const std::string& o) const { return *definition <=> o; }
+    bool operator==(std::string_view o) const { return *definition == o; }
+    auto operator<=>(std::string_view o) const { return *definition <=> o; }
 
     size_t hash() const noexcept { return std::hash<std::string_view>()(*definition); }
 };
@@ -90,15 +90,17 @@ struct library_local_options;
 // information that a program uses certain processor group
 struct program
 {
-    program(program_id prog_id, std::optional<proc_grp_id> pgroup, config::assembler_options asm_opts)
+    program(program_id prog_id, std::optional<proc_grp_id> pgroup, config::assembler_options asm_opts, bool external)
         : prog_id(std::move(prog_id))
         , pgroup(std::move(pgroup))
         , asm_opts(std::move(asm_opts))
+        , external(external)
     {}
 
     program_id prog_id;
     std::optional<proc_grp_id> pgroup;
     config::assembler_options asm_opts;
+    bool external;
 };
 
 enum class parse_config_file_result
