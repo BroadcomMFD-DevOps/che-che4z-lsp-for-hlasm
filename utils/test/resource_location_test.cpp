@@ -12,6 +12,7 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
+#include <algorithm>
 #include <vector>
 
 #include "gtest/gtest.h"
@@ -941,4 +942,36 @@ TEST(resource_location, get_local_path_or_uri)
     EXPECT_EQ((is_windows() ? resource_location("file:///C:/dir/file") : resource_location("file:///home/file"))
                   .get_local_path_or_uri(),
         is_windows() ? "c:\\dir\\file" : "/home/file");
+}
+
+TEST(resource_location, reduce_same_level_elements)
+{
+    std::vector<resource_location> elements = {
+        resource_location("scheme://1/2/C.tmp"),
+        resource_location("scheme://1/2/D.exe"),
+        resource_location("scheme://1/2/B.suf"),
+        resource_location("scheme://1/2/"),
+        resource_location("scheme://1/2"),
+        resource_location("scheme://3/4/"),
+        resource_location("scheme://5/6/7/8/tmp1"),
+        resource_location("scheme://5/6/7/8/tmp2"),
+        resource_location("scheme://5/6/7/8/"),
+        resource_location("aaa://9/9/"),
+        resource_location("file:///c%3A/file_a"),
+        resource_location("file:///d%3A/file_b"),
+    };
+
+    static const std::vector<resource_location> expected = {
+        resource_location("scheme://1/2/C.tmp"),
+        resource_location("scheme://1/2"),
+        resource_location("scheme://3/4/"),
+        resource_location("scheme://5/6/7/8/tmp1"),
+        resource_location("aaa://9/9/"),
+        resource_location("file:///c%3A/file_a"),
+        resource_location("file:///d%3A/file_b"),
+    };
+
+    auto reduced = resource_location::reduce_same_level_elements(elements);
+
+    EXPECT_TRUE(std::is_permutation(reduced.begin(), reduced.end(), expected.begin(), expected.end()));
 }

@@ -20,6 +20,7 @@
 #include <deque>
 #include <iterator>
 #include <regex>
+#include <unordered_set>
 #include <utility>
 
 #include "utils/encoding.h"
@@ -573,6 +574,24 @@ resource_location resource_location::relative_reference_resolution(resource_loca
     rl.relative_reference_resolution(other);
 
     return rl;
+}
+
+std::vector<resource_location> resource_location::reduce_same_level_elements(const std::vector<resource_location>& urls)
+{
+    std::vector<utils::resource::resource_location> reduced_elements;
+    std::unordered_set<utils::resource::resource_location, utils::resource::resource_location_hasher> parent_paths;
+
+    for (const auto& f : urls)
+    {
+        auto parent = f.parent();
+        if (parent_paths.contains(parent))
+            continue;
+
+        reduced_elements.emplace_back(f);
+        parent_paths.insert(std::move(parent));
+    }
+
+    return reduced_elements;
 }
 
 std::size_t resource_location_hasher::operator()(const resource_location& rl) const

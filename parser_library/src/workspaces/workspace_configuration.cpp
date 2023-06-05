@@ -744,9 +744,10 @@ utils::value_task<std::optional<std::vector<const processor_group*>>> workspace_
     const std::vector<utils::resource::resource_location>& file_locations)
 {
     std::optional<std::vector<const processor_group*>> result;
+    const auto uris_to_check = utils::resource::resource_location::reduce_same_level_elements(file_locations);
 
-    if (std::any_of(file_locations.begin(),
-            file_locations.end(),
+    if (std::any_of(uris_to_check.begin(),
+            uris_to_check.end(),
             [this, hlasm_folder = utils::resource::resource_location::join(m_location, HLASM_PLUGIN_FOLDER)](
                 const auto& uri) { return is_configuration_file(uri) || uri == hlasm_folder; }))
     {
@@ -765,7 +766,7 @@ utils::value_task<std::optional<std::vector<const processor_group*>>> workspace_
     for (auto& [_, proc_grp] : m_proc_grps)
     {
         bool pending_refresh = false;
-        if (!proc_grp.refresh_needed(file_locations))
+        if (!proc_grp.refresh_needed(uris_to_check))
             continue;
         if (!result)
             result.emplace();
