@@ -124,15 +124,11 @@ suite('External configuration provider', () => {
     });
 
     test('Throwing handler', async () => {
-        let notificationParam: unknown;
         const c = new HLASMExternalConfigurationProvider({
             onRequest: <R, E>(method: string, handler: vscodelc.GenericRequestHandler<R, E>): vscode.Disposable => {
                 return { dispose: () => { } };
             },
-            sendNotification: async (method: string, params: any): Promise<void> => {
-                assert.deepEqual(method, 'invalidate_external_configuration');
-                notificationParam = params;
-            }
+            sendNotification: async (method: string, params: any): Promise<void> => { }
         });
 
         const h = c.addHandler(async (_) => { throw Error('Error message') });

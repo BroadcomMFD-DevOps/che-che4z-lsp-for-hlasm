@@ -231,7 +231,6 @@ class workspace_configuration
     {
         std::string_view value;
     };
-    ;
 
     struct proc_grp_id_hasher
     {

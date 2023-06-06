@@ -56,11 +56,11 @@ TEST(lsp_server, initialize)
     auto config_request_message =
         R"({"id":1,"jsonrpc":"2.0","method":"workspace/configuration","params":{"items":[{"section":"hlasm"},{}]}})"_json;
 
-    EXPECT_CALL(smpm, reply(::testing::_)).WillOnce(::testing::SaveArg<0>(&server_capab));
-    EXPECT_CALL(smpm, reply(show_message)).Times(::testing::AtMost(1));
-    EXPECT_CALL(smpm, reply(register_message)).Times(::testing::AtMost(1));
-    EXPECT_CALL(smpm, reply(config_request_message)).Times(::testing::AtMost(1));
-    EXPECT_CALL(smpm, reply(::testing::Truly([](const nlohmann::json& arg) {
+    EXPECT_CALL(smpm, reply(_)).WillOnce(SaveArg<0>(&server_capab));
+    EXPECT_CALL(smpm, reply(show_message)).Times(AtMost(1));
+    EXPECT_CALL(smpm, reply(register_message)).Times(AtMost(1));
+    EXPECT_CALL(smpm, reply(config_request_message)).Times(AtMost(1));
+    EXPECT_CALL(smpm, reply(Truly([](const nlohmann::json& arg) {
         return arg.count("method") && arg["method"] == "telemetry/event";
     })));
 
@@ -217,8 +217,8 @@ TEST(lsp_server, request_error_unknown)
 TEST(lsp_server, request_error)
 {
     auto ws_mngr = parser_library::create_workspace_manager();
-    ::testing::NiceMock<send_message_provider_mock> message_provider;
-    ::testing::MockFunction<void(int, const char*)> error_handler;
+    NiceMock<send_message_provider_mock> message_provider;
+    MockFunction<void(int, const char*)> error_handler;
     lsp::server s(*ws_mngr);
     response_provider& rp = s;
     s.set_send_message_provider(&message_provider);
@@ -226,7 +226,7 @@ TEST(lsp_server, request_error)
     auto request_response = R"({"id":0,"jsonrpc":"2.0","error":{"code":-123456,"message":"the_error_message"}})"_json;
 
     // Only telemetry expected
-    EXPECT_CALL(error_handler, Call(-123456, ::testing::StrEq("the_error_message")));
+    EXPECT_CALL(error_handler, Call(-123456, StrEq("the_error_message")));
 
     rp.request("client_method", "args", {}, error_handler.AsStdFunction());
 
@@ -259,12 +259,11 @@ TEST(lsp_server, request_error_no_message)
 TEST(lsp_server_test, non_compliant_uri)
 {
     NiceMock<test::ws_mngr_mock> ws_mngr;
-    ::testing::NiceMock<send_message_provider_mock> smpm;
+    NiceMock<send_message_provider_mock> smpm;
     lsp::server s(ws_mngr);
     s.set_send_message_provider(&smpm);
 
-    EXPECT_CALL(
-        ws_mngr, did_open_file(::testing::StrEq("user_storage:/user/storage/layout"), 4, ::testing::StrEq("sad"), 3));
+    EXPECT_CALL(ws_mngr, did_open_file(StrEq("user_storage:/user/storage/layout"), 4, StrEq("sad"), 3));
 
     s.message_received(
         R"({"jsonrpc":"2.0","method":"textDocument/didOpen","params":{"textDocument":{"uri":"user_storage:/user/storage/layout","languageId":"plaintext","version":4,"text":"sad"}}})"_json);
@@ -273,11 +272,11 @@ TEST(lsp_server_test, non_compliant_uri)
 TEST(lsp_server_test, external_configuration_invalidation)
 {
     NiceMock<test::ws_mngr_mock> ws_mngr;
-    ::testing::NiceMock<send_message_provider_mock> smpm;
+    NiceMock<send_message_provider_mock> smpm;
     lsp::server s(ws_mngr);
     s.set_send_message_provider(&smpm);
 
-    EXPECT_CALL(ws_mngr, invalidate_external_configuration(::testing::StrEq("scheme:path")));
+    EXPECT_CALL(ws_mngr, invalidate_external_configuration(StrEq("scheme:path")));
 
     s.message_received(
         R"({"jsonrpc":"2.0","method":"invalidate_external_configuration","params":{"uri":"scheme:path"}})"_json);
@@ -285,7 +284,6 @@ TEST(lsp_server_test, external_configuration_invalidation)
 
 TEST(lsp_server_test, external_configuration_request)
 {
-    using namespace ::testing;
     parser_library::workspace_manager_requests* wmr = nullptr;
     NiceMock<test::ws_mngr_mock> ws_mngr;
     EXPECT_CALL(ws_mngr, set_request_interface(_)).WillOnce(SaveArg<0>(&wmr));

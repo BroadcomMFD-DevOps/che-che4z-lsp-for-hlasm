@@ -233,11 +233,26 @@ TEST(workspace_configuration, external_configurations_prune)
 
     cfg.load_alternative_config_if_needed(pgm_loc).run();
 
+    EXPECT_CALL(ext_confg,
+        read_external_configuration(
+            Truly([](sequence<char> v) { return std::string_view(v) == "test://workspace/file2.hlasm"; }), _))
+        .WillOnce(Invoke([](auto, auto channel) { channel.provide(sequence<char>(grp_def)); }));
+
+    const resource_location pgm_loc_2("test://workspace/file2.hlasm");
+
+    cfg.load_alternative_config_if_needed(pgm_loc_2).run();
+
     cfg.prune_external_processor_groups(pgm_loc);
 
-    const auto* pgm = cfg.get_program(pgm_loc);
+    EXPECT_EQ(cfg.get_program(pgm_loc), nullptr);
+    EXPECT_NE(cfg.get_program(pgm_loc_2), nullptr);
 
-    EXPECT_EQ(pgm, nullptr);
+    EXPECT_NO_THROW(cfg.get_proc_grp(external_conf { std::make_shared<std::string>(grp_def) }));
+
+    cfg.prune_external_processor_groups(pgm_loc_2);
+
+    EXPECT_EQ(cfg.get_program(pgm_loc), nullptr);
+    EXPECT_EQ(cfg.get_program(pgm_loc_2), nullptr);
 
     EXPECT_THROW(cfg.get_proc_grp(external_conf { std::make_shared<std::string>(grp_def) }), std::out_of_range);
 }
