@@ -944,34 +944,22 @@ TEST(resource_location, get_local_path_or_uri)
         is_windows() ? "c:\\dir\\file" : "/home/file");
 }
 
-TEST(resource_location, reduce_same_level_elements)
+TEST(resource_location, is_prefix)
 {
-    std::vector<resource_location> elements = {
-        resource_location("scheme://1/2/C.tmp"),
-        resource_location("scheme://1/2/D.exe"),
-        resource_location("scheme://1/2/B.suf"),
-        resource_location("scheme://1/2/"),
-        resource_location("scheme://1/2"),
-        resource_location("scheme://3/4/"),
-        resource_location("scheme://5/6/7/8/tmp1"),
-        resource_location("scheme://5/6/7/8/tmp2"),
-        resource_location("scheme://5/6/7/8/"),
-        resource_location("aaa://9/9/"),
-        resource_location("file:///c%3A/file_a"),
-        resource_location("file:///d%3A/file_b"),
-    };
+    const resource_location base("scheme://d1/d2/f1");
 
-    static const std::vector<resource_location> expected = {
-        resource_location("scheme://1/2/C.tmp"),
-        resource_location("scheme://1/2"),
-        resource_location("scheme://3/4/"),
-        resource_location("scheme://5/6/7/8/tmp1"),
-        resource_location("aaa://9/9/"),
-        resource_location("file:///c%3A/file_a"),
-        resource_location("file:///d%3A/file_b"),
-    };
+    EXPECT_TRUE(resource_location::is_prefix(resource_location("scheme://d1/d2/f1/"), base));
+    EXPECT_TRUE(resource_location::is_prefix(resource_location("scheme://d1/d2/f1"), base));
+    EXPECT_TRUE(resource_location::is_prefix(resource_location("scheme://d1/d2/"), base));
+    EXPECT_TRUE(resource_location::is_prefix(resource_location("scheme://d1/d2"), base));
+    EXPECT_TRUE(resource_location::is_prefix(resource_location("scheme://d1/"), base));
+    EXPECT_TRUE(resource_location::is_prefix(resource_location("scheme://d1"), base));
 
-    auto reduced = resource_location::reduce_same_level_elements(elements);
-
-    EXPECT_TRUE(std::is_permutation(reduced.begin(), reduced.end(), expected.begin(), expected.end()));
+    EXPECT_FALSE(resource_location::is_prefix(resource_location("scheme://d1/d2/f"), base));
+    EXPECT_FALSE(resource_location::is_prefix(resource_location("scheme://d1/d2/f1/f2"), base));
+    EXPECT_FALSE(resource_location::is_prefix(resource_location("scheme://d1/d2/d3"), base));
+    EXPECT_FALSE(resource_location::is_prefix(resource_location("scheme://d1/d2/d3/"), base));
+    EXPECT_FALSE(resource_location::is_prefix(resource_location("scheme://d1/d2/d3/f1"), base));
+    EXPECT_FALSE(resource_location::is_prefix(resource_location("scheme://d9/d8/f1"), base));
+    EXPECT_FALSE(resource_location::is_prefix(resource_location("diff_scheme://d1/d2/f1"), base));
 }

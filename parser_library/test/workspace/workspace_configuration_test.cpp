@@ -15,6 +15,7 @@
 #include <optional>
 #include <string>
 #include <type_traits>
+#include <unordered_set>
 #include <vector>
 
 #include "gtest/gtest.h"
@@ -125,6 +126,7 @@ private:
         {
             "name": "P1",
             "libs": [
+                "test://workspace/externals/library0",
                 "test://workspace/externals/library1",
                 "test://workspace/externals/library1/SYSTEM_LIBRARY",
                 "test://workspace/externals/library2",
@@ -152,7 +154,12 @@ public:
     {
         EXPECT_EQ(m_cfg.parse_configuration_file().run().value(), parse_config_file_result::parsed);
 
-        cache_content();
+        cache_content(resource_location("test://workspace/pgm1"),
+            {
+                resource_location("test://workspace/externals/library1/"),
+                resource_location("test://workspace/externals/library1/SYSTEM_LIBRARY/"),
+                resource_location("test://workspace/externals/library2/"),
+            });
     }
 
     bool refresh_libs(const std::vector<resource_location>& uris)
@@ -167,19 +174,14 @@ private:
     const shared_json m_global_settings = make_empty_shared_json();
     workspace_configuration m_cfg = workspace_configuration(m_fm, ws_loc, m_global_settings);
 
-    void cache_content()
+    void cache_content(const resource_location& pgm_location,
+        const std::unordered_set<resource_location, resource_location_hasher>& lib_locations_to_cache)
     {
-        auto pgm_p1 = m_cfg.get_program(resource_location("test://workspace/pgm1"));
-        ASSERT_TRUE(pgm_p1);
-
-        auto proc_grp = m_cfg.get_proc_grp_by_program(*pgm_p1);
-        ASSERT_TRUE(proc_grp);
-
-        auto libs = proc_grp->libraries();
-        EXPECT_EQ(libs.size(), 4);
-
-        for (size_t i = 0; i < 3; ++i)
-            libs[i]->prefetch().run();
+        for (const auto& lib : m_cfg.get_proc_grp_by_program(*m_cfg.get_program(pgm_location))->libraries())
+        {
+            if (auto it = lib_locations_to_cache.find(lib->get_location()); it != lib_locations_to_cache.end())
+                lib->prefetch().run();
+        }
     }
 };
 } // namespace
@@ -191,36 +193,46 @@ TEST_F(refresh_needed_test, not_refreshed)
 
     // different path
     EXPECT_FALSE(refresh_libs({ resource_location("test://workspace/something/else") }));
+    EXPECT_FALSE(refresh_libs({ resource_location("test://workspace/externals/library1/MAC/") }));
+    EXPECT_FALSE(refresh_libs({ resource_location("test://workspace/externals/library1/mac/") }));
 
     // not used
     EXPECT_FALSE(refresh_libs({ resource_location("test://workspace/externals/library") }));
     EXPECT_FALSE(refresh_libs({ resource_location("test://workspace/externals/library/") }));
     EXPECT_FALSE(refresh_libs({ resource_location("test://workspace/externals/library4") }));
     EXPECT_FALSE(refresh_libs({ resource_location("test://workspace/externals/library4/") }));
+    EXPECT_FALSE(refresh_libs({ resource_location("test://home") }));
+    EXPECT_FALSE(refresh_libs({ resource_location("test://home/") }));
 
     // not cached
     EXPECT_FALSE(refresh_libs({ resource_location("test://workspace/externals/library3") }));
+    EXPECT_FALSE(refresh_libs({ resource_location("test://workspace/externals/library3/") }));
 }
 
 TEST_F(refresh_needed_test, refreshed)
 {
-    EXPECT_TRUE(refresh_libs({ resource_location("test://workspace/externals/library1") }));
-    EXPECT_TRUE(refresh_libs({ resource_location("test://workspace/externals/library1/") }));
+    // New element
     EXPECT_TRUE(refresh_libs({ resource_location("test://workspace/externals/library1/MAC") }));
-    EXPECT_TRUE(refresh_libs({ resource_location("test://workspace/externals/library1/MAC/") }));
     EXPECT_TRUE(refresh_libs({ resource_location("test://workspace/externals/library1/mac") }));
-    EXPECT_TRUE(refresh_libs({ resource_location("test://workspace/externals/library1/mac/") }));
+    EXPECT_TRUE(refresh_libs({ resource_location("test://workspace/externals/library1/SYSTEM_LIBRARY/MAC") }));
+    EXPECT_TRUE(refresh_libs({ resource_location("test://workspace/externals/library1/SYSTEM_LIBRARY/mac") }));
 
     // whole tree gets deleted
-    EXPECT_TRUE(refresh_libs({ resource_location("test://workspace") }));
-    EXPECT_TRUE(refresh_libs({ resource_location("test://workspace/") }));
-    EXPECT_TRUE(refresh_libs({ resource_location("test://workspace/externals") }));
-    EXPECT_TRUE(refresh_libs({ resource_location("test://workspace/externals/") }));
     EXPECT_TRUE(refresh_libs({ resource_location("test://workspace/externals/library2") }));
     EXPECT_TRUE(refresh_libs({ resource_location("test://workspace/externals/library2/") }));
+    EXPECT_TRUE(refresh_libs({ resource_location("test://workspace/externals") }));
+    EXPECT_TRUE(refresh_libs({ resource_location("test://workspace/externals/") }));
+    EXPECT_TRUE(refresh_libs({ resource_location("test://workspace") }));
+    EXPECT_TRUE(refresh_libs({ resource_location("test://workspace/") }));
 
     EXPECT_TRUE(refresh_libs({ resource_location("test://home"), resource_location("test://workspace") }));
     EXPECT_TRUE(refresh_libs({ resource_location("test://home/"), resource_location("test://workspace/") }));
     EXPECT_TRUE(refresh_libs({ resource_location("test://workspace"), resource_location("test://home") }));
     EXPECT_TRUE(refresh_libs({ resource_location("test://workspace/"), resource_location("test://home/") }));
+
+    EXPECT_TRUE(refresh_libs({
+        resource_location("test://workspace/externals/library1"),
+        resource_location("test://workspace/externals/library2"),
+        resource_location("test://workspace/externals/library3"),
+    }));
 }

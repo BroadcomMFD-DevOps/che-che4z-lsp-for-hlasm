@@ -225,6 +225,7 @@ TEST(processor_group, asm_options_machine_invalid)
 TEST(processor_group, opcode_suggestions)
 {
     auto lib = std::make_shared<::testing::NiceMock<library_mock>>();
+    resource_location lib_loc("");
 
     const std::vector<std::string> files { "MAC1", "MAC2", "LONGMAC" };
 
@@ -236,6 +237,7 @@ TEST(processor_group, opcode_suggestions)
                 *url = hlasm_plugin::utils::resource::resource_location(file);
             return result;
         });
+    EXPECT_CALL(*lib, get_location).WillOnce(ReturnRef(lib_loc));
 
     processor_group grp("", {}, {});
     grp.add_library(lib);
@@ -253,57 +255,4 @@ TEST(processor_group, opcode_suggestions)
 
     EXPECT_TRUE(grp.suggest("MAC1", false).empty());
     EXPECT_TRUE(grp.suggest("MAC1", true).empty());
-}
-
-TEST(processor_group, refresh_needed)
-{
-    constexpr auto set_expectations = [](const resource_location& res_loc, bool has_cached_content) {
-        auto lib = std::make_shared<NiceMock<library_mock>>();
-        EXPECT_CALL(*lib, get_location).WillRepeatedly(ReturnRef(res_loc));
-        EXPECT_CALL(*lib, has_cached_content).WillRepeatedly(Return(has_cached_content));
-
-        return lib;
-    };
-
-    const auto rl_lib_1 = resource_location("test://workspace/externals/library1");
-    const auto lib1 = set_expectations(rl_lib_1, true);
-    const auto rl_sub_lib = resource_location("test://workspace/externals/library1/SUB_LIBRARY/");
-    const auto sub_lib = set_expectations(rl_sub_lib, true);
-    const auto rl_lib_2 = resource_location("test://workspace/externals/library2");
-    const auto lib2 = set_expectations(rl_lib_2, true);
-    const auto rl_lib_3 = resource_location("test://workspace/externals/library3");
-    const auto lib3 = set_expectations(rl_lib_3, false);
-
-    processor_group grp("", {}, {});
-    grp.add_library(lib1);
-    grp.add_library(sub_lib);
-    grp.add_library(lib2);
-    grp.add_library(lib3);
-
-    // TODO: only create&delete should trigger the file specific one
-    EXPECT_TRUE(grp.refresh_needed({ resource_location("test://workspace/externals/library1/MAC") }));
-    EXPECT_TRUE(grp.refresh_needed({ resource_location("test://workspace/externals/library1/mac") }));
-    EXPECT_TRUE(grp.refresh_needed({ resource_location("test://workspace/externals/library1") }));
-    // whole tree gets deleted
-    EXPECT_TRUE(grp.refresh_needed({ resource_location("test://workspace") }));
-    EXPECT_TRUE(grp.refresh_needed({ resource_location("test:///workspace") }));
-    EXPECT_TRUE(grp.refresh_needed({ resource_location("test://workspace/") }));
-    EXPECT_TRUE(grp.refresh_needed({ resource_location("test:///workspace/") }));
-    EXPECT_TRUE(grp.refresh_needed({ resource_location("test://workspace/externals") }));
-    EXPECT_TRUE(grp.refresh_needed({ resource_location("test://workspace/externals/library2") }));
-    // nothing to refresh
-    EXPECT_FALSE(grp.refresh_needed({ resource_location("test://workspace/externals/library3") }));
-    // not used
-    EXPECT_FALSE(grp.refresh_needed({ resource_location("test://workspace/externals/library") }));
-    EXPECT_FALSE(grp.refresh_needed({ resource_location("test://workspace/externals/library4") }));
-    EXPECT_FALSE(grp.refresh_needed({ resource_location("test://workspace/externals/library/") }));
-    EXPECT_FALSE(grp.refresh_needed({ resource_location("test://workspace/externals/library4/") }));
-
-    // different root
-    EXPECT_FALSE(grp.refresh_needed({ resource_location("test://home") }));
-    EXPECT_FALSE(grp.refresh_needed({ resource_location("test:///home") }));
-    EXPECT_FALSE(grp.refresh_needed({ resource_location("test://home/") }));
-    EXPECT_FALSE(grp.refresh_needed({ resource_location("test:///home/") }));
-    // different scheme
-    EXPECT_FALSE(grp.refresh_needed({ resource_location("aaa://workspace/externals/library1") }));
 }

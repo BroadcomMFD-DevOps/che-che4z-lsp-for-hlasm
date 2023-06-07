@@ -15,10 +15,12 @@
 #ifndef HLASMPLUGIN_PARSERLIBRARY_PROCESSOR_GROUP_H
 #define HLASMPLUGIN_PARSERLIBRARY_PROCESSOR_GROUP_H
 
+#include <map>
 #include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -29,6 +31,7 @@
 #include "preprocessor_options.h"
 #include "utils/bk_tree.h"
 #include "utils/levenshtein_distance.h"
+#include "utils/resource_location.h"
 
 namespace hlasm_plugin::parser_library::config {
 struct assembler_options;
@@ -62,10 +65,14 @@ public:
 
     std::vector<std::pair<std::string, size_t>> suggest(std::string_view s, bool extended);
 
-    bool refresh_needed(const std::vector<utils::resource::resource_location>& urls) const;
+    bool refresh_needed(
+        const std::unordered_set<utils::resource::resource_location, utils::resource::resource_location_hasher>&
+            no_filename_rls,
+        const std::vector<utils::resource::resource_location>& original_rls) const;
 
 private:
     std::vector<std::shared_ptr<library>> m_libs;
+    std::map<utils::resource::resource_location, size_t> m_lib_locations;
     std::string m_pg_name;
     config::assembler_options m_asm_opts;
     std::vector<preprocessor_options> m_prep_opts;
