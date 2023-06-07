@@ -142,12 +142,6 @@ export async function activate(context: vscode.ExtensionContext) {
     await registerToContext(context, hlasmpluginClient, telemetry, extFiles);
 
     let api = {
-        getExtension(): vscodelc.LanguageClient {
-            return hlasmpluginClient;
-        },
-        getTelemetry(): Telemetry {
-            return telemetry;
-        },
         registerExternalFileClient<ConnectArgs, ReadArgs extends ClientUriDetails, ListArgs extends ClientUriDetails>(service: string, client: ClientInterface<ConnectArgs, ReadArgs, ListArgs>) {
             extFiles.setClient(service, client);
         },
