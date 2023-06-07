@@ -233,9 +233,9 @@ export class HLASMExternalConfigurationProvider {
                 const idx = this.requestHandlers.indexOf(h);
                 if (idx >= 0)
                     this.requestHandlers.splice(idx, 1);
-                return this.invalidateConfiguration(null);
+                this.invalidateConfiguration(null);
             },
-            invalidate: (uri: vscode.Uri | null) => this.invalidateConfiguration(uri)
+            invalidate: (uri: vscode.Uri | null) => { this.invalidateConfiguration(uri); }
         };
     }
 }
