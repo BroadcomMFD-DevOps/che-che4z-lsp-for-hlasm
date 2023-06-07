@@ -173,6 +173,11 @@ function isError(e: any): e is Error {
     return e instanceof Error;
 }
 
+export interface ConfigurationProviderRegistration {
+    dispose(): void;
+    invalidate(uri: vscode.Uri | null): PromiseLike<void> | void;
+};
+
 export class HLASMExternalConfigurationProvider {
     private toDispose: vscode.Disposable[] = [];
     private requestHandlers: HLASMExternalConfigurationProviderHandler[] = [];
@@ -220,7 +225,7 @@ export class HLASMExternalConfigurationProvider {
         return this.channel.sendNotification('invalidate_external_configuration', uri ? { uri: uri.toString() } : {});
     }
 
-    public addHandler(h: HLASMExternalConfigurationProviderHandler) {
+    public addHandler(h: HLASMExternalConfigurationProviderHandler): ConfigurationProviderRegistration {
         this.requestHandlers.push(h);
 
         return {
