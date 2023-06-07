@@ -279,18 +279,18 @@ TEST(processor_group, refresh_needed)
     grp.add_library(lib2);
     grp.add_library(lib3);
 
-    constexpr auto should_be_refreshed = [&grp](const resource_location& original_rl) {
-        return grp.refresh_needed({ resource_location::replace_filename(original_rl, "") }, { original_rl });
+    constexpr auto should_be_refreshed = [](const processor_group& group, const resource_location& original_rl) {
+        return group.refresh_needed({ resource_location::replace_filename(original_rl, "") }, { original_rl });
     };
 
     // TODO: only create&delete should trigger the file specific one
-    EXPECT_TRUE(should_be_refreshed(resource_location("test://workspace/externals/library1/MAC")));
-    EXPECT_TRUE(should_be_refreshed(resource_location("test://workspace/externals/library1")));
+    EXPECT_TRUE(should_be_refreshed(grp, resource_location("test://workspace/externals/library1/MAC")));
+    EXPECT_TRUE(should_be_refreshed(grp, resource_location("test://workspace/externals/library1")));
     // whole tree gets deleted
-    EXPECT_TRUE(should_be_refreshed(resource_location("test://workspace/externals")));
-    EXPECT_TRUE(should_be_refreshed(resource_location("test://workspace/externals/library2")));
+    EXPECT_TRUE(should_be_refreshed(grp, resource_location("test://workspace/externals")));
+    EXPECT_TRUE(should_be_refreshed(grp, resource_location("test://workspace/externals/library2")));
     // nothing to refresh
-    EXPECT_FALSE(should_be_refreshed(resource_location("test://workspace/externals/library3")));
+    EXPECT_FALSE(should_be_refreshed(grp, resource_location("test://workspace/externals/library3")));
     // not used
-    EXPECT_FALSE(should_be_refreshed(resource_location("test://workspace/externals/library4")));
+    EXPECT_FALSE(should_be_refreshed(grp, resource_location("test://workspace/externals/library4")));
 }
