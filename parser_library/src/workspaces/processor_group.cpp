@@ -119,10 +119,8 @@ bool processor_group::refresh_needed(
     if (std::any_of(no_filename_rls.begin(),
             no_filename_rls.end(),
             [&libs = m_libs, &lib_locations = m_lib_locations](const auto& no_filename_rl) {
-                if (auto candidate = lib_locations.find(no_filename_rl); candidate != lib_locations.end())
-                    return libs[candidate->second]->has_cached_content();
-
-                return false;
+                auto candidate = lib_locations.find(no_filename_rl);
+                return candidate != lib_locations.end() && libs[candidate->second]->has_cached_content();
             }))
         return true;
 
