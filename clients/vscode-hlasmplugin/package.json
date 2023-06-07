@@ -69,7 +69,7 @@
   },
   "scripts": {
     "postinstall": "node ./build/bin/postinstall.js",
-    "compile": "esbuild --bundle src/extension.ts --outdir=dist --sourcemap --external:vscode --platform=node --minify && dts-bundle-generator --export-referenced-types=false -o typings/extension.d.ts src/extension.interface.ts",
+    "compile": "esbuild --bundle src/extension.ts --outdir=dist --sourcemap --external:vscode --platform=node --minify && dts-bundle-generator --no-banner --export-referenced-types=false -o typings/extension.d.ts src/extension.interface.ts",
     "compile:test": "tsc -p ./tsconfig.json && npm run compile",
     "clean": "node ./build/bin/clean.js",
     "test": "npm run compile:test && node ./build/bin/prepareWorkspace.js && node ./lib/test/runTest.js",
