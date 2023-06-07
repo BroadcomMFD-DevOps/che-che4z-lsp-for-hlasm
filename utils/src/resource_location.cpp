@@ -20,7 +20,6 @@
 #include <deque>
 #include <iterator>
 #include <regex>
-#include <unordered_set>
 #include <utility>
 
 #include "utils/encoding.h"

@@ -17,7 +17,6 @@
 
 #include <compare>
 #include <string>
-#include <vector>
 
 namespace hlasm_plugin::utils::resource {
 
