@@ -222,7 +222,7 @@ export class HLASMExternalConfigurationProvider {
     }
 
     private invalidateConfiguration(uri: vscode.Uri | null) {
-        return this.channel.sendNotification('invalidate_external_configuration', uri ? { uri: uri.toString() } : {});
+        this.channel.sendNotification('invalidate_external_configuration', uri ? { uri: uri.toString() } : {});
     }
 
     public addHandler(h: HLASMExternalConfigurationProviderHandler): ConfigurationProviderRegistration {
