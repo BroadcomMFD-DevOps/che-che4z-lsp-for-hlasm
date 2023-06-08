@@ -62,7 +62,7 @@ public:
 
     std::string get_local_path_or_uri() const;
 
-    bool is_prefix_of(const resource_location& base) const;
+    bool is_prefix_of(const resource_location& candidate) const;
     static bool is_prefix(const resource_location& candidate, const resource_location& base);
 
     std::strong_ordering operator<=>(const resource_location& rl) const noexcept = default;

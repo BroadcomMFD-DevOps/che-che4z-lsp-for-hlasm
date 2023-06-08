@@ -575,7 +575,7 @@ resource_location resource_location::relative_reference_resolution(resource_loca
     return rl;
 }
 
-bool resource_location::is_prefix_of(const resource_location& base) const
+bool resource_location::is_prefix_of(const resource_location& candidate) const
 {
     constexpr auto is_parent = [](std::string_view u) {
         while (u.starts_with(".."))
@@ -587,7 +587,7 @@ bool resource_location::is_prefix_of(const resource_location& base) const
 
         return u.empty();
     };
-    const auto lex_rel = base.lexically_relative(*this);
+    const auto lex_rel = candidate.lexically_relative(*this);
     const auto& u = lex_rel.get_uri();
     return !u.empty() && (u == "." || is_parent(u));
 }
