@@ -144,9 +144,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<HlasmE
     // register all commands and objects to context
     await registerToContext(context, hlasmpluginClient, telemetry, extFiles);
 
-    let api = {
-        registerExternalFileClient<ConnectArgs, ReadArgs extends ClientUriDetails, ListArgs extends ClientUriDetails>(service: string, client: ClientInterface<ConnectArgs, ReadArgs, ListArgs>) {
-            extFiles.setClient(service, client);
+    let api: HlasmExtension = {
+        registerExternalFileClient(service, client) {
+            return extFiles.setClient(service, client);
         },
         registerExternalConfigurationProvider(h: HLASMExternalConfigurationProviderHandler) {
             return extConfProvider.addHandler(h);
