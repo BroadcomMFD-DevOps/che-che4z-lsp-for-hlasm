@@ -208,6 +208,7 @@
         {
           "begin": "^\\s{15}(?=\\S+)",
           "end": "((?<=^.{71}\\s.*)|(?<=^.{0,71}))$",
+          "applyEndPatternLast": 1,
           "comment": "Operands will continue on the next line",
           "patterns": [
             {
@@ -222,7 +223,7 @@
     },
     "operandsRemarks": {
       "name": "source.hlasm.operandsRemarks",
-      "match": "((?:\\S+),?)+\\s*(.*)(?<=^.{71})",
+      "match": "((?:\\S+),?)+\\s*(.*)(?<=^.{0,71})",
       "captures": {
         "1": {
           "patterns": [
