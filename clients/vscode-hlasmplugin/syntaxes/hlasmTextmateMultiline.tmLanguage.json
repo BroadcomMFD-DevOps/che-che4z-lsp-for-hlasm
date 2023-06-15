@@ -1,0 +1,323 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "IBM HLASM",
+  "patterns": [
+    {
+      "include": "#general_multi_hlasm_statement"
+    }
+  ],
+  "repository": {
+    "general_multi_hlasm_statement": {
+      "patterns": [
+        {
+          "include": "#multi_syntax"
+        }
+      ]
+    },
+    "multi_syntax": {
+      "patterns": [
+        {
+          "begin": "(.{71})",
+          "end": ".{3}$",
+          "beginCaptures": {
+            "1": {
+              "patterns": [
+                {
+                  "include": "#asmMultilineLineStart"
+                },
+                {
+                  "include": "#operands_remarks"
+                }
+              ]
+            }
+          },
+          "patterns": [
+            {
+              "include": "#lineTooLong"
+            },
+            {
+              "include": "#operands_remarks"
+            }
+          ]
+        }
+      ]
+    },
+    "operands_remarks": {
+      "match": "(\\S+,)\\s*(\\S*)",
+      "captures": {
+        "1": {
+          "patterns": [
+            {
+              "include": "#stringType"
+            },
+            {
+              "include": "#quoteType"
+            },
+            {
+              "match": "(\\S*)",
+              "captures": {
+                "1": {
+                  "name": "punctuation.definition.tag.hlasm",
+                  "patterns": [
+                    {
+                      "include": "#additionalAsmHighlight"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        "2": {
+          "name": "comment.hlasm"
+        }
+      }
+    },
+    "multiline_full_line": {
+      "match": "(^.{71})(.*)$",
+      "captures": {
+        "1": {
+          "patterns": [
+            {
+              "include": "#multiline_line_content"
+            }
+          ]
+        },
+        "2": {
+          "patterns": [
+            {
+              "include": "#lineEnd"
+            }
+          ]
+        }
+      }
+    },
+    "lineComment": {
+      "patterns": [
+        {
+          "name": "comment.hlasm",
+          "match": "^(\\*.{70})(.*)",
+          "captures": {
+            "1": {
+              "name": "comment.hlasm"
+            },
+            "2": {
+              "patterns": [
+                {
+                  "match": "(\\s.*)",
+                  "captures": {
+                    "1": {
+                      "patterns": [
+                        {
+                          "include": "#lineEnd"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "match": "([^\\s])(.*)",
+                  "captures": {
+                    "1": {
+                      "name": "invalid.illegal.hlasm"
+                    },
+                    "2": {
+                      "patterns": [
+                        {
+                          "include": "#sequenceNumbers"
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "comment.hlasm",
+          "match": "\\*.*"
+        },
+        {
+          "name": "comment.hlasm",
+          "match": "\\.\\*.*"
+        }
+      ]
+    },
+    "asmMultilineLineStart": {
+      "patterns": [
+        {
+          "match": "^([^*]\\S*)?\\s+(\\S+\\s*)",
+          "captures": {
+            "1": {
+              "name": "support.class.hlasm"
+            },
+            "2": {
+              "patterns": [
+                {
+                  "include": "#asmMultilineInstruction"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "asmMultilineInstruction": {
+      "patterns": [
+        {
+          "match": "(\\S+)\\s*",
+          "captures": {
+            "1": {
+              "name": "entity.name.function.hlasm"
+            }
+          }
+        }
+      ]
+    },
+    "asmArgumentLine": {
+      "patterns": [
+        {
+          "match": "^\\s+(\\S+=.*)$",
+          "captures": {
+            "1": {
+              "patterns": [
+                {
+                  "include": "#asmArguments"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "asmArguments": {
+      "patterns": [
+        {
+          "include": "#stringType"
+        },
+        {
+          "include": "#quoteType"
+        },
+        {
+          "match": "(\\S*)(.*)",
+          "captures": {
+            "1": {
+              "name": "punctuation.definition.tag.hlasm",
+              "patterns": [
+                {
+                  "include": "#additionalAsmHighlight"
+                }
+              ]
+            },
+            "2": {
+              "name": "comment.hlasm"
+            }
+          }
+        },
+        {
+          "match": "\\s.*",
+          "name": "comment.hlasm"
+        }
+      ]
+    },
+    "stringType": {
+      "patterns": [
+        {
+          "match": "(\\S*?)('.*?')(.*)",
+          "captures": {
+            "1": {
+              "name": "punctuation.definition.tag.hlasm",
+              "patterns": [
+                {
+                  "include": "#additionalAsmHighlight"
+                }
+              ]
+            },
+            "2": {
+              "name": "string.hlasm"
+            },
+            "3": {
+              "patterns": [
+                {
+                  "include": "#asmArguments"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "quoteType": {
+      "patterns": [
+        {
+          "match": "(\\S*?)([LKNT]')(.*)",
+          "captures": {
+            "1": {
+              "name": "keyword.control.hlasm",
+              "patterns": [
+                {
+                  "include": "#additionalAsmHighlight"
+                }
+              ]
+            },
+            "2": {
+              "name": "support.type.hlasm"
+            },
+            "3": {
+              "patterns": [
+                {
+                  "include": "#asmArguments"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "lineEnd": {
+      "match": "(.)(.*)",
+      "captures": {
+        "1": {
+          "patterns": [
+            {
+              "include": "#continuationSymbol"
+            }
+          ]
+        },
+        "2": {
+          "patterns": [
+            {
+              "include": "#sequenceNumbers"
+            }
+          ]
+        }
+      }
+    },
+    "labels": {
+      "match": "[*]",
+      "name": "support.class.hlasm"
+    },
+    "operators": {
+      "match": "[=(),+]",
+      "name": "keyword.operator.hlasm"
+    },
+    "numbers": {
+      "match": "(?<=[=(),*\\s+])-?\\d*(?=[=(),*+\\s]|$)",
+      "name": "constant.numeric.hlasm"
+    },
+    "asmSpecialStatements": {
+      "match": "(?<=[=(),*+\\s])=?\\d*(A|B|C|D|E|F|G|H|P|V|X|Z)(L\\d*)?(?=[=(),*\\s+]|$)",
+      "name": "support.type.hlasm"
+    },
+    "sequenceNumbers": {
+      "match": ".*",
+      "name": "constant.numeric.hlasm"
+    },
+    "continuationSymbol": {
+      "match": "\\S",
+      "name": "keyword.other.hlasm"
+    }
+  },
+  "scopeName": "source.hlasmTextmateMultiline"
+}
