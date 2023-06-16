@@ -187,6 +187,9 @@
           },
           "patterns": [
             {
+              "include": "#invalidMultilineBlock"
+            },
+            {
               "match": "(.+)(?<=^.{1,71})",
               "captures": {
                 "1": {
@@ -224,7 +227,7 @@
     },
     "operandsRemarks": {
       "name": "source.hlasm.operandsRemarks",
-      "match": "(\\S+,)+(?:\\s+(.+))*(?<=^.{71})(.*)",
+      "match": "((?:\\S+,)|(?:,))+(?:\\s+(.+))*(?<=^.{71})(.*)",
       "captures": {
         "1": {
           "patterns": [
@@ -264,7 +267,10 @@
       },
       "patterns": [
         {
-          "match": "(^.{0,71})",
+          "include": "#invalidMultilineBlock"
+        },
+        {
+          "match": "(^.{1,71})",
           "captures": {
             "1": {
               "patterns": [
@@ -286,7 +292,7 @@
       "applyEndPatternLast": 1,
       "patterns": [
         {
-          "match": "(^.{0,71})",
+          "match": "(^.{1,71})",
           "captures": {
             "1": {
               "name": "invalid.illegal"
