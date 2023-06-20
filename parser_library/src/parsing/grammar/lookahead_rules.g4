@@ -16,17 +16,18 @@
 parser grammar lookahead_rules; 
 
 look_lab_instr  returns [std::optional<std::string> op_text, range op_range]
-	: seq_symbol SPACE ORDSYMBOL (SPACE .*?)? EOF
+	: seq_symbol (SPACE ORDSYMBOL (SPACE .*?)?)? EOF
 	{
 		collector.set_label_field($seq_symbol.ss,provider.get_range($seq_symbol.ctx));
-		auto instr_id = parse_identifier($ORDSYMBOL->getText(),provider.get_range($ORDSYMBOL));
-		collector.set_instruction_field(instr_id,provider.get_range($ORDSYMBOL));
-		collector.set_operand_remark_field(provider.get_range($seq_symbol.ctx));
-	}
-	| seq_symbol .*? EOF
-	{
-		collector.set_label_field($seq_symbol.ss,provider.get_range($seq_symbol.ctx));
-		collector.set_instruction_field(provider.get_range($seq_symbol.ctx));
+		if ($ORDSYMBOL)
+		{
+			auto instr_id = parse_identifier($ORDSYMBOL->getText(),provider.get_range($ORDSYMBOL));
+			collector.set_instruction_field(instr_id,provider.get_range($ORDSYMBOL));
+		}
+		else
+		{
+			collector.set_instruction_field(provider.get_range($seq_symbol.ctx));
+		}
 		collector.set_operand_remark_field(provider.get_range($seq_symbol.ctx));
 	}
 	| ORDSYMBOL? SPACE instruction operand_field_rest EOF
@@ -38,7 +39,7 @@ look_lab_instr  returns [std::optional<std::string> op_text, range op_range]
 			auto id = add_id(ord_symbol);
 			collector.set_label_field(id,std::move(ord_symbol),nullptr,r);
 		}
-		
+
 		$op_text = $operand_field_rest.ctx->getText();
 		$op_range = provider.get_range($operand_field_rest.ctx);
 	}
@@ -47,8 +48,7 @@ look_lab_instr  returns [std::optional<std::string> op_text, range op_range]
 		collector.set_label_field(provider.get_range(_localctx));
 		collector.set_instruction_field(provider.get_range(_localctx));
 		collector.set_operand_remark_field(provider.get_range(_localctx));
-	}
-	| EOF;
+	};
 
 bad_look
 	: ~(ORDSYMBOL|DOT|SPACE) .*?
