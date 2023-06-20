@@ -72,78 +72,54 @@
       "applyEndPatternLast": 1,
       "patterns": [
         {
-          "include": "#operandsRemarksNextLine"
-        },
-        {
-          "include": "#operandsRemarksFirstLine"
+          "include": "#operandsRemarks"
         },
         {
           "include": "#lineEnd"
         }
       ]
     },
-    "operandsRemarksFirstLine": {
-      "name": "source.hlasm.operandsRemarksFirstLine",
-      "begin": "(\\S+)(?<=^.{2,71})",
+    "operandsRemarks": {
+      "name": "source.hlasm.operandsRemarks",
+      "begin": "(?=\\S)(?<=^.{2,71})",
       "end": "((?<=^.{71}\\s.*)|(?<=^.{0,71}))$",
       "applyEndPatternLast": 0,
-      "beginCaptures": {
-        "1": {
-          "patterns": [
-            {
-              "include": "#asmArguments"
-            }
-          ]
-        }
-      },
       "patterns": [
         {
-          "begin": "(?:(?<=,)\\s*|(?<=.{71}))",
-          "end": "((?<=^.{71}\\s.*)|(?<=^.{0,71}))$",
-          "applyEndPatternLast": 1,
-          "comment": "Operands will continue on the next line",
-          "patterns": [
-            {
-              "include": "#operandsDoneRemarksLeft"
-            },
-            {
-              "include": "#lineEnd"
-            },
-            {
-              "include": "#operandsRemarksNextLine"
-            }
-          ]
+          "include": "#invalidMultilineBlock"
         },
         {
-          "begin": "(?<!,)\\s*",
+          "match": "(^\\s{15})"
+        },
+        {
+          "include": "#asmArgumentsOnly"
+        },
+        {
+          "match": "(?<=,)(\\s.*)(?<=^.{0,71})",
+          "captures": {
+            "1": {
+              "patterns": [
+                {
+                  "include": "#operandsDoneRemarksLeft"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "begin": "(?<!,)(?=\\s+(?<=^.{0,71}))",
           "end": "((?<=^.{71}\\s.*)|(?<=^.{0,71}))$",
           "applyEndPatternLast": 1,
           "comment": "Operands ended on this line",
           "patterns": [
             {
+              "include": "#invalidMultilineBlock"
+            },
+            {
               "include": "#operandsDoneRemarksLeft"
             },
             {
               "include": "#lineEnd"
-            },
-            {
-              "patterns": [
-                {
-                  "match": "(\\S+)(?<=^.{0,71})",
-                  "captures": {
-                    "1": {
-                      "patterns": [
-                        {
-                          "include": "#remark"
-                        }
-                      ]
-                    }
-                  }
-                },
-                {
-                  "include": "#lineEnd"
-                }
-              ]
             }
           ]
         },
@@ -155,7 +131,7 @@
     "operandsDoneRemarksLeft": {
       "patterns": [
         {
-          "match": "(\\S+)(?<=^.{6,71})",
+          "match": "(\\S+.*)(?<=^.{0,71})",
           "captures": {
             "1": {
               "patterns": [
@@ -165,142 +141,21 @@
               ]
             }
           }
-        }
-      ]
-    },
-    "operandsRemarksNextLine": {
-      "name": "source.hlasm.operandsRemarksNextLine",
-      "patterns": [
-        {
-          "begin": "^\\s{15}(\\S+(?<!,)(\\s|$)+.*)(?<=^.{16,71})",
-          "end": "((?<=^.{71}\\s.*)|(?<=^.{0,71}))$",
-          "comment": "Operands ended on this line",
-          "applyEndPatternLast": 1,
-          "beginCaptures": {
-            "1": {
-              "patterns": [
-                {
-                  "include": "#asmArguments"
-                }
-              ]
-            }
-          },
-          "patterns": [
-            {
-              "include": "#invalidMultilineBlock"
-            },
-            {
-              "match": "(.+)(?<=^.{1,71})",
-              "captures": {
-                "1": {
-                  "patterns": [
-                    {
-                      "include": "#remark"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "include": "#lineEnd"
-            }
-          ]
-        },
-        {
-          "begin": "^\\s{15}(?=\\S+)",
-          "end": "((?<=^.{71}\\s.*)|(?<=^.{0,71}))$|(?=^.{0,71})",
-          "applyEndPatternLast": 1,
-          "comment": "Operands will continue on the next line",
-          "patterns": [
-            {
-              "include": "#operandsRemarks"
-            },
-            {
-              "include": "#noOperandsDetected"
-            },
-            {
-              "include": "#invalidMultilineBlock"
-            }
-          ]
-        }
-      ]
-    },
-    "operandsRemarks": {
-      "name": "source.hlasm.operandsRemarks",
-      "match": "((?:\\S+,)|(?:,))+(?:\\s+(.+))*(?<=^.{71})(.*)",
-      "captures": {
-        "1": {
-          "patterns": [
-            {
-              "include": "#asmArguments"
-            }
-          ]
-        },
-        "2": {
-          "patterns": [
-            {
-              "include": "#remark"
-            }
-          ]
-        },
-        "3": {
-          "patterns": [
-            {
-              "include": "#lineEnd"
-            }
-          ]
-        }
-      }
-    },
-    "noOperandsDetected": {
-      "begin": "(^\\s{16,71}(\\S*.*)(?<=^.{71}))",
-      "end": "((?<=^.{71}\\s.*)|(?<=^.{0,71}))$",
-      "applyEndPatternLast": 1,
-      "beginCaptures": {
-        "1": {
-          "patterns": [
-            {
-              "include": "#remark"
-            }
-          ]
-        }
-      },
-      "patterns": [
-        {
-          "include": "#invalidMultilineBlock"
-        },
-        {
-          "match": "(^.{1,71})",
-          "captures": {
-            "1": {
-              "patterns": [
-                {
-                  "include": "#remark"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "include": "#lineEnd"
         }
       ]
     },
     "invalidMultilineBlock": {
-      "begin": "(?=(.*\\S.*)(?<=^.{15}))",
+      "begin": "(?=^\\s*\\S+(?<=^.{0,15}))|(?=^.{80}\\s*\\S+)",
       "end": "((?<=^.{71}\\s.*)|(?<=^.{0,71}))$",
       "applyEndPatternLast": 1,
       "patterns": [
         {
-          "match": "(^.{1,71})",
+          "match": "(^.*)",
           "captures": {
             "1": {
               "name": "invalid.illegal"
             }
           }
-        },
-        {
-          "include": "#lineEnd"
         }
       ]
     },
@@ -494,14 +349,47 @@
     "asmArguments": {
       "patterns": [
         {
+          "include": "#asmArgumentsOnly"
+        },
+        {
+          "match": "\\s.*",
+          "name": "comment.hlasm"
+        }
+      ]
+    },
+    "asmArgumentsOnly": {
+      "patterns": [
+        {
           "include": "#stringType"
+        },
+        {
+          "include": "#stringTypeMultiline"
         },
         {
           "include": "#quoteType"
         },
         {
-          "match": "(\\S*)(.*)",
+          "match": "(\\S+)(?<=^.{0,71})",
           "captures": {
+            "1": {
+              "name": "punctuation.definition.tag.hlasm",
+              "patterns": [
+                {
+                  "include": "#additionalAsmHighlight"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "stringTypeMultiline": {
+      "patterns": [
+        {
+          "begin": "(.*)('([^']*)?)(?<=^.{71})(?=\\S)",
+          "end": "(?=^\\s*\\S+(?<=^.{0,15}))|(?=^.{80}\\s*\\S+)|((.*?')(?<=^.{16,71})|(^.{71}(?=\\s))|(^.{0,71}$))",
+          "applyEndPatternLast": 0,
+          "beginCaptures": {
             "1": {
               "name": "punctuation.definition.tag.hlasm",
               "patterns": [
@@ -511,24 +399,41 @@
               ]
             },
             "2": {
+              "name": "string.hlasm"
+            }
+          },
+          "endCaptures": {
+            "1": {
+              "name": "string.hlasm"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#invalidMultilineBlock"
+            },
+            {
               "patterns": [
                 {
-                  "include": "#remark"
+                  "match": "(^.{71})",
+                  "captures": {
+                    "1": {
+                      "name": "string.hlasm"
+                    }
+                  }
                 }
               ]
+            },
+            {
+              "include": "#lineEnd"
             }
-          }
-        },
-        {
-          "match": "\\s.*",
-          "name": "comment.hlasm"
+          ]
         }
       ]
     },
     "stringType": {
       "patterns": [
         {
-          "match": "(\\S*?)('.*?')(.*)",
+          "match": "(\\S*?)('.*?')(?<=^.{0,71})",
           "captures": {
             "1": {
               "name": "punctuation.definition.tag.hlasm",
@@ -540,13 +445,6 @@
             },
             "2": {
               "name": "string.hlasm"
-            },
-            "3": {
-              "patterns": [
-                {
-                  "include": "#asmArguments"
-                }
-              ]
             }
           }
         }
@@ -555,7 +453,7 @@
     "quoteType": {
       "patterns": [
         {
-          "match": "(\\S*?)([LKNT]')(.*)",
+          "match": "(\\S*?)([LKNT]')(?<=^.{0,71})",
           "captures": {
             "1": {
               "name": "keyword.control.hlasm",
@@ -567,13 +465,6 @@
             },
             "2": {
               "name": "support.type.hlasm"
-            },
-            "3": {
-              "patterns": [
-                {
-                  "include": "#asmArguments"
-                }
-              ]
             }
           }
         }
