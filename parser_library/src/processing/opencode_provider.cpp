@@ -294,7 +294,21 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_looka
         const auto& h = prepare_operand_parser(
             *op_text, *m_ctx->hlasm_ctx, nullptr, semantics::range_provider(), op_range, proc_status, true);
 
-        h.lookahead_operands_and_remarks();
+        switch (proc_status.first.form)
+        {
+            case processing_form::MACH:
+                h.lookahead_operands_and_remarks_mach();
+                break;
+            case processing_form::ASM:
+                h.lookahead_operands_and_remarks_asm();
+                break;
+            case processing_form::DAT:
+                h.lookahead_operands_and_remarks_dat();
+                break;
+            default:
+                h.lookahead_operands_and_remarks_rest();
+                break;
+        }
 
         h.parser->get_collector().clear_hl_symbols();
         collector.append_operand_field(std::move(h.parser->get_collector()));

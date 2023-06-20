@@ -191,7 +191,10 @@ struct parser_holder
     virtual void op_rem_body_noop() const = 0;
     virtual void op_rem_body_ignored() const = 0;
     virtual void op_rem_body_deferred() const = 0;
-    virtual void lookahead_operands_and_remarks() const = 0;
+    virtual void lookahead_operands_and_remarks_mach() const = 0;
+    virtual void lookahead_operands_and_remarks_asm() const = 0;
+    virtual void lookahead_operands_and_remarks_dat() const = 0;
+    virtual void lookahead_operands_and_remarks_rest() const = 0;
 
     virtual semantics::op_rem op_rem_body_mac_r() const = 0;
     virtual semantics::operand_list macro_ops() const = 0;
