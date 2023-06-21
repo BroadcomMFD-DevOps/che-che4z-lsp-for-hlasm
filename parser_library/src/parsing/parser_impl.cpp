@@ -143,14 +143,6 @@ bool parser_impl::is_self_def()
     return tmp == "B" || tmp == "X" || tmp == "C" || tmp == "G";
 }
 
-bool parser_impl::is_var_def()
-{
-    auto [_, opcode] = *proc_status;
-    using wk = id_storage::well_known;
-    return opcode.value == wk::GBLA || opcode.value == wk::GBLB || opcode.value == wk::GBLC || opcode.value == wk::LCLA
-        || opcode.value == wk::LCLB || opcode.value == wk::LCLC;
-}
-
 self_def_t parser_impl::parse_self_def_term(const std::string& option, const std::string& value, range term_range)
 {
     auto add_diagnostic = diagnoser_ ? diagnostic_adder(*diagnoser_, term_range) : diagnostic_adder(term_range);
@@ -314,24 +306,6 @@ void parser_impl::resolve_concat_chain(const semantics::concat_chain& chain) con
     });
     for (const auto& e : chain)
         e.resolve(diags);
-}
-
-bool parser_impl::MACH()
-{
-    auto& [format, _] = *proc_status;
-    return format.form == processing::processing_form::MACH;
-}
-
-bool parser_impl::ASM()
-{
-    auto& [format, _] = *proc_status;
-    return format.form == processing::processing_form::ASM;
-}
-
-bool parser_impl::DAT()
-{
-    auto& [format, _] = *proc_status;
-    return format.form == processing::processing_form::DAT;
 }
 
 bool parser_impl::ALIAS()

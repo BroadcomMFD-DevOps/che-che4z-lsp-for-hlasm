@@ -110,7 +110,6 @@ protected:
     void enable_continuation();
     void disable_continuation();
     bool is_self_def();
-    bool is_var_def();
 
     bool allow_ca_string() const { return ca_string_enabled; }
     void enable_ca_string() { ca_string_enabled = true; }
@@ -152,9 +151,6 @@ protected:
     semantics::collector collector;
     semantics::range_provider provider;
 
-    bool MACH();
-    bool ASM();
-    bool DAT();
     bool ALIAS();
     bool END();
     bool NOT(const antlr4::Token* token) const;
