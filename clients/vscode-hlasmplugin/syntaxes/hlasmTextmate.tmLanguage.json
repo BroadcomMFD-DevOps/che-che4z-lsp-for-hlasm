@@ -360,16 +360,16 @@
     "asmArgumentsOnly": {
       "patterns": [
         {
-          "include": "#stringType"
+          "comment": "#stringType"
         },
         {
-          "include": "#stringTypeMultiline"
+          "include": "#openEndedArgs"
         },
         {
           "include": "#quoteType"
         },
         {
-          "match": "(\\S+)(?<=^.{0,71})",
+          "match": "([^\\(\\)\\s]+)(?<=^.{0,71})",
           "captures": {
             "1": {
               "name": "punctuation.definition.tag.hlasm",
@@ -383,22 +383,66 @@
         }
       ]
     },
+    "openEndedArgs": {
+      "begin": "\\s*([^\\)]*?)(?=(?:\\(|')(?<=^.{0,71}))",
+      "end": "(?=.*)",
+      "applyEndPatternLast": 1,
+      "beginCaptures": {
+        "1": {
+          "name": "punctuation.definition.tag.hlasm",
+          "patterns": [
+            {
+              "include": "#additionalAsmHighlight"
+            }
+          ]
+        }
+      },
+      "patterns": [
+        {
+          "include": "#openParenthesis"
+        },
+        {
+          "include": "#stringTypeMultiline"
+        }
+      ]
+    },
+    "openParenthesis": {
+      "patterns": [
+        {
+          "begin": "(?<!^)\\(\\s*(?<=^.{0,71})",
+          "end": "(?=^\\s*\\S+(?<=^.{0,15}))|(?=^.{80}\\s*\\S+)|(\\)(?<=^.{0,71})|(?=^.{71}(?=\\s))|(?:^.{0,71}$)|(?:^.*)(?<=^.{71}\\s))|(((?<=^.{71}\\s.*)|(?<=^.{0,71}))$)",
+          "applyEndPatternLast": 0,
+          "endCaptures": {
+            "1": {
+              "patterns": [
+                {
+                  "include": "#asmArgumentsOnly"
+                }
+              ]
+            }
+          },
+          "patterns": [
+            {
+              "include": "#invalidMultilineBlock"
+            },
+            {
+              "include": "#asmArgumentsOnly"
+            },
+            {
+              "include": "#lineEnd"
+            }
+          ]
+        }
+      ]
+    },
     "stringTypeMultiline": {
       "patterns": [
         {
-          "begin": "(.*)('([^']*)?)(?<=^.{71})(?=\\S)",
-          "end": "(?=^\\s*\\S+(?<=^.{0,15}))|(?=^.{80}\\s*\\S+)|((.*?')(?<=^.{16,71})|(^.{71}(?=\\s))|(^.{0,71}$))",
+          "begin": "(')(?<=^.{0,71})",
+          "end": "(?=^\\s*\\S+(?<=^.{0,15}))|(?=^.{80}\\s*\\S+)|((.*?')(?<=^.{0,71})|(^.{71}(?=\\s))|(^.{0,71}$))",
           "applyEndPatternLast": 0,
           "beginCaptures": {
             "1": {
-              "name": "punctuation.definition.tag.hlasm",
-              "patterns": [
-                {
-                  "include": "#additionalAsmHighlight"
-                }
-              ]
-            },
-            "2": {
               "name": "string.hlasm"
             }
           },
@@ -414,7 +458,7 @@
             {
               "patterns": [
                 {
-                  "match": "(^.{71})",
+                  "match": "(.+(?<=^.{0,71}))",
                   "captures": {
                     "1": {
                       "name": "string.hlasm"
