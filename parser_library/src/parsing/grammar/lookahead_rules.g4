@@ -16,11 +16,11 @@
 parser grammar lookahead_rules; 
 
 look_lab_instr  returns [std::optional<std::string> op_text, range op_range]
-	: DOT s=ORDSYMBOL (SPACE instr=ORDSYMBOL lookahead_operand_field_rest)?
+	: DOT s=ORDSYMBOL (SPACE instr=ORDSYMBOL? lookahead_operand_field_rest)?
 	{
 		auto seq_symbol = seq_sym{parse_identifier($s->getText(),provider.get_range($s)),provider.get_range($DOT, $s)};
 		collector.set_label_field(seq_symbol,seq_symbol.symbol_range);
-		if ($instr)
+		if ($instr && $lookahead_operand_field_rest.valid)
 		{
 			collector.set_instruction_field(parse_identifier($instr->getText(),provider.get_range($instr)),provider.get_range($instr));
 			collector.set_operand_remark_field(provider.get_range($lookahead_operand_field_rest.ctx));
@@ -36,18 +36,34 @@ look_lab_instr  returns [std::optional<std::string> op_text, range op_range]
 	| lab=ORDSYMBOL SPACE instr=ORDSYMBOL lookahead_operand_field_rest
 	{
 		collector.set_label_field(add_id($lab->getText()),$lab->getText(),nullptr,provider.get_range($lab));
-		collector.set_instruction_field(parse_identifier($instr->getText(),provider.get_range($instr)),provider.get_range($instr));
-		collector.set_operand_remark_field(provider.get_range($lookahead_operand_field_rest.ctx));
-		$op_text = $lookahead_operand_field_rest.ctx->getText();
-		$op_range = provider.get_range($lookahead_operand_field_rest.ctx);
+		if ($instr && $lookahead_operand_field_rest.valid)
+		{
+			collector.set_instruction_field(parse_identifier($instr->getText(),provider.get_range($instr)),provider.get_range($instr));
+			collector.set_operand_remark_field(provider.get_range($lookahead_operand_field_rest.ctx));
+			$op_text = $lookahead_operand_field_rest.ctx->getText();
+			$op_range = provider.get_range($lookahead_operand_field_rest.ctx);
+		}
+		else
+		{
+			collector.set_instruction_field(provider.get_empty_range($SPACE));
+			collector.set_operand_remark_field(provider.get_empty_range($SPACE));
+		}
 	}
 	| SPACE instr=ORDSYMBOL lookahead_operand_field_rest
 	{
 		collector.set_label_field(provider.get_empty_range($SPACE));
-		collector.set_instruction_field(add_id($instr->getText()),provider.get_range($instr));
-		collector.set_operand_remark_field(provider.get_range($lookahead_operand_field_rest.ctx));
-		$op_text = $lookahead_operand_field_rest.ctx->getText();
-		$op_range = provider.get_range($lookahead_operand_field_rest.ctx);
+		if ($instr && $lookahead_operand_field_rest.valid)
+		{
+			collector.set_instruction_field(parse_identifier($instr->getText(),provider.get_range($instr)),provider.get_range($instr));
+			collector.set_operand_remark_field(provider.get_range($lookahead_operand_field_rest.ctx));
+			$op_text = $lookahead_operand_field_rest.ctx->getText();
+			$op_range = provider.get_range($lookahead_operand_field_rest.ctx);
+		}
+		else
+		{
+			collector.set_instruction_field(provider.get_empty_range($SPACE));
+			collector.set_operand_remark_field(provider.get_empty_range($SPACE));
+		}
 	}
 	;
 	catch[RecognitionException&]
@@ -57,8 +73,9 @@ look_lab_instr  returns [std::optional<std::string> op_text, range op_range]
 		collector.set_operand_remark_field(provider.get_empty_range(_input->LT(1)));
 	}
 
-lookahead_operand_field_rest
-	: SPACE (~EOF)*
+lookahead_operand_field_rest returns [bool valid = false]
+	: SPACE (~EOF)* {$valid=true;}
+	| EOF {$valid=true;}
 	|
 	;
 
