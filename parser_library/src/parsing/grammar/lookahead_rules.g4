@@ -30,7 +30,7 @@ look_lab_instr  returns [std::optional<std::string> op_text, range op_range]
 		}
 		collector.set_operand_remark_field(provider.get_range($seq_symbol.ctx));
 	}
-	| ORDSYMBOL? SPACE instruction operand_field_rest EOF
+	| ORDSYMBOL? SPACE instruction lookahead_operand_field_rest EOF
 	{
 		if ($ORDSYMBOL)
 		{
@@ -40,8 +40,8 @@ look_lab_instr  returns [std::optional<std::string> op_text, range op_range]
 			collector.set_label_field(id,std::move(ord_symbol),nullptr,r);
 		}
 
-		$op_text = $operand_field_rest.ctx->getText();
-		$op_range = provider.get_range($operand_field_rest.ctx);
+		$op_text = $lookahead_operand_field_rest.ctx->getText();
+		$op_range = provider.get_range($lookahead_operand_field_rest.ctx);
 	}
 	| bad_look EOF
 	{
@@ -49,6 +49,11 @@ look_lab_instr  returns [std::optional<std::string> op_text, range op_range]
 		collector.set_instruction_field(provider.get_range(_localctx));
 		collector.set_operand_remark_field(provider.get_range(_localctx));
 	};
+
+lookahead_operand_field_rest
+	: SPACE (~EOF)*
+	|
+	;
 
 bad_look
 	: ~(ORDSYMBOL|DOT|SPACE) .*?
