@@ -45,7 +45,7 @@
         "1": {
           "patterns": [
             {
-              "include": "#labelAndInstruction"
+              "include": "#nameFieldAndInstruction"
             }
           ]
         }
@@ -90,6 +90,9 @@
         },
         {
           "match": "(^\\s{15})"
+        },
+        {
+          "include": "#sequenceSymbolOperandField"
         },
         {
           "include": "#asmArgumentsOnly"
@@ -181,7 +184,7 @@
     "additionalAsmHighlight": {
       "patterns": [
         {
-          "include": "#labels"
+          "include": "#nameField"
         },
         {
           "include": "#asmSpecialStatements"
@@ -292,7 +295,7 @@
             "1": {
               "patterns": [
                 {
-                  "include": "#labels"
+                  "include": "#nameField"
                 }
               ]
             },
@@ -410,17 +413,8 @@
       "patterns": [
         {
           "begin": "(?<!^)\\(\\s*(?<=^.{0,71})",
-          "end": "(?=^\\s*\\S+(?<=^.{0,15}))|(?=^.{80}\\s*\\S+)|(\\)(?<=^.{0,71})|(?=^.{71}(?=\\s))|(?:^.{0,71}$)|(?:^.*)(?<=^.{71}\\s))|(((?<=^.{71}\\s.*)|(?<=^.{0,71}))$)",
+          "end": "(?=^\\s*\\S+(?<=^.{0,15}))|(?=^.{80}\\s*\\S+)|(\\)(?<=^.{0,71}))|(((?<=^.{71}\\s.*)|(?<=^.{0,71}))$)",
           "applyEndPatternLast": 0,
-          "endCaptures": {
-            "1": {
-              "patterns": [
-                {
-                  "include": "#asmArgumentsOnly"
-                }
-              ]
-            }
-          },
           "patterns": [
             {
               "include": "#invalidMultilineBlock"
@@ -534,13 +528,13 @@
         }
       }
     },
-    "labelAndInstruction": {
+    "nameFieldAndInstruction": {
       "match": "(^[^*]\\S*)?\\s+(\\S+)",
       "captures": {
         "1": {
           "patterns": [
             {
-              "include": "#labels"
+              "include": "#nameField"
             }
           ]
         },
@@ -553,7 +547,25 @@
         }
       }
     },
-    "labels": {
+    "nameField": {
+      "patterns": [
+        {
+          "include": "#sequenceSymbolNameField"
+        },
+        {
+          "include": "#label"
+        }
+      ]
+    },
+    "sequenceSymbolNameField": {
+      "match": "^\\.\\S+",
+      "name": "keyword.control.hlasm"
+    },
+    "sequenceSymbolOperandField": {
+      "match": "(?:(?<=\\)))\\.[a-zA-Z@$#_]+(?=\\s|$)(?<=^.{0,71})",
+      "name": "keyword.control.hlasm"
+    },
+    "label": {
       "match": "^\\S+",
       "name": "support.class.hlasm"
     },
