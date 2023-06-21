@@ -366,10 +366,10 @@
           "comment": "#stringType"
         },
         {
-          "include": "#openEndedArgs"
+          "include": "#quoteType"
         },
         {
-          "include": "#quoteType"
+          "include": "#openEndedArgs"
         },
         {
           "match": "([^\\(\\)\\s]+)(?<=^.{0,71})",
@@ -491,7 +491,7 @@
     "quoteType": {
       "patterns": [
         {
-          "match": "(\\S*?)([LKNT]')(?<=^.{0,71})",
+          "match": "(\\S*?)([LKNT])'(?<=^.{0,71})",
           "captures": {
             "1": {
               "name": "keyword.control.hlasm",
@@ -502,7 +502,7 @@
               ]
             },
             "2": {
-              "name": "support.type.hlasm"
+              "name": "punctuation.definition.tag.hlasm"
             }
           }
         }
