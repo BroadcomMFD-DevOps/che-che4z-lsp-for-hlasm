@@ -280,33 +280,33 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_looka
     auto proc_status =
         proc.get_processing_status(proc.resolve_instruction(current_instr), current_instr.field_range).value();
 
-    m_ctx->hlasm_ctx->set_source_position(collector.current_instruction().field_range.start);
+    m_ctx->hlasm_ctx->set_source_position(current_instr.field_range.start);
 
     const auto& [op_text, op_range] = operands;
 
+    static constexpr context::id_index EQU("EQU");
+    const auto instr_text = std::holds_alternative<context::id_index>(current_instr.value)
+        ? std::get<context::id_index>(current_instr.value)
+        : context::id_index();
     if (op_text
-        && proc_status.first.form != processing_form::IGNORED
+        && (proc_status.first.form == processing_form::ASM || proc_status.first.form == processing_form::DAT)
         // optimization : if statement has no label and is not COPY, do not even parse operands
-        && (collector.has_label() || collector.current_instruction().type != semantics::instruction_si_type::ORD
-            || std::get<context::id_index>(collector.current_instruction().value)
-                == context::id_storage::well_known::COPY))
+        && (collector.has_label() || instr_text == context::id_storage::well_known::COPY))
     {
         const auto& h = prepare_operand_parser(
             *op_text, *m_ctx->hlasm_ctx, nullptr, semantics::range_provider(), op_range, proc_status, true);
 
+        // optimization : only COPY, EQU and DC/DS/DXD statements actually need operands in lookahead mode
         switch (proc_status.first.form)
         {
-            case processing_form::MACH:
-                h.lookahead_operands_and_remarks_mach();
-                break;
             case processing_form::ASM:
-                h.lookahead_operands_and_remarks_asm();
+                if (proc_status.second.value == EQU || instr_text == EQU
+                    || proc_status.second.value == context::id_storage::well_known::COPY
+                    || instr_text == context::id_storage::well_known::COPY)
+                    h.lookahead_operands_and_remarks_asm();
                 break;
             case processing_form::DAT:
                 h.lookahead_operands_and_remarks_dat();
-                break;
-            default:
-                h.lookahead_operands_and_remarks_rest();
                 break;
         }
 

@@ -92,10 +92,8 @@ struct parser_holder_impl final : parser_holder
     void op_rem_body_noop() const override { get_parser().op_rem_body_noop(); }
     void op_rem_body_ignored() const override { get_parser().op_rem_body_ignored(); }
     void op_rem_body_deferred() const override { get_parser().op_rem_body_deferred(); }
-    void lookahead_operands_and_remarks_mach() const override { get_parser().lookahead_operands_and_remarks_mach(); }
     void lookahead_operands_and_remarks_asm() const override { get_parser().lookahead_operands_and_remarks_asm(); }
     void lookahead_operands_and_remarks_dat() const override { get_parser().lookahead_operands_and_remarks_dat(); }
-    void lookahead_operands_and_remarks_rest() const override { get_parser().lookahead_operands_and_remarks_rest(); }
 
     semantics::op_rem op_rem_body_mac_r() const override { return std::move(get_parser().op_rem_body_mac_r()->line); }
     semantics::operand_list macro_ops() const override { return std::move(get_parser().macro_ops()->list); }
