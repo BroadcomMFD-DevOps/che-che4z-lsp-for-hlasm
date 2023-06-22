@@ -16,6 +16,9 @@
           "include": "#multiline_syntax"
         },
         {
+          "include": "#hlasm_syntax"
+        },
+        {
           "include": "#lineEnd"
         }
       ]
@@ -325,6 +328,9 @@
             "2": {
               "patterns": [
                 {
+                  "include": "#sequenceSymbolOperandField"
+                },
+                {
                   "include": "#asmArguments"
                 }
               ]
@@ -491,7 +497,7 @@
     "quoteType": {
       "patterns": [
         {
-          "match": "(\\S*?)([LKNT])'(?<=^.{0,71})",
+          "match": "([^a-zA-Z@$#_()]*?)([LKNT])'(?<=^.{0,71})",
           "captures": {
             "1": {
               "name": "keyword.control.hlasm",
@@ -502,7 +508,7 @@
               ]
             },
             "2": {
-              "name": "punctuation.definition.tag.hlasm"
+              "name": "entity.name.function.preprocessor.hlasm"
             }
           }
         }
@@ -578,7 +584,7 @@
       "name": "comment.hlasm"
     },
     "operators": {
-      "match": "[=(),+]",
+      "match": "[=(),+*-]",
       "name": "keyword.operator.hlasm"
     },
     "numbers": {
