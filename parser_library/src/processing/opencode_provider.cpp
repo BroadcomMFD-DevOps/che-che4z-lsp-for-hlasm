@@ -284,14 +284,10 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_looka
 
     const auto& [op_text, op_range] = operands;
 
-    static constexpr context::id_index EQU("EQU");
-    const auto instr_text = std::holds_alternative<context::id_index>(current_instr.value)
-        ? std::get<context::id_index>(current_instr.value)
-        : context::id_index();
     if (op_text
         && (proc_status.first.form == processing_form::ASM || proc_status.first.form == processing_form::DAT)
         // optimization : if statement has no label and is not COPY, do not even parse operands
-        && (collector.has_label() || instr_text == context::id_storage::well_known::COPY))
+        && (collector.has_label() || proc_status.second.value == context::id_storage::well_known::COPY))
     {
         const auto& h = prepare_operand_parser(
             *op_text, *m_ctx->hlasm_ctx, nullptr, semantics::range_provider(), op_range, proc_status, true);
@@ -300,9 +296,8 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_looka
         switch (proc_status.first.form)
         {
             case processing_form::ASM:
-                if (proc_status.second.value == EQU || instr_text == EQU
-                    || proc_status.second.value == context::id_storage::well_known::COPY
-                    || instr_text == context::id_storage::well_known::COPY)
+                if (static constexpr context::id_index EQU("EQU"); proc_status.second.value == EQU
+                    || proc_status.second.value == context::id_storage::well_known::COPY)
                     h.lookahead_operands_and_remarks_asm();
                 break;
             case processing_form::DAT:
