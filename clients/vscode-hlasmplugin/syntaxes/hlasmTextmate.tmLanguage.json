@@ -13,10 +13,13 @@
           "include": "#lineTooLong"
         },
         {
+          "include": "#lineComment"
+        },
+        {
           "include": "#multiline_syntax"
         },
         {
-          "include": "#hlasm_syntax"
+          "comment": "#hlasm_syntax"
         },
         {
           "include": "#lineEnd"
@@ -27,12 +30,12 @@
       "patterns": [
         {
           "name": "source.hlasm.multiline_syntax",
-          "begin": "^(?=.{71}\\S)",
+          "begin": "^(?=.{1,71})",
           "end": "((?<=^.{71}\\s.*)|(?<=^.{0,71}))$",
           "applyEndPatternLast": 1,
           "patterns": [
             {
-              "include": "#asmMultilineLineStart"
+              "include": "#nameFieldAndInstruction"
             },
             {
               "include": "#operandsRemarksMultilineStart"
@@ -40,19 +43,6 @@
           ]
         }
       ]
-    },
-    "asmMultilineLineStart": {
-      "name": "source.hlasm.asmMultilineLineStart",
-      "match": "(^[^*]\\S*\\s+\\S+)\\s*",
-      "captures": {
-        "1": {
-          "patterns": [
-            {
-              "include": "#nameFieldAndInstruction"
-            }
-          ]
-        }
-      }
     },
     "operandsRemarksMultilineStart": {
       "name": "source.hlasm.operandsRemarksMultilineStart",
@@ -212,55 +202,17 @@
       "patterns": [
         {
           "name": "comment.hlasm",
-          "match": "^(\\*.{70})(.*)",
-          "captures": {
-            "1": {
-              "patterns": [
-                {
-                  "include": "#remark"
-                }
-              ]
+          "begin": "(?=^\\*)|(?=^\\.\\*)",
+          "end": "((?<=^.{71}\\s.*)|(?<=^.{0,71}))$",
+          "applyEndPatternLast": 1,
+          "patterns": [
+            {
+              "include": "#operandsDoneRemarksLeft"
             },
-            "2": {
-              "patterns": [
-                {
-                  "match": "(\\s.*)",
-                  "captures": {
-                    "1": {
-                      "patterns": [
-                        {
-                          "include": "#lineEnd"
-                        }
-                      ]
-                    }
-                  }
-                },
-                {
-                  "match": "([^\\s])(.*)",
-                  "captures": {
-                    "1": {
-                      "name": "invalid.illegal.hlasm"
-                    },
-                    "2": {
-                      "patterns": [
-                        {
-                          "include": "#sequenceNumbers"
-                        }
-                      ]
-                    }
-                  }
-                }
-              ]
+            {
+              "include": "#lineEnd"
             }
-          }
-        },
-        {
-          "match": "\\*.*",
-          "name": "comment.hlasm"
-        },
-        {
-          "match": "\\.\\*.*",
-          "name": "comment.hlasm"
+          ]
         }
       ]
     },
@@ -378,7 +330,7 @@
           "include": "#openEndedArgs"
         },
         {
-          "match": "([^\\(\\)\\s]+)(?<=^.{0,71})",
+          "match": "([^,'\\(\\)\\s]+)(?<=^.{0,71})",
           "captures": {
             "1": {
               "name": "punctuation.definition.tag.hlasm",
@@ -393,7 +345,7 @@
       ]
     },
     "openEndedArgs": {
-      "begin": "\\s*([^\\)]*?)(?=(?:\\(|')(?<=^.{0,71}))",
+      "begin": "\\s*(?=(?:\\(|')(?<=^.{0,71}))",
       "end": "(?=.*)",
       "applyEndPatternLast": 1,
       "beginCaptures": {
@@ -439,7 +391,7 @@
       "patterns": [
         {
           "begin": "(')(?<=^.{0,71})",
-          "end": "(?=^\\s*\\S+(?<=^.{0,15}))|(?=^.{80}\\s*\\S+)|((.*?')(?<=^.{0,71})|(^.{71}(?=\\s))|(^.{0,71}$))",
+          "end": "(?=^\\s*\\S+(?<=^.{0,15}))|(?=^.{80}\\s*\\S+)|((.*?')(?<=^.{0,71})|([^']*)(?<=^.{71}\\s)|(^.{71}(?=\\s))|(^.{0,71}$))|(?<=^.{71}\\s)",
           "applyEndPatternLast": 0,
           "beginCaptures": {
             "1": {
@@ -497,7 +449,7 @@
     "quoteType": {
       "patterns": [
         {
-          "match": "([^a-zA-Z@$#_()]*?)([LKNT])'(?<=^.{0,71})",
+          "match": "([^a-zA-Z@$#_0-9()']*?)([LKNT])'(?<=^.{0,71})",
           "captures": {
             "1": {
               "name": "keyword.control.hlasm",
@@ -535,7 +487,7 @@
       }
     },
     "nameFieldAndInstruction": {
-      "match": "(^[^*]\\S*)?\\s+(\\S+)",
+      "match": "(^\\S*)\\s+(\\S+)(?<=^.{0,71})",
       "captures": {
         "1": {
           "patterns": [
@@ -568,7 +520,7 @@
       "name": "keyword.control.hlasm"
     },
     "sequenceSymbolOperandField": {
-      "match": "(?:(?<=\\)))\\.[a-zA-Z@$#_]+(?=\\s|$)(?<=^.{0,71})",
+      "match": "\\.[a-zA-Z@$#_0-9]+(?=\\s|$)(?<=^.{0,71})",
       "name": "keyword.control.hlasm"
     },
     "label": {
@@ -593,7 +545,7 @@
     },
     "asmSpecialStatements": {
       "match": "(?<=[=(),*+\\s])=?\\d*(A|B|C|D|E|F|G|H|P|V|X|Z)(L\\d*)?(?=[=(),*\\s+]|$)",
-      "name": "support.type.hlasm"
+      "name": "punctuation.definition.tag.hlasm"
     },
     "sequenceNumbers": {
       "match": ".*",
