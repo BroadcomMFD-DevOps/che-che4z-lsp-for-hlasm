@@ -19,47 +19,6 @@ label locals [concat_chain chain, std::string buffer, bool has_variables = false
 	:
 	(
 		t=(
-		DOT|
-		ASTERISK|
-		MINUS|
-		PLUS|
-		LT|
-		GT|
-		COMMA|
-		LPAR|
-		RPAR|
-		SLASH|
-		EQUALS|
-		IDENTIFIER|
-		OR|
-		AND|
-		EQ|
-		LE|
-		LTx|
-		GTx|
-		GE|
-		NE|
-		VERTICAL|
-		NUM
-		) {add_label_component($t, $chain, $buffer, $has_variables);}
-		|
-		(
-			var_symbol {add_label_component(std::move($var_symbol.vs), $chain, $buffer, $has_variables);}
-			|
-			AMPERSAND {add_label_component($AMPERSAND, $chain, $buffer, $has_variables);} AMPERSAND {add_label_component($AMPERSAND, $chain, $buffer, $has_variables);}
-		)
-		|
-		label_string[&$chain, &$buffer, &$has_variables]
-		|
-		ORDSYMBOL {add_label_component($ORDSYMBOL, $chain, $buffer, $has_variables);}
-		(
-			{ $ORDSYMBOL.text == "C" || $ORDSYMBOL.text == "c" }? label_string[&$chain, &$buffer, &$has_variables]
-			|
-			{ _input->LA(1)!=APOSTROPHE && _input->LA(1)!=ATTR || $ORDSYMBOL.text != "C" && $ORDSYMBOL.text != "c" }?
-		)
-	)
-	(
-		t=(
 			DOT|
 			ASTERISK|
 			MINUS|
@@ -81,9 +40,7 @@ label locals [concat_chain chain, std::string buffer, bool has_variables = false
 			GE|
 			NE|
 			VERTICAL|
-			NUM|
-			APOSTROPHE|
-			ATTR
+			NUM
 		) {add_label_component($t, $chain, $buffer, $has_variables);}
 		|
 		(
@@ -93,12 +50,9 @@ label locals [concat_chain chain, std::string buffer, bool has_variables = false
 		)
 		|
 		ORDSYMBOL {add_label_component($ORDSYMBOL, $chain, $buffer, $has_variables);}
-		(
-			{ $ORDSYMBOL.text == "C" || $ORDSYMBOL.text == "c" }? label_string[&$chain, &$buffer, &$has_variables]
-			|
-			{ _input->LA(1)!=APOSTROPHE && _input->LA(1)!=ATTR || $ORDSYMBOL.text != "C" && $ORDSYMBOL.text != "c" }?
-		)
-	)*
+		|
+		label_string[&$chain, &$buffer, &$has_variables, [](const auto*t){if(!t)return true;auto text = t->getText(); return text == "C" || text == "c";}(_input->LT(-1))]
+	)+
 	{
 		$stop = _input->LT(-1);
 		if ($has_variables) {
@@ -133,48 +87,52 @@ label locals [concat_chain chain, std::string buffer, bool has_variables = false
 	}
 	;
 
-label_string [concat_chain* chain, std::string* buffer, bool* has_variables]
+label_string [concat_chain* chain, std::string* buffer, bool* has_variables, bool allow_space]
 	:
 	ap1=(APOSTROPHE | ATTR) {add_label_component($ap1, *$chain, *$buffer, *$has_variables);}
 	(
-		t=(
-			SPACE|
-			DOT|
-			ASTERISK|
-			MINUS|
-			PLUS|
-			LT|
-			GT|
-			COMMA|
-			LPAR|
-			RPAR|
-			SLASH|
-			EQUALS|
-			ORDSYMBOL|
-			IDENTIFIER|
-			OR|
-			AND|
-			EQ|
-			LE|
-			LTx|
-			GTx|
-			GE|
-			NE|
-			VERTICAL|
-			NUM
-		) {add_label_component($t, *$chain, *$buffer, *$has_variables);}
+		{!$allow_space && _input->LA(1)==SPACE}?
 		|
 		(
-			var_symbol {add_label_component(std::move($var_symbol.vs), *$chain, *$buffer, *$has_variables);}
+			t=(
+				SPACE|
+				DOT|
+				ASTERISK|
+				MINUS|
+				PLUS|
+				LT|
+				GT|
+				COMMA|
+				LPAR|
+				RPAR|
+				SLASH|
+				EQUALS|
+				ORDSYMBOL|
+				IDENTIFIER|
+				OR|
+				AND|
+				EQ|
+				LE|
+				LTx|
+				GTx|
+				GE|
+				NE|
+				VERTICAL|
+				NUM
+			) {add_label_component($t, *$chain, *$buffer, *$has_variables);}
 			|
-			AMPERSAND {add_label_component($AMPERSAND, *$chain, *$buffer, *$has_variables);} AMPERSAND {add_label_component($AMPERSAND, *$chain, *$buffer, *$has_variables);}
+			(
+				var_symbol {add_label_component(std::move($var_symbol.vs), *$chain, *$buffer, *$has_variables);}
+				|
+				AMPERSAND {add_label_component($AMPERSAND, *$chain, *$buffer, *$has_variables);} AMPERSAND {add_label_component($AMPERSAND, *$chain, *$buffer, *$has_variables);}
+			)
+		)*
+		ap2=(APOSTROPHE | ATTR) {add_label_component($ap2, *$chain, *$buffer, *$has_variables);}
+		(
+			label_string[$chain,$buffer,$has_variables,$allow_space]
+			|
+			{_input->LA(1)!=APOSTROPHE && _input->LA(1)!=ATTR}?
 		)
-	)*
-	ap2=(APOSTROPHE | ATTR) {add_label_component($ap2, *$chain, *$buffer, *$has_variables);}
-	(
-		label_string[$chain,$buffer,$has_variables]
-		|
-		{_input->LA(1)!=APOSTROPHE && _input->LA(1)!=ATTR}?
 	)
 	;
 
