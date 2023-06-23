@@ -218,7 +218,7 @@ subscript returns [std::vector<ca_expr_ptr> value]
 		$value = std::move($expr_comma_c.ca_exprs);
 	}
 	|
-	// TODO: this should really be here {_input->LA(1) != LPAR }?
+	{_input->LA(1) != LPAR }?
 	;
 
 

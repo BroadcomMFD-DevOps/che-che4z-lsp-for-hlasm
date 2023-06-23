@@ -504,8 +504,7 @@ TEST(literals, invalid_loctr_references)
     a.analyze();
     a.collect_diags();
 
-    // EXPECT_TRUE(matches_message_codes(a.diags(), { "S0012", "S0012", "S0005", "S0005" })); // TODO: revisit subscript
-    EXPECT_TRUE(matches_message_codes(a.diags(), { "S0012", "S0012", "E014", "E013", "E065" }));
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "S0012", "S0012", "S0005", "S0005" }));
 }
 
 TEST(literals, part_of_expression)
