@@ -40,7 +40,8 @@ label locals [concat_chain chain, std::string buffer, bool has_variables = false
 			GE|
 			NE|
 			VERTICAL|
-			NUM
+			NUM|
+			ORDSYMBOL
 		) {add_label_component($t, $chain, $buffer, $has_variables);}
 		|
 		(
@@ -48,8 +49,6 @@ label locals [concat_chain chain, std::string buffer, bool has_variables = false
 			|
 			AMPERSAND {add_label_component($AMPERSAND, $chain, $buffer, $has_variables);} AMPERSAND {add_label_component($AMPERSAND, $chain, $buffer, $has_variables);}
 		)
-		|
-		ORDSYMBOL {add_label_component($ORDSYMBOL, $chain, $buffer, $has_variables);}
 		|
 		label_string[&$chain, &$buffer, &$has_variables, [](const auto*t){if(!t)return true;auto text = t->getText(); return text == "C" || text == "c";}(_input->LT(-1))]
 	)+
