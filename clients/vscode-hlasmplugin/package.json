@@ -190,23 +190,6 @@
         "filenames": []
       },
       {
-        "id": "hlasmTextmate",
-        "extensions": [
-          ".bms"
-        ],
-        "aliases": [
-          "HLASMTextmate"
-        ],
-        "filenames": []
-      },
-      {
-        "id": "mdTextmate",
-        "extensions": [
-          ".mdtm"
-        ],
-        "filenames": []
-      },
-      {
         "id": "hlasmOrigTextmate",
         "extensions": [
           ".bms"
@@ -227,16 +210,6 @@
         "language": "hlasmListing",
         "scopeName": "source.hlasmListing",
         "path": "./syntaxes/hlasmListing.tmLanguage.json"
-      },
-      {
-        "language": "mdTextmate",
-        "scopeName": "source.mdTextmate",
-        "path": "./syntaxes/mdTextmate.tmLanguage.json"
-      },
-      {
-        "language": "hlasmTextmate",
-        "scopeName": "source.hlasmTextmate",
-        "path": "./syntaxes/hlasmTextmate.tmLanguage.json"
       },
       {
         "language": "hlasmOrigTextmate",
