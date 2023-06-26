@@ -330,7 +330,7 @@
           "include": "#openEndedArgs"
         },
         {
-          "match": "([^,'\\(\\)\\s]+)(?<=^.{0,71})",
+          "match": "([^\\s(),'*/+-]+)(?<=^.{0,71})",
           "captures": {
             "1": {
               "name": "punctuation.definition.tag.hlasm",
@@ -449,7 +449,7 @@
     "quoteType": {
       "patterns": [
         {
-          "match": "([^a-zA-Z@$#_0-9()']*?)([LKNT])'(?<=^.{0,71})",
+          "match": "([^a-zA-Z@$#_0-9()']*?)([LKNTlknt])'(?<=^.{0,71})",
           "captures": {
             "1": {
               "name": "keyword.control.hlasm",
@@ -536,7 +536,7 @@
       "name": "comment.hlasm"
     },
     "operators": {
-      "match": "[=(),+*-]",
+      "match": "[=(),*/+-]",
       "name": "keyword.operator.hlasm"
     },
     "numbers": {
