@@ -91,7 +91,7 @@ label_string [concat_chain* chain, std::string* buffer, bool* has_variables, boo
 	:
 	ap1=(APOSTROPHE | ATTR) {add_label_component($ap1, *$chain, *$buffer, *$has_variables);}
 	(
-		{!$allow_space && _input->LA(1)==SPACE}?
+		{!$allow_space && _input->LA(1)==SPACE || is_attribute_consuming(_input->LT(-2))}?
 		|
 		(
 			t=(

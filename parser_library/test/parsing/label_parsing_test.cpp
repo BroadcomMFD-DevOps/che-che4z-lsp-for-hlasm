@@ -18,8 +18,7 @@
 
 TEST(label_parsing, pass)
 {
-    for (std::string p : {
-             "=A'",
+    for (std::string p : { "=A'",
              "=$C'",
              "=AC'",
              "=C'=C'",
@@ -36,7 +35,8 @@ TEST(label_parsing, pass)
              "'&X'(1)",
              "&&",
              "'&&'",
-         })
+             "I'&X",
+             "L'&X" })
     {
         std::string input = R"(
 &X     SETC  ' '
@@ -74,6 +74,8 @@ TEST(label_parsing, fail)
              "' '=' '",
              "'",
              "'&&",
+             "A'&X",
+             "D'&X",
          })
     {
         std::string input = R"(
