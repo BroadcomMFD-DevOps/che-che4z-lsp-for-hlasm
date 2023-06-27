@@ -9,6 +9,7 @@
 - Bridge for Git configuration files may be ignored by the macro tracer
 - Source code might not be reparsed after changing dependency name and/or location
 - Improve label parsing accuracy and performance
+- Enhanced multiline support in TextMate grammar for source files
 
 ## [1.8.0](https://github.com/eclipse-che4z/che-che4z-lsp-for-hlasm/compare/1.7.0...1.8.0) (2023-05-24)
 
