@@ -188,16 +188,6 @@
           "HLASMListing"
         ],
         "filenames": []
-      },
-      {
-        "id": "hlasmOrigTextmate",
-        "extensions": [
-          ".bms"
-        ],
-        "aliases": [
-          "hlasmOrigTextmate"
-        ],
-        "filenames": []
       }
     ],
     "grammars": [
@@ -210,11 +200,6 @@
         "language": "hlasmListing",
         "scopeName": "source.hlasmListing",
         "path": "./syntaxes/hlasmListing.tmLanguage.json"
-      },
-      {
-        "language": "hlasmOrigTextmate",
-        "scopeName": "source.hlasmOrigTextmate",
-        "path": "./syntaxes/hlasmOrigTextmate.tmLanguage.json"
       }
     ],
     "semanticTokenTypes": [
