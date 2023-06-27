@@ -234,13 +234,24 @@
           },
           "endCaptures": {
             "1": {
-              "name": "string.hlasm"
+              "patterns": [
+                {
+                  "match": "[^&]+",
+                  "name": "string.hlasm"
+                },
+                {
+                  "include": "#variable"
+                }
+              ]
             }
           },
           "patterns": [
             {
-              "match": ".+(?<=^.{0,71})",
+              "match": "[^&]+(?<=^.{0,71})",
               "name": "string.hlasm"
+            },
+            {
+              "include": "#variable"
             },
             {
               "include": "#lineEnd"
@@ -262,9 +273,6 @@
     "additionalAsmHighlight": {
       "patterns": [
         {
-          "include": "#nameField"
-        },
-        {
           "include": "#asmSpecialStatements"
         },
         {
@@ -272,6 +280,9 @@
         },
         {
           "include": "#numbers"
+        },
+        {
+          "include": "#variable"
         }
       ]
     },
@@ -281,7 +292,13 @@
           "include": "#sequenceSymbolNameField"
         },
         {
-          "include": "#label"
+          "include": "#ordinarySymbol"
+        },
+        {
+          "include": "#variable"
+        },
+        {
+          "include": "#operators"
         }
       ]
     },
@@ -292,10 +309,6 @@
     "sequenceSymbolOperandField": {
       "match": "\\.[A-Za-z@#$_][A-Za-z@#$_0-9]*(?=\\s|$)(?<=^.{0,71})",
       "name": "keyword.control.hlasm"
-    },
-    "label": {
-      "match": "^\\S+(?<=^.{0,71})",
-      "name": "support.class.hlasm"
     },
     "instruction": {
       "match": "(?<=^\\S*)\\s+\\S+(?<=^.{0,71})",
@@ -312,6 +325,14 @@
     "numbers": {
       "match": "(?<=[=(),*\\s+])-?\\d*((?=[=(),*+\\s]|$)(?<=^.{0,71}))",
       "name": "constant.numeric.hlasm"
+    },
+    "variable": {
+      "match": "&(([A-Za-z@#$_][A-Za-z@#$_0-9]*)|([(].*?[)]))(?<=^.{0,71})",
+      "name": "variable.other.readwrite.hlasm"
+    },
+    "ordinarySymbol": {
+      "match": "[A-Za-z@#$_][A-Za-z@#$_0-9]*(?<=^.{0,71})",
+      "name": "support.class.hlasm"
     },
     "asmSpecialStatements": {
       "match": "(?<=[=(),*+\\s])=?\\d*(A|B|C|D|E|F|G|H|P|V|X|Z)(L\\d*)?((?=[=(),*\\s+]|$)(?<=^.{0,71}))",
