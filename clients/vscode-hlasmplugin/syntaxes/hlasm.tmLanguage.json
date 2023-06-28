@@ -232,33 +232,33 @@
             "1": {
               "patterns": [
                 {
-                  "include": "#illegalMultilineColumns"
-                },
-                {
-                  "match": "[^&]+",
-                  "name": "string.hlasm"
-                },
-                {
-                  "include": "#variable"
+                  "include": "#stringContents"
                 }
               ]
             }
           },
           "patterns": [
             {
-              "include": "#illegalMultilineColumns"
-            },
-            {
-              "match": "[^&]+(?<=^.{0,71})",
-              "name": "string.hlasm"
-            },
-            {
-              "include": "#variable"
-            },
-            {
-              "include": "#lineEnd"
+              "include": "#stringContents"
             }
           ]
+        }
+      ]
+    },
+    "stringContents": {
+      "patterns": [
+        {
+          "include": "#illegalMultilineColumns"
+        },
+        {
+          "match": "(&{2,}|[^&]+)(?<=^.{0,71})",
+          "name": "string.hlasm"
+        },
+        {
+          "include": "#variable"
+        },
+        {
+          "include": "#lineEnd"
         }
       ]
     },
