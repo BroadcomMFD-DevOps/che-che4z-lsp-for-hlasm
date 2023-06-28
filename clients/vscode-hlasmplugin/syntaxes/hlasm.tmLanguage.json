@@ -38,7 +38,7 @@
           },
           "patterns": [
             {
-              "include": "#remarksOrInvalidLine"
+              "include": "#remarksLine"
             }
           ]
         }
@@ -73,7 +73,7 @@
       "applyEndPatternLast": 0,
       "patterns": [
         {
-          "include": "#invalidMultilineBlock"
+          "include": "#illegalMultilineColumns"
         },
         {
           "match": "(^\\s{15})",
@@ -105,7 +105,7 @@
           "comment": "Operands ended on this line",
           "patterns": [
             {
-              "include": "#remarksOrInvalidLine"
+              "include": "#remarksLine"
             }
           ]
         },
@@ -114,10 +114,10 @@
         }
       ]
     },
-    "remarksOrInvalidLine": {
+    "remarksLine": {
       "patterns": [
         {
-          "include": "#invalidMultilineBlock"
+          "include": "#illegalMultilineColumns"
         },
         {
           "include": "#remark"
@@ -127,16 +127,9 @@
         }
       ]
     },
-    "invalidMultilineBlock": {
-      "begin": "(?=^\\s*\\S(?<=^.{0,15}))",
-      "end": "((?<=^.{71}\\s.*)|(?<=^.{0,71}))$|(?=^$)",
-      "applyEndPatternLast": 0,
-      "patterns": [
-        {
-          "match": "^.*",
-          "name": "invalid.illegal"
-        }
-      ]
+    "illegalMultilineColumns": {
+      "match": "(^\\s*\\S.*)(?<=^.{0,15})",
+      "name": "invalid.illegal"
     },
     "asmArguments": {
       "patterns": [
@@ -208,9 +201,12 @@
       "patterns": [
         {
           "begin": "(?<!^)[(]\\s*(?<=^.{0,71})",
-          "end": "(?=^\\s*\\S(?<=^.{0,15}))|([)](?<=^.{0,71}))|(((?<=^.{71}\\s.*)|(?<=^.{0,71}))$)",
+          "end": "([)](?<=^.{0,71}))|(((?<=^.{71}\\s.*)|(?<=^.{0,71}))$)",
           "applyEndPatternLast": 0,
           "patterns": [
+            {
+              "include": "#illegalMultilineColumns"
+            },
             {
               "include": "#asmArguments"
             },
@@ -225,7 +221,7 @@
       "patterns": [
         {
           "begin": "(?<!^)(')(?<=^.{0,71})",
-          "end": "(?=^\\s*\\S(?<=^.{0,15}))|((.*?')(?<=^.{0,71})|([^']*)(?<=^.{71})(?=\\s)|(^.{0,71}$))",
+          "end": "((.*?')(?<=^.{0,71})|([^']*)(?<=^.{71})(?=\\s)|(^.{0,71}$))",
           "applyEndPatternLast": 0,
           "beginCaptures": {
             "1": {
@@ -235,6 +231,9 @@
           "endCaptures": {
             "1": {
               "patterns": [
+                {
+                  "include": "#illegalMultilineColumns"
+                },
                 {
                   "match": "[^&]+",
                   "name": "string.hlasm"
@@ -246,6 +245,9 @@
             }
           },
           "patterns": [
+            {
+              "include": "#illegalMultilineColumns"
+            },
             {
               "match": "[^&]+(?<=^.{0,71})",
               "name": "string.hlasm"
@@ -307,7 +309,7 @@
       "name": "keyword.control.hlasm"
     },
     "sequenceSymbolOperandField": {
-      "match": "\\.[A-Za-z@#$_][A-Za-z@#$_0-9]*(?=,|\\s|$)(?<=^.{0,71})",
+      "match": "\\.[A-Za-z@#$_][A-Za-z@#$_0-9]*(?=,|\\s|$|(?<=^.{71}))(?<=^.{0,71})",
       "name": "keyword.control.hlasm"
     },
     "instruction": {
