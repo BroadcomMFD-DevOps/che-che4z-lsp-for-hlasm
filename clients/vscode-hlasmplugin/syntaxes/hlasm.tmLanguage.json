@@ -307,7 +307,7 @@
       "name": "keyword.control.hlasm"
     },
     "sequenceSymbolOperandField": {
-      "match": "\\.[A-Za-z@#$_][A-Za-z@#$_0-9]*(?=\\s|$)(?<=^.{0,71})",
+      "match": "\\.[A-Za-z@#$_][A-Za-z@#$_0-9]*(?=,|\\s|$)(?<=^.{0,71})",
       "name": "keyword.control.hlasm"
     },
     "instruction": {
