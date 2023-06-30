@@ -73,6 +73,7 @@ void ca_expr_list::apply(ca_expr_visitor& visitor) const { visitor.visit(*this);
 
 context::SET_t ca_expr_list::evaluate(const evaluation_context& eval_ctx) const
 {
+    assert(expr_list.size() <= 1);
     return expr_list.size() == 1 ? expr_list.front()->evaluate(eval_ctx) : context::SET_t(expr_kind);
 }
 
