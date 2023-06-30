@@ -191,8 +191,8 @@ TEST(ca_expr_list, different_return_type)
 
     std::vector<ca_expr_ptr> inner_list;
     inner_list.emplace_back(std::make_unique<ca_constant>(1, range()));
-    inner_list.emplace_back(std::make_unique<ca_constant>(1, range()));
     inner_list.emplace_back(std::make_unique<ca_symbol>(context::id_index("AND"), range()));
+    inner_list.emplace_back(std::make_unique<ca_constant>(1, range()));
 
     std::vector<ca_expr_ptr> list;
     list.emplace_back(std::make_unique<ca_basic_binary_operator<ca_add>>(
