@@ -184,7 +184,7 @@ TEST(ca_expr_list, unfinished_expressions)
 
 TEST(ca_expr_list, different_return_type)
 {
-    // ((1 AND 1)+1).SKIP
+    // ((1 AND 1)+1)
     context::hlasm_context ctx;
     diagnostic_op_consumer_container diags;
     evaluation_context eval_ctx { ctx, library_info_transitional::empty, diags };
