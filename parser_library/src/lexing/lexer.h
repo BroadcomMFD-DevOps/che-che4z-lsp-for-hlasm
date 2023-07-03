@@ -97,19 +97,16 @@ public:
 
 protected:
     // creates token and inserts to input stream
-    void create_token(size_t ttype, size_t channel);
+    void create_token(size_t ttype, size_t channel = Channels::DEFAULT_CHANNEL);
     // consumes char from input & updates lexer state
     void consume();
 
 private:
-    bool last_char_utf16_long_ = false;
     bool creating_var_symbol_ = false;
     bool creating_attr_ref_ = false;
     bool process_allowed_ = false;
 
     size_t last_token_id_ = 0;
-
-    size_t last_line_pos_ = 0;
 
     std::queue<token_ptr> token_queue_;
     Ref<antlr4::CommonTokenFactory> dummy_factory;
@@ -142,7 +139,7 @@ private:
 
     // captures lexer state at the beginning of a token
     input_state token_start_state_;
-
+    input_state last_line;
 
     bool eof() const;
     bool identifier_divider() const;

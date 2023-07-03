@@ -76,6 +76,7 @@ std::string token_stream::getText(const antlr4::misc::Interval& interval)
     {
         return "";
     }
+
     if (stop >= _tokens.size())
     {
         stop = _tokens.size() - 1;
@@ -83,7 +84,7 @@ std::string token_stream::getText(const antlr4::misc::Interval& interval)
 
     sync(stop);
 
-    std::stringstream ss;
+    std::string ss;
     for (size_t i = start; i <= stop; i++)
     {
         Token* t = _tokens[i].get();
@@ -91,9 +92,9 @@ std::string token_stream::getText(const antlr4::misc::Interval& interval)
         {
             break;
         }
-        ss << t->getText();
+        ss.append(t->getText());
     }
-    return ss.str();
+    return ss;
 }
 
 ssize_t token_stream::adjustSeekIndex(size_t i)

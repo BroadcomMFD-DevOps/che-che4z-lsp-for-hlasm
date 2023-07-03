@@ -18,6 +18,8 @@
 
 #include "antlr4-runtime.h"
 
+#include "lexing/token.h"
+
 using namespace hlasm_plugin::parser_library;
 namespace hlasm_plugin::parser_library::semantics {
 
@@ -31,7 +33,7 @@ range range_provider::get_range(const antlr4::Token* start, const antlr4::Token*
     if (stop)
     {
         ret.end.line = stop->getLine();
-        ret.end.column = stop->getCharPositionInLine() + stop->getStopIndex() - stop->getStartIndex() + 1;
+        ret.end.column = static_cast<const lexing::token*>(stop)->get_end_of_token_in_line_utf16();
     }
     else // empty rule
     {
