@@ -34,6 +34,7 @@ deferred_operand_rules;
 @header
 {
 	#include "lexing/token.h"
+	#include "lexing/token_stream.h"
 	#include "parsing/parser_impl.h"
 	#include "expressions/conditional_assembly/ca_operator_unary.h"
 	#include "expressions/conditional_assembly/ca_operator_binary.h"

@@ -17,10 +17,11 @@
 using namespace hlasm_plugin::parser_library::lexing;
 using namespace antlr4;
 
-token_stream::token_stream(antlr4::TokenSource* token_source)
+token_stream::token_stream(lexer* token_source)
     : antlr4::BufferedTokenStream(token_source)
     , enabled_cont_(false)
     , needSetup_(true)
+    , token_source(token_source)
 {}
 
 void token_stream::enable_continuation() { enabled_cont_ = true; }

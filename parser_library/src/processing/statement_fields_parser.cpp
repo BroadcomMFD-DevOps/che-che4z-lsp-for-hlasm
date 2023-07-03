@@ -94,7 +94,8 @@ statement_fields_parser::parse_result statement_fields_parser::parse_operand_fie
                     h_second.prepare_parser(to_parse,
                         m_hlasm_ctx,
                         &add_diag_subst,
-                        semantics::range_provider(r, std::move(ranges), semantics::adjusting_state::MACRO_REPARSE),
+                        semantics::range_provider(
+                            r, std::move(ranges), semantics::adjusting_state::MACRO_REPARSE, h.lex->get_line_limits()),
                         original_range,
                         logical_column,
                         status,

@@ -433,7 +433,8 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordin
                     {
                         auto [to_parse, ranges, r] = join_operands(line.operands);
 
-                        semantics::range_provider tmp_provider(r, ranges, semantics::adjusting_state::MACRO_REPARSE);
+                        semantics::range_provider tmp_provider(
+                            r, ranges, semantics::adjusting_state::MACRO_REPARSE, h.lex->get_line_limits());
 
                         const auto& h_second = prepare_operand_parser(to_parse,
                             *m_ctx->hlasm_ctx,

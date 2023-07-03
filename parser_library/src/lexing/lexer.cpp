@@ -21,6 +21,7 @@
 #include <utility>
 
 #include "input_source.h"
+#include "token.h"
 #include "utils/string_operations.h"
 
 using namespace hlasm_plugin;
@@ -31,14 +32,10 @@ lexer::lexer(input_source* input, semantics::source_info_processor* lsp_proc)
     : input_(input)
     , src_proc_(lsp_proc)
 {
-    factory_ = std::make_unique<token_factory>();
-
     file_input_state_.input = input;
 
     // initialize IS with first character from input
     input_state_->c = static_cast<char_t>(input_->LA(1));
-
-    dummy_factory = std::make_shared<antlr4::CommonTokenFactory>();
 }
 
 void lexer::set_unlimited_line(bool unlimited_lines) { unlimited_line_ = unlimited_lines; }
@@ -55,6 +52,7 @@ void lexer::reset()
     token_queue_ = {};
     last_token_id_ = 0;
     input_state_->char_position = 0;
+    line_limits.clear();
     file_input_state_.c = static_cast<char_t>(input_->LA(1));
 }
 
@@ -79,7 +77,7 @@ void lexer::create_token(size_t ttype, size_t channel)
 
     const auto& end = token_start_state_.line == input_state_->line ? *input_state_ : last_line;
 
-    token_queue_.push(factory_->create(this,
+    token_queue_.push(std::make_unique<token>(this,
         token_start_state_.input,
         ttype,
         channel,
@@ -343,6 +341,7 @@ void lexer::lex_end()
 void lexer::lex_continuation()
 {
     start_token();
+    line_limits.push_back(token_start_state_.char_position_in_line_utf16);
 
     /* lex continuation */
     while (input_state_->char_position_in_line <= end_default_ && !eof())

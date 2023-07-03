@@ -96,12 +96,15 @@ position range_provider::adjust_model_position(position pos, bool end) const
 
     pos.column -= column;
     pos.column += r.start.column;
-    pos.line += r.start.line;
-    while (pos.column >= 71 + end)
+    while (true)
     {
-        pos.column -= 71 - m_continued_code_line_column;
-        pos.line += 1;
+        const size_t line_limit = pos.line >= line_limits.size() ? 71 : line_limits[pos.line];
+        if (pos.column < line_limit + end)
+            break;
+        pos.column -= line_limit - m_continued_code_line_column;
+        ++pos.line;
     }
+    pos.line += r.start.line;
 
     if (auto cmp = pos <=> r.end; cmp > 0 || end == false && cmp >= 0)
         pos = r.end;
@@ -112,11 +115,14 @@ position range_provider::adjust_model_position(position pos, bool end) const
 position range_provider::adjust_position(position pos, bool end) const
 {
     auto [orig_range, column] = [this, pos, end]() {
-        const size_t continued_code_line_column = 71 - m_continued_code_line_column;
-
         for (auto column = pos.column - original_range.start.column; const auto& r : original_operand_ranges)
         {
-            auto range_len = r.end.column - r.start.column + continued_code_line_column * (r.end.line - r.start.line);
+            auto range_len = r.end.column - r.start.column;
+            for (size_t i = r.start.line - original_range.start.line; i < r.end.line - original_range.start.line; ++i)
+            {
+                const size_t line_limit = i >= line_limits.size() ? 71 : line_limits[i];
+                range_len += line_limit - m_continued_code_line_column;
+            }
             if (column < range_len + end)
                 return std::pair(r, column);
             column -= range_len;
@@ -125,11 +131,12 @@ position range_provider::adjust_position(position pos, bool end) const
     }();
 
     auto column_start = orig_range.start.column;
-    auto line_start = orig_range.start.line;
+    size_t line_start = orig_range.start.line - original_range.start.line;
 
     while (true)
     {
-        auto rest = 71 - column_start;
+        const size_t line_limit = line_start >= line_limits.size() ? 71 : line_limits[line_start];
+        auto rest = line_limit - column_start;
         if (column < rest + end)
         {
             column_start += column;
@@ -142,6 +149,7 @@ position range_provider::adjust_position(position pos, bool end) const
             ++line_start;
         }
     }
+    line_start += original_range.start.line;
     return position(line_start, column_start);
 }
 
@@ -154,17 +162,21 @@ range_provider::range_provider(range original_range, adjusting_state state, size
 range_provider::range_provider(range original_field_range,
     std::vector<range> original_operand_ranges_,
     adjusting_state state,
+    std::vector<size_t> line_limits,
     size_t continued_code_line_column)
     : original_range(original_field_range)
     , original_operand_ranges(std::move(original_operand_ranges_))
+    , line_limits(std::move(line_limits))
     , state(state)
     , m_continued_code_line_column(continued_code_line_column)
 {
     assert(original_operand_ranges.empty() || original_range.start == original_operand_ranges.front().start);
 }
 
-range_provider::range_provider(std::vector<std::pair<std::pair<size_t, bool>, range>> ms)
+range_provider::range_provider(
+    std::vector<std::pair<std::pair<size_t, bool>, range>> ms, std::vector<size_t> line_limits)
     : model_substitutions(std::move(ms))
+    , line_limits(std::move(line_limits))
     , state(adjusting_state::MODEL_REPARSE)
 {
     assert(!model_substitutions.empty());

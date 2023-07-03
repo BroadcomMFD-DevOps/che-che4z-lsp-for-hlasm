@@ -24,7 +24,6 @@
 #include "parser_library_export.h"
 #include "range.h"
 #include "semantics/source_info_processor.h"
-#include "token_factory.h"
 
 
 namespace hlasm_plugin::parser_library::lexing {
@@ -63,7 +62,10 @@ public:
 
     std::string getSourceName() override;
 
-    antlr4::TokenFactory<antlr4::CommonToken>* getTokenFactory() override { return dummy_factory.get(); };
+    antlr4::TokenFactory<antlr4::CommonToken>* getTokenFactory() override
+    {
+        return antlr4::CommonTokenFactory::DEFAULT.get();
+    };
 
     enum Tokens
     {
@@ -95,6 +97,8 @@ public:
     // set lexer's input state to file position
     void set_file_offset(position file_offset, size_t logical_column, bool process_allowed = false);
 
+    const std::vector<size_t>& get_line_limits() const { return line_limits; }
+
 protected:
     // creates token and inserts to input stream
     void create_token(size_t ttype, size_t channel = Channels::DEFAULT_CHANNEL);
@@ -109,7 +113,7 @@ private:
     size_t last_token_id_ = 0;
 
     std::queue<token_ptr> token_queue_;
-    Ref<antlr4::CommonTokenFactory> dummy_factory;
+    std::vector<size_t> line_limits;
 
     bool double_byte_enabled_ = false;
     bool continuation_enabled_ = true;
@@ -120,7 +124,6 @@ private:
     size_t end_ = 71;
     size_t continue_ = 15;
 
-    std::unique_ptr<token_factory> factory_;
     antlr4::CharStream* input_;
     semantics::source_info_processor* src_proc_;
 
