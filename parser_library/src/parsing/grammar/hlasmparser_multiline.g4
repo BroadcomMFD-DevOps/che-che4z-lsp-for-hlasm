@@ -197,6 +197,18 @@ lab_instr returns [std::optional<std::string> op_text, range op_range, size_t op
 		collector.set_instruction_field(provider.get_range( _localctx));
 		collector.set_operand_remark_field(provider.get_range( _localctx));
 	};
+	catch[const FailedPredicateException&]
+	{
+		collector.set_label_field(provider.get_range( _localctx));
+		collector.set_instruction_field(provider.get_range( _localctx));
+		collector.set_operand_remark_field(provider.get_range( _localctx));
+	}
+	catch[RecognitionException &e]
+	{
+		_errHandler->reportError(this, e);
+		_localctx->exception = std::current_exception();
+		_errHandler->recover(this, _localctx->exception);
+	}
 
 num_ch
 	: NUM+;

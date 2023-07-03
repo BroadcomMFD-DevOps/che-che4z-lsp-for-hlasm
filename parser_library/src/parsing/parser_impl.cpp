@@ -364,7 +364,7 @@ bool parser_impl::can_attribute_consume(const antlr4::Token* token)
 
 antlr4::misc::IntervalSet parser_impl::getExpectedTokens()
 {
-    if (proc_status->first.kind == processing::processing_kind::LOOKAHEAD)
+    if (proc_status && proc_status->first.kind == processing::processing_kind::LOOKAHEAD)
         return {};
     else
         return antlr4::Parser::getExpectedTokens();
