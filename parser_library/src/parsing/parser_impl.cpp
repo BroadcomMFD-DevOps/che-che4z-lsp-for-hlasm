@@ -78,15 +78,15 @@ struct parser_holder_impl final : parser_holder
     }
     auto& get_parser() const { return static_cast<parser_t&>(*parser); }
 
-    std::pair<std::optional<std::string>, range> lab_instr() const override
+    op_data lab_instr() const override
     {
         auto rule = get_parser().lab_instr();
-        return { std::move(rule->op_text), rule->op_range };
+        return { std::move(rule->op_text), rule->op_range, rule->op_logical_column };
     }
-    std::pair<std::optional<std::string>, range> look_lab_instr() const override
+    op_data look_lab_instr() const override
     {
         auto rule = get_parser().look_lab_instr();
-        return { std::move(rule->op_text), rule->op_range };
+        return { std::move(rule->op_text), rule->op_range, rule->op_logical_column };
     }
 
     void op_rem_body_noop() const override { get_parser().op_rem_body_noop(); }
@@ -110,10 +110,10 @@ struct parser_holder_impl final : parser_holder
     void op_rem_body_mach() const override { get_parser().op_rem_body_mach(); }
     void op_rem_body_asm() const override { get_parser().op_rem_body_asm(); }
 
-    std::pair<semantics::op_rem, range> op_rem_body_mac() const override
+    mac_op_data op_rem_body_mac() const override
     {
         auto rule = get_parser().op_rem_body_mac();
-        return { std::move(rule->line), rule->line_range };
+        return { std::move(rule->line), rule->line_range, rule->line_logical_column };
     }
 
     semantics::literal_si literal_reparse() const override { return std::move(get_parser().literal_reparse()->value); }
@@ -411,13 +411,14 @@ void parser_holder::prepare_parser(const std::string& text,
     diagnostic_op_consumer* diags,
     semantics::range_provider range_prov,
     range text_range,
+    size_t logical_column,
     const processing::processing_status& proc_status,
     bool unlimited_line) const
 {
     input->new_input(text);
 
     lex->reset();
-    lex->set_file_offset(text_range.start);
+    lex->set_file_offset(text_range.start, logical_column);
     lex->set_unlimited_line(unlimited_line);
 
     stream->reset();

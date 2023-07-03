@@ -42,10 +42,10 @@ lexer::lexer(input_source* input, semantics::source_info_processor* lsp_proc)
 }
 
 void lexer::set_unlimited_line(bool unlimited_lines) { unlimited_line_ = unlimited_lines; }
-void lexer::set_file_offset(position file_offset, bool process_allowed)
+void lexer::set_file_offset(position file_offset, size_t logical_column, bool process_allowed)
 {
     input_state_->line = (size_t)file_offset.line;
-    input_state_->char_position_in_line = (size_t)file_offset.column;
+    input_state_->char_position_in_line = logical_column;
     input_state_->char_position_in_line_utf16 = (size_t)file_offset.column;
     process_allowed_ = process_allowed;
 }

@@ -93,7 +93,7 @@ public:
     bool is_space() const;
     void set_unlimited_line(bool unlimited_lines);
     // set lexer's input state to file position
-    void set_file_offset(position file_offset, bool process_allowed = false);
+    void set_file_offset(position file_offset, size_t logical_column, bool process_allowed = false);
 
 protected:
     // creates token and inserts to input stream

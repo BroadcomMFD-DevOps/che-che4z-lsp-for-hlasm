@@ -138,6 +138,7 @@ low_language_processor::preprocessed_part low_language_processor::preprocess_inn
         auto [operands, _, literals] = parser.parse_operand_field(std::move(field),
             true,
             range_provider(std::move(map)),
+            0,
             processing_status(stmt.format_ref(), stmt.opcode_ref()),
             *this);
         result.operands.emplace(std::move(operands));
