@@ -98,7 +98,7 @@ position range_provider::adjust_model_position(position pos, bool end) const
     pos.column += r.start.column;
     while (true)
     {
-        const size_t line_limit = pos.line >= line_limits.size() ? 71 : line_limits[pos.line];
+        const size_t line_limit = get_line_limit(pos.line);
         if (pos.column < line_limit + end)
             break;
         pos.column -= line_limit - m_continued_code_line_column;
@@ -112,31 +112,33 @@ position range_provider::adjust_model_position(position pos, bool end) const
     return pos;
 }
 
+size_t range_provider::get_line_limit(size_t relative_line) const
+{
+    return relative_line >= line_limits.size() ? 71 : line_limits[relative_line];
+}
+
 position range_provider::adjust_position(position pos, bool end) const
 {
-    auto [orig_range, column] = [this, pos, end]() {
-        for (auto column = pos.column - original_range.start.column; const auto& r : original_operand_ranges)
+    auto [r, column] = [this, pos, end]() {
+        for (auto column = pos.column - original_range.start.column; const auto& op_range : original_operand_ranges)
         {
-            auto range_len = r.end.column - r.start.column;
-            for (size_t i = r.start.line - original_range.start.line; i < r.end.line - original_range.start.line; ++i)
-            {
-                const size_t line_limit = i >= line_limits.size() ? 71 : line_limits[i];
-                range_len += line_limit - m_continued_code_line_column;
-            }
+            auto range_len = op_range.end.column - op_range.start.column;
+            for (size_t i = op_range.start.line; i < op_range.end.line; ++i)
+                range_len += get_line_limit(i - original_range.start.line) - m_continued_code_line_column;
+
             if (column < range_len + end)
-                return std::pair(r, column);
+                return std::pair(op_range, column);
             column -= range_len;
         }
         return std::pair(original_range, pos.column - original_range.start.column);
     }();
 
-    auto column_start = orig_range.start.column;
-    size_t line_start = orig_range.start.line - original_range.start.line;
+    auto column_start = r.start.column;
+    size_t line_start = r.start.line - original_range.start.line;
 
     while (true)
     {
-        const size_t line_limit = line_start >= line_limits.size() ? 71 : line_limits[line_start];
-        auto rest = line_limit - column_start;
+        auto rest = get_line_limit(line_start) - column_start;
         if (column < rest + end)
         {
             column_start += column;

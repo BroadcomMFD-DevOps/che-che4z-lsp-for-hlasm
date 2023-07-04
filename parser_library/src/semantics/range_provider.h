@@ -69,6 +69,8 @@ public:
 private:
     position adjust_position(position pos, bool end) const;
     position adjust_model_position(position pos, bool end) const;
+
+    size_t get_line_limit(size_t relative_line) const;
 };
 
 template<typename It>

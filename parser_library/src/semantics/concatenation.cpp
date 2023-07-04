@@ -74,9 +74,8 @@ struct concatenation_point_evaluator
 
     void operator()(const sublist_conc& v)
     {
-        auto value = v.evaluate(eval_ctx);
         assert(!collect_ranges);
-        result.append(std::move(value));
+        result.append(v.evaluate(eval_ctx));
         was_var = false;
     }
 
