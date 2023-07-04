@@ -38,8 +38,8 @@ import { HlasmExtension } from './extension.interface';
 
 export const EXTENSION_ID = "broadcommfd.hlasm-language-support";
 
-const offset = 71;
-const continueColumn = 15;
+const continuationColumn = 71;
+const initialBlanks = 15;
 const externalFilesScheme = 'hlasm-external';
 
 const sleep = (ms: number) => {
@@ -200,19 +200,19 @@ async function registerToContext(context: vscode.ExtensionContext, client: vscod
     if (getConfig<boolean>('continuationHandling', false)) {
         try {
             context.subscriptions.push(vscode.commands.registerTextEditorCommand("type",
-                (editor, edit, args) => commands.insertChars(editor, edit, args, offset)));
+                (editor, edit, args) => commands.insertChars(editor, edit, args, continuationColumn)));
             context.subscriptions.push(vscode.commands.registerTextEditorCommand("paste",
-                (editor, edit, args) => commands.insertChars(editor, edit, args, offset)));
+                (editor, edit, args) => commands.insertChars(editor, edit, args, continuationColumn)));
             context.subscriptions.push(vscode.commands.registerTextEditorCommand("cut",
-                (editor, edit) => commands.cut(editor, edit, offset)));
+                (editor, edit) => commands.cut(editor, edit, continuationColumn)));
             context.subscriptions.push(vscode.commands.registerTextEditorCommand("deleteLeft",
-                (editor, edit) => commands.deleteLeft(editor, edit, offset)));
+                (editor, edit) => commands.deleteLeft(editor, edit, continuationColumn)));
             context.subscriptions.push(vscode.commands.registerTextEditorCommand("deleteRight",
-                (editor, edit) => commands.deleteRight(editor, edit, offset)));
+                (editor, edit) => commands.deleteRight(editor, edit, continuationColumn)));
         } catch (e) { /* just ignore */ }
     }
     // register event handlers
-    context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(e => handler.onDidChangeTextDocument(e, offset)));
+    context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(e => handler.onDidChangeTextDocument(e, continuationColumn)));
     context.subscriptions.push(vscode.workspace.onDidOpenTextDocument(e => handler.onDidOpenTextDocument(e)));
     context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(e => handler.onDidChangeConfiguration(e)));
     context.subscriptions.push(vscode.workspace.onDidSaveTextDocument(e => handler.onDidSaveTextDocument(e)));
@@ -232,11 +232,11 @@ async function registerToContext(context: vscode.ExtensionContext, client: vscod
     // register continuation handlers
     if (!((await vscode.commands.getCommands()).find(command => command == "extension.hlasm-plugin.insertContinuation" || command == "extension.hlasm-plugin.removeContinuation"))) {
         context.subscriptions.push(vscode.commands.registerTextEditorCommand("extension.hlasm-plugin.insertContinuation",
-            (editor, edit) => insertContinuation(editor, edit, offset, continueColumn)));
+            (editor, edit) => insertContinuation(editor, edit, continuationColumn, initialBlanks)));
         context.subscriptions.push(vscode.commands.registerTextEditorCommand("extension.hlasm-plugin.removeContinuation",
-            (editor, edit) => removeContinuation(editor, edit, offset)));
+            (editor, edit) => removeContinuation(editor, edit, continuationColumn)));
         context.subscriptions.push(vscode.commands.registerTextEditorCommand("extension.hlasm-plugin.rearrangeSequenceNumbers",
-            (editor, edit) => rearrangeSequenceNumbers(editor, edit, offset)));
+            (editor, edit) => rearrangeSequenceNumbers(editor, edit, continuationColumn)));
 
         context.subscriptions.push(vscode.commands.registerTextEditorCommand("extension.hlasm-plugin.toggleCommentEditorCommands",
             (editor, edit) => lineCommentCommand(editor, edit, CommentOption.toggle)));

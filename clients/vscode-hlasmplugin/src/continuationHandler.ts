@@ -71,7 +71,7 @@ function codepointPad(s: string, l: number, c: string = ' ') {
 }
 
 // insert continuation character X to the current line
-export function insertContinuation(editor: vscode.TextEditor, edit: vscode.TextEditorEdit, continuationColumn: number, continueColumn: number) {
+export function insertContinuation(editor: vscode.TextEditor, edit: vscode.TextEditorEdit, continuationColumn: number, initialBlanks: number) {
     const doc = editor.document;
     const eol = doc.eol == vscode.EndOfLine.LF ? '\n' : '\r\n';
 
@@ -95,7 +95,7 @@ export function insertContinuation(editor: vscode.TextEditor, edit: vscode.TextE
         let reinsert = '';
         for (let s of sel)
             reinsert += lineText.substring(s.start.character, s.end.character);
-        const trimmed_reinsert = ' '.repeat(continueColumn) + reinsert.trimEnd();
+        const trimmed_reinsert = ' '.repeat(initialBlanks) + reinsert.trimEnd();
         const contSymbol = extractContinuationSymbol(doc, line, continuationColumn);
 
         const cont = isLineContinued(editor.document, line, continuationColumn);
