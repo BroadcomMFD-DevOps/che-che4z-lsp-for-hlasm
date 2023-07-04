@@ -34,7 +34,7 @@ class token_stream : public antlr4::BufferedTokenStream
     lexer* token_source;
 
 public:
-    token_stream(lexer* token_source);
+    explicit token_stream(lexer* token_source);
 
     // enable continuation token in the token stream
     void enable_continuation();

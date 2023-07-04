@@ -85,9 +85,11 @@ void lexer::create_token(size_t ttype, size_t channel)
         end.char_position - 1,
         token_start_state_.line,
         token_start_state_.char_position_in_line,
-        last_token_id_++,
+        last_token_id_,
         token_start_state_.char_position_in_line_utf16,
         end.char_position_in_line_utf16));
+
+    ++last_token_id_;
 
     if (src_proc_)
         switch (ttype)

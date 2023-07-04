@@ -17,7 +17,7 @@ import * as vscodelc from 'vscode-languageclient/node';
 
 
 import { HLASMConfigurationProvider, getCurrentProgramName, getProgramName } from './debugProvider';
-import { ContinuationHandler } from './continuationHandler';
+import { insertContinuation, removeContinuation, rearrangeSequenceNumbers } from './continuationHandler';
 import { CustomEditorCommands } from './customEditorCommands';
 import { EventsHandler, getConfig } from './eventsHandler';
 import { ServerFactory, ServerVariant } from './serverFactory';
@@ -177,11 +177,9 @@ async function registerToContext(context: vscode.ExtensionContext, client: vscod
 
     // initialize helpers
     const handler = new EventsHandler(completeCommand);
-    const contHandling = new ContinuationHandler();
     const commands = new CustomEditorCommands();
 
     // register them
-    context.subscriptions.push(contHandling);
     context.subscriptions.push(commands);
     context.subscriptions.push(handler);
 
@@ -234,11 +232,11 @@ async function registerToContext(context: vscode.ExtensionContext, client: vscod
     // register continuation handlers
     if (!((await vscode.commands.getCommands()).find(command => command == "extension.hlasm-plugin.insertContinuation" || command == "extension.hlasm-plugin.removeContinuation"))) {
         context.subscriptions.push(vscode.commands.registerTextEditorCommand("extension.hlasm-plugin.insertContinuation",
-            (editor, edit) => contHandling.insertContinuation(editor, edit, offset, continueColumn)));
+            (editor, edit) => insertContinuation(editor, edit, offset, continueColumn)));
         context.subscriptions.push(vscode.commands.registerTextEditorCommand("extension.hlasm-plugin.removeContinuation",
-            (editor, edit) => contHandling.removeContinuation(editor, edit, offset)));
+            (editor, edit) => removeContinuation(editor, edit, offset)));
         context.subscriptions.push(vscode.commands.registerTextEditorCommand("extension.hlasm-plugin.rearrangeSequenceNumbers",
-            (editor, edit) => contHandling.rearrangeSequenceNumbers(editor, edit, offset)));
+            (editor, edit) => rearrangeSequenceNumbers(editor, edit, offset)));
 
         context.subscriptions.push(vscode.commands.registerTextEditorCommand("extension.hlasm-plugin.toggleCommentEditorCommands",
             (editor, edit) => lineCommentCommand(editor, edit, CommentOption.toggle)));
