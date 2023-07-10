@@ -666,7 +666,7 @@ TEST_F(workspace_test, use_external_library)
     ws.open().run();
 
     EXPECT_CALL(
-        external_files, list_directory_files(resource_location("hlasm-external://hhhddkcp/DATASET/REMOTE.DATASET")))
+        external_files, list_directory_files(resource_location("hlasm-external:/DATASET/REMOTE.DATASET#hhhddkcp")))
         .WillOnce(Invoke([]() {
             return value_task<list_directory_result>::from_value({ {}, path::list_directory_rc::done });
         }));
