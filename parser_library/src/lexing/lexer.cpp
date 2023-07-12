@@ -15,6 +15,7 @@
 #include "lexer.h"
 
 #include <algorithm>
+#include <array>
 #include <assert.h>
 #include <cctype>
 #include <string>
@@ -136,7 +137,7 @@ void lexer::consume()
     input_state_->c = static_cast<char_t>(input_state_->input->LA(1));
 }
 
-bool lexer::eof() const { return input_->LA(1) == antlr4::CharStream::EOF; }
+bool lexer::eof() const { return input_state_->c == static_cast<char_t>(-1); }
 
 /* set start token info */
 void lexer::start_token() { token_start_state_ = *input_state_; }
@@ -169,7 +170,7 @@ token_ptr lexer::nextToken()
         else if (double_byte_enabled_)
             check_continuation();
 
-        else if (!unlimited_line_ && input_state_->char_position_in_line == end_ && !utils::isblank32(input_state_->c)
+        else if (!unlimited_line_ && input_state_->char_position_in_line == end_ && input_state_->c != ' '
             && continuation_enabled_)
             lex_continuation();
 
@@ -292,30 +293,6 @@ void lexer::lex_tokens()
     }
 }
 
-bool lexer::identifier_divider() const
-{
-    switch (input_state_->c)
-    {
-        case '*':
-        case '.':
-        case '-':
-        case '+':
-        case '=':
-        case '<':
-        case '>':
-        case ',':
-        case '(':
-        case ')':
-        case '\'':
-        case '/':
-        case '&':
-        case '|':
-            return true;
-        default:
-            return false;
-    }
-}
-
 void lexer::lex_begin()
 {
     start_token();
@@ -370,7 +347,7 @@ void lexer::check_continuation()
     end_ = end_default_;
 
     auto cc = input_->LA(end_default_ + 1);
-    if (cc != antlr4::CharStream::EOF && !utils::isblank32(static_cast<char_t>(cc)))
+    if (cc != antlr4::CharStream::EOF && static_cast<char_t>(cc) != ' ')
     {
         do
         {
@@ -383,7 +360,7 @@ void lexer::check_continuation()
 
 void lexer::lex_space()
 {
-    while (input_state_->c == ' ' && before_end() && !eof())
+    while (input_state_->c == ' ' && before_end())
         consume();
     create_token(SPACE, DEFAULT_CHANNEL);
 }
@@ -394,32 +371,73 @@ bool lexer::before_end() const
         || (unlimited_line_ && input_state_->c != '\r' && input_state_->c != '\n');
 }
 
-bool lexer::ord_char(char_t c)
+enum class character_type : unsigned char
 {
-    return (c <= 255) && (isalnum(c) || isalpha(c) || c == '_' || c == '@' || c == '$' || c == '#');
+    identifier_divider = 0b00000001,
+    space = 0b00000010,
+    endline = 0b00000100,
+    ord_char = 0b00001000,
+    first_ord_char = 0b00010000,
+    alpha = 0b00100000,
+    num = 0b00100000,
+    data_attr = 0b01000000,
+};
+constexpr character_type operator|(character_type l, character_type r)
+{
+    return static_cast<character_type>(static_cast<int>(l) | static_cast<int>(r));
+}
+constexpr character_type operator&(character_type l, character_type r)
+{
+    return static_cast<character_type>(static_cast<int>(l) & static_cast<int>(r));
+}
+constexpr character_type& operator|=(character_type& t, character_type s) { return t = t | s; }
+constexpr bool operator==(character_type l, nullptr_t) { return static_cast<int>(l) == 0; }
+
+constexpr const auto char_info = []() {
+    std::array<character_type, 256> result {};
+
+    for (unsigned char c : { '*', '.', '-', '+', '=', '<', '>', ',', '(', ')', '\'', '/', '&', '|' })
+        result[c] |= character_type::identifier_divider;
+    result[' '] |= character_type::space;
+    result['\r'] |= character_type::endline;
+    result['\n'] |= character_type::endline;
+
+    for (unsigned char c : std::string_view("0123456789$_#@abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"))
+        result[c] |= character_type::ord_char;
+    for (unsigned char c : std::string_view("$_#@abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"))
+        result[c] |= character_type::first_ord_char;
+    for (unsigned char c : std::string_view("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"))
+        result[c] |= character_type::alpha;
+    for (unsigned char c : std::string_view("0123456789"))
+        result[c] |= character_type::num;
+    for (unsigned char c : std::string_view("OSILTNKDosiltnkd"))
+        result[c] |= character_type::data_attr;
+
+    return result;
+}();
+constexpr character_type get_char_info(char32_t c)
+{
+    static_assert(static_cast<int>(char_info[0]) == 0);
+
+    return char_info[c & -(c < char_info.size())];
 }
 
-bool lexer::is_ord_char() const { return ord_char(input_state_->c); }
-
-bool lexer::is_space() const { return input_state_->c == ' ' || input_state_->c == '\n' || input_state_->c == '\r'; }
-
-bool is_data_attribute(char_t c)
-{
-    auto tmp = std::toupper(c);
-    return tmp == 'O' || tmp == 'S' || tmp == 'I' || tmp == 'L' || tmp == 'T' || tmp == 'N' || tmp == 'K' || tmp == 'D';
-}
+bool lexer::ord_char(char_t c) { return (get_char_info(c) & character_type::ord_char) != 0; }
 
 void lexer::lex_word()
 {
     bool last_char_data_attr = false;
-    bool ord = is_ord_char() && (input_state_->c < '0' || input_state_->c > '9');
-    bool num = (input_state_->c >= '0' && input_state_->c <= '9');
+    auto ci = get_char_info(input_state_->c);
+
+    bool ord = (ci & character_type::first_ord_char) != 0;
+    bool num = (ci & character_type::num) != 0;
     size_t last_part_ord_len = 0;
     size_t w_len = 0;
     bool last_ord = true;
-    while (!is_space() && !eof() && !identifier_divider() && before_end())
+    while ((ci & (character_type::space | character_type::endline | character_type::identifier_divider)) == 0 && !eof()
+        && before_end())
     {
-        bool curr_ord = is_ord_char();
+        bool curr_ord = (ci & character_type::ord_char) != 0;
         if (!last_ord && curr_ord)
             break;
 
@@ -427,7 +445,7 @@ void lexer::lex_word()
         ord &= curr_ord;
 
         num &= (input_state_->c >= '0' && input_state_->c <= '9');
-        last_char_data_attr = is_data_attribute(input_state_->c) && w_len == 0;
+        last_char_data_attr = (ci & character_type::data_attr) != 0 && w_len == 0;
 
         if (creating_var_symbol_ && !ord && w_len > 0 && w_len <= 63)
         {
@@ -436,6 +454,8 @@ void lexer::lex_word()
         }
 
         consume();
+        ci = get_char_info(input_state_->c);
+
         ++w_len;
         last_ord = curr_ord;
     }
