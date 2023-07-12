@@ -391,7 +391,7 @@ constexpr character_type operator&(character_type l, character_type r)
     return static_cast<character_type>(static_cast<int>(l) & static_cast<int>(r));
 }
 constexpr character_type& operator|=(character_type& t, character_type s) { return t = t | s; }
-constexpr bool operator==(character_type l, nullptr_t) { return static_cast<int>(l) == 0; }
+constexpr bool operator==(character_type l, std::nullptr_t) { return static_cast<int>(l) == 0; }
 
 constexpr const auto char_info = []() {
     std::array<character_type, 256> result {};
@@ -422,7 +422,19 @@ constexpr character_type get_char_info(char32_t c)
     return char_info[c & -(c < char_info.size())];
 }
 
-bool lexer::ord_char(char_t c) { return (get_char_info(c) & character_type::ord_char) != 0; }
+bool lexer::ord_char(char_t c) noexcept { return (get_char_info(c) & character_type::ord_char) != 0; }
+
+bool lexer::ord_symbol(std::string_view symbol) noexcept
+{
+    if (symbol.empty() || symbol.size() > 63 || (get_char_info(symbol.front()) & character_type::first_ord_char) == 0)
+        return false;
+
+    for (unsigned char c : symbol)
+        if ((get_char_info(c) & character_type::ord_char) == 0)
+            return false;
+
+    return true;
+}
 
 void lexer::lex_word()
 {

@@ -94,14 +94,18 @@ data_def_base [data_definition_parser* p]
 	{
 		if (const auto allowed = $p->allowed(); !allowed.expression && !allowed.string && !allowed.plus_minus && !allowed.dot)
 			goto PERF_HACK_SKIP_EXTRAS;
+		goto PERF_HACK_EXTRAS;
 	}
 	(
 		{
+			PERF_HACK_EXTRAS:
 			if (const auto [allowed, next_token] = std::make_pair($p->allowed(), _input->LA(1));
 				!allowed.expression && next_token == LPAR ||
 				!allowed.string && (next_token == IDENTIFIER || next_token == NUM || next_token == ORDSYMBOL) ||
 				!allowed.plus_minus && (next_token == PLUS || next_token == MINUS) ||
 				!allowed.dot && next_token == DOT)
+				goto PERF_HACK_SKIP_EXTRAS;
+			else if (!(next_token == LPAR || next_token == IDENTIFIER || next_token == NUM || next_token == ORDSYMBOL || next_token == PLUS || next_token == MINUS || next_token == DOT))
 				goto PERF_HACK_SKIP_EXTRAS;
 		}
 		(
@@ -113,6 +117,9 @@ data_def_base [data_definition_parser* p]
 			|
 			DOT {$p->push(".", provider.get_range($DOT));}
 		)
+		{
+			goto PERF_HACK_EXTRAS;
+		}
 	)*
 	{
 		PERF_HACK_SKIP_EXTRAS:;

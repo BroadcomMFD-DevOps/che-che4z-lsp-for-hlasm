@@ -88,7 +88,8 @@ public:
     // enable ictl
     void set_ictl();
 
-    static bool ord_char(char_t c);
+    static bool ord_char(char_t c) noexcept;
+    static bool ord_symbol(std::string_view symbol) noexcept;
 
     // is next input char an ord char?
     void set_unlimited_line(bool unlimited_lines);
