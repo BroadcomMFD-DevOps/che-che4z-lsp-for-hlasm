@@ -450,7 +450,7 @@ utils::value_task<parse_config_file_result> workspace_configuration::load_and_pr
         for (const auto& pgm : pgm_config.pgms)
         {
             if (!process_program(pgm, diags))
-                diags.push_back(diagnostic_s::error_W0004(m_pgm_conf_loc, pgm.pgroup));
+                m_missing_pgroups[m_pgm_conf_loc].insert(pgm.pgroup);
         }
     }
 
@@ -658,7 +658,7 @@ utils::value_task<parse_config_file_result> workspace_configuration::parse_b4g_c
     }
 
     for (const auto& pgroup : missing_pgroups)
-        conf.diags.push_back(diagnostic_s::error_B4G002(file_location, pgroup));
+        m_missing_pgroups[file_location].insert(pgroup);
 
     co_return parse_config_file_result::parsed;
 }
@@ -724,9 +724,32 @@ void workspace_configuration::find_and_add_libs(const utils::resource::resource_
     }
 }
 
-void workspace_configuration::copy_diagnostics(const diagnosable& target,
-    const std::unordered_set<utils::resource::resource_location, utils::resource::resource_location_hasher>& b4g_filter)
-    const
+void workspace_configuration::generate_missing_pgroup_diags(const diagnosable& target,
+    const std::unordered_map<utils::resource::resource_location,
+        std::unordered_set<std::string, utils::hashers::string_hasher, std::equal_to<>>,
+        utils::resource::resource_location_hasher>& missing_and_used,
+    const std::unordered_map<utils::resource::resource_location,
+        std::unordered_set<std::string, utils::hashers::string_hasher, std::equal_to<>>,
+        utils::resource::resource_location_hasher>& missing) const
+{
+    for (const auto& [rl, pgroup_names] : missing_and_used)
+    {
+        for (const auto& pgroup_name : pgroup_names)
+            target.add_diagnostic(diagnostic_s::error_B4G002(rl, pgroup_name));
+    }
+
+    for (const auto& [rl, pgroup_names] : missing)
+    {
+        for (const auto& pgroup_name : pgroup_names)
+            target.add_diagnostic(diagnostic_s::info_PG001(rl, pgroup_name));
+    }
+}
+
+void workspace_configuration::generate_and_copy_diagnostics(const diagnosable& target,
+    const std::unordered_set<utils::resource::resource_location, utils::resource::resource_location_hasher>& b4g_filter,
+    std::unordered_map<utils::resource::resource_location,
+        std::unordered_set<std::string, utils::hashers::string_hasher, std::equal_to<>>,
+        utils::resource::resource_location_hasher> used_configs_and_opened_files) const
 {
     for (auto& [key, pg] : m_proc_grps)
     {
@@ -741,13 +764,33 @@ void workspace_configuration::copy_diagnostics(const diagnosable& target,
     for (const auto& diag : m_config_diags)
         target.add_diagnostic(diag);
 
+    auto unused_pgroups = m_missing_pgroups;
+    decltype(m_missing_pgroups) used_pgroups;
+
     for (const auto& [uri, c] : m_b4g_config_cache)
     {
         if (!b4g_filter.contains(uri))
             continue;
+
         for (const auto& d : c.diags)
             target.add_diagnostic(d);
+
+        auto unused_pgroups_it = unused_pgroups.find(uri);
+        auto used_configs_and_opened_files_it = used_configs_and_opened_files.find(uri);
+        if (unused_pgroups_it == unused_pgroups.end()
+            || used_configs_and_opened_files_it == used_configs_and_opened_files.end())
+            continue;
+
+        for (const auto& opened_file : used_configs_and_opened_files_it->second)
+        {
+            if (auto it = c.config->files.find(opened_file); it != c.config->files.end())
+            {
+                used_pgroups[uri].insert(std::move(unused_pgroups_it->second.extract(it->second.processor_group_name)));
+            }
+        }
     }
+
+    generate_missing_pgroup_diags(target, used_pgroups, unused_pgroups);
 }
 
 utils::value_task<parse_config_file_result> workspace_configuration::parse_configuration_file(

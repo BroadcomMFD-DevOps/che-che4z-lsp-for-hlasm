@@ -2667,6 +2667,17 @@ diagnostic_s diagnostic_s::error_B4G002(const utils::resource::resource_location
         diagnostic_tag::none);
 }
 
+diagnostic_s diagnostic_s::info_PG001(const utils::resource::resource_location& file_name, std::string_view grp_name)
+{
+    return diagnostic_s(file_name.get_uri(),
+        {},
+        diagnostic_severity::info,
+        "PG001",
+        get_not_defined_proc_group_msg(".bridge.json", grp_name),
+        {},
+        diagnostic_tag::none);
+}
+
 diagnostic_s diagnostic_s::info_SUP(const utils::resource::resource_location& file_name)
 {
     return diagnostic_s(file_name.get_uri(),

@@ -225,6 +225,10 @@ class workspace_configuration
 
     utils::resource::resource_location m_proc_grps_loc;
     utils::resource::resource_location m_pgm_conf_loc;
+    std::unordered_map<utils::resource::resource_location,
+        std::unordered_set<std::string, utils::hashers::string_hasher, std::equal_to<>>,
+        utils::resource::resource_location_hasher>
+        m_missing_pgroups;
 
     template<typename T>
     struct tagged_string_view
@@ -352,6 +356,14 @@ class workspace_configuration
         const library_local_options& opts,
         std::vector<diagnostic_s>& diags);
 
+    void generate_missing_pgroup_diags(const diagnosable& target,
+        const std::unordered_map<utils::resource::resource_location,
+            std::unordered_set<std::string, utils::hashers::string_hasher, std::equal_to<>>,
+            utils::resource::resource_location_hasher>& missing_and_used,
+        const std::unordered_map<utils::resource::resource_location,
+            std::unordered_set<std::string, utils::hashers::string_hasher, std::equal_to<>>,
+            utils::resource::resource_location_hasher>& missing) const;
+
 public:
     workspace_configuration(file_manager& fm,
         utils::resource::resource_location location,
@@ -373,9 +385,12 @@ public:
     [[nodiscard]] utils::value_task<std::optional<std::vector<const processor_group*>>> refresh_libraries(
         const std::vector<utils::resource::resource_location>& file_locations);
 
-    void copy_diagnostics(const diagnosable& target,
+    void generate_and_copy_diagnostics(const diagnosable& target,
         const std::unordered_set<utils::resource::resource_location, utils::resource::resource_location_hasher>&
-            b4g_filter) const;
+            b4g_filter,
+        std::unordered_map<utils::resource::resource_location,
+            std::unordered_set<std::string, utils::hashers::string_hasher, std::equal_to<>>,
+            utils::resource::resource_location_hasher> used_configs_and_opened_files) const;
 
     const processor_group& get_proc_grp(const proc_grp_id& p) const; // test only
 

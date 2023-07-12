@@ -284,12 +284,22 @@ workspace::~workspace() = default;
 void workspace::collect_diags() const
 {
     std::unordered_set<resource_location, resource_location_hasher> used_b4g_configs;
+    std::unordered_map<resource_location,
+        std::unordered_set<std::string, utils::hashers::string_hasher, std::equal_to<>>,
+        utils::resource::resource_location_hasher>
+        used_pgroups;
 
-    for (const auto& [_, component] : m_processor_files)
+    for (const auto& [processor_file_rl, component] : m_processor_files)
+    {
         if (component.m_opened)
+        {
             used_b4g_configs.emplace(component.m_alternative_config);
 
-    m_configuration.copy_diagnostics(*this, used_b4g_configs);
+            used_pgroups[component.m_alternative_config].insert(processor_file_rl.filename());
+        }
+    }
+
+    m_configuration.generate_and_copy_diagnostics(*this, used_b4g_configs, used_pgroups);
 
     for (const auto& [url, pfc] : m_processor_files)
     {
