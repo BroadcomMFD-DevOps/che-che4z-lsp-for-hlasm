@@ -36,8 +36,7 @@ std::string uri_to_path(std::string_view uri)
     if (ec)
         return std::string(uri);
 
-    const static std::string file_scheme = "file";
-    if (u.scheme().compare(file_scheme))
+    if (u.scheme().compare("file"))
         return "";
     if (!u.has_path())
         return "";
