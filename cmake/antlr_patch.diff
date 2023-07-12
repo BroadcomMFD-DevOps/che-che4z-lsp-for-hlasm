@@ -38,12 +38,6 @@ diff --git a/runtime/Cpp/runtime/src/BufferedTokenStream.cpp b/runtime/Cpp/runti
 index 241dfe5..e02b63c 100755
 --- a/runtime/Cpp/runtime/src/BufferedTokenStream.cpp
 +++ b/runtime/Cpp/runtime/src/BufferedTokenStream.cpp
-@@ -1,4 +1,4 @@
--﻿/* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
-+/* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
-  * Use of this file is governed by the BSD 3-clause license that
-  * can be found in the LICENSE.txt file in the project root.
-  */
 @@ -374,15 +374,15 @@ std::string BufferedTokenStream::getText(const misc::Interval &interval) {
      stop = _tokens.size() - 1;
    }
@@ -67,12 +61,6 @@ diff --git a/runtime/Cpp/runtime/src/DefaultErrorStrategy.cpp b/runtime/Cpp/runt
 index 54d35ee..289f15d 100755
 --- a/runtime/Cpp/runtime/src/DefaultErrorStrategy.cpp
 +++ b/runtime/Cpp/runtime/src/DefaultErrorStrategy.cpp
-@@ -1,4 +1,4 @@
--﻿/* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
-+/* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
-  * Use of this file is governed by the BSD 3-clause license that
-  * can be found in the LICENSE.txt file in the project root.
-  */
 @@ -101,7 +101,7 @@ void DefaultErrorStrategy::sync(Parser *recognizer) {
    size_t la = tokens->LA(1);
  
@@ -96,12 +84,6 @@ diff --git a/runtime/Cpp/runtime/src/RuleContext.cpp b/runtime/Cpp/runtime/src/R
 index 3ed945f..79b87cf 100755
 --- a/runtime/Cpp/runtime/src/RuleContext.cpp
 +++ b/runtime/Cpp/runtime/src/RuleContext.cpp
-@@ -1,4 +1,4 @@
--﻿/* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
-+/* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
-  * Use of this file is governed by the BSD 3-clause license that
-  * can be found in the LICENSE.txt file in the project root.
-  */
 @@ -51,14 +51,14 @@ std::string RuleContext::getText() {
      return "";
    }
