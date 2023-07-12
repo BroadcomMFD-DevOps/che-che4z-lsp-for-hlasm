@@ -362,7 +362,8 @@ class workspace_configuration
             utils::resource::resource_location_hasher>& missing_and_used,
         const std::unordered_map<utils::resource::resource_location,
             std::unordered_set<std::string, utils::hashers::string_hasher, std::equal_to<>>,
-            utils::resource::resource_location_hasher>& missing) const;
+            utils::resource::resource_location_hasher>& missing,
+        bool consider_only_used_pgroups) const;
 
 public:
     workspace_configuration(file_manager& fm,
@@ -386,11 +387,10 @@ public:
         const std::vector<utils::resource::resource_location>& file_locations);
 
     void generate_and_copy_diagnostics(const diagnosable& target,
-        const std::unordered_set<utils::resource::resource_location, utils::resource::resource_location_hasher>&
-            b4g_filter,
-        std::unordered_map<utils::resource::resource_location,
+        const std::unordered_map<utils::resource::resource_location,
             std::unordered_set<std::string, utils::hashers::string_hasher, std::equal_to<>>,
-            utils::resource::resource_location_hasher> used_configs_and_opened_files) const;
+            utils::resource::resource_location_hasher>& used_configs_and_opened_files,
+        bool consider_only_used_pgroups) const;
 
     const processor_group& get_proc_grp(const proc_grp_id& p) const; // test only
 

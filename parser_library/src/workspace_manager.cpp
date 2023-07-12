@@ -770,6 +770,15 @@ public:
         return make_continuous_sequence(m_file_manager.get_virtual_file(id));
     }
 
+    void generate_configuration_diagnostics() override
+    {
+        std::for_each(m_workspaces.begin(), m_workspaces.end(), [](const auto& ws_pair) {
+            ws_pair.second.ws.generate_configuration_diagnostics();
+        });
+
+        notify_diagnostics_consumers();
+    }
+
     void make_opcode_suggestion(const char* document_uri,
         const char* opcode,
         bool extended,

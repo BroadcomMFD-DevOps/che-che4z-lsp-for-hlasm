@@ -2660,7 +2660,7 @@ diagnostic_s diagnostic_s::error_B4G002(const utils::resource::resource_location
 {
     return diagnostic_s(file_name.get_uri(),
         {},
-        diagnostic_severity::warning,
+        diagnostic_severity::error,
         "B4G002",
         get_not_defined_proc_group_msg(".bridge.json", grp_name),
         {},
@@ -2671,7 +2671,7 @@ diagnostic_s diagnostic_s::info_PG001(const utils::resource::resource_location& 
 {
     return diagnostic_s(file_name.get_uri(),
         {},
-        diagnostic_severity::info,
+        diagnostic_severity::warning,
         "PG001",
         get_not_defined_proc_group_msg(".bridge.json", grp_name),
         {},

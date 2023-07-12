@@ -35,6 +35,7 @@ import { ClientInterface, ClientUriDetails, HLASMExternalFiles } from './hlasmEx
 import { HLASMExternalFilesFtp } from './hlasmExternalFilesFtp';
 import { HLASMExternalConfigurationProvider, HLASMExternalConfigurationProviderHandler } from './hlasmExternalConfigurationProvider';
 import { HlasmExtension } from './extension.interface';
+import { showConfigurationDiagnostics } from './hlasmConfigurationDiagnosticsProvider'
 
 export const EXTENSION_ID = "broadcommfd.hlasm-language-support";
 
@@ -195,6 +196,7 @@ async function registerToContext(context: vscode.ExtensionContext, client: vscod
     context.subscriptions.push(vscode.commands.registerCommand('extension.hlasm-plugin.resumeRemoteActivity', () => extFiles.resumeAll()));
     context.subscriptions.push(vscode.commands.registerCommand('extension.hlasm-plugin.suspendRemoteActivity', () => extFiles.suspendAll()));
     context.subscriptions.push(vscode.commands.registerCommand('extension.hlasm-plugin.clearRemoteActivityCache', () => extFiles.clearCache()));
+    context.subscriptions.push(vscode.commands.registerCommand('extension.hlasm-plugin.showConfigurationDiagnostics', () => showConfigurationDiagnostics(client)));
 
     // overrides should happen only if the user wishes
     if (getConfig<boolean>('continuationHandling', false)) {

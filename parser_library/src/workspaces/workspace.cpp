@@ -281,9 +281,8 @@ workspace::workspace(file_manager& file_manager,
 
 workspace::~workspace() = default;
 
-void workspace::collect_diags() const
+workspace::used_pgroups_map workspace::get_used_pgroups_map() const
 {
-    std::unordered_set<resource_location, resource_location_hasher> used_b4g_configs;
     std::unordered_map<resource_location,
         std::unordered_set<std::string, utils::hashers::string_hasher, std::equal_to<>>,
         utils::resource::resource_location_hasher>
@@ -292,14 +291,15 @@ void workspace::collect_diags() const
     for (const auto& [processor_file_rl, component] : m_processor_files)
     {
         if (component.m_opened)
-        {
-            used_b4g_configs.emplace(component.m_alternative_config);
-
             used_pgroups[component.m_alternative_config].insert(processor_file_rl.filename());
-        }
     }
 
-    m_configuration.generate_and_copy_diagnostics(*this, used_b4g_configs, used_pgroups);
+    return used_pgroups;
+}
+
+void workspace::collect_diags() const
+{
+    m_configuration.generate_and_copy_diagnostics(*this, get_used_pgroups_map(), true);
 
     for (const auto& [url, pfc] : m_processor_files)
     {
@@ -312,6 +312,11 @@ void workspace::collect_diags() const
                 pfc.m_last_results->opencode_diagnostics.begin(),
                 pfc.m_last_results->opencode_diagnostics.end());
     }
+}
+
+void workspace::generate_configuration_diagnostics() const
+{
+    m_configuration.generate_and_copy_diagnostics(*this, get_used_pgroups_map(), false);
 }
 
 namespace {
