@@ -96,8 +96,7 @@ private:
 
         size_t get_hash() const noexcept
         {
-            auto h = hash.load(std::memory_order_relaxed);
-            if (h)
+            if (auto h = hash.load(std::memory_order_relaxed))
                 return h;
             return update_hash();
         }
