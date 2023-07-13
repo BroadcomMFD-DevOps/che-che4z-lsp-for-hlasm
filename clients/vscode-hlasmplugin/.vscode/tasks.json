@@ -26,7 +26,9 @@
                 "reveal": "always",
                 "panel": "shared",
                 "clear": true
-            },
+            },            
+
+            "group": "build",
 
             // we run the custom script "compile" as defined in package.json
             "args": ["run", "compile:test", "--loglevel", "silent"],
