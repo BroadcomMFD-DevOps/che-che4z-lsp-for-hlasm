@@ -373,13 +373,14 @@ bool lexer::before_end() const
 
 enum class character_type : unsigned char
 {
+    none = 0,
     identifier_divider = 0b00000001,
     space = 0b00000010,
     endline = 0b00000100,
     ord_char = 0b00001000,
     first_ord_char = 0b00010000,
     alpha = 0b00100000,
-    num = 0b00100000,
+    number = 0b00100000,
     data_attr = 0b01000000,
 };
 constexpr character_type operator|(character_type l, character_type r)
@@ -391,46 +392,51 @@ constexpr character_type operator&(character_type l, character_type r)
     return static_cast<character_type>(static_cast<int>(l) & static_cast<int>(r));
 }
 constexpr character_type& operator|=(character_type& t, character_type s) { return t = t | s; }
-constexpr bool operator==(character_type l, std::nullptr_t) { return static_cast<int>(l) == 0; }
 
 constexpr const auto char_info = []() {
     std::array<character_type, 256> result {};
 
+    using enum character_type;
+
     for (unsigned char c : { '*', '.', '-', '+', '=', '<', '>', ',', '(', ')', '\'', '/', '&', '|' })
-        result[c] |= character_type::identifier_divider;
-    result[' '] |= character_type::space;
-    result['\r'] |= character_type::endline;
-    result['\n'] |= character_type::endline;
+        result[c] |= identifier_divider;
+    result[' '] |= space;
+    result['\r'] |= endline;
+    result['\n'] |= endline;
 
     for (unsigned char c : std::string_view("0123456789$_#@abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"))
-        result[c] |= character_type::ord_char;
+        result[c] |= ord_char;
     for (unsigned char c : std::string_view("$_#@abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"))
-        result[c] |= character_type::first_ord_char;
+        result[c] |= first_ord_char;
     for (unsigned char c : std::string_view("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"))
-        result[c] |= character_type::alpha;
+        result[c] |= alpha;
     for (unsigned char c : std::string_view("0123456789"))
-        result[c] |= character_type::num;
+        result[c] |= number;
     for (unsigned char c : std::string_view("OSILTNKDosiltnkd"))
-        result[c] |= character_type::data_attr;
+        result[c] |= data_attr;
 
     return result;
 }();
 constexpr character_type get_char_info(char32_t c)
 {
-    static_assert(static_cast<int>(char_info[0]) == 0);
+    static_assert(char_info[0] == character_type::none);
 
     return char_info[c & -(c < char_info.size())];
 }
 
-bool lexer::ord_char(char_t c) noexcept { return (get_char_info(c) & character_type::ord_char) != 0; }
+bool lexer::ord_char(char_t c) noexcept
+{
+    return (get_char_info(c) & character_type::ord_char) != character_type::none;
+}
 
 bool lexer::ord_symbol(std::string_view symbol) noexcept
 {
-    if (symbol.empty() || symbol.size() > 63 || (get_char_info(symbol.front()) & character_type::first_ord_char) == 0)
+    using enum character_type;
+    if (symbol.empty() || symbol.size() > 63 || (get_char_info(symbol.front()) & first_ord_char) == none)
         return false;
 
     for (unsigned char c : symbol)
-        if ((get_char_info(c) & character_type::ord_char) == 0)
+        if ((get_char_info(c) & ord_char) == none)
             return false;
 
     return true;
@@ -438,18 +444,19 @@ bool lexer::ord_symbol(std::string_view symbol) noexcept
 
 void lexer::lex_word()
 {
+    using enum character_type;
+
     bool last_char_data_attr = false;
     auto ci = get_char_info(input_state_->c);
 
-    bool ord = (ci & character_type::first_ord_char) != 0;
-    bool num = (ci & character_type::num) != 0;
+    bool ord = (ci & first_ord_char) != none;
+    bool num = (ci & number) != none;
     size_t last_part_ord_len = 0;
     size_t w_len = 0;
     bool last_ord = true;
-    while ((ci & (character_type::space | character_type::endline | character_type::identifier_divider)) == 0 && !eof()
-        && before_end())
+    while ((ci & (space | endline | identifier_divider)) == none && !eof() && before_end())
     {
-        bool curr_ord = (ci & character_type::ord_char) != 0;
+        bool curr_ord = (ci & ord_char) != none;
         if (!last_ord && curr_ord)
             break;
 
@@ -457,7 +464,7 @@ void lexer::lex_word()
         ord &= curr_ord;
 
         num &= (input_state_->c >= '0' && input_state_->c <= '9');
-        last_char_data_attr = (ci & character_type::data_attr) != 0 && w_len == 0;
+        last_char_data_attr = (ci & data_attr) != none && w_len == 0;
 
         if (creating_var_symbol_ && !ord && w_len > 0 && w_len <= 63)
         {
