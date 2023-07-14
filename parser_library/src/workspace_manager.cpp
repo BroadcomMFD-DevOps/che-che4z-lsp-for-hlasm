@@ -772,9 +772,8 @@ public:
 
     void toggle_configuration_diagnostics_generation_mode() override
     {
-        std::for_each(m_workspaces.begin(), m_workspaces.end(), [](auto& ws_pair) {
-            ws_pair.second.ws.toggle_configuration_diagnostics_generation_mode();
-        });
+        for (auto& [_, opened_ws] : m_workspaces)
+            opened_ws.ws.toggle_configuration_diagnostics_generation_mode();
 
         notify_diagnostics_consumers();
     }

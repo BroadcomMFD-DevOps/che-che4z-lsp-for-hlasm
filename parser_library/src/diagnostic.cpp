@@ -2667,7 +2667,7 @@ diagnostic_s diagnostic_s::error_B4G002(const utils::resource::resource_location
         diagnostic_tag::none);
 }
 
-diagnostic_s diagnostic_s::info_PG001(const utils::resource::resource_location& file_name, std::string_view grp_name)
+diagnostic_s diagnostic_s::warn_CFG001(const utils::resource::resource_location& file_name, std::string_view grp_name)
 {
     return diagnostic_s(file_name.get_uri(),
         {},

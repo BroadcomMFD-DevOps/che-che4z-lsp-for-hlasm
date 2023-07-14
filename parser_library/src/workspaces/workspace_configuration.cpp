@@ -725,12 +725,8 @@ void workspace_configuration::find_and_add_libs(const utils::resource::resource_
 }
 
 void workspace_configuration::generate_missing_pgroup_diags(const diagnosable& target,
-    const std::unordered_map<utils::resource::resource_location,
-        std::unordered_set<std::string, utils::hashers::string_hasher, std::equal_to<>>,
-        utils::resource::resource_location_hasher>& missing_and_used,
-    const std::unordered_map<utils::resource::resource_location,
-        std::unordered_set<std::string, utils::hashers::string_hasher, std::equal_to<>>,
-        utils::resource::resource_location_hasher>& missing,
+    const pgroups_map& missing_and_used,
+    const pgroups_map& missing,
     bool consider_only_used_pgroups) const
 {
     const auto diag_adder = [&target](
@@ -748,7 +744,7 @@ void workspace_configuration::generate_missing_pgroup_diags(const diagnosable& t
     diag_adder(missing_and_used, diagnostic_s::error_B4G002);
 
     if (!consider_only_used_pgroups)
-        diag_adder(missing, diagnostic_s::info_PG001);
+        diag_adder(missing, diagnostic_s::warn_CFG001);
 }
 
 void workspace_configuration::generate_and_copy_diagnostics(

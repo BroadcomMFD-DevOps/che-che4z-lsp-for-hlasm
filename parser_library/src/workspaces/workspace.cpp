@@ -281,9 +281,9 @@ workspace::workspace(file_manager& file_manager,
 
 workspace::~workspace() = default;
 
-workspace_configuration::pgroups_map workspace::get_used_pgroups_map() const
+pgroups_map workspace::get_used_pgroups_map() const
 {
-    workspace_configuration::pgroups_map used_pgroups;
+    pgroups_map used_pgroups;
 
     for (const auto& [processor_file_rl, component] : m_processor_files)
     {

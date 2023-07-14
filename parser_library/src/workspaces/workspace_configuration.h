@@ -84,6 +84,10 @@ struct external_conf
 };
 
 using proc_grp_id = std::variant<basic_conf, b4g_conf, external_conf>;
+using pgroups_map = std::unordered_map<utils::resource::resource_location,
+    std::unordered_set<std::string, utils::hashers::string_hasher, std::equal_to<>>,
+    utils::resource::resource_location_hasher>;
+
 class file_manager;
 struct library_local_options;
 // represents pair program => processor group - saves
@@ -225,10 +229,7 @@ class workspace_configuration
 
     utils::resource::resource_location m_proc_grps_loc;
     utils::resource::resource_location m_pgm_conf_loc;
-    std::unordered_map<utils::resource::resource_location,
-        std::unordered_set<std::string, utils::hashers::string_hasher, std::equal_to<>>,
-        utils::resource::resource_location_hasher>
-        m_missing_pgroups;
+    pgroups_map m_missing_pgroups;
 
     template<typename T>
     struct tagged_string_view
@@ -357,19 +358,11 @@ class workspace_configuration
         std::vector<diagnostic_s>& diags);
 
     void generate_missing_pgroup_diags(const diagnosable& target,
-        const std::unordered_map<utils::resource::resource_location,
-            std::unordered_set<std::string, utils::hashers::string_hasher, std::equal_to<>>,
-            utils::resource::resource_location_hasher>& missing_and_used,
-        const std::unordered_map<utils::resource::resource_location,
-            std::unordered_set<std::string, utils::hashers::string_hasher, std::equal_to<>>,
-            utils::resource::resource_location_hasher>& missing,
+        const pgroups_map& missing_and_used,
+        const pgroups_map& missing,
         bool consider_only_used_pgroups) const;
 
 public:
-    using pgroups_map = std::unordered_map<utils::resource::resource_location,
-        std::unordered_set<std::string, utils::hashers::string_hasher, std::equal_to<>>,
-        utils::resource::resource_location_hasher>;
-
     workspace_configuration(file_manager& fm,
         utils::resource::resource_location location,
         const shared_json& global_settings,
