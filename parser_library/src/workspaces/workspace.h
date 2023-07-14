@@ -89,7 +89,7 @@ public:
     ~workspace();
 
     void collect_diags() const override;
-    void generate_configuration_diagnostics() const;
+    void toggle_configuration_diagnostics_generation_mode();
 
     [[nodiscard]] utils::task mark_file_for_parsing(
         const resource_location& file_location, file_content_state file_content_status);
@@ -142,10 +142,6 @@ public:
     void invalidate_external_configuration(const resource_location& url);
 
 private:
-    using used_pgroups_map = std::unordered_map<resource_location,
-        std::unordered_set<std::string, utils::hashers::string_hasher, std::equal_to<>>,
-        utils::resource::resource_location_hasher>;
-
     std::string name_;
     resource_location location_;
     file_manager& file_manager_;
@@ -166,6 +162,8 @@ private:
     lib_config get_config() const;
 
     workspace_configuration m_configuration;
+
+    bool m_consider_only_used_pgroups = true;
 
     struct dependency_cache
     {
@@ -208,7 +206,7 @@ private:
     std::unordered_map<resource_location, processor_file_compoments, resource_location_hasher> m_processor_files;
     std::unordered_set<resource_location, resource_location_hasher> m_parsing_pending;
 
-    used_pgroups_map get_used_pgroups_map() const;
+    workspace_configuration::pgroups_map get_used_pgroups_map() const;
 
     [[nodiscard]] utils::value_task<processor_file_compoments&> add_processor_file_impl(std::shared_ptr<file> f);
     const processor_file_compoments* find_processor_file_impl(const resource_location& file) const;

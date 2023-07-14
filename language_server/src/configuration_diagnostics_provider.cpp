@@ -31,7 +31,10 @@ std::string_view extract_method(const nlohmann::json& msg)
 
 namespace hlasm_plugin::language_server {
 
-void configuration_diagnostics_provider::write(const nlohmann::json&) { ws_mngr->generate_configuration_diagnostics(); }
+void configuration_diagnostics_provider::write(const nlohmann::json&)
+{
+    ws_mngr->toggle_configuration_diagnostics_generation_mode();
+}
 
 void configuration_diagnostics_provider::write(nlohmann::json&& m) { write(m); }
 

@@ -770,10 +770,10 @@ public:
         return make_continuous_sequence(m_file_manager.get_virtual_file(id));
     }
 
-    void generate_configuration_diagnostics() override
+    void toggle_configuration_diagnostics_generation_mode() override
     {
-        std::for_each(m_workspaces.begin(), m_workspaces.end(), [](const auto& ws_pair) {
-            ws_pair.second.ws.generate_configuration_diagnostics();
+        std::for_each(m_workspaces.begin(), m_workspaces.end(), [](auto& ws_pair) {
+            ws_pair.second.ws.toggle_configuration_diagnostics_generation_mode();
         });
 
         notify_diagnostics_consumers();

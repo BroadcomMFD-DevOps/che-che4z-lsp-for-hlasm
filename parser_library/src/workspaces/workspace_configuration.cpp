@@ -733,29 +733,26 @@ void workspace_configuration::generate_missing_pgroup_diags(const diagnosable& t
         utils::resource::resource_location_hasher>& missing,
     bool consider_only_used_pgroups) const
 {
-    if (consider_only_used_pgroups)
-    {
-        for (const auto& [rl, pgroup_names] : missing_and_used)
+    const auto diag_adder = [&target](
+                                const std::unordered_map<utils::resource::resource_location,
+                                    std::unordered_set<std::string, utils::hashers::string_hasher, std::equal_to<>>,
+                                    utils::resource::resource_location_hasher>& map,
+                                auto diag_type) {
+        for (const auto& [rl, pgroup_names] : map)
         {
             for (const auto& pgroup_name : pgroup_names)
-                target.add_diagnostic(diagnostic_s::error_B4G002(rl, pgroup_name));
+                target.add_diagnostic(diag_type(rl, pgroup_name));
         }
-    }
-    else
-    {
-        for (const auto& [rl, pgroup_names] : missing)
-        {
-            for (const auto& pgroup_name : pgroup_names)
-                target.add_diagnostic(diagnostic_s::info_PG001(rl, pgroup_name));
-        }
-    }
+    };
+
+    diag_adder(missing_and_used, diagnostic_s::error_B4G002);
+
+    if (!consider_only_used_pgroups)
+        diag_adder(missing, diagnostic_s::info_PG001);
 }
 
-void workspace_configuration::generate_and_copy_diagnostics(const diagnosable& target,
-    const std::unordered_map<utils::resource::resource_location,
-        std::unordered_set<std::string, utils::hashers::string_hasher, std::equal_to<>>,
-        utils::resource::resource_location_hasher>& used_configs_and_opened_files,
-    bool consider_only_used_pgroups) const
+void workspace_configuration::generate_and_copy_diagnostics(
+    const diagnosable& target, const pgroups_map& used_configs_and_opened_files, bool consider_only_used_pgroups) const
 {
     for (auto& [key, pg] : m_proc_grps)
     {
@@ -790,9 +787,7 @@ void workspace_configuration::generate_and_copy_diagnostics(const diagnosable& t
         for (const auto& opened_file : used_configs_and_opened_files_it->second)
         {
             if (auto it = c.config->files.find(opened_file); it != c.config->files.end())
-            {
                 used_pgroups[uri].insert(std::move(unused_pgroups_it->second.extract(it->second.processor_group_name)));
-            }
         }
     }
 

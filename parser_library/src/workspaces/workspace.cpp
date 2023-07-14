@@ -281,12 +281,9 @@ workspace::workspace(file_manager& file_manager,
 
 workspace::~workspace() = default;
 
-workspace::used_pgroups_map workspace::get_used_pgroups_map() const
+workspace_configuration::pgroups_map workspace::get_used_pgroups_map() const
 {
-    std::unordered_map<resource_location,
-        std::unordered_set<std::string, utils::hashers::string_hasher, std::equal_to<>>,
-        utils::resource::resource_location_hasher>
-        used_pgroups;
+    workspace_configuration::pgroups_map used_pgroups;
 
     for (const auto& [processor_file_rl, component] : m_processor_files)
     {
@@ -299,7 +296,7 @@ workspace::used_pgroups_map workspace::get_used_pgroups_map() const
 
 void workspace::collect_diags() const
 {
-    m_configuration.generate_and_copy_diagnostics(*this, get_used_pgroups_map(), true);
+    m_configuration.generate_and_copy_diagnostics(*this, get_used_pgroups_map(), m_consider_only_used_pgroups);
 
     for (const auto& [url, pfc] : m_processor_files)
     {
@@ -314,9 +311,9 @@ void workspace::collect_diags() const
     }
 }
 
-void workspace::generate_configuration_diagnostics() const
+void workspace::toggle_configuration_diagnostics_generation_mode()
 {
-    m_configuration.generate_and_copy_diagnostics(*this, get_used_pgroups_map(), false);
+    std::exchange(m_consider_only_used_pgroups, !m_consider_only_used_pgroups);
 }
 
 namespace {

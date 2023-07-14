@@ -187,7 +187,7 @@ async function registerToContext(context: vscode.ExtensionContext, client: vscod
     // register provider for all hlasm debug configurations
     context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('hlasm', new HLASMConfigurationProvider()));
     context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('hlasm', new HLASMDebugAdapterFactory(client)));
-    context.subscriptions.push(vscode.languages.registerCodeActionsProvider('hlasm', new HLASMCodeActionsProvider(client)));
+    context.subscriptions.push(vscode.languages.registerCodeActionsProvider(['hlasm', 'json'], new HLASMCodeActionsProvider(client)));
 
     context.subscriptions.push(client.onDidChangeState(e => e.newState === vscodelc.State.Starting && extFiles.reset()));
     context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider(externalFilesScheme, extFiles.getTextDocumentContentProvider()));

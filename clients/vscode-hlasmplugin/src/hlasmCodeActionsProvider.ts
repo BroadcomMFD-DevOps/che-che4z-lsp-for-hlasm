@@ -15,6 +15,7 @@
 import * as vscode from 'vscode';
 import * as vscodelc from 'vscode-languageclient';
 import { retrieveConfigurationNodes } from './configurationNodes';
+import { generateShowConfigurationDiagsCodeAction } from './code_actions/showConfigurationDiagnosticsAction'
 import { generateOpcodeSuggestionsCodeActions } from './code_actions/opcodeSuggestionsActions'
 import { generateDownloadDependenciesCodeActions } from './code_actions/downloadDependenciesActions'
 import { generateConfigurationFilesCodeActions } from './code_actions/configurationFilesActions'
@@ -24,6 +25,10 @@ export class HLASMCodeActionsProvider implements vscode.CodeActionProvider {
 
     async provideCodeActions(document: vscode.TextDocument, range: vscode.Range | vscode.Selection, context: vscode.CodeActionContext, token: vscode.CancellationToken): Promise<(vscode.CodeAction | vscode.Command)[]> {
         const result: vscode.CodeAction[] = [];
+
+        const hasConfigurationDiagnostics = context.diagnostics.some(x => x.code === 'B4G002');
+        if (hasConfigurationDiagnostics)
+            result.push(generateShowConfigurationDiagsCodeAction(context.diagnostics.some(x => x.code === 'PG001')));
 
         const E049 = context.diagnostics.filter(x => x.code === 'E049');
         if (E049.length > 0)
