@@ -35,6 +35,5 @@ export function generateDownloadDependenciesCodeActions(): vscode.CodeAction[] {
         kind: vscode.CodeActionKind.QuickFix
     });
 
-
     return result;
 }
