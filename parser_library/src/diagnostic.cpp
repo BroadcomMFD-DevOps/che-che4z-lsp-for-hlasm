@@ -2672,7 +2672,7 @@ diagnostic_s diagnostic_s::warn_CFG001(const utils::resource::resource_location&
     return diagnostic_s(file_name.get_uri(),
         {},
         diagnostic_severity::warning,
-        "PG001",
+        "CFG001",
         get_not_defined_proc_group_msg(".bridge.json", grp_name),
         {},
         diagnostic_tag::none);

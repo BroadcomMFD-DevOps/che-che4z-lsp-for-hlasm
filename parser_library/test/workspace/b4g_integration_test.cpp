@@ -295,7 +295,12 @@ TEST(b4g_integration_test, missing_pgroup)
     parse_all_files(ws);
     ws.collect_diags();
 
-    EXPECT_TRUE(matches_message_codes(ws.diags(), { "B4G002", "B4G002" }));
+    EXPECT_TRUE(matches_message_codes(ws.diags(), { "B4G002" }));
+
+    ws.toggle_non_critical_configuration_diagnostics();
+    ws.diags().clear();
+    ws.collect_diags();
+    EXPECT_TRUE(matches_message_codes(ws.diags(), { "B4G002", "CFG001" }));
 }
 
 TEST(b4g_integration_test, missing_pgroup_but_not_used)
@@ -374,7 +379,7 @@ TEST(b4g_integration_test, proc_config_changed)
     parse_all_files(ws);
     ws.collect_diags();
 
-    EXPECT_TRUE(matches_message_codes(ws.diags(), { "E049", "B4G002" }));
+    EXPECT_TRUE(matches_message_codes(ws.diags(), { "E049" }));
 
     ws.diags().clear();
 
@@ -426,14 +431,20 @@ TEST(b4g_integration_test, b4g_conf_noproc_proc_group)
     parse_all_files(ws);
 
     ws.collect_diags();
-    EXPECT_TRUE(matches_message_codes(ws.diags(), { "B4G002" }));
+    EXPECT_TRUE(ws.diags().empty());
 
     ws.diags().clear();
 
     change_and_reparse(fm, ws, pgm_a, " ");
     ws.collect_diags();
 
-    EXPECT_TRUE(matches_message_codes(ws.diags(), { "B4G002" }));
+    EXPECT_TRUE(ws.diags().empty());
+
+    ws.toggle_non_critical_configuration_diagnostics();
+    ws.diags().clear();
+    ws.collect_diags();
+
+    EXPECT_TRUE(matches_message_codes(ws.diags(), { "CFG001" }));
 }
 
 TEST(b4g_integration_test, b4g_conf_noproc_proc_group_default)
