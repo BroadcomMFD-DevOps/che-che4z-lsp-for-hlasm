@@ -770,10 +770,10 @@ public:
         return make_continuous_sequence(m_file_manager.get_virtual_file(id));
     }
 
-    void toggle_configuration_diagnostics_generation_mode() override
+    void toggle_non_critical_configuration_diagnostics() override
     {
         for (auto& [_, opened_ws] : m_workspaces)
-            opened_ws.ws.toggle_configuration_diagnostics_generation_mode();
+            opened_ws.ws.toggle_non_critical_configuration_diagnostics();
 
         notify_diagnostics_consumers();
     }

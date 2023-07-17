@@ -89,7 +89,7 @@ public:
     ~workspace();
 
     void collect_diags() const override;
-    void toggle_configuration_diagnostics_generation_mode();
+    void toggle_non_critical_configuration_diagnostics();
 
     [[nodiscard]] utils::task mark_file_for_parsing(
         const resource_location& file_location, file_content_state file_content_status);

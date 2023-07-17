@@ -14,7 +14,7 @@
 
 import * as vscodelc from 'vscode-languageclient';
 
-export async function showConfigurationDiagnostics(client: vscodelc.BaseLanguageClient): Promise<void> {
-    await client.sendRequest<void>("show_configuration_diagnostics", {
+export async function toggleNonCriticalConfigurationDiagnostics(client: vscodelc.BaseLanguageClient): Promise<void> {
+    await client.sendRequest<void>("toggle_non_critical_configuration_diagnostics", {
     });
 }

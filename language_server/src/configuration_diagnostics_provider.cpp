@@ -33,14 +33,16 @@ namespace hlasm_plugin::language_server {
 
 void configuration_diagnostics_provider::write(const nlohmann::json&)
 {
-    ws_mngr->toggle_configuration_diagnostics_generation_mode();
+    ws_mngr->toggle_non_critical_configuration_diagnostics();
 }
 
 void configuration_diagnostics_provider::write(nlohmann::json&& m) { write(m); }
 
 message_router::message_predicate configuration_diagnostics_provider::get_filtering_predicate() const
 {
-    return [](const nlohmann::json& msg) { return extract_method(msg) == "show_configuration_diagnostics"; };
+    return [](const nlohmann::json& msg) {
+        return extract_method(msg) == "toggle_non_critical_configuration_diagnostics";
+    };
 }
 
 } // namespace hlasm_plugin::language_server

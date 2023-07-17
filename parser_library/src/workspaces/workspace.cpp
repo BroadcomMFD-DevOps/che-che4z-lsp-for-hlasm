@@ -311,7 +311,7 @@ void workspace::collect_diags() const
     }
 }
 
-void workspace::toggle_configuration_diagnostics_generation_mode()
+void workspace::toggle_non_critical_configuration_diagnostics()
 {
     std::exchange(m_consider_only_used_pgroups, !m_consider_only_used_pgroups);
 }
