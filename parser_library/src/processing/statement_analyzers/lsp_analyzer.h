@@ -16,6 +16,7 @@
 #define PROCESSING_LSP_ANALYZER_H
 
 #include <array>
+#include <map>
 #include <string_view>
 
 #include "context/common_types.h"
@@ -82,7 +83,8 @@ class lsp_analyzer : public statement_analyzer
     lsp::file_occurrences_t opencode_occurrences_;
     lsp::vardef_storage opencode_var_defs_;
 
-    lsp::occurrence_storage stmt_occurrences_;
+    std::vector<lsp::symbol_occurrence> stmt_occurrences_;
+    std::map<size_t, size_t> stmt_ranges_;
 
 public:
     lsp_analyzer(context::hlasm_context& hlasm_ctx, lsp::lsp_context& lsp_ctx, std::string_view file_text);

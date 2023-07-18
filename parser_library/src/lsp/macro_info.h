@@ -98,8 +98,9 @@ struct macro_slice_t
 using file_scopes_t = std::unordered_map<utils::resource::resource_location,
     std::vector<lsp::macro_slice_t>,
     utils::resource::resource_location_hasher>;
-using file_occurrences_t = std::
-    unordered_map<utils::resource::resource_location, occurrence_storage, utils::resource::resource_location_hasher>;
+using file_occurrences_t = std::unordered_map<utils::resource::resource_location,
+    std::pair<std::vector<symbol_occurrence>, std::vector<std::pair<size_t, size_t>>>,
+    utils::resource::resource_location_hasher>;
 
 class lsp_context;
 

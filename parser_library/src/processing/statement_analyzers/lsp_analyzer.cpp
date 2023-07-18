@@ -160,7 +160,7 @@ void lsp_analyzer::macrodef_finished(context::macro_def_ptr macrodef, macrodef_p
     {
         // add instruction occurrence of macro name
         const auto& macro_file = macrodef->definition_location.resource_loc;
-        macro_occurrences_[macro_file].emplace_back(macrodef->id, macrodef, result.prototype.macro_name_range);
+        macro_occurrences_[macro_file].first.emplace_back(macrodef->id, macrodef, result.prototype.macro_name_range);
 
         auto m_i = std::make_shared<lsp::macro_info>(result.external,
             location(result.prototype.macro_name_range.start, macro_file),
@@ -194,21 +194,23 @@ void lsp_analyzer::opencode_finished(workspaces::parse_lib_provider& libs)
 
 void lsp_analyzer::assign_statement_occurrences(const utils::resource::resource_location& doc_location)
 {
-    if (in_macro_)
-    {
-        auto& file_occs = macro_occurrences_[doc_location];
-        file_occs.insert(file_occs.end(),
-            std::move_iterator(stmt_occurrences_.begin()),
-            std::move_iterator(stmt_occurrences_.end()));
-    }
+    auto& file_occs = in_macro_ ? macro_occurrences_[doc_location] : opencode_occurrences_[doc_location];
+
+    if (file_occs.first.empty())
+        file_occs.first = std::move(stmt_occurrences_);
     else
     {
-        auto& file_occs = opencode_occurrences_[doc_location];
-        file_occs.insert(file_occs.end(),
+        file_occs.first.insert(file_occs.first.end(),
             std::move_iterator(stmt_occurrences_.begin()),
             std::move_iterator(stmt_occurrences_.end()));
+
+        stmt_occurrences_.clear();
     }
-    stmt_occurrences_.clear();
+
+    auto middle = file_occs.second.insert(file_occs.second.end(), stmt_ranges_.begin(), stmt_ranges_.end());
+    std::inplace_merge(file_occs.second.begin(), middle, file_occs.second.end());
+    file_occs.second.erase(std::unique(file_occs.second.begin(), file_occs.second.end()), file_occs.second.end());
+    stmt_ranges_.clear();
 }
 
 void lsp_analyzer::collect_occurrences(
@@ -218,12 +220,18 @@ void lsp_analyzer::collect_occurrences(
 
     if (auto def_stmt = statement.access_deferred())
     {
+        const auto& stmt_range = def_stmt->stmt_range_ref();
+        auto& end_line = stmt_ranges_[stmt_range.start.line];
+        end_line = std::max(end_line, stmt_range.end.line);
         collect_occurrence(def_stmt->label_ref(), collector);
         collect_occurrence(def_stmt->instruction_ref(), collector);
         collect_occurrence(def_stmt->deferred_ref(), collector);
     }
     else if (auto res_stmt = statement.access_resolved())
     {
+        const auto& stmt_range = res_stmt->stmt_range_ref();
+        auto& end_line = stmt_ranges_[stmt_range.start.line];
+        end_line = std::max(end_line, stmt_range.end.line);
         collect_occurrence(res_stmt->label_ref(), collector);
         collect_occurrence(res_stmt->instruction_ref(), collector);
         collect_occurrence(res_stmt->operands_ref(), collector);
@@ -236,6 +244,9 @@ void lsp_analyzer::collect_occurrences(lsp::occurrence_kind kind, const semantic
 
     occurrence_collector collector(kind, hlasm_ctx_, stmt_occurrences_, evaluated_model);
     const auto& details = statement.m_details;
+
+    auto& end_line = stmt_ranges_[statement.m_details.stmt_r.start.line];
+    end_line = std::max(end_line, statement.m_details.stmt_r.end.line);
 
     collector.occurrences.emplace_back(
         lsp::occurrence_kind::ORD, hlasm_ctx_.ids().add(details.label.name), details.label.r, evaluated_model);
