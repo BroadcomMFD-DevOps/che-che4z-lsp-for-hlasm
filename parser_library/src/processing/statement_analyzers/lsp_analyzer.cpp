@@ -74,6 +74,8 @@ bool lsp_analyzer::analyze(const context::hlasm_statement& statement,
     processing_kind proc_kind,
     bool evaluated_model)
 {
+    assign_statement_occurrences(hlasm_ctx_.current_statement_source());
+
     const auto* resolved_stmt = statement.access_resolved();
     switch (proc_kind)
     {
@@ -114,8 +116,6 @@ bool lsp_analyzer::analyze(const context::hlasm_statement& statement,
             break;
     }
 
-    assign_statement_occurrences(hlasm_ctx_.current_statement_source());
-
     return false;
 }
 
@@ -136,12 +136,12 @@ const expressions::mach_expr_symbol* get_single_mach_symbol(const semantics::ope
 
 void lsp_analyzer::analyze(const semantics::preprocessor_statement_si& statement)
 {
+    assign_statement_occurrences(hlasm_ctx_.opencode_location());
+
     collect_occurrences(lsp::occurrence_kind::ORD, statement);
 
     if (const auto& operands = statement.m_details.operands; statement.m_copylike && operands.size() == 1)
         add_copy_operand(hlasm_ctx_.ids().add(operands.front().name), operands.front().r, false);
-
-    assign_statement_occurrences(hlasm_ctx_.opencode_location());
 }
 
 void lsp_analyzer::macrodef_started(const macrodef_start_data& data)
@@ -194,34 +194,22 @@ void lsp_analyzer::opencode_finished(workspaces::parse_lib_provider& libs)
 
 void lsp_analyzer::assign_statement_occurrences(const utils::resource::resource_location& doc_location)
 {
-    auto& file_occs = in_macro_ ? macro_occurrences_[doc_location] : opencode_occurrences_[doc_location];
+    auto& [file_occs, file_lines] = in_macro_ ? macro_occurrences_[doc_location] : opencode_occurrences_[doc_location];
 
-    if (file_occs.first.empty())
-        file_occs.first = std::move(stmt_occurrences_);
-    else
-    {
-        file_occs.first.insert(file_occs.first.end(),
-            std::move_iterator(stmt_occurrences_.begin()),
-            std::move_iterator(stmt_occurrences_.end()));
-
-        stmt_occurrences_.clear();
-    }
-
-    auto middle = file_occs.second.insert(file_occs.second.end(), stmt_ranges_.begin(), stmt_ranges_.end());
-    std::inplace_merge(file_occs.second.begin(), middle, file_occs.second.end());
-    file_occs.second.erase(std::unique(file_occs.second.begin(), file_occs.second.end()), file_occs.second.end());
-    stmt_ranges_.clear();
+    stmt_occurrences_ = &file_occs;
+    stmt_occurrences_last_ = file_occs.size();
+    stmt_ranges_ = &file_lines;
 }
 
 void lsp_analyzer::collect_occurrences(
     lsp::occurrence_kind kind, const context::hlasm_statement& statement, bool evaluated_model)
 {
-    occurrence_collector collector(kind, hlasm_ctx_, stmt_occurrences_, evaluated_model);
+    occurrence_collector collector(kind, hlasm_ctx_, *stmt_occurrences_, evaluated_model);
 
     if (auto def_stmt = statement.access_deferred())
     {
         const auto& stmt_range = def_stmt->stmt_range_ref();
-        auto& end_line = stmt_ranges_[stmt_range.start.line];
+        auto& end_line = (*stmt_ranges_)[stmt_range.start.line];
         end_line = std::max(end_line, stmt_range.end.line);
         collect_occurrence(def_stmt->label_ref(), collector);
         collect_occurrence(def_stmt->instruction_ref(), collector);
@@ -230,7 +218,7 @@ void lsp_analyzer::collect_occurrences(
     else if (auto res_stmt = statement.access_resolved())
     {
         const auto& stmt_range = res_stmt->stmt_range_ref();
-        auto& end_line = stmt_ranges_[stmt_range.start.line];
+        auto& end_line = (*stmt_ranges_)[stmt_range.start.line];
         end_line = std::max(end_line, stmt_range.end.line);
         collect_occurrence(res_stmt->label_ref(), collector);
         collect_occurrence(res_stmt->instruction_ref(), collector);
@@ -242,10 +230,10 @@ void lsp_analyzer::collect_occurrences(lsp::occurrence_kind kind, const semantic
 {
     const bool evaluated_model = false;
 
-    occurrence_collector collector(kind, hlasm_ctx_, stmt_occurrences_, evaluated_model);
+    occurrence_collector collector(kind, hlasm_ctx_, *stmt_occurrences_, evaluated_model);
     const auto& details = statement.m_details;
 
-    auto& end_line = stmt_ranges_[statement.m_details.stmt_r.start.line];
+    auto& end_line = (*stmt_ranges_)[statement.m_details.stmt_r.start.line];
     end_line = std::max(end_line, statement.m_details.stmt_r.end.line);
 
     collector.occurrences.emplace_back(
@@ -414,12 +402,12 @@ void lsp_analyzer::add_copy_operand(context::id_index name, const range& operand
 {
     // find ORD occurrence of COPY_OP
     lsp::symbol_occurrence occ(lsp::occurrence_kind::ORD, name, operand_range, evaluated_model);
-    auto ord_sym = std::find(stmt_occurrences_.begin(), stmt_occurrences_.end(), occ);
+    auto ord_sym = std::find(stmt_occurrences_->begin() + stmt_occurrences_last_, stmt_occurrences_->end(), occ);
 
-    if (ord_sym != stmt_occurrences_.end())
+    if (ord_sym != stmt_occurrences_->end())
         ord_sym->kind = lsp::occurrence_kind::COPY_OP;
     else
-        stmt_occurrences_.emplace_back(lsp::occurrence_kind::COPY_OP, name, operand_range, evaluated_model);
+        stmt_occurrences_->emplace_back(lsp::occurrence_kind::COPY_OP, name, operand_range, evaluated_model);
 }
 
 void lsp_analyzer::update_macro_nest(const processing::resolved_statement& statement)

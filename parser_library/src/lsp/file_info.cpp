@@ -87,7 +87,7 @@ const symbol_occurrence* file_info::find_closest_instruction(position pos) const
     auto l = std::upper_bound(occurrences.begin(), occurrences.end(), pos.line, [](const auto& p, const auto& occ) {
         return p < occ.occurrence_range.end.line;
     });
-    auto instr = std::find_if(std::make_reverse_iterator(l), occurrences.rend(), [lineno = pos.line](const auto& occ) {
+    auto instr = std::find_if(std::make_reverse_iterator(l), occurrences.rend(), [](const auto& occ) {
         return occ.kind == occurrence_kind::INSTR || occ.kind == occurrence_kind::INSTR_LIKE;
     });
     if (instr == occurrences.rend() || instr->kind != occurrence_kind::INSTR)
@@ -126,12 +126,20 @@ std::vector<position> file_info::find_references(
 }
 
 void file_info::update_occurrences(
-    const std::vector<symbol_occurrence>& occurrences_upd, const std::vector<std::pair<size_t, size_t>>& stmt_line_upd)
+    const std::vector<symbol_occurrence>& occurrences_upd, const std::map<size_t, size_t>& stmt_line_upd)
 {
     occurrences.insert(occurrences.end(), occurrences_upd.begin(), occurrences_upd.end());
 
     auto middle = statement_lines.insert(statement_lines.end(), stmt_line_upd.begin(), stmt_line_upd.end());
-    std::inplace_merge(statement_lines.begin(), middle, statement_lines.end());
+    std::inplace_merge(statement_lines.begin(), middle, statement_lines.end(), [](const auto& l, const auto& r) {
+        // sort by start line first and then larger end line
+        if (auto c = l.first <=> r.first; c < 0)
+            return true;
+        else if (c > 0)
+            return false;
+        return r.second < l.second;
+    });
+    constexpr const auto cmp_start = [](const auto& l, const auto& r) { return l.first == r.first; };
     statement_lines.erase(std::unique(statement_lines.begin(), statement_lines.end()), statement_lines.end());
 }
 

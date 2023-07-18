@@ -83,8 +83,9 @@ class lsp_analyzer : public statement_analyzer
     lsp::file_occurrences_t opencode_occurrences_;
     lsp::vardef_storage opencode_var_defs_;
 
-    std::vector<lsp::symbol_occurrence> stmt_occurrences_;
-    std::map<size_t, size_t> stmt_ranges_;
+    std::vector<lsp::symbol_occurrence>* stmt_occurrences_ = nullptr;
+    size_t stmt_occurrences_last_ = 0;
+    std::map<size_t, size_t>* stmt_ranges_ = nullptr;
 
 public:
     lsp_analyzer(context::hlasm_context& hlasm_ctx, lsp::lsp_context& lsp_ctx, std::string_view file_text);

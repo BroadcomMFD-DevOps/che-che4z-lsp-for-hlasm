@@ -15,6 +15,8 @@
 #ifndef LSP_MACRO_INFO_H
 #define LSP_MACRO_INFO_H
 
+#include <map>
+
 #include "context/macro.h"
 #include "symbol_occurrence.h"
 
@@ -99,7 +101,7 @@ using file_scopes_t = std::unordered_map<utils::resource::resource_location,
     std::vector<lsp::macro_slice_t>,
     utils::resource::resource_location_hasher>;
 using file_occurrences_t = std::unordered_map<utils::resource::resource_location,
-    std::pair<std::vector<symbol_occurrence>, std::vector<std::pair<size_t, size_t>>>,
+    std::pair<std::vector<symbol_occurrence>, std::map<size_t, size_t>>,
     utils::resource::resource_location_hasher>;
 
 class lsp_context;

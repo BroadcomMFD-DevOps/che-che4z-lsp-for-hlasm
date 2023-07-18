@@ -98,8 +98,8 @@ public:
     static std::vector<position> find_references(
         const symbol_occurrence& occurrence, const std::vector<symbol_occurrence>& occurrences);
 
-    void update_occurrences(const std::vector<symbol_occurrence>& occurrences_upd,
-        const std::vector<std::pair<size_t, size_t>>& stmt_line_upd);
+    void update_occurrences(
+        const std::vector<symbol_occurrence>& occurrences_upd, const std::map<size_t, size_t>& stmt_line_upd);
     void update_slices(const std::vector<file_slice_t>& slices);
     const std::vector<symbol_occurrence>& get_occurrences() const;
     void process_occurrences();
