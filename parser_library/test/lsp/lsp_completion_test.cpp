@@ -93,7 +93,8 @@ TEST(lsp_completion, macro_operands)
 
     EXPECT_EQ(result.size(), 2);
 
-    EXPECT_TRUE(std::any_of(result.begin(), result.end(), [](const auto& e) { return e.label == "&A"; }));
+    EXPECT_TRUE(std::any_of(
+        result.begin(), result.end(), [](const auto& e) { return e.label == "&A" && e.documentation.empty(); }));
     EXPECT_TRUE(std::any_of(result.begin(), result.end(), [](const auto& e) {
         return e.label == "&B" && e.documentation.find("&B=(DEFAULTB,1)") != std::string::npos;
     }));
