@@ -130,17 +130,29 @@ void file_info::update_occurrences(
 {
     occurrences.insert(occurrences.end(), occurrences_upd.begin(), occurrences_upd.end());
 
-    auto middle = statement_lines.insert(statement_lines.end(), stmt_line_upd.begin(), stmt_line_upd.end());
-    std::inplace_merge(statement_lines.begin(), middle, statement_lines.end(), [](const auto& l, const auto& r) {
-        // sort by start line first and then larger end line
-        if (auto c = l.first <=> r.first; c < 0)
-            return true;
+    const auto init_size = statement_lines.size();
+    auto it = stmt_line_upd.begin();
+    const auto ite = stmt_line_upd.end();
+    for (size_t i = 0; i < init_size && it != ite;)
+    {
+        auto& el = statement_lines[i];
+        if (auto c = el.first <=> it->first; c == 0)
+        {
+            el.second = std::max(el.second, it->second);
+            ++i;
+            ++it;
+        }
         else if (c > 0)
-            return false;
-        return r.second < l.second;
-    });
-    constexpr const auto cmp_start = [](const auto& l, const auto& r) { return l.first == r.first; };
-    statement_lines.erase(std::unique(statement_lines.begin(), statement_lines.end()), statement_lines.end());
+            statement_lines.push_back(*it++);
+        else
+            ++i;
+    }
+    statement_lines.insert(statement_lines.end(), it, ite);
+
+    std::inplace_merge(statement_lines.begin(),
+        statement_lines.begin() + init_size,
+        statement_lines.end(),
+        [](const auto& l, const auto& r) { return l.first < r.first; });
 }
 
 void file_info::update_slices(const std::vector<file_slice_t>& slices_upd)
