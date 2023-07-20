@@ -428,6 +428,7 @@ utils::value_task<parse_config_file_result> workspace_configuration::load_and_pr
     m_exact_pgm_conf.clear();
     m_regex_pgm_conf.clear();
     m_b4g_config_cache.clear();
+    m_cfg_missing_program_pgroup.clear();
 
     if (auto l = co_await load_proc_config(proc_groups, utilized_settings_values, diags);
         l != parse_config_file_result::parsed)
