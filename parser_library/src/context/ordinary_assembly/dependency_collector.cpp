@@ -112,8 +112,10 @@ dependency_collector& hlasm_plugin::parser_library::context::dependency_collecto
     {
         auto& spaces = unresolved_address->spaces();
         utils::merge_unsorted(unresolved_spaces,
-            std::make_move_iterator(spaces.begin()),
-            std::make_move_iterator(spaces.end()),
+            spaces,
+            // FIXME:
+            // std::make_move_iterator(spaces.begin()),
+            // std::make_move_iterator(spaces.end()),
             merge_spaces_comparator(),
             merge_spaces());
         unresolved_address.reset();
