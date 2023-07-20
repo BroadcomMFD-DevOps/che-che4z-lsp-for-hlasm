@@ -2595,7 +2595,7 @@ diagnostic_s diagnostic_s::error_W0004(const utils::resource::resource_location&
 {
     return diagnostic_s(file_name.get_uri(),
         {},
-        diagnostic_severity::warning,
+        diagnostic_severity::error,
         "W0004",
         get_not_defined_proc_group_msg("pgm_conf.json", pgroup),
         {},

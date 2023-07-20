@@ -84,9 +84,7 @@ struct external_conf
 };
 
 using proc_grp_id = std::variant<basic_conf, b4g_conf, external_conf>;
-using pgroups_map = std::unordered_map<utils::resource::resource_location,
-    std::unordered_set<std::string, utils::hashers::string_hasher, std::equal_to<>>,
-    utils::resource::resource_location_hasher>;
+using program_pgroup_map = std::unordered_map<std::string, std::string, utils::hashers::string_hasher, std::equal_to<>>;
 
 class file_manager;
 struct library_local_options;
@@ -105,6 +103,16 @@ struct program
     std::optional<proc_grp_id> pgroup;
     config::assembler_options asm_opts;
     bool external;
+};
+
+struct configuration_diagnostics_parameters
+{
+    std::unordered_map<utils::resource::resource_location,
+        std::unordered_set<utils::resource::resource_location, utils::resource::resource_location_hasher>,
+        utils::resource::resource_location_hasher>
+        used_configs_opened_files_map;
+
+    bool consider_only_used_pgroups;
 };
 
 enum class parse_config_file_result
@@ -229,7 +237,10 @@ class workspace_configuration
 
     utils::resource::resource_location m_proc_grps_loc;
     utils::resource::resource_location m_pgm_conf_loc;
-    pgroups_map m_missing_pgroups;
+    std::
+        unordered_map<utils::resource::resource_location, program_pgroup_map, utils::resource::resource_location_hasher>
+            m_missing_program_pgroup_b4g;
+    program_pgroup_map m_missing_program_pgroup_pgm_conf;
 
     template<typename T>
     struct tagged_string_view
@@ -332,8 +343,7 @@ class workspace_configuration
         const utils::resource::resource_location& file_location_normalized) const;
 
     std::optional<std::pair<utils::resource::resource_location, workspace_configuration::tagged_program>>
-    try_creating_rl_tagged_pgm_pair(
-        std::unordered_set<std::string, utils::hashers::string_hasher, std::equal_to<>>& missing_pgroups,
+    try_creating_rl_tagged_pgm_pair(program_pgroup_map& missing_program_pgroup_map,
         bool default_b4g_proc_group,
         proc_grp_id grp_id,
         const void* tag,
@@ -357,10 +367,11 @@ class workspace_configuration
         const library_local_options& opts,
         std::vector<diagnostic_s>& diags);
 
-    void generate_missing_pgroup_diags(const diagnosable& target,
-        const pgroups_map& missing_and_used,
-        const pgroups_map& missing,
-        bool consider_only_used_pgroups) const;
+    void generate_configuration_diagnostics(const diagnosable& target,
+        const configuration_diagnostics_parameters config_diag_params,
+        const program_pgroup_map& missing_program_pgroup_map,
+        const utils::resource::resource_location& config_rl,
+        const utils::resource::resource_location& programs_root) const;
 
 public:
     workspace_configuration(file_manager& fm,
@@ -383,9 +394,8 @@ public:
     [[nodiscard]] utils::value_task<std::optional<std::vector<const processor_group*>>> refresh_libraries(
         const std::vector<utils::resource::resource_location>& file_locations);
 
-    void generate_and_copy_diagnostics(const diagnosable& target,
-        const pgroups_map& used_configs_and_opened_files,
-        bool consider_only_used_pgroups) const;
+    void generate_and_copy_diagnostics(
+        const diagnosable& target, const configuration_diagnostics_parameters& config_diag_params) const;
 
     const processor_group& get_proc_grp(const proc_grp_id& p) const; // test only
 

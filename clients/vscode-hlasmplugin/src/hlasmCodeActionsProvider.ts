@@ -26,9 +26,11 @@ export class HLASMCodeActionsProvider implements vscode.CodeActionProvider {
     async provideCodeActions(document: vscode.TextDocument, range: vscode.Range | vscode.Selection, context: vscode.CodeActionContext, token: vscode.CancellationToken): Promise<(vscode.CodeAction | vscode.Command)[]> {
         const result: vscode.CodeAction[] = [];
 
-        const hasConfigurationDiagnostics = context.diagnostics.some(x => x.code === 'B4G002');
-        if (hasConfigurationDiagnostics)
-            result.push(generateShowConfigurationDiagsCodeAction(context.diagnostics.some(x => x.code === 'PG001')));
+        const isConfig = document.fileName.endsWith('\\.bridge.json') || document.fileName.endsWith('\\pgm_conf.json');
+        const hasCriticalConfigDiags = context.diagnostics.some(x => x.code === 'W0004') || context.diagnostics.some(x => x.code === 'B4G002');
+        const hasNonCriticalConfigDiags = context.diagnostics.some(x => x.code === 'CFG001');
+        if (isConfig || hasCriticalConfigDiags || hasNonCriticalConfigDiags)
+            result.push(generateShowConfigurationDiagsCodeAction(hasNonCriticalConfigDiags));
 
         const E049 = context.diagnostics.filter(x => x.code === 'E049');
         if (E049.length > 0)

@@ -281,22 +281,25 @@ workspace::workspace(file_manager& file_manager,
 
 workspace::~workspace() = default;
 
-pgroups_map workspace::get_used_pgroups_map() const
+configuration_diagnostics_parameters workspace::get_configuration_diagnostics_params(
+    bool consider_only_used_pgroups) const
 {
-    pgroups_map used_pgroups;
+    configuration_diagnostics_parameters config_diags_params;
+    config_diags_params.consider_only_used_pgroups = consider_only_used_pgroups;
 
     for (const auto& [processor_file_rl, component] : m_processor_files)
     {
         if (component.m_opened)
-            used_pgroups[component.m_alternative_config].insert(processor_file_rl.filename());
+            config_diags_params.used_configs_opened_files_map[component.m_alternative_config].insert(processor_file_rl);
     }
 
-    return used_pgroups;
+    return config_diags_params;
 }
 
 void workspace::collect_diags() const
 {
-    m_configuration.generate_and_copy_diagnostics(*this, get_used_pgroups_map(), m_consider_only_used_pgroups);
+    m_configuration.generate_and_copy_diagnostics(
+        *this, get_configuration_diagnostics_params(m_consider_only_used_pgroups));
 
     for (const auto& [url, pfc] : m_processor_files)
     {

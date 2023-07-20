@@ -206,7 +206,7 @@ private:
     std::unordered_map<resource_location, processor_file_compoments, resource_location_hasher> m_processor_files;
     std::unordered_set<resource_location, resource_location_hasher> m_parsing_pending;
 
-    pgroups_map get_used_pgroups_map() const;
+    configuration_diagnostics_parameters get_configuration_diagnostics_params(bool consider_only_used_pgroups) const;
 
     [[nodiscard]] utils::value_task<processor_file_compoments&> add_processor_file_impl(std::shared_ptr<file> f);
     const processor_file_compoments* find_processor_file_impl(const resource_location& file) const;
