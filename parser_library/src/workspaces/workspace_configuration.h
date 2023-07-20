@@ -85,6 +85,8 @@ struct external_conf
 
 using proc_grp_id = std::variant<basic_conf, b4g_conf, external_conf>;
 using program_pgroup_map = std::unordered_map<std::string, std::string, utils::hashers::string_hasher, std::equal_to<>>;
+using config_pgm_pgroup_map = std::
+    unordered_map<utils::resource::resource_location, program_pgroup_map, utils::resource::resource_location_hasher>;
 
 class file_manager;
 struct library_local_options;
@@ -237,10 +239,7 @@ class workspace_configuration
 
     utils::resource::resource_location m_proc_grps_loc;
     utils::resource::resource_location m_pgm_conf_loc;
-    std::
-        unordered_map<utils::resource::resource_location, program_pgroup_map, utils::resource::resource_location_hasher>
-            m_missing_program_pgroup_b4g;
-    program_pgroup_map m_missing_program_pgroup_pgm_conf;
+    config_pgm_pgroup_map m_cfg_missing_program_pgroup;
 
     template<typename T>
     struct tagged_string_view
@@ -367,11 +366,11 @@ class workspace_configuration
         const library_local_options& opts,
         std::vector<diagnostic_s>& diags);
 
-    void generate_configuration_diagnostics(const diagnosable& target,
-        const configuration_diagnostics_parameters config_diag_params,
-        const program_pgroup_map& missing_program_pgroup_map,
+    void generate_missing_pgroups_diagnostics(const diagnosable& target,
         const utils::resource::resource_location& config_rl,
-        const utils::resource::resource_location& programs_root) const;
+        const std::unordered_set<utils::resource::resource_location, utils::resource::resource_location_hasher>&
+            opened_files,
+        bool consider_only_used_pgroups) const;
 
 public:
     workspace_configuration(file_manager& fm,

@@ -447,11 +447,12 @@ utils::value_task<parse_config_file_result> workspace_configuration::load_and_pr
     {
         m_local_config = lib_config::load_from_pgm_config(pgm_config);
 
+        auto& missing_program_pgroup = m_cfg_missing_program_pgroup[utils::resource::resource_location()];
         // process programs
         for (const auto& pgm : pgm_config.pgms)
         {
             if (!process_program(pgm, diags))
-                m_missing_program_pgroup_pgm_conf[pgm.program] = pgm.pgroup;
+                missing_program_pgroup[pgm.program] = pgm.pgroup;
         }
     }
 
@@ -629,7 +630,7 @@ utils::value_task<parse_config_file_result> workspace_configuration::parse_b4g_c
         m_proc_grps_source.pgroups, m_proc_grps_source.macro_extensions, alternative_root, conf.diags);
 
     const auto file_root = file_location.parent();
-    auto& missing_program_pgroup_map = m_missing_program_pgroup_b4g[file_location];
+    auto& missing_program_pgroup_map = m_cfg_missing_program_pgroup[file_location];
 
     for (const auto& [name, details] : conf.config.value().files)
         m_exact_pgm_conf.insert(*try_creating_rl_tagged_pgm_pair(missing_program_pgroup_map,
@@ -721,53 +722,42 @@ void workspace_configuration::find_and_add_libs(const utils::resource::resource_
     }
 }
 
-void workspace_configuration::generate_configuration_diagnostics(const diagnosable& target,
-    const configuration_diagnostics_parameters config_diag_params,
-    const program_pgroup_map& missing_program_pgroup_map,
+void workspace_configuration::generate_missing_pgroups_diagnostics(const diagnosable& target,
     const utils::resource::resource_location& config_rl,
-    const utils::resource::resource_location& programs_root) const
+    const std::unordered_set<utils::resource::resource_location, utils::resource::resource_location_hasher>&
+        opened_files,
+    bool consider_only_used_pgroups) const
 {
+    const auto& missing_cfg_program_pgroup_it = m_cfg_missing_program_pgroup.find(config_rl);
+    if (missing_cfg_program_pgroup_it == m_cfg_missing_program_pgroup.end())
+        return;
+
+    const auto& missing_program_pgroup_map = missing_cfg_program_pgroup_it->second;
     if (missing_program_pgroup_map.empty())
         return;
 
-    auto used_configs_and_opened_files_it = config_diag_params.used_configs_opened_files_map.find(config_rl);
-    if (used_configs_and_opened_files_it == config_diag_params.used_configs_opened_files_map.end())
-        return;
+    std::unordered_map<std::string,
+        std::function<diagnostic_s(const utils::resource::resource_location&, std::string_view)>,
+        utils::hashers::string_hasher,
+        std::equal_to<>>
+        missing_pgroups_severity;
 
-    std::unordered_map<std::string, bool, utils::hashers::string_hasher, std::equal_to<>>
-        categorized_configuration_diagnostics;
-
-    for (const auto& [_, missing_pgroup_name] : missing_program_pgroup_map)
+    const auto& programs_root = config_rl.empty() ? m_location : config_rl.parent();
+    const auto& high_severity_diag_type = config_rl.empty() ? diagnostic_s::error_W0004 : diagnostic_s::error_B4G002;
+    for (const auto& [program_name, missing_pgroup_name] : missing_program_pgroup_map)
     {
-        if (missing_pgroup_name != NOPROC_GROUP_ID)
-            categorized_configuration_diagnostics[missing_pgroup_name] = false;
-    }
-
-    for (const auto& opened_file : used_configs_and_opened_files_it->second)
-    {
-        auto missing_program_pgroup_map_it =
-            missing_program_pgroup_map.find(opened_file.lexically_relative(programs_root).get_uri());
-        if (missing_program_pgroup_map_it == missing_program_pgroup_map.end())
+        if (missing_pgroup_name == NOPROC_GROUP_ID)
             continue;
 
-        const auto& pgroup_name = missing_program_pgroup_map_it->second;
-        if (pgroup_name == NOPROC_GROUP_ID)
-            continue;
-
-        if (auto cat_diag_it = categorized_configuration_diagnostics.find(pgroup_name);
-            cat_diag_it != categorized_configuration_diagnostics.end())
-            cat_diag_it->second = true;
+        if (opened_files.contains(utils::resource::resource_location::join(programs_root, program_name)))
+            missing_pgroups_severity[missing_pgroup_name] = high_severity_diag_type;
+        else if (!consider_only_used_pgroups && !missing_pgroups_severity.contains(missing_pgroup_name))
+            missing_pgroups_severity.try_emplace(missing_pgroup_name, diagnostic_s::warn_CFG001);
     }
 
     const auto& adjusted_conf_rl = config_rl.empty() ? m_pgm_conf_loc : config_rl;
-    const auto& severe_diag_type = config_rl.empty() ? diagnostic_s::error_W0004 : diagnostic_s::error_B4G002;
-    for (const auto& [pgrp_name, severity] : categorized_configuration_diagnostics)
-    {
-        if (severity)
-            target.add_diagnostic(severe_diag_type(adjusted_conf_rl, pgrp_name));
-        else if (!config_diag_params.consider_only_used_pgroups)
-            target.add_diagnostic(diagnostic_s::warn_CFG001(adjusted_conf_rl, pgrp_name));
-    }
+    for (const auto& [pgrp_name, diag_type] : missing_pgroups_severity)
+        target.add_diagnostic(diag_type(adjusted_conf_rl, pgrp_name));
 }
 
 void workspace_configuration::generate_and_copy_diagnostics(
@@ -786,25 +776,18 @@ void workspace_configuration::generate_and_copy_diagnostics(
     for (const auto& diag : m_config_diags)
         target.add_diagnostic(diag);
 
-    for (const auto& [uri, c] : m_b4g_config_cache)
+    for (const auto& [config_rl, opened_files] : config_diag_params.used_configs_opened_files_map)
     {
-        if (!config_diag_params.used_configs_opened_files_map.contains(uri))
-            continue;
+        if (const auto& b4g_config_cache_it = m_b4g_config_cache.find(config_rl);
+            b4g_config_cache_it != m_b4g_config_cache.end())
+        {
+            for (const auto& d : b4g_config_cache_it->second.diags)
+                target.add_diagnostic(d);
+        }
 
-        for (const auto& d : c.diags)
-            target.add_diagnostic(d);
-
-        if (auto missing_program_pgroup_b4g_it = m_missing_program_pgroup_b4g.find(uri);
-            missing_program_pgroup_b4g_it != m_missing_program_pgroup_b4g.end())
-            generate_configuration_diagnostics(
-                target, config_diag_params, missing_program_pgroup_b4g_it->second, uri, uri.parent());
+        generate_missing_pgroups_diagnostics(
+            target, config_rl, opened_files, config_diag_params.consider_only_used_pgroups);
     }
-
-    generate_configuration_diagnostics(target,
-        config_diag_params,
-        m_missing_program_pgroup_pgm_conf,
-        utils::resource::resource_location(),
-        m_location);
 }
 
 utils::value_task<parse_config_file_result> workspace_configuration::parse_configuration_file(
