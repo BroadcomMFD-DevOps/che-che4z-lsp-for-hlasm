@@ -205,3 +205,7 @@ export async function waitForDiagnosticsChange(file: string | vscode.Uri, action
 
     return await result;
 }
+
+export function assertMatchingMessageCodes(diags: vscode.Diagnostic[], expectedDiags: (string | number)[]) {
+    assert.deepStrictEqual(diags.map(x => x.code || '').flat().sort(), expectedDiags.sort());
+}

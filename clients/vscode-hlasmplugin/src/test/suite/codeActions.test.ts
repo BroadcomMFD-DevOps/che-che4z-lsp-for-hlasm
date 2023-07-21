@@ -16,6 +16,8 @@ import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as helper from './testHelper';
 import { isCancellationError } from '../../helpers';
+import { hlasmplugin_folder, pgm_conf_file, bridge_json_file } from '../../constants'
+import * as path from 'path'
 
 async function queryCodeActions(uri: vscode.Uri, range: vscode.Range, sleep: number, attempts: number = 10) {
     for (let i = 0; i < attempts; ++i) {
@@ -79,4 +81,80 @@ suite('Code actions', () => {
 
         await helper.closeAllEditors();
     }).timeout(10000).slow(5000);
+
+    test('Missing processor groups - pgm_conf.json', async () => {
+        const file = 'missing_pgroup/A.hlasm';
+        const pgmConfRelPath = path.join(hlasmplugin_folder, pgm_conf_file);
+        let diagnostic_event = helper.waitForDiagnostics(pgmConfRelPath);
+        const pgmConf = await helper.showDocument(pgmConfRelPath);
+
+        helper.assertMatchingMessageCodes(await diagnostic_event, [2]); // 2 represents usage deprecated option in pgm_conf.json
+
+        diagnostic_event = helper.waitForDiagnostics(pgmConfRelPath);
+        await helper.showDocument(file, 'hlasm');
+
+        helper.assertMatchingMessageCodes(await diagnostic_event, [2, 'W0004']);
+
+        let codeActionsList = await queryCodeActions(pgmConf.document.uri, new vscode.Range(0, 0, 0, 0), 500);
+
+        assert.equal(codeActionsList.length, 1);
+        assert.ok(codeActionsList[0].command);
+        assert.strictEqual(codeActionsList[0].command.command, 'extension.hlasm-plugin.showConfigurationDiagnostics');
+        assert.strictEqual(codeActionsList[0].command.title, 'Show all configuration diagnostics');
+
+        diagnostic_event = helper.waitForDiagnostics(pgmConfRelPath);
+        vscode.commands.executeCommand<void>(codeActionsList[0].command.command, pgmConf.document.uri, new vscode.Range(0, 0, 0, 0));
+
+        helper.assertMatchingMessageCodes(await diagnostic_event, [2, 'W0004', 'CFG001']);
+
+        codeActionsList = await queryCodeActions(pgmConf.document.uri, new vscode.Range(0, 0, 0, 0), 500);
+
+        assert.equal(codeActionsList.length, 1);
+        assert.ok(codeActionsList[0].command);
+        assert.strictEqual(codeActionsList[0].command.command, 'extension.hlasm-plugin.showConfigurationDiagnostics');
+        assert.strictEqual(codeActionsList[0].command.title, 'Show only critical configuration diagnostics');
+
+        diagnostic_event = helper.waitForDiagnostics(pgmConfRelPath);
+        vscode.commands.executeCommand<void>(codeActionsList[0].command.command, pgmConf.document.uri, new vscode.Range(0, 0, 0, 0));
+
+        helper.assertMatchingMessageCodes(await diagnostic_event, [2, 'W0004']);
+
+        await helper.closeAllEditors();
+    }).timeout(15000).slow(10000);
+
+    test('Missing processor groups - .bridge.json', async () => {
+        const file = path.join("missing_pgroup", "b4g", "A");
+        const b4gPath = path.join("missing_pgroup", "b4g", bridge_json_file);
+        let diagnostic_event = helper.waitForDiagnostics(b4gPath);
+        const bridgeJson = await helper.showDocument(b4gPath);
+        await helper.showDocument(file, 'hlasm');
+
+        helper.assertMatchingMessageCodes(await diagnostic_event, ['B4G002']);
+
+        let codeActionsList = await queryCodeActions(bridgeJson.document.uri, new vscode.Range(0, 0, 0, 0), 500);
+
+        assert.equal(codeActionsList.length, 1);
+        assert.ok(codeActionsList[0].command);
+        assert.strictEqual(codeActionsList[0].command.command, 'extension.hlasm-plugin.showConfigurationDiagnostics');
+        assert.strictEqual(codeActionsList[0].command.title, 'Show all configuration diagnostics');
+
+        diagnostic_event = helper.waitForDiagnostics(b4gPath);
+        vscode.commands.executeCommand<void>(codeActionsList[0].command.command, bridgeJson.document.uri, new vscode.Range(0, 0, 0, 0));
+
+        helper.assertMatchingMessageCodes(await diagnostic_event, ['B4G002', 'CFG001']);
+
+        codeActionsList = await queryCodeActions(bridgeJson.document.uri, new vscode.Range(0, 0, 0, 0), 500);
+
+        assert.equal(codeActionsList.length, 1);
+        assert.ok(codeActionsList[0].command);
+        assert.strictEqual(codeActionsList[0].command.command, 'extension.hlasm-plugin.showConfigurationDiagnostics');
+        assert.strictEqual(codeActionsList[0].command.title, 'Show only critical configuration diagnostics');
+
+        diagnostic_event = helper.waitForDiagnostics(b4gPath);
+        vscode.commands.executeCommand<void>(codeActionsList[0].command.command, bridgeJson.document.uri, new vscode.Range(0, 0, 0, 0));
+
+        helper.assertMatchingMessageCodes(await diagnostic_event, ['B4G002']);
+
+        await helper.closeAllEditors();
+    }).timeout(15000).slow(10000);
 });
