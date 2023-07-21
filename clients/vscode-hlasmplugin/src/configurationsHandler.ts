@@ -26,12 +26,9 @@ import { generateConfigurationFilesCodeActions } from './code_actions/configurat
 export class ConfigurationsHandler {
     // defined regex expression to match files and recognize them as HLASM
     private definedExpressions: { regex: RegExp, workspaceUri: vscode.Uri }[] = [];
-    // whether to create warning prompts on missing configs
-    shouldCheckConfigs: boolean;
 
     constructor() {
         this.definedExpressions = [];
-        this.shouldCheckConfigs = true;
     }
 
     /**
