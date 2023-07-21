@@ -28,19 +28,26 @@ namespace hlasm_plugin::utils {
 
 struct trivial_merger
 {
-    void operator()(auto&, const auto&) const noexcept {}
+    void operator()(auto&&, const auto&) const noexcept {}
 };
 
-template<typename T, typename L, typename R>
-concept merge_comparator =
-    std::invocable<T, L, L> && std::is_same_v<std::strong_ordering, std::invoke_result_t<T, L, L>> && std::
-        invocable<T, L, R> && std::is_same_v<std::strong_ordering, std::invoke_result_t<T, L, R>>;
+template<typename T, typename TargetVector, typename SourceIterator>
+concept merge_key_comparator = std::is_same_v<std::strong_ordering,
+    std::invoke_result_t<T, typename TargetVector::reference, typename TargetVector::reference>> && std::
+    is_same_v<std::strong_ordering,
+        std::invoke_result_t<T,
+            typename TargetVector::reference,
+            typename std::iterator_traits<SourceIterator>::reference>>;
+template<typename T, typename TargetVector, typename SourceIterator>
+concept merge_updater =
+    std::invocable<T, typename TargetVector::reference, typename std::iterator_traits<SourceIterator>::reference>;
 
 template<typename T,
-    std::forward_iterator It,
+    /* std::forward_iterator - move_iterator is viewed as input_iterator only before libc++17 (and possibly c++23) */
+    typename It,
     std::sentinel_for<It> S,
-    merge_comparator<const T&, typename std::iterator_traits<It>::reference> KeyComparator = std::compare_three_way,
-    std::invocable<T&, typename std::iterator_traits<It>::reference> Merger = trivial_merger>
+    merge_key_comparator<std::vector<T>, It> KeyComparator = std::compare_three_way,
+    merge_updater<std::vector<T>, It> Merger = trivial_merger>
 void merge_sorted(
     std::vector<T>& sorted_vec, It it, const S ite, KeyComparator&& cmp = KeyComparator(), Merger&& m = Merger())
 {
@@ -54,7 +61,7 @@ void merge_sorted(
     const auto init_size = sorted_vec.size();
     for (size_t i = 0; i < init_size && it != ite;)
     {
-        auto& el = sorted_vec[i];
+        auto&& el = sorted_vec[i];
         if (auto c = std::invoke(cmp, el, *it); c == 0)
         {
             std::invoke(m, el, *it);
@@ -81,10 +88,9 @@ void merge_sorted(
 
 template<typename T,
     typename R,
-    merge_comparator<const T&, typename std::iterator_traits<decltype(std::begin(std::declval<R>()))>::reference>
-        KeyComparator = std::compare_three_way,
-    std::invocable<T&, typename std::iterator_traits<decltype(std::begin(std::declval<R>()))>::reference> Merger =
-        trivial_merger>
+    merge_key_comparator<std::vector<T>, decltype(std::begin(std::declval<R>()))> KeyComparator =
+        std::compare_three_way,
+    merge_updater<std::vector<T>, decltype(std::begin(std::declval<R>()))> Merger = trivial_merger>
 void merge_sorted(
     std::vector<T>& sorted_vec, R&& sorted_range, KeyComparator&& cmp = KeyComparator(), Merger&& m = Merger())
 {
@@ -96,11 +102,11 @@ void merge_sorted(
 }
 
 template<typename T,
-    std::forward_iterator It,
+    /* std::forward_iterator - move_iterator is viewed as input_iterator only before libc++17 (and possibly c++23) */
+    typename It,
     std::sentinel_for<It> S,
-    merge_comparator<const T&, typename std::iterator_traits<It>::reference> KeyComparator = std::compare_three_way,
-    std::invocable<T&, typename std::iterator_traits<It>::reference> Merger = trivial_merger>
-
+    merge_key_comparator<std::vector<T>, It> KeyComparator = std::compare_three_way,
+    merge_updater<std::vector<T>, It> Merger = trivial_merger>
 void merge_unsorted(
     std::vector<T>& sorted_vec, It it, const S ite, KeyComparator&& cmp = KeyComparator(), Merger&& m = Merger())
 {
@@ -135,10 +141,9 @@ void merge_unsorted(
 
 template<typename T,
     typename R,
-    merge_comparator<const T&, typename std::iterator_traits<decltype(std::begin(std::declval<R>()))>::reference>
-        KeyComparator = std::compare_three_way,
-    std::invocable<T&, typename std::iterator_traits<decltype(std::begin(std::declval<R>()))>::reference> Merger =
-        trivial_merger>
+    merge_key_comparator<std::vector<T>, decltype(std::begin(std::declval<R>()))> KeyComparator =
+        std::compare_three_way,
+    merge_updater<std::vector<T>, decltype(std::begin(std::declval<R>()))> Merger = trivial_merger>
 void merge_unsorted(
     std::vector<T>& sorted_vec, R&& unsorted_range, KeyComparator&& cmp = KeyComparator(), Merger&& m = Merger())
 {

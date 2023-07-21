@@ -157,9 +157,7 @@ std::vector<address::space_entry> address::normalized_spaces() const
 
     get_unresolved_spaces(spaces_, tmp_map, res_spaces);
 
-    res_spaces.erase(
-        std::remove_if(res_spaces.begin(), res_spaces.end(), [](const space_entry& e) { return e.second == 0; }),
-        res_spaces.end());
+    std::erase_if(res_spaces, [](const space_entry& e) { return e.second == 0; });
 
     return res_spaces;
 }
@@ -322,9 +320,7 @@ void address::normalize()
 
     offset_ += get_unresolved_spaces(spaces_, tmp_map, res_spaces);
 
-    res_spaces.erase(
-        std::remove_if(res_spaces.begin(), res_spaces.end(), [](const space_entry& e) { return e.second == 0; }),
-        res_spaces.end());
+    std::erase_if(res_spaces, [](const space_entry& e) { return e.second == 0; });
 
     spaces_ = std::move(res_spaces);
 }
