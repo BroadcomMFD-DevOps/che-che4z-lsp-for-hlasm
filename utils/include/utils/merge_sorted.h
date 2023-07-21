@@ -38,6 +38,7 @@ concept merge_key_comparator = std::is_same_v<std::strong_ordering,
         std::invoke_result_t<T,
             typename TargetVector::reference,
             typename std::iterator_traits<SourceIterator>::reference>>;
+
 template<typename T, typename TargetVector, typename SourceIterator>
 concept merge_updater =
     std::invocable<T, typename TargetVector::reference, typename std::iterator_traits<SourceIterator>::reference>;
