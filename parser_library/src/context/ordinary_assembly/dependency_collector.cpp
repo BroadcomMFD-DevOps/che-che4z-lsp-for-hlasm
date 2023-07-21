@@ -153,7 +153,9 @@ bool dependency_collector::merge_undef(const dependency_collector& holder)
 
     utils::merge_sorted(undefined_symbolics, holder.undefined_symbolics, name_comparator(), flags_merger());
 
-    utils::merge_sorted(unresolved_spaces, holder.unresolved_spaces);
+    utils::merge_sorted(unresolved_spaces, holder.unresolved_spaces, [](const auto& l, const auto& r) {
+        return l.get() <=> r.get(); // libc++
+    });
 
     return has_error
         || std::any_of(undefined_symbolics.begin(), undefined_symbolics.end(), [](const auto& e) { return e.get(); });
