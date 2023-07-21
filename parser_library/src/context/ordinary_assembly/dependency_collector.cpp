@@ -78,8 +78,8 @@ dependency_collector& dependency_collector::operator/=(const dependency_collecto
 namespace {
 struct merge_spaces_comparator
 {
-    auto operator()(const space_ptr& l, const address::space_entry& r) const { return l <=> r.first; }
-    auto operator()(const space_ptr& l, const space_ptr& r) const { return l <=> r; }
+    auto operator()(const space_ptr& l, const address::space_entry& r) const { return l.get() <=> r.first.get(); }
+    auto operator()(const space_ptr& l, const space_ptr& r) const { return l.get() <=> r.get(); } // libc++
 };
 struct merge_spaces
 {
