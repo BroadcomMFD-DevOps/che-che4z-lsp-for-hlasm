@@ -74,7 +74,7 @@ void merge_sorted(
         else
             ++i;
     }
-    // libc++: std::views::transform(std::views::subrange(it, ite), std::forward<Projector>(m))...
+    // libc++: std::views::transform(std::views::subrange(it, ite), std::ref(p))...
     if constexpr (trivial_inserter)
         sorted_vec.insert(sorted_vec.end(), it, ite);
     else
@@ -128,7 +128,7 @@ void merge_unsorted(
         else
             sorted_vec.push_back(std::invoke(p, *it));
     }
-    // libc++: std::views::transform(std::views::subrange(it, ite), std::forward<Projector>(m))...
+    // libc++: std::views::transform(std::views::subrange(it, ite), std::ref(p))...
     if constexpr (trivial_inserter)
         sorted_vec.insert(sorted_vec.end(), it, ite);
     else
