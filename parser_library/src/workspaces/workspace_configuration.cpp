@@ -15,6 +15,7 @@
 #include "workspace_configuration.h"
 
 #include <algorithm>
+#include <array>
 #include <charconv>
 #include <compare>
 #include <deque>
@@ -219,6 +220,91 @@ const std::regex json_settings_replacer::config_reference(R"(\$\{([^}]+)\})");
 
 } // namespace
 
+program_pgroup_maps& missing_pgroups::get_config_related_maps(const utils::resource::resource_location& config_file_rl)
+{
+    return m_cfg_missing_program_pgroup[config_file_rl];
+}
+
+void missing_pgroups::add_exact(
+    program_pgroup_maps& program_pgroup_maps, utils::resource::resource_location pgm_rl, std::string pgroup)
+{
+    program_pgroup_maps.exact.emplace(std::move(pgm_rl), pgroup);
+    program_pgroup_maps.missing_pgroups.emplace(std::move(pgroup));
+}
+
+void missing_pgroups::add_pattern(program_pgroup_maps& program_pgroup_maps, std::string pgm_pattern, std::string pgroup)
+{
+    program_pgroup_maps.regex_pattern.emplace(std::move(pgm_pattern), pgroup);
+    program_pgroup_maps.missing_pgroups.emplace(std::move(pgroup));
+}
+
+std::unordered_set<std::string, utils::hashers::string_hasher, std::equal_to<>> missing_pgroups::get_critical_pgroups(
+    const utils::resource::resource_location& config_file_rl,
+    const std::unordered_set<utils::resource::resource_location, utils::resource::resource_location_hasher>&
+        opened_files) const
+{
+    auto cfg_maps_it = m_cfg_missing_program_pgroup.find(config_file_rl);
+    if (cfg_maps_it == m_cfg_missing_program_pgroup.end())
+        return {};
+
+    std::unordered_set<std::string, utils::hashers::string_hasher, std::equal_to<>> critical_pgroups;
+    auto& [_, maps] = *cfg_maps_it;
+
+    for (const auto& opened_file : opened_files)
+    {
+        if (const auto program_pgroup_it = maps.exact.find(opened_file); program_pgroup_it != maps.exact.end())
+        {
+            const auto& [program_rl, missing_pgroup_name] = *program_pgroup_it;
+            if (missing_pgroup_name == NOPROC_GROUP_ID)
+                continue;
+
+            critical_pgroups.emplace(missing_pgroup_name);
+        }
+        else
+        {
+            for (const auto& [pattern, missing_pgroup_name] : maps.regex_pattern)
+            {
+                if (const auto& r = std::regex(pattern); std::regex_match(opened_file.get_uri(), r))
+                    critical_pgroups.emplace(missing_pgroup_name);
+            }
+        }
+    }
+
+    return critical_pgroups;
+}
+
+void missing_pgroups::add_diags(const diagnosable& target,
+    const utils::resource::resource_location& config_file_rl,
+    const std::unordered_set<utils::resource::resource_location, utils::resource::resource_location_hasher>&
+        opened_files,
+    const utils::resource::resource_location& pgm_conf_rl,
+    bool consider_only_used_pgroups) const
+{
+    static const std::array<
+        std::array<std::function<diagnostic_s(const utils::resource::resource_location&, std::string_view)>, 2>,
+        2>
+        diags_matrix { {
+            { diagnostic_s::warn_CFG001, diagnostic_s::error_B4G002 },
+            { diagnostic_s::warn_CFG001, diagnostic_s::error_W0004 },
+        } };
+
+
+    const auto& critical_pgroups = get_critical_pgroups(config_file_rl, opened_files);
+    for (const auto& [cfg_rl, maps] : m_cfg_missing_program_pgroup)
+    {
+        for (const auto& missing_pgroup : maps.missing_pgroups)
+        {
+            bool is_critical = critical_pgroups.contains(missing_pgroup);
+            if (consider_only_used_pgroups && !is_critical)
+                continue;
+
+            bool empty_cfg_rl = cfg_rl.empty();
+            const auto& adjusted_conf_rl = empty_cfg_rl ? pgm_conf_rl : cfg_rl;
+            target.add_diagnostic(diags_matrix[empty_cfg_rl][is_critical](adjusted_conf_rl, missing_pgroup));
+        }
+    }
+}
+
 workspace_configuration::workspace_configuration(file_manager& fm,
     utils::resource::resource_location location,
     const shared_json& global_settings,
@@ -378,31 +464,41 @@ void workspace_configuration::process_processor_group_and_cleanup_libraries(
     std::erase_if(m_libraries, [](const auto& kv) { return !kv.second.second; }); // sweep
 }
 
-bool workspace_configuration::process_program(const config::program_mapping& pgm, std::vector<diagnostic_s>& diags)
+void workspace_configuration::process_program(
+    program_pgroup_maps& program_pgroup_maps, const config::program_mapping& pgm, std::vector<diagnostic_s>& diags)
 {
+    std::optional<std::string> pgm_name = substitute_home_directory(pgm.program);
+    if (!pgm_name.has_value())
+    {
+        diags.push_back(diagnostic_s::warning_L0006(m_pgm_conf_loc, pgm.program));
+        return;
+    }
+
+    auto rl = transform_to_resource_location(*pgm_name, m_location);
+    std::optional<std::string> regex_string_path;
+    if (pgm_name->find_first_of("*?") != std::string::npos)
+        regex_string_path = wildcard2regex_pattern(rl.get_uri());
+
     std::optional<proc_grp_id> grp_id;
     if (pgm.pgroup != NOPROC_GROUP_ID)
     {
         grp_id.emplace(basic_conf { pgm.pgroup });
         if (!m_proc_grps.contains(*grp_id))
-            return false;
+        {
+            if (regex_string_path.has_value())
+                m_missing_pgroups.add_pattern(program_pgroup_maps, *regex_string_path, pgm.pgroup);
+            else
+                m_missing_pgroups.add_exact(program_pgroup_maps, std::move(rl), pgm.pgroup);
+
+            return;
+        }
     }
 
-    std::optional<std::string> pgm_name = substitute_home_directory(pgm.program);
-    if (!pgm_name.has_value())
-    {
-        diags.push_back(diagnostic_s::warning_L0006(m_pgm_conf_loc, pgm.program));
-        return false;
-    }
-
-    if (auto rl = transform_to_resource_location(*pgm_name, m_location);
-        pgm_name->find_first_of("*?") == std::string::npos)
-        m_exact_pgm_conf.try_emplace(rl, tagged_program { program(rl, grp_id, pgm.opts, false) });
-    else
+    if (regex_string_path.has_value())
         m_regex_pgm_conf.emplace_back(
-            tagged_program { program { rl, grp_id, pgm.opts, false } }, wildcard2regex(rl.get_uri()));
-
-    return true;
+            tagged_program { program { std::move(rl), grp_id, pgm.opts, false } }, std::regex(*regex_string_path));
+    else
+        m_exact_pgm_conf.try_emplace(rl, tagged_program { program(rl, grp_id, pgm.opts, false) });
 }
 
 bool workspace_configuration::is_config_file(const utils::resource::resource_location& file) const
@@ -428,7 +524,7 @@ utils::value_task<parse_config_file_result> workspace_configuration::load_and_pr
     m_exact_pgm_conf.clear();
     m_regex_pgm_conf.clear();
     m_b4g_config_cache.clear();
-    m_cfg_missing_program_pgroup.clear();
+    m_missing_pgroups = missing_pgroups();
 
     if (auto l = co_await load_proc_config(proc_groups, utilized_settings_values, diags);
         l != parse_config_file_result::parsed)
@@ -447,14 +543,11 @@ utils::value_task<parse_config_file_result> workspace_configuration::load_and_pr
     else
     {
         m_local_config = lib_config::load_from_pgm_config(pgm_config);
+        auto& program_pgroup_maps = m_missing_pgroups.get_config_related_maps(utils::resource::resource_location());
 
-        auto& missing_program_pgroup = m_cfg_missing_program_pgroup[utils::resource::resource_location()];
         // process programs
         for (const auto& pgm : pgm_config.pgms)
-        {
-            if (!process_program(pgm, diags))
-                missing_program_pgroup[pgm.program] = pgm.pgroup;
-        }
+            process_program(program_pgroup_maps, pgm, diags);
     }
 
     m_utilized_settings_values = std::move(utilized_settings_values);
@@ -559,26 +652,27 @@ struct
 } static constexpr proc_group_name;
 
 std::optional<std::pair<utils::resource::resource_location, workspace_configuration::tagged_program>>
-workspace_configuration::try_creating_rl_tagged_pgm_pair(program_pgroup_map& missing_program_pgroup_map,
+workspace_configuration::try_creating_rl_tagged_pgm_pair(program_pgroup_maps& program_pgroup_maps,
     bool default_b4g_proc_group,
     proc_grp_id grp_id,
     const void* tag,
     const utils::resource::resource_location& file_root,
     std::string_view filename)
 {
+    auto rl = default_b4g_proc_group ? utils::resource::resource_location::join(file_root, "*")
+                                     : utils::resource::resource_location::join(file_root, filename).lexically_normal();
+
     std::optional<proc_grp_id> grp_id_o;
     if (m_proc_grps.contains(grp_id))
         grp_id_o = std::move(grp_id);
     else if (auto pg_name = std::visit(proc_group_name, grp_id); pg_name != NOPROC_GROUP_ID)
     {
-        missing_program_pgroup_map[std::string(filename)] = pg_name;
+        m_missing_pgroups.add_exact(
+            program_pgroup_maps, std::move(rl), std::string(pg_name)); // todo solve for regex, too!
 
         if (default_b4g_proc_group)
             return {};
     }
-
-    auto rl = default_b4g_proc_group ? utils::resource::resource_location::join(file_root, "*")
-                                     : utils::resource::resource_location::join(file_root, filename).lexically_normal();
 
     return std::make_pair(std::move(rl),
         tagged_program {
@@ -631,10 +725,10 @@ utils::value_task<parse_config_file_result> workspace_configuration::parse_b4g_c
         m_proc_grps_source.pgroups, m_proc_grps_source.macro_extensions, alternative_root, conf.diags);
 
     const auto file_root = file_location.parent();
-    auto& missing_program_pgroup_map = m_cfg_missing_program_pgroup[file_location];
+    auto& program_pgroup_maps = m_missing_pgroups.get_config_related_maps(file_location);
 
     for (const auto& [name, details] : conf.config.value().files)
-        m_exact_pgm_conf.insert(*try_creating_rl_tagged_pgm_pair(missing_program_pgroup_map,
+        m_exact_pgm_conf.insert(*try_creating_rl_tagged_pgm_pair(program_pgroup_maps,
             false,
             b4g_conf {
                 details.processor_group_name,
@@ -646,7 +740,7 @@ utils::value_task<parse_config_file_result> workspace_configuration::parse_b4g_c
 
     if (const auto& def_grp = conf.config.value().default_processor_group_name; !def_grp.empty())
     {
-        if (auto rl_tagged_pgm = try_creating_rl_tagged_pgm_pair(missing_program_pgroup_map,
+        if (auto rl_tagged_pgm = try_creating_rl_tagged_pgm_pair(program_pgroup_maps,
                 true,
                 b4g_conf {
                     def_grp,
@@ -723,44 +817,6 @@ void workspace_configuration::find_and_add_libs(const utils::resource::resource_
     }
 }
 
-void workspace_configuration::generate_missing_pgroups_diagnostics(const diagnosable& target,
-    const utils::resource::resource_location& config_rl,
-    const std::unordered_set<utils::resource::resource_location, utils::resource::resource_location_hasher>&
-        opened_files,
-    bool consider_only_used_pgroups) const
-{
-    const auto& missing_cfg_program_pgroup_it = m_cfg_missing_program_pgroup.find(config_rl);
-    if (missing_cfg_program_pgroup_it == m_cfg_missing_program_pgroup.end())
-        return;
-
-    const auto& missing_program_pgroup_map = missing_cfg_program_pgroup_it->second;
-    if (missing_program_pgroup_map.empty())
-        return;
-
-    std::unordered_map<std::string,
-        std::function<diagnostic_s(const utils::resource::resource_location&, std::string_view)>,
-        utils::hashers::string_hasher,
-        std::equal_to<>>
-        missing_pgroups_severity;
-
-    const auto& programs_root = config_rl.empty() ? m_location : config_rl.parent();
-    const auto& high_severity_diag_type = config_rl.empty() ? diagnostic_s::error_W0004 : diagnostic_s::error_B4G002;
-    for (const auto& [program_name, missing_pgroup_name] : missing_program_pgroup_map)
-    {
-        if (missing_pgroup_name == NOPROC_GROUP_ID)
-            continue;
-
-        if (opened_files.contains(utils::resource::resource_location::join(programs_root, program_name)))
-            missing_pgroups_severity[missing_pgroup_name] = high_severity_diag_type;
-        else if (!consider_only_used_pgroups && !missing_pgroups_severity.contains(missing_pgroup_name))
-            missing_pgroups_severity.try_emplace(missing_pgroup_name, diagnostic_s::warn_CFG001);
-    }
-
-    const auto& adjusted_conf_rl = config_rl.empty() ? m_pgm_conf_loc : config_rl;
-    for (const auto& [pgrp_name, diag_type] : missing_pgroups_severity)
-        target.add_diagnostic(diag_type(adjusted_conf_rl, pgrp_name));
-}
-
 void workspace_configuration::generate_and_copy_diagnostics(
     const diagnosable& target, const configuration_diagnostics_parameters& config_diag_params) const
 {
@@ -786,8 +842,8 @@ void workspace_configuration::generate_and_copy_diagnostics(
                 target.add_diagnostic(d);
         }
 
-        generate_missing_pgroups_diagnostics(
-            target, config_rl, opened_files, config_diag_params.consider_only_used_pgroups);
+        m_missing_pgroups.add_diags(
+            target, config_rl, opened_files, m_pgm_conf_loc, config_diag_params.consider_only_used_pgroups);
     }
 }
 
