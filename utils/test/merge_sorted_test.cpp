@@ -94,6 +94,26 @@ TEST(merge_sorted, complex_merge)
     EXPECT_EQ(vec, expected);
 }
 
+TEST(merge_sorted, move_only)
+{
+    std::vector<std::unique_ptr<int>> vec;
+    for (int i : { 1, 3, 5, 7, 9 })
+        vec.emplace_back(std::make_unique<int>(i));
+    std::vector<std::unique_ptr<int>> vec2;
+    for (int i : { 0, 2, 4, 6, 8 })
+        vec2.emplace_back(std::make_unique<int>(i));
+    std::vector<int> expected { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+
+    merge_sorted(vec,
+        std::make_move_iterator(vec2.begin()),
+        std::make_move_iterator(vec2.end()),
+        [](const auto& l, const auto& r) { return *l <=> *r; });
+
+    EXPECT_TRUE(std::equal(vec.begin(), vec.end(), expected.begin(), expected.end(), [](const auto& l, const auto& r) {
+        return *l == r;
+    }));
+}
+
 TEST(merge_unsorted, simple)
 {
     std::vector<int> vec { 1, 3, 5, 7, 9 };
@@ -165,4 +185,24 @@ TEST(merge_unsorted, complex_merge)
         [](auto& t, const auto& s) { t.second += s.second; });
 
     EXPECT_EQ(vec, expected);
+}
+
+TEST(merge_unsorted, move_only)
+{
+    std::vector<std::unique_ptr<int>> vec;
+    for (int i : { 1, 3, 5, 7, 9 })
+        vec.emplace_back(std::make_unique<int>(i));
+    std::vector<std::unique_ptr<int>> vec2;
+    for (int i : { 8, 6, 4, 2, 0 })
+        vec2.emplace_back(std::make_unique<int>(i));
+    std::vector<int> expected { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+
+    merge_unsorted(vec,
+        std::make_move_iterator(vec2.begin()),
+        std::make_move_iterator(vec2.end()),
+        [](const auto& l, const auto& r) { return *l <=> *r; });
+
+    EXPECT_TRUE(std::equal(vec.begin(), vec.end(), expected.begin(), expected.end(), [](const auto& l, const auto& r) {
+        return *l == r;
+    }));
 }

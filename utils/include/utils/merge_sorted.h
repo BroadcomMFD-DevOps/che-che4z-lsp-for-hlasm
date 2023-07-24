@@ -43,6 +43,9 @@ template<typename T, typename TargetVector, typename SourceIterator>
 concept merge_updater =
     std::invocable<T, typename TargetVector::reference, typename std::iterator_traits<SourceIterator>::reference>;
 
+// KeyComparator should not alter the objects in any way
+// Merger should not alter ordering established by the KeyComparator
+
 template<typename T,
     /* std::forward_iterator - move_iterator is viewed as input_iterator only before libc++17 (and possibly c++23) */
     typename It,
