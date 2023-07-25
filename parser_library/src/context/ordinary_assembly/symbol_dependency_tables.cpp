@@ -19,6 +19,7 @@
 #include <memory>
 #include <queue>
 #include <stack>
+#include <unordered_set>
 
 #include "ordinary_assembly_context.h"
 #include "ordinary_assembly_dependency_solver.h"
@@ -29,12 +30,17 @@ namespace hlasm_plugin::parser_library::context {
 bool symbol_dependency_tables::check_cycle(
     dependant target, std::vector<dependant> dependencies, const library_info& li)
 {
+    if (dependencies.empty())
+        return true;
+
     if (std::find(dependencies.begin(), dependencies.end(), target)
         != dependencies.end()) // dependencies contain target itself
     {
         resolve_dependant_default(target);
         return false;
     }
+
+    std::unordered_set<dependant> seen_before(dependencies.begin(), dependencies.end());
 
     while (!dependencies.empty())
     {
@@ -52,6 +58,8 @@ bool symbol_dependency_tables::check_cycle(
                 resolve_dependant_default(target);
                 return false;
             }
+            if (!seen_before.emplace(dep).second)
+                continue;
             dependencies.push_back(std::move(dep));
         }
     }
