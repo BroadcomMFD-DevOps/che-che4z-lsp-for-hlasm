@@ -52,6 +52,7 @@ bool symbol_dependency_tables::check_cycle(
             return std::get<attr_ref>(d);
         if (std::holds_alternative<space_ptr>(d))
             return std::get<space_ptr>(d).get();
+        assert(false);
     };
 
 #if __cpp_lib_polymorphic_allocator >= 201902L && __cpp_lib_memory_resource >= 201603L
