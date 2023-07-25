@@ -372,11 +372,13 @@ TEST(workspace, toggle_non_critical_diags)
     file_manager_impl fm;
     const auto pgm_conf_ws_loc = resource_location::join(ws_loc, pgm_conf_name.get_uri());
     const auto proc_grps_ws_loc = resource_location::join(ws_loc, proc_grps_name.get_uri());
-    const auto pgm1_diff_loc = resource_location::join(ws_loc, "pgms/pgm1");
+    const auto pgm1_wildcard_loc = resource_location::join(ws_loc, "pgms/pgm1");
+    const auto pgm1_different_loc = resource_location::join(ws_loc, "different/pgm1");
     fm.did_open_file(pgm_conf_ws_loc, 0, file_pgm_conf_content);
     fm.did_open_file(proc_grps_ws_loc, 0, empty_proc_grps);
     fm.did_open_file(pgm1_loc, 1, "");
-    fm.did_open_file(pgm1_diff_loc, 1, "");
+    fm.did_open_file(pgm1_wildcard_loc, 1, "");
+    fm.did_open_file(pgm1_different_loc, 1, "");
 
     lib_config config;
     shared_json global_settings = make_empty_shared_json();
@@ -405,9 +407,94 @@ TEST(workspace, toggle_non_critical_diags)
     ws.collect_diags();
     EXPECT_TRUE(ws.diags().empty());
 
-    run_if_valid(ws.did_open_file(pgm1_diff_loc));
+    run_if_valid(ws.did_open_file(pgm1_wildcard_loc));
     ws.diags().clear();
     ws.collect_diags();
+    EXPECT_TRUE(matches_message_codes(ws.diags(), { "W0004" }));
+
+    run_if_valid(ws.did_close_file(pgm1_wildcard_loc));
+    ws.diags().clear();
+    ws.collect_diags();
+    EXPECT_TRUE(ws.diags().empty());
+
+    run_if_valid(ws.did_open_file(pgm1_different_loc));
+    ws.diags().clear();
+    ws.collect_diags();
+    EXPECT_TRUE(ws.diags().empty());
+}
+
+TEST(workspace, missing_diags_wildcards)
+{
+    file_manager_impl fm;
+    const auto pgm_conf_ws_loc = resource_location::join(ws_loc, pgm_conf_name.get_uri());
+    const auto proc_grps_ws_loc = resource_location::join(ws_loc, proc_grps_name.get_uri());
+    const auto pgm1_wildcard_loc = resource_location::join(ws_loc, "pgms/pgm1");
+    const auto pgm1_different_loc = resource_location::join(ws_loc, "different/pgm1");
+    fm.did_open_file(
+        pgm_conf_ws_loc, 0, R"({"pgms":[{"program": "pgm1","pgroup": "P1"},{"program": "pgm*","pgroup": "P2"}]})");
+    fm.did_open_file(proc_grps_ws_loc, 0, R"({"pgroups":[{"name":"P1","libs":[]}]})");
+    fm.did_open_file(pgm1_loc, 1, "");
+    fm.did_open_file(pgm1_wildcard_loc, 1, "");
+    fm.did_open_file(pgm1_different_loc, 1, "");
+
+    lib_config config;
+    shared_json global_settings = make_empty_shared_json();
+    workspace ws(ws_loc, "test_ws", fm, config, global_settings);
+    ws.open().run();
+    run_if_valid(ws.did_open_file(pgm1_loc));
+    parse_all_files(ws);
+
+    ws.collect_diags();
+    EXPECT_TRUE(ws.diags().empty());
+
+    ws.toggle_non_critical_configuration_diagnostics();
+    ws.diags().clear();
+    ws.collect_diags();
+    EXPECT_TRUE(matches_message_codes(ws.diags(), { "CFG001" }));
+
+    run_if_valid(ws.did_close_file(pgm1_loc));
+    ws.diags().clear();
+    ws.collect_diags();
+    // EXPECT_TRUE(matches_message_codes(ws.diags(), { "CFG001", "CFG001" })); // Todo do we want to see the config
+    // error when all relevant files are closed?
+    EXPECT_TRUE(ws.diags().empty());
+}
+
+TEST(workspace, missing_diags_wildcards_noproc)
+{
+    file_manager_impl fm;
+    const auto pgm_conf_ws_loc = resource_location::join(ws_loc, pgm_conf_name.get_uri());
+    const auto proc_grps_ws_loc = resource_location::join(ws_loc, proc_grps_name.get_uri());
+    const auto pgm1_wildcard_loc = resource_location::join(ws_loc, "pgms/pgm1");
+    const auto pgm1_different_loc = resource_location::join(ws_loc, "different/pgm1");
+    fm.did_open_file(pgm_conf_ws_loc,
+        0,
+        R"({"pgms":[{"program": "pgm1","pgroup": "*NOPROC*"},{"program": "pgm*","pgroup": "P2"}]})");
+    fm.did_open_file(proc_grps_ws_loc, 0, empty_proc_grps);
+    fm.did_open_file(pgm1_loc, 1, "");
+    fm.did_open_file(pgm1_wildcard_loc, 1, "");
+    fm.did_open_file(pgm1_different_loc, 1, "");
+
+    lib_config config;
+    shared_json global_settings = make_empty_shared_json();
+    workspace ws(ws_loc, "test_ws", fm, config, global_settings);
+    ws.open().run();
+    run_if_valid(ws.did_open_file(pgm1_loc));
+    parse_all_files(ws);
+
+    ws.collect_diags();
+    EXPECT_TRUE(ws.diags().empty());
+
+    ws.toggle_non_critical_configuration_diagnostics();
+    ws.diags().clear();
+    ws.collect_diags();
+    EXPECT_TRUE(matches_message_codes(ws.diags(), { "CFG001" }));
+
+    run_if_valid(ws.did_close_file(pgm1_loc));
+    ws.diags().clear();
+    ws.collect_diags();
+    // EXPECT_TRUE(matches_message_codes(ws.diags(), { "CFG001", "CFG001" })); // Todo do we want to see the config
+    // error when all relevant files are closed?
     EXPECT_TRUE(ws.diags().empty());
 }
 

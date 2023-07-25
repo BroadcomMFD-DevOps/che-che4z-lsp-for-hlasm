@@ -380,7 +380,7 @@ TEST(b4g_integration_test, proc_config_changed)
     parse_all_files(ws);
     ws.collect_diags();
 
-    EXPECT_TRUE(matches_message_codes(ws.diags(), { "E049" }));
+    EXPECT_TRUE(matches_message_codes(ws.diags(), { "E049", "B4G002" }));
 
     ws.diags().clear();
 
@@ -481,6 +481,7 @@ TEST(b4g_integration_test, toggle_non_critical_diags)
         1,
         R"({"elements":{"A":{"processorGroup":"P1"}},"defaultProcessorGroup":"P2","fileExtension":""})");
     fm.did_open_file(pgm_a, 1, "");
+    fm.did_open_file(pgm_b, 1, "");
     fm.did_open_file(pgm_a_diff_path, 1, "");
 
     workspace_test ws(fm);
@@ -507,8 +508,88 @@ TEST(b4g_integration_test, toggle_non_critical_diags)
     ws.collect_diags();
     EXPECT_TRUE(ws.diags().empty());
 
+    run_if_valid(ws.did_open_file(pgm_b));
+    parse_all_files(ws);
+    ws.diags().clear();
+    ws.collect_diags();
+    EXPECT_TRUE(matches_message_codes(ws.diags(), { "B4G002" }));
+
+    run_if_valid(ws.did_close_file(pgm_b));
+    parse_all_files(ws);
+    ws.diags().clear();
+    ws.collect_diags();
+    EXPECT_TRUE(ws.diags().empty());
+
     run_if_valid(ws.did_open_file(pgm_a_diff_path));
     ws.diags().clear();
     ws.collect_diags();
+    EXPECT_TRUE(ws.diags().empty());
+}
+
+// Wildcards implicitly in default proc group
+TEST(b4g_integration_test, missing_diags_wildcards)
+{
+    file_manager_impl_test fm;
+
+    fm.did_open_file(proc_grps_rl, 1, R"({"pgroups":[{"name":"P1","libs":[]}]})");
+    fm.did_open_file(b4g_conf_rl,
+        1,
+        R"({"elements":{"A":{"processorGroup":"P1"}},"defaultProcessorGroup":"P2","fileExtension":""})"); // Wildcards
+                                                                                                          // implicitly
+                                                                                                          // in default
+                                                                                                          // proc group
+    fm.did_open_file(pgm_a, 1, "");
+    fm.did_open_file(pgm_b, 1, "");
+    fm.did_open_file(pgm_a_diff_path, 1, "");
+
+    workspace_test ws(fm);
+
+    run_if_valid(ws.did_open_file(pgm_a));
+    parse_all_files(ws);
+    ws.collect_diags();
+    EXPECT_TRUE(ws.diags().empty());
+
+    ws.toggle_non_critical_configuration_diagnostics();
+    ws.diags().clear();
+    ws.collect_diags();
+    EXPECT_TRUE(matches_message_codes(ws.diags(), { "CFG001" }));
+
+    run_if_valid(ws.did_close_file(pgm_a));
+    ws.diags().clear();
+    ws.collect_diags();
+    // EXPECT_TRUE(matches_message_codes(ws.diags(), { "CFG001", "CFG001" })); // Todo do we want to see the config
+    // error when all relevant files are closed?
+    EXPECT_TRUE(ws.diags().empty());
+}
+
+TEST(b4g_integration_test, missing_diags_wildcards_noproc)
+{
+    file_manager_impl_test fm;
+
+    fm.did_open_file(proc_grps_rl, 1, empty_proc_grps);
+    fm.did_open_file(b4g_conf_rl,
+        1,
+        R"({"elements":{"A":{"processorGroup":"*NOPROC*"}},"defaultProcessorGroup":"P2","fileExtension":""})");
+    fm.did_open_file(pgm_a, 1, "");
+    fm.did_open_file(pgm_b, 1, "");
+    fm.did_open_file(pgm_a_diff_path, 1, "");
+
+    workspace_test ws(fm);
+
+    run_if_valid(ws.did_open_file(pgm_a));
+    parse_all_files(ws);
+    ws.collect_diags();
+    EXPECT_TRUE(ws.diags().empty());
+
+    ws.toggle_non_critical_configuration_diagnostics();
+    ws.diags().clear();
+    ws.collect_diags();
+    EXPECT_TRUE(matches_message_codes(ws.diags(), { "CFG001" }));
+
+    run_if_valid(ws.did_close_file(pgm_a));
+    ws.diags().clear();
+    ws.collect_diags();
+    // EXPECT_TRUE(matches_message_codes(ws.diags(), { "CFG001", "CFG001" })); // Todo do we want to see the config
+    // error when all relevant files are closed?
     EXPECT_TRUE(ws.diags().empty());
 }
