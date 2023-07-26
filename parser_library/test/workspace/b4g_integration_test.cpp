@@ -472,7 +472,7 @@ TEST(b4g_integration_test, b4g_conf_noproc_proc_group_default)
     EXPECT_TRUE(matches_message_codes(ws.diags(), { "B4G002" }));
 }
 
-TEST(b4g_integration_test, toggle_non_critical_diags)
+TEST(b4g_integration_test, missing_proc_group_diags)
 {
     file_manager_impl_test fm;
 
@@ -524,8 +524,7 @@ TEST(b4g_integration_test, toggle_non_critical_diags)
     EXPECT_TRUE(ws.diags().empty());
 }
 
-// Wildcards implicitly in default proc group
-TEST(b4g_integration_test, missing_diags_wildcards)
+TEST(b4g_integration_test, missing_proc_group_diags_wildcards)
 {
     file_manager_impl_test fm;
 
@@ -556,7 +555,7 @@ TEST(b4g_integration_test, missing_diags_wildcards)
     EXPECT_TRUE(ws.diags().empty());
 }
 
-TEST(b4g_integration_test, missing_diags_wildcards_noproc)
+TEST(b4g_integration_test, missing_proc_group_diags_wildcards_noproc)
 {
     file_manager_impl_test fm;
 

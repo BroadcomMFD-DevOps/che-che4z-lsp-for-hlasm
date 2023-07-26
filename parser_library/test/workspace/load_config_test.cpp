@@ -367,7 +367,7 @@ TEST(workspace, pgm_conf_unknown_proc_group)
     EXPECT_TRUE(matches_message_codes(ws.diags(), { "W0004" }));
 }
 
-TEST(workspace, toggle_non_critical_diags)
+TEST(workspace, missing_proc_group_diags)
 {
     file_manager_impl fm;
     const auto pgm_conf_ws_loc = resource_location::join(ws_loc, pgm_conf_name.get_uri());
@@ -421,7 +421,7 @@ TEST(workspace, toggle_non_critical_diags)
     EXPECT_TRUE(ws.diags().empty());
 }
 
-TEST(workspace, missing_diags_wildcards)
+TEST(workspace, missing_proc_group_diags_wildcards)
 {
     file_manager_impl fm;
     const auto pgm_conf_ws_loc = resource_location::join(ws_loc, pgm_conf_name.get_uri());
@@ -456,7 +456,7 @@ TEST(workspace, missing_diags_wildcards)
     EXPECT_TRUE(ws.diags().empty());
 }
 
-TEST(workspace, missing_diags_wildcards_noproc)
+TEST(workspace, missing_proc_group_diags_wildcards_noproc)
 {
     file_manager_impl fm;
     const auto pgm_conf_ws_loc = resource_location::join(ws_loc, pgm_conf_name.get_uri());
