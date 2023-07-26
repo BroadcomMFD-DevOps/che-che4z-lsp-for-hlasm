@@ -771,7 +771,7 @@ void workspace_configuration::add_missing_diags(const diagnosable& target,
     const utils::resource::resource_location& config_file_rl,
     const std::unordered_set<utils::resource::resource_location, utils::resource::resource_location_hasher>&
         opened_files,
-    bool consider_only_used_pgroups) const
+    bool include_non_critical_cfg_diags) const
 {
     static const std::array<
         std::array<std::function<diagnostic_s(const utils::resource::resource_location&, std::string_view)>, 2>,
@@ -787,7 +787,7 @@ void workspace_configuration::add_missing_diags(const diagnosable& target,
     for (const auto& categorized_missing_pgroups = get_categorized_missing_pgroups(config_file_rl, opened_files);
          const auto& [missing_pgroup_name, used] : categorized_missing_pgroups)
     {
-        if (consider_only_used_pgroups && !used)
+        if (!include_non_critical_cfg_diags && !used)
             continue;
 
         target.add_diagnostic(diags_matrix[empty_cfg_rl][used](adjusted_conf_rl, missing_pgroup_name));
@@ -819,7 +819,7 @@ void workspace_configuration::generate_and_copy_diagnostics(
                 target.add_diagnostic(d);
         }
 
-        add_missing_diags(target, config_rl, opened_files, config_diag_params.consider_only_used_pgroups);
+        add_missing_diags(target, config_rl, opened_files, config_diag_params.include_non_critical_cfg_diags);
     }
 }
 

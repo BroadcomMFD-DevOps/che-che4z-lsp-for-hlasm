@@ -110,7 +110,7 @@ struct configuration_diagnostics_parameters
         utils::resource::resource_location_hasher>
         used_configs_opened_files_map;
 
-    bool consider_only_used_pgroups;
+    bool include_non_critical_cfg_diags;
 };
 
 enum class parse_config_file_result
@@ -393,7 +393,7 @@ class workspace_configuration
         const utils::resource::resource_location& config_file_rl,
         const std::unordered_set<utils::resource::resource_location, utils::resource::resource_location_hasher>&
             opened_files,
-        bool consider_only_used_pgroups) const;
+        bool include_non_critical_cfg_diags) const;
 
 public:
     workspace_configuration(file_manager& fm,

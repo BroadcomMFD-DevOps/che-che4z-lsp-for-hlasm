@@ -281,11 +281,10 @@ workspace::workspace(file_manager& file_manager,
 
 workspace::~workspace() = default;
 
-configuration_diagnostics_parameters workspace::get_configuration_diagnostics_params(
-    bool consider_only_used_pgroups) const
+configuration_diagnostics_parameters workspace::get_configuration_diagnostics_params() const
 {
     configuration_diagnostics_parameters config_diags_params;
-    config_diags_params.consider_only_used_pgroups = consider_only_used_pgroups;
+    config_diags_params.include_non_critical_cfg_diags = m_include_non_critical_cfg_diags;
 
     for (const auto& [processor_file_rl, component] : m_processor_files)
     {
@@ -298,8 +297,7 @@ configuration_diagnostics_parameters workspace::get_configuration_diagnostics_pa
 
 void workspace::collect_diags() const
 {
-    m_configuration.generate_and_copy_diagnostics(
-        *this, get_configuration_diagnostics_params(m_consider_only_used_pgroups));
+    m_configuration.generate_and_copy_diagnostics(*this, get_configuration_diagnostics_params());
 
     for (const auto& [url, pfc] : m_processor_files)
     {
@@ -314,9 +312,9 @@ void workspace::collect_diags() const
     }
 }
 
-void workspace::toggle_non_critical_configuration_diagnostics()
+void workspace::include_non_critical_configuration_diagnostics(bool include_non_critical_cfg_diags)
 {
-    std::exchange(m_consider_only_used_pgroups, !m_consider_only_used_pgroups);
+    m_include_non_critical_cfg_diags = include_non_critical_cfg_diags;
 }
 
 namespace {

@@ -66,6 +66,8 @@ class workspace_manager_impl final : public workspace_manager,
     static constexpr lib_config supress_all { 0 };
     using resource_location = utils::resource::resource_location;
 
+    bool m_include_non_critical_cfg_diags = false;
+
     struct opened_workspace
     {
         opened_workspace(const resource_location& location,
@@ -770,10 +772,12 @@ public:
         return make_continuous_sequence(m_file_manager.get_virtual_file(id));
     }
 
-    void toggle_non_critical_configuration_diagnostics() override
+    void include_non_critical_configuration_diagnostics() override
     {
+        std::exchange(m_include_non_critical_cfg_diags, !m_include_non_critical_cfg_diags);
+
         for (auto& [_, opened_ws] : m_workspaces)
-            opened_ws.ws.toggle_non_critical_configuration_diagnostics();
+            opened_ws.ws.include_non_critical_configuration_diagnostics(m_include_non_critical_cfg_diags);
 
         notify_diagnostics_consumers();
     }

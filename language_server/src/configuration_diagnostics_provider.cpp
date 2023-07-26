@@ -33,7 +33,7 @@ namespace hlasm_plugin::language_server {
 
 void configuration_diagnostics_provider::write(const nlohmann::json&)
 {
-    ws_mngr->toggle_non_critical_configuration_diagnostics();
+    ws_mngr->include_non_critical_configuration_diagnostics();
 }
 
 void configuration_diagnostics_provider::write(nlohmann::json&& m) { write(m); }

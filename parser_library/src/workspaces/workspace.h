@@ -89,7 +89,7 @@ public:
     ~workspace();
 
     void collect_diags() const override;
-    void toggle_non_critical_configuration_diagnostics();
+    void include_non_critical_configuration_diagnostics(bool include_non_critical_cfg_diags);
 
     [[nodiscard]] utils::task mark_file_for_parsing(
         const resource_location& file_location, file_content_state file_content_status);
@@ -163,7 +163,7 @@ private:
 
     workspace_configuration m_configuration;
 
-    bool m_consider_only_used_pgroups = true;
+    bool m_include_non_critical_cfg_diags = false;
 
     struct dependency_cache
     {
@@ -206,7 +206,7 @@ private:
     std::unordered_map<resource_location, processor_file_compoments, resource_location_hasher> m_processor_files;
     std::unordered_set<resource_location, resource_location_hasher> m_parsing_pending;
 
-    configuration_diagnostics_parameters get_configuration_diagnostics_params(bool consider_only_used_pgroups) const;
+    configuration_diagnostics_parameters get_configuration_diagnostics_params() const;
 
     [[nodiscard]] utils::value_task<processor_file_compoments&> add_processor_file_impl(std::shared_ptr<file> f);
     const processor_file_compoments* find_processor_file_impl(const resource_location& file) const;
