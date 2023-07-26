@@ -583,7 +583,7 @@ utils::value_task<parse_config_file_result> workspace_configuration::parse_b4g_c
     if (!inserted)
     {
         const auto is_erase_candidate = [tag = std::to_address(it)](const program_related_details& p_rel_details) {
-            const auto& tagged_pgm = std::get_if<tagged_program>(&p_rel_details);
+            const auto tagged_pgm = std::get_if<tagged_program>(&p_rel_details);
             return tagged_pgm && tagged_pgm->tag == tag;
         };
 

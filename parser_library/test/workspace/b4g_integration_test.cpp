@@ -534,8 +534,6 @@ TEST(b4g_integration_test, missing_proc_group_diags_wildcards)
         1,
         R"({"elements":{"A":{"processorGroup":"P1"}},"defaultProcessorGroup":"P2","fileExtension":""})");
     fm.did_open_file(pgm_a, 1, "");
-    fm.did_open_file(pgm_b, 1, "");
-    fm.did_open_file(pgm_a_diff_path, 1, "");
 
     workspace_test ws(fm);
 
@@ -564,8 +562,6 @@ TEST(b4g_integration_test, missing_proc_group_diags_wildcards_noproc)
         1,
         R"({"elements":{"A":{"processorGroup":"*NOPROC*"}},"defaultProcessorGroup":"P2","fileExtension":""})");
     fm.did_open_file(pgm_a, 1, "");
-    fm.did_open_file(pgm_b, 1, "");
-    fm.did_open_file(pgm_a_diff_path, 1, "");
 
     workspace_test ws(fm);
 

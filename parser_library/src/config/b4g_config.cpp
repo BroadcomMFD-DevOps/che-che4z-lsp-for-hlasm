@@ -15,7 +15,6 @@
 #include "b4g_config.h"
 
 #include "nlohmann/json.hpp"
-#include "utils/encoding.h"
 
 namespace hlasm_plugin::parser_library::config {
 void from_json(const nlohmann::json& j, b4g_map& p)
@@ -27,7 +26,6 @@ void from_json(const nlohmann::json& j, b4g_map& p)
     p.default_processor_group_name = j.at("defaultProcessorGroup").get<std::string>();
     p.files.clear();
     for (const auto& [key, value] : j.at("elements").items())
-        p.files.try_emplace(
-            utils::encoding::percent_encode(key + ext), b4g_detail { value.at("processorGroup").get<std::string>() });
+        p.files.try_emplace(key + ext, b4g_detail { value.at("processorGroup").get<std::string>() });
 }
 } // namespace hlasm_plugin::parser_library::config

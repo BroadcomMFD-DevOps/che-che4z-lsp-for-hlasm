@@ -84,8 +84,6 @@ struct external_conf
 };
 
 using proc_grp_id = std::variant<basic_conf, b4g_conf, external_conf>;
-
-
 class file_manager;
 struct library_local_options;
 // represents pair program => processor group - saves
@@ -225,12 +223,11 @@ public:
 
 class workspace_configuration
 {
-    static constexpr std::string_view NOPROC_GROUP_ID = "*NOPROC*";
-
     static constexpr const char FILENAME_PROC_GRPS[] = "proc_grps.json";
     static constexpr const char FILENAME_PGM_CONF[] = "pgm_conf.json";
     static constexpr const char HLASM_PLUGIN_FOLDER[] = ".hlasmplugin";
     static constexpr const char B4G_CONF_FILE[] = ".bridge.json";
+    static constexpr std::string_view NOPROC_GROUP_ID = "*NOPROC*";
 
     file_manager& m_file_manager;
     utils::resource::resource_location m_location;

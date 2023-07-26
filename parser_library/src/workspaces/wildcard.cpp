@@ -56,7 +56,9 @@ std::regex wildcard2regex(std::string wildcard)
     wildcard = std::regex_replace(wildcard, slash, "/");
     wildcard = std::regex_replace(wildcard, escape, "\\$1");
     wildcard = std::regex_replace(wildcard, question, single_url_char_matcher);
-    return std::regex(std::regex_replace(wildcard, nongreedy, ".$1?"));
+    wildcard = std::regex_replace(wildcard, nongreedy, ".$1?");
+
+    return std::regex(wildcard);
 }
 
 std::regex percent_encoded_pathmask_to_regex(std::string_view s)
