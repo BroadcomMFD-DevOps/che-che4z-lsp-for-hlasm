@@ -161,7 +161,8 @@ public:
             {
                 static const stmt_part_ids part_ids { std::nullopt, { 1 }, 2, 3 };
 
-                auto stmt = get_preproc_statement<semantics::endevor_statement_si>(matches, part_ids, *line_no, true);
+                auto stmt = get_preproc_statement<semantics::endevor_statement_si>(
+                    std::span(make_preproc_matches<3>(matches)), part_ids, *line_no, true);
                 do_highlighting(*stmt, m_src_proc);
                 set_statement(std::move(stmt));
             }
