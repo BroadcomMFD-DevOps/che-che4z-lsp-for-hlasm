@@ -286,7 +286,6 @@ class workspace_configuration
     struct missing_pgroup_details
     {
         std::string pgroup_name;
-        std::optional<proc_grp_id> pgroup_id;
         utils::resource::resource_location config_rl;
     };
 

@@ -404,11 +404,10 @@ void workspace_configuration::process_program(
         {
             if (regex_o.has_value())
                 m_regex_pgm_conf.emplace_back(
-                    missing_pgroup_details { pgm.pgroup, std::move(grp_id), empty_alternative_cfg_root },
-                    std::move(*regex_o));
+                    missing_pgroup_details { pgm.pgroup, empty_alternative_cfg_root }, std::move(*regex_o));
             else
-                m_exact_pgm_conf.try_emplace(std::move(rl),
-                    missing_pgroup_details { pgm.pgroup, std::move(grp_id), empty_alternative_cfg_root });
+                m_exact_pgm_conf.try_emplace(
+                    std::move(rl), missing_pgroup_details { pgm.pgroup, empty_alternative_cfg_root });
 
             missing_proc_grps.insert(pgm.pgroup);
             return;
@@ -636,7 +635,6 @@ utils::value_task<parse_config_file_result> workspace_configuration::parse_b4g_c
         missing_proc_grps.insert(missing_pgroup_name);
         return missing_pgroup_details {
             std::move(missing_pgroup_name),
-            std::nullopt,
             std::move(config_rl),
         };
     };
