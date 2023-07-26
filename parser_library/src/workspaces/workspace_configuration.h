@@ -339,6 +339,23 @@ class workspace_configuration
         const utils::resource::resource_location& alternative_root,
         std::vector<diagnostic_s>& diags);
 
+    missing_pgroup_details new_missing_pgroup_helper(
+        name_set& missing_proc_grps, std::string missing_pgroup_name, utils::resource::resource_location config_rl);
+
+    struct pgm_conf_parameters
+    {
+        proc_grp_id pgroup_id;
+        utils::resource::resource_location pgm_rl;
+        const utils::resource::resource_location& alternative_cfg_rl;
+        const config::assembler_options& asm_opts;
+        name_set& missing_proc_grps;
+        const void* tag;
+    };
+
+    void add_exact_pgm_conf(pgm_conf_parameters params);
+
+    void add_regex_pgm_conf(pgm_conf_parameters params);
+
     void process_program(
         const config::program_mapping& pgm, name_set& missing_proc_grps, std::vector<diagnostic_s>& diags);
 
@@ -346,8 +363,6 @@ class workspace_configuration
     bool is_b4g_config_file(const utils::resource::resource_location& file) const;
     std::pair<const program*, bool> get_program_normalized(
         const utils::resource::resource_location& file_location_normalized) const;
-
-    std::optional<std::string> verify_existing_proc_grp_id(const proc_grp_id& grp_id);
 
     [[nodiscard]] utils::value_task<parse_config_file_result> parse_b4g_config_file(
         const utils::resource::resource_location& cfg_file_rl);
