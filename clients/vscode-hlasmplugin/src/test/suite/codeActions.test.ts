@@ -94,7 +94,7 @@ suite('Code actions', () => {
 
         assert.equal(codeActionsList.length, 1);
         assert.ok(codeActionsList[0].command);
-        assert.strictEqual(codeActionsList[0].command.command, 'extension.hlasm-plugin.showConfigurationDiagnostics');
+        assert.strictEqual(codeActionsList[0].command.command, 'extension.hlasm-plugin.toggleNonCriticalConfigurationDiagnostics');
         assert.strictEqual(codeActionsList[0].command.title, 'Show all configuration diagnostics');
 
         diagnostic_event = helper.waitForDiagnostics(configRelPath);
@@ -106,7 +106,7 @@ suite('Code actions', () => {
 
         assert.equal(codeActionsList.length, 1);
         assert.ok(codeActionsList[0].command);
-        assert.strictEqual(codeActionsList[0].command.command, 'extension.hlasm-plugin.showConfigurationDiagnostics');
+        assert.strictEqual(codeActionsList[0].command.command, 'extension.hlasm-plugin.toggleNonCriticalConfigurationDiagnostics');
         assert.strictEqual(codeActionsList[0].command.title, 'Show only critical configuration diagnostics');
 
         diagnostic_event = helper.waitForDiagnostics(configRelPath);
@@ -121,7 +121,7 @@ suite('Code actions', () => {
         const pgmConf = await helper.showDocument(pgmConfPath);
         const diagnostic_event = helper.waitForDiagnostics(pgmConfPath);
 
-        helper.assertMatchingMessageCodes(await diagnostic_event, [2]); // 2 represents usage deprecated option in pgm_conf.json. Let's wait for it here on purpose instead of it turning up randomly
+        helper.assertMatchingMessageCodes(await diagnostic_event, [2]); // 2 represents usage of deprecated option in pgm_conf.json. Let's wait for it here on purpose instead of it turning up randomly
 
         await configurationDiagnosticsHelper(file, pgmConf.document.uri, [2, 'W0004'], [2, 'W0004', 'W0008']);
 

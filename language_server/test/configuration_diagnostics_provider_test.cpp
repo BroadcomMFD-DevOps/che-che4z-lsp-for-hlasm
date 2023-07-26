@@ -41,7 +41,7 @@ TEST(configuration_diagnostics_provider, toggle)
     NiceMock<ws_mngr_mock> ws_mngr;
     configuration_diagnostics_provider cdp(ws_mngr);
 
-    EXPECT_CALL(ws_mngr, include_non_critical_configuration_diagnostics).Times(1);
+    EXPECT_CALL(ws_mngr, toggle_non_critical_configuration_diagnostics).Times(1);
 
     cdp.write(nlohmann::json {});
 }

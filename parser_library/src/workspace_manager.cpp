@@ -772,7 +772,7 @@ public:
         return make_continuous_sequence(m_file_manager.get_virtual_file(id));
     }
 
-    void include_non_critical_configuration_diagnostics() override
+    void toggle_non_critical_configuration_diagnostics() override
     {
         std::exchange(m_include_non_critical_cfg_diags, !m_include_non_critical_cfg_diags);
 
