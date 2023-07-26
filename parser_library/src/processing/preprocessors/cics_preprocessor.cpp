@@ -1154,8 +1154,9 @@ public:
         if (potential_lineno)
         {
             static const stmt_part_ids part_ids { 1, { 2, 3 }, (size_t)-1, std::nullopt };
+            auto matches = make_preproc_matches<3>(m_matches_ll);
             auto stmt = get_preproc_statement<semantics::preprocessor_statement_si>(
-                std::span(make_preproc_matches<3>(m_matches_ll)), part_ids, lineno, true, 1);
+                std::span(matches.cbegin(), matches.cend()), part_ids, lineno, true, 1);
             do_highlighting(*stmt, m_logical_line, m_src_proc, 1);
             set_statement(std::move(stmt));
         }
@@ -1255,7 +1256,7 @@ public:
                 matches[4].second = r.get_last();
 
                 auto stmt = get_preproc_statement<semantics::preprocessor_statement_si>(
-                    std::span<const std::pair<ll_iterator, ll_iterator>>(matches), part_ids, lineno, false);
+                    std::span(matches.cbegin(), matches.cend()), part_ids, lineno, false);
                 do_highlighting(*stmt, m_logical_line, m_src_proc);
                 set_statement(std::move(stmt));
             }

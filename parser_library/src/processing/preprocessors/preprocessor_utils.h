@@ -42,7 +42,7 @@ std::vector<semantics::preproc_details::name_range> get_operands_list(
     std::string_view operands, size_t op_column_start, const semantics::range_provider& rp);
 
 template<size_t n>
-const auto make_preproc_matches(auto&& m)
+auto make_preproc_matches(auto&& m)
 {
     using it = decltype(m.suffix().first);
     std::array<std::pair<it, it>, 1 + n + 1> result { std::make_pair(m.suffix().first, m.suffix().second) };
