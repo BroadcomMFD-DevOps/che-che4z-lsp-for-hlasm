@@ -39,6 +39,8 @@
 
 namespace hlasm_plugin::parser_library::workspaces {
 namespace {
+static const auto empty_alternative_cfg_root = utils::resource::resource_location();
+
 std::optional<std::filesystem::path> get_fs_abs_path(std::string_view path)
 {
     if (path.empty())
@@ -220,88 +222,6 @@ const std::regex json_settings_replacer::config_reference(R"(\$\{([^}]+)\})");
 
 } // namespace
 
-missing_pgroups::maps& missing_pgroups::get_config_related_maps(
-    const utils::resource::resource_location& config_file_rl)
-{
-    return m_cfg_maps[config_file_rl];
-}
-
-void missing_pgroups::add_exact(maps& maps, utils::resource::resource_location pgm_rl, std::string pgroup)
-{
-    maps.exact.emplace(std::move(pgm_rl), pgroup);
-    maps.missing_pgroups.emplace(std::move(pgroup));
-}
-
-void missing_pgroups::add_pattern(maps& maps, std::string pgm_pattern, std::string pgroup)
-{
-    maps.regex_pattern.emplace(std::move(pgm_pattern), pgroup);
-    maps.missing_pgroups.emplace(std::move(pgroup));
-}
-
-std::unordered_set<std::string, utils::hashers::string_hasher, std::equal_to<>> missing_pgroups::get_critical_pgroups(
-    const utils::resource::resource_location& config_file_rl,
-    const std::unordered_set<utils::resource::resource_location, utils::resource::resource_location_hasher>&
-        opened_files) const
-{
-    auto cfg_maps_it = m_cfg_maps.find(config_file_rl);
-    if (cfg_maps_it == m_cfg_maps.end())
-        return {};
-
-    std::unordered_set<std::string, utils::hashers::string_hasher, std::equal_to<>> critical_pgroups;
-    auto& [_, maps] = *cfg_maps_it;
-
-    for (const auto& opened_file : opened_files)
-    {
-        if (const auto program_pgroup_it = maps.exact.find(opened_file); program_pgroup_it != maps.exact.end())
-            critical_pgroups.emplace(program_pgroup_it->second);
-        else
-        {
-            for (const auto& [pattern, missing_pgroup_name] : maps.regex_pattern)
-            {
-                if (std::regex_match(opened_file.get_uri(), std::regex(pattern)))
-                    critical_pgroups.emplace(missing_pgroup_name);
-            }
-        }
-    }
-
-    return critical_pgroups;
-}
-
-void missing_pgroups::add_diags(const diagnosable& target,
-    const utils::resource::resource_location& config_file_rl,
-    const std::unordered_set<utils::resource::resource_location, utils::resource::resource_location_hasher>&
-        opened_files,
-    const utils::resource::resource_location& pgm_conf_rl,
-    bool consider_only_used_pgroups) const
-{
-    static const std::array<
-        std::array<std::function<diagnostic_s(const utils::resource::resource_location&, std::string_view)>, 2>,
-        2>
-        diags_matrix { {
-            { diagnostic_s::warn_CFG001, diagnostic_s::error_B4G002 },
-            { diagnostic_s::warn_CFG001, diagnostic_s::error_W0004 },
-        } };
-
-
-    const auto& critical_pgroups = get_critical_pgroups(config_file_rl, opened_files);
-    for (const auto& [cfg_rl, maps] : m_cfg_maps)
-    {
-        for (const auto& missing_pgroup : maps.missing_pgroups)
-        {
-            if (missing_pgroup == NOPROC_GROUP_ID)
-                continue;
-
-            bool critical = critical_pgroups.contains(missing_pgroup);
-            if (consider_only_used_pgroups && !critical)
-                continue;
-
-            bool empty_cfg_rl = cfg_rl.empty();
-            const auto& adjusted_conf_rl = empty_cfg_rl ? pgm_conf_rl : cfg_rl;
-            target.add_diagnostic(diags_matrix[empty_cfg_rl][critical](adjusted_conf_rl, missing_pgroup));
-        }
-    }
-}
-
 workspace_configuration::workspace_configuration(file_manager& fm,
     utils::resource::resource_location location,
     const shared_json& global_settings,
@@ -461,9 +381,8 @@ void workspace_configuration::process_processor_group_and_cleanup_libraries(
     std::erase_if(m_libraries, [](const auto& kv) { return !kv.second.second; }); // sweep
 }
 
-void workspace_configuration::process_program(missing_pgroups::maps& missing_program_pgroup_maps,
-    const config::program_mapping& pgm,
-    std::vector<diagnostic_s>& diags)
+void workspace_configuration::process_program(
+    const config::program_mapping& pgm, name_set& missing_proc_grps, std::vector<diagnostic_s>& diags)
 {
     std::optional<std::string> pgm_name = substitute_home_directory(pgm.program);
     if (!pgm_name.has_value())
@@ -473,30 +392,34 @@ void workspace_configuration::process_program(missing_pgroups::maps& missing_pro
     }
 
     auto rl = transform_to_resource_location(*pgm_name, m_location);
-    std::optional<std::string> regex_string_path;
+    std::optional<std::regex> regex_o;
     if (pgm_name->find_first_of("*?") != std::string::npos)
-        regex_string_path = wildcard2regex_pattern(rl.get_uri());
+        regex_o = wildcard2regex(rl.get_uri());
 
     std::optional<proc_grp_id> grp_id;
-    if (pgm.pgroup != NOPROC_GROUP_ID) // todo
+    if (pgm.pgroup != NOPROC_GROUP_ID)
     {
         grp_id.emplace(basic_conf { pgm.pgroup });
         if (!m_proc_grps.contains(*grp_id))
         {
-            if (regex_string_path.has_value())
-                m_missing_pgroups.add_pattern(missing_program_pgroup_maps, *regex_string_path, pgm.pgroup);
+            if (regex_o.has_value())
+                m_regex_pgm_conf.emplace_back(
+                    missing_pgroup_details { pgm.pgroup, std::move(grp_id), empty_alternative_cfg_root },
+                    std::move(*regex_o));
             else
-                m_missing_pgroups.add_exact(missing_program_pgroup_maps, std::move(rl), pgm.pgroup);
+                m_exact_pgm_conf.try_emplace(std::move(rl),
+                    missing_pgroup_details { pgm.pgroup, std::move(grp_id), empty_alternative_cfg_root });
 
+            missing_proc_grps.insert(pgm.pgroup);
             return;
         }
     }
 
-    if (regex_string_path.has_value())
+    if (regex_o.has_value())
         m_regex_pgm_conf.emplace_back(
-            tagged_program { program { std::move(rl), grp_id, pgm.opts, false } }, std::regex(*regex_string_path));
+            tagged_program { program { std::move(rl), std::move(grp_id), pgm.opts, false } }, std::move(*regex_o));
     else
-        m_exact_pgm_conf.try_emplace(rl, tagged_program { program(rl, grp_id, pgm.opts, false) });
+        m_exact_pgm_conf.try_emplace(rl, tagged_program { program(rl, std::move(grp_id), pgm.opts, false) });
 }
 
 bool workspace_configuration::is_config_file(const utils::resource::resource_location& file) const
@@ -522,7 +445,7 @@ utils::value_task<parse_config_file_result> workspace_configuration::load_and_pr
     m_exact_pgm_conf.clear();
     m_regex_pgm_conf.clear();
     m_b4g_config_cache.clear();
-    m_missing_pgroups = missing_pgroups();
+    m_missing_proc_grps.clear();
 
     if (auto l = co_await load_proc_config(proc_groups, utilized_settings_values, diags);
         l != parse_config_file_result::parsed)
@@ -532,7 +455,7 @@ utils::value_task<parse_config_file_result> workspace_configuration::load_and_pr
     const auto pgm_conf_loaded = co_await load_pgm_config(pgm_config, utilized_settings_values, diags);
 
     process_processor_group_and_cleanup_libraries(
-        proc_groups.pgroups, proc_groups.macro_extensions, utils::resource::resource_location(), diags);
+        proc_groups.pgroups, proc_groups.macro_extensions, empty_alternative_cfg_root, diags);
 
     if (pgm_conf_loaded != parse_config_file_result::parsed)
     {
@@ -541,11 +464,11 @@ utils::value_task<parse_config_file_result> workspace_configuration::load_and_pr
     else
     {
         m_local_config = lib_config::load_from_pgm_config(pgm_config);
-        auto& maps = m_missing_pgroups.get_config_related_maps(utils::resource::resource_location());
 
         // process programs
-        for (const auto& pgm : pgm_config.pgms)
-            process_program(maps, pgm, diags);
+        for (auto& missing_proc_grps = m_missing_proc_grps[empty_alternative_cfg_root];
+             const auto& pgm : pgm_config.pgms)
+            process_program(pgm, missing_proc_grps, diags);
     }
 
     m_utilized_settings_values = std::move(utilized_settings_values);
@@ -649,56 +572,23 @@ struct
     std::string_view operator()(const external_conf&) const noexcept { return {}; }
 } static constexpr proc_group_name;
 
-std::optional<std::pair<utils::resource::resource_location, workspace_configuration::tagged_program>>
-workspace_configuration::try_creating_rl_tagged_pgm_pair(missing_pgroups::maps& missing_program_pgroup_maps,
-    bool default_b4g_proc_group,
-    proc_grp_id grp_id,
-    const void* tag,
-    const utils::resource::resource_location& file_root,
-    std::string_view filename)
-{
-    auto rl = default_b4g_proc_group ? utils::resource::resource_location::join(file_root, "*")
-                                     : utils::resource::resource_location::join(file_root, filename).lexically_normal();
-
-    std::optional<proc_grp_id> grp_id_o;
-    if (m_proc_grps.contains(grp_id))
-        grp_id_o = std::move(grp_id);
-    else if (auto pg_name = std::visit(proc_group_name, grp_id); pg_name != NOPROC_GROUP_ID)
-    {
-        if (default_b4g_proc_group)
-        {
-            m_missing_pgroups.add_pattern(
-                missing_program_pgroup_maps, wildcard2regex_pattern(rl.get_uri()), std::string(pg_name));
-            return {};
-        }
-
-        m_missing_pgroups.add_exact(missing_program_pgroup_maps, rl, std::string(pg_name));
-    }
-
-    return std::make_pair(std::move(rl),
-        tagged_program {
-            program {
-                rl,
-                std::move(grp_id_o),
-                {},
-                false,
-            },
-            tag,
-        });
-}
-
 utils::value_task<parse_config_file_result> workspace_configuration::parse_b4g_config_file(
-    const utils::resource::resource_location& file_location)
+    const utils::resource::resource_location& cfg_file_rl)
 {
     // keep in sync with try_loading_alternative_configuration
     const auto alternative_root =
-        utils::resource::resource_location::replace_filename(file_location, "").join("..").lexically_normal();
+        utils::resource::resource_location::replace_filename(cfg_file_rl, "").join("..").lexically_normal();
 
-    auto [it, inserted] = m_b4g_config_cache.try_emplace(file_location);
+    auto [it, inserted] = m_b4g_config_cache.try_emplace(cfg_file_rl);
     if (!inserted)
     {
-        std::erase_if(m_exact_pgm_conf, [tag = std::to_address(it)](const auto& e) { return e.second.tag == tag; });
-        std::erase_if(m_regex_pgm_conf, [tag = std::to_address(it)](const auto& e) { return e.first.tag == tag; });
+        const auto is_erase_candidate = [tag = std::to_address(it)](const program_related_details& p_rel_details) {
+            const auto& tagged_pgm = std::get_if<tagged_program>(&p_rel_details);
+            return tagged_pgm && tagged_pgm->tag == tag;
+        };
+
+        std::erase_if(m_exact_pgm_conf, [&is_erase_candidate](const auto& e) { return is_erase_candidate(e.second); });
+        std::erase_if(m_regex_pgm_conf, [&is_erase_candidate](const auto& e) { return is_erase_candidate(e.first); });
         std::erase_if(m_proc_grps, [&alternative_root](const auto& e) {
             const auto* b4g = std::get_if<b4g_conf>(&e.first);
             return b4g && b4g->bridge_json_uri == alternative_root;
@@ -706,7 +596,7 @@ utils::value_task<parse_config_file_result> workspace_configuration::parse_b4g_c
         it->second = {};
     }
 
-    auto b4g_config_content = co_await m_file_manager.get_file_content(file_location);
+    auto b4g_config_content = co_await m_file_manager.get_file_content(cfg_file_rl);
     if (!b4g_config_content.has_value())
         co_return parse_config_file_result::not_found;
 
@@ -718,45 +608,79 @@ utils::value_task<parse_config_file_result> workspace_configuration::parse_b4g_c
     }
     catch (const nlohmann::json::exception&)
     {
-        conf.diags.push_back(diagnostic_s::error_B4G001(file_location));
+        conf.diags.push_back(diagnostic_s::error_B4G001(cfg_file_rl));
         co_return parse_config_file_result::error;
     }
 
     process_processor_group_and_cleanup_libraries(
         m_proc_grps_source.pgroups, m_proc_grps_source.macro_extensions, alternative_root, conf.diags);
 
-    const auto file_root = file_location.parent();
-    auto& maps = m_missing_pgroups.get_config_related_maps(file_location);
+    const auto cfg_file_root = cfg_file_rl.parent();
+
+    constexpr auto tagged_pgm_helper =
+        [](utils::resource::resource_location pgm_rl, b4g_conf pgroup_id, const void* tag) {
+            return tagged_program {
+                program {
+                    std::move(pgm_rl),
+                    std::move(pgroup_id),
+                    {},
+                    false,
+                },
+                tag,
+            };
+        };
+
+    const auto missing_pgroup_details_helper = [&missing_proc_grps = m_missing_proc_grps[cfg_file_rl]](
+                                                   std::string missing_pgroup_name,
+                                                   utils::resource::resource_location config_rl) {
+        missing_proc_grps.insert(missing_pgroup_name);
+        return missing_pgroup_details {
+            std::move(missing_pgroup_name),
+            std::nullopt,
+            std::move(config_rl),
+        };
+    };
+
+    const auto verification_helper = [&proc_grps = m_proc_grps, &alternative_root, &cfg_file_root](
+                                         std::string pgroup_name, std::string pgm_name) {
+        auto pgroup_id = b4g_conf {
+            std::move(pgroup_name),
+            alternative_root,
+        };
+
+        std::optional<std::string> missing_pgroup_name;
+        if (!proc_grps.contains(pgroup_id) && pgroup_id.name != NOPROC_GROUP_ID)
+            missing_pgroup_name = pgroup_id.name;
+
+        return std::make_tuple(std::move(missing_pgroup_name),
+            std::move(pgroup_id),
+            pgm_name == "*" ? utils::resource::resource_location::join(cfg_file_root, pgm_name)
+                            : utils::resource::resource_location::join(cfg_file_root, pgm_name).lexically_normal());
+    };
 
     for (const auto& [name, details] : conf.config.value().files)
-        m_exact_pgm_conf.insert(*try_creating_rl_tagged_pgm_pair(maps,
-            false,
-            b4g_conf {
-                details.processor_group_name,
-                alternative_root,
-            },
-            new_tag,
-            file_root,
-            name)); // Returned optional is always valid for 'default_b4g_proc_group = false'
+    {
+        if (auto [missing_pgroup_name, pgroup_id, pgm_rl] = verification_helper(details.processor_group_name, name);
+            missing_pgroup_name.has_value())
+            m_exact_pgm_conf.insert(
+                { std::move(pgm_rl), missing_pgroup_details_helper(std::move(*missing_pgroup_name), cfg_file_rl) });
+        else
+            m_exact_pgm_conf.insert({ pgm_rl, tagged_pgm_helper(pgm_rl, std::move(pgroup_id), new_tag) });
+    }
 
     if (const auto& def_grp = conf.config.value().default_processor_group_name; !def_grp.empty())
     {
-        if (auto rl_tagged_pgm = try_creating_rl_tagged_pgm_pair(maps,
-                true,
-                b4g_conf {
-                    def_grp,
-                    alternative_root,
-                },
-                new_tag,
-                file_root);
-            rl_tagged_pgm.has_value())
+        if (auto [missing_pgroup_name, pgroup_id, pgm_rl] = verification_helper(def_grp, "*");
+            missing_pgroup_name.has_value())
+            m_regex_pgm_conf.emplace_back(missing_pgroup_details_helper(std::move(*missing_pgroup_name), cfg_file_rl),
+                wildcard2regex(pgm_rl.get_uri()));
+        else
             m_regex_pgm_conf.emplace_back(
-                std::move(rl_tagged_pgm->second), wildcard2regex(rl_tagged_pgm->first.get_uri()));
+                tagged_pgm_helper(pgm_rl, std::move(pgroup_id), new_tag), wildcard2regex(pgm_rl.get_uri()));
     }
 
     co_return parse_config_file_result::parsed;
 }
-
 
 void workspace_configuration::find_and_add_libs(const utils::resource::resource_location& root,
     const utils::resource::resource_location& path_pattern,
@@ -818,6 +742,56 @@ void workspace_configuration::find_and_add_libs(const utils::resource::resource_
     }
 }
 
+std::unordered_map<std::string, bool, utils::hashers::string_hasher, std::equal_to<>>
+workspace_configuration::get_categorized_missing_pgroups(const utils::resource::resource_location& config_file_rl,
+    const std::unordered_set<utils::resource::resource_location, utils::resource::resource_location_hasher>&
+        opened_files) const
+{
+    auto missing_proc_grps_it = m_missing_proc_grps.find(config_file_rl);
+    if (missing_proc_grps_it == m_missing_proc_grps.end())
+        return {};
+
+    std::unordered_map<std::string, bool, utils::hashers::string_hasher, std::equal_to<>> categorized_missing_pgroups;
+
+    for (const auto& missing_pgroup : missing_proc_grps_it->second)
+        categorized_missing_pgroups[missing_pgroup] = false;
+
+    for (const auto& opened_file : opened_files)
+    {
+        if (const auto missing_details = get_missing_pgroup_details_normalized(opened_file))
+            categorized_missing_pgroups[missing_details->pgroup_name] = true;
+    }
+
+    return categorized_missing_pgroups;
+}
+
+void workspace_configuration::add_missing_diags(const diagnosable& target,
+    const utils::resource::resource_location& config_file_rl,
+    const std::unordered_set<utils::resource::resource_location, utils::resource::resource_location_hasher>&
+        opened_files,
+    bool consider_only_used_pgroups) const
+{
+    static const std::array<
+        std::array<std::function<diagnostic_s(const utils::resource::resource_location&, std::string_view)>, 2>,
+        2>
+        diags_matrix { {
+            { diagnostic_s::warn_CFG001, diagnostic_s::error_B4G002 },
+            { diagnostic_s::warn_CFG001, diagnostic_s::error_W0004 },
+        } };
+
+    bool empty_cfg_rl = config_file_rl.empty();
+    const auto& adjusted_conf_rl = empty_cfg_rl ? m_pgm_conf_loc : config_file_rl;
+
+    for (const auto& categorized_missing_pgroups = get_categorized_missing_pgroups(config_file_rl, opened_files);
+         const auto& [missing_pgroup_name, used] : categorized_missing_pgroups)
+    {
+        if (consider_only_used_pgroups && !used)
+            continue;
+
+        target.add_diagnostic(diags_matrix[empty_cfg_rl][used](adjusted_conf_rl, missing_pgroup_name));
+    }
+}
+
 void workspace_configuration::generate_and_copy_diagnostics(
     const diagnosable& target, const configuration_diagnostics_parameters& config_diag_params) const
 {
@@ -843,8 +817,7 @@ void workspace_configuration::generate_and_copy_diagnostics(
                 target.add_diagnostic(d);
         }
 
-        m_missing_pgroups.add_diags(
-            target, config_rl, opened_files, m_pgm_conf_loc, config_diag_params.consider_only_used_pgroups);
+        add_missing_diags(target, config_rl, opened_files, config_diag_params.consider_only_used_pgroups);
     }
 }
 
@@ -951,18 +924,42 @@ const program* workspace_configuration::get_program(const utils::resource::resou
 std::pair<const program*, bool> workspace_configuration::get_program_normalized(
     const utils::resource::resource_location& file_location_normalized) const
 {
-    // direct match
-    if (auto program = m_exact_pgm_conf.find(file_location_normalized); program != m_exact_pgm_conf.cend())
-        return { &program->second.pgm, true };
+    constexpr auto try_retrieve_program = [](const program_related_details& p_rel_details,
+                                              bool exact) -> std::pair<const program*, bool> {
+        if (const auto& tagged_pgm = std::get_if<tagged_program>(&p_rel_details); tagged_pgm)
+            return { &tagged_pgm->pgm, exact };
+        else
+            return { nullptr, false };
+    };
 
-    for (const auto& [program, pattern] : m_regex_pgm_conf)
+    // direct match
+    if (auto pgm_details = m_exact_pgm_conf.find(file_location_normalized); pgm_details != m_exact_pgm_conf.cend())
+        return try_retrieve_program(pgm_details->second, true);
+
+    for (const auto& [pgm_details, pattern] : m_regex_pgm_conf)
     {
         if (std::regex_match(file_location_normalized.get_uri(), pattern))
-            return { &program.pgm, false };
+            return try_retrieve_program(pgm_details, false);
     }
+
     return { nullptr, false };
 }
 
+const workspace_configuration::missing_pgroup_details* workspace_configuration::get_missing_pgroup_details_normalized(
+    const utils::resource::resource_location& file_location_normalized) const
+{
+    // direct match
+    if (auto pgm_details = m_exact_pgm_conf.find(file_location_normalized); pgm_details != m_exact_pgm_conf.cend())
+        return std::get_if<missing_pgroup_details>(&pgm_details->second);
+
+    for (const auto& [pgm_details, pattern] : m_regex_pgm_conf)
+    {
+        if (std::regex_match(file_location_normalized.get_uri(), pattern))
+            return std::get_if<missing_pgroup_details>(&pgm_details);
+    }
+
+    return nullptr;
+}
 
 decltype(workspace_configuration::m_proc_grps)::iterator workspace_configuration::make_external_proc_group(
     const utils::resource::resource_location& normalized_location, std::string group_json)
@@ -993,7 +990,7 @@ decltype(workspace_configuration::m_proc_grps)::iterator workspace_configuration
     {
         std::visit(
             [this, &diags, &prc_grp](const auto& lib) {
-                process_processor_group_library(lib, utils::resource::resource_location(), diags, {}, prc_grp);
+                process_processor_group_library(lib, empty_alternative_cfg_root, diags, {}, prc_grp);
             },
             lib_or_dataset);
     }
@@ -1041,17 +1038,21 @@ void workspace_configuration::update_external_configuration(
         });
 }
 
-
 void workspace_configuration::prune_external_processor_groups(const utils::resource::resource_location& location)
 {
+    constexpr auto is_erase_candidate = [](const program_related_details& pgm_rel_details) {
+        const auto& tagged_pgm = std::get_if<tagged_program>(&pgm_rel_details);
+        return tagged_pgm && tagged_pgm->pgm.external;
+    };
+
     if (!location.empty())
     {
         if (auto p = m_exact_pgm_conf.find(location.lexically_normal());
-            p != m_exact_pgm_conf.end() && p->second.pgm.external)
+            p != m_exact_pgm_conf.end() && is_erase_candidate(p->second))
             m_exact_pgm_conf.erase(p);
     }
     else
-        std::erase_if(m_exact_pgm_conf, [](const auto& p) { return p.second.pgm.external; });
+        std::erase_if(m_exact_pgm_conf, [](const auto& p) { return is_erase_candidate(p.second); });
 
     std::erase_if(m_proc_grps, [](const auto& pg) {
         const auto* e = std::get_if<external_conf>(&pg.first);
@@ -1067,7 +1068,7 @@ utils::value_task<utils::resource::resource_location> workspace_configuration::l
 
     if (direct && pgm && pgm->pgroup
         && (std::holds_alternative<basic_conf>(*pgm->pgroup) || std::holds_alternative<external_conf>(*pgm->pgroup)))
-        co_return utils::resource::resource_location();
+        co_return empty_alternative_cfg_root;
 
     if (m_external_configuration_requests)
     {
@@ -1086,7 +1087,7 @@ utils::value_task<utils::resource::resource_location> workspace_configuration::l
             try
             {
                 update_external_configuration(rl, std::move(std::get<std::string>(json_data)));
-                co_return utils::resource::resource_location();
+                co_return empty_alternative_cfg_root;
             }
             catch (const nlohmann::json&)
             {
@@ -1104,19 +1105,19 @@ utils::value_task<utils::resource::resource_location> workspace_configuration::l
     }
 
     if (pgm && pgm->pgroup && std::holds_alternative<basic_conf>(*pgm->pgroup))
-        co_return utils::resource::resource_location();
+        co_return empty_alternative_cfg_root;
 
     auto configuration_url = utils::resource::resource_location::replace_filename(rl, B4G_CONF_FILE);
 
     if (auto it = m_b4g_config_cache.find(configuration_url); it == m_b4g_config_cache.end())
     {
         if (co_await parse_b4g_config_file(configuration_url) == parse_config_file_result::not_found)
-            co_return utils::resource::resource_location();
+            co_return empty_alternative_cfg_root;
         else
             co_return configuration_url;
     }
     else if (!it->second.config.has_value() && it->second.diags.empty()) // keep in sync with parse_b4g_config_file
-        co_return utils::resource::resource_location();
+        co_return empty_alternative_cfg_root;
 
     co_return configuration_url;
 }

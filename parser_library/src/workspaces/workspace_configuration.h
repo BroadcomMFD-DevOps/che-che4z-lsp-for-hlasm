@@ -86,44 +86,6 @@ struct external_conf
 using proc_grp_id = std::variant<basic_conf, b4g_conf, external_conf>;
 
 
-static constexpr std::string_view NOPROC_GROUP_ID = "*NOPROC*";
-
-class missing_pgroups
-{
-public:
-    struct maps
-    {
-        std::unordered_map<utils::resource::resource_location, std::string, utils::resource::resource_location_hasher>
-            exact;
-        std::unordered_map<std::string, std::string, utils::hashers::string_hasher, std::equal_to<>> regex_pattern;
-
-        std::unordered_set<std::string, utils::hashers::string_hasher, std::equal_to<>> missing_pgroups;
-    };
-
-    explicit missing_pgroups() = default;
-
-    maps& get_config_related_maps(const utils::resource::resource_location& config_file_rl);
-
-    static void add_exact(maps& program_pgroup_maps, utils::resource::resource_location pgm_rl, std::string pgroup);
-
-    static void add_pattern(maps& program_pgroup_maps, std::string pgm_pattern, std::string pgroup);
-
-    void add_diags(const diagnosable& target,
-        const utils::resource::resource_location& config_file_rl,
-        const std::unordered_set<utils::resource::resource_location, utils::resource::resource_location_hasher>&
-            opened_files,
-        const utils::resource::resource_location& pgm_conf_rl,
-        bool consider_only_used_pgroups) const;
-
-private:
-    std::unordered_map<utils::resource::resource_location, maps, utils::resource::resource_location_hasher> m_cfg_maps;
-
-    std::unordered_set<std::string, utils::hashers::string_hasher, std::equal_to<>> get_critical_pgroups(
-        const utils::resource::resource_location& config_file_rl,
-        const std::unordered_set<utils::resource::resource_location, utils::resource::resource_location_hasher>&
-            opened_files) const;
-};
-
 class file_manager;
 struct library_local_options;
 // represents pair program => processor group - saves
@@ -263,6 +225,8 @@ public:
 
 class workspace_configuration
 {
+    static constexpr std::string_view NOPROC_GROUP_ID = "*NOPROC*";
+
     static constexpr const char FILENAME_PROC_GRPS[] = "proc_grps.json";
     static constexpr const char FILENAME_PGM_CONF[] = "pgm_conf.json";
     static constexpr const char HLASM_PLUGIN_FOLDER[] = ".hlasmplugin";
@@ -274,7 +238,6 @@ class workspace_configuration
 
     utils::resource::resource_location m_proc_grps_loc;
     utils::resource::resource_location m_pgm_conf_loc;
-    missing_pgroups m_missing_pgroups;
 
     template<typename T>
     struct tagged_string_view
@@ -311,8 +274,11 @@ class workspace_configuration
         }
     };
 
+    using name_set = std::unordered_set<std::string, utils::hashers::string_hasher, std::equal_to<>>;
     config::proc_grps m_proc_grps_source;
     std::unordered_map<proc_grp_id, processor_group, proc_grp_id_hasher, proc_grp_id_equal> m_proc_grps;
+    std::unordered_map<utils::resource::resource_location, name_set, utils::resource::resource_location_hasher>
+        m_missing_proc_grps;
 
     struct tagged_program
     {
@@ -320,8 +286,16 @@ class workspace_configuration
         const void* tag = nullptr;
     };
 
-    std::map<utils::resource::resource_location, tagged_program> m_exact_pgm_conf;
-    std::vector<std::pair<tagged_program, std::regex>> m_regex_pgm_conf;
+    struct missing_pgroup_details
+    {
+        std::string pgroup_name;
+        std::optional<proc_grp_id> pgroup_id;
+        utils::resource::resource_location config_rl;
+    };
+
+    using program_related_details = std::variant<tagged_program, missing_pgroup_details>;
+    std::map<utils::resource::resource_location, program_related_details> m_exact_pgm_conf;
+    std::vector<std::pair<program_related_details, std::regex>> m_regex_pgm_conf;
 
     struct b4g_config
     {
@@ -369,25 +343,18 @@ class workspace_configuration
         const utils::resource::resource_location& alternative_root,
         std::vector<diagnostic_s>& diags);
 
-    void process_program(missing_pgroups::maps& missing_program_pgroup_maps,
-        const config::program_mapping& pgm,
-        std::vector<diagnostic_s>& diags);
+    void process_program(
+        const config::program_mapping& pgm, name_set& missing_proc_grps, std::vector<diagnostic_s>& diags);
 
     bool is_config_file(const utils::resource::resource_location& file_location) const;
     bool is_b4g_config_file(const utils::resource::resource_location& file) const;
     std::pair<const program*, bool> get_program_normalized(
         const utils::resource::resource_location& file_location_normalized) const;
 
-    std::optional<std::pair<utils::resource::resource_location, workspace_configuration::tagged_program>>
-    try_creating_rl_tagged_pgm_pair(missing_pgroups::maps& missing_program_pgroup_maps,
-        bool default_b4g_proc_group,
-        proc_grp_id grp_id,
-        const void* tag,
-        const utils::resource::resource_location& file_root,
-        std::string_view filename = "");
+    std::optional<std::string> verify_existing_proc_grp_id(const proc_grp_id& grp_id);
 
     [[nodiscard]] utils::value_task<parse_config_file_result> parse_b4g_config_file(
-        const utils::resource::resource_location& file_location);
+        const utils::resource::resource_location& cfg_file_rl);
 
     [[nodiscard]] utils::value_task<parse_config_file_result> load_and_process_config(std::vector<diagnostic_s>& diags);
 
@@ -402,6 +369,20 @@ class workspace_configuration
         processor_group& prc_grp,
         const library_local_options& opts,
         std::vector<diagnostic_s>& diags);
+
+    const missing_pgroup_details* get_missing_pgroup_details_normalized(
+        const utils::resource::resource_location& file_location_normalized) const;
+
+    std::unordered_map<std::string, bool, utils::hashers::string_hasher, std::equal_to<>>
+    get_categorized_missing_pgroups(const utils::resource::resource_location& config_file_rl,
+        const std::unordered_set<utils::resource::resource_location, utils::resource::resource_location_hasher>&
+            opened_files) const;
+
+    void add_missing_diags(const diagnosable& target,
+        const utils::resource::resource_location& config_file_rl,
+        const std::unordered_set<utils::resource::resource_location, utils::resource::resource_location_hasher>&
+            opened_files,
+        bool consider_only_used_pgroups) const;
 
 public:
     workspace_configuration(file_manager& fm,

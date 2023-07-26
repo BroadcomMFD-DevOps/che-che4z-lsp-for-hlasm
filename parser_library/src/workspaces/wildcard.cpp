@@ -50,15 +50,13 @@ const std::string single_url_char_matcher = []() {
 }();
 } // namespace
 
-std::regex wildcard2regex(std::string wildcard) { return std::regex(wildcard2regex_pattern(std::move(wildcard))); }
-
-std::string wildcard2regex_pattern(std::string wildcard)
+std::regex wildcard2regex(std::string wildcard)
 {
     // change of double backslash to forward slash
     wildcard = std::regex_replace(wildcard, slash, "/");
     wildcard = std::regex_replace(wildcard, escape, "\\$1");
     wildcard = std::regex_replace(wildcard, question, single_url_char_matcher);
-    return std::regex_replace(wildcard, nongreedy, ".$1?");
+    return std::regex(std::regex_replace(wildcard, nongreedy, ".$1?"));
 }
 
 std::regex percent_encoded_pathmask_to_regex(std::string_view s)

@@ -22,7 +22,6 @@
 namespace hlasm_plugin::parser_library::workspaces {
 // Returns a regex that can be used for wildcard matching.
 std::regex wildcard2regex(std::string wildcard);
-std::string wildcard2regex_pattern(std::string wildcard);
 std::regex percent_encoded_pathmask_to_regex(std::string_view s);
 
 } // namespace hlasm_plugin::parser_library::workspaces
