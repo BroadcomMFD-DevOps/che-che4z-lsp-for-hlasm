@@ -393,13 +393,11 @@ TEST(workspace, toggle_non_critical_diags)
     ws.toggle_non_critical_configuration_diagnostics();
     ws.diags().clear();
     ws.collect_diags();
-    EXPECT_TRUE(matches_message_codes(ws.diags(), { "W0004", "CFG001" }));
+    EXPECT_TRUE(matches_message_codes(ws.diags(), { "W0004", "W0008" }));
 
     run_if_valid(ws.did_close_file(pgm1_loc));
     ws.diags().clear();
     ws.collect_diags();
-    // EXPECT_TRUE(matches_message_codes(ws.diags(), { "CFG001", "CFG001" })); // Todo do we want to see the config
-    // error when all relevant files are closed?
     EXPECT_TRUE(ws.diags().empty());
 
     ws.toggle_non_critical_configuration_diagnostics();
@@ -450,13 +448,11 @@ TEST(workspace, missing_diags_wildcards)
     ws.toggle_non_critical_configuration_diagnostics();
     ws.diags().clear();
     ws.collect_diags();
-    EXPECT_TRUE(matches_message_codes(ws.diags(), { "CFG001" }));
+    EXPECT_TRUE(matches_message_codes(ws.diags(), { "W0008" }));
 
     run_if_valid(ws.did_close_file(pgm1_loc));
     ws.diags().clear();
     ws.collect_diags();
-    // EXPECT_TRUE(matches_message_codes(ws.diags(), { "CFG001", "CFG001" })); // Todo do we want to see the config
-    // error when all relevant files are closed?
     EXPECT_TRUE(ws.diags().empty());
 }
 
@@ -488,13 +484,11 @@ TEST(workspace, missing_diags_wildcards_noproc)
     ws.toggle_non_critical_configuration_diagnostics();
     ws.diags().clear();
     ws.collect_diags();
-    EXPECT_TRUE(matches_message_codes(ws.diags(), { "CFG001" }));
+    EXPECT_TRUE(matches_message_codes(ws.diags(), { "W0008" }));
 
     run_if_valid(ws.did_close_file(pgm1_loc));
     ws.diags().clear();
     ws.collect_diags();
-    // EXPECT_TRUE(matches_message_codes(ws.diags(), { "CFG001", "CFG001" })); // Todo do we want to see the config
-    // error when all relevant files are closed?
     EXPECT_TRUE(ws.diags().empty());
 }
 

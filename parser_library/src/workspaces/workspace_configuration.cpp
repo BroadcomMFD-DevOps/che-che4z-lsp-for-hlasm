@@ -775,8 +775,8 @@ void workspace_configuration::add_missing_diags(const diagnosable& target,
         std::array<std::function<diagnostic_s(const utils::resource::resource_location&, std::string_view)>, 2>,
         2>
         diags_matrix { {
-            { diagnostic_s::warn_CFG001, diagnostic_s::error_B4G002 },
-            { diagnostic_s::warn_CFG001, diagnostic_s::error_W0004 },
+            { diagnostic_s::warn_B4G003, diagnostic_s::error_B4G002 },
+            { diagnostic_s::warn_W0008, diagnostic_s::error_W0004 },
         } };
 
     bool empty_cfg_rl = config_file_rl.empty();
