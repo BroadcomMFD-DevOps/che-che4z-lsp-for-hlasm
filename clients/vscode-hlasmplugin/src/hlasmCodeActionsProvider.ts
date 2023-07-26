@@ -29,7 +29,7 @@ export class HLASMCodeActionsProvider implements vscode.CodeActionProvider {
         const r = range;
         const isConfig = document.fileName.endsWith('\\.bridge.json') || document.fileName.endsWith('\\pgm_conf.json');
         const hasCriticalConfigDiags = context.diagnostics.some(x => x.code === 'W0004') || context.diagnostics.some(x => x.code === 'B4G002');
-        const hasNonCriticalConfigDiags = context.diagnostics.some(x => x.code === 'CFG001');
+        const hasNonCriticalConfigDiags = context.diagnostics.some(x => x.code === 'W0008') || context.diagnostics.some(x => x.code === 'B4G003');
         if (isConfig || hasCriticalConfigDiags || hasNonCriticalConfigDiags)
             result.push(generateShowConfigurationDiagsCodeAction(hasNonCriticalConfigDiags));
 

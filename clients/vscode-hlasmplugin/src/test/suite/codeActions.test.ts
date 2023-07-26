@@ -123,7 +123,7 @@ suite('Code actions', () => {
 
         helper.assertMatchingMessageCodes(await diagnostic_event, [2]); // 2 represents usage deprecated option in pgm_conf.json. Let's wait for it here on purpose instead of it turning up randomly
 
-        await configurationDiagnosticsHelper(file, pgmConf.document.uri, [2, 'W0004'], [2, 'W0004', 'CFG001']);
+        await configurationDiagnosticsHelper(file, pgmConf.document.uri, [2, 'W0004'], [2, 'W0004', 'W0008']);
 
         await helper.closeAllEditors();
     }).timeout(15000).slow(10000);
@@ -133,7 +133,7 @@ suite('Code actions', () => {
         const b4gPath = path.join("missing_pgroup", "b4g", bridge_json_file);
         const bridgeJson = await helper.showDocument(b4gPath);
 
-        await configurationDiagnosticsHelper(file, bridgeJson.document.uri, ['B4G002'], ['B4G002', 'CFG001']);
+        await configurationDiagnosticsHelper(file, bridgeJson.document.uri, ['B4G002'], ['B4G002', 'B4G003']);
 
         await helper.closeAllEditors();
     }).timeout(1500000).slow(10000);
