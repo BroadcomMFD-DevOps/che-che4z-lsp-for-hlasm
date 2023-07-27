@@ -39,7 +39,7 @@
 
 namespace hlasm_plugin::parser_library::workspaces {
 namespace {
-static const auto empty_alternative_cfg_root = utils::resource::resource_location();
+const utils::resource::resource_location empty_alternative_cfg_root;
 
 std::optional<std::filesystem::path> get_fs_abs_path(std::string_view path)
 {
@@ -389,7 +389,7 @@ struct
 } static constexpr proc_group_name;
 
 workspace_configuration::missing_pgroup_details workspace_configuration::new_missing_pgroup_helper(
-    name_set& missing_proc_grps, std::string missing_pgroup_name, utils::resource::resource_location config_rl)
+    name_set& missing_proc_grps, std::string missing_pgroup_name, utils::resource::resource_location config_rl) const
 {
     missing_proc_grps.insert(missing_pgroup_name);
     return missing_pgroup_details {

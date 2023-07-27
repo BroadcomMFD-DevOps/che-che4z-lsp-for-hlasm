@@ -339,8 +339,9 @@ class workspace_configuration
         const utils::resource::resource_location& alternative_root,
         std::vector<diagnostic_s>& diags);
 
-    missing_pgroup_details new_missing_pgroup_helper(
-        name_set& missing_proc_grps, std::string missing_pgroup_name, utils::resource::resource_location config_rl);
+    missing_pgroup_details new_missing_pgroup_helper(name_set& missing_proc_grps,
+        std::string missing_pgroup_name,
+        utils::resource::resource_location config_rl) const;
 
     struct pgm_conf_parameters
     {

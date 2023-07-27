@@ -35,7 +35,7 @@ public:
     void write(const nlohmann::json& m) override;
     void write(nlohmann::json&& m) override;
 
-    configuration_diagnostics_provider(hlasm_plugin::parser_library::workspace_manager& ws_mngr)
+    explicit configuration_diagnostics_provider(hlasm_plugin::parser_library::workspace_manager& ws_mngr)
         : ws_mngr(&ws_mngr)
     {}
 
