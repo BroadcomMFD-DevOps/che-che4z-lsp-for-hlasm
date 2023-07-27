@@ -157,7 +157,7 @@ export function timeout(ms: number, error_message: string | undefined = undefine
     return new Promise<void>((_, reject) => { setTimeout(() => reject(error_message && Error(error_message)), ms); });
 }
 
-export async function waitForDiagnostics(file: string | vscode.Uri, nonEmptyOnly: boolean = false) {
+export async function waitForDiagnostics(file: string | vscode.Uri, nonEmptyOnly: boolean = false, source: string | undefined = undefined) {
     const result = new Promise<vscode.Diagnostic[]>((resolve) => {
         const file_promise = typeof file === 'string' ? getWorkspaceFile(file).then(uri => uri.toString()) : Promise.resolve(file.toString());
 
@@ -170,6 +170,8 @@ export async function waitForDiagnostics(file: string | vscode.Uri, nonEmptyOnly
                     return;
                 const diags = vscode.languages.getDiagnostics(forFile);
                 if (nonEmptyOnly && diags.length === 0)
+                    return;
+                if (source && !diags.find(x => x.source === source))
                     return;
                 listener.dispose();
                 listener = null;
@@ -206,7 +208,7 @@ export async function waitForDiagnosticsChange(file: string | vscode.Uri, action
     return await result;
 }
 
-export function assertMatchingMessageCodes(diags: vscode.Diagnostic[], expectedDiags: (string | number)[], source: string | undefined = 'HLASM Plugin') {
+export function assertMatchingMessageCodes(diags: vscode.Diagnostic[], expectedDiags: (string | number)[], source: string | undefined = undefined) {
     if (source)
         diags = diags.filter(x => x.source === source);
 

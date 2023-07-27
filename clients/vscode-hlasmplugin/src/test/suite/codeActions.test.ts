@@ -82,13 +82,13 @@ suite('Code actions', () => {
         await helper.closeAllEditors();
     }).timeout(10000).slow(5000);
 
-    async function configurationDiagnosticsHelper(file: string, configFileUri: vscode.Uri, criticalDiags: (string)[], allDiags: (string)[]) {
+    async function configurationDiagnosticsHelper(file: string, configFileUri: vscode.Uri, criticalDiags: (string)[], allDiags: (string)[], diagSource: string) {
         const configRelPath = path.relative(helper.getWorkspacePath(), configFileUri.fsPath);
-        let diagnostic_event = helper.waitForDiagnostics(configRelPath);
+        let diagnostic_event = helper.waitForDiagnostics(configRelPath, false, diagSource);
 
         await helper.showDocument(file, 'hlasm');
 
-        helper.assertMatchingMessageCodes(await diagnostic_event, criticalDiags);
+        helper.assertMatchingMessageCodes(await diagnostic_event, criticalDiags, diagSource);
 
         let codeActionsList = await queryCodeActions(configFileUri, new vscode.Range(0, 0, 0, 0), 500);
 
@@ -97,10 +97,10 @@ suite('Code actions', () => {
         assert.strictEqual(codeActionsList[0].command.command, 'extension.hlasm-plugin.toggleNonCriticalConfigurationDiagnostics');
         assert.strictEqual(codeActionsList[0].command.title, 'Show all configuration diagnostics');
 
-        diagnostic_event = helper.waitForDiagnostics(configRelPath);
+        diagnostic_event = helper.waitForDiagnostics(configRelPath, false, diagSource);
         vscode.commands.executeCommand<void>(codeActionsList[0].command.command, configFileUri, new vscode.Range(0, 0, 0, 0));
 
-        helper.assertMatchingMessageCodes(await diagnostic_event, allDiags);
+        helper.assertMatchingMessageCodes(await diagnostic_event, allDiags, diagSource);
 
         codeActionsList = await queryCodeActions(configFileUri, new vscode.Range(0, 0, 0, 0), 500);
 
@@ -109,16 +109,16 @@ suite('Code actions', () => {
         assert.strictEqual(codeActionsList[0].command.command, 'extension.hlasm-plugin.toggleNonCriticalConfigurationDiagnostics');
         assert.strictEqual(codeActionsList[0].command.title, 'Show only critical configuration diagnostics');
 
-        diagnostic_event = helper.waitForDiagnostics(configRelPath);
+        diagnostic_event = helper.waitForDiagnostics(configRelPath, false, diagSource);
         vscode.commands.executeCommand<void>(codeActionsList[0].command.command, configFileUri, new vscode.Range(0, 0, 0, 0));
 
-        helper.assertMatchingMessageCodes(await diagnostic_event, criticalDiags);
+        helper.assertMatchingMessageCodes(await diagnostic_event, criticalDiags, diagSource);
     }
 
     test('Missing processor groups - pgm_conf.json', async () => {
         const pgmConf = await helper.showDocument(path.join(hlasmplugin_folder, pgm_conf_file));
 
-        await configurationDiagnosticsHelper('missing_pgroup/A.hlasm', pgmConf.document.uri, ['W0004'], ['W0004', 'W0008']);
+        await configurationDiagnosticsHelper('missing_pgroup/A.hlasm', pgmConf.document.uri, ['W0004'], ['W0004', 'W0008'], 'HLASM Plugin');
 
         await helper.closeAllEditors();
     }).timeout(15000).slow(10000);
@@ -126,8 +126,8 @@ suite('Code actions', () => {
     test('Missing processor groups - .bridge.json', async () => {
         const bridgeJson = await helper.showDocument(path.join("missing_pgroup", "b4g", bridge_json_file));
 
-        await configurationDiagnosticsHelper(path.join("missing_pgroup", "b4g", "A"), bridgeJson.document.uri, ['B4G002'], ['B4G002', 'B4G003']);
+        await configurationDiagnosticsHelper(path.join("missing_pgroup", "b4g", "A"), bridgeJson.document.uri, ['B4G002'], ['B4G002', 'B4G003'], 'HLASM Plugin');
 
         await helper.closeAllEditors();
-    }).timeout(1500000).slow(10000);
+    }).timeout(15000).slow(10000);
 });
