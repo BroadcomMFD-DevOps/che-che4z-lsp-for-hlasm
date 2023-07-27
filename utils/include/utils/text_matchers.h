@@ -132,6 +132,17 @@ public:
     }
 };
 
+class skip_to_end
+{
+public:
+    template<typename It>
+    constexpr bool operator()(It& b, const It& e) const noexcept
+    {
+        b = e;
+        return true;
+    }
+};
+
 template<typename Matcher>
 constexpr auto star(Matcher&& matcher)
 {

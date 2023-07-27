@@ -1224,7 +1224,7 @@ public:
             m::space_matcher<false, false>(),
             m::capture(matches[3], m::seq(m::byte_matcher(first_letter), m::star(m::byte_matcher(next_letter)))),
             m::space_matcher<false, false>(),
-            m::capture(matches[4], m::seq(m::not_char_matcher(" "), m::star(m::any_matcher()))));
+            m::capture(matches[4], m::seq(m::not_char_matcher(" "), m::skip_to_end())));
 
         bool ret_val = false;
         auto lineno = potential_lineno.value_or(0);
