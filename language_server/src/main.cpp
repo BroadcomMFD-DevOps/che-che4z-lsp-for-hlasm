@@ -20,7 +20,6 @@
 
 #include "json_queue_channel.h"
 
-#include "configuration_diagnostics_provider.h"
 #include "dap/dap_message_wrappers.h"
 #include "dap/dap_server.h"
 #include "dap/dap_session_manager.h"
@@ -59,7 +58,6 @@ class main_program final : public json_sink,
     telemetry_broker dap_telemetry_broker;
     dap::session_manager dap_sessions;
     virtual_file_provider virtual_files;
-    configuration_diagnostics_provider config_diags_provider;
 
     void reply(const nlohmann::json& message) final { json_output.write(message); }
 
@@ -84,12 +82,10 @@ public:
         , router(&lsp_queue)
         , dap_sessions(*this, json_output, &dap_telemetry_broker)
         , virtual_files(*ws_mngr, json_output)
-        , config_diags_provider(*ws_mngr)
     {
         router.register_route(dap_sessions.get_filtering_predicate(), dap_sessions);
         router.register_route(virtual_files.get_filtering_predicate(), virtual_files);
         router.register_route(external_files.get_filtering_predicate(), external_files);
-        router.register_route(config_diags_provider.get_filtering_predicate(), config_diags_provider);
 
         lsp_thread = std::thread([&ret, this]() {
             try

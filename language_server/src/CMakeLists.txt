@@ -14,8 +14,6 @@ target_sources(language_server_base PRIVATE
 	base_protocol_channel.cpp
 	base_protocol_channel.h
 	blocking_queue.h
-	configuration_diagnostics_provider.cpp
-	configuration_diagnostics_provider.h
 	external_file_reader.cpp
 	external_file_reader.h
 	feature.cpp
