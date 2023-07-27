@@ -206,6 +206,9 @@ export async function waitForDiagnosticsChange(file: string | vscode.Uri, action
     return await result;
 }
 
-export function assertMatchingMessageCodes(diags: vscode.Diagnostic[], expectedDiags: (string | number)[]) {
+export function assertMatchingMessageCodes(diags: vscode.Diagnostic[], expectedDiags: (string | number)[], source: string | undefined = 'HLASM Plugin') {
+    if (source)
+        diags = diags.filter(x => x.source === source);
+
     assert.deepStrictEqual(diags.map(x => x.code || '').flat().sort(), expectedDiags.sort());
 }

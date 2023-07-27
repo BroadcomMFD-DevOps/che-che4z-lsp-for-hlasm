@@ -82,13 +82,13 @@ suite('Code actions', () => {
         await helper.closeAllEditors();
     }).timeout(10000).slow(5000);
 
-    async function configurationDiagnosticsHelper(file: string, configFileUri: vscode.Uri, onlyCriticalDiags: (string | number)[], allCriticalDiags: (string | number)[]) {
+    async function configurationDiagnosticsHelper(file: string, configFileUri: vscode.Uri, criticalDiags: (string)[], allDiags: (string)[]) {
         const configRelPath = path.relative(helper.getWorkspacePath(), configFileUri.fsPath);
         let diagnostic_event = helper.waitForDiagnostics(configRelPath);
 
         await helper.showDocument(file, 'hlasm');
 
-        helper.assertMatchingMessageCodes(await diagnostic_event, onlyCriticalDiags);
+        helper.assertMatchingMessageCodes(await diagnostic_event, criticalDiags);
 
         let codeActionsList = await queryCodeActions(configFileUri, new vscode.Range(0, 0, 0, 0), 500);
 
@@ -100,7 +100,7 @@ suite('Code actions', () => {
         diagnostic_event = helper.waitForDiagnostics(configRelPath);
         vscode.commands.executeCommand<void>(codeActionsList[0].command.command, configFileUri, new vscode.Range(0, 0, 0, 0));
 
-        helper.assertMatchingMessageCodes(await diagnostic_event, allCriticalDiags);
+        helper.assertMatchingMessageCodes(await diagnostic_event, allDiags);
 
         codeActionsList = await queryCodeActions(configFileUri, new vscode.Range(0, 0, 0, 0), 500);
 
@@ -112,28 +112,21 @@ suite('Code actions', () => {
         diagnostic_event = helper.waitForDiagnostics(configRelPath);
         vscode.commands.executeCommand<void>(codeActionsList[0].command.command, configFileUri, new vscode.Range(0, 0, 0, 0));
 
-        helper.assertMatchingMessageCodes(await diagnostic_event, onlyCriticalDiags);
+        helper.assertMatchingMessageCodes(await diagnostic_event, criticalDiags);
     }
 
     test('Missing processor groups - pgm_conf.json', async () => {
-        const file = 'missing_pgroup/A.hlasm';
-        const pgmConfPath = path.join(hlasmplugin_folder, pgm_conf_file);
-        const pgmConf = await helper.showDocument(pgmConfPath);
-        const diagnostic_event = helper.waitForDiagnostics(pgmConfPath);
+        const pgmConf = await helper.showDocument(path.join(hlasmplugin_folder, pgm_conf_file));
 
-        helper.assertMatchingMessageCodes(await diagnostic_event, [2]); // 2 represents usage of deprecated option in pgm_conf.json. Let's wait for it here on purpose instead of it turning up randomly
-
-        await configurationDiagnosticsHelper(file, pgmConf.document.uri, [2, 'W0004'], [2, 'W0004', 'W0008']);
+        await configurationDiagnosticsHelper('missing_pgroup/A.hlasm', pgmConf.document.uri, ['W0004'], ['W0004', 'W0008']);
 
         await helper.closeAllEditors();
     }).timeout(15000).slow(10000);
 
     test('Missing processor groups - .bridge.json', async () => {
-        const file = path.join("missing_pgroup", "b4g", "A");
-        const b4gPath = path.join("missing_pgroup", "b4g", bridge_json_file);
-        const bridgeJson = await helper.showDocument(b4gPath);
+        const bridgeJson = await helper.showDocument(path.join("missing_pgroup", "b4g", bridge_json_file));
 
-        await configurationDiagnosticsHelper(file, bridgeJson.document.uri, ['B4G002'], ['B4G002', 'B4G003']);
+        await configurationDiagnosticsHelper(path.join("missing_pgroup", "b4g", "A"), bridgeJson.document.uri, ['B4G002'], ['B4G002', 'B4G003']);
 
         await helper.closeAllEditors();
     }).timeout(1500000).slow(10000);
