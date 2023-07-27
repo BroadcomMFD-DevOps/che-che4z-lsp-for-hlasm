@@ -67,10 +67,12 @@ public:
     // list of spaces with their counts this address contains
     std::vector<space_entry>& spaces();
     const std::vector<space_entry>& spaces() const;
-    std::vector<space_entry> normalized_spaces() const;
+    std::pair<std::vector<space_entry>, int> normalized_spaces() const&;
+    std::pair<std::vector<space_entry>, int> normalized_spaces() &&;
 
     address() = default;
     address(base address_base, int offset, const space_storage& spaces);
+    address(base address_base, int offset, space_storage&& spaces);
 
     address operator+(const address& addr) const;
     address operator+(int offs) const;

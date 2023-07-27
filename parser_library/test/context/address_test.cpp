@@ -33,11 +33,17 @@ TEST(address, normalized_spaces)
 
     space::resolve(sp1, sp2);
 
-    auto normalized = addr.normalized_spaces();
+    auto [normalized, _] = addr.normalized_spaces();
 
     ASSERT_EQ(normalized.size(), (size_t)1);
     EXPECT_EQ(normalized.front().first, sp2);
     EXPECT_EQ(normalized.front().second, (size_t)2);
+
+    auto [normalized_move, __] = std::move(addr).normalized_spaces();
+
+    ASSERT_EQ(normalized_move.size(), (size_t)1);
+    EXPECT_EQ(normalized_move.front().first, sp2);
+    EXPECT_EQ(normalized_move.front().second, (size_t)2);
 }
 
 TEST(address, has_unresolved_spaces)

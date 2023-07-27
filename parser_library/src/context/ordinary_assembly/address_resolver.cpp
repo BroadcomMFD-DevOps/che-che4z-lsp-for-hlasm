@@ -43,7 +43,7 @@ symbol_value address_resolver::resolve(dependency_solver&) const
 address address_resolver::extract_dep_address(const address& addr)
 {
     address tmp(address::base {}, 0, {});
-    auto spaces = addr.normalized_spaces();
+    auto [spaces, _] = addr.normalized_spaces();
     for (auto it = spaces.rbegin(); it != spaces.rend(); ++it)
     {
         tmp.spaces().push_back(*it);

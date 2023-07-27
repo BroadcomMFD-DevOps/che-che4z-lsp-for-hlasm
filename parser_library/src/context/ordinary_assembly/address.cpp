@@ -119,12 +119,27 @@ void insert(const address::space_entry& sp,
     std::unordered_map<space*, size_t>& normalized_map,
     std::vector<address::space_entry>& normalized_spaces)
 {
-    if (auto it = normalized_map.find(sp.first.get()); it != normalized_map.end())
+    auto* sp_ptr = sp.first.get();
+    if (auto it = normalized_map.find(sp_ptr); it != normalized_map.end())
         normalized_spaces[it->second].second += sp.second;
     else
     {
         normalized_spaces.push_back(sp);
-        normalized_map.emplace(sp.first.get(), normalized_spaces.size() - 1);
+        normalized_map.emplace(sp_ptr, normalized_spaces.size() - 1);
+    }
+}
+
+void insert(address::space_entry&& sp,
+    std::unordered_map<space*, size_t>& normalized_map,
+    std::vector<address::space_entry>& normalized_spaces)
+{
+    auto* sp_ptr = sp.first.get();
+    if (auto it = normalized_map.find(sp_ptr); it != normalized_map.end())
+        normalized_spaces[it->second].second += sp.second;
+    else
+    {
+        normalized_spaces.push_back(std::move(sp));
+        normalized_map.emplace(sp_ptr, normalized_spaces.size() - 1);
     }
 }
 
@@ -148,18 +163,50 @@ int get_unresolved_spaces(const std::vector<address::space_entry>& spaces,
     return offset;
 }
 
+int get_unresolved_spaces(std::vector<address::space_entry>&& spaces,
+    std::unordered_map<space*, size_t>& normalized_map,
+    std::vector<address::space_entry>& normalized_spaces)
+{
+    int offset = 0;
+    for (auto&& sp : spaces)
+    {
+        if (sp.first->resolved())
+        {
+            offset += sp.second
+                * (sp.first->resolved_length
+                    + get_unresolved_spaces(sp.first->resolved_ptrs, normalized_map, normalized_spaces));
+        }
+        else
+            insert(std::move(sp), normalized_map, normalized_spaces);
+    }
+
+    return offset;
+}
+
 const std::vector<address::space_entry>& address::spaces() const { return spaces_; }
 
-std::vector<address::space_entry> address::normalized_spaces() const
+std::pair<std::vector<address::space_entry>, int> address::normalized_spaces() const&
 {
     std::vector<space_entry> res_spaces;
     std::unordered_map<space*, size_t> tmp_map;
 
-    get_unresolved_spaces(spaces_, tmp_map, res_spaces);
+    int offset = get_unresolved_spaces(spaces_, tmp_map, res_spaces);
 
     std::erase_if(res_spaces, [](const space_entry& e) { return e.second == 0; });
 
-    return res_spaces;
+    return { std::move(res_spaces), offset };
+}
+
+std::pair<std::vector<address::space_entry>, int> address::normalized_spaces() &&
+{
+    std::vector<space_entry> res_spaces;
+    std::unordered_map<space*, size_t> tmp_map;
+
+    int offset = get_unresolved_spaces(std::move(spaces_), tmp_map, res_spaces);
+
+    std::erase_if(res_spaces, [](const space_entry& e) { return e.second == 0; });
+
+    return { std::move(res_spaces), offset };
 }
 
 address::address(base address_base, int offset, const space_storage& spaces)
@@ -175,15 +222,38 @@ address::address(base address_base, int offset, const space_storage& spaces)
     normalize();
 }
 
+address::address(base address_base, int offset, space_storage&& spaces)
+    : offset_(offset)
+{
+    bases_.emplace_back(address_base, 1);
+
+    spaces_.reserve(spaces.size());
+    for (auto& space : spaces)
+    {
+        spaces_.emplace_back(std::move(space), 1);
+    }
+    normalize();
+}
+
 enum class op
 {
     ADD,
     SUB
 };
 
-template<typename T>
-std::vector<T> merge_entries(const std::vector<T>& lhs, const std::vector<T>& rhs, const op operation)
+template<typename T, typename U>
+auto&& move_if_rvalue(U&& u)
 {
+    if constexpr (std::is_lvalue_reference_v<T>)
+        return u;
+    else
+        return std::move(u);
+}
+
+template<op operation, typename C1, typename C2>
+requires(std::is_same_v<std::remove_cvref_t<C1>, std::remove_cvref_t<C2>>) auto merge_entries(C1&& lhs, C2&& rhs)
+{
+    using T = std::remove_cvref_t<C1>::value_type;
     std::vector<T> res;
     std::vector<const T*> prhs;
 
@@ -191,26 +261,26 @@ std::vector<T> merge_entries(const std::vector<T>& lhs, const std::vector<T>& rh
     for (const auto& e : rhs)
         prhs.push_back(&e);
 
-    for (auto& entry : lhs)
+    for (auto&& entry : lhs)
     {
         auto it = std::find_if(prhs.begin(), prhs.end(), [&](auto e) { return e ? entry.first == e->first : false; });
 
         if (it != prhs.end())
         {
             int count;
-            if (operation == op::ADD)
+            if constexpr (operation == op::ADD)
                 count = entry.second + (*it)->second; // L + R
             else
                 count = entry.second - (*it)->second; // L - R
 
             if (count != 0)
-                res.emplace_back(entry.first, count);
+                res.emplace_back(move_if_rvalue<C1>(entry.first), count);
 
             *it = nullptr;
         }
         else
         {
-            res.push_back(entry);
+            res.push_back(move_if_rvalue<C1>(entry));
         }
     }
 
@@ -219,9 +289,9 @@ std::vector<T> merge_entries(const std::vector<T>& lhs, const std::vector<T>& rh
         if (!rest)
             continue;
 
-        res.push_back(*rest);
-        if (operation == op::SUB)
-            res.back().second *= -1;
+        res.push_back(move_if_rvalue<C2>(*rest));
+        if constexpr (operation == op::SUB)
+            res.back().second = -res.back().second;
     }
 
     return res;
@@ -229,25 +299,39 @@ std::vector<T> merge_entries(const std::vector<T>& lhs, const std::vector<T>& rh
 
 address address::operator+(const address& addr) const
 {
-    return address(merge_entries(bases_, addr.bases_, op::ADD),
-        offset() + addr.offset(),
-        merge_entries(normalized_spaces(), addr.normalized_spaces(), op::ADD));
+    auto [left_spaces, left_offset] = normalized_spaces();
+    auto [right_spaces, right_offset] = addr.normalized_spaces();
+    return address(merge_entries<op::ADD>(bases_, addr.bases_),
+        offset_ + left_offset + addr.offset_ + right_offset,
+        merge_entries<op::ADD>(std::move(left_spaces), std::move(right_spaces)));
 }
 
 address address::operator+(int offs) const { return address(bases_, offset_ + offs, spaces_); }
 
 address address::operator-(const address& addr) const
 {
-    return address(merge_entries(bases_, addr.bases_, op::SUB),
-        offset() - addr.offset(),
-        merge_entries(normalized_spaces(), addr.normalized_spaces(), op::SUB));
+    auto [left_spaces, left_offset] = normalized_spaces();
+    auto [right_spaces, right_offset] = addr.normalized_spaces();
+    return address(merge_entries<op::SUB>(bases_, addr.bases_),
+        offset_ + left_offset - addr.offset_ - right_offset,
+        merge_entries<op::SUB>(std::move(left_spaces), std::move(right_spaces)));
 }
 
-address address::operator-(int offs) const { return address(bases_, offset() - offs, normalized_spaces()); }
+address address::operator-(int offs) const
+{
+    auto [spaces, off] = normalized_spaces();
+    return address(bases_, offset_ + off - offs, std::move(spaces));
+}
 
 address address::operator-() const
 {
-    return address(merge_entries({}, bases_, op::SUB), -offset(), merge_entries({}, normalized_spaces(), op::SUB));
+    auto [spaces, off] = normalized_spaces();
+    auto inv_bases = bases_;
+    for (auto& b : inv_bases)
+        b.second = -b.second;
+    for (auto& s : spaces)
+        s.second = -s.second;
+    return address(std::move(inv_bases), -offset_ - off, std::move(spaces));
 }
 
 bool address::is_complex() const { return bases_.size() > 1; }
@@ -315,14 +399,10 @@ address::address(std::vector<base_entry> bases_, int offset_, std::vector<space_
 
 void address::normalize()
 {
-    std::vector<space_entry> res_spaces;
-    std::unordered_map<space*, size_t> tmp_map;
+    auto [spaces, off] = std::move(*this).normalized_spaces();
 
-    offset_ += get_unresolved_spaces(spaces_, tmp_map, res_spaces);
-
-    std::erase_if(res_spaces, [](const space_entry& e) { return e.second == 0; });
-
-    spaces_ = std::move(res_spaces);
+    offset_ += off;
+    spaces_ = std::move(spaces);
 }
 
 } // namespace hlasm_plugin::parser_library::context

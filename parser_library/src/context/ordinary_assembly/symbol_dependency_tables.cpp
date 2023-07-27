@@ -158,7 +158,7 @@ struct resolve_dependant_visitor
 
         const auto& addr = sym_val.get_reloc();
 
-        if (auto spaces = addr.normalized_spaces();
+        if (auto [spaces, _] = addr.normalized_spaces();
             std::find_if(spaces.begin(), spaces.end(), [&sp](const auto& e) { return e.first == sp; }) != spaces.end())
             add_diagnostic(diagnostic_op::error_E033);
 
@@ -322,10 +322,10 @@ std::vector<dependant> symbol_dependency_tables::extract_dependencies(
     }
 
     if (deps.unresolved_address)
-        for (auto& [space_id, count] : deps.unresolved_address->normalized_spaces())
+        for (auto&& [space_id, count] : std::move(deps.unresolved_address)->normalized_spaces().first)
         {
             assert(count != 0);
-            ret.push_back(space_id);
+            ret.push_back(std::move(space_id));
         }
 
 
@@ -354,11 +354,12 @@ bool symbol_dependency_tables::update_dependencies(dependency_value& d, const li
     if (!d.m_last_dependencies.empty() || d.m_has_t_attr_dependency)
         return true;
 
-    for (const auto& sp : deps.unresolved_spaces)
-        d.m_last_dependencies.emplace_back(sp);
+    d.m_last_dependencies.insert(d.m_last_dependencies.end(),
+        std::make_move_iterator(deps.unresolved_spaces.begin()),
+        std::make_move_iterator(deps.unresolved_spaces.end()));
 
     if (deps.unresolved_address)
-        for (auto&& [sp, _] : deps.unresolved_address->normalized_spaces())
+        for (auto&& [sp, _] : std::move(deps.unresolved_address)->normalized_spaces().first)
             d.m_last_dependencies.emplace_back(std::move(sp));
 
     return !d.m_last_dependencies.empty();
