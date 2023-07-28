@@ -15,5 +15,5 @@
 import * as vscodelc from 'vscode-languageclient';
 
 export function toggleNonCriticalConfigurationDiagnostics(client: vscodelc.BaseLanguageClient) {
-    client.sendRequest<void>("toggle_non_critical_configuration_diagnostics");
+    client.sendNotification("toggle_non_critical_configuration_diagnostics");
 }
