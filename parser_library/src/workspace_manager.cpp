@@ -776,6 +776,7 @@ public:
     {
         m_include_advisory_cfg_diags ^= true;
 
+        // implicit workspaces are not affected
         for (auto& [_, opened_ws] : m_workspaces)
             opened_ws.ws.include_advisory_configuration_diagnostics(m_include_advisory_cfg_diags);
 
