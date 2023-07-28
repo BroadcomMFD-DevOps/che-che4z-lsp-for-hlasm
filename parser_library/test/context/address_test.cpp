@@ -25,8 +25,7 @@ TEST(address, normalized_spaces)
     hlasm_context ctx;
     ctx.ord_ctx.set_section(id_index("TEST"), section_kind::COMMON, location(), library_info_transitional::empty);
 
-    auto sp1 = ctx.ord_ctx.current_section()->current_location_counter().set_value(
-        ctx.ord_ctx.current_section()->current_location_counter().current_address(), 0, 0, true);
+    auto sp1 = ctx.ord_ctx.current_section()->current_location_counter().set_value_undefined(0, 0);
     auto sp2 = ctx.ord_ctx.current_section()->current_location_counter().register_ordinary_space(halfword);
 
     auto addr = ctx.ord_ctx.current_section()->current_location_counter().current_address();
@@ -51,8 +50,7 @@ TEST(address, has_unresolved_spaces)
     hlasm_context ctx;
     ctx.ord_ctx.set_section(id_index("TEST"), section_kind::COMMON, location(), library_info_transitional::empty);
 
-    auto sp1 = ctx.ord_ctx.current_section()->current_location_counter().set_value(
-        ctx.ord_ctx.current_section()->current_location_counter().current_address(), 0, 0, true);
+    auto sp1 = ctx.ord_ctx.current_section()->current_location_counter().set_value_undefined(0, 0);
     auto sp2 = ctx.ord_ctx.current_section()->current_location_counter().register_ordinary_space(halfword);
 
     auto addr = ctx.ord_ctx.current_section()->current_location_counter().current_address();

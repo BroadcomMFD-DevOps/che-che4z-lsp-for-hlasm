@@ -162,7 +162,7 @@ struct resolve_dependant_visitor
             std::find_if(spaces.begin(), spaces.end(), [&sp](const auto& e) { return e.first == sp; }) != spaces.end())
             add_diagnostic(diagnostic_op::error_E033);
 
-        auto tmp_loctr = sym_ctx.current_section()->current_location_counter();
+        auto tmp_loctr_name = sym_ctx.current_section()->current_location_counter().name;
 
         sym_ctx.set_location_counter(sp->owner.name, location(), li);
         sym_ctx.current_section()->current_location_counter().switch_to_unresolved_value(sp);
@@ -177,7 +177,7 @@ struct resolve_dependant_visitor
                 add_diagnostic(diagnostic_op::error_A115_ORG_op_format);
 
             (void)sym_ctx.current_section()->current_location_counter().restore_from_unresolved_value(sp);
-            sym_ctx.set_location_counter(tmp_loctr.name, location(), li);
+            sym_ctx.set_location_counter(tmp_loctr_name, location(), li);
             return;
         }
 
@@ -185,9 +185,17 @@ struct resolve_dependant_visitor
             addr, sp->previous_boundary, sp->previous_offset, nullptr, nullptr, dep_ctx, li);
 
         auto ret = sym_ctx.current_section()->current_location_counter().restore_from_unresolved_value(sp);
-        sym_ctx.set_location_counter(tmp_loctr.name, location(), li);
+        sym_ctx.set_location_counter(tmp_loctr_name, location(), li);
 
-        context::space::resolve(sp, std::move(ret));
+        if (std::holds_alternative<space_ptr>(ret))
+            context::space::resolve(sp, std::move(std::get<space_ptr>(ret)));
+        else
+        {
+            auto& new_addr = std::get<address>(ret);
+            auto pure_offset = new_addr.unresolved_offset();
+            auto [space, offset_correction] = std::move(new_addr).normalized_spaces();
+            context::space::resolve(sp, pure_offset + offset_correction, std::move(space));
+        }
 
         if (!sym_ctx.symbol_dependencies.check_cycle(new_sp, li))
             add_diagnostic(diagnostic_op::error_E033);

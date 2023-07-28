@@ -64,9 +64,8 @@ public:
     std::vector<base_entry>& bases();
     // offset relative to bases
     int offset() const;
+    int unresolved_offset() const;
     // list of spaces with their counts this address contains
-    std::vector<space_entry>& spaces();
-    const std::vector<space_entry>& spaces() const;
     std::pair<std::vector<space_entry>, int> normalized_spaces() const&;
     std::pair<std::vector<space_entry>, int> normalized_spaces() &&;
 
@@ -86,10 +85,11 @@ public:
     bool has_dependant_space() const;
     bool has_unresolved_space() const;
 
-    void normalize();
-
 private:
     address(std::vector<base_entry> bases, int offset, std::vector<space_entry> spaces);
+
+    friend struct address_resolver;
+    friend class location_counter;
 };
 
 enum class space_kind
@@ -127,9 +127,7 @@ struct space
     // replace space with another
     static void resolve(space_ptr this_space, space_ptr value);
     // fill space with the whole address
-    static void resolve(space_ptr this_space, address value);
-    // common resolver for 2 methods above
-    static void resolve(space_ptr this_space, std::variant<space_ptr, address> value);
+    static void resolve(space_ptr this_space, int length, std::vector<address::space_entry> unresolved);
 
     bool resolved() const { return resolved_; }
     int resolved_length;
