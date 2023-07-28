@@ -390,7 +390,7 @@ TEST(workspace, missing_proc_group_diags)
     ws.collect_diags();
     EXPECT_TRUE(matches_message_codes(ws.diags(), { "W0004" }));
 
-    ws.include_non_critical_configuration_diagnostics(true);
+    ws.include_advisory_configuration_diagnostics(true);
     ws.diags().clear();
     ws.collect_diags();
     EXPECT_TRUE(matches_message_codes(ws.diags(), { "W0004", "W0008" }));
@@ -400,7 +400,7 @@ TEST(workspace, missing_proc_group_diags)
     ws.collect_diags();
     EXPECT_TRUE(ws.diags().empty());
 
-    ws.include_non_critical_configuration_diagnostics(false);
+    ws.include_advisory_configuration_diagnostics(false);
     ws.diags().clear();
     ws.collect_diags();
     EXPECT_TRUE(ws.diags().empty());
@@ -445,7 +445,7 @@ TEST(workspace, missing_proc_group_diags_wildcards)
     ws.collect_diags();
     EXPECT_TRUE(ws.diags().empty());
 
-    ws.include_non_critical_configuration_diagnostics(true);
+    ws.include_advisory_configuration_diagnostics(true);
     ws.diags().clear();
     ws.collect_diags();
     EXPECT_TRUE(matches_message_codes(ws.diags(), { "W0008" }));
@@ -481,7 +481,7 @@ TEST(workspace, missing_proc_group_diags_wildcards_noproc)
     ws.collect_diags();
     EXPECT_TRUE(ws.diags().empty());
 
-    ws.include_non_critical_configuration_diagnostics(true);
+    ws.include_advisory_configuration_diagnostics(true);
     ws.diags().clear();
     ws.collect_diags();
     EXPECT_TRUE(matches_message_codes(ws.diags(), { "W0008" }));

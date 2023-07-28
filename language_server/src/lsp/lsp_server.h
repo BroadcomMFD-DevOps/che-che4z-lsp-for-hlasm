@@ -112,7 +112,7 @@ private:
 
     void invalidate_external_configuration(const nlohmann::json& error);
 
-    void toggle_non_critical_configuration_diagnostics(const nlohmann::json&);
+    void toggle_advisory_configuration_diagnostics(const nlohmann::json&);
 };
 
 } // namespace hlasm_plugin::language_server::lsp

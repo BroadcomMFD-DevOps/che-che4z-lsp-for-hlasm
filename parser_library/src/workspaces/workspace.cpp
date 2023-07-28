@@ -265,7 +265,7 @@ workspace::workspace(const resource_location& location,
     , implicit_proc_grp("pg_implicit", {}, {})
     , global_config_(global_config)
     , m_configuration(file_manager, location_, global_settings, ecr)
-    , m_include_non_critical_cfg_diags(false)
+    , m_include_advisory_cfg_diags(false)
 {}
 
 workspace::workspace(file_manager& file_manager,
@@ -285,7 +285,7 @@ workspace::~workspace() = default;
 configuration_diagnostics_parameters workspace::get_configuration_diagnostics_params() const
 {
     configuration_diagnostics_parameters config_diags_params;
-    config_diags_params.include_non_critical_cfg_diags = m_include_non_critical_cfg_diags;
+    config_diags_params.include_advisory_cfg_diags = m_include_advisory_cfg_diags;
 
     for (const auto& [processor_file_rl, component] : m_processor_files)
     {
@@ -314,9 +314,9 @@ void workspace::collect_diags() const
     }
 }
 
-void workspace::include_non_critical_configuration_diagnostics(bool include_non_critical_cfg_diags)
+void workspace::include_advisory_configuration_diagnostics(bool include_advisory_cfg_diags)
 {
-    m_include_non_critical_cfg_diags = include_non_critical_cfg_diags;
+    m_include_advisory_cfg_diags = include_advisory_cfg_diags;
 }
 
 namespace {

@@ -298,7 +298,7 @@ TEST(b4g_integration_test, missing_pgroup)
 
     EXPECT_TRUE(matches_message_codes(ws.diags(), { "B4G002" }));
 
-    ws.include_non_critical_configuration_diagnostics(true);
+    ws.include_advisory_configuration_diagnostics(true);
     ws.diags().clear();
     ws.collect_diags();
     EXPECT_TRUE(matches_message_codes(ws.diags(), { "B4G002", "B4G003" }));
@@ -441,7 +441,7 @@ TEST(b4g_integration_test, b4g_conf_noproc_proc_group)
 
     EXPECT_TRUE(ws.diags().empty());
 
-    ws.include_non_critical_configuration_diagnostics(true);
+    ws.include_advisory_configuration_diagnostics(true);
     ws.diags().clear();
     ws.collect_diags();
 
@@ -491,7 +491,7 @@ TEST(b4g_integration_test, missing_proc_group_diags)
     ws.collect_diags();
     EXPECT_TRUE(matches_message_codes(ws.diags(), { "B4G002" }));
 
-    ws.include_non_critical_configuration_diagnostics(true);
+    ws.include_advisory_configuration_diagnostics(true);
     ws.diags().clear();
     ws.collect_diags();
     EXPECT_TRUE(matches_message_codes(ws.diags(), { "B4G002", "B4G003" }));
@@ -501,7 +501,7 @@ TEST(b4g_integration_test, missing_proc_group_diags)
     ws.collect_diags();
     EXPECT_TRUE(ws.diags().empty());
 
-    ws.include_non_critical_configuration_diagnostics(false);
+    ws.include_advisory_configuration_diagnostics(false);
     ws.diags().clear();
     ws.collect_diags();
     EXPECT_TRUE(ws.diags().empty());
@@ -542,7 +542,7 @@ TEST(b4g_integration_test, missing_proc_group_diags_wildcards)
     ws.collect_diags();
     EXPECT_TRUE(ws.diags().empty());
 
-    ws.include_non_critical_configuration_diagnostics(true);
+    ws.include_advisory_configuration_diagnostics(true);
     ws.diags().clear();
     ws.collect_diags();
     EXPECT_TRUE(matches_message_codes(ws.diags(), { "B4G003" }));
@@ -570,7 +570,7 @@ TEST(b4g_integration_test, missing_proc_group_diags_wildcards_noproc)
     ws.collect_diags();
     EXPECT_TRUE(ws.diags().empty());
 
-    ws.include_non_critical_configuration_diagnostics(true);
+    ws.include_advisory_configuration_diagnostics(true);
     ws.diags().clear();
     ws.collect_diags();
     EXPECT_TRUE(matches_message_codes(ws.diags(), { "B4G003" }));

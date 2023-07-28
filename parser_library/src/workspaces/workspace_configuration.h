@@ -110,7 +110,7 @@ struct configuration_diagnostics_parameters
         utils::resource::resource_location_hasher>
         used_configs_opened_files_map;
 
-    bool include_non_critical_cfg_diags;
+    bool include_advisory_cfg_diags;
 };
 
 enum class parse_config_file_result
@@ -392,7 +392,7 @@ class workspace_configuration
     void add_missing_diags(const diagnosable& target,
         const utils::resource::resource_location& config_file_rl,
         const std::vector<utils::resource::resource_location>& opened_files,
-        bool include_non_critical_cfg_diags) const;
+        bool include_advisory_cfg_diags) const;
 
 public:
     workspace_configuration(file_manager& fm,

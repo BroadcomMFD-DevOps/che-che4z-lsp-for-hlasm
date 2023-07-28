@@ -82,18 +82,18 @@ suite('Code actions', () => {
         await helper.closeAllEditors();
     }).timeout(10000).slow(5000);
 
-    async function configurationDiagnosticsHelper(file: string, configFileUri: vscode.Uri, criticalDiags: (string)[], allDiags: (string)[], diagSource: string) {
+    async function configurationDiagnosticsHelper(file: string, configFileUri: vscode.Uri, errorDiags: (string)[], allDiags: (string)[], diagSource: string) {
         const configRelPath = path.relative(helper.getWorkspacePath(), configFileUri.fsPath);
         let diags = await helper.waitForDiagnosticsChange(configRelPath, async () => { await helper.showDocument(file, 'hlasm'); }, diagSource);
 
-        helper.assertMatchingMessageCodes(diags, criticalDiags, diagSource);
+        helper.assertMatchingMessageCodes(diags, errorDiags, diagSource);
 
         let codeActionsList = await queryCodeActions(configFileUri, new vscode.Range(0, 0, 0, 0), 500).then(codeActionList => {
             return codeActionList.filter(x => {
                 if (!x.command)
                     return false;
 
-                return x.command.command === 'extension.hlasm-plugin.toggleNonCriticalConfigurationDiagnostics';
+                return x.command.command === 'extension.hlasm-plugin.toggleAdvisoryConfigurationDiagnostics';
             });
         });
 
@@ -109,16 +109,16 @@ suite('Code actions', () => {
                 if (!x.command)
                     return false;
 
-                return x.command.command === 'extension.hlasm-plugin.toggleNonCriticalConfigurationDiagnostics';
+                return x.command.command === 'extension.hlasm-plugin.toggleAdvisoryConfigurationDiagnostics';
             });
         });
 
         assert.equal(codeActionsList.length, 1);
-        assert.strictEqual(codeActionsList[0].command!.title, 'Show only critical configuration diagnostics');
+        assert.strictEqual(codeActionsList[0].command!.title, 'Don\'t show advisory configuration diagnostics');
 
         diags = await helper.waitForDiagnosticsChange(configRelPath, () => { vscode.commands.executeCommand(codeActionsList[0].command!.command, configFileUri, new vscode.Range(0, 0, 0, 0)); }, diagSource);
 
-        helper.assertMatchingMessageCodes(diags, criticalDiags, diagSource);
+        helper.assertMatchingMessageCodes(diags, errorDiags, diagSource);
     }
 
     test('Missing processor groups - pgm_conf.json', async () => {

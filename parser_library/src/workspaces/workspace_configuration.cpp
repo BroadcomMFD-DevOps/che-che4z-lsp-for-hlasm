@@ -769,7 +769,7 @@ workspace_configuration::get_categorized_missing_pgroups(const utils::resource::
 void workspace_configuration::add_missing_diags(const diagnosable& target,
     const utils::resource::resource_location& config_file_rl,
     const std::vector<utils::resource::resource_location>& opened_files,
-    bool include_non_critical_cfg_diags) const
+    bool include_advisory_cfg_diags) const
 {
     constexpr static diagnostic_s (*diags_matrix[2][2])(const utils::resource::resource_location&, std::string_view) = {
         { diagnostic_s::warn_B4G003, diagnostic_s::error_B4G002 },
@@ -782,7 +782,7 @@ void workspace_configuration::add_missing_diags(const diagnosable& target,
     for (const auto& categorized_missing_pgroups = get_categorized_missing_pgroups(config_file_rl, opened_files);
          const auto& [missing_pgroup_name, used] : categorized_missing_pgroups)
     {
-        if (!include_non_critical_cfg_diags && !used)
+        if (!include_advisory_cfg_diags && !used)
             continue;
 
         target.add_diagnostic(diags_matrix[empty_cfg_rl][used](adjusted_conf_rl, missing_pgroup_name));
@@ -814,7 +814,7 @@ void workspace_configuration::produce_diagnostics(
                 target.add_diagnostic(d);
         }
 
-        add_missing_diags(target, config_rl, opened_files, config_diag_params.include_non_critical_cfg_diags);
+        add_missing_diags(target, config_rl, opened_files, config_diag_params.include_advisory_cfg_diags);
     }
 }
 

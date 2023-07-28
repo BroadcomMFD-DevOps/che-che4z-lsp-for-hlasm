@@ -14,21 +14,21 @@
 
 import * as vscode from 'vscode';
 
-export function generateShowCriticalConfigurationDiagsCodeAction(showOnlyCritical: boolean): vscode.CodeAction {
-    return showOnlyCritical ?
-        {
-            title: 'Show only critical configuration diagnostics',
-            command: {
-                title: 'Show only critical configuration diagnostics',
-                command: 'extension.hlasm-plugin.toggleNonCriticalConfigurationDiagnostics'
-            },
-            kind: vscode.CodeActionKind.QuickFix
-        } :
+export function generateShowAllConfigurationDiagsCodeAction(showAlsoAdvisory: boolean): vscode.CodeAction {
+    return showAlsoAdvisory ?
         {
             title: 'Show all configuration diagnostics',
             command: {
                 title: 'Show all configuration diagnostics',
-                command: 'extension.hlasm-plugin.toggleNonCriticalConfigurationDiagnostics'
+                command: 'extension.hlasm-plugin.toggleAdvisoryConfigurationDiagnostics'
+            },
+            kind: vscode.CodeActionKind.QuickFix
+        } :
+        {
+            title: 'Don\'t show advisory configuration diagnostics',
+            command: {
+                title: 'Don\'t show advisory configuration diagnostics',
+                command: 'extension.hlasm-plugin.toggleAdvisoryConfigurationDiagnostics'
             },
             kind: vscode.CodeActionKind.QuickFix
         };

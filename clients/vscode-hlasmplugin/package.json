@@ -294,9 +294,9 @@
         "title": "Clear remote files cache"
       },
       {
-        "command": "extension.hlasm-plugin.toggleNonCriticalConfigurationDiagnostics",
+        "command": "extension.hlasm-plugin.toggleAdvisoryConfigurationDiagnostics",
         "category": "HLASM",
-        "title": "Toggle non-critical configuration diagnostics"
+        "title": "Toggle advisory configuration diagnostics"
       }
     ],
     "keybindings": [

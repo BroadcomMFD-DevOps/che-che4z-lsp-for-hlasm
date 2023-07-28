@@ -15,7 +15,7 @@
 import * as vscode from 'vscode';
 import * as vscodelc from 'vscode-languageclient';
 import { retrieveConfigurationNodes } from './configurationNodes';
-import { generateShowCriticalConfigurationDiagsCodeAction } from './code_actions/showCriticalConfigurationDiagnosticsAction'
+import { generateShowAllConfigurationDiagsCodeAction } from './code_actions/showAdvisoryConfigurationDiagnosticsAction'
 import { generateOpcodeSuggestionsCodeActions } from './code_actions/opcodeSuggestionsActions'
 import { generateDownloadDependenciesCodeActions } from './code_actions/downloadDependenciesActions'
 import { generateConfigurationFilesCodeActions } from './code_actions/configurationFilesActions'
@@ -27,10 +27,10 @@ export class HLASMCodeActionsProvider implements vscode.CodeActionProvider {
         const result: vscode.CodeAction[] = [];
 
         const isConfig = document.uri.path.endsWith('/.bridge.json') || document.uri.path.endsWith('/pgm_conf.json');
-        const hasCriticalConfigDiags = context.diagnostics.some(x => x.code === 'W0004') || context.diagnostics.some(x => x.code === 'B4G002');
-        const hasNonCriticalConfigDiags = context.diagnostics.some(x => x.code === 'W0008') || context.diagnostics.some(x => x.code === 'B4G003');
-        if (isConfig || hasCriticalConfigDiags || hasNonCriticalConfigDiags)
-            result.push(generateShowCriticalConfigurationDiagsCodeAction(hasNonCriticalConfigDiags));
+        const hasConfigErrors = context.diagnostics.some(x => x.code === 'W0004') || context.diagnostics.some(x => x.code === 'B4G002');
+        const hasConfigWarnings = context.diagnostics.some(x => x.code === 'W0008') || context.diagnostics.some(x => x.code === 'B4G003');
+        if (isConfig || hasConfigErrors || hasConfigWarnings)
+            result.push(generateShowAllConfigurationDiagsCodeAction(!hasConfigWarnings));
 
         const E049 = context.diagnostics.filter(x => x.code === 'E049');
         if (E049.length > 0)

@@ -66,7 +66,7 @@ class workspace_manager_impl final : public workspace_manager,
     static constexpr lib_config supress_all { 0 };
     using resource_location = utils::resource::resource_location;
 
-    bool m_include_non_critical_cfg_diags = false;
+    bool m_include_advisory_cfg_diags = false;
 
     struct opened_workspace
     {
@@ -772,12 +772,12 @@ public:
         return make_continuous_sequence(m_file_manager.get_virtual_file(id));
     }
 
-    void toggle_non_critical_configuration_diagnostics() override
+    void toggle_advisory_configuration_diagnostics() override
     {
-        m_include_non_critical_cfg_diags ^= true;
+        m_include_advisory_cfg_diags ^= true;
 
         for (auto& [_, opened_ws] : m_workspaces)
-            opened_ws.ws.include_non_critical_configuration_diagnostics(m_include_non_critical_cfg_diags);
+            opened_ws.ws.include_advisory_configuration_diagnostics(m_include_advisory_cfg_diags);
 
         notify_diagnostics_consumers();
     }
@@ -985,7 +985,7 @@ private:
                             static_cast<external_configuration_requests*>(this))
                         .first->second;
         ows.ws.set_message_consumer(m_message_consumer);
-        ows.ws.include_non_critical_configuration_diagnostics(m_include_non_critical_cfg_diags);
+        ows.ws.include_advisory_configuration_diagnostics(m_include_advisory_cfg_diags);
 
         auto& new_workspace = m_work_queue.emplace_back(work_item {
             next_unique_id(),

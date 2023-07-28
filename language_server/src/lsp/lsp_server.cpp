@@ -231,7 +231,7 @@ void server::register_methods()
     add_method("exit", &server::on_exit);
     add_method("$/cancelRequest", &server::cancel_request_handler);
     add_method("invalidate_external_configuration", &server::invalidate_external_configuration);
-    add_method("toggle_non_critical_configuration_diagnostics", &server::toggle_non_critical_configuration_diagnostics);
+    add_method("toggle_advisory_configuration_diagnostics", &server::toggle_advisory_configuration_diagnostics);
 }
 
 void server::send_telemetry(const telemetry_message& message) { notify("telemetry/event", nlohmann::json(message)); }
@@ -486,9 +486,9 @@ void server::invalidate_external_configuration(const nlohmann::json& data)
         ws_mngr.invalidate_external_configuration({});
 }
 
-void server::toggle_non_critical_configuration_diagnostics(const nlohmann::json&)
+void server::toggle_advisory_configuration_diagnostics(const nlohmann::json&)
 {
-    ws_mngr.toggle_non_critical_configuration_diagnostics();
+    ws_mngr.toggle_advisory_configuration_diagnostics();
 }
 
 } // namespace hlasm_plugin::language_server::lsp

@@ -89,7 +89,7 @@ public:
     ~workspace();
 
     void collect_diags() const override;
-    void include_non_critical_configuration_diagnostics(bool include_non_critical_cfg_diags);
+    void include_advisory_configuration_diagnostics(bool include_advisory_cfg_diags);
 
     [[nodiscard]] utils::task mark_file_for_parsing(
         const resource_location& file_location, file_content_state file_content_status);
@@ -163,7 +163,7 @@ private:
 
     workspace_configuration m_configuration;
 
-    bool m_include_non_critical_cfg_diags;
+    bool m_include_advisory_cfg_diags;
 
     struct dependency_cache
     {
