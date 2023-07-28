@@ -620,13 +620,13 @@ utils::value_task<parse_config_file_result> workspace_configuration::parse_b4g_c
     auto [it, inserted] = m_b4g_config_cache.try_emplace(cfg_file_rl);
     if (!inserted)
     {
-        const auto is_erase_candidate = [tag = std::to_address(it)](const program_related_details& p_rel_details) {
-            const auto tagged_pgm = std::get_if<tagged_program>(&p_rel_details);
+        const auto has_matching_tag = [tag = std::to_address(it)](const program_related_details& p_rel_details) {
+            const auto* tagged_pgm = std::get_if<tagged_program>(&p_rel_details);
             return tagged_pgm && tagged_pgm->tag == tag;
         };
 
-        std::erase_if(m_exact_pgm_conf, [&is_erase_candidate](const auto& e) { return is_erase_candidate(e.second); });
-        std::erase_if(m_regex_pgm_conf, [&is_erase_candidate](const auto& e) { return is_erase_candidate(e.first); });
+        std::erase_if(m_exact_pgm_conf, [&has_matching_tag](const auto& e) { return has_matching_tag(e.second); });
+        std::erase_if(m_regex_pgm_conf, [&has_matching_tag](const auto& e) { return has_matching_tag(e.first); });
         std::erase_if(m_proc_grps, [&alternative_root](const auto& e) {
             const auto* b4g = std::get_if<b4g_conf>(&e.first);
             return b4g && b4g->bridge_json_uri == alternative_root;
@@ -760,7 +760,7 @@ workspace_configuration::get_categorized_missing_pgroups(const utils::resource::
 
     for (const auto& opened_file : opened_files)
     {
-        if (const auto missing_details = get_missing_pgroup_details_normalized(opened_file))
+        if (const auto missing_details = get_missing_pgroup_details(opened_file))
             categorized_missing_pgroups[missing_details->pgroup_name] = true;
     }
 
@@ -773,13 +773,10 @@ void workspace_configuration::add_missing_diags(const diagnosable& target,
         opened_files,
     bool include_non_critical_cfg_diags) const
 {
-    static const std::array<
-        std::array<std::function<diagnostic_s(const utils::resource::resource_location&, std::string_view)>, 2>,
-        2>
-        diags_matrix { {
-            { diagnostic_s::warn_B4G003, diagnostic_s::error_B4G002 },
-            { diagnostic_s::warn_W0008, diagnostic_s::error_W0004 },
-        } };
+    constexpr static diagnostic_s (*diags_matrix[2][2])(const utils::resource::resource_location&, std::string_view) = {
+        { diagnostic_s::warn_B4G003, diagnostic_s::error_B4G002 },
+        { diagnostic_s::warn_W0008, diagnostic_s::error_W0004 },
+    };
 
     bool empty_cfg_rl = config_file_rl.empty();
     const auto& adjusted_conf_rl = empty_cfg_rl ? m_pgm_conf_loc : config_file_rl;
@@ -794,7 +791,7 @@ void workspace_configuration::add_missing_diags(const diagnosable& target,
     }
 }
 
-void workspace_configuration::generate_and_copy_diagnostics(
+void workspace_configuration::produce_diagnostics(
     const diagnosable& target, const configuration_diagnostics_parameters& config_diag_params) const
 {
     for (auto& [key, pg] : m_proc_grps)
@@ -947,16 +944,16 @@ std::pair<const program*, bool> workspace_configuration::get_program_normalized(
     return { nullptr, false };
 }
 
-const workspace_configuration::missing_pgroup_details* workspace_configuration::get_missing_pgroup_details_normalized(
-    const utils::resource::resource_location& file_location_normalized) const
+const workspace_configuration::missing_pgroup_details* workspace_configuration::get_missing_pgroup_details(
+    const utils::resource::resource_location& file_location) const
 {
     // direct match
-    if (auto pgm_details = m_exact_pgm_conf.find(file_location_normalized); pgm_details != m_exact_pgm_conf.cend())
+    if (auto pgm_details = m_exact_pgm_conf.find(file_location); pgm_details != m_exact_pgm_conf.cend())
         return std::get_if<missing_pgroup_details>(&pgm_details->second);
 
     for (const auto& [pgm_details, pattern] : m_regex_pgm_conf)
     {
-        if (std::regex_match(file_location_normalized.get_uri(), pattern))
+        if (std::regex_match(file_location.get_uri(), pattern))
             return std::get_if<missing_pgroup_details>(&pgm_details);
     }
 
@@ -1042,19 +1039,19 @@ void workspace_configuration::update_external_configuration(
 
 void workspace_configuration::prune_external_processor_groups(const utils::resource::resource_location& location)
 {
-    constexpr auto is_erase_candidate = [](const program_related_details& pgm_rel_details) {
-        const auto& tagged_pgm = std::get_if<tagged_program>(&pgm_rel_details);
+    constexpr auto is_external = [](const program_related_details& pgm_rel_details) {
+        const auto* tagged_pgm = std::get_if<tagged_program>(&pgm_rel_details);
         return tagged_pgm && tagged_pgm->pgm.external;
     };
 
     if (!location.empty())
     {
         if (auto p = m_exact_pgm_conf.find(location.lexically_normal());
-            p != m_exact_pgm_conf.end() && is_erase_candidate(p->second))
+            p != m_exact_pgm_conf.end() && is_external(p->second))
             m_exact_pgm_conf.erase(p);
     }
     else
-        std::erase_if(m_exact_pgm_conf, [&is_erase_candidate](const auto& p) { return is_erase_candidate(p.second); });
+        std::erase_if(m_exact_pgm_conf, [&is_external](const auto& p) { return is_external(p.second); });
 
     std::erase_if(m_proc_grps, [](const auto& pg) {
         const auto* e = std::get_if<external_conf>(&pg.first);

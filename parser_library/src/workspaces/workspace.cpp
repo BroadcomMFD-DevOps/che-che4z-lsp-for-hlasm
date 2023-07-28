@@ -297,7 +297,7 @@ configuration_diagnostics_parameters workspace::get_configuration_diagnostics_pa
 
 void workspace::collect_diags() const
 {
-    m_configuration.generate_and_copy_diagnostics(*this, get_configuration_diagnostics_params());
+    m_configuration.produce_diagnostics(*this, get_configuration_diagnostics_params());
 
     for (const auto& [url, pfc] : m_processor_files)
     {

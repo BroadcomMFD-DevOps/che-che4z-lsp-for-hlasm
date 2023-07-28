@@ -382,8 +382,8 @@ class workspace_configuration
         const library_local_options& opts,
         std::vector<diagnostic_s>& diags);
 
-    const missing_pgroup_details* get_missing_pgroup_details_normalized(
-        const utils::resource::resource_location& file_location_normalized) const;
+    const missing_pgroup_details* get_missing_pgroup_details(
+        const utils::resource::resource_location& file_location) const;
 
     std::unordered_map<std::string, bool, utils::hashers::string_hasher, std::equal_to<>>
     get_categorized_missing_pgroups(const utils::resource::resource_location& config_file_rl,
@@ -417,7 +417,7 @@ public:
     [[nodiscard]] utils::value_task<std::optional<std::vector<const processor_group*>>> refresh_libraries(
         const std::vector<utils::resource::resource_location>& file_locations);
 
-    void generate_and_copy_diagnostics(
+    void produce_diagnostics(
         const diagnosable& target, const configuration_diagnostics_parameters& config_diag_params) const;
 
     const processor_group& get_proc_grp(const proc_grp_id& p) const; // test only
