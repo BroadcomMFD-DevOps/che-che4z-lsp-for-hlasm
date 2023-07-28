@@ -746,8 +746,7 @@ void workspace_configuration::find_and_add_libs(const utils::resource::resource_
 
 std::unordered_map<std::string, bool, utils::hashers::string_hasher, std::equal_to<>>
 workspace_configuration::get_categorized_missing_pgroups(const utils::resource::resource_location& config_file_rl,
-    const std::unordered_set<utils::resource::resource_location, utils::resource::resource_location_hasher>&
-        opened_files) const
+    const std::vector<utils::resource::resource_location>& opened_files) const
 {
     auto missing_proc_grps_it = m_missing_proc_grps.find(config_file_rl);
     if (missing_proc_grps_it == m_missing_proc_grps.end())
@@ -769,8 +768,7 @@ workspace_configuration::get_categorized_missing_pgroups(const utils::resource::
 
 void workspace_configuration::add_missing_diags(const diagnosable& target,
     const utils::resource::resource_location& config_file_rl,
-    const std::unordered_set<utils::resource::resource_location, utils::resource::resource_location_hasher>&
-        opened_files,
+    const std::vector<utils::resource::resource_location>& opened_files,
     bool include_non_critical_cfg_diags) const
 {
     constexpr static diagnostic_s (*diags_matrix[2][2])(const utils::resource::resource_location&, std::string_view) = {

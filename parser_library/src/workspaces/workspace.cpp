@@ -265,6 +265,7 @@ workspace::workspace(const resource_location& location,
     , implicit_proc_grp("pg_implicit", {}, {})
     , global_config_(global_config)
     , m_configuration(file_manager, location_, global_settings, ecr)
+    , m_include_non_critical_cfg_diags(false)
 {}
 
 workspace::workspace(file_manager& file_manager,
@@ -289,7 +290,8 @@ configuration_diagnostics_parameters workspace::get_configuration_diagnostics_pa
     for (const auto& [processor_file_rl, component] : m_processor_files)
     {
         if (component.m_opened)
-            config_diags_params.used_configs_opened_files_map[component.m_alternative_config].insert(processor_file_rl);
+            config_diags_params.used_configs_opened_files_map[component.m_alternative_config].emplace_back(
+                processor_file_rl);
     }
 
     return config_diags_params;

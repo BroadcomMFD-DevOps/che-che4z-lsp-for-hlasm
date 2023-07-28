@@ -774,7 +774,7 @@ public:
 
     void toggle_non_critical_configuration_diagnostics() override
     {
-        std::exchange(m_include_non_critical_cfg_diags, !m_include_non_critical_cfg_diags);
+        m_include_non_critical_cfg_diags ^= true;
 
         for (auto& [_, opened_ws] : m_workspaces)
             opened_ws.ws.include_non_critical_configuration_diagnostics(m_include_non_critical_cfg_diags);
@@ -985,6 +985,7 @@ private:
                             static_cast<external_configuration_requests*>(this))
                         .first->second;
         ows.ws.set_message_consumer(m_message_consumer);
+        ows.ws.include_non_critical_configuration_diagnostics(m_include_non_critical_cfg_diags);
 
         auto& new_workspace = m_work_queue.emplace_back(work_item {
             next_unique_id(),

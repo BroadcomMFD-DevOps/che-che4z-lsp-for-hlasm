@@ -359,5 +359,5 @@ TEST(lsp_server_test, toggle_non_critical_configuration_diagnostics)
     EXPECT_CALL(ws_mngr, toggle_non_critical_configuration_diagnostics());
 
     s.message_received(
-        R"({"jsonrpc":"2.0","method":"toggle_non_critical_configuration_diagnostics","params":{"uri":"scheme:path"}})"_json);
+        R"({"jsonrpc":"2.0","method":"toggle_non_critical_configuration_diagnostics","params":[null]})"_json);
 }

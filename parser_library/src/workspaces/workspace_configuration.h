@@ -106,7 +106,7 @@ struct program
 struct configuration_diagnostics_parameters
 {
     std::unordered_map<utils::resource::resource_location,
-        std::unordered_set<utils::resource::resource_location, utils::resource::resource_location_hasher>,
+        std::vector<utils::resource::resource_location>,
         utils::resource::resource_location_hasher>
         used_configs_opened_files_map;
 
@@ -387,13 +387,11 @@ class workspace_configuration
 
     std::unordered_map<std::string, bool, utils::hashers::string_hasher, std::equal_to<>>
     get_categorized_missing_pgroups(const utils::resource::resource_location& config_file_rl,
-        const std::unordered_set<utils::resource::resource_location, utils::resource::resource_location_hasher>&
-            opened_files) const;
+        const std::vector<utils::resource::resource_location>& opened_files) const;
 
     void add_missing_diags(const diagnosable& target,
         const utils::resource::resource_location& config_file_rl,
-        const std::unordered_set<utils::resource::resource_location, utils::resource::resource_location_hasher>&
-            opened_files,
+        const std::vector<utils::resource::resource_location>& opened_files,
         bool include_non_critical_cfg_diags) const;
 
 public:

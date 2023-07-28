@@ -163,7 +163,7 @@ private:
 
     workspace_configuration m_configuration;
 
-    bool m_include_non_critical_cfg_diags = false;
+    bool m_include_non_critical_cfg_diags;
 
     struct dependency_cache
     {
