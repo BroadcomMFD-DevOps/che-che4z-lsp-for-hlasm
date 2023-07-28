@@ -84,35 +84,41 @@ suite('Code actions', () => {
 
     async function configurationDiagnosticsHelper(file: string, configFileUri: vscode.Uri, criticalDiags: (string)[], allDiags: (string)[], diagSource: string) {
         const configRelPath = path.relative(helper.getWorkspacePath(), configFileUri.fsPath);
-        let diagnostic_event = helper.waitForDiagnostics(configRelPath, false, diagSource);
+        let diags = await helper.waitForDiagnosticsChange(configRelPath, async () => { await helper.showDocument(file, 'hlasm'); }, diagSource);
 
-        await helper.showDocument(file, 'hlasm');
+        helper.assertMatchingMessageCodes(diags, criticalDiags, diagSource);
 
-        helper.assertMatchingMessageCodes(await diagnostic_event, criticalDiags, diagSource);
+        let codeActionsList = await queryCodeActions(configFileUri, new vscode.Range(0, 0, 0, 0), 500).then(codeActionList => {
+            return codeActionList.filter(x => {
+                if (!x.command)
+                    return false;
 
-        let codeActionsList = await queryCodeActions(configFileUri, new vscode.Range(0, 0, 0, 0), 500);
-
-        assert.equal(codeActionsList.length, 1);
-        assert.ok(codeActionsList[0].command);
-        assert.strictEqual(codeActionsList[0].command.command, 'extension.hlasm-plugin.toggleNonCriticalConfigurationDiagnostics');
-        assert.strictEqual(codeActionsList[0].command.title, 'Show all configuration diagnostics');
-
-        diagnostic_event = helper.waitForDiagnostics(configRelPath, false, diagSource);
-        vscode.commands.executeCommand<void>(codeActionsList[0].command.command, configFileUri, new vscode.Range(0, 0, 0, 0));
-
-        helper.assertMatchingMessageCodes(await diagnostic_event, allDiags, diagSource);
-
-        codeActionsList = await queryCodeActions(configFileUri, new vscode.Range(0, 0, 0, 0), 500);
+                return x.command.command === 'extension.hlasm-plugin.toggleNonCriticalConfigurationDiagnostics';
+            });
+        });
 
         assert.equal(codeActionsList.length, 1);
-        assert.ok(codeActionsList[0].command);
-        assert.strictEqual(codeActionsList[0].command.command, 'extension.hlasm-plugin.toggleNonCriticalConfigurationDiagnostics');
-        assert.strictEqual(codeActionsList[0].command.title, 'Show only critical configuration diagnostics');
+        assert.strictEqual(codeActionsList[0].command!.title, 'Show all configuration diagnostics');
 
-        diagnostic_event = helper.waitForDiagnostics(configRelPath, false, diagSource);
-        vscode.commands.executeCommand<void>(codeActionsList[0].command.command, configFileUri, new vscode.Range(0, 0, 0, 0));
+        diags = await helper.waitForDiagnosticsChange(configRelPath, () => { vscode.commands.executeCommand(codeActionsList[0].command!.command, configFileUri, new vscode.Range(0, 0, 0, 0)); }, diagSource);
 
-        helper.assertMatchingMessageCodes(await diagnostic_event, criticalDiags, diagSource);
+        helper.assertMatchingMessageCodes(diags, allDiags, diagSource);
+
+        codeActionsList = await queryCodeActions(configFileUri, new vscode.Range(0, 0, 0, 0), 500).then(codeActionList => {
+            return codeActionList.filter(x => {
+                if (!x.command)
+                    return false;
+
+                return x.command.command === 'extension.hlasm-plugin.toggleNonCriticalConfigurationDiagnostics';
+            });
+        });
+
+        assert.equal(codeActionsList.length, 1);
+        assert.strictEqual(codeActionsList[0].command!.title, 'Show only critical configuration diagnostics');
+
+        diags = await helper.waitForDiagnosticsChange(configRelPath, () => { vscode.commands.executeCommand(codeActionsList[0].command!.command, configFileUri, new vscode.Range(0, 0, 0, 0)); }, diagSource);
+
+        helper.assertMatchingMessageCodes(diags, criticalDiags, diagSource);
     }
 
     test('Missing processor groups - pgm_conf.json', async () => {

@@ -20,6 +20,5 @@ export const bridge_json_file = '.bridge.json';
 export const hlasmplugin_folder = '.hlasmplugin';
 export const ebg_folder = '.ebg';
 
-export const pgm_conf_filter: vscode.DocumentFilter = { language: 'json', pattern: '**/pgm_conf.json' };
-export const proc_grps_filter: vscode.DocumentFilter = { language: 'json', pattern: '**/proc_grps.json' };
+export const hlasmplugin_folder_filter: vscode.DocumentFilter = { language: 'json', pattern: '**/.hlasmplugin/*' };
 export const bridge_json_filter: vscode.DocumentFilter = { language: 'json', pattern: '**/.bridge.json' };

@@ -157,6 +157,9 @@ export function timeout(ms: number, error_message: string | undefined = undefine
     return new Promise<void>((_, reject) => { setTimeout(() => reject(error_message && Error(error_message)), ms); });
 }
 
+/**
+ * @deprecated Use `waitForDiagnosticsChange()` instead
+ */
 export async function waitForDiagnostics(file: string | vscode.Uri, nonEmptyOnly: boolean = false, source: string | undefined = undefined) {
     const result = new Promise<vscode.Diagnostic[]>((resolve) => {
         const file_promise = typeof file === 'string' ? getWorkspaceFile(file).then(uri => uri.toString()) : Promise.resolve(file.toString());
@@ -183,7 +186,7 @@ export async function waitForDiagnostics(file: string | vscode.Uri, nonEmptyOnly
     return result;
 }
 
-export async function waitForDiagnosticsChange(file: string | vscode.Uri, action: () => PromiseLike<void> | void) {
+export async function waitForDiagnosticsChange(file: string | vscode.Uri, action: () => PromiseLike<void> | void, source: string | undefined = undefined) {
     const fileUri = typeof file === 'string' ? await getWorkspaceFile(file) : file;
 
     const initialDiags = vscode.languages.getDiagnostics(fileUri).map(x => JSON.stringify(x)).sort();
@@ -195,9 +198,14 @@ export async function waitForDiagnosticsChange(file: string | vscode.Uri, action
             const forFile = e.uris.find(v => v.toString() === fileUri.toString());
             if (!forFile)
                 return;
-            const diags = vscode.languages.getDiagnostics(forFile);
+            let diags = vscode.languages.getDiagnostics(forFile);
             if (diags.length === initialDiags.length && diags.map(x => JSON.stringify(x)).sort().every((x, i) => x === initialDiags[i]))
                 return;
+            if (source) {
+                diags = diags.filter(d => { return d.source === source });
+                if (diags.length === 0)
+                    return;
+            }
             listener.dispose();
             listener = null;
             resolve(diags);
