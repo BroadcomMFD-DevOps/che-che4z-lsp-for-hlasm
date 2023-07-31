@@ -108,6 +108,7 @@ struct location_counter_data
     space_ptr fist_space() const;
     space_ptr last_space() const;
     space_storage spaces() const;
+    std::shared_ptr<std::vector<address::space_entry>> pseudo_relative_spaces() const;
 };
 
 } // namespace hlasm_plugin::parser_library::context

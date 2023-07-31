@@ -166,3 +166,12 @@ space_storage location_counter_data::spaces() const
         res.push_back(e.unknown_space);
     return res;
 }
+
+std::shared_ptr<std::vector<address::space_entry>> location_counter_data::pseudo_relative_spaces() const
+{
+    auto result = std::make_shared<std::vector<address::space_entry>>();
+    result->reserve(unknown_parts.size());
+    for (const auto& e : unknown_parts)
+        result->emplace_back(e.unknown_space, 1);
+    return result;
+}

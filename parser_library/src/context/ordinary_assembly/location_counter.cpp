@@ -104,7 +104,7 @@ std::pair<address, space_ptr> location_counter::set_value(const address& addr, s
     auto diff = curr_addr - addr;
     auto diff_offset = diff.offset();
 
-    if (!diff.bases().empty() || !diff.spaces_.empty() || diff_offset > curr_data().current_safe_area
+    if (!diff.bases().empty() || diff.has_spaces() || diff_offset > curr_data().current_safe_area
         || (boundary && diff_offset > curr_data().current_safe_area + offset))
     {
         // when addr is composed of different spaces or falls outside safe area, register space
@@ -151,25 +151,33 @@ std::pair<space_ptr, std::vector<address>> location_counter::set_available_value
     // and register space that will represent the highest loctr value
 
     std::vector<address> addr_arr;
-
-    for (auto& entry : org_data_)
-        addr_arr.emplace_back(address::base { &owner, id_index() }, entry.storage, entry.spaces());
-
     space_ptr loctr_start = nullptr;
     if (kind == loctr_kind::NONSTARTING)
     {
-        loctr_start = addr_arr.front().spaces_.front().first;
+        loctr_start = org_data_.front().fist_space();
         assert(loctr_start->kind == space_kind::LOCTR_BEGIN);
-        for (auto& addr : addr_arr)
+    }
+
+    for (auto& entry : org_data_)
+    {
+        auto spaces = entry.pseudo_relative_spaces();
+
+        if (kind == loctr_kind::NONSTARTING)
         {
             // make addresses (pseudo-)relative to current location counter
-            if (addr.spaces_.front().first->kind == space_kind::LOCTR_BEGIN)
-                addr.spaces_.erase(addr.spaces_.begin());
-            else if (addr.spaces_.front().first->kind == space_kind::LOCTR_SET)
-                addr.spaces_.emplace_back(loctr_start, -1);
-            else if (addr.spaces_.front().first->kind == space_kind::LOCTR_UNKNOWN)
-                addr.spaces_.emplace_back(loctr_start, -1);
+            if (spaces->front().first->kind == space_kind::LOCTR_BEGIN)
+                spaces->erase(spaces->begin());
+            else if (spaces->front().first->kind == space_kind::LOCTR_SET)
+                spaces->push_back({ loctr_start, -1 });
+            else if (spaces->front().first->kind == space_kind::LOCTR_UNKNOWN)
+                spaces->push_back({ loctr_start, -1 });
         }
+
+        addr_arr.push_back({
+            std::vector<address::base_entry> { { address::base { &owner, id_index() }, 1 } },
+            entry.storage,
+            std::move(spaces),
+        });
     }
 
     org_data_.emplace_back(loctr_data_kind::POTENTIAL_MAX);
