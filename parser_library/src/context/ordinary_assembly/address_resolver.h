@@ -67,7 +67,7 @@ struct aggregate_address_resolver final : public address_resolver_base
     dependency_collector get_dependencies(dependency_solver& solver) const override;
 
 private:
-    mutable size_t lest_base_addrs;
+    mutable size_t last_base_addrs;
     std::vector<address> base_addrs;
     size_t boundary;
     int offset;

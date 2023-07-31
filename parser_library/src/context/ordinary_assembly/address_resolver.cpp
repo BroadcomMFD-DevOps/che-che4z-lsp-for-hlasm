@@ -48,7 +48,7 @@ address address_resolver::extract_dep_address(const address& addr, size_t bounda
     });
     if (enough != spaces.rend())
         spaces.erase(spaces.begin(), std::prev(enough.base()));
-    return address({}, 0, std::move(spaces));
+    return address({}, 0, std::make_shared<std::vector<address::space_entry>>(std::move(spaces)));
 }
 
 alignable_address_resolver::alignable_address_resolver(
@@ -88,7 +88,7 @@ symbol_value alignable_address_abs_part_resolver::resolve(dependency_solver& sol
 }
 
 aggregate_address_resolver::aggregate_address_resolver(std::vector<address> base_addrs, size_t boundary, int offset)
-    : lest_base_addrs(base_addrs.size() - 1)
+    : last_base_addrs(base_addrs.size() - 1)
     , base_addrs(std::move(base_addrs))
     , boundary(boundary)
     , offset(offset)
@@ -113,13 +113,13 @@ symbol_value aggregate_address_resolver::resolve(dependency_solver&) const
 
 dependency_collector aggregate_address_resolver::get_dependencies(dependency_solver&) const
 {
-    while (lest_base_addrs != -1)
+    while (last_base_addrs != -1)
     {
-        auto addr = address_resolver::extract_dep_address(base_addrs[lest_base_addrs], boundary);
+        auto addr = address_resolver::extract_dep_address(base_addrs[last_base_addrs], boundary);
         if (addr.has_unresolved_space())
             return std::move(addr);
 
-        --lest_base_addrs;
+        --last_base_addrs;
     }
     return dependency_collector();
 }
