@@ -40,7 +40,7 @@ location_counter::location_counter(id_index name, const section& owner, loctr_ki
 
 address location_counter::current_address() const
 {
-    return address({ &owner, id_index() }, curr_data().storage, curr_data().spaces());
+    return address({ { { &owner, id_index() }, 1 } }, curr_data().storage, curr_data().spaces_for_address());
 }
 
 address location_counter::current_address_for_alignment_evaluation(alignment align) const
@@ -50,7 +50,7 @@ address location_counter::current_address_for_alignment_evaluation(alignment ali
         return up.unknown_space->align.boundary >= align.boundary;
     }).base();
     if (it == spaces.begin())
-        return address({ &owner, id_index() }, curr_data().storage, curr_data().spaces());
+        return address({ { { &owner, id_index() }, 1 } }, curr_data().storage, curr_data().spaces_for_address());
 
     space_storage alignment_spaces;
     alignment_spaces.reserve(std::distance(it, spaces.end()));
@@ -80,7 +80,8 @@ aligned_addr location_counter::reserve_storage_area(size_t length, alignment a)
 
     check_available_value();
 
-    return std::make_pair(address({ &owner, id_index() }, (int)curr_data().storage, curr_data().spaces()), sp);
+    return std::make_pair(
+        address({ { { &owner, id_index() }, 1 } }, (int)curr_data().storage, curr_data().spaces_for_address()), sp);
 }
 
 aligned_addr location_counter::align(alignment align) { return reserve_storage_area(0, align); }

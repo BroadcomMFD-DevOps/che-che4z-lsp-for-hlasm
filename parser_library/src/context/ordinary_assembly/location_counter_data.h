@@ -90,6 +90,8 @@ struct location_counter_data
     int current_safe_area;
     loctr_data_kind kind;
 
+    mutable std::shared_ptr<std::vector<address::space_entry>> cached_spaces_for_address;
+
     location_counter_data();
     location_counter_data(loctr_data_kind kind);
 
@@ -107,7 +109,7 @@ struct location_counter_data
     bool has_space() const;
     space_ptr fist_space() const;
     space_ptr last_space() const;
-    space_storage spaces() const;
+    std::shared_ptr<std::vector<address::space_entry>> spaces_for_address() const;
     std::shared_ptr<std::vector<address::space_entry>> pseudo_relative_spaces() const;
 };
 

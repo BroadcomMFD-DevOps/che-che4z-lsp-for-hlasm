@@ -33,6 +33,8 @@ location_counter_data::location_counter_data(loctr_data_kind kind)
 
 void location_counter_data::append_space(space_ptr sp)
 {
+    cached_spaces_for_address.reset();
+
     unknown_parts.emplace_back(space_storage_t { std::move(sp), 0 });
     current_safe_area = 0;
 }
@@ -49,6 +51,8 @@ void location_counter_data::append_storage(int st)
 
 void location_counter_data::append_data(location_counter_data data)
 {
+    cached_spaces_for_address.reset();
+
     append_storage(data.unknown_parts.front().storage_after);
 
     data.unknown_parts.pop_front(); // the first unknown part is substitiuted by this data
@@ -64,6 +68,8 @@ void location_counter_data::resolve_space(const space* sp, size_t length)
         unknown_parts.begin(), unknown_parts.end(), [sp](const auto& p) { return p.unknown_space.get() == sp; });
     if (match == unknown_parts.end())
         return;
+
+    cached_spaces_for_address.reset();
 
     storage += length;
 
@@ -82,6 +88,7 @@ void location_counter_data::resolve_space(const space* sp, space_ptr new_space)
     if (match == unknown_parts.end())
         return;
 
+    cached_spaces_for_address.reset();
     match->unknown_space = std::move(new_space);
 }
 
@@ -158,13 +165,19 @@ space_ptr location_counter_data::last_space() const
         return nullptr;
 }
 
-space_storage location_counter_data::spaces() const
+std::shared_ptr<std::vector<address::space_entry>> location_counter_data::spaces_for_address() const
 {
-    space_storage res;
-    res.reserve(unknown_parts.size());
+    if (cached_spaces_for_address)
+        return cached_spaces_for_address;
+
+    auto result = std::make_shared<std::vector<address::space_entry>>();
+    result->reserve(unknown_parts.size());
     for (const auto& e : unknown_parts)
-        res.push_back(e.unknown_space);
-    return res;
+        result->push_back({ e.unknown_space, 1 });
+
+    cached_spaces_for_address = result;
+
+    return result;
 }
 
 std::shared_ptr<std::vector<address::space_entry>> location_counter_data::pseudo_relative_spaces() const
