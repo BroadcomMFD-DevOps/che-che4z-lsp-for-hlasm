@@ -66,7 +66,7 @@ public:
     int offset() const;
     int unresolved_offset() const;
     // list of spaces with their counts this address contains
-    std::pair<std::vector<space_entry>, int> normalized_spaces() const&;
+    std::pair<std::vector<space_entry>, int> normalized_spaces() const;
 
     address() = default;
     address(base address_base, int offset, const space_storage& spaces);
