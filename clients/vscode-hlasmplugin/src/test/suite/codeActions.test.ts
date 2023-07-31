@@ -88,14 +88,8 @@ suite('Code actions', () => {
 
         helper.assertMatchingMessageCodes(diags, errorDiags, diagSource);
 
-        let codeActionsList = await queryCodeActions(configFileUri, new vscode.Range(0, 0, 0, 0), 500).then(codeActionList => {
-            return codeActionList.filter(x => {
-                if (!x.command)
-                    return false;
-
-                return x.command.command === 'extension.hlasm-plugin.toggleAdvisoryConfigurationDiagnostics';
-            });
-        });
+        let codeActionsList = await queryCodeActions(configFileUri, new vscode.Range(0, 0, 0, 0), 500)
+            .then(codeActionList => codeActionList.filter(x => x.command?.command === 'extension.hlasm-plugin.toggleAdvisoryConfigurationDiagnostics'));
 
         assert.equal(codeActionsList.length, 1);
         assert.strictEqual(codeActionsList[0].command!.title, 'Show all configuration diagnostics');

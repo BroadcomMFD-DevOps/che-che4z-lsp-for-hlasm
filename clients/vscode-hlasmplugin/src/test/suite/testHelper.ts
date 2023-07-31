@@ -187,9 +187,12 @@ export async function waitForDiagnostics(file: string | vscode.Uri, nonEmptyOnly
 }
 
 export async function waitForDiagnosticsChange(file: string | vscode.Uri, action: () => PromiseLike<void> | void, source: string | undefined = undefined) {
-    const fileUri = typeof file === 'string' ? await getWorkspaceFile(file) : file;
+    const diags_retriever = (fileUri: vscode.Uri) => {
+        return source ? vscode.languages.getDiagnostics(fileUri).filter(d => { return d.source === source }) : vscode.languages.getDiagnostics(fileUri);
+    };
 
-    const initialDiags = vscode.languages.getDiagnostics(fileUri).map(x => JSON.stringify(x)).sort();
+    const fileUri = typeof file === 'string' ? await getWorkspaceFile(file) : file;
+    const initialDiags = diags_retriever(fileUri).map(x => JSON.stringify(x)).sort();
 
     const result = new Promise<vscode.Diagnostic[]>((resolve) => {
         let listener: vscode.Disposable | null = vscode.languages.onDidChangeDiagnostics((e) => {
@@ -198,14 +201,9 @@ export async function waitForDiagnosticsChange(file: string | vscode.Uri, action
             const forFile = e.uris.find(v => v.toString() === fileUri.toString());
             if (!forFile)
                 return;
-            let diags = vscode.languages.getDiagnostics(forFile);
+            const diags = diags_retriever(forFile);
             if (diags.length === initialDiags.length && diags.map(x => JSON.stringify(x)).sort().every((x, i) => x === initialDiags[i]))
                 return;
-            if (source) {
-                diags = diags.filter(d => { return d.source === source });
-                if (diags.length === 0)
-                    return;
-            }
             listener.dispose();
             listener = null;
             resolve(diags);
