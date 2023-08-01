@@ -301,6 +301,23 @@ const symbol_dependency_tables::dependency_value* symbol_dependency_tables::find
     return nullptr;
 }
 
+void keep_unknown_loctr_only(auto& v)
+{
+    // assumes space_ptr only
+    assert(std::all_of(v.begin(), v.end(), [](const auto& e) { return std::holds_alternative<space_ptr>(e); }));
+
+    constexpr auto unknown_loctr = [](const auto& entry) {
+        return std::get<space_ptr>(entry)->kind == context::space_kind::LOCTR_UNKNOWN;
+    };
+
+    auto known_spaces = std::partition(v.begin(), v.end(), unknown_loctr);
+
+    if (known_spaces == v.begin())
+        return;
+
+    v.erase(known_spaces, v.end());
+}
+
 std::vector<dependant> symbol_dependency_tables::extract_dependencies(
     const resolvable* dependency_source, const dependency_evaluation_context& dep_ctx, const library_info& li)
 {
@@ -315,13 +332,6 @@ std::vector<dependant> symbol_dependency_tables::extract_dependencies(
     if (!ret.empty())
         return ret;
 
-    ret.insert(ret.end(),
-        std::make_move_iterator(deps.unresolved_spaces.begin()),
-        std::make_move_iterator(deps.unresolved_spaces.end()));
-
-    if (!ret.empty())
-        return ret;
-
     for (const auto& ref : deps.undefined_symbolics)
     {
         for (int i = 1; i < static_cast<int>(data_attr_kind::max); ++i)
@@ -329,13 +339,23 @@ std::vector<dependant> symbol_dependency_tables::extract_dependencies(
                 ret.emplace_back(attr_ref { static_cast<data_attr_kind>(i), ref.name });
     }
 
-    if (deps.unresolved_address)
+    if (!ret.empty())
+        return ret;
+
+    ret.insert(ret.end(),
+        std::make_move_iterator(deps.unresolved_spaces.begin()),
+        std::make_move_iterator(deps.unresolved_spaces.end()));
+
+    if (ret.empty() && deps.unresolved_address)
+    {
         for (auto&& [space_id, count] : std::move(deps.unresolved_address)->normalized_spaces().first)
         {
             assert(count != 0);
             ret.push_back(std::move(space_id));
         }
+    }
 
+    keep_unknown_loctr_only(ret);
 
     return ret;
 }
@@ -369,6 +389,8 @@ bool symbol_dependency_tables::update_dependencies(dependency_value& d, const li
     if (deps.unresolved_address)
         for (auto&& [sp, _] : std::move(deps.unresolved_address)->normalized_spaces().first)
             d.m_last_dependencies.emplace_back(std::move(sp));
+
+    keep_unknown_loctr_only(d.m_last_dependencies);
 
     return !d.m_last_dependencies.empty();
 }

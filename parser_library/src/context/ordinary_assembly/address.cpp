@@ -170,12 +170,6 @@ int get_unresolved_spaces(const std::vector<address::space_entry>& spaces,
 void cleanup_spaces(std::vector<address::space_entry>& spaces)
 {
     std::erase_if(spaces, [](const address::space_entry& e) { return e.second == 0; });
-
-    if (auto known_spaces = std::partition(spaces.begin(),
-            spaces.end(),
-            [](const auto& entry) { return entry.first->kind == context::space_kind::LOCTR_UNKNOWN; });
-        known_spaces != spaces.begin())
-        spaces.erase(known_spaces, spaces.end());
 }
 
 std::pair<std::vector<address::space_entry>, int> address::normalized_spaces() const
@@ -366,7 +360,9 @@ bool address::has_dependant_space() const
     if (!has_spaces() || spaces_->size() == 1 && spaces_->front().first->kind == space_kind::LOCTR_BEGIN)
         return false;
     auto [spaces, _] = normalized_spaces();
-    return !spaces.empty() && spaces.front().first->kind != space_kind::LOCTR_BEGIN;
+    if (spaces.empty() || spaces.size() == 1 && spaces.front().first->kind == space_kind::LOCTR_BEGIN)
+        return false;
+    return true;
 }
 
 bool address::has_unresolved_space() const
