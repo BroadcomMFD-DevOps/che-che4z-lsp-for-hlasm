@@ -140,6 +140,7 @@ struct normalization_helper
     std::pmr::monotonic_buffer_resource buffer_resource;
     std::pmr::unordered_map<space*, size_t> map;
 #else
+    normalization_helper() = default;
     std::unordered_map<space*, size_t> map;
 #endif
 };
