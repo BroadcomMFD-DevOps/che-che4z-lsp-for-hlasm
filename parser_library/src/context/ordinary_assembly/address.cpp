@@ -127,23 +127,6 @@ struct normalization_helper
     std::unordered_map<space*, size_t> map;
 };
 
-void insert(const address::space_entry& sp,
-    normalization_helper& helper,
-    std::vector<address::space_entry>& normalized_spaces,
-    int sp_multiplier)
-{
-    auto* sp_ptr = sp.first.get();
-    if (auto it = helper.map.find(sp_ptr); it != helper.map.end())
-    {
-        normalized_spaces[it->second].second += sp_multiplier * sp.second;
-    }
-    else
-    {
-        normalized_spaces.emplace_back(sp).second *= sp_multiplier;
-        helper.map.emplace(sp_ptr, normalized_spaces.size() - 1);
-    }
-}
-
 int get_unresolved_spaces(const std::vector<address::space_entry>& spaces,
     normalization_helper& helper,
     std::vector<address::space_entry>& normalized_spaces,
@@ -154,14 +137,14 @@ int get_unresolved_spaces(const std::vector<address::space_entry>& spaces,
     {
         if (sp.first->resolved())
         {
-            offset += sp.second
-                * (sp.first->resolved_length
-                    + get_unresolved_spaces(
-                        sp.first->resolved_ptrs, helper, normalized_spaces, multiplier * sp.second));
+            offset += multiplier * sp.second * sp.first->resolved_length
+                + get_unresolved_spaces(sp.first->resolved_ptrs, helper, normalized_spaces, multiplier * sp.second);
             // TODO: overflow check
         }
+        else if (auto [it, inserted] = helper.map.try_emplace(sp.first.get(), normalized_spaces.size()); inserted)
+            normalized_spaces.emplace_back(sp).second *= multiplier;
         else
-            insert(sp, helper, normalized_spaces, multiplier);
+            normalized_spaces[it->second].second += multiplier * sp.second;
     }
 
     return offset;
@@ -300,7 +283,7 @@ address address::operator-(const address& addr) const
     if (spaces_)
         offset += get_unresolved_spaces(*spaces_, helper, *res_spaces, 1);
     if (addr.spaces_)
-        offset -= get_unresolved_spaces(*addr.spaces_, helper, *res_spaces, -1);
+        offset += get_unresolved_spaces(*addr.spaces_, helper, *res_spaces, -1);
 
     cleanup_spaces(*res_spaces);
 
