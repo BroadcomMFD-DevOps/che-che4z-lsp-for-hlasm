@@ -17,6 +17,9 @@
 #include <algorithm>
 #include <cassert>
 #include <concepts>
+#if __cpp_lib_polymorphic_allocator >= 201902L && __cpp_lib_memory_resource >= 201603L
+#    include <memory_resource>
+#endif
 #include <numeric>
 #include <span>
 #include <type_traits>
@@ -124,7 +127,21 @@ enum class merge_op : bool
 
 struct normalization_helper
 {
+    normalization_helper(const normalization_helper&) = delete;
+    normalization_helper(normalization_helper&&) = delete;
+    normalization_helper& operator=(const normalization_helper&) = delete;
+    normalization_helper& operator=(normalization_helper&&) = delete;
+#if __cpp_lib_polymorphic_allocator >= 201902L && __cpp_lib_memory_resource >= 201603L
+    normalization_helper()
+        : buffer_resource(buffer.data(), buffer.size())
+        , map(&buffer_resource)
+    {}
+    alignas(std::max_align_t) std::array<unsigned char, 8 * 1024> buffer;
+    std::pmr::monotonic_buffer_resource buffer_resource;
+    std::pmr::unordered_map<space*, size_t> map;
+#else
     std::unordered_map<space*, size_t> map;
+#endif
 };
 
 int get_unresolved_spaces(const std::vector<address::space_entry>& spaces,
