@@ -254,7 +254,7 @@ public:
     }
 };
 
-TEST(b4g_integration_test, pgm_conf_preference_exact_path)
+TEST(b4g_integration_test, pgm_conf_preference_exact_path) // todo delete
 {
     valid_proc_grps_helper helper("A");
     auto& ws = helper.ws;
@@ -268,7 +268,7 @@ TEST(b4g_integration_test, pgm_conf_preference_exact_path)
     EXPECT_TRUE(matches_message_text(ws.diags(), { sys_sub_p1_mac1.get_uri(), sys_sub_p2_mac1.get_uri() }));
 }
 
-TEST(b4g_integration_test, pgm_conf_preference_regex_path)
+TEST(b4g_integration_test, pgm_conf_preference_regex_path) // todo delete
 {
     valid_proc_grps_helper helper("A");
     auto& ws = helper.ws;
@@ -284,6 +284,36 @@ TEST(b4g_integration_test, pgm_conf_preference_regex_path)
     open_parse_and_collect_diags(ws, { pgm_a });
 
     EXPECT_TRUE(matches_message_text(ws.diags(), { sys_sub_p2_mac1.get_uri(), sys_sub_p2_mac1.get_uri() }));
+}
+
+TEST(b4g_integration_test, pgm_conf_preference_alternatives)
+{
+    valid_proc_grps_helper helper("A");
+
+    auto& ws = helper.ws;
+    auto& fm = helper.fm;
+
+    open_parse_and_collect_diags(ws, { pgm_b });
+    EXPECT_TRUE(matches_message_text(ws.diags(), { sys_sub_p2_mac1.get_uri() }));
+
+    ws.diags().clear();
+    open_parse_and_collect_diags(ws, { pgm_a });
+    EXPECT_TRUE(matches_message_text(ws.diags(), { sys_sub_p1_mac1.get_uri(), sys_sub_p2_mac1.get_uri() }));
+
+    ws.diags().clear();
+    change_and_reparse(fm, ws, pgm_conf_rl, std::regex_replace(helper.pgm_conf_template, std::regex("\\$x"), "*"));
+    EXPECT_TRUE(matches_message_text(ws.diags(), { sys_sub_p2_mac1.get_uri(), sys_sub_p3_mac1.get_uri() }));
+
+    ws.diags().clear();
+    change_and_reparse(fm,
+        ws,
+        b4g_conf_rl,
+        R"({"elements":"B":{"processorGroup":"P2"}},"defaultProcessorGroup":"P3","fileExtension":""})");
+    EXPECT_TRUE(matches_message_text(ws.diags(), { sys_sub_p1_mac1.get_uri(), sys_sub_p2_mac1.get_uri() }));
+
+    ws.diags().clear();
+    change_and_reparse(fm, ws, pgm_conf_rl, R"({"pgms":[]})");
+    EXPECT_TRUE(matches_message_text(ws.diags(), { sys_sub_p2_mac1.get_uri(), sys_sub_p3_mac1.get_uri() }));
 }
 
 TEST(b4g_integration_test, pgm_conf_preference_missing_proc_groups_alternatives)
