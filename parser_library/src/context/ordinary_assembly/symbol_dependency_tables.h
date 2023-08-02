@@ -82,7 +82,7 @@ class symbol_dependency_tables
     {
         const resolvable* m_resolvable;
         dependency_evaluation_context m_dec;
-        std::vector<std::variant<id_index, space_ptr>> m_last_dependencies;
+        size_t m_last_dependencies_count = 0;
         bool m_has_t_attr_dependency = false;
 
         dependency_value(const resolvable* r, dependency_evaluation_context dec)
@@ -93,6 +93,11 @@ class symbol_dependency_tables
 
     // actual dependecies of symbol or space
     std::unordered_map<dependant, dependency_value> m_dependencies;
+    std::unordered_map<std::variant<id_index, space_ptr>,
+        std::vector<std::unordered_map<dependant, dependency_value>::iterator>>
+        m_last_dependencies;
+
+    void clear_last_dependencies(const std::variant<id_index, space_ptr>&);
 
     // statements where dependencies are from
     std::unordered_map<dependant, statement_ref> m_dependency_source_stmts;
@@ -118,7 +123,7 @@ class symbol_dependency_tables
 
     std::vector<dependant> extract_dependencies(
         const resolvable* dependency_source, const dependency_evaluation_context& dep_ctx, const library_info& li);
-    bool update_dependencies(dependency_value& v, const library_info& li);
+    bool update_dependencies(std::unordered_map<dependant, dependency_value>::iterator it, const library_info& li);
     std::vector<dependant> extract_dependencies(const std::vector<const resolvable*>& dependency_sources,
         const dependency_evaluation_context& dep_ctx,
         const library_info& li);
