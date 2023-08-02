@@ -43,16 +43,22 @@ const size_t size_t_zero = static_cast<size_t>(0);
 
 namespace hlasm_plugin::utils {
 class task;
+namespace resource {
+class resource_location;
 }
+} // namespace hlasm_plugin::utils
 namespace hlasm_plugin::parser_library {
 class workspace_manager;
 namespace workspaces {
 class workspace;
 } // namespace workspaces
 } // namespace hlasm_plugin::parser_library
-void parse_all_files(hlasm_plugin::parser_library::workspaces::workspace& ws);
+void parse_all_files(workspace& ws);
 
 void run_if_valid(hlasm_plugin::utils::task t);
+
+void open_parse_and_collect_diags(workspace& ws, const hlasm_plugin::utils::resource::resource_location& file);
+void close_parse_and_collect_diags(workspace& ws, const hlasm_plugin::utils::resource::resource_location& file);
 
 template<typename T>
 std::optional<T> get_var_value(hlasm_context& ctx, std::string name)

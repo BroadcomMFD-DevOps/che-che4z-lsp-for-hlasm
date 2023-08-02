@@ -165,9 +165,7 @@ TEST(b4g_integration_test, basic_pgm_conf_retrieval)
     workspace_test ws(fm);
 
     const auto check_mnote = [&ws](const resource_location& pgm, std::initializer_list<std::string> mnote_locations) {
-        run_if_valid(ws.did_open_file(pgm));
-        parse_all_files(ws);
-        ws.collect_diags();
+        open_parse_and_collect_diags(ws, pgm);
 
         auto match = matches_message_text(ws.diags(), mnote_locations);
         ws.diags().clear();
@@ -226,18 +224,12 @@ TEST(b4g_integration_test, pgm_conf_preference_exact_path)
     pgm_conf_preference_helper helper("A");
     auto& ws = helper.ws;
 
-    run_if_valid(ws.did_open_file(pgm_b));
-    parse_all_files(ws);
-    ws.collect_diags();
-
+    open_parse_and_collect_diags(ws, pgm_b);
     EXPECT_TRUE(matches_message_text(ws.diags(), { sys_sub_p2_mac1.get_uri() }));
 
     ws.diags().clear();
 
-    run_if_valid(ws.did_open_file(pgm_a));
-    parse_all_files(ws);
-    ws.collect_diags();
-
+    open_parse_and_collect_diags(ws, pgm_a);
     EXPECT_TRUE(matches_message_text(ws.diags(), { sys_sub_p1_mac1.get_uri(), sys_sub_p2_mac1.get_uri() }));
 }
 
@@ -247,18 +239,14 @@ TEST(b4g_integration_test, pgm_conf_preference_regex_path)
     auto& ws = helper.ws;
     auto& fm = helper.fm;
 
-    run_if_valid(ws.did_open_file(pgm_b));
-    parse_all_files(ws);
-    ws.collect_diags();
+    open_parse_and_collect_diags(ws, pgm_b);
 
     EXPECT_TRUE(matches_message_text(ws.diags(), { sys_sub_p2_mac1.get_uri() }));
 
     ws.diags().clear();
-    change_and_reparse(fm, ws, pgm_conf_rl, std::regex_replace(helper.pgm_conf_template, std::regex("\\$x"), "*"));
 
-    run_if_valid(ws.did_open_file(pgm_a));
-    parse_all_files(ws);
-    ws.collect_diags();
+    change_and_reparse(fm, ws, pgm_conf_rl, std::regex_replace(helper.pgm_conf_template, std::regex("\\$x"), "*"));
+    open_parse_and_collect_diags(ws, pgm_a);
 
     EXPECT_TRUE(matches_message_text(ws.diags(), { sys_sub_p1_mac1.get_uri(), sys_sub_p1_mac1.get_uri() }));
 }
@@ -273,9 +261,7 @@ TEST(b4g_integration_test, invalid_bridge_json)
 
     workspace_test ws(fm);
 
-    run_if_valid(ws.did_open_file(pgm_a));
-    parse_all_files(ws);
-    ws.collect_diags();
+    open_parse_and_collect_diags(ws, pgm_a);
 
     EXPECT_TRUE(matches_message_codes(ws.diags(), { "B4G001" }));
 }
@@ -292,9 +278,7 @@ TEST(b4g_integration_test, missing_pgroup)
 
     workspace_test ws(fm);
 
-    run_if_valid(ws.did_open_file(pgm_a));
-    parse_all_files(ws);
-    ws.collect_diags();
+    open_parse_and_collect_diags(ws, pgm_a);
 
     EXPECT_TRUE(matches_message_codes(ws.diags(), { "B4G002" }));
 
@@ -318,10 +302,8 @@ TEST(b4g_integration_test, missing_pgroup_but_not_used)
 
     run_if_valid(ws.did_open_file(pgm_a));
     parse_all_files(ws);
-    run_if_valid(ws.did_close_file(pgm_a));
-    parse_all_files(ws);
 
-    ws.collect_diags();
+    close_parse_and_collect_diags(ws, pgm_a);
 
     EXPECT_TRUE(ws.diags().empty());
 }
@@ -338,9 +320,7 @@ TEST(b4g_integration_test, bridge_config_changed)
 
     workspace_test ws(fm);
 
-    run_if_valid(ws.did_open_file(pgm_a));
-    parse_all_files(ws);
-    ws.collect_diags();
+    open_parse_and_collect_diags(ws, pgm_a);
 
     EXPECT_TRUE(matches_message_codes(ws.diags(), { "E049", "B4G001" }));
 
@@ -376,9 +356,7 @@ TEST(b4g_integration_test, proc_config_changed)
 
     workspace_test ws(fm);
 
-    run_if_valid(ws.did_open_file(pgm_a));
-    parse_all_files(ws);
-    ws.collect_diags();
+    open_parse_and_collect_diags(ws, pgm_a);
 
     EXPECT_TRUE(matches_message_codes(ws.diags(), { "E049", "B4G002" }));
 
@@ -404,10 +382,8 @@ TEST(b4g_integration_test, only_default_proc_group_exists)
 
     workspace_test ws(fm);
 
-    run_if_valid(ws.did_open_file(pgm_a));
-    parse_all_files(ws);
+    open_parse_and_collect_diags(ws, pgm_a);
 
-    ws.collect_diags();
     EXPECT_TRUE(matches_message_codes(ws.diags(), { "B4G002" }));
 
     ws.diags().clear();
@@ -428,10 +404,8 @@ TEST(b4g_integration_test, b4g_conf_noproc_proc_group)
     fm.did_open_file(pgm_a, 1, "");
 
     workspace_test ws(fm);
-    run_if_valid(ws.did_open_file(pgm_a));
-    parse_all_files(ws);
+    open_parse_and_collect_diags(ws, pgm_a);
 
-    ws.collect_diags();
     EXPECT_TRUE(ws.diags().empty());
 
     ws.diags().clear();
@@ -458,10 +432,8 @@ TEST(b4g_integration_test, b4g_conf_noproc_proc_group_default)
     fm.did_open_file(pgm_a, 1, "");
 
     workspace_test ws(fm);
-    run_if_valid(ws.did_open_file(pgm_a));
-    parse_all_files(ws);
+    open_parse_and_collect_diags(ws, pgm_a);
 
-    ws.collect_diags();
     EXPECT_TRUE(matches_message_codes(ws.diags(), { "B4G002" }));
 
     ws.diags().clear();
@@ -486,41 +458,33 @@ TEST(b4g_integration_test, missing_proc_group_diags)
 
     workspace_test ws(fm);
 
-    run_if_valid(ws.did_open_file(pgm_a));
-    parse_all_files(ws);
-    ws.collect_diags();
+    open_parse_and_collect_diags(ws, pgm_a);
     EXPECT_TRUE(matches_message_codes(ws.diags(), { "B4G002" }));
 
-    ws.include_advisory_configuration_diagnostics(true);
     ws.diags().clear();
+    ws.include_advisory_configuration_diagnostics(true);
     ws.collect_diags();
     EXPECT_TRUE(matches_message_codes(ws.diags(), { "B4G002", "B4G003" }));
 
-    run_if_valid(ws.did_close_file(pgm_a));
     ws.diags().clear();
-    ws.collect_diags();
+    close_parse_and_collect_diags(ws, pgm_a);
     EXPECT_TRUE(ws.diags().empty());
 
+    ws.diags().clear();
     ws.include_advisory_configuration_diagnostics(false);
-    ws.diags().clear();
     ws.collect_diags();
     EXPECT_TRUE(ws.diags().empty());
 
-    run_if_valid(ws.did_open_file(pgm_b));
-    parse_all_files(ws);
     ws.diags().clear();
-    ws.collect_diags();
+    open_parse_and_collect_diags(ws, pgm_b);
     EXPECT_TRUE(matches_message_codes(ws.diags(), { "B4G002" }));
 
-    run_if_valid(ws.did_close_file(pgm_b));
-    parse_all_files(ws);
     ws.diags().clear();
-    ws.collect_diags();
+    close_parse_and_collect_diags(ws, pgm_b);
     EXPECT_TRUE(ws.diags().empty());
 
-    run_if_valid(ws.did_open_file(pgm_a_diff_path));
     ws.diags().clear();
-    ws.collect_diags();
+    open_parse_and_collect_diags(ws, pgm_a_diff_path);
     EXPECT_TRUE(ws.diags().empty());
 }
 
@@ -537,19 +501,16 @@ TEST(b4g_integration_test, missing_proc_group_diags_wildcards)
 
     workspace_test ws(fm);
 
-    run_if_valid(ws.did_open_file(pgm_a));
-    parse_all_files(ws);
-    ws.collect_diags();
+    open_parse_and_collect_diags(ws, pgm_a);
     EXPECT_TRUE(ws.diags().empty());
 
-    ws.include_advisory_configuration_diagnostics(true);
     ws.diags().clear();
+    ws.include_advisory_configuration_diagnostics(true);
     ws.collect_diags();
     EXPECT_TRUE(matches_message_codes(ws.diags(), { "B4G003" }));
 
-    run_if_valid(ws.did_close_file(pgm_a));
     ws.diags().clear();
-    ws.collect_diags();
+    close_parse_and_collect_diags(ws, pgm_a);
     EXPECT_TRUE(ws.diags().empty());
 }
 
@@ -565,18 +526,15 @@ TEST(b4g_integration_test, missing_proc_group_diags_wildcards_noproc)
 
     workspace_test ws(fm);
 
-    run_if_valid(ws.did_open_file(pgm_a));
-    parse_all_files(ws);
-    ws.collect_diags();
+    open_parse_and_collect_diags(ws, pgm_a);
     EXPECT_TRUE(ws.diags().empty());
 
-    ws.include_advisory_configuration_diagnostics(true);
     ws.diags().clear();
+    ws.include_advisory_configuration_diagnostics(true);
     ws.collect_diags();
     EXPECT_TRUE(matches_message_codes(ws.diags(), { "B4G003" }));
 
-    run_if_valid(ws.did_close_file(pgm_a));
     ws.diags().clear();
-    ws.collect_diags();
+    close_parse_and_collect_diags(ws, pgm_a);
     EXPECT_TRUE(ws.diags().empty());
 }
