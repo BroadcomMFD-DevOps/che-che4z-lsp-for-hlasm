@@ -352,12 +352,7 @@ address address::operator-(const address& addr) const
         space_list(std::move(res_spaces)));
 }
 
-address address::operator-(int offs) const
-{
-    auto [spaces, off] = normalized_spaces();
-    return address(
-        bases_, offset_ + off - offs, space_list(std::make_shared<std::vector<space_entry>>(std::move(spaces))));
-}
+address address::operator-(int offs) const { return address(bases_, offset_ - offs, spaces_); }
 
 address address::operator-() const
 {
