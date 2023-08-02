@@ -17,6 +17,7 @@
 
 #include <compare>
 #include <memory>
+#include <span>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -50,13 +51,32 @@ struct address
     using space_entry = std::pair<space_ptr, int>;
     using base_entry = std::pair<base, int>;
 
+    struct space_list
+    {
+        space_list() = default;
+        template<typename T>
+        explicit space_list(std::shared_ptr<T> ptr)
+            : spaces(*ptr)
+            , owner(std::move(ptr))
+        {}
+        explicit space_list(std::span<const space_entry> spaces, std::shared_ptr<void> owner)
+            : spaces(spaces)
+            , owner(std::move(owner))
+        {}
+
+        std::span<const space_entry> spaces;
+        std::shared_ptr<void> owner;
+
+        bool empty() const { return spaces.empty(); }
+    };
+
 private:
     // list of bases and their counts to which is the address relative
     std::vector<base_entry> bases_;
     // offset relative to bases
     int offset_ = 0;
     // list of spaces with their counts this address contains
-    std::shared_ptr<const std::vector<space_entry>> spaces_;
+    space_list spaces_;
 
 public:
     // list of bases and their counts to which is the address relative
@@ -66,6 +86,7 @@ public:
     int offset() const;
     int unresolved_offset() const;
     // list of spaces with their counts this address contains
+    static std::pair<std::vector<space_entry>, int> normalized_spaces(std::span<const space_entry> spaces);
     std::pair<std::vector<space_entry>, int> normalized_spaces() const;
 
     address() = default;
@@ -86,7 +107,7 @@ public:
     bool has_spaces() const;
 
 private:
-    address(std::vector<base_entry> bases, int offset, std::shared_ptr<const std::vector<space_entry>> spaces);
+    address(std::vector<base_entry> bases, int offset, space_list spaces);
 
     friend struct address_resolver;
     friend class location_counter;

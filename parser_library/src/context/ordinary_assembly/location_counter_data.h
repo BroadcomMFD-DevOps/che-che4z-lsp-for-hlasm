@@ -16,6 +16,7 @@
 #define CONTEXT_LOCATION_COUNTER_DATA_H
 
 #include <list>
+#include <optional>
 
 #include "address.h"
 #include "alignment.h"
@@ -91,6 +92,7 @@ struct location_counter_data
     loctr_data_kind kind;
 
     mutable std::shared_ptr<std::vector<address::space_entry>> cached_spaces_for_address;
+    mutable std::optional<address::space_list> cached_pseudo_relative_spaces_for_address;
 
     location_counter_data();
     location_counter_data(loctr_data_kind kind);
@@ -109,8 +111,8 @@ struct location_counter_data
     bool has_space() const;
     space_ptr fist_space() const;
     space_ptr last_space() const;
-    std::shared_ptr<std::vector<address::space_entry>> spaces_for_address() const;
-    std::shared_ptr<std::vector<address::space_entry>> pseudo_relative_spaces() const;
+    address::space_list spaces_for_address() const;
+    address::space_list pseudo_relative_spaces(space_ptr loctr_start) const;
 };
 
 } // namespace hlasm_plugin::parser_library::context

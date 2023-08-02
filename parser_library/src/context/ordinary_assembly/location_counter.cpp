@@ -161,23 +161,10 @@ std::pair<space_ptr, std::vector<address>> location_counter::set_available_value
 
     for (auto& entry : org_data_)
     {
-        auto spaces = entry.pseudo_relative_spaces();
-
-        if (kind == loctr_kind::NONSTARTING)
-        {
-            // make addresses (pseudo-)relative to current location counter
-            if (spaces->front().first->kind == space_kind::LOCTR_BEGIN)
-                spaces->erase(spaces->begin());
-            else if (spaces->front().first->kind == space_kind::LOCTR_SET)
-                spaces->push_back({ loctr_start, -1 });
-            else if (spaces->front().first->kind == space_kind::LOCTR_UNKNOWN)
-                spaces->push_back({ loctr_start, -1 });
-        }
-
         addr_arr.push_back({
             std::vector<address::base_entry> { { address::base { &owner, id_index() }, 1 } },
             entry.storage,
-            std::move(spaces),
+            entry.pseudo_relative_spaces(loctr_start),
         });
     }
 

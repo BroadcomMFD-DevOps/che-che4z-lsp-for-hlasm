@@ -99,7 +99,7 @@ const std::vector<address::base_entry>& address::bases() const { return bases_; 
 
 std::vector<address::base_entry>& address::bases() { return bases_; }
 
-int get_space_offset(const std::vector<address::space_entry>& sp_vec)
+int get_space_offset(std::span<const address::space_entry> sp_vec)
 {
     return std::transform_reduce(sp_vec.begin(), sp_vec.end(), 0, std::plus<>(), [](const auto& v) {
         const auto& [sp, cnt] = v;
@@ -107,7 +107,7 @@ int get_space_offset(const std::vector<address::space_entry>& sp_vec)
     });
 }
 
-int address::offset() const { return offset_ + (spaces_ ? get_space_offset(*spaces_) : 0); }
+int address::offset() const { return offset_ + get_space_offset(spaces_.spaces); }
 int address::unresolved_offset() const { return offset_; }
 
 template<typename T, typename U>
@@ -145,7 +145,7 @@ struct normalization_helper
 #endif
 };
 
-int get_unresolved_spaces(const std::vector<address::space_entry>& spaces,
+int get_unresolved_spaces(std::span<const address::space_entry> spaces,
     normalization_helper& helper,
     std::vector<address::space_entry>& normalized_spaces,
     int multiplier)
@@ -173,19 +173,24 @@ void cleanup_spaces(std::vector<address::space_entry>& spaces)
     std::erase_if(spaces, [](const address::space_entry& e) { return e.second == 0; });
 }
 
-std::pair<std::vector<address::space_entry>, int> address::normalized_spaces() const
+std::pair<std::vector<address::space_entry>, int> address::normalized_spaces(std::span<const space_entry> spaces)
 {
-    if (!spaces_)
+    if (spaces.empty())
         return {};
 
     std::vector<space_entry> res_spaces;
     normalization_helper helper;
 
-    int offset = get_unresolved_spaces(*spaces_, helper, res_spaces, 1);
+    int offset = get_unresolved_spaces(spaces, helper, res_spaces, 1);
 
     cleanup_spaces(res_spaces);
 
     return { std::move(res_spaces), offset };
+}
+
+std::pair<std::vector<address::space_entry>, int> address::normalized_spaces() const
+{
+    return normalized_spaces(spaces_.spaces);
 }
 
 address::address(base address_base, int offset, const space_storage& spaces)
@@ -201,7 +206,8 @@ address::address(base address_base, int offset, const space_storage& spaces)
     for (auto& space : spaces)
         new_spaces->emplace_back(space, 1);
 
-    spaces_ = std::move(new_spaces);
+    spaces_.spaces = *new_spaces;
+    spaces_.owner = std::move(new_spaces);
 }
 
 address::address(base address_base, int offset, space_storage&& spaces)
@@ -217,7 +223,8 @@ address::address(base address_base, int offset, space_storage&& spaces)
     for (auto& space : spaces)
         new_spaces->emplace_back(std::move(space), 1);
 
-    spaces_ = std::move(new_spaces);
+    spaces_.spaces = *new_spaces;
+    spaces_.owner = std::move(new_spaces);
 }
 
 template<merge_op operation, typename C1, typename C2>
@@ -270,49 +277,86 @@ requires(std::is_same_v<std::remove_cvref_t<C1>, std::remove_cvref_t<C2>>) auto 
 address address::operator+(const address& addr) const
 {
     if (!has_spaces() && !addr.has_spaces())
-        return address(merge_entries<merge_op::add>(bases_, addr.bases_), offset_ + addr.offset_, {});
+        return address(merge_entries<merge_op::add>(bases_, addr.bases_), offset_ + addr.offset_, space_list());
 
     auto res_spaces = std::make_shared<std::vector<space_entry>>();
     normalization_helper helper;
 
     int offset = 0;
-    if (spaces_)
-        offset += get_unresolved_spaces(*spaces_, helper, *res_spaces, 1);
-    if (addr.spaces_)
-        offset += get_unresolved_spaces(*addr.spaces_, helper, *res_spaces, 1);
+    offset += get_unresolved_spaces(spaces_.spaces, helper, *res_spaces, 1);
+    offset += get_unresolved_spaces(addr.spaces_.spaces, helper, *res_spaces, 1);
 
     cleanup_spaces(*res_spaces);
 
-    return address(
-        merge_entries<merge_op::add>(bases_, addr.bases_), offset_ + addr.offset_ + offset, std::move(res_spaces));
+    return address(merge_entries<merge_op::add>(bases_, addr.bases_),
+        offset_ + addr.offset_ + offset,
+        space_list(std::move(res_spaces)));
 }
 
 address address::operator+(int offs) const { return address(bases_, offset_ + offs, spaces_); }
 
+std::pair<std::span<const address::space_entry>, std::span<const address::space_entry>> trim_common(
+    std::span<const address::space_entry> l, std::span<const address::space_entry> r)
+{
+    if (l.data() == r.data())
+    {
+        auto common = std::min(l.size(), r.size());
+        return { l.subspan(common), r.subspan(common) };
+    }
+    auto [le, re] = std::mismatch(l.begin(), l.end(), r.begin(), r.end());
+    return { { le, l.end() }, { re, r.end() } };
+}
+
 address address::operator-(const address& addr) const
 {
-    if (!has_spaces() && !addr.has_spaces())
+    auto [lspaces, rspaces] = trim_common(spaces_.spaces, addr.spaces_.spaces);
+    if (lspaces.empty() && rspaces.empty())
         return address(merge_entries<merge_op::sub>(bases_, addr.bases_), offset_ - addr.offset_, {});
 
-    auto res_spaces = std::make_shared<std::vector<space_entry>>();
     normalization_helper helper;
 
+    size_t l_processed = 0;
+
+    if (rspaces.empty())
+    {
+        for (const auto& [sp, cnt] : lspaces)
+        {
+            if (cnt == 0 || sp->resolved()
+                || !helper.map.try_emplace(sp.get(), l_processed).second) // requires normalization
+                break;
+
+            ++l_processed;
+        }
+        if (l_processed == lspaces.size())
+            return address(merge_entries<merge_op::sub>(bases_, addr.bases_),
+                offset_ - addr.offset_,
+                space_list(lspaces, spaces_.owner));
+    }
+
+    auto res_spaces = std::make_shared<std::vector<space_entry>>();
+
+    if (auto processed = lspaces.subspan(0, l_processed); !processed.empty())
+    {
+        res_spaces->insert(res_spaces->end(), processed.begin(), processed.end());
+        lspaces = lspaces.subspan(l_processed);
+    }
+
     int offset = 0;
-    if (spaces_)
-        offset += get_unresolved_spaces(*spaces_, helper, *res_spaces, 1);
-    if (addr.spaces_)
-        offset += get_unresolved_spaces(*addr.spaces_, helper, *res_spaces, -1);
+    offset += get_unresolved_spaces(lspaces, helper, *res_spaces, 1);
+    offset += get_unresolved_spaces(rspaces, helper, *res_spaces, -1);
 
     cleanup_spaces(*res_spaces);
 
-    return address(
-        merge_entries<merge_op::sub>(bases_, addr.bases_), offset_ - addr.offset_ + offset, std::move(res_spaces));
+    return address(merge_entries<merge_op::sub>(bases_, addr.bases_),
+        offset_ - addr.offset_ + offset,
+        space_list(std::move(res_spaces)));
 }
 
 address address::operator-(int offs) const
 {
     auto [spaces, off] = normalized_spaces();
-    return address(bases_, offset_ + off - offs, std::make_shared<std::vector<space_entry>>(std::move(spaces)));
+    return address(
+        bases_, offset_ + off - offs, space_list(std::make_shared<std::vector<space_entry>>(std::move(spaces))));
 }
 
 address address::operator-() const
@@ -323,7 +367,9 @@ address address::operator-() const
         b.second = -b.second;
     for (auto& s : spaces)
         s.second = -s.second;
-    return address(std::move(inv_bases), -offset_ - off, std::make_shared<std::vector<space_entry>>(std::move(spaces)));
+    return address(std::move(inv_bases),
+        -offset_ - off,
+        space_list(std::make_shared<std::vector<space_entry>>(std::move(spaces))));
 }
 
 bool address::is_complex() const { return bases_.size() > 1; }
@@ -358,7 +404,7 @@ bool address::is_simple() const { return bases_.size() == 1 && bases_[0].second 
 
 bool address::has_dependant_space() const
 {
-    if (!has_spaces() || spaces_->size() == 1 && spaces_->front().first->kind == space_kind::LOCTR_BEGIN)
+    if (!has_spaces() || spaces_.spaces.size() == 1 && spaces_.spaces.front().first->kind == space_kind::LOCTR_BEGIN)
         return false;
     auto [spaces, _] = normalized_spaces();
     if (spaces.empty() || spaces.size() == 1 && spaces.front().first->kind == space_kind::LOCTR_BEGIN)
@@ -376,12 +422,12 @@ bool address::has_unresolved_space() const
     return !spaces.empty();
 }
 
-bool address::has_spaces() const { return spaces_ && !spaces_->empty(); }
+bool address::has_spaces() const { return !spaces_.empty(); }
 
-address::address(std::vector<base_entry> bases_, int offset_, std::shared_ptr<const std::vector<space_entry>> spaces_)
+address::address(std::vector<base_entry> bases_, int offset_, space_list spaces)
     : bases_(std::move(bases_))
     , offset_(offset_)
-    , spaces_(std::move(spaces_))
+    , spaces_(std::move(spaces))
 {}
 
 } // namespace hlasm_plugin::parser_library::context

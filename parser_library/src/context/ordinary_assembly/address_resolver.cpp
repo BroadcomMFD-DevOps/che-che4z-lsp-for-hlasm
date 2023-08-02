@@ -48,7 +48,7 @@ address address_resolver::extract_dep_address(const address& addr, size_t bounda
     });
     if (enough != spaces.rend())
         spaces.erase(spaces.begin(), std::prev(enough.base()));
-    return address({}, 0, std::make_shared<std::vector<address::space_entry>>(std::move(spaces)));
+    return address({}, 0, address::space_list(std::make_shared<std::vector<address::space_entry>>(std::move(spaces))));
 }
 
 alignable_address_resolver::alignable_address_resolver(
