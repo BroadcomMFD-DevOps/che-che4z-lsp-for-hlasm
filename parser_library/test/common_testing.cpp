@@ -32,16 +32,22 @@ void run_if_valid(hlasm_plugin::utils::task t)
         t.run();
 }
 
-void open_parse_and_collect_diags(workspace& ws, const hlasm_plugin::utils::resource::resource_location& file)
+void open_parse_and_collect_diags(
+    workspace& ws, const std::vector<hlasm_plugin::utils::resource::resource_location>& files)
 {
-    run_if_valid(ws.did_open_file(file));
+    std::for_each(files.begin(), files.end(), [&ws](const hlasm_plugin::utils::resource::resource_location& f) {
+        run_if_valid(ws.did_open_file(f));
+    });
     parse_all_files(ws);
     ws.collect_diags();
 }
 
-void close_parse_and_collect_diags(workspace& ws, const hlasm_plugin::utils::resource::resource_location& file)
+void close_parse_and_collect_diags(
+    workspace& ws, const std::vector<hlasm_plugin::utils::resource::resource_location>& files)
 {
-    run_if_valid(ws.did_close_file(file));
+    std::for_each(files.begin(), files.end(), [&ws](const hlasm_plugin::utils::resource::resource_location& f) {
+        run_if_valid(ws.did_close_file(f));
+    });
     parse_all_files(ws);
     ws.collect_diags();
 }
