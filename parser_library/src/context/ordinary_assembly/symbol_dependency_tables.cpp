@@ -267,35 +267,68 @@ void symbol_dependency_tables::clear_last_dependencies(const std::variant<id_ind
     if (ch == m_last_dependencies.end())
         return;
 
+
     for (const auto& jt : ch->second)
-        jt->second.m_last_dependencies_count -= 1;
+        dependencies_values(jt->first)[jt->second].first.m_last_dependencies_count -= 1;
     m_last_dependencies.erase(ch);
+}
+
+void symbol_dependency_tables::insert_depenency(
+    dependant target, const resolvable* dependency_source, const dependency_evaluation_context& dep_ctx)
+{
+    auto& dependencies = dependencies_values(target);
+    auto [it, inserted] = m_dependencies.try_emplace(std::move(target), dependencies.size());
+    dependencies.emplace_back(std::piecewise_construct, std::tie(dependency_source, dep_ctx), std::tie(it));
+
+    assert(inserted);
+}
+
+std::unordered_map<dependant, size_t>::node_type symbol_dependency_tables::extract_dependency(
+    std::unordered_map<dependant, size_t>::iterator it)
+{
+    auto& dependencies = dependencies_values(it->first);
+    auto& me = dependencies[it->second];
+    auto& last = dependencies.back();
+
+    std::swap(it->second, last.second->second);
+    std::swap(me, last);
+
+    dependencies.pop_back();
+
+    return m_dependencies.extract(it);
 }
 
 void symbol_dependency_tables::resolve(
     std::variant<id_index, space_ptr> what_changed, diagnostic_s_consumer* diag_consumer, const library_info& li)
 {
+    const std::span dep_set(m_dependencies_values.data(), 1 + !!diag_consumer);
     clear_last_dependencies(what_changed);
     for (bool progress = true; std::exchange(progress, false);)
     {
-        for (auto it_ = m_dependencies.begin(); it_ != m_dependencies.end();)
+        for (auto& dependencies : dep_set)
         {
-            auto it = it_++;
-            auto& [target, dep_value] = *it;
-            if (!diag_consumer && std::holds_alternative<space_ptr>(target))
-                continue;
-            if (dep_value.m_last_dependencies_count || (dep_value.m_has_t_attr_dependency && !diag_consumer))
-                continue;
-            if (update_dependencies(it, li))
-                continue;
+            for (size_t i = 0; i < dependencies.size(); ++i)
+            {
+                auto& [dep_value, it_volatile] = dependencies[i];
+                const auto it = it_volatile;
+                const auto& target = it->first;
+                if (dep_value.m_last_dependencies_count || (dep_value.m_has_t_attr_dependency && !diag_consumer))
+                    continue;
+                if (update_dependencies(it, dep_value, li))
+                    continue;
 
-            progress = true;
+                progress = true;
 
-            resolve_dependant(target, dep_value.m_resolvable, diag_consumer, dep_value.m_dec, li); // resolve target
-            try_erase_source_statement(target);
+                resolve_dependant(target, dep_value.m_resolvable, diag_consumer, dep_value.m_dec, li); // resolve target
+                try_erase_source_statement(target);
 
-            what_changed = std::visit(dependant_visitor(), std::move(m_dependencies.extract(it).key()));
-            clear_last_dependencies(what_changed);
+                what_changed = std::visit(dependant_visitor(), std::move(extract_dependency(it).key()));
+                clear_last_dependencies(what_changed);
+
+                --i;
+            }
+            if (progress)
+                break;
         }
     }
 }
@@ -304,7 +337,7 @@ const symbol_dependency_tables::dependency_value* symbol_dependency_tables::find
     const dependant& target) const
 {
     if (auto it = m_dependencies.find(target); it != m_dependencies.end())
-        return &it->second;
+        return &dependencies_values(it->first)[it->second].first;
 
     return nullptr;
 }
@@ -369,9 +402,8 @@ std::vector<dependant> symbol_dependency_tables::extract_dependencies(
 }
 
 bool symbol_dependency_tables::update_dependencies(
-    std::unordered_map<dependant, dependency_value>::iterator it, const library_info& li)
+    std::unordered_map<dependant, size_t>::iterator it, dependency_value& d, const library_info& li)
 {
-    auto& d = it->second;
     context::ordinary_assembly_dependency_solver dep_solver(m_sym_ctx, d.m_dec, li);
     auto deps = d.m_resolvable->get_dependencies(dep_solver);
 
@@ -470,9 +502,7 @@ bool symbol_dependency_tables::add_dependency(dependant target,
         }
     }
 
-    auto [it, inserted] = m_dependencies.try_emplace(std::move(target), dependency_source, dep_ctx);
-
-    assert(inserted);
+    insert_depenency(std::move(target), dependency_source, dep_ctx);
 
     return true;
 }
@@ -582,17 +612,14 @@ bool symbol_dependency_tables::check_loctr_cycle(const library_info& li)
     const auto dep_g = [this, &li]() {
         // create graph
         std::unordered_map<const dependant*, std::vector<dependant>, deref_tools, deref_tools> result;
-        for (const auto& [target, dep_src_loctr] : m_dependencies)
+        for (const auto& [dep_src_loctr, it] : m_dependencies_values[dependencies_values_spaces])
         {
-            if (!std::holds_alternative<space_ptr>(target))
-                continue;
-
             auto new_deps = extract_dependencies(dep_src_loctr.m_resolvable, dep_src_loctr.m_dec, li);
 
             std::erase_if(new_deps, [](const auto& e) { return !std::holds_alternative<space_ptr>(e); });
 
             if (!new_deps.empty())
-                result.emplace(&target, std::move(new_deps));
+                result.emplace(&it->first, std::move(new_deps));
         }
         return result;
     }();
@@ -642,7 +669,8 @@ bool symbol_dependency_tables::check_loctr_cycle(const library_info& li)
     {
         resolve_dependant_default(*target);
         try_erase_source_statement(*target);
-        m_dependencies.erase(*target);
+        if (auto it = m_dependencies.find(*target); it != m_dependencies.end())
+            extract_dependency(it);
     }
 
     return cycles.empty();
@@ -661,6 +689,9 @@ std::vector<std::pair<post_stmt_ptr, dependency_evaluation_context>> symbol_depe
 
     m_postponed_stmts.clear();
     m_dependency_source_stmts.clear();
+    m_last_dependencies.clear();
+    for (auto& dv : m_dependencies_values)
+        dv.clear();
     m_dependencies.clear();
 
     return res;

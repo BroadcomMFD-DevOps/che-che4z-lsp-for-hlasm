@@ -15,6 +15,7 @@
 #ifndef SEMANTICS_SYMBOL_DEPENDENCY_TABLES_H
 #define SEMANTICS_SYMBOL_DEPENDENCY_TABLES_H
 
+#include <array>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -92,11 +93,35 @@ class symbol_dependency_tables
     };
 
     // actual dependecies of symbol or space
-    std::unordered_map<dependant, dependency_value> m_dependencies;
-    std::unordered_map<std::variant<id_index, space_ptr>,
-        std::vector<std::unordered_map<dependant, dependency_value>::iterator>>
+    std::unordered_map<dependant, size_t> m_dependencies;
+    static constexpr size_t dependencies_values_symbolic = 0;
+    static constexpr size_t dependencies_values_spaces = 1;
+    std::array<std::vector<std::pair<dependency_value, std::unordered_map<dependant, size_t>::iterator>>, 2>
+        m_dependencies_values;
+    std::unordered_map<std::variant<id_index, space_ptr>, std::vector<std::unordered_map<dependant, size_t>::iterator>>
         m_last_dependencies;
 
+    void insert_depenency(
+        dependant target, const resolvable* dependency_source, const dependency_evaluation_context& dep_ctx);
+    std::unordered_map<dependant, size_t>::node_type extract_dependency(
+        std::unordered_map<dependant, size_t>::iterator it);
+
+    constexpr auto& dependencies_values(const dependant& d)
+    {
+        return m_dependencies_values[std::holds_alternative<space_ptr>(d)];
+    }
+    constexpr const auto& dependencies_values(const dependant& d) const
+    {
+        return m_dependencies_values[std::holds_alternative<space_ptr>(d)];
+    }
+    constexpr auto& dependencies_values(const std::variant<id_index, space_ptr>& d)
+    {
+        return m_dependencies_values[std::holds_alternative<space_ptr>(d)];
+    }
+    constexpr const auto& dependencies_values(const std::variant<id_index, space_ptr>& d) const
+    {
+        return m_dependencies_values[std::holds_alternative<space_ptr>(d)];
+    }
     void clear_last_dependencies(const std::variant<id_index, space_ptr>&);
 
     // statements where dependencies are from
@@ -123,7 +148,8 @@ class symbol_dependency_tables
 
     std::vector<dependant> extract_dependencies(
         const resolvable* dependency_source, const dependency_evaluation_context& dep_ctx, const library_info& li);
-    bool update_dependencies(std::unordered_map<dependant, dependency_value>::iterator it, const library_info& li);
+    bool update_dependencies(
+        std::unordered_map<dependant, size_t>::iterator it, dependency_value& d, const library_info& li);
     std::vector<dependant> extract_dependencies(const std::vector<const resolvable*>& dependency_sources,
         const dependency_evaluation_context& dep_ctx,
         const library_info& li);
