@@ -258,7 +258,7 @@ std::vector<address::base_entry> merge_bases(
     std::sort(result.begin(), result.end(), [](const auto& l, const auto& r) { return l.first < r.first; });
     utils::merge_unsorted(
         result,
-        r,
+        l,
         [](const auto& l, const auto& r) { return l.first <=> r.first; },
         [](auto& r, const auto& e) { r.second += e.second; });
 
