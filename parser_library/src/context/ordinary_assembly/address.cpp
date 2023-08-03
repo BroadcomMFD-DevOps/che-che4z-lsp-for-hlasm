@@ -230,7 +230,7 @@ address::address(base address_base, int offset, space_storage&& spaces)
 template<merge_op operation, typename C1, typename C2>
 requires(std::is_same_v<std::remove_cvref_t<C1>, std::remove_cvref_t<C2>>) auto merge_entries(C1&& lhs, C2&& rhs)
 {
-    using T = std::remove_cvref_t<C1>::value_type;
+    using T = typename std::remove_cvref_t<C1>::value_type;
     std::vector<T> res;
     std::vector<const T*> prhs;
 
