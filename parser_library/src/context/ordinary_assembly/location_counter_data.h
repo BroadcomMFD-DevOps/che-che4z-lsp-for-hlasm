@@ -16,6 +16,7 @@
 #define CONTEXT_LOCATION_COUNTER_DATA_H
 
 #include <list>
+#include <memory>
 #include <optional>
 
 #include "address.h"
