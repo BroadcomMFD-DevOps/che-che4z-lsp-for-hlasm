@@ -45,7 +45,7 @@ struct address
         const section* owner = nullptr;
         id_index qualifier;
 
-        friend bool operator==(const base&, const base&) = default;
+        friend auto operator<=>(const base&, const base&) = default;
     };
 
     using space_entry = std::pair<space_ptr, int>;

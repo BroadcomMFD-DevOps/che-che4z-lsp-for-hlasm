@@ -27,6 +27,7 @@
 
 #include "location_counter.h"
 #include "section.h"
+#include "utils/merge_sorted.h"
 
 namespace hlasm_plugin::parser_library::context {
 
@@ -109,15 +110,6 @@ int get_space_offset(std::span<const address::space_entry> sp_vec)
 
 int address::offset() const { return offset_ + get_space_offset(spaces_.spaces); }
 int address::unresolved_offset() const { return offset_; }
-
-template<typename T, typename U>
-auto&& move_if_rvalue(U&& u)
-{
-    if constexpr (std::is_lvalue_reference_v<T>)
-        return u;
-    else
-        return std::move(u);
-}
 
 enum class merge_op : bool
 {
@@ -227,57 +219,58 @@ address::address(base address_base, int offset, space_storage&& spaces)
     spaces_.owner = std::move(new_spaces);
 }
 
-template<merge_op operation, typename C1, typename C2>
-requires(std::is_same_v<std::remove_cvref_t<C1>, std::remove_cvref_t<C2>>) auto merge_entries(C1&& lhs, C2&& rhs)
+template<merge_op operation>
+std::vector<address::base_entry> merge_bases(
+    const std::vector<address::base_entry>& l, const std::vector<address::base_entry>& r)
 {
-    using T = typename std::remove_cvref_t<C1>::value_type;
-    std::vector<T> res;
-    std::vector<const T*> prhs;
+    if (r.empty())
+        return l;
 
-    prhs.reserve(rhs.size());
-    for (const auto& e : rhs)
-        prhs.push_back(&e);
-
-    for (auto&& entry : lhs)
+    if constexpr (operation == merge_op::add)
     {
-        auto it = std::find_if(prhs.begin(), prhs.end(), [&](auto e) { return e ? entry.first == e->first : false; });
-
-        if (it != prhs.end())
+        if (l.empty())
+            return r;
+    }
+    else
+    {
+        if (l.empty())
         {
-            int count;
-            if constexpr (operation == merge_op::add)
-                count = entry.second + (*it)->second; // L + R
-            else
-                count = entry.second - (*it)->second; // L - R
-
-            if (count != 0)
-                res.emplace_back(move_if_rvalue<C1>(entry.first), count);
-
-            *it = nullptr;
+            auto result = r;
+            for (auto& [_, cnt] : result)
+                cnt *= -1;
+            return result;
         }
-        else
-        {
-            res.push_back(move_if_rvalue<C1>(entry));
-        }
+        if (l == r)
+            return {};
     }
 
-    for (auto&& rest : prhs)
-    {
-        if (!rest)
-            continue;
+    std::vector<address::base_entry> result;
 
-        res.push_back(move_if_rvalue<C2>(*rest));
-        if constexpr (operation == merge_op::sub)
-            res.back().second = -res.back().second;
+    result.reserve(l.size() + r.size());
+
+    result = r;
+    if constexpr (operation == merge_op::sub)
+    {
+        for (auto& [_, cnt] : result)
+            cnt *= -1;
     }
 
-    return res;
+    std::sort(result.begin(), result.end(), [](const auto& l, const auto& r) { return l.first < r.first; });
+    utils::merge_unsorted(
+        result,
+        r,
+        [](const auto& l, const auto& r) { return l.first <=> r.first; },
+        [](auto& r, const auto& e) { r.second += e.second; });
+
+    std::erase_if(result, [](const auto& e) { return e.second == 0; });
+
+    return result;
 }
 
 address address::operator+(const address& addr) const
 {
     if (!has_spaces() && !addr.has_spaces())
-        return address(merge_entries<merge_op::add>(bases_, addr.bases_), offset_ + addr.offset_, space_list());
+        return address(merge_bases<merge_op::add>(bases_, addr.bases_), offset_ + addr.offset_, space_list());
 
     auto res_spaces = std::make_shared<std::vector<space_entry>>();
     normalization_helper helper;
@@ -288,7 +281,7 @@ address address::operator+(const address& addr) const
 
     cleanup_spaces(*res_spaces);
 
-    return address(merge_entries<merge_op::add>(bases_, addr.bases_),
+    return address(merge_bases<merge_op::add>(bases_, addr.bases_),
         offset_ + addr.offset_ + offset,
         space_list(std::move(res_spaces)));
 }
@@ -311,7 +304,7 @@ address address::operator-(const address& addr) const
 {
     auto [lspaces, rspaces] = trim_common(spaces_.spaces, addr.spaces_.spaces);
     if (lspaces.empty() && rspaces.empty())
-        return address(merge_entries<merge_op::sub>(bases_, addr.bases_), offset_ - addr.offset_, {});
+        return address(merge_bases<merge_op::sub>(bases_, addr.bases_), offset_ - addr.offset_, {});
 
     normalization_helper helper;
 
@@ -328,7 +321,7 @@ address address::operator-(const address& addr) const
             ++l_processed;
         }
         if (l_processed == lspaces.size())
-            return address(merge_entries<merge_op::sub>(bases_, addr.bases_),
+            return address(merge_bases<merge_op::sub>(bases_, addr.bases_),
                 offset_ - addr.offset_,
                 space_list(lspaces, spaces_.owner));
     }
@@ -347,7 +340,7 @@ address address::operator-(const address& addr) const
 
     cleanup_spaces(*res_spaces);
 
-    return address(merge_entries<merge_op::sub>(bases_, addr.bases_),
+    return address(merge_bases<merge_op::sub>(bases_, addr.bases_),
         offset_ - addr.offset_ + offset,
         space_list(std::move(res_spaces)));
 }
