@@ -263,14 +263,16 @@ void symbol_dependency_tables::resolve_dependant_default(const dependant& target
 }
 void symbol_dependency_tables::clear_dependencies(const std::variant<id_index, space_ptr>& d)
 {
-    auto ch = m_last_dependencies.find(d);
-    if (ch == m_last_dependencies.end())
+    auto dep_list = m_last_dependencies.find(d);
+    if (dep_list == m_last_dependencies.end())
         return;
 
-
-    for (const auto& jt : ch->second)
-        dependencies_values(jt->first)[jt->second].first.m_last_dependencies_count -= 1;
-    m_last_dependencies.erase(ch);
+    for (const auto& it : dep_list->second)
+    {
+        const auto& [dep, dep_idx] = *it;
+        dependencies_values(dep)[dep_idx].first.m_last_dependencies_count -= 1;
+    }
+    m_last_dependencies.erase(dep_list);
 }
 
 void symbol_dependency_tables::insert_depenency(
