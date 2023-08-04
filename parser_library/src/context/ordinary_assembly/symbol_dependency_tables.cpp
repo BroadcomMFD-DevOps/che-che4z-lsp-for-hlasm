@@ -298,11 +298,8 @@ std::unordered_map<dependant, size_t>::node_type symbol_dependency_tables::extra
     return m_dependencies.extract(it);
 }
 
-void symbol_dependency_tables::resolve(
-    std::variant<id_index, space_ptr> what_changed, diagnostic_s_consumer* diag_consumer, const library_info& li)
+void symbol_dependency_tables::resolve(diagnostic_s_consumer* diag_consumer, const library_info& li)
 {
-    clear_dependencies(std::move(what_changed));
-
     while (true)
     {
         if (resolve_dependencies(m_dependencies_values[dependencies_values_symbolic], diag_consumer, li))
@@ -506,7 +503,8 @@ bool symbol_dependency_tables::add_dependency(dependant target,
         bool no_cycle = check_cycle(target, extract_dependencies(dependency_source, dep_ctx, li), li);
         if (!no_cycle)
         {
-            resolve(std::visit(dependant_visitor(), target), nullptr, li);
+            clear_dependencies(std::visit(dependant_visitor(), std::move(target)));
+            resolve(nullptr, li);
             return false;
         }
     }
@@ -585,7 +583,10 @@ bool symbol_dependency_tables::check_cycle(space_ptr target, const library_info&
     bool no_cycle = check_cycle(target, extract_dependencies(dep_src->m_resolvable, dep_src->m_dec, li), li);
 
     if (!no_cycle)
-        resolve(std::move(target), nullptr, li);
+    {
+        clear_dependencies(std::move(target));
+        resolve(nullptr, li);
+    }
 
     return no_cycle;
 }
@@ -605,9 +606,10 @@ dependency_adder symbol_dependency_tables::add_dependencies(
 }
 
 void symbol_dependency_tables::add_defined(
-    const std::variant<id_index, space_ptr>& what_changed, diagnostic_s_consumer* diag_consumer, const library_info& li)
+    std::variant<id_index, space_ptr> what_changed, diagnostic_s_consumer* diag_consumer, const library_info& li)
 {
-    resolve(what_changed, diag_consumer, li);
+    clear_dependencies(std::move(what_changed));
+    resolve(diag_consumer, li);
 }
 
 bool symbol_dependency_tables::check_loctr_cycle(const library_info& li)

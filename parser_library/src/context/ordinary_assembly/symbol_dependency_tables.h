@@ -141,8 +141,7 @@ class symbol_dependency_tables
         const dependency_evaluation_context& dep_ctx,
         const library_info& li);
     void resolve_dependant_default(const dependant& target);
-    void resolve(
-        std::variant<id_index, space_ptr> what_changed, diagnostic_s_consumer* diag_consumer, const library_info& li);
+    void resolve(diagnostic_s_consumer* diag_consumer, const library_info& li);
     bool resolve_dependencies(
         std::vector<std::pair<dependency_value, std::unordered_map<dependant, size_t>::iterator>>& dependencies,
         diagnostic_s_consumer* diag_consumer,
@@ -208,9 +207,8 @@ public:
 
     // registers that some symbol has been defined
     // if resolver is present, location counter dependencies are checked as well (not just symbol deps)
-    void add_defined(const std::variant<id_index, space_ptr>& what_changed,
-        diagnostic_s_consumer* diag_consumer,
-        const library_info& li);
+    void add_defined(
+        std::variant<id_index, space_ptr> what_changed, diagnostic_s_consumer* diag_consumer, const library_info& li);
 
     // checks for cycle in location counter value
     bool check_loctr_cycle(const library_info& li);
