@@ -258,10 +258,10 @@ struct resolve_dependant_default_visitor
 
 void symbol_dependency_tables::resolve_dependant_default(const dependant& target)
 {
-    clear_last_dependencies(std::visit(dependant_visitor(), target));
+    clear_dependencies(std::visit(dependant_visitor(), target));
     std::visit(resolve_dependant_default_visitor { m_sym_ctx }, target);
 }
-void symbol_dependency_tables::clear_last_dependencies(const std::variant<id_index, space_ptr>& d)
+void symbol_dependency_tables::clear_dependencies(const std::variant<id_index, space_ptr>& d)
 {
     auto ch = m_last_dependencies.find(d);
     if (ch == m_last_dependencies.end())
@@ -302,7 +302,7 @@ void symbol_dependency_tables::resolve(
     std::variant<id_index, space_ptr> what_changed, diagnostic_s_consumer* diag_consumer, const library_info& li)
 {
     const std::span dep_set(m_dependencies_values.data(), 1 + !!diag_consumer);
-    clear_last_dependencies(what_changed);
+    clear_dependencies(what_changed);
     for (bool progress = true; std::exchange(progress, false);)
     {
         for (auto& dependencies : dep_set)
@@ -323,7 +323,7 @@ void symbol_dependency_tables::resolve(
                 try_erase_source_statement(target);
 
                 what_changed = std::visit(dependant_visitor(), std::move(extract_dependency(it).key()));
-                clear_last_dependencies(what_changed);
+                clear_dependencies(what_changed);
 
                 --i;
             }

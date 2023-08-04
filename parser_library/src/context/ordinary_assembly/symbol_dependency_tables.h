@@ -122,7 +122,7 @@ class symbol_dependency_tables
     {
         return m_dependencies_values[std::holds_alternative<space_ptr>(d)];
     }
-    void clear_last_dependencies(const std::variant<id_index, space_ptr>&);
+    void clear_dependencies(const std::variant<id_index, space_ptr>&);
 
     // statements where dependencies are from
     std::unordered_map<dependant, statement_ref> m_dependency_source_stmts;
