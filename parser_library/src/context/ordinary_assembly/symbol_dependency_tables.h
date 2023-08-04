@@ -143,6 +143,10 @@ class symbol_dependency_tables
     void resolve_dependant_default(const dependant& target);
     void resolve(
         std::variant<id_index, space_ptr> what_changed, diagnostic_s_consumer* diag_consumer, const library_info& li);
+    bool resolve_dependencies(
+        std::vector<std::pair<dependency_value, std::unordered_map<dependant, size_t>::iterator>>& dependencies,
+        diagnostic_s_consumer* diag_consumer,
+        const library_info& li);
 
     const dependency_value* find_dependency_value(const dependant& target) const;
 

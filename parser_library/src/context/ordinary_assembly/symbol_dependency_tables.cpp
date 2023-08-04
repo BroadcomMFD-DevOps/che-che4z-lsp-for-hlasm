@@ -303,34 +303,43 @@ void symbol_dependency_tables::resolve(
 {
     clear_dependencies(std::move(what_changed));
 
-    const std::span dep_set(m_dependencies_values.data(), 1 + !!diag_consumer);
-    for (bool progress = true; std::exchange(progress, false);)
+    while (true)
     {
-        for (auto& dependencies : dep_set)
-        {
-            for (size_t i = 0; i < dependencies.size(); ++i)
-            {
-                auto& [dep_value, it_volatile] = dependencies[i];
-                const auto it = it_volatile;
-                const auto& target = it->first;
-                if (dep_value.m_last_dependencies_count || (dep_value.m_has_t_attr_dependency && !diag_consumer))
-                    continue;
-                if (update_dependencies(it, dep_value, li))
-                    continue;
-
-                progress = true;
-
-                resolve_dependant(target, dep_value.m_resolvable, diag_consumer, dep_value.m_dec, li); // resolve target
-                try_erase_source_statement(target);
-
-                clear_dependencies(std::visit(dependant_visitor(), std::move(extract_dependency(it).key())));
-
-                --i;
-            }
-            if (progress)
-                break;
-        }
+        if (resolve_dependencies(m_dependencies_values[dependencies_values_symbolic], diag_consumer, li))
+            continue;
+        if (!diag_consumer)
+            break;
+        if (!resolve_dependencies(m_dependencies_values[dependencies_values_spaces], diag_consumer, li))
+            break;
     }
+}
+
+bool symbol_dependency_tables::resolve_dependencies(
+    std::vector<std::pair<dependency_value, std::unordered_map<dependant, size_t>::iterator>>& dependencies,
+    diagnostic_s_consumer* diag_consumer,
+    const library_info& li)
+{
+    bool progress = false;
+    for (size_t i = 0; i < dependencies.size(); ++i)
+    {
+        auto& [dep_value, it_volatile] = dependencies[i];
+        const auto it = it_volatile;
+        const auto& target = it->first;
+        if (dep_value.m_last_dependencies_count || (dep_value.m_has_t_attr_dependency && !diag_consumer))
+            continue;
+        if (update_dependencies(it, dep_value, li))
+            continue;
+
+        progress = true;
+
+        resolve_dependant(target, dep_value.m_resolvable, diag_consumer, dep_value.m_dec, li); // resolve target
+        try_erase_source_statement(target);
+
+        clear_dependencies(std::visit(dependant_visitor(), std::move(extract_dependency(it).key())));
+
+        --i;
+    }
+    return progress;
 }
 
 const symbol_dependency_tables::dependency_value* symbol_dependency_tables::find_dependency_value(
