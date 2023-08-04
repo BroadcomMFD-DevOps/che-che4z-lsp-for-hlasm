@@ -77,6 +77,13 @@ jobs:
           mv sonar-scanner-$SONAR_SCANNER_VERSION-linux sonar-scanner-linux
         working-directory: ${{ runner.temp }}
 
+      - name: Set up JDK 17
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/setup-java@v3
+        with:
+          java-version: 17
+          distribution: 'temurin'
+
       - name: Sonar scan
         env:
           SONAR_SCANNER_OPTS: -server
