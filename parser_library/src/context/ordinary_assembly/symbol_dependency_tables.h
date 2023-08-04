@@ -103,8 +103,7 @@ class symbol_dependency_tables
 
     void insert_depenency(
         dependant target, const resolvable* dependency_source, const dependency_evaluation_context& dep_ctx);
-    std::unordered_map<dependant, size_t>::node_type extract_dependency(
-        std::unordered_map<dependant, size_t>::iterator it);
+    dependant delete_dependency(std::unordered_map<dependant, size_t>::iterator it);
 
     constexpr auto& dependencies_values(const dependant& d)
     {

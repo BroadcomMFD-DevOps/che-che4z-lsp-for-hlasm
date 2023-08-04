@@ -283,8 +283,7 @@ void symbol_dependency_tables::insert_depenency(
     assert(inserted);
 }
 
-std::unordered_map<dependant, size_t>::node_type symbol_dependency_tables::extract_dependency(
-    std::unordered_map<dependant, size_t>::iterator it)
+dependant symbol_dependency_tables::delete_dependency(std::unordered_map<dependant, size_t>::iterator it)
 {
     auto& dependencies = dependencies_values(it->first);
     auto& me = dependencies[it->second];
@@ -295,7 +294,7 @@ std::unordered_map<dependant, size_t>::node_type symbol_dependency_tables::extra
 
     dependencies.pop_back();
 
-    return m_dependencies.extract(it);
+    return std::move(m_dependencies.extract(it).key());
 }
 
 void symbol_dependency_tables::resolve(diagnostic_s_consumer* diag_consumer, const library_info& li)
@@ -332,7 +331,7 @@ bool symbol_dependency_tables::resolve_dependencies(
         resolve_dependant(target, dep_value.m_resolvable, diag_consumer, dep_value.m_dec, li); // resolve target
         try_erase_source_statement(target);
 
-        clear_dependencies(std::visit(dependant_visitor(), std::move(extract_dependency(it).key())));
+        clear_dependencies(std::visit(dependant_visitor(), delete_dependency(it)));
 
         --i;
     }
@@ -681,7 +680,7 @@ bool symbol_dependency_tables::check_loctr_cycle(const library_info& li)
         resolve_dependant_default(*target);
         try_erase_source_statement(*target);
         if (auto it = m_dependencies.find(*target); it != m_dependencies.end())
-            extract_dependency(it);
+            delete_dependency(it);
     }
 
     return cycles.empty();
