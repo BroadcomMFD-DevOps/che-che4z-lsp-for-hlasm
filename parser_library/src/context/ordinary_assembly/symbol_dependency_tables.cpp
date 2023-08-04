@@ -387,8 +387,8 @@ std::vector<dependant> symbol_dependency_tables::extract_dependencies(
     constexpr auto unknown_loctr = [](const auto& entry) {
         return std::get<space_ptr>(entry)->kind == context::space_kind::LOCTR_UNKNOWN;
     };
-    if (auto known_spaces = std::partition(v.begin(), v.end(), unknown_loctr); known_spaces != v.begin())
-        v.erase(known_spaces, v.end());
+    if (auto known_spaces = std::partition(ret.begin(), ret.end(), unknown_loctr); known_spaces != ret.begin())
+        ret.erase(known_spaces, ret.end());
 
     return ret;
 }
