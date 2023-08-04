@@ -596,9 +596,9 @@ dependency_adder symbol_dependency_tables::add_dependencies(
 }
 
 void symbol_dependency_tables::add_defined(
-    std::variant<id_index, space_ptr> what_changed, diagnostic_s_consumer* diag_consumer, const library_info& li)
+    const std::variant<id_index, space_ptr>& what_changed, diagnostic_s_consumer* diag_consumer, const library_info& li)
 {
-    clear_dependencies(std::move(what_changed));
+    clear_dependencies(what_changed);
     resolve(diag_consumer, li);
 }
 
