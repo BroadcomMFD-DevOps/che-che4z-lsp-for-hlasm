@@ -78,7 +78,6 @@ jobs:
         working-directory: ${{ runner.temp }}
 
       - name: Set up JDK 17
-        if: steps.cache.outputs.cache-hit != 'true'
         uses: actions/setup-java@v3
         with:
           java-version: 17
