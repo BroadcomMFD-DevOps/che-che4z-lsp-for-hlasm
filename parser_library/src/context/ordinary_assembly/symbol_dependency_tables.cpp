@@ -301,8 +301,9 @@ std::unordered_map<dependant, size_t>::node_type symbol_dependency_tables::extra
 void symbol_dependency_tables::resolve(
     std::variant<id_index, space_ptr> what_changed, diagnostic_s_consumer* diag_consumer, const library_info& li)
 {
+    clear_dependencies(std::move(what_changed));
+
     const std::span dep_set(m_dependencies_values.data(), 1 + !!diag_consumer);
-    clear_dependencies(what_changed);
     for (bool progress = true; std::exchange(progress, false);)
     {
         for (auto& dependencies : dep_set)
@@ -322,8 +323,7 @@ void symbol_dependency_tables::resolve(
                 resolve_dependant(target, dep_value.m_resolvable, diag_consumer, dep_value.m_dec, li); // resolve target
                 try_erase_source_statement(target);
 
-                what_changed = std::visit(dependant_visitor(), std::move(extract_dependency(it).key()));
-                clear_dependencies(what_changed);
+                clear_dependencies(std::visit(dependant_visitor(), std::move(extract_dependency(it).key())));
 
                 --i;
             }
