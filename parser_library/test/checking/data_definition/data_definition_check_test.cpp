@@ -12,7 +12,7 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
-
+#include "../../common_testing.h"
 #include "data_definition_common.h"
 
 using namespace hlasm_plugin::parser_library::checking;
@@ -816,6 +816,18 @@ TEST(data_def_checker, L_correct)
     ASSERT_EQ(col.diags().size(), (size_t)0);
 }
 
+TEST(data_def_checker, L_correct_space_at_end)
+{
+    data_def_type_L t;
+
+    data_definition_operand op = setup_data_def_op('L', '\0', "456E10,5 ");
+
+    diag_collector col;
+    EXPECT_TRUE(t.check_DC(op, ADD_DIAG(col)));
+
+    ASSERT_EQ(col.diags().size(), (size_t)0);
+}
+
 TEST(data_def_checker, L_invalid_round_mode)
 {
     data_def_type_L t;
@@ -878,4 +890,124 @@ TEST(data_def_checker, LD_no_exponent)
 
     ASSERT_EQ(col.diags().size(), (size_t)1);
     EXPECT_EQ(col.diags()[0].code, "D010");
+}
+
+TEST(data_def_checker, special_values_BD)
+{
+    diag_collector col;
+
+    EXPECT_TRUE(data_def_type_LD().check_DC(setup_data_def_op('L', 'D', "(SNAN)"), ADD_DIAG(col)));
+    EXPECT_TRUE(data_def_type_ED().check_DC(setup_data_def_op('E', 'D', "+(SNAN)"), ADD_DIAG(col)));
+    EXPECT_TRUE(data_def_type_DD().check_DC(setup_data_def_op('D', 'D', "-(SNAN)"), ADD_DIAG(col)));
+    EXPECT_TRUE(data_def_type_LB().check_DC(setup_data_def_op('L', 'B', "(QNAN)"), ADD_DIAG(col)));
+    EXPECT_TRUE(data_def_type_EB().check_DC(setup_data_def_op('E', 'B', "+(QNAN)"), ADD_DIAG(col)));
+    EXPECT_TRUE(data_def_type_DB().check_DC(setup_data_def_op('D', 'B', "-(QNAN)"), ADD_DIAG(col)));
+
+    EXPECT_TRUE(data_def_type_LD().check_DC(setup_data_def_op('L', 'D', "(nan)"), ADD_DIAG(col)));
+    EXPECT_TRUE(data_def_type_ED().check_DC(setup_data_def_op('E', 'D', "+(inf)"), ADD_DIAG(col)));
+    EXPECT_TRUE(data_def_type_DD().check_DC(setup_data_def_op('D', 'D', "-(max)"), ADD_DIAG(col)));
+    EXPECT_TRUE(data_def_type_LB().check_DC(setup_data_def_op('L', 'B', "(min)"), ADD_DIAG(col)));
+    EXPECT_TRUE(data_def_type_EB().check_DC(setup_data_def_op('E', 'B', "+(dmin)"), ADD_DIAG(col)));
+    EXPECT_TRUE(data_def_type_DB().check_DC(setup_data_def_op('D', 'B', "-(qnan)"), ADD_DIAG(col)));
+
+    EXPECT_TRUE(col.diags().empty());
+}
+
+TEST(data_def_checker, special_values_BD_space_after)
+{
+    diag_collector col;
+
+    EXPECT_FALSE(data_def_type_LD().check_DC(setup_data_def_op('L', 'D', "(SNAN) "), ADD_DIAG(col)));
+    EXPECT_FALSE(data_def_type_ED().check_DC(setup_data_def_op('E', 'D', "+(SNAN) "), ADD_DIAG(col)));
+    EXPECT_FALSE(data_def_type_DD().check_DC(setup_data_def_op('D', 'D', "-(SNAN) "), ADD_DIAG(col)));
+
+    EXPECT_TRUE(matches_message_codes(col.diags(), { "D010", "D010", "D010" }));
+}
+
+TEST(data_def_checker, special_values_BD_incomplete)
+{
+    diag_collector col;
+
+    EXPECT_FALSE(data_def_type_LB().check_DC(setup_data_def_op('L', 'B', "(QNAN),"), ADD_DIAG(col)));
+    EXPECT_FALSE(data_def_type_EB().check_DC(setup_data_def_op('E', 'B', "+(QNAN),"), ADD_DIAG(col)));
+    EXPECT_FALSE(data_def_type_DB().check_DC(setup_data_def_op('D', 'B', "-(QNAN),"), ADD_DIAG(col)));
+
+    EXPECT_TRUE(matches_message_codes(col.diags(), { "D010", "D010", "D010" }));
+}
+
+TEST(data_def_checker, special_values_BD_wrong)
+{
+    diag_collector col;
+
+    EXPECT_FALSE(data_def_type_LB().check_DC(setup_data_def_op('L', 'B', "( QNAN)"), ADD_DIAG(col)));
+    EXPECT_FALSE(data_def_type_EB().check_DC(setup_data_def_op('E', 'B', "+(QN AN)"), ADD_DIAG(col)));
+    EXPECT_FALSE(data_def_type_DB().check_DC(setup_data_def_op('D', 'B', "-(QNAN )"), ADD_DIAG(col)));
+    EXPECT_FALSE(data_def_type_DB().check_DC(setup_data_def_op('D', 'B', "-(SOMETHING)"), ADD_DIAG(col)));
+
+    EXPECT_TRUE(matches_message_codes(col.diags(), { "D010", "D010", "D010", "D010" }));
+}
+
+TEST(data_def_checker, special_values_no_extension)
+{
+    diag_collector col;
+
+    EXPECT_FALSE(data_def_type_L().check_DC(setup_data_def_op('L', '\0', "(MAX)"), ADD_DIAG(col)));
+    EXPECT_FALSE(data_def_type_E().check_DC(setup_data_def_op('E', '\0', "+(MAX)"), ADD_DIAG(col)));
+    EXPECT_FALSE(data_def_type_D().check_DC(setup_data_def_op('D', '\0', "-(MAX)"), ADD_DIAG(col)));
+
+    EXPECT_TRUE(matches_message_codes(col.diags(), { "D010", "D010", "D010" }));
+}
+
+TEST(data_def_checker, special_values_H)
+{
+    diag_collector col;
+
+    EXPECT_TRUE(data_def_type_LH().check_DC(setup_data_def_op('L', 'H', "(MAX)"), ADD_DIAG(col)));
+    EXPECT_TRUE(data_def_type_EH().check_DC(setup_data_def_op('E', 'H', "+(MAX)"), ADD_DIAG(col)));
+    EXPECT_TRUE(data_def_type_DH().check_DC(setup_data_def_op('D', 'H', "-(MAX)"), ADD_DIAG(col)));
+    EXPECT_TRUE(data_def_type_LQ().check_DC(setup_data_def_op('L', 'Q', "(MIN)"), ADD_DIAG(col)));
+    EXPECT_TRUE(data_def_type_LQ().check_DC(setup_data_def_op('L', 'Q', "+(MIN)"), ADD_DIAG(col)));
+    EXPECT_TRUE(data_def_type_LQ().check_DC(setup_data_def_op('L', 'Q', "-(MIN)"), ADD_DIAG(col)));
+    EXPECT_TRUE(data_def_type_LQ().check_DC(setup_data_def_op('L', 'Q', "(DMIN)"), ADD_DIAG(col)));
+    EXPECT_TRUE(data_def_type_LQ().check_DC(setup_data_def_op('L', 'Q', "+(DMIN)"), ADD_DIAG(col)));
+    EXPECT_TRUE(data_def_type_LQ().check_DC(setup_data_def_op('L', 'Q', "-(DMIN)"), ADD_DIAG(col)));
+
+    EXPECT_TRUE(col.diags().empty());
+}
+
+TEST(data_def_checker, special_values_H_space_after)
+{
+    diag_collector col;
+
+    EXPECT_FALSE(data_def_type_LH().check_DC(setup_data_def_op('L', 'H', "(MAX) "), ADD_DIAG(col)));
+    EXPECT_FALSE(data_def_type_EH().check_DC(setup_data_def_op('E', 'H', "+(MAX) "), ADD_DIAG(col)));
+    EXPECT_FALSE(data_def_type_DH().check_DC(setup_data_def_op('D', 'H', "-(MAX) "), ADD_DIAG(col)));
+
+    EXPECT_TRUE(matches_message_codes(col.diags(), { "D010", "D010", "D010" }));
+}
+
+TEST(data_def_checker, special_values_H_incomplete)
+{
+    diag_collector col;
+
+    EXPECT_FALSE(data_def_type_LH().check_DC(setup_data_def_op('L', 'H', "(MAX),"), ADD_DIAG(col)));
+    EXPECT_FALSE(data_def_type_EH().check_DC(setup_data_def_op('E', 'H', "+(MAX),"), ADD_DIAG(col)));
+    EXPECT_FALSE(data_def_type_DH().check_DC(setup_data_def_op('D', 'H', "-(MAX),"), ADD_DIAG(col)));
+
+    EXPECT_TRUE(matches_message_codes(col.diags(), { "D010", "D010", "D010" }));
+}
+
+TEST(data_def_checker, special_values_H_wrong)
+{
+    diag_collector col;
+
+    EXPECT_FALSE(data_def_type_LH().check_DC(setup_data_def_op('L', 'H', "( DMIN)"), ADD_DIAG(col)));
+    EXPECT_FALSE(data_def_type_EH().check_DC(setup_data_def_op('E', 'H', "+(DM IN)"), ADD_DIAG(col)));
+    EXPECT_FALSE(data_def_type_DH().check_DC(setup_data_def_op('D', 'H', "-(DMIN )"), ADD_DIAG(col)));
+
+    EXPECT_FALSE(data_def_type_LH().check_DC(setup_data_def_op('L', 'H', "(SNAN)"), ADD_DIAG(col)));
+    EXPECT_FALSE(data_def_type_EH().check_DC(setup_data_def_op('E', 'H', "+(QNAN)"), ADD_DIAG(col)));
+    EXPECT_FALSE(data_def_type_DH().check_DC(setup_data_def_op('D', 'H', "-(INF)"), ADD_DIAG(col)));
+
+    EXPECT_TRUE(matches_message_codes(col.diags(), { "D010", "D010", "D010", "D010", "D010", "D010" }));
 }
