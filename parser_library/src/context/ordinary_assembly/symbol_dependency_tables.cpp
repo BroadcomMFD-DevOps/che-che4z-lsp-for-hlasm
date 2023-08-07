@@ -197,7 +197,7 @@ struct resolve_dependant_visitor
             context::space::resolve(sp, pure_offset + offset_correction, std::move(space));
         }
 
-        if (!sym_ctx.symbol_dependencies.check_cycle(new_sp, li))
+        if (!sym_ctx.symbol_dependencies().check_cycle(new_sp, li))
             add_diagnostic(diagnostic_op::error_E033);
 
         for (auto& sect : sym_ctx.sections())
