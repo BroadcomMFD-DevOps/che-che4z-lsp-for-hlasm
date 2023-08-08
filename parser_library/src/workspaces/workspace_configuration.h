@@ -98,7 +98,7 @@ struct program
     {}
 
     program_id prog_id;
-    std::optional<proc_grp_id> pgroup;
+    std::optional<proc_grp_id> pgroup; // Todo does this need to be optional?
     config::assembler_options asm_opts;
     bool external;
 };
@@ -277,21 +277,79 @@ class workspace_configuration
     std::unordered_map<utils::resource::resource_location, name_set, utils::resource::resource_location_hasher>
         m_missing_proc_grps;
 
-    struct tagged_program
+    class program_details_storage
     {
-        program pgm;
-        const void* tag = nullptr;
+    public:
+        struct pgm_conf_parameters
+        {
+            proc_grp_id pgroup_id;
+            utils::resource::resource_location pgm_rl;
+            const utils::resource::resource_location& alternative_cfg_rl;
+            const config::assembler_options& asm_opts;
+            name_set& missing_proc_grps;
+            const void* tag;
+        };
+
+        struct tagged_program
+        {
+            program pgm;
+            const void* tag = nullptr;
+        };
+
+        struct missing_pgroup_details
+        {
+            std::string pgroup_name;
+            utils::resource::resource_location config_rl;
+        };
+
+        using program_related_details = std::variant<tagged_program, missing_pgroup_details>;
+
+        program_details_storage() = default;
+
+        // todo think about proc_grps being provided in constructor
+        void add_exact_pgm_conf(pgm_conf_parameters params,
+            const std::unordered_map<proc_grp_id, processor_group, proc_grp_id_hasher, proc_grp_id_equal>& proc_grps);
+
+        void update_exact_pgm_conf(
+            const utils::resource::resource_location& normalized_location, tagged_program tagged_pgm);
+
+        void add_regex_pgm_conf(pgm_conf_parameters params,
+            const std::unordered_map<proc_grp_id, processor_group, proc_grp_id_hasher, proc_grp_id_equal>& proc_grps);
+
+
+        const missing_pgroup_details* get_missing_pgroup_details(
+            const utils::resource::resource_location& file_location) const;
+
+        enum class pgm_container_hit
+        {
+            NONE,
+            EXACT_PGM,
+            REGEX_PGM,
+            EXACT_B4G,
+            REGEX_B4G
+        };
+
+        std::pair<const program*, pgm_container_hit> get_program_normalized(
+            const utils::resource::resource_location& file_location_normalized) const;
+        void remove_pgm(const void* tag);
+
+        void prune_external_processor_groups(const utils::resource::resource_location& location);
+
+        void clear();
+
+    private:
+        using regex_container = std::vector<std::pair<program_related_details, std::regex>>;
+
+        std::map<utils::resource::resource_location, program_related_details> m_exact_match;
+        regex_container m_regex_pgm_conf;
+        regex_container m_regex_b4g_json;
+
+        missing_pgroup_details new_missing_pgroup_helper(name_set& missing_proc_grps,
+            std::string missing_pgroup_name,
+            utils::resource::resource_location config_rl) const;
     };
 
-    struct missing_pgroup_details
-    {
-        std::string pgroup_name;
-        utils::resource::resource_location config_rl;
-    };
-
-    using program_related_details = std::variant<tagged_program, missing_pgroup_details>;
-    std::map<utils::resource::resource_location, program_related_details> m_exact_pgm_conf;
-    std::vector<std::pair<program_related_details, std::regex>> m_regex_pgm_conf;
+    program_details_storage m_pgm_store;
 
     struct b4g_config
     {
@@ -339,31 +397,11 @@ class workspace_configuration
         const utils::resource::resource_location& alternative_root,
         std::vector<diagnostic_s>& diags);
 
-    missing_pgroup_details new_missing_pgroup_helper(name_set& missing_proc_grps,
-        std::string missing_pgroup_name,
-        utils::resource::resource_location config_rl) const;
-
-    struct pgm_conf_parameters
-    {
-        proc_grp_id pgroup_id;
-        utils::resource::resource_location pgm_rl;
-        const utils::resource::resource_location& alternative_cfg_rl;
-        const config::assembler_options& asm_opts;
-        name_set& missing_proc_grps;
-        const void* tag;
-    };
-
-    void add_exact_pgm_conf(pgm_conf_parameters params);
-
-    void add_regex_pgm_conf(pgm_conf_parameters params);
-
     void process_program(
         const config::program_mapping& pgm, name_set& missing_proc_grps, std::vector<diagnostic_s>& diags);
 
     bool is_config_file(const utils::resource::resource_location& file_location) const;
     bool is_b4g_config_file(const utils::resource::resource_location& file) const;
-    std::pair<const program*, bool> get_program_normalized(
-        const utils::resource::resource_location& file_location_normalized) const;
 
     [[nodiscard]] utils::value_task<parse_config_file_result> parse_b4g_config_file(
         const utils::resource::resource_location& cfg_file_rl);
@@ -381,9 +419,6 @@ class workspace_configuration
         processor_group& prc_grp,
         const library_local_options& opts,
         std::vector<diagnostic_s>& diags);
-
-    const missing_pgroup_details* get_missing_pgroup_details(
-        const utils::resource::resource_location& file_location) const;
 
     std::unordered_map<std::string, bool, utils::hashers::string_hasher, std::equal_to<>>
     get_categorized_missing_pgroups(const utils::resource::resource_location& config_file_rl,

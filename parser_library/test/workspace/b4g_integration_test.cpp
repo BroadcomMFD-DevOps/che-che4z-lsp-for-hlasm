@@ -235,7 +235,7 @@ public:
   "pgms": [
     {
       "program": "SYS/SUB/ASMPGM/$x",
-      "pgroup": "P1"
+      "pgroup": "NON_EXISTENT_PGM"
     }
   ]
 })";
@@ -302,18 +302,21 @@ TEST(b4g_integration_test, pgm_conf_preference_alternatives)
 
     ws.diags().clear();
     change_and_reparse(fm, ws, pgm_conf_rl, std::regex_replace(helper.pgm_conf_template, std::regex("\\$x"), "*"));
+    ws.collect_diags();
     EXPECT_TRUE(matches_message_text(ws.diags(), { sys_sub_p1_mac1.get_uri(), sys_sub_p1_mac1.get_uri() }));
 
     ws.diags().clear();
     change_and_reparse(
         fm, ws, pgm_conf_rl, std::regex_replace(helper.pgm_conf_template, std::regex("\\$x"), "DIFFERENT_FILE"));
+    ws.collect_diags();
     EXPECT_TRUE(matches_message_text(ws.diags(), { sys_sub_p2_mac1.get_uri(), sys_sub_p2_mac1.get_uri() }));
 
     ws.diags().clear();
     change_and_reparse(fm,
         ws,
         b4g_conf_rl,
-        R"({"elements":"B":{"processorGroup":"P2"}},"defaultProcessorGroup":"P3","fileExtension":""})");
+        R"({"elements":{"B":{"processorGroup":"P2"}},"defaultProcessorGroup":"P3","fileExtension":""})");
+    ws.collect_diags();
     EXPECT_TRUE(matches_message_text(ws.diags(), { sys_sub_p2_mac1.get_uri(), sys_sub_p3_mac1.get_uri() }));
 }
 
@@ -324,7 +327,7 @@ TEST(b4g_integration_test, pgm_conf_preference_missing_proc_groups_alternatives)
 
     missing_proc_grps_helper helper("A",
         R"({"pgms":[{"program":"SYS/SUB/ASMPGM/A","pgroup":"NON_EXISTENT_PGM"}]})",
-        R"({"elements":{"A":{"processorGroup":"NON_EXISTENT_B4G"}},"defaultProcessorGroup":"NON_EXISTENT_B4G_DEFAULT","fileExtension":""})");
+        std::regex_replace(b4g_conf_template, std::regex("\\$x"), "A"));
 
     auto& ws = helper.ws;
     auto& fm = helper.fm;
@@ -335,16 +338,19 @@ TEST(b4g_integration_test, pgm_conf_preference_missing_proc_groups_alternatives)
 
     ws.diags().clear();
     change_and_reparse(fm, ws, pgm_conf_rl, std::regex_replace(helper.pgm_conf_template, std::regex("\\$x"), "*"));
+    ws.collect_diags();
     EXPECT_TRUE(matches_message_codes(ws.diags(), { "W0004" }));
 
     ws.diags().clear();
     change_and_reparse(
         fm, ws, pgm_conf_rl, std::regex_replace(helper.pgm_conf_template, std::regex("\\$x"), "DIFFERENT_FILE"));
+    ws.collect_diags();
     EXPECT_TRUE(matches_message_codes(ws.diags(), { "B4G002" }));
 
     ws.diags().clear();
     change_and_reparse(
         fm, ws, b4g_conf_rl, std::regex_replace(b4g_conf_template, std::regex("\\$x"), "DIFFERENT_FILE"));
+    ws.collect_diags();
     EXPECT_TRUE(matches_message_codes(ws.diags(), { "B4G002" }));
 }
 
