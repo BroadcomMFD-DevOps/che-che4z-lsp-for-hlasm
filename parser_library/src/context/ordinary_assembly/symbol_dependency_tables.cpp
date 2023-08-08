@@ -282,13 +282,8 @@ void symbol_dependency_tables::resolve(
     {
         for (size_t i = 0; i < m_dependencies_filters.size(); ++i)
         {
-            if (!diag_consumer)
-            {
-                const bool sp = m_dependencies_space_ptr_type[i];
-                const bool t_attr = m_dependencies_has_t_attr[i];
-                if (sp || t_attr)
-                    continue;
-            }
+            if (!diag_consumer && (m_dependencies_space_ptr_type[i] || m_dependencies_has_t_attr[i]))
+                continue;
             if (m_dependencies_filters.any(i))
                 continue;
             auto& [target, dep_value] = *m_dependencies_iterators[i];
@@ -476,12 +471,13 @@ bool symbol_dependency_tables::add_dependency(dependant target,
 void symbol_dependency_tables::insert_depenency(
     dependant target, const resolvable* dependency_source, const dependency_evaluation_context& dep_ctx)
 {
+    const bool is_space_ptr = std::holds_alternative<space_ptr>(target);
     auto [it, inserted] =
         m_dependencies.try_emplace(std::move(target), dependency_source, dep_ctx, m_dependencies_iterators.size());
     m_dependencies_iterators.emplace_back(it);
     m_dependencies_filters.emplace_back();
     m_dependencies_has_t_attr.emplace_back(false);
-    m_dependencies_space_ptr_type.emplace_back(std::holds_alternative<space_ptr>(target));
+    m_dependencies_space_ptr_type.emplace_back(is_space_ptr);
 
     assert(inserted);
 }
