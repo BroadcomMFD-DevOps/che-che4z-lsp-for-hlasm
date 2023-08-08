@@ -15,6 +15,7 @@
 #ifndef SEMANTICS_SYMBOL_DEPENDENCY_TABLES_H
 #define SEMANTICS_SYMBOL_DEPENDENCY_TABLES_H
 
+#include <bitset>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -78,11 +79,51 @@ class dependency_adder;
 // class holding data about dependencies between symbols
 class symbol_dependency_tables
 {
+    class mini_filter
+    {
+        std::array<uint32_t, 32> v = {};
+        static constexpr uint32_t top_bit_shift = 31;
+        static constexpr uint32_t top_bit = 1u << top_bit_shift;
+
+    public:
+        static constexpr size_t effective_bit_count = 31 * 32;
+
+        void set(size_t bit)
+        {
+            v[1 + bit / 32] |= (top_bit >> bit % 32);
+            v[0] |= top_bit >> (1 + bit / 32);
+            v[0] |= top_bit;
+        }
+        void reset(size_t bit)
+        {
+            v[1 + bit / 32] &= ~(top_bit >> bit % 32);
+            const uint32_t is_empty = v[1 + bit / 32] == 0;
+            v[0] &= ~(is_empty << (31 - 1 - bit / 32));
+            v[0] &= -!!(v[0] & ~top_bit);
+        }
+        void reset() { v = {}; }
+
+        bool any() const { return v[0] & top_bit; }
+
+        mini_filter& operator&=(const mini_filter& o)
+        {
+            uint32_t top = 0;
+            for (size_t i = 1; i < v.size(); ++i)
+            {
+                v[i] &= o.v[i];
+                const uint32_t not_empty = v[i] != 0;
+                top |= not_empty << (top_bit_shift - i);
+            }
+            top |= !!top << top_bit_shift;
+            v[0] = top;
+            return *this;
+        }
+    };
     struct dependency_value
     {
         const resolvable* m_resolvable;
         dependency_evaluation_context m_dec;
-        std::vector<std::variant<id_index, space_ptr>> m_last_dependencies;
+        mini_filter m_last_dependencies;
         bool m_has_t_attr_dependency = false;
 
         dependency_value(const resolvable* r, dependency_evaluation_context dec)
@@ -93,6 +134,7 @@ class symbol_dependency_tables
 
     // actual dependecies of symbol or space
     std::unordered_map<dependant, dependency_value> m_dependencies;
+    mini_filter m_defaulted_dependencies;
 
     // statements where dependencies are from
     std::unordered_map<dependant, statement_ref> m_dependency_source_stmts;
