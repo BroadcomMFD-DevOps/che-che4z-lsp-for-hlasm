@@ -16,6 +16,8 @@
 #define SEMANTICS_SYMBOL_DEPENDENCY_TABLES_H
 
 #include <bitset>
+#include <concepts>
+#include <limits>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -79,62 +81,105 @@ class dependency_adder;
 // class holding data about dependencies between symbols
 class symbol_dependency_tables
 {
-    class mini_filter
+    template<std::unsigned_integral T>
+    class mini_filters
     {
-        std::array<uint32_t, 32> v = {};
-        static constexpr uint32_t top_bit_shift = 31;
-        static constexpr uint32_t top_bit = 1u << top_bit_shift;
+        static constexpr size_t bit_count = std::numeric_limits<T>::digits;
+        std::array<std::vector<T>, bit_count> filters;
+        static constexpr T top_bit_shift = bit_count - 1;
+        static constexpr T top_bit = (T)1 << top_bit_shift;
 
     public:
-        static constexpr size_t effective_bit_count = 31 * 32;
+        static constexpr size_t effective_bit_count = top_bit_shift * bit_count;
 
-        void set(size_t bit)
+        void set(size_t bit, size_t idx) noexcept
         {
-            v[1 + bit / 32] |= (top_bit >> bit % 32);
-            v[0] |= top_bit >> (1 + bit / 32);
-            v[0] |= top_bit;
+            filters[1 + bit / bit_count][idx] |= (top_bit >> bit % bit_count);
+            filters[0][idx] |= top_bit >> (1 + bit / bit_count);
+            filters[0][idx] |= top_bit;
         }
-        void reset(size_t bit)
+        void reset(size_t bit, size_t idx) noexcept
         {
-            v[1 + bit / 32] &= ~(top_bit >> bit % 32);
-            const uint32_t is_empty = v[1 + bit / 32] == 0;
-            v[0] &= ~(is_empty << (31 - 1 - bit / 32));
-            v[0] &= -!!(v[0] & ~top_bit);
+            auto& vec = filters[1 + bit / bit_count];
+
+            vec[idx] &= ~(top_bit >> bit % bit_count);
+            const T is_empty = vec[idx] == 0;
+            auto& v = filters[0][idx];
+            v &= ~(is_empty << (top_bit_shift - 1 - bit / bit_count));
+            v &= -!!(filters[0][idx] & ~top_bit);
         }
-        void reset() { v = {}; }
-
-        bool any() const { return v[0] & top_bit; }
-
-        mini_filter& operator&=(const mini_filter& o)
+        void reset(size_t idx) noexcept
         {
-            uint32_t top = 0;
-            for (size_t i = 1; i < v.size(); ++i)
+            for (auto& f : filters)
+                f[idx] = 0;
+        }
+        void reset_global(size_t bit) noexcept
+        {
+            auto& vec = filters[1 + bit / bit_count];
+            const auto summary_test_bit = top_bit >> (1 + bit / bit_count);
+
+            for (auto it = vec.begin(), fit = filters[0].begin(); it != vec.end(); ++it, ++fit)
             {
-                v[i] &= o.v[i];
-                const uint32_t not_empty = v[i] != 0;
-                top |= not_empty << (top_bit_shift - i);
+                if (!(*fit & summary_test_bit))
+                    continue;
+                *it &= ~(top_bit >> bit % bit_count);
+                const T is_empty = *it == 0;
+                *fit &= ~(is_empty << (top_bit_shift - 1 - bit / bit_count));
+                *fit &= -!!(*fit & ~top_bit);
             }
-            top |= !!top << top_bit_shift;
-            v[0] = top;
-            return *this;
+        }
+
+        bool any(size_t idx) const noexcept { return filters[0][idx] & top_bit; }
+
+        void emplace_back()
+        {
+            for (auto& f : filters)
+                f.emplace_back(0);
+        }
+
+        void swap_and_pop_back(size_t idx) noexcept
+        {
+            for (auto& f : filters)
+            {
+                std::swap(f[idx], f.back());
+                f.pop_back();
+            }
+        }
+
+        auto size() const noexcept { return filters.front().size(); }
+
+        void clear() noexcept
+        {
+            for (auto& f : filters)
+                f.clear();
         }
     };
+
     struct dependency_value
     {
         const resolvable* m_resolvable;
         dependency_evaluation_context m_dec;
-        mini_filter m_last_dependencies;
-        bool m_has_t_attr_dependency = false;
+        size_t m_last_dependencies;
 
-        dependency_value(const resolvable* r, dependency_evaluation_context dec)
+        dependency_value(const resolvable* r, dependency_evaluation_context dec, size_t last_dependencies)
             : m_resolvable(r)
             , m_dec(std::move(dec))
+            , m_last_dependencies(last_dependencies)
         {}
     };
 
     // actual dependecies of symbol or space
     std::unordered_map<dependant, dependency_value> m_dependencies;
-    mini_filter m_defaulted_dependencies;
+
+    std::vector<std::unordered_map<dependant, dependency_value>::iterator> m_dependencies_iterators;
+    mini_filters<uint32_t> m_dependencies_filters;
+    std::vector<bool> m_dependencies_has_t_attr;
+    std::vector<bool> m_dependencies_space_ptr_type;
+
+    void insert_depenency(
+        dependant target, const resolvable* dependency_source, const dependency_evaluation_context& dep_ctx);
+
+    dependant delete_dependency(std::unordered_map<dependant, dependency_value>::iterator it);
 
     // statements where dependencies are from
     std::unordered_map<dependant, statement_ref> m_dependency_source_stmts;

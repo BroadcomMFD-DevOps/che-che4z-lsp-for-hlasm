@@ -265,43 +265,45 @@ struct resolve_dependant_default_visitor
 
 void symbol_dependency_tables::resolve_dependant_default(const dependant& target)
 {
-    m_defaulted_dependencies.set(std::visit(dependant_hash(), target) % mini_filter::effective_bit_count);
+    m_dependencies_filters.reset_global(
+        std::visit(dependant_hash(), target) % decltype(m_dependencies_filters)::effective_bit_count);
     std::visit(resolve_dependant_default_visitor { m_sym_ctx }, target);
 }
 
 void symbol_dependency_tables::resolve(
     std::variant<id_index, space_ptr> what_changed, diagnostic_s_consumer* diag_consumer, const library_info& li)
 {
-    if (m_defaulted_dependencies.any())
-    {
-        for (auto& d : m_dependencies)
-            d.second.m_last_dependencies &= m_defaulted_dependencies;
-        m_defaulted_dependencies.reset();
-    }
-    size_t what_changed_bit = std::visit(dependant_hash(), what_changed) % mini_filter::effective_bit_count;
-
-    const auto resolvable = [this, diag_consumer, &what_changed_bit, &li](
-                                std::pair<const dependant, dependency_value>& v) {
-        v.second.m_last_dependencies.reset(what_changed_bit);
-        if (!diag_consumer && std::holds_alternative<space_ptr>(v.first))
-            return false;
-        if (v.second.m_last_dependencies.any() || v.second.m_has_t_attr_dependency && !diag_consumer)
-            return false;
-        return !update_dependencies(v.second, li);
+    constexpr auto hasher = [](const auto& what_changed) {
+        return std::visit(dependant_hash(), what_changed) % decltype(m_dependencies_filters)::effective_bit_count;
     };
-    auto it = m_dependencies.end();
-    while ((it = std::find_if(m_dependencies.begin(), m_dependencies.end(), resolvable)) != m_dependencies.end())
+    m_dependencies_filters.reset_global(hasher(what_changed));
+
+    for (bool progress = true; std::exchange(progress, false);)
     {
-        const auto& [target, dep_value] = *it;
+        for (size_t i = 0; i < m_dependencies_filters.size(); ++i)
+        {
+            if (!diag_consumer)
+            {
+                const bool sp = m_dependencies_space_ptr_type[i];
+                const bool t_attr = m_dependencies_has_t_attr[i];
+                if (sp || t_attr)
+                    continue;
+            }
+            if (m_dependencies_filters.any(i))
+                continue;
+            auto& [target, dep_value] = *m_dependencies_iterators[i];
+            if (update_dependencies(dep_value, li))
+                continue;
 
-        resolve_dependant(target, dep_value.m_resolvable, diag_consumer, dep_value.m_dec, li); // resolve target
-        try_erase_source_statement(target);
+            resolve_dependant(target, dep_value.m_resolvable, diag_consumer, dep_value.m_dec, li); // resolve target
+            try_erase_source_statement(target);
 
-        for (auto nested = std::next(it); nested != m_dependencies.end(); ++nested)
-            nested->second.m_last_dependencies.reset(what_changed_bit);
+            m_dependencies_filters.reset_global(hasher(delete_dependency(m_dependencies_iterators[i])));
 
-        what_changed_bit =
-            std::visit(dependant_hash(), m_dependencies.extract(it).key()) % mini_filter::effective_bit_count;
+            --i;
+
+            progress = true;
+        }
     }
 }
 
@@ -365,22 +367,24 @@ bool symbol_dependency_tables::update_dependencies(dependency_value& d, const li
     context::ordinary_assembly_dependency_solver dep_solver(m_sym_ctx, d.m_dec, li);
     auto deps = d.m_resolvable->get_dependencies(dep_solver);
 
-    d.m_last_dependencies.reset();
-    d.m_has_t_attr_dependency = false;
-    constexpr auto hasher = [](const auto& e) { return dependant_hash()(e) % mini_filter::effective_bit_count; };
+    m_dependencies_filters.reset(d.m_last_dependencies);
+    m_dependencies_has_t_attr[d.m_last_dependencies] = false;
+    constexpr auto hasher = [](const auto& e) {
+        return dependant_hash()(e) % decltype(m_dependencies_filters)::effective_bit_count;
+    };
 
     for (const auto& ref : deps.undefined_symbolics)
     {
         if (ref.get(context::data_attr_kind::T))
-            d.m_has_t_attr_dependency = true;
+            m_dependencies_has_t_attr[d.m_last_dependencies] = true;
 
         if (ref.has_only(context::data_attr_kind::T))
             continue;
 
-        d.m_last_dependencies.set(hasher(ref.name));
+        m_dependencies_filters.set(hasher(ref.name), d.m_last_dependencies);
     }
 
-    if (d.m_last_dependencies.any() || d.m_has_t_attr_dependency)
+    if (m_dependencies_filters.any(d.m_last_dependencies) || m_dependencies_has_t_attr[d.m_last_dependencies])
         return true;
 
     auto addr_spaces = deps.unresolved_address ? std::move(deps.unresolved_address)->normalized_spaces().first
@@ -396,17 +400,17 @@ bool symbol_dependency_tables::update_dependencies(dependency_value& d, const li
             continue;
         if (e->resolved())
             continue;
-        d.m_last_dependencies.set(hasher(e));
+        m_dependencies_filters.set(hasher(e), d.m_last_dependencies);
     }
 
     for (auto& e : addr_spaces)
     {
         if (loctr_cnt && !unknown_loctr(e.first))
             continue;
-        d.m_last_dependencies.set(hasher(e.first));
+        m_dependencies_filters.set(hasher(e.first), d.m_last_dependencies);
     }
 
-    return d.m_last_dependencies.any();
+    return m_dependencies_filters.any(d.m_last_dependencies);
 }
 
 std::vector<dependant> symbol_dependency_tables::extract_dependencies(
@@ -464,11 +468,38 @@ bool symbol_dependency_tables::add_dependency(dependant target,
         }
     }
 
-    auto [it, inserted] = m_dependencies.try_emplace(std::move(target), dependency_source, dep_ctx);
-
-    assert(inserted);
+    insert_depenency(std::move(target), dependency_source, dep_ctx);
 
     return true;
+}
+
+void symbol_dependency_tables::insert_depenency(
+    dependant target, const resolvable* dependency_source, const dependency_evaluation_context& dep_ctx)
+{
+    auto [it, inserted] =
+        m_dependencies.try_emplace(std::move(target), dependency_source, dep_ctx, m_dependencies_iterators.size());
+    m_dependencies_iterators.emplace_back(it);
+    m_dependencies_filters.emplace_back();
+    m_dependencies_has_t_attr.emplace_back(false);
+    m_dependencies_space_ptr_type.emplace_back(std::holds_alternative<space_ptr>(target));
+
+    assert(inserted);
+}
+
+dependant symbol_dependency_tables::delete_dependency(std::unordered_map<dependant, dependency_value>::iterator it)
+{
+    const auto me_idx = it->second.m_last_dependencies;
+
+    std::swap(it->second.m_last_dependencies, m_dependencies_iterators.back()->second.m_last_dependencies);
+    std::swap(m_dependencies_iterators[me_idx], m_dependencies_iterators.back());
+    std::vector<bool>::swap(m_dependencies_has_t_attr[me_idx], m_dependencies_has_t_attr.back());
+    std::vector<bool>::swap(m_dependencies_space_ptr_type[me_idx], m_dependencies_space_ptr_type.back());
+    m_dependencies_iterators.pop_back();
+    m_dependencies_has_t_attr.pop_back();
+    m_dependencies_space_ptr_type.pop_back();
+    m_dependencies_filters.swap_and_pop_back(me_idx);
+
+    return std::move(m_dependencies.extract(it).key());
 }
 
 bool symbol_dependency_tables::add_dependency(id_index target,
@@ -636,7 +667,8 @@ bool symbol_dependency_tables::check_loctr_cycle(const library_info& li)
     {
         resolve_dependant_default(*target);
         try_erase_source_statement(*target);
-        m_dependencies.erase(*target);
+        if (auto it = m_dependencies.find(*target); it != m_dependencies.end())
+            delete_dependency(it);
     }
 
     return cycles.empty();
@@ -656,6 +688,10 @@ std::vector<std::pair<post_stmt_ptr, dependency_evaluation_context>> symbol_depe
     m_postponed_stmts.clear();
     m_dependency_source_stmts.clear();
     m_dependencies.clear();
+    m_dependencies_iterators.clear();
+    m_dependencies_filters.clear();
+    m_dependencies_has_t_attr.clear();
+    m_dependencies_space_ptr_type.clear();
 
     return res;
 }
