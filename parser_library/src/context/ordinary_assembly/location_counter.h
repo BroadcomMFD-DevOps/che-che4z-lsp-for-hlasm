@@ -73,7 +73,7 @@ public:
     std::pair<space_ptr, std::vector<address>> set_available_value();
 
     // creates layout
-    void finish_layout(size_t offset);
+    space_ptr finish_layout(size_t offset);
 
     void resolve_space(space_ptr sp, int length);
 

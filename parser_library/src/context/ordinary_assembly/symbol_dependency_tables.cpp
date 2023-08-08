@@ -265,9 +265,7 @@ void symbol_dependency_tables::resolve(
     std::variant<id_index, space_ptr> what_changed, diagnostic_s_consumer* diag_consumer, const library_info& li)
 {
     const auto cleanup_deps = [&what_changed](auto& entry) {
-        std::erase_if(entry.m_last_dependencies, [&what_changed](const auto& v) {
-            return what_changed == v || std::holds_alternative<space_ptr>(v) && std::get<space_ptr>(v)->resolved();
-        });
+        std::erase_if(entry.m_last_dependencies, [&what_changed](const auto& v) { return what_changed == v; });
     };
     const auto resolvable = [this, diag_consumer, &cleanup_deps, &li](std::pair<const dependant, dependency_value>& v) {
         cleanup_deps(v.second);
@@ -299,23 +297,6 @@ const symbol_dependency_tables::dependency_value* symbol_dependency_tables::find
         return &it->second;
 
     return nullptr;
-}
-
-void keep_unknown_loctr_only(auto& v)
-{
-    // assumes space_ptr only
-    assert(std::all_of(v.begin(), v.end(), [](const auto& e) { return std::holds_alternative<space_ptr>(e); }));
-
-    constexpr auto unknown_loctr = [](const auto& entry) {
-        return std::get<space_ptr>(entry)->kind == context::space_kind::LOCTR_UNKNOWN;
-    };
-
-    auto known_spaces = std::partition(v.begin(), v.end(), unknown_loctr);
-
-    if (known_spaces == v.begin())
-        return;
-
-    v.erase(known_spaces, v.end());
 }
 
 std::vector<dependant> symbol_dependency_tables::extract_dependencies(
@@ -355,7 +336,11 @@ std::vector<dependant> symbol_dependency_tables::extract_dependencies(
         }
     }
 
-    keep_unknown_loctr_only(ret);
+    constexpr auto unknown_loctr = [](const auto& entry) {
+        return std::get<space_ptr>(entry)->kind == context::space_kind::LOCTR_UNKNOWN;
+    };
+    if (auto known_spaces = std::partition(ret.begin(), ret.end(), unknown_loctr); known_spaces != ret.begin())
+        ret.erase(known_spaces, ret.end());
 
     return ret;
 }
@@ -382,15 +367,28 @@ bool symbol_dependency_tables::update_dependencies(dependency_value& d, const li
     if (!d.m_last_dependencies.empty() || d.m_has_t_attr_dependency)
         return true;
 
-    d.m_last_dependencies.insert(d.m_last_dependencies.end(),
-        std::make_move_iterator(deps.unresolved_spaces.begin()),
-        std::make_move_iterator(deps.unresolved_spaces.end()));
+    auto addr_spaces = deps.unresolved_address ? std::move(deps.unresolved_address)->normalized_spaces().first
+                                               : std::vector<address::space_entry>();
 
-    if (deps.unresolved_address)
-        for (auto&& [sp, _] : std::move(deps.unresolved_address)->normalized_spaces().first)
-            d.m_last_dependencies.emplace_back(std::move(sp));
+    constexpr static auto unknown_loctr = [](const auto& e) { return e->kind == context::space_kind::LOCTR_UNKNOWN; };
+    const auto loctr_cnt = std::count_if(deps.unresolved_spaces.begin(), deps.unresolved_spaces.end(), unknown_loctr)
+        || std::count_if(addr_spaces.begin(), addr_spaces.end(), [](const auto& e) { return unknown_loctr(e.first); });
 
-    keep_unknown_loctr_only(d.m_last_dependencies);
+    d.m_last_dependencies.reserve(loctr_cnt ? loctr_cnt : deps.unresolved_spaces.size() + addr_spaces.size());
+
+    for (auto& e : deps.unresolved_spaces)
+    {
+        if (loctr_cnt && !unknown_loctr(e))
+            continue;
+        d.m_last_dependencies.emplace_back(std::move(e));
+    }
+
+    for (auto& e : addr_spaces)
+    {
+        if (loctr_cnt && !unknown_loctr(e.first))
+            continue;
+        d.m_last_dependencies.emplace_back(std::move(e.first));
+    }
 
     return !d.m_last_dependencies.empty();
 }
