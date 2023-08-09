@@ -320,16 +320,16 @@ class workspace_configuration
         const missing_pgroup_details* get_missing_pgroup_details(
             const utils::resource::resource_location& file_location) const;
 
-        enum class pgm_container_hit
+        enum class hit_type
         {
-            NONE,
+            NOT_FOUND,
             EXACT_PGM,
             REGEX_PGM,
             EXACT_B4G,
             REGEX_B4G
         };
 
-        std::pair<const program*, pgm_container_hit> get_program_normalized(
+        std::pair<const program*, hit_type> get_program_normalized(
             const utils::resource::resource_location& file_location_normalized) const;
         void remove_pgm(const void* tag);
 
@@ -347,6 +347,14 @@ class workspace_configuration
         missing_pgroup_details new_missing_pgroup_helper(name_set& missing_proc_grps,
             std::string missing_pgroup_name,
             utils::resource::resource_location config_rl) const;
+
+        struct pgm_det_ret_va
+        {
+            const program_related_details* pgm_rel_details;
+            hit_type type;
+        };
+
+        pgm_det_ret_va get_program_related_details(const utils::resource::resource_location& file_location) const;
     };
 
     program_details_storage m_pgm_store;

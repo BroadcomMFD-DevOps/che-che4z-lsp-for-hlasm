@@ -468,95 +468,70 @@ void workspace_configuration::program_details_storage::prune_external_processor_
         std::erase_if(m_exact_match, [&is_external](const auto& p) { return is_external(p.second); });
 }
 
-const workspace_configuration::program_details_storage::missing_pgroup_details*
-workspace_configuration::program_details_storage::get_missing_pgroup_details(
+workspace_configuration::program_details_storage::pgm_det_ret_va
+workspace_configuration::program_details_storage::get_program_related_details(
     const utils::resource::resource_location& file_location) const
 {
-    const workspace_configuration::program_details_storage::missing_pgroup_details* direct_match = nullptr;
+    using enum workspace_configuration::program_details_storage::hit_type;
+
+    const program_related_details* p_rel_det_direct_match = nullptr;
 
     // direct match
     if (auto pgm_details = m_exact_match.find(file_location); pgm_details != m_exact_match.cend())
     {
-        direct_match = std::get_if<missing_pgroup_details>(&pgm_details->second);
-
-        if (!direct_match)
-            return nullptr;
-
-        if (direct_match->config_rl.empty())
-            return direct_match;
+        p_rel_det_direct_match = &pgm_details->second;
+        if (auto tagged_pgm_direct_match = std::get_if<tagged_program>(p_rel_det_direct_match))
+        {
+            if (std::holds_alternative<basic_conf>(tagged_pgm_direct_match->pgm.pgroup.value()))
+                return { p_rel_det_direct_match, EXACT_PGM };
+        }
+        else if (auto missing_details_direct_match = std::get_if<missing_pgroup_details>(p_rel_det_direct_match))
+        {
+            if (missing_details_direct_match->config_rl.empty())
+                return { p_rel_det_direct_match, EXACT_PGM };
+        }
     }
 
     for (const auto& [pgm_details, pattern] : m_regex_pgm_conf)
     {
         if (std::regex_match(file_location.get_uri(), pattern))
-            return std::get_if<missing_pgroup_details>(&pgm_details);
+            return { &pgm_details, REGEX_PGM };
     }
 
-    if (direct_match)
-        return direct_match;
+    if (p_rel_det_direct_match)
+        return { p_rel_det_direct_match, EXACT_B4G };
 
     for (const auto& [pgm_details, pattern] : m_regex_b4g_json)
     {
         if (std::regex_match(file_location.get_uri(), pattern))
-            return std::get_if<missing_pgroup_details>(&pgm_details);
+            return { &pgm_details, REGEX_B4G };
     }
 
-    return nullptr;
+    return { nullptr, NOT_FOUND };
 }
 
-std::pair<const program*, workspace_configuration::program_details_storage::pgm_container_hit>
+const workspace_configuration::program_details_storage::missing_pgroup_details*
+workspace_configuration::program_details_storage::get_missing_pgroup_details(
+    const utils::resource::resource_location& file_location) const
+{
+    return std::get_if<missing_pgroup_details>(get_program_related_details(file_location).pgm_rel_details);
+}
+
+std::pair<const program*, workspace_configuration::program_details_storage::hit_type>
 workspace_configuration::program_details_storage::get_program_normalized(
     const utils::resource::resource_location& file_location_normalized) const
 {
-    using enum workspace_configuration::program_details_storage::pgm_container_hit;
-
-    constexpr auto try_retrieve_program = [](const program_details_storage::program_related_details& p_rel_details,
-                                              pgm_container_hit hit) -> std::pair<const program*, pgm_container_hit> {
-        if (const auto& tagged_pgm = std::get_if<program_details_storage::tagged_program>(&p_rel_details); tagged_pgm)
-            return { &tagged_pgm->pgm, hit };
+    constexpr auto try_retrieve_program =
+        [](const program_details_storage::program_related_details* p_rel_details) -> const program* {
+        if (const auto& tagged_pgm = std::get_if<program_details_storage::tagged_program>(p_rel_details); tagged_pgm)
+            return &tagged_pgm->pgm;
         else
-            return { nullptr, hit };
+            return nullptr;
     };
 
-    // direct match
-    const program* pgm_direct_match = nullptr;
-    const program_details_storage::missing_pgroup_details* missing_details_direct_match = nullptr;
+    const auto& p_rel_details = get_program_related_details(file_location_normalized);
 
-    if (auto pgm_details = m_exact_match.find(file_location_normalized); pgm_details != m_exact_match.cend())
-    {
-        // return try_retrieve_program(pgm_details->second, true)
-
-        pgm_direct_match = try_retrieve_program(pgm_details->second, EXACT_PGM).first;
-
-        if (!pgm_direct_match)
-        {
-            missing_details_direct_match =
-                std::get_if<program_details_storage::missing_pgroup_details>(&pgm_details->second);
-
-            if (missing_details_direct_match->config_rl.empty())
-
-                return { nullptr, EXACT_PGM };
-        }
-        else if (std::holds_alternative<basic_conf>(pgm_direct_match->pgroup.value()))
-            return { pgm_direct_match, EXACT_PGM };
-    }
-
-    for (const auto& [pgm_details, pattern] : m_regex_pgm_conf)
-    {
-        if (std::regex_match(file_location_normalized.get_uri(), pattern))
-            return try_retrieve_program(pgm_details, REGEX_PGM);
-    }
-
-    if (pgm_direct_match || missing_details_direct_match)
-        return { pgm_direct_match, EXACT_B4G };
-
-    for (const auto& [pgm_details, pattern] : m_regex_b4g_json)
-    {
-        if (std::regex_match(file_location_normalized.get_uri(), pattern))
-            return try_retrieve_program(pgm_details, REGEX_B4G);
-    }
-
-    return { nullptr, NONE };
+    return { try_retrieve_program(p_rel_details.pgm_rel_details), p_rel_details.type };
 }
 
 void workspace_configuration::program_details_storage::remove_pgm(const void* tag)
@@ -568,6 +543,7 @@ void workspace_configuration::program_details_storage::remove_pgm(const void* ta
 
     std::erase_if(m_exact_match, [&has_matching_tag](const auto& e) { return has_matching_tag(e.second); });
     std::erase_if(m_regex_pgm_conf, [&has_matching_tag](const auto& e) { return has_matching_tag(e.first); });
+    std::erase_if(m_regex_b4g_json, [&has_matching_tag](const auto& e) { return has_matching_tag(e.first); });
 }
 
 void workspace_configuration::program_details_storage::clear()
@@ -625,8 +601,6 @@ utils::value_task<parse_config_file_result> workspace_configuration::load_and_pr
 
     m_proc_grps.clear();
     m_pgm_store.clear();
-    // m_exact_pgm_conf.clear();
-    // m_regex_pgm_conf.clear();
     m_b4g_config_cache.clear();
     m_missing_proc_grps.clear();
 
@@ -1143,13 +1117,11 @@ void workspace_configuration::prune_external_processor_groups(const utils::resou
 utils::value_task<utils::resource::resource_location> workspace_configuration::load_alternative_config_if_needed(
     const utils::resource::resource_location& file_location)
 {
-    using enum workspace_configuration::program_details_storage::pgm_container_hit;
+    using enum workspace_configuration::program_details_storage::hit_type;
 
     const auto rl = file_location.lexically_normal();
     auto [pgm, hit_type] = m_pgm_store.get_program_normalized(rl);
 
-    // if (direct && pgm && pgm->pgroup
-    //     && (std::holds_alternative<basic_conf>(*pgm->pgroup) || std::holds_alternative<external_conf>(*pgm->pgroup)))
     if (hit_type == EXACT_PGM)
         co_return empty_alternative_cfg_root;
 
@@ -1186,9 +1158,6 @@ utils::value_task<utils::resource::resource_location> workspace_configuration::l
             //  or an allocation failure while processing the response
         }
     }
-
-    // if (pgm && pgm->pgroup && std::holds_alternative<basic_conf>(*pgm->pgroup))
-    //     co_return empty_alternative_cfg_root;
 
     if (hit_type == REGEX_PGM)
         co_return empty_alternative_cfg_root;
