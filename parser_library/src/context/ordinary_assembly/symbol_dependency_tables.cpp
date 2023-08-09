@@ -296,11 +296,12 @@ void swap(symbol_dependency_tables::dep_reference l, symbol_dependency_tables::d
 
     auto& self = l.self;
 
-    std::swap(self.m_dependencies_iterators[l.idx]->second.m_last_dependencies,
+    using std::swap;
+    swap(self.m_dependencies_iterators[l.idx]->second.m_last_dependencies,
         self.m_dependencies_iterators[r.idx]->second.m_last_dependencies);
-    std::swap(self.m_dependencies_iterators[l.idx], self.m_dependencies_iterators[r.idx]);
-    std::vector<bool>::swap(self.m_dependencies_has_t_attr[l.idx], self.m_dependencies_has_t_attr[r.idx]);
-    std::vector<bool>::swap(self.m_dependencies_space_ptr_type[l.idx], self.m_dependencies_space_ptr_type[r.idx]);
+    swap(self.m_dependencies_iterators[l.idx], self.m_dependencies_iterators[r.idx]);
+    swap(self.m_dependencies_has_t_attr[l.idx], self.m_dependencies_has_t_attr[r.idx]);
+    swap(self.m_dependencies_space_ptr_type[l.idx], self.m_dependencies_space_ptr_type[r.idx]);
     self.m_dependencies_filters.swap(l.idx, r.idx);
 }
 

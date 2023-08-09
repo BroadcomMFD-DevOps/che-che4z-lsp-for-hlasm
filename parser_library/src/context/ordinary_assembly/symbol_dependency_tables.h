@@ -15,9 +15,6 @@
 #ifndef SEMANTICS_SYMBOL_DEPENDENCY_TABLES_H
 #define SEMANTICS_SYMBOL_DEPENDENCY_TABLES_H
 
-#include <bitset>
-#include <concepts>
-#include <limits>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -32,6 +29,7 @@
 #include "diagnostic_consumer.h"
 #include "postponed_statement.h"
 #include "tagged_index.h"
+#include "utils/filter_vector.h"
 
 namespace hlasm_plugin::parser_library {
 class library_info;
@@ -77,118 +75,6 @@ struct statement_ref
     size_t ref_count;
 };
 
-template<std::unsigned_integral T>
-class mini_filters
-{
-    static constexpr size_t bit_count = std::numeric_limits<T>::digits;
-    std::array<std::vector<T>, bit_count> filters;
-    static constexpr T top_bit_shift = bit_count - 1;
-    static constexpr T top_bit = (T)1 << top_bit_shift;
-
-    struct global_reset_accumulator
-    {
-        std::array<T, bit_count> values = {};
-
-        void reset(size_t bit) { values[1 + bit / bit_count] |= (top_bit >> bit % bit_count); }
-    };
-
-public:
-    global_reset_accumulator get_global_reset_accumulator() const { return {}; }
-
-    static constexpr size_t effective_bit_count = top_bit_shift * bit_count;
-
-    void set(size_t bit, size_t idx) noexcept
-    {
-        filters[1 + bit / bit_count][idx] |= (top_bit >> bit % bit_count);
-        filters[0][idx] |= top_bit >> (1 + bit / bit_count);
-        filters[0][idx] |= top_bit;
-    }
-    void reset(size_t bit, size_t idx) noexcept
-    {
-        auto& vec = filters[1 + bit / bit_count];
-
-        vec[idx] &= ~(top_bit >> bit % bit_count);
-        const T is_empty = vec[idx] == 0;
-        auto& v = filters[0][idx];
-        v &= ~(is_empty << (top_bit_shift - 1 - bit / bit_count));
-        v &= -!!(filters[0][idx] & ~top_bit);
-    }
-    void reset(size_t idx) noexcept
-    {
-        for (auto& f : filters)
-            f[idx] = 0;
-    }
-    void reset_global(size_t bit) noexcept
-    {
-        auto& vec = filters[1 + bit / bit_count];
-        const auto summary_test_bit = top_bit >> (1 + bit / bit_count);
-
-        for (auto it = vec.begin(), fit = filters[0].begin(); it != vec.end(); ++it, ++fit)
-        {
-            if (!(*fit & summary_test_bit))
-                continue;
-            *it &= ~(top_bit >> bit % bit_count);
-            const T is_empty = *it == 0;
-            *fit &= ~(is_empty << (top_bit_shift - 1 - bit / bit_count));
-            *fit &= -!!(*fit & ~top_bit);
-        }
-    }
-
-    void reset_global(const global_reset_accumulator& acc) noexcept
-    {
-        const auto& v = acc.values;
-        for (size_t i = 1; i < bit_count; ++i)
-        {
-            if (v[i] == 0)
-                continue;
-            const auto keep_on_mask = ~v[i];
-
-            auto& vec = filters[i];
-            const auto summary_test_bit = top_bit >> i;
-
-            for (auto it = vec.begin(), fit = filters[0].begin(); it != vec.end(); ++it, ++fit)
-            {
-                if (!(*fit & summary_test_bit))
-                    continue;
-                *it &= keep_on_mask;
-                const T is_empty = *it == 0;
-                *fit &= ~(is_empty << (top_bit_shift - i));
-                *fit &= -!!(*fit & ~top_bit);
-            }
-        }
-    }
-
-    bool any(size_t idx) const noexcept { return filters[0][idx] & top_bit; }
-
-    void emplace_back()
-    {
-        for (auto& f : filters)
-            f.emplace_back(0);
-    }
-
-    void pop_back() noexcept
-    {
-        for (auto& f : filters)
-            f.pop_back();
-    }
-
-    void swap(size_t l, size_t r) noexcept
-    {
-        if (((filters[0][l] | filters[0][r]) & top_bit) == 0)
-            return;
-        for (auto& f : filters)
-            std::swap(f[l], f[r]);
-    }
-
-    auto size() const noexcept { return filters.front().size(); }
-
-    void clear() noexcept
-    {
-        for (auto& f : filters)
-            f.clear();
-    }
-};
-
 class dependency_adder;
 // class holding data about dependencies between symbols
 class symbol_dependency_tables
@@ -210,7 +96,7 @@ class symbol_dependency_tables
     std::unordered_map<dependant, dependency_value> m_dependencies;
 
     std::vector<std::unordered_map<dependant, dependency_value>::iterator> m_dependencies_iterators;
-    mini_filters<uint32_t> m_dependencies_filters;
+    utils::filter_vector<uint32_t> m_dependencies_filters;
     std::vector<bool> m_dependencies_has_t_attr;
     std::vector<bool> m_dependencies_space_ptr_type;
 
