@@ -292,12 +292,6 @@ class workspace_configuration
             const void* tag;
         };
 
-        struct tagged_program
-        {
-            program pgm;
-            const void* tag = nullptr;
-        };
-
         struct missing_pgroup_details
         {
             std::string pgroup_name;
@@ -320,12 +314,20 @@ class workspace_configuration
             cfg_affiliation affiliation;
         };
 
+        using program_details = std::variant<program, missing_pgroup_details>;
+
+        struct tagged_program_details
+        {
+            program_details pgm_details;
+            const void* tag = nullptr;
+        };
+
         program_configuration_storage() = default;
 
         void add_exact_conf(configuration_parameters params, const proc_groups_map& proc_grps);
 
         void update_exact_conf(
-            const utils::resource::resource_location& normalized_location, tagged_program tagged_pgm);
+            const utils::resource::resource_location& normalized_location, tagged_program_details tagged_pgm_details);
 
         void add_regex_conf(configuration_parameters params, const proc_groups_map& proc_grps);
 
@@ -341,11 +343,9 @@ class workspace_configuration
         void clear();
 
     private:
-        using program_details = std::variant<tagged_program, missing_pgroup_details>;
-
-        std::map<utils::resource::resource_location, program_details> m_exact_match;
-        std::vector<std::pair<program_details, std::regex>> m_regex_pgm_conf;
-        std::vector<std::pair<program_details, std::regex>> m_regex_b4g_json;
+        std::map<utils::resource::resource_location, tagged_program_details> m_exact_match;
+        std::vector<std::pair<tagged_program_details, std::regex>> m_regex_pgm_conf;
+        std::vector<std::pair<tagged_program_details, std::regex>> m_regex_b4g_json;
 
         missing_pgroup_details new_missing_pgroup_helper(name_set& missing_proc_grps,
             std::string missing_pgroup_name,
