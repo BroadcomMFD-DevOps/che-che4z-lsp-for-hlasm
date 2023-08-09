@@ -138,7 +138,7 @@ class symbol_dependency_tables
 
     std::vector<dependant> extract_dependencies(
         const resolvable* dependency_source, const dependency_evaluation_context& dep_ctx, const library_info& li);
-    bool update_dependencies(dependency_value& v, const library_info& li);
+    bool update_dependencies(const dependency_value& v, const library_info& li);
     std::vector<dependant> extract_dependencies(const std::vector<const resolvable*>& dependency_sources,
         const dependency_evaluation_context& dep_ctx,
         const library_info& li);

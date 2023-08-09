@@ -273,31 +273,31 @@ void symbol_dependency_tables::resolve_dependant_default(const dependant& target
 
 class symbol_dependency_tables::dep_value
 {
+    static constexpr auto effective_bit_count =
+        decltype(symbol_dependency_tables::m_dependencies_filters)::effective_bit_count;
+
 public:
     symbol_dependency_tables* self;
     std::unordered_map<dependant, dependency_value>::iterator iterator;
-    size_t last_dependencies;
     bool is_space_ptr;
     bool has_t_attr;
-    std::bitset<decltype(symbol_dependency_tables::m_dependencies_filters)::effective_bit_count> dep_filter;
+    std::bitset<effective_bit_count> dep_filter;
 
     explicit dep_value(symbol_dependency_tables* self,
         std::unordered_map<dependant, dependency_value>::iterator iterator,
-        size_t last_dependencies,
         bool is_space_ptr,
         bool has_t_attr,
-        const std::bitset<decltype(symbol_dependency_tables::m_dependencies_filters)::effective_bit_count>& dep_filter)
+        const std::bitset<effective_bit_count>& dep_filter) noexcept
         : self(self)
         , iterator(iterator)
-        , last_dependencies(last_dependencies)
         , is_space_ptr(is_space_ptr)
         , has_t_attr(has_t_attr)
         , dep_filter(dep_filter)
     {}
 
-    explicit(false) dep_value(dep_reference ref);
+    explicit(false) dep_value(dep_reference ref) noexcept;
 
-    dep_value& operator=(dep_reference ref);
+    dep_value& operator=(dep_reference ref) noexcept;
 };
 
 class symbol_dependency_tables::dep_reference
@@ -323,59 +323,59 @@ class symbol_dependency_tables::dep_reference
     }
 
 public:
-    constexpr dep_reference(size_t idx, symbol_dependency_tables& self)
+    constexpr dep_reference(size_t idx, symbol_dependency_tables& self) noexcept
         : idx(idx)
         , self(self)
     {}
 
-    dep_reference(const dep_reference&) = default;
-    dep_reference(dep_reference&&) = default;
-
-    dep_reference& operator=(const dep_reference& o)
-    {
-        assert(&self == &o.self);
-        self.m_dependencies_iterators[idx]->second.m_last_dependencies =
-            self.m_dependencies_iterators[o.idx]->second.m_last_dependencies;
-        self.m_dependencies_iterators[idx] = self.m_dependencies_iterators[o.idx];
-        self.m_dependencies_has_t_attr[idx] = self.m_dependencies_has_t_attr[o.idx];
-        self.m_dependencies_space_ptr_type[idx] = self.m_dependencies_space_ptr_type[o.idx];
-        self.m_dependencies_filters.assign(idx, o.idx);
-        return *this;
-    }
-    dep_reference& operator=(dep_reference&& o) { return *this = o; }
-
     auto iterator() const { return self.m_dependencies_iterators[idx]; }
-    auto last_dependencies() const { return self.m_dependencies_iterators[idx]->second.m_last_dependencies; }
     bool is_space_ptr() const { return self.m_dependencies_space_ptr_type[idx]; }
     bool has_t_attr() const { return self.m_dependencies_has_t_attr[idx]; }
     bool any() const { return self.m_dependencies_filters.any(idx); }
     auto filter() const { return self.m_dependencies_filters.get(idx); }
 
-    dep_value value() const noexcept
+    dep_reference(const dep_reference&) noexcept = default;
+    dep_reference(dep_reference&&) noexcept = default;
+
+    dep_reference& operator=(const dep_reference& o) noexcept
     {
-        return dep_value(&self, iterator(), last_dependencies(), is_space_ptr(), has_t_attr(), filter());
+        assert(&self == &o.self);
+        self.m_dependencies_iterators[idx] = o.iterator();
+        self.m_dependencies_iterators[idx]->second.m_last_dependencies = idx;
+        self.m_dependencies_has_t_attr[idx] = o.has_t_attr();
+        self.m_dependencies_space_ptr_type[idx] = o.is_space_ptr();
+        self.m_dependencies_filters.assign(idx, o.idx);
+        return *this;
     }
+    dep_reference& operator=(dep_reference&& o) noexcept
+    {
+        *this = o;
+        return *this;
+    }
+    ~dep_reference() noexcept = default;
+
+    dep_value value() const noexcept { return dep_value(&self, iterator(), is_space_ptr(), has_t_attr(), filter()); }
 
     dep_reference& operator=(const dep_value& v) noexcept
     {
         assert(&self == v.self);
         self.m_dependencies_iterators[idx] = v.iterator;
-        self.m_dependencies_iterators[idx]->second.m_last_dependencies = v.last_dependencies;
+        self.m_dependencies_iterators[idx]->second.m_last_dependencies = idx;
         self.m_dependencies_space_ptr_type[idx] = v.is_space_ptr;
         self.m_dependencies_has_t_attr[idx] = v.has_t_attr;
         self.m_dependencies_filters.set(v.dep_filter, idx);
-
         return *this;
     }
 };
 
-symbol_dependency_tables::dep_value::dep_value(dep_reference ref)
+symbol_dependency_tables::dep_value::dep_value(dep_reference ref) noexcept
     : dep_value(ref.value())
 {}
 
-symbol_dependency_tables::dep_value& symbol_dependency_tables::dep_value::operator=(dep_reference ref)
+symbol_dependency_tables::dep_value& symbol_dependency_tables::dep_value::operator=(dep_reference ref) noexcept
 {
-    return *this = ref.value();
+    *this = ref.value();
+    return *this;
 }
 
 class symbol_dependency_tables::dep_iterator
@@ -484,8 +484,8 @@ void symbol_dependency_tables::resolve(
         diag_consumer ? dep_begin() : std::partition(dependency_iterator(m_dependencies_skip_index), e, [](auto dref) {
             return dref.is_space_ptr() || dref.has_t_attr();
         });
-    if (!diag_consumer)
-        m_dependencies_skip_index = b - dep_begin();
+
+    m_dependencies_skip_index = b - dep_begin();
     while (true)
     {
         const auto it = std::partition(
@@ -564,7 +564,7 @@ std::vector<dependant> symbol_dependency_tables::extract_dependencies(
     return ret;
 }
 
-bool symbol_dependency_tables::update_dependencies(dependency_value& d, const library_info& li)
+bool symbol_dependency_tables::update_dependencies(const dependency_value& d, const library_info& li)
 {
     context::ordinary_assembly_dependency_solver dep_solver(m_sym_ctx, d.m_dec, li);
     auto deps = d.m_resolvable->get_dependencies(dep_solver);
@@ -594,7 +594,7 @@ bool symbol_dependency_tables::update_dependencies(dependency_value& d, const li
 
     constexpr static auto unknown_loctr = [](const auto& e) { return e->kind == context::space_kind::LOCTR_UNKNOWN; };
     const auto loctr_cnt = std::count_if(deps.unresolved_spaces.begin(), deps.unresolved_spaces.end(), unknown_loctr)
-        || std::count_if(addr_spaces.begin(), addr_spaces.end(), [](const auto& e) { return unknown_loctr(e.first); });
+        + std::count_if(addr_spaces.begin(), addr_spaces.end(), [](const auto& e) { return unknown_loctr(e.first); });
 
     for (const auto& e : deps.unresolved_spaces)
     {

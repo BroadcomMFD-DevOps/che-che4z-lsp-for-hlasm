@@ -183,6 +183,13 @@ TEST(filter_vector, get_set_bitset)
     f.set(bitset, 0);
 
     EXPECT_FALSE(f.any(0));
+
+    bitset.flip(0);
+    bitset.flip(filter_vector<uint32_t>::effective_bit_count - 1);
+    f.set(bitset, 0);
+
+    EXPECT_TRUE(f.any(0));
+    EXPECT_EQ(bitset, f.get(0));
 }
 
 TEST(filter_vector, assign)
