@@ -326,7 +326,8 @@ class workspace_configuration
             EXACT_PGM,
             REGEX_PGM,
             EXACT_B4G,
-            REGEX_B4G
+            REGEX_B4G,
+            EXACT_EXTERNAL
         };
 
         std::pair<const program*, hit_type> get_program_normalized(

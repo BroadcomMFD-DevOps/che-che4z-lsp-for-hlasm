@@ -484,6 +484,8 @@ workspace_configuration::program_details_storage::get_program_related_details(
         {
             if (std::holds_alternative<basic_conf>(tagged_pgm_direct_match->pgm.pgroup.value()))
                 return { p_rel_det_direct_match, EXACT_PGM };
+            else if (std::holds_alternative<external_conf>(tagged_pgm_direct_match->pgm.pgroup.value()))
+                return { p_rel_det_direct_match, EXACT_EXTERNAL };
         }
         else if (auto missing_details_direct_match = std::get_if<missing_pgroup_details>(p_rel_det_direct_match))
         {
@@ -1122,7 +1124,7 @@ utils::value_task<utils::resource::resource_location> workspace_configuration::l
     const auto rl = file_location.lexically_normal();
     auto [pgm, hit_type] = m_pgm_store.get_program_normalized(rl);
 
-    if (hit_type == EXACT_PGM)
+    if (hit_type == EXACT_PGM || hit_type == EXACT_EXTERNAL)
         co_return empty_alternative_cfg_root;
 
     if (m_external_configuration_requests)
@@ -1163,6 +1165,8 @@ utils::value_task<utils::resource::resource_location> workspace_configuration::l
         co_return empty_alternative_cfg_root;
 
     auto configuration_url = utils::resource::resource_location::replace_filename(rl, B4G_CONF_FILE);
+    if (hit_type == EXACT_B4G || hit_type == REGEX_B4G)
+        co_return configuration_url;
 
     if (auto it = m_b4g_config_cache.find(configuration_url); it == m_b4g_config_cache.end())
     {
