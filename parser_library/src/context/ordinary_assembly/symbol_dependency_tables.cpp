@@ -394,9 +394,12 @@ void symbol_dependency_tables::resolve(
     m_dependencies_filters.reset_global(hasher(what_changed));
 
     auto e = dep_end();
-    const auto b = diag_consumer
-        ? dep_begin()
-        : std::partition(dep_begin(), e, [](auto dref) { return dref.is_space_ptr() || dref.has_t_attr(); });
+    const auto b =
+        diag_consumer ? dep_begin() : std::partition(dependency_iterator(m_dependencies_skip_index), e, [](auto dref) {
+            return dref.is_space_ptr() || dref.has_t_attr();
+        });
+    if (!diag_consumer)
+        m_dependencies_skip_index = b - dep_begin();
     while (true)
     {
         const auto it = std::partition(b, e, [this, diag_consumer, &li](auto dref) {
@@ -604,6 +607,8 @@ void symbol_dependency_tables::insert_depenency(
 dependant symbol_dependency_tables::delete_dependency(std::unordered_map<dependant, dependency_value>::iterator it)
 {
     const auto me_idx = it->second.m_last_dependencies;
+
+    m_dependencies_skip_index = std::min(m_dependencies_skip_index, me_idx);
 
     swap(dep_reference { me_idx, *this }, dep_reference { m_dependencies_iterators.size() - 1, *this });
 

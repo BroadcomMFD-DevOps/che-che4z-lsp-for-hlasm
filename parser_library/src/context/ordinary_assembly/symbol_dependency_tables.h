@@ -174,6 +174,8 @@ public:
 
     void swap(size_t l, size_t r) noexcept
     {
+        if (((filters[0][l] | filters[0][r]) & top_bit) == 0)
+            return;
         for (auto& f : filters)
             std::swap(f[l], f[r]);
     }
@@ -223,6 +225,7 @@ class symbol_dependency_tables
     dep_iterator dependency_iterator(size_t idx);
     dep_iterator dep_begin();
     dep_iterator dep_end();
+    size_t m_dependencies_skip_index = 0;
 
     // statements where dependencies are from
     std::unordered_map<dependant, statement_ref> m_dependency_source_stmts;
