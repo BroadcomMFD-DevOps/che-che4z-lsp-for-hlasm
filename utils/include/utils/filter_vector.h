@@ -16,6 +16,7 @@
 #define HLASMPLUGIN_UTILS_FILTER_VECTOR_H
 
 #include <array>
+#include <bitset>
 #include <concepts>
 #include <cstddef>
 #include <limits>
@@ -43,6 +44,32 @@ public:
 
     static constexpr size_t effective_bit_count = top_bit_shift * bit_count;
 
+    std::bitset<effective_bit_count> get(size_t idx) noexcept
+    {
+        std::bitset<effective_bit_count> result;
+        for (size_t i = 0; i < effective_bit_count; ++i)
+            result.set(i, get(i, idx));
+        return result;
+    }
+    bool get(size_t bit, size_t idx) noexcept
+    {
+        return filters[1 + bit / bit_count][idx] & (top_bit >> bit % bit_count);
+    }
+    void set(const std::bitset<effective_bit_count>& bits, size_t idx) noexcept
+    {
+        for (size_t i = 0; i < effective_bit_count; ++i)
+        {
+            if (bits.test(i))
+                set(i, idx);
+            else
+                reset(i, idx);
+        }
+    }
+    void assign(size_t to, size_t from) noexcept
+    {
+        for (auto& f : filters)
+            f[to] = f[from];
+    }
     void set(size_t bit, size_t idx) noexcept
     {
         filters[1 + bit / bit_count][idx] |= (top_bit >> bit % bit_count);
@@ -78,7 +105,7 @@ public:
             b &= keep_on_mask;
             const T is_empty = b == 0;
             sum &= ~(is_empty << summary_clear_shift);
-            sum &= -!!(sum & ~top_bit);
+            sum &= static_cast<T>(-!!(sum & ~top_bit));
         }
     }
 
@@ -101,7 +128,7 @@ public:
                 b &= keep_on_mask;
                 const T is_empty = b == 0;
                 sum &= ~(is_empty << summary_clear_shift);
-                sum &= -!!(sum & ~top_bit);
+                sum &= static_cast<T>(-!!(sum & ~top_bit));
             }
         }
     }

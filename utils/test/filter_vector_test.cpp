@@ -162,3 +162,44 @@ TEST(filter_vector, swap)
     EXPECT_FALSE(f.any(0));
     EXPECT_TRUE(f.any(1));
 }
+
+TEST(filter_vector, get_set_bitset)
+{
+    filter_vector<uint32_t> f;
+
+    f.emplace_back();
+
+    f.set(0, 0);
+    f.set(filter_vector<uint32_t>::effective_bit_count - 1, 0);
+
+    EXPECT_TRUE(f.any(0));
+
+    auto bitset = f.get(0);
+    bitset.flip(0);
+    bitset.flip(filter_vector<uint32_t>::effective_bit_count - 1);
+
+    EXPECT_TRUE(bitset.none());
+
+    f.set(bitset, 0);
+
+    EXPECT_FALSE(f.any(0));
+}
+
+TEST(filter_vector, assign)
+{
+    filter_vector<uint32_t> f;
+
+    f.emplace_back();
+    f.emplace_back();
+
+    f.set(0, 0);
+    f.set(filter_vector<uint32_t>::effective_bit_count - 1, 0);
+
+    EXPECT_TRUE(f.any(0));
+    EXPECT_FALSE(f.any(1));
+
+    f.assign(1, 0);
+
+    EXPECT_TRUE(f.any(0));
+    EXPECT_TRUE(f.any(1));
+}

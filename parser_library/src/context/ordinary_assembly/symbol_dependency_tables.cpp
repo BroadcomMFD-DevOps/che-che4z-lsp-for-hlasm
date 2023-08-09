@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <array>
+#include <bitset>
 #include <cassert>
 #include <cstddef>
 #include <memory>
@@ -269,6 +270,36 @@ void symbol_dependency_tables::resolve_dependant_default(const dependant& target
         std::visit(dependant_hash(), target) % decltype(m_dependencies_filters)::effective_bit_count);
     std::visit(resolve_dependant_default_visitor { m_sym_ctx }, target);
 }
+
+class symbol_dependency_tables::dep_value
+{
+public:
+    symbol_dependency_tables* self;
+    std::unordered_map<dependant, dependency_value>::iterator iterator;
+    size_t last_dependencies;
+    bool is_space_ptr;
+    bool has_t_attr;
+    std::bitset<decltype(symbol_dependency_tables::m_dependencies_filters)::effective_bit_count> dep_filter;
+
+    explicit dep_value(symbol_dependency_tables* self,
+        std::unordered_map<dependant, dependency_value>::iterator iterator,
+        size_t last_dependencies,
+        bool is_space_ptr,
+        bool has_t_attr,
+        const std::bitset<decltype(symbol_dependency_tables::m_dependencies_filters)::effective_bit_count>& dep_filter)
+        : self(self)
+        , iterator(iterator)
+        , last_dependencies(last_dependencies)
+        , is_space_ptr(is_space_ptr)
+        , has_t_attr(has_t_attr)
+        , dep_filter(dep_filter)
+    {}
+
+    explicit(false) dep_value(dep_reference ref);
+
+    dep_value& operator=(dep_reference ref);
+};
+
 class symbol_dependency_tables::dep_reference
 {
     size_t idx;
@@ -297,11 +328,55 @@ public:
         , self(self)
     {}
 
+    dep_reference(const dep_reference&) = default;
+    dep_reference(dep_reference&&) = default;
+
+    dep_reference& operator=(const dep_reference& o)
+    {
+        assert(&self == &o.self);
+        self.m_dependencies_iterators[idx]->second.m_last_dependencies =
+            self.m_dependencies_iterators[o.idx]->second.m_last_dependencies;
+        self.m_dependencies_iterators[idx] = self.m_dependencies_iterators[o.idx];
+        self.m_dependencies_has_t_attr[idx] = self.m_dependencies_has_t_attr[o.idx];
+        self.m_dependencies_space_ptr_type[idx] = self.m_dependencies_space_ptr_type[o.idx];
+        self.m_dependencies_filters.assign(idx, o.idx);
+        return *this;
+    }
+    dep_reference& operator=(dep_reference&& o) { return *this = o; }
+
     auto iterator() const { return self.m_dependencies_iterators[idx]; }
+    auto last_dependencies() const { return self.m_dependencies_iterators[idx]->second.m_last_dependencies; }
     bool is_space_ptr() const { return self.m_dependencies_space_ptr_type[idx]; }
     bool has_t_attr() const { return self.m_dependencies_has_t_attr[idx]; }
     bool any() const { return self.m_dependencies_filters.any(idx); }
+    auto filter() const { return self.m_dependencies_filters.get(idx); }
+
+    dep_value value() const noexcept
+    {
+        return dep_value(&self, iterator(), last_dependencies(), is_space_ptr(), has_t_attr(), filter());
+    }
+
+    dep_reference& operator=(const dep_value& v) noexcept
+    {
+        assert(&self == v.self);
+        self.m_dependencies_iterators[idx] = v.iterator;
+        self.m_dependencies_iterators[idx]->second.m_last_dependencies = v.last_dependencies;
+        self.m_dependencies_space_ptr_type[idx] = v.is_space_ptr;
+        self.m_dependencies_has_t_attr[idx] = v.has_t_attr;
+        self.m_dependencies_filters.set(v.dep_filter, idx);
+
+        return *this;
+    }
 };
+
+symbol_dependency_tables::dep_value::dep_value(dep_reference ref)
+    : dep_value(ref.value())
+{}
+
+symbol_dependency_tables::dep_value& symbol_dependency_tables::dep_value::operator=(dep_reference ref)
+{
+    return *this = ref.value();
+}
 
 class symbol_dependency_tables::dep_iterator
 {
@@ -310,7 +385,7 @@ class symbol_dependency_tables::dep_iterator
 
 public:
     using difference_type = std::ptrdiff_t;
-    using value_type = dep_reference;
+    using value_type = dep_value;
     using pointer = dep_iterator;
     using reference = dep_reference;
     using iterator_category = std::random_access_iterator_tag;
@@ -366,10 +441,22 @@ public:
         return *this;
     }
 
-    difference_type operator-(const dep_iterator& o) const noexcept { return idx - o.idx; }
+    difference_type operator-(const dep_iterator& o) const noexcept
+    {
+        assert(self == o.self);
+        return idx - o.idx;
+    }
 
-    bool operator==(const dep_iterator& o) const noexcept { return idx == o.idx; }
-    auto operator<=>(const dep_iterator& o) const noexcept { return idx <=> o.idx; }
+    bool operator==(const dep_iterator& o) const noexcept
+    {
+        assert(self == o.self);
+        return idx == o.idx;
+    }
+    auto operator<=>(const dep_iterator& o) const noexcept
+    {
+        assert(self == o.self);
+        return idx <=> o.idx;
+    }
 };
 
 symbol_dependency_tables::dep_iterator symbol_dependency_tables::dependency_iterator(size_t idx)
@@ -387,8 +474,8 @@ symbol_dependency_tables::dep_iterator symbol_dependency_tables::dep_end()
 void symbol_dependency_tables::resolve(
     std::variant<id_index, space_ptr> what_changed, diagnostic_s_consumer* diag_consumer, const library_info& li)
 {
-    constexpr auto hasher = [](const auto& what_changed) {
-        return std::visit(dependant_hash(), what_changed) % decltype(m_dependencies_filters)::effective_bit_count;
+    constexpr auto hasher = [](const auto& d) {
+        return std::visit(dependant_hash(), d) % decltype(m_dependencies_filters)::effective_bit_count;
     };
     m_dependencies_filters.reset_global(hasher(what_changed));
 
@@ -401,18 +488,17 @@ void symbol_dependency_tables::resolve(
         m_dependencies_skip_index = b - dep_begin();
     while (true)
     {
-        const auto it = std::partition(b, e, [this, diag_consumer, &li](auto dref) {
-            return dref.any() || update_dependencies(dref.iterator()->second, li);
-        });
+        const auto it = std::partition(
+            b, e, [this, &li](auto dref) { return dref.any() || update_dependencies(dref.iterator()->second, li); });
         if (it == e)
             break;
 
         auto accum = m_dependencies_filters.get_global_reset_accumulator();
-        for (; e != it;)
+        while (it != e)
         {
             --e;
             const auto dep_it = (*e).iterator();
-            auto& [target, dep_value] = *dep_it;
+            const auto& [target, dep_value] = *dep_it;
 
             resolve_dependant(target, dep_value.m_resolvable, diag_consumer, dep_value.m_dec, li); // resolve target
             try_erase_source_statement(target);
@@ -510,7 +596,7 @@ bool symbol_dependency_tables::update_dependencies(dependency_value& d, const li
     const auto loctr_cnt = std::count_if(deps.unresolved_spaces.begin(), deps.unresolved_spaces.end(), unknown_loctr)
         || std::count_if(addr_spaces.begin(), addr_spaces.end(), [](const auto& e) { return unknown_loctr(e.first); });
 
-    for (auto& e : deps.unresolved_spaces)
+    for (const auto& e : deps.unresolved_spaces)
     {
         if (loctr_cnt && !unknown_loctr(e))
             continue;
@@ -519,11 +605,11 @@ bool symbol_dependency_tables::update_dependencies(dependency_value& d, const li
         m_dependencies_filters.set(hasher(e), d.m_last_dependencies);
     }
 
-    for (auto& e : addr_spaces)
+    for (const auto& [sp, _] : addr_spaces)
     {
-        if (loctr_cnt && !unknown_loctr(e.first))
+        if (loctr_cnt && !unknown_loctr(sp))
             continue;
-        m_dependencies_filters.set(hasher(e.first), d.m_last_dependencies);
+        m_dependencies_filters.set(hasher(sp), d.m_last_dependencies);
     }
 
     return m_dependencies_filters.any(d.m_last_dependencies);

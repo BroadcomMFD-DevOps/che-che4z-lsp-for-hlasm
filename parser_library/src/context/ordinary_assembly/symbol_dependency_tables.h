@@ -105,6 +105,7 @@ class symbol_dependency_tables
 
     dependant delete_dependency(std::unordered_map<dependant, dependency_value>::iterator it);
 
+    class dep_value;
     class dep_reference;
     class dep_iterator;
     friend void swap(dep_reference l, dep_reference r) noexcept;
