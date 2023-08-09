@@ -518,13 +518,9 @@ workspace_configuration::program_configuration_storage::get_program_normalized(
 
 void workspace_configuration::program_configuration_storage::remove_conf(const void* tag)
 {
-    const auto has_matching_tag = [&tag](const tagged_program_details& tagged_pgm_details) {
-        return tagged_pgm_details.tag && tagged_pgm_details.tag == tag;
-    };
-
-    std::erase_if(m_exact_match, [&has_matching_tag](const auto& e) { return has_matching_tag(e.second); });
-    std::erase_if(m_regex_pgm_conf, [&has_matching_tag](const auto& e) { return has_matching_tag(e.first); });
-    std::erase_if(m_regex_b4g_json, [&has_matching_tag](const auto& e) { return has_matching_tag(e.first); });
+    std::erase_if(m_exact_match, [&tag](const auto& e) { return e.second.tag == tag; });
+    std::erase_if(m_regex_pgm_conf, [&tag](const auto& e) { return e.first.tag == tag; });
+    std::erase_if(m_regex_b4g_json, [&tag](const auto& e) { return e.first.tag == tag; });
 }
 
 void workspace_configuration::program_configuration_storage::prune_external_processor_groups(
