@@ -66,17 +66,19 @@ public:
     }
     void reset_global(size_t bit) noexcept
     {
-        auto& vec = filters[1 + bit / bit_count];
+        const auto keep_on_mask = ~(top_bit >> bit % bit_count);
         const auto summary_test_bit = top_bit >> (1 + bit / bit_count);
+        const auto summary_clear_shift = (top_bit_shift - 1 - bit / bit_count);
 
-        for (auto it = vec.begin(), fit = filters[0].begin(); it != vec.end(); ++it, ++fit)
+        for (auto it = filters[1 + bit / bit_count].begin(); auto& sum : filters[0])
         {
-            if (!(*fit & summary_test_bit))
+            auto& b = *it++;
+            if (!(sum & summary_test_bit))
                 continue;
-            *it &= ~(top_bit >> bit % bit_count);
-            const T is_empty = *it == 0;
-            *fit &= ~(is_empty << (top_bit_shift - 1 - bit / bit_count));
-            *fit &= -!!(*fit & ~top_bit);
+            b &= keep_on_mask;
+            const T is_empty = b == 0;
+            sum &= ~(is_empty << summary_clear_shift);
+            sum &= -!!(sum & ~top_bit);
         }
     }
 
@@ -88,18 +90,18 @@ public:
             if (v[i] == 0)
                 continue;
             const auto keep_on_mask = ~v[i];
-
-            auto& vec = filters[i];
             const auto summary_test_bit = top_bit >> i;
+            const auto summary_clear_shift = (top_bit_shift - i);
 
-            for (auto it = vec.begin(), fit = filters[0].begin(); it != vec.end(); ++it, ++fit)
+            for (auto it = filters[i].begin(); auto& sum : filters[0])
             {
-                if (!(*fit & summary_test_bit))
+                auto& b = *it++;
+                if (!(sum & summary_test_bit))
                     continue;
-                *it &= keep_on_mask;
-                const T is_empty = *it == 0;
-                *fit &= ~(is_empty << (top_bit_shift - i));
-                *fit &= -!!(*fit & ~top_bit);
+                b &= keep_on_mask;
+                const T is_empty = b == 0;
+                sum &= ~(is_empty << summary_clear_shift);
+                sum &= -!!(sum & ~top_bit);
             }
         }
     }
