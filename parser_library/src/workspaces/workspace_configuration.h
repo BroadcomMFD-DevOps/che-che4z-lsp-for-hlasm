@@ -90,7 +90,7 @@ struct library_local_options;
 // information that a program uses certain processor group
 struct program
 {
-    program(program_id prog_id, std::optional<proc_grp_id> pgroup, config::assembler_options asm_opts, bool external)
+    program(program_id prog_id, proc_grp_id pgroup, config::assembler_options asm_opts, bool external)
         : prog_id(std::move(prog_id))
         , pgroup(std::move(pgroup))
         , asm_opts(std::move(asm_opts))
@@ -98,7 +98,7 @@ struct program
     {}
 
     program_id prog_id;
-    std::optional<proc_grp_id> pgroup; // Todo does this need to be optional?
+    proc_grp_id pgroup;
     config::assembler_options asm_opts;
     bool external;
 };
@@ -357,8 +357,7 @@ class workspace_configuration
             cfg_affiliation affiliation;
         };
 
-        get_pgm_details_result get_program_details(
-            const utils::resource::resource_location& file_location) const;
+        get_pgm_details_result get_program_details(const utils::resource::resource_location& file_location) const;
     };
 
     program_configuration_storage m_pgm_conf_store;

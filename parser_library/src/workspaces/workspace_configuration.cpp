@@ -450,24 +450,6 @@ void workspace_configuration::program_configuration_storage::update_exact_conf(
     m_exact_match.insert_or_assign(normalized_location, std::move(tagged_pgm));
 }
 
-void workspace_configuration::program_configuration_storage::prune_external_processor_groups(
-    const utils::resource::resource_location& location)
-{
-    constexpr auto is_external = [](const program_details& pgm_details) {
-        const auto* tagged_pgm = std::get_if<tagged_program>(&pgm_details);
-        return tagged_pgm && tagged_pgm->pgm.external;
-    };
-
-    if (!location.empty())
-    {
-        if (auto p = m_exact_match.find(location.lexically_normal());
-            p != m_exact_match.end() && is_external(p->second))
-            m_exact_match.erase(p);
-    }
-    else
-        std::erase_if(m_exact_match, [&is_external](const auto& p) { return is_external(p.second); });
-}
-
 workspace_configuration::program_configuration_storage::get_pgm_details_result
 workspace_configuration::program_configuration_storage::get_program_details(
     const utils::resource::resource_location& file_location) const
@@ -482,9 +464,9 @@ workspace_configuration::program_configuration_storage::get_program_details(
         pgm_details_exact_match = &pgm_details->second;
         if (auto tagged_pgm = std::get_if<tagged_program>(pgm_details_exact_match))
         {
-            if (std::holds_alternative<basic_conf>(tagged_pgm->pgm.pgroup.value()))
+            if (std::holds_alternative<basic_conf>(tagged_pgm->pgm.pgroup))
                 return { pgm_details_exact_match, EXACT_PGM };
-            else if (std::holds_alternative<external_conf>(tagged_pgm->pgm.pgroup.value()))
+            else if (std::holds_alternative<external_conf>(tagged_pgm->pgm.pgroup))
                 return { pgm_details_exact_match, EXACT_EXT };
         }
         else if (auto missing_details = std::get_if<missing_pgroup_details>(pgm_details_exact_match))
@@ -547,6 +529,24 @@ void workspace_configuration::program_configuration_storage::remove_conf(const v
     std::erase_if(m_exact_match, [&has_matching_tag](const auto& e) { return has_matching_tag(e.second); });
     std::erase_if(m_regex_pgm_conf, [&has_matching_tag](const auto& e) { return has_matching_tag(e.first); });
     std::erase_if(m_regex_b4g_json, [&has_matching_tag](const auto& e) { return has_matching_tag(e.first); });
+}
+
+void workspace_configuration::program_configuration_storage::prune_external_processor_groups(
+    const utils::resource::resource_location& location)
+{
+    constexpr auto is_external = [](const program_details& pgm_details) {
+        const auto* tagged_pgm = std::get_if<tagged_program>(&pgm_details);
+        return tagged_pgm && tagged_pgm->pgm.external;
+    };
+
+    if (!location.empty())
+    {
+        if (auto p = m_exact_match.find(location.lexically_normal());
+            p != m_exact_match.end() && is_external(p->second))
+            m_exact_match.erase(p);
+    }
+    else
+        std::erase_if(m_exact_match, [&is_external](const auto& p) { return is_external(p.second); });
 }
 
 void workspace_configuration::program_configuration_storage::clear()
@@ -1003,22 +1003,16 @@ utils::value_task<std::optional<std::vector<const processor_group*>>> workspace_
 
 const processor_group* workspace_configuration::get_proc_grp_by_program(const program& pgm) const
 {
-    if (pgm.pgroup.has_value())
-    {
-        if (auto it = m_proc_grps.find(*pgm.pgroup); it != m_proc_grps.end())
-            return &it->second;
-    }
+    if (auto it = m_proc_grps.find(pgm.pgroup); it != m_proc_grps.end())
+        return &it->second;
 
     return nullptr;
 }
 
 processor_group* workspace_configuration::get_proc_grp_by_program(const program& pgm)
 {
-    if (pgm.pgroup.has_value())
-    {
-        if (auto it = m_proc_grps.find(*pgm.pgroup); it != m_proc_grps.end())
-            return &it->second;
-    }
+    if (auto it = m_proc_grps.find(pgm.pgroup); it != m_proc_grps.end())
+        return &it->second;
 
     return nullptr;
 }
