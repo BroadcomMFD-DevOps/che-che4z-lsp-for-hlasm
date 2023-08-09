@@ -272,15 +272,17 @@ class workspace_configuration
     };
 
     using name_set = std::unordered_set<std::string, utils::hashers::string_hasher, std::equal_to<>>;
+    using proc_groups_map = std::unordered_map<proc_grp_id, processor_group, proc_grp_id_hasher, proc_grp_id_equal>;
+
     config::proc_grps m_proc_grps_source;
-    std::unordered_map<proc_grp_id, processor_group, proc_grp_id_hasher, proc_grp_id_equal> m_proc_grps;
+    proc_groups_map m_proc_grps;
     std::unordered_map<utils::resource::resource_location, name_set, utils::resource::resource_location_hasher>
         m_missing_proc_grps;
 
-    class program_details_storage
+    class program_configuration_storage
     {
     public:
-        struct pgm_conf_parameters
+        struct configuration_parameters
         {
             proc_grp_id pgroup_id;
             utils::resource::resource_location pgm_rl;
@@ -302,63 +304,64 @@ class workspace_configuration
             utils::resource::resource_location config_rl;
         };
 
-        using program_related_details = std::variant<tagged_program, missing_pgroup_details>;
-
-        program_details_storage() = default;
-
-        // todo think about proc_grps being provided in constructor
-        void add_exact_pgm_conf(pgm_conf_parameters params,
-            const std::unordered_map<proc_grp_id, processor_group, proc_grp_id_hasher, proc_grp_id_equal>& proc_grps);
-
-        void update_exact_pgm_conf(
-            const utils::resource::resource_location& normalized_location, tagged_program tagged_pgm);
-
-        void add_regex_pgm_conf(pgm_conf_parameters params,
-            const std::unordered_map<proc_grp_id, processor_group, proc_grp_id_hasher, proc_grp_id_equal>& proc_grps);
-
-
-        const missing_pgroup_details* get_missing_pgroup_details(
-            const utils::resource::resource_location& file_location) const;
-
-        enum class hit_type
+        enum class cfg_affiliation
         {
-            NOT_FOUND,
+            NONE,
             EXACT_PGM,
             REGEX_PGM,
             EXACT_B4G,
             REGEX_B4G,
-            EXACT_EXTERNAL
+            EXACT_EXT
         };
 
-        std::pair<const program*, hit_type> get_program_normalized(
-            const utils::resource::resource_location& file_location_normalized) const;
-        void remove_pgm(const void* tag);
+        struct get_pgm_result
+        {
+            const program* pgm;
+            cfg_affiliation affiliation;
+        };
+
+        program_configuration_storage() = default;
+
+        void add_exact_conf(configuration_parameters params, const proc_groups_map& proc_grps);
+
+        void update_exact_conf(
+            const utils::resource::resource_location& normalized_location, tagged_program tagged_pgm);
+
+        void add_regex_conf(configuration_parameters params, const proc_groups_map& proc_grps);
+
+        const missing_pgroup_details* get_missing_pgroup_details(
+            const utils::resource::resource_location& file_location) const;
+
+        get_pgm_result get_program_normalized(const utils::resource::resource_location& file_location_normalized) const;
+
+        void remove_conf(const void* tag);
 
         void prune_external_processor_groups(const utils::resource::resource_location& location);
 
         void clear();
 
     private:
-        using regex_container = std::vector<std::pair<program_related_details, std::regex>>;
+        using program_details = std::variant<tagged_program, missing_pgroup_details>;
 
-        std::map<utils::resource::resource_location, program_related_details> m_exact_match;
-        regex_container m_regex_pgm_conf;
-        regex_container m_regex_b4g_json;
+        std::map<utils::resource::resource_location, program_details> m_exact_match;
+        std::vector<std::pair<program_details, std::regex>> m_regex_pgm_conf;
+        std::vector<std::pair<program_details, std::regex>> m_regex_b4g_json;
 
         missing_pgroup_details new_missing_pgroup_helper(name_set& missing_proc_grps,
             std::string missing_pgroup_name,
             utils::resource::resource_location config_rl) const;
 
-        struct pgm_det_ret_va
+        struct get_pgm_details_result
         {
-            const program_related_details* pgm_rel_details;
-            hit_type type;
+            const program_details* pgm_details;
+            cfg_affiliation affiliation;
         };
 
-        pgm_det_ret_va get_program_related_details(const utils::resource::resource_location& file_location) const;
+        get_pgm_details_result get_program_details(
+            const utils::resource::resource_location& file_location) const;
     };
 
-    program_details_storage m_pgm_store;
+    program_configuration_storage m_pgm_conf_store;
 
     struct b4g_config
     {
