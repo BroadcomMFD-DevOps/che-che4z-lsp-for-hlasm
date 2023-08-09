@@ -274,7 +274,22 @@ class symbol_dependency_tables::dep_reference
     size_t idx;
     symbol_dependency_tables& self;
 
-    friend void swap(dep_reference l, dep_reference r) noexcept;
+    friend void swap(symbol_dependency_tables::dep_reference l, symbol_dependency_tables::dep_reference r) noexcept
+    {
+        assert(&l.self == &r.self);
+        if (l.idx == r.idx)
+            return;
+
+        auto& self = l.self;
+
+        using std::swap;
+        swap(self.m_dependencies_iterators[l.idx]->second.m_last_dependencies,
+            self.m_dependencies_iterators[r.idx]->second.m_last_dependencies);
+        swap(self.m_dependencies_iterators[l.idx], self.m_dependencies_iterators[r.idx]);
+        swap(self.m_dependencies_has_t_attr[l.idx], self.m_dependencies_has_t_attr[r.idx]);
+        swap(self.m_dependencies_space_ptr_type[l.idx], self.m_dependencies_space_ptr_type[r.idx]);
+        self.m_dependencies_filters.swap(l.idx, r.idx);
+    }
 
 public:
     constexpr dep_reference(size_t idx, symbol_dependency_tables& self)
@@ -287,23 +302,6 @@ public:
     bool has_t_attr() const { return self.m_dependencies_has_t_attr[idx]; }
     bool any() const { return self.m_dependencies_filters.any(idx); }
 };
-
-void swap(symbol_dependency_tables::dep_reference l, symbol_dependency_tables::dep_reference r) noexcept
-{
-    assert(&l.self == &r.self);
-    if (l.idx == r.idx)
-        return;
-
-    auto& self = l.self;
-
-    using std::swap;
-    swap(self.m_dependencies_iterators[l.idx]->second.m_last_dependencies,
-        self.m_dependencies_iterators[r.idx]->second.m_last_dependencies);
-    swap(self.m_dependencies_iterators[l.idx], self.m_dependencies_iterators[r.idx]);
-    swap(self.m_dependencies_has_t_attr[l.idx], self.m_dependencies_has_t_attr[r.idx]);
-    swap(self.m_dependencies_space_ptr_type[l.idx], self.m_dependencies_space_ptr_type[r.idx]);
-    self.m_dependencies_filters.swap(l.idx, r.idx);
-}
 
 class symbol_dependency_tables::dep_iterator
 {
