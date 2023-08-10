@@ -27,40 +27,59 @@ template<std::unsigned_integral T>
 class filter_vector
 {
     static constexpr size_t bit_count = std::numeric_limits<T>::digits;
-    std::array<std::vector<T>, bit_count> filters;
+    static constexpr size_t bucket_count = bit_count - 1;
+    std::array<std::vector<T>, 1 + bucket_count> filters;
     static constexpr T top_bit_shift = bit_count - 1;
     static constexpr T top_bit = (T)1 << top_bit_shift;
 
-    struct global_reset_accumulator
+    static constexpr auto deconstruct_value(size_t v)
     {
-        std::array<T, bit_count> values = {};
+        struct result_t
+        {
+            size_t bucket;
+            size_t bit;
+        };
+        return result_t { 1 + (v / bit_count) % bucket_count, v % bit_count };
+    }
 
-        void reset(size_t bit) { values[1 + bit / bit_count] |= (top_bit >> bit % bit_count); }
+    class global_reset_accumulator
+    {
+        friend class filter_vector;
+
+        std::array<T, 1 + bucket_count> values = {};
+
+    public:
+        void reset(size_t v)
+        {
+            const auto [bucket, bit] = deconstruct_value(v);
+            values[bucket] |= (top_bit >> bit);
+        }
     };
 
 public:
     global_reset_accumulator get_global_reset_accumulator() const { return {}; }
 
-    static constexpr size_t effective_bit_count = top_bit_shift * bit_count;
+    static constexpr size_t effective_bit_count = bucket_count * bit_count;
 
-    std::array<T, bit_count - 1> get(size_t idx) noexcept
+    std::array<T, bucket_count> get(size_t idx) noexcept
     {
-        std::array<T, bit_count - 1> result;
-        for (size_t i = 1; i < bit_count; ++i)
-            result[i - 1] = filters[i][idx];
+        std::array<T, bucket_count> result;
+        for (size_t bucket = 1; bucket < filters.size(); ++bucket)
+            result[bucket - 1] = filters[bucket][idx];
         return result;
     }
-    bool get(size_t bit, size_t idx) noexcept
+    bool get(size_t v, size_t idx) noexcept
     {
-        return filters[1 + bit / bit_count][idx] & (top_bit >> bit % bit_count);
+        const auto [bucket, bit] = deconstruct_value(v);
+        return filters[bucket][idx] & (top_bit >> bit);
     }
-    void set(const std::array<T, bit_count - 1>& bits, size_t idx) noexcept
+    void set(const std::array<T, bucket_count>& bits, size_t idx) noexcept
     {
         T summary = 0;
-        for (size_t i = 0; i < bit_count - 1; ++i)
+        for (size_t bucket = 1; bucket < filters.size(); ++bucket)
         {
-            filters[i + 1][idx] = bits[i];
-            summary |= !!bits[i] << (top_bit_shift - 1 - i);
+            filters[bucket][idx] = bits[bucket - 1];
+            summary |= !!bits[bucket - 1] << (top_bit_shift - bucket);
         }
         summary |= !!summary << top_bit_shift;
         filters[0][idx] = summary;
@@ -70,34 +89,34 @@ public:
         for (auto& f : filters)
             f[to] = f[from];
     }
-    void set(size_t bit, size_t idx) noexcept
+    void set(size_t v, size_t idx) noexcept
     {
-        filters[1 + bit / bit_count][idx] |= (top_bit >> bit % bit_count);
-        filters[0][idx] |= top_bit >> (1 + bit / bit_count);
+        const auto [bucket, bit] = deconstruct_value(v);
+        filters[bucket][idx] |= (top_bit >> bit);
+        filters[0][idx] |= top_bit >> bucket;
         filters[0][idx] |= top_bit;
     }
-    void reset(size_t bit, size_t idx) noexcept
+    void reset(size_t v, size_t idx) noexcept
     {
-        auto& vec = filters[1 + bit / bit_count];
-
-        vec[idx] &= ~(top_bit >> bit % bit_count);
-        const T is_empty = vec[idx] == 0;
-        auto& v = filters[0][idx];
-        v &= ~(is_empty << (top_bit_shift - 1 - bit / bit_count));
-        v &= -!!(filters[0][idx] & ~top_bit);
+        const auto [bucket, bit] = deconstruct_value(v);
+        filters[bucket][idx] &= ~(top_bit >> bit);
+        const T is_empty = filters[bucket][idx] == 0;
+        filters[0][idx] &= ~(is_empty << (top_bit_shift - bucket));
+        filters[0][idx] &= -!!(filters[0][idx] & ~top_bit);
     }
     void reset(size_t idx) noexcept
     {
         for (auto& f : filters)
             f[idx] = 0;
     }
-    void reset_global(size_t bit) noexcept
+    void reset_global(size_t v) noexcept
     {
-        const auto keep_on_mask = ~(top_bit >> bit % bit_count);
-        const auto summary_test_bit = top_bit >> (1 + bit / bit_count);
-        const auto summary_clear_shift = (top_bit_shift - 1 - bit / bit_count);
+        const auto [bucket, bit] = deconstruct_value(v);
+        const auto keep_on_mask = ~(top_bit >> bit);
+        const auto summary_test_bit = top_bit >> bucket;
+        const auto summary_clear_shift = top_bit_shift - bucket;
 
-        for (auto it = filters[1 + bit / bit_count].begin(); auto& sum : filters[0])
+        for (auto it = filters[bucket].begin(); auto& sum : filters[0])
         {
             auto& b = *it++;
             if (!(sum & summary_test_bit))
@@ -111,16 +130,15 @@ public:
 
     void reset_global(const global_reset_accumulator& acc) noexcept
     {
-        const auto& v = acc.values;
-        for (size_t i = 1; i < bit_count; ++i)
+        for (size_t bucket = 1; bucket < filters.size(); ++bucket)
         {
-            if (v[i] == 0)
+            if (acc.values[bucket] == 0)
                 continue;
-            const auto keep_on_mask = ~v[i];
-            const auto summary_test_bit = top_bit >> i;
-            const auto summary_clear_shift = (top_bit_shift - i);
+            const auto keep_on_mask = ~acc.values[bucket];
+            const auto summary_test_bit = top_bit >> bucket;
+            const auto summary_clear_shift = top_bit_shift - bucket;
 
-            for (auto it = filters[i].begin(); auto& sum : filters[0])
+            for (auto it = filters[bucket].begin(); auto& sum : filters[0])
             {
                 auto& b = *it++;
                 if (!(sum & summary_test_bit))

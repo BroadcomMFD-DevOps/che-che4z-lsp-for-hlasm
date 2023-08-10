@@ -265,8 +265,7 @@ struct resolve_dependant_default_visitor
 
 void symbol_dependency_tables::resolve_dependant_default(const dependant& target)
 {
-    m_dependencies_filters.reset_global(
-        std::visit(dependant_hash(), target) % decltype(m_dependencies_filters)::effective_bit_count);
+    m_dependencies_filters.reset_global(std::visit(dependant_hash(), target));
     std::visit(resolve_dependant_default_visitor { m_sym_ctx }, target);
 }
 
@@ -417,10 +416,7 @@ symbol_dependency_tables::dep_iterator symbol_dependency_tables::dep_end()
 void symbol_dependency_tables::resolve(
     std::variant<id_index, space_ptr> what_changed, diagnostic_s_consumer* diag_consumer, const library_info& li)
 {
-    constexpr auto hasher = [](const auto& d) {
-        return std::visit(dependant_hash(), d) % decltype(m_dependencies_filters)::effective_bit_count;
-    };
-    m_dependencies_filters.reset_global(hasher(what_changed));
+    m_dependencies_filters.reset_global(std::visit(dependant_hash(), what_changed));
 
     auto e = dep_end();
     const auto b =
@@ -446,7 +442,7 @@ void symbol_dependency_tables::resolve(
             resolve_dependant(target, dep_value.m_resolvable, diag_consumer, dep_value.m_dec, li); // resolve target
             try_erase_source_statement(target);
 
-            accum.reset(hasher(delete_dependency(dep_it)));
+            accum.reset(std::visit(dependant_hash(), delete_dependency(dep_it)));
         }
         m_dependencies_filters.reset_global(accum);
     }
@@ -514,9 +510,7 @@ bool symbol_dependency_tables::update_dependencies(const dependency_value& d, co
 
     m_dependencies_filters.reset(d.m_last_dependencies);
     m_dependencies_has_t_attr[d.m_last_dependencies] = false;
-    constexpr auto hasher = [](const auto& e) {
-        return dependant_hash()(e) % decltype(m_dependencies_filters)::effective_bit_count;
-    };
+    static constexpr dependant_hash hasher;
 
     for (const auto& ref : deps.undefined_symbolics)
     {
