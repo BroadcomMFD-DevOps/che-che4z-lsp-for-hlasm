@@ -16,7 +16,6 @@
 #define HLASMPLUGIN_UTILS_FILTER_VECTOR_H
 
 #include <array>
-#include <bitset>
 #include <concepts>
 #include <cstddef>
 #include <limits>
@@ -44,26 +43,26 @@ public:
 
     static constexpr size_t effective_bit_count = top_bit_shift * bit_count;
 
-    std::bitset<effective_bit_count> get(size_t idx) noexcept
+    std::array<T, bit_count - 1> get(size_t idx) noexcept
     {
-        std::bitset<effective_bit_count> result;
-        for (size_t i = 0; i < effective_bit_count; ++i)
-            result.set(i, get(i, idx));
+        std::array<T, bit_count - 1> result;
+        for (size_t i = 1; i < bit_count; ++i)
+            result[i - 1] = filters[i][idx];
         return result;
     }
     bool get(size_t bit, size_t idx) noexcept
     {
         return filters[1 + bit / bit_count][idx] & (top_bit >> bit % bit_count);
     }
-    void set(const std::bitset<effective_bit_count>& bits, size_t idx) noexcept
+    void set(const std::array<T, bit_count - 1>& bits, size_t idx) noexcept
     {
-        for (size_t i = 0; i < effective_bit_count; ++i)
+        T summary = 0;
+        for (size_t i = 0; i < bit_count - 1; ++i)
         {
-            if (bits.test(i))
-                set(i, idx);
-            else
-                reset(i, idx);
+            filters[i + 1][idx] = bits[i];
+            summary |= !!bits[i] << (top_bit_shift - 1 - i);
         }
+        summary |= !!summary << top_bit_shift;
     }
     void assign(size_t to, size_t from) noexcept
     {

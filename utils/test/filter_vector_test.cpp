@@ -12,6 +12,8 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
+#include <algorithm>
+
 #include "gtest/gtest.h"
 
 #include "utils/filter_vector.h"
@@ -175,17 +177,17 @@ TEST(filter_vector, get_set_bitset)
     EXPECT_TRUE(f.any(0));
 
     auto bitset = f.get(0);
-    bitset.flip(0);
-    bitset.flip(filter_vector<uint32_t>::effective_bit_count - 1);
+    bitset.front() ^= 0x80000000u;
+    bitset.back() ^= 0x00000001u;
 
-    EXPECT_TRUE(bitset.none());
+    EXPECT_TRUE(std::all_of(bitset.begin(), bitset.end(), [](auto n) { return n == 0; }));
 
     f.set(bitset, 0);
 
     EXPECT_FALSE(f.any(0));
 
-    bitset.flip(0);
-    bitset.flip(filter_vector<uint32_t>::effective_bit_count - 1);
+    bitset.front() ^= 0x80000000u;
+    bitset.back() ^= 0x00000001u;
     f.set(bitset, 0);
 
     EXPECT_TRUE(f.any(0));

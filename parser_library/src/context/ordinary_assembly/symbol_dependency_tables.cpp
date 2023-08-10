@@ -16,7 +16,6 @@
 
 #include <algorithm>
 #include <array>
-#include <bitset>
 #include <cassert>
 #include <cstddef>
 #include <memory>
@@ -273,23 +272,17 @@ void symbol_dependency_tables::resolve_dependant_default(const dependant& target
 
 class symbol_dependency_tables::dep_value
 {
-    static constexpr auto effective_bit_count =
-        decltype(symbol_dependency_tables::m_dependencies_filters)::effective_bit_count;
-
 public:
-    symbol_dependency_tables* self;
     std::unordered_map<dependant, dependency_value>::iterator iterator;
     bool is_space_ptr;
     bool has_t_attr;
-    std::bitset<effective_bit_count> dep_filter;
+    std::array<uint32_t, 31> dep_filter;
 
-    explicit dep_value(symbol_dependency_tables* self,
-        std::unordered_map<dependant, dependency_value>::iterator iterator,
+    explicit dep_value(std::unordered_map<dependant, dependency_value>::iterator iterator,
         bool is_space_ptr,
         bool has_t_attr,
-        const std::bitset<effective_bit_count>& dep_filter) noexcept
-        : self(self)
-        , iterator(iterator)
+        const std::array<uint32_t, 31>& dep_filter) noexcept
+        : iterator(iterator)
         , is_space_ptr(is_space_ptr)
         , has_t_attr(has_t_attr)
         , dep_filter(dep_filter)
@@ -298,6 +291,9 @@ public:
     explicit(false) dep_value(dep_reference ref) noexcept;
 
     dep_value& operator=(dep_reference ref) noexcept;
+    // dep_value, dep_reference behavior should be correct but it was not tested,
+    // so the destructor is not implemented to prevent actual use of the class
+    ~dep_value() noexcept;
 };
 
 class symbol_dependency_tables::dep_reference
@@ -314,9 +310,11 @@ class symbol_dependency_tables::dep_reference
         auto& self = l.self;
 
         using std::swap;
-        swap(self.m_dependencies_iterators[l.idx]->second.m_last_dependencies,
-            self.m_dependencies_iterators[r.idx]->second.m_last_dependencies);
         swap(self.m_dependencies_iterators[l.idx], self.m_dependencies_iterators[r.idx]);
+        if (self.m_dependencies_iterators[l.idx] != self.m_dependencies.end()) [[likely]]
+            self.m_dependencies_iterators[l.idx]->second.m_last_dependencies = l.idx;
+        if (self.m_dependencies_iterators[r.idx] != self.m_dependencies.end()) [[likely]]
+            self.m_dependencies_iterators[r.idx]->second.m_last_dependencies = r.idx;
         swap(self.m_dependencies_has_t_attr[l.idx], self.m_dependencies_has_t_attr[r.idx]);
         swap(self.m_dependencies_space_ptr_type[l.idx], self.m_dependencies_space_ptr_type[r.idx]);
         self.m_dependencies_filters.swap(l.idx, r.idx);
@@ -328,6 +326,7 @@ public:
         , self(self)
     {}
 
+    auto take_iterator() const { return std::exchange(self.m_dependencies_iterators[idx], self.m_dependencies.end()); }
     auto iterator() const { return self.m_dependencies_iterators[idx]; }
     bool is_space_ptr() const { return self.m_dependencies_space_ptr_type[idx]; }
     bool has_t_attr() const { return self.m_dependencies_has_t_attr[idx]; }
@@ -341,7 +340,8 @@ public:
     {
         assert(&self == &o.self);
         self.m_dependencies_iterators[idx] = o.iterator();
-        self.m_dependencies_iterators[idx]->second.m_last_dependencies = idx;
+        if (self.m_dependencies_iterators[idx] != self.m_dependencies.end()) [[likely]]
+            self.m_dependencies_iterators[idx]->second.m_last_dependencies = idx;
         self.m_dependencies_has_t_attr[idx] = o.has_t_attr();
         self.m_dependencies_space_ptr_type[idx] = o.is_space_ptr();
         self.m_dependencies_filters.assign(idx, o.idx);
@@ -354,13 +354,11 @@ public:
     }
     ~dep_reference() noexcept = default;
 
-    dep_value value() const noexcept { return dep_value(&self, iterator(), is_space_ptr(), has_t_attr(), filter()); }
-
-    dep_reference& operator=(const dep_value& v) noexcept
+    dep_reference& operator=(dep_value&& v) noexcept
     {
-        assert(&self == v.self);
-        self.m_dependencies_iterators[idx] = v.iterator;
-        self.m_dependencies_iterators[idx]->second.m_last_dependencies = idx;
+        self.m_dependencies_iterators[idx] = std::exchange(v.iterator, self.m_dependencies.end());
+        if (self.m_dependencies_iterators[idx] != self.m_dependencies.end()) [[likely]]
+            self.m_dependencies_iterators[idx]->second.m_last_dependencies = idx;
         self.m_dependencies_space_ptr_type[idx] = v.is_space_ptr;
         self.m_dependencies_has_t_attr[idx] = v.has_t_attr;
         self.m_dependencies_filters.set(v.dep_filter, idx);
@@ -369,12 +367,18 @@ public:
 };
 
 symbol_dependency_tables::dep_value::dep_value(dep_reference ref) noexcept
-    : dep_value(ref.value())
+    : iterator(ref.take_iterator())
+    , is_space_ptr(ref.is_space_ptr())
+    , has_t_attr(ref.has_t_attr())
+    , dep_filter(ref.filter())
 {}
 
 symbol_dependency_tables::dep_value& symbol_dependency_tables::dep_value::operator=(dep_reference ref) noexcept
 {
-    *this = ref.value();
+    iterator = ref.take_iterator();
+    is_space_ptr = ref.is_space_ptr();
+    has_t_attr = ref.has_t_attr();
+    dep_filter = ref.filter();
     return *this;
 }
 
