@@ -473,31 +473,31 @@ workspace_configuration::program_configuration_storage::get_program_details(
         if (auto pgm = std::get_if<program>(pgm_details_exact_match))
         {
             if (std::holds_alternative<basic_conf>(pgm->pgroup))
-                return { pgm_details_exact_match, EXACT_PGM };
+                return { pgm_details_exact_match, exact_pgm };
             else if (std::holds_alternative<external_conf>(pgm->pgroup))
-                return { pgm_details_exact_match, EXACT_EXT };
+                return { pgm_details_exact_match, exact_ext };
         }
         else if (auto missing_details = std::get_if<missing_pgroup_details>(pgm_details_exact_match);
                  missing_details && missing_details->config_rl.empty())
-            return { pgm_details_exact_match, EXACT_PGM };
+            return { pgm_details_exact_match, exact_pgm };
     }
 
     for (const auto& [tagged_pgm_details, pattern] : m_regex_pgm_conf)
     {
         if (std::regex_match(file_location.get_uri(), pattern))
-            return { &tagged_pgm_details.pgm_details, REGEX_PGM };
+            return { &tagged_pgm_details.pgm_details, regex_pgm };
     }
 
     if (pgm_details_exact_match)
-        return { pgm_details_exact_match, EXACT_B4G };
+        return { pgm_details_exact_match, exact_b4g };
 
     for (const auto& [tagged_pgm_details, pattern] : m_regex_b4g_json)
     {
         if (std::regex_match(file_location.get_uri(), pattern))
-            return { &tagged_pgm_details.pgm_details, REGEX_B4G };
+            return { &tagged_pgm_details.pgm_details, regex_b4g };
     }
 
-    return { nullptr, NONE };
+    return { nullptr, none };
 }
 
 const workspace_configuration::program_configuration_storage::missing_pgroup_details*
@@ -526,7 +526,7 @@ void workspace_configuration::program_configuration_storage::remove_conf(const v
 void workspace_configuration::program_configuration_storage::prune_external_processor_groups(
     const utils::resource::resource_location& location)
 {
-    constexpr auto is_external = [](const tagged_program_details& tagged_pgm_details) {
+    static constexpr auto is_external = [](const tagged_program_details& tagged_pgm_details) {
         const auto* pgm = std::get_if<program>(&tagged_pgm_details.pgm_details);
         return pgm && pgm->external;
     };
@@ -538,7 +538,7 @@ void workspace_configuration::program_configuration_storage::prune_external_proc
             m_exact_match.erase(p);
     }
     else
-        std::erase_if(m_exact_match, [&is_external](const auto& p) { return is_external(p.second); });
+        std::erase_if(m_exact_match, [](const auto& p) { return is_external(p.second); });
 }
 
 void workspace_configuration::program_configuration_storage::clear()
@@ -1109,9 +1109,9 @@ utils::value_task<utils::resource::resource_location> workspace_configuration::l
     using enum workspace_configuration::program_configuration_storage::cfg_affiliation;
 
     const auto rl = file_location.lexically_normal();
-    auto affiliation = m_pgm_conf_store.get_program_normalized(rl).affiliation;
+    auto [_, affiliation] = m_pgm_conf_store.get_program_normalized(rl);
 
-    if (affiliation == EXACT_PGM || affiliation == EXACT_EXT)
+    if (affiliation == exact_pgm || affiliation == exact_ext)
         co_return empty_alternative_cfg_root;
 
     if (m_external_configuration_requests)
@@ -1148,11 +1148,11 @@ utils::value_task<utils::resource::resource_location> workspace_configuration::l
         }
     }
 
-    if (affiliation == REGEX_PGM)
+    if (affiliation == regex_pgm)
         co_return empty_alternative_cfg_root;
 
     auto configuration_url = utils::resource::resource_location::replace_filename(rl, B4G_CONF_FILE);
-    if (affiliation == EXACT_B4G || affiliation == REGEX_B4G)
+    if (affiliation == exact_b4g || affiliation == regex_b4g)
         co_return configuration_url;
 
     if (auto it = m_b4g_config_cache.find(configuration_url); it == m_b4g_config_cache.end())

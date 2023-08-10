@@ -67,21 +67,21 @@ std::string get_macro_content(std::string mac_template, std::string mac_id, std:
 void change_reparse_and_recollect_diags(
     file_manager& fm, workspace& ws, const resource_location& rl, std::string_view new_content)
 {
-    ws.diags().clear();
-
     static size_t version = 2;
     document_change doc_change(new_content.data(), new_content.size());
     fm.did_change_file(rl, version++, &doc_change, 1);
     run_if_valid(ws.did_change_file(rl, file_content_state::changed_content));
     parse_all_files(ws);
 
+    ws.diags().clear();
     ws.collect_diags();
 }
 
 void gather_advisory_diags(workspace& ws, bool include_advisory_diags)
 {
-    ws.diags().clear();
     ws.include_advisory_configuration_diagnostics(include_advisory_diags);
+
+    ws.diags().clear();
     ws.collect_diags();
 }
 

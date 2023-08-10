@@ -53,14 +53,14 @@ namespace workspaces {
 class workspace;
 } // namespace workspaces
 } // namespace hlasm_plugin::parser_library
-void parse_all_files(workspace& ws);
+void parse_all_files(hlasm_plugin::parser_library::workspaces::workspace& ws);
 
 void run_if_valid(hlasm_plugin::utils::task t);
 
-void open_parse_and_recollect_diags(
-    workspace& ws, const std::vector<hlasm_plugin::utils::resource::resource_location>& files);
-void close_parse_and_recollect_diags(
-    workspace& ws, const std::vector<hlasm_plugin::utils::resource::resource_location>& files);
+void open_parse_and_recollect_diags(hlasm_plugin::parser_library::workspaces::workspace& ws,
+    const std::vector<hlasm_plugin::utils::resource::resource_location>& files);
+void close_parse_and_recollect_diags(hlasm_plugin::parser_library::workspaces::workspace& ws,
+    const std::vector<hlasm_plugin::utils::resource::resource_location>& files);
 
 template<typename T>
 std::optional<T> get_var_value(hlasm_context& ctx, std::string name)

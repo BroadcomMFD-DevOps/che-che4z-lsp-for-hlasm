@@ -300,12 +300,12 @@ class workspace_configuration
 
         enum class cfg_affiliation
         {
-            NONE,
-            EXACT_PGM,
-            REGEX_PGM,
-            EXACT_B4G,
-            REGEX_B4G,
-            EXACT_EXT
+            none,
+            exact_pgm,
+            regex_pgm,
+            exact_b4g,
+            regex_b4g,
+            exact_ext
         };
 
         struct get_pgm_result
