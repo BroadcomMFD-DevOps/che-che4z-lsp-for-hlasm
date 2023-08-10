@@ -177,8 +177,8 @@ TEST(filter_vector, get_set_bitset)
     EXPECT_TRUE(f.any(0));
 
     auto bitset = f.get(0);
-    bitset.front() ^= 0x80000000u;
-    bitset.back() ^= 0x00000001u;
+    bitset.front() ^= 0x00000001u;
+    bitset.back() ^= 0x80000000u;
 
     EXPECT_TRUE(std::all_of(bitset.begin(), bitset.end(), [](auto n) { return n == 0; }));
 
@@ -186,8 +186,8 @@ TEST(filter_vector, get_set_bitset)
 
     EXPECT_FALSE(f.any(0));
 
-    bitset.front() ^= 0x80000000u;
-    bitset.back() ^= 0x00000001u;
+    bitset.front() ^= 0x00000001u;
+    bitset.back() ^= 0x80000000u;
     f.set(bitset, 0);
 
     EXPECT_TRUE(f.any(0));
