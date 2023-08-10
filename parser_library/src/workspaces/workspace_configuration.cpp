@@ -234,11 +234,22 @@ struct missing_pgroup_details
     utils::resource::resource_location config_rl;
 };
 
+enum class cfg_affiliation
+{
+    none,
+    exact_pgm,
+    regex_pgm,
+    exact_b4g,
+    regex_b4g,
+    exact_ext
+};
+
 using program_details = std::variant<program, missing_pgroup_details>;
 
-struct tagged_program_details
+struct program_properties
 {
     program_details pgm_details;
+    cfg_affiliation affiliation;
     const void* tag = nullptr;
 };
 
@@ -257,16 +268,6 @@ public:
         const void* tag;
     };
 
-    enum class cfg_affiliation
-    {
-        none,
-        exact_pgm,
-        regex_pgm,
-        exact_b4g,
-        regex_b4g,
-        exact_ext
-    };
-
     struct get_pgm_result
     {
         const program* pgm;
@@ -277,56 +278,62 @@ public:
 
     void add_exact_conf(configuration_parameters params, const proc_groups_map& proc_grps)
     {
+        auto affiliation = params.alternative_cfg_rl.empty() ? cfg_affiliation::exact_pgm : cfg_affiliation::exact_b4g;
+
         if (auto pgroup_name = std::visit(proc_group_name, params.pgroup_id);
             !proc_grps.contains(params.pgroup_id) && pgroup_name != NOPROC_GROUP_ID)
             m_exact_match.try_emplace(std::move(params.pgm_rl),
-                tagged_program_details {
+                program_properties {
                     new_missing_pgroup_helper(
                         params.missing_proc_grps, std::string(pgroup_name), params.alternative_cfg_rl),
+                    affiliation,
                     params.tag,
                 });
         else
             m_exact_match.try_emplace(params.pgm_rl,
-                tagged_program_details {
+                program_properties {
                     program {
                         params.pgm_rl,
                         std::move(params.pgroup_id),
                         params.asm_opts,
                         false,
                     },
+                    affiliation,
                     params.tag,
                 });
     }
 
-    void update_exact_conf(
-        const utils::resource::resource_location& normalized_location, tagged_program_details tagged_pgm_details)
+    void update_exact_conf(const utils::resource::resource_location& normalized_location, program_properties pgm_props)
     {
-        m_exact_match.insert_or_assign(normalized_location, std::move(tagged_pgm_details));
+        m_exact_match.insert_or_assign(normalized_location, std::move(pgm_props));
     }
 
     void add_regex_conf(configuration_parameters params, const proc_groups_map& proc_grps)
     {
         auto& container = params.alternative_cfg_rl.empty() ? m_regex_pgm_conf : m_regex_b4g_json;
+        auto affiliation = params.alternative_cfg_rl.empty() ? cfg_affiliation::regex_pgm : cfg_affiliation::regex_b4g;
         auto r = wildcard2regex(params.pgm_rl.get_uri());
 
         if (auto pgroup_name = std::visit(proc_group_name, params.pgroup_id);
             !proc_grps.contains(params.pgroup_id) && pgroup_name != NOPROC_GROUP_ID)
             container.emplace_back(
-                tagged_program_details {
+                program_properties {
                     new_missing_pgroup_helper(
                         params.missing_proc_grps, std::string(pgroup_name), params.alternative_cfg_rl),
+                    affiliation,
                     params.tag,
                 },
                 std::move(r));
         else
             container.emplace_back(
-                tagged_program_details {
+                program_properties {
                     program {
                         std::move(params.pgm_rl),
                         std::move(params.pgroup_id),
                         params.asm_opts,
                         false,
                     },
+                    affiliation,
                     params.tag,
                 },
                 std::move(r));
@@ -335,14 +342,18 @@ public:
     const missing_pgroup_details* get_missing_pgroup_details(
         const utils::resource::resource_location& file_location) const
     {
-        return std::get_if<missing_pgroup_details>(get_program_details(file_location).pgm_details);
+        if (const auto* details = get_program_properties(file_location))
+            return std::get_if<missing_pgroup_details>(&details->pgm_details);
+
+        return nullptr;
     }
 
     get_pgm_result get_program_normalized(const utils::resource::resource_location& file_location_normalized) const
     {
-        const auto& pgm_details_res = get_program_details(file_location_normalized);
+        if (const auto* details = get_program_properties(file_location_normalized))
+            return { std::get_if<program>(&details->pgm_details), details->affiliation };
 
-        return { std::get_if<program>(pgm_details_res.pgm_details), pgm_details_res.affiliation };
+        return { nullptr, cfg_affiliation::none };
     }
 
     void remove_conf(const void* tag)
@@ -354,8 +365,8 @@ public:
 
     void prune_external_processor_groups(const utils::resource::resource_location& location)
     {
-        static constexpr auto is_external = [](const tagged_program_details& tagged_pgm_details) {
-            const auto* pgm = std::get_if<program>(&tagged_pgm_details.pgm_details);
+        static constexpr auto is_external = [](const program_properties& pgm_props) {
+            const auto* pgm = std::get_if<program>(&pgm_props.pgm_details);
             return pgm && pgm->external;
         };
 
@@ -377,9 +388,9 @@ public:
     }
 
 private:
-    std::map<utils::resource::resource_location, tagged_program_details> m_exact_match;
-    std::vector<std::pair<tagged_program_details, std::regex>> m_regex_pgm_conf;
-    std::vector<std::pair<tagged_program_details, std::regex>> m_regex_b4g_json;
+    std::map<utils::resource::resource_location, program_properties> m_exact_match;
+    std::vector<std::pair<program_properties, std::regex>> m_regex_pgm_conf;
+    std::vector<std::pair<program_properties, std::regex>> m_regex_b4g_json;
     static constexpr std::string_view NOPROC_GROUP_ID = "*NOPROC*";
 
     missing_pgroup_details new_missing_pgroup_helper(name_set& missing_proc_grps,
@@ -399,45 +410,36 @@ private:
         cfg_affiliation affiliation;
     };
 
-    get_pgm_details_result get_program_details(const utils::resource::resource_location& file_location) const
+    const program_properties* get_program_properties(const utils::resource::resource_location& file_location) const
     {
         using enum cfg_affiliation;
 
-        const program_details* pgm_details_exact_match = nullptr;
+        const program_properties* pgm_props_exact_match = nullptr;
 
         // exact match
-        if (auto tagged_pgm_details_it = m_exact_match.find(file_location);
-            tagged_pgm_details_it != m_exact_match.cend())
+        if (auto pgm_props_it = m_exact_match.find(file_location); pgm_props_it != m_exact_match.cend())
         {
-            pgm_details_exact_match = &tagged_pgm_details_it->second.pgm_details;
-            if (auto pgm = std::get_if<program>(pgm_details_exact_match))
-            {
-                if (std::holds_alternative<basic_conf>(pgm->pgroup))
-                    return { pgm_details_exact_match, exact_pgm };
-                else if (std::holds_alternative<external_conf>(pgm->pgroup))
-                    return { pgm_details_exact_match, exact_ext };
-            }
-            else if (auto missing_details = std::get_if<missing_pgroup_details>(pgm_details_exact_match);
-                     missing_details && missing_details->config_rl.empty())
-                return { pgm_details_exact_match, exact_pgm };
+            pgm_props_exact_match = &pgm_props_it->second;
+            if (pgm_props_exact_match->affiliation == exact_pgm || pgm_props_exact_match->affiliation == exact_ext)
+                return pgm_props_exact_match;
         }
 
-        for (const auto& [tagged_pgm_details, pattern] : m_regex_pgm_conf)
+        for (const auto& [pgm_props, pattern] : m_regex_pgm_conf)
         {
             if (std::regex_match(file_location.get_uri(), pattern))
-                return { &tagged_pgm_details.pgm_details, regex_pgm };
+                return &pgm_props;
         }
 
-        if (pgm_details_exact_match)
-            return { pgm_details_exact_match, exact_b4g };
+        if (pgm_props_exact_match)
+            return pgm_props_exact_match;
 
-        for (const auto& [tagged_pgm_details, pattern] : m_regex_b4g_json)
+        for (const auto& [pgm_props, pattern] : m_regex_b4g_json)
         {
             if (std::regex_match(file_location.get_uri(), pattern))
-                return { &tagged_pgm_details.pgm_details, regex_b4g };
+                return &pgm_props;
         }
 
-        return { nullptr, none };
+        return nullptr;
     }
 };
 
@@ -1119,13 +1121,14 @@ void workspace_configuration::update_external_configuration(
     if (std::string_view group_name(group_json); utils::trim_left(group_name, " \t\n\r"), group_name.starts_with("\""))
     {
         m_pgm_conf_store->update_exact_conf(normalized_location,
-            tagged_program_details {
+            program_properties {
                 program {
                     normalized_location,
                     basic_conf { nlohmann::json::parse(group_json).get<std::string>() },
                     {},
                     true,
                 },
+                cfg_affiliation::exact_pgm,
             });
         return;
     }
@@ -1137,13 +1140,14 @@ void workspace_configuration::update_external_configuration(
     }
 
     m_pgm_conf_store->update_exact_conf(normalized_location,
-        tagged_program_details {
+        program_properties {
             program {
                 normalized_location,
                 pg->first,
                 {},
                 true,
             },
+            cfg_affiliation::exact_ext,
         });
 }
 
@@ -1160,7 +1164,7 @@ void workspace_configuration::prune_external_processor_groups(const utils::resou
 utils::value_task<utils::resource::resource_location> workspace_configuration::load_alternative_config_if_needed(
     const utils::resource::resource_location& file_location)
 {
-    using enum program_configuration_storage::cfg_affiliation;
+    using enum cfg_affiliation;
 
     const auto rl = file_location.lexically_normal();
     auto [_, affiliation] = m_pgm_conf_store->get_program_normalized(rl);
