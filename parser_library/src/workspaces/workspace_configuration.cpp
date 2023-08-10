@@ -258,14 +258,13 @@ struct program_properties
 class program_configuration_storage
 {
 public:
-    struct configuration_parameters
+    struct add_conf_params
     {
-        proc_grp_id pgroup_id;
-        utils::resource::resource_location pgm_rl;
-        const utils::resource::resource_location& alternative_cfg_rl;
-        const config::assembler_options& asm_opts;
-        name_set& missing_proc_grps;
+        program pgm;
         const void* tag;
+        name_set& missing_proc_grps; // todo have missing_proc_grps as a member variable?
+        const utils::resource::resource_location& alternative_cfg_rl;
+        const proc_groups_map& proc_grps;
     };
 
     struct get_pgm_result
@@ -276,28 +275,26 @@ public:
 
     program_configuration_storage() = default;
 
-    void add_exact_conf(configuration_parameters params, const proc_groups_map& proc_grps)
+    void add_exact_conf(add_conf_params params)
     {
         auto affiliation = params.alternative_cfg_rl.empty() ? cfg_affiliation::exact_pgm : cfg_affiliation::exact_b4g;
+        utils::resource::resource_location pgm_rl = params.pgm.prog_id;
 
-        if (auto pgroup_name = std::visit(proc_group_name, params.pgroup_id);
-            !proc_grps.contains(params.pgroup_id) && pgroup_name != NOPROC_GROUP_ID)
-            m_exact_match.try_emplace(std::move(params.pgm_rl),
+        if (auto pgroup_name = std::visit(proc_group_name, params.pgm.pgroup);
+            !params.proc_grps.contains(params.pgm.pgroup) && pgroup_name != NOPROC_GROUP_ID)
+        {
+            m_exact_match.try_emplace(std::move(pgm_rl),
                 program_properties {
                     new_missing_pgroup_helper(
                         params.missing_proc_grps, std::string(pgroup_name), params.alternative_cfg_rl),
                     affiliation,
                     params.tag,
                 });
+        }
         else
-            m_exact_match.try_emplace(params.pgm_rl,
+            m_exact_match.try_emplace(std::move(pgm_rl),
                 program_properties {
-                    program {
-                        params.pgm_rl,
-                        std::move(params.pgroup_id),
-                        params.asm_opts,
-                        false,
-                    },
+                    std::move(params.pgm),
                     affiliation,
                     params.tag,
                 });
@@ -308,14 +305,14 @@ public:
         m_exact_match.insert_or_assign(normalized_location, std::move(pgm_props));
     }
 
-    void add_regex_conf(configuration_parameters params, const proc_groups_map& proc_grps)
+    void add_regex_conf(add_conf_params params)
     {
         auto& container = params.alternative_cfg_rl.empty() ? m_regex_pgm_conf : m_regex_b4g_json;
         auto affiliation = params.alternative_cfg_rl.empty() ? cfg_affiliation::regex_pgm : cfg_affiliation::regex_b4g;
-        auto r = wildcard2regex(params.pgm_rl.get_uri());
+        auto r = wildcard2regex(params.pgm.prog_id.get_uri());
 
-        if (auto pgroup_name = std::visit(proc_group_name, params.pgroup_id);
-            !proc_grps.contains(params.pgroup_id) && pgroup_name != NOPROC_GROUP_ID)
+        if (auto pgroup_name = std::visit(proc_group_name, params.pgm.pgroup);
+            !params.proc_grps.contains(params.pgm.pgroup) && pgroup_name != NOPROC_GROUP_ID)
             container.emplace_back(
                 program_properties {
                     new_missing_pgroup_helper(
@@ -327,12 +324,7 @@ public:
         else
             container.emplace_back(
                 program_properties {
-                    program {
-                        std::move(params.pgm_rl),
-                        std::move(params.pgroup_id),
-                        params.asm_opts,
-                        false,
-                    },
+                    std::move(params.pgm),
                     affiliation,
                     params.tag,
                 },
@@ -614,21 +606,26 @@ void workspace_configuration::process_program(
         return;
     }
 
-    program_configuration_storage::configuration_parameters pgm_conf_params {
-        basic_conf {
-            pgm.pgroup,
+    program_configuration_storage::add_conf_params conf_params {
+        program {
+            transform_to_resource_location(*pgm_name, m_location),
+            basic_conf {
+                pgm.pgroup,
+            },
+            pgm.opts,
+            false,
         },
-        transform_to_resource_location(*pgm_name, m_location),
-        empty_alternative_cfg_root,
-        pgm.opts,
-        missing_proc_grps,
         nullptr,
+        missing_proc_grps,
+        empty_alternative_cfg_root,
+        m_proc_grps,
     };
 
     if (pgm_name->find_first_of("*?") == std::string::npos)
-        m_pgm_conf_store->add_exact_conf(std::move(pgm_conf_params), m_proc_grps);
+        m_pgm_conf_store->add_exact_conf(std::move(conf_params));
+
     else
-        m_pgm_conf_store->add_regex_conf(std::move(pgm_conf_params), m_proc_grps);
+        m_pgm_conf_store->add_regex_conf(std::move(conf_params));
 }
 
 bool workspace_configuration::is_config_file(const utils::resource::resource_location& file) const
@@ -812,34 +809,40 @@ utils::value_task<parse_config_file_result> workspace_configuration::parse_b4g_c
         m_proc_grps_source.pgroups, m_proc_grps_source.macro_extensions, alternative_root, conf.diags);
 
     const auto cfg_file_root = cfg_file_rl.parent();
-    auto& missing_proc_grps = m_missing_proc_grps[cfg_file_rl];
 
-    const auto create_conf_params = [&alternative_root, &cfg_file_root, &missing_proc_grps, &new_tag](
-                                        std::string_view pgroup_name, utils::resource::resource_location pgm_rl) {
+    const auto create_add_conf_params = [&alternative_root,
+                                            &new_tag,
+                                            &missing_proc_grps = m_missing_proc_grps[cfg_file_rl],
+                                            &cfg_file_root,
+                                            &proc_grps = m_proc_grps](
+                                            utils::resource::resource_location pgm_rl, std::string_view pgroup_name) {
         static const config::assembler_options empty_asm_opts {};
 
-        return program_configuration_storage::configuration_parameters {
-            b4g_conf {
-                std::string(pgroup_name),
-                alternative_root,
+        return program_configuration_storage::add_conf_params {
+            program {
+                std::move(pgm_rl),
+                b4g_conf {
+                    std::string(pgroup_name),
+                    alternative_root,
+                },
+                empty_asm_opts,
+                false,
             },
-            std::move(pgm_rl),
-            cfg_file_root,
-            empty_asm_opts,
-            missing_proc_grps,
             new_tag,
+            missing_proc_grps,
+            cfg_file_root,
+            proc_grps,
         };
     };
 
     for (const auto& [name, details] : conf.config.value().files)
         m_pgm_conf_store->add_exact_conf(
-            create_conf_params(details.processor_group_name,
-                utils::resource::resource_location::join(cfg_file_root, name).lexically_normal()),
-            m_proc_grps);
+            create_add_conf_params(utils::resource::resource_location::join(cfg_file_root, name).lexically_normal(),
+                details.processor_group_name));
 
     if (const auto& def_grp = conf.config.value().default_processor_group_name; !def_grp.empty())
         m_pgm_conf_store->add_regex_conf(
-            create_conf_params(def_grp, utils::resource::resource_location::join(cfg_file_root, "*")), m_proc_grps);
+            create_add_conf_params(utils::resource::resource_location::join(cfg_file_root, "*"), def_grp));
 
     co_return parse_config_file_result::parsed;
 }

@@ -43,7 +43,7 @@ namespace hlasm_plugin::parser_library {
 class external_configuration_requests;
 } // namespace hlasm_plugin::parser_library
 namespace hlasm_plugin::parser_library::workspaces {
-using program_id = utils::resource::resource_location;
+using program_id = utils::resource::resource_location; // todo rename to program_rl?
 using global_settings_map =
     std::unordered_map<std::string, std::optional<std::string>, utils::hashers::string_hasher, std::equal_to<>>;
 
