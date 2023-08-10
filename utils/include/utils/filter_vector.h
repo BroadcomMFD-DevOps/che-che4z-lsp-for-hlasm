@@ -63,6 +63,7 @@ public:
             summary |= !!bits[i] << (top_bit_shift - 1 - i);
         }
         summary |= !!summary << top_bit_shift;
+        filters[0][idx] = summary;
     }
     void assign(size_t to, size_t from) noexcept
     {
