@@ -82,7 +82,6 @@ struct external_conf
     size_t hash() const noexcept { return std::hash<std::string_view>()(*definition); }
 };
 
-using name_set = std::unordered_set<std::string, utils::hashers::string_hasher, std::equal_to<>>;
 using proc_grp_id = std::variant<basic_conf, b4g_conf, external_conf>;
 class file_manager;
 class program_configuration_storage;
@@ -276,8 +275,6 @@ class workspace_configuration
 
     config::proc_grps m_proc_grps_source;
     proc_groups_map m_proc_grps;
-    std::unordered_map<utils::resource::resource_location, name_set, utils::resource::resource_location_hasher>
-        m_missing_proc_grps;
 
     struct b4g_config
     {
@@ -326,8 +323,7 @@ class workspace_configuration
         const utils::resource::resource_location& alternative_root,
         std::vector<diagnostic_s>& diags);
 
-    void process_program(
-        const config::program_mapping& pgm, name_set& missing_proc_grps, std::vector<diagnostic_s>& diags);
+    void process_program(const config::program_mapping& pgm, std::vector<diagnostic_s>& diags);
 
     bool is_config_file(const utils::resource::resource_location& file_location) const;
     bool is_b4g_config_file(const utils::resource::resource_location& file) const;
@@ -348,10 +344,6 @@ class workspace_configuration
         processor_group& prc_grp,
         const library_local_options& opts,
         std::vector<diagnostic_s>& diags);
-
-    std::unordered_map<std::string, bool, utils::hashers::string_hasher, std::equal_to<>>
-    get_categorized_missing_pgroups(const utils::resource::resource_location& config_file_rl,
-        const std::vector<utils::resource::resource_location>& opened_files) const;
 
     void add_missing_diags(const diagnosable& target,
         const utils::resource::resource_location& config_file_rl,
