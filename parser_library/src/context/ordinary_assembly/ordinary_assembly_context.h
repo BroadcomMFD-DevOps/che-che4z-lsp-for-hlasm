@@ -15,9 +15,11 @@
 #ifndef CONTEXT_ORDINARY_ASSEMBLY_CONTEXT_H
 #define CONTEXT_ORDINARY_ASSEMBLY_CONTEXT_H
 
+#include <memory>
 #include <unordered_map>
 #include <unordered_set>
 #include <variant>
+#include <vector>
 
 #include "alignment.h"
 #include "dependable.h"

@@ -18,6 +18,7 @@
 #include <array>
 #include <cassert>
 #include <cstddef>
+#include <functional>
 #include <memory>
 #if __cpp_lib_polymorphic_allocator >= 201902L && __cpp_lib_memory_resource >= 201603L
 #    include <memory_resource>
@@ -641,7 +642,6 @@ dependant symbol_dependency_tables::delete_dependency(std::unordered_map<dependa
 
     return std::move(m_dependencies.extract(it).key());
 }
-
 
 bool symbol_dependency_tables::add_dependency(id_index target,
     const resolvable* dependency_source,
