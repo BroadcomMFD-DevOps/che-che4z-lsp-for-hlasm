@@ -875,34 +875,30 @@ void workspace_configuration::update_external_configuration(
     if (std::string_view group_name(group_json); utils::trim_left(group_name, " \t\n\r"), group_name.starts_with("\""))
     {
         m_pgm_conf_store->update_exact_conf(normalized_location,
-            program_properties {
-                program {
-                    normalized_location,
-                    basic_conf { nlohmann::json::parse(group_json).get<std::string>() },
-                    {},
-                    true,
-                },
-                cfg_affiliation::exact_pgm,
-            });
+            program {
+                normalized_location,
+                basic_conf { nlohmann::json::parse(group_json).get<std::string>() },
+                {},
+                true,
+            },
+            nullptr,
+            empty_alternative_cfg_root);
         return;
     }
 
     auto pg = m_proc_grps.find(tagged_string_view<external_conf> { group_json });
     if (pg == m_proc_grps.end())
-    {
         pg = make_external_proc_group(normalized_location, std::move(group_json));
-    }
 
     m_pgm_conf_store->update_exact_conf(normalized_location,
-        program_properties {
-            program {
-                normalized_location,
-                pg->first,
-                {},
-                true,
-            },
-            cfg_affiliation::exact_ext,
-        });
+        program {
+            normalized_location,
+            pg->first,
+            {},
+            true,
+        },
+        nullptr,
+        empty_alternative_cfg_root);
 }
 
 void workspace_configuration::prune_external_processor_groups(const utils::resource::resource_location& location)
@@ -918,7 +914,7 @@ void workspace_configuration::prune_external_processor_groups(const utils::resou
 utils::value_task<utils::resource::resource_location> workspace_configuration::load_alternative_config_if_needed(
     const utils::resource::resource_location& file_location)
 {
-    using enum cfg_affiliation;
+    using enum program_configuration_storage::cfg_affiliation;
 
     const auto rl = file_location.lexically_normal();
     auto [_, affiliation] = m_pgm_conf_store->get_program(rl);

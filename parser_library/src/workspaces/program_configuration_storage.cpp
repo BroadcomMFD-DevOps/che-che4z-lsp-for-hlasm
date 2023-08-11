@@ -39,39 +39,65 @@ program_configuration_storage::program_configuration_storage(const proc_groups_m
 void program_configuration_storage::add_exact_conf(
     program pgm, const void* tag, const utils::resource::resource_location& alternative_cfg_rl)
 {
-    auto affiliation = alternative_cfg_rl.empty() ? cfg_affiliation::exact_pgm : cfg_affiliation::exact_b4g;
-    utils::resource::resource_location pgm_rl = pgm.prog_id;
+    using enum cfg_affiliation;
+    auto affiliation = pgm.external ? exact_ext : alternative_cfg_rl.empty() ? exact_pgm : exact_b4g;
 
     if (auto pgroup_name = std::visit(proc_group_name, pgm.pgroup);
         !m_proc_grps.contains(pgm.pgroup) && pgroup_name != NOPROC_GROUP_ID)
-    {
-        m_exact_match.try_emplace(std::move(pgm_rl),
+        m_exact_match.try_emplace(std::move(pgm.prog_id),
             program_properties {
                 new_missing_pgroup_helper(std::string(pgroup_name), alternative_cfg_rl),
                 affiliation,
                 tag,
             });
-    }
     else
-        m_exact_match.try_emplace(std::move(pgm_rl),
+    {
+        utils::resource::resource_location pgm_rl = pgm.prog_id;
+        m_exact_match.try_emplace(std::move(std::move(pgm_rl)),
             program_properties {
                 std::move(pgm),
                 affiliation,
                 tag,
             });
+    }
 }
 
-void program_configuration_storage::update_exact_conf(
-    const utils::resource::resource_location& normalized_location, program_properties pgm_props)
+void program_configuration_storage::update_exact_conf(const utils::resource::resource_location& normalized_location,
+    program pgm,
+    const void* tag,
+    const utils::resource::resource_location& alternative_cfg_rl)
 {
-    m_exact_match.insert_or_assign(normalized_location, std::move(pgm_props));
+    using enum cfg_affiliation;
+    auto affiliation = pgm.external ? exact_ext : alternative_cfg_rl.empty() ? exact_pgm : exact_b4g;
+
+    if (auto pgroup_name = std::visit(proc_group_name, pgm.pgroup);
+        !m_proc_grps.contains(pgm.pgroup) && pgroup_name != NOPROC_GROUP_ID)
+        m_exact_match.insert_or_assign(std::move(pgm.prog_id),
+            program_properties {
+                new_missing_pgroup_helper(std::string(pgroup_name), alternative_cfg_rl),
+                affiliation,
+                tag,
+            });
+    else
+    {
+        utils::resource::resource_location pgm_rl = pgm.prog_id;
+        m_exact_match.insert_or_assign(std::move(pgm_rl),
+            program_properties {
+                std::move(pgm),
+                affiliation,
+                tag,
+            });
+    }
 }
 
 void program_configuration_storage::add_regex_conf(
     program pgm, const void* tag, const utils::resource::resource_location& alternative_cfg_rl)
 {
+    assert(!pgm.external);
+
+    using enum cfg_affiliation;
+    auto affiliation = alternative_cfg_rl.empty() ? regex_pgm : regex_b4g;
     auto& container = alternative_cfg_rl.empty() ? m_regex_pgm_conf : m_regex_b4g_json;
-    auto affiliation = alternative_cfg_rl.empty() ? cfg_affiliation::regex_pgm : cfg_affiliation::regex_b4g;
     auto r = wildcard2regex(pgm.prog_id.get_uri());
 
     if (auto pgroup_name = std::visit(proc_group_name, pgm.pgroup);
@@ -157,7 +183,7 @@ void program_configuration_storage::clear()
     m_cached_missing_proc_grps_it = {};
 }
 
-missing_pgroup_details program_configuration_storage::new_missing_pgroup_helper(
+program_configuration_storage::missing_pgroup_details program_configuration_storage::new_missing_pgroup_helper(
     std::string missing_pgroup_name, utils::resource::resource_location config_rl)
 {
     if (!m_cached_missing_proc_grps_it || (*m_cached_missing_proc_grps_it)->first != config_rl)
@@ -170,7 +196,7 @@ missing_pgroup_details program_configuration_storage::new_missing_pgroup_helper(
     };
 }
 
-const missing_pgroup_details* program_configuration_storage::get_missing_pgroup_details(
+const program_configuration_storage::missing_pgroup_details* program_configuration_storage::get_missing_pgroup_details(
     const utils::resource::resource_location& file_location) const
 {
     if (const auto* details = get_program_properties(file_location))
@@ -179,7 +205,7 @@ const missing_pgroup_details* program_configuration_storage::get_missing_pgroup_
     return nullptr;
 }
 
-const program_properties* program_configuration_storage::get_program_properties(
+const program_configuration_storage::program_properties* program_configuration_storage::get_program_properties(
     const utils::resource::resource_location& file_location) const
 {
     using enum cfg_affiliation;

@@ -31,34 +31,20 @@
 #include "workspaces/datatypes.h"
 
 namespace hlasm_plugin::parser_library::workspaces {
-struct missing_pgroup_details
-{
-    std::string pgroup_name;
-    utils::resource::resource_location config_rl;
-};
-
-enum class cfg_affiliation
-{
-    none,
-    exact_pgm,
-    regex_pgm,
-    exact_b4g,
-    regex_b4g,
-    exact_ext
-};
-
-using program_details = std::variant<program, missing_pgroup_details>;
-
-struct program_properties
-{
-    program_details pgm_details;
-    cfg_affiliation affiliation;
-    const void* tag = nullptr;
-};
 
 class program_configuration_storage
 {
 public:
+    enum class cfg_affiliation
+    {
+        none,
+        exact_pgm,
+        regex_pgm,
+        exact_b4g,
+        regex_b4g,
+        exact_ext
+    };
+
     struct get_pgm_result
     {
         const program* pgm;
@@ -69,7 +55,10 @@ public:
 
     void add_exact_conf(program pgm, const void* tag, const utils::resource::resource_location& alternative_cfg_rl);
 
-    void update_exact_conf(const utils::resource::resource_location& normalized_location, program_properties pgm_props);
+    void update_exact_conf(const utils::resource::resource_location& normalized_location,
+        program pgm,
+        const void* tag,
+        const utils::resource::resource_location& alternative_cfg_rl);
 
     void add_regex_conf(program pgm, const void* tag, const utils::resource::resource_location& alternative_cfg_rl);
 
@@ -86,7 +75,22 @@ public:
     void clear();
 
 private:
+    struct missing_pgroup_details
+    {
+        std::string pgroup_name;
+        utils::resource::resource_location config_rl;
+    };
+
     using name_set = std::unordered_set<std::string, utils::hashers::string_hasher, std::equal_to<>>;
+
+    using program_details = std::variant<program, missing_pgroup_details>;
+
+    struct program_properties
+    {
+        program_details pgm_details;
+        cfg_affiliation affiliation;
+        const void* tag = nullptr;
+    };
 
     const proc_groups_map& m_proc_grps;
     std::map<utils::resource::resource_location, program_properties> m_exact_match;
