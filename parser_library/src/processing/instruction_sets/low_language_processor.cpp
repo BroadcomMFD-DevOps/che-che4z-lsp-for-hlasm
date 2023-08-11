@@ -21,6 +21,7 @@
 #include "checking/using_label_checker.h"
 #include "processing/processing_manager.h"
 #include "processing/statement_processors/ordinary_processor.h"
+#include "semantics/operand_impls.h"
 
 using namespace hlasm_plugin::parser_library;
 using namespace processing;

@@ -14,6 +14,7 @@
 
 #include "ca_symbol_attribute.h"
 
+#include "ca_constant.h"
 #include "ca_var_sym.h"
 #include "context/literal_pool.h"
 #include "context/ordinary_assembly/dependable.h"
