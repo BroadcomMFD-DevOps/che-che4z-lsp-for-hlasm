@@ -23,7 +23,6 @@
 #include <span>
 #include <string>
 #include <unordered_map>
-#include <unordered_set>
 #include <utility>
 #include <vector>
 #include <version>
@@ -38,108 +37,19 @@
 #include "utils/general_hashers.h"
 #include "utils/resource_location.h"
 #include "utils/task.h"
+#include "workspaces/datatypes.h"
+#include "workspaces/program_configuration_storage.h"
 
 namespace hlasm_plugin::parser_library {
 class external_configuration_requests;
 } // namespace hlasm_plugin::parser_library
 namespace hlasm_plugin::parser_library::workspaces {
-using program_id = utils::resource::resource_location; // todo rename to program_rl?
 using global_settings_map =
     std::unordered_map<std::string, std::optional<std::string>, utils::hashers::string_hasher, std::equal_to<>>;
 
-struct basic_conf
-{
-    std::string name;
-
-    auto operator<=>(const basic_conf&) const = default;
-
-    size_t hash() const noexcept { return std::hash<std::string_view>()(name); }
-};
-
-struct b4g_conf
-{
-    std::string name;
-    utils::resource::resource_location bridge_json_uri;
-
-    auto operator<=>(const b4g_conf&) const = default;
-
-    size_t hash() const noexcept
-    {
-        return std::hash<std::string_view>()(name) ^ utils::resource::resource_location_hasher()(bridge_json_uri);
-    }
-};
-
-struct external_conf
-{
-    std::shared_ptr<std::string> definition;
-
-    bool operator==(const external_conf& o) const { return *definition == *o.definition; }
-    auto operator<=>(const external_conf& o) const { return definition->compare(*o.definition) <=> 0; } // clang 14
-
-    bool operator==(std::string_view o) const { return *definition == o; }
-    auto operator<=>(std::string_view o) const { return definition->compare(o) <=> 0; } // clang 14
-
-    size_t hash() const noexcept { return std::hash<std::string_view>()(*definition); }
-};
-
-using proc_grp_id = std::variant<basic_conf, b4g_conf, external_conf>;
 class file_manager;
 class program_configuration_storage;
 struct library_local_options;
-
-template<typename T>
-struct tagged_string_view
-{
-    std::string_view value;
-};
-
-struct proc_grp_id_hasher
-{
-    using is_transparent = void;
-
-    size_t operator()(const proc_grp_id& pgid) const noexcept
-    {
-        return std::visit([](const auto& x) { return x.hash(); }, pgid);
-    }
-
-    size_t operator()(const tagged_string_view<external_conf>& external_conf_candidate) const noexcept
-    {
-        return std::hash<std::string_view>()(external_conf_candidate.value);
-    }
-};
-struct proc_grp_id_equal
-{
-    using is_transparent = void;
-
-    bool operator()(const proc_grp_id& l, const proc_grp_id& r) const noexcept { return l == r; }
-    bool operator()(const proc_grp_id& l, const tagged_string_view<external_conf>& r) const noexcept
-    {
-        return std::holds_alternative<external_conf>(l) && *std::get<external_conf>(l).definition == r.value;
-    }
-    bool operator()(const tagged_string_view<external_conf>& l, const proc_grp_id& r) const noexcept
-    {
-        return std::holds_alternative<external_conf>(r) && l.value == *std::get<external_conf>(r).definition;
-    }
-};
-
-using proc_groups_map = std::unordered_map<proc_grp_id, processor_group, proc_grp_id_hasher, proc_grp_id_equal>;
-
-// represents pair program => processor group - saves
-// information that a program uses certain processor group
-struct program
-{
-    program(program_id prog_id, proc_grp_id pgroup, config::assembler_options asm_opts, bool external)
-        : prog_id(std::move(prog_id))
-        , pgroup(std::move(pgroup))
-        , asm_opts(std::move(asm_opts))
-        , external(external)
-    {}
-
-    program_id prog_id;
-    proc_grp_id pgroup;
-    config::assembler_options asm_opts;
-    bool external;
-};
 
 struct configuration_diagnostics_parameters
 {
