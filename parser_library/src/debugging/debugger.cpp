@@ -34,6 +34,8 @@
 #include "debugger_configuration.h"
 #include "macro_param_variable.h"
 #include "ordinary_symbol_variable.h"
+#include "processing/statement.h"
+#include "processing/statement_analyzers/statement_analyzer.h"
 #include "set_symbol_variable.h"
 #include "utils/async_busy_wait.h"
 #include "utils/task.h"

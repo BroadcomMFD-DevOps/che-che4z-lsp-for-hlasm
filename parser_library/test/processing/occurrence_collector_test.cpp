@@ -16,7 +16,9 @@
 
 #include "../gtest_stringers.h"
 #include "analyzer.h"
+#include "processing/statement.h"
 #include "processing/statement_analyzers/occurrence_collector.h"
+#include "processing/statement_analyzers/statement_analyzer.h"
 
 using namespace hlasm_plugin::parser_library;
 
