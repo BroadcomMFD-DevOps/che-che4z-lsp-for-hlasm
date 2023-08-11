@@ -16,6 +16,7 @@
 
 #include "../common_testing.h"
 #include "../mock_parse_lib_provider.h"
+#include "processing/instruction_sets/macro_processor.h"
 
 // tests for macro feature:
 // definition parsing

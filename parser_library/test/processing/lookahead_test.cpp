@@ -16,6 +16,7 @@
 
 #include "../common_testing.h"
 #include "../mock_parse_lib_provider.h"
+#include "expressions/evaluation_context.h"
 #include "hlasmparser_multiline.h"
 #include "library_info_transitional.h"
 #include "lsp/lsp_context.h"

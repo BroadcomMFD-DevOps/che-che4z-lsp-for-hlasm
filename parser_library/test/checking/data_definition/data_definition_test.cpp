@@ -16,6 +16,7 @@
 #include "../../common_testing.h"
 #include "context/ordinary_assembly/ordinary_assembly_dependency_solver.h"
 #include "hlasmparser_multiline.h"
+#include "library_info_transitional.h"
 
 void expect_no_errors(const std::string& text)
 {

@@ -28,7 +28,8 @@
 // concat_chain is used to represent model statement fields
 
 namespace hlasm_plugin::parser_library::semantics {
-
+struct concatenation_point;
+using concat_chain = std::vector<concatenation_point>;
 struct variable_symbol;
 struct basic_variable_symbol;
 struct created_variable_symbol;

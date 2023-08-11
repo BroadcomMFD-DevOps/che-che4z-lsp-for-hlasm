@@ -32,7 +32,6 @@
 
 #include "analyzer.h"
 #include "ebcdic_encoding.h"
-#include "processing/instruction_sets/macro_processor.h"
 
 using namespace hlasm_plugin::parser_library;
 using namespace hlasm_plugin::parser_library::context;
