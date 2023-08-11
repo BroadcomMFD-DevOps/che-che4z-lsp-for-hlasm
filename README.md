@@ -219,9 +219,9 @@ Assembler options defined by the processor group can be overridden in the `pgm_c
 }
 ```
 
-### Other configuration files
+### Other Configuration Files
 
-#### `.bridge.json` configuration file
+#### `.bridge.json` Configuration File
 When Endevor Bridge for Git is used, the `.bridge.json` configuration file containing program to processor group mappings is usually present as well. 
 
 Therefore, there is no need to create separate `pgm_conf.json` configuration file in this case. However, `proc_grps.json` still needs to exist to allow successful mapping between programs stated in `.bridge.json` and processor groups defined in `proc_grps.json`.
@@ -243,7 +243,7 @@ Similarly to the previous example, the program `source_code` is mapped to a proc
 
 You can also observe that any other existing programs are mapped to a processor group `GROUP2` by default.
 
-### Configuration lookup precedence
+### Configuration Lookup Precedence
 
 Conflicting program to processor group mappings can appear when multiple configuration files (such as `.pgm_conf.json` and `.bridge.json`) exist or when the program mapping definition relies on wildcards.
 
@@ -254,7 +254,6 @@ To resolve these conflicts, the following processor groups precedence applies wh
 3. Processor group bound to a specific program name specified in `.bridge.json`
 4. Default processor group specified in `.bridge.json`
 
----
 ### File Extensions
 
 The `alwaysRecognize` option in `pgm_conf.json` has been deprecated in favor of the standard VSCode user and workspace level setting `file.associations`.
