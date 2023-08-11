@@ -14,6 +14,8 @@
 
 #include "token_stream.h"
 
+#include "antlr4-runtime.h"
+
 using namespace hlasm_plugin::parser_library::lexing;
 using namespace antlr4;
 
