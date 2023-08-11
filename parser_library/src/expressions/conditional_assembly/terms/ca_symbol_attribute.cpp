@@ -16,6 +16,7 @@
 
 #include "ca_constant.h"
 #include "ca_var_sym.h"
+#include "context/hlasm_context.h"
 #include "context/literal_pool.h"
 #include "context/ordinary_assembly/dependable.h"
 #include "context/ordinary_assembly/ordinary_assembly_dependency_solver.h"

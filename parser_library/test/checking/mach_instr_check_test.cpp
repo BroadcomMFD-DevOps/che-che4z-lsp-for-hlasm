@@ -16,6 +16,7 @@
 
 #include "../common_testing.h"
 #include "analyzer.h"
+#include "checking/diagnostic_collector.h"
 #include "checking/instruction_checker.h"
 #include "context/instruction.h"
 

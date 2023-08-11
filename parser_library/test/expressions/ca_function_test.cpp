@@ -14,6 +14,7 @@
 
 #include "gmock/gmock.h"
 
+#include "context/hlasm_context.h"
 #include "expr_mocks.h"
 #include "expressions/conditional_assembly/terms/ca_function.h"
 #include "expressions/evaluation_context.h"

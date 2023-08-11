@@ -16,6 +16,8 @@
 
 #include "../common_testing.h"
 #include "analyzer.h"
+#include "context/hlasm_context.h"
+#include "context/ordinary_assembly/symbol.h"
 #include "ebcdic_encoding.h"
 
 using namespace hlasm_plugin::parser_library;

@@ -14,6 +14,7 @@
 
 #include "variable_symbol.h"
 
+#include "context/hlasm_context.h"
 #include "expressions/conditional_assembly/terms/ca_constant.h"
 #include "expressions/evaluation_context.h"
 

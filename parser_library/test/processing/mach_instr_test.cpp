@@ -16,6 +16,7 @@
 
 #include "../common_testing.h"
 #include "context/instruction.h"
+#include "processing/op_code.h"
 
 TEST(mach_instr_processing, reloc_imm_expected)
 {

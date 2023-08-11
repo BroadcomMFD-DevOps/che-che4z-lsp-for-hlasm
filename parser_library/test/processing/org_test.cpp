@@ -15,6 +15,7 @@
 #include "gtest/gtest.h"
 
 #include "../common_testing.h"
+#include "context/ordinary_assembly/address.h"
 
 // tests for ORG instruction
 TEST(org, duplicate_labels)

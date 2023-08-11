@@ -16,6 +16,7 @@
 
 #include "../common_testing.h"
 #include "../mock_parse_lib_provider.h"
+#include "context/hlasm_context.h"
 // tests for ordinary symbols feature:
 // relocatable/absolute value and attribute value
 // space/alignment creation

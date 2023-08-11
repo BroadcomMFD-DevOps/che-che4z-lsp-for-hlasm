@@ -19,13 +19,7 @@
 // test for
 // arithmetic SETB expressions
 
-#define SETBEQ(X, Y)                                                                                                   \
-    EXPECT_EQ(a.hlasm_ctx()                                                                                            \
-                  .get_var_sym(context::id_index(X))                                                                   \
-                  ->access_set_symbol_base()                                                                           \
-                  ->access_set_symbol<B_t>()                                                                           \
-                  ->get_value(),                                                                                       \
-        Y)
+#define SETBEQ(X, Y) EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), X), Y)
 
 TEST(logical_expressions, valid_assignment)
 {

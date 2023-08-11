@@ -17,6 +17,7 @@
 #include "gtest/gtest.h"
 
 #include "../common_testing.h"
+#include "context/hlasm_context.h"
 #include "processing/statement_fields_parser.h"
 #include "semantics/operand_impls.h"
 

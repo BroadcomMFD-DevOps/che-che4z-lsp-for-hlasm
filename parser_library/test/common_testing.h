@@ -31,7 +31,24 @@
 #include "gmock/gmock.h"
 
 #include "analyzer.h"
+#include "context/common_types.h"
 #include "ebcdic_encoding.h"
+
+namespace hlasm_plugin::utils {
+class task;
+}
+namespace hlasm_plugin::parser_library {
+class workspace_manager;
+namespace context {
+struct address;
+class section;
+class symbol;
+} // namespace context
+namespace expressions {}
+namespace workspaces {
+class workspace;
+} // namespace workspaces
+} // namespace hlasm_plugin::parser_library
 
 using namespace hlasm_plugin::parser_library;
 using namespace hlasm_plugin::parser_library::context;
@@ -42,18 +59,6 @@ using namespace hlasm_plugin::parser_library::expressions;
 
 const size_t size_t_zero = static_cast<size_t>(0);
 
-namespace hlasm_plugin::utils {
-class task;
-namespace resource {
-class resource_location;
-}
-} // namespace hlasm_plugin::utils
-namespace hlasm_plugin::parser_library {
-class workspace_manager;
-namespace workspaces {
-class workspace;
-} // namespace workspaces
-} // namespace hlasm_plugin::parser_library
 void parse_all_files(hlasm_plugin::parser_library::workspaces::workspace& ws);
 
 void run_if_valid(hlasm_plugin::utils::task t);
@@ -159,9 +164,9 @@ const section* get_section(hlasm_context& ctx, std::string name);
 
 const symbol* get_symbol(hlasm_context& ctx, std::string name);
 
-std::optional<symbol_value::abs_value_t> get_symbol_abs(hlasm_context& ctx, std::string name);
+std::optional<int32_t> get_symbol_abs(hlasm_context& ctx, std::string name);
 
-std::optional<symbol_value::reloc_value_t> get_symbol_reloc(hlasm_context& ctx, std::string name);
+std::optional<address> get_symbol_reloc(hlasm_context& ctx, std::string name);
 
 std::optional<std::pair<int, std::string>> get_symbol_address(hlasm_context& ctx, std::string name);
 

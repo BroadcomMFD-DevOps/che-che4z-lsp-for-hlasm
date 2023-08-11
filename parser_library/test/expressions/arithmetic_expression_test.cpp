@@ -19,13 +19,7 @@
 // test for
 // arithmetic SETA expressions
 
-#define SETAEQ(X, Y)                                                                                                   \
-    EXPECT_EQ(a.hlasm_ctx()                                                                                            \
-                  .get_var_sym(context::id_index(X))                                                                   \
-                  ->access_set_symbol_base()                                                                           \
-                  ->access_set_symbol<A_t>()                                                                           \
-                  ->get_value(),                                                                                       \
-        Y)
+#define SETAEQ(X, Y) EXPECT_EQ(get_var_value<context::A_t>(a.hlasm_ctx(), X), Y)
 
 TEST(arithmetic_expressions, valid_self_defining_term)
 {

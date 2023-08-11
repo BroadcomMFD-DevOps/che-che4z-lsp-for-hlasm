@@ -19,13 +19,7 @@
 // test for
 // arithmetic SETC expressions
 
-#define SETCEQ(X, Y)                                                                                                   \
-    EXPECT_EQ(a.hlasm_ctx()                                                                                            \
-                  .get_var_sym(context::id_index(X))                                                                   \
-                  ->access_set_symbol_base()                                                                           \
-                  ->access_set_symbol<C_t>()                                                                           \
-                  ->get_value(),                                                                                       \
-        Y)
+#define SETCEQ(X, Y) EXPECT_EQ(get_var_value<context::C_t>(a.hlasm_ctx(), X), Y)
 
 TEST(character_expression, operator_priority)
 {
