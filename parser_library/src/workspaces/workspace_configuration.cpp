@@ -874,7 +874,7 @@ void workspace_configuration::update_external_configuration(
 {
     if (std::string_view group_name(group_json); utils::trim_left(group_name, " \t\n\r"), group_name.starts_with("\""))
     {
-        m_pgm_conf_store->update_exact_conf(normalized_location,
+        m_pgm_conf_store->update_exact_conf(
             program {
                 normalized_location,
                 basic_conf { nlohmann::json::parse(group_json).get<std::string>() },
@@ -890,7 +890,7 @@ void workspace_configuration::update_external_configuration(
     if (pg == m_proc_grps.end())
         pg = make_external_proc_group(normalized_location, std::move(group_json));
 
-    m_pgm_conf_store->update_exact_conf(normalized_location,
+    m_pgm_conf_store->update_exact_conf(
         program {
             normalized_location,
             pg->first,

@@ -55,10 +55,7 @@ public:
 
     void add_exact_conf(program pgm, const void* tag, const utils::resource::resource_location& alternative_cfg_rl);
 
-    void update_exact_conf(const utils::resource::resource_location& normalized_location,
-        program pgm,
-        const void* tag,
-        const utils::resource::resource_location& alternative_cfg_rl);
+    void update_exact_conf(program pgm, const void* tag, const utils::resource::resource_location& alternative_cfg_rl);
 
     void add_regex_conf(program pgm, const void* tag, const utils::resource::resource_location& alternative_cfg_rl);
 

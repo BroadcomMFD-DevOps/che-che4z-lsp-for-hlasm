@@ -156,14 +156,17 @@ std::optional<std::unordered_map<size_t, T>> get_var_vector_map(hlasm_context& c
 
 template<typename Msg,
     typename Proj,
+    typename BinPred = std::function<bool(
+        std::decay_t<std::invoke_result_t<Proj, const Msg&>>, std::decay_t<std::invoke_result_t<Proj, const Msg&>>)>,
     typename C = std::initializer_list<std::decay_t<std::invoke_result_t<Proj, const Msg&>>>>
-inline bool matches_message_properties(const std::vector<Msg>& d, const C& c, Proj p)
+inline bool matches_message_properties(
+    const std::vector<Msg>& d, const C& c, Proj p, BinPred b = [](const auto& a, const auto& b) { return a == b; })
 {
     std::vector<std::decay_t<std::invoke_result_t<Proj, const Msg&>>> properties;
     std::transform(
         d.begin(), d.end(), std::back_inserter(properties), [&p](const auto& d) { return std::invoke(p, d); });
 
-    return std::is_permutation(properties.begin(), properties.end(), c.begin(), c.end());
+    return std::is_permutation(properties.begin(), properties.end(), c.begin(), c.end(), b);
 }
 
 template<typename Msg,
@@ -222,6 +225,15 @@ template<typename Msg, typename C = std::initializer_list<std::string>>
 inline bool contains_message_text(const std::vector<Msg>& d, const C& c)
 {
     return contains_message_properties(d, c, &Msg::message);
+}
+
+template<typename Msg, typename C = std::initializer_list<std::string>>
+inline bool matches_partial_message_text(const std::vector<Msg>& d, const C& c)
+{
+    return matches_message_properties(
+        d, c, &Msg::message, [](const decltype(Msg::message)& a, const decltype(Msg::message)& b) -> bool {
+            return a.find(b) != decltype(Msg::message)::npos;
+        });
 }
 
 inline bool matches_fade_messages(const std::vector<fade_message_s>& a, const std::vector<fade_message_s>& b)

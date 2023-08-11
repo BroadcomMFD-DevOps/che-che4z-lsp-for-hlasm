@@ -62,10 +62,8 @@ void program_configuration_storage::add_exact_conf(
     }
 }
 
-void program_configuration_storage::update_exact_conf(const utils::resource::resource_location& normalized_location,
-    program pgm,
-    const void* tag,
-    const utils::resource::resource_location& alternative_cfg_rl)
+void program_configuration_storage::update_exact_conf(
+    program pgm, const void* tag, const utils::resource::resource_location& alternative_cfg_rl)
 {
     using enum cfg_affiliation;
     auto affiliation = pgm.external ? exact_ext : alternative_cfg_rl.empty() ? exact_pgm : exact_b4g;

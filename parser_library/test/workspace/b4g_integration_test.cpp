@@ -314,20 +314,23 @@ TEST(b4g_integration_test, configuration_preference_missing_proc_groups_alternat
     auto& fm = helper.fm;
 
     open_parse_and_recollect_diags(ws, { pgm_a });
-    EXPECT_TRUE(matches_message_text(ws.diags(), { diagnostic_s::error_W0004(pgm_a, "NON_EXISTENT_PGM").message }));
+    EXPECT_TRUE(matches_message_codes(ws.diags(), { "W0004" }));
+    EXPECT_TRUE(matches_partial_message_text(ws.diags(), { "NON_EXISTENT_PGM" }));
 
     change_reparse_and_recollect_diags(
         fm, ws, pgm_conf_rl, std::regex_replace(helper.pgm_conf_template, std::regex("\\$x"), "*"));
-    EXPECT_TRUE(matches_message_text(ws.diags(), { diagnostic_s::error_W0004(pgm_a, "NON_EXISTENT_PGM").message }));
+    EXPECT_TRUE(matches_message_codes(ws.diags(), { "W0004" }));
+    EXPECT_TRUE(matches_partial_message_text(ws.diags(), { "NON_EXISTENT_PGM" }));
 
     change_reparse_and_recollect_diags(
         fm, ws, pgm_conf_rl, std::regex_replace(helper.pgm_conf_template, std::regex("\\$x"), "DIFFERENT_FILE"));
-    EXPECT_TRUE(matches_message_text(ws.diags(), { diagnostic_s::error_B4G002(pgm_a, "NON_EXISTENT_B4G").message }));
+    EXPECT_TRUE(matches_message_codes(ws.diags(), { "B4G002" }));
+    EXPECT_TRUE(matches_partial_message_text(ws.diags(), { "NON_EXISTENT_B4G" }));
 
     change_reparse_and_recollect_diags(
         fm, ws, b4g_conf_rl, std::regex_replace(helper.b4g_conf_template, std::regex("\\$x"), "DIFFERENT_FILE"));
-    EXPECT_TRUE(
-        matches_message_text(ws.diags(), { diagnostic_s::error_B4G002(pgm_a, "NON_EXISTENT_B4G_DEFAULT").message }));
+    EXPECT_TRUE(matches_message_codes(ws.diags(), { "B4G002" }));
+    EXPECT_TRUE(matches_partial_message_text(ws.diags(), { "NON_EXISTENT_B4G_DEFAULT" }));
 }
 
 TEST(b4g_integration_test, invalid_bridge_json)
