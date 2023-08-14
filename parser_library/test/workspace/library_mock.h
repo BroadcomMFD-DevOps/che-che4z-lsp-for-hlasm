@@ -15,6 +15,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
+#include "diagnostic.h"
 #include "utils/task.h"
 #include "workspaces/library.h"
 
