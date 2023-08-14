@@ -30,7 +30,7 @@ TEST(character_expression, operator_priority)
     a.analyze();
 
     a.collect_diags();
-    ASSERT_EQ(a.diags().size(), (size_t)0);
+    EXPECT_TRUE(a.diags().empty());
 
     EXPECT_EQ(get_var_value<context::C_t>(a.hlasm_ctx(), "C1"), "ABCDEFDEFDEF");
     EXPECT_EQ(get_var_value<context::C_t>(a.hlasm_ctx(), "C2"), "ABCDEFDEF");
@@ -51,7 +51,7 @@ TEST(character_expression, substring_notation)
     a.analyze();
 
     a.collect_diags();
-    ASSERT_EQ(a.diags().size(), (size_t)0);
+    EXPECT_TRUE(a.diags().empty());
 
     EXPECT_EQ(get_var_value<context::C_t>(a.hlasm_ctx(), "C1"), "ABC");
     EXPECT_EQ(get_var_value<context::C_t>(a.hlasm_ctx(), "C2"), "ABDEF");
@@ -73,7 +73,7 @@ TEST(character_expression, invalid_substring_notation)
     a.analyze();
 
     a.collect_diags();
-    ASSERT_EQ(a.diags().size(), (size_t)3);
+    EXPECT_EQ(a.diags().size(), (size_t)3);
 }
 
 /*TODO uncomment when assembler options will be implemented
@@ -121,7 +121,7 @@ TEST(character_expression, escaping)
     a.analyze();
 
     a.collect_diags();
-    ASSERT_EQ(a.diags().size(), (size_t)0);
+    EXPECT_TRUE(a.diags().empty());
 
     EXPECT_EQ(get_var_value<context::C_t>(a.hlasm_ctx(), "C1"), "L'SYMBOL");
     EXPECT_EQ(get_var_value<context::C_t>(a.hlasm_ctx(), "C2"), "&");
@@ -145,7 +145,7 @@ TEST(character_expression, single_operand_with_spaces)
     a.analyze();
 
     a.collect_diags();
-    ASSERT_EQ(a.diags().size(), (size_t)0);
+    EXPECT_TRUE(a.diags().empty());
 
     EXPECT_EQ(get_var_value<context::C_t>(a.hlasm_ctx(), "C1"), "A");
     EXPECT_EQ(get_var_value<context::C_t>(a.hlasm_ctx(), "C2"), "A");
@@ -182,7 +182,7 @@ TEST(character_expression, zero_length_substring)
     a.analyze();
 
     a.collect_diags();
-    ASSERT_EQ(a.diags().size(), (size_t)0);
+    EXPECT_TRUE(a.diags().empty());
 }
 
 TEST(character_expression, dots)

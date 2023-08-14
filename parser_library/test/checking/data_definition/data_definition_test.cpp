@@ -441,7 +441,7 @@ TEST(data_definition, trim_labels)
     a.analyze();
 
     a.collect_diags();
-    ASSERT_EQ(a.diags().size(), 0);
+    EXPECT_TRUE(a.diags().empty());
 }
 
 TEST(data_definition, externals)

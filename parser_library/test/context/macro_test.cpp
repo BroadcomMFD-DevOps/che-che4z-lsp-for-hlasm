@@ -256,8 +256,7 @@ TEST(macro, macro_undefined_keyword_param)
     analyzer a(input);
     a.analyze();
     a.collect_diags();
-    ASSERT_EQ(a.diags().size(), (size_t)1);
-    ASSERT_EQ(a.diags().front().severity, diagnostic_severity::warning);
+    EXPECT_TRUE(contains_message_properties(a.diags(), { diagnostic_severity::warning }, &diagnostic_s::severity));
     EXPECT_EQ(get_syntax_errors(a), (size_t)0);
 }
 
@@ -588,7 +587,7 @@ TEST(external_macro, library_with_begin_comment)
     a.collect_diags();
     ASSERT_EQ(lib_provider.analyzers.count("MAC"), 1U);
     EXPECT_EQ(lib_provider.analyzers["MAC"]->diags().size(), 0U);
-    EXPECT_EQ(a.diags().size(), 0U);
+    EXPECT_TRUE(a.diags().empty());
     EXPECT_EQ(get_syntax_errors(a), 0U);
 }
 

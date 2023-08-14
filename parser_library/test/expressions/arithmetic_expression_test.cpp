@@ -37,7 +37,7 @@ TEST(arithmetic_expressions, valid_self_defining_term)
     a.analyze();
 
     a.collect_diags();
-    ASSERT_EQ(a.diags().size(), (size_t)0);
+    EXPECT_TRUE(a.diags().empty());
 
     EXPECT_EQ(get_var_value<context::A_t>(a.hlasm_ctx(), "A1"), 1);
     EXPECT_EQ(get_var_value<context::A_t>(a.hlasm_ctx(), "A2"), 196);
@@ -63,7 +63,7 @@ TEST(arithmetic_expressions, valid_expressions)
     a.analyze();
 
     a.collect_diags();
-    ASSERT_EQ(a.diags().size(), (size_t)0);
+    EXPECT_TRUE(a.diags().empty());
 
     EXPECT_EQ(get_var_value<context::A_t>(a.hlasm_ctx(), "A1"), 1);
     EXPECT_EQ(get_var_value<context::A_t>(a.hlasm_ctx(), "A2"), -1);
@@ -82,7 +82,7 @@ TEST(arithmetic_expressions, empty_string_conversion)
     a.analyze();
 
     a.collect_diags();
-    ASSERT_EQ(a.diags().size(), (size_t)0);
+    EXPECT_TRUE(a.diags().empty());
 
     EXPECT_EQ(get_var_value<context::A_t>(a.hlasm_ctx(), "A1"), 0);
 }
@@ -122,7 +122,7 @@ TEST(arithmetic_expressions, substitution_to_character_expression)
     a.analyze();
 
     a.collect_diags();
-    ASSERT_EQ(a.diags().size(), (size_t)0);
+    EXPECT_TRUE(a.diags().empty());
 
     EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "C1"), "5-10*10");
 
@@ -155,7 +155,7 @@ TEST(arithmetic_expressions, unary_operators)
     a.analyze();
 
     a.collect_diags();
-    ASSERT_EQ(a.diags().size(), (size_t)0);
+    EXPECT_TRUE(a.diags().empty());
 
     EXPECT_EQ(get_var_value<context::A_t>(a.hlasm_ctx(), "C"), -24);
 }
@@ -170,7 +170,7 @@ TEST(arithmetic_expressions, binary_space_separated_operator)
     a.analyze();
 
     a.collect_diags();
-    ASSERT_EQ(a.diags().size(), (size_t)0);
+    EXPECT_TRUE(a.diags().empty());
 
     EXPECT_EQ(get_var_value<context::A_t>(a.hlasm_ctx(), "A"), 2);
 }
@@ -210,7 +210,7 @@ TEST(arithmetic_expressions, division)
     a.analyze();
 
     a.collect_diags();
-    ASSERT_EQ(a.diags().size(), (size_t)0);
+    EXPECT_TRUE(a.diags().empty());
 
     EXPECT_EQ(get_var_value<context::A_t>(a.hlasm_ctx(), "B1"), 0);
     EXPECT_EQ(get_var_value<context::A_t>(a.hlasm_ctx(), "B2"), 0);
@@ -233,7 +233,7 @@ TEST(arithmetic_expressions, operator_priorities)
     a.analyze();
 
     a.collect_diags();
-    ASSERT_EQ(a.diags().size(), (size_t)0);
+    EXPECT_TRUE(a.diags().empty());
 
     EXPECT_EQ(get_var_value<context::A_t>(a.hlasm_ctx(), "A"), -1);
     EXPECT_EQ(get_var_value<context::A_t>(a.hlasm_ctx(), "B"), 11);
@@ -272,7 +272,7 @@ TEST(arithmetic_expressions, not_operator)
     a.analyze();
 
     a.collect_diags();
-    ASSERT_EQ(a.diags().size(), (size_t)0);
+    EXPECT_TRUE(a.diags().empty());
 
     EXPECT_EQ(get_var_value<context::A_t>(a.hlasm_ctx(), "A1"), -81);
     EXPECT_EQ(get_var_value<context::A_t>(a.hlasm_ctx(), "A2"), -88);
@@ -327,8 +327,7 @@ TEST(arithmetic_expressions, invalid_operator)
     a.analyze();
 
     a.collect_diags();
-    ASSERT_EQ(a.diags().size(), (size_t)1);
-    EXPECT_EQ(a.diags().front().code, "CE002");
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "CE002" }));
 }
 
 TEST(arithmetic_expressions, illegal_dupl_factor)
@@ -341,8 +340,7 @@ TEST(arithmetic_expressions, illegal_dupl_factor)
     a.analyze();
 
     a.collect_diags();
-    ASSERT_EQ(a.diags().size(), (size_t)1);
-    EXPECT_EQ(a.diags().front().code, "CE005");
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "CE005" }));
 }
 
 
@@ -372,7 +370,7 @@ TEST(arithmetic_expressions, conversion_from_binary)
     a.analyze();
 
     a.collect_diags();
-    ASSERT_EQ(a.diags().size(), (size_t)0);
+    EXPECT_TRUE(a.diags().empty());
 
     EXPECT_EQ(get_var_value<context::A_t>(a.hlasm_ctx(), "A"), 1);
     EXPECT_EQ(get_var_value<context::A_t>(a.hlasm_ctx(), "B"), 0);

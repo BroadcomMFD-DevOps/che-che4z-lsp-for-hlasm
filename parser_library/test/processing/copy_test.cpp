@@ -606,7 +606,7 @@ TEST(copy, copy_empty_file)
     ASSERT_EQ(mac2->used_copy_members.size(), 1U);
     EXPECT_EQ(mac2->used_copy_members.count(a.hlasm_ctx().get_copy_member(id_index("EMPTY"))), 1U);
 
-    ASSERT_EQ(a.diags().size(), 0U);
+    EXPECT_TRUE(a.diags().empty());
 }
 
 TEST(copy, skip_invalid)

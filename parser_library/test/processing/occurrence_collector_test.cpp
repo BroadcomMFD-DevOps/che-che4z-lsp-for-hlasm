@@ -109,8 +109,8 @@ TEST(occurrence_collector, ord_mach_expr_data_attr)
     operand_occurrence_analyzer_mock oa(input, lsp::occurrence_kind::ORD);
 
     ASSERT_EQ(oa.st.size(), 1U);
-    EXPECT_EQ(
-        oa.st[0], lsp::symbol_occurrence(lsp::occurrence_kind::ORD, context::id_index("SYM"), { { 0, 8 }, { 0, 11 } }, false));
+    EXPECT_EQ(oa.st[0],
+        lsp::symbol_occurrence(lsp::occurrence_kind::ORD, context::id_index("SYM"), { { 0, 8 }, { 0, 11 } }, false));
 }
 
 TEST(occurrence_collector, var_mach_instr)
@@ -119,8 +119,8 @@ TEST(occurrence_collector, var_mach_instr)
     operand_occurrence_analyzer_mock oa(input, lsp::occurrence_kind::VAR);
 
     ASSERT_EQ(oa.st.size(), 1U);
-    EXPECT_EQ(
-        oa.st[0], lsp::symbol_occurrence(lsp::occurrence_kind::VAR, context::id_index("VAR"), { { 0, 4 }, { 0, 8 } }, false));
+    EXPECT_EQ(oa.st[0],
+        lsp::symbol_occurrence(lsp::occurrence_kind::VAR, context::id_index("VAR"), { { 0, 4 }, { 0, 8 } }, false));
 }
 
 TEST(occurrence_collector, var_created_set_sym)
@@ -142,8 +142,8 @@ TEST(occurrence_collector, var_ca_expr)
     operand_occurrence_analyzer_mock oa(input, lsp::occurrence_kind::VAR);
 
     ASSERT_EQ(oa.st.size(), 1U);
-    EXPECT_EQ(
-        oa.st[0], lsp::symbol_occurrence(lsp::occurrence_kind::VAR, context::id_index("V"), { { 0, 6 }, { 0, 8 } }, false));
+    EXPECT_EQ(oa.st[0],
+        lsp::symbol_occurrence(lsp::occurrence_kind::VAR, context::id_index("V"), { { 0, 6 }, { 0, 8 } }, false));
 }
 
 TEST(occurrence_collector, var_ca_expr_in_string)
@@ -152,8 +152,8 @@ TEST(occurrence_collector, var_ca_expr_in_string)
     operand_occurrence_analyzer_mock oa(input, lsp::occurrence_kind::VAR);
 
     ASSERT_EQ(oa.st.size(), 1U);
-    EXPECT_EQ(
-        oa.st[0], lsp::symbol_occurrence(lsp::occurrence_kind::VAR, context::id_index("V"), { { 0, 7 }, { 0, 9 } }, false));
+    EXPECT_EQ(oa.st[0],
+        lsp::symbol_occurrence(lsp::occurrence_kind::VAR, context::id_index("V"), { { 0, 7 }, { 0, 9 } }, false));
 }
 
 TEST(occurrence_collector, var_ca_expr_ca_string_dupl_factor)
@@ -162,8 +162,8 @@ TEST(occurrence_collector, var_ca_expr_ca_string_dupl_factor)
     operand_occurrence_analyzer_mock oa(input, lsp::occurrence_kind::VAR);
 
     ASSERT_EQ(oa.st.size(), 1U);
-    EXPECT_EQ(
-        oa.st[0], lsp::symbol_occurrence(lsp::occurrence_kind::VAR, context::id_index("D"), { { 0, 9 }, { 0, 11 } }, false));
+    EXPECT_EQ(oa.st[0],
+        lsp::symbol_occurrence(lsp::occurrence_kind::VAR, context::id_index("D"), { { 0, 9 }, { 0, 11 } }, false));
 }
 
 
@@ -173,8 +173,8 @@ TEST(occurrence_collector, ord_ca_expr)
     operand_occurrence_analyzer_mock oa(input, lsp::occurrence_kind::ORD);
 
     ASSERT_EQ(oa.st.size(), 1U);
-    EXPECT_EQ(
-        oa.st[0], lsp::symbol_occurrence(lsp::occurrence_kind::ORD, context::id_index("B"), { { 0, 6 }, { 0, 7 } }, false));
+    EXPECT_EQ(oa.st[0],
+        lsp::symbol_occurrence(lsp::occurrence_kind::ORD, context::id_index("B"), { { 0, 6 }, { 0, 7 } }, false));
 }
 
 TEST(occurrence_collector, ord_ca_expr_data_attr)
@@ -183,8 +183,8 @@ TEST(occurrence_collector, ord_ca_expr_data_attr)
     operand_occurrence_analyzer_mock oa(input, lsp::occurrence_kind::ORD);
 
     ASSERT_EQ(oa.st.size(), 1U);
-    EXPECT_EQ(
-        oa.st[0], lsp::symbol_occurrence(lsp::occurrence_kind::ORD, context::id_index("B"), { { 0, 8 }, { 0, 9 } }, false));
+    EXPECT_EQ(oa.st[0],
+        lsp::symbol_occurrence(lsp::occurrence_kind::ORD, context::id_index("B"), { { 0, 8 }, { 0, 9 } }, false));
 }
 
 TEST(occurrence_collector, var_ca_expr_data_attr)
@@ -193,8 +193,8 @@ TEST(occurrence_collector, var_ca_expr_data_attr)
     operand_occurrence_analyzer_mock oa(input, lsp::occurrence_kind::VAR);
 
     ASSERT_EQ(oa.st.size(), 1U);
-    EXPECT_EQ(
-        oa.st[0], lsp::symbol_occurrence(lsp::occurrence_kind::VAR, context::id_index("V"), { { 0, 8 }, { 0, 10 } }, false));
+    EXPECT_EQ(oa.st[0],
+        lsp::symbol_occurrence(lsp::occurrence_kind::VAR, context::id_index("V"), { { 0, 8 }, { 0, 10 } }, false));
 }
 
 TEST(occurrence_collector, seq_aif)
@@ -203,8 +203,8 @@ TEST(occurrence_collector, seq_aif)
     operand_occurrence_analyzer_mock oa(input, lsp::occurrence_kind::SEQ);
 
     ASSERT_EQ(oa.st.size(), 1U);
-    EXPECT_EQ(
-        oa.st[0], lsp::symbol_occurrence(lsp::occurrence_kind::SEQ, context::id_index("SEQ"), { { 0, 9 }, { 0, 13 } }, false));
+    EXPECT_EQ(oa.st[0],
+        lsp::symbol_occurrence(lsp::occurrence_kind::SEQ, context::id_index("SEQ"), { { 0, 9 }, { 0, 13 } }, false));
 }
 
 TEST(occurrence_collector, seq_ago)
@@ -213,8 +213,8 @@ TEST(occurrence_collector, seq_ago)
     operand_occurrence_analyzer_mock oa(input, lsp::occurrence_kind::SEQ);
 
     ASSERT_EQ(oa.st.size(), 1U);
-    EXPECT_EQ(
-        oa.st[0], lsp::symbol_occurrence(lsp::occurrence_kind::SEQ, context::id_index("SEQ"), { { 0, 5 }, { 0, 9 } }, false));
+    EXPECT_EQ(oa.st[0],
+        lsp::symbol_occurrence(lsp::occurrence_kind::SEQ, context::id_index("SEQ"), { { 0, 5 }, { 0, 9 } }, false));
 }
 
 TEST(occurrence_collector, ord_dc_operand_modifiers)
