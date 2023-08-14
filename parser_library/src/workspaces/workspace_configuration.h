@@ -37,8 +37,7 @@
 #include "utils/general_hashers.h"
 #include "utils/resource_location.h"
 #include "utils/task.h"
-#include "workspaces/datatypes.h"
-#include "workspaces/program_configuration_storage.h"
+#include "workspaces/configuration_datatypes.h"
 
 namespace hlasm_plugin::parser_library {
 class external_configuration_requests;
@@ -268,6 +267,11 @@ public:
         external_configuration_requests* ecr);
 
     ~workspace_configuration();
+
+    workspace_configuration(const workspace_configuration&) = delete;
+    workspace_configuration(workspace_configuration&&) = delete;
+    workspace_configuration& operator=(const workspace_configuration&) = delete;
+    workspace_configuration& operator=(workspace_configuration&&) = delete;
 
     bool is_configuration_file(const utils::resource::resource_location& file) const;
     [[nodiscard]] utils::value_task<parse_config_file_result> parse_configuration_file(

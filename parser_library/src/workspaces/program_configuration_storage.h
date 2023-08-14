@@ -28,7 +28,7 @@
 
 #include "utils/general_hashers.h"
 #include "utils/resource_location.h"
-#include "workspaces/datatypes.h"
+#include "workspaces/configuration_datatypes.h"
 
 namespace hlasm_plugin::parser_library::workspaces {
 
@@ -51,7 +51,7 @@ public:
         cfg_affiliation affiliation;
     };
 
-    program_configuration_storage(const proc_groups_map& proc_grps);
+    explicit program_configuration_storage(const proc_groups_map& proc_grps);
 
     void add_exact_conf(program pgm, const void* tag, const utils::resource::resource_location& alternative_cfg_rl);
 

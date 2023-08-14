@@ -39,6 +39,7 @@
 #include "utils/path_conversions.h"
 #include "utils/platform.h"
 #include "utils/string_operations.h"
+#include "workspaces/program_configuration_storage.h"
 #include "workspaces/wildcard.h"
 
 namespace hlasm_plugin::parser_library::workspaces {

@@ -16,11 +16,13 @@
 #define HLASMPLUGIN_HLASMPARSERLIBRARY_COMMON_TESTING_H
 
 #include <algorithm>
+#include <concepts>
 #include <functional>
 #include <initializer_list>
 #include <iterator>
 #include <span>
 #include <string>
+#include <string_view>
 #include <type_traits>
 #include <unordered_map>
 #include <utility>
@@ -156,11 +158,10 @@ std::optional<std::unordered_map<size_t, T>> get_var_vector_map(hlasm_context& c
 
 template<typename Msg,
     typename Proj,
-    typename BinPred = std::function<bool(
-        std::decay_t<std::invoke_result_t<Proj, const Msg&>>, std::decay_t<std::invoke_result_t<Proj, const Msg&>>)>,
+    std::predicate<std::decay_t<std::invoke_result_t<Proj, const Msg&>>,
+        std::decay_t<std::invoke_result_t<Proj, const Msg&>>> BinPred = std::equal_to<>,
     typename C = std::initializer_list<std::decay_t<std::invoke_result_t<Proj, const Msg&>>>>
-inline bool matches_message_properties(
-    const std::vector<Msg>& d, const C& c, Proj p, BinPred b = [](const auto& a, const auto& b) { return a == b; })
+inline bool matches_message_properties(const std::vector<Msg>& d, const C& c, Proj p, BinPred b = BinPred())
 {
     std::vector<std::decay_t<std::invoke_result_t<Proj, const Msg&>>> properties;
     std::transform(
@@ -230,10 +231,9 @@ inline bool contains_message_text(const std::vector<Msg>& d, const C& c)
 template<typename Msg, typename C = std::initializer_list<std::string>>
 inline bool matches_partial_message_text(const std::vector<Msg>& d, const C& c)
 {
-    return matches_message_properties(
-        d, c, &Msg::message, [](const decltype(Msg::message)& a, const decltype(Msg::message)& b) -> bool {
-            return a.find(b) != decltype(Msg::message)::npos;
-        });
+    return matches_message_properties(d, c, &Msg::message, [](std::string_view a, std::string_view b) -> bool {
+        return a.find(b) != std::string_view::npos;
+    });
 }
 
 inline bool matches_fade_messages(const std::vector<fade_message_s>& a, const std::vector<fade_message_s>& b)

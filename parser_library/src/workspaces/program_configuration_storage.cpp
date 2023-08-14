@@ -1,5 +1,4 @@
 /*
-/*
  * Copyright (c) 2023 Broadcom.
  * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
@@ -22,14 +21,14 @@
 namespace hlasm_plugin::parser_library::workspaces {
 
 namespace {
-static constexpr std::string_view NOPROC_GROUP_ID = "*NOPROC*";
+constexpr std::string_view NOPROC_GROUP_ID = "*NOPROC*";
 
 struct
 {
     std::string_view operator()(const basic_conf& c) const noexcept { return c.name; }
     std::string_view operator()(const b4g_conf& c) const noexcept { return c.name; }
     std::string_view operator()(const external_conf&) const noexcept { return {}; }
-} static constexpr proc_group_name;
+} constexpr proc_group_name;
 } // namespace
 
 program_configuration_storage::program_configuration_storage(const proc_groups_map& proc_grps)

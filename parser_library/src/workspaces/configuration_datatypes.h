@@ -12,8 +12,8 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
-#ifndef HLASMPLUGIN_PARSERLIBRARY_WORKSPACES_DATATYPES
-#define HLASMPLUGIN_PARSERLIBRARY_WORKSPACES_DATATYPES
+#ifndef HLASMPLUGIN_PARSERLIBRARY_WORKSPACES_CONFIGURATION_DATATYPES
+#define HLASMPLUGIN_PARSERLIBRARY_WORKSPACES_CONFIGURATION_DATATYPES
 
 #include <functional>
 #include <memory>
@@ -53,7 +53,7 @@ struct b4g_conf
 
 struct external_conf
 {
-    std::shared_ptr<std::string> definition;
+    std::shared_ptr<const std::string> definition;
 
     bool operator==(const external_conf& o) const { return *definition == *o.definition; }
     auto operator<=>(const external_conf& o) const { return definition->compare(*o.definition) <=> 0; } // clang 14
