@@ -261,8 +261,7 @@ INSTANTIATE_TEST_SUITE_P(func_parameters_suite,
         func_test_param { ca_expr_funcs::DEQUOTE, { "'" }, "", false, "DEQUOTE_apo_one_side" },
 
         func_test_param { ca_expr_funcs::DOUBLE, { "a&&''&b" }, "a&&&&''''&&b", false, "DOUBLE_simple" },
-        func_test_param {
-            ca_expr_funcs::DOUBLE, { std::string(4000, '\''), {}, true, "DOUBLE_exceeds" },
+        func_test_param { ca_expr_funcs::DOUBLE, { std::string(4000, '\'') }, {}, true, "DOUBLE_exceeds" },
 
         func_test_param { ca_expr_funcs::LOWER, { "aBcDefG321&^%$" }, "abcdefg321&^%$", false, "LOWER_simple" },
 
@@ -292,14 +291,14 @@ INSTANTIATE_TEST_SUITE_P(func_parameters_suite,
         func_test_param { ca_expr_funcs::X2D, { "000000f000" }, {}, true, "X2D_exceeds" }),
     stringer());
 
-            TEST_P(ca_func, test)
-            {
-                auto result = get_result();
+TEST_P(ca_func, test)
+{
+    auto result = get_result();
 
-                EXPECT_EQ(diags.diags.size(), GetParam().erroneous);
+    EXPECT_EQ(diags.diags.size(), GetParam().erroneous);
 
-                if (!GetParam().erroneous)
-                {
-                    EXPECT_EQ(result, GetParam().true_result);
-                }
-            }
+    if (!GetParam().erroneous)
+    {
+        EXPECT_EQ(result, GetParam().true_result);
+    }
+}

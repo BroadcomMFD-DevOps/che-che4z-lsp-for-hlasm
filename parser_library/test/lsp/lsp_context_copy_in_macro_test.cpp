@@ -17,7 +17,6 @@
 #include "../mock_parse_lib_provider.h"
 #include "analyzer_fixture.h"
 #include "lsp/lsp_context.h"
-#include "lsp_context_test_helper.h"
 
 using namespace hlasm_plugin::parser_library;
 using namespace hlasm_plugin::parser_library::lsp;

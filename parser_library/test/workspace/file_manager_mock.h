@@ -39,20 +39,17 @@ public:
     MOCK_METHOD(std::shared_ptr<hlasm_plugin::parser_library::workspaces::file>,
         find,
         (const resource_location& key),
-        (const override));
+        (const, override));
     MOCK_METHOD(value_task<hlasm_plugin::parser_library::workspaces::list_directory_result>,
         list_directory_files,
         (const resource_location& path),
-        (const override));
+        (const, override));
     MOCK_METHOD(hlasm_plugin::parser_library::workspaces::list_directory_result,
         list_directory_subdirs_and_symlinks,
         (const resource_location& path),
-        (const override));
-    MOCK_METHOD(std::string, canonical, (const resource_location& res_loc, std::error_code& ec), (const override));
-    MOCK_METHOD(bool, file_exists, (const resource_location& file_loc), (const override));
-    MOCK_METHOD(
-        bool, lib_file_exists, (const resource_location& lib_root, std::string_view file_name), (const override));
-    MOCK_METHOD(bool, dir_exists, (const resource_location& dir_loc), (const override));
+        (const, override));
+    MOCK_METHOD(std::string, canonical, (const resource_location& res_loc, std::error_code& ec), (const, override));
+    MOCK_METHOD(bool, dir_exists, (const resource_location& dir_loc), (const, override));
     MOCK_METHOD(hlasm_plugin::parser_library::workspaces::file_content_state,
         did_open_file,
         (const resource_location& document_loc, hlasm_plugin::parser_library::version_t version, std::string text),
@@ -70,8 +67,8 @@ public:
         (unsigned long long id, std::string_view text, resource_location related_workspace),
         (override));
     MOCK_METHOD(void, remove_virtual_file, (unsigned long long id), (override));
-    MOCK_METHOD(std::string, get_virtual_file, (unsigned long long id), (const override));
-    MOCK_METHOD(resource_location, get_virtual_file_workspace, (unsigned long long id), (const override));
+    MOCK_METHOD(std::string, get_virtual_file, (unsigned long long id), (const, override));
+    MOCK_METHOD(resource_location, get_virtual_file_workspace, (unsigned long long id), (const, override));
 
     MOCK_METHOD(value_task<hlasm_plugin::parser_library::workspaces::file_content_state>,
         update_file,
