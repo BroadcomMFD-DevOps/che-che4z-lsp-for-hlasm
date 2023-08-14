@@ -95,7 +95,6 @@ private:
     std::vector<std::pair<program_properties, std::regex>> m_regex_b4g_json;
     std::unordered_map<utils::resource::resource_location, name_set, utils::resource::resource_location_hasher>
         m_missing_proc_grps;
-    std::optional<decltype(m_missing_proc_grps)::iterator> m_cached_missing_proc_grps_it {};
 
     missing_pgroup_details new_missing_pgroup_helper(
         std::string missing_pgroup_name, utils::resource::resource_location config_rl);

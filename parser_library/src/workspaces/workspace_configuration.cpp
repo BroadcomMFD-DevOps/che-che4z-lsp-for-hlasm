@@ -234,6 +234,7 @@ workspace_configuration::workspace_configuration(file_manager& fm,
     , m_location(std::move(location))
     , m_global_settings(global_settings)
     , m_external_configuration_requests(ecr)
+    , m_pgm_conf_store(std::make_unique<program_configuration_storage>(m_proc_grps))
 {
     auto hlasm_folder = utils::resource::resource_location::join(m_location, HLASM_PLUGIN_FOLDER);
     m_proc_grps_loc = utils::resource::resource_location::join(hlasm_folder, FILENAME_PROC_GRPS);

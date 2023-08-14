@@ -177,16 +177,12 @@ void program_configuration_storage::clear()
     m_regex_pgm_conf.clear();
     m_regex_b4g_json.clear();
     m_missing_proc_grps.clear();
-    m_cached_missing_proc_grps_it = {};
 }
 
 program_configuration_storage::missing_pgroup_details program_configuration_storage::new_missing_pgroup_helper(
     std::string missing_pgroup_name, utils::resource::resource_location config_rl)
 {
-    if (!m_cached_missing_proc_grps_it || (*m_cached_missing_proc_grps_it)->first != config_rl)
-        m_cached_missing_proc_grps_it = m_missing_proc_grps.try_emplace(config_rl).first;
-
-    (*m_cached_missing_proc_grps_it)->second.insert(missing_pgroup_name);
+    m_missing_proc_grps.try_emplace(config_rl).first->second.insert(missing_pgroup_name);
     return missing_pgroup_details {
         std::move(missing_pgroup_name),
         std::move(config_rl),

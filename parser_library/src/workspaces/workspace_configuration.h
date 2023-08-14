@@ -206,8 +206,7 @@ class workspace_configuration
         m_libraries;
 
     external_configuration_requests* m_external_configuration_requests;
-    std::unique_ptr<program_configuration_storage> m_pgm_conf_store =
-        std::make_unique<program_configuration_storage>(m_proc_grps);
+    std::unique_ptr<program_configuration_storage> m_pgm_conf_store;
 
     std::shared_ptr<library> get_local_library(
         const utils::resource::resource_location& url, const library_local_options& opts);
