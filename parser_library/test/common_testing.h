@@ -60,8 +60,6 @@ using namespace hlasm_plugin::parser_library::workspaces;
 using namespace hlasm_plugin::parser_library::processing;
 using namespace hlasm_plugin::parser_library::expressions;
 
-const size_t size_t_zero = static_cast<size_t>(0);
-
 void parse_all_files(hlasm_plugin::parser_library::workspaces::workspace& ws);
 
 void run_if_valid(hlasm_plugin::utils::task t);
