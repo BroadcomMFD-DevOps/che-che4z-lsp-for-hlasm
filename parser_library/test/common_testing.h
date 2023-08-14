@@ -44,7 +44,10 @@ struct address;
 class section;
 class symbol;
 } // namespace context
-namespace expressions {}
+namespace expressions {
+class ca_expression;
+struct data_definition;
+} // namespace expressions
 namespace workspaces {
 class workspace;
 } // namespace workspaces
@@ -169,5 +172,10 @@ std::optional<int32_t> get_symbol_abs(hlasm_context& ctx, std::string name);
 std::optional<address> get_symbol_reloc(hlasm_context& ctx, std::string name);
 
 std::optional<std::pair<int, std::string>> get_symbol_address(hlasm_context& ctx, std::string name);
+
+size_t get_syntax_errors(analyzer& a);
+
+std::unique_ptr<expressions::ca_expression> parse_ca_expression(analyzer& a);
+expressions::data_definition parse_data_definition(analyzer& a, diagnostic_op_consumer* diag = nullptr);
 
 #endif

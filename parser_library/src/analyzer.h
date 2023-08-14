@@ -155,7 +155,6 @@ class analyzer : public diagnosable_ctx
 
 public:
     analyzer(std::string_view text, analyzer_options opts = {});
-    analyzer(analyzer&&);
     ~analyzer();
 
     std::vector<std::pair<virtual_file_handle, utils::resource::resource_location>> take_vf_handles();
@@ -173,7 +172,6 @@ public:
     void register_stmt_analyzer(processing::statement_analyzer* stmt_analyzer);
 
     parsing::hlasmparser_multiline& parser(); // for testing only
-    size_t debug_syntax_errors(); // for testing only
 };
 
 } // namespace hlasm_plugin::parser_library

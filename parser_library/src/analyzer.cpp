@@ -14,11 +14,11 @@
 
 #include "analyzer.h"
 
-#include "hlasmparser_multiline.h"
 #include "lsp/lsp_context.h"
 #include "processing/opencode_provider.h"
 #include "processing/preprocessor.h"
 #include "processing/processing_manager.h"
+#include "semantics/source_info_processor.h"
 #include "utils/task.h"
 
 using namespace hlasm_plugin::parser_library;
@@ -150,7 +150,6 @@ analyzer::analyzer(std::string_view text, analyzer_options opts)
     , m_impl(std::make_unique<impl>(text, std::move(opts), *this))
 {}
 
-analyzer::analyzer(analyzer&&) = default;
 analyzer::~analyzer() = default;
 
 std::vector<std::pair<virtual_file_handle, resource_location>> analyzer::take_vf_handles()
@@ -164,9 +163,7 @@ context::hlasm_context& analyzer::hlasm_ctx() { return *m_impl->ctx.hlasm_ctx; }
 
 parsing::hlasmparser_multiline& analyzer::parser() { return m_impl->mngr.opencode_parser(); }
 
-size_t analyzer::debug_syntax_errors() { return m_impl->mngr.opencode_parser().getNumberOfSyntaxErrors(); }
-
-lines_info analyzer::take_semantic_tokens() { return m_impl->src_proc.take_semantic_tokens(); }
+semantics::lines_info analyzer::take_semantic_tokens() { return m_impl->src_proc.take_semantic_tokens(); }
 
 void analyzer::analyze() { co_analyze().run(); }
 
@@ -185,7 +182,7 @@ void analyzer::collect_diags() const
 
 const performance_metrics& analyzer::get_metrics() const { return m_impl->ctx.hlasm_ctx->metrics; }
 
-void analyzer::register_stmt_analyzer(statement_analyzer* stmt_analyzer)
+void analyzer::register_stmt_analyzer(processing::statement_analyzer* stmt_analyzer)
 {
     m_impl->mngr.register_stmt_analyzer(stmt_analyzer);
 }

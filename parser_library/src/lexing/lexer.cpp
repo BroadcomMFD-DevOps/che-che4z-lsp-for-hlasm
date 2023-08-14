@@ -21,8 +21,7 @@
 #include <string>
 #include <utility>
 
-#include "antlr4-runtime.h"
-
+#include "CommonTokenFactory.h"
 #include "input_source.h"
 #include "token.h"
 #include "utils/string_operations.h"

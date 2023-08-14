@@ -239,3 +239,16 @@ std::optional<T> get_var_value(hlasm_context& ctx, std::string name)
 template std::optional<context::A_t> get_var_value(hlasm_context& ctx, std::string name);
 template std::optional<context::B_t> get_var_value(hlasm_context& ctx, std::string name);
 template std::optional<context::C_t> get_var_value(hlasm_context& ctx, std::string name);
+
+size_t get_syntax_errors(analyzer& a) { return a.parser().getNumberOfSyntaxErrors(); }
+
+std::unique_ptr<expressions::ca_expression> parse_ca_expression(analyzer& a)
+{
+    return std::move(a.parser().expr()->ca_expr);
+}
+expressions::data_definition parse_data_definition(analyzer& a, diagnostic_op_consumer* diag)
+{
+    if (diag)
+        a.parser().set_diagnoser(diag);
+    return std::move(a.parser().data_def()->value);
+}
