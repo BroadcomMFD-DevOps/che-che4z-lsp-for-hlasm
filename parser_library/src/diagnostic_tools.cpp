@@ -14,6 +14,9 @@
 
 #include "diagnostic_tools.h"
 
+#include <string>
+#include <utility>
+
 #include "diagnostic.h"
 
 namespace hlasm_plugin::parser_library {
