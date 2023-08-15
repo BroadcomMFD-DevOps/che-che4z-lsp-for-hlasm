@@ -27,7 +27,7 @@ namespace hlasm_plugin::parser_library::expressions {
 class ca_expr_visitor;
 class ca_expression;
 using ca_expr_ptr = std::unique_ptr<ca_expression>;
-using undef_sym_set = std::set<context::id_index>;
+using undef_sym_set = std::vector<context::id_index>;
 
 struct evaluation_context;
 

@@ -30,6 +30,7 @@
 #include "processing/op_code.h"
 #include "semantics/range_provider.h"
 #include "semantics/statement_fields.h"
+#include "utils/merge_sorted.h"
 #include "utils/similar.h"
 
 namespace hlasm_plugin::parser_library::expressions {
@@ -86,7 +87,7 @@ bool ca_symbol_attribute::get_undefined_attributed_symbols(
             && !eval_ctx.hlasm_ctx.ord_ctx.get_symbol(std::get<context::id_index>(symbol))
             && !eval_ctx.hlasm_ctx.ord_ctx.get_symbol_reference(std::get<context::id_index>(symbol)))
         {
-            symbols.emplace(std::get<context::id_index>(symbol));
+            utils::merge_sorted(symbols, std::span(&std::get<context::id_index>(symbol), 1));
             return true;
         }
     }
@@ -113,7 +114,7 @@ bool ca_symbol_attribute::get_undefined_attributed_symbols(
                 && !eval_ctx.hlasm_ctx.ord_ctx.get_symbol(ord_name)
                 && !eval_ctx.hlasm_ctx.ord_ctx.get_symbol_reference(ord_name))
             {
-                symbols.emplace(ord_name);
+                utils::merge_sorted(symbols, std::span(&ord_name, 1));
                 return true;
             }
         }

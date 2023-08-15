@@ -28,7 +28,7 @@ bool statement_provider::try_trigger_attribute_lookahead(const semantics::instru
     expressions::evaluation_context eval_ctx,
     processing::processing_state_listener& listener)
 {
-    std::set<context::id_index> references;
+    std::vector<context::id_index> references;
     process_instruction(references, instruction, eval_ctx);
 
     if (references.empty())
@@ -44,7 +44,7 @@ bool statement_provider::try_trigger_attribute_lookahead(const context::hlasm_st
     processing::processing_state_listener& listener)
 {
     const semantics::label_si* label;
-    std::set<context::id_index> references;
+    std::vector<context::id_index> references;
 
     if (auto def_stmt = statement.access_deferred())
     {
@@ -69,7 +69,7 @@ bool statement_provider::try_trigger_attribute_lookahead(const context::hlasm_st
     return true;
 }
 
-void statement_provider::trigger_attribute_lookahead(std::set<context::id_index> references,
+void statement_provider::trigger_attribute_lookahead(std::vector<context::id_index> references,
     const expressions::evaluation_context& eval_ctx,
     processing::processing_state_listener& listener)
 {
@@ -78,7 +78,7 @@ void statement_provider::trigger_attribute_lookahead(std::set<context::id_index>
     listener.start_lookahead(lookahead_start_data(std::move(references), statement_position, std::move(snapshot)));
 }
 
-bool statement_provider::process_label(std::set<context::id_index>& symbols,
+bool statement_provider::process_label(std::vector<context::id_index>& symbols,
     const semantics::label_si& label,
     const expressions::evaluation_context& eval_ctx)
 {
@@ -95,7 +95,7 @@ bool statement_provider::process_label(std::set<context::id_index>& symbols,
     }
 }
 
-bool statement_provider::process_instruction(std::set<context::id_index>& symbols,
+bool statement_provider::process_instruction(std::vector<context::id_index>& symbols,
     const semantics::instruction_si& instruction,
     const expressions::evaluation_context& eval_ctx)
 {
@@ -107,7 +107,7 @@ bool statement_provider::process_instruction(std::set<context::id_index>& symbol
     return semantics::concatenation_point::get_undefined_attributed_symbols(symbols, chain, eval_ctx);
 }
 
-bool statement_provider::process_operands(std::set<context::id_index>& symbols,
+bool statement_provider::process_operands(std::vector<context::id_index>& symbols,
     const semantics::operands_si& operands,
     const expressions::evaluation_context& eval_ctx)
 {
