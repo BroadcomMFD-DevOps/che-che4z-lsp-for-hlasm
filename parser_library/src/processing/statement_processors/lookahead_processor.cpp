@@ -325,7 +325,10 @@ void lookahead_processor::find_ord(const resolved_statement& statement)
         return;
 
     if (auto it = std::find(to_find_.begin(), to_find_.end(), id); it != to_find_.end())
-        to_find_.erase(it);
+    {
+        std::swap(*it, to_find_.back());
+        to_find_.pop_back();
+    }
 
     // find attributes
     // if found ord symbol on CA, macro or undefined instruction, only type attribute is assigned

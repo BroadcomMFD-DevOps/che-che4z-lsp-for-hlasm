@@ -87,7 +87,7 @@ bool ca_symbol_attribute::get_undefined_attributed_symbols(
             && !eval_ctx.hlasm_ctx.ord_ctx.get_symbol(std::get<context::id_index>(symbol))
             && !eval_ctx.hlasm_ctx.ord_ctx.get_symbol_reference(std::get<context::id_index>(symbol)))
         {
-            utils::merge_sorted(symbols, std::span(&std::get<context::id_index>(symbol), 1));
+            symbols.emplace_back(std::get<context::id_index>(symbol));
             return true;
         }
     }
@@ -114,7 +114,7 @@ bool ca_symbol_attribute::get_undefined_attributed_symbols(
                 && !eval_ctx.hlasm_ctx.ord_ctx.get_symbol(ord_name)
                 && !eval_ctx.hlasm_ctx.ord_ctx.get_symbol_reference(ord_name))
             {
-                utils::merge_sorted(symbols, std::span(&ord_name, 1));
+                symbols.emplace_back(ord_name);
                 return true;
             }
         }

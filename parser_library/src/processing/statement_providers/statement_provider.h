@@ -54,7 +54,7 @@ protected:
         std::vector<context::id_index>&& references_buffer);
 
 private:
-    static void trigger_attribute_lookahead(const std::vector<context::id_index>& references,
+    static void trigger_attribute_lookahead(std::vector<context::id_index>&& references_buffer,
         const expressions::evaluation_context& eval_ctx,
         processing::processing_state_listener& listener);
 
