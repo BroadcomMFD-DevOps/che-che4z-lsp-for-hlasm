@@ -65,7 +65,7 @@ public:
     bool get_undefined_attributed_symbols(std::vector<context::id_index>&, const evaluation_context&) const override
     {
         return false;
-    };
+    }
 
     void resolve_expression_tree(ca_expression_ctx, diagnostic_op_consumer&) override {}
 
