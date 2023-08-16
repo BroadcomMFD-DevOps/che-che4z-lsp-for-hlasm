@@ -46,13 +46,15 @@ public:
 protected:
     static bool try_trigger_attribute_lookahead(const semantics::instruction_si& instruction,
         expressions::evaluation_context eval_ctx,
-        processing::processing_state_listener& listener);
+        processing::processing_state_listener& listener,
+        std::vector<context::id_index>&& references_buffer);
     static bool try_trigger_attribute_lookahead(const context::hlasm_statement& statement,
         expressions::evaluation_context eval_ctx,
-        processing::processing_state_listener& listener);
+        processing::processing_state_listener& listener,
+        std::vector<context::id_index>&& references_buffer);
 
 private:
-    static void trigger_attribute_lookahead(std::vector<context::id_index> references,
+    static void trigger_attribute_lookahead(const std::vector<context::id_index>& references,
         const expressions::evaluation_context& eval_ctx,
         processing::processing_state_listener& listener);
 
