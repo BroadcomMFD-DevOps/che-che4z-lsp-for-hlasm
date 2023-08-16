@@ -313,7 +313,7 @@ TEST(attribute_lookahead, lookup_of_two_refs_but_one_symbol)
 
     std::vector<context::id_index> references;
     EXPECT_TRUE(expr->get_undefined_attributed_symbols(references, eval_ctx));
-    EXPECT_EQ(references.size(), (size_t)1);
+    EXPECT_EQ(references.size(), (size_t)2);
 
     EXPECT_EQ(a.diags().size(), (size_t)0);
 }

@@ -18,19 +18,16 @@
 #include "ca_var_sym.h"
 #include "context/hlasm_context.h"
 #include "context/literal_pool.h"
-#include "context/ordinary_assembly/dependable.h"
 #include "context/ordinary_assembly/ordinary_assembly_dependency_solver.h"
 #include "diagnostic_consumer.h"
 #include "ebcdic_encoding.h"
 #include "expressions/conditional_assembly/ca_expr_visitor.h"
 #include "expressions/evaluation_context.h"
 #include "lexing/lexer.h"
-#include "lexing/token_stream.h"
 #include "parsing/parser_impl.h"
 #include "processing/op_code.h"
 #include "semantics/range_provider.h"
 #include "semantics/statement_fields.h"
-#include "utils/merge_sorted.h"
 #include "utils/similar.h"
 
 namespace hlasm_plugin::parser_library::expressions {
@@ -79,7 +76,7 @@ ca_symbol_attribute::ca_symbol_attribute(
 {}
 
 bool ca_symbol_attribute::get_undefined_attributed_symbols(
-    undef_sym_set& symbols, const evaluation_context& eval_ctx) const
+    std::vector<context::id_index>& symbols, const evaluation_context& eval_ctx) const
 {
     if (std::holds_alternative<context::id_index>(symbol))
     {
