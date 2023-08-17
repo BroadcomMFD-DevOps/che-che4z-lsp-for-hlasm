@@ -108,6 +108,13 @@ const symbol_occurrence* file_info::find_closest_instruction(position pos) const
     return std::to_address(instr);
 }
 
+const line_occurence_details* file_info::get_line_details(size_t l) const noexcept
+{
+    if (l >= line_details.size())
+        return nullptr;
+    return &line_details[l];
+}
+
 macro_info_ptr file_info::find_scope(position pos) const
 {
     for (const auto& [_, scope] : slices)

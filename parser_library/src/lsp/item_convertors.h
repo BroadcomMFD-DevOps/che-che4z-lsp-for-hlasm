@@ -27,6 +27,7 @@ namespace context {
 class macro_definition;
 struct sequence_symbol;
 class symbol;
+struct using_context_description;
 } // namespace context
 } // namespace hlasm_plugin::parser_library
 
@@ -40,6 +41,7 @@ struct variable_symbol_definition;
 
 std::string hover_text(const context::symbol& sym);
 std::string hover_text(const variable_symbol_definition& sym);
+std::string hover_text(std::vector<context::using_context_description> usings);
 std::string get_macro_documentation(const text_data_view& macro_text, size_t definition_line);
 std::string get_macro_signature(const context::macro_definition& m);
 bool is_continued_line(std::string_view line);

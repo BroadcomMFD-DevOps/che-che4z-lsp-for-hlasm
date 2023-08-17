@@ -52,6 +52,7 @@ class ordinary_assembly_context;
 class section;
 class using_context;
 struct using_evaluate_result;
+struct using_context_description;
 
 class using_collection
 {
@@ -359,6 +360,8 @@ public:
         offset_t offset,
         bool long_offset) const;
 
+    std::vector<using_context_description> describe(index_t<using_collection> context_id) const;
+
     bool is_label_mapping_section(index_t<using_collection> context_id, id_index label, const section* owner) const;
 };
 
@@ -373,6 +376,16 @@ struct using_evaluate_result
     {}
 
     friend bool operator==(using_evaluate_result, using_evaluate_result) = default;
+};
+
+struct using_context_description
+{
+    id_index label;
+    const section* owner;
+    long offset;
+    unsigned long length;
+    long reg_offset;
+    std::vector<using_collection::register_t> regs;
 };
 
 } // namespace hlasm_plugin::parser_library::context

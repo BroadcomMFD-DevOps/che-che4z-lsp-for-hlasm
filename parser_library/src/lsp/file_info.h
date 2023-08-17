@@ -108,6 +108,8 @@ public:
 
     const symbol_occurrence* find_closest_instruction(position pos) const noexcept;
 
+    const line_occurence_details* get_line_details(size_t l) const noexcept;
+
 private:
     std::map<line_range, file_slice_t> slices;
     std::vector<symbol_occurrence> occurrences;
