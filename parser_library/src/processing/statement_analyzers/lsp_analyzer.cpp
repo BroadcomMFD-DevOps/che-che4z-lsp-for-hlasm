@@ -139,7 +139,7 @@ void lsp_analyzer::analyze(const semantics::preprocessor_statement_si& statement
 {
     auto ci = get_active_collection(hlasm_ctx_.opencode_location(), false);
 
-    collect_end_line(statement.m_details.stmt_r, ci);
+    collect_endline(statement.m_details.stmt_r, ci);
 
     collect_occurrences(lsp::occurrence_kind::ORD, statement, ci);
 
@@ -147,12 +147,27 @@ void lsp_analyzer::analyze(const semantics::preprocessor_statement_si& statement
         add_copy_operand(hlasm_ctx_.ids().add(operands.front().name), operands.front().r, ci);
 }
 
-void lsp_analyzer::collect_end_line(const range& r, const collection_info_t& ci)
+
+lsp::line_occurence_details& lsp_analyzer::line_details(const range& r, const collection_info_t& ci)
 {
     if (r.start.line >= ci.line_details->size())
         ci.line_details->insert(ci.line_details->end(), r.start.line + 1 - ci.line_details->size(), {});
-    auto& line_detail = (*ci.line_details)[r.start.line];
+    return (*ci.line_details)[r.start.line];
+}
+
+void lsp_analyzer::collect_endline(const range& r, const collection_info_t& ci)
+{
+    auto& line_detail = line_details(r, ci);
     line_detail.max_endline = std::max(line_detail.max_endline, r.end.line + 1);
+}
+
+void lsp_analyzer::collect_usings(const range& r, const collection_info_t& ci)
+{
+    auto& line_detail = line_details(r, ci);
+    if (auto cur = hlasm_ctx_.using_current(); !line_detail.active_using)
+        line_detail.active_using = cur;
+    else
+        line_detail.using_overflow |= line_detail.active_using != cur;
 }
 
 void lsp_analyzer::macrodef_started(const macrodef_start_data& data)
@@ -210,7 +225,12 @@ void lsp_analyzer::collect_occurrences(
 
     if (auto def_stmt = statement.access_deferred())
     {
-        collect_end_line(def_stmt->stmt_range_ref(), ci);
+        if (def_stmt->instruction_ref().type != semantics::instruction_si_type::EMPTY)
+        {
+            const auto& r = def_stmt->stmt_range_ref();
+            collect_endline(r, ci);
+            collect_usings(r, ci);
+        }
 
         collect_occurrence(def_stmt->label_ref(), collector);
         collect_occurrence(def_stmt->instruction_ref(), collector);
@@ -218,7 +238,12 @@ void lsp_analyzer::collect_occurrences(
     }
     else if (auto res_stmt = statement.access_resolved())
     {
-        collect_end_line(res_stmt->stmt_range_ref(), ci);
+        if (res_stmt->instruction_ref().type != semantics::instruction_si_type::EMPTY)
+        {
+            const auto& r = res_stmt->stmt_range_ref();
+            collect_endline(r, ci);
+            collect_usings(r, ci);
+        }
 
         collect_occurrence(res_stmt->label_ref(), collector);
         collect_occurrence(res_stmt->instruction_ref(), collector);
