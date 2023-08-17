@@ -137,15 +137,22 @@ const expressions::mach_expr_symbol* get_single_mach_symbol(const semantics::ope
 
 void lsp_analyzer::analyze(const semantics::preprocessor_statement_si& statement)
 {
-    auto collection_info = get_active_collection(hlasm_ctx_.opencode_location(), false);
+    auto ci = get_active_collection(hlasm_ctx_.opencode_location(), false);
 
-    auto& end_line = (*collection_info.stmt_ranges)[statement.m_details.stmt_r.start.line];
-    end_line = std::max(end_line, statement.m_details.stmt_r.end.line);
+    collect_end_line(statement.m_details.stmt_r, ci);
 
-    collect_occurrences(lsp::occurrence_kind::ORD, statement, collection_info);
+    collect_occurrences(lsp::occurrence_kind::ORD, statement, ci);
 
     if (const auto& operands = statement.m_details.operands; statement.m_copylike && operands.size() == 1)
-        add_copy_operand(hlasm_ctx_.ids().add(operands.front().name), operands.front().r, collection_info);
+        add_copy_operand(hlasm_ctx_.ids().add(operands.front().name), operands.front().r, ci);
+}
+
+void lsp_analyzer::collect_end_line(const range& r, const collection_info_t& ci)
+{
+    if (r.start.line >= ci.line_details->size())
+        ci.line_details->insert(ci.line_details->end(), r.start.line + 1 - ci.line_details->size(), {});
+    auto& line_detail = (*ci.line_details)[r.start.line];
+    line_detail.max_endline = std::max(line_detail.max_endline, r.end.line + 1);
 }
 
 void lsp_analyzer::macrodef_started(const macrodef_start_data& data)
@@ -203,18 +210,16 @@ void lsp_analyzer::collect_occurrences(
 
     if (auto def_stmt = statement.access_deferred())
     {
-        const auto& stmt_range = def_stmt->stmt_range_ref();
-        auto& end_line = (*ci.stmt_ranges)[stmt_range.start.line];
-        end_line = std::max(end_line, stmt_range.end.line);
+        collect_end_line(def_stmt->stmt_range_ref(), ci);
+
         collect_occurrence(def_stmt->label_ref(), collector);
         collect_occurrence(def_stmt->instruction_ref(), collector);
         collect_occurrence(def_stmt->deferred_ref(), collector);
     }
     else if (auto res_stmt = statement.access_resolved())
     {
-        const auto& stmt_range = res_stmt->stmt_range_ref();
-        auto& end_line = (*ci.stmt_ranges)[stmt_range.start.line];
-        end_line = std::max(end_line, stmt_range.end.line);
+        collect_end_line(res_stmt->stmt_range_ref(), ci);
+
         collect_occurrence(res_stmt->label_ref(), collector);
         collect_occurrence(res_stmt->instruction_ref(), collector);
         collect_occurrence(res_stmt->operands_ref(), collector);
