@@ -167,44 +167,6 @@ TEST(item_convertors, macro)
     EXPECT_EQ(result_with_doc, expected_with_doc);
     EXPECT_EQ(result_without_doc, expected_without_doc);
 }
-/// TEST     CSECT
-///
-///          LARL  12,TEST
-///
-///          USING TEST,12
-///
-///          LA    0,TEST
-///
-///          DROP
-///
-///
-///
-///
-///
-/// A        CSECT
-/// D        DSECT
-/// E        DSECT
-/// B        CSECT
-///          USING (A+5,A+8),1,2
-///          USING E,A+6
-/// L        USING D,3
-/// Z        USING 0,7
-///          USING B-5,12
-///
-///          END
-///
-///
-/// struct using_context_description
-/// {
-///     id_index label;
-///     id_index section;
-///     long offset;
-///     unsigned long length;
-///     long reg_offset;
-///     std::vector<using_collection::register_t> regs;
-/// };
-///
-
 
 TEST(item_convertors, using_hover_text)
 {
