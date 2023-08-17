@@ -13,10 +13,13 @@
  */
 
 #include <string>
+#include <string_view>
+#include <utility>
 #include <vector>
 
 #include "gtest/gtest.h"
 
+#include "context/using.h"
 #include "lsp/completion_item.h"
 #include "lsp/file_info.h"
 #include "lsp/item_convertors.h"
@@ -163,4 +166,65 @@ TEST(item_convertors, macro)
 
     EXPECT_EQ(result_with_doc, expected_with_doc);
     EXPECT_EQ(result_without_doc, expected_without_doc);
+}
+/// TEST     CSECT
+///
+///          LARL  12,TEST
+///
+///          USING TEST,12
+///
+///          LA    0,TEST
+///
+///          DROP
+///
+///
+///
+///
+///
+/// A        CSECT
+/// D        DSECT
+/// E        DSECT
+/// B        CSECT
+///          USING (A+5,A+8),1,2
+///          USING E,A+6
+/// L        USING D,3
+/// Z        USING 0,7
+///          USING B-5,12
+///
+///          END
+///
+///
+/// struct using_context_description
+/// {
+///     id_index label;
+///     id_index section;
+///     long offset;
+///     unsigned long length;
+///     long reg_offset;
+///     std::vector<using_collection::register_t> regs;
+/// };
+///
+
+
+TEST(item_convertors, using_hover_text)
+{
+    using namespace std::string_view_literals;
+    constexpr id_index A("A"), B("B"), D("D"), E("E"), L("L"), Z("Z");
+    const std::array input = {
+        std::pair(using_context_description { {}, A, 5, 3, 0, { 1, 2 } }, "**A**+X'5'(X'3'),R1,R2"sv),
+        std::pair(using_context_description { {}, E, 0, 2, 1, { 1, 2 } }, "**E**(X'2'),R1+X'1',R2"sv),
+        std::pair(using_context_description { L, D, 0, 4096, 0, { 3 } }, "**L.D**,R3"sv),
+        std::pair(using_context_description { Z, {}, 15, 4096, 0, { 7 } }, "**Z.**+X'F',R7"sv),
+        std::pair(using_context_description { {}, B, -5, 4096, 0, { 12 } }, "**B**-X'5',R12"sv),
+    };
+
+    for (const auto& [in, expected] : input)
+    {
+        std::string out;
+        lsp::append_hover_text(out, in);
+        EXPECT_EQ(out, expected);
+    }
+
+    EXPECT_EQ(lsp::hover_text({}), "");
+    EXPECT_EQ(lsp::hover_text(std::span(&input.front().first, 1)), "Active USINGs: **A**+X'5'(X'3'),R1,R2\n");
 }

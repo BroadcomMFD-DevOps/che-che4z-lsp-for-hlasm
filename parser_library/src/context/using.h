@@ -381,11 +381,13 @@ struct using_evaluate_result
 struct using_context_description
 {
     id_index label;
-    const section* owner;
+    id_index section;
     long offset;
     unsigned long length;
     long reg_offset;
     std::vector<using_collection::register_t> regs;
+
+    bool operator==(const using_context_description&) const noexcept = default;
 };
 
 } // namespace hlasm_plugin::parser_library::context

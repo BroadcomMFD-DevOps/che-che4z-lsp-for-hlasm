@@ -16,6 +16,7 @@
 #define HLASMPLUGIN_PARSERLIBRARY_LSP_ITEM_CONVERTORS_H
 
 #include <functional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -41,7 +42,8 @@ struct variable_symbol_definition;
 
 std::string hover_text(const context::symbol& sym);
 std::string hover_text(const variable_symbol_definition& sym);
-std::string hover_text(std::vector<context::using_context_description> usings);
+std::string hover_text(std::span<const context::using_context_description> usings);
+void append_hover_text(std::string& buffer, const context::using_context_description& u);
 std::string get_macro_documentation(const text_data_view& macro_text, size_t definition_line);
 std::string get_macro_signature(const context::macro_definition& m);
 bool is_continued_line(std::string_view line);

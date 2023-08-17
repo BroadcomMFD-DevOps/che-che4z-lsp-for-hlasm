@@ -614,7 +614,7 @@ std::vector<using_context_description> using_collection::describe(index_t<using_
     for (const auto& u : get(context_id).context.m_state)
         result.push_back({
             u.label,
-            u.owner,
+            u.owner ? u.owner->name : id_index(),
             u.offset,
             (unsigned long)u.length,
             u.reg_offset,
