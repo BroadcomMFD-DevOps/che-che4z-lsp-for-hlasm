@@ -36,7 +36,11 @@ namespace hlasm_plugin::parser_library::processing {
 namespace {
 struct dummy_vfm final : public virtual_file_monitor
 {
-    virtual_file_handle file_generated(std::string_view content) override { return virtual_file_handle(); }
+    std::pair<virtual_file_handle, std::string_view> file_generated(std::string_view content) override
+    {
+        // content is owned by opencode_provider::m_virtual_files
+        return { {}, content };
+    }
 };
 dummy_vfm fallback_vfm;
 } // namespace
@@ -558,10 +562,10 @@ utils::task opencode_provider::run_preprocessor()
     }
     else
     {
-        auto file_handle = m_virtual_file_monitor->file_generated(new_file->second);
+        auto [file_handle, file_text] = m_virtual_file_monitor->file_generated(new_file->second);
         auto file_location = generate_virtual_file_name(file_handle.file_id(), virtual_file_name.to_string_view());
         m_vf_handles.emplace_back(std::move(file_handle), file_location);
-        return start_nested_parser(new_file->second,
+        return start_nested_parser(file_text,
             analyzer_options {
                 std::move(file_location),
                 m_lib_provider,
@@ -634,10 +638,10 @@ utils::task opencode_provider::convert_ainsert_buffer_to_copybook()
 
     auto new_file = m_virtual_files.try_emplace(virtual_copy_name, std::move(result)).first;
 
-    auto file_handle = m_virtual_file_monitor->file_generated(new_file->second);
+    auto [file_handle, file_text] = m_virtual_file_monitor->file_generated(new_file->second);
     auto file_location = generate_virtual_file_name(file_handle.file_id(), virtual_copy_name.to_string_view());
     m_vf_handles.emplace_back(std::move(file_handle), file_location);
-    co_await start_nested_parser(new_file->second,
+    co_await start_nested_parser(file_text,
         analyzer_options {
             std::move(file_location),
             m_lib_provider,
