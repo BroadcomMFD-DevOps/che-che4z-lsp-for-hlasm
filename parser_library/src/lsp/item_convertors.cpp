@@ -417,7 +417,9 @@ constexpr const auto to_hex = [](unsigned long long n) {
 
 void append_hover_text(std::string& text, const context::using_context_description& u)
 {
-    bool named = !u.label.empty() || !u.section.empty();
+    static constexpr const std::string_view private_csect("(PC)");
+
+    bool named = !u.label.empty() || u.section.has_value();
 
     if (named)
     {
@@ -426,8 +428,10 @@ void append_hover_text(std::string& text, const context::using_context_descripti
         if (!u.label.empty())
             text.append(u.label.to_string_view()).append(".");
 
-        if (!u.section.empty())
-            text.append(u.section.to_string_view());
+        if (u.section.has_value() && !u.section->empty())
+            text.append(u.section->to_string_view());
+        else if (u.section.has_value() && u.section->empty())
+            text.append(private_csect);
 
         text.append("**");
     }

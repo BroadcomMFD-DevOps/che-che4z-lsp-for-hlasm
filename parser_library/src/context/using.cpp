@@ -606,7 +606,6 @@ auto using_collection::using_context::evaluate(
 
 std::vector<using_context_description> using_collection::describe(index_t<using_collection> context_id) const
 {
-    static constexpr const id_index private_csect("(PC)");
     if (!context_id)
         return {};
 
@@ -615,7 +614,7 @@ std::vector<using_context_description> using_collection::describe(index_t<using_
     for (const auto& u : get(context_id).context.m_state)
         result.push_back({
             u.label,
-            u.owner ? u.owner->name.empty() ? private_csect : u.owner->name : id_index(),
+            u.owner ? std::optional(u.owner->name) : std::nullopt,
             u.offset,
             (unsigned long)u.length,
             u.reg_offset,

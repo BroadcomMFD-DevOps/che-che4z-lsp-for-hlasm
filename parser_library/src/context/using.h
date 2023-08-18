@@ -23,10 +23,9 @@
 #include <memory>
 #include <optional>
 #include <span>
-#include <unordered_set>
 #include <vector>
 
-#include "id_storage.h"
+#include "id_index.h"
 #include "ordinary_assembly/symbol_dependency_tables.h"
 #include "ordinary_assembly/symbol_value.h"
 #include "source_context.h"
@@ -381,7 +380,7 @@ struct using_evaluate_result
 struct using_context_description
 {
     id_index label;
-    id_index section;
+    std::optional<id_index> section;
     long offset;
     unsigned long length;
     long reg_offset;

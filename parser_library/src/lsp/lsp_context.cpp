@@ -895,7 +895,7 @@ std::string lsp_context::find_hover(
             return s;
 
         if (!s.empty())
-            u.append("\n").append(s);
+            u.append("\n---\n").append(s);
 
         return u;
     };
