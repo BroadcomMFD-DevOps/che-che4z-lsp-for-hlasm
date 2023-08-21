@@ -667,8 +667,58 @@ completion_list_source lsp_context::completion(const utils::resource::resource_l
         return complete_seq(*file_info, pos);
     else if (should_complete_instr(text, pos))
         return complete_instr(*file_info, pos);
-    else if (auto instr = file_info->find_closest_instruction(pos); instr && instr->opcode)
-        return std::pair(instr->opcode.get(), std::vector<const context::section*>());
+    else
+    {
+        auto instr = file_info->find_closest_instruction(pos);
+        auto [sect, usings] = file_info->find_reachable_sections(pos);
+
+        std::vector<std::pair<const context::section*, context::id_index>> reachable_sections;
+        if (sect)
+            reachable_sections.emplace_back(sect, context::id_index());
+        if (usings)
+        {
+            auto ud = m_hlasm_ctx->usings().describe(usings);
+            for (const auto& u : ud)
+            {
+                if (!u.section)
+                    continue;
+                if (const auto* s = m_hlasm_ctx->ord_ctx.get_section(*u.section))
+                    reachable_sections.emplace_back(s, u.label);
+            }
+        }
+        std::sort(reachable_sections.begin(), reachable_sections.end());
+        reachable_sections.erase(
+            std::unique(reachable_sections.begin(), reachable_sections.end()), reachable_sections.end());
+
+        std::vector<std::pair<const context::symbol*, context::id_index>> reachable_symbols;
+
+        for (const auto& [name, symv] : m_hlasm_ctx->ord_ctx.symbols())
+        {
+            const auto* sym = std::get_if<context::symbol>(&symv);
+            if (!sym || sym->kind() == context::symbol_value_kind::UNDEF)
+                continue;
+            if (sym->kind() == context::symbol_value_kind::ABS)
+            {
+                reachable_symbols.emplace_back(sym, context::id_index());
+                continue;
+            }
+            const auto& reloc = sym->value().get_reloc();
+            if (!reloc.is_simple())
+                continue;
+            for (const auto& [sect, label] : reachable_sections)
+            {
+                if (sect != reloc.bases().front().first.owner)
+                    continue;
+                reachable_symbols.emplace_back(sym, label);
+            }
+        }
+
+        std::sort(reachable_symbols.begin(), reachable_symbols.end());
+        reachable_symbols.erase(
+            std::unique(reachable_symbols.begin(), reachable_symbols.end()), reachable_symbols.end());
+
+        return std::pair(instr ? instr->opcode.get() : nullptr, std::move(reachable_symbols));
+    }
 
     return {};
 }

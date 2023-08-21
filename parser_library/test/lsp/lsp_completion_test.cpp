@@ -89,8 +89,8 @@ TEST(lsp_completion, macro_operands)
     auto mac = a.context().lsp_ctx->get_macro_info(context::id_index("MAC"));
     ASSERT_TRUE(mac);
 
-    auto result = lsp::generate_completion(
-        lsp::completion_list_source(std::pair(mac->macro_definition.get(), std::vector<const section*>())));
+    auto result = lsp::generate_completion(lsp::completion_list_source(
+        std::pair(mac->macro_definition.get(), std::vector<std::pair<const context::symbol*, context::id_index>>())));
 
     EXPECT_EQ(result.size(), 2);
 

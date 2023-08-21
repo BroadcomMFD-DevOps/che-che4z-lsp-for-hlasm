@@ -51,7 +51,7 @@ using completion_list_source = std::variant<std::monostate,
     const std::vector<variable_symbol_definition>*,
     const std::unordered_map<context::id_index, std::unique_ptr<context::sequence_symbol>>*,
     completion_list_instructions,
-    std::pair<const context::macro_definition*, std::vector<const context::section*>>>;
+    std::pair<const context::macro_definition*, std::vector<std::pair<const context::symbol*, context::id_index>>>>;
 
 } // namespace hlasm_plugin::parser_library::lsp
 
