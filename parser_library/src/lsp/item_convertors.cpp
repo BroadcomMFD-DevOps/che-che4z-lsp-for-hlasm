@@ -423,8 +423,8 @@ std::vector<completion_item_s> generate_completion(const std::pair<const context
 
         result.emplace_back(name,
             name
-                + (symbol->value().value_kind() == context::symbol_value_kind::ABS ? " (absolute value)"
-                                                                                   : " (relocatable value)"),
+                + (symbol->value().value_kind() == context::symbol_value_kind::ABS ? " (absolute symbol)"
+                                                                                   : " (relocatable symbol)"),
             name,
             hover_text(*symbol),
             completion_item_kind::ord_sym);
