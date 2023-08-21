@@ -737,8 +737,6 @@ completion_list_source lsp_context::completion(const utils::resource::resource_l
 
         return std::pair(instr ? instr->opcode.get() : nullptr, std::move(reachable_symbols));
     }
-
-    return {};
 }
 
 completion_list_source lsp_context::complete_var(const file_info& file, position pos) const
