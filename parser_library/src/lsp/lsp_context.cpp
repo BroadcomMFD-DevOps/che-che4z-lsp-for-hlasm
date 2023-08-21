@@ -676,24 +676,29 @@ std::vector<std::pair<const context::section*, context::id_index>> gather_reacha
 
 std::vector<std::pair<const context::symbol*, context::id_index>> compute_reachable_symbol_set(
     const std::vector<std::pair<const context::section*, context::id_index>>& reachable_sections,
-    context::ordinary_assembly_context& ord_ctx)
+    const context::ordinary_assembly_context& ord_ctx)
 {
     std::vector<std::pair<const context::symbol*, context::id_index>> reachable_symbols;
+
     for (const auto& [name, symv] : ord_ctx.symbols())
     {
         const auto* sym = std::get_if<context::symbol>(&symv);
-        if (!sym || sym->kind() != context::symbol_value_kind::ABS)
+        if (!sym)
             continue;
-        reachable_symbols.emplace_back(sym, context::id_index());
-    }
-    for (const auto& [name, symv] : ord_ctx.symbols())
-    {
-        const auto* sym = std::get_if<context::symbol>(&symv);
-        if (!sym || sym->kind() != context::symbol_value_kind::RELOC)
+
+        if (sym->kind() == context::symbol_value_kind::ABS)
+        {
+            reachable_symbols.emplace_back(sym, context::id_index());
             continue;
+        }
+
+        if (sym->kind() != context::symbol_value_kind::RELOC)
+            continue;
+
         const auto& reloc = sym->value().get_reloc();
         if (!reloc.is_simple())
             continue;
+
         for (const auto& [sect, label] : reachable_sections)
         {
             if (sect != reloc.bases().front().first.owner)
