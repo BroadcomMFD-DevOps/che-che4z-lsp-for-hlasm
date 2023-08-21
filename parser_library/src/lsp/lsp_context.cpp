@@ -648,7 +648,7 @@ bool lsp_context::should_complete_instr(const text_data_view& text, position pos
     return !line_before_continued && std::regex_match(line_so_far.begin(), line_so_far.end(), instruction_regex);
 }
 
-std::vector<std::pair<const context::section*, context::id_index>> gather_reachable_section(
+std::vector<std::pair<const context::section*, context::id_index>> gather_reachable_sections(
     context::hlasm_context& ctx, std::pair<const context::section*, index_t<context::using_collection>> reachables)
 {
     const auto& [sect, usings] = reachables;
@@ -658,8 +658,7 @@ std::vector<std::pair<const context::section*, context::id_index>> gather_reacha
         reachable_sections.emplace_back(sect, context::id_index());
     if (usings)
     {
-        auto ud = ctx.usings().describe(usings);
-        for (const auto& u : ud)
+        for (const auto& u : ctx.usings().describe(usings))
         {
             if (!u.section)
                 continue;
@@ -736,7 +735,7 @@ completion_list_source lsp_context::completion(const utils::resource::resource_l
     {
         auto instr = file_info->find_closest_instruction(pos);
 
-        auto reachable_sections = gather_reachable_section(*m_hlasm_ctx, file_info->find_reachable_sections(pos));
+        auto reachable_sections = gather_reachable_sections(*m_hlasm_ctx, file_info->find_reachable_sections(pos));
 
         auto reachable_symbols = compute_reachable_symbol_set(reachable_sections, m_hlasm_ctx->ord_ctx);
 
