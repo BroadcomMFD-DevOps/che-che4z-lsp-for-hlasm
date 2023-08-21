@@ -668,7 +668,7 @@ completion_list_source lsp_context::completion(const utils::resource::resource_l
     else if (should_complete_instr(text, pos))
         return complete_instr(*file_info, pos);
     else if (auto instr = file_info->find_closest_instruction(pos); instr && instr->opcode)
-        return instr->opcode.get();
+        return std::pair(instr->opcode.get(), std::vector<const context::section*>());
 
     return {};
 }

@@ -150,7 +150,9 @@ void file_info::update_occurrences(const std::vector<symbol_occurrence>& occurre
             return lsp::line_occurence_details {
                 std::max(o.max_endline, n.max_endline),
                 o.active_using ? o.active_using : n.active_using,
-                o.active_using && n.active_using,
+                o.active_section ? o.active_section : n.active_section,
+                o.active_using && n.active_using && o.active_using != n.active_using,
+                o.active_section && n.active_section && o.active_section != n.active_section,
             };
         });
 

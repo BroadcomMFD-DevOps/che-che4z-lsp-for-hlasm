@@ -404,6 +404,15 @@ std::vector<completion_item_s> generate_completion(const context::macro_definiti
     return result;
 }
 
+std::vector<completion_item_s> generate_completion(
+    const std::pair<const context::macro_definition*, std::vector<const context::section*>>& args)
+{
+    const auto& [md, sections] = args;
+    if (md)
+        return generate_completion(md);
+    return {};
+}
+
 constexpr const auto to_hex = [](unsigned long long n) {
     std::string s;
     do
