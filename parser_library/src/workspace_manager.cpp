@@ -110,20 +110,21 @@ public:
                         return std::pair(&ows, std::move(normalized_url));
         }
 
+        resource_location url_to_match = normalized_url;
         if (normalized_url.get_uri().starts_with(hlasm_external_scheme))
         {
             utils::path::dissected_uri uri_components = utils::path::dissect_uri(normalized_url.get_uri());
             if (uri_components.contains_host())
-                normalized_url =
+                url_to_match =
                     resource_location(utils::encoding::uri_friendly_base16_decode(uri_components.auth->host));
         }
 
         size_t max = 0;
         decltype(&self.m_workspaces.begin()->second) max_ows = nullptr;
-        for (auto& [name, ows] : self.m_workspaces)
+        for (auto& [_, ows] : self.m_workspaces)
         {
-            size_t match = prefix_match(normalized_url.get_uri(), ows.ws.uri());
-            if (match > max && match >= name.size())
+            size_t match = prefix_match(url_to_match.get_uri(), ows.ws.uri());
+            if (match > max && match >= ows.ws.uri().size())
             {
                 max = match;
                 max_ows = &ows;
@@ -402,12 +403,12 @@ public:
 
     void did_open_file(const char* document_uri, version_t version, const char* text_ptr, size_t text_size) override
     {
-        auto [ows, document_loc] = ws_path_match(document_uri);
+        auto [ows, uri] = ws_path_match(document_uri);
         auto open_result = std::make_shared<workspaces::file_content_state>();
         m_work_queue.emplace_back(work_item {
             next_unique_id(),
             nullptr,
-            [this, document_loc, version, text = std::string(text_ptr, text_size), open_result]() mutable {
+            [this, document_loc = uri, version, text = std::string(text_ptr, text_size), open_result]() mutable {
                 *open_result = m_file_manager.did_open_file(document_loc, version, std::move(text));
             },
             {},
@@ -416,7 +417,7 @@ public:
         m_work_queue.emplace_back(work_item {
             next_unique_id(),
             ows,
-            std::function<utils::task()>([document_loc, &ws = ows->ws, open_result]() mutable {
+            std::function<utils::task()>([document_loc = std::move(uri), &ws = ows->ws, open_result]() mutable {
                 return ws.did_open_file(std::move(document_loc), *open_result);
             }),
             {},
@@ -427,7 +428,7 @@ public:
     void did_change_file(
         const char* document_uri, version_t version, const document_change* changes, size_t ch_size) override
     {
-        auto [ows, document_loc] = ws_path_match(document_uri);
+        auto [ows, uri] = ws_path_match(document_uri);
 
         struct captured_change
         {
@@ -450,7 +451,7 @@ public:
         m_work_queue.emplace_back(work_item {
             next_unique_id(),
             nullptr,
-            [this, document_loc, version, captured_changes = std::move(captured_changes)]() {
+            [this, document_loc = uri, version, captured_changes = std::move(captured_changes)]() {
                 std::vector<document_change> list;
                 list.reserve(captured_changes.size());
                 std::transform(captured_changes.begin(),
@@ -470,7 +471,7 @@ public:
             next_unique_id(),
             ows,
             std::function<utils::task()>(
-                [document_loc,
+                [document_loc = std::move(uri),
                     &ws = ows->ws,
                     file_content_status = ch_size ? workspaces::file_content_state::changed_content
                                                   : workspaces::file_content_state::identical]() mutable {
@@ -483,18 +484,18 @@ public:
 
     void did_close_file(const char* document_uri) override
     {
-        auto [ows, document_loc] = ws_path_match(document_uri);
+        auto [ows, uri] = ws_path_match(document_uri);
         m_work_queue.emplace_back(work_item {
             next_unique_id(),
             nullptr,
-            [this, document_loc]() { m_file_manager.did_close_file(document_loc); },
+            [this, document_loc = uri]() { m_file_manager.did_close_file(document_loc); },
             {},
             work_item_type::file_change,
         });
         m_work_queue.emplace_back(work_item {
             next_unique_id(),
             ows,
-            std::function<utils::task()>([this, document_loc, &ws = ows->ws]() mutable {
+            std::function<utils::task()>([this, document_loc = std::move(uri), &ws = ows->ws]() mutable {
                 return ws.did_close_file(std::move(document_loc)).then([this]() { notify_diagnostics_consumers(); });
             }),
             {},
@@ -948,8 +949,7 @@ private:
     workspace_manager_external_file_requests* m_external_file_requests = nullptr;
     workspaces::file_manager_impl m_file_manager;
 
-    std::unordered_map<std::string, opened_workspace, utils::hashers::string_hasher, std::equal_to<std::string_view>>
-        m_workspaces;
+    std::unordered_map<resource_location, opened_workspace, utils::resource::resource_location_hasher> m_workspaces;
     opened_workspace m_implicit_workspace;
     opened_workspace m_quiet_implicit_workspace;
     bool m_vscode_extensions;
@@ -963,9 +963,10 @@ private:
 
     void add_workspace(const char* name, const char* uri) override
     {
+        auto normalized_uri = resource_location(uri).lexically_normal();
         auto& ows = m_workspaces
-                        .try_emplace(name,
-                            resource_location(std::move(uri)),
+                        .try_emplace(normalized_uri,
+                            normalized_uri,
                             name,
                             m_file_manager,
                             m_global_config,
@@ -989,7 +990,7 @@ private:
 
     void remove_workspace(const char* uri) override
     {
-        auto it = m_workspaces.find(uri);
+        auto it = m_workspaces.find(resource_location(uri).lexically_normal());
         if (it == m_workspaces.end())
             return; // erase does no action, if the key does not exist
 
