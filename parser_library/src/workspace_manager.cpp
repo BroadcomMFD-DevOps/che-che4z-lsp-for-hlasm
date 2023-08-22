@@ -777,7 +777,7 @@ public:
     {
         auto [ows, uri] = ws_path_match(document_uri);
         // performed out of order
-        auto suggestions = ows->ws.make_opcode_suggestion(std::move(uri), opcode, extended);
+        auto suggestions = ows->ws.make_opcode_suggestion(uri, opcode, extended);
 
         std::vector<opcode_suggestion> res;
 
@@ -1068,7 +1068,7 @@ private:
         else
         {
             auto [ows, conf_uri] = ws_path_match(std::string_view(uri));
-            ows->ws.invalidate_external_configuration(std::move(conf_uri));
+            ows->ws.invalidate_external_configuration(conf_uri);
         }
     }
 };
