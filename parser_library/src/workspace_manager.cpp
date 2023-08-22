@@ -85,11 +85,13 @@ class workspace_manager_impl final : public workspace_manager,
     };
 
 public:
-    explicit workspace_manager_impl(workspace_manager_external_file_requests* external_file_requests)
+    explicit workspace_manager_impl(
+        workspace_manager_external_file_requests* external_file_requests, bool vscode_extensions)
         : m_external_file_requests(external_file_requests)
         , m_file_manager(*this)
         , m_implicit_workspace(m_file_manager, m_global_config)
         , m_quiet_implicit_workspace(m_file_manager, supress_all)
+        , m_vscode_extensions(vscode_extensions)
     {}
     workspace_manager_impl(const workspace_manager_impl&) = delete;
     workspace_manager_impl& operator=(const workspace_manager_impl&) = delete;
@@ -878,7 +880,7 @@ private:
         if (!document_loc.get_uri().starts_with(hlasm_external_scheme))
             return utils::value_task<std::optional<std::string>>::from_value(utils::resource::load_text(document_loc));
 
-        if (!m_external_file_requests)
+        if (!m_external_file_requests || !m_vscode_extensions)
             return utils::value_task<std::optional<std::string>>::from_value(std::nullopt);
 
         return load_text_external(document_loc);
@@ -940,7 +942,7 @@ private:
             return utils::value_task<std::pair<std::vector<std::pair<std::string, utils::resource::resource_location>>,
                 utils::path::list_directory_rc>>::from_value(utils::resource::list_directory_files(directory));
 
-        if (!m_external_file_requests)
+        if (!m_external_file_requests || !m_vscode_extensions)
             return utils::value_task<std::pair<std::vector<std::pair<std::string, utils::resource::resource_location>>,
                 utils::path::list_directory_rc>>::from_value({ {}, utils::path::list_directory_rc::not_exists });
 
@@ -967,6 +969,7 @@ private:
         m_workspaces;
     opened_workspace m_implicit_workspace;
     opened_workspace m_quiet_implicit_workspace;
+    bool m_vscode_extensions;
 
     std::vector<diagnostics_consumer*> m_diag_consumers;
     std::vector<parsing_metadata_consumer*> m_parsing_metadata_consumers;
@@ -1059,7 +1062,7 @@ private:
 
     void read_external_configuration(sequence<char> uri, workspace_manager_response<sequence<char>> content) override
     {
-        if (!m_requests)
+        if (!m_requests || !m_vscode_extensions)
         {
             content.error(utils::error::not_found);
             return;
@@ -1084,9 +1087,10 @@ private:
     }
 };
 
-workspace_manager* create_workspace_manager_impl(workspace_manager_external_file_requests* external_requests)
+workspace_manager* create_workspace_manager_impl(
+    workspace_manager_external_file_requests* external_requests, bool vscode_extensions)
 {
-    return new workspace_manager_impl(external_requests);
+    return new workspace_manager_impl(external_requests, vscode_extensions);
 }
 
 } // namespace hlasm_plugin::parser_library
