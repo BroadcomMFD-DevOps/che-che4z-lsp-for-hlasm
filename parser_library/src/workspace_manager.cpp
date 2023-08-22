@@ -1032,7 +1032,7 @@ private:
                 me.action = []() {};
             },
         };
-        const auto matching_open_request = [ows](const auto& w) {
+        const auto matching_open_request = [ows = ows](const auto& w) {
             return w.request_type == work_item_type::workspace_open && w.ows == ows;
         };
         // insert as a priority request, but after matching workspace_open request if present
