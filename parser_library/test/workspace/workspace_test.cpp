@@ -677,6 +677,47 @@ TEST_F(workspace_test, use_external_library)
     EXPECT_EQ(collect_and_get_diags_size(ws), 0);
 }
 
+TEST_F(workspace_test, use_external_library_with_workspace_uri)
+{
+    NiceMock<external_file_reader_mock> external_files;
+    file_manager_impl fm(external_files);
+
+    const resource_location root("scheme:");
+    const auto source = resource_location::join(root, source1_loc.get_uri());
+
+    fm.did_open_file(resource_location::join(root, pgm_conf_loc.get_uri()), 1, R"({
+  "pgms": [
+    {
+      "program": "source1",
+      "pgroup": "P1"
+    }
+  ]
+})");
+    fm.did_open_file(resource_location::join(root, proc_grps_loc.get_uri()), 1, R"({
+  "pgroups": [
+    {
+      "name": "P1",
+      "libs": [ {"dataset": "REMOTE.DATASET"} ]
+    }
+  ]
+})");
+    fm.did_open_file(source, 1, "");
+
+    workspace ws(root, "workspace_name", fm, config, global_settings);
+    ws.open().run();
+
+    EXPECT_CALL(external_files,
+        list_directory_files(resource_location("hlasm-external:/DATASET/REMOTE.DATASET#hdgdgigfgngfdk")))
+        .WillOnce(Invoke([]() {
+            return value_task<list_directory_result>::from_value({ {}, path::list_directory_rc::done });
+        }));
+
+
+    run_if_valid(ws.did_open_file(source));
+    parse_all_files(ws);
+    EXPECT_EQ(collect_and_get_diags_size(ws), 0);
+}
+
 TEST_F(workspace_test, track_nested_dependencies)
 {
     file_manager_extended file_manager;
