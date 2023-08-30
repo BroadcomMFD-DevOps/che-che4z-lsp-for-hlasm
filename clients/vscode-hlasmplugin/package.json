@@ -294,6 +294,11 @@
         "title": "Clear remote files cache"
       },
       {
+        "command": "extension.hlasm-plugin.clearRemoteActivityCacheForService",
+        "category": "HLASM",
+        "title": "Clear remote files cache for a specific service"
+      },
+      {
         "command": "extension.hlasm-plugin.toggleAdvisoryConfigurationDiagnostics",
         "category": "HLASM",
         "title": "Toggle advisory configuration diagnostics"

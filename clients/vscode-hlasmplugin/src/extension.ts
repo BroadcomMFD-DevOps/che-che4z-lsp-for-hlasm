@@ -36,6 +36,7 @@ import { HLASMExternalFilesFtp } from './hlasmExternalFilesFtp';
 import { HLASMExternalConfigurationProvider, HLASMExternalConfigurationProviderHandler } from './hlasmExternalConfigurationProvider';
 import { HlasmExtension } from './extension.interface';
 import { toggleAdvisoryConfigurationDiagnostics } from './hlasmConfigurationDiagnosticsProvider'
+import { pickUser } from './uiUtils';
 
 export const EXTENSION_ID = "broadcommfd.hlasm-language-support";
 
@@ -197,6 +198,9 @@ async function registerToContext(context: vscode.ExtensionContext, client: vscod
     context.subscriptions.push(vscode.commands.registerCommand('extension.hlasm-plugin.resumeRemoteActivity', () => extFiles.resumeAll()));
     context.subscriptions.push(vscode.commands.registerCommand('extension.hlasm-plugin.suspendRemoteActivity', () => extFiles.suspendAll()));
     context.subscriptions.push(vscode.commands.registerCommand('extension.hlasm-plugin.clearRemoteActivityCache', () => extFiles.clearCache()));
+    context.subscriptions.push(vscode.commands.registerCommand('extension.hlasm-plugin.clearRemoteActivityCacheForService', () =>
+        pickUser('Select service', extFiles.currentlyAvailableServices().map(x => { return { label: x, value: x }; })).then(x => extFiles.clearCache(x), () => { })
+    ));
     context.subscriptions.push(vscode.commands.registerCommand('extension.hlasm-plugin.toggleAdvisoryConfigurationDiagnostics', () => toggleAdvisoryConfigurationDiagnostics(client)));
 
     // overrides should happen only if the user wishes
