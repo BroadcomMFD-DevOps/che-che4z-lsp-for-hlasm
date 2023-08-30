@@ -228,6 +228,7 @@ export class HLASMExternalConfigurationProvider {
 
     public addHandler(h: HLASMExternalConfigurationProviderHandler): ConfigurationProviderRegistration {
         this.requestHandlers.push(h);
+        this.invalidateConfiguration(null);
 
         return {
             dispose: () => {
