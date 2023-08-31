@@ -737,8 +737,7 @@ void workspace_configuration::produce_diagnostics(
 utils::value_task<parse_config_file_result> workspace_configuration::parse_configuration_file(
     std::optional<utils::resource::resource_location> file)
 {
-    if (m_location.empty())
-        co_return parse_config_file_result::not_found;
+    // TODO: We need to have the ability to NOT read configuration for implicit workspaces!
 
     if (!file.has_value() || is_config_file(*file))
         co_return co_await load_and_process_config(m_config_diags);
