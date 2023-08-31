@@ -577,8 +577,8 @@ export class HLASMExternalFiles {
     public async clearCache(service?: string, paths?: string[], serverId?: string) {
         if (this.cache) {
             const prefix = service && cacheVersion + '.' + service + '.';
-            const useServerId = serverId !== undefined ? serverId : service && await this.clients.get(service)?.client.serverId?.();
-            const cacheKeys = paths && service && (useServerId !== undefined) && new Set(paths.map(x => this.deriveCacheEntryName(useServerId, service, x)));
+            const useServerId = serverId ?? (service && await this.clients.get(service)?.client.serverId?.());
+            const cacheKeys = paths && service && useServerId && new Set(paths.map(x => this.deriveCacheEntryName(useServerId, service, x)));
             const { uri, fs } = this.cache;
 
             const files = await fs.readDirectory(uri);
