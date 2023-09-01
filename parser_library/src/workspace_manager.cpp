@@ -902,9 +902,9 @@ private:
                     {
                         auto url = utils::resource::resource_location(std::string_view(s));
                         auto filename = url.filename();
-                        if (auto dot = filename.find('.'); dot != std::string::npos)
-                            filename.erase(dot);
                         filename = utils::encoding::percent_decode(filename);
+                        if (auto dot = filename.find('.', !filename.empty()); dot != std::string::npos)
+                            filename.erase(dot);
                         if (filename.empty())
                         {
                             result = { {}, other_failure };
