@@ -18,7 +18,4 @@
 
 using namespace hlasm_plugin::utils::path;
 
-TEST(path, current_path)
-{
-    EXPECT_NO_THROW(current_path());
-}
+TEST(path, current_path) { EXPECT_NO_THROW(current_path()); }
