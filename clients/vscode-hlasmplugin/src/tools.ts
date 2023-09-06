@@ -28,22 +28,6 @@ export async function inflate(data: Uint8Array): Promise<Uint8Array> {
     });
 }
 
-const decoder = new TextDecoder();
-const decoderStrict = new TextDecoder(undefined, { fatal: true });
-const encoder = new TextEncoder();
-
-export function textDecode(input: Uint8Array): string {
-    return decoder.decode(input);
-}
-
-export function textDecodeStrict(input: Uint8Array): string {
-    return decoderStrict.decode(input);
-}
-
-export function textEncode(input: string): Uint8Array {
-    return encoder.encode(input);
-}
-
 export const EOL = os.EOL;
 
 export async function sha256(s: string): Promise<string> {

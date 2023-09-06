@@ -12,7 +12,8 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
-import { textEncode, EOL, textDecodeStrict } from "./tools";
+import { EOL } from "./tools";
+import { textDecodeStrict, textEncode } from "./tools.common";
 
 function toBufferArray(s: string): Uint8Array[] {
     const e = new TextEncoder();

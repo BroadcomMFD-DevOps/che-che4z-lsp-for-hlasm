@@ -15,11 +15,10 @@
 import * as vscode from 'vscode';
 import * as vscodelc from 'vscode-languageclient/node';
 import * as net from 'net';
-import * as cp from 'child_process'
-import * as path from 'path'
-import { getConfig } from './eventsHandler'
-
-export type ServerVariant = "tcp" | "native" | "wasm";
+import * as cp from 'child_process';
+import * as path from 'path';
+import { getConfig } from './eventsHandler';
+import { decorateArgs, ServerVariant } from './serverFactory.common';
 
 const supportedNativePlatforms: Readonly<{ [key: string]: string }> = Object.freeze({
     'win32.x64': 'win32',
@@ -76,15 +75,6 @@ async function generateServerOption(method: ServerVariant): Promise<vscodelc.Ser
     else {
         throw Error("Invalid method");
     }
-}
-
-function decorateArgs(args: Array<string>): Array<string> {
-    return [
-        '--hlasm-start',
-        '--vscode-extensions',
-        ...args,
-        '--hlasm-end'
-    ];
 }
 
 function getWasmRuntimeArgs(): Array<string> {

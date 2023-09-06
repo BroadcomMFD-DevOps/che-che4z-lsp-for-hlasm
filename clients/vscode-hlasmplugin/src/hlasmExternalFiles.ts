@@ -16,7 +16,8 @@ import * as vscode from 'vscode';
 import * as vscodelc from 'vscode-languageclient';
 import { asError, isCancellationError } from "./helpers";
 import { uriFriendlyBase16Encode } from "./conversions";
-import { deflate, inflate, sha256, textDecode } from './tools';
+import { deflate, inflate, sha256 } from './tools';
+import { textDecode } from './tools.common';
 
 export const enum ExternalRequestType {
     read_file = 'read_file',

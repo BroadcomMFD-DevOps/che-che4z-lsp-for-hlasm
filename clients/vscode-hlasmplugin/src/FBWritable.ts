@@ -15,7 +15,7 @@
 import { Writable } from "stream";
 import { convertBuffer } from "./conversions";
 import { concat } from "./helpers";
-import { textDecode } from "./tools";
+import { textDecode } from "./tools.common";
 
 export class FBWritable extends Writable {
     private chunks: Uint8Array[] = [];

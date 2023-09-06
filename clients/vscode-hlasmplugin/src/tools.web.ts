@@ -12,6 +12,8 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
+import { textEncode, textDecode } from './tools.common';
+
 export async function deflate(data: Uint8Array): Promise<Uint8Array> {
     const input = new ReadableStream({
         start(controller) {
@@ -30,22 +32,6 @@ export async function inflate(data: Uint8Array): Promise<Uint8Array> {
         },
     });
     return new Uint8Array(await new Response(input.pipeThrough(new DecompressionStream('deflate'))).arrayBuffer());
-}
-
-const decoder = new TextDecoder();
-const decoderStrict = new TextDecoder(undefined, { fatal: true, ignoreBOM: true });
-const encoder = new TextEncoder();
-
-export function textDecode(input: Uint8Array): string {
-    return decoder.decode(input);
-}
-
-export function textDecodeStrict(input: Uint8Array): string {
-    return decoderStrict.decode(input);
-}
-
-export function textEncode(input: string): Uint8Array {
-    return encoder.encode(input);
 }
 
 export const EOL = '\n';
@@ -76,7 +62,7 @@ function fromHexNibble(s: string): number {
 }
 
 export function textFromHex(s: string): string {
-    return decoder.decode(arrayFromHex(s));
+    return textDecode(arrayFromHex(s));
 }
 
 export function arrayFromHex(s: string): Uint8Array {

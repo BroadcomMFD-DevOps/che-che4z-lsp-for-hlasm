@@ -16,7 +16,7 @@ import * as vscode from 'vscode';
 import { hlasmplugin_folder, proc_grps_file, pgm_conf_file } from './constants';
 import { retrieveConfigurationNodes } from './configurationNodes';
 import { generateConfigurationFilesCodeActions } from './code_actions/configurationFilesActions';
-import { textDecode } from './tools';
+import { textDecode } from './tools.common';
 
 /**
  * Handles changes in configurations files.

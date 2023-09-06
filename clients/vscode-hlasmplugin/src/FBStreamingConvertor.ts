@@ -14,7 +14,7 @@
 
 import { convertBuffer } from "./conversions";
 import { concat } from "./helpers";
-import { textDecode } from "./tools";
+import { textDecode } from "./tools.common";
 
 export class FBStreamingConvertor {
     private pending: Uint8Array = new Uint8Array();

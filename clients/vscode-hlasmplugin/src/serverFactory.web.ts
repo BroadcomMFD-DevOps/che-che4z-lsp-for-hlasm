@@ -16,8 +16,7 @@ import * as vscode from 'vscode';
 import * as vscodelc from 'vscode-languageclient/browser';
 import { EXTENSION_ID } from './extension';
 import { getConfig } from './eventsHandler';
-
-export type ServerVariant = "tcp" | "native" | "wasm";
+import { decorateArgs } from './serverFactory.common';
 
 function worker_main(extensionUri: string, hlasm_arguments: string[]) {
 
@@ -66,13 +65,4 @@ export async function createLanguageServer(_serverVariant: ServerVariant, client
     const worker = new Worker(URL.createObjectURL(new Blob([worker_script], { type: 'application/javascript' })));
 
     return new vscodelc.LanguageClient(EXTENSION_ID, 'HLASM extension Language Server', clientOptions, worker);
-}
-
-function decorateArgs(args: Array<string>): Array<string> {
-    return [
-        '--hlasm-start',
-        '--vscode-extensions',
-        ...args,
-        '--hlasm-end'
-    ];
 }

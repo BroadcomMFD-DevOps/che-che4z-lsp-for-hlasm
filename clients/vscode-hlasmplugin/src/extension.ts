@@ -20,7 +20,8 @@ import { HLASMConfigurationProvider, getCurrentProgramName, getProgramName } fro
 import { insertContinuation, removeContinuation, rearrangeSequenceNumbers } from './continuationHandler';
 import { CustomEditorCommands } from './customEditorCommands';
 import { EventsHandler, getConfig } from './eventsHandler';
-import { ServerVariant, createLanguageServer } from './serverFactory';
+import { ServerVariant } from './serverFactory.common';
+import { createLanguageServer } from './serverFactory';
 import { HLASMDebugAdapterFactory } from './hlasmDebugAdapterFactory';
 import { Telemetry, createTelemetry } from './telemetry';
 import { LanguageClientErrorHandler } from './languageClientErrorHandler';
