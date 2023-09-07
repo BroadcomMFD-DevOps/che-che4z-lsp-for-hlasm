@@ -78,7 +78,7 @@ const getCacheInfo = async (uri: vscode.Uri, fs: vscode.FileSystem) => {
 export async function activate(context: vscode.ExtensionContext): Promise<HlasmExtension> {
     const serverVariant = getConfig<ServerVariant>('serverVariant', 'native');
 
-    const telemetry = await createTelemetry();
+    const telemetry = createTelemetry();
     context.subscriptions.push(telemetry);
 
     telemetry.reportEvent("hlasm.activated", { server_variant: serverVariant.toString() });

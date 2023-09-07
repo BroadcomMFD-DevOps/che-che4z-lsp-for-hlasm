@@ -25,19 +25,13 @@ export interface Telemetry {
     dispose: () => void,
 }
 
-export async function createTelemetry(): Promise<Telemetry> {
-    try {
+export function createTelemetry(): Telemetry {
+    try { // This is mainly to handle Theia's lack of support
         if (TELEMETRY_KEY_ENCODED !== TELEMETRY_DEFAULT_KEY) {
-            // This is mainly to handle Theia's lack of support
             const reporter = new TelemetryReporter(decodeBase64(TELEMETRY_KEY_ENCODED).trim());
-
             return {
-                reportEvent: (eventName: string, properties?: TelemetryEventProperties, measurements?: TelemetryEventMeasurements) => {
-                    reporter.sendTelemetryEvent(eventName, properties, measurements);
-                },
-                dispose: () => {
-                    reporter.dispose();
-                }
+                reportEvent: (eventName, properties, measurements) => { reporter.sendTelemetryEvent(eventName, properties, measurements); },
+                dispose: () => { reporter.dispose(); },
             };
         }
     }
