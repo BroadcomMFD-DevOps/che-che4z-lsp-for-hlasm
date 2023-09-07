@@ -20,7 +20,7 @@ import { isCancellationError } from "../../helpers";
 import { CancellationError } from "vscode";
 import { connectionSecurityLevel, gatherSecurityLevelFromZowe, translateConnectionInfo } from "../../ftpCreds";
 import { FBStreamingConvertor } from "../../FBStreamingConvertor";
-
+import { textFromHex, arrayFromHex } from '../../tools.web';
 
 suite('Utilities', () => {
 
@@ -190,4 +190,15 @@ suite('Utilities', () => {
         });
     });
 
+    test('Tools web alternative', () => {
+        let allBytesText = '';
+        for (const u of '0123456789abcdef')
+            for (const l of '0123456789ABCDEF')
+                allBytesText += u + l;
+        const allBytes = arrayFromHex(allBytesText);
+        for (let i = 0; i < 256; ++i)
+            assert.strictEqual(allBytes.at(i), i);
+
+        assert.strictEqual(textFromHex('48656c6c6f2c20576f726c6421'), 'Hello, World!');
+    });
 });
