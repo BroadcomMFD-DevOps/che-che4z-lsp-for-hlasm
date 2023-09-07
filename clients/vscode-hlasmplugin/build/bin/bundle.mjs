@@ -90,7 +90,7 @@ function fileExists(dir, file) {
 
 function getWebPlugin(replaceAssert) {
     const assertReplacement = [ok, strictEqual, match, deepStrictEqual];
-    const assertReplacementSource = assertReplacement.map(x => 'export ' + x.toString()).join('\n');
+    const assertReplacementSource = assertReplacement.map(x => 'export ' + x.toString()).join('\n') + deepStrictEqualImpl.toString();
     return {
         name: 'web-substitution',
         setup: (build) => {
@@ -114,6 +114,10 @@ function ok(e, msg) { if (!e) throw Error(msg); }
 function strictEqual(l, r, msg) { if (!Object.is(l, r)) throw Error(msg); }
 function match(s, r, msg) { if (!r.test(s)) throw Error(msg); }
 function deepStrictEqual(l, r, msg) {
+    deepStrictEqualImpl(l, r, msg, { id: 0, map: new Map() });
+}
+function deepStrictEqualImpl(l, r, msg, visitied) {
+
     if (Object.is(l, r))
         return;
 
@@ -128,12 +132,22 @@ function deepStrictEqual(l, r, msg) {
 
     if (larray !== rarray)
         throw Error(msg);
-    else if (larray) {
+
+    const lId = visitied.map.get(l) ?? (visitied.map.set(l, visitied.id), visitied.id++);
+    const rId = visitied.map.get(r) ?? (visitied.map.set(r, visitied.id), visitied.id++);
+    const p = 67108859;
+    if (visitied.id >= p)
+        throw Error('deepStrictEqual limit reached');
+    if (visitied.map.has(lId * p + rId))
+        return;
+    visitied.map.set(lId * p + rId);
+
+    if (larray) {
         if (l.length !== r.length)
             throw Error(msg);
 
         for (let i = 0; i < l.length; ++i)
-            deepStrictEqual(l[i], r[i], msg);
+            deepStrictEqualImpl(l[i], r[i], msg, visitied);
     }
     else {
         const lkey = Object.keys(l);
@@ -146,7 +160,7 @@ function deepStrictEqual(l, r, msg) {
             if (!(key in r))
                 throw Error(msg);
 
-            deepStrictEqual(l[key], r[key], msg);
+            deepStrictEqualImpl(l[key], r[key], msg, visitied);
         }
     }
 }
@@ -161,7 +175,10 @@ function selftest() {
     for (const arg of [undefined, null, false, '', 0])
         assert.throws(() => ok(arg, err_msg), err_predicate);
 
-    const testValues = [undefined, null, 0, -0, 1, false, true, [], [1], {}, { a: 1 }, '', 'a'];
+    const x = {}; x.x = x;
+    const a = []; a.push(a);
+
+    const testValues = [undefined, null, 0, -0, 1, false, true, [], [1], {}, { a: 1 }, '', 'a', x, a];
     for (let li = 0; li < testValues.length; ++li) {
         for (let ri = 0; ri < testValues.length; ++ri) {
             if (li === ri)
