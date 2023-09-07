@@ -26,7 +26,7 @@ async function main() {
     const child = spawn('node', [
         theiaDir+'/src-gen/backend/main.js',
         './dist_test/workspace/',
-        '--extensionTestsPath='+process.cwd()+'/dist_test', 
+        '--extensionTestsPath='+process.cwd()+'/dist_test/test/suite', 
         '--hostname', '0.0.0.0',
         '--port','3000' 
     ]);
