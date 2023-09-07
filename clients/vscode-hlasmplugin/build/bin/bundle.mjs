@@ -2,29 +2,10 @@ import * as assert from 'assert';
 import * as dts from 'dts-bundle-generator';
 import * as esbuild from 'esbuild';
 import * as fs from 'fs';
-import { default as glob } from 'glob';
 import * as path from 'path';
 
 if (process.argv.length === 3 && process.argv[2] === 'selftest') {
-    const err_msg = 'test msg';
-    const err_predicate = e => e?.message === err_msg;
-
-    for (const arg of [true, 1, {}, [], 'a'])
-        ok(arg);
-
-    for (const arg of [undefined, null, false, '', 0])
-        assert.throws(() => ok(arg, err_msg), err_predicate);
-
-    const testValues = [undefined, null, 0, -0, 1, false, true, [], [1], {}, { a: 1 }, '', 'a'];
-    for (let li = 0; li < testValues.length; ++li) {
-        for (let ri = 0; ri < testValues.length; ++ri) {
-            if (li === ri)
-                deepStrictEqual(testValues[li], testValues[ri]);
-            else
-                assert.throws(() => deepStrictEqual(testValues[li], testValues[ri], err_msg), err_predicate);
-        }
-    }
-
+    selftest();
     process.exit(0);
 }
 
@@ -52,6 +33,7 @@ if ((mode & 1) === 1)
             source: 'src/extension.interface.ts',
             out: 'typings/extension.d.ts',
         },
+        isTest: false,
     });
 if ((mode & 2) === 2)
     buildDetails.push({
@@ -59,6 +41,7 @@ if ((mode & 2) === 2)
             source: target === 0 ? 'src/test/suite/index.ts' : 'src/test/suite/index.web.ts',
             out: 'dist_test',
         },
+        isTest: true,
     });
 
 for (const bd of buildDetails) {
@@ -85,11 +68,11 @@ for (const bd of buildDetails) {
         entryPoints: [bd.main.source],
         sourcemap: true,
         tsconfig: tsconfig,
-        external: target === 0 ? ['vscode', 'mocha'] : ['vscode'],
+        external: ['vscode'],
         minify: false,
         platform: target === 0 ? 'node' : 'browser',
         format: 'cjs',
-        plugins: target === 0 ? undefined : [getWebPlugin()],
+        plugins: target === 0 ? undefined : [getWebPlugin(bd.isTest)],
     });
 }
 
@@ -105,7 +88,7 @@ function fileExists(dir, file) {
     }
 }
 
-function getWebPlugin() {
+function getWebPlugin(replaceAssert) {
     const assertReplacement = [ok, strictEqual, match, deepStrictEqual];
     const assertReplacementSource = assertReplacement.map(x => 'export ' + x.toString()).join('\n');
     return {
@@ -114,13 +97,15 @@ function getWebPlugin() {
             build.onResolve({ filter: /^[.]{1,2}\// }, args => fileExists(args.resolveDir, args.path + '.web.ts') && {
                 path: path.join(args.resolveDir, args.path + '.web.ts'),
             } || undefined);
-            build.onResolve({ filter: /^assert$/ }, args => ({
-                path: args.path,
-                namespace: 'assert',
-            }));
-            build.onLoad({ filter: /^assert$/, namespace: 'assert' }, () => ({
-                contents: assertReplacementSource,
-            }))
+            if (replaceAssert) {
+                build.onResolve({ filter: /^assert$/ }, args => ({
+                    path: args.path,
+                    namespace: 'assert',
+                }));
+                build.onLoad({ filter: /^assert$/, namespace: 'assert' }, () => ({
+                    contents: assertReplacementSource,
+                }));
+            }
         },
     };
 }
@@ -162,6 +147,27 @@ function deepStrictEqual(l, r, msg) {
                 throw Error(msg);
 
             deepStrictEqual(l[key], r[key], msg);
+        }
+    }
+}
+
+function selftest() {
+    const err_msg = 'test msg';
+    const err_predicate = e => e?.message === err_msg;
+
+    for (const arg of [true, 1, {}, [], 'a'])
+        ok(arg);
+
+    for (const arg of [undefined, null, false, '', 0])
+        assert.throws(() => ok(arg, err_msg), err_predicate);
+
+    const testValues = [undefined, null, 0, -0, 1, false, true, [], [1], {}, { a: 1 }, '', 'a'];
+    for (let li = 0; li < testValues.length; ++li) {
+        for (let ri = 0; ri < testValues.length; ++ri) {
+            if (li === ri)
+                deepStrictEqual(testValues[li], testValues[ri]);
+            else
+                assert.throws(() => deepStrictEqual(testValues[li], testValues[ri], err_msg), err_predicate);
         }
     }
 }

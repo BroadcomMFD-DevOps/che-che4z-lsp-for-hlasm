@@ -22,16 +22,10 @@ function worker_main(extensionUri: string, hlasm_arguments: string[]) {
 
     // add temporary message listener
     const tmpQueue: any[] = [];
-    self.onmessage = (data: any) => {
-        tmpQueue.push(data);
-    }
+    self.onmessage = (data: any) => { tmpQueue.push(data); }
 
     if (!extensionUri.endsWith('/'))
         extensionUri += '/';
-
-    const server_uri = extensionUri + 'bin/wasm/language_server.mjs';
-    const wasm_uri = extensionUri + 'bin/wasm/language_server.wasm';
-    const worker_uri = extensionUri + 'bin/wasm/language_server.worker.js';
 
     const asDataUri = (x) => new Promise<string>((resolve, reject) => {
         const filereader = new FileReader();
@@ -39,8 +33,8 @@ function worker_main(extensionUri: string, hlasm_arguments: string[]) {
         filereader.readAsDataURL(x);
     });
 
-    Promise.all([fetch(server_uri).then(x => x.blob()).then(x => asDataUri(x)), fetch(wasm_uri).then(x => x.blob()), fetch(worker_uri).then(x => x.blob())]).then(([main_text, wasm_blob, worker_blob]) => {
-        import(main_text).then(m => m.default({
+    Promise.all(['language_server.mjs', 'language_server.wasm', 'language_server.worker.js'].map(f => fetch(extensionUri + 'bin/wasm/' + f).then(x => x.blob()))).then(([main_blob, wasm_blob, worker_blob]) => {
+        asDataUri(main_blob).then(main_text => import(main_text).then(m => m.default({
             tmpQueue,
             worker: self,
             mainScriptUrlOrBlob: main_text,
@@ -55,7 +49,7 @@ function worker_main(extensionUri: string, hlasm_arguments: string[]) {
                 }
                 return path;
             },
-        }))
+        })))
     });
 }
 
