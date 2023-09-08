@@ -11,4 +11,4 @@
 #   Broadcom, Inc. - initial API and implementation
 
 message(STATUS "Generating Node runner for ${INPUT_FILE} into ${OUTPUT_FILE}...")
-configure_file("${CMAKE_CURRENT_LIST_DIR}/node_runner.js" ${OUTPUT_FILE})
+configure_file("${CMAKE_CURRENT_LIST_DIR}/node_runner.js.template" ${OUTPUT_FILE})
