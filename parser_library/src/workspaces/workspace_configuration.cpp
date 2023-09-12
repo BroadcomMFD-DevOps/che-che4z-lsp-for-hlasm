@@ -376,12 +376,11 @@ utils::task workspace_configuration::process_processor_group_library(const confi
         return {};
     }
     else
-        return find_and_add_libs(utils::resource::resource_location(
-                                     rl.get_uri().substr(0, rl.get_uri().find_last_of("/", first_wild_card) + 1)),
-            std::move(rl),
-            prc_grp,
-            std::move(lib_local_opts),
-            diags);
+    {
+        utils::resource::resource_location root(
+            rl.get_uri().substr(0, rl.get_uri().find_last_of("/", first_wild_card) + 1));
+        return find_and_add_libs(std::move(root), std::move(rl), prc_grp, std::move(lib_local_opts), diags);
+}
 }
 
 utils::task workspace_configuration::process_processor_group_and_cleanup_libraries(
