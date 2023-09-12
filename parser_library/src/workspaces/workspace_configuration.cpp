@@ -289,12 +289,15 @@ utils::task workspace_configuration::process_processor_group(const config::proce
 
     for (auto& lib_or_dataset : pg.libs)
     {
-        co_await std::visit(
+        // Workaround for poor symmetric transfer support in WebAssembly
+        auto t = std::visit(
             [this, &alternative_root, &diags, &fallback_macro_extensions, &prc_grp](const auto& lib) {
                 return process_processor_group_library(
                     lib, alternative_root, diags, fallback_macro_extensions, prc_grp);
             },
             lib_or_dataset);
+        if (t.valid())
+            co_await std::move(t);
     }
     if (alternative_root.empty())
         m_proc_grps.try_emplace(basic_conf { prc_grp.name() }, std::move(prc_grp));
@@ -321,7 +324,7 @@ utils::task workspace_configuration::process_processor_group_library(const confi
 
     prc_grp.add_library(get_local_library(new_uri, { .optional_library = dsn.optional }));
 
-    co_return;
+    return {};
 }
 
 namespace {
@@ -359,7 +362,7 @@ utils::task workspace_configuration::process_processor_group_library(const confi
     if (!lib_path.has_value())
     {
         diags.push_back(diagnostic_s::warning_L0006(m_proc_grps_loc, lib.path));
-        co_return;
+        return {};
     }
 
     auto lib_local_opts = get_library_local_options(lib, fallback_macro_extensions);
@@ -370,13 +373,14 @@ utils::task workspace_configuration::process_processor_group_library(const confi
     {
         modify_hlasm_external_uri(rl, m_location);
         prc_grp.add_library(get_local_library(rl, lib_local_opts));
+        return {};
     }
     else
-        co_await find_and_add_libs(utils::resource::resource_location(
-                                       rl.get_uri().substr(0, rl.get_uri().find_last_of("/", first_wild_card) + 1)),
-            rl,
+        return find_and_add_libs(utils::resource::resource_location(
+                                     rl.get_uri().substr(0, rl.get_uri().find_last_of("/", first_wild_card) + 1)),
+            std::move(rl),
             prc_grp,
-            lib_local_opts,
+            std::move(lib_local_opts),
             diags);
 }
 
@@ -628,10 +632,10 @@ utils::value_task<parse_config_file_result> workspace_configuration::parse_b4g_c
     co_return parse_config_file_result::parsed;
 }
 
-utils::task workspace_configuration::find_and_add_libs(const utils::resource::resource_location& root,
-    const utils::resource::resource_location& path_pattern,
+utils::task workspace_configuration::find_and_add_libs(utils::resource::resource_location root,
+    utils::resource::resource_location path_pattern,
     processor_group& prc_grp,
-    const library_local_options& opts,
+    library_local_options opts,
     std::vector<diagnostic_s>& diags)
 {
     std::regex path_validator = percent_encoded_pathmask_to_regex(path_pattern.get_uri());
