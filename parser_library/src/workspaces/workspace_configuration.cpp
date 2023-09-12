@@ -865,11 +865,14 @@ workspace_configuration::make_external_proc_group(
 
     for (auto& lib_or_dataset : pg.libs)
     {
-        co_await std::visit(
+        // Workaround for poor symmetric transfer support in WebAssembly
+        auto t = std::visit(
             [this, &diags, &prc_grp](const auto& lib) {
                 return process_processor_group_library(lib, empty_alternative_cfg_root, diags, {}, prc_grp);
             },
             lib_or_dataset);
+        if (t.valid())
+            co_await std::move(t);
     }
     m_utilized_settings_values.merge(std::move(utilized_settings_values));
 
