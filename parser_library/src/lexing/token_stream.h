@@ -25,7 +25,7 @@ namespace hlasm_plugin::parser_library::lexing {
 
 // custom implementation of antlr token stream
 // helps to control the filtering of the token stream
-class token_stream : public antlr4::BufferedTokenStream
+class token_stream final : public antlr4::BufferedTokenStream
 {
     bool enabled_cont_;
     bool needSetup_;
