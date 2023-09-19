@@ -49,7 +49,7 @@ public:
 
     auto get_line_limits() const { return token_source->get_line_limits(); }
 
-protected:
+private:
     ssize_t adjustSeekIndex(size_t i) override;
 
     antlr4::Token* LB(size_t k) override;
@@ -62,7 +62,8 @@ protected:
 
     size_t previous_token_on_channel(size_t i);
 
-private:
+    token* get_internal(size_t i);
+
     std::vector<decltype(_tokens)> tokens_;
 };
 
