@@ -112,7 +112,7 @@ ssize_t token_stream::adjustSeekIndex(size_t i)
 
         auto* t = get_internal(i);
 
-        while (!is_on_channel(token))
+        while (!is_on_channel(t))
         {
             ++i;
             sync(i);
@@ -150,7 +150,7 @@ antlr4::Token* token_stream::LB(size_t k)
 
         auto* t = get_internal(i);
 
-        if (is_on_channel(token))
+        if (is_on_channel(t))
             ++n;
     }
 
@@ -169,9 +169,9 @@ size_t token_stream::next_token_on_channel(size_t i)
     size_t to_consume = i - _p;
     i = _p;
 
-    while (!is_on_channel(token) || to_consume != 0)
+    while (!is_on_channel(t) || to_consume != 0)
     {
-        to_consume -= is_on_channel(token) ? 1 : 0;
+        to_consume -= is_on_channel(t) ? 1 : 0;
         ++i;
         sync(i);
         t = get_internal(i);
@@ -199,7 +199,7 @@ size_t token_stream::previous_token_on_channel(size_t i)
     {
         auto* t = get_internal(i);
 
-        if (is_on_channel(token))
+        if (is_on_channel(t))
         {
             if (--to_skip == 0)
                 return i;
