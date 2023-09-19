@@ -22,6 +22,7 @@
 #include "lexer.h"
 
 namespace hlasm_plugin::parser_library::lexing {
+class token;
 
 // custom implementation of antlr token stream
 // helps to control the filtering of the token stream
@@ -56,7 +57,7 @@ private:
 
     void setup() override;
 
-    bool is_on_channel(antlr4::Token* token);
+    bool is_on_channel(token* t);
 
     size_t next_token_on_channel(size_t i);
 

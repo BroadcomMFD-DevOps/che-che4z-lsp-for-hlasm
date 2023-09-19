@@ -214,8 +214,8 @@ size_t token_stream::previous_token_on_channel(size_t i)
 
 token* token_stream::get_internal(size_t i) { return static_cast<token*>(get(i)); }
 
-bool token_stream::is_on_channel(token* token)
+bool token_stream::is_on_channel(token* t)
 {
-    return token->getChannel() == lexer::Channels::DEFAULT_CHANNEL
-        || (enabled_cont_ && token->getType() == lexer::CONTINUATION) || token->getType() == antlr4::Token::EOF;
+    return t->getChannel() == lexer::Channels::DEFAULT_CHANNEL || (enabled_cont_ && t->getType() == lexer::CONTINUATION)
+        || t->getType() == antlr4::Token::EOF;
 }
