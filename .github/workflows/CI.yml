@@ -20,6 +20,7 @@ on:
       - master
       - development
       - release-next
+      - iba_debug_build
   pull_request:
     branches:
       - master
