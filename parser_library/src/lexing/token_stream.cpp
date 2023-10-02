@@ -164,7 +164,7 @@ size_t token_stream::next_token_on_channel(size_t i)
     if (i >= size())
         return size() - 1;
 
-    auto t = get_internal(_p);
+    auto* t = get_internal(_p);
 
     size_t to_consume = i - _p;
     i = _p;
