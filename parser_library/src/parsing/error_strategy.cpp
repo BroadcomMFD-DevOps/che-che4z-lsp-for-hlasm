@@ -79,10 +79,10 @@ void error_strategy::recover(antlr4::Parser* recognizer, std::exception_ptr e)
 
 antlr4::Token* error_strategy::recoverInline(antlr4::Parser* recognizer)
 {
-    if (!m_lookahead_recovery)
-        return DefaultErrorStrategy::recoverInline(recognizer);
+    if (m_lookahead_recovery)
+        throw antlr4::InputMismatchException(recognizer);
 
-    throw antlr4::InputMismatchException(recognizer);
+    return DefaultErrorStrategy::recoverInline(recognizer);
 }
 
 } // namespace hlasm_plugin::parser_library::parsing
