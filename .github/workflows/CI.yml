@@ -329,8 +329,7 @@ jobs:
         run: npm run compile
         working-directory: ${{ env.CLIENT_DIR }}
       - name: Update version
-        if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/release-next'
-        run: npx semantic-release --dry-run
+        run: ${{ (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/release-next') && '' || 'HLASM_ALPHA_BUILD=1' }} npx semantic-release --dry-run
         working-directory: ${{ env.CLIENT_DIR }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -406,7 +405,6 @@ jobs:
           git merge origin/master
 
           cd ${{ env.CLIENT_DIR }}
-          sed -i 's/"version": "\(.*\)"/"version": "\1-NEXT"/g' package.json
           sed -i '2s/^/\n## ****Unreleased****\n/' CHANGELOG.md
           git add package.json CHANGELOG.md
           git commit -m "chore: Prepare for next development cycle [skip ci]"

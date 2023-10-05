@@ -9,5 +9,9 @@ DATE=$5
 { printf "%s" "$RELEASE_NOTES"; cat ../../CHANGELOG.md; } > tmp.md
 mv tmp.md ../../CHANGELOG.md
 
-sed -i 's/"version": ".*"/"version": "'$VERSION'"/g' package.json
+if [[ "$VERSION" =~ "-alpha" ]]; then
+    sed -i 's/"version": ".*"/"version": "'$VERSION+$DATE'"/g' package.json
+else
+    sed -i 's/"version": ".*"/"version": "'$VERSION'"/g' package.json
+fi
 sed -i 's@\*\*\*\*Unreleased\*\*\*\*@['$VERSION'](https://github.com/eclipse-che4z/che-che4z-lsp-for-hlasm/compare/'$OLD_VERSION'...'$VERSION') ('`date +%Y-%m-%d`')@g' CHANGELOG.md
