@@ -73,8 +73,7 @@ jobs:
       - name: Name PR merge commit
         if: github.event.pull_request
         run: |
-          [ -z "$TEST" ] || git commit --amend -m "$TITLE"
-          git checkout -b alpha
+          [ -z "$TITLE" ] || git commit --amend -m "$TITLE"
         env:
           TITLE: ${{ github.event.pull_request.title }}
       - name: Update version

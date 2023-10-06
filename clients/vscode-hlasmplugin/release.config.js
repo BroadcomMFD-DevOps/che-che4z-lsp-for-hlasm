@@ -129,6 +129,12 @@ function getAlphaConfig() {
                 name: execSync('git rev-parse --abbrev-ref HEAD').toString().trim(),
                 prerelease: 'alpha',
             },
+            ...(process.env.GITHUB_REF ? [
+                {
+                    name: process.env.GITHUB_REF,
+                    prerelease: 'alpha',
+                }
+            ] : [])
         ],
         ci: false,
         tagFormat: '${version}',
