@@ -66,7 +66,7 @@ jobs:
         run: npm ci
         working-directory: ${{ env.CLIENT_DIR }}
       - name: Get release context
-        if: !(github.ref == 'refs/heads/master' || github.ref == 'refs/heads/release-next')
+        if: ${{ !(github.ref == 'refs/heads/master' || github.ref == 'refs/heads/release-next') }}
         run: |
           git fetch --filter=tree:0 --unshallow origin HEAD
           git fetch --tags --filter=tree:0 `node -e 'console.log(require("./clients/vscode-hlasmplugin/package.json").repository.url)'` master:master
