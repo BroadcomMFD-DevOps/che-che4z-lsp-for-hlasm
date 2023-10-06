@@ -76,6 +76,7 @@ jobs:
           git config --global user.email "actions@github.com"
           git config --global user.name "github-actions"
           [ -z "$TITLE" ] || git commit --amend -m "$TITLE"
+          git checkout -b $GITHUB_REF
         env:
           TITLE: ${{ github.event.pull_request.title }}
       - name: Update version
