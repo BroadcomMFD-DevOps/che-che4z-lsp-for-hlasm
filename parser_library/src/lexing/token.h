@@ -36,8 +36,18 @@ public:
         size_t char_position_in_line,
         size_t token_index,
         size_t char_position_in_line_16,
-        size_t end_of_token_in_line_utf16) noexcept;
-    token(const token& o) noexcept;
+        size_t end_of_token_in_line_utf16) noexcept
+        : input_(input)
+        , type_(type)
+        , channel_(channel)
+        , start_(start)
+        , stop_(stop)
+        , line_(line)
+        , char_position_in_line_(char_position_in_line)
+        , token_index_(token_index)
+        , char_position_in_line_16_(char_position_in_line_16)
+        , end_of_token_in_line_utf16_(end_of_token_in_line_utf16)
+    {}
 
     std::string getText() const override;
 
@@ -63,7 +73,7 @@ public:
 
     size_t get_char_position_in_line_16() const { return char_position_in_line_16_; }
 
-    size_t get_end_of_token_in_line_utf16() const;
+    size_t get_end_of_token_in_line_utf16() const { return end_of_token_in_line_utf16_; }
 
     size_t get_logical_column() const { return char_position_in_line_; }
 
