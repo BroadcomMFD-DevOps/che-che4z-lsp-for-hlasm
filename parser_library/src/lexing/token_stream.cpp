@@ -87,8 +87,7 @@ std::string token_stream::getText(const antlr4::misc::Interval& interval)
         return "";
     }
 
-    const auto limit = token_source->token_count();
-    if (stop >= limit)
+    if (const auto limit = token_source->token_count(); stop >= limit)
     {
         stop = limit - 1;
     }
@@ -96,7 +95,7 @@ std::string token_stream::getText(const antlr4::misc::Interval& interval)
     std::string ss;
     for (size_t i = start; i <= stop; i++)
     {
-        auto* t = token_source->get_token(i);
+        const auto* t = token_source->get_token(i);
         if (t->getType() == Token::EOF)
         {
             break;
@@ -180,7 +179,7 @@ void token_stream::reset()
     pos = 0;
 }
 
-bool token_stream::is_on_channel(token* t) const
+bool token_stream::is_on_channel(const token* t) const
 {
     return t->getChannel() == lexer::Channels::DEFAULT_CHANNEL || (enabled_cont && t->getType() == lexer::CONTINUATION)
         || t->getType() == antlr4::Token::EOF;

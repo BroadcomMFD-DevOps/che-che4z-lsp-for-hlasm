@@ -73,7 +73,7 @@ void lexer::create_token(size_t ttype, size_t channel)
 
     if (tokens.size() == tokens.capacity())
     {
-        if (tokens.size() == 0)
+        if (tokens.empty())
             tokens.reserve(4096 / sizeof(token));
         else
         {
@@ -81,7 +81,7 @@ void lexer::create_token(size_t ttype, size_t channel)
             // However, we no longer rely on address alone to identify identical tokens,
             // Therefore, we just need to copy the values from the old vector to the new one to preserve
             // value accessible via index.
-            auto& old_tokens = retired_tokens.emplace_back(std::move(tokens));
+            const auto& old_tokens = retired_tokens.emplace_back(std::move(tokens));
             tokens.reserve(old_tokens.capacity() * 2);
             for (const auto& t : old_tokens)
                 tokens.emplace_back(t);

@@ -66,7 +66,7 @@ public:
     std::string getSourceName() const override;
 
 private:
-    bool is_on_channel(token* t) const;
+    bool is_on_channel(const token* t) const;
 };
 
 } // namespace hlasm_plugin::parser_library::lexing
