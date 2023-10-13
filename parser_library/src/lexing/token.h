@@ -27,8 +27,7 @@ namespace hlasm_plugin::parser_library::lexing {
 class token final : public antlr4::Token
 {
 public:
-    token(antlr4::TokenSource* source,
-        antlr4::CharStream* input,
+    token(antlr4::CharStream* input,
         size_t type,
         size_t channel,
         size_t start,
@@ -40,34 +39,33 @@ public:
         size_t end_of_token_in_line_utf16);
     std::string getText() const override;
 
-    size_t getType() const override;
+    size_t getType() const override { return type_; }
 
-    size_t getLine() const override;
+    size_t getLine() const override { return line_; }
 
-    size_t getCharPositionInLine() const override;
+    size_t getCharPositionInLine() const override { return get_char_position_in_line_16(); }
 
-    size_t getChannel() const override;
+    size_t getChannel() const override { return channel_; }
 
-    size_t getTokenIndex() const override;
+    size_t getTokenIndex() const override { return token_index_; }
 
-    size_t getStartIndex() const override;
+    size_t getStartIndex() const override { return start_; }
 
-    size_t getStopIndex() const override;
+    size_t getStopIndex() const override { return stop_; }
 
-    antlr4::TokenSource* getTokenSource() const override;
+    antlr4::TokenSource* getTokenSource() const override { return nullptr; }
 
-    antlr4::CharStream* getInputStream() const override;
+    antlr4::CharStream* getInputStream() const override { return input_; }
 
     std::string toString() const override;
 
-    size_t get_char_position_in_line_16() const;
+    size_t get_char_position_in_line_16() const { return char_position_in_line_16_; }
 
     size_t get_end_of_token_in_line_utf16() const;
 
     size_t get_logical_column() const { return char_position_in_line_; }
 
 private:
-    antlr4::TokenSource* source_ {};
     antlr4::CharStream* input_ {};
     size_t type_;
     size_t channel_;
