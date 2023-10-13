@@ -37,7 +37,7 @@ antlr4::Token* token_stream::LT(ssize_t k)
     auto p = pos;
     if (k > 0)
     {
-        ssize_t token_count = token_source->token_count();
+        size_t token_count = token_source->token_count();
         while (true)
         {
             if (p >= token_count)
@@ -180,7 +180,7 @@ void token_stream::reset()
     pos = 0;
 }
 
-bool token_stream::is_on_channel(token* t)
+bool token_stream::is_on_channel(token* t) const
 {
     return t->getChannel() == lexer::Channels::DEFAULT_CHANNEL || (enabled_cont && t->getType() == lexer::CONTINUATION)
         || t->getType() == antlr4::Token::EOF;

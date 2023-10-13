@@ -36,7 +36,9 @@ public:
         size_t char_position_in_line,
         size_t token_index,
         size_t char_position_in_line_16,
-        size_t end_of_token_in_line_utf16);
+        size_t end_of_token_in_line_utf16) noexcept;
+    token(const token& o) noexcept;
+
     std::string getText() const override;
 
     size_t getType() const override { return type_; }

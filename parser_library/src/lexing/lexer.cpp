@@ -51,7 +51,8 @@ void lexer::set_file_offset(position file_offset, size_t logical_column, bool pr
 
 void lexer::reset()
 {
-    token_queue_.clear();
+    tokens.clear();
+    retired_tokens.clear();
     last_token_id_ = 0;
     input_state_->char_position = 0;
     line_limits.clear();
@@ -70,7 +71,24 @@ void lexer::create_token(size_t ttype, size_t channel)
 
     const auto& end = token_start_state_.line == input_state_->line ? *input_state_ : last_line;
 
-    token_queue_.emplace_back(token_start_state_.input,
+    if (tokens.size() == tokens.capacity())
+    {
+        if (tokens.size() == 0)
+            tokens.reserve(4096 / sizeof(token));
+        else
+        {
+            // The parser definitely stores addresses of tokens, so we need to preserve them until reset.
+            // However, we no longer rely on address alone to identify identical tokens,
+            // Therefore, we just need to copy the values from the old vector to the new one to preserve
+            // value accessible via index.
+            auto& old_tokens = retired_tokens.emplace_back(std::move(tokens));
+            tokens.reserve(old_tokens.capacity() * 2);
+            for (const auto& t : old_tokens)
+                tokens.emplace_back(t);
+        }
+    }
+
+    tokens.emplace_back(token_start_state_.input,
         ttype,
         channel,
         token_start_state_.char_position,

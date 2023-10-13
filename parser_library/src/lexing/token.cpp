@@ -22,7 +22,7 @@ using namespace hlasm_plugin::parser_library::lexing;
 
 size_t token::get_end_of_token_in_line_utf16() const { return end_of_token_in_line_utf16_; }
 
-::token::token(antlr4::CharStream* input,
+token::token(antlr4::CharStream* input,
     size_t type,
     size_t channel,
     size_t start,
@@ -31,7 +31,7 @@ size_t token::get_end_of_token_in_line_utf16() const { return end_of_token_in_li
     size_t char_position_in_line,
     size_t token_index,
     size_t char_position_in_line_16,
-    size_t end_of_token_in_line_utf16)
+    size_t end_of_token_in_line_utf16) noexcept
     : input_(input)
     , type_(type)
     , channel_(channel)
@@ -42,6 +42,19 @@ size_t token::get_end_of_token_in_line_utf16() const { return end_of_token_in_li
     , token_index_(token_index)
     , char_position_in_line_16_(char_position_in_line_16)
     , end_of_token_in_line_utf16_(end_of_token_in_line_utf16)
+{}
+
+token::token(const token& o) noexcept
+    : input_(o.input_)
+    , type_(o.type_)
+    , channel_(o.channel_)
+    , start_(o.start_)
+    , stop_(o.stop_)
+    , line_(o.line_)
+    , char_position_in_line_(o.char_position_in_line_)
+    , token_index_(o.token_index_)
+    , char_position_in_line_16_(o.char_position_in_line_16_)
+    , end_of_token_in_line_utf16_(o.end_of_token_in_line_utf16_)
 {}
 
 std::string token::getText() const

@@ -48,8 +48,8 @@ public:
 
     // generates more token, main lexer logic
     bool more_tokens();
-    size_t token_count() const noexcept { return token_queue_.size(); }
-    token* get_token(size_t i) noexcept { return &token_queue_[i]; }
+    size_t token_count() const noexcept { return tokens.size(); }
+    token* get_token(size_t i) noexcept { return &tokens[i]; }
 
     enum Tokens
     {
@@ -95,7 +95,8 @@ private:
 
     size_t last_token_id_ = 0;
 
-    std::deque<token> token_queue_;
+    std::vector<token> tokens;
+    std::vector<std::vector<token>> retired_tokens;
     std::vector<size_t> line_limits;
 
     bool double_byte_enabled_ = false;

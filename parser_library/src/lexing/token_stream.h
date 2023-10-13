@@ -30,8 +30,8 @@ class token_stream final : public antlr4::TokenStream
 {
     lexer* token_source;
     size_t pos = 0;
-    bool enabled_cont : 1 = false;
-    bool fetched_eof : 1 = false;
+    bool enabled_cont = false;
+    bool fetched_eof = false;
 
 public:
     explicit token_stream(lexer* token_source);
@@ -66,13 +66,7 @@ public:
     std::string getSourceName() const override;
 
 private:
-    bool is_on_channel(token* t);
-
-    size_t next_token_on_channel(size_t i);
-
-    size_t previous_token_on_channel(size_t i);
-
-    token* get_internal(size_t i);
+    bool is_on_channel(token* t) const;
 };
 
 } // namespace hlasm_plugin::parser_library::lexing
