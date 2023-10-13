@@ -15,9 +15,8 @@
 #ifndef HLASMPLUGIN_PARSER_HLASMLEX_H
 #define HLASMPLUGIN_PARSER_HLASMLEX_H
 
-#include <memory>
-#include <queue>
 #include <string>
+#include <vector>
 
 #include "parser_library_export.h"
 #include "range.h"
@@ -46,7 +45,7 @@ public:
     // resets lexer's state, goes to the source beginning
     void reset();
 
-    // generates more token, main lexer logic
+    // generates more tokens, main lexer logic
     bool more_tokens();
     size_t token_count() const noexcept { return tokens.size(); }
     token* get_token(size_t i) noexcept { return &tokens[i]; }
