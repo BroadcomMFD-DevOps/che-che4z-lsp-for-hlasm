@@ -575,6 +575,7 @@ void lsp_analyzer::collect_transfer_info(
         }
         if (jump_somewhere)
             ld.jumps_somewhere = true;
+        ld.offset_to_jump_opcode = std::min(loc.frame().pos.column, (size_t)80);
     }
 }
 

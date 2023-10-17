@@ -1070,4 +1070,33 @@ std::string lsp_context::find_hover(const symbol_occurrence& occ,
     return {};
 }
 
+
+std::vector<std::pair<size_t, jump_direction>> lsp_context::get_opencode_branch_directions() const
+{
+    std::vector<std::pair<size_t, jump_direction>> result;
+
+    auto file = m_files.find(m_hlasm_ctx->opencode_location());
+    if (file == m_files.end())
+        return result;
+
+    const auto& details = file->second->get_line_details();
+    for (size_t i = 0; i < details.size(); ++i)
+    {
+        const auto& ld = details[i];
+        jump_direction dir = jump_direction::none;
+
+        if (ld.jumps_up)
+            dir = dir | jump_direction::up;
+        if (ld.jumps_down)
+            dir = dir | jump_direction::down;
+        if (ld.jumps_somewhere)
+            dir = dir | jump_direction::somewhere;
+
+        if (dir != jump_direction::none)
+            result.emplace_back(i, dir);
+    }
+
+    return result;
+}
+
 } // namespace hlasm_plugin::parser_library::lsp

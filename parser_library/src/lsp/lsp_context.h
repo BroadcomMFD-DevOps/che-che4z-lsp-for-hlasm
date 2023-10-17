@@ -38,6 +38,23 @@ class parse_lib_provider;
 
 namespace hlasm_plugin::parser_library::lsp {
 
+enum class jump_direction : unsigned char
+{
+    none = 0,
+
+    up = 1,
+    down = 2,
+    somewhere = 4,
+};
+constexpr jump_direction operator|(jump_direction l, jump_direction r)
+{
+    return (jump_direction)((unsigned char)l | (unsigned char)r);
+}
+constexpr jump_direction operator&(jump_direction l, jump_direction r)
+{
+    return (jump_direction)((unsigned char)l & (unsigned char)r);
+}
+
 class lsp_context final
 {
     opencode_info_ptr m_opencode;
@@ -91,6 +108,8 @@ public:
     const context::hlasm_context& get_related_hlasm_context() const { return *m_hlasm_ctx; }
 
     const std::unordered_map<context::macro_def_ptr, macro_info_ptr>& macros() const { return m_macros; };
+
+    std::vector<std::pair<size_t, jump_direction>> get_opencode_branch_directions() const;
 
 private:
     void add_file(file_info file_i);
