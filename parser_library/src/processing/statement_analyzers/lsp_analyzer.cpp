@@ -466,9 +466,9 @@ namespace {
 std::optional<int> get_transfer_operand(const context::machine_instruction* m) noexcept
 {
     auto ta = m->transfer_argument();
-    if (!ta || ta & 1)
+    if (!ta)
         return std::nullopt;
-    if (ta < 0)
+    if (ta & 1 || ta < 0)
         return -1;
     return (ta + 1) / 2 - 1;
 }
@@ -476,9 +476,9 @@ std::optional<int> get_transfer_operand(const context::mnemonic_code* m) noexcep
 {
     const auto* instr = m->instruction();
     auto ta = instr->transfer_argument();
-    if (!ta || ta & 1)
+    if (!ta)
         return std::nullopt;
-    if (ta < 0)
+    if (ta & 1 || ta < 0)
         return -1;
 
     ta = (ta + 1) / 2 - 1;
@@ -509,21 +509,36 @@ context::processing_stack_t get_opencode_stackframe(context::processing_stack_t 
     return sf;
 }
 
-const expressions::mach_expr_symbol* extract_symbol_name(semantics::operand& op)
+std::optional<position> extract_symbol_position(semantics::operand& op, context::ordinary_assembly_context& ord_ctx)
 {
     if (op.type != semantics::operand_type::MACH)
-        return nullptr;
+        return std::nullopt;
     auto* mach = op.access_mach();
     if (!mach)
-        return nullptr;
+        return std::nullopt;
     auto* expr = mach->access_expr();
     if (!expr)
-        return nullptr;
+        return std::nullopt;
     const auto* rel_symbol =
         dynamic_cast<const expressions::mach_expr_binary<expressions::rel_addr>*>(expr->expression.get());
 
-    return rel_symbol ? dynamic_cast<const expressions::mach_expr_symbol*>(rel_symbol->right_expression())
-                      : dynamic_cast<const expressions::mach_expr_symbol*>(expr->expression.get());
+    const auto* symbol_name = rel_symbol
+        ? dynamic_cast<const expressions::mach_expr_symbol*>(rel_symbol->right_expression())
+        : dynamic_cast<const expressions::mach_expr_symbol*>(expr->expression.get());
+
+    if (!symbol_name)
+        return std::nullopt;
+
+    const auto* symbol = ord_ctx.get_symbol(symbol_name->value);
+    if (!symbol)
+        return std::nullopt;
+
+    const auto symbol_oc_loc = get_opencode_stackframe(symbol->proc_stack());
+
+    if (symbol_oc_loc.empty())
+        return std::nullopt;
+
+    return symbol_oc_loc.frame().pos;
 }
 
 } // namespace
@@ -555,27 +570,25 @@ void lsp_analyzer::collect_transfer_info(
         if (loc.empty() && *loc.frame().resource_loc != opencode_loc)
             continue;
 
-        auto& ld = line_details(range(loc.frame().pos), ci);
+        const auto pos = loc.frame().pos;
+
+        auto& ld = line_details(range(pos), ci);
         bool branch_somewhere = true;
         if (const auto& ops = rs->operands_ref().value; *transfer >= 0 && *transfer < ops.size())
         {
-            if (const auto* symbol_name = extract_symbol_name(*ops[*transfer]))
+            const auto symbol_pos = extract_symbol_position(*ops[*transfer], hlasm_ctx_.ord_ctx);
+            if (symbol_pos.has_value())
             {
-                const auto* symbol = hlasm_ctx_.ord_ctx.get_symbol(symbol_name->value);
-                const auto symbol_oc_loc = get_opencode_stackframe(symbol->proc_stack());
-                if (!symbol_oc_loc.empty())
-                {
-                    branch_somewhere = false;
-                    if (const auto rel = loc.frame().pos.line <=> symbol_oc_loc.frame().pos.line; rel < 0)
-                        ld.branches_down = true;
-                    else if (rel > 0)
-                        ld.branches_up = true;
-                }
+                branch_somewhere = false;
+                if (const auto rel = pos.line <=> symbol_pos->line; rel < 0)
+                    ld.branches_down = true;
+                else if (rel > 0)
+                    ld.branches_up = true;
             }
         }
         if (branch_somewhere)
             ld.branches_somewhere = true;
-        ld.offset_to_jump_opcode = std::min(loc.frame().pos.column, (size_t)80);
+        ld.offset_to_jump_opcode = std::min(pos.column, (size_t)80);
     }
 }
 

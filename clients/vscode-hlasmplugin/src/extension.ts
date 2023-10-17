@@ -266,4 +266,67 @@ async function registerToContextWithClient(context: vscode.ExtensionContext, cli
     context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider("hlasm", new HLASMVirtualFileContentProvider(client)));
 
     context.subscriptions.push(vscode.commands.registerCommand("extension.hlasm-plugin.downloadDependencies", (...args: any[]) => downloadDependencies(context, telemetry, client.outputChannel, ...args)));
+
+    const upArrow = vscode.window.createTextEditorDecorationType({
+        before: {
+            contentText: '↑',
+            color: new vscode.ThemeColor('charts.blue'),
+            fontWeight: 'bold',
+            width: '0',
+        }
+    });
+    const downArrow = vscode.window.createTextEditorDecorationType({
+        before: {
+            contentText: '↓',
+            color: new vscode.ThemeColor('charts.green'),
+            fontWeight: 'bold',
+            width: '0',
+        }
+    });
+    const updownArrow = vscode.window.createTextEditorDecorationType({
+        before: {
+            contentText: '↕',
+            color: new vscode.ThemeColor('charts.orange'),
+            fontWeight: 'bold',
+            width: '0',
+        }
+    });
+    const rightArrow = vscode.window.createTextEditorDecorationType({
+        before: {
+            contentText: '→',
+            color: new vscode.ThemeColor('charts.orange'),
+            fontWeight: 'bold',
+            width: '0',
+        }
+    });
+    context.subscriptions.push(upArrow);
+    context.subscriptions.push(downArrow);
+    context.subscriptions.push(updownArrow);
+    context.subscriptions.push(rightArrow);
+
+    context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(async (editor) => {
+        if (!editor) return;
+
+        const document = editor.document;
+
+        if (document.languageId !== 'hlasm') return;
+
+        const version = document.version;
+
+        //const cancelSource = new vscode.CancellationTokenSource();
+
+        type branch_info = {
+            line: number, col: number, up: boolean, down: boolean, somewhere: boolean,
+        };
+
+        const result: branch_info[] = await client.sendRequest('textDocument/$/branch_information', { 'textDocument': { 'uri': document.uri.toString() } });
+
+        if (vscode.window.activeTextEditor !== editor || editor.document !== document || editor.document.version !== version)
+            return;
+
+        editor.setDecorations(upArrow, result.filter(x => !x.somewhere && x.up && !x.down && x.col > 0).map(x => new vscode.Range(x.line, x.col - 1, x.line, x.col - 1)));
+        editor.setDecorations(downArrow, result.filter(x => !x.somewhere && !x.up && x.down && x.col > 0).map(x => new vscode.Range(x.line, x.col - 1, x.line, x.col - 1)));
+        editor.setDecorations(updownArrow, result.filter(x => !x.somewhere && x.up && x.down && x.col > 0).map(x => new vscode.Range(x.line, x.col - 1, x.line, x.col - 1)));
+        editor.setDecorations(rightArrow, result.filter(x => x.somewhere && x.col > 0).map(x => new vscode.Range(x.line, x.col - 1, x.line, x.col - 1)));
+    }));
 }
