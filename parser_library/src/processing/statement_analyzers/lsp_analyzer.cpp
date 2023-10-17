@@ -20,6 +20,10 @@
 
 #include "context/hlasm_context.h"
 #include "context/id_storage.h"
+#include "context/instruction.h"
+#include "context/ordinary_assembly/postponed_statement.h"
+#include "context/ordinary_assembly/symbol_dependency_tables.h"
+#include "context/source_context.h"
 #include "context/special_instructions.h"
 #include "lsp/lsp_context.h"
 #include "lsp/text_data_view.h"
@@ -456,6 +460,122 @@ lsp_analyzer::collection_info_t lsp_analyzer::get_active_collection(
 {
     auto& [stmt_occurrences, stmt_ranges] = in_macro_ ? macro_occurrences_[loc] : opencode_occurrences_[loc];
     return { &stmt_occurrences, stmt_occurrences.size(), &stmt_ranges, evaluated_model };
+}
+
+namespace {
+std::optional<int> get_transfer_operand(const context::machine_instruction* m) noexcept
+{
+    auto ta = m->transfer_argument();
+    if (!ta || ta & 1)
+        return std::nullopt;
+    if (ta < 0)
+        return -1;
+    return (ta + 1) / 2 - 1;
+}
+std::optional<int> get_transfer_operand(const context::mnemonic_code* m) noexcept
+{
+    const auto* instr = m->instruction();
+    auto ta = instr->transfer_argument();
+    if (!ta || ta & 1)
+        return std::nullopt;
+    if (ta < 0)
+        return -1;
+
+    ta = (ta + 1) / 2 - 1;
+
+    for (auto pos = ta; const auto& t : m->operand_transformations())
+    {
+        if (pos < t.skip)
+            break;
+        pos -= t.skip + t.insert;
+        ta -= t.insert;
+    }
+    return ta;
+}
+std::optional<int> get_transfer_operand(context::id_index id) noexcept
+{
+    if (const auto* mnemo = context::instruction::find_mnemonic_codes(id.to_string_view()))
+        return get_transfer_operand(mnemo);
+    else
+        return get_transfer_operand(context::instruction::find_machine_instructions(id.to_string_view()));
+}
+
+context::processing_stack_t get_opencode_stackframe(context::processing_stack_t sf)
+{
+    if (sf.empty())
+        return sf;
+    while (!sf.parent().empty())
+        sf = sf.parent();
+    return sf;
+}
+
+const expressions::mach_expr_symbol* extract_symbol_name(semantics::operand& op)
+{
+    if (op.type != semantics::operand_type::MACH)
+        return nullptr;
+    auto* mach = op.access_mach();
+    if (!mach)
+        return nullptr;
+    auto* expr = mach->access_expr();
+    if (!expr)
+        return nullptr;
+    const auto* rel_symbol =
+        dynamic_cast<const expressions::mach_expr_binary<expressions::rel_addr>*>(expr->expression.get());
+
+    return rel_symbol ? dynamic_cast<const expressions::mach_expr_symbol*>(rel_symbol->right_expression())
+                      : dynamic_cast<const expressions::mach_expr_symbol*>(expr->expression.get());
+}
+
+} // namespace
+
+void lsp_analyzer::collect_transfer_info(
+    const std::vector<std::pair<std::unique_ptr<context::postponed_statement>, context::dependency_evaluation_context>>&
+        stmts)
+{
+    const auto& opencode_loc = hlasm_ctx_.opencode_location();
+    auto& [stmt_occurrences, stmt_ranges] = opencode_occurrences_[opencode_loc];
+    const collection_info_t ci { &stmt_occurrences, stmt_occurrences.size(), &stmt_ranges, true };
+
+    for (const auto& [stmt, _] : stmts)
+    {
+        if (!stmt)
+            continue;
+
+        const auto* rs = stmt->resolved_stmt();
+        const auto& opcode = rs->opcode_ref();
+        if (opcode.type != context::instruction_type::MACH)
+            continue;
+
+        const auto transfer = get_transfer_operand(opcode.value);
+
+        if (!transfer.has_value())
+            continue;
+
+        const auto loc = get_opencode_stackframe(stmt->location_stack());
+        if (loc.empty() && *loc.frame().resource_loc != opencode_loc)
+            continue;
+
+        auto& ld = line_details(range(loc.frame().pos), ci);
+        bool jump_somewhere = true;
+        if (const auto& ops = rs->operands_ref().value; *transfer >= 0 && *transfer < ops.size())
+        {
+            if (const auto* symbol_name = extract_symbol_name(*ops[*transfer]))
+            {
+                const auto* symbol = hlasm_ctx_.ord_ctx.get_symbol(symbol_name->value);
+                const auto symbol_oc_loc = get_opencode_stackframe(symbol->proc_stack());
+                if (!symbol_oc_loc.empty())
+                {
+                    jump_somewhere = false;
+                    if (const auto rel = loc.frame().pos.line <=> symbol_oc_loc.frame().pos.line; rel < 0)
+                        ld.jumps_down = true;
+                    else if (rel > 0)
+                        ld.jumps_up = true;
+                }
+            }
+        }
+        if (jump_somewhere)
+            ld.jumps_somewhere = true;
+    }
 }
 
 } // namespace hlasm_plugin::parser_library::processing

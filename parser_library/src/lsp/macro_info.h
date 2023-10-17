@@ -118,6 +118,9 @@ struct line_occurence_details
     const context::section* active_section = nullptr;
     bool using_overflow : 1 = false;
     bool section_overflow : 1 = false;
+    bool jumps_up : 1 = false;
+    bool jumps_down : 1 = false;
+    bool jumps_somewhere : 1 = false;
 };
 
 using file_occurrences_t = std::unordered_map<utils::resource::resource_location,

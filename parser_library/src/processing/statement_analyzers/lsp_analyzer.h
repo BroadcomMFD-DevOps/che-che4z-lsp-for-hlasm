@@ -35,6 +35,8 @@ struct range;
 namespace hlasm_plugin::parser_library::context {
 class hlasm_context;
 class id_index;
+struct postponed_statement;
+struct dependency_evaluation_context;
 } // namespace hlasm_plugin::parser_library::context
 
 namespace hlasm_plugin::parser_library::lsp {
@@ -109,6 +111,9 @@ public:
     void copydef_finished(context::copy_member_ptr copydef, copy_processing_result&& result);
 
     void opencode_finished(workspaces::parse_lib_provider& libs);
+
+    void collect_transfer_info(const std::vector<
+        std::pair<std::unique_ptr<context::postponed_statement>, context::dependency_evaluation_context>>& stmts);
 
 private:
     void collect_occurrences(

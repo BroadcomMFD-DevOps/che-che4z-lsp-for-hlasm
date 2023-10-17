@@ -471,5 +471,11 @@ parsing::hlasmparser_multiline& processing_manager::opencode_parser() // for tes
         std::exchange(helper_task_, {}).run();
     return opencode_prov_.parser();
 }
+void processing_manager::process_postponed_statements(
+    const std::vector<std::pair<std::unique_ptr<context::postponed_statement>, context::dependency_evaluation_context>>&
+        stmts)
+{
+    lsp_analyzer_.collect_transfer_info(stmts);
+}
 
 } // namespace hlasm_plugin::parser_library::processing
