@@ -1071,9 +1071,9 @@ std::string lsp_context::find_hover(const symbol_occurrence& occ,
 }
 
 
-std::vector<std::pair<size_t, jump_direction>> lsp_context::get_opencode_branch_directions() const
+std::vector<branch_info> lsp_context::get_opencode_branch_directions() const
 {
-    std::vector<std::pair<size_t, jump_direction>> result;
+    std::vector<branch_info> result;
 
     auto file = m_files.find(m_hlasm_ctx->opencode_location());
     if (file == m_files.end())
@@ -1083,17 +1083,17 @@ std::vector<std::pair<size_t, jump_direction>> lsp_context::get_opencode_branch_
     for (size_t i = 0; i < details.size(); ++i)
     {
         const auto& ld = details[i];
-        jump_direction dir = jump_direction::none;
+        branch_direction dir = branch_direction::none;
 
-        if (ld.jumps_up)
-            dir = dir | jump_direction::up;
-        if (ld.jumps_down)
-            dir = dir | jump_direction::down;
-        if (ld.jumps_somewhere)
-            dir = dir | jump_direction::somewhere;
+        if (ld.branches_up)
+            dir = dir | branch_direction::up;
+        if (ld.branches_down)
+            dir = dir | branch_direction::down;
+        if (ld.branches_somewhere)
+            dir = dir | branch_direction::somewhere;
 
-        if (dir != jump_direction::none)
-            result.emplace_back(i, dir);
+        if (dir != branch_direction::none)
+            result.emplace_back(i, ld.offset_to_jump_opcode, dir);
     }
 
     return result;

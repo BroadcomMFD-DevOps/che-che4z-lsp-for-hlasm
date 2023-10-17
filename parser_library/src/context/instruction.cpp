@@ -464,28 +464,28 @@ struct
 } constexpr has_parameter_list;
 
 template<int arg>
-struct transfer_argument_t
+struct branch_argument_t
 {};
 
 template<typename T>
-struct is_transfer_argument_t : std::false_type
+struct is_branch_argument_t : std::false_type
 {
     static constexpr int ta = 0;
 };
 template<int arg>
-struct is_transfer_argument_t<transfer_argument_t<arg>> : std::true_type
+struct is_branch_argument_t<branch_argument_t<arg>> : std::true_type
 {
     static constexpr int ta = arg;
 };
 
 template<unsigned char arg>
-requires(arg < 16) constexpr transfer_argument_t<2 * (-arg - 1)> call_argument;
+requires(arg < 16) constexpr branch_argument_t<2 * (-arg - 1)> call_argument;
 template<unsigned char arg>
-requires(arg < 16) constexpr transfer_argument_t<2 * (arg + 1)> branch_argument;
+requires(arg < 16) constexpr branch_argument_t<2 * (arg + 1)> branch_argument;
 template<unsigned char arg>
-requires(arg < 16) constexpr transfer_argument_t<2 * (-arg - 1) + 1> call_argument_unknown;
+requires(arg < 16) constexpr branch_argument_t<2 * (-arg - 1) + 1> call_argument_unknown;
 template<unsigned char arg>
-requires(arg < 16) constexpr transfer_argument_t<2 * (arg + 1) - 1> branch_argument_unknown;
+requires(arg < 16) constexpr branch_argument_t<2 * (arg + 1) - 1> branch_argument_unknown;
 
 struct cc_index
 {
@@ -499,9 +499,9 @@ struct make_machine_instruction_details_args_validator
     static constexpr size_t p_c = (0 + ... + std::is_same_v<Args, std::decay_t<decltype(privileged_conditionally)>>);
     static constexpr size_t pl = (0 + ... + std::is_same_v<Args, std::decay_t<decltype(has_parameter_list)>>);
     static constexpr size_t cc = (0 + ... + std::is_same_v<Args, cc_index>);
-    static constexpr int ta = (0 + ... + is_transfer_argument_t<Args>::ta);
+    static constexpr int ta = (0 + ... + is_branch_argument_t<Args>::ta);
     static constexpr bool value =
-        !(p && p_c) && p <= 1 && p_c <= 1 && pl <= 1 && cc <= 1 && (0 + ... + is_transfer_argument_t<Args>::value) <= 1;
+        !(p && p_c) && p <= 1 && p_c <= 1 && pl <= 1 && cc <= 1 && (0 + ... + is_branch_argument_t<Args>::value) <= 1;
 };
 
 struct

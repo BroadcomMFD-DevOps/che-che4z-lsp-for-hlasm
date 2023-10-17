@@ -22,6 +22,7 @@
 #include <utility>
 #include <vector>
 
+#include "branch_info.h"
 #include "completion_list_source.h"
 #include "context/id_index.h"
 #include "context/macro.h"
@@ -37,23 +38,6 @@ class parse_lib_provider;
 } // namespace hlasm_plugin::parser_library::workspaces
 
 namespace hlasm_plugin::parser_library::lsp {
-
-enum class jump_direction : unsigned char
-{
-    none = 0,
-
-    up = 1,
-    down = 2,
-    somewhere = 4,
-};
-constexpr jump_direction operator|(jump_direction l, jump_direction r)
-{
-    return (jump_direction)((unsigned char)l | (unsigned char)r);
-}
-constexpr jump_direction operator&(jump_direction l, jump_direction r)
-{
-    return (jump_direction)((unsigned char)l & (unsigned char)r);
-}
 
 class lsp_context final
 {
@@ -109,7 +93,7 @@ public:
 
     const std::unordered_map<context::macro_def_ptr, macro_info_ptr>& macros() const { return m_macros; };
 
-    std::vector<std::pair<size_t, jump_direction>> get_opencode_branch_directions() const;
+    std::vector<branch_info> get_opencode_branch_directions() const;
 
 private:
     void add_file(file_info file_i);

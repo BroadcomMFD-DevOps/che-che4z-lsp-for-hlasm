@@ -118,9 +118,9 @@ struct line_occurence_details
     const context::section* active_section = nullptr;
     bool using_overflow : 1 = false;
     bool section_overflow : 1 = false;
-    bool jumps_up : 1 = false;
-    bool jumps_down : 1 = false;
-    bool jumps_somewhere : 1 = false;
+    bool branches_up : 1 = false;
+    bool branches_down : 1 = false;
+    bool branches_somewhere : 1 = false;
     unsigned char offset_to_jump_opcode = 0;
 };
 

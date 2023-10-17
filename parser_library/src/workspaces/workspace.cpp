@@ -936,6 +936,15 @@ std::vector<token_info> workspace::semantic_tokens(const resource_location& docu
     return comp->m_last_results->hl_info;
 }
 
+std::vector<branch_info> workspace::branch_information(const resource_location& document_loc) const
+{
+    auto comp = find_processor_file_impl(document_loc);
+    if (!comp)
+        return {};
+
+    return comp->m_last_results->lsp_context->get_opencode_branch_directions();
+}
+
 std::optional<performance_metrics> workspace::last_metrics(const resource_location& document_loc) const
 {
     auto comp = find_processor_file_impl(document_loc);

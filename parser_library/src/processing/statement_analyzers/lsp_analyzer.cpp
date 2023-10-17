@@ -556,7 +556,7 @@ void lsp_analyzer::collect_transfer_info(
             continue;
 
         auto& ld = line_details(range(loc.frame().pos), ci);
-        bool jump_somewhere = true;
+        bool branch_somewhere = true;
         if (const auto& ops = rs->operands_ref().value; *transfer >= 0 && *transfer < ops.size())
         {
             if (const auto* symbol_name = extract_symbol_name(*ops[*transfer]))
@@ -565,16 +565,16 @@ void lsp_analyzer::collect_transfer_info(
                 const auto symbol_oc_loc = get_opencode_stackframe(symbol->proc_stack());
                 if (!symbol_oc_loc.empty())
                 {
-                    jump_somewhere = false;
+                    branch_somewhere = false;
                     if (const auto rel = loc.frame().pos.line <=> symbol_oc_loc.frame().pos.line; rel < 0)
-                        ld.jumps_down = true;
+                        ld.branches_down = true;
                     else if (rel > 0)
-                        ld.jumps_up = true;
+                        ld.branches_up = true;
                 }
             }
         }
-        if (jump_somewhere)
-            ld.jumps_somewhere = true;
+        if (branch_somewhere)
+            ld.branches_somewhere = true;
         ld.offset_to_jump_opcode = std::min(loc.frame().pos.column, (size_t)80);
     }
 }
