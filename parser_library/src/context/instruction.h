@@ -401,6 +401,7 @@ struct machine_instruction_details
     bool privileged : 1;
     bool privileged_conditionally : 1;
     bool has_parameter_list : 1;
+    signed char transfer_argument;
 };
 
 struct instruction_format_definition
@@ -557,6 +558,8 @@ public:
     {
         return static_cast<privilege_status>(m_details.privileged + m_details.privileged_conditionally * 2);
     }
+
+    constexpr int transfer_argument() const noexcept { return m_details.transfer_argument; }
 };
 
 class ca_instruction

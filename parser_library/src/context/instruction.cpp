@@ -462,6 +462,31 @@ struct
 struct
 {
 } constexpr has_parameter_list;
+
+template<int arg>
+struct transfer_argument_t
+{};
+
+template<typename T>
+struct is_transfer_argument_t : std::false_type
+{
+    static constexpr int ta = 0;
+};
+template<int arg>
+struct is_transfer_argument_t<transfer_argument_t<arg>> : std::true_type
+{
+    static constexpr int ta = arg;
+};
+
+template<unsigned char arg>
+requires(arg < 16) constexpr transfer_argument_t<2 * (-arg - 1)> call_argument;
+template<unsigned char arg>
+requires(arg < 16) constexpr transfer_argument_t<2 * (arg + 1)> branch_argument;
+template<unsigned char arg>
+requires(arg < 16) constexpr transfer_argument_t<2 * (-arg - 1) + 1> call_argument_unknown;
+template<unsigned char arg>
+requires(arg < 16) constexpr transfer_argument_t<2 * (arg + 1) - 1> branch_argument_unknown;
+
 struct cc_index
 {
     unsigned char value;
@@ -474,7 +499,9 @@ struct make_machine_instruction_details_args_validator
     static constexpr size_t p_c = (0 + ... + std::is_same_v<Args, std::decay_t<decltype(privileged_conditionally)>>);
     static constexpr size_t pl = (0 + ... + std::is_same_v<Args, std::decay_t<decltype(has_parameter_list)>>);
     static constexpr size_t cc = (0 + ... + std::is_same_v<Args, cc_index>);
-    static constexpr bool value = !(p && p_c) && p <= 1 && p_c <= 1 && pl <= 1 && cc <= 1;
+    static constexpr int ta = (0 + ... + is_transfer_argument_t<Args>::ta);
+    static constexpr bool value =
+        !(p && p_c) && p <= 1 && p_c <= 1 && pl <= 1 && cc <= 1 && (0 + ... + is_transfer_argument_t<Args>::value) <= 1;
 };
 
 struct
@@ -489,7 +516,7 @@ constexpr machine_instruction_details make_machine_instruction_details(const cha
 {
     using A = make_machine_instruction_details_args_validator<std::decay_t<Args>...>;
     return machine_instruction_details {
-        name, n - 1, static_cast<unsigned char>((0 + ... + cc_visitor(args))), A::p > 0, A::p_c > 0, A::pl > 0
+        name, n - 1, static_cast<unsigned char>((0 + ... + cc_visitor(args))), A::p > 0, A::p_c > 0, A::pl > 0, A::ta
     };
 }
 
