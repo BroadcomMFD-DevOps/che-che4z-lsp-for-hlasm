@@ -1071,7 +1071,7 @@ std::string lsp_context::find_hover(const symbol_occurrence& occ,
 }
 
 
-std::vector<branch_info> lsp_context::get_opencode_branch_directions() const
+std::vector<branch_info> lsp_context::get_opencode_branch_info() const
 {
     std::vector<branch_info> result;
 

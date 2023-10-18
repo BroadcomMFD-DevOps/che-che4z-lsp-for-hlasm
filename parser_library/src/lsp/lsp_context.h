@@ -93,7 +93,7 @@ public:
 
     const std::unordered_map<context::macro_def_ptr, macro_info_ptr>& macros() const { return m_macros; };
 
-    std::vector<branch_info> get_opencode_branch_directions() const;
+    std::vector<branch_info> get_opencode_branch_info() const;
 
 private:
     void add_file(file_info file_i);

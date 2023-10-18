@@ -942,7 +942,7 @@ std::vector<branch_info> workspace::branch_information(const resource_location& 
     if (!comp)
         return {};
 
-    return comp->m_last_results->lsp_context->get_opencode_branch_directions();
+    return comp->m_last_results->lsp_context->get_opencode_branch_info();
 }
 
 std::optional<performance_metrics> workspace::last_metrics(const resource_location& document_loc) const

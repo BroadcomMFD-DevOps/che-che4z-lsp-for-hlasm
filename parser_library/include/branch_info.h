@@ -21,7 +21,7 @@
 
 namespace hlasm_plugin::parser_library {
 
-enum class PARSER_LIBRARY_EXPORT branch_direction : unsigned char
+enum class branch_direction : unsigned char
 {
     none = 0,
 
@@ -38,7 +38,7 @@ constexpr branch_direction operator&(branch_direction l, branch_direction r)
     return (branch_direction)((unsigned char)l & (unsigned char)r);
 }
 
-struct PARSER_LIBRARY_EXPORT branch_info
+struct branch_info
 {
     constexpr branch_info(std::size_t line, unsigned char col, branch_direction dir)
         : line(line)
@@ -49,6 +49,8 @@ struct PARSER_LIBRARY_EXPORT branch_info
     std::size_t line;
     branch_direction dir;
     unsigned char col;
+
+    constexpr bool operator==(const branch_info&) const noexcept = default;
 };
 
 
