@@ -21,10 +21,12 @@
 #include "context/hlasm_context.h"
 #include "context/id_storage.h"
 #include "context/instruction.h"
+#include "context/ordinary_assembly/ordinary_assembly_dependency_solver.h"
 #include "context/ordinary_assembly/postponed_statement.h"
 #include "context/ordinary_assembly/symbol_dependency_tables.h"
 #include "context/source_context.h"
 #include "context/special_instructions.h"
+#include "library_info_transitional.h"
 #include "lsp/lsp_context.h"
 #include "lsp/text_data_view.h"
 #include "occurrence_collector.h"
@@ -463,41 +465,60 @@ lsp_analyzer::collection_info_t lsp_analyzer::get_active_collection(
 }
 
 namespace {
-std::optional<int> get_transfer_operand(const context::machine_instruction* m) noexcept
+std::optional<std::pair<int, int>> get_branch_operand(const context::machine_instruction* m) noexcept
 {
-    auto ta = m->transfer_argument();
-    if (!ta)
+    auto ta = m->branch_argument();
+    if (!ta.valid())
         return std::nullopt;
-    if (ta & 1 || ta < 0)
-        return -1;
-    return (ta + 1) / 2 - 1;
+
+    return std::make_pair(ta.unknown_target() ? -1 : ta.target(), ta.branches_if_nonzero() ? ta.nonzero_arg() : -1);
 }
-std::optional<int> get_transfer_operand(const context::mnemonic_code* m) noexcept
+std::optional<std::pair<int, int>> get_branch_operand(const context::mnemonic_code* m) noexcept
 {
-    const auto* instr = m->instruction();
-    auto ta = instr->transfer_argument();
-    if (!ta)
-        return std::nullopt;
-    if (ta & 1 || ta < 0)
-        return -1;
+    auto ba = get_branch_operand(m->instruction());
+    if (!ba)
+        return ba;
 
-    ta = (ta + 1) / 2 - 1;
-
-    for (auto pos = ta; const auto& t : m->operand_transformations())
+    auto& [target, nonzero] = *ba;
+    if (nonzero >= 0)
     {
-        if (pos < t.skip)
-            break;
-        pos -= t.skip + t.insert;
-        ta -= t.insert;
+        for (auto pos = nonzero; const auto& t : m->operand_transformations())
+        {
+            if (pos < t.skip)
+                break;
+            pos -= t.skip;
+            if (pos == 0 && t.insert && t.type == context::mnemonic_transformation_kind::value)
+            {
+                if (t.value)
+                {
+                    nonzero = -1;
+                    break;
+                }
+                return std::nullopt; // NOP, NOPR, etc.
+            }
+            pos -= t.insert;
+            nonzero -= t.insert;
+        }
     }
-    return ta;
+    if (target >= 0)
+    {
+        for (auto pos = target; const auto& t : m->operand_transformations())
+        {
+            if (pos < t.skip)
+                break;
+            pos -= t.skip + t.insert;
+            target -= t.insert;
+        }
+    }
+
+    return ba;
 }
-std::optional<int> get_transfer_operand(context::id_index id) noexcept
+std::optional<std::pair<int, int>> get_branch_operand(context::id_index id) noexcept
 {
     if (const auto* mnemo = context::instruction::find_mnemonic_codes(id.to_string_view()))
-        return get_transfer_operand(mnemo);
+        return get_branch_operand(mnemo);
     else
-        return get_transfer_operand(context::instruction::find_machine_instructions(id.to_string_view()));
+        return get_branch_operand(context::instruction::find_machine_instructions(id.to_string_view()));
 }
 
 context::processing_stack_t get_opencode_stackframe(context::processing_stack_t sf)
@@ -541,17 +562,38 @@ std::optional<position> extract_symbol_position(semantics::operand& op, context:
     return symbol_oc_loc.frame().pos;
 }
 
+bool symbol_value_zerolike(semantics::operand& op,
+    context::ordinary_assembly_context& ord_ctx,
+    const context::dependency_evaluation_context& dep_ctx,
+    const library_info& li)
+{
+    if (op.type != semantics::operand_type::MACH)
+        return false;
+    auto* mach = op.access_mach();
+    if (!mach)
+        return false;
+    auto* expr = mach->access_expr();
+    if (!expr)
+        return false;
+    context::ordinary_assembly_dependency_solver solver(ord_ctx, dep_ctx, li);
+    auto value = expr->expression->evaluate(solver, drop_diagnostic_op);
+    if (value.value_kind() != context::symbol_value_kind::ABS)
+        return false;
+    return value.get_abs() == 0;
+}
+
 } // namespace
 
 void lsp_analyzer::collect_transfer_info(
     const std::vector<std::pair<std::unique_ptr<context::postponed_statement>, context::dependency_evaluation_context>>&
-        stmts)
+        stmts,
+    const library_info& li)
 {
     const auto& opencode_loc = hlasm_ctx_.opencode_location();
     auto& [stmt_occurrences, stmt_ranges] = opencode_occurrences_[opencode_loc];
     const collection_info_t ci { &stmt_occurrences, stmt_occurrences.size(), &stmt_ranges, true };
 
-    for (const auto& [stmt, _] : stmts)
+    for (const auto& [stmt, dep_ctx] : stmts)
     {
         if (!stmt)
             continue;
@@ -561,7 +603,7 @@ void lsp_analyzer::collect_transfer_info(
         if (opcode.type != context::instruction_type::MACH)
             continue;
 
-        const auto transfer = get_transfer_operand(opcode.value);
+        const auto transfer = get_branch_operand(opcode.value);
 
         if (!transfer.has_value())
             continue;
@@ -570,13 +612,22 @@ void lsp_analyzer::collect_transfer_info(
         if (loc.empty() && *loc.frame().resource_loc != opencode_loc)
             continue;
 
+        const auto& [target, condition] = *transfer;
+        const auto& ops = rs->operands_ref().value;
+
+        if (condition >= 0 && condition < ops.size())
+        {
+            if (symbol_value_zerolike(*ops[condition], hlasm_ctx_.ord_ctx, dep_ctx, li))
+                continue;
+        }
+
         const auto pos = loc.frame().pos;
 
         auto& ld = line_details(range(pos), ci);
         bool branch_somewhere = true;
-        if (const auto& ops = rs->operands_ref().value; *transfer >= 0 && *transfer < ops.size())
+        if (target >= 0 && target < ops.size())
         {
-            const auto symbol_pos = extract_symbol_position(*ops[*transfer], hlasm_ctx_.ord_ctx);
+            const auto symbol_pos = extract_symbol_position(*ops[target], hlasm_ctx_.ord_ctx);
             if (symbol_pos.has_value())
             {
                 branch_somewhere = false;
@@ -588,7 +639,7 @@ void lsp_analyzer::collect_transfer_info(
         }
         if (branch_somewhere)
             ld.branches_somewhere = true;
-        ld.offset_to_jump_opcode = std::min(pos.column, (size_t)80);
+        ld.offset_to_jump_opcode = std::min(pos.column, (size_t)81);
     }
 }
 

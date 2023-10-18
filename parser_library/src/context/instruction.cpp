@@ -15,8 +15,10 @@
 #include "instruction.h"
 
 #include <algorithm>
+#include <array>
 #include <limits>
 #include <memory>
+#include <utility>
 
 #include "checking/diagnostic_collector.h"
 
@@ -463,29 +465,42 @@ struct
 {
 } constexpr has_parameter_list;
 
-template<int arg>
+template<int arg, int nonzero>
 struct branch_argument_t
 {};
 
 template<typename T>
 struct is_branch_argument_t : std::false_type
 {
-    static constexpr int ta = 0;
+    using branch_t = branch_argument_t<0, 0>;
 };
-template<int arg>
-struct is_branch_argument_t<branch_argument_t<arg>> : std::true_type
+template<int arg, int nonzero>
+struct is_branch_argument_t<branch_argument_t<arg, nonzero>> : std::true_type
 {
-    static constexpr int ta = arg;
+    using branch_t = branch_argument_t<arg, nonzero>;
 };
 
+template<int... arg, int... nonzero>
+constexpr branch_info_argument select_branch_argument(branch_argument_t<arg, nonzero>...)
+{
+    constexpr auto res = []() {
+        const int args[] = { arg..., 0 };
+        const int nonzeros[] = { nonzero..., 0 };
+        for (size_t i = 0; i < std::size(args); ++i)
+            if (args[i])
+                return std::make_pair(args[i], nonzeros[i]);
+        return std::make_pair(0, 0);
+    }();
+    return branch_info_argument { (signed char)res.first, (unsigned char)res.second };
+}
+
+constexpr branch_argument_t<-1, 0> branch_argument_unknown;
+template<unsigned char nonzero>
+requires(nonzero < 4) constexpr branch_argument_t<-1, 1 + nonzero> branch_argument_unknown_nonzero;
 template<unsigned char arg>
-requires(arg < 16) constexpr branch_argument_t<2 * (-arg - 1)> call_argument;
-template<unsigned char arg>
-requires(arg < 16) constexpr branch_argument_t<2 * (arg + 1)> branch_argument;
-template<unsigned char arg>
-requires(arg < 16) constexpr branch_argument_t<2 * (-arg - 1) + 1> call_argument_unknown;
-template<unsigned char arg>
-requires(arg < 16) constexpr branch_argument_t<2 * (arg + 1) - 1> branch_argument_unknown;
+requires(arg < 4) constexpr branch_argument_t<1 + arg, 0> branch_argument;
+template<unsigned char arg, unsigned char nonzero>
+requires(arg < 4 && nonzero < 4) constexpr branch_argument_t<1 + arg, 1 + nonzero> branch_argument_nonzero;
 
 struct cc_index
 {
@@ -499,7 +514,8 @@ struct make_machine_instruction_details_args_validator
     static constexpr size_t p_c = (0 + ... + std::is_same_v<Args, std::decay_t<decltype(privileged_conditionally)>>);
     static constexpr size_t pl = (0 + ... + std::is_same_v<Args, std::decay_t<decltype(has_parameter_list)>>);
     static constexpr size_t cc = (0 + ... + std::is_same_v<Args, cc_index>);
-    static constexpr int ta = (0 + ... + is_branch_argument_t<Args>::ta);
+    static constexpr branch_info_argument ba =
+        select_branch_argument(typename is_branch_argument_t<Args>::branch_t()...);
     static constexpr bool value =
         !(p && p_c) && p <= 1 && p_c <= 1 && pl <= 1 && cc <= 1 && (0 + ... + is_branch_argument_t<Args>::value) <= 1;
 };
@@ -516,7 +532,7 @@ constexpr machine_instruction_details make_machine_instruction_details(const cha
 {
     using A = make_machine_instruction_details_args_validator<std::decay_t<Args>...>;
     return machine_instruction_details {
-        name, n - 1, static_cast<unsigned char>((0 + ... + cc_visitor(args))), A::p > 0, A::p_c > 0, A::pl > 0, A::ta
+        name, n - 1, static_cast<unsigned char>((0 + ... + cc_visitor(args))), A::p > 0, A::p_c > 0, A::pl > 0, A::ba
     };
 }
 

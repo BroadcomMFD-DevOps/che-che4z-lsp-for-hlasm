@@ -29,6 +29,7 @@
 #include "statement_analyzer.h"
 
 namespace hlasm_plugin::parser_library {
+class library_info;
 struct range;
 } // namespace hlasm_plugin::parser_library
 
@@ -112,8 +113,10 @@ public:
 
     void opencode_finished(workspaces::parse_lib_provider& libs);
 
-    void collect_transfer_info(const std::vector<
-        std::pair<std::unique_ptr<context::postponed_statement>, context::dependency_evaluation_context>>& stmts);
+    void collect_transfer_info(
+        const std::vector<
+            std::pair<std::unique_ptr<context::postponed_statement>, context::dependency_evaluation_context>>& stmts,
+        const library_info& li);
 
 private:
     void collect_occurrences(
