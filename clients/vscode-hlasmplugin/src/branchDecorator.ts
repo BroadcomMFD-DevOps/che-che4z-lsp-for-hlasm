@@ -77,7 +77,7 @@ export function activateBranchDecorator(context: vscode.ExtensionContext, client
     const upArrow = vscode.window.createTextEditorDecorationType({
         before: {
             contentText: '↑',
-            color: new vscode.ThemeColor('charts.blue'),
+            color: new vscode.ThemeColor('hlasmplugin.branchUpColor'),
             fontWeight: 'bold',
             width: '0',
         }
@@ -85,7 +85,7 @@ export function activateBranchDecorator(context: vscode.ExtensionContext, client
     const downArrow = vscode.window.createTextEditorDecorationType({
         before: {
             contentText: '↓',
-            color: new vscode.ThemeColor('charts.green'),
+            color: new vscode.ThemeColor('hlasmplugin.branchDownColor'),
             fontWeight: 'bold',
             width: '0',
         }
@@ -93,7 +93,7 @@ export function activateBranchDecorator(context: vscode.ExtensionContext, client
     const updownArrow = vscode.window.createTextEditorDecorationType({
         before: {
             contentText: '↕',
-            color: new vscode.ThemeColor('charts.orange'),
+            color: new vscode.ThemeColor('hlasmplugin.branchUnknownColor'),
             fontWeight: 'bold',
             width: '0',
         }
@@ -101,7 +101,7 @@ export function activateBranchDecorator(context: vscode.ExtensionContext, client
     const rightArrow = vscode.window.createTextEditorDecorationType({
         before: {
             contentText: '→',
-            color: new vscode.ThemeColor('charts.orange'),
+            color: new vscode.ThemeColor('hlasmplugin.branchUnknownColor'),
             fontWeight: 'bold',
             width: '0',
         }
