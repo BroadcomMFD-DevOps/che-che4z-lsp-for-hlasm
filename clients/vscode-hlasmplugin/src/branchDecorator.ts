@@ -143,7 +143,7 @@ export function activateBranchDecorator(context: vscode.ExtensionContext, client
 
         const version = document.version;
 
-        const result = await scheduleRequest(document.uri, 0);
+        const result = await scheduleRequest(document.uri, requestTimeout);
 
         if (document.isClosed || document.version !== version)
             return;
