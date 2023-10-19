@@ -537,7 +537,7 @@ std::optional<position> extract_symbol_position(semantics::operand& op, context:
     auto* mach = op.access_mach();
     if (!mach)
         return std::nullopt;
-    auto* expr = mach->access_expr();
+    const auto* expr = mach->access_expr();
     if (!expr)
         return std::nullopt;
     const auto* rel_symbol =
@@ -572,7 +572,7 @@ bool symbol_value_zerolike(semantics::operand& op,
     auto* mach = op.access_mach();
     if (!mach)
         return false;
-    auto* expr = mach->access_expr();
+    const auto* expr = mach->access_expr();
     if (!expr)
         return false;
     context::ordinary_assembly_dependency_solver solver(ord_ctx, dep_ctx, li);
@@ -615,11 +615,9 @@ void lsp_analyzer::collect_transfer_info(
         const auto& [target, condition] = *transfer;
         const auto& ops = rs->operands_ref().value;
 
-        if (condition >= 0 && condition < ops.size())
-        {
-            if (symbol_value_zerolike(*ops[condition], hlasm_ctx_.ord_ctx, dep_ctx, li))
-                continue;
-        }
+        if (condition >= 0 && condition < ops.size()
+            && symbol_value_zerolike(*ops[condition], hlasm_ctx_.ord_ctx, dep_ctx, li))
+            continue;
 
         const auto pos = loc.frame().pos;
 

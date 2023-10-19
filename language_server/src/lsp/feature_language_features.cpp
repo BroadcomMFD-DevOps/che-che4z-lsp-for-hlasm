@@ -753,16 +753,17 @@ void feature_language_features::branch_information(const request_id& id, const n
 {
     auto document_uri = extract_document_uri(params);
 
-    auto resp = make_response(id, response_, [this](continuous_sequence<branch_info> branch_info_list) {
+    auto resp = make_response(id, response_, [](continuous_sequence<branch_info> branch_info_list) {
         auto r = nlohmann::json::array();
         for (const auto& bi : branch_info_list)
         {
+            using enum branch_direction;
             r.push_back({
                 { "line", bi.line },
                 { "col", bi.col },
-                { "up", (bi.dir & branch_direction::up) != branch_direction::none },
-                { "down", (bi.dir & branch_direction::down) != branch_direction::none },
-                { "somewhere", (bi.dir & branch_direction::somewhere) != branch_direction::none },
+                { "up", (bi.dir & up) != none },
+                { "down", (bi.dir & down) != none },
+                { "somewhere", (bi.dir & somewhere) != none },
             });
         }
 

@@ -1083,16 +1083,17 @@ std::vector<branch_info> lsp_context::get_opencode_branch_info() const
     for (size_t i = 0; i < details.size(); ++i)
     {
         const auto& ld = details[i];
-        branch_direction dir = branch_direction::none;
+        using enum branch_direction;
+        auto dir = none;
 
         if (ld.branches_up)
-            dir = dir | branch_direction::up;
+            dir = dir | up;
         if (ld.branches_down)
-            dir = dir | branch_direction::down;
+            dir = dir | down;
         if (ld.branches_somewhere)
-            dir = dir | branch_direction::somewhere;
+            dir = dir | somewhere;
 
-        if (dir != branch_direction::none)
+        if (dir != none)
             result.emplace_back(i, ld.offset_to_jump_opcode, dir);
     }
 
