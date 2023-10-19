@@ -89,7 +89,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<HlasmE
     const filePattern: string = '**/*';
 
     const clientErrorHandler = new LanguageClientErrorHandler(telemetry);
-
+    const middleware = getLanguageClientMiddleware();
     // create client options
     const syncFileEvents = getConfig<boolean>('syncFileEvents', true);
     const clientOptions: vscodelc.LanguageClientOptions = {
@@ -101,13 +101,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<HlasmE
             ]
         },
         errorHandler: clientErrorHandler,
-        middleware: getLanguageClientMiddleware(),
+        middleware: middleware,
     };
 
     //client init
     const hlasmpluginClient = await createLanguageServer(serverVariant, clientOptions, context.extensionUri);
 
     context.subscriptions.push(hlasmpluginClient);
+    context.subscriptions.push(hlasmpluginClient.onDidChangeState(e => e.newState === vscodelc.State.Starting && middleware.resetFirstOpen()));
 
     clientErrorHandler.defaultHandler = hlasmpluginClient.createDefaultErrorHandler();
 
