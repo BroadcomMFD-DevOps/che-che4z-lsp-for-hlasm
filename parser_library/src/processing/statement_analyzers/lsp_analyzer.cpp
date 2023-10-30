@@ -467,11 +467,11 @@ lsp_analyzer::collection_info_t lsp_analyzer::get_active_collection(
 namespace {
 std::optional<std::pair<int, int>> get_branch_operand(const context::machine_instruction* m) noexcept
 {
-    auto ta = m->branch_argument();
-    if (!ta.valid())
+    auto ba = m->branch_argument();
+    if (!ba.valid())
         return std::nullopt;
 
-    return std::make_pair(ta.unknown_target() ? -1 : ta.target(), ta.branches_if_nonzero() ? ta.nonzero_arg() : -1);
+    return std::make_pair(ba.unknown_target() ? -1 : ba.target(), ba.branches_if_nonzero() ? ba.nonzero_arg() : -1);
 }
 std::optional<std::pair<int, int>> get_branch_operand(const context::mnemonic_code* m) noexcept
 {
