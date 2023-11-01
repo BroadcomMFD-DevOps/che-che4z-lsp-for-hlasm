@@ -117,10 +117,10 @@ function createDecorationTypes(context: vscode.ExtensionContext): DecorationType
     };
 }
 
-function initializeRequestHandling(client: vscodelc.BaseLanguageClient, requestTimeout: number) {
+function initializeRequestHandling(client: vscodelc.BaseLanguageClient) {
     const pendingRequests = new Map<string, () => void>();
 
-    const scheduleRequest = (uri: vscode.Uri) => {
+    const scheduleRequest = (uri: vscode.Uri, delay: number) => {
         const documentUri = uri.toString();
         const req = pendingRequests.get(documentUri);
         if (req) {
@@ -128,7 +128,7 @@ function initializeRequestHandling(client: vscodelc.BaseLanguageClient, requestT
             pendingRequests.delete(documentUri);
         }
 
-        const [resultPromise, cancel] = getCancellableBranchInfo(client, uri, requestTimeout);
+        const [resultPromise, cancel] = getCancellableBranchInfo(client, uri, delay);
         pendingRequests.set(documentUri, cancel);
 
         return resultPromise.finally(() => {
@@ -142,36 +142,42 @@ function initializeRequestHandling(client: vscodelc.BaseLanguageClient, requestT
 
 }
 
-function decorationsEnabled(document: vscode.TextDocument) {
-    return vscode.workspace.getConfiguration('hlasm', document).get<boolean>('showBranchInformation', true);
+function decorationsEnabled(document: vscode.TextDocument, expectedVersion: number | undefined = undefined) {
+    return !document.isClosed
+        && document.languageId === 'hlasm'
+        && (expectedVersion === undefined || document.version === expectedVersion)
+        && vscode.workspace.getConfiguration('hlasm', document).get<boolean>('showBranchInformation', true);
 }
+
+function ignoreFailure() { }
+
+const requestDelay = 1000;
+const withoutDelay = 0;
 
 export function activateBranchDecorator(context: vscode.ExtensionContext, client: vscodelc.BaseLanguageClient) {
     const decorationTypes = createDecorationTypes(context);
-    const { scheduleRequest, cancelRequest } = initializeRequestHandling(client, 1000);
+    const { scheduleRequest, cancelRequest } = initializeRequestHandling(client);
 
-    const activeEditorChanged = async (editor: vscode.TextEditor) => {
+    const activeEditorChanged = async (editor: vscode.TextEditor, delay: number) => {
         const document = editor.document;
-        if (document.languageId !== 'hlasm' || !decorationsEnabled(document)) return;
+        if (!decorationsEnabled(document)) return;
 
         const version = document.version;
 
-        const result = await scheduleRequest(document.uri);
+        const result = await scheduleRequest(document.uri, delay);
 
-        if (document.isClosed || document.version !== version || !decorationsEnabled(document))
-            return;
+        if (!decorationsEnabled(document, version)) return;
 
         updateEditor(editor, result, decorationTypes);
     };
 
-    const updateEditorsRelatedToDocument = async (document: vscode.TextDocument) => {
-        if (document.languageId !== 'hlasm' || !decorationsEnabled(document)) return;
+    const updateEditorsRelatedToDocument = async (document: vscode.TextDocument, delay: number) => {
+        if (!decorationsEnabled(document)) return;
         const version = document.version;
 
-        const result = await scheduleRequest(document.uri);
+        const result = await scheduleRequest(document.uri, delay);
 
-        if (document.isClosed || document.version !== version || !decorationsEnabled(document))
-            return;
+        if (!decorationsEnabled(document, version)) return;
 
         updateVisibleEditors(document.uri, result, decorationTypes);
     };
@@ -181,13 +187,13 @@ export function activateBranchDecorator(context: vscode.ExtensionContext, client
             if (!decorationsEnabled(e.document))
                 updateEditor(e, [], decorationTypes);
             else
-                activeEditorChanged(e).catch(() => { });
+                activeEditorChanged(e, withoutDelay).catch(ignoreFailure);
         }
     }
 
-    context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(editor => editor && activeEditorChanged(editor)));
-    context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(async ({ document }) => updateEditorsRelatedToDocument(document)));
-    context.subscriptions.push(vscode.workspace.onDidOpenTextDocument(updateEditorsRelatedToDocument));
+    context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(editor => editor && activeEditorChanged(editor, requestDelay)));
+    context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(async ({ document }) => updateEditorsRelatedToDocument(document, requestDelay)));
+    context.subscriptions.push(vscode.workspace.onDidOpenTextDocument(editor => updateEditorsRelatedToDocument(editor, requestDelay)));
     context.subscriptions.push(vscode.workspace.onDidCloseTextDocument(document => cancelRequest(document.uri)));
     context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(e => {
         if (e.affectsConfiguration('hlasm.showBranchInformation'))
@@ -195,6 +201,6 @@ export function activateBranchDecorator(context: vscode.ExtensionContext, client
     }));
 
     getFirstOpenPromise(client).then(
-        () => Promise.all(vscode.window.visibleTextEditors.map(e => activeEditorChanged(e))).catch(() => { })
+        () => Promise.all(vscode.window.visibleTextEditors.map(e => activeEditorChanged(e, requestDelay))).catch(ignoreFailure)
     );
 }
