@@ -47,6 +47,8 @@ class processing_status_cache_key
     unsigned char is_alias : 1, loctr_len : 7;
     unsigned char rel_addr;
 
+    explicit processing_status_cache_key(const processing_status& s, std::pair<unsigned char, unsigned char> details);
+
 public:
     friend bool operator==(processing_status_cache_key l, processing_status_cache_key r)
     {
@@ -58,7 +60,6 @@ public:
     explicit processing_status_cache_key(const processing_status& s);
 
     static unsigned char generate_loctr_len(std::string_view id);
-    static unsigned char generate_loctr_len(context::id_index id);
 };
 
 } // namespace hlasm_plugin::parser_library::processing
