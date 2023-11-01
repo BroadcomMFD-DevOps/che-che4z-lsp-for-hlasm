@@ -71,12 +71,10 @@ function getCancellableBranchInfo(client: vscodelc.BaseLanguageClient, uri: vsco
     return [p, cancel];
 }
 
-const requestTimeout = 1000;
-
-export function activateBranchDecorator(context: vscode.ExtensionContext, client: vscodelc.BaseLanguageClient) {
+function createDecorationTypes(context: vscode.ExtensionContext): DecorationTypes {
     const upArrow = vscode.window.createTextEditorDecorationType({
         before: {
-            contentText: '↑',
+            contentText: ' ‏↑‎ ',
             color: new vscode.ThemeColor('hlasmplugin.branchUpColor'),
             fontWeight: 'bold',
             width: '0',
@@ -84,7 +82,7 @@ export function activateBranchDecorator(context: vscode.ExtensionContext, client
     });
     const downArrow = vscode.window.createTextEditorDecorationType({
         before: {
-            contentText: '↓',
+            contentText: ' ‏↓‎ ',
             color: new vscode.ThemeColor('hlasmplugin.branchDownColor'),
             fontWeight: 'bold',
             width: '0',
@@ -92,7 +90,7 @@ export function activateBranchDecorator(context: vscode.ExtensionContext, client
     });
     const updownArrow = vscode.window.createTextEditorDecorationType({
         before: {
-            contentText: '↕',
+            contentText: ' ‏↕‎ ',
             color: new vscode.ThemeColor('hlasmplugin.branchUnknownColor'),
             fontWeight: 'bold',
             width: '0',
@@ -100,27 +98,29 @@ export function activateBranchDecorator(context: vscode.ExtensionContext, client
     });
     const rightArrow = vscode.window.createTextEditorDecorationType({
         before: {
-            contentText: '→',
+            contentText: ' ‏→‎ ',
             color: new vscode.ThemeColor('hlasmplugin.branchUnknownColor'),
             fontWeight: 'bold',
             width: '0',
-        }
+        },
     });
     context.subscriptions.push(upArrow);
     context.subscriptions.push(downArrow);
     context.subscriptions.push(updownArrow);
     context.subscriptions.push(rightArrow);
 
-    const decorationTypes: DecorationTypes = {
+    return {
         upArrow,
         downArrow,
         updownArrow,
         rightArrow,
     };
+}
 
+function initializeRequestHandling(client: vscodelc.BaseLanguageClient, requestTimeout: number) {
     const pendingRequests = new Map<string, () => void>();
 
-    const scheduleRequest = async (uri: vscode.Uri, delay: number) => {
+    const scheduleRequest = (uri: vscode.Uri) => {
         const documentUri = uri.toString();
         const req = pendingRequests.get(documentUri);
         if (req) {
@@ -128,22 +128,31 @@ export function activateBranchDecorator(context: vscode.ExtensionContext, client
             pendingRequests.delete(documentUri);
         }
 
-        const [resultPromise, cancel] = getCancellableBranchInfo(client, uri, delay);
+        const [resultPromise, cancel] = getCancellableBranchInfo(client, uri, requestTimeout);
         pendingRequests.set(documentUri, cancel);
 
-        return await resultPromise.finally(() => {
+        return resultPromise.finally(() => {
             if (pendingRequests.get(documentUri) === cancel)
                 pendingRequests.delete(documentUri);
         });
     };
+    const cancelRequest = (uri: vscode.Uri) => { pendingRequests.get(uri.toString())?.() };
 
-    const activeChanged = async (editor: vscode.TextEditor) => {
+    return { scheduleRequest, cancelRequest };
+
+}
+
+export function activateBranchDecorator(context: vscode.ExtensionContext, client: vscodelc.BaseLanguageClient) {
+    const decorationTypes = createDecorationTypes(context);
+    const { scheduleRequest, cancelRequest } = initializeRequestHandling(client, 1000);
+
+    const activeEditorChanged = async (editor: vscode.TextEditor) => {
         const document = editor.document;
         if (document.languageId !== 'hlasm') return;
 
         const version = document.version;
 
-        const result = await scheduleRequest(document.uri, requestTimeout);
+        const result = await scheduleRequest(document.uri);
 
         if (document.isClosed || document.version !== version)
             return;
@@ -151,43 +160,24 @@ export function activateBranchDecorator(context: vscode.ExtensionContext, client
         updateEditor(editor, result, decorationTypes);
     };
 
-    context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor((editor) => {
-        if (!editor) return;
-        return activeChanged(editor);
-    }));
-
-    context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(async ({ document }) => {
+    const updateEditorsRelatedToDocument = async (document: vscode.TextDocument) => {
         if (document.languageId !== 'hlasm') return;
-
         const version = document.version;
 
-        const result = await scheduleRequest(document.uri, requestTimeout);
+        const result = await scheduleRequest(document.uri);
 
         if (document.isClosed || document.version !== version)
             return;
 
         updateVisibleEditors(document.uri, result, decorationTypes);
-    }));
+    };
 
-    context.subscriptions.push(vscode.workspace.onDidOpenTextDocument(async (document) => {
-        if (document.languageId !== 'hlasm') return;
-        const version = document.version;
-
-        const result = await scheduleRequest(document.uri, requestTimeout);
-
-        if (document.isClosed || document.version !== version)
-            return;
-
-        updateVisibleEditors(document.uri, result, decorationTypes);
-    }));
-
-    context.subscriptions.push(vscode.workspace.onDidCloseTextDocument(async (document) => {
-        if (document.languageId !== 'hlasm') return;
-
-        pendingRequests.get(document.uri.toString())?.();
-    }));
+    context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(editor => editor && activeEditorChanged(editor)));
+    context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(async ({ document }) => updateEditorsRelatedToDocument(document)));
+    context.subscriptions.push(vscode.workspace.onDidOpenTextDocument(updateEditorsRelatedToDocument));
+    context.subscriptions.push(vscode.workspace.onDidCloseTextDocument(document => cancelRequest(document.uri)));
 
     getFirstOpenPromise(client).then(
-        () => Promise.all(vscode.window.visibleTextEditors.map(e => activeChanged(e))).catch(() => { })
+        () => Promise.all(vscode.window.visibleTextEditors.map(e => activeEditorChanged(e))).catch(() => { })
     );
 }
