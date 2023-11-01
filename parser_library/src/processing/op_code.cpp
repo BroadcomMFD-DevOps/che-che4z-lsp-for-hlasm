@@ -21,7 +21,7 @@ namespace hlasm_plugin::parser_library::processing {
 constexpr const auto common_processing_status_cache_key_details = std::pair((unsigned char)1, (unsigned char)0);
 
 // (value of L'* expression, reladdr mask)
-inline std::pair<unsigned char, unsigned char> get_processing_status_cache_key_details(std::string_view id)
+inline std::pair<unsigned char, unsigned char> get_processing_status_cache_key_details(std::string_view id) noexcept
 {
     if (!id.empty())
     {
@@ -36,7 +36,7 @@ inline std::pair<unsigned char, unsigned char> get_processing_status_cache_key_d
 }
 
 // Generates value of L'* expression
-unsigned char processing_status_cache_key::generate_loctr_len(std::string_view id)
+unsigned char processing_status_cache_key::generate_loctr_len(std::string_view id) noexcept
 {
     if (!id.empty())
     {
@@ -47,7 +47,7 @@ unsigned char processing_status_cache_key::generate_loctr_len(std::string_view i
 }
 
 processing_status_cache_key::processing_status_cache_key(
-    const processing_status& s, std::pair<unsigned char, unsigned char> details)
+    const processing_status& s, std::pair<unsigned char, unsigned char> details) noexcept
     : form(s.first.form)
     , occurrence(s.first.occurrence)
     , is_alias(s.second.type == context::instruction_type::ASM && s.second.value.to_string_view() == "ALIAS")
@@ -55,7 +55,7 @@ processing_status_cache_key::processing_status_cache_key(
     , rel_addr(details.second)
 {}
 
-processing_status_cache_key::processing_status_cache_key(const processing_status& s)
+processing_status_cache_key::processing_status_cache_key(const processing_status& s) noexcept
     : processing_status_cache_key(s,
         s.second.type != context::instruction_type::MACH
             ? common_processing_status_cache_key_details
