@@ -447,6 +447,11 @@
           "type": "boolean",
           "default": false,
           "description": "Enables autodetection of HLASM source code for automatic setting of Language Mode."
+        },
+        "hlasm.showBranchInformation": {
+          "type": "boolean",
+          "default": true,
+          "description": "Decorate instructions with an indicator of branch direction"
         }
       }
     }

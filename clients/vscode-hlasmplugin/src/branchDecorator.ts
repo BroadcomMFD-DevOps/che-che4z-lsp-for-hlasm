@@ -142,40 +142,57 @@ function initializeRequestHandling(client: vscodelc.BaseLanguageClient, requestT
 
 }
 
+function decorationsEnabled(document: vscode.TextDocument) {
+    return vscode.workspace.getConfiguration('hlasm', document).get<boolean>('showBranchInformation', true);
+}
+
 export function activateBranchDecorator(context: vscode.ExtensionContext, client: vscodelc.BaseLanguageClient) {
     const decorationTypes = createDecorationTypes(context);
     const { scheduleRequest, cancelRequest } = initializeRequestHandling(client, 1000);
 
     const activeEditorChanged = async (editor: vscode.TextEditor) => {
         const document = editor.document;
-        if (document.languageId !== 'hlasm') return;
+        if (document.languageId !== 'hlasm' || !decorationsEnabled(document)) return;
 
         const version = document.version;
 
         const result = await scheduleRequest(document.uri);
 
-        if (document.isClosed || document.version !== version)
+        if (document.isClosed || document.version !== version || !decorationsEnabled(document))
             return;
 
         updateEditor(editor, result, decorationTypes);
     };
 
     const updateEditorsRelatedToDocument = async (document: vscode.TextDocument) => {
-        if (document.languageId !== 'hlasm') return;
+        if (document.languageId !== 'hlasm' || !decorationsEnabled(document)) return;
         const version = document.version;
 
         const result = await scheduleRequest(document.uri);
 
-        if (document.isClosed || document.version !== version)
+        if (document.isClosed || document.version !== version || !decorationsEnabled(document))
             return;
 
         updateVisibleEditors(document.uri, result, decorationTypes);
     };
 
+    const configurationUpdated = () => {
+        for (const e of vscode.window.visibleTextEditors) {
+            if (!decorationsEnabled(e.document))
+                updateEditor(e, [], decorationTypes);
+            else
+                activeEditorChanged(e).catch(() => { });
+        }
+    }
+
     context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(editor => editor && activeEditorChanged(editor)));
     context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(async ({ document }) => updateEditorsRelatedToDocument(document)));
     context.subscriptions.push(vscode.workspace.onDidOpenTextDocument(updateEditorsRelatedToDocument));
     context.subscriptions.push(vscode.workspace.onDidCloseTextDocument(document => cancelRequest(document.uri)));
+    context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(e => {
+        if (e.affectsConfiguration('hlasm.showBranchInformation'))
+            configurationUpdated();
+    }));
 
     getFirstOpenPromise(client).then(
         () => Promise.all(vscode.window.visibleTextEditors.map(e => activeEditorChanged(e))).catch(() => { })
