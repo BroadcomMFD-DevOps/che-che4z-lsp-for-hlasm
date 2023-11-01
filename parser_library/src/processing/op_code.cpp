@@ -23,11 +23,11 @@ inline unsigned char get_reladdr_bitmask(context::id_index id)
     if (id.empty())
         return 0;
 
-    if (auto p_instr = context::instruction::find_machine_instructions(id.to_string_view()))
-        return p_instr->reladdr_mask().mask();
-
-    if (auto p_mnemo = context::instruction::find_mnemonic_codes(id.to_string_view()))
+    const auto [p_instr, p_mnemo] = context::instruction::find_machine_instruction_or_mnemonic(id.to_string_view());
+    if (p_mnemo)
         return p_mnemo->reladdr_mask().mask();
+    if (p_instr)
+        return p_instr->reladdr_mask().mask();
 
     return 0;
 }
@@ -37,11 +37,8 @@ unsigned char processing_status_cache_key::generate_loctr_len(std::string_view i
 {
     if (!id.empty())
     {
-        if (auto p_instr = context::instruction::find_machine_instructions(id))
-            return static_cast<unsigned char>(p_instr->size_in_bits() / 8);
-
-        if (auto p_mnemo = context::instruction::find_mnemonic_codes(id))
-            return static_cast<unsigned char>(p_mnemo->instruction()->size_in_bits() / 8);
+        if (const auto [mi, _] = context::instruction::find_machine_instruction_or_mnemonic(id); mi)
+            return static_cast<unsigned char>(mi->size_in_bits() / 8);
     }
     return 1;
 }
