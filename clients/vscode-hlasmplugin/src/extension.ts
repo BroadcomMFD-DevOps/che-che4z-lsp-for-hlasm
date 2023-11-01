@@ -82,7 +82,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<HlasmE
     const telemetry = createTelemetry();
     context.subscriptions.push(telemetry);
 
-    telemetry.reportEvent("hlasm.activated", { server_variant: serverVariant.toString() });
+    telemetry.reportEvent("hlasm.activated", {
+        server_variant: serverVariant.toString(),
+        showBranchInformation: getConfig<boolean>('showBranchInformation', true).toString(),
+    });
 
     await registerEditHelpers(context);
 
