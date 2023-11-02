@@ -73,7 +73,7 @@ TEST(context, create_global_var)
     auto found = ctx.get_var_sym(idx);
 
     ASSERT_TRUE(found);
-    EXPECT_TRUE(glob == found);
+    EXPECT_TRUE(glob.get() == found);
 
     EXPECT_TRUE(ctx.globals().find(idx) != ctx.globals().end());
     EXPECT_TRUE(glob.get() == ctx.globals().find(idx)->second->access_set_symbol_base());
@@ -92,7 +92,7 @@ TEST(context, create_global_var_different_types)
     auto found = ctx.get_var_sym(idx);
 
     ASSERT_TRUE(found);
-    EXPECT_TRUE(glob_a == found);
+    EXPECT_TRUE(glob_a.get() == found);
     EXPECT_FALSE(glob_b);
 
     EXPECT_TRUE(ctx.globals().find(idx) != ctx.globals().end());
@@ -129,7 +129,7 @@ TEST(context, create_local_var)
     auto found = ctx.get_var_sym(idx);
 
 
-    ASSERT_TRUE(loc == found);
+    ASSERT_TRUE(loc.get() == found);
     ASSERT_TRUE(ctx.globals().find(idx) == ctx.globals().end());
 }
 

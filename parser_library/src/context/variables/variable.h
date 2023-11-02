@@ -34,8 +34,6 @@ class set_symbol_base;
 class macro_param_base;
 class variable_symbol;
 
-using var_sym_ptr = std::shared_ptr<variable_symbol>;
-
 // base for variable symbols
 class variable_symbol
 {

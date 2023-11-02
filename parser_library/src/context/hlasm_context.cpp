@@ -651,23 +651,23 @@ std::vector<id_index> hlasm_context::whole_copy_stack() const
 
 const hlasm_context::global_variable_storage& hlasm_context::globals() const { return globals_; }
 
-var_sym_ptr hlasm_context::get_var_sym(id_index name) const
+variable_symbol* hlasm_context::get_var_sym(id_index name) const
 {
     const auto* scope = curr_scope();
     if (auto tmp = scope->variables.find(name); tmp != scope->variables.end())
-        return tmp->second;
+        return tmp->second.get();
 
     if (auto s_tmp = scope->system_variables.find(name); s_tmp != scope->system_variables.end())
-        return s_tmp->second;
+        return s_tmp->second.get();
 
     if (scope->is_in_macro())
     {
         auto m_tmp = scope->this_macro->named_params.find(name);
         if (m_tmp != scope->this_macro->named_params.end())
-            return m_tmp->second;
+            return m_tmp->second.get();
     }
 
-    return var_sym_ptr();
+    return nullptr;
 }
 
 void hlasm_context::add_opencode_sequence_symbol(std::unique_ptr<opencode_sequence_symbol> seq_sym)
@@ -1104,7 +1104,7 @@ SET_t get_var_sym_value(const hlasm_context& hlasm_ctx,
     return SET_t();
 }
 
-bool test_symbol_for_read(const var_sym_ptr& var,
+bool test_symbol_for_read(const variable_symbol* var,
     std::span<const context::A_t> subscript,
     range symbol_range,
     diagnostic_op_consumer& diags,

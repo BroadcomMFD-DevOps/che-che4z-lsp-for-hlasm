@@ -55,7 +55,7 @@ class hlasm_context
     using copy_member_storage = std::unordered_map<id_index, copy_member_ptr>;
     using instruction_storage = std::unordered_map<id_index, opcode_t::opcode_variant>;
     using opcode_map = std::unordered_map<id_index, std::vector<std::pair<opcode_t, opcode_generation>>>;
-    using global_variable_storage = std::unordered_map<id_index, var_sym_ptr>;
+    using global_variable_storage = std::unordered_map<id_index, std::shared_ptr<variable_symbol>>;
 
     // storage of global variables
     global_variable_storage globals_;
@@ -191,7 +191,7 @@ public:
 
     // return variable symbol in current scope
     // returns empty shared_ptr if there is none in the current scope
-    var_sym_ptr get_var_sym(id_index name) const;
+    variable_symbol* get_var_sym(id_index name) const;
 
     // registers sequence symbol
     void add_opencode_sequence_symbol(std::unique_ptr<opencode_sequence_symbol> seq_sym);
@@ -348,7 +348,7 @@ public:
     const auto& get_opencode_sequence_symbols() const noexcept { return opencode_sequence_symbols; }
 };
 
-bool test_symbol_for_read(const var_sym_ptr& var,
+bool test_symbol_for_read(const variable_symbol* var,
     std::span<const A_t> subscript,
     range symbol_range,
     diagnostic_op_consumer& diags,
