@@ -50,8 +50,8 @@ public:
         return (type == object_traits<T>::type_enum) ? static_cast<const set_symbol<T>*>(this) : nullptr;
     }
 
-    virtual std::vector<size_t> keys() const = 0;
-    virtual size_t size() const = 0;
+    virtual std::vector<A_t> keys() const = 0;
+    virtual A_t size() const = 0;
 
     bool can_read(
         std::span<const A_t> subscript, range symbol_range, diagnostic_consumer<diagnostic_op>& diags) const override;
@@ -68,7 +68,7 @@ class set_symbol : public set_symbol_base
 
     // data holding this set_symbol
     // can be scalar or only array of scalars - no other nesting allowed
-    std::map<size_t, T> data;
+    std::map<A_t, T> data;
 
 public:
     set_symbol(id_index name, bool is_scalar, bool is_global)
@@ -77,7 +77,7 @@ public:
 
     // gets value from non scalar set symbol
     // if data at idx is not set or it does not exists, default is returned
-    T get_value(size_t idx) const
+    T get_value(A_t idx) const
     {
         if (is_scalar)
             return object_traits<T>::default_v();
@@ -105,7 +105,7 @@ public:
 
     // sets value to non scalar set symbol
     // any index can be accessed
-    void set_value(T value, size_t idx)
+    void set_value(T value, A_t idx)
     {
         if (is_scalar)
             data.insert_or_assign(0, std::move(value));
@@ -118,7 +118,7 @@ public:
 
     // reserves storage for the object value
     // any index can be accessed
-    T& reserve_value(size_t idx)
+    T& reserve_value(A_t idx)
     {
         if (is_scalar)
             return data[0];
@@ -127,37 +127,39 @@ public:
     }
 
     // N' attribute of the symbol
-    A_t number(std::span<const size_t>) const override
+    A_t number(std::span<const A_t>) const override
     {
         return (A_t)(is_scalar || data.empty() ? 0 : data.rbegin()->first + 1);
     }
 
     // K' attribute of the symbol
-    A_t count(std::span<const size_t> offset) const override;
+    A_t count(std::span<const A_t> offset) const override;
 
-    size_t size() const override { return data.size(); };
+    A_t size() const override { return (A_t)data.size(); };
 
-    std::vector<size_t> keys() const override
+    std::vector<A_t> keys() const override
     {
-        std::vector<size_t> keys;
+        std::vector<A_t> keys;
         keys.reserve(data.size());
-        for (auto& [key, value] : data)
+        for (const auto& [key, value] : data)
             keys.push_back(key);
         return keys;
     }
 
 private:
-    const T* get_data(std::span<const size_t> offset) const
+    const T* get_data(std::span<const A_t> offset) const
     {
         if ((is_scalar && !offset.empty()) || (!is_scalar && offset.size() != 1))
             return nullptr;
 
         auto tmp_offs = is_scalar ? 0 : offset.front() - 1;
 
-        if (data.find(tmp_offs) == data.end())
+        auto it = data.find(tmp_offs);
+
+        if (it == data.end())
             return nullptr;
 
-        return &data.at(tmp_offs);
+        return &it->second;
     }
 };
 

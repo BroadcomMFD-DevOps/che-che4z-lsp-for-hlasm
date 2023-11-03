@@ -42,7 +42,7 @@ macro_param_base::macro_param_base(macro_param_type param_type, id_index name, b
     , param_type(param_type)
 {}
 
-C_t macro_param_base::get_value(std::span<const size_t> offset) const
+C_t macro_param_base::get_value(std::span<const A_t> offset) const
 {
     const macro_param_data_component* tmp = real_data();
 
@@ -53,11 +53,11 @@ C_t macro_param_base::get_value(std::span<const size_t> offset) const
     return tmp->get_value();
 }
 
-C_t macro_param_base::get_value(size_t idx) const { return real_data()->get_ith(idx)->get_value(); }
+C_t macro_param_base::get_value(A_t idx) const { return real_data()->get_ith(idx)->get_value(); }
 
 C_t macro_param_base::get_value() const { return real_data()->get_value(); }
 
-const macro_param_data_component* macro_param_base::get_data(std::span<const size_t> offset) const
+const macro_param_data_component* macro_param_base::get_data(std::span<const A_t> offset) const
 {
     auto data = real_data();
     for (auto idx : offset)
@@ -67,7 +67,7 @@ const macro_param_data_component* macro_param_base::get_data(std::span<const siz
     return data;
 }
 
-A_t macro_param_base::number(std::span<const size_t> offset) const
+A_t macro_param_base::number(std::span<const A_t> offset) const
 {
     const macro_param_data_component* tmp = real_data();
 
@@ -75,10 +75,10 @@ A_t macro_param_base::number(std::span<const size_t> offset) const
     {
         tmp = tmp->get_ith(idx - 1);
     }
-    return (A_t)tmp->number;
+    return tmp->number;
 }
 
-A_t macro_param_base::count(std::span<const size_t> offset) const
+A_t macro_param_base::count(std::span<const A_t> offset) const
 {
     const macro_param_data_component* tmp = real_data();
 
@@ -97,17 +97,17 @@ bool macro_param_base::can_read(
         return true;
     }
 
-    if (0 == subscript[0])
+    if (0 == subscript.front())
     {
         diags.add_diagnostic(diagnostic_op::error_E012(
             "subscript value has to be 1 or more", symbol_range)); // error - subscript is less than 1
         return false;
     }
-    else if (1 == subscript[0])
+    else if (1 == subscript.front())
     {
-        for (size_t i = 1; i < subscript.size(); ++i)
+        for (auto idx : subscript.subspan(1))
         {
-            if (0 == subscript[i])
+            if (0 == idx)
             {
                 diags.add_diagnostic(diagnostic_op::error_E012(
                     "subscript value has to be 1 or more", symbol_range)); // error - subscript is less than 1
@@ -119,7 +119,7 @@ bool macro_param_base::can_read(
     return true;
 }
 
-size_t macro_param_base::size(std::span<const size_t> offset) const
+A_t macro_param_base::size(std::span<const A_t> offset) const
 {
     const macro_param_data_component* tmp = real_data();
 

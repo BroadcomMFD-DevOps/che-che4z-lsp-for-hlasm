@@ -35,4 +35,4 @@ bool attribute_variable::is_scalar() const { return true; }
 
 std::vector<variable_ptr> attribute_variable::values() const { return std::vector<variable_ptr>(); }
 
-size_t attribute_variable::size() const { return 0; }
+context::A_t attribute_variable::size() const { return 0; }

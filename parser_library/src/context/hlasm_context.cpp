@@ -1058,8 +1058,6 @@ SET_t get_var_sym_value(const hlasm_context& hlasm_ctx,
 
     if (auto set_sym = var->access_set_symbol_base())
     {
-        size_t idx = 0;
-
         if (subscript.empty())
         {
             switch (set_sym->type)
@@ -1076,7 +1074,7 @@ SET_t get_var_sym_value(const hlasm_context& hlasm_ctx,
         }
         else
         {
-            idx = (size_t)(subscript.front() - 1);
+            const auto idx = subscript.front() - 1;
 
             switch (set_sym->type)
             {
@@ -1093,13 +1091,7 @@ SET_t get_var_sym_value(const hlasm_context& hlasm_ctx,
     }
     else if (auto mac_par = var->access_macro_param_base())
     {
-        std::vector<size_t> tmp;
-        tmp.reserve(subscript.size()); // TODO: This is ridiculous
-        for (auto& v : subscript)
-        {
-            tmp.push_back((size_t)v);
-        }
-        return mac_par->get_value(tmp);
+        return mac_par->get_value(subscript);
     }
     return SET_t();
 }

@@ -39,7 +39,7 @@ public:
     virtual bool is_scalar() const = 0;
 
     virtual std::vector<variable_ptr> values() const = 0;
-    virtual size_t size() const = 0;
+    virtual context::A_t size() const = 0;
 
     var_reference_t var_reference = 0;
 

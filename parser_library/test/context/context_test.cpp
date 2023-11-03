@@ -450,7 +450,7 @@ TEST(context_macro, repeat_call_same_macro)
     auto SYSLIST = m3->named_params.find(id_storage::well_known::SYSLIST)->second->access_system_variable();
     ASSERT_TRUE(SYSLIST);
 
-    for (size_t i = 0; i < 3; i++)
+    for (auto i = 0; i < 3; i++)
     {
         EXPECT_EQ(SYSLIST->get_value(i), "");
     }
@@ -460,11 +460,11 @@ TEST(context_macro, repeat_call_same_macro)
     EXPECT_EQ(m3->named_params.find(op3)->second->get_value(), "(first,second,third)");
     EXPECT_EQ(m3->named_params.find(key)->second->get_value(), "cas");
 
-    EXPECT_EQ(SYSLIST->get_value(std::array<size_t, 2> { 2, 3 }), "");
+    EXPECT_EQ(SYSLIST->get_value(std::array<context::A_t, 2> { 2, 3 }), "");
     EXPECT_EQ(SYSLIST->get_value(3), "(first,second,third)");
-    EXPECT_EQ(SYSLIST->get_value(std::array<size_t, 2> { 3, 2 }), "second");
-    EXPECT_EQ(SYSLIST->get_value(std::array<size_t, 4> { 3, 2, 1, 1 }), "second");
-    EXPECT_EQ(SYSLIST->get_value(std::array<size_t, 5> { 3, 2, 1, 1, 2 }), "");
+    EXPECT_EQ(SYSLIST->get_value(std::array<context::A_t, 2> { 3, 2 }), "second");
+    EXPECT_EQ(SYSLIST->get_value(std::array<context::A_t, 4> { 3, 2, 1, 1 }), "second");
+    EXPECT_EQ(SYSLIST->get_value(std::array<context::A_t, 5> { 3, 2, 1, 1, 2 }), "");
 }
 
 TEST(context_macro, recurr_call)
@@ -548,7 +548,7 @@ TEST(context_macro, recurr_call)
     auto SYSLIST3 = m3->named_params.find(id_storage::well_known::SYSLIST)->second->access_system_variable();
     ASSERT_TRUE(SYSLIST3);
 
-    for (size_t i = 0; i < 2; i++)
+    for (context::A_t i = 0; i < 2; i++)
     {
         EXPECT_EQ(SYSLIST3->get_value(i), "");
     }
@@ -560,17 +560,17 @@ TEST(context_macro, recurr_call)
     EXPECT_EQ(m3->named_params.find(key)->second->get_value(), "cas");
 
     EXPECT_EQ(SYSLIST3->get_value(0), "");
-    EXPECT_EQ(SYSLIST3->get_value(std::array<size_t, 2> { 2, 3 }), "");
+    EXPECT_EQ(SYSLIST3->get_value(std::array<context::A_t, 2> { 2, 3 }), "");
     EXPECT_EQ(SYSLIST3->get_value(3), "(first,second,third)");
-    EXPECT_EQ(SYSLIST3->get_value(std::array<size_t, 2> { 3, 2 }), "second");
-    EXPECT_EQ(SYSLIST3->get_value(std::array<size_t, 4> { 3, 2, 1, 1 }), "second");
-    EXPECT_EQ(SYSLIST3->get_value(std::array<size_t, 5> { 3, 2, 1, 1, 2 }), "");
+    EXPECT_EQ(SYSLIST3->get_value(std::array<context::A_t, 2> { 3, 2 }), "second");
+    EXPECT_EQ(SYSLIST3->get_value(std::array<context::A_t, 4> { 3, 2, 1, 1 }), "second");
+    EXPECT_EQ(SYSLIST3->get_value(std::array<context::A_t, 5> { 3, 2, 1, 1, 2 }), "");
 
     // testing outer macro
-    EXPECT_EQ(SYSLIST2->get_value((size_t)0), "lbl");
-    EXPECT_EQ(SYSLIST2->get_value((size_t)1), "ada");
-    EXPECT_EQ(SYSLIST2->get_value((size_t)2), "mko");
-    EXPECT_EQ(SYSLIST2->get_value((size_t)3), "");
+    EXPECT_EQ(SYSLIST2->get_value(0), "lbl");
+    EXPECT_EQ(SYSLIST2->get_value(1), "ada");
+    EXPECT_EQ(SYSLIST2->get_value(2), "mko");
+    EXPECT_EQ(SYSLIST2->get_value(3), "");
 
     EXPECT_EQ(m2->named_params.find(op1)->second->get_value(), "ada");
     EXPECT_EQ(m2->named_params.find(op3)->second->get_value(), "");

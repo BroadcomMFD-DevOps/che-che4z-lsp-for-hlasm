@@ -143,7 +143,7 @@ std::pair<std::unique_ptr<context::macro_param_data_single>, bool> find_single_m
         comma_encountered };
 }
 
-context::macro_data_ptr macro_processor::string_to_macrodata(std::string data)
+context::macro_data_ptr macro_processor::string_to_macrodata(std::string data, diagnostic_adder& add_diagnostic)
 {
     if (data.empty())
         return std::make_unique<context::macro_param_data_dummy>();
@@ -158,6 +158,13 @@ context::macro_data_ptr macro_processor::string_to_macrodata(std::string data)
     nests.push(0);
     macro_data.emplace();
     bool empty_op_pending = false;
+
+    if (data.size() > std::numeric_limits<context::A_t>::max())
+    {
+        // This should not really happen in practice
+        add_diagnostic(diagnostic_op::error_E079);
+        data.erase(std::numeric_limits<context::A_t>::max());
+    }
 
     while (true)
     {
@@ -293,18 +300,20 @@ std::vector<context::macro_arg> macro_processor::get_operand_args(const resolved
 
         auto& tmp_chain = tmp->chain;
 
+        diagnostic_adder add_diags(this->eval_ctx.diags, statement.operands_ref().field_range);
         if (auto [valid, arg_name] = is_keyword(tmp_chain, hlasm_ctx); valid) // keyword
         {
             get_keyword_arg(statement, arg_name, tmp_chain, args, keyword_params, tmp->operand_range);
         }
         else if (can_chain_be_forwarded(tmp_chain)) // single varsym
         {
-            args.emplace_back(string_to_macrodata(semantics::var_sym_conc::evaluate(
-                std::get<semantics::var_sym_conc>(tmp_chain.front().value).symbol->evaluate(eval_ctx))));
+            args.emplace_back(string_to_macrodata(
+                semantics::var_sym_conc::evaluate(
+                    std::get<semantics::var_sym_conc>(tmp_chain.front().value).symbol->evaluate(eval_ctx)),
+                add_diags));
         }
         else // rest
         {
-            diagnostic_adder add_diags(this->eval_ctx.diags, statement.operands_ref().field_range);
             args.emplace_back(create_macro_data(tmp_chain.begin(), tmp_chain.end(), eval_ctx, add_diags));
         }
     }
@@ -342,13 +351,14 @@ void macro_processor::get_keyword_arg(const resolved_statement& statement,
         auto chain_end = chain.end();
         context::macro_data_ptr data;
 
+        diagnostic_adder add_diags(statement.operands_ref().field_range);
         if (semantics::concat_chain_matches<semantics::sublist_conc>(chain_begin, chain_end))
         {
-            diagnostic_adder add_diags(statement.operands_ref().field_range);
             data = create_macro_data(chain_begin, chain_end, eval_ctx, add_diags);
         }
         else
-            data = string_to_macrodata(semantics::concatenation_point::evaluate(chain_begin, chain_end, eval_ctx));
+            data = string_to_macrodata(
+                semantics::concatenation_point::evaluate(chain_begin, chain_end, eval_ctx), add_diags);
 
         args.emplace_back(std::move(data), arg_name);
     }
@@ -365,15 +375,15 @@ context::macro_data_ptr create_macro_data_inner(semantics::concat_chain::const_i
     if (size == 0)
         return std::make_unique<context::macro_param_data_dummy>();
     else if (size == 1 && !semantics::concat_chain_matches<semantics::sublist_conc>(begin, end))
-        return macro_processor::string_to_macrodata(to_string(begin, end));
+        return macro_processor::string_to_macrodata(to_string(begin, end), add_diagnostic);
     else if (size > 1)
     {
         if (auto s = to_string(begin, end); s.empty())
             return std::make_unique<context::macro_param_data_dummy>();
         else if (s.front() != '(' && (!nested || semantics::concatenation_point::find_var_sym(begin, end) == nullptr))
-            return macro_processor::string_to_macrodata(std::move(s));
+            return macro_processor::string_to_macrodata(std::move(s), add_diagnostic);
         else if (is_valid_string(s))
-            return macro_processor::string_to_macrodata(std::move(s));
+            return macro_processor::string_to_macrodata(std::move(s), add_diagnostic);
         else
         {
             add_diagnostic(diagnostic_op::error_S0005);

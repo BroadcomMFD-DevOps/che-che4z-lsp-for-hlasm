@@ -98,7 +98,7 @@ ca_processor::SET_info ca_processor::get_SET_symbol(const semantics::complete_st
     auto symbol = std::get<semantics::vs_ptr>(stmt.label_ref().value).get();
     bool is_scalar_expression = symbol->subscript.empty();
 
-    int index = -1;
+    context::A_t index = -1;
 
     auto name = symbol->evaluate_name(eval_ctx);
 
@@ -579,11 +579,12 @@ void ca_processor::process_AREAD(const semantics::complete_statement& stmt)
                 value_to_set = std::move(std::get<std::string>(aread_result));
             else
             {
-                listener_.schedule_helper_task(
-                    [](utils::value_task<std::string> t, context::set_symbol_base* set_sym, int idx) -> utils::task {
-                        auto value = co_await std::move(t);
-                        set_sym->access_set_symbol<context::C_t>()->set_value(std::move(value), idx - 1);
-                    }(std::move(std::get<utils::value_task<std::string>>(aread_result)), set_symbol, index));
+                listener_.schedule_helper_task([](utils::value_task<std::string> t,
+                                                   context::set_symbol_base* set_sym,
+                                                   context::A_t idx) -> utils::task {
+                    auto value = co_await std::move(t);
+                    set_sym->access_set_symbol<context::C_t>()->set_value(std::move(value), idx - 1);
+                }(std::move(std::get<utils::value_task<std::string>>(aread_result)), set_symbol, index));
                 return;
             }
             break;
@@ -613,7 +614,14 @@ void ca_processor::process_SET(const semantics::complete_statement& stmt)
     if (!prepare_SET_operands(stmt, expr_values))
         return;
 
-    for (size_t i = 0; i < expr_values.size(); i++)
+    if (expr_values.size() > std::numeric_limits<context::A_t>::max()
+        || std::numeric_limits<context::A_t>::max() - (context::A_t)expr_values.size() < index - 1)
+    {
+        eval_ctx.diags.add_diagnostic(diagnostic_op::error_E080(stmt.operands_ref().field_range));
+        return;
+    }
+
+    for (context::A_t i = 0; i < expr_values.size(); ++i)
     {
         // first obtain a place to put the result in
         auto& val = set_symbol->template access_set_symbol<T>()->reserve_value(index - 1 + i);

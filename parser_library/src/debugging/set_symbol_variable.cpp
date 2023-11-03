@@ -61,7 +61,7 @@ std::vector<variable_ptr> set_symbol_variable::values() const
     return vals;
 }
 
-size_t set_symbol_variable::size() const { return set_symbol_.size(); }
+context::A_t set_symbol_variable::size() const { return set_symbol_.size(); }
 
 std::string set_symbol_variable::get_string_value(const std::optional<int>& index) const
 {

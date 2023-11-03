@@ -20,7 +20,7 @@
 using namespace hlasm_plugin::parser_library;
 using namespace hlasm_plugin::parser_library::debugging;
 
-macro_param_variable::macro_param_variable(const context::macro_param_base& param, std::vector<size_t> index)
+macro_param_variable::macro_param_variable(const context::macro_param_base& param, std::vector<context::A_t> index)
     : macro_param_(param)
     , index_(std::move(index))
 {
@@ -48,12 +48,12 @@ std::vector<variable_ptr> macro_param_variable::values() const
 {
     std::vector<std::unique_ptr<variable>> vals;
 
-    std::vector<size_t> child_index = index_;
+    std::vector<context::A_t> child_index = index_;
     child_index.push_back(0);
 
     if (macro_param_.access_system_variable() && child_index.size() == 1)
     {
-        for (size_t i = 0; i < size(); ++i)
+        for (context::A_t i = 0; i < size(); ++i)
         {
             child_index.back() = i;
             vals.push_back(std::make_unique<macro_param_variable>(macro_param_, child_index));
@@ -61,7 +61,7 @@ std::vector<variable_ptr> macro_param_variable::values() const
     }
     else
     {
-        for (size_t i = 1; i <= size(); ++i)
+        for (context::A_t i = 1; i <= size(); ++i)
         {
             child_index.back() = i;
             vals.push_back(std::make_unique<macro_param_variable>(macro_param_, child_index));
@@ -70,4 +70,4 @@ std::vector<variable_ptr> macro_param_variable::values() const
     return vals;
 }
 
-size_t macro_param_variable::size() const { return macro_param_.size(index_); }
+context::A_t macro_param_variable::size() const { return macro_param_.size(index_); }

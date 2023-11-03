@@ -38,7 +38,7 @@ public:
     bool is_scalar() const override;
 
     std::vector<variable_ptr> values() const override;
-    size_t size() const override;
+    context::A_t size() const override;
 
 private:
     template<typename T>

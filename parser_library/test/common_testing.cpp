@@ -195,10 +195,12 @@ std::optional<std::vector<T>> get_var_vector(hlasm_context& ctx, std::string nam
         return std::nullopt;
 
     auto keys = symbol->keys();
+    if (keys.size() > std::numeric_limits<context::A_t>::max())
+        return std::nullopt;
 
     std::vector<T> result;
     result.reserve(keys.size());
-    for (size_t i = 0; i < keys.size(); ++i)
+    for (context::A_t i = 0; i < keys.size(); ++i)
     {
         if (i != keys[i])
             return std::nullopt;
