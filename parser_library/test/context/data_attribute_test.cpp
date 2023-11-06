@@ -62,11 +62,11 @@ TEST(data_attributes, N)
     EXPECT_EQ(var_ns->number({}), 0);
     EXPECT_EQ(var_ns->number(std::array<context::A_t, 1> { 1 }), 0);
 
-    var_ns->set_value(1, 0);
+    var_ns->set_value(1, 1);
     EXPECT_EQ(var_ns->number({}), 1);
     EXPECT_EQ(var_ns->number(std::array<context::A_t, 1> { 1 }), 1);
 
-    var_ns->set_value(1, 14);
+    var_ns->set_value(1, 15);
     EXPECT_EQ(var_ns->number({}), 15);
     EXPECT_EQ(var_ns->number(std::array<context::A_t, 1> { 1 }), 15);
 }

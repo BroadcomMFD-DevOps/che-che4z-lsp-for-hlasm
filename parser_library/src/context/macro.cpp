@@ -153,7 +153,7 @@ macro_invo_ptr macro_definition::call(
 
     named_cpy.emplace(syslist_name,
         std::make_unique<system_variable_syslist>(
-            syslist_name, std::make_unique<macro_param_data_composite>(std::move(syslist)), false));
+            syslist_name, std::make_unique<macro_param_data_zero_based>(std::move(syslist)), false));
 
     return std::make_shared<macro_invocation>(
         id, cached_definition, copy_nests, labels, std::move(named_cpy), definition_location);

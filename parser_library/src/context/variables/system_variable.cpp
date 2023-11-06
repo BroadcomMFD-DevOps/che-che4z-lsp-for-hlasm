@@ -45,38 +45,26 @@ const macro_param_data_component* system_variable::get_data(std::span<const A_t>
         }
     }
 
-    return data_->get_ith(0);
+    return data_->get_ith(1);
 }
 
 A_t system_variable::number(std::span<const A_t> offset) const
 {
-    static constexpr const size_t inline_limit = 16;
     if (offset.empty())
         return data_->number - 1;
-    else if (offset.size() <= inline_limit)
-    {
-        std::array<A_t, inline_limit> copy_offset;
-        std::copy(offset.begin(), offset.end(), copy_offset.begin());
-        ++copy_offset.front();
-        return macro_param_base::number(std::span(copy_offset).first(offset.size()));
-    }
     else
-    {
-        std::vector<A_t> copy_offset(offset.begin(), offset.end());
-        ++copy_offset.front();
-        return macro_param_base::number(copy_offset);
-    }
+        return macro_param_base::number(offset);
 }
 
 A_t system_variable::count(std::span<const A_t> offset) const
 {
     if (offset.empty())
-        return (A_t)utils::length_utf32_no_validation(data_->get_ith(0)->get_value());
+        return (A_t)utils::length_utf32_no_validation(data_->get_ith(1)->get_value());
 
     const macro_param_data_component* tmp = real_data();
     for (size_t i = 0; i < offset.size(); ++i)
     {
-        tmp = tmp->get_ith(offset[i] - (i == 0 ? 0 : 1));
+        tmp = tmp->get_ith(offset[i]);
     }
     return (A_t)utils::length_utf32_no_validation(tmp->get_value());
 }
@@ -87,7 +75,7 @@ A_t system_variable::size(std::span<const A_t> offset) const
 
     for (size_t i = 0; i < offset.size(); ++i)
     {
-        tmp = tmp->get_ith(offset[i] - (i == 0 ? 0 : 1));
+        tmp = tmp->get_ith(offset[i]);
     }
 
     return tmp->size();
@@ -134,7 +122,7 @@ const macro_param_data_component* system_variable_syslist::get_data(std::span<co
     {
         for (size_t i = 0; i < offset.size(); ++i)
         {
-            tmp = tmp->get_ith(offset[i] - (i == 0 ? 0 : 1));
+            tmp = tmp->get_ith(offset[i]);
         }
     }
 

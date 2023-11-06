@@ -48,7 +48,7 @@ C_t macro_param_base::get_value(std::span<const A_t> offset) const
 
     for (auto idx : offset)
     {
-        tmp = tmp->get_ith(idx - 1);
+        tmp = tmp->get_ith(idx);
     }
     return tmp->get_value();
 }
@@ -62,7 +62,7 @@ const macro_param_data_component* macro_param_base::get_data(std::span<const A_t
     auto data = real_data();
     for (auto idx : offset)
     {
-        data = data->get_ith(idx - 1);
+        data = data->get_ith(idx);
     }
     return data;
 }
@@ -73,7 +73,7 @@ A_t macro_param_base::number(std::span<const A_t> offset) const
 
     for (auto idx : offset)
     {
-        tmp = tmp->get_ith(idx - 1);
+        tmp = tmp->get_ith(idx);
     }
     return tmp->number;
 }
@@ -84,7 +84,7 @@ A_t macro_param_base::count(std::span<const A_t> offset) const
 
     for (auto idx : offset)
     {
-        tmp = tmp->get_ith(idx - 1);
+        tmp = tmp->get_ith(idx);
     }
     return (A_t)utils::length_utf32_no_validation(tmp->get_value());
 }
@@ -125,7 +125,7 @@ A_t macro_param_base::size(std::span<const A_t> offset) const
 
     for (auto idx : offset)
     {
-        tmp = tmp->get_ith(idx - 1);
+        tmp = tmp->get_ith(idx);
     }
     return tmp->size();
 }

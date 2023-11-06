@@ -101,6 +101,24 @@ public:
     macro_param_data_composite(std::vector<macro_data_ptr> value);
 };
 
+// class representing data of macro parameters holding SYSLIST data
+class macro_param_data_zero_based final : public macro_param_data_component
+{
+    const std::vector<macro_data_ptr> data_;
+    C_t value_;
+
+public:
+    // returns data of all nested classes in brackets separated by comma
+    C_t get_value() const override;
+
+    // gets value of the idx-th value, when exceeds size of data, returns default value
+    const macro_param_data_component* get_ith(A_t idx) const override;
+
+    A_t size() const override;
+
+    macro_param_data_zero_based(std::vector<macro_data_ptr> value);
+};
+
 // class representing data of macro parameters holding only single dynamic string (=C_t)
 class macro_param_data_single_dynamic : public macro_param_data_single
 {

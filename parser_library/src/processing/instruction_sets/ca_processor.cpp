@@ -583,7 +583,7 @@ void ca_processor::process_AREAD(const semantics::complete_statement& stmt)
                                                    context::set_symbol_base* set_sym,
                                                    context::A_t idx) -> utils::task {
                     auto value = co_await std::move(t);
-                    set_sym->access_set_symbol<context::C_t>()->set_value(std::move(value), idx - 1);
+                    set_sym->access_set_symbol<context::C_t>()->set_value(std::move(value), idx);
                 }(std::move(std::get<utils::value_task<std::string>>(aread_result)), set_symbol, index));
                 return;
             }
@@ -597,7 +597,7 @@ void ca_processor::process_AREAD(const semantics::complete_statement& stmt)
             value_to_set = time_to_clockd(since_midnight());
             break;
     }
-    set_symbol->access_set_symbol<context::C_t>()->set_value(std::move(value_to_set), index - 1);
+    set_symbol->access_set_symbol<context::C_t>()->set_value(std::move(value_to_set), index);
 }
 
 void ca_processor::process_empty(const semantics::complete_statement&) {}
@@ -615,7 +615,7 @@ void ca_processor::process_SET(const semantics::complete_statement& stmt)
         return;
 
     if (expr_values.size() > std::numeric_limits<context::A_t>::max()
-        || std::numeric_limits<context::A_t>::max() - (context::A_t)expr_values.size() < index - 1)
+        || std::numeric_limits<context::A_t>::max() - (context::A_t)expr_values.size() < index)
     {
         eval_ctx.diags.add_diagnostic(diagnostic_op::error_E080(stmt.operands_ref().field_range));
         return;
@@ -624,7 +624,7 @@ void ca_processor::process_SET(const semantics::complete_statement& stmt)
     for (context::A_t i = 0; i < expr_values.size(); ++i)
     {
         // first obtain a place to put the result in
-        auto& val = set_symbol->template access_set_symbol<T>()->reserve_value(index - 1 + i);
+        auto& val = set_symbol->template access_set_symbol<T>()->reserve_value(index + i);
         // then evaluate the new value and save it unless the operand is empty
         if (expr_values[i])
             val = expr_values[i]->template evaluate<T>(eval_ctx);

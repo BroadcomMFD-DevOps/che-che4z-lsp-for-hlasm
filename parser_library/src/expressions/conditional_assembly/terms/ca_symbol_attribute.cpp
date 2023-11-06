@@ -323,14 +323,14 @@ std::optional<context::C_t> read_string_var_sym(
         if (indices.empty())
             var_value = setc_sym->get_value();
         else
-            var_value = setc_sym->get_value(indices.front() - 1);
+            var_value = setc_sym->get_value(indices.front());
     }
     else if (auto mac_par = vs.access_macro_param_base())
     {
         auto data = mac_par->get_data(indices);
 
         while (dynamic_cast<const context::macro_param_data_composite*>(data))
-            data = data->get_ith(0);
+            data = data->get_ith(1);
 
         var_value = data->get_value();
     }

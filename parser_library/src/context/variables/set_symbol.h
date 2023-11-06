@@ -129,7 +129,7 @@ public:
     // N' attribute of the symbol
     A_t number(std::span<const A_t>) const override
     {
-        return (A_t)(is_scalar || data.empty() ? 0 : data.rbegin()->first + 1);
+        return (A_t)(is_scalar || data.empty() ? 0 : data.rbegin()->first);
     }
 
     // K' attribute of the symbol

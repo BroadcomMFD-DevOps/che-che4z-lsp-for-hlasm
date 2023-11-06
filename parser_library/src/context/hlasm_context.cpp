@@ -131,6 +131,8 @@ macro_data_ptr create_macro_data(std::vector<std::string> value)
 
 macro_data_ptr create_macro_data(std::unique_ptr<macro_param_data_single_dynamic> value) { return value; }
 
+macro_data_ptr create_macro_data(std::unique_ptr<macro_param_data_zero_based> value) { return value; }
+
 template<typename SYSTEM_VARIABLE_TYPE = system_variable, typename DATA>
 std::pair<id_index, sys_sym_ptr> create_system_variable(id_index id, DATA mac_data, bool is_global)
 {
@@ -200,18 +202,19 @@ void hlasm_context::add_system_vars_to_scope(code_scope& scope)
         }
 
         {
-            std::vector<std::string> data;
+            std::vector<macro_data_ptr> data;
 
+            data.reserve(scope_stack_.size());
             for (auto it = scope_stack_.rbegin(); it != scope_stack_.rend(); ++it)
             {
                 if (it->is_in_macro())
-                    data.push_back(it->this_macro->id.to_string());
+                    data.push_back(std::make_unique<macro_param_data_single>(it->this_macro->id.to_string()));
                 else
-                    data.push_back("OPEN CODE");
+                    data.push_back(std::make_unique<macro_param_data_single>("OPEN CODE"));
             }
 
-            scope.system_variables.insert(
-                create_system_variable<system_variable_sysmac>(id_index("SYSMAC"), std::move(data), false));
+            scope.system_variables.insert(create_system_variable<system_variable_sysmac>(
+                id_index("SYSMAC"), std::make_unique<macro_param_data_zero_based>(std::move(data)), false));
         }
 
         {
@@ -1074,7 +1077,7 @@ SET_t get_var_sym_value(const hlasm_context& hlasm_ctx,
         }
         else
         {
-            const auto idx = subscript.front() - 1;
+            const auto idx = subscript.front();
 
             switch (set_sym->type)
             {

@@ -225,10 +225,10 @@ TEST(context_macro_param, param_data)
 
     // asserting behaviour of data classes
     ASSERT_TRUE(s0->get_value() == "first");
-    EXPECT_EQ(s1->get_ith(0)->get_value(), s1->get_value());
-    EXPECT_EQ(s1->get_ith(0)->get_ith(0)->get_value(), s1->get_value());
-    EXPECT_EQ(s1->get_ith(1)->get_value(), "");
-    EXPECT_EQ(s1->get_ith(5)->get_ith(3)->get_value(), "");
+    EXPECT_EQ(s1->get_ith(1)->get_value(), s1->get_value());
+    EXPECT_EQ(s1->get_ith(1)->get_ith(1)->get_value(), s1->get_value());
+    EXPECT_EQ(s1->get_ith(2)->get_value(), "");
+    EXPECT_EQ(s1->get_ith(6)->get_ith(4)->get_value(), "");
 
     // creating composite data
     std::vector<macro_data_ptr> v;
@@ -275,10 +275,10 @@ TEST(context_macro_param, param_data_composite)
     macro_param_data_composite c(std::move(v4));
 
     EXPECT_EQ(c.get_value(), "((first,second),(second,third),(third))");
-    EXPECT_EQ(c.get_ith(0)->get_value(), "(first,second)");
-    EXPECT_EQ(c.get_ith(3)->get_value(), "");
-    EXPECT_EQ(c.get_ith(2)->get_value(), "(third)");
-    EXPECT_EQ(c.get_ith(2)->get_ith(0)->get_value(), "third");
+    EXPECT_EQ(c.get_ith(1)->get_value(), "(first,second)");
+    EXPECT_EQ(c.get_ith(4)->get_value(), "");
+    EXPECT_EQ(c.get_ith(3)->get_value(), "(third)");
+    EXPECT_EQ(c.get_ith(3)->get_ith(1)->get_value(), "third");
 }
 
 // test of adding macro to context class
