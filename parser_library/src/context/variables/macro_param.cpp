@@ -119,7 +119,7 @@ bool macro_param_base::can_read(
     return true;
 }
 
-A_t macro_param_base::size(std::span<const A_t> offset) const
+std::optional<std::pair<A_t, A_t>> macro_param_base::index_range(std::span<const A_t> offset) const
 {
     const macro_param_data_component* tmp = real_data();
 
@@ -127,7 +127,7 @@ A_t macro_param_base::size(std::span<const A_t> offset) const
     {
         tmp = tmp->get_ith(idx);
     }
-    return tmp->size();
+    return tmp->index_range();
 }
 
 keyword_param::keyword_param(id_index name, macro_data_shared_ptr default_value, macro_data_ptr assigned_value)

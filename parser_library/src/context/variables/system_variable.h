@@ -42,7 +42,7 @@ public:
     // K' attribute of the symbol
     A_t count(std::span<const A_t> offset) const override;
 
-    A_t size(std::span<const A_t> offset) const override;
+    std::optional<std::pair<A_t, A_t>> index_range(std::span<const A_t> offset) const override;
 
 protected:
     const macro_param_data_component* real_data() const override;

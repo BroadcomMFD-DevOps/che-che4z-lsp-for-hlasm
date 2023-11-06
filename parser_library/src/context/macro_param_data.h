@@ -16,6 +16,7 @@
 #define CONTEXT_MACRO_PARAM_DATA_H
 
 #include <memory>
+#include <optional>
 #include <vector>
 
 #include "common_types.h"
@@ -42,7 +43,7 @@ public:
     // number of components in the object
     const A_t number;
 
-    virtual A_t size() const = 0;
+    virtual std::optional<std::pair<A_t, A_t>> index_range() const = 0;
 
     virtual ~macro_param_data_component();
 
@@ -62,7 +63,7 @@ public:
     // gets this dummy
     const macro_param_data_component* get_ith(A_t idx) const override;
 
-    A_t size() const override;
+    std::optional<std::pair<A_t, A_t>> index_range() const override;
 };
 
 // class representing data of macro parameters holding only single string (=C_t)
@@ -78,7 +79,7 @@ public:
     // get_ith(0) returns this to mimic HLASM
     const macro_param_data_component* get_ith(A_t idx) const override;
 
-    A_t size() const override;
+    std::optional<std::pair<A_t, A_t>> index_range() const override;
 
     macro_param_data_single(C_t value);
 };
@@ -96,7 +97,7 @@ public:
     // gets value of the idx-th value, when exceeds size of data, returns default value
     const macro_param_data_component* get_ith(A_t idx) const override;
 
-    A_t size() const override;
+    std::optional<std::pair<A_t, A_t>> index_range() const override;
 
     macro_param_data_composite(std::vector<macro_data_ptr> value);
 };
@@ -114,7 +115,7 @@ public:
     // gets value of the idx-th value, when exceeds size of data, returns default value
     const macro_param_data_component* get_ith(A_t idx) const override;
 
-    A_t size() const override;
+    std::optional<std::pair<A_t, A_t>> index_range() const override;
 
     macro_param_data_zero_based(std::vector<macro_data_ptr> value);
 };

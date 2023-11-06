@@ -53,7 +53,7 @@ public:
     bool can_read(
         std::span<const A_t> subscript, range symbol_range, diagnostic_consumer<diagnostic_op>& diags) const override;
 
-    virtual A_t size(std::span<const A_t> offset) const;
+    virtual std::optional<std::pair<A_t, A_t>> index_range(std::span<const A_t> offset) const;
 
 protected:
     macro_param_base(macro_param_type param_type, id_index name, bool is_global);

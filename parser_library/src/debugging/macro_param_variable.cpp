@@ -42,7 +42,7 @@ const std::string& macro_param_variable::get_value() const { return value_; }
 
 set_type macro_param_variable::type() const { return set_type::C_TYPE; }
 
-bool macro_param_variable::is_scalar() const { return macro_param_.size(index_) == 0; }
+bool macro_param_variable::is_scalar() const { return !macro_param_.index_range(index_).has_value(); }
 
 std::vector<variable_ptr> macro_param_variable::values() const
 {
@@ -51,23 +51,21 @@ std::vector<variable_ptr> macro_param_variable::values() const
     std::vector<context::A_t> child_index = index_;
     child_index.push_back(0);
 
-    if (macro_param_.access_system_variable() && child_index.size() == 1)
+    if (auto index_range = macro_param_.index_range(index_); index_range)
     {
-        for (context::A_t i = 0; i < size(); ++i)
+        for (long long i = index_range->first; i <= index_range->second; ++i)
         {
-            child_index.back() = i;
-            vals.push_back(std::make_unique<macro_param_variable>(macro_param_, child_index));
-        }
-    }
-    else
-    {
-        for (context::A_t i = 1; i <= size(); ++i)
-        {
-            child_index.back() = i;
+            child_index.back() = (context::A_t)i;
             vals.push_back(std::make_unique<macro_param_variable>(macro_param_, child_index));
         }
     }
     return vals;
 }
 
-context::A_t macro_param_variable::size() const { return macro_param_.size(index_); }
+context::A_t macro_param_variable::size() const
+{
+    auto index_range = macro_param_.index_range(index_);
+    if (!index_range)
+        return 0;
+    return index_range->second - index_range->first + 1; // TODO: overflow
+}

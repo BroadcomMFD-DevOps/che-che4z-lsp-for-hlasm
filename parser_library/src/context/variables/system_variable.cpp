@@ -69,16 +69,16 @@ A_t system_variable::count(std::span<const A_t> offset) const
     return (A_t)utils::length_utf32_no_validation(tmp->get_value());
 }
 
-A_t system_variable::size(std::span<const A_t> offset) const
+std::optional<std::pair<A_t, A_t>> system_variable::index_range(std::span<const A_t> offset) const
 {
     const macro_param_data_component* tmp = real_data();
 
-    for (size_t i = 0; i < offset.size(); ++i)
+    for (auto idx : offset)
     {
-        tmp = tmp->get_ith(offset[i]);
+        tmp = tmp->get_ith(idx);
     }
 
-    return tmp->size();
+    return tmp->index_range();
 }
 
 const macro_param_data_component* system_variable::real_data() const { return std::to_address(data_); }
