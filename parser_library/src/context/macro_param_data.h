@@ -48,7 +48,7 @@ public:
     virtual ~macro_param_data_component();
 
 protected:
-    macro_param_data_component(A_t number);
+    explicit macro_param_data_component(A_t number);
 };
 
 // dummy macro data class returning default value everytime
@@ -81,7 +81,7 @@ public:
 
     std::optional<std::pair<A_t, A_t>> index_range() const override;
 
-    macro_param_data_single(C_t value);
+    explicit macro_param_data_single(C_t value);
 };
 
 // class representing data of macro parameters holding more nested data
@@ -99,7 +99,7 @@ public:
 
     std::optional<std::pair<A_t, A_t>> index_range() const override;
 
-    macro_param_data_composite(std::vector<macro_data_ptr> value);
+    explicit macro_param_data_composite(std::vector<macro_data_ptr> value);
 };
 
 // class representing data of macro parameters holding SYSLIST data
@@ -117,7 +117,7 @@ public:
 
     std::optional<std::pair<A_t, A_t>> index_range() const override;
 
-    macro_param_data_zero_based(std::vector<macro_data_ptr> value);
+    explicit macro_param_data_zero_based(std::vector<macro_data_ptr> value);
 };
 
 // class representing data of macro parameters holding only single dynamic string (=C_t)

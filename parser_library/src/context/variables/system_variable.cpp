@@ -62,9 +62,9 @@ A_t system_variable::count(std::span<const A_t> offset) const
         return (A_t)utils::length_utf32_no_validation(data_->get_ith(1)->get_value());
 
     const macro_param_data_component* tmp = real_data();
-    for (size_t i = 0; i < offset.size(); ++i)
+    for (auto idx : offset)
     {
-        tmp = tmp->get_ith(offset[i]);
+        tmp = tmp->get_ith(idx);
     }
     return (A_t)utils::length_utf32_no_validation(tmp->get_value());
 }
@@ -120,9 +120,9 @@ const macro_param_data_component* system_variable_syslist::get_data(std::span<co
     }
     else
     {
-        for (size_t i = 0; i < offset.size(); ++i)
+        for (auto idx : offset)
         {
-            tmp = tmp->get_ith(offset[i]);
+            tmp = tmp->get_ith(idx);
         }
     }
 

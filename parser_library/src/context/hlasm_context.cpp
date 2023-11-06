@@ -118,17 +118,6 @@ macro_data_ptr create_macro_data(std::string value)
     return std::make_unique<macro_param_data_single>(std::move(value));
 }
 
-macro_data_ptr create_macro_data(std::vector<std::string> value)
-{
-    std::vector<macro_data_ptr> data;
-    for (auto& single_data : value)
-    {
-        data.push_back(std::make_unique<macro_param_data_single>(std::move(single_data)));
-    }
-
-    return std::make_unique<macro_param_data_composite>(std::move(data));
-}
-
 macro_data_ptr create_macro_data(std::unique_ptr<macro_param_data_single_dynamic> value) { return value; }
 
 macro_data_ptr create_macro_data(std::unique_ptr<macro_param_data_zero_based> value) { return value; }
