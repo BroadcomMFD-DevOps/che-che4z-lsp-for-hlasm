@@ -138,23 +138,26 @@
 >                                      1 &VAR1    INSTR 'A'                                                                          
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                         ^^^^^ source.hlasmListing variable.other.readwrite.hlasm
-#                                              ^^^^^^^^^ source.hlasmListing entity.name.function.hlasm
+#                                              ^^^^ source.hlasmListing
+#                                                  ^^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                       ^ source.hlasmListing
 #                                                        ^ source.hlasmListing string.hlasm
 #                                                         ^^ source.hlasmListing string.hlasm
-#                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >                                      2 &VAR2    INSTR '1'                                                                          
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                         ^^^^^ source.hlasmListing variable.other.readwrite.hlasm
-#                                              ^^^^^^^^^ source.hlasmListing entity.name.function.hlasm
+#                                              ^^^^ source.hlasmListing
+#                                                  ^^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                       ^ source.hlasmListing
 #                                                        ^ source.hlasmListing string.hlasm
 #                                                         ^^ source.hlasmListing string.hlasm
-#                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >                                      3 LABEL    INSTR OP THIS LINE SHOULD NOT BE AFFECTED                                          
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                         ^^^^^ source.hlasmListing support.class.hlasm
-#                                              ^^^^^^^^^ source.hlasmListing entity.name.function.hlasm
+#                                              ^^^^ source.hlasmListing
+#                                                  ^^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                       ^ source.hlasmListing
 #                                                        ^^ source.hlasmListing punctuation.definition.tag.hlasm
 #                                                          ^ source.hlasmListing
@@ -169,10 +172,11 @@
 #                                                                                ^^ source.hlasmListing comment.hlasm
 #                                                                                  ^ source.hlasmListing
 #                                                                                   ^^^^^^^^ source.hlasmListing comment.hlasm
-#                                                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >                                      5          INSTR  'A'.'AT'&VAR                                 XXXXXXXXXX-xxxxxxx             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
-#                                         ^^^^^^^^^^^^^^ source.hlasmListing entity.name.function.hlasm
+#                                         ^^^^^^^^^ source.hlasmListing
+#                                                  ^^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                       ^^ source.hlasmListing
 #                                                         ^ source.hlasmListing string.hlasm
 #                                                          ^^ source.hlasmListing string.hlasm
@@ -183,13 +187,14 @@
 #                                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                                                                      ^^^^^^^^^^ source.hlasmListing comment.hlasm
 #                                                                                                                ^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                                                                                                                    
-#^ source.hlasmListing
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >                                      6          INSTR  T'&VAR                                    XXXXXXXXXXXXX-xxxxxxx             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
-#                                         ^^^^^^^^^^^^^^ source.hlasmListing entity.name.function.hlasm
+#                                         ^^^^^^^^^ source.hlasmListing
+#                                                  ^^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                       ^^ source.hlasmListing
 #                                                         ^ source.hlasmListing entity.name.function.preprocessor.hlasm
 #                                                          ^ source.hlasmListing
@@ -197,13 +202,15 @@
 #                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                                                                   ^^^^^^^^^^^^^ source.hlasmListing comment.hlasm
 #                                                                                                                ^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                        INVALID LINE                                                                                
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.illegal
-#                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >                                      7          INSTR  T'&VAR                                    XXXXXXXXXXXXX-xxxxxxx             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
-#                                         ^^^^^^^^^^^^^^ source.hlasmListing entity.name.function.hlasm
+#                                         ^^^^^^^^^ source.hlasmListing
+#                                                  ^^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                       ^^ source.hlasmListing
 #                                                         ^ source.hlasmListing entity.name.function.preprocessor.hlasm
 #                                                          ^ source.hlasmListing
@@ -211,35 +218,41 @@
 #                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                                                                   ^^^^^^^^^^^^^ source.hlasmListing comment.hlasm
 #                                                                                                                ^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                                       REMARK                                                                       
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                        ^^^^^^ source.hlasmListing comment.hlasm
-#                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >                                      8          INSTR  T'&VAR                                                 -xxxxxxx             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
-#                                         ^^^^^^^^^^^^^^ source.hlasmListing entity.name.function.hlasm
+#                                         ^^^^^^^^^ source.hlasmListing
+#                                                  ^^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                       ^^ source.hlasmListing
 #                                                         ^ source.hlasmListing entity.name.function.preprocessor.hlasm
 #                                                          ^ source.hlasmListing
 #                                                           ^^^^ source.hlasmListing punctuation.definition.tag.hlasm variable.other.readwrite.hlasm
-#                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                ^ source.hlasmListing keyword.other.hlasm
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                                       REMARK                                                                       
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                        ^^^^^^ source.hlasmListing comment.hlasm
-#                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >                                      9          INSTR  T'&VAR                                                                      
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
-#                                         ^^^^^^^^^^^^^^ source.hlasmListing entity.name.function.hlasm
+#                                         ^^^^^^^^^ source.hlasmListing
+#                                                  ^^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                       ^^ source.hlasmListing
 #                                                         ^ source.hlasmListing entity.name.function.preprocessor.hlasm
 #                                                          ^ source.hlasmListing
 #                                                           ^^^^ source.hlasmListing punctuation.definition.tag.hlasm variable.other.readwrite.hlasm
-#                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >                                     10          INSTR SYMBOL1=12+L'SYMBOL2                                                         
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
-#                                         ^^^^^^^^^^^^^^ source.hlasmListing entity.name.function.hlasm
+#                                         ^^^^^^^^^ source.hlasmListing
+#                                                  ^^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                       ^ source.hlasmListing
 #                                                        ^^^^^^^ source.hlasmListing punctuation.definition.tag.hlasm
 #                                                               ^ source.hlasmListing
@@ -248,11 +261,12 @@
 #                                                                   ^ source.hlasmListing entity.name.function.preprocessor.hlasm
 #                                                                    ^ source.hlasmListing
 #                                                                     ^^^^^^^ source.hlasmListing punctuation.definition.tag.hlasm
-#                                                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >                                     11 LABEL    INSTR OP THIS LINE SHOULD NOT BE AFFECTED                                          
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                         ^^^^^ source.hlasmListing support.class.hlasm
-#                                              ^^^^^^^^^ source.hlasmListing entity.name.function.hlasm
+#                                              ^^^^ source.hlasmListing
+#                                                  ^^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                       ^ source.hlasmListing
 #                                                        ^^ source.hlasmListing punctuation.definition.tag.hlasm
 #                                                          ^ source.hlasmListing
@@ -267,20 +281,22 @@
 #                                                                                ^^ source.hlasmListing comment.hlasm
 #                                                                                  ^ source.hlasmListing
 #                                                                                   ^^^^^^^^ source.hlasmListing comment.hlasm
-#                                                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >                                     14 LABEL    INSTR ,,'STRING'                                                                   
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                         ^^^^^ source.hlasmListing support.class.hlasm
-#                                              ^^^^^^^^^ source.hlasmListing entity.name.function.hlasm
+#                                              ^^^^ source.hlasmListing
+#                                                  ^^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                       ^ source.hlasmListing
 #                                                        ^^ source.hlasmListing
 #                                                          ^ source.hlasmListing string.hlasm
 #                                                           ^^^^^^^ source.hlasmListing string.hlasm
-#                                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >                                     15 LABEL    INSTR OP THIS LINE SHOULD NOT BE AFFECTED                                          
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                         ^^^^^ source.hlasmListing support.class.hlasm
-#                                              ^^^^^^^^^ source.hlasmListing entity.name.function.hlasm
+#                                              ^^^^ source.hlasmListing
+#                                                  ^^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                       ^ source.hlasmListing
 #                                                        ^^ source.hlasmListing punctuation.definition.tag.hlasm
 #                                                          ^ source.hlasmListing
@@ -295,11 +311,12 @@
 #                                                                                ^^ source.hlasmListing comment.hlasm
 #                                                                                  ^ source.hlasmListing
 #                                                                                   ^^^^^^^^ source.hlasmListing comment.hlasm
-#                                                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >                                     17 LABEL    INSTR 4,'Just  a  random  string:   word 256 (&LBL DSECT), &&V-                    
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                         ^^^^^ source.hlasmListing support.class.hlasm
-#                                              ^^^^^^^^^ source.hlasmListing entity.name.function.hlasm
+#                                              ^^^^ source.hlasmListing
+#                                                  ^^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                       ^ source.hlasmListing
 #                                                        ^ source.hlasmListing punctuation.definition.tag.hlasm constant.numeric.hlasm
 #                                                         ^ source.hlasmListing
@@ -310,15 +327,16 @@
 #                                                                                                             ^^ source.hlasmListing string.hlasm
 #                                                                                                               ^ source.hlasmListing string.hlasm
 #                                                                                                                ^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >                                                       ARIABLE word true false YES NO       '                                       
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing string.hlasm
-#                                                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >                                     18 LABEL    INSTR 4,'Just  a  random  string:   word 256 (&LBL DSECT), &&V-1234567             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                         ^^^^^ source.hlasmListing support.class.hlasm
-#                                              ^^^^^^^^^ source.hlasmListing entity.name.function.hlasm
+#                                              ^^^^ source.hlasmListing
+#                                                  ^^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                       ^ source.hlasmListing
 #                                                        ^ source.hlasmListing punctuation.definition.tag.hlasm constant.numeric.hlasm
 #                                                         ^ source.hlasmListing
@@ -329,15 +347,19 @@
 #                                                                                                             ^^ source.hlasmListing string.hlasm
 #                                                                                                               ^ source.hlasmListing string.hlasm
 #                                                                                                                ^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                                       ARIABLE word true false YES NO        ,STRING            1234567             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing string.hlasm
-#                                                                                                                ^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                ^ source.hlasmListing
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                     19 LABEL    INSTR 4,'Just  a  random  string:   word 256 (&LBL DSECT), &&V-1234567             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                         ^^^^^ source.hlasmListing support.class.hlasm
-#                                              ^^^^^^^^^ source.hlasmListing entity.name.function.hlasm
+#                                              ^^^^ source.hlasmListing
+#                                                  ^^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                       ^ source.hlasmListing
 #                                                        ^ source.hlasmListing punctuation.definition.tag.hlasm constant.numeric.hlasm
 #                                                         ^ source.hlasmListing
@@ -348,17 +370,21 @@
 #                                                                                                             ^^ source.hlasmListing string.hlasm
 #                                                                                                               ^ source.hlasmListing string.hlasm
 #                                                                                                                ^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                                       ARIABLE word true false YES NO       ' REMARK            1234567             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing string.hlasm
 #                                                                                              ^ source.hlasmListing
 #                                                                                               ^^^^^^ source.hlasmListing comment.hlasm
-#                                                                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                     ^^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                     20 LABEL    INSTR 4,'Just  a  random  string:   word 256 (&LBL DSECT), &&V-1234567             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                         ^^^^^ source.hlasmListing support.class.hlasm
-#                                              ^^^^^^^^^ source.hlasmListing entity.name.function.hlasm
+#                                              ^^^^ source.hlasmListing
+#                                                  ^^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                       ^ source.hlasmListing
 #                                                        ^ source.hlasmListing punctuation.definition.tag.hlasm constant.numeric.hlasm
 #                                                         ^ source.hlasmListing
@@ -369,17 +395,21 @@
 #                                                                                                             ^^ source.hlasmListing string.hlasm
 #                                                                                                               ^ source.hlasmListing string.hlasm
 #                                                                                                                ^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                                       ARIABLE word true false YES NO       ',OPERAND           1234567             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing string.hlasm
 #                                                                                              ^ source.hlasmListing
 #                                                                                               ^^^^^^^ source.hlasmListing punctuation.definition.tag.hlasm
-#                                                                                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                      ^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                     21 LABEL    INSTR 4,'Just  a  random  string:   word 256 (&LBL DSECT), &&V-1234567             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                         ^^^^^ source.hlasmListing support.class.hlasm
-#                                              ^^^^^^^^^ source.hlasmListing entity.name.function.hlasm
+#                                              ^^^^ source.hlasmListing
+#                                                  ^^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                       ^ source.hlasmListing
 #                                                        ^ source.hlasmListing punctuation.definition.tag.hlasm constant.numeric.hlasm
 #                                                         ^ source.hlasmListing
@@ -390,24 +420,27 @@
 #                                                                                                             ^^ source.hlasmListing string.hlasm
 #                                                                                                               ^ source.hlasmListing string.hlasm
 #                                                                                                                ^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                                       ARIABLE word true false YES NO       ',OPERAND_OPERAND_O-1234567             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing string.hlasm
 #                                                                                              ^ source.hlasmListing
 #                                                                                               ^^^^^^^^^^^^^^^^^ source.hlasmListing punctuation.definition.tag.hlasm
 #                                                                                                                ^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                                       PERAND,OPERAND                                                               
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                        ^^^^^^ source.hlasmListing punctuation.definition.tag.hlasm
 #                                                              ^ source.hlasmListing
 #                                                               ^^^^^^^ source.hlasmListing punctuation.definition.tag.hlasm
-#                                                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >                                     22 LABEL    INSTR 4,'Just  a  random  string:   word 256 (&LBL DSECT), &&V-1234567             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                         ^^^^^ source.hlasmListing support.class.hlasm
-#                                              ^^^^^^^^^ source.hlasmListing entity.name.function.hlasm
+#                                              ^^^^ source.hlasmListing
+#                                                  ^^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                       ^ source.hlasmListing
 #                                                        ^ source.hlasmListing punctuation.definition.tag.hlasm constant.numeric.hlasm
 #                                                         ^ source.hlasmListing
@@ -418,24 +451,28 @@
 #                                                                                                             ^^ source.hlasmListing string.hlasm
 #                                                                                                               ^ source.hlasmListing string.hlasm
 #                                                                                                                ^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                                       ARIABLE word true false YES NO       ',OPERAND_OPERAND_ -1234567             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing string.hlasm
 #                                                                                              ^ source.hlasmListing
 #                                                                                               ^^^^^^^^^^^^^^^^ source.hlasmListing punctuation.definition.tag.hlasm
-#                                                                                                               ^^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                               ^ source.hlasmListing
+#                                                                                                                ^ source.hlasmListing keyword.other.hlasm
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                                       REMARK,REMARK REMARK                                                         
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                        ^^^^^^^^^^^^^ source.hlasmListing comment.hlasm
 #                                                                     ^ source.hlasmListing
 #                                                                      ^^^^^^ source.hlasmListing comment.hlasm
-#                                                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >                                     23 LABEL    INSTR 4,'Just  a  random  string:   word 256 (&LBL DSECT), &&V-1234567             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                         ^^^^^ source.hlasmListing support.class.hlasm
-#                                              ^^^^^^^^^ source.hlasmListing entity.name.function.hlasm
+#                                              ^^^^ source.hlasmListing
+#                                                  ^^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                       ^ source.hlasmListing
 #                                                        ^ source.hlasmListing punctuation.definition.tag.hlasm constant.numeric.hlasm
 #                                                         ^ source.hlasmListing
@@ -446,24 +483,29 @@
 #                                                                                                             ^^ source.hlasmListing string.hlasm
 #                                                                                                               ^ source.hlasmListing string.hlasm
 #                                                                                                                ^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                                       ARIABLE word true false YES NO       ',OPERAND_OPERAND_  1234567             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing string.hlasm
 #                                                                                              ^ source.hlasmListing
 #                                                                                               ^^^^^^^^^^^^^^^^ source.hlasmListing punctuation.definition.tag.hlasm
-#                                                                                                               ^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                               ^^ source.hlasmListing
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                     24     INSTR,INSTR'                                                                            
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
-#                                         ^^^^^^^^^^^^^^^^ source.hlasmListing entity.name.function.hlasm
-#                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                         ^^^^ source.hlasmListing
+#                                             ^^^^^^^^^^^^ source.hlasmListing entity.name.function.hlasm
+#                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >                                     25 LABEL    INSTR                                                         -                    
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                         ^^^^^ source.hlasmListing support.class.hlasm
-#                                              ^^^^^^^^^ source.hlasmListing entity.name.function.hlasm
+#                                              ^^^^ source.hlasmListing
+#                                                  ^^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                                                                                ^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >                                                       4,'Just  a  random  string:   word 256 (&LBL DSECT), &&V-1234567             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                        ^ source.hlasmListing punctuation.definition.tag.hlasm constant.numeric.hlasm
@@ -475,7 +517,8 @@
 #                                                                                                             ^^ source.hlasmListing string.hlasm
 #                                                                                                               ^ source.hlasmListing string.hlasm
 #                                                                                                                ^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                                     ARIABLE word true false YES NO       ',OPERAND_OPERAND_ RR-123456              
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.illegal
 #                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing string.hlasm
@@ -484,24 +527,27 @@
 #                                                                                                             ^ source.hlasmListing
 #                                                                                                              ^^ source.hlasmListing comment.hlasm
 #                                                                                                                ^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                 ^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                       ^^^^^^^^^^^^^^ source.hlasmListing
 >                                                       REMARK REMARK                                                                
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                        ^^^^^^ source.hlasmListing comment.hlasm
 #                                                              ^ source.hlasmListing
 #                                                               ^^^^^^ source.hlasmListing comment.hlasm
-#                                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >                                     26 LABEL    INSTR 4,                                                      -1234567             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                         ^^^^^ source.hlasmListing support.class.hlasm
-#                                              ^^^^^^^^^ source.hlasmListing entity.name.function.hlasm
+#                                              ^^^^ source.hlasmListing
+#                                                  ^^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                       ^ source.hlasmListing
 #                                                        ^ source.hlasmListing punctuation.definition.tag.hlasm constant.numeric.hlasm
 #                                                         ^ source.hlasmListing
 #                                                          ^ source.hlasmListing
 #                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                                                                                ^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                                       '  Just  a  random  string:   word 256 (&LBL DSECT), &&V-1234567             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                        ^ source.hlasmListing string.hlasm
@@ -511,7 +557,8 @@
 #                                                                                                             ^^ source.hlasmListing string.hlasm
 #                                                                                                               ^ source.hlasmListing string.hlasm
 #                                                                                                                ^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                                    ARIABLE word true false YES NO       ',OPERAND_OPERAND_,   -1234567             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.illegal
 #                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing string.hlasm
@@ -521,24 +568,27 @@
 #                                                                                                             ^ source.hlasmListing
 #                                                                                                              ^^ source.hlasmListing
 #                                                                                                                ^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                                       OPERAND REMARK                                                               
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                        ^^^^^^^ source.hlasmListing punctuation.definition.tag.hlasm
 #                                                               ^ source.hlasmListing
 #                                                                ^^^^^^ source.hlasmListing comment.hlasm
-#                                                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >                                     27 LABEL    INSTR 4,                                                      -1234567             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                         ^^^^^ source.hlasmListing support.class.hlasm
-#                                              ^^^^^^^^^ source.hlasmListing entity.name.function.hlasm
+#                                              ^^^^ source.hlasmListing
+#                                                  ^^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                       ^ source.hlasmListing
 #                                                        ^ source.hlasmListing punctuation.definition.tag.hlasm constant.numeric.hlasm
 #                                                         ^ source.hlasmListing
 #                                                          ^ source.hlasmListing
 #                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                                                                                ^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                                       '  Just  a  random  string:   word 256 (&LBL DSECT), &&V-1234567             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                        ^ source.hlasmListing string.hlasm
@@ -548,7 +598,8 @@
 #                                                                                                             ^^ source.hlasmListing string.hlasm
 #                                                                                                               ^ source.hlasmListing string.hlasm
 #                                                                                                                ^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                                  IVLD  a  random  string:   word 256 (&LBL DSECT), &&V        -1234567             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.illegal
 #                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing string.hlasm
@@ -557,7 +608,8 @@
 #                                                                                                     ^^ source.hlasmListing string.hlasm
 #                                                                                                       ^^^^^^^^^ source.hlasmListing string.hlasm
 #                                                                                                                ^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                                       ARIABLE word true false YES NO       ',OPERAND_OPERAND_,-1234567             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing string.hlasm
@@ -565,17 +617,19 @@
 #                                                                                               ^^^^^^^^^^^^^^^^ source.hlasmListing punctuation.definition.tag.hlasm
 #                                                                                                               ^ source.hlasmListing
 #                                                                                                                ^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                                       OPERAND REMARK                                                               
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                        ^^^^^^^ source.hlasmListing punctuation.definition.tag.hlasm
 #                                                               ^ source.hlasmListing
 #                                                                ^^^^^^ source.hlasmListing comment.hlasm
-#                                                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >                                     28 LABEL    INSTR OP THIS LINE SHOULD NOT BE AFFECTED                                          
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                         ^^^^^ source.hlasmListing support.class.hlasm
-#                                              ^^^^^^^^^ source.hlasmListing entity.name.function.hlasm
+#                                              ^^^^ source.hlasmListing
+#                                                  ^^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                       ^ source.hlasmListing
 #                                                        ^^ source.hlasmListing punctuation.definition.tag.hlasm
 #                                                          ^ source.hlasmListing
@@ -590,10 +644,11 @@
 #                                                                                ^^ source.hlasmListing comment.hlasm
 #                                                                                  ^ source.hlasmListing
 #                                                                                   ^^^^^^^^ source.hlasmListing comment.hlasm
-#                                                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >                                     31          AINSERT '&&__V@R SETA &VAR',BACK                                                   
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
-#                                         ^^^^^^^^^^^^^^^^ source.hlasmListing entity.name.function.hlasm
+#                                         ^^^^^^^^^ source.hlasmListing
+#                                                  ^^^^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                         ^ source.hlasmListing
 #                                                          ^ source.hlasmListing string.hlasm
 #                                                           ^^ source.hlasmListing string.hlasm
@@ -602,17 +657,18 @@
 #                                                                            ^ source.hlasmListing string.hlasm
 #                                                                             ^ source.hlasmListing
 #                                                                              ^^^^ source.hlasmListing punctuation.definition.tag.hlasm
-#                                                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >i                                       +         AINSERT '&&__V@R SETA ',BACK                                                       
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
-#                                         ^^^^^^^^^^^^^^^^ source.hlasmListing entity.name.function.hlasm
+#                                         ^^^^^^^^^ source.hlasmListing
+#                                                  ^^^^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                         ^ source.hlasmListing
 #                                                          ^ source.hlasmListing string.hlasm
 #                                                           ^^ source.hlasmListing string.hlasm
 #                                                             ^^^^^^^^^^^^ source.hlasmListing string.hlasm
 #                                                                         ^ source.hlasmListing
 #                                                                          ^^^^ source.hlasmListing punctuation.definition.tag.hlasm
-#                                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >                                                                                                               Page    4            
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >  Active Usings: None                                                                                                               
@@ -622,11 +678,12 @@
 >                                     32>&__V@R SETA                                                                                 
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                         ^^^^^^ source.hlasmListing variable.other.readwrite.hlasm
-#                                               ^^^^^ source.hlasmListing entity.name.function.hlasm
-#                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                               ^ source.hlasmListing
+#                                                ^^^^ source.hlasmListing entity.name.function.hlasm
+#                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >»                                                                                                                                    
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
-#                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >                                   General Purpose Register Cross Reference                                    Page    5            
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 > Register  References (M=modified, B=branch, U=USING, D=DROP, N=index)                      HLASM R1.0  2000/01/01 00.00            

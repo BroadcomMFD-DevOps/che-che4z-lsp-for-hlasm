@@ -176,7 +176,7 @@
       ]
     },
     "illegalMultilineColumns": {
-      "match": "(^${listingDetails}$\\s*\\S.*)(?<=^${listingDetails}$.{0,15})",
+      "match": "^${listingDetails}$\\s*(\\S.*)(?<=^${listingDetails}$.{0,15})",
       "name": "invalid.illegal"
     },
     "asmArguments": {
@@ -370,8 +370,12 @@
       "name": "keyword.control.hlasm"
     },
     "instruction": {
-      "match": "(?<=^${listingDetails}$\\S*)\\s+\\S+(?<=^${listingDetails}$.{0,71})",
-      "name": "entity.name.function.hlasm"
+      "match": "(?<=^${listingDetails}$\\S*)\\s+(\\S+)(?<=^${listingDetails}$.{0,71})",
+      "captures": {
+        "1" : {
+          "name": "entity.name.function.hlasm"
+        }
+      }
     },
     "remark": {
       "match": "(\\S+)(?<=^${listingDetails}$.{0,71})",
@@ -398,12 +402,20 @@
       "name": "punctuation.definition.tag.hlasm"
     },
     "continuationSymbol": {
-      "match": "\\s*(?<=^${listingDetails}$.{71})\\S",
-      "name": "keyword.other.hlasm"
+      "match": "\\s*(?<=^${listingDetails}$.{71})(\\S)",
+      "captures": {
+        "1" : {
+          "name": "keyword.other.hlasm"
+        }
+      }
     },
     "sequenceNumbers": {
-      "match": "\\s*.?(?<=^${listingDetails}$.{72}).+$",
-      "name": "invalid.ignored"
+      "match": "\\s*.?(?<=^${listingDetails}$.{72})\\s*(\\S.*\\S)\\s*?$",
+      "captures": {
+        "1" : {
+          "name": "invalid.ignored"
+        }
+      }
     },
     "listingSyntax": {
       "match": "^${listingOffset}$\\S+\\s([0-3][0-9A-F]{3}|[4-9AB][0-9A-F]{3} [0-9A-F]{4}|[CDEF][0-9A-F]{3} [0-9A-F]{4} [0-9A-F]{4}) ",

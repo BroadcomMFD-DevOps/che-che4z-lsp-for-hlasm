@@ -1,5 +1,6 @@
 >         AIF   ( NOT ( (('A' LE '&VAR') AND ('&VAR' LE 'B'))  OR       -        
-#^^^^^^^^^^^^ source.hlasm entity.name.function.hlasm
+#^^^^^^^^^ source.hlasm
+#         ^^^ source.hlasm entity.name.function.hlasm
 #            ^^^ source.hlasm
 #               ^^ source.hlasm
 #                 ^^^ source.hlasm punctuation.definition.tag.hlasm
@@ -32,8 +33,9 @@
 #                                                           ^ source.hlasm
 #                                                            ^^ source.hlasm
 #                                                              ^^ source.hlasm punctuation.definition.tag.hlasm
-#                                                                ^^^^^^^^ source.hlasm keyword.other.hlasm
-#                                                                        ^^^^^^^^ source.hlasm invalid.ignored
+#                                                                ^^^^^^^ source.hlasm
+#                                                                       ^ source.hlasm keyword.other.hlasm
+#                                                                        ^^^^^^^^^ source.hlasm
 >                       (('C' LE '&VAR') AND ('&VAR' LE 'D'))  OR       -        
 #^^^^^^^^^^^^^^^^^^^^^^^ source.hlasm
 #                       ^ source.hlasm
@@ -63,8 +65,9 @@
 #                                                           ^ source.hlasm
 #                                                            ^^ source.hlasm
 #                                                              ^^ source.hlasm punctuation.definition.tag.hlasm
-#                                                                ^^^^^^^^ source.hlasm keyword.other.hlasm
-#                                                                        ^^^^^^^^ source.hlasm invalid.ignored
+#                                                                ^^^^^^^ source.hlasm
+#                                                                       ^ source.hlasm keyword.other.hlasm
+#                                                                        ^^^^^^^^^ source.hlasm
 >                       (('E' LE '&VAR') AND ('&VAR' LE 'F'))  OR       -        
 #^^^^^^^^^^^^^^^^^^^^^^^ source.hlasm
 #                       ^ source.hlasm
@@ -94,8 +97,9 @@
 #                                                           ^ source.hlasm
 #                                                            ^^ source.hlasm
 #                                                              ^^ source.hlasm punctuation.definition.tag.hlasm
-#                                                                ^^^^^^^^ source.hlasm keyword.other.hlasm
-#                                                                        ^^^^^^^^ source.hlasm invalid.ignored
+#                                                                ^^^^^^^ source.hlasm
+#                                                                       ^ source.hlasm keyword.other.hlasm
+#                                                                        ^^^^^^^^^ source.hlasm
 >                       ('&VAR' EQ '$') OR ('&VAR' EQ '_')     OR       -        
 #^^^^^^^^^^^^^^^^^^^^^^^ source.hlasm
 #                       ^ source.hlasm
@@ -123,8 +127,9 @@
 #                                                        ^ source.hlasm
 #                                                         ^^^^^ source.hlasm
 #                                                              ^^ source.hlasm punctuation.definition.tag.hlasm
-#                                                                ^^^^^^^^ source.hlasm keyword.other.hlasm
-#                                                                        ^^^^^^^^ source.hlasm invalid.ignored
+#                                                                ^^^^^^^ source.hlasm
+#                                                                       ^ source.hlasm keyword.other.hlasm
+#                                                                        ^^^^^^^^^ source.hlasm
 >                       ('&VAR' EQ '#') OR ('&VAR' EQ '@')              -        
 #^^^^^^^^^^^^^^^^^^^^^^^ source.hlasm
 #                       ^ source.hlasm
@@ -150,20 +155,23 @@
 #                                                     ^ source.hlasm string.hlasm
 #                                                      ^^ source.hlasm string.hlasm
 #                                                        ^ source.hlasm
-#                                                         ^^^^^^^^^^^^^^^ source.hlasm keyword.other.hlasm
-#                                                                        ^^^^^^^^ source.hlasm invalid.ignored
+#                                                         ^^^^^^^^^^^^^^ source.hlasm
+#                                                                       ^ source.hlasm keyword.other.hlasm
+#                                                                        ^^^^^^^^^ source.hlasm
 >                     )                                                 -        
 #^^^^^^^^^^^^^^^^^^^^^ source.hlasm
 #                     ^ source.hlasm
-#                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasm keyword.other.hlasm
-#                                                                        ^^^^^^^^ source.hlasm invalid.ignored
+#                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasm
+#                                                                       ^ source.hlasm keyword.other.hlasm
+#                                                                        ^^^^^^^^^ source.hlasm
 >               ).NAMERR                                                         
 #^^^^^^^^^^^^^^^ source.hlasm
 #               ^ source.hlasm
 #                ^^^^^^^ source.hlasm keyword.control.hlasm
-#                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasm invalid.ignored
+#                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasm
 >         AIF   ( NOT ( (('A' LE '&VAR') AND ('&VAR' LE 'B')).AAAA OR   -        
-#^^^^^^^^^^^^ source.hlasm entity.name.function.hlasm
+#^^^^^^^^^ source.hlasm
+#         ^^^ source.hlasm entity.name.function.hlasm
 #            ^^^ source.hlasm
 #               ^^ source.hlasm
 #                 ^^^ source.hlasm punctuation.definition.tag.hlasm
@@ -198,8 +206,9 @@
 #                                                             ^^^^ source.hlasm punctuation.definition.tag.hlasm
 #                                                                 ^ source.hlasm
 #                                                                  ^^ source.hlasm punctuation.definition.tag.hlasm
-#                                                                    ^^^^ source.hlasm keyword.other.hlasm
-#                                                                        ^^^^^^^^ source.hlasm invalid.ignored
+#                                                                    ^^^ source.hlasm
+#                                                                       ^ source.hlasm keyword.other.hlasm
+#                                                                        ^^^^^^^^^ source.hlasm
 >                       (('C' LE '&VAR') AND ('&VAR' LE 'D'))  OR       -        
 #^^^^^^^^^^^^^^^^^^^^^^^ source.hlasm
 #                       ^ source.hlasm
@@ -229,8 +238,9 @@
 #                                                           ^ source.hlasm
 #                                                            ^^ source.hlasm
 #                                                              ^^ source.hlasm punctuation.definition.tag.hlasm
-#                                                                ^^^^^^^^ source.hlasm keyword.other.hlasm
-#                                                                        ^^^^^^^^ source.hlasm invalid.ignored
+#                                                                ^^^^^^^ source.hlasm
+#                                                                       ^ source.hlasm keyword.other.hlasm
+#                                                                        ^^^^^^^^^ source.hlasm
 >                       (('E' LE '&VAR') AND ('&VAR' LE 'F'))  OR       -        
 #^^^^^^^^^^^^^^^^^^^^^^^ source.hlasm
 #                       ^ source.hlasm
@@ -260,10 +270,12 @@
 #                                                           ^ source.hlasm
 #                                                            ^^ source.hlasm
 #                                                              ^^ source.hlasm punctuation.definition.tag.hlasm
-#                                                                ^^^^^^^^ source.hlasm keyword.other.hlasm
-#                                                                        ^^^^^^^^ source.hlasm invalid.ignored
+#                                                                ^^^^^^^ source.hlasm
+#                                                                       ^ source.hlasm keyword.other.hlasm
+#                                                                        ^^^^^^^^^ source.hlasm
 >                                                                       -
-#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasm keyword.other.hlasm
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasm
+#                                                                       ^ source.hlasm keyword.other.hlasm
 >                       ('&VAR' EQ '$') OR ('&VAR' EQ '_')     OR       -        
 #^^^^^^^^^^^^^^^^^^^^^^^ source.hlasm
 #                       ^ source.hlasm
@@ -291,8 +303,9 @@
 #                                                        ^ source.hlasm
 #                                                         ^^^^^ source.hlasm
 #                                                              ^^ source.hlasm punctuation.definition.tag.hlasm
-#                                                                ^^^^^^^^ source.hlasm keyword.other.hlasm
-#                                                                        ^^^^^^^^ source.hlasm invalid.ignored
+#                                                                ^^^^^^^ source.hlasm
+#                                                                       ^ source.hlasm keyword.other.hlasm
+#                                                                        ^^^^^^^^^ source.hlasm
 >                       ('&VAR' EQ '#') OR ('&VAR' EQ '@')              -        
 #^^^^^^^^^^^^^^^^^^^^^^^ source.hlasm
 #                       ^ source.hlasm
@@ -318,13 +331,15 @@
 #                                                     ^ source.hlasm string.hlasm
 #                                                      ^^ source.hlasm string.hlasm
 #                                                        ^ source.hlasm
-#                                                         ^^^^^^^^^^^^^^^ source.hlasm keyword.other.hlasm
-#                                                                        ^^^^^^^^ source.hlasm invalid.ignored
+#                                                         ^^^^^^^^^^^^^^ source.hlasm
+#                                                                       ^ source.hlasm keyword.other.hlasm
+#                                                                        ^^^^^^^^^ source.hlasm
 >                     )                                                 -        
 #^^^^^^^^^^^^^^^^^^^^^ source.hlasm
 #                     ^ source.hlasm
-#                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasm keyword.other.hlasm
-#                                                                        ^^^^^^^^ source.hlasm invalid.ignored
+#                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasm
+#                                                                       ^ source.hlasm keyword.other.hlasm
+#                                                                        ^^^^^^^^^ source.hlasm
 >               ).NAMERR         
 #^^^^^^^^^^^^^^^ source.hlasm
 #               ^ source.hlasm
@@ -332,7 +347,8 @@
 #                       ^^^^^^^^^ source.hlasm
 >
 >         INSTR  SYMBOL+1/12/,'&SECT ',                                 -        
-#^^^^^^^^^^^^^^ source.hlasm entity.name.function.hlasm
+#^^^^^^^^^ source.hlasm
+#         ^^^^^ source.hlasm entity.name.function.hlasm
 #              ^^ source.hlasm
 #                ^^^^^^ source.hlasm punctuation.definition.tag.hlasm
 #                      ^ source.hlasm
@@ -347,7 +363,7 @@
 #                                      ^ source.hlasm
 #                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasm
 #                                                                       ^ source.hlasm keyword.other.hlasm
-#                                                                        ^^^^^^^^ source.hlasm invalid.ignored
+#                                                                        ^^^^^^^^^ source.hlasm
 >               &ARRAY(1),&ARRAY(2),&ARRAY(3),                          -        
 #^^^^^^^^^^^^^^^ source.hlasm
 #               ^^^^^^ source.hlasm punctuation.definition.tag.hlasm variable.other.readwrite.hlasm
@@ -368,7 +384,7 @@
 #                                             ^ source.hlasm
 #                                              ^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasm
 #                                                                       ^ source.hlasm keyword.other.hlasm
-#                                                                        ^^^^^^^^ source.hlasm invalid.ignored
+#                                                                        ^^^^^^^^^ source.hlasm
 >               &ARRAY(4),&ARRAY(5),&ARRAY(6),                          -        
 #^^^^^^^^^^^^^^^ source.hlasm
 #               ^^^^^^ source.hlasm punctuation.definition.tag.hlasm variable.other.readwrite.hlasm
@@ -389,7 +405,7 @@
 #                                             ^ source.hlasm
 #                                              ^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasm
 #                                                                       ^ source.hlasm keyword.other.hlasm
-#                                                                        ^^^^^^^^ source.hlasm invalid.ignored
+#                                                                        ^^^^^^^^^ source.hlasm
 >               &ARRAY(7),&ARRAY(8),&ARRAY(9),                          -        
 #^^^^^^^^^^^^^^^ source.hlasm
 #               ^^^^^^ source.hlasm punctuation.definition.tag.hlasm variable.other.readwrite.hlasm
@@ -410,7 +426,7 @@
 #                                             ^ source.hlasm
 #                                              ^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasm
 #                                                                       ^ source.hlasm keyword.other.hlasm
-#                                                                        ^^^^^^^^ source.hlasm invalid.ignored
+#                                                                        ^^^^^^^^^ source.hlasm
 >               &ARRAY(10),&ARRAY(11),                                  -        
 #^^^^^^^^^^^^^^^ source.hlasm
 #               ^^^^^^ source.hlasm punctuation.definition.tag.hlasm variable.other.readwrite.hlasm
@@ -426,7 +442,7 @@
 #                                     ^ source.hlasm
 #                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasm
 #                                                                       ^ source.hlasm keyword.other.hlasm
-#                                                                        ^^^^^^^^ source.hlasm invalid.ignored
+#                                                                        ^^^^^^^^^ source.hlasm
 >               &ARRAY(12),&ARRAY(13),                                  -        
 #^^^^^^^^^^^^^^^ source.hlasm
 #               ^^^^^^ source.hlasm punctuation.definition.tag.hlasm variable.other.readwrite.hlasm
@@ -442,7 +458,7 @@
 #                                     ^ source.hlasm
 #                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasm
 #                                                                       ^ source.hlasm keyword.other.hlasm
-#                                                                        ^^^^^^^^ source.hlasm invalid.ignored
+#                                                                        ^^^^^^^^^ source.hlasm
 >               &ARRAY(14),&ARRAY(15),.                                          
 #^^^^^^^^^^^^^^^ source.hlasm
 #               ^^^^^^ source.hlasm punctuation.definition.tag.hlasm variable.other.readwrite.hlasm
@@ -456,11 +472,12 @@
 #                                   ^ source.hlasm
 #                                    ^ source.hlasm
 #                                     ^ source.hlasm punctuation.definition.tag.hlasm keyword.operator.hlasm
-#                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasm invalid.ignored
+#                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasm
 >
 >LABEL    INSTR   OP1,                                                  -
 #^^^^^ source.hlasm support.class.hlasm
-#     ^^^^^^^^^ source.hlasm entity.name.function.hlasm
+#     ^^^^ source.hlasm
+#         ^^^^^ source.hlasm entity.name.function.hlasm
 #              ^^^ source.hlasm
 #                 ^^^ source.hlasm punctuation.definition.tag.hlasm
 #                    ^ source.hlasm
@@ -472,11 +489,13 @@
 #               ^^^ source.hlasm punctuation.definition.tag.hlasm
 #                  ^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasm
 #                                           ^^^^^^^^^^^^^^^^ source.hlasm comment.hlasm
-#                                                           ^^^^^^^^^^^^^ source.hlasm keyword.other.hlasm
+#                                                           ^^^^^^^^^^^^ source.hlasm
+#                                                                       ^ source.hlasm keyword.other.hlasm
 >               REMARKS,                                                -12345678
 #^^^^^^^^^^^^^^^ source.hlasm
 #               ^^^^^^^^ source.hlasm comment.hlasm
-#                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasm keyword.other.hlasm
+#                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasm
+#                                                                       ^ source.hlasm keyword.other.hlasm
 #                                                                        ^^^^^^^^ source.hlasm invalid.ignored
 >                                                
 >
@@ -484,7 +503,8 @@
 #^^^^^^^ source.hlasm support.class.hlasm
 >LABEL    INSTR OP THIS LINE SHOULD NOT BE AFFECTED
 #^^^^^ source.hlasm support.class.hlasm
-#     ^^^^^^^^^ source.hlasm entity.name.function.hlasm
+#     ^^^^ source.hlasm
+#         ^^^^^ source.hlasm entity.name.function.hlasm
 #              ^ source.hlasm
 #               ^^ source.hlasm punctuation.definition.tag.hlasm
 #                 ^ source.hlasm
@@ -509,7 +529,8 @@
 #             ^^^^^^^ source.hlasm support.class.hlasm
 >LABEL    INSTR OP THIS LINE SHOULD NOT BE AFFECTED
 #^^^^^ source.hlasm support.class.hlasm
-#     ^^^^^^^^^ source.hlasm entity.name.function.hlasm
+#     ^^^^ source.hlasm
+#         ^^^^^ source.hlasm entity.name.function.hlasm
 #              ^ source.hlasm
 #               ^^ source.hlasm punctuation.definition.tag.hlasm
 #                 ^ source.hlasm
@@ -529,16 +550,18 @@
 #^^^^ source.hlasm variable.other.readwrite.hlasm
 #    ^ source.hlasm keyword.operator.hlasm
 #     ^ source.hlasm support.class.hlasm
-#      ^^^^^^^^ source.hlasm entity.name.function.hlasm
+#      ^^^ source.hlasm
+#         ^^^^^ source.hlasm entity.name.function.hlasm
 #              ^^^ source.hlasm
 #                 ^^ source.hlasm
 #                   ^^ source.hlasm punctuation.definition.tag.hlasm variable.other.readwrite.hlasm
 #                     ^^^^^^^^^^^^^^^^^^^^ source.hlasm
 #                                         ^^^^^^ source.hlasm comment.hlasm
-#                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasm invalid.ignored
+#                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasm
 >LABEL    INSTR OP THIS LINE SHOULD NOT BE AFFECTED
 #^^^^^ source.hlasm support.class.hlasm
-#     ^^^^^^^^^ source.hlasm entity.name.function.hlasm
+#     ^^^^ source.hlasm
+#         ^^^^^ source.hlasm entity.name.function.hlasm
 #              ^ source.hlasm
 #               ^^ source.hlasm punctuation.definition.tag.hlasm
 #                 ^ source.hlasm
@@ -557,12 +580,14 @@
 >B&VAR    INSTR OP
 #^ source.hlasm support.class.hlasm
 # ^^^^ source.hlasm variable.other.readwrite.hlasm
-#     ^^^^^^^^^ source.hlasm entity.name.function.hlasm
+#     ^^^^ source.hlasm
+#         ^^^^^ source.hlasm entity.name.function.hlasm
 #              ^ source.hlasm
 #               ^^ source.hlasm punctuation.definition.tag.hlasm
 >LABEL    INSTR OP THIS LINE SHOULD NOT BE AFFECTED
 #^^^^^ source.hlasm support.class.hlasm
-#     ^^^^^^^^^ source.hlasm entity.name.function.hlasm
+#     ^^^^ source.hlasm
+#         ^^^^^ source.hlasm entity.name.function.hlasm
 #              ^ source.hlasm
 #               ^^ source.hlasm punctuation.definition.tag.hlasm
 #                 ^ source.hlasm
@@ -580,11 +605,13 @@
 >
 >LABEL    AIF    ( NOT                                                  -12345678invalid
 #^^^^^ source.hlasm support.class.hlasm
-#     ^^^^^^^ source.hlasm entity.name.function.hlasm
+#     ^^^^ source.hlasm
+#         ^^^ source.hlasm entity.name.function.hlasm
 #            ^^^^ source.hlasm
 #                ^^ source.hlasm
 #                  ^^^ source.hlasm punctuation.definition.tag.hlasm
-#                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasm keyword.other.hlasm
+#                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasm
+#                                                                       ^ source.hlasm keyword.other.hlasm
 #                                                                        ^^^^^^^^^^^^^^^ source.hlasm invalid.ignored
 >                'AAA'...T'A ),,REMARK                                        67
 #^^^^^^^^^^^^^^^^ source.hlasm
@@ -600,10 +627,12 @@
 #                            ^ source.hlasm
 #                             ^^ source.hlasm
 #                               ^^^^^^ source.hlasm punctuation.definition.tag.hlasm
-#                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasm invalid.ignored
+#                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasm
+#                                                                             ^^ source.hlasm invalid.ignored
 >LABEL    INSTR OP THIS LINE SHOULD NOT BE AFFECTED
 #^^^^^ source.hlasm support.class.hlasm
-#     ^^^^^^^^^ source.hlasm entity.name.function.hlasm
+#     ^^^^ source.hlasm
+#         ^^^^^ source.hlasm entity.name.function.hlasm
 #              ^ source.hlasm
 #               ^^ source.hlasm punctuation.definition.tag.hlasm
 #                 ^ source.hlasm
@@ -620,8 +649,9 @@
 #                                          ^^^^^^^^ source.hlasm comment.hlasm
 >
 >         INSTR  &__V@R_GEN#                                                     
-#^^^^^^^^^^^^^^ source.hlasm entity.name.function.hlasm
+#^^^^^^^^^ source.hlasm
+#         ^^^^^ source.hlasm entity.name.function.hlasm
 #              ^^ source.hlasm
 #                ^^^^^^^^^^^ source.hlasm punctuation.definition.tag.hlasm variable.other.readwrite.hlasm
-#                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasm invalid.ignored
+#                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasm
 >

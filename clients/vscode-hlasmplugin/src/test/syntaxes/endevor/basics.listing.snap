@@ -138,46 +138,55 @@
 >                                      1 LABEL INSTR OP1                                                                             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                         ^^^^^ source.hlasmListing support.class.hlasm
-#                                              ^^^^^^ source.hlasmListing entity.name.function.hlasm
+#                                              ^ source.hlasmListing
+#                                               ^^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                    ^ source.hlasmListing
 #                                                     ^^^ source.hlasmListing punctuation.definition.tag.hlasm
-#                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >                                      2 LABEL INSTR OP1,OP2                                                                         
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                         ^^^^^ source.hlasmListing support.class.hlasm
-#                                              ^^^^^^ source.hlasmListing entity.name.function.hlasm
+#                                              ^ source.hlasmListing
+#                                               ^^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                    ^ source.hlasmListing
 #                                                     ^^^ source.hlasmListing punctuation.definition.tag.hlasm
 #                                                        ^ source.hlasmListing
 #                                                         ^^^ source.hlasmListing punctuation.definition.tag.hlasm
-#                                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >                                      3 LABEL INSTR OP1,OP2                                                                         
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                         ^^^^^ source.hlasmListing support.class.hlasm
-#                                              ^^^^^^ source.hlasmListing entity.name.function.hlasm
+#                                              ^ source.hlasmListing
+#                                               ^^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                    ^ source.hlasmListing
 #                                                     ^^^ source.hlasmListing punctuation.definition.tag.hlasm
 #                                                        ^ source.hlasmListing
 #                                                         ^^^ source.hlasmListing punctuation.definition.tag.hlasm
-#                                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >                                      5 LABEL INSTR OP1,OP2                                                    -1234567             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                         ^^^^^ source.hlasmListing support.class.hlasm
-#                                              ^^^^^^ source.hlasmListing entity.name.function.hlasm
+#                                              ^ source.hlasmListing
+#                                               ^^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                    ^ source.hlasmListing
 #                                                     ^^^ source.hlasmListing punctuation.definition.tag.hlasm
 #                                                        ^ source.hlasmListing
 #                                                         ^^^ source.hlasmListing punctuation.definition.tag.hlasm
-#                                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                ^ source.hlasmListing keyword.other.hlasm
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                                       REMARKS                                                  1234567             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                        ^^^^^^^ source.hlasmListing comment.hlasm
-#                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                      6 LABEL INSTR OP1,OP2,                                                   -                    
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                         ^^^^^ source.hlasmListing support.class.hlasm
-#                                              ^^^^^^ source.hlasmListing entity.name.function.hlasm
+#                                              ^ source.hlasmListing
+#                                               ^^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                    ^ source.hlasmListing
 #                                                     ^^^ source.hlasmListing punctuation.definition.tag.hlasm
 #                                                        ^ source.hlasmListing
@@ -186,7 +195,7 @@
 #                                                             ^ source.hlasmListing
 #                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                                                                                ^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >                                                       OP3,                                                    -                    
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                        ^^^ source.hlasmListing punctuation.definition.tag.hlasm
@@ -194,15 +203,18 @@
 #                                                            ^ source.hlasmListing
 #                                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                                                                                ^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >                                                       OP4                                                      1234567             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                        ^^^ source.hlasmListing punctuation.definition.tag.hlasm
-#                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                      7 LABEL INSTR OP1,OP2,                                                   -1234567             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                         ^^^^^ source.hlasmListing support.class.hlasm
-#                                              ^^^^^^ source.hlasmListing entity.name.function.hlasm
+#                                              ^ source.hlasmListing
+#                                               ^^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                    ^ source.hlasmListing
 #                                                     ^^^ source.hlasmListing punctuation.definition.tag.hlasm
 #                                                        ^ source.hlasmListing
@@ -211,7 +223,8 @@
 #                                                             ^ source.hlasmListing
 #                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                                                                                ^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                                       OP3,                                                    -1234567             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                        ^^^ source.hlasmListing punctuation.definition.tag.hlasm
@@ -219,15 +232,19 @@
 #                                                            ^ source.hlasmListing
 #                                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                                                                                ^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                                       OP4                                                      1234567             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                        ^^^ source.hlasmListing punctuation.definition.tag.hlasm
-#                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                      9 LABEL INSTR OP1,OP2,                                                   -1234657             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                         ^^^^^ source.hlasmListing support.class.hlasm
-#                                              ^^^^^^ source.hlasmListing entity.name.function.hlasm
+#                                              ^ source.hlasmListing
+#                                               ^^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                    ^ source.hlasmListing
 #                                                     ^^^ source.hlasmListing punctuation.definition.tag.hlasm
 #                                                        ^ source.hlasmListing
@@ -236,55 +253,69 @@
 #                                                             ^ source.hlasmListing
 #                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                                                                                ^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                                       OP3                                                                          
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                        ^^^ source.hlasmListing punctuation.definition.tag.hlasm
-#                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >                                     11 LABEL INSTR OP1,OP2                                                    -                    
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                         ^^^^^ source.hlasmListing support.class.hlasm
-#                                              ^^^^^^ source.hlasmListing entity.name.function.hlasm
+#                                              ^ source.hlasmListing
+#                                               ^^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                    ^ source.hlasmListing
 #                                                     ^^^ source.hlasmListing punctuation.definition.tag.hlasm
 #                                                        ^ source.hlasmListing
 #                                                         ^^^ source.hlasmListing punctuation.definition.tag.hlasm
-#                                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                ^ source.hlasmListing keyword.other.hlasm
+#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >                                                       REMARKS,                                                -                    
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                        ^^^^^^^^ source.hlasmListing comment.hlasm
-#                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                ^ source.hlasmListing keyword.other.hlasm
+#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >                                                       REMARKS                                                  1234567             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                        ^^^^^^^ source.hlasmListing comment.hlasm
-#                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                     13 LABEL INSTR OP1,OP2    REMARKS                                         -1234567             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                         ^^^^^ source.hlasmListing support.class.hlasm
-#                                              ^^^^^^ source.hlasmListing entity.name.function.hlasm
+#                                              ^ source.hlasmListing
+#                                               ^^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                    ^ source.hlasmListing
 #                                                     ^^^ source.hlasmListing punctuation.definition.tag.hlasm
 #                                                        ^ source.hlasmListing
 #                                                         ^^^ source.hlasmListing punctuation.definition.tag.hlasm
 #                                                            ^^^^ source.hlasmListing
 #                                                                ^^^^^^^ source.hlasmListing comment.hlasm
-#                                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                ^ source.hlasmListing keyword.other.hlasm
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                                       REMARKS,                                                -1234657             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                        ^^^^^^^^ source.hlasmListing comment.hlasm
-#                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                ^ source.hlasmListing keyword.other.hlasm
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                                       REMARKS                                                  1234567             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                        ^^^^^^^ source.hlasmListing comment.hlasm
-#                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                     15 LABEL INSTR OP1,OP2,      REMARKS  REMARKS                             -                    
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                         ^^^^^ source.hlasmListing support.class.hlasm
-#                                              ^^^^^^ source.hlasmListing entity.name.function.hlasm
+#                                              ^ source.hlasmListing
+#                                               ^^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                    ^ source.hlasmListing
 #                                                     ^^^ source.hlasmListing punctuation.definition.tag.hlasm
 #                                                        ^ source.hlasmListing
@@ -297,7 +328,7 @@
 #                                                                            ^^^^^^^ source.hlasmListing comment.hlasm
 #                                                                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                                                                                ^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >                                                       OP3, REMARKS                                            -1234567             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                        ^^^ source.hlasmListing punctuation.definition.tag.hlasm
@@ -306,20 +337,24 @@
 #                                                             ^^^^^^^ source.hlasmListing comment.hlasm
 #                                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                                                                                ^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                                       OP4                                                     -1234567             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                        ^^^ source.hlasmListing punctuation.definition.tag.hlasm
-#                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                ^ source.hlasmListing keyword.other.hlasm
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                                       REMARKS                                                                      
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                        ^^^^^^^ source.hlasmListing comment.hlasm
-#                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >                                     17 LABEL INSTR OP1,OP2,   REMARKS,                                        -1234567             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                         ^^^^^ source.hlasmListing support.class.hlasm
-#                                              ^^^^^^ source.hlasmListing entity.name.function.hlasm
+#                                              ^ source.hlasmListing
+#                                               ^^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                    ^ source.hlasmListing
 #                                                     ^^^ source.hlasmListing punctuation.definition.tag.hlasm
 #                                                        ^ source.hlasmListing
@@ -330,7 +365,8 @@
 #                                                                ^^^^^^^^ source.hlasmListing comment.hlasm
 #                                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                                                                                ^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                                       OP3,OP4,       RERMARKS                                 -1234657             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                        ^^^ source.hlasmListing punctuation.definition.tag.hlasm
@@ -342,7 +378,8 @@
 #                                                                       ^^^^^^^^ source.hlasmListing comment.hlasm
 #                                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                                                                                ^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                                       OP5,OP6        RERMARKS                                 -1234657             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                        ^^^ source.hlasmListing punctuation.definition.tag.hlasm
@@ -350,33 +387,43 @@
 #                                                            ^^^ source.hlasmListing punctuation.definition.tag.hlasm
 #                                                               ^^^^^^^^ source.hlasmListing
 #                                                                       ^^^^^^^^ source.hlasmListing comment.hlasm
-#                                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                ^ source.hlasmListing keyword.other.hlasm
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                                       REMARKS,                                                -1234657             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                        ^^^^^^^^ source.hlasmListing comment.hlasm
-#                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                ^ source.hlasmListing keyword.other.hlasm
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                                       REMARKS                                                 -1234657             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                        ^^^^^^^ source.hlasmListing comment.hlasm
-#                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                ^ source.hlasmListing keyword.other.hlasm
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                                       REMARKS                                          REMARKS-1234657             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                        ^^^^^^^ source.hlasmListing comment.hlasm
 #                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                                                                         ^^^^^^^ source.hlasmListing comment.hlasm
 #                                                                                                                ^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                                       REMARKS                                                  1234567             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                        ^^^^^^^ source.hlasmListing comment.hlasm
-#                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                     19 LABEL INSTR OP1,OP2,   REMARKS                                         -1234567             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                         ^^^^^ source.hlasmListing support.class.hlasm
-#                                              ^^^^^^ source.hlasmListing entity.name.function.hlasm
+#                                              ^ source.hlasmListing
+#                                               ^^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                    ^ source.hlasmListing
 #                                                     ^^^ source.hlasmListing punctuation.definition.tag.hlasm
 #                                                        ^ source.hlasmListing
@@ -387,7 +434,8 @@
 #                                                                ^^^^^^^ source.hlasmListing comment.hlasm
 #                                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                                                                                ^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                                       OP3,OP4,       REMARKS                                  -1234657             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                        ^^^ source.hlasmListing punctuation.definition.tag.hlasm
@@ -399,80 +447,103 @@
 #                                                                       ^^^^^^^ source.hlasmListing comment.hlasm
 #                                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                                                                                ^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                                       OP5,OP6                                                 -1234657             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                        ^^^ source.hlasmListing punctuation.definition.tag.hlasm
 #                                                           ^ source.hlasmListing
 #                                                            ^^^ source.hlasmListing punctuation.definition.tag.hlasm
-#                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                ^ source.hlasmListing keyword.other.hlasm
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                                       REMARKS                                                 -1234657             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                        ^^^^^^^ source.hlasmListing comment.hlasm
-#                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                ^ source.hlasmListing keyword.other.hlasm
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                                       REMARKS                                                  1234567             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                        ^^^^^^^ source.hlasmListing comment.hlasm
-#                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                                                                                                                    
 >                                     23 LABEL INSTR OP1,OP2    REMARKS,                                        -1234567             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                         ^^^^^ source.hlasmListing support.class.hlasm
-#                                              ^^^^^^ source.hlasmListing entity.name.function.hlasm
+#                                              ^ source.hlasmListing
+#                                               ^^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                    ^ source.hlasmListing
 #                                                     ^^^ source.hlasmListing punctuation.definition.tag.hlasm
 #                                                        ^ source.hlasmListing
 #                                                         ^^^ source.hlasmListing punctuation.definition.tag.hlasm
 #                                                            ^^^^ source.hlasmListing
 #                                                                ^^^^^^^^ source.hlasmListing comment.hlasm
-#                                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                ^ source.hlasmListing keyword.other.hlasm
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                                       REMARKS,REMARKS,       REMARKS                          -1234657             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                        ^^^^^^^^^^^^^^^^ source.hlasmListing comment.hlasm
 #                                                                        ^^^^^^^ source.hlasmListing
 #                                                                               ^^^^^^^ source.hlasmListing comment.hlasm
-#                                                                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                ^ source.hlasmListing keyword.other.hlasm
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                                       REMARKS,REMARKS                                         -1234657             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                        ^^^^^^^^^^^^^^^ source.hlasmListing comment.hlasm
-#                                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                ^ source.hlasmListing keyword.other.hlasm
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                                       REMARKS            REMARKS                              -1234657             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                        ^^^^^^^ source.hlasmListing comment.hlasm
 #                                                               ^^^^^^^^^^^^ source.hlasmListing
 #                                                                           ^^^^^^^ source.hlasmListing comment.hlasm
-#                                                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                ^ source.hlasmListing keyword.other.hlasm
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                                       REMARKS                                                  1234567             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                        ^^^^^^^ source.hlasmListing comment.hlasm
-#                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                     25 LABEL INSTR      OP1                                                   -                    
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                         ^^^^^ source.hlasmListing support.class.hlasm
-#                                              ^^^^^^ source.hlasmListing entity.name.function.hlasm
+#                                              ^ source.hlasmListing
+#                                               ^^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                    ^^^^^^ source.hlasmListing
 #                                                          ^^^ source.hlasmListing punctuation.definition.tag.hlasm
-#                                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                ^ source.hlasmListing keyword.other.hlasm
+#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >                                                                                                               -                    
 #^ source.hlasmListing
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                ^ source.hlasmListing keyword.other.hlasm
+#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >                                                       REMARKS,                                                -                    
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                        ^^^^^^^^ source.hlasmListing comment.hlasm
-#                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                ^ source.hlasmListing keyword.other.hlasm
+#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >i                                                                                                               -                    
 #^ source.hlasmListing
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                ^ source.hlasmListing keyword.other.hlasm
+#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >                                                                                                               Page    4            
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >  Active Usings: None                                                                                                               
@@ -484,48 +555,60 @@
 #                                                        ^^^^^^^ source.hlasmListing comment.hlasm
 #                                                               ^ source.hlasmListing
 #                                                                ^^^^^^^ source.hlasmListing comment.hlasm
-#                                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                ^ source.hlasmListing keyword.other.hlasm
+#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >                                                       REMARKS REMARKS                                         -                    
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                        ^^^^^^^ source.hlasmListing comment.hlasm
 #                                                               ^ source.hlasmListing
 #                                                                ^^^^^^^ source.hlasmListing comment.hlasm
-#                                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                ^ source.hlasmListing keyword.other.hlasm
+#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >                                                       REMARKS REMARKS                                          1234567             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                        ^^^^^^^ source.hlasmListing comment.hlasm
 #                                                               ^ source.hlasmListing
 #                                                                ^^^^^^^ source.hlasmListing comment.hlasm
-#                                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                     27 LABEL INSTR OP1,OP2    REMARKS                                         -                    
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                         ^^^^^ source.hlasmListing support.class.hlasm
-#                                              ^^^^^^ source.hlasmListing entity.name.function.hlasm
+#                                              ^ source.hlasmListing
+#                                               ^^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                    ^ source.hlasmListing
 #                                                     ^^^ source.hlasmListing punctuation.definition.tag.hlasm
 #                                                        ^ source.hlasmListing
 #                                                         ^^^ source.hlasmListing punctuation.definition.tag.hlasm
 #                                                            ^^^^ source.hlasmListing
 #                                                                ^^^^^^^ source.hlasmListing comment.hlasm
-#                                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                ^ source.hlasmListing keyword.other.hlasm
+#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >                                        INVALID,                                                               -1234657             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.illegal
-#                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                ^ source.hlasmListing keyword.other.hlasm
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                                       REMARKS                                                  1234567             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                        ^^^^^^^ source.hlasmListing comment.hlasm
-#                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                     30 LABEL INSTR                                                            -1234567             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                         ^^^^^ source.hlasmListing support.class.hlasm
-#                                              ^^^^^^ source.hlasmListing entity.name.function.hlasm
+#                                              ^ source.hlasmListing
+#                                               ^^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                                                                                ^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                                       OP1,OP2,   REMARKS                                      -1234567             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                        ^^^ source.hlasmListing punctuation.definition.tag.hlasm
@@ -537,7 +620,8 @@
 #                                                                   ^^^^^^^ source.hlasmListing comment.hlasm
 #                                                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                                                                                ^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                                       OP3,    REMARKS                                         -1234657             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                        ^^^ source.hlasmListing punctuation.definition.tag.hlasm
@@ -547,18 +631,23 @@
 #                                                                ^^^^^^^ source.hlasmListing comment.hlasm
 #                                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                                                                                ^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                                       OP4                                                      1234567             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                        ^^^ source.hlasmListing punctuation.definition.tag.hlasm
-#                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                     32 LABEL INSTR                                                            -1234567             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                         ^^^^^ source.hlasmListing support.class.hlasm
-#                                              ^^^^^^ source.hlasmListing entity.name.function.hlasm
+#                                              ^ source.hlasmListing
+#                                               ^^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                                                                                ^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                                       OP1 REMARKS,   REMARKS                                  -1234567             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                        ^^^ source.hlasmListing punctuation.definition.tag.hlasm
@@ -566,22 +655,28 @@
 #                                                            ^^^^^^^^ source.hlasmListing comment.hlasm
 #                                                                    ^^^ source.hlasmListing
 #                                                                       ^^^^^^^ source.hlasmListing comment.hlasm
-#                                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                ^ source.hlasmListing keyword.other.hlasm
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                                       REMARKS,    REMARKS                                     -1234657             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                        ^^^^^^^^ source.hlasmListing comment.hlasm
 #                                                                ^^^^ source.hlasmListing
 #                                                                    ^^^^^^^ source.hlasmListing comment.hlasm
-#                                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing keyword.other.hlasm
-#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                ^ source.hlasmListing keyword.other.hlasm
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >                                                       REMARKS                                                  1234567             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                        ^^^^^^^ source.hlasmListing comment.hlasm
-#                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                 ^^^^^^^ source.hlasmListing invalid.ignored
+#                                                                                                                        ^^^^^^^^^^^^^ source.hlasmListing
 >»                                                                                                                                    
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
-#                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.ignored
+#                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >                                   General Purpose Register Cross Reference                                    Page    5            
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 > Register  References (M=modified, B=branch, U=USING, D=DROP, N=index)                      HLASM R1.0  2000/01/01 00.00            
