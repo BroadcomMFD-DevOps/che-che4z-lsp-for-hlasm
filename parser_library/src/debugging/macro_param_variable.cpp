@@ -61,11 +61,3 @@ std::vector<variable_ptr> macro_param_variable::values() const
     }
     return vals;
 }
-
-context::A_t macro_param_variable::size() const
-{
-    auto index_range = macro_param_.index_range(index_);
-    if (!index_range)
-        return 0;
-    return index_range->second - index_range->first + 1; // TODO: overflow
-}

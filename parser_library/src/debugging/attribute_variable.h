@@ -34,7 +34,6 @@ public:
     bool is_scalar() const override;
 
     std::vector<variable_ptr> values() const override;
-    context::A_t size() const override;
 
 private:
     std::string name_;
