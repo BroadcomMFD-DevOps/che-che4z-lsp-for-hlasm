@@ -259,44 +259,48 @@ public:
 
     // creates specified global set symbol
     template<typename T>
-    set_sym_ptr create_global_variable(id_index id, bool is_scalar)
+    set_symbol_base* create_global_variable(id_index id, bool is_scalar)
     {
         auto* scope = curr_scope();
 
         if (auto var = scope->variables.find(id); var != scope->variables.end())
-            return std::dynamic_pointer_cast<set_symbol<T>>(var->second);
+            return dynamic_cast<set_symbol<T>*>(var->second.get());
 
         if (auto glob = globals_.find(id); glob != globals_.end())
         {
             auto var = std::dynamic_pointer_cast<set_symbol<T>>(glob->second);
+            auto* result = var.get();
             if (var)
-                scope->variables.try_emplace(id, var);
+                scope->variables.try_emplace(id, std::move(var));
 
-            return var;
+            return result;
         }
 
-        auto val(std::make_shared<set_symbol<T>>(id, is_scalar, true));
+        auto var = std::make_shared<set_symbol<T>>(id, is_scalar, true);
+        auto* result = var.get();
 
-        globals_.try_emplace(id, val);
-        scope->variables.try_emplace(id, val);
+        globals_.try_emplace(id, var);
+        scope->variables.try_emplace(id, std::move(var));
 
-        return val;
+        return result;
     }
 
     // creates specified local set symbol
     template<typename T>
-    set_sym_ptr create_local_variable(id_index id, bool is_scalar)
+    set_symbol_base* create_local_variable(id_index id, bool is_scalar)
     {
         auto* scope = curr_scope();
 
         if (auto var = scope->variables.find(id); var != scope->variables.end())
-            return std::dynamic_pointer_cast<set_symbol<T>>(var->second);
+            return dynamic_cast<set_symbol<T>*>(var->second.get());
 
-        auto val(std::make_shared<set_symbol<T>>(id, is_scalar, false));
+        auto var = std::make_shared<set_symbol<T>>(id, is_scalar, false);
 
-        scope->variables.try_emplace(id, val);
+        auto* result = var.get();
 
-        return val;
+        scope->variables.try_emplace(id, std::move(var));
+
+        return result;
     }
 
     unsigned long next_sysndx() const { return SYSNDX_; }

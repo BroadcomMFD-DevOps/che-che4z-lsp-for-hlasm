@@ -19,9 +19,6 @@
 
 namespace hlasm_plugin::parser_library::context {
 
-class system_variable;
-using sys_sym_ptr = std::shared_ptr<system_variable>;
-
 // base for variable symbols
 class system_variable : public macro_param_base
 {

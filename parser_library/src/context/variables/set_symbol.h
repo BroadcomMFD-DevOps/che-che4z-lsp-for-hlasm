@@ -24,7 +24,6 @@ namespace hlasm_plugin::parser_library::context {
 
 template<typename T>
 class set_symbol;
-using set_sym_ptr = std::shared_ptr<set_symbol_base>;
 
 // base class for set_symbols
 class set_symbol_base : public variable_symbol

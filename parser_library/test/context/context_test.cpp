@@ -73,12 +73,12 @@ TEST(context, create_global_var)
     auto found = ctx.get_var_sym(idx);
 
     ASSERT_TRUE(found);
-    EXPECT_TRUE(glob.get() == found);
+    EXPECT_TRUE(glob == found);
 
     EXPECT_TRUE(ctx.globals().find(idx) != ctx.globals().end());
-    EXPECT_TRUE(glob.get() == ctx.globals().find(idx)->second->access_set_symbol_base());
-    EXPECT_TRUE(std::dynamic_pointer_cast<set_symbol<C_t>>(glob));
-    EXPECT_TRUE(glob == ctx.globals().find(idx)->second);
+    EXPECT_TRUE(glob == ctx.globals().find(idx)->second->access_set_symbol_base());
+    EXPECT_TRUE(dynamic_cast<set_symbol<C_t>*>(glob));
+    EXPECT_TRUE(glob == ctx.globals().find(idx)->second.get());
 }
 
 TEST(context, create_global_var_different_types)
@@ -92,13 +92,13 @@ TEST(context, create_global_var_different_types)
     auto found = ctx.get_var_sym(idx);
 
     ASSERT_TRUE(found);
-    EXPECT_TRUE(glob_a.get() == found);
+    EXPECT_TRUE(glob_a == found);
     EXPECT_FALSE(glob_b);
 
-    EXPECT_TRUE(ctx.globals().find(idx) != ctx.globals().end());
-    EXPECT_TRUE(glob_a.get() == ctx.globals().find(idx)->second->access_set_symbol_base());
-    EXPECT_TRUE(std::dynamic_pointer_cast<set_symbol<A_t>>(glob_a));
-    EXPECT_TRUE(glob_a == ctx.globals().find(idx)->second);
+    EXPECT_NE(ctx.globals().find(idx), ctx.globals().end());
+    EXPECT_EQ(glob_a, ctx.globals().find(idx)->second->access_set_symbol_base());
+    EXPECT_TRUE(dynamic_cast<set_symbol<A_t>*>(glob_a));
+    EXPECT_EQ(glob_a, ctx.globals().find(idx)->second.get());
 }
 
 TEST(context, find_global_system_var)
@@ -114,7 +114,7 @@ TEST(context, find_global_system_var)
 
 
     EXPECT_TRUE(scope_var_ptr);
-    EXPECT_TRUE(ctx.globals().find(idx.value()) != ctx.globals().end());
+    EXPECT_NE(ctx.globals().find(idx.value()), ctx.globals().end());
 }
 
 TEST(context, create_local_var)
@@ -129,8 +129,8 @@ TEST(context, create_local_var)
     auto found = ctx.get_var_sym(idx);
 
 
-    ASSERT_TRUE(loc.get() == found);
-    ASSERT_TRUE(ctx.globals().find(idx) == ctx.globals().end());
+    EXPECT_EQ(loc, found);
+    EXPECT_EQ(ctx.globals().find(idx), ctx.globals().end());
 }
 
 

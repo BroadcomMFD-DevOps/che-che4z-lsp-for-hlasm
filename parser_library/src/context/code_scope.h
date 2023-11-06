@@ -25,8 +25,8 @@ namespace hlasm_plugin::parser_library::context {
 // contains locally valid set symbols, sequence symbols and pointer to macro class (if code is in any)
 struct code_scope
 {
-    using set_sym_storage = std::unordered_map<id_index, set_sym_ptr>;
-    using sys_sym_storage = std::unordered_map<id_index, sys_sym_ptr>;
+    using set_sym_storage = std::unordered_map<id_index, std::shared_ptr<set_symbol_base>>;
+    using sys_sym_storage = std::unordered_map<id_index, std::shared_ptr<system_variable>>;
 
     // local variables of scope
     set_sym_storage variables;

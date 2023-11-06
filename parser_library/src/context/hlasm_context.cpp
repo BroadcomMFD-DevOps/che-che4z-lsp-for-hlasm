@@ -134,7 +134,7 @@ macro_data_ptr create_macro_data(std::unique_ptr<macro_param_data_single_dynamic
 macro_data_ptr create_macro_data(std::unique_ptr<macro_param_data_zero_based> value) { return value; }
 
 template<typename SYSTEM_VARIABLE_TYPE = system_variable, typename DATA>
-std::pair<id_index, sys_sym_ptr> create_system_variable(id_index id, DATA mac_data, bool is_global)
+std::pair<id_index, std::shared_ptr<system_variable>> create_system_variable(id_index id, DATA mac_data, bool is_global)
 {
     return { id, std::make_shared<SYSTEM_VARIABLE_TYPE>(id, create_macro_data(std::move(mac_data)), is_global) };
 }
@@ -238,9 +238,7 @@ void hlasm_context::add_global_system_var_to_scope(id_index id, code_scope& scop
 {
     auto glob = globals_.find(id);
 
-    sys_sym_ptr temp = std::dynamic_pointer_cast<system_variable>(glob->second);
-
-    scope.system_variables.try_emplace(glob->second->id, temp);
+    scope.system_variables.try_emplace(glob->second->id, std::dynamic_pointer_cast<system_variable>(glob->second));
 }
 
 void hlasm_context::add_global_system_vars(code_scope& scope)
