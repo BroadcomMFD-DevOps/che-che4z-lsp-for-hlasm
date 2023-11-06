@@ -352,8 +352,9 @@ TEST(context_macro, call_and_leave_macro)
     params.emplace_back(std::move(p4));
 
     // call->|		MAC		ada,mko,
-    auto m2 = ctx.enter_macro(idx, nullptr, std::move(params));
+    auto [m2, t2] = ctx.enter_macro(idx, nullptr, std::move(params));
 
+    EXPECT_FALSE(t2);
     ASSERT_TRUE(m.id == m2->id);
     ASSERT_TRUE(ctx.is_in_macro());
     ASSERT_TRUE(ctx.current_macro() == m2);
@@ -416,8 +417,9 @@ TEST(context_macro, repeat_call_same_macro)
 
     // calling macro
     // call->|lbl		MAC		ada,mko,
-    auto m2 = ctx.enter_macro(idx, std::move(lb), std::move(params));
+    auto [m2, t2] = ctx.enter_macro(idx, std::move(lb), std::move(params));
 
+    EXPECT_FALSE(t2);
     EXPECT_EQ(m2->named_params.find(lbl)->second->get_value(), "lbl");
 
     // leaving macro
@@ -443,8 +445,9 @@ TEST(context_macro, repeat_call_same_macro)
     params.emplace_back(std::move(dat));
 
     // call->|		MAC		,KEY=cas,,(first,second,third)
-    auto m3 = ctx.enter_macro(idx, nullptr, std::move(params));
+    auto [m3, t3] = ctx.enter_macro(idx, nullptr, std::move(params));
 
+    EXPECT_FALSE(t3);
     ASSERT_TRUE(m2 != m3);
 
     auto SYSLIST = m3->named_params.find(id_storage::well_known::SYSLIST)->second->access_system_variable();
@@ -508,10 +511,11 @@ TEST(context_macro, recurr_call)
 
     // calling macro
     // call->|lbl		MAC		ada,mko,
-    auto m2 = ctx.enter_macro(idx, std::move(lb), std::move(params));
+    auto [m2, t2] = ctx.enter_macro(idx, std::move(lb), std::move(params));
 
     //*****created first macro call
 
+    EXPECT_FALSE(t2);
     ASSERT_TRUE(ctx.current_macro() == m2);
     ASSERT_TRUE(ctx.is_in_macro());
 
@@ -536,9 +540,10 @@ TEST(context_macro, recurr_call)
     params.emplace_back(std::move(dat));
 
     // call->|		MAC		,KEY=cas,,(first,second,third)
-    auto m3 = ctx.enter_macro(idx, nullptr, std::move(params));
+    auto [m3, t3] = ctx.enter_macro(idx, nullptr, std::move(params));
 
     //********called again the same macro without calling leave
+    EXPECT_FALSE(t3);
     ASSERT_TRUE(ctx.current_macro() == m3);
     ASSERT_TRUE(ctx.is_in_macro());
     ASSERT_FALSE(m2 == m3);

@@ -55,8 +55,11 @@ void macro_processor::process(std::shared_ptr<const processing::resolved_stateme
         }
     }
 
-    auto args = get_args(*stmt);
-    hlasm_ctx.enter_macro(stmt->opcode_ref().value, std::move(args.name_param), std::move(args.symbolic_params));
+    auto [named, symbolic] = get_args(*stmt);
+    auto [_, truncated] = hlasm_ctx.enter_macro(stmt->opcode_ref().value, std::move(named), std::move(symbolic));
+
+    if (truncated) // this should never happen in a real code
+        eval_ctx.diags.add_diagnostic(diagnostic_op::error_E081(stmt->operands_ref().field_range));
 }
 namespace {
 bool is_valid_string(std::string_view s)

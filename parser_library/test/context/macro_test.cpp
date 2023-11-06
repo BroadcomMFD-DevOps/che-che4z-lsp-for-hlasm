@@ -367,10 +367,11 @@ TEST(macro, macro_name_param_repetition)
         std::vector<macro_arg> args;
         args.emplace_back(std::make_unique<macro_param_data_single>("2"));
         args.emplace_back(std::make_unique<macro_param_data_single>("3"));
-        auto invo =
+        auto [invo, t] =
             m1->call(std::make_unique<macro_param_data_single>("1"), std::move(args), id_storage::well_known::SYSLIST);
         auto n = id_index("N");
         auto b = id_index("B");
+        EXPECT_FALSE(t);
         EXPECT_EQ(invo->named_params.find(n)->second->get_value(), "1");
         EXPECT_EQ(invo->named_params.find(b)->second->get_value(), "3");
     }
@@ -379,9 +380,10 @@ TEST(macro, macro_name_param_repetition)
         std::vector<macro_arg> args;
         args.emplace_back(std::make_unique<macro_param_data_single>("1"));
         args.emplace_back(std::make_unique<macro_param_data_single>("2"));
-        auto invo = m2->call(nullptr, std::move(args), id_storage::well_known::SYSLIST);
+        auto [invo, t] = m2->call(nullptr, std::move(args), id_storage::well_known::SYSLIST);
         auto n = id_index("A");
         auto b = id_index("B");
+        EXPECT_FALSE(t);
         EXPECT_EQ(invo->named_params.find(n)->second->get_value(), "1");
         EXPECT_EQ(invo->named_params.find(b)->second->get_value(), "2");
         EXPECT_EQ(invo->named_params.find(id_storage::well_known::SYSLIST)->second->get_value(1), "1");
@@ -392,9 +394,10 @@ TEST(macro, macro_name_param_repetition)
         args.emplace_back(std::make_unique<macro_param_data_single>("1"));
         args.emplace_back(std::make_unique<macro_param_data_single>("2"));
         args.emplace_back(std::make_unique<macro_param_data_single>("3"));
-        auto invo = m3->call(nullptr, std::move(args), id_storage::well_known::SYSLIST);
+        auto [invo, t] = m3->call(nullptr, std::move(args), id_storage::well_known::SYSLIST);
         auto n = id_index("A");
         auto b = id_index("B");
+        EXPECT_FALSE(t);
         EXPECT_EQ(invo->named_params.find(n)->second->access_keyword_param()->get_value(), "5");
         EXPECT_EQ(invo->named_params.find(b)->second->get_value(), "2");
     }

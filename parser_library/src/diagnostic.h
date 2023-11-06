@@ -629,6 +629,8 @@ struct diagnostic_op
 
     static diagnostic_op error_E080(const range& range);
 
+    static diagnostic_op error_E081(const range& range);
+
     static diagnostic_op warning_W010(std::string_view message, const range& range);
 
     static diagnostic_op warning_W011(const range& range);

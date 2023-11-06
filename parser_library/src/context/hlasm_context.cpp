@@ -874,7 +874,8 @@ macro_def_ptr hlasm_context::get_macro_definition(id_index name, context::opcode
 
 bool hlasm_context::is_in_macro() const { return scope_stack_.back().is_in_macro(); }
 
-macro_invo_ptr hlasm_context::enter_macro(id_index name, macro_data_ptr label_param_data, std::vector<macro_arg> params)
+std::pair<const macro_invocation*, bool> hlasm_context::enter_macro(
+    id_index name, macro_data_ptr label_param_data, std::vector<macro_arg> params)
 {
     assert(SYSNDX_ <= SYSNDX_limit);
 
@@ -887,15 +888,18 @@ macro_invo_ptr hlasm_context::enter_macro(id_index name, macro_data_ptr label_pa
             ord_ctx.symbol_mentioned_on_macro(ids().add(std::move(label)));
     }
 
-    auto invo = macro_def->call(std::move(label_param_data), std::move(params), id_storage::well_known::SYSLIST);
-    auto& new_scope = scope_stack_.emplace_back(invo, macro_def);
+    auto [invo, truncated] =
+        macro_def->call(std::move(label_param_data), std::move(params), id_storage::well_known::SYSLIST);
+    auto* const result = invo.get();
+
+    auto& new_scope = scope_stack_.emplace_back(std::move(invo), macro_def);
     add_system_vars_to_scope(new_scope);
     add_global_system_vars(new_scope);
 
     ++SYSNDX_;
     mnote_last_max = 0;
 
-    return invo;
+    return { result, truncated };
 }
 
 void hlasm_context::leave_macro()
@@ -904,11 +908,11 @@ void hlasm_context::leave_macro()
     scope_stack_.pop_back();
 }
 
-macro_invo_ptr hlasm_context::current_macro() const
+const macro_invocation* hlasm_context::current_macro() const
 {
     if (is_in_macro())
-        return curr_scope()->this_macro;
-    return macro_invo_ptr();
+        return curr_scope()->this_macro.get();
+    return nullptr;
 }
 
 const location* hlasm_context::current_macro_definition_location() const

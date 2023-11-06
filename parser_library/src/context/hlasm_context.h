@@ -228,7 +228,7 @@ public:
     // checks whether processing is currently in macro
     bool is_in_macro() const;
     // returns macro we are currently in or empty shared_ptr if in open code
-    macro_invo_ptr current_macro() const;
+    const macro_invocation* current_macro() const;
     const location* current_macro_definition_location() const;
     // registers new macro
     macro_def_ptr add_macro(id_index name,
@@ -242,7 +242,8 @@ public:
         bool external);
     void add_macro(macro_def_ptr macro, bool external);
     // enters a macro with actual params
-    macro_invo_ptr enter_macro(id_index name, macro_data_ptr label_param_data, std::vector<macro_arg> params);
+    std::pair<const macro_invocation*, bool> enter_macro(
+        id_index name, macro_data_ptr label_param_data, std::vector<macro_arg> params);
     // leaves current macro
     void leave_macro();
 
