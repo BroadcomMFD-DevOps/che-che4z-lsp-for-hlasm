@@ -95,9 +95,6 @@ public:
     std::pair<std::unique_ptr<macro_invocation>, bool> call(
         macro_data_ptr label_param_data, std::vector<macro_arg> actual_params, id_index syslist_name);
 
-    // satifying unordered_map needs
-    bool operator=(const macro_definition& m);
-
     const std::vector<std::unique_ptr<positional_param>>& get_positional_params() const;
     const std::vector<std::unique_ptr<keyword_param>>& get_keyword_params() const;
     const id_index& get_label_param_name() const;

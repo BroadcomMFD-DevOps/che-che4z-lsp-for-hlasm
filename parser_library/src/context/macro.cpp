@@ -164,8 +164,6 @@ std::pair<std::unique_ptr<macro_invocation>, bool> macro_definition::call(
         truncated_syslist };
 }
 
-bool macro_definition::operator=(const macro_definition& m) { return id == m.id; }
-
 const std::vector<std::unique_ptr<positional_param>>& macro_definition::get_positional_params() const
 {
     return positional_params_;
