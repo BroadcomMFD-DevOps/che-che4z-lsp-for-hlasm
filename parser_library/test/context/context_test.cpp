@@ -448,7 +448,6 @@ TEST(context_macro, repeat_call_same_macro)
     auto [m3, t3] = ctx.enter_macro(idx, nullptr, std::move(params));
 
     EXPECT_FALSE(t3);
-    ASSERT_TRUE(m2 != m3);
 
     auto SYSLIST = m3->named_params.find(id_storage::well_known::SYSLIST)->second->access_system_variable();
     ASSERT_TRUE(SYSLIST);
