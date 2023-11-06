@@ -50,7 +50,6 @@ public:
     }
 
     virtual std::vector<A_t> keys() const = 0;
-    virtual A_t size() const = 0;
 
     bool can_read(
         std::span<const A_t> subscript, range symbol_range, diagnostic_consumer<diagnostic_op>& diags) const override;
@@ -133,8 +132,6 @@ public:
 
     // K' attribute of the symbol
     A_t count(std::span<const A_t> offset) const override;
-
-    A_t size() const override { return (A_t)data.size(); };
 
     std::vector<A_t> keys() const override
     {
