@@ -104,7 +104,7 @@ macro_param_data_zero_based::macro_param_data_zero_based(std::vector<macro_data_
         return vec;
     }())
 {
-    assert(data_.size() <= std::numeric_limits<A_t>::max());
+    assert(data_.size() - 1 <= std::numeric_limits<A_t>::max());
     value_.append("(");
     for (size_t i = 0; i < data_.size(); ++i)
     {
