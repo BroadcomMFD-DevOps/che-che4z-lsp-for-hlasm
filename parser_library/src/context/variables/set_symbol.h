@@ -148,7 +148,7 @@ private:
         if ((is_scalar && !offset.empty()) || (!is_scalar && offset.size() != 1))
             return nullptr;
 
-        auto tmp_offs = is_scalar ? 0 : offset.front() - 1;
+        auto tmp_offs = is_scalar ? 0 : offset.front();
 
         auto it = data.find(tmp_offs);
 
