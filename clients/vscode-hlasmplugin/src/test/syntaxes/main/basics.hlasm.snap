@@ -394,7 +394,8 @@
 #                                                                       ^ source.hlasm keyword.other.hlasm
 #                                                                        ^^^^^^^^^ source.hlasm
 >INVALID,                                                               -12346578 
-#^^^^^^^^^^^^^^^ source.hlasm invalid.illegal
+#^^^^^^^^ source.hlasm invalid.illegal
+#        ^^^^^^^ source.hlasm
 #               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasm
 #                                                                       ^ source.hlasm keyword.other.hlasm
 #                                                                        ^^^^^^^^ source.hlasm invalid.ignored

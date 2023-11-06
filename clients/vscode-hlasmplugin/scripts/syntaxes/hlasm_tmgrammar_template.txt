@@ -176,8 +176,12 @@
       ]
     },
     "illegalMultilineColumns": {
-      "match": "^${listingDetails}$\\s*(\\S.*)(?<=^${listingDetails}$.{0,15})",
-      "name": "invalid.illegal"
+      "match": "^${listingDetails}$\\s*(\\S(?:.*\\S)?)\\s*(?<=^${listingDetails}$.{0,15})",
+      "captures": {
+        "1": {
+          "name": "invalid.illegal"
+        }
+      }
     },
     "asmArguments": {
       "patterns": [
@@ -308,6 +312,10 @@
           "include": "#illegalMultilineColumns"
         },
         {
+          "match": "^${listingDetails}$.*(?<=^${listingDetails}$.{15})",
+          "comment": "Just to skip the spaces"
+        },
+        {
           "match": "(?<=^${listingDetails}$.*?)(&{2,}|[^&]+)(?<=^${listingDetails}$.{0,71})",
           "name": "string.hlasm"
         },
@@ -372,7 +380,7 @@
     "instruction": {
       "match": "(?<=^${listingDetails}$\\S*)\\s+(\\S+)(?<=^${listingDetails}$.{0,71})",
       "captures": {
-        "1" : {
+        "1": {
           "name": "entity.name.function.hlasm"
         }
       }
@@ -404,15 +412,15 @@
     "continuationSymbol": {
       "match": "\\s*(?<=^${listingDetails}$.{71})(\\S)",
       "captures": {
-        "1" : {
+        "1": {
           "name": "keyword.other.hlasm"
         }
       }
     },
     "sequenceNumbers": {
-      "match": "\\s*.?(?<=^${listingDetails}$.{72})\\s*(\\S.*\\S)\\s*?$",
+      "match": "\\s*.?(?<=^${listingDetails}$.{72})\\s*(\\S(?:.*\\S)?)\\s*?$",
       "captures": {
-        "1" : {
+        "1": {
           "name": "invalid.ignored"
         }
       }

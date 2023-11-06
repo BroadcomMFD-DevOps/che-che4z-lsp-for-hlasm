@@ -203,7 +203,9 @@
 #                                                                                                                          ^^^^^^^ source.hlasmListing invalid.ignored
 #                                                                                                                                 ^^^^ source.hlasmListing
 >                                                 INVALID LINE                                                                       
-#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.illegal
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                  ^^^^^^^^^^^^ source.hlasmListing invalid.illegal
+#                                                              ^^^ source.hlasmListing
 #                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >                                               7          INSTR  T'&VAR                                    XXXXXXXXXXXXX-xxxxxxx    
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
@@ -327,8 +329,8 @@
 #                                                                                                                         ^ source.hlasmListing keyword.other.hlasm
 #                                                                                                                          ^^^^^^^^^^^^ source.hlasmListing
 >                                                                ARIABLE word true false YES NO       '                              
-#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
-#                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing string.hlasm
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing string.hlasm
 #                                                                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >                                              18 LABEL    INSTR 4,'Just  a  random  string:   word 256 (&LBL DSECT), &&V-1234567    
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
@@ -348,8 +350,8 @@
 #                                                                                                                          ^^^^^^^ source.hlasmListing invalid.ignored
 #                                                                                                                                 ^^^^ source.hlasmListing
 >                                                                ARIABLE word true false YES NO        ,STRING            1234567    
-#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
-#                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing string.hlasm
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing string.hlasm
 #                                                                                                                         ^ source.hlasmListing
 #                                                                                                                          ^^^^^^^ source.hlasmListing invalid.ignored
 #                                                                                                                                 ^^^^ source.hlasmListing
@@ -371,8 +373,8 @@
 #                                                                                                                          ^^^^^^^ source.hlasmListing invalid.ignored
 #                                                                                                                                 ^^^^ source.hlasmListing
 >                                                                ARIABLE word true false YES NO       ' REMARK            1234567    
-#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
-#                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing string.hlasm
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing string.hlasm
 #                                                                                                       ^ source.hlasmListing
 #                                                                                                        ^^^^^^ source.hlasmListing comment.hlasm
 #                                                                                                              ^^^^^^^^^^^^ source.hlasmListing
@@ -396,8 +398,8 @@
 #                                                                                                                          ^^^^^^^ source.hlasmListing invalid.ignored
 #                                                                                                                                 ^^^^ source.hlasmListing
 >                                                                ARIABLE word true false YES NO       ',OPERAND           1234567    
-#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
-#                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing string.hlasm
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing string.hlasm
 #                                                                                                       ^ source.hlasmListing
 #                                                                                                        ^^^^^^^ source.hlasmListing punctuation.definition.tag.hlasm
 #                                                                                                               ^^^^^^^^^^^ source.hlasmListing
@@ -421,8 +423,8 @@
 #                                                                                                                          ^^^^^^^ source.hlasmListing invalid.ignored
 #                                                                                                                                 ^^^^ source.hlasmListing
 >                                                                ARIABLE word true false YES NO       ',OPERAND_OPERAND_O-1234567    
-#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
-#                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing string.hlasm
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing string.hlasm
 #                                                                                                       ^ source.hlasmListing
 #                                                                                                        ^^^^^^^^^^^^^^^^^ source.hlasmListing punctuation.definition.tag.hlasm
 #                                                                                                                         ^ source.hlasmListing keyword.other.hlasm
@@ -452,8 +454,8 @@
 #                                                                                                                          ^^^^^^^ source.hlasmListing invalid.ignored
 #                                                                                                                                 ^^^^ source.hlasmListing
 >                                                                ARIABLE word true false YES NO       ',OPERAND_OPERAND_ -1234567    
-#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
-#                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing string.hlasm
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing string.hlasm
 #                                                                                                       ^ source.hlasmListing
 #                                                                                                        ^^^^^^^^^^^^^^^^ source.hlasmListing punctuation.definition.tag.hlasm
 #                                                                                                                        ^ source.hlasmListing
@@ -484,8 +486,8 @@
 #                                                                                                                          ^^^^^^^ source.hlasmListing invalid.ignored
 #                                                                                                                                 ^^^^ source.hlasmListing
 >                                                                ARIABLE word true false YES NO       ',OPERAND_OPERAND_  1234567    
-#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
-#                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing string.hlasm
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing string.hlasm
 #                                                                                                       ^ source.hlasmListing
 #                                                                                                        ^^^^^^^^^^^^^^^^ source.hlasmListing punctuation.definition.tag.hlasm
 #                                                                                                                        ^^ source.hlasmListing
@@ -518,7 +520,8 @@
 #                                                                                                                          ^^^^^^^ source.hlasmListing invalid.ignored
 #                                                                                                                                 ^^^^ source.hlasmListing
 >                                                              ARIABLE word true false YES NO       ',OPERAND_OPERAND_ RR-123456     
-#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.illegal
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                               ^^ source.hlasmListing invalid.illegal
 #                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing string.hlasm
 #                                                                                                     ^ source.hlasmListing
 #                                                                                                      ^^^^^^^^^^^^^^^^ source.hlasmListing punctuation.definition.tag.hlasm
@@ -558,7 +561,8 @@
 #                                                                                                                          ^^^^^^^ source.hlasmListing invalid.ignored
 #                                                                                                                                 ^^^^ source.hlasmListing
 >                                                             ARIABLE word true false YES NO       ',OPERAND_OPERAND_,   -1234567    
-#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.illegal
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                              ^^^ source.hlasmListing invalid.illegal
 #                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing string.hlasm
 #                                                                                                    ^ source.hlasmListing
 #                                                                                                     ^^^^^^^^^^^^^^^^ source.hlasmListing punctuation.definition.tag.hlasm
@@ -599,7 +603,9 @@
 #                                                                                                                          ^^^^^^^ source.hlasmListing invalid.ignored
 #                                                                                                                                 ^^^^ source.hlasmListing
 >                                                           IVLD  a  random  string:   word 256 (&LBL DSECT), &&V        -1234567    
-#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.illegal
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                            ^^^^ source.hlasmListing invalid.illegal
+#                                                                ^ source.hlasmListing
 #                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing string.hlasm
 #                                                                                                 ^^^^ source.hlasmListing variable.other.readwrite.hlasm
 #                                                                                                     ^^^^^^^^^ source.hlasmListing string.hlasm
@@ -609,8 +615,8 @@
 #                                                                                                                          ^^^^^^^ source.hlasmListing invalid.ignored
 #                                                                                                                                 ^^^^ source.hlasmListing
 >                                                                ARIABLE word true false YES NO       ',OPERAND_OPERAND_,-1234567    
-#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
-#                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing string.hlasm
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing string.hlasm
 #                                                                                                       ^ source.hlasmListing
 #                                                                                                        ^^^^^^^^^^^^^^^^ source.hlasmListing punctuation.definition.tag.hlasm
 #                                                                                                                        ^ source.hlasmListing

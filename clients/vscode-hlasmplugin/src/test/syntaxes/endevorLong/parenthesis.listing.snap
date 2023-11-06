@@ -352,7 +352,8 @@
 #                                                                                                                         ^ source.hlasmListing keyword.other.hlasm
 #                                                                                                                          ^^^^^^^^^^^^ source.hlasmListing
 >                                                 (('C' LE '&VAR') AND ('&VAR' LE 'D'))  REMARK                          X1234567    
-#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.illegal
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                  ^^^^^^^^^^^^^^^ source.hlasmListing invalid.illegal
 #                                                                 ^ source.hlasmListing
 #                                                                  ^ source.hlasmListing
 #                                                                   ^^^ source.hlasmListing punctuation.definition.tag.hlasm

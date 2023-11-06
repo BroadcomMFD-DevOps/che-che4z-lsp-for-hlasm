@@ -582,7 +582,9 @@
 #                                                                                                                        ^ source.hlasmListing keyword.other.hlasm
 #                                                                                                                         ^^^^^^^^^^^^ source.hlasmListing
 >                                                 INVALID,                                                               -1234657    
-#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing invalid.illegal
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                 ^^^^^^^^ source.hlasmListing invalid.illegal
+#                                                         ^^^^^^^ source.hlasmListing
 #                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                                                                                        ^ source.hlasmListing keyword.other.hlasm
 #                                                                                                                         ^^^^^^^ source.hlasmListing invalid.ignored
