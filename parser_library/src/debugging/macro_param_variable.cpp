@@ -48,16 +48,18 @@ std::vector<variable_ptr> macro_param_variable::values() const
 {
     std::vector<std::unique_ptr<variable>> vals;
 
+    auto index_range = macro_param_.index_range(index_);
+    if (!index_range || index_range->first > index_range->second)
+        return vals;
+
     std::vector<context::A_t> child_index = index_;
     child_index.push_back(0);
 
-    if (auto index_range = macro_param_.index_range(index_); index_range)
+    for (long long i = index_range->first; i <= index_range->second; ++i)
     {
-        for (long long i = index_range->first; i <= index_range->second; ++i)
-        {
-            child_index.back() = (context::A_t)i;
-            vals.push_back(std::make_unique<macro_param_variable>(macro_param_, child_index));
-        }
+        child_index.back() = (context::A_t)i;
+        vals.push_back(std::make_unique<macro_param_variable>(macro_param_, child_index));
     }
+
     return vals;
 }
