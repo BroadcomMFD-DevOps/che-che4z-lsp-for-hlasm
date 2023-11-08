@@ -137,7 +137,7 @@
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >                                      1 &LABEL   INSTR ('AA'.((2 EQ 2)) SLA 'AAA').SEQ                                              
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
-#                                         ^^^^^^ source.hlasmListing variable.other.readwrite.hlasm
+#                                         ^^^^^^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm
 #                                               ^^^ source.hlasmListing
 #                                                  ^^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                       ^ source.hlasmListing

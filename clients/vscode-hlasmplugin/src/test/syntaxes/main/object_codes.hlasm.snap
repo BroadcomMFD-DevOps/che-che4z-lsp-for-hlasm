@@ -16,7 +16,7 @@
 #^^^^^^^^^ source.hlasm
 #         ^^ source.hlasm entity.name.function.hlasm
 >&LBLNAME LA 0,&A
-#^^^^^^^^ source.hlasm variable.other.readwrite.hlasm
+#^^^^^^^^ source.hlasm support.class.hlasm variable.other.readwrite.hlasm
 #        ^ source.hlasm
 #         ^^ source.hlasm entity.name.function.hlasm
 #           ^ source.hlasm

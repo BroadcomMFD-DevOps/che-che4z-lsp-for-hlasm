@@ -676,11 +676,10 @@
 >                                              11 B&VAR1.&VAR2.INCMPLT                                                               
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                  ^ source.hlasmListing support.class.hlasm
-#                                                   ^^^^^ source.hlasmListing variable.other.readwrite.hlasm
-#                                                        ^ source.hlasmListing keyword.operator.hlasm
-#                                                         ^^^^^ source.hlasmListing variable.other.readwrite.hlasm
-#                                                              ^ source.hlasmListing keyword.operator.hlasm
-#                                                               ^^^^^^^ source.hlasmListing support.class.hlasm
+#                                                   ^^^^^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm
+#                                                        ^ source.hlasmListing support.class.hlasm
+#                                                         ^^^^^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm
+#                                                              ^^^^^^^^ source.hlasmListing support.class.hlasm
 #                                                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >                                              12 LABEL    INSTR OP THIS LINE SHOULD NOT BE AFFECTED                                 
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
@@ -704,9 +703,8 @@
 #                                                                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >                                              14 &VAR.C   INSTR   *-&P                    REMARK                                    
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
-#                                                  ^^^^ source.hlasmListing variable.other.readwrite.hlasm
-#                                                      ^ source.hlasmListing keyword.operator.hlasm
-#                                                       ^ source.hlasmListing support.class.hlasm
+#                                                  ^^^^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm
+#                                                      ^^ source.hlasmListing support.class.hlasm
 #                                                        ^^^ source.hlasmListing
 #                                                           ^^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                                ^^^ source.hlasmListing
@@ -738,7 +736,7 @@
 >                                              17 B&VAR    INSTR OP                                                                  
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                  ^ source.hlasmListing support.class.hlasm
-#                                                   ^^^^ source.hlasmListing variable.other.readwrite.hlasm
+#                                                   ^^^^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm
 #                                                       ^^^^ source.hlasmListing
 #                                                           ^^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                                ^ source.hlasmListing

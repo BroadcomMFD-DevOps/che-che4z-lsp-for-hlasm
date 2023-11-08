@@ -165,7 +165,7 @@
 #                                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >                                      6 &LBLNAME LA 0,&A                                                                            
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
-#                                        ^^^^^^^^ source.hlasmListing variable.other.readwrite.hlasm
+#                                        ^^^^^^^^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm
 #                                                ^ source.hlasmListing
 #                                                 ^^ source.hlasmListing entity.name.function.hlasm
 #                                                   ^ source.hlasmListing

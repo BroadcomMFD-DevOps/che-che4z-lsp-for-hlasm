@@ -522,11 +522,10 @@
 >
 >B&VAR1.&VAR2.INCMPLT
 #^ source.hlasm support.class.hlasm
-# ^^^^^ source.hlasm variable.other.readwrite.hlasm
-#      ^ source.hlasm keyword.operator.hlasm
-#       ^^^^^ source.hlasm variable.other.readwrite.hlasm
-#            ^ source.hlasm keyword.operator.hlasm
-#             ^^^^^^^ source.hlasm support.class.hlasm
+# ^^^^^ source.hlasm support.class.hlasm variable.other.readwrite.hlasm
+#      ^ source.hlasm support.class.hlasm
+#       ^^^^^ source.hlasm support.class.hlasm variable.other.readwrite.hlasm
+#            ^^^^^^^^ source.hlasm support.class.hlasm
 >LABEL    INSTR OP THIS LINE SHOULD NOT BE AFFECTED
 #^^^^^ source.hlasm support.class.hlasm
 #     ^^^^ source.hlasm
@@ -547,9 +546,8 @@
 #                                          ^^^^^^^^ source.hlasm comment.hlasm
 >
 >&VAR.C   INSTR   *-&P                    REMARK                                 
-#^^^^ source.hlasm variable.other.readwrite.hlasm
-#    ^ source.hlasm keyword.operator.hlasm
-#     ^ source.hlasm support.class.hlasm
+#^^^^ source.hlasm support.class.hlasm variable.other.readwrite.hlasm
+#    ^^ source.hlasm support.class.hlasm
 #      ^^^ source.hlasm
 #         ^^^^^ source.hlasm entity.name.function.hlasm
 #              ^^^ source.hlasm
@@ -579,7 +577,7 @@
 >
 >B&VAR    INSTR OP
 #^ source.hlasm support.class.hlasm
-# ^^^^ source.hlasm variable.other.readwrite.hlasm
+# ^^^^ source.hlasm support.class.hlasm variable.other.readwrite.hlasm
 #     ^^^^ source.hlasm
 #         ^^^^^ source.hlasm entity.name.function.hlasm
 #              ^ source.hlasm

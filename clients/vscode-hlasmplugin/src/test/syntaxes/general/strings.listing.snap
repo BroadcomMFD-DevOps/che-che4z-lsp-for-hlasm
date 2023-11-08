@@ -134,7 +134,7 @@
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >                                      1 &VAR1    INSTR 'A'                                                                          
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
-#                                        ^^^^^ source.hlasmListing variable.other.readwrite.hlasm
+#                                        ^^^^^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm
 #                                             ^^^^ source.hlasmListing
 #                                                 ^^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                      ^ source.hlasmListing
@@ -143,7 +143,7 @@
 #                                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >                                      2 &VAR2    INSTR '1'                                                                          
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
-#                                        ^^^^^ source.hlasmListing variable.other.readwrite.hlasm
+#                                        ^^^^^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm
 #                                             ^^^^ source.hlasmListing
 #                                                 ^^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                      ^ source.hlasmListing
@@ -679,7 +679,7 @@
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >                                     32>&__V@R SETA                                                                                 
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
-#                                        ^^^^^^ source.hlasmListing variable.other.readwrite.hlasm
+#                                        ^^^^^^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm
 #                                              ^ source.hlasmListing
 #                                               ^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing

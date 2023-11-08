@@ -227,16 +227,26 @@
 #                                                                        ^^^^^^^^ source.hlasm invalid.ignored
 >
 >&(__V@R_V&R.#) SETA &VAR
-#^^^^^^^^^^^^^^ source.hlasm variable.other.readwrite.hlasm
+#^ source.hlasm support.class.hlasm variable.other.readwrite.hlasm
+# ^ source.hlasm support.class.hlasm variable.other.readwrite.hlasm keyword.operator.hlasm
+#  ^^^^^^^^^ source.hlasm support.class.hlasm variable.other.readwrite.hlasm
+#           ^ source.hlasm support.class.hlasm variable.other.readwrite.hlasm keyword.operator.hlasm
+#            ^ source.hlasm support.class.hlasm variable.other.readwrite.hlasm
+#             ^ source.hlasm support.class.hlasm variable.other.readwrite.hlasm keyword.operator.hlasm
 #              ^ source.hlasm
 #               ^^^^ source.hlasm entity.name.function.hlasm
 #                   ^ source.hlasm
 #                    ^^^^ source.hlasm punctuation.definition.tag.hlasm variable.other.readwrite.hlasm
 >&(__V@R_V&R.#)(&VAR) SETC '&VAR'
-#^^^^^^^^^^^^^^ source.hlasm variable.other.readwrite.hlasm
-#              ^ source.hlasm keyword.operator.hlasm
-#               ^^^^ source.hlasm variable.other.readwrite.hlasm
-#                   ^ source.hlasm keyword.operator.hlasm
+#^ source.hlasm support.class.hlasm variable.other.readwrite.hlasm
+# ^ source.hlasm support.class.hlasm variable.other.readwrite.hlasm keyword.operator.hlasm
+#  ^^^^^^^^^ source.hlasm support.class.hlasm variable.other.readwrite.hlasm
+#           ^ source.hlasm support.class.hlasm variable.other.readwrite.hlasm keyword.operator.hlasm
+#            ^ source.hlasm support.class.hlasm variable.other.readwrite.hlasm
+#             ^ source.hlasm support.class.hlasm variable.other.readwrite.hlasm keyword.operator.hlasm
+#              ^ source.hlasm support.class.hlasm
+#               ^^^^ source.hlasm support.class.hlasm variable.other.readwrite.hlasm
+#                   ^ source.hlasm support.class.hlasm
 #                    ^ source.hlasm
 #                     ^^^^ source.hlasm entity.name.function.hlasm
 #                         ^ source.hlasm
@@ -263,10 +273,15 @@
 #                                            ^^^^^^^^ source.hlasm comment.hlasm
 >
 >&(__V@R_V&R.#)(&VAR) SETC '&VAR
-#^^^^^^^^^^^^^^ source.hlasm variable.other.readwrite.hlasm
-#              ^ source.hlasm keyword.operator.hlasm
-#               ^^^^ source.hlasm variable.other.readwrite.hlasm
-#                   ^ source.hlasm keyword.operator.hlasm
+#^ source.hlasm support.class.hlasm variable.other.readwrite.hlasm
+# ^ source.hlasm support.class.hlasm variable.other.readwrite.hlasm keyword.operator.hlasm
+#  ^^^^^^^^^ source.hlasm support.class.hlasm variable.other.readwrite.hlasm
+#           ^ source.hlasm support.class.hlasm variable.other.readwrite.hlasm keyword.operator.hlasm
+#            ^ source.hlasm support.class.hlasm variable.other.readwrite.hlasm
+#             ^ source.hlasm support.class.hlasm variable.other.readwrite.hlasm keyword.operator.hlasm
+#              ^ source.hlasm support.class.hlasm
+#               ^^^^ source.hlasm support.class.hlasm variable.other.readwrite.hlasm
+#                   ^ source.hlasm support.class.hlasm
 #                    ^ source.hlasm
 #                     ^^^^ source.hlasm entity.name.function.hlasm
 #                         ^ source.hlasm

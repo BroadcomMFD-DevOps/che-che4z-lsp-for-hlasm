@@ -1,12 +1,12 @@
 >&VAR1    INSTR 'A'
-#^^^^^ source.hlasm variable.other.readwrite.hlasm
+#^^^^^ source.hlasm support.class.hlasm variable.other.readwrite.hlasm
 #     ^^^^ source.hlasm
 #         ^^^^^ source.hlasm entity.name.function.hlasm
 #              ^ source.hlasm
 #               ^ source.hlasm string.hlasm
 #                ^^ source.hlasm string.hlasm
 >&VAR2    INSTR '1'
-#^^^^^ source.hlasm variable.other.readwrite.hlasm
+#^^^^^ source.hlasm support.class.hlasm variable.other.readwrite.hlasm
 #     ^^^^ source.hlasm
 #         ^^^^^ source.hlasm entity.name.function.hlasm
 #              ^ source.hlasm

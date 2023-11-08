@@ -377,7 +377,12 @@
 >                                                                                                                                    
 >                                     15 &(__V@R_V&R.#) SETA &VAR                                                                    
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
-#                                        ^^^^^^^^^^^^^^ source.hlasmListing variable.other.readwrite.hlasm
+#                                        ^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm
+#                                         ^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm keyword.operator.hlasm
+#                                          ^^^^^^^^^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm
+#                                                   ^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm keyword.operator.hlasm
+#                                                    ^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm
+#                                                     ^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm keyword.operator.hlasm
 #                                                      ^ source.hlasmListing
 #                                                       ^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                           ^ source.hlasmListing
@@ -385,10 +390,15 @@
 #                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >                                     16 &(__V@R_V&R.#)(&VAR) SETC '&VAR'                                                            
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
-#                                        ^^^^^^^^^^^^^^ source.hlasmListing variable.other.readwrite.hlasm
-#                                                      ^ source.hlasmListing keyword.operator.hlasm
-#                                                       ^^^^ source.hlasmListing variable.other.readwrite.hlasm
-#                                                           ^ source.hlasmListing keyword.operator.hlasm
+#                                        ^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm
+#                                         ^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm keyword.operator.hlasm
+#                                          ^^^^^^^^^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm
+#                                                   ^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm keyword.operator.hlasm
+#                                                    ^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm
+#                                                     ^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm keyword.operator.hlasm
+#                                                      ^ source.hlasmListing support.class.hlasm
+#                                                       ^^^^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm
+#                                                           ^ source.hlasmListing support.class.hlasm
 #                                                            ^ source.hlasmListing
 #                                                             ^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                                 ^ source.hlasmListing
@@ -418,10 +428,15 @@
 #                                                                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >                                     19 &(__V@R_V&R.#)(&VAR) SETC '&VAR                                                             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
-#                                        ^^^^^^^^^^^^^^ source.hlasmListing variable.other.readwrite.hlasm
-#                                                      ^ source.hlasmListing keyword.operator.hlasm
-#                                                       ^^^^ source.hlasmListing variable.other.readwrite.hlasm
-#                                                           ^ source.hlasmListing keyword.operator.hlasm
+#                                        ^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm
+#                                         ^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm keyword.operator.hlasm
+#                                          ^^^^^^^^^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm
+#                                                   ^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm keyword.operator.hlasm
+#                                                    ^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm
+#                                                     ^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm keyword.operator.hlasm
+#                                                      ^ source.hlasmListing support.class.hlasm
+#                                                       ^^^^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm
+#                                                           ^ source.hlasmListing support.class.hlasm
 #                                                            ^ source.hlasmListing
 #                                                             ^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                                 ^ source.hlasmListing
