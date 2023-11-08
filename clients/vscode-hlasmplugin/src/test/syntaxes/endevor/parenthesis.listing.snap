@@ -400,9 +400,9 @@
 #                                                    ^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm keyword.operator.hlasm
 #                                                     ^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm
 #                                                      ^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm keyword.operator.hlasm
-#                                                       ^ source.hlasmListing support.class.hlasm
-#                                                        ^^^^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm
-#                                                            ^ source.hlasmListing support.class.hlasm
+#                                                       ^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm keyword.operator.hlasm
+#                                                        ^^^^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm punctuation.definition.tag.hlasm variable.other.readwrite.hlasm
+#                                                            ^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm keyword.operator.hlasm
 #                                                             ^ source.hlasmListing
 #                                                              ^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                                  ^ source.hlasmListing
@@ -438,9 +438,9 @@
 #                                                    ^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm keyword.operator.hlasm
 #                                                     ^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm
 #                                                      ^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm keyword.operator.hlasm
-#                                                       ^ source.hlasmListing support.class.hlasm
-#                                                        ^^^^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm
-#                                                            ^ source.hlasmListing support.class.hlasm
+#                                                       ^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm keyword.operator.hlasm
+#                                                        ^^^^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm punctuation.definition.tag.hlasm variable.other.readwrite.hlasm
+#                                                            ^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm keyword.operator.hlasm
 #                                                             ^ source.hlasmListing
 #                                                              ^^^^ source.hlasmListing entity.name.function.hlasm
 #                                                                  ^ source.hlasmListing
@@ -448,7 +448,7 @@
 #                                                                    ^^^^ source.hlasmListing variable.other.readwrite.hlasm
 #                                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing string.hlasm
 #                                                                                                                ^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
->                                     20 LABEL    INSTR   OP THIS LINE SHOULD NOT BE AFFECTED                                        
+>                                     20 LABEL    INSTR   OP THIS LINE SHOULD NOT BE AFFECTED                                        
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                         ^^^^^ source.hlasmListing support.class.hlasm
 #                                              ^^^^ source.hlasmListing
@@ -468,6 +468,26 @@
 #                                                                                    ^ source.hlasmListing
 #                                                                                     ^^^^^^^^ source.hlasmListing comment.hlasm
 #                                                                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+>                                     22 &(__V@R_V&R.#)(OP.OP) SETC '&VAR'                                                           
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                         ^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm
+#                                          ^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm keyword.operator.hlasm
+#                                           ^^^^^^^^^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm
+#                                                    ^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm keyword.operator.hlasm
+#                                                     ^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm
+#                                                      ^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm keyword.operator.hlasm
+#                                                       ^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm keyword.operator.hlasm
+#                                                        ^^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm punctuation.definition.tag.hlasm
+#                                                          ^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm punctuation.definition.tag.hlasm keyword.operator.hlasm
+#                                                           ^^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm punctuation.definition.tag.hlasm
+#                                                             ^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm keyword.operator.hlasm
+#                                                              ^ source.hlasmListing
+#                                                               ^^^^ source.hlasmListing entity.name.function.hlasm
+#                                                                   ^ source.hlasmListing
+#                                                                    ^ source.hlasmListing string.hlasm
+#                                                                     ^^^^ source.hlasmListing variable.other.readwrite.hlasm
+#                                                                         ^ source.hlasmListing string.hlasm
+#                                                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >»                                                                                                                                    
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
@@ -539,11 +559,11 @@
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >1234567B allocated to Buffer Pool       Storage required     200K                                                                   
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
->     23 Primary Input Records Read            0 Library Records Read                  0 Work File Reads                             
+>     25 Primary Input Records Read            0 Library Records Read                  0 Work File Reads                             
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
->      0 ASMAOPT Records Read                129 Primary Print Records Written         0 Work File Writes                            
+>      0 ASMAOPT Records Read                130 Primary Print Records Written         0 Work File Writes                            
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
->      0 Object Records Written               30 ADATA Records Written                                                               
+>      0 Object Records Written               32 ADATA Records Written                                                               
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 >Assembly Start Time: 00.11.22 Stop Time: 00.11.22 Processor Time: 00.11.22.3333                                                     
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
