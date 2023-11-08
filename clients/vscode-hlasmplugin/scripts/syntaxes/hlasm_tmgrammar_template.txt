@@ -438,10 +438,6 @@
       "match": "[().]",
       "name": "keyword.operator.hlasm"
     },
-    "ordinarySymbol": {
-      "match": "[A-Za-z@#$_][A-Za-z@#$_0-9]*(?<=^${listingDetails}$.{0,71})",
-      "name": "support.class.hlasm"
-    },
     "asmSpecialStatements": {
       "match": "(?<=[=(),*+\\s])=?\\d*(A|B|C|D|E|F|G|H|P|V|X|Z)(L\\d*)?((?=[=(),*\\s+]|$)(?<=^${listingDetails}$.{0,71}))",
       "name": "punctuation.definition.tag.hlasm"
