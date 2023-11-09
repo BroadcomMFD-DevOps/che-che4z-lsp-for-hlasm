@@ -141,12 +141,14 @@
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                 ^^^^^^^^^ source.hlasmListing
 #                                                          ^^^^^ source.hlasmListing entity.name.function.hlasm
-#                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                         ^^^^^^^^^^^ source.hlasmListing invalid.ignored
 >                                               3          MACRO                                                                     
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                 ^^^^^^^^^ source.hlasmListing
 #                                                          ^^^^^ source.hlasmListing entity.name.function.hlasm
-#                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                         ^^^^^^^^^^^ source.hlasmListing invalid.ignored
 >                                               4          MAC   &A,&LBLNAME                                                         
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                 ^^^^^^^^^ source.hlasmListing
@@ -155,12 +157,14 @@
 #                                                                ^^ source.hlasmListing punctuation.definition.tag.hlasm variable.other.readwrite.hlasm
 #                                                                  ^ source.hlasmListing
 #                                                                   ^^^^^^^^ source.hlasmListing punctuation.definition.tag.hlasm variable.other.readwrite.hlasm
-#                                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                         ^^^^^^^^^^^ source.hlasmListing invalid.ignored
 >                                               5          PR                                                                        
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                 ^^^^^^^^^ source.hlasmListing
 #                                                          ^^ source.hlasmListing entity.name.function.hlasm
-#                                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                         ^^^^^^^^^^^ source.hlasmListing invalid.ignored
 >                                               6 &LBLNAME LA 0,&A                                                                   
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                 ^^^^^^^^ source.hlasmListing support.class.hlasm variable.other.readwrite.hlasm
@@ -170,7 +174,8 @@
 #                                                             ^ source.hlasmListing punctuation.definition.tag.hlasm constant.numeric.hlasm
 #                                                              ^ source.hlasmListing
 #                                                               ^^ source.hlasmListing punctuation.definition.tag.hlasm variable.other.readwrite.hlasm
-#                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                         ^^^^^^^^^^^ source.hlasmListing invalid.ignored
 >                                               7          BPRP  0,&LBLNAME,&LBLNAME                                                 
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                 ^^^^^^^^^ source.hlasmListing
@@ -181,12 +186,14 @@
 #                                                                  ^^^^^^^^ source.hlasmListing punctuation.definition.tag.hlasm variable.other.readwrite.hlasm
 #                                                                          ^ source.hlasmListing
 #                                                                           ^^^^^^^^ source.hlasmListing punctuation.definition.tag.hlasm variable.other.readwrite.hlasm
-#                                                                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                         ^^^^^^^^^^^ source.hlasmListing invalid.ignored
 >                                               8          MEND                                                                      
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                 ^^^^^^^^^ source.hlasmListing
 #                                                          ^^^^ source.hlasmListing entity.name.function.hlasm
-#                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                         ^^^^^^^^^^^ source.hlasmListing invalid.ignored
 >                                              10          MAC 1,LBL1                                                                
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                 ^^^^^^^^^ source.hlasmListing
@@ -195,7 +202,8 @@
 #                                                              ^ source.hlasmListing punctuation.definition.tag.hlasm constant.numeric.hlasm
 #                                                               ^ source.hlasmListing
 #                                                                ^^^^ source.hlasmListing punctuation.definition.tag.hlasm
-#                                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                         ^^^^^^^^^^^ source.hlasmListing invalid.ignored
 >00000000 0101                                 11+         PR                                                             01-00000005
 #^^^^^^^^^ source.hlasmListing
 #         ^^ source.hlasmListing entity.name.function.hlasm
@@ -245,7 +253,8 @@
 #                                                              ^ source.hlasmListing punctuation.definition.tag.hlasm constant.numeric.hlasm
 #                                                               ^ source.hlasmListing
 #                                                                ^^^^ source.hlasmListing punctuation.definition.tag.hlasm
-#                                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                         ^^^^^^^^^^^ source.hlasmListing invalid.ignored
 >0000000C 0101                                 15+         PR                                                             01-00000005
 #^^^^^^^^^ source.hlasmListing
 #         ^^ source.hlasmListing entity.name.function.hlasm
@@ -295,7 +304,8 @@
 #                                                              ^ source.hlasmListing punctuation.definition.tag.hlasm constant.numeric.hlasm
 #                                                               ^ source.hlasmListing
 #                                                                ^^^^ source.hlasmListing punctuation.definition.tag.hlasm
-#                                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                         ^^^^^^^^^^^ source.hlasmListing invalid.ignored
 >00000018 0101                                 19+         PR                                                             01-00000005
 #^^^^^^^^^ source.hlasmListing
 #         ^^ source.hlasmListing entity.name.function.hlasm
@@ -345,7 +355,8 @@
 #                                                              ^ source.hlasmListing punctuation.definition.tag.hlasm constant.numeric.hlasm
 #                                                               ^ source.hlasmListing
 #                                                                ^^^^ source.hlasmListing punctuation.definition.tag.hlasm
-#                                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                         ^^^^^^^^^^^ source.hlasmListing invalid.ignored
 >00000024 0101                                 23+         PR                                                             01-00000005
 #^^^^^^^^^ source.hlasmListing
 #         ^^ source.hlasmListing entity.name.function.hlasm
@@ -395,7 +406,8 @@
 #                                                              ^ source.hlasmListing punctuation.definition.tag.hlasm constant.numeric.hlasm
 #                                                               ^ source.hlasmListing
 #                                                                ^^^^ source.hlasmListing punctuation.definition.tag.hlasm
-#                                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                         ^^^^^^^^^^^ source.hlasmListing invalid.ignored
 >00000030 0101                                 27+         PR                                                             01-00000005
 #^^^^^^^^^ source.hlasmListing
 #         ^^ source.hlasmListing entity.name.function.hlasm
@@ -441,7 +453,8 @@
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
 #                                                 ^^^^^^^^^ source.hlasmListing
 #                                                          ^^^ source.hlasmListing entity.name.function.hlasm
-#                                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing
+#                                                                                                                         ^^^^^^^^^^^ source.hlasmListing invalid.ignored
 >                                                                                                                                    
 >                               Ordinary Symbol and Literal Cross Reference                                     Page    5            
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasmListing

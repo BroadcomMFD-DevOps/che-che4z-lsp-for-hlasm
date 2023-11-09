@@ -12,7 +12,8 @@
 #            ^^^ source.hlasm punctuation.definition.tag.hlasm
 #               ^ source.hlasm
 #                ^^^ source.hlasm punctuation.definition.tag.hlasm
-#                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasm
+#                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasm
+#                                                                        ^^^^^^^^ source.hlasm invalid.ignored
 >LABEL INSTR OP1,OP2
 #^^^^^ source.hlasm support.class.hlasm
 #     ^ source.hlasm
@@ -392,14 +393,13 @@
 #                       ^^^^^^^ source.hlasm comment.hlasm
 #                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasm
 #                                                                       ^ source.hlasm keyword.other.hlasm
-#                                                                        ^^^^^^^^^ source.hlasm
+#                                                                        ^^^^^^^^ source.hlasm invalid.ignored
 >INVALID,                                                               -12346578 
 #^^^^^^^^ source.hlasm invalid.illegal
 #        ^^^^^^^ source.hlasm
 #               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.hlasm
 #                                                                       ^ source.hlasm keyword.other.hlasm
-#                                                                        ^^^^^^^^ source.hlasm invalid.ignored
-#                                                                                ^ source.hlasm
+#                                                                        ^^^^^^^^^ source.hlasm invalid.ignored
 >               REMARKS                                                  12345678
 #^^^^^^^^^^^^^^^ source.hlasm
 #               ^^^^^^^ source.hlasm comment.hlasm

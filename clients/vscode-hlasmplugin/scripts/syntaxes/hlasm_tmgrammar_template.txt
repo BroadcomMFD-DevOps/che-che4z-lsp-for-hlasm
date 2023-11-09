@@ -451,7 +451,7 @@
       }
     },
     "sequenceNumbers": {
-      "match": "\\s*.?(?<=^${listingDetails}$.{72})\\s*(\\S(?:.*\\S)?)\\s*?$",
+      "match": "\\s*.?(?<=^${listingDetails}$.{72})(.+)$",
       "captures": {
         "1": {
           "name": "invalid.ignored"
