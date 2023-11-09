@@ -412,7 +412,7 @@
       "name": "constant.numeric.hlasm"
     },
     "variable": {
-      "match": "(?:(?:&[A-Za-z@#$_][A-Za-z@#$_0-9]*)|(&[(].*?[)])([(].*?[)])?)(?<=^${listingDetails}$.{0,71})",
+      "match": "&(?:[A-Za-z@#$_][A-Za-z@#$_0-9]*|([(].*?[)])([(].*?[)])?)(?<=^${listingDetails}$.{0,71})",
       "name": "variable.other.readwrite.hlasm",
       "captures": {
         "1": {
