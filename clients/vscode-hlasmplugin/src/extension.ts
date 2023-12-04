@@ -164,7 +164,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<HlasmE
         },
     };
 
-    handleE4EIntegration(api, context.subscriptions);
+    handleE4EIntegration(api, context.subscriptions, hlasmpluginClient.outputChannel);
 
     return api;
 }
