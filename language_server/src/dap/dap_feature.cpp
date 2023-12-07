@@ -125,7 +125,8 @@ void dap_feature::on_initialize(const request_id& requested_seq, const nlohmann:
 
     line_1_based_ = args.at("linesStartAt1").get<bool>() ? 1 : 0;
     column_1_based_ = args.at("columnsStartAt1").get<bool>() ? 1 : 0;
-    client_path_format_ = args.at("pathFormat").get<std::string>() == "path" ? path_format::PATH : path_format::URI;
+    client_path_format_ =
+        args.at("pathFormat").get<std::string_view>() == "path" ? path_format::PATH : path_format::URI;
 
     debugger.emplace();
 
