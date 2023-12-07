@@ -61,7 +61,7 @@ nlohmann::json feature_workspace_folders::register_capabilities()
 void feature_workspace_folders::initialize_feature(const nlohmann::json& initialize_params)
 {
     bool ws_folders_support = false;
-    auto capabs = initialize_params["capabilities"];
+    auto capabs = initialize_params.at("capabilities");
     auto ws = capabs.find("workspace");
     if (ws != capabs.end())
     {
@@ -102,8 +102,8 @@ void feature_workspace_folders::initialized()
 
 void feature_workspace_folders::on_did_change_workspace_folders(const nlohmann::json& params)
 {
-    const auto& added = params["event"]["added"];
-    const auto& removed = params["event"]["removed"];
+    const auto& added = params.at("event").at("added");
+    const auto& removed = params.at("event").at("removed");
 
     remove_workspaces(removed);
     add_workspaces(added);
@@ -113,8 +113,8 @@ void feature_workspace_folders::add_workspaces(const nlohmann::json& added)
 {
     for (auto& it : added)
     {
-        const std::string& name = it["name"].get<std::string>();
-        std::string uri = it["uri"].get<std::string>();
+        const std::string& name = it.at("name").get<std::string>();
+        std::string uri = it.at("uri").get<std::string>();
 
         add_workspace(name, uri);
     }
@@ -123,7 +123,7 @@ void feature_workspace_folders::remove_workspaces(const nlohmann::json& removed)
 {
     for (auto ws : removed)
     {
-        std::string uri = ws["uri"].get<std::string>();
+        std::string uri = ws.at("uri").get<std::string>();
 
         ws_mngr_.remove_workspace(uri.c_str());
     }
