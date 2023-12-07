@@ -33,7 +33,7 @@ nlohmann::adl_serializer<hlasm_plugin::language_server::request_id>::from_json(c
     else if (j.is_string())
         return hlasm_plugin::language_server::request_id(j.get<std::string>());
     else
-        throw nlohmann::json::other_error::create(501, "Request id must be either integer or string", j);
+        throw nlohmann::json::other_error::create(501, "Request id must be either integer or string", &j);
 }
 
 namespace hlasm_plugin::language_server {
