@@ -492,6 +492,9 @@
           "patterns": [
             {
               "include": "#${ignoredHandling}$"
+            },
+            {
+              "include": "#ignoredSequenceNumbers"
             }
           ]
         }
@@ -499,7 +502,7 @@
     },
     "listingSequenceNumbers": {
       "match": "\\d\\d-[$#@A-Z][$#@A-Z0-9]*",
-      "name": "invalid.ignored"
+      "name": "invalid.ignored emphasis"
     },
     "ignoredSequenceNumbers": {
       "match": ".*",
@@ -528,8 +531,8 @@
       }
     },
     "listingSyntaxExpansion": {
-      "match": "[=+-](?<=^${listingDetails}$)",
-      "name": "invalid.ignored"
+      "match": "\\d*[=+-](?<=^${listingDetails}$)",
+      "name": "entity.other.attribute-name emphasis"
     },
     "objectCode": {
       "patterns": [
