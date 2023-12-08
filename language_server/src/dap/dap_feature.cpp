@@ -149,7 +149,7 @@ void dap_feature::on_launch(const request_id& request_seq, const nlohmann::json&
         return;
 
     // wait for configurationDone?
-    std::string program_path = server_conformant_path(args.at("program").get<std::string_view>(), client_path_format_);
+    auto program_path = server_conformant_path(args.at("program").get<std::string_view>(), client_path_format_);
     bool stop_on_entry = args.at("stopOnEntry").get<bool>();
     debugger->set_event_consumer(this);
 
@@ -173,7 +173,7 @@ void dap_feature::on_launch(const request_id& request_seq, const nlohmann::json&
         }
     };
 
-    debugger->launch(program_path.c_str(),
+    debugger->launch(program_path,
         dc_provider,
         stop_on_entry,
         parser_library::make_workspace_manager_response(launch_handler { request_seq, response_ }).first);
