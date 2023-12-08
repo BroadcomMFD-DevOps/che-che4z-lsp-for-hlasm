@@ -121,7 +121,7 @@
           "include": "#illegalMultilineColumns"
         },
         {
-          "match": "^(${listingDetails}$)\\s{15}",
+          "match": "^(${listingDetails}$\\s{15})",
           "comment": "Just to get rid of the spaces",
           "captures": {
             "1": {
@@ -414,7 +414,7 @@
     "remark": {
       "patterns": [
         {
-          "match": "^(${listingDetails}$)\\s{15}(.*)(?<=^${listingDetails}$.{0,71})",
+          "match": "^(${listingDetails}$\\s{15})(.*)(?<=^${listingDetails}$.{0,71})",
           "captures": {
             "1": {
               "patterns": [
