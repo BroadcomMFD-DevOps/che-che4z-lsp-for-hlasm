@@ -534,7 +534,8 @@ void lsp_context::add_macro(macro_info_ptr macro_i, text_data_view text_data)
     if (macro_i->external)
         add_file(file_info(macro_i->macro_definition, std::move(text_data)));
 
-    m_macros[macro_i->macro_definition.get()] = macro_i;
+    auto [_, inserted] = m_macros.try_emplace(macro_i->macro_definition.get(), std::move(macro_i));
+    assert(inserted);
 }
 
 void lsp_context::add_opencode(
