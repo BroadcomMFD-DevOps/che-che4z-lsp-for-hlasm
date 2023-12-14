@@ -876,7 +876,7 @@ std::pair<const macro_invocation*, bool> hlasm_context::enter_macro(
         macro_def->call(std::move(label_param_data), std::move(params), id_storage::well_known::SYSLIST);
     auto* const result = invo.get();
 
-    auto& new_scope = scope_stack_.emplace_back(std::move(invo), macro_def);
+    auto& new_scope = scope_stack_.emplace_back(std::move(invo));
     add_system_vars_to_scope(new_scope);
     add_global_system_vars(new_scope);
 
