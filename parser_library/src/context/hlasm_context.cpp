@@ -26,7 +26,10 @@
 #include "lexing/tools.h"
 #include "ordinary_assembly/location_counter.h"
 #include "using.h"
+#include "utils/factory.h"
 #include "utils/time.h"
+#include "variables/set_symbol.h"
+#include "variables/variable.h"
 
 namespace hlasm_plugin::parser_library::context {
 
@@ -944,6 +947,43 @@ void hlasm_context::enter_copy_member(id_index member_name)
 const hlasm_context::copy_member_storage& hlasm_context::copy_members() { return copy_members_; }
 
 void hlasm_context::leave_copy_member() { source_stack_.back().copy_stack.pop_back(); }
+
+template<typename T>
+set_symbol_base* hlasm_context::create_global_variable(id_index id, bool is_scalar)
+{
+    auto* scope = curr_scope();
+
+    if (auto var = scope->variables.find(id); var != scope->variables.end())
+        return var->second->access_set_symbol<T>();
+
+    auto [it, _] = globals_.try_emplace(id, utils::factory([id, is_scalar]() -> std::shared_ptr<variable_symbol> {
+        return std::make_shared<set_symbol<T>>(id, is_scalar, true);
+    }));
+
+    auto* base = it->second->access_set_symbol_base();
+    auto* var = base ? base->template access_set_symbol<T>() : nullptr;
+    if (var)
+        scope->variables.try_emplace(id, std::shared_ptr<set_symbol_base>(it->second, base));
+
+    return var;
+}
+
+template set_symbol_base* hlasm_context::create_global_variable<A_t>(id_index id, bool is_scalar);
+template set_symbol_base* hlasm_context::create_global_variable<B_t>(id_index id, bool is_scalar);
+template set_symbol_base* hlasm_context::create_global_variable<C_t>(id_index id, bool is_scalar);
+
+template<typename T>
+set_symbol_base* hlasm_context::create_local_variable(id_index id, bool is_scalar)
+{
+    const utils::factory new_var([id, is_scalar]() -> std::shared_ptr<set_symbol_base> {
+        return std::make_shared<set_symbol<T>>(id, is_scalar, false);
+    });
+    return curr_scope()->variables.try_emplace(id, new_var).first->second->template access_set_symbol<T>();
+}
+
+template set_symbol_base* hlasm_context::create_local_variable<A_t>(id_index id, bool is_scalar);
+template set_symbol_base* hlasm_context::create_local_variable<B_t>(id_index id, bool is_scalar);
+template set_symbol_base* hlasm_context::create_local_variable<C_t>(id_index id, bool is_scalar);
 
 void hlasm_context::apply_source_snapshot(source_snapshot snapshot)
 {
