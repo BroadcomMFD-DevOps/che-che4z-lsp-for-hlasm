@@ -75,7 +75,7 @@ A_t macro_param_base::number(std::span<const A_t> offset) const
     {
         tmp = tmp->get_ith(idx);
     }
-    return tmp->number;
+    return tmp->number();
 }
 
 A_t macro_param_base::count(std::span<const A_t> offset) const

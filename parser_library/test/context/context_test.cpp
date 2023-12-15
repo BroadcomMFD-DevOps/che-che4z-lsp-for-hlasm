@@ -19,6 +19,7 @@
 #include "../common_testing.h"
 #include "analyzer.h"
 #include "context/hlasm_context.h"
+#include "context/variables/set_symbol.h"
 #include "context/variables/system_variable.h"
 
 // tests for hlasm_ctx class:
@@ -101,7 +102,7 @@ TEST(context, create_global_var_different_types)
     EXPECT_EQ(glob_a, ctx.globals().find(idx)->second.get());
 }
 
-TEST(context, find_global_system_var)
+TEST(context, find_system_var)
 {
     hlasm_context ctx;
 
@@ -114,7 +115,7 @@ TEST(context, find_global_system_var)
 
 
     EXPECT_TRUE(scope_var_ptr);
-    EXPECT_NE(ctx.globals().find(idx.value()), ctx.globals().end());
+    EXPECT_EQ(ctx.globals().find(idx.value()), ctx.globals().end());
 }
 
 TEST(context, create_local_var)

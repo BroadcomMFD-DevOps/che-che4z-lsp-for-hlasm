@@ -51,7 +51,7 @@ const macro_param_data_component* system_variable::get_data(std::span<const A_t>
 A_t system_variable::number(std::span<const A_t> offset) const
 {
     if (offset.empty())
-        return data_->number - 1;
+        return data_->number() - 1;
     else
         return macro_param_base::number(offset);
 }
