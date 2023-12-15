@@ -263,7 +263,7 @@ void hlasm_context::add_global_system_variables(sysvar_map& sysvars)
 }
 void hlasm_context::add_local_system_variables(sysvar_map& sysvars, size_t skip_last)
 {
-    struct
+    struct view_t
     {
         hlasm_context& ctx;
         size_t skip;
@@ -322,9 +322,9 @@ void hlasm_context::add_local_system_variables(sysvar_map& sysvars, size_t skip_
 
     struct sysmac_data final : public macro_param_data_component
     {
-        decltype(view) view;
+        view_t view;
 
-        sysmac_data(decltype(view) view)
+        sysmac_data(view_t view)
             : macro_param_data_component(0)
             , view(view)
         {}
