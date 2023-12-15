@@ -197,7 +197,10 @@ std::vector<macro_data_ptr>& hlasm_context::ensure_dynamic_ptrs_count()
         if (i == 0)
             dp.emplace_back(create_dynamic_var([]() { return std::string("OPEN CODE"); }));
         else
-            dp.emplace_back(create_dynamic_var([this, i]() { return scope_stack_[i].this_macro->id.to_string(); }));
+            dp.emplace_back(create_dynamic_var([this, i]() {
+                assert(i < scope_stack_.size());
+                return scope_stack_[i].this_macro->id.to_string();
+            }));
     }
     return dp;
 }
