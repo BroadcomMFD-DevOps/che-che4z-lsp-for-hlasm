@@ -164,7 +164,7 @@ TEST(context_set_vars, set_scalar)
 
     auto idx = ctx.ids().add(std::string_view("var"));
 
-    set_symbol<int> var(idx, true, false);
+    set_symbol<int> var(idx, true);
 
     EXPECT_EQ(var.get_value(1), 0);
 
@@ -177,7 +177,7 @@ TEST(context_set_vars, set_scalar)
     EXPECT_EQ(var.get_value(1), 0);
 
 
-    set_symbol<std::string> str_var(idx, true, false);
+    set_symbol<std::string> str_var(idx, true);
 
     EXPECT_EQ(str_var.get_value(), "");
     EXPECT_EQ(str_var.get_value(1), "");
@@ -190,7 +190,7 @@ TEST(context_set_vars, set_non_scalar)
 
     auto idx = ctx.ids().add(std::string_view("var"));
 
-    set_symbol<std::string> var(idx, false, false);
+    set_symbol<std::string> var(idx, false);
 
     EXPECT_EQ(var.get_value(), "");
 

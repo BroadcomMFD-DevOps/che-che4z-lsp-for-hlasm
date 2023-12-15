@@ -385,9 +385,10 @@ public:
                 scope_vars.push_back(std::make_unique<macro_param_variable>(*value, std::vector<context::A_t> {}));
             }
 
-        for (const auto& [_, value] : proc_stack_[frame_id].scope.variables)
+        for (const auto& [_, value_type] : proc_stack_[frame_id].scope.variables)
         {
-            if (value->is_global)
+            const auto& [value, global] = value_type;
+            if (global)
                 globals.push_back(std::make_unique<set_symbol_variable>(*value));
             else
                 scope_vars.push_back(std::make_unique<set_symbol_variable>(*value));
@@ -396,11 +397,8 @@ public:
         last_system_variables_ = ctx_->get_system_variables(proc_stack_[frame_id].scope);
         for (const auto& [_, value_type] : last_system_variables_)
         {
-            const auto& [value, macro_only] = value_type;
-            if (is_macro < macro_only)
-                continue;
-
-            if (value->is_global)
+            const auto& [value, global] = value_type;
+            if (global)
                 globals.push_back(std::make_unique<macro_param_variable>(*value, std::vector<context::A_t> {}));
             else
                 scope_vars.push_back(std::make_unique<macro_param_variable>(*value, std::vector<context::A_t> {}));

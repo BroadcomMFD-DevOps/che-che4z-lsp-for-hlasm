@@ -130,13 +130,13 @@ macro_data_ptr create_macro_data(std::unique_ptr<T> value)
 
 template<typename SYSTEM_VARIABLE_TYPE = system_variable, typename DATA>
 std::pair<id_index, std::pair<std::shared_ptr<system_variable>, bool>> create_system_variable(
-    id_index id, DATA mac_data, bool is_global, bool macro_only)
+    id_index id, DATA mac_data, bool is_global)
 {
     return {
         id,
         {
-            std::make_shared<SYSTEM_VARIABLE_TYPE>(id, create_macro_data(std::move(mac_data)), is_global),
-            macro_only,
+            std::make_shared<SYSTEM_VARIABLE_TYPE>(id, create_macro_data(std::move(mac_data))),
+            is_global,
         },
     };
 }
@@ -233,34 +233,33 @@ void hlasm_context::add_global_system_variables(sysvar_map& sysvars)
     // Available without macro scope
     auto [datc_val, date_val, systime] = time_sysvars(scope_stack_.front().time);
 
-    sysvars.insert(create_system_variable(id_index("SYSDATC"), std::move(datc_val), true, false));
-    sysvars.insert(create_system_variable(id_index("SYSDATE"), std::move(date_val), true, false));
+    sysvars.insert(create_system_variable(id_index("SYSDATC"), std::move(datc_val), true));
+    sysvars.insert(create_system_variable(id_index("SYSDATE"), std::move(date_val), true));
 
-    sysvars.insert(create_system_variable(id_index("SYSTIME"), std::move(systime), true, false));
+    sysvars.insert(create_system_variable(id_index("SYSTIME"), std::move(systime), true));
+
+    sysvars.insert(create_system_variable(id_index("SYSOPT_RENT"), std::to_string(asm_options_.sysopt_rent), true));
 
     sysvars.insert(
-        create_system_variable(id_index("SYSOPT_RENT"), std::to_string(asm_options_.sysopt_rent), true, false));
+        create_system_variable(id_index("SYSOPT_XOBJECT"), std::to_string(asm_options_.sysopt_xobject), true));
 
-    sysvars.insert(
-        create_system_variable(id_index("SYSOPT_XOBJECT"), std::to_string(asm_options_.sysopt_xobject), true, false));
-
-    sysvars.insert(create_system_variable(id_index("SYSPARM"), asm_options_.sysparm, true, false));
+    sysvars.insert(create_system_variable(id_index("SYSPARM"), asm_options_.sysparm, true));
 
     sysvars.insert(create_system_variable(
-        id_index("SYSSTMT"), std::make_unique<sysstmt_macro_param_data>(metrics, scope_stack_), true, false));
-    sysvars.insert(create_system_variable(id_index("SYSTEM_ID"), asm_options_.system_id, true, false));
+        id_index("SYSSTMT"), std::make_unique<sysstmt_macro_param_data>(metrics, scope_stack_), true));
+    sysvars.insert(create_system_variable(id_index("SYSTEM_ID"), asm_options_.system_id, true));
 
     static constexpr const auto emulated_hlasm_sysver = "1.6.0";
-    sysvars.insert(create_system_variable(id_index("SYSVER"), emulated_hlasm_sysver, true, false));
+    sysvars.insert(create_system_variable(id_index("SYSVER"), emulated_hlasm_sysver, true));
 
     static constexpr const auto emulated_asm_name = "HIGH LEVEL ASSEMBLER";
-    sysvars.insert(create_system_variable(id_index("SYSASM"), emulated_asm_name, true, false));
+    sysvars.insert(create_system_variable(id_index("SYSASM"), emulated_asm_name, true));
 
     sysvars.insert(create_system_variable(
-        id_index("SYSM_SEV"), std::make_unique<integral_macro_param_data<unsigned, 3>>(mnote_last_max), true, false));
+        id_index("SYSM_SEV"), std::make_unique<integral_macro_param_data<unsigned, 3>>(mnote_last_max), true));
 
     sysvars.insert(create_system_variable(
-        id_index("SYSM_HSEV"), std::make_unique<integral_macro_param_data<unsigned, 3>>(mnote_max), true, false));
+        id_index("SYSM_HSEV"), std::make_unique<integral_macro_param_data<unsigned, 3>>(mnote_max), true));
 }
 void hlasm_context::add_local_system_variables(sysvar_map& sysvars, size_t skip_last)
 {
@@ -284,13 +283,11 @@ void hlasm_context::add_local_system_variables(sysvar_map& sysvars, size_t skip_
                 return view.top().loctr->owner.name.to_string();
             return std::string();
         }),
-        false,
-        true));
+        false));
 
     sysvars.insert(create_system_variable(id_index("SYSNDX"),
         create_dynamic_var([view]() { return left_pad(std::to_string(view.top().sysndx), 4, '0'); }),
-        false,
-        true));
+        false));
 
     sysvars.insert(create_system_variable(id_index("SYSSTYP"),
         create_dynamic_var([view]() -> std::string {
@@ -310,8 +307,7 @@ void hlasm_context::add_local_system_variables(sysvar_map& sysvars, size_t skip_
                     return "";
             };
         }),
-        false,
-        true));
+        false));
 
     sysvars.insert(create_system_variable(id_index("SYSLOC"),
         create_dynamic_var([view]() {
@@ -319,11 +315,10 @@ void hlasm_context::add_local_system_variables(sysvar_map& sysvars, size_t skip_
                 return view.top().loctr->name.to_string();
             return std::string();
         }),
-        false,
-        true));
+        false));
 
     sysvars.insert(create_system_variable(
-        id_index("SYSNEST"), create_dynamic_var([view]() { return std::to_string(view.size() - 1); }), false, true));
+        id_index("SYSNEST"), create_dynamic_var([view]() { return std::to_string(view.size() - 1); }), false));
 
     struct sysmac_data final : public macro_param_data_component
     {
@@ -371,16 +366,16 @@ void hlasm_context::add_local_system_variables(sysvar_map& sysvars, size_t skip_
         }
     };
 
-    sysvars.insert(create_system_variable<system_variable_sysmac>(
-        id_index("SYSMAC"), std::make_unique<sysmac_data>(view), false, true));
+    sysvars.insert(
+        create_system_variable<system_variable_sysmac>(id_index("SYSMAC"), std::make_unique<sysmac_data>(view), false));
 
 
-    sysvars.insert(create_system_variable(id_index("SYSIN_DSN"), asm_options_.sysin_dsn, false, true));
+    sysvars.insert(create_system_variable(id_index("SYSIN_DSN"), asm_options_.sysin_dsn, false));
 
-    sysvars.insert(create_system_variable(id_index("SYSIN_MEMBER"), asm_options_.sysin_member, false, true));
+    sysvars.insert(create_system_variable(id_index("SYSIN_MEMBER"), asm_options_.sysin_member, false));
 
     sysvars.insert(create_system_variable(
-        id_index("SYSCLOCK"), create_dynamic_var([view]() { return view.top().time.to_string(); }), false, true));
+        id_index("SYSCLOCK"), create_dynamic_var([view]() { return view.top().time.to_string(); }), false));
 }
 
 hlasm_context::hlasm_context(
@@ -682,9 +677,9 @@ variable_symbol* hlasm_context::get_var_sym(id_index name) const
 {
     const auto* scope = curr_scope();
     if (auto tmp = scope->variables.find(name); tmp != scope->variables.end())
-        return tmp->second.get();
+        return tmp->second.first.get();
 
-    if (auto s = system_variables.find(name); s != system_variables.end() && s->second.second <= is_in_macro())
+    if (auto s = system_variables.find(name); s != system_variables.end() && (is_in_macro() || s->second.second))
         return s->second.first.get();
 
     if (scope->is_in_macro())
@@ -990,16 +985,16 @@ set_symbol_base* hlasm_context::create_global_variable(id_index id, bool is_scal
     auto* scope = curr_scope();
 
     if (auto var = scope->variables.find(id); var != scope->variables.end())
-        return var->second->access_set_symbol<T>();
+        return var->second.first->access_set_symbol<T>();
 
-    auto [it, _] = globals_.try_emplace(id, utils::factory([id, is_scalar]() -> std::shared_ptr<variable_symbol> {
-        return std::make_shared<set_symbol<T>>(id, is_scalar, true);
+    auto [it, _] = globals_.try_emplace(id, utils::factory([id, is_scalar]() {
+        return std::shared_ptr<variable_symbol>(std::make_shared<set_symbol<T>>(id, is_scalar));
     }));
 
     auto* base = it->second->access_set_symbol_base();
     auto* var = base ? base->template access_set_symbol<T>() : nullptr;
     if (var)
-        scope->variables.try_emplace(id, std::shared_ptr<set_symbol_base>(it->second, base));
+        scope->variables.try_emplace(id, std::shared_ptr<set_symbol_base>(it->second, base), true);
 
     return var;
 }
@@ -1012,9 +1007,9 @@ template<typename T>
 set_symbol_base* hlasm_context::create_local_variable(id_index id, bool is_scalar)
 {
     const utils::factory new_var([id, is_scalar]() -> std::shared_ptr<set_symbol_base> {
-        return std::make_shared<set_symbol<T>>(id, is_scalar, false);
+        return std::make_shared<set_symbol<T>>(id, is_scalar);
     });
-    return curr_scope()->variables.try_emplace(id, new_var).first->second->template access_set_symbol<T>();
+    return curr_scope()->variables.try_emplace(id, new_var, false).first->second.first->template access_set_symbol<T>();
 }
 
 template set_symbol_base* hlasm_context::create_local_variable<A_t>(id_index id, bool is_scalar);

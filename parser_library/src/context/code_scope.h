@@ -26,7 +26,7 @@ class set_symbol_base;
 // contains locally valid set symbols, sequence symbols and pointer to macro class (if code is in any)
 struct code_scope
 {
-    using set_sym_storage = std::unordered_map<id_index, std::shared_ptr<set_symbol_base>>;
+    using set_sym_storage = std::unordered_map<id_index, std::pair<std::shared_ptr<set_symbol_base>, bool>>;
 
     // local variables of scope
     set_sym_storage variables;

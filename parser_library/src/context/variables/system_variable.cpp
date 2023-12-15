@@ -24,8 +24,8 @@
 using namespace hlasm_plugin::parser_library::context;
 
 
-system_variable::system_variable(id_index name, macro_data_ptr value, bool is_global)
-    : macro_param_base(macro_param_type::SYSTEM_TYPE, name, is_global)
+system_variable::system_variable(id_index name, macro_data_ptr value)
+    : macro_param_base(macro_param_type::SYSTEM_TYPE, name)
     , data_(std::move(value))
 {}
 
