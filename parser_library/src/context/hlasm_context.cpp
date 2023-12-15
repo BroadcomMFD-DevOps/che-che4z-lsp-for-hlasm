@@ -105,18 +105,6 @@ public:
         , scope_stack(scope_stack) {};
 };
 
-template</*std::integral*/ typename T, size_t padding>
-class integral_macro_param_data : public macro_param_data_single_dynamic
-{
-    const T& m_value;
-
-public:
-    C_t get_dynamic_value() const override { return left_pad(std::to_string(m_value), padding, '0'); };
-
-    explicit integral_macro_param_data(const T& value)
-        : m_value(value) {};
-};
-
 macro_data_ptr create_macro_data(std::string value)
 {
     return std::make_unique<macro_param_data_single>(std::move(value));
@@ -150,7 +138,7 @@ macro_data_ptr create_dynamic_var(Func f)
 
         C_t get_dynamic_value() const override { return f(); }
 
-        dynamic_data(Func&& f)
+        explicit dynamic_data(Func&& f)
             : f(std::move(f))
         {}
     };
@@ -207,7 +195,7 @@ std::vector<macro_data_ptr>& hlasm_context::ensure_dynamic_ptrs_count()
     for (auto i = dp.size(); i < scope_stack_.size(); ++i)
     {
         if (i == 0)
-            dp.emplace_back(create_dynamic_var([this, i]() { return std::string("OPEN CODE"); }));
+            dp.emplace_back(create_dynamic_var([]() { return std::string("OPEN CODE"); }));
         else
             dp.emplace_back(create_dynamic_var([this, i]() { return scope_stack_[i].this_macro->id.to_string(); }));
     }
@@ -255,11 +243,13 @@ void hlasm_context::add_global_system_variables(sysvar_map& sysvars)
     static constexpr const auto emulated_asm_name = "HIGH LEVEL ASSEMBLER";
     sysvars.insert(create_system_variable(id_index("SYSASM"), emulated_asm_name, true));
 
-    sysvars.insert(create_system_variable(
-        id_index("SYSM_SEV"), std::make_unique<integral_macro_param_data<unsigned, 3>>(mnote_last_max), true));
+    sysvars.insert(create_system_variable(id_index("SYSM_SEV"),
+        create_dynamic_var([this]() { return left_pad(std::to_string(mnote_last_max), 3, '0'); }),
+        true));
 
-    sysvars.insert(create_system_variable(
-        id_index("SYSM_HSEV"), std::make_unique<integral_macro_param_data<unsigned, 3>>(mnote_max), true));
+    sysvars.insert(create_system_variable(id_index("SYSM_HSEV"),
+        create_dynamic_var([this]() { return left_pad(std::to_string(mnote_max), 3, '0'); }),
+        true));
 }
 void hlasm_context::add_local_system_variables(sysvar_map& sysvars, size_t skip_last)
 {
@@ -305,7 +295,7 @@ void hlasm_context::add_local_system_variables(sysvar_map& sysvars, size_t skip_
                     return "CSECT";
                 default:
                     return "";
-            };
+            }
         }),
         false));
 
@@ -324,7 +314,7 @@ void hlasm_context::add_local_system_variables(sysvar_map& sysvars, size_t skip_
     {
         view_t view;
 
-        sysmac_data(view_t view)
+        explicit sysmac_data(view_t view)
             : macro_param_data_component(0)
             , view(view)
         {}
