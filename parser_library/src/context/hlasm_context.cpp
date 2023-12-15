@@ -269,8 +269,8 @@ void hlasm_context::add_local_system_variables(sysvar_map& sysvars, size_t skip_
 
     sysvars.insert(create_system_variable(id_index("SYSECT"),
         create_dynamic_var([view]() {
-            if (view.top().loctr)
-                return view.top().loctr->owner.name.to_string();
+            if (auto l = view.top().loctr)
+                return l->owner.name.to_string();
             return std::string();
         }),
         false));
