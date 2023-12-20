@@ -294,8 +294,26 @@ export function registerListingServices(context: vscode.ExtensionContext) {
 
             return [...new Set([...refs, ...defs])].map(x => l.statementLines.get(x)).filter((x): x is number => typeof x === 'number').map(x => new vscode.Location(document.uri, new vscode.Position(x, 0)))
         },
+        provideHover(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): vscode.ProviderResult<vscode.Hover> {
+            const symName = isolateSymbol(document, position);
+            const l = getListing(document, position);
+            if (!symName || !l)
+                return undefined;
+
+            const md = l?.symbols.get(symName)?.defined
+                .map(x => l.statementLines.get(x))
+                .filter((x): x is number => typeof x === 'number')
+                .map(x => document.lineAt(x).text)
+                .reduce((acc, cur) => { return acc.appendCodeblock(cur, languageIdhlasmListing); }, new vscode.MarkdownString());
+
+            if (!md)
+                return undefined;
+
+            return new vscode.Hover(md);
+        }
     };
 
     context.subscriptions.push(vscode.languages.registerDefinitionProvider(languageIdhlasmListing, services));
     context.subscriptions.push(vscode.languages.registerReferenceProvider(languageIdhlasmListing, services));
+    context.subscriptions.push(vscode.languages.registerHoverProvider(languageIdhlasmListing, services));
 }
