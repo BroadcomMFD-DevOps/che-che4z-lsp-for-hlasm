@@ -17,9 +17,19 @@ import { EXTENSION_ID } from './extension';
 
 const languageIdhlasmListing = 'hlasmListing';
 
+const ordchar = /[A-Za-z0-9$#@_]/;
+const objCode = /^(?:.?)(?:[0-9A-F]{6} .{26}|[0-9A-F]{8} .{32}|[ ]{18,22}[0-9A-F]{6}|[ ]{24}[0-9A-F]{8})( *\d+)/;
 const listingStart = /^(?:.?)                                         High Level Assembler Option Summary                   .............   Page    1/;
 const lineText = /^(?:.?)(?:(Return Code )|\*\* (ASMA\d\d\d[NIWES] .+)|(.{111})Page +\d+)/;
 const pageBoundary = /^.+(?:(High Level Assembler Option Summary)|(Ordinary Symbol and Literal Cross Reference)|(Macro and Copy Code Source Summary)|(Dsect Cross Reference)|(General Purpose Register cross reference)|(Diagnostic Cross Reference and Assembler Summary))/;
+
+// Symbol   Length   Value     Id    R Type Asm  Program   Defn References                     
+// A             4 00000000 00000001     A  A                 1   44    45    46    47    48    49    50    51    52    53 
+//                                                                54    55    56    57    58    59    60    61    62    63 
+//                                                                64    65    66    67    68    69    70    71    72    73 
+const ordinaryRefFirstLine = /^(?:.?)(?:([a-zA-Z$#@_][a-zA-Z$#@0-9_]{0,7}) +(\d+) ([0-9A-F]{8}) [0-9A-F]{8} . .... ...  ....... +(\d+) +(\d.+|)|([a-zA-Z$#@_][a-zA-Z$#@0-9_]{8,}))/;
+const ordinaryRefAltSecondLine = /^(?:.?)( {9,})(\d+) ([0-9A-F]{8}) [0-9A-F]{8} . .... ...  ....... +(\d+) +(\d.+|)/;
+const ordinaryRefRest = /^(?:.?[ ]{60,})(\d.+)/;
 
 const enum BoudnaryType {
     ReturnStatement,
@@ -85,17 +95,6 @@ class Symbol {
     references: number[] = [];
 }
 
-// Symbol   Length   Value     Id    R Type Asm  Program   Defn References                     
-// A             4 00000000 00000001     A  A                 1   44    45    46    47    48    49    50    51    52    53 
-//                                                                54    55    56    57    58    59    60    61    62    63 
-//                                                                64    65    66    67    68    69    70    71    72    73 
-//                                                                74    75    76    77    78    79    80    81    82    83 
-//                                                                84    85    86    87    88    89    90    91    92    93 
-//                                                                94                                                       
-const ordinaryRefFirstLine = /^(?:.?)(?:([a-zA-Z$#@_][a-zA-Z$#@0-9_]{0,7}) +(\d+) ([0-9A-F]{8}) [0-9A-F]{8} . .... ...  ....... +(\d+) +(\d.+|)|([a-zA-Z$#@_][a-zA-Z$#@0-9_]{8,}))/;
-const ordinaryRefAltSecondLine = /^(?:.?)( {9,})(\d+) ([0-9A-F]{8}) [0-9A-F]{8} . .... ...  ....... +(\d+) +(\d.+|)/;
-const ordinaryRefRest = /^(?:.?[ ]{60,})(\d.+)/;
-
 function processListing(doc: vscode.TextDocument, start: number): { nexti: number, result: Listing } {
     const result: Listing = {
         start,
@@ -155,9 +154,9 @@ function processListing(doc: vscode.TextDocument, start: number): { nexti: numbe
             }
         }
         else if (state === States.Code) {
-            const obj = /^(?:.?)(?:[0-9A-F]{6} .{26}( *\d+)|[0-9A-F]{8} .{32}( *\d+)|[ ]{18,22}[0-9A-F]{6}( *\d+)|[ ]{24}[0-9A-F]{8}( *\d+))/.exec(line.text);
+            const obj = objCode.exec(line.text);
             if (obj) {
-                result.statementLines.set(parseInt(obj[1] || obj[2] || obj[3] || obj[4]), i);
+                result.statementLines.set(parseInt(obj[1]), i);
             }
         }
         else if (state === States.OrdinaryRefs) {
@@ -223,11 +222,6 @@ function produceListings(doc: vscode.TextDocument): Listing[] {
 
     return result;
 }
-
-type AsyncReturnType<T extends (...args: any) => Promise<any>> =
-    T extends (...args: any) => Promise<infer R> ? R : any
-
-const ordchar = /[A-Za-z0-9$#@_]/;
 
 function isolateSymbol(document: vscode.TextDocument, position: vscode.Position) {
 
