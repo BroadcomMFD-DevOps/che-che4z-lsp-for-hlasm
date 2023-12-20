@@ -223,6 +223,23 @@ type AsyncReturnType<T extends (...args: any) => Promise<any>> =
 
 const ordchar = /[A-Za-z0-9$#@_]/;
 
+function isolateSymbol(document: vscode.TextDocument, position: vscode.Position) {
+
+    if (position.line >= document.lineCount)
+        return undefined;
+    const line = document.lineAt(position.line).text;
+
+    let start = position.character;
+    let end = position.character;
+
+    while (start > 0 && ordchar.test(line[start - 1]))
+        --start;
+    while (end < line.length && ordchar.test(line[end]))
+        ++end;
+
+    return line.substring(start, end).toUpperCase();
+}
+
 export function registerListingServices(context: vscode.ExtensionContext) {
     const listings = new Map<string, Listing[]>();
     const diags = vscode.languages.createDiagnosticCollection(EXTENSION_ID + '.listings');
@@ -243,6 +260,10 @@ export function registerListingServices(context: vscode.ExtensionContext) {
         return data;
     }
 
+    function getListing(document: vscode.TextDocument, position: vscode.Position) {
+        return (listings.get(document.uri.toString()) || handleListingContent(document) || []).find(x => x.start <= position.line && position.line < x.end);
+    }
+
     vscode.workspace.onDidOpenTextDocument(handleListingContent, undefined, context.subscriptions);
     vscode.workspace.onDidChangeTextDocument(({ document: doc }) => handleListingContent(doc), undefined, context.subscriptions);
     vscode.workspace.onDidCloseTextDocument(doc => {
@@ -253,29 +274,25 @@ export function registerListingServices(context: vscode.ExtensionContext) {
 
     Promise.allSettled(vscode.workspace.textDocuments.filter(x => x.languageId === languageIdhlasmListing).map(x => handleListingContent(x))).catch(() => { });
 
-    vscode.languages.registerDefinitionProvider(languageIdhlasmListing, {
+    const services = {
         provideDefinition: (document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): vscode.ProviderResult<vscode.Definition | vscode.DefinitionLink[]> => {
-            if (position.line >= document.lineCount)
-                return undefined;
-            const line = document.lineAt(position.line).text;
-            const uri = document.uri.toString();
-            const l = (listings.get(uri) || handleListingContent(document) || []).find(x => x.start <= position.line && position.line < x.end);
-            if (!l)
+            const symName = isolateSymbol(document, position);
+            const l = getListing(document, position);
+            if (!symName || !l)
                 return undefined;
 
-            let start = position.character;
-            let end = position.character;
-
-            while (start > 0 && ordchar.test(line[start - 1]))
-                --start;
-            while (end < line.length && ordchar.test(line[end]))
-                ++end;
-
-            const s = l.symbols.get(line.substring(start, end).toUpperCase())
-            if (!s)
+            return l?.symbols.get(symName)?.defined.map(x => l.statementLines.get(x)).filter((x): x is number => typeof x === 'number').map(x => new vscode.Location(document.uri, new vscode.Position(x, 0)));
+        },
+        provideReferences(document: vscode.TextDocument, position: vscode.Position, context: vscode.ReferenceContext, token: vscode.CancellationToken): vscode.ProviderResult<vscode.Location[]> {
+            const symName = isolateSymbol(document, position);
+            const l = getListing(document, position);
+            if (!symName || !l)
                 return undefined;
 
-            return s.defined.map(x => l.statementLines.get(x)).filter((x): x is number => typeof x === 'number').map(x => new vscode.Location(document.uri, new vscode.Position(x, 0)))
-        }
-    })
+            return l?.symbols.get(symName)?.references.map(x => l.statementLines.get(x)).filter((x): x is number => typeof x === 'number').map(x => new vscode.Location(document.uri, new vscode.Position(x, 0)))
+        },
+    };
+
+    context.subscriptions.push(vscode.languages.registerDefinitionProvider(languageIdhlasmListing, services));
+    context.subscriptions.push(vscode.languages.registerReferenceProvider(languageIdhlasmListing, services));
 }
