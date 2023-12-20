@@ -289,7 +289,10 @@ export function registerListingServices(context: vscode.ExtensionContext) {
             if (!symName || !l)
                 return undefined;
 
-            return l?.symbols.get(symName)?.references.map(x => l.statementLines.get(x)).filter((x): x is number => typeof x === 'number').map(x => new vscode.Location(document.uri, new vscode.Position(x, 0)))
+            const refs = l?.symbols.get(symName)?.references || [];
+            const defs = (context.includeDeclaration ? l?.symbols.get(symName)?.defined : undefined) || [];
+
+            return [...new Set([...refs, ...defs])].map(x => l.statementLines.get(x)).filter((x): x is number => typeof x === 'number').map(x => new vscode.Location(document.uri, new vscode.Position(x, 0)))
         },
     };
 
