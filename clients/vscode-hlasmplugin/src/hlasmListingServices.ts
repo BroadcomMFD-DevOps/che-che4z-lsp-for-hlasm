@@ -18,15 +18,12 @@ import { EXTENSION_ID } from './extension';
 const languageIdhlasmListing = 'hlasmListing';
 
 const listingStart = /^(?:.?)                                         High Level Assembler Option Summary                   .............   Page    1/;
-const lineText = /^(?:.?)(?:(Return Code )|\*\* (ASMA\d\d\d[NIWES] .+)|[0-9A-F]{6} .{26}( *\d+)|[0-9A-F]{8} .{32}( *\d+)|(.{111})Page +\d+)/;
+const lineText = /^(?:.?)(?:(Return Code )|\*\* (ASMA\d\d\d[NIWES] .+)|(.{111})Page +\d+)/;
 const pageBoundary = /^.+(?:(High Level Assembler Option Summary)|(Ordinary Symbol and Literal Cross Reference)|(Macro and Copy Code Source Summary)|(Dsect Cross Reference)|(General Purpose Register cross reference)|(Diagnostic Cross Reference and Assembler Summary))/;
-
 
 const enum BoudnaryType {
     ReturnStatement,
     Diagnostic,
-    ShortStmt,
-    LongStmt,
     OptionsRef,
     OrdinaryRef,
     MacroRef,
@@ -40,17 +37,17 @@ function testLine(s: string): { type: BoudnaryType, capture: string } | undefine
     const l = lineText.exec(s);
     if (!l) return undefined;
 
-    for (let i = 1; i < 5; ++i) {
+    for (let i = 1; i < 3; ++i) {
         if (l[i])
             return { type: <BoudnaryType>(i - 1), capture: l[i] };
     }
 
-    const m = pageBoundary.exec(l[5]);
-    if (!m) return undefined;
+    const m = pageBoundary.exec(l[3]);
+    if (!m) return { type: BoudnaryType.OtherBoundary, capture: '' };
 
     for (let i = 1; i < 6; ++i) {
         if (m[i])
-            return { type: <BoudnaryType>(4 + i - 1), capture: m[1] };
+            return { type: <BoudnaryType>(2 + i - 1), capture: m[1] };
     }
 
     return undefined;
@@ -68,7 +65,25 @@ type Listing = {
     end: number,
     diagnostics: vscode.Diagnostic[],
     statementLines: Map<number, number>,
+    symbols: Map<string, Symbol>,
 };
+
+class Symbol {
+    name: string = '';
+    defined: number = 0;
+    references: number[] = [];
+}
+
+// Symbol   Length   Value     Id    R Type Asm  Program   Defn References                     
+// A             4 00000000 00000001     A  A                 1   44    45    46    47    48    49    50    51    52    53 
+//                                                                54    55    56    57    58    59    60    61    62    63 
+//                                                                64    65    66    67    68    69    70    71    72    73 
+//                                                                74    75    76    77    78    79    80    81    82    83 
+//                                                                84    85    86    87    88    89    90    91    92    93 
+//                                                                94                                                       
+const ordinaryRefFirstLine = /^(?:.?)(?:([a-zA-Z$#@][a-zA-Z$#@0-9]{0,7}) +(\d+) ([0-9A-F]{8}) [0-9A-F]{8} . .... ...  .......   +(\d+) +(\d.+|)|([a-zA-Z$#@][a-zA-Z$#@0-9]{8,}))/;
+const ordinaryRefAltSecondLine = /^(?:.?)( {9,})(\d+) ([0-9A-F]{8}) [0-9A-F]{8} . .... ...  .......   +(\d+) +(\d.+|)/;
+const ordinaryRefRest = /^(?:.?[ ]{60,})(\d.+)/;
 
 function processListing(doc: vscode.TextDocument, start: number): { nexti: number, result: Listing } {
     const result: Listing = {
@@ -76,60 +91,103 @@ function processListing(doc: vscode.TextDocument, start: number): { nexti: numbe
         end: start,
         diagnostics: [],
         statementLines: new Map<number, number>(),
-    }
+        symbols: new Map<string, Symbol>(),
+    };
     const enum States {
         Options,
         Code,
+        OrdinaryRefs,
         Refs,
     };
+
+    let symbol: Symbol | undefined;
+
     let state = States.Options;
     let i = start;
     main: for (; i < doc.lineCount; ++i) {
         const line = doc.lineAt(i);
         const l = testLine(line.text);
-        if (!l) continue;
-        switch (l.type) {
-            case BoudnaryType.ReturnStatement:
-                ++i
-                break main;
-            case BoudnaryType.Diagnostic:
-                const code = l.capture.substring(0, 8);
-                const text = l.capture.substring(9).trim();
-                const d = new vscode.Diagnostic(line.range, text, asLevel(code));
-                d.code = code;
-                result.diagnostics.push(d);
-                break;
-            case BoudnaryType.ShortStmt:
-            case BoudnaryType.LongStmt:
-                if (state === States.Code)
-                    result.statementLines.set(parseInt(l.capture), i);
-                break;
-            case BoudnaryType.OptionsRef:
-                break;
-            case BoudnaryType.OrdinaryRef:
-                state = States.Refs;
-                break;
-            case BoudnaryType.MacroRef:
-                state = States.Refs;
-                break;
-            case BoudnaryType.DsectRef:
-                state = States.Refs;
-                break;
-            case BoudnaryType.RegistersRef:
-                state = States.Refs;
-                break;
-            case BoudnaryType.DiagnosticRef:
-                state = States.Refs;
-                break;
-            case BoudnaryType.OtherBoundary:
-                if (state === States.Options)
-                    state = States.Code;
-                break;
+        if (l) {
+            switch (l.type) {
+                case BoudnaryType.ReturnStatement:
+                    ++i
+                    break main;
+                case BoudnaryType.Diagnostic:
+                    const code = l!.capture.substring(0, 8);
+                    const text = l!.capture.substring(9).trim();
+                    const d = new vscode.Diagnostic(line.range, text, asLevel(code));
+                    d.code = code;
+                    result.diagnostics.push(d);
+                    break;
+                case BoudnaryType.OptionsRef:
+                    break;
+                case BoudnaryType.OrdinaryRef:
+                    state = States.OrdinaryRefs;
+                    ++i; // skip header
+                    break;
+                case BoudnaryType.MacroRef:
+                    state = States.Refs;
+                    break;
+                case BoudnaryType.DsectRef:
+                    state = States.Refs;
+                    break;
+                case BoudnaryType.RegistersRef:
+                    state = States.Refs;
+                    break;
+                case BoudnaryType.DiagnosticRef:
+                    state = States.Refs;
+                    break;
+                case BoudnaryType.OtherBoundary:
+                    if (state === States.Options)
+                        state = States.Code;
+                    break;
+            }
+        }
+        else if (state === States.Code) {
+            const obj = /^(?:.?)(?:[0-9A-F]{6} .{26}( *\d+)|[0-9A-F]{8} .{32}( *\d+))/.exec(line.text);
+            if (obj) {
+                result.statementLines.set(parseInt(obj[1] || obj[2]), i);
+            }
+        }
+        else if (state === States.OrdinaryRefs) {
+            const ref = ordinaryRefFirstLine.exec(line.text);
+            let refs = '';
+            if (ref) {
+                if (symbol)
+                    result.symbols.set(symbol.name, symbol);
+
+                symbol = new Symbol();
+                if (ref[1]) {
+                    symbol.name = ref[1];
+                    symbol.defined = +ref[4];
+                    refs = ref[5];
+                }
+                else {
+                    symbol.name = ref[6];
+                }
+            }
+            else {
+                const alt = ordinaryRefAltSecondLine.exec(line.text);
+                if (alt && symbol) {
+                    symbol.defined = +alt[4];
+                    refs = alt[5];
+                }
+            }
+
+            if (refs && symbol) {
+                for (const m of refs.matchAll(/(\d+)[BDMUX]?/g)) {
+                    symbol.references.push(+m[1]);
+                }
+            }
         }
     }
+    if (symbol)
+        result.symbols.set(symbol.name, symbol);
+
     result.end = i;
     return { nexti: i, result };
 }
+
 
 function produceListings(doc: vscode.TextDocument): Listing[] {
     const result: Listing[] = []
