@@ -68,9 +68,20 @@ type Listing = {
     symbols: Map<string, Symbol>,
 };
 
+function updateSymbols(symbols: Map<string, Symbol>, symbol: Symbol) {
+    const name = symbol.name.toUpperCase();
+    const s = symbols.get(name);
+    if (!s)
+        symbols.set(name, symbol);
+    else {
+        s.defined = [...new Set([...s.defined, ...symbol.defined])];
+        s.references = [...new Set([...s.references, ...symbol.references])];
+    }
+}
+
 class Symbol {
     name: string = '';
-    defined: number = 0;
+    defined: number[] = [];
     references: number[] = [];
 }
 
@@ -81,8 +92,8 @@ class Symbol {
 //                                                                74    75    76    77    78    79    80    81    82    83 
 //                                                                84    85    86    87    88    89    90    91    92    93 
 //                                                                94                                                       
-const ordinaryRefFirstLine = /^(?:.?)(?:([a-zA-Z$#@][a-zA-Z$#@0-9]{0,7}) +(\d+) ([0-9A-F]{8}) [0-9A-F]{8} . .... ...  .......   +(\d+) +(\d.+|)|([a-zA-Z$#@][a-zA-Z$#@0-9]{8,}))/;
-const ordinaryRefAltSecondLine = /^(?:.?)( {9,})(\d+) ([0-9A-F]{8}) [0-9A-F]{8} . .... ...  .......   +(\d+) +(\d.+|)/;
+const ordinaryRefFirstLine = /^(?:.?)(?:([a-zA-Z$#@_][a-zA-Z$#@0-9_]{0,7}) +(\d+) ([0-9A-F]{8}) [0-9A-F]{8} . .... ...  ....... +(\d+) +(\d.+|)|([a-zA-Z$#@_][a-zA-Z$#@0-9_]{8,}))/;
+const ordinaryRefAltSecondLine = /^(?:.?)( {9,})(\d+) ([0-9A-F]{8}) [0-9A-F]{8} . .... ...  ....... +(\d+) +(\d.+|)/;
 const ordinaryRefRest = /^(?:.?[ ]{60,})(\d.+)/;
 
 function processListing(doc: vscode.TextDocument, start: number): { nexti: number, result: Listing } {
@@ -144,9 +155,9 @@ function processListing(doc: vscode.TextDocument, start: number): { nexti: numbe
             }
         }
         else if (state === States.Code) {
-            const obj = /^(?:.?)(?:[0-9A-F]{6} .{26}( *\d+)|[0-9A-F]{8} .{32}( *\d+))/.exec(line.text);
+            const obj = /^(?:.?)(?:[0-9A-F]{6} .{26}( *\d+)|[0-9A-F]{8} .{32}( *\d+)|[ ]{18,22}[0-9A-F]{6}( *\d+)|[ ]{24}[0-9A-F]{8}( *\d+))/.exec(line.text);
             if (obj) {
-                result.statementLines.set(parseInt(obj[1] || obj[2]), i);
+                result.statementLines.set(parseInt(obj[1] || obj[2] || obj[3] || obj[4]), i);
             }
         }
         else if (state === States.OrdinaryRefs) {
@@ -154,12 +165,12 @@ function processListing(doc: vscode.TextDocument, start: number): { nexti: numbe
             let refs = '';
             if (ref) {
                 if (symbol)
-                    result.symbols.set(symbol.name, symbol);
+                    updateSymbols(result.symbols, symbol);
 
                 symbol = new Symbol();
                 if (ref[1]) {
                     symbol.name = ref[1];
-                    symbol.defined = +ref[4];
+                    symbol.defined.push(+ref[4]);
                     refs = ref[5];
                 }
                 else {
@@ -169,7 +180,7 @@ function processListing(doc: vscode.TextDocument, start: number): { nexti: numbe
             else {
                 const alt = ordinaryRefAltSecondLine.exec(line.text);
                 if (alt && symbol) {
-                    symbol.defined = +alt[4];
+                    symbol.defined.push(+alt[4]);
                     refs = alt[5];
                 }
             }
@@ -182,7 +193,7 @@ function processListing(doc: vscode.TextDocument, start: number): { nexti: numbe
         }
     }
     if (symbol)
-        result.symbols.set(symbol.name, symbol);
+        updateSymbols(result.symbols, symbol);
 
     result.end = i;
     return { nexti: i, result };
@@ -210,12 +221,14 @@ function produceListings(doc: vscode.TextDocument): Listing[] {
 type AsyncReturnType<T extends (...args: any) => Promise<any>> =
     T extends (...args: any) => Promise<infer R> ? R : any
 
+const ordchar = /[A-Za-z0-9$#@_]/;
+
 export function registerListingServices(context: vscode.ExtensionContext) {
     const listings = new Map<string, Listing[]>();
     const diags = vscode.languages.createDiagnosticCollection(EXTENSION_ID + '.listings');
     context.subscriptions.push(diags);
 
-    async function handleListingContent(doc: vscode.TextDocument) {
+    function handleListingContent(doc: vscode.TextDocument) {
         if (doc.languageId !== languageIdhlasmListing) return;
 
         const initVersion = doc.version;
@@ -226,6 +239,8 @@ export function registerListingServices(context: vscode.ExtensionContext) {
 
         listings.set(doc.uri.toString(), data);
         diags.set(doc.uri, data.flatMap(x => x.diagnostics));
+
+        return data;
     }
 
     vscode.workspace.onDidOpenTextDocument(handleListingContent, undefined, context.subscriptions);
@@ -238,4 +253,29 @@ export function registerListingServices(context: vscode.ExtensionContext) {
 
     Promise.allSettled(vscode.workspace.textDocuments.filter(x => x.languageId === languageIdhlasmListing).map(x => handleListingContent(x))).catch(() => { });
 
+    vscode.languages.registerDefinitionProvider(languageIdhlasmListing, {
+        provideDefinition: (document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): vscode.ProviderResult<vscode.Definition | vscode.DefinitionLink[]> => {
+            if (position.line >= document.lineCount)
+                return undefined;
+            const line = document.lineAt(position.line).text;
+            const uri = document.uri.toString();
+            const l = (listings.get(uri) || handleListingContent(document) || []).find(x => x.start <= position.line && position.line < x.end);
+            if (!l)
+                return undefined;
+
+            let start = position.character;
+            let end = position.character;
+
+            while (start > 0 && ordchar.test(line[start - 1]))
+                --start;
+            while (end < line.length && ordchar.test(line[end]))
+                ++end;
+
+            const s = l.symbols.get(line.substring(start, end).toUpperCase())
+            if (!s)
+                return undefined;
+
+            return s.defined.map(x => l.statementLines.get(x)).filter((x): x is number => typeof x === 'number').map(x => new vscode.Location(document.uri, new vscode.Position(x, 0)))
+        }
+    })
 }
