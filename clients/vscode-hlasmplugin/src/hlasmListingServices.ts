@@ -177,11 +177,17 @@ function processListing(doc: vscode.TextDocument, start: number): { nexti: numbe
                     symbol.name = ref[6];
                 }
             }
-            else {
+            else if (symbol) {
                 const alt = ordinaryRefAltSecondLine.exec(line.text);
-                if (alt && symbol) {
+                if (alt) {
                     symbol.defined.push(+alt[4]);
                     refs = alt[5];
+                }
+                else {
+                    const cont = ordinaryRefRest.exec(line.text);
+                    if (cont) {
+                        refs = cont[1];
+                    }
                 }
             }
 
@@ -264,6 +270,14 @@ export function registerListingServices(context: vscode.ExtensionContext) {
         return (listings.get(document.uri.toString()) || handleListingContent(document) || []).find(x => x.start <= position.line && position.line < x.end);
     }
 
+    function listingFunction<R>(document: vscode.TextDocument, position: vscode.Position, f: (symName: string, l: Listing) => R): R | undefined {
+        const symName = isolateSymbol(document, position);
+        const l = getListing(document, position);
+        if (!symName || !l)
+            return undefined;
+        return f(symName, l);
+    }
+
     vscode.workspace.onDidOpenTextDocument(handleListingContent, undefined, context.subscriptions);
     vscode.workspace.onDidChangeTextDocument(({ document: doc }) => handleListingContent(doc), undefined, context.subscriptions);
     vscode.workspace.onDidCloseTextDocument(doc => {
@@ -275,42 +289,37 @@ export function registerListingServices(context: vscode.ExtensionContext) {
     Promise.allSettled(vscode.workspace.textDocuments.filter(x => x.languageId === languageIdhlasmListing).map(x => handleListingContent(x))).catch(() => { });
 
     const services = {
-        provideDefinition: (document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): vscode.ProviderResult<vscode.Definition | vscode.DefinitionLink[]> => {
-            const symName = isolateSymbol(document, position);
-            const l = getListing(document, position);
-            if (!symName || !l)
-                return undefined;
-
-            return l?.symbols.get(symName)?.defined.map(x => l.statementLines.get(x)).filter((x): x is number => typeof x === 'number').map(x => new vscode.Location(document.uri, new vscode.Position(x, 0)));
-        },
-        provideReferences(document: vscode.TextDocument, position: vscode.Position, context: vscode.ReferenceContext, token: vscode.CancellationToken): vscode.ProviderResult<vscode.Location[]> {
-            const symName = isolateSymbol(document, position);
-            const l = getListing(document, position);
-            if (!symName || !l)
-                return undefined;
-
-            const refs = l?.symbols.get(symName)?.references || [];
-            const defs = (context.includeDeclaration ? l?.symbols.get(symName)?.defined : undefined) || [];
-
-            return [...new Set([...refs, ...defs])].map(x => l.statementLines.get(x)).filter((x): x is number => typeof x === 'number').map(x => new vscode.Location(document.uri, new vscode.Position(x, 0)))
-        },
-        provideHover(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): vscode.ProviderResult<vscode.Hover> {
-            const symName = isolateSymbol(document, position);
-            const l = getListing(document, position);
-            if (!symName || !l)
-                return undefined;
-
-            const md = l?.symbols.get(symName)?.defined
+        provideDefinition(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): vscode.ProviderResult<vscode.Definition | vscode.DefinitionLink[]> {
+            return listingFunction(document, position, (symName, l) => l.symbols.get(symName)?.defined
                 .map(x => l.statementLines.get(x))
                 .filter((x): x is number => typeof x === 'number')
-                .map(x => document.lineAt(x).text)
-                .reduce((acc, cur) => { return acc.appendCodeblock(cur, languageIdhlasmListing); }, new vscode.MarkdownString());
+                .map(x => new vscode.Location(document.uri, new vscode.Position(x, 0))));
+        },
+        provideReferences(document: vscode.TextDocument, position: vscode.Position, context: vscode.ReferenceContext, token: vscode.CancellationToken): vscode.ProviderResult<vscode.Location[]> {
+            return listingFunction(document, position, (symName, l) => {
+                const refs = l.symbols.get(symName)?.references || [];
+                const defs = (context.includeDeclaration ? l.symbols.get(symName)?.defined : undefined) || [];
 
-            if (!md)
-                return undefined;
+                return [...new Set([...refs, ...defs])]
+                    .map(x => l.statementLines.get(x))
+                    .filter((x): x is number => typeof x === 'number')
+                    .map(x => new vscode.Location(document.uri, new vscode.Position(x, 0)));
+            });
+        },
+        provideHover(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): vscode.ProviderResult<vscode.Hover> {
+            return listingFunction(document, position, (symName, l) => {
+                const md = l.symbols.get(symName)?.defined
+                    .map(x => l.statementLines.get(x))
+                    .filter((x): x is number => typeof x === 'number')
+                    .map(x => document.lineAt(x).text)
+                    .reduce((acc, cur) => { return acc.appendCodeblock(cur, languageIdhlasmListing); }, new vscode.MarkdownString());
 
-            return new vscode.Hover(md);
-        }
+                if (!md)
+                    return undefined;
+
+                return new vscode.Hover(md);
+            });
+        },
     };
 
     context.subscriptions.push(vscode.languages.registerDefinitionProvider(languageIdhlasmListing, services));
