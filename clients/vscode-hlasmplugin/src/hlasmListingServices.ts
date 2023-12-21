@@ -437,10 +437,8 @@ function listingAsSymbol(l: Listing, id: number) {
     return result;
 }
 
-export function registerListingServices(context: vscode.ExtensionContext) {
+export function createListingServices(diagCollection?: vscode.DiagnosticCollection) {
     const listings = new Map<string, Listing[]>();
-    const diags = vscode.languages.createDiagnosticCollection(EXTENSION_ID + '.listings');
-    context.subscriptions.push(diags);
 
     function handleListingContent(doc: vscode.TextDocument) {
         if (doc.languageId !== languageIdhlasmListing) return;
@@ -448,9 +446,15 @@ export function registerListingServices(context: vscode.ExtensionContext) {
         const data = produceListings(doc);
         if (initVersion !== doc.version || doc.languageId !== languageIdhlasmListing) return;
         listings.set(doc.uri.toString(), data);
-        diags.set(doc.uri, data.flatMap(x => x.diagnostics));
+        diagCollection?.set(doc.uri, data.flatMap(x => x.diagnostics));
 
         return data;
+    }
+
+    function releaseListingContent(doc: vscode.TextDocument) {
+        const uri = doc.uri.toString();
+        listings.delete(uri);
+        diagCollection?.delete(doc.uri);
     }
 
     function symbolFunction<R, Args extends any[]>(f: (symbol: Symbol, l: Listing, document: vscode.TextDocument, ...args: Args) => R) {
@@ -465,17 +469,9 @@ export function registerListingServices(context: vscode.ExtensionContext) {
         }
     }
 
-    vscode.workspace.onDidOpenTextDocument(handleListingContent, undefined, context.subscriptions);
-    vscode.workspace.onDidChangeTextDocument(({ document: doc }) => handleListingContent(doc), undefined, context.subscriptions);
-    vscode.workspace.onDidCloseTextDocument(doc => {
-        const uri = doc.uri.toString();
-        listings.delete(uri);
-        diags.delete(doc.uri);
-    }, undefined, context.subscriptions);
-
-    Promise.allSettled(vscode.workspace.textDocuments.filter(x => x.languageId === languageIdhlasmListing).map(x => handleListingContent(x))).catch(() => { });
-
-    const services = {
+    return {
+        handleListingContent,
+        releaseListingContent,
         provideDefinition: symbolFunction((symbol, l, document) => symbol.defined
             .map(x => l.statementLines.get(x))
             .filter((x): x is number => typeof x === 'number')
@@ -496,6 +492,19 @@ export function registerListingServices(context: vscode.ExtensionContext) {
             (listings.get(document.uri.toString()) || handleListingContent(document) || []).map((l, id) => listingAsSymbol(l, id + 1))
         ,
     };
+}
+
+export function registerListingServices(context: vscode.ExtensionContext) {
+    const diagCollection = vscode.languages.createDiagnosticCollection(EXTENSION_ID + '.listings');
+    context.subscriptions.push(diagCollection);
+
+    const services = createListingServices(diagCollection);
+
+    vscode.workspace.onDidOpenTextDocument(services.handleListingContent, undefined, context.subscriptions);
+    vscode.workspace.onDidChangeTextDocument(({ document: doc }) => services.handleListingContent(doc), undefined, context.subscriptions);
+    vscode.workspace.onDidCloseTextDocument(services.releaseListingContent, undefined, context.subscriptions);
+
+    Promise.allSettled(vscode.workspace.textDocuments.filter(x => x.languageId === languageIdhlasmListing).map(x => services.handleListingContent(x))).catch(() => { });
 
     context.subscriptions.push(vscode.languages.registerDefinitionProvider(languageIdhlasmListing, services));
     context.subscriptions.push(vscode.languages.registerReferenceProvider(languageIdhlasmListing, services));
