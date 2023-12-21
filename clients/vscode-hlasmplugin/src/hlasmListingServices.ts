@@ -18,18 +18,46 @@ import { EXTENSION_ID } from './extension';
 const languageIdhlasmListing = 'hlasmListing';
 
 const ordchar = /[A-Za-z0-9$#@_]/;
-const objCode = /^(?:.?)(?:[0-9A-F]{6} .{26}|[0-9A-F]{8} .{32}|[ ]{18,22}[0-9A-F]{6}|[ ]{24}[0-9A-F]{8})( *\d+)/;
-const listingStart = /^(.?)                                         High Level Assembler Option Summary                   .............   Page    1/;
-const lineText = /^(?:.?)(?:(Return Code )|\*\* (ASMA\d\d\d[NIWES] .+)|(  Loc  Object Code    Addr1 Addr2  Stmt |  Loc    Object Code      Addr1    Addr2    Stmt )|(.{111})Page +\d+)/;
-const pageBoundary = /^.+(?:(High Level Assembler Option Summary)|(External Symbol Dictionary)|(Relocation Dictionary)|(Ordinary Symbol and Literal Cross Reference)|(Macro and Copy Code Source Summary)|(Dsect Cross Reference)|(Using Map)|(General Purpose Register cross reference)|(Diagnostic Cross Reference and Assembler Summary))/;
 
 // Symbol   Length   Value     Id    R Type Asm  Program   Defn References                     
 // A             4 00000000 00000001     A  A                 1   44    45    46    47    48    49    50    51    52    53 
 //                                                                54    55    56    57    58    59    60    61    62    63 
 //                                                                64    65    66    67    68    69    70    71    72    73 
-const ordinaryRefFirstLine = /^(?:.?)(?:([a-zA-Z$#@_][a-zA-Z$#@0-9_]{0,7}) +(\d+) ([0-9A-F]{8}) [0-9A-F]{8} . .... ...  ....... +(\d+) +(\d.+|)|([a-zA-Z$#@_][a-zA-Z$#@0-9_]{8,}))/;
-const ordinaryRefAltSecondLine = /^(?:.?)( {9,})(\d+) ([0-9A-F]{8}) [0-9A-F]{8} . .... ...  ....... +(\d+) +(\d.+|)/;
-const ordinaryRefRest = /^(?:.?[ ]{60,})(\d.+)/;
+
+const listingStart = /^(.?)                                         High Level Assembler Option Summary                   .............   Page    1/;
+
+type RegexSet = {
+    objShortCode: RegExp,
+    objLongCode: RegExp,
+    lineText: RegExp,
+    pageBoundary: RegExp,
+
+    ordinaryRefFirstLine: RegExp,
+    ordinaryRefAltSecondLine: RegExp,
+    ordinaryRefRest: RegExp,
+};
+
+const withoutPrefix = {
+    objShortCode: /^.{33}( *\d+)[^0-9]/,
+    objLongCode: /^.{41}( *\d+)[^0-9]/,
+    lineText: /^(?:(Return Code )|\*\* (ASMA\d\d\d[NIWES] .+)|(  Loc  Object Code    Addr1 Addr2  Stmt |  Loc    Object Code      Addr1    Addr2    Stmt )|(.{111})Page +\d+)/,
+    pageBoundary: /^.+(?:(High Level Assembler Option Summary)|(External Symbol Dictionary)|(Relocation Dictionary)|(Ordinary Symbol and Literal Cross Reference)|(Macro and Copy Code Source Summary)|(Dsect Cross Reference)|(Using Map)|(General Purpose Register Cross Reference)|(Diagnostic Cross Reference and Assembler Summary))/,
+
+    ordinaryRefFirstLine: /^(?:([a-zA-Z$#@_][a-zA-Z$#@0-9_]{0,7}) +(\d+) ([0-9A-F]{8}) [0-9A-F]{8} . .... ...  ....... +(\d+) +(\d.+|)|([a-zA-Z$#@_][a-zA-Z$#@0-9_]{8,}))/,
+    ordinaryRefAltSecondLine: /^( {9,})(\d+) ([0-9A-F]{8}) [0-9A-F]{8} . .... ...  ....... +(\d+) +(\d.+|)/,
+    ordinaryRefRest: /^(?:[ ]{60,})(\d.+)/,
+};
+
+const withPrefix = {
+    objShortCode: /^..{33}( *\d+)[^0-9]/,
+    objLongCode: /^..{41}( *\d+)[^0-9]/,
+    lineText: /^.(?:(Return Code )|\*\* (ASMA\d\d\d[NIWES] .+)|(  Loc  Object Code    Addr1 Addr2  Stmt |  Loc    Object Code      Addr1    Addr2    Stmt )|(.{111})Page +\d+)/,
+    pageBoundary: /^.+(?:(High Level Assembler Option Summary)|(External Symbol Dictionary)|(Relocation Dictionary)|(Ordinary Symbol and Literal Cross Reference)|(Macro and Copy Code Source Summary)|(Dsect Cross Reference)|(Using Map)|(General Purpose Register Cross Reference)|(Diagnostic Cross Reference and Assembler Summary))/,
+
+    ordinaryRefFirstLine: /^.(?:([a-zA-Z$#@_][a-zA-Z$#@0-9_]{0,7}) +(\d+) ([0-9A-F]{8}) [0-9A-F]{8} . .... ...  ....... +(\d+) +(\d.+|)|([a-zA-Z$#@_][a-zA-Z$#@0-9_]{8,}))/,
+    ordinaryRefAltSecondLine: /^.( {9,})(\d+) ([0-9A-F]{8}) [0-9A-F]{8} . .... ...  ....... +(\d+) +(\d.+|)/,
+    ordinaryRefRest: /^(?:.[ ]{60,})(\d.+)/,
+};
 
 const enum BoudnaryType {
     ReturnStatement,
@@ -47,8 +75,8 @@ const enum BoudnaryType {
     OtherBoundary,
 };
 
-function testLine(s: string): { type: BoudnaryType, capture: string } | undefined {
-    const l = lineText.exec(s);
+function testLine(s: string, r: RegexSet): { type: BoudnaryType, capture: string } | undefined {
+    const l = r.lineText.exec(s);
     if (!l) return undefined;
 
     for (let i = 1; i < l.length - 1; ++i) {
@@ -56,7 +84,7 @@ function testLine(s: string): { type: BoudnaryType, capture: string } | undefine
             return { type: <BoudnaryType>(i - 1), capture: l[i] };
     }
 
-    const m = pageBoundary.exec(l[l.length - 1]);
+    const m = r.pageBoundary.exec(l[l.length - 1]);
     if (!m) return { type: BoudnaryType.OtherBoundary, capture: '' };
 
     for (let i = 1; i < m.length; ++i) {
@@ -122,6 +150,7 @@ class Symbol {
 }
 
 function processListing(doc: vscode.TextDocument, start: number, hasPrefix: boolean): { nexti: number, result: Listing } {
+    const r: RegexSet = hasPrefix ? withPrefix : withoutPrefix;
     const result: Listing = {
         start,
         end: start,
@@ -145,7 +174,7 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
     let i = start;
     main: for (; i < doc.lineCount; ++i) {
         const line = doc.lineAt(i);
-        const l = testLine(line.text);
+        const l = testLine(line.text, r);
         if (l) {
             if (lastSection) {
                 lastSection.end = i;
@@ -181,8 +210,8 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
                     break;
                 case BoudnaryType.ExternalRef:
                     if (!result.externals) {
-                        result.ordinary = { start: i, end: i };
-                        lastSection = result.ordinary;
+                        result.externals = { start: i, end: i };
+                        lastSection = result.externals;
                     }
                     break;
                 case BoudnaryType.OrdinaryRef:
@@ -242,13 +271,13 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
             }
         }
         else if (state === States.Code) {
-            const obj = objCode.exec(line.text);
+            const obj = (result.type === 'short' ? r.objShortCode : r.objLongCode).exec(line.text);
             if (obj) {
                 result.statementLines.set(parseInt(obj[1]), i);
             }
         }
         else if (state === States.OrdinaryRefs) {
-            const ref = ordinaryRefFirstLine.exec(line.text);
+            const ref = r.ordinaryRefFirstLine.exec(line.text);
             let refs = '';
             if (ref) {
                 if (symbol)
@@ -265,13 +294,13 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
                 }
             }
             else if (symbol) {
-                const alt = ordinaryRefAltSecondLine.exec(line.text);
+                const alt = r.ordinaryRefAltSecondLine.exec(line.text);
                 if (alt) {
                     symbol.defined.push(+alt[4]);
                     refs = alt[5];
                 }
                 else {
-                    const cont = ordinaryRefRest.exec(line.text);
+                    const cont = r.ordinaryRefRest.exec(line.text);
                     if (cont) {
                         refs = cont[1];
                     }
@@ -428,7 +457,7 @@ function listingAsSymbol(l: Listing, id: number) {
         result.children.push(sectionAsSymbol(l.usings, 'Using Map'));
     }
     if (l.registers) {
-        result.children.push(sectionAsSymbol(l.registers, 'General Purpose Register cross reference'));
+        result.children.push(sectionAsSymbol(l.registers, 'General Purpose Register Cross Reference'));
     }
     if (l.summary) {
         result.children.push(sectionAsSymbol(l.summary, 'Diagnostic Cross Reference and Assembler Summary'));
@@ -489,7 +518,7 @@ export function createListingServices(diagCollection?: vscode.DiagnosticCollecti
             .reduce((acc, cur) => { return acc.appendCodeblock(cur, languageIdhlasmListing); }, new vscode.MarkdownString()))
         ),
         provideDocumentSymbols: (document: vscode.TextDocument) =>
-            (listings.get(document.uri.toString()) || handleListingContent(document) || []).map((l, id) => listingAsSymbol(l, id + 1))
+            (listings.get(document.uri.toString()) || handleListingContent(document))?.map((l, id) => listingAsSymbol(l, id + 1))
         ,
     };
 }
