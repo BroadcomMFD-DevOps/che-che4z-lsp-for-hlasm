@@ -38,25 +38,25 @@ type RegexSet = {
 };
 
 const withoutPrefix = {
-    objShortCode: /^.{33}( *\d+)[^0-9]/,
-    objLongCode: /^.{41}( *\d+)[^0-9]/,
+    objShortCode: /^.{33}( *\d+)\D/,
+    objLongCode: /^.{41}( *\d+)\D/,
     lineText: /^(?:(Return Code )|\*\* (ASMA\d\d\d[NIWES] .+)|(  Loc  Object Code    Addr1 Addr2  Stmt |  Loc    Object Code      Addr1    Addr2    Stmt )|(.{111})Page +\d+)/,
     pageBoundary: /^.+(?:(High Level Assembler Option Summary)|(External Symbol Dictionary)|(Relocation Dictionary)|(Ordinary Symbol and Literal Cross Reference)|(Macro and Copy Code Source Summary)|(Dsect Cross Reference)|(Using Map)|(General Purpose Register Cross Reference)|(Diagnostic Cross Reference and Assembler Summary))/,
 
     ordinaryRefFirstLine: /^(?:([a-zA-Z$#@_][a-zA-Z$#@0-9_]{0,7}) +(\d+) ([0-9A-F]{8}) [0-9A-F]{8} . .... ...  ....... +(\d+) +(\d.+|)|([a-zA-Z$#@_][a-zA-Z$#@0-9_]{8,}))/,
     ordinaryRefAltSecondLine: /^( {9,})(\d+) ([0-9A-F]{8}) [0-9A-F]{8} . .... ...  ....... +(\d+) +(\d.+|)/,
-    ordinaryRefRest: /^(?:[ ]{60,})(\d.+)/,
+    ordinaryRefRest: /^ {60,}(\d.+)/,
 };
 
 const withPrefix = {
-    objShortCode: /^..{33}( *\d+)[^0-9]/,
-    objLongCode: /^..{41}( *\d+)[^0-9]/,
+    objShortCode: /^..{33}( *\d+)\D/,
+    objLongCode: /^..{41}( *\d+)\D/,
     lineText: /^.(?:(Return Code )|\*\* (ASMA\d\d\d[NIWES] .+)|(  Loc  Object Code    Addr1 Addr2  Stmt |  Loc    Object Code      Addr1    Addr2    Stmt )|(.{111})Page +\d+)/,
     pageBoundary: /^.+(?:(High Level Assembler Option Summary)|(External Symbol Dictionary)|(Relocation Dictionary)|(Ordinary Symbol and Literal Cross Reference)|(Macro and Copy Code Source Summary)|(Dsect Cross Reference)|(Using Map)|(General Purpose Register Cross Reference)|(Diagnostic Cross Reference and Assembler Summary))/,
 
     ordinaryRefFirstLine: /^.(?:([a-zA-Z$#@_][a-zA-Z$#@0-9_]{0,7}) +(\d+) ([0-9A-F]{8}) [0-9A-F]{8} . .... ...  ....... +(\d+) +(\d.+|)|([a-zA-Z$#@_][a-zA-Z$#@0-9_]{8,}))/,
     ordinaryRefAltSecondLine: /^.( {9,})(\d+) ([0-9A-F]{8}) [0-9A-F]{8} . .... ...  ....... +(\d+) +(\d.+|)/,
-    ordinaryRefRest: /^(?:.[ ]{60,})(\d.+)/,
+    ordinaryRefRest: /^. {60,}(\d.+)/,
 };
 
 const enum BoudnaryType {
@@ -186,20 +186,21 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
                     if (result.summary)
                         result.summary.end = i;
                     break main;
-                case BoudnaryType.Diagnostic:
+                case BoudnaryType.Diagnostic: {
                     const code = l.capture.substring(0, 8);
                     const text = l.capture.substring(9).trim();
                     const d = new vscode.Diagnostic(line.range, text, asLevel(code));
                     d.code = code;
                     result.diagnostics.push(d);
                     break;
+                }
                 case BoudnaryType.OptionsRef:
                     if (!result.options) {
                         result.options = { start: i, end: i };
                     }
                     lastSection = result.options;
                     break;
-                case BoudnaryType.ObjectCodeHeader:
+                case BoudnaryType.ObjectCodeHeader: {
                     if (l.capture.length < 45)
                         result.type = 'short';
                     else
@@ -208,6 +209,7 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
                     lastSection = codeSection;
                     result.codeSections.push(codeSection);
                     break;
+                }
                 case BoudnaryType.ExternalRef:
                     if (!result.externals) {
                         result.externals = { start: i, end: i };
@@ -318,7 +320,6 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
         updateSymbols(result.symbols, symbol);
     if (lastSection) {
         lastSection.end = i;
-        lastSection = undefined;
     }
 
     result.end = i;
@@ -488,7 +489,7 @@ export function createListingServices(diagCollection?: vscode.DiagnosticCollecti
 
     function symbolFunction<R, Args extends any[]>(f: (symbol: Symbol, l: Listing, document: vscode.TextDocument, ...args: Args) => R) {
         return (document: vscode.TextDocument, position: vscode.Position, ...args: Args): R | undefined => {
-            const l = (listings.get(document.uri.toString()) || handleListingContent(document) || []).find(x => x.start <= position.line && position.line < x.end);
+            const l = (listings.get(document.uri.toString()) ?? handleListingContent(document) ?? []).find(x => x.start <= position.line && position.line < x.end);
             if (!l) return undefined;
             const symName = isolateSymbol(l, document, position);
             if (!symName) return undefined;
@@ -518,7 +519,7 @@ export function createListingServices(diagCollection?: vscode.DiagnosticCollecti
             .reduce((acc, cur) => { return acc.appendCodeblock(cur, languageIdhlasmListing); }, new vscode.MarkdownString()))
         ),
         provideDocumentSymbols: (document: vscode.TextDocument) =>
-            (listings.get(document.uri.toString()) || handleListingContent(document))?.map((l, id) => listingAsSymbol(l, id + 1))
+            (listings.get(document.uri.toString()) ?? handleListingContent(document))?.map((l, id) => listingAsSymbol(l, id + 1))
         ,
     };
 }
