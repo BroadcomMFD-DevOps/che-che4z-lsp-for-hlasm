@@ -20,8 +20,8 @@ const languageIdhlasmListing = 'hlasmListing';
 const ordchar = /[A-Za-z0-9$#@_]/;
 const objCode = /^(?:.?)(?:[0-9A-F]{6} .{26}|[0-9A-F]{8} .{32}|[ ]{18,22}[0-9A-F]{6}|[ ]{24}[0-9A-F]{8})( *\d+)/;
 const listingStart = /^(?:.?)                                         High Level Assembler Option Summary                   .............   Page    1/;
-const lineText = /^(?:.?)(?:(Return Code )|\*\* (ASMA\d\d\d[NIWES] .+)|(.{111})Page +\d+)/;
-const pageBoundary = /^.+(?:(  Loc  Object Code    Addr1 Addr2  Stmt |  Loc    Object Code      Addr1    Addr2    Stmt )|(High Level Assembler Option Summary)|(External Symbol Dictionary)|(Relocation Dictionary)|(Ordinary Symbol and Literal Cross Reference)|(Macro and Copy Code Source Summary)|(Dsect Cross Reference)|(Using Map)|(General Purpose Register cross reference)|(Diagnostic Cross Reference and Assembler Summary))/;
+const lineText = /^(?:.?)(?:(Return Code )|\*\* (ASMA\d\d\d[NIWES] .+)|(  Loc  Object Code    Addr1 Addr2  Stmt |  Loc    Object Code      Addr1    Addr2    Stmt )|(.{111})Page +\d+)/;
+const pageBoundary = /^.+(?:(High Level Assembler Option Summary)|(External Symbol Dictionary)|(Relocation Dictionary)|(Ordinary Symbol and Literal Cross Reference)|(Macro and Copy Code Source Summary)|(Dsect Cross Reference)|(Using Map)|(General Purpose Register cross reference)|(Diagnostic Cross Reference and Assembler Summary))/;
 
 // Symbol   Length   Value     Id    R Type Asm  Program   Defn References                     
 // A             4 00000000 00000001     A  A                 1   44    45    46    47    48    49    50    51    52    53 
@@ -61,7 +61,7 @@ function testLine(s: string): { type: BoudnaryType, capture: string } | undefine
 
     for (let i = 1; i < m.length; ++i) {
         if (m[i])
-            return { type: <BoudnaryType>(2 + i - 1), capture: m[1] };
+            return { type: <BoudnaryType>(l.length - 2 + i - 1), capture: m[1] };
     }
 
     return undefined;
@@ -294,7 +294,6 @@ function processListing(doc: vscode.TextDocument, start: number): { nexti: numbe
     return { nexti: i, result };
 }
 
-
 function produceListings(doc: vscode.TextDocument): Listing[] {
     const result: Listing[] = []
 
@@ -331,6 +330,54 @@ function isolateSymbol(document: vscode.TextDocument, position: vscode.Position)
         ++end;
 
     return line.substring(start, end).toUpperCase();
+}
+
+function sectionAsSymbol(s: Section, title: string, detail: string = '') {
+    const r = new vscode.Range(s.start, 0, s.end, 0);
+    return new vscode.DocumentSymbol(title, detail, vscode.SymbolKind.Namespace, r, r);
+}
+
+function listingAsSymbol(l: Listing, id: number) {
+    const result = new vscode.DocumentSymbol(
+        `Listing ${id}`,
+        '',
+        vscode.SymbolKind.Module,
+        new vscode.Range(l.start, 0, l.end, 0),
+        new vscode.Range(l.start, 0, l.end, 0)
+    );
+
+    if (l.options) {
+        result.children.push(sectionAsSymbol(l.options, 'High Level Assembler Option Summary'));
+    }
+    if (l.externals) {
+        result.children.push(sectionAsSymbol(l.externals, 'External Symbol Dictionary'));
+    }
+    if (l.codeSections.length > 0) {
+        result.children.push(sectionAsSymbol({ start: l.codeSections[0].start, end: l.codeSections[l.codeSections.length - 1].end }, 'Object Code'));
+    }
+    if (l.relocations) {
+        result.children.push(sectionAsSymbol(l.relocations, 'Relocation Dictionary'));
+    }
+    if (l.ordinary) {
+        result.children.push(sectionAsSymbol(l.ordinary, 'Ordinary Symbol and Literal Cross Reference'));
+    }
+    if (l.macro) {
+        result.children.push(sectionAsSymbol(l.macro, 'Macro and Copy Code Source Summary'));
+    }
+    if (l.dsects) {
+        result.children.push(sectionAsSymbol(l.dsects, 'Dsect Cross Reference'));
+    }
+    if (l.usings) {
+        result.children.push(sectionAsSymbol(l.usings, 'Using Map'));
+    }
+    if (l.registers) {
+        result.children.push(sectionAsSymbol(l.registers, 'General Purpose Register cross reference'));
+    }
+    if (l.summary) {
+        result.children.push(sectionAsSymbol(l.summary, 'Diagnostic Cross Reference and Assembler Summary'));
+    }
+
+    return result;
 }
 
 export function registerListingServices(context: vscode.ExtensionContext) {
@@ -387,9 +434,13 @@ export function registerListingServices(context: vscode.ExtensionContext) {
             .map(x => document.lineAt(x).text)
             .reduce((acc, cur) => { return acc.appendCodeblock(cur, languageIdhlasmListing); }, new vscode.MarkdownString()))
         ),
+        provideDocumentSymbols: (document: vscode.TextDocument) =>
+            (listings.get(document.uri.toString()) || handleListingContent(document) || []).map((l, id) => listingAsSymbol(l, id + 1))
+        ,
     };
 
     context.subscriptions.push(vscode.languages.registerDefinitionProvider(languageIdhlasmListing, services));
     context.subscriptions.push(vscode.languages.registerReferenceProvider(languageIdhlasmListing, services));
     context.subscriptions.push(vscode.languages.registerHoverProvider(languageIdhlasmListing, services));
+    context.subscriptions.push(vscode.languages.registerDocumentSymbolProvider(languageIdhlasmListing, services));
 }
