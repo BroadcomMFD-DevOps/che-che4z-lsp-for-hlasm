@@ -21,7 +21,7 @@ const ordchar = /[A-Za-z0-9$#@_]/;
 const objCode = /^(?:.?)(?:[0-9A-F]{6} .{26}|[0-9A-F]{8} .{32}|[ ]{18,22}[0-9A-F]{6}|[ ]{24}[0-9A-F]{8})( *\d+)/;
 const listingStart = /^(?:.?)                                         High Level Assembler Option Summary                   .............   Page    1/;
 const lineText = /^(?:.?)(?:(Return Code )|\*\* (ASMA\d\d\d[NIWES] .+)|(.{111})Page +\d+)/;
-const pageBoundary = /^.+(?:(High Level Assembler Option Summary)|(Ordinary Symbol and Literal Cross Reference)|(Macro and Copy Code Source Summary)|(Dsect Cross Reference)|(General Purpose Register cross reference)|(Diagnostic Cross Reference and Assembler Summary))/;
+const pageBoundary = /^.+(?:(  Loc  Object Code    Addr1 Addr2  Stmt |  Loc    Object Code      Addr1    Addr2    Stmt )|(High Level Assembler Option Summary)|(External Symbol Dictionary)|(Relocation Dictionary)|(Ordinary Symbol and Literal Cross Reference)|(Macro and Copy Code Source Summary)|(Dsect Cross Reference)|(Using Map)|(General Purpose Register cross reference)|(Diagnostic Cross Reference and Assembler Summary))/;
 
 // Symbol   Length   Value     Id    R Type Asm  Program   Defn References                     
 // A             4 00000000 00000001     A  A                 1   44    45    46    47    48    49    50    51    52    53 
@@ -34,10 +34,14 @@ const ordinaryRefRest = /^(?:.?[ ]{60,})(\d.+)/;
 const enum BoudnaryType {
     ReturnStatement,
     Diagnostic,
+    ObjectCodeHeader,
     OptionsRef,
+    ExternalRef,
+    RelocationDict,
     OrdinaryRef,
     MacroRef,
     DsectRef,
+    UsingsRef,
     RegistersRef,
     DiagnosticRef,
     OtherBoundary,
@@ -47,15 +51,15 @@ function testLine(s: string): { type: BoudnaryType, capture: string } | undefine
     const l = lineText.exec(s);
     if (!l) return undefined;
 
-    for (let i = 1; i < 3; ++i) {
+    for (let i = 1; i < l.length - 1; ++i) {
         if (l[i])
             return { type: <BoudnaryType>(i - 1), capture: l[i] };
     }
 
-    const m = pageBoundary.exec(l[3]);
+    const m = pageBoundary.exec(l[l.length - 1]);
     if (!m) return { type: BoudnaryType.OtherBoundary, capture: '' };
 
-    for (let i = 1; i < 6; ++i) {
+    for (let i = 1; i < m.length; ++i) {
         if (m[i])
             return { type: <BoudnaryType>(2 + i - 1), capture: m[1] };
     }
@@ -70,12 +74,29 @@ function asLevel(code: string) {
     return vscode.DiagnosticSeverity.Error;
 }
 
+type Section = {
+    start: number,
+    end: number,
+};
+
 type Listing = {
     start: number,
     end: number,
+    type?: 'long' | 'short';
     diagnostics: vscode.Diagnostic[],
     statementLines: Map<number, number>,
     symbols: Map<string, Symbol>,
+    codeSections: Section[],
+
+    options?: Section,
+    externals?: Section,
+    relocations?: Section,
+    ordinary?: Section,
+    macro?: Section,
+    dsects?: Section,
+    usings?: Section,
+    registers?: Section,
+    summary?: Section,
 };
 
 function updateSymbols(symbols: Map<string, Symbol>, symbol: Symbol) {
@@ -106,6 +127,7 @@ function processListing(doc: vscode.TextDocument, start: number): { nexti: numbe
         diagnostics: [],
         statementLines: new Map<number, number>(),
         symbols: new Map<string, Symbol>(),
+        codeSections: [],
     };
     const enum States {
         Options,
@@ -115,6 +137,7 @@ function processListing(doc: vscode.TextDocument, start: number): { nexti: numbe
     };
 
     let symbol: Symbol | undefined;
+    let lastSection: { end: number } | undefined = undefined;
 
     let state = States.Options;
     let i = start;
@@ -122,33 +145,92 @@ function processListing(doc: vscode.TextDocument, start: number): { nexti: numbe
         const line = doc.lineAt(i);
         const l = testLine(line.text);
         if (l) {
+            if (lastSection) {
+                lastSection.end = i;
+                lastSection = undefined;
+            }
             switch (l.type) {
                 case BoudnaryType.ReturnStatement:
                     ++i
+                    if (result.summary)
+                        result.summary.end = i;
                     break main;
                 case BoudnaryType.Diagnostic:
-                    const code = l!.capture.substring(0, 8);
-                    const text = l!.capture.substring(9).trim();
+                    const code = l.capture.substring(0, 8);
+                    const text = l.capture.substring(9).trim();
                     const d = new vscode.Diagnostic(line.range, text, asLevel(code));
                     d.code = code;
                     result.diagnostics.push(d);
                     break;
                 case BoudnaryType.OptionsRef:
+                    if (!result.options) {
+                        result.options = { start: i, end: i };
+                    }
+                    lastSection = result.options;
+                    break;
+                case BoudnaryType.ObjectCodeHeader:
+                    if (l.capture.length < 45)
+                        result.type = 'short';
+                    else
+                        result.type = 'long';
+                    const codeSection = { start: i, end: i };
+                    lastSection = codeSection;
+                    result.codeSections.push(codeSection);
+                    break;
+                case BoudnaryType.ExternalRef:
+                    if (!result.externals) {
+                        result.ordinary = { start: i, end: i };
+                        lastSection = result.ordinary;
+                    }
                     break;
                 case BoudnaryType.OrdinaryRef:
+                    if (!result.ordinary) {
+                        result.ordinary = { start: i, end: i };
+                    }
+                    lastSection = result.ordinary;
                     state = States.OrdinaryRefs;
                     ++i; // skip header
                     break;
                 case BoudnaryType.MacroRef:
+                    if (!result.macro) {
+                        result.macro = { start: i, end: i };
+                    }
+                    lastSection = result.macro;
                     state = States.Refs;
                     break;
                 case BoudnaryType.DsectRef:
+                    if (!result.dsects) {
+                        result.dsects = { start: i, end: i };
+                    }
+                    lastSection = result.dsects;
                     state = States.Refs;
                     break;
                 case BoudnaryType.RegistersRef:
+                    if (!result.registers) {
+                        result.registers = { start: i, end: i };
+                    }
+                    lastSection = result.registers;
                     state = States.Refs;
                     break;
                 case BoudnaryType.DiagnosticRef:
+                    if (!result.summary) {
+                        result.summary = { start: i, end: i };
+                    }
+                    lastSection = result.summary;
+                    state = States.Refs;
+                    break;
+                case BoudnaryType.RelocationDict:
+                    if (!result.relocations) {
+                        result.relocations = { start: i, end: i };
+                    }
+                    lastSection = result.relocations;
+                    state = States.Refs;
+                    break;
+                case BoudnaryType.UsingsRef:
+                    if (!result.usings) {
+                        result.usings = { start: i, end: i };
+                    }
+                    lastSection = result.usings;
                     state = States.Refs;
                     break;
                 case BoudnaryType.OtherBoundary:
@@ -203,6 +285,10 @@ function processListing(doc: vscode.TextDocument, start: number): { nexti: numbe
     }
     if (symbol)
         updateSymbols(result.symbols, symbol);
+    if (lastSection) {
+        lastSection.end = i;
+        lastSection = undefined;
+    }
 
     result.end = i;
     return { nexti: i, result };
