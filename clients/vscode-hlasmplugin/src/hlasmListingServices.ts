@@ -19,7 +19,7 @@ const languageIdhlasmListing = 'hlasmListing';
 
 const ordchar = /[A-Za-z0-9$#@_]/;
 const objCode = /^(?:.?)(?:[0-9A-F]{6} .{26}|[0-9A-F]{8} .{32}|[ ]{18,22}[0-9A-F]{6}|[ ]{24}[0-9A-F]{8})( *\d+)/;
-const listingStart = /^(?:.?)                                         High Level Assembler Option Summary                   .............   Page    1/;
+const listingStart = /^(.?)                                         High Level Assembler Option Summary                   .............   Page    1/;
 const lineText = /^(?:.?)(?:(Return Code )|\*\* (ASMA\d\d\d[NIWES] .+)|(  Loc  Object Code    Addr1 Addr2  Stmt |  Loc    Object Code      Addr1    Addr2    Stmt )|(.{111})Page +\d+)/;
 const pageBoundary = /^.+(?:(High Level Assembler Option Summary)|(External Symbol Dictionary)|(Relocation Dictionary)|(Ordinary Symbol and Literal Cross Reference)|(Macro and Copy Code Source Summary)|(Dsect Cross Reference)|(Using Map)|(General Purpose Register cross reference)|(Diagnostic Cross Reference and Assembler Summary))/;
 
@@ -82,6 +82,7 @@ type Section = {
 type Listing = {
     start: number,
     end: number,
+    hasPrefix: boolean,
     type?: 'long' | 'short';
     diagnostics: vscode.Diagnostic[],
     statementLines: Map<number, number>,
@@ -120,10 +121,11 @@ class Symbol {
     }
 }
 
-function processListing(doc: vscode.TextDocument, start: number): { nexti: number, result: Listing } {
+function processListing(doc: vscode.TextDocument, start: number, hasPrefix: boolean): { nexti: number, result: Listing } {
     const result: Listing = {
         start,
         end: start,
+        hasPrefix,
         diagnostics: [],
         statementLines: new Map<number, number>(),
         symbols: new Map<string, Symbol>(),
@@ -173,7 +175,7 @@ function processListing(doc: vscode.TextDocument, start: number): { nexti: numbe
                         result.type = 'short';
                     else
                         result.type = 'long';
-                    const codeSection = { start: i, end: i };
+                    const codeSection = { start: i + 1, end: i + 1 };
                     lastSection = codeSection;
                     result.codeSections.push(codeSection);
                     break;
@@ -304,7 +306,7 @@ function produceListings(doc: vscode.TextDocument): Listing[] {
             ++i;
             continue;
         }
-        const { nexti, result: listing } = processListing(doc, i);
+        const { nexti, result: listing } = processListing(doc, i, !!m[1]);
         result.push(listing);
         i = nexti;
     }
@@ -316,7 +318,7 @@ function asHover(md: vscode.MarkdownString | undefined): vscode.Hover | undefine
     return md ? new vscode.Hover(md) : undefined;
 }
 
-function isolateSymbol(document: vscode.TextDocument, position: vscode.Position) {
+function isolateSymbolSimple(document: vscode.TextDocument, position: vscode.Position) {
     if (position.line >= document.lineCount)
         return undefined;
     const line = document.lineAt(position.line).text;
@@ -330,6 +332,61 @@ function isolateSymbol(document: vscode.TextDocument, position: vscode.Position)
         ++end;
 
     return line.substring(start, end).toUpperCase();
+}
+
+function codeColumns(type: 'short' | 'long', hasPrefix: boolean) {
+    if (type === 'short')
+        return { left: 40 + +hasPrefix, right: 111 + +hasPrefix };
+    else
+        return { left: 49 + +hasPrefix, right: 120 + +hasPrefix };
+}
+
+function isolateSymbol(l: Listing, document: vscode.TextDocument, position: vscode.Position) {
+    const csi = l.codeSections.findIndex(s => s.start <= position.line && position.line < s.end);
+    if (!l.type || csi === -1) return isolateSymbolSimple(document, position);
+    const cs = l.codeSections[csi];
+    const { left, right } = codeColumns(l.type, l.hasPrefix);
+    if (position.character < left || position.character >= right) return isolateSymbolSimple(document, position);
+
+    let start = position.character;
+    let end = position.character;
+
+    const prevLine = cs.start < position.line ? position.line - 1 : csi === 0 ? -1 : l.codeSections[csi - 1].end - 1;
+    const nextLine = position.line + 1 < cs.end ? position.line + 1 : csi === l.codeSections.length - 1 ? -1 : l.codeSections[csi + 1].start;
+
+    const prevText = prevLine >= 0 ? document.lineAt(prevLine).text : '';
+    const thisText = document.lineAt(position.line).text;
+    const nextText = nextLine >= 0 ? document.lineAt(nextLine).text : '';
+
+    const prevContinued = prevLine >= 0 && /[^ ]/.test(prevText[right]);
+    const thisContinued = /[^ ]/.test(thisText[right]);
+
+    const thisOffset = prevContinued ? 15 : 0;
+
+    while (start > left + thisOffset && ordchar.test(thisText[start - 1]))
+        --start;
+    while (end < right && ordchar.test(thisText[end]))
+        ++end;
+
+    let prefix = '';
+    let result = thisText.substring(start, end);
+    let suffix = '';
+
+    // Handle continuation only one line up and down
+    if (prevContinued && start == left + thisOffset) {
+        start = right;
+        while (start > left + thisOffset && ordchar.test(prevText[start - 1]))
+            --start;
+        prefix = prevText.substring(start, right);
+    }
+    if (thisContinued && end == right) {
+        end = left + 15;
+        while (end < right && ordchar.test(nextText[end]))
+            ++end;
+        suffix = nextText.substring(left + 15, end);
+    }
+
+    return (prefix + result + suffix).toUpperCase();
 }
 
 function sectionAsSymbol(s: Section, title: string, detail: string = '') {
@@ -398,9 +455,10 @@ export function registerListingServices(context: vscode.ExtensionContext) {
 
     function symbolFunction<R, Args extends any[]>(f: (symbol: Symbol, l: Listing, document: vscode.TextDocument, ...args: Args) => R) {
         return (document: vscode.TextDocument, position: vscode.Position, ...args: Args): R | undefined => {
-            const symName = isolateSymbol(document, position);
             const l = (listings.get(document.uri.toString()) || handleListingContent(document) || []).find(x => x.start <= position.line && position.line < x.end);
-            if (!symName || !l) return undefined;
+            if (!l) return undefined;
+            const symName = isolateSymbol(l, document, position);
+            if (!symName) return undefined;
             const symbol = l.symbols.get(symName);
             if (!symbol) return undefined;
             return f(symbol, l, document, ...args);
