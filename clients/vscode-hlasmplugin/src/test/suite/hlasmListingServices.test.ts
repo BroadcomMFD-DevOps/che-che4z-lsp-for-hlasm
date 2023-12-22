@@ -183,7 +183,7 @@ suite('Language services for listings', () => {
 
         assert.deepStrictEqual(l.options, { start: 2, end: 69 });
         assert.deepStrictEqual(l.externals, { start: 69, end: 73 });
-        assert.deepStrictEqual(l.codeSections, [{ start: 76, end: 86 }]);
+        assert.deepStrictEqual(l.codeSections, [{ start: 76, end: 86, title: '' }]);
         assert.strictEqual(l.relocations, undefined);
         assert.deepStrictEqual(l.ordinary, { start: 86, end: 93 });
         assert.strictEqual(l.macro, undefined);
@@ -229,5 +229,8 @@ suite('Language services for listings', () => {
         const outline = services.provideDocumentSymbols(document);
 
         assert.strictEqual(outline?.length, 1);
+        const code = outline[0].children.find(x => x.children.length > 0);
+        assert.ok(code);
+        assert.ok(code.children.some(x => x.name === '(untitled)'));
     });
 });

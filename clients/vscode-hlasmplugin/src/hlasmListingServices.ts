@@ -85,11 +85,11 @@ function testLine(s: string, r: RegexSet): { type: BoudnaryType, capture: string
     }
 
     const m = r.pageBoundary.exec(l[l.length - 1]);
-    if (!m) return { type: BoudnaryType.OtherBoundary, capture: '' };
+    if (!m) return { type: BoudnaryType.OtherBoundary, capture: l[l.length - 1] };
 
     for (let i = 1; i < m.length; ++i) {
         if (m[i])
-            return { type: <BoudnaryType>(l.length - 2 + i - 1), capture: m[1] };
+            return { type: <BoudnaryType>(l.length - 2 + i - 1), capture: m[i] };
     }
 
     return undefined;
@@ -115,7 +115,7 @@ type Listing = {
     diagnostics: vscode.Diagnostic[],
     statementLines: Map<number, number>,
     symbols: Map<string, Symbol>,
-    codeSections: Section[],
+    codeSections: (Section & { title: string })[],
 
     options?: Section,
     externals?: Section,
@@ -169,6 +169,7 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
 
     let symbol: Symbol | undefined;
     let lastSection: { end: number } | undefined = undefined;
+    let lastTitle = '';
 
     let state = States.Options;
     let i = start;
@@ -205,7 +206,11 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
                         result.type = 'short';
                     else
                         result.type = 'long';
-                    const codeSection = { start: i + 1, end: i + 1 };
+                    const codeSection = {
+                        start: i + 1,
+                        end: i + 1,
+                        title: lastTitle
+                    };
                     lastSection = codeSection;
                     result.codeSections.push(codeSection);
                     break;
@@ -269,6 +274,7 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
                 case BoudnaryType.OtherBoundary:
                     if (state === States.Options)
                         state = States.Code;
+                    lastTitle = l.capture.substring(9).trim();
                     break;
             }
         }
@@ -424,6 +430,11 @@ function sectionAsSymbol(s: Section, title: string, detail: string = '') {
     return new vscode.DocumentSymbol(title, detail, vscode.SymbolKind.Namespace, r, r);
 }
 
+function codeSectionAsSymbol(s: Section & { title: string }) {
+    const r = new vscode.Range(s.start, 0, s.end, 0);
+    return new vscode.DocumentSymbol(s.title ? s.title : '(untitled)', '', vscode.SymbolKind.Package, r, r);
+}
+
 function listingAsSymbol(l: Listing, id: number) {
     const result = new vscode.DocumentSymbol(
         `Listing ${id}`,
@@ -440,7 +451,19 @@ function listingAsSymbol(l: Listing, id: number) {
         result.children.push(sectionAsSymbol(l.externals, 'External Symbol Dictionary'));
     }
     if (l.codeSections.length > 0) {
-        result.children.push(sectionAsSymbol({ start: l.codeSections[0].start, end: l.codeSections[l.codeSections.length - 1].end }, 'Object Code'));
+        const code = sectionAsSymbol({ start: l.codeSections[0].start, end: l.codeSections[l.codeSections.length - 1].end }, 'Object Code');
+        result.children.push(code);
+        code.children = l.codeSections.reduce<typeof l.codeSections>((acc, c) => {
+            const last = acc[acc.length - 1];
+            if (last?.title === c.title) {
+                last.start = Math.min(last.start, c.start);
+                last.end = Math.max(last.end, c.end);
+            }
+            else {
+                acc.push(c);
+            }
+            return acc;
+        }, []).map(x => codeSectionAsSymbol(x));
     }
     if (l.relocations) {
         result.children.push(sectionAsSymbol(l.relocations, 'Relocation Dictionary'));
