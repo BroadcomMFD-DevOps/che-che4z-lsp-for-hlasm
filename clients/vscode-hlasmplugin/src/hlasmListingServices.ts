@@ -218,8 +218,8 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
                 case BoudnaryType.ExternalRef:
                     if (!result.externals) {
                         result.externals = { start: i, end: i };
-                        lastSection = result.externals;
                     }
+                    lastSection = result.externals;
                     break;
                 case BoudnaryType.OrdinaryRef:
                     if (!result.ordinary) {
