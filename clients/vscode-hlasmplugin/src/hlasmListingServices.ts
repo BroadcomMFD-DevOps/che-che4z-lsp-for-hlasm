@@ -160,6 +160,13 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
         symbols: new Map<string, Symbol>(),
         codeSections: [],
     };
+    type ListingSections = Exclude<{ [key in keyof Listing]: Listing[key] extends (Section | undefined) ? key : never }[keyof Listing], undefined>;
+    const updateCommonSection = <Name extends ListingSections>(name: Name, lineno: number): Listing[Name] => {
+        if (!result[name]) {
+            result[name] = { start: lineno, end: lineno };
+        }
+        return result[name];
+    };
     const enum States {
         Options,
         Code,
@@ -196,10 +203,7 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
                     break;
                 }
                 case BoudnaryType.OptionsRef:
-                    if (!result.options) {
-                        result.options = { start: i, end: i };
-                    }
-                    lastSection = result.options;
+                    lastSection = updateCommonSection('options', i);
                     break;
                 case BoudnaryType.ObjectCodeHeader: {
                     if (l.capture.length < 45)
@@ -216,59 +220,35 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
                     break;
                 }
                 case BoudnaryType.ExternalRef:
-                    if (!result.externals) {
-                        result.externals = { start: i, end: i };
-                    }
-                    lastSection = result.externals;
+                    lastSection = updateCommonSection('externals', i);
                     break;
                 case BoudnaryType.OrdinaryRef:
-                    if (!result.ordinary) {
-                        result.ordinary = { start: i, end: i };
-                    }
-                    lastSection = result.ordinary;
+                    lastSection = updateCommonSection('ordinary', i);
                     state = States.OrdinaryRefs;
                     ++i; // skip header
                     break;
                 case BoudnaryType.MacroRef:
-                    if (!result.macro) {
-                        result.macro = { start: i, end: i };
-                    }
-                    lastSection = result.macro;
+                    lastSection = updateCommonSection('macro', i);
                     state = States.Refs;
                     break;
                 case BoudnaryType.DsectRef:
-                    if (!result.dsects) {
-                        result.dsects = { start: i, end: i };
-                    }
-                    lastSection = result.dsects;
+                    lastSection = updateCommonSection('dsects', i);
                     state = States.Refs;
                     break;
                 case BoudnaryType.RegistersRef:
-                    if (!result.registers) {
-                        result.registers = { start: i, end: i };
-                    }
-                    lastSection = result.registers;
+                    lastSection = updateCommonSection('registers', i);
                     state = States.Refs;
                     break;
                 case BoudnaryType.DiagnosticRef:
-                    if (!result.summary) {
-                        result.summary = { start: i, end: i };
-                    }
-                    lastSection = result.summary;
+                    lastSection = updateCommonSection('summary', i);
                     state = States.Refs;
                     break;
                 case BoudnaryType.RelocationDict:
-                    if (!result.relocations) {
-                        result.relocations = { start: i, end: i };
-                    }
-                    lastSection = result.relocations;
+                    lastSection = updateCommonSection('relocations', i);
                     state = States.Refs;
                     break;
                 case BoudnaryType.UsingsRef:
-                    if (!result.usings) {
-                        result.usings = { start: i, end: i };
-                    }
-                    lastSection = result.usings;
+                    lastSection = updateCommonSection('usings', i);
                     state = States.Refs;
                     break;
                 case BoudnaryType.OtherBoundary:
