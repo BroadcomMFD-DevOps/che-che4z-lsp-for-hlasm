@@ -217,6 +217,13 @@ suite('Language services for listings', () => {
         assert.deepStrictEqual(ref[0].range.start.line, 77);
     });
 
+    test('References with definition', async () => {
+        const ref = services.provideReferences(document, new vscode.Position(101, 90), { includeDeclaration: true });
+
+        assert.strictEqual(ref?.length, 2);
+        assert.deepStrictEqual(ref?.map(x => x.range.start.line).sort((l, r) => l - r), [77, 81]);
+    });
+
     test('Hover', async () => {
         const h = services.provideHover(document, new vscode.Position(101, 90));
 

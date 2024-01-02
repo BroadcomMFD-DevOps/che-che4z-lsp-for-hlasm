@@ -15,7 +15,7 @@
 import * as vscode from 'vscode';
 import { EXTENSION_ID } from './extension';
 
-const languageIdhlasmListing = 'hlasmListing';
+const languageIdHlasmListing = 'hlasmListing';
 
 const ordchar = /[A-Za-z0-9$#@_]/;
 
@@ -435,9 +435,9 @@ function codeSectionAsSymbol(s: Section & { title: string }) {
     return new vscode.DocumentSymbol(s.title ? s.title : '(untitled)', '', vscode.SymbolKind.Package, r, r);
 }
 
-function listingAsSymbol(l: Listing, id: number) {
+function listingAsSymbol(l: Listing, id: number | undefined) {
     const result = new vscode.DocumentSymbol(
-        `Listing ${id}`,
+        id ? `Listing ${id}` : 'Listing',
         '',
         vscode.SymbolKind.Module,
         new vscode.Range(l.start, 0, l.end, 0),
@@ -494,10 +494,10 @@ export function createListingServices(diagCollection?: vscode.DiagnosticCollecti
     const listings = new Map<string, Listing[]>();
 
     function handleListingContent(doc: vscode.TextDocument) {
-        if (doc.languageId !== languageIdhlasmListing) return;
+        if (doc.languageId !== languageIdHlasmListing) return;
         const initVersion = doc.version;
         const data = produceListings(doc);
-        if (initVersion !== doc.version || doc.languageId !== languageIdhlasmListing) return;
+        if (initVersion !== doc.version || doc.languageId !== languageIdHlasmListing) return;
         listings.set(doc.uri.toString(), data);
         diagCollection?.set(doc.uri, data.flatMap(x => x.diagnostics));
 
@@ -539,10 +539,10 @@ export function createListingServices(diagCollection?: vscode.DiagnosticCollecti
             .map(x => l.statementLines.get(x))
             .filter((x): x is number => typeof x === 'number')
             .map(x => document.lineAt(x).text)
-            .reduce((acc, cur) => { return acc.appendCodeblock(cur, languageIdhlasmListing); }, new vscode.MarkdownString()))
+            .reduce((acc, cur) => { return acc.appendCodeblock(cur, languageIdHlasmListing); }, new vscode.MarkdownString()))
         ),
         provideDocumentSymbols: (document: vscode.TextDocument) =>
-            (listings.get(document.uri.toString()) ?? handleListingContent(document))?.map((l, id) => listingAsSymbol(l, id + 1))
+            (listings.get(document.uri.toString()) ?? handleListingContent(document))?.map((l, id, ar) => listingAsSymbol(l, ar.length > 1 ? id + 1 : undefined))
         ,
     };
 }
@@ -557,10 +557,10 @@ export function registerListingServices(context: vscode.ExtensionContext) {
     vscode.workspace.onDidChangeTextDocument(({ document: doc }) => services.handleListingContent(doc), undefined, context.subscriptions);
     vscode.workspace.onDidCloseTextDocument(services.releaseListingContent, undefined, context.subscriptions);
 
-    Promise.allSettled(vscode.workspace.textDocuments.filter(x => x.languageId === languageIdhlasmListing).map(x => services.handleListingContent(x))).catch(() => { });
+    Promise.allSettled(vscode.workspace.textDocuments.filter(x => x.languageId === languageIdHlasmListing).map(x => services.handleListingContent(x))).catch(() => { });
 
-    context.subscriptions.push(vscode.languages.registerDefinitionProvider(languageIdhlasmListing, services));
-    context.subscriptions.push(vscode.languages.registerReferenceProvider(languageIdhlasmListing, services));
-    context.subscriptions.push(vscode.languages.registerHoverProvider(languageIdhlasmListing, services));
-    context.subscriptions.push(vscode.languages.registerDocumentSymbolProvider(languageIdhlasmListing, services));
+    context.subscriptions.push(vscode.languages.registerDefinitionProvider(languageIdHlasmListing, services));
+    context.subscriptions.push(vscode.languages.registerReferenceProvider(languageIdHlasmListing, services));
+    context.subscriptions.push(vscode.languages.registerHoverProvider(languageIdHlasmListing, services));
+    context.subscriptions.push(vscode.languages.registerDocumentSymbolProvider(languageIdHlasmListing, services));
 }
