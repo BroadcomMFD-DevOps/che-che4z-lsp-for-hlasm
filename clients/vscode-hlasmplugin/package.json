@@ -223,7 +223,8 @@
       {
         "id": "hlasmListing",
         "extensions": [
-          ".listing"
+          ".listing",
+          ".lst"
         ],
         "aliases": [
           "HLASMListing"
