@@ -115,7 +115,7 @@ type Listing = {
     diagnostics: vscode.Diagnostic[],
     statementLines: Map<number, number>,
     symbols: Map<string, Symbol>,
-    codeSections: (Section & { title: string })[],
+    codeSections: (Section & { title: string, codeStart: number })[],
 
     options?: Section,
     externals?: Section,
@@ -177,6 +177,7 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
     let symbol: Symbol | undefined;
     let lastSection: { end: number } | undefined = undefined;
     let lastTitle = '';
+    let lastTitleLine = start;
 
     let state = States.Options;
     let i = start;
@@ -211,9 +212,10 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
                     else
                         result.type = 'long';
                     const codeSection = {
-                        start: i + 1,
+                        start: lastTitleLine,
                         end: i + 1,
-                        title: lastTitle
+                        title: lastTitle,
+                        codeStart: i + 1,
                     };
                     lastSection = codeSection;
                     result.codeSections.push(codeSection);
@@ -255,6 +257,7 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
                     if (state === States.Options)
                         state = States.Code;
                     lastTitle = l.capture.substring(9).trim();
+                    lastTitleLine = i;
                     break;
             }
         }
@@ -358,7 +361,7 @@ function codeColumns(type: 'short' | 'long', hasPrefix: boolean) {
 }
 
 function isolateSymbol(l: Listing, document: vscode.TextDocument, position: vscode.Position) {
-    const csi = l.codeSections.findIndex(s => s.start <= position.line && position.line < s.end);
+    const csi = l.codeSections.findIndex(s => s.codeStart <= position.line && position.line < s.end);
     if (!l.type || csi === -1) return isolateSymbolSimple(document, position);
     const cs = l.codeSections[csi];
     const { left, right } = codeColumns(l.type, l.hasPrefix);
@@ -367,8 +370,8 @@ function isolateSymbol(l: Listing, document: vscode.TextDocument, position: vsco
     let start = position.character;
     let end = position.character;
 
-    const prevLine = cs.start < position.line ? position.line - 1 : csi === 0 ? -1 : l.codeSections[csi - 1].end - 1;
-    const nextLine = position.line + 1 < cs.end ? position.line + 1 : csi === l.codeSections.length - 1 ? -1 : l.codeSections[csi + 1].start;
+    const prevLine = cs.codeStart < position.line ? position.line - 1 : csi === 0 ? -1 : l.codeSections[csi - 1].end - 1;
+    const nextLine = position.line + 1 < cs.end ? position.line + 1 : csi === l.codeSections.length - 1 ? -1 : l.codeSections[csi + 1].codeStart;
 
     const prevText = prevLine >= 0 ? document.lineAt(prevLine).text : '';
     const thisText = document.lineAt(position.line).text;
