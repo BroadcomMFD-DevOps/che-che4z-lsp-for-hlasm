@@ -40,7 +40,7 @@ type RegexSet = {
 const withoutPrefix = {
     objShortCode: /^.{33}( *\d+)\D/,
     objLongCode: /^.{41}( *\d+)\D/,
-    lineText: /^(?:(Return Code )|\*\* (ASMA\d\d\d[NIWES] .+)|(  Loc  Object Code    Addr1 Addr2  Stmt |  Loc    Object Code      Addr1    Addr2    Stmt )|(.{111})Page +\d+)/,
+    lineText: /^(?:(Return Code )|\*\* (ASMA\d\d\d[NIWES] .+)|((?:  |[CDR]-)Loc  Object Code    Addr1 Addr2  Stmt |(?:  |[CDR]-)Loc    Object Code      Addr1    Addr2    Stmt )|(.{111})Page +\d+)/,
     pageBoundary: /^.+(?:(High Level Assembler Option Summary)|(External Symbol Dictionary)|(Relocation Dictionary)|(Ordinary Symbol and Literal Cross Reference)|(Macro and Copy Code Source Summary)|(Dsect Cross Reference)|(Using Map)|(General Purpose Register Cross Reference)|(Diagnostic Cross Reference and Assembler Summary))/,
 
     ordinaryRefFirstLine: /^(?:([a-zA-Z$#@_][a-zA-Z$#@0-9_]{0,7}) +(\d+) ([0-9A-F]{8}) [0-9A-F]{8} . .... ...  ....... +(\d+) +(\d.+|)|([a-zA-Z$#@_][a-zA-Z$#@0-9_]{8,}))/,
@@ -51,7 +51,7 @@ const withoutPrefix = {
 const withPrefix = {
     objShortCode: /^..{33}( *\d+)\D/,
     objLongCode: /^..{41}( *\d+)\D/,
-    lineText: /^.(?:(Return Code )|\*\* (ASMA\d\d\d[NIWES] .+)|(  Loc  Object Code    Addr1 Addr2  Stmt |  Loc    Object Code      Addr1    Addr2    Stmt )|(.{111})Page +\d+)/,
+    lineText: /^.(?:(Return Code )|\*\* (ASMA\d\d\d[NIWES] .+)|((?:  |[CDR]-)Loc  Object Code    Addr1 Addr2  Stmt |(?:  |[CDR]-)Loc    Object Code      Addr1    Addr2    Stmt )|(.{111})Page +\d+)/,
     pageBoundary: /^.+(?:(High Level Assembler Option Summary)|(External Symbol Dictionary)|(Relocation Dictionary)|(Ordinary Symbol and Literal Cross Reference)|(Macro and Copy Code Source Summary)|(Dsect Cross Reference)|(Using Map)|(General Purpose Register Cross Reference)|(Diagnostic Cross Reference and Assembler Summary))/,
 
     ordinaryRefFirstLine: /^.(?:([a-zA-Z$#@_][a-zA-Z$#@0-9_]{0,7}) +(\d+) ([0-9A-F]{8}) [0-9A-F]{8} . .... ...  ....... +(\d+) +(\d.+|)|([a-zA-Z$#@_][a-zA-Z$#@0-9_]{8,}))/,
