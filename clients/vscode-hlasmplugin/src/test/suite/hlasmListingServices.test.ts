@@ -183,7 +183,7 @@ suite('Language services for listings', () => {
 
         assert.deepStrictEqual(l.options, { start: 2, end: 69 });
         assert.deepStrictEqual(l.externals, { start: 69, end: 73 });
-        assert.deepStrictEqual(l.codeSections, [{ start: 76, end: 86, title: '' }]);
+        assert.deepStrictEqual(l.codeSections, [{ start: 73, end: 86, title: '', codeStart: 76 }]);
         assert.strictEqual(l.relocations, undefined);
         assert.deepStrictEqual(l.ordinary, { start: 86, end: 93 });
         assert.strictEqual(l.macro, undefined);
