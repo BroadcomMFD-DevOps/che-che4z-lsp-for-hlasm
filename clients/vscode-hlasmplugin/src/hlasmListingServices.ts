@@ -128,6 +128,11 @@ type Listing = {
     summary?: Section,
 };
 
+function getCodeRange(l: Listing, line: number) {
+    const start = +l.hasPrefix + (l.type === 'long' ? 49 : 40);
+    return new vscode.Range(line, start, line, start + 72);
+}
+
 function updateSymbols(symbols: Map<string, Symbol>, symbol: Symbol) {
     const name = symbol.name.toUpperCase();
     const s = symbols.get(name);
@@ -511,12 +516,12 @@ export function createListingServices(diagCollection?: vscode.DiagnosticCollecti
         provideDefinition: symbolFunction((symbol, l, document) => symbol.defined
             .map(x => l.statementLines.get(x))
             .filter((x): x is number => typeof x === 'number')
-            .map(x => new vscode.Location(document.uri, new vscode.Position(x, 0))))
+            .map(x => new vscode.Location(document.uri, getCodeRange(l, x))))
         ,
         provideReferences: symbolFunction((symbol, l, document, context: vscode.ReferenceContext) => symbol.computeReferences(context.includeDeclaration)
             .map(x => l.statementLines.get(x))
             .filter((x): x is number => typeof x === 'number')
-            .map(x => new vscode.Location(document.uri, new vscode.Position(x, 0)))
+            .map(x => new vscode.Location(document.uri, getCodeRange(l, x)))
         ),
         provideHover: symbolFunction((symbol, l, document) => asHover(symbol.defined
             .map(x => l.statementLines.get(x))
