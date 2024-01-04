@@ -478,6 +478,20 @@ function listingAsSymbol(l: Listing, id: number | undefined) {
     return result;
 }
 
+function findBestFitLine(m: Map<number, number>, s: number): number | undefined {
+    let result;
+
+    for (const k of m.keys()) {
+        if (k > s) continue;
+        result = result ? Math.max(k, result) : k;
+    }
+
+    if (result)
+        return m.get(result);
+    else
+        return undefined;
+}
+
 export function createListingServices(diagCollection?: vscode.DiagnosticCollection) {
     const listings = new Map<string, Listing[]>();
 
@@ -514,7 +528,7 @@ export function createListingServices(diagCollection?: vscode.DiagnosticCollecti
         handleListingContent,
         releaseListingContent,
         provideDefinition: symbolFunction((symbol, l, document) => symbol.defined
-            .map(x => l.statementLines.get(x))
+            .map(x => l.statementLines.get(x) || findBestFitLine(l.statementLines, x))
             .filter((x): x is number => typeof x === 'number')
             .map(x => new vscode.Location(document.uri, getCodeRange(l, x))))
         ,
