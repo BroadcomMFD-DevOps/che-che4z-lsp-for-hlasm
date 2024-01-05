@@ -492,6 +492,10 @@ function findBestFitLine(m: Map<number, number>, s: number): number | undefined 
         return undefined;
 }
 
+function compareNumbers(l: number, r: number) {
+    return l - r;
+}
+
 export function createListingServices(diagCollection?: vscode.DiagnosticCollection) {
     const listings = new Map<string, Listing[]>();
 
@@ -530,16 +534,19 @@ export function createListingServices(diagCollection?: vscode.DiagnosticCollecti
         provideDefinition: symbolFunction((symbol, l, document) => symbol.defined
             .map(x => l.statementLines.get(x) || findBestFitLine(l.statementLines, x))
             .filter((x): x is number => typeof x === 'number')
+            .sort(compareNumbers)
             .map(x => new vscode.Location(document.uri, getCodeRange(l, x))))
         ,
         provideReferences: symbolFunction((symbol, l, document, context: vscode.ReferenceContext) => symbol.computeReferences(context.includeDeclaration)
             .map(x => l.statementLines.get(x))
             .filter((x): x is number => typeof x === 'number')
+            .sort(compareNumbers)
             .map(x => new vscode.Location(document.uri, getCodeRange(l, x)))
         ),
         provideHover: symbolFunction((symbol, l, document) => asHover(symbol.defined
             .map(x => l.statementLines.get(x))
             .filter((x): x is number => typeof x === 'number')
+            .sort(compareNumbers)
             .map(x => document.lineAt(x).text)
             .reduce((acc, cur) => { return acc.appendCodeblock(cur, languageIdHlasmListing); }, new vscode.MarkdownString()))
         ),
