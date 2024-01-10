@@ -14,7 +14,7 @@
 
 import * as vscode from 'vscode';
 import { ExternalRequestType, HlasmExtension, ExternalFilesInvalidationdata } from './extension.interface';
-import { AsmOptions, Preprocessor } from './hlasmExternalConfigurationProvider';
+import { AsmOptions, ConfigurationProviderRegistration, Preprocessor } from './hlasmExternalConfigurationProvider';
 
 interface EndevorType {
     use_map: string,
@@ -417,10 +417,8 @@ function asPartialProfile(s: string): Partial<ResolvedProfile> {
         return { instance: whitespaceAsUndefined(s.substring(0, idx)), profile: whitespaceAsUndefined(s.substring(idx + 1)) };
 }
 
-function performRegistration(ext: HlasmExtension, e4e: E4E) {
-    const invalidationEventEmmiter = new vscode.EventEmitter<ExternalFilesInvalidationdata | undefined>();
-
-    const extFiles = ext.registerExternalFileClient<ResolvedProfile, EndevorElement | EndevorMember, EndevorType | EndevorDataset>('ENDEVOR', {
+export function HLASMExternalFilesEndevor(e4e: E4E, invalidate: vscode.Event<ExternalFilesInvalidationdata | undefined>) {
+    return {
         parseArgs: async (p: string, purpose: ExternalRequestType, query?: string) => {
             const args = p.split('/').slice(1).map(decodeURIComponent);
             if (args.length === 0) return null;
@@ -443,24 +441,26 @@ function performRegistration(ext: HlasmExtension, e4e: E4E) {
             return null;
         },
 
-        listMembers: (type_spec, profile: ResolvedProfile) => {
+        listMembers: (type_spec: EndevorType | EndevorDataset, profile: ResolvedProfile) => {
             if ('use_map' in type_spec)
                 return listEndevorElements(e4e, type_spec, profile);
             else
                 return listEndevorMembers(e4e, type_spec, profile);
         },
 
-        readMember: async (file_spec, profile: ResolvedProfile) => {
+        readMember: async (file_spec: EndevorElement | EndevorMember, profile: ResolvedProfile) => {
             if ('use_map' in file_spec)
                 return readEndevorElement(e4e, file_spec, profile);
             else
                 return readEndevorMember(e4e, file_spec, profile);
         },
 
-        invalidate: invalidationEventEmmiter.event,
-    });
+        invalidate,
+    }
+}
 
-    const cp = ext.registerExternalConfigurationProvider(async (uri: vscode.Uri) => {
+export function makeEndevorConfigurationProvider(e4e: E4E) {
+    return async (uri: vscode.Uri) => {
         const uriString = uri.toString();
         if (!e4e.isEndevorElement(uriString)) return null;
         const profile = await e4e.getProfileInfo(uriString);
@@ -481,35 +481,45 @@ function performRegistration(ext: HlasmExtension, e4e: E4E) {
                 preprocessor: translatePreprocessors(candidate.preprocessor),
             }
         };
+    };
+}
+
+const typeExtract = /\/([^/]+)$/;
+const elementExtract = /\/([^/]+\/[^/]+\.hlasm)/;
+
+export function processChangeNotification(elements: ElementInfo[], cp: ConfigurationProviderRegistration, cacheInvalidationEmitter: vscode.EventEmitter<ExternalFilesInvalidationdata | undefined>) {
+    const uniqueType = new Set<string>();
+    const uniqueElement = new Set<string>();
+    for (const e of elements) {
+        if (e.sourceUri)
+            cp.invalidate(vscode.Uri.parse(e.sourceUri));
+        if (e.type)
+            uniqueType.add(encodeURIComponent(e.type).toLowerCase());
+        if (e.type && e.element)
+            uniqueElement.add(`${encodeURIComponent(e.type)}/${encodeURIComponent(e.element)}.hlasm`.toLowerCase());
+    }
+
+    cacheInvalidationEmitter.fire((p) => {
+        const typeInfo = typeExtract.exec(p);
+        if (typeInfo)
+            return uniqueType.has(typeInfo[1].toLowerCase());
+
+        const eleInfo = elementExtract.exec(p);
+        if (eleInfo)
+            return uniqueElement.has(eleInfo[1].toLowerCase());
+
+        return false;
     });
+}
 
-    const typeExtract = /\/([^/]+)$/;
-    const elementExtract = /\/([^/]+\/[^/]+\.hlasm)/;
+function performRegistration(ext: HlasmExtension, e4e: E4E) {
+    const invalidationEventEmmiter = new vscode.EventEmitter<ExternalFilesInvalidationdata | undefined>();
 
-    e4e.onDidChangeElement((elements) => {
-        const uniqueType = new Set<string>();
-        const uniqueElement = new Set<string>();
-        for (const e of elements) {
-            if (e.sourceUri)
-                cp.invalidate(vscode.Uri.parse(e.sourceUri));
-            if (e.type)
-                uniqueType.add(encodeURIComponent(e.type).toLowerCase());
-            if (e.type && e.element)
-                uniqueElement.add(`${encodeURIComponent(e.type)}/${encodeURIComponent(e.element)}.hlasm`.toLowerCase());
-        }
+    const extFiles = ext.registerExternalFileClient('ENDEVOR', HLASMExternalFilesEndevor(e4e, invalidationEventEmmiter.event));
 
-        invalidationEventEmmiter.fire((p) => {
-            const typeInfo = typeExtract.exec(p);
-            if (typeInfo)
-                return uniqueType.has(typeInfo[1].toLowerCase());
+    const cp = ext.registerExternalConfigurationProvider(makeEndevorConfigurationProvider(e4e));
 
-            const eleInfo = elementExtract.exec(p);
-            if (eleInfo)
-                return uniqueElement.has(eleInfo[1].toLowerCase());
-
-            return false;
-        })
-    });
+    e4e.onDidChangeElement((elements) => processChangeNotification(elements, cp, invalidationEventEmmiter));
 
     return { dispose: () => { extFiles.dispose(); cp.dispose(); } };
 }
