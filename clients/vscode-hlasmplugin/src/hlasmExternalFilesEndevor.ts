@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Broadcom.
+ * Copyright (c) 2024 Broadcom.
  * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program and the accompanying materials are made
@@ -484,7 +484,7 @@ export function makeEndevorConfigurationProvider(e4e: E4E) {
     };
 }
 
-const typeExtract = /\/([^/]+)$/;
+const typeExtract = /\/([^/.]+)$/;
 const elementExtract = /\/([^/]+\/[^/]+\.hlasm)/;
 
 export function processChangeNotification(elements: ElementInfo[], cp: ConfigurationProviderRegistration, cacheInvalidationEmitter: vscode.EventEmitter<ExternalFilesInvalidationdata | undefined>) {
@@ -501,14 +501,15 @@ export function processChangeNotification(elements: ElementInfo[], cp: Configura
 
     cacheInvalidationEmitter.fire((p) => {
         const typeInfo = typeExtract.exec(p);
-        if (typeInfo)
-            return uniqueType.has(typeInfo[1].toLowerCase());
-
         const eleInfo = elementExtract.exec(p);
-        if (eleInfo)
-            return uniqueElement.has(eleInfo[1].toLowerCase());
+        let result = false;
+        if (typeInfo)
+            result ||= uniqueType.has(typeInfo[1].toLowerCase());
 
-        return false;
+        if (eleInfo)
+            result ||= uniqueElement.has(eleInfo[1].toLowerCase());
+
+        return result;
     });
 }
 
