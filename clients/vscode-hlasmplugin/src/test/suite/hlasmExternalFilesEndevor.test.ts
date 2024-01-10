@@ -38,7 +38,7 @@ const datasetMembers = [
     'member'
 ];
 
-suite.only('External files (Endevor)', () => {
+suite('External files (Endevor)', () => {
     test('Invalid parsing', async () => {
         const client = HLASMExternalFilesEndevor(profileOnly, dummyEvent);
 
