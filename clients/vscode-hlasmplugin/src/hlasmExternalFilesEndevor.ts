@@ -224,7 +224,7 @@ function translateAsmOptions(opts?: { [key: string]: string }): AsmOptions | und
     return added ? result : undefined;
 }
 
-const translatePreprocessor: { [key: string]: 'DB2' | 'ENDEVOR' | 'CICS' | undefined } = Object.freeze({
+const translatePreprocessor: { [key: string]: 'DB2' | 'ENDEVOR' | 'CICS' } = Object.freeze({
     'DSNHPC': 'DB2',
     'PBLHPC': 'DB2',
     'CONWRITE': 'ENDEVOR',
@@ -278,7 +278,9 @@ function translatePreprocessors(input: undefined | TypeOrArray<{
     return result;
 }
 
-function translateLibs(x: string | { dataset: string; optional?: boolean | undefined; profile?: string | undefined; } | { environment: string; stage: string; system: string; subsystem: string; type: string; use_map?: boolean | undefined; optional?: boolean | undefined; profile?: string | undefined; }, profile: string): any {
+function translateLibs(x: string, profile: string): string;
+function translateLibs<T extends object>(x: T, profile: string): T & { profile: string };
+function translateLibs(x: string | object, profile: string) {
     if (typeof x === 'string') return x;
     return { ...x, profile };
 }
@@ -468,11 +470,10 @@ function performRegistration(ext: HlasmExtension, e4e: E4E) {
         if (result instanceof Error) throw result;
         const candidate = result.pgroups.find(x => x.name === result.pgms[0].pgroup);
         if (!candidate) throw Error('Invalid configuration');
-        const profileAsString = `${profile.instance}@${profile.profile}`;
         return {
             configuration: {
                 name: candidate.name,
-                libs: candidate.libs.map(x => translateLibs(x, profileAsString)),
+                libs: candidate.libs.map(x => translateLibs(x, profileAsString(profile))),
                 asm_options: {
                     ...translateAsmOptions(candidate.options),
                     ...translateAsmOptions(result.pgms[0].options),
