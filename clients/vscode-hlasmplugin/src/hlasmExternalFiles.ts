@@ -113,7 +113,7 @@ function not_exists_json(normalizedPath: string) {
     }));
 }
 
-function readDefalatedJson(fs: vscode.FileSystem, uri: vscode.Uri) {
+function readDeflatedJson(fs: vscode.FileSystem, uri: vscode.Uri) {
     return new Promise((res, rej) => fs.readFile(uri).then(inflate).then(x => JSON.parse(textDecode(x))).then(res, rej));
 }
 
@@ -435,7 +435,7 @@ export class HLASMExternalFiles {
         const cacheEntryName = vscode.Uri.joinPath(this.cache.uri, await this.deriveCacheEntryName(serverId, service, normalizedPath));
 
         try {
-            const cachedResult = await readDefalatedJson(this.fs, cacheEntryName);
+            const cachedResult = await readDeflatedJson(this.fs, cacheEntryName);
 
             if (cachedResult instanceof Object && 'not_exists' in cachedResult) return not_exists;
             if (cachedResult instanceof Object && 'data' in cachedResult) {
@@ -714,7 +714,7 @@ export class HLASMExternalFiles {
 
                 const file = vscode.Uri.joinPath(uri, filename);
 
-                const p = readDefalatedJson(this.fs, file).then(j => {
+                const p = readDeflatedJson(this.fs, file).then(j => {
                     const path = getNormalizedPathFromCachedValue(j);
                     if (!path || pathPredicate(path))
                         return this.fs.delete(file);
