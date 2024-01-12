@@ -15,6 +15,7 @@
 #include "ca_operator_binary.h"
 
 #include <limits>
+#include <memory>
 
 #include "ebcdic_encoding.h"
 #include "expressions/conditional_assembly/terms/ca_symbol_attribute.h"
@@ -287,19 +288,40 @@ context::SET_t ca_function_binary_operator::operation(
     return context::SET_t(expr_kind);
 }
 
-std::strong_ordering ca_function_binary_operator::compare_string(const context::C_t& lhs, const context::C_t& rhs)
+std::strong_ordering ca_function_binary_operator::compare_string(
+    const context::C_t& lhs, const context::C_t& rhs) noexcept
 {
-    auto l = ebcdic_encoding::to_ebcdic(lhs);
-    auto r = ebcdic_encoding::to_ebcdic(rhs);
+    bool left_smaller = false;
+    bool right_smaller = false;
 
-    if (auto diff = l.size() <=> r.size(); diff != 0)
-        return diff;
+    const auto* l = std::to_address(lhs.cbegin());
+    const auto* r = std::to_address(rhs.cbegin());
+    const auto* const le = std::to_address(lhs.cend());
+    const auto* const re = std::to_address(rhs.cend());
 
-    return l.compare(r) <=> 0; // libc++ 14
+    while (l != le && r != re)
+    {
+        const unsigned char lc = ebcdic_encoding::to_ebcdic(l);
+        const unsigned char rc = ebcdic_encoding::to_ebcdic(r);
+
+        const auto left_update = !right_smaller && lc < rc;
+        const auto right_update = !left_smaller && lc > rc;
+
+        left_smaller |= left_update;
+        right_smaller |= right_update;
+    }
+
+    const bool lend = l == le;
+    const bool rend = r == re;
+
+    if (lend && rend)
+        return right_smaller <=> left_smaller;
+    else
+        return rend <=> lend;
 }
 
 std::strong_ordering ca_function_binary_operator::compare_relational(
-    const context::SET_t& lhs, const context::SET_t& rhs, context::SET_t_enum type)
+    const context::SET_t& lhs, const context::SET_t& rhs, context::SET_t_enum type) noexcept
 {
     switch (type)
     {

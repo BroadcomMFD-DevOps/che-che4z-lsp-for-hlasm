@@ -79,9 +79,9 @@ public:
 
     context::SET_t operation(context::SET_t lhs, context::SET_t rhs, const evaluation_context& eval_ctx) const override;
 
-    static std::strong_ordering compare_string(const context::C_t& lhs, const context::C_t& rhs);
+    static std::strong_ordering compare_string(const context::C_t& lhs, const context::C_t& rhs) noexcept;
     static std::strong_ordering compare_relational(
-        const context::SET_t& lhs, const context::SET_t& rhs, context::SET_t_enum type);
+        const context::SET_t& lhs, const context::SET_t& rhs, context::SET_t_enum type) noexcept;
 
 private:
     bool is_relational() const;
