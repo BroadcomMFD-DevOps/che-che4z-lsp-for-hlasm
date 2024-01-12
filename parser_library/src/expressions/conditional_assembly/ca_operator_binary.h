@@ -15,6 +15,8 @@
 #ifndef HLASMPLUGIN_PARSERLIBRARY_CA_OPERATOR_BINARY_H
 #define HLASMPLUGIN_PARSERLIBRARY_CA_OPERATOR_BINARY_H
 
+#include <compare>
+
 #include "ca_expr_policy.h"
 #include "ca_expression.h"
 
@@ -77,8 +79,9 @@ public:
 
     context::SET_t operation(context::SET_t lhs, context::SET_t rhs, const evaluation_context& eval_ctx) const override;
 
-    static int compare_string(const context::C_t& lhs, const context::C_t& rhs);
-    static int compare_relational(const context::SET_t& lhs, const context::SET_t& rhs, context::SET_t_enum type);
+    static std::strong_ordering compare_string(const context::C_t& lhs, const context::C_t& rhs);
+    static std::strong_ordering compare_relational(
+        const context::SET_t& lhs, const context::SET_t& rhs, context::SET_t_enum type);
 
 private:
     bool is_relational() const;

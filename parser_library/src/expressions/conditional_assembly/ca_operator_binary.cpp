@@ -262,7 +262,7 @@ context::SET_t ca_function_binary_operator::operation(
     }
     else if (expr_kind == context::SET_t_enum::B_TYPE)
     {
-        int comp = 0;
+        auto comp = std::strong_ordering::equal;
         if (is_relational())
             comp = compare_relational(lhs, rhs, left_expr->expr_kind);
 
@@ -287,27 +287,28 @@ context::SET_t ca_function_binary_operator::operation(
     return context::SET_t(expr_kind);
 }
 
-int ca_function_binary_operator::compare_string(const context::C_t& lhs, const context::C_t& rhs)
+std::strong_ordering ca_function_binary_operator::compare_string(const context::C_t& lhs, const context::C_t& rhs)
 {
-    int diff = (int)lhs.size() - (int)rhs.size();
+    auto l = ebcdic_encoding::to_ebcdic(lhs);
+    auto r = ebcdic_encoding::to_ebcdic(rhs);
 
-    if (diff != 0)
+    if (auto diff = l.size() <=> r.size(); diff != 0)
         return diff;
 
-    return ebcdic_encoding::to_ebcdic(lhs).compare(ebcdic_encoding::to_ebcdic(rhs));
+    return l.compare(r) <=> 0; // libc++ 14
 }
 
-int ca_function_binary_operator::compare_relational(
+std::strong_ordering ca_function_binary_operator::compare_relational(
     const context::SET_t& lhs, const context::SET_t& rhs, context::SET_t_enum type)
 {
     switch (type)
     {
         case context::SET_t_enum::A_TYPE:
-            return lhs.access_a() - rhs.access_a();
+            return lhs.access_a() <=> rhs.access_a();
         case context::SET_t_enum::C_TYPE:
             return compare_string(lhs.access_c(), rhs.access_c());
         default:
-            return 0;
+            return std::strong_ordering::equal;
     }
 }
 
@@ -375,11 +376,9 @@ context::SET_t ca_conc::operation(
     if (lhs.access_c().size() + rhs.access_c().size() > ca_string::MAX_STR_SIZE)
     {
         eval_ctx.diags.add_diagnostic(diagnostic_op::error_CE011(expr_range));
-        return context::object_traits<context::C_t>::default_v();
+        return context::SET_t(context::SET_t_enum::C_TYPE);
     }
-    auto& ret = lhs.access_c();
-    ret.reserve(ret.size() + rhs.access_c().size());
-    ret.append(rhs.access_c().begin(), rhs.access_c().end());
+    lhs.access_c().append(rhs.access_c());
     return lhs;
 }
 
