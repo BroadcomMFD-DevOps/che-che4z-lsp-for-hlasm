@@ -14,84 +14,79 @@
 
 #include "ebcdic_encoding.h"
 
-unsigned char hlasm_plugin::parser_library::ebcdic_encoding::to_pseudoascii(const char*& c)
+namespace hlasm_plugin::parser_library {
+
+unsigned char ebcdic_encoding::to_ebcdic_multibyte(const char*& c) noexcept
 {
-    if ((unsigned char)*c < 0x80)
+    const auto first_byte = (unsigned char)*(c + 0);
+    const auto second_byte = (unsigned char)*(c + 1);
+    if (second_byte == 0)
     {
-        return *c;
+        ++c;
+        return EBCDIC_SUB;
     }
-    else if (*(c + 1) == 0)
+
+    if ((first_byte & 0xE0) == 0xC0) // 110xxxxx 10xxxxxx
     {
-        return SUB;
+        const auto value = ((first_byte & 0x1F) << 6) | (second_byte & 0x3F);
+        c += 2;
+        return value < std::ssize(a2e) ? a2e[value] : EBCDIC_SUB;
     }
-    else
+
+    const auto third_byte = (unsigned char)*(c + 2);
+    if (third_byte == 0)
     {
-        if ((*c & 0xE0) == 0xC0) // 110xxxxx 10xxxxxx
-        {
-            if ((*c & 0x1C) != 0)
-            {
-                ++c;
-                return SUB;
-            }
-            else
-            {
-                unsigned char tmp = ((*c & 3) << 6) | (*(c + 1) & 0x3F);
-                ++c;
-                return tmp;
-            }
-        }
-        else if ((*c & 0xF0) == 0xE0) // 1110xxxx 10xxxxxx 10xxxxxx
-        {
-            ++c;
-            c += !!*c;
-            return SUB;
-        }
-        else if ((*c & 0xF8) == 0xF0) // 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
-        {
-            ++c;
-            c += !!*c;
-            c += !!*c;
-            return SUB;
-        }
-        else
-        {
-            return SUB;
-        }
+        c += 2;
+        return EBCDIC_SUB;
     }
+
+    if (first_byte == (0b11100000 | ebcdic_encoding::unicode_private >> 4)
+        && (second_byte & 0b11111100) == (0x80 | (ebcdic_encoding::unicode_private & 0xF) << 2)
+        && (third_byte & 0xC0) == 0x80) // our private plane
+    {
+        unsigned char ebcdic_value = (second_byte & 3) << 6 | third_byte & 0x3f;
+        c += 3;
+        return ebcdic_value;
+    }
+
+    if ((first_byte & 0xF0) == 0xE0) // 1110xxxx 10xxxxxx 10xxxxxx
+    {
+        c += 3;
+        return EBCDIC_SUB;
+    }
+
+    const auto fourth_byte = (unsigned char)*(c + 2);
+    if (fourth_byte == 0)
+    {
+        c += 3;
+        return EBCDIC_SUB;
+    }
+
+    if ((first_byte & 0xF8) == 0xF0) // 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
+    {
+        c += 4;
+        return EBCDIC_SUB;
+    }
+
+    ++c;
+    return EBCDIC_SUB;
 }
 
-
-unsigned char hlasm_plugin::parser_library::ebcdic_encoding::to_ebcdic(unsigned char c) { return a2e[c]; }
-
-std::string hlasm_plugin::parser_library::ebcdic_encoding::to_ascii(unsigned char c)
-{
-    if (c == 0x0D || c == 0x25) // CR LF
-        return std::string {
-            static_cast<char>(0b11100000 | ebcdic_encoding::unicode_private >> 4),
-            static_cast<char>(0x80 | ebcdic_encoding::unicode_private & 0xf | c >> 6),
-            static_cast<char>(0x80 | c & 0x3f),
-        };
-    auto val = e2a[c];
-    if (0x80 > val)
-        return std::string({ static_cast<char>(val) });
-    else
-        return std::string({ static_cast<char>((val >> 6) | (3 << 6)), static_cast<char>((val & 63) | (1 << 7)) });
-}
-
-std::string hlasm_plugin::parser_library::ebcdic_encoding::to_ascii(const std::string& s)
+std::string ebcdic_encoding::to_ascii(const std::string& s)
 {
     std::string a;
     a.reserve(s.length());
     for (unsigned char c : s)
-        a.push_back(e2a[c]);
+        a.append(to_ascii(c));
     return a;
 }
 
-std::string hlasm_plugin::parser_library::ebcdic_encoding::to_ebcdic(const std::string& s)
+std::string ebcdic_encoding::to_ebcdic(const std::string& s)
 {
     std::string a;
     a.reserve(s.length());
-    for (const char* i = s.c_str(); *i != 0; ++i)
-        a.push_back(to_ebcdic(to_pseudoascii(i)));
+    for (const char* i = s.c_str(); *i != 0;)
+        a.push_back(to_ebcdic(i));
     return a;
 }
+} // namespace hlasm_plugin::parser_library

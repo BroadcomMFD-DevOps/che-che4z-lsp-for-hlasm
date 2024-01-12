@@ -81,29 +81,29 @@ TEST(ebcdic_encoding, unicode)
 
     auto begin = u8.c_str();
 
-    EXPECT_EQ(ebcdic_encoding::to_pseudoascii(begin), ebcdic_encoding::SUB);
+    EXPECT_EQ(ebcdic_encoding::to_ebcdic(begin), ebcdic_encoding::EBCDIC_SUB);
 
-    EXPECT_EQ(begin, u8.c_str() + 3);
-
-
-    EXPECT_EQ(ebcdic_encoding::to_pseudoascii(++begin), ebcdic_encoding::SUB);
-
-    EXPECT_EQ(begin, u8.c_str() + 4 + 2);
+    EXPECT_EQ(begin, u8.c_str() + 4);
 
 
-    EXPECT_EQ(ebcdic_encoding::to_pseudoascii(++begin), ebcdic_encoding::SUB);
+    EXPECT_EQ(ebcdic_encoding::to_ebcdic(begin), ebcdic_encoding::EBCDIC_SUB);
 
-    EXPECT_EQ(begin, u8.c_str() + 4 + 3 + 1);
+    EXPECT_EQ(begin, u8.c_str() + 4 + 3);
 
 
-    EXPECT_EQ(ebcdic_encoding::to_pseudoascii(++begin), 0x41);
+    EXPECT_EQ(ebcdic_encoding::to_ebcdic(begin), ebcdic_encoding::EBCDIC_SUB);
 
     EXPECT_EQ(begin, u8.c_str() + 4 + 3 + 2);
 
 
-    EXPECT_EQ(ebcdic_encoding::to_pseudoascii(++begin), (unsigned char)0xE4);
+    EXPECT_EQ(ebcdic_encoding::to_ebcdic(begin), 0xC1);
 
-    EXPECT_EQ(begin, u8.c_str() + 4 + 3 + 2 + 1 + 1);
+    EXPECT_EQ(begin, u8.c_str() + 4 + 3 + 2 + 1);
+
+
+    EXPECT_EQ(ebcdic_encoding::to_ebcdic(begin), 0x43);
+
+    EXPECT_EQ(begin, u8.c_str() + 4 + 3 + 2 + 1 + 2);
 }
 
 TEST(replace_non_utf8_chars, no_change)
