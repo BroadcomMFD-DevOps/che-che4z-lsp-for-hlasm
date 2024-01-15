@@ -264,6 +264,8 @@ context::SET_t ca_function_binary_operator::operation(
     else if (expr_kind == context::SET_t_enum::B_TYPE)
     {
         auto comp = std::strong_ordering::equal;
+        if (is_string_equality(left_expr->expr_kind))
+            return (function == ca_expr_ops::EQ) == equal_string(lhs.access_c(), rhs.access_c());
         if (is_relational())
             comp = compare_relational(lhs, rhs, left_expr->expr_kind);
 
@@ -320,6 +322,29 @@ std::strong_ordering ca_function_binary_operator::compare_string(
         return rend <=> lend;
 }
 
+
+bool ca_function_binary_operator::equal_string(const context::C_t& lhs, const context::C_t& rhs) noexcept
+{
+    const auto* l = std::to_address(lhs.cbegin());
+    const auto* r = std::to_address(rhs.cbegin());
+    const auto* const le = std::to_address(lhs.cend());
+    const auto* const re = std::to_address(rhs.cend());
+
+    while (l != le && r != re)
+    {
+        const unsigned char lc = ebcdic_encoding::to_ebcdic(l);
+        const unsigned char rc = ebcdic_encoding::to_ebcdic(r);
+
+        if (lc != rc)
+            return false;
+    }
+
+    const bool lend = l == le;
+    const bool rend = r == re;
+
+    return lend && rend;
+}
+
 std::strong_ordering ca_function_binary_operator::compare_relational(
     const context::SET_t& lhs, const context::SET_t& rhs, context::SET_t_enum type) noexcept
 {
@@ -334,7 +359,7 @@ std::strong_ordering ca_function_binary_operator::compare_relational(
     }
 }
 
-bool ca_function_binary_operator::is_relational() const
+bool ca_function_binary_operator::is_relational() const noexcept
 {
     switch (function)
     {
@@ -345,6 +370,18 @@ bool ca_function_binary_operator::is_relational() const
         case ca_expr_ops::GE:
         case ca_expr_ops::GT:
             return true;
+        default:
+            return false;
+    }
+}
+
+bool ca_function_binary_operator::is_string_equality(context::SET_t_enum type) const noexcept
+{
+    switch (function)
+    {
+        case ca_expr_ops::EQ:
+        case ca_expr_ops::NE:
+            return type == context::SET_t_enum::C_TYPE;
         default:
             return false;
     }

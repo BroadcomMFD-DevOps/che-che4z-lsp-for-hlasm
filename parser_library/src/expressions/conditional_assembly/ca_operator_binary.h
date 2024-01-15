@@ -80,11 +80,13 @@ public:
     context::SET_t operation(context::SET_t lhs, context::SET_t rhs, const evaluation_context& eval_ctx) const override;
 
     static std::strong_ordering compare_string(const context::C_t& lhs, const context::C_t& rhs) noexcept;
+    static bool equal_string(const context::C_t& lhs, const context::C_t& rhs) noexcept;
     static std::strong_ordering compare_relational(
         const context::SET_t& lhs, const context::SET_t& rhs, context::SET_t_enum type) noexcept;
 
 private:
-    bool is_relational() const;
+    bool is_relational() const noexcept;
+    bool is_string_equality(context::SET_t_enum type) const noexcept;
     ca_expr_ops function;
     ca_expression_ctx m_expr_ctx;
 };
