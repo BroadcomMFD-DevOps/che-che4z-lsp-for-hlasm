@@ -18,8 +18,8 @@ namespace hlasm_plugin::parser_library {
 
 unsigned char ebcdic_encoding::to_ebcdic_multibyte(const char*& c) noexcept
 {
-    const auto first_byte = (unsigned char)*(c + 0);
-    const auto second_byte = (unsigned char)*(c + 1);
+    const unsigned char first_byte = *(c + 0);
+    const unsigned char second_byte = *(c + 1);
     if (second_byte == 0)
     {
         ++c;
@@ -33,7 +33,7 @@ unsigned char ebcdic_encoding::to_ebcdic_multibyte(const char*& c) noexcept
         return value < std::ssize(a2e) ? a2e[value] : EBCDIC_SUB;
     }
 
-    const auto third_byte = (unsigned char)*(c + 2);
+    const unsigned char third_byte = *(c + 2);
     if (third_byte == 0)
     {
         c += 2;
@@ -44,7 +44,7 @@ unsigned char ebcdic_encoding::to_ebcdic_multibyte(const char*& c) noexcept
         && (second_byte & 0b11111100) == (0x80 | (ebcdic_encoding::unicode_private & 0xF) << 2)
         && (third_byte & 0xC0) == 0x80) // our private plane
     {
-        unsigned char ebcdic_value = (second_byte & 3) << 6 | third_byte & 0x3f;
+        const unsigned char ebcdic_value = (second_byte & 3) << 6 | third_byte & 0x3f;
         c += 3;
         return ebcdic_value;
     }
@@ -55,8 +55,7 @@ unsigned char ebcdic_encoding::to_ebcdic_multibyte(const char*& c) noexcept
         return EBCDIC_SUB;
     }
 
-    const auto fourth_byte = (unsigned char)*(c + 2);
-    if (fourth_byte == 0)
+    if (const unsigned char fourth_byte = *(c + 2); fourth_byte == 0)
     {
         c += 3;
         return EBCDIC_SUB;
