@@ -106,10 +106,10 @@ public:
 
     static constexpr unsigned char unicode_private = 0xe0;
 
-    friend constexpr unsigned char operator""_ebcdic(char c) noexcept;
+    friend consteval unsigned char operator""_ebcdic(char c) noexcept;
 };
 
-constexpr unsigned char operator""_ebcdic(char c) noexcept
+consteval unsigned char operator""_ebcdic(char c) noexcept
 {
     return ebcdic_encoding::a2e[static_cast<unsigned char>(c)];
 }
