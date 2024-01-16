@@ -241,7 +241,9 @@ context::SET_t ca_function::C2A(std::string_view param, diagnostic_adder& add_di
     for (const char* c = buffer; c != buffer + param.size();)
     {
         ret <<= 8;
-        ret += ebcdic_encoding::to_ebcdic(c);
+        const auto [ch, newc] = ebcdic_encoding::to_ebcdic(c);
+        ret += ch;
+        c = newc;
     }
 
     return ret;
@@ -501,8 +503,9 @@ context::SET_t ca_function::C2B(const context::C_t& param, diagnostic_adder& add
     ret.reserve(param.size() * 8);
     for (const char* c = param.c_str(); c != param.c_str() + param.size();)
     {
-        auto value = ebcdic_encoding::to_ebcdic(c);
+        const auto [value, newc] = ebcdic_encoding::to_ebcdic(c);
         ret.append(std::bitset<8>(value).to_string());
+        c = newc;
     }
     return ret;
 }
@@ -527,10 +530,12 @@ context::SET_t ca_function::C2X(const context::C_t& param, diagnostic_adder& add
     ret.reserve(param.size() * 2);
     for (const char* c = param.c_str(); c != param.c_str() + param.size();)
     {
-        auto value = ebcdic_encoding::to_ebcdic(c);
+        const auto [value, newc] = ebcdic_encoding::to_ebcdic(c);
 
         ret.push_back("0123456789ABCDEF"[value >> 4]);
         ret.push_back("0123456789ABCDEF"[value & 0xf]);
+
+        c = newc;
     }
     return ret;
 }

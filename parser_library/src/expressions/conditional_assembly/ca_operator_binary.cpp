@@ -303,14 +303,17 @@ std::strong_ordering ca_function_binary_operator::compare_string(
 
     while (l != le && r != re)
     {
-        const unsigned char lc = ebcdic_encoding::to_ebcdic(l);
-        const unsigned char rc = ebcdic_encoding::to_ebcdic(r);
+        const auto [lc, newl] = ebcdic_encoding::to_ebcdic(l);
+        const auto [rc, newr] = ebcdic_encoding::to_ebcdic(r);
 
         const auto left_update = !right_smaller && lc < rc;
         const auto right_update = !left_smaller && lc > rc;
 
         left_smaller |= left_update;
         right_smaller |= right_update;
+
+        l = newl;
+        r = newr;
     }
 
     const bool lend = l == le;
@@ -332,11 +335,14 @@ bool ca_function_binary_operator::equal_string(const context::C_t& lhs, const co
 
     while (l != le && r != re)
     {
-        const unsigned char lc = ebcdic_encoding::to_ebcdic(l);
-        const unsigned char rc = ebcdic_encoding::to_ebcdic(r);
+        const auto [lc, newl] = ebcdic_encoding::to_ebcdic(l);
+        const auto [rc, newr] = ebcdic_encoding::to_ebcdic(r);
 
         if (lc != rc)
             return false;
+
+        l = newl;
+        r = newr;
     }
 
     const bool lend = l == le;

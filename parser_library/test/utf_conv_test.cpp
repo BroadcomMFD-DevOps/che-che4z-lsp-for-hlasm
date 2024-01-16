@@ -81,29 +81,22 @@ TEST(ebcdic_encoding, unicode)
 
     auto begin = u8.c_str();
 
-    EXPECT_EQ(ebcdic_encoding::to_ebcdic(begin), ebcdic_encoding::EBCDIC_SUB);
+    EXPECT_EQ(ebcdic_encoding::to_ebcdic(begin), std::pair(ebcdic_encoding::EBCDIC_SUB, begin + 4));
+    begin += 4;
 
-    EXPECT_EQ(begin, u8.c_str() + 4);
+    EXPECT_EQ(ebcdic_encoding::to_ebcdic(begin), std::pair(ebcdic_encoding::EBCDIC_SUB, begin + 3));
+    begin += 3;
 
+    EXPECT_EQ(ebcdic_encoding::to_ebcdic(begin), std::pair(ebcdic_encoding::EBCDIC_SUB, begin + 2));
+    begin += 2;
 
-    EXPECT_EQ(ebcdic_encoding::to_ebcdic(begin), ebcdic_encoding::EBCDIC_SUB);
+    EXPECT_EQ(ebcdic_encoding::to_ebcdic(begin), std::pair((unsigned char)0xC1, begin + 1));
+    begin += 1;
 
-    EXPECT_EQ(begin, u8.c_str() + 4 + 3);
+    EXPECT_EQ(ebcdic_encoding::to_ebcdic(begin), std::pair((unsigned char)0x43, begin + 2));
+    begin += 2;
 
-
-    EXPECT_EQ(ebcdic_encoding::to_ebcdic(begin), ebcdic_encoding::EBCDIC_SUB);
-
-    EXPECT_EQ(begin, u8.c_str() + 4 + 3 + 2);
-
-
-    EXPECT_EQ(ebcdic_encoding::to_ebcdic(begin), 0xC1);
-
-    EXPECT_EQ(begin, u8.c_str() + 4 + 3 + 2 + 1);
-
-
-    EXPECT_EQ(ebcdic_encoding::to_ebcdic(begin), 0x43);
-
-    EXPECT_EQ(begin, u8.c_str() + 4 + 3 + 2 + 1 + 2);
+    EXPECT_EQ(begin, std::to_address(u8.end()));
 }
 
 TEST(replace_non_utf8_chars, no_change)
