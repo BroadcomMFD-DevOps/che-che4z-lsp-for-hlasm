@@ -1124,7 +1124,7 @@ void asm_processor::process_LTORG(rebuilt_statement stmt)
             create_symbol(stmt.stmt_range_ref(),
                 label,
                 loctr,
-                context::symbol_attributes(context::symbol_origin::EQU, ebcdic_encoding::to_ebcdic('U'), 1));
+                context::symbol_attributes(context::symbol_origin::EQU, 'U'_ebcdic, 1));
     }
 
     hlasm_ctx.ord_ctx.generate_pool(*this, hlasm_ctx.using_current(), lib_info);
