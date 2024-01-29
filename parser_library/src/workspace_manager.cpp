@@ -118,6 +118,7 @@ public:
         "e4e-read-only-cached-element:",
         "e4e-readonly-report:",
         "e4e-readonly-generic-report:",
+        "ndvr:",
     };
     static bool allowed_scheme(const resource_location& uri)
     {
