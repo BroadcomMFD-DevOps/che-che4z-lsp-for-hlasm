@@ -369,16 +369,14 @@ void ca_processor::process_AGO(const semantics::complete_statement& stmt)
     branch_provider.jump_in_statements(target->first, target->second);
 }
 
-bool ca_processor::prepare_AIF(
-    const semantics::complete_statement& stmt, context::B_t& condition, context::id_index& target, range& target_range)
+std::optional<ca_processor::jump_target> ca_processor::prepare_AIF(const semantics::complete_statement& stmt)
 {
-    condition = false;
-
+    std::optional<jump_target> result;
     const auto& ops = stmt.operands_ref().value;
     if (ops.empty())
     {
         add_diagnostic(diagnostic_op::error_E022("AIF", stmt.instruction_ref().field_range));
-        return false;
+        return std::nullopt;
     }
 
     static constexpr std::string_view expected[] = { "conditional branch" };
@@ -393,54 +391,41 @@ bool ca_processor::prepare_AIF(
                 continue;
 
             add_diagnostic(diagnostic_op::error_E015(expected, op->operand_range));
-            return false;
+            return std::nullopt;
         }
         has_operand = true;
 
         auto ca_op = op->access_ca();
         assert(ca_op);
 
-        if (ca_op->kind == semantics::ca_kind::BRANCH)
-        {
-            if (!condition)
-            {
-                auto br = ca_op->access_branch();
-                condition = br->expression->evaluate<context::B_t>(eval_ctx);
-
-                target = br->sequence_symbol.name;
-                target_range = br->sequence_symbol.symbol_range;
-            }
-        }
-        else
+        if (ca_op->kind != semantics::ca_kind::BRANCH)
         {
             add_diagnostic(diagnostic_op::error_E015(expected, ca_op->operand_range));
-            return false;
+            return std::nullopt;
         }
+
+        if (result)
+            continue;
+
+        if (const auto* br = ca_op->access_branch(); br->expression->evaluate<context::B_t>(eval_ctx))
+            result.emplace(jump_target { br->sequence_symbol.name, br->sequence_symbol.symbol_range }); // llvm-14
     }
 
     if (!has_operand)
     {
         add_diagnostic(diagnostic_op::error_E022("variable symbol definition", stmt.instruction_ref().field_range));
-        return false;
+        return std::nullopt;
     }
 
-    return true;
+    return result;
 }
 
 void ca_processor::process_AIF(const semantics::complete_statement& stmt)
 {
     register_seq_sym(stmt);
 
-    context::B_t condition;
-    context::id_index target;
-    range target_range;
-    bool ok = prepare_AIF(stmt, condition, target, target_range);
-
-    if (!ok)
-        return;
-
-    if (condition)
-        branch_provider.jump_in_statements(target, target_range);
+    if (auto jump_target = prepare_AIF(stmt))
+        branch_provider.jump_in_statements(jump_target->target, jump_target->target_range);
 }
 
 void ca_processor::process_MACRO(const semantics::complete_statement& stmt)
