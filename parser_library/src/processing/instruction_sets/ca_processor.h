@@ -69,6 +69,8 @@ private:
             , r(r)
         {}
     };
+    std::vector<GLB_LCL_info> m_glb_lcl_work;
+    std::vector<expressions::ca_expression*> m_set_work;
 
     template<typename T>
     SET_info get_SET_symbol(const semantics::complete_statement& stmt);

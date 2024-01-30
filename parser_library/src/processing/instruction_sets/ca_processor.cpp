@@ -176,7 +176,6 @@ bool ca_processor::prepare_SET_operands(
         return false;
     }
 
-    expr_values.reserve(ops.size());
     for (const auto& op : ops)
     {
         if (op->type == semantics::operand_type::EMPTY)
@@ -607,29 +606,29 @@ void ca_processor::process_empty(const semantics::complete_statement&) {}
 template<typename T>
 void ca_processor::process_SET(const semantics::complete_statement& stmt)
 {
-    std::vector<expressions::ca_expression*> expr_values;
     auto [set_symbol, name, index] = get_SET_symbol<T>(stmt);
 
     if (!set_symbol)
         return;
 
-    if (!prepare_SET_operands(stmt, expr_values))
+    m_set_work.clear();
+    if (!prepare_SET_operands(stmt, m_set_work))
         return;
 
-    if (expr_values.size() > std::numeric_limits<context::A_t>::max()
-        || std::numeric_limits<context::A_t>::max() - (context::A_t)expr_values.size() < index)
+    if (m_set_work.size() > std::numeric_limits<context::A_t>::max()
+        || std::numeric_limits<context::A_t>::max() - (context::A_t)m_set_work.size() < index)
     {
         eval_ctx.diags.add_diagnostic(diagnostic_op::error_E080(stmt.operands_ref().field_range));
         return;
     }
 
-    for (context::A_t i = 0; i < expr_values.size(); ++i)
+    for (context::A_t i = 0; i < m_set_work.size(); ++i)
     {
         // first obtain a place to put the result in
         auto& val = set_symbol->template access_set_symbol<T>()->reserve_value(index + i);
         // then evaluate the new value and save it unless the operand is empty
-        if (expr_values[i])
-            val = expr_values[i]->template evaluate<T>(eval_ctx);
+        if (m_set_work[i])
+            val = m_set_work[i]->template evaluate<T>(eval_ctx);
     }
 }
 
@@ -642,13 +641,11 @@ void ca_processor::process_GBL_LCL(const semantics::complete_statement& stmt)
 {
     register_seq_sym(stmt);
 
-    std::vector<GLB_LCL_info> info;
-    bool ok = prepare_GBL_LCL(stmt, info);
-
-    if (!ok)
+    m_glb_lcl_work.clear();
+    if (!prepare_GBL_LCL(stmt, m_glb_lcl_work))
         return;
 
-    for (const auto& i : info)
+    for (const auto& i : m_glb_lcl_work)
     {
         if constexpr (global)
         {
