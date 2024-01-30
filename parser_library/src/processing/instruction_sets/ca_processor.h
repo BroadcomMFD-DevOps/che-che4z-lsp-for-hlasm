@@ -85,7 +85,7 @@ private:
 
     void process_ANOP(const semantics::complete_statement& stmt);
 
-    bool prepare_ACTR(const semantics::complete_statement& stmt, context::A_t& ctr);
+    std::optional<context::A_t> prepare_ACTR(const semantics::complete_statement& stmt);
     void process_ACTR(const semantics::complete_statement& stmt);
 
     std::optional<std::pair<context::id_index, range>> prepare_AGO(const semantics::complete_statement& stmt);
