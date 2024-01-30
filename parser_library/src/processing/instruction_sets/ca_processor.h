@@ -15,6 +15,8 @@
 #ifndef PROCESSING_CA_PROCESSOR_H
 #define PROCESSING_CA_PROCESSOR_H
 
+#include <optional>
+
 #include "aread_time.h"
 #include "instruction_processor.h"
 #include "processing/opencode_provider.h"
@@ -86,9 +88,7 @@ private:
     bool prepare_ACTR(const semantics::complete_statement& stmt, context::A_t& ctr);
     void process_ACTR(const semantics::complete_statement& stmt);
 
-    bool prepare_AGO(const semantics::complete_statement& stmt,
-        context::A_t& branch,
-        std::vector<std::pair<context::id_index, range>>& targets);
+    std::optional<std::pair<context::id_index, range>> prepare_AGO(const semantics::complete_statement& stmt);
     void process_AGO(const semantics::complete_statement& stmt);
 
     bool prepare_AIF(const semantics::complete_statement& stmt,
