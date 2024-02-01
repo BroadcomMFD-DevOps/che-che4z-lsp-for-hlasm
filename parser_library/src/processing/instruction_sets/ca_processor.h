@@ -90,16 +90,10 @@ private:
     std::optional<context::A_t> prepare_ACTR(const semantics::complete_statement& stmt);
     void process_ACTR(const semantics::complete_statement& stmt);
 
-    std::optional<std::pair<context::id_index, range>> prepare_AGO(const semantics::complete_statement& stmt);
+    const semantics::seq_sym* prepare_AGO(const semantics::complete_statement& stmt);
     void process_AGO(const semantics::complete_statement& stmt);
 
-    struct jump_target
-    {
-        context::id_index target;
-        range target_range;
-    };
-
-    std::optional<jump_target> prepare_AIF(const semantics::complete_statement& stmt);
+    const semantics::seq_sym* prepare_AIF(const semantics::complete_statement& stmt);
     void process_AIF(const semantics::complete_statement& stmt);
 
     void process_MACRO(const semantics::complete_statement& stmt);

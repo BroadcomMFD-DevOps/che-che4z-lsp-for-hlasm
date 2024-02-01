@@ -293,13 +293,13 @@ void ca_processor::process_ACTR(const semantics::complete_statement& stmt)
     }
 }
 
-std::optional<std::pair<context::id_index, range>> ca_processor::prepare_AGO(const semantics::complete_statement& stmt)
+const semantics::seq_sym* ca_processor::prepare_AGO(const semantics::complete_statement& stmt)
 {
     const auto& ops = stmt.operands_ref().value;
     if (ops.empty())
     {
         add_diagnostic(diagnostic_op::error_E022("AGO", stmt.instruction_ref().field_range));
-        return std::nullopt;
+        return nullptr;
     }
 
     static constexpr std::string_view expected[] = { "sequence symbol" };
@@ -308,7 +308,7 @@ std::optional<std::pair<context::id_index, range>> ca_processor::prepare_AGO(con
         if (op->type == semantics::operand_type::EMPTY)
         {
             add_diagnostic(diagnostic_op::error_E015(expected, op->operand_range));
-            return std::nullopt;
+            return nullptr;
         }
     }
 
@@ -320,21 +320,20 @@ std::optional<std::pair<context::id_index, range>> ca_processor::prepare_AGO(con
         if (ops.size() != 1)
         {
             add_diagnostic(diagnostic_op::error_E015(expected, ca_op->operand_range));
-            return std::nullopt;
+            return nullptr;
         }
 
-        auto& symbol = ca_op->access_seq()->sequence_symbol;
-        return std::pair(symbol.name, symbol.symbol_range);
+        return &ca_op->access_seq()->sequence_symbol;
     }
 
     if (ca_op->kind == semantics::ca_kind::BRANCH)
     {
-        std::optional<std::pair<context::id_index, range>> result;
+        const semantics::seq_sym* result = nullptr;
 
         auto br_op = ca_op->access_branch();
         auto branch = br_op->expression->evaluate<context::A_t>(eval_ctx);
         if (branch == 1)
-            result.emplace(br_op->sequence_symbol.name, br_op->sequence_symbol.symbol_range);
+            result = &br_op->sequence_symbol;
 
         for (size_t i = 1; i < ops.size(); ++i)
         {
@@ -343,41 +342,40 @@ std::optional<std::pair<context::id_index, range>> ca_processor::prepare_AGO(con
 
             if (tmp->kind == semantics::ca_kind::SEQ)
             {
-                auto& symbol = tmp->access_seq()->sequence_symbol;
                 if (std::cmp_equal(i + 1, branch))
-                    result.emplace(symbol.name, symbol.symbol_range);
+                    result = &tmp->access_seq()->sequence_symbol;
             }
             else
             {
                 add_diagnostic(diagnostic_op::error_E015(expected, tmp->operand_range));
-                return std::nullopt;
+                return nullptr;
             }
         }
         return result;
     }
-    return std::nullopt;
+    return nullptr;
 }
 
 void ca_processor::process_AGO(const semantics::complete_statement& stmt)
 {
     register_seq_sym(stmt);
 
-    if (auto target = prepare_AGO(stmt))
-        branch_provider.jump_in_statements(target->first, target->second);
+    if (const auto target = prepare_AGO(stmt))
+        branch_provider.jump_in_statements(target->name, target->symbol_range);
 }
 
-std::optional<ca_processor::jump_target> ca_processor::prepare_AIF(const semantics::complete_statement& stmt)
+const semantics::seq_sym* ca_processor::prepare_AIF(const semantics::complete_statement& stmt)
 {
-    std::optional<jump_target> result;
     const auto& ops = stmt.operands_ref().value;
     if (ops.empty())
     {
         add_diagnostic(diagnostic_op::error_E022("AIF", stmt.instruction_ref().field_range));
-        return std::nullopt;
+        return nullptr;
     }
 
     static constexpr std::string_view expected[] = { "conditional branch" };
     bool has_operand = false;
+    const semantics::seq_sym* result = nullptr;
     for (auto it = ops.begin(); it != ops.end(); ++it)
     {
         const auto& op = *it;
@@ -388,7 +386,7 @@ std::optional<ca_processor::jump_target> ca_processor::prepare_AIF(const semanti
                 continue;
 
             add_diagnostic(diagnostic_op::error_E015(expected, op->operand_range));
-            return std::nullopt;
+            return nullptr;
         }
         has_operand = true;
 
@@ -398,20 +396,20 @@ std::optional<ca_processor::jump_target> ca_processor::prepare_AIF(const semanti
         if (ca_op->kind != semantics::ca_kind::BRANCH)
         {
             add_diagnostic(diagnostic_op::error_E015(expected, ca_op->operand_range));
-            return std::nullopt;
+            return nullptr;
         }
 
         if (result)
             continue;
 
         if (const auto* br = ca_op->access_branch(); br->expression->evaluate<context::B_t>(eval_ctx))
-            result.emplace(jump_target { br->sequence_symbol.name, br->sequence_symbol.symbol_range }); // llvm-14
+            result = &br->sequence_symbol;
     }
 
     if (!has_operand)
     {
         add_diagnostic(diagnostic_op::error_E022("variable symbol definition", stmt.instruction_ref().field_range));
-        return std::nullopt;
+        return nullptr;
     }
 
     return result;
@@ -421,8 +419,8 @@ void ca_processor::process_AIF(const semantics::complete_statement& stmt)
 {
     register_seq_sym(stmt);
 
-    if (auto jump_target = prepare_AIF(stmt))
-        branch_provider.jump_in_statements(jump_target->target, jump_target->target_range);
+    if (const auto target = prepare_AIF(stmt))
+        branch_provider.jump_in_statements(target->name, target->symbol_range);
 }
 
 void ca_processor::process_MACRO(const semantics::complete_statement& stmt)
