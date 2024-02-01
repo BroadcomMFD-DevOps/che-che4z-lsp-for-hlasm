@@ -362,11 +362,8 @@ void ca_processor::process_AGO(const semantics::complete_statement& stmt)
 {
     register_seq_sym(stmt);
 
-    auto target = prepare_AGO(stmt);
-    if (!target)
-        return;
-
-    branch_provider.jump_in_statements(target->first, target->second);
+    if (auto target = prepare_AGO(stmt))
+        branch_provider.jump_in_statements(target->first, target->second);
 }
 
 std::optional<ca_processor::jump_target> ca_processor::prepare_AIF(const semantics::complete_statement& stmt)
