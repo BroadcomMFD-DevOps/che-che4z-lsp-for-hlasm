@@ -87,7 +87,6 @@ private:
 
     void process_ANOP(const semantics::complete_statement& stmt);
 
-    std::optional<context::A_t> prepare_ACTR(const semantics::complete_statement& stmt);
     void process_ACTR(const semantics::complete_statement& stmt);
 
     const semantics::seq_sym* prepare_AGO(const semantics::complete_statement& stmt);

@@ -258,12 +258,14 @@ void ca_processor::process_ANOP(const semantics::complete_statement& stmt)
     register_seq_sym(stmt);
 }
 
-std::optional<context::A_t> ca_processor::prepare_ACTR(const semantics::complete_statement& stmt)
+void ca_processor::process_ACTR(const semantics::complete_statement& stmt)
 {
+    register_seq_sym(stmt);
+
     if (stmt.operands_ref().value.size() != 1)
     {
         add_diagnostic(diagnostic_op::error_E020("operand", stmt.instruction_ref().field_range));
-        return std::nullopt;
+        return;
     }
 
     const auto* ca_op = stmt.operands_ref().value[0]->access_ca();
@@ -273,23 +275,16 @@ std::optional<context::A_t> ca_processor::prepare_ACTR(const semantics::complete
     {
         static constexpr std::string_view expected[] = { "arithmetic expression" };
         add_diagnostic(diagnostic_op::error_E015(expected, ca_op->operand_range));
-        return std::nullopt;
+        return;
     }
 
-    return ca_op->access_expr()->expression->evaluate<context::A_t>(eval_ctx);
-}
+    const auto ctr = ca_op->access_expr()->expression->evaluate<context::A_t>(eval_ctx);
 
-void ca_processor::process_ACTR(const semantics::complete_statement& stmt)
-{
-    register_seq_sym(stmt);
+    static constexpr size_t ACTR_LIMIT = 1000;
 
-    if (auto ctr = prepare_ACTR(stmt))
+    if (hlasm_ctx.set_branch_counter(ctr) == ACTR_LIMIT)
     {
-        static constexpr size_t ACTR_LIMIT = 1000;
-        if (hlasm_ctx.set_branch_counter(*ctr) == ACTR_LIMIT)
-        {
-            add_diagnostic(diagnostic_op::error_W063(stmt.stmt_range_ref()));
-        }
+        add_diagnostic(diagnostic_op::error_W063(stmt.stmt_range_ref()));
     }
 }
 
