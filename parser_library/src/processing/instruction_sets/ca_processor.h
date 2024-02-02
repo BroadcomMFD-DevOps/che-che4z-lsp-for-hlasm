@@ -15,8 +15,6 @@
 #ifndef PROCESSING_CA_PROCESSOR_H
 #define PROCESSING_CA_PROCESSOR_H
 
-#include <optional>
-
 #include "aread_time.h"
 #include "instruction_processor.h"
 #include "processing/opencode_provider.h"

@@ -335,16 +335,14 @@ const semantics::seq_sym* ca_processor::prepare_AGO(const semantics::complete_st
             auto tmp = ops[i]->access_ca();
             assert(tmp);
 
-            if (tmp->kind == semantics::ca_kind::SEQ)
-            {
-                if (std::cmp_equal(i + 1, branch))
-                    result = &tmp->access_seq()->sequence_symbol;
-            }
-            else
+            if (tmp->kind != semantics::ca_kind::SEQ)
             {
                 add_diagnostic(diagnostic_op::error_E015(expected, tmp->operand_range));
                 return nullptr;
             }
+
+            if (std::cmp_equal(i + 1, branch))
+                result = &tmp->access_seq()->sequence_symbol;
         }
         return result;
     }
