@@ -47,7 +47,8 @@ ca_op_expr returns [operand_ptr op]
 ca_op_var_def returns [operand_ptr op]
 	: var_def
 	{
-		$op = std::make_unique<var_ca_operand>(std::move($var_def.vs), provider.get_range($var_def.ctx), resolve_def_vs($var_def.vs));
+		const auto can_have_undef_attr = resolve_def_vs($var_def.vs);
+		$op = std::make_unique<var_ca_operand>(std::move($var_def.vs), provider.get_range($var_def.ctx), can_have_undef_attr);
 	};
 	finally
 	{if (!$op) $op = std::make_unique<semantics::empty_operand>(provider.get_range(_localctx));}

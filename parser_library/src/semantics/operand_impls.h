@@ -396,7 +396,7 @@ struct data_def_operand_inline final : data_def_operand
     data_def_operand_inline(expressions::data_definition data_def, const range operand_range);
 };
 
-enum class ca_kind
+enum class ca_kind : uint8_t
 {
     VAR,
     EXPR,
@@ -411,7 +411,7 @@ struct branch_ca_operand;
 // coditional assembly instruction operand
 struct ca_operand : operand
 {
-    ca_operand(const ca_kind kind, const range operand_range);
+    ca_operand(const ca_kind kind, const range operand_range, bool can_have_undef_attr);
 
     var_ca_operand* access_var();
     const var_ca_operand* access_var() const;
@@ -422,11 +422,17 @@ struct ca_operand : operand
     branch_ca_operand* access_branch();
     const branch_ca_operand* access_branch() const;
 
-    virtual bool get_undefined_attributed_symbols(
+    virtual bool get_undefined_attributed_symbols_impl(
         std::vector<context::id_index>& symbols, const expressions::evaluation_context& eval_ctx) = 0;
 
     const ca_kind kind;
     bool can_have_undef_attr;
+
+    bool get_undefined_attributed_symbols(
+        std::vector<context::id_index>& symbols, const expressions::evaluation_context& eval_ctx)
+    {
+        return can_have_undef_attr && get_undefined_attributed_symbols_impl(symbols, eval_ctx);
+    }
 };
 
 // CA variable symbol operand
@@ -434,7 +440,7 @@ struct var_ca_operand final : ca_operand
 {
     var_ca_operand(vs_ptr variable_symbol, const range operand_range, bool can_have_undef_attr);
 
-    bool get_undefined_attributed_symbols(
+    bool get_undefined_attributed_symbols_impl(
         std::vector<context::id_index>& symbols, const expressions::evaluation_context& eval_ctx) override;
 
     vs_ptr variable_symbol;
@@ -447,8 +453,7 @@ struct expr_ca_operand final : ca_operand
 {
     expr_ca_operand(expressions::ca_expr_ptr expression, const range operand_range);
 
-
-    bool get_undefined_attributed_symbols(
+    bool get_undefined_attributed_symbols_impl(
         std::vector<context::id_index>& symbols, const expressions::evaluation_context& eval_ctx) override;
 
     expressions::ca_expr_ptr expression;
@@ -462,7 +467,7 @@ struct seq_ca_operand final : ca_operand
     seq_ca_operand(seq_sym sequence_symbol, const range operand_range);
 
 
-    bool get_undefined_attributed_symbols(
+    bool get_undefined_attributed_symbols_impl(
         std::vector<context::id_index>& symbols, const expressions::evaluation_context& eval_ctx) override;
 
     seq_sym sequence_symbol;
@@ -476,7 +481,7 @@ struct branch_ca_operand final : ca_operand
     branch_ca_operand(seq_sym sequence_symbol, expressions::ca_expr_ptr expression, const range operand_range);
 
 
-    bool get_undefined_attributed_symbols(
+    bool get_undefined_attributed_symbols_impl(
         std::vector<context::id_index>& symbols, const expressions::evaluation_context& eval_ctx) override;
 
     seq_sym sequence_symbol;

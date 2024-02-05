@@ -499,9 +499,10 @@ void complex_assembler_operand::apply(operand_visitor& visitor) const { visitor.
 void complex_assembler_operand::apply_mach_visitor(expressions::mach_expr_visitor&) const {}
 
 //***************** ca_operand *********************
-ca_operand::ca_operand(const ca_kind kind, range operand_range)
+ca_operand::ca_operand(const ca_kind kind, range operand_range, bool can_have_undef_attr)
     : operand(operand_type::CA, std::move(operand_range))
     , kind(kind)
+    , can_have_undef_attr(can_have_undef_attr)
 {}
 
 [[nodiscard]] var_ca_operand* ca_operand::access_var()
@@ -561,26 +562,24 @@ simple_expr_operand::simple_expr_operand(expressions::mach_expr_ptr expression)
 }
 
 var_ca_operand::var_ca_operand(vs_ptr variable_symbol, range operand_range, bool can_have_undef_attr)
-    : ca_operand(ca_kind::VAR, std::move(operand_range))
+    : ca_operand(ca_kind::VAR, std::move(operand_range), can_have_undef_attr)
     , variable_symbol(std::move(variable_symbol))
-    , can_have_undef_attr(can_have_undef_attr)
 {}
 
-bool var_ca_operand::get_undefined_attributed_symbols(
+bool var_ca_operand::get_undefined_attributed_symbols_impl(
     std::vector<context::id_index>& symbols, const expressions::evaluation_context& eval_ctx)
 {
-    return can_have_undef_attr
-        && expressions::ca_var_sym::get_undefined_attributed_symbols_vs(symbols, variable_symbol, eval_ctx);
+    return expressions::ca_var_sym::get_undefined_attributed_symbols_vs(symbols, variable_symbol, eval_ctx);
 }
 
 void var_ca_operand::apply(operand_visitor& visitor) const { visitor.visit(*this); }
 
 expr_ca_operand::expr_ca_operand(expressions::ca_expr_ptr expression, range operand_range)
-    : ca_operand(ca_kind::EXPR, std::move(operand_range))
+    : ca_operand(ca_kind::EXPR, std::move(operand_range), expression->can_have_undef_attr)
     , expression(std::move(expression))
 {}
 
-bool expr_ca_operand::get_undefined_attributed_symbols(
+bool expr_ca_operand::get_undefined_attributed_symbols_impl(
     std::vector<context::id_index>& symbols, const expressions::evaluation_context& eval_ctx)
 {
     return expression->get_undefined_attributed_symbols(symbols, eval_ctx);
@@ -589,11 +588,11 @@ bool expr_ca_operand::get_undefined_attributed_symbols(
 void expr_ca_operand::apply(operand_visitor& visitor) const { visitor.visit(*this); }
 
 seq_ca_operand::seq_ca_operand(seq_sym sequence_symbol, range operand_range)
-    : ca_operand(ca_kind::SEQ, std::move(operand_range))
+    : ca_operand(ca_kind::SEQ, std::move(operand_range), false)
     , sequence_symbol(std::move(sequence_symbol))
 {}
 
-bool seq_ca_operand::get_undefined_attributed_symbols(
+bool seq_ca_operand::get_undefined_attributed_symbols_impl(
     std::vector<context::id_index>&, const expressions::evaluation_context&)
 {
     return false;
@@ -602,12 +601,12 @@ bool seq_ca_operand::get_undefined_attributed_symbols(
 void seq_ca_operand::apply(operand_visitor& visitor) const { visitor.visit(*this); }
 
 branch_ca_operand::branch_ca_operand(seq_sym sequence_symbol, expressions::ca_expr_ptr expression, range operand_range)
-    : ca_operand(ca_kind::BRANCH, std::move(operand_range))
+    : ca_operand(ca_kind::BRANCH, std::move(operand_range), expression->can_have_undef_attr)
     , sequence_symbol(std::move(sequence_symbol))
     , expression(std::move(expression))
 {}
 
-bool branch_ca_operand::get_undefined_attributed_symbols(
+bool branch_ca_operand::get_undefined_attributed_symbols_impl(
     std::vector<context::id_index>& symbols, const expressions::evaluation_context& eval_ctx)
 {
     return expression->get_undefined_attributed_symbols(symbols, eval_ctx);

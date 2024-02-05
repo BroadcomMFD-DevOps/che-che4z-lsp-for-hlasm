@@ -15,6 +15,7 @@
 #include "gmock/gmock.h"
 
 #include "../common_testing.h"
+#include "expressions/conditional_assembly/terms/ca_constant.h"
 #include "semantics/operand_impls.h"
 #include "semantics/variable_symbol.h"
 
@@ -143,16 +144,19 @@ TEST(operand, access_operand)
 
     // ca operand
     // var
-    var_ca_operand vco(nullptr, range(), true);
+    var_ca_operand vco(
+        std::make_unique<basic_variable_symbol>(id_index(), std::vector<expressions::ca_expr_ptr>(), range()),
+        range(),
+        true);
     EXPECT_TRUE(access_ca_op(ca_kind::VAR, &vco));
     // expr
-    expr_ca_operand eco(nullptr, range());
+    expr_ca_operand eco(std::make_unique<expressions::ca_constant>(0, range()), range());
     EXPECT_TRUE(access_ca_op(ca_kind::EXPR, &eco));
     // seq
     seq_ca_operand sco({}, range());
     EXPECT_TRUE(access_ca_op(ca_kind::SEQ, &sco));
     // branch
-    branch_ca_operand bco({}, nullptr, range());
+    branch_ca_operand bco({}, std::make_unique<expressions::ca_constant>(0, range()), range());
     EXPECT_TRUE(access_ca_op(ca_kind::BRANCH, &bco));
 
     // macro operand
