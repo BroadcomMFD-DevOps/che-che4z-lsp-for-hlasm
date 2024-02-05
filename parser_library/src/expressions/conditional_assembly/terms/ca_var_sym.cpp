@@ -26,6 +26,25 @@ ca_var_sym::ca_var_sym(semantics::vs_ptr symbol, range expr_range)
     , symbol(std::move(symbol))
 {}
 
+bool ca_var_sym::estimate_undefined_attributd_symbols(const semantics::vs_ptr& symbol)
+{
+    if (std::any_of(
+            symbol->subscript.begin(), symbol->subscript.end(), [](const auto& e) { return e->can_have_undef_attr; }))
+        return true;
+
+    if (!symbol->created)
+        return false;
+
+    auto created = symbol->access_created();
+    for (auto&& point : created->created_name)
+    {
+        const auto* var = std::get_if<semantics::var_sym_conc>(&point.value);
+        if (var && estimate_undefined_attributd_symbols(var->symbol))
+            return true;
+    }
+    return false;
+}
+
 bool ca_var_sym::get_undefined_attributed_symbols_vs(
     std::vector<context::id_index>& symbols, const semantics::vs_ptr& symbol, const evaluation_context& eval_ctx)
 {
@@ -57,6 +76,7 @@ void ca_var_sym::resolve_expression_tree(ca_expression_ctx expr_ctx, diagnostic_
         diags.add_diagnostic(diagnostic_op::error_CE017_character_expression_expected(expr_range));
     expr_kind = expr_ctx.kind;
     symbol->resolve(expr_ctx.parent_expr_kind, diags);
+    can_have_undef_attr = estimate_undefined_attributd_symbols(symbol);
 }
 
 bool ca_var_sym::is_character_expression(character_expression_purpose) const { return false; }

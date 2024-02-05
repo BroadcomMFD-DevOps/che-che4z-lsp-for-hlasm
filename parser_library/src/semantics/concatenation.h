@@ -111,6 +111,7 @@ struct sublist_conc
 struct concatenation_point
 {
     std::variant<char_str_conc, var_sym_conc, dot_conc, sublist_conc, equals_conc> value;
+    bool can_have_undef_attr;
 
     // cleans concat_chains of empty strings and badly parsed operands
     static void clear_concat_chain(concat_chain& conc_list);
@@ -126,18 +127,23 @@ struct concatenation_point
 
     explicit concatenation_point(char_str_conc v)
         : value(std::move(v))
+        , can_have_undef_attr(false)
     {}
     explicit concatenation_point(var_sym_conc v)
         : value(std::move(v))
+        , can_have_undef_attr(true)
     {}
     explicit concatenation_point(dot_conc v)
         : value(std::move(v))
+        , can_have_undef_attr(false)
     {}
     explicit concatenation_point(sublist_conc v)
         : value(std::move(v))
+        , can_have_undef_attr(true)
     {}
     explicit concatenation_point(equals_conc v)
         : value(std::move(v))
+        , can_have_undef_attr(false)
     {}
 
     static std::string evaluate(const concat_chain& chain, const expressions::evaluation_context& eval_ctx);
@@ -153,6 +159,7 @@ struct concatenation_point
 
     std::string evaluate(const expressions::evaluation_context& eval_ctx) const;
     void resolve(diagnostic_op_consumer& diag) const;
+    void estimante_undef_attr();
 };
 
 template<bool exact, typename... Ts>

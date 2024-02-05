@@ -141,9 +141,10 @@ protected:
     size_t get_loctr_len() const;
     bool loctr_len_allowed(const std::string& attr) const;
 
-    void resolve_expression(expressions::ca_expr_ptr& expr, context::SET_t_enum type) const;
+    void resolve_expression(const expressions::ca_expr_ptr& expr, context::SET_t_enum type) const;
     void resolve_expression(std::vector<expressions::ca_expr_ptr>& expr, context::SET_t_enum type) const;
-    void resolve_expression(expressions::ca_expr_ptr& expr) const;
+    void resolve_expression(const expressions::ca_expr_ptr& expr) const;
+    bool resolve_def_vs(const semantics::vs_ptr& expr) const;
     void resolve_concat_chain(const semantics::concat_chain& chain) const;
 
     lexing::token_stream& input;

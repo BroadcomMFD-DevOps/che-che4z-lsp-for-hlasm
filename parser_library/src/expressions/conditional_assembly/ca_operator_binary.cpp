@@ -50,6 +50,8 @@ void ca_binary_operator::resolve_expression_tree(ca_expression_ctx expr_ctx, dia
 
     left_expr->resolve_expression_tree(expr_ctx, diags);
     right_expr->resolve_expression_tree(expr_ctx, diags);
+
+    can_have_undef_attr = left_expr->can_have_undef_attr || right_expr->can_have_undef_attr;
 }
 
 bool ca_binary_operator::is_character_expression(character_expression_purpose purpose) const
@@ -119,6 +121,45 @@ std::optional<bool> t_attr_special_case(std::vector<context::id_index>& symbols,
     return result;
 }
 
+std::optional<bool> estimate_t_attr_special_case_undef(
+    const expressions::ca_expression* left, const expressions::ca_expression* right)
+{
+    const expressions::ca_symbol_attribute* t_attr = nullptr;
+    const expressions::ca_string* o_string = nullptr;
+
+    if (left->is_t_attr_var && right->is_ca_string)
+    {
+        t_attr = static_cast<const expressions::ca_symbol_attribute*>(left);
+        o_string = static_cast<const expressions::ca_string*>(right);
+    }
+    else if (right->is_t_attr_var && left->is_ca_string)
+    {
+        t_attr = static_cast<const expressions::ca_symbol_attribute*>(right);
+        o_string = static_cast<const expressions::ca_string*>(left);
+    }
+    else
+        return std::nullopt;
+
+    auto basic = std::get<semantics::vs_ptr>(t_attr->symbol)->access_basic();
+    if (!basic)
+        return std::nullopt;
+
+    if (o_string->can_have_undef_attr
+        || std::any_of(
+            basic->subscript.begin(), basic->subscript.end(), [](const auto& e) { return e->can_have_undef_attr; }))
+        return true;
+
+    if (o_string->duplication_factor || o_string->substring.start || o_string->substring.count
+        || o_string->value.size() != 1
+        || !std::holds_alternative<semantics::char_str_conc>(o_string->value.front().value))
+        return std::nullopt;
+
+    if (std::get<semantics::char_str_conc>(o_string->value.front().value).value != "O")
+        return std::nullopt;
+
+    return false;
+}
+
 bool ca_function_binary_operator::get_undefined_attributed_symbols_impl(
     std::vector<context::id_index>& symbols, const evaluation_context& eval_ctx) const
 {
@@ -156,6 +197,13 @@ void ca_function_binary_operator::resolve_expression_tree(ca_expression_ctx expr
         expr_ctx.kind = operands_kind;
         left_expr->resolve_expression_tree(expr_ctx, diags);
         right_expr->resolve_expression_tree(expr_ctx, diags);
+
+        can_have_undef_attr = left_expr->can_have_undef_attr || right_expr->can_have_undef_attr;
+        if (is_relational() && m_expr_ctx.parent_expr_kind == context::SET_t_enum::B_TYPE)
+        {
+            if (auto special = estimate_t_attr_special_case_undef(left_expr.get(), right_expr.get()))
+                can_have_undef_attr = *special;
+        }
     }
 }
 

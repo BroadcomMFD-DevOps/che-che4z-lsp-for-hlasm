@@ -34,6 +34,7 @@ void ca_symbol::resolve_expression_tree(ca_expression_ctx expr_ctx, diagnostic_o
 {
     if (expr_ctx.kind == context::SET_t_enum::C_TYPE)
         diags.add_diagnostic(diagnostic_op::error_CE004(expr_range));
+    can_have_undef_attr = false;
 }
 
 bool ca_symbol::is_character_expression(character_expression_purpose) const { return false; }

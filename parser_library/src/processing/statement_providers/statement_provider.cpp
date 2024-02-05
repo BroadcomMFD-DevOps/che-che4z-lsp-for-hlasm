@@ -89,6 +89,9 @@ bool statement_provider::process_label(std::vector<context::id_index>& symbols,
     const semantics::label_si& label,
     const expressions::evaluation_context& eval_ctx)
 {
+    if (!label.can_have_undef_attr)
+        return false;
+
     switch (label.type)
     {
         case semantics::label_si_type::CONC:
@@ -106,7 +109,7 @@ bool statement_provider::process_instruction(std::vector<context::id_index>& sym
     const semantics::instruction_si& instruction,
     const expressions::evaluation_context& eval_ctx)
 {
-    if (instruction.type != semantics::instruction_si_type::CONC)
+    if (!instruction.can_have_undef_attr || instruction.type != semantics::instruction_si_type::CONC)
         return false;
 
     const auto& chain = std::get<semantics::concat_chain>(instruction.value);
@@ -124,13 +127,18 @@ bool statement_provider::process_operands(std::vector<context::id_index>& symbol
         switch (op->type)
         {
             case semantics::operand_type::MODEL:
-                result |= semantics::concatenation_point::get_undefined_attributed_symbols(
-                    symbols, op->access_model()->chain, eval_ctx);
+                result |= op->access_model()->can_have_undef_attr
+                    && semantics::concatenation_point::get_undefined_attributed_symbols(
+                        symbols, op->access_model()->chain, eval_ctx);
                 break;
             case semantics::operand_type::MAC:
                 if (op->access_mac()->kind == semantics::mac_kind::CHAIN)
-                    result |= semantics::concatenation_point::get_undefined_attributed_symbols(
-                        symbols, op->access_mac()->access_chain()->chain, eval_ctx);
+                {
+                    const auto chain_op = op->access_mac()->access_chain();
+                    result |= chain_op->can_have_undef_attr
+                        && semantics::concatenation_point::get_undefined_attributed_symbols(
+                            symbols, chain_op->chain, eval_ctx);
+                }
                 break;
             case semantics::operand_type::CA:
                 result |= op->access_ca()->get_undefined_attributed_symbols(symbols, eval_ctx);

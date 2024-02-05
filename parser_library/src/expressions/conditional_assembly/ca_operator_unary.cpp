@@ -38,7 +38,10 @@ void ca_unary_operator::resolve_expression_tree(ca_expression_ctx expr_ctx, diag
     if (expr_kind != expr_ctx.kind)
         diags.add_diagnostic(diagnostic_op::error_CE004(expr_range));
     else
+    {
         expr->resolve_expression_tree(expr_ctx, diags);
+        can_have_undef_attr = expr->can_have_undef_attr;
+    }
 }
 
 bool ca_unary_operator::is_character_expression(character_expression_purpose purpose) const
@@ -68,6 +71,7 @@ void ca_function_unary_operator::resolve_expression_tree(ca_expression_ctx expr_
     m_expr_ctx = expr_ctx;
     expr_ctx.kind = ca_common_expr_policy::get_operands_type(function, expr_ctx.kind);
     expr->resolve_expression_tree(expr_ctx, diags);
+    can_have_undef_attr = expr->can_have_undef_attr;
 }
 
 context::SET_t ca_function_unary_operator::operation(context::SET_t operand, const evaluation_context& eval_ctx) const
@@ -126,6 +130,7 @@ ca_par_operator::ca_par_operator(ca_expr_ptr expr, range expr_range)
 void ca_par_operator::resolve_expression_tree(ca_expression_ctx expr_ctx, diagnostic_op_consumer& diags)
 {
     expr->resolve_expression_tree(expr_ctx, diags);
+    can_have_undef_attr = expr->can_have_undef_attr;
     expr_kind = expr->expr_kind;
 }
 

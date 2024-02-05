@@ -14,6 +14,8 @@
 
 #include "statement_fields.h"
 
+#include "../expressions/conditional_assembly/terms/ca_var_sym.h"
+#include "concatenation.h"
 #include "utils/similar.h"
 
 namespace hlasm_plugin::parser_library::semantics {
@@ -27,13 +29,21 @@ void label_si::resolve(diagnostic_op_consumer& diag)
         case label_si_type::SEQ:
             break;
         case label_si_type::VAR:
-            std::get<vs_ptr>(value)->resolve(context::SET_t_enum::A_TYPE, diag);
+            std::get<vs_ptr>(value)->resolve(context::SET_t_enum::C_TYPE, diag);
+            can_have_undef_attr =
+                expressions::ca_var_sym::estimate_undefined_attributd_symbols(std::get<vs_ptr>(value));
             break;
         case label_si_type::MAC:
             break;
         case label_si_type::CONC:
             for (const auto& c : std::get<concat_chain>(value))
                 c.resolve(diag);
+            can_have_undef_attr = false;
+            for (auto& c : std::get<concat_chain>(value))
+            {
+                c.estimante_undef_attr();
+                can_have_undef_attr |= c.can_have_undef_attr;
+            }
             break;
         case label_si_type::EMPTY:
             break;
@@ -49,6 +59,12 @@ void instruction_si::resolve(diagnostic_op_consumer& diag)
         case instruction_si_type::CONC:
             for (const auto& c : std::get<concat_chain>(value))
                 c.resolve(diag);
+            can_have_undef_attr = false;
+            for (auto& c : std::get<concat_chain>(this->value))
+            {
+                c.estimante_undef_attr();
+                can_have_undef_attr |= c.can_have_undef_attr;
+            }
             break;
         case instruction_si_type::EMPTY:
             break;

@@ -139,6 +139,14 @@ void ca_symbol_attribute::resolve_expression_tree(ca_expression_ctx expr_ctx, di
         diags.add_diagnostic(diagnostic_op::error_CE004(expr_range));
     else if (std::holds_alternative<semantics::vs_ptr>(symbol))
         std::get<semantics::vs_ptr>(symbol)->resolve(expr_ctx.parent_expr_kind, diags);
+    if (std::holds_alternative<context::id_index>(symbol))
+        can_have_undef_attr = context::symbol_attributes::is_ordinary_attribute(attribute);
+    else if (std::holds_alternative<semantics::vs_ptr>(symbol))
+    {
+        const auto& vs = std::get<semantics::vs_ptr>(symbol);
+        can_have_undef_attr = context::symbol_attributes::is_ordinary_attribute(attribute)
+            || ca_var_sym::estimate_undefined_attributd_symbols(vs);
+    }
 }
 
 bool ca_symbol_attribute::is_character_expression(character_expression_purpose) const

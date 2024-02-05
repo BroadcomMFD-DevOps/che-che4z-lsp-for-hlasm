@@ -79,7 +79,7 @@ struct created_variable_symbol final : variable_symbol
         concat_chain created_name, std::vector<expressions::ca_expr_ptr> subscript, range symbol_range);
     ~created_variable_symbol();
 
-    const concat_chain created_name;
+    concat_chain created_name;
 
     context::id_index evaluate_name(const expressions::evaluation_context& eval_ctx) const override;
     void resolve(context::SET_t_enum parent_expr_kind, diagnostic_op_consumer& diag) override;

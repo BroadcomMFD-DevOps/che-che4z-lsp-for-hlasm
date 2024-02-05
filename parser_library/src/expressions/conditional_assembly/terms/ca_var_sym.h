@@ -41,6 +41,7 @@ public:
 
     static bool get_undefined_attributed_symbols_vs(
         std::vector<context::id_index>& symbols, const semantics::vs_ptr& symbol, const evaluation_context& eval_ctx);
+    static bool estimate_undefined_attributd_symbols(const semantics::vs_ptr& symbol);
 
 private:
     context::SET_t convert_return_types(

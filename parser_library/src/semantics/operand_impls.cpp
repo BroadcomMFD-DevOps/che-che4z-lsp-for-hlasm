@@ -65,7 +65,14 @@ model_operand::model_operand(concat_chain chain, std::vector<size_t> line_limits
     : operand(operand_type::MODEL, std::move(operand_range))
     , chain(std::move(chain))
     , line_limits(std::move(line_limits))
-{}
+    , can_have_undef_attr(false)
+{
+    for (auto& c : this->chain)
+    {
+        c.estimante_undef_attr();
+        can_have_undef_attr |= c.can_have_undef_attr;
+    }
+}
 
 void model_operand::apply(operand_visitor& visitor) const { visitor.visit(*this); }
 
@@ -553,15 +560,17 @@ simple_expr_operand::simple_expr_operand(expressions::mach_expr_ptr expression)
     return expression->get_dependencies(info).has_error;
 }
 
-var_ca_operand::var_ca_operand(vs_ptr variable_symbol, range operand_range)
+var_ca_operand::var_ca_operand(vs_ptr variable_symbol, range operand_range, bool can_have_undef_attr)
     : ca_operand(ca_kind::VAR, std::move(operand_range))
     , variable_symbol(std::move(variable_symbol))
+    , can_have_undef_attr(can_have_undef_attr)
 {}
 
 bool var_ca_operand::get_undefined_attributed_symbols(
     std::vector<context::id_index>& symbols, const expressions::evaluation_context& eval_ctx)
 {
-    return expressions::ca_var_sym::get_undefined_attributed_symbols_vs(symbols, variable_symbol, eval_ctx);
+    return can_have_undef_attr
+        && expressions::ca_var_sym::get_undefined_attributed_symbols_vs(symbols, variable_symbol, eval_ctx);
 }
 
 void var_ca_operand::apply(operand_visitor& visitor) const { visitor.visit(*this); }
@@ -611,7 +620,14 @@ void branch_ca_operand::apply(operand_visitor& visitor) const { visitor.visit(*t
 macro_operand_chain::macro_operand_chain(concat_chain chain, range operand_range)
     : macro_operand(mac_kind::CHAIN, std::move(operand_range))
     , chain(std::move(chain))
-{}
+    , can_have_undef_attr(false)
+{
+    for (auto& c : this->chain)
+    {
+        c.estimante_undef_attr();
+        can_have_undef_attr |= c.can_have_undef_attr;
+    }
+}
 
 void macro_operand_chain::apply(operand_visitor& visitor) const { visitor.visit(*this); }
 

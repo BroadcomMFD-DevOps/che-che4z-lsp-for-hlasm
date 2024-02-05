@@ -143,7 +143,7 @@ TEST(operand, access_operand)
 
     // ca operand
     // var
-    var_ca_operand vco(nullptr, range());
+    var_ca_operand vco(nullptr, range(), true);
     EXPECT_TRUE(access_ca_op(ca_kind::VAR, &vco));
     // expr
     expr_ca_operand eco(nullptr, range());

@@ -79,9 +79,11 @@ void ca_function::resolve_expression_tree(ca_expression_ctx expr_ctx, diagnostic
     else
     {
         expr_ctx.kind = param_kind;
+        can_have_undef_attr = duplication_factor && duplication_factor->can_have_undef_attr;
         for (auto&& expr : parameters)
         {
             expr->resolve_expression_tree(expr_ctx, diags);
+            can_have_undef_attr |= expr->can_have_undef_attr;
         }
     }
 }

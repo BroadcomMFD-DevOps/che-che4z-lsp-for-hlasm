@@ -47,6 +47,7 @@ struct model_operand final : operand
 
     concat_chain chain;
     std::vector<size_t> line_limits;
+    bool can_have_undef_attr;
 
     void apply(operand_visitor& visitor) const override;
 };
@@ -425,12 +426,13 @@ struct ca_operand : operand
         std::vector<context::id_index>& symbols, const expressions::evaluation_context& eval_ctx) = 0;
 
     const ca_kind kind;
+    bool can_have_undef_attr;
 };
 
 // CA variable symbol operand
 struct var_ca_operand final : ca_operand
 {
-    var_ca_operand(vs_ptr variable_symbol, const range operand_range);
+    var_ca_operand(vs_ptr variable_symbol, const range operand_range, bool can_have_undef_attr);
 
     bool get_undefined_attributed_symbols(
         std::vector<context::id_index>& symbols, const expressions::evaluation_context& eval_ctx) override;
@@ -510,6 +512,7 @@ struct macro_operand_chain final : macro_operand
     macro_operand_chain(concat_chain chain, const range operand_range);
 
     concat_chain chain;
+    bool can_have_undef_attr;
 
     void apply(operand_visitor& visitor) const override;
 };

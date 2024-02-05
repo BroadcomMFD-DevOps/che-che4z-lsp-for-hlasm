@@ -253,7 +253,7 @@ bool parser_impl::loctr_len_allowed(const std::string& attr) const
     return (attr == "L" || attr == "l") && proc_status.has_value();
 }
 
-void parser_impl::resolve_expression(expressions::ca_expr_ptr& expr, context::SET_t_enum type) const
+void parser_impl::resolve_expression(const expressions::ca_expr_ptr& expr, context::SET_t_enum type) const
 {
     diagnostic_consumer_transform diags([this](diagnostic_op d) {
         if (diagnoser_)
@@ -268,7 +268,7 @@ void parser_impl::resolve_expression(std::vector<expressions::ca_expr_ptr>& expr
         resolve_expression(expr, type);
 }
 
-void parser_impl::resolve_expression(expressions::ca_expr_ptr& expr) const
+void parser_impl::resolve_expression(const expressions::ca_expr_ptr& expr) const
 {
     diagnostic_consumer_transform diags([this](diagnostic_op d) {
         if (diagnoser_)
@@ -306,6 +306,27 @@ void parser_impl::resolve_expression(expressions::ca_expr_ptr& expr) const
         assert(false);
         resolve_expression(expr, context::SET_t_enum::UNDEF_TYPE);
     }
+}
+
+bool parser_impl::resolve_def_vs(const semantics::vs_ptr& expr) const
+{
+    bool result = false;
+    for (const auto& e : expr->subscript)
+    {
+        resolve_expression(e, context::SET_t_enum::A_TYPE);
+        result |= e->can_have_undef_attr;
+    }
+
+    if (expr->created)
+    {
+        for (auto& c : expr->access_created()->created_name)
+        {
+            c.estimante_undef_attr();
+            result |= c.can_have_undef_attr;
+        }
+    }
+
+    return result;
 }
 
 void parser_impl::resolve_concat_chain(const semantics::concat_chain& chain) const

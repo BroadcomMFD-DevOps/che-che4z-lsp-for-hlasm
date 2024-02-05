@@ -66,6 +66,7 @@ struct label_si
         : type(label_si_type::CONC)
         , field_range(std::move(field_range))
         , value(std::move(value))
+        , can_have_undef_attr(true)
     {}
 
     label_si(range field_range, seq_sym value)
@@ -78,6 +79,7 @@ struct label_si
         : type(label_si_type::VAR)
         , field_range(std::move(field_range))
         , value(std::move(value))
+        , can_have_undef_attr(true)
     {}
 
     label_si(range field_range)
@@ -89,6 +91,7 @@ struct label_si
     range field_range;
 
     label_si_value_t value;
+    bool can_have_undef_attr = false;
 
     void resolve(diagnostic_op_consumer& diags);
 };
@@ -115,6 +118,7 @@ struct instruction_si
         : type(instruction_si_type::CONC)
         , field_range(std::move(field_range))
         , value(std::move(value))
+        , can_have_undef_attr(true)
     {}
 
     instruction_si(range field_range)
@@ -126,6 +130,7 @@ struct instruction_si
     range field_range;
 
     instruction_si_value_t value;
+    bool can_have_undef_attr = false;
 
     void resolve(diagnostic_op_consumer& diags);
 };

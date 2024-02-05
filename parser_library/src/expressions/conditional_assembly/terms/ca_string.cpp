@@ -63,12 +63,22 @@ void ca_string::resolve_expression_tree(ca_expression_ctx expr_ctx, diagnostic_o
     expr_ctx.parent_expr_kind = expr_ctx.parent_expr_kind == context::SET_t_enum::B_TYPE ? expr_ctx.parent_expr_kind
                                                                                          : context::SET_t_enum::A_TYPE;
 
+    can_have_undef_attr = false;
     if (duplication_factor)
+    {
         duplication_factor->resolve_expression_tree({ expr_ctx.kind, expr_ctx.parent_expr_kind, false }, diags);
+        can_have_undef_attr |= duplication_factor->can_have_undef_attr;
+    }
     if (substring.start)
+    {
         substring.start->resolve_expression_tree(expr_ctx, diags);
+        can_have_undef_attr |= substring.start->can_have_undef_attr;
+    }
     if (substring.count)
+    {
         substring.count->resolve_expression_tree(expr_ctx, diags);
+        can_have_undef_attr |= substring.count->can_have_undef_attr;
+    }
 
     for (const auto& concat_point : value)
     {

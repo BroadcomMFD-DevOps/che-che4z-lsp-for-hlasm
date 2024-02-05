@@ -26,7 +26,8 @@ ca_constant::ca_constant(context::A_t value, range expr_range)
     , value(value)
 {}
 
-bool ca_constant::get_undefined_attributed_symbols_impl(std::vector<context::id_index>&, const evaluation_context&) const
+bool ca_constant::get_undefined_attributed_symbols_impl(
+    std::vector<context::id_index>&, const evaluation_context&) const
 {
     return false;
 }
@@ -35,6 +36,7 @@ void ca_constant::resolve_expression_tree(ca_expression_ctx expr_ctx, diagnostic
 {
     if (expr_ctx.kind == context::SET_t_enum::C_TYPE || (expr_ctx.kind == context::SET_t_enum::B_TYPE && value < 0))
         diags.add_diagnostic(diagnostic_op::error_CE004(expr_range));
+    can_have_undef_attr = false;
 }
 
 bool ca_constant::is_character_expression(character_expression_purpose) const { return false; }

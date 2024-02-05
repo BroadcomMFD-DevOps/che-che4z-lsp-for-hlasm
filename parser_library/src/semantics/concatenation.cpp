@@ -218,6 +218,8 @@ bool concatenation_point::get_undefined_attributed_symbols(
     bool result = false;
     for (auto it = chain.begin(); it != chain.end(); ++it)
     {
+        if (!it->can_have_undef_attr)
+            continue;
         if (auto* var = std::get_if<var_sym_conc>(&it->value))
             result |= expressions::ca_var_sym::get_undefined_attributed_symbols_vs(symbols, var->symbol, eval_ctx);
         else if (auto* sublist = std::get_if<sublist_conc>(&it->value))
@@ -225,6 +227,26 @@ bool concatenation_point::get_undefined_attributed_symbols(
                 result |= get_undefined_attributed_symbols(symbols, entry, eval_ctx);
     }
     return result;
+}
+void concatenation_point::estimante_undef_attr()
+{
+    if (!can_have_undef_attr)
+        return;
+
+    if (auto* var = std::get_if<var_sym_conc>(&value))
+        can_have_undef_attr = expressions::ca_var_sym::estimate_undefined_attributd_symbols(var->symbol);
+    else if (auto* sublist = std::get_if<sublist_conc>(&value))
+    {
+        for (auto& entry : sublist->list)
+        {
+            can_have_undef_attr = std::any_of(entry.begin(), entry.end(), [](auto& c) {
+                c.estimante_undef_attr();
+                return c.can_have_undef_attr;
+            });
+            if (can_have_undef_attr)
+                break;
+        }
+    }
 }
 
 std::string char_str_conc::evaluate(const expressions::evaluation_context&) const { return value; }

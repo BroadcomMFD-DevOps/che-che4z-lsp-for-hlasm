@@ -314,6 +314,7 @@ void ca_expr_list::resolve(ca_expression_ctx expr_ctx, diagnostic_op_consumer& d
     // resolve created tree
     expr_ctx.kind = context::object_traits<T>::type_enum;
     final_expr->resolve_expression_tree(expr_ctx, diags);
+    can_have_undef_attr = final_expr->can_have_undef_attr;
 
     // move resolved tree to the front of the array
     expr_list.clear();
