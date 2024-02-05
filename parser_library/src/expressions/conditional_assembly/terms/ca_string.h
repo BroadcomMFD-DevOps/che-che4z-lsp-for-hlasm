@@ -23,6 +23,9 @@ namespace hlasm_plugin::parser_library::expressions {
 // represents CA expression string
 class ca_string final : public ca_expression
 {
+    bool get_undefined_attributed_symbols_impl(
+        std::vector<context::id_index>& symbols, const evaluation_context& eval_ctx) const override;
+
 public:
     struct substring_t
     {
@@ -38,9 +41,6 @@ public:
     static constexpr size_t MAX_STR_SIZE = 4064;
 
     ca_string(semantics::concat_chain value, ca_expr_ptr duplication_factor, substring_t substring, range expr_range);
-
-    bool get_undefined_attributed_symbols(
-        std::vector<context::id_index>& symbols, const evaluation_context& eval_ctx) const override;
 
     void resolve_expression_tree(ca_expression_ctx expr_ctx, diagnostic_op_consumer& diags) override;
 

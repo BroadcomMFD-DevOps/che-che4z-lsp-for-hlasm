@@ -34,7 +34,7 @@ ca_binary_operator::ca_binary_operator(
     , right_expr(std::move(right_expr))
 {}
 
-bool ca_binary_operator::get_undefined_attributed_symbols(
+bool ca_binary_operator::get_undefined_attributed_symbols_impl(
     std::vector<context::id_index>& symbols, const evaluation_context& eval_ctx) const
 {
     bool result = false;
@@ -119,7 +119,7 @@ std::optional<bool> t_attr_special_case(std::vector<context::id_index>& symbols,
     return result;
 }
 
-bool ca_function_binary_operator::get_undefined_attributed_symbols(
+bool ca_function_binary_operator::get_undefined_attributed_symbols_impl(
     std::vector<context::id_index>& symbols, const evaluation_context& eval_ctx) const
 {
     if (is_relational() && m_expr_ctx.parent_expr_kind == context::SET_t_enum::B_TYPE)
@@ -127,7 +127,7 @@ bool ca_function_binary_operator::get_undefined_attributed_symbols(
         if (auto special = t_attr_special_case(symbols, left_expr.get(), right_expr.get(), eval_ctx))
             return *special;
     }
-    return ca_binary_operator::get_undefined_attributed_symbols(symbols, eval_ctx);
+    return ca_binary_operator::get_undefined_attributed_symbols_impl(symbols, eval_ctx);
 }
 
 void ca_function_binary_operator::resolve_expression_tree(ca_expression_ctx expr_ctx, diagnostic_op_consumer& diags)

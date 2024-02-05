@@ -25,11 +25,11 @@ namespace hlasm_plugin::parser_library::expressions {
 // represents unresolved list of terms in logical CA expression
 class ca_expr_list final : public ca_expression
 {
+    bool get_undefined_attributed_symbols_impl(
+        std::vector<context::id_index>& symbols, const evaluation_context& eval_ctx) const override;
+
 public:
     ca_expr_list(std::vector<ca_expr_ptr> expr_list, range expr_range, bool parenthesized);
-
-    bool get_undefined_attributed_symbols(
-        std::vector<context::id_index>& symbols, const evaluation_context& eval_ctx) const override;
 
     void resolve_expression_tree(ca_expression_ctx expr_ctx, diagnostic_op_consumer& diags) override;
 

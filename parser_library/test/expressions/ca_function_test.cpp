@@ -54,6 +54,12 @@ struct stringer
 
 class set_expr final : public ca_expression
 {
+    bool get_undefined_attributed_symbols_impl(
+        std::vector<context::id_index>&, const evaluation_context&) const override
+    {
+        return false;
+    }
+
 public:
     context::SET_t value;
 
@@ -61,11 +67,6 @@ public:
         : ca_expression(context::SET_t_enum::A_TYPE, range())
         , value(std::move(value))
     {}
-
-    bool get_undefined_attributed_symbols(std::vector<context::id_index>&, const evaluation_context&) const override
-    {
-        return false;
-    }
 
     void resolve_expression_tree(ca_expression_ctx, diagnostic_op_consumer&) override {}
 

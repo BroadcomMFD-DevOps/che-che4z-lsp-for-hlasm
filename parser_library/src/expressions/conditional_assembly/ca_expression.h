@@ -52,17 +52,24 @@ struct ca_expression_ctx
 // base class for conditional assembly expressions
 class ca_expression
 {
+    // retrieves set of attributed symbols that are not yet defined
+    virtual bool get_undefined_attributed_symbols_impl(
+        std::vector<context::id_index>& symbols, const evaluation_context& eval_ctx) const = 0;
+
 public:
     range expr_range;
     context::SET_t_enum expr_kind : 2;
     bool is_ca_string : 1 = false;
     bool is_t_attr_var : 1 = false;
+    bool can_have_undef_attr : 1 = true;
 
     ca_expression(context::SET_t_enum expr_kind, range expr_range);
 
-    // retrieves set of attributed symbols that are not yet defined
-    virtual bool get_undefined_attributed_symbols(
-        std::vector<context::id_index>& symbols, const evaluation_context& eval_ctx) const = 0;
+    bool get_undefined_attributed_symbols(
+        std::vector<context::id_index>& symbols, const evaluation_context& eval_ctx) const
+    {
+        return can_have_undef_attr && get_undefined_attributed_symbols_impl(symbols, eval_ctx);
+    }
 
     // builds parts of the expression tree that could not be built during parsing
     virtual void resolve_expression_tree(ca_expression_ctx expr_ctx, diagnostic_op_consumer& diags) = 0;

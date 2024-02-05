@@ -44,7 +44,7 @@ bool ca_var_sym::get_undefined_attributed_symbols_vs(
     return result;
 }
 
-bool ca_var_sym::get_undefined_attributed_symbols(
+bool ca_var_sym::get_undefined_attributed_symbols_impl(
     std::vector<context::id_index>& symbols, const evaluation_context& eval_ctx) const
 {
     return get_undefined_attributed_symbols_vs(symbols, symbol, eval_ctx);

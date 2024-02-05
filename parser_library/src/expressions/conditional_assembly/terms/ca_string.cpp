@@ -40,7 +40,7 @@ ca_string::ca_string(
     is_ca_string = true;
 }
 
-bool ca_string::get_undefined_attributed_symbols(
+bool ca_string::get_undefined_attributed_symbols_impl(
     std::vector<context::id_index>& symbols, const evaluation_context& eval_ctx) const
 {
     bool result = false;

@@ -80,7 +80,7 @@ ca_symbol_attribute::ca_symbol_attribute(
     , symbol_range(symbol_rng)
 {}
 
-bool ca_symbol_attribute::get_undefined_attributed_symbols(
+bool ca_symbol_attribute::get_undefined_attributed_symbols_impl(
     std::vector<context::id_index>& symbols, const evaluation_context& eval_ctx) const
 {
     if (std::holds_alternative<context::id_index>(symbol))

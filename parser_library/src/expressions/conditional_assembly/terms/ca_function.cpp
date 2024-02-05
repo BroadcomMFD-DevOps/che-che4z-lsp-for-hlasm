@@ -48,7 +48,7 @@ ca_function::ca_function(context::id_index function_name,
     , duplication_factor(std::move(duplication_factor))
 {}
 
-bool ca_function::get_undefined_attributed_symbols(
+bool ca_function::get_undefined_attributed_symbols_impl(
     std::vector<context::id_index>& symbols, const evaluation_context& eval_ctx) const
 {
     bool result = false;

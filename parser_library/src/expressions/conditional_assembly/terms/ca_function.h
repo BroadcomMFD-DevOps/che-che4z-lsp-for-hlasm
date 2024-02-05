@@ -27,6 +27,9 @@ namespace hlasm_plugin::parser_library::expressions {
 // represents CA expression built-in function
 class ca_function final : public ca_expression
 {
+    bool get_undefined_attributed_symbols_impl(
+        std::vector<context::id_index>& symbols, const evaluation_context& eval_ctx) const override;
+
 public:
     context::id_index function_name;
     const ca_expr_funcs function;
@@ -39,9 +42,6 @@ public:
         std::vector<ca_expr_ptr> parameters,
         ca_expr_ptr duplication_factor,
         range expr_range);
-
-    bool get_undefined_attributed_symbols(
-        std::vector<context::id_index>& symbols, const evaluation_context& eval_ctx) const override;
 
     void resolve_expression_tree(ca_expression_ctx expr_ctx, diagnostic_op_consumer& diags) override;
 

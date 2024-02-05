@@ -26,13 +26,13 @@ namespace hlasm_plugin::parser_library::expressions {
 // represents CA expression constant
 class ca_constant final : public ca_expression
 {
+    bool get_undefined_attributed_symbols_impl(
+        std::vector<context::id_index>& symbols, const evaluation_context& eval_ctx) const override;
+
 public:
     const context::A_t value;
 
     ca_constant(context::A_t value, range expr_range);
-
-    bool get_undefined_attributed_symbols(
-        std::vector<context::id_index>& symbols, const evaluation_context& eval_ctx) const override;
 
     void resolve_expression_tree(ca_expression_ctx expr_ctx, diagnostic_op_consumer& diags) override;
 

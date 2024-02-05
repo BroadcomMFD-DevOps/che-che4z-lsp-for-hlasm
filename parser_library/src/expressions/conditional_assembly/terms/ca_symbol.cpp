@@ -25,7 +25,7 @@ ca_symbol::ca_symbol(context::id_index symbol, range expr_range)
     , symbol(symbol)
 {}
 
-bool ca_symbol::get_undefined_attributed_symbols(std::vector<context::id_index>&, const evaluation_context&) const
+bool ca_symbol::get_undefined_attributed_symbols_impl(std::vector<context::id_index>&, const evaluation_context&) const
 {
     return false;
 }

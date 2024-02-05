@@ -30,6 +30,9 @@ class ca_symbol_attribute final : public ca_expression
 
     using ca_attr_variant_t = std::variant<context::id_index, semantics::vs_ptr, semantics::literal_si>;
 
+    bool get_undefined_attributed_symbols_impl(
+        std::vector<context::id_index>& symbols, const evaluation_context& eval_ctx) const override;
+
 public:
     const context::data_attr_kind attribute;
     ca_attr_variant_t symbol;
@@ -41,9 +44,6 @@ public:
         semantics::vs_ptr symbol, context::data_attr_kind attribute, range expr_range, range symbol_range);
     ca_symbol_attribute(
         semantics::literal_si lit, context::data_attr_kind attribute, range expr_range, range symbol_range);
-
-    bool get_undefined_attributed_symbols(
-        std::vector<context::id_index>& symbols, const evaluation_context& eval_ctx) const override;
 
     void resolve_expression_tree(ca_expression_ctx expr_ctx, diagnostic_op_consumer& diags) override;
 
