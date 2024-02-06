@@ -99,7 +99,7 @@ void occurrence_collector::visit(const semantics::macro_operand_string&) {}
 
 void occurrence_collector::get_occurrence(const semantics::variable_symbol& var)
 {
-    if (collector_kind == lsp::occurrence_kind::VAR)
+    if (any(collector_kind & lsp::occurrence_kind::VAR))
     {
         if (var.created)
             get_occurrence(var.access_created()->created_name);
@@ -111,13 +111,13 @@ void occurrence_collector::get_occurrence(const semantics::variable_symbol& var)
 
 void occurrence_collector::get_occurrence(const semantics::seq_sym& seq)
 {
-    if (collector_kind == lsp::occurrence_kind::SEQ)
+    if (any(collector_kind & lsp::occurrence_kind::SEQ))
         occurrences.emplace_back(lsp::occurrence_kind::SEQ, seq.name, seq.symbol_range, evaluated_model);
 }
 
 void occurrence_collector::get_occurrence(context::id_index ord, const range& ord_range)
 {
-    if (collector_kind == lsp::occurrence_kind::ORD)
+    if (any(collector_kind & lsp::occurrence_kind::ORD))
         occurrences.emplace_back(lsp::occurrence_kind::ORD, ord, ord_range, evaluated_model);
 }
 
@@ -127,7 +127,7 @@ void occurrence_collector::get_occurrence(const semantics::concat_chain& chain)
     {
         if (const auto* str = std::get_if<semantics::char_str_conc>(&point.value))
         {
-            if (collector_kind == lsp::occurrence_kind::ORD)
+            if (any(collector_kind & lsp::occurrence_kind::ORD))
             {
                 auto [valid, name] = hlasm_ctx.try_get_symbol_name(str->value);
                 if (valid)
@@ -136,7 +136,7 @@ void occurrence_collector::get_occurrence(const semantics::concat_chain& chain)
         }
         else if (const auto* var = std::get_if<semantics::var_sym_conc>(&point.value))
         {
-            if (collector_kind == lsp::occurrence_kind::VAR)
+            if (any(collector_kind & lsp::occurrence_kind::VAR))
                 get_occurrence(*var->symbol);
         }
         else if (const auto* sub = std::get_if<semantics::sublist_conc>(&point.value))
@@ -148,7 +148,7 @@ void occurrence_collector::get_occurrence(const semantics::concat_chain& chain)
 }
 void occurrence_collector::get_occurrence(const semantics::literal_si& lit)
 {
-    if (collector_kind == lsp::occurrence_kind::ORD)
+    if (any(collector_kind & lsp::occurrence_kind::ORD))
     {
         lit->get_dd().apply(*this);
     }
