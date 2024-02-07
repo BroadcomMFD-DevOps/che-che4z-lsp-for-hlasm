@@ -99,14 +99,11 @@ void occurrence_collector::visit(const semantics::macro_operand_string&) {}
 
 void occurrence_collector::get_occurrence(const semantics::variable_symbol& var)
 {
-    if (any(collector_kind & lsp::occurrence_kind::VAR))
-    {
-        if (var.created)
-            get_occurrence(var.access_created()->created_name);
-        else
-            occurrences.emplace_back(
-                lsp::occurrence_kind::VAR, var.access_basic()->name, var.symbol_range, evaluated_model);
-    }
+    if (var.created)
+        get_occurrence(var.access_created()->created_name);
+    else if (any(collector_kind & lsp::occurrence_kind::VAR))
+        occurrences.emplace_back(
+            lsp::occurrence_kind::VAR, var.access_basic()->name, var.symbol_range, evaluated_model);
 }
 
 void occurrence_collector::get_occurrence(const semantics::seq_sym& seq)
@@ -136,8 +133,7 @@ void occurrence_collector::get_occurrence(const semantics::concat_chain& chain)
         }
         else if (const auto* var = std::get_if<semantics::var_sym_conc>(&point.value))
         {
-            if (any(collector_kind & lsp::occurrence_kind::VAR))
-                get_occurrence(*var->symbol);
+            get_occurrence(*var->symbol);
         }
         else if (const auto* sub = std::get_if<semantics::sublist_conc>(&point.value))
         {

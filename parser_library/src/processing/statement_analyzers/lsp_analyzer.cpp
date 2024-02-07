@@ -87,16 +87,28 @@ bool lsp_analyzer::analyze(const context::hlasm_statement& statement,
     const auto* resolved_stmt = statement.access_resolved();
     switch (proc_kind)
     {
-        case processing_kind::ORDINARY:
-            collect_occurrences((prov_kind != statement_provider_kind::MACRO ? ORD | INSTR | VAR | SEQ : ORD | INSTR),
-                statement,
-                collection_info);
+        case processing_kind::ORDINARY: {
+            lsp::occurrence_kind kind = ORD;
+            if (prov_kind == statement_provider_kind::MACRO)
+            {
+                if (!resolved_stmt)
+                    kind = kind | INSTR;
+                else if (const auto& instr = resolved_stmt->instruction_ref();
+                         instr.type == semantics::instruction_si_type::ORD
+                         && !context::instruction_resolved_during_macro_parsing(resolved_stmt->opcode_ref().value))
+                    kind = kind | INSTR;
+            }
+            else
+                kind = kind | INSTR | VAR | SEQ;
+
+            collect_occurrences(kind, statement, collection_info);
             if (prov_kind != statement_provider_kind::MACRO && resolved_stmt)
             { // macros already processed during macro def processing
                 collect_var_definition(*resolved_stmt);
                 collect_copy_operands(*resolved_stmt, collection_info);
             }
             break;
+        }
         case processing_kind::MACRO: {
             if (resolved_stmt)
                 update_macro_nest(*resolved_stmt);
@@ -109,7 +121,7 @@ bool lsp_analyzer::analyze(const context::hlasm_statement& statement,
             {
                 if (const auto& instr = resolved_stmt->instruction_ref();
                     instr.type == semantics::instruction_si_type::ORD
-                    && context::instruction_resolved_during_macro_parsing(std::get<context::id_index>(instr.value)))
+                    && context::instruction_resolved_during_macro_parsing(resolved_stmt->opcode_ref().value))
                     kind = INSTR;
             }
             collect_occurrences(kind | VAR | SEQ, statement, collection_info);
@@ -247,7 +259,7 @@ void lsp_analyzer::collect_occurrences(
         }
 
         collect_occurrence(def_stmt->label_ref(), collector);
-        collect_occurrence(def_stmt->instruction_ref(), collector);
+        collect_occurrence(def_stmt->instruction_ref(), collector, nullptr);
         collect_occurrence(def_stmt->deferred_ref(), collector);
     }
     else if (auto res_stmt = statement.access_resolved())
@@ -261,7 +273,7 @@ void lsp_analyzer::collect_occurrences(
         }
 
         collect_occurrence(res_stmt->label_ref(), collector);
-        collect_occurrence(res_stmt->instruction_ref(), collector);
+        collect_occurrence(res_stmt->instruction_ref(), collector, &res_stmt->opcode_ref());
         collect_occurrence(res_stmt->operands_ref(), collector);
     }
 }
@@ -306,17 +318,22 @@ void lsp_analyzer::collect_occurrence(const semantics::label_si& label, occurren
     }
 }
 
-void lsp_analyzer::collect_occurrence(const semantics::instruction_si& instruction, occurrence_collector& collector)
+void lsp_analyzer::collect_occurrence(
+    const semantics::instruction_si& instruction, occurrence_collector& collector, const op_code* op)
 {
     if (instruction.type == semantics::instruction_si_type::CONC)
         collector.get_occurrence(std::get<semantics::concat_chain>(instruction.value));
     else if (instruction.type == semantics::instruction_si_type::ORD
         && any(collector.collector_kind & lsp::occurrence_kind::INSTR))
     {
-        auto opcode = hlasm_ctx_.get_operation_code(
-            std::get<context::id_index>(instruction.value)); // TODO: collect the instruction at the right time
-        if (!opcode.opcode.empty() || opcode.is_macro())
-            collector.occurrences.emplace_back(opcode.opcode, opcode.get_macro_details(), instruction.field_range);
+        if (!op)
+        {
+            auto opcode = hlasm_ctx_.get_operation_code(std::get<context::id_index>(instruction.value));
+            if (!opcode.opcode.empty() || opcode.is_macro())
+                collector.occurrences.emplace_back(opcode.opcode, opcode.get_macro_details(), instruction.field_range);
+        }
+        else if (!op->value.empty() && op->type != context::instruction_type::MAC || op->mac_def)
+            collector.occurrences.emplace_back(op->value, op->mac_def, instruction.field_range);
     }
     else if (instruction.type == semantics::instruction_si_type::ORD
         && any(collector.collector_kind & lsp::occurrence_kind::INSTR_LIKE))
