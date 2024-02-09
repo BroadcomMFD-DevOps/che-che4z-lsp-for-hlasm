@@ -83,6 +83,7 @@ void ca_string::resolve_expression_tree(ca_expression_ctx expr_ctx, diagnostic_o
     for (const auto& concat_point : value)
     {
         concat_point.resolve(diags);
+        can_have_undef_attr |= concat_point.can_have_undef_attr;
     }
 }
 
