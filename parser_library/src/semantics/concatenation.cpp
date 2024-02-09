@@ -33,6 +33,14 @@ struct concatenation_point_evaluator
     std::vector<std::pair<std::pair<size_t, bool>, range>> ranges;
     size_t utf16_offset = 0;
 
+    void append(std::string&& s)
+    {
+        if (result.empty())
+            result.swap(s);
+        else
+            result.append(s);
+    }
+
     void operator()(const char_str_conc& v)
     {
         auto value = v.evaluate(eval_ctx);
@@ -41,7 +49,7 @@ struct concatenation_point_evaluator
             ranges.emplace_back(std::pair(utf16_offset, false), v.conc_range);
             utf16_offset += utils::length_utf16_no_validation(value);
         }
-        result.append(std::move(value));
+        append(std::move(value));
         was_var = false;
     }
 
@@ -53,7 +61,7 @@ struct concatenation_point_evaluator
             ranges.emplace_back(std::pair(utf16_offset, true), v.symbol->symbol_range);
             utf16_offset += utils::length_utf16_no_validation(value);
         }
-        result.append(std::move(value));
+        append(std::move(value));
         was_var = true;
     }
 
@@ -67,7 +75,7 @@ struct concatenation_point_evaluator
                 ranges.emplace_back(std::pair(utf16_offset, false), v.conc_range);
                 utf16_offset += utils::length_utf16_no_validation(value);
             }
-            result.append(std::move(value));
+            append(std::move(value));
         }
         was_var = false;
     }
@@ -75,7 +83,7 @@ struct concatenation_point_evaluator
     void operator()(const sublist_conc& v)
     {
         assert(!collect_ranges);
-        result.append(v.evaluate(eval_ctx));
+        append(v.evaluate(eval_ctx));
         was_var = false;
     }
 
@@ -87,7 +95,7 @@ struct concatenation_point_evaluator
             ranges.emplace_back(std::pair(utf16_offset, false), v.conc_range);
             utf16_offset += utils::length_utf16_no_validation(value);
         }
-        result.append(std::move(value));
+        append(std::move(value));
         was_var = false;
     }
 };
