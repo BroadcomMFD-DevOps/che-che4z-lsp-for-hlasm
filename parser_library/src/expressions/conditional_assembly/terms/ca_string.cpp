@@ -80,9 +80,10 @@ void ca_string::resolve_expression_tree(ca_expression_ctx expr_ctx, diagnostic_o
         can_have_undef_attr |= substring.count->can_have_undef_attr;
     }
 
-    for (const auto& concat_point : value)
+    for (auto& concat_point : value)
     {
         concat_point.resolve(diags);
+        concat_point.estimante_undef_attr();
         can_have_undef_attr |= concat_point.can_have_undef_attr;
     }
 }

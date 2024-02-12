@@ -25,8 +25,10 @@ mac_op returns [operand_ptr op]
 mac_op_o returns [operand_ptr op] 
 	: mac_entry?
 	{
-		if($mac_entry.ctx)
+		if($mac_entry.ctx) {
+			resolve_concat_chain($mac_entry.chain);
 			$op = std::make_unique<macro_operand_chain>(std::move($mac_entry.chain),provider.get_range($mac_entry.ctx));
+		}
 		else
 			$op = std::make_unique<semantics::empty_operand>(provider.original_range);
 	};

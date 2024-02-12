@@ -35,7 +35,7 @@ public:
         substring_t();
     };
 
-    const semantics::concat_chain value;
+    semantics::concat_chain value;
     ca_expr_ptr duplication_factor;
     substring_t substring;
     static constexpr size_t MAX_STR_SIZE = 4064;
