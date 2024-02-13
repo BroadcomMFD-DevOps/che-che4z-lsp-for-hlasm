@@ -945,6 +945,15 @@ std::vector<branch_info> workspace::branch_information(const resource_location& 
         return {};
 }
 
+std::vector<folding_range> workspace::folding(const resource_location& document_loc) const
+{
+    auto comp = find_processor_file_impl(document_loc);
+    if (!comp)
+        return {};
+
+    return {};
+}
+
 std::optional<performance_metrics> workspace::last_metrics(const resource_location& document_loc) const
 {
     auto comp = find_processor_file_impl(document_loc);

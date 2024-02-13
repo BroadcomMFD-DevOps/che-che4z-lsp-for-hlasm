@@ -33,6 +33,7 @@
 
 #include "debugging/debugger_configuration.h"
 #include "external_configuration_requests.h"
+#include "folding_range.h"
 #include "lsp/completion_item.h"
 #include "lsp/document_symbol_item.h"
 #include "nlohmann/json.hpp"
@@ -795,6 +796,23 @@ public:
                 [&ws = ows->ws, doc_loc = std::move(uri)](
                     const workspace_manager_response<continuous_sequence<branch_info>>& resp) {
                     resp.provide(make_continuous_sequence(ws.branch_information(doc_loc)));
+                }),
+            [r]() { return r.valid(); },
+            work_item_type::query,
+        });
+    }
+
+    void folding(const char* document_uri, workspace_manager_response<continuous_sequence<folding_range>> r) override
+    {
+        auto [ows, uri] = ws_path_match(document_uri);
+
+        m_work_queue.emplace_back(work_item {
+            next_unique_id(),
+            ows,
+            response_handle(r,
+                [&ws = ows->ws, doc_loc = std::move(uri)](
+                    const workspace_manager_response<continuous_sequence<folding_range>>& resp) {
+                    resp.provide(make_continuous_sequence(ws.folding(doc_loc)));
                 }),
             [r]() { return r.valid(); },
             work_item_type::query,
