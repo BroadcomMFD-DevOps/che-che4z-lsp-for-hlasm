@@ -1056,10 +1056,14 @@ std::vector<line_entry> generate_indentation_map(std::string_view text)
     return lines;
 }
 
-std::vector<folding_range> folding_by_indentation(std::span<const line_entry> lines)
+struct fold_data
 {
-    std::vector<folding_range> result;
+    size_t indentation = 0;
+    size_t comment = 0;
+};
 
+void folding_by_indentation(std::vector<fold_data>& data, std::span<const line_entry> lines)
+{
     struct prev_region
     {
         size_t end_above;
@@ -1082,7 +1086,7 @@ std::vector<folding_range> folding_by_indentation(std::span<const line_entry> li
             while (pr.top().indent > line.indent)
                 pr.pop();
             if (pr.top().end_above >= 2 + line.end_lineno)
-                result.emplace_back(line.lineno, pr.top().end_above - 1, fold_type::none);
+                data[line.lineno].indentation = pr.top().end_above - 1;
         }
 
         if (pr.top().indent == line.indent)
@@ -1090,8 +1094,33 @@ std::vector<folding_range> folding_by_indentation(std::span<const line_entry> li
         else
             pr.push({ line.lineno, line.lineno, line.indent });
     }
+}
 
-    std::reverse(result.begin(), result.end());
+void folding_for_comments(std::vector<fold_data>& data, std::span<const line_entry> lines)
+{
+    const auto iscomment = [](const line_entry& le) { return le.comment; };
+    for (auto it = lines.begin(); (it = std::find_if(it, lines.end(), iscomment)) != lines.end();)
+    {
+        auto end = std::find_if(it, lines.end(), std::not_fn(iscomment));
+
+        if (auto last = std::prev(end); it != last)
+            data[it->lineno].comment = last->end_lineno - 1;
+
+        it = end;
+    }
+}
+
+std::vector<folding_range> generate_folding_ranges(std::span<const fold_data> data)
+{
+    std::vector<folding_range> result;
+
+    for (size_t l = 0; l < data.size(); ++l)
+    {
+        if (auto end = data[l].indentation)
+            result.emplace_back(l, end, fold_type::none);
+        else if ((end = data[l].comment) != 0)
+            result.emplace_back(l, end, fold_type::comment);
+    }
 
     return result;
 }
@@ -1107,30 +1136,12 @@ std::vector<folding_range> workspace::folding(const resource_location& document_
     if (lines.empty())
         return {};
 
-    auto result = folding_by_indentation(lines);
+    std::vector<fold_data> data(lines.back().end_lineno);
 
-    const auto boundary_index = result.size();
+    folding_by_indentation(data, lines);
+    folding_for_comments(data, lines);
 
-    const auto iscomment = [](const line_entry& le) { return le.comment; };
-    for (auto it = lines.cbegin(); (it = std::find_if(it, lines.cend(), iscomment)) != lines.cend();)
-    {
-        auto end = std::find_if(it, lines.cend(), std::not_fn(iscomment));
-
-        if (auto last = std::prev(end); it != last)
-        {
-            result.emplace_back(it->lineno, last->end_lineno - 1, fold_type::comment);
-        }
-
-        it = end;
-    }
-
-    const auto boundary = result.begin() + boundary_index;
-    const auto overlap = std::remove_if(boundary, result.end(), [start = result.begin(), boundary](const auto& le) {
-        return std::binary_search(start, boundary, le, [](const auto& l, const auto& r) { return l.start < r.start; });
-    });
-    result.erase(overlap, result.end());
-
-    return result;
+    return generate_folding_ranges(data);
 }
 
 std::optional<performance_metrics> workspace::last_metrics(const resource_location& document_loc) const
