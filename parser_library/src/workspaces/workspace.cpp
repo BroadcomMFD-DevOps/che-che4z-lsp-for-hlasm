@@ -1061,6 +1061,7 @@ struct fold_data
     size_t indentation = 0;
     size_t comment = 0;
     size_t notcomment = 0;
+    bool small_structure = false;
 };
 
 void folding_by_indentation(std::vector<fold_data>& data, std::span<const line_entry> lines)
@@ -1088,6 +1089,11 @@ void folding_by_indentation(std::vector<fold_data>& data, std::span<const line_e
                 pr.pop();
             if (pr.top().end_above >= 2 + line.end_lineno)
                 data[line.lineno].indentation = pr.top().end_above - 1;
+            else
+            {
+                data[line.lineno].small_structure = true;
+                data[pr.top().end_above - 1].small_structure = true;
+            }
         }
 
         if (pr.top().indent == line.indent)
@@ -1125,6 +1131,46 @@ void folding_between_comments(std::vector<fold_data>& data, std::span<const line
     }
 }
 
+void adjust_folding_data(std::span<fold_data> data)
+{
+    std::vector<bool> structured(data.size());
+    for (size_t l = 0; l < data.size(); ++l)
+    {
+        if (auto el = data[l].indentation)
+        {
+            std::fill(structured.begin() + l, structured.begin() + el + 1, true);
+            l = el;
+        }
+        else if (data[l].small_structure)
+            structured[l] = true;
+    }
+
+    for (size_t l = 0; l < data.size(); ++l)
+    {
+        auto& d = data[l];
+        if (!d.notcomment)
+            continue;
+
+        const auto reach = structured.begin() + d.notcomment + 1;
+        auto s = std::find(structured.begin() + l, reach, true);
+        if (s == reach)
+            continue;
+
+        auto se = std::find(s, reach, false);
+
+        auto newlimit = s - structured.begin();
+        auto oldend = d.notcomment;
+
+        d.notcomment = newlimit - 1;
+
+        if (se == reach)
+            continue;
+
+        auto& nextd = data[se - structured.begin()];
+        nextd.notcomment = std::max(nextd.notcomment, oldend);
+    }
+}
+
 std::vector<folding_range> generate_folding_ranges(std::span<const fold_data> data)
 {
     std::vector<folding_range> result;
@@ -1136,7 +1182,7 @@ std::vector<folding_range> generate_folding_ranges(std::span<const fold_data> da
         else if ((end = data[l].comment) != 0)
             result.emplace_back(l, end, fold_type::comment);
         else if ((end = data[l].notcomment) != 0)
-            result.emplace_back(l, end, fold_type::comment);
+            result.emplace_back(l, end, fold_type::none);
     }
 
     return result;
@@ -1158,6 +1204,8 @@ std::vector<folding_range> workspace::folding(const resource_location& document_
     folding_by_indentation(data, lines);
     folding_by_comments(data, lines);
     folding_between_comments(data, lines);
+
+    adjust_folding_data(data);
 
     return generate_folding_ranges(data);
 }
