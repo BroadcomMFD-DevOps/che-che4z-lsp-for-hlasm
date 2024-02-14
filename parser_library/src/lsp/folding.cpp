@@ -112,6 +112,7 @@ std::vector<line_entry> generate_indentation_map(std::string_view text)
             .blank_comment = blank_comment,
             .separator = separator,
             .has_label = has_label,
+            .suspicious = false,
         });
 
         lineno = end_lineno;
@@ -136,7 +137,7 @@ void folding_by_indentation(std::vector<fold_data>& data, std::span<const line_e
     {
         const auto& line = *it;
 
-        if (line.indent < 0 || line.comment)
+        if (line.indent < 0 || line.comment || line.suspicious)
             continue;
 
         if (pr.top().indent > line.indent)

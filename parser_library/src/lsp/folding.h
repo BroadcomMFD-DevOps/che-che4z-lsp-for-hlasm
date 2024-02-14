@@ -29,11 +29,12 @@ struct line_entry
     size_t end_lineno;
     signed char comment_offset;
     signed char indent;
-    bool comment;
-    bool blank;
-    bool blank_comment;
-    bool separator;
-    bool has_label;
+    bool comment : 1;
+    bool blank : 1;
+    bool blank_comment : 1;
+    bool separator : 1;
+    bool has_label : 1;
+    bool suspicious : 1;
 };
 
 struct fold_data

@@ -946,6 +946,25 @@ std::vector<branch_info> workspace::branch_information(const resource_location& 
         return {};
 }
 
+void mark_suspicious(std::vector<lsp::line_entry>& lines)
+{
+    static constexpr size_t min_lines = 50;
+    static constexpr size_t percentile_factor = 20; // 5%
+
+    std::vector<signed char> indents;
+    indents.reserve(lines.size());
+
+    std::transform(lines.begin(), lines.end(), std::back_inserter(indents), [](const auto& e) { return e.indent; });
+    std::erase_if(indents, [](auto x) { return x < 0; });
+
+    std::sort(indents.begin(), indents.end());
+
+    const auto limit = indents.size() < min_lines ? 0 : indents[indents.size() / percentile_factor];
+    for (auto& x : lines)
+        if (x.indent > 0 && x.indent < limit)
+            x.suspicious = true;
+}
+
 std::vector<folding_range> workspace::folding(const resource_location& document_loc) const
 {
     auto comp = find_processor_file_impl(document_loc);
@@ -953,6 +972,8 @@ std::vector<folding_range> workspace::folding(const resource_location& document_
         return {};
 
     auto lines = lsp::generate_indentation_map(comp->m_file->get_text());
+
+    mark_suspicious(lines);
 
     auto data = lsp::compute_folding_data(lines);
 
