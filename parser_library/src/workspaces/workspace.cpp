@@ -1060,6 +1060,7 @@ struct fold_data
 {
     size_t indentation = 0;
     size_t comment = 0;
+    size_t notcomment = 0;
 };
 
 void folding_by_indentation(std::vector<fold_data>& data, std::span<const line_entry> lines)
@@ -1096,7 +1097,7 @@ void folding_by_indentation(std::vector<fold_data>& data, std::span<const line_e
     }
 }
 
-void folding_for_comments(std::vector<fold_data>& data, std::span<const line_entry> lines)
+void folding_by_comments(std::vector<fold_data>& data, std::span<const line_entry> lines)
 {
     const auto iscomment = [](const line_entry& le) { return le.comment; };
     for (auto it = lines.begin(); (it = std::find_if(it, lines.end(), iscomment)) != lines.end();)
@@ -1105,6 +1106,20 @@ void folding_for_comments(std::vector<fold_data>& data, std::span<const line_ent
 
         if (auto last = std::prev(end); it != last)
             data[it->lineno].comment = last->end_lineno - 1;
+
+        it = end;
+    }
+}
+
+void folding_between_comments(std::vector<fold_data>& data, std::span<const line_entry> lines)
+{
+    const auto isnotcomment = [](const line_entry& le) { return !le.comment; };
+    for (auto it = lines.begin(); (it = std::find_if(it, lines.end(), isnotcomment)) != lines.end();)
+    {
+        auto end = std::find_if(it, lines.end(), std::not_fn(isnotcomment));
+
+        if (auto last = std::prev(end); it != last)
+            data[it->lineno].notcomment = last->end_lineno - 1;
 
         it = end;
     }
@@ -1119,6 +1134,8 @@ std::vector<folding_range> generate_folding_ranges(std::span<const fold_data> da
         if (auto end = data[l].indentation)
             result.emplace_back(l, end, fold_type::none);
         else if ((end = data[l].comment) != 0)
+            result.emplace_back(l, end, fold_type::comment);
+        else if ((end = data[l].notcomment) != 0)
             result.emplace_back(l, end, fold_type::comment);
     }
 
@@ -1139,7 +1156,8 @@ std::vector<folding_range> workspace::folding(const resource_location& document_
     std::vector<fold_data> data(lines.back().end_lineno);
 
     folding_by_indentation(data, lines);
-    folding_for_comments(data, lines);
+    folding_by_comments(data, lines);
+    folding_between_comments(data, lines);
 
     return generate_folding_ranges(data);
 }
