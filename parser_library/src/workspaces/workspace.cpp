@@ -1006,29 +1006,25 @@ std::pair<bool, signed char> label_and_indent(R&& r)
     return { has_label, (signed char)(b.counter() - start.counter()) };
 }
 
-std::vector<folding_range> workspace::folding(const resource_location& document_loc) const
+struct line_entry
 {
-    auto comp = find_processor_file_impl(document_loc);
-    if (!comp)
-        return {};
+    size_t lineno;
+    size_t end_lineno;
+    signed char comment_offset;
+    signed char indent;
+    bool comment;
+    bool blank;
+    bool blank_comment;
+    bool separator;
+    bool has_label;
+};
 
-    std::string_view text = comp->m_file->get_text();
+std::vector<line_entry> generate_indentation_map(std::string_view text)
+{
     lexing::logical_line<utils::utf8_iterator<std::string_view::const_iterator, utils::utf8_utf32_counter>> ll;
     utils::utf8_iterator<std::string_view::const_iterator, utils::utf8_utf32_counter> it(text.cbegin());
     const utils::utf8_iterator<std::string_view::const_iterator, utils::utf8_utf32_counter> end(text.cend());
 
-    struct line_entry
-    {
-        size_t lineno;
-        size_t end_lineno;
-        signed char comment_offset;
-        signed char indent;
-        bool comment;
-        bool blank;
-        bool blank_comment;
-        bool separator;
-        bool has_label;
-    };
     std::vector<line_entry> lines;
 
     size_t lineno = 0;
@@ -1057,11 +1053,11 @@ std::vector<folding_range> workspace::folding(const resource_location& document_
         lineno = end_lineno;
     }
 
-    if (lines.empty())
-        return {};
+    return lines;
+}
 
-    // start with the VSCode algorithm (but continuation aware)
-
+std::vector<folding_range> folding_by_indentation(std::span<const line_entry> lines)
+{
     std::vector<folding_range> result;
 
     struct prev_region
@@ -1096,6 +1092,23 @@ std::vector<folding_range> workspace::folding(const resource_location& document_
     }
 
     std::reverse(result.begin(), result.end());
+
+    return result;
+}
+
+std::vector<folding_range> workspace::folding(const resource_location& document_loc) const
+{
+    auto comp = find_processor_file_impl(document_loc);
+    if (!comp)
+        return {};
+
+    auto lines = generate_indentation_map(comp->m_file->get_text());
+
+    if (lines.empty())
+        return {};
+
+    auto result = folding_by_indentation(lines);
+
     const auto boundary_index = result.size();
 
     const auto iscomment = [](const line_entry& le) { return le.comment; };
