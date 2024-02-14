@@ -16,8 +16,10 @@
 
 #include <algorithm>
 #include <cassert>
+#include <functional>
 #include <map>
 #include <memory>
+#include <stack>
 #include <unordered_set>
 
 #include "analyzer.h"
@@ -25,6 +27,8 @@
 #include "fade_messages.h"
 #include "file.h"
 #include "file_manager.h"
+#include "folding_range.h"
+#include "lexing/logical_line.h"
 #include "lsp/completion_item.h"
 #include "lsp/document_symbol_item.h"
 #include "lsp/item_convertors.h"
@@ -945,13 +949,175 @@ std::vector<branch_info> workspace::branch_information(const resource_location& 
         return {};
 }
 
+template<typename R>
+signed char is_comment(R&& r)
+{
+    auto b = r.segments.front().code_begin();
+    const auto e = r.segments.front().code_end();
+    if (b == e)
+        return 0;
+    if (*b == '*')
+        return 1;
+    if (*b++ != '.')
+        return 0;
+    return b != e && *b == '*' ? 2 : 0;
+}
+
+template<typename R>
+bool is_blank_comment(R&& ll, unsigned char first_line_offset)
+{
+    return ll.segments.size() == 1
+        && std::all_of(std::next(ll.begin(), first_line_offset), ll.end(), [](unsigned char e) { return e == ' '; });
+}
+
+template<typename R>
+bool is_separator(R&& ll)
+{
+    static constexpr const auto threshold = 36;
+    return ll.segments.size() == 1
+        && std::count_if(ll.begin(), ll.end(), [](unsigned char e) { return e != ' ' && !isalnum(e); }) > threshold;
+}
+
+template<typename R>
+bool blank_line(R&& r)
+{
+    return std::all_of(r.begin(), r.end(), [](const auto& e) { return e == ' '; });
+}
+
+template<typename R>
+std::pair<bool, signed char> label_and_indent(R&& r)
+{
+    const auto start = r.segments.front().code_begin();
+    auto b = start;
+    const auto e = r.segments.front().code_end();
+
+    bool has_label = false;
+    while (b != e && *b++ != ' ')
+    {
+        has_label = true;
+    }
+
+    while (b != e && *b++ == ' ')
+        ;
+
+    if (b == e)
+        return { has_label, (signed char)-1 };
+
+    return { has_label, (signed char)(b.counter() - start.counter()) };
+}
+
 std::vector<folding_range> workspace::folding(const resource_location& document_loc) const
 {
     auto comp = find_processor_file_impl(document_loc);
     if (!comp)
         return {};
 
-    return {};
+    std::string_view text = comp->m_file->get_text();
+    lexing::logical_line<utils::utf8_iterator<std::string_view::const_iterator, utils::utf8_utf32_counter>> ll;
+    utils::utf8_iterator<std::string_view::const_iterator, utils::utf8_utf32_counter> it(text.cbegin());
+    const utils::utf8_iterator<std::string_view::const_iterator, utils::utf8_utf32_counter> end(text.cend());
+
+    struct line_entry
+    {
+        size_t lineno;
+        size_t end_lineno;
+        signed char comment_offset;
+        signed char indent;
+        bool comment;
+        bool blank;
+        bool blank_comment;
+        bool separator;
+        bool has_label;
+    };
+    std::vector<line_entry> lines;
+
+    size_t lineno = 0;
+    while (lexing::extract_logical_line(ll, it, end, lexing::default_ictl))
+    {
+        const auto comment_offset = is_comment(ll);
+        const bool comment = comment_offset;
+        const auto blank = blank_line(ll);
+        const auto blank_comment = comment && is_blank_comment(ll, comment_offset);
+        const auto separator = comment && is_separator(ll);
+        const auto [has_label, indent] = label_and_indent(ll);
+        auto end_lineno = lineno + ll.segments.size();
+
+        lines.push_back({
+            .lineno = lineno,
+            .end_lineno = end_lineno,
+            .comment_offset = comment_offset,
+            .indent = indent,
+            .comment = comment,
+            .blank = blank,
+            .blank_comment = blank_comment,
+            .separator = separator,
+            .has_label = has_label,
+        });
+
+        lineno = end_lineno;
+    }
+
+    if (lines.empty())
+        return {};
+
+    // start with the VSCode algorithm (but continuation aware)
+
+    std::vector<folding_range> result;
+
+    struct prev_region
+    {
+        size_t end_above;
+        size_t lineno;
+        signed char indent;
+    };
+
+    std::stack<prev_region> pr;
+    pr.push({ lines.back().end_lineno, lines.back().end_lineno, -1 });
+
+    for (auto it = lines.rbegin(); it != lines.rend(); ++it)
+    {
+        const auto& line = *it;
+
+        if (line.indent < 0 || line.comment)
+            continue;
+
+        if (pr.top().indent > line.indent)
+        {
+            while (pr.top().indent > line.indent)
+                pr.pop();
+            if (pr.top().end_above >= 2 + line.end_lineno)
+                result.emplace_back(line.lineno, pr.top().end_above - 1, fold_type::none);
+        }
+
+        if (pr.top().indent == line.indent)
+            pr.top().end_above = line.lineno;
+        else
+            pr.push({ line.lineno, line.lineno, line.indent });
+    }
+
+    std::reverse(result.begin(), result.end());
+    const auto boundary_index = result.size();
+
+    const auto iscomment = [](const line_entry& le) { return le.comment; };
+    for (auto it = lines.cbegin(); (it = std::find_if(it, lines.cend(), iscomment)) != lines.cend();)
+    {
+        auto end = std::find_if(it, lines.cend(), std::not_fn(iscomment));
+
+        if (auto last = std::prev(end); it != last)
+        {
+            result.emplace_back(it->lineno, last->end_lineno - 1, fold_type::comment);
+        }
+
+        it = end;
+    }
+
+    const auto boundary = result.begin() + boundary_index;
+    const auto overlap = std::remove_if(boundary, result.end(), [start = result.begin(), boundary](const auto& le) {
+        return std::binary_search(start, boundary, le, [](const auto& l, const auto& r) { return l.start < r.start; });
+    });
+    result.erase(overlap, result.end());
+
+    return result;
 }
 
 std::optional<performance_metrics> workspace::last_metrics(const resource_location& document_loc) const
