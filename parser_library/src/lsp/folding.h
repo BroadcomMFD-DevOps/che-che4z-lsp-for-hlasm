@@ -35,6 +35,8 @@ struct line_entry
     bool separator : 1;
     bool has_label : 1;
     bool suspicious : 1;
+
+    bool operator==(const line_entry&) const noexcept = default;
 };
 
 struct fold_data
@@ -43,6 +45,8 @@ struct fold_data
     size_t comment = 0;
     size_t notcomment = 0;
     bool small_structure = false;
+
+    bool operator==(const fold_data&) const noexcept = default;
 };
 
 // pre: data.size()>=lines.size()
@@ -54,6 +58,7 @@ void folding_between_comments(std::vector<fold_data>& data, std::span<const line
 void adjust_folding_data(std::span<fold_data> data);
 
 std::vector<line_entry> generate_indentation_map(std::string_view text);
+void mark_suspicious(std::vector<lsp::line_entry>& lines);
 std::vector<fold_data> compute_folding_data(std::span<const line_entry> lines);
 std::vector<folding_range> generate_folding_ranges(std::span<const fold_data> data);
 

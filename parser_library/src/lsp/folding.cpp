@@ -61,22 +61,15 @@ bool blank_line(const logical_line& r)
 std::pair<bool, signed char> label_and_indent(const logical_line& r)
 {
     const auto start = r.segments.front().code_begin();
-    auto b = start;
     const auto e = r.segments.front().code_end();
 
-    bool has_label = false;
-    while (b != e && *b++ != ' ')
-    {
-        has_label = true;
-    }
+    const auto label_end = std::find(start, e, ' ');
+    const auto instr = std::find_if(label_end, e, [](char c) { return c != ' '; });
 
-    while (b != e && *b++ == ' ')
-        ;
+    if (instr == e)
+        return { false, (signed char)-1 };
 
-    if (b == e)
-        return { has_label, (signed char)-1 };
-
-    return { has_label, (signed char)(b.counter() - start.counter()) };
+    return { label_end != start, (signed char)(instr.counter() - start.counter()) };
 }
 
 } // namespace
@@ -99,8 +92,8 @@ std::vector<line_entry> generate_indentation_map(std::string_view text)
         const auto blank = blank_line(ll);
         const auto blank_comment = comment && is_blank_comment(ll, comment_offset);
         const auto separator = comment && is_separator(ll);
-        const auto [has_label, indent] = label_and_indent(ll);
-        auto end_lineno = lineno + ll.segments.size();
+        const auto [has_label, indent] = comment ? std::pair(false, (signed char)-1) : label_and_indent(ll);
+        const auto end_lineno = lineno + ll.segments.size();
 
         lines.push_back({
             .lineno = lineno,
@@ -119,6 +112,25 @@ std::vector<line_entry> generate_indentation_map(std::string_view text)
     }
 
     return lines;
+}
+
+void mark_suspicious(std::vector<lsp::line_entry>& lines)
+{
+    static constexpr size_t min_lines = 50;
+    static constexpr size_t percentile_factor = 20; // 5%
+
+    std::vector<signed char> indents;
+    indents.reserve(lines.size());
+
+    std::transform(lines.begin(), lines.end(), std::back_inserter(indents), [](const auto& e) { return e.indent; });
+    std::erase_if(indents, [](auto x) { return x < 0; });
+
+    std::sort(indents.begin(), indents.end());
+
+    const auto limit = indents.size() < min_lines ? 0 : indents[indents.size() / percentile_factor];
+    for (auto& x : lines)
+        if (x.indent > 0 && x.indent < limit)
+            x.suspicious = true;
 }
 
 void folding_by_indentation(std::vector<fold_data>& data, std::span<const line_entry> lines)
