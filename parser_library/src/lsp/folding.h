@@ -49,11 +49,11 @@ struct fold_data
     bool operator==(const fold_data&) const noexcept = default;
 };
 
-// pre: data.size()>=lines.size()
+// pre: data.size()>=max lineno
 void folding_by_indentation(std::vector<fold_data>& data, std::span<const line_entry> lines);
-// pre: data.size()>=lines.size()
+// pre: data.size()>=max lineno
 void folding_by_comments(std::vector<fold_data>& data, std::span<const line_entry> lines);
-// pre: data.size()>=lines.size()
+// pre: data.size()>=max lineno
 void folding_between_comments(std::vector<fold_data>& data, std::span<const line_entry> lines);
 void adjust_folding_data(std::span<fold_data> data);
 
