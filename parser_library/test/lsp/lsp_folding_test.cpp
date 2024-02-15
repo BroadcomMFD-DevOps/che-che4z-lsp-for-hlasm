@@ -71,7 +71,7 @@ TEST(lsp_folding, exception_indent)
 
 TEST(lsp_folding, indentation)
 {
-    std::vector<line_entry> input {
+    const line_entry input[] {
         { 0, 1, 0, 4, false, false, false, false, false, false },
         { 1, 2, 0, 4, false, false, false, false, false, false },
         { 2, 3, 0, 4, false, false, false, false, false, false },
@@ -82,7 +82,7 @@ TEST(lsp_folding, indentation)
         { 7, 8, 0, 4, false, false, false, false, false, false },
     };
 
-    std::vector<fold_data> result(input.size());
+    std::vector<fold_data> result(std::size(input));
 
     folding_by_indentation(result, input);
 
@@ -102,7 +102,7 @@ TEST(lsp_folding, indentation)
 
 TEST(lsp_folding, comments)
 {
-    std::vector<line_entry> input {
+    const line_entry input[] {
         { 0, 1, 0, 4, false, false, false, false, false, false },
         { 1, 2, 0, 4, false, false, false, false, false, false },
         { 2, 3, 1, 0, true, false, false, false, false, false },
@@ -113,7 +113,7 @@ TEST(lsp_folding, comments)
         { 7, 8, 0, 4, false, false, false, false, false, false },
     };
 
-    std::vector<fold_data> result(input.size());
+    std::vector<fold_data> result(std::size(input));
 
     folding_by_comments(result, input);
 
@@ -133,7 +133,7 @@ TEST(lsp_folding, comments)
 
 TEST(lsp_folding, not_comments)
 {
-    std::vector<line_entry> input {
+    const line_entry input[] {
         { 0, 1, 0, 4, false, false, false, false, false, false },
         { 1, 2, 0, 4, false, false, false, false, false, false },
         { 2, 3, 1, 0, true, false, false, false, false, false },
@@ -144,7 +144,7 @@ TEST(lsp_folding, not_comments)
         { 7, 8, 0, 4, false, false, false, false, false, false },
     };
 
-    std::vector<fold_data> result(input.size());
+    std::vector<fold_data> result(std::size(input));
 
     folding_between_comments(result, input);
 
