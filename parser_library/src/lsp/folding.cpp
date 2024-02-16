@@ -14,6 +14,7 @@
 
 #include "folding.h"
 
+#include <algorithm>
 #include <cctype>
 #include <functional>
 #include <stack>
@@ -122,12 +123,17 @@ void mark_suspicious(std::vector<lsp::line_entry>& lines)
     std::vector<signed char> indents;
     indents.reserve(lines.size());
 
-    std::transform(lines.begin(), lines.end(), std::back_inserter(indents), [](const auto& e) { return e.indent; });
-    std::erase_if(indents, [](auto x) { return x < 0; });
+    for (const auto& e : lines)
+        if (e.indent > 0)
+            indents.push_back(e.indent);
 
-    std::sort(indents.begin(), indents.end());
+    if (indents.size() < min_lines)
+        return;
 
-    const auto limit = indents.size() < min_lines ? 0 : indents[indents.size() / percentile_factor];
+    const auto percentile_pos = indents.begin() + indents.size() / percentile_factor;
+    std::nth_element(indents.begin(), percentile_pos, indents.end());
+    const auto limit = *percentile_pos;
+
     for (auto& x : lines)
         if (x.indent > 0 && x.indent < limit)
             x.suspicious = true;

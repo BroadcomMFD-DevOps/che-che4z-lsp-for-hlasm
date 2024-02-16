@@ -798,11 +798,7 @@ void feature_language_features::folding(const request_id& id, const nlohmann::js
     auto document_uri = extract_document_uri(params);
 
     auto resp = make_response(id, response_, [](continuous_sequence<folding_range> folding_range_list) {
-        auto r = nlohmann::json::array();
-        for (const auto& fr : folding_range_list)
-            r.emplace_back(fr);
-
-        return r;
+        return nlohmann::json(folding_range_list);
     });
 
     ws_mngr_.folding(document_uri.c_str(), resp);
