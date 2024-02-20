@@ -27,7 +27,7 @@ using text_iterator =
     hlasm_plugin::utils::utf8_iterator<std::string_view::const_iterator, hlasm_plugin::utils::utf8_utf32_counter>;
 using logical_line = hlasm_plugin::parser_library::lexing::logical_line<text_iterator>;
 
-signed char is_comment(const logical_line& r)
+signed char get_comment_offset(const logical_line& r)
 {
     auto b = r.segments.front().code_begin();
     const auto e = r.segments.front().code_end();
@@ -88,7 +88,7 @@ std::vector<line_entry> generate_indentation_map(std::string_view text)
     size_t lineno = 0;
     while (lexing::extract_logical_line(ll, it, end, lexing::default_ictl))
     {
-        const auto comment_offset = is_comment(ll);
+        const auto comment_offset = get_comment_offset(ll);
         const bool comment = comment_offset;
         const auto blank = blank_line(ll);
         const auto blank_comment = comment && is_blank_comment(ll, comment_offset);
@@ -180,7 +180,7 @@ void folding_by_indentation(std::vector<fold_data>& data, std::span<const line_e
 
 void folding_by_comments(std::vector<fold_data>& data, std::span<const line_entry> lines)
 {
-    const auto iscomment = [](const line_entry& le) { return le.comment; };
+    static constexpr const auto iscomment = [](const line_entry& le) { return le.comment; };
     for (auto it = lines.begin(); (it = std::find_if(it, lines.end(), iscomment)) != lines.end();)
     {
         auto end = std::find_if(it, lines.end(), std::not_fn(iscomment));
@@ -194,7 +194,7 @@ void folding_by_comments(std::vector<fold_data>& data, std::span<const line_entr
 
 void folding_between_comments(std::vector<fold_data>& data, std::span<const line_entry> lines)
 {
-    const auto isnotcomment = [](const line_entry& le) { return !le.comment; };
+    static constexpr const auto isnotcomment = [](const line_entry& le) { return !le.comment; };
     for (auto it = lines.begin(); (it = std::find_if(it, lines.end(), isnotcomment)) != lines.end();)
     {
         auto end = std::find_if(it, lines.end(), std::not_fn(isnotcomment));
