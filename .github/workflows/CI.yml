@@ -290,6 +290,9 @@ jobs:
           - os: ubuntu-22.04
             native: linux_x64
             chmod: true
+          - os: ubuntu-22.04
+            native: linux_arm64
+            chmod: true
           - os: windows-2022
             native: win32_x64
             chmod: false
@@ -323,6 +326,16 @@ jobs:
       - name: Set executable flag
         if: ${{ matrix.chmod }}
         run: chmod +x bin/${{ matrix.native }}/language_server
+      - name: ARM64 emulation
+        if: ${{ matrix.native === 'linux_arm64' }}
+        run: |
+          apt-get update
+          apt-get install -y qemu-user
+          cd bin/linux_arm64
+          mv language_server language_server_linux_arm64
+          echo '#!/usr/bin/env sh' > language_server
+          echo 'qemu-aarch64 language_server_linux_arm64 "$@"' >> language_server
+          chmod +x language_server
       - name: NPM CI
         run: npm ci
       - name: Extension Test
