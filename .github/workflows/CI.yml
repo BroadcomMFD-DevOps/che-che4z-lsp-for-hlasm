@@ -232,7 +232,9 @@ jobs:
           name: ${{ matrix.toolchain }}
       - name: Extract toolchain
         if: ${{ matrix.toolchain }}
-        run: tar xzf toolchain.tar.gz
+        run: |
+          tar xzf toolchain.tar.gz
+          echo "$PWD/toolchain/bin" >> $GITHUB_PATH
       - name: Configure
         run: ../scripts/config.${{ matrix.native }}.sh
         working-directory: build
