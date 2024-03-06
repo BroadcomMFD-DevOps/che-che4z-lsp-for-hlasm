@@ -7,7 +7,7 @@ RUN git clone https://github.com/richfelker/musl-cross-make.git && \
     git checkout -f e149c31c48b4f4a4c9349ddf7bc0027b90245afc && \
     mkdir /toolchain && \
     echo "TARGET = aarch64-linux-musl" >> config.mak && \
-    echo "OUTPUT = /toolchain" >> config.mak && \
+    echo "OUTPUT = /toolchain/" >> config.mak && \
     echo "BINUTILS_VER = 2.41" >> config.mak && \
     echo "GCC_VER = 12.3.0" >> config.mak && \
     echo "DL_CMD = curl -C - -L -o" >> config.mak && \
