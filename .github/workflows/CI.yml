@@ -159,18 +159,32 @@ jobs:
           ./hlasm_utils_test
         working-directory: build/bin
 
-  linux-arm64-docker:
+  aarch64-linux-musl:
     name: Create Linux arm64 docker images
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        id: cache
+        with:
+          path: toolchain
+          key: ${{ hashFiles('scripts/Dockerfile.linux_arm64') }}
       - name: Build image
-        run: cd scripts && docker buildx build --cache-to type=gha,mode=max --cache-from type=gha -t linux_arm64 -f Dockerfile.linux_arm64 .
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          cd scripts
+          docker build -t linux_arm64 -f Dockerfile.linux_arm64 .
+          docker cp $(docker create linux_arm64):/toolchain - | tar x
+      - name: Upload docker image
+        uses: actions/upload-artifact@v4
+        with:
+          name: aarch64-linux-musl
+          path: toolchain
 
   build-matrix:
     name: Build
     runs-on: ${{ matrix.os }}
-    needs: [generate_grammar, linux-arm64-docker]
+    needs: [generate_grammar, aarch64-linux-musl]
     strategy:
       matrix:
         include:
@@ -181,7 +195,8 @@ jobs:
             dbg-pattern: build/bin/language_server.dbg
           - os: ubuntu-22.04
             native: linux_arm64
-            container: docker.io/library/linux_arm64
+            container: alpine:3.19
+            toolchain: aarch64-linux-musl
             dbg-strip: aarch64-linux-musl-objcopy --only-keep-debug language_server language_server.dbg && aarch64-linux-musl-objcopy --strip-unneeded language_server && aarch64-linux-musl-objcopy --add-gnu-debuglink=language_server.dbg language_server
             dbg-pattern: build/bin/language_server.dbg
           - os: ubuntu-22.04
@@ -209,6 +224,12 @@ jobs:
           path: build/generated_parser
       - name: Requirements install
         run: if [ -f ./scripts/prereq.${{ matrix.native }}.sh ]; then ./scripts/prereq.${{ matrix.native }}.sh; fi
+      - name: Download toolchain
+        if: ${{ matrix.toolchain }}
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.toolchain }}
+          path: toolchain
       - name: Configure
         run: ../scripts/config.${{ matrix.native }}.sh
         working-directory: build
