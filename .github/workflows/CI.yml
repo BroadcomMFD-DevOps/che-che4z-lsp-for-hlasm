@@ -171,10 +171,11 @@ jobs:
           key: ${{ hashFiles('scripts/Dockerfile.linux_arm64') }}
       - name: Build image
         if: steps.cache.outputs.cache-hit != 'true'
-        run: |
-          cd scripts
-          docker build -t linux_arm64 -f Dockerfile.linux_arm64 .
-          docker cp $(docker create linux_arm64):/toolchain - | tar x
+        run: docker build -t linux_arm64 -f Dockerfile.linux_arm64 .
+        working-directory: scripts
+      - name: Extract toolchain
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: docker cp $(docker create linux_arm64):/toolchain - | tar x
       - name: Upload docker image
         uses: actions/upload-artifact@v4
         with:
