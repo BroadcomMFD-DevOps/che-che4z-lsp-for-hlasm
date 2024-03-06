@@ -334,7 +334,7 @@ jobs:
           cd bin/linux_arm64
           mv language_server language_server_linux_arm64
           echo '#!/usr/bin/env sh' > language_server
-          echo 'qemu-aarch64 language_server_linux_arm64 "$@"' >> language_server
+          echo 'qemu-aarch64 language_server_linux_arm64 "$@" <&0' >> language_server
           chmod +x language_server
       - name: NPM CI
         run: npm ci
