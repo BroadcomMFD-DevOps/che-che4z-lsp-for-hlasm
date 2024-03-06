@@ -165,7 +165,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build image
-        run: cd scripts && docker buildx build --cache-to type=gha,mode=max --cache-from type=gha -t linux_arm64 -f scripts/Dockerfile.linux_arm64 .
+        run: cd scripts && docker buildx build --cache-to type=gha,mode=max --cache-from type=gha -t linux_arm64 -f Dockerfile.linux_arm64 .
 
   build-matrix:
     name: Build
