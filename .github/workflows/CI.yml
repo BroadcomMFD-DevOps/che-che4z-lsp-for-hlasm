@@ -20,6 +20,7 @@ on:
       - master
       - development
       - release-next
+      - ci_other_arms
   pull_request:
     branches:
       - master
@@ -175,8 +176,12 @@ jobs:
             container: emscripten/emsdk:3.1.46
             artifacts-ext: .*
           - os: windows-2022
-            native: win32
+            native: win32_x64
             artifacts-ext: .exe
+          - os: windows-2022
+            native: win32_arm64
+            artifacts-ext: .exe
+            skip-test: true
           - os: macos-13
             native: darwin_x64
           - os: macos-14
@@ -198,6 +203,7 @@ jobs:
         run: cmake --build . $([ -f ../scripts/build-extra.${{ matrix.native }}.conf ] && cat ../scripts/build-extra.${{ matrix.native }}.conf || true)
         working-directory: build
       - name: Server Test
+        if: ${{ !matrix.skip-test }}
         run: |
           if [ -f ../../scripts/test-runner.${{ matrix.native }}.sh ]; then
             ../../scripts/test-runner.${{ matrix.native }}.sh ./library_test
@@ -237,7 +243,7 @@ jobs:
             native: linux
             chmod: true
           - os: windows-2019
-            native: win32
+            native: win32_x64
             chmod: false
           - os: macos-11
             native: darwin_x64
@@ -246,7 +252,7 @@ jobs:
             native: linux
             chmod: true
           - os: windows-2022
-            native: win32
+            native: win32_x64
             chmod: false
           - os: macos-12
             native: darwin_x64
@@ -330,11 +336,16 @@ jobs:
     needs: [build-matrix, release-info]
     steps:
       - uses: actions/checkout@v4
-      - name: Download windows language server
+      - name: Download windows language server (x64)
         uses: actions/download-artifact@v4
         with:
-          name: language_server_win32
-          path: ${{ env.CLIENT_DIR }}/bin/win32/
+          name: language_server_win32_x64
+          path: ${{ env.CLIENT_DIR }}/bin/win32_x64/
+      - name: Download windows language server (arm64)
+        uses: actions/download-artifact@v4
+        with:
+          name: language_server_win32_arm64
+          path: ${{ env.CLIENT_DIR }}/bin/win32_arm64/
       - name: Download linux language server
         uses: actions/download-artifact@v4
         with:
