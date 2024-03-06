@@ -329,8 +329,8 @@ jobs:
       - name: ARM64 emulation
         if: ${{ matrix.native == 'linux_arm64' }}
         run: |
-          apt-get update
-          apt-get install -y qemu-user
+          sudo apt-get update
+          sudo apt-get install -y qemu-user
           cd bin/linux_arm64
           mv language_server language_server_linux_arm64
           echo '#!/usr/bin/env sh' > language_server
