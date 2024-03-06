@@ -159,17 +159,30 @@ jobs:
           ./hlasm_utils_test
         working-directory: build/bin
 
+  linux-arm64-docker:
+    name: Create Linux arm64 docker images
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker buildx build --cache-to type=gha,mode=max --cache-from type=gha -t linux_arm64 -f scripts/Dockerfile.linux_arm64
+
   build-matrix:
     name: Build
     runs-on: ${{ matrix.os }}
-    needs: [generate_grammar]
+    needs: [generate_grammar, linux-arm64-docker]
     strategy:
       matrix:
         include:
           - os: ubuntu-22.04
-            native: linux
+            native: linux_x64
             container: alpine:3.16
             dbg-strip: objcopy --only-keep-debug language_server language_server.dbg && objcopy --strip-unneeded language_server && objcopy --add-gnu-debuglink=language_server.dbg language_server
+            dbg-pattern: build/bin/language_server.dbg
+          - os: ubuntu-22.04
+            native: linux_arm64
+            container: linux_arm64
+            dbg-strip: aarch64-linux-musl-objcopy --only-keep-debug language_server language_server.dbg && aarch64-linux-musl-objcopy --strip-unneeded language_server && aarch64-linux-musl-objcopy --add-gnu-debuglink=language_server.dbg language_server
             dbg-pattern: build/bin/language_server.dbg
           - os: ubuntu-22.04
             native: wasm
@@ -240,7 +253,7 @@ jobs:
       matrix:
         include:
           - os: ubuntu-20.04
-            native: linux
+            native: linux_x64
             chmod: true
           - os: windows-2019
             native: win32_x64
@@ -249,7 +262,7 @@ jobs:
             native: darwin_x64
             chmod: true
           - os: ubuntu-22.04
-            native: linux
+            native: linux_x64
             chmod: true
           - os: windows-2022
             native: win32_x64
@@ -346,11 +359,16 @@ jobs:
         with:
           name: language_server_win32_arm64
           path: ${{ env.CLIENT_DIR }}/bin/win32_arm64/
-      - name: Download linux language server
+      - name: Download linux language server (x64)
         uses: actions/download-artifact@v4
         with:
-          name: language_server_linux
-          path: ${{ env.CLIENT_DIR }}/bin/linux/
+          name: language_server_linux_x64
+          path: ${{ env.CLIENT_DIR }}/bin/linux_x64/
+      - name: Download linux language server (arm64)
+        uses: actions/download-artifact@v4
+        with:
+          name: language_server_linux_arm64
+          path: ${{ env.CLIENT_DIR }}/bin/linux_arm64/
       - name: Download wasm language server
         uses: actions/download-artifact@v4
         with:
@@ -374,7 +392,8 @@ jobs:
         run: |
           chmod +x ${{ env.CLIENT_DIR }}/bin/darwin_x64/language_server
           chmod +x ${{ env.CLIENT_DIR }}/bin/darwin_arm64/language_server
-          chmod +x ${{ env.CLIENT_DIR }}/bin/linux/language_server
+          chmod +x ${{ env.CLIENT_DIR }}/bin/linux_x64/language_server
+          chmod +x ${{ env.CLIENT_DIR }}/bin/linux_arm64/language_server
       - name: NPM CI
         run: npm ci
         working-directory: ${{ env.CLIENT_DIR }}

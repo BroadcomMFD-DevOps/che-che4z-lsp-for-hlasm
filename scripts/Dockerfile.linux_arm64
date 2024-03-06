@@ -1,0 +1,28 @@
+FROM alpine:3.19 as builder
+
+RUN apk update && apk add git curl g++ bison make patch
+
+RUN git clone https://github.com/richfelker/musl-cross-make.git && \
+    cd musl-cross-make && \
+    mkdir /tmp/musl-cross-make && \
+    echo "TARGET = aarch64-linux-musl" >> config.mak && \
+    echo "OUTPUT = /tmp/musl-cross-make/" >> config.mak && \
+    echo "BINUTILS_VER = 2.41" >> config.mak && \
+    echo "GCC_VER = 12.3.0" >> config.mak && \
+    echo "DL_CMD = curl -C - -L -o" >> config.mak && \
+    echo "COMMON_CONFIG += CFLAGS=\"-fdata-sections -ffunction-sections\" CXXFLAGS=\"-fdata-sections -ffunction-sections\"" >> config.mak && \
+    echo "BINUTILS_CONFIG = --enable-gprofng=no" >> config.mak && \
+    echo "LINUX_VER = " >> config.mak && \
+    echo "85d66f058688db1e18545b6c4cf67ecc83d3b7eb *gcc-12.3.0.tar.xz" > hashes/gcc-12.3.0.tar.xz.sha1 && \
+    echo "0e008260a958bbd10182ee3384672ae0a310eece *binutils-2.41.tar.xz" > hashes/binutils-2.41.tar.xz.sha1 && \
+    mkdir patches/gcc-12.3.0 && \
+    cp patches/gcc-11.2.0/0002-posix_memalign.diff patches/gcc-12.3.0/
+
+RUN cd musl-cross-make && make -j 8 && make install
+
+FROM alpine:3.19
+
+RUN apk update && apk add --no-cache git cmake ninja qemu-aarch64
+
+COPY --from=builder /tmp/musl-cross-make/ /
+
