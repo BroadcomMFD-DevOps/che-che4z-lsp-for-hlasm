@@ -327,7 +327,7 @@ jobs:
         if: ${{ matrix.chmod }}
         run: chmod +x bin/${{ matrix.native }}/language_server
       - name: ARM64 emulation
-        if: ${{ matrix.native === 'linux_arm64' }}
+        if: ${{ matrix.native == 'linux_arm64' }}
         run: |
           apt-get update
           apt-get install -y qemu-user
