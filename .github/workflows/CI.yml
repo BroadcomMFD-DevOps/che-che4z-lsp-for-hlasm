@@ -167,7 +167,7 @@ jobs:
       - uses: actions/cache@v4
         id: cache
         with:
-          path: toolchain
+          path: toolchain.tar.gz
           key: ${{ hashFiles('scripts/Dockerfile.linux_arm64') }}
       - name: Build image
         if: steps.cache.outputs.cache-hit != 'true'
@@ -175,12 +175,12 @@ jobs:
         working-directory: scripts
       - name: Extract toolchain
         if: steps.cache.outputs.cache-hit != 'true'
-        run: docker cp $(docker create linux_arm64):/toolchain - | tar x
+        run: docker cp $(docker create linux_arm64):/toolchain - | gzip -c - > toolchain.tar.gz
       - name: Upload docker image
         uses: actions/upload-artifact@v4
         with:
           name: aarch64-linux-musl
-          path: toolchain
+          path: toolchain.tar.gz
 
   build-matrix:
     name: Build
@@ -230,7 +230,10 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: ${{ matrix.toolchain }}
-          path: toolchain
+          path: toolchain.tar.gz
+      - name: Extract toolchain
+        if: ${{ matrix.toolchain }}
+        run: tar xzf toolchain.tar.gz
       - name: Configure
         run: ../scripts/config.${{ matrix.native }}.sh
         working-directory: build
