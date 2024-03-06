@@ -230,7 +230,6 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: ${{ matrix.toolchain }}
-          path: toolchain.tar.gz
       - name: Extract toolchain
         if: ${{ matrix.toolchain }}
         run: tar xzf toolchain.tar.gz
