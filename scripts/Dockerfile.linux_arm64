@@ -11,7 +11,7 @@ RUN git clone https://github.com/richfelker/musl-cross-make.git && \
     echo "BINUTILS_VER = 2.41" >> config.mak && \
     echo "GCC_VER = 12.3.0" >> config.mak && \
     echo "DL_CMD = curl -C - -L -o" >> config.mak && \
-    echo "COMMON_CONFIG += CFLAGS=\"-fdata-sections -ffunction-sections\" CXXFLAGS=\"-fdata-sections -ffunction-sections\"" >> config.mak && \
+    echo "COMMON_CONFIG += CFLAGS=\"-fdata-sections -ffunction-sections -O2 -g0\" CXXFLAGS=\"-fdata-sections -ffunction-sections -O2 -g0\"" >> config.mak && \
     echo "BINUTILS_CONFIG = --enable-gprofng=no" >> config.mak && \
     echo "85d66f058688db1e18545b6c4cf67ecc83d3b7eb *gcc-12.3.0.tar.xz" > hashes/gcc-12.3.0.tar.xz.sha1 && \
     echo "0e008260a958bbd10182ee3384672ae0a310eece *binutils-2.41.tar.xz" > hashes/binutils-2.41.tar.xz.sha1 && \
