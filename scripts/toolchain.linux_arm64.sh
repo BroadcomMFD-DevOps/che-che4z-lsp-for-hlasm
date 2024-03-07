@@ -3,7 +3,7 @@
 set -e
 
 apk update
-apk add git curl g++ bison make patch tar
+apk add git curl g++ bison make patch tar xz
 
 mkdir /toolchain
 
