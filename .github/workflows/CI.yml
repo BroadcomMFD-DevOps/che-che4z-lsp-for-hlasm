@@ -161,7 +161,8 @@ jobs:
 
   aarch64-linux-musl:
     name: Create Linux arm64 docker images
-    runs-on: alpine:3.19
+    runs-on: ubuntu-22.04
+    container: alpine:3.19
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache@v4
