@@ -171,6 +171,7 @@ jobs:
         with:
           path: toolchain.tar.gz
           key: ${{ hashFiles('scripts/toolchain.linux_arm64.sh') }}
+          lookup-only: true
       - name: Build image
         if: steps.cache.outputs.cache-hit != 'true'
         run: ./scripts/toolchain.linux_arm64.sh
