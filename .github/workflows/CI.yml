@@ -322,7 +322,7 @@ jobs:
         if: ${{ matrix.chmod }}
         run: chmod +x bin/${{ matrix.native }}/language_server
       - name: Setup emulation
-        if: ${{ hashFiles(format('../../scripts/emulation.{0}.sh', matrix.native)) != '' }}
+        if: ${{ hashFiles(format('scripts/emulation.{0}.sh', matrix.native)) != '' }}
         run: ../../scripts/emulation.${{ matrix.native }}.sh
       - name: NPM CI
         run: npm ci
