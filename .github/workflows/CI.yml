@@ -159,7 +159,7 @@ jobs:
         working-directory: build/bin
 
   aarch64-linux-musl:
-    name: Create Linux arm64 docker images
+    name: Build Linux ARM64 toolchain
     runs-on: ubuntu-22.04
     container: alpine:3.19
     steps:
