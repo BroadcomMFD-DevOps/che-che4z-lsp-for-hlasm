@@ -165,6 +165,8 @@ jobs:
     container: alpine:3.19
     steps:
       - uses: actions/checkout@v4
+      - name: Install TAR
+        run: apk add tar
       - uses: actions/cache@v4
         id: cache
         with:
