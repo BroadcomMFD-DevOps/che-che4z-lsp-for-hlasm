@@ -216,14 +216,14 @@ jobs:
       - name: Requirements install
         run: if [ -f ./scripts/prereq.${{ matrix.native }}.sh ]; then ./scripts/prereq.${{ matrix.native }}.sh; fi
       - name: Download toolchain
-        if: ${{ hashFiles(format("scripts/toolchain.{0}.sh", matrix.native)) != '' }}
+        if: ${{ hashFiles(format('scripts/toolchain.{0}.sh', matrix.native)) != '' }}
         uses: actions/cache/restore@v4
         with:
           path: toolchain.tar.gz
-          key: ${{ hashFiles(format("scripts/toolchain.{0}.sh", matrix.native)) }}
+          key: ${{ hashFiles(format('scripts/toolchain.{0}.sh', matrix.native)) }}
           fail-on-cache-miss: true
       - name: Extract toolchain
-        if: ${{ hashFiles(format("scripts/toolchain.{0}.sh", matrix.native)) != '' }}
+        if: ${{ hashFiles(format('scripts/toolchain.{0}.sh', matrix.native)) != '' }}
         run: |
           tar xzf toolchain.tar.gz
           echo "$PWD/toolchain/bin" >> $GITHUB_PATH
@@ -319,7 +319,7 @@ jobs:
         if: ${{ matrix.chmod }}
         run: chmod +x bin/${{ matrix.native }}/language_server
       - name: Setup emulation
-        if: ${{ hashFiles(format("scripts/emulation.{0}.sh", matrix.native)) != '' }}
+        if: ${{ hashFiles(format('scripts/emulation.{0}.sh', matrix.native)) != '' }}
         run: ./scripts/emulation.${{ matrix.native }}.sh
       - name: NPM CI
         run: npm ci
