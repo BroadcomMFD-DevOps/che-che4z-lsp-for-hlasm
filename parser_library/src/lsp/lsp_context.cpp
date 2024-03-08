@@ -597,7 +597,7 @@ void collect_references(location_list& refs, const symbol_occurrence& occ, const
 {
     for (const auto& [file, occs] : file_occs)
     {
-        auto file_refs = file_info::find_references(occ, occs.first);
+        auto file_refs = file_info::find_references(occ, occs.symbols);
         for (auto&& ref : file_refs)
             refs.emplace_back(std::move(ref), file);
     }
@@ -840,7 +840,7 @@ void lsp_context::distribute_file_occurrences(const file_occurrences_t& occurren
     assert(files_present(m_files, occurrences));
 
     for (const auto& [file, occs] : occurrences)
-        m_files[file]->update_occurrences(occs.first, occs.second);
+        m_files[file]->update_occurrences(occs.symbols, occs.line_details);
 }
 
 occurrence_scope_t lsp_context::find_occurrence_with_scope(
