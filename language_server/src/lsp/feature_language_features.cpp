@@ -558,8 +558,8 @@ enum class lsp_document_symbol_item_kind
 
 
 const std::unordered_map<parser_library::document_symbol_kind, lsp_document_symbol_item_kind>
-    document_symbol_item_kind_mapping { { parser_library::document_symbol_kind::DAT,
-                                            lsp_document_symbol_item_kind::Array },
+    document_symbol_item_kind_mapping {
+        { parser_library::document_symbol_kind::DAT, lsp_document_symbol_item_kind::Array },
         { parser_library::document_symbol_kind::EQU, lsp_document_symbol_item_kind::Boolean },
         { parser_library::document_symbol_kind::MACH, lsp_document_symbol_item_kind::Constant },
         { parser_library::document_symbol_kind::ASM, lsp_document_symbol_item_kind::Boolean },
@@ -572,7 +572,9 @@ const std::unordered_map<parser_library::document_symbol_kind, lsp_document_symb
         { parser_library::document_symbol_kind::READONLY, lsp_document_symbol_item_kind::Enum },
         { parser_library::document_symbol_kind::EXTERNAL, lsp_document_symbol_item_kind::Enum },
         { parser_library::document_symbol_kind::WEAK_EXTERNAL, lsp_document_symbol_item_kind::Enum },
-        { parser_library::document_symbol_kind::MACRO, lsp_document_symbol_item_kind::File } };
+        { parser_library::document_symbol_kind::MACRO, lsp_document_symbol_item_kind::File },
+        { parser_library::document_symbol_kind::TITLE, lsp_document_symbol_item_kind::Module },
+    };
 
 nlohmann::json feature_language_features::document_symbol_item_json(
     hlasm_plugin::parser_library::document_symbol_item symbol)

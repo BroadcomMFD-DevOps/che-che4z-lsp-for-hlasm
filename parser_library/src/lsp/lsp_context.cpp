@@ -27,6 +27,7 @@
 #include "context/using.h"
 #include "item_convertors.h"
 #include "lsp/macro_info.h"
+#include "protocol.h"
 #include "utils/similar.h"
 #include "utils/string_operations.h"
 #include "utils/unicode_text.h"
@@ -462,6 +463,175 @@ void lsp_context::document_symbol_other(document_symbol_list_s& result,
     long long& limit,
     document_symbol_cache& cache) const
 {
+    using enum document_symbol_kind;
+    static constexpr const auto one_line = [](auto line) { return range(position(line, 0), position(line + 1, 0)); };
+    auto dl_it = m_files.find(document_loc);
+    if (dl_it == m_files.end())
+        return;
+    const auto& dl = dl_it->first;
+
+    for (const auto& [title, stack] : m_titles)
+    {
+        const position* p = nullptr;
+
+        for (auto s = stack; !s.empty(); s = s.parent())
+        {
+            if (*s.frame().resource_loc == dl)
+                p = &s.frame().pos;
+            if (s.frame().proc_type == context::file_processing_type::MACRO)
+                p = nullptr;
+        }
+        if (!p)
+            continue;
+
+        result.emplace_back(title, TITLE, one_line(p->line));
+    }
+
+    for (const auto& [def, info] : m_macros)
+    {
+        if (info->definition_location.resource_loc != dl)
+            continue;
+
+        auto& m = result.emplace_back(def->id.to_string(), MACRO, one_line(info->definition_location.pos.line));
+        for (const auto& [name, seq] : def->labels)
+        {
+            if (seq->symbol_location.resource_loc != dl)
+                continue;
+
+            m.children.emplace_back("." + name.to_string(), SEQ, one_line(seq->symbol_location.pos.line));
+        }
+        if (m.children.empty())
+            continue;
+
+        std::sort(m.children.begin(), m.children.end(), [](const auto& l, const auto& r) {
+            return l.symbol_range.start.line < r.symbol_range.start.line;
+        });
+
+        auto& line = m.children.back().symbol_range.end.line;
+        for (const auto& df : def->cached_definition)
+            line = std::max(line, df.get_base()->statement_position().line + 1);
+
+        for (auto it = m.children.begin(); it != std::prev(m.children.end()); ++it)
+        {
+            it->symbol_range.end = std::next(it)->symbol_range.start;
+            it->symbol_selection_range.end = std::next(it)->symbol_selection_range.start;
+        }
+    }
+
+    const auto macro_map = dl_it->second->macro_map();
+
+    if (auto it = m_opencode->file_occurrences.find(dl); it != m_opencode->file_occurrences.end())
+    {
+        for (const auto& o : it->second.symbols)
+        {
+            if (o.occurrence_range.start.column != 0)
+                continue;
+            if (o.name.empty())
+                continue;
+
+            std::string prefix;
+            document_symbol_kind kind = DAT;
+
+            switch (o.kind)
+            {
+                case occurrence_kind::ORD:
+                    break;
+                case occurrence_kind::SEQ:
+                    prefix = ".";
+                    kind = SEQ;
+                    break;
+                default:
+                    continue;
+            }
+            auto l = o.occurrence_range.start.line;
+            if (auto def = find_definition_location(o, nullptr, dl, position(-1, -1)); def)
+            {
+                if (def->resource_loc != dl)
+                    continue;
+                l = def->pos.line;
+            }
+            if (l >= macro_map.size() || !macro_map[l])
+                result.emplace_back(prefix + o.name.to_string(), kind, one_line(o.occurrence_range.start.line));
+        }
+    }
+
+    std::stable_sort(result.begin(), result.end(), [](const auto& l, const auto& r) {
+        if (const auto c = l.symbol_range.start.line <=> r.symbol_range.start.line; c != 0)
+            return c < 0;
+
+        const bool l_title = l.kind == TITLE;
+        const bool r_title = r.kind == TITLE;
+
+        return l_title > r_title;
+    });
+
+    if (!result.empty())
+    {
+        const auto lines = dl_it->second->data.get_number_of_lines();
+        result.back().symbol_range.end = position(lines, 0);
+        result.back().symbol_selection_range.end = position(lines, 0);
+    }
+
+    static constexpr const auto same_symbol = [](const auto& l, const auto& r) {
+        return l.name == r.name && l.kind == r.kind;
+    };
+    for (auto it = result.begin(); it != result.end();)
+    {
+        auto next = std::next(it);
+
+        while (next != result.end() && same_symbol(*it, *next))
+            ++next;
+
+        if (next != result.end())
+        {
+            it->symbol_range.end = next->symbol_range.start;
+            it->symbol_selection_range.end = next->symbol_selection_range.start;
+        }
+
+        it = next;
+    }
+
+    result.erase(std::unique(result.begin(), result.end(), same_symbol), result.end());
+
+
+    static constexpr const auto is_title = [](const auto& s) { return s.kind == TITLE; };
+
+    for (auto it = result.rbegin(); it != result.rend();)
+    {
+        const auto title = std::find_if(it, result.rend(), is_title);
+
+        if (title == result.rend())
+            break;
+
+        const auto next = std::next(title);
+
+        title->children.insert(
+            title->children.end(), std::make_move_iterator(title.base()), std::make_move_iterator(it.base()));
+        result.erase(title.base(), it.base());
+
+        it = next;
+    }
+
+    for (auto it = std::find_if(result.begin(), result.end(), is_title); it != result.end();)
+    {
+        auto next = std::next(it);
+        if (next == result.end())
+        {
+            const auto lines = dl_it->second->data.get_number_of_lines();
+            it->symbol_range.end = position(lines, 0);
+            it->symbol_selection_range.end = position(lines, 0);
+        }
+        else
+        {
+            it->symbol_range.end = next->symbol_range.start;
+            it->symbol_selection_range.end = next->symbol_range.start;
+        }
+
+        it = next;
+    }
+
+    return;
+
     std::unordered_map<std::string_view, utils::resource::resource_location> name_to_location;
     for (const auto& [def, info] : m_macros)
         name_to_location.insert_or_assign(def->id.to_string_view(), info->definition_location.resource_loc);
@@ -562,6 +732,11 @@ void lsp_context::add_opencode(
         libs.has_library(key.to_string_view(), &value);
     }
     std::erase_if(m_instr_like, [](const auto& e) { return e.second.empty(); });
+}
+
+void lsp_context::add_title(std::string title, context::processing_stack_t stack)
+{
+    m_titles.emplace_back(std::move(title), std::move(stack));
 }
 
 macro_info_ptr lsp_context::get_macro_info(context::id_index macro_name, context::opcode_generation gen) const

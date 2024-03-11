@@ -68,12 +68,26 @@ class lsp_context final
         std::unordered_map<const file_info*, std::vector<const symbol_occurrence*>> occurrences_by_name;
     };
 
+    struct title_details
+    {
+        std::string title;
+        context::processing_stack_t stack;
+
+        title_details(std::string title, context::processing_stack_t stack) // llvm-14
+            : title(std::move(title))
+            , stack(std::move(stack))
+        {}
+    };
+
+    std::vector<title_details> m_titles;
+
 public:
     explicit lsp_context(std::shared_ptr<context::hlasm_context> h_ctx);
 
     void add_copy(context::copy_member_ptr copy, text_data_view text_data);
     void add_macro(macro_info_ptr macro_i, text_data_view text_data = text_data_view());
     void add_opencode(opencode_info_ptr opencode_i, text_data_view text_data, workspaces::parse_lib_provider& libs);
+    void add_title(std::string title, context::processing_stack_t stack);
 
     [[nodiscard]] macro_info_ptr get_macro_info(
         context::id_index macro_name, context::opcode_generation gen = context::opcode_generation::current) const;
