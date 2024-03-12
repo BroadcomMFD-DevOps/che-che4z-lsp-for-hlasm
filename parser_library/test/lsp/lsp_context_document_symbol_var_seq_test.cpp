@@ -39,8 +39,7 @@ TEST(lsp_context_document_symbol_var_seq, 1)
     analyzer a(opencode, analyzer_options {});
     a.analyze();
 
-    const auto limit = 1000LL;
-    document_symbol_list_s outline_opencode = a.context().lsp_ctx->document_symbol(empty_loc, limit);
+    document_symbol_list_s outline_opencode = a.context().lsp_ctx->document_symbol(empty_loc);
     document_symbol_list_s expected_opencode = document_symbol_list_s {
         document_symbol_item_s { "V1", document_symbol_kind::VAR, range { { 0, 0 }, { 0, 0 } } },
         document_symbol_item_s { "V2", document_symbol_kind::VAR, range { { 1, 0 }, { 1, 0 } } }
@@ -70,9 +69,8 @@ EM1   EQU     1
     analyzer a(opencode, analyzer_options { &mock });
     a.analyze();
 
-    const auto limit = 1000LL;
-    document_symbol_list_s outline_opencode = a.context().lsp_ctx->document_symbol(empty_loc, limit);
-    document_symbol_list_s outline_mac1 = a.context().lsp_ctx->document_symbol(mac1_loc, limit);
+    document_symbol_list_s outline_opencode = a.context().lsp_ctx->document_symbol(empty_loc);
+    document_symbol_list_s outline_mac1 = a.context().lsp_ctx->document_symbol(mac1_loc);
     document_symbol_list_s expected_opencode = document_symbol_list_s {
         document_symbol_item_s { "MAC1",
             document_symbol_kind::MACRO,
@@ -125,10 +123,9 @@ EM2   EQU     1
     analyzer a(opencode, analyzer_options { &mock });
     a.analyze();
 
-    const auto limit = 1000LL;
-    document_symbol_list_s outline_opencode = a.context().lsp_ctx->document_symbol(empty_loc, limit);
-    document_symbol_list_s outline_mac1 = a.context().lsp_ctx->document_symbol(mac1_loc, limit);
-    document_symbol_list_s outline_mac2 = a.context().lsp_ctx->document_symbol(mac2_loc, limit);
+    document_symbol_list_s outline_opencode = a.context().lsp_ctx->document_symbol(empty_loc);
+    document_symbol_list_s outline_mac1 = a.context().lsp_ctx->document_symbol(mac1_loc);
+    document_symbol_list_s outline_mac2 = a.context().lsp_ctx->document_symbol(mac2_loc);
     document_symbol_list_s expected_opencode = document_symbol_list_s {
         document_symbol_item_s { "MAC1",
             document_symbol_kind::MACRO,
@@ -192,10 +189,9 @@ EC1   EQU     1)" },
     analyzer a(opencode, analyzer_options { &mock });
     a.analyze();
 
-    const auto limit = 1000LL;
-    document_symbol_list_s outline_opencode = a.context().lsp_ctx->document_symbol(empty_loc, limit);
-    document_symbol_list_s outline_mac1 = a.context().lsp_ctx->document_symbol(mac1_loc, limit);
-    document_symbol_list_s outline_copyfile1 = a.context().lsp_ctx->document_symbol(cpyfile1_loc, limit);
+    document_symbol_list_s outline_opencode = a.context().lsp_ctx->document_symbol(empty_loc);
+    document_symbol_list_s outline_mac1 = a.context().lsp_ctx->document_symbol(mac1_loc);
+    document_symbol_list_s outline_copyfile1 = a.context().lsp_ctx->document_symbol(cpyfile1_loc);
     document_symbol_list_s expected_opencode = document_symbol_list_s {
         document_symbol_item_s { "COPYFILE1",
             document_symbol_kind::MACRO,
@@ -259,10 +255,9 @@ EC1   EQU     1
     analyzer a(opencode, analyzer_options { &mock });
     a.analyze();
 
-    const auto limit = 1000LL;
-    document_symbol_list_s outline_opencode = a.context().lsp_ctx->document_symbol(empty_loc, limit);
-    document_symbol_list_s outline_mac1 = a.context().lsp_ctx->document_symbol(mac1_loc, limit);
-    document_symbol_list_s outline_copyfile1 = a.context().lsp_ctx->document_symbol(cpyfile1_loc, limit);
+    document_symbol_list_s outline_opencode = a.context().lsp_ctx->document_symbol(empty_loc);
+    document_symbol_list_s outline_mac1 = a.context().lsp_ctx->document_symbol(mac1_loc);
+    document_symbol_list_s outline_copyfile1 = a.context().lsp_ctx->document_symbol(cpyfile1_loc);
     document_symbol_list_s expected_opencode = document_symbol_list_s {
         document_symbol_item_s { "COPYFILE1",
             document_symbol_kind::MACRO,
@@ -327,10 +322,9 @@ EC1   EQU     1
     analyzer a(opencode, analyzer_options { &mock });
     a.analyze();
 
-    const auto limit = 1000LL;
-    document_symbol_list_s outline_opencode = a.context().lsp_ctx->document_symbol(empty_loc, limit);
-    document_symbol_list_s outline_mac1 = a.context().lsp_ctx->document_symbol(mac1_loc, limit);
-    document_symbol_list_s outline_copyfile1 = a.context().lsp_ctx->document_symbol(cpyfile1_loc, limit);
+    document_symbol_list_s outline_opencode = a.context().lsp_ctx->document_symbol(empty_loc);
+    document_symbol_list_s outline_mac1 = a.context().lsp_ctx->document_symbol(mac1_loc);
+    document_symbol_list_s outline_copyfile1 = a.context().lsp_ctx->document_symbol(cpyfile1_loc);
     document_symbol_list_s expected_opencode = document_symbol_list_s {
         document_symbol_item_s { "MAC1",
             document_symbol_kind::MACRO,

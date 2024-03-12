@@ -125,8 +125,7 @@ struct workspace_parse_lib_provider final : public parse_lib_provider
             pfc.m_dependencies.end(),
             next_dependencies.begin(),
             next_dependencies.end(),
-            utils::transform_inserter(
-                files_to_close, [](const auto& v) -> const auto& { return v.first; }),
+            utils::transform_inserter(files_to_close, [](const auto& v) -> const auto& { return v.first; }),
             [](const auto& l, const auto& r) { return l.first < r.first; });
     }
 
@@ -913,14 +912,14 @@ lsp::completion_list_s workspace::completion(
     return lsp::generate_completion(comp);
 }
 
-lsp::document_symbol_list_s workspace::document_symbol(const resource_location& document_loc, long long limit) const
+lsp::document_symbol_list_s workspace::document_symbol(const resource_location& document_loc) const
 {
     auto opencodes = find_related_opencodes(document_loc);
     if (opencodes.empty())
         return {};
     // for now take last opencode
     if (const auto* lsp_context = opencodes.back()->m_last_results->lsp_context.get())
-        return lsp_context->document_symbol(document_loc, limit);
+        return lsp_context->document_symbol(document_loc);
     else
         return {};
 }
