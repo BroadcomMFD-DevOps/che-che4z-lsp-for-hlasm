@@ -58,6 +58,12 @@ VAL DS   F
 
     MACSECT
     COPY COPYSECT
+
+T   TITLE 'EXTRA'
+C   CSECT
+C   AMODE 31
+    DC   A(0)
+.SEQ ANOP
 )";
     mock_parse_lib_provider mock({
         { "COPYSECT", R"(
@@ -152,6 +158,28 @@ MACFLD1  DS  F
             "SECT_CPY DSECT",
             TITLE,
             range { { 25, 0 }, { 26, position::max_value } },
+        },
+        document_symbol_item_s {
+            "EXTRA",
+            TITLE,
+            range { { 27, 0 }, { 32, position::max_value } },
+            document_symbol_list_s {
+                document_symbol_item_s {
+                    "T",
+                    UNKNOWN,
+                    range { { 27, 0 }, { 27, position::max_value } },
+                },
+                document_symbol_item_s {
+                    "C",
+                    EXECUTABLE,
+                    range { { 28, 0 }, { 30, position::max_value } },
+                },
+                document_symbol_item_s {
+                    ".SEQ",
+                    SEQ,
+                    range { { 31, 0 }, { 32, position::max_value } },
+                },
+            },
         },
     };
     document_symbol_list_s expectedM = document_symbol_list_s {
