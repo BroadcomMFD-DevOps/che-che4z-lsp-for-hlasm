@@ -58,7 +58,17 @@ constexpr bool expand_block(const document_symbol_item_s& item) { return item.ki
 document_symbol_list_s lsp_context::document_symbol(const utils::resource::resource_location& document_loc) const
 {
     using enum document_symbol_kind;
-    static constexpr const auto one_line = [](auto line) { return range(position(line, 0), position(line + 1, 0)); };
+    static constexpr const auto block = [](auto f, auto l) {
+        return range(position(f, 0), position(l, position::max_value));
+    };
+    static constexpr const auto one_line = [](auto line) {
+        return range(position(line, 0), position(line, position::max_value));
+    };
+    static constexpr const auto end_before = [](position& p, position s) {
+        if (p.line < s.line)
+            p.line = s.line - 1;
+    };
+
     auto dl_it = m_files.find(document_loc);
     if (dl_it == m_files.end())
         return {};
@@ -89,11 +99,11 @@ document_symbol_list_s lsp_context::document_symbol(const utils::resource::resou
             continue;
 
         const auto first_line = info->definition_location.pos.line;
-        auto last_line = first_line + 1;
+        auto last_line = first_line;
         if (!def->copy_nests.empty() && !def->copy_nests.back().empty())
-            last_line = def->copy_nests.back().front().loc.pos.line + 1;
+            last_line = def->copy_nests.back().front().loc.pos.line;
 
-        auto& m = result.emplace_back(def->id.to_string(), MACRO, range({ first_line, 0 }, { last_line, 0 }));
+        auto& m = result.emplace_back(def->id.to_string(), MACRO, block(first_line, last_line));
         for (const auto& [name, seq] : def->labels)
         {
             if (seq->symbol_location.resource_loc != dl)
@@ -112,8 +122,8 @@ document_symbol_list_s lsp_context::document_symbol(const utils::resource::resou
         m.children.back().symbol_selection_range.end.line = last_line;
         for (auto it = m.children.begin(); it != std::prev(m.children.end()); ++it)
         {
-            it->symbol_range.end = std::next(it)->symbol_range.start;
-            it->symbol_selection_range.end = std::next(it)->symbol_selection_range.start;
+            end_before(it->symbol_range.end, std::next(it)->symbol_range.start);
+            end_before(it->symbol_selection_range.end, std::next(it)->symbol_selection_range.start);
         }
     }
 
@@ -168,8 +178,8 @@ document_symbol_list_s lsp_context::document_symbol(const utils::resource::resou
     if (!result.empty() && expand_block(result.back()))
     {
         const auto lines = dl_it->second->data.get_number_of_lines();
-        result.back().symbol_range.end = position(lines, 0);
-        result.back().symbol_selection_range.end = position(lines, 0);
+        end_before(result.back().symbol_range.end, position(lines, 0));
+        end_before(result.back().symbol_selection_range.end, position(lines, 0));
     }
 
     static constexpr const auto same_symbol = [](const auto& l, const auto& r) {
@@ -184,8 +194,8 @@ document_symbol_list_s lsp_context::document_symbol(const utils::resource::resou
 
         if (next != result.end() && expand_block(*it))
         {
-            it->symbol_range.end = next->symbol_range.start;
-            it->symbol_selection_range.end = next->symbol_selection_range.start;
+            end_before(it->symbol_range.end, next->symbol_range.start);
+            end_before(it->symbol_selection_range.end, next->symbol_selection_range.start);
         }
         else
         {
@@ -226,13 +236,13 @@ document_symbol_list_s lsp_context::document_symbol(const utils::resource::resou
             if (next == result.end())
             {
                 const auto lines = dl_it->second->data.get_number_of_lines();
-                it->symbol_range.end = position(lines, 0);
-                it->symbol_selection_range.end = position(lines, 0);
+                end_before(it->symbol_range.end, position(lines, 0));
+                end_before(it->symbol_selection_range.end, position(lines, 0));
             }
             else
             {
-                it->symbol_range.end = next->symbol_range.start;
-                it->symbol_selection_range.end = next->symbol_range.start;
+                end_before(it->symbol_range.end, next->symbol_range.start);
+                end_before(it->symbol_selection_range.end, next->symbol_range.start);
             }
         }
 

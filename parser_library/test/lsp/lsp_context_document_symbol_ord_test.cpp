@@ -97,85 +97,85 @@ MACFLD1  DS  F
         document_symbol_item_s {
             "MAC1",
             MACRO,
-            range { { 2, 0 }, { 6, 0 } },
+            range { { 2, 0 }, { 5, position::max_value } },
         },
         document_symbol_item_s {
             "PART 1",
             TITLE,
-            range { { 7, 0 }, { 20, 0 } },
+            range { { 7, 0 }, { 19, position::max_value } },
             document_symbol_list_s {
                 document_symbol_item_s {
                     "SECT",
                     EXECUTABLE,
-                    range { { 8, 0 }, { 11, 0 } },
+                    range { { 8, 0 }, { 10, position::max_value } },
                 },
                 document_symbol_item_s {
                     "LBL",
                     DAT,
-                    range { { 11, 0 }, { 14, 0 } },
+                    range { { 11, 0 }, { 13, position::max_value } },
                 },
                 document_symbol_item_s {
                     "LB2",
                     EQU,
-                    range { { 14, 0 }, { 18, 0 } },
+                    range { { 14, 0 }, { 17, position::max_value } },
                 },
                 document_symbol_item_s {
                     "LBM",
                     MACH,
-                    range { { 18, 0 }, { 20, 0 } },
+                    range { { 18, 0 }, { 19, position::max_value } },
                 },
             },
         },
         document_symbol_item_s {
             "PREFIX: PART 2",
             TITLE,
-            range { { 20, 0 }, { 24, 0 } },
+            range { { 20, 0 }, { 23, position::max_value } },
             document_symbol_list_s {
                 document_symbol_item_s {
                     "PARM",
                     DUMMY,
-                    range { { 21, 0 }, { 22, 0 } },
+                    range { { 21, 0 }, { 21, position::max_value } },
                 },
                 document_symbol_item_s {
                     "VAL",
                     DAT,
-                    range { { 22, 0 }, { 24, 0 } },
+                    range { { 22, 0 }, { 23, position::max_value } },
                 },
             },
         },
         document_symbol_item_s {
             "SECT_MAC DSECT",
             TITLE,
-            range { { 24, 0 }, { 25, 0 } },
+            range { { 24, 0 }, { 24, position::max_value } },
         },
         document_symbol_item_s {
             "SECT_CPY DSECT",
             TITLE,
-            range { { 25, 0 }, { 27, 0 } },
+            range { { 25, 0 }, { 26, position::max_value } },
         },
     };
     document_symbol_list_s expectedM = document_symbol_list_s {
         document_symbol_item_s {
             "MACSECT",
             MACRO,
-            range { { 1, 0 }, { 6, 0 } },
+            range { { 1, 0 }, { 5, position::max_value } },
         },
     };
     document_symbol_list_s expectedC = document_symbol_list_s {
         document_symbol_item_s {
             "SECT_CPY DSECT",
             TITLE,
-            range { { 1, 0 }, { 5, 0 } },
+            range { { 1, 0 }, { 4, position::max_value } },
             document_symbol_list_s {
                 document_symbol_item_s {
                     "SECT_CPY",
                     DUMMY,
-                    range { { 2, 0 }, { 3, 0 } },
+                    range { { 2, 0 }, { 2, position::max_value } },
                 },
                 document_symbol_item_s {
                     "CPYFLD1",
                     DAT,
-                    range { { 3, 0 }, { 5, 0 } },
+                    range { { 3, 0 }, { 4, position::max_value } },
                 },
             },
         },
@@ -184,12 +184,12 @@ MACFLD1  DS  F
         document_symbol_item_s {
             "$TITLE",
             MACRO,
-            range { { 1, 0 }, { 7, 0 } },
+            range { { 1, 0 }, { 6, position::max_value } },
             document_symbol_list_s {
                 document_symbol_item_s {
                     ".SKIP",
                     SEQ,
-                    range { { 5, 0 }, { 7, 0 } },
+                    range { { 5, 0 }, { 6, position::max_value } },
                 },
             },
         },

@@ -159,7 +159,7 @@ TEST(language_features, document_symbol)
 
     nlohmann::json r = {
         { "start", { { "line", 0 }, { "character", 0 } } },
-        { "end", { { "line", 1 }, { "character", 0 } } },
+        { "end", { { "line", 0 }, { "character", 2147483647 } } },
     };
     nlohmann::json response = nlohmann::json::array();
     response.push_back({
