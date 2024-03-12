@@ -84,6 +84,7 @@ MACFLD1  DS  F
 &TEXT   SETC '&TITLE'(2,K'&TITLE-2)
         TITLE 'PREFIX: &TEXT'
 .SKIP   ANOP   ,
+.EXTRA  ANOP   ,
         MEND
 )" },
     });
@@ -212,12 +213,17 @@ MACFLD1  DS  F
         document_symbol_item_s {
             "$TITLE",
             MACRO,
-            range { { 1, 0 }, { 6, position::max_value } },
+            range { { 1, 0 }, { 7, position::max_value } },
             document_symbol_list_s {
                 document_symbol_item_s {
                     ".SKIP",
                     SEQ,
-                    range { { 5, 0 }, { 6, position::max_value } },
+                    range { { 5, 0 }, { 5, position::max_value } },
+                },
+                document_symbol_item_s {
+                    ".EXTRA",
+                    SEQ,
+                    range { { 6, 0 }, { 7, position::max_value } },
                 },
             },
         },
