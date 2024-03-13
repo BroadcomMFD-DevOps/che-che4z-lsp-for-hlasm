@@ -242,7 +242,7 @@ document_symbol_list_s lsp_context::document_symbol(const utils::resource::resou
             else
             {
                 end_before(it->symbol_range.end, next->symbol_range.start);
-                end_before(it->symbol_selection_range.end, next->symbol_range.start);
+                end_before(it->symbol_selection_range.end, next->symbol_selection_range.start);
             }
         }
 
