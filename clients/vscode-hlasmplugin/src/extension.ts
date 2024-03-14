@@ -137,7 +137,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<HlasmE
         }
 
         if (!version || version !== context.globalState.get(lastCrashVersion)) {
-            context.globalState.update(lastCrashVersion, version);
+            if (version)
+                context.globalState.update(lastCrashVersion, version);
             vscode.window.showWarningMessage('The language server did not start. Switching to WASM version.');
         }
 
