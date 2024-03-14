@@ -189,7 +189,6 @@ async function startLanguageServer(opts: LangStartOptions)
     //client init
     const hlasmpluginClient = await createLanguageServer(opts.serverVariant, opts.clientOptions, opts.context.extensionUri);
 
-    disposables.push(hlasmpluginClient);
     disposables.push(hlasmpluginClient.onDidChangeState(e => e.newState === vscodelc.State.Starting && opts.middleware.resetFirstOpen()));
 
     opts.clientErrorHandler.defaultHandler = hlasmpluginClient.createDefaultErrorHandler();
@@ -215,7 +214,7 @@ async function startLanguageServer(opts: LangStartOptions)
 
     try {
         await hlasmpluginClient.start();
-        opts.context.subscriptions.push(...disposables);
+        opts.context.subscriptions.push(hlasmpluginClient, ...disposables);
         return [hlasmpluginClient, extConfProvider, extFiles];
     }
     catch (e) {
