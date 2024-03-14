@@ -77,18 +77,20 @@ const getCacheInfo = async (uri: vscode.Uri, fs: vscode.FileSystem) => {
 
 const lastCrashVersion = 'lastCrashVersion' as const;
 
+function whenString(x: any): string | undefined {
+    if (typeof x === 'string')
+        return x;
+    else
+        return undefined;
+}
+
 /**
  * ACTIVATION
  * activates the extension
  */
 export async function activate(context: vscode.ExtensionContext): Promise<HlasmExtension> {
     const serverVariant = getConfig<ServerVariant>('serverVariant', 'native');
-    const version = ((x) => {
-        if (typeof x === 'string')
-            return x;
-        else
-            return undefined;
-    })(context.extension.packageJSON?.version);
+    const version = whenString(context.extension.packageJSON?.version);
 
     const telemetry = createTelemetry();
     context.subscriptions.push(telemetry);
@@ -120,40 +122,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<HlasmE
         middleware: middleware,
     };
 
-    const opts = {
-        serverVariant,
-        clientOptions,
-        context,
-        telemetry,
-        clientErrorHandler,
-        middleware,
-    };
-
-    let lsResult = await startLanguageServer(opts);
-    if (lsResult instanceof Error) {
-        if (serverVariant === 'wasm') {
-            telemetry.reportException(lsResult);
-            throw lsResult;
-        }
-
-        if (!version || version !== context.globalState.get(lastCrashVersion)) {
-            if (version)
-                context.globalState.update(lastCrashVersion, version);
-            vscode.window.showWarningMessage('The language server did not start. Switching to WASM version.');
-        }
-
-        telemetry.reportEvent('hlasm.wasmFallback');
-
-        opts.serverVariant = 'wasm';
-        lsResult = await startLanguageServer(opts);
-    }
-
-    if (lsResult instanceof Error) {
-        telemetry.reportException(lsResult);
-        throw lsResult;
-    }
-
-    const [hlasmpluginClient, extConfProvider, extFiles] = lsResult;
+    const [hlasmpluginClient, extConfProvider, extFiles] = await startLanguageServer(version, {
+        serverVariant, clientOptions, context, telemetry, clientErrorHandler, middleware,
+    });
 
     // register all commands and objects to context
     await registerDebugSupport(context, hlasmpluginClient);
@@ -183,7 +154,36 @@ type LangStartOptions = {
     middleware: HlasmPluginMiddleware,
 }
 
-async function startLanguageServer(opts: LangStartOptions)
+async function startLanguageServer(version: string | undefined, opts: LangStartOptions) {
+    let lsResult = await startLanguageServerAttempt(opts);
+    if (!(lsResult instanceof Error))
+        return lsResult;
+
+    if (opts.serverVariant === 'wasm') {
+        opts.telemetry.reportException(lsResult);
+        throw lsResult;
+    }
+
+    const lastCrash = opts.context.globalState.get(lastCrashVersion);
+    if (version)
+        opts.context.globalState.update(lastCrashVersion, version);
+
+    if (!version || version !== lastCrash)
+        vscode.window.showWarningMessage('The language server did not start. Switching to WASM version.');
+
+    opts.telemetry.reportEvent('hlasm.wasmFallback');
+
+    opts.serverVariant = 'wasm';
+    lsResult = await startLanguageServerAttempt(opts);
+
+    if (!(lsResult instanceof Error))
+        return lsResult;
+
+    opts.telemetry.reportException(lsResult);
+    throw lsResult;
+}
+
+async function startLanguageServerAttempt(opts: LangStartOptions)
     : Promise<[vscodelc.BaseLanguageClient, HLASMExternalConfigurationProvider, HLASMExternalFiles] | Error> {
     const disposables: vscode.Disposable[] = [];
 
