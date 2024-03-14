@@ -42,6 +42,7 @@ import { pickUser } from './uiUtils';
 import { activateBranchDecorator } from './branchDecorator';
 import { asError } from './helpers';
 import { registerListingServices } from './hlasmListingServices';
+import { MementoKey } from './mementoKeys';
 
 export const EXTENSION_ID = "broadcommfd.hlasm-language-support";
 
@@ -74,8 +75,6 @@ const getCacheInfo = async (uri: vscode.Uri, fs: vscode.FileSystem) => {
         return undefined;
     }
 }
-
-const lastCrashVersion = 'lastCrashVersion' as const;
 
 function whenString(x: any): string | undefined {
     if (typeof x === 'string')
@@ -164,11 +163,11 @@ async function startLanguageServer(version: string | undefined, opts: LangStartO
         throw lsResult;
     }
 
-    const lastCrash = opts.context.globalState.get(lastCrashVersion);
+    const lastCrashVersion = opts.context.globalState.get(MementoKey.LastCrashVersion);
     if (version)
-        opts.context.globalState.update(lastCrashVersion, version);
+        await opts.context.globalState.update(MementoKey.LastCrashVersion, version);
 
-    if (!version || version !== lastCrash)
+    if (!version || version !== lastCrashVersion)
         vscode.window.showWarningMessage('The language server did not start. Switching to WASM version.');
 
     opts.telemetry.reportEvent('hlasm.wasmFallback');
