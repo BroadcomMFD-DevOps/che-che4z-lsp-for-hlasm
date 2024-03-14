@@ -31,7 +31,7 @@ import { blockCommentCommand, CommentOption, lineCommentCommand } from './commen
 import { HLASMCodeActionsProvider } from './hlasmCodeActionsProvider';
 import { hlasmplugin_folder, hlasmplugin_folder_filter, bridge_json_filter } from './constants';
 import { ConfigurationsHandler } from './configurationsHandler';
-import { getLanguageClientMiddleware } from './languageClientMiddleware';
+import { HlasmPluginMiddleware, getLanguageClientMiddleware } from './languageClientMiddleware';
 import { HLASMExternalFiles } from './hlasmExternalFiles';
 import { HLASMExternalFilesFtp } from './hlasmExternalFilesFtp';
 import { HLASMExternalConfigurationProvider, HLASMExternalConfigurationProviderHandler } from './hlasmExternalConfigurationProvider';
@@ -75,17 +75,25 @@ const getCacheInfo = async (uri: vscode.Uri, fs: vscode.FileSystem) => {
     }
 }
 
+const lastCrashVersion = 'lastCrashVersion' as const;
+
 /**
  * ACTIVATION
  * activates the extension
  */
 export async function activate(context: vscode.ExtensionContext): Promise<HlasmExtension> {
     const serverVariant = getConfig<ServerVariant>('serverVariant', 'native');
+    const version = ((x) => {
+        if (typeof x === 'string')
+            return x;
+        else
+            return undefined;
+    })(context.extension.packageJSON?.version);
 
     const telemetry = createTelemetry();
     context.subscriptions.push(telemetry);
 
-    telemetry.reportEvent("hlasm.activated", {
+    telemetry.reportEvent('hlasm.activated', {
         server_variant: serverVariant.toString(),
         showBranchInformation: getConfig<boolean>('showBranchInformation', true).toString(),
     });
@@ -112,43 +120,39 @@ export async function activate(context: vscode.ExtensionContext): Promise<HlasmE
         middleware: middleware,
     };
 
-    //client init
-    const hlasmpluginClient = await createLanguageServer(serverVariant, clientOptions, context.extensionUri);
+    const opts = {
+        serverVariant,
+        clientOptions,
+        context,
+        telemetry,
+        clientErrorHandler,
+        middleware,
+    };
 
-    context.subscriptions.push(hlasmpluginClient);
-    context.subscriptions.push(hlasmpluginClient.onDidChangeState(e => e.newState === vscodelc.State.Starting && middleware.resetFirstOpen()));
+    let lsResult = await startLanguageServer(opts);
+    if (lsResult instanceof Error) {
+        if (serverVariant === 'wasm') {
+            telemetry.reportException(lsResult);
+            throw lsResult;
+        }
 
-    clientErrorHandler.defaultHandler = hlasmpluginClient.createDefaultErrorHandler();
+        if (!version || version !== context.globalState.get(lastCrashVersion)) {
+            context.globalState.update(lastCrashVersion, version);
+            vscode.window.showWarningMessage('The language server did not start. Switching to WASM version.');
+        }
 
-    const extConfProvider = new HLASMExternalConfigurationProvider(hlasmpluginClient);
-    context.subscriptions.push(extConfProvider);
+        telemetry.reportEvent('hlasm.wasmFallback');
 
-    // The objectToString is necessary, because telemetry reporter only takes objects with
-    // string properties and there are some boolean that we receive from the language server
-    hlasmpluginClient.onTelemetry((object) => { telemetry.reportEvent(object.method_name, objectToString(object.properties), object.measurements) });
-
-    const extFiles = new HLASMExternalFiles(
-        externalFilesScheme,
-        hlasmpluginClient,
-        vscode.workspace.fs,
-        await getCacheInfo(vscode.Uri.joinPath(context.globalStorageUri, 'external.files.cache'), vscode.workspace.fs)
-    );
-    context.subscriptions.push(extFiles);
-
-    //give the server some time to start listening when using TCP
-    if (serverVariant === 'tcp')
-        await sleep(2000);
-
-    try {
-        await hlasmpluginClient.start();
+        opts.serverVariant = 'wasm';
+        lsResult = await startLanguageServer(opts);
     }
-    catch (e) {
-        if (serverVariant === 'native')
-            offerSwitchToWasmClient();
 
-        telemetry.reportException(asError(e));
-        throw e;
+    if (lsResult instanceof Error) {
+        telemetry.reportException(lsResult);
+        throw lsResult;
     }
+
+    const [hlasmpluginClient, extConfProvider, extFiles] = lsResult;
 
     // register all commands and objects to context
     await registerDebugSupport(context, hlasmpluginClient);
@@ -169,23 +173,57 @@ export async function activate(context: vscode.ExtensionContext): Promise<HlasmE
     return api;
 }
 
-function offerSwitchToWasmClient() {
-    const use_wasm = 'Switch to WASM version';
-    vscode.window.showWarningMessage('The language server did not start.', ...[use_wasm, 'Ignore']).then((value) => {
-        if (value === use_wasm) {
-            vscode.workspace.getConfiguration('hlasm').update('serverVariant', 'wasm', vscode.ConfigurationTarget.Global).then(
-                () => {
-                    const reload = 'Reload window';
-                    vscode.window.showInformationMessage('User settings updated.', ...[reload]).then((value) => {
-                        if (value === reload)
-                            vscode.commands.executeCommand('workbench.action.reloadWindow');
-                    })
-                },
-                (error) => {
-                    vscode.window.showErrorMessage(error);
-                });
-        }
-    });
+type LangStartOptions = {
+    serverVariant: ServerVariant;
+    clientOptions: vscodelc.LanguageClientOptions;
+    context: vscode.ExtensionContext;
+    telemetry: Telemetry,
+    clientErrorHandler: LanguageClientErrorHandler,
+    middleware: HlasmPluginMiddleware,
+}
+
+async function startLanguageServer(opts: LangStartOptions)
+    : Promise<[vscodelc.BaseLanguageClient, HLASMExternalConfigurationProvider, HLASMExternalFiles] | Error> {
+    const disposables: vscode.Disposable[] = [];
+
+    //client init
+    const hlasmpluginClient = await createLanguageServer(opts.serverVariant, opts.clientOptions, opts.context.extensionUri);
+
+    disposables.push(hlasmpluginClient);
+    disposables.push(hlasmpluginClient.onDidChangeState(e => e.newState === vscodelc.State.Starting && opts.middleware.resetFirstOpen()));
+
+    opts.clientErrorHandler.defaultHandler = hlasmpluginClient.createDefaultErrorHandler();
+
+    const extConfProvider = new HLASMExternalConfigurationProvider(hlasmpluginClient);
+    disposables.push(extConfProvider);
+
+    // The objectToString is necessary, because telemetry reporter only takes objects with
+    // string properties and there are some boolean that we receive from the language server
+    disposables.push(hlasmpluginClient.onTelemetry((object) => { opts.telemetry.reportEvent(object.method_name, objectToString(object.properties), object.measurements) }));
+
+    const extFiles = new HLASMExternalFiles(
+        externalFilesScheme,
+        hlasmpluginClient,
+        vscode.workspace.fs,
+        await getCacheInfo(vscode.Uri.joinPath(opts.context.globalStorageUri, 'external.files.cache'), vscode.workspace.fs)
+    );
+    disposables.push(extFiles);
+
+    //give the server some time to start listening when using TCP
+    if (opts.serverVariant === 'tcp')
+        await sleep(2000);
+
+    try {
+        await hlasmpluginClient.start();
+        opts.context.subscriptions.push(...disposables);
+        return [hlasmpluginClient, extConfProvider, extFiles];
+    }
+    catch (e) {
+        const err = asError(e);
+        disposables.reverse().forEach(x => x.dispose());
+        opts.clientErrorHandler.defaultHandler = undefined;
+        return err;
+    }
 }
 
 async function registerEditHelpers(context: vscode.ExtensionContext) {
