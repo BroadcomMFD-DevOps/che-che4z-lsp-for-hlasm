@@ -244,7 +244,7 @@ bool assembler_instruction::check_codepage_parameter(
             return false;
         }
         const auto val = as_int(input_str);
-        if (!val || *val < 1140 || *val > 1148)
+        if (!val || *val < min_value || *val > max_value)
         {
             add_diagnostic(diagnostic_op::error_A216_CODEPAGE_value(name_of_instruction, input.operand_range));
             return false;
