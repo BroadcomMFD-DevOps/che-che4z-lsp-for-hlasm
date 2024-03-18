@@ -18,7 +18,7 @@
 #include <array>
 #include <regex>
 
-#include "context/common_types.h"
+#include "checker_helper.h"
 #include "diagnostic_collector.h"
 #include "lexing/tools.h"
 #include "utils/string_operations.h"
@@ -1173,34 +1173,23 @@ bool alias::check(const std::vector<const asm_operand*>& to_check,
         }
         else if (first->operand_identifier[0] == 'X')
         {
-            if ((first->operand_identifier.size() - 3) % 2 == 1)
+            std::string_view value = first->operand_identifier;
+            value.remove_prefix(2);
+            value.remove_suffix(1);
+            if (value.size() % 2 == 1)
             {
                 add_diagnostic(diagnostic_op::error_A154_ALIAS_X_format_no_of_chars(first->operand_range));
                 return false;
             }
-            int max_value = ALIAS_max_val;
-            int min_value = ALIAS_min_val;
-            for (size_t i = 2; i < first->operand_identifier.size() - 1; i += 2)
+            for (size_t i = 0; i < value.size(); i += 2)
             {
-                std::string tocomp = "";
-                tocomp.push_back(first->operand_identifier[i]);
-                tocomp.push_back(first->operand_identifier[i + 1]);
-                if (tocomp == "0x" || tocomp == "0X")
+                const auto val = as_int(value.substr(i, 2), 16);
+                if (!val)
                 {
                     add_diagnostic(diagnostic_op::error_A153_ALIAS_X_format(first->operand_range));
                     return false;
                 }
-                int comparing = 0;
-                try
-                {
-                    comparing = std::stoul(tocomp, nullptr, 16);
-                }
-                catch (...)
-                {
-                    add_diagnostic(diagnostic_op::error_A153_ALIAS_X_format(first->operand_range));
-                    return false;
-                }
-                if (comparing < min_value || comparing > max_value)
+                if (*val < ALIAS_min_val || *val > ALIAS_max_val)
                 {
                     add_diagnostic(diagnostic_op::error_A155_ALIAS_X_format_range(first->operand_range));
                     return false;
