@@ -25,18 +25,6 @@
 using namespace hlasm_plugin::parser_library;
 using namespace hlasm_plugin::parser_library::checking;
 
-namespace {
-std::optional<int> as_int(std::string_view s, int base = 10)
-{
-    const char* const b = std::to_address(s.cbegin());
-    const char* const e = std::to_address(s.cend());
-    int result = 0;
-    if (auto [p, err] = std::from_chars(b, e, result, base); err != std::errc() || p != e)
-        return std::nullopt;
-    return result;
-}
-} // namespace
-
 bool assembler_instruction::is_param_in_vector(
     std::string_view parameter, const std::vector<std::string_view>& options) const
 {
