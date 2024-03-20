@@ -596,7 +596,7 @@ public:
                         text.append(" + ");
 
                     if (d != 1 && d != -1)
-                        text.append(std::to_string(-(unsigned)d)).append("*");
+                        text.append(std::to_string(d < 0 ? -(unsigned)d : (unsigned)d)).append("*");
 
                     if (!base.qualifier.empty())
                         text.append(base.qualifier.to_string_view()).append(".");
@@ -648,11 +648,11 @@ public:
             return result;
 
         const auto& status = [&expr]() -> const auto& {
-            if (const auto pos = expr.find("&'"); pos == (size_t)-1)
+            if (const auto pos = expr.find("&"); pos == (size_t)-1)
                 return mach_status;
             else if (expr.front() == '(' && expr.back() == ')')
                 return setb_status;
-            else if (expr[pos] == '\'')
+            else if (expr.front() == '\'' || expr.starts_with("T'") || expr.starts_with("O'"))
                 return setc_status;
             else
                 return seta_status;
