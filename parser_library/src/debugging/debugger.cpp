@@ -515,9 +515,6 @@ public:
         diagnostic_op_consumer_container diags;
         library_info_transitional lib_info(*lib_provider_);
 
-        if (expr.get_undefined_attributed_symbols(missing, { *ctx_, lib_info, diags }))
-            return pres.set_error("Expression contains undefined symbols");
-
         auto eval = expr.evaluate({ *ctx_, lib_info, diags });
 
         if (!diags.diags.empty())
