@@ -386,11 +386,14 @@ void dap_feature::on_evaluate(const request_id& request_seq, const nlohmann::jso
 
     auto result = debugger->evaluate(parser_library::sequence<char>(expression), frame_id);
 
-    response_->respond(request_seq,
-        "evaluate",
-        nlohmann::json {
-            { "result", std::string_view(result.result()) },
-        });
+    if (result.is_error())
+        response_->respond_error(request_seq, "evaluate", -1, std::string_view(result.result()), nlohmann::json());
+    else
+        response_->respond(request_seq,
+            "evaluate",
+            nlohmann::json {
+                { "result", std::string_view(result.result()) },
+            });
 }
 
 

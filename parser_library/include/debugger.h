@@ -71,6 +71,7 @@ public:
     ~evaluated_expression_t();
 
     [[nodiscard]] sequence<char> result() const noexcept;
+    [[nodiscard]] bool is_error() const noexcept;
 };
 
 // Implements DAP for macro tracing. Starts analyzer in a separate thread

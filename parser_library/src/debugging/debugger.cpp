@@ -91,6 +91,19 @@ class evaluated_expression_t::impl
     friend class evaluated_expression_t;
 
     std::string result;
+    bool error = false;
+
+    void set_value(std::string s) noexcept
+    {
+        result = std::move(s);
+        error = false;
+    }
+
+    void set_error(std::string s) noexcept
+    {
+        result = std::move(s);
+        error = true;
+    }
 };
 
 evaluated_expression_t::evaluated_expression_t()
@@ -115,6 +128,19 @@ evaluated_expression_t::~evaluated_expression_t()
 }
 
 [[nodiscard]] sequence<char> evaluated_expression_t::result() const noexcept { return sequence<char>(pimpl->result); }
+[[nodiscard]] bool evaluated_expression_t::is_error() const noexcept { return pimpl->error; }
+
+std::string stringify(const diagnostic_op_consumer_container& diags)
+{
+    std::string result;
+
+    for (const auto& d : diags.diags)
+        result.append(d.code).append(": ").append(d.message).append("\n");
+    if (!result.empty())
+        result.pop_back();
+
+    return result;
+}
 
 // Implements DAP for macro tracing. Starts analyzer in a separate thread
 // then controls the flow of analyzer by implementing processing_tracer
@@ -483,40 +509,156 @@ public:
         return it->second;
     }
 
-    evaluated_expression_t evaluate(std::string_view expr, frame_id_t id)
+    void evaluate_expression(evaluated_expression_t::impl& pres, const expressions::ca_expression& expr) const
+    {
+        std::vector<context::id_index> missing;
+        diagnostic_op_consumer_container diags;
+        library_info_transitional lib_info(*lib_provider_);
+
+        if (expr.get_undefined_attributed_symbols(missing, { *ctx_, lib_info, diags }))
+            return pres.set_error("Expression contains undefined symbols");
+
+        auto eval = expr.evaluate({ *ctx_, lib_info, diags });
+
+        if (!diags.diags.empty())
+        {
+            std::string buffer;
+            for (const auto& d : diags.diags)
+                buffer.append(d.code).append(": ").append(d.message).append("\n");
+            buffer.pop_back();
+            return pres.set_error(std::move(buffer));
+        }
+
+        switch (eval.type())
+        {
+            case context::SET_t_enum::UNDEF_TYPE:
+                pres.set_value("<UNDEFINED>");
+                break;
+
+            case context::SET_t_enum::A_TYPE:
+                pres.set_value(std::to_string(eval.access_a()));
+                break;
+
+            case context::SET_t_enum::B_TYPE:
+                pres.set_value(eval.access_b() ? "<true>" : "<false>");
+                break;
+
+            case context::SET_t_enum::C_TYPE:
+                pres.set_value(std::move(eval.access_c()));
+                break;
+        }
+    }
+
+    void evaluate_expression(evaluated_expression_t::impl& pres, const expressions::mach_expression& expr) const
+    {
+        diagnostic_op_consumer_container diags;
+        library_info_transitional lib_info(*lib_provider_);
+        context::ordinary_assembly_dependency_solver dep_solver(ctx_->ord_ctx,
+            // do not introduce a private section by accident
+            // TODO: the alignment will be wrong
+            //       - it is instruction and argument dependent which is not available yet
+            ctx_->ord_ctx.current_section() ? ctx_->ord_ctx.align(context::no_align, lib_info) : context::address(),
+            lib_info);
+
+        if (auto d = expr.get_dependencies(dep_solver); d.has_error)
+            return pres.set_error("Expression cannot be evaluated");
+        else if (d.contains_dependencies())
+            return pres.set_error("Expression has unresolved dependencies");
+
+        switch (auto eval = expr.evaluate(dep_solver, diags).ignore_qualification(); eval.value_kind())
+        {
+            case context::symbol_value_kind::UNDEF:
+                pres.set_value("<UNDEFINED>");
+                break;
+
+            case context::symbol_value_kind::ABS:
+                pres.set_value(std::to_string(eval.get_abs()));
+                break;
+
+            case context::symbol_value_kind::RELOC: {
+                std::string text;
+
+                const auto& reloc = eval.get_reloc();
+                auto bases = std::vector<context::address::base_entry>(reloc.bases().begin(), reloc.bases().end());
+                std::sort(bases.begin(), bases.end(), [](const auto& l, const auto& r) {
+                    return l.first.owner->name < r.first.owner->name;
+                });
+                bool first = true;
+                for (const auto& [base, d] : bases)
+                {
+                    if (base.owner->name.empty() || d == 0)
+                        continue;
+
+                    bool was_first = std::exchange(first, false);
+                    if (d < 0)
+                        text.append(was_first ? "-" : " - ");
+                    else if (!was_first)
+                        text.append(" + ");
+
+                    if (d != 1 && d != -1)
+                        text.append(std::to_string(-(unsigned)d)).append("*");
+
+                    if (!base.qualifier.empty())
+                        text.append(base.qualifier.to_string_view()).append(".");
+                    text.append(base.owner->name.to_string_view());
+                }
+                if (!first)
+                    text.append(" + ");
+
+                text.append("X'");
+                uint32_t offset = reloc.offset();
+                size_t len = text.size();
+                do
+                {
+                    text.push_back("0123456789ABCDEF"[offset & 0xf]);
+                    offset >>= 4;
+
+                } while (offset);
+                std::reverse(text.begin() + len, text.end());
+                text.push_back('\'');
+
+                pres.set_value(std::move(text));
+                break;
+            }
+        }
+    }
+
+    static constexpr const processing::processing_status mach_status = {
+        processing::processing_format(processing::processing_kind::ORDINARY, processing::processing_form::MACH),
+        processing::op_code()
+    };
+    static constexpr const processing::processing_status seta_status = {
+        processing::processing_format(processing::processing_kind::ORDINARY, processing::processing_form::CA),
+        processing::op_code(context::id_storage::well_known::SETA, context::instruction_type::CA, nullptr)
+    };
+    static constexpr const processing::processing_status setb_status = {
+        processing::processing_format(processing::processing_kind::ORDINARY, processing::processing_form::CA),
+        processing::op_code(context::id_storage::well_known::SETB, context::instruction_type::CA, nullptr)
+    };
+    static constexpr const processing::processing_status setc_status = {
+        processing::processing_format(processing::processing_kind::ORDINARY, processing::processing_form::CA),
+        processing::op_code(context::id_storage::well_known::SETC, context::instruction_type::CA, nullptr)
+    };
+
+    evaluated_expression_t evaluate(std::string_view expr, frame_id_t id) const
     {
         evaluated_expression_t result;
 
         if (debug_ended_ || expr.empty())
             return result;
 
-        static constexpr const processing::processing_status mach_status(
-            processing::processing_format(processing::processing_kind::ORDINARY, processing::processing_form::MACH),
-            processing::op_code());
-        static constexpr const processing::processing_status seta_status(
-            processing::processing_format(processing::processing_kind::ORDINARY, processing::processing_form::CA),
-            processing::op_code(context::id_storage::well_known::SETA, context::instruction_type::CA, nullptr));
-        static constexpr const processing::processing_status setb_status(
-            processing::processing_format(processing::processing_kind::ORDINARY, processing::processing_form::CA),
-            processing::op_code(context::id_storage::well_known::SETB, context::instruction_type::CA, nullptr));
-        static constexpr const processing::processing_status setc_status(
-            processing::processing_format(processing::processing_kind::ORDINARY, processing::processing_form::CA),
-            processing::op_code(context::id_storage::well_known::SETC, context::instruction_type::CA, nullptr));
-
-        auto status = mach_status;
-
-        if (const auto pos = expr.find_first_of("&'"); pos != (size_t)-1)
-        {
-            if (expr[pos] == '\'')
-                status = setc_status;
+        const auto& status = [&expr]() -> const auto& {
+            if (const auto pos = expr.find("&'"); pos == (size_t)-1)
+                return mach_status;
             else if (expr.front() == '(' && expr.back() == ')')
-                status = setb_status;
+                return setb_status;
+            else if (expr[pos] == '\'')
+                return setc_status;
             else
-                status = seta_status;
-        }
+                return seta_status;
+        }();
 
         diagnostic_op_consumer_container diags;
-        library_info_transitional lib_info(*lib_provider_);
 
         auto p = parsing::parser_holder::create(nullptr, ctx_, nullptr, false);
         p->prepare_parser(expr, ctx_, &diags, semantics::range_provider(), range(), 1, status, true);
@@ -524,136 +666,27 @@ public:
         semantics::operand_ptr op =
             status.first.form == processing::processing_form::CA ? p->ca_op_expr() : p->operand_mach();
 
+        static constexpr auto ca_expr = [](const semantics::operand_ptr& op) -> const expressions::ca_expression* {
+            if (auto* ca_op = op->access_ca())
+                return ca_op->access_expr()->expression.get();
+            return nullptr;
+        };
+        static constexpr auto mach_expr = [](const semantics::operand_ptr& op) -> const expressions::mach_expression* {
+            if (auto* mach_op = op->access_mach())
+                return mach_op->access_expr()->expression.get();
+            return nullptr;
+        };
+
         if (!diags.diags.empty())
-        {
-            for (const auto& d : diags.diags)
-                result.pimpl->result.append(d.code).append(": ").append(d.message).append("\n");
-            result.pimpl->result.pop_back();
-        }
+            result.pimpl->set_error(stringify(diags));
         else if (!op)
-        {
-            result.pimpl->result = "Error: Single expression expected";
-        }
-        else if (auto* ca_op = op->access_ca())
-        {
-            auto* expr_op = ca_op->access_expr();
-            if (!expr_op)
-            {
-                result.pimpl->result = "Error: Unexpected operand format";
-                return result;
-            }
-
-            std::vector<context::id_index> missing;
-            if (ca_op->get_undefined_attributed_symbols(missing, { *ctx_, lib_info, diags }))
-            {
-                result.pimpl->result = "Error: Expression contains undefined symbols";
-                return result;
-            }
-            auto eval = expr_op->expression->evaluate({ *ctx_, lib_info, diags });
-
-            if (!diags.diags.empty())
-            {
-                for (const auto& d : diags.diags)
-                    result.pimpl->result.append(d.code).append(": ").append(d.message).append("\n");
-                return result;
-            }
-
-            switch (eval.type())
-            {
-                case context::SET_t_enum::UNDEF_TYPE:
-                    result.pimpl->result = "<UNDEFINED>";
-                    break;
-                case context::SET_t_enum::A_TYPE:
-                    result.pimpl->result = std::to_string(eval.access_a());
-                    break;
-                case context::SET_t_enum::B_TYPE:
-                    result.pimpl->result = eval.access_b() ? "<true>" : "<false>";
-                    break;
-                case context::SET_t_enum::C_TYPE:
-                    result.pimpl->result = std::move(eval.access_c());
-                    break;
-            }
-        }
-        else if (auto* mach_op = op->access_mach())
-        {
-            auto* expr = mach_op->access_expr();
-            if (!expr)
-            {
-                result.pimpl->result = "Error: Unexpected operand format";
-                return result;
-            }
-            context::address addr;
-            if (ctx_->ord_ctx.current_section())
-                addr = ctx_->ord_ctx.align(context::no_align, lib_info);
-            context::ordinary_assembly_dependency_solver dep_solver(ctx_->ord_ctx, std::move(addr), lib_info);
-            if (auto d = expr->expression->get_dependencies(dep_solver); d.has_error)
-            {
-                result.pimpl->result = "Error: Expression cannot be evaluated";
-                return result;
-            }
-            else if (d.contains_dependencies())
-            {
-                result.pimpl->result = "Error: Expression has unresolved dependencies";
-                return result;
-            }
-            auto eval = expr->expression->evaluate(dep_solver, diags).ignore_qualification();
-            switch (eval.value_kind())
-            {
-                case context::symbol_value_kind::UNDEF:
-                    result.pimpl->result = "<UNDEFINED>";
-                    break;
-                case context::symbol_value_kind::ABS:
-                    result.pimpl->result = std::to_string(eval.get_abs());
-                    break;
-                case context::symbol_value_kind::RELOC: {
-                    const auto& reloc = eval.get_reloc();
-                    auto& text = result.pimpl->result;
-                    auto bases = std::vector<context::address::base_entry>(reloc.bases().begin(), reloc.bases().end());
-                    std::sort(bases.begin(), bases.end(), [](const auto& l, const auto& r) {
-                        return l.first.owner->name < r.first.owner->name;
-                    });
-                    bool first = true;
-                    for (const auto& [base, d] : bases)
-                    {
-                        if (base.owner->name.empty() || d == 0)
-                            continue;
-
-                        bool was_first = std::exchange(first, false);
-                        if (d < 0)
-                            text.append(was_first ? "-" : " - ");
-                        else if (!was_first)
-                            text.append(" + ");
-
-                        if (d != 1 && d != -1)
-                            text.append(std::to_string(-(unsigned)d)).append("*");
-
-                        if (!base.qualifier.empty())
-                            text.append(base.qualifier.to_string_view()).append(".");
-                        text.append(base.owner->name.to_string_view());
-                    }
-                    if (!first)
-                        text.append(" + ");
-
-                    text.append("X'");
-                    uint32_t offset = reloc.offset();
-                    size_t len = text.size();
-                    do
-                    {
-                        text.push_back("0123456789ABCDEF"[offset & 0xf]);
-                        offset >>= 4;
-
-                    } while (offset);
-                    std::reverse(text.begin() + len, text.end());
-                    text.push_back('\'');
-
-                    break;
-                }
-            }
-        }
+            result.pimpl->set_error("Single expression expected");
+        else if (const auto* caop = ca_expr(op))
+            evaluate_expression(*result.pimpl, *caop);
+        else if (const auto* mop = mach_expr(op))
+            evaluate_expression(*result.pimpl, *mop);
         else
-        {
-            result.pimpl->result = "Unexpected operand format";
-        }
+            result.pimpl->set_error("Unexpected operand format");
 
         return result;
     }
