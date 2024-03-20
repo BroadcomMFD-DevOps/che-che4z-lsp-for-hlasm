@@ -586,7 +586,12 @@ public:
             if (ctx_->ord_ctx.current_section())
                 addr = ctx_->ord_ctx.align(context::no_align, lib_info);
             context::ordinary_assembly_dependency_solver dep_solver(ctx_->ord_ctx, std::move(addr), lib_info);
-            if (expr->expression->has_dependencies(dep_solver, nullptr))
+            if (auto d = expr->expression->get_dependencies(dep_solver); d.has_error)
+            {
+                result.pimpl->result = "Error: Expression cannot be evaluated";
+                return result;
+            }
+            else if (d.contains_dependencies())
             {
                 result.pimpl->result = "Error: Expression has unresolved dependencies";
                 return result;
@@ -604,15 +609,13 @@ public:
                     const auto& reloc = eval.get_reloc();
                     auto& text = result.pimpl->result;
                     auto bases = std::vector<context::address::base_entry>(reloc.bases().begin(), reloc.bases().end());
-                    bool first = !std::erase_if(bases, [](const auto& b) { return b.first.owner == nullptr; });
                     std::sort(bases.begin(), bases.end(), [](const auto& l, const auto& r) {
                         return l.first.owner->name < r.first.owner->name;
                     });
-                    if (!first)
-                        text.append("<UNKNOWN>");
+                    bool first = true;
                     for (const auto& [base, d] : bases)
                     {
-                        if (!base.owner || base.owner->name.empty() || d == 0)
+                        if (base.owner->name.empty() || d == 0)
                             continue;
 
                         bool was_first = std::exchange(first, false);
