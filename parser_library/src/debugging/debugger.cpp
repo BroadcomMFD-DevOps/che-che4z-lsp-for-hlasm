@@ -78,6 +78,37 @@ const breakpoint* breakpoints_t::begin() const { return pimpl->m_breakpoints.dat
 const breakpoint* breakpoints_t::end() const { return pimpl->m_breakpoints.data() + pimpl->m_breakpoints.size(); }
 std::size_t breakpoints_t::size() const { return pimpl->m_breakpoints.size(); }
 
+class evaluated_expression_t::impl
+{
+    friend class debugger;
+    friend class evaluated_expression_t;
+
+    std::string result;
+};
+
+evaluated_expression_t::evaluated_expression_t()
+    : pimpl(new impl())
+{}
+
+evaluated_expression_t::evaluated_expression_t(evaluated_expression_t&& o) noexcept
+    : pimpl(std::exchange(o.pimpl, nullptr))
+{}
+
+evaluated_expression_t& evaluated_expression_t::operator=(evaluated_expression_t&& o) & noexcept
+{
+    auto tmp(std::move(o));
+    std::swap(pimpl, tmp.pimpl);
+    return *this;
+}
+
+evaluated_expression_t::~evaluated_expression_t()
+{
+    if (pimpl)
+        delete pimpl;
+}
+
+[[nodiscard]] sequence<char> evaluated_expression_t::result() const noexcept { return sequence<char>(pimpl->result); }
+
 // Implements DAP for macro tracing. Starts analyzer in a separate thread
 // then controls the flow of analyzer by implementing processing_tracer
 // interface.
@@ -443,6 +474,15 @@ public:
         return it->second;
     }
 
+    evaluated_expression_t evaluate(std::string_view expr, frame_id_t id)
+    {
+        evaluated_expression_t result;
+
+        result.pimpl->result = "Not implemented";
+
+        return result;
+    }
+
     void breakpoints(const utils::resource::resource_location& source, std::vector<breakpoint> bps)
     {
         breakpoints_[source] = std::move(bps);
@@ -523,6 +563,11 @@ variables_t debugger::variables(var_reference_t var_ref) const
 {
     const auto& v = pimpl->variables(var_ref);
     return variables_t(&v, v.variables.size());
+}
+
+evaluated_expression_t debugger::evaluate(sequence<char> expr, frame_id_t id)
+{
+    return pimpl->evaluate(std::string_view(expr), id);
 }
 
 } // namespace hlasm_plugin::parser_library::debugging

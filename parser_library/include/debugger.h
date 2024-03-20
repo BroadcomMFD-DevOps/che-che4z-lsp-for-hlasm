@@ -58,6 +58,21 @@ public:
     [[nodiscard]] std::size_t size() const;
 };
 
+class evaluated_expression_t
+{
+    class impl;
+    impl* pimpl;
+    friend class debugger;
+
+public:
+    evaluated_expression_t();
+    evaluated_expression_t(evaluated_expression_t&&) noexcept;
+    evaluated_expression_t& operator=(evaluated_expression_t&&) & noexcept;
+    ~evaluated_expression_t();
+
+    [[nodiscard]] sequence<char> result() const noexcept;
+};
+
 // Implements DAP for macro tracing. Starts analyzer in a separate thread
 // then controls the flow of analyzer by implementing processing_tracer
 // interface.
@@ -103,6 +118,7 @@ public:
     stack_frames_t stack_frames() const;
     scopes_t scopes(frame_id_t frame_id) const;
     variables_t variables(var_reference_t var_ref) const;
+    evaluated_expression_t evaluate(sequence<char> expr, frame_id_t id = -1);
 
     void analysis_step(const std::atomic<unsigned char>* yield_indicator);
 };

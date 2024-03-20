@@ -99,6 +99,7 @@ void dap_feature::register_methods(std::map<std::string, method>& methods)
     add_method("variables", &dap_feature::on_variables);
     add_method("continue", &dap_feature::on_continue, LOG_EVENT);
     add_method("pause", &dap_feature::on_pause, LOG_EVENT);
+    add_method("evaluate", &dap_feature::on_evaluate, LOG_EVENT);
 }
 nlohmann::json dap_feature::register_capabilities() { return nlohmann::json(); }
 
@@ -375,6 +376,23 @@ void dap_feature::on_pause(const request_id& request_seq, const nlohmann::json&)
 
     response_->respond(request_seq, "pause", nlohmann::json());
 }
+
+void dap_feature::on_evaluate(const request_id& request_seq, const nlohmann::json& args)
+{
+    if (!debugger)
+        return;
+    const std::string_view expression = args.at("expression").get<std::string_view>();
+    const auto frame_id = args.value("frameId", parser_library::frame_id_t(-1));
+
+    auto result = debugger->evaluate(parser_library::sequence<char>(expression), frame_id);
+
+    response_->respond(request_seq,
+        "evaluate",
+        nlohmann::json {
+            { "result", std::string_view(result.result()) },
+        });
+}
+
 
 void dap_feature::idle_handler(const std::atomic<unsigned char>* yield_indicator)
 {
