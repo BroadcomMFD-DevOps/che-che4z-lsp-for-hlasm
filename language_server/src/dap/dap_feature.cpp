@@ -393,6 +393,7 @@ void dap_feature::on_evaluate(const request_id& request_seq, const nlohmann::jso
             "evaluate",
             nlohmann::json {
                 { "result", std::string_view(result.result()) },
+                { "variablesReference", result.var_ref() },
             });
 }
 

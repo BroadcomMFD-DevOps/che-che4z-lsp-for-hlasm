@@ -32,7 +32,10 @@
 #include "debug_lib_provider.h"
 #include "debug_types.h"
 #include "debugger_configuration.h"
+#include "diagnostic.h"
+#include "diagnostic_consumer.h"
 #include "expressions/evaluation_context.h"
+#include "lexing/tools.h"
 #include "library_info_transitional.h"
 #include "macro_param_variable.h"
 #include "ordinary_symbol_variable.h"
@@ -44,6 +47,7 @@
 #include "semantics/operand_impls.h"
 #include "set_symbol_variable.h"
 #include "utils/async_busy_wait.h"
+#include "utils/string_operations.h"
 #include "utils/task.h"
 #include "variable.h"
 #include "workspace_manager.h"
@@ -92,6 +96,7 @@ class evaluated_expression_t::impl
 
     std::string result;
     bool error = false;
+    std::int32_t var_ref = 0;
 
     void set_value(std::string s) noexcept
     {
@@ -129,18 +134,7 @@ evaluated_expression_t::~evaluated_expression_t()
 
 [[nodiscard]] sequence<char> evaluated_expression_t::result() const noexcept { return sequence<char>(pimpl->result); }
 [[nodiscard]] bool evaluated_expression_t::is_error() const noexcept { return pimpl->error; }
-
-std::string stringify(const diagnostic_op_consumer_container& diags)
-{
-    std::string result;
-
-    for (const auto& d : diags.diags)
-        result.append(d.code).append(": ").append(d.message).append("\n");
-    if (!result.empty())
-        result.pop_back();
-
-    return result;
-}
+[[nodiscard]] std::int32_t evaluated_expression_t::var_ref() const noexcept { return pimpl->var_ref; }
 
 // Implements DAP for macro tracing. Starts analyzer in a separate thread
 // then controls the flow of analyzer by implementing processing_tracer
@@ -509,22 +503,34 @@ public:
         return it->second;
     }
 
+    struct error_collector final : diagnostic_op_consumer
+    {
+        std::string& msg;
+        error_collector(std::string& msg)
+            : msg(msg)
+        {}
+
+        void add_diagnostic(diagnostic_op d) const final
+        {
+            if (d.severity != diagnostic_severity::error)
+                return;
+            if (!msg.empty())
+                msg.push_back('\n');
+            msg.append(d.code).append(": ").append(d.message);
+        }
+    };
+
     void evaluate_expression(evaluated_expression_t::impl& pres, const expressions::ca_expression& expr) const
     {
         std::vector<context::id_index> missing;
-        diagnostic_op_consumer_container diags;
+        std::string error_msg;
+        error_collector diags(error_msg);
         library_info_transitional lib_info(*lib_provider_);
 
         auto eval = expr.evaluate({ *ctx_, lib_info, diags });
 
-        if (!diags.diags.empty())
-        {
-            std::string buffer;
-            for (const auto& d : diags.diags)
-                buffer.append(d.code).append(": ").append(d.message).append("\n");
-            buffer.pop_back();
-            return pres.set_error(std::move(buffer));
-        }
+        if (!error_msg.empty())
+            return pres.set_error(std::move(error_msg));
 
         switch (eval.type())
         {
@@ -548,7 +554,8 @@ public:
 
     void evaluate_expression(evaluated_expression_t::impl& pres, const expressions::mach_expression& expr) const
     {
-        diagnostic_op_consumer_container diags;
+        std::string error_msg;
+        error_collector diags(error_msg);
         library_info_transitional lib_info(*lib_provider_);
         context::ordinary_assembly_dependency_solver dep_solver(ctx_->ord_ctx,
             // do not introduce a private section by accident
@@ -562,7 +569,12 @@ public:
         else if (d.contains_dependencies())
             return pres.set_error("Expression has unresolved dependencies");
 
-        switch (auto eval = expr.evaluate(dep_solver, diags).ignore_qualification(); eval.value_kind())
+        auto eval = expr.evaluate(dep_solver, diags).ignore_qualification();
+
+        if (!error_msg.empty())
+            return pres.set_error(std::move(error_msg));
+
+        switch (eval.value_kind())
         {
             case context::symbol_value_kind::UNDEF:
                 pres.set_value("<UNDEFINED>");
@@ -637,25 +649,91 @@ public:
         processing::op_code(context::id_storage::well_known::SETC, context::instruction_type::CA, nullptr)
     };
 
-    evaluated_expression_t evaluate(std::string_view expr, frame_id_t id) const
+    void evaluate_exact_match(evaluated_expression_t::impl& pres, std::string var_name, frame_id_t frame_id)
+    {
+        const auto& current_scope = proc_stack_[frame_id].scope;
+        debugging::variable_ptr var;
+
+        if (current_scope.is_in_macro())
+        {
+            for (const auto& [name, value] : current_scope.this_macro->named_params)
+            {
+                if (name.to_string_view() != var_name)
+                    continue;
+                var = std::make_unique<macro_param_variable>(*value, std::vector<context::A_t> {});
+                break;
+            }
+        }
+
+        if (!var)
+        {
+            for (const auto& [name, value] : current_scope.variables)
+            {
+                if (name.to_string_view() != var_name)
+                    continue;
+                var = std::make_unique<set_symbol_variable>(*value.ref);
+                break;
+            }
+        }
+
+        if (!var)
+        {
+            auto [sysvars, _] = last_system_variables_.try_emplace(frame_id, ctx_->get_system_variables(current_scope));
+            for (const auto& [name, value] : sysvars->second)
+            {
+                if (name.to_string_view() != var_name)
+                    continue;
+                var = std::make_unique<macro_param_variable>(*value.first, std::vector<context::A_t> {});
+                break;
+            }
+        }
+
+        if (!var)
+            return pres.set_error("Variable not found");
+
+        pres.set_value(var->get_value());
+        if (!var->is_scalar())
+        {
+            pres.var_ref = add_variable(var->values());
+        }
+    }
+
+    evaluated_expression_t evaluate(std::string_view expr, frame_id_t frame_id)
     {
         evaluated_expression_t result;
 
         if (debug_ended_ || expr.empty())
             return result;
 
+        if (frame_id >= proc_stack_.size())
+        {
+            result.pimpl->set_error("Invalid frame id");
+            return result;
+        }
+
+        if (expr.starts_with("&") && lexing::is_valid_symbol_name(expr.substr(1)))
+        {
+            evaluate_exact_match(*result.pimpl, utils::to_upper_copy(expr.substr(1)), frame_id);
+            return result;
+        }
+
+        static constexpr const auto stringy_attribute = [](std::string_view s) {
+            return s.starts_with("T'") || s.starts_with("O'") || s.starts_with("t'") || s.starts_with("o'");
+        };
+
         const auto& status = [&expr]() -> const auto& {
             if (const auto pos = expr.find("&"); pos == (size_t)-1)
                 return mach_status;
             else if (expr.front() == '(' && expr.back() == ')')
                 return setb_status;
-            else if (expr.front() == '\'' || expr.starts_with("T'") || expr.starts_with("O'"))
+            else if (expr.front() == '\'' || stringy_attribute(expr))
                 return setc_status;
             else
                 return seta_status;
         }();
 
-        diagnostic_op_consumer_container diags;
+        std::string error_msg;
+        error_collector diags(error_msg);
 
         auto p = parsing::parser_holder::create(nullptr, ctx_, nullptr, false);
         p->prepare_parser(expr, ctx_, &diags, semantics::range_provider(), range(), 1, status, true);
@@ -674,8 +752,8 @@ public:
             return nullptr;
         };
 
-        if (!diags.diags.empty())
-            result.pimpl->set_error(stringify(diags));
+        if (!error_msg.empty())
+            result.pimpl->set_error(std::move(error_msg));
         else if (!op)
             result.pimpl->set_error("Single expression expected");
         else if (const auto* caop = ca_expr(op))
