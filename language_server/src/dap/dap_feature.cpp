@@ -122,7 +122,12 @@ void dap_feature::exited(int exit_code)
 
 void dap_feature::on_initialize(const request_id& requested_seq, const nlohmann::json& args)
 {
-    response_->respond(requested_seq, "initialize", nlohmann::json { { "supportsConfigurationDoneRequest", true } });
+    response_->respond(requested_seq,
+        "initialize",
+        nlohmann::json {
+            { "supportsConfigurationDoneRequest", true },
+            { "supportsEvaluateForHovers", true },
+        });
 
     line_1_based_ = args.at("linesStartAt1").get<bool>() ? 1 : 0;
     column_1_based_ = args.at("columnsStartAt1").get<bool>() ? 1 : 0;
