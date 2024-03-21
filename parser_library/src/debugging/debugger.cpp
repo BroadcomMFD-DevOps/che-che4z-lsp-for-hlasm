@@ -47,6 +47,7 @@
 #include "semantics/operand_impls.h"
 #include "set_symbol_variable.h"
 #include "utils/async_busy_wait.h"
+#include "utils/factory.h"
 #include "utils/string_operations.h"
 #include "utils/task.h"
 #include "variable.h"
@@ -161,7 +162,7 @@ class debugger::impl final : public processing::statement_analyzer
     std::string opencode_source_uri_;
     std::vector<stack_frame> stack_frames_;
     std::vector<scope> scopes_;
-    std::unordered_map<frame_id_t, context::hlasm_context::sysvar_map> last_system_variables_;
+    std::unordered_map<frame_id_t, context::system_variable_map> last_system_variables_;
 
     std::unordered_map<size_t, variable_store> variables_;
     size_t next_var_ref_ = 1;
@@ -520,14 +521,17 @@ public:
         }
     };
 
-    void evaluate_expression(evaluated_expression_t::impl& pres, const expressions::ca_expression& expr) const
+    void evaluate_expression(evaluated_expression_t::impl& pres,
+        const expressions::ca_expression& expr,
+        const context::code_scope& scope,
+        const context::system_variable_map& sysvars) const
     {
         std::vector<context::id_index> missing;
         std::string error_msg;
         error_collector diags(error_msg);
         library_info_transitional lib_info(*lib_provider_);
 
-        auto eval = expr.evaluate({ *ctx_, lib_info, diags });
+        auto eval = expr.evaluate({ *ctx_, lib_info, diags, scope, sysvars });
 
         if (!error_msg.empty())
             return pres.set_error(std::move(error_msg));
@@ -649,14 +653,16 @@ public:
         processing::op_code(context::id_storage::well_known::SETC, context::instruction_type::CA, nullptr)
     };
 
-    void evaluate_exact_match(evaluated_expression_t::impl& pres, std::string var_name, frame_id_t frame_id)
+    void evaluate_exact_match(evaluated_expression_t::impl& pres,
+        std::string var_name,
+        const context::code_scope& scope,
+        const context::system_variable_map& sysvars)
     {
-        const auto& current_scope = proc_stack_[frame_id].scope;
         debugging::variable_ptr var;
 
-        if (current_scope.is_in_macro())
+        if (scope.is_in_macro())
         {
-            for (const auto& [name, value] : current_scope.this_macro->named_params)
+            for (const auto& [name, value] : scope.this_macro->named_params)
             {
                 if (name.to_string_view() != var_name)
                     continue;
@@ -667,7 +673,7 @@ public:
 
         if (!var)
         {
-            for (const auto& [name, value] : current_scope.variables)
+            for (const auto& [name, value] : scope.variables)
             {
                 if (name.to_string_view() != var_name)
                     continue;
@@ -678,8 +684,7 @@ public:
 
         if (!var)
         {
-            auto [sysvars, _] = last_system_variables_.try_emplace(frame_id, ctx_->get_system_variables(current_scope));
-            for (const auto& [name, value] : sysvars->second)
+            for (const auto& [name, value] : sysvars)
             {
                 if (name.to_string_view() != var_name)
                     continue;
@@ -710,10 +715,13 @@ public:
             result.pimpl->set_error("Invalid frame id");
             return result;
         }
+        const auto& scope = proc_stack_[frame_id].scope;
+        auto [sysvars, _] = last_system_variables_.try_emplace(
+            frame_id, utils::factory([this, &scope]() { return ctx_->get_system_variables(scope); }));
 
         if (expr.starts_with("&") && lexing::is_valid_symbol_name(expr.substr(1)))
         {
-            evaluate_exact_match(*result.pimpl, utils::to_upper_copy(expr.substr(1)), frame_id);
+            evaluate_exact_match(*result.pimpl, utils::to_upper_copy(expr.substr(1)), scope, sysvars->second);
             return result;
         }
 
@@ -757,7 +765,7 @@ public:
         else if (!op)
             result.pimpl->set_error("Single expression expected");
         else if (const auto* caop = ca_expr(op))
-            evaluate_expression(*result.pimpl, *caop);
+            evaluate_expression(*result.pimpl, *caop, scope, sysvars->second);
         else if (const auto* mop = mach_expr(op))
             evaluate_expression(*result.pimpl, *mop);
         else
