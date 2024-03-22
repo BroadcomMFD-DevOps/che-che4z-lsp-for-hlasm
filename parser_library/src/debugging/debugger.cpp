@@ -97,7 +97,7 @@ class evaluated_expression_t::impl
 
     std::string result;
     bool error = false;
-    std::int32_t var_ref = 0;
+    std::size_t var_ref = 0;
 
     void set_value(std::string s) noexcept
     {
@@ -135,7 +135,7 @@ evaluated_expression_t::~evaluated_expression_t()
 
 [[nodiscard]] sequence<char> evaluated_expression_t::result() const noexcept { return sequence<char>(pimpl->result); }
 [[nodiscard]] bool evaluated_expression_t::is_error() const noexcept { return pimpl->error; }
-[[nodiscard]] std::int32_t evaluated_expression_t::var_ref() const noexcept { return pimpl->var_ref; }
+[[nodiscard]] std::size_t evaluated_expression_t::var_ref() const noexcept { return pimpl->var_ref; }
 
 // Implements DAP for macro tracing. Starts analyzer in a separate thread
 // then controls the flow of analyzer by implementing processing_tracer
@@ -547,7 +547,7 @@ public:
                 break;
 
             case context::SET_t_enum::B_TYPE:
-                pres.set_value(eval.access_b() ? "<true>" : "<false>");
+                pres.set_value(eval.access_b() ? "TRUE" : "FALSE");
                 break;
 
             case context::SET_t_enum::C_TYPE:
@@ -710,6 +710,9 @@ public:
         if (debug_ended_ || expr.empty())
             return result;
 
+        if (frame_id == (size_t)-1)
+            frame_id = proc_stack_.size() - 1;
+
         if (frame_id >= proc_stack_.size())
         {
             result.pimpl->set_error("Invalid frame id");
@@ -729,8 +732,7 @@ public:
             return s.starts_with("T'") || s.starts_with("O'") || s.starts_with("t'") || s.starts_with("o'");
         };
 
-        const auto& status = [&expr]() -> const auto&
-        {
+        const auto& status = [&expr]() -> const auto& {
             if (const auto pos = expr.find("&"); pos == (size_t)-1)
                 return mach_status;
             else if (expr.front() == '(' && expr.back() == ')')
@@ -739,8 +741,7 @@ public:
                 return setc_status;
             else
                 return seta_status;
-        }
-        ();
+        }();
 
         std::string error_msg;
         error_collector diags(error_msg);

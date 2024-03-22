@@ -72,7 +72,7 @@ public:
 
     [[nodiscard]] sequence<char> result() const noexcept;
     [[nodiscard]] bool is_error() const noexcept;
-    [[nodiscard]] std::int32_t var_ref() const noexcept;
+    [[nodiscard]] std::size_t var_ref() const noexcept;
 };
 
 // Implements DAP for macro tracing. Starts analyzer in a separate thread
