@@ -732,7 +732,8 @@ public:
             return s.starts_with("T'") || s.starts_with("O'") || s.starts_with("t'") || s.starts_with("o'");
         };
 
-        const auto& status = [&expr]() -> const auto& {
+        const auto& status = [&expr]() -> const auto&
+        {
             if (const auto pos = expr.find("&"); pos == (size_t)-1)
                 return mach_status;
             else if (expr.front() == '(' && expr.back() == ')')
@@ -741,7 +742,8 @@ public:
                 return setc_status;
             else
                 return seta_status;
-        }();
+        }
+        ();
 
         std::string error_msg;
         error_collector diags(error_msg);
