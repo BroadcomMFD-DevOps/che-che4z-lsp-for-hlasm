@@ -1109,7 +1109,7 @@ hlasm_context::name_result hlasm_context::try_get_symbol_name(id_index symbol) c
     return std::make_pair(true, symbol);
 }
 
-const code_scope& get_current_scope(context::hlasm_context& ctx) { return ctx.current_scope(); }
+const code_scope& get_current_scope(const context::hlasm_context& ctx) { return ctx.current_scope(); }
 variable_symbol* get_var_sym(const expressions::evaluation_context& eval_ctx, id_index name)
 {
     return eval_ctx.hlasm_ctx.get_var_sym(

@@ -49,7 +49,9 @@ class breakpoints_t
 
 public:
     breakpoints_t();
+    breakpoints_t(const breakpoints_t&) = delete;
     breakpoints_t(breakpoints_t&&) noexcept;
+    breakpoints_t& operator=(const breakpoints_t&) = delete;
     breakpoints_t& operator=(breakpoints_t&&) & noexcept;
     ~breakpoints_t();
 

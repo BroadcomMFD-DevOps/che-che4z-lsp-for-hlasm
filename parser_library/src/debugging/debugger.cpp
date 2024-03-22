@@ -507,11 +507,11 @@ public:
     struct error_collector final : diagnostic_op_consumer
     {
         std::string& msg;
-        error_collector(std::string& msg)
+        explicit error_collector(std::string& msg)
             : msg(msg)
         {}
 
-        void add_diagnostic(diagnostic_op d) const final
+        void add_diagnostic(diagnostic_op d) const override
         {
             if (d.severity != diagnostic_severity::error)
                 return;
@@ -536,24 +536,70 @@ public:
         if (!error_msg.empty())
             return pres.set_error(std::move(error_msg));
 
+        using enum context::SET_t_enum;
         switch (eval.type())
         {
-            case context::SET_t_enum::UNDEF_TYPE:
+            case UNDEF_TYPE:
                 pres.set_value("<UNDEFINED>");
                 break;
 
-            case context::SET_t_enum::A_TYPE:
+            case A_TYPE:
                 pres.set_value(std::to_string(eval.access_a()));
                 break;
 
-            case context::SET_t_enum::B_TYPE:
+            case B_TYPE:
                 pres.set_value(eval.access_b() ? "TRUE" : "FALSE");
                 break;
 
-            case context::SET_t_enum::C_TYPE:
+            case C_TYPE:
                 pres.set_value(std::move(eval.access_c()));
                 break;
         }
+    }
+
+    static std::string to_string(const context::address& reloc)
+    {
+        std::string text;
+
+        auto bases = std::vector<context::address::base_entry>(reloc.bases().begin(), reloc.bases().end());
+        std::sort(bases.begin(), bases.end(), [](const auto& l, const auto& r) {
+            return l.first.owner->name < r.first.owner->name;
+        });
+        bool first = true;
+        for (const auto& [base, d] : bases)
+        {
+            if (base.owner->name.empty() || d == 0)
+                continue;
+
+            bool was_first = std::exchange(first, false);
+            if (d < 0)
+                text.append(was_first ? "-" : " - ");
+            else if (!was_first)
+                text.append(" + ");
+
+            if (d != 1 && d != -1)
+                text.append(std::to_string(d < 0 ? -(unsigned)d : (unsigned)d)).append("*");
+
+            if (!base.qualifier.empty())
+                text.append(base.qualifier.to_string_view()).append(".");
+            text.append(base.owner->name.to_string_view());
+        }
+        if (!first)
+            text.append(" + ");
+
+        text.append("X'");
+        uint32_t offset = reloc.offset();
+        size_t len = text.size();
+        do
+        {
+            text.push_back("0123456789ABCDEF"[offset & 0xf]);
+            offset >>= 4;
+
+        } while (offset);
+        std::reverse(text.begin() + len, text.end());
+        text.push_back('\'');
+
+        return text;
     }
 
     void evaluate_expression(evaluated_expression_t::impl& pres, const expressions::mach_expression& expr) const
@@ -578,61 +624,20 @@ public:
         if (!error_msg.empty())
             return pres.set_error(std::move(error_msg));
 
+        using enum context::symbol_value_kind;
         switch (eval.value_kind())
         {
-            case context::symbol_value_kind::UNDEF:
+            case UNDEF:
                 pres.set_value("<UNDEFINED>");
                 break;
 
-            case context::symbol_value_kind::ABS:
+            case ABS:
                 pres.set_value(std::to_string(eval.get_abs()));
                 break;
 
-            case context::symbol_value_kind::RELOC: {
-                std::string text;
-
-                const auto& reloc = eval.get_reloc();
-                auto bases = std::vector<context::address::base_entry>(reloc.bases().begin(), reloc.bases().end());
-                std::sort(bases.begin(), bases.end(), [](const auto& l, const auto& r) {
-                    return l.first.owner->name < r.first.owner->name;
-                });
-                bool first = true;
-                for (const auto& [base, d] : bases)
-                {
-                    if (base.owner->name.empty() || d == 0)
-                        continue;
-
-                    bool was_first = std::exchange(first, false);
-                    if (d < 0)
-                        text.append(was_first ? "-" : " - ");
-                    else if (!was_first)
-                        text.append(" + ");
-
-                    if (d != 1 && d != -1)
-                        text.append(std::to_string(d < 0 ? -(unsigned)d : (unsigned)d)).append("*");
-
-                    if (!base.qualifier.empty())
-                        text.append(base.qualifier.to_string_view()).append(".");
-                    text.append(base.owner->name.to_string_view());
-                }
-                if (!first)
-                    text.append(" + ");
-
-                text.append("X'");
-                uint32_t offset = reloc.offset();
-                size_t len = text.size();
-                do
-                {
-                    text.push_back("0123456789ABCDEF"[offset & 0xf]);
-                    offset >>= 4;
-
-                } while (offset);
-                std::reverse(text.begin() + len, text.end());
-                text.push_back('\'');
-
-                pres.set_value(std::move(text));
+            case RELOC:
+                pres.set_value(to_string(eval.get_reloc()));
                 break;
-            }
         }
     }
 
@@ -654,7 +659,7 @@ public:
     };
 
     void evaluate_exact_match(evaluated_expression_t::impl& pres,
-        std::string var_name,
+        std::string_view var_name,
         const context::code_scope& scope,
         const context::system_variable_map& sysvars)
     {
@@ -754,13 +759,13 @@ public:
         semantics::operand_ptr op =
             status.first.form == processing::processing_form::CA ? p->ca_op_expr() : p->operand_mach();
 
-        static constexpr auto ca_expr = [](const semantics::operand_ptr& op) -> const expressions::ca_expression* {
-            if (auto* ca_op = op->access_ca())
+        static constexpr auto ca_expr = [](const semantics::operand_ptr& o) -> const expressions::ca_expression* {
+            if (auto* ca_op = o->access_ca())
                 return ca_op->access_expr()->expression.get();
             return nullptr;
         };
-        static constexpr auto mach_expr = [](const semantics::operand_ptr& op) -> const expressions::mach_expression* {
-            if (auto* mach_op = op->access_mach())
+        static constexpr auto mach_expr = [](const semantics::operand_ptr& o) -> const expressions::mach_expression* {
+            if (auto* mach_op = o->access_mach())
                 return mach_op->access_expr()->expression.get();
             return nullptr;
         };

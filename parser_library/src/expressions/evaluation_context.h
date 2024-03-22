@@ -24,7 +24,7 @@
 namespace hlasm_plugin::parser_library::context {
 struct code_scope;
 class system_variable_map;
-const code_scope& get_current_scope(context::hlasm_context&);
+const code_scope& get_current_scope(const context::hlasm_context&);
 } // namespace hlasm_plugin::parser_library::context
 namespace hlasm_plugin::parser_library::expressions {
 

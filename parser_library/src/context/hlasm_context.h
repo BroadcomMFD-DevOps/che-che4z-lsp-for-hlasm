@@ -352,7 +352,7 @@ bool test_symbol_for_read(const variable_symbol* var,
 SET_t get_var_sym_value(
     const expressions::evaluation_context& eval_ctx, id_index name, std::span<const A_t> subscript, range symbol_range);
 
-const code_scope& get_current_scope(context::hlasm_context&);
+const code_scope& get_current_scope(const context::hlasm_context&);
 variable_symbol* get_var_sym(const expressions::evaluation_context& eval_ctx, id_index name);
 } // namespace hlasm_plugin::parser_library::context
 
