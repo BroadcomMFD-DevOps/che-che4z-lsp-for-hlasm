@@ -51,6 +51,9 @@ public:
     void wait_for_stopped();
 
     void wait_for_exited();
+
+    const auto& get_last_mnote() const { return last_mnote; }
+    const auto& get_last_punch() const { return last_punch; }
 };
 
 #endif // !HLASMPLUGIN_PARSERLIBRARY_TEST_DEBUG_EVENT_CONSUMER_S_MOCK_H
