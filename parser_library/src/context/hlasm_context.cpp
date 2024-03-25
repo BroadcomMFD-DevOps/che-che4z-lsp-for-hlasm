@@ -1113,7 +1113,7 @@ const code_scope& get_current_scope(const context::hlasm_context& ctx) { return 
 variable_symbol* get_var_sym(const expressions::evaluation_context& eval_ctx, id_index name)
 {
     return eval_ctx.hlasm_ctx.get_var_sym(
-        name, eval_ctx.scope(), eval_ctx.sysvars_ ? *eval_ctx.sysvars_ : eval_ctx.hlasm_ctx.system_variables);
+        name, eval_ctx.active_scope(), eval_ctx.sysvars ? *eval_ctx.sysvars : eval_ctx.hlasm_ctx.system_variables);
 }
 
 SET_t get_var_sym_value(const expressions::evaluation_context& eval_ctx,

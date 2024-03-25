@@ -274,7 +274,7 @@ context::SET_t ca_symbol_attribute::evaluate_literal(
     if (attribute == context::data_attr_kind::D)
         return defined;
 
-    const auto& scope = eval_ctx.scope();
+    const auto& scope = eval_ctx.active_scope();
 
     if (!scope.is_in_macro())
         literals.mentioned_in_ca_expr(std::shared_ptr<const expressions::data_definition>(lit, &lit->get_dd()));
@@ -430,7 +430,7 @@ context::SET_t ca_symbol_attribute::evaluate_substituted(context::id_index var_n
     {
         if (auto lit = reparse_substituted_literal(text, var_range, eval_ctx))
             return evaluate_literal(lit, eval_ctx);
-        else if (iequals(text, get_current_macro_name_field(eval_ctx.scope())))
+        else if (iequals(text, get_current_macro_name_field(eval_ctx.active_scope())))
             return "M";
         else
             return context::symbol_attributes::default_ca_value(attribute);

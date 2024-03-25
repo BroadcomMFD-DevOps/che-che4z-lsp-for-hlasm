@@ -34,8 +34,8 @@ struct evaluation_context
     context::hlasm_context& hlasm_ctx;
     const library_info& lib_info;
     diagnostic_op_consumer& diags;
-    const context::code_scope* scope_ = nullptr;
-    const context::system_variable_map* sysvars_ = nullptr;
+    const context::code_scope* scope = nullptr;
+    const context::system_variable_map* sysvars = nullptr;
 
     evaluation_context(context::hlasm_context& ctx,
         const library_info& lib_info,
@@ -45,8 +45,8 @@ struct evaluation_context
         : hlasm_ctx(ctx)
         , lib_info(lib_info)
         , diags(diags)
-        , scope_(&scope)
-        , sysvars_(&sysvars)
+        , scope(&scope)
+        , sysvars(&sysvars)
     {}
 
     evaluation_context(context::hlasm_context& ctx, const library_info& lib_info, diagnostic_op_consumer& diags)
@@ -57,10 +57,10 @@ struct evaluation_context
 
     evaluation_context(const evaluation_context& oth) = delete;
 
-    const context::code_scope& scope() const
+    const context::code_scope& active_scope() const
     {
-        if (scope_)
-            return *scope_;
+        if (scope)
+            return *scope;
         return context::get_current_scope(hlasm_ctx);
     }
 };

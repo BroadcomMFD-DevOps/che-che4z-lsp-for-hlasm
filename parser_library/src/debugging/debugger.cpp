@@ -521,12 +521,11 @@ public:
         }
     };
 
-    void evaluate_expression(evaluated_expression_t::impl& pres,
+    void evaluate_expression(evaluated_expression_t::impl& result,
         const expressions::ca_expression& expr,
         const context::code_scope& scope,
         const context::system_variable_map& sysvars) const
     {
-        std::vector<context::id_index> missing;
         std::string error_msg;
         error_collector diags(error_msg);
         library_info_transitional lib_info(*lib_provider_);
@@ -534,25 +533,25 @@ public:
         auto eval = expr.evaluate({ *ctx_, lib_info, diags, scope, sysvars });
 
         if (!error_msg.empty())
-            return pres.set_error(std::move(error_msg));
+            return result.set_error(std::move(error_msg));
 
         using enum context::SET_t_enum;
         switch (eval.type())
         {
             case UNDEF_TYPE:
-                pres.set_value("<UNDEFINED>");
+                result.set_value("<UNDEFINED>");
                 break;
 
             case A_TYPE:
-                pres.set_value(std::to_string(eval.access_a()));
+                result.set_value(std::to_string(eval.access_a()));
                 break;
 
             case B_TYPE:
-                pres.set_value(eval.access_b() ? "TRUE" : "FALSE");
+                result.set_value(eval.access_b() ? "TRUE" : "FALSE");
                 break;
 
             case C_TYPE:
-                pres.set_value(std::move(eval.access_c()));
+                result.set_value(std::move(eval.access_c()));
                 break;
         }
     }
@@ -602,7 +601,7 @@ public:
         return text;
     }
 
-    void evaluate_expression(evaluated_expression_t::impl& pres, const expressions::mach_expression& expr) const
+    void evaluate_expression(evaluated_expression_t::impl& result, const expressions::mach_expression& expr) const
     {
         std::string error_msg;
         error_collector diags(error_msg);
@@ -615,28 +614,28 @@ public:
             lib_info);
 
         if (auto d = expr.get_dependencies(dep_solver); d.has_error)
-            return pres.set_error("Expression cannot be evaluated");
+            return result.set_error("Expression cannot be evaluated");
         else if (d.contains_dependencies())
-            return pres.set_error("Expression has unresolved dependencies");
+            return result.set_error("Expression has unresolved dependencies");
 
         auto eval = expr.evaluate(dep_solver, diags).ignore_qualification();
 
         if (!error_msg.empty())
-            return pres.set_error(std::move(error_msg));
+            return result.set_error(std::move(error_msg));
 
         using enum context::symbol_value_kind;
         switch (eval.value_kind())
         {
             case UNDEF:
-                pres.set_value("<UNDEFINED>");
+                result.set_value("<UNDEFINED>");
                 break;
 
             case ABS:
-                pres.set_value(std::to_string(eval.get_abs()));
+                result.set_value(std::to_string(eval.get_abs()));
                 break;
 
             case RELOC:
-                pres.set_value(to_string(eval.get_reloc()));
+                result.set_value(to_string(eval.get_reloc()));
                 break;
         }
     }
@@ -658,7 +657,7 @@ public:
         processing::op_code(context::id_storage::well_known::SETC, context::instruction_type::CA, nullptr)
     };
 
-    void evaluate_exact_match(evaluated_expression_t::impl& pres,
+    void evaluate_exact_match(evaluated_expression_t::impl& result,
         std::string_view var_name,
         const context::code_scope& scope,
         const context::system_variable_map& sysvars)
@@ -699,12 +698,12 @@ public:
         }
 
         if (!var)
-            return pres.set_error("Variable not found");
+            return result.set_error("Variable not found");
 
-        pres.set_value(var->get_value());
+        result.set_value(var->get_value());
         if (!var->is_scalar())
         {
-            pres.var_ref = add_variable(var->values());
+            result.var_ref = add_variable(var->values());
         }
     }
 
