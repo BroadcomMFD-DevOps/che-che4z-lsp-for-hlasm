@@ -1393,7 +1393,7 @@ TEST(debugger, outputs)
 
     d.disconnect();
 
-    const std::pair<unsigned char, std::string_view> expected_mnote((unsigned char)1, "mnote test");
+    const std::pair<unsigned char, std::string> expected_mnote((unsigned char)1, "mnote test");
     const std::string_view expected_punch = "punch test";
     EXPECT_EQ(m.get_last_mnote(), expected_mnote);
     EXPECT_EQ(m.get_last_punch(), expected_punch);
