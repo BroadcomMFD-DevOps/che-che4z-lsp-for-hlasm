@@ -39,6 +39,7 @@ void to_json(nlohmann::json& j, const folding_range& fr)
             break;
     }
 }
+
 void to_json(nlohmann::json& j, const output_line& ol)
 {
     j["level"] = ol.level;
