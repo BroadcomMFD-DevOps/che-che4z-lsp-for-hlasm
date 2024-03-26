@@ -73,7 +73,7 @@ export function registerOutputDocumentContentProvider(
     }, disposables: vscode.Disposable[]) {
 
     const changed = new vscode.EventEmitter<vscode.Uri>()
-    vscode.workspace.registerTextDocumentContentProvider(scheme, {
+    const provider = vscode.workspace.registerTextDocumentContentProvider(scheme, {
         onDidChange: changed.event,
         async provideTextDocumentContent(uri: vscode.Uri, token: vscode.CancellationToken) {
             const opts = extractOptions(uri);
@@ -94,5 +94,5 @@ export function registerOutputDocumentContentProvider(
         }
     });
 
-    disposables.push(changed, notification);
+    disposables.push(changed, provider, notification);
 }
