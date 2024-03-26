@@ -70,7 +70,7 @@ void server::outputs_changed(parser_library::sequence<char> uri)
 {
     notify("$/retrieve_outputs",
         nlohmann::json {
-            { "url", std::string_view(uri) },
+            { "uri", std::string_view(uri) },
         });
 }
 
