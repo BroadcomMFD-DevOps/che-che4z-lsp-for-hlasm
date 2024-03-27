@@ -47,7 +47,7 @@ function extractOptions(uri: vscode.Uri): Options {
 
 function createOutputUri(uri: vscode.Uri, options: Options) {
     const query = uriFriendlyBase16Encode(uri.toString());
-    const path = `/${translateOptions(options)}/${uri.path.substring(uri.path.lastIndexOf('/') + 1)}`;
+    const path = `/${translateOptions(options)}/${uri.path.substring(uri.path.lastIndexOf('/') + 1)}.output`;
 
     return vscode.Uri.from({ scheme, path, query });
 }

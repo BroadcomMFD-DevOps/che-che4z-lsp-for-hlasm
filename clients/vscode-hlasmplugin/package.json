@@ -371,7 +371,8 @@
       {
         "command": "extension.hlasm-plugin.showOutput",
         "category": "HLASM",
-        "title": "Show generated output"
+        "title": "Show Generated Output",
+        "icon": "$(output)"
       }
     ],
     "keybindings": [
@@ -420,6 +421,13 @@
           "command": "extension.hlasm-plugin.showOutput",
           "when": "editorLangId == hlasm",
           "group": "showOutput"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "extension.hlasm-plugin.showOutput",
+          "when": "!isInDiffEditor && editorLangId == hlasm",
+          "group": "navigation@1"
         }
       ]
     },
