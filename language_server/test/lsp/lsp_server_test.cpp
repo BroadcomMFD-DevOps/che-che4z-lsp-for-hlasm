@@ -382,4 +382,10 @@ TEST(lsp_server_test, output_notification)
     EXPECT_CALL(smpm, reply(R"({"jsonrpc":"2.0","method":"$/retrieve_outputs","params":{"uri":"test:test"}})"_json));
 
     ws_mngr->idle_handler(nullptr);
+
+    EXPECT_CALL(smpm, reply(R"({"jsonrpc":"2.0","method":"$/retrieve_outputs","params":{"uri":"test:test"}})"_json));
+    s.message_received(
+        R"({"jsonrpc":"2.0","method":"textDocument/didChange","params":{"textDocument":{"uri":"test:test","version":2},"contentChanges":[{"text":""}]}})"_json);
+
+    ws_mngr->idle_handler(nullptr);
 }

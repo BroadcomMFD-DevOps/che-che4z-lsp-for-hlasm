@@ -37,7 +37,7 @@ suite('Output content provider', () => {
 
         assert.ok(editor);
 
-        assert.strictEqual(editor.document.getText(), 'punch\n2:mnote');
+        assert.strictEqual(editor.document.getText(), 'punch\n002:mnote');
 
         await vscode.commands.executeCommand('workbench.action.closeActiveEditor', editor);
     }).timeout(10000).slow(2000);

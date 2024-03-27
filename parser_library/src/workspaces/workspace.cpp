@@ -1245,7 +1245,8 @@ utils::task workspace::processor_file_compoments::update_source_if_needed(file_m
     {
         return fm.add_file(m_file->get_location()).then([this](std::shared_ptr<file> f) {
             m_file = std::move(f);
-            *m_last_results = {};
+            // preserve output - extra change notification event exists
+            *m_last_results = { .outputs = std::move(m_last_results->outputs) };
         });
     }
     return {};

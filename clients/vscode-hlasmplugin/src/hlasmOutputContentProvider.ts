@@ -18,10 +18,11 @@ import { uriFriendlyBase16Decode, uriFriendlyBase16Encode } from './conversions'
 import { isCancellationError } from './helpers';
 import { pickUser } from './uiUtils';
 
-type OutputResult = {
+type OutputLine = {
     level: number;
     text: string;
-}[];
+};
+type OutputResult = OutputLine[];
 
 type Options = { mnote: true, punch: true } | { mnote: false, punch: true } | { mnote: true, punch: false };
 
@@ -49,7 +50,6 @@ function createOutputUri(uri: vscode.Uri, options: Options) {
     const path = `/${translateOptions(options)}/${uri.path.substring(uri.path.lastIndexOf('/') + 1)}`;
 
     return vscode.Uri.from({ scheme, path, query });
-
 }
 
 export async function showOutputCommand(editor: vscode.TextEditor, _: vscode.TextEditorEdit, args: any) {
@@ -64,6 +64,13 @@ export async function showOutputCommand(editor: vscode.TextEditor, _: vscode.Tex
     return vscode.workspace.openTextDocument(createOutputUri(editor.document.uri, args)).then(
         doc => vscode.window.showTextDocument(doc, { viewColumn: vscode.ViewColumn.Beside, preserveFocus: true })
     );
+}
+
+function outputLineToString(l: OutputLine) {
+    if (l.level < 0)
+        return l.text;
+    else
+        return `${String(l.level).padStart(3, '0')}:${l.text}`;
 }
 
 export function registerOutputDocumentContentProvider(
@@ -82,7 +89,7 @@ export function registerOutputDocumentContentProvider(
                 vscode.window.showErrorMessage('Error encountered while fetching output document: ' + e);
                 return [] as OutputResult;
             });
-            return outputs.filter(x => opts.mnote && x.level >= 0 || opts.punch && x.level < 0).map(x => x.level < 0 ? x.text : `${x.level}:${x.text}`).join('\n');
+            return outputs.filter(x => opts.mnote && x.level >= 0 || opts.punch && x.level < 0).map(outputLineToString).join('\n');
         },
     });
     const notification = channel.onNotification('$/retrieve_outputs', x => {
