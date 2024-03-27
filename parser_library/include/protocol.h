@@ -407,6 +407,14 @@ struct breakpoint
     size_t line;
 };
 
+struct function_breakpoint
+{
+    function_breakpoint(sequence<char> name)
+        : name(name)
+    {}
+    sequence<char> name;
+};
+
 struct output_line
 {
     int level; // -1 if N/A
