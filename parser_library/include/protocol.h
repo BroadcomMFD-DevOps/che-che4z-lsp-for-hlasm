@@ -401,7 +401,7 @@ using variables_t = sequence<variable, const debugging::variable_store*>;
 
 struct breakpoint
 {
-    breakpoint(size_t line)
+    explicit breakpoint(size_t line)
         : line(line)
     {}
     size_t line;
@@ -409,7 +409,7 @@ struct breakpoint
 
 struct function_breakpoint
 {
-    function_breakpoint(sequence<char> name)
+    explicit function_breakpoint(sequence<char> name)
         : name(name)
     {}
     sequence<char> name;
