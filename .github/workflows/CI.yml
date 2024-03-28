@@ -20,6 +20,7 @@ on:
       - master
       - development
       - release-next
+      - test_expand_theia_tests
   pull_request:
     branches:
       - master
@@ -519,7 +520,7 @@ jobs:
     needs: VSIX
     strategy:
       matrix:
-        theia: ["ghcr.io/eclipse-theia/theia-blueprint/blueprint:1.35.0"]
+        theia: ["ghcr.io/eclipse-theia/theia-blueprint/theia-ide:1.47.100"]
 # theiaide images not supported anymore
     container:
       image: ${{ matrix.theia }}
