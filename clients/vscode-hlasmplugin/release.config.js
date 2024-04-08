@@ -104,6 +104,41 @@ function getGitHubPublisherPlugin() {
                     'path': 'hlasm-language-support-web.vsix',
                     'label': 'hlasm-language-support-web-${nextRelease.version}.vsix',
                     'name': 'hlasm-language-support-web-${nextRelease.version}.vsix'
+                },
+                {
+                    'path': 'bin/win32_x64/hlasm_language_server.exe',
+                    'label': 'hlasm-language-support-win32-x64',
+                    'name': 'hlasm-language-support-win32-x64'
+                },
+                {
+                    'path': 'bin/win32_arm64/hlasm_language_server.exe',
+                    'label': 'hlasm-language-support-win32-arm64',
+                    'name': 'hlasm-language-support-win32-arm64'
+                },
+                {
+                    'path': 'bin/linux_x64/hlasm_language_server',
+                    'label': 'hlasm-language-support-linux-x64',
+                    'name': 'hlasm-language-support-linux-x64'
+                },
+                {
+                    'path': 'bin/linux_arm64/hlasm_language_server',
+                    'label': 'hlasm-language-support-linux-arm64',
+                    'name': 'hlasm-language-support-linux-arm64'
+                },
+                {
+                    'path': 'bin/darwin_x64/hlasm_language_server',
+                    'label': 'hlasm-language-support-darwin-x64',
+                    'name': 'hlasm-language-support-darwin-x64'
+                },
+                {
+                    'path': 'bin/darwin_arm64/hlasm_language_server',
+                    'label': 'hlasm-language-support-darwin-arm64',
+                    'name': 'hlasm-language-support-darwin-arm64'
+                },
+                {
+                    'path': 'bin/wasm/hlasm_language_server.*',
+                    'label': 'hlasm-language-support-wasm',
+                    'name': 'hlasm-language-support-wasm'
                 }
             ]
         }
