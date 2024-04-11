@@ -14,6 +14,7 @@
 
 #include "analyzer.h"
 
+#include "context/id_storage.h"
 #include "diagnosable_ctx.h"
 #include "lsp/lsp_context.h"
 #include "processing/opencode_provider.h"

@@ -36,6 +36,7 @@ class task;
 
 namespace hlasm_plugin::parser_library::context {
 class hlasm_context;
+class id_storage;
 } // namespace hlasm_plugin::parser_library::context
 
 namespace hlasm_plugin::parser_library::parsing {
