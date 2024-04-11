@@ -1022,8 +1022,8 @@ TEST(mnote, nonprintable_characters)
     analyzer a(input);
     a.analyze();
 
-    ASSERT_TRUE(matches_message_codes(a.diags(), { "MNOTE" }));
-    EXPECT_EQ(a.diags()[0].message, "<01><01>");
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "MNOTE" }));
+    EXPECT_TRUE(matches_message_text(a.diags(), { "<01><01>" }));
 }
 
 TEST(mnote, output)

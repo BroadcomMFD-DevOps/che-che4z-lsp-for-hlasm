@@ -28,8 +28,7 @@ TEST(ainsert, ainsert_with_substitution)
     analyzer a(input);
     a.analyze();
 
-    auto diags = a.diags();
-    ASSERT_EQ(diags.size(), 0);
+    EXPECT_TRUE(a.diags().empty());
 
     auto& ctx = a.hlasm_ctx();
 
@@ -42,9 +41,7 @@ TEST(ainsert, empty_ainsert_record)
     analyzer a(input);
     a.analyze();
 
-    auto diags = a.diags();
-    ASSERT_EQ(diags.size(), 1);
-    EXPECT_EQ(diags.front().code, "A021");
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "A021" }));
 }
 
 TEST(ainsert, lookahead_in_ainsert)
@@ -140,7 +137,7 @@ TEST(ainsert, argument_limit)
 
     a.analyze();
 
-    ASSERT_TRUE(a.diags().empty());
+    EXPECT_TRUE(a.diags().empty());
 }
 
 TEST(ainsert, argument_limit_over)

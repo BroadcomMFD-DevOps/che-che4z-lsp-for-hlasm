@@ -201,10 +201,8 @@ TEST(macro, macro_lookahead_fail)
     id = id_index("INNER_M");
     EXPECT_TRUE(a.hlasm_ctx().find_macro(id));
 
-    ASSERT_EQ(a.diags().size(), 1U);
-    EXPECT_EQ(a.diags()[0].code, "E047");
-
-    EXPECT_EQ(a.diags()[0].diag_range, range({ 2, 5 }, { 2, 7 }));
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "E047" }));
+    EXPECT_TRUE(matches_message_properties(a.diags(), { range({ 2, 5 }, { 2, 7 }) }, &diagnostic_s::diag_range));
 }
 
 TEST(macro, macro_positional_param_subs)
@@ -980,7 +978,7 @@ TEST(macro, operand_sublist_continuation)
         analyzer a(input);
         a.analyze();
 
-        ASSERT_TRUE(a.diags().empty()) << i;
+        EXPECT_TRUE(a.diags().empty()) << i;
     }
 }
 
@@ -1176,8 +1174,8 @@ TEST(macro, illegal_ampersand)
     analyzer a(input);
     a.analyze();
 
-    ASSERT_TRUE(matches_message_codes(a.diags(), { "E064" }));
-    EXPECT_EQ(a.diags()[0].diag_range, range({ 2, 9 }, { 2, 18 }));
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "E064" }));
+    EXPECT_TRUE(matches_message_properties(a.diags(), { range({ 2, 9 }, { 2, 18 }) }, &diagnostic_s::diag_range));
 }
 
 TEST(macro, multiple_apostrophes)
