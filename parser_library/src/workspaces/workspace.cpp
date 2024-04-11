@@ -96,8 +96,6 @@ struct parsing_results
 
     co_await a.co_analyze();
 
-    a.collect_diags();
-
     parsing_results result;
     result.opencode_diagnostics = std::move(a.diags());
     result.hl_info = a.take_semantic_tokens();
@@ -231,7 +229,6 @@ struct workspace_parse_lib_provider final : public parse_lib_provider
         a.register_stmt_analyzer(&hc_analyzer);
 
         co_await a.co_analyze();
-        a.collect_diags();
 
         macro_pfc.m_last_results->macro_diagnostics = std::move(a.diags());
 
