@@ -95,9 +95,10 @@ struct parsing_results
     a.register_stmt_analyzer(&hc_analyzer);
 
     co_await a.co_analyze();
+    auto d = a.diags();
 
     parsing_results result;
-    result.opencode_diagnostics = std::move(a.diags());
+    result.opencode_diagnostics.assign(std::make_move_iterator(d.begin()), std::make_move_iterator(d.end()));
     result.hl_info = a.take_semantic_tokens();
     result.lsp_context = a.context().lsp_ctx;
     result.fade_messages = std::move(fms);
@@ -136,8 +137,7 @@ struct workspace_parse_lib_provider final : public parse_lib_provider
             pfc.m_dependencies.end(),
             next_dependencies.begin(),
             next_dependencies.end(),
-            utils::transform_inserter(
-                files_to_close, [](const auto& v) -> const auto& { return v.first; }),
+            utils::transform_inserter(files_to_close, [](const auto& v) -> const auto& { return v.first; }),
             [](const auto& l, const auto& r) { return l.first < r.first; });
     }
 
@@ -229,8 +229,10 @@ struct workspace_parse_lib_provider final : public parse_lib_provider
         a.register_stmt_analyzer(&hc_analyzer);
 
         co_await a.co_analyze();
+        auto d = a.diags();
 
-        macro_pfc.m_last_results->macro_diagnostics = std::move(a.diags());
+        macro_pfc.m_last_results->macro_diagnostics.assign(
+            std::make_move_iterator(d.begin()), std::make_move_iterator(d.end()));
 
         mc.save_macro(cache_key, a);
         macro_pfc.m_last_macro_analyzer_with_lsp = collect_hl;
