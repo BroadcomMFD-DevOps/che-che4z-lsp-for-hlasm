@@ -58,8 +58,7 @@ TEST(ainsert, lookahead_in_ainsert)
     analyzer a(input);
     a.analyze();
 
-    auto diags = a.diags();
-    EXPECT_TRUE(diags.empty());
+    EXPECT_TRUE(a.diags().empty());
 }
 
 TEST(ainsert, lookahead_resumed_after_ainsert)
@@ -81,8 +80,7 @@ A        DS  C
     analyzer a(input);
     a.analyze();
 
-    auto diags = a.diags();
-    EXPECT_TRUE(diags.empty());
+    EXPECT_TRUE(a.diags().empty());
 }
 
 TEST(ainsert, ainserted_macro_call_from_copybook)

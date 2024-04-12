@@ -835,9 +835,8 @@ TEST(macro, invalid_prototype)
 )";
     analyzer a(input);
     a.analyze();
-    const auto& d = a.diags();
 
-    EXPECT_NE(std::find_if(d.begin(), d.end(), [](const auto& diag) { return diag.code == "E071"; }), d.end());
+    EXPECT_TRUE(contains_message_codes(a.diags(), { "E071" }));
 }
 
 TEST(macro, early_macro_errors)
