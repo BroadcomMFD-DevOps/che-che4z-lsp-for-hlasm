@@ -12,7 +12,7 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
-#include "attribute_variable.h"
+#include "variable.h"
 
 namespace hlasm_plugin::parser_library::debugging {
 

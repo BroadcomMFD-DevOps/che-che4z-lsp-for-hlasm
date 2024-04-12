@@ -12,14 +12,9 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
-#include "ordinary_symbol_variable.h"
-
-#include <cassert>
-#include <stdexcept>
-
-#include "attribute_variable.h"
 #include "context/ordinary_assembly/symbol.h"
 #include "ebcdic_encoding.h"
+#include "variable.h"
 
 namespace hlasm_plugin::parser_library::debugging {
 static const std::string empty_string = "";

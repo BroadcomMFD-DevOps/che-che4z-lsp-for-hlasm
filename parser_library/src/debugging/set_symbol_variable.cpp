@@ -12,9 +12,8 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
-#include "set_symbol_variable.h"
-
 #include "context/variables/set_symbol.h"
+#include "variable.h"
 
 namespace hlasm_plugin::parser_library::debugging {
 namespace {

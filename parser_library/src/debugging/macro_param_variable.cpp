@@ -12,9 +12,8 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
-#include "macro_param_variable.h"
-
 #include "context/variables/macro_param.h"
+#include "variable.h"
 
 namespace hlasm_plugin::parser_library::debugging {
 
