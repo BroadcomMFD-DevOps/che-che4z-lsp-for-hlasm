@@ -15,35 +15,15 @@
 #ifndef HLASMPLUGIN_PARSERLIBRARY_DEBUGGING_ORDINARY_SYMBOL_VARIABLE_H
 #define HLASMPLUGIN_PARSERLIBRARY_DEBUGGING_ORDINARY_SYMBOL_VARIABLE_H
 
-#include "context/ordinary_assembly/symbol.h"
 #include "variable.h"
+
+namespace hlasm_plugin::parser_library::context {
+class symbol;
+} // namespace hlasm_plugin::parser_library::context
 
 namespace hlasm_plugin::parser_library::debugging {
 
-// Implementation of variable interface that adapts ordinary symbols
-// representation from context to DAP variable.
-class ordinary_symbol_variable final : public variable
-{
-public:
-    ordinary_symbol_variable(const context::symbol& symbol);
-
-    const std::string& get_name() const override;
-    const std::string& get_value() const override;
-
-    set_type type() const override;
-
-    bool is_scalar() const override;
-
-    std::vector<variable_ptr> values() const override;
-
-private:
-    std::string get_string_value() const;
-
-    const context::symbol& symbol_;
-    std::string value_;
-    std::string name_;
-};
-
+variable generate_ordinary_symbol_variable(const context::symbol& symbol);
 
 } // namespace hlasm_plugin::parser_library::debugging
 

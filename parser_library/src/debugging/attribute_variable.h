@@ -15,30 +15,11 @@
 #ifndef HLASMPLUGIN_PARSERLIBRARY_DEBUGGING_ORD_SYM_ATTRIBUTE_VARIABLE_H
 #define HLASMPLUGIN_PARSERLIBRARY_DEBUGGING_ORD_SYM_ATTRIBUTE_VARIABLE_H
 
-#include "context/ordinary_assembly/symbol.h"
 #include "variable.h"
 
 namespace hlasm_plugin::parser_library::debugging {
-// Implementation of variable interface that other variables use
-// to show symbol attributes to the user.
-class attribute_variable final : public variable
-{
-public:
-    attribute_variable(std::string name, std::string value);
 
-    const std::string& get_name() const override;
-    const std::string& get_value() const override;
-
-    set_type type() const override;
-
-    bool is_scalar() const override;
-
-    std::vector<variable_ptr> values() const override;
-
-private:
-    std::string name_;
-    std::string value_;
-};
+variable generate_attribute_variable(std::string name, std::string value);
 
 } // namespace hlasm_plugin::parser_library::debugging
 

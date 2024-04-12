@@ -15,34 +15,24 @@
 #ifndef HLASMPLUGIN_PARSERLIBRARY_DEBUGGING_VARIABLE_H
 #define HLASMPLUGIN_PARSERLIBRARY_DEBUGGING_VARIABLE_H
 
-#include <memory>
-#include <optional>
+#include <functional>
 
-#include "context/variables/variable.h"
 #include "protocol.h"
 
 namespace hlasm_plugin::parser_library::debugging {
-class variable;
-
-using variable_ptr = std::unique_ptr<variable>;
-
+//
 // Interface that represents a variable to be shown to the user
 // through DAP.
-class variable
+struct variable
 {
-public:
-    virtual const std::string& get_name() const = 0;
-    virtual const std::string& get_value() const = 0;
-
-    virtual set_type type() const = 0;
-
-    virtual bool is_scalar() const = 0;
-
-    virtual std::vector<variable_ptr> values() const = 0;
-
+    std::string name;
+    std::string value;
+    set_type type = set_type::UNDEF_TYPE;
     var_reference_t var_reference = 0;
 
-    virtual ~variable() = default;
+    std::function<std::vector<variable>()> values;
+
+    bool is_scalar() const noexcept { return !values; }
 };
 
 } // namespace hlasm_plugin::parser_library::debugging

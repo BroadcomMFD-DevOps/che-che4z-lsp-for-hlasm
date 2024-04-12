@@ -15,34 +15,16 @@
 #ifndef HLASMPLUGIN_PARSERLIBRARY_DEBUGGING_MACRO_PARAM_VARIABLE_H
 #define HLASMPLUGIN_PARSERLIBRARY_DEBUGGING_MACRO_PARAM_VARIABLE_H
 
-#include "context/variables/macro_param.h"
+#include "context/common_types.h"
 #include "variable.h"
+
+namespace hlasm_plugin::parser_library::context {
+class macro_param_base;
+}
 
 namespace hlasm_plugin::parser_library::debugging {
 
-// Implementation of variable interface that adapts macro parameters
-// representation from context to DAP variable.
-class macro_param_variable final : public variable
-{
-public:
-    macro_param_variable(const context::macro_param_base& param, std::vector<context::A_t> index);
-
-    const std::string& get_name() const override;
-    const std::string& get_value() const override;
-
-    set_type type() const override;
-
-    bool is_scalar() const override;
-
-    std::vector<variable_ptr> values() const override;
-
-private:
-    const context::macro_param_base& macro_param_;
-    std::vector<context::A_t> index_;
-    std::string name_;
-    std::string value_;
-};
-
+variable generate_macro_param_variable(const context::macro_param_base& param, std::vector<context::A_t> index);
 
 } // namespace hlasm_plugin::parser_library::debugging
 

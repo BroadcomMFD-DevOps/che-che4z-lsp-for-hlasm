@@ -15,43 +15,16 @@
 #ifndef HLASMPLUGIN_PARSERLIBRARY_DEBUGGING_SET_SYMBOL_VARIABLE_H
 #define HLASMPLUGIN_PARSERLIBRARY_DEBUGGING_SET_SYMBOL_VARIABLE_H
 
-#include <optional>
-
-#include "context/variables/set_symbol.h"
 #include "variable.h"
 
+namespace hlasm_plugin::parser_library::context {
+class set_symbol_base;
+} // namespace hlasm_plugin::parser_library::context
 
 namespace hlasm_plugin::parser_library::debugging {
-// Implementation of variable interface that adapts set symbol
-// representation from context to DAP variable.
-class set_symbol_variable final : public variable
-{
-public:
-    set_symbol_variable(const context::set_symbol_base& set_sym, int index);
-    set_symbol_variable(const context::set_symbol_base& set_sym);
 
-    const std::string& get_name() const override;
-    const std::string& get_value() const override;
-
-    set_type type() const override;
-
-    bool is_scalar() const override;
-
-    std::vector<variable_ptr> values() const override;
-
-private:
-    template<typename T>
-    T get_value(const std::optional<int> index) const;
-
-    std::string get_string_value(const std::optional<int>& index) const;
-    std::string get_string_array_value() const;
-
-    const context::set_symbol_base& set_symbol_;
-    const std::optional<int> index_;
-
-    const std::string name_;
-    std::string value_;
-};
+variable generate_set_symbol_variable(const context::set_symbol_base& set_sym, int index);
+variable generate_set_symbol_variable(const context::set_symbol_base& set_sym);
 
 } // namespace hlasm_plugin::parser_library::debugging
 
