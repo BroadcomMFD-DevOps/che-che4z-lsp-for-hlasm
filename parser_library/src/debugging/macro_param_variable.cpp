@@ -17,7 +17,7 @@
 
 namespace hlasm_plugin::parser_library::debugging {
 
-variable generate_macro_param_variable(const context::macro_param_base& param, std::vector<context::A_t> index)
+variable generate_macro_param_variable(const context::macro_param_base& param, std::vector<int32_t> index)
 {
     variable result {
         .name = index.empty() ? "&" + param.id.to_string() : std::to_string(index.back()),

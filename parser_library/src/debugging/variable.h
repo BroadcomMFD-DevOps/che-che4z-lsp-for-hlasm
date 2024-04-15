@@ -17,7 +17,6 @@
 
 #include <functional>
 
-#include "context/common_types.h"
 #include "protocol.h"
 
 namespace hlasm_plugin::parser_library::context {
@@ -43,7 +42,7 @@ struct variable
 };
 
 variable generate_attribute_variable(std::string name, std::string value);
-variable generate_macro_param_variable(const context::macro_param_base& param, std::vector<context::A_t> index);
+variable generate_macro_param_variable(const context::macro_param_base& param, std::vector<int32_t> index);
 variable generate_ordinary_symbol_variable(const context::symbol& symbol);
 variable generate_set_symbol_variable(const context::set_symbol_base& set_sym, int index);
 variable generate_set_symbol_variable(const context::set_symbol_base& set_sym);
