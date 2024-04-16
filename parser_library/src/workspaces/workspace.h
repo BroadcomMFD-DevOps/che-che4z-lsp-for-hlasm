@@ -37,6 +37,7 @@
 #include "macro_cache.h"
 #include "message_consumer.h"
 #include "processor_group.h"
+#include "semantics/highlighting_info.h"
 #include "utils/resource_location.h"
 #include "utils/task.h"
 #include "workspace_configuration.h"

@@ -325,15 +325,15 @@ INSTANTIATE_TEST_SUITE_P(convert_tokens_to_num_array,
     ::testing::Values(test_param { "empty", {}, nlohmann::json::array() },
         test_param { "one_token",
             {
-                { { { 0, 0 }, { 0, 5 } }, parser_library::semantics::hl_scopes::instruction },
+                { { { 0, 0 }, { 0, 5 } }, parser_library::hl_scopes::instruction },
             },
             { 0, 0, 5, 1, 0 } },
         test_param {
             "one_side_overlap",
             {
-                { { { 0, 0 }, { 0, 5 } }, parser_library::semantics::hl_scopes::instruction },
-                { { { 0, 3 }, { 0, 8 } }, parser_library::semantics::hl_scopes::remark },
-                { { { 0, 10 }, { 0, 11 } }, parser_library::semantics::hl_scopes::ignored },
+                { { { 0, 0 }, { 0, 5 } }, parser_library::hl_scopes::instruction },
+                { { { 0, 3 }, { 0, 8 } }, parser_library::hl_scopes::remark },
+                { { { 0, 10 }, { 0, 11 } }, parser_library::hl_scopes::ignored },
             },
             // clang-format off
             { 0, 0, 3, 1, 0,
@@ -345,11 +345,11 @@ INSTANTIATE_TEST_SUITE_P(convert_tokens_to_num_array,
         test_param {
             "enclosed_overlap",
             {
-                { { { 0, 0 }, { 0, 10 } }, parser_library::semantics::hl_scopes::string },
-                { { { 0, 1 }, { 0, 3 } }, parser_library::semantics::hl_scopes::var_symbol },
-                { { { 0, 5 }, { 0, 7 } }, parser_library::semantics::hl_scopes::var_symbol },
-                { { { 0, 7 }, { 0, 9 } }, parser_library::semantics::hl_scopes::var_symbol },
-                { { { 0, 10 }, { 0, 11 } }, parser_library::semantics::hl_scopes::ignored },
+                { { { 0, 0 }, { 0, 10 } }, parser_library::hl_scopes::string },
+                { { { 0, 1 }, { 0, 3 } }, parser_library::hl_scopes::var_symbol },
+                { { { 0, 5 }, { 0, 7 } }, parser_library::hl_scopes::var_symbol },
+                { { { 0, 7 }, { 0, 9 } }, parser_library::hl_scopes::var_symbol },
+                { { { 0, 10 }, { 0, 11 } }, parser_library::hl_scopes::ignored },
             },
             // clang-format off
             { 0, 0, 1, 9, 0,   // beginning of string
@@ -366,11 +366,11 @@ INSTANTIATE_TEST_SUITE_P(convert_tokens_to_num_array,
             // Case like this probably never happens from the real grammar, but the code should be able to handle it.
             "nested_enclosed_overlap",
             {
-                { { { 0, 0 }, { 0, 15 } }, parser_library::semantics::hl_scopes::string },
-                { { { 0, 1 }, { 0, 3 } }, parser_library::semantics::hl_scopes::var_symbol },
-                { { { 0, 4 }, { 0, 10 } }, parser_library::semantics::hl_scopes::instruction },
-                { { { 0, 5 }, { 0, 8 } }, parser_library::semantics::hl_scopes::var_symbol },
-                { { { 0, 11 }, { 0, 14 } }, parser_library::semantics::hl_scopes::var_symbol },
+                { { { 0, 0 }, { 0, 15 } }, parser_library::hl_scopes::string },
+                { { { 0, 1 }, { 0, 3 } }, parser_library::hl_scopes::var_symbol },
+                { { { 0, 4 }, { 0, 10 } }, parser_library::hl_scopes::instruction },
+                { { { 0, 5 }, { 0, 8 } }, parser_library::hl_scopes::var_symbol },
+                { { { 0, 11 }, { 0, 14 } }, parser_library::hl_scopes::var_symbol },
             },
             // clang-format off
             { 0, 0, 1, 9, 0,   // beginning of string
