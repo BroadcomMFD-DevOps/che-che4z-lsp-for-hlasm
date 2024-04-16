@@ -43,6 +43,10 @@ class workspace_manager;
 template<typename T>
 class diagnostic_consumer;
 struct diagnostic_op;
+struct document_symbol_item;
+bool is_similar(const std::vector<document_symbol_item>& l, const std::vector<document_symbol_item>& r);
+bool is_similar(const document_symbol_item& l, const document_symbol_item& r);
+
 namespace context {
 struct address;
 class section;
@@ -55,11 +59,6 @@ struct data_definition;
 namespace workspaces {
 class workspace;
 } // namespace workspaces
-namespace lsp {
-struct document_symbol_item_s;
-bool is_similar(const std::vector<document_symbol_item_s>& l, const std::vector<document_symbol_item_s>& r);
-bool is_similar(const document_symbol_item_s& l, const document_symbol_item_s& r);
-} // namespace lsp
 } // namespace hlasm_plugin::parser_library
 
 using namespace hlasm_plugin::parser_library;

@@ -90,7 +90,7 @@ public:
         position pos,
         char trigger_char,
         completion_trigger_kind trigger_kind) const;
-    std::vector<document_symbol_item_s> document_symbol(const utils::resource::resource_location& document_loc) const;
+    std::vector<document_symbol_item> document_symbol(const utils::resource::resource_location& document_loc) const;
 
     const context::hlasm_context& get_related_hlasm_context() const { return *m_hlasm_ctx; }
 

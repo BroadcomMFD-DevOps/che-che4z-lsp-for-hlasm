@@ -33,9 +33,9 @@
 
 #include "completion_item.h"
 #include "debugging/debugger_configuration.h"
+#include "document_symbol_item.h"
 #include "external_configuration_requests.h"
 #include "folding_range.h"
-#include "lsp/document_symbol_item.h"
 #include "nlohmann/json.hpp"
 #include "protocol.h"
 #include "utils/async_busy_wait.h"
@@ -694,11 +694,11 @@ public:
             });
     }
 
-    void document_symbol(const char* document_uri, workspace_manager_response<document_symbol_list> r) override
+    void document_symbol(
+        const char* document_uri, workspace_manager_response<std::span<const document_symbol_item>> r) override
     {
         handle_request(document_uri, std::move(r), [](const auto& resp, auto& ws, const auto& doc_loc) {
-            auto document_symbol_result = ws.document_symbol(doc_loc);
-            resp.provide(document_symbol_list(document_symbol_result.data(), document_symbol_result.size()));
+            resp.provide(ws.document_symbol(doc_loc));
         });
     }
 

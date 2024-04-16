@@ -584,19 +584,19 @@ const std::unordered_map<parser_library::document_symbol_kind, lsp_document_symb
     };
 
 nlohmann::json feature_language_features::document_symbol_item_json(
-    hlasm_plugin::parser_library::document_symbol_item symbol)
+    const hlasm_plugin::parser_library::document_symbol_item& symbol)
 {
     return {
-        { "name", symbol.name() },
-        { "kind", document_symbol_item_kind_mapping.at(symbol.kind()) },
-        { "range", range_to_json(symbol.symbol_range()) },
-        { "selectionRange", range_to_json(symbol.symbol_selection_range()) },
-        { "children", document_symbol_list_json(symbol.children()) },
+        { "name", symbol.name },
+        { "kind", document_symbol_item_kind_mapping.at(symbol.kind) },
+        { "range", range_to_json(symbol.symbol_range) },
+        { "selectionRange", range_to_json(symbol.symbol_selection_range) },
+        { "children", document_symbol_list_json(symbol.children) },
     };
 }
 
 nlohmann::json feature_language_features::document_symbol_list_json(
-    hlasm_plugin::parser_library::document_symbol_list symbol_list)
+    std::span<const hlasm_plugin::parser_library::document_symbol_item> symbol_list)
 {
     auto result = nlohmann::json::array();
     for (const auto& symbol : symbol_list)
@@ -610,8 +610,9 @@ void feature_language_features::document_symbol(const request_id& id, const nloh
 {
     auto document_uri = extract_document_uri(params);
 
-    auto resp = make_response(
-        id, response_, [this](document_symbol_list symbol_list) { return document_symbol_list_json(symbol_list); });
+    auto resp = make_response(id, response_, [this](std::span<const document_symbol_item> symbol_list) {
+        return document_symbol_list_json(symbol_list);
+    });
 
     ws_mngr_.document_symbol(document_uri.c_str(), resp);
 

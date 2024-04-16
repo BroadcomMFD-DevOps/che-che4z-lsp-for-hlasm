@@ -16,9 +16,9 @@
 
 #include "context/hlasm_context.h"
 #include "context/variables/set_symbol.h"
+#include "document_symbol_item.h"
 #include "fade_messages.h"
 #include "hlasmparser_multiline.h"
-#include "lsp/document_symbol_item.h"
 #include "utils/resource_location.h"
 #include "utils/similar.h"
 #include "utils/task.h"
@@ -278,15 +278,15 @@ expressions::data_definition parse_data_definition(analyzer& a, diagnostic_op_co
     return std::move(a.parser().data_def()->value);
 }
 
-namespace hlasm_plugin::parser_library::lsp {
-bool is_similar(const std::vector<document_symbol_item_s>& l, const std::vector<document_symbol_item_s>& r)
+namespace hlasm_plugin::parser_library {
+bool is_similar(const std::vector<document_symbol_item>& l, const std::vector<document_symbol_item>& r)
 {
     return l.size() == r.size() && std::is_permutation(l.begin(), l.end(), r.begin(), utils::is_similar);
 }
 
-bool is_similar(const document_symbol_item_s& l, const document_symbol_item_s& r)
+bool is_similar(const document_symbol_item& l, const document_symbol_item& r)
 {
     return l.name == r.name && l.kind == r.kind && l.symbol_range == r.symbol_range
         && l.symbol_selection_range == r.symbol_selection_range && is_similar(l.children, r.children);
 }
-} // namespace hlasm_plugin::parser_library::lsp
+} // namespace hlasm_plugin::parser_library

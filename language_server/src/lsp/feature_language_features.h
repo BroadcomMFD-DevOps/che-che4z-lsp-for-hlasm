@@ -52,8 +52,9 @@ private:
     void folding(const request_id& id, const nlohmann::json& params);
     void retrieve_outputs(const request_id& id, const nlohmann::json& params);
 
-    nlohmann::json document_symbol_item_json(hlasm_plugin::parser_library::document_symbol_item symbol);
-    nlohmann::json document_symbol_list_json(hlasm_plugin::parser_library::document_symbol_list symbol_list);
+    nlohmann::json document_symbol_item_json(const hlasm_plugin::parser_library::document_symbol_item& symbol);
+    nlohmann::json document_symbol_list_json(
+        std::span<const hlasm_plugin::parser_library::document_symbol_item> symbol_list);
 
     parser_library::workspace_manager& ws_mngr_;
 

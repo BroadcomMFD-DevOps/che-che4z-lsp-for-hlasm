@@ -71,10 +71,6 @@ struct variable;
 struct variable_store;
 } // namespace debugging
 
-namespace lsp {
-struct document_symbol_item_s;
-} // namespace lsp
-
 struct location;
 struct range_uri_s;
 class diagnostic_related_info_s;
@@ -86,41 +82,6 @@ enum class completion_trigger_kind
     invoked = 1,
     trigger_character = 2,
     trigger_for_incomplete_completions = 3
-};
-
-enum class document_symbol_kind
-{
-    DAT = 0,
-    EQU = 1,
-    MACH = 2,
-    UNKNOWN = 3,
-    VAR = 4,
-    SEQ = 5,
-    COMMON = 6,
-    DUMMY = 7,
-    EXECUTABLE = 8,
-    READONLY = 9,
-    MACRO = 10,
-    ASM = 11,
-    EXTERNAL = 12,
-    WEAK_EXTERNAL = 13,
-    TITLE = 14,
-};
-
-struct document_symbol_item;
-using document_symbol_list = sequence<document_symbol_item, const lsp::document_symbol_item_s*>;
-
-struct document_symbol_item
-{
-    explicit document_symbol_item(const lsp::document_symbol_item_s& item);
-    sequence<char> name() const;
-    document_symbol_kind kind() const;
-    range symbol_range() const;
-    range symbol_selection_range() const;
-    document_symbol_list children() const;
-
-private:
-    const lsp::document_symbol_item_s& item_;
 };
 
 struct position_uri

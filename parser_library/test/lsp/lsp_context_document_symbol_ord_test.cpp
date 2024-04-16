@@ -16,7 +16,7 @@
 
 #include "../common_testing.h"
 #include "../mock_parse_lib_provider.h"
-#include "lsp/document_symbol_item.h"
+#include "document_symbol_item.h"
 #include "lsp/lsp_context.h"
 
 using namespace hlasm_plugin::parser_library;
@@ -100,82 +100,82 @@ MACFLD1  DS  F
     auto outlineC = a.context().lsp_ctx->document_symbol(COPYSECT_loc);
     auto outlineT = a.context().lsp_ctx->document_symbol(TITLE_loc);
 
-    auto expected = std::vector<document_symbol_item_s> {
-        document_symbol_item_s {
+    auto expected = std::vector<document_symbol_item> {
+        document_symbol_item {
             "MAC1",
             MACRO,
             range { { 2, 0 }, { 5, position::max_value } },
         },
-        document_symbol_item_s {
+        document_symbol_item {
             "PART 1",
             TITLE,
             range { { 7, 0 }, { 19, position::max_value } },
-            std::vector<document_symbol_item_s> {
-                document_symbol_item_s {
+            std::vector<document_symbol_item> {
+                document_symbol_item {
                     "SECT",
                     EXECUTABLE,
                     range { { 8, 0 }, { 10, position::max_value } },
                 },
-                document_symbol_item_s {
+                document_symbol_item {
                     "LBL",
                     DAT,
                     range { { 11, 0 }, { 13, position::max_value } },
                 },
-                document_symbol_item_s {
+                document_symbol_item {
                     "LB2",
                     EQU,
                     range { { 14, 0 }, { 17, position::max_value } },
                 },
-                document_symbol_item_s {
+                document_symbol_item {
                     "LBM",
                     MACH,
                     range { { 18, 0 }, { 19, position::max_value } },
                 },
             },
         },
-        document_symbol_item_s {
+        document_symbol_item {
             "PREFIX: PART 2",
             TITLE,
             range { { 20, 0 }, { 23, position::max_value } },
-            std::vector<document_symbol_item_s> {
-                document_symbol_item_s {
+            std::vector<document_symbol_item> {
+                document_symbol_item {
                     "PARM",
                     DUMMY,
                     range { { 21, 0 }, { 21, position::max_value } },
                 },
-                document_symbol_item_s {
+                document_symbol_item {
                     "VAL",
                     DAT,
                     range { { 22, 0 }, { 23, position::max_value } },
                 },
             },
         },
-        document_symbol_item_s {
+        document_symbol_item {
             "SECT_MAC DSECT",
             TITLE,
             range { { 24, 0 }, { 24, position::max_value } },
         },
-        document_symbol_item_s {
+        document_symbol_item {
             "SECT_CPY DSECT",
             TITLE,
             range { { 25, 0 }, { 26, position::max_value } },
         },
-        document_symbol_item_s {
+        document_symbol_item {
             "EXTRA",
             TITLE,
             range { { 27, 0 }, { 32, position::max_value } },
-            std::vector<document_symbol_item_s> {
-                document_symbol_item_s {
+            std::vector<document_symbol_item> {
+                document_symbol_item {
                     "T",
                     UNKNOWN,
                     range { { 27, 0 }, { 27, position::max_value } },
                 },
-                document_symbol_item_s {
+                document_symbol_item {
                     "C",
                     EXECUTABLE,
                     range { { 28, 0 }, { 30, position::max_value } },
                 },
-                document_symbol_item_s {
+                document_symbol_item {
                     ".SEQ",
                     SEQ,
                     range { { 31, 0 }, { 32, position::max_value } },
@@ -183,25 +183,25 @@ MACFLD1  DS  F
             },
         },
     };
-    auto expectedM = std::vector<document_symbol_item_s> {
-        document_symbol_item_s {
+    auto expectedM = std::vector<document_symbol_item> {
+        document_symbol_item {
             "MACSECT",
             MACRO,
             range { { 1, 0 }, { 5, position::max_value } },
         },
     };
-    auto expectedC = std::vector<document_symbol_item_s> {
-        document_symbol_item_s {
+    auto expectedC = std::vector<document_symbol_item> {
+        document_symbol_item {
             "SECT_CPY DSECT",
             TITLE,
             range { { 1, 0 }, { 4, position::max_value } },
-            std::vector<document_symbol_item_s> {
-                document_symbol_item_s {
+            std::vector<document_symbol_item> {
+                document_symbol_item {
                     "SECT_CPY",
                     DUMMY,
                     range { { 2, 0 }, { 2, position::max_value } },
                 },
-                document_symbol_item_s {
+                document_symbol_item {
                     "CPYFLD1",
                     DAT,
                     range { { 3, 0 }, { 4, position::max_value } },
@@ -209,18 +209,18 @@ MACFLD1  DS  F
             },
         },
     };
-    auto expectedT = std::vector<document_symbol_item_s> {
-        document_symbol_item_s {
+    auto expectedT = std::vector<document_symbol_item> {
+        document_symbol_item {
             "$TITLE",
             MACRO,
             range { { 1, 0 }, { 7, position::max_value } },
-            std::vector<document_symbol_item_s> {
-                document_symbol_item_s {
+            std::vector<document_symbol_item> {
+                document_symbol_item {
                     ".SKIP",
                     SEQ,
                     range { { 5, 0 }, { 5, position::max_value } },
                 },
-                document_symbol_item_s {
+                document_symbol_item {
                     ".EXTRA",
                     SEQ,
                     range { { 6, 0 }, { 7, position::max_value } },

@@ -23,10 +23,10 @@
 #include "analyzer.h"
 #include "completion_item.h"
 #include "context/instruction.h"
+#include "document_symbol_item.h"
 #include "fade_messages.h"
 #include "file.h"
 #include "file_manager.h"
-#include "lsp/document_symbol_item.h"
 #include "lsp/folding.h"
 #include "lsp/item_convertors.h"
 #include "lsp/lsp_context.h"
@@ -928,7 +928,7 @@ std::vector<completion_item> workspace::completion(
     return lsp::generate_completion(comp);
 }
 
-std::vector<lsp::document_symbol_item_s> workspace::document_symbol(const resource_location& document_loc) const
+std::vector<document_symbol_item> workspace::document_symbol(const resource_location& document_loc) const
 {
     auto opencodes = find_related_opencodes(document_loc);
     if (opencodes.empty())

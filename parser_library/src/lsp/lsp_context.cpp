@@ -53,10 +53,10 @@ const std::unordered_map<context::section_kind, document_symbol_kind> document_s
     { context::section_kind::WEAK_EXTERNAL, document_symbol_kind::WEAK_EXTERNAL },
 };
 
-constexpr bool expand_block(const document_symbol_item_s& item) { return item.kind != document_symbol_kind::MACRO; }
+constexpr bool expand_block(const document_symbol_item& item) { return item.kind != document_symbol_kind::MACRO; }
 } // namespace
 
-std::vector<document_symbol_item_s> lsp_context::document_symbol(
+std::vector<document_symbol_item> lsp_context::document_symbol(
     const utils::resource::resource_location& document_loc) const
 {
     using enum document_symbol_kind;
@@ -77,7 +77,7 @@ std::vector<document_symbol_item_s> lsp_context::document_symbol(
 
     const auto& dl = dl_it->first;
 
-    std::vector<document_symbol_item_s> result;
+    std::vector<document_symbol_item> result;
 
     for (const auto& [title, stack] : m_titles)
     {

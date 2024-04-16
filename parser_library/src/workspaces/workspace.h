@@ -43,6 +43,7 @@
 
 namespace hlasm_plugin::parser_library {
 struct completion_item;
+struct document_symbol_item;
 class external_configuration_requests;
 } // namespace hlasm_plugin::parser_library
 namespace hlasm_plugin::parser_library::workspaces {
@@ -112,7 +113,7 @@ public:
     std::string hover(const resource_location& document_loc, position pos) const;
     std::vector<completion_item> completion(
         const resource_location& document_loc, position pos, char trigger_char, completion_trigger_kind trigger_kind);
-    std::vector<lsp::document_symbol_item_s> document_symbol(const resource_location& document_loc) const;
+    std::vector<document_symbol_item> document_symbol(const resource_location& document_loc) const;
 
     std::vector<token_info> semantic_tokens(const resource_location& document_loc) const;
 

@@ -15,6 +15,7 @@ target_sources(parser_library PUBLIC
     branch_info.h
     completion_item.h
     debugger.h
+    document_symbol_item.h
     external_configuration_requests.h
     folding_range.h
     lib_config.h

@@ -63,7 +63,10 @@ public:
 
     MOCK_METHOD(
         void, semantic_tokens, (const char*, workspace_manager_response<continuous_sequence<token_info>>), (override));
-    MOCK_METHOD(void, document_symbol, (const char*, workspace_manager_response<document_symbol_list>), (override));
+    MOCK_METHOD(void,
+        document_symbol,
+        (const char*, workspace_manager_response<std::span<const document_symbol_item>>),
+        (override));
 
     MOCK_METHOD(void, configuration_changed, (const lib_config& new_config), (override));
 

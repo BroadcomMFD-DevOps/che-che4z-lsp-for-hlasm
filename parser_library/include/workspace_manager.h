@@ -26,6 +26,7 @@
 
 #include "branch_info.h"
 #include "completion_item.h"
+#include "document_symbol_item.h"
 #include "folding_range.h"
 #include "lib_config.h"
 #include "message_consumer.h"
@@ -122,7 +123,8 @@ public:
 
     virtual void semantic_tokens(
         const char* document_uri, workspace_manager_response<continuous_sequence<token_info>> resp) = 0;
-    virtual void document_symbol(const char* document_uri, workspace_manager_response<document_symbol_list> resp) = 0;
+    virtual void document_symbol(
+        const char* document_uri, workspace_manager_response<std::span<const document_symbol_item>> resp) = 0;
 
     virtual void configuration_changed(const lib_config& new_config) = 0;
 
