@@ -58,7 +58,7 @@ TEST(language_features, completion_resolve)
     auto params1 = nlohmann::json::parse(
         R"({"textDocument":{"uri":")" + uri + R"("},"position":{"line":0,"character":1},"context":{"triggerKind":1}})");
 
-    static const hlasm_plugin::parser_library::lsp::completion_list_s compl_list {
+    static const std::vector compl_list {
         hlasm_plugin::parser_library::lsp::completion_item_s("LABEL", "", "", "DOC"),
     };
     EXPECT_CALL(ws_mngr,

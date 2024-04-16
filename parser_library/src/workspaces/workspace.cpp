@@ -137,8 +137,7 @@ struct workspace_parse_lib_provider final : public parse_lib_provider
             pfc.m_dependencies.end(),
             next_dependencies.begin(),
             next_dependencies.end(),
-            utils::transform_inserter(
-                files_to_close, [](const auto& v) -> const auto& { return v.first; }),
+            utils::transform_inserter(files_to_close, [](const auto& v) -> const auto& { return v.first; }),
             [](const auto& l, const auto& r) { return l.first < r.first; });
     }
 
@@ -906,7 +905,7 @@ std::string workspace::hover(const resource_location& document_loc, position pos
         return {};
 }
 
-lsp::completion_list_s workspace::completion(
+std::vector<lsp::completion_item_s> workspace::completion(
     const resource_location& document_loc, position pos, const char trigger_char, completion_trigger_kind trigger_kind)
 {
     auto opencodes = find_related_opencodes(document_loc);

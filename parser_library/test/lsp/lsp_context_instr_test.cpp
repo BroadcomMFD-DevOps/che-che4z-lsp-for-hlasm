@@ -47,7 +47,7 @@ struct lsp_context_instr : public ::testing::Test
         return a;
     }
 
-    lsp::completion_list_s get_completion_list(instruction_set_version instr_set)
+    std::vector<lsp::completion_item_s> get_completion_list(instruction_set_version instr_set)
     {
         analyzer a(input,
             analyzer_options {

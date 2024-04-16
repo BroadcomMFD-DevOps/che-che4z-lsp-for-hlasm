@@ -303,16 +303,16 @@ completion_item_s generate_completion_item(const macro_info& sym, const file_inf
 }
 
 
-completion_list_s generate_completion(const completion_list_source& cls)
+std::vector<completion_item_s> generate_completion(const completion_list_source& cls)
 {
     return std::visit([](auto v) { return generate_completion(v); }, cls);
 }
 
-completion_list_s generate_completion(std::monostate) { return completion_list_s(); }
+std::vector<completion_item_s> generate_completion(std::monostate) { return std::vector<completion_item_s>(); }
 
-completion_list_s generate_completion(const vardef_storage* var_defs)
+std::vector<completion_item_s> generate_completion(const vardef_storage* var_defs)
 {
-    completion_list_s items;
+    std::vector<completion_item_s> items;
     for (const auto& vardef : *var_defs)
     {
         items.emplace_back(generate_completion_item(vardef));
@@ -321,9 +321,9 @@ completion_list_s generate_completion(const vardef_storage* var_defs)
     return items;
 }
 
-completion_list_s generate_completion(const context::label_storage* seq_syms)
+std::vector<completion_item_s> generate_completion(const context::label_storage* seq_syms)
 {
-    completion_list_s items;
+    std::vector<completion_item_s> items;
     items.reserve(seq_syms->size());
     for (const auto& [_, sym] : *seq_syms)
     {
@@ -332,7 +332,7 @@ completion_list_s generate_completion(const context::label_storage* seq_syms)
     return items;
 }
 
-completion_list_s generate_completion(const completion_list_instructions& cli)
+std::vector<completion_item_s> generate_completion(const completion_list_instructions& cli)
 {
     assert(cli.lsp_ctx);
 
@@ -348,7 +348,7 @@ completion_list_s generate_completion(const completion_list_instructions& cli)
         return it == s.end() ? nullptr : std::to_address(it);
     };
 
-    completion_list_s result;
+    std::vector<completion_item_s> result;
 
     // Store only instructions from the currently active instruction set
     for (const auto& instr : instruction_completion_items)

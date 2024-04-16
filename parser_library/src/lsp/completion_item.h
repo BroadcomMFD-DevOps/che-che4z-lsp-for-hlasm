@@ -22,8 +22,6 @@
 
 namespace hlasm_plugin::parser_library::lsp {
 
-using completion_list_s = std::vector<completion_item_s>;
-
 // representation of completion item based on LSP
 struct completion_item_s
 {
