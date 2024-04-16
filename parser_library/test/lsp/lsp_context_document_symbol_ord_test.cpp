@@ -14,6 +14,7 @@
 
 #include "gtest/gtest.h"
 
+#include "../common_testing.h"
 #include "../mock_parse_lib_provider.h"
 #include "lsp/document_symbol_item.h"
 #include "lsp/lsp_context.h"
@@ -94,12 +95,12 @@ MACFLD1  DS  F
     EXPECT_TRUE(a.diags().empty());
 
     using enum document_symbol_kind;
-    document_symbol_list_s outline = a.context().lsp_ctx->document_symbol(empty_loc);
-    document_symbol_list_s outlineM = a.context().lsp_ctx->document_symbol(MACSECT_loc);
-    document_symbol_list_s outlineC = a.context().lsp_ctx->document_symbol(COPYSECT_loc);
-    document_symbol_list_s outlineT = a.context().lsp_ctx->document_symbol(TITLE_loc);
+    auto outline = a.context().lsp_ctx->document_symbol(empty_loc);
+    auto outlineM = a.context().lsp_ctx->document_symbol(MACSECT_loc);
+    auto outlineC = a.context().lsp_ctx->document_symbol(COPYSECT_loc);
+    auto outlineT = a.context().lsp_ctx->document_symbol(TITLE_loc);
 
-    document_symbol_list_s expected = document_symbol_list_s {
+    auto expected = std::vector<document_symbol_item_s> {
         document_symbol_item_s {
             "MAC1",
             MACRO,
@@ -109,7 +110,7 @@ MACFLD1  DS  F
             "PART 1",
             TITLE,
             range { { 7, 0 }, { 19, position::max_value } },
-            document_symbol_list_s {
+            std::vector<document_symbol_item_s> {
                 document_symbol_item_s {
                     "SECT",
                     EXECUTABLE,
@@ -136,7 +137,7 @@ MACFLD1  DS  F
             "PREFIX: PART 2",
             TITLE,
             range { { 20, 0 }, { 23, position::max_value } },
-            document_symbol_list_s {
+            std::vector<document_symbol_item_s> {
                 document_symbol_item_s {
                     "PARM",
                     DUMMY,
@@ -163,7 +164,7 @@ MACFLD1  DS  F
             "EXTRA",
             TITLE,
             range { { 27, 0 }, { 32, position::max_value } },
-            document_symbol_list_s {
+            std::vector<document_symbol_item_s> {
                 document_symbol_item_s {
                     "T",
                     UNKNOWN,
@@ -182,19 +183,19 @@ MACFLD1  DS  F
             },
         },
     };
-    document_symbol_list_s expectedM = document_symbol_list_s {
+    auto expectedM = std::vector<document_symbol_item_s> {
         document_symbol_item_s {
             "MACSECT",
             MACRO,
             range { { 1, 0 }, { 5, position::max_value } },
         },
     };
-    document_symbol_list_s expectedC = document_symbol_list_s {
+    auto expectedC = std::vector<document_symbol_item_s> {
         document_symbol_item_s {
             "SECT_CPY DSECT",
             TITLE,
             range { { 1, 0 }, { 4, position::max_value } },
-            document_symbol_list_s {
+            std::vector<document_symbol_item_s> {
                 document_symbol_item_s {
                     "SECT_CPY",
                     DUMMY,
@@ -208,12 +209,12 @@ MACFLD1  DS  F
             },
         },
     };
-    document_symbol_list_s expectedT = document_symbol_list_s {
+    auto expectedT = std::vector<document_symbol_item_s> {
         document_symbol_item_s {
             "$TITLE",
             MACRO,
             range { { 1, 0 }, { 7, position::max_value } },
-            document_symbol_list_s {
+            std::vector<document_symbol_item_s> {
                 document_symbol_item_s {
                     ".SKIP",
                     SEQ,

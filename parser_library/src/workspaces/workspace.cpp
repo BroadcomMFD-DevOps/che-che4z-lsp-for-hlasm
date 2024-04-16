@@ -928,7 +928,7 @@ std::vector<completion_item> workspace::completion(
     return lsp::generate_completion(comp);
 }
 
-lsp::document_symbol_list_s workspace::document_symbol(const resource_location& document_loc) const
+std::vector<lsp::document_symbol_item_s> workspace::document_symbol(const resource_location& document_loc) const
 {
     auto opencodes = find_related_opencodes(document_loc);
     if (opencodes.empty())

@@ -56,7 +56,8 @@ const std::unordered_map<context::section_kind, document_symbol_kind> document_s
 constexpr bool expand_block(const document_symbol_item_s& item) { return item.kind != document_symbol_kind::MACRO; }
 } // namespace
 
-document_symbol_list_s lsp_context::document_symbol(const utils::resource::resource_location& document_loc) const
+std::vector<document_symbol_item_s> lsp_context::document_symbol(
+    const utils::resource::resource_location& document_loc) const
 {
     using enum document_symbol_kind;
     static constexpr const auto block = [](auto f, auto l) {
@@ -76,7 +77,7 @@ document_symbol_list_s lsp_context::document_symbol(const utils::resource::resou
 
     const auto& dl = dl_it->first;
 
-    document_symbol_list_s result;
+    std::vector<document_symbol_item_s> result;
 
     for (const auto& [title, stack] : m_titles)
     {

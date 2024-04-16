@@ -15,6 +15,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
+#include "../common_testing.h"
 #include "analyzer_fixture.h"
 #include "lsp/document_symbol_item.h"
 #include "lsp/lsp_context.h"
@@ -42,9 +43,9 @@ const auto empty_loc = hlasm_plugin::utils::resource::resource_location("");
 
 TEST_F(lsp_context_ord_symbol, document_symbol)
 {
-    document_symbol_list_s outline = a.context().lsp_ctx->document_symbol(opencode_loc);
+    auto outline = a.context().lsp_ctx->document_symbol(opencode_loc);
     std::string R1 = "R1";
-    document_symbol_list_s expected = {
+    std::vector<document_symbol_item_s> expected = {
         document_symbol_item_s { R1, document_symbol_kind::EQU, range { { 2, 0 }, { 3, position::max_value } } },
     };
     EXPECT_TRUE(is_similar(outline, expected));
