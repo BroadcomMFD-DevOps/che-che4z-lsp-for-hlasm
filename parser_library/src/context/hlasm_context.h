@@ -30,6 +30,7 @@
 #include "opcode_generation.h"
 #include "operation_code.h"
 #include "ordinary_assembly/ordinary_assembly_context.h"
+#include "protocol.h"
 #include "source_context.h"
 #include "tagged_index.h"
 

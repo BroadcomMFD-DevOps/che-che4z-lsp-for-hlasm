@@ -20,6 +20,7 @@
 
 #include "diagnostic.h"
 #include "diagnostic_consumer.h"
+#include "diagnostic_op.h"
 #include "protocol.h"
 
 // Interface that allows to collect objects (diagnostics)

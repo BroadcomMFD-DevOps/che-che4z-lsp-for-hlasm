@@ -136,13 +136,13 @@ library_local::files_collection_t library_local::load_files(
             break;
         case hlasm_plugin::utils::path::list_directory_rc::not_exists:
             if (!m_optional)
-                new_diags.push_back(diagnostic::error_L0002(m_proc_grps_loc, m_lib_loc));
+                new_diags.push_back(error_L0002(m_proc_grps_loc, m_lib_loc));
             break;
         case hlasm_plugin::utils::path::list_directory_rc::not_a_directory:
-            new_diags.push_back(diagnostic::error_L0002(m_proc_grps_loc, m_lib_loc));
+            new_diags.push_back(error_L0002(m_proc_grps_loc, m_lib_loc));
             break;
         case hlasm_plugin::utils::path::list_directory_rc::other_failure:
-            new_diags.push_back(diagnostic::error_L0001(m_proc_grps_loc, m_lib_loc));
+            new_diags.push_back(error_L0001(m_proc_grps_loc, m_lib_loc));
             break;
     }
 
@@ -193,8 +193,7 @@ library_local::files_collection_t library_local::load_files(
     }
 
     if (conflict_count > 0)
-        new_diags.push_back(
-            diagnostic::warning_L0004(m_proc_grps_loc, m_lib_loc, file_name_conflicts, !m_extensions.empty()));
+        new_diags.push_back(warning_L0004(m_proc_grps_loc, m_lib_loc, file_name_conflicts, !m_extensions.empty()));
 
     m_files_collection.store(new_state);
 

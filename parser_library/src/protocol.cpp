@@ -35,14 +35,6 @@ position_uri sequence_item_get(const sequence<position_uri, const location*>* se
     return position_uri(self->stor_[index]);
 }
 
-range_uri::range_uri(range_uri_s& range)
-    : impl_(range)
-{}
-
-range range_uri::get_range() const { return impl_.rang; }
-
-const char* range_uri::uri() const { return impl_.uri.c_str(); }
-
 //*********************** stack_frame *************************
 stack_frame::stack_frame(const debugging::stack_frame& frame)
     : name(frame.name)

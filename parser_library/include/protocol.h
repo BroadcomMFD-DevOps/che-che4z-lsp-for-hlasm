@@ -72,7 +72,6 @@ struct variable_store;
 } // namespace debugging
 
 struct location;
-struct range_uri_s;
 
 enum class completion_trigger_kind
 {
@@ -92,16 +91,6 @@ private:
 };
 
 using position_uri_list = sequence<position_uri, const location*>;
-
-struct range_uri
-{
-    explicit range_uri(range_uri_s& range);
-    range get_range() const;
-    const char* uri() const;
-
-private:
-    range_uri_s& impl_;
-};
 
 struct document_change
 {
@@ -134,22 +123,6 @@ struct text_document_item
     char* document_uri;
     version_t version;
     char* text;
-};
-
-enum class diagnostic_severity
-{
-    error = 1,
-    warning = 2,
-    info = 3,
-    hint = 4,
-    unspecified = 5
-};
-
-enum class diagnostic_tag
-{
-    none = 0,
-    unnecessary = 1 << 0,
-    deprecated = 1 << 1,
 };
 
 struct performance_metrics

@@ -23,6 +23,7 @@
 
 #include "alignment.h"
 #include "dependable.h"
+#include "diagnostic.h"
 #include "diagnostic_consumer.h"
 #include "section.h"
 #include "symbol.h"

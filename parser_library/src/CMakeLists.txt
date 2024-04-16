@@ -23,9 +23,10 @@ target_sources(parser_library PRIVATE
     diagnosable_ctx.h
     diagnosable_impl.h
     diagnostic.cpp
-    diagnostic.h
     diagnostic_adder.h
     diagnostic_consumer.h
+    diagnostic_op.cpp
+    diagnostic_op.h
     diagnostic_tools.h
     diagnostic_tools.cpp
     document.cpp

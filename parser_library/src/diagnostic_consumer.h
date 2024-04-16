@@ -18,6 +18,9 @@
 #include <functional>
 #include <vector>
 
+#include "diagnostic.h"
+#include "diagnostic_op.h"
+
 // Interface that allows to consume diagnostics regardless of how are they processed afterwards
 
 namespace hlasm_plugin::parser_library {
