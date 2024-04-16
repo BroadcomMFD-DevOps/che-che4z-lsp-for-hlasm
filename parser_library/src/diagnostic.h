@@ -799,11 +799,11 @@ struct range_uri_s
 };
 
 // Represents related info (location with message) of LSP diagnostic.
-class diagnostic_related_info_s
+class diagnostic_related_info
 {
 public:
-    diagnostic_related_info_s() = default;
-    diagnostic_related_info_s(range_uri_s location, std::string message)
+    diagnostic_related_info() = default;
+    diagnostic_related_info(range_uri_s location, std::string message)
         : location(std::move(location))
         , message(std::move(message))
     {}
@@ -812,25 +812,24 @@ public:
 };
 
 // Represents a LSP diagnostic.
-class diagnostic_s
+struct diagnostic
 {
-public:
-    diagnostic_s()
+    diagnostic()
         : severity(diagnostic_severity::unspecified)
     {}
-    diagnostic_s(std::string file_uri, range range, std::string code, std::string message)
+    diagnostic(std::string file_uri, range range, std::string code, std::string message)
         : file_uri(std::move(file_uri))
         , diag_range(range)
         , severity(diagnostic_severity::unspecified)
         , code(std::move(code))
         , message(std::move(message))
     {}
-    diagnostic_s(std::string file_uri,
+    diagnostic(std::string file_uri,
         range range,
         diagnostic_severity severity,
         std::string code,
         std::string message,
-        std::vector<diagnostic_related_info_s> related,
+        std::vector<diagnostic_related_info> related,
         diagnostic_tag tag)
         : file_uri(std::move(file_uri))
         , diag_range(range)
@@ -841,7 +840,7 @@ public:
         , related(std::move(related))
         , tag(tag)
     {}
-    diagnostic_s(std::string file_uri, diagnostic_op diag_op)
+    diagnostic(std::string file_uri, diagnostic_op diag_op)
         : file_uri(std::move(file_uri))
         , diag_range(std::move(diag_op.diag_range))
         , severity(diag_op.severity)
@@ -850,7 +849,7 @@ public:
         , message(std::move(diag_op.message))
         , tag(diag_op.tag)
     {}
-    diagnostic_s(diagnostic_op diag_op)
+    diagnostic(diagnostic_op diag_op)
         : diag_range(std::move(diag_op.diag_range))
         , severity(diag_op.severity)
         , code(std::move(diag_op.code))
@@ -866,7 +865,7 @@ public:
     std::string code;
     std::string source;
     std::string message;
-    std::vector<diagnostic_related_info_s> related;
+    std::vector<diagnostic_related_info> related;
     diagnostic_tag tag = diagnostic_tag::none;
 
     /*
@@ -876,49 +875,49 @@ public:
     - L0003 - Deprecated file extension specification was used
     - L0004 - Macro with multiple definitions
     */
-    static diagnostic_s error_L0001(
+    static diagnostic error_L0001(
         const utils::resource::resource_location& config_loc, const utils::resource::resource_location& lib_loc);
 
-    static diagnostic_s error_L0002(
+    static diagnostic error_L0002(
         const utils::resource::resource_location& config_loc, const utils::resource::resource_location& lib_loc);
 
     // warning_L0003 - removed
 
-    static diagnostic_s warning_L0004(const utils::resource::resource_location& config_loc,
+    static diagnostic warning_L0004(const utils::resource::resource_location& config_loc,
         const utils::resource::resource_location& lib_loc,
         std::string_view macro_name,
         bool has_extensions);
 
-    static diagnostic_s warning_L0005(
+    static diagnostic warning_L0005(
         const utils::resource::resource_location& config_loc, std::string_view pattern, size_t limit);
 
-    static diagnostic_s warning_L0006(const utils::resource::resource_location& config_loc, std::string_view path);
+    static diagnostic warning_L0006(const utils::resource::resource_location& config_loc, std::string_view path);
 
-    static diagnostic_s error_W0001(const utils::resource::resource_location& file_name);
+    static diagnostic error_W0001(const utils::resource::resource_location& file_name);
 
-    static diagnostic_s error_W0002(const utils::resource::resource_location& file_name);
+    static diagnostic error_W0002(const utils::resource::resource_location& file_name);
 
-    static diagnostic_s error_W0003(const utils::resource::resource_location& file_name);
+    static diagnostic error_W0003(const utils::resource::resource_location& file_name);
 
-    static diagnostic_s error_W0004(const utils::resource::resource_location&, std::string_view pgroup);
+    static diagnostic error_W0004(const utils::resource::resource_location&, std::string_view pgroup);
 
-    static diagnostic_s error_W0005(
+    static diagnostic error_W0005(
         const utils::resource::resource_location&, std::string_view name, std::string_view type);
 
-    static diagnostic_s error_W0006(
+    static diagnostic error_W0006(
         const utils::resource::resource_location&, std::string_view proc_group, std::string_view type);
 
-    static diagnostic_s warn_W0007(const utils::resource::resource_location&, std::string_view substitution);
+    static diagnostic warn_W0007(const utils::resource::resource_location&, std::string_view substitution);
 
-    static diagnostic_s warn_W0008(const utils::resource::resource_location&, std::string_view pgroup);
+    static diagnostic warn_W0008(const utils::resource::resource_location&, std::string_view pgroup);
 
-    static diagnostic_s error_B4G001(const utils::resource::resource_location&);
+    static diagnostic error_B4G001(const utils::resource::resource_location&);
 
-    static diagnostic_s error_B4G002(const utils::resource::resource_location&, std::string_view grp_name);
+    static diagnostic error_B4G002(const utils::resource::resource_location&, std::string_view grp_name);
 
-    static diagnostic_s warn_B4G003(const utils::resource::resource_location& file_name, std::string_view grp_name);
+    static diagnostic warn_B4G003(const utils::resource::resource_location& file_name, std::string_view grp_name);
 
-    static diagnostic_s info_SUP(const utils::resource::resource_location& file_name);
+    static diagnostic info_SUP(const utils::resource::resource_location& file_name);
 
     /*
     E01x - wrong format

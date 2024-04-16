@@ -37,7 +37,7 @@ TEST(workspace_manager, add_not_existing_workspace)
 
     ws_mngr->idle_handler();
 
-    EXPECT_EQ(consumer.diags.diagnostics_size(), (size_t)0);
+    EXPECT_TRUE(consumer.diags.empty());
 }
 
 TEST(workspace_manager, add_existing_workspace)
@@ -50,7 +50,7 @@ TEST(workspace_manager, add_existing_workspace)
 
     ws_mngr->idle_handler();
 
-    EXPECT_EQ(consumer.diags.diagnostics_size(), (size_t)0);
+    EXPECT_TRUE(consumer.diags.empty());
 }
 
 TEST(workspace_manager, did_open_file)
@@ -65,7 +65,7 @@ TEST(workspace_manager, did_open_file)
     ws_mngr->did_open_file("test/library/test_wks/some_file", 1, input_text.c_str(), input_text.size());
     ws_mngr->idle_handler();
 
-    EXPECT_EQ(consumer.diags.diagnostics_size(), (size_t)0);
+    EXPECT_TRUE(consumer.diags.empty());
 }
 
 TEST(workspace_manager, did_change_file)
@@ -79,7 +79,7 @@ TEST(workspace_manager, did_change_file)
     ws_mngr->did_open_file("test/library/test_wks/new_file", 1, input.c_str(), input.size());
     ws_mngr->idle_handler();
 
-    EXPECT_EQ(consumer.diags.diagnostics_size(), (size_t)0);
+    EXPECT_TRUE(consumer.diags.empty());
 
     std::vector<document_change> changes;
     std::string new_text = "anop";
@@ -88,7 +88,7 @@ TEST(workspace_manager, did_change_file)
     ws_mngr->did_change_file("test/library/test_wks/new_file", 2, changes.data(), 1);
     ws_mngr->idle_handler();
 
-    EXPECT_EQ(consumer.diags.diagnostics_size(), (size_t)1);
+    EXPECT_EQ(consumer.diags.size(), (size_t)1);
 
     std::vector<document_change> changes1;
     std::string new_text1 = "";
@@ -97,7 +97,7 @@ TEST(workspace_manager, did_change_file)
     ws_mngr->did_change_file("test/library/test_wks/new_file", 3, changes1.data(), 1);
     ws_mngr->idle_handler();
 
-    EXPECT_GT(consumer.diags.diagnostics_size(), (size_t)0);
+    EXPECT_FALSE(consumer.diags.empty());
 }
 
 TEST(workspace_manager, cancel_debugger_configuration_request)

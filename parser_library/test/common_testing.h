@@ -41,7 +41,7 @@ class task;
 namespace hlasm_plugin::parser_library {
 class workspace_manager;
 template<typename T>
-class diagnostic_consumer;
+class diagnostic_consumer_t;
 struct diagnostic_op;
 struct document_symbol_item;
 bool is_similar(const std::vector<document_symbol_item>& l, const std::vector<document_symbol_item>& r);
@@ -190,6 +190,6 @@ std::optional<std::pair<int, std::string>> get_symbol_address(hlasm_context& ctx
 size_t get_syntax_errors(analyzer& a);
 
 std::unique_ptr<expressions::ca_expression> parse_ca_expression(analyzer& a);
-expressions::data_definition parse_data_definition(analyzer& a, diagnostic_consumer<diagnostic_op>* diag = nullptr);
+expressions::data_definition parse_data_definition(analyzer& a, diagnostic_consumer_t<diagnostic_op>* diag = nullptr);
 
 #endif

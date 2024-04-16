@@ -58,7 +58,8 @@ class virtual_file_monitor;
 class virtual_file_handle;
 
 template<typename T>
-class diagnostic_consumer;
+class diagnostic_consumer_t;
+struct diagnostic;
 struct diagnostic_op;
 
 enum class collect_highlighting_info : bool
@@ -105,7 +106,7 @@ class analyzer_options
     analyzing_context& get_context();
     workspaces::parse_lib_provider& get_lib_provider() const;
     std::unique_ptr<processing::preprocessor> get_preprocessor(
-        processing::library_fetcher, diagnostic_consumer<diagnostic_op>&, semantics::source_info_processor&) const;
+        processing::library_fetcher, diagnostic_consumer_t<diagnostic_op>&, semantics::source_info_processor&) const;
 
     friend class analyzer;
 
@@ -176,7 +177,7 @@ public:
 
     const performance_metrics& get_metrics() const;
 
-    std::span<diagnostic_s> diags() const noexcept;
+    std::span<diagnostic> diags() const noexcept;
 
     void register_stmt_analyzer(processing::statement_analyzer* stmt_analyzer);
 

@@ -14,6 +14,7 @@
 
 #include "gtest/gtest.h"
 
+#include "diagnostic.h"
 #include "fade_messages.h"
 #include "workspace_manager.h"
 
@@ -23,12 +24,13 @@ class diag_consumer_mock : public diagnostics_consumer
 {
 public:
     // Inherited via diagnostics_consumer
-    void consume_diagnostics(diagnostic_list diagnostics, std::span<const fade_message> fade_messages) override
+    void consume_diagnostics(
+        std::span<const diagnostic> diagnostics, std::span<const fade_message> fade_messages) override
     {
-        diags = diagnostics;
+        diags.assign(diagnostics.begin(), diagnostics.end());
         fms.assign(fade_messages.begin(), fade_messages.end());
     }
 
-    diagnostic_list diags;
+    std::vector<diagnostic> diags;
     std::vector<fade_message> fms;
 };

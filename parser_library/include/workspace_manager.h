@@ -34,6 +34,7 @@
 
 namespace hlasm_plugin::parser_library {
 struct completion_item;
+struct diagnostic;
 struct document_symbol_item;
 struct fade_message;
 class workspace_manager_external_file_requests;
@@ -48,7 +49,8 @@ struct debugger_configuration;
 class diagnostics_consumer
 {
 public:
-    virtual void consume_diagnostics(diagnostic_list diagnostics, std::span<const fade_message> fade_messages) = 0;
+    virtual void consume_diagnostics(
+        std::span<const diagnostic> diagnostics, std::span<const fade_message> fade_messages) = 0;
 
 protected:
     ~diagnostics_consumer() = default;

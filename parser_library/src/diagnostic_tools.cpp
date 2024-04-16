@@ -21,12 +21,12 @@
 
 namespace hlasm_plugin::parser_library {
 
-diagnostic_s add_stack_details(diagnostic_op diagnostic, context::processing_stack_t stack)
+diagnostic add_stack_details(diagnostic_op d, context::processing_stack_t stack)
 {
     if (stack.empty())
-        return diagnostic_s(std::move(diagnostic));
+        return diagnostic(std::move(d));
 
-    diagnostic_s diag(stack.frame().resource_loc->get_uri(), std::move(diagnostic));
+    diagnostic diag(stack.frame().resource_loc->get_uri(), std::move(d));
 
     for (stack = stack.parent(); !stack.empty(); stack = stack.parent())
     {

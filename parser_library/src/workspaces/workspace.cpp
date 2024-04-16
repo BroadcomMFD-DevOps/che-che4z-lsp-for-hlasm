@@ -55,8 +55,8 @@ struct parsing_results
     processing::hit_count_map hc_opencode_map;
     processing::hit_count_map hc_macro_map;
 
-    std::vector<diagnostic_s> opencode_diagnostics;
-    std::vector<diagnostic_s> macro_diagnostics;
+    std::vector<diagnostic> opencode_diagnostics;
+    std::vector<diagnostic> macro_diagnostics;
 
     std::vector<std::pair<int, std::string>> outputs;
 };
@@ -562,7 +562,7 @@ void workspace::delete_diags(processor_file_compoments& pfc)
         }
     }
 
-    pfc.m_last_results->opencode_diagnostics.push_back(diagnostic_s::info_SUP(pfc.m_file->get_location()));
+    pfc.m_last_results->opencode_diagnostics.push_back(diagnostic::info_SUP(pfc.m_file->get_location()));
 }
 
 void workspace::show_message(const std::string& message)

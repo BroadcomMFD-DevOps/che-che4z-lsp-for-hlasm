@@ -24,6 +24,7 @@
 #include <utility>
 
 #include "../logger.h"
+#include "diagnostic.h"
 #include "fade_messages.h"
 #include "feature_language_features.h"
 #include "feature_text_synchronization.h"
@@ -337,17 +338,17 @@ void server::show_message(const char* message, parser_library::message_type type
 nlohmann::json diagnostic_related_info_to_json(const parser_library::diagnostic& diag)
 {
     nlohmann::json related;
-    for (size_t i = 0; i < diag.related_info_size(); ++i)
+    for (const auto& rel : diag.related)
     {
         related.push_back(nlohmann::json {
             {
                 "location",
                 {
-                    { "uri", diag.related_info(i).location().uri() },
-                    { "range", feature::range_to_json(diag.related_info(i).location().get_range()) },
+                    { "uri", rel.location.uri },
+                    { "range", feature::range_to_json(rel.location.rang) },
                 },
             },
-            { "message", diag.related_info(i).message() },
+            { "message", rel.message },
         });
     }
     return related;
@@ -396,22 +397,15 @@ nlohmann::json create_diag_json(const parser_library::range& r,
 }
 } // namespace
 
-void server::consume_diagnostics(
-    parser_library::diagnostic_list diagnostics, std::span<const parser_library::fade_message> fade_messages)
+void server::consume_diagnostics(std::span<const parser_library::diagnostic> diagnostics,
+    std::span<const parser_library::fade_message> fade_messages)
 {
     std::unordered_map<std::string, nlohmann::json::array_t, utils::hashers::string_hasher, std::equal_to<>> diag_jsons;
 
-    for (size_t i = 0; i < diagnostics.diagnostics_size(); ++i)
+    for (const auto& d : diagnostics)
     {
-        const auto& d = diagnostics.diagnostics(i);
-
-        diag_jsons[d.file_uri()].emplace_back(create_diag_json(d.get_range(),
-            d.code(),
-            d.source(),
-            d.message(),
-            diagnostic_related_info_to_json(d),
-            d.severity(),
-            d.tags()));
+        diag_jsons[d.file_uri].emplace_back(create_diag_json(
+            d.diag_range, d.code, d.source, d.message, diagnostic_related_info_to_json(d), d.severity, d.tag));
     }
 
     for (const auto& fm : fade_messages)

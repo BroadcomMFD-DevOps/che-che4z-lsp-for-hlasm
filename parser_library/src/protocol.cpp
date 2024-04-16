@@ -35,10 +35,6 @@ position_uri sequence_item_get(const sequence<position_uri, const location*>* se
     return position_uri(self->stor_[index]);
 }
 
-diagnostic_related_info::diagnostic_related_info(diagnostic_related_info_s& info)
-    : impl_(info)
-{}
-
 range_uri::range_uri(range_uri_s& range)
     : impl_(range)
 {}
@@ -46,50 +42,6 @@ range_uri::range_uri(range_uri_s& range)
 range range_uri::get_range() const { return impl_.rang; }
 
 const char* range_uri::uri() const { return impl_.uri.c_str(); }
-
-//********************** diagnostic **********************
-
-range_uri diagnostic_related_info::location() const { return range_uri(impl_.location); }
-
-const char* diagnostic_related_info::message() const { return impl_.message.c_str(); }
-
-diagnostic::diagnostic(diagnostic_s& diag)
-    : impl_(diag)
-{}
-
-const char* diagnostic::file_uri() const { return impl_.file_uri.c_str(); }
-
-range diagnostic::get_range() const { return impl_.diag_range; }
-
-diagnostic_severity diagnostic::severity() const { return impl_.severity; }
-
-const char* diagnostic::code() const { return impl_.code.c_str(); }
-
-const char* diagnostic::source() const { return impl_.source.c_str(); }
-
-const char* diagnostic::message() const { return impl_.message.c_str(); }
-
-const diagnostic_related_info diagnostic::related_info(size_t index) const { return impl_.related[index]; }
-
-size_t diagnostic::related_info_size() const { return impl_.related.size(); }
-
-diagnostic_tag diagnostic::tags() const { return impl_.tag; }
-
-//********************* diagnostics_container *******************
-
-diagnostic_list::diagnostic_list()
-    : begin_(nullptr)
-    , size_(0)
-{}
-
-diagnostic_list::diagnostic_list(diagnostic_s* begin, size_t size)
-    : begin_(begin)
-    , size_(size)
-{}
-
-diagnostic diagnostic_list::diagnostics(size_t index) { return static_cast<diagnostic>(begin_[index]); }
-
-size_t diagnostic_list::diagnostics_size() const { return size_; }
 
 //*********************** stack_frame *************************
 stack_frame::stack_frame(const debugging::stack_frame& frame)

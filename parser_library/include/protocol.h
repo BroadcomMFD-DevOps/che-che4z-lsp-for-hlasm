@@ -73,8 +73,6 @@ struct variable_store;
 
 struct location;
 struct range_uri_s;
-class diagnostic_related_info_s;
-class diagnostic_s;
 
 enum class completion_trigger_kind
 {
@@ -154,35 +152,6 @@ enum class diagnostic_tag
     deprecated = 1 << 1,
 };
 
-struct diagnostic_related_info
-{
-    diagnostic_related_info(diagnostic_related_info_s&);
-
-    range_uri location() const;
-    const char* message() const;
-
-private:
-    diagnostic_related_info_s& impl_;
-};
-
-struct diagnostic
-{
-    explicit diagnostic(diagnostic_s&);
-
-    const char* file_uri() const;
-    range get_range() const;
-    diagnostic_severity severity() const;
-    const char* code() const;
-    const char* source() const;
-    const char* message() const;
-    const diagnostic_related_info related_info(size_t index) const;
-    size_t related_info_size() const;
-    diagnostic_tag tags() const;
-
-private:
-    diagnostic_s& impl_;
-};
-
 struct performance_metrics
 {
     size_t lines = 0;
@@ -213,19 +182,6 @@ struct parsing_metadata
     workspace_file_info ws_info;
     size_t errors = 0;
     size_t warnings = 0;
-};
-
-struct diagnostic_list
-{
-    diagnostic_list();
-    diagnostic_list(diagnostic_s* begin, size_t size);
-
-    diagnostic diagnostics(size_t index);
-    size_t diagnostics_size() const;
-
-private:
-    diagnostic_s* begin_;
-    size_t size_;
 };
 
 struct token_info

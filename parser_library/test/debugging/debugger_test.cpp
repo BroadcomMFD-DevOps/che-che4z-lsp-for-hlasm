@@ -436,7 +436,7 @@ public:
                 return result;
             }
 
-            void copy_diagnostics(std::vector<diagnostic_s>&) const override { assert(false); }
+            void copy_diagnostics(std::vector<diagnostic>&) const override { assert(false); }
 
             const resource_location& get_location() const
             {

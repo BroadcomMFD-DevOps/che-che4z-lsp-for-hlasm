@@ -109,7 +109,7 @@ TEST(virtual_files, callback_test_ainsert_valid_vfm)
     analyzer a(input, analyzer_options(&vf));
     a.analyze();
 
-    EXPECT_TRUE(matches_message_properties(a.diags(), { "hlasm://0/AINSERT_1.hlasm" }, &diagnostic_s::file_uri));
+    EXPECT_TRUE(matches_message_properties(a.diags(), { "hlasm://0/AINSERT_1.hlasm" }, &diagnostic::file_uri));
 }
 
 TEST(virtual_files, file_manager_vfm)
@@ -177,10 +177,10 @@ MY  DSECT
     ws_mngr->did_open_file("ws/file", 1, input.data(), input.size());
     ws_mngr->idle_handler();
 
-    ASSERT_EQ(diag_mock.diags.diagnostics_size(), 1);
+    ASSERT_EQ(diag_mock.diags.size(), 1);
 
-    auto diag = diag_mock.diags.diagnostics(0);
-    std::string vf = diag.file_uri();
+    const auto& diag = diag_mock.diags[0];
+    const auto& vf = diag.file_uri;
 
     ASSERT_TRUE(vf.starts_with("hlasm://"));
 

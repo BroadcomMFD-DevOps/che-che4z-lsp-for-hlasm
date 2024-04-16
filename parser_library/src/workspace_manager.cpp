@@ -838,7 +838,7 @@ private:
             ows.ws.retrieve_fade_messages(m_fade_messages);
 
         for (auto consumer : m_diag_consumers)
-            consumer->consume_diagnostics(diagnostic_list(diags().data(), diags().size()), m_fade_messages);
+            consumer->consume_diagnostics(diags(), m_fade_messages);
     }
 
     static size_t prefix_match(std::string_view first, std::string_view second)
