@@ -95,8 +95,8 @@ private:
     std::unordered_set<std::string> last_diagnostics_files_;
     // Implements parser_library::diagnostics_consumer: wraps the diagnostics in json and
     // sends them to client.
-    void consume_diagnostics(
-        parser_library::diagnostic_list diagnostics, parser_library::fade_message_list fade_messages) override;
+    void consume_diagnostics(parser_library::diagnostic_list diagnostics,
+        std::span<const parser_library::fade_message> fade_messages) override;
 
     // Registers LSP methods implemented by this server (not by features).
     void register_methods();

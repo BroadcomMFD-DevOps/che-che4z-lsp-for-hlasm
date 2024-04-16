@@ -17,6 +17,7 @@ target_sources(parser_library PUBLIC
     debugger.h
     document_symbol_item.h
     external_configuration_requests.h
+    fade_messages.h
     folding_range.h
     lib_config.h
     message_consumer.h

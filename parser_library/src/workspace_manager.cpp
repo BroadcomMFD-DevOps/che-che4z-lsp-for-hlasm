@@ -35,6 +35,7 @@
 #include "debugging/debugger_configuration.h"
 #include "document_symbol_item.h"
 #include "external_configuration_requests.h"
+#include "fade_messages.h"
 #include "folding_range.h"
 #include "nlohmann/json.hpp"
 #include "protocol.h"
@@ -837,8 +838,7 @@ private:
             ows.ws.retrieve_fade_messages(m_fade_messages);
 
         for (auto consumer : m_diag_consumers)
-            consumer->consume_diagnostics(diagnostic_list(diags().data(), diags().size()),
-                fade_message_list(m_fade_messages.data(), m_fade_messages.size()));
+            consumer->consume_diagnostics(diagnostic_list(diags().data(), diags().size()), m_fade_messages);
     }
 
     static size_t prefix_match(std::string_view first, std::string_view second)
@@ -991,7 +991,7 @@ private:
     std::vector<parsing_metadata_consumer*> m_parsing_metadata_consumers;
     message_consumer* m_message_consumer = nullptr;
     workspace_manager_requests* m_requests = nullptr;
-    std::vector<fade_message_s> m_fade_messages;
+    std::vector<fade_message> m_fade_messages;
     unsigned long long m_unique_id_sequence = 0;
 
     void add_workspace(const char* name, const char* uri) override

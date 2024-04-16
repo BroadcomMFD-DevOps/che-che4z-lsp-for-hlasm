@@ -173,9 +173,9 @@ inline bool matches_partial_message_text(CMsg&& d, const C& c)
         });
 }
 
-bool matches_fade_messages(const std::vector<fade_message_s>& a, const std::vector<fade_message_s>& b);
+bool matches_fade_messages(const std::vector<fade_message>& a, const std::vector<fade_message>& b);
 
-bool contains_fade_messages(const std::vector<fade_message_s>& a, const std::vector<fade_message_s>& b);
+bool contains_fade_messages(const std::vector<fade_message>& a, const std::vector<fade_message>& b);
 
 const section* get_section(hlasm_context& ctx, std::string name);
 

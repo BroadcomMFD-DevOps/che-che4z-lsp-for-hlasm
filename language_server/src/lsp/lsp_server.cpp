@@ -24,6 +24,7 @@
 #include <utility>
 
 #include "../logger.h"
+#include "fade_messages.h"
 #include "feature_language_features.h"
 #include "feature_text_synchronization.h"
 #include "feature_workspace_folders.h"
@@ -353,7 +354,7 @@ nlohmann::json diagnostic_related_info_to_json(const parser_library::diagnostic&
 }
 
 namespace {
-std::string replace_empty_by_space(std::string s)
+std::string_view replace_empty_by_space(std::string_view s)
 {
     if (s.empty())
         return " ";
@@ -362,9 +363,9 @@ std::string replace_empty_by_space(std::string s)
 }
 
 nlohmann::json create_diag_json(const parser_library::range& r,
-    const char* code,
-    const char* source,
-    const char* message,
+    std::string_view code,
+    std::string_view source,
+    std::string_view message,
     std::optional<nlohmann::json> diag_related_info,
     parser_library::diagnostic_severity severity,
     parser_library::diagnostic_tag tags)
@@ -396,7 +397,7 @@ nlohmann::json create_diag_json(const parser_library::range& r,
 } // namespace
 
 void server::consume_diagnostics(
-    parser_library::diagnostic_list diagnostics, parser_library::fade_message_list fade_messages)
+    parser_library::diagnostic_list diagnostics, std::span<const parser_library::fade_message> fade_messages)
 {
     std::unordered_map<std::string, nlohmann::json::array_t, utils::hashers::string_hasher, std::equal_to<>> diag_jsons;
 
@@ -413,14 +414,12 @@ void server::consume_diagnostics(
             d.tags()));
     }
 
-    for (size_t i = 0; i < fade_messages.size(); ++i)
+    for (const auto& fm : fade_messages)
     {
-        const auto& fm = fade_messages.message(i);
-
-        diag_jsons[fm.file_uri()].emplace_back(create_diag_json(fm.get_range(),
-            fm.code(),
-            fm.source(),
-            fm.message(),
+        diag_jsons[fm.uri].emplace_back(create_diag_json(fm.r,
+            fm.code,
+            fm.source,
+            fm.message,
             std::nullopt,
             parser_library::diagnostic_severity::hint,
             parser_library::diagnostic_tag::unnecessary));

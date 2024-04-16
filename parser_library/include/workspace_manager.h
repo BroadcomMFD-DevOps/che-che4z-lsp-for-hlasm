@@ -25,8 +25,6 @@
 #include <utility>
 
 #include "branch_info.h"
-#include "completion_item.h"
-#include "document_symbol_item.h"
 #include "folding_range.h"
 #include "lib_config.h"
 #include "message_consumer.h"
@@ -35,6 +33,9 @@
 #include "workspace_manager_requests.h"
 
 namespace hlasm_plugin::parser_library {
+struct completion_item;
+struct document_symbol_item;
+struct fade_message;
 class workspace_manager_external_file_requests;
 class external_configuration_requests;
 namespace debugging {
@@ -47,7 +48,7 @@ struct debugger_configuration;
 class diagnostics_consumer
 {
 public:
-    virtual void consume_diagnostics(diagnostic_list diagnostics, fade_message_list fade_messages) = 0;
+    virtual void consume_diagnostics(diagnostic_list diagnostics, std::span<const fade_message> fade_messages) = 0;
 
 protected:
     ~diagnostics_consumer() = default;

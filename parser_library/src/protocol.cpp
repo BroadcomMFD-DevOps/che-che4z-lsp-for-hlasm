@@ -75,22 +75,6 @@ size_t diagnostic::related_info_size() const { return impl_.related.size(); }
 
 diagnostic_tag diagnostic::tags() const { return impl_.tag; }
 
-//********************** fade message **********************
-
-fade_message::fade_message(fade_message_s& fm)
-    : impl_(fm)
-{}
-
-const char* fade_message::file_uri() const { return impl_.uri.c_str(); }
-
-range fade_message::get_range() const { return impl_.r; }
-
-const char* fade_message::code() const { return impl_.code.c_str(); }
-
-const char* fade_message::source() const { return fade_message_s::source.data(); }
-
-const char* fade_message::message() const { return impl_.message.c_str(); }
-
 //********************* diagnostics_container *******************
 
 diagnostic_list::diagnostic_list()
@@ -106,22 +90,6 @@ diagnostic_list::diagnostic_list(diagnostic_s* begin, size_t size)
 diagnostic diagnostic_list::diagnostics(size_t index) { return static_cast<diagnostic>(begin_[index]); }
 
 size_t diagnostic_list::diagnostics_size() const { return size_; }
-
-//********************* fade message list *******************
-
-fade_message_list::fade_message_list()
-    : begin_(nullptr)
-    , size_(0)
-{}
-
-fade_message_list::fade_message_list(fade_message_s* begin, size_t size)
-    : begin_(begin)
-    , size_(size)
-{}
-
-fade_message fade_message_list::message(size_t index) { return static_cast<fade_message>(begin_[index]); }
-
-size_t fade_message_list::size() const { return size_; }
 
 //*********************** stack_frame *************************
 stack_frame::stack_frame(const debugging::stack_frame& frame)

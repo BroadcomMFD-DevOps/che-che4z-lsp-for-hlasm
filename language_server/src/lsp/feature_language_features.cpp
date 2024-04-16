@@ -20,6 +20,8 @@
 #include <utility>
 
 #include "../feature.h"
+#include "completion_item.h"
+#include "document_symbol_item.h"
 #include "nlohmann/json.hpp"
 #include "utils/error_codes.h"
 #include "utils/resource_location.h"

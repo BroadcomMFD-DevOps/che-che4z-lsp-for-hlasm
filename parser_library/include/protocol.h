@@ -75,7 +75,6 @@ struct location;
 struct range_uri_s;
 class diagnostic_related_info_s;
 class diagnostic_s;
-struct fade_message_s;
 
 enum class completion_trigger_kind
 {
@@ -184,20 +183,6 @@ private:
     diagnostic_s& impl_;
 };
 
-struct fade_message
-{
-    explicit fade_message(fade_message_s&);
-
-    const char* file_uri() const;
-    range get_range() const;
-    const char* code() const;
-    const char* source() const;
-    const char* message() const;
-
-private:
-    fade_message_s& impl_;
-};
-
 struct performance_metrics
 {
     size_t lines = 0;
@@ -240,19 +225,6 @@ struct diagnostic_list
 
 private:
     diagnostic_s* begin_;
-    size_t size_;
-};
-
-struct fade_message_list
-{
-    fade_message_list();
-    fade_message_list(fade_message_s* begin, size_t size);
-
-    fade_message message(size_t index);
-    size_t size() const;
-
-private:
-    fade_message_s* begin_;
     size_t size_;
 };
 

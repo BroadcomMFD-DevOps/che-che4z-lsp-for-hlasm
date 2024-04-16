@@ -61,14 +61,14 @@ void close_parse_and_recollect_diags(
     ws.collect_diags();
 }
 
-bool matches_fade_messages(const std::vector<fade_message_s>& a, const std::vector<fade_message_s>& b)
+bool matches_fade_messages(const std::vector<fade_message>& a, const std::vector<fade_message>& b)
 {
     return std::is_permutation(a.begin(), a.end(), b.begin(), b.end(), [](const auto& msg_a, const auto& msg_b) {
         return msg_a.code == msg_b.code && msg_a.r == msg_b.r && msg_a.uri == msg_b.uri;
     });
 }
 
-bool contains_fade_messages(const std::vector<fade_message_s>& a, const std::vector<fade_message_s>& b)
+bool contains_fade_messages(const std::vector<fade_message>& a, const std::vector<fade_message>& b)
 {
     return std::includes(a.begin(), a.end(), b.begin(), b.end(), [](const auto& msg_a, const auto& msg_b) {
         return msg_a.code == msg_b.code && msg_a.r == msg_b.r && msg_a.uri == msg_b.uri;

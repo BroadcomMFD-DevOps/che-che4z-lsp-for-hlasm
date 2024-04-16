@@ -44,6 +44,7 @@
 namespace hlasm_plugin::parser_library {
 struct completion_item;
 struct document_symbol_item;
+struct fade_message;
 class external_configuration_requests;
 } // namespace hlasm_plugin::parser_library
 namespace hlasm_plugin::parser_library::workspaces {
@@ -145,7 +146,7 @@ public:
     std::vector<std::pair<std::string, size_t>> make_opcode_suggestion(
         const resource_location& file, std::string_view opcode, bool extended);
 
-    void retrieve_fade_messages(std::vector<fade_message_s>& fms) const;
+    void retrieve_fade_messages(std::vector<fade_message>& fms) const;
 
     utils::value_task<debugging::debugger_configuration> get_debugger_configuration(resource_location url);
 

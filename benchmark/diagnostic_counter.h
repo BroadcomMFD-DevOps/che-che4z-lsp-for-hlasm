@@ -31,7 +31,7 @@ class diagnostic_counter : public hlasm_plugin::parser_library::diagnostics_cons
 {
 public:
     void consume_diagnostics(hlasm_plugin::parser_library::diagnostic_list diagnostics,
-        hlasm_plugin::parser_library::fade_message_list) override
+        std::span<const hlasm_plugin::parser_library::fade_message>) override
     {
         for (size_t i = 0; i < diagnostics.diagnostics_size(); i++)
         {

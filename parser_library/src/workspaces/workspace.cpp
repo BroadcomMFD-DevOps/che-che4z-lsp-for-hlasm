@@ -49,7 +49,7 @@ struct parsing_results
 {
     semantics::lines_info hl_info;
     std::shared_ptr<lsp::lsp_context> lsp_context;
-    std::shared_ptr<const std::vector<fade_message_s>> fade_messages;
+    std::shared_ptr<const std::vector<fade_message>> fade_messages;
     performance_metrics metrics;
     std::vector<std::pair<virtual_file_handle, utils::resource::resource_location>> vf_handles;
     processing::hit_count_map hc_opencode_map;
@@ -76,7 +76,7 @@ struct parsing_results
         void punch(std::string_view text) override { outputs.emplace_back(-1, text); }
     } outputs;
 
-    auto fms = std::make_shared<std::vector<fade_message_s>>();
+    auto fms = std::make_shared<std::vector<fade_message>>();
     analyzer a(file->get_text(),
         analyzer_options {
             file->get_location(),
@@ -356,7 +356,7 @@ using rl_mac_cpy_map = std::unordered_map<resource_location, mac_cpy_definitions
 void generate_merged_fade_messages(const resource_location& rl,
     const processing::hit_count_entry& hc_entry,
     const rl_mac_cpy_map& active_rl_mac_cpy_map,
-    std::vector<fade_message_s>& fms)
+    std::vector<fade_message>& fms)
 {
     if (!hc_entry.has_sections)
         return;
@@ -404,7 +404,7 @@ void generate_merged_fade_messages(const resource_location& rl,
     while (faded_line_it != line_details_it_e)
     {
         auto active_line = std::find_if_not(std::next(faded_line_it), line_details_it_e, faded_line_predicate);
-        fms.emplace_back(fade_message_s::inactive_statement(uri,
+        fms.emplace_back(fade_message::inactive_statement(uri,
             range(position(std::distance(line_details_it_b, faded_line_it), 0),
                 position(std::distance(line_details_it_b, std::prev(active_line)), 80))));
 
@@ -470,7 +470,7 @@ void filter_and_emplace_mac_cpy_definitions(
 
 void fade_unused_mac_names(const processing::hit_count_map& hc_map,
     const rl_mac_cpy_map& active_rl_mac_cpy_map,
-    std::vector<fade_message_s>& fms)
+    std::vector<fade_message>& fms)
 {
     for (const auto& [active_rl, active_mac_cpy_defs] : active_rl_mac_cpy_map)
     {
@@ -481,7 +481,7 @@ void fade_unused_mac_names(const processing::hit_count_map& hc_map,
         for (const auto& [mac_cpy_def_start_line, mac_cpy_def_details] : active_mac_cpy_defs)
         {
             if (!mac_cpy_def_details.cpy_book && !hc_map_it->second.contains_line(mac_cpy_def_start_line))
-                fms.emplace_back(fade_message_s::unused_macro(active_rl.get_uri(),
+                fms.emplace_back(fade_message::unused_macro(active_rl.get_uri(),
                     range(position(mac_cpy_def_details.prototype_line, 0),
                         position(mac_cpy_def_details.prototype_line, 80))));
         }
@@ -489,7 +489,7 @@ void fade_unused_mac_names(const processing::hit_count_map& hc_map,
 }
 } // namespace
 
-void workspace::retrieve_fade_messages(std::vector<fade_message_s>& fms) const
+void workspace::retrieve_fade_messages(std::vector<fade_message>& fms) const
 {
     processing::hit_count_map hc_map;
     rl_mac_cpy_map active_rl_mac_cpy_map;
