@@ -15,6 +15,7 @@
 #ifndef HLASMPLUGIN_LANGUAGESERVER_FEATURE_LANGUAGEFEATURES_H
 #define HLASMPLUGIN_LANGUAGESERVER_FEATURE_LANGUAGEFEATURES_H
 
+#include <span>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -56,7 +57,8 @@ private:
 
     parser_library::workspace_manager& ws_mngr_;
 
-    nlohmann::json translate_completion_list_and_save_doc(hlasm_plugin::parser_library::completion_list list);
+    nlohmann::json translate_completion_list_and_save_doc(
+        std::span<const hlasm_plugin::parser_library::completion_item> list);
     std::unordered_map<std::string, std::string> saved_completion_list_doc;
 };
 

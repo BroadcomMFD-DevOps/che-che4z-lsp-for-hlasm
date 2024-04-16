@@ -36,7 +36,6 @@ using version_t = uint64_t;
 
 namespace semantics {
 struct position_uri_s;
-struct completion_list_s;
 struct highlighting_info;
 
 // in case any changes are done to these scopes, the tokenTypes field in feature_language_features.cpp
@@ -73,7 +72,6 @@ struct variable_store;
 } // namespace debugging
 
 namespace lsp {
-struct completion_item_s;
 struct document_symbol_item_s;
 } // namespace lsp
 
@@ -89,34 +87,6 @@ enum class completion_trigger_kind
     trigger_character = 2,
     trigger_for_incomplete_completions = 3
 };
-
-enum class completion_item_kind
-{
-    mach_instr = 0,
-    asm_instr = 1,
-    ca_instr = 2,
-    macro = 3,
-    var_sym = 4,
-    seq_sym = 5,
-    ord_sym = 6,
-};
-
-struct completion_item
-{
-    explicit completion_item(const lsp::completion_item_s& item);
-    std::string_view label() const;
-    completion_item_kind kind() const;
-    std::string_view detail() const;
-    std::string_view documentation() const;
-    std::string_view insert_text() const;
-    bool is_snippet() const;
-    std::string_view suggestion_for() const;
-
-private:
-    const lsp::completion_item_s& item_;
-};
-
-using completion_list = sequence<completion_item, const lsp::completion_item_s*>;
 
 enum class document_symbol_kind
 {

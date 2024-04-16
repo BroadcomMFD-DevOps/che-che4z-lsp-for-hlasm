@@ -18,30 +18,10 @@
 #include "diagnosable.h"
 #include "fade_messages.h"
 #include "location.h"
-#include "lsp/completion_item.h"
 #include "lsp/document_symbol_item.h"
 #include "semantics/highlighting_info.h"
 
 namespace hlasm_plugin::parser_library {
-
-//********************** completion item **********************
-
-completion_item::completion_item(const lsp::completion_item_s& item)
-    : item_(item)
-{}
-
-std::string_view completion_item::label() const { return item_.label; }
-completion_item_kind completion_item::kind() const { return item_.kind; }
-std::string_view completion_item::detail() const { return item_.detail; }
-std::string_view completion_item::documentation() const { return item_.documentation; }
-std::string_view completion_item::insert_text() const { return item_.insert_text; }
-bool completion_item::is_snippet() const { return item_.snippet; }
-std::string_view completion_item::suggestion_for() const { return item_.suggestion_for; }
-
-completion_item sequence_item_get(const sequence<completion_item, const lsp::completion_item_s*>* self, size_t index)
-{
-    return completion_item(self->stor_[index]);
-}
 
 //********************** document symbol item **********************
 

@@ -16,7 +16,7 @@
 
 #include "../response_provider_mock.h"
 #include "../ws_mngr_mock.h"
-#include "lsp/completion_item.h"
+#include "completion_item.h"
 #include "lsp/feature_language_features.h"
 #include "nlohmann/json.hpp"
 #include "utils/platform.h"
@@ -59,14 +59,12 @@ TEST(language_features, completion_resolve)
         R"({"textDocument":{"uri":")" + uri + R"("},"position":{"line":0,"character":1},"context":{"triggerKind":1}})");
 
     static const std::vector compl_list {
-        hlasm_plugin::parser_library::lsp::completion_item_s("LABEL", "", "", "DOC"),
+        hlasm_plugin::parser_library::completion_item("LABEL", "", "", "DOC"),
     };
     EXPECT_CALL(ws_mngr,
         completion(
             StrEq(uri), parser_library::position(0, 1), '\0', parser_library::completion_trigger_kind::invoked, _))
-        .WillOnce(WithArg<4>(Invoke([](auto channel) {
-            channel.provide({ compl_list.data(), compl_list.size() });
-        })));
+        .WillOnce(WithArg<4>(Invoke([](auto channel) { channel.provide(compl_list); })));
     nlohmann::json completion_response;
     EXPECT_CALL(response_mock, respond(request_id(0), StrEq(""), _)).WillOnce(SaveArg<2>(&completion_response));
     notifs["textDocument/completion"].as_request_handler()(request_id(0), params1);

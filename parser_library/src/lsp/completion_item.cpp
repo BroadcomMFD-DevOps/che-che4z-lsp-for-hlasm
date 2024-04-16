@@ -14,9 +14,9 @@
 
 #include "completion_item.h"
 
-namespace hlasm_plugin::parser_library::lsp {
+namespace hlasm_plugin::parser_library {
 
-completion_item_s::completion_item_s(std::string label,
+completion_item::completion_item(std::string label,
     std::string detail,
     std::string insert_text,
     std::string documentation,
@@ -32,4 +32,6 @@ completion_item_s::completion_item_s(std::string label,
     , suggestion_for(std::move(suggestion_for))
 {}
 
-} // namespace hlasm_plugin::parser_library::lsp
+bool completion_item::operator==(const completion_item&) const noexcept = default;
+
+} // namespace hlasm_plugin::parser_library

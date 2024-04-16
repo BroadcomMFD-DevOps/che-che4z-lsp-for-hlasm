@@ -57,7 +57,7 @@ public:
             position pos,
             const char trigger_char,
             completion_trigger_kind trigger_kind,
-            workspace_manager_response<completion_list>),
+            workspace_manager_response<std::span<const completion_item>>),
         (override));
 
 

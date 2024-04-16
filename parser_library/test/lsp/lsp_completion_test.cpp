@@ -17,7 +17,7 @@
 #include "gtest/gtest.h"
 
 #include "../common_testing.h"
-#include "lsp/completion_item.h"
+#include "completion_item.h"
 #include "lsp/item_convertors.h"
 #include "lsp/lsp_context.h"
 

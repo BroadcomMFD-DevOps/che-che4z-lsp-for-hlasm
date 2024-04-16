@@ -21,11 +21,11 @@
 #include <unordered_set>
 
 #include "analyzer.h"
+#include "completion_item.h"
 #include "context/instruction.h"
 #include "fade_messages.h"
 #include "file.h"
 #include "file_manager.h"
-#include "lsp/completion_item.h"
 #include "lsp/document_symbol_item.h"
 #include "lsp/folding.h"
 #include "lsp/item_convertors.h"
@@ -137,7 +137,8 @@ struct workspace_parse_lib_provider final : public parse_lib_provider
             pfc.m_dependencies.end(),
             next_dependencies.begin(),
             next_dependencies.end(),
-            utils::transform_inserter(files_to_close, [](const auto& v) -> const auto& { return v.first; }),
+            utils::transform_inserter(
+                files_to_close, [](const auto& v) -> const auto& { return v.first; }),
             [](const auto& l, const auto& r) { return l.first < r.first; });
     }
 
@@ -905,7 +906,7 @@ std::string workspace::hover(const resource_location& document_loc, position pos
         return {};
 }
 
-std::vector<lsp::completion_item_s> workspace::completion(
+std::vector<completion_item> workspace::completion(
     const resource_location& document_loc, position pos, const char trigger_char, completion_trigger_kind trigger_kind)
 {
     auto opencodes = find_related_opencodes(document_loc);

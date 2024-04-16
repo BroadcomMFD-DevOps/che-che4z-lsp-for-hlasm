@@ -365,33 +365,33 @@ void feature_language_features::completion(const request_id& id, const nlohmann:
 
     auto [trigger_kind, trigger_char] = extract_trigger(params);
 
-    auto resp = make_response(
-        id, response_, [this](completion_list cl) { return translate_completion_list_and_save_doc(std::move(cl)); });
+    auto resp = make_response(id, response_, [this](std::span<const completion_item> cl) {
+        return translate_completion_list_and_save_doc(std::move(cl));
+    });
     ws_mngr_.completion(document_uri.c_str(), pos, trigger_char, trigger_kind, resp);
 
     response_->register_cancellable_request(id, std::move(resp));
 }
 
-nlohmann::json feature_language_features::translate_completion_list_and_save_doc(completion_list list)
+nlohmann::json feature_language_features::translate_completion_list_and_save_doc(std::span<const completion_item> list)
 {
     auto to_ret = nlohmann::json::object();
     auto completion_item_array = nlohmann::json::array();
     saved_completion_list_doc.clear();
-    for (size_t i = 0; i < list.size(); ++i)
+    for (const auto& item : list)
     {
-        const auto& item = list.item(i);
         auto& json_item = completion_item_array.emplace_back(nlohmann::json {
-            { "label", item.label() },
-            { "kind", completion_item_kind_mapping.at(item.kind()) },
-            { "detail", item.detail() },
-            { "insertText", item.insert_text() },
-            { "insertTextFormat", 1 + (int)item.is_snippet() },
+            { "label", item.label },
+            { "kind", completion_item_kind_mapping.at(item.kind) },
+            { "detail", item.detail },
+            { "insertText", item.insert_text },
+            { "insertTextFormat", 1 + (int)item.snippet },
         });
-        saved_completion_list_doc.emplace(item.label(), item.documentation());
-        if (auto suggestion = item.suggestion_for(); !suggestion.empty())
+        saved_completion_list_doc.emplace(item.label, item.documentation);
+        if (const auto& suggestion = item.suggestion_for; !suggestion.empty())
         {
             json_item["filterText"] = std::string("~~~") + decorate_suggestion(suggestion);
-            json_item["sortText"] = std::string("~~~") + std::string(item.label());
+            json_item["sortText"] = std::string("~~~") + std::string(item.label);
         }
     }
     // needs to be incomplete, otherwise we are unable to include new suggestions

@@ -12,20 +12,29 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
-#ifndef LSP_COMPLETION_ITEM_H
-#define LSP_COMPLETION_ITEM_H
+#ifndef HLASMPLUGIN_PARSERLIBRARY_LSP_COMPLETION_ITEM_H
+#define HLASMPLUGIN_PARSERLIBRARY_LSP_COMPLETION_ITEM_H
 
 #include <string>
 
-#include "protocol.h"
+namespace hlasm_plugin::parser_library {
 
-namespace hlasm_plugin::parser_library::lsp {
+enum class completion_item_kind
+{
+    mach_instr = 0,
+    asm_instr = 1,
+    ca_instr = 2,
+    macro = 3,
+    var_sym = 4,
+    seq_sym = 5,
+    ord_sym = 6,
+};
 
 // representation of completion item based on LSP
-struct completion_item_s
+struct completion_item
 {
     // contents directly passed via the constructor
-    completion_item_s(std::string label,
+    completion_item(std::string label,
         std::string detail,
         std::string insert_text,
         std::string documentation,
@@ -42,9 +51,9 @@ struct completion_item_s
     bool snippet = false;
     std::string suggestion_for;
 
-    bool operator==(const completion_item_s&) const = default;
+    bool operator==(const completion_item&) const noexcept;
 };
 
-} // namespace hlasm_plugin::parser_library::lsp
+} // namespace hlasm_plugin::parser_library
 
 #endif

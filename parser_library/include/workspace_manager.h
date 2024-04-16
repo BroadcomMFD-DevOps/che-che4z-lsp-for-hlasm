@@ -21,9 +21,11 @@
 
 #include <atomic>
 #include <memory>
+#include <span>
 #include <utility>
 
 #include "branch_info.h"
+#include "completion_item.h"
 #include "folding_range.h"
 #include "lib_config.h"
 #include "message_consumer.h"
@@ -116,7 +118,7 @@ public:
         position pos,
         char trigger_char,
         completion_trigger_kind trigger_kind,
-        workspace_manager_response<completion_list> resp) = 0;
+        workspace_manager_response<std::span<const completion_item>> resp) = 0;
 
     virtual void semantic_tokens(
         const char* document_uri, workspace_manager_response<continuous_sequence<token_info>> resp) = 0;

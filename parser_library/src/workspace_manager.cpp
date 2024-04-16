@@ -31,10 +31,10 @@
 #include <unordered_map>
 #include <vector>
 
+#include "completion_item.h"
 #include "debugging/debugger_configuration.h"
 #include "external_configuration_requests.h"
 #include "folding_range.h"
-#include "lsp/completion_item.h"
 #include "lsp/document_symbol_item.h"
 #include "nlohmann/json.hpp"
 #include "protocol.h"
@@ -685,13 +685,12 @@ public:
         position pos,
         const char trigger_char,
         completion_trigger_kind trigger_kind,
-        workspace_manager_response<completion_list> r) override
+        workspace_manager_response<std::span<const completion_item>> r) override
     {
         handle_request(document_uri,
             std::move(r),
             [pos, trigger_char, trigger_kind](const auto& resp, auto& ws, const auto& doc_loc) {
-                auto completion_result = ws.completion(doc_loc, pos, trigger_char, trigger_kind);
-                resp.provide(completion_list(completion_result.data(), completion_result.size()));
+                resp.provide(ws.completion(doc_loc, pos, trigger_char, trigger_kind));
             });
     }
 

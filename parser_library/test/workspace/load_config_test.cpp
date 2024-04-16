@@ -18,8 +18,8 @@
 #include "gtest/gtest.h"
 
 #include "../common_testing.h"
+#include "completion_item.h"
 #include "empty_configs.h"
-#include "lsp/completion_item.h"
 #include "nlohmann/json.hpp"
 #include "semantics/highlighting_info.h"
 #include "utils/content_loader.h"
@@ -694,7 +694,7 @@ TEST(workspace, lsp_file_not_processed_yet)
 
     mngr.did_open_file(file_loc, 0, " LR 1,1");
 
-    static const std::vector<lsp::completion_item_s> empty_list;
+    static const std::vector<completion_item> empty_list;
 
     EXPECT_EQ(ws.definition(file_loc, { 0, 5 }), location({ 0, 5 }, file_loc));
     EXPECT_EQ(ws.references(file_loc, { 0, 5 }), location_list());
