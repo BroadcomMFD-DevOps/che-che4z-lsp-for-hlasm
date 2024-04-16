@@ -16,7 +16,6 @@
 #define LSP_COMPLETION_ITEM_H
 
 #include <string>
-#include <vector>
 
 #include "protocol.h"
 
