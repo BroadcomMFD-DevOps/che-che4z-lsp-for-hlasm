@@ -16,24 +16,9 @@
 
 #include "debugging/debug_types.h"
 #include "diagnosable.h"
-#include "fade_messages.h"
-#include "location.h"
 #include "semantics/highlighting_info.h"
 
 namespace hlasm_plugin::parser_library {
-
-//********************** location **********************
-
-position_uri::position_uri(const location& item)
-    : item_(item)
-{}
-position position_uri::pos() const { return item_.pos; }
-std::string_view position_uri::file_uri() const { return item_.get_uri(); }
-
-position_uri sequence_item_get(const sequence<position_uri, const location*>* self, size_t index)
-{
-    return position_uri(self->stor_[index]);
-}
 
 //*********************** stack_frame *************************
 stack_frame::stack_frame(const debugging::stack_frame& frame)

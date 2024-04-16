@@ -40,7 +40,6 @@ target_sources(parser_library PRIVATE
     library_info.h
     library_info_transitional.cpp
     library_info_transitional.h
-    location.h
     preprocessor_options.h
     protocol.cpp
     output_handler.h

@@ -22,6 +22,7 @@
 
 #include "analyzer.h"
 #include "completion_item.h"
+#include "completion_trigger_kind.h"
 #include "context/instruction.h"
 #include "document_symbol_item.h"
 #include "fade_messages.h"
@@ -881,7 +882,7 @@ location workspace::definition(const resource_location& document_loc, position p
         return { pos, document_loc };
 }
 
-location_list workspace::references(const resource_location& document_loc, position pos) const
+std::vector<location> workspace::references(const resource_location& document_loc, position pos) const
 {
     auto opencodes = find_related_opencodes(document_loc);
     if (opencodes.empty())

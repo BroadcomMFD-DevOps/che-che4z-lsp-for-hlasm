@@ -16,6 +16,7 @@
 
 #include "analyzer_fixture.h"
 #include "completion_item.h"
+#include "completion_trigger_kind.h"
 #include "lsp/lsp_context.h"
 #include "workspaces/workspace.h"
 

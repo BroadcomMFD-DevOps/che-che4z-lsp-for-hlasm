@@ -23,6 +23,7 @@
 #include <variant>
 
 #include "completion_item.h"
+#include "completion_trigger_kind.h"
 #include "context/macro.h"
 #include "context/using.h"
 #include "item_convertors.h"
@@ -337,7 +338,7 @@ location lsp_context::definition(const utils::resource::resource_location& docum
     return { pos, document_loc };
 }
 
-void collect_references(location_list& refs, const symbol_occurrence& occ, const file_occurrences_t& file_occs)
+void collect_references(std::vector<location>& refs, const symbol_occurrence& occ, const file_occurrences_t& file_occs)
 {
     for (const auto& [file, occs] : file_occs)
     {
@@ -347,9 +348,10 @@ void collect_references(location_list& refs, const symbol_occurrence& occ, const
     }
 }
 
-location_list lsp_context::references(const utils::resource::resource_location& document_loc, position pos) const
+std::vector<location> lsp_context::references(
+    const utils::resource::resource_location& document_loc, position pos) const
 {
-    location_list result;
+    std::vector<location> result;
 
     auto [occ, macro_scope] = find_occurrence_with_scope(document_loc, pos);
 

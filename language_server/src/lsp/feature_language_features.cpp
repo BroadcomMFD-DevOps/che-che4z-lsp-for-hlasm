@@ -22,6 +22,7 @@
 #include "../feature.h"
 #include "completion_item.h"
 #include "document_symbol_item.h"
+#include "location.h"
 #include "nlohmann/json.hpp"
 #include "utils/error_codes.h"
 #include "utils/resource_location.h"
@@ -313,10 +314,10 @@ void feature_language_features::definition(const request_id& id, const nlohmann:
 {
     auto document_uri = extract_document_uri(params);
     auto pos = extract_position(params);
-    auto resp = make_response(id, response_, [](position_uri definition_position_uri) {
+    auto resp = make_response(id, response_, [](const location& definition_position_uri) {
         return nlohmann::json {
-            { "uri", definition_position_uri.file_uri() },
-            { "range", range_to_json({ definition_position_uri.pos(), definition_position_uri.pos() }) },
+            { "uri", definition_position_uri.resource_loc.get_uri() },
+            { "range", range_to_json(range(definition_position_uri.pos)) },
         };
     });
 
@@ -330,13 +331,12 @@ void feature_language_features::references(const request_id& id, const nlohmann:
     auto document_uri = extract_document_uri(params);
     auto pos = extract_position(params);
 
-    auto resp = make_response(id, response_, [](position_uri_list references) {
+    auto resp = make_response(id, response_, [](std::span<const location> references) {
         auto to_ret = nlohmann::json::array();
-        for (size_t i = 0; i < references.size(); ++i)
+        for (const auto& ref : references)
         {
-            auto ref = references.item(i);
             to_ret.push_back(
-                nlohmann::json { { "uri", ref.file_uri() }, { "range", range_to_json({ ref.pos(), ref.pos() }) } });
+                nlohmann::json { { "uri", ref.resource_loc.get_uri() }, { "range", range_to_json(range(ref.pos)) } });
         }
         return to_ret;
     });

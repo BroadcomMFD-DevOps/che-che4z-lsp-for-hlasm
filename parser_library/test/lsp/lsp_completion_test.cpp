@@ -18,6 +18,7 @@
 
 #include "../common_testing.h"
 #include "completion_item.h"
+#include "completion_trigger_kind.h"
 #include "lsp/item_convertors.h"
 #include "lsp/lsp_context.h"
 

@@ -16,6 +16,7 @@
 #define HLASMPLUGIN_PARSERLIBRARY_WORKSPACE_MANAGER_RESPONSE_H
 
 #include <atomic>
+#include <type_traits>
 #include <utility>
 
 namespace hlasm_plugin::parser_library {
@@ -33,13 +34,11 @@ struct is_in_place_type_t<std::in_place_type_t<T>>
 };
 
 template<typename U, typename T>
-concept workspace_manager_response_compatible = requires(U& u, T t)
-{
+concept workspace_manager_response_compatible = requires(U& u, T t) {
     u.provide(std::move(t));
     {
         u.error(0, "")
-    }
-    noexcept;
+    } noexcept;
 };
 
 } // namespace detail
@@ -137,7 +136,8 @@ class
 
 public:
     template<typename U>
-    auto operator()(U u) const requires(!detail::is_in_place_type_t<U>::value)
+    auto operator()(U u) const
+        requires(!detail::is_in_place_type_t<U>::value)
     {
         auto result = workspace_manager_response<decltype(provide_type(&U::provide))>(std::move(u));
 
@@ -161,7 +161,8 @@ class workspace_manager_response : workspace_manager_response_base
     {
         U data;
 
-        explicit shared_data(U data) requires(!detail::is_in_place_type_t<U>::value)
+        explicit shared_data(U data)
+            requires(!detail::is_in_place_type_t<U>::value)
             : data(std::move(data))
         {}
         template<typename... Args>
@@ -193,7 +194,10 @@ class workspace_manager_response : workspace_manager_response_base
                 auto* ptr = static_cast<shared_data<U>*>(p);
                 try
                 {
-                    ptr->data.provide(std::move(*static_cast<T*>(t)));
+                    if constexpr (std::is_reference_v<T>)
+                        ptr->data.provide(*static_cast<std::remove_reference_t<T>*>(t));
+                    else
+                        ptr->data.provide(std::move(*static_cast<T*>(t)));
                 }
                 catch (...)
                 {
@@ -218,7 +222,8 @@ class workspace_manager_response : workspace_manager_response_base
 public:
     workspace_manager_response() = default;
     template<detail::workspace_manager_response_compatible<T> U>
-    explicit workspace_manager_response(U u) requires(!detail::is_in_place_type_t<U>::value)
+    explicit workspace_manager_response(U u)
+        requires(!detail::is_in_place_type_t<U>::value)
         : workspace_manager_response_base(new shared_data<U>(std::move(u)), &get_actions<U>)
     {}
     template<detail::workspace_manager_response_compatible<T> U, typename... Args>
@@ -232,7 +237,7 @@ public:
     using workspace_manager_response_base::resolved;
     using workspace_manager_response_base::valid;
 
-    void provide(T&& t) const noexcept { workspace_manager_response_base::provide(&t); }
+    void provide(T&& t) const noexcept { workspace_manager_response_base::provide((void*)&t); }
 
     friend decltype(make_workspace_manager_response);
 };

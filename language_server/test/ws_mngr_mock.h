@@ -43,11 +43,11 @@ public:
 
     MOCK_METHOD(void,
         definition,
-        (const char* document_uri, position pos, workspace_manager_response<position_uri>),
+        (const char* document_uri, position pos, workspace_manager_response<const location&>),
         (override));
     MOCK_METHOD(void,
         references,
-        (const char* document_uri, position pos, workspace_manager_response<position_uri_list>),
+        (const char* document_uri, position pos, workspace_manager_response<std::span<const location>>),
         (override));
     MOCK_METHOD(
         void, hover, (const char* document_uri, position pos, workspace_manager_response<sequence<char>>), (override));

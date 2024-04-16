@@ -14,6 +14,7 @@
 target_sources(parser_library PUBLIC
     branch_info.h
     completion_item.h
+    completion_trigger_kind.h
     debugger.h
     diagnostic.h
     document_symbol_item.h
@@ -21,6 +22,7 @@ target_sources(parser_library PUBLIC
     fade_messages.h
     folding_range.h
     lib_config.h
+    location.h
     message_consumer.h
     protocol.h
     range.h

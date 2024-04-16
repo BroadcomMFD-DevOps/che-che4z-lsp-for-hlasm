@@ -14,8 +14,9 @@
 
 #include "gtest/gtest.h"
 
-#include "analyzer_fixture.h"
+#include "analyzer.h"
 #include "completion_item.h"
+#include "completion_trigger_kind.h"
 #include "instruction_set_version.h"
 #include "lsp/item_convertors.h"
 #include "lsp/lsp_context.h"

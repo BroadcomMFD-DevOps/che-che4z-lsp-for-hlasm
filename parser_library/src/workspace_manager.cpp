@@ -658,18 +658,18 @@ public:
         });
     }
 
-    void definition(const char* document_uri, position pos, workspace_manager_response<position_uri> r) override
+    void definition(const char* document_uri, position pos, workspace_manager_response<const location&> r) override
     {
         handle_request(document_uri, std::move(r), [pos](const auto& resp, auto& ws, const auto& doc_loc) {
-            resp.provide(position_uri(ws.definition(doc_loc, pos)));
+            resp.provide(ws.definition(doc_loc, pos));
         });
     }
 
-    void references(const char* document_uri, position pos, workspace_manager_response<position_uri_list> r) override
+    void references(
+        const char* document_uri, position pos, workspace_manager_response<std::span<const location>> r) override
     {
         handle_request(document_uri, std::move(r), [pos](const auto& resp, auto& ws, const auto& doc_loc) {
-            auto references_result = ws.references(doc_loc, pos);
-            resp.provide({ references_result.data(), references_result.size() });
+            resp.provide(ws.references(doc_loc, pos));
         });
     }
 

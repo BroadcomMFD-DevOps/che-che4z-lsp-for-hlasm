@@ -19,6 +19,7 @@
 
 #include "../common_testing.h"
 #include "completion_item.h"
+#include "completion_trigger_kind.h"
 #include "empty_configs.h"
 #include "nlohmann/json.hpp"
 #include "semantics/highlighting_info.h"
@@ -697,7 +698,7 @@ TEST(workspace, lsp_file_not_processed_yet)
     static const std::vector<completion_item> empty_list;
 
     EXPECT_EQ(ws.definition(file_loc, { 0, 5 }), location({ 0, 5 }, file_loc));
-    EXPECT_EQ(ws.references(file_loc, { 0, 5 }), location_list());
+    EXPECT_EQ(ws.references(file_loc, { 0, 5 }), std::vector<location>());
     EXPECT_EQ(ws.hover(file_loc, { 0, 5 }), "");
     EXPECT_EQ(ws.completion(file_loc, { 0, 5 }, '\0', completion_trigger_kind::invoked), empty_list);
 
@@ -705,7 +706,7 @@ TEST(workspace, lsp_file_not_processed_yet)
     // parsing not done yet
 
     EXPECT_EQ(ws.definition(file_loc, { 0, 5 }), location({ 0, 5 }, file_loc));
-    EXPECT_EQ(ws.references(file_loc, { 0, 5 }), location_list());
+    EXPECT_EQ(ws.references(file_loc, { 0, 5 }), std::vector<location>());
     EXPECT_EQ(ws.hover(file_loc, { 0, 5 }), "");
     EXPECT_EQ(ws.completion(file_loc, { 0, 5 }, '\0', completion_trigger_kind::invoked), empty_list);
 

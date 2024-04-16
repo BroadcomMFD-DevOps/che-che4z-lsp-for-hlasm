@@ -35,7 +35,6 @@ namespace hlasm_plugin::parser_library {
 using version_t = uint64_t;
 
 namespace semantics {
-struct position_uri_s;
 struct highlighting_info;
 
 // in case any changes are done to these scopes, the tokenTypes field in feature_language_features.cpp
@@ -70,27 +69,6 @@ struct scope;
 struct variable;
 struct variable_store;
 } // namespace debugging
-
-struct location;
-
-enum class completion_trigger_kind
-{
-    invoked = 1,
-    trigger_character = 2,
-    trigger_for_incomplete_completions = 3
-};
-
-struct position_uri
-{
-    explicit position_uri(const location& item);
-    position pos() const;
-    std::string_view file_uri() const;
-
-private:
-    const location& item_;
-};
-
-using position_uri_list = sequence<position_uri, const location*>;
 
 struct document_change
 {

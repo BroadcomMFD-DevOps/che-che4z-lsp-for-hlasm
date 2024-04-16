@@ -43,6 +43,7 @@
 
 namespace hlasm_plugin::parser_library {
 struct completion_item;
+enum class completion_trigger_kind;
 struct document_symbol_item;
 struct fade_message;
 class external_configuration_requests;

@@ -25,8 +25,10 @@
 #include <utility>
 
 #include "branch_info.h"
+#include "completion_trigger_kind.h"
 #include "folding_range.h"
 #include "lib_config.h"
+#include "location.h"
 #include "message_consumer.h"
 #include "protocol.h"
 #include "sequence.h"
@@ -114,9 +116,10 @@ public:
     virtual void did_close_file(const char* document_uri) = 0;
     virtual void did_change_watched_files(sequence<fs_change> changes) = 0;
 
-    virtual void definition(const char* document_uri, position pos, workspace_manager_response<position_uri> resp) = 0;
+    virtual void definition(
+        const char* document_uri, position pos, workspace_manager_response<const location&> resp) = 0;
     virtual void references(
-        const char* document_uri, position pos, workspace_manager_response<position_uri_list> resp) = 0;
+        const char* document_uri, position pos, workspace_manager_response<std::span<const location>> resp) = 0;
     virtual void hover(const char* document_uri, position pos, workspace_manager_response<sequence<char>> resp) = 0;
     virtual void completion(const char* document_uri,
         position pos,
