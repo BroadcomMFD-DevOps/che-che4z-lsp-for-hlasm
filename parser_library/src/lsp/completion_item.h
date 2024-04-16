@@ -15,11 +15,9 @@
 #ifndef LSP_COMPLETION_ITEM_H
 #define LSP_COMPLETION_ITEM_H
 
-#include <set>
 #include <string>
 #include <vector>
 
-#include "context/hlasm_context.h"
 #include "protocol.h"
 
 namespace hlasm_plugin::parser_library::lsp {
@@ -47,27 +45,8 @@ struct completion_item_s
     bool snippet = false;
     std::string suggestion_for;
 
-    struct label_comparer
-    {
-        using is_transparent = void;
-
-        bool operator()(const completion_item_s& l, const completion_item_s& r) const { return l.label < r.label; }
-        template<typename L>
-        bool operator()(const L& l, const completion_item_s& r) const
-        {
-            return l < r.label;
-        }
-        template<typename R>
-        bool operator()(const completion_item_s& l, const R& r) const
-        {
-            return l.label < r;
-        }
-    };
-
-    static const std::set<completion_item_s, label_comparer> m_instruction_completion_items;
+    bool operator==(const completion_item_s&) const = default;
 };
-
-bool operator==(const completion_item_s& lhs, const completion_item_s& rhs);
 
 } // namespace hlasm_plugin::parser_library::lsp
 

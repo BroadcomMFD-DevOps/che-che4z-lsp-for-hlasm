@@ -32,10 +32,4 @@ completion_item_s::completion_item_s(std::string label,
     , suggestion_for(std::move(suggestion_for))
 {}
 
-bool operator==(const completion_item_s& lhs, const completion_item_s& rhs)
-{
-    return lhs.label == rhs.label && lhs.detail == rhs.detail && lhs.insert_text == rhs.insert_text
-        && lhs.documentation == rhs.documentation && lhs.kind == rhs.kind;
-}
-
 } // namespace hlasm_plugin::parser_library::lsp
