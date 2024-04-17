@@ -88,7 +88,7 @@ class debugger_configuration_provider_mock : public debugger_configuration_provi
 public:
     MOCK_METHOD(void,
         provide_debugger_configuration,
-        (sequence<char> document_uri, workspace_manager_response<debugger_configuration> conf),
+        (std::string_view document_uri, workspace_manager_response<debugger_configuration> conf),
         (override));
 };
 } // namespace
@@ -497,7 +497,7 @@ TEST(debugger, test)
     NiceMock<debugger_configuration_provider_mock> dc_provider;
     EXPECT_CALL(dc_provider, provide_debugger_configuration)
         .WillRepeatedly(Invoke([&file_manager, &lib_provider](auto uri, auto r) {
-            resource_location res = resource_location(std::string_view(uri));
+            resource_location res = resource_location(uri);
             r.provide({
                 .fm = &file_manager,
                 .libraries = lib_provider.get_libraries(res),
@@ -602,7 +602,7 @@ TEST(debugger, sysstmt)
     NiceMock<debugger_configuration_provider_mock> dc_provider;
     EXPECT_CALL(dc_provider, provide_debugger_configuration)
         .WillRepeatedly(Invoke([&file_manager, &lib_provider](auto uri, auto r) {
-            resource_location res = resource_location(std::string_view(uri));
+            resource_location res = resource_location(uri);
             r.provide({
                 .fm = &file_manager,
                 .libraries = lib_provider.get_libraries(res),
@@ -677,7 +677,7 @@ A  MAC_IN ()
     NiceMock<debugger_configuration_provider_mock> dc_provider;
     EXPECT_CALL(dc_provider, provide_debugger_configuration)
         .WillRepeatedly(Invoke([&file_manager, &lib_provider](auto uri, auto r) {
-            resource_location res = resource_location(std::string_view(uri));
+            resource_location res = resource_location(uri);
             r.provide({
                 .fm = &file_manager,
                 .libraries = lib_provider.get_libraries(res),
@@ -857,7 +857,7 @@ TEST(debugger, positional_parameters)
     NiceMock<debugger_configuration_provider_mock> dc_provider;
     EXPECT_CALL(dc_provider, provide_debugger_configuration)
         .WillRepeatedly(Invoke([&file_manager, &lib_provider](auto uri, auto r) {
-            resource_location res = resource_location(std::string_view(uri));
+            resource_location res = resource_location(uri);
             r.provide({
                 .fm = &file_manager,
                 .libraries = lib_provider.get_libraries(res),
@@ -991,7 +991,7 @@ TEST(debugger, arrays)
     NiceMock<debugger_configuration_provider_mock> dc_provider;
     EXPECT_CALL(dc_provider, provide_debugger_configuration)
         .WillRepeatedly(Invoke([&file_manager, &lib_provider](auto uri, auto r) {
-            resource_location res = resource_location(std::string_view(uri));
+            resource_location res = resource_location(uri);
             r.provide({
                 .fm = &file_manager,
                 .libraries = lib_provider.get_libraries(res),
@@ -1060,7 +1060,7 @@ B EQU A
     NiceMock<debugger_configuration_provider_mock> dc_provider;
     EXPECT_CALL(dc_provider, provide_debugger_configuration)
         .WillRepeatedly(Invoke([&file_manager, &lib_provider](auto uri, auto r) {
-            resource_location res = resource_location(std::string_view(uri));
+            resource_location res = resource_location(uri);
             r.provide({
                 .fm = &file_manager,
                 .libraries = lib_provider.get_libraries(res),
@@ -1120,7 +1120,7 @@ TEST(debugger, ainsert)
     NiceMock<debugger_configuration_provider_mock> dc_provider;
     EXPECT_CALL(dc_provider, provide_debugger_configuration)
         .WillRepeatedly(Invoke([&file_manager, &lib_provider](auto uri, auto r) {
-            resource_location res = resource_location(std::string_view(uri));
+            resource_location res = resource_location(uri);
             r.provide({
                 .fm = &file_manager,
                 .libraries = lib_provider.get_libraries(res),
@@ -1197,7 +1197,7 @@ TEST(debugger, concurrent_next_and_file_change)
     NiceMock<debugger_configuration_provider_mock> dc_provider;
     EXPECT_CALL(dc_provider, provide_debugger_configuration)
         .WillRepeatedly(Invoke([&file_manager, &lib_provider](auto uri, auto r) {
-            resource_location res = resource_location(std::string_view(uri));
+            resource_location res = resource_location(uri);
             r.provide({
                 .fm = &file_manager,
                 .libraries = lib_provider.get_libraries(res),

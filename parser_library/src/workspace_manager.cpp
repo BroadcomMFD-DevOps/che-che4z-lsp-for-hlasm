@@ -1049,9 +1049,9 @@ private:
     debugger_configuration_provider& get_debugger_configuration_provider() override { return *this; }
 
     void provide_debugger_configuration(
-        sequence<char> document_uri, workspace_manager_response<debugging::debugger_configuration> conf) override
+        std::string_view document_uri, workspace_manager_response<debugging::debugger_configuration> conf) override
     {
-        auto [ows, uri] = ws_path_match(std::string_view(document_uri));
+        auto [ows, uri] = ws_path_match(document_uri);
         work_item wi {
             next_unique_id(),
             ows,

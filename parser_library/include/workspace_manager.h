@@ -101,7 +101,7 @@ protected:
 
 public:
     virtual void provide_debugger_configuration(
-        sequence<char> document_uri, workspace_manager_response<debugging::debugger_configuration> conf) = 0;
+        std::string_view document_uri, workspace_manager_response<debugging::debugger_configuration> conf) = 0;
 };
 
 class workspace_manager

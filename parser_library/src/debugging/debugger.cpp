@@ -196,7 +196,7 @@ public:
             void error(int, const char*) const noexcept {}
         };
         auto [conf_resp, conf] = make_workspace_manager_response(std::in_place_type<conf_t>);
-        dc_provider.provide_debugger_configuration(sequence<char>(source), conf_resp);
+        dc_provider.provide_debugger_configuration(source, conf_resp);
         analyzer_task =
             utils::async_busy_wait(std::move(conf_resp), &conf->conf)
                 .then(std::bind_front(
