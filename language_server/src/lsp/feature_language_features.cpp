@@ -710,7 +710,7 @@ void feature_language_features::opcode_suggestion(const request_id& id, const nl
 
                 void provide(std::span<const hlasm_plugin::parser_library::opcode_suggestion> opcode_suggestions)
                 {
-                    if (opcode_suggestions.size() == 0)
+                    if (opcode_suggestions.empty())
                     {
                         m_self->provide(std::nullopt);
                         return;

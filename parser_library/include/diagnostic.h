@@ -70,13 +70,11 @@ public:
 // Represents a LSP diagnostic.
 struct diagnostic
 {
-    diagnostic()
-        : severity(diagnostic_severity::unspecified)
-    {}
+    diagnostic() = default;
+
     diagnostic(std::string file_uri, range range, std::string code, std::string message)
         : file_uri(std::move(file_uri))
         , diag_range(range)
-        , severity(diagnostic_severity::unspecified)
         , code(std::move(code))
         , message(std::move(message))
     {}
@@ -91,7 +89,6 @@ struct diagnostic
         , diag_range(range)
         , severity(severity)
         , code(std::move(code))
-        , source("HLASM Plugin")
         , message(std::move(message))
         , related(std::move(related))
         , tag(tag)
@@ -99,9 +96,9 @@ struct diagnostic
 
     std::string file_uri;
     range diag_range;
-    diagnostic_severity severity;
+    diagnostic_severity severity = diagnostic_severity::unspecified;
     std::string code;
-    std::string source;
+    std::string source = "HLASM Plugin";
     std::string message;
     std::vector<diagnostic_related_info> related;
     diagnostic_tag tag = diagnostic_tag::none;

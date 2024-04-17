@@ -281,7 +281,7 @@ void dap_feature::on_threads(const request_id& request_seq, const nlohmann::json
         } });
 }
 
-[[nodiscard]] nlohmann::json source_to_json(parser_library::debugging::source source, path_format path_format)
+[[nodiscard]] nlohmann::json source_to_json(const parser_library::debugging::source& source, path_format path_format)
 {
     return nlohmann::json { { "path", client_conformant_path(source.uri, path_format) } };
 }
@@ -298,7 +298,7 @@ void dap_feature::on_stack_trace(const request_id& request_seq, const nlohmann::
         frames_json.push_back(nlohmann::json {
             { "id", frame.id },
             { "name", frame.name },
-            { "source", source_to_json(frame.frame_source.uri, client_path_format_) },
+            { "source", source_to_json(frame.frame_source, client_path_format_) },
             { "line", frame.begin_line + line_1_based_ },
             { "column", column_1_based_ },
             { "endLine", frame.end_line + line_1_based_ },
@@ -328,7 +328,7 @@ void dap_feature::on_scopes(const request_id& request_seq, const nlohmann::json&
             { "name", scope.name },
             { "variablesReference", scope.var_reference },
             { "expensive", false },
-            { "source", source_to_json(scope.scope_source.uri, client_path_format_) },
+            { "source", source_to_json(scope.scope_source, client_path_format_) },
         };
         scopes_json.push_back(std::move(scope_json));
     }

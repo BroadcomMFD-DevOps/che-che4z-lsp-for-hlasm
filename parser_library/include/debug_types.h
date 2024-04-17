@@ -69,16 +69,16 @@ struct function_breakpoint
 
 struct source
 {
-    source(std::string uri)
+    explicit source(std::string uri)
         : uri(std::move(uri))
     {}
     std::string uri;
-    bool operator==(const source& oth) const { return uri == oth.uri; }
+    bool operator==(const source& oth) const noexcept = default;
 };
 
 struct stack_frame
 {
-    stack_frame(size_t begin_line, size_t end_line, uint32_t id, std::string name, source source)
+    explicit stack_frame(size_t begin_line, size_t end_line, uint32_t id, std::string name, source source)
         : begin_line(begin_line)
         , end_line(end_line)
         , id(id)
@@ -90,16 +90,11 @@ struct stack_frame
     uint32_t id;
     std::string name;
     source frame_source;
-    bool operator==(const stack_frame& oth) const
-    {
-        return begin_line == oth.begin_line && end_line == oth.end_line && name == oth.name
-            && frame_source == oth.frame_source;
-    }
 };
 
 struct scope
 {
-    scope(std::string name, var_reference_t ref, source source)
+    explicit scope(std::string name, var_reference_t ref, source source)
         : name(std::move(name))
         , scope_source(std::move(source))
         , var_reference(ref)
