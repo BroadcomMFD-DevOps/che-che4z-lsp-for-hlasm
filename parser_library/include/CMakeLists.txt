@@ -15,6 +15,7 @@ target_sources(parser_library PUBLIC
     branch_info.h
     completion_item.h
     completion_trigger_kind.h
+    debug_types.h
     debugger.h
     diagnostic.h
     document_symbol_item.h

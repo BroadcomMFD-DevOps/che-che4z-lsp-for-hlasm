@@ -59,7 +59,7 @@ struct parsing_results
     std::vector<diagnostic> opencode_diagnostics;
     std::vector<diagnostic> macro_diagnostics;
 
-    std::vector<std::pair<int, std::string>> outputs;
+    std::vector<output_line> outputs;
 };
 
 [[nodiscard]] utils::value_task<parsing_results> parse_one_file(std::shared_ptr<context::id_storage> ids,
@@ -71,7 +71,7 @@ struct parsing_results
 {
     struct output_t final : output_handler
     {
-        std::vector<std::pair<int, std::string>> outputs;
+        std::vector<output_line> outputs;
 
         void mnote(unsigned char level, std::string_view text) override { outputs.emplace_back(level, text); }
         void punch(std::string_view text) override { outputs.emplace_back(-1, text); }
@@ -138,8 +138,7 @@ struct workspace_parse_lib_provider final : public parse_lib_provider
             pfc.m_dependencies.end(),
             next_dependencies.begin(),
             next_dependencies.end(),
-            utils::transform_inserter(
-                files_to_close, [](const auto& v) -> const auto& { return v.first; }),
+            utils::transform_inserter(files_to_close, [](const auto& v) -> const auto& { return v.first; }),
             [](const auto& l, const auto& r) { return l.first < r.first; });
     }
 
@@ -977,7 +976,7 @@ std::vector<folding_range> workspace::folding(const resource_location& document_
     return lsp::generate_folding_ranges(data);
 }
 
-std::vector<std::pair<int, std::string>> workspace::retrieve_output(const resource_location& document_loc) const
+std::vector<output_line> workspace::retrieve_output(const resource_location& document_loc) const
 {
     auto comp = find_processor_file_impl(document_loc);
     if (!comp)

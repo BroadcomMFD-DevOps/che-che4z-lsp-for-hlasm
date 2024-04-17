@@ -43,6 +43,7 @@ class workspace_manager_external_file_requests;
 class external_configuration_requests;
 namespace debugging {
 struct debugger_configuration;
+struct output_line;
 } // namespace debugging
 
 // Interface that can be implemented to be able to get list of
@@ -164,7 +165,7 @@ public:
         const char* document_uri, workspace_manager_response<continuous_sequence<folding_range>> resp) = 0;
 
     virtual void retrieve_output(
-        const char* document_uri, workspace_manager_response<continuous_sequence<output_line>> resp) = 0;
+        const char* document_uri, workspace_manager_response<std::span<const output_line>> resp) = 0;
 };
 
 workspace_manager* create_workspace_manager_impl(

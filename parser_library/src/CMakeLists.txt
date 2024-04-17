@@ -41,7 +41,6 @@ target_sources(parser_library PRIVATE
     library_info_transitional.cpp
     library_info_transitional.h
     preprocessor_options.h
-    protocol.cpp
     output_handler.h
     tagged_index.h
     virtual_file_monitor.h

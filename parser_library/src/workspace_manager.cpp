@@ -1105,18 +1105,10 @@ private:
         }
     }
 
-    void retrieve_output(
-        const char* document_uri, workspace_manager_response<continuous_sequence<output_line>> r) override
+    void retrieve_output(const char* document_uri, workspace_manager_response<std::span<const output_line>> r) override
     {
         handle_request(document_uri, std::move(r), [](const auto& resp, auto& ws, const auto& doc_loc) {
-            auto result = ws.retrieve_output(doc_loc);
-
-            std::vector<output_line> tmp;
-
-            for (auto&& [level, text] : result)
-                tmp.emplace_back(output_line { level, make_continuous_sequence(std::move(text)) });
-
-            resp.provide(make_continuous_sequence(std::move(tmp)));
+            resp.provide(ws.retrieve_output(doc_loc));
         });
     }
 };

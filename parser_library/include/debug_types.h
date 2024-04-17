@@ -19,12 +19,52 @@
 // used to present the context of HLASM analysis to
 // the user.
 
+#include <cstddef>
+#include <functional>
 #include <string>
 
-#include "protocol.h"
-#include "variable.h"
-
 namespace hlasm_plugin::parser_library::debugging {
+
+using frame_id_t = size_t;
+using var_reference_t = size_t;
+
+enum class set_type
+{
+    A_TYPE,
+    B_TYPE,
+    C_TYPE,
+    UNDEF_TYPE
+};
+
+// Interface that represents a variable to be shown to the user
+// through DAP.
+struct variable
+{
+    std::string name;
+    std::string value;
+    set_type type = set_type::UNDEF_TYPE;
+    var_reference_t var_reference = 0;
+
+    std::function<std::vector<variable>()> values;
+
+    bool is_scalar() const noexcept { return !values; }
+};
+
+struct breakpoint
+{
+    explicit breakpoint(size_t line)
+        : line(line)
+    {}
+    size_t line;
+};
+
+struct function_breakpoint
+{
+    explicit function_breakpoint(std::string_view name)
+        : name(name)
+    {}
+    std::string_view name;
+};
 
 struct source
 {
@@ -68,9 +108,11 @@ struct scope
     var_reference_t var_reference;
 };
 
-struct variable_store
+struct evaluated_expression
 {
-    std::vector<variable> variables;
+    std::string result;
+    bool error = false;
+    std::size_t var_ref = 0;
 };
 
 } // namespace hlasm_plugin::parser_library::debugging

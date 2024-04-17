@@ -57,15 +57,6 @@ enum class hl_scopes : size_t
     ordinary_symbol = 16
 };
 
-namespace debugging {
-
-struct stack_frame;
-struct source;
-struct scope;
-struct variable;
-struct variable_store;
-} // namespace debugging
-
 struct document_change
 {
     document_change(const char* new_text, size_t text_length)
@@ -151,79 +142,20 @@ struct token_info
     bool operator==(const token_info& rhs) const noexcept = default;
 };
 
-struct source
-{
-    source(const debugging::source& source);
-
-    sequence<char> uri;
-};
-
-struct stack_frame
-{
-    explicit stack_frame(const debugging::stack_frame& frame);
-
-    sequence<char> name;
-    source source_file;
-    range source_range;
-    uint32_t id;
-};
-
-using stack_frames_t = sequence<stack_frame, const debugging::stack_frame*>;
-
-using frame_id_t = size_t;
-using var_reference_t = size_t;
-
-enum class set_type
-{
-    A_TYPE,
-    B_TYPE,
-    C_TYPE,
-    UNDEF_TYPE
-};
-
-struct scope
-{
-    explicit scope(const debugging::scope& impl);
-
-    sequence<char> name;
-    var_reference_t variable_reference;
-    source source_file;
-};
-
-using scopes_t = sequence<scope, const debugging::scope*>;
-
-struct variable
-{
-    explicit variable(const debugging::variable& impl);
-
-    sequence<char> name;
-    sequence<char> value;
-    var_reference_t variable_reference;
-    set_type type;
-};
-
-using variables_t = sequence<variable, const debugging::variable_store*>;
-
-struct breakpoint
-{
-    explicit breakpoint(size_t line)
-        : line(line)
-    {}
-    size_t line;
-};
-
-struct function_breakpoint
-{
-    explicit function_breakpoint(sequence<char> name)
-        : name(name)
-    {}
-    sequence<char> name;
-};
-
 struct output_line
 {
-    int level; // -1 if N/A
-    continuous_sequence<char> text;
+    output_line(int level, std::string text)
+        : level(level)
+        , text(std::move(text))
+    {} // clang-14
+    output_line(int level, std::string_view text)
+        : level(level)
+        , text(text)
+    {} // clang-14
+    int level;
+    std::string text;
+
+    bool operator==(const output_line&) const noexcept = default;
 };
 
 } // namespace hlasm_plugin::parser_library

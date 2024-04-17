@@ -124,7 +124,7 @@ public:
 
     std::vector<folding_range> folding(const resource_location& document_loc) const;
 
-    std::vector<std::pair<int, std::string>> retrieve_output(const resource_location& document_loc) const;
+    std::vector<output_line> retrieve_output(const resource_location& document_loc) const;
 
     std::optional<performance_metrics> last_metrics(const resource_location& document_loc) const;
 

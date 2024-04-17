@@ -46,7 +46,7 @@ void to_json(nlohmann::json& j, const folding_range& fr)
 void to_json(nlohmann::json& j, const output_line& ol)
 {
     j["level"] = ol.level;
-    j["text"] = std::string_view(sequence<char>(ol.text));
+    j["text"] = ol.text;
 }
 } // namespace hlasm_plugin::parser_library
 
@@ -821,7 +821,7 @@ void feature_language_features::retrieve_outputs(const request_id& id, const nlo
     auto document_uri = extract_document_uri(params);
 
     auto resp =
-        make_response(id, response_, [](continuous_sequence<output_line> outputs) { return nlohmann::json(outputs); });
+        make_response(id, response_, [](std::span<const output_line> outputs) { return nlohmann::json(outputs); });
 
     ws_mngr_.retrieve_output(document_uri.c_str(), resp);
 

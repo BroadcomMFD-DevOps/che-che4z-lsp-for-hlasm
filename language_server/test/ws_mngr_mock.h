@@ -107,7 +107,7 @@ public:
 
     MOCK_METHOD(void,
         retrieve_output,
-        (const char* document_uri, workspace_manager_response<continuous_sequence<output_line>> resp),
+        (const char* document_uri, workspace_manager_response<std::span<const output_line>> resp),
         (override));
 };
 
