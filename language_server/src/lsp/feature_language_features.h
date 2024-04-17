@@ -37,7 +37,7 @@ public:
     nlohmann::json register_capabilities() override;
     void initialize_feature(const nlohmann::json& initialise_params) override;
 
-    static nlohmann::json convert_tokens_to_num_array(const std::vector<parser_library::token_info>& tokens);
+    static nlohmann::json convert_tokens_to_num_array(std::span<const parser_library::token_info> tokens);
 
 private:
     void definition(const request_id& id, const nlohmann::json& params);

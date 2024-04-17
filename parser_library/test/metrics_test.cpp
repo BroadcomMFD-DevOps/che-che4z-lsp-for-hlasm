@@ -28,11 +28,11 @@ using namespace hlasm_plugin::utils::resource;
 class metrics_mock : public parsing_metadata_consumer
 {
 public:
-    void consume_parsing_metadata(sequence<char>, double, const parsing_metadata& metadata) override
+    void consume_parsing_metadata(std::string_view, double, const parsing_metadata& metadata) override
     {
         metrics_ = metadata.metrics;
     }
-    void outputs_changed(sequence<char>) override {}
+    void outputs_changed(std::string_view) override {}
 
     performance_metrics metrics_;
 };

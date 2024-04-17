@@ -236,6 +236,7 @@ public:
     using workspace_manager_response_base::resolved;
     using workspace_manager_response_base::valid;
 
+    void provide(const T& t) const noexcept requires(!std::is_reference_v<T>) { provide(T(t)); }
     void provide(T&& t) const noexcept { workspace_manager_response_base::provide((void*)&t); }
 
     friend decltype(make_workspace_manager_response);

@@ -152,7 +152,7 @@ TEST(language_features, document_symbol)
 
     std::string file_text = "A EQU 1";
 
-    ws_mngr->did_open_file(uri.c_str(), 0, file_text.c_str(), file_text.size());
+    ws_mngr->did_open_file(uri, 0, file_text);
     nlohmann::json params1 = nlohmann::json::parse(R"({"textDocument":{"uri":")" + uri + "\"}}");
 
     nlohmann::json r = {
@@ -183,7 +183,7 @@ TEST(language_features, semantic_tokens)
 
     std::string file_text = "A EQU 1\n SAM31";
 
-    ws_mngr->did_open_file(uri.c_str(), 0, file_text.c_str(), file_text.size());
+    ws_mngr->did_open_file(uri, 0, file_text);
     nlohmann::json params1 = nlohmann::json::parse(R"({"textDocument":{"uri":")" + uri + "\"}}");
 
     nlohmann::json response { { "data", { 0, 0, 1, 0, 0, 0, 2, 3, 1, 0, 0, 4, 1, 10, 0, 1, 1, 5, 1, 0 } } };
@@ -204,7 +204,7 @@ TEST(language_features, semantic_tokens_cancelled)
 
     std::string file_text = "A EQU 1\n SAM31";
 
-    ws_mngr->did_open_file(uri.c_str(), 0, file_text.c_str(), file_text.size());
+    ws_mngr->did_open_file(uri, 0, file_text);
     nlohmann::json params1 = nlohmann::json::parse(R"({"textDocument":{"uri":")" + uri + "\"}}");
 
     nlohmann::json response { { "data", { 0, 0, 1, 0, 0, 0, 2, 3, 1, 0, 0, 4, 1, 10, 0, 1, 1, 5, 1, 0 } } };
@@ -234,7 +234,7 @@ D EQU                                                                 1X3145
 IIIIIIIIIIIIIII1
 )";
 
-    ws_mngr->did_open_file(uri.c_str(), 0, file_text.c_str(), file_text.size());
+    ws_mngr->did_open_file(uri, 0, file_text);
     nlohmann::json params1 = nlohmann::json::parse(R"({"textDocument":{"uri":")" + uri + "\"}}");
 
     // clang-format off
@@ -269,7 +269,7 @@ TEST(language_features, semantic_tokens_multiline_overlap)
 .Y ANOP
 )";
 
-    ws_mngr->did_open_file(uri.c_str(), 0, file_text.c_str(), file_text.size());
+    ws_mngr->did_open_file(uri, 0, file_text);
     nlohmann::json params1 = nlohmann::json::parse(R"({"textDocument":{"uri":")" + uri + "\"}}");
 
     // clang-format off
@@ -431,11 +431,11 @@ TEST(language_features, branch_information)
     using namespace hlasm_plugin::parser_library;
 
     EXPECT_CALL(ws_mngr, branch_information(StrEq(uri), _)).WillOnce(WithArg<1>(Invoke([](auto channel) {
-        channel.provide(make_continuous_sequence(std::vector<branch_info> {
+        channel.provide(std::vector<branch_info> {
             branch_info(1, 2, branch_direction::up),
             branch_info(3, 4, branch_direction::down),
             branch_info(5, 6, branch_direction::somewhere),
-        }));
+        });
     })));
 
     auto expected_json = nlohmann::json::parse(R"(
@@ -478,7 +478,7 @@ TEST(language_features, folding)
 
     std::string file_text = "*\n*\n*\n";
 
-    ws_mngr->did_open_file(uri.c_str(), 0, file_text.c_str(), file_text.size());
+    ws_mngr->did_open_file(uri, 0, file_text);
     nlohmann::json params1 = nlohmann::json::parse(R"({"textDocument":{"uri":")" + uri + "\"}}");
 
     nlohmann::json response = nlohmann::json::array();
@@ -504,7 +504,7 @@ TEST(language_features, retrieve_output)
 
     std::string file_text = " PUNCH 'A'\n MNOTE 2,'B'";
 
-    ws_mngr->did_open_file(uri.c_str(), 0, file_text.c_str(), file_text.size());
+    ws_mngr->did_open_file(uri, 0, file_text);
     nlohmann::json params1 = nlohmann::json::parse(R"({"textDocument":{"uri":")" + uri + "\"}}");
 
     nlohmann::json response = nlohmann::json::array();
@@ -533,7 +533,7 @@ TEST(language_features, retrieve_output_empty)
 
     std::string file_text = "";
 
-    ws_mngr->did_open_file(uri.c_str(), 0, file_text.c_str(), file_text.size());
+    ws_mngr->did_open_file(uri, 0, file_text);
     nlohmann::json params1 = nlohmann::json::parse(R"({"textDocument":{"uri":")" + uri + "\"}}");
 
     nlohmann::json response = nlohmann::json::array();

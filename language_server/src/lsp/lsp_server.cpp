@@ -56,7 +56,7 @@ server::server(parser_library::workspace_manager& ws_mngr)
 }
 
 void server::consume_parsing_metadata(
-    parser_library::sequence<char>, double duration, const parser_library::parsing_metadata& metadata)
+    std::string_view, double duration, const parser_library::parsing_metadata& metadata)
 {
     if (!telemetry_provider_)
         return;
@@ -68,11 +68,11 @@ void server::consume_parsing_metadata(
     });
 }
 
-void server::outputs_changed(parser_library::sequence<char> uri)
+void server::outputs_changed(std::string_view uri)
 {
     notify("$/retrieve_outputs",
         nlohmann::json {
-            { "uri", std::string_view(uri) },
+            { "uri", uri },
         });
 }
 
@@ -326,7 +326,7 @@ void server::on_shutdown(const request_id& id, const nlohmann::json&)
 
 void server::on_exit(const nlohmann::json&) { exit_notification_received_ = true; }
 
-void server::show_message(const char* message, parser_library::message_type type)
+void server::show_message(std::string_view message, parser_library::message_type type)
 {
     nlohmann::json m {
         { "type", (int)type },
@@ -450,7 +450,7 @@ void server::consume_diagnostics(std::span<const parser_library::diagnostic> dia
 }
 
 void server::request_workspace_configuration(
-    const char* url, parser_library::workspace_manager_response<parser_library::sequence<char>> json_text)
+    std::string_view url, parser_library::workspace_manager_response<std::string_view> json_text)
 {
     request(
         "workspace/configuration",
@@ -464,25 +464,24 @@ void server::request_workspace_configuration(
             if (!params.is_array() || params.size() != 1)
                 json_text.error(utils::error::invalid_conf_response);
             else
-                json_text.provide(parser_library::sequence<char>(params.at(0).dump()));
+                json_text.provide(params.at(0).dump());
         },
         [json_text](int err, const char* msg) { json_text.error(err, msg); });
 }
 
-void server::request_file_configuration(parser_library::sequence<char> uri,
-    parser_library::workspace_manager_response<parser_library::sequence<char>> json_text)
+void server::request_file_configuration(
+    std::string_view uri, parser_library::workspace_manager_response<std::string_view> json_text)
 {
     request(
         "external_configuration_request",
-        nlohmann::json { {
-            "uri",
-            std::string_view(uri),
-        } },
+        nlohmann::json {
+            { "uri", uri },
+        },
         [json_text](const nlohmann::json& params) {
             if (!params.is_object() || !params.contains("configuration"))
                 json_text.error(utils::error::invalid_external_configuration);
             else
-                json_text.provide(parser_library::sequence<char>(params.at("configuration").dump()));
+                json_text.provide(params.at("configuration").dump());
         },
         [json_text](int err, const char* msg) { json_text.error(err, msg); });
 }
@@ -491,7 +490,7 @@ void server::invalidate_external_configuration(const nlohmann::json& data)
 {
     auto uri = data.find("uri");
     if (uri != data.end() && uri->is_string())
-        ws_mngr.invalidate_external_configuration(parser_library::sequence<char>(*uri->get_ptr<const std::string*>()));
+        ws_mngr.invalidate_external_configuration(uri->get<std::string_view>());
     else
         ws_mngr.invalidate_external_configuration({});
 }

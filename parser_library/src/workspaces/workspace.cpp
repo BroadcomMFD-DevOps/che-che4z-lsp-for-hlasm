@@ -138,7 +138,8 @@ struct workspace_parse_lib_provider final : public parse_lib_provider
             pfc.m_dependencies.end(),
             next_dependencies.begin(),
             next_dependencies.end(),
-            utils::transform_inserter(files_to_close, [](const auto& v) -> const auto& { return v.first; }),
+            utils::transform_inserter(
+                files_to_close, [](const auto& v) -> const auto& { return v.first; }),
             [](const auto& l, const auto& r) { return l.first < r.first; });
     }
 
@@ -565,10 +566,10 @@ void workspace::delete_diags(processor_file_compoments& pfc)
     pfc.m_last_results->opencode_diagnostics.push_back(info_SUP(pfc.m_file->get_location()));
 }
 
-void workspace::show_message(const std::string& message)
+void workspace::show_message(std::string_view message)
 {
     if (message_consumer_)
-        message_consumer_->show_message(message.c_str(), message_type::MT_INFO);
+        message_consumer_->show_message(message, message_type::MT_INFO);
 }
 
 lib_config workspace::get_config() const { return m_configuration.get_config().fill_missing_settings(global_config_); }

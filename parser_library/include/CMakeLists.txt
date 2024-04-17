@@ -27,7 +27,6 @@ target_sources(parser_library PUBLIC
     message_consumer.h
     protocol.h
     range.h
-    sequence.h
     workspace_manager.h
     workspace_manager_external_file_requests.h
     workspace_manager_requests.h

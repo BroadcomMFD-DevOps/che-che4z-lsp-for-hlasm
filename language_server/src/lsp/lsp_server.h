@@ -87,7 +87,7 @@ private:
     // client notifications
 
     // Implements the LSP showMessage request.
-    void show_message(const char* message, parser_library::message_type type) override;
+    void show_message(std::string_view message, parser_library::message_type type) override;
 
     // Remembers name of files for which were sent diagnostics the last time
     // diagnostics were sent to client. Used to clear diagnostics in client
@@ -103,15 +103,15 @@ private:
 
     // Ingest parsing metadata and forward them to telemetry client
     void consume_parsing_metadata(
-        parser_library::sequence<char> uri, double duration, const parser_library::parsing_metadata& metadata) override;
+        std::string_view uri, double duration, const parser_library::parsing_metadata& metadata) override;
 
     // Notify vscode that outputs have changed
-    void outputs_changed(parser_library::sequence<char> uri) override;
+    void outputs_changed(std::string_view uri) override;
 
     void request_workspace_configuration(
-        const char* url, parser_library::workspace_manager_response<parser_library::sequence<char>> json_text) override;
-    void request_file_configuration(parser_library::sequence<char> url,
-        parser_library::workspace_manager_response<parser_library::sequence<char>> json_text) override;
+        std::string_view url, parser_library::workspace_manager_response<std::string_view> json_text) override;
+    void request_file_configuration(
+        std::string_view url, parser_library::workspace_manager_response<std::string_view> json_text) override;
 
     void invalidate_external_configuration(const nlohmann::json& error);
 

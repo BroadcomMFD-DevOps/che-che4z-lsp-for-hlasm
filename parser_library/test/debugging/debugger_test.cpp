@@ -110,14 +110,14 @@ TEST(debugger, stopped_on_entry)
 
     auto [resp, mock] = make_workspace_manager_response(std::in_place_type<workspace_manager_response_mock<bool>>);
     EXPECT_CALL(*mock, provide(true));
-    d.launch(file_name.c_str(), dc_provider, true, resp);
+    d.launch(file_name, dc_provider, true, resp);
 
     m.wait_for_stopped();
 
     auto frames = d.stack_frames();
     ASSERT_EQ(frames.size(), 1U);
     const auto& f = frames[0];
-    EXPECT_EQ(std::string_view(f.frame_source.uri), file_loc.get_uri());
+    EXPECT_EQ(f.frame_source.uri, file_loc.get_uri());
     EXPECT_EQ(f.begin_line, 0U);
     EXPECT_EQ(f.end_line, 0U);
     EXPECT_EQ(f.name, "OPENCODE");
@@ -151,7 +151,7 @@ TEST(debugger, disconnect)
     file_manager.did_open_file(file_loc, 0, "   LR 1,2");
     auto [resp, mock] = make_workspace_manager_response(std::in_place_type<workspace_manager_response_mock<bool>>);
     EXPECT_CALL(*mock, provide(true));
-    d.launch(file_name.c_str(), dc_provider, true, resp);
+    d.launch(file_name, dc_provider, true, resp);
     m.wait_for_stopped();
 
     d.disconnect();
@@ -1219,11 +1219,9 @@ TEST(debugger, concurrent_next_and_file_change)
     m.wait_for_stopped();
     std::string new_string = "SOME NEW FILE DOES NOT MATTER";
     std::vector<document_change> chs;
-    chs.emplace_back(new_string.c_str(), new_string.size());
+    chs.emplace_back(new_string);
     d.next();
-    std::thread t([&file_manager, &copy1_file_loc, &chs]() {
-        file_manager.did_change_file(copy1_file_loc, 0, chs.data(), chs.size());
-    });
+    std::thread t([&file_manager, &copy1_file_loc, &chs]() { file_manager.did_change_file(copy1_file_loc, 0, chs); });
     t.join();
     m.wait_for_stopped();
 
@@ -1299,7 +1297,7 @@ TEST(debugger, invalid_file)
 
     auto [resp, mock] = make_workspace_manager_response(std::in_place_type<workspace_manager_response_mock<bool>>);
     EXPECT_CALL(*mock, provide(false));
-    d.launch(file_name.c_str(), dc_provider, true, resp);
+    d.launch(file_name, dc_provider, true, resp);
 
     while (!resp.resolved())
         d.analysis_step(nullptr);
@@ -1343,7 +1341,7 @@ L   DS    F
     file_manager.did_open_file(file_loc, 0, open_code);
 
     breakpoint bp(6);
-    d.breakpoints(file_loc.get_uri(), sequence<breakpoint>(&bp, 1));
+    d.breakpoints(file_loc.get_uri(), std::span(&bp, 1));
 
     auto [resp, mock] = make_workspace_manager_response(std::in_place_type<workspace_manager_response_mock<bool>>);
     EXPECT_CALL(*mock, provide(true));

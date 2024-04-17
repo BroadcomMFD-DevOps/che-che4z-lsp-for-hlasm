@@ -146,7 +146,7 @@ TEST(virtual_files, workspace)
     std::string_view input = R"(
     AINSERT 'A DC H',BACK
 )";
-    ws_mngr->did_open_file("ws/file", 1, input.data(), input.size());
+    ws_mngr->did_open_file("ws/file", 1, input);
     ws_mngr->idle_handler();
     ws_mngr->did_close_file("ws/file");
     ws_mngr->idle_handler();
@@ -159,7 +159,7 @@ TEST(virtual_files, workspace_auto_cleanup)
     std::string_view input = R"(
     AINSERT 'A DC H',BACK
 )";
-    ws_mngr->did_open_file("ws/file", 1, input.data(), input.size());
+    ws_mngr->did_open_file("ws/file", 1, input);
     ws_mngr->idle_handler();
 }
 
@@ -174,7 +174,7 @@ MY  DSECT
     AINSERT 'A DC H',BACK
 )";
     ws_mngr->register_diagnostics_consumer(&diag_mock);
-    ws_mngr->did_open_file("ws/file", 1, input.data(), input.size());
+    ws_mngr->did_open_file("ws/file", 1, input);
     ws_mngr->idle_handler();
 
     ASSERT_EQ(diag_mock.diags.size(), 1);
@@ -185,12 +185,12 @@ MY  DSECT
     ASSERT_TRUE(vf.starts_with("hlasm://"));
 
     auto [resp, mock] =
-        make_workspace_manager_response(std::in_place_type<workspace_manager_response_mock<sequence<char>>>);
+        make_workspace_manager_response(std::in_place_type<workspace_manager_response_mock<std::string_view>>);
 
-    EXPECT_CALL(*mock, provide(Truly([](sequence<char> hover_text) {
-        return std::string_view(hover_text).find("MY + X'4' (4)") != std::string::npos;
+    EXPECT_CALL(*mock, provide(Truly([](std::string_view hover_text) {
+        return hover_text.find("MY + X'4' (4)") != std::string::npos;
     })));
 
-    ws_mngr->hover(vf.c_str(), position(0, 0), resp);
+    ws_mngr->hover(vf, position(0, 0), resp);
     ws_mngr->idle_handler();
 }

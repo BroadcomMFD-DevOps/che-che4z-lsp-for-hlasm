@@ -166,7 +166,7 @@ public:
     {
         return file_content_state::changed_content;
     }
-    void did_change_file(const resource_location&, version_t, const document_change*, size_t) override {}
+    void did_change_file(const resource_location&, version_t, std::span<const document_change>) override {}
     void did_close_file(const resource_location&) override {}
 };
 

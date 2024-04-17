@@ -165,7 +165,7 @@ private:
 
     bool is_dependency(const resource_location& file_location) const;
 
-    void show_message(const std::string& message);
+    void show_message(std::string_view message);
 
     message_consumer* message_consumer_ = nullptr;
 

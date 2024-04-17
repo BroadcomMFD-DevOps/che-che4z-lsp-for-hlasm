@@ -321,7 +321,7 @@ void feature_language_features::definition(const request_id& id, const nlohmann:
         };
     });
 
-    ws_mngr_.definition(document_uri.c_str(), pos, resp);
+    ws_mngr_.definition(document_uri, pos, resp);
 
     response_->register_cancellable_request(id, std::move(resp));
 }
@@ -340,7 +340,7 @@ void feature_language_features::references(const request_id& id, const nlohmann:
         }
         return to_ret;
     });
-    ws_mngr_.references(document_uri.c_str(), pos, resp);
+    ws_mngr_.references(document_uri, pos, resp);
 
     response_->register_cancellable_request(id, std::move(resp));
 }
@@ -349,13 +349,13 @@ void feature_language_features::hover(const request_id& id, const nlohmann::json
     auto document_uri = extract_document_uri(params);
     auto pos = extract_position(params);
 
-    auto resp = make_response(id, response_, [](sequence<char> hover_list_result) {
+    auto resp = make_response(id, response_, [](std::string_view hover_list_result) {
         std::string_view hover_list(hover_list_result);
         return nlohmann::json {
             { "contents", hover_list.empty() ? "" : get_markup_content(hover_list) },
         };
     });
-    ws_mngr_.hover(document_uri.c_str(), pos, resp);
+    ws_mngr_.hover(document_uri, pos, resp);
 
     response_->register_cancellable_request(id, std::move(resp));
 }
@@ -370,7 +370,7 @@ void feature_language_features::completion(const request_id& id, const nlohmann:
     auto resp = make_response(id, response_, [this](std::span<const completion_item> cl) {
         return translate_completion_list_and_save_doc(std::move(cl));
     });
-    ws_mngr_.completion(document_uri.c_str(), pos, trigger_char, trigger_kind, resp);
+    ws_mngr_.completion(document_uri, pos, trigger_char, trigger_kind, resp);
 
     response_->register_cancellable_request(id, std::move(resp));
 }
@@ -449,7 +449,7 @@ void add_token(nlohmann::json& encoded_tokens,
 }
 
 nlohmann::json feature_language_features::convert_tokens_to_num_array(
-    const std::vector<parser_library::token_info>& tokens)
+    std::span<const parser_library::token_info> tokens)
 {
     using namespace parser_library;
 
@@ -460,7 +460,7 @@ nlohmann::json feature_language_features::convert_tokens_to_num_array(
 
 
     range last_rng;
-    auto current = tokens.cbegin();
+    auto current = tokens.begin();
     auto next = current + 1;
 
     // In case of overlapping tokens, we need to remember, that there is a token in the background of currently
@@ -468,7 +468,7 @@ nlohmann::json feature_language_features::convert_tokens_to_num_array(
     // The size of stack will probably not exceed 1 with current grammar.
     std::stack<token_info> to_end;
 
-    while (next != tokens.cend() || !to_end.empty())
+    while (next != tokens.end() || !to_end.empty())
     {
         while (!to_end.empty())
         {
@@ -486,7 +486,7 @@ nlohmann::json feature_language_features::convert_tokens_to_num_array(
                 break;
         }
 
-        if (next == tokens.cend())
+        if (next == tokens.end())
             break;
 
 
@@ -495,17 +495,17 @@ nlohmann::json feature_language_features::convert_tokens_to_num_array(
             add_token(encoded_tokens,
                 token_info({ current->token_range.start, next->token_range.start }, current->scope),
                 last_rng,
-                current == tokens.cbegin());
+                current == tokens.begin());
             to_end.push(*current);
         }
         else
-            add_token(encoded_tokens, *current, last_rng, current == tokens.cbegin());
+            add_token(encoded_tokens, *current, last_rng, current == tokens.begin());
 
         current = next;
         ++next;
     }
 
-    add_token(encoded_tokens, *current, last_rng, current == tokens.cbegin());
+    add_token(encoded_tokens, *current, last_rng, current == tokens.begin());
     // End background tokens.
     while (!to_end.empty())
     {
@@ -524,12 +524,12 @@ void feature_language_features::semantic_tokens(const request_id& id, const nloh
 {
     auto document_uri = extract_document_uri(params);
 
-    auto resp = make_response(id, response_, [](continuous_sequence<token_info> token_list) {
+    auto resp = make_response(id, response_, [](std::span<const token_info> token_list) {
         return nlohmann::json {
-            { "data", convert_tokens_to_num_array(std::vector<parser_library::token_info>(std::move(token_list))) },
+            { "data", convert_tokens_to_num_array(token_list) },
         };
     });
-    ws_mngr_.semantic_tokens(document_uri.c_str(), resp);
+    ws_mngr_.semantic_tokens(document_uri, resp);
 
     response_->register_cancellable_request(id, std::move(resp));
 }
@@ -616,7 +616,7 @@ void feature_language_features::document_symbol(const request_id& id, const nloh
         return document_symbol_list_json(symbol_list);
     });
 
-    ws_mngr_.document_symbol(document_uri.c_str(), resp);
+    ws_mngr_.document_symbol(document_uri, resp);
 
     response_->register_cancellable_request(id, std::move(resp));
 }
@@ -698,7 +698,7 @@ void feature_language_features::opcode_suggestion(const request_id& id, const nl
         }
 
         using subrequest_t =
-            workspace_manager_response<continuous_sequence<hlasm_plugin::parser_library::opcode_suggestion>>;
+            workspace_manager_response<std::span<const hlasm_plugin::parser_library::opcode_suggestion>>;
         subrequest_t start_request(std::string opcode)
         {
             struct subrequest_t
@@ -708,7 +708,7 @@ void feature_language_features::opcode_suggestion(const request_id& id, const nl
 
                 void error(int ec, const char* error) const noexcept { m_self->error(ec, error); }
 
-                void provide(continuous_sequence<hlasm_plugin::parser_library::opcode_suggestion> opcode_suggestions)
+                void provide(std::span<const hlasm_plugin::parser_library::opcode_suggestion> opcode_suggestions)
                 {
                     if (opcode_suggestions.size() == 0)
                     {
@@ -719,7 +719,7 @@ void feature_language_features::opcode_suggestion(const request_id& id, const nl
                     for (const auto& s : opcode_suggestions)
                     {
                         result.push_back(nlohmann::json {
-                            { "opcode", std::string_view(s.opcode.data(), s.opcode.size()) },
+                            { "opcode", s.opcode },
                             { "distance", s.distance },
                         });
                     }
@@ -764,7 +764,7 @@ void feature_language_features::opcode_suggestion(const request_id& id, const nl
             auto op = opcode.get<std::string>();
 
             ws_mngr_.make_opcode_suggestion(
-                document_uri.c_str(), op.c_str(), extended, subrequests.emplace_back(composite->start_request(op)));
+                document_uri, op, extended, subrequests.emplace_back(composite->start_request(op)));
         }
 
         response_->register_cancellable_request(id, composite->get_invalidator(std::move(subrequests)));
@@ -781,7 +781,7 @@ void feature_language_features::branch_information(const request_id& id, const n
 {
     auto document_uri = extract_document_uri(params);
 
-    auto resp = make_response(id, response_, [](continuous_sequence<branch_info> branch_info_list) {
+    auto resp = make_response(id, response_, [](std::span<const branch_info> branch_info_list) {
         auto r = nlohmann::json::array();
         for (const auto& bi : branch_info_list)
         {
@@ -798,7 +798,7 @@ void feature_language_features::branch_information(const request_id& id, const n
         return r;
     });
 
-    ws_mngr_.branch_information(document_uri.c_str(), resp);
+    ws_mngr_.branch_information(document_uri, resp);
 
     response_->register_cancellable_request(id, std::move(resp));
 }
@@ -807,11 +807,11 @@ void feature_language_features::folding(const request_id& id, const nlohmann::js
 {
     auto document_uri = extract_document_uri(params);
 
-    auto resp = make_response(id, response_, [](continuous_sequence<folding_range> folding_range_list) {
+    auto resp = make_response(id, response_, [](std::span<const folding_range> folding_range_list) {
         return nlohmann::json(folding_range_list);
     });
 
-    ws_mngr_.folding(document_uri.c_str(), resp);
+    ws_mngr_.folding(document_uri, resp);
 
     response_->register_cancellable_request(id, std::move(resp));
 }
@@ -823,7 +823,7 @@ void feature_language_features::retrieve_outputs(const request_id& id, const nlo
     auto resp =
         make_response(id, response_, [](std::span<const output_line> outputs) { return nlohmann::json(outputs); });
 
-    ws_mngr_.retrieve_output(document_uri.c_str(), resp);
+    ws_mngr_.retrieve_output(document_uri, resp);
 
     response_->register_cancellable_request(id, std::move(resp));
 }

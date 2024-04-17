@@ -15,6 +15,7 @@
 #include "using.h"
 
 #include <bitset>
+#include <iterator>
 #include <limits>
 #include <span>
 

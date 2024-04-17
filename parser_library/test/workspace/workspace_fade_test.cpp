@@ -1277,9 +1277,9 @@ A        EXEC CICS ABEND ABCODE('1234')
          DFHECALL
          END)";
 
-    ws_mngr->did_open_file("test/library/test_wks/.hlasmplugin/pgm_conf.json", 1, pgm_conf.c_str(), pgm_conf.size());
-    ws_mngr->did_open_file("test/library/test_wks/.hlasmplugin/proc_grps.json", 1, proc_grps.c_str(), proc_grps.size());
-    ws_mngr->did_open_file("test/library/test_wks/file_1", 1, f1.c_str(), f1.size());
+    ws_mngr->did_open_file("test/library/test_wks/.hlasmplugin/pgm_conf.json", 1, pgm_conf);
+    ws_mngr->did_open_file("test/library/test_wks/.hlasmplugin/proc_grps.json", 1, proc_grps);
+    ws_mngr->did_open_file("test/library/test_wks/file_1", 1, f1);
     ws_mngr->idle_handler();
     EXPECT_TRUE(consumer.diags.empty());
     ASSERT_EQ(consumer.fms.size(), static_cast<size_t>(1));
@@ -1287,7 +1287,7 @@ A        EXEC CICS ABEND ABCODE('1234')
     EXPECT_EQ(consumer.fms[0].r, range(position(6, 9), position(6, 18)));
 
     std::vector<document_change> changes;
-    ws_mngr->did_change_file("test/library/test_wks/file_1", 2, changes.data(), 0);
+    ws_mngr->did_change_file("test/library/test_wks/file_1", 2, changes);
     ws_mngr->idle_handler();
     EXPECT_TRUE(consumer.diags.empty());
     ASSERT_EQ(consumer.fms.size(), static_cast<size_t>(1));
@@ -1295,8 +1295,8 @@ A        EXEC CICS ABEND ABCODE('1234')
     EXPECT_EQ(consumer.fms[0].r, range(position(6, 9), position(6, 18)));
 
     std::string new_f1_text = "A         EXEC  CICS   ABEND ABCODE('1234')\n";
-    changes.push_back(document_change({ { 6, 0 }, { 6, 43 } }, new_f1_text.c_str(), new_f1_text.size()));
-    ws_mngr->did_change_file("test/library/test_wks/file_1", 3, changes.data(), 1);
+    changes.push_back(document_change({ { 6, 0 }, { 6, 43 } }, new_f1_text));
+    ws_mngr->did_change_file("test/library/test_wks/file_1", 3, changes);
     ws_mngr->idle_handler();
     EXPECT_TRUE(consumer.diags.empty());
     ASSERT_EQ(consumer.fms.size(), static_cast<size_t>(1));
@@ -1304,7 +1304,7 @@ A        EXEC CICS ABEND ABCODE('1234')
     EXPECT_EQ(consumer.fms[0].r, range(position(6, 10), position(6, 20)));
 
     std::string f2 = "";
-    ws_mngr->did_open_file("test/library/test_wks/diff_file_2", 1, f2.c_str(), f2.size());
+    ws_mngr->did_open_file("test/library/test_wks/diff_file_2", 1, f2);
     ws_mngr->idle_handler();
     EXPECT_TRUE(consumer.diags.empty());
     ASSERT_EQ(consumer.fms.size(), static_cast<size_t>(1));
@@ -1313,8 +1313,8 @@ A        EXEC CICS ABEND ABCODE('1234')
 
     new_f1_text = "*A         EXEC  CICS   ABEND ABCODE('1234')\n";
     changes.clear();
-    changes.push_back(document_change({ { 6, 0 }, { 6, 44 } }, new_f1_text.c_str(), new_f1_text.size()));
-    ws_mngr->did_change_file("test/library/test_wks/file_1", 4, changes.data(), 1);
+    changes.push_back(document_change({ { 6, 0 }, { 6, 44 } }, new_f1_text));
+    ws_mngr->did_change_file("test/library/test_wks/file_1", 4, changes);
     ws_mngr->idle_handler();
     EXPECT_TRUE(consumer.diags.empty());
     EXPECT_TRUE(consumer.fms.empty());
@@ -1327,8 +1327,8 @@ A        EXEC CICS ABEND ABCODE('1234')
          DFHECALL
          END)";
     changes.clear();
-    changes.push_back(document_change(new_f1_text.c_str(), new_f1_text.size()));
-    ws_mngr->did_change_file("test/library/test_wks/file_1", 5, changes.data(), 1);
+    changes.push_back(document_change(new_f1_text));
+    ws_mngr->did_change_file("test/library/test_wks/file_1", 5, changes);
     ws_mngr->idle_handler();
     EXPECT_TRUE(consumer.diags.empty());
     EXPECT_TRUE(consumer.fms.empty());

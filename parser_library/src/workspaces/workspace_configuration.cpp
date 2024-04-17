@@ -983,11 +983,11 @@ utils::value_task<utils::resource::resource_location> workspace_configuration::l
         struct resp
         {
             std::variant<int, std::string> result;
-            void provide(sequence<char> c) { result = std::string(c); }
+            void provide(std::string_view c) { result = std::string(c); }
             void error(int err, const char*) noexcept { result = err; }
         };
         auto [c, i] = make_workspace_manager_response(std::in_place_type<resp>);
-        m_external_configuration_requests->read_external_configuration(sequence<char>(rl.get_uri()), c);
+        m_external_configuration_requests->read_external_configuration(rl.get_uri(), c);
 
         auto json_data = co_await utils::async_busy_wait(std::move(c), &i->result);
         if (std::holds_alternative<std::string>(json_data))
