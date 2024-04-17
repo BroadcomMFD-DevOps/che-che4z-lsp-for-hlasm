@@ -187,6 +187,6 @@ TEST(item_convertors, using_hover_text)
         EXPECT_EQ(out, expected);
     }
 
-    EXPECT_EQ(lsp::hover_text({}), "");
+    EXPECT_EQ(lsp::hover_text(std::span<const context::using_context_description>()), "");
     EXPECT_EQ(lsp::hover_text(std::span(&input.front().first, 1)), "Active USINGs: **A**+X'5'(X'3'),R1,R2\n");
 }
