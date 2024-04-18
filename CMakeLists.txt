@@ -142,5 +142,6 @@ endif()
 install(TARGETS
     hlasm_language_server
     parser_library
+    hlasm_utils
     FILE_SET public_headers
 )
