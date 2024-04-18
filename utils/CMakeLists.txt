@@ -20,7 +20,7 @@ add_subdirectory(include)
 add_subdirectory(src)
 
 # link executable with libraries
-target_link_libraries(hlasm_utils network-uri)
+target_link_libraries(hlasm_utils PRIVATE network-uri)
 
 if(BUILD_TESTING)
     add_subdirectory(test)
