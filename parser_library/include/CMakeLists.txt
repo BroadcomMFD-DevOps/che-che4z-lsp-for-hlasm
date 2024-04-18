@@ -12,7 +12,7 @@
 #
 
 target_sources(parser_library PUBLIC
-    FILE_SET HEADERS FILES
+    FILE_SET public_headers TYPE HEADERS FILES
     analyzing_context.h
     analyzer.h
     branch_info.h
