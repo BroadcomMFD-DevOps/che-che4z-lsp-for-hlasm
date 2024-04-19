@@ -50,14 +50,16 @@ analyzing_context create_analyzing_context(std::string file_name, std::shared_pt
 
 auto parse_dependency(std::shared_ptr<file> f, analyzing_context ctx, processing::processing_kind proc_kind)
 {
+    auto filename = f->get_location().filename();
+    auto filename_id = ctx.hlasm_ctx->ids().add(filename);
     std::pair result {
         std::make_unique<analyzer>(f->get_text(),
             analyzer_options {
                 f->get_location(),
                 std::move(ctx),
-                analyzer_options::dependency(f->get_location().filename(), proc_kind),
+                analyzer_options::dependency(std::move(filename), proc_kind),
             }),
-        std::pair { proc_kind, ctx.hlasm_ctx->ids().add(f->get_location().filename()) },
+        std::pair { proc_kind, std::move(filename_id) },
     };
 
     result.first->analyze();
