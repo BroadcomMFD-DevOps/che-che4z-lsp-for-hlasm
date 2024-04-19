@@ -26,6 +26,8 @@ add_library(parser_library STATIC)
 add_subdirectory(src)
 add_subdirectory(include)
 
+set_property(TARGET parser_library PROPERTY VERIFY_INTERFACE_HEADER_SETS ON)
+
 target_include_directories(parser_library
     PUBLIC
     include

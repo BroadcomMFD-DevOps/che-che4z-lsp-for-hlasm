@@ -247,6 +247,10 @@ jobs:
       - name: Build
         run: cmake --build . $([ -f ../scripts/build-extra.${{ matrix.native }}.conf ] && cat ../scripts/build-extra.${{ matrix.native }}.conf || true)
         working-directory: build
+      - name: Verify headers
+        if: ${{ matrix.native != 'wasm' }}
+        run: cmake --build . --tagert parser_library_verify_interface_header_sets hlasm_utils_verify_interface_header_sets
+        working-directory: build
       - name: Server Test
         if: ${{ !matrix.skip-test }}
         run: |

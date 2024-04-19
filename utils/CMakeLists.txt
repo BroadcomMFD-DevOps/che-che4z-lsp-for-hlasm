@@ -19,6 +19,8 @@ target_include_directories(hlasm_utils PUBLIC include)
 add_subdirectory(include)
 add_subdirectory(src)
 
+set_property(TARGET hlasm_utils PROPERTY VERIFY_INTERFACE_HEADER_SETS ON)
+
 # link executable with libraries
 target_link_libraries(hlasm_utils PRIVATE network-uri)
 
