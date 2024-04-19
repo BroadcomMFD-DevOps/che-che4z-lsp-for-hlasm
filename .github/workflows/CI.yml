@@ -196,7 +196,7 @@ jobs:
         include:
           - os: ubuntu-22.04
             native: linux_x64
-            container: alpine:3.16
+            container: alpine:3.19
             dbg-strip: objcopy --only-keep-debug hlasm_language_server hlasm_language_server.dbg && objcopy --strip-unneeded hlasm_language_server && objcopy --add-gnu-debuglink=hlasm_language_server.dbg hlasm_language_server
             dbg-pattern: build/bin/hlasm_language_server.dbg
           - os: ubuntu-22.04
