@@ -249,7 +249,7 @@ jobs:
         working-directory: build
       - name: Verify headers
         if: ${{ matrix.native != 'wasm' }}
-        run: cmake --build . --tagert parser_library_verify_interface_header_sets hlasm_utils_verify_interface_header_sets
+        run: cmake --build . --target parser_library_verify_interface_header_sets hlasm_utils_verify_interface_header_sets
         working-directory: build
       - name: Server Test
         if: ${{ !matrix.skip-test }}
