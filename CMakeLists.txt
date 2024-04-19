@@ -143,5 +143,7 @@ install(TARGETS
     hlasm_language_server
     parser_library
     hlasm_utils
+    ${ANTLR4_RUNTIME}
+    network-uri
     FILE_SET public_headers
 )
