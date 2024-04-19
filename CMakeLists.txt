@@ -127,17 +127,7 @@ if(BUILD_VSIX)
   add_subdirectory(clients)
 endif()
 
-
-
 # Installation
-
-if(CMAKE_SYSTEM_NAME MATCHES "Linux")
-    set(EXECUTABLE "")
-    set(LIBRARY ".so")
-elseif(CMAKE_SYSTEM_NAME MATCHES "Windows")
-    set(EXECUTABLE ".exe")
-    set(LIBRARY ".dll")
-endif()
 
 install(TARGETS
     hlasm_language_server
