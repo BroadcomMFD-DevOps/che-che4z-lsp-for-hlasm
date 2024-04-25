@@ -10,7 +10,7 @@
 # Contributors:
 #   Broadcom, Inc. - initial API and implementation
 
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.23)
 set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
 set(CMAKE_POLICY_DEFAULT_CMP0135 NEW)
 
