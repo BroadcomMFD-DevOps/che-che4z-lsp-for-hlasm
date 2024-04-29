@@ -78,14 +78,25 @@ enum class machine_operand_type : uint8_t
     RELOC_IMM,
 };
 
+enum class even_odd_register : uint8_t
+{
+    NONE,
+    ODD,
+    EVEN,
+};
+
 // Describes a component of machine operand format. Specifies allowed values.
 struct parameter
 {
-    bool is_signed;
-    uint8_t size;
-    machine_operand_type type;
+    bool is_signed : 1;
+    uint8_t size : 7;
+    machine_operand_type type : 4;
+    even_odd_register evenodd : 2;
 
-    constexpr bool is_empty() const { return (!is_signed && type == machine_operand_type::NONE && size == 0); }
+    constexpr bool is_empty() const
+    {
+        return !is_signed && type == machine_operand_type::NONE && size == 0 && evenodd == even_odd_register::NONE;
+    }
 
     bool operator==(const parameter&) const = default;
 

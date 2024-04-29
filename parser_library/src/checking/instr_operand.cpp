@@ -51,6 +51,21 @@ bool machine_operand::is_size_corresponding_unsigned(int operand, int size)
     return operand >= 0 && operand <= (1ll << size) - 1;
 }
 
+namespace {
+bool check_value_parity(int operand, even_odd_register reg)
+{
+    switch (reg)
+    {
+        case even_odd_register::NONE:
+            return true;
+        case even_odd_register::ODD:
+            return !!(operand & 1);
+        case even_odd_register::EVEN:
+            return !(operand & 1);
+    }
+}
+} // namespace
+
 bool machine_operand::is_simple_operand(const machine_operand_format& operand)
 {
     return (operand.first.is_signed == false && operand.first.size == 0 && operand.second.is_signed == false
@@ -303,13 +318,16 @@ bool one_operand::check(
         }
         return false;
     }
-    if (!to_check.identifier.is_signed && !is_size_corresponding_unsigned(value, to_check.identifier.size))
+    if (!to_check.identifier.is_signed
+        && (!is_size_corresponding_unsigned(value, to_check.identifier.size)
+            || !check_value_parity(value, to_check.identifier.evenodd)))
     {
         auto boundary = (1ll << to_check.identifier.size) - 1;
+        static constexpr std::string_view reg_qual[] = { "", "odd", "even" };
         switch (to_check.identifier.type)
         {
             case machine_operand_type::REG:
-                diag = diagnostic_op::error_M120(instr_name, operand_range);
+                diag = diagnostic_op::error_M120(instr_name, operand_range, reg_qual[(int)to_check.identifier.evenodd]);
                 break;
             case machine_operand_type::MASK:
                 diag = diagnostic_op::error_M121(instr_name, operand_range);
@@ -318,7 +336,7 @@ bool one_operand::check(
                 diag = diagnostic_op::warn_M137(instr_name, 0, boundary, operand_range);
                 break;
             case machine_operand_type::VEC_REG:
-                diag = diagnostic_op::error_M124(instr_name, operand_range);
+                diag = diagnostic_op::error_M124(instr_name, operand_range, reg_qual[(int)to_check.identifier.evenodd]);
                 break;
             default:
                 assert(false);
