@@ -502,7 +502,8 @@ struct diagnostic_op
 
     static diagnostic_op error_M114(std::string_view instr_name, const range& range);
 
-    static diagnostic_op error_M120(std::string_view instr_name, const range& range, std::string_view qual = "");
+    static diagnostic_op error_M120(
+        std::string_view instr_name, const range& range, std::string_view qual = "", int min_value = 0);
 
     static diagnostic_op error_M121(std::string_view instr_name, const range& range);
 
@@ -510,7 +511,7 @@ struct diagnostic_op
 
     static diagnostic_op error_M123(std::string_view instr_name, long long from, long long to, const range& range);
 
-    static diagnostic_op error_M124(std::string_view instr_name, const range& range, std::string_view qual = "");
+    static diagnostic_op error_M124(std::string_view instr_name, const range& range);
 
     static diagnostic_op error_M130(std::string_view instr_name, long long from, long long to, const range& range);
 

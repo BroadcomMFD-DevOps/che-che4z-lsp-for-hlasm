@@ -1383,7 +1383,8 @@ diagnostic_op diagnostic_op::error_M114(std::string_view instr_name, const range
         range);
 }
 
-diagnostic_op diagnostic_op::error_M120(std::string_view instr_name, const range& range, std::string_view qual)
+diagnostic_op diagnostic_op::error_M120(
+    std::string_view instr_name, const range& range, std::string_view qual, int min_value)
 {
     return diagnostic_op(diagnostic_severity::error,
         "M120",
@@ -1392,7 +1393,9 @@ diagnostic_op diagnostic_op::error_M120(std::string_view instr_name, const range
             " instruction: register operand ",
             qual,
             std::string_view(" ", +!qual.empty()),
-            "absolute value must be between 0 and 15"),
+            "absolute value must be between ",
+            std::to_string(min_value),
+            " and 15"),
         range);
 }
 
@@ -1430,16 +1433,12 @@ diagnostic_op diagnostic_op::error_M123(std::string_view instr_name, long long f
         range);
 }
 
-diagnostic_op diagnostic_op::error_M124(std::string_view instr_name, const range& range, std::string_view qual)
+diagnostic_op diagnostic_op::error_M124(std::string_view instr_name, const range& range)
 {
     return diagnostic_op(diagnostic_severity::error,
         "M124",
-        concat("Error at ",
-            instr_name,
-            " instruction: vector register operand ",
-            qual,
-            std::string_view(" ", +!qual.empty()),
-            "absolute value must be between 0 and 31"),
+        concat(
+            "Error at ", instr_name, " instruction: vector register operand absolute value must be between 0 and 31"),
         range);
 }
 

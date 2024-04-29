@@ -320,14 +320,17 @@ bool one_operand::check(
     }
     if (!to_check.identifier.is_signed
         && (!is_size_corresponding_unsigned(value, to_check.identifier.size)
-            || !check_value_parity(value, to_check.identifier.evenodd)))
+            || !check_value_parity(value, to_check.identifier.evenodd) || value < to_check.identifier.min_register))
     {
         auto boundary = (1ll << to_check.identifier.size) - 1;
         static constexpr std::string_view reg_qual[] = { "", "odd", "even" };
         switch (to_check.identifier.type)
         {
             case machine_operand_type::REG:
-                diag = diagnostic_op::error_M120(instr_name, operand_range, reg_qual[(int)to_check.identifier.evenodd]);
+                diag = diagnostic_op::error_M120(instr_name,
+                    operand_range,
+                    reg_qual[(int)to_check.identifier.evenodd],
+                    to_check.identifier.min_register);
                 break;
             case machine_operand_type::MASK:
                 diag = diagnostic_op::error_M121(instr_name, operand_range);
@@ -336,7 +339,7 @@ bool one_operand::check(
                 diag = diagnostic_op::warn_M137(instr_name, 0, boundary, operand_range);
                 break;
             case machine_operand_type::VEC_REG:
-                diag = diagnostic_op::error_M124(instr_name, operand_range, reg_qual[(int)to_check.identifier.evenodd]);
+                diag = diagnostic_op::error_M124(instr_name, operand_range);
                 break;
             default:
                 assert(false);
