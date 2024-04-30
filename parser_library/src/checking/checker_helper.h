@@ -66,8 +66,6 @@ inline bool has_all_digits(std::string_view str)
     return std::all_of(str.begin(), str.end(), [](unsigned char c) { return std::isdigit(c); });
 }
 
-inline bool is_positive_number(int to_test) { return to_test > 0; }
-
 // function to convert numbers less than 64000 to hexadecimal
 inline std::string dec_to_hexa(int to_convert)
 {

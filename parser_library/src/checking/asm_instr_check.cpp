@@ -951,7 +951,7 @@ bool expression_instruction::check(
         add_diagnostic(diagnostic_op::error_A240_expression_format(name_of_instruction, to_check[0]->operand_range));
         return false;
     }
-    if (first->is_default || !is_positive_number(first->value))
+    if (first->is_default || first->value <= 0)
     {
         add_diagnostic(diagnostic_op::error_A148_EXPR_op_format(name_of_instruction, first->operand_range));
         return false;
@@ -1052,7 +1052,7 @@ bool cattr::check(
             else if (complex_op->operand_identifier == "PRIORITY")
             {
                 if (parameter == nullptr || !has_all_digits(parameter->operand_identifier) || parameter->is_default
-                    || !is_positive_number(parameter->value))
+                    || parameter->value <= 0)
                 {
                     add_diagnostic(diagnostic_op::error_A208_PRIORITY_param_format(
                         name_of_instruction, complex_op->operand_parameters[0]->operand_range));
