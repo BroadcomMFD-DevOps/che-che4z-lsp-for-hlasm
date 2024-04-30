@@ -151,7 +151,7 @@ TEST(workspace_manager, extended_scheme_allowed_list)
 
     ws_mngr->idle_handler();
 
-    EXPECT_TRUE(matches_message_codes(diags.diags, { "SUP" })); // quiet workspace
+    EXPECT_TRUE(matches_message_codes(diags.diags, { "SUP" })); // quiet due to allow list
     EXPECT_FALSE(called);
 
     ws_mngr->did_close_file(uri);
@@ -162,7 +162,7 @@ TEST(workspace_manager, extended_scheme_allowed_list)
 
     ws_mngr->idle_handler();
 
-    EXPECT_FALSE(contains_message_codes(diags.diags, { "SUP" })); // implicit workspace
+    EXPECT_FALSE(contains_message_codes(diags.diags, { "SUP" })); // no longer quiet
     EXPECT_FALSE(diags.diags.empty()); // not suppressed
     EXPECT_TRUE(called);
 }
