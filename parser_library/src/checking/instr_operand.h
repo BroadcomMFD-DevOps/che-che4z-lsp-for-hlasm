@@ -94,13 +94,9 @@ struct parameter
     even_odd_register evenodd : 2 = even_odd_register::NONE;
     uint8_t min_register : 2 = 0;
 
-    constexpr bool is_empty() const
-    {
-        return !is_signed && type == machine_operand_type::NONE && size == 0 && evenodd == even_odd_register::NONE
-            && min_register == 0;
-    }
-
     bool operator==(const parameter&) const = default;
+
+    constexpr bool is_empty() const { return *this == parameter {}; }
 
     std::string to_string() const;
 };
