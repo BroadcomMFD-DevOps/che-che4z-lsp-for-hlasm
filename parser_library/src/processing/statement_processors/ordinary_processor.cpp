@@ -478,7 +478,8 @@ bool transform_default(std::vector<checking::check_op_ptr>& result,
 void ordinary_processor::check_postponed_statements(
     const std::vector<std::pair<context::post_stmt_ptr, context::dependency_evaluation_context>>& stmts)
 {
-    std::vector<const checking::operand*> operand_ptr_vector;
+    std::vector<const checking::asm_operand*> operand_asm_vector;
+    std::vector<const checking::machine_operand*> operand_mach_vector;
     std::vector<checking::check_op_ptr> operand_vector;
 
     for (const auto& [stmt, dep_ctx] : stmts)
@@ -491,7 +492,6 @@ void ordinary_processor::check_postponed_statements(
         const auto* rs = stmt->resolved_stmt();
         diagnostic_collector collector(this, stmt->location_stack());
 
-        operand_ptr_vector.clear();
         operand_vector.clear();
 
         std::string_view instruction_name = rs->opcode_ref().value.to_string_view();
@@ -507,19 +507,20 @@ void ordinary_processor::check_postponed_statements(
                 continue;
         }
 
-        for (const auto& op : operand_vector)
-            operand_ptr_vector.push_back(op.get());
-
         switch (const auto& opcode = rs->opcode_ref(); opcode.type)
         {
             case hlasm_plugin::parser_library::context::instruction_type::MACH:
-                checking::check_mach_ops(
-                    instruction_name, operand_ptr_vector, rs->stmt_range_ref(), collector);
+                operand_mach_vector.clear();
+                for (const auto& op : operand_vector)
+                    operand_mach_vector.push_back(dynamic_cast<const checking::machine_operand*>(op.get()));
+                checking::check_mach_ops(instruction_name, operand_mach_vector, rs->stmt_range_ref(), collector);
                 break;
 
             case hlasm_plugin::parser_library::context::instruction_type::ASM:
-                checking::check_mach_ops(
-                    instruction_name, operand_ptr_vector, rs->stmt_range_ref(), collector);
+                operand_asm_vector.clear();
+                for (const auto& op : operand_vector)
+                    operand_asm_vector.push_back(dynamic_cast<const checking::asm_operand*>(op.get()));
+                checking::check_asm_ops(instruction_name, operand_asm_vector, rs->stmt_range_ref(), collector);
                 break;
 
             default:

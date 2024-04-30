@@ -12,6 +12,8 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
+#include <span>
+
 #include "../../common_testing.h"
 #include "data_definition_common.h"
 
@@ -27,7 +29,9 @@ TEST(data_def_checker, unknown_type)
 
     diag_collector col;
 
-    EXPECT_FALSE(d.check({ &op }, {}, ADD_DIAG(col)));
+    const checking::asm_operand* ops[] = { &op };
+
+    EXPECT_FALSE(d.check(std::span(ops), {}, ADD_DIAG(col)));
     EXPECT_TRUE(matches_message_codes(col.diags(), { "D012" }));
 }
 
@@ -38,7 +42,8 @@ TEST(data_def_checker, unknown_extension)
     diag_collector col;
 
     data_definition_operand op = setup_data_def_op('B', 'A', "");
-    EXPECT_FALSE(d.check({ &op }, {}, ADD_DIAG(col)));
+    const checking::asm_operand* ops[] = { &op };
+    EXPECT_FALSE(d.check(std::span(ops), {}, ADD_DIAG(col)));
     EXPECT_TRUE(matches_message_codes(col.diags(), { "D013" }));
 }
 
@@ -50,8 +55,9 @@ TEST(data_def_checker, operands_too_long)
 
     data_definition_operand op = setup_data_def_op('C', '\0', 1);
     op.dupl_factor = 1 << 30;
+    const checking::asm_operand* ops[] = { &op, &op };
 
-    EXPECT_FALSE(d.check({ &op, &op }, {}, ADD_DIAG(col)));
+    EXPECT_FALSE(d.check(std::span(ops), {}, ADD_DIAG(col)));
     EXPECT_TRUE(matches_message_codes(col.diags(), { "D029" }));
 }
 

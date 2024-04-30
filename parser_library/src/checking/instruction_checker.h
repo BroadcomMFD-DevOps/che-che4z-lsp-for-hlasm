@@ -15,8 +15,8 @@
 #ifndef HLASMPLUGIN_PARSERLIBRARY_INSTRUCTION_CHECKER_H
 #define HLASMPLUGIN_PARSERLIBRARY_INSTRUCTION_CHECKER_H
 
+#include <span>
 #include <string_view>
-#include <vector>
 
 namespace hlasm_plugin::parser_library {
 class diagnostic_collector;
@@ -24,15 +24,16 @@ struct range;
 } // namespace hlasm_plugin::parser_library
 
 namespace hlasm_plugin::parser_library::checking {
-class operand;
+class asm_operand;
+class machine_operand;
 
 bool check_asm_ops(std::string_view instruction_name,
-    const std::vector<const operand*>& operand_vector,
+    std::span<const asm_operand*> operand_vector,
     const range& stmt_range,
     const diagnostic_collector& add_diagnostic);
 
 bool check_mach_ops(std::string_view instruction_name,
-    const std::vector<const operand*>& operand_vector,
+    std::span<const machine_operand*> operand_vector,
     const range& stmt_range,
     const diagnostic_collector& add_diagnostic);
 

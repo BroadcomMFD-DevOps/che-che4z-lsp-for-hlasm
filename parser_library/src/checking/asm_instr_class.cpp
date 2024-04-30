@@ -31,9 +31,8 @@ bool assembler_instruction::is_param_in_vector(
     return std::find(options.cbegin(), options.cend(), parameter) != options.cend();
 }
 
-bool assembler_instruction::operands_size_corresponding(const std::vector<const asm_operand*>& to_check,
-    const range& stmt_range,
-    const diagnostic_collector& add_diagnostic) const
+bool assembler_instruction::operands_size_corresponding(
+    std::span<const asm_operand*> to_check, const range& stmt_range, const diagnostic_collector& add_diagnostic) const
 {
     if ((int)to_check.size() >= min_operands && ((int)to_check.size() <= max_operands || max_operands == -1))
         return true;

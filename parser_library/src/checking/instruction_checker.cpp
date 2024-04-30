@@ -99,7 +99,7 @@ const std::unordered_map<std::string_view, std::unique_ptr<assembler_instruction
 } // namespace
 
 bool check_asm_ops(std::string_view instruction_name,
-    const std::vector<const operand*>& operand_vector,
+    std::span<const asm_operand*> ops,
     const range& stmt_range,
     const diagnostic_collector& add_diagnostic)
 {
@@ -107,22 +107,14 @@ bool check_asm_ops(std::string_view instruction_name,
     if (it == assembler_instruction_map.end())
         return false;
 
-    std::vector<const asm_operand*> ops;
-    for (auto& op : operand_vector)
-        ops.push_back(dynamic_cast<const asm_operand*>(op));
     return it->second->check(ops, stmt_range, add_diagnostic);
 }
 
 bool check_mach_ops(std::string_view instruction_name,
-    const std::vector<const operand*>& operand_vector,
+    std::span<const machine_operand*> ops,
     const range& stmt_range,
     const diagnostic_collector& add_diagnostic)
 {
-    // get operands
-    std::vector<const machine_operand*> ops;
-    for (auto& op : operand_vector)
-        ops.push_back(dynamic_cast<const machine_operand*>(op));
-
     // instruction name is the mnemonic name in case of a mnemonic instruction
 
     auto [mi, _] = context::instruction::find_machine_instruction_or_mnemonic(instruction_name);
