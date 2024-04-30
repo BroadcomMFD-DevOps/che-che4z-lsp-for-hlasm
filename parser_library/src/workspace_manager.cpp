@@ -30,6 +30,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "completion_item.h"
@@ -805,14 +806,15 @@ private:
     {
         collect_diags_from_child(m_implicit_workspace.ws);
 
-        std::vector<std::string> suppress_files;
+        std::unordered_set<std::string> suppress_files;
         std::erase_if(diags(), [this, &suppress_files](const auto& d) {
-            return !allowed_scheme(d.file_uri) && (suppress_files.emplace_back(d.file_uri), true);
+            return !allowed_scheme(d.file_uri) && (suppress_files.emplace(d.file_uri), true);
         });
-        std::sort(suppress_files.begin(), suppress_files.end());
-        suppress_files.erase(std::unique(suppress_files.begin(), suppress_files.end()), suppress_files.end());
-        for (auto& f : suppress_files)
-            diags().emplace_back(info_SUP(utils::resource::resource_location(std::move(f))));
+        for (auto it = suppress_files.begin(); it != suppress_files.end();)
+        {
+            auto node = suppress_files.extract(it++);
+            diags().emplace_back(info_SUP(utils::resource::resource_location(std::move(node.value()))));
+        }
 
         for (auto& it : m_workspaces)
             collect_diags_from_child(it.second.ws);
