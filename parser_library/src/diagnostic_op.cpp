@@ -1390,10 +1390,10 @@ diagnostic_op diagnostic_op::error_M120(
         "M120",
         concat("Error at ",
             instr_name,
-            " instruction: register operand ",
+            " instruction: register operand absolute value must be ",
             qual,
             std::string_view(" ", +!qual.empty()),
-            "absolute value must be between ",
+            "between ",
             std::to_string(min_value),
             " and 15"),
         range);
