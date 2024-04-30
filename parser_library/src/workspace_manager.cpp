@@ -63,7 +63,7 @@ namespace hlasm_plugin::parser_library {
 
 class workspace_manager_impl final : public workspace_manager,
                                      debugger_configuration_provider,
-                                     public diagnosable_impl,
+                                     diagnosable_impl,
                                      workspaces::external_file_reader,
                                      external_configuration_requests
 {
@@ -96,7 +96,6 @@ public:
         : m_external_file_requests(external_file_requests)
         , m_file_manager(*this)
         , m_implicit_workspace(m_file_manager, m_global_config, this)
-        , m_quiet_implicit_workspace(m_file_manager, supress_all, this)
         , m_vscode_extensions(vscode_extensions)
     {}
     workspace_manager_impl(const workspace_manager_impl&) = delete;
@@ -132,10 +131,11 @@ public:
         std::begin(default_allowed_schemes),
         std::end(default_allowed_schemes),
     };
-    bool allowed_scheme(const resource_location& uri) const noexcept
+    bool allowed_scheme(std::string_view uri) const noexcept
     {
-        return std::binary_search(allowed_schemes.begin(), allowed_schemes.end(), extract_scheme(uri.get_uri()));
+        return std::binary_search(allowed_schemes.begin(), allowed_schemes.end(), extract_scheme(uri));
     }
+    bool allowed_scheme(const resource_location& uri) const noexcept { return allowed_scheme(uri.get_uri()); }
 
     auto ws_path_match_impl(auto& self, std::string_view unnormalized_uri) const
     {
@@ -172,10 +172,8 @@ public:
 
         if (max_ows != nullptr)
             return std::pair(max_ows, std::move(uri));
-        else if (allowed_scheme(uri))
-            return std::pair(&self.m_implicit_workspace, std::move(uri));
         else
-            return std::pair(&self.m_quiet_implicit_workspace, std::move(uri));
+            return std::pair(&self.m_implicit_workspace, std::move(uri));
     }
 
     // returns implicit workspace, if the file does not belong to any workspace
@@ -374,7 +372,6 @@ public:
             r.second |= n.second;
         };
         auto result = run_parse_loop(m_implicit_workspace, yield_indicator);
-        combine(result, run_parse_loop(m_quiet_implicit_workspace, yield_indicator));
         for (auto& [_, ows] : m_workspaces)
             combine(result, run_parse_loop(ows, yield_indicator));
 
@@ -807,7 +804,16 @@ private:
     void collect_diags() const override
     {
         collect_diags_from_child(m_implicit_workspace.ws);
-        collect_diags_from_child(m_quiet_implicit_workspace.ws);
+
+        std::vector<std::string> suppress_files;
+        std::erase_if(diags(), [this, &suppress_files](const auto& d) {
+            return !allowed_scheme(d.file_uri) && (suppress_files.emplace_back(d.file_uri), true);
+        });
+        std::sort(suppress_files.begin(), suppress_files.end());
+        suppress_files.erase(std::unique(suppress_files.begin(), suppress_files.end()), suppress_files.end());
+        for (auto& f : suppress_files)
+            diags().emplace_back(info_SUP(utils::resource::resource_location(std::move(f))));
+
         for (auto& it : m_workspaces)
             collect_diags_from_child(it.second.ws);
     }
@@ -839,7 +845,6 @@ private:
 
         m_fade_messages.clear();
         m_implicit_workspace.ws.retrieve_fade_messages(m_fade_messages);
-        m_quiet_implicit_workspace.ws.retrieve_fade_messages(m_fade_messages);
         for (const auto& [_, ows] : m_workspaces)
             ows.ws.retrieve_fade_messages(m_fade_messages);
 
@@ -990,7 +995,6 @@ private:
 
     std::unordered_map<resource_location, opened_workspace, utils::resource::resource_location_hasher> m_workspaces;
     opened_workspace m_implicit_workspace;
-    opened_workspace m_quiet_implicit_workspace;
     bool m_vscode_extensions;
 
     std::vector<diagnostics_consumer*> m_diag_consumers;
@@ -1124,7 +1128,6 @@ private:
             for (auto& [_, ows] : m_workspaces)
                 ows.ws.invalidate_external_configuration(res);
             m_implicit_workspace.ws.invalidate_external_configuration(res);
-            m_quiet_implicit_workspace.ws.invalidate_external_configuration(res);
         }
         else
         {
