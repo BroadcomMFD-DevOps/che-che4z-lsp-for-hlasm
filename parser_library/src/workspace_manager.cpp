@@ -26,6 +26,7 @@
 #include <limits>
 #include <optional>
 #include <set>
+#include <span>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -106,29 +107,37 @@ public:
 
 
     static constexpr std::string_view hlasm_external_scheme = "hlasm-external:";
-    static constexpr std::string_view allowed_scheme_list[] = {
-        "file:",
-        "untitled:",
-        hlasm_external_scheme,
-        "vscode-vfs:",
-        "vscode-test-web:",
+    static constexpr std::string_view default_allowed_schemes[] = {
         // e4e integration
+        "e4e-change-lvl:",
         "e4e-element:",
         "e4e-listing:",
-        "e4e-change-lvl:",
-        "e4e-readonly-file:",
         "e4e-read-only-cached-element:",
-        "e4e-readonly-report:",
+        "e4e-readonly-file:",
         "e4e-readonly-generic-report:",
+        "e4e-readonly-report:",
+
+        "file:",
+        hlasm_external_scheme,
+
+        // e4e integration
         "ndvr:",
+
+        "untitled:",
+        "vscode-test-web:",
+        "vscode-vfs:",
     };
-    static bool allowed_scheme(const resource_location& uri)
+    static_assert(std::is_sorted(std::begin(default_allowed_schemes), std::end(default_allowed_schemes)));
+    std::vector<std::string> allowed_schemes = {
+        std::begin(default_allowed_schemes),
+        std::end(default_allowed_schemes),
+    };
+    bool allowed_scheme(const resource_location& uri) const noexcept
     {
-        const auto matches_scheme = [&u = uri.get_uri()](const auto& p) { return u.starts_with(p); };
-        return std::any_of(std::begin(allowed_scheme_list), std::end(allowed_scheme_list), matches_scheme);
+        return std::binary_search(allowed_schemes.begin(), allowed_schemes.end(), extract_scheme(uri.get_uri()));
     }
 
-    static auto ws_path_match(auto& self, std::string_view unnormalized_uri)
+    auto ws_path_match_impl(auto& self, std::string_view unnormalized_uri) const
     {
         auto uri = resource_location(unnormalized_uri).lexically_normal();
         if (auto hlasm_id = extract_hlasm_id(uri.get_uri()); hlasm_id.has_value())
@@ -170,8 +179,8 @@ public:
     }
 
     // returns implicit workspace, if the file does not belong to any workspace
-    auto ws_path_match(std::string_view document_uri) { return ws_path_match(*this, document_uri); }
-    auto ws_path_match(std::string_view document_uri) const { return ws_path_match(*this, document_uri); }
+    auto ws_path_match(std::string_view document_uri) { return ws_path_match_impl(*this, document_uri); }
+    auto ws_path_match(std::string_view document_uri) const { return ws_path_match_impl(*this, document_uri); }
 
     enum class work_item_type
     {
@@ -991,6 +1000,22 @@ private:
     std::vector<fade_message> m_fade_messages;
     unsigned long long m_unique_id_sequence = 0;
 
+    static std::string extract_scheme(std::string_view uri) { return std::string(uri.substr(0, uri.find(':') + 1)); }
+    void recompute_allow_list()
+    {
+        allowed_schemes.assign(std::begin(default_allowed_schemes), std::end(default_allowed_schemes));
+        for (const auto& [uri, _] : m_workspaces)
+        {
+            auto scheme = extract_scheme(uri.get_uri());
+            if (scheme.empty())
+                continue;
+            allowed_schemes.emplace_back(std::move(scheme));
+        }
+        std::sort(allowed_schemes.begin(), allowed_schemes.end());
+        auto new_end = std::unique(allowed_schemes.begin(), allowed_schemes.end());
+        allowed_schemes.erase(new_end, allowed_schemes.end());
+    }
+
     void add_workspace(std::string_view name, std::string_view uri) override
     {
         auto normalized_uri = resource_location(uri).lexically_normal();
@@ -1004,6 +1029,8 @@ private:
                         .first->second;
         ows.ws.set_message_consumer(m_message_consumer);
         ows.ws.include_advisory_configuration_diagnostics(m_include_advisory_cfg_diags);
+
+        recompute_allow_list();
 
         auto& new_workspace = m_work_queue.emplace_back(work_item {
             next_unique_id(),
@@ -1040,6 +1067,9 @@ private:
             m_active_task = {};
 
         m_workspaces.erase(it);
+
+        recompute_allow_list();
+
         notify_diagnostics_consumers();
     }
 
