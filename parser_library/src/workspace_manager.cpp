@@ -138,7 +138,7 @@ public:
     }
     bool allowed_scheme(const resource_location& uri) const noexcept { return allowed_scheme(uri.get_uri()); }
 
-    auto ws_path_match_impl(auto& self, std::string_view unnormalized_uri) const
+    static auto ws_path_match(auto& self, std::string_view unnormalized_uri)
     {
         auto uri = resource_location(unnormalized_uri).lexically_normal();
         if (auto hlasm_id = extract_hlasm_id(uri.get_uri()); hlasm_id.has_value())
@@ -178,8 +178,8 @@ public:
     }
 
     // returns implicit workspace, if the file does not belong to any workspace
-    auto ws_path_match(std::string_view document_uri) { return ws_path_match_impl(*this, document_uri); }
-    auto ws_path_match(std::string_view document_uri) const { return ws_path_match_impl(*this, document_uri); }
+    auto ws_path_match(std::string_view document_uri) { return ws_path_match(*this, document_uri); }
+    auto ws_path_match(std::string_view document_uri) const { return ws_path_match(*this, document_uri); }
 
     enum class work_item_type
     {
