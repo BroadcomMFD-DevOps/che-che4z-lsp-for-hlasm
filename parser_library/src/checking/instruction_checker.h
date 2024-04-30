@@ -15,48 +15,26 @@
 #ifndef HLASMPLUGIN_PARSERLIBRARY_INSTRUCTION_CHECKER_H
 #define HLASMPLUGIN_PARSERLIBRARY_INSTRUCTION_CHECKER_H
 
-#include <map>
 #include <string_view>
+#include <vector>
 
-#include "asm_instr_check.h"
-#include "context/instruction.h"
+namespace hlasm_plugin::parser_library {
+class diagnostic_collector;
+struct range;
+} // namespace hlasm_plugin::parser_library
 
 namespace hlasm_plugin::parser_library::checking {
+class operand;
 
-// interface for unified checking
-class instruction_checker
-{
-public:
-    virtual bool check(std::string_view instruction_name,
-        const std::vector<const operand*>& operand_vector,
-        const range& stmt_range,
-        const diagnostic_collector& add_diagnostic) const = 0;
-};
+bool check_asm_ops(std::string_view instruction_name,
+    const std::vector<const operand*>& operand_vector,
+    const range& stmt_range,
+    const diagnostic_collector& add_diagnostic);
 
-// derived checker for assembler instructions
-class assembler_checker final : public instruction_checker
-
-{
-public:
-    bool check(std::string_view instruction_name,
-        const std::vector<const operand*>& operand_vector,
-        const range& stmt_range,
-        const diagnostic_collector& add_diagnostic) const override;
-    // map of all assembler instruction names to their representations
-    static const std::map<std::string_view,
-        std::unique_ptr<hlasm_plugin::parser_library::checking::assembler_instruction>>
-        assembler_instruction_map;
-};
-
-// derived checker for machine instructions
-class machine_checker final : public instruction_checker
-{
-public:
-    bool check(std::string_view instruction_name,
-        const std::vector<const operand*>& operand_vector,
-        const range& stmt_range,
-        const diagnostic_collector& add_diagnostic) const override;
-};
+bool check_mach_ops(std::string_view instruction_name,
+    const std::vector<const operand*>& operand_vector,
+    const range& stmt_range,
+    const diagnostic_collector& add_diagnostic);
 
 } // namespace hlasm_plugin::parser_library::checking
 

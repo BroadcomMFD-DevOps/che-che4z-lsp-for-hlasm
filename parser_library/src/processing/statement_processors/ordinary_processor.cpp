@@ -20,6 +20,7 @@
 #include "checking/instruction_checker.h"
 #include "checking/using_label_checker.h"
 #include "context/hlasm_context.h"
+#include "context/instruction.h"
 #include "context/literal_pool.h"
 #include "context/ordinary_assembly/location_counter.h"
 #include "context/ordinary_assembly/ordinary_assembly_dependency_solver.h"
@@ -477,9 +478,6 @@ bool transform_default(std::vector<checking::check_op_ptr>& result,
 void ordinary_processor::check_postponed_statements(
     const std::vector<std::pair<context::post_stmt_ptr, context::dependency_evaluation_context>>& stmts)
 {
-    static const checking::assembler_checker asm_checker;
-    static const checking::machine_checker mach_checker;
-
     std::vector<const checking::operand*> operand_ptr_vector;
     std::vector<checking::check_op_ptr> operand_vector;
 
@@ -515,11 +513,13 @@ void ordinary_processor::check_postponed_statements(
         switch (const auto& opcode = rs->opcode_ref(); opcode.type)
         {
             case hlasm_plugin::parser_library::context::instruction_type::MACH:
-                mach_checker.check(instruction_name, operand_ptr_vector, rs->stmt_range_ref(), collector);
+                checking::check_mach_ops(
+                    instruction_name, operand_ptr_vector, rs->stmt_range_ref(), collector);
                 break;
 
             case hlasm_plugin::parser_library::context::instruction_type::ASM:
-                asm_checker.check(instruction_name, operand_ptr_vector, rs->stmt_range_ref(), collector);
+                checking::check_mach_ops(
+                    instruction_name, operand_ptr_vector, rs->stmt_range_ref(), collector);
                 break;
 
             default:
