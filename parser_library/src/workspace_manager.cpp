@@ -786,7 +786,6 @@ class workspace_manager_impl final : public workspace_manager,
         r.provide(res);
     }
 
-private:
     void collect_diags() const override
     {
         collect_diags_from_child(m_implicit_workspace.ws);
