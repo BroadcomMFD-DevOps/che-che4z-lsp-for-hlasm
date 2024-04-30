@@ -91,21 +91,6 @@ class workspace_manager_impl final : public workspace_manager,
         workspaces::workspace ws;
     };
 
-public:
-    explicit workspace_manager_impl(
-        workspace_manager_external_file_requests* external_file_requests, bool vscode_extensions)
-        : m_external_file_requests(external_file_requests)
-        , m_file_manager(*this)
-        , m_implicit_workspace(m_file_manager, m_global_config, this)
-        , m_vscode_extensions(vscode_extensions)
-    {}
-    workspace_manager_impl(const workspace_manager_impl&) = delete;
-    workspace_manager_impl& operator=(const workspace_manager_impl&) = delete;
-
-    workspace_manager_impl(workspace_manager_impl&&) = delete;
-    workspace_manager_impl& operator=(workspace_manager_impl&&) = delete;
-
-
     static constexpr std::string_view hlasm_external_scheme = "hlasm-external:";
     static constexpr std::string_view default_allowed_schemes[] = {
         // e4e integration
@@ -1145,6 +1130,20 @@ private:
             resp.provide(ws.retrieve_output(doc_loc));
         });
     }
+
+public:
+    explicit workspace_manager_impl(
+        workspace_manager_external_file_requests* external_file_requests, bool vscode_extensions)
+        : m_external_file_requests(external_file_requests)
+        , m_file_manager(*this)
+        , m_implicit_workspace(m_file_manager, m_global_config, this)
+        , m_vscode_extensions(vscode_extensions)
+    {}
+    workspace_manager_impl(const workspace_manager_impl&) = delete;
+    workspace_manager_impl& operator=(const workspace_manager_impl&) = delete;
+
+    workspace_manager_impl(workspace_manager_impl&&) = delete;
+    workspace_manager_impl& operator=(workspace_manager_impl&&) = delete;
 };
 
 workspace_manager* create_workspace_manager_impl(
