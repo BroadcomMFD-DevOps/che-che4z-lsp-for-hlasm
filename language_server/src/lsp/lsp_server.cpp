@@ -251,6 +251,7 @@ void server::register_methods()
     add_method("$/cancelRequest", &server::cancel_request_handler);
     add_method("invalidate_external_configuration", &server::invalidate_external_configuration);
     add_method("toggle_advisory_configuration_diagnostics", &server::toggle_advisory_configuration_diagnostics);
+    add_method("$/set_log_level", &server::set_log_level);
 }
 
 void server::send_telemetry(const telemetry_message& message) { notify("telemetry/event", nlohmann::json(message)); }
@@ -499,5 +500,7 @@ void server::toggle_advisory_configuration_diagnostics(const nlohmann::json&)
 {
     ws_mngr.toggle_advisory_configuration_diagnostics();
 }
+
+void server::set_log_level(const nlohmann::json& data) { logger::instance.level(data.at("log-level").get<unsigned>()); }
 
 } // namespace hlasm_plugin::language_server::lsp

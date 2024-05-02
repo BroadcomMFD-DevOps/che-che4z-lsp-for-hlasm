@@ -53,7 +53,12 @@ public:
     static constexpr unsigned max_log_level = 2;
 
     unsigned level() const noexcept { return m_level; }
-    void level(unsigned l) noexcept { m_level = l; }
+    void level(unsigned l) noexcept
+    {
+        if (l > max_log_level)
+            l = max_log_level;
+        m_level = l;
+    }
 
     template<std::convertible_to<std::string_view>... Args>
     void log(unsigned level, Args&&... args)
