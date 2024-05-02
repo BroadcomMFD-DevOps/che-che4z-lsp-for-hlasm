@@ -56,7 +56,7 @@ inline bool is_operand_empty(const asm_operand* to_check_operand)
     return dynamic_cast<const empty_operand*>(to_check_operand) != nullptr;
 }
 
-inline bool has_one_comma(std::span<const asm_operand*> to_check)
+inline bool has_one_comma(std::span<const asm_operand* const> to_check)
 {
     return to_check.size() == 2 && is_operand_empty(to_check[0]) && is_operand_empty(to_check[1]);
 }

@@ -99,7 +99,7 @@ const std::unordered_map<std::string_view, std::unique_ptr<assembler_instruction
 } // namespace
 
 bool check_asm_ops(std::string_view instruction_name,
-    std::span<const asm_operand*> ops,
+    std::span<const asm_operand* const> ops,
     const range& stmt_range,
     const diagnostic_collector& add_diagnostic)
 {
@@ -111,7 +111,7 @@ bool check_asm_ops(std::string_view instruction_name,
 }
 
 bool check_mach_ops(std::string_view instruction_name,
-    std::span<const machine_operand*> ops,
+    std::span<const machine_operand* const> ops,
     const range& stmt_range,
     const diagnostic_collector& add_diagnostic)
 {

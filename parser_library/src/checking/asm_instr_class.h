@@ -52,7 +52,7 @@ protected:
     int max_operands = 0; // maximum number of operands, -1 if upper bound is not defined
 
 public:
-    virtual bool check(std::span<const asm_operand*>, const range&, const diagnostic_collector&) const = 0;
+    virtual bool check(std::span<const asm_operand* const>, const range&, const diagnostic_collector&) const = 0;
 
     assembler_instruction(std::vector<label_types> allowed_types,
         std::string_view name_of_instruction,
@@ -67,7 +67,7 @@ public:
 protected:
     bool is_param_in_vector(std::string_view parameter, const std::vector<std::string_view>& options) const;
 
-    bool operands_size_corresponding(std::span<const asm_operand*> to_check,
+    bool operands_size_corresponding(std::span<const asm_operand* const> to_check,
         const range& stmt_range,
         const diagnostic_collector& add_diagnostic) const;
 
