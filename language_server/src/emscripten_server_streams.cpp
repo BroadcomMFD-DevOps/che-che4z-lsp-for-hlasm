@@ -191,6 +191,11 @@ EMSCRIPTEN_BINDINGS(main_thread)
 
 std::unique_ptr<server_streams> server_streams::create(server_options opts)
 {
+    if (opts.port > 0)
+    {
+        utils::platform::log("TCP/IP not available in WASM mode.");
+        return {};
+    }
     return std::make_unique<emscripten_std_setup>();
 }
 
