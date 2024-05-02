@@ -31,6 +31,7 @@ target_sources(hlasm_language_server_base PRIVATE
     send_message_provider.h
     server.cpp
     server.h
+    server_streams.cpp
     server_streams.h
     stream_helper.h
     telemetry_broker.h

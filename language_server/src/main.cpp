@@ -12,8 +12,6 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
-#include <charconv>
-#include <chrono>
 #include <optional>
 #include <span>
 #include <thread>
@@ -23,8 +21,6 @@
 
 #include "json_queue_channel.h"
 
-#include "dap/dap_message_wrappers.h"
-#include "dap/dap_server.h"
 #include "dap/dap_session_manager.h"
 #include "external_file_reader.h"
 #include "logger.h"
@@ -178,37 +174,6 @@ auto separate_arguments(int argc, char** argv)
         ++start;
 
     return std::span<const char* const>(start, end - start);
-}
-
-std::optional<server_options> parse_options(std::span<const char* const> args)
-{
-    server_options result {};
-
-    for (std::string_view arg : args)
-    {
-        if (arg == "--vscode-extensions")
-        {
-            result.enable_vscode_extension = true;
-        }
-        else if (static constexpr std::string_view log_level = "--log-level="; arg.starts_with(log_level))
-        {
-            arg.remove_prefix(log_level.size());
-            unsigned ll = 0;
-            auto [ptr, err] = std::from_chars(std::to_address(arg.begin()), std::to_address(arg.end()), ll);
-            if (err != std::errc {} || ptr != std::to_address(arg.end()) || ll > logger::max_log_level)
-                return std::nullopt;
-            result.log_level = (signed char)ll;
-        }
-        else if (static constexpr std::string_view lsp_tcp_port = "--lsp-port="; arg.starts_with(lsp_tcp_port))
-        {
-            arg.remove_prefix(log_level.size());
-            auto [ptr, err] = std::from_chars(std::to_address(arg.begin()), std::to_address(arg.end()), result.port);
-            if (err != std::errc {} || ptr != std::to_address(arg.end()) || result.port == 0)
-                return std::nullopt;
-        }
-    }
-
-    return result;
 }
 
 void log_options(server_options opts)

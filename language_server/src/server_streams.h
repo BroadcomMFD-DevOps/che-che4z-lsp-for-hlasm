@@ -17,6 +17,8 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
+#include <span>
 
 #include "json_channel.h"
 
@@ -27,6 +29,7 @@ struct server_options
     bool enable_vscode_extension = false;
     signed char log_level = -1;
 };
+std::optional<server_options> parse_options(std::span<const char* const> args);
 
 class server_streams
 {
