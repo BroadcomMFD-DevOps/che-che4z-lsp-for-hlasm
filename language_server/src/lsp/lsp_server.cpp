@@ -159,7 +159,7 @@ void server::message_received(const nlohmann::json& message)
         }
         catch (const std::exception& e)
         {
-            LOG_ERROR(e.what());
+            LOG_ERROR("Request failed: ", e.what());
             send_telemetry_error("lsp_server/method_unknown_error");
             if (id)
                 respond_error(id.value(),

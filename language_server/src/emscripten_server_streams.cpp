@@ -189,14 +189,8 @@ EMSCRIPTEN_BINDINGS(main_thread)
 
 } // namespace
 
-std::unique_ptr<server_streams> server_streams::create(std::span<const char* const> args)
+std::unique_ptr<server_streams> server_streams::create(server_options opts)
 {
-    if (!args.empty())
-    {
-        utils::platform::log("No arguments allowed");
-        return {};
-    }
-
     return std::make_unique<emscripten_std_setup>();
 }
 

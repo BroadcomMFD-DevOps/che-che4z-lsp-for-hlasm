@@ -13,6 +13,7 @@
  */
 
 #include <chrono>
+#include <optional>
 #include <span>
 #include <thread>
 #ifdef WIN32
@@ -138,7 +139,7 @@ public:
             }
             catch (const std::exception& e)
             {
-                LOG_ERROR(std::string("LSP thread exception: ") + e.what());
+                LOG_ERROR("LSP thread exception: ", e.what());
                 ret = -1;
             }
             catch (...)
@@ -178,6 +179,47 @@ auto separate_arguments(int argc, char** argv)
     return std::span<const char* const>(start, end - start);
 }
 
+std::optional<server_options> parse_options(std::span<const char* const> args)
+{
+    server_options result {};
+
+    for (std::string_view arg : args)
+    {
+        if (arg == "--vscode-extensions")
+        {
+            result.enable_vscode_extension = true;
+        }
+        else if (static constexpr std::string_view log_level = "--log-level="; arg.starts_with(log_level))
+        {
+            arg.remove_prefix(log_level.size());
+            unsigned ll = 0;
+            auto [ptr, err] = std::from_chars(std::to_address(arg.begin()), std::to_address(arg.end()), ll);
+            if (err != std::errc {} || ptr != std::to_address(arg.end()) || ll > logger::max_log_level)
+                return std::nullopt;
+            result.log_level = (signed char)ll;
+        }
+        else if (static constexpr std::string_view lsp_tcp_port = "--lsp-port="; arg.starts_with(lsp_tcp_port))
+        {
+            arg.remove_prefix(log_level.size());
+            auto [ptr, err] = std::from_chars(std::to_address(arg.begin()), std::to_address(arg.end()), result.port);
+            if (err != std::errc {} || ptr != std::to_address(arg.end()) || result.port == 0)
+                return std::nullopt;
+        }
+    }
+
+    return result;
+}
+
+void log_options(server_options opts)
+{
+    LOG_INFO("Options: vscode-extensions=",
+        opts.enable_vscode_extension ? "true" : "false",
+        ", log-level=",
+        std::to_string(opts.log_level),
+        ", lsp-port=",
+        std::to_string(opts.port));
+}
+
 } // namespace
 
 int main(int argc, char** argv)
@@ -189,14 +231,16 @@ int main(int argc, char** argv)
 
     auto args = separate_arguments(argc, argv);
 
-    bool vscode_extensions = false;
-    if (!args.empty() && std::string_view(args.front()) == "--vscode-extensions")
-    {
-        vscode_extensions = true;
-        args = args.subspan(1);
-    }
+    auto opts = parse_options(args);
+    if (!opts)
+        return 1;
 
-    auto io_setup = server_streams::create(args);
+    if (opts->log_level >= 0)
+        logger::instance.level(opts->log_level);
+
+    log_options(*opts);
+
+    auto io_setup = server_streams::create(*opts);
     if (!io_setup)
         return 1;
 
@@ -204,7 +248,7 @@ int main(int argc, char** argv)
     {
         int ret = 0;
 
-        main_program pgm(io_setup->get_response_stream(), ret, vscode_extensions);
+        main_program pgm(io_setup->get_response_stream(), ret, opts->enable_vscode_extension);
 
         for (auto& source = io_setup->get_request_stream();;)
         {
@@ -219,8 +263,8 @@ int main(int argc, char** argv)
             }
             catch (const nlohmann::json::exception&)
             {
-                LOG_WARNING("Could not parse received JSON: "
-                    + msg.value().dump(-1, ' ', true, nlohmann::detail::error_handler_t::replace));
+                LOG_WARNING("Could not parse received JSON: ",
+                    msg.value().dump(-1, ' ', true, nlohmann::detail::error_handler_t::replace));
             }
         }
 
@@ -228,7 +272,7 @@ int main(int argc, char** argv)
     }
     catch (const std::exception& ex)
     {
-        LOG_ERROR(ex.what());
+        LOG_ERROR("Main loop exception: ", ex.what());
         return 1;
     }
     catch (...)
