@@ -990,16 +990,16 @@ class workspace_manager_impl final : public workspace_manager,
     std::vector<fade_message> m_fade_messages;
     unsigned long long m_unique_id_sequence = 0;
 
-    static std::string extract_scheme(std::string_view uri) { return std::string(uri.substr(0, uri.find(':') + 1)); }
+    static std::string_view extract_scheme(std::string_view uri) { return uri.substr(0, uri.find(':') + 1); }
     void recompute_allow_list()
     {
         allowed_schemes.assign(std::begin(default_allowed_schemes), std::end(default_allowed_schemes));
         for (const auto& [uri, _] : m_workspaces)
         {
-            auto scheme = extract_scheme(uri.get_uri());
+            const auto scheme = extract_scheme(uri.get_uri());
             if (scheme.empty())
                 continue;
-            allowed_schemes.emplace_back(std::move(scheme));
+            allowed_schemes.emplace_back(scheme);
         }
         std::sort(allowed_schemes.begin(), allowed_schemes.end());
         auto new_end = std::unique(allowed_schemes.begin(), allowed_schemes.end());
