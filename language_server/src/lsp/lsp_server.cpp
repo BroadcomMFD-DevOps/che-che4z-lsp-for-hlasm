@@ -251,7 +251,7 @@ void server::register_methods()
     add_method("$/cancelRequest", &server::cancel_request_handler);
     add_method("invalidate_external_configuration", &server::invalidate_external_configuration);
     add_method("toggle_advisory_configuration_diagnostics", &server::toggle_advisory_configuration_diagnostics);
-    add_method("$/set_log_level", &server::set_log_level);
+    add_method("set_log_level", &server::set_log_level);
 }
 
 void server::send_telemetry(const telemetry_message& message) { notify("telemetry/event", nlohmann::json(message)); }

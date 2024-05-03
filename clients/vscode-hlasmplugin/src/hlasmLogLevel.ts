@@ -23,6 +23,6 @@ const logOptions = [
 ];
 
 export async function setServerLogLevel(client: BaseLanguageClient) {
-    try { client.sendNotification("$/set_log_level", { 'log-level': await pickUser('Select log level', logOptions) }); }
+    try { client.sendNotification("set_log_level", { 'log-level': await pickUser('Select log level', logOptions) }); }
     catch (e) { if (!isCancellationError(e)) throw e; }
 }
