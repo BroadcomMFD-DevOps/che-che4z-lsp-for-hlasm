@@ -15,6 +15,8 @@
 #include <optional>
 #include <span>
 #include <thread>
+
+#include "server_options.h"
 #ifdef WIN32
 #    include <locale.h>
 #endif

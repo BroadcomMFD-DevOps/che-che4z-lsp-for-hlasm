@@ -14,7 +14,7 @@
 
 #include "gtest/gtest.h"
 
-#include "server_streams.h"
+#include "server_options.h"
 
 using namespace hlasm_plugin::language_server;
 

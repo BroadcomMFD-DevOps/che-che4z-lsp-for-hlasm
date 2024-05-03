@@ -15,21 +15,12 @@
 #ifndef HLASMPLUGIN_HLASMLANGUAGESERVER_SERVER_STREAMS_H
 #define HLASMPLUGIN_HLASMLANGUAGESERVER_SERVER_STREAMS_H
 
-#include <cstdint>
 #include <memory>
-#include <optional>
-#include <span>
 
 #include "json_channel.h"
 
 namespace hlasm_plugin::language_server {
-struct server_options
-{
-    uint16_t port = 0;
-    bool enable_vscode_extension = false;
-    signed char log_level = -1;
-};
-std::optional<server_options> parse_options(std::span<const char* const> args);
+struct server_options;
 
 class server_streams
 {

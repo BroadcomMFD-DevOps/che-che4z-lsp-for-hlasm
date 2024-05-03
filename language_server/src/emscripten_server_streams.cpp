@@ -12,7 +12,6 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 #include <emscripten.h>
-#include <iostream>
 #include <string>
 
 #include <emscripten/bind.h>
@@ -20,6 +19,7 @@
 #include "blocking_queue.h"
 #include "logger.h"
 #include "nlohmann/json.hpp"
+#include "server_options.h"
 #include "server_streams.h"
 #include "utils/platform.h"
 

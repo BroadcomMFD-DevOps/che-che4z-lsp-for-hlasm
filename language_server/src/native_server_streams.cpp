@@ -14,6 +14,7 @@
 #include <iostream>
 
 #include "base_protocol_channel.h"
+#include "server_options.h"
 #include "server_streams.h"
 #include "stream_helper.h"
 #include "utils/platform.h"
