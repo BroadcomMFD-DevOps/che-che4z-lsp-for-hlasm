@@ -484,6 +484,23 @@ lib_config load_from_pgm_config(const config::pgm_conf& config)
     return loaded;
 }
 
+[[nodiscard]] utils::value_task<std::variant<nlohmann::json, parse_config_file_result>> load_json_from_file(
+    file_manager& fm, const utils::resource::resource_location& file)
+{
+    auto text = co_await fm.get_file_content(file);
+    if (!text.has_value())
+        co_return parse_config_file_result::not_found;
+
+    try
+    {
+        co_return nlohmann::json::parse(text.value());
+    }
+    catch (const nlohmann::json::exception&)
+    {
+        co_return parse_config_file_result::error;
+    }
+}
+
 // open config files and parse them
 utils::value_task<parse_config_file_result> workspace_configuration::load_and_process_config(
     std::vector<diagnostic>& diags)
@@ -533,14 +550,13 @@ utils::value_task<parse_config_file_result> workspace_configuration::load_proc_c
     const auto current_settings = m_global_settings.load();
     json_settings_replacer json_visitor { *current_settings, utilized_settings_values, m_location };
 
-    // proc_grps.json parse
-    auto proc_grps_content = co_await m_file_manager.get_file_content(m_proc_grps_loc);
-    if (!proc_grps_content.has_value())
-        co_return parse_config_file_result::not_found;
+    auto proc_json_or_err = co_await load_json_from_file(m_file_manager, m_proc_grps_loc);
+    if (std::holds_alternative<parse_config_file_result>(proc_json_or_err))
+        co_return std::get<parse_config_file_result>(proc_json_or_err);
 
     try
     {
-        auto proc_json = nlohmann::json::parse(proc_grps_content.value());
+        auto& proc_json = std::get<nlohmann::json>(proc_json_or_err);
         json_visitor(proc_json);
         proc_json.get_to(proc_groups);
     }
@@ -574,14 +590,13 @@ utils::value_task<parse_config_file_result> workspace_configuration::load_pgm_co
     const auto current_settings = m_global_settings.load();
     json_settings_replacer json_visitor { *current_settings, utilized_settings_values, m_location };
 
-    // pgm_conf.json parse
-    auto pgm_conf_content = co_await m_file_manager.get_file_content(m_pgm_conf_loc);
-    if (!pgm_conf_content.has_value())
-        co_return parse_config_file_result::not_found;
+    auto pgm_json_or_err = co_await load_json_from_file(m_file_manager, m_pgm_conf_loc);
+    if (std::holds_alternative<parse_config_file_result>(pgm_json_or_err))
+        co_return std::get<parse_config_file_result>(pgm_json_or_err);
 
     try
     {
-        auto pgm_json = nlohmann::json::parse(pgm_conf_content.value());
+        auto& pgm_json = std::get<nlohmann::json>(pgm_json_or_err);
         json_visitor(pgm_json);
         pgm_json.get_to(pgm_config);
     }
@@ -633,15 +648,16 @@ utils::value_task<parse_config_file_result> workspace_configuration::parse_b4g_c
         it->second = {};
     }
 
-    auto b4g_config_content = co_await m_file_manager.get_file_content(cfg_file_rl);
-    if (!b4g_config_content.has_value())
-        co_return parse_config_file_result::not_found;
+    auto b4g_config_or_err = co_await load_json_from_file(m_file_manager, cfg_file_rl);
+    if (std::holds_alternative<parse_config_file_result>(b4g_config_or_err))
+        co_return std::get<parse_config_file_result>(b4g_config_or_err);
 
     const void* new_tag = std::to_address(it);
     auto& conf = it->second;
     try
     {
-        conf.config.emplace(nlohmann::json::parse(b4g_config_content.value()).get<config::b4g_map>());
+        auto& b4g_config_json = std::get<nlohmann::json>(b4g_config_or_err);
+        conf.config.emplace(b4g_config_json.get<config::b4g_map>());
     }
     catch (const nlohmann::json::exception&)
     {
