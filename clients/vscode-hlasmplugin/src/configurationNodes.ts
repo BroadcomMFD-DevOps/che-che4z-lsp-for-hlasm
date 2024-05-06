@@ -44,7 +44,7 @@ function addAlternative(node: ConfigurationNodeDetails, ws: vscode.Uri, key: str
     if (node.exists)
         return node;
 
-    const config = vscode.workspace.getConfiguration('[hlasm]', ws);
+    const config = vscode.workspace.getConfiguration('hlasm', ws);
     const data = config.get(key);
 
     if (!data || typeof data !== 'object')
@@ -58,7 +58,7 @@ function addAlternative(node: ConfigurationNodeDetails, ws: vscode.Uri, key: str
             : details?.workspaceValue
                 ? vscode.ConfigurationTarget.Workspace
                 : vscode.ConfigurationTarget.Global,
-        key: `[hlasm].${key}`,
+        key: `hlasm.${key}`,
         exists: true,
     };
 }

@@ -581,8 +581,8 @@ utils::value_task<parse_config_file_result> workspace_configuration::load_proc_c
     auto proc_json_or_err = co_await load_json_from_file(m_file_manager, m_proc_grps_loc);
     if (equals(proc_json_or_err, parse_config_file_result::not_found))
     {
-        static const std::string key = "[hlasm].proc_grps";
-        auto proc_conf = find_subobject(key, *current_settings);
+        static const std::string key = "hlasm.proc_grps";
+        const auto* proc_conf = find_subobject(key, *current_settings);
         if (proc_conf && proc_conf->is_object())
         {
             proc_json_or_err = *proc_conf;
@@ -639,8 +639,8 @@ utils::value_task<parse_config_file_result> workspace_configuration::load_pgm_co
     auto pgm_json_or_err = co_await load_json_from_file(m_file_manager, m_pgm_conf_loc);
     if (equals(pgm_json_or_err, parse_config_file_result::not_found))
     {
-        static const std::string key = "[hlasm].pgm_conf";
-        auto pgm_conf = find_subobject(key, *current_settings);
+        static const std::string key = "hlasm.pgm_conf";
+        const auto* pgm_conf = find_subobject(key, *current_settings);
         if (pgm_conf && pgm_conf->is_object())
         {
             pgm_json_or_err = *pgm_conf;
