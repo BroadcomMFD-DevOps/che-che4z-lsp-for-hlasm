@@ -131,9 +131,9 @@ const nlohmann::json* find_member(std::string_view key, const nlohmann::json& j)
         return nullptr;
 }
 
-std::optional<std::string_view> find_setting(std::string_view key, const nlohmann::json& m_j)
+const nlohmann::json* find_subobject(std::string_view key, const nlohmann::json& input)
 {
-    const nlohmann::json* j = &m_j;
+    const nlohmann::json* j = &input;
 
     while (true)
     {
@@ -142,7 +142,7 @@ std::optional<std::string_view> find_setting(std::string_view key, const nlohman
 
         j = find_member(subkey, *j);
         if (!j)
-            return std::nullopt;
+            return nullptr;
 
         if (dot == std::string_view::npos)
             break;
@@ -150,10 +150,7 @@ std::optional<std::string_view> find_setting(std::string_view key, const nlohman
             key.remove_prefix(dot + 1);
     }
 
-    if (!j->is_string())
-        return std::nullopt;
-    else
-        return j->get<std::string_view>();
+    return j;
 }
 
 struct json_settings_replacer
@@ -165,6 +162,7 @@ struct json_settings_replacer
     const utils::resource::resource_location& location;
 
     std::match_results<std::string_view::iterator> matches;
+
     std::unordered_set<std::string, utils::hashers::string_hasher, std::equal_to<>> unavailable;
 
     void operator()(nlohmann::json& val)
@@ -201,12 +199,12 @@ struct json_settings_replacer
             if (key.starts_with(config_section))
             {
                 auto reduced_key = key.substr(config_section.size());
-                auto v = find_setting(reduced_key, global_settings);
-                if (v.has_value())
-                    r.append(*v);
+                const auto* v = find_subobject(reduced_key, global_settings);
+                if (v && v->is_string())
+                    r.append(v->get<std::string_view>());
                 else
-                    unavailable.emplace(key);
-                utilized_settings_values.emplace(reduced_key, v);
+                    unavailable.emplace(reduced_key);
+                update_utilized_settings(reduced_key, v);
             }
             else if (key == "workspaceFolder")
             {
@@ -222,6 +220,28 @@ struct json_settings_replacer
         r.append(s);
 
         return result;
+    }
+
+    void update_utilized_settings(std::string_view key, const nlohmann::json* j)
+    {
+        if (!j)
+        {
+            utilized_settings_values.emplace(std::piecewise_construct,
+                std::forward_as_tuple(key),
+                std::forward_as_tuple(std::in_place_type<std::monostate>));
+        }
+        else if (!j->is_string())
+        {
+            utilized_settings_values.emplace(std::piecewise_construct,
+                std::forward_as_tuple(key),
+                std::forward_as_tuple(std::in_place_type<nlohmann::json>, *j));
+        }
+        else
+        {
+            utilized_settings_values.emplace(std::piecewise_construct,
+                std::forward_as_tuple(key),
+                std::forward_as_tuple(std::in_place_type<std::string>, j->get<std::string_view>()));
+        }
     }
 };
 
@@ -501,6 +521,12 @@ lib_config load_from_pgm_config(const config::pgm_conf& config)
     }
 }
 
+template<typename... V, typename U>
+bool equals(const std::variant<V...>& v, const U& u)
+{
+    return std::holds_alternative<U>(v) && std::get<U>(v) == u;
+}
+
 // open config files and parse them
 utils::value_task<parse_config_file_result> workspace_configuration::load_and_process_config(
     std::vector<diagnostic>& diags)
@@ -550,9 +576,27 @@ utils::value_task<parse_config_file_result> workspace_configuration::load_proc_c
     const auto current_settings = m_global_settings.load();
     json_settings_replacer json_visitor { *current_settings, utilized_settings_values, m_location };
 
+    const auto* config_source = &m_proc_grps_loc;
+
     auto proc_json_or_err = co_await load_json_from_file(m_file_manager, m_proc_grps_loc);
+    if (equals(proc_json_or_err, parse_config_file_result::not_found))
+    {
+        static const std::string key = "[hlasm].proc_conf";
+        auto proc_conf = find_subobject(key, *current_settings);
+        if (proc_conf && proc_conf->is_object())
+        {
+            proc_json_or_err = *proc_conf;
+            config_source = &m_location;
+        }
+        json_visitor.update_utilized_settings(key, proc_conf);
+    }
     if (std::holds_alternative<parse_config_file_result>(proc_json_or_err))
-        co_return std::get<parse_config_file_result>(proc_json_or_err);
+    {
+        auto reason = std::get<parse_config_file_result>(proc_json_or_err);
+        if (reason == parse_config_file_result::error)
+            diags.push_back(error_W0002(*config_source));
+        co_return reason;
+    }
 
     try
     {
@@ -563,21 +607,21 @@ utils::value_task<parse_config_file_result> workspace_configuration::load_proc_c
     catch (const nlohmann::json::exception&)
     {
         // could not load proc_grps
-        diags.push_back(error_W0002(m_proc_grps_loc));
+        diags.push_back(error_W0002(*config_source));
         co_return parse_config_file_result::error;
     }
 
     for (const auto& var : json_visitor.unavailable)
-        diags.push_back(warn_W0007(m_proc_grps_loc, var));
+        diags.push_back(warn_W0007(*config_source, var));
 
     for (const auto& pg : proc_groups.pgroups)
     {
         if (!pg.asm_options.valid())
-            diags.push_back(error_W0005(m_proc_grps_loc, pg.name, "processor group"));
+            diags.push_back(error_W0005(*config_source, pg.name, "processor group"));
         for (const auto& p : pg.preprocessors)
         {
             if (!p.valid())
-                diags.push_back(error_W0006(m_proc_grps_loc, pg.name, p.type()));
+                diags.push_back(error_W0006(*config_source, pg.name, p.type()));
         }
     }
 
@@ -590,9 +634,27 @@ utils::value_task<parse_config_file_result> workspace_configuration::load_pgm_co
     const auto current_settings = m_global_settings.load();
     json_settings_replacer json_visitor { *current_settings, utilized_settings_values, m_location };
 
+    const auto* config_source = &m_pgm_conf_loc;
+
     auto pgm_json_or_err = co_await load_json_from_file(m_file_manager, m_pgm_conf_loc);
+    if (equals(pgm_json_or_err, parse_config_file_result::not_found))
+    {
+        static const std::string key = "[hlasm].pgm_conf";
+        auto pgm_conf = find_subobject(key, *current_settings);
+        if (pgm_conf && pgm_conf->is_object())
+        {
+            pgm_json_or_err = *pgm_conf;
+            config_source = &m_location;
+        }
+        json_visitor.update_utilized_settings(key, pgm_conf);
+    }
     if (std::holds_alternative<parse_config_file_result>(pgm_json_or_err))
-        co_return std::get<parse_config_file_result>(pgm_json_or_err);
+    {
+        auto reason = std::get<parse_config_file_result>(pgm_json_or_err);
+        if (reason == parse_config_file_result::error)
+            diags.push_back(error_W0003(*config_source));
+        co_return reason;
+    }
 
     try
     {
@@ -602,17 +664,17 @@ utils::value_task<parse_config_file_result> workspace_configuration::load_pgm_co
     }
     catch (const nlohmann::json::exception&)
     {
-        diags.push_back(error_W0003(m_pgm_conf_loc));
+        diags.push_back(error_W0003(*config_source));
         co_return parse_config_file_result::error;
     }
 
     for (const auto& var : json_visitor.unavailable)
-        diags.push_back(warn_W0007(m_pgm_conf_loc, var));
+        diags.push_back(warn_W0007(*config_source, var));
 
     for (const auto& pgm : pgm_config.pgms)
     {
         if (!pgm.opts.valid())
-            diags.push_back(error_W0005(m_pgm_conf_loc, pgm.program, "program"));
+            diags.push_back(error_W0005(*config_source, pgm.program, "program"));
     }
 
     co_return parse_config_file_result::parsed;
@@ -623,8 +685,18 @@ bool workspace_configuration::settings_updated() const
     auto global_settings = m_global_settings.load();
     for (const auto& [key, value] : m_utilized_settings_values)
     {
-        if (find_setting(key, *global_settings) != value)
+        const auto* obj = find_subobject(key, *global_settings);
+        if (obj == nullptr && std::holds_alternative<std::monostate>(value))
+            continue;
+        if (!obj)
             return true;
+        if (obj->is_string() && std::holds_alternative<std::string>(value)
+            && obj->get<std::string_view>() == std::get<std::string>(value))
+            continue;
+        if (obj->is_object() && std::holds_alternative<nlohmann::json>(value)
+            && *obj == std::get<nlohmann::json>(value))
+            continue;
+        return true;
     }
     return false;
 }

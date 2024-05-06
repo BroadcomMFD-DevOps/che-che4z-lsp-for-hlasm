@@ -24,6 +24,7 @@
 #include <string>
 #include <unordered_map>
 #include <utility>
+#include <variant>
 #include <vector>
 #include <version>
 
@@ -43,8 +44,10 @@ namespace hlasm_plugin::parser_library {
 class external_configuration_requests;
 } // namespace hlasm_plugin::parser_library
 namespace hlasm_plugin::parser_library::workspaces {
-using global_settings_map =
-    std::unordered_map<std::string, std::optional<std::string>, utils::hashers::string_hasher, std::equal_to<>>;
+using global_settings_map = std::unordered_map<std::string,
+    std::variant<std::monostate, std::string, nlohmann::json>,
+    utils::hashers::string_hasher,
+    std::equal_to<>>;
 
 class file_manager;
 class program_configuration_storage;
