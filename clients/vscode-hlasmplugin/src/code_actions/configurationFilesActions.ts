@@ -14,34 +14,66 @@
 
 import * as vscode from 'vscode';
 import { ConfigurationNodeDetails, ConfigurationNodes, anyConfigurationNodeExists } from '../configurationNodes';
-import { proc_grps_file, pgm_conf_file } from '../constants';
 
-function codeActionFactory(create: boolean, filename: string | undefined, args: any[] | undefined): vscode.CodeAction {
-    const filesDescription: string = filename ? filename + ' configuration file' : 'configuration files';
+function filenameFromUri(uri: vscode.Uri): string {
+    return uri.path.substring(uri.path.lastIndexOf('/') + 1);
+}
+
+function createAllConfigurationFiles(ws: vscode.Uri, relativeUri: string, pgroup: string): vscode.CodeAction {
+    return {
+        title: 'Create configuration files',
+        command: {
+            title: 'Create configuration files',
+            command: 'extension.hlasm-plugin.createCompleteConfig',
+            arguments: [ws, relativeUri, pgroup],
+        },
+        kind: vscode.CodeActionKind.QuickFix
+    };
+}
+
+function createConfigurationFile(filename: string, ws: vscode.Uri, relativeUri: string | null, pgroup: string | null): vscode.CodeAction {
+    const filesDescription: string = filename + ' configuration file';
+    return {
+        title: 'Create ' + filesDescription,
+        command: {
+            title: 'Create ' + filesDescription,
+            command: 'extension.hlasm-plugin.createCompleteConfig',
+            arguments: [ws, relativeUri, pgroup],
+        },
+        kind: vscode.CodeActionKind.QuickFix
+    };
+}
+
+function modifyConfigurationFile(uri: vscode.Uri): vscode.CodeAction {
+    const filename = filenameFromUri(uri);
+    const filesDescription: string = filename + ' configuration file';
 
     return {
-        title: (create ? 'Create ' : 'Modify ') + filesDescription,
+        title: 'Modify ' + filesDescription,
         command: {
-            title: (create ? 'Create ' : 'Open ') + filesDescription,
-            command: create ? 'extension.hlasm-plugin.createCompleteConfig' : 'vscode.open',
-            arguments: args
+            title: 'Open ' + filesDescription,
+            command: 'vscode.open',
+            arguments: [uri]
         },
         kind: vscode.CodeActionKind.QuickFix
     };
 }
 
 function generateProcGrpsCodeAction(procGrps: ConfigurationNodeDetails, wsUri: vscode.Uri): vscode.CodeAction {
-    return procGrps.exists ? codeActionFactory(false, proc_grps_file, [procGrps.uri]) : codeActionFactory(true, proc_grps_file, [wsUri, null, '']);
+    if (procGrps.exists)
+        return modifyConfigurationFile(procGrps.uri);
+    else
+        return createConfigurationFile(filenameFromUri(procGrps.uri), wsUri, null, '');
 }
 
 function generatePgmConfCodeAction(configNodes: ConfigurationNodes, wsUri: vscode.Uri, documentRelativeUri: string): vscode.CodeAction {
     if (configNodes.pgmConf.exists)
-        return codeActionFactory(false, pgm_conf_file, [configNodes.pgmConf.uri]);
+        return modifyConfigurationFile(configNodes.pgmConf.uri);
     else {
         if (configNodes.bridgeJson.exists || configNodes.ebgFolder.exists) {
             // TODO: could we trigger B4G sync?
         }
-        return codeActionFactory(true, pgm_conf_file, [wsUri, documentRelativeUri, null]);
+        return createConfigurationFile(filenameFromUri(configNodes.pgmConf.uri), wsUri, documentRelativeUri, null);
     }
 }
 
@@ -50,7 +82,7 @@ export function generateConfigurationFilesCodeActions(suggestProcGrpsChange: boo
         return [];
 
     if (!anyConfigurationNodeExists(configNodes))
-        return [codeActionFactory(true, undefined, [wsUri, documentRelativeUri, 'GRP1'])];
+        return [createAllConfigurationFiles(wsUri, documentRelativeUri, 'GRP1')];
 
     const result: vscode.CodeAction[] = [];
 

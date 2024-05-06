@@ -16,15 +16,20 @@ import * as vscode from 'vscode';
 import { uriExists } from './helpers'
 import { hlasmplugin_folder, proc_grps_file, pgm_conf_file, bridge_json_file, ebg_folder as ebg_folder } from './constants';
 
-export interface ConfigurationNodeDetails {
-    uri: vscode.Uri | typeof vscode.Uri;
+export type ConfigurationNodeDetails = {
+    uri: vscode.Uri;
     exists: boolean;
-}
+};
+
+export type BridgeConfigurationNodeDetails = ConfigurationNodeDetails | {
+    uri: null;
+    exists: false;
+};
 
 export interface ConfigurationNodes {
     procGrps: ConfigurationNodeDetails;
     pgmConf: ConfigurationNodeDetails;
-    bridgeJson: ConfigurationNodeDetails;
+    bridgeJson: BridgeConfigurationNodeDetails;
     ebgFolder: ConfigurationNodeDetails;
 }
 
@@ -36,7 +41,7 @@ export async function retrieveConfigurationNodes(workspace: vscode.Uri, document
     return Promise.all([
         uriExists(procGrps, fs).then(b => { return { uri: procGrps, exists: b }; }),
         uriExists(pgmConf, fs).then(b => { return { uri: pgmConf, exists: b }; }),
-        bridgeJson ? uriExists(bridgeJson, fs).then(b => { return { uri: bridgeJson, exists: b }; }) : { uri: vscode.Uri, exists: false },
+        bridgeJson ? uriExists(bridgeJson, fs).then(b => { return { uri: bridgeJson, exists: b }; }) : { uri: null, exists: false } as BridgeConfigurationNodeDetails,
         uriExists(ebgFolder, fs).then(b => { return { uri: ebgFolder, exists: b }; }),
     ]).then(arr => { return { procGrps: arr[0], pgmConf: arr[1], bridgeJson: arr[2], ebgFolder: arr[3] }; });
 }
