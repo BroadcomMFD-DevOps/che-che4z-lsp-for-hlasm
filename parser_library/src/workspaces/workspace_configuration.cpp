@@ -581,7 +581,7 @@ utils::value_task<parse_config_file_result> workspace_configuration::load_proc_c
     auto proc_json_or_err = co_await load_json_from_file(m_file_manager, m_proc_grps_loc);
     if (equals(proc_json_or_err, parse_config_file_result::not_found))
     {
-        static const std::string key = "[hlasm].proc_conf";
+        static const std::string key = "[hlasm].proc_grps";
         auto proc_conf = find_subobject(key, *current_settings);
         if (proc_conf && proc_conf->is_object())
         {
