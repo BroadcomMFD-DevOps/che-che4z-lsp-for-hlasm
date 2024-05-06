@@ -13,7 +13,7 @@
  */
 
 import * as vscode from 'vscode';
-import { ConfigurationNodeDetails, ConfigurationNodes, anyConfigurationNodeExists } from '../configurationNodes';
+import { ConfigurationNodeDetails, ConfigurationNodes, SettingsConfigurationNodeDetails, anyConfigurationNodeExists } from '../configurationNodes';
 
 function filenameFromUri(uri: vscode.Uri): string {
     return uri.path.substring(uri.path.lastIndexOf('/') + 1);
@@ -59,16 +59,50 @@ function modifyConfigurationFile(uri: vscode.Uri): vscode.CodeAction {
     };
 }
 
-function generateProcGrpsCodeAction(procGrps: ConfigurationNodeDetails, wsUri: vscode.Uri): vscode.CodeAction {
+function modifySettings(s: SettingsConfigurationNodeDetails): vscode.CodeAction {
+    const title = `Modify settings key '${s.key}'`;
+    if (s.scope === vscode.ConfigurationTarget.WorkspaceFolder)
+        return {
+            title,
+            command: {
+                title,
+                command: 'vscode.open',
+                arguments: [vscode.Uri.joinPath(s.ws, '.vscode/settings.json')],
+            },
+        };
+    else
+        return {
+            title,
+            command: {
+                title,
+                command: s.scope === vscode.ConfigurationTarget.Workspace ? 'workbench.action.openWorkspaceSettingsFile' : 'workbench.action.openSettingsJson',
+                arguments: [{
+                    revealSetting: {
+                        key: s.key,
+                        edit: true,
+                    }
+                }],
+            },
+        };
+}
+
+function generateProcGrpsCodeAction(procGrps: ConfigurationNodeDetails | SettingsConfigurationNodeDetails, wsUri: vscode.Uri): vscode.CodeAction {
     if (procGrps.exists)
-        return modifyConfigurationFile(procGrps.uri);
+        if ('uri' in procGrps)
+            return modifyConfigurationFile(procGrps.uri);
+        else
+            return modifySettings(procGrps);
     else
         return createConfigurationFile(filenameFromUri(procGrps.uri), wsUri, null, '');
 }
 
 function generatePgmConfCodeAction(configNodes: ConfigurationNodes, wsUri: vscode.Uri, documentRelativeUri: string): vscode.CodeAction {
-    if (configNodes.pgmConf.exists)
-        return modifyConfigurationFile(configNodes.pgmConf.uri);
+    if (configNodes.pgmConf.exists) {
+        if ('uri' in configNodes.pgmConf)
+            return modifyConfigurationFile(configNodes.pgmConf.uri);
+        else
+            return modifySettings(configNodes.pgmConf);
+    }
     else {
         if (configNodes.bridgeJson.exists || configNodes.ebgFolder.exists) {
             // TODO: could we trigger B4G sync?
