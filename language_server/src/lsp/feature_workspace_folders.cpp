@@ -231,7 +231,15 @@ void feature_workspace_folders::configuration(const nlohmann::json& params) cons
         return;
     }
 
-    ws_mngr_.configuration_changed(parser_library::lib_config(params[0]));
+    const auto& cfg = params[0];
+
+    const auto proc_it = cfg.find("proc_grps");
+    const auto pgm_it = cfg.find("pgm_conf");
+
+    const std::string proc = proc_it != cfg.end() ? proc_it->dump() : std::string();
+    const std::string pgm = pgm_it != cfg.end() ? pgm_it->dump() : std::string();
+
+    ws_mngr_.configuration_changed(parser_library::lib_config(params[0]), proc, pgm);
 }
 
 void feature_workspace_folders::did_change_configuration(const nlohmann::json&) { send_configuration_request(); }

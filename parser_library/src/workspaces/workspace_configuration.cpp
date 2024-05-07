@@ -537,18 +537,21 @@ utils::value_task<parse_config_file_result> workspace_configuration::load_and_pr
     diags.clear();
 
     config::proc_grps proc_groups;
+    config::pgm_conf pgm_config;
     global_settings_map utilized_settings_values;
 
     m_proc_grps.clear();
     m_pgm_conf_store->clear();
     m_b4g_config_cache.clear();
 
-    if (auto l = co_await load_proc_config(proc_groups, utilized_settings_values, diags);
-        l != parse_config_file_result::parsed)
-        co_return l;
+    const auto proc_gprs_result = co_await load_proc_config(proc_groups, utilized_settings_values, diags);
 
-    config::pgm_conf pgm_config;
     const auto pgm_conf_loaded = co_await load_pgm_config(pgm_config, utilized_settings_values, diags);
+
+    m_utilized_settings_values = std::move(utilized_settings_values);
+
+    if (proc_gprs_result != parse_config_file_result::parsed)
+        co_return proc_gprs_result;
 
     co_await process_processor_group_and_cleanup_libraries(
         proc_groups.pgroups, proc_groups.macro_extensions, empty_alternative_cfg_root, diags);
@@ -566,7 +569,6 @@ utils::value_task<parse_config_file_result> workspace_configuration::load_and_pr
             process_program(pgm, diags);
     }
 
-    m_utilized_settings_values = std::move(utilized_settings_values);
     m_proc_grps_source = std::move(proc_groups);
 
     // we need to tolerate pgm_conf processing failure, because other products may provide the info

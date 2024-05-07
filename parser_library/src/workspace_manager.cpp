@@ -692,16 +692,24 @@ class workspace_manager_impl final : public workspace_manager,
         });
     }
 
-    void configuration_changed(const lib_config& new_config) override
+    void configuration_changed(
+        const lib_config& new_config, std::string_view proc_json, std::string_view pgm_json) override
     {
         // TODO: should this action be also performed IN ORDER?
 
         m_global_config = new_config;
 
+        nlohmann::json implicit_config = nlohmann::json::object();
+        if (!proc_json.empty())
+            implicit_config["hlasm"]["proc_grps"] = nlohmann::json::parse(proc_json);
+        if (!pgm_json.empty())
+            implicit_config["hlasm"]["pgm_conf"] = nlohmann::json::parse(pgm_json);
+        auto cfg = std::make_shared<const nlohmann::json>(std::move(implicit_config));
         m_work_queue.emplace_back(work_item {
             next_unique_id(),
             &m_implicit_workspace,
-            std::function<utils::task()>([this, &ws = m_implicit_workspace.ws]() -> utils::task {
+            std::function<utils::task()>([this, &ws = m_implicit_workspace.ws, cfg = std::move(cfg)]() -> utils::task {
+                m_implicit_workspace.settings = cfg;
                 return ws.settings_updated().then([this](bool u) {
                     if (u)
                         notify_diagnostics_consumers();
@@ -1137,7 +1145,17 @@ public:
         , m_file_manager(*this)
         , m_implicit_workspace(m_file_manager, m_global_config, this)
         , m_vscode_extensions(vscode_extensions)
-    {}
+    {
+        m_work_queue.emplace_back(work_item {
+            next_unique_id(),
+            &m_implicit_workspace,
+            std::function<utils::task()>([this, &ws = m_implicit_workspace.ws]() -> utils::task {
+                return ws.open().then([this]() { notify_diagnostics_consumers(); });
+            }),
+            {},
+            work_item_type::workspace_open,
+        });
+    }
     workspace_manager_impl(const workspace_manager_impl&) = delete;
     workspace_manager_impl& operator=(const workspace_manager_impl&) = delete;
 
