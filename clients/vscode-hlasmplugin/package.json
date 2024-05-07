@@ -443,13 +443,13 @@
         "hlasm.proc_grps": {
           "type": "object",
           "scope": "resource",
-          "default": false,
+          "default": null,
           "description": "Alternative location for the content of proc_grps.json"
         },
         "hlasm.pgm_conf": {
           "type": "object",
           "scope": "resource",
-          "default": false,
+          "default": null,
           "description": "Alternative location for the content of pgm_conf.json"
         },
         "hlasm.arguments": {

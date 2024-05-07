@@ -588,6 +588,10 @@ utils::value_task<parse_config_file_result> workspace_configuration::load_proc_c
             proc_json_or_err = *proc_conf;
             config_source = &m_location;
         }
+        else if (proc_conf && !proc_conf->is_null())
+        {
+            proc_json_or_err = parse_config_file_result::error;
+        }
         json_visitor.update_utilized_settings(key, proc_conf);
     }
     if (std::holds_alternative<parse_config_file_result>(proc_json_or_err))
@@ -645,6 +649,10 @@ utils::value_task<parse_config_file_result> workspace_configuration::load_pgm_co
         {
             pgm_json_or_err = *pgm_conf;
             config_source = &m_location;
+        }
+        else if (pgm_conf && !pgm_conf->is_null())
+        {
+            pgm_json_or_err = parse_config_file_result::error;
         }
         json_visitor.update_utilized_settings(key, pgm_conf);
     }
