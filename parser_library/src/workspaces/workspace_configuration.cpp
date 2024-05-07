@@ -258,16 +258,19 @@ workspace_configuration::workspace_configuration(file_manager& fm,
     , m_external_configuration_requests(ecr)
     , m_pgm_conf_store(std::make_unique<program_configuration_storage>(m_proc_grps))
 {
-    auto hlasm_folder = utils::resource::resource_location::join(m_location, HLASM_PLUGIN_FOLDER);
-    m_proc_grps_loc = utils::resource::resource_location::join(hlasm_folder, FILENAME_PROC_GRPS);
-    m_pgm_conf_loc = utils::resource::resource_location::join(hlasm_folder, FILENAME_PGM_CONF);
+    if (!m_location.empty())
+    {
+        auto hlasm_folder = utils::resource::resource_location::join(m_location, HLASM_PLUGIN_FOLDER);
+        m_proc_grps_loc = utils::resource::resource_location::join(hlasm_folder, FILENAME_PROC_GRPS);
+        m_pgm_conf_loc = utils::resource::resource_location::join(hlasm_folder, FILENAME_PGM_CONF);
+    }
 }
 
 workspace_configuration::~workspace_configuration() = default;
 
 bool workspace_configuration::is_configuration_file(const utils::resource::resource_location& file) const
 {
-    return !m_location.empty() && (is_config_file(file) || is_b4g_config_file(file));
+    return !m_location.empty() && !file.empty() && (is_config_file(file) || is_b4g_config_file(file));
 }
 
 template<typename T>
@@ -578,7 +581,8 @@ utils::value_task<parse_config_file_result> workspace_configuration::load_proc_c
 
     const auto* config_source = &m_proc_grps_loc;
 
-    auto proc_json_or_err = co_await load_json_from_file(m_file_manager, m_proc_grps_loc);
+    auto proc_json_or_err = !m_proc_grps_loc.empty() ? co_await load_json_from_file(m_file_manager, m_proc_grps_loc)
+                                                     : parse_config_file_result::not_found;
     if (equals(proc_json_or_err, parse_config_file_result::not_found))
     {
         static const std::string key = "hlasm.proc_grps";
@@ -640,7 +644,8 @@ utils::value_task<parse_config_file_result> workspace_configuration::load_pgm_co
 
     const auto* config_source = &m_pgm_conf_loc;
 
-    auto pgm_json_or_err = co_await load_json_from_file(m_file_manager, m_pgm_conf_loc);
+    auto pgm_json_or_err = !m_pgm_conf_loc.empty() ? co_await load_json_from_file(m_file_manager, m_pgm_conf_loc)
+                                                   : parse_config_file_result::not_found;
     if (equals(pgm_json_or_err, parse_config_file_result::not_found))
     {
         static const std::string key = "hlasm.pgm_conf";
@@ -890,11 +895,11 @@ void workspace_configuration::produce_diagnostics(
 utils::value_task<parse_config_file_result> workspace_configuration::parse_configuration_file(
     std::optional<utils::resource::resource_location> file)
 {
+    if (!file.has_value() || is_config_file(*file))
+        return load_and_process_config(m_config_diags);
+
     if (!m_location.empty())
     {
-        if (!file.has_value() || is_config_file(*file))
-            return load_and_process_config(m_config_diags);
-
         if (is_b4g_config_file(*file))
             return parse_b4g_config_file(std::move(*file));
     }
