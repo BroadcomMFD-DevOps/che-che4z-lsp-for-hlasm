@@ -226,21 +226,13 @@ struct json_settings_replacer
     {
         if (!j)
         {
-            utilized_settings_values.emplace(std::piecewise_construct,
-                std::forward_as_tuple(key),
-                std::forward_as_tuple(std::in_place_type<std::monostate>));
-        }
-        else if (!j->is_string())
-        {
-            utilized_settings_values.emplace(std::piecewise_construct,
-                std::forward_as_tuple(key),
-                std::forward_as_tuple(std::in_place_type<nlohmann::json>, *j));
+            utilized_settings_values.emplace(
+                std::piecewise_construct, std::forward_as_tuple(key), std::forward_as_tuple(std::nullopt));
         }
         else
         {
-            utilized_settings_values.emplace(std::piecewise_construct,
-                std::forward_as_tuple(key),
-                std::forward_as_tuple(std::in_place_type<std::string>, j->get<std::string_view>()));
+            utilized_settings_values.emplace(
+                std::piecewise_construct, std::forward_as_tuple(key), std::forward_as_tuple(*j));
         }
     }
 };
@@ -705,15 +697,11 @@ bool workspace_configuration::settings_updated() const
     for (const auto& [key, value] : m_utilized_settings_values)
     {
         const auto* obj = find_subobject(key, *global_settings);
-        if (obj == nullptr && std::holds_alternative<std::monostate>(value))
+        if (obj == nullptr && !value.has_value())
             continue;
         if (!obj)
             return true;
-        if (obj->is_string() && std::holds_alternative<std::string>(value)
-            && obj->get<std::string_view>() == std::get<std::string>(value))
-            continue;
-        if (obj->is_object() && std::holds_alternative<nlohmann::json>(value)
-            && *obj == std::get<nlohmann::json>(value))
+        if (*obj == value)
             continue;
         return true;
     }
