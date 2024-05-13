@@ -583,8 +583,10 @@ utils::value_task<parse_config_file_result> workspace_configuration::load_proc_c
 
     const auto* config_source = &m_proc_grps_loc;
 
-    auto proc_json_or_err = !m_proc_grps_loc.empty() ? co_await load_json_from_file(m_file_manager, m_proc_grps_loc)
-                                                     : parse_config_file_result::not_found;
+    std::variant<nlohmann::json, parse_config_file_result> proc_json_or_err = parse_config_file_result::not_found;
+    if (!m_proc_grps_loc.empty())
+        proc_json_or_err = co_await load_json_from_file(m_file_manager, m_proc_grps_loc);
+
     if (equals(proc_json_or_err, parse_config_file_result::not_found))
     {
         static const std::string key = "hlasm.proc_grps";
@@ -646,8 +648,10 @@ utils::value_task<parse_config_file_result> workspace_configuration::load_pgm_co
 
     const auto* config_source = &m_pgm_conf_loc;
 
-    auto pgm_json_or_err = !m_pgm_conf_loc.empty() ? co_await load_json_from_file(m_file_manager, m_pgm_conf_loc)
-                                                   : parse_config_file_result::not_found;
+    std::variant<nlohmann::json, parse_config_file_result> pgm_json_or_err = parse_config_file_result::not_found;
+    if (!m_pgm_conf_loc.empty())
+        pgm_json_or_err = co_await load_json_from_file(m_file_manager, m_pgm_conf_loc);
+
     if (equals(pgm_json_or_err, parse_config_file_result::not_found))
     {
         static const std::string key = "hlasm.pgm_conf";
