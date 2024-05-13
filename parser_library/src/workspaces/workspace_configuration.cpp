@@ -892,11 +892,8 @@ utils::value_task<parse_config_file_result> workspace_configuration::parse_confi
     if (!file.has_value() || is_config_file(*file))
         return load_and_process_config(m_config_diags);
 
-    if (!m_location.empty())
-    {
-        if (is_b4g_config_file(*file))
-            return parse_b4g_config_file(std::move(*file));
-    }
+    if (!m_location.empty() && is_b4g_config_file(*file))
+        return parse_b4g_config_file(std::move(*file));
 
     return utils::value_task<parse_config_file_result>::from_value(parse_config_file_result::not_found);
 }
