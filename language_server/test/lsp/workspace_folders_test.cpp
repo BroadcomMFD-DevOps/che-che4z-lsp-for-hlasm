@@ -197,9 +197,8 @@ TEST(workspace_folders, did_change_configuration)
         {
             "items",
             nlohmann::json::array_t {
-                {
-                    { "section", "hlasm" },
-                },
+                { { "section", "hlasm.diagnosticsSuppressLimit" } },
+                nlohmann::json::object(),
             },
         },
     };
@@ -211,9 +210,11 @@ TEST(workspace_folders, did_change_configuration)
     parser_library::lib_config expected_config;
     expected_config.diag_supress_limit = 42;
 
-    EXPECT_CALL(ws_mngr, configuration_changed(Eq(expected_config), Eq(R"({"pgroups":[]})"), Eq(R"({"pgms":[]})")));
+    EXPECT_CALL(ws_mngr,
+        configuration_changed(Eq(expected_config),
+            Eq(R"({"hlasm":{"diagnosticsSuppressLimit":42,"pgm_conf":{"pgms":[]},"proc_grps":{"pgroups":[]}}})")));
 
-    handler(R"([{"diagnosticsSuppressLimit":42,"proc_grps":{"pgroups":[]},"pgm_conf":{"pgms":[]}}])"_json);
+    handler(R"([42,{"hlasm":{"diagnosticsSuppressLimit":42,"pgm_conf":{"pgms":[]},"proc_grps":{"pgroups":[]}}}])"_json);
 }
 
 TEST(workspace_folders, did_change_configuration_with_requests)
@@ -229,7 +230,7 @@ TEST(workspace_folders, did_change_configuration_with_requests)
 
     EXPECT_CALL(req_mock, request_workspace_configuration(StrEq("testurl"), _));
 
-    ws_mngr->configuration_changed({}, {}, {});
+    ws_mngr->configuration_changed({}, {});
 }
 
 TEST(workspace_folders, did_change_configuration_empty_configuration_params)
@@ -251,7 +252,8 @@ TEST(workspace_folders, did_change_configuration_empty_configuration_params)
         {
             "items",
             nlohmann::json::array_t {
-                { { "section", "hlasm" } },
+                { { "section", "hlasm.diagnosticsSuppressLimit" } },
+                nlohmann::json::object(),
             },
         },
     };
@@ -260,7 +262,7 @@ TEST(workspace_folders, did_change_configuration_empty_configuration_params)
 
     methods["workspace/didChangeConfiguration"].as_notification_handler()("{}"_json);
 
-    EXPECT_CALL(ws_mngr, configuration_changed(_, _, _)).Times(0);
+    EXPECT_CALL(ws_mngr, configuration_changed(_, _)).Times(0);
 
     handler(R"([])"_json);
 }

@@ -177,8 +177,7 @@ TEST(workspace_manager, implicit_configuration)
     ws_mngr->register_diagnostics_consumer(&diags);
     ws_mngr->add_workspace("dir", "test:/dir");
     ws_mngr->configuration_changed({},
-        R"({"pgroups":[{"name":"P1","libs":["test:/dir/macs/"]}]})",
-        R"({"pgms":[{"program":"**","pgroup":"P1"}]})");
+        R"({"hlasm":{"proc_grps":{"pgroups":[{"name":"P1","libs":["test:/dir/macs/"]}]},"pgm_conf":{"pgms":[{"program":"**","pgroup":"P1"}]}}})");
 
     EXPECT_CALL(ext_mock, read_external_file).WillRepeatedly(Invoke([](auto, auto r) { r.error(-1, ""); }));
     EXPECT_CALL(ext_mock, read_external_directory(StrEq("test:/dir/macs/"), _, _))

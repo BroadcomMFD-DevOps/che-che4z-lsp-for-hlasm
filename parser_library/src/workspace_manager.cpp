@@ -692,19 +692,14 @@ class workspace_manager_impl final : public workspace_manager,
         });
     }
 
-    void configuration_changed(
-        const lib_config& new_config, std::string_view proc_json, std::string_view pgm_json) override
+    void configuration_changed(const lib_config& new_config, std::string_view full_cfg) override
     {
         // TODO: should this action be also performed IN ORDER?
 
         m_global_config = new_config;
 
-        nlohmann::json implicit_config = nlohmann::json::object();
-        if (!proc_json.empty())
-            implicit_config["hlasm"]["proc_grps"] = nlohmann::json::parse(proc_json);
-        if (!pgm_json.empty())
-            implicit_config["hlasm"]["pgm_conf"] = nlohmann::json::parse(pgm_json);
-        auto cfg = std::make_shared<const nlohmann::json>(std::move(implicit_config));
+        auto cfg = std::make_shared<const nlohmann::json>(
+            full_cfg.empty() ? nlohmann::json() : nlohmann::json::parse(full_cfg));
         m_work_queue.emplace_back(work_item {
             next_unique_id(),
             &m_implicit_workspace,
