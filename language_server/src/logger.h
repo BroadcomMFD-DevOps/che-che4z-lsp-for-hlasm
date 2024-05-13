@@ -56,8 +56,9 @@ public:
     void level(unsigned l) noexcept
     {
         if (l > max_log_level)
-            l = max_log_level;
-        m_level = l;
+            m_level = max_log_level;
+        else
+            m_level = l;
     }
 
     template<std::convertible_to<std::string_view>... Args>
