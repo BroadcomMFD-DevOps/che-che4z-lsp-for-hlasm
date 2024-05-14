@@ -182,6 +182,9 @@ class workspace_configuration
     utils::resource::resource_location m_proc_grps_loc;
     utils::resource::resource_location m_pgm_conf_loc;
 
+    utils::resource::resource_location m_proc_grps_current_loc;
+    utils::resource::resource_location m_pgm_conf_current_loc;
+
     config::proc_grps m_proc_grps_source;
     proc_groups_map m_proc_grps;
 
@@ -253,9 +256,11 @@ class workspace_configuration
 
     [[nodiscard]] utils::value_task<parse_config_file_result> load_and_process_config(std::vector<diagnostic>& diags);
 
-    [[nodiscard]] utils::value_task<parse_config_file_result> load_proc_config(
+    [[nodiscard]] utils::value_task<std::pair<parse_config_file_result, utils::resource::resource_location>>
+    load_proc_config(
         config::proc_grps& proc_groups, global_settings_map& utilized_settings_values, std::vector<diagnostic>& diags);
-    [[nodiscard]] utils::value_task<parse_config_file_result> load_pgm_config(
+    [[nodiscard]] utils::value_task<std::pair<parse_config_file_result, utils::resource::resource_location>>
+    load_pgm_config(
         config::pgm_conf& pgm_config, global_settings_map& utilized_settings_values, std::vector<diagnostic>& diags);
 
     [[nodiscard]] utils::task find_and_add_libs(utils::resource::resource_location root,

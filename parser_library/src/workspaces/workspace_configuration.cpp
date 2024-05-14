@@ -290,7 +290,7 @@ std::shared_ptr<library> workspace_configuration::get_local_library(
         return it->second.first;
     }
 
-    auto result = std::make_shared<library_local>(m_file_manager, url, opts, m_proc_grps_loc);
+    auto result = std::make_shared<library_local>(m_file_manager, url, opts, m_proc_grps_current_loc);
     m_libraries.try_emplace(std::make_pair(url, library_options(opts)), result, true);
     return result;
 }
@@ -418,7 +418,7 @@ utils::task workspace_configuration::process_processor_group_library(const confi
     std::optional<std::string> lib_path = substitute_home_directory(lib.path);
     if (!lib_path.has_value())
     {
-        diags.push_back(warning_L0006(m_proc_grps_loc, lib.path));
+        diags.push_back(warning_L0006(m_proc_grps_current_loc, lib.path));
         return {};
     }
 
@@ -460,7 +460,7 @@ void workspace_configuration::process_program(const config::program_mapping& pgm
     std::optional<std::string> pgm_name = substitute_home_directory(pgm.program);
     if (!pgm_name.has_value())
     {
-        diags.push_back(warning_L0006(m_pgm_conf_loc, pgm.program));
+        diags.push_back(warning_L0006(m_pgm_conf_current_loc, pgm.program));
         return;
     }
 
@@ -481,7 +481,7 @@ void workspace_configuration::process_program(const config::program_mapping& pgm
 
 bool workspace_configuration::is_config_file(const utils::resource::resource_location& file) const
 {
-    return file == m_proc_grps_loc || file == m_pgm_conf_loc;
+    return !file.empty() && (file == m_proc_grps_loc || file == m_pgm_conf_loc);
 }
 
 bool workspace_configuration::is_b4g_config_file(const utils::resource::resource_location& file) const
@@ -536,9 +536,12 @@ utils::value_task<parse_config_file_result> workspace_configuration::load_and_pr
     m_pgm_conf_store->clear();
     m_b4g_config_cache.clear();
 
-    const auto proc_gprs_result = co_await load_proc_config(proc_groups, utilized_settings_values, diags);
+    auto [proc_gprs_result, proc_src] = co_await load_proc_config(proc_groups, utilized_settings_values, diags);
 
-    const auto pgm_conf_loaded = co_await load_pgm_config(pgm_config, utilized_settings_values, diags);
+    auto [pgm_conf_loaded, pgm_src] = co_await load_pgm_config(pgm_config, utilized_settings_values, diags);
+
+    m_proc_grps_current_loc = std::move(proc_src);
+    m_pgm_conf_current_loc = std::move(pgm_src);
 
     m_utilized_settings_values = std::move(utilized_settings_values);
 
@@ -567,13 +570,14 @@ utils::value_task<parse_config_file_result> workspace_configuration::load_and_pr
     co_return parse_config_file_result::parsed;
 }
 
-utils::value_task<parse_config_file_result> workspace_configuration::load_proc_config(
+utils::value_task<std::pair<parse_config_file_result, utils::resource::resource_location>>
+workspace_configuration::load_proc_config(
     config::proc_grps& proc_groups, global_settings_map& utilized_settings_values, std::vector<diagnostic>& diags)
 {
     const auto current_settings = m_global_settings.load();
     json_settings_replacer json_visitor { *current_settings, utilized_settings_values, m_location };
 
-    const auto* config_source = &m_proc_grps_loc;
+    auto config_source = m_proc_grps_loc;
 
     std::variant<nlohmann::json, parse_config_file_result> proc_json_or_err = parse_config_file_result::not_found;
     if (!m_proc_grps_loc.empty())
@@ -586,7 +590,7 @@ utils::value_task<parse_config_file_result> workspace_configuration::load_proc_c
         if (proc_conf && proc_conf->is_object())
         {
             proc_json_or_err = *proc_conf;
-            config_source = &m_location;
+            config_source = m_location;
         }
         else if (proc_conf && !proc_conf->is_null())
         {
@@ -598,8 +602,8 @@ utils::value_task<parse_config_file_result> workspace_configuration::load_proc_c
     {
         auto reason = std::get<parse_config_file_result>(proc_json_or_err);
         if (reason == parse_config_file_result::error)
-            diags.push_back(error_W0002(*config_source));
-        co_return reason;
+            diags.push_back(error_W0002(config_source));
+        co_return { reason, config_source };
     }
 
     try
@@ -611,34 +615,35 @@ utils::value_task<parse_config_file_result> workspace_configuration::load_proc_c
     catch (const nlohmann::json::exception&)
     {
         // could not load proc_grps
-        diags.push_back(error_W0002(*config_source));
-        co_return parse_config_file_result::error;
+        diags.push_back(error_W0002(config_source));
+        co_return { parse_config_file_result::error, config_source };
     }
 
     for (const auto& var : json_visitor.unavailable)
-        diags.push_back(warn_W0007(*config_source, var));
+        diags.push_back(warn_W0007(config_source, var));
 
     for (const auto& pg : proc_groups.pgroups)
     {
         if (!pg.asm_options.valid())
-            diags.push_back(error_W0005(*config_source, pg.name, "processor group"));
+            diags.push_back(error_W0005(config_source, pg.name, "processor group"));
         for (const auto& p : pg.preprocessors)
         {
             if (!p.valid())
-                diags.push_back(error_W0006(*config_source, pg.name, p.type()));
+                diags.push_back(error_W0006(config_source, pg.name, p.type()));
         }
     }
 
-    co_return parse_config_file_result::parsed;
+    co_return { parse_config_file_result::parsed, config_source };
 }
 
-utils::value_task<parse_config_file_result> workspace_configuration::load_pgm_config(
+utils::value_task<std::pair<parse_config_file_result, utils::resource::resource_location>>
+workspace_configuration::load_pgm_config(
     config::pgm_conf& pgm_config, global_settings_map& utilized_settings_values, std::vector<diagnostic>& diags)
 {
     const auto current_settings = m_global_settings.load();
     json_settings_replacer json_visitor { *current_settings, utilized_settings_values, m_location };
 
-    const auto* config_source = &m_pgm_conf_loc;
+    auto config_source = m_pgm_conf_loc;
 
     std::variant<nlohmann::json, parse_config_file_result> pgm_json_or_err = parse_config_file_result::not_found;
     if (!m_pgm_conf_loc.empty())
@@ -651,7 +656,7 @@ utils::value_task<parse_config_file_result> workspace_configuration::load_pgm_co
         if (pgm_conf && pgm_conf->is_object())
         {
             pgm_json_or_err = *pgm_conf;
-            config_source = &m_location;
+            config_source = m_location;
         }
         else if (pgm_conf && !pgm_conf->is_null())
         {
@@ -663,8 +668,8 @@ utils::value_task<parse_config_file_result> workspace_configuration::load_pgm_co
     {
         auto reason = std::get<parse_config_file_result>(pgm_json_or_err);
         if (reason == parse_config_file_result::error)
-            diags.push_back(error_W0003(*config_source));
-        co_return reason;
+            diags.push_back(error_W0003(config_source));
+        co_return { reason, config_source };
     }
 
     try
@@ -675,20 +680,20 @@ utils::value_task<parse_config_file_result> workspace_configuration::load_pgm_co
     }
     catch (const nlohmann::json::exception&)
     {
-        diags.push_back(error_W0003(*config_source));
-        co_return parse_config_file_result::error;
+        diags.push_back(error_W0003(config_source));
+        co_return { parse_config_file_result::error, config_source };
     }
 
     for (const auto& var : json_visitor.unavailable)
-        diags.push_back(warn_W0007(*config_source, var));
+        diags.push_back(warn_W0007(config_source, var));
 
     for (const auto& pgm : pgm_config.pgms)
     {
         if (!pgm.opts.valid())
-            diags.push_back(error_W0005(*config_source, pgm.program, "program"));
+            diags.push_back(error_W0005(config_source, pgm.program, "program"));
     }
 
-    co_return parse_config_file_result::parsed;
+    co_return { parse_config_file_result::parsed, config_source };
 }
 
 bool workspace_configuration::settings_updated() const
@@ -792,7 +797,7 @@ utils::task workspace_configuration::find_and_add_libs(utils::resource::resource
     if (std::error_code ec; dirs_to_search.emplace_back(m_file_manager.canonical(root, ec), root), ec)
     {
         if (!opts.optional_library)
-            diags.push_back(error_L0001(m_proc_grps_loc, root));
+            diags.push_back(error_L0001(m_proc_grps_current_loc, root));
         co_return;
     }
 
@@ -802,7 +807,7 @@ utils::task workspace_configuration::find_and_add_libs(utils::resource::resource
         const auto first = std::exchange(first_, false);
         if (processed_canonical_paths.size() > limit)
         {
-            diags.push_back(warning_L0005(m_proc_grps_loc, path_pattern.to_presentable(), limit));
+            diags.push_back(warning_L0005(m_proc_grps_current_loc, path_pattern.to_presentable(), limit));
             break;
         }
 
@@ -819,7 +824,7 @@ utils::task workspace_configuration::find_and_add_libs(utils::resource::resource
         if (return_code != utils::path::list_directory_rc::done)
         {
             if (!first || !opts.optional_library || return_code != utils::path::list_directory_rc::not_exists)
-                diags.push_back(error_L0001(m_proc_grps_loc, dir));
+                diags.push_back(error_L0001(m_proc_grps_current_loc, dir));
             break;
         }
 
@@ -844,7 +849,7 @@ void workspace_configuration::add_missing_diags(const diagnosable& target,
     };
 
     bool empty_cfg_rl = config_file_rl.empty();
-    const auto& adjusted_conf_rl = empty_cfg_rl ? m_pgm_conf_loc : config_file_rl;
+    const auto& adjusted_conf_rl = empty_cfg_rl ? m_pgm_conf_current_loc : config_file_rl;
 
     for (const auto& categorized_missing_pgroups =
              m_pgm_conf_store->get_categorized_missing_pgroups(config_file_rl, opened_files);
