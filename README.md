@@ -61,6 +61,8 @@ Follow the section [External Macro Libraries and COPY Members](#External-Macro-L
 
 The `pgm_conf.json` file can be provided implicitly by another product that supports integration with HLASM Language Support (e.g. Endevor Bridge for Git).
 
+Configuration can also be specified in Visual Studio Code Settings in `hlasm.proc_grps` and `hlasm.pgm_conf` keys. When `proc_grps.json` or `pgm_conf.json` files are available they take precedence.
+
 ## Language Features
 
 The HLASM Language Support extension parses and analyzes all parts of a HLASM program including the listing. It resolves all ordinary symbols, variable symbols and checks the validity of most instructions. The extension supports conditional and unconditional branching and can define global and local variable symbols. It can also expand macros and COPY instructions.

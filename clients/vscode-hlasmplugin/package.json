@@ -25,7 +25,8 @@
     "multi-root ready"
   ],
   "activationEvents": [
-    "onStartupFinished"
+    "onStartupFinished",
+    "onFileSystem:broadcommfd.hlasm-language-support-configuration"
   ],
   "icon": "resources/logo.png",
   "main": "./dist/extension.js",
@@ -441,16 +442,16 @@
       "title": "HLASM Language Support Configuration",
       "properties": {
         "hlasm.proc_grps": {
-          "type": "object",
           "scope": "resource",
           "default": null,
-          "description": "Alternative location for the content of proc_grps.json"
+          "description": "Processor group configuration",
+          "$ref": "broadcommfd.hlasm-language-support-configuration:///schema/proc_grps.schema.json"
         },
         "hlasm.pgm_conf": {
-          "type": "object",
           "scope": "resource",
           "default": null,
-          "description": "Alternative location for the content of pgm_conf.json"
+          "description": "Program configuration",
+          "$ref": "broadcommfd.hlasm-language-support-configuration:///schema/pgm_conf.schema.json"
         },
         "hlasm.arguments": {
           "type": "array",
