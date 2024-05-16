@@ -28,17 +28,28 @@ export type SettingsConfigurationNodeDetails = {
     exists: true;
 };
 
+export type SettingsConfigurationNodeDetailsWithoutWorkspace = {
+    scope: vscode.ConfigurationTarget.Global | vscode.ConfigurationTarget.Workspace;
+    key: string;
+    exists: boolean;
+};
+
 export type BridgeConfigurationNodeDetails = ConfigurationNodeDetails | {
     uri: null;
     exists: false;
 };
 
-export interface ConfigurationNodes {
+export type ConfigurationNodes = {
     procGrps: ConfigurationNodeDetails | SettingsConfigurationNodeDetails;
     pgmConf: ConfigurationNodeDetails | SettingsConfigurationNodeDetails;
     bridgeJson: BridgeConfigurationNodeDetails;
     ebgFolder: ConfigurationNodeDetails;
-}
+};
+
+export type ConfigurationNodesWithoutWorkspace = {
+    procGrps: SettingsConfigurationNodeDetailsWithoutWorkspace;
+    pgmConf: SettingsConfigurationNodeDetailsWithoutWorkspace;
+};
 
 function addAlternative(node: ConfigurationNodeDetails, ws: vscode.Uri, key: string): ConfigurationNodeDetails | SettingsConfigurationNodeDetails {
     if (node.exists)
@@ -63,7 +74,26 @@ function addAlternative(node: ConfigurationNodeDetails, ws: vscode.Uri, key: str
     };
 }
 
-export async function retrieveConfigurationNodes(workspace: vscode.Uri, documentUri: vscode.Uri | undefined, fs: vscode.FileSystem = vscode.workspace.fs): Promise<ConfigurationNodes> {
+function generateConfigurationNodesWithoutWorkspace(): ConfigurationNodesWithoutWorkspace {
+    const config = vscode.workspace.getConfiguration('hlasm');
+    const procDetails = config.inspect('hlasm.proc_grps');
+    const pgmDetails = config.inspect('hlasm.pgm_conf');
+    const scope = vscode.workspace.workspaceFile ? vscode.ConfigurationTarget.Workspace : vscode.ConfigurationTarget.Global;
+
+    return {
+        procGrps: { scope, key: 'hlasm.proc_grps', exists: !!(procDetails?.globalValue || procDetails?.workspaceValue) },
+        pgmConf: { scope, key: 'hlasm.pgm_conf', exists: !!(pgmDetails?.globalValue || pgmDetails?.workspaceValue) },
+    };
+}
+
+export async function retrieveConfigurationNodes(workspace: vscode.Uri, documentUri: vscode.Uri | undefined): Promise<ConfigurationNodes>;
+export async function retrieveConfigurationNodes(workspace: vscode.Uri, documentUri: vscode.Uri | undefined, fs: vscode.FileSystem): Promise<ConfigurationNodes>;
+export async function retrieveConfigurationNodes(workspace: undefined, documentUri: vscode.Uri | undefined): Promise<ConfigurationNodesWithoutWorkspace>;
+export async function retrieveConfigurationNodes(workspace: undefined, documentUri: vscode.Uri | undefined, fs: vscode.FileSystem): Promise<ConfigurationNodesWithoutWorkspace>;
+export async function retrieveConfigurationNodes(workspace: vscode.Uri | undefined, documentUri: vscode.Uri | undefined, fs: vscode.FileSystem = vscode.workspace.fs): Promise<ConfigurationNodes | ConfigurationNodesWithoutWorkspace> {
+    if (!workspace)
+        return generateConfigurationNodesWithoutWorkspace();
+
     const procGrps = vscode.Uri.joinPath(workspace, hlasmplugin_folder, proc_grps_file);
     const pgmConf = vscode.Uri.joinPath(workspace, hlasmplugin_folder, pgm_conf_file);
     const bridgeJson = documentUri ? vscode.Uri.joinPath(documentUri, "..", bridge_json_file) : undefined;

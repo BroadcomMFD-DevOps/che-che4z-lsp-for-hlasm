@@ -13,7 +13,7 @@
  */
 
 import * as vscode from 'vscode';
-import { ConfigurationNodeDetails, ConfigurationNodes, SettingsConfigurationNodeDetails, anyConfigurationNodeExists } from '../configurationNodes';
+import { ConfigurationNodeDetails, ConfigurationNodes, ConfigurationNodesWithoutWorkspace, SettingsConfigurationNodeDetails, SettingsConfigurationNodeDetailsWithoutWorkspace, anyConfigurationNodeExists } from '../configurationNodes';
 
 function filenameFromUri(uri: vscode.Uri): string {
     return uri.path.substring(uri.path.lastIndexOf('/') + 1);
@@ -59,7 +59,7 @@ function modifyConfigurationFile(uri: vscode.Uri): vscode.CodeAction {
     };
 }
 
-function modifySettings(s: SettingsConfigurationNodeDetails): vscode.CodeAction {
+function modifySettings(s: SettingsConfigurationNodeDetails | SettingsConfigurationNodeDetailsWithoutWorkspace): vscode.CodeAction {
     const title = `Modify settings key '${s.key}'`;
     if (s.scope === vscode.ConfigurationTarget.WorkspaceFolder)
         return {
@@ -111,20 +111,23 @@ function generatePgmConfCodeAction(configNodes: ConfigurationNodes, wsUri: vscod
     }
 }
 
-export function generateConfigurationFilesCodeActions(suggestProcGrpsChange: boolean, suggestPgmConfChange: boolean, configNodes: ConfigurationNodes, wsUri: vscode.Uri, documentRelativeUri: string): vscode.CodeAction[] {
+export function generateConfigurationFilesCodeActions(suggestProcGrpsChange: boolean, suggestPgmConfChange: boolean, config: { nodes: ConfigurationNodes, ws: vscode.Uri, documentRelativeUri: string } | { nodes: ConfigurationNodesWithoutWorkspace }): vscode.CodeAction[] {
     if (!suggestProcGrpsChange && !suggestPgmConfChange)
         return [];
 
-    if (!anyConfigurationNodeExists(configNodes))
-        return [createAllConfigurationFiles(wsUri, documentRelativeUri, 'GRP1')];
+    if (!('ws' in config))
+        return [modifySettings(config.nodes.procGrps), modifySettings(config.nodes.pgmConf)];
+
+    if (!anyConfigurationNodeExists(config.nodes))
+        return [createAllConfigurationFiles(config.ws, config.documentRelativeUri, 'GRP1')];
 
     const result: vscode.CodeAction[] = [];
 
     if (suggestProcGrpsChange)
-        result.push(generateProcGrpsCodeAction(configNodes.procGrps, wsUri));
+        result.push(generateProcGrpsCodeAction(config.nodes.procGrps, config.ws));
 
     if (suggestPgmConfChange)
-        result.push(generatePgmConfCodeAction(configNodes, wsUri, documentRelativeUri));
+        result.push(generatePgmConfCodeAction(config.nodes, config.ws, config.documentRelativeUri));
 
     return result;
 }
