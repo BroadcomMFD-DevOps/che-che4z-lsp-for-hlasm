@@ -443,15 +443,19 @@
       "properties": {
         "hlasm.proc_grps": {
           "scope": "resource",
-          "default": null,
           "description": "Processor group configuration",
-          "$ref": "broadcommfd.hlasm-language-support-configuration:///schema/proc_grps.schema.json"
+          "$ref": "broadcommfd.hlasm-language-support-configuration:///schema/proc_grps.schema.json",
+          "default": {
+            "pgroups": []
+          }
         },
         "hlasm.pgm_conf": {
           "scope": "resource",
-          "default": null,
           "description": "Program configuration",
-          "$ref": "broadcommfd.hlasm-language-support-configuration:///schema/pgm_conf.schema.json"
+          "$ref": "broadcommfd.hlasm-language-support-configuration:///schema/pgm_conf.schema.json",
+          "default": {
+            "pgms": []
+          }
         },
         "hlasm.arguments": {
           "type": "array",
