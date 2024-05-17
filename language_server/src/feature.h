@@ -104,7 +104,7 @@ public:
     template<cancellable_request Request>
     explicit(false) request_invalidator(Request r)
         : invalidator(
-            r.resolved() ? std::function<void()>() : std::function<void()>([r = std::move(r)]() { r.invalidate(); }))
+              r.resolved() ? std::function<void()>() : std::function<void()>([r = std::move(r)]() { r.invalidate(); }))
     {}
 };
 
