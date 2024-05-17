@@ -17,9 +17,7 @@
 #include <algorithm>
 #include <cassert>
 #include <concepts>
-#if __cpp_lib_polymorphic_allocator >= 201902L && __cpp_lib_memory_resource >= 201603L
-#    include <memory_resource>
-#endif
+#include <memory_resource>
 #include <numeric>
 #include <span>
 #include <type_traits>
@@ -77,7 +75,7 @@ void space::resolve(space_ptr this_space, space_ptr value)
 
     assert(this_space->kind == space_kind::LOCTR_UNKNOWN);
 
-    this_space->resolved_ptrs.push_back(address::space_entry(value, 1));
+    this_space->resolved_ptrs.emplace_back(std::move(value), 1);
 
     this_space->resolved_ = true;
 }
@@ -121,7 +119,6 @@ struct normalization_helper
     normalization_helper(normalization_helper&&) = delete;
     normalization_helper& operator=(const normalization_helper&) = delete;
     normalization_helper& operator=(normalization_helper&&) = delete;
-#if __cpp_lib_polymorphic_allocator >= 201902L && __cpp_lib_memory_resource >= 201603L
     normalization_helper()
         : buffer_resource(buffer.data(), buffer.size())
         , map(&buffer_resource)
@@ -129,10 +126,6 @@ struct normalization_helper
     alignas(std::max_align_t) std::array<unsigned char, 8 * 1024> buffer;
     std::pmr::monotonic_buffer_resource buffer_resource;
     std::pmr::unordered_map<space*, size_t> map;
-#else
-    normalization_helper() = default;
-    std::unordered_map<space*, size_t> map;
-#endif
 };
 
 int get_unresolved_spaces(std::span<const address::space_entry> spaces,
