@@ -445,9 +445,9 @@ public:
 
         constexpr auto compare_variables = [](const variable& l, const variable& r) { return l.name < r.name; };
 
-        std::sort(globals.begin(), globals.end(), compare_variables);
-        std::sort(scope_vars.begin(), scope_vars.end(), compare_variables);
-        std::sort(ordinary_symbols.begin(), ordinary_symbols.end(), compare_variables);
+        std::ranges::sort(globals, compare_variables);
+        std::ranges::sort(scope_vars, compare_variables);
+        std::ranges::sort(ordinary_symbols, compare_variables);
 
         scopes_.emplace_back("Globals", add_variable(std::move(globals)), source(opencode_source_uri_));
         scopes_.emplace_back("Locals", add_variable(std::move(scope_vars)), source(opencode_source_uri_));
@@ -529,9 +529,8 @@ public:
         std::string text;
 
         auto bases = std::vector<context::address::base_entry>(reloc.bases().begin(), reloc.bases().end());
-        std::sort(bases.begin(), bases.end(), [](const auto& l, const auto& r) {
-            return l.first.owner->name < r.first.owner->name;
-        });
+        static constexpr const auto by_owner_name = [](const auto& e) -> const auto& { return e.first.owner->name; };
+        std::ranges::sort(bases, {}, by_owner_name);
         bool first = true;
         for (const auto& [base, d] : bases)
         {

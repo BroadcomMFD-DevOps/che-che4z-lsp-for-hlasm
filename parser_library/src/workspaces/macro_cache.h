@@ -70,11 +70,7 @@ struct macro_cache_key
             return c;
         if (auto c = opsyn_state.size() <=> o.opsyn_state.size(); c != 0)
             return c;
-        // libc++ still does not support <=> for vector or lexicographical_compare_three_way
-        for (auto l = opsyn_state.begin(), r = o.opsyn_state.begin(); l != opsyn_state.end(); ++l, ++r)
-            if (auto c = *l <=> *r; c != 0)
-                return c;
-        return std::strong_ordering::equal;
+        return opsyn_state <=> o.opsyn_state;
     }
 };
 

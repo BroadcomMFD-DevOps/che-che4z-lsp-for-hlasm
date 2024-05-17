@@ -15,9 +15,8 @@
 #ifndef LSP_CONTEXT_H
 #define LSP_CONTEXT_H
 
+#include <algorithm>
 #include <memory>
-#include <span>
-#include <string_view>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -56,7 +55,7 @@ class lsp_context final
     {
         std::vector<T> data;
 
-        bool contains(const T& v) const { return std::binary_search(data.begin(), data.end(), v); }
+        bool contains(const T& v) const { return std::ranges::binary_search(data, v); }
     };
 
     struct title_details

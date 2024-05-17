@@ -55,7 +55,7 @@ uint32_t get_X_B_length_attr(const std::string& s, uint64_t frac)
 }
 
 // Checks comma separated values. is_valid_digit specifies whether the char is valid character of value.
-template</* std::predicate<char> */ typename F>
+template<std::predicate<char> F>
 bool check_comma_separated(const std::string& nom, F is_valid_digit)
 {
     bool last_valid = false;
@@ -82,14 +82,14 @@ bool check_comma_separated(const std::string& nom, F is_valid_digit)
 //******************************   type B   ********************************//
 data_def_type_B::data_def_type_B()
     : data_def_type('B',
-          '\0',
-          modifier_bound { 1, 2048 },
-          modifier_bound { 1, 256 },
-          n_a(),
-          n_a(),
-          nominal_value_type::STRING,
-          no_align,
-          as_needed())
+        '\0',
+        modifier_bound { 1, 2048 },
+        modifier_bound { 1, 256 },
+        n_a(),
+        n_a(),
+        nominal_value_type::STRING,
+        no_align,
+        as_needed())
 {}
 
 bool data_def_type_B::check(
@@ -134,15 +134,15 @@ uint32_t data_def_type_B::get_nominal_length_attribute(const reduced_nominal_val
 //******************************   type C   ********************************//
 data_def_type_CA_CE::data_def_type_CA_CE(char extension)
     : data_def_type('C',
-          extension,
-          modifier_bound { 1, 2048 },
-          modifier_bound { 1, 256 },
-          65535,
-          n_a(),
-          n_a(),
-          nominal_value_type::STRING,
-          no_align,
-          as_needed())
+        extension,
+        modifier_bound { 1, 2048 },
+        modifier_bound { 1, 256 },
+        65535,
+        n_a(),
+        n_a(),
+        nominal_value_type::STRING,
+        no_align,
+        as_needed())
 {}
 
 uint64_t data_def_type_CA_CE::get_nominal_length(const reduced_nominal_value_t& op) const
@@ -182,7 +182,7 @@ data_def_type_CE::data_def_type_CE()
 
 data_def_type_CU::data_def_type_CU()
     : data_def_type(
-          'C', 'U', n_a(), modifier_bound { 1, 256 }, n_a(), n_a(), nominal_value_type::STRING, no_align, as_needed())
+        'C', 'U', n_a(), modifier_bound { 1, 256 }, n_a(), n_a(), nominal_value_type::STRING, no_align, as_needed())
 {}
 
 uint64_t data_def_type_CU::get_nominal_length(const reduced_nominal_value_t& op) const
@@ -222,15 +222,15 @@ bool data_def_type_CU::check(const data_definition_operand& op, const diagnostic
 
 data_def_type_G::data_def_type_G()
     : data_def_type('G',
-          '\0',
-          n_a(),
-          modifier_bound { 1, 256 },
-          65534,
-          n_a(),
-          n_a(),
-          nominal_value_type::STRING,
-          no_align,
-          as_needed())
+        '\0',
+        n_a(),
+        modifier_bound { 1, 256 },
+        65534,
+        n_a(),
+        n_a(),
+        nominal_value_type::STRING,
+        no_align,
+        as_needed())
 {}
 
 bool data_def_type_G::check(const data_definition_operand& op, const diagnostic_collector& add_diagnostic, bool) const
@@ -244,6 +244,12 @@ bool data_def_type_G::check(const data_definition_operand& op, const diagnostic_
     return true;
 }
 
+size_t length_without_angle_brackets(std::string_view s)
+{
+    static constexpr const auto angle_bracket = [](char c) { return c == '<' || c == '>'; };
+    return hlasm_plugin::utils::length_utf32_no_validation(s) - std::ranges::count_if(s, angle_bracket);
+}
+
 uint64_t data_def_type_G::get_nominal_length(const reduced_nominal_value_t& op) const
 {
     if (!op.present)
@@ -251,28 +257,17 @@ uint64_t data_def_type_G::get_nominal_length(const reduced_nominal_value_t& op) 
     else if (!std::holds_alternative<std::string>(op.value))
         return 0;
     else
-    {
-        const std::string& s = std::get<std::string>(op.value);
-        return utils::length_utf32_no_validation(s)
-            - std::count_if(s.begin(), s.end(), [](char c) { return c == '<' || c == '>'; });
-    }
+        return length_without_angle_brackets(std::get<std::string>(op.value));
 }
 
 uint32_t data_def_type_G::get_nominal_length_attribute(const reduced_nominal_value_t& nom) const
 {
     if (!nom.present)
         return 2;
+    else if (!std::holds_alternative<std::string>(nom.value))
+        return 0;
     else
-    {
-        if (!std::holds_alternative<std::string>(nom.value))
-            return 0;
-        else
-        {
-            const std::string& s = std::get<std::string>(nom.value);
-            return (uint32_t)(utils::length_utf32_no_validation(s)
-                - std::count_if(s.begin(), s.end(), [](char c) { return c == '<' || c == '>'; }));
-        }
-    }
+        return (uint32_t)length_without_angle_brackets(std::get<std::string>(nom.value));
 }
 
 //******************************   type X   ********************************//
@@ -280,15 +275,15 @@ uint32_t data_def_type_G::get_nominal_length_attribute(const reduced_nominal_val
 
 data_def_type_X::data_def_type_X()
     : data_def_type('X',
-          '\0',
-          modifier_bound { 1, 2048 },
-          modifier_bound { 1, 256 },
-          65535,
-          n_a(),
-          n_a(),
-          nominal_value_type::STRING,
-          no_align,
-          as_needed())
+        '\0',
+        modifier_bound { 1, 2048 },
+        modifier_bound { 1, 256 },
+        65535,
+        n_a(),
+        n_a(),
+        nominal_value_type::STRING,
+        no_align,
+        as_needed())
 {}
 
 bool data_def_type_X::check(

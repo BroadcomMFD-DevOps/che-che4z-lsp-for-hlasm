@@ -117,9 +117,7 @@ std::vector<document_symbol_item> lsp_context::document_symbol(
         if (m.children.empty())
             continue;
 
-        std::sort(m.children.begin(), m.children.end(), [](const auto& l, const auto& r) {
-            return l.symbol_range.start.line < r.symbol_range.start.line;
-        });
+        std::ranges::sort(m.children, {}, [](const auto& e) { return e.symbol_range.start.line; });
 
         m.children.back().symbol_range.end.line = last_line;
         m.children.back().symbol_selection_range.end.line = last_line;
@@ -168,7 +166,7 @@ std::vector<document_symbol_item> lsp_context::document_symbol(
         }
     }
 
-    std::stable_sort(result.begin(), result.end(), [](const auto& l, const auto& r) {
+    std::ranges::stable_sort(result, [](const auto& l, const auto& r) {
         if (const auto c = l.symbol_range.start.line <=> r.symbol_range.start.line; c != 0)
             return c < 0;
 
@@ -210,13 +208,13 @@ std::vector<document_symbol_item> lsp_context::document_symbol(
         it = next;
     }
 
-    result.erase(std::unique(result.begin(), result.end(), same_symbol), result.end());
+    result.erase(std::ranges::unique(result, same_symbol).begin(), result.end());
 
     static constexpr const auto is_title = [](const auto& s) { return s.kind == TITLE; };
 
     for (auto it = result.rbegin(); it != result.rend();)
     {
-        const auto title = std::find_if(it, result.rend(), is_title);
+        const auto title = std::ranges::find_if(it, result.rend(), is_title);
 
         if (title == result.rend())
             break;
@@ -230,7 +228,7 @@ std::vector<document_symbol_item> lsp_context::document_symbol(
         it = next;
     }
 
-    for (auto it = std::find_if(result.begin(), result.end(), is_title); it != result.end();)
+    for (auto it = std::ranges::find_if(result, is_title); it != result.end();)
     {
         auto next = std::next(it);
 
@@ -426,9 +424,9 @@ std::vector<std::pair<const context::section*, context::id_index>> gather_reacha
                 reachable_sections.emplace_back(s, u.label);
         }
     }
-    std::sort(reachable_sections.begin(), reachable_sections.end());
-    reachable_sections.erase(
-        std::unique(reachable_sections.begin(), reachable_sections.end()), reachable_sections.end());
+    std::ranges::sort(reachable_sections);
+    const auto [new_end, end] = std::ranges::unique(reachable_sections);
+    reachable_sections.erase(new_end, end);
 
     return reachable_sections;
 }
@@ -480,8 +478,9 @@ std::vector<std::pair<const context::symbol*, context::id_index>> compute_reacha
         }
     }
 
-    std::sort(reachable_symbols.begin(), reachable_symbols.end());
-    reachable_symbols.erase(std::unique(reachable_symbols.begin(), reachable_symbols.end()), reachable_symbols.end());
+    std::ranges::sort(reachable_symbols);
+    const auto [new_end, end] = std::ranges::unique(reachable_symbols);
+    reachable_symbols.erase(new_end, end);
 
     return reachable_symbols;
 }
@@ -657,8 +656,7 @@ std::optional<location> lsp_context::find_definition_location(const symbol_occur
             const vardef_storage& var_syms =
                 macro_scope_i ? macro_scope_i->var_definitions : m_opencode->variable_definitions;
 
-            auto sym = std::find_if(
-                var_syms.begin(), var_syms.end(), [&occ](const auto& var) { return var.name == occ.name; });
+            auto sym = std::ranges::find(var_syms, occ.name, &variable_symbol_definition::name);
 
             if (sym != var_syms.end())
             {
@@ -689,18 +687,10 @@ std::optional<location> lsp_context::find_definition_location(const symbol_occur
             break;
         }
         case lsp::occurrence_kind::COPY_OP: {
-#ifdef __cpp_lib_ranges
             auto copy = std::ranges::find_if(m_files, [&](const auto& f) {
                 return f.second->type == file_type::COPY
                     && std::get<context::copy_member_ptr>(f.second->owner)->name == occ.name;
             });
-#else
-            auto copy = std::find_if(m_files.begin(), m_files.end(), [&](const auto& f) {
-                return f.second->type == file_type::COPY
-                    && std::get<context::copy_member_ptr>(f.second->owner)->name == occ.name;
-            });
-#endif
-
             if (copy != m_files.end())
                 return std::get<context::copy_member_ptr>(copy->second->owner)->definition_location;
             break;
@@ -776,8 +766,7 @@ std::string lsp_context::find_hover(const symbol_occurrence& occ,
             const vardef_storage& var_syms =
                 macro_scope_i ? macro_scope_i->var_definitions : m_opencode->variable_definitions;
 
-            auto sym =
-                std::find_if(var_syms.begin(), var_syms.end(), [&](const auto& var) { return var.name == occ.name; });
+            auto sym = std::ranges::find(var_syms, occ.name, &variable_symbol_definition::name);
             if (sym != var_syms.end())
                 return hover_text(*sym);
             break;

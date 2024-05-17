@@ -14,6 +14,7 @@
 
 #include "proc_grps.h"
 
+#include <algorithm>
 #include <array>
 
 #include "assembler_options.h"
@@ -342,12 +343,11 @@ struct preprocessor_list_generator<std::variant<Ts...>>
 };
 
 constexpr const auto preprocessor_list = preprocessor_list_generator<decltype(preprocessor_options::options)>::list;
+using preprocessor_entry_t = decltype(preprocessor_list)::value_type;
 
 constexpr auto find_preprocessor_deserializer(std::string_view name)
 {
-    auto it = std::find_if(std::begin(preprocessor_list), std::end(preprocessor_list), [&name](const auto& entry) {
-        return entry.first == name;
-    });
+    const auto it = std::ranges::find(preprocessor_list, name, &preprocessor_entry_t::first);
     return it != std::end(preprocessor_list) ? it->second : nullptr;
 }
 
@@ -359,7 +359,7 @@ void add_single_preprocessor(std::vector<preprocessor_options>& preprocessors, c
     else if (j.is_object())
         j.at("name").get_to(p_name);
 
-    std::transform(p_name.begin(), p_name.end(), p_name.begin(), [](unsigned char c) { return (char)toupper(c); });
+    std::ranges::transform(p_name, p_name.begin(), [](unsigned char c) { return (char)toupper(c); });
     if (auto deserializer = find_preprocessor_deserializer(p_name); deserializer)
         deserializer(preprocessors, j);
     else

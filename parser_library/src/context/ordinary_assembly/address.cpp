@@ -235,7 +235,7 @@ address::base_list merge_bases(const address::base_list& l, const address::base_
                 cnt *= -1;
             return address::base_list(std::move(result));
         }
-        if (std::equal(l.bases.begin(), l.bases.end(), r.bases.begin(), r.bases.end()))
+        if (std::ranges::equal(l.bases, r.bases))
             return {};
     }
 
@@ -246,7 +246,7 @@ address::base_list merge_bases(const address::base_list& l, const address::base_
     for (auto& [b, cnt] : r.bases)
         result->emplace_back(b, operation == merge_op::add ? cnt : -cnt);
 
-    std::sort(result->begin(), result->end(), [](const auto& l, const auto& r) { return l.first < r.first; });
+    std::ranges::sort(*result, {}, &address::base_entry::first);
     utils::merge_unsorted(
         *result,
         l.bases,
@@ -287,7 +287,7 @@ std::pair<std::span<const address::space_entry>, std::span<const address::space_
         auto common = std::min(l.size(), r.size());
         return { l.subspan(common), r.subspan(common) };
     }
-    auto [le, re] = std::mismatch(l.begin(), l.end(), r.begin(), r.end());
+    auto [le, re] = std::ranges::mismatch(l, r);
     return { { le, l.end() }, { re, r.end() } };
 }
 

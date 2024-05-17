@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <assert.h>
+#include <ranges>
 
 #include "section.h"
 
@@ -49,7 +50,7 @@ address location_counter::current_address_for_alignment_evaluation(alignment ali
     auto alignment_spaces = curr_data().spaces_for_address();
 
     const auto& spaces = curr_data().unknown_parts;
-    auto it = std::find_if(spaces.rbegin(), spaces.rend(), [align](const auto& up) {
+    auto it = std::ranges::find_if(std::views::reverse(spaces), [align](const auto& up) {
         return up.unknown_space->align.boundary >= align.boundary;
     }).base();
     int offset = curr_data().storage;

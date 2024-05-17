@@ -379,7 +379,7 @@ size_t data_def_type::get_number_of_values_in_nominal(const reduced_nominal_valu
     else if (std::holds_alternative<std::string>(nom.value))
     {
         const std::string& s = std::get<std::string>(nom.value);
-        return std::count(s.begin(), s.end(), ',') + 1;
+        return std::ranges::count(s, ',') + 1;
     }
     else
         return std::get<size_t>(nom.value);
