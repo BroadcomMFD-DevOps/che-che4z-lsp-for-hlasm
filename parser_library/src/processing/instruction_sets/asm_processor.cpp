@@ -281,7 +281,7 @@ void asm_processor::process_data_instruction(rebuilt_statement&& stmt)
         context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, lib_info);
         hlasm_ctx.ord_ctx.symbol_dependencies().add_dependency(
             std::make_unique<postponed_statement_impl>(std::move(stmt), hlasm_ctx.processing_stack()),
-            dep_solver.derive_current_dependency_evaluation_context(),
+            std::move(dep_solver).derive_current_dependency_evaluation_context(),
             lib_info);
         return;
     }
