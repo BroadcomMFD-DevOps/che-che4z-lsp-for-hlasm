@@ -294,6 +294,11 @@ void asm_processor::process_data_instruction(rebuilt_statement&& stmt)
     // process label
     auto label = find_label_symbol(stmt);
 
+    const auto& operands = stmt.operands_ref().value;
+
+    const context::resolvable* l_dep = nullptr;
+    const context::resolvable* s_dep = nullptr;
+
     if (!label.empty())
     {
         bool length_has_self_reference = false;
@@ -346,14 +351,7 @@ void asm_processor::process_data_instruction(rebuilt_statement&& stmt)
         }
         else
             add_diagnostic(diagnostic_op::error_E031("symbol", stmt.label_ref().field_range));
-    }
 
-    const auto& operands = stmt.operands_ref().value;
-
-    const context::resolvable* l_dep = nullptr;
-    const context::resolvable* s_dep = nullptr;
-    if (!label.empty())
-    {
         auto data_op = operands.front()->access_data_def();
 
         if (data_op->value->length && data_op->value->length->get_dependencies(dep_solver).contains_dependencies())

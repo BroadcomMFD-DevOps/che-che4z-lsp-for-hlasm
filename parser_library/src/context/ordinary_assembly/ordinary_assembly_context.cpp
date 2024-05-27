@@ -120,13 +120,12 @@ section* ordinary_assembly_context::set_section(
     {
         curr_section_ = create_section(name, kind);
 
-        auto tmp_addr = curr_section_->current_location_counter().current_address();
         if (!name.empty())
         {
             assert(symbol_can_be_assigned(symbols_, name));
             symbols_.insert_or_assign(name,
                 symbol(name,
-                    std::move(tmp_addr),
+                    curr_section_->current_location_counter().current_address(),
                     symbol_attributes::make_section_attrs(),
                     std::move(symbol_location),
                     hlasm_ctx_.processing_stack()));
@@ -182,12 +181,10 @@ void ordinary_assembly_context::set_location_counter(id_index name, location sym
 
     if (!defined)
     {
-        auto tmp_addr = curr_section_->current_location_counter().current_address();
-
         assert(symbol_can_be_assigned(symbols_, name));
         symbols_.insert_or_assign(name,
             symbol(name,
-                std::move(tmp_addr),
+                curr_section_->current_location_counter().current_address(),
                 symbol_attributes::make_section_attrs(),
                 std::move(symbol_location),
                 hlasm_ctx_.processing_stack()));
@@ -245,7 +242,7 @@ space_ptr ordinary_assembly_context::set_location_counter_value_space(const addr
                 std::move(curr_addr), std::vector<address> { addr }, boundary, offset),
             dep_ctx,
             li);
-        return sp;
+        return std::move(sp);
     }
 
     return reserve_storage_area_space(offset, alignment { 0, boundary ? boundary : 1 }, dep_ctx, li).second;
