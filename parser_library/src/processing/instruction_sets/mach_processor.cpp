@@ -32,14 +32,15 @@ mach_processor::mach_processor(const analyzing_context& ctx,
 
 void mach_processor::process(std::shared_ptr<const processing::resolved_statement> stmt)
 {
-    auto rebuilt_stmt = preprocess(stmt);
+    const auto opcode = stmt->opcode_ref().value;
+
+    auto rebuilt_stmt = preprocess(std::move(stmt));
 
     register_literals(rebuilt_stmt, context::halfword, hlasm_ctx.ord_ctx.next_unique_id());
 
     auto loctr = hlasm_ctx.ord_ctx.align(context::halfword, lib_info);
 
-    const auto [mach_instr, _] =
-        context::instruction::find_machine_instruction_or_mnemonic(stmt->opcode_ref().value.to_string_view());
+    const auto [mach_instr, _] = context::instruction::find_machine_instruction_or_mnemonic(opcode.to_string_view());
     assert(mach_instr);
 
     auto label_name = find_label_symbol(rebuilt_stmt);

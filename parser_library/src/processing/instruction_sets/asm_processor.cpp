@@ -254,13 +254,13 @@ void asm_processor::process_EQU(rebuilt_statement&& stmt)
 
         context::symbol_attributes attrs(context::symbol_origin::EQU, t_attr, length_attr);
 
-        if (!holder.contains_dependencies())
-            create_symbol(stmt.stmt_range_ref(), symbol_name, expr_op->expression->evaluate(dep_solver, *this), attrs);
+        auto stmt_range = stmt.stmt_range_ref();
 
+        if (!holder.contains_dependencies())
+            create_symbol(stmt_range, symbol_name, expr_op->expression->evaluate(dep_solver, *this), attrs);
         else if (holder.is_address() && holder.unresolved_spaces.empty())
-            create_symbol(stmt.stmt_range_ref(), symbol_name, *holder.unresolved_address, attrs);
-        else if (const auto& stmt_range = stmt.stmt_range_ref();
-                 create_symbol(stmt_range, symbol_name, context::symbol_value(), attrs))
+            create_symbol(stmt_range, symbol_name, *holder.unresolved_address, attrs);
+        else if (create_symbol(stmt_range, symbol_name, context::symbol_value(), attrs))
         {
             if (!hlasm_ctx.ord_ctx.symbol_dependencies().add_dependency(symbol_name,
                     expr_op->expression.get(),
