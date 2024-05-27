@@ -54,7 +54,7 @@ void mach_processor::process(std::shared_ptr<const processing::resolved_statemen
         {
             create_symbol(rebuilt_stmt.stmt_range_ref(),
                 label_name,
-                loctr,
+                std::move(loctr),
                 context::symbol_attributes::make_machine_attrs(
                     (context::symbol_attributes::len_attr)mach_instr->size_in_bits() / 8));
         }

@@ -126,7 +126,7 @@ section* ordinary_assembly_context::set_section(
             assert(symbol_can_be_assigned(symbols_, name));
             symbols_.insert_or_assign(name,
                 symbol(name,
-                    tmp_addr,
+                    std::move(tmp_addr),
                     symbol_attributes::make_section_attrs(),
                     std::move(symbol_location),
                     hlasm_ctx_.processing_stack()));
@@ -187,7 +187,7 @@ void ordinary_assembly_context::set_location_counter(id_index name, location sym
         assert(symbol_can_be_assigned(symbols_, name));
         symbols_.insert_or_assign(name,
             symbol(name,
-                tmp_addr,
+                std::move(tmp_addr),
                 symbol_attributes::make_section_attrs(),
                 std::move(symbol_location),
                 hlasm_ctx_.processing_stack()));
@@ -259,7 +259,7 @@ void ordinary_assembly_context::set_available_location_counter_value(const libra
     auto [sp, addr] = curr_section_->current_location_counter().set_available_value();
 
     if (sp)
-        m_symbol_dependencies->add_dependency(sp,
+        m_symbol_dependencies->add_dependency(std::move(sp),
             std::make_unique<aggregate_address_resolver>(std::move(addr), 0, 0),
             dependency_evaluation_context(current_opcode_generation()),
             li);

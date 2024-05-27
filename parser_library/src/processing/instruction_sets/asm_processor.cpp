@@ -160,7 +160,7 @@ struct override_symbol_candidates final : public context::dependency_solver_redi
 void asm_processor::process_EQU(rebuilt_statement&& stmt)
 {
     auto loctr = hlasm_ctx.ord_ctx.align(context::no_align, lib_info);
-    context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, loctr, lib_info);
+    context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, std::move(loctr), lib_info);
 
     auto symbol_name = find_label_symbol(stmt);
 
@@ -328,7 +328,7 @@ void asm_processor::process_data_instruction(rebuilt_statement&& stmt)
             }
             create_symbol(stmt.stmt_range_ref(),
                 label,
-                loctr,
+                std::move(loctr),
                 context::symbol_attributes(context::symbol_origin::DAT,
                     type,
                     len,
@@ -740,7 +740,7 @@ asm_processor::asm_processor(const analyzing_context& ctx,
 
 void asm_processor::process(std::shared_ptr<const processing::resolved_statement> stmt)
 {
-    auto rebuilt_stmt = preprocess(stmt);
+    auto rebuilt_stmt = preprocess(std::move(stmt));
 
     register_literals(rebuilt_stmt, context::no_align, hlasm_ctx.ord_ctx.next_unique_id());
 
@@ -954,7 +954,7 @@ void asm_processor::process_CCW(rebuilt_statement&& stmt)
         if (hlasm_ctx.ord_ctx.symbol_defined(label))
             add_diagnostic(diagnostic_op::error_E031("symbol", stmt.label_ref().field_range));
         else
-            create_symbol(stmt.stmt_range_ref(), label, loctr, context::symbol_attributes::make_ccw_attrs());
+            create_symbol(stmt.stmt_range_ref(), label, std::move(loctr), context::symbol_attributes::make_ccw_attrs());
     }
 
     hlasm_ctx.ord_ctx.reserve_storage_area(ccw_length, ccw_align, lib_info);
@@ -976,7 +976,8 @@ void asm_processor::process_CNOP(rebuilt_statement&& stmt)
         if (hlasm_ctx.ord_ctx.symbol_defined(label))
             add_diagnostic(diagnostic_op::error_E031("symbol", stmt.label_ref().field_range));
         else
-            create_symbol(stmt.stmt_range_ref(), label, loctr, context::symbol_attributes::make_cnop_attrs());
+            create_symbol(
+                stmt.stmt_range_ref(), label, std::move(loctr), context::symbol_attributes::make_cnop_attrs());
     }
 
     if (stmt.operands_ref().value.size() == 2)
@@ -1115,7 +1116,7 @@ void asm_processor::process_LTORG(rebuilt_statement&& stmt)
         else
             create_symbol(stmt.stmt_range_ref(),
                 label,
-                loctr,
+                std::move(loctr),
                 context::symbol_attributes(context::symbol_origin::EQU, 'U'_ebcdic, 1));
     }
 
@@ -1133,7 +1134,7 @@ void asm_processor::process_USING(rebuilt_statement&& stmt)
     using namespace expressions;
 
     auto loctr = hlasm_ctx.ord_ctx.align(context::no_align, lib_info);
-    context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, loctr, lib_info);
+    context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, std::move(loctr), lib_info);
 
     auto label = find_using_label(stmt);
 
@@ -1225,7 +1226,10 @@ void asm_processor::process_DROP(rebuilt_statement&& stmt)
         else
         {
             add_diagnostic(diagnostic_op::warn_A251_unexpected_label(stmt.label_ref().field_range));
-            create_symbol(stmt.stmt_range_ref(), label, loctr, context::symbol_attributes(context::symbol_origin::EQU));
+            create_symbol(stmt.stmt_range_ref(),
+                label,
+                std::move(loctr),
+                context::symbol_attributes(context::symbol_origin::EQU));
         }
     }
 
@@ -1400,7 +1404,7 @@ void asm_processor::process_CXD(rebuilt_statement&& stmt)
         {
             create_symbol(stmt.stmt_range_ref(),
                 label,
-                loctr,
+                std::move(loctr),
                 context::symbol_attributes(context::symbol_origin::ASM, 'A'_ebcdic, cxd_length));
         }
         else
