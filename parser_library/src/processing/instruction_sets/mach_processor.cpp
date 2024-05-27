@@ -54,13 +54,13 @@ void mach_processor::process(std::shared_ptr<const processing::resolved_statemen
         {
             create_symbol(rebuilt_stmt.stmt_range_ref(),
                 label_name,
-                std::move(loctr),
+                loctr,
                 context::symbol_attributes::make_machine_attrs(
                     (context::symbol_attributes::len_attr)mach_instr->size_in_bits() / 8));
         }
     }
 
-    context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, loctr, lib_info);
+    context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, std::move(loctr), lib_info);
 
     hlasm_ctx.ord_ctx.symbol_dependencies().add_dependency(
         std::make_unique<postponed_statement_impl>(std::move(rebuilt_stmt), hlasm_ctx.processing_stack()),
