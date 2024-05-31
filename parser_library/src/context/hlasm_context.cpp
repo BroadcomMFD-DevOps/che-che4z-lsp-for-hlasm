@@ -149,7 +149,7 @@ auto time_sysvars(utils::timestamp now)
     } result = {
         std::format("{:04}{:02}{:02}", now.year(), now.month(), now.day()),
         std::format("{:02}/{:02}/{:02}", now.month(), now.day(), now.year() % 100),
-        std::format("{:02}:{:02}:{:02}", now.hour(), now.minute(), now.second()),
+        std::format("{:02}.{:02}", now.hour(), now.minute()),
     };
     return result;
 }
