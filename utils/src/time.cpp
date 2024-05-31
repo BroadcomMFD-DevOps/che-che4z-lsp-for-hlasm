@@ -43,14 +43,8 @@ namespace hlasm_plugin::utils {
 
 std::string timestamp::to_string() const
 {
-    return std::format("{:0>4}-{:0>2}-{:0>2} {:0>2}:{:0>2}:{:0>2}.{:0>6}",
-        year(),
-        month(),
-        day(),
-        hour(),
-        minute(),
-        second(),
-        microsecond());
+    return std::format(
+        "{:04}-{:02}-{:02} {:02}:{:02}:{:02}.{:06}", year(), month(), day(), hour(), minute(), second(), microsecond());
 }
 
 std::optional<timestamp> timestamp::now()

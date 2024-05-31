@@ -89,7 +89,7 @@ public:
         size_t sysstmt = metrics.macro_def_statements + metrics.macro_statements + metrics.open_code_statements
             + metrics.copy_statements + adjustment;
 
-        return std::format("{:0>8}", sysstmt);
+        return std::format("{:08}", sysstmt);
     };
 
     explicit sysstmt_macro_param_data(const performance_metrics& metrics, const std::deque<code_scope>& scope_stack)
@@ -147,9 +147,9 @@ auto time_sysvars(utils::timestamp now)
         std::string date_val;
         std::string systime;
     } result = {
-        std::format("{:0>4}{:0>2}{:0>2}", now.year(), now.month(), now.day()),
-        std::format("{:0>2}/{:0>2}/{:0>2}", now.month(), now.day(), now.year() % 100),
-        std::format("{:0>2}:{:0>2}:{:0>2}", now.hour(), now.minute(), now.second()),
+        std::format("{:04}{:02}{:02}", now.year(), now.month(), now.day()),
+        std::format("{:02}/{:02}/{:02}", now.month(), now.day(), now.year() % 100),
+        std::format("{:02}:{:02}:{:02}", now.hour(), now.minute(), now.second()),
     };
     return result;
 }
@@ -211,7 +211,7 @@ void hlasm_context::add_global_system_variables(system_variable_map& sysvars)
     sysvars.insert(create_system_variable(id_index("SYSASM"), emulated_asm_name, true));
 
     sysvars.insert(create_system_variable(
-        id_index("SYSM_HSEV"), create_dynamic_var([this]() { return std::format("{:0>3}", mnote_max); }), true));
+        id_index("SYSM_HSEV"), create_dynamic_var([this]() { return std::format("{:03}", mnote_max); }), true));
 }
 
 void hlasm_context::add_scoped_system_variables(system_variable_map& sysvars, size_t skip_last, bool globals_only)
@@ -229,7 +229,7 @@ void hlasm_context::add_scoped_system_variables(system_variable_map& sysvars, si
     } view { *this, skip_last };
 
     sysvars.insert(create_system_variable(id_index("SYSM_SEV"),
-        create_dynamic_var([view]() { return std::format("{:0>3}", view.top().mnote_last_max); }),
+        create_dynamic_var([view]() { return std::format("{:03}", view.top().mnote_last_max); }),
         true));
 
     if (globals_only)
@@ -246,7 +246,7 @@ void hlasm_context::add_scoped_system_variables(system_variable_map& sysvars, si
         false));
 
     sysvars.insert(create_system_variable(
-        id_index("SYSNDX"), create_dynamic_var([view]() { return std::format("{:0>4}", view.top().sysndx); }), false));
+        id_index("SYSNDX"), create_dynamic_var([view]() { return std::format("{:04}", view.top().sysndx); }), false));
 
     sysvars.insert(create_system_variable(id_index("SYSSTYP"),
         create_dynamic_var([view]() -> std::string {

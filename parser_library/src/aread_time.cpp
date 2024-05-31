@@ -19,13 +19,13 @@
 std::string hlasm_plugin::parser_library::time_to_clockb(std::chrono::nanoseconds d)
 {
     using namespace std::chrono;
-    return std::format("{:0>8}", duration_cast<milliseconds>(d).count() / 10);
+    return std::format("{:08}", duration_cast<milliseconds>(d).count() / 10);
 }
 
 std::string hlasm_plugin::parser_library::time_to_clockd(std::chrono::nanoseconds d)
 {
     using namespace std::chrono;
-    return std::format("{:0>2}{:0>2}{:0>2}{:0>2}",
+    return std::format("{:02}{:02}{:02}{:02}",
         duration_cast<hours>(d).count(),
         duration_cast<minutes>(d).count() % 60,
         duration_cast<seconds>(d).count() % 60,

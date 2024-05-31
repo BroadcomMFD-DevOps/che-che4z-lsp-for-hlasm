@@ -71,23 +71,13 @@ std::string token::toString() const
         txt = "<no text>";
     }
 
-    if (channel_ > 0)
-        return std::format("[@{},{}:{}='{}',<{}>,channel={},{}:{}]",
-            static_cast<ssize_t>(getTokenIndex()),
-            static_cast<ssize_t>(start_),
-            static_cast<ssize_t>(stop_),
-            std::move(txt),
-            static_cast<ssize_t>(type_),
-            channel_,
-            line_,
-            getCharPositionInLine());
-    else
-        return std::format("[@{},{}:{}='{}',<{}>,{}:{}]",
-            static_cast<ssize_t>(getTokenIndex()),
-            static_cast<ssize_t>(start_),
-            static_cast<ssize_t>(stop_),
-            std::move(txt),
-            static_cast<ssize_t>(type_),
-            line_,
-            getCharPositionInLine());
+    return std::format("[@{},{}:{}='{}',<{}>,channel={},{}:{}]",
+        static_cast<ssize_t>(getTokenIndex()),
+        static_cast<ssize_t>(start_),
+        static_cast<ssize_t>(stop_),
+        std::move(txt),
+        static_cast<ssize_t>(type_),
+        channel_,
+        line_,
+        getCharPositionInLine());
 }
