@@ -56,6 +56,7 @@
 #include "workspace_manager_response.h"
 #include "workspaces/file_manager_impl.h"
 #include "workspaces/workspace.h"
+#include "workspaces/workspace_configuration.h"
 
 namespace hlasm_plugin::parser_library {
 
@@ -81,14 +82,17 @@ class workspace_manager_impl final : public workspace_manager,
             workspaces::file_manager& file_manager,
             const lib_config& global_config,
             external_configuration_requests* ecr)
-            : ws(location, file_manager, global_config, settings, ecr)
+            : config(file_manager, location, settings, ecr)
+            , ws(file_manager, config, global_config)
         {}
         opened_workspace(workspaces::file_manager& file_manager,
             const lib_config& global_config,
             external_configuration_requests* ecr)
-            : ws(file_manager, global_config, settings, nullptr, ecr)
+            : config(file_manager, utils::resource::resource_location(), settings, ecr)
+            , ws(file_manager, config, global_config)
         {}
         workspaces::shared_json settings = std::make_shared<const nlohmann::json>(nlohmann::json::object());
+        workspaces::workspace_configuration config;
         workspaces::workspace ws;
     };
 
@@ -129,10 +133,12 @@ class workspace_manager_impl final : public workspace_manager,
         auto uri = resource_location(unnormalized_uri).lexically_normal();
         if (auto hlasm_id = extract_hlasm_id(uri.get_uri()); hlasm_id.has_value())
         {
-            if (auto related_ws = self.m_file_manager.get_virtual_file_workspace(hlasm_id.value()); !related_ws.empty())
-                for (auto& [_, ows] : self.m_workspaces)
-                    if (ows.ws.uri() == related_ws.get_uri())
-                        return std::pair(&ows, std::move(uri));
+            // TODO:
+            // if (auto related_ws = self.m_file_manager.get_virtual_file_workspace(hlasm_id.value());
+            // !related_ws.empty())
+            //     for (auto& [_, ows] : self.m_workspaces)
+            //         if (ows.ws.uri() == related_ws.get_uri())
+            //             return std::pair(&ows, std::move(uri));
         }
 
         resource_location url_to_match = uri;
@@ -147,10 +153,10 @@ class workspace_manager_impl final : public workspace_manager,
 
         size_t max = 0;
         decltype(&self.m_workspaces.begin()->second) max_ows = nullptr;
-        for (auto& [_, ows] : self.m_workspaces)
+        for (auto& [ws_uri, ows] : self.m_workspaces)
         {
-            size_t match = prefix_match(url_to_match.get_uri(), ows.ws.uri());
-            if (match > max && match >= ows.ws.uri().size())
+            size_t match = prefix_match(url_to_match.get_uri(), ws_uri.get_uri());
+            if (match > max && match >= ws_uri.get_uri().size())
             {
                 max = match;
                 max_ows = &ows;
@@ -261,7 +267,7 @@ class workspace_manager_impl final : public workspace_manager,
         return nullptr;
     }
 
-    bool attach_configuration_request(work_item& wi)
+    bool attach_configuration_request(std::string_view uri, work_item& wi)
     {
         if (!m_requests)
             return false;
@@ -298,7 +304,7 @@ class workspace_manager_impl final : public workspace_manager,
 
         wi.pending_requests.emplace_back(configuration_request, [resp = resp]() noexcept { resp.invalidate(); });
 
-        m_requests->request_workspace_configuration(wi.ows->ws.uri(), std::move(resp));
+        m_requests->request_workspace_configuration(uri, std::move(resp));
 
         return true;
     }
@@ -708,7 +714,7 @@ class workspace_manager_impl final : public workspace_manager,
             work_item_type::settings_change,
         });
 
-        for (auto& [_, ows] : m_workspaces)
+        for (auto& [uri, ows] : m_workspaces)
         {
             auto& refersh_settings = m_work_queue.emplace_back(work_item {
                 next_unique_id(),
@@ -723,7 +729,7 @@ class workspace_manager_impl final : public workspace_manager,
                 work_item_type::settings_change,
             });
 
-            attach_configuration_request(refersh_settings);
+            attach_configuration_request(uri.get_uri(), refersh_settings);
         }
     }
 
@@ -1029,7 +1035,7 @@ class workspace_manager_impl final : public workspace_manager,
             work_item_type::workspace_open,
         });
 
-        attach_configuration_request(new_workspace);
+        attach_configuration_request(normalized_uri.get_uri(), new_workspace);
     }
 
     void remove_workspace(std::string_view uri) override

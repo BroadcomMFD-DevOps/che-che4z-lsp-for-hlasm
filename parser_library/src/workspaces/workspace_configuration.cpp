@@ -28,6 +28,7 @@
 #include <tuple>
 #include <unordered_set>
 
+#include "compiler_options.h"
 #include "external_configuration_requests.h"
 #include "file_manager.h"
 #include "library_local.h"
@@ -256,6 +257,25 @@ workspace_configuration::workspace_configuration(file_manager& fm,
         m_proc_grps_loc = utils::resource::resource_location::join(hlasm_folder, FILENAME_PROC_GRPS);
         m_pgm_conf_loc = utils::resource::resource_location::join(hlasm_folder, FILENAME_PGM_CONF);
     }
+}
+
+workspace_configuration::workspace_configuration(
+    file_manager& fm, const shared_json& global_settings, std::shared_ptr<library> the_library)
+    : m_file_manager(fm)
+    , m_global_settings(global_settings)
+    , m_external_configuration_requests(nullptr)
+    , m_pgm_conf_store(std::make_unique<program_configuration_storage>(m_proc_grps))
+{
+    static const std::string test_group = "test_group";
+    auto [it, _] = m_proc_grps.try_emplace(basic_conf { test_group },
+        test_group,
+        config::assembler_options(),
+        std::vector<config::preprocessor_options>());
+    it->second.add_library(std::move(the_library));
+    m_pgm_conf_store->add_regex_conf(
+        program { utils::resource::resource_location("**"), basic_conf { test_group }, {}, false },
+        nullptr,
+        empty_alternative_cfg_root);
 }
 
 workspace_configuration::~workspace_configuration() = default;
@@ -982,6 +1002,29 @@ const processor_group& workspace_configuration::get_proc_grp(const proc_grp_id& 
 const program* workspace_configuration::get_program(const utils::resource::resource_location& file_location) const
 {
     return m_pgm_conf_store->get_program(file_location.lexically_normal()).pgm;
+}
+
+asm_option workspace_configuration::get_asm_options(const utils::resource::resource_location& file_location) const
+{
+    asm_option result;
+
+    auto pgm = get_program(file_location);
+    if (pgm)
+    {
+        if (auto proc_grp = get_proc_grp_by_program(*pgm); proc_grp)
+            proc_grp->apply_options_to(result);
+        pgm->asm_opts.apply_options_to(result);
+    }
+
+    auto relative_to_location = file_location.lexically_relative(m_location).lexically_normal();
+
+    const auto& sysin_path = !pgm && (relative_to_location.empty() || relative_to_location.lexically_out_of_scope())
+        ? file_location
+        : relative_to_location;
+    result.sysin_member = sysin_path.filename();
+    result.sysin_dsn = sysin_path.parent().get_local_path_or_uri();
+
+    return result;
 }
 
 utils::value_task<decltype(workspace_configuration::m_proc_grps)::iterator>

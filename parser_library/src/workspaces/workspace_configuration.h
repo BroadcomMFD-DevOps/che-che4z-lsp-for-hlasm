@@ -40,6 +40,7 @@
 #include "workspaces/configuration_datatypes.h"
 
 namespace hlasm_plugin::parser_library {
+struct asm_option;
 class external_configuration_requests;
 } // namespace hlasm_plugin::parser_library
 namespace hlasm_plugin::parser_library::workspaces {
@@ -279,6 +280,9 @@ public:
         utils::resource::resource_location location,
         const shared_json& global_settings,
         external_configuration_requests* ecr);
+    workspace_configuration(file_manager& fm,
+        const shared_json& global_settings,
+        std::shared_ptr<library> the_library); // test-only
 
     ~workspace_configuration();
 
@@ -293,6 +297,7 @@ public:
     [[nodiscard]] utils::value_task<utils::resource::resource_location> load_alternative_config_if_needed(
         const utils::resource::resource_location& file_location);
 
+    asm_option get_asm_options(const utils::resource::resource_location& file_location) const;
     const program* get_program(const utils::resource::resource_location& program) const;
     const processor_group* get_proc_grp_by_program(const program& p) const;
     processor_group* get_proc_grp_by_program(const program& p);

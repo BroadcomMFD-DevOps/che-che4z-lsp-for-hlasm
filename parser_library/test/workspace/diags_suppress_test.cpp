@@ -60,7 +60,8 @@ TEST(diags_suppress, no_suppress)
     lib_config config;
     shared_json global_settings = make_empty_shared_json();
 
-    workspace ws(empty_ws, fm, config, global_settings);
+    workspace_configuration ws_cfg(fm, empty_ws, global_settings, nullptr);
+    workspace ws(fm, ws_cfg, config);
     ws.open().run();
     run_if_valid(ws.did_open_file(file_loc));
     parse_all_files(ws);
@@ -90,7 +91,8 @@ TEST(diags_suppress, do_suppress)
 
     message_consumer_mock msg_consumer;
 
-    workspace ws(empty_ws, fm, config, global_settings);
+    workspace_configuration ws_cfg(fm, empty_ws, global_settings, nullptr);
+    workspace ws(fm, ws_cfg, config);
     ws.set_message_consumer(&msg_consumer);
     ws.open().run();
     run_if_valid(ws.did_open_file(file_loc));
@@ -120,7 +122,8 @@ TEST(diags_suppress, pgm_supress_limit_changed)
     lib_config config;
     shared_json global_settings = make_empty_shared_json();
 
-    workspace ws(empty_ws, fm, config, global_settings);
+    workspace_configuration ws_cfg(fm, empty_ws, global_settings, nullptr);
+    workspace ws(fm, ws_cfg, config);
     ws.open().run();
     run_if_valid(ws.did_open_file(file_loc));
     parse_all_files(ws);
@@ -161,7 +164,8 @@ TEST(diags_suppress, mark_for_parsing_only)
     lib_config config { .diag_supress_limit = 5 };
     shared_json global_settings = make_empty_shared_json();
 
-    workspace ws(empty_ws, fm, config, global_settings);
+    workspace_configuration ws_cfg(fm, empty_ws, global_settings, nullptr);
+    workspace ws(fm, ws_cfg, config);
     ws.open().run();
     run_if_valid(ws.did_open_file(file_loc));
     // parsing not done yet

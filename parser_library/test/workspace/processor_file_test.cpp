@@ -50,7 +50,8 @@ TEST(processor_file, parse_macro)
 
     EXPECT_CALL(*library, get_location).WillOnce(ReturnRef(lib_loc));
 
-    workspace ws(mngr, config, global_settings, library);
+    workspace_configuration ws_cfg(mngr, global_settings, library);
+    workspace ws(mngr, ws_cfg, config);
 
     EXPECT_CALL(*library, has_file(std::string_view("MAC"), _))
         .WillRepeatedly(DoAll(SetArgPointee<1>(macro_loc), Return(true)));

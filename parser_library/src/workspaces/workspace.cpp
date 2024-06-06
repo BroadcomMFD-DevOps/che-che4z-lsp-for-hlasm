@@ -282,31 +282,14 @@ struct workspace_parse_lib_provider final : public parse_lib_provider
     }
 };
 
-workspace::workspace(const resource_location& location,
-    file_manager& file_manager,
-    const lib_config& global_config,
-    const shared_json& global_settings,
-    external_configuration_requests* ecr)
-    : location_(location.lexically_normal())
-    , file_manager_(file_manager)
-    , fm_vfm_(file_manager_, location)
-    , implicit_proc_grp("pg_implicit", {}, {})
+workspace::workspace(
+    file_manager& file_manager, workspace_configuration& configuration, const lib_config& global_config)
+    : file_manager_(file_manager)
+    , fm_vfm_(file_manager_)
     , global_config_(global_config)
-    , m_configuration(file_manager, location_, global_settings, ecr)
+    , m_configuration(configuration)
     , m_include_advisory_cfg_diags(false)
 {}
-
-workspace::workspace(file_manager& file_manager,
-    const lib_config& global_config,
-    const shared_json& global_settings,
-    std::shared_ptr<library> implicit_library,
-    external_configuration_requests* ecr)
-    : workspace(resource_location(), file_manager, global_config, global_settings, ecr)
-{
-    opened_ = true;
-    if (implicit_library)
-        implicit_proc_grp.add_library(std::move(implicit_library));
-}
 
 workspace::~workspace() = default;
 
@@ -517,7 +500,7 @@ void workspace::retrieve_fade_messages(std::vector<fade_message>& fms) const
 
         bool take_also_opencode_hc = true;
         if (const auto& pf_rl = proc_file_component.m_file->get_location();
-            &get_proc_grp(pf_rl) == &implicit_proc_grp && is_dependency(pf_rl))
+            !get_proc_grp(pf_rl) && is_dependency(pf_rl))
             take_also_opencode_hc = false;
 
         for (const auto& [__, opened_file_rl] : opened_files_uris)
@@ -579,8 +562,6 @@ void workspace::show_message(std::string_view message)
 }
 
 lib_config workspace::get_config() const { return m_configuration.get_config().fill_missing_settings(global_config_); }
-
-const ws_uri& workspace::uri() const { return location_.get_uri(); }
 
 utils::value_task<parse_file_result> workspace::parse_file(const resource_location& preferred_file)
 {
@@ -651,7 +632,6 @@ utils::value_task<debugging::debugger_configuration> workspace::get_debugger_con
         return debugging::debugger_configuration {
             .fm = &file_manager_,
             .libraries = std::move(c.libraries),
-            .workspace_uri = location_,
             .opts = std::move(c.opts),
             .pp_opts = std::move(c.pp_opts),
         };
@@ -726,10 +706,9 @@ workspace_file_info workspace::parse_successful(processor_file_compoments& comp,
     comp.m_collect_perf_metrics = false; // only on open/first parsing
     m_parsing_pending.erase(comp.m_file->get_location());
 
-    const processor_group& grp = get_proc_grp(comp.m_file->get_location());
-    ws_file_info.processor_group_found = &grp != &implicit_proc_grp;
-    if (&grp == &implicit_proc_grp
-        && (int64_t)comp.m_last_results->opencode_diagnostics.size() > get_config().diag_supress_limit)
+    const processor_group* grp = get_proc_grp(comp.m_file->get_location());
+    ws_file_info.processor_group_found = !!grp;
+    if (!grp && (int64_t)comp.m_last_results->opencode_diagnostics.size() > get_config().diag_supress_limit)
     {
         ws_file_info.diagnostics_suppressed = true;
         delete_diags(comp);
@@ -869,7 +848,7 @@ utils::task workspace::did_change_watched_files(
                 continue;
 
             auto loc = comp.m_file->get_location();
-            if (std::ranges::find(*refreshed, &get_proc_grp(loc)) != refreshed->end())
+            if (std::ranges::find(*refreshed, get_proc_grp(loc)) != refreshed->end())
                 m_parsing_pending.emplace(std::move(loc));
         }
     }
@@ -1002,6 +981,7 @@ std::optional<performance_metrics> workspace::last_metrics(const resource_locati
 
 utils::task workspace::open()
 {
+    // TODO:
     opened_ = true;
 
     co_await m_configuration.parse_configuration_file();
@@ -1021,15 +1001,14 @@ utils::value_task<bool> workspace::settings_updated()
     co_return updated;
 }
 
-const processor_group& workspace::get_proc_grp(const resource_location& file) const
+const processor_group* workspace::get_proc_grp(const resource_location& file) const
 {
     if (const auto* pgm = m_configuration.get_program(file); pgm)
     {
         if (auto proc_grp = m_configuration.get_proc_grp_by_program(*pgm); proc_grp)
-            return *proc_grp;
+            return proc_grp;
     }
-
-    return implicit_proc_grp;
+    return nullptr;
 }
 
 const processor_group& workspace::get_proc_grp(const proc_grp_id& id) const { return m_configuration.get_proc_grp(id); }
@@ -1125,9 +1104,7 @@ std::vector<std::pair<std::string, size_t>> workspace::make_opcode_suggestion(
     std::vector<std::pair<std::string, size_t>> result;
     asm_option opts;
 
-    if (auto pgm = m_configuration.get_program(file); !pgm)
-        implicit_proc_grp.apply_options_to(opts);
-    else
+    if (auto pgm = m_configuration.get_program(file))
     {
         if (auto proc_grp = m_configuration.get_proc_grp_by_program(*pgm); proc_grp)
         {
@@ -1203,37 +1180,23 @@ bool workspace::is_dependency(const resource_location& file_location) const
 
 std::vector<std::shared_ptr<library>> workspace::get_libraries(const resource_location& file_location) const
 {
-    return get_proc_grp(file_location).libraries();
+    const auto* grp = get_proc_grp(file_location);
+    if (!grp)
+        return {};
+    return grp->libraries();
 }
 
 asm_option workspace::get_asm_options(const resource_location& file_location) const
 {
-    asm_option result;
-
-    auto pgm = m_configuration.get_program(file_location);
-    if (!pgm)
-        implicit_proc_grp.apply_options_to(result);
-    else
-    {
-        if (auto proc_grp = m_configuration.get_proc_grp_by_program(*pgm); proc_grp)
-            proc_grp->apply_options_to(result);
-        pgm->asm_opts.apply_options_to(result);
-    }
-
-    resource_location relative_to_location(file_location.lexically_relative(location_).lexically_normal());
-
-    const auto& sysin_path = !pgm && (relative_to_location.empty() || relative_to_location.lexically_out_of_scope())
-        ? file_location
-        : relative_to_location;
-    result.sysin_member = sysin_path.filename();
-    result.sysin_dsn = sysin_path.parent().get_local_path_or_uri();
-
-    return result;
+    return m_configuration.get_asm_options(file_location);
 }
 
 std::vector<preprocessor_options> workspace::get_preprocessor_options(const resource_location& file_location) const
 {
-    return get_proc_grp(file_location).preprocessors();
+    const auto* grp = get_proc_grp(file_location);
+    if (!grp)
+        return {};
+    return grp->preprocessors();
 }
 
 workspace::processor_file_compoments::processor_file_compoments(std::shared_ptr<file> file)

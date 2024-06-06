@@ -74,18 +74,8 @@ class workspace : public diagnosable_impl
 public:
     using resource_location = utils::resource::resource_location;
     using resource_location_hasher = utils::resource::resource_location_hasher;
-    // Creates just a dummy workspace with no libraries - no dependencies
-    // between files.
-    workspace(file_manager& file_manager,
-        const lib_config& global_config,
-        const shared_json& global_settings,
-        std::shared_ptr<library> implicit_library = nullptr,
-        external_configuration_requests* ecr = nullptr);
-    workspace(const resource_location& location,
-        file_manager& file_manager,
-        const lib_config& global_config,
-        const shared_json& global_settings,
-        external_configuration_requests* ecr = nullptr);
+
+    workspace(file_manager& file_manager, workspace_configuration& m_configuration, const lib_config& global_config);
 
     workspace(const workspace& ws) = delete;
     workspace& operator=(const workspace&) = delete;
@@ -131,7 +121,6 @@ public:
     virtual std::vector<std::shared_ptr<library>> get_libraries(const resource_location& file_location) const;
     virtual asm_option get_asm_options(const resource_location& file_location) const;
     virtual std::vector<preprocessor_options> get_preprocessor_options(const resource_location& file_location) const;
-    const ws_uri& uri() const;
 
     [[nodiscard]] utils::task open();
     void close();
@@ -142,7 +131,7 @@ public:
 
     [[nodiscard]] utils::value_task<bool> settings_updated();
 
-    const processor_group& get_proc_grp(const resource_location& file) const;
+    const processor_group* get_proc_grp(const resource_location& file) const;
     const processor_group& get_proc_grp(const proc_grp_id& id) const; // test only
 
     std::vector<std::pair<std::string, size_t>> make_opcode_suggestion(
@@ -155,11 +144,8 @@ public:
     void invalidate_external_configuration(const resource_location& url);
 
 private:
-    resource_location location_;
     file_manager& file_manager_;
     file_manager_vfm fm_vfm_;
-
-    processor_group implicit_proc_grp;
 
     bool opened_ = false;
 
@@ -173,7 +159,7 @@ private:
 
     lib_config get_config() const;
 
-    workspace_configuration m_configuration;
+    workspace_configuration& m_configuration;
 
     bool m_include_advisory_cfg_diags;
 

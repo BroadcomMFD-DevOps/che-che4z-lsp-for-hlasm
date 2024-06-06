@@ -138,7 +138,8 @@ class workspace_test : public workspace
 {
 public:
     workspace_test(file_manager& fm)
-        : workspace(ws_rl, fm, m_config, m_global_settings)
+        : workspace(fm, m_ws_cfg, m_config)
+        , m_ws_cfg(fm, ws_rl, m_global_settings, nullptr) // TODO: init order
     {
         open().run();
     }
@@ -146,6 +147,7 @@ public:
 private:
     lib_config m_config;
     shared_json m_global_settings = make_empty_shared_json();
+    workspace_configuration m_ws_cfg;
 };
 
 } // namespace
@@ -202,7 +204,8 @@ public:
     file_manager_impl_test fm;
     lib_config config;
     shared_json global_settings = make_empty_shared_json();
-    workspace ws = workspace(ws_rl, fm, config, global_settings);
+    workspace_configuration ws_cfg = workspace_configuration(fm, ws_rl, global_settings, nullptr);
+    workspace ws = workspace(fm, ws_cfg, config);
 
     pgm_conf_preference_helper()
     {

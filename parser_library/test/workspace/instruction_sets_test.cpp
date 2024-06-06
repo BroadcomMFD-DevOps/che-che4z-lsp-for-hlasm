@@ -167,7 +167,8 @@ TEST_F(workspace_instruction_sets_test, changed_instr_set_370_Z10)
     file_manager_opt file_manager(file_manager_opt_variant::optable_370);
     lib_config config;
     shared_json global_settings = make_empty_shared_json();
-    workspace ws(ws_loc, file_manager, config, global_settings);
+    workspace_configuration ws_cfg(file_manager, ws_loc, global_settings, nullptr);
+    workspace ws(file_manager, ws_cfg, config);
     ws.open().run();
 
     run_if_valid(ws.did_open_file(source_loc));
@@ -186,7 +187,8 @@ TEST_F(workspace_instruction_sets_test, changed_instr_set_Z10_370)
     file_manager_opt file_manager(file_manager_opt_variant::optable_Z10);
     lib_config config;
     shared_json global_settings = make_empty_shared_json();
-    workspace ws(ws_loc, file_manager, config, global_settings);
+    workspace_configuration ws_cfg(file_manager, ws_loc, global_settings, nullptr);
+    workspace ws(file_manager, ws_cfg, config);
     ws.open().run();
 
     run_if_valid(ws.did_open_file(source_loc));
