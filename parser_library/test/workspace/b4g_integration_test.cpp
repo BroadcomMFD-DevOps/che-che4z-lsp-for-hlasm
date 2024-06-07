@@ -149,36 +149,36 @@ std::vector<diagnostic> open_parse_and_recollect_diags(
     return result;
 }
 
-
-class workspace_test : public workspace
+std::vector<diagnostic> close_parse_and_recollect_diags(workspace& ws,
+    workspace_configuration& cfg,
+    const std::vector<hlasm_plugin::utils::resource::resource_location>& files)
 {
-public:
+    std::ranges::for_each(files, [&ws, &cfg](const auto& f) {
+        cfg.prune_external_processor_groups(f);
+        run_if_valid(ws.did_close_file(f));
+    });
+    parse_all_files(ws);
+
+    std::vector<diagnostic> result;
+
+    ws.produce_diagnostics(result);
+
+    return result;
+}
+
+struct workspace_test
+{
     workspace_test(file_manager& fm)
-        : workspace(fm, m_ws_cfg, m_config)
-        , m_ws_cfg(fm, ws_rl, m_global_settings, nullptr) // TODO: init order
+        : ws_cfg(fm, ws_rl, global_settings, nullptr)
+        , ws(fm, ws_cfg, config)
     {
-        open().run();
+        ws.open().run();
     }
 
-    std::vector<diagnostic> close_parse_and_recollect_diags(
-        const std::vector<hlasm_plugin::utils::resource::resource_location>& files)
-    {
-        std::ranges::for_each(files, [this](const auto& f) {
-            m_ws_cfg.prune_external_processor_groups(f);
-            run_if_valid(did_close_file(f));
-        });
-        parse_all_files(*this);
-
-        std::vector<diagnostic> result;
-
-        produce_diagnostics(result);
-
-        return result;
-    }
-
-    lib_config m_config;
-    shared_json m_global_settings = make_empty_shared_json();
-    workspace_configuration m_ws_cfg;
+    lib_config config;
+    shared_json global_settings = make_empty_shared_json();
+    workspace_configuration ws_cfg;
+    workspace ws;
 };
 
 } // namespace
@@ -212,13 +212,13 @@ TEST(b4g_integration_test, basic_pgm_conf_retrieval)
     workspace_test ws(fm);
 
     const auto check_mnote = [&ws](const resource_location& pgm, std::initializer_list<std::string> mnote_locations) {
-        auto diags = open_parse_and_recollect_diags(ws, { pgm });
+        auto diags = open_parse_and_recollect_diags(ws.ws, { pgm });
 
         auto match = matches_message_text(diags, mnote_locations);
 
-        ws.m_ws_cfg.prune_external_processor_groups(pgm);
-        run_if_valid(ws.did_close_file(pgm));
-        parse_all_files(ws);
+        ws.ws_cfg.prune_external_processor_groups(pgm);
+        run_if_valid(ws.ws.did_close_file(pgm));
+        parse_all_files(ws.ws);
 
         return match;
     };
@@ -381,7 +381,7 @@ TEST(b4g_integration_test, invalid_bridge_json)
 
     workspace_test ws(fm);
 
-    EXPECT_TRUE(matches_message_codes(open_parse_and_recollect_diags(ws, { pgm_a }), { "B4G001" }));
+    EXPECT_TRUE(matches_message_codes(open_parse_and_recollect_diags(ws.ws, { pgm_a }), { "B4G001" }));
 }
 
 TEST(b4g_integration_test, missing_pgroup)
@@ -396,9 +396,9 @@ TEST(b4g_integration_test, missing_pgroup)
 
     workspace_test ws(fm);
 
-    EXPECT_TRUE(matches_message_codes(open_parse_and_recollect_diags(ws, { pgm_a }), { "B4G002" }));
+    EXPECT_TRUE(matches_message_codes(open_parse_and_recollect_diags(ws.ws, { pgm_a }), { "B4G002" }));
 
-    EXPECT_TRUE(matches_message_codes(gather_advisory_diags(ws, true), { "B4G002", "B4G003" }));
+    EXPECT_TRUE(matches_message_codes(gather_advisory_diags(ws.ws, true), { "B4G002", "B4G003" }));
 }
 
 TEST(b4g_integration_test, missing_pgroup_but_not_used)
@@ -413,10 +413,10 @@ TEST(b4g_integration_test, missing_pgroup_but_not_used)
 
     workspace_test ws(fm);
 
-    run_if_valid(ws.did_open_file(pgm_a));
-    parse_all_files(ws);
+    run_if_valid(ws.ws.did_open_file(pgm_a));
+    parse_all_files(ws.ws);
 
-    EXPECT_TRUE(ws.close_parse_and_recollect_diags({ pgm_a }).empty());
+    EXPECT_TRUE(close_parse_and_recollect_diags(ws.ws, ws.ws_cfg, { pgm_a }).empty());
 }
 
 TEST(b4g_integration_test, bridge_config_changed)
@@ -431,18 +431,18 @@ TEST(b4g_integration_test, bridge_config_changed)
 
     workspace_test ws(fm);
 
-    EXPECT_TRUE(matches_message_codes(open_parse_and_recollect_diags(ws, { pgm_a }), { "E049", "B4G001" }));
+    EXPECT_TRUE(matches_message_codes(open_parse_and_recollect_diags(ws.ws, { pgm_a }), { "E049", "B4G001" }));
 
     EXPECT_TRUE(matches_message_codes(
         change_reparse_and_recollect_diags(
-            fm, ws, b4g_conf_rl, R"({"elements":{},"defaultProcessorGroup":"P1","fileExtension":""})"),
+            fm, ws.ws, b4g_conf_rl, R"({"elements":{},"defaultProcessorGroup":"P1","fileExtension":""})"),
         { "MNOTE" }));
 
     EXPECT_TRUE(matches_message_codes(
-        change_reparse_and_recollect_diags(fm, ws, b4g_conf_rl, empty_b4g_conf), { "MNOTE", "B4G001" }));
+        change_reparse_and_recollect_diags(fm, ws.ws, b4g_conf_rl, empty_b4g_conf), { "MNOTE", "B4G001" }));
 
     EXPECT_TRUE(
-        matches_message_codes(change_reparse_and_recollect_diags(fm, ws, pgm_a, " MAC1 "), { "E049", "B4G001" }));
+        matches_message_codes(change_reparse_and_recollect_diags(fm, ws.ws, pgm_a, " MAC1 "), { "E049", "B4G001" }));
 }
 
 TEST(b4g_integration_test, proc_config_changed)
@@ -456,11 +456,11 @@ TEST(b4g_integration_test, proc_config_changed)
 
     workspace_test ws(fm);
 
-    EXPECT_TRUE(matches_message_codes(open_parse_and_recollect_diags(ws, { pgm_a }), { "E049", "B4G002" }));
+    EXPECT_TRUE(matches_message_codes(open_parse_and_recollect_diags(ws.ws, { pgm_a }), { "E049", "B4G002" }));
 
     EXPECT_TRUE(matches_message_codes(
         change_reparse_and_recollect_diags(fm,
-            ws,
+            ws.ws,
             proc_grps_rl,
             R"({"pgroups":[{"name":"P1","libs":[{"path":"ASMMACP1","prefer_alternate_root":true}]}]})"),
         { "MNOTE" }));
@@ -477,9 +477,9 @@ TEST(b4g_integration_test, only_default_proc_group_exists)
 
     workspace_test ws(fm);
 
-    EXPECT_TRUE(matches_message_codes(open_parse_and_recollect_diags(ws, { pgm_a }), { "B4G002" }));
+    EXPECT_TRUE(matches_message_codes(open_parse_and_recollect_diags(ws.ws, { pgm_a }), { "B4G002" }));
 
-    EXPECT_TRUE(matches_message_codes(change_reparse_and_recollect_diags(fm, ws, pgm_a, " "), { "B4G002" }));
+    EXPECT_TRUE(matches_message_codes(change_reparse_and_recollect_diags(fm, ws.ws, pgm_a, " "), { "B4G002" }));
 }
 
 TEST(b4g_integration_test, b4g_conf_noproc_proc_group)
@@ -493,11 +493,11 @@ TEST(b4g_integration_test, b4g_conf_noproc_proc_group)
 
     workspace_test ws(fm);
 
-    EXPECT_TRUE(open_parse_and_recollect_diags(ws, { pgm_a }).empty());
+    EXPECT_TRUE(open_parse_and_recollect_diags(ws.ws, { pgm_a }).empty());
 
-    EXPECT_TRUE(change_reparse_and_recollect_diags(fm, ws, pgm_a, " ").empty());
+    EXPECT_TRUE(change_reparse_and_recollect_diags(fm, ws.ws, pgm_a, " ").empty());
 
-    EXPECT_TRUE(matches_message_codes(gather_advisory_diags(ws, true), { "B4G003" }));
+    EXPECT_TRUE(matches_message_codes(gather_advisory_diags(ws.ws, true), { "B4G003" }));
 }
 
 TEST(b4g_integration_test, b4g_conf_noproc_proc_group_default)
@@ -511,9 +511,9 @@ TEST(b4g_integration_test, b4g_conf_noproc_proc_group_default)
 
     workspace_test ws(fm);
 
-    EXPECT_TRUE(matches_message_codes(open_parse_and_recollect_diags(ws, { pgm_a }), { "B4G002" }));
+    EXPECT_TRUE(matches_message_codes(open_parse_and_recollect_diags(ws.ws, { pgm_a }), { "B4G002" }));
 
-    EXPECT_TRUE(matches_message_codes(change_reparse_and_recollect_diags(fm, ws, pgm_a, " "), { "B4G002" }));
+    EXPECT_TRUE(matches_message_codes(change_reparse_and_recollect_diags(fm, ws.ws, pgm_a, " "), { "B4G002" }));
 }
 
 TEST(b4g_integration_test, missing_proc_group_diags)
@@ -530,19 +530,19 @@ TEST(b4g_integration_test, missing_proc_group_diags)
 
     workspace_test ws(fm);
 
-    EXPECT_TRUE(matches_message_codes(open_parse_and_recollect_diags(ws, { pgm_a }), { "B4G002" }));
+    EXPECT_TRUE(matches_message_codes(open_parse_and_recollect_diags(ws.ws, { pgm_a }), { "B4G002" }));
 
-    EXPECT_TRUE(matches_message_codes(gather_advisory_diags(ws, true), { "B4G002", "B4G003" }));
+    EXPECT_TRUE(matches_message_codes(gather_advisory_diags(ws.ws, true), { "B4G002", "B4G003" }));
 
-    EXPECT_TRUE(ws.close_parse_and_recollect_diags({ pgm_a }).empty());
+    EXPECT_TRUE(close_parse_and_recollect_diags(ws.ws, ws.ws_cfg, { pgm_a }).empty());
 
-    EXPECT_TRUE(gather_advisory_diags(ws, false).empty());
+    EXPECT_TRUE(gather_advisory_diags(ws.ws, false).empty());
 
-    EXPECT_TRUE(matches_message_codes(open_parse_and_recollect_diags(ws, { pgm_b }), { "B4G002" }));
+    EXPECT_TRUE(matches_message_codes(open_parse_and_recollect_diags(ws.ws, { pgm_b }), { "B4G002" }));
 
-    EXPECT_TRUE(ws.close_parse_and_recollect_diags({ pgm_b }).empty());
+    EXPECT_TRUE(close_parse_and_recollect_diags(ws.ws, ws.ws_cfg, { pgm_b }).empty());
 
-    EXPECT_TRUE(open_parse_and_recollect_diags(ws, { pgm_a_diff_path }).empty());
+    EXPECT_TRUE(open_parse_and_recollect_diags(ws.ws, { pgm_a_diff_path }).empty());
 }
 
 TEST(b4g_integration_test, missing_proc_group_diags_wildcards)
@@ -558,11 +558,11 @@ TEST(b4g_integration_test, missing_proc_group_diags_wildcards)
 
     workspace_test ws(fm);
 
-    EXPECT_TRUE(open_parse_and_recollect_diags(ws, { pgm_a }).empty());
+    EXPECT_TRUE(open_parse_and_recollect_diags(ws.ws, { pgm_a }).empty());
 
-    EXPECT_TRUE(matches_message_codes(gather_advisory_diags(ws, true), { "B4G003" }));
+    EXPECT_TRUE(matches_message_codes(gather_advisory_diags(ws.ws, true), { "B4G003" }));
 
-    EXPECT_TRUE(ws.close_parse_and_recollect_diags({ pgm_a }).empty());
+    EXPECT_TRUE(close_parse_and_recollect_diags(ws.ws, ws.ws_cfg, { pgm_a }).empty());
 }
 
 TEST(b4g_integration_test, missing_proc_group_diags_wildcards_noproc)
@@ -577,9 +577,9 @@ TEST(b4g_integration_test, missing_proc_group_diags_wildcards_noproc)
 
     workspace_test ws(fm);
 
-    EXPECT_TRUE(open_parse_and_recollect_diags(ws, { pgm_a }).empty());
+    EXPECT_TRUE(open_parse_and_recollect_diags(ws.ws, { pgm_a }).empty());
 
-    EXPECT_TRUE(matches_message_codes(gather_advisory_diags(ws, true), { "B4G003" }));
+    EXPECT_TRUE(matches_message_codes(gather_advisory_diags(ws.ws, true), { "B4G003" }));
 
-    EXPECT_TRUE(ws.close_parse_and_recollect_diags({ pgm_a }).empty());
+    EXPECT_TRUE(close_parse_and_recollect_diags(ws.ws, ws.ws_cfg, { pgm_a }).empty());
 }
