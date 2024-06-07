@@ -75,7 +75,7 @@ public:
     using resource_location = utils::resource::resource_location;
     using resource_location_hasher = utils::resource::resource_location_hasher;
 
-    workspace(file_manager& file_manager, workspace_configuration& m_configuration, const lib_config& global_config);
+    workspace(file_manager& file_manager, workspace_configuration& configuration, const lib_config& global_config);
 
     workspace(const workspace& ws) = delete;
     workspace& operator=(const workspace&) = delete;
