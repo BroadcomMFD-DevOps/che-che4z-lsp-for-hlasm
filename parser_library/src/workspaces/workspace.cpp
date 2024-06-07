@@ -119,6 +119,7 @@ struct parsing_results
 
 struct workspace_parse_lib_provider final : public parse_lib_provider
 {
+    file_manager& fm;
     workspace& ws;
     std::vector<std::shared_ptr<library>> libraries;
     workspace::processor_file_compoments& pfc;
@@ -131,9 +132,12 @@ struct workspace_parse_lib_provider final : public parse_lib_provider
     std::unordered_map<resource_location, std::shared_ptr<file>, resource_location_hasher, std::equal_to<>>
         current_file_map;
 
-    workspace_parse_lib_provider(
-        workspace& ws, std::vector<std::shared_ptr<library>> libraries, workspace::processor_file_compoments& pfc)
-        : ws(ws)
+    workspace_parse_lib_provider(file_manager& fm,
+        workspace& ws,
+        std::vector<std::shared_ptr<library>> libraries,
+        workspace::processor_file_compoments& pfc)
+        : fm(fm)
+        , ws(ws)
         , libraries(std::move(libraries))
         , pfc(pfc)
     {}
@@ -185,7 +189,7 @@ struct workspace_parse_lib_provider final : public parse_lib_provider
                         && std::get<std::shared_ptr<workspace::dependency_cache>>(it->second)->version == version)
                         return std::get<std::shared_ptr<workspace::dependency_cache>>(it->second);
 
-                    return std::make_shared<workspace::dependency_cache>(version, ws.get_file_manager(), file);
+                    return std::make_shared<workspace::dependency_cache>(version, fm, file);
                 }))
                 .first->second)
             ->cache;
@@ -582,7 +586,7 @@ utils::value_task<parse_file_result> workspace::parse_file(const resource_locati
         auto config = co_await self.m_configuration.get_analyzer_configuration(url);
 
         comp.m_alternative_config = std::move(config.alternative_config_url);
-        workspace_parse_lib_provider ws_lib(self, std::move(config.libraries), comp);
+        workspace_parse_lib_provider ws_lib(self.file_manager_, self, std::move(config.libraries), comp);
 
         if (auto prefetch = ws_lib.prefetch_libraries(); prefetch.valid())
             co_await std::move(prefetch);
@@ -955,8 +959,6 @@ std::optional<performance_metrics> workspace::last_metrics(const resource_locati
 }
 
 void workspace::set_message_consumer(message_consumer* consumer) { message_consumer_ = consumer; }
-
-file_manager& workspace::get_file_manager() const { return file_manager_; }
 
 utils::value_task<bool> workspace::settings_updated()
 {

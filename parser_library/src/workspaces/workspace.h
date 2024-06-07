@@ -120,8 +120,6 @@ public:
 
     void set_message_consumer(message_consumer* consumer);
 
-    file_manager& get_file_manager() const;
-
     [[nodiscard]] utils::value_task<bool> settings_updated();
 
     const processor_group* get_proc_grp(const resource_location& file) const;
