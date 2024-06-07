@@ -410,11 +410,13 @@ TEST_F(workspace_test, did_close_file)
 
     // when we close source1, only its diagnostics should disappear
     // macro's and source2's diagnostics should stay as it is still open
+    ws_cfg.prune_external_processor_groups(source1_loc);
     run_if_valid(ws.did_close_file(source1_loc));
     parse_all_files(ws);
     EXPECT_TRUE(match_file_uri(extract_diags(ws), { faulty_macro_loc, source2_loc }));
 
     // even though we close the ERROR macro, its diagnostics will still be there as it is a dependency of source2
+    ws_cfg.prune_external_processor_groups(faulty_macro_loc);
     run_if_valid(ws.did_close_file(faulty_macro_loc));
     parse_all_files(ws);
     EXPECT_TRUE(match_file_uri(extract_diags(ws), { faulty_macro_loc, source2_loc }));
@@ -430,6 +432,7 @@ TEST_F(workspace_test, did_close_file)
     EXPECT_TRUE(match_file_uri(extract_diags(ws), { source2_loc }));
 
     // finally if we close the last source2 file, its diagnostics will disappear as well
+    ws_cfg.prune_external_processor_groups(source2_loc);
     run_if_valid(ws.did_close_file(source2_loc));
     parse_all_files(ws);
     EXPECT_TRUE(extract_diags(ws).empty());
@@ -462,6 +465,7 @@ TEST_F(workspace_test, did_close_file_without_save)
     EXPECT_TRUE(match_file_uri(extract_diags(ws), { correct_macro_loc }));
 
     file_manager.did_close_file(correct_macro_loc);
+    ws_cfg.prune_external_processor_groups(correct_macro_loc);
     run_if_valid(ws.did_close_file(correct_macro_loc));
     parse_all_files(ws);
     EXPECT_TRUE(extract_diags(ws).empty());

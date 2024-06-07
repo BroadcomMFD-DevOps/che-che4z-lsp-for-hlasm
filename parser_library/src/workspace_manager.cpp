@@ -523,8 +523,11 @@ class workspace_manager_impl final : public workspace_manager,
         m_work_queue.emplace_back(work_item {
             next_unique_id(),
             ows,
-            std::function<utils::task()>([this, document_loc = std::move(uri), &ws = ows->ws]() mutable {
-                return ws.did_close_file(std::move(document_loc)).then([this]() { notify_diagnostics_consumers(); });
+            std::function<utils::task()>([this, document_loc = std::move(uri), ows]() mutable {
+                ows->config.prune_external_processor_groups(document_loc);
+                return ows->ws.did_close_file(std::move(document_loc)).then([this]() {
+                    notify_diagnostics_consumers();
+                });
             }),
             {},
             work_item_type::file_change,

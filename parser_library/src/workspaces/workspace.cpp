@@ -745,8 +745,6 @@ utils::task workspace::did_open_file(resource_location file_location, file_conte
 
 utils::task workspace::did_close_file(resource_location file_location)
 {
-    m_configuration.prune_external_processor_groups(file_location);
-
     auto fcomp = m_processor_files.find(file_location);
     if (fcomp == m_processor_files.end())
         co_return; // this indicates some kind of double close or configuration file close

@@ -1136,6 +1136,7 @@ public:
 
     void did_close_file(resource_location rl)
     {
+        ws_cfg.prune_external_processor_groups(rl);
         run_if_valid(ws.did_close_file(rl));
         parse_all_files(ws);
     }
