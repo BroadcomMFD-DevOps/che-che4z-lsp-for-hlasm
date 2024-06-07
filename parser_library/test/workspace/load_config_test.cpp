@@ -201,7 +201,7 @@ TEST(workspace, load_config_synthetic)
     ws_cfg.parse_configuration_file().run();
 
     // Check P1
-    auto& pg = ws.get_proc_grp(basic_conf { "P1" });
+    auto& pg = ws_cfg.get_proc_grp(basic_conf { "P1" });
     EXPECT_EQ("P1", pg.name());
     auto expected = []() -> std::array<resource_location, 5> {
         if (is_windows())
@@ -220,7 +220,7 @@ TEST(workspace, load_config_synthetic)
     check_process_group(pg, expected);
 
     // Check P2
-    auto& pg2 = ws.get_proc_grp(basic_conf { "P2" });
+    auto& pg2 = ws_cfg.get_proc_grp(basic_conf { "P2" });
     EXPECT_EQ("P2", pg2.name());
 
     auto expected2 = []() -> std::array<resource_location, 3> {
@@ -246,26 +246,27 @@ TEST(workspace, load_config_synthetic)
     ASSERT_TRUE(pg4);
     check_process_group(*pg4, expected2);
 
-    // test of asm_options
-    const auto& asm_options = ws.get_asm_options(pgm1_loc);
-    EXPECT_EQ("SEVEN", asm_options.sysparm);
-    EXPECT_EQ("MAC1", asm_options.profile);
+    auto analyzer_opts = ws_cfg.get_analyzer_configuration(pgm1_loc).run().value();
 
-    const auto& pp_options = ws.get_preprocessor_options(pgm1_loc);
+    // test of asm_options
+    EXPECT_EQ("SEVEN", analyzer_opts.opts.sysparm);
+    EXPECT_EQ("MAC1", analyzer_opts.opts.profile);
+
+    const auto& pp_options = analyzer_opts.pp_opts;
     EXPECT_TRUE(pp_options.size() == 1 && std::holds_alternative<db2_preprocessor_options>(pp_options.front()));
 
     // test of asm_options override
-    const auto& asm_options_override = ws.get_asm_options(pgm_override_loc);
-    EXPECT_EQ("SEVEN", asm_options_override.sysparm);
-    EXPECT_EQ("PROFILE OVERRIDE", asm_options_override.profile);
+    auto analyzer_opts_override = ws_cfg.get_analyzer_configuration(pgm_override_loc).run().value();
+    EXPECT_EQ("SEVEN", analyzer_opts_override.opts.sysparm);
+    EXPECT_EQ("PROFILE OVERRIDE", analyzer_opts_override.opts.profile);
 
     // test sysin options in workspace
-    const auto& asm_options_ws = ws.get_asm_options(pgm_anything_loc);
+    auto asm_options_ws = ws_cfg.get_analyzer_configuration(pgm_anything_loc).run().value().opts;
     EXPECT_EQ(asm_options_ws.sysin_dsn, "pgms");
     EXPECT_EQ(asm_options_ws.sysin_member, "anything");
 
     // test sysin options out of workspace
-    const auto& asm_options_ows = ws.get_asm_options(pgm_outside_ws);
+    auto asm_options_ows = ws_cfg.get_analyzer_configuration(pgm_outside_ws).run().value().opts;
     EXPECT_EQ(asm_options_ows.sysin_dsn, is_windows() ? "c:\\Users\\outside" : "/home/user/outside");
     EXPECT_EQ(asm_options_ows.sysin_member, "anything");
 }
@@ -568,7 +569,7 @@ TEST(workspace, proc_grps_with_substitutions)
 
     EXPECT_TRUE(extract_diags(ws).empty());
 
-    const auto& pg = ws.get_proc_grp(basic_conf { "aproc_groupb" });
+    const auto& pg = ws_cfg.get_proc_grp(basic_conf { "aproc_groupb" });
 
     using hlasm_plugin::utils::resource::resource_location;
 
@@ -600,7 +601,7 @@ TEST(workspace, pgm_conf_with_substitutions)
 
     using hlasm_plugin::utils::resource::resource_location;
 
-    const auto& opts = ws.get_asm_options(resource_location::join(test_loc, "file_name"));
+    auto opts = ws_cfg.get_analyzer_configuration(resource_location::join(test_loc, "file_name")).run().value().opts;
 
     EXPECT_EQ(opts.sysparm, "DEBUGDEBUG");
 }
@@ -642,15 +643,18 @@ TEST(workspace, refresh_settings)
 
     using hlasm_plugin::utils::resource::resource_location;
 
-    EXPECT_EQ(ws.get_asm_options(resource_location::join(test_loc, "file_name")).sysparm, "DEBUGDEBUG");
+    auto file_name = resource_location::join(test_loc, "file_name");
+    auto different_file = resource_location::join(test_loc, "different_file");
+
+    EXPECT_EQ(ws_cfg.get_analyzer_configuration(file_name).run().value().opts.sysparm, "DEBUGDEBUG");
     EXPECT_FALSE(ws.settings_updated().run().value());
 
     global_settings = std::make_shared<const nlohmann::json>(
         nlohmann::json::parse(R"({"pgm_mask":["different_file"],"sysparm":"RELEASE"})"));
     EXPECT_TRUE(ws.settings_updated().run().value());
 
-    EXPECT_EQ(ws.get_asm_options(resource_location::join(test_loc, "file_name")).sysparm, "");
-    EXPECT_EQ(ws.get_asm_options(resource_location::join(test_loc, "different_file")).sysparm, "RELEASERELEASE");
+    EXPECT_EQ(ws_cfg.get_analyzer_configuration(file_name).run().value().opts.sysparm, "");
+    EXPECT_EQ(ws_cfg.get_analyzer_configuration(different_file).run().value().opts.sysparm, "RELEASERELEASE");
 }
 
 TEST(workspace, opcode_suggestions)

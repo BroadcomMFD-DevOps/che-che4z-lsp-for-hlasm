@@ -1004,29 +1004,6 @@ const program* workspace_configuration::get_program(const utils::resource::resou
     return m_pgm_conf_store->get_program(file_location.lexically_normal()).pgm;
 }
 
-asm_option workspace_configuration::get_asm_options(const utils::resource::resource_location& file_location) const
-{
-    asm_option result;
-
-    auto pgm = get_program(file_location);
-    if (pgm)
-    {
-        if (auto proc_grp = get_proc_grp_by_program(*pgm); proc_grp)
-            proc_grp->apply_options_to(result);
-        pgm->asm_opts.apply_options_to(result);
-    }
-
-    auto relative_to_location = file_location.lexically_relative(m_location).lexically_normal();
-
-    const auto& sysin_path = !pgm && (relative_to_location.empty() || relative_to_location.lexically_out_of_scope())
-        ? file_location
-        : relative_to_location;
-    result.sysin_member = sysin_path.filename();
-    result.sysin_dsn = sysin_path.parent().get_local_path_or_uri();
-
-    return result;
-}
-
 utils::value_task<decltype(workspace_configuration::m_proc_grps)::iterator>
 workspace_configuration::make_external_proc_group(
     const utils::resource::resource_location& normalized_location, std::string group_json)
@@ -1114,6 +1091,37 @@ void workspace_configuration::prune_external_processor_groups(const utils::resou
         const auto* e = std::get_if<external_conf>(&pg.first);
         return e && e->definition.use_count() == 1;
     });
+}
+
+utils::value_task<workspace_configuration::analyzer_configuration> workspace_configuration::get_analyzer_configuration(
+    utils::resource::resource_location url)
+{
+    auto alt_config = co_await load_alternative_config_if_needed(url);
+    const auto* pgm = get_program(url);
+    const processor_group* proc_grp = nullptr;
+    asm_option opts;
+    if (pgm)
+    {
+        proc_grp = get_proc_grp_by_program(*pgm);
+        if (proc_grp)
+            proc_grp->apply_options_to(opts);
+        pgm->asm_opts.apply_options_to(opts);
+    }
+
+    auto relative_to_location = url.lexically_relative(m_location).lexically_normal();
+
+    const auto& sysin_path = !pgm && (relative_to_location.empty() || relative_to_location.lexically_out_of_scope())
+        ? url
+        : relative_to_location;
+    opts.sysin_member = sysin_path.filename();
+    opts.sysin_dsn = sysin_path.parent().get_local_path_or_uri();
+
+    co_return analyzer_configuration {
+        .libraries = proc_grp ? proc_grp->libraries() : std::vector<std::shared_ptr<library>>(),
+        .opts = std::move(opts),
+        .pp_opts = proc_grp ? proc_grp->preprocessors() : std::vector<preprocessor_options>(),
+        .alternative_config_url = std::move(alt_config),
+    };
 }
 
 utils::value_task<utils::resource::resource_location> workspace_configuration::load_alternative_config_if_needed(

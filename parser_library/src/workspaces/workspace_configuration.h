@@ -27,6 +27,7 @@
 #include <vector>
 #include <version>
 
+#include "compiler_options.h"
 #include "config/b4g_config.h"
 #include "config/pgm_conf.h"
 #include "config/proc_grps.h"
@@ -297,7 +298,6 @@ public:
     [[nodiscard]] utils::value_task<utils::resource::resource_location> load_alternative_config_if_needed(
         const utils::resource::resource_location& file_location);
 
-    asm_option get_asm_options(const utils::resource::resource_location& file_location) const;
     const program* get_program(const utils::resource::resource_location& program) const;
     const processor_group* get_proc_grp_by_program(const program& p) const;
     processor_group* get_proc_grp_by_program(const program& p);
@@ -318,6 +318,16 @@ public:
         const utils::resource::resource_location& normalized_location, std::string group_json);
 
     void prune_external_processor_groups(const utils::resource::resource_location& location);
+
+    struct analyzer_configuration
+    {
+        std::vector<std::shared_ptr<workspaces::library>> libraries;
+        asm_option opts;
+        std::vector<preprocessor_options> pp_opts;
+        utils::resource::resource_location alternative_config_url;
+    };
+    [[nodiscard]] utils::value_task<analyzer_configuration> get_analyzer_configuration(
+        utils::resource::resource_location url);
 };
 
 } // namespace hlasm_plugin::parser_library::workspaces

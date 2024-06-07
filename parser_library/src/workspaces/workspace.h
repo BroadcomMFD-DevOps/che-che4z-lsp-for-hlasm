@@ -118,10 +118,6 @@ public:
 
     std::optional<performance_metrics> last_metrics(const resource_location& document_loc) const;
 
-    virtual std::vector<std::shared_ptr<library>> get_libraries(const resource_location& file_location) const;
-    virtual asm_option get_asm_options(const resource_location& file_location) const;
-    virtual std::vector<preprocessor_options> get_preprocessor_options(const resource_location& file_location) const;
-
     void set_message_consumer(message_consumer* consumer);
 
     file_manager& get_file_manager() const;
@@ -129,7 +125,6 @@ public:
     [[nodiscard]] utils::value_task<bool> settings_updated();
 
     const processor_group* get_proc_grp(const resource_location& file) const;
-    const processor_group& get_proc_grp(const proc_grp_id& id) const; // test only
 
     std::vector<std::pair<std::string, size_t>> make_opcode_suggestion(
         const resource_location& file, std::string_view opcode, bool extended);
@@ -210,15 +205,6 @@ private:
     std::vector<const processor_file_compoments*> find_related_opencodes(const resource_location& document_loc) const;
     void filter_and_close_dependencies(std::set<resource_location> files_to_close_candidates,
         const processor_file_compoments* file_to_ignore = nullptr);
-
-    struct analyzer_configuration
-    {
-        std::vector<std::shared_ptr<workspaces::library>> libraries;
-        asm_option opts;
-        std::vector<preprocessor_options> pp_opts;
-        resource_location alternative_config_url;
-    };
-    utils::value_task<analyzer_configuration> get_analyzer_configuration(resource_location url);
 };
 
 } // namespace hlasm_plugin::parser_library::workspaces

@@ -579,7 +579,7 @@ utils::value_task<parse_file_result> workspace::parse_file(const resource_locati
     return [](processor_file_compoments& comp, workspace& self) -> utils::value_task<parse_file_result> {
         const auto& url = comp.m_file->get_location();
 
-        auto config = co_await self.get_analyzer_configuration(url);
+        auto config = co_await self.m_configuration.get_analyzer_configuration(url);
 
         comp.m_alternative_config = std::move(config.alternative_config_url);
         workspace_parse_lib_provider ws_lib(self, std::move(config.libraries), comp);
@@ -628,7 +628,7 @@ utils::value_task<parse_file_result> workspace::parse_file(const resource_locati
 
 utils::value_task<debugging::debugger_configuration> workspace::get_debugger_configuration(resource_location url)
 {
-    return get_analyzer_configuration(std::move(url)).then([this](auto c) {
+    return m_configuration.get_analyzer_configuration(std::move(url)).then([this](auto c) {
         return debugging::debugger_configuration {
             .fm = &file_manager_,
             .libraries = std::move(c.libraries),
@@ -636,16 +636,6 @@ utils::value_task<debugging::debugger_configuration> workspace::get_debugger_con
             .pp_opts = std::move(c.pp_opts),
         };
     });
-}
-utils::value_task<workspace::analyzer_configuration> workspace::get_analyzer_configuration(resource_location url)
-{
-    auto alt_config = co_await m_configuration.load_alternative_config_if_needed(url);
-    co_return analyzer_configuration {
-        .libraries = get_libraries(url),
-        .opts = get_asm_options(url),
-        .pp_opts = get_preprocessor_options(url),
-        .alternative_config_url = std::move(alt_config),
-    };
 }
 
 namespace {
@@ -998,8 +988,6 @@ const processor_group* workspace::get_proc_grp(const resource_location& file) co
     return nullptr;
 }
 
-const processor_group& workspace::get_proc_grp(const proc_grp_id& id) const { return m_configuration.get_proc_grp(id); }
-
 namespace {
 auto generate_instruction_bk_tree(instruction_set_version version)
 {
@@ -1163,27 +1151,6 @@ bool workspace::is_dependency(const resource_location& file_location) const
             return true;
     }
     return false;
-}
-
-std::vector<std::shared_ptr<library>> workspace::get_libraries(const resource_location& file_location) const
-{
-    const auto* grp = get_proc_grp(file_location);
-    if (!grp)
-        return {};
-    return grp->libraries();
-}
-
-asm_option workspace::get_asm_options(const resource_location& file_location) const
-{
-    return m_configuration.get_asm_options(file_location);
-}
-
-std::vector<preprocessor_options> workspace::get_preprocessor_options(const resource_location& file_location) const
-{
-    const auto* grp = get_proc_grp(file_location);
-    if (!grp)
-        return {};
-    return grp->preprocessors();
 }
 
 workspace::processor_file_compoments::processor_file_compoments(std::shared_ptr<file> file)
