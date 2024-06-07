@@ -695,6 +695,16 @@ class workspace_manager_impl final : public workspace_manager,
         });
     }
 
+    utils::task handle_config_update(opened_workspace& ows)
+    {
+        if (!ows.config.settings_updated())
+            co_return;
+        const auto res = co_await ows.config.parse_configuration_file();
+        if (res == workspaces::parse_config_file_result::parsed)
+            ows.ws.mark_all_opened_files();
+        notify_diagnostics_consumers();
+    }
+
     void configuration_changed(const lib_config& new_config, std::string_view full_cfg) override
     {
         // TODO: should this action be also performed IN ORDER?
@@ -706,12 +716,9 @@ class workspace_manager_impl final : public workspace_manager,
         m_work_queue.emplace_back(work_item {
             next_unique_id(),
             &m_implicit_workspace,
-            std::function<utils::task()>([this, &ws = m_implicit_workspace.ws, cfg = std::move(cfg)]() -> utils::task {
+            std::function<utils::task()>([this, cfg = std::move(cfg)]() -> utils::task {
                 m_implicit_workspace.settings = cfg;
-                return ws.settings_updated().then([this](bool u) {
-                    if (u)
-                        notify_diagnostics_consumers();
-                });
+                return handle_config_update(m_implicit_workspace);
             }),
             {},
             work_item_type::settings_change,
@@ -722,12 +729,7 @@ class workspace_manager_impl final : public workspace_manager,
             auto& refersh_settings = m_work_queue.emplace_back(work_item {
                 next_unique_id(),
                 &ows,
-                std::function<utils::task()>([this, &ws = ows.ws]() -> utils::task {
-                    return ws.settings_updated().then([this](bool u) {
-                        if (u)
-                            notify_diagnostics_consumers();
-                    });
-                }),
+                std::function<utils::task()>([this, &ows]() -> utils::task { return handle_config_update(ows); }),
                 {},
                 work_item_type::settings_change,
             });

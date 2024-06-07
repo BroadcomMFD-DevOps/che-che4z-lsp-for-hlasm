@@ -25,6 +25,7 @@
 #include "external_configuration_requests.h"
 #include "external_configuration_requests_mock.h"
 #include "file_manager_mock.h"
+#include "nlohmann/json.hpp"
 #include "utils/resource_location.h"
 #include "utils/task.h"
 #include "workspaces/file_manager_impl.h"
@@ -284,6 +285,43 @@ TEST(workspace_configuration, external_configurations_prune_all)
     EXPECT_EQ(pgm, nullptr);
 
     EXPECT_THROW(cfg.get_proc_grp(external_conf { std::make_shared<std::string>(grp_def) }), std::out_of_range);
+}
+
+TEST(workspace_configuration, refresh_settings)
+{
+    file_manager_impl fm;
+
+    fm.did_open_file(empty_pgm_conf_name,
+        0,
+        R"({"pgms":[{"program":"test/${config:pgm_mask.0}","pgroup":"P1","asm_options":{"SYSPARM":"${config:sysparm}${config:sysparm}"}}]})");
+    fm.did_open_file(empty_proc_grps_name, 0, R"({"pgroups":[{"name": "P1","libs":[]}]})");
+
+    lib_config config;
+    shared_json global_settings = std::make_shared<const nlohmann::json>(
+        nlohmann::json::parse(R"({"pgm_mask":["file_name"],"sysparm":"DEBUG"})"));
+    workspace_configuration ws_cfg(fm, empty_ws, global_settings, nullptr);
+    const auto test_loc = resource_location::join(empty_ws, "test");
+    ws_cfg.parse_configuration_file().run();
+
+    std::vector<diagnostic> diags;
+    ws_cfg.produce_diagnostics(diags, {});
+    EXPECT_TRUE(diags.empty());
+
+    using hlasm_plugin::utils::resource::resource_location;
+
+    auto file_name = resource_location::join(test_loc, "file_name");
+    auto different_file = resource_location::join(test_loc, "different_file");
+
+    EXPECT_EQ(ws_cfg.get_analyzer_configuration(file_name).run().value().opts.sysparm, "DEBUGDEBUG");
+    EXPECT_FALSE(ws_cfg.settings_updated());
+
+    global_settings = std::make_shared<const nlohmann::json>(
+        nlohmann::json::parse(R"({"pgm_mask":["different_file"],"sysparm":"RELEASE"})"));
+    EXPECT_TRUE(ws_cfg.settings_updated());
+    EXPECT_EQ(ws_cfg.parse_configuration_file().run().value(), parse_config_file_result::parsed);
+
+    EXPECT_EQ(ws_cfg.get_analyzer_configuration(file_name).run().value().opts.sysparm, "");
+    EXPECT_EQ(ws_cfg.get_analyzer_configuration(different_file).run().value().opts.sysparm, "RELEASERELEASE");
 }
 
 namespace {

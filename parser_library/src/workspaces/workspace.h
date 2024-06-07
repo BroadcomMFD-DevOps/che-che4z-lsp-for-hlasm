@@ -120,8 +120,6 @@ public:
 
     void set_message_consumer(message_consumer* consumer);
 
-    [[nodiscard]] utils::value_task<bool> settings_updated();
-
     const processor_group* get_proc_grp(const resource_location& file) const;
 
     std::vector<std::pair<std::string, size_t>> make_opcode_suggestion(

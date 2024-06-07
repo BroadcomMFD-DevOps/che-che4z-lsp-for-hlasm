@@ -622,41 +622,6 @@ TEST(workspace, missing_substitutions)
     EXPECT_TRUE(matches_message_codes(extract_diags(ws), { "W0007", "W0007" }));
 }
 
-TEST(workspace, refresh_settings)
-{
-    file_manager_impl fm;
-
-    fm.did_open_file(empty_pgm_conf_name,
-        0,
-        R"({"pgms":[{"program":"test/${config:pgm_mask.0}","pgroup":"P1","asm_options":{"SYSPARM":"${config:sysparm}${config:sysparm}"}}]})");
-    fm.did_open_file(empty_proc_grps_name, 0, R"({"pgroups":[{"name": "P1","libs":[]}]})");
-
-    lib_config config;
-    shared_json global_settings = std::make_shared<const nlohmann::json>(
-        nlohmann::json::parse(R"({"pgm_mask":["file_name"],"sysparm":"DEBUG"})"));
-    workspace_configuration ws_cfg(fm, empty_ws, global_settings, nullptr);
-    workspace ws(fm, ws_cfg, config);
-    const auto test_loc = resource_location::join(empty_ws, "test");
-    ws_cfg.parse_configuration_file().run();
-
-    EXPECT_TRUE(extract_diags(ws).empty());
-
-    using hlasm_plugin::utils::resource::resource_location;
-
-    auto file_name = resource_location::join(test_loc, "file_name");
-    auto different_file = resource_location::join(test_loc, "different_file");
-
-    EXPECT_EQ(ws_cfg.get_analyzer_configuration(file_name).run().value().opts.sysparm, "DEBUGDEBUG");
-    EXPECT_FALSE(ws.settings_updated().run().value());
-
-    global_settings = std::make_shared<const nlohmann::json>(
-        nlohmann::json::parse(R"({"pgm_mask":["different_file"],"sysparm":"RELEASE"})"));
-    EXPECT_TRUE(ws.settings_updated().run().value());
-
-    EXPECT_EQ(ws_cfg.get_analyzer_configuration(file_name).run().value().opts.sysparm, "");
-    EXPECT_EQ(ws_cfg.get_analyzer_configuration(different_file).run().value().opts.sysparm, "RELEASERELEASE");
-}
-
 TEST(workspace, opcode_suggestions)
 {
     file_manager_impl fm;

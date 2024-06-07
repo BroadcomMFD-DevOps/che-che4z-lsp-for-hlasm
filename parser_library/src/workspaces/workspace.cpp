@@ -960,14 +960,6 @@ std::optional<performance_metrics> workspace::last_metrics(const resource_locati
 
 void workspace::set_message_consumer(message_consumer* consumer) { message_consumer_ = consumer; }
 
-utils::value_task<bool> workspace::settings_updated()
-{
-    bool updated = m_configuration.settings_updated();
-    if (updated && co_await m_configuration.parse_configuration_file() == parse_config_file_result::parsed)
-        mark_all_opened_files();
-    co_return updated;
-}
-
 const processor_group* workspace::get_proc_grp(const resource_location& file) const
 {
     if (const auto* pgm = m_configuration.get_program(file); pgm)
