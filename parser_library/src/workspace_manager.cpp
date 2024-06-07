@@ -1078,8 +1078,13 @@ class workspace_manager_impl final : public workspace_manager,
         work_item wi {
             next_unique_id(),
             ows,
-            ows->ws.get_debugger_configuration(std::move(uri)).then([conf](debugging::debugger_configuration dc) {
-                conf.provide(std::move(dc));
+            ows->config.get_analyzer_configuration(std::move(uri)).then([this, conf](auto c) {
+                conf.provide({
+                    .fm = &m_file_manager,
+                    .libraries = std::move(c.libraries),
+                    .opts = std::move(c.opts),
+                    .pp_opts = std::move(c.pp_opts),
+                });
             }),
             {},
             work_item_type::dc_request,

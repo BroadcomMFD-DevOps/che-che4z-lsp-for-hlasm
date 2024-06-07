@@ -131,8 +131,6 @@ public:
 
     void retrieve_fade_messages(std::vector<fade_message>& fms) const;
 
-    utils::value_task<debugging::debugger_configuration> get_debugger_configuration(resource_location url);
-
     void external_configuration_invalidated(const resource_location& url);
 
 private:
