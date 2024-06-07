@@ -500,7 +500,7 @@ void workspace::retrieve_fade_messages(std::vector<fade_message>& fms) const
 
         bool take_also_opencode_hc = true;
         if (const auto& pf_rl = proc_file_component.m_file->get_location();
-            !get_proc_grp(pf_rl) && is_dependency(pf_rl))
+            !m_configuration.get_proc_grp(pf_rl) && is_dependency(pf_rl))
             take_also_opencode_hc = false;
 
         for (const auto& [__, opened_file_rl] : opened_files_uris)
@@ -603,7 +603,7 @@ utils::value_task<parse_file_result> workspace::parse_file(const resource_locati
         std::set<resource_location> files_to_close;
         ws_lib.append_files_to_close(files_to_close);
 
-        auto parse_results = self.parse_successful(comp, std::move(ws_lib));
+        auto parse_results = self.parse_successful(comp, std::move(ws_lib), config.processor_group_found);
 
         self.filter_and_close_dependencies(std::move(files_to_close));
 
@@ -676,16 +676,17 @@ void workspace::external_configuration_invalidated(const resource_location& url)
         m_parsing_pending.emplace(url);
 }
 
-workspace_file_info workspace::parse_successful(processor_file_compoments& comp, workspace_parse_lib_provider libs)
+workspace_file_info workspace::parse_successful(
+    processor_file_compoments& comp, workspace_parse_lib_provider libs, bool has_processor_group)
 {
     workspace_file_info ws_file_info;
 
     comp.m_collect_perf_metrics = false; // only on open/first parsing
     m_parsing_pending.erase(comp.m_file->get_location());
 
-    const processor_group* grp = get_proc_grp(comp.m_file->get_location());
-    ws_file_info.processor_group_found = !!grp;
-    if (!grp && (int64_t)comp.m_last_results->opencode_diagnostics.size() > get_config().diag_supress_limit)
+    ws_file_info.processor_group_found = has_processor_group;
+    if (!has_processor_group
+        && (int64_t)comp.m_last_results->opencode_diagnostics.size() > get_config().diag_supress_limit)
     {
         ws_file_info.diagnostics_suppressed = true;
         delete_diags(comp);
@@ -823,7 +824,7 @@ utils::task workspace::did_change_watched_files(
                 continue;
 
             auto loc = comp.m_file->get_location();
-            if (std::ranges::find(*refreshed, get_proc_grp(loc)) != refreshed->end())
+            if (std::ranges::find(*refreshed, m_configuration.get_proc_grp(loc)) != refreshed->end())
                 m_parsing_pending.emplace(std::move(loc));
         }
     }
@@ -955,16 +956,6 @@ std::optional<performance_metrics> workspace::last_metrics(const resource_locati
 }
 
 void workspace::set_message_consumer(message_consumer* consumer) { message_consumer_ = consumer; }
-
-const processor_group* workspace::get_proc_grp(const resource_location& file) const
-{
-    if (const auto* pgm = m_configuration.get_program(file); pgm)
-    {
-        if (auto proc_grp = m_configuration.get_proc_grp_by_program(*pgm); proc_grp)
-            return proc_grp;
-    }
-    return nullptr;
-}
 
 namespace {
 auto generate_instruction_bk_tree(instruction_set_version version)

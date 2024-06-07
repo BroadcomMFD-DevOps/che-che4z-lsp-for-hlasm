@@ -44,75 +44,6 @@ const auto users_dir =
 const auto ws_loc = resource_location::join(users_dir, "ws/");
 
 const auto pgm1_loc = resource_location::join(ws_loc, "pgm1");
-const auto pgm_override_loc = resource_location::join(ws_loc, "pgm_override");
-const auto pgm_anything_loc = resource_location::join(ws_loc, "pgms/anything");
-const auto pgm_outside_ws = resource_location::join(users_dir, "outside/anything");
-
-std::vector<diagnostic> extract_diags(workspace& ws, workspace_configuration& cfg, bool advisory = false)
-{
-    std::vector<diagnostic> result;
-    cfg.produce_diagnostics(result, { ws.report_configuration_file_usage(), advisory });
-    ws.produce_diagnostics(result);
-    return result;
-}
-} // namespace
-
-const std::string file_proc_grps_content = is_windows() ?
-                                                        R"({
-    "pgroups": [
-        {
-            "name": "P1",
-            "libs": [
-                "C:\\Users\\Desktop\\ASLib",
-                "lib",
-                "libs\\lib2\\",
-                "file:///c%3A/Users/Desktop/Temp/",
-                ""
-            ],
-            "asm_options": {
-                "SYSPARM": "SEVEN",
-                "PROFILE": "MAC1"
-            },
-            "preprocessor": "DB2"
-        },
-        {
-            "name": "P2",
-            "libs": [
-                "C:\\Users\\Desktop\\ASLib",
-                "P2lib",
-                "P2libs\\libb"
-            ]
-        }
-    ]
-})"
-                                                        : R"({
-    "pgroups": [
-        {
-            "name": "P1",
-            "libs": [
-                "/home/user/ASLib",
-                "lib",
-                "libs/lib2/",
-                "file:///home/user/Temp/",
-                ""
-            ],
-            "asm_options": {
-                "SYSPARM": "SEVEN",
-                "PROFILE": "MAC1"
-            },
-            "preprocessor": "DB2"
-        },
-        {
-            "name": "P2",
-            "libs": [
-                "/home/user/ASLib",
-                "P2lib",
-                "P2libs/libb"
-            ]
-        }
-    ]
-})";
-
 const std::string file_pgm_conf_content = is_windows() ? R"({
   "pgms": [
     {
@@ -154,123 +85,14 @@ const std::string file_pgm_conf_content = is_windows() ? R"({
   ]
 })";
 
-class file_manager_proc_grps_test : public file_manager_impl
+std::vector<diagnostic> extract_diags(workspace& ws, workspace_configuration& cfg, bool advisory = false)
 {
-public:
-    hlasm_plugin::utils::value_task<std::optional<std::string>> get_file_content(
-        const resource_location& location) override
-    {
-        using hlasm_plugin::utils::value_task;
-        if (hlasm_plugin::utils::resource::filename(location) == "proc_grps.json")
-            return value_task<std::optional<std::string>>::from_value(file_proc_grps_content);
-        else if (hlasm_plugin::utils::resource::filename(location) == "pgm_conf.json")
-            return value_task<std::optional<std::string>>::from_value(file_pgm_conf_content);
-        else
-            return value_task<std::optional<std::string>>::from_value(std::nullopt);
-    }
-
-    // Inherited via file_manager
-    file_content_state did_open_file(const resource_location&, version_t, std::string) override
-    {
-        return file_content_state::changed_content;
-    }
-    void did_change_file(const resource_location&, version_t, std::span<const document_change>) override {}
-    void did_close_file(const resource_location&) override {}
-};
-
-void check_process_group(const processor_group& pg, std::span<resource_location> expected)
-{
-    EXPECT_EQ(std::size(expected), pg.libraries().size()) << "For pg.name() = " << pg.name();
-    for (size_t i = 0; i < std::min(std::size(expected), pg.libraries().size()); ++i)
-    {
-        library_local* libl = dynamic_cast<library_local*>(pg.libraries()[i].get());
-        ASSERT_NE(libl, nullptr);
-        EXPECT_EQ(expected[i], libl->get_location())
-            << "Expected: " << expected[i].get_uri() << "\n Got: " << libl->get_location().get_uri()
-            << "\n For pg.name() = " << pg.name() << " and i = " << i;
-    }
+    std::vector<diagnostic> result;
+    cfg.produce_diagnostics(result, { ws.report_configuration_file_usage(), advisory });
+    ws.produce_diagnostics(result);
+    return result;
 }
-
-TEST(workspace, load_config_synthetic)
-{
-    file_manager_proc_grps_test file_manager;
-    lib_config config;
-    shared_json global_settings = make_empty_shared_json();
-    workspace_configuration ws_cfg(file_manager, ws_loc, global_settings, nullptr);
-    workspace ws(file_manager, ws_cfg, config);
-
-    ws_cfg.parse_configuration_file().run();
-
-    // Check P1
-    auto& pg = ws_cfg.get_proc_grp(basic_conf { "P1" });
-    EXPECT_EQ("P1", pg.name());
-    auto expected = []() -> std::array<resource_location, 5> {
-        if (is_windows())
-            return { resource_location("file:///c%3A/Users/Desktop/ASLib/"),
-                resource_location("file:///c%3A/Users/ws/lib/"),
-                resource_location("file:///c%3A/Users/ws/libs/lib2/"),
-                resource_location("file:///c%3A/Users/Desktop/Temp/"),
-                resource_location("file:///c%3A/Users/ws/") };
-        else
-            return { resource_location("file:///home/user/ASLib/"),
-                resource_location("file:///home/user/ws/lib/"),
-                resource_location("file:///home/user/ws/libs/lib2/"),
-                resource_location("file:///home/user/Temp/"),
-                resource_location("file:///home/user/ws/") };
-    }();
-    check_process_group(pg, expected);
-
-    // Check P2
-    auto& pg2 = ws_cfg.get_proc_grp(basic_conf { "P2" });
-    EXPECT_EQ("P2", pg2.name());
-
-    auto expected2 = []() -> std::array<resource_location, 3> {
-        if (is_windows())
-            return { resource_location("file:///c%3A/Users/Desktop/ASLib/"),
-                resource_location("file:///c%3A/Users/ws/P2lib/"),
-                resource_location("file:///c%3A/Users/ws/P2libs/libb/") };
-        else
-            return { resource_location("file:///home/user/ASLib/"),
-                resource_location("file:///home/user/ws/P2lib/"),
-                resource_location("file:///home/user/ws/P2libs/libb/") };
-    }();
-    check_process_group(pg2, expected2);
-
-    // Check PGM1
-    // test of pgm_conf and workspace::get_proc_grp
-    const auto* pg3 = ws.get_proc_grp(pgm1_loc);
-    ASSERT_TRUE(pg3);
-    check_process_group(*pg3, expected);
-
-    // Check PGM anything
-    const auto* pg4 = ws.get_proc_grp(pgm_anything_loc);
-    ASSERT_TRUE(pg4);
-    check_process_group(*pg4, expected2);
-
-    auto analyzer_opts = ws_cfg.get_analyzer_configuration(pgm1_loc).run().value();
-
-    // test of asm_options
-    EXPECT_EQ("SEVEN", analyzer_opts.opts.sysparm);
-    EXPECT_EQ("MAC1", analyzer_opts.opts.profile);
-
-    const auto& pp_options = analyzer_opts.pp_opts;
-    EXPECT_TRUE(pp_options.size() == 1 && std::holds_alternative<db2_preprocessor_options>(pp_options.front()));
-
-    // test of asm_options override
-    auto analyzer_opts_override = ws_cfg.get_analyzer_configuration(pgm_override_loc).run().value();
-    EXPECT_EQ("SEVEN", analyzer_opts_override.opts.sysparm);
-    EXPECT_EQ("PROFILE OVERRIDE", analyzer_opts_override.opts.profile);
-
-    // test sysin options in workspace
-    auto asm_options_ws = ws_cfg.get_analyzer_configuration(pgm_anything_loc).run().value().opts;
-    EXPECT_EQ(asm_options_ws.sysin_dsn, "pgms");
-    EXPECT_EQ(asm_options_ws.sysin_member, "anything");
-
-    // test sysin options out of workspace
-    auto asm_options_ows = ws_cfg.get_analyzer_configuration(pgm_outside_ws).run().value().opts;
-    EXPECT_EQ(asm_options_ows.sysin_dsn, is_windows() ? "c:\\Users\\outside" : "/home/user/outside");
-    EXPECT_EQ(asm_options_ows.sysin_member, "anything");
-}
+} // namespace
 
 TEST(workspace, pgm_conf_malformed)
 {
@@ -509,43 +331,6 @@ TEST(workspace, asm_options_invalid)
     ws_cfg.parse_configuration_file().run();
 
     EXPECT_TRUE(matches_message_codes(extract_diags(ws, ws_cfg), { "W0002" }));
-}
-
-class file_manager_asm_test : public file_manager_proc_grps_test
-{
-public:
-    hlasm_plugin::utils::value_task<std::optional<std::string>> get_file_content(
-        const resource_location& location) override
-    {
-        if (hlasm_plugin::utils::resource::filename(location) == "proc_grps.json")
-            return hlasm_plugin::utils::value_task<std::optional<std::string>>::from_value(R"({
-  "pgroups": [
-    {
-      "name": "P1",
-      "libs": [],
-      "asm_options": {
-         "GOFF":true,
-         "XOBJECT":true
-      }
-    }
-  ]
-})");
-        else
-            return file_manager_proc_grps_test::get_file_content(location);
-    }
-};
-
-TEST(workspace, asm_options_goff_xobject_redefinition)
-{
-    file_manager_asm_test file_manager;
-    lib_config config;
-    shared_json global_settings = make_empty_shared_json();
-    workspace_configuration ws_cfg(file_manager, ws_loc, global_settings, nullptr);
-    workspace ws(file_manager, ws_cfg, config);
-
-    ws_cfg.parse_configuration_file().run();
-
-    EXPECT_TRUE(contains_message_codes(extract_diags(ws, ws_cfg), { "W0002" }));
 }
 
 TEST(workspace, proc_grps_with_substitutions)

@@ -299,6 +299,7 @@ public:
         const utils::resource::resource_location& file_location);
 
     const program* get_program(const utils::resource::resource_location& program) const;
+    const processor_group* get_proc_grp(const utils::resource::resource_location& file) const;
     const processor_group* get_proc_grp_by_program(const program& p) const;
     processor_group* get_proc_grp_by_program(const program& p);
     const lib_config& get_config() const { return m_local_config; }
@@ -325,6 +326,7 @@ public:
         asm_option opts;
         std::vector<preprocessor_options> pp_opts;
         utils::resource::resource_location alternative_config_url;
+        bool processor_group_found;
     };
     [[nodiscard]] utils::value_task<analyzer_configuration> get_analyzer_configuration(
         utils::resource::resource_location url);

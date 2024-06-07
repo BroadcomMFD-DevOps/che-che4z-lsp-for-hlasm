@@ -119,8 +119,6 @@ public:
 
     void set_message_consumer(message_consumer* consumer);
 
-    const processor_group* get_proc_grp(const resource_location& file) const;
-
     std::vector<std::pair<std::string, size_t>> make_opcode_suggestion(
         const resource_location& file, std::string_view opcode, bool extended);
 
@@ -193,7 +191,8 @@ private:
     [[nodiscard]] utils::value_task<processor_file_compoments&> add_processor_file_impl(std::shared_ptr<file> f);
     const processor_file_compoments* find_processor_file_impl(const resource_location& file) const;
     friend struct workspace_parse_lib_provider;
-    workspace_file_info parse_successful(processor_file_compoments& comp, workspace_parse_lib_provider libs);
+    workspace_file_info parse_successful(
+        processor_file_compoments& comp, workspace_parse_lib_provider libs, bool has_processor_group);
     void delete_diags(processor_file_compoments& pfc);
 
     std::vector<const processor_file_compoments*> find_related_opencodes(const resource_location& document_loc) const;

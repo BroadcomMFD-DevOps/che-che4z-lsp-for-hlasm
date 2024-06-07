@@ -1004,6 +1004,14 @@ const program* workspace_configuration::get_program(const utils::resource::resou
     return m_pgm_conf_store->get_program(file_location.lexically_normal()).pgm;
 }
 
+const processor_group* workspace_configuration::get_proc_grp(const utils::resource::resource_location& file) const
+{
+    if (const auto* pgm = get_program(file); pgm)
+        return get_proc_grp_by_program(*pgm);
+    return nullptr;
+}
+
+
 utils::value_task<decltype(workspace_configuration::m_proc_grps)::iterator>
 workspace_configuration::make_external_proc_group(
     const utils::resource::resource_location& normalized_location, std::string group_json)
@@ -1121,6 +1129,7 @@ utils::value_task<workspace_configuration::analyzer_configuration> workspace_con
         .opts = std::move(opts),
         .pp_opts = proc_grp ? proc_grp->preprocessors() : std::vector<preprocessor_options>(),
         .alternative_config_url = std::move(alt_config),
+        .processor_group_found = proc_grp != nullptr,
     };
 }
 
