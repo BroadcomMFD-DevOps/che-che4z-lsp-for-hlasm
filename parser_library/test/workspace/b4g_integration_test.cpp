@@ -154,7 +154,6 @@ std::vector<diagnostic> close_parse_and_recollect_diags(workspace& ws,
     const std::vector<hlasm_plugin::utils::resource::resource_location>& files)
 {
     std::ranges::for_each(files, [&ws, &cfg](const auto& f) {
-        cfg.prune_external_processor_groups(f);
         run_if_valid(ws.did_close_file(f));
     });
     parse_all_files(ws);
@@ -216,7 +215,6 @@ TEST(b4g_integration_test, basic_pgm_conf_retrieval)
 
         auto match = matches_message_text(diags, mnote_locations);
 
-        ws.ws_cfg.prune_external_processor_groups(pgm);
         run_if_valid(ws.ws.did_close_file(pgm));
         parse_all_files(ws.ws);
 

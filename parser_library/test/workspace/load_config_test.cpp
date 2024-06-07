@@ -407,7 +407,6 @@ TEST(workspace, missing_proc_group_diags)
     ws.include_advisory_configuration_diagnostics(true);
     EXPECT_TRUE(matches_message_codes(extract_diags(ws), { "W0004", "W0008" }));
 
-    ws_cfg.prune_external_processor_groups(pgm1_loc);
     run_if_valid(ws.did_close_file(pgm1_loc));
     EXPECT_TRUE(extract_diags(ws).empty());
 
@@ -417,7 +416,6 @@ TEST(workspace, missing_proc_group_diags)
     run_if_valid(ws.did_open_file(pgm1_wildcard_loc));
     EXPECT_TRUE(matches_message_codes(extract_diags(ws), { "W0004" }));
 
-    ws_cfg.prune_external_processor_groups(pgm1_wildcard_loc);
     run_if_valid(ws.did_close_file(pgm1_wildcard_loc));
     EXPECT_TRUE(extract_diags(ws).empty());
 
@@ -452,7 +450,6 @@ TEST(workspace, missing_proc_group_diags_wildcards)
     ws.include_advisory_configuration_diagnostics(true);
     EXPECT_TRUE(matches_message_codes(extract_diags(ws), { "W0008" }));
 
-    ws_cfg.prune_external_processor_groups(pgm1_loc);
     run_if_valid(ws.did_close_file(pgm1_loc));
     EXPECT_TRUE(extract_diags(ws).empty());
 }
@@ -485,7 +482,6 @@ TEST(workspace, missing_proc_group_diags_wildcards_noproc)
     ws.include_advisory_configuration_diagnostics(true);
     EXPECT_TRUE(matches_message_codes(extract_diags(ws), { "W0008" }));
 
-    ws_cfg.prune_external_processor_groups(pgm1_loc);
     run_if_valid(ws.did_close_file(pgm1_loc));
     EXPECT_TRUE(extract_diags(ws).empty());
 }
