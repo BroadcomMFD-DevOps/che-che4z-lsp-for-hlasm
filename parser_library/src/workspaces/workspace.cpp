@@ -976,16 +976,6 @@ std::optional<performance_metrics> workspace::last_metrics(const resource_locati
     return comp->m_last_results->metrics;
 }
 
-utils::task workspace::open()
-{
-    // TODO:
-    opened_ = true;
-
-    co_await m_configuration.parse_configuration_file();
-}
-
-void workspace::close() { opened_ = false; }
-
 void workspace::set_message_consumer(message_consumer* consumer) { message_consumer_ = consumer; }
 
 file_manager& workspace::get_file_manager() const { return file_manager_; }

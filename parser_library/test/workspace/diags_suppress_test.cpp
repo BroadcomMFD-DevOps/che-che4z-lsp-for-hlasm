@@ -69,7 +69,7 @@ TEST(diags_suppress, no_suppress)
 
     workspace_configuration ws_cfg(fm, empty_ws, global_settings, nullptr);
     workspace ws(fm, ws_cfg, config);
-    ws.open().run();
+    ws_cfg.parse_configuration_file().run();
     run_if_valid(ws.did_open_file(file_loc));
     parse_all_files(ws);
 
@@ -99,7 +99,7 @@ TEST(diags_suppress, do_suppress)
     workspace_configuration ws_cfg(fm, empty_ws, global_settings, nullptr);
     workspace ws(fm, ws_cfg, config);
     ws.set_message_consumer(&msg_consumer);
-    ws.open().run();
+    ws_cfg.parse_configuration_file().run();
     run_if_valid(ws.did_open_file(file_loc));
     parse_all_files(ws);
 
@@ -127,7 +127,7 @@ TEST(diags_suppress, pgm_supress_limit_changed)
 
     workspace_configuration ws_cfg(fm, empty_ws, global_settings, nullptr);
     workspace ws(fm, ws_cfg, config);
-    ws.open().run();
+    ws_cfg.parse_configuration_file().run();
     run_if_valid(ws.did_open_file(file_loc));
     parse_all_files(ws);
 
@@ -166,7 +166,7 @@ TEST(diags_suppress, mark_for_parsing_only)
 
     workspace_configuration ws_cfg(fm, empty_ws, global_settings, nullptr);
     workspace ws(fm, ws_cfg, config);
-    ws.open().run();
+    ws_cfg.parse_configuration_file().run();
     run_if_valid(ws.did_open_file(file_loc));
     // parsing not done yet
 

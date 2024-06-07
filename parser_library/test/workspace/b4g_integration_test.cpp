@@ -153,9 +153,7 @@ std::vector<diagnostic> close_parse_and_recollect_diags(workspace& ws,
     workspace_configuration& cfg,
     const std::vector<hlasm_plugin::utils::resource::resource_location>& files)
 {
-    std::ranges::for_each(files, [&ws, &cfg](const auto& f) {
-        run_if_valid(ws.did_close_file(f));
-    });
+    std::ranges::for_each(files, [&ws, &cfg](const auto& f) { run_if_valid(ws.did_close_file(f)); });
     parse_all_files(ws);
 
     std::vector<diagnostic> result;
@@ -171,7 +169,7 @@ struct workspace_test
         : ws_cfg(fm, ws_rl, global_settings, nullptr)
         , ws(fm, ws_cfg, config)
     {
-        ws.open().run();
+        ws_cfg.parse_configuration_file().run();
     }
 
     lib_config config;
@@ -272,7 +270,7 @@ public:
             0,
             R"({"elements":{"A":{"processorGroup":"P2"},"B":{"processorGroup":"P2"}},"defaultProcessorGroup":"P3","fileExtension":""})");
 
-        ws.open().run();
+        ws_cfg.parse_configuration_file().run();
     }
 };
 
@@ -307,7 +305,7 @@ public:
         fm.did_open_file(pgm_conf_rl, 0, std::regex_replace(pgm_conf_template, std::regex("\\$x"), pgm_name));
         fm.did_open_file(b4g_conf_rl, 1, std::regex_replace(b4g_conf_template, std::regex("\\$x"), pgm_name));
 
-        ws.open().run();
+        ws_cfg.parse_configuration_file().run();
     }
 };
 } // namespace

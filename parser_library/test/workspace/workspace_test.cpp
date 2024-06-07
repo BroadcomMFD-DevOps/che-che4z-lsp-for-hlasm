@@ -398,7 +398,7 @@ TEST_F(workspace_test, did_close_file)
     workspace_configuration ws_cfg(file_manager, ws_loc, global_settings, nullptr);
     workspace ws(file_manager, ws_cfg, config);
 
-    ws.open().run();
+    ws_cfg.parse_configuration_file().run();
     // 3 files are open
     // - open codes source1 and source2 with syntax errors using macro ERROR
     // - macro file lib/ERROR with syntax error
@@ -441,7 +441,7 @@ TEST_F(workspace_test, did_close_file_without_save)
     workspace_configuration ws_cfg(file_manager, ws_loc, global_settings, nullptr);
     workspace ws(file_manager, ws_cfg, config);
 
-    ws.open().run();
+    ws_cfg.parse_configuration_file().run();
 
     run_if_valid(ws.did_open_file(source3_loc));
     run_if_valid(ws.did_open_file(correct_macro_loc));
@@ -472,7 +472,7 @@ TEST_F(workspace_test, did_change_watched_files)
     file_manager_extended file_manager;
     workspace_configuration ws_cfg(file_manager, ws_loc, global_settings, nullptr);
     workspace ws(file_manager, ws_cfg, config);
-    ws.open().run();
+    ws_cfg.parse_configuration_file().run();
 
     run_if_valid(ws.did_open_file(source3_loc));
     parse_all_files(ws);
@@ -495,7 +495,7 @@ TEST_F(workspace_test, did_change_watched_files_not_opened_file)
     file_manager_extended file_manager;
     workspace_configuration ws_cfg(file_manager, ws_loc, global_settings, nullptr);
     workspace ws(file_manager, ws_cfg, config);
-    ws.open().run();
+    ws_cfg.parse_configuration_file().run();
 
     run_if_valid(ws.did_open_file(source3_loc));
     parse_all_files(ws);
@@ -511,7 +511,7 @@ TEST_F(workspace_test, diagnostics_recollection)
     file_manager_opt file_manager(file_manager_opt_variant::required);
     workspace_configuration ws_cfg(file_manager, ws_loc, global_settings, nullptr);
     workspace ws(file_manager, ws_cfg, config);
-    ws.open().run();
+    ws_cfg.parse_configuration_file().run();
 
     run_if_valid(ws.did_open_file(source1_loc));
     parse_all_files(ws);
@@ -531,7 +531,7 @@ TEST_F(workspace_test, missing_library_required)
         file_manager_opt file_manager(type);
         workspace_configuration ws_cfg(file_manager, ws_loc, global_settings, nullptr);
         workspace ws(file_manager, ws_cfg, config);
-        ws.open().run();
+        ws_cfg.parse_configuration_file().run();
 
         run_if_valid(ws.did_open_file(source1_loc));
         parse_all_files(ws);
@@ -544,7 +544,7 @@ TEST_F(workspace_test, missing_library_optional)
     file_manager_opt file_manager(file_manager_opt_variant::optional);
     workspace_configuration ws_cfg(file_manager, ws_loc, global_settings, nullptr);
     workspace ws(file_manager, ws_cfg, config);
-    ws.open().run();
+    ws_cfg.parse_configuration_file().run();
 
     run_if_valid(ws.did_open_file(source1_loc));
     parse_all_files(ws);
@@ -556,7 +556,7 @@ TEST_F(workspace_test, invalid_assembler_options)
     file_manager_opt file_manager(file_manager_opt_variant::invalid_assembler_options);
     workspace_configuration ws_cfg(file_manager, ws_loc, global_settings, nullptr);
     workspace ws(file_manager, ws_cfg, config);
-    ws.open().run();
+    ws_cfg.parse_configuration_file().run();
 
     EXPECT_TRUE(contains_message_codes(extract_diags(ws), { "W0005" }));
 }
@@ -566,7 +566,7 @@ TEST_F(workspace_test, invalid_assembler_options_in_pgm_conf)
     file_manager_opt file_manager(file_manager_opt_variant::invalid_assembler_options_in_pgm_conf);
     workspace_configuration ws_cfg(file_manager, ws_loc, global_settings, nullptr);
     workspace ws(file_manager, ws_cfg, config);
-    ws.open().run();
+    ws_cfg.parse_configuration_file().run();
 
     EXPECT_TRUE(contains_message_codes(extract_diags(ws), { "W0005" }));
 }
@@ -576,7 +576,7 @@ TEST_F(workspace_test, invalid_preprocessor_options)
     file_manager_opt file_manager(file_manager_opt_variant::invalid_preprocessor_options);
     workspace_configuration ws_cfg(file_manager, ws_loc, global_settings, nullptr);
     workspace ws(file_manager, ws_cfg, config);
-    ws.open().run();
+    ws_cfg.parse_configuration_file().run();
 
     EXPECT_TRUE(contains_message_codes(extract_diags(ws), { "W0006" }));
 }
@@ -609,7 +609,7 @@ TEST_F(workspace_test, library_list_failure)
     file_manager_list_dir_failed file_manager;
     workspace_configuration ws_cfg(file_manager, ws_loc, global_settings, nullptr);
     workspace ws(file_manager, ws_cfg, config);
-    ws.open().run();
+    ws_cfg.parse_configuration_file().run();
 
     run_if_valid(ws.did_open_file(source1_loc));
     parse_all_files(ws);
@@ -621,7 +621,7 @@ TEST_F(workspace_test, did_change_watched_files_added_missing)
     file_manager_extended file_manager;
     workspace_configuration ws_cfg(file_manager, ws_loc, global_settings, nullptr);
     workspace ws(file_manager, ws_cfg, config);
-    ws.open().run();
+    ws_cfg.parse_configuration_file().run();
 
     file_manager.insert_correct_macro = false;
     run_if_valid(ws.did_open_file(source3_loc));
@@ -653,7 +653,7 @@ TEST_F(workspace_test, use_external_library)
 
     workspace_configuration ws_cfg(fm, resource_location(), global_settings, &external_conf_mock);
     workspace ws(fm, ws_cfg, config);
-    ws.open().run();
+    ws_cfg.parse_configuration_file().run();
 
     EXPECT_CALL(external_files, list_directory_files(resource_location("hlasm-external:/DATASET/REMOTE.DATASET")))
         .WillOnce(Invoke(
@@ -690,7 +690,7 @@ TEST_F(workspace_test, use_external_library_with_workspace_uri)
 
     workspace_configuration ws_cfg(fm, ws_loc, global_settings, nullptr);
     workspace ws(fm, ws_cfg, config);
-    ws.open().run();
+    ws_cfg.parse_configuration_file().run();
 
     EXPECT_CALL(
         external_files, list_directory_files(resource_location("hlasm-external:/DATASET/REMOTE.DATASET#hhhddkcp")))
@@ -710,7 +710,7 @@ TEST_F(workspace_test, track_nested_dependencies)
     workspace_configuration ws_cfg(file_manager, ws_loc, global_settings, nullptr);
     workspace ws(file_manager, ws_cfg, config);
 
-    ws.open().run();
+    ws_cfg.parse_configuration_file().run();
     run_if_valid(ws.did_open_file(source4_loc));
     parse_all_files(ws);
     EXPECT_TRUE(matches_message_codes(extract_diags(ws), { "MNOTE" }));

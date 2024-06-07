@@ -164,7 +164,7 @@ TEST(workspace_instruction_sets_test, changed_instr_set_370_Z10)
     shared_json global_settings = make_empty_shared_json();
     workspace_configuration ws_cfg(file_manager, ws_loc, global_settings, nullptr);
     workspace ws(file_manager, ws_cfg, config);
-    ws.open().run();
+    ws_cfg.parse_configuration_file().run();
 
     run_if_valid(ws.did_open_file(source_loc));
     parse_all_files(ws);
@@ -183,7 +183,7 @@ TEST(workspace_instruction_sets_test, changed_instr_set_Z10_370)
     shared_json global_settings = make_empty_shared_json();
     workspace_configuration ws_cfg(file_manager, ws_loc, global_settings, nullptr);
     workspace ws(file_manager, ws_cfg, config);
-    ws.open().run();
+    ws_cfg.parse_configuration_file().run();
 
     run_if_valid(ws.did_open_file(source_loc));
     parse_all_files(ws);

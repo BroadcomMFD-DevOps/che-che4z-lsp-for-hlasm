@@ -122,9 +122,6 @@ public:
     virtual asm_option get_asm_options(const resource_location& file_location) const;
     virtual std::vector<preprocessor_options> get_preprocessor_options(const resource_location& file_location) const;
 
-    [[nodiscard]] utils::task open();
-    void close();
-
     void set_message_consumer(message_consumer* consumer);
 
     file_manager& get_file_manager() const;
@@ -146,8 +143,6 @@ public:
 private:
     file_manager& file_manager_;
     file_manager_vfm fm_vfm_;
-
-    bool opened_ = false;
 
     bool is_dependency(const resource_location& file_location) const;
 

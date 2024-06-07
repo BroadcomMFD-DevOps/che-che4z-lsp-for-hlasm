@@ -1031,8 +1031,8 @@ class workspace_manager_impl final : public workspace_manager,
         auto& new_workspace = m_work_queue.emplace_back(work_item {
             next_unique_id(),
             &ows,
-            std::function<utils::task()>([this, &ws = ows.ws]() -> utils::task {
-                return ws.open().then([this]() { notify_diagnostics_consumers(); });
+            std::function<utils::task()>([this, &ows]() -> utils::task {
+                return ows.config.parse_configuration_file().then([this](auto) { notify_diagnostics_consumers(); });
             }),
             {},
             work_item_type::workspace_open,
@@ -1151,8 +1151,9 @@ public:
         m_work_queue.emplace_back(work_item {
             next_unique_id(),
             &m_implicit_workspace,
-            std::function<utils::task()>([this, &ws = m_implicit_workspace.ws]() -> utils::task {
-                return ws.open().then([this]() { notify_diagnostics_consumers(); });
+            std::function<utils::task()>([this]() -> utils::task {
+                return m_implicit_workspace.config.parse_configuration_file().then(
+                    [this](auto) { notify_diagnostics_consumers(); });
             }),
             {},
             work_item_type::workspace_open,

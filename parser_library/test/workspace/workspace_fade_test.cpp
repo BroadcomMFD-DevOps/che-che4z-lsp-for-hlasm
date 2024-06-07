@@ -101,7 +101,7 @@ public:
 
     void open_src_files_and_collect_fms(std::initializer_list<std::pair<resource_location, std::string>> files)
     {
-        ws.open().run();
+        ws_cfg.parse_configuration_file().run();
 
         for (const auto& [rl, text] : files)
         {
@@ -1121,7 +1121,7 @@ public:
         for (const auto& [rl, is_cpybook, _] : files_to_open)
             m_fm.did_open_file(rl, 1, is_cpybook ? cpybook : source_template);
 
-        ws.open().run();
+        ws_cfg.parse_configuration_file().run();
         for (const auto& [rl, _, open_file_res] : files_to_open)
             run_if_valid(ws.did_open_file(rl, open_file_res));
         parse_all_files(ws);

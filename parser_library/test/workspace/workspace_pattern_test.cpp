@@ -468,7 +468,7 @@ public:
         , ws_cfg(file_manager, ws_loc, global_settings, nullptr)
         , ws(file_manager, ws_cfg, config)
     {
-        ws.open().run();
+        ws_cfg.parse_configuration_file().run();
     };
 };
 
@@ -949,7 +949,7 @@ void verify_infinit_loop(pgroup_symlinks_variants pgroup_variant, pgmconf_varian
 
     workspace_configuration ws_cfg(file_manager, ws_loc, global_settings, nullptr);
     workspace ws(file_manager, ws_cfg, config);
-    ws.open().run();
+    ws_cfg.parse_configuration_file().run();
     run_if_valid(ws.did_open_file(pattern_test_source_loc));
     parse_all_files(ws);
 
