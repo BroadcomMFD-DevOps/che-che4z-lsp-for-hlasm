@@ -690,9 +690,8 @@ utils::task workspace::mark_file_for_parsing(
 }
 
 
-void workspace::invalidate_external_configuration(const resource_location& url)
+void workspace::external_configuration_invalidated(const resource_location& url)
 {
-    m_configuration.prune_external_processor_groups(url);
     if (url.empty())
         mark_all_opened_files();
     else if (auto it = m_processor_files.find(url); it != m_processor_files.end() && it->second.m_opened)

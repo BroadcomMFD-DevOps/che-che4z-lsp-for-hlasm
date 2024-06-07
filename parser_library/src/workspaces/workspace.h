@@ -141,7 +141,7 @@ public:
 
     utils::value_task<debugging::debugger_configuration> get_debugger_configuration(resource_location url);
 
-    void invalidate_external_configuration(const resource_location& url);
+    void external_configuration_invalidated(const resource_location& url);
 
 private:
     file_manager& file_manager_;

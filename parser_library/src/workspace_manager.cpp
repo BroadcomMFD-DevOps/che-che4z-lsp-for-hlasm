@@ -1114,13 +1114,18 @@ class workspace_manager_impl final : public workspace_manager,
         {
             resource_location res;
             for (auto& [_, ows] : m_workspaces)
-                ows.ws.invalidate_external_configuration(res);
-            m_implicit_workspace.ws.invalidate_external_configuration(res);
+            {
+                ows.config.prune_external_processor_groups(res);
+                ows.ws.external_configuration_invalidated(res);
+            }
+            m_implicit_workspace.config.prune_external_processor_groups(res);
+            m_implicit_workspace.ws.external_configuration_invalidated(res);
         }
         else
         {
             auto [ows, conf_uri] = ws_path_match(uri);
-            ows->ws.invalidate_external_configuration(conf_uri);
+            ows->config.prune_external_processor_groups(conf_uri);
+            ows->ws.external_configuration_invalidated(conf_uri);
         }
     }
 
