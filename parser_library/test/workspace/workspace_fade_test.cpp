@@ -69,7 +69,7 @@ struct test_params
     std::vector<std::string> diag_message_codes;
 };
 
-class fade_fixture_base : public diagnosable_impl, public ::testing::TestWithParam<test_params>
+class fade_fixture_base : public ::testing::TestWithParam<test_params>
 {
 public:
     file_manager_extended file_manager;
@@ -90,16 +90,13 @@ public:
         file_manager.did_open_file(proc_grps_loc, 1, proc_grps);
     }
 
-    void collect_diags() const override
-    {
-        diags().clear();
-        collect_diags_from_child(ws);
-    }
-
     std::vector<diagnostic> collect_and_get_diags()
     {
-        collect_diags();
-        return diags();
+        std::vector<diagnostic> result;
+
+        ws.produce_diagnostics(result);
+
+        return result;
     }
 
     void open_src_files_and_collect_fms(std::initializer_list<std::pair<resource_location, std::string>> files)

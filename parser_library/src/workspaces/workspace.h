@@ -69,7 +69,7 @@ struct parse_file_result
 // Represents a LSP workspace. It solves all dependencies between files -
 // implements parse lib provider and decides which files are to be parsed
 // when a particular file has been changed in the editor.
-class workspace : public diagnosable_impl
+class workspace
 {
 public:
     using resource_location = utils::resource::resource_location;
@@ -85,7 +85,7 @@ public:
 
     ~workspace();
 
-    void collect_diags() const override;
+    void produce_diagnostics(std::vector<diagnostic>& target) const;
     void include_advisory_configuration_diagnostics(bool include_advisory_cfg_diags);
 
     [[nodiscard]] utils::task mark_file_for_parsing(

@@ -270,7 +270,7 @@ class workspace_configuration
         library_local_options opts,
         std::vector<diagnostic>& diags);
 
-    void add_missing_diags(const diagnosable& target,
+    void add_missing_diags(std::vector<diagnostic>& target,
         const utils::resource::resource_location& config_file_rl,
         const std::vector<utils::resource::resource_location>& opened_files,
         bool include_advisory_cfg_diags) const;
@@ -308,7 +308,7 @@ public:
         const std::vector<utils::resource::resource_location>& file_locations);
 
     void produce_diagnostics(
-        const diagnosable& target, const configuration_diagnostics_parameters& config_diag_params) const;
+        std::vector<diagnostic>& target, const configuration_diagnostics_parameters& config_diag_params) const;
 
     const processor_group& get_proc_grp(const proc_grp_id& p) const; // test only
 

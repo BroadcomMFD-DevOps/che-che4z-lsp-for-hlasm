@@ -791,7 +791,7 @@ class workspace_manager_impl final : public workspace_manager,
 
     void collect_diags() const override
     {
-        collect_diags_from_child(m_implicit_workspace.ws);
+        m_implicit_workspace.ws.produce_diagnostics(diags());
 
         std::unordered_set<std::string> suppress_files;
         std::erase_if(diags(), [this, &suppress_files](const auto& d) {
@@ -804,7 +804,7 @@ class workspace_manager_impl final : public workspace_manager,
         }
 
         for (auto& it : m_workspaces)
-            collect_diags_from_child(it.second.ws);
+            it.second.ws.produce_diagnostics(diags());
     }
 
     static std::optional<unsigned long long> extract_hlasm_id(std::string_view uri)

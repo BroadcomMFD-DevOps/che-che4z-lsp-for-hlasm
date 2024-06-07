@@ -29,18 +29,6 @@ using namespace hlasm_plugin::parser_library::workspaces;
 using namespace hlasm_plugin::utils::resource;
 using hlasm_plugin::utils::platform::is_windows;
 
-class workspace_instruction_sets_test : public diagnosable_impl, public testing::Test
-{
-public:
-    void collect_diags() const override {}
-    size_t collect_and_get_diags_size(workspace& ws)
-    {
-        diags().clear();
-        collect_diags_from_child(ws);
-        return diags().size();
-    }
-};
-
 namespace {
 std::string pgroups_file_optable_370 = R"({
   "pgroups": [
@@ -160,9 +148,16 @@ void change_instruction_set(
     run_if_valid(ws.did_change_file(proc_grps_loc, file_content_state::changed_content));
     parse_all_files(ws);
 }
+
+std::vector<diagnostic> extract_diags(workspace& ws)
+{
+    std::vector<diagnostic> result;
+    ws.produce_diagnostics(result);
+    return result;
+}
 } // namespace
 
-TEST_F(workspace_instruction_sets_test, changed_instr_set_370_Z10)
+TEST(workspace_instruction_sets_test, changed_instr_set_370_Z10)
 {
     file_manager_opt file_manager(file_manager_opt_variant::optable_370);
     lib_config config;
@@ -173,16 +168,15 @@ TEST_F(workspace_instruction_sets_test, changed_instr_set_370_Z10)
 
     run_if_valid(ws.did_open_file(source_loc));
     parse_all_files(ws);
-    EXPECT_EQ(collect_and_get_diags_size(ws), (size_t)0);
+    EXPECT_TRUE(extract_diags(ws).empty());
 
     // Change instruction set
     change_instruction_set({ { 0, 0 }, { 12, 1 } }, pgroups_file_optable_Z10, file_manager, ws);
 
-    collect_and_get_diags_size(ws);
-    EXPECT_TRUE(matches_message_codes(diags(), { "E049" }));
+    EXPECT_TRUE(matches_message_codes(extract_diags(ws), { "E049" }));
 }
 
-TEST_F(workspace_instruction_sets_test, changed_instr_set_Z10_370)
+TEST(workspace_instruction_sets_test, changed_instr_set_Z10_370)
 {
     file_manager_opt file_manager(file_manager_opt_variant::optable_Z10);
     lib_config config;
@@ -193,11 +187,10 @@ TEST_F(workspace_instruction_sets_test, changed_instr_set_Z10_370)
 
     run_if_valid(ws.did_open_file(source_loc));
     parse_all_files(ws);
-    collect_and_get_diags_size(ws);
-    EXPECT_TRUE(matches_message_codes(diags(), { "E049" }));
+    EXPECT_TRUE(matches_message_codes(extract_diags(ws), { "E049" }));
 
     // Change instruction set
     change_instruction_set({ { 0, 0 }, { 12, 1 } }, pgroups_file_optable_370, file_manager, ws);
 
-    EXPECT_EQ(collect_and_get_diags_size(ws), (size_t)0);
+    EXPECT_TRUE(extract_diags(ws).empty());
 }

@@ -858,7 +858,7 @@ utils::task workspace_configuration::find_and_add_libs(utils::resource::resource
     }
 }
 
-void workspace_configuration::add_missing_diags(const diagnosable& target,
+void workspace_configuration::add_missing_diags(std::vector<diagnostic>& target,
     const utils::resource::resource_location& config_file_rl,
     const std::vector<utils::resource::resource_location>& opened_files,
     bool include_advisory_cfg_diags) const
@@ -878,12 +878,12 @@ void workspace_configuration::add_missing_diags(const diagnosable& target,
         if (!include_advisory_cfg_diags && !used)
             continue;
 
-        target.add_diagnostic(diags_matrix[empty_cfg_rl][used](adjusted_conf_rl, missing_pgroup_name));
+        target.push_back(diags_matrix[empty_cfg_rl][used](adjusted_conf_rl, missing_pgroup_name));
     }
 }
 
 void workspace_configuration::produce_diagnostics(
-    const diagnosable& target, const configuration_diagnostics_parameters& config_diag_params) const
+    std::vector<diagnostic>& target, const configuration_diagnostics_parameters& config_diag_params) const
 {
     for (auto& [key, pg] : m_proc_grps)
     {
@@ -891,12 +891,12 @@ void workspace_configuration::produce_diagnostics(
             continue;
         pg.collect_diags();
         for (const auto& d : pg.diags())
-            target.add_diagnostic(d);
+            target.push_back(d);
         pg.diags().clear();
     }
 
     for (const auto& diag : m_config_diags)
-        target.add_diagnostic(diag);
+        target.push_back(diag);
 
     for (const auto& [config_rl, opened_files] : config_diag_params.used_configs_opened_files_map)
     {
@@ -904,7 +904,7 @@ void workspace_configuration::produce_diagnostics(
             b4g_config_cache_it != m_b4g_config_cache.end())
         {
             for (const auto& d : b4g_config_cache_it->second.diags)
-                target.add_diagnostic(d);
+                target.push_back(d);
         }
 
         add_missing_diags(target, config_rl, opened_files, config_diag_params.include_advisory_cfg_diags);

@@ -37,6 +37,12 @@ using namespace hlasm_plugin::utils::hashers;
 using namespace hlasm_plugin::utils::resource;
 
 namespace {
+std::vector<diagnostic> extract_diags(workspace& ws)
+{
+    std::vector<diagnostic> result;
+    ws.produce_diagnostics(result);
+    return result;
+}
 
 analyzing_context create_analyzing_context(std::string file_name, std::shared_ptr<context::id_storage> ids)
 {
@@ -346,19 +352,19 @@ TEST(macro_cache_test, overwrite_by_inline)
 
     run_if_valid(ws.did_open_file(opencode_file_loc));
     parse_all_files(ws);
-    ws.collect_diags();
 
-    EXPECT_EQ(ws.diags().size(), 2U);
-    EXPECT_TRUE(find_diag_with_filename(ws.diags(), macro_file_loc));
-    EXPECT_TRUE(find_diag_with_filename(ws.diags(), opencode_file_loc));
+    auto diags = extract_diags(ws);
+    EXPECT_EQ(diags.size(), 2U);
+    EXPECT_TRUE(find_diag_with_filename(diags, macro_file_loc));
+    EXPECT_TRUE(find_diag_with_filename(diags, opencode_file_loc));
 
     run_if_valid(ws.did_change_file(opencode_file_loc, file_content_state::changed_content));
     parse_all_files(ws);
-    ws.diags().clear();
-    ws.collect_diags();
-    EXPECT_EQ(ws.diags().size(), 2U);
-    EXPECT_TRUE(find_diag_with_filename(ws.diags(), macro_file_loc));
-    EXPECT_TRUE(find_diag_with_filename(ws.diags(), opencode_file_loc));
+
+    diags = extract_diags(ws);
+    EXPECT_EQ(diags.size(), 2U);
+    EXPECT_TRUE(find_diag_with_filename(diags, macro_file_loc));
+    EXPECT_TRUE(find_diag_with_filename(diags, opencode_file_loc));
 }
 
 TEST(macro_cache_test, inline_depends_on_copy)

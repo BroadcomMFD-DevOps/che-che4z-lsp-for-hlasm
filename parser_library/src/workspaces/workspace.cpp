@@ -308,18 +308,18 @@ configuration_diagnostics_parameters workspace::get_configuration_diagnostics_pa
     return config_diags_params;
 }
 
-void workspace::collect_diags() const
+void workspace::produce_diagnostics(std::vector<diagnostic>& target) const
 {
-    m_configuration.produce_diagnostics(*this, get_configuration_diagnostics_params());
+    m_configuration.produce_diagnostics(target, get_configuration_diagnostics_params());
 
     for (const auto& [url, pfc] : m_processor_files)
     {
         if (is_dependency(url))
-            diags().insert(diags().end(),
+            target.insert(target.end(),
                 pfc.m_last_results->macro_diagnostics.begin(),
                 pfc.m_last_results->macro_diagnostics.end());
         else
-            diags().insert(diags().end(),
+            target.insert(target.end(),
                 pfc.m_last_results->opencode_diagnostics.begin(),
                 pfc.m_last_results->opencode_diagnostics.end());
     }

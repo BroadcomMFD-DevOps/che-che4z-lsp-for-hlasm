@@ -47,6 +47,13 @@ const auto pgm1_loc = resource_location::join(ws_loc, "pgm1");
 const auto pgm_override_loc = resource_location::join(ws_loc, "pgm_override");
 const auto pgm_anything_loc = resource_location::join(ws_loc, "pgms/anything");
 const auto pgm_outside_ws = resource_location::join(users_dir, "outside/anything");
+
+std::vector<diagnostic> extract_diags(workspace& ws)
+{
+    std::vector<diagnostic> result;
+    ws.produce_diagnostics(result);
+    return result;
+}
 } // namespace
 
 const std::string file_proc_grps_content = is_windows() ?
@@ -275,8 +282,7 @@ TEST(workspace, pgm_conf_malformed)
     workspace ws(fm, ws_cfg, config);
     ws.open().run();
 
-    ws.collect_diags();
-    EXPECT_TRUE(matches_message_codes(ws.diags(), { "W0003" }));
+    EXPECT_TRUE(matches_message_codes(extract_diags(ws), { "W0003" }));
 }
 
 TEST(workspace, proc_grps_malformed)
@@ -292,8 +298,7 @@ TEST(workspace, proc_grps_malformed)
     workspace ws(fm, ws_cfg, config);
     ws.open().run();
 
-    ws.collect_diags();
-    EXPECT_TRUE(matches_message_codes(ws.diags(), { "W0002" }));
+    EXPECT_TRUE(matches_message_codes(extract_diags(ws), { "W0002" }));
 }
 
 TEST(workspace, pgm_conf_missing)
@@ -307,8 +312,7 @@ TEST(workspace, pgm_conf_missing)
     workspace ws(fm, ws_cfg, config);
     ws.open().run();
 
-    ws.collect_diags();
-    EXPECT_EQ(ws.diags().size(), 0U);
+    EXPECT_EQ(extract_diags(ws).size(), 0U);
 }
 
 TEST(workspace, proc_grps_missing)
@@ -322,8 +326,7 @@ TEST(workspace, proc_grps_missing)
     workspace ws(fm, ws_cfg, config);
     ws.open().run();
 
-    ws.collect_diags();
-    EXPECT_EQ(ws.diags().size(), 0U);
+    EXPECT_EQ(extract_diags(ws).size(), 0U);
 }
 
 TEST(workspace, pgm_conf_noproc_proc_group)
@@ -349,8 +352,7 @@ TEST(workspace, pgm_conf_noproc_proc_group)
     run_if_valid(ws.did_open_file(temp_hlasm));
     parse_all_files(ws);
 
-    ws.collect_diags();
-    EXPECT_EQ(ws.diags().size(), 0U);
+    EXPECT_EQ(extract_diags(ws).size(), 0U);
 }
 
 TEST(workspace, pgm_conf_unknown_proc_group)
@@ -376,8 +378,7 @@ TEST(workspace, pgm_conf_unknown_proc_group)
     run_if_valid(ws.did_open_file(temp_hlasm));
     parse_all_files(ws);
 
-    ws.collect_diags();
-    EXPECT_TRUE(matches_message_codes(ws.diags(), { "W0004" }));
+    EXPECT_TRUE(matches_message_codes(extract_diags(ws), { "W0004" }));
 }
 
 TEST(workspace, missing_proc_group_diags)
@@ -401,38 +402,25 @@ TEST(workspace, missing_proc_group_diags)
     run_if_valid(ws.did_open_file(pgm1_loc));
     parse_all_files(ws);
 
-    ws.collect_diags();
-    EXPECT_TRUE(matches_message_codes(ws.diags(), { "W0004" }));
+    EXPECT_TRUE(matches_message_codes(extract_diags(ws), { "W0004" }));
 
     ws.include_advisory_configuration_diagnostics(true);
-    ws.diags().clear();
-    ws.collect_diags();
-    EXPECT_TRUE(matches_message_codes(ws.diags(), { "W0004", "W0008" }));
+    EXPECT_TRUE(matches_message_codes(extract_diags(ws), { "W0004", "W0008" }));
 
     run_if_valid(ws.did_close_file(pgm1_loc));
-    ws.diags().clear();
-    ws.collect_diags();
-    EXPECT_TRUE(ws.diags().empty());
+    EXPECT_TRUE(extract_diags(ws).empty());
 
     ws.include_advisory_configuration_diagnostics(false);
-    ws.diags().clear();
-    ws.collect_diags();
-    EXPECT_TRUE(ws.diags().empty());
+    EXPECT_TRUE(extract_diags(ws).empty());
 
     run_if_valid(ws.did_open_file(pgm1_wildcard_loc));
-    ws.diags().clear();
-    ws.collect_diags();
-    EXPECT_TRUE(matches_message_codes(ws.diags(), { "W0004" }));
+    EXPECT_TRUE(matches_message_codes(extract_diags(ws), { "W0004" }));
 
     run_if_valid(ws.did_close_file(pgm1_wildcard_loc));
-    ws.diags().clear();
-    ws.collect_diags();
-    EXPECT_TRUE(ws.diags().empty());
+    EXPECT_TRUE(extract_diags(ws).empty());
 
     run_if_valid(ws.did_open_file(pgm1_different_loc));
-    ws.diags().clear();
-    ws.collect_diags();
-    EXPECT_TRUE(ws.diags().empty());
+    EXPECT_TRUE(extract_diags(ws).empty());
 }
 
 TEST(workspace, missing_proc_group_diags_wildcards)
@@ -457,18 +445,13 @@ TEST(workspace, missing_proc_group_diags_wildcards)
     run_if_valid(ws.did_open_file(pgm1_loc));
     parse_all_files(ws);
 
-    ws.collect_diags();
-    EXPECT_TRUE(ws.diags().empty());
+    EXPECT_TRUE(extract_diags(ws).empty());
 
     ws.include_advisory_configuration_diagnostics(true);
-    ws.diags().clear();
-    ws.collect_diags();
-    EXPECT_TRUE(matches_message_codes(ws.diags(), { "W0008" }));
+    EXPECT_TRUE(matches_message_codes(extract_diags(ws), { "W0008" }));
 
     run_if_valid(ws.did_close_file(pgm1_loc));
-    ws.diags().clear();
-    ws.collect_diags();
-    EXPECT_TRUE(ws.diags().empty());
+    EXPECT_TRUE(extract_diags(ws).empty());
 }
 
 TEST(workspace, missing_proc_group_diags_wildcards_noproc)
@@ -494,18 +477,13 @@ TEST(workspace, missing_proc_group_diags_wildcards_noproc)
     run_if_valid(ws.did_open_file(pgm1_loc));
     parse_all_files(ws);
 
-    ws.collect_diags();
-    EXPECT_TRUE(ws.diags().empty());
+    EXPECT_TRUE(extract_diags(ws).empty());
 
     ws.include_advisory_configuration_diagnostics(true);
-    ws.diags().clear();
-    ws.collect_diags();
-    EXPECT_TRUE(matches_message_codes(ws.diags(), { "W0008" }));
+    EXPECT_TRUE(matches_message_codes(extract_diags(ws), { "W0008" }));
 
     run_if_valid(ws.did_close_file(pgm1_loc));
-    ws.diags().clear();
-    ws.collect_diags();
-    EXPECT_TRUE(ws.diags().empty());
+    EXPECT_TRUE(extract_diags(ws).empty());
 }
 
 TEST(workspace, asm_options_invalid)
@@ -532,8 +510,7 @@ TEST(workspace, asm_options_invalid)
     workspace ws(fm, ws_cfg, config);
     ws.open().run();
 
-    ws.collect_diags();
-    EXPECT_TRUE(matches_message_codes(ws.diags(), { "W0002" }));
+    EXPECT_TRUE(matches_message_codes(extract_diags(ws), { "W0002" }));
 }
 
 class file_manager_asm_test : public file_manager_proc_grps_test
@@ -570,8 +547,7 @@ TEST(workspace, asm_options_goff_xobject_redefinition)
 
     ws.open().run();
 
-    ws.collect_diags();
-    EXPECT_TRUE(contains_message_codes(ws.diags(), { "W0002" }));
+    EXPECT_TRUE(contains_message_codes(extract_diags(ws), { "W0002" }));
 }
 
 TEST(workspace, proc_grps_with_substitutions)
@@ -589,9 +565,8 @@ TEST(workspace, proc_grps_with_substitutions)
     workspace_configuration ws_cfg(fm, empty_ws, global_settings, nullptr);
     workspace ws(fm, ws_cfg, config);
     ws.open().run();
-    ws.collect_diags();
 
-    EXPECT_TRUE(ws.diags().empty());
+    EXPECT_TRUE(extract_diags(ws).empty());
 
     const auto& pg = ws.get_proc_grp(basic_conf { "aproc_groupb" });
 
@@ -620,9 +595,8 @@ TEST(workspace, pgm_conf_with_substitutions)
     workspace ws(fm, ws_cfg, config);
     const auto test_loc = resource_location::join(empty_ws, "test");
     ws.open().run();
-    ws.collect_diags();
 
-    EXPECT_TRUE(ws.diags().empty());
+    EXPECT_TRUE(extract_diags(ws).empty());
 
     using hlasm_plugin::utils::resource::resource_location;
 
@@ -643,9 +617,8 @@ TEST(workspace, missing_substitutions)
     workspace_configuration ws_cfg(fm, empty_ws, global_settings, nullptr);
     workspace ws(fm, ws_cfg, config);
     ws.open().run();
-    ws.collect_diags();
 
-    EXPECT_TRUE(matches_message_codes(ws.diags(), { "W0007", "W0007" }));
+    EXPECT_TRUE(matches_message_codes(extract_diags(ws), { "W0007", "W0007" }));
 }
 
 TEST(workspace, refresh_settings)
@@ -664,9 +637,8 @@ TEST(workspace, refresh_settings)
     workspace ws(fm, ws_cfg, config);
     const auto test_loc = resource_location::join(empty_ws, "test");
     ws.open().run();
-    ws.collect_diags();
 
-    EXPECT_TRUE(ws.diags().empty());
+    EXPECT_TRUE(extract_diags(ws).empty());
 
     using hlasm_plugin::utils::resource::resource_location;
 
@@ -693,9 +665,8 @@ TEST(workspace, opcode_suggestions)
     workspace_configuration ws_cfg(fm, empty_ws, global_settings, nullptr);
     workspace ws(fm, ws_cfg, config);
     ws.open().run();
-    ws.collect_diags();
 
-    EXPECT_TRUE(ws.diags().empty());
+    EXPECT_TRUE(extract_diags(ws).empty());
 
     using hlasm_plugin::utils::resource::resource_location;
     std::vector<std::pair<std::string, size_t>> expected { { "LHI", 3 } };

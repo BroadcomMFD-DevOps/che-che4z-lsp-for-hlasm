@@ -37,24 +37,30 @@ void run_if_valid(hlasm_plugin::utils::task t)
         t.run();
 }
 
-void open_parse_and_recollect_diags(
+std::vector<diagnostic> open_parse_and_recollect_diags(
     workspace& ws, const std::vector<hlasm_plugin::utils::resource::resource_location>& files)
 {
     std::ranges::for_each(files, [&ws](const auto& f) { run_if_valid(ws.did_open_file(f)); });
     parse_all_files(ws);
 
-    ws.diags().clear();
-    ws.collect_diags();
+    std::vector<diagnostic> result;
+
+    ws.produce_diagnostics(result);
+
+    return result;
 }
 
-void close_parse_and_recollect_diags(
+std::vector<diagnostic> close_parse_and_recollect_diags(
     workspace& ws, const std::vector<hlasm_plugin::utils::resource::resource_location>& files)
 {
     std::ranges::for_each(files, [&ws](const auto& f) { run_if_valid(ws.did_close_file(f)); });
     parse_all_files(ws);
 
-    ws.diags().clear();
-    ws.collect_diags();
+    std::vector<diagnostic> result;
+
+    ws.produce_diagnostics(result);
+
+    return result;
 }
 
 bool matches_fade_messages(const std::vector<fade_message>& a, const std::vector<fade_message>& b)
