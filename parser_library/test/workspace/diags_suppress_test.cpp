@@ -42,9 +42,10 @@ std::string one_proc_grps = R"(
 
 const auto file_loc = resource_location("a_file");
 
-std::vector<diagnostic> extract_diags(workspace& ws)
+std::vector<diagnostic> extract_diags(workspace& ws, workspace_configuration& cfg)
 {
     std::vector<diagnostic> result;
+    cfg.produce_diagnostics(result, {});
     ws.produce_diagnostics(result);
     return result;
 }
@@ -73,7 +74,7 @@ TEST(diags_suppress, no_suppress)
     run_if_valid(ws.did_open_file(file_loc));
     parse_all_files(ws);
 
-    EXPECT_EQ(extract_diags(ws).size(), 6U);
+    EXPECT_EQ(extract_diags(ws, ws_cfg).size(), 6U);
 }
 
 TEST(diags_suppress, do_suppress)
@@ -103,7 +104,7 @@ TEST(diags_suppress, do_suppress)
     run_if_valid(ws.did_open_file(file_loc));
     parse_all_files(ws);
 
-    EXPECT_TRUE(matches_message_codes(extract_diags(ws), { "SUP" }));
+    EXPECT_TRUE(matches_message_codes(extract_diags(ws, ws_cfg), { "SUP" }));
     EXPECT_TRUE(msg_consumer.messages.empty());
 }
 
@@ -131,7 +132,7 @@ TEST(diags_suppress, pgm_supress_limit_changed)
     run_if_valid(ws.did_open_file(file_loc));
     parse_all_files(ws);
 
-    EXPECT_EQ(extract_diags(ws).size(), 6U);
+    EXPECT_EQ(extract_diags(ws, ws_cfg).size(), 6U);
 
     std::string new_limit_str = R"("diagnosticsSuppressLimit":5,)";
     document_change ch(range({ 0, 1 }, { 0, 1 }), new_limit_str);
@@ -143,7 +144,7 @@ TEST(diags_suppress, pgm_supress_limit_changed)
     run_if_valid(ws.did_change_file(file_loc, file_content_state::changed_content));
     parse_all_files(ws);
 
-    EXPECT_TRUE(matches_message_codes(extract_diags(ws), { "SUP" }));
+    EXPECT_TRUE(matches_message_codes(extract_diags(ws, ws_cfg), { "SUP" }));
 }
 
 TEST(diags_suppress, mark_for_parsing_only)
@@ -170,9 +171,9 @@ TEST(diags_suppress, mark_for_parsing_only)
     run_if_valid(ws.did_open_file(file_loc));
     // parsing not done yet
 
-    EXPECT_TRUE(extract_diags(ws).empty());
+    EXPECT_TRUE(extract_diags(ws, ws_cfg).empty());
 
     parse_all_files(ws);
 
-    EXPECT_FALSE(extract_diags(ws).empty());
+    EXPECT_FALSE(extract_diags(ws, ws_cfg).empty());
 }

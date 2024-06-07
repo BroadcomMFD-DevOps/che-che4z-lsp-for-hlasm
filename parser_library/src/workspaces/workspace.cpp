@@ -292,30 +292,31 @@ workspace::workspace(
     , fm_vfm_(file_manager_)
     , global_config_(global_config)
     , m_configuration(configuration)
-    , m_include_advisory_cfg_diags(false)
 {}
 
 workspace::~workspace() = default;
 
-configuration_diagnostics_parameters workspace::get_configuration_diagnostics_params() const
+std::unordered_map<utils::resource::resource_location,
+    std::vector<utils::resource::resource_location>,
+    utils::resource::resource_location_hasher>
+workspace::report_configuration_file_usage() const
 {
-    configuration_diagnostics_parameters config_diags_params;
-    config_diags_params.include_advisory_cfg_diags = m_include_advisory_cfg_diags;
+    std::unordered_map<utils::resource::resource_location,
+        std::vector<utils::resource::resource_location>,
+        utils::resource::resource_location_hasher>
+        result;
 
     for (const auto& [processor_file_rl, component] : m_processor_files)
     {
         if (component.m_opened)
-            config_diags_params.used_configs_opened_files_map[component.m_alternative_config].emplace_back(
-                processor_file_rl);
+            result[component.m_alternative_config].emplace_back(processor_file_rl);
     }
 
-    return config_diags_params;
+    return result;
 }
 
 void workspace::produce_diagnostics(std::vector<diagnostic>& target) const
 {
-    m_configuration.produce_diagnostics(target, get_configuration_diagnostics_params());
-
     for (const auto& [url, pfc] : m_processor_files)
     {
         if (is_dependency(url))
@@ -327,11 +328,6 @@ void workspace::produce_diagnostics(std::vector<diagnostic>& target) const
                 pfc.m_last_results->opencode_diagnostics.begin(),
                 pfc.m_last_results->opencode_diagnostics.end());
     }
-}
-
-void workspace::include_advisory_configuration_diagnostics(bool include_advisory_cfg_diags)
-{
-    m_include_advisory_cfg_diags = include_advisory_cfg_diags;
 }
 
 namespace {

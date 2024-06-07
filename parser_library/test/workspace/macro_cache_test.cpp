@@ -37,9 +37,10 @@ using namespace hlasm_plugin::utils::hashers;
 using namespace hlasm_plugin::utils::resource;
 
 namespace {
-std::vector<diagnostic> extract_diags(workspace& ws)
+std::vector<diagnostic> extract_diags(workspace& ws, workspace_configuration& cfg)
 {
     std::vector<diagnostic> result;
+    cfg.produce_diagnostics(result, {});
     ws.produce_diagnostics(result);
     return result;
 }
@@ -353,7 +354,7 @@ TEST(macro_cache_test, overwrite_by_inline)
     run_if_valid(ws.did_open_file(opencode_file_loc));
     parse_all_files(ws);
 
-    auto diags = extract_diags(ws);
+    auto diags = extract_diags(ws, ws_cfg);
     EXPECT_EQ(diags.size(), 2U);
     EXPECT_TRUE(find_diag_with_filename(diags, macro_file_loc));
     EXPECT_TRUE(find_diag_with_filename(diags, opencode_file_loc));
@@ -361,7 +362,7 @@ TEST(macro_cache_test, overwrite_by_inline)
     run_if_valid(ws.did_change_file(opencode_file_loc, file_content_state::changed_content));
     parse_all_files(ws);
 
-    diags = extract_diags(ws);
+    diags = extract_diags(ws, ws_cfg);
     EXPECT_EQ(diags.size(), 2U);
     EXPECT_TRUE(find_diag_with_filename(diags, macro_file_loc));
     EXPECT_TRUE(find_diag_with_filename(diags, opencode_file_loc));

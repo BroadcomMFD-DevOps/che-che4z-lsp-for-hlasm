@@ -94,6 +94,7 @@ public:
     {
         std::vector<diagnostic> result;
 
+        ws_cfg.produce_diagnostics(result, {});
         ws.produce_diagnostics(result);
 
         return result;

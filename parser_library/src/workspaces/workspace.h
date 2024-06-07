@@ -86,7 +86,6 @@ public:
     ~workspace();
 
     void produce_diagnostics(std::vector<diagnostic>& target) const;
-    void include_advisory_configuration_diagnostics(bool include_advisory_cfg_diags);
 
     [[nodiscard]] utils::task mark_file_for_parsing(
         const resource_location& file_location, file_content_state file_content_status);
@@ -129,6 +128,11 @@ public:
 
     void external_configuration_invalidated(const resource_location& url);
 
+    std::unordered_map<utils::resource::resource_location,
+        std::vector<utils::resource::resource_location>,
+        utils::resource::resource_location_hasher>
+    report_configuration_file_usage() const;
+
 private:
     file_manager& file_manager_;
     file_manager_vfm fm_vfm_;
@@ -144,8 +148,6 @@ private:
     lib_config get_config() const;
 
     workspace_configuration& m_configuration;
-
-    bool m_include_advisory_cfg_diags;
 
     struct dependency_cache
     {
@@ -187,8 +189,6 @@ private:
 
     std::unordered_map<resource_location, processor_file_compoments, resource_location_hasher> m_processor_files;
     std::unordered_set<resource_location, resource_location_hasher> m_parsing_pending;
-
-    configuration_diagnostics_parameters get_configuration_diagnostics_params() const;
 
     [[nodiscard]] utils::value_task<processor_file_compoments&> add_processor_file_impl(std::shared_ptr<file> f);
     const processor_file_compoments* find_processor_file_impl(const resource_location& file) const;

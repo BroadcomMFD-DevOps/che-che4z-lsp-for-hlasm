@@ -770,10 +770,6 @@ class workspace_manager_impl final : public workspace_manager,
     {
         m_include_advisory_cfg_diags ^= true;
 
-        // implicit workspaces are not affected
-        for (auto& [_, opened_ws] : m_workspaces)
-            opened_ws.ws.include_advisory_configuration_diagnostics(m_include_advisory_cfg_diags);
-
         notify_diagnostics_consumers();
     }
 
@@ -796,6 +792,8 @@ class workspace_manager_impl final : public workspace_manager,
 
     void collect_diags() const override
     {
+        m_implicit_workspace.config.produce_diagnostics(
+            diags(), { m_implicit_workspace.ws.report_configuration_file_usage(), m_include_advisory_cfg_diags });
         m_implicit_workspace.ws.produce_diagnostics(diags());
 
         std::unordered_set<std::string> suppress_files;
@@ -808,8 +806,12 @@ class workspace_manager_impl final : public workspace_manager,
             diags().emplace_back(info_SUP(utils::resource::resource_location(std::move(node.value()))));
         }
 
-        for (auto& it : m_workspaces)
-            it.second.ws.produce_diagnostics(diags());
+        for (auto& [_, ows] : m_workspaces)
+        {
+            ows.config.produce_diagnostics(
+                diags(), { ows.ws.report_configuration_file_usage(), m_include_advisory_cfg_diags });
+            ows.ws.produce_diagnostics(diags());
+        }
     }
 
     static std::optional<unsigned long long> extract_hlasm_id(std::string_view uri)
@@ -1026,7 +1028,6 @@ class workspace_manager_impl final : public workspace_manager,
                             static_cast<external_configuration_requests*>(this))
                         .first->second;
         ows.ws.set_message_consumer(m_message_consumer);
-        ows.ws.include_advisory_configuration_diagnostics(m_include_advisory_cfg_diags);
 
         recompute_allow_list();
 

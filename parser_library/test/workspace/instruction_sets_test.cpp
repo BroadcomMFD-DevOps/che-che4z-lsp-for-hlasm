@@ -149,9 +149,10 @@ void change_instruction_set(
     parse_all_files(ws);
 }
 
-std::vector<diagnostic> extract_diags(workspace& ws)
+std::vector<diagnostic> extract_diags(workspace& ws, workspace_configuration& cfg)
 {
     std::vector<diagnostic> result;
+    cfg.produce_diagnostics(result, {});
     ws.produce_diagnostics(result);
     return result;
 }
@@ -168,12 +169,12 @@ TEST(workspace_instruction_sets_test, changed_instr_set_370_Z10)
 
     run_if_valid(ws.did_open_file(source_loc));
     parse_all_files(ws);
-    EXPECT_TRUE(extract_diags(ws).empty());
+    EXPECT_TRUE(extract_diags(ws, ws_cfg).empty());
 
     // Change instruction set
     change_instruction_set({ { 0, 0 }, { 12, 1 } }, pgroups_file_optable_Z10, file_manager, ws);
 
-    EXPECT_TRUE(matches_message_codes(extract_diags(ws), { "E049" }));
+    EXPECT_TRUE(matches_message_codes(extract_diags(ws, ws_cfg), { "E049" }));
 }
 
 TEST(workspace_instruction_sets_test, changed_instr_set_Z10_370)
@@ -187,10 +188,10 @@ TEST(workspace_instruction_sets_test, changed_instr_set_Z10_370)
 
     run_if_valid(ws.did_open_file(source_loc));
     parse_all_files(ws);
-    EXPECT_TRUE(matches_message_codes(extract_diags(ws), { "E049" }));
+    EXPECT_TRUE(matches_message_codes(extract_diags(ws, ws_cfg), { "E049" }));
 
     // Change instruction set
     change_instruction_set({ { 0, 0 }, { 12, 1 } }, pgroups_file_optable_370, file_manager, ws);
 
-    EXPECT_TRUE(extract_diags(ws).empty());
+    EXPECT_TRUE(extract_diags(ws, ws_cfg).empty());
 }

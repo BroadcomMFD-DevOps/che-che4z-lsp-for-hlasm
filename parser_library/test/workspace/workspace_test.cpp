@@ -39,9 +39,10 @@ namespace {
 const auto correct_loc = is_windows() ? resource_location("test\\library\\test_wks\\correct")
                                       : resource_location("test/library/test_wks/correct");
 
-std::vector<diagnostic> extract_diags(workspace& ws)
+std::vector<diagnostic> extract_diags(workspace& ws, workspace_configuration& cfg)
 {
     std::vector<diagnostic> result;
+    cfg.produce_diagnostics(result, {});
     ws.produce_diagnostics(result);
     return result;
 }
@@ -406,18 +407,18 @@ TEST_F(workspace_test, did_close_file)
     run_if_valid(ws.did_open_file(source1_loc));
     run_if_valid(ws.did_open_file(source2_loc));
     parse_all_files(ws);
-    EXPECT_TRUE(match_file_uri(extract_diags(ws), { faulty_macro_loc, source2_loc, source1_loc }));
+    EXPECT_TRUE(match_file_uri(extract_diags(ws, ws_cfg), { faulty_macro_loc, source2_loc, source1_loc }));
 
     // when we close source1, only its diagnostics should disappear
     // macro's and source2's diagnostics should stay as it is still open
     run_if_valid(ws.did_close_file(source1_loc));
     parse_all_files(ws);
-    EXPECT_TRUE(match_file_uri(extract_diags(ws), { faulty_macro_loc, source2_loc }));
+    EXPECT_TRUE(match_file_uri(extract_diags(ws, ws_cfg), { faulty_macro_loc, source2_loc }));
 
     // even though we close the ERROR macro, its diagnostics will still be there as it is a dependency of source2
     run_if_valid(ws.did_close_file(faulty_macro_loc));
     parse_all_files(ws);
-    EXPECT_TRUE(match_file_uri(extract_diags(ws), { faulty_macro_loc, source2_loc }));
+    EXPECT_TRUE(match_file_uri(extract_diags(ws, ws_cfg), { faulty_macro_loc, source2_loc }));
 
     // if we remove the line using ERROR macro in the source2. its diagnostics will be removed as it is no longer a
     // dependency of source2
@@ -427,12 +428,12 @@ TEST_F(workspace_test, did_close_file)
     file_manager.did_change_file(source2_loc, 1, changes);
     run_if_valid(ws.did_change_file(source2_loc, file_content_state::changed_content));
     parse_all_files(ws);
-    EXPECT_TRUE(match_file_uri(extract_diags(ws), { source2_loc }));
+    EXPECT_TRUE(match_file_uri(extract_diags(ws, ws_cfg), { source2_loc }));
 
     // finally if we close the last source2 file, its diagnostics will disappear as well
     run_if_valid(ws.did_close_file(source2_loc));
     parse_all_files(ws);
-    EXPECT_TRUE(extract_diags(ws).empty());
+    EXPECT_TRUE(extract_diags(ws, ws_cfg).empty());
 }
 
 TEST_F(workspace_test, did_close_file_without_save)
@@ -446,7 +447,7 @@ TEST_F(workspace_test, did_close_file_without_save)
     run_if_valid(ws.did_open_file(source3_loc));
     run_if_valid(ws.did_open_file(correct_macro_loc));
     parse_all_files(ws);
-    EXPECT_TRUE(extract_diags(ws).empty());
+    EXPECT_TRUE(extract_diags(ws, ws_cfg).empty());
 
     document_change c(range(position(2, 0), position(2, 0)), "ERR\n");
     file_manager.did_change_file(correct_macro_loc, 2, std::span(&c, 1));
@@ -459,12 +460,12 @@ TEST_F(workspace_test, did_close_file_without_save)
     // This is part of the problem, where it is not clear what diagnostic to display
     // when a macro is being browsed with another opencode as a context.
 
-    EXPECT_TRUE(match_file_uri(extract_diags(ws), { correct_macro_loc }));
+    EXPECT_TRUE(match_file_uri(extract_diags(ws, ws_cfg), { correct_macro_loc }));
 
     file_manager.did_close_file(correct_macro_loc);
     run_if_valid(ws.did_close_file(correct_macro_loc));
     parse_all_files(ws);
-    EXPECT_TRUE(extract_diags(ws).empty());
+    EXPECT_TRUE(extract_diags(ws, ws_cfg).empty());
 }
 
 TEST_F(workspace_test, did_change_watched_files)
@@ -476,18 +477,18 @@ TEST_F(workspace_test, did_change_watched_files)
 
     run_if_valid(ws.did_open_file(source3_loc));
     parse_all_files(ws);
-    EXPECT_TRUE(extract_diags(ws).empty());
+    EXPECT_TRUE(extract_diags(ws, ws_cfg).empty());
 
     file_manager.insert_correct_macro = false;
     run_if_valid(ws.did_change_watched_files({ correct_macro_loc }, { workspaces::file_content_state::identical }));
     parse_all_files(ws);
-    EXPECT_TRUE(matches_message_codes(extract_diags(ws), { "E049" }));
+    EXPECT_TRUE(matches_message_codes(extract_diags(ws, ws_cfg), { "E049" }));
 
     file_manager.insert_correct_macro = true;
     run_if_valid(ws.did_change_watched_files({ correct_macro_loc }, { workspaces::file_content_state::identical }));
     run_if_valid(ws.did_change_file(source3_loc, file_content_state::changed_content));
     parse_all_files(ws);
-    EXPECT_TRUE(extract_diags(ws).empty());
+    EXPECT_TRUE(extract_diags(ws, ws_cfg).empty());
 }
 
 TEST_F(workspace_test, did_change_watched_files_not_opened_file)
@@ -499,11 +500,11 @@ TEST_F(workspace_test, did_change_watched_files_not_opened_file)
 
     run_if_valid(ws.did_open_file(source3_loc));
     parse_all_files(ws);
-    EXPECT_TRUE(extract_diags(ws).empty());
+    EXPECT_TRUE(extract_diags(ws, ws_cfg).empty());
 
     run_if_valid(ws.did_change_watched_files({ faulty_macro_loc }, { workspaces::file_content_state::identical }));
     parse_all_files(ws);
-    EXPECT_TRUE(extract_diags(ws).empty());
+    EXPECT_TRUE(extract_diags(ws, ws_cfg).empty());
 }
 
 TEST_F(workspace_test, diagnostics_recollection)
@@ -516,10 +517,10 @@ TEST_F(workspace_test, diagnostics_recollection)
     run_if_valid(ws.did_open_file(source1_loc));
     parse_all_files(ws);
 
-    const auto original_diags_size = extract_diags(ws).size();
+    const auto original_diags_size = extract_diags(ws, ws_cfg).size();
     EXPECT_GE(original_diags_size, (size_t)1);
 
-    EXPECT_EQ(extract_diags(ws).size(), original_diags_size);
+    EXPECT_EQ(extract_diags(ws, ws_cfg).size(), original_diags_size);
 }
 
 TEST_F(workspace_test, missing_library_required)
@@ -535,7 +536,7 @@ TEST_F(workspace_test, missing_library_required)
 
         run_if_valid(ws.did_open_file(source1_loc));
         parse_all_files(ws);
-        EXPECT_TRUE(contains_message_codes(extract_diags(ws), { "L0002" }));
+        EXPECT_TRUE(contains_message_codes(extract_diags(ws, ws_cfg), { "L0002" }));
     }
 }
 
@@ -548,7 +549,7 @@ TEST_F(workspace_test, missing_library_optional)
 
     run_if_valid(ws.did_open_file(source1_loc));
     parse_all_files(ws);
-    EXPECT_TRUE(extract_diags(ws).empty());
+    EXPECT_TRUE(extract_diags(ws, ws_cfg).empty());
 }
 
 TEST_F(workspace_test, invalid_assembler_options)
@@ -558,7 +559,7 @@ TEST_F(workspace_test, invalid_assembler_options)
     workspace ws(file_manager, ws_cfg, config);
     ws_cfg.parse_configuration_file().run();
 
-    EXPECT_TRUE(contains_message_codes(extract_diags(ws), { "W0005" }));
+    EXPECT_TRUE(contains_message_codes(extract_diags(ws, ws_cfg), { "W0005" }));
 }
 
 TEST_F(workspace_test, invalid_assembler_options_in_pgm_conf)
@@ -568,7 +569,7 @@ TEST_F(workspace_test, invalid_assembler_options_in_pgm_conf)
     workspace ws(file_manager, ws_cfg, config);
     ws_cfg.parse_configuration_file().run();
 
-    EXPECT_TRUE(contains_message_codes(extract_diags(ws), { "W0005" }));
+    EXPECT_TRUE(contains_message_codes(extract_diags(ws, ws_cfg), { "W0005" }));
 }
 
 TEST_F(workspace_test, invalid_preprocessor_options)
@@ -578,7 +579,7 @@ TEST_F(workspace_test, invalid_preprocessor_options)
     workspace ws(file_manager, ws_cfg, config);
     ws_cfg.parse_configuration_file().run();
 
-    EXPECT_TRUE(contains_message_codes(extract_diags(ws), { "W0006" }));
+    EXPECT_TRUE(contains_message_codes(extract_diags(ws, ws_cfg), { "W0006" }));
 }
 
 class file_manager_list_dir_failed : public file_manager_opt
@@ -613,7 +614,7 @@ TEST_F(workspace_test, library_list_failure)
 
     run_if_valid(ws.did_open_file(source1_loc));
     parse_all_files(ws);
-    EXPECT_TRUE(contains_message_codes(extract_diags(ws), { "L0001" }));
+    EXPECT_TRUE(contains_message_codes(extract_diags(ws, ws_cfg), { "L0001" }));
 }
 
 TEST_F(workspace_test, did_change_watched_files_added_missing)
@@ -626,12 +627,12 @@ TEST_F(workspace_test, did_change_watched_files_added_missing)
     file_manager.insert_correct_macro = false;
     run_if_valid(ws.did_open_file(source3_loc));
     parse_all_files(ws);
-    EXPECT_TRUE(matches_message_codes(extract_diags(ws), { "E049" }));
+    EXPECT_TRUE(matches_message_codes(extract_diags(ws, ws_cfg), { "E049" }));
 
     file_manager.insert_correct_macro = true;
     run_if_valid(ws.did_change_watched_files({ correct_macro_loc }, { workspaces::file_content_state::identical }));
     parse_all_files(ws);
-    EXPECT_TRUE(extract_diags(ws).empty());
+    EXPECT_TRUE(extract_diags(ws, ws_cfg).empty());
 }
 
 TEST_F(workspace_test, use_external_library)
@@ -662,7 +663,7 @@ TEST_F(workspace_test, use_external_library)
 
     run_if_valid(ws.did_open_file(source1_loc));
     parse_all_files(ws);
-    EXPECT_TRUE(extract_diags(ws).empty());
+    EXPECT_TRUE(extract_diags(ws, ws_cfg).empty());
 }
 
 TEST_F(workspace_test, use_external_library_with_workspace_uri)
@@ -700,7 +701,7 @@ TEST_F(workspace_test, use_external_library_with_workspace_uri)
 
     run_if_valid(ws.did_open_file(source1_loc));
     parse_all_files(ws);
-    EXPECT_TRUE(extract_diags(ws).empty());
+    EXPECT_TRUE(extract_diags(ws, ws_cfg).empty());
 }
 
 TEST_F(workspace_test, track_nested_dependencies)
@@ -713,13 +714,13 @@ TEST_F(workspace_test, track_nested_dependencies)
     ws_cfg.parse_configuration_file().run();
     run_if_valid(ws.did_open_file(source4_loc));
     parse_all_files(ws);
-    EXPECT_TRUE(matches_message_codes(extract_diags(ws), { "MNOTE" }));
+    EXPECT_TRUE(matches_message_codes(extract_diags(ws, ws_cfg), { "MNOTE" }));
 
     run_if_valid(ws.did_open_file(dep_macro_loc, file_content_state::changed_lsp));
     parse_all_files(ws);
-    EXPECT_TRUE(matches_message_codes(extract_diags(ws), { "MNOTE" }));
+    EXPECT_TRUE(matches_message_codes(extract_diags(ws, ws_cfg), { "MNOTE" }));
 
     run_if_valid(ws.did_change_file(source4_loc, file_content_state::changed_content));
     parse_all_files(ws);
-    EXPECT_TRUE(matches_message_codes(extract_diags(ws), { "MNOTE" }));
+    EXPECT_TRUE(matches_message_codes(extract_diags(ws, ws_cfg), { "MNOTE" }));
 }
