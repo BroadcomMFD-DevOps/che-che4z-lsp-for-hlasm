@@ -286,11 +286,9 @@ struct workspace_parse_lib_provider final : public parse_lib_provider
     }
 };
 
-workspace::workspace(
-    file_manager& file_manager, workspace_configuration& configuration, const lib_config& global_config)
+workspace::workspace(file_manager& file_manager, workspace_configuration& configuration)
     : file_manager_(file_manager)
     , fm_vfm_(file_manager_)
-    , global_config_(global_config)
     , m_configuration(configuration)
 {}
 
@@ -561,8 +559,6 @@ void workspace::show_message(std::string_view message)
         message_consumer_->show_message(message, message_type::MT_INFO);
 }
 
-lib_config workspace::get_config() const { return m_configuration.get_config().fill_missing_settings(global_config_); }
-
 utils::value_task<parse_file_result> workspace::parse_file(const resource_location& preferred_file)
 {
     if (m_parsing_pending.empty())
@@ -603,7 +599,8 @@ utils::value_task<parse_file_result> workspace::parse_file(const resource_locati
         std::set<resource_location> files_to_close;
         ws_lib.append_files_to_close(files_to_close);
 
-        auto parse_results = self.parse_successful(comp, std::move(ws_lib), config.processor_group_found);
+        auto parse_results =
+            self.parse_successful(comp, std::move(ws_lib), config.processor_group_found, config.dig_suppress_limit);
 
         self.filter_and_close_dependencies(std::move(files_to_close));
 
@@ -676,8 +673,10 @@ void workspace::external_configuration_invalidated(const resource_location& url)
         m_parsing_pending.emplace(url);
 }
 
-workspace_file_info workspace::parse_successful(
-    processor_file_compoments& comp, workspace_parse_lib_provider libs, bool has_processor_group)
+workspace_file_info workspace::parse_successful(processor_file_compoments& comp,
+    workspace_parse_lib_provider libs,
+    bool has_processor_group,
+    std::int64_t diag_suppress_limit)
 {
     workspace_file_info ws_file_info;
 
@@ -685,8 +684,7 @@ workspace_file_info workspace::parse_successful(
     m_parsing_pending.erase(comp.m_file->get_location());
 
     ws_file_info.processor_group_found = has_processor_group;
-    if (!has_processor_group
-        && (int64_t)comp.m_last_results->opencode_diagnostics.size() > get_config().diag_supress_limit)
+    if (!has_processor_group && std::cmp_greater(comp.m_last_results->opencode_diagnostics.size(), diag_suppress_limit))
     {
         ws_file_info.diagnostics_suppressed = true;
         delete_diags(comp);

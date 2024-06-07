@@ -80,8 +80,8 @@ public:
     std::vector<fade_message> fms;
 
     fade_fixture_base()
-        : ws_cfg(file_manager, fade_loc, global_settings, nullptr)
-        , ws(file_manager, ws_cfg, config)
+        : ws_cfg(file_manager, fade_loc, global_settings, config, nullptr)
+        , ws(file_manager, ws_cfg)
     {}
 
     void SetUp() override
@@ -1176,8 +1176,8 @@ private:
     const lib_config m_empty_config;
     const shared_json m_global_settings = make_empty_shared_json();
     resource_location m_loc = resource_location("fade:/");
-    workspace_configuration ws_cfg = workspace_configuration(m_fm, m_loc, m_global_settings, nullptr);
-    workspace ws = workspace(m_fm, ws_cfg, m_empty_config);
+    workspace_configuration ws_cfg = workspace_configuration(m_fm, m_loc, m_global_settings, m_empty_config, nullptr);
+    workspace ws = workspace(m_fm, ws_cfg);
     std::vector<fade_message> m_fmsgs;
 };
 } // namespace

@@ -102,8 +102,8 @@ TEST(workspace, pgm_conf_malformed)
 
     lib_config config;
     shared_json global_settings = make_empty_shared_json();
-    workspace_configuration ws_cfg(fm, empty_ws, global_settings, nullptr);
-    workspace ws(fm, ws_cfg, config);
+    workspace_configuration ws_cfg(fm, empty_ws, global_settings, config, nullptr);
+    workspace ws(fm, ws_cfg);
     ws_cfg.parse_configuration_file().run();
 
     EXPECT_TRUE(matches_message_codes(extract_diags(ws, ws_cfg), { "W0003" }));
@@ -118,8 +118,8 @@ TEST(workspace, proc_grps_malformed)
 
     lib_config config;
     shared_json global_settings = make_empty_shared_json();
-    workspace_configuration ws_cfg(fm, empty_ws, global_settings, nullptr);
-    workspace ws(fm, ws_cfg, config);
+    workspace_configuration ws_cfg(fm, empty_ws, global_settings, config, nullptr);
+    workspace ws(fm, ws_cfg);
     ws_cfg.parse_configuration_file().run();
 
     EXPECT_TRUE(matches_message_codes(extract_diags(ws, ws_cfg), { "W0002" }));
@@ -132,8 +132,8 @@ TEST(workspace, pgm_conf_missing)
 
     lib_config config;
     shared_json global_settings = make_empty_shared_json();
-    workspace_configuration ws_cfg(fm, empty_ws, global_settings, nullptr);
-    workspace ws(fm, ws_cfg, config);
+    workspace_configuration ws_cfg(fm, empty_ws, global_settings, config, nullptr);
+    workspace ws(fm, ws_cfg);
     ws_cfg.parse_configuration_file().run();
 
     EXPECT_EQ(extract_diags(ws, ws_cfg).size(), 0U);
@@ -146,8 +146,8 @@ TEST(workspace, proc_grps_missing)
 
     lib_config config;
     shared_json global_settings = make_empty_shared_json();
-    workspace_configuration ws_cfg(fm, empty_ws, global_settings, nullptr);
-    workspace ws(fm, ws_cfg, config);
+    workspace_configuration ws_cfg(fm, empty_ws, global_settings, config, nullptr);
+    workspace ws(fm, ws_cfg);
     ws_cfg.parse_configuration_file().run();
 
     EXPECT_EQ(extract_diags(ws, ws_cfg).size(), 0U);
@@ -170,8 +170,8 @@ TEST(workspace, pgm_conf_noproc_proc_group)
 
     lib_config config;
     shared_json global_settings = make_empty_shared_json();
-    workspace_configuration ws_cfg(fm, empty_ws, global_settings, nullptr);
-    workspace ws(fm, ws_cfg, config);
+    workspace_configuration ws_cfg(fm, empty_ws, global_settings, config, nullptr);
+    workspace ws(fm, ws_cfg);
     ws_cfg.parse_configuration_file().run();
     run_if_valid(ws.did_open_file(temp_hlasm));
     parse_all_files(ws);
@@ -196,8 +196,8 @@ TEST(workspace, pgm_conf_unknown_proc_group)
 
     lib_config config;
     shared_json global_settings = make_empty_shared_json();
-    workspace_configuration ws_cfg(fm, empty_ws, global_settings, nullptr);
-    workspace ws(fm, ws_cfg, config);
+    workspace_configuration ws_cfg(fm, empty_ws, global_settings, config, nullptr);
+    workspace ws(fm, ws_cfg);
     ws_cfg.parse_configuration_file().run();
     run_if_valid(ws.did_open_file(temp_hlasm));
     parse_all_files(ws);
@@ -220,8 +220,8 @@ TEST(workspace, missing_proc_group_diags)
 
     lib_config config;
     shared_json global_settings = make_empty_shared_json();
-    workspace_configuration ws_cfg(fm, ws_loc, global_settings, nullptr);
-    workspace ws(fm, ws_cfg, config);
+    workspace_configuration ws_cfg(fm, ws_loc, global_settings, config, nullptr);
+    workspace ws(fm, ws_cfg);
     ws_cfg.parse_configuration_file().run();
     run_if_valid(ws.did_open_file(pgm1_loc));
     parse_all_files(ws);
@@ -261,8 +261,8 @@ TEST(workspace, missing_proc_group_diags_wildcards)
 
     lib_config config;
     shared_json global_settings = make_empty_shared_json();
-    workspace_configuration ws_cfg(fm, ws_loc, global_settings, nullptr);
-    workspace ws(fm, ws_cfg, config);
+    workspace_configuration ws_cfg(fm, ws_loc, global_settings, config, nullptr);
+    workspace ws(fm, ws_cfg);
     ws_cfg.parse_configuration_file().run();
     run_if_valid(ws.did_open_file(pgm1_loc));
     parse_all_files(ws);
@@ -292,8 +292,8 @@ TEST(workspace, missing_proc_group_diags_wildcards_noproc)
 
     lib_config config;
     shared_json global_settings = make_empty_shared_json();
-    workspace_configuration ws_cfg(fm, ws_loc, global_settings, nullptr);
-    workspace ws(fm, ws_cfg, config);
+    workspace_configuration ws_cfg(fm, ws_loc, global_settings, config, nullptr);
+    workspace ws(fm, ws_cfg);
     ws_cfg.parse_configuration_file().run();
     run_if_valid(ws.did_open_file(pgm1_loc));
     parse_all_files(ws);
@@ -326,8 +326,8 @@ TEST(workspace, asm_options_invalid)
 
     lib_config config;
     shared_json global_settings = make_empty_shared_json();
-    workspace_configuration ws_cfg(fm, empty_ws, global_settings, nullptr);
-    workspace ws(fm, ws_cfg, config);
+    workspace_configuration ws_cfg(fm, empty_ws, global_settings, config, nullptr);
+    workspace ws(fm, ws_cfg);
     ws_cfg.parse_configuration_file().run();
 
     EXPECT_TRUE(matches_message_codes(extract_diags(ws, ws_cfg), { "W0002" }));
@@ -345,8 +345,8 @@ TEST(workspace, proc_grps_with_substitutions)
     lib_config config;
     shared_json global_settings = std::make_shared<const nlohmann::json>(
         nlohmann::json::parse(R"({"name":"proc_group","lib1":"library1","lib2":"library2"})"));
-    workspace_configuration ws_cfg(fm, empty_ws, global_settings, nullptr);
-    workspace ws(fm, ws_cfg, config);
+    workspace_configuration ws_cfg(fm, empty_ws, global_settings, config, nullptr);
+    workspace ws(fm, ws_cfg);
     ws_cfg.parse_configuration_file().run();
 
     EXPECT_TRUE(extract_diags(ws, ws_cfg).empty());
@@ -374,8 +374,8 @@ TEST(workspace, pgm_conf_with_substitutions)
     lib_config config;
     shared_json global_settings = std::make_shared<const nlohmann::json>(
         nlohmann::json::parse(R"({"pgm_mask":["file_name"],"sysparm":"DEBUG"})"));
-    workspace_configuration ws_cfg(fm, empty_ws, global_settings, nullptr);
-    workspace ws(fm, ws_cfg, config);
+    workspace_configuration ws_cfg(fm, empty_ws, global_settings, config, nullptr);
+    workspace ws(fm, ws_cfg);
     const auto test_loc = resource_location::join(empty_ws, "test");
     ws_cfg.parse_configuration_file().run();
 
@@ -397,8 +397,8 @@ TEST(workspace, missing_substitutions)
 
     lib_config config;
     shared_json global_settings = std::make_shared<const nlohmann::json>(nlohmann::json::object());
-    workspace_configuration ws_cfg(fm, empty_ws, global_settings, nullptr);
-    workspace ws(fm, ws_cfg, config);
+    workspace_configuration ws_cfg(fm, empty_ws, global_settings, config, nullptr);
+    workspace ws(fm, ws_cfg);
     ws_cfg.parse_configuration_file().run();
 
     EXPECT_TRUE(matches_message_codes(extract_diags(ws, ws_cfg), { "W0007", "W0007" }));
@@ -413,8 +413,8 @@ TEST(workspace, opcode_suggestions)
 
     lib_config config;
     shared_json global_settings = make_empty_shared_json();
-    workspace_configuration ws_cfg(fm, empty_ws, global_settings, nullptr);
-    workspace ws(fm, ws_cfg, config);
+    workspace_configuration ws_cfg(fm, empty_ws, global_settings, config, nullptr);
+    workspace ws(fm, ws_cfg);
     ws_cfg.parse_configuration_file().run();
 
     EXPECT_TRUE(extract_diags(ws, ws_cfg).empty());
@@ -431,8 +431,8 @@ TEST(workspace, lsp_file_not_processed_yet)
     file_manager_impl mngr;
     lib_config config;
     shared_json global_settings = make_empty_shared_json();
-    workspace_configuration ws_cfg(mngr, resource_location(), global_settings, nullptr);
-    workspace ws(mngr, ws_cfg, config);
+    workspace_configuration ws_cfg(mngr, resource_location(), global_settings, config, nullptr);
+    workspace ws(mngr, ws_cfg);
     ws_cfg.parse_configuration_file().run();
 
     mngr.did_open_file(file_loc, 0, " LR 1,1");

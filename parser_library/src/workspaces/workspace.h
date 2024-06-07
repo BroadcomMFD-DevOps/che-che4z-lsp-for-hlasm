@@ -75,7 +75,7 @@ public:
     using resource_location = utils::resource::resource_location;
     using resource_location_hasher = utils::resource::resource_location_hasher;
 
-    workspace(file_manager& file_manager, workspace_configuration& configuration, const lib_config& global_config);
+    workspace(file_manager& file_manager, workspace_configuration& configuration);
 
     workspace(const workspace& ws) = delete;
     workspace& operator=(const workspace&) = delete;
@@ -141,8 +141,6 @@ private:
 
     message_consumer* message_consumer_ = nullptr;
 
-    const lib_config& global_config_;
-
     lib_config get_config() const;
 
     workspace_configuration& m_configuration;
@@ -191,8 +189,10 @@ private:
     [[nodiscard]] utils::value_task<processor_file_compoments&> add_processor_file_impl(std::shared_ptr<file> f);
     const processor_file_compoments* find_processor_file_impl(const resource_location& file) const;
     friend struct workspace_parse_lib_provider;
-    workspace_file_info parse_successful(
-        processor_file_compoments& comp, workspace_parse_lib_provider libs, bool has_processor_group);
+    workspace_file_info parse_successful(processor_file_compoments& comp,
+        workspace_parse_lib_provider libs,
+        bool has_processor_group,
+        std::int64_t diag_suppress_limit);
     void delete_diags(processor_file_compoments& pfc);
 
     std::vector<const processor_file_compoments*> find_related_opencodes(const resource_location& document_loc) const;

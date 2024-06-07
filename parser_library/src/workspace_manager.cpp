@@ -82,14 +82,14 @@ class workspace_manager_impl final : public workspace_manager,
             workspaces::file_manager& file_manager,
             const lib_config& global_config,
             external_configuration_requests* ecr)
-            : config(file_manager, location, settings, ecr)
-            , ws(file_manager, config, global_config)
+            : config(file_manager, location, settings, global_config, ecr)
+            , ws(file_manager, config)
         {}
         opened_workspace(workspaces::file_manager& file_manager,
             const lib_config& global_config,
             external_configuration_requests* ecr)
-            : config(file_manager, utils::resource::resource_location(), settings, ecr)
-            , ws(file_manager, config, global_config)
+            : config(file_manager, utils::resource::resource_location(), settings, global_config, ecr)
+            , ws(file_manager, config)
         {}
         workspaces::shared_json settings = std::make_shared<const nlohmann::json>(nlohmann::json::object());
         workspaces::workspace_configuration config;

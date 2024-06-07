@@ -244,10 +244,12 @@ const std::regex json_settings_replacer::config_reference(R"(\$\{([^}]+)\})");
 workspace_configuration::workspace_configuration(file_manager& fm,
     utils::resource::resource_location location,
     const shared_json& global_settings,
+    const lib_config& global_config,
     external_configuration_requests* ecr)
     : m_file_manager(fm)
     , m_location(std::move(location))
     , m_global_settings(global_settings)
+    , m_global_config(global_config)
     , m_external_configuration_requests(ecr)
     , m_pgm_conf_store(std::make_unique<program_configuration_storage>(m_proc_grps))
 {
@@ -259,10 +261,14 @@ workspace_configuration::workspace_configuration(file_manager& fm,
     }
 }
 
-workspace_configuration::workspace_configuration(
-    file_manager& fm, const shared_json& global_settings, std::shared_ptr<library> the_library)
+workspace_configuration::workspace_configuration(file_manager& fm,
+    const shared_json& global_settings,
+    const lib_config& global_config,
+    std::shared_ptr<library> the_library)
+
     : m_file_manager(fm)
     , m_global_settings(global_settings)
+    , m_global_config(global_config)
     , m_external_configuration_requests(nullptr)
     , m_pgm_conf_store(std::make_unique<program_configuration_storage>(m_proc_grps))
 {
@@ -1130,6 +1136,7 @@ utils::value_task<workspace_configuration::analyzer_configuration> workspace_con
         .pp_opts = proc_grp ? proc_grp->preprocessors() : std::vector<preprocessor_options>(),
         .alternative_config_url = std::move(alt_config),
         .processor_group_found = proc_grp != nullptr,
+        .dig_suppress_limit = m_local_config.fill_missing_settings(m_global_config).diag_supress_limit.value(),
     };
 }
 

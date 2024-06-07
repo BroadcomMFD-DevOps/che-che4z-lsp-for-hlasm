@@ -465,8 +465,8 @@ public:
         : file_manager(pgroup_variant, pgmconf_variant)
         , config()
         , global_settings(make_empty_shared_json())
-        , ws_cfg(file_manager, ws_loc, global_settings, nullptr)
-        , ws(file_manager, ws_cfg, config)
+        , ws_cfg(file_manager, ws_loc, global_settings, config, nullptr)
+        , ws(file_manager, ws_cfg)
     {
         ws_cfg.parse_configuration_file().run();
     };
@@ -947,8 +947,8 @@ void verify_infinit_loop(pgroup_symlinks_variants pgroup_variant, pgmconf_varian
             co_return { {}, hlasm_plugin::utils::path::list_directory_rc::done };
         }));
 
-    workspace_configuration ws_cfg(file_manager, ws_loc, global_settings, nullptr);
-    workspace ws(file_manager, ws_cfg, config);
+    workspace_configuration ws_cfg(file_manager, ws_loc, global_settings, config, nullptr);
+    workspace ws(file_manager, ws_cfg);
     ws_cfg.parse_configuration_file().run();
     run_if_valid(ws.did_open_file(pattern_test_source_loc));
     parse_all_files(ws);

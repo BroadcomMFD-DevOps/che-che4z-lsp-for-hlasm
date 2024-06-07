@@ -180,6 +180,7 @@ class workspace_configuration
     file_manager& m_file_manager;
     utils::resource::resource_location m_location;
     const shared_json& m_global_settings;
+    const lib_config& m_global_config;
 
     utils::resource::resource_location m_proc_grps_loc;
     utils::resource::resource_location m_pgm_conf_loc;
@@ -280,9 +281,11 @@ public:
     workspace_configuration(file_manager& fm,
         utils::resource::resource_location location,
         const shared_json& global_settings,
+        const lib_config& global_config,
         external_configuration_requests* ecr);
     workspace_configuration(file_manager& fm,
         const shared_json& global_settings,
+        const lib_config& global_config,
         std::shared_ptr<library> the_library); // test-only
 
     ~workspace_configuration();
@@ -302,7 +305,6 @@ public:
     const processor_group* get_proc_grp(const utils::resource::resource_location& file) const;
     const processor_group* get_proc_grp_by_program(const program& p) const;
     processor_group* get_proc_grp_by_program(const program& p);
-    const lib_config& get_config() const { return m_local_config; }
 
     bool settings_updated() const;
     [[nodiscard]] utils::value_task<std::optional<std::vector<const processor_group*>>> refresh_libraries(
@@ -327,9 +329,12 @@ public:
         std::vector<preprocessor_options> pp_opts;
         utils::resource::resource_location alternative_config_url;
         bool processor_group_found;
+        std::int64_t dig_suppress_limit;
     };
     [[nodiscard]] utils::value_task<analyzer_configuration> get_analyzer_configuration(
         utils::resource::resource_location url);
+
+    lib_config get_config() const;
 };
 
 } // namespace hlasm_plugin::parser_library::workspaces
