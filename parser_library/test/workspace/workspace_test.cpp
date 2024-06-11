@@ -480,13 +480,18 @@ TEST_F(workspace_test, did_change_watched_files)
     EXPECT_TRUE(extract_diags(ws, ws_cfg).empty());
 
     file_manager.insert_correct_macro = false;
-    run_if_valid(ws.did_change_watched_files({ correct_macro_loc }, { workspaces::file_content_state::identical }));
+    run_if_valid(ws_cfg.refresh_libraries({ correct_macro_loc }).then([&ws](auto r) {
+        return ws.did_change_watched_files(
+            { correct_macro_loc }, { workspaces::file_content_state::identical }, std::move(r));
+    }));
     parse_all_files(ws);
     EXPECT_TRUE(matches_message_codes(extract_diags(ws, ws_cfg), { "E049" }));
 
     file_manager.insert_correct_macro = true;
-    run_if_valid(ws.did_change_watched_files({ correct_macro_loc }, { workspaces::file_content_state::identical }));
-    run_if_valid(ws.mark_file_for_parsing(source3_loc, file_content_state::changed_content));
+    run_if_valid(ws_cfg.refresh_libraries({ correct_macro_loc }).then([&ws](auto r) {
+        return ws.did_change_watched_files(
+            { correct_macro_loc }, { workspaces::file_content_state::identical }, std::move(r));
+    }));
     parse_all_files(ws);
     EXPECT_TRUE(extract_diags(ws, ws_cfg).empty());
 }
@@ -502,7 +507,7 @@ TEST_F(workspace_test, did_change_watched_files_not_opened_file)
     parse_all_files(ws);
     EXPECT_TRUE(extract_diags(ws, ws_cfg).empty());
 
-    run_if_valid(ws.did_change_watched_files({ faulty_macro_loc }, { workspaces::file_content_state::identical }));
+    run_if_valid(ws.did_change_watched_files({ faulty_macro_loc }, { workspaces::file_content_state::identical }, {}));
     parse_all_files(ws);
     EXPECT_TRUE(extract_diags(ws, ws_cfg).empty());
 }
@@ -630,7 +635,10 @@ TEST_F(workspace_test, did_change_watched_files_added_missing)
     EXPECT_TRUE(matches_message_codes(extract_diags(ws, ws_cfg), { "E049" }));
 
     file_manager.insert_correct_macro = true;
-    run_if_valid(ws.did_change_watched_files({ correct_macro_loc }, { workspaces::file_content_state::identical }));
+    run_if_valid(ws_cfg.refresh_libraries({ correct_macro_loc }).then([&ws](auto r) {
+        return ws.did_change_watched_files(
+            { correct_macro_loc }, { workspaces::file_content_state::identical }, std::move(r));
+    }));
     parse_all_files(ws);
     EXPECT_TRUE(extract_diags(ws, ws_cfg).empty());
 }

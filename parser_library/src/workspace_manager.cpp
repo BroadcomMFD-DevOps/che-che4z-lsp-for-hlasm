@@ -546,6 +546,25 @@ class workspace_manager_impl final : public workspace_manager,
         });
     }
 
+    static std::vector<resource_location> urls_without_fragment(std::span<const resource_location> input)
+    {
+        std::vector<resource_location> result;
+        result.reserve(input.size());
+        for (const auto& file_location : input)
+        {
+            auto dis_uri = utils::path::dissect_uri(file_location.get_uri());
+
+            if (!dis_uri.fragment.has_value())
+                result.emplace_back(file_location);
+            else
+            {
+                dis_uri.fragment.reset();
+                result.emplace_back(utils::path::reconstruct_uri(dis_uri));
+            }
+        }
+        return result;
+    }
+
     void did_change_watched_files(std::span<const fs_change> changes) override
     {
         auto paths_for_ws = std::make_shared<std::unordered_map<opened_workspace*,
@@ -595,9 +614,12 @@ class workspace_manager_impl final : public workspace_manager,
                     [path_change_list_p = std::shared_ptr<
                          std::pair<std::vector<resource_location>, std::vector<workspaces::file_content_state>>>(
                          paths_for_ws, &path_change_list),
-                        &ws = ows->ws]() {
-                        return ws.did_change_watched_files(
-                            std::move(path_change_list_p->first), std::move(path_change_list_p->second));
+                        ows]() {
+                        auto&& [files, status] = *path_change_list_p;
+                        return ows->config.refresh_libraries(urls_without_fragment(files))
+                            .then([ows, f = std::move(files), s = std::move(status)](auto r) mutable {
+                                return ows->ws.did_change_watched_files(std::move(f), std::move(s), std::move(r));
+                            });
                     }),
                 {},
                 work_item_type::file_change,

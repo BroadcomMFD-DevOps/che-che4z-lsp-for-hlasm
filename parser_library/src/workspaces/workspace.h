@@ -93,8 +93,9 @@ public:
     [[nodiscard]] utils::task did_open_file(
         resource_location file_location, file_content_state file_content_status = file_content_state::changed_content);
     [[nodiscard]] utils::task did_close_file(resource_location file_location);
-    [[nodiscard]] utils::task did_change_watched_files(
-        std::vector<resource_location> file_locations, std::vector<file_content_state> file_change_status);
+    [[nodiscard]] utils::task did_change_watched_files(std::vector<resource_location> file_locations,
+        std::vector<file_content_state> file_change_status,
+        std::optional<std::vector<const processor_group*>> changed_groups);
 
     [[nodiscard]] utils::value_task<parse_file_result> parse_file(
         const resource_location& preferred_file = resource_location());

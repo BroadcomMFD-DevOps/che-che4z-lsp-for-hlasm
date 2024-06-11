@@ -760,40 +760,25 @@ utils::task workspace::did_close_file(resource_location file_location)
     m_processor_files.erase(fcomp);
 }
 
-utils::task workspace::did_change_watched_files(
-    std::vector<resource_location> file_locations, std::vector<file_content_state> file_change_status)
+utils::task workspace::did_change_watched_files(std::vector<resource_location> file_locations,
+    std::vector<file_content_state> file_change_status,
+    std::optional<std::vector<const processor_group*>> changed_groups)
 {
     assert(file_locations.size() == file_change_status.size());
 
-    std::vector<resource_location> file_locations_without_fragment;
-    file_locations_without_fragment.reserve(file_locations.size());
-    for (const auto& file_location : file_locations)
-    {
-        auto dis_uri = utils::path::dissect_uri(file_location.get_uri());
-
-        if (!dis_uri.fragment.has_value())
-            file_locations_without_fragment.emplace_back(file_location);
-        else
-        {
-            dis_uri.fragment.reset();
-            file_locations_without_fragment.emplace_back(utils::path::reconstruct_uri(dis_uri));
-        }
-    }
-
-    auto refreshed = co_await m_configuration.refresh_libraries(file_locations_without_fragment);
-    auto cit = file_change_status.begin();
-
     std::vector<utils::task> pending_updates;
-    for (const auto& file_location : file_locations)
+    for (auto cit = file_change_status.begin(); const auto& file_location : file_locations)
     {
         auto change_status = *cit++;
-        auto t = mark_file_for_parsing(file_location, refreshed ? file_content_state::changed_content : change_status);
+        if (changed_groups)
+            change_status = file_content_state::changed_content;
+        auto t = mark_file_for_parsing(file_location, change_status);
         if (!t.valid() || t.done())
             continue;
 
         pending_updates.emplace_back(std::move(t));
     }
-    if (refreshed)
+    if (changed_groups)
     {
         for (const auto& [_, comp] : m_processor_files)
         {
@@ -801,11 +786,11 @@ utils::task workspace::did_change_watched_files(
                 continue;
 
             auto loc = comp.m_file->get_location();
-            if (std::ranges::find(*refreshed, m_configuration.get_proc_grp(loc)) != refreshed->end())
+            if (std::ranges::find(*changed_groups, m_configuration.get_proc_grp(loc)) != changed_groups->end())
                 m_parsing_pending.emplace(std::move(loc));
         }
     }
-    co_await utils::task::wait_all(std::move(pending_updates));
+    return utils::task::wait_all(std::move(pending_updates));
 }
 
 location workspace::definition(const resource_location& document_loc, position pos) const
