@@ -138,14 +138,20 @@ public:
     }
 };
 
-void change_instruction_set(
-    const range& change_range, const std::string& process_group, file_manager& fm, workspace& ws)
+void change_instruction_set(const range& change_range,
+    const std::string& process_group,
+    file_manager& fm,
+    workspace& ws,
+    workspace_configuration& ws_cfg)
 {
     std::vector<document_change> changes;
     changes.push_back(document_change({ change_range }, process_group));
 
     fm.did_change_file(proc_grps_loc, 1, changes);
-    run_if_valid(ws.did_change_file(proc_grps_loc, file_content_state::changed_content));
+    run_if_valid(ws_cfg.parse_configuration_file(proc_grps_loc).then([&ws](auto result) {
+        if (result == parse_config_file_result::parsed)
+            ws.mark_all_opened_files();
+    }));
     parse_all_files(ws);
 }
 
@@ -172,7 +178,7 @@ TEST(workspace_instruction_sets_test, changed_instr_set_370_Z10)
     EXPECT_TRUE(extract_diags(ws, ws_cfg).empty());
 
     // Change instruction set
-    change_instruction_set({ { 0, 0 }, { 12, 1 } }, pgroups_file_optable_Z10, file_manager, ws);
+    change_instruction_set({ { 0, 0 }, { 12, 1 } }, pgroups_file_optable_Z10, file_manager, ws, ws_cfg);
 
     EXPECT_TRUE(matches_message_codes(extract_diags(ws, ws_cfg), { "E049" }));
 }
@@ -191,7 +197,7 @@ TEST(workspace_instruction_sets_test, changed_instr_set_Z10_370)
     EXPECT_TRUE(matches_message_codes(extract_diags(ws, ws_cfg), { "E049" }));
 
     // Change instruction set
-    change_instruction_set({ { 0, 0 }, { 12, 1 } }, pgroups_file_optable_370, file_manager, ws);
+    change_instruction_set({ { 0, 0 }, { 12, 1 } }, pgroups_file_optable_370, file_manager, ws, ws_cfg);
 
     EXPECT_TRUE(extract_diags(ws, ws_cfg).empty());
 }

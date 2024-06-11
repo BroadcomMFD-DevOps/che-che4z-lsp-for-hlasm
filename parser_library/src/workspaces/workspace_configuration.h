@@ -333,8 +333,6 @@ public:
     };
     [[nodiscard]] utils::value_task<analyzer_configuration> get_analyzer_configuration(
         utils::resource::resource_location url);
-
-    lib_config get_config() const;
 };
 
 } // namespace hlasm_plugin::parser_library::workspaces

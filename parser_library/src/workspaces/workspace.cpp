@@ -768,19 +768,6 @@ utils::task workspace::did_close_file(resource_location file_location)
     m_processor_files.erase(fcomp);
 }
 
-utils::task workspace::did_change_file(resource_location file_location, file_content_state file_content_status)
-{
-    if (m_configuration.is_configuration_file(file_location))
-    {
-        return m_configuration.parse_configuration_file(file_location).then([this](auto result) {
-            if (result == parse_config_file_result::parsed)
-                mark_all_opened_files();
-        });
-    }
-    else
-        return mark_file_for_parsing(file_location, file_content_status);
-}
-
 utils::task workspace::did_change_watched_files(
     std::vector<resource_location> file_locations, std::vector<file_content_state> file_change_status)
 {

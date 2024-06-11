@@ -138,10 +138,13 @@ TEST(diags_suppress, pgm_supress_limit_changed)
     document_change ch(range({ 0, 1 }, { 0, 1 }), new_limit_str);
 
     fm.did_change_file(empty_pgm_conf_name, 1, std::span(&ch, 1));
-    run_if_valid(ws.did_change_file(empty_pgm_conf_name, file_content_state::changed_content));
+    run_if_valid(ws_cfg.parse_configuration_file(empty_pgm_conf_name).then([&ws](auto result) {
+        if (result == parse_config_file_result::parsed)
+            ws.mark_all_opened_files();
+    }));
     parse_all_files(ws);
 
-    run_if_valid(ws.did_change_file(file_loc, file_content_state::changed_content));
+    run_if_valid(ws.mark_file_for_parsing(file_loc, file_content_state::changed_content));
     parse_all_files(ws);
 
     EXPECT_TRUE(matches_message_codes(extract_diags(ws, ws_cfg), { "SUP" }));

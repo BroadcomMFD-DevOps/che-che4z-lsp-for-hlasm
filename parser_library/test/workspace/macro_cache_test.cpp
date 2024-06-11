@@ -359,7 +359,7 @@ TEST(macro_cache_test, overwrite_by_inline)
     EXPECT_TRUE(find_diag_with_filename(diags, macro_file_loc));
     EXPECT_TRUE(find_diag_with_filename(diags, opencode_file_loc));
 
-    run_if_valid(ws.did_change_file(opencode_file_loc, file_content_state::changed_content));
+    run_if_valid(ws.mark_file_for_parsing(opencode_file_loc, file_content_state::changed_content));
     parse_all_files(ws);
 
     diags = extract_diags(ws, ws_cfg);

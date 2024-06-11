@@ -500,10 +500,16 @@ class workspace_manager_impl final : public workspace_manager,
             ows,
             std::function<utils::task()>(
                 [document_loc = std::move(uri),
-                    &ws = ows->ws,
+                    ows,
                     file_content_status = !changes.empty() ? workspaces::file_content_state::changed_content
                                                            : workspaces::file_content_state::identical]() mutable {
-                    return ws.did_change_file(std::move(document_loc), file_content_status);
+                    if (!ows->config.is_configuration_file(document_loc))
+                        return ows->ws.mark_file_for_parsing(document_loc, file_content_status);
+
+                    return ows->config.parse_configuration_file(std::move(document_loc)).then([ows](auto result) {
+                        if (result == workspaces::parse_config_file_result::parsed)
+                            ows->ws.mark_all_opened_files();
+                    });
                 }),
             {},
             work_item_type::file_change,

@@ -426,7 +426,7 @@ TEST_F(workspace_test, did_close_file)
     std::string new_text = "";
     changes.push_back(document_change({ { 0, 0 }, { 0, 6 } }, new_text));
     file_manager.did_change_file(source2_loc, 1, changes);
-    run_if_valid(ws.did_change_file(source2_loc, file_content_state::changed_content));
+    run_if_valid(ws.mark_file_for_parsing(source2_loc, file_content_state::changed_content));
     parse_all_files(ws);
     EXPECT_TRUE(match_file_uri(extract_diags(ws, ws_cfg), { source2_loc }));
 
@@ -451,7 +451,7 @@ TEST_F(workspace_test, did_close_file_without_save)
 
     document_change c(range(position(2, 0), position(2, 0)), "ERR\n");
     file_manager.did_change_file(correct_macro_loc, 2, std::span(&c, 1));
-    run_if_valid(ws.did_change_file(correct_macro_loc, file_content_state::changed_content));
+    run_if_valid(ws.mark_file_for_parsing(correct_macro_loc, file_content_state::changed_content));
     parse_all_files(ws);
 
     // TODO: This was modified due to very specific behavior of W010 diagnostic.
@@ -486,7 +486,7 @@ TEST_F(workspace_test, did_change_watched_files)
 
     file_manager.insert_correct_macro = true;
     run_if_valid(ws.did_change_watched_files({ correct_macro_loc }, { workspaces::file_content_state::identical }));
-    run_if_valid(ws.did_change_file(source3_loc, file_content_state::changed_content));
+    run_if_valid(ws.mark_file_for_parsing(source3_loc, file_content_state::changed_content));
     parse_all_files(ws);
     EXPECT_TRUE(extract_diags(ws, ws_cfg).empty());
 }
@@ -720,7 +720,7 @@ TEST_F(workspace_test, track_nested_dependencies)
     parse_all_files(ws);
     EXPECT_TRUE(matches_message_codes(extract_diags(ws, ws_cfg), { "MNOTE" }));
 
-    run_if_valid(ws.did_change_file(source4_loc, file_content_state::changed_content));
+    run_if_valid(ws.mark_file_for_parsing(source4_loc, file_content_state::changed_content));
     parse_all_files(ws);
     EXPECT_TRUE(matches_message_codes(extract_diags(ws, ws_cfg), { "MNOTE" }));
 }

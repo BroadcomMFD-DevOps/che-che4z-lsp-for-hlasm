@@ -92,7 +92,6 @@ public:
     void mark_all_opened_files();
     [[nodiscard]] utils::task did_open_file(
         resource_location file_location, file_content_state file_content_status = file_content_state::changed_content);
-    [[nodiscard]] utils::task did_change_file(resource_location file_location, file_content_state file_content_status);
     [[nodiscard]] utils::task did_close_file(resource_location file_location);
     [[nodiscard]] utils::task did_change_watched_files(
         std::vector<resource_location> file_locations, std::vector<file_content_state> file_change_status);
