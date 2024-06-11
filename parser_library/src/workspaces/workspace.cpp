@@ -704,20 +704,12 @@ workspace_file_info workspace::parse_successful(processor_file_compoments& comp,
 
 utils::task workspace::did_open_file(resource_location file_location, file_content_state file_content_status)
 {
-    if (!m_configuration.is_configuration_file(file_location))
-    {
-        auto& file = co_await add_processor_file_impl(co_await file_manager_.add_file(file_location));
-        file.m_opened = true;
-        file.m_collect_perf_metrics = true;
-        m_parsing_pending.emplace(file_location);
-        if (auto t = mark_file_for_parsing(file_location, file_content_status); t.valid())
-            co_await std::move(t);
-    }
-    else
-    {
-        if (co_await m_configuration.parse_configuration_file(file_location) == parse_config_file_result::parsed)
-            mark_all_opened_files();
-    }
+    auto& file = co_await add_processor_file_impl(co_await file_manager_.add_file(file_location));
+    file.m_opened = true;
+    file.m_collect_perf_metrics = true;
+    m_parsing_pending.emplace(file_location);
+    if (auto t = mark_file_for_parsing(file_location, file_content_status); t.valid())
+        co_await std::move(t);
 }
 
 utils::task workspace::did_close_file(resource_location file_location)

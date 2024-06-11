@@ -450,8 +450,14 @@ class workspace_manager_impl final : public workspace_manager,
         m_work_queue.emplace_back(work_item {
             next_unique_id(),
             ows,
-            std::function<utils::task()>([document_loc = std::move(uri), &ws = ows->ws, open_result]() mutable {
-                return ws.did_open_file(std::move(document_loc), *open_result);
+            std::function<utils::task()>([document_loc = std::move(uri), ows, open_result]() mutable {
+                if (!ows->config.is_configuration_file(document_loc))
+                    return ows->ws.did_open_file(std::move(document_loc), *open_result);
+
+                return ows->config.parse_configuration_file(std::move(document_loc)).then([ows](auto r) {
+                    if (r == workspaces::parse_config_file_result::parsed)
+                        ows->ws.mark_all_opened_files();
+                });
             }),
             {},
             work_item_type::file_change,
