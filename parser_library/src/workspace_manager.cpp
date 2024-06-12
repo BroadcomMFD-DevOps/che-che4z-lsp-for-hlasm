@@ -512,7 +512,7 @@ class workspace_manager_impl final : public workspace_manager,
             paths_for_ws)
     {
         std::optional<std::vector<index_t<workspaces::processor_group, unsigned long long>>> proc_grps;
-        const auto updated = [&proc_grps](auto r) {
+        const auto updater = [&proc_grps](auto r) {
             if (!r)
                 return;
             if (!proc_grps)
@@ -525,9 +525,9 @@ class workspace_manager_impl final : public workspace_manager,
         auto& [paths, changes] = *paths_for_ws;
         std::vector<utils::task> tasks;
         tasks.reserve(1 + m_workspaces.size());
-        tasks.emplace_back(m_implicit_workspace.config.refresh_libraries(paths).then(updated));
+        tasks.emplace_back(m_implicit_workspace.config.refresh_libraries(paths).then(updater));
         for (auto& [_, ows] : m_workspaces)
-            tasks.emplace_back(ows.config.refresh_libraries(paths).then(updated));
+            tasks.emplace_back(ows.config.refresh_libraries(paths).then(updater));
 
         co_await utils::task::wait_all(std::move(tasks));
 
