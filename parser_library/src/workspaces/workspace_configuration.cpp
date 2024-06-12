@@ -872,8 +872,11 @@ void workspace_configuration::add_missing_diags(std::vector<diagnostic>& target,
     }
 }
 
-void workspace_configuration::produce_diagnostics(
-    std::vector<diagnostic>& target, const configuration_diagnostics_parameters& config_diag_params) const
+void workspace_configuration::produce_diagnostics(std::vector<diagnostic>& target,
+    const std::unordered_map<utils::resource::resource_location,
+        std::vector<utils::resource::resource_location>,
+        utils::resource::resource_location_hasher>& used_configs_opened_files_map,
+    bool include_advisory_cfg_diags) const
 {
     for (auto& [key, value] : m_proc_grps)
     {
@@ -889,7 +892,7 @@ void workspace_configuration::produce_diagnostics(
     for (const auto& diag : m_config_diags)
         target.push_back(diag);
 
-    for (const auto& [config_rl, opened_files] : config_diag_params.used_configs_opened_files_map)
+    for (const auto& [config_rl, opened_files] : used_configs_opened_files_map)
     {
         if (const auto& b4g_config_cache_it = m_b4g_config_cache.find(config_rl);
             b4g_config_cache_it != m_b4g_config_cache.end())
@@ -898,7 +901,7 @@ void workspace_configuration::produce_diagnostics(
                 target.push_back(d);
         }
 
-        add_missing_diags(target, config_rl, opened_files, config_diag_params.include_advisory_cfg_diags);
+        add_missing_diags(target, config_rl, opened_files, include_advisory_cfg_diags);
     }
 }
 

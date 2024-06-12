@@ -89,7 +89,7 @@ const std::string file_pgm_conf_content = is_windows() ? R"({
 std::vector<diagnostic> extract_diags(workspace& ws, workspace_configuration& cfg, bool advisory = false)
 {
     std::vector<diagnostic> result;
-    cfg.produce_diagnostics(result, { ws.report_configuration_file_usage(), advisory });
+    cfg.produce_diagnostics(result, ws.report_configuration_file_usage(), advisory);
     ws.produce_diagnostics(result);
     return result;
 }

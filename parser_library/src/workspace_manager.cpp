@@ -784,11 +784,11 @@ class workspace_manager_impl final : public workspace_manager,
             diags().emplace_back(info_SUP(utils::resource::resource_location(std::move(node.value()))));
         }
 
-        auto usage = m_ws.report_configuration_file_usage();
+        const auto usage = m_ws.report_configuration_file_usage();
 
-        m_implicit_workspace.config.produce_diagnostics(diags(), { usage, m_include_advisory_cfg_diags });
+        m_implicit_workspace.config.produce_diagnostics(diags(), usage, m_include_advisory_cfg_diags);
         for (auto& [_, ows] : m_workspaces)
-            ows.config.produce_diagnostics(diags(), { usage, m_include_advisory_cfg_diags });
+            ows.config.produce_diagnostics(diags(), usage, m_include_advisory_cfg_diags);
     }
 
     static std::optional<unsigned long long> extract_hlasm_id(std::string_view uri)

@@ -42,7 +42,7 @@ const auto correct_loc = is_windows() ? resource_location("test\\library\\test_w
 std::vector<diagnostic> extract_diags(workspace& ws, workspace_configuration& cfg)
 {
     std::vector<diagnostic> result;
-    cfg.produce_diagnostics(result, {});
+    cfg.produce_diagnostics(result, {}, {});
     ws.produce_diagnostics(result);
     return result;
 }

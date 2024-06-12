@@ -53,16 +53,6 @@ class file_manager;
 class program_configuration_storage;
 struct library_local_options;
 
-struct configuration_diagnostics_parameters
-{
-    std::unordered_map<utils::resource::resource_location,
-        std::vector<utils::resource::resource_location>,
-        utils::resource::resource_location_hasher>
-        used_configs_opened_files_map;
-
-    bool include_advisory_cfg_diags;
-};
-
 enum class parse_config_file_result
 {
     parsed,
@@ -311,8 +301,11 @@ public:
     [[nodiscard]] utils::value_task<std::optional<std::vector<index_t<processor_group, unsigned long long>>>>
     refresh_libraries(const std::vector<utils::resource::resource_location>& file_locations);
 
-    void produce_diagnostics(
-        std::vector<diagnostic>& target, const configuration_diagnostics_parameters& config_diag_params) const;
+    void produce_diagnostics(std::vector<diagnostic>& target,
+        const std::unordered_map<utils::resource::resource_location,
+            std::vector<utils::resource::resource_location>,
+            utils::resource::resource_location_hasher>& used_configs_opened_files_map,
+        bool include_advisory_cfg_diags) const;
 
     const processor_group& get_proc_grp(const proc_grp_id& p) const; // test only
 

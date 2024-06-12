@@ -46,7 +46,7 @@ const auto file_loc = resource_location("a_file");
 std::vector<diagnostic> extract_diags(workspace& ws, workspace_configuration& cfg)
 {
     std::vector<diagnostic> result;
-    cfg.produce_diagnostics(result, {});
+    cfg.produce_diagnostics(result, {}, {});
     ws.produce_diagnostics(result);
     return result;
 }

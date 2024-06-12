@@ -159,7 +159,7 @@ void change_instruction_set(const range& change_range,
 std::vector<diagnostic> extract_diags(workspace& ws, workspace_configuration& cfg)
 {
     std::vector<diagnostic> result;
-    cfg.produce_diagnostics(result, {});
+    cfg.produce_diagnostics(result, {}, {});
     ws.produce_diagnostics(result);
     return result;
 }

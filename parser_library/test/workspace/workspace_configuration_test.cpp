@@ -313,7 +313,7 @@ TEST(workspace_configuration, refresh_settings)
     ws_cfg.parse_configuration_file().run();
 
     std::vector<diagnostic> diags;
-    ws_cfg.produce_diagnostics(diags, {});
+    ws_cfg.produce_diagnostics(diags, {}, {});
     EXPECT_TRUE(diags.empty());
 
     using hlasm_plugin::utils::resource::resource_location;
@@ -593,7 +593,7 @@ TEST(workspace_configuration, asm_options_goff_xobject_redefinition)
     ws_cfg.parse_configuration_file().run();
 
     std::vector<diagnostic> diags;
-    ws_cfg.produce_diagnostics(diags, {});
+    ws_cfg.produce_diagnostics(diags, {}, {});
 
     EXPECT_TRUE(contains_message_codes(diags, { "W0002" }));
 }
