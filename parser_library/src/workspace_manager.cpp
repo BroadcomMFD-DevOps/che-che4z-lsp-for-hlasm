@@ -68,7 +68,6 @@ namespace hlasm_plugin::parser_library {
 
 class workspace_manager_impl final : public workspace_manager,
                                      debugger_configuration_provider,
-                                     diagnosable_impl,
                                      workspaces::external_file_reader,
                                      external_configuration_requests,
                                      workspaces::configuration_provider
@@ -770,25 +769,26 @@ class workspace_manager_impl final : public workspace_manager,
         r.provide(res);
     }
 
-    void collect_diags() const override
+    void collect_diags()
     {
         std::unordered_set<std::string> suppress_files;
 
-        m_ws.produce_diagnostics(diags());
-        std::erase_if(diags(), [this, &suppress_files](const auto& d) {
+        m_diagnostics.clear();
+        m_ws.produce_diagnostics(m_diagnostics);
+        std::erase_if(m_diagnostics, [this, &suppress_files](const auto& d) {
             return !allowed_scheme(d.file_uri) && (suppress_files.emplace(d.file_uri), true);
         });
         for (auto it = suppress_files.begin(); it != suppress_files.end();)
         {
             auto node = suppress_files.extract(it++);
-            diags().emplace_back(info_SUP(utils::resource::resource_location(std::move(node.value()))));
+            m_diagnostics.emplace_back(info_SUP(utils::resource::resource_location(std::move(node.value()))));
         }
 
         const auto usage = m_ws.report_configuration_file_usage();
 
-        m_implicit_workspace.config.produce_diagnostics(diags(), usage, m_include_advisory_cfg_diags);
+        m_implicit_workspace.config.produce_diagnostics(m_diagnostics, usage, m_include_advisory_cfg_diags);
         for (auto& [_, ows] : m_workspaces)
-            ows.config.produce_diagnostics(diags(), usage, m_include_advisory_cfg_diags);
+            ows.config.produce_diagnostics(m_diagnostics, usage, m_include_advisory_cfg_diags);
     }
 
     static std::optional<unsigned long long> extract_hlasm_id(std::string_view uri)
@@ -813,14 +813,13 @@ class workspace_manager_impl final : public workspace_manager,
 
     void notify_diagnostics_consumers()
     {
-        diags().clear();
         collect_diags();
 
         m_fade_messages.clear();
         m_ws.retrieve_fade_messages(m_fade_messages);
 
         for (auto consumer : m_diag_consumers)
-            consumer->consume_diagnostics(diags(), m_fade_messages);
+            consumer->consume_diagnostics(m_diagnostics, m_fade_messages);
     }
 
     static size_t prefix_match(std::string_view first, std::string_view second)
@@ -972,6 +971,7 @@ class workspace_manager_impl final : public workspace_manager,
     std::vector<parsing_metadata_consumer*> m_parsing_metadata_consumers;
     message_consumer* m_message_consumer = nullptr;
     workspace_manager_requests* m_requests = nullptr;
+    std::vector<diagnostic> m_diagnostics;
     std::vector<fade_message> m_fade_messages;
     unsigned long long m_unique_id_sequence = 0;
 

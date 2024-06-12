@@ -405,8 +405,7 @@ void file_manager_impl::did_close_file(const utils::resource::resource_location&
     }
 }
 
-std::string_view file_manager_impl::put_virtual_file(
-    unsigned long long id, std::string_view text)
+std::string_view file_manager_impl::put_virtual_file(unsigned long long id, std::string_view text)
 {
     std::lock_guard guard(virtual_files_mutex);
     return m_virtual_files.try_emplace(id, text).first->second.text;
