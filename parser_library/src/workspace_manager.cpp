@@ -25,6 +25,7 @@
 #include <functional>
 #include <limits>
 #include <optional>
+#include <ranges>
 #include <set>
 #include <span>
 #include <string>
@@ -1051,30 +1052,28 @@ class workspace_manager_impl final : public workspace_manager,
     void provide_debugger_configuration(
         std::string_view document_uri, workspace_manager_response<debugging::debugger_configuration> conf) override
     {
+        using enum work_item_type;
+
         auto uri = normalized_uri(document_uri);
-        auto ows = ws_path_match(uri);
-        work_item wi {
-            next_unique_id(),
-            ows->config.get_analyzer_configuration(std::move(uri)).then([this, conf](auto r) {
-                auto& [c, _] = r;
-                conf.provide({
-                    .fm = &m_file_manager,
-                    .libraries = std::move(c.libraries),
-                    .opts = std::move(c.opts),
-                    .pp_opts = std::move(c.pp_opts),
-                });
-            }),
-            {},
-            work_item_type::dc_request,
-        };
-        const auto matching_open_request = [](const auto& w) {
-            return w.request_type == work_item_type::workspace_open;
-        };
-        // insert as a priority request, but after matching workspace_open request if present
-        if (auto it = std::ranges::find_if(m_work_queue, matching_open_request); it != m_work_queue.end())
-            m_work_queue.insert(++it, std::move(wi));
-        else
-            m_work_queue.push_front(std::move(wi));
+        // insert as a priority request, but after workspace_open requests if present
+        m_work_queue.insert(
+            std::ranges::find(std::views::reverse(m_work_queue), workspace_open, &work_item::request_type).base(),
+            {
+                next_unique_id(),
+                std::function<utils::task()>([this, uri = std::move(uri), conf = std::move(conf)]() mutable {
+                    return get_analyzer_configuration(std::move(uri)).then([this, conf = std::move(conf)](auto r) {
+                        auto& [c, _] = r;
+                        conf.provide({
+                            .fm = &m_file_manager,
+                            .libraries = std::move(c.libraries),
+                            .opts = std::move(c.opts),
+                            .pp_opts = std::move(c.pp_opts),
+                        });
+                    });
+                }),
+                {},
+                dc_request,
+            });
     }
 
 
