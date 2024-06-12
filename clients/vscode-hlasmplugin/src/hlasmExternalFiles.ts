@@ -15,7 +15,6 @@
 import * as vscode from 'vscode';
 import * as vscodelc from 'vscode-languageclient';
 import { asError, isCancellationError } from "./helpers";
-import { uriFriendlyBase16Encode } from "./conversions";
 import { deflate, inflate, sha256 } from './tools';
 import { textDecode } from './tools.common';
 
@@ -152,8 +151,6 @@ interface ClientInstance<ConnectArgs, ReadArgs extends ClientUriDetails, ListArg
     client: Readonly<ClientInterface<ConnectArgs, ReadArgs, ListArgs>>,
     dispose: () => void,
 };
-
-function asFragment(s: string) { return s ? '#' + s : ''; }
 
 type ChannelType = {
     onNotification(method: string, handler: vscodelc.GenericNotificationHandler): vscode.Disposable;
@@ -319,7 +316,7 @@ export class HLASMExternalFiles {
         this.channel?.sendNotification(vscodelc.DidChangeWatchedFilesNotification.type, {
             changes: (vscode.workspace.workspaceFolders || []).map(w => {
                 return {
-                    uri: `${this.magicScheme}:/${service}${asFragment(uriFriendlyBase16Encode(w.uri.toString()))}`,
+                    uri: `${this.magicScheme}:/${service}`,
                     type: vscodelc.FileChangeType.Changed
                 };
             })
@@ -548,7 +545,7 @@ export class HLASMExternalFiles {
         }
         content.references.add(msg.url);
 
-        const { response, cache } = await this.transformResult(msg.id, content, x => responseTransform(x, x => `${this.magicScheme}:/${service}${x}${asFragment(associatedWorkspaceFragment)}`));
+        const { response, cache } = await this.transformResult(msg.id, content, x => responseTransform(x, x => `${this.magicScheme}:/${service}${x}`));
 
         if (cache && instance && !content.cached)
             content.cached = await this.storeCachedResult(await serverId(details, instance), service, details.normalizedPath(), content.result);

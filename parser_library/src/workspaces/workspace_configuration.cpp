@@ -370,8 +370,6 @@ utils::task workspace_configuration::process_processor_group_library(const confi
     utils::path::dissected_uri new_uri_components;
     new_uri_components.scheme = external_uri_scheme;
     new_uri_components.path = "/DATASET/" + utils::encoding::percent_encode_component(dsn.dsn);
-    if (!m_location.get_uri().empty())
-        new_uri_components.fragment = utils::encoding::uri_friendly_base16_encode(m_location.get_uri());
     utils::resource::resource_location new_uri(utils::path::reconstruct_uri(new_uri_components));
 
     prc_grp.add_library(get_local_library(new_uri, { .optional_library = dsn.optional }));
@@ -393,8 +391,6 @@ utils::task workspace_configuration::process_processor_group_library(const confi
         + utils::encoding::percent_encode_component(end.system) + "/"
         + utils::encoding::percent_encode_component(end.subsystem) + "/"
         + utils::encoding::percent_encode_component(end.type);
-    if (!m_location.get_uri().empty())
-        new_uri_components.fragment = utils::encoding::uri_friendly_base16_encode(m_location.get_uri());
     utils::resource::resource_location new_uri(utils::path::reconstruct_uri(new_uri_components));
 
     prc_grp.add_library(get_local_library(new_uri, { .optional_library = end.optional }));
@@ -412,34 +408,12 @@ utils::task workspace_configuration::process_processor_group_library(const confi
     new_uri_components.scheme = external_uri_scheme;
     new_uri_components.path = "/ENDEVOR/" + utils::encoding::percent_encode_component(end.profile) + "/"
         + utils::encoding::percent_encode_component(end.dsn);
-    if (!m_location.get_uri().empty())
-        new_uri_components.fragment = utils::encoding::uri_friendly_base16_encode(m_location.get_uri());
     utils::resource::resource_location new_uri(utils::path::reconstruct_uri(new_uri_components));
 
     prc_grp.add_library(get_local_library(new_uri, { .optional_library = end.optional }));
 
     return {};
 }
-
-namespace {
-void modify_hlasm_external_uri(
-    utils::resource::resource_location& rl, const utils::resource::resource_location& workspace)
-{
-    auto rl_uri = rl.get_uri();
-    if (!rl_uri.starts_with(external_uri_scheme))
-        return;
-
-    // mainly to support testing, but could be useful in general
-    // hlasm-external:/path... is transformed into hlasm-external:/path...#<friendly workspace uri>
-    utils::path::dissected_uri uri_components = utils::path::dissect_uri(rl_uri);
-    if (uri_components.scheme == external_uri_scheme && !uri_components.fragment.has_value()
-        && !workspace.get_uri().empty())
-    {
-        uri_components.fragment = utils::encoding::uri_friendly_base16_encode(workspace.get_uri());
-        rl = utils::resource::resource_location(utils::path::reconstruct_uri(uri_components));
-    }
-}
-} // namespace
 
 utils::task workspace_configuration::process_processor_group_library(const config::library& lib,
     const utils::resource::resource_location& alternative_root,
@@ -465,7 +439,6 @@ utils::task workspace_configuration::process_processor_group_library(const confi
 
     if (auto first_wild_card = rl.get_uri().find_first_of("*?"); first_wild_card == std::string::npos)
     {
-        modify_hlasm_external_uri(rl, m_location);
         prc_grp.add_library(get_local_library(rl, lib_local_opts));
         return {};
     }
