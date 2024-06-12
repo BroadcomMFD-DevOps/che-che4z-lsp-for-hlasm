@@ -23,6 +23,7 @@
 #include "utils/resource_location.h"
 #include "workspaces/file_manager_impl.h"
 #include "workspaces/workspace.h"
+#include "workspaces/workspace_configuration.h"
 
 using namespace hlasm_plugin::parser_library;
 using namespace hlasm_plugin::parser_library::workspaces;

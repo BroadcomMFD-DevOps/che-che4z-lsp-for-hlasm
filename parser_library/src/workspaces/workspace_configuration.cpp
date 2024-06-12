@@ -944,7 +944,8 @@ utils::value_task<parse_config_file_result> workspace_configuration::parse_confi
 utils::value_task<std::optional<std::vector<index_t<processor_group, unsigned long long>>>>
 workspace_configuration::refresh_libraries(const std::vector<utils::resource::resource_location>& file_locations)
 {
-    std::optional<std::vector<index_t<processor_group, unsigned long long>>> result;
+    using return_type = std::optional<std::vector<index_t<processor_group, unsigned long long>>>;
+    return_type result;
     std::unordered_set<utils::resource::resource_location, utils::resource::resource_location_hasher> no_filename_rls;
 
     for (const auto& file_loc : file_locations)
@@ -959,9 +960,9 @@ workspace_configuration::refresh_libraries(const std::vector<utils::resource::re
         for (const auto& [_, proc_grp] : m_proc_grps)
             result->emplace_back(proc_grp.second);
 
-        co_await parse_configuration_file();
-
-        co_return result;
+        return parse_configuration_file()
+            .then([](auto) {})
+            .then(utils::value_task<return_type>::from_value(std::move(result)));
     }
 
     std::vector<utils::task> pending_refreshes;
@@ -993,10 +994,8 @@ workspace_configuration::refresh_libraries(const std::vector<utils::resource::re
             }(proc_grp));
     }
 
-    for (auto& r : pending_refreshes)
-        co_await std::move(r);
-
-    co_return result;
+    return utils::task::wait_all(std::move(pending_refreshes))
+        .then(utils::value_task<return_type>::from_value(std::move(result)));
 }
 
 const processor_group* workspace_configuration::get_proc_grp_by_program(const program& pgm) const

@@ -41,7 +41,6 @@
 #include "semantics/highlighting_info.h"
 #include "utils/resource_location.h"
 #include "utils/task.h"
-#include "workspace_configuration.h"
 
 namespace hlasm_plugin::parser_library {
 struct completion_item;
@@ -76,7 +75,7 @@ public:
     using resource_location = utils::resource::resource_location;
     using resource_location_hasher = utils::resource::resource_location_hasher;
 
-    workspace(file_manager& file_manager, workspace_configuration& configuration);
+    workspace(file_manager& file_manager, configuration_provider& configuration);
 
     workspace(const workspace& ws) = delete;
     workspace& operator=(const workspace&) = delete;
@@ -144,7 +143,7 @@ private:
 
     lib_config get_config() const;
 
-    workspace_configuration& m_configuration;
+    configuration_provider& m_configuration;
 
     struct dependency_cache
     {
