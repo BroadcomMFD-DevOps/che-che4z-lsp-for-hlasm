@@ -383,9 +383,9 @@ TEST(workspace, pgm_conf_with_substitutions)
 
     using hlasm_plugin::utils::resource::resource_location;
 
-    auto opts = ws_cfg.get_analyzer_configuration(resource_location::join(test_loc, "file_name")).run().value().opts;
+    auto [cfg, _] = ws_cfg.get_analyzer_configuration(resource_location::join(test_loc, "file_name")).run().value();
 
-    EXPECT_EQ(opts.sysparm, "DEBUGDEBUG");
+    EXPECT_EQ(cfg.opts.sysparm, "DEBUGDEBUG");
 }
 
 TEST(workspace, missing_substitutions)

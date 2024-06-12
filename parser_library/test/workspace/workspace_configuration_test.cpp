@@ -321,7 +321,7 @@ TEST(workspace_configuration, refresh_settings)
     auto file_name = resource_location::join(test_loc, "file_name");
     auto different_file = resource_location::join(test_loc, "different_file");
 
-    EXPECT_EQ(ws_cfg.get_analyzer_configuration(file_name).run().value().opts.sysparm, "DEBUGDEBUG");
+    EXPECT_EQ(ws_cfg.get_analyzer_configuration(file_name).run().value().first.opts.sysparm, "DEBUGDEBUG");
     EXPECT_FALSE(ws_cfg.settings_updated());
 
     global_settings = std::make_shared<const nlohmann::json>(
@@ -329,8 +329,8 @@ TEST(workspace_configuration, refresh_settings)
     EXPECT_TRUE(ws_cfg.settings_updated());
     EXPECT_EQ(ws_cfg.parse_configuration_file().run().value(), parse_config_file_result::parsed);
 
-    EXPECT_EQ(ws_cfg.get_analyzer_configuration(file_name).run().value().opts.sysparm, "");
-    EXPECT_EQ(ws_cfg.get_analyzer_configuration(different_file).run().value().opts.sysparm, "RELEASERELEASE");
+    EXPECT_EQ(ws_cfg.get_analyzer_configuration(file_name).run().value().first.opts.sysparm, "");
+    EXPECT_EQ(ws_cfg.get_analyzer_configuration(different_file).run().value().first.opts.sysparm, "RELEASERELEASE");
 }
 
 using hlasm_plugin::utils::platform::is_windows;
@@ -534,7 +534,7 @@ TEST(workspace_configuration, load_config_synthetic)
     ASSERT_TRUE(pg4);
     check_process_group(*pg4, expected2);
 
-    auto analyzer_opts = ws_cfg.get_analyzer_configuration(pgm1_loc).run().value();
+    auto [analyzer_opts, _] = ws_cfg.get_analyzer_configuration(pgm1_loc).run().value();
 
     // test of asm_options
     EXPECT_EQ("SEVEN", analyzer_opts.opts.sysparm);
@@ -544,17 +544,17 @@ TEST(workspace_configuration, load_config_synthetic)
     EXPECT_TRUE(pp_options.size() == 1 && std::holds_alternative<db2_preprocessor_options>(pp_options.front()));
 
     // test of asm_options override
-    auto analyzer_opts_override = ws_cfg.get_analyzer_configuration(pgm_override_loc).run().value();
+    auto [analyzer_opts_override, __] = ws_cfg.get_analyzer_configuration(pgm_override_loc).run().value();
     EXPECT_EQ("SEVEN", analyzer_opts_override.opts.sysparm);
     EXPECT_EQ("PROFILE OVERRIDE", analyzer_opts_override.opts.profile);
 
     // test sysin options in workspace
-    auto asm_options_ws = ws_cfg.get_analyzer_configuration(pgm_anything_loc).run().value().opts;
+    auto asm_options_ws = ws_cfg.get_analyzer_configuration(pgm_anything_loc).run().value().first.opts;
     EXPECT_EQ(asm_options_ws.sysin_dsn, "pgms");
     EXPECT_EQ(asm_options_ws.sysin_member, "anything");
 
     // test sysin options out of workspace
-    auto asm_options_ows = ws_cfg.get_analyzer_configuration(pgm_outside_ws).run().value().opts;
+    auto asm_options_ows = ws_cfg.get_analyzer_configuration(pgm_outside_ws).run().value().first.opts;
     EXPECT_EQ(asm_options_ows.sysin_dsn, is_windows() ? "c:\\Users\\outside" : "/home/user/outside");
     EXPECT_EQ(asm_options_ows.sysin_member, "anything");
 }

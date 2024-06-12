@@ -1115,7 +1115,8 @@ class workspace_manager_impl final : public workspace_manager,
         work_item wi {
             next_unique_id(),
             ows,
-            ows->config.get_analyzer_configuration(std::move(uri)).then([this, conf](auto c) {
+            ows->config.get_analyzer_configuration(std::move(uri)).then([this, conf](auto r) {
+                auto& [c, _] = r;
                 conf.provide({
                     .fm = &m_file_manager,
                     .libraries = std::move(c.libraries),

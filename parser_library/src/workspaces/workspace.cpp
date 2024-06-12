@@ -496,10 +496,8 @@ void workspace::retrieve_fade_messages(std::vector<fade_message>& fms) const
                 return opened_files_uris.contains(fmsg.uri);
             });
 
-        bool take_also_opencode_hc = true;
-        if (const auto& pf_rl = proc_file_component.m_file->get_location();
-            !m_configuration.get_proc_grp(pf_rl) && is_dependency(pf_rl))
-            take_also_opencode_hc = false;
+        bool take_also_opencode_hc =
+            proc_file_component.m_group_id || !is_dependency(proc_file_component.m_file->get_location());
 
         for (const auto& [__, opened_file_rl] : opened_files_uris)
         {
@@ -575,7 +573,7 @@ utils::value_task<parse_file_result> workspace::parse_file(const resource_locati
     return [](processor_file_compoments& comp, workspace& self) -> utils::value_task<parse_file_result> {
         const auto& url = comp.m_file->get_location();
 
-        auto config = co_await self.m_configuration.get_analyzer_configuration(url);
+        auto [config, proc_grp_id] = co_await self.m_configuration.get_analyzer_configuration(url);
 
         comp.m_alternative_config = std::move(config.alternative_config_url);
         workspace_parse_lib_provider ws_lib(self.file_manager_, self, std::move(config.libraries), comp);
@@ -599,8 +597,9 @@ utils::value_task<parse_file_result> workspace::parse_file(const resource_locati
         std::set<resource_location> files_to_close;
         ws_lib.append_files_to_close(files_to_close);
 
-        auto parse_results =
-            self.parse_successful(comp, std::move(ws_lib), config.processor_group_found, config.dig_suppress_limit);
+        auto parse_results = self.parse_successful(comp, std::move(ws_lib), !!proc_grp_id, config.dig_suppress_limit);
+
+        comp.m_group_id = proc_grp_id;
 
         self.filter_and_close_dependencies(std::move(files_to_close));
 
@@ -762,7 +761,7 @@ utils::task workspace::did_close_file(resource_location file_location)
 
 utils::task workspace::did_change_watched_files(std::vector<resource_location> file_locations,
     std::vector<file_content_state> file_change_status,
-    std::optional<std::vector<const processor_group*>> changed_groups)
+    std::optional<std::vector<index_t<processor_group, unsigned long long>>> changed_groups)
 {
     assert(file_locations.size() == file_change_status.size());
 
@@ -785,9 +784,8 @@ utils::task workspace::did_change_watched_files(std::vector<resource_location> f
             if (!comp.m_opened)
                 continue;
 
-            auto loc = comp.m_file->get_location();
-            if (std::ranges::find(*changed_groups, m_configuration.get_proc_grp(loc)) != changed_groups->end())
-                m_parsing_pending.emplace(std::move(loc));
+            if (std::ranges::find(*changed_groups, comp.m_group_id) != changed_groups->end())
+                m_parsing_pending.emplace(comp.m_file->get_location());
         }
     }
     return utils::task::wait_all(std::move(pending_updates));
@@ -1007,18 +1005,11 @@ std::vector<std::pair<std::string, size_t>> workspace::make_opcode_suggestion(
     for (auto& c : opcode)
         c = static_cast<char>(std::toupper((unsigned char)c));
 
-    std::vector<std::pair<std::string, size_t>> result;
-    asm_option opts;
+    auto [opts, proc_grp] = m_configuration.get_opcode_suggestion_data(file);
 
-    if (auto pgm = m_configuration.get_program(file))
-    {
-        if (auto proc_grp = m_configuration.get_proc_grp_by_program(*pgm); proc_grp)
-        {
-            proc_grp->apply_options_to(opts);
-            result = proc_grp->suggest(opcode, extended);
-        }
-        pgm->asm_opts.apply_options_to(opts);
-    }
+    std::vector<std::pair<std::string, size_t>> result;
+    if (proc_grp)
+        result = proc_grp->suggest(opcode, extended);
 
     for (auto&& s : generate_instruction_suggestions(opcode, opts.instr_set, extended))
         result.emplace_back(std::move(s));

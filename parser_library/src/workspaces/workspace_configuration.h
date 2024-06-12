@@ -39,6 +39,7 @@
 #include "utils/resource_location.h"
 #include "utils/task.h"
 #include "workspaces/configuration_datatypes.h"
+#include "workspaces/configuration_provider.h"
 
 namespace hlasm_plugin::parser_library {
 struct asm_option;
@@ -170,7 +171,7 @@ public:
     }
 };
 
-class workspace_configuration
+class workspace_configuration : public configuration_provider
 {
     static constexpr const char FILENAME_PROC_GRPS[] = "proc_grps.json";
     static constexpr const char FILENAME_PGM_CONF[] = "pgm_conf.json";
@@ -307,8 +308,8 @@ public:
     processor_group* get_proc_grp_by_program(const program& p);
 
     bool settings_updated() const;
-    [[nodiscard]] utils::value_task<std::optional<std::vector<const processor_group*>>> refresh_libraries(
-        const std::vector<utils::resource::resource_location>& file_locations);
+    [[nodiscard]] utils::value_task<std::optional<std::vector<index_t<processor_group, unsigned long long>>>>
+    refresh_libraries(const std::vector<utils::resource::resource_location>& file_locations);
 
     void produce_diagnostics(
         std::vector<diagnostic>& target, const configuration_diagnostics_parameters& config_diag_params) const;
@@ -322,17 +323,9 @@ public:
 
     void prune_external_processor_groups(const utils::resource::resource_location& location);
 
-    struct analyzer_configuration
-    {
-        std::vector<std::shared_ptr<workspaces::library>> libraries;
-        asm_option opts;
-        std::vector<preprocessor_options> pp_opts;
-        utils::resource::resource_location alternative_config_url;
-        bool processor_group_found;
-        std::int64_t dig_suppress_limit;
-    };
-    [[nodiscard]] utils::value_task<analyzer_configuration> get_analyzer_configuration(
-        utils::resource::resource_location url);
+    [[nodiscard]] utils::value_task<std::pair<analyzer_configuration, index_t<processor_group, unsigned long long>>>
+    get_analyzer_configuration(utils::resource::resource_location url) override;
+    [[nodiscard]] opcode_suggestion_data get_opcode_suggestion_data(utils::resource::resource_location url) override;
 };
 
 } // namespace hlasm_plugin::parser_library::workspaces

@@ -29,6 +29,7 @@
 #include <vector>
 
 #include "branch_info.h"
+#include "configuration_provider.h"
 #include "debugging/debugger_configuration.h"
 #include "diagnosable_impl.h"
 #include "file_manager_vfm.h"
@@ -95,7 +96,7 @@ public:
     [[nodiscard]] utils::task did_close_file(resource_location file_location);
     [[nodiscard]] utils::task did_change_watched_files(std::vector<resource_location> file_locations,
         std::vector<file_content_state> file_change_status,
-        std::optional<std::vector<const processor_group*>> changed_groups);
+        std::optional<std::vector<index_t<processor_group, unsigned long long>>> changed_groups);
 
     [[nodiscard]] utils::value_task<parse_file_result> parse_file(
         const resource_location& preferred_file = resource_location());
@@ -169,9 +170,11 @@ private:
         bool m_opened = false;
         bool m_collect_perf_metrics = false;
 
-        std::shared_ptr<context::id_storage> m_last_opencode_id_storage;
         bool m_last_opencode_analyzer_with_lsp = false;
         bool m_last_macro_analyzer_with_lsp = false;
+        std::shared_ptr<context::id_storage> m_last_opencode_id_storage;
+
+        index_t<processor_group, unsigned long long> m_group_id;
 
         explicit processor_file_compoments(std::shared_ptr<file> file);
         processor_file_compoments(const processor_file_compoments&) = delete;
