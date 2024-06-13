@@ -233,7 +233,6 @@ export class HLASMExternalFiles {
         instance: null,
         details: null,
         server: null,
-        associatedWorkspaceFragment: null,
     });
 
     private async extractUriDetails<ConnectArgs, ReadArgs extends ClientUriDetails, ListArgs extends ClientUriDetails>(uri: vscode.Uri, rawUri: string, purpose: ExternalRequestType): Promise<{
@@ -242,21 +241,18 @@ export class HLASMExternalFiles {
         instance: null;
         details: null;
         server: null;
-        associatedWorkspaceFragment: null;
     } | {
         cacheKey: string;
         service: string;
         instance: ClientInstance<ConnectArgs, ReadArgs, ListArgs>;
         details: ExternalRequestDetails<ReadArgs, ListArgs>[typeof purpose],
         server: ConnectArgs;
-        associatedWorkspaceFragment: string;
     } | {
         cacheKey: string;
         service: string;
         instance: null;
         details: null;
         server: null;
-        associatedWorkspaceFragment: string;
     }> {
         // skip schema, skip :, skip optional //server, extract service, extract path, end on query or fragment
         const rawPathParser = /^[^:/?#]+:(?:\/\/[^/?#]*)?\/([A-Z]+)(\/[^#?]*)?(?:[?#]|$)/;
@@ -280,7 +276,6 @@ export class HLASMExternalFiles {
                 instance: instance,
                 details: details,
                 server: server,
-                associatedWorkspaceFragment: uri.fragment
             };
         }
         else
@@ -290,7 +285,6 @@ export class HLASMExternalFiles {
                 instance: null,
                 details: null,
                 server: null,
-                associatedWorkspaceFragment: uri.fragment
             };
     }
 
@@ -525,7 +519,7 @@ export class HLASMExternalFiles {
         responseTransform: (result: T, pathTransform: (p: string) => string) => (T extends string[] ? ExternalListDirectoryResponse : ExternalReadFileResponse)['data']):
         Promise<(T extends string[] ? ExternalListDirectoryResponse : ExternalReadFileResponse) | ExternalErrorResponse | null> {
         if (msg.op !== ExternalRequestType.read_file && msg.op !== ExternalRequestType.list_directory) throw Error("");
-        const { cacheKey, service, instance, details, server, associatedWorkspaceFragment } = await this.extractUriDetails<ConnectArgs, ReadArgs, ListArgs>(uri, msg.url, msg.op);
+        const { cacheKey, service, instance, details, server } = await this.extractUriDetails<ConnectArgs, ReadArgs, ListArgs>(uri, msg.url, msg.op);
         if (!cacheKey || instance && !details)
             return this.generateError(msg.id, -5, 'Invalid request');
 

@@ -521,7 +521,7 @@ class workspace_manager_impl final : public workspace_manager,
             }
             proc_grps->insert(proc_grps->end(), r->begin(), r->end());
         };
-        auto& [paths, changes] = *paths_for_ws;
+        const auto& [paths, changes] = *paths_for_ws;
         std::vector<utils::task> tasks;
         tasks.reserve(1 + m_workspaces.size());
         tasks.emplace_back(m_implicit_workspace.config.refresh_libraries(paths).then(updater));
@@ -533,11 +533,11 @@ class workspace_manager_impl final : public workspace_manager,
         co_return proc_grps;
     }
 
-    void did_change_watched_files(std::span<const fs_change> changes) override
+    void did_change_watched_files(std::span<const fs_change> fs_changes) override
     {
         auto paths_for_ws =
             std::make_shared<std::pair<std::vector<resource_location>, std::vector<workspaces::file_content_state>>>();
-        for (const auto& change : changes)
+        for (const auto& change : fs_changes)
             paths_for_ws->first.emplace_back(normalized_uri(change.uri));
 
         m_work_queue.emplace_back(work_item {
@@ -787,7 +787,7 @@ class workspace_manager_impl final : public workspace_manager,
         const auto usage = m_ws.report_configuration_file_usage();
 
         m_implicit_workspace.config.produce_diagnostics(m_diagnostics, usage, m_include_advisory_cfg_diags);
-        for (auto& [_, ows] : m_workspaces)
+        for (const auto& [_, ows] : m_workspaces)
             ows.config.produce_diagnostics(m_diagnostics, usage, m_include_advisory_cfg_diags);
     }
 

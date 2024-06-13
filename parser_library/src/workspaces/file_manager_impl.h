@@ -93,10 +93,10 @@ private:
     {
         std::string text;
 
-        virtual_file_entry(std::string_view text)
+        explicit virtual_file_entry(std::string_view text)
             : text(text)
         {}
-        virtual_file_entry(std::string text)
+        explicit virtual_file_entry(std::string text)
             : text(std::move(text))
         {}
     };
