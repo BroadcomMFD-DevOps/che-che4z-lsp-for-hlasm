@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Broadcom.
+ * Copyright (c) 2024 Broadcom.
  * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program and the accompanying materials are made
@@ -54,7 +54,8 @@ public:
     [[nodiscard]] virtual utils::value_task<
         std::pair<analyzer_configuration, index_t<processor_group, unsigned long long>>>
     get_analyzer_configuration(utils::resource::resource_location url) = 0;
-    [[nodiscard]] virtual opcode_suggestion_data get_opcode_suggestion_data(utils::resource::resource_location url) = 0;
+    [[nodiscard]] virtual opcode_suggestion_data get_opcode_suggestion_data(
+        const utils::resource::resource_location& url) = 0;
 };
 
 } // namespace hlasm_plugin::parser_library::workspaces

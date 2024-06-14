@@ -81,7 +81,7 @@ std::vector<diagnostic> change_config_and_reparse(file_manager& fm,
     parse_all_files(ws);
 
     std::vector<diagnostic> result;
-    cfg.produce_diagnostics(result, ws.report_configuration_file_usage(), false);
+    cfg.produce_diagnostics(result, ws.report_used_configuration_files(), false);
     ws.produce_diagnostics(result);
     return result;
 }
@@ -99,7 +99,7 @@ std::vector<diagnostic> change_source_and_reparse(file_manager& fm,
     parse_all_files(ws);
 
     std::vector<diagnostic> result;
-    cfg.produce_diagnostics(result, ws.report_configuration_file_usage(), false);
+    cfg.produce_diagnostics(result, ws.report_used_configuration_files(), false);
     ws.produce_diagnostics(result);
     return result;
 }
@@ -107,7 +107,7 @@ std::vector<diagnostic> change_source_and_reparse(file_manager& fm,
 std::vector<diagnostic> gather_advisory_diags(workspace& ws, workspace_configuration& cfg)
 {
     std::vector<diagnostic> result;
-    cfg.produce_diagnostics(result, ws.report_configuration_file_usage(), true);
+    cfg.produce_diagnostics(result, ws.report_used_configuration_files(), true);
     ws.produce_diagnostics(result);
     return result;
 }
@@ -170,7 +170,7 @@ std::vector<diagnostic> open_parse_and_recollect_diags(workspace& ws,
 
     std::vector<diagnostic> result;
 
-    cfg.produce_diagnostics(result, ws.report_configuration_file_usage(), false);
+    cfg.produce_diagnostics(result, ws.report_used_configuration_files(), false);
     ws.produce_diagnostics(result);
 
     return result;
@@ -186,7 +186,7 @@ std::vector<diagnostic> close_parse_and_recollect_diags(workspace& ws,
 
     std::vector<diagnostic> result;
 
-    cfg.produce_diagnostics(result, ws.report_configuration_file_usage(), advisory);
+    cfg.produce_diagnostics(result, ws.report_used_configuration_files(), advisory);
     ws.produce_diagnostics(result);
 
     return result;

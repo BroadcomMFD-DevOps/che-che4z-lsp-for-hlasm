@@ -318,7 +318,8 @@ public:
 
     [[nodiscard]] utils::value_task<std::pair<analyzer_configuration, index_t<processor_group, unsigned long long>>>
     get_analyzer_configuration(utils::resource::resource_location url) override;
-    [[nodiscard]] opcode_suggestion_data get_opcode_suggestion_data(utils::resource::resource_location url) override;
+    [[nodiscard]] opcode_suggestion_data get_opcode_suggestion_data(
+        const utils::resource::resource_location& url) override;
 };
 
 } // namespace hlasm_plugin::parser_library::workspaces

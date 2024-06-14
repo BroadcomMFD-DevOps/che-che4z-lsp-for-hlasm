@@ -129,7 +129,7 @@ public:
     std::unordered_map<utils::resource::resource_location,
         std::vector<utils::resource::resource_location>,
         utils::resource::resource_location_hasher>
-    report_configuration_file_usage() const;
+    report_used_configuration_files() const;
 
 private:
     file_manager& file_manager_;

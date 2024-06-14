@@ -297,7 +297,7 @@ workspace::~workspace() = default;
 std::unordered_map<utils::resource::resource_location,
     std::vector<utils::resource::resource_location>,
     utils::resource::resource_location_hasher>
-workspace::report_configuration_file_usage() const
+workspace::report_used_configuration_files() const
 {
     std::unordered_map<utils::resource::resource_location,
         std::vector<utils::resource::resource_location>,

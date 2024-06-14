@@ -1099,7 +1099,8 @@ void workspace_configuration::prune_external_processor_groups(const utils::resou
     });
 }
 
-opcode_suggestion_data workspace_configuration::get_opcode_suggestion_data(utils::resource::resource_location url)
+opcode_suggestion_data workspace_configuration::get_opcode_suggestion_data(
+    const utils::resource::resource_location& url)
 {
     opcode_suggestion_data result {};
     if (auto pgm = get_program(url))

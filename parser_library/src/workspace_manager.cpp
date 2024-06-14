@@ -787,7 +787,7 @@ class workspace_manager_impl final : public workspace_manager,
             m_diagnostics.emplace_back(info_SUP(utils::resource::resource_location(std::move(node.value()))));
         }
 
-        const auto usage = m_ws.report_configuration_file_usage();
+        const auto usage = m_ws.report_used_configuration_files();
 
         m_implicit_workspace.config.produce_diagnostics(m_diagnostics, usage, m_include_advisory_cfg_diags);
         for (const auto& [_, ows] : m_workspaces)
@@ -1129,10 +1129,10 @@ class workspace_manager_impl final : public workspace_manager,
         return ows->config.get_analyzer_configuration(std::move(url));
     }
     [[nodiscard]] workspaces::opcode_suggestion_data get_opcode_suggestion_data(
-        utils::resource::resource_location url) override
+        const utils::resource::resource_location& url) override
     {
         auto ows = ws_path_match(url);
-        return ows->config.get_opcode_suggestion_data(std::move(url));
+        return ows->config.get_opcode_suggestion_data(url);
     }
 
 public:
