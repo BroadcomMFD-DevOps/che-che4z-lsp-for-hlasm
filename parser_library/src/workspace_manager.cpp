@@ -97,6 +97,7 @@ class workspace_manager_impl final : public workspace_manager,
     };
 
     static constexpr std::string_view hlasm_external_scheme = "hlasm-external:";
+    static constexpr std::string_view hlasm_internal_scheme = "hlasm:";
     static constexpr std::string_view default_allowed_schemes[] = {
         // e4e integration
         "e4e-change-lvl:",
@@ -109,6 +110,7 @@ class workspace_manager_impl final : public workspace_manager,
 
         "file:",
         hlasm_external_scheme,
+        hlasm_internal_scheme,
 
         // e4e integration
         "ndvr:",
@@ -776,7 +778,8 @@ class workspace_manager_impl final : public workspace_manager,
         m_diagnostics.clear();
         m_ws.produce_diagnostics(m_diagnostics);
         std::erase_if(m_diagnostics, [this, &suppress_files](const auto& d) {
-            return !allowed_scheme(d.file_uri) && (suppress_files.emplace(d.file_uri), true);
+            const auto& origin = d.related.empty() ? d.file_uri : d.related.back().location.uri;
+            return !allowed_scheme(origin) && (suppress_files.emplace(d.file_uri), true);
         });
         for (auto it = suppress_files.begin(); it != suppress_files.end();)
         {
