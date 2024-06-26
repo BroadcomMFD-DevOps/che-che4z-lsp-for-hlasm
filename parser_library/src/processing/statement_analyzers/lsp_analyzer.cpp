@@ -268,17 +268,17 @@ void lsp_analyzer::collect_occurrences(
 
     if (auto def_stmt = statement.access_deferred())
     {
-        if (def_stmt->instruction_ref().type != semantics::instruction_si_type::EMPTY)
+        if (def_stmt->instruction.type != semantics::instruction_si_type::EMPTY)
         {
-            const auto& r = def_stmt->stmt_range_ref();
+            const auto& r = def_stmt->stmt_range;
             collect_endline(r, ci);
             collect_usings(r, ci);
             // no section collection for deferred statements
         }
 
-        collect_occurrence(def_stmt->label_ref(), collector);
-        collect_occurrence(def_stmt->instruction_ref(), collector, nullptr);
-        collect_occurrence(def_stmt->deferred_ref(), collector);
+        collect_occurrence(def_stmt->label, collector);
+        collect_occurrence(def_stmt->instruction, collector, nullptr);
+        collect_occurrence(def_stmt->deferred_operands, collector);
     }
     else if (auto res_stmt = statement.access_resolved())
     {

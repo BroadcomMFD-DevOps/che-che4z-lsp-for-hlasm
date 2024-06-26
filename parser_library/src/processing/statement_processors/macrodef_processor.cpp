@@ -203,7 +203,7 @@ bool macrodef_processor::process_statement(const context::hlasm_statement& state
         }
         else if (auto def_stmt = statement.access_deferred())
         {
-            process_sequence_symbol(def_stmt->label_ref());
+            process_sequence_symbol(def_stmt->label);
         }
     }
     return false;

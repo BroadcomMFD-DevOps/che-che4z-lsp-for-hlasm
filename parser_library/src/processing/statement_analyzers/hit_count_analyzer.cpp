@@ -16,6 +16,7 @@
 
 #include <cassert>
 #include <optional>
+#include <tuple>
 #include <variant>
 
 #include "context/hlasm_context.h"
@@ -42,7 +43,7 @@ constexpr auto get_core_stmt = [](const context::hlasm_statement* stmt)
     else if (stmt->kind == context::statement_kind::DEFERRED)
     {
         const auto& def = stmt->access_deferred();
-        return std::tie(def->stmt_range_ref(), def->instruction_ref());
+        return std::tie(def->stmt_range, def->instruction);
     }
 
     return std::nullopt;

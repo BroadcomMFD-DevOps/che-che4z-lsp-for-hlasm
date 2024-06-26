@@ -73,12 +73,7 @@ struct deferred_statement final : public context::hlasm_statement
     std::vector<diagnostic_op> statement_diagnostics;
     size_t operand_diags_start_index;
 
-    const label_si& label_ref() const { return label; }
-    const instruction_si& instruction_ref() const { return instruction; }
-    const deferred_operands_si& deferred_ref() const { return deferred_operands; }
-    const range& stmt_range_ref() const { return stmt_range; }
     position statement_position() const override { return stmt_range.start; }
-
     std::span<const diagnostic_op> diagnostics() const override
     {
         return { statement_diagnostics.data(), statement_diagnostics.data() + statement_diagnostics.size() };
@@ -120,33 +115,6 @@ struct statement_si final : public complete_statement
     std::span<const semantics::literal_si> literals() const override { return collected_literals; }
     const remarks_si& remarks_ref() const override { return remarks; }
     const range& stmt_range_ref() const override { return stmt_range; }
-};
-
-// structure holding deferred statement that is now complete
-struct statement_si_defer_done final : public complete_statement
-{
-    statement_si_defer_done(std::shared_ptr<const deferred_statement> deferred_stmt,
-        operands_si operands,
-        remarks_si remarks,
-        std::vector<semantics::literal_si> collected_literals)
-        : deferred_stmt(std::move(deferred_stmt))
-        , operands(std::move(operands))
-        , remarks(std::move(remarks))
-        , collected_literals(std::move(collected_literals))
-    {}
-
-    std::shared_ptr<const deferred_statement> deferred_stmt;
-
-    operands_si operands;
-    remarks_si remarks;
-    std::vector<semantics::literal_si> collected_literals;
-
-    const label_si& label_ref() const override { return deferred_stmt->label_ref(); }
-    const instruction_si& instruction_ref() const override { return deferred_stmt->instruction_ref(); }
-    const operands_si& operands_ref() const override { return operands; }
-    std::span<const semantics::literal_si> literals() const override { return collected_literals; }
-    const remarks_si& remarks_ref() const override { return remarks; }
-    const range& stmt_range_ref() const override { return deferred_stmt->stmt_range_ref(); }
 };
 
 struct preproc_details
