@@ -209,7 +209,7 @@ context::shared_stmt_ptr collector::extract_statement(processing::processing_sta
         assert(lit_.empty());
         if (!def_)
             def_.emplace(instr_->field_range, 0, "", std::vector<vs_ptr>());
-        return std::make_shared<statement_si_deferred>(union_range(lbl_->field_range, def_->field_range),
+        return std::make_shared<deferred_statement>(union_range(lbl_->field_range, def_->field_range),
             std::move(*lbl_),
             std::move(*instr_),
             std::move(*def_),

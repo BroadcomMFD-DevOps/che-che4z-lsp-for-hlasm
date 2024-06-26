@@ -45,37 +45,18 @@ protected:
     ~complete_statement() = default;
 };
 
-// statement with deferred operand and remark field
-struct deferred_statement : public context::hlasm_statement
-{
-    virtual const range& stmt_range_ref() const = 0;
-    virtual const label_si& label_ref() const = 0;
-    virtual const instruction_si& instruction_ref() const = 0;
-
-    virtual const deferred_operands_si& deferred_ref() const = 0;
-
-    position statement_position() const override { return stmt_range_ref().start; }
-
-    virtual std::span<const diagnostic_op> diagnostics_without_operands() const = 0;
-
-protected:
-    deferred_statement()
-        : context::hlasm_statement(context::statement_kind::DEFERRED)
-    {}
-    ~deferred_statement() = default;
-};
-
 // implementation of deferred statement
 // struct holding deferred semantic information (si) about whole instruction statement, whole logical line
-struct statement_si_deferred final : public deferred_statement
+struct deferred_statement final : public context::hlasm_statement
 {
-    statement_si_deferred(range stmt_range,
+    deferred_statement(range stmt_range,
         label_si label,
         instruction_si instruction,
         deferred_operands_si deferred_operands,
         std::vector<diagnostic_op>&& diags,
         size_t operand_diags_start_index)
-        : stmt_range(std::move(stmt_range))
+        : context::hlasm_statement(context::statement_kind::DEFERRED)
+        , stmt_range(std::move(stmt_range))
         , label(std::move(label))
         , instruction(std::move(instruction))
         , deferred_operands(std::move(deferred_operands))
@@ -92,16 +73,17 @@ struct statement_si_deferred final : public deferred_statement
     std::vector<diagnostic_op> statement_diagnostics;
     size_t operand_diags_start_index;
 
-    const label_si& label_ref() const override { return label; }
-    const instruction_si& instruction_ref() const override { return instruction; }
-    const deferred_operands_si& deferred_ref() const override { return deferred_operands; }
-    const range& stmt_range_ref() const override { return stmt_range; }
+    const label_si& label_ref() const { return label; }
+    const instruction_si& instruction_ref() const { return instruction; }
+    const deferred_operands_si& deferred_ref() const { return deferred_operands; }
+    const range& stmt_range_ref() const { return stmt_range; }
+    position statement_position() const override { return stmt_range.start; }
 
     std::span<const diagnostic_op> diagnostics() const override
     {
         return { statement_diagnostics.data(), statement_diagnostics.data() + statement_diagnostics.size() };
     }
-    std::span<const diagnostic_op> diagnostics_without_operands() const override
+    std::span<const diagnostic_op> diagnostics_without_operands() const
     {
         return { statement_diagnostics.data(), statement_diagnostics.data() + operand_diags_start_index };
     }
