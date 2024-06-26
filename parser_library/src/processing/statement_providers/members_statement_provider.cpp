@@ -108,9 +108,9 @@ const semantics::instruction_si* members_statement_provider::retrieve_instructio
             return nullptr;
     }
 }
-namespace {
+
 // structure holding deferred statement that is now complete
-struct statement_si_defer_done final : public semantics::complete_statement
+struct statement_si_defer_done final
 {
     statement_si_defer_done(std::shared_ptr<const semantics::deferred_statement> deferred_stmt,
         semantics::operands_si operands,
@@ -127,16 +127,7 @@ struct statement_si_defer_done final : public semantics::complete_statement
     semantics::operands_si operands;
     semantics::remarks_si remarks;
     std::vector<semantics::literal_si> collected_literals;
-
-    const semantics::label_si& label_ref() const override { return deferred_stmt->label; }
-    const semantics::instruction_si& instruction_ref() const override { return deferred_stmt->instruction; }
-    const semantics::operands_si& operands_ref() const override { return operands; }
-    std::span<const semantics::literal_si> literals() const override { return collected_literals; }
-    const semantics::remarks_si& remarks_ref() const override { return remarks; }
-    const range& stmt_range_ref() const override { return deferred_stmt->stmt_range; }
 };
-
-} // namespace
 
 const context::statement_cache::cached_statement_t& members_statement_provider::fill_cache(
     context::statement_cache& cache,
@@ -172,6 +163,28 @@ const context::statement_cache::cached_statement_t& members_statement_provider::
     return cache.insert(processing_status_cache_key(status), std::move(reparsed_stmt));
 }
 
+struct deferred_statement_adapter final : public resolved_statement
+{
+    deferred_statement_adapter(std::shared_ptr<const statement_si_defer_done> base_stmt, processing_status status)
+        : base_stmt(std::move(base_stmt))
+        , status(std::move(status))
+    {}
+
+    std::shared_ptr<const statement_si_defer_done> base_stmt;
+    processing_status status;
+
+    const semantics::label_si& label_ref() const override { return base_stmt->deferred_stmt->label; }
+    const semantics::instruction_si& instruction_ref() const override { return base_stmt->deferred_stmt->instruction; }
+    const semantics::operands_si& operands_ref() const override { return base_stmt->operands; }
+    const semantics::remarks_si& remarks_ref() const override { return base_stmt->remarks; }
+    const range& stmt_range_ref() const override { return base_stmt->deferred_stmt->stmt_range; }
+    std::span<const semantics::literal_si> literals() const override { return base_stmt->collected_literals; }
+    const op_code& opcode_ref() const override { return status.second; }
+    processing_format format_ref() const override { return status.first; }
+    std::span<const diagnostic_op> diagnostics() const override { return {}; }
+};
+
+
 context::shared_stmt_ptr members_statement_provider::preprocess_deferred(const statement_processor& processor,
     context::statement_cache& cache,
     processing_status status,
@@ -191,7 +204,7 @@ context::shared_stmt_ptr members_statement_provider::preprocess_deferred(const s
             m_diagnoser.add_diagnostic(diag);
     }
 
-    return std::make_shared<resolved_statement_impl>(cache_item->stmt, status);
+    return std::make_shared<deferred_statement_adapter>(cache_item->stmt, status);
 }
 
 } // namespace hlasm_plugin::parser_library::processing

@@ -41,38 +41,6 @@ protected:
     ~resolved_statement() = default;
 };
 
-struct resolved_statement_impl final : public resolved_statement
-{
-    resolved_statement_impl(std::shared_ptr<const semantics::complete_statement> base_stmt, processing_status status)
-        : base_stmt(std::move(base_stmt))
-        , status(std::move(status))
-    {}
-    resolved_statement_impl(std::shared_ptr<const semantics::complete_statement> base_stmt,
-        processing_status status,
-        std::vector<diagnostic_op>&& diags)
-        : base_stmt(std::move(base_stmt))
-        , status(std::move(status))
-        , statement_diagnostics(std::make_move_iterator(diags.begin()), std::make_move_iterator(diags.end()))
-    {}
-
-    std::shared_ptr<const semantics::complete_statement> base_stmt;
-    processing_status status;
-    std::vector<diagnostic_op> statement_diagnostics;
-
-    const semantics::label_si& label_ref() const override { return base_stmt->label_ref(); }
-    const semantics::instruction_si& instruction_ref() const override { return base_stmt->instruction_ref(); }
-    const semantics::operands_si& operands_ref() const override { return base_stmt->operands_ref(); }
-    const semantics::remarks_si& remarks_ref() const override { return base_stmt->remarks_ref(); }
-    const range& stmt_range_ref() const override { return base_stmt->stmt_range_ref(); }
-    std::span<const semantics::literal_si> literals() const override { return base_stmt->literals(); }
-    const op_code& opcode_ref() const override { return status.second; }
-    processing_format format_ref() const override { return status.first; }
-    std::span<const diagnostic_op> diagnostics() const override
-    {
-        return { statement_diagnostics.data(), statement_diagnostics.data() + statement_diagnostics.size() };
-    }
-};
-
 // statement used for preprocessing of resolved statements
 struct rebuilt_statement final : public resolved_statement
 {
