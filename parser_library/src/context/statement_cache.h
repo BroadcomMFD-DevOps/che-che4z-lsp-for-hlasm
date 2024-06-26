@@ -46,9 +46,7 @@ private:
 public:
     statement_cache(shared_stmt_ptr base);
 
-    bool contains(processing::processing_status_cache_key key) const;
-
-    void insert(processing::processing_status_cache_key key, cached_statement_t statement);
+    const cached_statement_t& insert(processing::processing_status_cache_key key, cached_statement_t statement);
 
     const cached_statement_t* get(processing::processing_status_cache_key key) const;
 

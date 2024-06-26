@@ -109,7 +109,8 @@ const semantics::instruction_si* members_statement_provider::retrieve_instructio
     }
 }
 
-void members_statement_provider::fill_cache(context::statement_cache& cache,
+const context::statement_cache::cached_statement_t& members_statement_provider::fill_cache(
+    context::statement_cache& cache,
     std::shared_ptr<const semantics::deferred_statement> def_stmt,
     const processing_status& status)
 {
@@ -139,7 +140,7 @@ void members_statement_provider::fill_cache(context::statement_cache& cache,
         reparsed_stmt.stmt = std::make_shared<semantics::statement_si_defer_done>(
             std::move(def_stmt), std::move(op), std::move(rem), std::move(lits));
     }
-    cache.insert(processing_status_cache_key(status), std::move(reparsed_stmt));
+    return cache.insert(processing_status_cache_key(status), std::move(reparsed_stmt));
 }
 
 context::shared_stmt_ptr members_statement_provider::preprocess_deferred(const statement_processor& processor,
@@ -151,10 +152,9 @@ context::shared_stmt_ptr members_statement_provider::preprocess_deferred(const s
 
     processing_status_cache_key key(status);
 
-    if (!cache.contains(key))
-        fill_cache(cache, { std::move(base_stmt), &def_stmt }, status);
-
-    const auto& cache_item = cache.get(key);
+    const auto* cache_item = cache.get(key);
+    if (!cache_item)
+        cache_item = &fill_cache(cache, { std::move(base_stmt), &def_stmt }, status);
 
     if (processor.kind != processing_kind::LOOKAHEAD)
     {
