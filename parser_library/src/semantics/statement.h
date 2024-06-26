@@ -84,39 +84,6 @@ struct deferred_statement final : public context::hlasm_statement
     }
 };
 
-// struct holding full semantic information (si) about whole instruction statement, whole logical line
-struct statement_si final : public complete_statement
-{
-    statement_si(range stmt_range,
-        label_si label,
-        instruction_si instruction,
-        operands_si operands,
-        remarks_si remarks,
-        std::vector<semantics::literal_si> collected_literals)
-        : stmt_range(std::move(stmt_range))
-        , label(std::move(label))
-        , instruction(std::move(instruction))
-        , operands(std::move(operands))
-        , remarks(std::move(remarks))
-        , collected_literals(std::move(collected_literals))
-    {}
-
-    range stmt_range;
-
-    label_si label;
-    instruction_si instruction;
-    operands_si operands;
-    remarks_si remarks;
-    std::vector<semantics::literal_si> collected_literals;
-
-    const label_si& label_ref() const override { return label; }
-    const instruction_si& instruction_ref() const override { return instruction; }
-    const operands_si& operands_ref() const override { return operands; }
-    std::span<const semantics::literal_si> literals() const override { return collected_literals; }
-    const remarks_si& remarks_ref() const override { return remarks; }
-    const range& stmt_range_ref() const override { return stmt_range; }
-};
-
 struct preproc_details
 {
     struct name_range
