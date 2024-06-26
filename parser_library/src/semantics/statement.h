@@ -31,20 +31,6 @@
 
 namespace hlasm_plugin::parser_library::semantics {
 
-// statement with all fields
-struct complete_statement
-{
-    virtual const range& stmt_range_ref() const = 0;
-    virtual const label_si& label_ref() const = 0;
-    virtual const instruction_si& instruction_ref() const = 0;
-    virtual const operands_si& operands_ref() const = 0;
-    virtual const remarks_si& remarks_ref() const = 0;
-    virtual std::span<const literal_si> literals() const = 0;
-
-protected:
-    ~complete_statement() = default;
-};
-
 // implementation of deferred statement
 // struct holding deferred semantic information (si) about whole instruction statement, whole logical line
 struct deferred_statement final : public context::hlasm_statement

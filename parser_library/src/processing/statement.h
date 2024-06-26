@@ -26,8 +26,15 @@
 namespace hlasm_plugin::parser_library::processing {
 
 // statement that contains resolved operation code and also all semantic fields
-struct resolved_statement : public context::hlasm_statement, public semantics::complete_statement
+struct resolved_statement : public context::hlasm_statement
 {
+    virtual const range& stmt_range_ref() const = 0;
+    virtual const semantics::label_si& label_ref() const = 0;
+    virtual const semantics::instruction_si& instruction_ref() const = 0;
+    virtual const semantics::operands_si& operands_ref() const = 0;
+    virtual const semantics::remarks_si& remarks_ref() const = 0;
+    virtual std::span<const semantics::literal_si> literals() const = 0;
+
     virtual const op_code& opcode_ref() const = 0;
     virtual processing_format format_ref() const = 0;
 
