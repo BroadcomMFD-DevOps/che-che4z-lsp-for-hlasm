@@ -31,28 +31,27 @@
 
 namespace hlasm_plugin::parser_library::semantics {
 
-// structure representing core fields of statement
-struct core_statement
+// statement with all fields
+struct complete_statement
+{
+    virtual const range& stmt_range_ref() const = 0;
+    virtual const label_si& label_ref() const = 0;
+    virtual const instruction_si& instruction_ref() const = 0;
+    virtual const operands_si& operands_ref() const = 0;
+    virtual const remarks_si& remarks_ref() const = 0;
+    virtual std::span<const literal_si> literals() const = 0;
+
+protected:
+    ~complete_statement() = default;
+};
+
+// statement with deferred operand and remark field
+struct deferred_statement : public context::hlasm_statement
 {
     virtual const range& stmt_range_ref() const = 0;
     virtual const label_si& label_ref() const = 0;
     virtual const instruction_si& instruction_ref() const = 0;
 
-protected:
-    ~core_statement() = default;
-};
-
-// statement with all fields
-struct complete_statement : public core_statement
-{
-    virtual const operands_si& operands_ref() const = 0;
-    virtual const remarks_si& remarks_ref() const = 0;
-    virtual std::span<const literal_si> literals() const = 0;
-};
-
-// statement with deferred operand and remark field
-struct deferred_statement : public core_statement, public context::hlasm_statement
-{
     virtual const deferred_operands_si& deferred_ref() const = 0;
 
     position statement_position() const override { return stmt_range_ref().start; }
@@ -63,6 +62,7 @@ protected:
     deferred_statement()
         : context::hlasm_statement(context::statement_kind::DEFERRED)
     {}
+    ~deferred_statement() = default;
 };
 
 // implementation of deferred statement

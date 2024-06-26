@@ -57,10 +57,9 @@ struct hlasm_statement
 
     virtual std::span<const diagnostic_op> diagnostics() const = 0;
 
-    virtual ~hlasm_statement() = default;
-
 protected:
     hlasm_statement(const statement_kind kind);
+    ~hlasm_statement() = default;
 };
 
 using shared_stmt_ptr = std::shared_ptr<const hlasm_statement>;

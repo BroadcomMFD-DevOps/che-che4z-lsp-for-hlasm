@@ -36,6 +36,9 @@ struct resolved_statement : public context::hlasm_statement, public semantics::c
     resolved_statement()
         : context::hlasm_statement(context::statement_kind::RESOLVED)
     {}
+
+protected:
+    ~resolved_statement() = default;
 };
 
 struct resolved_statement_impl final : public resolved_statement

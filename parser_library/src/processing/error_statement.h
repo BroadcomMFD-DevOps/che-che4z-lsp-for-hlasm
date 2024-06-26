@@ -20,7 +20,7 @@
 
 namespace hlasm_plugin::parser_library::processing {
 
-class error_statement : public context::hlasm_statement
+class error_statement final : public context::hlasm_statement
 {
     std::vector<diagnostic_op> m_errors;
     range m_range;

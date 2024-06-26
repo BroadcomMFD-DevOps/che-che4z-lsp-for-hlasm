@@ -92,8 +92,8 @@ void literal_pool::mentioned_in_ca_expr(std::shared_ptr<const expressions::data_
     m_literals.try_emplace(literal_id { current_generation(), 0, std::move(dd) }, ca_only_literal());
 }
 
-class literal_pool::literal_postponed_statement : public context::postponed_statement,
-                                                  public processing::resolved_statement
+class literal_pool::literal_postponed_statement final : public context::postponed_statement,
+                                                        public processing::resolved_statement
 {
     const literal_pool::literal_details* details;
     semantics::operands_si op;
