@@ -38,7 +38,8 @@ struct core_statement
     virtual const label_si& label_ref() const = 0;
     virtual const instruction_si& instruction_ref() const = 0;
 
-    virtual ~core_statement() = default;
+protected:
+    ~core_statement() = default;
 };
 
 // statement with all fields
