@@ -340,8 +340,7 @@ bool transform_mnemonic(std::vector<checking::check_op_ptr>& result,
     // check size of mnemonic operands
     if (auto [low, high] = mnemonic.operand_count(); operands.size() < low || operands.size() > high)
     {
-        add_diagnostic(
-            diagnostic_op::error_optional_number_of_operands(instr_name, high - low, high, stmt.stmt_range_ref()));
+        add_diagnostic(diagnostic_op::error_optional_number_of_operands(instr_name, high - low, high, stmt.stmt_range));
         return false;
     }
     assert(operands.size() <= context::machine_instruction::max_operand_count);
@@ -490,7 +489,7 @@ void ordinary_processor::check_postponed_statements(
         context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, dep_ctx, lib_info);
 
         const auto* rs = stmt->resolved_stmt();
-        diagnostic_collector collector(this, stmt->location_stack());
+        diagnostic_collector collector(this, stmt->location_stack);
 
         operand_vector.clear();
 
@@ -513,14 +512,14 @@ void ordinary_processor::check_postponed_statements(
                 operand_mach_vector.clear();
                 for (const auto& op : operand_vector)
                     operand_mach_vector.push_back(dynamic_cast<const checking::machine_operand*>(op.get()));
-                checking::check_mach_ops(instruction_name, operand_mach_vector, rs->stmt_range_ref(), collector);
+                checking::check_mach_ops(instruction_name, operand_mach_vector, rs->stmt_range, collector);
                 break;
 
             case hlasm_plugin::parser_library::context::instruction_type::ASM:
                 operand_asm_vector.clear();
                 for (const auto& op : operand_vector)
                     operand_asm_vector.push_back(dynamic_cast<const checking::asm_operand*>(op.get()));
-                checking::check_asm_ops(instruction_name, operand_asm_vector, rs->stmt_range_ref(), collector);
+                checking::check_asm_ops(instruction_name, operand_asm_vector, rs->stmt_range, collector);
                 break;
 
             default:

@@ -36,7 +36,7 @@ void macro_processor::process(std::shared_ptr<const processing::resolved_stateme
     const auto sysndx_limit = hlasm_ctx.sysndx_limit();
     if (next_sysndx > sysndx_limit)
     {
-        add_diagnostic(diagnostic_op::error_E072(stmt->stmt_range_ref()));
+        add_diagnostic(diagnostic_op::error_E072(stmt->stmt_range));
         return;
     }
 

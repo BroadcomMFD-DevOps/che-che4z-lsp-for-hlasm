@@ -164,8 +164,7 @@ bool macrodef_processor::process_statement(const context::hlasm_statement& state
 
         if (!res_stmt || res_stmt->opcode_ref().value != context::id_storage::well_known::MACRO)
         {
-            range r = res_stmt ? res_stmt->stmt_range_ref() : range(statement.statement_position());
-            add_diagnostic(diagnostic_op::error_E059(start_.external_name.to_string_view(), r));
+            add_diagnostic(diagnostic_op::error_E059(start_.external_name.to_string_view(), statement.stmt_range));
             result_.invalid = true;
             finished_flag_ = true;
             return false;
@@ -177,8 +176,7 @@ bool macrodef_processor::process_statement(const context::hlasm_statement& state
     {
         if (!res_stmt)
         {
-            range r = res_stmt ? res_stmt->stmt_range_ref() : range(statement.statement_position());
-            add_diagnostic(diagnostic_op::error_E071(r));
+            add_diagnostic(diagnostic_op::error_E071(statement.stmt_range));
             result_.invalid = true;
             return false;
         }
@@ -387,7 +385,7 @@ bool macrodef_processor::process_MEND()
 struct empty_statement_t final : public resolved_statement
 {
     empty_statement_t(range r)
-        : stmt_range(r)
+        : resolved_statement(r)
         , label(r)
         , instruction(r)
         , operands(r, {})
@@ -396,7 +394,6 @@ struct empty_statement_t final : public resolved_statement
               op_code(context::id_storage::well_known::ANOP, context::instruction_type::CA, nullptr))
 
     {}
-    range stmt_range;
 
     semantics::label_si label;
     semantics::instruction_si instruction;
@@ -408,7 +405,6 @@ struct empty_statement_t final : public resolved_statement
     const semantics::instruction_si& instruction_ref() const override { return instruction; }
     const semantics::operands_si& operands_ref() const override { return operands; }
     const semantics::remarks_si& remarks_ref() const override { return remarks; }
-    const range& stmt_range_ref() const override { return stmt_range; }
     std::span<const semantics::literal_si> literals() const override { return {}; }
     const op_code& opcode_ref() const override { return status.second; }
     processing_format format_ref() const override { return status.first; }
@@ -418,7 +414,7 @@ struct empty_statement_t final : public resolved_statement
 bool macrodef_processor::process_COPY(const resolved_statement& statement)
 {
     // substitute copy for anop to not be processed again
-    result_.definition.push_back(std::make_shared<empty_statement_t>(statement.stmt_range_ref()));
+    result_.definition.push_back(std::make_shared<empty_statement_t>(statement.stmt_range));
     add_correct_copy_nest();
 
     if (auto extract = asm_processor::extract_copy_id(statement, nullptr); extract.has_value())

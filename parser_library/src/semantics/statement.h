@@ -41,16 +41,13 @@ struct deferred_statement final : public context::hlasm_statement
         deferred_operands_si deferred_operands,
         std::vector<diagnostic_op>&& diags,
         size_t operand_diags_start_index)
-        : context::hlasm_statement(context::statement_kind::DEFERRED)
-        , stmt_range(std::move(stmt_range))
+        : context::hlasm_statement(context::statement_kind::DEFERRED, stmt_range)
         , label(std::move(label))
         , instruction(std::move(instruction))
         , deferred_operands(std::move(deferred_operands))
         , statement_diagnostics(std::make_move_iterator(diags.begin()), std::make_move_iterator(diags.end()))
         , operand_diags_start_index(operand_diags_start_index)
     {}
-
-    range stmt_range;
 
     label_si label;
     instruction_si instruction;
@@ -59,7 +56,6 @@ struct deferred_statement final : public context::hlasm_statement
     std::vector<diagnostic_op> statement_diagnostics;
     size_t operand_diags_start_index;
 
-    position statement_position() const override { return stmt_range.start; }
     std::span<const diagnostic_op> diagnostics() const override
     {
         return { statement_diagnostics.data(), statement_diagnostics.data() + statement_diagnostics.size() };

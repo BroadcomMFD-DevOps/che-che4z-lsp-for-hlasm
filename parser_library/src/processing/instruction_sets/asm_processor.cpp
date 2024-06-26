@@ -181,7 +181,7 @@ void asm_processor::process_EQU(rebuilt_statement&& stmt)
 
     if (ops.empty() || ops.size() > 5)
     {
-        add_diagnostic(diagnostic_op::error_A012_from_to("EQU", 1, 5, stmt.stmt_range_ref()));
+        add_diagnostic(diagnostic_op::error_A012_from_to("EQU", 1, 5, stmt.stmt_range));
         return;
     }
 
@@ -254,7 +254,7 @@ void asm_processor::process_EQU(rebuilt_statement&& stmt)
 
         context::symbol_attributes attrs(context::symbol_origin::EQU, t_attr, length_attr);
 
-        auto stmt_range = stmt.stmt_range_ref();
+        auto stmt_range = stmt.stmt_range;
 
         if (!holder.contains_dependencies())
             create_symbol(stmt_range, symbol_name, expr_op->expression->evaluate(dep_solver, *this), attrs);
@@ -331,7 +331,7 @@ void asm_processor::process_data_instruction(rebuilt_statement&& stmt)
             {
                 scale = data_op->value->get_scale_attribute(dep_solver, drop_diagnostic_op);
             }
-            create_symbol(stmt.stmt_range_ref(),
+            create_symbol(stmt.stmt_range,
                 label,
                 std::move(loctr),
                 context::symbol_attributes(context::symbol_origin::DAT,
@@ -552,7 +552,7 @@ void asm_processor::process_ORG(rebuilt_statement&& stmt)
         if (hlasm_ctx.ord_ctx.symbol_defined(label))
             add_diagnostic(diagnostic_op::error_E031("symbol", stmt.label_ref().field_range));
         else
-            create_symbol(stmt.stmt_range_ref(), label, loctr, context::symbol_attributes::make_org_attrs());
+            create_symbol(stmt.stmt_range, label, loctr, context::symbol_attributes::make_org_attrs());
     }
 
     const auto& ops = stmt.operands_ref().value;
@@ -583,7 +583,7 @@ void asm_processor::process_ORG(rebuilt_statement&& stmt)
         if (!expr)
         {
             if (i != 0)
-                add_diagnostic(diagnostic_op::error_A115_ORG_op_format(stmt.stmt_range_ref()));
+                add_diagnostic(diagnostic_op::error_A115_ORG_op_format(stmt.stmt_range));
             break;
         }
 
@@ -597,7 +597,7 @@ void asm_processor::process_ORG(rebuilt_statement&& stmt)
             auto val = try_get_abs_value(expr, dep_solver);
             if (!val || *val < 2 || *val > 4096 || ((*val & (*val - 1)) != 0)) // check range and test for power of 2
             {
-                add_diagnostic(diagnostic_op::error_A116_ORG_boundary_operand(stmt.stmt_range_ref()));
+                add_diagnostic(diagnostic_op::error_A116_ORG_boundary_operand(stmt.stmt_range));
                 return;
             }
             boundary = (size_t)*val;
@@ -607,7 +607,7 @@ void asm_processor::process_ORG(rebuilt_statement&& stmt)
             auto val = try_get_abs_value(expr, dep_solver);
             if (!val)
             {
-                add_diagnostic(diagnostic_op::error_A115_ORG_op_format(stmt.stmt_range_ref()));
+                add_diagnostic(diagnostic_op::error_A115_ORG_op_format(stmt.stmt_range));
                 return;
             }
             offset = *val;
@@ -616,7 +616,7 @@ void asm_processor::process_ORG(rebuilt_statement&& stmt)
 
     if (!reloc_expr)
     {
-        add_diagnostic(diagnostic_op::error_A245_ORG_expression(stmt.stmt_range_ref()));
+        add_diagnostic(diagnostic_op::error_A245_ORG_expression(stmt.stmt_range));
         return;
     }
 
@@ -631,7 +631,7 @@ void asm_processor::process_ORG(rebuilt_statement&& stmt)
             reloc_val = std::move(res).get_reloc();
         else
         {
-            add_diagnostic(diagnostic_op::error_A245_ORG_expression(stmt.stmt_range_ref()));
+            add_diagnostic(diagnostic_op::error_A245_ORG_expression(stmt.stmt_range));
             return;
         }
     }
@@ -649,11 +649,11 @@ void asm_processor::process_ORG(rebuilt_statement&& stmt)
             break;
 
         case check_org_result::underflow:
-            add_diagnostic(diagnostic_op::error_E068(stmt.stmt_range_ref()));
+            add_diagnostic(diagnostic_op::error_E068(stmt.stmt_range));
             return;
 
         case check_org_result::invalid_address:
-            add_diagnostic(diagnostic_op::error_A115_ORG_op_format(stmt.stmt_range_ref()));
+            add_diagnostic(diagnostic_op::error_A115_ORG_op_format(stmt.stmt_range));
             return;
     }
 
@@ -781,7 +781,7 @@ std::optional<asm_processor::extract_copy_id_result> asm_processor::extract_copy
     return asm_processor::extract_copy_id_result {
         sym_expr->value,
         stmt.operands_ref().value.front()->operand_range,
-        stmt.stmt_range_ref(),
+        stmt.stmt_range,
     };
 }
 
@@ -951,7 +951,7 @@ void asm_processor::process_CCW(rebuilt_statement&& stmt)
         if (hlasm_ctx.ord_ctx.symbol_defined(label))
             add_diagnostic(diagnostic_op::error_E031("symbol", stmt.label_ref().field_range));
         else
-            create_symbol(stmt.stmt_range_ref(), label, loctr, context::symbol_attributes::make_ccw_attrs());
+            create_symbol(stmt.stmt_range, label, loctr, context::symbol_attributes::make_ccw_attrs());
     }
 
     context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, std::move(loctr), lib_info);
@@ -974,7 +974,7 @@ void asm_processor::process_CNOP(rebuilt_statement&& stmt)
         if (hlasm_ctx.ord_ctx.symbol_defined(label))
             add_diagnostic(diagnostic_op::error_E031("symbol", stmt.label_ref().field_range));
         else
-            create_symbol(stmt.stmt_range_ref(), label, loctr, context::symbol_attributes::make_cnop_attrs());
+            create_symbol(stmt.stmt_range, label, loctr, context::symbol_attributes::make_cnop_attrs());
     }
 
     context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, std::move(loctr), lib_info);
@@ -1007,7 +1007,7 @@ void asm_processor::process_START(rebuilt_statement&& stmt)
     if (std::ranges::any_of(
             hlasm_ctx.ord_ctx.sections(), [](const auto& s) { return s->kind == EXECUTABLE || s->kind == READONLY; }))
     {
-        add_diagnostic(diagnostic_op::error_E073(stmt.stmt_range_ref()));
+        add_diagnostic(diagnostic_op::error_E073(stmt.stmt_range));
         return;
     }
 
@@ -1090,7 +1090,7 @@ void asm_processor::process_ALIAS(rebuilt_statement&& stmt)
     auto symbol_name = find_label_symbol(stmt);
     if (symbol_name.empty())
     {
-        add_diagnostic(diagnostic_op::error_A163_ALIAS_mandatory_label(stmt.stmt_range_ref()));
+        add_diagnostic(diagnostic_op::error_A163_ALIAS_mandatory_label(stmt.stmt_range));
         return;
     }
 
@@ -1113,7 +1113,7 @@ void asm_processor::process_LTORG(rebuilt_statement&& stmt)
         if (hlasm_ctx.ord_ctx.symbol_defined(label))
             add_diagnostic(diagnostic_op::error_E031("symbol", stmt.label_ref().field_range));
         else
-            create_symbol(stmt.stmt_range_ref(),
+            create_symbol(stmt.stmt_range,
                 label,
                 std::move(loctr),
                 context::symbol_attributes(context::symbol_origin::EQU, 'U'_ebcdic, 1));
@@ -1224,7 +1224,7 @@ void asm_processor::process_DROP(rebuilt_statement&& stmt)
         else
         {
             add_diagnostic(diagnostic_op::warn_A251_unexpected_label(stmt.label_ref().field_range));
-            create_symbol(stmt.stmt_range_ref(), label, loctr, context::symbol_attributes(context::symbol_origin::EQU));
+            create_symbol(stmt.stmt_range, label, loctr, context::symbol_attributes(context::symbol_origin::EQU));
         }
     }
 
@@ -1281,7 +1281,7 @@ void asm_processor::process_POP(rebuilt_statement&& stmt)
 {
     if (std::ranges::any_of(stmt.operands_ref().value, [](const auto& op) { return asm_expr_quals(op, "USING"); })
         && !hlasm_ctx.using_pop())
-        add_diagnostic(diagnostic_op::error_A165_POP_USING(stmt.stmt_range_ref()));
+        add_diagnostic(diagnostic_op::error_A165_POP_USING(stmt.stmt_range));
 
     context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, lib_info);
     hlasm_ctx.ord_ctx.symbol_dependencies().add_dependency(
@@ -1399,7 +1399,7 @@ void asm_processor::process_CXD(rebuilt_statement&& stmt)
     {
         if (!hlasm_ctx.ord_ctx.symbol_defined(label))
         {
-            create_symbol(stmt.stmt_range_ref(),
+            create_symbol(stmt.stmt_range,
                 label,
                 std::move(loctr),
                 context::symbol_attributes(context::symbol_origin::ASM, 'A'_ebcdic, cxd_length));

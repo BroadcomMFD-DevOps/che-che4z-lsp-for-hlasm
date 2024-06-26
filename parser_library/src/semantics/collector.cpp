@@ -202,7 +202,7 @@ struct statement_si final : public processing::resolved_statement
         std::vector<semantics::literal_si>&& literals,
         processing::processing_status status,
         std::vector<diagnostic_op>&& diags)
-        : stmt_range(std::move(stmt_range))
+        : processing::resolved_statement(std::move(stmt_range))
         , label(std::move(label))
         , instruction(std::move(instruction))
         , operands(std::move(operands))
@@ -211,8 +211,6 @@ struct statement_si final : public processing::resolved_statement
         , status(std::move(status))
         , statement_diagnostics(std::make_move_iterator(diags.begin()), std::make_move_iterator(diags.end()))
     {}
-
-    range stmt_range;
 
     label_si label;
     instruction_si instruction;
@@ -227,7 +225,6 @@ struct statement_si final : public processing::resolved_statement
     const operands_si& operands_ref() const override { return operands; }
     std::span<const semantics::literal_si> literals() const override { return collected_literals; }
     const remarks_si& remarks_ref() const override { return remarks; }
-    const range& stmt_range_ref() const override { return stmt_range; }
 
     const processing::op_code& opcode_ref() const override { return status.second; }
     processing::processing_format format_ref() const override { return status.first; }

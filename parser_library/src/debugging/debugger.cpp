@@ -256,7 +256,7 @@ public:
 
         const bool function_breakpoint_hit = function_breakpoints_.contains(op_code.to_string_view());
 
-        range stmt_range = resolved_stmt->stmt_range_ref();
+        range stmt_range = resolved_stmt->stmt_range;
 
         bool breakpoint_hit = false;
 

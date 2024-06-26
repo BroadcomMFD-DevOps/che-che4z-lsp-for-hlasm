@@ -95,7 +95,6 @@ void literal_pool::mentioned_in_ca_expr(std::shared_ptr<const expressions::data_
 class literal_pool::literal_postponed_statement final : public context::postponed_statement,
                                                         public processing::resolved_statement
 {
-    const literal_pool::literal_details* details;
     semantics::operands_si op;
     processing::op_code op_code;
 
@@ -107,20 +106,19 @@ class literal_pool::literal_postponed_statement final : public context::postpone
 public:
     literal_postponed_statement(
         const std::shared_ptr<const expressions::data_definition>& dd, const literal_pool::literal_details& details)
-        : details(&details)
+        : context::postponed_statement(details.stack)
+        , processing::resolved_statement(details.r)
         , op(details.r, {})
         , op_code(context::id_index("DC"), instruction_type::ASM, nullptr)
     {
         op.value.push_back(std::make_unique<semantics::data_def_operand_shared>(dd, details.r));
     }
-    const processing_stack_t& location_stack() const override { return details->stack; }
     const processing::resolved_statement* resolved_stmt() const override { return this; }
     const processing::op_code& opcode_ref() const override { return op_code; }
     processing::processing_format format_ref() const override { return dc_format; }
     const semantics::operands_si& operands_ref() const override { return op; }
     std::span<const semantics::literal_si> literals() const override { return {}; }
     const semantics::remarks_si& remarks_ref() const override { return empty_remarks; }
-    const range& stmt_range_ref() const override { return details->r; }
     const semantics::label_si& label_ref() const override { return empty_label; }
     const semantics::instruction_si& instruction_ref() const override { return empty_instr; }
     std::span<const diagnostic_op> diagnostics() const override { return {}; };

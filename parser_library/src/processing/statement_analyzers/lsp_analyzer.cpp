@@ -284,7 +284,7 @@ void lsp_analyzer::collect_occurrences(
     {
         if (res_stmt->instruction_ref().type != semantics::instruction_si_type::EMPTY)
         {
-            const auto& r = res_stmt->stmt_range_ref();
+            const auto& r = res_stmt->stmt_range;
             collect_endline(r, ci);
             collect_usings(r, ci);
             collect_section(r, ci);
@@ -635,7 +635,7 @@ void lsp_analyzer::collect_branch_info(
         if (!transfer.has_value())
             continue;
 
-        const auto loc = get_opencode_stackframe(stmt->location_stack());
+        const auto loc = get_opencode_stackframe(stmt->location_stack);
         if (loc.empty() && *loc.frame().resource_loc != opencode_loc)
             continue;
 

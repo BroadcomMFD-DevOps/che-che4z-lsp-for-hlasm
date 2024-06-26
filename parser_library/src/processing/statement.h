@@ -28,7 +28,6 @@ namespace hlasm_plugin::parser_library::processing {
 // statement that contains resolved operation code and also all semantic fields
 struct resolved_statement : public context::hlasm_statement
 {
-    virtual const range& stmt_range_ref() const = 0;
     virtual const semantics::label_si& label_ref() const = 0;
     virtual const semantics::instruction_si& instruction_ref() const = 0;
     virtual const semantics::operands_si& operands_ref() const = 0;
@@ -38,10 +37,8 @@ struct resolved_statement : public context::hlasm_statement
     virtual const op_code& opcode_ref() const = 0;
     virtual processing_format format_ref() const = 0;
 
-    position statement_position() const override { return stmt_range_ref().start; }
-
-    resolved_statement()
-        : context::hlasm_statement(context::statement_kind::RESOLVED)
+    resolved_statement(range stmt_range)
+        : context::hlasm_statement(context::statement_kind::RESOLVED, stmt_range)
     {}
 
 protected:
@@ -55,7 +52,8 @@ struct rebuilt_statement final : public resolved_statement
         std::optional<semantics::label_si> label,
         std::optional<semantics::operands_si> operands,
         std::optional<std::vector<semantics::literal_si>> literals)
-        : base_stmt(std::move(base_stmt))
+        : resolved_statement(base_stmt->stmt_range)
+        , base_stmt(std::move(base_stmt))
         , rebuilt_label(std::move(label))
         , rebuilt_operands(std::move(operands))
         , rebuilt_literals(std::move(literals))
@@ -80,7 +78,6 @@ struct rebuilt_statement final : public resolved_statement
         return rebuilt_literals ? *rebuilt_literals : base_stmt->literals();
     }
     const semantics::remarks_si& remarks_ref() const override { return base_stmt->remarks_ref(); }
-    const range& stmt_range_ref() const override { return base_stmt->stmt_range_ref(); }
     const op_code& opcode_ref() const override { return base_stmt->opcode_ref(); }
     processing_format format_ref() const override { return base_stmt->format_ref(); }
 

@@ -38,7 +38,7 @@ constexpr auto get_core_stmt = [](const context::hlasm_statement* stmt)
     if (stmt->kind == context::statement_kind::RESOLVED)
     {
         const auto& res = stmt->access_resolved();
-        return std::tie(res->stmt_range_ref(), res->instruction_ref());
+        return std::tie(res->stmt_range, res->instruction_ref());
     }
     else if (stmt->kind == context::statement_kind::DEFERRED)
     {

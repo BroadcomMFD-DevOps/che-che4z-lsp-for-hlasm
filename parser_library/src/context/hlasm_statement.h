@@ -46,6 +46,7 @@ enum class statement_kind
 struct hlasm_statement
 {
     const statement_kind kind;
+    range stmt_range;
 
     const processing::resolved_statement* access_resolved() const;
     processing::resolved_statement* access_resolved();
@@ -53,12 +54,15 @@ struct hlasm_statement
     const semantics::deferred_statement* access_deferred() const;
     semantics::deferred_statement* access_deferred();
 
-    virtual position statement_position() const = 0;
+    position statement_position() const { return stmt_range.start; }
 
     virtual std::span<const diagnostic_op> diagnostics() const = 0;
 
 protected:
-    hlasm_statement(const statement_kind kind);
+    hlasm_statement(const statement_kind kind, range stmt_range)
+        : kind(kind)
+        , stmt_range(stmt_range)
+    {}
     ~hlasm_statement() = default;
 };
 

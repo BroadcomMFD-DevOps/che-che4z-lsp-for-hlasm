@@ -166,7 +166,8 @@ const context::statement_cache::cached_statement_t& members_statement_provider::
 struct deferred_statement_adapter final : public resolved_statement
 {
     deferred_statement_adapter(std::shared_ptr<const statement_si_defer_done> base_stmt, processing_status status)
-        : base_stmt(std::move(base_stmt))
+        : resolved_statement(base_stmt->deferred_stmt->stmt_range)
+        , base_stmt(std::move(base_stmt))
         , status(std::move(status))
     {}
 
@@ -177,7 +178,6 @@ struct deferred_statement_adapter final : public resolved_statement
     const semantics::instruction_si& instruction_ref() const override { return base_stmt->deferred_stmt->instruction; }
     const semantics::operands_si& operands_ref() const override { return base_stmt->operands; }
     const semantics::remarks_si& remarks_ref() const override { return base_stmt->remarks; }
-    const range& stmt_range_ref() const override { return base_stmt->deferred_stmt->stmt_range; }
     std::span<const semantics::literal_si> literals() const override { return base_stmt->collected_literals; }
     const op_code& opcode_ref() const override { return status.second; }
     processing_format format_ref() const override { return status.first; }
