@@ -289,7 +289,7 @@ void ca_processor::process_ACTR(const processing::resolved_statement& stmt)
 
     if (hlasm_ctx.set_branch_counter(ctr) == ACTR_LIMIT)
     {
-        add_diagnostic(diagnostic_op::error_W063(stmt.stmt_range));
+        add_diagnostic(diagnostic_op::error_W063(stmt.stmt_range_ref()));
     }
 }
 
@@ -430,7 +430,7 @@ void ca_processor::process_MACRO(const processing::resolved_statement& stmt)
 void ca_processor::process_MEXIT(const processing::resolved_statement& stmt)
 {
     if (!hlasm_ctx.is_in_macro())
-        add_diagnostic(diagnostic_op::error_E054(stmt.stmt_range));
+        add_diagnostic(diagnostic_op::error_E054(stmt.stmt_range_ref()));
     else
         hlasm_ctx.leave_macro();
 }
@@ -438,7 +438,7 @@ void ca_processor::process_MEXIT(const processing::resolved_statement& stmt)
 void ca_processor::process_MEND(const processing::resolved_statement& stmt)
 {
     if (!hlasm_ctx.is_in_macro())
-        add_diagnostic(diagnostic_op::error_E054(stmt.stmt_range));
+        add_diagnostic(diagnostic_op::error_E054(stmt.stmt_range_ref()));
 }
 
 void ca_processor::process_AEJECT(const processing::resolved_statement&)

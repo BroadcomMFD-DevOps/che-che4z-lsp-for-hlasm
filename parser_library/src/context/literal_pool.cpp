@@ -96,8 +96,8 @@ class literal_pool::literal_postponed_statement final : public context::postpone
                                                         public processing::resolved_statement
 {
     semantics::operands_si op;
-    processing::op_code op_code;
 
+    static const processing::op_code op_code;
     static const semantics::remarks_si empty_remarks;
     static const semantics::label_si empty_label;
     static const semantics::instruction_si empty_instr;
@@ -107,12 +107,13 @@ public:
     literal_postponed_statement(
         const std::shared_ptr<const expressions::data_definition>& dd, const literal_pool::literal_details& details)
         : context::postponed_statement(details.stack, this)
-        , processing::resolved_statement(details.r)
+        , processing::resolved_statement()
         , op(details.r, {})
-        , op_code(context::id_index("DC"), instruction_type::ASM, nullptr)
     {
         op.value.push_back(std::make_unique<semantics::data_def_operand_shared>(dd, details.r));
     }
+
+    const range& stmt_range_ref() const override { return op.field_range; }
     const processing::op_code& opcode_ref() const override { return op_code; }
     processing::processing_format format_ref() const override { return dc_format; }
     const semantics::operands_si& operands_ref() const override { return op; }
@@ -122,6 +123,9 @@ public:
     const semantics::instruction_si& instruction_ref() const override { return empty_instr; }
     std::span<const diagnostic_op> diagnostics() const override { return {}; };
 };
+
+const processing::op_code literal_pool::literal_postponed_statement::op_code(
+    context::id_index("DC"), instruction_type::ASM, nullptr);
 const semantics::remarks_si literal_pool::literal_postponed_statement::empty_remarks({}, {});
 const semantics::label_si literal_pool::literal_postponed_statement::empty_label(range {});
 const semantics::instruction_si literal_pool::literal_postponed_statement::empty_instr(range {});

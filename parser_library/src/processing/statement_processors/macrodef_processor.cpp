@@ -164,7 +164,8 @@ bool macrodef_processor::process_statement(const context::hlasm_statement& state
 
         if (!res_stmt || res_stmt->opcode_ref().value != context::id_storage::well_known::MACRO)
         {
-            add_diagnostic(diagnostic_op::error_E059(start_.external_name.to_string_view(), statement.stmt_range));
+            add_diagnostic(
+                diagnostic_op::error_E059(start_.external_name.to_string_view(), statement.stmt_range_ref()));
             result_.invalid = true;
             finished_flag_ = true;
             return false;
@@ -176,7 +177,7 @@ bool macrodef_processor::process_statement(const context::hlasm_statement& state
     {
         if (!res_stmt)
         {
-            add_diagnostic(diagnostic_op::error_E071(statement.stmt_range));
+            add_diagnostic(diagnostic_op::error_E071(statement.stmt_range_ref()));
             result_.invalid = true;
             return false;
         }
@@ -385,7 +386,7 @@ bool macrodef_processor::process_MEND()
 struct empty_statement_t final : public resolved_statement
 {
     empty_statement_t(range r)
-        : resolved_statement(r)
+        : resolved_statement()
         , label(r)
         , instruction(r)
         , operands(r, {})
@@ -401,6 +402,7 @@ struct empty_statement_t final : public resolved_statement
     semantics::remarks_si remarks;
     processing_status status;
 
+    const range& stmt_range_ref() const override { return instruction.field_range; }
     const semantics::label_si& label_ref() const override { return label; }
     const semantics::instruction_si& instruction_ref() const override { return instruction; }
     const semantics::operands_si& operands_ref() const override { return operands; }
@@ -414,7 +416,7 @@ struct empty_statement_t final : public resolved_statement
 bool macrodef_processor::process_COPY(const resolved_statement& statement)
 {
     // substitute copy for anop to not be processed again
-    result_.definition.push_back(std::make_shared<empty_statement_t>(statement.stmt_range));
+    result_.definition.push_back(std::make_shared<empty_statement_t>(statement.stmt_range_ref()));
     add_correct_copy_nest();
 
     if (auto extract = asm_processor::extract_copy_id(statement, nullptr); extract.has_value())

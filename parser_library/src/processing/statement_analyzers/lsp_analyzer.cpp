@@ -284,7 +284,7 @@ void lsp_analyzer::collect_occurrences(
     {
         if (res_stmt->instruction_ref().type != semantics::instruction_si_type::EMPTY)
         {
-            const auto& r = res_stmt->stmt_range;
+            const auto& r = res_stmt->stmt_range_ref();
             collect_endline(r, ci);
             collect_usings(r, ci);
             collect_section(r, ci);

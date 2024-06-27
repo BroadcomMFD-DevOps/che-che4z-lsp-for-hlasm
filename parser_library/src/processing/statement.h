@@ -37,8 +37,8 @@ struct resolved_statement : public context::hlasm_statement
     virtual const op_code& opcode_ref() const = 0;
     virtual processing_format format_ref() const = 0;
 
-    resolved_statement(range stmt_range)
-        : context::hlasm_statement(context::statement_kind::RESOLVED, stmt_range)
+    resolved_statement()
+        : context::hlasm_statement(context::statement_kind::RESOLVED)
     {}
 
 protected:
@@ -52,7 +52,7 @@ struct rebuilt_statement final : public resolved_statement
         std::optional<semantics::label_si> label,
         std::optional<semantics::operands_si> operands,
         std::optional<std::vector<semantics::literal_si>> literals)
-        : resolved_statement(base_stmt->stmt_range)
+        : resolved_statement()
         , base_stmt(std::move(base_stmt))
         , rebuilt_label(std::move(label))
         , rebuilt_operands(std::move(operands))
@@ -63,6 +63,8 @@ struct rebuilt_statement final : public resolved_statement
     std::optional<semantics::label_si> rebuilt_label;
     std::optional<semantics::operands_si> rebuilt_operands;
     std::optional<std::vector<semantics::literal_si>> rebuilt_literals;
+
+    const range& stmt_range_ref() const override { return base_stmt->stmt_range_ref(); }
 
     const semantics::label_si& label_ref() const override
     {

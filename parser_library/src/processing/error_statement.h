@@ -23,12 +23,16 @@ namespace hlasm_plugin::parser_library::processing {
 class error_statement final : public context::hlasm_statement
 {
     std::vector<diagnostic_op> m_errors;
+    range m_range;
 
 public:
     error_statement(range r, std::vector<diagnostic_op>&& diags)
-        : hlasm_statement(context::statement_kind::ERROR, r)
+        : hlasm_statement(context::statement_kind::ERROR)
         , m_errors(std::make_move_iterator(diags.begin()), std::make_move_iterator(diags.end()))
+        , m_range(r)
     {}
+
+    const range& stmt_range_ref() const override { return m_range; }
 
     std::span<const diagnostic_op> diagnostics() const override;
 };
