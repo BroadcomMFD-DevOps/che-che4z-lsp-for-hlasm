@@ -106,14 +106,13 @@ class literal_pool::literal_postponed_statement final : public context::postpone
 public:
     literal_postponed_statement(
         const std::shared_ptr<const expressions::data_definition>& dd, const literal_pool::literal_details& details)
-        : context::postponed_statement(details.stack)
+        : context::postponed_statement(details.stack, this)
         , processing::resolved_statement(details.r)
         , op(details.r, {})
         , op_code(context::id_index("DC"), instruction_type::ASM, nullptr)
     {
         op.value.push_back(std::make_unique<semantics::data_def_operand_shared>(dd, details.r));
     }
-    const processing::resolved_statement* resolved_stmt() const override { return this; }
     const processing::op_code& opcode_ref() const override { return op_code; }
     processing::processing_format format_ref() const override { return dc_format; }
     const semantics::operands_si& operands_ref() const override { return op; }

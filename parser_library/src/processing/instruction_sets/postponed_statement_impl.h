@@ -25,12 +25,10 @@ namespace hlasm_plugin::parser_library::processing {
 // implementation of postponed_statement interface
 struct postponed_statement_impl : public context::postponed_statement
 {
-    postponed_statement_impl(rebuilt_statement&& stmt, context::processing_stack_t stmt_location_stack)
-        : context::postponed_statement(stmt_location_stack)
-        , stmt(std::move(stmt))
+    postponed_statement_impl(rebuilt_statement&& s, context::processing_stack_t stmt_location_stack)
+        : context::postponed_statement(stmt_location_stack, &stmt)
+        , stmt(std::move(s))
     {}
-
-    const resolved_statement* resolved_stmt() const override { return &stmt; }
 
     rebuilt_statement stmt;
 };

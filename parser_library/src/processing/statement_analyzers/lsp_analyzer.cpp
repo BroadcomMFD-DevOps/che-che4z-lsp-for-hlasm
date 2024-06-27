@@ -625,7 +625,7 @@ void lsp_analyzer::collect_branch_info(
         if (!stmt)
             continue;
 
-        const auto* rs = stmt->resolved_stmt();
+        const auto* rs = stmt->resolved_stmt;
         const auto& opcode = rs->opcode_ref();
         if (opcode.type != context::instruction_type::MACH)
             continue;

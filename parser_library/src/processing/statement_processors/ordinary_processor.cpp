@@ -488,7 +488,7 @@ void ordinary_processor::check_postponed_statements(
 
         context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, dep_ctx, lib_info);
 
-        const auto* rs = stmt->resolved_stmt();
+        const auto* rs = stmt->resolved_stmt;
         diagnostic_collector collector(this, stmt->location_stack);
 
         operand_vector.clear();
