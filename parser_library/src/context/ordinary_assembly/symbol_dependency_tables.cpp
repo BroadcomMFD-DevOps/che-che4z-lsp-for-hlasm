@@ -687,10 +687,7 @@ bool symbol_dependency_tables::add_dependency(id_index target,
     if (!add_dependency(dependant(target), dependency_source, true, dep_ctx, li))
         return false;
 
-    auto id = add_postponed(std::move(dependency_source_stmt), dep_ctx);
-
-    m_dependency_source_stmts.emplace(target, id);
-    ++m_postponed_stmts_references[id.value()];
+    establish_statement_dependency(std::move(target), add_postponed(std::move(dependency_source_stmt), dep_ctx));
 
     return true;
 }
@@ -705,10 +702,7 @@ bool symbol_dependency_tables::add_dependency(id_index target,
     if (!add_dependency(dependant(attr_ref { attr, target }), dependency_source, true, dep_ctx, li))
         return false;
 
-    auto id = add_postponed(std::move(dependency_source_stmt), dep_ctx);
-
-    m_dependency_source_stmts.emplace(target, id);
-    ++m_postponed_stmts_references[id.value()];
+    establish_statement_dependency(std::move(target), add_postponed(std::move(dependency_source_stmt), dep_ctx));
 
     return true;
 }
@@ -721,10 +715,7 @@ void symbol_dependency_tables::add_dependency(space_ptr space,
 {
     add_dependency(dependant(space), dependency_source, false, dep_ctx, li);
 
-    auto id = add_postponed(std::move(dependency_source_stmt), dep_ctx);
-
-    m_dependency_source_stmts.emplace(std::move(space), id);
-    ++m_postponed_stmts_references[id.value()];
+    establish_statement_dependency(std::move(space), add_postponed(std::move(dependency_source_stmt), dep_ctx));
 }
 
 void symbol_dependency_tables::add_dependency(space_ptr target,
@@ -740,11 +731,13 @@ void symbol_dependency_tables::add_dependency(space_ptr target,
     add_dependency(dependant(target), std::to_address(it->second), false, dep_ctx, li);
 
     if (dependency_source_stmt)
-    {
-        auto id = add_postponed(std::move(dependency_source_stmt), dep_ctx);
-        m_dependency_source_stmts.emplace(std::move(target), id);
-        ++m_postponed_stmts_references[id.value()];
-    }
+        establish_statement_dependency(std::move(target), add_postponed(std::move(dependency_source_stmt), dep_ctx));
+}
+
+void symbol_dependency_tables::establish_statement_dependency(dependant d, index_t<postponed_statements_t> id)
+{
+    m_dependency_source_stmts.emplace(std::move(d), id);
+    ++m_postponed_stmts_references[id.value()];
 }
 
 bool symbol_dependency_tables::check_cycle(space_ptr target, const library_info& li)

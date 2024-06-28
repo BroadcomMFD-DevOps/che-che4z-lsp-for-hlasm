@@ -156,6 +156,8 @@ class symbol_dependency_tables
         const dependency_evaluation_context& dep_ctx,
         const library_info& li);
 
+    void establish_statement_dependency(dependant d, index_t<postponed_statements_t> id);
+
 public:
     symbol_dependency_tables(ordinary_assembly_context& sym_ctx);
 
