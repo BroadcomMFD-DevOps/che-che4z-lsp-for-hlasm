@@ -59,7 +59,7 @@ struct hlasm_statement
     virtual std::span<const diagnostic_op> diagnostics() const = 0;
 
 protected:
-    hlasm_statement(const statement_kind kind)
+    explicit hlasm_statement(const statement_kind kind)
         : kind(kind)
     {}
     ~hlasm_statement() = default;

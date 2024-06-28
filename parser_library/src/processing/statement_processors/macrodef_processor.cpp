@@ -385,21 +385,19 @@ bool macrodef_processor::process_MEND()
 
 struct empty_statement_t final : public resolved_statement
 {
-    empty_statement_t(range r)
+    explicit empty_statement_t(range r)
         : label(r)
         , instruction(r)
         , operands(r, {})
         , remarks(r, {})
-        , status(processing_format(processing_kind::ORDINARY, processing_form::CA, operand_occurrence::ABSENT),
-              op_code(context::id_storage::well_known::ANOP, context::instruction_type::CA, nullptr))
-
     {}
+
+    static const processing_status status;
 
     semantics::label_si label;
     semantics::instruction_si instruction;
     semantics::operands_si operands;
     semantics::remarks_si remarks;
-    processing_status status;
 
     const range& stmt_range_ref() const override { return instruction.field_range; }
     const semantics::label_si& label_ref() const override { return label; }
@@ -411,6 +409,10 @@ struct empty_statement_t final : public resolved_statement
     processing_format format_ref() const override { return status.first; }
     std::span<const diagnostic_op> diagnostics() const override { return {}; }
 };
+
+const processing_status empty_statement_t::status(
+    processing_format(processing_kind::ORDINARY, processing_form::CA, operand_occurrence::ABSENT),
+    op_code(context::id_storage::well_known::ANOP, context::instruction_type::CA, nullptr));
 
 bool macrodef_processor::process_COPY(const resolved_statement& statement)
 {
