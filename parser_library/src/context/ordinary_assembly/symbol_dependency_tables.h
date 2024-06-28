@@ -65,13 +65,13 @@ struct dependency_evaluation_context
     {}
 };
 
+using postponed_statements_t = std::vector<std::pair<post_stmt_ptr, dependency_evaluation_context>>;
 // helper structure to count dependencies of a statement
 struct statement_ref
 {
-    using ref_t = std::unordered_map<post_stmt_ptr, dependency_evaluation_context>::const_iterator;
-    statement_ref(ref_t stmt_ref, size_t ref_count = (size_t)1);
+    statement_ref(index_t<postponed_statements_t> stmt_ref, size_t ref_count = (size_t)1);
 
-    ref_t stmt_ref;
+    index_t<postponed_statements_t> stmt_ref;
     size_t ref_count;
 };
 
@@ -119,9 +119,13 @@ class symbol_dependency_tables
     // addresses where dependencies are from
     std::unordered_map<dependant, addr_res_ptr> m_dependency_source_addrs;
     // list of statements containing dependencies that can not be checked yet
-    std::unordered_map<post_stmt_ptr, dependency_evaluation_context> m_postponed_stmts;
+    postponed_statements_t m_postponed_stmts;
+    std::vector<index_t<postponed_statements_t>> m_postponed_stmts_free;
 
     ordinary_assembly_context& m_sym_ctx;
+
+    index_t<postponed_statements_t> add_postponed(post_stmt_ptr, const dependency_evaluation_context&);
+    void delete_postponed(index_t<postponed_statements_t>);
 
     bool check_cycle(dependant target, std::vector<dependant> dependencies, const library_info& li);
 
@@ -201,7 +205,7 @@ public:
     bool check_loctr_cycle(const library_info& li);
 
     // collect all postponed statements either if they still contain dependent objects
-    std::vector<std::pair<post_stmt_ptr, dependency_evaluation_context>> collect_postponed();
+    postponed_statements_t collect_postponed();
 
     // assign default values to all unresoved dependants
     void resolve_all_as_default();
