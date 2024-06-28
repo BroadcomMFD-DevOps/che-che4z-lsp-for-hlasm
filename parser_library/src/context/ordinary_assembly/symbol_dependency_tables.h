@@ -115,11 +115,12 @@ class symbol_dependency_tables
     size_t m_dependencies_skip_index = 0;
 
     // statements where dependencies are from
-    std::unordered_map<dependant, statement_ref> m_dependency_source_stmts;
+    std::unordered_map<dependant, index_t<postponed_statements_t>> m_dependency_source_stmts;
     // addresses where dependencies are from
     std::unordered_map<dependant, addr_res_ptr> m_dependency_source_addrs;
     // list of statements containing dependencies that can not be checked yet
     postponed_statements_t m_postponed_stmts;
+    std::vector<size_t> m_postponed_stmts_references;
     std::vector<index_t<postponed_statements_t>> m_postponed_stmts_free;
 
     ordinary_assembly_context& m_sym_ctx;
@@ -216,22 +217,19 @@ public:
 // helper class to add dependencies
 class dependency_adder
 {
+    friend class symbol_dependency_tables;
+
     symbol_dependency_tables& m_owner;
-    size_t m_ref_count;
-
-    std::vector<dependant> m_dependants;
-    dependency_evaluation_context m_dep_ctx;
-
-    post_stmt_ptr m_source_stmt;
-
+    index_t<postponed_statements_t> m_id;
     const library_info& m_li;
 
-public:
-    dependency_adder(symbol_dependency_tables& owner,
-        post_stmt_ptr dependency_source_stmt,
-        const dependency_evaluation_context& dep_ctx,
-        const library_info& li);
+    dependency_adder(symbol_dependency_tables& owner, index_t<postponed_statements_t> id, const library_info& li)
+        : m_owner(owner)
+        , m_id(id)
+        , m_li(li)
+    {}
 
+public:
     // add symbol dependency on statement
     [[nodiscard]] bool add_dependency(id_index target, const resolvable* dependency_source);
 
@@ -240,12 +238,6 @@ public:
 
     // add space dependency
     void add_dependency(space_ptr target, const resolvable* dependency_source);
-
-    // add statement dependency on its operands
-    void add_dependency();
-
-    // finish adding dependencies
-    void finish();
 };
 
 } // namespace hlasm_plugin::parser_library::context

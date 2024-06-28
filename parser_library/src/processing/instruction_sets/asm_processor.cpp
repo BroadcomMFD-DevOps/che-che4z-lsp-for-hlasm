@@ -425,7 +425,6 @@ void asm_processor::process_data_instruction(rebuilt_statement&& stmt)
 
     auto adder = hlasm_ctx.ord_ctx.symbol_dependencies().add_dependencies(
         std::move(dep_stmt), std::move(dep_solver).derive_current_dependency_evaluation_context(), lib_info);
-    adder.add_dependency();
 
     bool cycle_ok = true;
 
@@ -437,11 +436,8 @@ void asm_processor::process_data_instruction(rebuilt_statement&& stmt)
     if (!cycle_ok)
         add_diagnostic(diagnostic_op::error_E033(operands.front()->operand_range));
 
-    auto sp = dependencies_spaces.begin();
-    for (const auto& d : deps)
+    for (auto sp = dependencies_spaces.begin(); const auto& d : deps)
         adder.add_dependency(std::move(*sp++), &d);
-
-    adder.finish();
 }
 
 void asm_processor::process_DC(rebuilt_statement&& stmt)
