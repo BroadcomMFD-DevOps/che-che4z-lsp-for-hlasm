@@ -210,8 +210,7 @@ void literal_pool::generate_pool(diagnosable_ctx& diags, index_t<using_collectio
             diags.add_diagnostic(diagnostic_op::error_E033(it->second.r));
         else
         {
-            (void)ord_ctx.symbol_dependencies().add_dependencies(
-                std::make_unique<literal_postponed_statement>(lit, lit_val),
+            ord_ctx.symbol_dependencies().add_dependency(std::make_unique<literal_postponed_statement>(lit, lit_val),
                 dependency_evaluation_context {
                     lit_val.loctr,
                     lit_key.generation,

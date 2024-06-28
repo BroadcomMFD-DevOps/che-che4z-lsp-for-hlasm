@@ -79,11 +79,15 @@ class dependency_adder;
 // class holding data about dependencies between symbols
 class symbol_dependency_tables
 {
+    friend struct resolve_dependant_visitor;
     struct dependency_value
     {
         const resolvable* m_resolvable;
         dependency_evaluation_context m_dec;
         size_t m_last_dependencies;
+
+        index_t<postponed_statements_t> related_statement_id;
+        addr_res_ptr related_source_addr;
 
         dependency_value(const resolvable* r, dependency_evaluation_context dec, size_t last_dependencies)
             : m_resolvable(r)
@@ -100,7 +104,7 @@ class symbol_dependency_tables
     std::vector<bool> m_dependencies_has_t_attr;
     std::vector<bool> m_dependencies_space_ptr_type;
 
-    void insert_depenency(
+    dependency_value* insert_depenency(
         dependant target, const resolvable* dependency_source, const dependency_evaluation_context& dep_ctx);
 
     dependant delete_dependency(std::unordered_map<dependant, dependency_value>::iterator it);
@@ -114,10 +118,6 @@ class symbol_dependency_tables
     dep_iterator dep_end();
     size_t m_dependencies_skip_index = 0;
 
-    // statements where dependencies are from
-    std::unordered_map<dependant, index_t<postponed_statements_t>> m_dependency_source_stmts;
-    // addresses where dependencies are from
-    std::unordered_map<dependant, addr_res_ptr> m_dependency_source_addrs;
     // list of statements containing dependencies that can not be checked yet
     postponed_statements_t m_postponed_stmts;
     std::vector<size_t> m_postponed_stmts_references;
@@ -148,15 +148,13 @@ class symbol_dependency_tables
         const dependency_evaluation_context& dep_ctx,
         const library_info& li);
 
-    void try_erase_source_statement(const dependant& index);
-
-    bool add_dependency(dependant target,
+    dependency_value* add_dependency(dependant target,
         const resolvable* dependency_source,
         bool check_cycle,
         const dependency_evaluation_context& dep_ctx,
         const library_info& li);
 
-    void establish_statement_dependency(dependant d, index_t<postponed_statements_t> id);
+    void establish_statement_dependency(dependency_value& val, index_t<postponed_statements_t> id);
 
 public:
     symbol_dependency_tables(ordinary_assembly_context& sym_ctx);
