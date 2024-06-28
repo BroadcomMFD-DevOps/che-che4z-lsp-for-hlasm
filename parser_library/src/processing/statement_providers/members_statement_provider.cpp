@@ -166,8 +166,7 @@ const context::statement_cache::cached_statement_t& members_statement_provider::
 struct deferred_statement_adapter final : public resolved_statement
 {
     deferred_statement_adapter(std::shared_ptr<const statement_si_defer_done> base_stmt, processing_status status)
-        : resolved_statement()
-        , base_stmt(std::move(base_stmt))
+        : base_stmt(std::move(base_stmt))
         , status(std::move(status))
     {}
 

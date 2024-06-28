@@ -386,8 +386,7 @@ bool macrodef_processor::process_MEND()
 struct empty_statement_t final : public resolved_statement
 {
     empty_statement_t(range r)
-        : resolved_statement()
-        , label(r)
+        : label(r)
         , instruction(r)
         , operands(r, {})
         , remarks(r, {})

@@ -107,7 +107,6 @@ public:
     literal_postponed_statement(
         const std::shared_ptr<const expressions::data_definition>& dd, const literal_pool::literal_details& details)
         : context::postponed_statement(details.stack, this)
-        , processing::resolved_statement()
         , op(details.r, {})
     {
         op.value.push_back(std::make_unique<semantics::data_def_operand_shared>(dd, details.r));

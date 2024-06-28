@@ -202,8 +202,7 @@ struct statement_si final : public processing::resolved_statement
         std::vector<semantics::literal_si>&& literals,
         processing::processing_status status,
         std::vector<diagnostic_op>&& diags)
-        : processing::resolved_statement()
-        , label(std::move(label))
+        : label(std::move(label))
         , instruction(std::move(instruction))
         , operands(std::move(operands))
         , remarks(std::move(remarks))
