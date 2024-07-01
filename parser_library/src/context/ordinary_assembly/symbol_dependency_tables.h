@@ -125,7 +125,8 @@ class symbol_dependency_tables
 
     ordinary_assembly_context& m_sym_ctx;
 
-    index_t<postponed_statements_t> add_postponed(post_stmt_ptr, const dependency_evaluation_context&);
+    template<typename T>
+    index_t<postponed_statements_t> add_postponed(post_stmt_ptr, T&&);
     void delete_postponed(index_t<postponed_statements_t>);
 
     bool check_cycle(dependant target, std::vector<dependant> dependencies, const library_info& li);
@@ -189,8 +190,7 @@ public:
         post_stmt_ptr dependency_source_stmt = nullptr);
     bool check_cycle(space_ptr target, const library_info& li);
 
-    // add statement dependency on its operands
-    void add_dependency(post_stmt_ptr target, const dependency_evaluation_context& dep_ctx, const library_info& li);
+    void add_postponed_statement(post_stmt_ptr target, dependency_evaluation_context dep_ctx);
 
     // method for creating more than one dependency assigned to one statement
     dependency_adder add_dependencies(

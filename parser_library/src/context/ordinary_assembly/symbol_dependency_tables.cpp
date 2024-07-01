@@ -577,14 +577,15 @@ std::vector<dependant> symbol_dependency_tables::extract_dependencies(
     return ret;
 }
 
+template<typename T>
 index_t<postponed_statements_t> symbol_dependency_tables::add_postponed(
-    post_stmt_ptr dependency_source_stmt, const dependency_evaluation_context& dep_ctx)
+    post_stmt_ptr dependency_source_stmt, T&& dep_ctx)
 {
     index_t<postponed_statements_t> id;
     if (m_postponed_stmts_free.empty())
     {
         id = index_t<postponed_statements_t>(m_postponed_stmts.size());
-        m_postponed_stmts.emplace_back(std::move(dependency_source_stmt), dep_ctx);
+        m_postponed_stmts.emplace_back(std::move(dependency_source_stmt), std::forward<T>(dep_ctx));
         m_postponed_stmts_references.emplace_back();
     }
     else
@@ -593,7 +594,7 @@ index_t<postponed_statements_t> symbol_dependency_tables::add_postponed(
         m_postponed_stmts_free.pop_back();
         auto& reuse = m_postponed_stmts[id.value()];
         reuse.first = std::move(dependency_source_stmt);
-        reuse.second = dep_ctx;
+        reuse.second = std::forward<T>(dep_ctx);
     }
 
     return id;
@@ -741,10 +742,9 @@ bool symbol_dependency_tables::check_cycle(space_ptr target, const library_info&
     return no_cycle;
 }
 
-void symbol_dependency_tables::add_dependency(
-    post_stmt_ptr target, const dependency_evaluation_context& dep_ctx, const library_info&)
+void symbol_dependency_tables::add_postponed_statement(post_stmt_ptr target, dependency_evaluation_context dep_ctx)
 {
-    (void)add_postponed(std::move(target), dep_ctx);
+    (void)add_postponed(std::move(target), std::move(dep_ctx));
 }
 
 dependency_adder symbol_dependency_tables::add_dependencies(
