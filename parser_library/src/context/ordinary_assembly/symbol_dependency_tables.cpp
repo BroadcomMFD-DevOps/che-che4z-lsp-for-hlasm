@@ -562,21 +562,6 @@ bool symbol_dependency_tables::update_dependencies(const dependency_value& d, co
     return m_dependencies_filters.any(d.m_last_dependencies);
 }
 
-std::vector<dependant> symbol_dependency_tables::extract_dependencies(
-    const std::vector<const resolvable*>& dependency_sources,
-    const dependency_evaluation_context& dep_ctx,
-    const library_info& li)
-{
-    std::vector<dependant> ret;
-
-    for (auto dep : dependency_sources)
-    {
-        auto tmp = extract_dependencies(dep, dep_ctx, li);
-        ret.insert(ret.end(), std::make_move_iterator(tmp.begin()), std::make_move_iterator(tmp.end()));
-    }
-    return ret;
-}
-
 template<typename T>
 index_t<postponed_statements_t> symbol_dependency_tables::add_postponed(
     post_stmt_ptr dependency_source_stmt, T&& dep_ctx)
@@ -592,9 +577,9 @@ index_t<postponed_statements_t> symbol_dependency_tables::add_postponed(
     {
         id = m_postponed_stmts_free.back();
         m_postponed_stmts_free.pop_back();
-        auto& reuse = m_postponed_stmts[id.value()];
-        reuse.first = std::move(dependency_source_stmt);
-        reuse.second = std::forward<T>(dep_ctx);
+        auto& [stmt, ctx] = m_postponed_stmts[id.value()];
+        stmt = std::move(dependency_source_stmt);
+        ctx = std::forward<T>(dep_ctx);
     }
 
     return id;
@@ -603,9 +588,9 @@ index_t<postponed_statements_t> symbol_dependency_tables::add_postponed(
 void symbol_dependency_tables::delete_postponed(index_t<postponed_statements_t> id)
 {
     m_postponed_stmts_free.push_back(id);
-    auto& ps = m_postponed_stmts[id.value()];
-    ps.first.reset();
-    ps.second.loctr_address.reset();
+    auto& [stmt, ctx] = m_postponed_stmts[id.value()];
+    stmt.reset();
+    ctx.loctr_address.reset();
     m_postponed_stmts_references[id.value()] = 0;
 }
 
@@ -867,42 +852,32 @@ void symbol_dependency_tables::resolve_all_as_default()
     }
 }
 
-statement_ref::statement_ref(index_t<postponed_statements_t> stmt_ref, size_t ref_count)
-    : stmt_ref(std::move(stmt_ref))
-    , ref_count(ref_count)
-{}
-
-bool dependency_adder::add_dependency(id_index target, const resolvable* dependency_source)
+symbol_dependency_tables::dependency_value* dependency_adder::add_dependency(
+    dependant target, const resolvable* dependency_source, bool check_cycle)
 {
     auto* dep = m_owner.add_dependency(
-        dependant(target), dependency_source, true, m_owner.m_postponed_stmts[m_id.value()].second, m_li);
+        std::move(target), dependency_source, check_cycle, m_owner.m_postponed_stmts[m_id.value()].second, m_li);
 
     if (dep)
         m_owner.establish_statement_dependency(*dep, m_id);
 
     return dep;
+}
+
+bool dependency_adder::add_dependency(id_index target, const resolvable* dependency_source)
+{
+    return add_dependency(dependant(target), dependency_source, true);
 }
 
 bool dependency_adder::add_dependency(id_index target, data_attr_kind attr, const resolvable* dependency_source)
 {
-    auto* dep = m_owner.add_dependency(dependant(attr_ref { attr, target }),
-        dependency_source,
-        true,
-        m_owner.m_postponed_stmts[m_id.value()].second,
-        m_li);
-
-    if (dep)
-        m_owner.establish_statement_dependency(*dep, m_id);
-
-    return dep;
+    return add_dependency(dependant(attr_ref { attr, target }), dependency_source, true);
 }
 
 void dependency_adder::add_dependency(space_ptr target, const resolvable* dependency_source)
 {
-    auto* dep = m_owner.add_dependency(
-        dependant(target), dependency_source, false, m_owner.m_postponed_stmts[m_id.value()].second, m_li);
+    [[maybe_unused]] auto* dep = add_dependency(dependant(target), dependency_source, false);
     assert(dep);
-    m_owner.establish_statement_dependency(*dep, m_id);
 }
 
 } // namespace hlasm_plugin::parser_library::context

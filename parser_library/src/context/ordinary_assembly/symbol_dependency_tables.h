@@ -66,14 +66,6 @@ struct dependency_evaluation_context
 };
 
 using postponed_statements_t = std::vector<std::pair<post_stmt_ptr, dependency_evaluation_context>>;
-// helper structure to count dependencies of a statement
-struct statement_ref
-{
-    statement_ref(index_t<postponed_statements_t> stmt_ref, size_t ref_count = (size_t)1);
-
-    index_t<postponed_statements_t> stmt_ref;
-    size_t ref_count;
-};
 
 class dependency_adder;
 // class holding data about dependencies between symbols
@@ -145,9 +137,6 @@ class symbol_dependency_tables
     std::vector<dependant> extract_dependencies(
         const resolvable* dependency_source, const dependency_evaluation_context& dep_ctx, const library_info& li);
     bool update_dependencies(const dependency_value& v, const library_info& li);
-    std::vector<dependant> extract_dependencies(const std::vector<const resolvable*>& dependency_sources,
-        const dependency_evaluation_context& dep_ctx,
-        const library_info& li);
 
     dependency_value* add_dependency(dependant target,
         const resolvable* dependency_source,
@@ -228,6 +217,9 @@ class dependency_adder
         , m_id(id)
         , m_li(li)
     {}
+
+    [[nodiscard]] symbol_dependency_tables::dependency_value* add_dependency(
+        dependant target, const resolvable* dependency_source, bool check_cycle);
 
 public:
     // add symbol dependency on statement
