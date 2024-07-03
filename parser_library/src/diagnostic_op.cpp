@@ -758,6 +758,11 @@ diagnostic_op diagnostic_op::error_A168_XATTR_label(const range& range)
     return diagnostic_op(diagnostic_severity::error, "A168", "External symbol name required", range);
 }
 
+diagnostic_op diagnostic_op::error_A169_no_section(const range& range)
+{
+    return diagnostic_op(diagnostic_severity::error, "A169", "Executable section must be started", range);
+}
+
 diagnostic_op diagnostic_op::error_A200_SCOPE_param(std::string_view instr_name, const range& range)
 {
     return diagnostic_op(diagnostic_severity::error,

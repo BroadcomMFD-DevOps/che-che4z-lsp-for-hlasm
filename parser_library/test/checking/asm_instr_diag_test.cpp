@@ -485,6 +485,16 @@ AAAAAAAAAAAAAAAAB CATTR
     EXPECT_TRUE(matches_message_codes(a.diags(), { "A167" }));
 }
 
+TEST(diagnostics, cattr_no_csect)
+{
+    std::string input = R"(
+X CATTR
+)";
+    analyzer a(input, analyzer_options(asm_option { .sysopt_xobject = true }));
+    a.analyze();
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "A169" }));
+}
+
 TEST(diagnostics, ainsert_incorrect_string)
 {
     std::string input(

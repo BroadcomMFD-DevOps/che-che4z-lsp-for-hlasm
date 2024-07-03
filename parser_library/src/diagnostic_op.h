@@ -319,6 +319,8 @@ struct diagnostic_op
 
     static diagnostic_op error_A168_XATTR_label(const range& range);
 
+    static diagnostic_op error_A169_no_section(const range& range);
+
     // operand parameters
 
     static diagnostic_op error_A200_SCOPE_param(std::string_view instr_name, const range& range);

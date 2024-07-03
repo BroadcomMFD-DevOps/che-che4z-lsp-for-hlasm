@@ -1473,10 +1473,20 @@ void asm_processor::process_CATTR(rebuilt_statement&& stmt)
     if (class_name.empty() || class_name.to_string_view().size() > max_class_name_length)
         add_diagnostic(diagnostic_op::error_A167_CATTR_label(stmt.label_ref().field_range));
 
-    if (!class_name.empty() && hlasm_ctx.goff())
+    do
     {
+        if (class_name.empty())
+            break;
+        if (!hlasm_ctx.goff())
+            break;
+        if (!hlasm_ctx.ord_ctx.get_last_active_control_section())
+        {
+            add_diagnostic(diagnostic_op::error_A169_no_section(stmt.stmt_range_ref()));
+            break;
+        }
         // TODO:
-    }
+    } while (false);
+
     context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, lib_info);
     hlasm_ctx.ord_ctx.symbol_dependencies().add_postponed_statement(
         std::make_unique<postponed_statement_impl>(std::move(std::move(stmt)), hlasm_ctx.processing_stack()),
