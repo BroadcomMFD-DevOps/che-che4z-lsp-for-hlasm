@@ -342,6 +342,8 @@ public:
     system_variable_map get_system_variables(const code_scope&);
 
     friend variable_symbol* get_var_sym(const expressions::evaluation_context& eval_ctx, id_index name);
+
+    bool goff() const noexcept { return asm_options_.sysopt_xobject; }
 };
 
 bool test_symbol_for_read(const variable_symbol* var,

@@ -743,6 +743,21 @@ diagnostic_op diagnostic_op::error_A165_POP_USING(const range& range)
     return diagnostic_op(diagnostic_severity::error, "A165", "Illegal POP USING - stack is empty.", range);
 }
 
+diagnostic_op diagnostic_op::error_A166_GOFF_required(const range& range)
+{
+    return diagnostic_op(diagnostic_severity::error, "A166", "GOFF/XOBJECT option is required", range);
+}
+
+diagnostic_op diagnostic_op::error_A167_CATTR_label(const range& range)
+{
+    return diagnostic_op(diagnostic_severity::error, "A167", "Valid class name required", range);
+}
+
+diagnostic_op diagnostic_op::error_A168_XATTR_label(const range& range)
+{
+    return diagnostic_op(diagnostic_severity::error, "A168", "External symbol name required", range);
+}
+
 diagnostic_op diagnostic_op::error_A200_SCOPE_param(std::string_view instr_name, const range& range)
 {
     return diagnostic_op(diagnostic_severity::error,

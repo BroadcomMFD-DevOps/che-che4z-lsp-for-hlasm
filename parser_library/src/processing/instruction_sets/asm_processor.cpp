@@ -835,6 +835,8 @@ asm_processor::process_table_t asm_processor::create_table()
     table.emplace(context::id_index("CXD"), [this](rebuilt_statement&& stmt) { process_CXD(std::move(stmt)); });
     table.emplace(context::id_index("TITLE"), [this](rebuilt_statement&& stmt) { process_TITLE(std::move(stmt)); });
     table.emplace(context::id_index("PUNCH"), [this](rebuilt_statement&& stmt) { process_PUNCH(std::move(stmt)); });
+    table.emplace(context::id_index("CATTR"), [this](rebuilt_statement&& stmt) { process_CATTR(std::move(stmt)); });
+    table.emplace(context::id_index("XATTR"), [this](rebuilt_statement&& stmt) { process_XATTR(std::move(stmt)); });
 
     return table;
 }
@@ -1462,6 +1464,41 @@ void asm_processor::process_PUNCH(rebuilt_statement&& stmt)
     utils::append_utf8_sanitized(sanitized, text);
 
     output->punch(sanitized);
+}
+
+void asm_processor::process_CATTR(rebuilt_statement&& stmt)
+{
+    const auto& label = stmt.label_ref();
+    if (label.type != semantics::label_si_type::ORD)
+    {
+        add_diagnostic(diagnostic_op::error_A167_CATTR_label(label.field_range));
+    }
+    if (hlasm_ctx.goff())
+    {
+        // TODO:
+    }
+    context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, lib_info);
+    hlasm_ctx.ord_ctx.symbol_dependencies().add_postponed_statement(
+        std::make_unique<postponed_statement_impl>(std::move(std::move(stmt)), hlasm_ctx.processing_stack()),
+        std::move(dep_solver).derive_current_dependency_evaluation_context());
+}
+
+void asm_processor::process_XATTR(rebuilt_statement&& stmt)
+{
+    if (!hlasm_ctx.goff())
+    {
+        add_diagnostic(diagnostic_op::error_A166_GOFF_required(stmt.instruction_ref().field_range));
+    }
+    const auto& label = stmt.label_ref();
+    if (label.type != semantics::label_si_type::ORD)
+    {
+        add_diagnostic(diagnostic_op::error_A168_XATTR_label(label.field_range));
+    }
+
+    context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, lib_info);
+    hlasm_ctx.ord_ctx.symbol_dependencies().add_postponed_statement(
+        std::make_unique<postponed_statement_impl>(std::move(std::move(stmt)), hlasm_ctx.processing_stack()),
+        std::move(dep_solver).derive_current_dependency_evaluation_context());
 }
 
 } // namespace hlasm_plugin::parser_library::processing
