@@ -1484,6 +1484,11 @@ void asm_processor::process_CATTR(rebuilt_statement&& stmt)
             add_diagnostic(diagnostic_op::error_A169_no_section(stmt.stmt_range_ref()));
             break;
         }
+        if (hlasm_ctx.ord_ctx.symbol_defined(class_name))
+        {
+            add_diagnostic(diagnostic_op::error_E031("symbol", stmt.label_ref().field_range));
+            break;
+        }
         // TODO:
     } while (false);
 

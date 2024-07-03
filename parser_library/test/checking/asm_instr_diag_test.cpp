@@ -495,6 +495,18 @@ X CATTR
     EXPECT_TRUE(matches_message_codes(a.diags(), { "A169" }));
 }
 
+TEST(diagnostics, cattr_redef)
+{
+    std::string input = R"(
+    START
+X   DS    0H
+X   CATTR
+)";
+    analyzer a(input, analyzer_options(asm_option { .sysopt_xobject = true }));
+    a.analyze();
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "E031" }));
+}
+
 TEST(diagnostics, ainsert_incorrect_string)
 {
     std::string input(
