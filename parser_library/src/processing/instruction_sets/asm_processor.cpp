@@ -1468,12 +1468,12 @@ void asm_processor::process_PUNCH(rebuilt_statement&& stmt)
 
 void asm_processor::process_CATTR(rebuilt_statement&& stmt)
 {
-    const auto& label = stmt.label_ref();
-    if (label.type != semantics::label_si_type::ORD)
-    {
-        add_diagnostic(diagnostic_op::error_A167_CATTR_label(label.field_range));
-    }
-    if (hlasm_ctx.goff())
+    static constexpr size_t max_class_name_length = 16;
+    context::id_index class_name = find_label_symbol(stmt);
+    if (class_name.empty() || class_name.to_string_view().size() > max_class_name_length)
+        add_diagnostic(diagnostic_op::error_A167_CATTR_label(stmt.label_ref().field_range));
+
+    if (!class_name.empty() && hlasm_ctx.goff())
     {
         // TODO:
     }
@@ -1489,10 +1489,13 @@ void asm_processor::process_XATTR(rebuilt_statement&& stmt)
     {
         add_diagnostic(diagnostic_op::error_A166_GOFF_required(stmt.instruction_ref().field_range));
     }
-    const auto& label = stmt.label_ref();
-    if (label.type != semantics::label_si_type::ORD)
+    context::id_index class_name = find_label_symbol(stmt);
+
+    if (class_name.empty())
+        add_diagnostic(diagnostic_op::error_A168_XATTR_label(stmt.label_ref().field_range));
+    else
     {
-        add_diagnostic(diagnostic_op::error_A168_XATTR_label(label.field_range));
+        // TODO:
     }
 
     context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, lib_info);

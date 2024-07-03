@@ -452,6 +452,39 @@ X CATTR ,NOLOAD
     EXPECT_TRUE(matches_message_codes(a.diags(), { "A021" }));
 }
 
+TEST(diagnostics, cattr_missing_label_no_goff)
+{
+    std::string input = R"(
+  START
+  CATTR
+)";
+    analyzer a(input);
+    a.analyze();
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "A167" }));
+}
+
+TEST(diagnostics, cattr_missing_label_goff)
+{
+    std::string input = R"(
+  START
+  CATTR
+)";
+    analyzer a(input, analyzer_options(asm_option { .sysopt_xobject = true }));
+    a.analyze();
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "A167" }));
+}
+
+TEST(diagnostics, cattr_label_too_long)
+{
+    std::string input = R"(
+  START
+AAAAAAAAAAAAAAAAB CATTR
+)";
+    analyzer a(input);
+    a.analyze();
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "A167" }));
+}
+
 TEST(diagnostics, ainsert_incorrect_string)
 {
     std::string input(
@@ -713,6 +746,28 @@ X XATTR REFERENCE(operand,operand,operand)
     a.analyze();
     EXPECT_EQ(get_syntax_errors(a), (size_t)0);
     EXPECT_TRUE(matches_message_codes(a.diags(), { "A018" }));
+}
+
+TEST(diagnostics, xattr_requires_goff)
+{
+    std::string input = R"(
+  EXTRN X
+X XATTR LINKAGE(OS)
+)";
+    analyzer a(input);
+    a.analyze();
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "A166" }));
+}
+
+TEST(diagnostics, xattr_requires_label)
+{
+    std::string input = R"(
+  EXTRN X
+  XATTR LINKAGE(OS)
+)";
+    analyzer a(input, analyzer_options(asm_option { .sysopt_xobject = true }));
+    a.analyze();
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "A168" }));
 }
 
 TEST(diagnostics, mnote_incorrect_message)
