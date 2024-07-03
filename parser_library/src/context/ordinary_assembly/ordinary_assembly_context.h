@@ -17,13 +17,11 @@
 
 #include <memory>
 #include <unordered_map>
-#include <unordered_set>
 #include <variant>
 #include <vector>
 
 #include "alignment.h"
 #include "dependable.h"
-#include "diagnostic.h"
 #include "diagnostic_consumer.h"
 #include "section.h"
 #include "symbol.h"
@@ -69,6 +67,7 @@ class ordinary_assembly_context
 
     section* curr_section_;
     section* first_control_section_ = nullptr;
+    section* last_active_control_section = nullptr;
 
     // literals
     std::unique_ptr<literal_pool> m_literals;
@@ -194,6 +193,8 @@ public:
     void start_reporting_label_candidates();
 
     opcode_generation current_opcode_generation() const;
+
+    section* get_last_active_control_section() const { return last_active_control_section; }
 
 private:
     void create_private_section();

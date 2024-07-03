@@ -154,6 +154,8 @@ section* ordinary_assembly_context::set_section(
 section* ordinary_assembly_context::set_section(section& s)
 {
     curr_section_ = &s;
+    if (s.kind != section_kind::DUMMY)
+        last_active_control_section = &s;
 
     return &s;
 }
