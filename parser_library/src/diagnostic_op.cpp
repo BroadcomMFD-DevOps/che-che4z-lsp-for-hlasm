@@ -773,6 +773,11 @@ diagnostic_op diagnostic_op::warn_A171_operands_ignored(const range& range)
     return diagnostic_op(diagnostic_severity::warning, "A171", "Operands ignored", range);
 }
 
+diagnostic_op diagnostic_op::warn_A172_psect_redefinition(const range& range)
+{
+    return diagnostic_op(diagnostic_severity::warning, "A172", "PSECT cannot be set multiple times", range);
+}
+
 diagnostic_op diagnostic_op::error_A200_SCOPE_param(std::string_view instr_name, const range& range)
 {
     return diagnostic_op(diagnostic_severity::error,

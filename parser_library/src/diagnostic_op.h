@@ -325,6 +325,8 @@ struct diagnostic_op
 
     static diagnostic_op warn_A171_operands_ignored(const range& range);
 
+    static diagnostic_op warn_A172_psect_redefinition(const range& range);
+
     // operand parameters
 
     static diagnostic_op error_A200_SCOPE_param(std::string_view instr_name, const range& range);

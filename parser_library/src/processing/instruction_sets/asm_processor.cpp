@@ -1584,22 +1584,41 @@ void asm_processor::process_CATTR(rebuilt_statement&& stmt)
 
 void asm_processor::process_XATTR(rebuilt_statement&& stmt)
 {
-    if (!hlasm_ctx.goff())
-    {
-        add_diagnostic(diagnostic_op::error_A166_GOFF_required(stmt.instruction_ref().field_range));
-    }
     context::id_index class_name = find_label_symbol(stmt);
 
-    if (class_name.empty())
+    if (!hlasm_ctx.goff())
+        add_diagnostic(diagnostic_op::error_A166_GOFF_required(stmt.instruction_ref().field_range));
+    else if (class_name.empty())
         add_diagnostic(diagnostic_op::error_A168_XATTR_label(stmt.label_ref().field_range));
     else
     {
-        // TODO:
+        for (const auto& op : stmt.operands_ref().value)
+        {
+            const auto* asm_op = op->access_asm();
+            if (!asm_op)
+                continue;
+            const auto* complex = asm_op->access_complex();
+            if (!complex)
+                continue;
+            if (complex->value.identifier != "PSECT" || complex->value.values.size() != 1)
+                continue;
+            const auto* str = dynamic_cast<const semantics::complex_assembler_operand::string_value_t*>(
+                complex->value.values.front().get());
+
+            auto [valid, psect] = hlasm_ctx.try_get_symbol_name(str->value);
+            if (!valid)
+                continue;
+
+            if (!hlasm_ctx.register_psect(class_name, psect))
+                add_diagnostic(diagnostic_op::warn_A172_psect_redefinition(complex->operand_range));
+
+            break;
+        }
     }
 
     context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, lib_info);
     hlasm_ctx.ord_ctx.symbol_dependencies().add_postponed_statement(
-        std::make_unique<postponed_statement_impl>(std::move(std::move(stmt)), hlasm_ctx.processing_stack()),
+        std::make_unique<postponed_statement_impl>(std::move(stmt), hlasm_ctx.processing_stack()),
         std::move(dep_solver).derive_current_dependency_evaluation_context());
 }
 

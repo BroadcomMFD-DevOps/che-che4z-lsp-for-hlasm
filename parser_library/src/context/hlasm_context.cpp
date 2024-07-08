@@ -1074,6 +1074,12 @@ hlasm_context::name_result hlasm_context::try_get_symbol_name(id_index symbol) c
     return std::make_pair(true, symbol);
 }
 
+bool hlasm_context::register_psect(id_index symbol, id_index psect)
+{
+    auto [_, inserted] = psect_registrations.try_emplace(symbol, psect);
+    return inserted;
+}
+
 const code_scope& get_current_scope(const context::hlasm_context& ctx) { return ctx.current_scope(); }
 variable_symbol* get_var_sym(const expressions::evaluation_context& eval_ctx, id_index name)
 {

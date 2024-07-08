@@ -887,6 +887,19 @@ TEST(diagnostics, xattr_requires_label)
     EXPECT_TRUE(matches_message_codes(a.diags(), { "A168" }));
 }
 
+TEST(diagnostics, xattr_psect_repeated)
+{
+    std::string input = R"(
+C CSECT
+P CSECT
+C XATTR PSECT(P)
+C XATTR PSECT(P)
+)";
+    analyzer a(input, analyzer_options(asm_option { .sysopt_xobject = true }));
+    a.analyze();
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "A172" }));
+}
+
 TEST(diagnostics, mnote_incorrect_message)
 {
     std::string input(
