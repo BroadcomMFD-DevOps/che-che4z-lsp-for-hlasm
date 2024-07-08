@@ -35,7 +35,7 @@ bool symbol_can_be_assigned(const auto& symbols, auto name)
 
 void ordinary_assembly_context::create_private_section()
 {
-    set_section(*create_section(id_index(), section_kind::EXECUTABLE, false));
+    set_section(*create_section(id_index(), section_kind::EXECUTABLE));
 }
 
 const std::vector<std::unique_ptr<section>>& ordinary_assembly_context::sections() const { return sections_; }
@@ -122,7 +122,7 @@ section* ordinary_assembly_context::get_section(id_index name)
 const section* ordinary_assembly_context::current_section() const { return curr_section_; }
 
 section* ordinary_assembly_context::set_section(
-    id_index name, section_kind kind, location symbol_location, const library_info& li, bool goff_class)
+    id_index name, section_kind kind, location symbol_location, const library_info& li)
 {
     auto tmp = std::ranges::find_if(
         sections_, [name, kind](const auto& sect) { return sect->name == name && sect->kind == kind; });
@@ -133,7 +133,7 @@ section* ordinary_assembly_context::set_section(
         s = set_section(**tmp);
     else
     {
-        s = set_section(*create_section(name, kind, goff_class));
+        s = set_section(*create_section(name, kind));
 
         if (!name.empty())
         {
@@ -151,11 +151,40 @@ section* ordinary_assembly_context::set_section(
     return s;
 }
 
+section* ordinary_assembly_context::create_and_set_class(
+    id_index name, location symbol_location, const library_info& li, section* base, bool partitioned)
+{
+    assert(std::ranges::find(sections_, name, &section::name) == sections_.end());
+    assert(symbol_can_be_assigned(symbols_, name));
+
+    auto* s = set_section(*create_section(name,
+        section_kind::EXECUTABLE,
+        {
+            .owner = last_active_control_section,
+            .parent = base,
+            .partitioned = partitioned,
+        }));
+    symbols_.insert_or_assign(name,
+        symbol(name,
+            s->current_location_counter().current_address(),
+            symbol_attributes::make_section_attrs(),
+            std::move(symbol_location),
+            hlasm_ctx_.processing_stack()));
+    m_symbol_dependencies->add_defined(name, nullptr, li);
+
+    return s;
+}
+
 section* ordinary_assembly_context::set_section(section& s)
 {
     curr_section_ = &s;
     if (s.kind != section_kind::DUMMY)
-        last_active_control_section = &s;
+    {
+        if (s.goff.has_value())
+            last_active_control_section = s.goff->owner;
+        else
+            last_active_control_section = &s;
+    }
 
     return &s;
 }
@@ -179,7 +208,7 @@ void ordinary_assembly_context::create_external_section(
 
     symbols_.insert_or_assign(name,
         symbol(name,
-            create_section(name, kind, false)->current_location_counter().current_address(),
+            create_section(name, kind)->current_location_counter().current_address(),
             attrs,
             std::move(symbol_location),
             std::move(processing_stack)));
@@ -370,9 +399,18 @@ std::pair<address, space_ptr> ordinary_assembly_context::reserve_storage_area_sp
     return std::make_pair(l.reserve_storage_area(length, align).first, nullptr);
 }
 
-section* ordinary_assembly_context::create_section(id_index name, section_kind kind, bool goff_class)
+section* ordinary_assembly_context::create_section(id_index name, section_kind kind)
 {
-    section* ret = sections_.emplace_back(std::make_unique<section>(name, kind, goff_class)).get();
+    section* ret = sections_.emplace_back(std::make_unique<section>(name, kind)).get();
+    if (first_control_section_ == nullptr
+        && (kind == section_kind::COMMON || kind == section_kind::EXECUTABLE || kind == section_kind::READONLY))
+        first_control_section_ = ret;
+    return ret;
+}
+
+section* ordinary_assembly_context::create_section(id_index name, section_kind kind, goff_details details)
+{
+    section* ret = sections_.emplace_back(std::make_unique<section>(name, kind, std::move(details))).get();
     if (first_control_section_ == nullptr
         && (kind == section_kind::COMMON || kind == section_kind::EXECUTABLE || kind == section_kind::READONLY))
         first_control_section_ = ret;

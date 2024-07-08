@@ -107,7 +107,7 @@ void asm_processor::process_sect(const context::section_kind kind, rebuilt_state
     {
         auto sym_loc = hlasm_ctx.processing_stack_top().get_location();
         sym_loc.pos.column = 0;
-        hlasm_ctx.ord_ctx.set_section(sect_name, kind, std::move(sym_loc), lib_info, false);
+        hlasm_ctx.ord_ctx.set_section(sect_name, kind, std::move(sym_loc), lib_info);
     }
     context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, lib_info);
     hlasm_ctx.ord_ctx.symbol_dependencies().add_postponed_statement(
@@ -1008,7 +1008,7 @@ void asm_processor::process_START(rebuilt_statement&& stmt)
 
     auto sym_loc = hlasm_ctx.processing_stack_top().get_location();
     sym_loc.pos.column = 0;
-    const auto* section = hlasm_ctx.ord_ctx.set_section(sect_name, EXECUTABLE, std::move(sym_loc), lib_info, true);
+    const auto* section = hlasm_ctx.ord_ctx.set_section(sect_name, EXECUTABLE, std::move(sym_loc), lib_info);
 
     const auto& ops = stmt.operands_ref().value;
     if (ops.size() != 1)
@@ -1466,34 +1466,115 @@ void asm_processor::process_PUNCH(rebuilt_statement&& stmt)
     output->punch(sanitized);
 }
 
+asm_processor::cattr_ops_result asm_processor::cattr_ops(const semantics::operands_si& ops)
+{
+    using enum semantics::operand_type;
+    if (ops.value.empty())
+        return {};
+    if (ops.value.size() == 2 && ops.value.front()->type == EMPTY && ops.value.back()->type == EMPTY)
+        return {};
+
+    for (const auto& op : ops.value)
+    {
+        const auto* asm_op = op->access_asm();
+        if (!asm_op)
+            continue;
+        const auto* complex = asm_op->access_complex();
+        if (!complex)
+            continue;
+        if (complex->value.identifier != "PART" || complex->value.values.size() != 1)
+            continue;
+        const auto* str = dynamic_cast<const semantics::complex_assembler_operand::string_value_t*>(
+            complex->value.values.front().get());
+        auto [_, result] = hlasm_ctx.try_get_symbol_name(str->value);
+
+        return { ops.value.size() - 1, result, complex->operand_range };
+    }
+
+    return { ops.value.size(), {}, {} };
+}
+
+void asm_processor::handle_cattr_ops(context::id_index class_name,
+    context::id_index part_name,
+    const range& part_rng,
+    size_t op_count,
+    rebuilt_statement& stmt)
+{
+    assert(!class_name.empty());
+    auto* class_name_sect = hlasm_ctx.ord_ctx.get_section(class_name);
+    auto* part_name_sect = part_name.empty() ? nullptr : hlasm_ctx.ord_ctx.get_section(part_name);
+    bool class_name_defined = !!class_name_sect || hlasm_ctx.ord_ctx.symbol_defined(class_name);
+    bool part_name_defined = !!part_name_sect || !part_name.empty() && hlasm_ctx.ord_ctx.symbol_defined(part_name);
+
+    if (part_name_sect)
+    {
+        if (!part_name_sect->goff || part_name_sect->goff->parent != class_name_sect)
+            add_diagnostic(diagnostic_op::error_A170_section_type_mismatch(part_rng));
+        else if (op_count != 1)
+            add_diagnostic(diagnostic_op::warn_A171_operands_ignored(stmt.operands_ref().field_range));
+        hlasm_ctx.ord_ctx.set_section(*part_name_sect);
+        return;
+    }
+
+    if (part_name_defined)
+    {
+        add_diagnostic(diagnostic_op::error_E031("symbol", stmt.label_ref().field_range));
+        return;
+    }
+
+    if (class_name_sect)
+    {
+        hlasm_ctx.ord_ctx.set_section(*class_name_sect);
+
+        if (!class_name_sect->goff || part_name.empty() && class_name_sect->goff->partitioned)
+        {
+            add_diagnostic(diagnostic_op::error_A170_section_type_mismatch(part_rng));
+            return;
+        }
+        else if (!part_name.empty() && !class_name_sect->goff->partitioned || op_count > !part_name.empty())
+        {
+            add_diagnostic(diagnostic_op::warn_A171_operands_ignored(stmt.operands_ref().field_range));
+            return;
+        }
+    }
+    else if (class_name_defined)
+    {
+        add_diagnostic(diagnostic_op::error_E031("symbol", stmt.label_ref().field_range));
+        return;
+    }
+    else
+    {
+        auto sym_loc = hlasm_ctx.processing_stack_top().get_location();
+        sym_loc.pos.column = 0;
+        class_name_sect = hlasm_ctx.ord_ctx.create_and_set_class(
+            class_name, std::move(sym_loc), lib_info, nullptr, !part_name.empty());
+        class_name_defined = true;
+
+        // TODO: sectalign? part
+    }
+
+    if (part_name.empty())
+        return;
+
+    auto sym_loc = hlasm_ctx.processing_stack_top().get_location();
+    sym_loc.pos.column = 0;
+    hlasm_ctx.ord_ctx.create_and_set_class(part_name, std::move(sym_loc), lib_info, class_name_sect, false);
+}
+
 void asm_processor::process_CATTR(rebuilt_statement&& stmt)
 {
     static constexpr size_t max_class_name_length = 16;
     context::id_index class_name = find_label_symbol(stmt);
+    auto [op_count, part, part_rng] = cattr_ops(stmt.operands_ref());
+
     if (class_name.empty() || class_name.to_string_view().size() > max_class_name_length)
         add_diagnostic(diagnostic_op::error_A167_CATTR_label(stmt.label_ref().field_range));
     else if (!hlasm_ctx.goff())
         ; // NOP
     else if (!hlasm_ctx.ord_ctx.get_last_active_control_section())
         add_diagnostic(diagnostic_op::error_A169_no_section(stmt.stmt_range_ref()));
-    else if (hlasm_ctx.ord_ctx.symbol_defined(class_name))
-    {
-        if (auto* section = hlasm_ctx.ord_ctx.get_section(class_name); !section || !section->goff_class)
-            add_diagnostic(diagnostic_op::error_E031("symbol", stmt.label_ref().field_range));
-        else
-        {
-            hlasm_ctx.ord_ctx.set_section(*section);
-            // TODO: verify empty ops
-        }
-    }
     else
-    {
-        auto sym_loc = hlasm_ctx.processing_stack_top().get_location();
-        sym_loc.pos.column = 0;
-        hlasm_ctx.ord_ctx.set_section(
-            class_name, context::section_kind::EXECUTABLE, std::move(sym_loc), lib_info, true);
-        // TODO: sectalign? part
-    }
+        handle_cattr_ops(class_name, part, part_rng, op_count, stmt);
 
     context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, lib_info);
     hlasm_ctx.ord_ctx.symbol_dependencies().add_postponed_statement(

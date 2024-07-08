@@ -115,8 +115,9 @@ public:
     const section* current_section() const;
 
     // sets current section
-    section* set_section(
-        id_index name, section_kind kind, location symbol_location, const library_info& li, bool goff_class);
+    section* set_section(id_index name, section_kind kind, location symbol_location, const library_info& li);
+    section* create_and_set_class(
+        id_index name, location symbol_location, const library_info& li, section* base, bool partitioned);
     section* set_section(section& s);
 
     // creates an external section
@@ -201,7 +202,8 @@ private:
     void create_private_section();
     std::pair<address, space_ptr> reserve_storage_area_space(
         size_t length, alignment align, const dependency_evaluation_context& dep_ctx, const library_info& li);
-    section* create_section(id_index name, section_kind kind, bool goff_class);
+    section* create_section(id_index name, section_kind kind);
+    section* create_section(id_index name, section_kind kind, goff_details details);
 
     friend class ordinary_assembly_dependency_solver;
 };

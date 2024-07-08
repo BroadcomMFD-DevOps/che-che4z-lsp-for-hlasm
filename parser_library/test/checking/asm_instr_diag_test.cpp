@@ -515,6 +515,18 @@ X   CATTR
 )";
     analyzer a(input, analyzer_options(asm_option { .sysopt_xobject = true }));
     a.analyze();
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "A170" }));
+}
+
+TEST(diagnostics, cattr_symbol_redef)
+{
+    std::string input = R"(
+    CSECT
+X   DS  F
+X   CATTR
+)";
+    analyzer a(input, analyzer_options(asm_option { .sysopt_xobject = true }));
+    a.analyze();
     EXPECT_TRUE(matches_message_codes(a.diags(), { "E031" }));
 }
 
@@ -528,6 +540,66 @@ X   CSECT
     analyzer a(input, analyzer_options(asm_option { .sysopt_xobject = true }));
     a.analyze();
     EXPECT_TRUE(a.diags().empty());
+}
+
+TEST(diagnostics, cattr_ignored_params_attributes)
+{
+    std::string input = R"(
+    START
+X   CATTR
+X   CATTR RMODE(31)
+)";
+    analyzer a(input, analyzer_options(asm_option { .sysopt_xobject = true }));
+    a.analyze();
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "A171" }));
+}
+
+TEST(diagnostics, cattr_ignored_params_parts)
+{
+    std::string input = R"(
+    START
+X   CATTR
+X   CATTR PART(Y)
+)";
+    analyzer a(input, analyzer_options(asm_option { .sysopt_xobject = true }));
+    a.analyze();
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "A171" }));
+}
+
+TEST(diagnostics, cattr_missing_part)
+{
+    std::string input = R"(
+    START
+X   CATTR PART(Y)
+X   CATTR
+)";
+    analyzer a(input, analyzer_options(asm_option { .sysopt_xobject = true }));
+    a.analyze();
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "A170" }));
+}
+
+TEST(diagnostics, cattr_part_class_redefine)
+{
+    std::string input = R"(
+    START
+X   CATTR PART(Y)
+Z   CATTR PART(Y)
+)";
+    analyzer a(input, analyzer_options(asm_option { .sysopt_xobject = true }));
+    a.analyze();
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "A170" }));
+}
+
+TEST(diagnostics, cattr_part_redefine)
+{
+    std::string input = R"(
+    START
+Y   DS  F
+X   CATTR PART(Y)
+)";
+    analyzer a(input, analyzer_options(asm_option { .sysopt_xobject = true }));
+    a.analyze();
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "E031" }));
 }
 
 TEST(diagnostics, ainsert_incorrect_string)
