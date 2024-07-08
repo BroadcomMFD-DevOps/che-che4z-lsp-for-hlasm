@@ -507,6 +507,29 @@ X   CATTR
     EXPECT_TRUE(matches_message_codes(a.diags(), { "E031" }));
 }
 
+TEST(diagnostics, cattr_csect_mismatch)
+{
+    std::string input = R"(
+X   CSECT
+X   CATTR
+)";
+    analyzer a(input, analyzer_options(asm_option { .sysopt_xobject = true }));
+    a.analyze();
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "E031" }));
+}
+
+TEST(diagnostics, cattr_csect_valid)
+{
+    std::string input = R"(
+    START
+X   CATTR
+X   CSECT
+)";
+    analyzer a(input, analyzer_options(asm_option { .sysopt_xobject = true }));
+    a.analyze();
+    EXPECT_TRUE(a.diags().empty());
+}
+
 TEST(diagnostics, ainsert_incorrect_string)
 {
     std::string input(

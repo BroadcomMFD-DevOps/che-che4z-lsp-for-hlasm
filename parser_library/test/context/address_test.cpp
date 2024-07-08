@@ -28,7 +28,8 @@ using namespace ::testing;
 TEST(address, normalized_spaces)
 {
     hlasm_context ctx;
-    ctx.ord_ctx.set_section(id_index("TEST"), section_kind::COMMON, location(), library_info_transitional::empty);
+    ctx.ord_ctx.set_section(
+        id_index("TEST"), section_kind::COMMON, location(), library_info_transitional::empty, false);
 
     auto sp1 = ctx.ord_ctx.current_section()->current_location_counter().set_value_undefined(0, 0);
     auto sp2 = ctx.ord_ctx.current_section()->current_location_counter().register_ordinary_space(halfword);
@@ -53,7 +54,8 @@ TEST(address, normalized_spaces)
 TEST(address, has_unresolved_spaces)
 {
     hlasm_context ctx;
-    ctx.ord_ctx.set_section(id_index("TEST"), section_kind::COMMON, location(), library_info_transitional::empty);
+    ctx.ord_ctx.set_section(
+        id_index("TEST"), section_kind::COMMON, location(), library_info_transitional::empty, false);
 
     auto sp1 = ctx.ord_ctx.current_section()->current_location_counter().set_value_undefined(0, 0);
     auto sp2 = ctx.ord_ctx.current_section()->current_location_counter().register_ordinary_space(halfword);
@@ -72,7 +74,8 @@ TEST(address, has_unresolved_spaces)
 TEST(address, constructors)
 {
     hlasm_context ctx;
-    auto sect = ctx.ord_ctx.set_section(id_index("TEST"), section_kind::COMMON, {}, library_info_transitional::empty);
+    auto sect =
+        ctx.ord_ctx.set_section(id_index("TEST"), section_kind::COMMON, {}, library_info_transitional::empty, false);
 
     auto sp1 = ctx.ord_ctx.current_section()->current_location_counter().set_value_undefined(0, 0);
     auto sp2 = ctx.ord_ctx.current_section()->current_location_counter().register_ordinary_space(halfword);
@@ -92,7 +95,8 @@ TEST(address, constructors)
 TEST(address, subtract_optimization)
 {
     hlasm_context ctx;
-    auto sect = ctx.ord_ctx.set_section(id_index("TEST"), section_kind::COMMON, {}, library_info_transitional::empty);
+    auto sect =
+        ctx.ord_ctx.set_section(id_index("TEST"), section_kind::COMMON, {}, library_info_transitional::empty, false);
 
     address addr2({ sect, id_index() }, 12345, {});
 

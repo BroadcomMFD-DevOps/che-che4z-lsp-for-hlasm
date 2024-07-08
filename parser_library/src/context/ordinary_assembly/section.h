@@ -45,11 +45,12 @@ public:
     // unique identifier
     const id_index name;
     const section_kind kind;
+    const bool goff_class;
 
     // access list of location counters
     const std::vector<std::unique_ptr<location_counter>>& location_counters() const;
 
-    section(id_index name, section_kind kind);
+    section(id_index name, section_kind kind, bool goff_class);
 
     // sets current location counter
     location_counter& set_location_counter(id_index loctr_name);

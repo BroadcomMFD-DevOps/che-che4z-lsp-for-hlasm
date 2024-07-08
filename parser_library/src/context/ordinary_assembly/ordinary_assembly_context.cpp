@@ -35,7 +35,7 @@ bool symbol_can_be_assigned(const auto& symbols, auto name)
 
 void ordinary_assembly_context::create_private_section()
 {
-    set_section(*create_section(id_index(), section_kind::EXECUTABLE));
+    set_section(*create_section(id_index(), section_kind::EXECUTABLE, false));
 }
 
 const std::vector<std::unique_ptr<section>>& ordinary_assembly_context::sections() const { return sections_; }
@@ -122,7 +122,7 @@ section* ordinary_assembly_context::get_section(id_index name)
 const section* ordinary_assembly_context::current_section() const { return curr_section_; }
 
 section* ordinary_assembly_context::set_section(
-    id_index name, section_kind kind, location symbol_location, const library_info& li)
+    id_index name, section_kind kind, location symbol_location, const library_info& li, bool goff_class)
 {
     auto tmp = std::ranges::find_if(
         sections_, [name, kind](const auto& sect) { return sect->name == name && sect->kind == kind; });
@@ -133,7 +133,7 @@ section* ordinary_assembly_context::set_section(
         s = set_section(**tmp);
     else
     {
-        s = set_section(*create_section(name, kind));
+        s = set_section(*create_section(name, kind, goff_class));
 
         if (!name.empty())
         {
@@ -179,7 +179,7 @@ void ordinary_assembly_context::create_external_section(
 
     symbols_.insert_or_assign(name,
         symbol(name,
-            create_section(name, kind)->current_location_counter().current_address(),
+            create_section(name, kind, false)->current_location_counter().current_address(),
             attrs,
             std::move(symbol_location),
             std::move(processing_stack)));
@@ -370,9 +370,9 @@ std::pair<address, space_ptr> ordinary_assembly_context::reserve_storage_area_sp
     return std::make_pair(l.reserve_storage_area(length, align).first, nullptr);
 }
 
-section* ordinary_assembly_context::create_section(id_index name, section_kind kind)
+section* ordinary_assembly_context::create_section(id_index name, section_kind kind, bool goff_class)
 {
-    section* ret = sections_.emplace_back(std::make_unique<section>(name, kind)).get();
+    section* ret = sections_.emplace_back(std::make_unique<section>(name, kind, goff_class)).get();
     if (first_control_section_ == nullptr
         && (kind == section_kind::COMMON || kind == section_kind::EXECUTABLE || kind == section_kind::READONLY))
         first_control_section_ = ret;

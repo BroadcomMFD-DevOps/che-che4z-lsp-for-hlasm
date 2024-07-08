@@ -107,7 +107,7 @@ void asm_processor::process_sect(const context::section_kind kind, rebuilt_state
     {
         auto sym_loc = hlasm_ctx.processing_stack_top().get_location();
         sym_loc.pos.column = 0;
-        hlasm_ctx.ord_ctx.set_section(sect_name, kind, std::move(sym_loc), lib_info);
+        hlasm_ctx.ord_ctx.set_section(sect_name, kind, std::move(sym_loc), lib_info, false);
     }
     context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, lib_info);
     hlasm_ctx.ord_ctx.symbol_dependencies().add_postponed_statement(
@@ -1008,7 +1008,7 @@ void asm_processor::process_START(rebuilt_statement&& stmt)
 
     auto sym_loc = hlasm_ctx.processing_stack_top().get_location();
     sym_loc.pos.column = 0;
-    const auto* section = hlasm_ctx.ord_ctx.set_section(sect_name, EXECUTABLE, std::move(sym_loc), lib_info);
+    const auto* section = hlasm_ctx.ord_ctx.set_section(sect_name, EXECUTABLE, std::move(sym_loc), lib_info, true);
 
     const auto& ops = stmt.operands_ref().value;
     if (ops.size() != 1)
@@ -1472,29 +1472,32 @@ void asm_processor::process_CATTR(rebuilt_statement&& stmt)
     context::id_index class_name = find_label_symbol(stmt);
     if (class_name.empty() || class_name.to_string_view().size() > max_class_name_length)
         add_diagnostic(diagnostic_op::error_A167_CATTR_label(stmt.label_ref().field_range));
-
-    do
+    else if (!hlasm_ctx.goff())
+        ; // NOP
+    else if (!hlasm_ctx.ord_ctx.get_last_active_control_section())
+        add_diagnostic(diagnostic_op::error_A169_no_section(stmt.stmt_range_ref()));
+    else if (hlasm_ctx.ord_ctx.symbol_defined(class_name))
     {
-        if (class_name.empty())
-            break;
-        if (!hlasm_ctx.goff())
-            break;
-        if (!hlasm_ctx.ord_ctx.get_last_active_control_section())
-        {
-            add_diagnostic(diagnostic_op::error_A169_no_section(stmt.stmt_range_ref()));
-            break;
-        }
-        if (hlasm_ctx.ord_ctx.symbol_defined(class_name))
-        {
+        if (auto* section = hlasm_ctx.ord_ctx.get_section(class_name); !section || !section->goff_class)
             add_diagnostic(diagnostic_op::error_E031("symbol", stmt.label_ref().field_range));
-            break;
+        else
+        {
+            hlasm_ctx.ord_ctx.set_section(*section);
+            // TODO: verify empty ops
         }
-        // TODO:
-    } while (false);
+    }
+    else
+    {
+        auto sym_loc = hlasm_ctx.processing_stack_top().get_location();
+        sym_loc.pos.column = 0;
+        hlasm_ctx.ord_ctx.set_section(
+            class_name, context::section_kind::EXECUTABLE, std::move(sym_loc), lib_info, true);
+        // TODO: sectalign? part
+    }
 
     context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, lib_info);
     hlasm_ctx.ord_ctx.symbol_dependencies().add_postponed_statement(
-        std::make_unique<postponed_statement_impl>(std::move(std::move(stmt)), hlasm_ctx.processing_stack()),
+        std::make_unique<postponed_statement_impl>(std::move(stmt), hlasm_ctx.processing_stack()),
         std::move(dep_solver).derive_current_dependency_evaluation_context());
 }
 
