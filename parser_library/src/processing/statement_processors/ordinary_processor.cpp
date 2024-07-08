@@ -172,6 +172,8 @@ void ordinary_processor::end_processing()
     diagnostic_consumer_transform using_diags([this](diagnostic d) { diagnosable_impl::add_diagnostic(std::move(d)); });
     hlasm_ctx.using_resolve(using_diags, lib_info);
 
+    hlasm_ctx.validate_psect_registrations(*this);
+
     process_postponed_statements(hlasm_ctx.ord_ctx.symbol_dependencies().collect_postponed());
 
     hlasm_ctx.pop_statement_processing();

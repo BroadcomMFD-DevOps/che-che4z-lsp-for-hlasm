@@ -28,6 +28,7 @@
 #include "lexing/tools.h"
 #include "ordinary_assembly/location_counter.h"
 #include "using.h"
+#include "utils/factory.h"
 #include "utils/time.h"
 #include "variables/set_symbol.h"
 #include "variables/system_variable.h"
@@ -1076,8 +1077,14 @@ hlasm_context::name_result hlasm_context::try_get_symbol_name(id_index symbol) c
 
 bool hlasm_context::register_psect(id_index symbol, id_index psect)
 {
-    auto [_, inserted] = psect_registrations.try_emplace(symbol, psect);
+    auto [_, inserted] =
+        psect_registrations.try_emplace(symbol, psect, utils::factory([this]() { return processing_stack(); }));
     return inserted;
+}
+
+void hlasm_context::validate_psect_registrations(diagnostic_consumer& diags)
+{
+    // TODO: check validity of PSECT associations
 }
 
 const code_scope& get_current_scope(const context::hlasm_context& ctx) { return ctx.current_scope(); }
