@@ -900,6 +900,56 @@ C XATTR PSECT(P)
     EXPECT_TRUE(matches_message_codes(a.diags(), { "A172" }));
 }
 
+TEST(diagnostics, xattr_psect_missing)
+{
+    std::string input = R"(
+C   CSECT
+C   XATTR PSECT(P)
+)";
+    analyzer a(input, analyzer_options(asm_option { .sysopt_xobject = true }));
+    a.analyze();
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "E032" }));
+}
+
+TEST(diagnostics, xattr_psect_valid_ref)
+{
+    std::string input = R"(
+C   CSECT
+C   XATTR PSECT(Q)
+P   CATTR
+Q   DS  H
+)";
+    analyzer a(input, analyzer_options(asm_option { .sysopt_xobject = true }));
+    a.analyze();
+    EXPECT_TRUE(a.diags().empty());
+}
+
+TEST(diagnostics, xattr_psect_invalid_ref)
+{
+    std::string input = R"(
+C   CSECT
+C   XATTR PSECT(R)
+P   CATTR
+Q   DS  H
+R   EQU Q
+)";
+    analyzer a(input, analyzer_options(asm_option { .sysopt_xobject = true }));
+    a.analyze();
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "A173" }));
+}
+
+TEST(diagnostics, xattr_psect_incompatible)
+{
+    std::string input = R"(
+C   CSECT
+C   XATTR PSECT(P)
+P   COM
+)";
+    analyzer a(input, analyzer_options(asm_option { .sysopt_xobject = true }));
+    a.analyze();
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "A173" }));
+}
+
 TEST(diagnostics, mnote_incorrect_message)
 {
     std::string input(
