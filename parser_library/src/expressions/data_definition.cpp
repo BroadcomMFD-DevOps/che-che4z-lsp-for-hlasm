@@ -35,6 +35,7 @@ namespace hlasm_plugin::parser_library::expressions {
 using utils::hashers::hash_combine;
 
 constexpr char V_type = 'V';
+constexpr char R_type = 'R';
 
 context::dependency_collector data_definition::get_dependencies(context::dependency_solver& solver) const
 {
@@ -47,7 +48,7 @@ context::dependency_collector data_definition::get_dependencies(context::depende
 
     // In V type, the symbols are external, it is not defined in current program and does not
     // have any dependencies.
-    if (type != V_type && nominal_value)
+    if (type != V_type && type != R_type && nominal_value)
         deps.merge(nominal_value->get_dependencies(solver));
 
     return deps;
