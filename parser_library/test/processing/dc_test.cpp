@@ -386,7 +386,7 @@ A   DS 0F
     a.analyze();
 
     std::cout << get_symbol_address(a.hlasm_ctx(), "A")->second << '\n';
-    EXPECT_EQ(get_symbol_address(a.hlasm_ctx(), "A"), std::pair(0, ""));
+    EXPECT_EQ(get_symbol_address(a.hlasm_ctx(), "A"), std::pair(0, std::string()));
 }
 
 TEST(DC, r_type_valid)
