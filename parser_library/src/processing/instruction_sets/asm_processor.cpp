@@ -1502,9 +1502,8 @@ void asm_processor::handle_cattr_ops(context::id_index class_name,
 {
     assert(!class_name.empty());
     auto* class_name_sect = hlasm_ctx.ord_ctx.get_section(class_name);
-    auto* part_name_sect = part_name.empty() ? nullptr : hlasm_ctx.ord_ctx.get_section(part_name);
 
-    if (part_name_sect)
+    if (auto* part_name_sect = part_name.empty() ? nullptr : hlasm_ctx.ord_ctx.get_section(part_name))
     {
         if (!part_name_sect->goff || part_name_sect->goff->parent != class_name_sect)
             add_diagnostic(diagnostic_op::error_A170_section_type_mismatch(part_rng));
