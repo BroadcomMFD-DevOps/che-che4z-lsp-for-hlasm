@@ -401,22 +401,21 @@ std::pair<address, space_ptr> ordinary_assembly_context::reserve_storage_area_sp
 
 section* ordinary_assembly_context::create_section(id_index name, section_kind kind)
 {
+    using enum section_kind;
     section* ret = sections_.emplace_back(std::make_unique<section>(name, kind)).get();
-    if (first_control_section_ == nullptr
-        && (kind == section_kind::COMMON || kind == section_kind::EXECUTABLE || kind == section_kind::READONLY))
+    if (first_control_section_ == nullptr && (kind == COMMON || kind == EXECUTABLE || kind == READONLY))
         first_control_section_ = ret;
     return ret;
 }
 
 section* ordinary_assembly_context::create_section(id_index name, section_kind kind, goff_details details)
 {
+    using enum section_kind;
     section* ret = sections_.emplace_back(std::make_unique<section>(name, kind, std::move(details))).get();
-    if (first_control_section_ == nullptr
-        && (kind == section_kind::COMMON || kind == section_kind::EXECUTABLE || kind == section_kind::READONLY))
+    if (first_control_section_ == nullptr && (kind == COMMON || kind == EXECUTABLE || kind == READONLY))
         first_control_section_ = ret;
     return ret;
 }
-
 
 size_t ordinary_assembly_context::current_literal_pool_generation() const { return m_literals->current_generation(); }
 

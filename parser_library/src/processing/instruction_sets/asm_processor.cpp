@@ -1498,13 +1498,11 @@ void asm_processor::handle_cattr_ops(context::id_index class_name,
     context::id_index part_name,
     const range& part_rng,
     size_t op_count,
-    rebuilt_statement& stmt)
+    const rebuilt_statement& stmt)
 {
     assert(!class_name.empty());
     auto* class_name_sect = hlasm_ctx.ord_ctx.get_section(class_name);
     auto* part_name_sect = part_name.empty() ? nullptr : hlasm_ctx.ord_ctx.get_section(part_name);
-    bool class_name_defined = !!class_name_sect || hlasm_ctx.ord_ctx.symbol_defined(class_name);
-    bool part_name_defined = !!part_name_sect || !part_name.empty() && hlasm_ctx.ord_ctx.symbol_defined(part_name);
 
     if (part_name_sect)
     {
@@ -1516,7 +1514,7 @@ void asm_processor::handle_cattr_ops(context::id_index class_name,
         return;
     }
 
-    if (part_name_defined)
+    if (!part_name.empty() && hlasm_ctx.ord_ctx.symbol_defined(part_name))
     {
         add_diagnostic(diagnostic_op::error_E031("symbol", stmt.label_ref().field_range));
         return;
@@ -1537,7 +1535,7 @@ void asm_processor::handle_cattr_ops(context::id_index class_name,
             return;
         }
     }
-    else if (class_name_defined)
+    else if (hlasm_ctx.ord_ctx.symbol_defined(class_name))
     {
         add_diagnostic(diagnostic_op::error_E031("symbol", stmt.label_ref().field_range));
         return;
@@ -1548,7 +1546,6 @@ void asm_processor::handle_cattr_ops(context::id_index class_name,
         sym_loc.pos.column = 0;
         class_name_sect = hlasm_ctx.ord_ctx.create_and_set_class(
             class_name, std::move(sym_loc), lib_info, nullptr, !part_name.empty());
-        class_name_defined = true;
 
         // TODO: sectalign? part
     }

@@ -121,7 +121,7 @@ private:
         context::id_index part_name,
         const range& part_rng,
         size_t op_count,
-        rebuilt_statement& stmt);
+        const rebuilt_statement& stmt);
     void process_XATTR(rebuilt_statement&& stmt);
 
     template<checking::data_instr_type instr_type>
