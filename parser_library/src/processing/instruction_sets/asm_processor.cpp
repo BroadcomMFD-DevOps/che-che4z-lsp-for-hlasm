@@ -1515,7 +1515,7 @@ void asm_processor::handle_cattr_ops(context::id_index class_name,
 
     if (!part_name.empty() && hlasm_ctx.ord_ctx.symbol_defined(part_name))
     {
-        add_diagnostic(diagnostic_op::error_E031("symbol", stmt.label_ref().field_range));
+        add_diagnostic(diagnostic_op::error_E031("symbol", part_rng));
         return;
     }
 
@@ -1525,7 +1525,7 @@ void asm_processor::handle_cattr_ops(context::id_index class_name,
 
         if (!class_name_sect->goff || part_name.empty() && class_name_sect->goff->partitioned)
         {
-            add_diagnostic(diagnostic_op::error_A170_section_type_mismatch(part_rng));
+            add_diagnostic(diagnostic_op::error_A170_section_type_mismatch(stmt.label_ref().field_range));
             return;
         }
         else if (!part_name.empty() && !class_name_sect->goff->partitioned || op_count > !part_name.empty())

@@ -1081,6 +1081,7 @@ bool hlasm_context::register_psect(id_index symbol, id_index psect)
     return inserted;
 }
 
+namespace {
 const section* extract_symbol_base(const symbol* s)
 {
     if (s->kind() != symbol_value_kind::RELOC)
@@ -1104,6 +1105,7 @@ bool psect_compatible_section(const section* s)
 {
     return s->kind == section_kind::EXECUTABLE || s->kind == section_kind::READONLY;
 }
+} // namespace
 
 void hlasm_context::validate_psect_registrations(diagnostic_consumer& diags)
 {
