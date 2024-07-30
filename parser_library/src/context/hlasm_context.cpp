@@ -525,7 +525,7 @@ processing_stack_details_t hlasm_context::processing_stack_details()
     return res;
 }
 
-position hlasm_context::current_statement_position(bool consider_macros) const
+position hlasm_context::current_statement_position(bool consider_macros)
 {
     if (consider_macros && source_stack_.size() == 1 && scope_stack_.size() > 1)
         return scope_stack_.back().this_macro->get_current_copy_nest().back().loc.pos;
@@ -535,27 +535,35 @@ position hlasm_context::current_statement_position(bool consider_macros) const
         return source_stack_.back().current_instruction.pos;
 }
 
-location hlasm_context::current_statement_location(bool consider_macros) const
+location hlasm_context::current_statement_location(bool consider_macros)
 {
     if (consider_macros && source_stack_.size() == 1 && scope_stack_.size() > 1)
-        return scope_stack_.back().this_macro->get_current_copy_nest().back().loc;
+    {
+        const auto& [p, r] = scope_stack_.back().this_macro->get_current_copy_nest().back().loc;
+        return location(p, *shared_resource_location(r));
+    }
     else if (!source_stack_.back().copy_stack.empty())
     {
         const auto& member = source_stack_.back().copy_stack.back();
-        return location(member.current_statement_position(), member.definition_location()->resource_loc);
+        return location(
+            member.current_statement_position(), *shared_resource_location(member.definition_location()->resource_loc));
     }
     else
-        return source_stack_.back().current_instruction;
+    {
+        const auto& [p, r] = source_stack_.back().current_instruction;
+        return location(p, *shared_resource_location(r));
+    }
 }
 
-const utils::resource::resource_location& hlasm_context::current_statement_source(bool consider_macros) const
+const utils::resource::resource_location& hlasm_context::current_statement_source(bool consider_macros)
 {
     if (consider_macros && source_stack_.size() == 1 && scope_stack_.size() > 1)
-        return scope_stack_.back().this_macro->get_current_copy_nest().back().loc.resource_loc;
+        return *shared_resource_location(
+            scope_stack_.back().this_macro->get_current_copy_nest().back().loc.resource_loc);
     else if (source_stack_.back().copy_stack.size())
-        return source_stack_.back().copy_stack.back().definition_location()->resource_loc;
+        return *shared_resource_location(source_stack_.back().copy_stack.back().definition_location()->resource_loc);
     else
-        return source_stack_.back().current_instruction.resource_loc;
+        return *shared_resource_location(source_stack_.back().current_instruction.resource_loc);
 }
 
 const std::deque<code_scope>& hlasm_context::scope_stack() const { return scope_stack_; }
