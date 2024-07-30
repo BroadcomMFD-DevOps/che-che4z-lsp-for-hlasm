@@ -180,8 +180,8 @@ public:
 
     // gets stack of locations of all currently processed files
     processing_stack_t processing_stack();
-    processing_frame processing_stack_top(bool consider_macros = true);
     processing_stack_details_t processing_stack_details();
+    position current_statement_position(bool consider_macros = true) const;
     location current_statement_location(bool consider_macros = true) const;
     const utils::resource::resource_location& current_statement_source(bool consider_macros = true) const;
 
