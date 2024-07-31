@@ -863,7 +863,7 @@ diagnostic error_B4G002(const utils::resource::resource_location&, std::string_v
 
 diagnostic warn_B4G003(const utils::resource::resource_location& file_name, std::string_view grp_name);
 
-diagnostic info_SUP(const utils::resource::resource_location& file_name);
+diagnostic info_SUP(std::string file_name);
 
 /*
 E01x - wrong format

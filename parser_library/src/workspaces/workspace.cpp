@@ -538,7 +538,7 @@ void workspace::delete_diags(processor_file_compoments& pfc)
         }
     }
 
-    pfc.m_last_results->opencode_diagnostics.push_back(info_SUP(pfc.m_file->get_location()));
+    pfc.m_last_results->opencode_diagnostics.push_back(info_SUP(std::string(pfc.m_file->get_location().get_uri())));
 }
 
 void workspace::show_message(std::string_view message)

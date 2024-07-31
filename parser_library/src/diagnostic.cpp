@@ -162,9 +162,9 @@ diagnostic warn_B4G003(const utils::resource::resource_location& file_name, std:
         diagnostic_tag::none);
 }
 
-diagnostic info_SUP(const utils::resource::resource_location& file_name)
+diagnostic info_SUP(std::string file_name)
 {
-    return diagnostic(std::string(file_name.get_uri()),
+    return diagnostic(std::move(file_name),
         range(position(), position(0, position::max_value)),
         diagnostic_severity::hint,
         "SUP",

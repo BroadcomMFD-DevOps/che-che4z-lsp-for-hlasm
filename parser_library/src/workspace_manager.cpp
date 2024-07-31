@@ -789,7 +789,7 @@ class workspace_manager_impl final : public workspace_manager,
         for (auto it = suppress_files.begin(); it != suppress_files.end();)
         {
             auto node = suppress_files.extract(it++);
-            m_diagnostics.emplace_back(info_SUP(utils::resource::resource_location(std::move(node.value()))));
+            m_diagnostics.emplace_back(info_SUP(std::move(node.value())));
         }
 
         const auto usage = m_ws.report_used_configuration_files();
