@@ -970,7 +970,7 @@ class workspace_manager_impl final : public workspace_manager,
     workspace_manager_external_file_requests* m_external_file_requests = nullptr;
     workspaces::file_manager_impl m_file_manager;
 
-    std::unordered_map<resource_location, opened_workspace, utils::resource::resource_location_hasher> m_workspaces;
+    std::unordered_map<resource_location, opened_workspace> m_workspaces;
     opened_workspace m_implicit_workspace;
     workspaces::workspace m_ws;
     bool m_vscode_extensions;

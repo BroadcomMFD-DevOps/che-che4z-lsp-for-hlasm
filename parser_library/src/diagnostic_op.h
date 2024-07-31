@@ -125,13 +125,13 @@ struct diagnostic_op
         , diag_range(std::move(diag_range))
         , tag(tag) {};
 
-    diagnostic to_diagnostic(std::string file_uri) const&
+    diagnostic to_diagnostic(std::string_view file_uri) const&
     {
-        return diagnostic(std::move(file_uri), diag_range, severity, code, message, {}, tag);
+        return diagnostic(std::string(file_uri), diag_range, severity, code, message, {}, tag);
     }
-    diagnostic to_diagnostic(std::string file_uri) &&
+    diagnostic to_diagnostic(std::string_view file_uri) &&
     {
-        return diagnostic(std::move(file_uri), diag_range, severity, std::move(code), std::move(message), {}, tag);
+        return diagnostic(std::string(file_uri), diag_range, severity, std::move(code), std::move(message), {}, tag);
     }
     diagnostic to_diagnostic() const& { return diagnostic("", diag_range, severity, code, message, {}, tag); }
     diagnostic to_diagnostic() &&
