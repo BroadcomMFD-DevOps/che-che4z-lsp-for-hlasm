@@ -488,28 +488,9 @@ struct branch_ca_operand final : ca_operand
     void apply(operand_visitor& visitor) const override;
 };
 
-
-enum class mac_kind
+struct macro_operand final : operand
 {
-    CHAIN,
-};
-
-struct macro_operand_chain;
-
-struct macro_operand : operand
-{
-    const mac_kind kind;
-
-    macro_operand_chain* access_chain();
-
-protected:
-    macro_operand(mac_kind kind, range operand_range);
-};
-
-// macro instruction operand
-struct macro_operand_chain final : macro_operand
-{
-    macro_operand_chain(concat_chain chain, const range operand_range);
+    macro_operand(concat_chain chain, range operand_range);
 
     concat_chain chain;
 

@@ -650,14 +650,12 @@ bool branch_ca_operand::get_undefined_attributed_symbols(
 
 void branch_ca_operand::apply(operand_visitor& visitor) const { visitor.visit(*this); }
 
-
-
-macro_operand_chain::macro_operand_chain(concat_chain chain, range operand_range)
-    : macro_operand(mac_kind::CHAIN, std::move(operand_range))
+macro_operand::macro_operand(concat_chain chain, range operand_range)
+    : operand(operand_type::MAC, std::move(operand_range))
     , chain(std::move(chain))
 {}
 
-void macro_operand_chain::apply(operand_visitor& visitor) const { visitor.visit(*this); }
+void macro_operand::apply(operand_visitor& visitor) const { visitor.visit(*this); }
 
 data_def_operand::data_def_operand(std::shared_ptr<const expressions::data_definition> dd_ptr, range operand_range)
     : evaluable_operand(operand_type::DAT, std::move(operand_range))
@@ -773,16 +771,6 @@ std::unique_ptr<checking::operand> string_assembler_operand::get_operand_value(
 
 void string_assembler_operand::apply(operand_visitor& visitor) const { visitor.visit(*this); }
 void string_assembler_operand::apply_mach_visitor(expressions::mach_expr_visitor&) const {}
-
-macro_operand_chain* macro_operand::access_chain()
-{
-    return kind == mac_kind::CHAIN ? static_cast<macro_operand_chain*>(this) : nullptr;
-}
-
-macro_operand::macro_operand(mac_kind kind, range operand_range)
-    : operand(operand_type::MAC, std::move(operand_range))
-    , kind(kind)
-{}
 
 struct request_halfword_alignment final : public expressions::mach_expr_visitor
 {

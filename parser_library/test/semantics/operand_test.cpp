@@ -96,12 +96,8 @@ bool access_ca_op(ca_kind kind, ca_operand* o)
     return access_op(operand_type::CA, op);
 }
 
-bool access_mac_op(mac_kind kind, macro_operand* o)
+bool access_mac_op(macro_operand* o)
 {
-    auto chain_op = o->access_chain();
-    if ((kind == mac_kind::CHAIN) != (chain_op != nullptr))
-        return false;
-
     operand* op = o;
     return access_op(operand_type::MAC, op);
 }
@@ -154,8 +150,8 @@ TEST(operand, access_operand)
 
     // macro operand
     // chain
-    macro_operand_chain moc({}, range());
-    EXPECT_TRUE(access_mac_op(mac_kind::CHAIN, &moc));
+    macro_operand moc({}, range());
+    EXPECT_TRUE(access_mac_op(&moc));
 }
 
 TEST(operand, resolve_model)
