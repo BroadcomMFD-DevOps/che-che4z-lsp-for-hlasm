@@ -45,7 +45,7 @@ mac_preproc
         | DOT
         | AMPERSAND
         (
-            ORDSYMBOL (ORDSYMBOL|NUM)*
+            ORDSYMBOL
             |
             LPAR
             |
