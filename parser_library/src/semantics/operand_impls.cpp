@@ -774,21 +774,9 @@ std::unique_ptr<checking::operand> string_assembler_operand::get_operand_value(
 void string_assembler_operand::apply(operand_visitor& visitor) const { visitor.visit(*this); }
 void string_assembler_operand::apply_mach_visitor(expressions::mach_expr_visitor&) const {}
 
-macro_operand_string::macro_operand_string(std::string value, const range operand_range)
-    : macro_operand(mac_kind::STRING, operand_range)
-    , value(std::move(value))
-{}
-
-void macro_operand_string::apply(operand_visitor& visitor) const { visitor.visit(*this); }
-
 macro_operand_chain* macro_operand::access_chain()
 {
     return kind == mac_kind::CHAIN ? static_cast<macro_operand_chain*>(this) : nullptr;
-}
-
-macro_operand_string* macro_operand::access_string()
-{
-    return kind == mac_kind::STRING ? static_cast<macro_operand_string*>(this) : nullptr;
 }
 
 macro_operand::macro_operand(mac_kind kind, range operand_range)

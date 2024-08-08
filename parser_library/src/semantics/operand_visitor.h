@@ -31,7 +31,6 @@ struct expr_ca_operand;
 struct seq_ca_operand;
 struct branch_ca_operand;
 struct macro_operand_chain;
-struct macro_operand_string;
 
 // base class for a visitor pattern over operand structures
 class operand_visitor
@@ -54,7 +53,6 @@ public:
     virtual void visit(const seq_ca_operand& op) = 0;
     virtual void visit(const branch_ca_operand& op) = 0;
     virtual void visit(const macro_operand_chain& op) = 0;
-    virtual void visit(const macro_operand_string& op) = 0;
 };
 
 } // namespace hlasm_plugin::parser_library::semantics

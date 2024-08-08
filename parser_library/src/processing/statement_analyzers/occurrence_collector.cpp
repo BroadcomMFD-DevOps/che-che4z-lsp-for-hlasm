@@ -95,8 +95,6 @@ void occurrence_collector::visit(const semantics::branch_ca_operand& op)
 
 void occurrence_collector::visit(const semantics::macro_operand_chain& op) { get_occurrence(op.chain); }
 
-void occurrence_collector::visit(const semantics::macro_operand_string&) {}
-
 void occurrence_collector::get_occurrence(const semantics::variable_symbol& var)
 {
     if (var.created)
