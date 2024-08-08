@@ -796,35 +796,6 @@ macro_operand::macro_operand(mac_kind kind, range operand_range)
     , kind(kind)
 {}
 
-
-join_operands_result join_operands(const operand_list& operands)
-{
-    if (operands.empty())
-        return {};
-
-    join_operands_result result;
-    size_t string_size = operands.size();
-
-    for (const auto& op : operands)
-        if (auto m_op = dynamic_cast<semantics::macro_operand_string*>(op.get()))
-            string_size += m_op->value.size();
-
-    result.text.reserve(string_size);
-
-    for (const auto& op : operands)
-    {
-        if (auto m_op = dynamic_cast<semantics::macro_operand_string*>(op.get()))
-            result.text.append(m_op->value);
-        else
-            result.text.push_back(',');
-
-        result.ranges.push_back(op->operand_range);
-    }
-    result.total_range = union_range(operands.front()->operand_range, operands.back()->operand_range);
-
-    return result;
-}
-
 struct request_halfword_alignment final : public expressions::mach_expr_visitor
 {
     // Inherited via mach_expr_visitor
