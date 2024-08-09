@@ -226,7 +226,7 @@ void parser_error_listener_base::handle_error(token_stream* input_stream,
     // unfinished statement - solo label on line
     else if (start_token->getCharPositionInLine() == 0)
         add_parser_diagnostic(diagnostic_op::error_S0004, range(position(line, char_pos_in_line)));
-    // other undeclared errors
+    // EOF errors
     else if (start_token->getType() == antlr4::Token::EOF)
         add_parser_diagnostic(diagnostic_op::error_S0003, range(position(line, char_pos_in_line)));
     // other undeclared errors
