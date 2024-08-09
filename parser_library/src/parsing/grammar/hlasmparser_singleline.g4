@@ -473,25 +473,29 @@ op_rem_body_mac returns [macop_preprocess_results results, range line_range, siz
 op_rem_body_alt_mac [macop_preprocess_results* results]
     :
     (
-        mac_preproc? COMMA
+        mac_preproc
         {
-            if ($mac_preproc.ctx) {
-               append_context_text($results->text, $mac_preproc.ctx);
-               $results->text_ranges.push_back(provider.get_range($mac_preproc.ctx));
-               $mac_preproc.ctx = nullptr;
-            }
+            append_context_text($results->text, $mac_preproc.ctx);
+            $results->text_ranges.push_back(provider.get_range($mac_preproc.ctx));
+        }
+    )?
+    (
+        COMMA
+        {
             $results->text.push_back(',');
             $results->text_ranges.push_back(provider.get_range($COMMA));
         }
-    )*
-    (
-        last_mac_op=mac_preproc? last_remark=remark_o
+        (
+        mac_preproc
         {
-            if ($last_mac_op.ctx) {
-               append_context_text($results->text, $last_mac_op.ctx);
-               $results->text_ranges.push_back(provider.get_range($last_mac_op.ctx));
-            }
-            if ($last_remark.value)
-                $results->remarks.push_back(std::move(*$last_remark.value));
+            append_context_text($results->text, $mac_preproc.ctx);
+            $results->text_ranges.push_back(provider.get_range($mac_preproc.ctx));
         }
-    );
+        )?
+    )*
+    last_remark=remark_o
+    {
+        if ($last_remark.value)
+            $results->remarks.push_back(std::move(*$last_remark.value));
+    }
+    ;
