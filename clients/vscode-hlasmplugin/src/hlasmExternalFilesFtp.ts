@@ -102,8 +102,7 @@ export function HLASMExternalFilesFtp(context: vscode.ExtensionContext): ClientI
         listMembers: async (args: DatasetUriDetails): Promise<string[] | null> => pool.withClient(async (client) => {
             try {
                 await checkedCommand(client, 'TYPE A');
-                checkResponse(await client.cd(`'${args.dataset}'`));
-                const list = await client.list();
+                const list = await client.list(`'${args.dataset}(*)'`);
                 return list.map(x => `/${args.dataset}/${x.name}.hlasm`);
             }
             catch (e) {
