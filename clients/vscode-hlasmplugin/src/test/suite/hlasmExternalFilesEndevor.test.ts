@@ -256,4 +256,17 @@ suite('External files (Endevor)', () => {
             assert.ok(e instanceof SuspendError);
         }
     });
+
+    test('Common error', async () => {
+        const error = Error('Something went wrong');
+        const client = HLASMExternalFilesEndevor({ listMembers: async (_p: unknown, _t: unknown) => error } as any as E4E, dummyEvent);
+
+        try {
+            await client.listMembers({ normalizedPath: () => '/PATH' } as any, dummyProfile);
+            assert.ok(false);
+        }
+        catch (e) {
+            assert.strictEqual(e, error);
+        }
+    });
 });
