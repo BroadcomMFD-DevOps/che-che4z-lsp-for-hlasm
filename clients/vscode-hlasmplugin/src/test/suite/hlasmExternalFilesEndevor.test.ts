@@ -242,4 +242,18 @@ suite('External files (Endevor)', () => {
             assert.ok(e instanceof SuspendError);
         }
     });
+
+    test('Invalid credentials legacy', async () => {
+        const client = HLASMExternalFilesEndevor({
+            listMembers: async (_p: unknown, _t: unknown) => Error('Unable to obtain credentials for Endevor connection xyz')
+        } as any as E4E, dummyEvent);
+
+        try {
+            await client.listMembers({ normalizedPath: () => '/PATH' } as any, dummyProfile);
+            assert.ok(false);
+        }
+        catch (e) {
+            assert.ok(e instanceof SuspendError);
+        }
+    });
 });

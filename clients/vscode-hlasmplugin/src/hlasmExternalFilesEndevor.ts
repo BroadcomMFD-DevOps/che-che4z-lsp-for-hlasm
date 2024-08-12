@@ -369,8 +369,12 @@ function profileAsString(profile: ResolvedProfile) {
 }
 
 const EndevorCredentialsErrorLegacyString = 'Unable to obtain credentials for Endevor connection';
-function translateError(e: Error) {
-    return Promise.reject('credentialsError' in e && e.credentialsError === true || e.message.startsWith(EndevorCredentialsErrorLegacyString) ? new SuspendError(e) : e);
+async function translateError(e: Error): Promise<never> {
+    if ('credentialsError' in e && e.credentialsError === true)
+        throw new SuspendError(e);
+    if (e.message.startsWith(EndevorCredentialsErrorLegacyString))
+        throw new SuspendError(e);
+    throw e;
 }
 
 function listEndevorElements(e4e: E4E, type_spec: EndevorType, profile: ResolvedProfile) {
