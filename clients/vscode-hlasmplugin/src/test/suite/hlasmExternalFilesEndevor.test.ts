@@ -16,7 +16,7 @@
 import * as assert from 'assert';
 import { E4E, HLASMExternalFilesEndevor, makeEndevorConfigurationProvider, processChangeNotification } from '../../hlasmExternalFilesEndevor';
 import * as vscode from 'vscode';
-import { ExternalRequestType } from '../../hlasmExternalFiles';
+import { ExternalRequestType, SuspendError } from '../../hlasmExternalFiles';
 
 const dummyProfile = { profile: 'profile', instance: 'instance' };
 const profileOnly = {
@@ -225,5 +225,21 @@ suite('External files (Endevor)', () => {
                 ],
             },
         });
+    });
+
+    test('Invalid credentials', async () => {
+        const client = HLASMExternalFilesEndevor({
+            listMembers: async (_p: unknown, _t: unknown) => {
+                return new class extends Error { public readonly credentialsError = true; constructor() { super(""); } };
+            }
+        } as any as E4E, dummyEvent);
+
+        try {
+            await client.listMembers({ normalizedPath: () => '/PATH' } as any, dummyProfile);
+            assert.ok(false);
+        }
+        catch (e) {
+            assert.ok(e instanceof SuspendError);
+        }
     });
 });
