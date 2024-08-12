@@ -389,6 +389,8 @@ export class HLASMExternalFiles {
         });
     }
 
+    public listClients() { return [...this.clients].map(([name, c]) => ({ name, suspended: c.suspended })); }
+
     public getTextDocumentContentProvider(): vscode.TextDocumentContentProvider {
         const me = this;
         return {
