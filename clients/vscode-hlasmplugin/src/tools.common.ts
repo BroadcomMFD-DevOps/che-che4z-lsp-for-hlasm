@@ -51,7 +51,7 @@ export function stripJsonComments(input: string): string {
                 }
                 break;
             case 1:
-                if (c === '\\' && ar[i + 1] === '"') {
+                if (c === '\\' && (ar[i + 1] === '"' || ar[i + 1] === '\\')) {
                     ++i;
                 }
                 else if (c === '"') {
