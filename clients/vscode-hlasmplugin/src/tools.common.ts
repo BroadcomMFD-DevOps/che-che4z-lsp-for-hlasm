@@ -44,6 +44,7 @@ export function stripJsonComments(input: string): string {
                     state = 1;
                 }
                 else if (c === '/' && ar[i + 1] === '*') {
+                    ar[i + 1] = ' '; // pre-clear to handle /*/
                     state = 2;
                 }
                 else if (c === '/' && ar[i + 1] === '/') {
