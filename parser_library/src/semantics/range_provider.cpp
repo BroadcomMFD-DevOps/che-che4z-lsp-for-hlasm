@@ -183,6 +183,11 @@ range_provider::range_provider(
     assert(!model_substitutions.empty());
 }
 
+range_provider::range_provider(range orig)
+    : original_range(orig)
+    , state(adjusting_state::NONE)
+{}
+
 range_provider::range_provider()
     : original_range()
     , state(adjusting_state::NONE)

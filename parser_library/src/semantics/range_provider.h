@@ -56,6 +56,7 @@ public:
         size_t continued_code_line_column = 15);
     explicit range_provider(
         std::vector<std::pair<std::pair<size_t, bool>, range>> model_substitutions, std::vector<size_t> line_limits);
+    explicit range_provider(range orig);
     explicit range_provider();
 
     range get_range(const antlr4::Token* start, const antlr4::Token* stop) const;
