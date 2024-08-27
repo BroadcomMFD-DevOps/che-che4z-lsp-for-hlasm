@@ -70,15 +70,17 @@ statement_fields_parser::parse_result statement_fields_parser::parse_operand_fie
     semantics::op_rem line;
     std::vector<semantics::literal_si> literals;
 
+    using enum processing::operand_occurrence;
+    using enum processing::processing_form;
+
     const auto& [format, opcode] = status;
-    if (format.occurrence == processing::operand_occurrence::ABSENT
-        || format.form == processing::processing_form::UNKNOWN)
+    if (format.occurrence == ABSENT || format.form == UNKNOWN)
         h.op_rem_body_noop();
     else
     {
         switch (format.form)
         {
-            case processing::processing_form::MAC: {
+            case MAC: {
                 auto reparse_data = h.op_rem_body_mac_r();
                 literals = h.parser->get_collector().take_literals();
 
@@ -103,16 +105,16 @@ statement_fields_parser::parse_result statement_fields_parser::parse_operand_fie
                 }
                 break;
             }
-            case processing::processing_form::ASM:
+            case ASM:
                 line = h.op_rem_body_asm_r();
                 literals = h.parser->get_collector().take_literals();
                 break;
-            case processing::processing_form::MACH:
+            case MACH:
                 line = h.op_rem_body_mach_r();
                 transform_reloc_imm_operands(line.operands, opcode.value);
                 literals = h.parser->get_collector().take_literals();
                 break;
-            case processing::processing_form::DAT:
+            case DAT:
                 line = h.op_rem_body_dat_r();
                 literals = h.parser->get_collector().take_literals();
                 break;

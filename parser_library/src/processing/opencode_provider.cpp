@@ -362,6 +362,9 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordin
 
     if (op_text)
     {
+        using enum processing::operand_occurrence;
+        using enum processing::processing_form;
+
         collector.starting_operand_parsing();
 
         diagnostic_consumer_transform diags_filter([&diags](diagnostic_op diag) {
@@ -374,28 +377,26 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordin
 
         const auto& h = prepare_operand_parser(*op_text,
             *m_ctx.hlasm_ctx,
-            (format.occurrence == operand_occurrence::PRESENT && format.form == processing_form::UNKNOWN)
-                ? &diags_filter
-                : diags,
+            (format.occurrence == PRESENT && format.form == UNKNOWN) ? &diags_filter : diags,
             semantics::range_provider(),
             op_range,
             op_logical_column,
             proc_status,
             false);
 
-        if (format.occurrence == operand_occurrence::ABSENT)
+        if (format.occurrence == ABSENT)
             h.op_rem_body_noop();
         else
         {
             switch (format.form)
             {
-                case processing_form::IGNORED:
+                case IGNORED:
                     h.op_rem_body_ignored();
                     break;
-                case processing_form::DEFERRED:
+                case DEFERRED:
                     h.op_rem_body_deferred();
                     break;
-                case processing_form::CA: {
+                case CA: {
                     using wk = context::id_storage::well_known;
                     bool var_def = opcode.value == wk::GBLA || opcode.value == wk::GBLB || opcode.value == wk::GBLC
                         || opcode.value == wk::LCLA || opcode.value == wk::LCLB || opcode.value == wk::LCLC;
@@ -410,15 +411,15 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordin
                     (void)h.parser->get_collector().take_literals(); // drop literals
                     break;
                 }
-                case processing_form::ASM:
+                case ASM:
                     h.op_rem_body_asm();
                     break;
-                case processing_form::MACH:
+                case MACH:
                     h.op_rem_body_mach();
                     if (auto& h_collector = h.parser->get_collector(); h_collector.has_operands())
                         transform_reloc_imm_operands(h_collector.current_operands().value, opcode.value);
                     break;
-                case processing_form::DAT:
+                case DAT:
                     h.op_rem_body_dat();
                     break;
                 default: {
@@ -434,7 +435,7 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordin
 
                         const auto& h_second = prepare_operand_parser(reparse_data.text,
                             *m_ctx.hlasm_ctx,
-                            format.form == processing_form::UNKNOWN ? &diags_filter : diags,
+                            format.form == UNKNOWN ? &diags_filter : diags,
                             std::move(tmp_provider),
                             reparse_data.total_op_range,
                             line_logical_column,
@@ -460,7 +461,7 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordin
             }
         }
 
-        if (format.form != processing_form::IGNORED)
+        if (format.form != IGNORED)
         {
             collector.append_operand_field(std::move(h.parser->get_collector()));
         }
