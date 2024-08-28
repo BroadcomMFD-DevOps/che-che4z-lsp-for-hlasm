@@ -163,7 +163,7 @@ struct deferred_operands_si
 // struct holding semantic information (si) about remark field
 struct remarks_si
 {
-    remarks_si(std::vector<range> remarks)
+    explicit remarks_si(std::vector<range> remarks)
         : value(std::move(remarks))
     {}
 
