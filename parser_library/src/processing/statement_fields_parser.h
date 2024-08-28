@@ -26,6 +26,7 @@ class hlasm_context;
 namespace hlasm_plugin::parser_library::parsing {
 class parser_error_listener_ctx;
 struct parser_holder;
+class new_parser;
 } // namespace hlasm_plugin::parser_library::parsing
 
 namespace hlasm_plugin::parser_library::processing {
@@ -39,6 +40,7 @@ class statement_fields_parser final : public diagnosable_impl
 {
     std::unique_ptr<parsing::parser_holder> m_parser_singleline;
     std::unique_ptr<parsing::parser_holder> m_parser_multiline;
+    std::unique_ptr<parsing::new_parser> m_new_parser;
     context::hlasm_context* m_hlasm_ctx;
 
 public:
@@ -56,7 +58,7 @@ public:
         processing::processing_status status,
         diagnostic_op_consumer& add_diag);
 
-    explicit statement_fields_parser(context::hlasm_context* hlasm_ctx);
+    explicit statement_fields_parser(context::hlasm_context& hlasm_ctx);
     ~statement_fields_parser();
 
     void collect_diags() const override;

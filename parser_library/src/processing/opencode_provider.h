@@ -50,6 +50,7 @@ class hlasmparser_multiline;
 class parser_error_listener;
 class parser_error_listener_ctx;
 struct parser_holder;
+class new_parser;
 } // namespace hlasm_plugin::parser_library::parsing
 namespace hlasm_plugin::parser_library::semantics {
 class collector;
@@ -117,6 +118,7 @@ class opencode_provider final : public statement_provider, virtual_file_monitor
     };
     parser_set m_singleline;
     parser_set m_multiline;
+    std::unique_ptr<parsing::new_parser> m_new_parser;
 
     analyzing_context m_ctx;
     parse_lib_provider* m_lib_provider;

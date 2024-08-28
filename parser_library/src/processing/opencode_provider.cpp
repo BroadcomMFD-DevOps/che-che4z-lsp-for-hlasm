@@ -24,6 +24,7 @@
 #include "library_info_transitional.h"
 #include "lsp/lsp_context.h"
 #include "parsing/error_strategy.h"
+#include "parsing/new_parser.h"
 #include "parsing/parser_impl.h"
 #include "processing/error_statement.h"
 #include "processing/processing_manager.h"
@@ -54,6 +55,7 @@ opencode_provider::opencode_provider(std::string_view text,
     , m_multiline { parsing::parser_holder::create(&src_proc, ctx.hlasm_ctx.get(), &diag_consumer, true),
         parsing::parser_holder::create(nullptr, ctx.hlasm_ctx.get(), nullptr, true),
         parsing::parser_holder::create(nullptr, ctx.hlasm_ctx.get(), nullptr, true) }
+    , m_new_parser(std::make_unique<parsing::new_parser>(*ctx.hlasm_ctx))
     , m_ctx(ctx)
     , m_lib_provider(&lib_provider)
     , m_state_listener(&state_listener)
@@ -375,19 +377,23 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordin
 
         const auto& [format, opcode] = proc_status;
 
-        const auto& h = prepare_operand_parser(*op_text,
-            *m_ctx.hlasm_ctx,
-            (format.occurrence == PRESENT && format.form == UNKNOWN) ? &diags_filter : diags,
-            semantics::range_provider(op_range),
-            op_range,
-            op_logical_column,
-            proc_status,
-            false);
-
         if (format.occurrence == ABSENT)
-            h.op_rem_body_noop();
+        {
+            auto remarks = m_new_parser->noop_operands(*op_text, op_range.start, op_logical_column);
+            assert(remarks.size() <= 1);
+            // TODO: this also sets op range
+            collector.set_operand_remark_field({}, std::vector(remarks.begin(), remarks.end()), op_range);
+        }
         else
         {
+            const auto& h = prepare_operand_parser(*op_text,
+                *m_ctx.hlasm_ctx,
+                (format.occurrence == PRESENT && format.form == UNKNOWN) ? &diags_filter : diags,
+                semantics::range_provider(op_range),
+                op_range,
+                op_logical_column,
+                proc_status,
+                false);
             switch (format.form)
             {
                 case IGNORED:
@@ -459,11 +465,11 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordin
                     break;
                 }
             }
-        }
 
-        if (format.form != IGNORED)
-        {
-            collector.append_operand_field(std::move(h.parser->get_collector()));
+            if (format.form != IGNORED)
+            {
+                collector.append_operand_field(std::move(h.parser->get_collector()));
+            }
         }
     }
     range statement_range(position(m_current_logical_line_source.begin_line, 0)); // assign default

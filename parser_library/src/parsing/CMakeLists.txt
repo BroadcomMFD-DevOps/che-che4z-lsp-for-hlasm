@@ -17,6 +17,8 @@ target_sources(parser_library PRIVATE
     parser_error_listener.h
     parser_impl.cpp
     parser_impl.h
+    new_parser.cpp
+    new_parser.h
 )
 
 add_subdirectory(grammar)

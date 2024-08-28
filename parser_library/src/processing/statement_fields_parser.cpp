@@ -15,17 +15,20 @@
 #include "statement_fields_parser.h"
 
 #include "context/hlasm_context.h"
-#include "lexing/token_stream.h"
+#include "lexing/lexer.h"
 #include "parsing/error_strategy.h"
+#include "parsing/new_parser.h"
 #include "parsing/parser_impl.h"
+#include "processing_format.h"
 #include "semantics/operand_impls.h"
 
 namespace hlasm_plugin::parser_library::processing {
 
-statement_fields_parser::statement_fields_parser(context::hlasm_context* hlasm_ctx)
-    : m_parser_singleline(parsing::parser_holder::create(nullptr, hlasm_ctx, nullptr, false))
-    , m_parser_multiline(parsing::parser_holder::create(nullptr, hlasm_ctx, nullptr, true))
-    , m_hlasm_ctx(hlasm_ctx)
+statement_fields_parser::statement_fields_parser(context::hlasm_context& hlasm_ctx)
+    : m_parser_singleline(parsing::parser_holder::create(nullptr, &hlasm_ctx, nullptr, false))
+    , m_parser_multiline(parsing::parser_holder::create(nullptr, &hlasm_ctx, nullptr, true))
+    , m_new_parser(std::make_unique<parsing::new_parser>(hlasm_ctx))
+    , m_hlasm_ctx(&hlasm_ctx)
 {}
 
 statement_fields_parser::~statement_fields_parser() = default;
@@ -57,16 +60,6 @@ statement_fields_parser::parse_result statement_fields_parser::parse_operand_fie
             diag.message = diagnostic_decorate_message(field, diag.message);
         add_diag.add_diagnostic(std::move(diag));
     });
-    const auto& h = is_multiline(field) ? *m_parser_multiline : *m_parser_singleline;
-    h.prepare_parser(field,
-        m_hlasm_ctx,
-        &add_diag_subst,
-        std::move(field_range),
-        original_range,
-        logical_column,
-        status,
-        after_substitution);
-
     semantics::op_rem line;
     std::vector<semantics::literal_si> literals;
 
@@ -75,9 +68,22 @@ statement_fields_parser::parse_result statement_fields_parser::parse_operand_fie
 
     const auto& [format, opcode] = status;
     if (format.occurrence == ABSENT || format.form == UNKNOWN)
-        h.op_rem_body_noop();
+    {
+        auto comments = m_new_parser->noop_operands(field, original_range.start, logical_column);
+        line.remarks.assign(comments.begin(), comments.end());
+    }
     else
     {
+        const auto& h = is_multiline(field) ? *m_parser_multiline : *m_parser_singleline;
+        h.prepare_parser(field,
+            m_hlasm_ctx,
+            &add_diag_subst,
+            std::move(field_range),
+            original_range,
+            logical_column,
+            status,
+            after_substitution);
+
         switch (format.form)
         {
             case MAC: {
