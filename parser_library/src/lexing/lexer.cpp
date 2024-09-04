@@ -456,6 +456,9 @@ void lexer::lex_word()
     size_t last_part_ord_len = 0;
     size_t w_len = 0;
     bool last_ord = true;
+    uint32_t not_test = 0;
+    static constexpr uint32_t not_result = U'n' << 16 | U'o' << 8 | U't';
+    static constexpr uint32_t spaces = U' ' << 16 | U' ' << 8 | U' ';
     while ((ci & (space | endline | identifier_divider)) == none && !eof() && before_end())
     {
         bool curr_ord = (ci & ord_char) != none;
@@ -470,10 +473,16 @@ void lexer::lex_word()
 
         if (creating_var_symbol_ && !ord && w_len > 0 && w_len <= 63)
         {
-            create_token(ORDSYMBOL);
+            if (w_len == 1)
+                create_token(SINGLECHAR);
+            else if (w_len == 3 && (not_test | spaces) == not_result)
+                create_token(NOT);
+            else
+                create_token(ORDSYMBOL);
             return;
         }
 
+        not_test = not_test << 8 | input_state_->c;
         consume();
         ci = get_char_info(input_state_->c);
 
@@ -484,7 +493,14 @@ void lexer::lex_word()
     bool var_sym_tmp = creating_var_symbol_;
 
     if (ord && w_len <= 63)
-        create_token(ORDSYMBOL);
+    {
+        if (w_len == 1)
+            create_token(SINGLECHAR);
+        else if (w_len == 3 && (not_test | spaces) == not_result)
+            create_token(NOT);
+        else
+            create_token(ORDSYMBOL);
+    }
     else if (num)
         create_token(NUM);
     else

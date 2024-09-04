@@ -128,12 +128,6 @@ op_rem_body_deferred
         collector.set_operand_remark_field(_input->getText(misc::Interval($SPACE.index+1,_input->size()-1)),std::move($deferred_op_rem.var_list),std::move($deferred_op_rem.remarks),r, static_cast<hlasm_plugin::parser_library::lexing::token*>(_input->get($SPACE.index+1))->get_logical_column());
     } EOF;
 
-op_rem_body_noop
-    : remark_o
-    {
-        collector.set_operand_remark_field(operand_list{},$remark_o.value ? remark_list{*$remark_o.value} : remark_list{}, provider.get_range( $remark_o.ctx));
-    } EOF;
-
 //////////////////////////////////////// mach_r
 
 op_rem_body_mach_r returns [op_rem line]
@@ -209,5 +203,3 @@ op_rem_body_mac_r returns [macop_preprocess_results results]
             results.total_op_range = union_range(results.text_ranges.front(), results.text_ranges.back());
     } EOF;
 
-op_rem_body_noop_r
-    : remark_o EOF;

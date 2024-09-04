@@ -92,7 +92,7 @@ public:
 class macro_param_data_composite final : public macro_param_data_component
 {
     const std::vector<macro_data_ptr> data_;
-    C_t value_;
+    mutable C_t value_;
 
 public:
     // returns data of all nested classes in brackets separated by comma
@@ -110,7 +110,7 @@ public:
 class macro_param_data_zero_based final : public macro_param_data_component
 {
     const std::vector<macro_data_ptr> data_;
-    C_t value_;
+    mutable C_t value_;
 
 public:
     // returns data of all nested classes in brackets separated by comma

@@ -16,7 +16,7 @@
 parser grammar lookahead_rules;
 
 look_lab_instr  returns [std::optional<std::string> op_text, range op_range, size_t op_logical_column = 0]
-    : DOT s=ORDSYMBOL (SPACE instr=ORDSYMBOL? lookahead_operand_field_rest)?
+    : DOT s=(ORDSYMBOL|SINGLECHAR|NOT) (SPACE instr=(ORDSYMBOL|SINGLECHAR|NOT)? lookahead_operand_field_rest)?
     {
         auto seq_symbol = seq_sym{parse_identifier($s->getText(),provider.get_range($s)),provider.get_range($DOT, $s)};
         collector.set_label_field(seq_symbol,seq_symbol.symbol_range);
@@ -34,7 +34,7 @@ look_lab_instr  returns [std::optional<std::string> op_text, range op_range, siz
             collector.set_operand_remark_field(seq_symbol.symbol_range);
         }
     }
-    | lab=ORDSYMBOL SPACE instr=ORDSYMBOL lookahead_operand_field_rest
+    | lab=(ORDSYMBOL|SINGLECHAR|NOT) SPACE instr=(ORDSYMBOL|SINGLECHAR|NOT) lookahead_operand_field_rest
     {
         collector.set_label_field(add_id($lab->getText()),$lab->getText(),nullptr,provider.get_range($lab));
         if ($instr && $lookahead_operand_field_rest.valid)
@@ -51,7 +51,7 @@ look_lab_instr  returns [std::optional<std::string> op_text, range op_range, siz
             collector.set_operand_remark_field(provider.get_empty_range($SPACE));
         }
     }
-    | SPACE instr=ORDSYMBOL lookahead_operand_field_rest
+    | SPACE instr=(ORDSYMBOL|SINGLECHAR|NOT) lookahead_operand_field_rest
     {
         collector.set_label_field(provider.get_empty_range($SPACE));
         if ($instr && $lookahead_operand_field_rest.valid)

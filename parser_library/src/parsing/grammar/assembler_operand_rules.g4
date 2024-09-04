@@ -17,10 +17,10 @@ parser grammar assembler_operand_rules;
 
 asm_op returns [operand_ptr op]
     :
-    { ALIAS() }? ORDSYMBOL string
+    { ALIAS() }? SINGLECHAR string
     {
-        auto range = provider.get_range($ORDSYMBOL,$string.ctx->getStop());
-        collector.add_hl_symbol(token_info(provider.get_range($ORDSYMBOL),hl_scopes::self_def_type));
+        auto range = provider.get_range($SINGLECHAR,$string.ctx->getStop());
+        collector.add_hl_symbol(token_info(provider.get_range($SINGLECHAR),hl_scopes::self_def_type));
         $op = std::make_unique<expr_assembler_operand>(std::make_unique<mach_expr_default>(range),get_context_text($ctx),range);
     }
     | id lpar asm_op_comma_c rpar

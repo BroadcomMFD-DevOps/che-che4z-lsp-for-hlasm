@@ -376,10 +376,11 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordin
         });
 
         const auto& [format, opcode] = proc_status;
+        semantics::range_provider rp(op_range);
 
         if (format.occurrence == ABSENT)
         {
-            auto remarks = m_new_parser->noop_operands(*op_text, op_range.start, op_logical_column);
+            auto remarks = m_new_parser->noop_operands(*op_text, op_range.start, op_logical_column, rp);
             assert(remarks.size() <= 1);
             // TODO: this also sets op range
             collector.set_operand_remark_field({}, std::vector(remarks.begin(), remarks.end()), op_range);
@@ -389,7 +390,7 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordin
             const auto& h = prepare_operand_parser(*op_text,
                 *m_ctx.hlasm_ctx,
                 (format.occurrence == PRESENT && format.form == UNKNOWN) ? &diags_filter : diags,
-                semantics::range_provider(op_range),
+                std::move(rp),
                 op_range,
                 op_logical_column,
                 proc_status,

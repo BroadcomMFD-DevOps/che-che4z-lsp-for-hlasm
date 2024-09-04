@@ -85,66 +85,6 @@ options {
     superClass = parser_impl;
 }
 
-/*
-program :  ictl? prcs*  program_block  EOF;
-
-ictl: { _input->LT(2)->getText() == "ICTL" }? SPACE ORDSYMBOL SPACE ictl_begin EOF{ analyzer.get_lexer()->set_ictl(); };
-
-ictl_begin: IDENTIFIER ictl_end?
-                {
-                    size_t idx = 0;
-                    auto val = std::stoi($IDENTIFIER.text, &idx);
-                    if(idx > 0 || !analyzer.get_lexer()->set_begin(val))
-                        throw RecognitionException("invalid ICTL parameter value", this, _input, _localctx, $IDENTIFIER);
-                    hl_info.lines.push_back(token_info(provider.get_range( $IDENTIFIER),hl_scopes::operand));
-                }
-            ;
-
-ictl_end: COMMA IDENTIFIER ictl_continue
-                {
-                    size_t idx = 0;
-                    auto val = std::stoi($IDENTIFIER.text, &idx);
-                    if(idx > 0 || !analyzer.get_lexer()->set_end(val))
-                        throw RecognitionException("invalid ICTL parameter value", this, _input, _localctx, $IDENTIFIER);
-                    hl_info.lines.push_back(token_info(provider.get_range( $COMMA),hl_scopes::operator_symbol));
-                    hl_info.lines.push_back(token_info(provider.get_range( $IDENTIFIER),hl_scopes::operand));
-                }
-            ;
-
-ictl_continue:  { analyzer.get_lexer()->set_continuation_enabled(false); }
-
-                | COMMA IDENTIFIER
-                    {
-                        size_t idx = 0;
-                        auto val = std::stoi($IDENTIFIER.text, &idx);
-                        if(idx > 0 || !analyzer.get_lexer()->set_continue(val))
-                            throw RecognitionException("invalid ICTL parameter value", this, _input, _ctx, $IDENTIFIER);
-
-                        hl_info.lines.push_back(token_info(provider.get_range( $COMMA),hl_scopes::operator_symbol));
-                        hl_info.lines.push_back(token_info(provider.get_range( $IDENTIFIER),hl_scopes::operand));
-                    }
-                ;
-
-
-prcs: PROCESS SPACE (assembler_options
-                                    | (ORDSYMBOL { $ORDSYMBOL.text == "OVERRIDE" }? LPAR assembler_options RPAR)) EOF;
-
-
-assembler_options: assembler_option (COMMA assembler_option)*;
-
-assembler_option: id (LPAR (list | codepage | machine | id)? RPAR)?;
-
-list: list_item (COMMA list_item)*;
-
-list_item: id (LPAR (id | string)+? RPAR)?;
-
-machine: id (MINUS id)? (COMMA id)?;
-
-codepage: id VERTICAL id string;
-
-*/
-
-
 program : EOF;
 
 lab_instr returns [std::optional<std::string> op_text, range op_range, size_t op_logical_column = 0]
@@ -224,17 +164,17 @@ id returns [id_index name, id_index using_qualifier]
     : f=id_no_dot {$name = $f.name;} (dot s=id_no_dot {$name = $s.name; $using_qualifier = $f.name;})?;
 
 id_no_dot returns [id_index name] locals [std::string buffer]
-    : ORDSYMBOL { $buffer = $ORDSYMBOL->getText(); } (l=(IDENTIFIER|NUM|ORDSYMBOL) {$buffer.append($l->getText());})*
+    : f=(ORDSYMBOL|SINGLECHAR|NOT) { $buffer = $f->getText(); } (l=(IDENTIFIER|NUM|ORDSYMBOL|SINGLECHAR|NOT) {$buffer.append($l->getText());})*
     {
-        $name = parse_identifier(std::move($buffer),provider.get_range($ORDSYMBOL,$l?$l:$ORDSYMBOL));
+        $name = parse_identifier(std::move($buffer),provider.get_range($f,$l?$l:$f));
     }
     ;
 
 vs_id returns [id_index name]
-    : ORDSYMBOL
+    : first=(ORDSYMBOL|SINGLECHAR|NOT)
     {
-        std::string text = $ORDSYMBOL->getText();
-        auto first = $ORDSYMBOL;
+        std::string text = $first->getText();
+        auto first = $first;
         auto last = first;
     }
     (
@@ -249,16 +189,28 @@ vs_id returns [id_index name]
             text += $ORDSYMBOL->getText();
             last = $ORDSYMBOL;
         }
+        |
+        SINGLECHAR
+        {
+            text += $SINGLECHAR->getText();
+            last = $SINGLECHAR;
+        }
+        |
+        NOT
+        {
+            text += $NOT->getText();
+            last = $NOT;
+        }
     )*
     {
         $name = parse_identifier(std::move(text), provider.get_range(first, last));
     };
 
 remark
-    : (DOT|ASTERISK|MINUS|PLUS|LT|GT|COMMA|LPAR|RPAR|SLASH|EQUALS|AMPERSAND|APOSTROPHE|IDENTIFIER|NUM|VERTICAL|ORDSYMBOL|SPACE|ATTR)*;
+    : (DOT|ASTERISK|MINUS|PLUS|LT|GT|COMMA|LPAR|RPAR|SLASH|EQUALS|AMPERSAND|APOSTROPHE|IDENTIFIER|NUM|VERTICAL|ORDSYMBOL|SINGLECHAR|NOT|SPACE|ATTR)*;
 
 remark_non_empty
-    : (DOT|ASTERISK|MINUS|PLUS|LT|GT|COMMA|LPAR|RPAR|SLASH|EQUALS|AMPERSAND|APOSTROPHE|IDENTIFIER|NUM|VERTICAL|ORDSYMBOL|SPACE|ATTR)+;
+    : (DOT|ASTERISK|MINUS|PLUS|LT|GT|COMMA|LPAR|RPAR|SLASH|EQUALS|AMPERSAND|APOSTROPHE|IDENTIFIER|NUM|VERTICAL|ORDSYMBOL|SINGLECHAR|NOT|SPACE|ATTR)+;
 
 remark_o returns [std::optional<range> value]
     : SPACE remark                            {$value = provider.get_range( $remark.ctx);}

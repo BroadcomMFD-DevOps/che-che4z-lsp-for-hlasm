@@ -412,7 +412,7 @@ TEST(ainsert, grammar_non_matching_apostrophes_by_two_01)
 
     analyzer a(input);
     a.analyze();
-    EXPECT_TRUE(matches_message_codes(a.diags(), { "S0002" }));
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "S0005" }));
 }
 
 /*

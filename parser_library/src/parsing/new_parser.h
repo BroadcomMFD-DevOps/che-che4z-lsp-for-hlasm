@@ -20,9 +20,7 @@
 #include <string_view>
 #include <vector>
 
-#include "lexing/logical_line.h"
 #include "range.h"
-#include "utils/unicode_text.h"
 
 namespace hlasm_plugin::parser_library::context {
 class hlasm_context;
@@ -33,19 +31,33 @@ struct range_provider;
 }
 
 namespace hlasm_plugin::parser_library::parsing {
+struct macro_preprocessor_result
+{
+    std::string_view text;
+    std::span<range> text_ranges;
+    range total_op_range;
+    std::span<range> remarks;
+
+    range line_range;
+    size_t line_logical_column;
+};
 
 class new_parser
 {
-    lexing::logical_line<utils::utf8_iterator<std::string::const_iterator, utils::utf8_utf16_counter>> m_ll;
-
     std::vector<range> m_comments;
+    std::vector<range> m_text_ranges;
+    std::string m_text;
 
     context::hlasm_context* m_ctx;
 
     void clear();
 
 public:
-    std::span<range> noop_operands(std::string_view text, position p, size_t logical_column);
+    std::span<range> noop_operands(
+        std::string_view text, position p, size_t logical_column, semantics::range_provider& rp);
+
+    macro_preprocessor_result macro_preprocessor(
+        std::string_view text, position p, size_t logical_column, semantics::range_provider& rp, bool reparse);
 
     explicit new_parser(context::hlasm_context& ctx) noexcept;
 };

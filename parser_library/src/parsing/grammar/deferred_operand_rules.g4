@@ -28,6 +28,8 @@ deferred_entry returns [std::vector<vs_ptr> vs]
     | IDENTIFIER                                            {collector.add_hl_symbol(token_info(provider.get_range($IDENTIFIER), hl_scopes::operand));}
     | NUM                                                   {collector.add_hl_symbol(token_info(provider.get_range($NUM), hl_scopes::operand));}
     | ORDSYMBOL                                             {collector.add_hl_symbol(token_info(provider.get_range($ORDSYMBOL), hl_scopes::operand));}
+    | SINGLECHAR                                            {collector.add_hl_symbol(token_info(provider.get_range($SINGLECHAR), hl_scopes::operand));}
+    | NOT                                                   {collector.add_hl_symbol(token_info(provider.get_range($NOT), hl_scopes::operand));}
     | dot
     | lpar
     | rpar
@@ -57,6 +59,8 @@ deferred_entry returns [std::vector<vs_ptr> vs]
             | IDENTIFIER
             | NUM
             | ORDSYMBOL
+            | SINGLECHAR
+            | NOT
             | DOT
             | COMMA
             | LPAR
@@ -95,6 +99,8 @@ deferred_entry returns [std::vector<vs_ptr> vs]
         | IDENTIFIER
         | NUM
         | ORDSYMBOL
+        | SINGLECHAR
+        | NOT
         | DOT
         | COMMA
         | LPAR
@@ -109,14 +115,24 @@ deferred_entry returns [std::vector<vs_ptr> vs]
     }
     | AMPERSAND
     (
-        ORDSYMBOL
+        first=(ORDSYMBOL|SINGLECHAR|NOT)
         {
-            auto name = $ORDSYMBOL->getText();
+            auto name = $first->getText();
         }
         (
             ORDSYMBOL
             {
                 name += $ORDSYMBOL->getText();
+            }
+            |
+            SINGLECHAR
+            {
+                name += $SINGLECHAR->getText();
+            }
+            |
+            NOT
+            {
+                name += $NOT->getText();
             }
             |
             NUM

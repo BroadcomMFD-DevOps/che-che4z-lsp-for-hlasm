@@ -16,7 +16,7 @@
 parser grammar instruction_field_rules;
 
 instruction returns [id_index instr] locals [concat_chain chain, std::string instr_text, bool has_vars = false]
-    : f=ORDSYMBOL                                               {$instr_text += $f->getText();$chain.emplace_back(char_str_conc($f->getText(), provider.get_range($f)));}
+    : f=(ORDSYMBOL|SINGLECHAR|NOT)                              {$instr_text += $f->getText();$chain.emplace_back(char_str_conc($f->getText(), provider.get_range($f)));}
     (
         {
             collector.add_hl_symbol(token_info(provider.get_range($f),hl_scopes::instruction));
@@ -37,6 +37,8 @@ instruction returns [id_index instr] locals [concat_chain chain, std::string ins
         | IDENTIFIER                                            {$instr_text += $IDENTIFIER->getText();$chain.emplace_back(char_str_conc($IDENTIFIER->getText(), provider.get_range($IDENTIFIER)));}
         | NUM                                                   {$instr_text += $NUM->getText();$chain.emplace_back(char_str_conc($NUM->getText(), provider.get_range($NUM)));}
         | ORDSYMBOL                                             {$instr_text += $ORDSYMBOL->getText();$chain.emplace_back(char_str_conc($ORDSYMBOL->getText(), provider.get_range($ORDSYMBOL)));}
+        | SINGLECHAR                                            {$instr_text += $SINGLECHAR->getText();$chain.emplace_back(char_str_conc($SINGLECHAR->getText(), provider.get_range($SINGLECHAR)));}
+        | NOT                                                   {$instr_text += $NOT->getText();$chain.emplace_back(char_str_conc($NOT->getText(), provider.get_range($NOT)));}
         | DOT                                                   {$instr_text += ".";$chain.emplace_back(dot_conc(provider.get_range($DOT)));}
         | l=AMPERSAND
         (
@@ -79,6 +81,8 @@ instruction returns [id_index instr] locals [concat_chain chain, std::string ins
         | IDENTIFIER                                            {$chain.emplace_back(char_str_conc($IDENTIFIER->getText(), provider.get_range($IDENTIFIER)));}
         | NUM                                                   {$chain.emplace_back(char_str_conc($NUM->getText(), provider.get_range($NUM)));}
         | ORDSYMBOL                                             {$chain.emplace_back(char_str_conc($ORDSYMBOL->getText(), provider.get_range($ORDSYMBOL)));}
+        | SINGLECHAR                                            {$chain.emplace_back(char_str_conc($SINGLECHAR->getText(), provider.get_range($SINGLECHAR)));}
+        | NOT                                                   {$chain.emplace_back(char_str_conc($NOT->getText(), provider.get_range($NOT)));}
         | DOT                                                   {$chain.emplace_back(dot_conc(provider.get_range($DOT)));}
         | l=AMPERSAND
         (
@@ -102,7 +106,7 @@ instruction returns [id_index instr] locals [concat_chain chain, std::string ins
             collector.set_instruction_field(std::move($chain), r);
         }
     )
-    | b=~(ORDSYMBOL|AMPERSAND|SPACE|CONTINUATION|EOF) ~(SPACE)*
+    | b=~(ORDSYMBOL|SINGLECHAR|NOT|AMPERSAND|SPACE|CONTINUATION|EOF) ~(SPACE)*
     {
         collector.add_hl_symbol(token_info(provider.get_range($b,_input->LT(-1)),hl_scopes::instruction));
         collector.set_instruction_field(add_id(get_context_text($ctx)), provider.get_range($b, _input->LT(-1)));

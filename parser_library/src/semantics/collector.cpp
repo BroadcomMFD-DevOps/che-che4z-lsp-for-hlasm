@@ -68,6 +68,12 @@ void collector::set_label_field(seq_sym sequence_symbol, range symbol_range)
     lbl_.emplace(symbol_range, std::move(sequence_symbol));
 }
 
+static bool ord_like(size_t t)
+{
+    return t == lexing::lexer::Tokens::ORDSYMBOL || t == lexing::lexer::Tokens::NOT
+        || t == lexing::lexer::Tokens::SINGLECHAR;
+}
+
 void collector::set_label_field(
     context::id_index label, std::string mixed_case_label, antlr4::ParserRuleContext* parser_ctx, range symbol_range)
 {
@@ -77,7 +83,7 @@ void collector::set_label_field(
     if (!parser_ctx
         || ((parser_ctx->getStart() == parser_ctx->getStop()
                 || parser_ctx->getStart()->getTokenIndex() == parser_ctx->getStop()->getTokenIndex())
-            && parser_ctx->getStart()->getType() == lexing::lexer::Tokens::ORDSYMBOL))
+            && ord_like(parser_ctx->getStart()->getType())))
     {
         lbl_.emplace(symbol_range, ord_symbol_string { label, std::move(mixed_case_label) });
     }

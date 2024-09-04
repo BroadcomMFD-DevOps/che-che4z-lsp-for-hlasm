@@ -42,10 +42,16 @@ mac_preproc
         | IDENTIFIER
         | NUM
         | ORDSYMBOL
+        | SINGLECHAR
+        | NOT
         | DOT
         | AMPERSAND
         (
             ORDSYMBOL
+            |
+            SINGLECHAR
+            |
+            NOT
             |
             LPAR
             |
@@ -90,7 +96,7 @@ mac_entry_basic_tokens [concat_chain* chain]
         }
         | equals        {$chain->emplace_back(equals_conc(provider.get_range($equals.ctx)));}
         | dot            {$chain->emplace_back(dot_conc(provider.get_range($dot.ctx)));}
-        | token=(IDENTIFIER|NUM|ORDSYMBOL)
+        | token=(IDENTIFIER|NUM|ORDSYMBOL|SINGLECHAR|NOT)
         {
             auto r = provider.get_range($token);
             $chain->emplace_back(char_str_conc($token.text, r));
@@ -167,6 +173,35 @@ mac_entry_basic_tokens [concat_chain* chain]
     )
     ;
 
+string_ch_v [concat_chain* chain]
+    :
+    ( ASTERISK                                  {$chain->emplace_back(char_str_conc("*", provider.get_range($ASTERISK)));}
+    | MINUS                                     {$chain->emplace_back(char_str_conc("-", provider.get_range($MINUS)));}
+    | PLUS                                      {$chain->emplace_back(char_str_conc("+", provider.get_range($PLUS)));}
+    | LT                                        {$chain->emplace_back(char_str_conc("<", provider.get_range($LT)));}
+    | GT                                        {$chain->emplace_back(char_str_conc(">", provider.get_range($GT)));}
+    | SLASH                                     {$chain->emplace_back(char_str_conc("/", provider.get_range($SLASH)));}
+    | EQUALS                                    {$chain->emplace_back(equals_conc(provider.get_range($EQUALS)));}
+    | VERTICAL                                  {$chain->emplace_back(char_str_conc("|", provider.get_range($VERTICAL)));}
+    | IDENTIFIER                                {$chain->emplace_back(char_str_conc($IDENTIFIER->getText(), provider.get_range($IDENTIFIER)));}
+    | NUM                                       {$chain->emplace_back(char_str_conc($NUM->getText(), provider.get_range($NUM)));}
+    | ORDSYMBOL                                 {$chain->emplace_back(char_str_conc($ORDSYMBOL->getText(), provider.get_range($ORDSYMBOL)));}
+    | SINGLECHAR                                {$chain->emplace_back(char_str_conc($SINGLECHAR->getText(), provider.get_range($SINGLECHAR)));}
+    | NOT                                       {$chain->emplace_back(char_str_conc($NOT->getText(), provider.get_range($NOT)));}
+    | DOT                                       {$chain->emplace_back(dot_conc(provider.get_range($DOT)));}
+    | l=AMPERSAND
+    (
+        r=AMPERSAND                             {$chain->emplace_back(char_str_conc("&&", provider.get_range($l,$r)));}
+        |
+        var_symbol_base[$l]                     {$chain->emplace_back(var_sym_conc(std::move($var_symbol_base.vs)));}
+    )
+    | COMMA                                     {$chain->emplace_back(char_str_conc(",", provider.get_range($COMMA)));}
+    | LPAR                                      {$chain->emplace_back(char_str_conc("(", provider.get_range($LPAR)));}
+    | RPAR                                      {$chain->emplace_back(char_str_conc(")", provider.get_range($RPAR)));}
+    | SPACE                                     {$chain->emplace_back(char_str_conc($SPACE->getText(), provider.get_range($SPACE)));}
+    )
+    | l=(APOSTROPHE|ATTR) r=(APOSTROPHE|ATTR)   {$chain->emplace_back(char_str_conc("'", provider.get_range($l, $r)));};
+
 mac_entry returns [concat_chain chain]
     :
     (
@@ -201,12 +236,28 @@ mac_entry returns [concat_chain chain]
                         $chain.emplace_back(equals_conc(provider.get_range($equals.ctx)));
                     }
                 )?
+                (
                 ORDSYMBOL
                 {
                     auto r = provider.get_range($ORDSYMBOL);
                     $chain.emplace_back(char_str_conc($ORDSYMBOL.text, r));
                     collector.add_hl_symbol(token_info(r, hl_scopes::operand));
                 }
+                |
+                SINGLECHAR
+                {
+                    auto r = provider.get_range($SINGLECHAR);
+                    $chain.emplace_back(char_str_conc($SINGLECHAR.text, r));
+                    collector.add_hl_symbol(token_info(r, hl_scopes::operand));
+                }
+                |
+                NOT
+                {
+                    auto r = provider.get_range($NOT);
+                    $chain.emplace_back(char_str_conc($NOT.text, r));
+                    collector.add_hl_symbol(token_info(r, hl_scopes::operand));
+                }
+                )
                 |
                 AMPERSAND
                 (

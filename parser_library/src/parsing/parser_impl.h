@@ -181,6 +181,13 @@ private:
     bool literals_allowed = true;
 };
 
+struct mac_op_data
+{
+    semantics::macop_preprocess_results operands;
+    range op_range;
+    size_t op_logical_column;
+};
+
 // structure containing parser components
 struct parser_holder
 {
@@ -202,7 +209,6 @@ struct parser_holder
     virtual op_data lab_instr() const = 0;
     virtual op_data look_lab_instr() const = 0;
 
-    virtual void op_rem_body_noop() const = 0;
     virtual void op_rem_body_ignored() const = 0;
     virtual void op_rem_body_deferred() const = 0;
     virtual void lookahead_operands_and_remarks_asm() const = 0;
@@ -224,13 +230,6 @@ struct parser_holder
 
     virtual semantics::operand_ptr ca_op_expr() const = 0;
     virtual semantics::operand_ptr operand_mach() const = 0;
-
-    struct mac_op_data
-    {
-        semantics::macop_preprocess_results operands;
-        range op_range;
-        size_t op_logical_column;
-    };
 
     virtual mac_op_data op_rem_body_mac() const = 0;
 

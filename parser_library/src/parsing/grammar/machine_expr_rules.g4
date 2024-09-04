@@ -120,11 +120,11 @@ mach_signed_num returns [self_def_t value]
     : signed_num_ch                                    {$value = parse_self_def_term_in_mach("D",get_context_text($signed_num_ch.ctx),provider.get_range($signed_num_ch.ctx));};
 
 mach_self_def_term returns [self_def_t value]
-    : ORDSYMBOL string
+    : type=(ORDSYMBOL|SINGLECHAR) string
     {
-        collector.add_hl_symbol(token_info(provider.get_range( $ORDSYMBOL),hl_scopes::self_def_type));
-        auto opt = $ORDSYMBOL->getText();
-        $value = parse_self_def_term_in_mach(opt, $string.value, provider.get_range($ORDSYMBOL,$string.ctx->getStop()));
+        collector.add_hl_symbol(token_info(provider.get_range( $type),hl_scopes::self_def_type));
+        auto opt = $type->getText();
+        $value = parse_self_def_term_in_mach(opt, $string.value, provider.get_range($type,$string.ctx->getStop()));
     };
 
 literal_reparse returns [literal_si value]
@@ -156,13 +156,13 @@ literal_internal returns [std::optional<data_definition> value]
     };
 
 mach_data_attribute returns [data_attr_kind attribute, std::variant<std::monostate, std::pair<id_index,id_index>, std::unique_ptr<mach_expr_literal>, int> data, range symbol_rng]
-    : ORDSYMBOL attr {auto lit_restore = enable_literals();}
+    : SINGLECHAR attr {auto lit_restore = enable_literals();}
     {
-        collector.add_hl_symbol(token_info(provider.get_range($ORDSYMBOL), hl_scopes::data_attr_type));
-        $attribute = get_attribute($ORDSYMBOL->getText());
+        collector.add_hl_symbol(token_info(provider.get_range($SINGLECHAR), hl_scopes::data_attr_type));
+        $attribute = get_attribute($SINGLECHAR->getText());
     }
     (
-        { loctr_len_allowed($ORDSYMBOL.text) }? mach_location_counter
+        { loctr_len_allowed($SINGLECHAR.text) }? mach_location_counter
         {
             $data = (int)get_loctr_len();
         }
@@ -202,6 +202,8 @@ string_ch returns [std::string value]
     | IDENTIFIER                            {$value = $IDENTIFIER->getText();}
     | NUM                                   {$value = $NUM->getText();}
     | ORDSYMBOL                             {$value = $ORDSYMBOL->getText();}
+    | SINGLECHAR                            {$value = $SINGLECHAR->getText();}
+    | NOT                                   {$value = $NOT->getText();}
     | DOT                                   {$value = ".";}
     | COMMA                                 {$value = ",";}
     | LPAR                                  {$value = "(";}

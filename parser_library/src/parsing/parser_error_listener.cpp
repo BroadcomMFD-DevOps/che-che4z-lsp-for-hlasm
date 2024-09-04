@@ -47,12 +47,12 @@ int get_end_index(antlr4::TokenStream* input_stream, int start)
 
 bool can_follow_sign(size_t input)
 {
-    return input == IDENTIFIER || input == ORDSYMBOL || input == AMPERSAND || input == LPAR || input == CONTINUATION;
+    return input == IDENTIFIER || input == ORDSYMBOL || input == SINGLECHAR || input == NOT || input == AMPERSAND || input == LPAR || input == CONTINUATION;
 }
 
 bool can_be_before_sign(size_t input)
 {
-    return input == IDENTIFIER || input == ORDSYMBOL || input == AMPERSAND || input == RPAR || input == CONTINUATION;
+    return input == IDENTIFIER || input == ORDSYMBOL || input == SINGLECHAR || input == NOT || input == AMPERSAND || input == RPAR || input == CONTINUATION;
 }
 
 void iterate_error_stream(antlr4::TokenStream* input_stream,

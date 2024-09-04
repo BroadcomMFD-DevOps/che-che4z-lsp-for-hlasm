@@ -285,6 +285,7 @@ bool can_chain_be_forwarded(const semantics::concat_chain& chain)
     return false;
 }
 
+context::macro_data_ptr duplicate_macro_data(const context::macro_param_data_component* data);
 std::vector<context::macro_arg> macro_processor::get_operand_args(const resolved_statement& statement) const
 {
     std::vector<context::macro_arg> args;
@@ -310,10 +311,68 @@ std::vector<context::macro_arg> macro_processor::get_operand_args(const resolved
         }
         else if (can_chain_be_forwarded(tmp_chain)) // single varsym
         {
-            args.emplace_back(string_to_macrodata(
-                semantics::var_sym_conc::evaluate(
-                    std::get<semantics::var_sym_conc>(tmp_chain.front().value).symbol->evaluate(eval_ctx)),
-                add_diags));
+            const auto& symbol = std::get<semantics::var_sym_conc>(tmp_chain.front().value).symbol;
+            auto [name, subscript] = symbol->evaluate_symbol(eval_ctx);
+            auto* var = eval_ctx.hlasm_ctx.get_var_sym(name);
+            if (!context::test_symbol_for_read(
+                    var, subscript, symbol->symbol_range, eval_ctx.diags, name.to_string_view()))
+            {
+                args.emplace_back(std::make_unique<context::macro_param_data_dummy>());
+            }
+            else if (auto set_sym = var->access_set_symbol_base())
+            {
+                if (subscript.empty())
+                {
+                    switch (set_sym->type)
+                    {
+                        case context::SET_t_enum::A_TYPE:
+                            args.emplace_back(std::make_unique<context::macro_param_data_single>(
+                                std::to_string(set_sym->access_set_symbol<context::A_t>()->get_value())));
+                            break;
+                        case context::SET_t_enum::B_TYPE:
+                            args.emplace_back(std::make_unique<context::macro_param_data_single>(
+                                set_sym->access_set_symbol<context::B_t>()->get_value() ? "1" : "0"));
+                            break;
+                        case context::SET_t_enum::C_TYPE:
+                            args.emplace_back(string_to_macrodata(
+                                set_sym->access_set_symbol<context::C_t>()->get_value(), add_diags));
+                            break;
+                        default:
+                            args.emplace_back(std::make_unique<context::macro_param_data_dummy>());
+                            break;
+                    }
+                }
+                else
+                {
+                    const auto idx = subscript.front();
+
+                    switch (set_sym->type)
+                    {
+                        case context::SET_t_enum::A_TYPE:
+                            args.emplace_back(std::make_unique<context::macro_param_data_single>(
+                                std::to_string(set_sym->access_set_symbol<context::A_t>()->get_value(idx))));
+                            break;
+                        case context::SET_t_enum::B_TYPE:
+                            args.emplace_back(std::make_unique<context::macro_param_data_single>(
+                                set_sym->access_set_symbol<context::B_t>()->get_value(idx) ? "1" : "0"));
+                            break;
+                        case context::SET_t_enum::C_TYPE:
+                            args.emplace_back(string_to_macrodata(
+                                set_sym->access_set_symbol<context::C_t>()->get_value(idx), add_diags));
+                            break;
+                        default:
+                            args.emplace_back(std::make_unique<context::macro_param_data_dummy>());
+                            break;
+                    }
+                }
+            }
+            else if (auto* mac_par = var->access_macro_param_base())
+            {
+                const auto* data = mac_par->get_data(subscript);
+                args.emplace_back(duplicate_macro_data(data));
+            }
+            else
+                args.emplace_back(std::make_unique<context::macro_param_data_dummy>());
         }
         else // rest
         {
@@ -323,6 +382,23 @@ std::vector<context::macro_arg> macro_processor::get_operand_args(const resolved
 
     return args;
 }
+
+context::macro_data_ptr duplicate_macro_data(const context::macro_param_data_component* data)
+{
+    if (!data)
+        return std::make_unique<context::macro_param_data_dummy>();
+    const auto indices = data->index_range();
+    if (!indices)
+        return std::make_unique<context::macro_param_data_single>(data->get_value());
+    const size_t len = (size_t)(indices->second - indices->first) + 1;
+    std::vector<context::macro_data_ptr> components;
+    components.reserve(len);
+    for (size_t i = 0; i < len; ++i)
+        components.push_back(duplicate_macro_data(data->get_ith(indices->first + i)));
+
+    return std::make_unique<context::macro_param_data_composite>(std::move(components));
+}
+
 
 void macro_processor::get_keyword_arg(const resolved_statement& statement,
     context::id_index arg_name,

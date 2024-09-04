@@ -93,7 +93,6 @@ struct parser_holder_impl final : parser_holder
         return { std::move(rule->op_text), rule->op_range, rule->op_logical_column };
     }
 
-    void op_rem_body_noop() const override { get_parser().op_rem_body_noop(); }
     void op_rem_body_ignored() const override { get_parser().op_rem_body_ignored(); }
     void op_rem_body_deferred() const override { get_parser().op_rem_body_deferred(); }
     void lookahead_operands_and_remarks_asm() const override { get_parser().lookahead_operands_and_remarks_asm(); }
@@ -156,7 +155,7 @@ void parser_impl::disable_continuation() { input.disable_continuation(); }
 
 bool parser_impl::is_self_def()
 {
-    std::string tmp(_input->LT(1)->getText());
+    std::string tmp(_input->LT(-1)->getText());
     utils::to_upper(tmp);
     return tmp == "B" || tmp == "X" || tmp == "C" || tmp == "G";
 }

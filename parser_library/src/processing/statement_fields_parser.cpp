@@ -69,7 +69,7 @@ statement_fields_parser::parse_result statement_fields_parser::parse_operand_fie
     const auto& [format, opcode] = status;
     if (format.occurrence == ABSENT || format.form == UNKNOWN)
     {
-        auto comments = m_new_parser->noop_operands(field, original_range.start, logical_column);
+        auto comments = m_new_parser->noop_operands(field, original_range.start, logical_column, field_range);
         line.remarks.assign(comments.begin(), comments.end());
     }
     else

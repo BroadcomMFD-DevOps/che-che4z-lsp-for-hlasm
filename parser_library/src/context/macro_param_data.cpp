@@ -53,7 +53,21 @@ macro_param_data_single::macro_param_data_single(C_t value)
     , data_(std::move(value))
 {}
 
-C_t macro_param_data_composite::get_value() const { return value_; }
+C_t macro_param_data_composite::get_value() const
+{
+    if (value_.empty())
+    {
+        value_.append("(");
+        for (size_t i = 0; i < data_.size(); ++i)
+        {
+            value_.append(data_[i]->get_value());
+            if (i != data_.size() - 1)
+                value_.append(",");
+        }
+        value_.append(")");
+    }
+    return value_;
+}
 
 const macro_param_data_component* macro_param_data_composite::get_ith(A_t idx) const
 {
@@ -77,17 +91,23 @@ macro_param_data_composite::macro_param_data_composite(std::vector<macro_data_pt
     }())
 {
     assert(data_.size() <= std::numeric_limits<A_t>::max());
-    value_.append("(");
-    for (size_t i = 0; i < data_.size(); ++i)
-    {
-        value_.append(data_[i]->get_value());
-        if (i != data_.size() - 1)
-            value_.append(",");
-    }
-    value_.append(")");
 }
 
-C_t macro_param_data_zero_based::get_value() const { return value_; }
+C_t macro_param_data_zero_based::get_value() const
+{
+    if (value_.empty())
+    {
+        value_.append("(");
+        for (size_t i = 0; i < data_.size(); ++i)
+        {
+            value_.append(data_[i]->get_value());
+            if (i != data_.size() - 1)
+                value_.append(",");
+        }
+        value_.append(")");
+    }
+    return value_;
+}
 
 const macro_param_data_component* macro_param_data_zero_based::get_ith(A_t idx) const
 {
@@ -111,14 +131,6 @@ macro_param_data_zero_based::macro_param_data_zero_based(std::vector<macro_data_
     }())
 {
     assert(data_.size() <= std::numeric_limits<A_t>::max());
-    value_.append("(");
-    for (size_t i = 0; i < data_.size(); ++i)
-    {
-        value_.append(data_[i]->get_value());
-        if (i != data_.size() - 1)
-            value_.append(",");
-    }
-    value_.append(")");
 }
 
 C_t macro_param_data_single_dynamic::get_value() const { return get_dynamic_value(); }

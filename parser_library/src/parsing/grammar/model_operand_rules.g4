@@ -36,6 +36,8 @@ before_var_sym_model_b returns [std::string value]
     | IDENTIFIER                            {$value = $IDENTIFIER->getText();}
     | NUM                                   {$value = $NUM->getText();}
     | ORDSYMBOL                             {$value = $ORDSYMBOL->getText();}
+    | SINGLECHAR                            {$value = $SINGLECHAR->getText();}
+    | NOT                                   {$value = $NOT->getText();}
     | DOT                                   {$value = ".";}
     | lpar                                  {$value = "("; }
     | rpar                                  {$value = ")"; }
@@ -72,6 +74,8 @@ after_var_sym_model [concat_chain* chain]
     | IDENTIFIER                            {$chain->emplace_back(char_str_conc($IDENTIFIER->getText(), provider.get_range($IDENTIFIER)));}
     | NUM                                   {$chain->emplace_back(char_str_conc($NUM->getText(), provider.get_range($NUM)));}
     | ORDSYMBOL                             {$chain->emplace_back(char_str_conc($ORDSYMBOL->getText(), provider.get_range($ORDSYMBOL)));}
+    | SINGLECHAR                            {$chain->emplace_back(char_str_conc($SINGLECHAR->getText(), provider.get_range($SINGLECHAR)));}
+    | NOT                                   {$chain->emplace_back(char_str_conc($NOT->getText(), provider.get_range($NOT)));}
     | DOT                                   {$chain->emplace_back(dot_conc(provider.get_range($DOT)));}
     | l=AMPERSAND
     (
@@ -130,6 +134,8 @@ model_string_ch returns [std::string value]
     | IDENTIFIER                            {$value = $IDENTIFIER->getText();}
     | NUM                                   {$value = $NUM->getText();}
     | ORDSYMBOL                             {$value = $ORDSYMBOL->getText();}
+    | SINGLECHAR                            {$value = $SINGLECHAR->getText();}
+    | NOT                                   {$value = $NOT->getText();}
     | DOT                                   {$value = ".";}
     | COMMA                                 {$value = ",";}
     | LPAR                                  {$value = "(";}
@@ -152,6 +158,8 @@ model_string_ch_v [concat_chain* chain]
     | IDENTIFIER                            {$chain->emplace_back(char_str_conc($IDENTIFIER->getText(), provider.get_range($IDENTIFIER)));}
     | NUM                                   {$chain->emplace_back(char_str_conc($NUM->getText(), provider.get_range($NUM)));}
     | ORDSYMBOL                             {$chain->emplace_back(char_str_conc($ORDSYMBOL->getText(), provider.get_range($ORDSYMBOL)));}
+    | SINGLECHAR                            {$chain->emplace_back(char_str_conc($SINGLECHAR->getText(), provider.get_range($SINGLECHAR)));}
+    | NOT                                   {$chain->emplace_back(char_str_conc($NOT->getText(), provider.get_range($NOT)));}
     | DOT                                   {$chain->emplace_back(dot_conc(provider.get_range($DOT)));}
     | l=AMPERSAND
     (

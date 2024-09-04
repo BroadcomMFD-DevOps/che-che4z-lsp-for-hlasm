@@ -80,7 +80,7 @@ ORDSYMBOL
 SPACE
 ORDSYMBOL
 SPACE
-ORDSYMBOL
+NOT
 SPACE
 ORDSYMBOL
 SPACE
@@ -166,7 +166,7 @@ TEST(lexer_test, attribute_in_continuation)
     EXPECT_EQ(l.get_token(i++)->getType(), lexing::lexer::SPACE);
     EXPECT_EQ(l.get_token(i++)->getType(), lexing::lexer::NUM);
     EXPECT_EQ(l.get_token(i++)->getType(), lexing::lexer::COMMA);
-    EXPECT_EQ(l.get_token(i++)->getType(), lexing::lexer::ORDSYMBOL);
+    EXPECT_EQ(l.get_token(i++)->getType(), lexing::lexer::SINGLECHAR);
     EXPECT_EQ(l.get_token(i++)->getType(), lexing::lexer::CONTINUATION);
     EXPECT_EQ(l.get_token(i++)->getType(), lexing::lexer::IGNORED);
     EXPECT_EQ(l.get_token(i++)->getType(), lexing::lexer::IGNORED);

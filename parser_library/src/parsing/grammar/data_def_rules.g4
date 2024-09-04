@@ -74,10 +74,10 @@ mach_expr_or_address_comma_c returns [expr_or_address_list exprs]
     ;
 
 data_def_text returns [std::string value]
-    : (t=(IDENTIFIER|NUM|ORDSYMBOL) {$value += $t->getText();})+;
+    : (t=(IDENTIFIER|NUM|ORDSYMBOL|SINGLECHAR|NOT) {$value += $t->getText();})+;
 
 data_def_text_plus_minus returns [std::string value]
-    : (plus{$value="+";}|minus{$value="-";}) (t=(IDENTIFIER|NUM|ORDSYMBOL) {$value += $t->getText();})+;
+    : (plus{$value="+";}|minus{$value="-";}) (t=(IDENTIFIER|NUM|ORDSYMBOL|SINGLECHAR|NOT) {$value += $t->getText();})+;
 
 data_def_base [data_definition_parser* p]
     :
@@ -101,11 +101,11 @@ data_def_base [data_definition_parser* p]
             PERF_HACK_EXTRAS:
             if (const auto [allowed, next_token] = std::make_pair($p->allowed(), _input->LA(1));
                 !allowed.expression && next_token == LPAR ||
-                !allowed.string && (next_token == IDENTIFIER || next_token == NUM || next_token == ORDSYMBOL) ||
+                !allowed.string && (next_token == IDENTIFIER || next_token == NUM || next_token == ORDSYMBOL || next_token == SINGLECHAR || next_token == NOT) ||
                 !allowed.plus_minus && (next_token == PLUS || next_token == MINUS) ||
                 !allowed.dot && next_token == DOT)
                 goto PERF_HACK_SKIP_EXTRAS;
-            else if (!(next_token == LPAR || next_token == IDENTIFIER || next_token == NUM || next_token == ORDSYMBOL || next_token == PLUS || next_token == MINUS || next_token == DOT))
+            else if (!(next_token == LPAR || next_token == IDENTIFIER || next_token == NUM || next_token == ORDSYMBOL || next_token == SINGLECHAR || next_token == NOT || next_token == PLUS || next_token == MINUS || next_token == DOT))
                 goto PERF_HACK_SKIP_EXTRAS;
         }
         (
