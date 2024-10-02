@@ -15,7 +15,7 @@
 import * as vscode from 'vscode';
 import * as ftp from 'basic-ftp';
 import { ClientInterface, ClientUriDetails, ExternalRequestType, SuspendError } from './hlasmExternalFiles';
-import { FtpConnectionInfo, ZoweConnectionInfo, gatherConnectionInfo, getLastRunConfig, translateConnectionInfo, updateLastRunConfig } from './ftpCreds';
+import { FtpConnectionInfo, ZoweConnectionInfo, gatherConnectionInfo, getLastRunConfig, translateConnectionInfo, updateLastRunConfig } from './mfCreds';
 import { FBWritable } from './FBWritable';
 import { ConnectionPool } from './connectionPool';
 import { AsyncMutex } from './asyncMutex';

@@ -21,7 +21,7 @@ import { promises as fsp } from "fs";
 import { hlasmplugin_folder, proc_grps_file } from './constants';
 import { Telemetry } from './telemetry';
 import { askUser } from './uiUtils';
-import { connectionSecurityLevel, gatherConnectionInfo, getLastRunConfig, translateConnectionInfo, updateLastRunConfig, ZoweConnectionInfo } from './ftpCreds';
+import { connectionSecurityLevel, gatherConnectionInfo, getLastRunConfig, translateConnectionInfo, updateLastRunConfig, ZoweConnectionInfo } from './mfCreds';
 import { isCancellationError } from './helpers';
 import { unterseFile } from "terse.js";
 import { FBStreamingConvertor } from './FBStreamingConvertor';

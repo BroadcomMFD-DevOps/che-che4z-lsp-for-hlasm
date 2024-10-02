@@ -56,18 +56,6 @@ export function translateConnectionInfo(connection: {
     }
 }
 
-export function gatherSecurityLevelFromZowe(profile: any) {
-    // tested with Zowe Explorer v2.7.0
-    if (profile.secureFtp !== false) {
-        if (profile.rejectUnauthorized !== false)
-            return connectionSecurityLevel.rejectUnauthorized;
-        else
-            return connectionSecurityLevel.acceptUnauthorized;
-    }
-    else
-        return connectionSecurityLevel.unsecure;
-}
-
 async function gatherConnectionInfoFromZowe(zowe: vscode.Extension<any>, profileName: string): Promise<ZoweConnectionInfo> {
     if (!zowe.isActive)
         await zowe.activate();
