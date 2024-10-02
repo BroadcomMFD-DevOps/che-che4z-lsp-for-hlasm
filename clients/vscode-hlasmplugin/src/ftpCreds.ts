@@ -23,15 +23,20 @@ export enum connectionSecurityLevel {
     "unsecure",
 }
 
-export interface ConnectionInfo {
+export type FtpConnectionInfo = {
     host: string;
     port: number | undefined;
     user: string;
     password: string;
     hostInput: string;
     securityLevel: connectionSecurityLevel;
+}
 
-    zowe: boolean;
+export type ZoweConnectionInfo = {
+    loadedProfile: object;
+    zoweExplorerApi: any;
+    user: string;
+    hostInput: string;
 }
 
 export function translateConnectionInfo(connection: {
@@ -63,19 +68,20 @@ export function gatherSecurityLevelFromZowe(profile: any) {
         return connectionSecurityLevel.unsecure;
 }
 
-async function gatherConnectionInfoFromZowe(zowe: vscode.Extension<any>, profileName: string): Promise<ConnectionInfo> {
+async function gatherConnectionInfoFromZowe(zowe: vscode.Extension<any>, profileName: string): Promise<ZoweConnectionInfo> {
     if (!zowe.isActive)
         await zowe.activate();
     if (!zowe.isActive)
         throw Error("Unable to activate ZOWE Explorer extension");
+    const profileType = 'zosmf'; // No default `type` available?
     const zoweExplorerApi = zowe?.exports;
     const profileCache = zoweExplorerApi.getExplorerExtenderApi().getProfilesCache();
     await profileCache.refresh(zoweExplorerApi);
+    if (profileName === '') {
+        profileName = profileCache.getDefaultProfile(profileType);
+    }
     const loadedProfile = profileCache.loadNamedProfile(profileName);
-    const { host, port, user, password } = loadedProfile.profile;
-    const securityLevel = gatherSecurityLevelFromZowe(loadedProfile.profile);
-
-    return { host, port, user, password, hostInput: '@' + profileName, securityLevel, zowe: true };
+    return { loadedProfile, zoweExplorerApi, user: loadedProfile.user, hostInput: '@' + profileName };
 }
 
 const securityOptions = Object.freeze([
@@ -88,7 +94,7 @@ export async function gatherConnectionInfo(lastInput: {
     host: string;
     user: string;
     jobcard: string;
-}): Promise<ConnectionInfo> {
+}): Promise<FtpConnectionInfo | ZoweConnectionInfo> {
     const zowe = vscode.extensions.getExtension("Zowe.vscode-extension-for-zowe");
 
     const hostInput = await askUser(zowe ? "host[:port] or @zowe-profile-name" : "host[:port]", false, !zowe && lastInput.host.startsWith('@') ? '' : lastInput.host);
@@ -104,7 +110,7 @@ export async function gatherConnectionInfo(lastInput: {
     const user = await askUser("user name", false, lastInput.user);
     const password = await askUser("password", true);
     const securityLevel = await pickUser("Select security option", securityOptions);
-    return { host, port, user, password, hostInput, securityLevel, zowe: false };
+    return { host, port, user, password, hostInput, securityLevel };
 }
 
 export function getLastRunConfig(context: vscode.ExtensionContext) {

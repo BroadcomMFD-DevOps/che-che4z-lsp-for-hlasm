@@ -18,7 +18,7 @@ import * as fsp from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
 
-import { downloadDependenciesWithClient, extractDsn, gatherDownloadList, JobDescription, replaceVariables, adjustJobHeader, unterse } from '../../hlasmDownloadCommands';
+import { downloadDependenciesWithClient, extractDsn, gatherDownloadList, JobDescription, replaceVariables, adjustJobHeader, unterse, JobClient } from '../../hlasmDownloadCommands';
 import { isCancellationError } from '../../helpers';
 import { arrayFromHex } from '../../tools';
 
@@ -28,14 +28,14 @@ suite('HLASM Download data sets', () => {
             setListMaskCalls: new Array<string>(),
             listCalls: 0,
             jcls: new Array<string>(),
-            downloadRequests: new Array<{ id: string, spoolFile: number }>(),
+            downloadRequests: new Array<{ id: string, spoolFile: string }>(),
             disposeCalls: 0,
             nextJobId: 0,
 
             dispose() { ++this.disposeCalls },
-            async download(target: Writable, id: string, spoolFile: number) {
-                if (target instanceof Writable) {
-                    this.downloadRequests.push({ id, spoolFile });
+            async download(target: Writable, job: JobDescription) {
+                if (target instanceof Writable && job.spoolFiles) {
+                    this.downloadRequests.push({ id: job.id, spoolFile: job.spoolFiles });
                 }
                 else
                     assert.fail("Writable stream expected");
@@ -87,7 +87,7 @@ suite('HLASM Download data sets', () => {
     test('Simple jobcard', async () => {
         const client = getClient([
             [],
-            [{ jobname: "JOBNAME", id: "JOBID0", details: "RC=0000 3 spool files" }]
+            [{ jobname: "JOBNAME", id: "JOBID0", rc: 0, spoolFiles: "3" }]
         ]);
         const io = getIoOps();
         const stages = getStageCounter();
@@ -103,7 +103,7 @@ suite('HLASM Download data sets', () => {
         );
 
         assert.strictEqual(client.disposeCalls, 1);
-        assert.deepStrictEqual(client.downloadRequests, [{ id: "JOBID0", spoolFile: 3 }]);
+        assert.deepStrictEqual(client.downloadRequests, [{ id: "JOBID0", spoolFile: "3" }]);
         assert.strictEqual(client.jcls.length, 1);
         assert.ok(client.jcls[0].startsWith("//JOBNAME JOB 1"));
         assert.notEqual(client.jcls[0].indexOf("DSN=A.B"), -1);
@@ -116,7 +116,7 @@ suite('HLASM Download data sets', () => {
 
     test('Jobcard pattern', async () => {
         const client = getClient([
-            [{ jobname: "JOBNAME0", id: "JOBID0", details: "RC=0000 3 spool files" }]
+            [{ jobname: "JOBNAME0", id: "JOBID0", rc: 0, spoolFiles: "3" }]
         ]);
         const io = getIoOps();
         const stages = getStageCounter();
@@ -132,7 +132,7 @@ suite('HLASM Download data sets', () => {
         );
 
         assert.strictEqual(client.disposeCalls, 1);
-        assert.deepStrictEqual(client.downloadRequests, [{ id: "JOBID0", spoolFile: 3 }]);
+        assert.deepStrictEqual(client.downloadRequests, [{ id: "JOBID0", spoolFile: "3" }]);
         assert.strictEqual(client.jcls.length, 1);
         assert.ok(client.jcls[0].startsWith("//JOBNAME0 JOB 1"));
         assert.notEqual(client.jcls[0].indexOf("DSN=A.B"), -1);
@@ -145,7 +145,7 @@ suite('HLASM Download data sets', () => {
 
     test('Cancelled', async () => {
         const client = getClient([
-            [{ jobname: "JOBNAME0", id: "JOBID0", details: "RC=0000 3 spool files" }]
+            [{ jobname: "JOBNAME0", id: "JOBID0", rc: 0, spoolFiles: "3" }]
         ]);
         const io = getIoOps();
         const stages = getStageCounter();
@@ -177,10 +177,10 @@ suite('HLASM Download data sets', () => {
 
     test('Multiple data sets', async () => {
         const client = getClient([
-            [{ jobname: "JOBNAME0", id: "JOBID0", details: "RC=0000 3 spool files" }],
+            [{ jobname: "JOBNAME0", id: "JOBID0", rc: 0, spoolFiles: "3" }],
             [
-                { jobname: "JOBNAME0", id: "JOBID0", details: "RC=0000 3 spool files" },
-                { jobname: "JOBNAME1", id: "JOBID1", details: "RC=0000 6 spool files" }
+                { jobname: "JOBNAME0", id: "JOBID0", rc: 0, spoolFiles: "3" },
+                { jobname: "JOBNAME1", id: "JOBID1", rc: 0, spoolFiles: "6" }
             ]
         ]);
         const io = getIoOps();
@@ -200,7 +200,7 @@ suite('HLASM Download data sets', () => {
         );
 
         assert.strictEqual(client.disposeCalls, 1);
-        assert.deepStrictEqual(client.downloadRequests, [{ id: "JOBID0", spoolFile: 3 }, { id: "JOBID1", spoolFile: 6 }]);
+        assert.deepStrictEqual(client.downloadRequests, [{ id: "JOBID0", spoolFile: "3" }, { id: "JOBID1", spoolFile: "6" }]);
         assert.strictEqual(client.jcls.length, 2);
         assert.ok(client.jcls[0].startsWith("//JOBNAME0 JOB 1"));
         assert.notEqual(client.jcls[0].indexOf("DSN=A.B"), -1);
@@ -215,7 +215,7 @@ suite('HLASM Download data sets', () => {
 
     test('Failed job', async () => {
         const client = getClient([
-            [{ jobname: "JOBNAME", id: "JOBID0", details: "RC=0008 3 spool files" }]
+            [{ jobname: "JOBNAME", id: "JOBID0", rc: 8, spoolFiles: "3" }]
         ]);
         const io = getIoOps();
         const stages = getStageCounter();

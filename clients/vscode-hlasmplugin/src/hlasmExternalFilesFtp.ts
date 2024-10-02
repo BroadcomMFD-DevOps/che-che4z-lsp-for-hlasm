@@ -15,7 +15,7 @@
 import * as vscode from 'vscode';
 import * as ftp from 'basic-ftp';
 import { ClientInterface, ClientUriDetails, ExternalRequestType, SuspendError } from './hlasmExternalFiles';
-import { ConnectionInfo, gatherConnectionInfo, getLastRunConfig, translateConnectionInfo, updateLastRunConfig } from './ftpCreds';
+import { FtpConnectionInfo, gatherConnectionInfo, getLastRunConfig, translateConnectionInfo, updateLastRunConfig } from './ftpCreds';
 import { FBWritable } from './FBWritable';
 import { ConnectionPool } from './connectionPool';
 import { AsyncMutex } from './asyncMutex';
@@ -50,12 +50,14 @@ const connectionPoolSize = 4;
 const connectionPoolTimeout = 30000;
 
 export function HLASMExternalFilesFtp(context: vscode.ExtensionContext): ClientInterface<undefined, DatasetUriDetails, DatasetUriDetails> {
-    let activeConnectionInfo: ConnectionInfo | undefined = undefined;
+    let activeConnectionInfo: FtpConnectionInfo | undefined = undefined;
 
     const mutex = new AsyncMutex();
     const getConnInfo = async () => {
         const last = getLastRunConfig(context);
         const info = await gatherConnectionInfo(last);
+        if ('zoweExplorerApi' in info)
+            throw Error("not supported");
         await updateLastRunConfig(context, { host: info.host, user: info.user, jobcard: last.jobcard });
 
         return info;
@@ -130,7 +132,7 @@ export function HLASMExternalFilesFtp(context: vscode.ExtensionContext): ClientI
         }),
 
         serverId: () => mutex.locked(async () => {
-            const transform = (arg: ConnectionInfo) => arg.host + ':' + (arg.port ?? '21');
+            const transform = (arg: FtpConnectionInfo) => arg.host + ':' + (arg.port ?? '21');
 
             if (activeConnectionInfo)
                 return transform(activeConnectionInfo);
