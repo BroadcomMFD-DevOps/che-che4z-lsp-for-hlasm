@@ -14,16 +14,16 @@
 
 
 import * as assert from 'assert';
-import { HLASMExternalFilesFtp } from '../../hlasmExternalFilesFtp';
+import { HLASMExternalFilesMF } from '../../hlasmExternalFilesMF';
 import { ExternalRequestType } from '../../hlasmExternalFiles';
 import { ExtensionContext } from 'vscode';
 
 const extensionContextMock = undefined as any as ExtensionContext;
 
-suite('External files (FTP)', () => {
+suite('External files (MF)', () => {
 
     test('Dataset parsing', async () => {
-        const ftpClient = HLASMExternalFilesFtp(extensionContextMock);
+        const ftpClient = HLASMExternalFilesMF(extensionContextMock);
 
         assert.strictEqual(await ftpClient.parseArgs('aaa', ExternalRequestType.list_directory), null);
         assert.strictEqual(await ftpClient.parseArgs('/0', ExternalRequestType.list_directory), null);
@@ -39,7 +39,7 @@ suite('External files (FTP)', () => {
     });
 
     test('Dataset member parsing', async () => {
-        const ftpClient = HLASMExternalFilesFtp(extensionContextMock);
+        const ftpClient = HLASMExternalFilesMF(extensionContextMock);
 
         assert.strictEqual(await ftpClient.parseArgs('aaa', ExternalRequestType.read_file), null);
         assert.strictEqual(await ftpClient.parseArgs('/0', ExternalRequestType.read_file), null);

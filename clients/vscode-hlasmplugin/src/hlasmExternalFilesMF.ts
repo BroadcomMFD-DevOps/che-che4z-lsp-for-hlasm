@@ -49,7 +49,7 @@ class DatasetUriDetails implements ClientUriDetails {
 const connectionPoolSize = 4;
 const connectionPoolTimeout = 30000;
 
-export function HLASMExternalFilesFtp(context: vscode.ExtensionContext): ClientInterface<undefined, DatasetUriDetails, DatasetUriDetails> {
+export function HLASMExternalFilesMF(context: vscode.ExtensionContext): ClientInterface<undefined, DatasetUriDetails, DatasetUriDetails> {
     let activeConnectionInfo: FtpConnectionInfo | undefined = undefined;
 
     const mutex = new AsyncMutex();
