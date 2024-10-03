@@ -718,7 +718,7 @@ export async function downloadDependencies(context: vscode.ExtensionContext, tel
         const newOnly = args.length === 1 && args[0] === "newOnly";
         const lastInput = getLastRunConfig(context);
         const connectionInfo = await gatherConnectionInfo(lastInput);
-        const zowe = 'loadedProfile' in connectionInfo;
+        const zowe = 'zoweExplorerApi' in connectionInfo;
 
         const jobcardPattern = await askUser("Enter jobcard pattern (? will be substituted)", false, lastInput.jobcard || "//" + connectionInfo.user.slice(0, 7).padEnd(8, '?').toUpperCase() + " JOB ACCTNO");
 

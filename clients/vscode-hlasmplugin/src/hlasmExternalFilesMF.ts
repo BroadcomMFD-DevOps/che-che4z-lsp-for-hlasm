@@ -225,7 +225,7 @@ export function HLASMExternalFilesMF(context: vscode.ExtensionContext): ClientIn
             return mutex.locked(async () => {
                 const info = activeConnectionInfo ?? (pool.closeClients(), await getConnInfo());
                 activeConnectionInfo = undefined;
-                const client: MFClient = 'loadedProfile' in info ? await ZoweAsMFClient(info) : await FTPAsMFClient(info);
+                const client: MFClient = 'zoweExplorerApi' in info ? await ZoweAsMFClient(info) : await FTPAsMFClient(info);
                 activeConnectionInfo = info;
                 return client;
             });
@@ -272,7 +272,7 @@ export function HLASMExternalFilesMF(context: vscode.ExtensionContext): ClientIn
         }),
 
         serverId: () => mutex.locked(async () => {
-            const transform = (arg: FtpConnectionInfo | ZoweConnectionInfo) => 'loadedProfile' in arg ? zoweProfileToServerId(arg) : ftpProfileToServerId(arg);
+            const transform = (arg: FtpConnectionInfo | ZoweConnectionInfo) => 'zoweExplorerApi' in arg ? zoweProfileToServerId(arg) : ftpProfileToServerId(arg);
 
             if (activeConnectionInfo)
                 return transform(activeConnectionInfo);
