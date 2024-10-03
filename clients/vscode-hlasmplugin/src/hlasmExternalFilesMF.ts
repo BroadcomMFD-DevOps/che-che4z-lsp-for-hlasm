@@ -264,13 +264,11 @@ export function HLASMExternalFilesMF(context: vscode.ExtensionContext): ClientIn
         }),
 
         readMember: async (args: DatasetUriDetails): Promise<string | null> => pool.withClient(async (client) => {
-            try {
-                return client.read(args.dataset, args.member!);
-            } catch (e) {
+            return client.read(args.dataset, args.member!).catch(e => {
                 if (e instanceof SuspendError)
                     activeConnectionInfo = undefined;
                 throw e;
-            }
+            });
         }),
 
         serverId: () => mutex.locked(async () => {
