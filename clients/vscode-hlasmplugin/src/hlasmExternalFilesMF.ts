@@ -20,7 +20,7 @@ import { FBWritable } from './FBWritable';
 import { ConnectionPool } from './connectionPool';
 import { AsyncMutex } from './asyncMutex';
 import { Writable } from 'stream';
-import { concat } from './helpers';
+import { concat, isCancellationError } from './helpers';
 import { textDecode } from './tools.common';
 
 const checkResponse = (resp: ftp.FTPResponse) => {
@@ -92,6 +92,7 @@ function analyzeError(e: any): ErrorType {
             return ErrorType.Unknown;
     }
 }
+
 async function ZoweAsMFClient(info: ZoweConnectionInfo): Promise<MFClient> {
     const mvs = info.zoweExplorerApi.getMvsApi(info.loadedProfile);
     const common = info.zoweExplorerApi.getCommonApi(info.loadedProfile);
@@ -109,10 +110,17 @@ async function ZoweAsMFClient(info: ZoweConnectionInfo): Promise<MFClient> {
         }
     }
 
-    try {
-        await common.login?.(mvs.getSession()); // no better idea how to establish viability of the profile
-    } catch (e) {
-        translateZoweError(e);
+    while (true) {
+        try {
+            await common.login?.(mvs.getSession()); // no better idea how to establish viability of the profile
+        } catch (e) {
+            switch (analyzeError(e)) {
+                case ErrorType.ProfileProblem:
+                    await info.profileCache.ssoLogin(undefined, info.loadedProfile.name);
+                    continue;
+            }
+        }
+        break;
     }
 
     return {

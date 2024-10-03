@@ -33,7 +33,8 @@ export type FtpConnectionInfo = {
 }
 
 export type ZoweConnectionInfo = {
-    loadedProfile: object;
+    loadedProfile: any;
+    profileCache: any;
     zoweExplorerApi: any;
     user: string;
     hostInput: string;
@@ -69,7 +70,7 @@ async function gatherConnectionInfoFromZowe(zowe: vscode.Extension<any>, profile
         profileName = profileCache.getDefaultProfile(profileType);
     }
     const loadedProfile = profileCache.loadNamedProfile(profileName);
-    return { loadedProfile, zoweExplorerApi, user: loadedProfile.user, hostInput: '@' + profileName };
+    return { loadedProfile, profileCache, zoweExplorerApi, user: loadedProfile.user, hostInput: '@' + profileName };
 }
 
 const securityOptions = Object.freeze([
