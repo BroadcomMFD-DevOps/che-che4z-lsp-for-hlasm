@@ -59,23 +59,49 @@ type MFClient = {
     closed: boolean;
 }
 
-function isZoweCredentialError(e: Error): boolean {
-    if (!('mDetails' in e)) return false;
-    if (!(e.mDetails instanceof Object)) return false;
-    if (!('errorCode' in e.mDetails)) return false;
-    return e.mDetails.errorCode === 401;
+function getZoweErrorCode(e: Error): number {
+    if (!('mDetails' in e)) return -1;
+    if (!(e.mDetails instanceof Object)) return -1;
+    if (!('errorCode' in e.mDetails)) return -1;
+    const r = e.mDetails.errorCode;
+    if (typeof r !== 'number') return -1;
+    return r;
 }
 
 async function ZoweAsMFClient(info: ZoweConnectionInfo): Promise<MFClient> {
     const mvs = info.zoweExplorerApi.getMvsApi(info.loadedProfile);
+    let valid = true;
+
+    function translateZoweError(e: any) {
+        if (!(e instanceof Error)) throw e;
+        if (e.message === 'Expect Error: Required object must be defined') { // no comment
+            valid = false;
+            throw new SuspendError(e);
+        }
+        switch (getZoweErrorCode(e)) {
+            case 401:
+                valid = false;
+                throw new SuspendError(e);
+            case 404:
+                return null;
+            default:
+                throw e;
+        }
+    }
+
+    try {
+        await mvs.login?.(mvs.getSession()); // no better idea how to establish viability of the profile
+    } catch (e) {
+        translateZoweError(e);
+    }
+
     return {
         list: async (dataset: string): Promise<string[] | null> => {
             try {
                 const { apiResponse: resp } = await mvs.allMembers(dataset);
                 return resp.items.map((x: { member: string }) => x.member);
             } catch (e) {
-                if (e instanceof Error && isZoweCredentialError(e)) throw new SuspendError(e);
-                return null;
+                return translateZoweError(e);
             }
         },
         read: async (dataset: string, member: string): Promise<string | null> => {
@@ -95,13 +121,12 @@ async function ZoweAsMFClient(info: ZoweConnectionInfo): Promise<MFClient> {
                 else
                     return null;
             } catch (e) {
-                if (e instanceof Error && isZoweCredentialError(e)) throw new SuspendError(e);
-                return null;
+                return translateZoweError(e);
             }
 
         },
-        close: () => { },
-        get closed() { return false; },
+        close: () => { valid = false; },
+        get closed() { return !valid; },
     }
 }
 
@@ -227,13 +252,25 @@ export function HLASMExternalFilesMF(context: vscode.ExtensionContext): ClientIn
         },
 
         listMembers: async (args: DatasetUriDetails): Promise<string[] | null> => pool.withClient(async (client) => {
-            const list = await client.list(args.dataset);
-            if (!list) return null;
-            return list.map(x => `/${args.dataset}/${x}.hlasm`);
+            try {
+                const list = await client.list(args.dataset);
+                if (!list) return null;
+                return list.map(x => `/${args.dataset}/${x}.hlasm`);
+            } catch (e) {
+                if (e instanceof SuspendError)
+                    activeConnectionInfo = undefined;
+                throw e;
+            }
         }),
 
         readMember: async (args: DatasetUriDetails): Promise<string | null> => pool.withClient(async (client) => {
-            return client.read(args.dataset, args.member!);
+            try {
+                return client.read(args.dataset, args.member!);
+            } catch (e) {
+                if (e instanceof SuspendError)
+                    activeConnectionInfo = undefined;
+                throw e;
+            }
         }),
 
         serverId: () => mutex.locked(async () => {
