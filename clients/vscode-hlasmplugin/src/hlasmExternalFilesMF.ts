@@ -68,21 +68,41 @@ function getZoweErrorCode(e: Error): number {
     return r;
 }
 
+const enum ErrorType {
+    Unknown,
+    ProfileProblem,
+    NotFound,
+}
+
+const ProfileErrorMessages = Object.freeze({
+    'Expect Error: Required session must be defined': true,
+    'Expect Error: Required object must be defined': true,
+})
+
+function analyzeError(e: any): ErrorType {
+    if (!(e instanceof Error)) return ErrorType.Unknown;
+    if (e.message in ProfileErrorMessages) // no comment
+        return ErrorType.ProfileProblem;
+    switch (getZoweErrorCode(e)) {
+        case 401:
+            return ErrorType.ProfileProblem;
+        case 404:
+            return ErrorType.NotFound;
+        default:
+            return ErrorType.Unknown;
+    }
+}
 async function ZoweAsMFClient(info: ZoweConnectionInfo): Promise<MFClient> {
     const mvs = info.zoweExplorerApi.getMvsApi(info.loadedProfile);
+    const common = info.zoweExplorerApi.getCommonApi(info.loadedProfile);
     let valid = true;
 
     function translateZoweError(e: any) {
-        if (!(e instanceof Error)) throw e;
-        if (e.message === 'Expect Error: Required object must be defined') { // no comment
-            valid = false;
-            throw new SuspendError(e);
-        }
-        switch (getZoweErrorCode(e)) {
-            case 401:
+        switch (analyzeError(e)) {
+            case ErrorType.ProfileProblem:
                 valid = false;
                 throw new SuspendError(e);
-            case 404:
+            case ErrorType.NotFound:
                 return null;
             default:
                 throw e;
@@ -90,7 +110,7 @@ async function ZoweAsMFClient(info: ZoweConnectionInfo): Promise<MFClient> {
     }
 
     try {
-        await mvs.login?.(mvs.getSession()); // no better idea how to establish viability of the profile
+        await common.login?.(mvs.getSession()); // no better idea how to establish viability of the profile
     } catch (e) {
         translateZoweError(e);
     }
