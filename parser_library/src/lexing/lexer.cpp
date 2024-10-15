@@ -23,9 +23,7 @@
 #include "utils/string_operations.h"
 #include "utils/unicode_text.h"
 
-using namespace hlasm_plugin;
-using namespace parser_library;
-using namespace lexing;
+namespace hlasm_plugin::parser_library::lexing {
 
 lexer::lexer() { reset(false, {}, 0, false); }
 
@@ -649,10 +647,10 @@ void lexer::lex_process()
     lex_end();
 }
 
-
 std::string lexer::get_text(size_t start, size_t stop) const
 {
     if (stop >= input_.size()) // EOF_SYMBOL
         return {};
     return utils::utf32_to_utf8(std::u32string_view(input_.data() + start, stop - start));
 }
+} // namespace hlasm_plugin::parser_library::lexing

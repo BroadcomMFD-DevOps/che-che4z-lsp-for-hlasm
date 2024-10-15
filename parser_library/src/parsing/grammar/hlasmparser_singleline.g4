@@ -236,9 +236,6 @@ vs_id returns [id_index name]
 remark
     : (DOT|ASTERISK|MINUS|PLUS|LT|GT|COMMA|LPAR|RPAR|SLASH|EQUALS|AMPERSAND|APOSTROPHE|IDENTIFIER|NUM|VERTICAL|ORDSYMBOL|SPACE|ATTR)*;
 
-remark_non_empty
-    : (DOT|ASTERISK|MINUS|PLUS|LT|GT|COMMA|LPAR|RPAR|SLASH|EQUALS|AMPERSAND|APOSTROPHE|IDENTIFIER|NUM|VERTICAL|ORDSYMBOL|SPACE|ATTR)+;
-
 remark_o returns [std::optional<range> value]
     : SPACE remark                            {$value = provider.get_range( $remark.ctx);}
     | ;
