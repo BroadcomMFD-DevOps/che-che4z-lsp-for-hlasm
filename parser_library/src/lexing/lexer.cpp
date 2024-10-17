@@ -144,7 +144,7 @@ void lexer::create_token(int ttype, unsigned channel)
 
     creating_var_symbol_ = ttype == AMPERSAND;
     if (creating_attr_ref_)
-        creating_attr_ref_ = ttype == IGNORED || ttype == CONTINUATION;
+        creating_attr_ref_ = ttype == CONTINUATION;
 
     const auto& end = token_start_state_.line == input_state_.line ? input_state_ : last_line;
 
