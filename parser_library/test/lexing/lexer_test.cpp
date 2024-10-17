@@ -46,7 +46,7 @@ EOF
 
     lexing::lexer l;
     l.reset(lexing::u8string_view_with_newlines("TEST TEST \r\n TEST1 TEST2"), {}, 0);
-    lexing::token_stream tokens(&l);
+    lexing::token_stream tokens(l);
     parser parser(&tokens);
 
     tokens.fill();
@@ -107,7 +107,7 @@ EOF
 
     lexing::lexer l;
     l.reset(lexing::u8string_view_with_newlines(in), {}, 0);
-    lexing::token_stream tokens(&l);
+    lexing::token_stream tokens(l);
     parser parser(&tokens);
 
     tokens.fill();

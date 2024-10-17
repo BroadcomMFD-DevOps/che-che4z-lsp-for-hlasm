@@ -73,7 +73,7 @@ struct parser_holder_impl final : parser_holder
     {
         error_handler = std::make_shared<parsing::error_strategy>();
         lex = std::make_unique<lexing::lexer>();
-        stream = std::make_unique<lexing::token_stream>(lex.get());
+        stream = std::make_unique<lexing::token_stream>(*lex.get());
         parser = std::make_unique<parser_t>(stream.get());
         parser->setErrorHandler(error_handler);
         parser->initialize(hl_ctx, d);

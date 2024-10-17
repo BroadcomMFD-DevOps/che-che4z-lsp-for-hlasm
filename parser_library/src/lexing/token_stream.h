@@ -15,8 +15,8 @@
 #ifndef HLASMPLUGIN_PARSER_LIBRARY_TOKENSTREAM_H
 #define HLASMPLUGIN_PARSER_LIBRARY_TOKENSTREAM_H
 
-#include <memory>
-#include <utility>
+#include <string>
+#include <vector>
 
 #include "TokenStream.h"
 #include "lexer.h"
@@ -35,7 +35,7 @@ class token_stream final : public antlr4::TokenStream
     bool fetched_eof = false;
 
 public:
-    explicit token_stream(lexer* token_source);
+    explicit token_stream(lexer& token_source);
 
     // enable continuation token in the token stream
     void enable_continuation();

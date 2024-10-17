@@ -19,11 +19,10 @@
 #include "misc/Interval.h"
 #include "token.h"
 
-using namespace hlasm_plugin::parser_library::lexing;
-using namespace antlr4;
+namespace hlasm_plugin::parser_library::lexing {
 
-token_stream::token_stream(lexer* token_source)
-    : token_source(token_source)
+token_stream::token_stream(lexer& token_source)
+    : token_source(&token_source)
 {}
 
 void token_stream::enable_continuation() { enabled_cont = true; }
@@ -97,7 +96,7 @@ std::string token_stream::getText(const antlr4::misc::Interval& interval)
     for (size_t i = start; i <= stop; i++)
     {
         const auto* t = token_source->get_token(i);
-        if (t->getType() == Token::EOF)
+        if (t->getType() == antlr4::Token::EOF)
         {
             break;
         }
@@ -114,7 +113,7 @@ std::string token_stream::getText(antlr4::Token* start, antlr4::Token* stop)
 {
     if (start != nullptr && stop != nullptr)
     {
-        return getText(misc::Interval(start->getTokenIndex(), stop->getTokenIndex()));
+        return getText(antlr4::misc::Interval(start->getTokenIndex(), stop->getTokenIndex()));
     }
     return "";
 }
@@ -224,7 +223,7 @@ u8string_with_newlines token_stream::get_text_with_newlines(const antlr4::misc::
     for (size_t i = start; i <= stop; i++)
     {
         const auto* t = token_source->get_token(i);
-        if (auto id = t->getType(); id == Token::EOF)
+        if (auto id = t->getType(); id == antlr4::Token::EOF)
         {
             break;
         }
@@ -237,3 +236,5 @@ u8string_with_newlines token_stream::get_text_with_newlines(const antlr4::misc::
     }
     return ss;
 }
+
+} // namespace hlasm_plugin::parser_library::lexing
