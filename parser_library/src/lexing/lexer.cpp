@@ -212,7 +212,7 @@ bool lexer::more_tokens()
         return false;
     }
 
-    while (input_state_.next == input_.data() + *input_state_.nl)
+    while (!before_end())
     {
         line_limits.push_back(input_state_.char_position_in_line_utf16);
 
@@ -476,8 +476,7 @@ void lexer::lex_word()
         create_token(ATTR);
     }
 
-    creating_attr_ref_ = w_len == 1 && last_char_data_attr
-        && static_cast<size_t>(input_state_.next - input_.data()) == *input_state_.nl && !var_sym_tmp;
+    creating_attr_ref_ = w_len == 1 && last_char_data_attr && !before_end() && !var_sym_tmp;
 }
 
 bool lexer::set_continue(size_t cont)
