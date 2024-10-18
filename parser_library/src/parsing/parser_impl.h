@@ -179,6 +179,8 @@ protected:
 
     bool goff() const noexcept;
 
+    void consume_remark(bool skip_space, antlr4::Token* line, std::vector<range>& remarks) const;
+
 private:
     antlr4::misc::IntervalSet getExpectedTokens() override;
     diagnostic_op_consumer* diagnoser_ = nullptr;

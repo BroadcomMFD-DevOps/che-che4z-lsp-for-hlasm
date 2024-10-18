@@ -16,6 +16,7 @@
 
 #include <array>
 #include <assert.h>
+#include <span>
 #include <string>
 #include <utility>
 
@@ -235,8 +236,8 @@ bool lexer::more_tokens()
         token_start_state_ = last_line;
 
         ++input_state_.nl;
+        ++input_state_.line;
 
-        input_state_.line++;
         input_state_.char_position_in_line = continue_;
         input_state_.char_position_in_line_utf16 = continue_;
 
@@ -542,4 +543,46 @@ std::string lexer::get_text(size_t start, size_t stop) const
         return {};
     return utils::utf32_to_utf8(std::u32string_view(input_.data() + start, stop - start));
 }
+
+std::optional<range> lexer::consume_remark(const bool skip_space, token* const t)
+{
+    // <t>space<remark>EOL
+    const auto orig_b = t ? t->getStopIndex() + 1 : 0;
+    if (input_[orig_b] == EOF_SYMBOL)
+        return std::nullopt;
+    if (skip_space && input_[orig_b] != U' ')
+        return std::nullopt;
+
+    const auto eol_it = std::ranges::upper_bound(newlines_, t ? t->getStopIndex() : 0);
+    const auto eol = std::min(*eol_it, input_.size() - 1);
+
+    const auto b = !skip_space ? orig_b : [eol, this](size_t x) {
+        while (x < eol && input_[x] == U' ')
+            ++x;
+        return x;
+    }(orig_b);
+
+    if (b >= eol)
+        return std::nullopt;
+
+    const auto lineno = t ? t->getLine() : input_state_.line;
+    const auto orig_col = t ? t->get_end_of_token_in_line_utf16() : input_state_.char_position_in_line_utf16;
+    const auto col = b - orig_b + orig_col;
+    const auto comment = std::span(std::as_const(input_)).subspan(b, eol - b);
+    const auto u16extras = std::ranges::count_if(comment, [](char_t x) { return x > 0xffffu; });
+    const auto ecol = col + (eol - b) + u16extras;
+
+    // resync lexer
+    input_state_.next = input_.data() + eol;
+    input_state_.nl = std::to_address(eol_it);
+    input_state_.line = lineno;
+    input_state_.char_position_in_line_utf16 = ecol;
+    input_state_.char_position_in_line = eol;
+    if (t)
+        tokens.erase(tokens.begin() + t->getTokenIndex() + 1, tokens.end());
+
+
+    return range({ lineno, col }, { lineno, ecol });
+}
+
 } // namespace hlasm_plugin::parser_library::lexing

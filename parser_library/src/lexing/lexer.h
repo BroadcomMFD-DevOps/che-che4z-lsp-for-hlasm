@@ -15,6 +15,7 @@
 #ifndef HLASMPLUGIN_PARSER_HLASMLEX_H
 #define HLASMPLUGIN_PARSER_HLASMLEX_H
 
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -92,6 +93,8 @@ public:
     static bool ord_symbol(std::string_view symbol) noexcept;
 
     const std::vector<size_t>& get_line_limits() const { return line_limits; }
+
+    std::optional<range> consume_remark(bool skip_space, token* line);
 
 protected:
     // creates token and inserts to input stream
