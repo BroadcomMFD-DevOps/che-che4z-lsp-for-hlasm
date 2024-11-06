@@ -95,7 +95,7 @@ public:
 
     const std::vector<size_t>& get_line_limits() const { return line_limits; }
 
-    std::pair<std::optional<range>, bool> consume_remark(token* prev_token);
+    std::pair<std::optional<range>, bool> consume_remark(const token* prev_token);
 
 protected:
     // creates token and inserts to input stream

@@ -179,7 +179,7 @@ protected:
 
     bool goff() const noexcept;
 
-    bool consume_remark(antlr4::Token* prev_token, std::vector<range>& remarks) const;
+    bool consume_remark(const antlr4::Token* prev_token, std::vector<range>& remarks) const;
 
 private:
     antlr4::misc::IntervalSet getExpectedTokens() override;

@@ -75,6 +75,8 @@ public:
 
     size_t get_logical_column() const { return char_position_in_line_; }
 
+    size_t get_logical_end_column() const { return char_position_in_line_ + (stop_ - start_); }
+
 private:
     lexer* input_ {};
     int type_;
