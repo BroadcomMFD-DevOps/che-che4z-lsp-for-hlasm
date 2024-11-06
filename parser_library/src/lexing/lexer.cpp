@@ -544,14 +544,15 @@ std::string lexer::get_text(size_t start, size_t stop) const
     return utils::utf32_to_utf8(std::u32string_view(input_.data() + start, stop - start));
 }
 
-std::optional<range> lexer::consume_remark(const bool skip_space, token* const t)
+std::pair<std::optional<range>, bool> lexer::consume_remark(token* const t)
 {
     // <t>space<remark>EOL
-    const auto orig_b = t ? t->getStopIndex() + 1 : 0;
+    const auto orig_b = t ? t->getStopIndex() + 1 : input_state_.next - input_.data();
     if (input_[orig_b] == EOF_SYMBOL)
-        return std::nullopt;
+        return { std::nullopt, true };
+    const bool skip_space = !t || t->getType() != SPACE;
     if (skip_space && input_[orig_b] != U' ')
-        return std::nullopt;
+        return { std::nullopt, false };
 
     const auto eol_it = std::ranges::upper_bound(newlines_, t ? t->getStopIndex() : 0);
     const auto eol = std::min(*eol_it, input_.size() - 1);
@@ -563,7 +564,7 @@ std::optional<range> lexer::consume_remark(const bool skip_space, token* const t
     }(orig_b);
 
     if (b >= eol)
-        return std::nullopt;
+        return { std::nullopt, input_[b] == EOF_SYMBOL };
 
     const auto lineno = t ? t->getLine() : input_state_.line;
     const auto orig_col = t ? t->get_end_of_token_in_line_utf16() : input_state_.char_position_in_line_utf16;
@@ -582,7 +583,7 @@ std::optional<range> lexer::consume_remark(const bool skip_space, token* const t
         tokens.erase(tokens.begin() + t->getTokenIndex() + 1, tokens.end());
 
 
-    return range({ lineno, col }, { lineno, ecol });
+    return { range({ lineno, col }, { lineno, ecol }), *input_state_.next == EOF_SYMBOL };
 }
 
 } // namespace hlasm_plugin::parser_library::lexing

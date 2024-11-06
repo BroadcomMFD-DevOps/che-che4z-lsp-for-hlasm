@@ -442,12 +442,14 @@ void parser_impl::append_context_text(std::string& s, const antlr4::ParserRuleCo
 
 bool parser_impl::goff() const noexcept { return hlasm_ctx->goff(); }
 
-void parser_impl::consume_remark(bool skip_space, antlr4::Token* line, std::vector<range>& remarks) const
+bool parser_impl::consume_remark(antlr4::Token* prev_token, std::vector<range>& remarks) const
 {
-    if (auto r = input.get_lexer().consume_remark(skip_space, static_cast<lexing::token*>(line)))
+    const auto [r, eof] = input.get_lexer().consume_remark(static_cast<lexing::token*>(prev_token));
+    if (r)
     {
         remarks.emplace_back(provider.adjust_range(*r));
     }
+    return eof;
 }
 
 parser_holder::~parser_holder() = default;

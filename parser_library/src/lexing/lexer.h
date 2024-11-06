@@ -17,6 +17,7 @@
 
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "logical_line.h"
@@ -94,7 +95,7 @@ public:
 
     const std::vector<size_t>& get_line_limits() const { return line_limits; }
 
-    std::optional<range> consume_remark(bool skip_space, token* line);
+    std::pair<std::optional<range>, bool> consume_remark(token* prev_token);
 
 protected:
     // creates token and inserts to input stream
