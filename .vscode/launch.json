@@ -65,6 +65,32 @@
       "environment": [],
       "externalConsole": true,
       "preLaunchTask": "build"
+    },
+    {
+      "name": "(Windows) Launch fuzzer",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/x64-Debug/test.exe",
+      "args": [ ],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}/build/x64-Debug/",
+      "environment": [],
+      //"externalConsole": true,
+      "preLaunchTask": "build"
+    },
+    {
+      "name": "(Windows) Launch library_test (one)",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/x64-Debug/bin/library_test.exe",
+      "args": [
+        "--gtest_filter=lexer_text.rntest"
+      ],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}/build/x64-Debug/bin/",
+      "environment": [],
+      //"externalConsole": true,
+      "preLaunchTask": "build"
     }
   ]
 }
