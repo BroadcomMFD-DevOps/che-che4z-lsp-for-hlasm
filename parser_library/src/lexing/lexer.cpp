@@ -84,7 +84,6 @@ void lexer::reset(position file_offset, size_t logical_column, bool process_allo
 {
     tokens.clear();
     retired_tokens.clear();
-    last_token_id_ = 0;
 
     process_allowed_ = process_allowed;
 
@@ -190,11 +189,9 @@ void lexer::create_token(int ttype, unsigned channel)
         input_state_.next - input_.data(),
         token_start_state_.line,
         token_start_state_.char_position_in_line,
-        last_token_id_,
+        tokens.size(),
         token_start_state_.char_position_in_line_utf16,
         end.char_position_in_line_utf16);
-
-    ++last_token_id_;
 }
 
 void lexer::consume()

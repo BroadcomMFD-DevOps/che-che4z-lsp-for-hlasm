@@ -108,8 +108,6 @@ private:
     bool creating_attr_ref_ = false;
     bool process_allowed_ = false;
 
-    size_t last_token_id_ = 0;
-
     std::vector<token> tokens;
     std::vector<std::vector<token>> retired_tokens;
     std::vector<size_t> line_limits;
