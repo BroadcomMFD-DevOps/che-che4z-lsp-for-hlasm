@@ -550,7 +550,7 @@ std::pair<std::optional<range>, bool> lexer::consume_remark(const token* const t
     const auto orig_b = t ? t->getStopIndex() + 1 : input_state_.next - input_.data();
     if (input_[orig_b] == EOF_SYMBOL)
         return { std::nullopt, true };
-    const bool skip_space = !t || t->getType() != SPACE;
+    const bool skip_space = t && t->getType() != SPACE;
     if (skip_space && input_[orig_b] != U' ')
         return { std::nullopt, false };
 
