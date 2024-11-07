@@ -237,4 +237,10 @@ u8string_with_newlines token_stream::get_text_with_newlines(const antlr4::misc::
     return ss;
 }
 
+void token_stream::tokens_erased() noexcept
+{
+    fetched_eof = false;
+    if (auto t_cnt = token_source->token_count(); pos > t_cnt)
+        pos = t_cnt;
+}
 } // namespace hlasm_plugin::parser_library::lexing

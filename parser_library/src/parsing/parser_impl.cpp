@@ -444,11 +444,11 @@ bool parser_impl::goff() const noexcept { return hlasm_ctx->goff(); }
 
 bool parser_impl::consume_remark(const antlr4::Token* prev_token, std::vector<range>& remarks) const
 {
-    const auto [r, eof] = input.get_lexer().consume_remark(static_cast<const lexing::token*>(prev_token));
+    const auto [r, token_erased, eof] = input.get_lexer().consume_remark(static_cast<const lexing::token*>(prev_token));
     if (r)
-    {
         remarks.emplace_back(provider.adjust_range(*r));
-    }
+    if (token_erased)
+        input.tokens_erased();
     return eof;
 }
 

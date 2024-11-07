@@ -51,6 +51,7 @@ public:
     std::vector<antlr4::Token*> get_tokens() const;
 
     lexer& get_lexer() const noexcept { return *token_source; }
+    void tokens_erased() noexcept;
 
     /**************************************************************/
     antlr4::Token* LT(ssize_t k) override;

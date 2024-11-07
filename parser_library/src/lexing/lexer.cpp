@@ -541,15 +541,15 @@ std::string lexer::get_text(size_t start, size_t stop) const
     return utils::utf32_to_utf8(std::u32string_view(input_.data() + start, stop - start));
 }
 
-std::pair<std::optional<range>, bool> lexer::consume_remark(const token* const t)
+lexer::remark_result lexer::consume_remark(const token* const t)
 {
     // <t>space<remark>EOL
     const auto orig_b = t ? t->getStopIndex() + 1 : input_state_.next - input_.data();
     if (input_[orig_b] == EOF_SYMBOL)
-        return { std::nullopt, true };
+        return { std::nullopt, false, true };
     const bool skip_space = t && t->getType() != SPACE;
     if (skip_space && input_[orig_b] != U' ')
-        return { std::nullopt, false };
+        return { std::nullopt, false, false };
 
     const auto eol_it = std::ranges::upper_bound(newlines_, t ? t->getStopIndex() : input_state_.next - input_.data());
     const auto eol = std::min(*eol_it, input_.size() - 1);
@@ -560,8 +560,13 @@ std::pair<std::optional<range>, bool> lexer::consume_remark(const token* const t
         return x;
     }(orig_b);
 
-    if (b >= eol)
-        return { std::nullopt, input_[b] == EOF_SYMBOL };
+    if (!t && !before_end())
+    {
+        input_state_.line += std::to_address(eol_it) - input_state_.nl;
+        input_state_.nl = std::to_address(eol_it);
+        input_state_.char_position_in_line = continue_;
+        input_state_.char_position_in_line_utf16 = continue_;
+    }
 
     const auto skipped = b - orig_b;
     const auto lineno = t ? t->getLine() : input_state_.line;
@@ -583,7 +588,10 @@ std::pair<std::optional<range>, bool> lexer::consume_remark(const token* const t
     if (t)
         tokens.erase(tokens.begin() + t->getTokenIndex() + 1, tokens.end());
 
-    return { range({ lineno, col16 }, { lineno, ecol16 }), *input_state_.next == EOF_SYMBOL };
+    if (b >= eol)
+        return { std::nullopt, t != nullptr, input_[b] == EOF_SYMBOL };
+    else
+        return { range({ lineno, col16 }, { lineno, ecol16 }), t != nullptr, *input_state_.next == EOF_SYMBOL };
 }
 
 } // namespace hlasm_plugin::parser_library::lexing
