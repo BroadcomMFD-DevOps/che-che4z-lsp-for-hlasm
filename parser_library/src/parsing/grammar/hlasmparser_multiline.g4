@@ -237,30 +237,15 @@ deferred_op_rem returns [remark_list remarks, std::vector<vs_ptr> var_list]
         {
             for (auto&v : $deferred_entry.vs)
                 $var_list.push_back(std::move(v));
+            consume_remark($deferred_entry.stop, $remarks);
         }
     )*
-    {enable_continuation();}
     remark_o {if($remark_o.value) $remarks.push_back(*$remark_o.value);}
-    (
-        CONTINUATION
-        {disable_continuation();}
-        (
-            deferred_entry
-            {
-                for (auto&v : $deferred_entry.vs)
-                    $var_list.push_back(std::move(v));
-            }
-        )*
-        {enable_continuation();}
-        remark_o {if($remark_o.value) $remarks.push_back(*$remark_o.value);}
-    )*
     ;
-    finally
-    {disable_continuation();}
 
 //////////////////////////////////////// ca
 
-op_rem_body_ca_branch locals [bool pending_empty_op = false, std::vector<range> remarks, std::vector<operand_ptr> operands, antlr4::Token* first_token = nullptr]
+op_rem_body_ca_branch locals [bool pending_empty_op = true, std::vector<range> remarks, std::vector<operand_ptr> operands, antlr4::Token* first_token = nullptr]
     :
     EOF
     {
@@ -269,56 +254,16 @@ op_rem_body_ca_branch locals [bool pending_empty_op = false, std::vector<range> 
     |
     SPACE+
     (
-        EOF
-        {
-            collector.set_operand_remark_field(provider.get_range($ctx->getStart(),_input->LT(-1)));
-        }
-        |
         {
             $first_token = _input->LT(1);
         }
         (
             comma
             {
-                $operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range($comma.start)));
-                $pending_empty_op = true;
-            }
-            |
-            {
-                $pending_empty_op = false;
-            }
-            ca_op=ca_op_branch
-            {
-                if ($ca_op.op)
-                    $operands.push_back(std::move($ca_op.op));
-                else
-                    $operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range($ca_op.start)));
-            }
-        )
-        (
-            comma
-            {
                 if ($pending_empty_op)
                     $operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range($comma.start)));
                 $pending_empty_op = true;
-            }
-            |
-            {
-                if (_input->LA(-1) == hlasmparser_multiline::COMMA)
-                    enable_continuation();
-            }
-            (
-                SPACE
-                remark
-                {
-                    $remarks.push_back(provider.get_range($remark.ctx));
-                }
-                (CONTINUATION|EOF)
-                |
-                CONTINUATION
-            )
-            {
-                disable_continuation();
+                consume_remark($comma.start, $remarks);
             }
             |
             {
@@ -335,20 +280,24 @@ op_rem_body_ca_branch locals [bool pending_empty_op = false, std::vector<range> 
                 else
                     $operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range($ca_op.start)));
             }
-        )*
-        EOF
+        )+
         {
             if ($pending_empty_op)
                 $operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range(_input->LT(-1))));
         }
+        remark_o {if($remark_o.value) $remarks.push_back(*$remark_o.value);}
+        |
+        {
+            collector.set_operand_remark_field(provider.get_range($ctx->getStart(),_input->LT(-1)));
+        }
     );
     finally
     {
-        disable_continuation();
         if ($first_token)
             collector.set_operand_remark_field(std::move($operands), std::move($remarks), provider.get_range($first_token, _input->LT(-1)));
     }
-op_rem_body_ca_expr locals [bool pending_empty_op = false, std::vector<range> remarks, std::vector<operand_ptr> operands, antlr4::Token* first_token = nullptr]
+
+op_rem_body_ca_expr locals [bool pending_empty_op = true, std::vector<range> remarks, std::vector<operand_ptr> operands, antlr4::Token* first_token = nullptr]
     :
     EOF
     {
@@ -357,56 +306,16 @@ op_rem_body_ca_expr locals [bool pending_empty_op = false, std::vector<range> re
     |
     SPACE+
     (
-        EOF
-        {
-            collector.set_operand_remark_field(provider.get_range($ctx->getStart(),_input->LT(-1)));
-        }
-        |
         {
             $first_token = _input->LT(1);
         }
         (
             comma
             {
-                $operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range($comma.start)));
-                $pending_empty_op = true;
-            }
-            |
-            {
-                $pending_empty_op = false;
-            }
-            ca_op=ca_op_expr
-            {
-                if ($ca_op.op)
-                    $operands.push_back(std::move($ca_op.op));
-                else
-                    $operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range($ca_op.start)));
-            }
-        )
-        (
-            comma
-            {
                 if ($pending_empty_op)
                     $operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range($comma.start)));
                 $pending_empty_op = true;
-            }
-            |
-            {
-                if (_input->LA(-1) == hlasmparser_multiline::COMMA)
-                    enable_continuation();
-            }
-            (
-                SPACE
-                remark
-                {
-                    $remarks.push_back(provider.get_range($remark.ctx));
-                }
-                (CONTINUATION|EOF)
-                |
-                CONTINUATION
-            )
-            {
-                disable_continuation();
+                consume_remark($comma.start, $remarks);
             }
             |
             {
@@ -423,20 +332,24 @@ op_rem_body_ca_expr locals [bool pending_empty_op = false, std::vector<range> re
                 else
                     $operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range($ca_op.start)));
             }
-        )*
-        EOF
+        )+
         {
             if ($pending_empty_op)
                 $operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range(_input->LT(-1))));
         }
+        remark_o {if($remark_o.value) $remarks.push_back(*$remark_o.value);}
+        |
+        {
+            collector.set_operand_remark_field(provider.get_range($ctx->getStart(),_input->LT(-1)));
+        }
     );
     finally
     {
-        disable_continuation();
         if ($first_token)
             collector.set_operand_remark_field(std::move($operands), std::move($remarks), provider.get_range($first_token, _input->LT(-1)));
     }
-op_rem_body_ca_var_def locals [bool pending_empty_op = false, std::vector<range> remarks, std::vector<operand_ptr> operands, antlr4::Token* first_token = nullptr]
+
+op_rem_body_ca_var_def locals [bool pending_empty_op = true, std::vector<range> remarks, std::vector<operand_ptr> operands, antlr4::Token* first_token = nullptr]
     :
     EOF
     {
@@ -445,56 +358,16 @@ op_rem_body_ca_var_def locals [bool pending_empty_op = false, std::vector<range>
     |
     SPACE+
     (
-        EOF
-        {
-            collector.set_operand_remark_field(provider.get_range($ctx->getStart(),_input->LT(-1)));
-        }
-        |
         {
             $first_token = _input->LT(1);
         }
         (
             comma
             {
-                $operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range($comma.start)));
-                $pending_empty_op = true;
-            }
-            |
-            {
-                $pending_empty_op = false;
-            }
-            ca_op=ca_op_var_def
-            {
-                if ($ca_op.op)
-                    $operands.push_back(std::move($ca_op.op));
-                else
-                    $operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range($ca_op.start)));
-            }
-        )
-        (
-            comma
-            {
                 if ($pending_empty_op)
                     $operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range($comma.start)));
                 $pending_empty_op = true;
-            }
-            |
-            {
-                if (_input->LA(-1) == hlasmparser_multiline::COMMA)
-                    enable_continuation();
-            }
-            (
-                SPACE
-                remark
-                {
-                    $remarks.push_back(provider.get_range($remark.ctx));
-                }
-                (CONTINUATION|EOF)
-                |
-                CONTINUATION
-            )
-            {
-                disable_continuation();
+                consume_remark($comma.start, $remarks);
             }
             |
             {
@@ -511,19 +384,23 @@ op_rem_body_ca_var_def locals [bool pending_empty_op = false, std::vector<range>
                 else
                     $operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range($ca_op.start)));
             }
-        )*
-        EOF
+        )+
         {
             if ($pending_empty_op)
                 $operands.push_back(std::make_unique<semantics::empty_operand>(provider.get_empty_range(_input->LT(-1))));
         }
+        remark_o {if($remark_o.value) $remarks.push_back(*$remark_o.value);}
+        |
+        {
+            collector.set_operand_remark_field(provider.get_range($ctx->getStart(),_input->LT(-1)));
+        }
     );
     finally
     {
-        disable_continuation();
         if ($first_token)
             collector.set_operand_remark_field(std::move($operands), std::move($remarks), provider.get_range($first_token, _input->LT(-1)));
     }
+
 //////////////////////////////////////// mac
 
 op_rem_body_mac returns [macop_preprocess_results results, range line_range, size_t line_logical_column = 0]
@@ -551,19 +428,11 @@ op_rem_body_alt_mac [macop_preprocess_results* results]
     )?
     (
         COMMA
-        {enable_continuation();}
         {
             $results->text.push_back(',');
             $results->text_ranges.push_back(provider.get_range($COMMA));
+            consume_remark($COMMA, $results->remarks);
         }
-        (
-            remark_o (CONTINUATION | EOF)
-            {
-                if ($remark_o.value)
-                    $results->remarks.push_back(std::move(*$remark_o.value));
-            }
-        )?
-        {disable_continuation();}
         (
         mac_preproc
         {
