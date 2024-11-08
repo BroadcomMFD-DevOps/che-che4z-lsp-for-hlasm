@@ -237,7 +237,8 @@ deferred_op_rem returns [remark_list remarks, std::vector<vs_ptr> var_list]
         {
             for (auto&v : $deferred_entry.vs)
                 $var_list.push_back(std::move(v));
-            consume_remark($deferred_entry.stop, $remarks);
+            if (const auto* c = $deferred_entry.stop; c && c->getType() == COMMA)
+                consume_remark(c, $remarks);
         }
     )*
     remark_o {if($remark_o.value) $remarks.push_back(*$remark_o.value);}
