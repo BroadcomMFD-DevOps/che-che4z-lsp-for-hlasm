@@ -238,7 +238,7 @@ deferred_op_rem returns [remark_list remarks, std::vector<vs_ptr> var_list]
             for (auto&v : $deferred_entry.vs)
                 $var_list.push_back(std::move(v));
         }
-    )*
+    )+
     {enable_continuation();}
     remark_o {if($remark_o.value) $remarks.push_back(*$remark_o.value);}
     (
@@ -254,6 +254,7 @@ deferred_op_rem returns [remark_list remarks, std::vector<vs_ptr> var_list]
         {enable_continuation();}
         remark_o {if($remark_o.value) $remarks.push_back(*$remark_o.value);}
     )*
+    |
     ;
     finally
     {disable_continuation();}
@@ -528,27 +529,60 @@ op_rem_body_ca_var_def locals [bool pending_empty_op = false, std::vector<range>
 
 op_rem_body_mac returns [macop_preprocess_results results, range line_range, size_t line_logical_column = 0]
     :
-    SPACE* EOF {$line_range = provider.get_range($ctx->getStart(), _input->LT(-1));}
+    EOF {$line_range = provider.get_range($ctx->getStart(), _input->LT(-1));}
     |
-    SPACE+ op_rem_body_alt_mac[&$results]
-    {
-        if ($results.text_ranges.empty())
-            $results.total_op_range = provider.get_empty_range($op_rem_body_alt_mac.start);
-        else
-            $results.total_op_range = union_range($results.text_ranges.front(), $results.text_ranges.back());
-        $line_range = provider.get_range($op_rem_body_alt_mac.ctx);
-        $line_logical_column = static_cast<hlasm_plugin::parser_library::lexing::token*>($op_rem_body_alt_mac.start)->get_logical_column();
-    } EOF;
+    SPACE+
+    (
+        op_rem_body_alt_mac[&$results]
+        {
+            if ($results.text_ranges.empty())
+                $results.total_op_range = provider.get_empty_range($op_rem_body_alt_mac.start);
+            else
+                $results.total_op_range = union_range($results.text_ranges.front(), $results.text_ranges.back());
+            $line_range = provider.get_range($op_rem_body_alt_mac.ctx);
+            $line_logical_column = static_cast<hlasm_plugin::parser_library::lexing::token*>($op_rem_body_alt_mac.start)->get_logical_column();
+        }
+        |
+        {$line_range = provider.get_range($ctx->getStart(), _input->LT(-1));}
+    )
+    EOF;
 
 op_rem_body_alt_mac [macop_preprocess_results* results]
     :
     (
+        COMMA
+        {enable_continuation();}
+        {
+            $results->text.push_back(',');
+            $results->text_ranges.push_back(provider.get_range($COMMA));
+        }
+        (
+            remark_o (CONTINUATION | EOF)
+            {
+                if ($remark_o.value)
+                    $results->remarks.push_back(std::move(*$remark_o.value));
+            }
+        )?
+        {disable_continuation();}
+        (
         mac_preproc
         {
             append_context_text($results->text, $mac_preproc.ctx);
             $results->text_ranges.push_back(provider.get_range($mac_preproc.ctx));
         }
-    )?
+        )?
+    )+
+    last_remark=remark_o
+    {
+        if ($last_remark.value)
+            $results->remarks.push_back(std::move(*$last_remark.value));
+    }
+    |
+    mac_preproc
+    {
+        append_context_text($results->text, $mac_preproc.ctx);
+        $results->text_ranges.push_back(provider.get_range($mac_preproc.ctx));
+    }
     (
         COMMA
         {enable_continuation();}

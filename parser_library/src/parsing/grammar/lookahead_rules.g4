@@ -77,9 +77,9 @@ look_lab_instr  returns [std::optional<lexing::u8string_with_newlines> op_text, 
     }
 
 lookahead_operand_field_rest returns [bool valid = false]
-    : SPACE (~EOF)* {$valid=true;}
+    : SPACE ~EOF* {$valid=true;}
     | EOF {$valid=true;}
-    |
+    | ~SPACE
     ;
 
 lookahead_operands_and_remarks_asm

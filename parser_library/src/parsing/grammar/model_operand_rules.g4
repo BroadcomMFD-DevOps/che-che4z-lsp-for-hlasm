@@ -23,27 +23,9 @@ before_var_sym_model_string returns [std::string value]
     };
 
 before_var_sym_model_b returns [std::string value]
-    :
-    ( ASTERISK                              {$value = "*";}
-    | MINUS                                 {$value = "-";}
-    | PLUS                                  {$value = "+";}
-    | LT                                    {$value = "<";}
-    | GT                                    {$value = ">";}
-    | SLASH                                 {$value = "/";}
-    | EQUALS                                {$value = "=";}
-    | AMPERSAND AMPERSAND                   {$value = "&&";}
-    | VERTICAL                              {$value = "|";}
-    | IDENTIFIER                            {$value = $IDENTIFIER->getText();}
-    | NUM                                   {$value = $NUM->getText();}
-    | ORDSYMBOL                             {$value = $ORDSYMBOL->getText();}
-    | DOT                                   {$value = ".";}
-    | lpar                                  {$value = "("; }
-    | rpar                                  {$value = ")"; }
-    | comma                                 {$value = ","; }
-    )
+    : AMPERSAND AMPERSAND                   {$value = "&&";}
     | ATTR                                  {$value = "'"; }
-    |
-    before_var_sym_model_string
+    | before_var_sym_model_string
     {
         $value.reserve($before_var_sym_model_string.value.size()+2);
         $value.push_back('\'');
@@ -53,7 +35,43 @@ before_var_sym_model_b returns [std::string value]
 
 before_var_sym_model returns [std::string value]
     :
-    | tmp=before_var_sym_model before_var_sym_model_b   {$tmp.value.append(std::move($before_var_sym_model_b.value)); $value = std::move($tmp.value);};
+    ( ASTERISK                              {$value.push_back('*');}
+    | MINUS                                 {$value.push_back('-');}
+    | PLUS                                  {$value.push_back('+');}
+    | LT                                    {$value.push_back('<');}
+    | GT                                    {$value.push_back('>');}
+    | SLASH                                 {$value.push_back('/');}
+    | EQUALS                                {$value.push_back('=');}
+    | VERTICAL                              {$value.push_back('|');}
+    | IDENTIFIER                            {$value.append($IDENTIFIER->getText());}
+    | NUM                                   {$value.append($NUM->getText());}
+    | ORDSYMBOL                             {$value.append($ORDSYMBOL->getText());}
+    | DOT                                   {$value.push_back('.');}
+    | lpar                                  {$value.push_back('(');}
+    | rpar                                  {$value.push_back(')');}
+    | comma                                 {$value.push_back(',');}
+    )*
+    (
+        before_var_sym_model_b {$value.append(std::move($before_var_sym_model_b.value));}
+        ( ASTERISK                              {$value.push_back('*');}
+        | MINUS                                 {$value.push_back('-');}
+        | PLUS                                  {$value.push_back('+');}
+        | LT                                    {$value.push_back('<');}
+        | GT                                    {$value.push_back('>');}
+        | SLASH                                 {$value.push_back('/');}
+        | EQUALS                                {$value.push_back('=');}
+        | VERTICAL                              {$value.push_back('|');}
+        | IDENTIFIER                            {$value.append($IDENTIFIER->getText());}
+        | NUM                                   {$value.append($NUM->getText());}
+        | ORDSYMBOL                             {$value.append($ORDSYMBOL->getText());}
+        | DOT                                   {$value.push_back('.');}
+        | lpar                                  {$value.push_back('('); }
+        | rpar                                  {$value.push_back(')'); }
+        | comma                                 {$value.push_back(','); }
+        | before_var_sym_model_b {$value.append(std::move($before_var_sym_model_b.value));}
+        )*
+    )?
+    ;
 
 var_sym_model [concat_chain* chain]
     : AMPERSAND var_symbol_base[$AMPERSAND]             {$chain->emplace_back(var_sym_conc(std::move($var_symbol_base.vs)));}
