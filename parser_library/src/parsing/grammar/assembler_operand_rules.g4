@@ -112,4 +112,4 @@ asm_op_comma_c returns [std::vector<std::unique_ptr<complex_assembler_operand::c
     )*;
 
 end_instr_word returns [std::string value]
-    : (t=~(COMMA|CONTINUATION){$value.append($t.text);})+;
+    : (t=~(COMMA){$value.append($t.text);})+;

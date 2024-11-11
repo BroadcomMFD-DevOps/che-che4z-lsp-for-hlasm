@@ -216,8 +216,7 @@ struct parser_holder
     virtual void lookahead_operands_and_remarks_asm() const = 0;
     virtual void lookahead_operands_and_remarks_dat() const = 0;
 
-    virtual macop_preprocess_results op_rem_body_mac_r() const = 0;
-    virtual semantics::operand_list macro_ops() const = 0;
+    virtual semantics::op_rem op_rem_body_mac_r() const = 0;
     virtual semantics::op_rem op_rem_body_asm_r() const = 0;
     virtual semantics::op_rem op_rem_body_mach_r() const = 0;
     virtual semantics::op_rem op_rem_body_dat_r() const = 0;
@@ -226,6 +225,7 @@ struct parser_holder
     virtual void op_rem_body_ca_branch() const = 0;
     virtual void op_rem_body_ca_var_def() const = 0;
 
+    virtual void op_rem_body_mac() const = 0;
     virtual void op_rem_body_dat() const = 0;
     virtual void op_rem_body_mach() const = 0;
     virtual void op_rem_body_asm() const = 0;
@@ -233,14 +233,6 @@ struct parser_holder
     virtual semantics::operand_ptr ca_op_expr() const = 0;
     virtual semantics::operand_ptr operand_mach() const = 0;
 
-    struct mac_op_data
-    {
-        macop_preprocess_results operands;
-        range op_range;
-        size_t op_logical_column;
-    };
-
-    virtual mac_op_data op_rem_body_mac() const = 0;
 
     virtual semantics::literal_si literal_reparse() const = 0;
 

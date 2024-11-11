@@ -341,6 +341,37 @@ void utf8_prev(It& it, size_t n, const Sentinel& begin)
     }
 }
 
+constexpr void append_utf32_to_utf8(std::string& n, char32_t ch)
+{
+    constexpr auto low6 = 0b111111u;
+    if (ch <= 0x007F) // U+0000 - U+007F
+    {
+        n.push_back(static_cast<unsigned char>(ch));
+    }
+    else if (ch <= 0x7FF) // U+0080 - U+07FF
+    {
+        n.push_back(static_cast<unsigned char>(0xc0 | ch >> 6));
+        n.push_back(static_cast<unsigned char>(0x80 | ch & low6));
+    }
+    else if (ch <= 0xFFFF) // U+0800 - U+FFFF
+    {
+        n.push_back(static_cast<unsigned char>(0xe0 | ch >> 12));
+        n.push_back(static_cast<unsigned char>(0x80 | ch >> 6 & low6));
+        n.push_back(static_cast<unsigned char>(0x80 | ch & low6));
+    }
+    else if (ch <= 0x10FFFF) // U+10000 - U+10FFFF
+    {
+        n.push_back(static_cast<unsigned char>(0xf0 | ch >> 18));
+        n.push_back(static_cast<unsigned char>(0x80 | ch >> 12 & low6));
+        n.push_back(static_cast<unsigned char>(0x80 | ch >> 6 & low6));
+        n.push_back(static_cast<unsigned char>(0x80 | ch & low6));
+    }
+    else
+    {
+        assert(false);
+    }
+}
+
 std::string utf32_to_utf8(std::u32string_view s);
 
 } // namespace hlasm_plugin::utils

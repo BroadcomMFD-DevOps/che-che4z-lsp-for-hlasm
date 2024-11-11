@@ -16,8 +16,8 @@
 parser grammar macro_operand_rules;
 
 
-mac_op_o returns [operand_ptr op]
-    : mac_entry?
+mac_op_o [std::vector<range>* remarks] returns [operand_ptr op]
+    : mac_entry[$remarks]?
     {
         if($mac_entry.ctx)
             $op = std::make_unique<macro_operand>(std::move($mac_entry.chain),provider.get_range($mac_entry.ctx));
@@ -25,53 +25,15 @@ mac_op_o returns [operand_ptr op]
             $op = std::make_unique<semantics::empty_operand>(provider.original_range);
     };
 
-macro_ops returns [operand_list list]
-    : mac_op_o  {$list.push_back(std::move($mac_op_o.op));} (comma mac_op_o {$list.push_back(std::move($mac_op_o.op));})* EOF;
-
-mac_preproc
-    :
+macro_ops returns [operand_list ops, std::vector<range> remarks]
+    : mac_op_o[&$remarks]  {$ops.push_back(std::move($mac_op_o.op));}
     (
-        ASTERISK
-        | MINUS
-        | PLUS
-        | LT
-        | GT
-        | SLASH
-        | EQUALS
-        | VERTICAL
-        | IDENTIFIER
-        | NUM
-        | ORDSYMBOL
-        | DOT
-        | AMPERSAND
-        (
-            ORDSYMBOL
-            |
-            LPAR
-            |
-            AMPERSAND
-        )
-        |
-        LPAR
-        |
-        RPAR
-        |
-        APOSTROPHE
-        (~(APOSTROPHE|ATTR|CONTINUATION))*
-        (APOSTROPHE|ATTR)
-        |
-        ATTR
-        (
-            AMPERSAND
-            (~(APOSTROPHE|ATTR|CONTINUATION|SPACE))*
-            (APOSTROPHE|ATTR)
-            |
-            {!is_attribute_consuming(_input->LT(-2)) || (!can_attribute_consume(_input->LT(1)) && _input->LA(1) != AMPERSAND)}?
-            (~(APOSTROPHE|ATTR|CONTINUATION))*
-            (APOSTROPHE|ATTR)
-            |
-        )
-    )+
+        comma
+        {
+            consume_remark($comma.start, $remarks);
+        }
+        mac_op_o[&$remarks]{$ops.push_back(std::move($mac_op_o.op));}
+    )*
     ;
 
 mac_entry_nested_strings [concat_chain *chain]
@@ -81,7 +43,7 @@ mac_entry_nested_strings [concat_chain *chain]
     )*
     ;
 
-mac_entry_basic_tokens [concat_chain* chain]
+mac_entry_basic_tokens [concat_chain* chain, std::vector<range>* remarks]
     :
     (
         token=(ASTERISK|MINUS|PLUS|LT|GT|SLASH|VERTICAL)
@@ -121,43 +83,36 @@ mac_entry_basic_tokens [concat_chain* chain]
         lpar
         {
             std::vector<concat_chain> sublist;
-            bool pending_empty = false;
+            bool pending_empty = true;
+            bool entered = false;
         }
         (
-            comma
-            {
-                sublist.emplace_back();
-                pending_empty = true;
-            }
-        )*
-        (
-            mac_entry
+            mac_entry[$remarks]
             {
                 sublist.push_back(std::move($mac_entry.chain));
                 pending_empty = false;
+                entered = true;
+            }
+        )?
+        (
+            comma
+            {
+                entered = true;
+                if (pending_empty)
+                    sublist.emplace_back();
+                pending_empty = true;
+                consume_remark($comma.start, *$remarks);
             }
             (
-                comma
-                (
-                    comma
-                    {
-                        sublist.emplace_back();
-                    }
-                )*
+                mac_entry[$remarks]
                 {
-                    pending_empty = true;
+                    sublist.push_back(std::move($mac_entry.chain));
+                    pending_empty = false;
                 }
-                (
-                    mac_entry
-                    {
-                        sublist.push_back(std::move($mac_entry.chain));
-                        pending_empty = false;
-                    }
-                )?
-            )*
-        )?
+            )?
+        )*
         {
-            if (pending_empty)
+            if (entered && pending_empty)
             {
                 sublist.emplace_back();
             }
@@ -167,10 +122,10 @@ mac_entry_basic_tokens [concat_chain* chain]
     )
     ;
 
-mac_entry returns [concat_chain chain]
+mac_entry [std::vector<range>* remarks] returns [concat_chain chain]
     :
     (
-        mac_entry_basic_tokens[&$chain]
+        mac_entry_basic_tokens[&$chain, $remarks]
         |
         ap1=APOSTROPHE
         {
@@ -188,9 +143,14 @@ mac_entry returns [concat_chain chain]
         at=ATTR
         {
             $chain.emplace_back(char_str_conc("'", provider.get_range($at)));
+            if (is_attribute_consuming(_input->LT(-2)))
+                goto attr_way;
+            else
+                goto non_attr_way;
         }
         (
             {is_attribute_consuming(_input->LT(-2))}?
+            {attr_way:;}
             {
                 collector.add_hl_symbol(token_info(provider.get_range($at),hl_scopes::operator_symbol));
             }
@@ -219,7 +179,7 @@ mac_entry returns [concat_chain chain]
                     }
                     (
                         dot
-                        mac_entry_basic_tokens[&$chain]+
+                        mac_entry_basic_tokens[&$chain, $remarks]+
                     )*
                     (
                         ap=(APOSTROPHE|ATTR)
@@ -256,6 +216,7 @@ mac_entry returns [concat_chain chain]
             )
             |
             {!is_attribute_consuming(_input->LT(-2))}?
+            {non_attr_way:;}
             mac_entry_nested_strings[&$chain]
             ap=(APOSTROPHE|ATTR)
             {

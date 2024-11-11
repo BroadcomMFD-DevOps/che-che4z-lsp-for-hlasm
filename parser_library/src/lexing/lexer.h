@@ -27,6 +27,7 @@
 namespace hlasm_plugin::parser_library::lexing {
 using char_t = char32_t;
 
+struct u8string_with_newlines;
 struct u8string_view_with_newlines;
 
 class lexer final
@@ -73,6 +74,7 @@ public:
     size_t token_count() const noexcept { return tokens.size(); }
     token* get_token(size_t i) noexcept { return &tokens[i]; }
     std::string get_text(size_t start, size_t stop) const;
+    u8string_with_newlines get_text_with_newlines(size_t start, size_t end) const;
 
     enum Tokens : int
     {
@@ -111,7 +113,6 @@ protected:
 
 private:
     bool creating_var_symbol_ = false;
-    bool creating_attr_ref_ = false;
     bool process_allowed_ = false;
 
     std::vector<token> tokens;
@@ -137,7 +138,7 @@ private:
 
     // captures lexer state at the beginning of a token
     input_state token_start_state_;
-    input_state last_line;
+    input_state token_end_state_;
 
     bool eof() const;
 

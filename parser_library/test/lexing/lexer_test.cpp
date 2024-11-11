@@ -145,7 +145,7 @@ TEST(lexer_test, attribute_in_continuation)
 
     while (l.more_tokens())
         ;
-    ASSERT_EQ(l.token_count(), 10);
+    ASSERT_EQ(l.token_count(), 9);
 
     size_t i = 0;
 
@@ -155,7 +155,6 @@ TEST(lexer_test, attribute_in_continuation)
     EXPECT_EQ(l.get_token(i++)->getType(), lexing::lexer::NUM);
     EXPECT_EQ(l.get_token(i++)->getType(), lexing::lexer::COMMA);
     EXPECT_EQ(l.get_token(i++)->getType(), lexing::lexer::ORDSYMBOL);
-    EXPECT_EQ(l.get_token(i++)->getType(), lexing::lexer::CONTINUATION);
     EXPECT_EQ(l.get_token(i++)->getType(), lexing::lexer::ATTR);
     EXPECT_EQ(l.get_token(i++)->getType(), lexing::lexer::ORDSYMBOL);
 }

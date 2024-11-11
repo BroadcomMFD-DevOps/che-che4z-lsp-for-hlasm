@@ -18,6 +18,7 @@
 #include <assert.h>
 #include <span>
 #include <string>
+#include <type_traits>
 #include <utility>
 
 #include "string_with_newlines.h"
@@ -95,10 +96,8 @@ void lexer::reset(position file_offset, size_t logical_column, bool process_allo
     input_state_.char_position_in_line = logical_column;
     input_state_.char_position_in_line_utf16 = file_offset.column;
 
-    last_line = input_state_;
-    last_line.line = -1;
-
     token_start_state_ = input_state_;
+    token_end_state_ = input_state_;
 
     for (auto bump_line = file_offset.column; auto& ll : line_limits)
     {
@@ -156,14 +155,10 @@ lexer::char_substitution lexer::reset(
 void lexer::create_token(int ttype, unsigned channel)
 {
     /* do not generate empty tokens (except EOF) */
-    if (input_state_.next == token_start_state_.next && (size_t)ttype != antlr4::Token::EOF && ttype != CONTINUATION)
+    if (token_end_state_.next == token_start_state_.next && (size_t)ttype != antlr4::Token::EOF)
         return;
 
     creating_var_symbol_ = ttype == AMPERSAND;
-    if (creating_attr_ref_)
-        creating_attr_ref_ = ttype == CONTINUATION;
-
-    const auto& end = token_start_state_.line == input_state_.line ? input_state_ : last_line;
 
     if (tokens.size() == tokens.capacity())
     {
@@ -186,12 +181,13 @@ void lexer::create_token(int ttype, unsigned channel)
         ttype,
         channel,
         token_start_state_.next - input_.data(),
-        input_state_.next - input_.data(),
+        token_end_state_.next - input_.data(),
         token_start_state_.line,
+        token_end_state_.line,
         token_start_state_.char_position_in_line,
         tokens.size(),
         token_start_state_.char_position_in_line_utf16,
-        end.char_position_in_line_utf16);
+        token_end_state_.char_position_in_line_utf16);
 }
 
 void lexer::consume()
@@ -199,16 +195,30 @@ void lexer::consume()
     const auto next = *input_state_.next;
     if (next == EOF_SYMBOL)
         return;
-    ++input_state_.next;
 
-    input_state_.char_position_in_line++;
+    ++input_state_.next;
+    ++input_state_.char_position_in_line;
     input_state_.char_position_in_line_utf16 += 1 + (next > 0xFFFF);
+
+    token_end_state_ = input_state_;
+
+    if (!before_end())
+    {
+        ++input_state_.nl;
+        ++input_state_.line;
+        input_state_.char_position_in_line = continue_;
+        input_state_.char_position_in_line_utf16 = continue_;
+    }
 }
 
 bool lexer::eof() const { return *input_state_.next == EOF_SYMBOL; }
 
 /* set start token info */
-void lexer::start_token() { token_start_state_ = input_state_; }
+void lexer::start_token()
+{
+    token_start_state_ = input_state_;
+    token_end_state_ = input_state_;
+}
 
 /*
 main logic
@@ -223,22 +233,17 @@ bool lexer::more_tokens()
     if (eof())
     {
         start_token();
-        create_token((int)antlr4::Token::EOF);
+        create_token((int)static_cast<std::make_signed_t<std::size_t>>(antlr4::Token::EOF));
         return false;
     }
 
     while (!before_end())
     {
-        last_line = input_state_;
-        token_start_state_ = last_line;
-
         ++input_state_.nl;
         ++input_state_.line;
 
         input_state_.char_position_in_line = continue_;
         input_state_.char_position_in_line_utf16 = continue_;
-
-        create_token(CONTINUATION, HIDDEN_CHANNEL);
     }
 
     // lex non-special tokens
@@ -315,12 +320,7 @@ void lexer::lex_tokens()
 
         case '\'':
             consume();
-            if (!creating_attr_ref_)
-            {
-                create_token(APOSTROPHE);
-            }
-            else
-                create_token(ATTR);
+            create_token(APOSTROPHE);
             break;
 
         case '/':
@@ -355,7 +355,7 @@ void lexer::lex_tokens()
 
 void lexer::lex_space()
 {
-    while (*input_state_.next == ' ' && before_end())
+    while (*input_state_.next == ' ')
         consume();
     create_token(SPACE, DEFAULT_CHANNEL);
 }
@@ -445,7 +445,7 @@ void lexer::lex_word()
     size_t last_part_ord_len = 0;
     size_t w_len = 0;
     bool last_ord = true;
-    while ((ci & (space | endline | identifier_divider)) == none && !eof() && before_end())
+    while ((ci & (space | endline | identifier_divider)) == none && !eof())
     {
         bool curr_ord = (ci & ord_char) != none;
         if (!last_ord && curr_ord)
@@ -482,14 +482,12 @@ void lexer::lex_word()
     // We generate the ATTR token even when we created identifier, but it ends with exactly one ordinary symbol which is
     // also data attr symbol. That is because macro parameter "L'ORD must generate ATTR as string cannot start
     // with the apostrophe
-    if (*input_state_.next == '\'' && last_char_data_attr && !var_sym_tmp && last_part_ord_len == 1 && before_end())
+    if (*input_state_.next == '\'' && last_char_data_attr && !var_sym_tmp && last_part_ord_len == 1)
     {
         start_token();
         consume();
         create_token(ATTR);
     }
-
-    creating_attr_ref_ = w_len == 1 && last_char_data_attr && !before_end() && !var_sym_tmp;
 }
 
 bool lexer::set_continue(size_t cont)
@@ -539,6 +537,38 @@ std::string lexer::get_text(size_t start, size_t stop) const
     if (stop >= input_.size()) // EOF_SYMBOL
         return {};
     return utils::utf32_to_utf8(std::u32string_view(input_.data() + start, stop - start));
+}
+
+u8string_with_newlines lexer::get_text_with_newlines(size_t start, size_t end) const
+{
+    assert(start <= end);
+    assert(end < tokens.size());
+
+    u8string_with_newlines ss;
+    if (start == end)
+        return ss;
+
+    assert(tokens[end - 1].getType() != antlr4::Token::EOF);
+
+    const auto* i = input_.data() + tokens[start].getStartIndex();
+    const auto* const e = input_.data() + tokens[end - 1].getStopIndex() + 1;
+
+    if (i == e)
+        return ss;
+
+    auto nl = std::ranges::upper_bound(newlines_, static_cast<size_t>(i - input_.data()));
+
+    for (; i != e; ++i)
+    {
+        if (static_cast<size_t>(i - input_.data()) >= *nl)
+        {
+            ++nl;
+            ss.text.push_back(u8string_view_with_newlines::EOLc);
+        }
+        utils::append_utf32_to_utf8(ss.text, *i);
+    }
+
+    return ss;
 }
 
 lexer::remark_result lexer::consume_remark(const token* const t)

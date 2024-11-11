@@ -196,18 +196,18 @@ op_rem_body_asm_r returns [op_rem line]
 
 //////////////////////////////////////// mac_r
 
-op_rem_body_mac_r returns [macop_preprocess_results results]
+op_rem_body_mac_r returns [op_rem line]
     :
     SPACE* EOF
     |
-    op_rem_body_alt_mac[&$results]
+    macro_ops remark_o EOF
     {
-        auto& results = $results;
-        if (results.text_ranges.empty())
-            results.total_op_range = provider.get_empty_range($op_rem_body_alt_mac.start);
-        else
-            results.total_op_range = union_range(results.text_ranges.front(), results.text_ranges.back());
-    } EOF;
+        $line.operands = std::move($macro_ops.ops);
+        $line.remarks = std::move($macro_ops.remarks);
+        if ($remark_o.value)
+            $line.remarks.push_back(*$remark_o.value);
+    }
+    ;
 
 op_rem_body_noop_r
     : remark_o EOF;

@@ -31,6 +31,7 @@ public:
         size_t start,
         size_t stop,
         size_t line,
+        size_t endline,
         size_t char_position_in_line,
         size_t token_index,
         size_t char_position_in_line_16,
@@ -41,6 +42,7 @@ public:
         , start_(start)
         , stop_(stop)
         , line_(line)
+        , endline_(endline)
         , char_position_in_line_(char_position_in_line)
         , token_index_(token_index)
         , char_position_in_line_16_(char_position_in_line_16)
@@ -77,6 +79,8 @@ public:
 
     size_t get_logical_end_column() const { return char_position_in_line_ + (stop_ - start_); }
 
+    size_t get_endline() const { return endline_; }
+
 private:
     lexer* input_ {};
     int type_;
@@ -84,6 +88,7 @@ private:
     size_t start_;
     size_t stop_;
     size_t line_;
+    size_t endline_;
     size_t char_position_in_line_;
     size_t token_index_;
     size_t char_position_in_line_16_;

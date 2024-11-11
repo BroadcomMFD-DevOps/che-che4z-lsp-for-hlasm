@@ -181,8 +181,7 @@ void token_stream::reset()
 
 bool token_stream::is_on_channel(const token* t) const
 {
-    return t->getChannel() == lexer::Channels::DEFAULT_CHANNEL || (enabled_cont && t->getType() == lexer::CONTINUATION)
-        || t->getType() == antlr4::Token::EOF;
+    return t->getChannel() == lexer::Channels::DEFAULT_CHANNEL || t->getType() == antlr4::Token::EOF;
 }
 
 void token_stream::fill()
@@ -219,22 +218,8 @@ u8string_with_newlines token_stream::get_text_with_newlines(const antlr4::misc::
         stop = limit - 1;
     }
 
-    u8string_with_newlines ss;
-    for (size_t i = start; i <= stop; i++)
-    {
-        const auto* t = token_source->get_token(i);
-        if (auto id = t->getType(); id == antlr4::Token::EOF)
-        {
-            break;
-        }
-        else if (id == lexer::CONTINUATION)
-        {
-            ss.text.push_back(u8string_view_with_newlines::EOLc);
-            continue;
-        }
-        ss.text.append(t->getText());
-    }
-    return ss;
+    return token_source->get_text_with_newlines(
+        start, stop + (token_source->get_token(stop)->getType() != antlr4::Token::EOF));
 }
 
 void token_stream::tokens_erased() noexcept

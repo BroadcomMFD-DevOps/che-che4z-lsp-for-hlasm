@@ -1275,3 +1275,20 @@ TEST(macro, nested_invalid_prototype)
 
     EXPECT_TRUE(matches_message_codes(a.diags(), { "E043" }));
 }
+
+TEST(macro, nested_parenthesis)
+{
+    std::string input = R"(
+         MACRO
+         MAC
+         MEND
+
+XMSG1    MAC     (CREATOR,L'#SRCDEF_02_OBJCREATOR,(#SRCDEF_02_OBJCREATO+        
+               R,RELOC),SQUEEZE),(TABLE,L'#SRCDEF_02_OBJNAME,          +        
+               (#SRCDEF_02_OBJNAME,RELOC),SQUEEZE)                              
+)";
+    analyzer a(input);
+    a.analyze();
+
+    EXPECT_TRUE(a.diags().empty());
+}

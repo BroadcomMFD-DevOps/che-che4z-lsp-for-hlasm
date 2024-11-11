@@ -25,14 +25,16 @@ namespace hlasm_plugin::parser_library::semantics {
 range range_provider::get_range(const antlr4::Token* start, const antlr4::Token* stop) const
 {
     range ret;
+    const auto* b = static_cast<const lexing::token*>(start);
+    const auto* e = static_cast<const lexing::token*>(stop);
 
-    ret.start.line = start->getLine();
-    ret.start.column = start->getCharPositionInLine();
+    ret.start.line = b->getLine();
+    ret.start.column = b->getCharPositionInLine();
 
-    if (stop)
+    if (e)
     {
-        ret.end.line = stop->getLine();
-        ret.end.column = static_cast<const lexing::token*>(stop)->get_end_of_token_in_line_utf16();
+        ret.end.line = e->get_endline();
+        ret.end.column = e->get_end_of_token_in_line_utf16();
     }
     else // empty rule
     {
