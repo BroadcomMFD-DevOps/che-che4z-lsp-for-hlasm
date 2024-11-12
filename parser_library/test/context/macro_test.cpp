@@ -1308,3 +1308,35 @@ TEST(macro, allowed_incomplete_literal)
 
     EXPECT_TRUE(a.diags().empty());
 }
+
+TEST(macro, remark_should_not_impact_operands)
+{
+    std::string input = R"(
+         MACRO
+         MAC
+         MEND
+
+         MAC   L'A,                                                   LX
+               'A'
+)";
+    analyzer a(input);
+    a.analyze();
+
+    EXPECT_TRUE(a.diags().empty());
+}
+
+TEST(macro, long_string_with_attribute_like_start)
+{
+    std::string input = R"(
+         MACRO
+         MAC
+         MEND
+
+         MAC   L'                                                      X
+                         A'
+)";
+    analyzer a(input);
+    a.analyze();
+
+    EXPECT_TRUE(a.diags().empty());
+}
