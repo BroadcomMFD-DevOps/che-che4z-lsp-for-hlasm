@@ -29,10 +29,11 @@ struct u8string_view_with_newlines;
 
 class lexer final
 {
-    static constexpr char_t EOF_SYMBOL = (char_t)-1;
     void reset(position file_offset, size_t logical_column, bool process_allowed);
 
 public:
+    static constexpr char_t EOF_SYMBOL = (char_t)-1;
+
     struct stream_position
     {
         size_t line;
@@ -92,6 +93,8 @@ public:
     static bool ord_symbol(std::string_view symbol) noexcept;
 
     const std::vector<size_t>& get_line_limits() const { return line_limits; }
+
+    auto peek_input_state() const noexcept { return std::pair(input_state_, input_.data()); }
 
 protected:
     // creates token and inserts to input stream
