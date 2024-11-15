@@ -939,7 +939,7 @@ struct parser_holder::macro_preprocessor_t
                         if (auto [error] = lex_simple_string(); error)
                             return failure;
                     }
-                    break;
+                    return {};
 
                 case U'N':
                 case U'K':
@@ -982,17 +982,14 @@ struct parser_holder::macro_preprocessor_t
                             copy_ordsymbol();
                             break;
                     }
-                    break;
+                    return {};
             }
         }
-        else
+        copy_ordsymbol();
+        if (follows<U'('>())
         {
-            copy_ordsymbol();
-            if (follows<U'('>())
-            {
-                if (auto [error] = lex_subscript_ne(); error)
-                    return failure;
-            }
+            if (auto [error] = lex_subscript_ne(); error)
+                return failure;
         }
         return {};
     }
