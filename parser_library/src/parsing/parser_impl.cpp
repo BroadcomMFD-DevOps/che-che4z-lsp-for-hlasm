@@ -663,10 +663,15 @@ struct parser_holder::macro_preprocessor_t
         return {};
     }
 
+    [[nodiscard]] constexpr bool follows_NOT_SPACE() const noexcept
+    {
+        return (input.next[0] == U'N' || input.next[0] == U'n') && (input.next[1] == U'O' || input.next[1] == U'o')
+            && (input.next[2] == U'T' || input.next[2] == U'o') && input.next[3] == U' ';
+    }
+
     result_t lex_expr_general()
     {
-        while ((input.next[0] == U'N' || input.next[0] == U'n') && (input.next[1] == U'O' || input.next[1] == U'o')
-            && (input.next[2] == U'T' || input.next[2] == U'o') && input.next[3] == U' ')
+        while (follows_NOT_SPACE())
         {
             copy_char();
             copy_char();
