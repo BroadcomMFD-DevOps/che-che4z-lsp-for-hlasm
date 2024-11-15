@@ -218,7 +218,6 @@ struct parser_holder
     virtual void lookahead_operands_and_remarks_asm() const = 0;
     virtual void lookahead_operands_and_remarks_dat() const = 0;
 
-    virtual macop_preprocess_results op_rem_body_mac_r() const = 0;
     virtual semantics::operand_list macro_ops() const = 0;
     virtual semantics::op_rem op_rem_body_asm_r() const = 0;
     virtual semantics::op_rem op_rem_body_mach_r() const = 0;
@@ -241,8 +240,6 @@ struct parser_holder
         range op_range;
         size_t op_logical_column;
     };
-
-    virtual mac_op_data op_rem_body_mac() const = 0;
 
     virtual semantics::literal_si literal_reparse() const = 0;
 
