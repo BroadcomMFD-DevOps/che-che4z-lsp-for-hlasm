@@ -98,10 +98,6 @@ struct parser_holder_impl final : parser_holder
     void lookahead_operands_and_remarks_asm() const override { get_parser().lookahead_operands_and_remarks_asm(); }
     void lookahead_operands_and_remarks_dat() const override { get_parser().lookahead_operands_and_remarks_dat(); }
 
-    macop_preprocess_results op_rem_body_mac_r() const override
-    {
-        return std::move(get_parser().op_rem_body_mac_r()->results);
-    }
     semantics::operand_list macro_ops() const override { return std::move(get_parser().macro_ops()->list); }
     semantics::op_rem op_rem_body_asm_r() const override { return std::move(get_parser().op_rem_body_asm_r()->line); }
     semantics::op_rem op_rem_body_mach_r() const override { return std::move(get_parser().op_rem_body_mach_r()->line); }
@@ -115,12 +111,6 @@ struct parser_holder_impl final : parser_holder
     void op_rem_body_dat() const override { get_parser().op_rem_body_dat(); }
     void op_rem_body_mach() const override { get_parser().op_rem_body_mach(); }
     void op_rem_body_asm() const override { get_parser().op_rem_body_asm(); }
-
-    mac_op_data op_rem_body_mac() const override
-    {
-        auto rule = get_parser().op_rem_body_mac();
-        return { std::move(rule->results), rule->line_range, rule->line_logical_column };
-    }
 
     operand_ptr ca_op_expr() const override { return std::move(get_parser().ca_op_expr()->op); }
     operand_ptr operand_mach() const override { return std::move(get_parser().operand_mach()->op); }
