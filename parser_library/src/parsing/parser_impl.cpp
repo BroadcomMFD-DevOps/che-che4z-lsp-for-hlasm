@@ -776,12 +776,6 @@ struct parser_holder::macro_preprocessor_t
             if (auto [error] = lex_expr(); error)
                 return failure;
             lex_optional_space();
-            if (*input.next != U')')
-            {
-                add_diagnostic(diagnostic_op::error_S0011);
-                return failure;
-            }
-            copy_char();
         }
         else
         {
@@ -812,6 +806,12 @@ struct parser_holder::macro_preprocessor_t
                     return failure;
             }
         }
+        if (*input.next != U')')
+        {
+            add_diagnostic(diagnostic_op::error_S0011);
+            return failure;
+        }
+        copy_char();
 
         return {};
     }
@@ -978,6 +978,15 @@ struct parser_holder::macro_preprocessor_t
                             break;
                     }
                     break;
+            }
+        }
+        else
+        {
+            copy_ordsymbol();
+            if (follows<U'('>())
+            {
+                if (auto [error] = lex_subscript_ne(); error)
+                    return failure;
             }
         }
         return {};
