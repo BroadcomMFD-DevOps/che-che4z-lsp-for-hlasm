@@ -89,12 +89,18 @@ public:
     // enable ictl
     void set_ictl();
 
+    [[nodiscard]] auto get_continuation_column() const noexcept { return continue_; }
+
     static bool ord_char(char_t c) noexcept;
     static bool ord_symbol(std::string_view symbol) noexcept;
 
     const std::vector<size_t>& get_line_limits() const { return line_limits; }
 
-    auto peek_input_state() const noexcept { return std::pair(input_state_, input_.data()); }
+    [[nodiscard]] auto peek_initial_input_state() const noexcept
+    {
+        return std::pair(initial_input_state, input_.data());
+    }
+    [[nodiscard]] auto peek_input_size() const noexcept { return input_.size(); }
 
 protected:
     // creates token and inserts to input stream
@@ -128,6 +134,7 @@ private:
         size_t char_position_in_line_utf16 = 0;
     };
 
+    input_state initial_input_state;
     input_state input_state_;
 
     // captures lexer state at the beginning of a token
