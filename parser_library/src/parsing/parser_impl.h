@@ -47,9 +47,13 @@ struct macop_preprocess_results
     std::vector<range> remarks;
 };
 
+struct parser_holder;
+
 // class providing methods helpful for parsing and methods modifying parsing process
 class parser_impl : public antlr4::Parser
 {
+    friend struct parser_holder;
+
 public:
     parser_impl(antlr4::TokenStream* input);
 
@@ -242,6 +246,7 @@ struct parser_holder
 
     virtual semantics::literal_si literal_reparse() const = 0;
 
+    mac_op_data macro_preprocessor(bool reparse) const;
     void prepare_parser(lexing::u8string_view_with_newlines text,
         context::hlasm_context* hlasm_ctx,
         diagnostic_op_consumer* diags,
@@ -252,6 +257,8 @@ struct parser_holder
 
     static std::unique_ptr<parser_holder> create(
         context::hlasm_context* hl_ctx, diagnostic_op_consumer* d, bool multiline);
+
+    struct macro_preprocessor_t;
 };
 
 } // namespace hlasm_plugin::parser_library::parsing

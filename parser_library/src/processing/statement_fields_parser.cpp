@@ -74,7 +74,7 @@ statement_fields_parser::parse_result statement_fields_parser::parse_operand_fie
         switch (format.form)
         {
             case processing::processing_form::MAC: {
-                auto reparse_data = h.op_rem_body_mac_r();
+                auto reparse_data = h.macro_preprocessor(true).operands;
                 literals = h.parser->get_collector().take_literals();
 
                 line.remarks = std::move(reparse_data.remarks);

@@ -233,7 +233,7 @@ mac_entry returns [concat_chain chain]
                     )?
                 )
                 |
-                token=(ASTERISK|MINUS|PLUS|LT|GT|SLASH|VERTICAL|IDENTIFIER|NUM|DOT|LPAR|RPAR)
+                token=(ASTERISK|MINUS|PLUS|LT|GT|SLASH|VERTICAL|IDENTIFIER|NUM|DOT|LPAR|RPAR|SPACE)
                 {
                     auto r = provider.get_range($token);
                     $chain.emplace_back(char_str_conc($token.text, r));
