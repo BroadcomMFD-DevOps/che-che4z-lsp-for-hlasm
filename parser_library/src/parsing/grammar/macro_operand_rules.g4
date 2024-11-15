@@ -28,52 +28,6 @@ mac_op_o returns [operand_ptr op]
 macro_ops returns [operand_list list]
     : mac_op_o  {$list.push_back(std::move($mac_op_o.op));} (comma mac_op_o {$list.push_back(std::move($mac_op_o.op));})* EOF;
 
-mac_preproc
-    :
-    (
-        ASTERISK
-        | MINUS
-        | PLUS
-        | LT
-        | GT
-        | SLASH
-        | EQUALS
-        | VERTICAL
-        | IDENTIFIER
-        | NUM
-        | ORDSYMBOL
-        | DOT
-        | AMPERSAND
-        (
-            ORDSYMBOL
-            |
-            LPAR
-            |
-            AMPERSAND
-        )
-        |
-        LPAR
-        |
-        RPAR
-        |
-        APOSTROPHE
-        (~(APOSTROPHE|ATTR|CONTINUATION))*
-        (APOSTROPHE|ATTR)
-        |
-        ATTR
-        (
-            AMPERSAND
-            (~(APOSTROPHE|ATTR|CONTINUATION|SPACE))*
-            (APOSTROPHE|ATTR)
-            |
-            {!is_attribute_consuming(_input->LT(-2)) || (!can_attribute_consume(_input->LT(1)) && _input->LA(1) != AMPERSAND)}?
-            (~(APOSTROPHE|ATTR|CONTINUATION))*
-            (APOSTROPHE|ATTR)
-            |
-        )
-    )+
-    ;
-
 mac_entry_nested_strings [concat_chain *chain]
     :
     (
