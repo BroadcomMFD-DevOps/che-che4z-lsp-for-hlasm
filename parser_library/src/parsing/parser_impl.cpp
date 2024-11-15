@@ -30,6 +30,7 @@
 #include "processing/op_code.h"
 #include "semantics/operand.h"
 #include "utils/string_operations.h"
+#include "utils/unicode_text.h"
 
 namespace hlasm_plugin::parser_library::parsing {
 
@@ -461,6 +462,1033 @@ void parser_holder::prepare_parser(lexing::u8string_view_with_newlines text,
     parser->reset();
 
     parser->get_collector().prepare_for_next_statement();
+}
+
+struct parser_holder::macro_preprocessor_t
+{
+    static constexpr const auto EOF_SYMBOL = lexing::lexer::EOF_SYMBOL;
+    const parser_holder* holder;
+
+    using input_state_t = decltype(holder->lex->peek_initial_input_state().first);
+
+    size_t cont;
+    input_state_t input;
+    const lexing::char_t* data;
+
+    mac_op_data result {};
+
+    void adjust_lines() noexcept
+    {
+        if (static_cast<size_t>(input.next - data) < *input.nl)
+            return;
+
+        input.char_position_in_line = cont;
+        input.char_position_in_line_utf16 = cont;
+        while (static_cast<size_t>(input.next - data) >= *input.nl)
+        {
+            ++input.line;
+            ++input.nl;
+        }
+        return;
+    }
+
+    void consume() noexcept
+    {
+        const auto ch = *input.next;
+        assert(!eof());
+
+        adjust_lines();
+        ++input.next;
+        ++input.char_position_in_line;
+        input.char_position_in_line_utf16 += 1 + (ch > 0xffffu);
+    }
+
+    void copy_char()
+    {
+        utils::append_utf32_to_utf8(result.operands.text, *input.next);
+        consume();
+    }
+
+    [[nodiscard]] position cur_pos() noexcept { return position(input.line, input.char_position_in_line_utf16); }
+
+    void consume_rest()
+    {
+        append_current_operand();
+        while (except<U' '>())
+            consume();
+        adjust_lines();
+        if (!eof())
+            lex_last_remark();
+    }
+
+    [[nodiscard]] auto adjust_range(range r) const noexcept { return holder->parser->provider.adjust_range(r); }
+
+    void add_diagnostic(diagnostic_op (&d)(const range&))
+    {
+        holder->parser->add_diagnostic(d(holder->parser->provider.adjust_range(range(cur_pos()))));
+        holder->error_handler->singal_error();
+        consume_rest();
+    }
+
+    position last_operand_start;
+    void append_current_operand()
+    {
+        if (const auto e = cur_pos(); last_operand_start != e)
+            result.operands.text_ranges.push_back(adjust_range({ last_operand_start, e }));
+    }
+
+    void lex_last_remark()
+    {
+        // skip spaces
+        while (follows<U' '>())
+            consume();
+        adjust_lines();
+
+        const auto last_remark_start = cur_pos();
+        while (!eof())
+            consume();
+        adjust_lines();
+
+        if (const auto last_remark_end = cur_pos(); last_remark_start != last_remark_end)
+            result.operands.remarks.push_back(adjust_range({ last_remark_start, last_remark_end }));
+
+        last_operand_start = cur_pos();
+    }
+
+    void lex_line_remark()
+    {
+        while (follows<U' '>() && static_cast<size_t>(input.next - data) < *input.nl)
+            consume();
+
+        if (static_cast<size_t>(input.next - data) < *input.nl)
+        {
+            const auto last_remark_start = cur_pos();
+            while (!eof() && static_cast<size_t>(input.next - data) < *input.nl)
+                consume();
+
+            if (const auto remark_end = cur_pos(); last_remark_start != remark_end)
+                result.operands.remarks.push_back(adjust_range({ last_remark_start, remark_end }));
+        }
+    }
+
+    static constexpr const auto ord_first =
+        utils::create_truth_table("$_#@abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ");
+    static constexpr const auto ord =
+        utils::create_truth_table("$_#@abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789");
+    static constexpr const auto numbers = utils::create_truth_table("0123456789");
+    static constexpr const auto identifier_divider = utils::create_truth_table("*.-+=<>,()'/&| ");
+
+    [[nodiscard]] static constexpr bool is_ord_first(char32_t c) noexcept
+    {
+        return c < ord_first.size() && ord_first[c];
+    }
+    [[nodiscard]] constexpr bool is_ord_first() const noexcept { return is_ord_first(*input.next); }
+
+    [[nodiscard]] static constexpr bool is_ord(char32_t c) noexcept { return c < ord.size() && ord[c]; }
+    [[nodiscard]] constexpr bool is_ord() const noexcept { return is_ord(*input.next); }
+
+    [[nodiscard]] static constexpr bool is_num(char32_t c) noexcept { return c < numbers.size() && numbers[c]; }
+    [[nodiscard]] constexpr bool is_num() const noexcept { return is_num(*input.next); }
+
+    [[nodiscard]] constexpr bool eof() const noexcept { return *input.next == EOF_SYMBOL; }
+
+    template<char32_t... chars>
+    [[nodiscard]] constexpr bool except() const noexcept requires((chars != EOF_SYMBOL) && ...)
+    {
+        const auto ch = *input.next;
+        return ((ch != EOF_SYMBOL) && ... && (ch != chars));
+    }
+
+    template<char32_t... chars>
+    [[nodiscard]] constexpr bool follows() const noexcept requires((chars != EOF_SYMBOL) && ...)
+    {
+        const auto ch = *input.next;
+        return ((ch == chars) || ...);
+    }
+
+    static constexpr const auto failure = []() {};
+
+    struct [[nodiscard]] result_t
+    {
+        bool error = false;
+
+        result_t() = default;
+        explicit(false) result_t(decltype(failure))
+            : error(true)
+        {}
+    };
+
+    void copy_ordsymbol()
+    {
+        assert(is_ord_first());
+        do
+        {
+            copy_char();
+        } while (is_ord());
+    }
+
+    result_t lex_variable();
+
+    result_t lex_compound_variable()
+    {
+        assert(follows<U'('>());
+
+        copy_char();
+
+        while (!eof())
+        {
+            switch (*input.next)
+            {
+                case U')':
+                    copy_char();
+                    return {};
+
+                case U'&':
+                    if (auto [error] = lex_variable(); error)
+                        return failure;
+                    break;
+
+                    // TOOD: does not seem right to include these
+                    // case U'"':
+                    // case U'*':
+                    // case U'.':
+                    // case U'-':
+                    // case U'+':
+                    // case U'=':
+                    // case U'<':
+                    // case U'>':
+                    // case U',':
+                    // case U'(':
+                    // case U'\'':
+                    // case U'/':
+                    // case U'|':
+                    // case U' ':
+                    //     return failure;
+
+                default:
+                    copy_char();
+                    break;
+            }
+        }
+        return {};
+    }
+
+    result_t lex_expr_general()
+    {
+        while ((input.next[0] == U'N' || input.next[0] == U'n') && (input.next[1] == U'O' || input.next[1] == U'o')
+            && (input.next[2] == U'T' || input.next[2] == U'o') && input.next[3] == U' ')
+        {
+            copy_char();
+            copy_char();
+            copy_char();
+            do
+            {
+                copy_char();
+            } while (follows<U' '>());
+        }
+
+        if (auto [error] = lex_expr(); error)
+            return failure;
+
+        return {};
+    }
+
+    result_t lex_ca_string()
+    {
+        assert(follows<U'\''>());
+        do
+        {
+            copy_char();
+
+            while (except<U'\''>())
+            {
+                switch (*input.next)
+                {
+                    case U'&':
+                        if (input.next[1] == U'&')
+                        {
+                            copy_char();
+                            copy_char();
+                        }
+                        else if (auto [error] = lex_variable(); error)
+                            return failure;
+                        break;
+
+                    default:
+                        copy_char();
+                        break;
+                }
+            }
+
+            if (*input.next != U'\'')
+            {
+                add_diagnostic(diagnostic_op::error_S0005);
+                return failure;
+            }
+
+            copy_char();
+        } while (follows<U'\''>());
+
+        return {};
+    }
+
+    result_t lex_ca_string_with_optional_substring()
+    {
+        assert(follows<U'\''>());
+        if (auto [error] = lex_ca_string(); error)
+            return failure;
+        if (follows<U'('>())
+        {
+            copy_char();
+            if (auto [error] = lex_expr_general(); error)
+                return failure;
+            if (*input.next != U',')
+            {
+                add_diagnostic(diagnostic_op::error_S0003);
+                return failure;
+            }
+            copy_char();
+
+            if (follows<U'*'>())
+                copy_char();
+            else if (eof())
+            {
+                add_diagnostic(diagnostic_op::error_S0003);
+                return failure;
+            }
+            else if (auto [error] = lex_expr_general(); error)
+                return failure;
+
+            if (*input.next != U')')
+            {
+                add_diagnostic(diagnostic_op::error_S0011);
+                return failure;
+            }
+            copy_char();
+        }
+        return {};
+    }
+
+    void lex_optional_space()
+    {
+        while (follows<U' '>())
+            copy_char();
+    }
+
+    result_t lex_subscript_ne()
+    {
+        assert(follows<U'('>());
+
+        copy_char();
+        if (follows<U' '>())
+        {
+            lex_optional_space();
+            if (auto [error] = lex_expr(); error)
+                return failure;
+            lex_optional_space();
+        }
+        else
+        {
+            if (auto [error] = lex_expr(); error)
+                return failure;
+            if (*input.next != U',')
+            {
+                add_diagnostic(diagnostic_op::error_S0002);
+                return failure;
+            }
+            copy_char();
+            if (eof())
+            {
+                add_diagnostic(diagnostic_op::error_S0003);
+                return failure;
+            }
+            if (auto [error] = lex_expr(); error)
+                return failure;
+            while (follows<U','>())
+            {
+                copy_char();
+                if (eof())
+                {
+                    add_diagnostic(diagnostic_op::error_S0003);
+                    return failure;
+                }
+                if (auto [error] = lex_expr(); error)
+                    return failure;
+            }
+        }
+        if (*input.next != U')')
+        {
+            add_diagnostic(diagnostic_op::error_S0011);
+            return failure;
+        }
+        copy_char();
+
+        return {};
+    }
+
+    result_t lex_term()
+    {
+        switch (*input.next)
+        {
+            case EOF_SYMBOL:
+                add_diagnostic(diagnostic_op::error_S0003);
+                return failure;
+
+            case U'&':
+                if (auto [error] = lex_variable(); error)
+                    return failure;
+                return {};
+
+            case U'-':
+                copy_char();
+                if (!follows<U'0', U'1', U'2', U'3', U'4', U'5', U'6', U'7', U'8', U'9'>())
+                {
+                    add_diagnostic(diagnostic_op::error_S0002);
+                    return failure;
+                }
+                [[fallthrough]];
+            case U'0':
+            case U'1':
+            case U'2':
+            case U'3':
+            case U'4':
+            case U'5':
+            case U'6':
+            case U'7':
+            case U'8':
+            case U'9':
+                do
+                {
+                    copy_char();
+                } while (is_num());
+                return {};
+
+            case U'\'':
+                if (auto [error] = lex_ca_string_with_optional_substring(); error)
+                    return failure;
+                return {};
+
+            case U'(': {
+                [[maybe_unused]] bool multiple_expr = false;
+                copy_char();
+                if (eof())
+                {
+                    add_diagnostic(diagnostic_op::error_S0003);
+                    return failure;
+                }
+                if (auto [error] = lex_expr_general(); error)
+                    return failure;
+
+                while (follows<U','>())
+                {
+                    copy_char();
+                    if (eof())
+                    {
+                        add_diagnostic(diagnostic_op::error_S0003);
+                        return failure;
+                    }
+                    multiple_expr = true;
+                    if (auto [error] = lex_expr_general(); error)
+                        return failure;
+                }
+                if (*input.next != U')')
+                {
+                    add_diagnostic(diagnostic_op::error_S0011);
+                    return failure;
+                }
+                copy_char();
+
+                if (follows<U'\''>())
+                {
+                    if (auto [error] = lex_ca_string_with_optional_substring(); error)
+                        return failure;
+                }
+                else if (is_ord_first())
+                {
+                    copy_ordsymbol();
+                    if (*input.next != U'(')
+                    {
+                        add_diagnostic(diagnostic_op::error_S0002);
+                        return failure;
+                    }
+                    if (auto [error] = lex_subscript_ne(); error)
+                        return failure;
+                }
+                return {};
+            }
+
+            default:
+                if (!is_ord_first())
+                {
+                    add_diagnostic(diagnostic_op::error_S0002);
+                    return failure;
+                }
+                break;
+        }
+        assert(is_ord_first());
+        if (input.next[1] == U'\'')
+        {
+            switch (*input.next)
+            {
+                case U'B':
+                case U'X':
+                case U'C':
+                case U'G':
+                case U'b':
+                case U'x':
+                case U'c':
+                case U'g':
+                    copy_char();
+                    while (follows<U'\''>())
+                    {
+                        if (auto [error] = lex_simple_string(); error)
+                            return failure;
+                    }
+                    return {};
+
+                case U'N':
+                case U'K':
+                case U'D':
+                case U'O':
+                case U'S':
+                case U'I':
+                case U'L':
+                case U'T':
+                case u'n':
+                case u'k':
+                case u'd':
+                case U'o':
+                case U's':
+                case U'i':
+                case U'l':
+                case U't':
+                    copy_char();
+                    copy_char();
+                    switch (*input.next)
+                    {
+                        case EOF_SYMBOL:
+                            add_diagnostic(diagnostic_op::error_S0003);
+                            return failure;
+                        case U'&':
+                            if (auto [error] = lex_variable(); error)
+                                return failure;
+                            break;
+                        case U'=':
+                            // TODO: literals????
+                            if (auto [error] = lex_literal(); error)
+                                return failure;
+                            break;
+                        default:
+                            if (!is_ord_first())
+                            {
+                                add_diagnostic(diagnostic_op::error_S0002);
+                                return failure;
+                            }
+                            copy_ordsymbol();
+                            break;
+                    }
+                    return {};
+            }
+        }
+        copy_ordsymbol();
+        if (follows<U'('>())
+        {
+            if (auto [error] = lex_subscript_ne(); error)
+                return failure;
+        }
+        return {};
+    }
+
+    result_t lex_literal()
+    {
+        // TODO: this is really not done
+        // approximate without implementing machine expressions
+        assert(follows<U'='>());
+        copy_char();
+        if (follows<U'('>())
+        {
+            while (except<U')'>())
+                copy_char();
+            if (*input.next != U')')
+            {
+                add_diagnostic(diagnostic_op::error_S0011);
+                return failure;
+            }
+            copy_char();
+        }
+        else if (is_num())
+        {
+            do
+            {
+                copy_char();
+            } while (is_num());
+        }
+        if (!is_ord_first())
+        {
+            add_diagnostic(diagnostic_op::error_S0002);
+            return failure;
+        }
+        copy_ordsymbol();
+        if (follows<U'('>())
+        {
+            while (except<U')'>())
+                copy_char();
+            if (*input.next != U')')
+            {
+                add_diagnostic(diagnostic_op::error_S0011);
+                return failure;
+            }
+            copy_char();
+        }
+        else if (follows<U'\''>())
+        {
+            while (except<U'\''>())
+                copy_char();
+            if (*input.next != U'\'')
+            {
+                add_diagnostic(diagnostic_op::error_S0011);
+                return failure;
+            }
+            copy_char();
+        }
+        return {};
+    }
+
+    result_t lex_simple_string()
+    {
+        assert(follows<U'\''>());
+
+        copy_char();
+        while (except<U'\'', U'&'>())
+            copy_char();
+        if (*input.next != U'\'')
+        {
+            add_diagnostic(diagnostic_op::error_S0005);
+            return failure;
+        }
+        copy_char();
+
+        return {};
+    }
+
+    result_t lex_term_c()
+    {
+        while (input.next[0] == U'+' || (input.next[0] == U'-' && is_num(input.next[1])))
+            copy_char();
+        if (auto [error] = lex_term(); error)
+            return failure;
+        return {};
+    }
+
+    result_t lex_expr_s()
+    {
+        if (auto [error] = lex_term_c(); error)
+            return failure;
+
+        while (follows<U'*', U'/'>())
+        {
+            copy_char();
+            if (auto [error] = lex_term_c(); error)
+                return failure;
+        }
+
+        return {};
+    }
+
+    result_t lex_expr()
+    {
+        if (auto [error] = lex_expr_s(); error)
+            return failure;
+
+        switch (*input.next)
+        {
+            case '+':
+            case '-':
+                while (follows<U'+', U'-'>())
+                {
+                    copy_char();
+                    if (auto [error] = lex_expr_s(); error)
+                        return failure;
+                }
+                break;
+            case '.':
+                while (follows<U'.'>())
+                {
+                    copy_char();
+                    if (auto [error] = lex_term_c(); error)
+                        return failure;
+                }
+                break;
+        }
+
+        return {};
+    }
+
+    result_t lex_subscript()
+    {
+        assert(follows<U'('>());
+        copy_char();
+
+        while (!eof())
+        {
+            switch (*input.next)
+            {
+                case U')':
+                    copy_char();
+                    return {};
+
+                case U',':
+                    copy_char();
+                    break;
+
+                default:
+                    if (auto [error] = lex_expr(); error)
+                        return failure;
+                    break;
+            }
+        }
+
+        add_diagnostic(diagnostic_op::error_S0011);
+        return failure;
+    }
+
+    result_t lex_operand()
+    {
+        bool next_char_special = true;
+        while (!eof())
+        {
+            const bool last_char_special = std::exchange(next_char_special, true);
+            switch (*input.next)
+            {
+                case U'(':
+                    if (auto [error] = process_list(); error)
+                        return failure;
+                    break;
+
+                case U' ':
+                case U')':
+                case U',':
+                    return {};
+
+                case U'\'':
+                    copy_char();
+                    while (except<U'\''>())
+                    {
+                        if (except<U'&'>())
+                            copy_char();
+                        else if (input.next[1] == U'&')
+                        {
+                            copy_char();
+                            copy_char();
+                        }
+                        else if (auto [error] = lex_variable(); error)
+                            return failure;
+                    }
+                    if (*input.next != U'\'') // also means EOF
+                    {
+                        add_diagnostic(diagnostic_op::error_S0005);
+                        return failure;
+                    }
+                    copy_char();
+                    next_char_special = false;
+                    break;
+
+                case U'&':
+                    if (input.next[1] == U'&')
+                    {
+                        copy_char();
+                        copy_char();
+                    }
+                    else if (auto [error] = lex_variable(); error)
+                    {
+                        return failure;
+                    }
+                    next_char_special = false;
+                    break;
+
+                case U'O':
+                case U'S':
+                case U'I':
+                case U'L':
+                case U'T':
+                case U'o':
+                case U's':
+                case U'i':
+                case U'l':
+                case U't':
+                    if (!last_char_special || input.next[1] != U'\'')
+                    {
+                        copy_char();
+                        next_char_special = false;
+                        break;
+                    }
+                    else if (is_ord_first(input.next[2]) || input.next[2] == '=')
+                    {
+                        copy_char();
+                        copy_char();
+                        next_char_special = false;
+                        break;
+                    }
+                    else if (input.next[2] != U'&' && input.next[2] != EOF_SYMBOL)
+                    {
+                        copy_char();
+                        next_char_special = false;
+                        break;
+                    }
+
+                    while (except<U',', U')', U' '>())
+                    {
+                        if (*input.next != U'&')
+                            copy_char();
+                        else if (input.next[1] == U'&')
+                        {
+                            copy_char();
+                            copy_char();
+                        }
+                        else if (auto [error] = lex_variable(); error)
+                            return failure;
+                    }
+                    break;
+
+                default:
+                    next_char_special = *input.next >= ord.size() || !ord[*input.next];
+                    copy_char();
+                    break;
+            }
+        }
+        return {};
+    }
+
+    void process_optional_line_remark()
+    {
+        if (follows<U' '>() && static_cast<size_t>(input.next - data) < *input.nl)
+        {
+            append_current_operand();
+
+            lex_line_remark();
+
+            adjust_lines();
+            last_operand_start = cur_pos();
+        }
+    }
+
+    result_t process_list()
+    {
+        assert(follows<U'('>());
+
+        copy_char();
+
+        if (auto [error] = lex_operand(); error)
+            return failure;
+
+        while (follows<U','>())
+        {
+            copy_char();
+            process_optional_line_remark();
+            if (auto [error] = lex_operand(); error)
+                return failure;
+        }
+
+        if (*input.next != U')')
+        {
+            add_diagnostic(diagnostic_op::error_S0011);
+            return failure;
+        }
+        copy_char();
+
+        return {};
+    }
+
+    void preprocess(bool reparse)
+    {
+        result.op_range = adjust_range({ cur_pos(), cur_pos() });
+        result.op_logical_column = input.char_position_in_line;
+        result.operands.total_op_range = result.op_range;
+
+        if (eof())
+            return;
+
+        if (!reparse && *input.next != U' ')
+        {
+            add_diagnostic(diagnostic_op::error_S0002);
+            consume_rest();
+            result.op_range.end = cur_pos();
+            return;
+        }
+
+        // skip spaces
+        while (follows<U' '>())
+            consume();
+        adjust_lines();
+
+        result.op_range = range(cur_pos());
+        result.op_logical_column = input.char_position_in_line;
+
+        last_operand_start = cur_pos();
+
+        // process operands
+        while (!eof())
+        {
+            switch (*input.next)
+            {
+                case U' ':
+                    append_current_operand();
+                    lex_last_remark();
+                    goto end;
+
+                case U',':
+                    copy_char();
+                    process_optional_line_remark();
+                    break;
+
+                case U'O':
+                case U'S':
+                case U'I':
+                case U'L':
+                case U'T':
+                case U'o':
+                case U's':
+                case U'i':
+                case U'l':
+                case U't':
+                    if (input.next[1] == U'\'')
+                    {
+                        if (auto [error] = lex_operand(); error)
+                        {
+                            consume_rest();
+                            goto end;
+                        }
+                        break;
+                    }
+                    [[fallthrough]];
+
+                case U'$':
+                case U'_':
+                case U'#':
+                case U'@':
+                case U'a':
+                case U'b':
+                case U'c':
+                case U'd':
+                case U'e':
+                case U'f':
+                case U'g':
+                case U'h':
+                case U'j':
+                case U'k':
+                case U'm':
+                case U'n':
+                case U'p':
+                case U'q':
+                case U'r':
+                case U'u':
+                case U'v':
+                case U'w':
+                case U'x':
+                case U'y':
+                case U'z':
+                case U'A':
+                case U'B':
+                case U'C':
+                case U'D':
+                case U'E':
+                case U'F':
+                case U'G':
+                case U'H':
+                case U'J':
+                case U'K':
+                case U'M':
+                case U'N':
+                case U'P':
+                case U'Q':
+                case U'R':
+                case U'U':
+                case U'V':
+                case U'W':
+                case U'X':
+                case U'Y':
+                case U'Z':
+                    copy_ordsymbol();
+                    if (follows<U'='>())
+                        copy_char();
+                    if (const auto n = *input.next; n == EOF_SYMBOL || n == U' ' || n == U',')
+                        continue;
+                    [[fallthrough]];
+
+                case U'\'':
+                case U'&':
+                default:
+                    if (auto [error] = lex_operand(); error)
+                    {
+                        consume_rest();
+                        goto end;
+                    }
+                    break;
+
+                case U')':
+                    add_diagnostic(diagnostic_op::error_S0012);
+                    consume_rest();
+                    goto end;
+
+                case U'(':
+                    if (auto [error] = process_list(); error)
+                    {
+                        consume_rest();
+                        goto end;
+                    }
+                    break;
+            }
+        }
+    end:;
+        append_current_operand();
+
+        if (auto& ops = result.operands; !ops.text_ranges.empty())
+            ops.total_op_range = union_range(ops.text_ranges.front(), ops.text_ranges.back());
+
+        adjust_lines();
+        result.op_range.end = cur_pos();
+    }
+
+    macro_preprocessor_t(const parser_holder* h)
+        : holder(h)
+        , cont(h->lex->get_continuation_column())
+    {
+        std::tie(input, data) = holder->lex->peek_initial_input_state();
+    }
+};
+
+parser_holder::macro_preprocessor_t::result_t parser_holder::macro_preprocessor_t::lex_variable()
+{
+    assert(follows<U'&'>());
+    copy_char();
+    if (follows<U'('>())
+    {
+        if (auto [error] = lex_compound_variable(); error)
+            return failure;
+    }
+    else if (!is_ord_first())
+    {
+        add_diagnostic(diagnostic_op::error_S0008);
+        return failure;
+    }
+    else
+        copy_ordsymbol();
+
+    if (follows<U'('>())
+    {
+        if (auto [error] = lex_subscript(); error)
+            return failure;
+    }
+
+    return {};
+}
+
+
+parser_holder::mac_op_data parser_holder::macro_preprocessor(bool reparse) const
+{
+    macro_preprocessor_t p(this);
+    p.preprocess(reparse);
+    return std::move(p.result);
 }
 
 } // namespace hlasm_plugin::parser_library::parsing

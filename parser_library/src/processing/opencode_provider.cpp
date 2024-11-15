@@ -436,7 +436,7 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordin
                     h.op_rem_body_dat();
                     break;
                 default: {
-                    auto [reparse_data, line_range, line_logical_column] = h.op_rem_body_mac();
+                    auto [reparse_data, line_range, line_logical_column] = h.macro_preprocessor(false);
 
                     semantics::operand_list op_list;
                     if (!h.error_handler->error_reported() && !reparse_data.text.empty())

@@ -101,6 +101,7 @@ void lexer::reset(position file_offset, size_t logical_column, bool process_allo
     last_line.line = -1;
 
     token_start_state_ = input_state_;
+    initial_input_state = input_state_;
 
     for (auto bump_line = file_offset.column; auto& ll : line_limits)
     {

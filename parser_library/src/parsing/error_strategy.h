@@ -37,6 +37,7 @@ class error_strategy final : public antlr4::DefaultErrorStrategy
 
 public:
     bool error_reported() const { return m_error_reported; }
+    void singal_error() { m_error_reported = true; }
 
     void enable_lookahead_recovery();
     void disable_lookahead_recovery();
