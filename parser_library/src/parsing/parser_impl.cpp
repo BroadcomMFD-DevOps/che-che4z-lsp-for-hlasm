@@ -511,12 +511,14 @@ struct parser_holder::macro_preprocessor_t
 
     [[nodiscard]] position cur_pos() noexcept { return position(input.line, input.char_position_in_line_utf16); }
 
-    void consume_rest() noexcept
+    void consume_rest()
     {
         append_current_operand();
-        while (!eof())
+        while (except<U' '>())
             consume();
         adjust_lines();
+        if (!eof())
+            lex_last_remark();
     }
 
     [[nodiscard]] auto adjust_range(range r) const noexcept { return holder->parser->provider.adjust_range(r); }
@@ -532,7 +534,7 @@ struct parser_holder::macro_preprocessor_t
     void append_current_operand()
     {
         if (const auto e = cur_pos(); last_operand_start != e)
-            result.operands.text_ranges.emplace_back(last_operand_start, e);
+            result.operands.text_ranges.push_back(adjust_range({ last_operand_start, e }));
     }
 
     void lex_last_remark()
@@ -565,7 +567,7 @@ struct parser_holder::macro_preprocessor_t
                 consume();
 
             if (const auto remark_end = cur_pos(); last_remark_start != remark_end)
-                result.operands.remarks.emplace_back(last_remark_start, remark_end);
+                result.operands.remarks.push_back(adjust_range({ last_remark_start, remark_end }));
         }
     }
 
