@@ -890,8 +890,8 @@ TEST_P(parser_data_attribute_fixture, list_1_elem_number)
     }
     else
     {
-        EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005", "S0005", "S0005" }));
-        EXPECT_TRUE(matches_diagnosed_line_ranges(a->diags(), { { 2, 2 }, { 4, 4 }, { 5, 5 } }));
+        EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005", "S0005", "S0005", "S0005" }));
+        EXPECT_TRUE(matches_diagnosed_line_ranges(a->diags(), { { 2, 2 }, { 4, 4 }, { 5, 5 }, { 5, 5 } }));
     }
 
     EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR2"), GetParam().name + "'9'");
@@ -918,8 +918,8 @@ TEST_P(parser_data_attribute_fixture, list_1_elem_negative_number)
     }
     else
     {
-        EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005", "S0005", "S0005" }));
-        EXPECT_TRUE(matches_diagnosed_line_ranges(a->diags(), { { 2, 2 }, { 4, 4 }, { 5, 5 } }));
+        EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005", "S0005", "S0005", "S0005" }));
+        EXPECT_TRUE(matches_diagnosed_line_ranges(a->diags(), { { 2, 2 }, { 4, 4 }, { 5, 5 }, { 5, 5 } }));
     }
 
     EXPECT_EQ(get_var_value<C_t>(a->hlasm_ctx(), "STR2"), GetParam().name + "'-9'");
