@@ -145,11 +145,11 @@ protected:
         return literal_controller(*this, true);
     }
 
-    self_def_t parse_self_def_term(const std::string& option, const std::string& value, range term_range);
-    self_def_t parse_self_def_term_in_mach(const std::string& option, const std::string& value, range term_range);
+    self_def_t parse_self_def_term(std::string_view option, std::string_view value, range term_range);
+    self_def_t parse_self_def_term_in_mach(std::string_view option, std::string_view value, range term_range);
     context::data_attr_kind get_attribute(std::string attr_data);
     context::id_index parse_identifier(std::string value, range id_range);
-    size_t get_loctr_len() const;
+    int get_loctr_len() const;
     bool loctr_len_allowed(const std::string& attr) const;
 
     void resolve_expression(expressions::ca_expr_ptr& expr, context::SET_t_enum type) const;
@@ -218,7 +218,7 @@ struct parser_holder
     virtual void lookahead_operands_and_remarks_asm() const = 0;
     virtual void lookahead_operands_and_remarks_dat() const = 0;
 
-    virtual semantics::operand_list macro_ops() const = 0;
+    semantics::operand_list macro_ops(bool reparse) const;
     virtual semantics::op_rem op_rem_body_asm_r() const = 0;
     virtual semantics::op_rem op_rem_body_mach_r() const = 0;
     virtual semantics::op_rem op_rem_body_dat_r() const = 0;
@@ -243,7 +243,6 @@ struct parser_holder
 
     virtual semantics::literal_si literal_reparse() const = 0;
 
-    mac_op_data macro_preprocessor(bool reparse) const;
     void prepare_parser(lexing::u8string_view_with_newlines text,
         context::hlasm_context* hlasm_ctx,
         diagnostic_op_consumer* diags,
