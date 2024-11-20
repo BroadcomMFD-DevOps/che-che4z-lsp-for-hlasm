@@ -688,7 +688,7 @@ struct parser_holder::macro_preprocessor_t
 
     struct
     {
-    } static constexpr const failure;
+    } static constexpr const failure = {};
 
     template<typename T = void>
     struct [[nodiscard]] result_t
@@ -704,13 +704,12 @@ struct parser_holder::macro_preprocessor_t
         {}
     };
 
-    template<>
-    struct [[nodiscard]] result_t<void>
+    struct [[nodiscard]] result_t_void
     {
         bool error = false;
 
-        constexpr result_t() = default;
-        constexpr explicit(false) result_t(decltype(failure))
+        constexpr result_t_void() = default;
+        constexpr explicit(false) result_t_void(decltype(failure))
             : error(true)
         {}
     };
@@ -2192,7 +2191,7 @@ struct parser_holder::macro_preprocessor_t
         return result;
     }
 
-    result_t<void> lex_operand(concat_chain& cc, bool next_char_special)
+    result_t_void lex_operand(concat_chain& cc, bool next_char_special)
     {
         char_str_conc* last_text_state = nullptr;
         const auto last_text = [&]() {
@@ -2403,7 +2402,7 @@ struct parser_holder::macro_preprocessor_t
         }
     }
 
-    result_t<void> process_list(std::vector<concat_chain>& cc)
+    result_t_void process_list(std::vector<concat_chain>& cc)
     {
         assert(follows<U'('>());
 
