@@ -524,6 +524,8 @@ INSTANTIATE_TEST_SUITE_P(highlighting,
 )",
             semantics::lines_info {
                 token_info({ { 1, 8 }, { 1, 11 } }, hl_scopes::instruction),
+
+                token_info({ { 1, 14 }, { 1, 17 } }, hl_scopes::operand),
             },
         },
         test_params {
@@ -533,7 +535,7 @@ INSTANTIATE_TEST_SUITE_P(highlighting,
             semantics::lines_info {
                 token_info({ { 1, 8 }, { 1, 11 } }, hl_scopes::instruction),
 
-                token_info({ { 1, 14 }, { 1, 15 } }, hl_scopes::operand),
+                token_info({ { 1, 14 }, { 1, 16 } }, hl_scopes::operand),
             },
         },
         test_params {

@@ -436,39 +436,7 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordin
                     h.op_rem_body_dat();
                     break;
                 default: {
-                    auto [reparse_data, line_range, line_logical_column] = h.macro_preprocessor(false);
-
-                    semantics::operand_list op_list;
-                    if (!h.error_handler->error_reported() && !reparse_data.text.empty())
-                    {
-                        semantics::range_provider tmp_provider(reparse_data.total_op_range,
-                            std::move(reparse_data.text_ranges),
-                            semantics::adjusting_state::MACRO_REPARSE,
-                            h.lex->get_line_limits());
-
-                        const auto& h_second =
-                            prepare_operand_parser(lexing::u8string_view_with_newlines(reparse_data.text),
-                                *m_ctx.hlasm_ctx,
-                                format.form == processing_form::UNKNOWN ? &diags_filter : diags,
-                                std::move(tmp_provider),
-                                reparse_data.total_op_range,
-                                line_logical_column,
-                                proc_status);
-
-                        op_list = h_second.macro_ops();
-
-                        auto& c = h.parser->get_collector();
-                        auto& c_s = h_second.parser->get_collector();
-                        if (&c != &c_s)
-                        {
-                            c.set_literals(c_s.take_literals());
-                            c.set_hl_symbols(c_s.extract_hl_symbols());
-                        }
-                    }
-
-                    h.parser->get_collector().set_operand_remark_field(
-                        std::move(op_list), std::move(reparse_data.remarks), line_range);
-
+                    (void)h.macro_ops(false);
                     break;
                 }
             }

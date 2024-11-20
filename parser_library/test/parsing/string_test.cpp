@@ -304,10 +304,7 @@ TEST_P(parser_data_attribute_fixture, missing_apostrophe)
 
     auto a = analyze(input, GetParam().name);
 
-    if (GetParam().is_consuming)
-        EXPECT_TRUE(matches_message_codes(a->diags(), { "S0003" }));
-    else
-        EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
+    EXPECT_TRUE(matches_message_codes(a->diags(), { "S0005" }));
 }
 
 TEST_P(parser_data_attribute_fixture, no_ending_apostrophe)

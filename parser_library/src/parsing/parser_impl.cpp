@@ -23,6 +23,7 @@
 #include "expressions/conditional_assembly/ca_expr_visitor.h"
 #include "expressions/conditional_assembly/ca_expression.h"
 #include "expressions/conditional_assembly/terms/ca_constant.h"
+#include "expressions/nominal_value.h"
 #include "hlasmparser_multiline.h"
 #include "hlasmparser_singleline.h"
 #include "lexing/string_with_newlines.h"
@@ -98,7 +99,6 @@ struct parser_holder_impl final : parser_holder
     void lookahead_operands_and_remarks_asm() const override { get_parser().lookahead_operands_and_remarks_asm(); }
     void lookahead_operands_and_remarks_dat() const override { get_parser().lookahead_operands_and_remarks_dat(); }
 
-    semantics::operand_list macro_ops() const override { return std::move(get_parser().macro_ops()->list); }
     semantics::op_rem op_rem_body_asm_r() const override { return std::move(get_parser().op_rem_body_asm_r()->line); }
     semantics::op_rem op_rem_body_mach_r() const override { return std::move(get_parser().op_rem_body_mach_r()->line); }
     semantics::op_rem op_rem_body_dat_r() const override { return std::move(get_parser().op_rem_body_dat_r()->line); }
@@ -148,13 +148,13 @@ bool parser_impl::is_self_def()
     return tmp == "B" || tmp == "X" || tmp == "C" || tmp == "G";
 }
 
-self_def_t parser_impl::parse_self_def_term(const std::string& option, const std::string& value, range term_range)
+self_def_t parser_impl::parse_self_def_term(std::string_view option, std::string_view value, range term_range)
 {
     auto add_diagnostic = diagnoser_ ? diagnostic_adder(*diagnoser_, term_range) : diagnostic_adder(term_range);
     return expressions::ca_constant::self_defining_term(option, value, add_diagnostic);
 }
 
-self_def_t parser_impl::parse_self_def_term_in_mach(const std::string& type, const std::string& value, range term_range)
+self_def_t parser_impl::parse_self_def_term_in_mach(std::string_view type, std::string_view value, range term_range)
 {
     auto add_diagnostic = diagnoser_ ? diagnostic_adder(*diagnoser_, term_range) : diagnostic_adder(term_range);
     if (type.size() == 1)
@@ -182,7 +182,7 @@ self_def_t parser_impl::parse_self_def_term_in_mach(const std::string& type, con
 
                 auto it = std::ranges::find_if(value, [](auto c) { return c != '-' && c != '+'; });
 
-                if (it - value.begin() > 1 || value.front() == '-' && value.size() > 11)
+                if (it - value.begin() > 1 || (value.front() == '-' && value.size() > 11))
                 {
                     add_diagnostic(diagnostic_op::error_CE007);
                     return 0;
@@ -237,7 +237,7 @@ context::id_index parser_impl::parse_identifier(std::string value, range id_rang
     return hlasm_ctx->ids().add(std::move(value));
 }
 
-size_t parser_impl::get_loctr_len() const
+int parser_impl::get_loctr_len() const
 {
     auto [_, opcode] = *proc_status;
     return processing::processing_status_cache_key::generate_loctr_len(opcode.value.to_string_view());
@@ -465,7 +465,8 @@ struct parser_holder::macro_preprocessor_t
     input_state_t input;
     const lexing::char_t* data;
 
-    mac_op_data result {};
+    std::vector<range> remarks;
+    mac_op_data mac_op_results {};
 
     void adjust_lines() noexcept
     {
@@ -482,28 +483,37 @@ struct parser_holder::macro_preprocessor_t
         return;
     }
 
-    void consume() noexcept
+    template<hl_scopes... s>
+    requires(sizeof...(s) <= 1) void consume() noexcept
     {
         const auto ch = *input.next;
         assert(!eof());
 
         adjust_lines();
+
+        [[maybe_unused]] const auto pos = cur_pos();
+
         ++input.next;
         ++input.char_position_in_line;
         input.char_position_in_line_utf16 += 1 + (ch > 0xffffu);
-    }
 
-    void copy_char()
-    {
-        utils::append_utf32_to_utf8(result.operands.text, *input.next);
-        consume();
+        [[maybe_unused]] const auto end = cur_pos();
+
+        if constexpr (sizeof...(s))
+        {
+            add_hl_symbol<s...>({ pos, end });
+        }
     }
 
     [[nodiscard]] position cur_pos() noexcept { return position(input.line, input.char_position_in_line_utf16); }
+    [[nodiscard]] position cur_pos_adjusted() noexcept
+    {
+        adjust_lines();
+        return position(input.line, input.char_position_in_line_utf16);
+    }
 
     void consume_rest()
     {
-        append_current_operand();
         while (except<U' '>())
             consume();
         adjust_lines();
@@ -520,11 +530,23 @@ struct parser_holder::macro_preprocessor_t
         consume_rest();
     }
 
-    position last_operand_start;
-    void append_current_operand()
+    void add_diagnostic(diagnostic_op d)
     {
-        if (const auto e = cur_pos(); last_operand_start != e)
-            result.operands.text_ranges.push_back(adjust_range({ last_operand_start, e }));
+        holder->parser->add_diagnostic(std::move(d));
+        holder->error_handler->singal_error();
+        consume_rest();
+    }
+
+    template<hl_scopes s>
+    void add_hl_symbol(const range& r)
+    {
+        add_hl_symbol_adjusted<s>(adjust_range(r));
+    }
+
+    template<hl_scopes s>
+    void add_hl_symbol_adjusted(const range& r)
+    {
+        holder->parser->get_collector().add_hl_symbol(token_info(r, s));
     }
 
     void lex_last_remark()
@@ -540,9 +562,7 @@ struct parser_holder::macro_preprocessor_t
         adjust_lines();
 
         if (const auto last_remark_end = cur_pos(); last_remark_start != last_remark_end)
-            result.operands.remarks.push_back(adjust_range({ last_remark_start, last_remark_end }));
-
-        last_operand_start = cur_pos();
+            remarks.push_back(adjust_range({ last_remark_start, last_remark_end }));
     }
 
     void lex_line_remark()
@@ -557,7 +577,7 @@ struct parser_holder::macro_preprocessor_t
                 consume();
 
             if (const auto remark_end = cur_pos(); last_remark_start != remark_end)
-                result.operands.remarks.push_back(adjust_range({ last_remark_start, remark_end }));
+                remarks.push_back(adjust_range({ last_remark_start, remark_end }));
         }
     }
 
@@ -597,6 +617,20 @@ struct parser_holder::macro_preprocessor_t
     }
 
     template<char32_t... chars>
+    [[nodiscard]] constexpr bool must_follow() requires((chars != EOF_SYMBOL) && ...)
+    {
+        if (follows<chars...>())
+            return true;
+
+        if (*input.next == EOF_SYMBOL)
+            add_diagnostic(diagnostic_op::error_S0003);
+        else
+            add_diagnostic(diagnostic_op::error_S0002);
+
+        return false;
+    }
+
+    template<char32_t... chars>
     [[nodiscard]] constexpr bool must_follow(diagnostic_op (&d)(const range&)) requires((chars != EOF_SYMBOL) && ...)
     {
         if (follows<chars...>())
@@ -606,49 +640,128 @@ struct parser_holder::macro_preprocessor_t
         return false;
     }
 
-    static constexpr const auto failure = []() {};
+    template<char32_t... chars>
+    [[nodiscard]] constexpr bool match(diagnostic_op (&d)(const range&)) requires((chars != EOF_SYMBOL) && ...)
+    {
+        if (!follows<chars...>())
+        {
+            add_diagnostic(d);
+            return false;
+        }
+        consume();
+        return true;
+    }
 
+    template<hl_scopes s, char32_t... chars>
+    [[nodiscard]] constexpr bool match(diagnostic_op (&d)(const range&)) requires((chars != EOF_SYMBOL) && ...)
+    {
+        if (!follows<chars...>())
+        {
+            add_diagnostic(d);
+            return false;
+        }
+        consume<s>();
+        return true;
+    }
+
+    template<char32_t... chars>
+    [[nodiscard]] constexpr bool match() requires((chars != EOF_SYMBOL) && ...)
+    {
+        if (must_follow<chars...>())
+        {
+            consume();
+            return true;
+        }
+        return false;
+    }
+
+    template<hl_scopes s, char32_t... chars>
+    [[nodiscard]] constexpr bool match() requires((chars != EOF_SYMBOL) && ...)
+    {
+        if (must_follow<chars...>())
+        {
+            consume<s>();
+            return true;
+        }
+        return false;
+    }
+
+    struct
+    {
+    } static constexpr const failure;
+
+    template<typename T = void>
     struct [[nodiscard]] result_t
     {
         bool error = false;
+        T value = T {};
 
-        result_t() = default;
-        explicit(false) result_t(decltype(failure))
+        constexpr result_t(T v)
+            : value(std::move(v))
+        {}
+        constexpr explicit(false) result_t(decltype(failure))
             : error(true)
         {}
     };
 
-    void copy_ordsymbol()
+    template<>
+    struct [[nodiscard]] result_t<void>
+    {
+        bool error = false;
+
+        constexpr result_t() = default;
+        constexpr explicit(false) result_t(decltype(failure))
+            : error(true)
+        {}
+    };
+
+    result_t<id_index> lex_id()
     {
         assert(is_ord_first());
+
+        std::string name;
+
+        const auto start = cur_pos();
         do
         {
-            copy_char();
+            utils::append_utf32_to_utf8(name, *input.next);
+            consume();
         } while (is_ord());
+        const auto end = cur_pos();
+
+        auto id = holder->parser->parse_identifier(std::move(name), { start, end });
+        if (id.empty())
+            return failure;
+        else
+            return id;
     }
 
-    result_t lex_variable();
+    result_t<vs_ptr> lex_variable();
 
-    result_t lex_compound_variable()
+    result_t<concat_chain> lex_compound_variable()
     {
-        assert(follows<U'('>());
-
-        copy_char();
+        if (!except<U')'>())
+        {
+            add_diagnostic(diagnostic_op::error_S0002);
+            return failure;
+        }
+        concat_chain result;
 
         while (!eof())
         {
             switch (*input.next)
             {
                 case U')':
-                    copy_char();
-                    return {};
+                    return result;
 
                 case U'&':
-                    if (auto [error] = lex_variable(); error)
+                    if (auto [error, var] = lex_variable(); error)
                         return failure;
+                    else
+                        result.emplace_back(std::in_place_type<var_sym_conc>, std::move(var));
                     break;
 
-                    // TOOD: does not seem right to include these
+                    // TODO: does not seem right to include these
                     // case U'"':
                     // case U'*':
                     // case U'.':
@@ -664,13 +777,31 @@ struct parser_holder::macro_preprocessor_t
                     // case U'|':
                     // case U' ':
                     //     return failure;
-
-                default:
-                    copy_char();
+                case U'.': {
+                    const auto start = cur_pos_adjusted();
+                    consume<hl_scopes::operator_symbol>();
+                    result.emplace_back(std::in_place_type<dot_conc>, adjust_range({ start, cur_pos() }));
                     break;
+                }
+
+                default: {
+                    const auto start = cur_pos_adjusted();
+                    std::string collected;
+
+                    while (except<U')', U'&', U'.'>())
+                    {
+                        utils::append_utf32_to_utf8(collected, *input.next);
+                        consume();
+                    }
+                    const auto r = adjust_range({ start, cur_pos() });
+                    result.emplace_back(std::in_place_type<char_str_conc>, std::move(collected), r);
+                    add_hl_symbol_adjusted<hl_scopes::var_symbol>(r);
+                    break;
+                }
             }
         }
-        return {};
+        add_diagnostic(diagnostic_op::error_S0003);
+        return failure;
     }
 
     [[nodiscard]] constexpr bool follows_NOT_SPACE() const noexcept
@@ -679,157 +810,246 @@ struct parser_holder::macro_preprocessor_t
             && (input.next[2] == U'T' || input.next[2] == U'o') && input.next[3] == U' ';
     }
 
-    result_t lex_expr_general()
+    result_t<ca_expr_ptr> lex_expr_general()
     {
-        while (follows_NOT_SPACE())
+        const auto start = cur_pos_adjusted();
+        if (std::vector<ca_expr_ptr> ca_exprs; follows_NOT_SPACE())
         {
-            copy_char();
-            copy_char();
-            copy_char();
             do
             {
-                copy_char();
-            } while (follows<U' '>());
+                const auto start_not = cur_pos_adjusted();
+                consume();
+                consume();
+                consume();
+                const auto r = adjust_range({ start_not, cur_pos() });
+                add_hl_symbol_adjusted<hl_scopes::operand>(r);
+                ca_exprs.push_back(std::make_unique<ca_symbol>(id_index("NOT"), r));
+                lex_optional_space();
+            } while (follows_NOT_SPACE());
+
+            if (auto [error, e] = lex_expr(); error)
+                return failure;
+            else
+            {
+                ca_exprs.push_back(std::move(e));
+                return static_cast<ca_expr_ptr>(
+                    std::make_unique<ca_expr_list>(std::move(ca_exprs), adjust_range({ start, cur_pos() }), false));
+            }
         }
-
-        if (auto [error] = lex_expr(); error)
-            return failure;
-
-        return {};
+        else
+            return lex_expr();
     }
 
-    result_t lex_ca_string()
+    result_t<concat_chain> lex_ca_string_value()
     {
         assert(follows<U'\''>());
-        do
+        consume<hl_scopes::operator_symbol>();
+
+        concat_chain cc;
+
+        auto start = cur_pos_adjusted();
+        std::string s;
+        const auto dump_s = [&]() {
+            if (s.empty())
+                return;
+            cc.emplace_back(std::in_place_type<char_str_conc>, std::move(s), adjust_range({ start, cur_pos() }));
+            s.clear();
+        };
+        while (!eof())
         {
-            copy_char();
-
-            while (except<U'\''>())
+            switch (*input.next)
             {
-                switch (*input.next)
-                {
-                    case U'&':
-                        if (input.next[1] == U'&')
-                        {
-                            copy_char();
-                            copy_char();
-                        }
-                        else if (auto [error] = lex_variable(); error)
-                            return failure;
-                        break;
+                case U'.':
+                    dump_s();
+                    start = cur_pos_adjusted();
+                    consume();
+                    cc.emplace_back(std::in_place_type<dot_conc>, adjust_range({ start, cur_pos() }));
+                    start = cur_pos_adjusted();
+                    break;
 
-                    default:
-                        copy_char();
-                        break;
-                }
+                case U'=':
+                    dump_s();
+                    start = cur_pos_adjusted();
+                    consume();
+                    cc.emplace_back(std::in_place_type<equals_conc>, adjust_range({ start, cur_pos() }));
+                    start = cur_pos_adjusted();
+                    break;
+
+                case U'&':
+                    if (input.next[1] == U'&')
+                        s.push_back('&');
+                    else if (auto [error, vs] = (dump_s(), lex_variable()); error)
+                        return failure;
+                    else
+                    {
+                        cc.emplace_back(std::in_place_type<var_sym_conc>, std::move(vs));
+                        start = cur_pos_adjusted();
+                    }
+                    break;
+
+                case U'\'':
+                    if (input.next[1] != U'\'')
+                        goto done;
+                    consume();
+                    consume();
+                    s.push_back('\'');
+                    break;
+
+                default:
+                    utils::append_utf32_to_utf8(s, *input.next);
+                    consume();
+                    break;
             }
-
-            if (*input.next != U'\'')
-            {
-                add_diagnostic(diagnostic_op::error_S0005);
-                return failure;
-            }
-
-            copy_char();
-        } while (follows<U'\''>());
-
-        return {};
+        }
+    done:;
+        if (!match<hl_scopes::operator_symbol, U'\''>(diagnostic_op::error_S0005))
+            return failure;
+        concatenation_point::clear_concat_chain(cc);
+        return cc;
     }
 
-    result_t lex_ca_string_with_optional_substring()
+    result_t<std::pair<concat_chain, expressions::ca_string::substring_t>> lex_ca_string_with_optional_substring()
     {
         assert(follows<U'\''>());
-        if (auto [error] = lex_ca_string(); error)
+        concat_chain cc;
+        if (auto [error, cc_] = lex_ca_string_value(); error)
             return failure;
-        if (follows<U'('>())
+        else
+            cc = std::move(cc_);
+
+        if (!follows<U'('>())
+            return { { std::move(cc), expressions::ca_string::substring_t {} } };
+
+        const auto sub_start = cur_pos_adjusted();
+
+        ca_expr_ptr e1, e2;
+        consume<hl_scopes::operator_symbol>();
+        if (auto [error, e] = lex_expr_general(); error)
+            return failure;
+        else
+            e1 = std::move(e);
+
+        if (!match<hl_scopes::operator_symbol, U','>())
+            return failure;
+
+        if (follows<U'*'>())
         {
-            copy_char();
-            if (auto [error] = lex_expr_general(); error)
-                return failure;
-            if (*input.next != U',')
-            {
-                add_diagnostic(diagnostic_op::error_S0003);
-                return failure;
-            }
-            copy_char();
-
-            if (follows<U'*'>())
-                copy_char();
-            else if (eof())
-            {
-                add_diagnostic(diagnostic_op::error_S0003);
-                return failure;
-            }
-            else if (auto [error] = lex_expr_general(); error)
-                return failure;
-
-            if (*input.next != U')')
-            {
-                add_diagnostic(diagnostic_op::error_S0011);
-                return failure;
-            }
-            copy_char();
+            // TODO: no hightlighting?
+            consume();
         }
-        return {};
+        else if (eof())
+        {
+            add_diagnostic(diagnostic_op::error_S0003);
+            return failure;
+        }
+        else if (auto [error, e] = lex_expr_general(); error)
+            return failure;
+        else
+            e2 = std::move(e);
+
+        if (*input.next != U')')
+        {
+            add_diagnostic(diagnostic_op::error_S0011);
+            return failure;
+        }
+        consume<hl_scopes::operator_symbol>();
+
+        const auto sub_end = cur_pos();
+
+        return { {
+            std::move(cc),
+            expressions::ca_string::substring_t {
+                std::move(e1),
+                std::move(e2),
+                adjust_range({ sub_start, sub_end }),
+            },
+        } };
     }
 
-    void lex_optional_space()
+    bool lex_optional_space()
     {
+        bool matched = false;
         while (follows<U' '>())
-            copy_char();
+        {
+            consume();
+            matched = true;
+        }
+        return matched;
     }
 
-    result_t lex_subscript_ne()
+    result_t<std::vector<ca_expr_ptr>> lex_subscript_ne()
     {
         assert(follows<U'('>());
 
-        copy_char();
+        std::vector<ca_expr_ptr> result;
+
+        consume<hl_scopes::operator_symbol>();
         if (follows<U' '>())
         {
             lex_optional_space();
-            if (auto [error] = lex_expr(); error)
+            if (auto [error, e] = lex_expr(); error)
                 return failure;
+            else
+                result.push_back(std::move(e));
             lex_optional_space();
         }
         else
         {
-            if (auto [error] = lex_expr(); error)
+            if (auto [error, e] = lex_expr(); error)
                 return failure;
+            else
+                result.push_back(std::move(e));
             if (*input.next != U',')
             {
                 add_diagnostic(diagnostic_op::error_S0002);
                 return failure;
             }
-            copy_char();
+            consume<hl_scopes::operator_symbol>();
             if (eof())
             {
                 add_diagnostic(diagnostic_op::error_S0003);
                 return failure;
             }
-            if (auto [error] = lex_expr(); error)
+            if (auto [error, e] = lex_expr(); error)
                 return failure;
+            else
+                result.push_back(std::move(e));
             while (follows<U','>())
             {
-                copy_char();
+                consume<hl_scopes::operator_symbol>();
                 if (eof())
                 {
                     add_diagnostic(diagnostic_op::error_S0003);
                     return failure;
                 }
-                if (auto [error] = lex_expr(); error)
+                if (auto [error, e] = lex_expr(); error)
                     return failure;
+                else
+                    result.push_back(std::move(e));
             }
         }
-        if (!must_follow<U')'>(diagnostic_op::error_S0011))
+        if (!match<hl_scopes::operator_symbol, U')'>(diagnostic_op::error_S0011))
             return failure;
-        copy_char();
 
-        return {};
+        return result;
     }
 
-    result_t lex_term()
+    [[nodiscard]] auto parse_self_def_term(std::string_view type, std::string_view value, range r)
     {
+        return holder->parser->parse_self_def_term(type, value, r);
+    }
+    [[nodiscard]] auto parse_self_def_term_in_mach(std::string_view type, std::string_view value, range r)
+    {
+        return holder->parser->parse_self_def_term_in_mach(type, value, r);
+    }
+
+    [[nodiscard]] auto allow_literals() const { return holder->parser->allow_literals(); }
+    [[nodiscard]] auto disable_literals() const { return holder->parser->disable_literals(); }
+
+    result_t<ca_expr_ptr> lex_term()
+    {
+        const auto start = cur_pos_adjusted();
+        const auto initial = input.next;
         switch (*input.next)
         {
             case EOF_SYMBOL:
@@ -837,17 +1057,16 @@ struct parser_holder::macro_preprocessor_t
                 return failure;
 
             case U'&':
-                if (auto [error] = lex_variable(); error)
+                if (auto [error, v] = lex_variable(); error)
                     return failure;
-                return {};
+                else
+                    return static_cast<ca_expr_ptr>(
+                        std::make_unique<ca_var_sym>(std::move(v), adjust_range({ start, cur_pos() })));
 
             case U'-':
-                copy_char();
-                if (!follows<U'0', U'1', U'2', U'3', U'4', U'5', U'6', U'7', U'8', U'9'>())
-                {
-                    add_diagnostic(diagnostic_op::error_S0002);
+                consume();
+                if (!must_follow<U'0', U'1', U'2', U'3', U'4', U'5', U'6', U'7', U'8', U'9'>())
                     return failure;
-                }
                 [[fallthrough]];
             case U'0':
             case U'1':
@@ -858,81 +1077,161 @@ struct parser_holder::macro_preprocessor_t
             case U'6':
             case U'7':
             case U'8':
-            case U'9':
+            case U'9': {
                 do
                 {
-                    copy_char();
+                    consume();
                 } while (is_num());
-                return {};
+                const auto r = adjust_range({ start, cur_pos() });
+                add_hl_symbol_adjusted<hl_scopes::number>(r);
+                std::string v;
+                v.reserve(input.next - initial);
+                std::transform(initial, input.next, std::back_inserter(v), [](char32_t c) { return (char)c; });
+                return static_cast<ca_expr_ptr>(std::make_unique<ca_constant>(parse_self_def_term("D", v, r), r));
+            }
 
             case U'\'':
-                if (auto [error] = lex_ca_string_with_optional_substring(); error)
+                if (auto [error, s] = lex_ca_string_with_optional_substring(); error)
                     return failure;
-                return {};
+                else
+                {
+                    auto result = static_cast<ca_expr_ptr>(std::make_unique<expressions::ca_string>(
+                        std::move(s.first), ca_expr_ptr(), std::move(s.second), adjust_range({ start, cur_pos() })));
+
+                    while (follows<U'(', U'\''>())
+                    {
+                        const auto conc_start = cur_pos_adjusted();
+                        ca_expr_ptr nested_dupl;
+                        if (follows<U'('>())
+                        {
+                            consume<hl_scopes::operator_symbol>();
+                            if (auto [error2, dupl] = lex_expr_general(); error2)
+                                return failure;
+                            else if (!match<hl_scopes::operator_symbol, U')'>(diagnostic_op::error_S0011))
+                                return failure;
+                            else
+                                nested_dupl = std::move(dupl);
+                        }
+                        if (auto [error2, s2] = lex_ca_string_with_optional_substring(); error2)
+                            return failure;
+                        else
+                        {
+                            auto next = std::make_unique<expressions::ca_string>(std::move(s2.first),
+                                std::move(nested_dupl),
+                                std::move(s2.second),
+                                adjust_range({ conc_start, cur_pos() }));
+                            result = std::make_unique<ca_basic_binary_operator<ca_conc>>(
+                                std::move(result), std::move(next), adjust_range({ start, cur_pos() }));
+                        }
+                    }
+                    return result;
+                }
 
             case U'(': {
-                copy_char();
+                consume<hl_scopes::operator_symbol>();
                 if (eof())
                 {
                     add_diagnostic(diagnostic_op::error_S0003);
                     return failure;
                 }
 
+                ca_expr_ptr p_expr;
                 if (!follows_NOT_SPACE())
                 {
-                    auto spaces_found = follows<U' '>();
-                    size_t exprs = 0;
-                    while (except<U')'>())
-                    {
-                        spaces_found |= follows<U' '>();
-                        lex_optional_space();
-                        if (auto [error] = lex_expr(); error)
-                            return failure;
-                        ++exprs;
-                    }
-                    spaces_found |= follows<U' '>();
-                    lex_optional_space();
-                    if (!must_follow<U')'>(diagnostic_op::error_S0011))
+                    std::vector<ca_expr_ptr> expr_list;
+                    auto spaces_found = lex_optional_space();
+                    if (auto [error, e] = lex_expr(); error)
                         return failure;
-                    copy_char();
-                    if (spaces_found || exprs > 0)
-                        return {};
+                    else
+                        p_expr = std::move(e);
+                    spaces_found |= lex_optional_space();
+                    for (; except<U')'>(); spaces_found |= lex_optional_space())
+                    {
+                        if (auto [error, e] = lex_expr(); error)
+                            return failure;
+                        else
+                        {
+                            if (p_expr)
+                                expr_list.push_back(std::move(p_expr));
+                            expr_list.push_back(std::move(e));
+                        }
+                    }
+                    if (!match<hl_scopes::operator_symbol, U')'>(diagnostic_op::error_S0011))
+                        return failure;
+                    if (spaces_found && p_expr)
+                        expr_list.push_back(std::move(p_expr));
+                    if (!expr_list.empty())
+                        return static_cast<ca_expr_ptr>(std::make_unique<ca_expr_list>(
+                            std::move(expr_list), adjust_range({ start, cur_pos() }), true));
                 }
-                else if (auto [error] = lex_expr_general(); error)
+                else if (auto [error, e] = lex_expr_general(); error)
                     return failure;
-                else if (!must_follow<U')'>(diagnostic_op::error_S0011))
+                else if (!match<hl_scopes::operator_symbol, U')'>(diagnostic_op::error_S0011))
                     return failure;
                 else
-                    copy_char();
+                    p_expr = std::move(e);
 
                 if (follows<U'\''>())
                 {
-                    if (auto [error] = lex_ca_string_with_optional_substring(); error)
+                    ca_expr_ptr result;
+                    if (auto [error, s] = lex_ca_string_with_optional_substring(); error)
                         return failure;
+                    else
+                        result = std::make_unique<expressions::ca_string>(std::move(s.first),
+                            std::move(p_expr),
+                            std::move(s.second),
+                            adjust_range({ start, cur_pos() }));
                     while (follows<U'(', U'\''>())
                     {
+                        const auto conc_start = cur_pos_adjusted();
+                        ca_expr_ptr nested_dupl;
                         if (follows<U'('>())
                         {
-                            copy_char();
-                            if (auto [error] = lex_expr_general(); error)
+                            consume<hl_scopes::operator_symbol>();
+                            if (auto [error, dupl] = lex_expr_general(); error)
                                 return failure;
-                            if (!must_follow<U')'>(diagnostic_op::error_S0011))
+                            else if (!match<hl_scopes::operator_symbol, U')'>(diagnostic_op::error_S0011))
                                 return failure;
-                            copy_char();
+                            else
+                                nested_dupl = std::move(dupl);
                         }
-                        if (auto [error] = lex_ca_string_with_optional_substring(); error)
+                        if (auto [error, s2] = lex_ca_string_with_optional_substring(); error)
                             return failure;
+                        else
+                        {
+                            auto next = std::make_unique<expressions::ca_string>(std::move(s2.first),
+                                std::move(nested_dupl),
+                                std::move(s2.second),
+                                adjust_range({ conc_start, cur_pos() }));
+                            result = std::make_unique<ca_basic_binary_operator<ca_conc>>(
+                                std::move(result), std::move(next), adjust_range({ start, cur_pos() }));
+                        }
                     }
+                    return result;
                 }
                 else if (is_ord_first())
                 {
-                    copy_ordsymbol();
-                    if (!must_follow<U'('>(diagnostic_op::error_S0002))
+                    id_index id;
+                    if (auto [error, id_] = lex_id(); error)
                         return failure;
-                    if (auto [error] = lex_subscript_ne(); error)
+                    else
+                        id = id_;
+                    if (!must_follow<U'('>())
                         return failure;
+                    if (auto [error, s] = lex_subscript_ne(); error)
+                        return failure;
+                    else
+                    {
+                        auto func = ca_common_expr_policy::get_function(id.to_string_view());
+                        return static_cast<ca_expr_ptr>(std::make_unique<ca_function>(
+                            id, func, std::move(s), std::move(p_expr), adjust_range({ start, cur_pos() })));
+                    }
                 }
-                return {};
+
+                std::vector<ca_expr_ptr> expr_list;
+                expr_list.push_back(std::move(p_expr));
+                return static_cast<ca_expr_ptr>(
+                    std::make_unique<ca_expr_list>(std::move(expr_list), adjust_range({ start, cur_pos() }), true));
             }
 
             default:
@@ -952,14 +1251,18 @@ struct parser_holder::macro_preprocessor_t
                         case U'b':
                         case U'x':
                         case U'c':
-                        case U'g':
-                            copy_char();
-                            while (follows<U'\''>())
+                        case U'g': {
+                            const auto c = static_cast<char>(*input.next);
+                            consume<hl_scopes::self_def_type>();
+                            if (auto [error, s] = lex_simple_string(); error)
+                                return failure;
+                            else
                             {
-                                if (auto [error] = lex_simple_string(); error)
-                                    return failure;
+                                const auto r = adjust_range({ start, cur_pos() });
+                                return static_cast<ca_expr_ptr>(std::make_unique<ca_constant>(
+                                    parse_self_def_term(std::string_view(&c, 1), std::move(s), r), r));
                             }
-                            return {};
+                        }
 
                         case U'N':
                         case U'K':
@@ -976,46 +1279,87 @@ struct parser_holder::macro_preprocessor_t
                         case U's':
                         case U'i':
                         case U'l':
-                        case U't':
-                            copy_char();
-                            copy_char();
+                        case U't': {
+                            const auto attr =
+                                context::symbol_attributes::transform_attr(utils::upper_cased[*input.next]);
+                            consume<hl_scopes::data_attr_type>();
+                            consume<hl_scopes::operator_symbol>();
+                            const auto start_value = cur_pos_adjusted();
                             switch (*input.next)
                             {
                                 case EOF_SYMBOL:
                                     add_diagnostic(diagnostic_op::error_S0003);
                                     return failure;
                                 case U'&':
-                                    if (auto [error] = lex_variable(); error)
+                                    if (auto [error, v] = lex_variable(); error)
                                         return failure;
-                                    break;
+                                    else
+                                    {
+                                        // TODO:in reality, this seems to be much more complicated (arbitrary many dots
+                                        // are consumed for *some* attributes)
+                                        if (follows<U'.'>())
+                                        {
+                                            consume();
+                                        }
+                                        return static_cast<ca_expr_ptr>(
+                                            std::make_unique<ca_symbol_attribute>(std::move(v),
+                                                attr,
+                                                adjust_range({ start, cur_pos() }),
+                                                adjust_range({ start_value, cur_pos() })));
+                                    }
                                 case U'=':
-                                    if (auto [error] = lex_literal(); error)
+                                    if (auto [error, l] = lex_literal(); error)
                                         return failure;
-                                    break;
+                                    else
+                                        return static_cast<ca_expr_ptr>(
+                                            std::make_unique<ca_symbol_attribute>(std::move(l),
+                                                attr,
+                                                adjust_range({ start, cur_pos() }),
+                                                adjust_range({ start_value, cur_pos() })));
                                 default:
                                     if (!is_ord_first())
                                     {
                                         add_diagnostic(diagnostic_op::error_S0002);
                                         return failure;
                                     }
-                                    copy_ordsymbol();
-                                    break;
+                                    if (auto [error, id] = lex_id(); error)
+                                        return failure;
+                                    else
+                                        return static_cast<ca_expr_ptr>(std::make_unique<ca_symbol_attribute>(id,
+                                            attr,
+                                            adjust_range({ start, cur_pos() }),
+                                            adjust_range({ start_value, cur_pos() })));
                             }
-                            return {};
+                        }
                     }
                 }
-                copy_ordsymbol();
-                if (follows<U'('>())
+                if (auto [error, id] = lex_id(); error)
+                    return failure;
+                else if (follows<U'('>())
                 {
-                    if (auto [error] = lex_subscript_ne(); error)
+                    add_hl_symbol<hl_scopes::operand>({ start, cur_pos() });
+                    if (auto [error2, s] = lex_subscript_ne(); error2)
                         return failure;
+                    else
+                        return static_cast<ca_expr_ptr>(std::make_unique<ca_function>(id,
+                            ca_common_expr_policy::get_function(id.to_string_view()),
+                            std::move(s),
+                            ca_expr_ptr(),
+                            adjust_range({ start, cur_pos() })));
                 }
-                return {};
+                else
+                {
+                    const auto r = adjust_range({ start, cur_pos() });
+                    add_hl_symbol_adjusted<hl_scopes::operand>(r);
+                    return static_cast<ca_expr_ptr>(std::make_unique<ca_symbol>(id, r));
+                }
         }
     }
 
-    result_t lex_mach_term()
+    result_t<mach_expr_ptr> lex_mach_term()
     {
+        const auto initial = input.next;
+        const auto start = cur_pos_adjusted();
         switch (*input.next)
         {
             case EOF_SYMBOL:
@@ -1023,20 +1367,22 @@ struct parser_holder::macro_preprocessor_t
                 return failure;
 
             case U'(':
-                copy_char();
-                if (auto [error] = lex_mach_expr(); error)
+                consume<hl_scopes::operator_symbol>();
+                if (auto [error, e] = lex_mach_expr(); error)
                     return failure;
-                if (!must_follow<U')'>(diagnostic_op::error_S0011))
+                else if (!match<hl_scopes::operator_symbol, U')'>(diagnostic_op::error_S0011))
                     return failure;
-                copy_char();
-                break;
+                else
+                    return static_cast<mach_expr_ptr>(
+                        std::make_unique<mach_expr_unary<par>>(std::move(e), adjust_range({ start, cur_pos() })));
 
             case U'*':
-                copy_char();
-                break;
+                consume<hl_scopes::operand>();
+                return static_cast<mach_expr_ptr>(
+                    std::make_unique<mach_expr_location_counter>(adjust_range({ start, cur_pos() })));
 
             case U'-':
-                copy_char();
+                consume();
                 if (!is_num())
                 {
                     add_diagnostic(diagnostic_op::error_S0002);
@@ -1052,17 +1398,26 @@ struct parser_holder::macro_preprocessor_t
             case U'6':
             case U'7':
             case U'8':
-            case U'9':
-                do
-                {
-                    copy_char();
-                } while (is_num());
-                break;
+            case U'9': {
+                while (is_num())
+                    consume();
+                const auto r = adjust_range({ start, cur_pos() });
+                add_hl_symbol_adjusted<hl_scopes::number>(r);
+
+                std::string v;
+                v.reserve(input.next - initial);
+                std::transform(initial, input.next, std::back_inserter(v), [](char32_t c) { return (char)c; });
+
+                return static_cast<mach_expr_ptr>(
+                    std::make_unique<mach_expr_constant>(parse_self_def_term_in_mach("D", v, r), r));
+            }
 
             case U'=':
-                if (auto [error] = lex_literal(); error)
+                if (auto [error, l] = lex_literal(); error)
                     return failure;
-                break;
+                else
+                    return static_cast<mach_expr_ptr>(
+                        std::make_unique<mach_expr_literal>(adjust_range({ start, cur_pos() }), std::move(l)));
 
             default:
                 if (!is_ord_first())
@@ -1072,11 +1427,18 @@ struct parser_holder::macro_preprocessor_t
                 }
                 if (follows<U'C', U'c'>() && (input.next[1] == U'A' || input.next[1] == U'a') && input.next[2] == U'\'')
                 {
-                    copy_char();
-                    copy_char();
-                    if (auto [error] = lex_mach_string(); error)
+                    consume();
+                    consume();
+                    add_hl_symbol<hl_scopes::self_def_type>({ start, cur_pos() });
+
+                    if (auto [error, s] = lex_mach_string(); error)
                         return failure;
-                    return {};
+                    else
+                    {
+                        const auto r = adjust_range({ start, cur_pos() });
+                        return static_cast<mach_expr_ptr>(std::make_unique<mach_expr_constant>(
+                            parse_self_def_term_in_mach("CA", std::move(s), r), r));
+                    }
                 }
                 if (input.next[1] == U'\'')
                 {
@@ -1084,15 +1446,20 @@ struct parser_holder::macro_preprocessor_t
                     {
                         case U'L':
                         case U'l':
-                            copy_char();
-                            copy_char();
-                            if (follows<U'*'>())
+                            if (input.next[2] == U'*')
                             {
-                                copy_char();
-                                return {};
+                                consume<hl_scopes::data_attr_type>();
+                                consume<hl_scopes::operator_symbol>();
+                                if (!holder->parser->proc_status.has_value())
+                                {
+                                    add_diagnostic(diagnostic_op::error_S0002);
+                                    return failure;
+                                }
+                                consume<hl_scopes::operand>();
+                                return static_cast<mach_expr_ptr>(std::make_unique<mach_expr_constant>(
+                                    holder->parser->get_loctr_len(), adjust_range({ start, cur_pos() })));
                             }
-                            break;
-
+                            [[fallthrough]];
                         case U'O':
                         case U'S':
                         case U'I':
@@ -1100,10 +1467,66 @@ struct parser_holder::macro_preprocessor_t
                         case U'o':
                         case U's':
                         case U'i':
-                        case U't':
-                            copy_char();
-                            copy_char();
+                        case U't': {
+                            const auto attr =
+                                context::symbol_attributes::transform_attr(utils::upper_cased[*input.next]);
+                            consume<hl_scopes::data_attr_type>();
+                            consume<hl_scopes::operator_symbol>();
+                            const auto start_value = cur_pos_adjusted();
+                            if (follows<U'='>())
+                            {
+                                if (auto [error, l] = lex_literal(); error)
+                                    return failure;
+                                else
+                                    return static_cast<mach_expr_ptr>(std::make_unique<mach_expr_data_attr_literal>(
+                                        std::make_unique<mach_expr_literal>(
+                                            adjust_range({ start_value, cur_pos() }), std::move(l)),
+                                        attr,
+                                        adjust_range({ start, cur_pos() }),
+                                        adjust_range({ start_value, cur_pos() })));
+                            }
+                            else if (is_ord_first())
+                            {
+                                if (auto [error, id] = lex_id(); error)
+                                    return failure;
+                                else if (follows<U'.'>())
+                                {
+                                    consume<hl_scopes::operator_symbol>();
+                                    if (!is_ord_first())
+                                    {
+                                        add_diagnostic(diagnostic_op::error_S0002);
+                                        return failure;
+                                    }
+
+                                    if (auto [error2, id2] = lex_id(); error2)
+                                        return failure;
+                                    else
+                                    {
+                                        add_hl_symbol<hl_scopes::ordinary_symbol>({ start, cur_pos() });
+                                        return static_cast<mach_expr_ptr>(std::make_unique<mach_expr_data_attr>(id2,
+                                            id,
+                                            attr,
+                                            adjust_range({ start, cur_pos() }),
+                                            adjust_range({ start_value, cur_pos() })));
+                                    }
+                                }
+                                else
+                                {
+                                    add_hl_symbol<hl_scopes::ordinary_symbol>({ start, cur_pos() });
+                                    return static_cast<mach_expr_ptr>(std::make_unique<mach_expr_data_attr>(id,
+                                        id_index(),
+                                        attr,
+                                        adjust_range({ start, cur_pos() }),
+                                        adjust_range({ start_value, cur_pos() })));
+                                }
+                            }
+                            else
+                            {
+                                add_diagnostic(diagnostic_op::error_S0002);
+                                return failure;
+                            }
                             break;
+                        }
 
                         case U'B':
                         case U'D':
@@ -1112,11 +1535,18 @@ struct parser_holder::macro_preprocessor_t
                         case U'b':
                         case U'd':
                         case U'x':
-                        case U'c':
-                            copy_char();
-                            if (auto [error] = lex_mach_string(); error)
+                        case U'c': {
+                            const auto opt = static_cast<char>(*input.next);
+                            consume<hl_scopes::self_def_type>();
+                            if (auto [error, s] = lex_mach_string(); error)
                                 return failure;
-                            return {};
+                            else
+                            {
+                                const auto r = adjust_range({ start, cur_pos() });
+                                return static_cast<mach_expr_ptr>(std::make_unique<mach_expr_constant>(
+                                    parse_self_def_term_in_mach(std::string_view(&opt, 1), s, r), r));
+                            }
+                        }
                     }
                 }
                 if (!is_ord_first())
@@ -1124,33 +1554,62 @@ struct parser_holder::macro_preprocessor_t
                     add_diagnostic(diagnostic_op::error_S0002);
                     return failure;
                 }
-                copy_ordsymbol();
-                break;
+                if (auto [error, id] = lex_id(); error)
+                    return failure;
+                else if (follows<U'.'>())
+                {
+                    consume<hl_scopes::operator_symbol>();
+                    if (!is_ord_first())
+                    {
+                        add_diagnostic(diagnostic_op::error_S0002);
+                        return failure;
+                    }
+
+                    if (auto [error2, id2] = lex_id(); error2)
+                        return failure;
+                    else
+                    {
+                        const auto r = adjust_range({ start, cur_pos() });
+                        add_hl_symbol_adjusted<hl_scopes::ordinary_symbol>(r);
+                        return static_cast<mach_expr_ptr>(std::make_unique<mach_expr_symbol>(id2, id, r));
+                    }
+                }
+                else
+                {
+                    const auto r = adjust_range({ start, cur_pos() });
+                    add_hl_symbol_adjusted<hl_scopes::ordinary_symbol>(r);
+                    return static_cast<mach_expr_ptr>(std::make_unique<mach_expr_symbol>(id, id_index(), r));
+                }
         }
-        return {};
     }
 
-    result_t lex_mach_string()
+    result_t<std::string> lex_mach_string()
     {
         assert(follows<U'\''>());
 
-        copy_char();
+        const auto start = cur_pos_adjusted();
+        std::string s;
+
+        consume();
 
         while (!eof())
         {
             if (input.next[0] != U'\'')
             {
-                copy_char();
+                utils::append_utf32_to_utf8(s, *input.next);
+                consume();
             }
             else if (input.next[1] == U'\'')
             {
-                copy_char();
-                copy_char();
+                utils::append_utf32_to_utf8(s, *input.next);
+                consume();
+                consume();
             }
             else
             {
-                copy_char();
-                return {};
+                consume();
+                add_hl_symbol<hl_scopes::string>({ start, cur_pos() });
+                return s;
             }
         }
 
@@ -1158,45 +1617,72 @@ struct parser_holder::macro_preprocessor_t
         return failure;
     }
 
-    result_t lex_mach_term_c()
+    result_t<mach_expr_ptr> lex_mach_term_c()
     {
-        while (follows<U'+'>() || (follows<U'-'>() && !is_num(input.next[1])))
-            copy_char();
-
-        if (auto [error] = lex_mach_term(); error)
-            return failure;
-
-        return {};
-    }
-
-    result_t lex_mach_expr_s()
-    {
-        if (auto [error] = lex_mach_term_c(); error)
-            return failure;
-
-        while (follows<U'*', U'/'>())
+        if (follows<U'+'>() || (follows<U'-'>() && !is_num(input.next[1])))
         {
-            copy_char();
-            if (auto [error] = lex_mach_term_c(); error)
+            const auto plus = *input.next == U'+';
+            const auto start = cur_pos_adjusted();
+            consume<hl_scopes::operator_symbol>();
+            if (auto [error, e] = lex_mach_term_c(); error)
                 return failure;
+            else if (plus)
+                return static_cast<mach_expr_ptr>(
+                    std::make_unique<mach_expr_unary<add>>(std::move(e), adjust_range({ start, cur_pos() })));
+            else
+                return static_cast<mach_expr_ptr>(
+                    std::make_unique<mach_expr_unary<sub>>(std::move(e), adjust_range({ start, cur_pos() })));
         }
 
-        return {};
+        return lex_mach_term();
     }
 
-    result_t lex_mach_expr()
+    result_t<mach_expr_ptr> lex_mach_expr_s()
     {
-        if (auto [error] = lex_mach_expr_s(); error)
+        const auto start = cur_pos_adjusted();
+        if (auto [error, e] = lex_mach_term_c(); error)
             return failure;
-
-        while (follows<U'+', U'-'>())
+        else
         {
-            copy_char();
-            if (auto [error] = lex_mach_expr_s(); error)
-                return failure;
+            while (follows<U'*', U'/'>())
+            {
+                const auto mul = *input.next == U'*';
+                consume<hl_scopes::operator_symbol>();
+                if (auto [error2, next] = lex_mach_term_c(); error2)
+                    return failure;
+                else if (mul)
+                    e = std::make_unique<mach_expr_binary<expressions::mul>>(
+                        std::move(e), std::move(next), adjust_range({ start, cur_pos() }));
+                else
+                    e = std::make_unique<mach_expr_binary<div>>(
+                        std::move(e), std::move(next), adjust_range({ start, cur_pos() }));
+            }
+            return std::move(e);
         }
+    }
 
-        return {};
+    result_t<mach_expr_ptr> lex_mach_expr()
+    {
+        const auto start = cur_pos_adjusted();
+        if (auto [error, e] = lex_mach_expr_s(); error)
+            return failure;
+        else
+        {
+            while (follows<U'+', U'-'>())
+            {
+                const auto plus = *input.next == U'+';
+                consume<hl_scopes::operator_symbol>();
+                if (auto [error2, next] = lex_mach_expr_s(); error2)
+                    return failure;
+                else if (plus)
+                    e = std::make_unique<mach_expr_binary<add>>(
+                        std::move(e), std::move(next), adjust_range({ start, cur_pos() }));
+                else
+                    e = std::make_unique<mach_expr_binary<sub>>(
+                        std::move(e), std::move(next), adjust_range({ start, cur_pos() }));
+            }
+            return std::move(e);
+        }
     }
 
     static bool is_type_extension(char type, char ch)
@@ -1204,67 +1690,134 @@ struct parser_holder::macro_preprocessor_t
         return checking::data_def_type::types_and_extensions.count(std::make_pair(type, ch)) > 0;
     }
 
-    result_t lex_literal_signed_num()
+    static constexpr unsigned char digit_to_value(char32_t c)
     {
-        if (follows<U'('>())
-        {
-            copy_char();
-            if (auto [error] = lex_mach_expr(); error)
-                return failure;
-            if (!must_follow<U')'>(diagnostic_op::error_S0011))
-                return failure;
-            copy_char();
-        }
-        else
-        {
-            if (follows<U'+', U'-'>())
-                copy_char();
-            if (!is_num())
-            {
-                add_diagnostic(diagnostic_op::error_S0002);
-                return failure;
-            }
-            do
-            {
-                copy_char();
-            } while (is_num());
-        }
-        return {};
+        static_assert(U'0' + 0 == U'0');
+        static_assert(U'0' + 1 == U'1');
+        static_assert(U'0' + 2 == U'2');
+        static_assert(U'0' + 3 == U'3');
+        static_assert(U'0' + 4 == U'4');
+        static_assert(U'0' + 5 == U'5');
+        static_assert(U'0' + 6 == U'6');
+        static_assert(U'0' + 7 == U'7');
+        static_assert(U'0' + 8 == U'8');
+        static_assert(U'0' + 9 == U'9');
+        // [[assume(c >= U'0' && c <= U'9')]];
+        assert(c >= U'0' && c <= U'9');
+        return c - U'0';
     }
 
-    result_t lex_literal_unsigned_num()
+    result_t<std::pair<int32_t, range>> parse_number()
+    {
+        constexpr long long min_l = -(1LL << 31);
+        constexpr long long max_l = (1LL << 31) - 1;
+        constexpr long long parse_limit_l = (1LL << 31);
+        static_assert(std::numeric_limits<int32_t>::min() <= min_l);
+        static_assert(std::numeric_limits<int32_t>::max() >= max_l);
+
+        const auto start = cur_pos_adjusted();
+
+        long long result = 0;
+        const bool negative = [&]() {
+            switch (*input.next)
+            {
+                case U'-':
+                    consume();
+                    return true;
+                case U'+':
+                    consume();
+                    return false;
+                default:
+                    return false;
+            }
+        }();
+
+        bool parsed_one = false;
+        while (!eof())
+        {
+            if (!is_num())
+                break;
+            const auto c = *input.next;
+            parsed_one = true;
+
+            consume();
+
+            if (result > parse_limit_l)
+                continue;
+
+            result = result * 10 + digit_to_value(c);
+        }
+        const auto r = adjust_range({ start, cur_pos() });
+        if (!parsed_one)
+        {
+            add_diagnostic(diagnostic_op::error_D002(r));
+            return failure;
+        }
+        if (negative)
+            result = -result;
+        if (result < min_l || result > max_l)
+        {
+            add_diagnostic(diagnostic_op::error_D001(r));
+            return failure;
+        }
+        add_hl_symbol_adjusted<hl_scopes::number>(r);
+
+        return { { (int32_t)result, r } };
+    }
+
+    result_t<mach_expr_ptr> lex_literal_signed_num()
     {
         if (follows<U'('>())
         {
-            copy_char();
-            if (auto [error] = lex_mach_expr(); error)
+            consume<hl_scopes::operator_symbol>();
+            if (auto [error, e] = lex_mach_expr(); error)
                 return failure;
-            if (!must_follow<U')'>(diagnostic_op::error_S0011))
+            else if (!match<hl_scopes::operator_symbol, U')'>(diagnostic_op::error_S0011))
                 return failure;
-            copy_char();
+            else
+                return std::move(e);
         }
-        else if (is_num())
-        {
-            do
-            {
-                copy_char();
-            } while (is_num());
-        }
+        else if (auto [error, n] = parse_number(); error)
+            return failure;
         else
+            return static_cast<mach_expr_ptr>(std::make_unique<mach_expr_constant>(n.first, n.second));
+    }
+
+    result_t<mach_expr_ptr> lex_literal_unsigned_num()
+    {
+        if (follows<U'('>())
+        {
+            consume<hl_scopes::operator_symbol>();
+            if (auto [error, e] = lex_mach_expr(); error)
+                return failure;
+            else if (!match<hl_scopes::operator_symbol, U')'>(diagnostic_op::error_S0011))
+                return failure;
+            else
+                return std::move(e);
+        }
+        else if (!is_num())
         {
             add_diagnostic(diagnostic_op::error_S0002);
             return failure;
         }
-        return {};
+        else if (auto [error, n] = parse_number(); error)
+            return failure;
+        else
+            return static_cast<mach_expr_ptr>(std::make_unique<mach_expr_constant>(n.first, n.second));
     }
 
-    result_t lex_data_def_base()
+    result_t<data_definition> lex_data_def_base()
     {
+        const auto goff = holder->parser->goff();
+
+        data_definition result;
         // case state::duplicating_factor:
         if (follows<U'('>() || is_num())
         {
-            if (auto [error] = lex_literal_unsigned_num(); error)
+            if (auto [error, e] = lex_literal_unsigned_num(); error)
                 return failure;
+            else
+                result.dupl_factor = std::move(e);
         }
 
         // case state::read_type:
@@ -1273,194 +1826,309 @@ struct parser_holder::macro_preprocessor_t
             add_diagnostic(diagnostic_op::error_S0002);
             return failure;
         }
-        const auto type = *input.next;
-        copy_char();
+        const auto type = utils::upper_cased[*input.next];
+        consume<hl_scopes::data_def_type>();
+        const auto type_start = cur_pos_adjusted();
+        consume();
 
-        if (is_ord_first() && is_type_extension((char)type, (char)*input.next))
+        result.type = type == 'R' && !goff ? 'r' : type;
+        result.type_range = adjust_range({ type_start, cur_pos() });
+        if (is_ord_first() && is_type_extension(type, utils::upper_cased[*input.next]))
         {
-            copy_char();
+            result.extension = utils::upper_cased[*input.next];
+            const auto ext_start = cur_pos_adjusted();
+            consume();
+            result.extension_range = adjust_range({ ext_start, cur_pos() });
         }
+        add_hl_symbol<hl_scopes::data_def_type>(adjust_range({ type_start, cur_pos() }));
 
         // case state::try_reading_program:
         // case state::read_program:
         if (const auto c = *input.next; c == U'P' || c == U'p')
         {
-            copy_char();
-            if (auto [error] = lex_literal_signed_num(); error)
+            consume<hl_scopes::data_def_modifier>();
+            if (auto [error, e] = lex_literal_signed_num(); error)
                 return failure;
+            else
+                result.program_type = std::move(e);
         }
         // case state::try_reading_length:
         // case state::try_reading_bitfield:
         // case state::read_length:
         if (const auto c = *input.next; c == U'L' || c == U'l')
         {
-            copy_char();
-            if (auto [error] = lex_literal_unsigned_num(); error)
+            consume<hl_scopes::data_def_modifier>();
+            if (follows<U'.'>())
+            {
+                result.length_type = data_definition::length_type::BIT;
+                consume();
+            }
+            if (auto [error, e] = lex_literal_unsigned_num(); error)
                 return failure;
+            else
+                result.length = std::move(e);
         }
 
         // case state::try_reading_scale:
         // case state::read_scale:
         if (const auto c = *input.next; c == U'S' || c == U's')
         {
-            copy_char();
-            if (auto [error] = lex_literal_signed_num(); error)
+            consume<hl_scopes::data_def_modifier>();
+            if (auto [error, e] = lex_literal_signed_num(); error)
                 return failure;
+            else
+                result.scale = std::move(e);
         }
 
         // case state::try_reading_exponent:
         // case state::read_exponent:
         if (const auto c = *input.next; c == U'E' || c == U'e')
         {
-            copy_char();
-            if (auto [error] = lex_literal_signed_num(); error)
+            consume<hl_scopes::data_def_modifier>();
+            if (auto [error, e] = lex_literal_signed_num(); error)
                 return failure;
+            else
+                result.exponent = std::move(e);
         }
-        return {};
+        return result;
     }
 
-    result_t lex_expr_or_addr()
+    result_t<expressions::expr_or_address> lex_expr_or_addr()
     {
-        if (auto [error] = lex_mach_expr(); error)
+        const auto start = cur_pos_adjusted();
+        if (auto [error, e] = lex_mach_expr(); error)
             return failure;
-        if (follows<U'('>())
+        else if (follows<U'('>())
         {
-            copy_char();
-            if (auto [error] = lex_mach_expr(); error)
+            consume<hl_scopes::operator_symbol>();
+            if (auto [error2, e2] = lex_mach_expr(); error2)
                 return failure;
-            if (!must_follow<U')'>(diagnostic_op::error_S0011))
+            else if (!match<hl_scopes::operator_symbol, U')'>(diagnostic_op::error_S0011))
                 return failure;
-            copy_char();
+            else
+                return expressions::expr_or_address(std::in_place_type<expressions::address_nominal>,
+                    std::move(e),
+                    std::move(e2),
+                    adjust_range({ start, cur_pos() }));
         }
-        return {};
+        else
+            return { std::move(e) };
     }
 
 
-    result_t lex_literal_nominal_char()
+    result_t<std::string> lex_literal_nominal_char()
     {
         assert(follows<U'\''>());
-        copy_char();
+        const auto start = cur_pos_adjusted();
+
+        std::string result;
+        consume();
         while (true)
         {
-            if (input.next[0] == U'\'' && input.next[0] == U'\'')
+            if (input.next[0] == U'\'' && input.next[1] == U'\'')
             {
-                copy_char();
-                copy_char();
+                utils::append_utf32_to_utf8(result, *input.next);
+                consume();
+                consume();
             }
             else if (except<U'\''>())
-                copy_char();
+            {
+                utils::append_utf32_to_utf8(result, *input.next);
+                consume();
+            }
             else
                 break;
         }
-        if (!must_follow<U'\''>(diagnostic_op::error_S0005))
+        if (!match<U'\''>(diagnostic_op::error_S0005))
             return failure;
-        copy_char();
 
-        return {};
+        add_hl_symbol<hl_scopes::string>({ start, cur_pos() });
+
+        return result;
     }
 
 
-    result_t lex_literal_nominal_addr()
+    result_t<expr_or_address_list> lex_literal_nominal_addr()
     {
         assert(follows<U'('>());
-        copy_char();
+        consume<hl_scopes::operator_symbol>();
 
-        if (auto [error] = lex_expr_or_addr(); error)
+        expr_or_address_list result;
+
+        if (auto [error, e] = lex_expr_or_addr(); error)
             return failure;
+        else
+            result.push_back(std::move(e));
+
 
         while (follows<U','>())
         {
-            copy_char();
-            if (auto [error] = lex_expr_or_addr(); error)
+            consume<hl_scopes::operator_symbol>();
+            if (auto [error, e] = lex_expr_or_addr(); error)
                 return failure;
+            else
+                result.push_back(std::move(e));
         }
 
-        if (!must_follow<U')'>(diagnostic_op::error_S0011))
+        if (!match<hl_scopes::operator_symbol, U')'>(diagnostic_op::error_S0011))
             return failure;
-        copy_char();
 
-        return {};
+        return result;
     }
 
-    result_t lex_literal_nominal()
+    result_t<nominal_value_ptr> lex_literal_nominal()
     {
+        const auto start = cur_pos_adjusted();
         if (follows<U'\''>())
         {
-            if (auto [error] = lex_literal_nominal_char(); error)
+            if (auto [error, n] = lex_literal_nominal_char(); error)
                 return failure;
+            else
+                return static_cast<nominal_value_ptr>(
+                    std::make_unique<nominal_value_string>(std::move(n), adjust_range({ start, cur_pos() })));
         }
         else if (follows<U'('>())
         {
-            if (auto [error] = lex_literal_nominal_addr(); error)
+            if (auto [error, n] = lex_literal_nominal_addr(); error)
                 return failure;
+            else
+                return static_cast<nominal_value_ptr>(std::make_unique<nominal_value_exprs>(std::move(n)));
         }
         else
         {
             add_diagnostic(diagnostic_op::error_S0003);
             return failure;
         }
-        return {};
     }
 
-    result_t lex_literal()
+    result_t<literal_si> lex_literal()
     {
+        const auto allowed = allow_literals();
+        const auto disabled = disable_literals();
+        const auto start = cur_pos_adjusted();
+        const auto initial = input.next;
+
         assert(follows<U'='>());
-        copy_char();
+        consume<hl_scopes::operator_symbol>();
 
-        if (auto [error] = lex_data_def_base(); error)
+        if (auto [error, d] = lex_data_def_base(); error)
             return failure;
-
-        if (auto [error] = lex_literal_nominal(); error)
+        else if (auto [error2, n] = lex_literal_nominal(); error2)
             return failure;
-
-        return {};
+        else if (!allowed)
+        {
+            add_diagnostic(diagnostic_op::error_S0013);
+            return failure;
+        }
+        else
+        {
+            d.nominal_value = std::move(n);
+            std::string s;
+            s.reserve(input.next - initial);
+            std::for_each(initial, input.next, std::bind_front(utils::append_utf32_to_utf8, s));
+            return holder->parser->get_collector().add_literal(
+                std::move(s), std::move(d), adjust_range({ start, cur_pos() }));
+        }
     }
 
-    result_t lex_simple_string()
+    result_t<std::string> lex_simple_string()
     {
         assert(follows<U'\''>());
 
-        copy_char();
-        while (except<U'\'', U'&'>())
-            copy_char();
+        std::string result;
+        const auto start = cur_pos_adjusted();
+
+        consume();
+        while (!eof())
+        {
+            switch (*input.next)
+            {
+                case U'&':
+                    if (input.next[1] != U'&')
+                    {
+                        add_diagnostic(diagnostic_op::error_S0002);
+                        return failure;
+                    }
+                    result.push_back('&');
+                    break;
+                case U'\'':
+                    if (input.next[1] != U'\'')
+                        goto done;
+                    result.push_back('\'');
+                    consume();
+                    consume();
+                    break;
+                default:
+                    utils::append_utf32_to_utf8(result, *input.next);
+                    consume();
+                    break;
+            }
+        }
+    done:;
         if (*input.next != U'\'')
         {
             add_diagnostic(diagnostic_op::error_S0005);
             return failure;
         }
-        copy_char();
+        consume();
+        add_hl_symbol<hl_scopes::string>({ start, cur_pos() });
 
-        return {};
+        return result;
     }
 
-    result_t lex_term_c()
+    result_t<ca_expr_ptr> lex_term_c()
     {
-        while (input.next[0] == U'+' || (input.next[0] == U'-' && !is_num(input.next[1])))
-            copy_char();
-        if (auto [error] = lex_term(); error)
-            return failure;
-        return {};
+        if (input.next[0] == U'+' || (input.next[0] == U'-' && !is_num(input.next[1])))
+        {
+            const auto start = cur_pos_adjusted();
+            const auto plus = *input.next == U'+';
+            if (auto [error, e] = lex_term(); error)
+                return failure;
+            else if (plus)
+                return static_cast<ca_expr_ptr>(
+                    std::make_unique<ca_plus_operator>(std::move(e), adjust_range({ start, cur_pos() })));
+            else
+                return static_cast<ca_expr_ptr>(
+                    std::make_unique<ca_minus_operator>(std::move(e), adjust_range({ start, cur_pos() })));
+        }
+        return lex_term();
     }
 
-    result_t lex_expr_s()
+    result_t<ca_expr_ptr> lex_expr_s()
     {
-        if (auto [error] = lex_term_c(); error)
+        ca_expr_ptr result;
+        const auto start = cur_pos_adjusted();
+        if (auto [error, e] = lex_term_c(); error)
             return failure;
+        else
+            result = std::move(e);
 
         while (follows<U'*', U'/'>())
         {
-            copy_char();
-            if (auto [error] = lex_term_c(); error)
+            const auto mult = *input.next == U'*';
+            consume<hl_scopes::operator_symbol>();
+            if (auto [error, e] = lex_term_c(); error)
                 return failure;
+            else if (mult)
+                result = std::make_unique<ca_basic_binary_operator<ca_mul>>(
+                    std::move(result), std::move(e), adjust_range({ start, cur_pos() }));
+            else
+                result = std::make_unique<ca_basic_binary_operator<ca_div>>(
+                    std::move(result), std::move(e), adjust_range({ start, cur_pos() }));
         }
 
-        return {};
+        return result;
     }
 
-    result_t lex_expr()
+    result_t<ca_expr_ptr> lex_expr()
     {
-        if (auto [error] = lex_expr_s(); error)
+        ca_expr_ptr result;
+        const auto start = cur_pos_adjusted();
+
+        if (auto [error, e] = lex_expr_s(); error)
             return failure;
+        else
+            result = std::move(e);
 
         switch (*input.next)
         {
@@ -1468,103 +2136,192 @@ struct parser_holder::macro_preprocessor_t
             case '-':
                 while (follows<U'+', U'-'>())
                 {
-                    copy_char();
-                    if (auto [error] = lex_expr_s(); error)
+                    const auto plus = *input.next == U'+';
+                    consume<hl_scopes::operator_symbol>();
+                    if (auto [error, e] = lex_expr_s(); error)
                         return failure;
+                    else if (plus)
+                        result = std::make_unique<ca_basic_binary_operator<ca_add>>(
+                            std::move(result), std::move(e), adjust_range({ start, cur_pos() }));
+                    else
+                        result = std::make_unique<ca_basic_binary_operator<ca_sub>>(
+                            std::move(result), std::move(e), adjust_range({ start, cur_pos() }));
                 }
                 break;
             case '.':
                 while (follows<U'.'>())
                 {
-                    copy_char();
-                    if (auto [error] = lex_term_c(); error)
+                    consume<hl_scopes::operator_symbol>();
+                    if (auto [error, e] = lex_term_c(); error)
                         return failure;
+                    else
+                        result = std::make_unique<ca_basic_binary_operator<ca_conc>>(
+                            std::move(result), std::move(e), adjust_range({ start, cur_pos() }));
                 }
                 break;
         }
 
-        return {};
+        return result;
     }
 
-    result_t lex_subscript()
+    result_t<std::vector<ca_expr_ptr>> lex_subscript()
     {
         assert(follows<U'('>());
-        copy_char();
 
-        while (!eof())
+        consume<hl_scopes::operator_symbol>();
+
+        std::vector<ca_expr_ptr> result;
+
+        if (auto [error, expr] = lex_expr(); error)
+            return failure;
+        else
+            result.push_back(std::move(expr));
+
+        while (follows<U','>())
         {
-            switch (*input.next)
-            {
-                case U')':
-                    copy_char();
-                    return {};
-
-                case U',':
-                    copy_char();
-                    break;
-
-                default:
-                    if (auto [error] = lex_expr(); error)
-                        return failure;
-                    break;
-            }
+            consume<hl_scopes::operator_symbol>();
+            if (auto [error, expr] = lex_expr(); error)
+                return failure;
+            else
+                result.push_back(std::move(expr));
         }
 
-        add_diagnostic(diagnostic_op::error_S0011);
-        return failure;
+        if (!match<hl_scopes::operator_symbol, U')'>(diagnostic_op::error_S0011))
+            return failure;
+
+        return result;
     }
 
-    result_t lex_operand()
+    result_t<void> lex_operand(concat_chain& cc, bool next_char_special)
     {
-        bool next_char_special = true;
-        while (!eof())
+        char_str_conc* last_text_state = nullptr;
+        const auto last_text = [&]() {
+            if (last_text_state)
+                return last_text_state;
+            last_text_state = &std::get<char_str_conc>(
+                cc.emplace_back(std::in_place_type<char_str_conc>, std::string(), range(cur_pos_adjusted())).value);
+            return last_text_state;
+        };
+        const auto push_last_text = [&]() {
+            if (!last_text_state)
+                return;
+            last_text_state->conc_range = adjust_range({ last_text_state->conc_range.start, cur_pos() });
+            add_hl_symbol_adjusted<hl_scopes::operand>(last_text_state->conc_range);
+            last_text_state = nullptr;
+        };
+        const auto single_char_push = [&]<typename T>(std::in_place_type_t<T> t) {
+            const auto s = cur_pos_adjusted();
+            consume();
+            const auto r = adjust_range({ s, cur_pos() });
+            cc.emplace_back(t, r);
+            last_text_state = nullptr;
+
+            return r;
+        };
+        while (true)
         {
             const bool last_char_special = std::exchange(next_char_special, true);
             switch (*input.next)
             {
-                case U'(':
-                    if (auto [error] = process_list(); error)
+                case U'(': {
+                    std::vector<concat_chain> nested;
+                    push_last_text();
+                    if (auto [error] = process_list(nested); error)
                         return failure;
+                    cc.emplace_back(std::in_place_type<sublist_conc>, std::move(nested));
+                    break;
+                }
+
+                case U'=':
+                    push_last_text();
+                    add_hl_symbol_adjusted<hl_scopes::operator_symbol>(
+                        single_char_push(std::in_place_type<equals_conc>));
                     break;
 
+                case U'.':
+                    push_last_text();
+                    add_hl_symbol_adjusted<hl_scopes::operator_symbol>(single_char_push(std::in_place_type<dot_conc>));
+                    break;
+
+                case EOF_SYMBOL:
                 case U' ':
                 case U')':
                 case U',':
+                    push_last_text();
                     return {};
 
-                case U'\'':
-                    copy_char();
-                    while (except<U'\''>())
+                case U'\'': {
+                    utils::append_utf32_to_utf8(last_text()->value, *input.next);
+                    consume();
+                    while (!eof())
                     {
-                        if (except<U'&'>())
-                            copy_char();
-                        else if (input.next[1] == U'&')
+                        switch (*input.next)
                         {
-                            copy_char();
-                            copy_char();
+                            case U'\'':
+                                if (input.next[1] != U'\'')
+                                    goto done;
+                                last_text()->value.append(2, '\''); // TODO: WHY 2???
+                                consume();
+                                consume();
+                                break;
+                            case U'&':
+                                if (input.next[1] == U'&')
+                                {
+                                    last_text()->value.append(2, '&');
+                                    consume();
+                                    consume();
+                                    break;
+                                }
+                                push_last_text();
+                                if (auto [error, vs] = lex_variable(); error)
+                                    return failure;
+                                else
+                                    cc.emplace_back(std::in_place_type<var_sym_conc>, std::move(vs));
+                                break;
+
+                            case U'=':
+                                push_last_text();
+                                single_char_push(std::in_place_type<equals_conc>);
+                                break;
+
+                            case U'.':
+                                push_last_text();
+                                single_char_push(std::in_place_type<dot_conc>);
+                                break;
+
+                            default:
+                                utils::append_utf32_to_utf8(last_text()->value, *input.next);
+                                consume();
+                                break;
                         }
-                        else if (auto [error] = lex_variable(); error)
-                            return failure;
                     }
-                    if (*input.next != U'\'') // also means EOF
+                done:;
+                    if (!must_follow<U'\''>(diagnostic_op::error_S0005))
                     {
-                        add_diagnostic(diagnostic_op::error_S0005);
+                        push_last_text();
                         return failure;
                     }
-                    copy_char();
+                    utils::append_utf32_to_utf8(last_text()->value, *input.next);
+                    consume();
+                    push_last_text();
                     next_char_special = false;
                     break;
+                }
 
                 case U'&':
                     if (input.next[1] == U'&')
                     {
-                        copy_char();
-                        copy_char();
+                        last_text()->value.append(2, '&');
+                        consume();
+                        consume();
+                        // add_hl_symbol_adjusted<hl_scopes::???>(r);
+                        break;
                     }
-                    else if (auto [error] = lex_variable(); error)
-                    {
+                    push_last_text();
+                    if (auto [error, v] = lex_variable(); error)
                         return failure;
-                    }
+                    else
+                        cc.emplace_back(std::in_place_type<var_sym_conc>, std::move(v));
                     next_char_special = false;
                     break;
 
@@ -1580,20 +2337,24 @@ struct parser_holder::macro_preprocessor_t
                 case U't':
                     if (!last_char_special || input.next[1] != U'\'')
                     {
-                        copy_char();
+                        utils::append_utf32_to_utf8(last_text()->value, *input.next);
+                        consume();
                         next_char_special = false;
                         break;
                     }
-                    else if (is_ord_first(input.next[2]) || input.next[2] == '=')
+                    else if (is_ord_first(input.next[2]) || input.next[2] == U'=')
                     {
-                        copy_char();
-                        copy_char();
+                        utils::append_utf32_to_utf8(last_text()->value, *input.next);
+                        consume();
+                        utils::append_utf32_to_utf8(last_text()->value, *input.next);
+                        consume();
                         next_char_special = false;
                         break;
                     }
-                    else if (input.next[2] != U'&' && input.next[2] != EOF_SYMBOL)
+                    else if (input.next[2] != U'&')
                     {
-                        copy_char();
+                        utils::append_utf32_to_utf8(last_text()->value, *input.next);
+                        consume();
                         next_char_special = false;
                         break;
                     }
@@ -1601,81 +2362,86 @@ struct parser_holder::macro_preprocessor_t
                     while (except<U',', U')', U' '>())
                     {
                         if (*input.next != U'&')
-                            copy_char();
+                        {
+                            utils::append_utf32_to_utf8(last_text()->value, *input.next);
+                            consume();
+                        }
                         else if (input.next[1] == U'&')
                         {
-                            copy_char();
-                            copy_char();
+                            last_text()->value.append(2, '&');
+                            consume();
+                            consume();
                         }
-                        else if (auto [error] = lex_variable(); error)
+                        else if (auto [error, vs] = (push_last_text(), lex_variable()); error)
                             return failure;
+                        else
+                        {
+                            cc.emplace_back(std::in_place_type<var_sym_conc>, std::move(vs));
+                            if (follows<U'.'>())
+                                add_hl_symbol_adjusted<hl_scopes::operator_symbol>(
+                                    single_char_push(std::in_place_type<dot_conc>));
+                        }
                     }
                     break;
 
                 default:
                     next_char_special = *input.next >= ord.size() || !ord[*input.next];
-                    copy_char();
+                    utils::append_utf32_to_utf8(last_text()->value, *input.next);
+                    consume();
                     break;
             }
         }
-        return {};
     }
 
     void process_optional_line_remark()
     {
         if (follows<U' '>() && static_cast<size_t>(input.next - data) < *input.nl)
         {
-            append_current_operand();
-
             lex_line_remark();
 
             adjust_lines();
-            last_operand_start = cur_pos();
         }
     }
 
-    result_t process_list()
+    result_t<void> process_list(std::vector<concat_chain>& cc)
     {
         assert(follows<U'('>());
 
-        copy_char();
+        consume<hl_scopes::operator_symbol>();
+        if (follows<U')'>())
+        {
+            consume<hl_scopes::operator_symbol>();
+            return {};
+        }
 
-        if (auto [error] = lex_operand(); error)
+        if (auto [error] = lex_operand(cc.emplace_back(), true); error)
             return failure;
 
         while (follows<U','>())
         {
-            copy_char();
+            consume<hl_scopes::operator_symbol>();
             process_optional_line_remark();
-            if (auto [error] = lex_operand(); error)
+            if (auto [error] = lex_operand(cc.emplace_back(), true); error)
                 return failure;
         }
 
-        if (*input.next != U')')
-        {
-            add_diagnostic(diagnostic_op::error_S0011);
+        if (!match<hl_scopes::operator_symbol, U')'>(diagnostic_op::error_S0011))
             return failure;
-        }
-        copy_char();
 
         return {};
     }
 
-    void preprocess(bool reparse)
+    std::pair<operand_list, range> macro_ops(bool reparse)
     {
-        result.op_range = adjust_range({ cur_pos(), cur_pos() });
-        result.op_logical_column = input.char_position_in_line;
-        result.operands.total_op_range = result.op_range;
-
+        const auto input_start = cur_pos();
         if (eof())
-            return;
+            return { operand_list(), adjust_range(range(input_start)) };
 
         if (!reparse && *input.next != U' ')
         {
             add_diagnostic(diagnostic_op::error_S0002);
             consume_rest();
-            result.op_range.end = cur_pos();
-            return;
+            return { operand_list(), adjust_range({ input_start, cur_pos() }) };
         }
 
         // skip spaces
@@ -1683,10 +2449,24 @@ struct parser_holder::macro_preprocessor_t
             consume();
         adjust_lines();
 
-        result.op_range = range(cur_pos());
-        result.op_logical_column = input.char_position_in_line;
+        if (eof())
+            return { operand_list(), adjust_range(range(cur_pos())) };
 
-        last_operand_start = cur_pos();
+        operand_list result;
+
+        auto line_start = cur_pos();
+        auto start = line_start;
+        concat_chain cc;
+        bool pending = true;
+
+        const auto push_operand = [&]() {
+            if (!pending)
+                return;
+            if (cc.empty())
+                result.push_back(std::make_unique<semantics::empty_operand>(adjust_range({ start, cur_pos() })));
+            else
+                result.push_back(std::make_unique<macro_operand>(std::move(cc), adjust_range({ start, cur_pos() })));
+        };
 
         // process operands
         while (!eof())
@@ -1694,13 +2474,16 @@ struct parser_holder::macro_preprocessor_t
             switch (*input.next)
             {
                 case U' ':
-                    append_current_operand();
+                    push_operand();
+                    pending = false;
                     lex_last_remark();
                     goto end;
 
                 case U',':
-                    copy_char();
+                    push_operand();
+                    consume<hl_scopes::operator_symbol>();
                     process_optional_line_remark();
+                    start = cur_pos_adjusted();
                     break;
 
                 case U'O':
@@ -1715,7 +2498,7 @@ struct parser_holder::macro_preprocessor_t
                 case U't':
                     if (input.next[1] == U'\'')
                     {
-                        if (auto [error] = lex_operand(); error)
+                        if (auto [error] = lex_operand(cc, true); error)
                         {
                             consume_rest();
                             goto end;
@@ -1769,18 +2552,40 @@ struct parser_holder::macro_preprocessor_t
                 case U'W':
                 case U'X':
                 case U'Y':
-                case U'Z':
-                    copy_ordsymbol();
+                case U'Z': {
+                    bool next_char_special = false;
+                    auto& l = std::get<char_str_conc>(
+                        cc.emplace_back(std::in_place_type<char_str_conc>, std::string(), range(cur_pos_adjusted()))
+                            .value);
+                    while (is_ord())
+                    {
+                        l.value.push_back(static_cast<char>(*input.next));
+                        consume();
+                    }
+                    l.conc_range.end = cur_pos();
+                    l.conc_range = adjust_range(l.conc_range);
+                    add_hl_symbol_adjusted<hl_scopes::operand>(l.conc_range);
                     if (follows<U'='>())
-                        copy_char();
+                    {
+                        const auto s = cur_pos_adjusted();
+                        consume();
+                        cc.emplace_back(std::in_place_type<equals_conc>, adjust_range({ s, cur_pos() }));
+                        next_char_special = true;
+                    }
                     if (const auto n = *input.next; n == EOF_SYMBOL || n == U' ' || n == U',')
                         continue;
-                    [[fallthrough]];
+                    if (auto [error] = lex_operand(cc, next_char_special); error)
+                    {
+                        consume_rest();
+                        goto end;
+                    }
+                    break;
+                }
 
                 case U'\'':
                 case U'&':
                 default:
-                    if (auto [error] = lex_operand(); error)
+                    if (auto [error] = lex_operand(cc, true); error)
                     {
                         consume_rest();
                         goto end;
@@ -1792,23 +2597,22 @@ struct parser_holder::macro_preprocessor_t
                     consume_rest();
                     goto end;
 
-                case U'(':
-                    if (auto [error] = process_list(); error)
+                case U'(': {
+                    std::vector<concat_chain> nested;
+                    if (auto [error] = process_list(nested); error)
                     {
                         consume_rest();
                         goto end;
                     }
+                    cc.emplace_back(std::in_place_type<sublist_conc>, std::move(nested));
                     break;
+                }
             }
         }
     end:;
-        append_current_operand();
+        push_operand();
 
-        if (auto& ops = result.operands; !ops.text_ranges.empty())
-            ops.total_op_range = union_range(ops.text_ranges.front(), ops.text_ranges.back());
-
-        adjust_lines();
-        result.op_range.end = cur_pos();
+        return { std::move(result), adjust_range({ line_start, cur_pos() }) };
     }
 
     macro_preprocessor_t(const parser_holder* h)
@@ -1819,13 +2623,25 @@ struct parser_holder::macro_preprocessor_t
     }
 };
 
-parser_holder::macro_preprocessor_t::result_t parser_holder::macro_preprocessor_t::lex_variable()
+parser_holder::macro_preprocessor_t::result_t<vs_ptr> parser_holder::macro_preprocessor_t::lex_variable()
 {
     assert(follows<U'&'>());
-    copy_char();
+
+    const auto start = cur_pos_adjusted();
+    consume();
+
+    concat_chain cc;
+    id_index id;
     if (follows<U'('>())
     {
-        if (auto [error] = lex_compound_variable(); error)
+        add_hl_symbol<hl_scopes::var_symbol>({ start, cur_pos() });
+        consume<hl_scopes::operator_symbol>();
+        if (auto [error, cc_] = lex_compound_variable(); error)
+            return failure;
+        else
+            cc = std::move(cc_);
+
+        if (!match<hl_scopes::operator_symbol, U')'>(diagnostic_op::error_S0011))
             return failure;
     }
     else if (!is_ord_first())
@@ -1834,23 +2650,45 @@ parser_holder::macro_preprocessor_t::result_t parser_holder::macro_preprocessor_
         return failure;
     }
     else
-        copy_ordsymbol();
-
-    if (follows<U'('>())
     {
-        if (auto [error] = lex_subscript(); error)
+        if (auto [error, id_] = lex_id(); error)
             return failure;
+        else
+            id = id_;
+        add_hl_symbol<hl_scopes::var_symbol>({ start, cur_pos() });
     }
 
-    return {};
+    std::vector<ca_expr_ptr> sub;
+    if (follows<U'('>())
+    {
+        if (auto [error, sub_] = lex_subscript(); error)
+            return failure;
+        else
+            sub = std::move(sub_);
+    }
+
+    const auto end = cur_pos();
+
+    if (!id.empty())
+        return static_cast<vs_ptr>(
+            std::make_unique<basic_variable_symbol>(id, std::move(sub), adjust_range({ start, end })));
+    else
+        return static_cast<vs_ptr>(
+            std::make_unique<created_variable_symbol>(std::move(cc), std::move(sub), adjust_range({ start, end })));
 }
 
-
-parser_holder::mac_op_data parser_holder::macro_preprocessor(bool reparse) const
+semantics::operand_list parser_holder::macro_ops(bool reparse) const
 {
-    macro_preprocessor_t p(this);
-    p.preprocess(reparse);
-    return std::move(p.result);
+    parser_holder::macro_preprocessor_t p(this);
+    auto [ops, line_range] = p.macro_ops(reparse);
+
+    if (!reparse)
+    {
+        parser->collector.set_operand_remark_field(std::move(ops), std::move(p.remarks), line_range);
+        return {};
+    }
+    else
+        return std::move(ops);
 }
 
 } // namespace hlasm_plugin::parser_library::parsing

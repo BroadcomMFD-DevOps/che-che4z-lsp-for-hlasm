@@ -74,27 +74,8 @@ statement_fields_parser::parse_result statement_fields_parser::parse_operand_fie
         switch (format.form)
         {
             case processing::processing_form::MAC: {
-                auto reparse_data = h.macro_preprocessor(true).operands;
+                line.operands = h.macro_ops(true);
                 literals = h.parser->get_collector().take_literals();
-
-                line.remarks = std::move(reparse_data.remarks);
-                if (!h.error_handler->error_reported() && !reparse_data.text.empty())
-                {
-                    const auto& h_second = *m_parser_singleline;
-                    h_second.prepare_parser(lexing::u8string_view_with_newlines(reparse_data.text),
-                        m_hlasm_ctx,
-                        &add_diag_subst,
-                        semantics::range_provider(reparse_data.total_op_range,
-                            std::move(reparse_data.text_ranges),
-                            semantics::adjusting_state::MACRO_REPARSE,
-                            h.lex->get_line_limits()),
-                        original_range,
-                        logical_column,
-                        status);
-
-                    line.operands = h_second.macro_ops();
-                    literals = h.parser->get_collector().take_literals();
-                }
                 break;
             }
             case processing::processing_form::ASM:
