@@ -545,6 +545,14 @@ struct parser_holder::macro_preprocessor_t
         consume_rest();
     }
 
+    void add_diagnostic_or_eof(diagnostic_op (&d)(const range&))
+    {
+        if (*input.next == EOF_SYMBOL)
+            add_diagnostic(diagnostic_op::error_S0003);
+        else
+            add_diagnostic(d);
+    }
+
     void add_diagnostic(diagnostic_op d)
     {
         holder->parser->add_diagnostic(std::move(d));
@@ -1076,7 +1084,6 @@ struct parser_holder::macro_preprocessor_t
     result_t<ca_expr_ptr> lex_term()
     {
         const auto start = cur_pos_adjusted();
-        const auto initial = input.next;
         switch (*input.next)
         {
             case EOF_SYMBOL:
@@ -1090,10 +1097,6 @@ struct parser_holder::macro_preprocessor_t
                     return std::make_unique<ca_var_sym>(std::move(v), adjust_range({ start, cur_pos() }));
 
             case U'-':
-                consume();
-                if (!must_follow<U'0', U'1', U'2', U'3', U'4', U'5', U'6', U'7', U'8', U'9'>())
-                    return failure;
-                [[fallthrough]];
             case U'0':
             case U'1':
             case U'2':
@@ -1104,15 +1107,10 @@ struct parser_holder::macro_preprocessor_t
             case U'7':
             case U'8':
             case U'9': {
-                do
-                {
-                    consume();
-                } while (is_num());
-                const auto r = adjust_range({ start, cur_pos() });
-                add_hl_symbol_adjusted<hl_scopes::number>(r);
-                std::string v;
-                v.reserve(input.next - initial);
-                std::transform(initial, input.next, std::back_inserter(v), [](char32_t c) { return (char)c; });
+                const auto [error, number] = lex_number_as_string();
+                if (error)
+                    return failure;
+                const auto& [v, r] = number;
                 return std::make_unique<ca_constant>(parse_self_def_term("D", v, r), r);
             }
 
@@ -1379,9 +1377,35 @@ struct parser_holder::macro_preprocessor_t
         }
     }
 
+    result_t<std::pair<std::string, range>> lex_number_as_string()
+    {
+        assert((follows<U'0', U'1', U'2', U'3', U'4', U'5', U'6', U'7', U'8', U'9', U'-'>()));
+        const auto start = cur_pos_adjusted();
+
+        std::string result;
+
+        if (follows<U'-'>())
+        {
+            consume_into(result);
+        }
+        if (!is_num())
+        {
+            add_diagnostic_or_eof(diagnostic_op::error_S0002);
+            return failure;
+        }
+        do
+        {
+            consume_into(result);
+        } while (is_num());
+
+        const auto r = adjust_range({ start, cur_pos() });
+        add_hl_symbol_adjusted<hl_scopes::number>(r);
+
+        return { result, r };
+    }
+
     result_t<mach_expr_ptr> lex_mach_term()
     {
-        const auto initial = input.next;
         const auto start = cur_pos_adjusted();
         switch (*input.next)
         {
@@ -1403,13 +1427,6 @@ struct parser_holder::macro_preprocessor_t
                 return std::make_unique<mach_expr_location_counter>(adjust_range({ start, cur_pos() }));
 
             case U'-':
-                consume();
-                if (!is_num())
-                {
-                    add_diagnostic(diagnostic_op::error_S0002);
-                    return failure;
-                }
-                [[fallthrough]];
             case U'0':
             case U'1':
             case U'2':
@@ -1420,15 +1437,10 @@ struct parser_holder::macro_preprocessor_t
             case U'7':
             case U'8':
             case U'9': {
-                while (is_num())
-                    consume();
-                const auto r = adjust_range({ start, cur_pos() });
-                add_hl_symbol_adjusted<hl_scopes::number>(r);
-
-                std::string v;
-                v.reserve(input.next - initial);
-                std::transform(initial, input.next, std::back_inserter(v), [](char32_t c) { return (char)c; });
-
+                const auto [error, number] = lex_number_as_string();
+                if (error)
+                    return failure;
+                const auto& [v, r] = number;
                 return std::make_unique<mach_expr_constant>(parse_self_def_term_in_mach("D", v, r), r);
             }
 
