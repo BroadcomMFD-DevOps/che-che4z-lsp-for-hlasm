@@ -1020,49 +1020,40 @@ struct parser_holder::macro_preprocessor_t
         std::vector<ca_expr_ptr> result;
 
         consume<hl_scopes::operator_symbol>();
-        if (follows<U' '>())
+        if (lex_optional_space())
         {
-            lex_optional_space();
-            if (auto [error, e] = lex_expr(); error)
+            auto [error, e] = lex_expr();
+            if (error)
                 return failure;
-            else
-                result.push_back(std::move(e));
+
+            result.push_back(std::move(e));
             lex_optional_space();
+            if (!match<hl_scopes::operator_symbol, U')'>(diagnostic_op::error_S0011))
+                return failure;
+
+            return result;
         }
+
+        if (auto [error, e] = lex_expr(); error)
+            return failure;
         else
+            result.push_back(std::move(e));
+
+        if (!match<hl_scopes::operator_symbol, U','>(diagnostic_op::error_S0002))
+            return failure;
+
+        if (auto [error, e] = lex_expr(); error)
+            return failure;
+        else
+            result.push_back(std::move(e));
+
+        while (follows<U','>())
         {
-            if (auto [error, e] = lex_expr(); error)
-                return failure;
-            else
-                result.push_back(std::move(e));
-            if (*input.next != U',')
-            {
-                add_diagnostic(diagnostic_op::error_S0002);
-                return failure;
-            }
             consume<hl_scopes::operator_symbol>();
-            if (eof())
-            {
-                add_diagnostic(diagnostic_op::error_S0003);
-                return failure;
-            }
             if (auto [error, e] = lex_expr(); error)
                 return failure;
             else
                 result.push_back(std::move(e));
-            while (follows<U','>())
-            {
-                consume<hl_scopes::operator_symbol>();
-                if (eof())
-                {
-                    add_diagnostic(diagnostic_op::error_S0003);
-                    return failure;
-                }
-                if (auto [error, e] = lex_expr(); error)
-                    return failure;
-                else
-                    result.push_back(std::move(e));
-            }
         }
         if (!match<hl_scopes::operator_symbol, U')'>(diagnostic_op::error_S0011))
             return failure;
