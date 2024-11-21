@@ -489,9 +489,7 @@ struct parser_holder::macro_preprocessor_t
         const auto ch = *input.next;
         assert(!eof());
 
-        adjust_lines();
-
-        [[maybe_unused]] const auto pos = cur_pos();
+        [[maybe_unused]] const auto pos = cur_pos_adjusted();
 
         ++input.next;
         ++input.char_position_in_line;
@@ -505,11 +503,21 @@ struct parser_holder::macro_preprocessor_t
         }
     }
 
+    template<size_t len = 1>
+    requires(len > 0) void consume_into(std::string& s)
+    {
+        assert(!eof());
+        utils::append_utf32_to_utf8(s, *input.next);
+        consume();
+        if constexpr (len > 1)
+            consume_into<len - 1>(s);
+    }
+
     [[nodiscard]] position cur_pos() noexcept { return position(input.line, input.char_position_in_line_utf16); }
     [[nodiscard]] position cur_pos_adjusted() noexcept
     {
         adjust_lines();
-        return position(input.line, input.char_position_in_line_utf16);
+        return cur_pos();
     }
 
     void consume_rest()
@@ -554,9 +562,8 @@ struct parser_holder::macro_preprocessor_t
         // skip spaces
         while (follows<U' '>())
             consume();
-        adjust_lines();
 
-        const auto last_remark_start = cur_pos();
+        const auto last_remark_start = cur_pos_adjusted();
         while (!eof())
             consume();
         adjust_lines();
@@ -567,12 +574,14 @@ struct parser_holder::macro_preprocessor_t
 
     void lex_line_remark()
     {
+        assert(follows<U' '>() && static_cast<size_t>(input.next - data) < *input.nl);
+
         while (follows<U' '>() && static_cast<size_t>(input.next - data) < *input.nl)
             consume();
 
         if (static_cast<size_t>(input.next - data) < *input.nl)
         {
-            const auto last_remark_start = cur_pos();
+            const auto last_remark_start = cur_pos(); // adjusted by construction
             while (!eof() && static_cast<size_t>(input.next - data) < *input.nl)
                 consume();
 
@@ -720,11 +729,10 @@ struct parser_holder::macro_preprocessor_t
 
         std::string name;
 
-        const auto start = cur_pos();
+        const auto start = cur_pos_adjusted();
         do
         {
-            utils::append_utf32_to_utf8(name, *input.next);
-            consume();
+            consume_into(name);
         } while (is_ord());
         const auto end = cur_pos();
 
@@ -789,8 +797,7 @@ struct parser_holder::macro_preprocessor_t
 
                     while (except<U')', U'&', U'.'>())
                     {
-                        utils::append_utf32_to_utf8(collected, *input.next);
-                        consume();
+                        consume_into(collected);
                     }
                     const auto r = adjust_range({ start, cur_pos() });
                     result.emplace_back(std::in_place_type<char_str_conc>, std::move(collected), r);
@@ -876,7 +883,10 @@ struct parser_holder::macro_preprocessor_t
 
                 case U'&':
                     if (input.next[1] == U'&')
-                        s.push_back('&');
+                    {
+                        consume_into(s);
+                        consume();
+                    }
                     else if (auto [error, vs] = (dump_s(), lex_variable()); error)
                         return failure;
                     else
@@ -889,14 +899,12 @@ struct parser_holder::macro_preprocessor_t
                 case U'\'':
                     if (input.next[1] != U'\'')
                         goto done;
+                    consume_into(s);
                     consume();
-                    consume();
-                    s.push_back('\'');
                     break;
 
                 default:
-                    utils::append_utf32_to_utf8(s, *input.next);
-                    consume();
+                    consume_into(s);
                     break;
             }
         }
@@ -1595,13 +1603,11 @@ struct parser_holder::macro_preprocessor_t
         {
             if (input.next[0] != U'\'')
             {
-                utils::append_utf32_to_utf8(s, *input.next);
-                consume();
+                consume_into(s);
             }
             else if (input.next[1] == U'\'')
             {
-                utils::append_utf32_to_utf8(s, *input.next);
-                consume();
+                consume_into(s);
                 consume();
             }
             else
@@ -1926,14 +1932,12 @@ struct parser_holder::macro_preprocessor_t
         {
             if (input.next[0] == U'\'' && input.next[1] == U'\'')
             {
-                utils::append_utf32_to_utf8(result, *input.next);
-                consume();
+                consume_into(result);
                 consume();
             }
             else if (except<U'\''>())
             {
-                utils::append_utf32_to_utf8(result, *input.next);
-                consume();
+                consume_into(result);
             }
             else
                 break;
@@ -2048,18 +2052,17 @@ struct parser_holder::macro_preprocessor_t
                         add_diagnostic(diagnostic_op::error_S0002);
                         return failure;
                     }
-                    result.push_back('&');
+                    consume_into(result);
+                    consume();
                     break;
                 case U'\'':
                     if (input.next[1] != U'\'')
                         goto done;
-                    result.push_back('\'');
-                    consume();
+                    consume_into(result);
                     consume();
                     break;
                 default:
-                    utils::append_utf32_to_utf8(result, *input.next);
-                    consume();
+                    consume_into(result);
                     break;
             }
         }
@@ -2250,8 +2253,7 @@ struct parser_holder::macro_preprocessor_t
                     return {};
 
                 case U'\'': {
-                    utils::append_utf32_to_utf8(last_text()->value, *input.next);
-                    consume();
+                    consume_into(last_text()->value);
                     while (!eof())
                     {
                         switch (*input.next)
@@ -2259,16 +2261,12 @@ struct parser_holder::macro_preprocessor_t
                             case U'\'':
                                 if (input.next[1] != U'\'')
                                     goto done;
-                                last_text()->value.append(2, '\''); // TODO: WHY 2???
-                                consume();
-                                consume();
+                                consume_into<2>(last_text()->value); // TODO: Why two quotes?
                                 break;
                             case U'&':
                                 if (input.next[1] == U'&')
                                 {
-                                    last_text()->value.append(2, '&');
-                                    consume();
-                                    consume();
+                                    consume_into<2>(last_text()->value);
                                     break;
                                 }
                                 push_last_text();
@@ -2289,8 +2287,7 @@ struct parser_holder::macro_preprocessor_t
                                 break;
 
                             default:
-                                utils::append_utf32_to_utf8(last_text()->value, *input.next);
-                                consume();
+                                consume_into(last_text()->value);
                                 break;
                         }
                     }
@@ -2300,8 +2297,7 @@ struct parser_holder::macro_preprocessor_t
                         push_last_text();
                         return failure;
                     }
-                    utils::append_utf32_to_utf8(last_text()->value, *input.next);
-                    consume();
+                    consume_into(last_text()->value);
                     push_last_text();
                     next_char_special = false;
                     break;
@@ -2310,9 +2306,7 @@ struct parser_holder::macro_preprocessor_t
                 case U'&':
                     if (input.next[1] == U'&')
                     {
-                        last_text()->value.append(2, '&');
-                        consume();
-                        consume();
+                        consume_into<2>(last_text()->value);
                         // add_hl_symbol_adjusted<hl_scopes::???>(r);
                         break;
                     }
@@ -2336,24 +2330,19 @@ struct parser_holder::macro_preprocessor_t
                 case U't':
                     if (!last_char_special || input.next[1] != U'\'')
                     {
-                        utils::append_utf32_to_utf8(last_text()->value, *input.next);
-                        consume();
+                        consume_into(last_text()->value);
                         next_char_special = false;
                         break;
                     }
                     else if (is_ord_first(input.next[2]) || input.next[2] == U'=')
                     {
-                        utils::append_utf32_to_utf8(last_text()->value, *input.next);
-                        consume();
-                        utils::append_utf32_to_utf8(last_text()->value, *input.next);
-                        consume();
+                        consume_into<2>(last_text()->value);
                         next_char_special = false;
                         break;
                     }
                     else if (input.next[2] != U'&')
                     {
-                        utils::append_utf32_to_utf8(last_text()->value, *input.next);
-                        consume();
+                        consume_into(last_text()->value);
                         next_char_special = false;
                         break;
                     }
@@ -2362,14 +2351,11 @@ struct parser_holder::macro_preprocessor_t
                     {
                         if (*input.next != U'&')
                         {
-                            utils::append_utf32_to_utf8(last_text()->value, *input.next);
-                            consume();
+                            consume_into(last_text()->value);
                         }
                         else if (input.next[1] == U'&')
                         {
-                            last_text()->value.append(2, '&');
-                            consume();
-                            consume();
+                            consume_into<2>(last_text()->value);
                         }
                         else if (auto [error, vs] = (push_last_text(), lex_variable()); error)
                             return failure;
@@ -2385,8 +2371,7 @@ struct parser_holder::macro_preprocessor_t
 
                 default:
                     next_char_special = *input.next >= ord.size() || !ord[*input.next];
-                    utils::append_utf32_to_utf8(last_text()->value, *input.next);
-                    consume();
+                    consume_into(last_text()->value);
                     break;
             }
         }
@@ -2432,7 +2417,7 @@ struct parser_holder::macro_preprocessor_t
 
     std::pair<operand_list, range> macro_ops(bool reparse)
     {
-        const auto input_start = cur_pos();
+        const auto input_start = cur_pos_adjusted();
         if (eof())
             return { operand_list(), adjust_range(range(input_start)) };
 
@@ -2453,7 +2438,7 @@ struct parser_holder::macro_preprocessor_t
 
         operand_list result;
 
-        auto line_start = cur_pos();
+        auto line_start = cur_pos(); // already adjusted
         auto start = line_start;
         concat_chain cc;
         bool pending = true;
