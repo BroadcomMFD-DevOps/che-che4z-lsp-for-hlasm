@@ -2191,7 +2191,7 @@ struct parser_holder::macro_preprocessor_t
         return result;
     }
 
-    result_t_void lex_operand(concat_chain& cc, bool next_char_special)
+    result_t_void lex_macro_operand(concat_chain& cc, bool next_char_special)
     {
         char_str_conc* last_text_state = nullptr;
         const auto last_text = [&]() {
@@ -2225,7 +2225,7 @@ struct parser_holder::macro_preprocessor_t
                 case U'(': {
                     std::vector<concat_chain> nested;
                     push_last_text();
-                    if (auto [error] = process_list(nested); error)
+                    if (auto [error] = process_macro_list(nested); error)
                         return failure;
                     cc.emplace_back(std::in_place_type<sublist_conc>, std::move(nested));
                     break;
@@ -2402,7 +2402,7 @@ struct parser_holder::macro_preprocessor_t
         }
     }
 
-    result_t_void process_list(std::vector<concat_chain>& cc)
+    result_t_void process_macro_list(std::vector<concat_chain>& cc)
     {
         assert(follows<U'('>());
 
@@ -2413,14 +2413,14 @@ struct parser_holder::macro_preprocessor_t
             return {};
         }
 
-        if (auto [error] = lex_operand(cc.emplace_back(), true); error)
+        if (auto [error] = lex_macro_operand(cc.emplace_back(), true); error)
             return failure;
 
         while (follows<U','>())
         {
             consume<hl_scopes::operator_symbol>();
             process_optional_line_remark();
-            if (auto [error] = lex_operand(cc.emplace_back(), true); error)
+            if (auto [error] = lex_macro_operand(cc.emplace_back(), true); error)
                 return failure;
         }
 
@@ -2497,7 +2497,7 @@ struct parser_holder::macro_preprocessor_t
                 case U't':
                     if (input.next[1] == U'\'')
                     {
-                        if (auto [error] = lex_operand(cc, true); error)
+                        if (auto [error] = lex_macro_operand(cc, true); error)
                         {
                             consume_rest();
                             goto end;
@@ -2573,7 +2573,7 @@ struct parser_holder::macro_preprocessor_t
                     }
                     if (const auto n = *input.next; n == EOF_SYMBOL || n == U' ' || n == U',')
                         continue;
-                    if (auto [error] = lex_operand(cc, next_char_special); error)
+                    if (auto [error] = lex_macro_operand(cc, next_char_special); error)
                     {
                         consume_rest();
                         goto end;
@@ -2584,7 +2584,7 @@ struct parser_holder::macro_preprocessor_t
                 case U'\'':
                 case U'&':
                 default:
-                    if (auto [error] = lex_operand(cc, true); error)
+                    if (auto [error] = lex_macro_operand(cc, true); error)
                     {
                         consume_rest();
                         goto end;
@@ -2598,7 +2598,7 @@ struct parser_holder::macro_preprocessor_t
 
                 case U'(': {
                     std::vector<concat_chain> nested;
-                    if (auto [error] = process_list(nested); error)
+                    if (auto [error] = process_macro_list(nested); error)
                     {
                         consume_rest();
                         goto end;
