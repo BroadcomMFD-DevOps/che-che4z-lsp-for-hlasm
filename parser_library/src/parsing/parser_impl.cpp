@@ -1081,6 +1081,149 @@ struct parser_holder::macro_preprocessor_t
     [[nodiscard]] auto allow_literals() const { return holder->parser->allow_literals(); }
     [[nodiscard]] auto disable_literals() const { return holder->parser->disable_literals(); }
 
+    result_t<ca_expr_ptr> lex_rest_of_ca_string_group(ca_expr_ptr initial_duplicate_factor)
+    {
+        const auto start = cur_pos_adjusted();
+        auto [error, s] = lex_ca_string_with_optional_substring();
+        if (error)
+            return failure;
+
+        ca_expr_ptr result = std::make_unique<expressions::ca_string>(std::move(s.first),
+            std::move(initial_duplicate_factor),
+            std::move(s.second),
+            adjust_range({ start, cur_pos() }));
+
+        while (follows<U'(', U'\''>())
+        {
+            const auto conc_start = cur_pos_adjusted();
+            ca_expr_ptr nested_dupl;
+            if (follows<U'('>())
+            {
+                consume<hl_scopes::operator_symbol>();
+                auto [error2, dupl] = lex_expr_general();
+                if (error2)
+                    return failure;
+                if (!match<hl_scopes::operator_symbol, U')'>(diagnostic_op::error_S0011))
+                    return failure;
+                nested_dupl = std::move(dupl);
+            }
+            auto [error2, s2] = lex_ca_string_with_optional_substring();
+            if (error2)
+                return failure;
+
+            result = std::make_unique<ca_basic_binary_operator<ca_conc>>(std::move(result),
+                std::make_unique<expressions::ca_string>(std::move(s2.first),
+                    std::move(nested_dupl),
+                    std::move(s2.second),
+                    adjust_range({ conc_start, cur_pos() })),
+                adjust_range({ start, cur_pos() }));
+        }
+        return result;
+    }
+
+    result_t<std::variant<std::unique_ptr<ca_expr_list>, ca_expr_ptr>> lex_maybe_expression_list()
+    {
+        const auto start = cur_pos_adjusted();
+
+        ca_expr_ptr p_expr;
+        std::vector<ca_expr_ptr> expr_list;
+
+        auto spaces_found = lex_optional_space();
+        if (auto [error, e] = lex_expr(); error)
+            return failure;
+        else
+            p_expr = std::move(e);
+
+        spaces_found |= lex_optional_space();
+        for (; except<U')'>(); spaces_found |= lex_optional_space())
+        {
+            auto [error, e] = lex_expr();
+            if (error)
+                return failure;
+            if (p_expr)
+                expr_list.push_back(std::move(p_expr));
+            expr_list.push_back(std::move(e));
+        }
+        if (!match<hl_scopes::operator_symbol, U')'>(diagnostic_op::error_S0011))
+            return failure;
+        if (spaces_found && p_expr)
+            expr_list.push_back(std::move(p_expr));
+        if (!expr_list.empty())
+            return std::make_unique<ca_expr_list>(std::move(expr_list), adjust_range({ start, cur_pos() }), true);
+
+        return std::move(p_expr);
+    }
+
+    result_t<ca_expr_ptr> lex_self_def()
+    {
+        assert((follows<U'B', U'X', U'C', U'G', U'b', U'x', U'c', U'g'>()));
+        const auto start = cur_pos_adjusted();
+
+        const auto c = static_cast<char>(*input.next);
+        consume<hl_scopes::self_def_type>();
+        auto [error, s] = lex_simple_string();
+        if (error)
+            return failure;
+
+        const auto r = adjust_range({ start, cur_pos() });
+        return std::make_unique<ca_constant>(parse_self_def_term(std::string_view(&c, 1), std::move(s), r), r);
+    }
+
+    result_t<ca_expr_ptr> lex_attribute_reference()
+    {
+        assert((
+            follows<U'N', U'K', U'D', U'O', U'S', U'I', U'L', U'T', u'n', u'k', u'd', U'o', U's', U'i', U'l', U't'>()));
+        const auto start = cur_pos_adjusted();
+
+        const auto attr = context::symbol_attributes::transform_attr(utils::upper_cased[*input.next]);
+        consume<hl_scopes::data_attr_type>();
+        consume<hl_scopes::operator_symbol>();
+
+        const auto start_value = cur_pos_adjusted();
+        switch (*input.next)
+        {
+            case EOF_SYMBOL:
+                add_diagnostic(diagnostic_op::error_S0003);
+                return failure;
+
+            case U'&': {
+                auto [error, v] = lex_variable();
+                if (error)
+                    return failure;
+                // TODO: in reality, this seems to be much more complicated (arbitrary many dots
+                // are consumed for *some* attributes)
+                // TODO: highlighting
+                if (follows<U'.'>())
+                {
+                    consume();
+                }
+                return std::make_unique<ca_symbol_attribute>(
+                    std::move(v), attr, adjust_range({ start, cur_pos() }), adjust_range({ start_value, cur_pos() }));
+            }
+
+            case U'=': {
+                auto [error, l] = lex_literal();
+                if (error)
+                    return failure;
+                return std::make_unique<ca_symbol_attribute>(
+                    std::move(l), attr, adjust_range({ start, cur_pos() }), adjust_range({ start_value, cur_pos() }));
+            }
+
+            default: {
+                if (!is_ord_first())
+                {
+                    add_diagnostic(diagnostic_op::error_S0002);
+                    return failure;
+                }
+                auto [error, id] = lex_id();
+                if (error)
+                    return failure;
+                return std::make_unique<ca_symbol_attribute>(
+                    id, attr, adjust_range({ start, cur_pos() }), adjust_range({ start_value, cur_pos() }));
+            }
+        }
+    }
+
     result_t<ca_expr_ptr> lex_term()
     {
         const auto start = cur_pos_adjusted();
@@ -1115,78 +1258,23 @@ struct parser_holder::macro_preprocessor_t
             }
 
             case U'\'':
-                if (auto [error, s] = lex_ca_string_with_optional_substring(); error)
+                if (auto [error, s] = lex_rest_of_ca_string_group({}); error)
                     return failure;
                 else
-                {
-                    ca_expr_ptr result = std::make_unique<expressions::ca_string>(
-                        std::move(s.first), ca_expr_ptr(), std::move(s.second), adjust_range({ start, cur_pos() }));
-
-                    while (follows<U'(', U'\''>())
-                    {
-                        const auto conc_start = cur_pos_adjusted();
-                        ca_expr_ptr nested_dupl;
-                        if (follows<U'('>())
-                        {
-                            consume<hl_scopes::operator_symbol>();
-                            if (auto [error2, dupl] = lex_expr_general(); error2)
-                                return failure;
-                            else if (!match<hl_scopes::operator_symbol, U')'>(diagnostic_op::error_S0011))
-                                return failure;
-                            else
-                                nested_dupl = std::move(dupl);
-                        }
-                        if (auto [error2, s2] = lex_ca_string_with_optional_substring(); error2)
-                            return failure;
-                        else
-                        {
-                            auto next = std::make_unique<expressions::ca_string>(std::move(s2.first),
-                                std::move(nested_dupl),
-                                std::move(s2.second),
-                                adjust_range({ conc_start, cur_pos() }));
-                            result = std::make_unique<ca_basic_binary_operator<ca_conc>>(
-                                std::move(result), std::move(next), adjust_range({ start, cur_pos() }));
-                        }
-                    }
-                    return result;
-                }
+                    return std::move(s);
 
             case U'(': {
                 consume<hl_scopes::operator_symbol>();
-                if (eof())
-                {
-                    add_diagnostic(diagnostic_op::error_S0003);
-                    return failure;
-                }
 
                 ca_expr_ptr p_expr;
                 if (!follows_NOT_SPACE())
                 {
-                    std::vector<ca_expr_ptr> expr_list;
-                    auto spaces_found = lex_optional_space();
-                    if (auto [error, e] = lex_expr(); error)
+                    auto [error, maybe_expr_list] = lex_maybe_expression_list();
+                    if (error)
                         return failure;
-                    else
-                        p_expr = std::move(e);
-                    spaces_found |= lex_optional_space();
-                    for (; except<U')'>(); spaces_found |= lex_optional_space())
-                    {
-                        if (auto [error, e] = lex_expr(); error)
-                            return failure;
-                        else
-                        {
-                            if (p_expr)
-                                expr_list.push_back(std::move(p_expr));
-                            expr_list.push_back(std::move(e));
-                        }
-                    }
-                    if (!match<hl_scopes::operator_symbol, U')'>(diagnostic_op::error_S0011))
-                        return failure;
-                    if (spaces_found && p_expr)
-                        expr_list.push_back(std::move(p_expr));
-                    if (!expr_list.empty())
-                        return std::make_unique<ca_expr_list>(
-                            std::move(expr_list), adjust_range({ start, cur_pos() }), true);
+                    if (std::holds_alternative<std::unique_ptr<ca_expr_list>>(maybe_expr_list))
+                        return std::move(std::get<std::unique_ptr<ca_expr_list>>(maybe_expr_list));
+                    p_expr = std::move(std::get<ca_expr_ptr>(maybe_expr_list));
                 }
                 else if (auto [error, e] = lex_expr_general(); error)
                     return failure;
@@ -1197,59 +1285,26 @@ struct parser_holder::macro_preprocessor_t
 
                 if (follows<U'\''>())
                 {
-                    ca_expr_ptr result;
-                    if (auto [error, s] = lex_ca_string_with_optional_substring(); error)
+                    if (auto [error, s] = lex_rest_of_ca_string_group(std::move(p_expr)); error)
                         return failure;
                     else
-                        result = std::make_unique<expressions::ca_string>(std::move(s.first),
-                            std::move(p_expr),
-                            std::move(s.second),
-                            adjust_range({ start, cur_pos() }));
-                    while (follows<U'(', U'\''>())
-                    {
-                        const auto conc_start = cur_pos_adjusted();
-                        ca_expr_ptr nested_dupl;
-                        if (follows<U'('>())
-                        {
-                            consume<hl_scopes::operator_symbol>();
-                            if (auto [error, dupl] = lex_expr_general(); error)
-                                return failure;
-                            else if (!match<hl_scopes::operator_symbol, U')'>(diagnostic_op::error_S0011))
-                                return failure;
-                            else
-                                nested_dupl = std::move(dupl);
-                        }
-                        if (auto [error, s2] = lex_ca_string_with_optional_substring(); error)
-                            return failure;
-                        else
-                        {
-                            auto next = std::make_unique<expressions::ca_string>(std::move(s2.first),
-                                std::move(nested_dupl),
-                                std::move(s2.second),
-                                adjust_range({ conc_start, cur_pos() }));
-                            result = std::make_unique<ca_basic_binary_operator<ca_conc>>(
-                                std::move(result), std::move(next), adjust_range({ start, cur_pos() }));
-                        }
-                    }
-                    return result;
+                        return std::move(s);
                 }
                 else if (is_ord_first())
                 {
-                    id_index id;
-                    if (auto [error, id_] = lex_id(); error)
+                    auto [id_error, id] = lex_id();
+                    if (id_error)
                         return failure;
-                    else
-                        id = id_;
                     if (!must_follow<U'('>())
                         return failure;
-                    if (auto [error, s] = lex_subscript_ne(); error)
+                    auto [s_error, s] = lex_subscript_ne();
+                    if (s_error)
                         return failure;
-                    else
-                    {
-                        auto func = ca_common_expr_policy::get_function(id.to_string_view());
-                        return std::make_unique<ca_function>(
-                            id, func, std::move(s), std::move(p_expr), adjust_range({ start, cur_pos() }));
-                    }
+                    return std::make_unique<ca_function>(id,
+                        ca_common_expr_policy::get_function(id.to_string_view()),
+                        std::move(s),
+                        std::move(p_expr),
+                        adjust_range({ start, cur_pos() }));
                 }
 
                 std::vector<ca_expr_ptr> expr_list;
@@ -1263,95 +1318,36 @@ struct parser_holder::macro_preprocessor_t
                     add_diagnostic(diagnostic_op::error_S0002);
                     return failure;
                 }
+
                 if (input.next[1] == U'\'')
                 {
-                    switch (*input.next)
+                    enum class letter_type : unsigned char
                     {
-                        case U'B':
-                        case U'X':
-                        case U'C':
-                        case U'G':
-                        case U'b':
-                        case U'x':
-                        case U'c':
-                        case U'g': {
-                            const auto c = static_cast<char>(*input.next);
-                            consume<hl_scopes::self_def_type>();
-                            if (auto [error, s] = lex_simple_string(); error)
+                        normal,
+                        selfdef,
+                        attribute,
+                    };
+                    using enum letter_type;
+                    static constexpr auto selfdef_or_attr =
+                        utils::combine_truth_tables(utils::create_truth_table("BXCGbxcg", selfdef),
+                            utils::create_truth_table("NKDOSILTnkdosilt", attribute));
+
+                    switch (assert(*input.next < selfdef_or_attr.size()); selfdef_or_attr[*input.next])
+                    {
+                        case normal:
+                            break;
+
+                        case selfdef:
+                            if (auto [error, self_def] = lex_self_def(); error)
                                 return failure;
                             else
-                            {
-                                const auto r = adjust_range({ start, cur_pos() });
-                                return std::make_unique<ca_constant>(
-                                    parse_self_def_term(std::string_view(&c, 1), std::move(s), r), r);
-                            }
-                        }
+                                return std::move(self_def);
 
-                        case U'N':
-                        case U'K':
-                        case U'D':
-                        case U'O':
-                        case U'S':
-                        case U'I':
-                        case U'L':
-                        case U'T':
-                        case u'n':
-                        case u'k':
-                        case u'd':
-                        case U'o':
-                        case U's':
-                        case U'i':
-                        case U'l':
-                        case U't': {
-                            const auto attr =
-                                context::symbol_attributes::transform_attr(utils::upper_cased[*input.next]);
-                            consume<hl_scopes::data_attr_type>();
-                            consume<hl_scopes::operator_symbol>();
-                            const auto start_value = cur_pos_adjusted();
-                            switch (*input.next)
-                            {
-                                case EOF_SYMBOL:
-                                    add_diagnostic(diagnostic_op::error_S0003);
-                                    return failure;
-                                case U'&':
-                                    if (auto [error, v] = lex_variable(); error)
-                                        return failure;
-                                    else
-                                    {
-                                        // TODO:in reality, this seems to be much more complicated (arbitrary many dots
-                                        // are consumed for *some* attributes)
-                                        if (follows<U'.'>())
-                                        {
-                                            consume();
-                                        }
-                                        return std::make_unique<ca_symbol_attribute>(std::move(v),
-                                            attr,
-                                            adjust_range({ start, cur_pos() }),
-                                            adjust_range({ start_value, cur_pos() }));
-                                    }
-                                case U'=':
-                                    if (auto [error, l] = lex_literal(); error)
-                                        return failure;
-                                    else
-                                        return std::make_unique<ca_symbol_attribute>(std::move(l),
-                                            attr,
-                                            adjust_range({ start, cur_pos() }),
-                                            adjust_range({ start_value, cur_pos() }));
-                                default:
-                                    if (!is_ord_first())
-                                    {
-                                        add_diagnostic(diagnostic_op::error_S0002);
-                                        return failure;
-                                    }
-                                    if (auto [error, id] = lex_id(); error)
-                                        return failure;
-                                    else
-                                        return std::make_unique<ca_symbol_attribute>(id,
-                                            attr,
-                                            adjust_range({ start, cur_pos() }),
-                                            adjust_range({ start_value, cur_pos() }));
-                            }
-                        }
+                        case attribute:
+                            if (auto [error, attr_ref] = lex_attribute_reference(); error)
+                                return failure;
+                            else
+                                return std::move(attr_ref);
                     }
                 }
                 if (auto [error, id] = lex_id(); error)
