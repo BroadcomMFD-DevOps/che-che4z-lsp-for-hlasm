@@ -510,14 +510,11 @@ struct parser_holder::parser2
         }
     }
 
-    template<size_t len = 1>
-    requires(len > 0) void consume_into(std::string& s)
+    void consume_into(std::string& s)
     {
         assert(!eof());
         utils::append_utf32_to_utf8(s, *input.next);
         consume();
-        if constexpr (len > 1)
-            consume_into<len - 1>(s);
     }
 
     [[nodiscard]] position cur_pos() noexcept { return position(input.line, input.char_position_in_line_utf16); }
@@ -538,11 +535,16 @@ struct parser_holder::parser2
 
     [[nodiscard]] range remap_range(range r) const noexcept { return holder->parser->provider.adjust_range(r); }
 
-    void add_diagnostic(diagnostic_op (&d)(const range&))
+    void add_diagnostic(diagnostic_op d)
     {
-        holder->parser->add_diagnostic(d(holder->parser->provider.adjust_range(range(cur_pos()))));
+        holder->parser->add_diagnostic(std::move(d));
         holder->error_handler->singal_error();
         consume_rest();
+    }
+
+    void add_diagnostic(diagnostic_op (&d)(const range&))
+    {
+        add_diagnostic(d(holder->parser->provider.adjust_range(range(cur_pos()))));
     }
 
     void syntax_error_or_eof()
@@ -551,13 +553,6 @@ struct parser_holder::parser2
             add_diagnostic(diagnostic_op::error_S0003);
         else
             add_diagnostic(diagnostic_op::error_S0002);
-    }
-
-    void add_diagnostic(diagnostic_op d)
-    {
-        holder->parser->add_diagnostic(std::move(d));
-        holder->error_handler->singal_error();
-        consume_rest();
     }
 
     template<hl_scopes s>
@@ -2257,7 +2252,8 @@ struct parser_holder::parser2
         assert(follows<U'&'>());
         if (input.next[1] == U'&')
         {
-            consume_into<2>(ccb.last_text_value());
+            consume_into(ccb.last_text_value());
+            consume_into(ccb.last_text_value());
         }
         else
         {
@@ -2323,7 +2319,8 @@ struct parser_holder::parser2
 
         if (is_ord_first(input.next[2]) || input.next[2] == U'=')
         {
-            consume_into<2>(ccb.last_text_value());
+            consume_into(ccb.last_text_value());
+            consume_into(ccb.last_text_value());
             return false;
         }
 
@@ -2341,7 +2338,8 @@ struct parser_holder::parser2
             }
             else if (input.next[1] == U'&')
             {
-                consume_into<2>(ccb.last_text_value());
+                consume_into(ccb.last_text_value());
+                consume_into(ccb.last_text_value());
             }
             else if (auto [error, vs] = (ccb.push_last_text(), lex_variable()); error)
                 return failure;
