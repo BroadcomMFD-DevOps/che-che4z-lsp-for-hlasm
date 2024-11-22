@@ -482,32 +482,36 @@ struct parser_holder::parser2
 
         input.char_position_in_line = cont;
         input.char_position_in_line_utf16 = cont;
-        while (!before_nl())
+        do
         {
             ++input.line;
             ++input.nl;
-        }
+        } while (!before_nl());
         return;
     }
 
-    template<hl_scopes... s>
-    requires(sizeof...(s) <= 1) void consume() noexcept
+    void consume() noexcept
     {
-        const auto ch = *input.next;
         assert(!eof());
 
-        [[maybe_unused]] const auto pos = cur_pos_adjusted();
+        const auto ch = *input.next;
+
+        adjust_lines();
 
         ++input.next;
         ++input.char_position_in_line;
         input.char_position_in_line_utf16 += 1 + (ch > 0xffffu);
+    }
 
-        [[maybe_unused]] const auto end = cur_pos();
+    void consume(hl_scopes s) noexcept
+    {
+        assert(!eof());
 
-        if constexpr (sizeof...(s))
-        {
-            add_hl_symbol({ pos, end }, s...);
-        }
+        const auto pos = cur_pos_adjusted();
+        consume();
+        const auto end = cur_pos();
+
+        add_hl_symbol({ pos, end }, s);
     }
 
     void consume_into(std::string& s)
@@ -688,15 +692,16 @@ struct parser_holder::parser2
         return true;
     }
 
-    template<hl_scopes s, char32_t... chars>
-    [[nodiscard]] constexpr bool match(diagnostic_op (&d)(const range&)) requires((chars != EOF_SYMBOL) && ...)
+    template<char32_t... chars>
+    [[nodiscard]] constexpr bool match(hl_scopes s, diagnostic_op (&d)(const range&))
+        requires((chars != EOF_SYMBOL) && ...)
     {
         if (!follows<chars...>())
         {
             add_diagnostic(d);
             return false;
         }
-        consume<s>();
+        consume(s);
         return true;
     }
 
@@ -711,12 +716,12 @@ struct parser_holder::parser2
         return false;
     }
 
-    template<hl_scopes s, char32_t... chars>
-    [[nodiscard]] constexpr bool match() requires((chars != EOF_SYMBOL) && ...)
+    template<char32_t... chars>
+    [[nodiscard]] constexpr bool match(hl_scopes s) requires((chars != EOF_SYMBOL) && ...)
     {
         if (must_follow<chars...>())
         {
-            consume<s>();
+            consume(s);
             return true;
         }
         return false;
@@ -733,12 +738,12 @@ struct parser_holder::parser2
         return false;
     }
 
-    template<hl_scopes s, char32_t... chars>
-    [[nodiscard]] constexpr bool try_consume() requires((chars != EOF_SYMBOL) && ...)
+    template<char32_t... chars>
+    [[nodiscard]] constexpr bool try_consume(hl_scopes s) requires((chars != EOF_SYMBOL) && ...)
     {
         if (follows<chars...>())
         {
-            consume<s>();
+            consume(s);
             return true;
         }
         return false;
@@ -799,7 +804,7 @@ struct parser_holder::parser2
         if (error)
             return failure;
 
-        if (try_consume<hl_scopes::operator_symbol, U'.'>())
+        if (try_consume<U'.'>(hl_scopes::operator_symbol))
         {
             if (!is_ord_first())
             {
@@ -861,7 +866,7 @@ struct parser_holder::parser2
                     //     return failure;
                 case U'.': {
                     const auto start = cur_pos_adjusted();
-                    consume<hl_scopes::operator_symbol>();
+                    consume(hl_scopes::operator_symbol);
                     result.emplace_back(std::in_place_type<dot_conc>, remap_range({ start, cur_pos() }));
                     break;
                 }
@@ -920,7 +925,7 @@ struct parser_holder::parser2
     result_t<concat_chain> lex_ca_string_value()
     {
         assert(follows<U'\''>());
-        consume<hl_scopes::operator_symbol>();
+        consume(hl_scopes::operator_symbol);
 
         concat_chain cc;
 
@@ -996,18 +1001,18 @@ struct parser_holder::parser2
 
         const auto sub_start = cur_pos_adjusted();
 
-        consume<hl_scopes::operator_symbol>();
+        consume(hl_scopes::operator_symbol);
 
         auto [e1_error, e1] = lex_expr_general();
         if (e1_error)
             return failure;
 
-        if (!match<hl_scopes::operator_symbol, U','>())
+        if (!match<U','>(hl_scopes::operator_symbol))
             return failure;
 
         if (try_consume<U'*'>()) // TODO: no hightlighting?
         {
-            if (!match<hl_scopes::operator_symbol, U')'>(diagnostic_op::error_S0011))
+            if (!match<U')'>(hl_scopes::operator_symbol, diagnostic_op::error_S0011))
                 return failure;
             return { std::move(e1), ca_expr_ptr(), remap_range({ sub_start, cur_pos() }) };
         }
@@ -1016,7 +1021,7 @@ struct parser_holder::parser2
         if (e2_error)
             return failure;
 
-        if (!match<hl_scopes::operator_symbol, U')'>(diagnostic_op::error_S0011))
+        if (!match<U')'>(hl_scopes::operator_symbol, diagnostic_op::error_S0011))
             return failure;
 
         return {
@@ -1059,7 +1064,7 @@ struct parser_holder::parser2
 
         std::vector<ca_expr_ptr> result;
 
-        consume<hl_scopes::operator_symbol>();
+        consume(hl_scopes::operator_symbol);
         if (lex_optional_space())
         {
             auto [error, e] = lex_expr();
@@ -1068,7 +1073,7 @@ struct parser_holder::parser2
 
             result.push_back(std::move(e));
             lex_optional_space();
-            if (!match<hl_scopes::operator_symbol, U')'>(diagnostic_op::error_S0011))
+            if (!match<U')'>(hl_scopes::operator_symbol, diagnostic_op::error_S0011))
                 return failure;
 
             return result;
@@ -1079,7 +1084,7 @@ struct parser_holder::parser2
         else
             result.push_back(std::move(e));
 
-        if (!match<hl_scopes::operator_symbol, U','>(diagnostic_op::error_S0002))
+        if (!match<U','>(hl_scopes::operator_symbol, diagnostic_op::error_S0002))
             return failure;
 
         if (auto [error, e] = lex_expr(); error)
@@ -1087,14 +1092,14 @@ struct parser_holder::parser2
         else
             result.push_back(std::move(e));
 
-        while (try_consume<hl_scopes::operator_symbol, U','>())
+        while (try_consume<U','>(hl_scopes::operator_symbol))
         {
             if (auto [error, e] = lex_expr(); error)
                 return failure;
             else
                 result.push_back(std::move(e));
         }
-        if (!match<hl_scopes::operator_symbol, U')'>(diagnostic_op::error_S0011))
+        if (!match<U')'>(hl_scopes::operator_symbol, diagnostic_op::error_S0011))
             return failure;
 
         return result;
@@ -1127,12 +1132,12 @@ struct parser_holder::parser2
         {
             const auto conc_start = cur_pos_adjusted();
             ca_expr_ptr nested_dupl;
-            if (try_consume<hl_scopes::operator_symbol, U'('>())
+            if (try_consume<U'('>(hl_scopes::operator_symbol))
             {
                 auto [error2, dupl] = lex_expr_general();
                 if (error2)
                     return failure;
-                if (!match<hl_scopes::operator_symbol, U')'>(diagnostic_op::error_S0011))
+                if (!match<U')'>(hl_scopes::operator_symbol, diagnostic_op::error_S0011))
                     return failure;
                 nested_dupl = std::move(dupl);
             }
@@ -1185,7 +1190,7 @@ struct parser_holder::parser2
         const auto start = cur_pos_adjusted();
 
         const auto c = static_cast<char>(*input.next);
-        consume<hl_scopes::self_def_type>();
+        consume(hl_scopes::self_def_type);
         auto [error, s] = lex_simple_string();
         if (error)
             return failure;
@@ -1201,8 +1206,8 @@ struct parser_holder::parser2
         const auto start = cur_pos_adjusted();
 
         const auto attr = context::symbol_attributes::transform_attr(utils::upper_cased[*input.next]);
-        consume<hl_scopes::data_attr_type>();
-        consume<hl_scopes::operator_symbol>();
+        consume(hl_scopes::data_attr_type);
+        consume(hl_scopes::operator_symbol);
 
         const auto start_value = cur_pos_adjusted();
         switch (*input.next)
@@ -1280,7 +1285,7 @@ struct parser_holder::parser2
                     return std::move(s);
 
             case U'(': {
-                consume<hl_scopes::operator_symbol>();
+                consume(hl_scopes::operator_symbol);
 
                 ca_expr_ptr p_expr;
                 if (!follows_NOT_SPACE())
@@ -1288,7 +1293,7 @@ struct parser_holder::parser2
                     auto [error, maybe_expr_list] = lex_maybe_expression_list();
                     if (error)
                         return failure;
-                    if (!match<hl_scopes::operator_symbol, U')'>(diagnostic_op::error_S0011))
+                    if (!match<U')'>(hl_scopes::operator_symbol, diagnostic_op::error_S0011))
                         return failure;
                     if (std::holds_alternative<std::vector<ca_expr_ptr>>(maybe_expr_list))
                         return std::make_unique<ca_expr_list>(
@@ -1299,7 +1304,7 @@ struct parser_holder::parser2
                 }
                 else if (auto [error, e] = lex_expr_general(); error)
                     return failure;
-                else if (!match<hl_scopes::operator_symbol, U')'>(diagnostic_op::error_S0011))
+                else if (!match<U')'>(hl_scopes::operator_symbol, diagnostic_op::error_S0011))
                     return failure;
                 else
                     p_expr = std::move(e);
@@ -1422,17 +1427,17 @@ struct parser_holder::parser2
                 return failure;
 
             case U'(': {
-                consume<hl_scopes::operator_symbol>();
+                consume(hl_scopes::operator_symbol);
                 auto [error, e] = lex_mach_expr();
                 if (error)
                     return failure;
-                if (!match<hl_scopes::operator_symbol, U')'>(diagnostic_op::error_S0011))
+                if (!match<U')'>(hl_scopes::operator_symbol, diagnostic_op::error_S0011))
                     return failure;
                 return std::make_unique<mach_expr_unary<par>>(std::move(e), remap_range({ start, cur_pos() }));
             }
 
             case U'*':
-                consume<hl_scopes::operand>();
+                consume(hl_scopes::operand);
                 return std::make_unique<mach_expr_location_counter>(remap_range({ start, cur_pos() }));
 
             case U'-':
@@ -1489,14 +1494,14 @@ struct parser_holder::parser2
                         case U'l':
                             if (input.next[2] == U'*')
                             {
-                                consume<hl_scopes::data_attr_type>();
-                                consume<hl_scopes::operator_symbol>();
+                                consume(hl_scopes::data_attr_type);
+                                consume(hl_scopes::operator_symbol);
                                 if (!holder->parser->proc_status.has_value())
                                 {
                                     add_diagnostic(diagnostic_op::error_S0002);
                                     return failure;
                                 }
-                                consume<hl_scopes::operand>();
+                                consume(hl_scopes::operand);
                                 return std::make_unique<mach_expr_constant>(
                                     holder->parser->get_loctr_len(), remap_range({ start, cur_pos() }));
                             }
@@ -1511,8 +1516,8 @@ struct parser_holder::parser2
                         case U't': {
                             const auto attr =
                                 context::symbol_attributes::transform_attr(utils::upper_cased[*input.next]);
-                            consume<hl_scopes::data_attr_type>();
-                            consume<hl_scopes::operator_symbol>();
+                            consume(hl_scopes::data_attr_type);
+                            consume(hl_scopes::operator_symbol);
                             const auto start_value = cur_pos_adjusted();
                             if (follows<U'='>())
                             {
@@ -1556,7 +1561,7 @@ struct parser_holder::parser2
                         case U'x':
                         case U'c': {
                             const auto opt = static_cast<char>(*input.next);
-                            consume<hl_scopes::self_def_type>();
+                            consume(hl_scopes::self_def_type);
                             auto [error, s] = lex_mach_string();
                             if (error)
                                 return failure;
@@ -1574,7 +1579,7 @@ struct parser_holder::parser2
                 }
                 if (auto [error, id] = lex_id(); error)
                     return failure;
-                else if (try_consume<hl_scopes::operator_symbol, U'.'>())
+                else if (try_consume<U'.'>(hl_scopes::operator_symbol))
                 {
                     if (!is_ord_first())
                     {
@@ -1638,7 +1643,7 @@ struct parser_holder::parser2
         {
             const auto plus = *input.next == U'+';
             const auto start = cur_pos_adjusted();
-            consume<hl_scopes::operator_symbol>();
+            consume(hl_scopes::operator_symbol);
             auto [error, e] = lex_mach_term_c();
             if (error)
                 return failure;
@@ -1661,7 +1666,7 @@ struct parser_holder::parser2
             while (follows<U'*', U'/'>())
             {
                 const auto mul = *input.next == U'*';
-                consume<hl_scopes::operator_symbol>();
+                consume(hl_scopes::operator_symbol);
                 auto [error2, next] = lex_mach_term_c();
                 if (error2)
                     return failure;
@@ -1686,7 +1691,7 @@ struct parser_holder::parser2
             while (follows<U'+', U'-'>())
             {
                 const auto plus = *input.next == U'+';
-                consume<hl_scopes::operator_symbol>();
+                consume(hl_scopes::operator_symbol);
                 auto [error2, next] = lex_mach_expr_s();
                 if (error2)
                     return failure;
@@ -1783,11 +1788,11 @@ struct parser_holder::parser2
 
     result_t<mach_expr_ptr> lex_literal_signed_num()
     {
-        if (try_consume<hl_scopes::operator_symbol, U'('>())
+        if (try_consume<U'('>(hl_scopes::operator_symbol))
         {
             if (auto [error, e] = lex_mach_expr(); error)
                 return failure;
-            else if (!match<hl_scopes::operator_symbol, U')'>(diagnostic_op::error_S0011))
+            else if (!match<U')'>(hl_scopes::operator_symbol, diagnostic_op::error_S0011))
                 return failure;
             else
                 return std::move(e);
@@ -1800,12 +1805,12 @@ struct parser_holder::parser2
 
     result_t<mach_expr_ptr> lex_literal_unsigned_num()
     {
-        if (try_consume<hl_scopes::operator_symbol, U'('>())
+        if (try_consume<U'('>(hl_scopes::operator_symbol))
         {
             auto [error, e] = lex_mach_expr();
             if (error)
                 return failure;
-            if (!match<hl_scopes::operator_symbol, U')'>(diagnostic_op::error_S0011))
+            if (!match<U')'>(hl_scopes::operator_symbol, diagnostic_op::error_S0011))
                 return failure;
             return std::move(e);
         }
@@ -1857,7 +1862,7 @@ struct parser_holder::parser2
 
         // case state::try_reading_program:
         // case state::read_program:
-        if (try_consume<hl_scopes::data_def_modifier, U'P', U'p'>())
+        if (try_consume<U'P', U'p'>(hl_scopes::data_def_modifier))
         {
             auto [error, e] = lex_literal_signed_num();
             if (error)
@@ -1867,7 +1872,7 @@ struct parser_holder::parser2
         // case state::try_reading_length:
         // case state::try_reading_bitfield:
         // case state::read_length:
-        if (try_consume<hl_scopes::data_def_modifier, U'L', U'l'>())
+        if (try_consume<U'L', U'l'>(hl_scopes::data_def_modifier))
         {
             if (try_consume<U'.'>())
             {
@@ -1881,7 +1886,7 @@ struct parser_holder::parser2
 
         // case state::try_reading_scale:
         // case state::read_scale:
-        if (try_consume<hl_scopes::data_def_modifier, U'S', U's'>())
+        if (try_consume<U'S', U's'>(hl_scopes::data_def_modifier))
         {
             auto [error, e] = lex_literal_signed_num();
             if (error)
@@ -1891,7 +1896,7 @@ struct parser_holder::parser2
 
         // case state::try_reading_exponent:
         // case state::read_exponent:
-        if (try_consume<hl_scopes::data_def_modifier, U'E', U'e'>())
+        if (try_consume<U'E', U'e'>(hl_scopes::data_def_modifier))
         {
             auto [error, e] = lex_literal_signed_num();
             if (error)
@@ -1908,12 +1913,12 @@ struct parser_holder::parser2
         if (error)
             return failure;
 
-        if (!try_consume<hl_scopes::operator_symbol, U'('>())
+        if (!try_consume<U'('>(hl_scopes::operator_symbol))
             return { std::move(e) };
         auto [error2, e2] = lex_mach_expr();
         if (error2)
             return failure;
-        if (!match<hl_scopes::operator_symbol, U')'>(diagnostic_op::error_S0011))
+        if (!match<U')'>(hl_scopes::operator_symbol, diagnostic_op::error_S0011))
             return failure;
         return expressions::expr_or_address(std::in_place_type<expressions::address_nominal>,
             std::move(e),
@@ -1955,7 +1960,7 @@ struct parser_holder::parser2
     result_t<expr_or_address_list> lex_literal_nominal_addr()
     {
         assert(follows<U'('>());
-        consume<hl_scopes::operator_symbol>();
+        consume(hl_scopes::operator_symbol);
 
         expr_or_address_list result;
 
@@ -1964,7 +1969,7 @@ struct parser_holder::parser2
             return failure;
         result.push_back(std::move(e));
 
-        while (try_consume<hl_scopes::operator_symbol, U','>())
+        while (try_consume<U','>(hl_scopes::operator_symbol))
         {
             auto [error2, e_next] = lex_expr_or_addr();
             if (error2)
@@ -1972,7 +1977,7 @@ struct parser_holder::parser2
             result.push_back(std::move(e_next));
         }
 
-        if (!match<hl_scopes::operator_symbol, U')'>(diagnostic_op::error_S0011))
+        if (!match<U')'>(hl_scopes::operator_symbol, diagnostic_op::error_S0011))
             return failure;
 
         return result;
@@ -2010,7 +2015,7 @@ struct parser_holder::parser2
         const auto initial = input.next;
 
         assert(follows<U'='>());
-        consume<hl_scopes::operator_symbol>();
+        consume(hl_scopes::operator_symbol);
 
         auto [error, d] = lex_data_def_base();
         if (error)
@@ -2106,7 +2111,7 @@ struct parser_holder::parser2
         while (follows<U'*', U'/'>())
         {
             const auto mult = *input.next == U'*';
-            consume<hl_scopes::operator_symbol>();
+            consume(hl_scopes::operator_symbol);
             auto [error2, e_next] = lex_term_c();
             if (error2)
                 return failure;
@@ -2138,7 +2143,7 @@ struct parser_holder::parser2
                 while (follows<U'+', U'-'>())
                 {
                     const auto plus = *input.next == U'+';
-                    consume<hl_scopes::operator_symbol>();
+                    consume(hl_scopes::operator_symbol);
                     auto [error, e] = lex_expr_s();
                     if (error)
                         return failure;
@@ -2151,7 +2156,7 @@ struct parser_holder::parser2
                 }
                 break;
             case '.':
-                while (try_consume<hl_scopes::operator_symbol, U'.'>())
+                while (try_consume<U'.'>(hl_scopes::operator_symbol))
                 {
                     auto [error, e] = lex_term_c();
                     if (error)
@@ -2169,7 +2174,7 @@ struct parser_holder::parser2
     {
         assert(follows<U'('>());
 
-        consume<hl_scopes::operator_symbol>();
+        consume(hl_scopes::operator_symbol);
 
         std::vector<ca_expr_ptr> result;
 
@@ -2178,7 +2183,7 @@ struct parser_holder::parser2
             return failure;
         result.push_back(std::move(expr));
 
-        while (try_consume<hl_scopes::operator_symbol, U','>())
+        while (try_consume<U','>(hl_scopes::operator_symbol))
         {
             auto [error2, expr_next] = lex_expr();
             if (error2)
@@ -2186,7 +2191,7 @@ struct parser_holder::parser2
             result.push_back(std::move(expr_next));
         }
 
-        if (!match<hl_scopes::operator_symbol, U')'>(diagnostic_op::error_S0011))
+        if (!match<U')'>(hl_scopes::operator_symbol, diagnostic_op::error_S0011))
             return failure;
 
         return result;
@@ -2228,7 +2233,7 @@ struct parser_holder::parser2
         {
             push_last_text();
             const auto start = p.cur_pos_adjusted();
-            p.consume<s...>();
+            p.consume(s...);
             const auto r = p.remap_range({ start, p.cur_pos() });
             cc.emplace_back(std::in_place_type<T>, r);
             last_text_state = nullptr;
@@ -2437,21 +2442,21 @@ struct parser_holder::parser2
     {
         assert(follows<U'('>());
 
-        consume<hl_scopes::operator_symbol>();
-        if (try_consume<hl_scopes::operator_symbol, U')'>())
+        consume(hl_scopes::operator_symbol);
+        if (try_consume<U')'>(hl_scopes::operator_symbol))
             return {};
 
         if (auto [error] = lex_macro_operand(cc.emplace_back(), true); error)
             return failure;
 
-        while (try_consume<hl_scopes::operator_symbol, U','>())
+        while (try_consume<U','>(hl_scopes::operator_symbol))
         {
             process_optional_line_remark();
             if (auto [error] = lex_macro_operand(cc.emplace_back(), true); error)
                 return failure;
         }
 
-        if (!match<hl_scopes::operator_symbol, U')'>(diagnostic_op::error_S0011))
+        if (!match<U')'>(hl_scopes::operator_symbol, diagnostic_op::error_S0011))
             return failure;
 
         return {};
@@ -2507,7 +2512,7 @@ struct parser_holder::parser2
 
                 case U',':
                     push_operand();
-                    consume<hl_scopes::operator_symbol>();
+                    consume(hl_scopes::operator_symbol);
                     process_optional_line_remark();
                     start = cur_pos_adjusted();
                     break;
@@ -2656,13 +2661,13 @@ parser_holder::parser2::result_t<vs_ptr> parser_holder::parser2::lex_variable()
     if (follows<U'('>())
     {
         add_hl_symbol({ start, cur_pos() }, hl_scopes::var_symbol);
-        consume<hl_scopes::operator_symbol>();
+        consume(hl_scopes::operator_symbol);
         if (auto [error, cc_] = lex_compound_variable(); error)
             return failure;
         else
             cc = std::move(cc_);
 
-        if (!match<hl_scopes::operator_symbol, U')'>(diagnostic_op::error_S0011))
+        if (!match<U')'>(hl_scopes::operator_symbol, diagnostic_op::error_S0011))
             return failure;
     }
     else if (!is_ord_first())
