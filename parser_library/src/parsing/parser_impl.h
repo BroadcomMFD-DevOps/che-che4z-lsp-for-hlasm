@@ -254,7 +254,7 @@ struct parser_holder
     static std::unique_ptr<parser_holder> create(
         context::hlasm_context* hl_ctx, diagnostic_op_consumer* d, bool multiline);
 
-    struct macro_preprocessor_t;
+    struct parser2;
 };
 
 } // namespace hlasm_plugin::parser_library::parsing
