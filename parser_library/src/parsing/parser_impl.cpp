@@ -506,7 +506,7 @@ struct parser_holder::parser2
 
         if constexpr (sizeof...(s))
         {
-            add_hl_symbol<s...>({ pos, end });
+            add_hl_symbol({ pos, end }, s...);
         }
     }
 
@@ -555,14 +555,9 @@ struct parser_holder::parser2
             add_diagnostic(diagnostic_op::error_S0002);
     }
 
-    template<hl_scopes s>
-    void add_hl_symbol(const range& r)
-    {
-        add_hl_symbol_remapped<s>(remap_range(r));
-    }
+    void add_hl_symbol(const range& r, hl_scopes s) { add_hl_symbol_remapped(remap_range(r), s); }
 
-    template<hl_scopes s>
-    void add_hl_symbol_remapped(const range& r)
+    void add_hl_symbol_remapped(const range& r, hl_scopes s)
     {
         holder->parser->get_collector().add_hl_symbol(token_info(r, s));
     }
@@ -881,7 +876,7 @@ struct parser_holder::parser2
                     }
                     const auto r = remap_range({ start, cur_pos() });
                     result.emplace_back(std::in_place_type<char_str_conc>, std::move(collected), r);
-                    add_hl_symbol_remapped<hl_scopes::var_symbol>(r);
+                    add_hl_symbol_remapped(r, hl_scopes::var_symbol);
                     break;
                 }
             }
@@ -909,7 +904,7 @@ struct parser_holder::parser2
             consume();
             consume();
             const auto r = remap_range({ start_not, cur_pos() });
-            add_hl_symbol_remapped<hl_scopes::operand>(r);
+            add_hl_symbol_remapped(r, hl_scopes::operand);
             ca_exprs.push_back(std::make_unique<ca_symbol>(id_index("NOT"), r));
             lex_optional_space();
         } while (follows_NOT_SPACE());
@@ -1371,7 +1366,7 @@ struct parser_holder::parser2
                 else if (follows<U'('>())
                 {
                     const auto r = remap_range({ start, cur_pos() });
-                    add_hl_symbol_remapped<hl_scopes::operand>(r);
+                    add_hl_symbol_remapped(r, hl_scopes::operand);
                     auto [error2, s] = lex_subscript_ne();
                     if (error2)
                         return failure;
@@ -1384,7 +1379,7 @@ struct parser_holder::parser2
                 else
                 {
                     const auto r = remap_range({ start, cur_pos() });
-                    add_hl_symbol_remapped<hl_scopes::operand>(r);
+                    add_hl_symbol_remapped(r, hl_scopes::operand);
                     return std::make_unique<ca_symbol>(id, r);
                 }
         }
@@ -1412,7 +1407,7 @@ struct parser_holder::parser2
         } while (is_num());
 
         const auto r = remap_range({ start, cur_pos() });
-        add_hl_symbol_remapped<hl_scopes::number>(r);
+        add_hl_symbol_remapped(r, hl_scopes::number);
 
         return { result, r };
     }
@@ -1475,7 +1470,7 @@ struct parser_holder::parser2
                 {
                     consume();
                     consume();
-                    add_hl_symbol<hl_scopes::self_def_type>({ start, cur_pos() });
+                    add_hl_symbol({ start, cur_pos() }, hl_scopes::self_def_type);
 
                     if (auto [error, s] = lex_mach_string(); error)
                         return failure;
@@ -1537,7 +1532,7 @@ struct parser_holder::parser2
                                 auto [error, q_id] = lex_qualified_id();
                                 if (error)
                                     return failure;
-                                add_hl_symbol<hl_scopes::ordinary_symbol>({ start, cur_pos() });
+                                add_hl_symbol({ start, cur_pos() }, hl_scopes::ordinary_symbol);
                                 return std::make_unique<mach_expr_data_attr>(q_id.first,
                                     q_id.first,
                                     attr,
@@ -1592,14 +1587,14 @@ struct parser_holder::parser2
                     else
                     {
                         const auto r = remap_range({ start, cur_pos() });
-                        add_hl_symbol_remapped<hl_scopes::ordinary_symbol>(r);
+                        add_hl_symbol_remapped(r, hl_scopes::ordinary_symbol);
                         return std::make_unique<mach_expr_symbol>(id2, id, r);
                     }
                 }
                 else
                 {
                     const auto r = remap_range({ start, cur_pos() });
-                    add_hl_symbol_remapped<hl_scopes::ordinary_symbol>(r);
+                    add_hl_symbol_remapped(r, hl_scopes::ordinary_symbol);
                     return std::make_unique<mach_expr_symbol>(id, id_index(), r);
                 }
         }
@@ -1628,7 +1623,7 @@ struct parser_holder::parser2
             else
             {
                 consume();
-                add_hl_symbol<hl_scopes::string>({ start, cur_pos() });
+                add_hl_symbol({ start, cur_pos() }, hl_scopes::string);
                 return s;
             }
         }
@@ -1781,7 +1776,7 @@ struct parser_holder::parser2
             add_diagnostic(diagnostic_op::error_D001(r));
             return failure;
         }
-        add_hl_symbol_remapped<hl_scopes::number>(r);
+        add_hl_symbol_remapped(r, hl_scopes::number);
 
         return { (int32_t)result, r };
     }
@@ -1858,7 +1853,7 @@ struct parser_holder::parser2
             consume();
             result.extension_range = remap_range({ ext_start, cur_pos() });
         }
-        add_hl_symbol<hl_scopes::data_def_type>(remap_range({ type_start, cur_pos() }));
+        add_hl_symbol(remap_range({ type_start, cur_pos() }), hl_scopes::data_def_type);
 
         // case state::try_reading_program:
         // case state::read_program:
@@ -1951,7 +1946,7 @@ struct parser_holder::parser2
         if (!match<U'\''>(diagnostic_op::error_S0005))
             return failure;
 
-        add_hl_symbol<hl_scopes::string>({ start, cur_pos() });
+        add_hl_symbol({ start, cur_pos() }, hl_scopes::string);
 
         return result;
     }
@@ -2076,7 +2071,7 @@ struct parser_holder::parser2
             add_diagnostic(diagnostic_op::error_S0005);
             return failure;
         }
-        add_hl_symbol<hl_scopes::string>({ start, cur_pos() });
+        add_hl_symbol({ start, cur_pos() }, hl_scopes::string);
 
         return result;
     }
@@ -2224,7 +2219,7 @@ struct parser_holder::parser2
             if (!last_text_state)
                 return;
             last_text_state->conc_range = p.remap_range({ last_text_state->conc_range.start, p.cur_pos() });
-            p.add_hl_symbol_remapped<hl_scopes::operand>(last_text_state->conc_range);
+            p.add_hl_symbol_remapped(last_text_state->conc_range, hl_scopes::operand);
             last_text_state = nullptr;
         }
 
@@ -2660,7 +2655,7 @@ parser_holder::parser2::result_t<vs_ptr> parser_holder::parser2::lex_variable()
     id_index id;
     if (follows<U'('>())
     {
-        add_hl_symbol<hl_scopes::var_symbol>({ start, cur_pos() });
+        add_hl_symbol({ start, cur_pos() }, hl_scopes::var_symbol);
         consume<hl_scopes::operator_symbol>();
         if (auto [error, cc_] = lex_compound_variable(); error)
             return failure;
@@ -2681,7 +2676,7 @@ parser_holder::parser2::result_t<vs_ptr> parser_holder::parser2::lex_variable()
             return failure;
         else
             id = id_;
-        add_hl_symbol<hl_scopes::var_symbol>({ start, cur_pos() });
+        add_hl_symbol({ start, cur_pos() }, hl_scopes::var_symbol);
     }
 
     std::vector<ca_expr_ptr> sub;
