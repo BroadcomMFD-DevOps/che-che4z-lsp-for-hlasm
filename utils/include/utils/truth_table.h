@@ -34,25 +34,6 @@ constexpr auto create_truth_table(std::string_view true_values, T true_value = (
     return result;
 }
 
-template<typename T>
-constexpr auto combine_truth_tables(const std::array<T, std::numeric_limits<unsigned char>::max() + 1>& l,
-    const std::array<T, std::numeric_limits<unsigned char>::max() + 1>& r)
-{
-    std::array<T, std::numeric_limits<unsigned char>::max() + 1> result {};
-
-    auto* o = result.data();
-    for (const auto *lc = l.data(), *rc = r.data(), *const e = l.data() + l.size(); lc != e; ++lc, ++rc, ++o)
-    {
-        assert(*lc == T {} || *rc == T {});
-        if (*lc != T {})
-            *o = *lc;
-        else
-            *o = *rc;
-    }
-
-    return result;
-}
-
 template<typename T, typename U>
 constexpr size_t find_mismatch(
     std::basic_string_view<T> s, const std::array<U, std::numeric_limits<unsigned char>::max() + 1>& table)
