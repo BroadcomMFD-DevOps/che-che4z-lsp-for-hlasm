@@ -633,12 +633,12 @@ struct parser_holder::parser2
         [[nodiscard]] static constexpr bool matches(char32_t ch) noexcept { return ((ch == chars) || ...); }
     };
     template<char32_t... chars>
-    static constexpr group_t<chars...> group;
+    static constexpr group_t<chars...> group = {};
 
     template<std::array<char32_t, 256> s>
     static constexpr auto group_from_string()
     {
-        constexpr auto n = std::ranges::find(s, 0) - s.begin();
+        constexpr auto n = std::ranges::find(s, U'\0') - s.begin();
         return []<size_t... i>(std::index_sequence<i...>) {
             return group_t<s[i]...>(); //
         }(std::make_index_sequence<n>());
@@ -1483,7 +1483,7 @@ struct parser_holder::parser2
                     return std::make_unique<mach_expr_constant>(
                         holder->parser->get_loctr_len(), remap_range({ start, cur_pos() }));
                 }
-                if (follows<mach_attrs, U'\''>())
+                if (follows<mach_attrs, group<U'\''>>())
                 {
                     const auto attr = context::symbol_attributes::transform_attr(utils::upper_cased[*input.next]);
                     consume(hl_scopes::data_attr_type);
@@ -1530,7 +1530,7 @@ struct parser_holder::parser2
                     return std::make_unique<mach_expr_constant>(
                         parse_self_def_term_in_mach(std::string_view(opt, 2), s, r), r);
                 }
-                if (follows<selfdef, U'\''>())
+                if (follows<selfdef, group<U'\''>>())
                 {
                     const auto opt = static_cast<char>(*input.next);
                     consume(hl_scopes::self_def_type);
