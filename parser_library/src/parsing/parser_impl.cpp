@@ -635,14 +635,17 @@ struct parser_holder::parser2
     template<char32_t... chars>
     static constexpr group_t<chars...> group;
 
-    template<size_t n, const char32_t (&s)[n]>
+    template<std::array<char32_t, 256> s>
     static constexpr auto group_from_string()
     {
-        assert(!s[n - 1]);
+        constexpr auto n = std::ranges::find(s, 0) - s.begin();
         return []<size_t... i>(std::index_sequence<i...>) {
             return group_t<s[i]...>(); //
-        }(std::make_index_sequence<n - 1>());
+        }(std::make_index_sequence<n>());
     }
+
+    static constexpr auto selfdef = group_from_string<{ U"BXCGbxcg" }>();
+    static constexpr auto all_attrs = group_from_string<{ U"NKDOSILTnkdosilt" }>();
 
     template<auto... groups>
     [[nodiscard]] constexpr bool follows() const noexcept requires(((&decltype(groups)::matches, true) && ...))
@@ -1186,7 +1189,7 @@ struct parser_holder::parser2
 
     result_t<ca_expr_ptr> lex_self_def()
     {
-        assert((follows<U'B', U'X', U'C', U'G', U'b', U'x', U'c', U'g'>()));
+        assert(follows<selfdef>());
         const auto start = cur_pos_adjusted();
 
         const auto c = static_cast<char>(*input.next);
@@ -1201,8 +1204,7 @@ struct parser_holder::parser2
 
     result_t<ca_expr_ptr> lex_attribute_reference()
     {
-        assert((
-            follows<U'N', U'K', U'D', U'O', U'S', U'I', U'L', U'T', u'n', u'k', u'd', U'o', U's', U'i', U'l', U't'>()));
+        assert(follows<all_attrs>());
         const auto start = cur_pos_adjusted();
 
         const auto attr = context::symbol_attributes::transform_attr(utils::upper_cased[*input.next]);
@@ -1345,7 +1347,7 @@ struct parser_holder::parser2
                     return failure;
                 }
 
-                if (follows<group<U'B', U'X', U'C', U'G', U'b', U'x', U'c', U'g'>, group<U'\''>>())
+                if (follows<selfdef, group<U'\''>>())
                 {
                     auto [error, self_def] = lex_self_def();
                     if (error)
@@ -1354,10 +1356,6 @@ struct parser_holder::parser2
                 }
 
 
-                // clang-format off
-                static constexpr auto all_attrs = group<U'N', U'K', U'D', U'O', U'S', U'I', U'L', U'T',
-                                                        U'n', U'k', U'd', U'o', U's', U'i', U'l', U't'>;
-                // clang-format on
                 if (follows<all_attrs>())
                 {
                     auto [error, attr_ref] = lex_attribute_reference();
