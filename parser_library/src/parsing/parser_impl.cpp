@@ -2417,23 +2417,31 @@ struct parser_holder::parser2
         return {};
     }
 
-    std::pair<operand_list, range> macro_ops(bool reparse)
+    result_t_void handle_initial_space(bool reparse)
     {
-        const auto input_start = cur_pos_adjusted();
-        if (eof())
-            return { operand_list(), remap_range(range(input_start)) };
-
         if (!reparse && *input.next != U' ')
         {
             add_diagnostic(diagnostic_op::error_S0002);
             consume_rest();
-            return { operand_list(), remap_range({ input_start, cur_pos() }) };
+            return failure;
         }
 
         // skip spaces
         while (follows<U' '>())
             consume();
         adjust_lines();
+
+        return {};
+    }
+
+    std::pair<operand_list, range> macro_ops(bool reparse)
+    {
+        const auto input_start = cur_pos_adjusted();
+        if (eof())
+            return { operand_list(), remap_range(range(input_start)) };
+
+        if (auto [error] = handle_initial_space(reparse); error)
+            return { operand_list(), remap_range({ input_start, cur_pos() }) };
 
         if (eof())
             return { operand_list(), remap_range(range(cur_pos())) };
