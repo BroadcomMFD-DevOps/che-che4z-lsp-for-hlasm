@@ -802,7 +802,12 @@ struct parser_holder::parser2
             return id;
     }
 
-    result_t<std::pair<id_index, id_index>> lex_qualified_id()
+    struct qualified_id
+    {
+        id_index qual;
+        id_index id;
+    };
+    result_t<qualified_id> lex_qualified_id()
     {
         auto [error, id1] = lex_id();
         if (error)
@@ -1507,8 +1512,8 @@ struct parser_holder::parser2
                         if (error)
                             return failure;
                         add_hl_symbol({ start, cur_pos() }, hl_scopes::ordinary_symbol);
-                        return std::make_unique<mach_expr_data_attr>(q_id.second,
-                            q_id.first,
+                        return std::make_unique<mach_expr_data_attr>(q_id.id,
+                            q_id.qual,
                             attr,
                             remap_range({ start, cur_pos() }),
                             remap_range({ start_value, cur_pos() }));
@@ -1548,7 +1553,7 @@ struct parser_holder::parser2
                 {
                     const auto r = remap_range({ start, cur_pos() });
                     add_hl_symbol_remapped(r, hl_scopes::ordinary_symbol);
-                    return std::make_unique<mach_expr_symbol>(qual_id.second, qual_id.first, r);
+                    return std::make_unique<mach_expr_symbol>(qual_id.id, qual_id.qual, r);
                 }
                 break;
         }
