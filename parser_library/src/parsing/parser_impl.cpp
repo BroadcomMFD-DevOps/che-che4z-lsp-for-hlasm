@@ -1507,7 +1507,7 @@ struct parser_holder::parser2
                         if (error)
                             return failure;
                         add_hl_symbol({ start, cur_pos() }, hl_scopes::ordinary_symbol);
-                        return std::make_unique<mach_expr_data_attr>(q_id.first,
+                        return std::make_unique<mach_expr_data_attr>(q_id.second,
                             q_id.first,
                             attr,
                             remap_range({ start, cur_pos() }),
