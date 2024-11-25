@@ -457,9 +457,30 @@ void parser_holder::prepare_parser(lexing::u8string_view_with_newlines text,
     parser->get_collector().prepare_for_next_statement();
 }
 
+constexpr const auto EOF_SYMBOL = lexing::lexer::EOF_SYMBOL;
+template<char32_t... chars>
+requires((chars != EOF_SYMBOL) && ...) struct group_t
+{
+    [[nodiscard]] static constexpr bool matches(char32_t ch) noexcept { return ((ch == chars) || ...); }
+};
+template<char32_t... chars>
+constexpr group_t<chars...> group = {};
+
+template<std::array<char32_t, 256> s>
+constexpr auto group_from_string()
+{
+    constexpr auto n = std::ranges::find(s, U'\0') - s.begin();
+    return []<size_t... i>(std::index_sequence<i...>) {
+        return group_t<s[i]...>(); //
+    }(std::make_index_sequence<n>());
+}
+
+constexpr auto selfdef = group_from_string<{ U"BXCGbxcg" }>();
+constexpr auto mach_attrs = group_from_string<{ U"OSILTosilt" }>();
+constexpr auto all_attrs = group_from_string<{ U"NKDOSILTnkdosilt" }>();
+
 struct parser_holder::parser2
 {
-    static constexpr const auto EOF_SYMBOL = lexing::lexer::EOF_SYMBOL;
     const parser_holder* holder;
 
     using input_state_t = decltype(holder->lex->peek_initial_input_state().first);
@@ -627,27 +648,6 @@ struct parser_holder::parser2
         const auto ch = *input.next;
         return ((ch != EOF_SYMBOL) && ... && (ch != chars));
     }
-
-    template<char32_t... chars>
-    requires((chars != EOF_SYMBOL) && ...) struct group_t
-    {
-        [[nodiscard]] static constexpr bool matches(char32_t ch) noexcept { return ((ch == chars) || ...); }
-    };
-    template<char32_t... chars>
-    static constexpr group_t<chars...> group = {};
-
-    template<std::array<char32_t, 256> s>
-    static constexpr auto group_from_string()
-    {
-        constexpr auto n = std::ranges::find(s, U'\0') - s.begin();
-        return []<size_t... i>(std::index_sequence<i...>) {
-            return group_t<s[i]...>(); //
-        }(std::make_index_sequence<n>());
-    }
-
-    static constexpr auto selfdef = group_from_string<{ U"BXCGbxcg" }>();
-    static constexpr auto mach_attrs = group_from_string<{ U"OSILTosilt" }>();
-    static constexpr auto all_attrs = group_from_string<{ U"NKDOSILTnkdosilt" }>();
 
     template<auto... groups>
     [[nodiscard]] constexpr bool follows() const noexcept requires(((&decltype(groups)::matches, true) && ...))
