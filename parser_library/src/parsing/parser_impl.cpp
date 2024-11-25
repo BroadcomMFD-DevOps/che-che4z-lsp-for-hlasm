@@ -14,6 +14,7 @@
 
 #include "parser_impl.h"
 
+#include <algorithm>
 #include <cctype>
 #include <charconv>
 #include <concepts>
