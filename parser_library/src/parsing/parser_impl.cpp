@@ -838,7 +838,7 @@ struct parser_holder::parser2
     {
         if (!except<U')'>())
         {
-            add_diagnostic(diagnostic_op::error_S0002);
+            syntax_error_or_eof();
             return failure;
         }
         concat_chain result;
@@ -2376,7 +2376,7 @@ struct parser_holder::parser2
                     break;
 
                 default:
-                    next_char_special = *input.next >= ord.size() || !ord[*input.next];
+                    next_char_special = !is_ord();
                     consume_into(ccb.last_text_value());
                     break;
             }
