@@ -420,7 +420,7 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordin
                     else if (branchlike)
                         h.op_rem_body_ca_branch();
                     else
-                        h.op_rem_body_ca_expr();
+                        h.op_rem_body_ca_expr2();
                     (void)h.parser->get_collector().take_literals(); // drop literals
                     break;
                 }
