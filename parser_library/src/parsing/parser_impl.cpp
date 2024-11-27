@@ -1393,7 +1393,8 @@ struct parser_holder::parser2
 
                 if (auto [error, id] = lex_id(); error)
                     return failure;
-                else if (follows<U'('>())
+                else if (follows<U'('>()
+                    && ca_common_expr_policy::get_function(id.to_string_view()) != ca_expr_funcs::UNKNOWN)
                 {
                     const auto r = remap_range({ start, cur_pos() });
                     add_hl_symbol_remapped(r, hl_scopes::operand);
