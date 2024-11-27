@@ -900,15 +900,16 @@ struct parser_holder::parser2
         return failure;
     }
 
-    [[nodiscard]] constexpr bool follows_NOT_SPACE() const noexcept
+    [[nodiscard]] constexpr bool follows_NOT() const noexcept
     {
-        return follows<group<U'N', U'n'>, group<U'O', U'o'>, group<U'T', U't'>, group<' '>>();
+        return follows<group<U'N', U'n'>, group<U'O', U'o'>, group<U'T', U't'>>() && input.next[3] != EOF_SYMBOL
+            && !is_ord(input.next[3]);
     }
 
     result_t<ca_expr_ptr> lex_expr_general()
     {
         const auto start = cur_pos_adjusted();
-        if (!follows_NOT_SPACE())
+        if (!follows_NOT())
             return lex_expr();
 
         std::vector<ca_expr_ptr> ca_exprs;
@@ -922,7 +923,7 @@ struct parser_holder::parser2
             add_hl_symbol_remapped(r, hl_scopes::operand);
             ca_exprs.push_back(std::make_unique<ca_symbol>(id_index("NOT"), r));
             lex_optional_space();
-        } while (follows_NOT_SPACE());
+        } while (follows_NOT());
 
         auto [error, e] = lex_expr();
         if (error)
@@ -976,7 +977,7 @@ struct parser_holder::parser2
                     if (input.next[1] == U'&')
                     {
                         consume_into(s);
-                        consume();
+                        consume_into(s);
                     }
                     else
                     {
@@ -1321,9 +1322,8 @@ struct parser_holder::parser2
                 if (!match<U')'>(hl_scopes::operator_symbol, diagnostic_op::error_S0011))
                     return failure;
                 ca_expr_ptr p_expr;
-                const auto is_already_expr_list =
-                    std::holds_alternative<std::vector<ca_expr_ptr>>(maybe_expr_list.value);
-                if (is_already_expr_list)
+                const auto already_expr_list = std::holds_alternative<std::vector<ca_expr_ptr>>(maybe_expr_list.value);
+                if (already_expr_list)
                     p_expr = std::make_unique<ca_expr_list>(
                         std::move(std::get<std::vector<ca_expr_ptr>>(maybe_expr_list.value)),
                         remap_range({ start, cur_pos() }),
@@ -1336,7 +1336,7 @@ struct parser_holder::parser2
 
                 if (follows<U'\''>())
                 {
-                    if (auto [error, s] = lex_rest_of_ca_string_group(std::move(p_expr), start); error)
+                    if (auto [error2, s] = lex_rest_of_ca_string_group(std::move(p_expr), start); error2)
                         return failure;
                     else
                         return std::move(s);
@@ -1358,7 +1358,7 @@ struct parser_holder::parser2
                         remap_range({ start, cur_pos() }));
                 }
 
-                if (!is_already_expr_list)
+                if (!already_expr_list)
                 {
                     std::vector<ca_expr_ptr> ops;
                     ops.push_back(std::move(p_expr));
