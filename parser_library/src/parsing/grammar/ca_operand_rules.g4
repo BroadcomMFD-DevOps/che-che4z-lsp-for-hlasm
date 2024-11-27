@@ -34,16 +34,6 @@ ca_op_branch returns [operand_ptr op]
     finally
     {if (!$op) $op = std::make_unique<semantics::empty_operand>(provider.get_range(_localctx));}
 
-
-ca_op_expr returns [operand_ptr op]
-    : expr_general
-    {
-        resolve_expression($expr_general.ca_expr);
-        $op = std::make_unique<expr_ca_operand>(std::move($expr_general.ca_expr), provider.get_range($expr_general.ctx));
-    };
-    finally
-    {if (!$op) $op = std::make_unique<semantics::empty_operand>(provider.get_range(_localctx));}
-
 ca_op_var_def returns [operand_ptr op]
     : var_def
     {

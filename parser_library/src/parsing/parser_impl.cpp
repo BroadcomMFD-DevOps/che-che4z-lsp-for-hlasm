@@ -107,9 +107,6 @@ struct parser_holder_impl final : parser_holder
     semantics::op_rem op_rem_body_mach_r() const override { return std::move(get_parser().op_rem_body_mach_r()->line); }
     semantics::op_rem op_rem_body_dat_r() const override { return std::move(get_parser().op_rem_body_dat_r()->line); }
 
-
-    void op_rem_body_ca_expr() const override { get_parser().op_rem_body_ca_expr(); }
-    void op_rem_body_ca_branch() const override { get_parser().op_rem_body_ca_branch(); }
     void op_rem_body_ca_var_def() const override { get_parser().op_rem_body_ca_var_def(); }
 
     void op_rem_body_dat() const override { get_parser().op_rem_body_dat(); }
@@ -905,6 +902,22 @@ struct parser_holder::parser2
             && !is_ord(input.next[3]);
     }
 
+    result_t<seq_sym> lex_seq_symbol()
+    {
+        const auto start = cur_pos_adjusted();
+        if (!try_consume<U'.'>() || !is_ord_first())
+        {
+            syntax_error_or_eof();
+            return failure;
+        }
+        auto [error, id] = lex_id();
+        if (error)
+            return failure;
+        const auto r = remap_range({ start, cur_pos() });
+        add_hl_symbol_remapped(r, hl_scopes::seq_symbol);
+        return { id, r };
+    }
+
     result_t<ca_expr_ptr> lex_expr_general()
     {
         const auto start = cur_pos_adjusted();
@@ -1211,6 +1224,34 @@ struct parser_holder::parser2
             return { std::move(expr_list), lt_spaces };
         else
             return { std::move(p_expr), lt_spaces };
+    }
+
+    result_t<ca_expr_ptr> lex_expr_list()
+    {
+        assert(follows<U'('>());
+        const auto start = cur_pos_adjusted();
+
+        consume(hl_scopes::operator_symbol);
+
+        std::vector<ca_expr_ptr> expr_list;
+
+        (void)lex_optional_space();
+        if (auto [error, e] = lex_expr(); error)
+            return failure;
+        else
+            expr_list.push_back(std::move(e));
+
+        (void)lex_optional_space();
+        for (; except<U')'>(); (void)lex_optional_space())
+        {
+            auto [error, e] = lex_expr();
+            if (error)
+                return failure;
+            expr_list.push_back(std::move(e));
+        }
+        if (!match<U')'>(hl_scopes::operator_symbol, diagnostic_op::error_S0011))
+            return failure;
+        return std::make_unique<ca_expr_list>(std::move(expr_list), remap_range({ start, cur_pos() }), true);
     }
 
     result_t<ca_expr_ptr> lex_self_def()
@@ -2482,6 +2523,7 @@ struct parser_holder::parser2
     std::pair<operand_list, range> macro_ops(bool reparse);
 
     std::pair<operand_list, range> ca_expr_ops();
+    std::pair<operand_list, range> ca_branch_ops();
 
     parser2(const parser_holder* h)
         : holder(h)
@@ -2768,6 +2810,70 @@ std::pair<operand_list, range> parser_holder::parser2::ca_expr_ops()
     return { std::move(result), remap_range({ line_start, cur_pos() }) };
 }
 
+std::pair<operand_list, range> parser_holder::parser2::ca_branch_ops()
+{
+    const auto input_start = cur_pos_adjusted();
+    if (eof())
+        return { operand_list(), remap_range(range(input_start)) };
+
+    if (!lex_optional_space())
+    {
+        syntax_error_or_eof();
+        consume_rest();
+        return { operand_list(), remap_range({ input_start, cur_pos() }) };
+    }
+
+    if (eof())
+        return { operand_list(), remap_range(range(cur_pos())) };
+
+    const auto line_start = cur_pos_adjusted();
+
+    operand_list result;
+
+    bool pending = true;
+    while (except<U' '>())
+    {
+        const auto start = cur_pos();
+        if (try_consume<U','>(hl_scopes::operator_symbol))
+        {
+            if (pending)
+                result.push_back(std::make_unique<semantics::empty_operand>(remap_range(range(start))));
+            process_optional_line_remark();
+            pending = true;
+            continue;
+        }
+        else if (!pending)
+        {
+            syntax_error_or_eof();
+            break;
+        }
+        ca_expr_ptr first_expr;
+        if (follows<U'('>())
+        {
+            auto [error, e] = lex_expr_list();
+            if (error)
+                break;
+            first_expr = std::move(e);
+            holder->parser->resolve_expression(first_expr);
+        }
+        auto [error, ss] = lex_seq_symbol();
+        if (error)
+            break;
+        const auto r = remap_range({ start, cur_pos() });
+        if (first_expr)
+            result.push_back(std::make_unique<branch_ca_operand>(std::move(ss), std::move(first_expr), r));
+        else
+            result.push_back(std::make_unique<seq_ca_operand>(std::move(ss), r));
+        pending = false;
+    }
+    if (pending)
+        result.push_back(std::make_unique<semantics::empty_operand>(remap_range(range(cur_pos()))));
+
+    consume_rest();
+
+    return { std::move(result), remap_range({ line_start, cur_pos() }) };
+}
+
 semantics::operand_list parser_holder::macro_ops(bool reparse) const
 {
     parser_holder::parser2 p(this);
@@ -2782,11 +2888,19 @@ semantics::operand_list parser_holder::macro_ops(bool reparse) const
         return std::move(ops);
 }
 
-void parser_holder::op_rem_body_ca_expr2() const
+void parser_holder::op_rem_body_ca_expr() const
 {
     parser_holder::parser2 p(this);
 
     auto [ops, line_range] = p.ca_expr_ops();
+    parser->collector.set_operand_remark_field(std::move(ops), std::move(p.remarks), line_range);
+}
+
+void parser_holder::op_rem_body_ca_branch() const
+{
+    parser_holder::parser2 p(this);
+
+    auto [ops, line_range] = p.ca_branch_ops();
     parser->collector.set_operand_remark_field(std::move(ops), std::move(p.remarks), line_range);
 }
 
