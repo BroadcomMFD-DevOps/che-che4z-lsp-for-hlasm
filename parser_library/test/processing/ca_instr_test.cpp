@@ -355,6 +355,24 @@ TEST(AIF, extended_fail)
     EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "var3"), false);
 }
 
+TEST(AIF, complex_expression)
+{
+    std::string input = R"(
+&A  SETA 0
+&C  SETC 'ERR'
+    AIF (NOT(('&C'EQ'OK')OR('&C'EQ'NOTOK'))).B
+&A  SETA &A+1
+.B  ANOP
+&A  SETA &A+1
+)";
+    analyzer a(input);
+    a.analyze();
+
+    EXPECT_TRUE(a.diags().empty());
+
+    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "A"), 1);
+}
+
 TEST(ACTR, exceeded)
 {
     std::string input(R"(
