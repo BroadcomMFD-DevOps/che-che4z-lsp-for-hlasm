@@ -530,8 +530,24 @@ TEST(SET, multiline)
     analyzer a(input);
     a.analyze();
 
+    EXPECT_TRUE(a.diags().empty());
+
     EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "A"), 3);
     EXPECT_EQ(get_var_vector<C_t>(a.hlasm_ctx(), "C"), (std::vector<std::string> { "A", "B", "C" }));
+}
+
+TEST(SET, complex_logical)
+{
+    std::string input = R"(
+&C1  SETC 'ABC'
+&B   SETB (K'&C1 EQ 3 AND NOT('&C1' EQ 'XYZ'))
+    )";
+    analyzer a(input);
+    a.analyze();
+
+    EXPECT_TRUE(a.diags().empty());
+
+    EXPECT_EQ(get_var_value<B_t>(a.hlasm_ctx(), "B"), true);
 }
 
 TEST(CA_instructions, undefined_relocatable)
