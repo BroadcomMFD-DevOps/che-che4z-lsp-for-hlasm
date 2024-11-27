@@ -1317,6 +1317,22 @@ struct parser_holder::parser2
         }
     }
 
+    bool follows_function()
+    {
+        if (!is_ord_first())
+            return false;
+        const auto* p = input.next;
+        std::string s;
+        while (is_ord(*p))
+        {
+            if (s.size() >= ca_common_expr_policy::max_function_name_length)
+                return false;
+            s.push_back(*p);
+            ++p;
+        }
+        return ca_common_expr_policy::get_function(s) != ca_expr_funcs::UNKNOWN;
+    }
+
     result_t<ca_expr_ptr> lex_term()
     {
         const auto start = cur_pos_adjusted();
@@ -1381,7 +1397,7 @@ struct parser_holder::parser2
                     else
                         return std::move(s);
                 }
-                else if (is_ord_first())
+                else if (follows_function())
                 {
                     auto [id_error, id] = lex_id();
                     if (id_error)
