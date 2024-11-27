@@ -519,6 +519,21 @@ TEST(SET, conversions_invalid)
     EXPECT_TRUE(matches_message_codes(a.diags(), { "CE004", "CE004", "CE017", "CE017" }));
 }
 
+TEST(SET, multiline)
+{
+    std::string input = R"(
+&C(1)  SETC    'A',                                                    X
+               'B',                                                    X
+               'C'
+&A     SETA    N'&C
+)";
+    analyzer a(input);
+    a.analyze();
+
+    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "A"), 3);
+    EXPECT_EQ(get_var_vector<C_t>(a.hlasm_ctx(), "C"), (std::vector<std::string> { "A", "B", "C" }));
+}
+
 TEST(CA_instructions, undefined_relocatable)
 {
     std::string input(R"(

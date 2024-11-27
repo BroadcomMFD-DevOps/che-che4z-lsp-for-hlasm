@@ -2742,6 +2742,7 @@ std::pair<operand_list, range> parser_holder::parser2::ca_expr_ops()
         {
             if (pending)
                 result.push_back(std::make_unique<semantics::empty_operand>(remap_range(range(start))));
+            process_optional_line_remark();
             pending = true;
         }
         else
