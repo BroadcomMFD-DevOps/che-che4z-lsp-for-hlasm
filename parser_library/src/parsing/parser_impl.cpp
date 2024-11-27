@@ -1177,19 +1177,25 @@ struct parser_holder::parser2
         return result;
     }
 
-    result_t<std::variant<std::vector<ca_expr_ptr>, ca_expr_ptr>> lex_maybe_expression_list()
+    struct maybe_expr_list
+    {
+        std::variant<std::vector<ca_expr_ptr>, ca_expr_ptr> value;
+        bool leading_trailing_spaces;
+    };
+
+    result_t<maybe_expr_list> lex_maybe_expression_list()
     {
         ca_expr_ptr p_expr;
         std::vector<ca_expr_ptr> expr_list;
 
-        auto spaces_found = lex_optional_space();
+        auto leading_spaces = lex_optional_space();
         if (auto [error, e] = lex_expr(); error)
             return failure;
         else
             p_expr = std::move(e);
 
-        spaces_found |= lex_optional_space();
-        for (; except<U')'>(); spaces_found |= lex_optional_space())
+        auto trailing_spaces = lex_optional_space();
+        for (; except<U')'>(); trailing_spaces = lex_optional_space())
         {
             auto [error, e] = lex_expr();
             if (error)
@@ -1198,12 +1204,13 @@ struct parser_holder::parser2
                 expr_list.push_back(std::move(p_expr));
             expr_list.push_back(std::move(e));
         }
-        if (spaces_found && p_expr)
+        const auto lt_spaces = leading_spaces || trailing_spaces;
+        if (lt_spaces && p_expr)
             expr_list.push_back(std::move(p_expr));
         if (!expr_list.empty())
-            return std::move(expr_list);
-
-        return std::move(p_expr);
+            return { std::move(expr_list), lt_spaces };
+        else
+            return { std::move(p_expr), lt_spaces };
     }
 
     result_t<ca_expr_ptr> lex_self_def()
@@ -1308,27 +1315,24 @@ struct parser_holder::parser2
             case U'(': {
                 consume(hl_scopes::operator_symbol);
 
+                auto [error, maybe_expr_list] = lex_maybe_expression_list();
+                if (error)
+                    return failure;
+                if (!match<U')'>(hl_scopes::operator_symbol, diagnostic_op::error_S0011))
+                    return failure;
                 ca_expr_ptr p_expr;
-                if (!follows_NOT_SPACE())
-                {
-                    auto [error, maybe_expr_list] = lex_maybe_expression_list();
-                    if (error)
-                        return failure;
-                    if (!match<U')'>(hl_scopes::operator_symbol, diagnostic_op::error_S0011))
-                        return failure;
-                    if (std::holds_alternative<std::vector<ca_expr_ptr>>(maybe_expr_list))
-                        return std::make_unique<ca_expr_list>(
-                            std::move(std::get<std::vector<ca_expr_ptr>>(maybe_expr_list)),
-                            remap_range({ start, cur_pos() }),
-                            true);
-                    p_expr = std::move(std::get<ca_expr_ptr>(maybe_expr_list));
-                }
-                else if (auto [error, e] = lex_expr_general(); error)
-                    return failure;
-                else if (!match<U')'>(hl_scopes::operator_symbol, diagnostic_op::error_S0011))
-                    return failure;
+                const auto is_already_expr_list =
+                    std::holds_alternative<std::vector<ca_expr_ptr>>(maybe_expr_list.value);
+                if (is_already_expr_list)
+                    p_expr = std::make_unique<ca_expr_list>(
+                        std::move(std::get<std::vector<ca_expr_ptr>>(maybe_expr_list.value)),
+                        remap_range({ start, cur_pos() }),
+                        true);
                 else
-                    p_expr = std::move(e);
+                    p_expr = std::move(std::get<ca_expr_ptr>(maybe_expr_list.value));
+
+                if (maybe_expr_list.leading_trailing_spaces)
+                    return p_expr;
 
                 if (follows<U'\''>())
                 {
@@ -1354,9 +1358,14 @@ struct parser_holder::parser2
                         remap_range({ start, cur_pos() }));
                 }
 
-                std::vector<ca_expr_ptr> expr_list;
-                expr_list.push_back(std::move(p_expr));
-                return std::make_unique<ca_expr_list>(std::move(expr_list), remap_range({ start, cur_pos() }), true);
+                if (!is_already_expr_list)
+                {
+                    std::vector<ca_expr_ptr> ops;
+                    ops.push_back(std::move(p_expr));
+                    p_expr = std::make_unique<ca_expr_list>(std::move(ops), remap_range({ start, cur_pos() }), true);
+                }
+
+                return p_expr;
             }
 
             default:
