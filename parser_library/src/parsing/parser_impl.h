@@ -223,9 +223,8 @@ struct parser_holder
     virtual semantics::op_rem op_rem_body_mach_r() const = 0;
     virtual semantics::op_rem op_rem_body_dat_r() const = 0;
 
-    virtual void op_rem_body_ca_expr() const = 0;
-    void op_rem_body_ca_expr2() const;
-    virtual void op_rem_body_ca_branch() const = 0;
+    void op_rem_body_ca_expr() const;
+    void op_rem_body_ca_branch() const;
     virtual void op_rem_body_ca_var_def() const = 0;
 
     virtual void op_rem_body_dat() const = 0;
