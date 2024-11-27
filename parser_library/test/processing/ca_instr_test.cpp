@@ -417,7 +417,7 @@ TEST(ACTR, bad_arguments_2)
     analyzer a(input);
     a.analyze();
 
-    EXPECT_TRUE(matches_message_codes(a.diags(), { "E020" }));
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "S0002", "E020" }));
 }
 
 TEST(MHELP, SYSNDX_limit)
@@ -633,5 +633,5 @@ TEST(SET, missing_var_name)
     analyzer a(input);
     a.analyze();
 
-    EXPECT_TRUE(matches_message_codes(a.diags(), { "S0008", "E010" }));
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "S0008" }));
 }

@@ -372,17 +372,20 @@ TEST(ainsert, grammar_invalid_string)
     a.analyze();
     EXPECT_TRUE(matches_message_codes(a.diags(),
         {
-            "S0005",
-            "E076",
+            "CE004",
+            "S0002",
+            "CE017",
+            "E010",
+            "S0002",
+            "CE004",
+            "CE012",
+            "S0002",
 
             "A011",
             "E076",
+            "E076",
             "S0005",
             "S0005",
-            "S0005",
-
-            "S0005",
-
             "S0005",
         }));
 }
@@ -412,7 +415,7 @@ TEST(ainsert, grammar_non_matching_apostrophes_by_two_01)
 
     analyzer a(input);
     a.analyze();
-    EXPECT_TRUE(matches_message_codes(a.diags(), { "S0002" }));
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "S0005" }));
 }
 
 /*
