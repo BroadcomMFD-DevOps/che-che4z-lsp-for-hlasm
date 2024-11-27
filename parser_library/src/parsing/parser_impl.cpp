@@ -116,7 +116,6 @@ struct parser_holder_impl final : parser_holder
     void op_rem_body_mach() const override { get_parser().op_rem_body_mach(); }
     void op_rem_body_asm() const override { get_parser().op_rem_body_asm(); }
 
-    operand_ptr ca_op_expr() const override { return std::move(get_parser().ca_op_expr()->op); }
     operand_ptr operand_mach() const override { return std::move(get_parser().operand_mach()->op); }
 
     semantics::literal_si literal_reparse() const override { return std::move(get_parser().literal_reparse()->value); }
@@ -2788,6 +2787,18 @@ void parser_holder::op_rem_body_ca_expr2() const
 
     auto [ops, line_range] = p.ca_expr_ops();
     parser->collector.set_operand_remark_field(std::move(ops), std::move(p.remarks), line_range);
+}
+
+operand_ptr parser_holder::ca_op_expr() const
+{
+    parser_holder::parser2 p(this);
+    const auto start = p.cur_pos_adjusted();
+    auto [error, expr] = p.lex_expr_general();
+    if (error || *p.input.next != EOF_SYMBOL)
+        return nullptr;
+
+    parser->resolve_expression(expr);
+    return std::make_unique<expr_ca_operand>(std::move(expr), p.remap_range({ start, p.cur_pos() }));
 }
 
 } // namespace hlasm_plugin::parser_library::parsing

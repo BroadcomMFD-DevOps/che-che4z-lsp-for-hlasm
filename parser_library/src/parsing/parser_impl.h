@@ -232,7 +232,7 @@ struct parser_holder
     virtual void op_rem_body_mach() const = 0;
     virtual void op_rem_body_asm() const = 0;
 
-    virtual semantics::operand_ptr ca_op_expr() const = 0;
+    semantics::operand_ptr ca_op_expr() const;
     virtual semantics::operand_ptr operand_mach() const = 0;
 
     struct mac_op_data

@@ -716,7 +716,7 @@ public:
             return nullptr;
         };
 
-        if (p->stream->LA(1) != (size_t)-1)
+        if (status.first.form != processing::processing_form::CA && p->stream->LA(1) != (size_t)-1)
             return evaluated_expression_error("Invalid expression");
         else if (!error_msg.empty())
             return evaluated_expression_error(std::move(error_msg));
