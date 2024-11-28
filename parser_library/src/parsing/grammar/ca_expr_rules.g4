@@ -316,36 +316,6 @@ data_attribute_value returns [std::variant<context::id_index, semantics::vs_ptr,
         $value = $id.name;
     };
 
-var_def returns [vs_ptr vs]
-    : var_def_name var_def_substr
-    {
-        auto r = provider.get_range($var_def_name.ctx);
-        if ($var_def_name.created_name.empty())
-        {
-            $vs = std::make_unique<basic_variable_symbol>($var_def_name.name, std::move($var_def_substr.value), r);
-            collector.add_hl_symbol(token_info(r,hl_scopes::var_symbol));
-        }
-        else
-            $vs = std::make_unique<created_variable_symbol>(std::move($var_def_name.created_name), std::move($var_def_substr.value), r);
-    };
-
-var_def_name returns [id_index name, concat_chain created_name]
-    : AMPERSAND?
-    (
-        vs_id                                    {$name = $vs_id.name;}
-        |
-        lpar clc=created_set_body rpar            {$created_name = std::move($clc.concat_list);}
-    );
-
-var_def_substr returns [std::vector<ca_expr_ptr> value]
-    : lpar num rpar
-    {
-        auto r = provider.get_range($num.ctx);
-        $value.emplace_back(std::make_unique<ca_constant>($num.value, r));
-    }
-    |;
-
-
 ca_dupl_factor returns [ca_expr_ptr value]
     : lpar expr_general rpar
     {
