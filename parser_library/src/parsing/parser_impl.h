@@ -225,7 +225,7 @@ struct parser_holder
 
     void op_rem_body_ca_expr() const;
     void op_rem_body_ca_branch() const;
-    virtual void op_rem_body_ca_var_def() const = 0;
+    void op_rem_body_ca_var_def() const;
 
     virtual void op_rem_body_dat() const = 0;
     virtual void op_rem_body_mach() const = 0;
