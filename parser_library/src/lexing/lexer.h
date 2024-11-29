@@ -102,6 +102,8 @@ public:
     }
     [[nodiscard]] auto peek_input_size() const noexcept { return input_.size(); }
 
+    [[nodiscard]] bool process_allowed() const noexcept { return process_allowed_; }
+
 protected:
     // creates token and inserts to input stream
     void create_token(int ttype, unsigned channel = Channels::DEFAULT_CHANNEL);

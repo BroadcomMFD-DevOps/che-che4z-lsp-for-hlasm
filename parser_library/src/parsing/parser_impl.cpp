@@ -86,11 +86,6 @@ struct parser_holder_impl final : parser_holder
     }
     auto& get_parser() const { return static_cast<parser_t&>(*parser); }
 
-    op_data lab_instr() const override
-    {
-        auto rule = get_parser().lab_instr();
-        return { std::move(rule->op_text), rule->op_range, rule->op_logical_column };
-    }
     op_data look_lab_instr() const override
     {
         auto rule = get_parser().look_lab_instr();
@@ -241,6 +236,12 @@ int parser_impl::get_loctr_len() const
     return processing::processing_status_cache_key::generate_loctr_len(opcode.value.to_string_view());
 }
 
+std::optional<int> parser_impl::maybe_loctr_len() const
+{
+    if (!proc_status.has_value())
+        return std::nullopt;
+    return get_loctr_len();
+}
 bool parser_impl::loctr_len_allowed(const std::string& attr) const
 {
     return (attr == "L" || attr == "l") && proc_status.has_value();
@@ -486,6 +487,7 @@ struct parser_holder::parser2
 
     std::vector<range> remarks;
     mac_op_data mac_op_results {};
+    std::optional<int> loctr_len;
 
     [[nodiscard]] constexpr bool before_nl() const noexcept
     {
@@ -558,6 +560,7 @@ struct parser_holder::parser2
 
     void add_diagnostic(diagnostic_op d)
     {
+        holder->error_handler;
         holder->parser->add_diagnostic(std::move(d));
         holder->error_handler->singal_error();
     }
@@ -899,6 +902,20 @@ struct parser_holder::parser2
     {
         return follows<group<U'N', U'n'>, group<U'O', U'o'>, group<U'T', U't'>>() && input.next[3] != EOF_SYMBOL
             && !is_ord(input.next[3]);
+    }
+
+    static constexpr auto PROCESS = id_index("*PROCESS");
+    [[nodiscard]] constexpr bool follows_PROCESS() const noexcept
+    {
+        return follows<group<U'*'>,
+                   group<U'P', U'p'>,
+                   group<U'R', U'r'>,
+                   group<U'O', U'o'>,
+                   group<U'C', U'c'>,
+                   group<U'E', U'e'>,
+                   group<U'S', U's'>,
+                   group<U'S', U's'>>()
+            && (input.next[PROCESS.size()] == EOF_SYMBOL || input.next[PROCESS.size()] == U' ');
     }
 
     result_t<seq_sym> lex_seq_symbol()
@@ -1293,6 +1310,10 @@ struct parser_holder::parser2
                     std::move(v), attr, remap_range({ start, cur_pos() }), remap_range({ start_value, cur_pos() }));
             }
 
+            case U'*':
+                add_diagnostic(diagnostic_op::error_S0014);
+                return failure;
+
             case U'=': {
                 auto [error, l] = lex_literal();
                 if (error)
@@ -1326,7 +1347,7 @@ struct parser_holder::parser2
         {
             if (s.size() >= ca_common_expr_policy::max_function_name_length)
                 return false;
-            s.push_back(*p);
+            s.push_back((char)*p);
             ++p;
         }
         return ca_common_expr_policy::get_function(s) != ca_expr_funcs::UNKNOWN;
@@ -1563,14 +1584,13 @@ struct parser_holder::parser2
                 {
                     consume(hl_scopes::data_attr_type);
                     consume(hl_scopes::operator_symbol);
-                    if (!holder->parser->proc_status.has_value())
+                    if (!loctr_len.has_value())
                     {
-                        add_diagnostic(diagnostic_op::error_S0002);
+                        add_diagnostic(diagnostic_op::error_S0014);
                         return failure;
                     }
                     consume(hl_scopes::operand);
-                    return std::make_unique<mach_expr_constant>(
-                        holder->parser->get_loctr_len(), remap_range({ start, cur_pos() }));
+                    return std::make_unique<mach_expr_constant>(loctr_len.value(), remap_range({ start, cur_pos() }));
                 }
                 if (follows<mach_attrs, group<U'\''>>())
                 {
@@ -2265,11 +2285,13 @@ struct parser_holder::parser2
         concat_chain& cc;
 
         char_str_conc* last_text_state = nullptr;
+        bool highlighting = true;
 
     public:
-        concat_chain_builder(parser2& p, concat_chain& cc) noexcept
+        concat_chain_builder(parser2& p, concat_chain& cc, bool hl = true) noexcept
             : p(p)
             , cc(cc)
+            , highlighting(hl)
         {}
 
         [[nodiscard]] std::string& last_text_value()
@@ -2286,7 +2308,8 @@ struct parser_holder::parser2
             if (!last_text_state)
                 return;
             last_text_state->conc_range = p.remap_range({ last_text_state->conc_range.start, p.cur_pos() });
-            p.add_hl_symbol_remapped(last_text_state->conc_range, hl_scopes::operand);
+            if (highlighting)
+                p.add_hl_symbol_remapped(last_text_state->conc_range, hl_scopes::operand);
             last_text_state = nullptr;
         }
 
@@ -2547,9 +2570,25 @@ struct parser_holder::parser2
     std::pair<operand_list, range> ca_branch_ops();
     std::pair<operand_list, range> ca_var_def_ops();
 
+    constexpr bool is_ord_like(std::span<const concatenation_point> cc);
+
+    op_data lab_instr();
+    void lab_instr_process();
+    op_data lab_instr_empty(position start);
+
+    result_t_void lex_label_string(concat_chain_builder& cb);
+    result_t<concat_chain> lex_label();
+    result_t<concat_chain> lex_instr();
+
+    void lex_handle_label(concat_chain cc, range r);
+    void lex_handle_instruction(concat_chain cc, range r);
+
+    op_data lab_instr_rest();
+
     parser2(const parser_holder* h)
         : holder(h)
         , cont(h->lex->get_continuation_column())
+        , loctr_len(holder->parser->maybe_loctr_len())
     {
         std::tie(input, data) = holder->lex->peek_initial_input_state();
     }
@@ -2768,7 +2807,7 @@ parser_holder::parser2::result_t<vs_ptr> parser_holder::parser2::lex_variable()
     std::vector<ca_expr_ptr> sub;
     if (follows<U'('>())
     {
-        if (auto [error, sub_] = lex_subscript(); error)
+        if (auto [error_sub, sub_] = lex_subscript(); error_sub)
             return failure;
         else
             sub = std::move(sub_);
@@ -2952,8 +2991,8 @@ std::pair<operand_list, range> parser_holder::parser2::ca_var_def_ops()
                 syntax_error_or_eof();
                 break;
             }
-            auto [error, num_] = lex_num();
-            if (error)
+            auto [error_num, num_] = lex_num();
+            if (error_num)
                 break;
             num.push_back(std::move(num_));
             if (!match<U')'>(hl_scopes::operator_symbol, diagnostic_op::error_S0011))
@@ -3030,6 +3069,396 @@ operand_ptr parser_holder::ca_op_expr() const
 
     parser->resolve_expression(expr);
     return std::make_unique<expr_ca_operand>(std::move(expr), p.remap_range({ start, p.cur_pos() }));
+}
+
+void parser_holder::parser2::lab_instr_process()
+{
+    assert(follows_PROCESS());
+
+    const auto start = cur_pos_adjusted();
+    for (size_t i = 0; i < PROCESS.size(); ++i)
+        consume();
+
+    const auto r = remap_range({ start, cur_pos() });
+    holder->parser->collector.set_label_field(r);
+    holder->parser->collector.set_instruction_field(id_index("*PROCESS"), r);
+    add_hl_symbol_remapped(r, hl_scopes::instruction);
+}
+
+parser_holder::op_data parser_holder::parser2::lab_instr_rest()
+{
+    if (eof())
+    {
+        const auto r = remap_range(range(cur_pos()));
+        return op_data {
+            .op_text = lexing::u8string_with_newlines(),
+            .op_range = r,
+            .op_logical_column = input.char_position_in_line,
+        };
+    }
+
+    const auto op_start = cur_pos();
+    op_data result {
+        .op_text = lexing::u8string_with_newlines(),
+        .op_range = {},
+        .op_logical_column = input.char_position_in_line,
+    };
+
+    while (!eof())
+    {
+        while (!before_nl())
+        {
+            result.op_text->text.push_back(lexing::u8string_view_with_newlines::EOLc);
+            ++input.line;
+            ++input.nl;
+            input.char_position_in_line = cont;
+            input.char_position_in_line_utf16 = cont;
+        }
+
+        const auto ch = *input.next;
+        utils::append_utf32_to_utf8(result.op_text->text, ch);
+
+        ++input.next;
+        ++input.char_position_in_line;
+        input.char_position_in_line_utf16 += 1 + (ch > 0xffffu);
+    }
+
+    for (; *input.nl != (size_t)-1;)
+    {
+        result.op_text->text.push_back(lexing::u8string_view_with_newlines::EOLc);
+        ++input.line;
+        ++input.nl;
+        input.char_position_in_line = cont;
+        input.char_position_in_line_utf16 = cont;
+    }
+
+    result.op_range = remap_range({ op_start, cur_pos() });
+
+    return result;
+}
+
+parser_holder::op_data parser_holder::parser2::lab_instr_empty(position start)
+{
+    const auto r = remap_range(range(start));
+
+    holder->parser->collector.set_label_field(r);
+    holder->parser->collector.set_instruction_field(r);
+    holder->parser->collector.set_operand_remark_field(r);
+
+    return {};
+}
+
+parser_holder::parser2::result_t_void parser_holder::parser2::lex_label_string(concat_chain_builder& cb)
+{
+    assert(follows<U'\''>());
+
+    consume_into(cb.last_text_value());
+
+    while (!eof())
+    {
+        switch (*input.next)
+        {
+            case U'\'':
+                consume_into(cb.last_text_value());
+                return {};
+
+            case U'&':
+                if (input.next[1] == U'&')
+                {
+                    consume_into(cb.last_text_value());
+                    consume_into(cb.last_text_value());
+                }
+                else
+                {
+                    cb.push_last_text();
+                    auto [error, vs] = lex_variable();
+                    if (error)
+                        return failure;
+                    cb.emplace_back(std::in_place_type<var_sym_conc>, std::move(vs));
+                }
+                break;
+
+            default:
+                consume_into(cb.last_text_value());
+                break;
+        }
+    }
+    add_diagnostic(diagnostic_op::error_S0005);
+    return failure;
+}
+
+parser_holder::parser2::result_t<concat_chain> parser_holder::parser2::lex_label()
+{
+    concat_chain chain;
+    concat_chain_builder cb(*this, chain, false);
+
+    bool next_char_special = true;
+
+    while (true)
+    {
+        const auto last_char_special = std::exchange(next_char_special, true);
+        switch (*input.next)
+        {
+            case EOF_SYMBOL:
+            case U' ':
+                cb.push_last_text();
+                return chain;
+
+            case U'.':
+                cb.single_char_push<dot_conc>();
+                next_char_special = follows<U'C', U'c'>();
+                break;
+
+            case U'=':
+                cb.single_char_push<equals_conc>();
+                next_char_special = follows<U'C', U'c'>();
+                break;
+
+            case U'&':
+                if (input.next[1] == U'&')
+                {
+                    consume_into(cb.last_text_value());
+                    consume_into(cb.last_text_value());
+                }
+                else
+                {
+                    cb.push_last_text();
+                    auto [error, vs] = lex_variable();
+                    if (error)
+                        return failure;
+                    cb.emplace_back(std::in_place_type<var_sym_conc>, std::move(vs));
+                }
+                break;
+
+            case U'\'':
+                if (!last_char_special && input.next[1] == U' ')
+                    consume_into(cb.last_text_value());
+                else if (auto [error] = lex_label_string(cb); error)
+                    return failure;
+                break;
+
+            case U'O':
+            case U'S':
+            case U'I':
+            case U'L':
+            case U'T':
+            case U'o':
+            case U's':
+            case U'i':
+            case U'l':
+            case U't':
+                if (last_char_special && input.next[1] == U'\'')
+                {
+                    consume_into(cb.last_text_value());
+                    consume_into(cb.last_text_value());
+                    break;
+                }
+                [[fallthrough]];
+
+            case U'C':
+            case U'c':
+                if (last_char_special && input.next[1] == U'\'')
+                {
+                    consume_into(cb.last_text_value());
+                    if (auto [error] = lex_label_string(cb); error)
+                        return failure;
+                    break;
+                }
+                [[fallthrough]];
+
+            default:
+                next_char_special = !is_ord();
+
+                consume_into(cb.last_text_value());
+
+                break;
+        }
+    }
+}
+
+parser_holder::parser2::result_t<concat_chain> parser_holder::parser2::lex_instr()
+{
+    if (eof() || follows<U' '>())
+    {
+        syntax_error_or_eof();
+        return failure;
+    }
+
+    concat_chain result;
+    concat_chain_builder cb(*this, result);
+
+    while (true)
+    {
+        switch (*input.next)
+        {
+            case EOF_SYMBOL:
+            case U' ':
+                cb.push_last_text();
+                return result;
+
+            case U'\'':
+                syntax_error_or_eof();
+                return failure;
+
+            case U'&':
+                if (input.next[1] == U'&')
+                {
+                    consume_into(cb.last_text_value());
+                    consume_into(cb.last_text_value());
+                }
+                else
+                {
+                    cb.push_last_text();
+                    auto [error, vs] = lex_variable();
+                    if (error)
+                        return failure;
+                    cb.emplace_back(std::in_place_type<var_sym_conc>, std::move(vs));
+                }
+                break;
+
+            default:
+                consume_into(cb.last_text_value());
+                break;
+        }
+    }
+}
+
+constexpr bool parser_holder::parser2::is_ord_like(std::span<const concatenation_point> cc)
+{
+    if (std::ranges::any_of(cc, [](const auto& c) { return !std::holds_alternative<char_str_conc>(c.value); }))
+        return false;
+    auto it = std::ranges::find_if(cc, [](const auto& c) { return !std::get<char_str_conc>(c.value).value.empty(); });
+    if (it == cc.end())
+        return false;
+    if (!is_ord_first(std::get<char_str_conc>(it->value).value.front()))
+        return false;
+    return std::all_of(it, cc.end(), [](const auto& c) {
+        const auto& str = std::get<char_str_conc>(c.value).value;
+        return std::ranges::all_of(str, [](unsigned char uc) { return is_ord(uc); });
+    });
+}
+
+parser_holder::op_data parser_holder::parser2::lab_instr()
+{
+    if (eof())
+        return lab_instr_empty(cur_pos());
+
+    if (holder->lex->process_allowed() && follows_PROCESS())
+    {
+        lab_instr_process();
+        return lab_instr_rest();
+    }
+
+    const auto start = cur_pos();
+    auto label_end = start;
+
+    concat_chain label_concat;
+    if (lex_optional_space())
+    {
+        if (eof())
+            return lab_instr_empty(start);
+    }
+    else
+    {
+        auto [l_error, v] = lex_label();
+        if (l_error)
+            return {};
+
+        label_end = cur_pos();
+        label_concat = std::move(v);
+
+        if (!lex_optional_space())
+        {
+            syntax_error_or_eof();
+            return {};
+        }
+    }
+
+    const auto instr_start = cur_pos_adjusted();
+    auto [i_error, instr_concat] = lex_instr();
+    if (i_error)
+        return {};
+
+    lex_handle_label(std::move(label_concat), remap_range({ start, label_end }));
+    lex_handle_instruction(std::move(instr_concat), remap_range({ instr_start, cur_pos() }));
+
+    return lab_instr_rest();
+}
+
+void parser_holder::parser2::lex_handle_label(concat_chain cc, range r)
+{
+    if (cc.empty())
+        holder->parser->collector.set_label_field(r);
+    else if (std::ranges::any_of(cc, [](const auto& c) { return std::holds_alternative<var_sym_conc>(c.value); }))
+    {
+        concatenation_point::clear_concat_chain(cc);
+        for (const auto& c : cc)
+        {
+            if (!std::holds_alternative<char_str_conc>(c.value))
+                continue;
+            add_hl_symbol(std::get<char_str_conc>(c.value).conc_range, hl_scopes::label);
+        }
+        holder->parser->collector.set_label_field(std::move(cc), r);
+    }
+    else if (std::holds_alternative<dot_conc>(cc.front().value) && is_ord_like(std::span(cc).subspan(1))) // seq symbol
+    {
+        auto& label = std::get<char_str_conc>(cc[1].value).value;
+        for (auto& c : std::span(cc).subspan(2))
+            label.append(std::get<char_str_conc>(c.value).value);
+
+        holder->parser->collector.set_label_field({ holder->parser->parse_identifier(std::move(label), r), r }, r);
+    }
+    else if (is_ord_like(cc))
+    {
+        std::string label = concatenation_point::to_string(std::move(cc));
+        add_hl_symbol(r, hl_scopes::label);
+        auto id = holder->parser->add_id(label);
+        holder->parser->collector.set_label_field({ id, std::move(label) }, r);
+    }
+    else
+    {
+        add_hl_symbol(r, hl_scopes::label);
+        holder->parser->collector.set_label_field(concatenation_point::to_string(std::move(cc)), r);
+    }
+}
+
+void parser_holder::parser2::lex_handle_instruction(concat_chain cc, range r)
+{
+    assert(!cc.empty());
+
+    if (std::ranges::any_of(cc, [](const auto& c) { return std::holds_alternative<var_sym_conc>(c.value); }))
+    {
+        for (const auto& point : cc)
+        {
+            if (!std::holds_alternative<semantics::char_str_conc>(point.value))
+                continue;
+            add_hl_symbol(std::get<semantics::char_str_conc>(point.value).conc_range, hl_scopes::instruction);
+        }
+
+        holder->parser->collector.set_instruction_field(std::move(cc), r);
+    }
+    else if (is_ord_like(std::span(cc).first(1)))
+    {
+        add_hl_symbol(r, hl_scopes::instruction);
+        auto instr_id = holder->parser->parse_identifier(concatenation_point::to_string(std::move(cc)), r);
+        holder->parser->collector.set_instruction_field(instr_id, r);
+    }
+    else
+    {
+        add_hl_symbol(r, hl_scopes::instruction);
+        auto instr_id = holder->parser->add_id(concatenation_point::to_string(std::move(cc)));
+        holder->parser->collector.set_instruction_field(instr_id, r);
+    }
+}
+
+parser_holder::op_data parser_holder::lab_instr() const
+{
+    parser_holder::parser2 p(this);
+
+    // TODO: diagnose instruction not finished on the initial line
+    // const auto initial_state = p.input;
+
+    return p.lab_instr();
 }
 
 } // namespace hlasm_plugin::parser_library::parsing
