@@ -116,6 +116,7 @@ struct concatenation_point
     static void clear_concat_chain(concat_chain& conc_list);
 
     static std::string to_string(const concat_chain& chain);
+    static std::string to_string(concat_chain&& chain);
     static std::string to_string(concat_chain::const_iterator begin, concat_chain::const_iterator end);
 
     static const var_sym_conc* find_var_sym(concat_chain::const_iterator begin, concat_chain::const_iterator end);
