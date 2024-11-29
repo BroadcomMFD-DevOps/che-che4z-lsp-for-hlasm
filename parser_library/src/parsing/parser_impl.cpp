@@ -3300,6 +3300,14 @@ parser_holder::parser2::result_t<concat_chain> parser_holder::parser2::lex_instr
                 syntax_error_or_eof();
                 return failure;
 
+            case U'=':
+                cb.single_char_push<equals_conc>();
+                break;
+
+            case U'.':
+                cb.single_char_push<dot_conc>();
+                break;
+
             case U'&':
                 if (input.next[1] == U'&')
                 {
