@@ -15,7 +15,7 @@
  //rules for instruction field
 parser grammar instruction_field_rules;
 
-instruction returns [id_index instr] locals [concat_chain chain, std::string instr_text, bool has_vars = false]
+instruction locals [concat_chain chain, std::string instr_text, bool has_vars = false]
     : f=ORDSYMBOL                                               {$instr_text += $f->getText();$chain.emplace_back(char_str_conc($f->getText(), provider.get_range($f)));}
     (
         {

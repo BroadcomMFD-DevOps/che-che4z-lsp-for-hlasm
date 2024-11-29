@@ -150,6 +150,7 @@ protected:
     context::data_attr_kind get_attribute(std::string attr_data);
     context::id_index parse_identifier(std::string value, range id_range);
     int get_loctr_len() const;
+    std::optional<int> maybe_loctr_len() const;
     bool loctr_len_allowed(const std::string& attr) const;
 
     void resolve_expression(expressions::ca_expr_ptr& expr, context::SET_t_enum type) const;
@@ -209,7 +210,7 @@ struct parser_holder
         size_t op_logical_column;
     };
 
-    virtual op_data lab_instr() const = 0;
+    op_data lab_instr() const;
     virtual op_data look_lab_instr() const = 0;
 
     virtual void op_rem_body_noop() const = 0;
