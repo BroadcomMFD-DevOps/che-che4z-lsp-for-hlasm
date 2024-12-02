@@ -86,12 +86,6 @@ struct parser_holder_impl final : parser_holder
     }
     auto& get_parser() const { return static_cast<parser_t&>(*parser); }
 
-    op_data look_lab_instr() const override
-    {
-        auto rule = get_parser().look_lab_instr();
-        return { std::move(rule->op_text), rule->op_range, rule->op_logical_column };
-    }
-
     void op_rem_body_noop() const override { get_parser().op_rem_body_noop(); }
     void op_rem_body_ignored() const override { get_parser().op_rem_body_ignored(); }
     void op_rem_body_deferred() const override { get_parser().op_rem_body_deferred(); }
@@ -559,7 +553,6 @@ struct parser_holder::parser2
 
     void add_diagnostic(diagnostic_op d)
     {
-        holder->error_handler;
         holder->parser->add_diagnostic(std::move(d));
         holder->error_handler->singal_error();
     }
@@ -583,6 +576,13 @@ struct parser_holder::parser2
     {
         holder->parser->get_collector().add_hl_symbol(token_info(r, s));
     }
+
+    context::id_index parse_identifier(std::string value, range id_range)
+    {
+        return holder->parser->parse_identifier(std::move(value), id_range);
+    }
+
+    context::id_index add_id(std::string_view value) { return holder->parser->add_id(value); }
 
     void lex_last_remark()
     {
@@ -779,20 +779,30 @@ struct parser_holder::parser2
         {}
     };
 
+    std::string lex_ord()
+    {
+        assert(is_ord_first());
+
+        std::string result;
+        do
+        {
+            consume_into(result);
+        } while (is_ord());
+
+        return result;
+    }
+
     result_t<id_index> lex_id()
     {
         assert(is_ord_first());
 
-        std::string name;
-
         const auto start = cur_pos_adjusted();
-        do
-        {
-            consume_into(name);
-        } while (is_ord());
+
+        std::string name = lex_ord();
+
         const auto end = cur_pos();
 
-        auto id = holder->parser->parse_identifier(std::move(name), { start, end });
+        auto id = parse_identifier(std::move(name), { start, end });
         if (id.empty())
             return failure;
         else
@@ -2578,6 +2588,9 @@ struct parser_holder::parser2
     void lab_instr_process();
     op_data lab_instr_empty(position start);
 
+    op_data look_lab_instr();
+    op_data look_lab_instr_seq();
+
     result_t_void lex_label_string(concat_chain_builder& cb);
     result_t<concat_chain> lex_label();
     result_t<concat_chain> lex_instr();
@@ -3417,13 +3430,13 @@ void parser_holder::parser2::lex_handle_label(concat_chain cc, range r)
         for (auto& c : std::span(cc).subspan(2))
             label.append(std::get<char_str_conc>(c.value).value);
 
-        holder->parser->collector.set_label_field({ holder->parser->parse_identifier(std::move(label), r), r }, r);
+        holder->parser->collector.set_label_field({ parse_identifier(std::move(label), r), r }, r);
     }
     else if (is_ord_like(cc))
     {
         std::string label = concatenation_point::to_string(std::move(cc));
         add_hl_symbol(r, hl_scopes::label);
-        auto id = holder->parser->add_id(label);
+        auto id = add_id(label);
         holder->parser->collector.set_label_field({ id, std::move(label) }, r);
     }
     else
@@ -3451,15 +3464,110 @@ void parser_holder::parser2::lex_handle_instruction(concat_chain cc, range r)
     else if (is_ord_like(std::span(cc).first(1)))
     {
         add_hl_symbol(r, hl_scopes::instruction);
-        auto instr_id = holder->parser->parse_identifier(concatenation_point::to_string(std::move(cc)), r);
+        auto instr_id = parse_identifier(concatenation_point::to_string(std::move(cc)), r);
         holder->parser->collector.set_instruction_field(instr_id, r);
     }
     else
     {
         add_hl_symbol(r, hl_scopes::instruction);
-        auto instr_id = holder->parser->add_id(concatenation_point::to_string(std::move(cc)));
+        auto instr_id = add_id(concatenation_point::to_string(std::move(cc)));
         holder->parser->collector.set_instruction_field(instr_id, r);
     }
+}
+
+parser_holder::op_data parser_holder::parser2::look_lab_instr_seq()
+{
+    const auto start = cur_pos_adjusted();
+    consume();
+    if (!is_ord_first())
+        return lab_instr_empty(start);
+
+    std::string label = lex_ord();
+
+    const auto seq_end = cur_pos();
+
+    const auto label_r = remap_range({ start, seq_end });
+    auto seq_symbol = seq_sym { parse_identifier(std::move(label), label_r), label_r };
+    holder->parser->collector.set_label_field(seq_symbol, label_r);
+
+    if (!lex_optional_space() || !is_ord_first())
+    {
+        const auto r = remap_range(range(seq_end));
+        holder->parser->collector.set_instruction_field(r);
+        holder->parser->collector.set_operand_remark_field(r);
+        return {};
+    }
+    const auto instr_start = cur_pos_adjusted();
+    std::string instr = lex_ord();
+    const auto instr_end = cur_pos();
+
+    if (!eof() && !follows<U' '>())
+    {
+        const auto r = remap_range(range(seq_end));
+        holder->parser->collector.set_instruction_field(r);
+        holder->parser->collector.set_operand_remark_field(r);
+        return {};
+    }
+
+    const auto instr_r = remap_range({ instr_start, instr_end });
+
+    holder->parser->collector.set_instruction_field(parse_identifier(std::move(instr), instr_r), instr_r);
+
+    auto result = lab_instr_rest();
+
+    holder->parser->collector.set_operand_remark_field(result.op_range);
+
+    return result;
+}
+
+parser_holder::op_data parser_holder::parser2::look_lab_instr()
+{
+    const auto start = cur_pos_adjusted();
+
+    std::string label;
+    range label_r = remap_range(range(start));
+    switch (*input.next)
+    {
+        case EOF_SYMBOL:
+            return lab_instr_empty(start);
+        case U'.':
+            return look_lab_instr_seq();
+
+        default:
+            if (!is_ord_first())
+                return lab_instr_empty(start);
+            label = lex_ord();
+            label_r = remap_range({ start, cur_pos() });
+            break;
+
+        case U' ':
+            break;
+    }
+
+    if (!lex_optional_space())
+        return lab_instr_empty(start);
+    if (!is_ord_first())
+        return lab_instr_empty(start);
+
+    const auto instr_start = cur_pos_adjusted();
+    auto instr = lex_ord();
+    const auto instr_r = remap_range({ instr_start, cur_pos() });
+
+    if (!eof() && !follows<U' '>())
+        return lab_instr_empty(start);
+
+    if (!label.empty())
+    {
+        const auto id = add_id(label);
+        holder->parser->collector.set_label_field(id, std::move(label), nullptr, label_r);
+    }
+    holder->parser->collector.set_instruction_field(parse_identifier(std::move(instr), instr_r), instr_r);
+
+    auto result = lab_instr_rest();
+
+    holder->parser->collector.set_operand_remark_field(result.op_range);
+
+    return result;
 }
 
 parser_holder::op_data parser_holder::lab_instr() const
@@ -3470,6 +3578,13 @@ parser_holder::op_data parser_holder::lab_instr() const
     // const auto initial_state = p.input;
 
     return p.lab_instr();
+}
+
+parser_holder::op_data parser_holder::look_lab_instr() const
+{
+    parser_holder::parser2 p(this);
+
+    return p.look_lab_instr();
 }
 
 } // namespace hlasm_plugin::parser_library::parsing
