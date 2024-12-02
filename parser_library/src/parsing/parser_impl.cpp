@@ -1688,20 +1688,30 @@ struct parser_holder::parser2
 
         while (!eof())
         {
-            if (input.next[0] != U'\'')
-            {
-                consume_into(s);
-            }
-            else if (input.next[1] == U'\'')
+            if (follows<group<U'\''>, group<U'\''>>())
             {
                 consume_into(s);
                 consume();
             }
-            else
+            else if (follows<U'\''>())
             {
                 consume();
                 add_hl_symbol({ start, cur_pos() }, hl_scopes::string);
                 return s;
+            }
+            else if (follows<group<U'&'>, group<U'&'>>())
+            {
+                consume_into(s);
+                consume();
+            }
+            else if (follows<U'&'>())
+            {
+                add_diagnostic(diagnostic_op::error_S0008);
+                return failure;
+            }
+            else
+            {
+                consume_into(s);
             }
         }
 
@@ -2001,24 +2011,33 @@ struct parser_holder::parser2
 
     result_t<std::string> lex_literal_nominal_char()
     {
+        // TODO: replace by lex_mach_string()
         assert(follows<U'\''>());
         const auto start = cur_pos_adjusted();
 
         std::string result;
         consume();
-        while (true)
+        while (!eof())
         {
             if (follows<group<U'\''>, group<U'\''>>())
             {
                 consume_into(result);
                 consume();
             }
-            else if (except<U'\''>())
+            else if (follows<U'\''>())
+                break;
+            else if (follows<group<U'&'>, group<U'&'>>())
             {
                 consume_into(result);
+                consume();
+            }
+            else if (follows<U'&'>())
+            {
+                add_diagnostic(diagnostic_op::error_S0008);
+                return failure;
             }
             else
-                break;
+                consume_into(result);
         }
         if (!match<U'\''>(diagnostic_op::error_S0005))
             return failure;
