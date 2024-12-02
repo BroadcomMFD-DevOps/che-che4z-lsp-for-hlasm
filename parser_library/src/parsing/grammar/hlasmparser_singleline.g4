@@ -17,17 +17,14 @@
 parser grammar hlasmparser_singleline;
 
 import
-label_field_rules,
 operand_field_rules,
-instruction_field_rules,
 lookahead_rules,
 machine_operand_rules,
 assembler_operand_rules,
 model_operand_rules,
 machine_expr_rules,
 data_def_rules,
-ca_expr_rules,
-deferred_operand_rules;
+ca_expr_rules;
 
 @header
 {
@@ -85,70 +82,6 @@ options {
 
 program : EOF;
 
-lab_instr returns [std::optional<lexing::u8string_with_newlines> op_text, range op_range, size_t op_logical_column = 0]
-    : PROCESS (SPACE (~EOF)*)? EOF
-    {
-        collector.set_label_field(provider.get_range($PROCESS));
-        collector.set_instruction_field(
-            parse_identifier($PROCESS->getText(),provider.get_range($PROCESS)),
-            provider.get_range( $PROCESS));
-        collector.add_hl_symbol(token_info(provider.get_range($PROCESS),hl_scopes::instruction));
-
-        auto op_index = $PROCESS->getTokenIndex()+1;
-        $op_text = static_cast<lexing::token_stream*>(_input)->get_text_with_newlines(misc::Interval(op_index,_input->size()-1));
-        $op_range = provider.get_range(_input->get(op_index),_input->get(_input->size()-1));
-        $op_logical_column = static_cast<hlasm_plugin::parser_library::lexing::token*>(_input->get(op_index))->get_logical_column();
-    }
-    | label SPACE instruction (SPACE (~EOF)*)? EOF
-    {
-        if (!$instruction.ctx->exception)
-        {
-            auto op_index = $instruction.stop->getTokenIndex()+1;
-            $op_text = static_cast<lexing::token_stream*>(_input)->get_text_with_newlines(misc::Interval(op_index,_input->size()-1));
-            $op_range = provider.get_range(_input->get(op_index),_input->get(_input->size()-1));
-            $op_logical_column = static_cast<hlasm_plugin::parser_library::lexing::token*>(_input->get(op_index))->get_logical_column();
-        }
-    }
-    | SPACE
-    (
-        instruction (SPACE (~EOF)*)? EOF
-        {
-            collector.set_label_field(provider.get_empty_range( _localctx->getStart()));
-            if (!$instruction.ctx->exception)
-            {
-                auto op_index = $instruction.stop->getTokenIndex()+1;
-                $op_text = static_cast<lexing::token_stream*>(_input)->get_text_with_newlines(misc::Interval(op_index,_input->size()-1));
-                $op_range = provider.get_range(_input->get(op_index),_input->get(_input->size()-1));
-                $op_logical_column = static_cast<hlasm_plugin::parser_library::lexing::token*>(_input->get(op_index))->get_logical_column();
-            }
-        }
-        |
-        EOF
-        {
-            collector.set_label_field(provider.get_range( _localctx));
-            collector.set_instruction_field(provider.get_range( _localctx));
-            collector.set_operand_remark_field(provider.get_range( _localctx));
-        }
-    )
-    | EOF
-    {
-        collector.set_label_field(provider.get_range( _localctx));
-        collector.set_instruction_field(provider.get_range( _localctx));
-        collector.set_operand_remark_field(provider.get_range( _localctx));
-    };
-    catch[const FailedPredicateException&]
-    {
-        collector.set_label_field(provider.get_range( _localctx));
-        collector.set_instruction_field(provider.get_range( _localctx));
-        collector.set_operand_remark_field(provider.get_range( _localctx));
-    }
-    catch[RecognitionException &e]
-    {
-        _errHandler->reportError(this, e);
-        _localctx->exception = std::current_exception();
-        _errHandler->recover(this, _localctx->exception);
-    }
-
 num returns [self_def_t value]
     : NUM                                    {$value = parse_self_def_term("D",$NUM->getText(),provider.get_range($NUM));};
 
@@ -203,17 +136,4 @@ minus
     : MINUS {collector.add_hl_symbol(token_info(provider.get_range( $MINUS),hl_scopes::operator_symbol)); };
 plus
     : PLUS {collector.add_hl_symbol(token_info(provider.get_range( $PLUS),hl_scopes::operator_symbol)); };
-
-
-deferred_op_rem returns [remark_list remarks, std::vector<vs_ptr> var_list]
-    :
-    (
-        deferred_entry
-        {
-            for (auto&v : $deferred_entry.vs)
-                $var_list.push_back(std::move(v));
-        }
-    )*
-    remark_o {if($remark_o.value) $remarks.push_back(*$remark_o.value);}
-    ;
 
