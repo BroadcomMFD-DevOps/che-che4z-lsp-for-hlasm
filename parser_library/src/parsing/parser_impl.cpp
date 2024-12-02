@@ -581,6 +581,7 @@ struct parser_holder::parser2
         return holder->parser->parse_identifier(std::move(value), id_range);
     }
 
+    context::id_index add_id(std::string value) { return holder->parser->add_id(std::move(value)); }
     context::id_index add_id(std::string_view value) { return holder->parser->add_id(value); }
 
     void lex_last_remark()
@@ -3690,21 +3691,26 @@ void parser_holder::parser2::op_rem_body_deferred()
                 consume();
                 switch (*input.next)
                 {
+                    case EOF_SYMBOL:
+                        add_diagnostic(diagnostic_op::error_S0003);
+                        return;
+
                     case U'&':
                         consume();
                         break;
+
                     case U'(':
                         break;
+
                     default: {
                         if (!is_ord_first())
                         {
-                            syntax_error_or_eof();
+                            add_diagnostic(diagnostic_op::error_S0008);
                             return;
                         }
-                        auto id = lex_ord();
+                        const auto id = add_id(lex_ord());
                         const auto r = remap_range({ amp, cur_pos() });
-                        vs.push_back(std::make_unique<basic_variable_symbol>(
-                            add_id(std::move(id)), std::vector<ca_expr_ptr>(), r));
+                        vs.push_back(std::make_unique<basic_variable_symbol>(id, std::vector<ca_expr_ptr>(), r));
                         add_hl_symbol(r, hl_scopes::var_symbol);
                     }
                 }
@@ -3728,7 +3734,8 @@ void parser_holder::parser2::op_rem_body_deferred()
             case U'i':
             case U'l':
             case U't':
-                if (last_char_special && input.next[1] == U'\'')
+                if (last_char_special && input.next[1] == U'\''
+                    && (is_ord_first(input.next[2]) || input.next[2] == U'&' || input.next[2] == U'='))
                 {
                     const auto p = cur_pos_adjusted();
                     consume();
@@ -3740,7 +3747,7 @@ void parser_holder::parser2::op_rem_body_deferred()
                 [[fallthrough]];
             default: {
                 const auto substart = cur_pos_adjusted();
-                while (except<U',', U'*', U'/', U'+', U'-', U'=', U'.', U'(', U')', U'\''>())
+                while (except<U'&', U' ', U',', U'*', U'/', U'+', U'-', U'=', U'.', U'(', U')', U'\''>())
                 {
                     next_char_special = !is_ord();
                     consume();
