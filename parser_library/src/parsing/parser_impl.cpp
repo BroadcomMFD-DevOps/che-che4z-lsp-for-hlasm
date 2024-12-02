@@ -1645,7 +1645,7 @@ struct parser_holder::parser2
                     consume();
                     consume();
                     add_hl_symbol({ start, cur_pos() }, hl_scopes::self_def_type);
-                    auto [error, s] = lex_mach_string();
+                    auto [error, s] = lex_simple_string();
                     if (error)
                         return failure;
 
@@ -1657,7 +1657,7 @@ struct parser_holder::parser2
                 {
                     const auto opt = static_cast<char>(*input.next);
                     consume(hl_scopes::self_def_type);
-                    auto [error, s] = lex_mach_string();
+                    auto [error, s] = lex_simple_string();
                     if (error)
                         return failure;
 
@@ -1677,7 +1677,7 @@ struct parser_holder::parser2
         }
     }
 
-    result_t<std::string> lex_mach_string()
+    result_t<std::string> lex_simple_string()
     {
         assert(follows<U'\''>());
 
@@ -1706,7 +1706,7 @@ struct parser_holder::parser2
             }
             else if (follows<U'&'>())
             {
-                add_diagnostic(diagnostic_op::error_S0008);
+                add_diagnostic(diagnostic_op::error_S0002);
                 return failure;
             }
             else
@@ -2008,46 +2008,6 @@ struct parser_holder::parser2
             remap_range({ start, cur_pos() }));
     }
 
-
-    result_t<std::string> lex_literal_nominal_char()
-    {
-        // TODO: replace by lex_mach_string()
-        assert(follows<U'\''>());
-        const auto start = cur_pos_adjusted();
-
-        std::string result;
-        consume();
-        while (!eof())
-        {
-            if (follows<group<U'\''>, group<U'\''>>())
-            {
-                consume_into(result);
-                consume();
-            }
-            else if (follows<U'\''>())
-                break;
-            else if (follows<group<U'&'>, group<U'&'>>())
-            {
-                consume_into(result);
-                consume();
-            }
-            else if (follows<U'&'>())
-            {
-                add_diagnostic(diagnostic_op::error_S0008);
-                return failure;
-            }
-            else
-                consume_into(result);
-        }
-        if (!match<U'\''>(diagnostic_op::error_S0005))
-            return failure;
-
-        add_hl_symbol({ start, cur_pos() }, hl_scopes::string);
-
-        return result;
-    }
-
-
     result_t<expr_or_address_list> lex_literal_nominal_addr()
     {
         assert(follows<U'('>());
@@ -2079,7 +2039,7 @@ struct parser_holder::parser2
         const auto start = cur_pos_adjusted();
         if (follows<U'\''>())
         {
-            auto [error, n] = lex_literal_nominal_char();
+            auto [error, n] = lex_simple_string();
             if (error)
                 return failure;
             return std::make_unique<nominal_value_string>(std::move(n), remap_range({ start, cur_pos() }));
@@ -2151,49 +2111,6 @@ struct parser_holder::parser2
         std::for_each(initial, input.next, [&s](auto c) { utils::append_utf32_to_utf8(s, c); });
         return holder->parser->get_collector().add_literal(
             std::move(s), std::move(dd), remap_range({ start, cur_pos() }));
-    }
-
-    result_t<std::string> lex_simple_string()
-    {
-        assert(follows<U'\''>());
-
-        std::string result;
-        const auto start = cur_pos_adjusted();
-
-        consume();
-        while (!eof())
-        {
-            switch (*input.next)
-            {
-                case U'&':
-                    if (input.next[1] != U'&')
-                    {
-                        syntax_error_or_eof();
-                        return failure;
-                    }
-                    consume_into(result);
-                    consume();
-                    break;
-                case U'\'':
-                    if (input.next[1] != U'\'')
-                        goto done;
-                    consume_into(result);
-                    consume();
-                    break;
-                default:
-                    consume_into(result);
-                    break;
-            }
-        }
-    done:;
-        if (!try_consume<U'\''>())
-        {
-            add_diagnostic(diagnostic_op::error_S0005);
-            return failure;
-        }
-        add_hl_symbol({ start, cur_pos() }, hl_scopes::string);
-
-        return result;
     }
 
     result_t<ca_expr_ptr> lex_term_c()
