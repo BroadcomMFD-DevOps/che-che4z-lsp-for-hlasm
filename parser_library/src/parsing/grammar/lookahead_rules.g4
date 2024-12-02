@@ -15,67 +15,6 @@
  //rules for lookahead statement
 parser grammar lookahead_rules;
 
-look_lab_instr  returns [std::optional<lexing::u8string_with_newlines> op_text, range op_range, size_t op_logical_column = 0]
-    : DOT s=ORDSYMBOL (SPACE instr=ORDSYMBOL? lookahead_operand_field_rest)?
-    {
-        auto seq_symbol = seq_sym{parse_identifier($s->getText(),provider.get_range($s)),provider.get_range($DOT, $s)};
-        collector.set_label_field(seq_symbol,seq_symbol.symbol_range);
-        if ($instr && $lookahead_operand_field_rest.valid)
-        {
-            collector.set_instruction_field(parse_identifier($instr->getText(),provider.get_range($instr)),provider.get_range($instr));
-            collector.set_operand_remark_field(provider.get_range($lookahead_operand_field_rest.ctx));
-            $op_text = lexing::u8string_with_newlines(get_context_text($lookahead_operand_field_rest.ctx));
-            $op_range = provider.get_range($lookahead_operand_field_rest.ctx);
-            $op_logical_column = static_cast<hlasm_plugin::parser_library::lexing::token*>($lookahead_operand_field_rest.start)->get_logical_column();
-        }
-        else
-        {
-            collector.set_instruction_field(seq_symbol.symbol_range);
-            collector.set_operand_remark_field(seq_symbol.symbol_range);
-        }
-    }
-    | lab=ORDSYMBOL SPACE instr=ORDSYMBOL lookahead_operand_field_rest
-    {
-        collector.set_label_field(add_id($lab->getText()),$lab->getText(),nullptr,provider.get_range($lab));
-        if ($instr && $lookahead_operand_field_rest.valid)
-        {
-            collector.set_instruction_field(parse_identifier($instr->getText(),provider.get_range($instr)),provider.get_range($instr));
-            collector.set_operand_remark_field(provider.get_range($lookahead_operand_field_rest.ctx));
-            $op_text = lexing::u8string_with_newlines(get_context_text($lookahead_operand_field_rest.ctx));
-            $op_range = provider.get_range($lookahead_operand_field_rest.ctx);
-            $op_logical_column = static_cast<hlasm_plugin::parser_library::lexing::token*>($lookahead_operand_field_rest.start)->get_logical_column();
-        }
-        else
-        {
-            collector.set_instruction_field(provider.get_empty_range($SPACE));
-            collector.set_operand_remark_field(provider.get_empty_range($SPACE));
-        }
-    }
-    | SPACE instr=ORDSYMBOL lookahead_operand_field_rest
-    {
-        collector.set_label_field(provider.get_empty_range($SPACE));
-        if ($instr && $lookahead_operand_field_rest.valid)
-        {
-            collector.set_instruction_field(parse_identifier($instr->getText(),provider.get_range($instr)),provider.get_range($instr));
-            collector.set_operand_remark_field(provider.get_range($lookahead_operand_field_rest.ctx));
-            $op_text = lexing::u8string_with_newlines(get_context_text($lookahead_operand_field_rest.ctx));
-            $op_range = provider.get_range($lookahead_operand_field_rest.ctx);
-            $op_logical_column = static_cast<hlasm_plugin::parser_library::lexing::token*>($lookahead_operand_field_rest.start)->get_logical_column();
-        }
-        else
-        {
-            collector.set_instruction_field(provider.get_empty_range($SPACE));
-            collector.set_operand_remark_field(provider.get_empty_range($SPACE));
-        }
-    }
-    ;
-    catch[RecognitionException&]
-    {
-        collector.set_label_field(provider.get_empty_range(_input->LT(1)));
-        collector.set_instruction_field(provider.get_empty_range(_input->LT(1)));
-        collector.set_operand_remark_field(provider.get_empty_range(_input->LT(1)));
-    }
-
 lookahead_operand_field_rest returns [bool valid = false]
     : SPACE (~EOF)* {$valid=true;}
     | EOF {$valid=true;}
