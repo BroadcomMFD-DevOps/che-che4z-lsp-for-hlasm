@@ -3688,41 +3688,31 @@ void parser_holder::parser2::op_rem_body_deferred()
 
             case U'&': {
                 const auto amp = cur_pos_adjusted();
-                consume();
-                switch (*input.next)
+                switch (input.next[1])
                 {
                     case EOF_SYMBOL:
+                        consume();
                         add_diagnostic(diagnostic_op::error_S0003);
                         return;
 
                     case U'&':
                         consume();
+                        consume();
                         break;
 
-                    case U'(':
-                        break;
-
-                    default: {
-                        if (!is_ord_first())
-                        {
-                            add_diagnostic(diagnostic_op::error_S0008);
+                    default:
+                        if (auto [error, v] = lex_variable(); error)
                             return;
+                        else
+                        {
+                            vs.push_back(std::move(v));
+                            const auto r = remap_range({ amp, cur_pos() });
+                            add_hl_symbol(r, hl_scopes::var_symbol);
                         }
-                        const auto id = add_id(lex_ord());
-                        const auto r = remap_range({ amp, cur_pos() });
-                        vs.push_back(std::make_unique<basic_variable_symbol>(id, std::vector<ca_expr_ptr>(), r));
-                        add_hl_symbol(r, hl_scopes::var_symbol);
-                    }
+                        break;
                 }
             }
             break;
-
-            case U'D':
-            case U'N':
-            case U'K':
-            case U'd':
-            case U'n':
-            case U'k':
 
             case U'O':
             case U'S':
@@ -3735,7 +3725,8 @@ void parser_holder::parser2::op_rem_body_deferred()
             case U'l':
             case U't':
                 if (last_char_special && input.next[1] == U'\''
-                    && (is_ord_first(input.next[2]) || input.next[2] == U'&' || input.next[2] == U'='))
+                    && (is_ord_first(input.next[2]) || input.next[2] == U'&' || input.next[2] == U'='
+                        || input.next[2] == '*'))
                 {
                     const auto p = cur_pos_adjusted();
                     consume();
