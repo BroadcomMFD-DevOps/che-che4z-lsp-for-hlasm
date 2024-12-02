@@ -211,7 +211,7 @@ struct parser_holder
     };
 
     op_data lab_instr() const;
-    virtual op_data look_lab_instr() const = 0;
+    op_data look_lab_instr() const;
 
     virtual void op_rem_body_noop() const = 0;
     virtual void op_rem_body_ignored() const = 0;
