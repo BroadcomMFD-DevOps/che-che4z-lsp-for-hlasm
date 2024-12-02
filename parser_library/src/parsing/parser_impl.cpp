@@ -34,6 +34,7 @@
 #include "lexing/token_stream.h"
 #include "processing/op_code.h"
 #include "semantics/operand.h"
+#include "utils/scope_exit.h"
 #include "utils/string_operations.h"
 #include "utils/unicode_text.h"
 
@@ -88,7 +89,6 @@ struct parser_holder_impl final : parser_holder
 
     void op_rem_body_noop() const override { get_parser().op_rem_body_noop(); }
     void op_rem_body_ignored() const override { get_parser().op_rem_body_ignored(); }
-    void op_rem_body_deferred() const override { get_parser().op_rem_body_deferred(); }
     void lookahead_operands_and_remarks_asm() const override { get_parser().lookahead_operands_and_remarks_asm(); }
     void lookahead_operands_and_remarks_dat() const override { get_parser().lookahead_operands_and_remarks_dat(); }
 
@@ -480,7 +480,6 @@ struct parser_holder::parser2
     const lexing::char_t* data;
 
     std::vector<range> remarks;
-    mac_op_data mac_op_results {};
 
     [[nodiscard]] constexpr bool before_nl() const noexcept
     {
@@ -1179,6 +1178,8 @@ struct parser_holder::parser2
 
     result_t<ca_expr_ptr> lex_rest_of_ca_string_group(ca_expr_ptr initial_duplicate_factor, const position& start)
     {
+        if (!holder->parser->allow_ca_string())
+            return failure;
         auto [error, s] = lex_ca_string_with_optional_substring();
         if (error)
             return failure;
@@ -2602,6 +2603,8 @@ struct parser_holder::parser2
 
     std::optional<int> maybe_loctr_len() { return holder->parser->maybe_loctr_len(); }
 
+    void op_rem_body_deferred();
+
     parser2(const parser_holder* h)
         : holder(h)
         , cont(h->lex->get_continuation_column())
@@ -3585,6 +3588,178 @@ parser_holder::op_data parser_holder::look_lab_instr() const
     parser_holder::parser2 p(this);
 
     return p.look_lab_instr();
+}
+
+void parser_holder::parser2::op_rem_body_deferred()
+{
+    const auto start = cur_pos_adjusted();
+    if (eof())
+    {
+        holder->parser->collector.set_operand_remark_field(remap_range(range(start)));
+        return;
+    }
+    if (!follows<U' '>())
+    {
+        syntax_error_or_eof();
+        return;
+    }
+    while (follows<U' '>())
+        consume();
+
+    auto rest = parser2(*this).lab_instr_rest();
+
+    std::vector<vs_ptr> vs;
+
+    bool next_char_special = true;
+
+    while (!eof())
+    {
+        const auto last_char_special = std::exchange(next_char_special, true);
+        switch (*input.next)
+        {
+            case U',':
+                consume(hl_scopes::operator_symbol);
+                process_optional_line_remark();
+                break;
+
+            case U' ':
+                lex_last_remark();
+                break;
+
+            case U'*':
+            case U'/':
+            case U'+':
+            case U'-':
+            case U'=':
+            case U'.':
+            case U'(':
+            case U')':
+                consume(hl_scopes::operator_symbol);
+                break;
+
+            case U'\'': {
+                holder->parser->disable_ca_string();
+                utils::scope_exit e([this]() noexcept { holder->parser->enable_ca_string(); });
+
+                const auto string_start = cur_pos_adjusted();
+                consume();
+
+                while (true)
+                {
+                    switch (*input.next)
+                    {
+                        case EOF_SYMBOL:
+                            syntax_error_or_eof();
+                            add_hl_symbol({ string_start, cur_pos() }, hl_scopes::string);
+                            return;
+
+                        case U'\'':
+                            if (input.next[1] != U'\'')
+                                goto done;
+                            consume();
+                            consume();
+                            break;
+
+                        case U'&':
+                            if (input.next[1] == U'&')
+                            {
+                                consume();
+                                consume();
+                            }
+                            else if (auto [error, v] = lex_variable(); error)
+                                return;
+                            else
+                                vs.push_back(std::move(v));
+                            break;
+
+                        default:
+                            consume();
+                            break;
+                    }
+                }
+
+            done:
+                consume();
+
+                add_hl_symbol({ string_start, cur_pos() }, hl_scopes::string);
+                break;
+            }
+
+            case U'&': {
+                const auto amp = cur_pos_adjusted();
+                consume();
+                switch (*input.next)
+                {
+                    case U'&':
+                        consume();
+                        break;
+                    case U'(':
+                        break;
+                    default: {
+                        if (!is_ord_first())
+                        {
+                            syntax_error_or_eof();
+                            return;
+                        }
+                        auto id = lex_ord();
+                        const auto r = remap_range({ amp, cur_pos() });
+                        vs.push_back(std::make_unique<basic_variable_symbol>(
+                            add_id(std::move(id)), std::vector<ca_expr_ptr>(), r));
+                        add_hl_symbol(r, hl_scopes::var_symbol);
+                    }
+                }
+            }
+            break;
+
+            case U'D':
+            case U'N':
+            case U'K':
+            case U'd':
+            case U'n':
+            case U'k':
+
+            case U'O':
+            case U'S':
+            case U'I':
+            case U'L':
+            case U'T':
+            case U'o':
+            case U's':
+            case U'i':
+            case U'l':
+            case U't':
+                if (last_char_special && input.next[1] == U'\'')
+                {
+                    const auto p = cur_pos_adjusted();
+                    consume();
+                    consume();
+                    add_hl_symbol({ p, cur_pos() }, hl_scopes::data_attr_type);
+                    next_char_special = false;
+                    break;
+                }
+                [[fallthrough]];
+            default: {
+                const auto substart = cur_pos_adjusted();
+                while (except<U',', U'*', U'/', U'+', U'-', U'=', U'.', U'(', U')', U'\''>())
+                {
+                    next_char_special = !is_ord();
+                    consume();
+                    if (next_char_special)
+                        break;
+                }
+                add_hl_symbol({ substart, cur_pos() }, hl_scopes::operand);
+            }
+        }
+    }
+    holder->parser->collector.set_operand_remark_field(
+        std::move(*rest.op_text), std::move(vs), std::move(remarks), rest.op_range, rest.op_logical_column);
+}
+
+void parser_holder::op_rem_body_deferred() const
+{
+    parser_holder::parser2 p(this);
+
+    p.op_rem_body_deferred();
 }
 
 } // namespace hlasm_plugin::parser_library::parsing

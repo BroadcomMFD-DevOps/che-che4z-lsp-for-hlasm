@@ -90,10 +90,10 @@ protected:
         parser_impl& impl;
 
     public:
-        explicit literal_controller(parser_impl& impl)
+        explicit literal_controller(parser_impl& impl) noexcept
             : impl(impl)
         {}
-        literal_controller(parser_impl& impl, bool restore)
+        literal_controller(parser_impl& impl, bool restore) noexcept
             : request(restore ? request_t::on : request_t::off)
             , impl(impl)
         {}
@@ -123,12 +123,12 @@ protected:
     void disable_continuation();
     bool is_self_def();
 
-    bool allow_ca_string() const { return ca_string_enabled; }
-    void enable_ca_string() { ca_string_enabled = true; }
-    void disable_ca_string() { ca_string_enabled = false; }
+    bool allow_ca_string() const noexcept { return ca_string_enabled; }
+    void enable_ca_string() noexcept { ca_string_enabled = true; }
+    void disable_ca_string() noexcept { ca_string_enabled = false; }
 
-    bool allow_literals() const { return literals_allowed; }
-    literal_controller enable_literals()
+    bool allow_literals() const noexcept { return literals_allowed; }
+    literal_controller enable_literals() noexcept
     {
         if (literals_allowed)
             return literal_controller(*this);
@@ -136,7 +136,7 @@ protected:
         literals_allowed = true;
         return literal_controller(*this, false);
     }
-    literal_controller disable_literals()
+    literal_controller disable_literals() noexcept
     {
         if (!literals_allowed)
             return literal_controller(*this);
@@ -215,7 +215,7 @@ struct parser_holder
 
     virtual void op_rem_body_noop() const = 0;
     virtual void op_rem_body_ignored() const = 0;
-    virtual void op_rem_body_deferred() const = 0;
+    void op_rem_body_deferred() const;
     virtual void lookahead_operands_and_remarks_asm() const = 0;
     virtual void lookahead_operands_and_remarks_dat() const = 0;
 

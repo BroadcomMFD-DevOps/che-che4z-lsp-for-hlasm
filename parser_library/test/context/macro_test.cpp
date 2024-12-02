@@ -1340,3 +1340,20 @@ TEST(macro, long_string_with_attribute_like_start)
 
     EXPECT_TRUE(a.diags().empty());
 }
+
+TEST(macro, instruction_substitution)
+{
+    std::string input = R"(
+         MACRO
+         MAC   &J
+         &J.H  LABEL
+         MEND
+
+         MAC   J
+LABEL    DS    0H
+)";
+    analyzer a(input);
+    a.analyze();
+
+    EXPECT_TRUE(a.diags().empty());
+}
