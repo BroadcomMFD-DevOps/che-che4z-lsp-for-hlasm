@@ -15,12 +15,6 @@
  //rules for lookahead statement
 parser grammar lookahead_rules;
 
-lookahead_operand_field_rest returns [bool valid = false]
-    : SPACE (~EOF)* {$valid=true;}
-    | EOF {$valid=true;}
-    |
-    ;
-
 lookahead_operands_and_remarks_asm
     : SPACE+
     (
