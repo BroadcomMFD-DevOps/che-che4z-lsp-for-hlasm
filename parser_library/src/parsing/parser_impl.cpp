@@ -1327,11 +1327,13 @@ struct parser_holder::parser2
                     syntax_error_or_eof();
                     return failure;
                 }
+                const auto id_start = cur_pos_adjusted();
                 auto [error, id] = lex_id();
                 if (error)
                     return failure;
-                return std::make_unique<ca_symbol_attribute>(
-                    id, attr, remap_range({ start, cur_pos() }), remap_range({ start_value, cur_pos() }));
+                const auto id_r = remap_range({ id_start, cur_pos() });
+                add_hl_symbol_remapped(id_r, hl_scopes::ordinary_symbol);
+                return std::make_unique<ca_symbol_attribute>(id, attr, remap_range({ start, cur_pos() }), id_r);
             }
         }
     }
@@ -3286,7 +3288,7 @@ parser_holder::parser2::result_t<concat_chain> parser_holder::parser2::lex_instr
     }
 
     concat_chain result;
-    concat_chain_builder cb(*this, result);
+    concat_chain_builder cb(*this, result, false);
 
     while (true)
     {
