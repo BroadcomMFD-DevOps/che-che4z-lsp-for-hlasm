@@ -487,7 +487,6 @@ struct parser_holder::parser2
 
     std::vector<range> remarks;
     mac_op_data mac_op_results {};
-    std::optional<int> loctr_len;
 
     [[nodiscard]] constexpr bool before_nl() const noexcept
     {
@@ -1584,6 +1583,7 @@ struct parser_holder::parser2
                 {
                     consume(hl_scopes::data_attr_type);
                     consume(hl_scopes::operator_symbol);
+                    auto loctr_len = maybe_loctr_len();
                     if (!loctr_len.has_value())
                     {
                         add_diagnostic(diagnostic_op::error_S0014);
@@ -2585,10 +2585,11 @@ struct parser_holder::parser2
 
     op_data lab_instr_rest();
 
+    std::optional<int> maybe_loctr_len() { return holder->parser->maybe_loctr_len(); }
+
     parser2(const parser_holder* h)
         : holder(h)
         , cont(h->lex->get_continuation_column())
-        , loctr_len(holder->parser->maybe_loctr_len())
     {
         std::tie(input, data) = holder->lex->peek_initial_input_state();
     }
