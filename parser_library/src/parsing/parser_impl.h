@@ -220,13 +220,12 @@ struct parser_holder
 
     semantics::operand_list macro_ops(bool reparse) const;
     virtual semantics::op_rem op_rem_body_asm_r() const = 0;
-    virtual semantics::op_rem op_rem_body_dat_r() const = 0;
 
     void op_rem_body_ca_expr() const;
     void op_rem_body_ca_branch() const;
     void op_rem_body_ca_var_def() const;
 
-    virtual void op_rem_body_dat() const = 0;
+    std::optional<semantics::op_rem> op_rem_body_dat(bool reparse, bool model_allowed) const;
     std::optional<semantics::op_rem> op_rem_body_mach(bool reparse, bool model_allowed) const;
     virtual void op_rem_body_asm() const = 0;
 
