@@ -83,7 +83,8 @@ statement_fields_parser::parse_result statement_fields_parser::parse_operand_fie
                 literals = h.parser->get_collector().take_literals();
                 break;
             case processing::processing_form::MACH:
-                line = h.op_rem_body_mach_r();
+                if (auto ops = h.op_rem_body_mach(true, !after_substitution); ops)
+                    line = std::move(*ops);
                 transform_reloc_imm_operands(line.operands, opcode.value);
                 literals = h.parser->get_collector().take_literals();
                 break;
