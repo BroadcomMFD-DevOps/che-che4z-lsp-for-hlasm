@@ -134,6 +134,7 @@ private:
         size_t line = 0;
         size_t char_position_in_line = 0;
         size_t char_position_in_line_utf16 = 0;
+        const char_t* last;
     };
 
     input_state initial_input_state;

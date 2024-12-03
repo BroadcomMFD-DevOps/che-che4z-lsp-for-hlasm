@@ -172,8 +172,8 @@ TEST(parser, parse_bad_model_no_substitution)
     auto [op, rem, lit] = parse_model("'", r, false, &diag_container);
 
     std::vector<diagnostic_op>& diags = diag_container.diags;
-    EXPECT_TRUE(matches_message_text(diags, { "Expected an apostrophe" }));
-    EXPECT_TRUE(matches_message_properties(diags, { range({ 0, 5 }, { 0, 5 }) }, &diagnostic_op::diag_range));
+    EXPECT_TRUE(matches_message_text(diags, { "Syntax error" }));
+    EXPECT_TRUE(matches_message_properties(diags, { range({ 0, 4 }, { 0, 4 }) }, &diagnostic_op::diag_range));
 }
 
 TEST(parser, invalid_self_def)

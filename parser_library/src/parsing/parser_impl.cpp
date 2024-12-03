@@ -4060,7 +4060,7 @@ std::optional<semantics::op_rem> parser_holder::parser2::op_rem_body_mach(bool r
     if (eof())
         return semantics::op_rem { .line_range = remap_range(range(start)) };
 
-    if (model_allowed)
+    if (model_allowed && std::find(input.next, input.last, U'&') != input.last)
     {
         auto model_parser = *this;
         if (auto [error, result] = model_parser.try_model_ops(start); error)

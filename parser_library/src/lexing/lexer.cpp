@@ -96,6 +96,7 @@ void lexer::reset(position file_offset, size_t logical_column, bool process_allo
     input_state_.line = file_offset.line;
     input_state_.char_position_in_line = logical_column;
     input_state_.char_position_in_line_utf16 = file_offset.column;
+    input_state_.last = &input_.back();
 
     last_line = input_state_;
     last_line.line = -1;
