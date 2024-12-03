@@ -2396,7 +2396,7 @@ struct parser_holder::parser2
         return true;
     }
 
-    result_t_void lex_macro_operand(concat_chain& cc, bool next_char_special)
+    result_t_void lex_macro_operand(concat_chain& cc, bool next_char_special, bool op_name)
     {
         concat_chain_builder ccb(*this, cc);
         while (true)
@@ -2436,11 +2436,15 @@ struct parser_holder::parser2
                     next_char_special = false;
                     break;
 
-                case U'&':
+                case U'&': {
                     if (auto [error] = lex_macro_operand_amp(ccb); error)
                         return failure;
-                    next_char_special = false;
+                    if (op_name && follows<U'='>())
+                        ccb.single_char_push<equals_conc, hl_scopes::operator_symbol>();
+                    else
+                        next_char_special = false;
                     break;
+                }
 
                 case U'O':
                 case U'S':
@@ -2469,6 +2473,7 @@ struct parser_holder::parser2
                     consume_into(ccb.last_text_value());
                     break;
             }
+            op_name = false;
         }
     }
 
@@ -2490,13 +2495,13 @@ struct parser_holder::parser2
         if (try_consume<U')'>(hl_scopes::operator_symbol))
             return {};
 
-        if (auto [error] = lex_macro_operand(cc.emplace_back(), true); error)
+        if (auto [error] = lex_macro_operand(cc.emplace_back(), true, false); error)
             return failure;
 
         while (try_consume<U','>(hl_scopes::operator_symbol))
         {
             process_optional_line_remark();
-            if (auto [error] = lex_macro_operand(cc.emplace_back(), true); error)
+            if (auto [error] = lex_macro_operand(cc.emplace_back(), true, false); error)
                 return failure;
         }
 
@@ -2625,7 +2630,7 @@ std::pair<operand_list, range> parser_holder::parser2::macro_ops(bool reparse)
             case U't':
                 if (input.next[1] == U'\'')
                 {
-                    if (auto [error] = lex_macro_operand(cc, true); error)
+                    if (auto [error] = lex_macro_operand(cc, true, false); error)
                     {
                         consume_rest();
                         goto end;
@@ -2696,7 +2701,7 @@ std::pair<operand_list, range> parser_holder::parser2::macro_ops(bool reparse)
                 }
                 if (const auto n = *input.next; n == EOF_SYMBOL || n == U' ' || n == U',')
                     continue;
-                if (auto [error] = lex_macro_operand(cc, next_char_special); error)
+                if (auto [error] = lex_macro_operand(cc, next_char_special, false); error)
                 {
                     consume_rest();
                     goto end;
@@ -2704,10 +2709,17 @@ std::pair<operand_list, range> parser_holder::parser2::macro_ops(bool reparse)
                 break;
             }
 
-            case U'\'':
             case U'&':
+                if (auto [error] = lex_macro_operand(cc, true, true); error)
+                {
+                    consume_rest();
+                    goto end;
+                }
+                break;
+
+            case U'\'':
             default:
-                if (auto [error] = lex_macro_operand(cc, true); error)
+                if (auto [error] = lex_macro_operand(cc, true, false); error)
                 {
                     consume_rest();
                     goto end;
