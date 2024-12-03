@@ -96,8 +96,6 @@ struct parser_holder_impl final : parser_holder
     void op_rem_body_dat() const override { get_parser().op_rem_body_dat(); }
     void op_rem_body_asm() const override { get_parser().op_rem_body_asm(); }
 
-    operand_ptr operand_mach() const override { return std::move(get_parser().operand_mach()->op); }
-
     semantics::literal_si literal_reparse() const override { return std::move(get_parser().literal_reparse()->value); }
 };
 
@@ -4116,5 +4114,16 @@ std::optional<semantics::op_rem> parser_holder::op_rem_body_mach(bool reparse, b
 
     return p.op_rem_body_mach(reparse, model_allowed);
 }
+
+operand_ptr parser_holder::operand_mach() const
+{
+    parser_holder::parser2 p(this);
+    auto [error, op] = p.mach_op();
+    if (error || *p.input.next != EOF_SYMBOL)
+        return nullptr;
+
+    return std::move(op);
+}
+
 
 } // namespace hlasm_plugin::parser_library::parsing

@@ -15,38 +15,6 @@
  //rules for operand field
 parser grammar operand_field_rules;
 
-//////////////////////////////////////// mach
-
-op_rem_body_mach
-    : SPACE+ op_list_mach remark_o
-    {
-        auto remarks = $remark_o.value ? remark_list{*$remark_o.value} : remark_list{};
-        auto line_range = provider.get_range($op_list_mach.ctx->getStart(),$remark_o.ctx->getStop());
-        collector.set_operand_remark_field(std::move($op_list_mach.operands), std::move(remarks), line_range);
-    } EOF
-    | SPACE+ model_op remark_o
-    {
-        operand_ptr op;
-        std::vector<operand_ptr> operands;
-        if($model_op.chain_opt)
-            op = std::make_unique<model_operand>(std::move(*$model_op.chain_opt),static_cast<lexing::token_stream*>(_input)->get_line_limits(),provider.get_range( $model_op.ctx));
-        else
-            op = std::make_unique<semantics::empty_operand>(provider.get_range( $model_op.ctx));
-        operands.push_back(std::move(op));
-        auto remarks = $remark_o.value ? remark_list{*$remark_o.value} : remark_list{};
-        auto line_range = provider.get_range($model_op.ctx->getStart(),$remark_o.ctx->getStop());
-        collector.set_operand_remark_field(std::move(operands), std::move(remarks), line_range);
-    } EOF
-    | {collector.set_operand_remark_field(provider.get_range(_localctx));} EOF;
-
-op_list_mach returns [std::vector<operand_ptr> operands]
-    : operand_mach {$operands.push_back(std::move($operand_mach.op));} (comma operand_mach {$operands.push_back(std::move($operand_mach.op));})*
-    ;
-
-operand_mach returns [operand_ptr op]
-    : mach_op                            {$op = std::move($mach_op.op);}
-    |                                    {$op = std::make_unique<semantics::empty_operand>(provider.get_empty_range( _localctx->getStart()));};
-
 //////////////////////////////////////// dat
 
 op_rem_body_dat
@@ -111,26 +79,6 @@ operand_asm returns [operand_ptr op]
     : asm_op                            {$op = std::move($asm_op.op);}
     |                                    {$op = std::make_unique<semantics::empty_operand>(provider.get_empty_range( _localctx->getStart()));};
 
-
-//////////////////////////////////////// mach_r
-
-op_rem_body_mach_r returns [op_rem line]
-    : op_list_mach remark_o
-    {
-        $line.operands = std::move($op_list_mach.operands);
-        $line.remarks = $remark_o.value ? remark_list{*$remark_o.value} : remark_list{};
-    } EOF
-    | model_op remark_o
-    {
-        operand_ptr op;
-        if($model_op.chain_opt)
-            op = std::make_unique<model_operand>(std::move(*$model_op.chain_opt),static_cast<lexing::token_stream*>(_input)->get_line_limits(),provider.get_range( $model_op.ctx));
-        else
-            op = std::make_unique<semantics::empty_operand>(provider.get_range( $model_op.ctx));
-        $line.operands.push_back(std::move(op));
-        $line.remarks = $remark_o.value ? remark_list{*$remark_o.value} : remark_list{};
-    } EOF
-    | EOF;
 
 //////////////////////////////////////// dat_r
 
