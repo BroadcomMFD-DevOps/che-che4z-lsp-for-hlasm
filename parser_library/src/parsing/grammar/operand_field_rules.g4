@@ -112,17 +112,6 @@ operand_asm returns [operand_ptr op]
     |                                    {$op = std::make_unique<semantics::empty_operand>(provider.get_empty_range( _localctx->getStart()));};
 
 
-/////////////
-
-op_rem_body_ignored
-    : .*? EOF;
-
-op_rem_body_noop
-    : remark_o
-    {
-        collector.set_operand_remark_field(operand_list{},$remark_o.value ? remark_list{*$remark_o.value} : remark_list{}, provider.get_range( $remark_o.ctx));
-    } EOF;
-
 //////////////////////////////////////// mach_r
 
 op_rem_body_mach_r returns [op_rem line]
@@ -183,5 +172,3 @@ op_rem_body_asm_r returns [op_rem line]
     } EOF
     | EOF;
 
-op_rem_body_noop_r
-    : remark_o EOF;
