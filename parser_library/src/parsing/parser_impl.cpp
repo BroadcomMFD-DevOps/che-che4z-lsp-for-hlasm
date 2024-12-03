@@ -87,8 +87,6 @@ struct parser_holder_impl final : parser_holder
     }
     auto& get_parser() const { return static_cast<parser_t&>(*parser); }
 
-    void op_rem_body_noop() const override { get_parser().op_rem_body_noop(); }
-    void op_rem_body_ignored() const override { get_parser().op_rem_body_ignored(); }
     void lookahead_operands_and_remarks_asm() const override { get_parser().lookahead_operands_and_remarks_asm(); }
     void lookahead_operands_and_remarks_dat() const override { get_parser().lookahead_operands_and_remarks_dat(); }
 
@@ -1677,6 +1675,7 @@ struct parser_holder::parser2
         }
     }
 
+    bool parsing_simple_string = false;
     result_t<std::string> lex_simple_string()
     {
         assert(follows<U'\''>());
@@ -1685,6 +1684,8 @@ struct parser_holder::parser2
         std::string s;
 
         consume();
+
+        parsing_simple_string = true;
 
         while (!eof())
         {
@@ -1697,6 +1698,7 @@ struct parser_holder::parser2
             {
                 consume();
                 add_hl_symbol({ start, cur_pos() }, hl_scopes::string);
+                parsing_simple_string = false;
                 return s;
             }
             else if (follows<group<U'&'>, group<U'&'>>())
@@ -2541,6 +2543,7 @@ struct parser_holder::parser2
     std::optional<int> maybe_loctr_len() { return holder->parser->maybe_loctr_len(); }
 
     void op_rem_body_deferred();
+    void op_rem_body_noop();
 
     parser2(const parser_holder* h)
         : holder(h)
@@ -3694,6 +3697,33 @@ void parser_holder::op_rem_body_deferred() const
     parser_holder::parser2 p(this);
 
     p.op_rem_body_deferred();
+}
+
+void parser_holder::parser2::op_rem_body_noop()
+{
+    (void)lex_optional_space();
+
+    if (eof())
+    {
+        const auto r = remap_range(range(cur_pos()));
+        holder->parser->collector.set_operand_remark_field(operand_list(), remark_list(), r);
+    }
+    else
+    {
+        const auto start = cur_pos_adjusted();
+        while (!eof())
+            consume();
+
+        const auto r = remap_range({ start, cur_pos() });
+        holder->parser->collector.set_operand_remark_field(operand_list {}, remark_list { r }, r);
+    }
+}
+
+void parser_holder::op_rem_body_noop() const
+{
+    parser_holder::parser2 p(this);
+
+    p.op_rem_body_noop();
 }
 
 } // namespace hlasm_plugin::parser_library::parsing

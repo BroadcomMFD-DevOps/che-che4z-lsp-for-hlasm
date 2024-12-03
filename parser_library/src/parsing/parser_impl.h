@@ -213,8 +213,7 @@ struct parser_holder
     op_data lab_instr() const;
     op_data look_lab_instr() const;
 
-    virtual void op_rem_body_noop() const = 0;
-    virtual void op_rem_body_ignored() const = 0;
+    void op_rem_body_noop() const;
     void op_rem_body_deferred() const;
     virtual void lookahead_operands_and_remarks_asm() const = 0;
     virtual void lookahead_operands_and_remarks_dat() const = 0;

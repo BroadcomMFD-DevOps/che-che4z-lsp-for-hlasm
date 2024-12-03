@@ -404,7 +404,6 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordin
             switch (format.form)
             {
                 case processing_form::IGNORED:
-                    h.op_rem_body_ignored();
                     break;
                 case processing_form::DEFERRED:
                     h.op_rem_body_deferred();
