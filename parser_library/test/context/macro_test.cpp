@@ -1357,3 +1357,19 @@ LABEL    DS    0H
 
     EXPECT_TRUE(a.diags().empty());
 }
+
+TEST(macro, operand_dot)
+{
+    std::string input = R"(
+         MACRO
+         MAC   &J
+         OI    0(1),&J.
+         MEND
+
+         MAC   1
+)";
+    analyzer a(input);
+    a.analyze();
+
+    EXPECT_TRUE(a.diags().empty());
+}
