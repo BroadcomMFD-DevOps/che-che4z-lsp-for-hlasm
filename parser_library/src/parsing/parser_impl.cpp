@@ -4498,6 +4498,11 @@ void parser_holder::parser2::lookahead_operands_and_remarks_asm()
     {
         consume();
         op_start = cur_pos_adjusted();
+        if (follows<U',', U' '>())
+        {
+            operands.push_back(std::make_unique<semantics::empty_operand>(remap_range(range(op_start))));
+            continue;
+        }
         auto [error, op] = asm_op();
         if (error || errors)
         {
