@@ -2555,8 +2555,8 @@ struct parser_holder::parser2
     void op_rem_body_deferred();
     void op_rem_body_noop();
 
-    std::optional<semantics::op_rem> op_rem_body_mach(bool reparse, bool model_allowed);
-    std::optional<semantics::op_rem> op_rem_body_dat(bool reparse, bool model_allowed);
+    template<result_t<operand_ptr> (parser2::*f)()>
+    std::optional<semantics::op_rem> with_model(bool reparse, bool model_allowed);
 
     result_t<operand_ptr> mach_op();
     result_t<operand_ptr> dat_op();
@@ -4048,83 +4048,11 @@ parser_holder::parser2::result_t<operand_ptr> parser_holder::parser2::mach_op()
         checking::operand_state::SECOND_OMITTED);
 }
 
-std::optional<semantics::op_rem> parser_holder::parser2::op_rem_body_mach(bool reparse, bool model_allowed)
-{
-    const auto start = cur_pos();
-    if (eof())
-        return semantics::op_rem { .line_range = remap_range(range(start)) };
-
-    if (auto [error] = handle_initial_space(reparse); error)
-        return std::nullopt;
-
-    if (eof())
-        return semantics::op_rem { .line_range = remap_range(range(start)) };
-
-    if (model_allowed && std::find(input.next, input.last, U'&') != input.last)
-    {
-        auto model_parser = *this;
-        if (auto [error, result] = model_parser.try_model_ops(start); error)
-            return std::nullopt;
-        else if (result)
-            return std::move(*result);
-        holder->parser->collector.prepare_for_next_statement();
-    }
-
-    std::vector<operand_ptr> operands;
-
-    if (follows<U','>())
-        operands.push_back(std::make_unique<semantics::empty_operand>(remap_range(range(cur_pos()))));
-    else if (auto [error, op] = mach_op(); error)
-        operands.push_back(std::make_unique<semantics::empty_operand>(remap_range(range(cur_pos()))));
-    else if (except<U',', U' '>())
-    {
-        syntax_error_or_eof();
-        operands.push_back(std::make_unique<semantics::empty_operand>(remap_range(range(cur_pos()))));
-    }
-    else
-    {
-        operands.push_back(std::move(op));
-
-        while (follows<U','>())
-        {
-            consume(hl_scopes::operator_symbol);
-            if (follows<U','>())
-                operands.push_back(std::make_unique<semantics::empty_operand>(remap_range(range(cur_pos()))));
-            else if (eof() || follows<U' '>())
-            {
-                operands.push_back(std::make_unique<semantics::empty_operand>(remap_range(range(cur_pos()))));
-                break;
-            }
-            else if (auto [error_inner, op_inner] = mach_op(); error_inner)
-            {
-                operands.push_back(std::make_unique<semantics::empty_operand>(remap_range(range(cur_pos()))));
-                break;
-            }
-            else if (except<U',', U' '>())
-            {
-                syntax_error_or_eof();
-                operands.push_back(std::make_unique<semantics::empty_operand>(remap_range(range(cur_pos()))));
-                break;
-            }
-            else
-                operands.push_back(std::move(op_inner));
-        }
-    }
-
-    consume_rest();
-
-    return semantics::op_rem {
-        .operands = std::move(operands),
-        .remarks = std::move(remarks),
-        .line_range = remap_range({ start, cur_pos() }),
-    };
-}
-
 std::optional<semantics::op_rem> parser_holder::op_rem_body_mach(bool reparse, bool model_allowed) const
 {
     parser_holder::parser2 p(this);
 
-    return p.op_rem_body_mach(reparse, model_allowed);
+    return p.with_model<&parser2::mach_op>(reparse, model_allowed);
 }
 
 parser_holder::parser2::result_t<operand_ptr> parser_holder::parser2::dat_op()
@@ -4144,8 +4072,8 @@ parser_holder::parser2::result_t<operand_ptr> parser_holder::parser2::dat_op()
     }
     return std::make_unique<data_def_operand_inline>(std::move(d), remap_range({ start, cur_pos() }));
 }
-
-std::optional<semantics::op_rem> parser_holder::parser2::op_rem_body_dat(bool reparse, bool model_allowed)
+template<parser_holder::parser2::result_t<operand_ptr> (parser_holder::parser2::*f)()>
+std::optional<semantics::op_rem> parser_holder::parser2::with_model(bool reparse, bool model_allowed)
 {
     const auto start = cur_pos();
     if (eof())
@@ -4171,16 +4099,15 @@ std::optional<semantics::op_rem> parser_holder::parser2::op_rem_body_dat(bool re
 
     if (follows<U','>())
         operands.push_back(std::make_unique<semantics::empty_operand>(remap_range(range(cur_pos()))));
-    else if (auto [error, op] = dat_op(); error)
+    else if (auto [error, op] = (this->*f)(); error)
         operands.push_back(std::make_unique<semantics::empty_operand>(remap_range(range(cur_pos()))));
-    else if (except<U',', U' '>())
-    {
-        syntax_error_or_eof();
-        operands.push_back(std::make_unique<semantics::empty_operand>(remap_range(range(cur_pos()))));
-    }
     else
     {
         operands.push_back(std::move(op));
+        if (except<U',', U' '>())
+        {
+            syntax_error_or_eof();
+        }
 
         while (follows<U','>())
         {
@@ -4192,19 +4119,20 @@ std::optional<semantics::op_rem> parser_holder::parser2::op_rem_body_dat(bool re
                 operands.push_back(std::make_unique<semantics::empty_operand>(remap_range(range(cur_pos()))));
                 break;
             }
-            else if (auto [error_inner, op_inner] = dat_op(); error_inner)
+            else if (auto [error_inner, op_inner] = (this->*f)(); error_inner)
             {
-                operands.push_back(std::make_unique<semantics::empty_operand>(remap_range(range(cur_pos()))));
-                break;
-            }
-            else if (except<U',', U' '>())
-            {
-                syntax_error_or_eof();
                 operands.push_back(std::make_unique<semantics::empty_operand>(remap_range(range(cur_pos()))));
                 break;
             }
             else
+            {
                 operands.push_back(std::move(op_inner));
+                if (except<U',', U' '>())
+                {
+                    syntax_error_or_eof();
+                    break;
+                }
+            }
         }
     }
 
@@ -4217,11 +4145,12 @@ std::optional<semantics::op_rem> parser_holder::parser2::op_rem_body_dat(bool re
     };
 }
 
+
 std::optional<semantics::op_rem> parser_holder::op_rem_body_dat(bool reparse, bool model_allowed) const
 {
     parser_holder::parser2 p(this);
 
-    return p.op_rem_body_dat(reparse, model_allowed);
+    return p.with_model<&parser2::dat_op>(reparse, model_allowed);
 }
 
 operand_ptr parser_holder::operand_mach() const

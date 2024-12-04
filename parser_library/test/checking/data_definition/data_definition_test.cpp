@@ -420,7 +420,7 @@ TEST(data_definition, syntax_error_for_each_call)
     analyzer a(input);
     a.analyze();
 
-    EXPECT_TRUE(matches_message_codes(a.diags(), { "D003", "D003" }));
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "S0003", "S0003", "A010", "A010" }));
 }
 
 TEST(data_definition, trim_labels)
