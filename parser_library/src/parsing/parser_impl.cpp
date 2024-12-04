@@ -86,8 +86,6 @@ struct parser_holder_impl final : parser_holder
         parser->initialize(hl_ctx, d);
     }
     auto& get_parser() const { return static_cast<parser_t&>(*parser); }
-
-    void lookahead_operands_and_remarks_asm() const override { get_parser().lookahead_operands_and_remarks_asm(); }
 };
 
 std::unique_ptr<parser_holder> parser_holder::create(
@@ -2606,6 +2604,7 @@ struct parser_holder::parser2
     result_t<std::optional<semantics::op_rem>> try_model_ops(position line_start);
 
     void lookahead_operands_and_remarks_dat();
+    void lookahead_operands_and_remarks_asm();
 
     parser2(const parser_holder* h)
         : holder(h)
@@ -4470,6 +4469,55 @@ void parser_holder::lookahead_operands_and_remarks_dat() const
     parser2 p(this);
 
     p.lookahead_operands_and_remarks_dat();
+}
+
+void parser_holder::parser2::lookahead_operands_and_remarks_asm()
+{
+    auto start = cur_pos_adjusted();
+    if (eof() || !lex_optional_space() || eof())
+    {
+        holder->parser->collector.set_operand_remark_field({}, {}, remap_range(range(start)));
+        return;
+    }
+    operand_list operands;
+
+    bool errors = false;
+    auto op_start = cur_pos_adjusted();
+
+    if (auto [error, op] = asm_op(); error)
+    {
+        errors = true;
+        operands.push_back(std::make_unique<semantics::empty_operand>(remap_range(range(op_start))));
+        while (except<U',', U' '>())
+            consume();
+    }
+    else
+        operands.push_back(std::move(op));
+
+    while (follows<U','>())
+    {
+        consume();
+        op_start = cur_pos_adjusted();
+        auto [error, op] = asm_op();
+        if (error || errors)
+        {
+            errors = true;
+            operands.push_back(std::make_unique<semantics::empty_operand>(remap_range(range(op_start))));
+            while (except<U',', U' '>())
+                consume();
+        }
+        else
+            operands.push_back(std::move(op));
+    }
+    const range r = remap_range({ start, cur_pos() });
+    holder->parser->collector.set_operand_remark_field(std::move(operands), std::vector<range>(), r);
+}
+
+void parser_holder::lookahead_operands_and_remarks_asm() const
+{
+    parser2 p(this);
+
+    p.lookahead_operands_and_remarks_asm();
 }
 
 semantics::literal_si parser_holder::literal_reparse() const

@@ -215,7 +215,7 @@ struct parser_holder
 
     void op_rem_body_noop() const;
     void op_rem_body_deferred() const;
-    virtual void lookahead_operands_and_remarks_asm() const = 0;
+    void lookahead_operands_and_remarks_asm() const;
     void lookahead_operands_and_remarks_dat() const;
 
     semantics::operand_list macro_ops(bool reparse) const;
