@@ -88,7 +88,6 @@ struct parser_holder_impl final : parser_holder
     auto& get_parser() const { return static_cast<parser_t&>(*parser); }
 
     void lookahead_operands_and_remarks_asm() const override { get_parser().lookahead_operands_and_remarks_asm(); }
-    void lookahead_operands_and_remarks_dat() const override { get_parser().lookahead_operands_and_remarks_dat(); }
 
     semantics::op_rem op_rem_body_asm_r() const override { return std::move(get_parser().op_rem_body_asm_r()->line); }
 
@@ -2564,6 +2563,8 @@ struct parser_holder::parser2
     result_t_void lex_rest_of_model_string(concat_chain_builder& ccb);
     result_t<std::optional<semantics::op_rem>> try_model_ops(position line_start);
 
+    void lookahead_operands_and_remarks_dat();
+
     parser2(const parser_holder* h)
         : holder(h)
         , cont(h->lex->get_continuation_column())
@@ -4163,5 +4164,31 @@ operand_ptr parser_holder::operand_mach() const
     return std::move(op);
 }
 
+void parser_holder::parser2::lookahead_operands_and_remarks_dat()
+{
+    const auto start = cur_pos();
+    if (eof() || !lex_optional_space() || eof())
+    {
+        holder->parser->collector.set_operand_remark_field({}, {}, remap_range(range(start)));
+        return;
+    }
+    auto [error, op] = dat_op();
+    if (error)
+    {
+        holder->parser->collector.set_operand_remark_field({}, {}, remap_range(range(start)));
+        return;
+    }
+    operand_list operands;
+    operands.push_back(std::move(op));
+    range r = remap_range({ start, cur_pos() });
+    holder->parser->collector.set_operand_remark_field(std::move(operands), std::vector<range>(), r);
+}
+
+void parser_holder::lookahead_operands_and_remarks_dat() const
+{
+    parser_holder::parser2 p(this);
+
+    p.lookahead_operands_and_remarks_dat();
+}
 
 } // namespace hlasm_plugin::parser_library::parsing
