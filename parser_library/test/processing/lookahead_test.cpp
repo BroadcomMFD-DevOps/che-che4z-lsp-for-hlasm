@@ -364,6 +364,22 @@ X EQU 1,Y+11,C'T'
     EXPECT_EQ(a.diags().front().diag_range.start.line, (size_t)2);
 }
 
+TEST(EQU_attribute_lookahead, empty_operand)
+{
+    std::string input(
+        R"( 
+&A SETC T'X
+X EQU 1,,C'T'
+)");
+
+    analyzer a(input);
+    a.analyze();
+
+    EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "A"), "T");
+
+    EXPECT_TRUE(a.diags().empty());
+}
+
 TEST(EQU_attribute_lookahead, errorous_but_resolable_statement_incorrect_operand)
 {
     std::string input(
