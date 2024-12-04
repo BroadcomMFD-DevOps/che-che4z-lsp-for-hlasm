@@ -19,7 +19,6 @@ parser grammar hlasmparser_singleline;
 import
 operand_field_rules,
 lookahead_rules,
-machine_operand_rules,
 assembler_operand_rules,
 model_operand_rules,
 machine_expr_rules,
