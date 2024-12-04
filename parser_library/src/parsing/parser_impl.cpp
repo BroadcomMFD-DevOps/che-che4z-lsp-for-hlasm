@@ -985,7 +985,6 @@ struct parser_holder::parser2
         assert(follows<U'\''>());
 
         auto start = cur_pos_adjusted();
-        consume();
 
         concat_chain cc;
 
@@ -996,6 +995,8 @@ struct parser_holder::parser2
             cc.emplace_back(std::in_place_type<char_str_conc>, std::move(s), remap_range({ start, cur_pos() }));
             s.clear();
         };
+
+        consume();
         while (true)
         {
             switch (*input.next)
@@ -1042,7 +1043,6 @@ struct parser_holder::parser2
                     if (!follows<U'\''>())
                     {
                         dump_s();
-                        add_hl_symbol(remap_range({ start, cur_pos() }), hl_scopes::string);
                         concatenation_point::clear_concat_chain(cc);
                         return cc;
                     }
@@ -1405,7 +1405,10 @@ struct parser_holder::parser2
                 if (auto [error, s] = lex_rest_of_ca_string_group({}, start); error)
                     return failure;
                 else
+                {
+                    add_hl_symbol({ start, cur_pos() }, hl_scopes::string);
                     return std::move(s);
+                }
 
             case U'(': {
                 consume(hl_scopes::operator_symbol);
@@ -1433,7 +1436,10 @@ struct parser_holder::parser2
                     if (auto [error2, s] = lex_rest_of_ca_string_group(std::move(p_expr), start); error2)
                         return failure;
                     else
+                    {
+                        add_hl_symbol({ start, cur_pos() }, hl_scopes::string);
                         return std::move(s);
+                    }
                 }
                 else if (follows_function())
                 {
@@ -3436,6 +3442,7 @@ void parser_holder::parser2::lex_handle_label(concat_chain cc, range r)
         for (auto& c : std::span(cc).subspan(2))
             label.append(std::get<char_str_conc>(c.value).value);
 
+        add_hl_symbol(r, hl_scopes::seq_symbol);
         holder->parser->collector.set_label_field({ parse_identifier(std::move(label), r), r }, r);
     }
     else if (is_ord_like(cc))
