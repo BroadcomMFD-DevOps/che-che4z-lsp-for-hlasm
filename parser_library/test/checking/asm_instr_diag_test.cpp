@@ -187,7 +187,7 @@ simple equ 2
     analyzer a(input);
     a.analyze();
     EXPECT_EQ(get_syntax_errors(a), (size_t)0);
-    EXPECT_TRUE(matches_message_codes(a.diags(), { "A001" }));
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "S0002" }));
 }
 
 
@@ -224,7 +224,7 @@ TEST(diagnostics, end_incorrect_language_format)
     analyzer a(input);
     a.analyze();
     EXPECT_EQ(get_syntax_errors(a), (size_t)0);
-    EXPECT_TRUE(matches_message_codes(a.diags(), { "A137" }));
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "S0002" }));
 }
 
 TEST(diagnostics, drop_incorrect_op_format)

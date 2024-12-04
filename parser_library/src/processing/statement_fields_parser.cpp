@@ -79,7 +79,8 @@ statement_fields_parser::parse_result statement_fields_parser::parse_operand_fie
                 break;
             }
             case processing::processing_form::ASM:
-                line = h.op_rem_body_asm_r();
+                if (auto ops = h.op_rem_body_asm(opcode.value, true, !after_substitution); ops)
+                    line = std::move(*ops);
                 literals = h.parser->get_collector().take_literals();
                 break;
             case processing::processing_form::MACH:
