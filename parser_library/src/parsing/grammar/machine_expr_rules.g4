@@ -127,13 +127,6 @@ mach_self_def_term returns [self_def_t value]
         $value = parse_self_def_term_in_mach(opt, $string.value, provider.get_range($ORDSYMBOL,$string.ctx->getStop()));
     };
 
-literal_reparse returns [literal_si value]
-    : literal_internal EOF
-    {
-        if (auto& v = $literal_internal.value; v.has_value())
-            $value = collector.add_literal(get_context_text($literal_internal.ctx), std::move(v.value()), provider.get_range($literal_internal.ctx));
-    };
-
 literal returns [literal_si value]
     : literal_internal
     {
