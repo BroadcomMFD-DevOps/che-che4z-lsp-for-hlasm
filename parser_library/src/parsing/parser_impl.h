@@ -239,7 +239,7 @@ struct parser_holder
         size_t op_logical_column;
     };
 
-    virtual semantics::literal_si literal_reparse() const = 0;
+    semantics::literal_si literal_reparse() const;
 
     void prepare_parser(lexing::u8string_view_with_newlines text,
         context::hlasm_context* hlasm_ctx,
