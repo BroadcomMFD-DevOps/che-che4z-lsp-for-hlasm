@@ -36,29 +36,6 @@ lookahead_operands_and_remarks_asm
         collector.set_operand_remark_field(operand_list(), std::vector<range>(), r);
     };
 
-lookahead_operands_and_remarks_dat
-    : SPACE+
-    (
-        data_def
-        {
-            operand_list operands;
-            operands.push_back(std::make_unique<data_def_operand_inline>(std::move($data_def.value),provider.get_range($data_def.ctx)));
-            range r = provider.get_range($data_def.ctx);
-            collector.set_operand_remark_field(std::move(operands), std::vector<range>(), r);
-        }
-        |
-        EOF
-        {
-            range r = provider.get_range(_localctx);
-            collector.set_operand_remark_field(operand_list(), std::vector<range>(), r);
-        }
-    )
-    | EOF
-    {
-        range r = provider.get_range(_localctx);
-        collector.set_operand_remark_field(operand_list(), std::vector<range>(), r);
-    };
-
 lookahead_operand_list_asm returns [operand_list operands] locals [bool failed = false]
     :
     {
