@@ -424,7 +424,11 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordin
                     break;
                 }
                 case processing_form::ASM:
-                    h.op_rem_body_asm();
+                    if (auto ops = h.op_rem_body_asm(opcode.value, false, true); ops)
+                    {
+                        h.parser->get_collector().set_operand_remark_field(
+                            std::move(ops->operands), std::move(ops->remarks), ops->line_range);
+                    }
                     break;
                 case processing_form::MACH:
                     if (auto ops = h.op_rem_body_mach(false, true); ops)

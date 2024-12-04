@@ -88,10 +88,6 @@ struct parser_holder_impl final : parser_holder
     auto& get_parser() const { return static_cast<parser_t&>(*parser); }
 
     void lookahead_operands_and_remarks_asm() const override { get_parser().lookahead_operands_and_remarks_asm(); }
-
-    semantics::op_rem op_rem_body_asm_r() const override { return std::move(get_parser().op_rem_body_asm_r()->line); }
-
-    void op_rem_body_asm() const override { get_parser().op_rem_body_asm(); }
 };
 
 std::unique_ptr<parser_holder> parser_holder::create(
@@ -712,6 +708,7 @@ struct parser_holder::parser2
             consume();
             return true;
         }
+        syntax_error_or_eof();
         return false;
     }
 
@@ -786,6 +783,21 @@ struct parser_holder::parser2
         {
             consume_into(result);
         } while (is_ord());
+
+        return result;
+    }
+
+    std::string lex_ord_upper()
+    {
+        assert(is_ord_first());
+
+        std::string result;
+        do
+        {
+            consume_into(result);
+        } while (is_ord());
+
+        utils::to_upper(result);
 
         return result;
     }
@@ -1526,14 +1538,23 @@ struct parser_holder::parser2
         return { result, r };
     }
 
-    result_t<ca_expr_ptr> lex_num()
+    result_t<std::pair<int32_t, range>> lex_number_as_int()
     {
-        assert((follows<U'0', U'1', U'2', U'3', U'4', U'5', U'6', U'7', U'8', U'9', U'-'>()));
         const auto [error, number] = lex_number_as_string();
         if (error)
             return failure;
         const auto& [v, r] = number;
-        return std::make_unique<ca_constant>(parse_self_def_term("D", v, r), r);
+        return { parse_self_def_term("D", v, r), r };
+    }
+
+    result_t<ca_expr_ptr> lex_num()
+    {
+        assert((follows<U'0', U'1', U'2', U'3', U'4', U'5', U'6', U'7', U'8', U'9', U'-'>()));
+        const auto [error, number] = lex_number_as_int();
+        if (error)
+            return failure;
+        const auto& [v, r] = number;
+        return std::make_unique<ca_constant>(v, r);
     }
 
 
@@ -2089,6 +2110,16 @@ struct parser_holder::parser2
         return std::move(d);
     }
 
+    std::string capture_text(const char32_t* start, const char32_t* end) const
+    {
+        std::string s;
+        s.reserve(end - start);
+        std::for_each(start, end, [&s](auto c) { utils::append_utf32_to_utf8(s, c); });
+        return s;
+    }
+
+    std::string capture_text(const char32_t* start) const { return capture_text(start, input.next); }
+
     result_t<literal_si> lex_literal()
     {
         const auto allowed = allow_literals();
@@ -2109,11 +2140,8 @@ struct parser_holder::parser2
             // continue processing
         }
 
-        std::string s;
-        s.reserve(input.next - initial);
-        std::for_each(initial, input.next, [&s](auto c) { utils::append_utf32_to_utf8(s, c); });
         return holder->parser->get_collector().add_literal(
-            std::move(s), std::move(dd), remap_range({ start, cur_pos() }));
+            capture_text(initial), std::move(dd), remap_range({ start, cur_pos() }));
     }
 
     result_t<ca_expr_ptr> lex_term_c()
@@ -2552,11 +2580,21 @@ struct parser_holder::parser2
     void op_rem_body_deferred();
     void op_rem_body_noop();
 
-    template<result_t<operand_ptr> (parser2::*f)()>
-    std::optional<semantics::op_rem> with_model(bool reparse, bool model_allowed);
+    template<result_t<operand_ptr> (parser2::*first)(), result_t<operand_ptr> (parser2::*rest)() = first>
+    std::optional<semantics::op_rem> with_model(bool reparse, bool model_allowed) requires(first != nullptr);
 
     result_t<operand_ptr> mach_op();
     result_t<operand_ptr> dat_op();
+
+    result_t<operand_ptr> alias_op();
+    result_t<operand_ptr> end_op();
+    result_t<operand_ptr> using_op1();
+    result_t<operand_ptr> asm_mach_expr();
+    result_t<operand_ptr> asm_op();
+    result_t<std::unique_ptr<complex_assembler_operand::component_value_t>> asm_op_inner();
+    result_t<std::vector<std::unique_ptr<complex_assembler_operand::component_value_t>>> asm_op_comma_c();
+
+    [[nodiscard]] constexpr bool ord_followed_by_parenthesis() const noexcept;
 
     result_t_void lex_rest_of_model_string(concat_chain_builder& ccb);
     result_t<std::optional<semantics::op_rem>> try_model_ops(position line_start);
@@ -3874,13 +3912,7 @@ done:;
     assert(follows<U'&'>());
 
     if (initial != input.next)
-    {
-        std::string first_string;
-        first_string.reserve(input.next - initial);
-        std::for_each(
-            initial, input.next, [&first_string](char32_t c) { utils::append_utf32_to_utf8(first_string, c); });
-        cc.emplace_back(std::in_place_type<char_str_conc>, std::move(first_string), remap_range({ start, cur_pos() }));
-    }
+        cc.emplace_back(std::in_place_type<char_str_conc>, capture_text(initial), remap_range({ start, cur_pos() }));
 
     if (auto [error, vs] = lex_variable(); error)
         return failure;
@@ -4047,13 +4079,6 @@ parser_holder::parser2::result_t<operand_ptr> parser_holder::parser2::mach_op()
         checking::operand_state::SECOND_OMITTED);
 }
 
-std::optional<semantics::op_rem> parser_holder::op_rem_body_mach(bool reparse, bool model_allowed) const
-{
-    parser_holder::parser2 p(this);
-
-    return p.with_model<&parser2::mach_op>(reparse, model_allowed);
-}
-
 parser_holder::parser2::result_t<operand_ptr> parser_holder::parser2::dat_op()
 {
     const auto start = cur_pos_adjusted();
@@ -4071,8 +4096,10 @@ parser_holder::parser2::result_t<operand_ptr> parser_holder::parser2::dat_op()
     }
     return std::make_unique<data_def_operand_inline>(std::move(d), remap_range({ start, cur_pos() }));
 }
-template<parser_holder::parser2::result_t<operand_ptr> (parser_holder::parser2::*f)()>
+template<parser_holder::parser2::result_t<operand_ptr> (parser_holder::parser2::*first)(),
+    parser_holder::parser2::result_t<operand_ptr> (parser_holder::parser2::*rest)()>
 std::optional<semantics::op_rem> parser_holder::parser2::with_model(bool reparse, bool model_allowed)
+    requires(first != nullptr)
 {
     const auto start = cur_pos();
     if (eof())
@@ -4096,41 +4123,42 @@ std::optional<semantics::op_rem> parser_holder::parser2::with_model(bool reparse
 
     std::vector<operand_ptr> operands;
 
+    bool has_error = false;
     if (follows<U','>())
         operands.push_back(std::make_unique<semantics::empty_operand>(remap_range(range(cur_pos()))));
-    else if (auto [error, op] = (this->*f)(); error)
+    else if (auto [error, op] = (this->*first)(); (has_error = error))
         operands.push_back(std::make_unique<semantics::empty_operand>(remap_range(range(cur_pos()))));
     else
-    {
         operands.push_back(std::move(op));
-        if (except<U',', U' '>())
-        {
-            syntax_error_or_eof();
-        }
 
-        while (follows<U','>())
+    if (!has_error && ((rest == nullptr && except<U' '>()) || except<U',', U' '>()))
+    {
+        has_error = true;
+        syntax_error_or_eof();
+    }
+
+    while (!has_error && follows<U','>())
+    {
+        consume(hl_scopes::operator_symbol);
+        if (follows<U','>())
+            operands.push_back(std::make_unique<semantics::empty_operand>(remap_range(range(cur_pos()))));
+        else if (eof() || follows<U' '>())
         {
-            consume(hl_scopes::operator_symbol);
-            if (follows<U','>())
-                operands.push_back(std::make_unique<semantics::empty_operand>(remap_range(range(cur_pos()))));
-            else if (eof() || follows<U' '>())
+            operands.push_back(std::make_unique<semantics::empty_operand>(remap_range(range(cur_pos()))));
+            break;
+        }
+        else if (auto [error_inner, op_inner] = (this->*rest)(); error_inner)
+        {
+            operands.push_back(std::make_unique<semantics::empty_operand>(remap_range(range(cur_pos()))));
+            break;
+        }
+        else
+        {
+            operands.push_back(std::move(op_inner));
+            if (except<U',', U' '>())
             {
-                operands.push_back(std::make_unique<semantics::empty_operand>(remap_range(range(cur_pos()))));
+                syntax_error_or_eof();
                 break;
-            }
-            else if (auto [error_inner, op_inner] = (this->*f)(); error_inner)
-            {
-                operands.push_back(std::make_unique<semantics::empty_operand>(remap_range(range(cur_pos()))));
-                break;
-            }
-            else
-            {
-                operands.push_back(std::move(op_inner));
-                if (except<U',', U' '>())
-                {
-                    syntax_error_or_eof();
-                    break;
-                }
             }
         }
     }
@@ -4143,13 +4171,261 @@ std::optional<semantics::op_rem> parser_holder::parser2::with_model(bool reparse
         .line_range = remap_range({ start, cur_pos() }),
     };
 }
+std::optional<semantics::op_rem> parser_holder::op_rem_body_mach(bool reparse, bool model_allowed) const
+{
+    parser_holder::parser2 p(this);
 
+    return p.with_model<&parser2::mach_op>(reparse, model_allowed);
+}
 
 std::optional<semantics::op_rem> parser_holder::op_rem_body_dat(bool reparse, bool model_allowed) const
 {
     parser_holder::parser2 p(this);
 
     return p.with_model<&parser2::dat_op>(reparse, model_allowed);
+}
+
+parser_holder::parser2::result_t<operand_ptr> parser_holder::parser2::alias_op()
+{
+    const auto start = cur_pos_adjusted();
+    const auto initial = input.next;
+
+    if (!match<U'C', U'c', U'X', U'x'>(hl_scopes::self_def_type))
+        return failure;
+
+    if (!must_follow<U'\''>())
+        return failure;
+
+    auto [error, s] = lex_simple_string();
+    if (error)
+        return failure;
+
+    const auto r = remap_range({ start, cur_pos() });
+    add_hl_symbol_remapped(r, hl_scopes::self_def_type);
+
+    return std::make_unique<expr_assembler_operand>(std::make_unique<mach_expr_default>(r), capture_text(initial), r);
+}
+
+parser_holder::parser2::result_t<operand_ptr> parser_holder::parser2::end_op()
+{
+    const auto start = cur_pos_adjusted();
+    if (!match<U'('>(hl_scopes::operator_symbol))
+        return failure;
+
+    std::string s1, s2, s3;
+
+    auto op_start = cur_pos_adjusted();
+    while (except<U','>())
+        consume_into(s1);
+    const auto r1 = remap_range({ op_start, cur_pos() });
+
+    if (!match<U','>(hl_scopes::operator_symbol))
+        return failure;
+
+    op_start = cur_pos_adjusted();
+    while (except<U','>())
+        consume_into(s2);
+    const auto r2 = remap_range({ op_start, cur_pos() });
+
+    if (!match<U','>(hl_scopes::operator_symbol))
+        return failure;
+
+    op_start = cur_pos_adjusted();
+    while (except<U')'>())
+        consume_into(s3);
+    const auto r3 = remap_range({ op_start, cur_pos() });
+
+    if (!match<U')'>(hl_scopes::operator_symbol))
+        return failure;
+
+    std::vector<std::unique_ptr<complex_assembler_operand::component_value_t>> language_triplet;
+    language_triplet.push_back(std::make_unique<complex_assembler_operand::string_value_t>(std::move(s1), r1));
+    language_triplet.push_back(std::make_unique<complex_assembler_operand::string_value_t>(std::move(s2), r2));
+    language_triplet.push_back(std::make_unique<complex_assembler_operand::string_value_t>(std::move(s3), r3));
+    add_hl_symbol_remapped(r1, hl_scopes::operand);
+    add_hl_symbol_remapped(r2, hl_scopes::operand);
+    add_hl_symbol_remapped(r3, hl_scopes::operand);
+
+    const auto r = remap_range({ start, cur_pos() });
+    return std::make_unique<complex_assembler_operand>("", std::move(language_triplet), r);
+}
+
+parser_holder::parser2::result_t<operand_ptr> parser_holder::parser2::using_op1()
+{
+    const auto start = cur_pos_adjusted();
+    if (!try_consume<U'('>(hl_scopes::operator_symbol))
+        return asm_mach_expr();
+
+    const auto initial1 = input.next;
+    auto [error1, e1] = lex_mach_expr();
+    if (error1)
+        return failure;
+    const auto end1 = input.next;
+
+    if (!try_consume<U','>(hl_scopes::operator_symbol))
+    {
+        if (!match<U')'>(hl_scopes::operator_symbol))
+            return failure;
+
+        const auto r = remap_range({ start, cur_pos() });
+        return std::make_unique<expr_assembler_operand>(
+            std::move(e1), utils::to_upper_copy(capture_text(initial1, end1)), r);
+    }
+
+    const auto initial2 = input.next;
+    auto [error2, e2] = lex_mach_expr();
+    if (error2)
+        return failure;
+    const auto end2 = input.next;
+
+    if (!match<U')'>(hl_scopes::operator_symbol))
+        return failure;
+
+    const auto r = remap_range({ start, cur_pos() });
+    return std::make_unique<using_instr_assembler_operand>(
+        std::move(e1), std::move(e2), capture_text(initial1, end1), capture_text(initial2, end2), r);
+}
+
+parser_holder::parser2::result_t<operand_ptr> parser_holder::parser2::asm_mach_expr()
+{
+    const auto start = cur_pos_adjusted();
+    const auto initial = input.next;
+
+    auto [error, expr] = lex_mach_expr();
+    if (error)
+        return failure;
+
+    const auto r = remap_range({ start, cur_pos() });
+    return std::make_unique<expr_assembler_operand>(std::move(expr), utils::to_upper_copy(capture_text(initial)), r);
+}
+
+constexpr bool parser_holder::parser2::ord_followed_by_parenthesis() const noexcept
+{
+    if (!is_ord_first())
+        return false;
+
+    const auto* p = input.next;
+
+    while (is_ord(*p))
+        ++p;
+
+    return *p == U'(';
+}
+
+parser_holder::parser2::result_t<std::unique_ptr<complex_assembler_operand::component_value_t>>
+parser_holder::parser2::asm_op_inner()
+{
+    const auto start = cur_pos_adjusted();
+    if (follows<U'\''>())
+    {
+        auto [error, s] = lex_simple_string();
+        if (error)
+            return failure;
+        const auto r = remap_range({ start, cur_pos() });
+        return std::make_unique<complex_assembler_operand::string_value_t>(std::move(s), r);
+    }
+    if (is_num())
+    {
+        const auto [error, v] = lex_number_as_int();
+        if (error)
+            return failure;
+
+        const auto& [n, r] = v;
+        add_hl_symbol_remapped(r, hl_scopes::operand);
+        return std::make_unique<complex_assembler_operand::int_value_t>(n, r);
+    }
+
+    if (follows<U',', U')'>())
+        return std::make_unique<complex_assembler_operand::string_value_t>("", remap_range(range(start)));
+
+    if (!is_ord_first())
+    {
+        syntax_error_or_eof();
+        return failure;
+    }
+
+    auto id = lex_ord_upper();
+
+    add_hl_symbol({ start, cur_pos() }, hl_scopes::operand);
+
+    if (!try_consume<U'('>(hl_scopes::operator_symbol))
+        return std::make_unique<complex_assembler_operand::string_value_t>(
+            std::move(id), remap_range({ start, cur_pos() }));
+
+    auto [error, nested] = asm_op_comma_c();
+    if (error)
+        return failure;
+
+    if (!match<U')'>(hl_scopes::operator_symbol))
+        return failure;
+
+    const auto r = remap_range({ start, cur_pos() });
+    return std::make_unique<complex_assembler_operand::composite_value_t>(std::move(id), std::move(nested), r);
+}
+parser_holder::parser2::result_t<std::vector<std::unique_ptr<complex_assembler_operand::component_value_t>>>
+parser_holder::parser2::asm_op_comma_c()
+{
+    std::vector<std::unique_ptr<complex_assembler_operand::component_value_t>> result;
+    if (auto [error, op] = asm_op_inner(); error)
+        return failure;
+    else
+        result.push_back(std::move(op));
+
+    while (try_consume<U','>(hl_scopes::operator_symbol))
+    {
+        if (auto [error, op] = asm_op_inner(); error)
+            return failure;
+        else
+            result.push_back(std::move(op));
+    }
+
+    return result;
+}
+
+
+parser_holder::parser2::result_t<operand_ptr> parser_holder::parser2::asm_op()
+{
+    const auto start = cur_pos_adjusted();
+    if (follows<U'\''>())
+    {
+        auto [error, s] = lex_simple_string();
+        if (error)
+            return failure;
+        return std::make_unique<string_assembler_operand>(std::move(s), remap_range({ start, cur_pos() }));
+    }
+
+    if (!ord_followed_by_parenthesis())
+        return asm_mach_expr();
+
+    auto id = lex_ord_upper();
+    add_hl_symbol({ start, cur_pos() }, hl_scopes::operand);
+
+    if (!match<U'('>(hl_scopes::operator_symbol))
+        return failure;
+
+    auto [error, nested] = asm_op_comma_c();
+    if (error)
+        return failure;
+
+    if (!match<U')'>(hl_scopes::operator_symbol))
+        return failure;
+
+    const auto r = remap_range({ start, cur_pos() });
+    return std::make_unique<complex_assembler_operand>(std::move(id), std::move(nested), r);
+}
+
+std::optional<semantics::op_rem> parser_holder::op_rem_body_asm(id_index opcode, bool reparse, bool model_allowed) const
+{
+    parser_holder::parser2 p(this);
+
+    if (opcode == id_index("ALIAS"))
+        return p.with_model<&parser2::alias_op, nullptr>(reparse, model_allowed);
+    else if (opcode == id_index("USING"))
+        return p.with_model<&parser2::using_op1, &parser2::asm_mach_expr>(reparse, model_allowed);
+    else if (opcode == id_index("END"))
+        return p.with_model<&parser2::asm_op, &parser2::end_op>(reparse, model_allowed);
+    else
+        return p.with_model<&parser2::asm_op>(reparse, model_allowed);
 }
 
 operand_ptr parser_holder::operand_mach() const

@@ -219,7 +219,6 @@ struct parser_holder
     void lookahead_operands_and_remarks_dat() const;
 
     semantics::operand_list macro_ops(bool reparse) const;
-    virtual semantics::op_rem op_rem_body_asm_r() const = 0;
 
     void op_rem_body_ca_expr() const;
     void op_rem_body_ca_branch() const;
@@ -227,7 +226,7 @@ struct parser_holder
 
     std::optional<semantics::op_rem> op_rem_body_dat(bool reparse, bool model_allowed) const;
     std::optional<semantics::op_rem> op_rem_body_mach(bool reparse, bool model_allowed) const;
-    virtual void op_rem_body_asm() const = 0;
+    std::optional<semantics::op_rem> op_rem_body_asm(context::id_index opcode, bool reparse, bool model_allowed) const;
 
     semantics::operand_ptr ca_op_expr() const;
     semantics::operand_ptr operand_mach() const;
