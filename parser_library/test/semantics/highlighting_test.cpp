@@ -176,7 +176,7 @@ TEST(highlighting, asm_simple_operand)
 
 TEST(highlighting, asm_list)
 {
-    const std::string contents = " AMODE (op2,op3)";
+    const std::string contents = " USING (op2,op3)";
     analyzer a(contents, analyzer_options { source_file_loc, collect_highlighting_info::yes });
     a.analyze();
     const auto& tokens = a.take_semantic_tokens();
