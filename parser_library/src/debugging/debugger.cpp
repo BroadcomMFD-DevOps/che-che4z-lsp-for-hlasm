@@ -697,7 +697,7 @@ public:
         std::string error_msg;
         error_collector diags(error_msg);
 
-        auto p = parsing::parser_holder::create(ctx_, nullptr, false);
+        auto p = parsing::parser_holder::create(ctx_, nullptr);
         p->prepare_parser(
             lexing::u8string_view_with_newlines(expr), ctx_, &diags, semantics::range_provider(), range(), 1, status);
 

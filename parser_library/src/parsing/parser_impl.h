@@ -131,8 +131,7 @@ struct parser_holder
         size_t logical_column,
         const processing::processing_status& proc_status);
 
-    static std::unique_ptr<parser_holder> create(
-        context::hlasm_context* hl_ctx, diagnostic_op_consumer* d, bool multiline);
+    static std::unique_ptr<parser_holder> create(context::hlasm_context* hl_ctx, diagnostic_op_consumer* d);
 
     char_substitution reset(lexing::u8string_view_with_newlines str,
         position file_offset,
