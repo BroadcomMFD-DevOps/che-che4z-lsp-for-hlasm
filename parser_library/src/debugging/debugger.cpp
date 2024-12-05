@@ -36,7 +36,6 @@
 #include "diagnostic_consumer.h"
 #include "expressions/evaluation_context.h"
 #include "lexing/string_with_newlines.h"
-#include "lexing/token_stream.h"
 #include "lexing/tools.h"
 #include "library_info_transitional.h"
 #include "output_handler.h"
