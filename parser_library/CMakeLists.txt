@@ -29,7 +29,6 @@ target_include_directories(parser_library
 )
 
 target_link_libraries(parser_library PRIVATE nlohmann_json::nlohmann_json)
-target_link_libraries(parser_library PRIVATE ${ANTLR4_RUNTIME})
 target_link_libraries(parser_library PRIVATE std::filesystem)
 target_link_libraries(parser_library PUBLIC hlasm_utils)
 

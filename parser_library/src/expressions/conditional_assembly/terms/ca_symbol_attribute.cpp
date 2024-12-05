@@ -26,8 +26,8 @@
 #include "ebcdic_encoding.h"
 #include "expressions/conditional_assembly/ca_expr_visitor.h"
 #include "expressions/evaluation_context.h"
-#include "lexing/lexer.h"
 #include "lexing/string_with_newlines.h"
+#include "lexing/tools.h"
 #include "parsing/parser_impl.h"
 #include "processing/op_code.h"
 #include "semantics/range_provider.h"
@@ -178,13 +178,12 @@ std::string_view ca_symbol_attribute::try_extract_leading_symbol(std::string_vie
     }
 
     // remove leading using prefixes
-    for (auto p = expr.find_first_of('.'); p != std::string_view::npos && !std::isdigit((unsigned char)expr.front())
-         && std::all_of(expr.begin(), expr.begin() + p, lexing::lexer::ord_char);
-         p = expr.find_first_of('.'))
+    for (auto p = expr.find_first_of('.'); p != std::string_view::npos && lexing::is_ord_symbol(expr.substr(0, p));
+        p = expr.find_first_of('.'))
         expr.remove_prefix(p + 1);
 
     // try to isolate one ordinary symbol
-    if (!expr.empty() && !std::isdigit((unsigned char)expr.front()) && lexing::lexer::ord_char(expr.front()))
+    if (lexing::is_ord_symbol(expr.substr(0, 1)))
     {
         if (auto d = expr.find_first_of("+-*/()"); d != std::string_view::npos)
             expr = expr.substr(0, d);
