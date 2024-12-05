@@ -1699,7 +1699,6 @@ struct parser_holder::parser2
         }
     }
 
-    bool parsing_simple_string = false;
     result_t<std::string> lex_simple_string()
     {
         assert(follows<U'\''>());
@@ -1708,8 +1707,6 @@ struct parser_holder::parser2
         std::string s;
 
         consume();
-
-        parsing_simple_string = true;
 
         while (!eof())
         {
@@ -1722,7 +1719,6 @@ struct parser_holder::parser2
             {
                 consume();
                 add_hl_symbol({ start, cur_pos() }, hl_scopes::string);
-                parsing_simple_string = false;
                 return s;
             }
             else if (follows<group<U'&'>, group<U'&'>>())
