@@ -116,8 +116,7 @@ class opencode_provider final : public statement_provider, virtual_file_monitor
         std::unique_ptr<parsing::parser_holder> m_lookahead_parser;
         std::unique_ptr<parsing::parser_holder> m_operand_parser;
     };
-    parser_set m_singleline;
-    parser_set m_multiline;
+    parser_set m_parsers;
 
     analyzing_context m_ctx;
     parse_lib_provider* m_lib_provider;

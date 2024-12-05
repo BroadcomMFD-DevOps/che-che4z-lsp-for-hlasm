@@ -22,22 +22,11 @@
 namespace hlasm_plugin::parser_library::processing {
 
 statement_fields_parser::statement_fields_parser(context::hlasm_context* hlasm_ctx)
-    : m_parser_singleline(parsing::parser_holder::create(hlasm_ctx, nullptr, false))
-    , m_parser_multiline(parsing::parser_holder::create(hlasm_ctx, nullptr, true))
+    : m_parser(parsing::parser_holder::create(hlasm_ctx, nullptr))
     , m_hlasm_ctx(hlasm_ctx)
 {}
 
 statement_fields_parser::~statement_fields_parser() = default;
-
-constexpr bool is_multiline(lexing::u8string_view_with_newlines v)
-{
-    auto nl = v.text.find(lexing::u8string_view_with_newlines::EOLc);
-    if (nl == std::string_view::npos)
-        return false;
-    v.text.remove_prefix(nl + 1);
-
-    return !v.text.empty();
-}
 
 statement_fields_parser::parse_result statement_fields_parser::parse_operand_field(
     lexing::u8string_view_with_newlines field,
@@ -56,7 +45,7 @@ statement_fields_parser::parse_result statement_fields_parser::parse_operand_fie
             diag.message = diagnostic_decorate_message(field.text, diag.message);
         add_diag.add_diagnostic(std::move(diag));
     });
-    auto& h = is_multiline(field) ? *m_parser_multiline : *m_parser_singleline;
+    auto& h = *m_parser;
     h.prepare_parser(
         field, m_hlasm_ctx, &add_diag_subst, std::move(field_range), original_range, logical_column, status);
 

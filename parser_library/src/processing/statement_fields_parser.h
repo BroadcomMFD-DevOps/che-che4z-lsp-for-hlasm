@@ -41,8 +41,7 @@ using provider_ptr = std::unique_ptr<statement_provider>;
 
 class statement_fields_parser final
 {
-    std::unique_ptr<parsing::parser_holder> m_parser_singleline;
-    std::unique_ptr<parsing::parser_holder> m_parser_multiline;
+    std::unique_ptr<parsing::parser_holder> m_parser;
     context::hlasm_context* m_hlasm_ctx;
 
 public:

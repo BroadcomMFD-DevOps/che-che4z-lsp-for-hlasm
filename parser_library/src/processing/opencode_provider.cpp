@@ -45,12 +45,9 @@ opencode_provider::opencode_provider(std::string_view text,
     : statement_provider(statement_provider_kind::OPEN)
     , m_input_document(text)
     , m_virtual_files(std::make_shared<std::unordered_map<context::id_index, std::string>>())
-    , m_singleline { parsing::parser_holder::create(ctx.hlasm_ctx.get(), &diag_consumer, false),
-        parsing::parser_holder::create(ctx.hlasm_ctx.get(), nullptr, false),
-        parsing::parser_holder::create(ctx.hlasm_ctx.get(), nullptr, false) }
-    , m_multiline { parsing::parser_holder::create(ctx.hlasm_ctx.get(), &diag_consumer, true),
-        parsing::parser_holder::create(ctx.hlasm_ctx.get(), nullptr, true),
-        parsing::parser_holder::create(ctx.hlasm_ctx.get(), nullptr, true) }
+    , m_parsers { parsing::parser_holder::create(ctx.hlasm_ctx.get(), &diag_consumer),
+        parsing::parser_holder::create(ctx.hlasm_ctx.get(), nullptr),
+        parsing::parser_holder::create(ctx.hlasm_ctx.get(), nullptr) }
     , m_ctx(ctx)
     , m_lib_provider(&lib_provider)
     , m_state_listener(&state_listener)
@@ -337,16 +334,6 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_looka
         m_ctx.hlasm_ctx->metrics.non_continued_statements++;
 
     return result;
-}
-
-constexpr bool is_multiline(lexing::u8string_view_with_newlines v)
-{
-    auto nl = v.text.find(lexing::u8string_view_with_newlines::EOLc);
-    if (nl == std::string_view::npos)
-        return false;
-    v.text.remove_prefix(nl);
-
-    return !v.text.empty();
 }
 
 std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordinary(const statement_processor& proc,
@@ -643,13 +630,11 @@ context::shared_stmt_ptr opencode_provider::get_next(const statement_processor& 
     if (ll_res == extract_next_logical_line_result::failed)
         return nullptr;
     const bool is_process = ll_res == extract_next_logical_line_result::process;
-    const bool multiline = m_current_logical_line.segments.size() > 1;
 
     const bool lookahead = proc.kind == processing_kind::LOOKAHEAD;
     const bool nested = proc.kind == processing_kind::MACRO || proc.kind == processing_kind::COPY;
 
-    auto& ph = lookahead ? (multiline ? *m_multiline.m_lookahead_parser : *m_singleline.m_lookahead_parser)
-                         : (multiline ? *m_multiline.m_parser : *m_singleline.m_parser);
+    auto& ph = lookahead ? *m_parsers.m_lookahead_parser : *m_parsers.m_parser;
     feed_line(ph, is_process, !lookahead);
 
     auto* diag_target = nested ? ph.collector.diag_collector() : static_cast<diagnostic_op_consumer*>(m_diagnoser);
@@ -744,10 +729,10 @@ parsing::parser_holder& opencode_provider::parser()
     if (!m_line_fed)
     {
         auto ll_res = extract_next_logical_line();
-        feed_line(*m_multiline.m_parser, ll_res == extract_next_logical_line_result::process, true);
+        feed_line(*m_parsers.m_parser, ll_res == extract_next_logical_line_result::process, true);
     }
     assert(m_line_fed);
-    return *m_multiline.m_parser;
+    return *m_parsers.m_parser;
 }
 
 bool opencode_provider::is_next_line_ictl() const
@@ -934,7 +919,7 @@ parsing::parser_holder& opencode_provider::prepare_operand_parser(lexing::u8stri
     size_t logical_column,
     const processing_status& proc_status)
 {
-    auto& h = is_multiline(text) ? *m_multiline.m_operand_parser : *m_singleline.m_operand_parser;
+    auto& h = *m_parsers.m_operand_parser;
 
     h.prepare_parser(text, &hlasm_ctx, diags, std::move(range_prov), text_range, logical_column, proc_status);
 
