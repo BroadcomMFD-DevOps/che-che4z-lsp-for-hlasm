@@ -240,14 +240,12 @@ template std::optional<context::A_t> get_global_var_value(hlasm_context& ctx, st
 template std::optional<context::B_t> get_global_var_value(hlasm_context& ctx, std::string name);
 template std::optional<context::C_t> get_global_var_value(hlasm_context& ctx, std::string name);
 
-size_t get_syntax_errors(analyzer& a) { return a.parser().parser->getNumberOfSyntaxErrors(); }
-
 std::unique_ptr<expressions::ca_expression> parse_ca_expression(analyzer& a) { return a.parser().testing_expr(); }
 
 expressions::data_definition parse_data_definition(analyzer& a, diagnostic_op_consumer* diag)
 {
     if (diag)
-        a.parser().parser->set_diagnoser(diag);
+        a.parser().diagnostic_collector = diag;
     return a.parser().testing_data_def();
 }
 
