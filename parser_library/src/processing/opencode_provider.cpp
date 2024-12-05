@@ -745,7 +745,7 @@ processing::preprocessor* opencode_provider::get_preprocessor()
     return m_preprocessor ? m_preprocessor.get() : nullptr;
 }
 
-parsing::hlasmparser_multiline& opencode_provider::parser()
+parsing::parser_holder& opencode_provider::parser()
 {
     if (!m_line_fed)
     {
@@ -753,7 +753,7 @@ parsing::hlasmparser_multiline& opencode_provider::parser()
         feed_line(*m_multiline.m_parser, ll_res == extract_next_logical_line_result::process, true);
     }
     assert(m_line_fed);
-    return static_cast<parsing::hlasmparser_multiline&>(*m_multiline.m_parser->parser);
+    return *m_multiline.m_parser;
 }
 
 bool opencode_provider::is_next_line_ictl() const

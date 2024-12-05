@@ -169,7 +169,7 @@ analyzing_context analyzer::context() const { return m_impl->ctx; }
 
 context::hlasm_context& analyzer::hlasm_ctx() { return *m_impl->ctx.hlasm_ctx; }
 
-parsing::hlasmparser_multiline& analyzer::parser() { return m_impl->mngr.opencode_parser(); }
+parsing::parser_holder& analyzer::parser() { return m_impl->mngr.opencode_parser(); }
 
 semantics::lines_info analyzer::take_semantic_tokens() { return m_impl->src_proc.take_semantic_tokens(); }
 
