@@ -133,27 +133,27 @@ remark_o returns [std::optional<range> value]
 
     //***** highlighting rules
 comma
-    : COMMA {collector.add_hl_symbol(token_info(provider.get_range( $COMMA),hl_scopes::operator_symbol)); };
+    : COMMA {collector->add_hl_symbol(token_info(provider.get_range( $COMMA),hl_scopes::operator_symbol)); };
 dot
-    : DOT {collector.add_hl_symbol(token_info(provider.get_range( $DOT),hl_scopes::operator_symbol)); };
+    : DOT {collector->add_hl_symbol(token_info(provider.get_range( $DOT),hl_scopes::operator_symbol)); };
 apostrophe
     : APOSTROPHE;
 attr
-    : ATTR {collector.add_hl_symbol(token_info(provider.get_range( $ATTR),hl_scopes::operator_symbol)); };
+    : ATTR {collector->add_hl_symbol(token_info(provider.get_range( $ATTR),hl_scopes::operator_symbol)); };
 lpar
-    : LPAR { collector.add_hl_symbol(token_info(provider.get_range( $LPAR),hl_scopes::operator_symbol)); };
+    : LPAR { collector->add_hl_symbol(token_info(provider.get_range( $LPAR),hl_scopes::operator_symbol)); };
 rpar
-    : RPAR {collector.add_hl_symbol(token_info(provider.get_range( $RPAR),hl_scopes::operator_symbol)); };
+    : RPAR {collector->add_hl_symbol(token_info(provider.get_range( $RPAR),hl_scopes::operator_symbol)); };
 ampersand
-    : AMPERSAND { collector.add_hl_symbol(token_info(provider.get_range( $AMPERSAND),hl_scopes::operator_symbol)); };
+    : AMPERSAND { collector->add_hl_symbol(token_info(provider.get_range( $AMPERSAND),hl_scopes::operator_symbol)); };
 equals
-    : EQUALS { collector.add_hl_symbol(token_info(provider.get_range( $EQUALS),hl_scopes::operator_symbol)); };
+    : EQUALS { collector->add_hl_symbol(token_info(provider.get_range( $EQUALS),hl_scopes::operator_symbol)); };
 asterisk
-    : ASTERISK {collector.add_hl_symbol(token_info(provider.get_range( $ASTERISK),hl_scopes::operator_symbol)); };
+    : ASTERISK {collector->add_hl_symbol(token_info(provider.get_range( $ASTERISK),hl_scopes::operator_symbol)); };
 slash
-    : SLASH { collector.add_hl_symbol(token_info(provider.get_range( $SLASH),hl_scopes::operator_symbol)); };
+    : SLASH { collector->add_hl_symbol(token_info(provider.get_range( $SLASH),hl_scopes::operator_symbol)); };
 minus
-    : MINUS {collector.add_hl_symbol(token_info(provider.get_range( $MINUS),hl_scopes::operator_symbol)); };
+    : MINUS {collector->add_hl_symbol(token_info(provider.get_range( $MINUS),hl_scopes::operator_symbol)); };
 plus
-    : PLUS {collector.add_hl_symbol(token_info(provider.get_range( $PLUS),hl_scopes::operator_symbol)); };
+    : PLUS {collector->add_hl_symbol(token_info(provider.get_range( $PLUS),hl_scopes::operator_symbol)); };
 

@@ -22,7 +22,7 @@ op_rem_body_asm
     {
         auto remarks = $remark_o.value ? remark_list{*$remark_o.value} : remark_list{};
         auto line_range = provider.get_range($op_list_asm.ctx->getStart(),$remark_o.ctx->getStop());
-        collector.set_operand_remark_field(std::move($op_list_asm.operands), std::move(remarks), line_range);
+        collector->set_operand_remark_field(std::move($op_list_asm.operands), std::move(remarks), line_range);
     } EOF
     | SPACE+ model_op remark_o
     {
@@ -35,9 +35,9 @@ op_rem_body_asm
         operands.push_back(std::move(op));
         auto remarks = $remark_o.value ? remark_list{*$remark_o.value} : remark_list{};
         auto line_range = provider.get_range($model_op.ctx->getStart(),$remark_o.ctx->getStop());
-        collector.set_operand_remark_field(std::move(operands), std::move(remarks), line_range);
+        collector->set_operand_remark_field(std::move(operands), std::move(remarks), line_range);
     } EOF
-    | {collector.set_operand_remark_field(provider.get_range(_localctx));} EOF;
+    | {collector->set_operand_remark_field(provider.get_range(_localctx));} EOF;
 
 op_list_asm returns [std::vector<operand_ptr> operands]
     : operand_asm {$operands.push_back(std::move($operand_asm.op));} (comma operand_asm {$operands.push_back(std::move($operand_asm.op));})*

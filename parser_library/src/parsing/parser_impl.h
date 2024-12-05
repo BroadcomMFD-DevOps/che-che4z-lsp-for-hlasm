@@ -57,7 +57,8 @@ class parser_impl : public antlr4::Parser
 public:
     parser_impl(antlr4::TokenStream* input);
 
-    void initialize(context::hlasm_context* hlasm_ctx, diagnostic_op_consumer* diagnoser);
+    void initialize(
+        context::hlasm_context* hlasm_ctx, diagnostic_op_consumer* diagnoser, semantics::collector& collector);
 
     void reinitialize(context::hlasm_context* hlasm_ctx,
         semantics::range_provider range_prov,
@@ -69,8 +70,6 @@ public:
         diagnoser_ = diagnoser;
         err_listener_.diagnoser = diagnoser;
     }
-
-    semantics::collector& get_collector() { return collector; }
 
     static bool is_attribute_consuming(char c);
     static bool is_attribute_consuming(const antlr4::Token* token);
@@ -161,8 +160,8 @@ protected:
     lexing::token_stream& input;
     context::hlasm_context* hlasm_ctx = nullptr;
     std::optional<processing::processing_status> proc_status;
-    semantics::collector collector;
     semantics::range_provider provider;
+    semantics::collector* collector = nullptr;
 
     bool ALIAS();
     bool END();
@@ -200,6 +199,7 @@ struct parser_holder
     std::unique_ptr<lexing::lexer> lex;
     std::unique_ptr<lexing::token_stream> stream;
     std::unique_ptr<parser_impl> parser;
+    semantics::collector collector;
 
     virtual ~parser_holder();
 
@@ -210,26 +210,26 @@ struct parser_holder
         size_t op_logical_column;
     };
 
-    op_data lab_instr() const;
-    op_data look_lab_instr() const;
+    op_data lab_instr();
+    op_data look_lab_instr();
 
-    void op_rem_body_noop() const;
-    void op_rem_body_deferred() const;
-    void lookahead_operands_and_remarks_asm() const;
-    void lookahead_operands_and_remarks_dat() const;
+    void op_rem_body_noop();
+    void op_rem_body_deferred();
+    void lookahead_operands_and_remarks_asm();
+    void lookahead_operands_and_remarks_dat();
 
-    semantics::operand_list macro_ops(bool reparse) const;
+    semantics::operand_list macro_ops(bool reparse);
 
-    void op_rem_body_ca_expr() const;
-    void op_rem_body_ca_branch() const;
-    void op_rem_body_ca_var_def() const;
+    void op_rem_body_ca_expr();
+    void op_rem_body_ca_branch();
+    void op_rem_body_ca_var_def();
 
-    std::optional<semantics::op_rem> op_rem_body_dat(bool reparse, bool model_allowed) const;
-    std::optional<semantics::op_rem> op_rem_body_mach(bool reparse, bool model_allowed) const;
-    std::optional<semantics::op_rem> op_rem_body_asm(context::id_index opcode, bool reparse, bool model_allowed) const;
+    std::optional<semantics::op_rem> op_rem_body_dat(bool reparse, bool model_allowed);
+    std::optional<semantics::op_rem> op_rem_body_mach(bool reparse, bool model_allowed);
+    std::optional<semantics::op_rem> op_rem_body_asm(context::id_index opcode, bool reparse, bool model_allowed);
 
-    semantics::operand_ptr ca_op_expr() const;
-    semantics::operand_ptr operand_mach() const;
+    semantics::operand_ptr ca_op_expr();
+    semantics::operand_ptr operand_mach();
 
     struct mac_op_data
     {
@@ -238,7 +238,7 @@ struct parser_holder
         size_t op_logical_column;
     };
 
-    semantics::literal_si literal_reparse() const;
+    semantics::literal_si literal_reparse();
 
     void prepare_parser(lexing::u8string_view_with_newlines text,
         context::hlasm_context* hlasm_ctx,
@@ -246,7 +246,7 @@ struct parser_holder
         semantics::range_provider range_prov,
         range text_range,
         size_t logical_column,
-        const processing::processing_status& proc_status) const;
+        const processing::processing_status& proc_status);
 
     static std::unique_ptr<parser_holder> create(
         context::hlasm_context* hl_ctx, diagnostic_op_consumer* d, bool multiline);
