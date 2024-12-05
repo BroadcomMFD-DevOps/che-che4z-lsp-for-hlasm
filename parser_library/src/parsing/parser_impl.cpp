@@ -2084,15 +2084,18 @@ struct parser_holder::parser2
         }
     }
 
-    result_t<data_definition> lex_data_definition()
+    result_t<data_definition> lex_data_definition(bool require_nominal)
     {
         auto [error, d] = lex_data_def_base();
         if (error)
             return failure;
-        auto [error2, n] = lex_literal_nominal();
-        if (error2)
-            return failure;
-        d.nominal_value = std::move(n);
+        if (require_nominal || follows<U'(', U'\''>())
+        {
+            auto [error2, n] = lex_literal_nominal();
+            if (error2)
+                return failure;
+            d.nominal_value = std::move(n);
+        }
 
         struct loctr_reference_visitor final : public mach_expr_visitor
         {
@@ -2132,7 +2135,7 @@ struct parser_holder::parser2
         assert(follows<U'='>());
         consume(hl_scopes::operator_symbol);
 
-        auto [error, dd] = lex_data_definition();
+        auto [error, dd] = lex_data_definition(true);
         if (error)
             return failure;
 
@@ -4087,16 +4090,9 @@ parser_holder::parser2::result_t<operand_ptr> parser_holder::parser2::dat_op()
     const auto start = cur_pos_adjusted();
     const auto disabled = disable_literals();
 
-    auto [error, d] = lex_data_def_base();
+    auto [error, d] = lex_data_definition(false);
     if (error)
         return failure;
-    if (follows<U'(', U'\''>())
-    {
-        auto [error2, n] = lex_literal_nominal();
-        if (error2)
-            return failure;
-        d.nominal_value = std::move(n);
-    }
     return std::make_unique<data_def_operand_inline>(std::move(d), remap_range({ start, cur_pos() }));
 }
 template<parser_holder::parser2::result_t<operand_ptr> (parser_holder::parser2::*first)(),
@@ -4530,6 +4526,32 @@ semantics::literal_si parser_holder::literal_reparse()
     if (error || !p.eof())
         return nullptr;
     return std::move(lit);
+}
+
+expressions::ca_expr_ptr parser_holder::testing_expr()
+{
+    parser2 p(this);
+    auto [error, e] = p.lex_expr();
+    if (error)
+    {
+        p.add_diagnostic(diagnostic_op::error_S0002);
+        return {};
+    }
+    else
+        return std::move(e);
+}
+
+expressions::data_definition parser_holder::testing_data_def()
+{
+    parser2 p(this);
+    auto [error, dd] = p.lex_data_definition(false);
+    if (error)
+    {
+        p.add_diagnostic(diagnostic_op::error_S0002);
+        return {};
+    }
+    else
+        return std::move(dd);
 }
 
 } // namespace hlasm_plugin::parser_library::parsing
