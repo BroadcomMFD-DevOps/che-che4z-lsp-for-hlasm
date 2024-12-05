@@ -98,13 +98,13 @@ mach_term returns [mach_expr_ptr m_e]
         }
         | id
         {
-            collector.add_hl_symbol(token_info(provider.get_range( $id.ctx),hl_scopes::ordinary_symbol));
+            collector->add_hl_symbol(token_info(provider.get_range( $id.ctx),hl_scopes::ordinary_symbol));
             $m_e = std::make_unique<mach_expr_symbol>($id.name, $id.using_qualifier, provider.get_range( $id.ctx));
         }
     )
     | mach_signed_num
     {
-        collector.add_hl_symbol(token_info(provider.get_range( $mach_signed_num.ctx),hl_scopes::number));
+        collector->add_hl_symbol(token_info(provider.get_range( $mach_signed_num.ctx),hl_scopes::number));
         $m_e =  std::make_unique<mach_expr_constant>($mach_signed_num.value, provider.get_range( $mach_signed_num.ctx));
     }
     | literal
@@ -122,7 +122,7 @@ mach_signed_num returns [self_def_t value]
 mach_self_def_term returns [self_def_t value]
     : ORDSYMBOL string
     {
-        collector.add_hl_symbol(token_info(provider.get_range( $ORDSYMBOL),hl_scopes::self_def_type));
+        collector->add_hl_symbol(token_info(provider.get_range( $ORDSYMBOL),hl_scopes::self_def_type));
         auto opt = $ORDSYMBOL->getText();
         $value = parse_self_def_term_in_mach(opt, $string.value, provider.get_range($ORDSYMBOL,$string.ctx->getStop()));
     };
@@ -131,7 +131,7 @@ literal returns [literal_si value]
     : literal_internal
     {
         if (auto& v = $literal_internal.value; v.has_value())
-            $value = collector.add_literal(get_context_text($literal_internal.ctx), std::move(v.value()), provider.get_range($literal_internal.ctx));
+            $value = collector->add_literal(get_context_text($literal_internal.ctx), std::move(v.value()), provider.get_range($literal_internal.ctx));
     };
 
 literal_internal returns [std::optional<data_definition> value]
@@ -151,7 +151,7 @@ literal_internal returns [std::optional<data_definition> value]
 mach_data_attribute returns [data_attr_kind attribute, std::variant<std::monostate, std::pair<id_index,id_index>, std::unique_ptr<mach_expr_literal>, int> data, range symbol_rng]
     : ORDSYMBOL attr {auto lit_restore = enable_literals();}
     {
-        collector.add_hl_symbol(token_info(provider.get_range($ORDSYMBOL), hl_scopes::data_attr_type));
+        collector->add_hl_symbol(token_info(provider.get_range($ORDSYMBOL), hl_scopes::data_attr_type));
         $attribute = get_attribute($ORDSYMBOL->getText());
     }
     (
@@ -176,7 +176,7 @@ mach_data_attribute_value returns [std::variant<std::monostate, std::pair<id_ind
     }
     | id
     {
-        collector.add_hl_symbol(token_info(provider.get_range($id.ctx), hl_scopes::ordinary_symbol));
+        collector->add_hl_symbol(token_info(provider.get_range($id.ctx), hl_scopes::ordinary_symbol));
         if (auto name = $id.name; !name.empty())
             $data = std::make_pair(name, $id.using_qualifier);
     };
@@ -211,11 +211,11 @@ string returns [std::string value]
     : ap1=APOSTROPHE string_ch_c ap2=(APOSTROPHE|ATTR)
     {
         $value.append(std::move($string_ch_c.value));
-        collector.add_hl_symbol(token_info(provider.get_range($ap1,$ap2),hl_scopes::string));
+        collector->add_hl_symbol(token_info(provider.get_range($ap1,$ap2),hl_scopes::string));
     };
 
 mach_location_counter
     : ASTERISK
     {
-        collector.add_hl_symbol(token_info(provider.get_range( $ASTERISK), hl_scopes::operand));
+        collector->add_hl_symbol(token_info(provider.get_range( $ASTERISK), hl_scopes::operand));
     };

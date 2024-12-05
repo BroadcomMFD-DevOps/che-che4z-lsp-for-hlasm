@@ -25,7 +25,7 @@ data_def_string returns [std::string value]
     : ap1=(APOSTROPHE|ATTR) string_ch_c ap2=(APOSTROPHE|ATTR)
     {
         $value.append(std::move($string_ch_c.value));
-        collector.add_hl_symbol(token_info(provider.get_range($ap1,$ap2),hl_scopes::string));
+        collector->add_hl_symbol(token_info(provider.get_range($ap1,$ap2),hl_scopes::string));
     };
 
 nominal_value returns [nominal_value_ptr value]
@@ -125,7 +125,7 @@ data_def_base [data_definition_parser* p]
 
 data_def returns [data_definition value] locals [data_definition_parser p]
     :
-    { $p.set_collector(collector); }
+    { $p.set_collector(*collector); }
     { $p.set_goff(goff()); }
     data_def_base[&$p]
     (nominal_value {$p.push(std::move($nominal_value.value));})?
@@ -139,7 +139,7 @@ data_def returns [data_definition value] locals [data_definition_parser p]
 
 data_def_with_nominal returns [data_definition value] locals [data_definition_parser p]
     :
-    { $p.set_collector(collector); }
+    { $p.set_collector(*collector); }
     { $p.set_goff(goff()); }
     data_def_base[&$p]
     nominal_value {$p.push(std::move($nominal_value.value));}
