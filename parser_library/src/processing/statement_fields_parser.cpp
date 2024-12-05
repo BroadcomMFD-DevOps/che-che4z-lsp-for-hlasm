@@ -21,9 +21,9 @@
 
 namespace hlasm_plugin::parser_library::processing {
 
-statement_fields_parser::statement_fields_parser(context::hlasm_context* hlasm_ctx)
+statement_fields_parser::statement_fields_parser(context::hlasm_context& hlasm_ctx)
     : m_parser(parsing::parser_holder::create(hlasm_ctx, nullptr))
-    , m_hlasm_ctx(hlasm_ctx)
+    , m_hlasm_ctx(&hlasm_ctx)
 {}
 
 statement_fields_parser::~statement_fields_parser() = default;
@@ -47,7 +47,7 @@ statement_fields_parser::parse_result statement_fields_parser::parse_operand_fie
     });
     auto& h = *m_parser;
     h.prepare_parser(
-        field, m_hlasm_ctx, &add_diag_subst, std::move(field_range), original_range, logical_column, status);
+        field, *m_hlasm_ctx, &add_diag_subst, std::move(field_range), original_range, logical_column, status);
 
     semantics::op_rem line;
     std::vector<semantics::literal_si> literals;
