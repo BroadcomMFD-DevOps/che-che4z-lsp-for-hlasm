@@ -51,14 +51,14 @@ namespace hlasm_plugin::parser_library::parsing {
 
 struct parser_holder_impl final : parser_holder
 {
-    parser_holder_impl(context::hlasm_context* hl_ctx, diagnostic_op_consumer* d)
+    parser_holder_impl(context::hlasm_context& hl_ctx, diagnostic_op_consumer* d)
     {
-        hlasm_ctx = hl_ctx;
+        hlasm_ctx = &hl_ctx;
         diagnostic_collector = d;
     }
 };
 
-std::unique_ptr<parser_holder> parser_holder::create(context::hlasm_context* hl_ctx, diagnostic_op_consumer* d)
+std::unique_ptr<parser_holder> parser_holder::create(context::hlasm_context& hl_ctx, diagnostic_op_consumer* d)
 {
     return std::make_unique<parser_holder_impl>(hl_ctx, d);
 }
@@ -66,14 +66,14 @@ std::unique_ptr<parser_holder> parser_holder::create(context::hlasm_context* hl_
 parser_holder::~parser_holder() = default;
 
 void parser_holder::prepare_parser(lexing::u8string_view_with_newlines text,
-    context::hlasm_context* hl_ctx,
+    context::hlasm_context& hl_ctx,
     diagnostic_op_consumer* diags,
     semantics::range_provider rp,
     range text_range,
     size_t logical_column,
     const processing::processing_status& ps)
 {
-    hlasm_ctx = hl_ctx;
+    hlasm_ctx = &hl_ctx;
     diagnostic_collector = diags;
     range_prov = std::move(rp);
     proc_status = ps;
