@@ -79,14 +79,10 @@ struct parser_holder_impl final : parser_holder
     using parser_t = std::conditional_t<multiline, hlasmparser_multiline, hlasmparser_singleline>;
     parser_holder_impl(context::hlasm_context* hl_ctx, diagnostic_op_consumer* d)
     {
-        error_handler = std::make_shared<parsing::error_strategy>();
+        hlasm_ctx = hl_ctx;
+        diagnostic_collector = d;
         lex = std::make_unique<lexing::lexer>();
-        stream = std::make_unique<lexing::token_stream>(lex.get());
-        parser = std::make_unique<parser_t>(stream.get());
-        parser->setErrorHandler(error_handler);
-        parser->initialize(hl_ctx, d, collector);
     }
-    auto& get_parser() const { return static_cast<parser_t&>(*parser); }
 };
 
 std::unique_ptr<parser_holder> parser_holder::create(
@@ -119,15 +115,17 @@ bool parser_impl::is_self_def()
     return tmp == "B" || tmp == "X" || tmp == "C" || tmp == "G";
 }
 
-self_def_t parser_impl::parse_self_def_term(std::string_view option, std::string_view value, range term_range)
+self_def_t parse_self_def_term(
+    std::string_view option, std::string_view value, range term_range, diagnostic_op_consumer* diags)
 {
-    auto add_diagnostic = diagnoser_ ? diagnostic_adder(*diagnoser_, term_range) : diagnostic_adder(term_range);
+    auto add_diagnostic = diags ? diagnostic_adder(*diags, term_range) : diagnostic_adder(term_range);
     return expressions::ca_constant::self_defining_term(option, value, add_diagnostic);
 }
 
-self_def_t parser_impl::parse_self_def_term_in_mach(std::string_view type, std::string_view value, range term_range)
+self_def_t parse_self_def_term_in_mach(
+    std::string_view type, std::string_view value, range term_range, diagnostic_op_consumer* diags)
 {
-    auto add_diagnostic = diagnoser_ ? diagnostic_adder(*diagnoser_, term_range) : diagnostic_adder(term_range);
+    auto add_diagnostic = diags ? diagnostic_adder(*diags, term_range) : diagnostic_adder(term_range);
     if (type.size() == 1)
     {
         switch (type.front())
@@ -200,14 +198,6 @@ context::data_attr_kind parser_impl::get_attribute(std::string attr_data)
     return context::symbol_attributes::transform_attr(c);
 }
 
-context::id_index parser_impl::parse_identifier(std::string value, range id_range)
-{
-    if (value.size() > 63 && diagnoser_)
-        diagnoser_->add_diagnostic(diagnostic_op::error_S100(value, id_range));
-
-    return hlasm_ctx->ids().add(std::move(value));
-}
-
 int parser_impl::get_loctr_len() const
 {
     auto [_, opcode] = *proc_status;
@@ -223,71 +213,6 @@ std::optional<int> parser_impl::maybe_loctr_len() const
 bool parser_impl::loctr_len_allowed(const std::string& attr) const
 {
     return (attr == "L" || attr == "l") && proc_status.has_value();
-}
-
-void parser_impl::resolve_expression(expressions::ca_expr_ptr& expr, context::SET_t_enum type) const
-{
-    diagnostic_consumer_transform diags([this](diagnostic_op d) {
-        if (diagnoser_)
-            diagnoser_->add_diagnostic(std::move(d));
-    });
-    expr->resolve_expression_tree({ type, type, true }, diags);
-}
-
-void parser_impl::resolve_expression(std::vector<expressions::ca_expr_ptr>& expr_list, context::SET_t_enum type) const
-{
-    for (auto& expr : expr_list)
-        resolve_expression(expr, type);
-}
-
-void parser_impl::resolve_expression(expressions::ca_expr_ptr& expr) const
-{
-    diagnostic_consumer_transform diags([this](diagnostic_op d) {
-        if (diagnoser_)
-            diagnoser_->add_diagnostic(std::move(d));
-    });
-    auto [_, opcode] = *proc_status;
-    using wk = id_storage::well_known;
-    if (opcode.value == wk::SETA || opcode.value == wk::ACTR || opcode.value == wk::ASPACE || opcode.value == wk::AGO
-        || opcode.value == wk::MHELP)
-        resolve_expression(expr, context::SET_t_enum::A_TYPE);
-    else if (opcode.value == wk::SETB)
-    {
-        if (!expr->is_compatible(ca_expression_compatibility::setb))
-            diags.add_diagnostic(diagnostic_op::error_CE016_logical_expression_parenthesis(expr->expr_range));
-
-        resolve_expression(expr, context::SET_t_enum::B_TYPE);
-    }
-    else if (opcode.value == wk::AIF)
-    {
-        if (!expr->is_compatible(ca_expression_compatibility::aif))
-            diags.add_diagnostic(diagnostic_op::error_CE016_logical_expression_parenthesis(expr->expr_range));
-
-        resolve_expression(expr, context::SET_t_enum::B_TYPE);
-    }
-    else if (opcode.value == wk::SETC)
-    {
-        resolve_expression(expr, context::SET_t_enum::C_TYPE);
-    }
-    else if (opcode.value == wk::AREAD)
-    {
-        // aread operand is just enumeration
-    }
-    else
-    {
-        assert(false);
-        resolve_expression(expr, context::SET_t_enum::UNDEF_TYPE);
-    }
-}
-
-void parser_impl::resolve_concat_chain(const semantics::concat_chain& chain) const
-{
-    diagnostic_consumer_transform diags([this](diagnostic_op d) {
-        if (diagnoser_)
-            diagnoser_->add_diagnostic(std::move(d));
-    });
-    for (const auto& e : chain)
-        e.resolve(diags);
 }
 
 bool parser_impl::ALIAS()
@@ -350,39 +275,8 @@ antlr4::misc::IntervalSet parser_impl::getExpectedTokens()
         return antlr4::Parser::getExpectedTokens();
 }
 
-void parser_impl::add_diagnostic(
-    diagnostic_severity severity, std::string code, std::string message, range diag_range) const
-{
-    add_diagnostic(diagnostic_op(severity, std::move(code), std::move(message), diag_range));
-}
-
-void parser_impl::add_diagnostic(diagnostic_op d) const
-{
-    if (diagnoser_)
-        diagnoser_->add_diagnostic(std::move(d));
-}
-
 context::id_index parser_impl::add_id(std::string s) const { return hlasm_ctx->ids().add(std::move(s)); }
 context::id_index parser_impl::add_id(std::string_view s) const { return hlasm_ctx->ids().add(s); }
-
-void parser_impl::add_label_component(
-    const antlr4::Token* token, semantics::concat_chain& chain, std::string& buffer, bool& has_variables) const
-{
-    auto text = token->getText();
-    buffer.append(text);
-    if (text == ".")
-        chain.emplace_back(dot_conc(provider.get_range(token)));
-    else if (text == "=")
-        chain.emplace_back(equals_conc(provider.get_range(token)));
-    else
-        chain.emplace_back(char_str_conc(std::move(text), provider.get_range(token)));
-}
-void parser_impl::add_label_component(
-    semantics::vs_ptr s, semantics::concat_chain& chain, std::string& buffer, bool& has_variables) const
-{
-    has_variables = true;
-    chain.emplace_back(var_sym_conc(std::move(s)));
-}
 
 std::string parser_impl::get_context_text(const antlr4::ParserRuleContext* ctx) const
 {
@@ -413,20 +307,19 @@ bool parser_impl::goff() const noexcept { return hlasm_ctx->goff(); }
 parser_holder::~parser_holder() = default;
 
 void parser_holder::prepare_parser(lexing::u8string_view_with_newlines text,
-    context::hlasm_context* hlasm_ctx,
+    context::hlasm_context* hl_ctx,
     diagnostic_op_consumer* diags,
-    semantics::range_provider range_prov,
+    semantics::range_provider rp,
     range text_range,
     size_t logical_column,
-    const processing::processing_status& proc_status)
+    const processing::processing_status& ps)
 {
+    hlasm_ctx = hl_ctx;
+    diagnostic_collector = diags;
+    range_prov = std::move(rp);
+    proc_status = ps;
+
     lex->reset(text, text_range.start, logical_column);
-
-    stream->reset();
-
-    parser->reinitialize(hlasm_ctx, std::move(range_prov), proc_status, diags);
-
-    parser->reset();
 
     collector.prepare_for_next_statement();
 }
@@ -465,6 +358,72 @@ struct parser_holder::parser2
     const lexing::char_t* data;
 
     std::vector<range> remarks;
+
+    bool ca_string_enabled = true;
+    bool literals_allowed = true;
+
+    ///////////////////////////////////////////////////////////////////
+
+    bool allow_ca_string() const noexcept { return ca_string_enabled; }
+    void enable_ca_string() noexcept { ca_string_enabled = true; }
+    void disable_ca_string() noexcept { ca_string_enabled = false; }
+
+    class [[nodiscard]] literal_controller
+    {
+        enum class request_t
+        {
+            none,
+            off,
+            on,
+        } request = request_t::none;
+        parser2& impl;
+
+    public:
+        explicit literal_controller(parser2& impl) noexcept
+            : impl(impl)
+        {}
+        literal_controller(parser2& impl, bool restore) noexcept
+            : request(restore ? request_t::on : request_t::off)
+            , impl(impl)
+        {}
+        literal_controller(literal_controller&& oth) noexcept
+            : request(std::exchange(oth.request, request_t::none))
+            , impl(oth.impl)
+        {}
+        ~literal_controller()
+        {
+            switch (request)
+            {
+                case request_t::off:
+                    impl.literals_allowed = false;
+                    break;
+                case request_t::on:
+                    impl.literals_allowed = true;
+                    break;
+                default:
+                    break;
+            }
+        }
+    };
+
+    bool allow_literals() const noexcept { return literals_allowed; }
+    literal_controller enable_literals() noexcept
+    {
+        if (literals_allowed)
+            return literal_controller(*this);
+
+        literals_allowed = true;
+        return literal_controller(*this, false);
+    }
+    literal_controller disable_literals() noexcept
+    {
+        if (!literals_allowed)
+            return literal_controller(*this);
+
+        literals_allowed = false;
+        return literal_controller(*this, true);
+    }
+
 
     [[nodiscard]] constexpr bool before_nl() const noexcept
     {
@@ -541,17 +500,17 @@ struct parser_holder::parser2
             lex_last_remark();
     }
 
-    [[nodiscard]] range remap_range(range r) const noexcept { return holder->parser->provider.adjust_range(r); }
+    [[nodiscard]] range remap_range(range r) const noexcept { return holder->range_prov.adjust_range(r); }
 
     void add_diagnostic(diagnostic_op d)
     {
-        holder->parser->add_diagnostic(std::move(d));
-        holder->error_handler->singal_error();
+        if (holder->diagnostic_collector)
+            holder->diagnostic_collector->add_diagnostic(std::move(d));
     }
 
     void add_diagnostic(diagnostic_op (&d)(const range&))
     {
-        add_diagnostic(d(holder->parser->provider.adjust_range(range(cur_pos()))));
+        add_diagnostic(d(holder->range_prov.adjust_range(range(cur_pos()))));
     }
 
     void syntax_error_or_eof()
@@ -568,11 +527,15 @@ struct parser_holder::parser2
 
     context::id_index parse_identifier(std::string value, range id_range)
     {
-        return holder->parser->parse_identifier(std::move(value), id_range);
+        if (value.size() > 63 && holder->diagnostic_collector)
+            holder->diagnostic_collector->add_diagnostic(diagnostic_op::error_S100(value, id_range));
+
+        return holder->hlasm_ctx->ids().add(std::move(value));
     }
 
-    context::id_index add_id(std::string value) { return holder->parser->add_id(std::move(value)); }
-    context::id_index add_id(std::string_view value) { return holder->parser->add_id(value); }
+    // TODO: This should be changed, so the id_index is always valid ordinary symbol
+    context::id_index add_id(std::string value) { return holder->hlasm_ctx->ids().add(std::move(value)); }
+    context::id_index add_id(std::string_view value) { return holder->hlasm_ctx->ids().add(value); }
 
     void lex_last_remark()
     {
@@ -769,6 +732,57 @@ struct parser_holder::parser2
             : error(true)
         {}
     };
+
+    void resolve_expression(expressions::ca_expr_ptr& expr) const
+    {
+        diagnostic_consumer_transform diags([diags = holder->diagnostic_collector](diagnostic_op d) {
+            if (diags)
+                diags->add_diagnostic(std::move(d));
+        });
+        using enum context::SET_t_enum;
+        auto [_, opcode] = *holder->proc_status;
+        using wk = id_storage::well_known;
+        if (opcode.value == wk::SETA || opcode.value == wk::ACTR || opcode.value == wk::ASPACE
+            || opcode.value == wk::AGO || opcode.value == wk::MHELP)
+            expr->resolve_expression_tree({ A_TYPE, A_TYPE, true }, diags);
+        else if (opcode.value == wk::SETB)
+        {
+            if (!expr->is_compatible(ca_expression_compatibility::setb))
+                diags.add_diagnostic(diagnostic_op::error_CE016_logical_expression_parenthesis(expr->expr_range));
+
+            expr->resolve_expression_tree({ B_TYPE, B_TYPE, true }, diags);
+        }
+        else if (opcode.value == wk::AIF)
+        {
+            if (!expr->is_compatible(ca_expression_compatibility::aif))
+                diags.add_diagnostic(diagnostic_op::error_CE016_logical_expression_parenthesis(expr->expr_range));
+
+            expr->resolve_expression_tree({ B_TYPE, B_TYPE, true }, diags);
+        }
+        else if (opcode.value == wk::SETC)
+        {
+            expr->resolve_expression_tree({ C_TYPE, C_TYPE, true }, diags);
+        }
+        else if (opcode.value == wk::AREAD)
+        {
+            // aread operand is just enumeration
+        }
+        else
+        {
+            assert(false);
+            expr->resolve_expression_tree({ UNDEF_TYPE, UNDEF_TYPE, true }, diags);
+        }
+    }
+
+    void resolve_concat_chain(const semantics::concat_chain& chain) const
+    {
+        diagnostic_consumer_transform diags([diags = holder->diagnostic_collector](diagnostic_op d) {
+            if (diags)
+                diags->add_diagnostic(std::move(d));
+        });
+        for (const auto& e : chain)
+            e.resolve(diags);
+    }
 
     std::string lex_ord()
     {
@@ -1173,19 +1187,81 @@ struct parser_holder::parser2
 
     [[nodiscard]] auto parse_self_def_term(std::string_view type, std::string_view value, range r)
     {
-        return holder->parser->parse_self_def_term(type, value, r);
+        auto add_diagnostic =
+            holder->diagnostic_collector ? diagnostic_adder(*holder->diagnostic_collector, r) : diagnostic_adder(r);
+        return expressions::ca_constant::self_defining_term(type, value, add_diagnostic);
     }
     [[nodiscard]] auto parse_self_def_term_in_mach(std::string_view type, std::string_view value, range r)
     {
-        return holder->parser->parse_self_def_term_in_mach(type, value, r);
-    }
+        auto add_diagnostic =
+            holder->diagnostic_collector ? diagnostic_adder(*holder->diagnostic_collector, r) : diagnostic_adder(r);
+        if (type.size() == 1)
+        {
+            switch (type.front())
+            {
+                case 'b':
+                case 'B': {
+                    if (value.empty())
+                        return 0;
+                    uint32_t res = 0;
+                    if (auto conv = std::from_chars(value.data(), value.data() + value.size(), res, 2);
+                        conv.ec != std::errc() || conv.ptr != value.data() + value.size())
+                    {
+                        add_diagnostic(diagnostic_op::error_CE007);
+                        return 0;
+                    }
 
-    [[nodiscard]] auto allow_literals() const { return holder->parser->allow_literals(); }
-    [[nodiscard]] auto disable_literals() const { return holder->parser->disable_literals(); }
+                    return static_cast<int32_t>(res);
+                }
+                case 'd':
+                case 'D': {
+                    if (value.empty())
+                        return 0;
+
+                    auto it = std::ranges::find_if(value, [](auto c) { return c != '-' && c != '+'; });
+
+                    if (it - value.begin() > 1 || (value.front() == '-' && value.size() > 11))
+                    {
+                        add_diagnostic(diagnostic_op::error_CE007);
+                        return 0;
+                    }
+
+                    size_t start = value.front() == '+' ? 1 : 0;
+
+                    int32_t res = 0;
+                    if (auto conv = std::from_chars(value.data() + start, value.data() + value.size(), res, 10);
+                        conv.ec != std::errc() || conv.ptr != value.data() + value.size())
+                    {
+                        add_diagnostic(diagnostic_op::error_CE007);
+                        return 0;
+                    }
+
+                    return res;
+                }
+                case 'x':
+                case 'X': {
+                    if (value.empty())
+                        return 0;
+                    uint32_t res = 0;
+                    if (auto conv = std::from_chars(value.data(), value.data() + value.size(), res, 16);
+                        conv.ec != std::errc() || conv.ptr != value.data() + value.size())
+                    {
+                        add_diagnostic(diagnostic_op::error_CE007);
+                        return 0;
+                    }
+
+                    return static_cast<int32_t>(res);
+                }
+                default:
+                    break;
+            }
+        }
+        return expressions::ca_constant::self_defining_term(type, value, add_diagnostic);
+    }
 
     result_t<ca_expr_ptr> lex_rest_of_ca_string_group(ca_expr_ptr initial_duplicate_factor, const position& start)
     {
-        if (!holder->parser->allow_ca_string())
+        if (!allow_ca_string())
             return failure;
         auto [error, s] = lex_ca_string_with_optional_substring();
         if (error)
@@ -1635,7 +1711,7 @@ struct parser_holder::parser2
                     const auto start_value = cur_pos_adjusted();
                     if (follows<U'='>())
                     {
-                        auto lit = holder->parser->enable_literals();
+                        auto lit = enable_literals();
                         auto [error, l] = lex_literal();
                         if (error)
                             return failure;
@@ -1931,7 +2007,7 @@ struct parser_holder::parser2
 
     result_t<data_definition> lex_data_def_base()
     {
-        const auto goff = holder->parser->goff();
+        const auto goff = holder->hlasm_ctx->goff();
 
         data_definition result;
         // case state::duplicating_factor:
@@ -2575,7 +2651,13 @@ struct parser_holder::parser2
 
     op_data lab_instr_rest();
 
-    std::optional<int> maybe_loctr_len() { return holder->parser->maybe_loctr_len(); }
+    std::optional<int> maybe_loctr_len()
+    {
+        if (!holder->proc_status.has_value())
+            return std::nullopt;
+        auto [_, opcode] = *holder->proc_status;
+        return processing::processing_status_cache_key::generate_loctr_len(opcode.value.to_string_view());
+    }
 
     void op_rem_body_deferred();
     void op_rem_body_noop();
@@ -2888,7 +2970,7 @@ std::pair<operand_list, range> parser_holder::parser2::ca_expr_ops()
                 result.push_back(std::make_unique<expr_ca_operand>(std::make_unique<ca_constant>(0, r), r));
                 break;
             }
-            holder->parser->resolve_expression(expr);
+            resolve_expression(expr);
             result.push_back(std::make_unique<expr_ca_operand>(std::move(expr), remap_range({ start, cur_pos() })));
             pending = false;
         }
@@ -2945,7 +3027,7 @@ std::pair<operand_list, range> parser_holder::parser2::ca_branch_ops()
             if (error)
                 break;
             first_expr = std::move(e);
-            holder->parser->resolve_expression(first_expr);
+            resolve_expression(first_expr);
         }
         auto [error, ss] = lex_seq_symbol();
         if (error)
@@ -3090,7 +3172,7 @@ operand_ptr parser_holder::ca_op_expr()
     if (error || *p.input.next != EOF_SYMBOL)
         return nullptr;
 
-    parser->resolve_expression(expr);
+    p.resolve_expression(expr);
     return std::make_unique<expr_ca_operand>(std::move(expr), p.remap_range({ start, p.cur_pos() }));
 }
 
@@ -3643,8 +3725,8 @@ void parser_holder::parser2::op_rem_body_deferred()
                 break;
 
             case U'\'': {
-                holder->parser->disable_ca_string();
-                utils::scope_exit e([this]() noexcept { holder->parser->enable_ca_string(); });
+                disable_ca_string();
+                utils::scope_exit e([this]() noexcept { enable_ca_string(); });
 
                 const auto string_start = cur_pos_adjusted();
                 consume();
@@ -3950,9 +4032,9 @@ done:;
                     .line_range = remap_range({ line_start, cur_pos() }),
                 };
                 concatenation_point::clear_concat_chain(cc);
-                holder->parser->resolve_concat_chain(cc);
+                resolve_concat_chain(cc);
                 result.operands.emplace_back(std::make_unique<model_operand>(
-                    std::move(cc), holder->stream->get_line_limits(), remap_range({ start, *operand_end })));
+                    std::move(cc), holder->lex->get_line_limits(), remap_range({ start, *operand_end })));
                 return result;
             }
 

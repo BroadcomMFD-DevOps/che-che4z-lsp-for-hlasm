@@ -234,10 +234,6 @@ void opencode_provider::feed_line(parsing::parser_holder& p, bool is_process, bo
     if (subs.client && !std::exchange(m_encoding_warning_issued.client, true))
         m_diagnoser->add_diagnostic(diagnostic_op::warning_W018(range(position(lineno, 0))));
 
-    p.stream->reset();
-
-    p.parser->reset();
-
     p.collector.prepare_for_next_statement();
 
     m_ctx.hlasm_ctx->metrics.lines += m_current_logical_line.segments.size();
@@ -678,7 +674,7 @@ context::shared_stmt_ptr opencode_provider::get_next(const statement_processor& 
     }
 
     if (!lookahead)
-        ph.parser->set_diagnoser(diag_target);
+        ph.diagnostic_collector = diag_target;
 
     auto operands = [](auto op) {
         auto&& [p1, p2, p3] = op;

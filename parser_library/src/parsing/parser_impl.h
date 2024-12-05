@@ -76,84 +76,16 @@ public:
     static bool can_attribute_consume(const antlr4::Token* token);
 
 protected:
-    class literal_controller
-    {
-        enum class request_t
-        {
-            none,
-            off,
-            on,
-        } request = request_t::none;
-        parser_impl& impl;
-
-    public:
-        explicit literal_controller(parser_impl& impl) noexcept
-            : impl(impl)
-        {}
-        literal_controller(parser_impl& impl, bool restore) noexcept
-            : request(restore ? request_t::on : request_t::off)
-            , impl(impl)
-        {}
-        literal_controller(literal_controller&& oth) noexcept
-            : request(std::exchange(oth.request, request_t::none))
-            , impl(oth.impl)
-        {}
-        ~literal_controller()
-        {
-            switch (request)
-            {
-                case request_t::off:
-                    impl.literals_allowed = false;
-                    break;
-                case request_t::on:
-                    impl.literals_allowed = true;
-                    break;
-                default:
-                    break;
-            }
-        }
-    };
-
     void enable_lookahead_recovery();
     void disable_lookahead_recovery();
     void enable_continuation();
     void disable_continuation();
     bool is_self_def();
 
-    bool allow_ca_string() const noexcept { return ca_string_enabled; }
-    void enable_ca_string() noexcept { ca_string_enabled = true; }
-    void disable_ca_string() noexcept { ca_string_enabled = false; }
-
-    bool allow_literals() const noexcept { return literals_allowed; }
-    literal_controller enable_literals() noexcept
-    {
-        if (literals_allowed)
-            return literal_controller(*this);
-
-        literals_allowed = true;
-        return literal_controller(*this, false);
-    }
-    literal_controller disable_literals() noexcept
-    {
-        if (!literals_allowed)
-            return literal_controller(*this);
-
-        literals_allowed = false;
-        return literal_controller(*this, true);
-    }
-
-    self_def_t parse_self_def_term(std::string_view option, std::string_view value, range term_range);
-    self_def_t parse_self_def_term_in_mach(std::string_view option, std::string_view value, range term_range);
     context::data_attr_kind get_attribute(std::string attr_data);
-    context::id_index parse_identifier(std::string value, range id_range);
     int get_loctr_len() const;
     std::optional<int> maybe_loctr_len() const;
     bool loctr_len_allowed(const std::string& attr) const;
-
-    void resolve_expression(expressions::ca_expr_ptr& expr, context::SET_t_enum type) const;
-    void resolve_expression(std::vector<expressions::ca_expr_ptr>& expr, context::SET_t_enum type) const;
-    void resolve_expression(expressions::ca_expr_ptr& expr) const;
-    void resolve_concat_chain(const semantics::concat_chain& chain) const;
 
     lexing::token_stream& input;
     context::hlasm_context* hlasm_ctx = nullptr;
@@ -165,16 +97,8 @@ protected:
     bool END();
     bool NOT(const antlr4::Token* token) const;
 
-    void add_diagnostic(diagnostic_severity severity, std::string code, std::string message, range diag_range) const;
-    void add_diagnostic(diagnostic_op d) const;
-
     context::id_index add_id(std::string s) const;
     context::id_index add_id(std::string_view s) const;
-
-    void add_label_component(
-        const antlr4::Token* token, semantics::concat_chain& chain, std::string& buffer, bool& has_variables) const;
-    void add_label_component(
-        semantics::vs_ptr s, semantics::concat_chain& chain, std::string& buffer, bool& has_variables) const;
 
     std::string get_context_text(const antlr4::ParserRuleContext* ctx) const;
     void append_context_text(std::string& s, const antlr4::ParserRuleContext* ctx) const;
@@ -193,10 +117,12 @@ private:
 // structure containing parser components
 struct parser_holder
 {
-    std::shared_ptr<parsing::error_strategy> error_handler;
+    context::hlasm_context* hlasm_ctx = nullptr; // TODO: notnull
+    diagnostic_op_consumer* diagnostic_collector = nullptr;
+    semantics::range_provider range_prov;
+    std::optional<processing::processing_status> proc_status;
+
     std::unique_ptr<lexing::lexer> lex;
-    std::unique_ptr<lexing::token_stream> stream;
-    std::unique_ptr<parser_impl> parser;
     semantics::collector collector;
 
     virtual ~parser_holder();
