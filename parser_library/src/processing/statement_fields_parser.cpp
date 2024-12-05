@@ -17,7 +17,6 @@
 #include "context/hlasm_context.h"
 #include "lexing/lexer.h"
 #include "lexing/string_with_newlines.h"
-#include "parsing/error_strategy.h"
 #include "parsing/parser_impl.h"
 #include "semantics/operand_impls.h"
 

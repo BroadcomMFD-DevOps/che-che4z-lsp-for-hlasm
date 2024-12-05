@@ -55,8 +55,6 @@ add_custom_target(library_tests_copy
 target_include_directories(library_test
     PRIVATE
     ../src
-    ${GENERATED_GRAMMER_FOLDER}
-    ${GENERATED_FOLDER}
 )
 target_link_libraries(library_test PRIVATE parser_library)
 target_link_libraries(library_test PRIVATE gmock_main)

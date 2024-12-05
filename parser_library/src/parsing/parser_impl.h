@@ -17,9 +17,8 @@
 
 #include <type_traits>
 
-#include "Parser.h"
-#include "parser_error_listener.h"
 #include "semantics/collector.h"
+#include "semantics/range_provider.h"
 
 namespace hlasm_plugin::parser_library::context {
 class hlasm_context;
@@ -27,7 +26,6 @@ class hlasm_context;
 
 namespace hlasm_plugin::parser_library::lexing {
 class lexer;
-class token_stream;
 struct u8string_view_with_newlines;
 } // namespace hlasm_plugin::parser_library::lexing
 
@@ -35,83 +33,12 @@ namespace hlasm_plugin::parser_library::parsing {
 
 using self_def_t = std::int32_t;
 
-class error_strategy;
-
 struct macop_preprocess_results
 {
     std::string text;
     std::vector<range> text_ranges;
     range total_op_range;
     std::vector<range> remarks;
-};
-
-struct parser_holder;
-
-// class providing methods helpful for parsing and methods modifying parsing process
-class parser_impl : public antlr4::Parser
-{
-    friend struct parser_holder;
-
-public:
-    parser_impl(antlr4::TokenStream* input);
-
-    void initialize(
-        context::hlasm_context* hlasm_ctx, diagnostic_op_consumer* diagnoser, semantics::collector& collector);
-
-    void reinitialize(context::hlasm_context* hlasm_ctx,
-        semantics::range_provider range_prov,
-        processing::processing_status proc_stat,
-        diagnostic_op_consumer* diagnoser);
-
-    void set_diagnoser(diagnostic_op_consumer* diagnoser)
-    {
-        diagnoser_ = diagnoser;
-        err_listener_.diagnoser = diagnoser;
-    }
-
-    static bool is_attribute_consuming(char c);
-    static bool is_attribute_consuming(const antlr4::Token* token);
-
-    static bool can_attribute_consume(char c);
-    static bool can_attribute_consume(const antlr4::Token* token);
-
-protected:
-    void enable_lookahead_recovery();
-    void disable_lookahead_recovery();
-    void enable_continuation();
-    void disable_continuation();
-    bool is_self_def();
-
-    context::data_attr_kind get_attribute(std::string attr_data);
-    int get_loctr_len() const;
-    std::optional<int> maybe_loctr_len() const;
-    bool loctr_len_allowed(const std::string& attr) const;
-
-    lexing::token_stream& input;
-    context::hlasm_context* hlasm_ctx = nullptr;
-    std::optional<processing::processing_status> proc_status;
-    semantics::range_provider provider;
-    semantics::collector* collector = nullptr;
-
-    bool ALIAS();
-    bool END();
-    bool NOT(const antlr4::Token* token) const;
-
-    context::id_index add_id(std::string s) const;
-    context::id_index add_id(std::string_view s) const;
-
-    std::string get_context_text(const antlr4::ParserRuleContext* ctx) const;
-    void append_context_text(std::string& s, const antlr4::ParserRuleContext* ctx) const;
-
-    bool goff() const noexcept;
-
-private:
-    antlr4::misc::IntervalSet getExpectedTokens() override;
-    diagnostic_op_consumer* diagnoser_ = nullptr;
-    parser_error_listener err_listener_;
-
-    bool ca_string_enabled = true;
-    bool literals_allowed = true;
 };
 
 // structure containing parser components

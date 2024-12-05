@@ -18,7 +18,7 @@
 #include "context/variables/set_symbol.h"
 #include "document_symbol_item.h"
 #include "fade_messages.h"
-#include "hlasmparser_multiline.h"
+#include "parsing/parser_impl.h"
 #include "utils/similar.h"
 #include "utils/task.h"
 #include "workspace_manager.h"
