@@ -49,7 +49,6 @@
 
 namespace hlasm_plugin::parser_library::parsing {
 
-template<bool multiline>
 struct parser_holder_impl final : parser_holder
 {
     parser_holder_impl(context::hlasm_context* hl_ctx, diagnostic_op_consumer* d)
@@ -59,13 +58,9 @@ struct parser_holder_impl final : parser_holder
     }
 };
 
-std::unique_ptr<parser_holder> parser_holder::create(
-    context::hlasm_context* hl_ctx, diagnostic_op_consumer* d, bool multiline)
+std::unique_ptr<parser_holder> parser_holder::create(context::hlasm_context* hl_ctx, diagnostic_op_consumer* d)
 {
-    if (multiline)
-        return std::make_unique<parser_holder_impl<true>>(hl_ctx, d);
-    else
-        return std::make_unique<parser_holder_impl<false>>(hl_ctx, d);
+    return std::make_unique<parser_holder_impl>(hl_ctx, d);
 }
 
 parser_holder::~parser_holder() = default;
