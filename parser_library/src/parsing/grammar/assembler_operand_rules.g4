@@ -20,7 +20,7 @@ asm_op returns [operand_ptr op]
     { ALIAS() }? ORDSYMBOL string
     {
         auto range = provider.get_range($ORDSYMBOL,$string.ctx->getStop());
-        collector.add_hl_symbol(token_info(provider.get_range($ORDSYMBOL),hl_scopes::self_def_type));
+        collector->add_hl_symbol(token_info(provider.get_range($ORDSYMBOL),hl_scopes::self_def_type));
         $op = std::make_unique<expr_assembler_operand>(std::make_unique<mach_expr_default>(range),get_context_text($ctx),range);
     }
     | id lpar asm_op_comma_c rpar
@@ -29,7 +29,7 @@ asm_op returns [operand_ptr op]
             $id.name.to_string(),std::move($asm_op_comma_c.asm_ops),
             provider.get_range($id.ctx->getStart(),$rpar.ctx->getStop())
             );
-        collector.add_hl_symbol(token_info(provider.get_range($id.ctx),hl_scopes::operand));
+        collector->add_hl_symbol(token_info(provider.get_range($id.ctx),hl_scopes::operand));
     }
     |
     { END() }? lpar id1=end_instr_word comma id2=end_instr_word comma id3=end_instr_word rpar
@@ -41,9 +41,9 @@ asm_op returns [operand_ptr op]
         language_triplet.push_back(std::make_unique<complex_assembler_operand::string_value_t>($id1.value, first_range));
         language_triplet.push_back(std::make_unique<complex_assembler_operand::string_value_t>($id2.value, second_range));
         language_triplet.push_back(std::make_unique<complex_assembler_operand::string_value_t>($id3.value, third_range));
-        collector.add_hl_symbol(token_info(first_range,hl_scopes::operand));
-        collector.add_hl_symbol(token_info(second_range,hl_scopes::operand));
-        collector.add_hl_symbol(token_info(third_range,hl_scopes::operand));
+        collector->add_hl_symbol(token_info(first_range,hl_scopes::operand));
+        collector->add_hl_symbol(token_info(second_range,hl_scopes::operand));
+        collector->add_hl_symbol(token_info(third_range,hl_scopes::operand));
         $op = std::make_unique<complex_assembler_operand>(
             "",std::move(language_triplet),
             provider.get_range($lpar.ctx->getStart(),$rpar.ctx->getStop())
@@ -82,7 +82,7 @@ asm_op_inner returns [std::unique_ptr<complex_assembler_operand::component_value
             $op = std::make_unique<complex_assembler_operand::string_value_t>(
                 $id.name.to_string(),
                 provider.get_range($id.ctx));
-            collector.add_hl_symbol(token_info(provider.get_range($id.ctx),hl_scopes::operand));
+            collector->add_hl_symbol(token_info(provider.get_range($id.ctx),hl_scopes::operand));
         }
         |
         lpar asm_op_comma_c rpar
@@ -91,13 +91,13 @@ asm_op_inner returns [std::unique_ptr<complex_assembler_operand::component_value
                 $id.name.to_string(),
                 std::move($asm_op_comma_c.asm_ops),
                 provider.get_range($id.ctx->getStart(),$rpar.ctx->getStop()));
-            collector.add_hl_symbol(token_info(provider.get_range($id.ctx),hl_scopes::operand));
+            collector->add_hl_symbol(token_info(provider.get_range($id.ctx),hl_scopes::operand));
         }
     )
     | num
     {
         $op = std::make_unique<complex_assembler_operand::int_value_t>($num.value, provider.get_range($num.ctx));
-        collector.add_hl_symbol(token_info(provider.get_range($num.ctx),hl_scopes::operand));
+        collector->add_hl_symbol(token_info(provider.get_range($num.ctx),hl_scopes::operand));
     }
     |
     {

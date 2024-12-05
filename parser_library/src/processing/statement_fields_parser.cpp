@@ -58,7 +58,7 @@ statement_fields_parser::parse_result statement_fields_parser::parse_operand_fie
             diag.message = diagnostic_decorate_message(field.text, diag.message);
         add_diag.add_diagnostic(std::move(diag));
     });
-    const auto& h = is_multiline(field) ? *m_parser_multiline : *m_parser_singleline;
+    auto& h = is_multiline(field) ? *m_parser_multiline : *m_parser_singleline;
     h.prepare_parser(
         field, m_hlasm_ctx, &add_diag_subst, std::move(field_range), original_range, logical_column, status);
 
@@ -75,24 +75,24 @@ statement_fields_parser::parse_result statement_fields_parser::parse_operand_fie
         {
             case processing::processing_form::MAC: {
                 line.operands = h.macro_ops(true);
-                literals = h.parser->get_collector().take_literals();
+                literals = h.collector.take_literals();
                 break;
             }
             case processing::processing_form::ASM:
                 if (auto ops = h.op_rem_body_asm(opcode.value, true, !after_substitution); ops)
                     line = std::move(*ops);
-                literals = h.parser->get_collector().take_literals();
+                literals = h.collector.take_literals();
                 break;
             case processing::processing_form::MACH:
                 if (auto ops = h.op_rem_body_mach(true, !after_substitution); ops)
                     line = std::move(*ops);
                 transform_reloc_imm_operands(line.operands, opcode.value);
-                literals = h.parser->get_collector().take_literals();
+                literals = h.collector.take_literals();
                 break;
             case processing::processing_form::DAT:
                 if (auto ops = h.op_rem_body_dat(true, !after_substitution); ops)
                     line = std::move(*ops);
-                literals = h.parser->get_collector().take_literals();
+                literals = h.collector.take_literals();
                 break;
             default:
                 break;

@@ -19,7 +19,7 @@ before_var_sym_model_string returns [std::string value]
     : ap1=APOSTROPHE model_string_ch_c ap2=(APOSTROPHE|ATTR)
     {
         $value.append(std::move($model_string_ch_c.value));
-        collector.add_hl_symbol(token_info(provider.get_range($ap1,$ap2),hl_scopes::string));
+        collector->add_hl_symbol(token_info(provider.get_range($ap1,$ap2),hl_scopes::string));
     };
 
 before_var_sym_model_b returns [std::string value]
@@ -187,7 +187,7 @@ string_v_actual [concat_chain* chain]
     model_string_ch_v_c[$chain] ap2=(APOSTROPHE|ATTR)
     {
         $chain->emplace_back(char_str_conc("'", provider.get_range($ap2)));
-        collector.add_hl_symbol(token_info(provider.get_range($ap1,$ap2),hl_scopes::string));
+        collector->add_hl_symbol(token_info(provider.get_range($ap1,$ap2),hl_scopes::string));
     };
 
 model_string_v [concat_chain* chain]
@@ -198,5 +198,5 @@ model_string_v [concat_chain* chain]
     model_string_ch_v_c[$chain] ap2=(APOSTROPHE|ATTR)
     {
         $chain->emplace_back(char_str_conc("'", provider.get_range($ap2)));
-        collector.add_hl_symbol(token_info(provider.get_range($ap1,$ap2),hl_scopes::string));
+        collector->add_hl_symbol(token_info(provider.get_range($ap1,$ap2),hl_scopes::string));
     };

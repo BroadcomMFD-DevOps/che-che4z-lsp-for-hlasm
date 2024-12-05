@@ -50,7 +50,7 @@ parser_impl::parser_impl(antlr4::TokenStream* input)
     setBuildParseTree(false);
 }
 
-void parser_impl::initialize(context::hlasm_context* hl_ctx, diagnostic_op_consumer* d)
+void parser_impl::initialize(context::hlasm_context* hl_ctx, diagnostic_op_consumer* d, semantics::collector& c)
 {
     removeErrorListeners();
     addErrorListener(&err_listener_);
@@ -58,6 +58,7 @@ void parser_impl::initialize(context::hlasm_context* hl_ctx, diagnostic_op_consu
     hlasm_ctx = hl_ctx;
     diagnoser_ = d;
     err_listener_.diagnoser = d;
+    collector = &c;
 }
 
 void parser_impl::reinitialize(context::hlasm_context* h_ctx,
@@ -83,7 +84,7 @@ struct parser_holder_impl final : parser_holder
         stream = std::make_unique<lexing::token_stream>(lex.get());
         parser = std::make_unique<parser_t>(stream.get());
         parser->setErrorHandler(error_handler);
-        parser->initialize(hl_ctx, d);
+        parser->initialize(hl_ctx, d, collector);
     }
     auto& get_parser() const { return static_cast<parser_t&>(*parser); }
 };
@@ -417,7 +418,7 @@ void parser_holder::prepare_parser(lexing::u8string_view_with_newlines text,
     semantics::range_provider range_prov,
     range text_range,
     size_t logical_column,
-    const processing::processing_status& proc_status) const
+    const processing::processing_status& proc_status)
 {
     lex->reset(text, text_range.start, logical_column);
 
@@ -427,7 +428,7 @@ void parser_holder::prepare_parser(lexing::u8string_view_with_newlines text,
 
     parser->reset();
 
-    parser->get_collector().prepare_for_next_statement();
+    collector.prepare_for_next_statement();
 }
 
 constexpr const auto EOF_SYMBOL = lexing::lexer::EOF_SYMBOL;
@@ -455,7 +456,7 @@ constexpr auto attr_argument = group_from_string<{ U"$_#@abcdefghijklmnopqrstuvw
 
 struct parser_holder::parser2
 {
-    const parser_holder* holder;
+    parser_holder* holder;
 
     using input_state_t = decltype(holder->lex->peek_initial_input_state().first);
 
@@ -563,10 +564,7 @@ struct parser_holder::parser2
 
     void add_hl_symbol(const range& r, hl_scopes s) { add_hl_symbol_remapped(remap_range(r), s); }
 
-    void add_hl_symbol_remapped(const range& r, hl_scopes s)
-    {
-        holder->parser->get_collector().add_hl_symbol(token_info(r, s));
-    }
+    void add_hl_symbol_remapped(const range& r, hl_scopes s) { holder->collector.add_hl_symbol(token_info(r, s)); }
 
     context::id_index parse_identifier(std::string value, range id_range)
     {
@@ -2144,8 +2142,7 @@ struct parser_holder::parser2
             // continue processing
         }
 
-        return holder->parser->get_collector().add_literal(
-            capture_text(initial), std::move(dd), remap_range({ start, cur_pos() }));
+        return holder->collector.add_literal(capture_text(initial), std::move(dd), remap_range({ start, cur_pos() }));
     }
 
     result_t<ca_expr_ptr> lex_term_c()
@@ -2606,7 +2603,7 @@ struct parser_holder::parser2
     void lookahead_operands_and_remarks_dat();
     void lookahead_operands_and_remarks_asm();
 
-    parser2(const parser_holder* h)
+    parser2(parser_holder* h)
         : holder(h)
         , cont(h->lex->get_continuation_column())
     {
@@ -3048,45 +3045,45 @@ std::pair<operand_list, range> parser_holder::parser2::ca_var_def_ops()
     return { std::move(result), remap_range({ line_start, cur_pos() }) };
 }
 
-semantics::operand_list parser_holder::macro_ops(bool reparse) const
+semantics::operand_list parser_holder::macro_ops(bool reparse)
 {
     parser_holder::parser2 p(this);
     auto [ops, line_range] = p.macro_ops(reparse);
 
     if (!reparse)
     {
-        parser->collector.set_operand_remark_field(std::move(ops), std::move(p.remarks), line_range);
+        collector.set_operand_remark_field(std::move(ops), std::move(p.remarks), line_range);
         return {};
     }
     else
         return std::move(ops);
 }
 
-void parser_holder::op_rem_body_ca_expr() const
+void parser_holder::op_rem_body_ca_expr()
 {
     parser_holder::parser2 p(this);
 
     auto [ops, line_range] = p.ca_expr_ops();
-    parser->collector.set_operand_remark_field(std::move(ops), std::move(p.remarks), line_range);
+    collector.set_operand_remark_field(std::move(ops), std::move(p.remarks), line_range);
 }
 
-void parser_holder::op_rem_body_ca_branch() const
+void parser_holder::op_rem_body_ca_branch()
 {
     parser_holder::parser2 p(this);
 
     auto [ops, line_range] = p.ca_branch_ops();
-    parser->collector.set_operand_remark_field(std::move(ops), std::move(p.remarks), line_range);
+    collector.set_operand_remark_field(std::move(ops), std::move(p.remarks), line_range);
 }
 
-void parser_holder::op_rem_body_ca_var_def() const
+void parser_holder::op_rem_body_ca_var_def()
 {
     parser_holder::parser2 p(this);
 
     auto [ops, line_range] = p.ca_var_def_ops();
-    parser->collector.set_operand_remark_field(std::move(ops), std::move(p.remarks), line_range);
+    collector.set_operand_remark_field(std::move(ops), std::move(p.remarks), line_range);
 }
 
-operand_ptr parser_holder::ca_op_expr() const
+operand_ptr parser_holder::ca_op_expr()
 {
     parser_holder::parser2 p(this);
     const auto start = p.cur_pos_adjusted();
@@ -3107,8 +3104,8 @@ void parser_holder::parser2::lab_instr_process()
         consume();
 
     const auto r = remap_range({ start, cur_pos() });
-    holder->parser->collector.set_label_field(r);
-    holder->parser->collector.set_instruction_field(id_index("*PROCESS"), r);
+    holder->collector.set_label_field(r);
+    holder->collector.set_instruction_field(id_index("*PROCESS"), r);
     add_hl_symbol_remapped(r, hl_scopes::instruction);
 }
 
@@ -3168,9 +3165,9 @@ parser_holder::op_data parser_holder::parser2::lab_instr_empty(position start)
 {
     const auto r = remap_range(range(start));
 
-    holder->parser->collector.set_label_field(r);
-    holder->parser->collector.set_instruction_field(r);
-    holder->parser->collector.set_operand_remark_field(r);
+    holder->collector.set_label_field(r);
+    holder->collector.set_instruction_field(r);
+    holder->collector.set_operand_remark_field(r);
 
     return {};
 }
@@ -3423,7 +3420,7 @@ parser_holder::op_data parser_holder::parser2::lab_instr()
 void parser_holder::parser2::lex_handle_label(concat_chain cc, range r)
 {
     if (cc.empty())
-        holder->parser->collector.set_label_field(r);
+        holder->collector.set_label_field(r);
     else if (std::ranges::any_of(cc, [](const auto& c) { return std::holds_alternative<var_sym_conc>(c.value); }))
     {
         concatenation_point::clear_concat_chain(cc);
@@ -3433,7 +3430,7 @@ void parser_holder::parser2::lex_handle_label(concat_chain cc, range r)
                 continue;
             add_hl_symbol(std::get<char_str_conc>(c.value).conc_range, hl_scopes::label);
         }
-        holder->parser->collector.set_label_field(std::move(cc), r);
+        holder->collector.set_label_field(std::move(cc), r);
     }
     else if (std::holds_alternative<dot_conc>(cc.front().value) && is_ord_like(std::span(cc).subspan(1))) // seq symbol
     {
@@ -3442,19 +3439,19 @@ void parser_holder::parser2::lex_handle_label(concat_chain cc, range r)
             label.append(std::get<char_str_conc>(c.value).value);
 
         add_hl_symbol(r, hl_scopes::seq_symbol);
-        holder->parser->collector.set_label_field({ parse_identifier(std::move(label), r), r }, r);
+        holder->collector.set_label_field({ parse_identifier(std::move(label), r), r }, r);
     }
     else if (is_ord_like(cc))
     {
         std::string label = concatenation_point::to_string(std::move(cc));
         add_hl_symbol(r, hl_scopes::label);
         auto id = add_id(label);
-        holder->parser->collector.set_label_field({ id, std::move(label) }, r);
+        holder->collector.set_label_field({ id, std::move(label) }, r);
     }
     else
     {
         add_hl_symbol(r, hl_scopes::label);
-        holder->parser->collector.set_label_field(concatenation_point::to_string(std::move(cc)), r);
+        holder->collector.set_label_field(concatenation_point::to_string(std::move(cc)), r);
     }
 }
 
@@ -3471,19 +3468,19 @@ void parser_holder::parser2::lex_handle_instruction(concat_chain cc, range r)
             add_hl_symbol(std::get<semantics::char_str_conc>(point.value).conc_range, hl_scopes::instruction);
         }
 
-        holder->parser->collector.set_instruction_field(std::move(cc), r);
+        holder->collector.set_instruction_field(std::move(cc), r);
     }
     else if (is_ord_like(std::span(cc).first(1)))
     {
         add_hl_symbol(r, hl_scopes::instruction);
         auto instr_id = parse_identifier(concatenation_point::to_string(std::move(cc)), r);
-        holder->parser->collector.set_instruction_field(instr_id, r);
+        holder->collector.set_instruction_field(instr_id, r);
     }
     else
     {
         add_hl_symbol(r, hl_scopes::instruction);
         auto instr_id = add_id(concatenation_point::to_string(std::move(cc)));
-        holder->parser->collector.set_instruction_field(instr_id, r);
+        holder->collector.set_instruction_field(instr_id, r);
     }
 }
 
@@ -3500,13 +3497,13 @@ parser_holder::op_data parser_holder::parser2::look_lab_instr_seq()
 
     const auto label_r = remap_range({ start, seq_end });
     auto seq_symbol = seq_sym { parse_identifier(std::move(label), label_r), label_r };
-    holder->parser->collector.set_label_field(seq_symbol, label_r);
+    holder->collector.set_label_field(seq_symbol, label_r);
 
     if (!lex_optional_space() || !is_ord_first())
     {
         const auto r = remap_range(range(seq_end));
-        holder->parser->collector.set_instruction_field(r);
-        holder->parser->collector.set_operand_remark_field(r);
+        holder->collector.set_instruction_field(r);
+        holder->collector.set_operand_remark_field(r);
         return {};
     }
     const auto instr_start = cur_pos_adjusted();
@@ -3516,18 +3513,18 @@ parser_holder::op_data parser_holder::parser2::look_lab_instr_seq()
     if (!eof() && !follows<U' '>())
     {
         const auto r = remap_range(range(seq_end));
-        holder->parser->collector.set_instruction_field(r);
-        holder->parser->collector.set_operand_remark_field(r);
+        holder->collector.set_instruction_field(r);
+        holder->collector.set_operand_remark_field(r);
         return {};
     }
 
     const auto instr_r = remap_range({ instr_start, instr_end });
 
-    holder->parser->collector.set_instruction_field(parse_identifier(std::move(instr), instr_r), instr_r);
+    holder->collector.set_instruction_field(parse_identifier(std::move(instr), instr_r), instr_r);
 
     auto result = lab_instr_rest();
 
-    holder->parser->collector.set_operand_remark_field(result.op_range);
+    holder->collector.set_operand_remark_field(result.op_range);
 
     return result;
 }
@@ -3571,18 +3568,18 @@ parser_holder::op_data parser_holder::parser2::look_lab_instr()
     if (!label.empty())
     {
         const auto id = add_id(label);
-        holder->parser->collector.set_label_field(id, std::move(label), nullptr, label_r);
+        holder->collector.set_label_field(id, std::move(label), nullptr, label_r);
     }
-    holder->parser->collector.set_instruction_field(parse_identifier(std::move(instr), instr_r), instr_r);
+    holder->collector.set_instruction_field(parse_identifier(std::move(instr), instr_r), instr_r);
 
     auto result = lab_instr_rest();
 
-    holder->parser->collector.set_operand_remark_field(result.op_range);
+    holder->collector.set_operand_remark_field(result.op_range);
 
     return result;
 }
 
-parser_holder::op_data parser_holder::lab_instr() const
+parser_holder::op_data parser_holder::lab_instr()
 {
     parser_holder::parser2 p(this);
 
@@ -3592,7 +3589,7 @@ parser_holder::op_data parser_holder::lab_instr() const
     return p.lab_instr();
 }
 
-parser_holder::op_data parser_holder::look_lab_instr() const
+parser_holder::op_data parser_holder::look_lab_instr()
 {
     parser_holder::parser2 p(this);
 
@@ -3604,7 +3601,7 @@ void parser_holder::parser2::op_rem_body_deferred()
     const auto start = cur_pos_adjusted();
     if (eof())
     {
-        holder->parser->collector.set_operand_remark_field(remap_range(range(start)));
+        holder->collector.set_operand_remark_field(remap_range(range(start)));
         return;
     }
     if (!follows<U' '>())
@@ -3755,11 +3752,11 @@ void parser_holder::parser2::op_rem_body_deferred()
             }
         }
     }
-    holder->parser->collector.set_operand_remark_field(
+    holder->collector.set_operand_remark_field(
         std::move(*rest.op_text), std::move(vs), std::move(remarks), rest.op_range, rest.op_logical_column);
 }
 
-void parser_holder::op_rem_body_deferred() const
+void parser_holder::op_rem_body_deferred()
 {
     parser_holder::parser2 p(this);
 
@@ -3773,7 +3770,7 @@ void parser_holder::parser2::op_rem_body_noop()
     if (eof())
     {
         const auto r = remap_range(range(cur_pos()));
-        holder->parser->collector.set_operand_remark_field(operand_list(), remark_list(), r);
+        holder->collector.set_operand_remark_field(operand_list(), remark_list(), r);
     }
     else
     {
@@ -3782,11 +3779,11 @@ void parser_holder::parser2::op_rem_body_noop()
             consume();
 
         const auto r = remap_range({ start, cur_pos() });
-        holder->parser->collector.set_operand_remark_field(operand_list {}, remark_list { r }, r);
+        holder->collector.set_operand_remark_field(operand_list {}, remark_list { r }, r);
     }
 }
 
-void parser_holder::op_rem_body_noop() const
+void parser_holder::op_rem_body_noop()
 {
     parser_holder::parser2 p(this);
 
@@ -4124,7 +4121,7 @@ std::optional<semantics::op_rem> parser_holder::parser2::with_model(bool reparse
             return std::nullopt;
         else if (result)
             return std::move(*result);
-        holder->parser->collector.prepare_for_next_statement();
+        holder->collector.prepare_for_next_statement();
     }
 
     std::vector<operand_ptr> operands;
@@ -4177,14 +4174,14 @@ std::optional<semantics::op_rem> parser_holder::parser2::with_model(bool reparse
         .line_range = remap_range({ start, cur_pos() }),
     };
 }
-std::optional<semantics::op_rem> parser_holder::op_rem_body_mach(bool reparse, bool model_allowed) const
+std::optional<semantics::op_rem> parser_holder::op_rem_body_mach(bool reparse, bool model_allowed)
 {
     parser_holder::parser2 p(this);
 
     return p.with_model<&parser2::mach_op>(reparse, model_allowed);
 }
 
-std::optional<semantics::op_rem> parser_holder::op_rem_body_dat(bool reparse, bool model_allowed) const
+std::optional<semantics::op_rem> parser_holder::op_rem_body_dat(bool reparse, bool model_allowed)
 {
     parser_holder::parser2 p(this);
 
@@ -4420,7 +4417,7 @@ parser_holder::parser2::result_t<operand_ptr> parser_holder::parser2::asm_op()
     return std::make_unique<complex_assembler_operand>(std::move(id), std::move(nested), r);
 }
 
-std::optional<semantics::op_rem> parser_holder::op_rem_body_asm(id_index opcode, bool reparse, bool model_allowed) const
+std::optional<semantics::op_rem> parser_holder::op_rem_body_asm(id_index opcode, bool reparse, bool model_allowed)
 {
     parser_holder::parser2 p(this);
 
@@ -4434,7 +4431,7 @@ std::optional<semantics::op_rem> parser_holder::op_rem_body_asm(id_index opcode,
         return p.with_model<&parser2::asm_op>(reparse, model_allowed);
 }
 
-operand_ptr parser_holder::operand_mach() const
+operand_ptr parser_holder::operand_mach()
 {
     parser_holder::parser2 p(this);
     auto [error, op] = p.mach_op();
@@ -4449,22 +4446,22 @@ void parser_holder::parser2::lookahead_operands_and_remarks_dat()
     const auto start = cur_pos();
     if (eof() || !lex_optional_space() || eof())
     {
-        holder->parser->collector.set_operand_remark_field({}, {}, remap_range(range(start)));
+        holder->collector.set_operand_remark_field({}, {}, remap_range(range(start)));
         return;
     }
     auto [error, op] = dat_op();
     if (error)
     {
-        holder->parser->collector.set_operand_remark_field({}, {}, remap_range(range(start)));
+        holder->collector.set_operand_remark_field({}, {}, remap_range(range(start)));
         return;
     }
     operand_list operands;
     operands.push_back(std::move(op));
     range r = remap_range({ start, cur_pos() });
-    holder->parser->collector.set_operand_remark_field(std::move(operands), std::vector<range>(), r);
+    holder->collector.set_operand_remark_field(std::move(operands), std::vector<range>(), r);
 }
 
-void parser_holder::lookahead_operands_and_remarks_dat() const
+void parser_holder::lookahead_operands_and_remarks_dat()
 {
     parser2 p(this);
 
@@ -4476,7 +4473,7 @@ void parser_holder::parser2::lookahead_operands_and_remarks_asm()
     auto start = cur_pos_adjusted();
     if (eof() || !lex_optional_space() || eof())
     {
-        holder->parser->collector.set_operand_remark_field({}, {}, remap_range(range(start)));
+        holder->collector.set_operand_remark_field({}, {}, remap_range(range(start)));
         return;
     }
     operand_list operands;
@@ -4515,17 +4512,17 @@ void parser_holder::parser2::lookahead_operands_and_remarks_asm()
             operands.push_back(std::move(op));
     }
     const range r = remap_range({ start, cur_pos() });
-    holder->parser->collector.set_operand_remark_field(std::move(operands), std::vector<range>(), r);
+    holder->collector.set_operand_remark_field(std::move(operands), std::vector<range>(), r);
 }
 
-void parser_holder::lookahead_operands_and_remarks_asm() const
+void parser_holder::lookahead_operands_and_remarks_asm()
 {
     parser2 p(this);
 
     p.lookahead_operands_and_remarks_asm();
 }
 
-semantics::literal_si parser_holder::literal_reparse() const
+semantics::literal_si parser_holder::literal_reparse()
 {
     parser2 p(this);
 
