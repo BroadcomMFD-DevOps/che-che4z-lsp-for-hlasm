@@ -461,9 +461,9 @@ semantics::literal_si ca_symbol_attribute::reparse_substituted_literal(
         diag.message = diagnostic_decorate_message(text, diag.message);
         eval_ctx.diags.add_diagnostic(std::move(diag));
     });
-    auto h = parsing::parser_holder::create(eval_ctx.hlasm_ctx, &add_diag_subst);
+    auto h = parsing::parser_holder(eval_ctx.hlasm_ctx, &add_diag_subst);
 
-    h->prepare_parser(lexing::u8string_view_with_newlines(text),
+    h.prepare_parser(lexing::u8string_view_with_newlines(text),
         eval_ctx.hlasm_ctx,
         &add_diag_subst,
         semantics::range_provider(var_range, semantics::adjusting_state::SUBSTITUTION),
@@ -474,7 +474,7 @@ semantics::literal_si ca_symbol_attribute::reparse_substituted_literal(
                                           processing::operand_occurrence::ABSENT),
             processing::op_code()));
 
-    auto literal_value = h->literal_reparse();
+    auto literal_value = h.literal_reparse();
 
     if (!error)
         return literal_value;

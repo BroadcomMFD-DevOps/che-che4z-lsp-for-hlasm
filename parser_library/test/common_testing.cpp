@@ -245,7 +245,7 @@ std::unique_ptr<expressions::ca_expression> parse_ca_expression(analyzer& a) { r
 expressions::data_definition parse_data_definition(analyzer& a, diagnostic_op_consumer* diag)
 {
     if (diag)
-        a.parser().diagnostic_collector = diag;
+        a.parser().set_diagnostic_collector(diag);
     return a.parser().testing_data_def();
 }
 

@@ -29,7 +29,7 @@ struct u8string_view_with_newlines;
 
 namespace hlasm_plugin::parser_library::parsing {
 class parser_error_listener_ctx;
-struct parser_holder;
+class parser_holder;
 } // namespace hlasm_plugin::parser_library::parsing
 
 namespace hlasm_plugin::parser_library::processing {

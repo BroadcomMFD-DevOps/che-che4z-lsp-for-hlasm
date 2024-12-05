@@ -45,9 +45,9 @@ opencode_provider::opencode_provider(std::string_view text,
     : statement_provider(statement_provider_kind::OPEN)
     , m_input_document(text)
     , m_virtual_files(std::make_shared<std::unordered_map<context::id_index, std::string>>())
-    , m_parsers { parsing::parser_holder::create(*ctx.hlasm_ctx, &diag_consumer),
-        parsing::parser_holder::create(*ctx.hlasm_ctx, nullptr),
-        parsing::parser_holder::create(*ctx.hlasm_ctx, nullptr) }
+    , m_parsers { std::make_unique<parsing::parser_holder>(*ctx.hlasm_ctx, &diag_consumer),
+        std::make_unique<parsing::parser_holder>(*ctx.hlasm_ctx, nullptr),
+        std::make_unique<parsing::parser_holder>(*ctx.hlasm_ctx, nullptr) }
     , m_ctx(ctx)
     , m_lib_provider(&lib_provider)
     , m_state_listener(&state_listener)
@@ -657,7 +657,7 @@ context::shared_stmt_ptr opencode_provider::get_next(const statement_processor& 
     }
 
     if (!lookahead)
-        ph.diagnostic_collector = diag_target;
+        ph.set_diagnostic_collector(diag_target);
 
     auto operands = [](auto op) {
         auto&& [p1, p2, p3] = op;

@@ -697,12 +697,12 @@ public:
         std::string error_msg;
         error_collector diags(error_msg);
 
-        auto p = parsing::parser_holder::create(*ctx_, nullptr);
-        p->prepare_parser(
+        auto p = parsing::parser_holder(*ctx_, nullptr);
+        p.prepare_parser(
             lexing::u8string_view_with_newlines(expr), *ctx_, &diags, semantics::range_provider(), range(), 1, status);
 
         semantics::operand_ptr op =
-            status.first.form == processing::processing_form::CA ? p->ca_op_expr() : p->operand_mach();
+            status.first.form == processing::processing_form::CA ? p.ca_op_expr() : p.operand_mach();
 
         static constexpr auto ca_expr = [](const semantics::operand_ptr& o) -> const expressions::ca_expression* {
             if (auto* ca_op = o->access_ca())

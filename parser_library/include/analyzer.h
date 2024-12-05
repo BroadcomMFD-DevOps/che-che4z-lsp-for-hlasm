@@ -44,7 +44,7 @@ class id_storage;
 } // namespace hlasm_plugin::parser_library::context
 
 namespace hlasm_plugin::parser_library::parsing {
-struct parser_holder;
+class parser_holder;
 } // namespace hlasm_plugin::parser_library::parsing
 
 namespace hlasm_plugin::parser_library::processing {

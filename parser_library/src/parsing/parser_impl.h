@@ -55,17 +55,17 @@ struct char_substitution
 };
 
 // structure containing parser components
-struct parser_holder
+class parser_holder
 {
+public:
     using char_t = char32_t;
 
+private:
     context::hlasm_context* hlasm_ctx = nullptr; // TODO: notnull
     diagnostic_op_consumer* diagnostic_collector = nullptr;
     semantics::range_provider range_prov;
     std::optional<processing::processing_status> proc_status;
     size_t cont = 15;
-
-    semantics::collector collector;
 
     std::vector<char_t> input;
     std::vector<size_t> newlines;
@@ -84,6 +84,12 @@ struct parser_holder
     input_state_t input_state;
     bool process_allowed = false;
 
+public:
+    semantics::collector collector;
+
+    void set_diagnostic_collector(diagnostic_op_consumer* d) { diagnostic_collector = d; }
+
+    parser_holder(context::hlasm_context& hl_ctx, diagnostic_op_consumer* d);
     virtual ~parser_holder();
 
     struct op_data
@@ -131,8 +137,6 @@ struct parser_holder
         size_t logical_column,
         const processing::processing_status& proc_status);
 
-    static std::unique_ptr<parser_holder> create(context::hlasm_context& hl_ctx, diagnostic_op_consumer* d);
-
     char_substitution reset(lexing::u8string_view_with_newlines str,
         position file_offset,
         size_t logical_column,
@@ -144,7 +148,7 @@ struct parser_holder
         bool process_allowed = false);
     void reset(position file_offset, size_t logical_column, bool process_allowed);
 
-    struct parser2;
+    friend struct parser2;
 
     // testing only
     expressions::ca_expr_ptr testing_expr();
