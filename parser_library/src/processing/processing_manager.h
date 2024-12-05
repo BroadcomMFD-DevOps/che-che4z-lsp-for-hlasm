@@ -37,7 +37,7 @@ namespace hlasm_plugin::parser_library {
 class output_handler;
 } // namespace hlasm_plugin::parser_library
 namespace hlasm_plugin::parser_library::parsing {
-struct parser_holder;
+class parser_holder;
 } // namespace hlasm_plugin::parser_library::parsing
 
 namespace hlasm_plugin::parser_library::processing {

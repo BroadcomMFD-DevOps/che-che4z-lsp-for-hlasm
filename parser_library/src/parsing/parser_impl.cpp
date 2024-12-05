@@ -49,19 +49,10 @@
 
 namespace hlasm_plugin::parser_library::parsing {
 
-struct parser_holder_impl final : parser_holder
-{
-    parser_holder_impl(context::hlasm_context& hl_ctx, diagnostic_op_consumer* d)
-    {
-        hlasm_ctx = &hl_ctx;
-        diagnostic_collector = d;
-    }
-};
-
-std::unique_ptr<parser_holder> parser_holder::create(context::hlasm_context& hl_ctx, diagnostic_op_consumer* d)
-{
-    return std::make_unique<parser_holder_impl>(hl_ctx, d);
-}
+parser_holder::parser_holder(context::hlasm_context& hl_ctx, diagnostic_op_consumer* d)
+    : hlasm_ctx(&hl_ctx)
+    , diagnostic_collector(d)
+{}
 
 parser_holder::~parser_holder() = default;
 
@@ -236,11 +227,11 @@ char_substitution parser_holder::reset(
     return subs;
 }
 
-struct parser_holder::parser2
+struct parser2
 {
     parser_holder* holder;
 
-    input_state_t input;
+    parser_holder::input_state_t input;
     const lexing::char_t* data;
 
     std::vector<range> remarks;
@@ -2526,12 +2517,12 @@ struct parser_holder::parser2
 
     constexpr bool is_ord_like(std::span<const semantics::concatenation_point> cc);
 
-    op_data lab_instr();
+    parser_holder::op_data lab_instr();
     void lab_instr_process();
-    op_data lab_instr_empty(position start);
+    parser_holder::op_data lab_instr_empty(position start);
 
-    op_data look_lab_instr();
-    op_data look_lab_instr_seq();
+    parser_holder::op_data look_lab_instr();
+    parser_holder::op_data look_lab_instr_seq();
 
     result_t_void lex_label_string(concat_chain_builder& cb);
     result_t<semantics::concat_chain> lex_label();
@@ -2540,7 +2531,7 @@ struct parser_holder::parser2
     void lex_handle_label(semantics::concat_chain cc, range r);
     void lex_handle_instruction(semantics::concat_chain cc, range r);
 
-    op_data lab_instr_rest();
+    parser_holder::op_data lab_instr_rest();
 
     std::optional<int> maybe_loctr_len()
     {
@@ -2583,7 +2574,7 @@ struct parser_holder::parser2
     {}
 };
 
-std::pair<semantics::operand_list, range> parser_holder::parser2::macro_ops(bool reparse)
+std::pair<semantics::operand_list, range> parser2::macro_ops(bool reparse)
 {
     const auto input_start = cur_pos_adjusted();
     if (eof())
@@ -2761,8 +2752,7 @@ end:;
     return { std::move(result), remap_range({ line_start, cur_pos() }) };
 }
 
-parser_holder::parser2::result_t<std::variant<context::id_index, semantics::concat_chain>>
-parser_holder::parser2::lex_variable_name(position start)
+parser2::result_t<std::variant<context::id_index, semantics::concat_chain>> parser2::lex_variable_name(position start)
 {
     if (follows<U'('>())
     {
@@ -2790,7 +2780,7 @@ parser_holder::parser2::lex_variable_name(position start)
     }
 }
 
-parser_holder::parser2::result_t<semantics::vs_ptr> parser_holder::parser2::lex_variable()
+parser2::result_t<semantics::vs_ptr> parser2::lex_variable()
 {
     assert(follows<U'&'>());
 
@@ -2822,7 +2812,7 @@ parser_holder::parser2::result_t<semantics::vs_ptr> parser_holder::parser2::lex_
     }
 }
 
-std::pair<semantics::operand_list, range> parser_holder::parser2::ca_expr_ops()
+std::pair<semantics::operand_list, range> parser2::ca_expr_ops()
 {
     const auto input_start = cur_pos_adjusted();
     if (eof())
@@ -2878,7 +2868,7 @@ std::pair<semantics::operand_list, range> parser_holder::parser2::ca_expr_ops()
     return { std::move(result), remap_range({ line_start, cur_pos() }) };
 }
 
-std::pair<semantics::operand_list, range> parser_holder::parser2::ca_branch_ops()
+std::pair<semantics::operand_list, range> parser2::ca_branch_ops()
 {
     const auto input_start = cur_pos_adjusted();
     if (eof())
@@ -2942,7 +2932,7 @@ std::pair<semantics::operand_list, range> parser_holder::parser2::ca_branch_ops(
     return { std::move(result), remap_range({ line_start, cur_pos() }) };
 }
 
-std::pair<semantics::operand_list, range> parser_holder::parser2::ca_var_def_ops()
+std::pair<semantics::operand_list, range> parser2::ca_var_def_ops()
 {
     const auto input_start = cur_pos_adjusted();
     if (eof())
@@ -3024,7 +3014,7 @@ std::pair<semantics::operand_list, range> parser_holder::parser2::ca_var_def_ops
 
 semantics::operand_list parser_holder::macro_ops(bool reparse)
 {
-    parser_holder::parser2 p(this);
+    parser2 p(this);
     auto [ops, line_range] = p.macro_ops(reparse);
 
     if (!reparse)
@@ -3038,7 +3028,7 @@ semantics::operand_list parser_holder::macro_ops(bool reparse)
 
 void parser_holder::op_rem_body_ca_expr()
 {
-    parser_holder::parser2 p(this);
+    parser2 p(this);
 
     auto [ops, line_range] = p.ca_expr_ops();
     collector.set_operand_remark_field(std::move(ops), std::move(p.remarks), line_range);
@@ -3046,7 +3036,7 @@ void parser_holder::op_rem_body_ca_expr()
 
 void parser_holder::op_rem_body_ca_branch()
 {
-    parser_holder::parser2 p(this);
+    parser2 p(this);
 
     auto [ops, line_range] = p.ca_branch_ops();
     collector.set_operand_remark_field(std::move(ops), std::move(p.remarks), line_range);
@@ -3054,7 +3044,7 @@ void parser_holder::op_rem_body_ca_branch()
 
 void parser_holder::op_rem_body_ca_var_def()
 {
-    parser_holder::parser2 p(this);
+    parser2 p(this);
 
     auto [ops, line_range] = p.ca_var_def_ops();
     collector.set_operand_remark_field(std::move(ops), std::move(p.remarks), line_range);
@@ -3062,7 +3052,7 @@ void parser_holder::op_rem_body_ca_var_def()
 
 semantics::operand_ptr parser_holder::ca_op_expr()
 {
-    parser_holder::parser2 p(this);
+    parser2 p(this);
     const auto start = p.cur_pos_adjusted();
     auto [error, expr] = p.lex_expr_general();
     if (error || *p.input.next != EOF_SYMBOL)
@@ -3072,7 +3062,7 @@ semantics::operand_ptr parser_holder::ca_op_expr()
     return std::make_unique<semantics::expr_ca_operand>(std::move(expr), p.remap_range({ start, p.cur_pos() }));
 }
 
-void parser_holder::parser2::lab_instr_process()
+void parser2::lab_instr_process()
 {
     assert(follows_PROCESS());
 
@@ -3086,12 +3076,12 @@ void parser_holder::parser2::lab_instr_process()
     add_hl_symbol_remapped(r, hl_scopes::instruction);
 }
 
-parser_holder::op_data parser_holder::parser2::lab_instr_rest()
+parser_holder::op_data parser2::lab_instr_rest()
 {
     if (eof())
     {
         const auto r = remap_range(range(cur_pos()));
-        return op_data {
+        return parser_holder::op_data {
             .op_text = lexing::u8string_with_newlines(),
             .op_range = r,
             .op_logical_column = input.char_position_in_line,
@@ -3099,7 +3089,7 @@ parser_holder::op_data parser_holder::parser2::lab_instr_rest()
     }
 
     const auto op_start = cur_pos();
-    op_data result {
+    parser_holder::op_data result {
         .op_text = lexing::u8string_with_newlines(),
         .op_range = {},
         .op_logical_column = input.char_position_in_line,
@@ -3138,7 +3128,7 @@ parser_holder::op_data parser_holder::parser2::lab_instr_rest()
     return result;
 }
 
-parser_holder::op_data parser_holder::parser2::lab_instr_empty(position start)
+parser_holder::op_data parser2::lab_instr_empty(position start)
 {
     const auto r = remap_range(range(start));
 
@@ -3149,7 +3139,7 @@ parser_holder::op_data parser_holder::parser2::lab_instr_empty(position start)
     return {};
 }
 
-parser_holder::parser2::result_t_void parser_holder::parser2::lex_label_string(concat_chain_builder& cb)
+parser2::result_t_void parser2::lex_label_string(concat_chain_builder& cb)
 {
     assert(follows<U'\''>());
 
@@ -3188,7 +3178,7 @@ parser_holder::parser2::result_t_void parser_holder::parser2::lex_label_string(c
     return failure;
 }
 
-parser_holder::parser2::result_t<semantics::concat_chain> parser_holder::parser2::lex_label()
+parser2::result_t<semantics::concat_chain> parser2::lex_label()
 {
     semantics::concat_chain chain;
     concat_chain_builder cb(*this, chain, false);
@@ -3277,7 +3267,7 @@ parser_holder::parser2::result_t<semantics::concat_chain> parser_holder::parser2
     }
 }
 
-parser_holder::parser2::result_t<semantics::concat_chain> parser_holder::parser2::lex_instr()
+parser2::result_t<semantics::concat_chain> parser2::lex_instr()
 {
     if (eof() || follows<U' '>())
     {
@@ -3332,7 +3322,7 @@ parser_holder::parser2::result_t<semantics::concat_chain> parser_holder::parser2
     }
 }
 
-constexpr bool parser_holder::parser2::is_ord_like(std::span<const semantics::concatenation_point> cc)
+constexpr bool parser2::is_ord_like(std::span<const semantics::concatenation_point> cc)
 {
     if (std::ranges::any_of(
             cc, [](const auto& c) { return !std::holds_alternative<semantics::char_str_conc>(c.value); }))
@@ -3349,7 +3339,7 @@ constexpr bool parser_holder::parser2::is_ord_like(std::span<const semantics::co
     });
 }
 
-parser_holder::op_data parser_holder::parser2::lab_instr()
+parser_holder::op_data parser2::lab_instr()
 {
     if (eof())
         return lab_instr_empty(cur_pos());
@@ -3396,7 +3386,7 @@ parser_holder::op_data parser_holder::parser2::lab_instr()
     return lab_instr_rest();
 }
 
-void parser_holder::parser2::lex_handle_label(semantics::concat_chain cc, range r)
+void parser2::lex_handle_label(semantics::concat_chain cc, range r)
 {
     if (cc.empty())
         holder->collector.set_label_field(r);
@@ -3436,7 +3426,7 @@ void parser_holder::parser2::lex_handle_label(semantics::concat_chain cc, range 
     }
 }
 
-void parser_holder::parser2::lex_handle_instruction(semantics::concat_chain cc, range r)
+void parser2::lex_handle_instruction(semantics::concat_chain cc, range r)
 {
     assert(!cc.empty());
 
@@ -3465,7 +3455,7 @@ void parser_holder::parser2::lex_handle_instruction(semantics::concat_chain cc, 
     }
 }
 
-parser_holder::op_data parser_holder::parser2::look_lab_instr_seq()
+parser_holder::op_data parser2::look_lab_instr_seq()
 {
     const auto start = cur_pos_adjusted();
     consume();
@@ -3510,7 +3500,7 @@ parser_holder::op_data parser_holder::parser2::look_lab_instr_seq()
     return result;
 }
 
-parser_holder::op_data parser_holder::parser2::look_lab_instr()
+parser_holder::op_data parser2::look_lab_instr()
 {
     const auto start = cur_pos_adjusted();
 
@@ -3562,7 +3552,7 @@ parser_holder::op_data parser_holder::parser2::look_lab_instr()
 
 parser_holder::op_data parser_holder::lab_instr()
 {
-    parser_holder::parser2 p(this);
+    parser2 p(this);
 
     // TODO: diagnose instruction not finished on the initial line
     // const auto initial_state = p.input;
@@ -3572,12 +3562,12 @@ parser_holder::op_data parser_holder::lab_instr()
 
 parser_holder::op_data parser_holder::look_lab_instr()
 {
-    parser_holder::parser2 p(this);
+    parser2 p(this);
 
     return p.look_lab_instr();
 }
 
-void parser_holder::parser2::op_rem_body_deferred()
+void parser2::op_rem_body_deferred()
 {
     const auto start = cur_pos_adjusted();
     if (eof())
@@ -3739,12 +3729,12 @@ void parser_holder::parser2::op_rem_body_deferred()
 
 void parser_holder::op_rem_body_deferred()
 {
-    parser_holder::parser2 p(this);
+    parser2 p(this);
 
     p.op_rem_body_deferred();
 }
 
-void parser_holder::parser2::op_rem_body_noop()
+void parser2::op_rem_body_noop()
 {
     (void)lex_optional_space();
 
@@ -3766,12 +3756,12 @@ void parser_holder::parser2::op_rem_body_noop()
 
 void parser_holder::op_rem_body_noop()
 {
-    parser_holder::parser2 p(this);
+    parser2 p(this);
 
     p.op_rem_body_noop();
 }
 
-parser_holder::parser2::result_t_void parser_holder::parser2::lex_rest_of_model_string(concat_chain_builder& ccb)
+parser2::result_t_void parser2::lex_rest_of_model_string(concat_chain_builder& ccb)
 {
     while (true)
     {
@@ -3812,8 +3802,7 @@ parser_holder::parser2::result_t_void parser_holder::parser2::lex_rest_of_model_
     }
 }
 
-parser_holder::parser2::result_t<std::optional<semantics::op_rem>> parser_holder::parser2::try_model_ops(
-    position line_start)
+parser2::result_t<std::optional<semantics::op_rem>> parser2::try_model_ops(position line_start)
 {
     const auto start = cur_pos_adjusted();
     const auto initial = input.next;
@@ -4001,7 +3990,7 @@ done:;
     }
 }
 
-parser_holder::parser2::result_t<semantics::operand_ptr> parser_holder::parser2::mach_op()
+parser2::result_t<semantics::operand_ptr> parser2::mach_op()
 {
     const auto start = cur_pos_adjusted();
     auto [disp_error, disp] = lex_mach_expr();
@@ -4064,7 +4053,7 @@ parser_holder::parser2::result_t<semantics::operand_ptr> parser_holder::parser2:
         checking::operand_state::SECOND_OMITTED);
 }
 
-parser_holder::parser2::result_t<semantics::operand_ptr> parser_holder::parser2::dat_op()
+parser2::result_t<semantics::operand_ptr> parser2::dat_op()
 {
     const auto start = cur_pos_adjusted();
     const auto disabled = disable_literals();
@@ -4074,10 +4063,9 @@ parser_holder::parser2::result_t<semantics::operand_ptr> parser_holder::parser2:
         return failure;
     return std::make_unique<semantics::data_def_operand_inline>(std::move(d), remap_range({ start, cur_pos() }));
 }
-template<parser_holder::parser2::result_t<semantics::operand_ptr> (parser_holder::parser2::*first)(),
-    parser_holder::parser2::result_t<semantics::operand_ptr> (parser_holder::parser2::*rest)()>
-std::optional<semantics::op_rem> parser_holder::parser2::with_model(bool reparse, bool model_allowed)
-    requires(first != nullptr)
+template<parser2::result_t<semantics::operand_ptr> (parser2::*first)(),
+    parser2::result_t<semantics::operand_ptr> (parser2::*rest)()>
+std::optional<semantics::op_rem> parser2::with_model(bool reparse, bool model_allowed) requires(first != nullptr)
 {
     const auto start = cur_pos();
     if (eof())
@@ -4151,19 +4139,19 @@ std::optional<semantics::op_rem> parser_holder::parser2::with_model(bool reparse
 }
 std::optional<semantics::op_rem> parser_holder::op_rem_body_mach(bool reparse, bool model_allowed)
 {
-    parser_holder::parser2 p(this);
+    parser2 p(this);
 
     return p.with_model<&parser2::mach_op>(reparse, model_allowed);
 }
 
 std::optional<semantics::op_rem> parser_holder::op_rem_body_dat(bool reparse, bool model_allowed)
 {
-    parser_holder::parser2 p(this);
+    parser2 p(this);
 
     return p.with_model<&parser2::dat_op>(reparse, model_allowed);
 }
 
-parser_holder::parser2::result_t<semantics::operand_ptr> parser_holder::parser2::alias_op()
+parser2::result_t<semantics::operand_ptr> parser2::alias_op()
 {
     const auto start = cur_pos_adjusted();
     const auto initial = input.next;
@@ -4185,7 +4173,7 @@ parser_holder::parser2::result_t<semantics::operand_ptr> parser_holder::parser2:
         std::make_unique<expressions::mach_expr_default>(r), capture_text(initial), r);
 }
 
-parser_holder::parser2::result_t<semantics::operand_ptr> parser_holder::parser2::end_op()
+parser2::result_t<semantics::operand_ptr> parser2::end_op()
 {
     const auto start = cur_pos_adjusted();
     if (!match<U'('>(hl_scopes::operator_symbol))
@@ -4232,7 +4220,7 @@ parser_holder::parser2::result_t<semantics::operand_ptr> parser_holder::parser2:
     return std::make_unique<semantics::complex_assembler_operand>("", std::move(language_triplet), r);
 }
 
-parser_holder::parser2::result_t<semantics::operand_ptr> parser_holder::parser2::using_op1()
+parser2::result_t<semantics::operand_ptr> parser2::using_op1()
 {
     const auto start = cur_pos_adjusted();
     if (!try_consume<U'('>(hl_scopes::operator_symbol))
@@ -4268,7 +4256,7 @@ parser_holder::parser2::result_t<semantics::operand_ptr> parser_holder::parser2:
         std::move(e1), std::move(e2), capture_text(initial1, end1), capture_text(initial2, end2), r);
 }
 
-parser_holder::parser2::result_t<semantics::operand_ptr> parser_holder::parser2::asm_mach_expr()
+parser2::result_t<semantics::operand_ptr> parser2::asm_mach_expr()
 {
     const auto start = cur_pos_adjusted();
     const auto initial = input.next;
@@ -4282,7 +4270,7 @@ parser_holder::parser2::result_t<semantics::operand_ptr> parser_holder::parser2:
         std::move(expr), utils::to_upper_copy(capture_text(initial)), r);
 }
 
-constexpr bool parser_holder::parser2::ord_followed_by_parenthesis() const noexcept
+constexpr bool parser2::ord_followed_by_parenthesis() const noexcept
 {
     if (!is_ord_first())
         return false;
@@ -4295,8 +4283,7 @@ constexpr bool parser_holder::parser2::ord_followed_by_parenthesis() const noexc
     return *p == U'(';
 }
 
-parser_holder::parser2::result_t<std::unique_ptr<semantics::complex_assembler_operand::component_value_t>>
-parser_holder::parser2::asm_op_inner()
+parser2::result_t<std::unique_ptr<semantics::complex_assembler_operand::component_value_t>> parser2::asm_op_inner()
 {
     const auto start = cur_pos_adjusted();
     if (follows<U'\''>())
@@ -4346,8 +4333,8 @@ parser_holder::parser2::asm_op_inner()
     return std::make_unique<semantics::complex_assembler_operand::composite_value_t>(
         std::move(id), std::move(nested), r);
 }
-parser_holder::parser2::result_t<std::vector<std::unique_ptr<semantics::complex_assembler_operand::component_value_t>>>
-parser_holder::parser2::asm_op_comma_c()
+parser2::result_t<std::vector<std::unique_ptr<semantics::complex_assembler_operand::component_value_t>>>
+parser2::asm_op_comma_c()
 {
     std::vector<std::unique_ptr<semantics::complex_assembler_operand::component_value_t>> result;
     if (auto [error, op] = asm_op_inner(); error)
@@ -4367,7 +4354,7 @@ parser_holder::parser2::asm_op_comma_c()
 }
 
 
-parser_holder::parser2::result_t<semantics::operand_ptr> parser_holder::parser2::asm_op()
+parser2::result_t<semantics::operand_ptr> parser2::asm_op()
 {
     const auto start = cur_pos_adjusted();
     if (follows<U'\''>())
@@ -4401,7 +4388,7 @@ parser_holder::parser2::result_t<semantics::operand_ptr> parser_holder::parser2:
 std::optional<semantics::op_rem> parser_holder::op_rem_body_asm(
     context::id_index opcode, bool reparse, bool model_allowed)
 {
-    parser_holder::parser2 p(this);
+    parser2 p(this);
 
     static constexpr context::id_index ALIAS("ALIAS");
     static constexpr context::id_index USING("USING");
@@ -4419,7 +4406,7 @@ std::optional<semantics::op_rem> parser_holder::op_rem_body_asm(
 
 semantics::operand_ptr parser_holder::operand_mach()
 {
-    parser_holder::parser2 p(this);
+    parser2 p(this);
     auto [error, op] = p.mach_op();
     if (error || *p.input.next != EOF_SYMBOL)
         return nullptr;
@@ -4427,7 +4414,7 @@ semantics::operand_ptr parser_holder::operand_mach()
     return std::move(op);
 }
 
-void parser_holder::parser2::lookahead_operands_and_remarks_dat()
+void parser2::lookahead_operands_and_remarks_dat()
 {
     const auto start = cur_pos();
     if (eof() || !lex_optional_space() || eof())
@@ -4454,7 +4441,7 @@ void parser_holder::lookahead_operands_and_remarks_dat()
     p.lookahead_operands_and_remarks_dat();
 }
 
-void parser_holder::parser2::lookahead_operands_and_remarks_asm()
+void parser2::lookahead_operands_and_remarks_asm()
 {
     auto start = cur_pos_adjusted();
     if (eof() || !lex_optional_space() || eof())

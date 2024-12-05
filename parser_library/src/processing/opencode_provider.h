@@ -50,7 +50,7 @@ namespace hlasm_plugin::parser_library::lexing {
 struct u8string_view_with_newlines;
 } // namespace hlasm_plugin::parser_library::lexing
 namespace hlasm_plugin::parser_library::parsing {
-struct parser_holder;
+class parser_holder;
 } // namespace hlasm_plugin::parser_library::parsing
 namespace hlasm_plugin::parser_library::semantics {
 class collector;
