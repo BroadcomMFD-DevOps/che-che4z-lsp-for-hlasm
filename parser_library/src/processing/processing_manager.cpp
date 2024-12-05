@@ -468,7 +468,7 @@ void processing_manager::collect_diags() const
         collect_diags_from_child(*proc);
 }
 
-parsing::hlasmparser_multiline& processing_manager::opencode_parser() // for testing only
+parsing::parser_holder& processing_manager::opencode_parser() // for testing only
 {
     if (helper_task_.valid())
         std::exchange(helper_task_, {}).run();
