@@ -41,16 +41,48 @@ struct macop_preprocess_results
     std::vector<range> remarks;
 };
 
+struct char_substitution
+{
+    bool server : 1;
+    bool client : 1;
+
+    char_substitution& operator|=(const char_substitution& other)
+    {
+        server |= other.server;
+        client |= other.client;
+        return *this;
+    }
+};
+
 // structure containing parser components
 struct parser_holder
 {
+    using char_t = char32_t;
+
     context::hlasm_context* hlasm_ctx = nullptr; // TODO: notnull
     diagnostic_op_consumer* diagnostic_collector = nullptr;
     semantics::range_provider range_prov;
     std::optional<processing::processing_status> proc_status;
+    size_t cont = 15;
 
-    std::unique_ptr<lexing::lexer> lex;
     semantics::collector collector;
+
+    std::vector<char_t> input;
+    std::vector<size_t> newlines;
+    std::vector<size_t> line_limits;
+
+    struct input_state_t
+    {
+        const char_t* next;
+        const size_t* nl;
+        size_t line = 0;
+        size_t char_position_in_line = 0;
+        size_t char_position_in_line_utf16 = 0;
+        const char_t* last;
+    };
+
+    input_state_t input_state;
+    bool process_allowed = false;
 
     virtual ~parser_holder();
 
@@ -101,6 +133,17 @@ struct parser_holder
 
     static std::unique_ptr<parser_holder> create(
         context::hlasm_context* hl_ctx, diagnostic_op_consumer* d, bool multiline);
+
+    char_substitution reset(lexing::u8string_view_with_newlines str,
+        position file_offset,
+        size_t logical_column,
+        bool process_allowed = false);
+    char_substitution reset(
+        const lexing::logical_line<utils::utf8_iterator<std::string_view::iterator, utils::utf8_utf16_counter>>& l,
+        position file_offset,
+        size_t logical_column,
+        bool process_allowed = false);
+    void reset(position file_offset, size_t logical_column, bool process_allowed);
 
     struct parser2;
 

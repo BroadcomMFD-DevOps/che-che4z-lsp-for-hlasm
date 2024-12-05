@@ -18,7 +18,6 @@
 #include <format>
 
 #include "analyzer.h"
-#include "lexing/token_stream.h"
 #include "library_info_transitional.h"
 #include "lsp/lsp_context.h"
 #include "parsing/parser_impl.h"
@@ -26,6 +25,7 @@
 #include "processing/processing_manager.h"
 #include "semantics/collector.h"
 #include "semantics/range_provider.h"
+#include "semantics/source_info_processor.h"
 #include "utils/text_matchers.h"
 #include "utils/unicode_text.h"
 
@@ -224,7 +224,7 @@ void opencode_provider::feed_line(parsing::parser_holder& p, bool is_process, bo
         produce_hl_symbols(m_current_logical_line, lineno, *m_src_proc);
 
     const auto& subs =
-        p.lex->reset(m_current_logical_line, { lineno, 0 /*lexing::default_ictl.begin-1 really*/ }, 0, is_process);
+        p.reset(m_current_logical_line, { lineno, 0 /*lexing::default_ictl.begin-1 really*/ }, 0, is_process);
 
     if (subs.server && !std::exchange(m_encoding_warning_issued.server, true))
         m_diagnoser->add_diagnostic(diagnostic_op::warning_W017(range(position(lineno, 0))));

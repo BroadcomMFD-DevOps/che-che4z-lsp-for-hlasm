@@ -39,7 +39,6 @@
 #include "expressions/mach_expression.h"
 #include "expressions/nominal_value.h"
 #include "lexing/string_with_newlines.h"
-#include "lexing/token_stream.h"
 #include "processing/op_code.h"
 #include "semantics/operand.h"
 #include "semantics/operand_impls.h"
@@ -57,7 +56,6 @@ struct parser_holder_impl final : parser_holder
     {
         hlasm_ctx = hl_ctx;
         diagnostic_collector = d;
-        lex = std::make_unique<lexing::lexer>();
     }
 };
 
@@ -85,21 +83,21 @@ void parser_holder::prepare_parser(lexing::u8string_view_with_newlines text,
     range_prov = std::move(rp);
     proc_status = ps;
 
-    lex->reset(text, text_range.start, logical_column);
+    reset(text, text_range.start, logical_column);
 
     collector.prepare_for_next_statement();
 }
 
-constexpr const auto EOF_SYMBOL = lexing::lexer::EOF_SYMBOL;
-template<char32_t... chars>
+constexpr const auto EOF_SYMBOL = (parser_holder::char_t)-1;
+template<parser_holder::char_t... chars>
 requires((chars != EOF_SYMBOL) && ...) struct group_t
 {
-    [[nodiscard]] static constexpr bool matches(char32_t ch) noexcept { return ((ch == chars) || ...); }
+    [[nodiscard]] static constexpr bool matches(parser_holder::char_t ch) noexcept { return ((ch == chars) || ...); }
 };
-template<char32_t... chars>
+template<parser_holder::char_t... chars>
 constexpr group_t<chars...> group = {};
 
-template<std::array<char32_t, 256> s>
+template<std::array<parser_holder::char_t, 256> s>
 constexpr auto group_from_string()
 {
     constexpr auto n = std::ranges::find(s, U'\0') - s.begin();
@@ -113,13 +111,140 @@ constexpr auto mach_attrs = group_from_string<{ U"OSILTosilt" }>();
 constexpr auto all_attrs = group_from_string<{ U"NKDOSILTnkdosilt" }>();
 constexpr auto attr_argument = group_from_string<{ U"$_#@abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ&=*" }>();
 
+constexpr const auto ord_first = utils::create_truth_table("$_#@abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ");
+constexpr const auto ord =
+    utils::create_truth_table("$_#@abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789");
+constexpr const auto numbers = utils::create_truth_table("0123456789");
+constexpr const auto identifier_divider = utils::create_truth_table("*.-+=<>,()'/&| ");
+
+[[nodiscard]] constexpr bool char_is_ord_first(parser_holder::char_t c) noexcept
+{
+    return c < ord_first.size() && ord_first[c];
+}
+[[nodiscard]] constexpr bool char_is_ord(parser_holder::char_t c) noexcept { return c < ord.size() && ord[c]; }
+[[nodiscard]] constexpr bool char_is_num(parser_holder::char_t c) noexcept { return c < numbers.size() && numbers[c]; }
+
+namespace {
+std::pair<char_substitution, size_t> append_utf8_with_newlines_to_utf32(
+    std::vector<parser_holder::char_t>& t, std::vector<size_t>& nl, std::vector<size_t>& ll, std::string_view s)
+{
+    char_substitution subs {};
+
+    size_t utf16_length = 0;
+    while (!s.empty())
+    {
+        unsigned char c = s.front();
+        if (c < 0x80)
+        {
+            t.push_back(c);
+            s.remove_prefix(1);
+            ++utf16_length;
+            continue;
+        }
+        else if (c == lexing::u8string_view_with_newlines::EOLuc)
+        {
+            nl.push_back(t.size());
+            ll.push_back(std::exchange(utf16_length, 0));
+            s.remove_prefix(1);
+            continue;
+        }
+        const auto cs = utils::utf8_prefix_sizes[c];
+        if (cs.utf8 && cs.utf8 <= s.size())
+        {
+            char32_t v = c & 0b0111'1111u >> cs.utf8;
+            for (int i = 1; i < cs.utf8; ++i)
+                v = v << 6 | (s[i] & 0b0011'1111u);
+
+            if (v == utils::substitute_character)
+                subs.client = true;
+
+            t.push_back(v);
+            s.remove_prefix(cs.utf8);
+            utf16_length += cs.utf16;
+        }
+        else
+        {
+            subs.server = true;
+            t.push_back(utils::substitute_character);
+            s.remove_prefix(1);
+            ++utf16_length;
+        }
+    }
+
+    return { subs, utf16_length };
+}
+} // namespace
+
+void parser_holder::reset(position file_offset, size_t logical_column, bool process)
+{
+    process_allowed = process;
+
+    input.push_back(EOF_SYMBOL);
+    newlines.push_back((size_t)-1);
+    input_state.next = input.data();
+    input_state.nl = newlines.data();
+    input_state.line = file_offset.line;
+    input_state.char_position_in_line = logical_column;
+    input_state.char_position_in_line_utf16 = file_offset.column;
+    input_state.last = &input.back();
+
+    for (auto bump_line = file_offset.column; auto& ll : line_limits)
+    {
+        ll += bump_line;
+        bump_line = cont;
+    }
+}
+
+char_substitution parser_holder::reset(
+    lexing::u8string_view_with_newlines str, position file_offset, size_t logical_column, bool process)
+{
+    input.clear();
+    newlines.clear();
+    line_limits.clear();
+    auto [subs, _] = append_utf8_with_newlines_to_utf32(input, newlines, line_limits, str.text);
+
+    reset(file_offset, logical_column, process);
+
+    return subs;
+}
+
+char_substitution parser_holder::reset(
+    const lexing::logical_line<utils::utf8_iterator<std::string_view::iterator, utils::utf8_utf16_counter>>& l,
+    position file_offset,
+    size_t logical_column,
+    bool process)
+{
+    char_substitution subs {};
+
+    input.clear();
+    newlines.clear();
+    line_limits.clear();
+
+    for (size_t i = 0; i < l.segments.size(); ++i)
+    {
+        const auto& s = l.segments[i];
+
+        auto [subs_update, utf16_rem] = append_utf8_with_newlines_to_utf32(
+            input, newlines, line_limits, std::string_view(s.code_begin().base(), s.code_end().base()));
+
+        subs |= subs_update;
+
+        if (i + 1 < l.segments.size())
+        {
+            newlines.push_back(input.size());
+            line_limits.push_back(utf16_rem);
+        }
+    }
+
+    reset(file_offset, logical_column, process);
+
+    return subs;
+}
+
 struct parser_holder::parser2
 {
     parser_holder* holder;
 
-    using input_state_t = decltype(holder->lex->peek_initial_input_state().first);
-
-    size_t cont;
     input_state_t input;
     const lexing::char_t* data;
 
@@ -201,8 +326,8 @@ struct parser_holder::parser2
         if (before_nl())
             return;
 
-        input.char_position_in_line = cont;
-        input.char_position_in_line_utf16 = cont;
+        input.char_position_in_line = holder->cont;
+        input.char_position_in_line_utf16 = holder->cont;
         do
         {
             ++input.line;
@@ -336,28 +461,13 @@ struct parser_holder::parser2
         }
     }
 
-    static constexpr const auto ord_first =
-        utils::create_truth_table("$_#@abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ");
-    static constexpr const auto ord =
-        utils::create_truth_table("$_#@abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789");
-    static constexpr const auto numbers = utils::create_truth_table("0123456789");
-    static constexpr const auto identifier_divider = utils::create_truth_table("*.-+=<>,()'/&| ");
-
-    [[nodiscard]] static constexpr bool is_ord_first(char32_t c) noexcept
-    {
-        return c < ord_first.size() && ord_first[c];
-    }
-    [[nodiscard]] constexpr bool is_ord_first() const noexcept { return is_ord_first(*input.next); }
-
-    [[nodiscard]] static constexpr bool is_ord(char32_t c) noexcept { return c < ord.size() && ord[c]; }
-    [[nodiscard]] constexpr bool is_ord() const noexcept { return is_ord(*input.next); }
-
-    [[nodiscard]] static constexpr bool is_num(char32_t c) noexcept { return c < numbers.size() && numbers[c]; }
-    [[nodiscard]] constexpr bool is_num() const noexcept { return is_num(*input.next); }
+    [[nodiscard]] constexpr bool is_ord_first() const noexcept { return char_is_ord_first(*input.next); }
+    [[nodiscard]] constexpr bool is_ord() const noexcept { return char_is_ord(*input.next); }
+    [[nodiscard]] constexpr bool is_num() const noexcept { return char_is_num(*input.next); }
 
     [[nodiscard]] constexpr bool eof() const noexcept { return *input.next == EOF_SYMBOL; }
 
-    template<char32_t... chars>
+    template<parser_holder::char_t... chars>
     [[nodiscard]] constexpr bool except() const noexcept requires((chars != EOF_SYMBOL) && ...)
     {
         const auto ch = *input.next;
@@ -372,14 +482,14 @@ struct parser_holder::parser2
         }(std::make_index_sequence<sizeof...(groups)>());
     }
 
-    template<char32_t... chars>
+    template<parser_holder::char_t... chars>
     [[nodiscard]] constexpr bool follows() const noexcept requires((chars != EOF_SYMBOL) && ...)
     {
         const auto ch = *input.next;
         return ((ch == chars) || ...);
     }
 
-    template<char32_t... chars>
+    template<parser_holder::char_t... chars>
     [[nodiscard]] constexpr bool must_follow() requires((chars != EOF_SYMBOL) && ...)
     {
         if (follows<chars...>())
@@ -390,7 +500,7 @@ struct parser_holder::parser2
         return false;
     }
 
-    template<char32_t... chars>
+    template<parser_holder::char_t... chars>
     [[nodiscard]] constexpr bool must_follow(diagnostic_op (&d)(const range&)) requires((chars != EOF_SYMBOL) && ...)
     {
         if (follows<chars...>())
@@ -400,7 +510,7 @@ struct parser_holder::parser2
         return false;
     }
 
-    template<char32_t... chars>
+    template<parser_holder::char_t... chars>
     [[nodiscard]] constexpr bool match(diagnostic_op (&d)(const range&)) requires((chars != EOF_SYMBOL) && ...)
     {
         if (!follows<chars...>())
@@ -412,7 +522,7 @@ struct parser_holder::parser2
         return true;
     }
 
-    template<char32_t... chars>
+    template<parser_holder::char_t... chars>
     [[nodiscard]] constexpr bool match(hl_scopes s, diagnostic_op (&d)(const range&))
         requires((chars != EOF_SYMBOL) && ...)
     {
@@ -425,7 +535,7 @@ struct parser_holder::parser2
         return true;
     }
 
-    template<char32_t... chars>
+    template<parser_holder::char_t... chars>
     [[nodiscard]] constexpr bool match() requires((chars != EOF_SYMBOL) && ...)
     {
         if (must_follow<chars...>())
@@ -437,7 +547,7 @@ struct parser_holder::parser2
         return false;
     }
 
-    template<char32_t... chars>
+    template<parser_holder::char_t... chars>
     [[nodiscard]] constexpr bool match(hl_scopes s) requires((chars != EOF_SYMBOL) && ...)
     {
         if (must_follow<chars...>())
@@ -448,7 +558,7 @@ struct parser_holder::parser2
         return false;
     }
 
-    template<char32_t... chars>
+    template<parser_holder::char_t... chars>
     [[nodiscard]] constexpr bool try_consume() requires((chars != EOF_SYMBOL) && ...)
     {
         if (follows<chars...>())
@@ -459,7 +569,7 @@ struct parser_holder::parser2
         return false;
     }
 
-    template<char32_t... chars>
+    template<parser_holder::char_t... chars>
     [[nodiscard]] constexpr bool try_consume(hl_scopes s) requires((chars != EOF_SYMBOL) && ...)
     {
         if (follows<chars...>())
@@ -696,7 +806,7 @@ struct parser_holder::parser2
     [[nodiscard]] constexpr bool follows_NOT() const noexcept
     {
         return follows<group<U'N', U'n'>, group<U'O', U'o'>, group<U'T', U't'>>() && input.next[3] != EOF_SYMBOL
-            && !is_ord(input.next[3]);
+            && !char_is_ord(input.next[3]);
     }
 
     static constexpr auto PROCESS = context::id_index("*PROCESS");
@@ -1211,7 +1321,7 @@ struct parser_holder::parser2
             return false;
         const auto* p = input.next;
         std::string s;
-        while (is_ord(*p))
+        while (char_is_ord(*p))
         {
             if (s.size() >= expressions::ca_common_expr_policy::max_function_name_length)
                 return false;
@@ -1599,7 +1709,7 @@ struct parser_holder::parser2
 
     result_t<expressions::mach_expr_ptr> lex_mach_term_c()
     {
-        if (follows<U'+'>() || (follows<U'-'>() && !is_num(input.next[1])))
+        if (follows<U'+'>() || (follows<U'-'>() && !char_is_num(input.next[1])))
         {
             const auto plus = *input.next == U'+';
             const auto start = cur_pos_adjusted();
@@ -1673,7 +1783,7 @@ struct parser_holder::parser2
         return checking::data_def_type::types_and_extensions.count(std::make_pair(type, ch)) > 0;
     }
 
-    static constexpr int digit_to_value(char32_t c)
+    static constexpr int digit_to_value(parser_holder::char_t c)
     {
         static_assert(U'0' + 0 == U'0');
         static_assert(U'0' + 1 == U'1');
@@ -1858,7 +1968,8 @@ struct parser_holder::parser2
 
         // case state::try_reading_exponent:
         // case state::read_exponent:
-        if (try_consume<U'E', U'e'>(hl_scopes::data_def_modifier))
+        static constexpr auto can_have_exponent = group_from_string<{ U"DEFHLdefhl" }>();
+        if (can_have_exponent.matches(result.type) && try_consume<U'E', U'e'>(hl_scopes::data_def_modifier))
         {
             auto [error, e] = lex_literal_signed_num();
             if (error)
@@ -1969,7 +2080,7 @@ struct parser_holder::parser2
         return std::move(d);
     }
 
-    std::string capture_text(const char32_t* start, const char32_t* end) const
+    std::string capture_text(const parser_holder::char_t* start, const parser_holder::char_t* end) const
     {
         std::string s;
         s.reserve(end - start);
@@ -1977,7 +2088,7 @@ struct parser_holder::parser2
         return s;
     }
 
-    std::string capture_text(const char32_t* start) const { return capture_text(start, input.next); }
+    std::string capture_text(const parser_holder::char_t* start) const { return capture_text(start, input.next); }
 
     result_t<semantics::literal_si> lex_literal()
     {
@@ -2004,7 +2115,7 @@ struct parser_holder::parser2
 
     result_t<expressions::ca_expr_ptr> lex_term_c()
     {
-        if (follows<U'+'>() || (follows<U'-'>() && !is_num(input.next[1])))
+        if (follows<U'+'>() || (follows<U'-'>() && !char_is_num(input.next[1])))
         {
             const auto start = cur_pos_adjusted();
             const auto plus = *input.next == U'+';
@@ -2244,7 +2355,7 @@ struct parser_holder::parser2
             return false;
         }
 
-        if (is_ord_first(input.next[2]) || input.next[2] == U'=')
+        if (char_is_ord_first(input.next[2]) || input.next[2] == U'=')
         {
             consume_into(ccb.last_text_value());
             consume_into(ccb.last_text_value());
@@ -2472,10 +2583,9 @@ struct parser_holder::parser2
 
     parser2(parser_holder* h)
         : holder(h)
-        , cont(h->lex->get_continuation_column())
-    {
-        std::tie(input, data) = holder->lex->peek_initial_input_state();
-    }
+        , input(holder->input_state)
+        , data(holder->input.data())
+    {}
 };
 
 std::pair<semantics::operand_list, range> parser_holder::parser2::macro_ops(bool reparse)
@@ -3007,8 +3117,8 @@ parser_holder::op_data parser_holder::parser2::lab_instr_rest()
             result.op_text->text.push_back(lexing::u8string_view_with_newlines::EOLc);
             ++input.line;
             ++input.nl;
-            input.char_position_in_line = cont;
-            input.char_position_in_line_utf16 = cont;
+            input.char_position_in_line = holder->cont;
+            input.char_position_in_line_utf16 = holder->cont;
         }
 
         const auto ch = *input.next;
@@ -3024,8 +3134,8 @@ parser_holder::op_data parser_holder::parser2::lab_instr_rest()
         result.op_text->text.push_back(lexing::u8string_view_with_newlines::EOLc);
         ++input.line;
         ++input.nl;
-        input.char_position_in_line = cont;
-        input.char_position_in_line_utf16 = cont;
+        input.char_position_in_line = holder->cont;
+        input.char_position_in_line_utf16 = holder->cont;
     }
 
     result.op_range = remap_range({ op_start, cur_pos() });
@@ -3236,11 +3346,11 @@ constexpr bool parser_holder::parser2::is_ord_like(std::span<const semantics::co
         cc, [](const auto& c) { return !std::get<semantics::char_str_conc>(c.value).value.empty(); });
     if (it == cc.end())
         return false;
-    if (!is_ord_first(std::get<semantics::char_str_conc>(it->value).value.front()))
+    if (!char_is_ord_first(std::get<semantics::char_str_conc>(it->value).value.front()))
         return false;
     return std::all_of(it, cc.end(), [](const auto& c) {
         const auto& str = std::get<semantics::char_str_conc>(c.value).value;
-        return std::ranges::all_of(str, [](unsigned char uc) { return is_ord(uc); });
+        return std::ranges::all_of(str, [](unsigned char uc) { return char_is_ord(uc); });
     });
 }
 
@@ -3249,7 +3359,7 @@ parser_holder::op_data parser_holder::parser2::lab_instr()
     if (eof())
         return lab_instr_empty(cur_pos());
 
-    if (holder->lex->process_allowed() && follows_PROCESS())
+    if (holder->process_allowed && follows_PROCESS())
     {
         lab_instr_process();
         return lab_instr_rest();
@@ -3444,7 +3554,7 @@ parser_holder::op_data parser_holder::parser2::look_lab_instr()
     if (!label.empty())
     {
         const auto id = add_id(label);
-        holder->collector.set_label_field(id, std::move(label), nullptr, label_r);
+        holder->collector.set_label_field(semantics::ord_symbol_string { id, std::move(label) }, label_r);
     }
     holder->collector.set_instruction_field(parse_identifier(std::move(instr), instr_r), instr_r);
 
@@ -3830,7 +3940,7 @@ done:;
                 semantics::concatenation_point::clear_concat_chain(cc);
                 resolve_concat_chain(cc);
                 result.operands.emplace_back(std::make_unique<semantics::model_operand>(
-                    std::move(cc), holder->lex->get_line_limits(), remap_range({ start, *operand_end })));
+                    std::move(cc), holder->line_limits, remap_range({ start, *operand_end })));
                 return result;
             }
 
@@ -4184,7 +4294,7 @@ constexpr bool parser_holder::parser2::ord_followed_by_parenthesis() const noexc
 
     const auto* p = input.next;
 
-    while (is_ord(*p))
+    while (char_is_ord(*p))
         ++p;
 
     return *p == U'(';
