@@ -240,17 +240,15 @@ template std::optional<context::A_t> get_global_var_value(hlasm_context& ctx, st
 template std::optional<context::B_t> get_global_var_value(hlasm_context& ctx, std::string name);
 template std::optional<context::C_t> get_global_var_value(hlasm_context& ctx, std::string name);
 
-size_t get_syntax_errors(analyzer& a) { return a.parser().getNumberOfSyntaxErrors(); }
+size_t get_syntax_errors(analyzer& a) { return a.parser().parser->getNumberOfSyntaxErrors(); }
 
-std::unique_ptr<expressions::ca_expression> parse_ca_expression(analyzer& a)
-{
-    return std::move(a.parser().expr()->ca_expr);
-}
+std::unique_ptr<expressions::ca_expression> parse_ca_expression(analyzer& a) { return a.parser().testing_expr(); }
+
 expressions::data_definition parse_data_definition(analyzer& a, diagnostic_op_consumer* diag)
 {
     if (diag)
-        a.parser().set_diagnoser(diag);
-    return std::move(a.parser().data_def()->value);
+        a.parser().parser->set_diagnoser(diag);
+    return a.parser().testing_data_def();
 }
 
 namespace hlasm_plugin::parser_library {

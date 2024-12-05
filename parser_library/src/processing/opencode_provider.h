@@ -50,7 +50,6 @@ namespace hlasm_plugin::parser_library::lexing {
 struct u8string_view_with_newlines;
 } // namespace hlasm_plugin::parser_library::lexing
 namespace hlasm_plugin::parser_library::parsing {
-class hlasmparser_multiline;
 class parser_error_listener;
 class parser_error_listener_ctx;
 struct parser_holder;
@@ -187,7 +186,7 @@ public:
         std::vector<std::pair<virtual_file_handle, utils::resource::resource_location>>& vf_handles);
     ~opencode_provider();
 
-    parsing::hlasmparser_multiline& parser(); // for testing only
+    parsing::parser_holder& parser(); // for testing only
 
     context::shared_stmt_ptr get_next(const processing::statement_processor& processor) override;
 

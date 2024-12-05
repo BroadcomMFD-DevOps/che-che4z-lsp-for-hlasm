@@ -36,8 +36,6 @@ namespace hlasm_plugin::parser_library::parsing {
 using self_def_t = std::int32_t;
 
 class error_strategy;
-class hlasmparser_singleline;
-class hlasmparser_multiline;
 
 struct macop_preprocess_results
 {
@@ -252,6 +250,10 @@ struct parser_holder
         context::hlasm_context* hl_ctx, diagnostic_op_consumer* d, bool multiline);
 
     struct parser2;
+
+    // testing only
+    expressions::ca_expr_ptr testing_expr();
+    expressions::data_definition testing_data_def();
 };
 
 } // namespace hlasm_plugin::parser_library::parsing
