@@ -21,11 +21,6 @@
 #include "lexing/logical_line.h"
 #include "range.h"
 
-namespace antlr4 {
-class ParserRuleContext;
-class Token;
-} // namespace antlr4
-
 namespace hlasm_plugin::parser_library::semantics {
 
 // state of range adjusting
@@ -57,12 +52,6 @@ public:
     explicit range_provider(
         std::vector<std::pair<std::pair<size_t, bool>, range>> model_substitutions, std::vector<size_t> line_limits);
     explicit range_provider();
-
-    range get_range(const antlr4::Token* start, const antlr4::Token* stop) const;
-    range get_range(const antlr4::Token* terminal) const;
-    range get_range(antlr4::ParserRuleContext* non_terminal) const;
-
-    range get_empty_range(const antlr4::Token* start) const;
 
     range adjust_range(range r) const;
 

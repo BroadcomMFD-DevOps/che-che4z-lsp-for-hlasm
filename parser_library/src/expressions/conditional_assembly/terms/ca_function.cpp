@@ -14,18 +14,15 @@
 
 #include "ca_function.h"
 
-#include <array>
+#include <bitset>
 #include <cassert>
 #include <charconv>
-#include <iomanip>
-#include <sstream>
 
 #include "ca_string.h"
 #include "ebcdic_encoding.h"
 #include "expressions/conditional_assembly/ca_expr_visitor.h"
 #include "expressions/evaluation_context.h"
-#include "lexing/lexer.h"
-#include "semantics/variable_symbol.h"
+#include "lexing/tools.h"
 
 #define RET_ERRPARM                                                                                                    \
     do                                                                                                                 \
@@ -74,7 +71,7 @@ void ca_function::resolve_expression_tree(ca_expression_ctx expr_ctx, diagnostic
     else if (duplication_factor && expr_kind != context::SET_t_enum::C_TYPE)
         diags.add_diagnostic(diagnostic_op::error_CE005(duplication_factor->expr_range));
     else if (auto [param_size, param_kind] = ca_common_expr_policy::get_function_param_info(function, expr_kind);
-             parameters.size() != param_size)
+        parameters.size() != param_size)
         diags.add_diagnostic(diagnostic_op::error_CE006(expr_range));
     else
     {
@@ -345,8 +342,7 @@ context::SET_t ca_function::ISSYM(const context::C_t& param, diagnostic_adder& a
     if (param.empty())
         RET_ERRPARM;
 
-    return !std::isdigit((unsigned char)param.front()) && param.size() < 64
-        && std::ranges::all_of(param, lexing::lexer::ord_char);
+    return lexing::is_ord_symbol(param);
 }
 
 context::SET_t ca_function::X2A(std::string_view param, diagnostic_adder& add_diagnostic)
