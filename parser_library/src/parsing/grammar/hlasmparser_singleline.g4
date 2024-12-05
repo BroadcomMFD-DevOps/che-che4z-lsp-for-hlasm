@@ -16,15 +16,6 @@
  //rules for identifier, number, remark
 parser grammar hlasmparser_singleline;
 
-import
-operand_field_rules,
-lookahead_rules,
-assembler_operand_rules,
-model_operand_rules,
-machine_expr_rules,
-data_def_rules,
-ca_expr_rules;
-
 @header
 {
     #include "lexing/token.h"
@@ -80,59 +71,3 @@ options {
 }
 
 program : EOF;
-
-num returns [self_def_t value]
-    : NUM                                    {$value = parse_self_def_term("D",$NUM->getText(),provider.get_range($NUM));};
-
-signed_num_ch
-    : MINUS? NUM;
-
-id returns [id_index name, id_index using_qualifier]
-    : f=id_no_dot {$name = $f.name;} (dot s=id_no_dot {$name = $s.name; $using_qualifier = $f.name;})?;
-
-id_no_dot returns [id_index name]
-    : ORDSYMBOL
-    {
-        $name = parse_identifier($ORDSYMBOL->getText(),provider.get_range($ORDSYMBOL));
-    }
-    ;
-
-vs_id returns [id_index name]
-    : ORDSYMBOL
-    {
-        $name = parse_identifier($ORDSYMBOL->getText(), provider.get_range($ORDSYMBOL));
-    };
-
-remark
-    : (DOT|ASTERISK|MINUS|PLUS|LT|GT|COMMA|LPAR|RPAR|SLASH|EQUALS|AMPERSAND|APOSTROPHE|IDENTIFIER|NUM|VERTICAL|ORDSYMBOL|SPACE|ATTR)*;
-
-remark_o returns [std::optional<range> value]
-    : SPACE remark                            {$value = provider.get_range( $remark.ctx);}
-    | ;
-
-    //***** highlighting rules
-comma
-    : COMMA {collector->add_hl_symbol(token_info(provider.get_range( $COMMA),hl_scopes::operator_symbol)); };
-dot
-    : DOT {collector->add_hl_symbol(token_info(provider.get_range( $DOT),hl_scopes::operator_symbol)); };
-apostrophe
-    : APOSTROPHE;
-attr
-    : ATTR {collector->add_hl_symbol(token_info(provider.get_range( $ATTR),hl_scopes::operator_symbol)); };
-lpar
-    : LPAR { collector->add_hl_symbol(token_info(provider.get_range( $LPAR),hl_scopes::operator_symbol)); };
-rpar
-    : RPAR {collector->add_hl_symbol(token_info(provider.get_range( $RPAR),hl_scopes::operator_symbol)); };
-ampersand
-    : AMPERSAND { collector->add_hl_symbol(token_info(provider.get_range( $AMPERSAND),hl_scopes::operator_symbol)); };
-equals
-    : EQUALS { collector->add_hl_symbol(token_info(provider.get_range( $EQUALS),hl_scopes::operator_symbol)); };
-asterisk
-    : ASTERISK {collector->add_hl_symbol(token_info(provider.get_range( $ASTERISK),hl_scopes::operator_symbol)); };
-slash
-    : SLASH { collector->add_hl_symbol(token_info(provider.get_range( $SLASH),hl_scopes::operator_symbol)); };
-minus
-    : MINUS {collector->add_hl_symbol(token_info(provider.get_range( $MINUS),hl_scopes::operator_symbol)); };
-plus
-    : PLUS {collector->add_hl_symbol(token_info(provider.get_range( $PLUS),hl_scopes::operator_symbol)); };
-
