@@ -25,7 +25,7 @@ expr_general returns [ca_expr_ptr ca_expr]
         ORDSYMBOL SPACE*
         {
             auto not_r = provider.get_range($ORDSYMBOL);
-            collector.add_hl_symbol(token_info(not_r, hl_scopes::operand));
+            collector->add_hl_symbol(token_info(not_r, hl_scopes::operand));
             ca_exprs.push_back(std::make_unique<ca_symbol>(parse_identifier($ORDSYMBOL->getText(), not_r), not_r));
         }
     )*
@@ -120,7 +120,7 @@ term returns [ca_expr_ptr ca_expr]
     | {allow_ca_string()}? ca_string
     {
         auto r = provider.get_range($ca_string.ctx);
-        collector.add_hl_symbol(token_info(r, hl_scopes::string));
+        collector->add_hl_symbol(token_info(r, hl_scopes::string));
         $ca_expr = std::move($ca_string.ca_expr);
     }
     | data_attribute
@@ -139,13 +139,13 @@ term returns [ca_expr_ptr ca_expr]
     }
     | signed_num
     {
-        collector.add_hl_symbol(token_info(provider.get_range( $signed_num.ctx),hl_scopes::number));
+        collector->add_hl_symbol(token_info(provider.get_range( $signed_num.ctx),hl_scopes::number));
         auto r = provider.get_range($signed_num.ctx);
         $ca_expr = std::make_unique<ca_constant>($signed_num.value, r);
     }
     | ca_dupl_factor id_no_dot subscript_ne
     {
-        collector.add_hl_symbol(token_info(provider.get_range( $id_no_dot.ctx),hl_scopes::operand));
+        collector->add_hl_symbol(token_info(provider.get_range( $id_no_dot.ctx),hl_scopes::operand));
 
         auto r = provider.get_range($ca_dupl_factor.ctx->getStart(), $subscript_ne.ctx->getStop());
         auto func = ca_common_expr_policy::get_function($id_no_dot.name.to_string_view());
@@ -153,7 +153,7 @@ term returns [ca_expr_ptr ca_expr]
     }
     | id_no_dot
     {
-        collector.add_hl_symbol(token_info(provider.get_range( $id_no_dot.ctx),hl_scopes::operand));
+        collector->add_hl_symbol(token_info(provider.get_range( $id_no_dot.ctx),hl_scopes::operand));
         auto r = provider.get_range($id_no_dot.ctx);
         $ca_expr = std::make_unique<ca_symbol>($id_no_dot.name, r);
     }
@@ -171,7 +171,7 @@ signed_num returns [self_def_t value]
 self_def_term returns [self_def_t value]
     : ORDSYMBOL string
     {
-        collector.add_hl_symbol(token_info(provider.get_range( $ORDSYMBOL),hl_scopes::self_def_type));
+        collector->add_hl_symbol(token_info(provider.get_range( $ORDSYMBOL),hl_scopes::self_def_type));
         auto opt = $ORDSYMBOL->getText();
         $value = parse_self_def_term(opt, $string.value, provider.get_range($ORDSYMBOL,$string.ctx->getStop()));
     };
@@ -242,19 +242,19 @@ created_set_body returns [concat_chain concat_list]
     (
         ORDSYMBOL
         {
-            collector.add_hl_symbol(token_info(provider.get_range( $ORDSYMBOL),hl_scopes::var_symbol));
+            collector->add_hl_symbol(token_info(provider.get_range( $ORDSYMBOL),hl_scopes::var_symbol));
             $concat_list.emplace_back(char_str_conc($ORDSYMBOL->getText(), provider.get_range($ORDSYMBOL)));
         }
         |
         IDENTIFIER
         {
-            collector.add_hl_symbol(token_info(provider.get_range( $IDENTIFIER),hl_scopes::var_symbol));
+            collector->add_hl_symbol(token_info(provider.get_range( $IDENTIFIER),hl_scopes::var_symbol));
             $concat_list.emplace_back(char_str_conc($IDENTIFIER->getText(), provider.get_range($IDENTIFIER)));
         }
         |
         NUM
         {
-            collector.add_hl_symbol(token_info(provider.get_range( $NUM),hl_scopes::var_symbol));
+            collector->add_hl_symbol(token_info(provider.get_range( $NUM),hl_scopes::var_symbol));
             $concat_list.emplace_back(char_str_conc($NUM->getText(), provider.get_range($NUM)));
         }
         |
@@ -279,12 +279,12 @@ var_symbol_base [antlr4::Token* amp] returns [vs_ptr vs]
         auto id = $vs_id.name;
         auto r = provider.get_range( $amp,$tmp.ctx->getStop());
         $vs = std::make_unique<basic_variable_symbol>(id, std::move($tmp.value), r);
-        collector.add_hl_symbol(token_info(provider.get_range( $amp, $vs_id.ctx->getStop()),hl_scopes::var_symbol));
+        collector->add_hl_symbol(token_info(provider.get_range( $amp, $vs_id.ctx->getStop()),hl_scopes::var_symbol));
     }
     |
     lpar (clc=created_set_body)? rpar subscript
     {
-        collector.add_hl_symbol(token_info(provider.get_range( $amp),hl_scopes::var_symbol));
+        collector->add_hl_symbol(token_info(provider.get_range( $amp),hl_scopes::var_symbol));
         $vs = std::make_unique<created_variable_symbol>($clc.ctx ? std::move($clc.concat_list) : concat_chain{},std::move($subscript.value),provider.get_range($amp,$subscript.ctx->getStop()));
     }
     ;
@@ -294,7 +294,7 @@ var_symbol_base [antlr4::Token* amp] returns [vs_ptr vs]
 data_attribute returns [context::data_attr_kind attribute, std::variant<context::id_index, semantics::vs_ptr, semantics::literal_si> value, range value_range]
     : ORDSYMBOL attr data_attribute_value
     {
-        collector.add_hl_symbol(token_info(provider.get_range($ORDSYMBOL), hl_scopes::data_attr_type));
+        collector->add_hl_symbol(token_info(provider.get_range($ORDSYMBOL), hl_scopes::data_attr_type));
         $attribute = get_attribute($ORDSYMBOL->getText());
         $value = std::move($data_attribute_value.value);
         $value_range = provider.get_range( $data_attribute_value.ctx);
@@ -312,7 +312,7 @@ data_attribute_value returns [std::variant<context::id_index, semantics::vs_ptr,
     }
     | id
     {
-        collector.add_hl_symbol(token_info(provider.get_range( $id.ctx), hl_scopes::ordinary_symbol));
+        collector->add_hl_symbol(token_info(provider.get_range( $id.ctx), hl_scopes::ordinary_symbol));
         $value = $id.name;
     };
 

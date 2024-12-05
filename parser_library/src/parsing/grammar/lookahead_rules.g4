@@ -21,19 +21,19 @@ lookahead_operands_and_remarks_asm
         lookahead_operand_list_asm
         {
             range r = provider.get_range($lookahead_operand_list_asm.ctx);
-            collector.set_operand_remark_field(std::move($lookahead_operand_list_asm.operands), std::vector<range>(), r);
+            collector->set_operand_remark_field(std::move($lookahead_operand_list_asm.operands), std::vector<range>(), r);
         }
         |
         EOF
         {
             range r = provider.get_range(_localctx);
-            collector.set_operand_remark_field(operand_list(), std::vector<range>(), r);
+            collector->set_operand_remark_field(operand_list(), std::vector<range>(), r);
         }
     )
     | EOF
     {
         range r = provider.get_range(_localctx);
-        collector.set_operand_remark_field(operand_list(), std::vector<range>(), r);
+        collector->set_operand_remark_field(operand_list(), std::vector<range>(), r);
     };
 
 lookahead_operand_list_asm returns [operand_list operands] locals [bool failed = false]
