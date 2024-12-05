@@ -124,14 +124,14 @@ struct parser_holder
     semantics::literal_si literal_reparse();
 
     void prepare_parser(lexing::u8string_view_with_newlines text,
-        context::hlasm_context* hlasm_ctx,
+        context::hlasm_context& hlasm_ctx,
         diagnostic_op_consumer* diags,
         semantics::range_provider range_prov,
         range text_range,
         size_t logical_column,
         const processing::processing_status& proc_status);
 
-    static std::unique_ptr<parser_holder> create(context::hlasm_context* hl_ctx, diagnostic_op_consumer* d);
+    static std::unique_ptr<parser_holder> create(context::hlasm_context& hl_ctx, diagnostic_op_consumer* d);
 
     char_substitution reset(lexing::u8string_view_with_newlines str,
         position file_offset,

@@ -34,7 +34,7 @@ auto parse_model(std::string s,
 {
     hlasm_context fallback_context;
     diagnostic_op_consumer_container fallback_container;
-    return statement_fields_parser(context ? context : &fallback_context)
+    return statement_fields_parser(context ? *context : fallback_context)
         .parse_operand_field(lexing::u8string_view_with_newlines(s),
             after_substitution,
             range_provider(r, adjusting_state::NONE),

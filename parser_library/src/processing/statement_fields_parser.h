@@ -59,7 +59,7 @@ public:
         processing::processing_status status,
         diagnostic_op_consumer& add_diag);
 
-    explicit statement_fields_parser(context::hlasm_context* hlasm_ctx);
+    explicit statement_fields_parser(context::hlasm_context& hlasm_ctx);
     ~statement_fields_parser();
 };
 

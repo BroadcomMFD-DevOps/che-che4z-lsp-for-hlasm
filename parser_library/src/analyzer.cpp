@@ -113,7 +113,7 @@ struct analyzer::impl final
         : diag_ctx(opts.get_hlasm_context(), opts.diag_limit.limit)
         , ctx(std::move(opts.get_context()))
         , src_proc(opts.collect_hl_info == collect_highlighting_info::yes)
-        , field_parser(ctx.hlasm_ctx.get())
+        , field_parser(*ctx.hlasm_ctx)
         , mngr(std::make_unique<processing::opencode_provider>(text,
                    ctx,
                    opts.get_lib_provider(),

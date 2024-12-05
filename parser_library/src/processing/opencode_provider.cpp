@@ -45,9 +45,9 @@ opencode_provider::opencode_provider(std::string_view text,
     : statement_provider(statement_provider_kind::OPEN)
     , m_input_document(text)
     , m_virtual_files(std::make_shared<std::unordered_map<context::id_index, std::string>>())
-    , m_parsers { parsing::parser_holder::create(ctx.hlasm_ctx.get(), &diag_consumer),
-        parsing::parser_holder::create(ctx.hlasm_ctx.get(), nullptr),
-        parsing::parser_holder::create(ctx.hlasm_ctx.get(), nullptr) }
+    , m_parsers { parsing::parser_holder::create(*ctx.hlasm_ctx, &diag_consumer),
+        parsing::parser_holder::create(*ctx.hlasm_ctx, nullptr),
+        parsing::parser_holder::create(*ctx.hlasm_ctx, nullptr) }
     , m_ctx(ctx)
     , m_lib_provider(&lib_provider)
     , m_state_listener(&state_listener)
@@ -921,7 +921,7 @@ parsing::parser_holder& opencode_provider::prepare_operand_parser(lexing::u8stri
 {
     auto& h = *m_parsers.m_operand_parser;
 
-    h.prepare_parser(text, &hlasm_ctx, diags, std::move(range_prov), text_range, logical_column, proc_status);
+    h.prepare_parser(text, hlasm_ctx, diags, std::move(range_prov), text_range, logical_column, proc_status);
 
     return h;
 }
