@@ -258,62 +258,11 @@ struct parser2
     void enable_ca_string() noexcept { ca_string_enabled = true; }
     void disable_ca_string() noexcept { ca_string_enabled = false; }
 
-    class [[nodiscard]] literal_controller
-    {
-        enum class request_t
-        {
-            none,
-            off,
-            on,
-        } request = request_t::none;
-        parser2& impl;
-
-    public:
-        explicit literal_controller(parser2& impl) noexcept
-            : impl(impl)
-        {}
-        literal_controller(parser2& impl, bool restore) noexcept
-            : request(restore ? request_t::on : request_t::off)
-            , impl(impl)
-        {}
-        literal_controller(literal_controller&& oth) noexcept
-            : request(std::exchange(oth.request, request_t::none))
-            , impl(oth.impl)
-        {}
-        ~literal_controller()
-        {
-            switch (request)
-            {
-                case request_t::off:
-                    impl.literals_allowed = false;
-                    break;
-                case request_t::on:
-                    impl.literals_allowed = true;
-                    break;
-                default:
-                    break;
-            }
-        }
-    };
+    class [[nodiscard]] literal_controller;
 
     bool allow_literals() const noexcept { return literals_allowed; }
-    literal_controller enable_literals() noexcept
-    {
-        if (literals_allowed)
-            return literal_controller(*this);
-
-        literals_allowed = true;
-        return literal_controller(*this, false);
-    }
-    literal_controller disable_literals() noexcept
-    {
-        if (!literals_allowed)
-            return literal_controller(*this);
-
-        literals_allowed = false;
-        return literal_controller(*this, true);
-    }
-
+    literal_controller enable_literals() noexcept;
+    literal_controller disable_literals() noexcept;
 
     [[nodiscard]] constexpr bool before_nl() const noexcept
     {
@@ -435,38 +384,9 @@ struct parser2
     context::id_index add_id(std::string value) { return holder->hlasm_ctx->ids().add(std::move(value)); }
     context::id_index add_id(std::string_view value) { return holder->hlasm_ctx->ids().add(value); }
 
-    void lex_last_remark()
-    {
-        // skip spaces
-        while (follows<U' '>())
-            consume();
+    void lex_last_remark();
 
-        const auto last_remark_start = cur_pos_adjusted();
-        while (!eof())
-            consume();
-        adjust_lines();
-
-        if (const auto last_remark_end = cur_pos(); last_remark_start != last_remark_end)
-            remarks.push_back(remap_range(last_remark_start, last_remark_end));
-    }
-
-    void lex_line_remark()
-    {
-        assert(follows<U' '>() && before_nl());
-
-        while (follows<U' '>() && before_nl())
-            consume();
-
-        if (before_nl())
-        {
-            const auto last_remark_start = cur_pos_adjusted();
-            while (!eof() && before_nl())
-                consume();
-
-            if (const auto remark_end = cur_pos(); last_remark_start != remark_end)
-                remarks.push_back(remap_range(last_remark_start, remark_end));
-        }
-    }
+    void lex_line_remark();
 
     [[nodiscard]] constexpr bool is_ord_first() const noexcept { return char_is_ord_first(*input.next); }
     [[nodiscard]] constexpr bool is_ord() const noexcept { return char_is_ord(*input.next); }
@@ -616,197 +536,28 @@ struct parser2
         {}
     };
 
-    void resolve_expression(expressions::ca_expr_ptr& expr) const
-    {
-        diagnostic_consumer_transform diags([diags = holder->diagnostic_collector](diagnostic_op d) {
-            if (diags)
-                diags->add_diagnostic(std::move(d));
-        });
-        using enum context::SET_t_enum;
-        auto [_, opcode] = *holder->proc_status;
-        using wk = context::id_storage::well_known;
-        if (opcode.value == wk::SETA || opcode.value == wk::ACTR || opcode.value == wk::ASPACE
-            || opcode.value == wk::AGO || opcode.value == wk::MHELP)
-            expr->resolve_expression_tree({ A_TYPE, A_TYPE, true }, diags);
-        else if (opcode.value == wk::SETB)
-        {
-            if (!expr->is_compatible(expressions::ca_expression_compatibility::setb))
-                diags.add_diagnostic(diagnostic_op::error_CE016_logical_expression_parenthesis(expr->expr_range));
+    void resolve_expression(expressions::ca_expr_ptr& expr) const;
 
-            expr->resolve_expression_tree({ B_TYPE, B_TYPE, true }, diags);
-        }
-        else if (opcode.value == wk::AIF)
-        {
-            if (!expr->is_compatible(expressions::ca_expression_compatibility::aif))
-                diags.add_diagnostic(diagnostic_op::error_CE016_logical_expression_parenthesis(expr->expr_range));
+    void resolve_concat_chain(const semantics::concat_chain& chain) const;
 
-            expr->resolve_expression_tree({ B_TYPE, B_TYPE, true }, diags);
-        }
-        else if (opcode.value == wk::SETC)
-        {
-            expr->resolve_expression_tree({ C_TYPE, C_TYPE, true }, diags);
-        }
-        else if (opcode.value == wk::AREAD)
-        {
-            // aread operand is just enumeration
-        }
-        else
-        {
-            assert(false);
-            expr->resolve_expression_tree({ UNDEF_TYPE, UNDEF_TYPE, true }, diags);
-        }
-    }
+    std::string lex_ord();
 
-    void resolve_concat_chain(const semantics::concat_chain& chain) const
-    {
-        diagnostic_consumer_transform diags([diags = holder->diagnostic_collector](diagnostic_op d) {
-            if (diags)
-                diags->add_diagnostic(std::move(d));
-        });
-        for (const auto& e : chain)
-            e.resolve(diags);
-    }
+    std::string lex_ord_upper();
 
-    std::string lex_ord()
-    {
-        assert(is_ord_first());
-
-        std::string result;
-        do
-        {
-            consume_into(result);
-        } while (is_ord());
-
-        return result;
-    }
-
-    std::string lex_ord_upper()
-    {
-        assert(is_ord_first());
-
-        std::string result;
-        do
-        {
-            consume_into(result);
-        } while (is_ord());
-
-        utils::to_upper(result);
-
-        return result;
-    }
-
-    result_t<context::id_index> lex_id()
-    {
-        assert(is_ord_first());
-
-        const auto start = cur_pos_adjusted();
-
-        std::string name = lex_ord();
-
-        auto id = parse_identifier(std::move(name), range_from(start));
-        if (id.empty())
-            return failure;
-        else
-            return id;
-    }
+    result_t<context::id_index> lex_id();
 
     struct qualified_id
     {
         context::id_index qual;
         context::id_index id;
     };
-    result_t<qualified_id> lex_qualified_id()
-    {
-        auto [error, id1] = lex_id();
-        if (error)
-            return failure;
 
-        if (try_consume<U'.'>(hl_scopes::operator_symbol))
-        {
-            if (!is_ord_first())
-            {
-                syntax_error_or_eof();
-                return failure;
-            }
-
-            auto [error2, id2] = lex_id();
-            if (error2)
-                return failure;
-
-            return { id1, id2 };
-        }
-
-        return { context::id_index(), id1 };
-    }
+    result_t<qualified_id> lex_qualified_id();
 
     result_t<std::variant<context::id_index, semantics::concat_chain>> lex_variable_name(parser_position start);
     result_t<semantics::vs_ptr> lex_variable();
 
-    result_t<semantics::concat_chain> lex_compound_variable()
-    {
-        if (!except<U')'>())
-        {
-            syntax_error_or_eof();
-            return failure;
-        }
-        semantics::concat_chain result;
-
-        while (!eof())
-        {
-            switch (*input.next)
-            {
-                case U')':
-                    return result;
-
-                case U'&': {
-                    auto [error, var] = lex_variable();
-                    if (error)
-                        return failure;
-                    result.emplace_back(std::in_place_type<semantics::var_sym_conc>, std::move(var));
-                    break;
-                }
-
-                    // TODO: does not seem right to include these
-                    // case U'"':
-                    // case U'*':
-                    // case U'.':
-                    // case U'-':
-                    // case U'+':
-                    // case U'=':
-                    // case U'<':
-                    // case U'>':
-                    // case U',':
-                    // case U'(':
-                    // case U'\'':
-                    // case U'/':
-                    // case U'|':
-                    // case U' ':
-                    //     return failure;
-                case U'.': {
-                    const auto start = cur_pos_adjusted();
-                    consume(hl_scopes::operator_symbol);
-                    result.emplace_back(std::in_place_type<semantics::dot_conc>, range_from(start));
-                    break;
-                }
-
-                default: {
-                    const auto start = cur_pos_adjusted();
-                    std::string collected;
-
-                    while (except<U')', U'&', U'.'>())
-                    {
-                        consume_into(collected);
-                    }
-                    const auto r = range_from(start);
-                    result.emplace_back(std::in_place_type<semantics::char_str_conc>, std::move(collected), r);
-                    add_hl_symbol(r, hl_scopes::var_symbol);
-                    break;
-                }
-            }
-        }
-        add_diagnostic(diagnostic_op::error_S0011);
-        return failure;
-    }
+    result_t<semantics::concat_chain> lex_compound_variable();
 
     [[nodiscard]] constexpr bool follows_NOT() const noexcept
     {
@@ -1068,6 +819,279 @@ struct parser2
         , data(holder->input.data())
     {}
 };
+
+class [[nodiscard]] parser2::literal_controller
+{
+    enum class request_t
+    {
+        none,
+        off,
+        on,
+    } request = request_t::none;
+    parser2& impl;
+
+public:
+    explicit literal_controller(parser2& impl) noexcept
+        : impl(impl)
+    {}
+    literal_controller(parser2& impl, bool restore) noexcept
+        : request(restore ? request_t::on : request_t::off)
+        , impl(impl)
+    {}
+    literal_controller(literal_controller&& oth) noexcept
+        : request(std::exchange(oth.request, request_t::none))
+        , impl(oth.impl)
+    {}
+    ~literal_controller()
+    {
+        switch (request)
+        {
+            case request_t::off:
+                impl.literals_allowed = false;
+                break;
+            case request_t::on:
+                impl.literals_allowed = true;
+                break;
+            default:
+                break;
+        }
+    }
+};
+
+parser2::literal_controller parser2::enable_literals() noexcept
+{
+    if (literals_allowed)
+        return literal_controller(*this);
+
+    literals_allowed = true;
+    return literal_controller(*this, false);
+}
+
+parser2::literal_controller parser2::disable_literals() noexcept
+{
+    if (!literals_allowed)
+        return literal_controller(*this);
+
+    literals_allowed = false;
+    return literal_controller(*this, true);
+}
+
+void parser2::lex_last_remark()
+{
+    // skip spaces
+    while (follows<U' '>())
+        consume();
+
+    const auto last_remark_start = cur_pos_adjusted();
+    while (!eof())
+        consume();
+    adjust_lines();
+
+    if (const auto last_remark_end = cur_pos(); last_remark_start != last_remark_end)
+        remarks.push_back(remap_range(last_remark_start, last_remark_end));
+}
+
+void parser2::lex_line_remark()
+{
+    assert(follows<U' '>() && before_nl());
+
+    while (follows<U' '>() && before_nl())
+        consume();
+
+    if (before_nl())
+    {
+        const auto last_remark_start = cur_pos_adjusted();
+        while (!eof() && before_nl())
+            consume();
+
+        if (const auto remark_end = cur_pos(); last_remark_start != remark_end)
+            remarks.push_back(remap_range(last_remark_start, remark_end));
+    }
+}
+
+void parser2::resolve_expression(expressions::ca_expr_ptr& expr) const
+{
+    diagnostic_consumer_transform diags([diags = holder->diagnostic_collector](diagnostic_op d) {
+        if (diags)
+            diags->add_diagnostic(std::move(d));
+    });
+    using enum context::SET_t_enum;
+    auto [_, opcode] = *holder->proc_status;
+    using wk = context::id_storage::well_known;
+    if (opcode.value == wk::SETA || opcode.value == wk::ACTR || opcode.value == wk::ASPACE || opcode.value == wk::AGO
+        || opcode.value == wk::MHELP)
+        expr->resolve_expression_tree({ A_TYPE, A_TYPE, true }, diags);
+    else if (opcode.value == wk::SETB)
+    {
+        if (!expr->is_compatible(expressions::ca_expression_compatibility::setb))
+            diags.add_diagnostic(diagnostic_op::error_CE016_logical_expression_parenthesis(expr->expr_range));
+
+        expr->resolve_expression_tree({ B_TYPE, B_TYPE, true }, diags);
+    }
+    else if (opcode.value == wk::AIF)
+    {
+        if (!expr->is_compatible(expressions::ca_expression_compatibility::aif))
+            diags.add_diagnostic(diagnostic_op::error_CE016_logical_expression_parenthesis(expr->expr_range));
+
+        expr->resolve_expression_tree({ B_TYPE, B_TYPE, true }, diags);
+    }
+    else if (opcode.value == wk::SETC)
+    {
+        expr->resolve_expression_tree({ C_TYPE, C_TYPE, true }, diags);
+    }
+    else if (opcode.value == wk::AREAD)
+    {
+        // aread operand is just enumeration
+    }
+    else
+    {
+        assert(false);
+        expr->resolve_expression_tree({ UNDEF_TYPE, UNDEF_TYPE, true }, diags);
+    }
+}
+
+void parser2::resolve_concat_chain(const semantics::concat_chain& chain) const
+{
+    diagnostic_consumer_transform diags([diags = holder->diagnostic_collector](diagnostic_op d) {
+        if (diags)
+            diags->add_diagnostic(std::move(d));
+    });
+    for (const auto& e : chain)
+        e.resolve(diags);
+}
+
+std::string parser2::lex_ord()
+{
+    assert(is_ord_first());
+
+    std::string result;
+    do
+    {
+        consume_into(result);
+    } while (is_ord());
+
+    return result;
+}
+
+std::string parser2::lex_ord_upper()
+{
+    assert(is_ord_first());
+
+    std::string result;
+    do
+    {
+        consume_into(result);
+    } while (is_ord());
+
+    utils::to_upper(result);
+
+    return result;
+}
+
+parser2::result_t<context::id_index> parser2::lex_id()
+{
+    assert(is_ord_first());
+
+    const auto start = cur_pos_adjusted();
+
+    std::string name = lex_ord();
+
+    auto id = parse_identifier(std::move(name), range_from(start));
+    if (id.empty())
+        return failure;
+    else
+        return id;
+}
+
+parser2::result_t<parser2::qualified_id> parser2::lex_qualified_id()
+{
+    auto [error, id1] = lex_id();
+    if (error)
+        return failure;
+
+    if (try_consume<U'.'>(hl_scopes::operator_symbol))
+    {
+        if (!is_ord_first())
+        {
+            syntax_error_or_eof();
+            return failure;
+        }
+
+        auto [error2, id2] = lex_id();
+        if (error2)
+            return failure;
+
+        return { id1, id2 };
+    }
+
+    return { context::id_index(), id1 };
+}
+
+parser2::result_t<semantics::concat_chain> parser2::lex_compound_variable()
+{
+    if (!except<U')'>())
+    {
+        syntax_error_or_eof();
+        return failure;
+    }
+    semantics::concat_chain result;
+
+    while (!eof())
+    {
+        switch (*input.next)
+        {
+            case U')':
+                return result;
+
+            case U'&': {
+                auto [error, var] = lex_variable();
+                if (error)
+                    return failure;
+                result.emplace_back(std::in_place_type<semantics::var_sym_conc>, std::move(var));
+                break;
+            }
+
+                // TODO: does not seem right to include these
+                // case U'"':
+                // case U'*':
+                // case U'.':
+                // case U'-':
+                // case U'+':
+                // case U'=':
+                // case U'<':
+                // case U'>':
+                // case U',':
+                // case U'(':
+                // case U'\'':
+                // case U'/':
+                // case U'|':
+                // case U' ':
+                //     return failure;
+            case U'.': {
+                const auto start = cur_pos_adjusted();
+                consume(hl_scopes::operator_symbol);
+                result.emplace_back(std::in_place_type<semantics::dot_conc>, range_from(start));
+                break;
+            }
+
+            default: {
+                const auto start = cur_pos_adjusted();
+                std::string collected;
+
+                while (except<U')', U'&', U'.'>())
+                {
+                    consume_into(collected);
+                }
+                const auto r = range_from(start);
+                result.emplace_back(std::in_place_type<semantics::char_str_conc>, std::move(collected), r);
+                add_hl_symbol(r, hl_scopes::var_symbol);
+                break;
+            }
+        }
+    }
+    add_diagnostic(diagnostic_op::error_S0011);
+    return failure;
+}
 
 parser2::result_t<semantics::seq_sym> parser2::lex_seq_symbol()
 {
