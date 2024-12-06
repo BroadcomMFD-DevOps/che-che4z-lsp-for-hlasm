@@ -19,7 +19,7 @@
 using namespace hlasm_plugin::parser_library;
 namespace hlasm_plugin::parser_library::semantics {
 
-range range_provider::adjust_range(range r) const
+range range_provider::adjust_range(range r) const noexcept
 {
     if (state == adjusting_state::MACRO_REPARSE)
     {
@@ -46,7 +46,7 @@ range range_provider::adjust_range(range r) const
     return r;
 }
 
-position range_provider::adjust_model_position(position pos, bool end) const
+position range_provider::adjust_model_position(position pos, bool end) const noexcept
 {
     const auto& [d, r] = *std::prev(std::find_if(std::next(model_substitutions.begin()),
         model_substitutions.end(),
@@ -73,12 +73,12 @@ position range_provider::adjust_model_position(position pos, bool end) const
     return pos;
 }
 
-size_t range_provider::get_line_limit(size_t relative_line) const
+size_t range_provider::get_line_limit(size_t relative_line) const noexcept
 {
     return relative_line >= line_limits.size() ? 71 : line_limits[relative_line];
 }
 
-position range_provider::adjust_position(position pos, bool end) const
+position range_provider::adjust_position(position pos, bool end) const noexcept
 {
     auto [r, column] = [this, pos, end]() {
         for (auto column = pos.column - original_range.start.column; const auto& op_range : original_operand_ranges)
