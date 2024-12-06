@@ -1184,590 +1184,33 @@ struct parser2
         bool leading_trailing_spaces;
     };
 
-    result_t<maybe_expr_list> lex_maybe_expression_list()
-    {
-        expressions::ca_expr_ptr p_expr;
-        std::vector<expressions::ca_expr_ptr> expr_list;
+    result_t<maybe_expr_list> lex_maybe_expression_list();
 
-        auto leading_spaces = lex_optional_space();
-        if (auto [error, e] = lex_expr(); error)
-            return failure;
-        else
-            p_expr = std::move(e);
+    result_t<expressions::ca_expr_ptr> lex_expr_list();
 
-        auto trailing_spaces = lex_optional_space();
-        for (; except<U')'>(); trailing_spaces = lex_optional_space())
-        {
-            auto [error, e] = lex_expr();
-            if (error)
-                return failure;
-            if (p_expr)
-                expr_list.push_back(std::move(p_expr));
-            expr_list.push_back(std::move(e));
-        }
-        const auto lt_spaces = leading_spaces || trailing_spaces;
-        if (lt_spaces && p_expr)
-            expr_list.push_back(std::move(p_expr));
-        if (!expr_list.empty())
-            return { std::move(expr_list), lt_spaces };
-        else
-            return { std::move(p_expr), lt_spaces };
-    }
+    result_t<expressions::ca_expr_ptr> lex_self_def();
 
-    result_t<expressions::ca_expr_ptr> lex_expr_list()
-    {
-        assert(follows<U'('>());
-        const auto start = cur_pos_adjusted();
+    result_t<expressions::ca_expr_ptr> lex_attribute_reference();
 
-        consume(hl_scopes::operator_symbol);
+    bool follows_function();
 
-        std::vector<expressions::ca_expr_ptr> expr_list;
+    result_t<expressions::ca_expr_ptr> lex_term();
 
-        (void)lex_optional_space();
-        if (auto [error, e] = lex_expr(); error)
-            return failure;
-        else
-            expr_list.push_back(std::move(e));
+    result_t<std::pair<std::string, range>> lex_number_as_string();
 
-        (void)lex_optional_space();
-        for (; except<U')'>(); (void)lex_optional_space())
-        {
-            auto [error, e] = lex_expr();
-            if (error)
-                return failure;
-            expr_list.push_back(std::move(e));
-        }
-        if (!match<U')'>(hl_scopes::operator_symbol, diagnostic_op::error_S0011))
-            return failure;
-        return std::make_unique<expressions::ca_expr_list>(std::move(expr_list), range_from(start), true);
-    }
+    result_t<std::pair<int32_t, range>> lex_number_as_int();
 
-    result_t<expressions::ca_expr_ptr> lex_self_def()
-    {
-        assert((follows<selfdef, group<U'\''>>()));
-        const auto start = cur_pos_adjusted();
+    result_t<expressions::ca_expr_ptr> lex_num();
 
-        const auto c = static_cast<char>(*input.next);
-        consume(hl_scopes::self_def_type);
-        auto [error, s] = lex_simple_string();
-        if (error)
-            return failure;
+    result_t<expressions::mach_expr_ptr> lex_mach_term();
 
-        const auto r = range_from(start);
-        return std::make_unique<expressions::ca_constant>(
-            parse_self_def_term(std::string_view(&c, 1), std::move(s), r), r);
-    }
+    result_t<std::string> lex_simple_string();
 
-    result_t<expressions::ca_expr_ptr> lex_attribute_reference()
-    {
-        assert((follows<all_attrs, group<U'\''>>()));
-        const auto start = cur_pos_adjusted();
+    result_t<expressions::mach_expr_ptr> lex_mach_term_c();
 
-        const auto attr = context::symbol_attributes::transform_attr(utils::upper_cased[*input.next]);
-        consume(hl_scopes::data_attr_type);
-        consume(hl_scopes::operator_symbol);
+    result_t<expressions::mach_expr_ptr> lex_mach_expr_s();
 
-        const auto start_value = cur_pos_adjusted();
-        switch (*input.next)
-        {
-            case U'&': {
-                auto [error, v] = lex_variable();
-                if (error)
-                    return failure;
-                // TODO: in reality, this seems to be much more complicated (arbitrary many dots
-                // are consumed for *some* attributes)
-                // TODO: highlighting
-                (void)try_consume<U'.'>();
-
-                return std::make_unique<expressions::ca_symbol_attribute>(
-                    std::move(v), attr, range_from(start), range_from(start_value));
-            }
-
-            case U'*':
-                add_diagnostic(diagnostic_op::error_S0014);
-                return failure;
-
-            case U'=': {
-                auto [error, l] = lex_literal();
-                if (error)
-                    return failure;
-                return std::make_unique<expressions::ca_symbol_attribute>(
-                    std::move(l), attr, range_from(start), range_from(start_value));
-            }
-
-            default: {
-                if (!is_ord_first())
-                {
-                    syntax_error_or_eof();
-                    return failure;
-                }
-                const auto id_start = cur_pos_adjusted();
-                auto [error, id] = lex_id();
-                if (error)
-                    return failure;
-                const auto id_r = range_from(id_start);
-                add_hl_symbol(id_r, hl_scopes::ordinary_symbol);
-                return std::make_unique<expressions::ca_symbol_attribute>(id, attr, range_from(start), id_r);
-            }
-        }
-    }
-
-    bool follows_function()
-    {
-        if (!is_ord_first())
-            return false;
-        const auto* p = input.next;
-        std::string s;
-        while (char_is_ord(*p))
-        {
-            if (s.size() >= expressions::ca_common_expr_policy::max_function_name_length)
-                return false;
-            s.push_back((char)*p);
-            ++p;
-        }
-        return expressions::ca_common_expr_policy::get_function(s) != expressions::ca_expr_funcs::UNKNOWN;
-    }
-
-    result_t<expressions::ca_expr_ptr> lex_term()
-    {
-        const auto start = cur_pos_adjusted();
-        switch (*input.next)
-        {
-            case U'&': {
-                auto [error, v] = lex_variable();
-                if (error)
-                    return failure;
-                return std::make_unique<expressions::ca_var_sym>(std::move(v), range_from(start));
-            }
-
-            case U'-':
-            case U'0':
-            case U'1':
-            case U'2':
-            case U'3':
-            case U'4':
-            case U'5':
-            case U'6':
-            case U'7':
-            case U'8':
-            case U'9':
-                return lex_num();
-
-            case U'\'':
-                if (auto [error, s] = lex_rest_of_ca_string_group({}, start); error)
-                    return failure;
-                else
-                {
-                    add_hl_symbol(range_from(start), hl_scopes::string);
-                    return std::move(s);
-                }
-
-            case U'(': {
-                consume(hl_scopes::operator_symbol);
-
-                auto [error, maybe_expr_list] = lex_maybe_expression_list();
-                if (error)
-                    return failure;
-                if (!match<U')'>(hl_scopes::operator_symbol, diagnostic_op::error_S0011))
-                    return failure;
-                expressions::ca_expr_ptr p_expr;
-                const auto already_expr_list =
-                    std::holds_alternative<std::vector<expressions::ca_expr_ptr>>(maybe_expr_list.value);
-                if (already_expr_list)
-                    p_expr = std::make_unique<expressions::ca_expr_list>(
-                        std::move(std::get<std::vector<expressions::ca_expr_ptr>>(maybe_expr_list.value)),
-                        range_from(start),
-                        true);
-                else
-                    p_expr = std::move(std::get<expressions::ca_expr_ptr>(maybe_expr_list.value));
-
-                if (maybe_expr_list.leading_trailing_spaces)
-                    return p_expr;
-
-                if (follows<U'\''>())
-                {
-                    if (auto [error2, s] = lex_rest_of_ca_string_group(std::move(p_expr), start); error2)
-                        return failure;
-                    else
-                    {
-                        add_hl_symbol(range_from(start), hl_scopes::string);
-                        return std::move(s);
-                    }
-                }
-                else if (follows_function())
-                {
-                    auto [id_error, id] = lex_id();
-                    if (id_error)
-                        return failure;
-                    if (!must_follow<U'('>())
-                        return failure;
-                    auto [s_error, s] = lex_subscript_ne();
-                    if (s_error)
-                        return failure;
-                    return std::make_unique<expressions::ca_function>(id,
-                        expressions::ca_common_expr_policy::get_function(id.to_string_view()),
-                        std::move(s),
-                        std::move(p_expr),
-                        range_from(start));
-                }
-
-                if (!already_expr_list)
-                {
-                    std::vector<expressions::ca_expr_ptr> ops;
-                    ops.push_back(std::move(p_expr));
-                    p_expr = std::make_unique<expressions::ca_expr_list>(std::move(ops), range_from(start), true);
-                }
-
-                return p_expr;
-            }
-
-            default:
-                if (!is_ord_first())
-                {
-                    syntax_error_or_eof();
-                    return failure;
-                }
-
-                if (follows<selfdef, group<U'\''>>())
-                {
-                    auto [error, self_def] = lex_self_def();
-                    if (error)
-                        return failure;
-                    return std::move(self_def);
-                }
-
-
-                if (follows<all_attrs, group<U'\''>>())
-                {
-                    auto [error, attr_ref] = lex_attribute_reference();
-                    if (error)
-                        return failure;
-                    return std::move(attr_ref);
-                }
-
-                if (auto [error, id] = lex_id(); error)
-                    return failure;
-                else if (follows<U'('>()
-                    && expressions::ca_common_expr_policy::get_function(id.to_string_view())
-                        != expressions::ca_expr_funcs::UNKNOWN)
-                {
-                    const auto r = range_from(start);
-                    add_hl_symbol(r, hl_scopes::operand);
-                    auto [error2, s] = lex_subscript_ne();
-                    if (error2)
-                        return failure;
-                    return std::make_unique<expressions::ca_function>(id,
-                        expressions::ca_common_expr_policy::get_function(id.to_string_view()),
-                        std::move(s),
-                        expressions::ca_expr_ptr(),
-                        range_from(start));
-                }
-                else
-                {
-                    const auto r = range_from(start);
-                    add_hl_symbol(r, hl_scopes::operand);
-                    return std::make_unique<expressions::ca_symbol>(id, r);
-                }
-        }
-    }
-
-    result_t<std::pair<std::string, range>> lex_number_as_string()
-    {
-        assert((follows<U'0', U'1', U'2', U'3', U'4', U'5', U'6', U'7', U'8', U'9', U'-'>()));
-        const auto start = cur_pos_adjusted();
-
-        std::string result;
-
-        if (follows<U'-'>())
-        {
-            consume_into(result);
-        }
-        if (!is_num())
-        {
-            syntax_error_or_eof();
-            return failure;
-        }
-        do
-        {
-            consume_into(result);
-        } while (is_num());
-
-        const auto r = range_from(start);
-        add_hl_symbol(r, hl_scopes::number);
-
-        return { result, r };
-    }
-
-    result_t<std::pair<int32_t, range>> lex_number_as_int()
-    {
-        const auto [error, number] = lex_number_as_string();
-        if (error)
-            return failure;
-        const auto& [v, r] = number;
-        return { parse_self_def_term("D", v, r), r };
-    }
-
-    result_t<expressions::ca_expr_ptr> lex_num()
-    {
-        assert((follows<U'0', U'1', U'2', U'3', U'4', U'5', U'6', U'7', U'8', U'9', U'-'>()));
-        const auto [error, number] = lex_number_as_int();
-        if (error)
-            return failure;
-        const auto& [v, r] = number;
-        return std::make_unique<expressions::ca_constant>(v, r);
-    }
-
-
-    result_t<expressions::mach_expr_ptr> lex_mach_term()
-    {
-        const auto start = cur_pos_adjusted();
-        switch (*input.next)
-        {
-            case EOF_SYMBOL:
-                add_diagnostic(diagnostic_op::error_S0003);
-                return failure;
-
-            case U'(': {
-                consume(hl_scopes::operator_symbol);
-                auto [error, e] = lex_mach_expr();
-                if (error)
-                    return failure;
-                if (!match<U')'>(hl_scopes::operator_symbol, diagnostic_op::error_S0011))
-                    return failure;
-                return std::make_unique<expressions::mach_expr_unary<expressions::par>>(
-                    std::move(e), range_from(start));
-            }
-
-            case U'*':
-                consume(hl_scopes::operand);
-                return std::make_unique<expressions::mach_expr_location_counter>(range_from(start));
-
-            case U'-':
-            case U'0':
-            case U'1':
-            case U'2':
-            case U'3':
-            case U'4':
-            case U'5':
-            case U'6':
-            case U'7':
-            case U'8':
-            case U'9': {
-                const auto [error, number] = lex_number_as_string();
-                if (error)
-                    return failure;
-                const auto& [v, r] = number;
-                return std::make_unique<expressions::mach_expr_constant>(parse_self_def_term_in_mach("D", v, r), r);
-            }
-
-            case U'=': {
-                auto [error, l] = lex_literal();
-                if (error)
-                    return failure;
-                return std::make_unique<expressions::mach_expr_literal>(range_from(start), std::move(l));
-            }
-
-            default:
-                if (!is_ord_first())
-                {
-                    syntax_error_or_eof();
-                    return failure;
-                }
-                if (follows<group<U'L', U'l'>, group<U'\''>, group<U'*'>>())
-                {
-                    consume(hl_scopes::data_attr_type);
-                    consume(hl_scopes::operator_symbol);
-                    auto loctr_len = maybe_loctr_len();
-                    if (!loctr_len.has_value())
-                    {
-                        add_diagnostic(diagnostic_op::error_S0014);
-                        return failure;
-                    }
-                    consume(hl_scopes::operand);
-                    return std::make_unique<expressions::mach_expr_constant>(loctr_len.value(), range_from(start));
-                }
-                if (follows<mach_attrs, group<U'\''>>())
-                {
-                    const auto attr = context::symbol_attributes::transform_attr(utils::upper_cased[*input.next]);
-                    consume(hl_scopes::data_attr_type);
-                    consume(hl_scopes::operator_symbol);
-                    const auto start_value = cur_pos_adjusted();
-                    if (follows<U'='>())
-                    {
-                        auto lit = enable_literals();
-                        auto [error, l] = lex_literal();
-                        if (error)
-                            return failure;
-
-                        return std::make_unique<expressions::mach_expr_data_attr_literal>(
-                            std::make_unique<expressions::mach_expr_literal>(range_from(start_value), std::move(l)),
-                            attr,
-                            range_from(start),
-                            range_from(start_value));
-                    }
-                    if (is_ord_first())
-                    {
-                        auto [error, q_id] = lex_qualified_id();
-                        if (error)
-                            return failure;
-                        const auto r = range_from(start_value);
-                        add_hl_symbol(r, hl_scopes::ordinary_symbol);
-                        return std::make_unique<expressions::mach_expr_data_attr>(
-                            q_id.id, q_id.qual, attr, range_from(start), r);
-                    }
-                    syntax_error_or_eof();
-                    return failure;
-                }
-                if (follows<group<U'C', U'c'>, group<U'A', U'E', U'U', U'a', U'e', U'u'>, group<U'\''>>())
-                {
-                    const char opt[2] = { static_cast<char>(input.next[0]), static_cast<char>(input.next[1]) };
-                    consume();
-                    consume();
-                    add_hl_symbol(range_from(start), hl_scopes::self_def_type);
-                    auto [error, s] = lex_simple_string();
-                    if (error)
-                        return failure;
-
-                    const auto r = range_from(start);
-                    return std::make_unique<expressions::mach_expr_constant>(
-                        parse_self_def_term_in_mach(std::string_view(opt, 2), s, r), r);
-                }
-                if (follows<selfdef, group<U'\''>>())
-                {
-                    const auto opt = static_cast<char>(*input.next);
-                    consume(hl_scopes::self_def_type);
-                    auto [error, s] = lex_simple_string();
-                    if (error)
-                        return failure;
-
-                    const auto r = range_from(start);
-                    return std::make_unique<expressions::mach_expr_constant>(
-                        parse_self_def_term_in_mach(std::string_view(&opt, 1), s, r), r);
-                }
-                if (auto [error, qual_id] = lex_qualified_id(); error)
-                    return failure;
-                else
-                {
-                    const auto r = range_from(start);
-                    add_hl_symbol(r, hl_scopes::ordinary_symbol);
-                    return std::make_unique<expressions::mach_expr_symbol>(qual_id.id, qual_id.qual, r);
-                }
-                break;
-        }
-    }
-
-    result_t<std::string> lex_simple_string()
-    {
-        assert(follows<U'\''>());
-
-        const auto start = cur_pos_adjusted();
-        std::string s;
-
-        consume();
-
-        while (!eof())
-        {
-            if (follows<group<U'\''>, group<U'\''>>())
-            {
-                consume_into(s);
-                consume();
-            }
-            else if (follows<U'\''>())
-            {
-                consume();
-                add_hl_symbol(range_from(start), hl_scopes::string);
-                return s;
-            }
-            else if (follows<group<U'&'>, group<U'&'>>())
-            {
-                consume_into(s);
-                consume();
-            }
-            else if (follows<U'&'>())
-            {
-                add_diagnostic(diagnostic_op::error_S0002);
-                return failure;
-            }
-            else
-            {
-                consume_into(s);
-            }
-        }
-
-        add_diagnostic(diagnostic_op::error_S0005);
-        return failure;
-    }
-
-    result_t<expressions::mach_expr_ptr> lex_mach_term_c()
-    {
-        if (follows<U'+'>() || (follows<U'-'>() && !char_is_num(input.next[1])))
-        {
-            const auto plus = *input.next == U'+';
-            const auto start = cur_pos_adjusted();
-            consume(hl_scopes::operator_symbol);
-            auto [error, e] = lex_mach_term_c();
-            if (error)
-                return failure;
-            if (plus)
-                return std::make_unique<expressions::mach_expr_unary<expressions::add>>(
-                    std::move(e), range_from(start));
-            else
-                return std::make_unique<expressions::mach_expr_unary<expressions::sub>>(
-                    std::move(e), range_from(start));
-        }
-
-        return lex_mach_term();
-    }
-
-    result_t<expressions::mach_expr_ptr> lex_mach_expr_s()
-    {
-        const auto start = cur_pos_adjusted();
-        if (auto [error, e] = lex_mach_term_c(); error)
-            return failure;
-        else
-        {
-            while (follows<U'*', U'/'>())
-            {
-                const auto mul = *input.next == U'*';
-                consume(hl_scopes::operator_symbol);
-                auto [error2, next] = lex_mach_term_c();
-                if (error2)
-                    return failure;
-                if (mul)
-                    e = std::make_unique<expressions::mach_expr_binary<expressions::mul>>(
-                        std::move(e), std::move(next), range_from(start));
-                else
-                    e = std::make_unique<expressions::mach_expr_binary<expressions::div>>(
-                        std::move(e), std::move(next), range_from(start));
-            }
-            return std::move(e);
-        }
-    }
-
-    result_t<expressions::mach_expr_ptr> lex_mach_expr()
-    {
-        const auto start = cur_pos_adjusted();
-        if (auto [error, e] = lex_mach_expr_s(); error)
-            return failure;
-        else
-        {
-            while (follows<U'+', U'-'>())
-            {
-                const auto plus = *input.next == U'+';
-                consume(hl_scopes::operator_symbol);
-                auto [error2, next] = lex_mach_expr_s();
-                if (error2)
-                    return failure;
-                if (plus)
-                    e = std::make_unique<expressions::mach_expr_binary<expressions::add>>(
-                        std::move(e), std::move(next), range_from(start));
-                else
-                    e = std::make_unique<expressions::mach_expr_binary<expressions::sub>>(
-                        std::move(e), std::move(next), range_from(start));
-            }
-            return std::move(e);
-        }
-    }
+    result_t<expressions::mach_expr_ptr> lex_mach_expr();
 
     static bool is_type_extension(char type, char ch)
     {
@@ -1954,6 +1397,586 @@ struct parser2
         , data(holder->input.data())
     {}
 };
+
+parser2::result_t<parser2::maybe_expr_list> parser2::lex_maybe_expression_list()
+{
+    expressions::ca_expr_ptr p_expr;
+    std::vector<expressions::ca_expr_ptr> expr_list;
+
+    auto leading_spaces = lex_optional_space();
+    if (auto [error, e] = lex_expr(); error)
+        return failure;
+    else
+        p_expr = std::move(e);
+
+    auto trailing_spaces = lex_optional_space();
+    for (; except<U')'>(); trailing_spaces = lex_optional_space())
+    {
+        auto [error, e] = lex_expr();
+        if (error)
+            return failure;
+        if (p_expr)
+            expr_list.push_back(std::move(p_expr));
+        expr_list.push_back(std::move(e));
+    }
+    const auto lt_spaces = leading_spaces || trailing_spaces;
+    if (lt_spaces && p_expr)
+        expr_list.push_back(std::move(p_expr));
+    if (!expr_list.empty())
+        return { std::move(expr_list), lt_spaces };
+    else
+        return { std::move(p_expr), lt_spaces };
+}
+
+parser2::result_t<expressions::ca_expr_ptr> parser2::lex_expr_list()
+{
+    assert(follows<U'('>());
+    const auto start = cur_pos_adjusted();
+
+    consume(hl_scopes::operator_symbol);
+
+    std::vector<expressions::ca_expr_ptr> expr_list;
+
+    (void)lex_optional_space();
+    if (auto [error, e] = lex_expr(); error)
+        return failure;
+    else
+        expr_list.push_back(std::move(e));
+
+    (void)lex_optional_space();
+    for (; except<U')'>(); (void)lex_optional_space())
+    {
+        auto [error, e] = lex_expr();
+        if (error)
+            return failure;
+        expr_list.push_back(std::move(e));
+    }
+    if (!match<U')'>(hl_scopes::operator_symbol, diagnostic_op::error_S0011))
+        return failure;
+    return std::make_unique<expressions::ca_expr_list>(std::move(expr_list), range_from(start), true);
+}
+
+parser2::result_t<expressions::ca_expr_ptr> parser2::lex_self_def()
+{
+    assert((follows<selfdef, group<U'\''>>()));
+    const auto start = cur_pos_adjusted();
+
+    const auto c = static_cast<char>(*input.next);
+    consume(hl_scopes::self_def_type);
+    auto [error, s] = lex_simple_string();
+    if (error)
+        return failure;
+
+    const auto r = range_from(start);
+    return std::make_unique<expressions::ca_constant>(parse_self_def_term(std::string_view(&c, 1), std::move(s), r), r);
+}
+
+parser2::result_t<expressions::ca_expr_ptr> parser2::lex_attribute_reference()
+{
+    assert((follows<all_attrs, group<U'\''>>()));
+    const auto start = cur_pos_adjusted();
+
+    const auto attr = context::symbol_attributes::transform_attr(utils::upper_cased[*input.next]);
+    consume(hl_scopes::data_attr_type);
+    consume(hl_scopes::operator_symbol);
+
+    const auto start_value = cur_pos_adjusted();
+    switch (*input.next)
+    {
+        case U'&': {
+            auto [error, v] = lex_variable();
+            if (error)
+                return failure;
+            // TODO: in reality, this seems to be much more complicated (arbitrary many dots
+            // are consumed for *some* attributes)
+            // TODO: highlighting
+            (void)try_consume<U'.'>();
+
+            return std::make_unique<expressions::ca_symbol_attribute>(
+                std::move(v), attr, range_from(start), range_from(start_value));
+        }
+
+        case U'*':
+            add_diagnostic(diagnostic_op::error_S0014);
+            return failure;
+
+        case U'=': {
+            auto [error, l] = lex_literal();
+            if (error)
+                return failure;
+            return std::make_unique<expressions::ca_symbol_attribute>(
+                std::move(l), attr, range_from(start), range_from(start_value));
+        }
+
+        default: {
+            if (!is_ord_first())
+            {
+                syntax_error_or_eof();
+                return failure;
+            }
+            const auto id_start = cur_pos_adjusted();
+            auto [error, id] = lex_id();
+            if (error)
+                return failure;
+            const auto id_r = range_from(id_start);
+            add_hl_symbol(id_r, hl_scopes::ordinary_symbol);
+            return std::make_unique<expressions::ca_symbol_attribute>(id, attr, range_from(start), id_r);
+        }
+    }
+}
+
+bool parser2::follows_function()
+{
+    if (!is_ord_first())
+        return false;
+    const auto* p = input.next;
+    std::string s;
+    while (char_is_ord(*p))
+    {
+        if (s.size() >= expressions::ca_common_expr_policy::max_function_name_length)
+            return false;
+        s.push_back((char)*p);
+        ++p;
+    }
+    return expressions::ca_common_expr_policy::get_function(s) != expressions::ca_expr_funcs::UNKNOWN;
+}
+
+parser2::result_t<expressions::ca_expr_ptr> parser2::lex_term()
+{
+    const auto start = cur_pos_adjusted();
+    switch (*input.next)
+    {
+        case U'&': {
+            auto [error, v] = lex_variable();
+            if (error)
+                return failure;
+            return std::make_unique<expressions::ca_var_sym>(std::move(v), range_from(start));
+        }
+
+        case U'-':
+        case U'0':
+        case U'1':
+        case U'2':
+        case U'3':
+        case U'4':
+        case U'5':
+        case U'6':
+        case U'7':
+        case U'8':
+        case U'9':
+            return lex_num();
+
+        case U'\'':
+            if (auto [error, s] = lex_rest_of_ca_string_group({}, start); error)
+                return failure;
+            else
+            {
+                add_hl_symbol(range_from(start), hl_scopes::string);
+                return std::move(s);
+            }
+
+        case U'(': {
+            consume(hl_scopes::operator_symbol);
+
+            auto [error, maybe_expr_list] = lex_maybe_expression_list();
+            if (error)
+                return failure;
+            if (!match<U')'>(hl_scopes::operator_symbol, diagnostic_op::error_S0011))
+                return failure;
+            expressions::ca_expr_ptr p_expr;
+            const auto already_expr_list =
+                std::holds_alternative<std::vector<expressions::ca_expr_ptr>>(maybe_expr_list.value);
+            if (already_expr_list)
+                p_expr = std::make_unique<expressions::ca_expr_list>(
+                    std::move(std::get<std::vector<expressions::ca_expr_ptr>>(maybe_expr_list.value)),
+                    range_from(start),
+                    true);
+            else
+                p_expr = std::move(std::get<expressions::ca_expr_ptr>(maybe_expr_list.value));
+
+            if (maybe_expr_list.leading_trailing_spaces)
+                return p_expr;
+
+            if (follows<U'\''>())
+            {
+                if (auto [error2, s] = lex_rest_of_ca_string_group(std::move(p_expr), start); error2)
+                    return failure;
+                else
+                {
+                    add_hl_symbol(range_from(start), hl_scopes::string);
+                    return std::move(s);
+                }
+            }
+            else if (follows_function())
+            {
+                auto [id_error, id] = lex_id();
+                if (id_error)
+                    return failure;
+                if (!must_follow<U'('>())
+                    return failure;
+                auto [s_error, s] = lex_subscript_ne();
+                if (s_error)
+                    return failure;
+                return std::make_unique<expressions::ca_function>(id,
+                    expressions::ca_common_expr_policy::get_function(id.to_string_view()),
+                    std::move(s),
+                    std::move(p_expr),
+                    range_from(start));
+            }
+
+            if (!already_expr_list)
+            {
+                std::vector<expressions::ca_expr_ptr> ops;
+                ops.push_back(std::move(p_expr));
+                p_expr = std::make_unique<expressions::ca_expr_list>(std::move(ops), range_from(start), true);
+            }
+
+            return p_expr;
+        }
+
+        default:
+            if (!is_ord_first())
+            {
+                syntax_error_or_eof();
+                return failure;
+            }
+
+            if (follows<selfdef, group<U'\''>>())
+            {
+                auto [error, self_def] = lex_self_def();
+                if (error)
+                    return failure;
+                return std::move(self_def);
+            }
+
+
+            if (follows<all_attrs, group<U'\''>>())
+            {
+                auto [error, attr_ref] = lex_attribute_reference();
+                if (error)
+                    return failure;
+                return std::move(attr_ref);
+            }
+
+            if (auto [error, id] = lex_id(); error)
+                return failure;
+            else if (follows<U'('>()
+                && expressions::ca_common_expr_policy::get_function(id.to_string_view())
+                    != expressions::ca_expr_funcs::UNKNOWN)
+            {
+                const auto r = range_from(start);
+                add_hl_symbol(r, hl_scopes::operand);
+                auto [error2, s] = lex_subscript_ne();
+                if (error2)
+                    return failure;
+                return std::make_unique<expressions::ca_function>(id,
+                    expressions::ca_common_expr_policy::get_function(id.to_string_view()),
+                    std::move(s),
+                    expressions::ca_expr_ptr(),
+                    range_from(start));
+            }
+            else
+            {
+                const auto r = range_from(start);
+                add_hl_symbol(r, hl_scopes::operand);
+                return std::make_unique<expressions::ca_symbol>(id, r);
+            }
+    }
+}
+
+parser2::result_t<std::pair<std::string, range>> parser2::lex_number_as_string()
+{
+    assert((follows<U'0', U'1', U'2', U'3', U'4', U'5', U'6', U'7', U'8', U'9', U'-'>()));
+    const auto start = cur_pos_adjusted();
+
+    std::string result;
+
+    if (follows<U'-'>())
+    {
+        consume_into(result);
+    }
+    if (!is_num())
+    {
+        syntax_error_or_eof();
+        return failure;
+    }
+    do
+    {
+        consume_into(result);
+    } while (is_num());
+
+    const auto r = range_from(start);
+    add_hl_symbol(r, hl_scopes::number);
+
+    return { result, r };
+}
+
+parser2::result_t<std::pair<int32_t, range>> parser2::lex_number_as_int()
+{
+    const auto [error, number] = lex_number_as_string();
+    if (error)
+        return failure;
+    const auto& [v, r] = number;
+    return { parse_self_def_term("D", v, r), r };
+}
+
+parser2::result_t<expressions::ca_expr_ptr> parser2::lex_num()
+{
+    assert((follows<U'0', U'1', U'2', U'3', U'4', U'5', U'6', U'7', U'8', U'9', U'-'>()));
+    const auto [error, number] = lex_number_as_int();
+    if (error)
+        return failure;
+    const auto& [v, r] = number;
+    return std::make_unique<expressions::ca_constant>(v, r);
+}
+
+parser2::result_t<expressions::mach_expr_ptr> parser2::lex_mach_term()
+{
+    const auto start = cur_pos_adjusted();
+    switch (*input.next)
+    {
+        case EOF_SYMBOL:
+            add_diagnostic(diagnostic_op::error_S0003);
+            return failure;
+
+        case U'(': {
+            consume(hl_scopes::operator_symbol);
+            auto [error, e] = lex_mach_expr();
+            if (error)
+                return failure;
+            if (!match<U')'>(hl_scopes::operator_symbol, diagnostic_op::error_S0011))
+                return failure;
+            return std::make_unique<expressions::mach_expr_unary<expressions::par>>(std::move(e), range_from(start));
+        }
+
+        case U'*':
+            consume(hl_scopes::operand);
+            return std::make_unique<expressions::mach_expr_location_counter>(range_from(start));
+
+        case U'-':
+        case U'0':
+        case U'1':
+        case U'2':
+        case U'3':
+        case U'4':
+        case U'5':
+        case U'6':
+        case U'7':
+        case U'8':
+        case U'9': {
+            const auto [error, number] = lex_number_as_string();
+            if (error)
+                return failure;
+            const auto& [v, r] = number;
+            return std::make_unique<expressions::mach_expr_constant>(parse_self_def_term_in_mach("D", v, r), r);
+        }
+
+        case U'=': {
+            auto [error, l] = lex_literal();
+            if (error)
+                return failure;
+            return std::make_unique<expressions::mach_expr_literal>(range_from(start), std::move(l));
+        }
+
+        default:
+            if (!is_ord_first())
+            {
+                syntax_error_or_eof();
+                return failure;
+            }
+            if (follows<group<U'L', U'l'>, group<U'\''>, group<U'*'>>())
+            {
+                consume(hl_scopes::data_attr_type);
+                consume(hl_scopes::operator_symbol);
+                auto loctr_len = maybe_loctr_len();
+                if (!loctr_len.has_value())
+                {
+                    add_diagnostic(diagnostic_op::error_S0014);
+                    return failure;
+                }
+                consume(hl_scopes::operand);
+                return std::make_unique<expressions::mach_expr_constant>(loctr_len.value(), range_from(start));
+            }
+            if (follows<mach_attrs, group<U'\''>>())
+            {
+                const auto attr = context::symbol_attributes::transform_attr(utils::upper_cased[*input.next]);
+                consume(hl_scopes::data_attr_type);
+                consume(hl_scopes::operator_symbol);
+                const auto start_value = cur_pos_adjusted();
+                if (follows<U'='>())
+                {
+                    auto lit = enable_literals();
+                    auto [error, l] = lex_literal();
+                    if (error)
+                        return failure;
+
+                    return std::make_unique<expressions::mach_expr_data_attr_literal>(
+                        std::make_unique<expressions::mach_expr_literal>(range_from(start_value), std::move(l)),
+                        attr,
+                        range_from(start),
+                        range_from(start_value));
+                }
+                if (is_ord_first())
+                {
+                    auto [error, q_id] = lex_qualified_id();
+                    if (error)
+                        return failure;
+                    const auto r = range_from(start_value);
+                    add_hl_symbol(r, hl_scopes::ordinary_symbol);
+                    return std::make_unique<expressions::mach_expr_data_attr>(
+                        q_id.id, q_id.qual, attr, range_from(start), r);
+                }
+                syntax_error_or_eof();
+                return failure;
+            }
+            if (follows<group<U'C', U'c'>, group<U'A', U'E', U'U', U'a', U'e', U'u'>, group<U'\''>>())
+            {
+                const char opt[2] = { static_cast<char>(input.next[0]), static_cast<char>(input.next[1]) };
+                consume();
+                consume();
+                add_hl_symbol(range_from(start), hl_scopes::self_def_type);
+                auto [error, s] = lex_simple_string();
+                if (error)
+                    return failure;
+
+                const auto r = range_from(start);
+                return std::make_unique<expressions::mach_expr_constant>(
+                    parse_self_def_term_in_mach(std::string_view(opt, 2), s, r), r);
+            }
+            if (follows<selfdef, group<U'\''>>())
+            {
+                const auto opt = static_cast<char>(*input.next);
+                consume(hl_scopes::self_def_type);
+                auto [error, s] = lex_simple_string();
+                if (error)
+                    return failure;
+
+                const auto r = range_from(start);
+                return std::make_unique<expressions::mach_expr_constant>(
+                    parse_self_def_term_in_mach(std::string_view(&opt, 1), s, r), r);
+            }
+            if (auto [error, qual_id] = lex_qualified_id(); error)
+                return failure;
+            else
+            {
+                const auto r = range_from(start);
+                add_hl_symbol(r, hl_scopes::ordinary_symbol);
+                return std::make_unique<expressions::mach_expr_symbol>(qual_id.id, qual_id.qual, r);
+            }
+            break;
+    }
+}
+
+parser2::result_t<std::string> parser2::lex_simple_string()
+{
+    assert(follows<U'\''>());
+
+    const auto start = cur_pos_adjusted();
+    std::string s;
+
+    consume();
+
+    while (!eof())
+    {
+        if (follows<group<U'\''>, group<U'\''>>())
+        {
+            consume_into(s);
+            consume();
+        }
+        else if (follows<U'\''>())
+        {
+            consume();
+            add_hl_symbol(range_from(start), hl_scopes::string);
+            return s;
+        }
+        else if (follows<group<U'&'>, group<U'&'>>())
+        {
+            consume_into(s);
+            consume();
+        }
+        else if (follows<U'&'>())
+        {
+            add_diagnostic(diagnostic_op::error_S0002);
+            return failure;
+        }
+        else
+        {
+            consume_into(s);
+        }
+    }
+
+    add_diagnostic(diagnostic_op::error_S0005);
+    return failure;
+}
+
+parser2::result_t<expressions::mach_expr_ptr> parser2::lex_mach_term_c()
+{
+    if (follows<U'+'>() || (follows<U'-'>() && !char_is_num(input.next[1])))
+    {
+        const auto plus = *input.next == U'+';
+        const auto start = cur_pos_adjusted();
+        consume(hl_scopes::operator_symbol);
+        auto [error, e] = lex_mach_term_c();
+        if (error)
+            return failure;
+        if (plus)
+            return std::make_unique<expressions::mach_expr_unary<expressions::add>>(std::move(e), range_from(start));
+        else
+            return std::make_unique<expressions::mach_expr_unary<expressions::sub>>(std::move(e), range_from(start));
+    }
+
+    return lex_mach_term();
+}
+
+parser2::result_t<expressions::mach_expr_ptr> parser2::lex_mach_expr_s()
+{
+    const auto start = cur_pos_adjusted();
+    if (auto [error, e] = lex_mach_term_c(); error)
+        return failure;
+    else
+    {
+        while (follows<U'*', U'/'>())
+        {
+            const auto mul = *input.next == U'*';
+            consume(hl_scopes::operator_symbol);
+            auto [error2, next] = lex_mach_term_c();
+            if (error2)
+                return failure;
+            if (mul)
+                e = std::make_unique<expressions::mach_expr_binary<expressions::mul>>(
+                    std::move(e), std::move(next), range_from(start));
+            else
+                e = std::make_unique<expressions::mach_expr_binary<expressions::div>>(
+                    std::move(e), std::move(next), range_from(start));
+        }
+        return std::move(e);
+    }
+}
+
+parser2::result_t<expressions::mach_expr_ptr> parser2::lex_mach_expr()
+{
+    const auto start = cur_pos_adjusted();
+    if (auto [error, e] = lex_mach_expr_s(); error)
+        return failure;
+    else
+    {
+        while (follows<U'+', U'-'>())
+        {
+            const auto plus = *input.next == U'+';
+            consume(hl_scopes::operator_symbol);
+            auto [error2, next] = lex_mach_expr_s();
+            if (error2)
+                return failure;
+            if (plus)
+                e = std::make_unique<expressions::mach_expr_binary<expressions::add>>(
+                    std::move(e), std::move(next), range_from(start));
+            else
+                e = std::make_unique<expressions::mach_expr_binary<expressions::sub>>(
+                    std::move(e), std::move(next), range_from(start));
+        }
+        return std::move(e);
+    }
+}
 
 parser2::result_t<std::pair<int32_t, range>> parser2::parse_number()
 {
