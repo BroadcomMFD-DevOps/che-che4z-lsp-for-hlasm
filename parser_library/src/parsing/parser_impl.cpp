@@ -2274,243 +2274,19 @@ struct parser2
         }
     };
 
-    result_t_void lex_macro_operand_amp(concat_chain_builder& ccb)
-    {
-        assert(follows<U'&'>());
-        if (input.next[1] == U'&')
-        {
-            consume_into(ccb.last_text_value());
-            consume_into(ccb.last_text_value());
-        }
-        else
-        {
-            ccb.push_last_text();
-            auto [error, vs] = lex_variable();
-            if (error)
-                return failure;
-            ccb.emplace_back(std::in_place_type<semantics::var_sym_conc>, std::move(vs));
-        }
-        return {};
-    }
+    result_t_void lex_macro_operand_amp(concat_chain_builder& ccb);
 
-    result_t_void lex_macro_operand_string(concat_chain_builder& ccb)
-    {
-        assert(follows<U'\''>());
+    result_t_void lex_macro_operand_string(concat_chain_builder& ccb);
 
-        consume_into(ccb.last_text_value());
-        while (true)
-        {
-            switch (*input.next)
-            {
-                case EOF_SYMBOL:
-                    ccb.push_last_text();
-                    add_diagnostic(diagnostic_op::error_S0005);
-                    return failure;
-                case U'\'':
-                    consume_into(ccb.last_text_value());
-                    if (!follows<U'\''>())
-                    {
-                        ccb.push_last_text();
-                        return {};
-                    }
-                    consume_into(ccb.last_text_value());
-                    break;
+    result_t<bool> lex_macro_operand_attr(concat_chain_builder& ccb);
 
-                case U'&':
-                    if (auto [error] = lex_macro_operand_amp(ccb); error)
-                        return failure;
-                    break;
+    result_t_void lex_macro_operand(semantics::concat_chain& cc, bool next_char_special, bool op_name);
 
-                case U'=':
-                    ccb.single_char_push<semantics::equals_conc>();
-                    break;
+    void process_optional_line_remark();
 
-                case U'.':
-                    ccb.single_char_push<semantics::dot_conc>();
-                    break;
+    result_t_void process_macro_list(std::vector<semantics::concat_chain>& cc);
 
-                default:
-                    consume_into(ccb.last_text_value());
-                    break;
-            }
-        }
-    }
-
-    result_t<bool> lex_macro_operand_attr(concat_chain_builder& ccb)
-    {
-        if (input.next[1] != U'\'')
-        {
-            consume_into(ccb.last_text_value());
-            return false;
-        }
-
-        if (char_is_ord_first(input.next[2]) || input.next[2] == U'=')
-        {
-            consume_into(ccb.last_text_value());
-            consume_into(ccb.last_text_value());
-            return false;
-        }
-
-        if (input.next[2] != U'&')
-        {
-            consume_into(ccb.last_text_value());
-            return false;
-        }
-
-        while (except<U',', U')', U' '>())
-        {
-            if (!follows<U'&'>())
-            {
-                consume_into(ccb.last_text_value());
-            }
-            else if (input.next[1] == U'&')
-            {
-                consume_into(ccb.last_text_value());
-                consume_into(ccb.last_text_value());
-            }
-            else if (auto [error, vs] = (ccb.push_last_text(), lex_variable()); error)
-                return failure;
-            else
-            {
-                ccb.emplace_back(std::in_place_type<semantics::var_sym_conc>, std::move(vs));
-                if (follows<U'.'>())
-                    ccb.single_char_push<semantics::dot_conc, hl_scopes::operator_symbol>();
-            }
-        }
-        return true;
-    }
-
-    result_t_void lex_macro_operand(semantics::concat_chain& cc, bool next_char_special, bool op_name)
-    {
-        concat_chain_builder ccb(*this, cc);
-        while (true)
-        {
-            const bool last_char_special = std::exchange(next_char_special, true);
-            switch (*input.next)
-            {
-                case EOF_SYMBOL:
-                case U' ':
-                case U')':
-                case U',':
-                    ccb.push_last_text();
-                    return {};
-
-                case U'=':
-                    ccb.single_char_push<semantics::equals_conc, hl_scopes::operator_symbol>();
-                    next_char_special = false;
-                    break;
-
-                case U'.':
-                    ccb.single_char_push<semantics::dot_conc, hl_scopes::operator_symbol>();
-                    break;
-
-                case U'(': {
-                    std::vector<semantics::concat_chain> nested;
-                    ccb.push_last_text();
-                    if (auto [error] = process_macro_list(nested); error)
-                        return failure;
-                    ccb.emplace_back(std::in_place_type<semantics::sublist_conc>, std::move(nested));
-                    break;
-                }
-
-                case U'\'':
-                    if (auto [error] = lex_macro_operand_string(ccb); error)
-                        return failure;
-
-                    next_char_special = false;
-                    break;
-
-                case U'&': {
-                    if (auto [error] = lex_macro_operand_amp(ccb); error)
-                        return failure;
-                    if (op_name && follows<U'='>())
-                        ccb.single_char_push<semantics::equals_conc, hl_scopes::operator_symbol>();
-                    else
-                        next_char_special = false;
-                    break;
-                }
-
-                case U'O':
-                case U'S':
-                case U'I':
-                case U'L':
-                case U'T':
-                case U'o':
-                case U's':
-                case U'i':
-                case U'l':
-                case U't':
-                    if (!last_char_special)
-                    {
-                        consume_into(ccb.last_text_value());
-                        next_char_special = false;
-                        break;
-                    }
-                    if (auto [error, ncs] = lex_macro_operand_attr(ccb); error)
-                        return failure;
-                    else
-                        next_char_special = ncs;
-                    break;
-
-                default:
-                    next_char_special = !is_ord();
-                    consume_into(ccb.last_text_value());
-                    break;
-            }
-            op_name = false;
-        }
-    }
-
-    void process_optional_line_remark()
-    {
-        if (follows<U' '>() && before_nl())
-        {
-            lex_line_remark();
-
-            adjust_lines();
-        }
-    }
-
-    result_t_void process_macro_list(std::vector<semantics::concat_chain>& cc)
-    {
-        assert(follows<U'('>());
-
-        consume(hl_scopes::operator_symbol);
-        if (try_consume<U')'>(hl_scopes::operator_symbol))
-            return {};
-
-        if (auto [error] = lex_macro_operand(cc.emplace_back(), true, false); error)
-            return failure;
-
-        while (try_consume<U','>(hl_scopes::operator_symbol))
-        {
-            process_optional_line_remark();
-            if (auto [error] = lex_macro_operand(cc.emplace_back(), true, false); error)
-                return failure;
-        }
-
-        if (!match<U')'>(hl_scopes::operator_symbol, diagnostic_op::error_S0011))
-            return failure;
-
-        return {};
-    }
-
-    result_t_void handle_initial_space(bool reparse)
-    {
-        if (!reparse && *input.next != U' ')
-        {
-            add_diagnostic(diagnostic_op::error_S0002);
-            consume_rest();
-            return failure;
-        }
-
-        // skip spaces
-        while (follows<U' '>())
-            consume();
-        adjust_lines();
-
-        return {};
-    }
+    result_t_void handle_initial_space(bool reparse);
 
     std::pair<semantics::operand_list, range> macro_ops(bool reparse);
 
@@ -2576,6 +2352,244 @@ struct parser2
         , data(holder->input.data())
     {}
 };
+
+parser2::result_t_void parser2::lex_macro_operand_amp(concat_chain_builder& ccb)
+{
+    assert(follows<U'&'>());
+    if (input.next[1] == U'&')
+    {
+        consume_into(ccb.last_text_value());
+        consume_into(ccb.last_text_value());
+    }
+    else
+    {
+        ccb.push_last_text();
+        auto [error, vs] = lex_variable();
+        if (error)
+            return failure;
+        ccb.emplace_back(std::in_place_type<semantics::var_sym_conc>, std::move(vs));
+    }
+    return {};
+}
+
+parser2::result_t_void parser2::lex_macro_operand_string(concat_chain_builder& ccb)
+{
+    assert(follows<U'\''>());
+
+    consume_into(ccb.last_text_value());
+    while (true)
+    {
+        switch (*input.next)
+        {
+            case EOF_SYMBOL:
+                ccb.push_last_text();
+                add_diagnostic(diagnostic_op::error_S0005);
+                return failure;
+            case U'\'':
+                consume_into(ccb.last_text_value());
+                if (!follows<U'\''>())
+                {
+                    ccb.push_last_text();
+                    return {};
+                }
+                consume_into(ccb.last_text_value());
+                break;
+
+            case U'&':
+                if (auto [error] = lex_macro_operand_amp(ccb); error)
+                    return failure;
+                break;
+
+            case U'=':
+                ccb.single_char_push<semantics::equals_conc>();
+                break;
+
+            case U'.':
+                ccb.single_char_push<semantics::dot_conc>();
+                break;
+
+            default:
+                consume_into(ccb.last_text_value());
+                break;
+        }
+    }
+}
+
+parser2::result_t<bool> parser2::lex_macro_operand_attr(concat_chain_builder& ccb)
+{
+    if (input.next[1] != U'\'')
+    {
+        consume_into(ccb.last_text_value());
+        return false;
+    }
+
+    if (char_is_ord_first(input.next[2]) || input.next[2] == U'=')
+    {
+        consume_into(ccb.last_text_value());
+        consume_into(ccb.last_text_value());
+        return false;
+    }
+
+    if (input.next[2] != U'&')
+    {
+        consume_into(ccb.last_text_value());
+        return false;
+    }
+
+    while (except<U',', U')', U' '>())
+    {
+        if (!follows<U'&'>())
+        {
+            consume_into(ccb.last_text_value());
+        }
+        else if (input.next[1] == U'&')
+        {
+            consume_into(ccb.last_text_value());
+            consume_into(ccb.last_text_value());
+        }
+        else if (auto [error, vs] = (ccb.push_last_text(), lex_variable()); error)
+            return failure;
+        else
+        {
+            ccb.emplace_back(std::in_place_type<semantics::var_sym_conc>, std::move(vs));
+            if (follows<U'.'>())
+                ccb.single_char_push<semantics::dot_conc, hl_scopes::operator_symbol>();
+        }
+    }
+    return true;
+}
+
+parser2::result_t_void parser2::lex_macro_operand(semantics::concat_chain& cc, bool next_char_special, bool op_name)
+{
+    concat_chain_builder ccb(*this, cc);
+    while (true)
+    {
+        const bool last_char_special = std::exchange(next_char_special, true);
+        switch (*input.next)
+        {
+            case EOF_SYMBOL:
+            case U' ':
+            case U')':
+            case U',':
+                ccb.push_last_text();
+                return {};
+
+            case U'=':
+                ccb.single_char_push<semantics::equals_conc, hl_scopes::operator_symbol>();
+                next_char_special = false;
+                break;
+
+            case U'.':
+                ccb.single_char_push<semantics::dot_conc, hl_scopes::operator_symbol>();
+                break;
+
+            case U'(': {
+                std::vector<semantics::concat_chain> nested;
+                ccb.push_last_text();
+                if (auto [error] = process_macro_list(nested); error)
+                    return failure;
+                ccb.emplace_back(std::in_place_type<semantics::sublist_conc>, std::move(nested));
+                break;
+            }
+
+            case U'\'':
+                if (auto [error] = lex_macro_operand_string(ccb); error)
+                    return failure;
+
+                next_char_special = false;
+                break;
+
+            case U'&': {
+                if (auto [error] = lex_macro_operand_amp(ccb); error)
+                    return failure;
+                if (op_name && follows<U'='>())
+                    ccb.single_char_push<semantics::equals_conc, hl_scopes::operator_symbol>();
+                else
+                    next_char_special = false;
+                break;
+            }
+
+            case U'O':
+            case U'S':
+            case U'I':
+            case U'L':
+            case U'T':
+            case U'o':
+            case U's':
+            case U'i':
+            case U'l':
+            case U't':
+                if (!last_char_special)
+                {
+                    consume_into(ccb.last_text_value());
+                    next_char_special = false;
+                    break;
+                }
+                if (auto [error, ncs] = lex_macro_operand_attr(ccb); error)
+                    return failure;
+                else
+                    next_char_special = ncs;
+                break;
+
+            default:
+                next_char_special = !is_ord();
+                consume_into(ccb.last_text_value());
+                break;
+        }
+        op_name = false;
+    }
+}
+
+void parser2::process_optional_line_remark()
+{
+    if (follows<U' '>() && before_nl())
+    {
+        lex_line_remark();
+
+        adjust_lines();
+    }
+}
+
+parser2::result_t_void parser2::process_macro_list(std::vector<semantics::concat_chain>& cc)
+{
+    assert(follows<U'('>());
+
+    consume(hl_scopes::operator_symbol);
+    if (try_consume<U')'>(hl_scopes::operator_symbol))
+        return {};
+
+    if (auto [error] = lex_macro_operand(cc.emplace_back(), true, false); error)
+        return failure;
+
+    while (try_consume<U','>(hl_scopes::operator_symbol))
+    {
+        process_optional_line_remark();
+        if (auto [error] = lex_macro_operand(cc.emplace_back(), true, false); error)
+            return failure;
+    }
+
+    if (!match<U')'>(hl_scopes::operator_symbol, diagnostic_op::error_S0011))
+        return failure;
+
+    return {};
+}
+
+parser2::result_t_void parser2::handle_initial_space(bool reparse)
+{
+    if (!reparse && *input.next != U' ')
+    {
+        add_diagnostic(diagnostic_op::error_S0002);
+        consume_rest();
+        return failure;
+    }
+
+    // skip spaces
+    while (follows<U' '>())
+        consume();
+    adjust_lines();
+
+    return {};
+}
 
 std::pair<semantics::operand_list, range> parser2::macro_ops(bool reparse)
 {
