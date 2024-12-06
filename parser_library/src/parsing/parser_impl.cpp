@@ -438,7 +438,7 @@ struct parser2
 
         if (before_nl())
         {
-            const auto last_remark_start = cur_pos(); // adjusted by construction
+            const auto last_remark_start = cur_pos_adjusted();
             while (!eof() && before_nl())
                 consume();
 
@@ -2588,7 +2588,7 @@ std::pair<semantics::operand_list, range> parser2::macro_ops(bool reparse)
 
     semantics::operand_list result;
 
-    auto line_start = cur_pos(); // already adjusted
+    auto line_start = cur_pos_adjusted();
     auto start = line_start;
     semantics::concat_chain cc;
     bool pending = true;
@@ -2835,7 +2835,7 @@ std::pair<semantics::operand_list, range> parser2::ca_expr_ops()
     bool pending = true;
     while (except<U' '>())
     {
-        const auto start = cur_pos();
+        const auto start = cur_pos_adjusted();
         if (try_consume<U','>(hl_scopes::operator_symbol))
         {
             if (pending)
@@ -2891,7 +2891,7 @@ std::pair<semantics::operand_list, range> parser2::ca_branch_ops()
     bool pending = true;
     while (except<U' '>())
     {
-        const auto start = cur_pos();
+        const auto start = cur_pos_adjusted();
         if (try_consume<U','>(hl_scopes::operator_symbol))
         {
             if (pending)
@@ -2955,7 +2955,7 @@ std::pair<semantics::operand_list, range> parser2::ca_var_def_ops()
     bool pending = true;
     while (except<U' '>())
     {
-        const auto start = cur_pos();
+        const auto start = cur_pos_adjusted();
         if (try_consume<U','>(hl_scopes::operator_symbol))
         {
             if (pending)
@@ -3088,7 +3088,7 @@ parser_holder::op_data parser2::lab_instr_rest()
         };
     }
 
-    const auto op_start = cur_pos();
+    const auto op_start = cur_pos(); // intentionally not adjusted to capture newlines
     parser_holder::op_data result {
         .op_text = lexing::u8string_with_newlines(),
         .op_range = {},
@@ -3350,7 +3350,7 @@ parser_holder::op_data parser2::lab_instr()
         return lab_instr_rest();
     }
 
-    const auto start = cur_pos();
+    const auto start = cur_pos_adjusted();
     auto label_end = start;
 
     semantics::concat_chain label_concat;
@@ -4067,7 +4067,7 @@ template<parser2::result_t<semantics::operand_ptr> (parser2::*first)(),
     parser2::result_t<semantics::operand_ptr> (parser2::*rest)()>
 std::optional<semantics::op_rem> parser2::with_model(bool reparse, bool model_allowed) requires(first != nullptr)
 {
-    const auto start = cur_pos();
+    const auto start = cur_pos(); // capture true beginning
     if (eof())
         return semantics::op_rem { .line_range = remap_range(range(start)) };
 
@@ -4416,7 +4416,7 @@ semantics::operand_ptr parser_holder::operand_mach()
 
 void parser2::lookahead_operands_and_remarks_dat()
 {
-    const auto start = cur_pos();
+    const auto start = cur_pos_adjusted();
     if (eof() || !lex_optional_space() || eof())
     {
         holder->collector.set_operand_remark_field({}, {}, remap_range(range(start)));
