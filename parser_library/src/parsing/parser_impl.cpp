@@ -101,7 +101,6 @@ constexpr const auto ord_first = utils::create_truth_table("$_#@abcdefghijklmnop
 constexpr const auto ord =
     utils::create_truth_table("$_#@abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789");
 constexpr const auto numbers = utils::create_truth_table("0123456789");
-constexpr const auto identifier_divider = utils::create_truth_table("*.-+=<>,()'/&| ");
 
 [[nodiscard]] constexpr bool char_is_ord_first(parser_holder::char_t c) noexcept
 {
@@ -234,6 +233,7 @@ struct parser_position
 
     auto operator<=>(const parser_position&) const noexcept = default;
 };
+
 struct parser_range
 {
     range r;
@@ -620,8 +620,6 @@ struct parser2
     std::pair<semantics::operand_list, range> ca_expr_ops();
     std::pair<semantics::operand_list, range> ca_branch_ops();
     std::pair<semantics::operand_list, range> ca_var_def_ops();
-
-    constexpr bool is_ord_like(std::span<const semantics::concatenation_point> cc);
 
     parser_holder::op_data lab_instr();
     void lab_instr_process();
@@ -3495,23 +3493,6 @@ result_t<semantics::concat_chain> parser2::lex_instr()
     }
 }
 
-constexpr bool parser2::is_ord_like(std::span<const semantics::concatenation_point> cc)
-{
-    if (std::ranges::any_of(
-            cc, [](const auto& c) { return !std::holds_alternative<semantics::char_str_conc>(c.value); }))
-        return false;
-    auto it = std::ranges::find_if(
-        cc, [](const auto& c) { return !std::get<semantics::char_str_conc>(c.value).value.empty(); });
-    if (it == cc.end())
-        return false;
-    if (!char_is_ord_first(std::get<semantics::char_str_conc>(it->value).value.front()))
-        return false;
-    return std::all_of(it, cc.end(), [](const auto& c) {
-        const auto& str = std::get<semantics::char_str_conc>(c.value).value;
-        return std::ranges::all_of(str, [](unsigned char uc) { return char_is_ord(uc); });
-    });
-}
-
 parser_holder::op_data parser2::lab_instr()
 {
     if (eof())
@@ -3559,12 +3540,41 @@ parser_holder::op_data parser2::lab_instr()
     return lab_instr_rest();
 }
 
+namespace {
+constexpr bool is_ord_like(std::span<const semantics::concatenation_point> cc)
+{
+    if (std::ranges::any_of(
+            cc, [](const auto& c) { return !std::holds_alternative<semantics::char_str_conc>(c.value); }))
+        return false;
+    auto it = std::ranges::find_if(
+        cc, [](const auto& c) { return !std::get<semantics::char_str_conc>(c.value).value.empty(); });
+    if (it == cc.end())
+        return false;
+    if (!char_is_ord_first(std::get<semantics::char_str_conc>(it->value).value.front()))
+        return false;
+    return std::all_of(it, cc.end(), [](const auto& c) {
+        const auto& str = std::get<semantics::char_str_conc>(c.value).value;
+        return std::ranges::all_of(str, [](unsigned char uc) { return char_is_ord(uc); });
+    });
+}
+
+constexpr bool has_variable_symbol(const semantics::concat_chain& cc) noexcept
+{
+    return std::ranges::any_of(
+        cc, [](const auto& c) { return std::holds_alternative<semantics::var_sym_conc>(c.value); });
+}
+
+constexpr bool is_seq_symbol(const semantics::concat_chain& cc) noexcept
+{
+    return std::holds_alternative<semantics::dot_conc>(cc.front().value) && is_ord_like(std::span(cc).subspan(1));
+}
+} // namespace
+
 void parser2::lex_handle_label(semantics::concat_chain cc, range r)
 {
     if (cc.empty())
         holder->collector.set_label_field(r);
-    else if (std::ranges::any_of(
-                 cc, [](const auto& c) { return std::holds_alternative<semantics::var_sym_conc>(c.value); }))
+    else if (has_variable_symbol(cc))
     {
         semantics::concatenation_point::clear_concat_chain(cc);
         for (const auto& c : cc)
@@ -3575,8 +3585,7 @@ void parser2::lex_handle_label(semantics::concat_chain cc, range r)
         }
         holder->collector.set_label_field(std::move(cc), r);
     }
-    else if (std::holds_alternative<semantics::dot_conc>(cc.front().value)
-        && is_ord_like(std::span(cc).subspan(1))) // seq symbol
+    else if (is_seq_symbol(cc)) // seq symbol
     {
         auto& label = std::get<semantics::char_str_conc>(cc[1].value).value;
         for (auto& c : std::span(cc).subspan(2))
