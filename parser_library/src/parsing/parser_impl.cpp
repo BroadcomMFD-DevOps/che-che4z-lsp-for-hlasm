@@ -682,6 +682,17 @@ class parser2::concat_chain_builder
     semantics::char_str_conc* last_text_state = nullptr;
     bool highlighting = true;
 
+    template<typename T, hl_scopes... s>
+    void single_char_push() requires(sizeof...(s) <= 1)
+    {
+        push_last_text();
+        const auto start = p.cur_pos_adjusted();
+        p.consume(s...);
+        const auto r = p.range_from(start);
+        cc.emplace_back(std::in_place_type<T>, r);
+        last_text_state = nullptr;
+    }
+
 public:
     concat_chain_builder(parser2& p, semantics::concat_chain& cc, bool hl = true) noexcept
         : p(p)
@@ -704,22 +715,28 @@ public:
     {
         if (!last_text_state)
             return;
-        last_text_state->conc_range =
-            p.remap_range(parser_range { { last_text_state->conc_range.start, p.cur_pos().pos } });
+        last_text_state->conc_range = p.remap_range(parser_position { last_text_state->conc_range.start }, p.cur_pos());
         if (highlighting)
             p.add_hl_symbol(last_text_state->conc_range, hl_scopes::operand);
         last_text_state = nullptr;
     }
 
-    template<typename T, hl_scopes... s>
-    void single_char_push() requires(sizeof...(s) <= 1)
+    template<bool hl = false>
+    void push_dot()
     {
-        push_last_text();
-        const auto start = p.cur_pos_adjusted();
-        p.consume(s...);
-        const auto r = p.range_from(start);
-        cc.emplace_back(std::in_place_type<T>, r);
-        last_text_state = nullptr;
+        if constexpr (hl)
+            single_char_push<semantics::dot_conc, hl_scopes::operator_symbol>();
+        else
+            single_char_push<semantics::dot_conc>();
+    }
+
+    template<bool hl = false>
+    void push_equals()
+    {
+        if constexpr (hl)
+            single_char_push<semantics::equals_conc, hl_scopes::operator_symbol>();
+        else
+            single_char_push<semantics::equals_conc>();
     }
 
     template<typename... Args>
@@ -2542,11 +2559,11 @@ result_t<void> parser2::lex_macro_operand_string(concat_chain_builder& ccb)
                 break;
 
             case U'=':
-                ccb.single_char_push<semantics::equals_conc>();
+                ccb.push_equals();
                 break;
 
             case U'.':
-                ccb.single_char_push<semantics::dot_conc>();
+                ccb.push_dot();
                 break;
 
             default:
@@ -2594,7 +2611,7 @@ result_t<bool> parser2::lex_macro_operand_attr(concat_chain_builder& ccb)
         {
             ccb.emplace_back(std::in_place_type<semantics::var_sym_conc>, std::move(vs));
             if (follows<U'.'>())
-                ccb.single_char_push<semantics::dot_conc, hl_scopes::operator_symbol>();
+                ccb.push_dot<true>();
         }
     }
     return true;
@@ -2616,12 +2633,12 @@ result_t<void> parser2::lex_macro_operand(semantics::concat_chain& cc, bool next
                 return {};
 
             case U'=':
-                ccb.single_char_push<semantics::equals_conc, hl_scopes::operator_symbol>();
+                ccb.push_equals<true>();
                 next_char_special = false;
                 break;
 
             case U'.':
-                ccb.single_char_push<semantics::dot_conc, hl_scopes::operator_symbol>();
+                ccb.push_dot<true>();
                 break;
 
             case U'(': {
@@ -2644,7 +2661,7 @@ result_t<void> parser2::lex_macro_operand(semantics::concat_chain& cc, bool next
                 if (auto [error] = lex_macro_operand_amp(ccb); error)
                     return failure;
                 if (op_name && follows<U'='>())
-                    ccb.single_char_push<semantics::equals_conc, hl_scopes::operator_symbol>();
+                    ccb.push_equals<true>();
                 else
                     next_char_special = false;
                 break;
@@ -2856,7 +2873,7 @@ std::pair<semantics::operand_list, range> parser2::macro_ops(bool reparse)
                 ccb.push_last_text();
                 if (follows<U'='>())
                 {
-                    ccb.single_char_push<semantics::equals_conc>(); // TODO: no highlighting???
+                    ccb.push_equals(); // TODO: no highlighting???
                     next_char_special = true;
                 }
                 if (const auto n = *input.next; n == EOF_SYMBOL || n == U' ' || n == U',')
@@ -3352,12 +3369,12 @@ result_t<semantics::concat_chain> parser2::lex_label()
                 return chain;
 
             case U'.':
-                cb.single_char_push<semantics::dot_conc>();
+                cb.push_dot();
                 next_char_special = follows<U'C', U'c'>();
                 break;
 
             case U'=':
-                cb.single_char_push<semantics::equals_conc>();
+                cb.push_equals();
                 next_char_special = follows<U'C', U'c'>();
                 break;
 
@@ -3448,11 +3465,11 @@ result_t<semantics::concat_chain> parser2::lex_instr()
                 return failure;
 
             case U'=':
-                cb.single_char_push<semantics::equals_conc>();
+                cb.push_equals();
                 break;
 
             case U'.':
-                cb.single_char_push<semantics::dot_conc>();
+                cb.push_dot();
                 break;
 
             case U'&':
@@ -3939,11 +3956,11 @@ result_t<void> parser2::lex_rest_of_model_string(concat_chain_builder& ccb)
                 break;
 
             case U'.':
-                ccb.single_char_push<semantics::dot_conc>();
+                ccb.push_dot();
                 break;
 
             case U'=':
-                ccb.single_char_push<semantics::equals_conc>();
+                ccb.push_equals();
                 break;
 
             case U'\'':
@@ -4112,11 +4129,11 @@ done:;
 
 
             case U'.':
-                ccb.single_char_push<semantics::dot_conc>();
+                ccb.push_dot();
                 break;
 
             case U'=':
-                ccb.single_char_push<semantics::equals_conc>();
+                ccb.push_equals();
                 next_char_special = false;
                 break;
 
