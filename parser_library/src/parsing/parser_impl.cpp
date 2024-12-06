@@ -238,6 +238,36 @@ struct parser_range
 {
     range r;
 };
+
+struct
+{
+} static constexpr const failure = {};
+
+template<typename T = void>
+struct [[nodiscard]] result_t
+{
+    bool error = false;
+    T value = T {};
+
+    template<typename... Args>
+    constexpr result_t(Args&&... args) requires(sizeof...(Args) > 0 && std::constructible_from<T, Args...>)
+        : value(std::forward<Args>(args)...)
+    {}
+    constexpr explicit(false) result_t(decltype(failure))
+        : error(true)
+    {}
+};
+
+template<>
+struct [[nodiscard]] result_t<void>
+{
+    bool error = false;
+
+    constexpr result_t() = default;
+    constexpr explicit(false) result_t(decltype(failure))
+        : error(true)
+    {}
+};
 } // namespace
 
 struct parser2
@@ -428,35 +458,6 @@ struct parser2
 
     void lex_line_remark();
 
-    struct
-    {
-    } static constexpr const failure = {};
-
-    template<typename T = void>
-    struct [[nodiscard]] result_t
-    {
-        bool error = false;
-        T value = T {};
-
-        template<typename... Args>
-        constexpr result_t(Args&&... args) requires(sizeof...(Args) > 0 && std::constructible_from<T, Args...>)
-            : value(std::forward<Args>(args)...)
-        {}
-        constexpr explicit(false) result_t(decltype(failure))
-            : error(true)
-        {}
-    };
-
-    struct [[nodiscard]] result_t_void
-    {
-        bool error = false;
-
-        constexpr result_t_void() = default;
-        constexpr explicit(false) result_t_void(decltype(failure))
-            : error(true)
-        {}
-    };
-
     void resolve_expression(expressions::ca_expr_ptr& expr) const;
 
     void resolve_concat_chain(const semantics::concat_chain& chain) const;
@@ -600,19 +601,19 @@ struct parser2
 
     result_t<std::vector<expressions::ca_expr_ptr>> lex_subscript();
 
-    result_t_void lex_macro_operand_amp(concat_chain_builder& ccb);
+    result_t<void> lex_macro_operand_amp(concat_chain_builder& ccb);
 
-    result_t_void lex_macro_operand_string(concat_chain_builder& ccb);
+    result_t<void> lex_macro_operand_string(concat_chain_builder& ccb);
 
     result_t<bool> lex_macro_operand_attr(concat_chain_builder& ccb);
 
-    result_t_void lex_macro_operand(semantics::concat_chain& cc, bool next_char_special, bool op_name);
+    result_t<void> lex_macro_operand(semantics::concat_chain& cc, bool next_char_special, bool op_name);
 
     void process_optional_line_remark();
 
-    result_t_void process_macro_list(std::vector<semantics::concat_chain>& cc);
+    result_t<void> process_macro_list(std::vector<semantics::concat_chain>& cc);
 
-    result_t_void handle_initial_space(bool reparse);
+    result_t<void> handle_initial_space(bool reparse);
 
     std::pair<semantics::operand_list, range> macro_ops(bool reparse);
 
@@ -629,7 +630,7 @@ struct parser2
     parser_holder::op_data look_lab_instr();
     parser_holder::op_data look_lab_instr_seq();
 
-    result_t_void lex_label_string(concat_chain_builder& cb);
+    result_t<void> lex_label_string(concat_chain_builder& cb);
     result_t<semantics::concat_chain> lex_label();
     result_t<semantics::concat_chain> lex_instr();
 
@@ -660,7 +661,7 @@ struct parser2
 
     [[nodiscard]] constexpr bool ord_followed_by_parenthesis() const noexcept;
 
-    result_t_void lex_rest_of_model_string(concat_chain_builder& ccb);
+    result_t<void> lex_rest_of_model_string(concat_chain_builder& ccb);
     result_t<std::optional<semantics::op_rem>> try_model_ops(parser_position line_start);
 
     void lookahead_operands_and_remarks_dat();
@@ -1030,7 +1031,7 @@ std::string parser2::lex_ord_upper()
     return result;
 }
 
-parser2::result_t<context::id_index> parser2::lex_id()
+result_t<context::id_index> parser2::lex_id()
 {
     assert(is_ord_first());
 
@@ -1045,7 +1046,7 @@ parser2::result_t<context::id_index> parser2::lex_id()
         return id;
 }
 
-parser2::result_t<parser2::qualified_id> parser2::lex_qualified_id()
+result_t<parser2::qualified_id> parser2::lex_qualified_id()
 {
     auto [error, id1] = lex_id();
     if (error)
@@ -1069,7 +1070,7 @@ parser2::result_t<parser2::qualified_id> parser2::lex_qualified_id()
     return { context::id_index(), id1 };
 }
 
-parser2::result_t<semantics::concat_chain> parser2::lex_compound_variable()
+result_t<semantics::concat_chain> parser2::lex_compound_variable()
 {
     if (!except<U')'>())
     {
@@ -1135,7 +1136,7 @@ parser2::result_t<semantics::concat_chain> parser2::lex_compound_variable()
     return failure;
 }
 
-parser2::result_t<semantics::seq_sym> parser2::lex_seq_symbol()
+result_t<semantics::seq_sym> parser2::lex_seq_symbol()
 {
     const auto start = cur_pos_adjusted();
     if (!try_consume<U'.'>() || !is_ord_first())
@@ -1151,7 +1152,7 @@ parser2::result_t<semantics::seq_sym> parser2::lex_seq_symbol()
     return { id, r };
 }
 
-parser2::result_t<expressions::ca_expr_ptr> parser2::lex_expr_general()
+result_t<expressions::ca_expr_ptr> parser2::lex_expr_general()
 {
     const auto start = cur_pos_adjusted();
     if (!follows_NOT())
@@ -1178,7 +1179,7 @@ parser2::result_t<expressions::ca_expr_ptr> parser2::lex_expr_general()
     return std::make_unique<expressions::ca_expr_list>(std::move(ca_exprs), range_from(start), false);
 }
 
-parser2::result_t<semantics::concat_chain> parser2::lex_ca_string_value()
+result_t<semantics::concat_chain> parser2::lex_ca_string_value()
 {
     assert(follows<U'\''>());
 
@@ -1254,7 +1255,7 @@ parser2::result_t<semantics::concat_chain> parser2::lex_ca_string_value()
     }
 }
 
-parser2::result_t<expressions::ca_string::substring_t> parser2::lex_substring()
+result_t<expressions::ca_string::substring_t> parser2::lex_substring()
 {
     assert(follows<U'('>());
 
@@ -1290,7 +1291,7 @@ parser2::result_t<expressions::ca_string::substring_t> parser2::lex_substring()
     };
 }
 
-parser2::result_t<std::pair<semantics::concat_chain, expressions::ca_string::substring_t>>
+result_t<std::pair<semantics::concat_chain, expressions::ca_string::substring_t>>
 parser2::lex_ca_string_with_optional_substring()
 {
     assert(follows<U'\''>());
@@ -1318,7 +1319,7 @@ bool parser2::lex_optional_space()
     return matched;
 }
 
-parser2::result_t<std::vector<expressions::ca_expr_ptr>> parser2::lex_subscript_ne()
+result_t<std::vector<expressions::ca_expr_ptr>> parser2::lex_subscript_ne()
 {
     assert(follows<U'('>());
 
@@ -1449,7 +1450,7 @@ parser2::result_t<std::vector<expressions::ca_expr_ptr>> parser2::lex_subscript_
     return expressions::ca_constant::self_defining_term(type, value, add_diagnostic);
 }
 
-parser2::result_t<expressions::ca_expr_ptr> parser2::lex_rest_of_ca_string_group(
+result_t<expressions::ca_expr_ptr> parser2::lex_rest_of_ca_string_group(
     expressions::ca_expr_ptr initial_duplicate_factor, const parser_position& start)
 {
     if (!allow_ca_string())
@@ -1486,7 +1487,7 @@ parser2::result_t<expressions::ca_expr_ptr> parser2::lex_rest_of_ca_string_group
     return result;
 }
 
-parser2::result_t<parser2::maybe_expr_list> parser2::lex_maybe_expression_list()
+result_t<parser2::maybe_expr_list> parser2::lex_maybe_expression_list()
 {
     expressions::ca_expr_ptr p_expr;
     std::vector<expressions::ca_expr_ptr> expr_list;
@@ -1516,7 +1517,7 @@ parser2::result_t<parser2::maybe_expr_list> parser2::lex_maybe_expression_list()
         return { std::move(p_expr), lt_spaces };
 }
 
-parser2::result_t<expressions::ca_expr_ptr> parser2::lex_expr_list()
+result_t<expressions::ca_expr_ptr> parser2::lex_expr_list()
 {
     assert(follows<U'('>());
     const auto start = cur_pos_adjusted();
@@ -1544,7 +1545,7 @@ parser2::result_t<expressions::ca_expr_ptr> parser2::lex_expr_list()
     return std::make_unique<expressions::ca_expr_list>(std::move(expr_list), range_from(start), true);
 }
 
-parser2::result_t<expressions::ca_expr_ptr> parser2::lex_self_def()
+result_t<expressions::ca_expr_ptr> parser2::lex_self_def()
 {
     assert((follows<selfdef, group<U'\''>>()));
     const auto start = cur_pos_adjusted();
@@ -1559,7 +1560,7 @@ parser2::result_t<expressions::ca_expr_ptr> parser2::lex_self_def()
     return std::make_unique<expressions::ca_constant>(parse_self_def_term(std::string_view(&c, 1), std::move(s), r), r);
 }
 
-parser2::result_t<expressions::ca_expr_ptr> parser2::lex_attribute_reference()
+result_t<expressions::ca_expr_ptr> parser2::lex_attribute_reference()
 {
     assert((follows<all_attrs, group<U'\''>>()));
     const auto start = cur_pos_adjusted();
@@ -1629,7 +1630,7 @@ bool parser2::follows_function()
     return expressions::ca_common_expr_policy::get_function(s) != expressions::ca_expr_funcs::UNKNOWN;
 }
 
-parser2::result_t<expressions::ca_expr_ptr> parser2::lex_term()
+result_t<expressions::ca_expr_ptr> parser2::lex_term()
 {
     const auto start = cur_pos_adjusted();
     switch (*input.next)
@@ -1772,7 +1773,7 @@ parser2::result_t<expressions::ca_expr_ptr> parser2::lex_term()
     }
 }
 
-parser2::result_t<std::pair<std::string, range>> parser2::lex_number_as_string()
+result_t<std::pair<std::string, range>> parser2::lex_number_as_string()
 {
     assert((follows<U'0', U'1', U'2', U'3', U'4', U'5', U'6', U'7', U'8', U'9', U'-'>()));
     const auto start = cur_pos_adjusted();
@@ -1799,7 +1800,7 @@ parser2::result_t<std::pair<std::string, range>> parser2::lex_number_as_string()
     return { result, r };
 }
 
-parser2::result_t<std::pair<int32_t, range>> parser2::lex_number_as_int()
+result_t<std::pair<int32_t, range>> parser2::lex_number_as_int()
 {
     const auto [error, number] = lex_number_as_string();
     if (error)
@@ -1808,7 +1809,7 @@ parser2::result_t<std::pair<int32_t, range>> parser2::lex_number_as_int()
     return { parse_self_def_term("D", v, r), r };
 }
 
-parser2::result_t<expressions::ca_expr_ptr> parser2::lex_num()
+result_t<expressions::ca_expr_ptr> parser2::lex_num()
 {
     assert((follows<U'0', U'1', U'2', U'3', U'4', U'5', U'6', U'7', U'8', U'9', U'-'>()));
     const auto [error, number] = lex_number_as_int();
@@ -1818,7 +1819,7 @@ parser2::result_t<expressions::ca_expr_ptr> parser2::lex_num()
     return std::make_unique<expressions::ca_constant>(v, r);
 }
 
-parser2::result_t<expressions::mach_expr_ptr> parser2::lex_mach_term()
+result_t<expressions::mach_expr_ptr> parser2::lex_mach_term()
 {
     const auto start = cur_pos_adjusted();
     switch (*input.next)
@@ -1955,7 +1956,7 @@ parser2::result_t<expressions::mach_expr_ptr> parser2::lex_mach_term()
     }
 }
 
-parser2::result_t<std::string> parser2::lex_simple_string()
+result_t<std::string> parser2::lex_simple_string()
 {
     assert(follows<U'\''>());
 
@@ -1997,7 +1998,7 @@ parser2::result_t<std::string> parser2::lex_simple_string()
     return failure;
 }
 
-parser2::result_t<expressions::mach_expr_ptr> parser2::lex_mach_term_c()
+result_t<expressions::mach_expr_ptr> parser2::lex_mach_term_c()
 {
     if (follows<U'+'>() || (follows<U'-'>() && !char_is_num(input.next[1])))
     {
@@ -2016,7 +2017,7 @@ parser2::result_t<expressions::mach_expr_ptr> parser2::lex_mach_term_c()
     return lex_mach_term();
 }
 
-parser2::result_t<expressions::mach_expr_ptr> parser2::lex_mach_expr_s()
+result_t<expressions::mach_expr_ptr> parser2::lex_mach_expr_s()
 {
     const auto start = cur_pos_adjusted();
     if (auto [error, e] = lex_mach_term_c(); error)
@@ -2041,7 +2042,7 @@ parser2::result_t<expressions::mach_expr_ptr> parser2::lex_mach_expr_s()
     }
 }
 
-parser2::result_t<expressions::mach_expr_ptr> parser2::lex_mach_expr()
+result_t<expressions::mach_expr_ptr> parser2::lex_mach_expr()
 {
     const auto start = cur_pos_adjusted();
     if (auto [error, e] = lex_mach_expr_s(); error)
@@ -2066,7 +2067,7 @@ parser2::result_t<expressions::mach_expr_ptr> parser2::lex_mach_expr()
     }
 }
 
-parser2::result_t<std::pair<int32_t, range>> parser2::parse_number()
+result_t<std::pair<int32_t, range>> parser2::parse_number()
 {
     constexpr long long min_l = -(1LL << 31);
     constexpr long long max_l = (1LL << 31) - 1;
@@ -2124,7 +2125,7 @@ parser2::result_t<std::pair<int32_t, range>> parser2::parse_number()
     return { (int32_t)result, r };
 }
 
-parser2::result_t<expressions::mach_expr_ptr> parser2::lex_literal_signed_num()
+result_t<expressions::mach_expr_ptr> parser2::lex_literal_signed_num()
 {
     if (try_consume<U'('>(hl_scopes::operator_symbol))
     {
@@ -2141,7 +2142,7 @@ parser2::result_t<expressions::mach_expr_ptr> parser2::lex_literal_signed_num()
     return std::make_unique<expressions::mach_expr_constant>(n.first, n.second);
 }
 
-parser2::result_t<expressions::mach_expr_ptr> parser2::lex_literal_unsigned_num()
+result_t<expressions::mach_expr_ptr> parser2::lex_literal_unsigned_num()
 {
     if (try_consume<U'('>(hl_scopes::operator_symbol))
     {
@@ -2163,7 +2164,7 @@ parser2::result_t<expressions::mach_expr_ptr> parser2::lex_literal_unsigned_num(
     return std::make_unique<expressions::mach_expr_constant>(n.first, n.second);
 }
 
-parser2::result_t<expressions::data_definition> parser2::lex_data_def_base()
+result_t<expressions::data_definition> parser2::lex_data_def_base()
 {
     const auto goff = holder->hlasm_ctx->goff();
 
@@ -2245,7 +2246,7 @@ parser2::result_t<expressions::data_definition> parser2::lex_data_def_base()
     return result;
 }
 
-parser2::result_t<expressions::expr_or_address> parser2::lex_expr_or_addr()
+result_t<expressions::expr_or_address> parser2::lex_expr_or_addr()
 {
     const auto start = cur_pos_adjusted();
     auto [error, e] = lex_mach_expr();
@@ -2263,7 +2264,7 @@ parser2::result_t<expressions::expr_or_address> parser2::lex_expr_or_addr()
         std::in_place_type<expressions::address_nominal>, std::move(e), std::move(e2), range_from(start));
 }
 
-parser2::result_t<expressions::expr_or_address_list> parser2::lex_literal_nominal_addr()
+result_t<expressions::expr_or_address_list> parser2::lex_literal_nominal_addr()
 {
     assert(follows<U'('>());
     consume(hl_scopes::operator_symbol);
@@ -2289,7 +2290,7 @@ parser2::result_t<expressions::expr_or_address_list> parser2::lex_literal_nomina
     return result;
 }
 
-parser2::result_t<expressions::nominal_value_ptr> parser2::lex_literal_nominal()
+result_t<expressions::nominal_value_ptr> parser2::lex_literal_nominal()
 {
     const auto start = cur_pos_adjusted();
     if (follows<U'\''>())
@@ -2313,7 +2314,7 @@ parser2::result_t<expressions::nominal_value_ptr> parser2::lex_literal_nominal()
     }
 }
 
-parser2::result_t<expressions::data_definition> parser2::lex_data_definition(bool require_nominal)
+result_t<expressions::data_definition> parser2::lex_data_definition(bool require_nominal)
 {
     auto [error, d] = lex_data_def_base();
     if (error)
@@ -2354,7 +2355,7 @@ std::string parser2::capture_text(const parser_holder::char_t* start, const pars
 
 std::string parser2::capture_text(const parser_holder::char_t* start) const { return capture_text(start, input.next); }
 
-parser2::result_t<semantics::literal_si> parser2::lex_literal()
+result_t<semantics::literal_si> parser2::lex_literal()
 {
     const auto allowed = allow_literals();
     const auto disabled = disable_literals();
@@ -2377,7 +2378,7 @@ parser2::result_t<semantics::literal_si> parser2::lex_literal()
     return holder->collector.add_literal(capture_text(initial), std::move(dd), range_from(start));
 }
 
-parser2::result_t<expressions::ca_expr_ptr> parser2::lex_term_c()
+result_t<expressions::ca_expr_ptr> parser2::lex_term_c()
 {
     if (follows<U'+'>() || (follows<U'-'>() && !char_is_num(input.next[1])))
     {
@@ -2395,7 +2396,7 @@ parser2::result_t<expressions::ca_expr_ptr> parser2::lex_term_c()
     return lex_term();
 }
 
-parser2::result_t<expressions::ca_expr_ptr> parser2::lex_expr_s()
+result_t<expressions::ca_expr_ptr> parser2::lex_expr_s()
 {
     expressions::ca_expr_ptr result;
     const auto start = cur_pos_adjusted();
@@ -2422,7 +2423,7 @@ parser2::result_t<expressions::ca_expr_ptr> parser2::lex_expr_s()
     return result;
 }
 
-parser2::result_t<expressions::ca_expr_ptr> parser2::lex_expr()
+result_t<expressions::ca_expr_ptr> parser2::lex_expr()
 {
     expressions::ca_expr_ptr result;
     const auto start = cur_pos_adjusted();
@@ -2466,7 +2467,7 @@ parser2::result_t<expressions::ca_expr_ptr> parser2::lex_expr()
     return result;
 }
 
-parser2::result_t<std::vector<expressions::ca_expr_ptr>> parser2::lex_subscript()
+result_t<std::vector<expressions::ca_expr_ptr>> parser2::lex_subscript()
 {
     assert(follows<U'('>());
 
@@ -2493,7 +2494,7 @@ parser2::result_t<std::vector<expressions::ca_expr_ptr>> parser2::lex_subscript(
     return result;
 }
 
-parser2::result_t_void parser2::lex_macro_operand_amp(concat_chain_builder& ccb)
+result_t<void> parser2::lex_macro_operand_amp(concat_chain_builder& ccb)
 {
     assert(follows<U'&'>());
     if (input.next[1] == U'&')
@@ -2512,7 +2513,7 @@ parser2::result_t_void parser2::lex_macro_operand_amp(concat_chain_builder& ccb)
     return {};
 }
 
-parser2::result_t_void parser2::lex_macro_operand_string(concat_chain_builder& ccb)
+result_t<void> parser2::lex_macro_operand_string(concat_chain_builder& ccb)
 {
     assert(follows<U'\''>());
 
@@ -2555,7 +2556,7 @@ parser2::result_t_void parser2::lex_macro_operand_string(concat_chain_builder& c
     }
 }
 
-parser2::result_t<bool> parser2::lex_macro_operand_attr(concat_chain_builder& ccb)
+result_t<bool> parser2::lex_macro_operand_attr(concat_chain_builder& ccb)
 {
     if (input.next[1] != U'\'')
     {
@@ -2599,7 +2600,7 @@ parser2::result_t<bool> parser2::lex_macro_operand_attr(concat_chain_builder& cc
     return true;
 }
 
-parser2::result_t_void parser2::lex_macro_operand(semantics::concat_chain& cc, bool next_char_special, bool op_name)
+result_t<void> parser2::lex_macro_operand(semantics::concat_chain& cc, bool next_char_special, bool op_name)
 {
     concat_chain_builder ccb(*this, cc);
     while (true)
@@ -2690,7 +2691,7 @@ void parser2::process_optional_line_remark()
     }
 }
 
-parser2::result_t_void parser2::process_macro_list(std::vector<semantics::concat_chain>& cc)
+result_t<void> parser2::process_macro_list(std::vector<semantics::concat_chain>& cc)
 {
     assert(follows<U'('>());
 
@@ -2714,7 +2715,7 @@ parser2::result_t_void parser2::process_macro_list(std::vector<semantics::concat
     return {};
 }
 
-parser2::result_t_void parser2::handle_initial_space(bool reparse)
+result_t<void> parser2::handle_initial_space(bool reparse)
 {
     if (!reparse && *input.next != U' ')
     {
@@ -2908,8 +2909,7 @@ end:;
     return { std::move(result), range_from(line_start) };
 }
 
-parser2::result_t<std::variant<context::id_index, semantics::concat_chain>> parser2::lex_variable_name(
-    parser_position start)
+result_t<std::variant<context::id_index, semantics::concat_chain>> parser2::lex_variable_name(parser_position start)
 {
     if (follows<U'('>())
     {
@@ -2937,7 +2937,7 @@ parser2::result_t<std::variant<context::id_index, semantics::concat_chain>> pars
     }
 }
 
-parser2::result_t<semantics::vs_ptr> parser2::lex_variable()
+result_t<semantics::vs_ptr> parser2::lex_variable()
 {
     assert(follows<U'&'>());
 
@@ -3295,7 +3295,7 @@ parser_holder::op_data parser2::lab_instr_empty(parser_position start)
     return {};
 }
 
-parser2::result_t_void parser2::lex_label_string(concat_chain_builder& cb)
+result_t<void> parser2::lex_label_string(concat_chain_builder& cb)
 {
     assert(follows<U'\''>());
 
@@ -3334,7 +3334,7 @@ parser2::result_t_void parser2::lex_label_string(concat_chain_builder& cb)
     return failure;
 }
 
-parser2::result_t<semantics::concat_chain> parser2::lex_label()
+result_t<semantics::concat_chain> parser2::lex_label()
 {
     semantics::concat_chain chain;
     concat_chain_builder cb(*this, chain, false);
@@ -3423,7 +3423,7 @@ parser2::result_t<semantics::concat_chain> parser2::lex_label()
     }
 }
 
-parser2::result_t<semantics::concat_chain> parser2::lex_instr()
+result_t<semantics::concat_chain> parser2::lex_instr()
 {
     if (eof() || follows<U' '>())
     {
@@ -3916,7 +3916,7 @@ void parser_holder::op_rem_body_noop()
     p.op_rem_body_noop();
 }
 
-parser2::result_t_void parser2::lex_rest_of_model_string(concat_chain_builder& ccb)
+result_t<void> parser2::lex_rest_of_model_string(concat_chain_builder& ccb)
 {
     while (true)
     {
@@ -3957,7 +3957,7 @@ parser2::result_t_void parser2::lex_rest_of_model_string(concat_chain_builder& c
     }
 }
 
-parser2::result_t<std::optional<semantics::op_rem>> parser2::try_model_ops(parser_position line_start)
+result_t<std::optional<semantics::op_rem>> parser2::try_model_ops(parser_position line_start)
 {
     const auto start = cur_pos_adjusted();
     const auto initial = input.next;
@@ -4144,7 +4144,7 @@ done:;
     }
 }
 
-parser2::result_t<semantics::operand_ptr> parser2::mach_op()
+result_t<semantics::operand_ptr> parser2::mach_op()
 {
     const auto start = cur_pos_adjusted();
     auto [disp_error, disp] = lex_mach_expr();
@@ -4195,7 +4195,7 @@ parser2::result_t<semantics::operand_ptr> parser2::mach_op()
         std::move(disp), std::move(e1), nullptr, range_from(start), checking::operand_state::SECOND_OMITTED);
 }
 
-parser2::result_t<semantics::operand_ptr> parser2::dat_op()
+result_t<semantics::operand_ptr> parser2::dat_op()
 {
     const auto start = cur_pos_adjusted();
     const auto disabled = disable_literals();
@@ -4205,8 +4205,7 @@ parser2::result_t<semantics::operand_ptr> parser2::dat_op()
         return failure;
     return std::make_unique<semantics::data_def_operand_inline>(std::move(d), range_from(start));
 }
-template<parser2::result_t<semantics::operand_ptr> (parser2::*first)(),
-    parser2::result_t<semantics::operand_ptr> (parser2::*rest)()>
+template<result_t<semantics::operand_ptr> (parser2::*first)(), result_t<semantics::operand_ptr> (parser2::*rest)()>
 std::optional<semantics::op_rem> parser2::with_model(bool reparse, bool model_allowed) requires(first != nullptr)
 {
     const auto start = cur_pos(); // capture true beginning
@@ -4293,7 +4292,7 @@ std::optional<semantics::op_rem> parser_holder::op_rem_body_dat(bool reparse, bo
     return p.with_model<&parser2::dat_op>(reparse, model_allowed);
 }
 
-parser2::result_t<semantics::operand_ptr> parser2::alias_op()
+result_t<semantics::operand_ptr> parser2::alias_op()
 {
     const auto start = cur_pos_adjusted();
     const auto initial = input.next;
@@ -4315,7 +4314,7 @@ parser2::result_t<semantics::operand_ptr> parser2::alias_op()
         std::make_unique<expressions::mach_expr_default>(r), capture_text(initial), r);
 }
 
-parser2::result_t<semantics::operand_ptr> parser2::end_op()
+result_t<semantics::operand_ptr> parser2::end_op()
 {
     const auto start = cur_pos_adjusted();
     if (!match<U'('>(hl_scopes::operator_symbol))
@@ -4362,7 +4361,7 @@ parser2::result_t<semantics::operand_ptr> parser2::end_op()
     return std::make_unique<semantics::complex_assembler_operand>("", std::move(language_triplet), r);
 }
 
-parser2::result_t<semantics::operand_ptr> parser2::using_op1()
+result_t<semantics::operand_ptr> parser2::using_op1()
 {
     const auto start = cur_pos_adjusted();
     if (!try_consume<U'('>(hl_scopes::operator_symbol))
@@ -4398,7 +4397,7 @@ parser2::result_t<semantics::operand_ptr> parser2::using_op1()
         std::move(e1), std::move(e2), capture_text(initial1, end1), capture_text(initial2, end2), r);
 }
 
-parser2::result_t<semantics::operand_ptr> parser2::asm_mach_expr()
+result_t<semantics::operand_ptr> parser2::asm_mach_expr()
 {
     const auto start = cur_pos_adjusted();
     const auto initial = input.next;
@@ -4425,7 +4424,7 @@ constexpr bool parser2::ord_followed_by_parenthesis() const noexcept
     return *p == U'(';
 }
 
-parser2::result_t<std::unique_ptr<semantics::complex_assembler_operand::component_value_t>> parser2::asm_op_inner()
+result_t<std::unique_ptr<semantics::complex_assembler_operand::component_value_t>> parser2::asm_op_inner()
 {
     const auto start = cur_pos_adjusted();
     if (follows<U'\''>())
@@ -4474,7 +4473,7 @@ parser2::result_t<std::unique_ptr<semantics::complex_assembler_operand::componen
     return std::make_unique<semantics::complex_assembler_operand::composite_value_t>(
         std::move(id), std::move(nested), r);
 }
-parser2::result_t<std::vector<std::unique_ptr<semantics::complex_assembler_operand::component_value_t>>>
+result_t<std::vector<std::unique_ptr<semantics::complex_assembler_operand::component_value_t>>>
 parser2::asm_op_comma_c()
 {
     std::vector<std::unique_ptr<semantics::complex_assembler_operand::component_value_t>> result;
@@ -4495,7 +4494,7 @@ parser2::asm_op_comma_c()
 }
 
 
-parser2::result_t<semantics::operand_ptr> parser2::asm_op()
+result_t<semantics::operand_ptr> parser2::asm_op()
 {
     const auto start = cur_pos_adjusted();
     if (follows<U'\''>())
