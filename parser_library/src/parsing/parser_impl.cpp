@@ -734,7 +734,7 @@ std::optional<int> parser2::maybe_loctr_len()
 {
     if (!holder->proc_status.has_value())
         return std::nullopt;
-    auto [_, opcode] = *holder->proc_status;
+    const auto& [_, opcode] = *holder->proc_status;
     return processing::processing_status_cache_key::generate_loctr_len(opcode.value.to_string_view());
 }
 
