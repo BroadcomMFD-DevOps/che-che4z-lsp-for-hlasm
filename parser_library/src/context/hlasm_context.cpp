@@ -457,7 +457,7 @@ processing_stack_t hlasm_context::processing_stack()
             for (size_t j = 1; j < scope_stack_.size(); ++j)
             {
                 for (auto type = file_processing_type::MACRO;
-                    const auto& nest : scope_stack_[j].this_macro->get_current_copy_nest())
+                     const auto& nest : scope_stack_[j].this_macro->get_current_copy_nest())
                 {
                     result = m_stack_tree.step(result, nest.loc.pos, nest.loc.resource_loc, nest.member_name, type);
                     type = file_processing_type::COPY;
@@ -495,7 +495,7 @@ processing_stack_details_t hlasm_context::processing_stack_details()
             for (size_t j = 1; j < scope_stack_.size(); ++j)
             {
                 for (auto type = file_processing_type::MACRO;
-                    const auto& nest : scope_stack_[j].this_macro->get_current_copy_nest())
+                     const auto& nest : scope_stack_[j].this_macro->get_current_copy_nest())
                 {
                     res.emplace_back(nest.loc.pos, nest.loc.resource_loc, scope_stack_[j], type, nest.member_name);
                     type = file_processing_type::COPY;

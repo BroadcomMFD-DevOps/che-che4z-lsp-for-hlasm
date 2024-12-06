@@ -71,7 +71,7 @@ void ca_function::resolve_expression_tree(ca_expression_ctx expr_ctx, diagnostic
     else if (duplication_factor && expr_kind != context::SET_t_enum::C_TYPE)
         diags.add_diagnostic(diagnostic_op::error_CE005(duplication_factor->expr_range));
     else if (auto [param_size, param_kind] = ca_common_expr_policy::get_function_param_info(function, expr_kind);
-        parameters.size() != param_size)
+             parameters.size() != param_size)
         diags.add_diagnostic(diagnostic_op::error_CE006(expr_range));
     else
     {
