@@ -828,355 +828,26 @@ struct parser2
             && (input.next[PROCESS.size()] == EOF_SYMBOL || input.next[PROCESS.size()] == U' ');
     }
 
-    result_t<semantics::seq_sym> lex_seq_symbol()
-    {
-        const auto start = cur_pos_adjusted();
-        if (!try_consume<U'.'>() || !is_ord_first())
-        {
-            syntax_error_or_eof();
-            return failure;
-        }
-        auto [error, id] = lex_id();
-        if (error)
-            return failure;
-        const auto r = range_from(start);
-        add_hl_symbol(r, hl_scopes::seq_symbol);
-        return { id, r };
-    }
+    result_t<semantics::seq_sym> lex_seq_symbol();
 
-    result_t<expressions::ca_expr_ptr> lex_expr_general()
-    {
-        const auto start = cur_pos_adjusted();
-        if (!follows_NOT())
-            return lex_expr();
+    result_t<expressions::ca_expr_ptr> lex_expr_general();
 
-        std::vector<expressions::ca_expr_ptr> ca_exprs;
-        do
-        {
-            const auto start_not = cur_pos_adjusted();
-            consume();
-            consume();
-            consume();
-            const auto r = range_from(start_not);
-            add_hl_symbol(r, hl_scopes::operand);
-            ca_exprs.push_back(std::make_unique<expressions::ca_symbol>(context::id_index("NOT"), r));
-            lex_optional_space();
-        } while (follows_NOT());
+    result_t<semantics::concat_chain> lex_ca_string_value();
 
-        auto [error, e] = lex_expr();
-        if (error)
-            return failure;
-
-        ca_exprs.push_back(std::move(e));
-        return std::make_unique<expressions::ca_expr_list>(std::move(ca_exprs), range_from(start), false);
-    }
-
-    result_t<semantics::concat_chain> lex_ca_string_value()
-    {
-        assert(follows<U'\''>());
-
-        auto start = cur_pos_adjusted();
-
-        semantics::concat_chain cc;
-
-        std::string s;
-        const auto dump_s = [&]() {
-            if (s.empty())
-                return;
-            cc.emplace_back(std::in_place_type<semantics::char_str_conc>, std::move(s), range_from(start));
-            s.clear();
-        };
-
-        consume();
-        while (true)
-        {
-            switch (*input.next)
-            {
-                case EOF_SYMBOL:
-                    add_diagnostic(diagnostic_op::error_S0005);
-                    return failure;
-
-                case U'.':
-                    dump_s();
-                    start = cur_pos_adjusted();
-                    consume();
-                    cc.emplace_back(std::in_place_type<semantics::dot_conc>, range_from(start));
-                    start = cur_pos_adjusted();
-                    break;
-
-                case U'=':
-                    dump_s();
-                    start = cur_pos_adjusted();
-                    consume();
-                    cc.emplace_back(std::in_place_type<semantics::equals_conc>, range_from(start));
-                    start = cur_pos_adjusted();
-                    break;
-
-                case U'&':
-                    if (input.next[1] == U'&')
-                    {
-                        consume_into(s);
-                        consume_into(s);
-                    }
-                    else
-                    {
-                        dump_s();
-                        auto [error, vs] = lex_variable();
-                        if (error)
-                            return failure;
-                        cc.emplace_back(std::in_place_type<semantics::var_sym_conc>, std::move(vs));
-                        start = cur_pos_adjusted();
-                    }
-                    break;
-
-                case U'\'':
-                    consume();
-                    if (!follows<U'\''>())
-                    {
-                        dump_s();
-                        semantics::concatenation_point::clear_concat_chain(cc);
-                        return cc;
-                    }
-                    consume_into(s);
-                    break;
-
-                default:
-                    consume_into(s);
-                    break;
-            }
-        }
-    }
-
-    result_t<expressions::ca_string::substring_t> lex_substring()
-    {
-        assert(follows<U'('>());
-
-        const auto sub_start = cur_pos_adjusted();
-
-        consume(hl_scopes::operator_symbol);
-
-        auto [e1_error, e1] = lex_expr_general();
-        if (e1_error)
-            return failure;
-
-        if (!match<U','>(hl_scopes::operator_symbol))
-            return failure;
-
-        if (try_consume<U'*'>()) // TODO: no hightlighting?
-        {
-            if (!match<U')'>(hl_scopes::operator_symbol, diagnostic_op::error_S0011))
-                return failure;
-            return { std::move(e1), expressions::ca_expr_ptr(), range_from(sub_start) };
-        }
-
-        auto [e2_error, e2] = lex_expr_general();
-        if (e2_error)
-            return failure;
-
-        if (!match<U')'>(hl_scopes::operator_symbol, diagnostic_op::error_S0011))
-            return failure;
-
-        return {
-            std::move(e1),
-            std::move(e2),
-            range_from(sub_start),
-        };
-    }
+    result_t<expressions::ca_string::substring_t> lex_substring();
 
     result_t<std::pair<semantics::concat_chain, expressions::ca_string::substring_t>>
-    lex_ca_string_with_optional_substring()
-    {
-        assert(follows<U'\''>());
-        auto [cc_error, cc] = lex_ca_string_value();
-        if (cc_error)
-            return failure;
+    lex_ca_string_with_optional_substring();
 
-        if (!follows<U'('>())
-            return { std::move(cc), expressions::ca_string::substring_t {} };
+    bool lex_optional_space();
 
-        auto [sub_error, sub] = lex_substring();
-        if (sub_error)
-            return failure;
+    result_t<std::vector<expressions::ca_expr_ptr>> lex_subscript_ne();
 
-        return { std::move(cc), std::move(sub) };
-    }
-
-    bool lex_optional_space()
-    {
-        bool matched = false;
-        while (try_consume<U' '>())
-        {
-            matched = true;
-        }
-        return matched;
-    }
-
-    result_t<std::vector<expressions::ca_expr_ptr>> lex_subscript_ne()
-    {
-        assert(follows<U'('>());
-
-        std::vector<expressions::ca_expr_ptr> result;
-
-        consume(hl_scopes::operator_symbol);
-        if (lex_optional_space())
-        {
-            auto [error, e] = lex_expr();
-            if (error)
-                return failure;
-
-            result.push_back(std::move(e));
-            lex_optional_space();
-            if (!match<U')'>(hl_scopes::operator_symbol, diagnostic_op::error_S0011))
-                return failure;
-
-            return result;
-        }
-
-        if (auto [error, e] = lex_expr(); error)
-            return failure;
-        else
-            result.push_back(std::move(e));
-
-        if (lex_optional_space())
-        {
-            if (!match<U')'>(hl_scopes::operator_symbol, diagnostic_op::error_S0011))
-                return failure;
-            return result;
-        }
-        if (try_consume<U')'>(hl_scopes::operator_symbol))
-            return result;
-
-        if (!match<U','>(hl_scopes::operator_symbol, diagnostic_op::error_S0002))
-            return failure;
-
-        if (auto [error, e] = lex_expr(); error)
-            return failure;
-        else
-            result.push_back(std::move(e));
-
-        while (try_consume<U','>(hl_scopes::operator_symbol))
-        {
-            if (auto [error, e] = lex_expr(); error)
-                return failure;
-            else
-                result.push_back(std::move(e));
-        }
-        if (!match<U')'>(hl_scopes::operator_symbol, diagnostic_op::error_S0011))
-            return failure;
-
-        return result;
-    }
-
-    [[nodiscard]] auto parse_self_def_term(std::string_view type, std::string_view value, range r)
-    {
-        auto add_diagnostic =
-            holder->diagnostic_collector ? diagnostic_adder(*holder->diagnostic_collector, r) : diagnostic_adder(r);
-        return expressions::ca_constant::self_defining_term(type, value, add_diagnostic);
-    }
-    [[nodiscard]] auto parse_self_def_term_in_mach(std::string_view type, std::string_view value, range r)
-    {
-        auto add_diagnostic =
-            holder->diagnostic_collector ? diagnostic_adder(*holder->diagnostic_collector, r) : diagnostic_adder(r);
-        if (type.size() == 1)
-        {
-            switch (type.front())
-            {
-                case 'b':
-                case 'B': {
-                    if (value.empty())
-                        return 0;
-                    uint32_t res = 0;
-                    if (auto conv = std::from_chars(value.data(), value.data() + value.size(), res, 2);
-                        conv.ec != std::errc() || conv.ptr != value.data() + value.size())
-                    {
-                        add_diagnostic(diagnostic_op::error_CE007);
-                        return 0;
-                    }
-
-                    return static_cast<int32_t>(res);
-                }
-                case 'd':
-                case 'D': {
-                    if (value.empty())
-                        return 0;
-
-                    auto it = std::ranges::find_if(value, [](auto c) { return c != '-' && c != '+'; });
-
-                    if (it - value.begin() > 1 || (value.front() == '-' && value.size() > 11))
-                    {
-                        add_diagnostic(diagnostic_op::error_CE007);
-                        return 0;
-                    }
-
-                    size_t start = value.front() == '+' ? 1 : 0;
-
-                    int32_t res = 0;
-                    if (auto conv = std::from_chars(value.data() + start, value.data() + value.size(), res, 10);
-                        conv.ec != std::errc() || conv.ptr != value.data() + value.size())
-                    {
-                        add_diagnostic(diagnostic_op::error_CE007);
-                        return 0;
-                    }
-
-                    return res;
-                }
-                case 'x':
-                case 'X': {
-                    if (value.empty())
-                        return 0;
-                    uint32_t res = 0;
-                    if (auto conv = std::from_chars(value.data(), value.data() + value.size(), res, 16);
-                        conv.ec != std::errc() || conv.ptr != value.data() + value.size())
-                    {
-                        add_diagnostic(diagnostic_op::error_CE007);
-                        return 0;
-                    }
-
-                    return static_cast<int32_t>(res);
-                }
-                default:
-                    break;
-            }
-        }
-        return expressions::ca_constant::self_defining_term(type, value, add_diagnostic);
-    }
+    [[nodiscard]] auto parse_self_def_term(std::string_view type, std::string_view value, range r);
+    [[nodiscard]] auto parse_self_def_term_in_mach(std::string_view type, std::string_view value, range r);
 
     result_t<expressions::ca_expr_ptr> lex_rest_of_ca_string_group(
-        expressions::ca_expr_ptr initial_duplicate_factor, const parser_position& start)
-    {
-        if (!allow_ca_string())
-            return failure;
-        auto [error, s] = lex_ca_string_with_optional_substring();
-        if (error)
-            return failure;
-
-        expressions::ca_expr_ptr result = std::make_unique<expressions::ca_string>(
-            std::move(s.first), std::move(initial_duplicate_factor), std::move(s.second), range_from(start));
-
-        while (follows<U'(', U'\''>())
-        {
-            const auto conc_start = cur_pos_adjusted();
-            expressions::ca_expr_ptr nested_dupl;
-            if (try_consume<U'('>(hl_scopes::operator_symbol))
-            {
-                auto [error2, dupl] = lex_expr_general();
-                if (error2)
-                    return failure;
-                if (!match<U')'>(hl_scopes::operator_symbol, diagnostic_op::error_S0011))
-                    return failure;
-                nested_dupl = std::move(dupl);
-            }
-            auto [error2, s2] = lex_ca_string_with_optional_substring();
-            if (error2)
-                return failure;
-
-            result = std::make_unique<expressions::ca_basic_binary_operator<expressions::ca_conc>>(std::move(result),
-                std::make_unique<expressions::ca_string>(
-                    std::move(s2.first), std::move(nested_dupl), std::move(s2.second), range_from(conc_start)),
-                range_from(start));
-        }
-        return result;
-    }
+        expressions::ca_expr_ptr initial_duplicate_factor, const parser_position& start);
 
     struct maybe_expr_list
     {
@@ -1397,6 +1068,357 @@ struct parser2
         , data(holder->input.data())
     {}
 };
+
+parser2::result_t<semantics::seq_sym> parser2::lex_seq_symbol()
+{
+    const auto start = cur_pos_adjusted();
+    if (!try_consume<U'.'>() || !is_ord_first())
+    {
+        syntax_error_or_eof();
+        return failure;
+    }
+    auto [error, id] = lex_id();
+    if (error)
+        return failure;
+    const auto r = range_from(start);
+    add_hl_symbol(r, hl_scopes::seq_symbol);
+    return { id, r };
+}
+
+parser2::result_t<expressions::ca_expr_ptr> parser2::lex_expr_general()
+{
+    const auto start = cur_pos_adjusted();
+    if (!follows_NOT())
+        return lex_expr();
+
+    std::vector<expressions::ca_expr_ptr> ca_exprs;
+    do
+    {
+        const auto start_not = cur_pos_adjusted();
+        consume();
+        consume();
+        consume();
+        const auto r = range_from(start_not);
+        add_hl_symbol(r, hl_scopes::operand);
+        ca_exprs.push_back(std::make_unique<expressions::ca_symbol>(context::id_index("NOT"), r));
+        lex_optional_space();
+    } while (follows_NOT());
+
+    auto [error, e] = lex_expr();
+    if (error)
+        return failure;
+
+    ca_exprs.push_back(std::move(e));
+    return std::make_unique<expressions::ca_expr_list>(std::move(ca_exprs), range_from(start), false);
+}
+
+parser2::result_t<semantics::concat_chain> parser2::lex_ca_string_value()
+{
+    assert(follows<U'\''>());
+
+    auto start = cur_pos_adjusted();
+
+    semantics::concat_chain cc;
+
+    std::string s;
+    const auto dump_s = [&]() {
+        if (s.empty())
+            return;
+        cc.emplace_back(std::in_place_type<semantics::char_str_conc>, std::move(s), range_from(start));
+        s.clear();
+    };
+
+    consume();
+    while (true)
+    {
+        switch (*input.next)
+        {
+            case EOF_SYMBOL:
+                add_diagnostic(diagnostic_op::error_S0005);
+                return failure;
+
+            case U'.':
+                dump_s();
+                start = cur_pos_adjusted();
+                consume();
+                cc.emplace_back(std::in_place_type<semantics::dot_conc>, range_from(start));
+                start = cur_pos_adjusted();
+                break;
+
+            case U'=':
+                dump_s();
+                start = cur_pos_adjusted();
+                consume();
+                cc.emplace_back(std::in_place_type<semantics::equals_conc>, range_from(start));
+                start = cur_pos_adjusted();
+                break;
+
+            case U'&':
+                if (input.next[1] == U'&')
+                {
+                    consume_into(s);
+                    consume_into(s);
+                }
+                else
+                {
+                    dump_s();
+                    auto [error, vs] = lex_variable();
+                    if (error)
+                        return failure;
+                    cc.emplace_back(std::in_place_type<semantics::var_sym_conc>, std::move(vs));
+                    start = cur_pos_adjusted();
+                }
+                break;
+
+            case U'\'':
+                consume();
+                if (!follows<U'\''>())
+                {
+                    dump_s();
+                    semantics::concatenation_point::clear_concat_chain(cc);
+                    return cc;
+                }
+                consume_into(s);
+                break;
+
+            default:
+                consume_into(s);
+                break;
+        }
+    }
+}
+
+parser2::result_t<expressions::ca_string::substring_t> parser2::lex_substring()
+{
+    assert(follows<U'('>());
+
+    const auto sub_start = cur_pos_adjusted();
+
+    consume(hl_scopes::operator_symbol);
+
+    auto [e1_error, e1] = lex_expr_general();
+    if (e1_error)
+        return failure;
+
+    if (!match<U','>(hl_scopes::operator_symbol))
+        return failure;
+
+    if (try_consume<U'*'>()) // TODO: no hightlighting?
+    {
+        if (!match<U')'>(hl_scopes::operator_symbol, diagnostic_op::error_S0011))
+            return failure;
+        return { std::move(e1), expressions::ca_expr_ptr(), range_from(sub_start) };
+    }
+
+    auto [e2_error, e2] = lex_expr_general();
+    if (e2_error)
+        return failure;
+
+    if (!match<U')'>(hl_scopes::operator_symbol, diagnostic_op::error_S0011))
+        return failure;
+
+    return {
+        std::move(e1),
+        std::move(e2),
+        range_from(sub_start),
+    };
+}
+
+parser2::result_t<std::pair<semantics::concat_chain, expressions::ca_string::substring_t>>
+parser2::lex_ca_string_with_optional_substring()
+{
+    assert(follows<U'\''>());
+    auto [cc_error, cc] = lex_ca_string_value();
+    if (cc_error)
+        return failure;
+
+    if (!follows<U'('>())
+        return { std::move(cc), expressions::ca_string::substring_t {} };
+
+    auto [sub_error, sub] = lex_substring();
+    if (sub_error)
+        return failure;
+
+    return { std::move(cc), std::move(sub) };
+}
+
+bool parser2::lex_optional_space()
+{
+    bool matched = false;
+    while (try_consume<U' '>())
+    {
+        matched = true;
+    }
+    return matched;
+}
+
+parser2::result_t<std::vector<expressions::ca_expr_ptr>> parser2::lex_subscript_ne()
+{
+    assert(follows<U'('>());
+
+    std::vector<expressions::ca_expr_ptr> result;
+
+    consume(hl_scopes::operator_symbol);
+    if (lex_optional_space())
+    {
+        auto [error, e] = lex_expr();
+        if (error)
+            return failure;
+
+        result.push_back(std::move(e));
+        lex_optional_space();
+        if (!match<U')'>(hl_scopes::operator_symbol, diagnostic_op::error_S0011))
+            return failure;
+
+        return result;
+    }
+
+    if (auto [error, e] = lex_expr(); error)
+        return failure;
+    else
+        result.push_back(std::move(e));
+
+    if (lex_optional_space())
+    {
+        if (!match<U')'>(hl_scopes::operator_symbol, diagnostic_op::error_S0011))
+            return failure;
+        return result;
+    }
+    if (try_consume<U')'>(hl_scopes::operator_symbol))
+        return result;
+
+    if (!match<U','>(hl_scopes::operator_symbol, diagnostic_op::error_S0002))
+        return failure;
+
+    if (auto [error, e] = lex_expr(); error)
+        return failure;
+    else
+        result.push_back(std::move(e));
+
+    while (try_consume<U','>(hl_scopes::operator_symbol))
+    {
+        if (auto [error, e] = lex_expr(); error)
+            return failure;
+        else
+            result.push_back(std::move(e));
+    }
+    if (!match<U')'>(hl_scopes::operator_symbol, diagnostic_op::error_S0011))
+        return failure;
+
+    return result;
+}
+
+[[nodiscard]] auto parser2::parse_self_def_term(std::string_view type, std::string_view value, range r)
+{
+    auto add_diagnostic =
+        holder->diagnostic_collector ? diagnostic_adder(*holder->diagnostic_collector, r) : diagnostic_adder(r);
+    return expressions::ca_constant::self_defining_term(type, value, add_diagnostic);
+}
+
+[[nodiscard]] auto parser2::parse_self_def_term_in_mach(std::string_view type, std::string_view value, range r)
+{
+    auto add_diagnostic =
+        holder->diagnostic_collector ? diagnostic_adder(*holder->diagnostic_collector, r) : diagnostic_adder(r);
+    if (type.size() == 1)
+    {
+        switch (type.front())
+        {
+            case 'b':
+            case 'B': {
+                if (value.empty())
+                    return 0;
+                uint32_t res = 0;
+                if (auto conv = std::from_chars(value.data(), value.data() + value.size(), res, 2);
+                    conv.ec != std::errc() || conv.ptr != value.data() + value.size())
+                {
+                    add_diagnostic(diagnostic_op::error_CE007);
+                    return 0;
+                }
+
+                return static_cast<int32_t>(res);
+            }
+            case 'd':
+            case 'D': {
+                if (value.empty())
+                    return 0;
+
+                auto it = std::ranges::find_if(value, [](auto c) { return c != '-' && c != '+'; });
+
+                if (it - value.begin() > 1 || (value.front() == '-' && value.size() > 11))
+                {
+                    add_diagnostic(diagnostic_op::error_CE007);
+                    return 0;
+                }
+
+                size_t start = value.front() == '+' ? 1 : 0;
+
+                int32_t res = 0;
+                if (auto conv = std::from_chars(value.data() + start, value.data() + value.size(), res, 10);
+                    conv.ec != std::errc() || conv.ptr != value.data() + value.size())
+                {
+                    add_diagnostic(diagnostic_op::error_CE007);
+                    return 0;
+                }
+
+                return res;
+            }
+            case 'x':
+            case 'X': {
+                if (value.empty())
+                    return 0;
+                uint32_t res = 0;
+                if (auto conv = std::from_chars(value.data(), value.data() + value.size(), res, 16);
+                    conv.ec != std::errc() || conv.ptr != value.data() + value.size())
+                {
+                    add_diagnostic(diagnostic_op::error_CE007);
+                    return 0;
+                }
+
+                return static_cast<int32_t>(res);
+            }
+            default:
+                break;
+        }
+    }
+    return expressions::ca_constant::self_defining_term(type, value, add_diagnostic);
+}
+
+parser2::result_t<expressions::ca_expr_ptr> parser2::lex_rest_of_ca_string_group(
+    expressions::ca_expr_ptr initial_duplicate_factor, const parser_position& start)
+{
+    if (!allow_ca_string())
+        return failure;
+    auto [error, s] = lex_ca_string_with_optional_substring();
+    if (error)
+        return failure;
+
+    expressions::ca_expr_ptr result = std::make_unique<expressions::ca_string>(
+        std::move(s.first), std::move(initial_duplicate_factor), std::move(s.second), range_from(start));
+
+    while (follows<U'(', U'\''>())
+    {
+        const auto conc_start = cur_pos_adjusted();
+        expressions::ca_expr_ptr nested_dupl;
+        if (try_consume<U'('>(hl_scopes::operator_symbol))
+        {
+            auto [error2, dupl] = lex_expr_general();
+            if (error2)
+                return failure;
+            if (!match<U')'>(hl_scopes::operator_symbol, diagnostic_op::error_S0011))
+                return failure;
+            nested_dupl = std::move(dupl);
+        }
+        auto [error2, s2] = lex_ca_string_with_optional_substring();
+        if (error2)
+            return failure;
+
+        result = std::make_unique<expressions::ca_basic_binary_operator<expressions::ca_conc>>(std::move(result),
+            std::make_unique<expressions::ca_string>(
+                std::move(s2.first), std::move(nested_dupl), std::move(s2.second), range_from(conc_start)),
+            range_from(start));
+    }
+    return result;
+}
 
 parser2::result_t<parser2::maybe_expr_list> parser2::lex_maybe_expression_list()
 {
