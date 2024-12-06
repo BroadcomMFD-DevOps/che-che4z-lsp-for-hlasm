@@ -6,6 +6,9 @@
 
 - Infinite loop on invalid preprocessor operands
 
+#### Changed
+- New parser implementation
+
 ## [1.15.1](https://github.com/eclipse-che4z/che-che4z-lsp-for-hlasm/compare/1.15.0...1.15.1) (2024-11-22)
 
 #### Fixed
