@@ -242,6 +242,16 @@ struct parser_range
 
 struct parser2
 {
+    class [[nodiscard]] literal_controller;
+    class concat_chain_builder;
+    struct maybe_expr_list
+    {
+        std::variant<std::vector<expressions::ca_expr_ptr>, expressions::ca_expr_ptr> value;
+        bool leading_trailing_spaces;
+    };
+
+    ///////////////////////////////////////////////////////////////////
+
     parser_holder* holder;
 
     parser_holder::input_state_t input;
@@ -253,140 +263,6 @@ struct parser2
     bool literals_allowed = true;
 
     ///////////////////////////////////////////////////////////////////
-
-    bool allow_ca_string() const noexcept { return ca_string_enabled; }
-    void enable_ca_string() noexcept { ca_string_enabled = true; }
-    void disable_ca_string() noexcept { ca_string_enabled = false; }
-
-    class [[nodiscard]] literal_controller;
-
-    bool allow_literals() const noexcept { return literals_allowed; }
-    literal_controller enable_literals() noexcept;
-    literal_controller disable_literals() noexcept;
-
-    [[nodiscard]] constexpr bool before_nl() const noexcept
-    {
-        return static_cast<size_t>(input.next - data) < *input.nl;
-    }
-
-    constexpr void adjust_lines() noexcept
-    {
-        if (before_nl())
-            return;
-
-        input.char_position_in_line = holder->cont;
-        input.char_position_in_line_utf16 = holder->cont;
-        do
-        {
-            ++input.line;
-            ++input.nl;
-        } while (!before_nl());
-        return;
-    }
-
-    void consume() noexcept
-    {
-        assert(!eof());
-
-        const auto ch = *input.next;
-
-        adjust_lines();
-
-        ++input.next;
-        ++input.char_position_in_line;
-        input.char_position_in_line_utf16 += 1 + (ch > 0xffffu);
-    }
-
-    void consume(hl_scopes s) noexcept
-    {
-        assert(!eof());
-
-        const auto pos = cur_pos_adjusted();
-        consume();
-
-        add_hl_symbol(range_from(pos), s);
-    }
-
-    void consume_into(std::string& s)
-    {
-        assert(!eof());
-        utils::append_utf32_to_utf8(s, *input.next);
-        consume();
-    }
-
-    void consume_into(std::string& s, hl_scopes scope)
-    {
-        assert(!eof());
-        utils::append_utf32_to_utf8(s, *input.next);
-        consume(scope);
-    }
-
-
-    [[nodiscard]] parser_position cur_pos() noexcept
-    {
-        return { position(input.line, input.char_position_in_line_utf16) };
-    }
-    [[nodiscard]] parser_position cur_pos_adjusted() noexcept
-    {
-        adjust_lines();
-        return cur_pos();
-    }
-    [[nodiscard]] range cur_pos_range() noexcept { return empty_range(cur_pos()); }
-    [[nodiscard]] range range_from(parser_position start) noexcept
-    {
-        const auto end = cur_pos();
-        return remap_range(start, end);
-    }
-    [[nodiscard]] range empty_range(parser_position start) noexcept { return remap_range(start, start); }
-
-    void consume_rest()
-    {
-        while (except<U' '>())
-            consume();
-        adjust_lines();
-        if (!eof())
-            lex_last_remark();
-    }
-
-    [[nodiscard]] range remap_range(parser_position s, parser_position e) const noexcept
-    {
-        return holder->range_prov.adjust_range({ s.pos, e.pos });
-    }
-    [[nodiscard]] range remap_range(parser_range r) const noexcept { return holder->range_prov.adjust_range(r.r); }
-
-    void add_diagnostic(diagnostic_op d)
-    {
-        if (holder->diagnostic_collector)
-            holder->diagnostic_collector->add_diagnostic(std::move(d));
-    }
-
-    void add_diagnostic(diagnostic_op (&d)(const range&)) { add_diagnostic(d(cur_pos_range())); }
-
-    void syntax_error_or_eof()
-    {
-        if (*input.next == EOF_SYMBOL)
-            add_diagnostic(diagnostic_op::error_S0003);
-        else
-            add_diagnostic(diagnostic_op::error_S0002);
-    }
-
-    void add_hl_symbol(const range& r, hl_scopes s) { holder->collector.add_hl_symbol(token_info(r, s)); }
-
-    context::id_index parse_identifier(std::string value, range id_range)
-    {
-        if (value.size() > 63 && holder->diagnostic_collector)
-            holder->diagnostic_collector->add_diagnostic(diagnostic_op::error_S100(value, id_range));
-
-        return holder->hlasm_ctx->ids().add(std::move(value));
-    }
-
-    // TODO: This should be changed, so the id_index is always valid ordinary symbol
-    context::id_index add_id(std::string value) { return holder->hlasm_ctx->ids().add(std::move(value)); }
-    context::id_index add_id(std::string_view value) { return holder->hlasm_ctx->ids().add(value); }
-
-    void lex_last_remark();
-
-    void lex_line_remark();
 
     [[nodiscard]] constexpr bool is_ord_first() const noexcept { return char_is_ord_first(*input.next); }
     [[nodiscard]] constexpr bool is_ord() const noexcept { return char_is_ord(*input.next); }
@@ -507,6 +383,51 @@ struct parser2
         return false;
     }
 
+    [[nodiscard]] bool allow_ca_string() const noexcept { return ca_string_enabled; }
+    void enable_ca_string() noexcept { ca_string_enabled = true; }
+    void disable_ca_string() noexcept { ca_string_enabled = false; }
+
+    bool allow_literals() const noexcept { return literals_allowed; }
+    literal_controller enable_literals() noexcept;
+    literal_controller disable_literals() noexcept;
+
+    [[nodiscard]] constexpr bool before_nl() const noexcept;
+
+    constexpr void adjust_lines() noexcept;
+
+    void consume() noexcept;
+    void consume(hl_scopes s) noexcept;
+    void consume_into(std::string& s);
+    void consume_into(std::string& s, hl_scopes scope);
+
+    [[nodiscard]] parser_position cur_pos() noexcept;
+    [[nodiscard]] parser_position cur_pos_adjusted() noexcept;
+    [[nodiscard]] range cur_pos_range() noexcept;
+    [[nodiscard]] range range_from(parser_position start) noexcept;
+    [[nodiscard]] range empty_range(parser_position start) noexcept;
+
+    void consume_rest();
+
+    [[nodiscard]] range remap_range(parser_position s, parser_position e) const noexcept;
+    [[nodiscard]] range remap_range(parser_range r) const noexcept;
+
+    void add_diagnostic(diagnostic_op d);
+    void add_diagnostic(diagnostic_op (&d)(const range&));
+
+    void syntax_error_or_eof();
+
+    void add_hl_symbol(const range& r, hl_scopes s);
+
+    context::id_index parse_identifier(std::string value, range id_range);
+
+    // TODO: This should be changed, so the id_index is always valid ordinary symbol
+    context::id_index add_id(std::string value);
+    context::id_index add_id(std::string_view value);
+
+    void lex_last_remark();
+
+    void lex_line_remark();
+
     struct
     {
     } static constexpr const failure = {};
@@ -600,12 +521,6 @@ struct parser2
     result_t<expressions::ca_expr_ptr> lex_rest_of_ca_string_group(
         expressions::ca_expr_ptr initial_duplicate_factor, const parser_position& start);
 
-    struct maybe_expr_list
-    {
-        std::variant<std::vector<expressions::ca_expr_ptr>, expressions::ca_expr_ptr> value;
-        bool leading_trailing_spaces;
-    };
-
     result_t<maybe_expr_list> lex_maybe_expression_list();
 
     result_t<expressions::ca_expr_ptr> lex_expr_list();
@@ -685,62 +600,6 @@ struct parser2
 
     result_t<std::vector<expressions::ca_expr_ptr>> lex_subscript();
 
-    class concat_chain_builder
-    {
-        parser2& p;
-        semantics::concat_chain& cc;
-
-        semantics::char_str_conc* last_text_state = nullptr;
-        bool highlighting = true;
-
-    public:
-        concat_chain_builder(parser2& p, semantics::concat_chain& cc, bool hl = true) noexcept
-            : p(p)
-            , cc(cc)
-            , highlighting(hl)
-        {}
-
-        [[nodiscard]] std::string& last_text_value()
-        {
-            if (last_text_state)
-                return last_text_state->value;
-            last_text_state = &std::get<semantics::char_str_conc>(
-                cc.emplace_back(
-                      std::in_place_type<semantics::char_str_conc>, std::string(), range(p.cur_pos_adjusted().pos))
-                    .value);
-            return last_text_state->value;
-        }
-
-        void push_last_text()
-        {
-            if (!last_text_state)
-                return;
-            last_text_state->conc_range =
-                p.remap_range(parser_range { { last_text_state->conc_range.start, p.cur_pos().pos } });
-            if (highlighting)
-                p.add_hl_symbol(last_text_state->conc_range, hl_scopes::operand);
-            last_text_state = nullptr;
-        }
-
-        template<typename T, hl_scopes... s>
-        void single_char_push() requires(sizeof...(s) <= 1)
-        {
-            push_last_text();
-            const auto start = p.cur_pos_adjusted();
-            p.consume(s...);
-            const auto r = p.range_from(start);
-            cc.emplace_back(std::in_place_type<T>, r);
-            last_text_state = nullptr;
-        }
-
-        template<typename... Args>
-        void emplace_back(Args&&... args)
-        {
-            push_last_text();
-            cc.emplace_back(std::forward<Args>(args)...);
-        }
-    };
-
     result_t_void lex_macro_operand_amp(concat_chain_builder& ccb);
 
     result_t_void lex_macro_operand_string(concat_chain_builder& ccb);
@@ -779,13 +638,7 @@ struct parser2
 
     parser_holder::op_data lab_instr_rest();
 
-    std::optional<int> maybe_loctr_len()
-    {
-        if (!holder->proc_status.has_value())
-            return std::nullopt;
-        auto [_, opcode] = *holder->proc_status;
-        return processing::processing_status_cache_key::generate_loctr_len(opcode.value.to_string_view());
-    }
+    std::optional<int> maybe_loctr_len();
 
     void op_rem_body_deferred();
     void op_rem_body_noop();
@@ -819,6 +672,195 @@ struct parser2
         , data(holder->input.data())
     {}
 };
+
+class parser2::concat_chain_builder
+{
+    parser2& p;
+    semantics::concat_chain& cc;
+
+    semantics::char_str_conc* last_text_state = nullptr;
+    bool highlighting = true;
+
+public:
+    concat_chain_builder(parser2& p, semantics::concat_chain& cc, bool hl = true) noexcept
+        : p(p)
+        , cc(cc)
+        , highlighting(hl)
+    {}
+
+    [[nodiscard]] std::string& last_text_value()
+    {
+        if (last_text_state)
+            return last_text_state->value;
+        last_text_state = &std::get<semantics::char_str_conc>(
+            cc.emplace_back(
+                  std::in_place_type<semantics::char_str_conc>, std::string(), range(p.cur_pos_adjusted().pos))
+                .value);
+        return last_text_state->value;
+    }
+
+    void push_last_text()
+    {
+        if (!last_text_state)
+            return;
+        last_text_state->conc_range =
+            p.remap_range(parser_range { { last_text_state->conc_range.start, p.cur_pos().pos } });
+        if (highlighting)
+            p.add_hl_symbol(last_text_state->conc_range, hl_scopes::operand);
+        last_text_state = nullptr;
+    }
+
+    template<typename T, hl_scopes... s>
+    void single_char_push() requires(sizeof...(s) <= 1)
+    {
+        push_last_text();
+        const auto start = p.cur_pos_adjusted();
+        p.consume(s...);
+        const auto r = p.range_from(start);
+        cc.emplace_back(std::in_place_type<T>, r);
+        last_text_state = nullptr;
+    }
+
+    template<typename... Args>
+    void emplace_back(Args&&... args)
+    {
+        push_last_text();
+        cc.emplace_back(std::forward<Args>(args)...);
+    }
+};
+
+std::optional<int> parser2::maybe_loctr_len()
+{
+    if (!holder->proc_status.has_value())
+        return std::nullopt;
+    auto [_, opcode] = *holder->proc_status;
+    return processing::processing_status_cache_key::generate_loctr_len(opcode.value.to_string_view());
+}
+
+[[nodiscard]] constexpr bool parser2::before_nl() const noexcept
+{
+    return static_cast<size_t>(input.next - data) < *input.nl;
+}
+
+constexpr void parser2::adjust_lines() noexcept
+{
+    if (before_nl())
+        return;
+
+    input.char_position_in_line = holder->cont;
+    input.char_position_in_line_utf16 = holder->cont;
+    do
+    {
+        ++input.line;
+        ++input.nl;
+    } while (!before_nl());
+    return;
+}
+
+void parser2::consume() noexcept
+{
+    assert(!eof());
+
+    const auto ch = *input.next;
+
+    adjust_lines();
+
+    ++input.next;
+    ++input.char_position_in_line;
+    input.char_position_in_line_utf16 += 1 + (ch > 0xffffu);
+}
+
+void parser2::consume(hl_scopes s) noexcept
+{
+    assert(!eof());
+
+    const auto pos = cur_pos_adjusted();
+    consume();
+
+    add_hl_symbol(range_from(pos), s);
+}
+
+void parser2::consume_into(std::string& s)
+{
+    assert(!eof());
+    utils::append_utf32_to_utf8(s, *input.next);
+    consume();
+}
+
+void parser2::consume_into(std::string& s, hl_scopes scope)
+{
+    assert(!eof());
+    utils::append_utf32_to_utf8(s, *input.next);
+    consume(scope);
+}
+
+
+[[nodiscard]] parser_position parser2::cur_pos() noexcept
+{
+    return { position(input.line, input.char_position_in_line_utf16) };
+}
+
+[[nodiscard]] parser_position parser2::cur_pos_adjusted() noexcept
+{
+    adjust_lines();
+    return cur_pos();
+}
+
+[[nodiscard]] range parser2::cur_pos_range() noexcept { return empty_range(cur_pos()); }
+
+[[nodiscard]] range parser2::range_from(parser_position start) noexcept
+{
+    const auto end = cur_pos();
+    return remap_range(start, end);
+}
+
+[[nodiscard]] range parser2::empty_range(parser_position start) noexcept { return remap_range(start, start); }
+
+void parser2::consume_rest()
+{
+    while (except<U' '>())
+        consume();
+    adjust_lines();
+    if (!eof())
+        lex_last_remark();
+}
+
+[[nodiscard]] range parser2::remap_range(parser_position s, parser_position e) const noexcept
+{
+    return holder->range_prov.adjust_range({ s.pos, e.pos });
+}
+
+[[nodiscard]] range parser2::remap_range(parser_range r) const noexcept { return holder->range_prov.adjust_range(r.r); }
+
+void parser2::add_diagnostic(diagnostic_op d)
+{
+    if (holder->diagnostic_collector)
+        holder->diagnostic_collector->add_diagnostic(std::move(d));
+}
+
+void parser2::add_diagnostic(diagnostic_op (&d)(const range&)) { add_diagnostic(d(cur_pos_range())); }
+
+void parser2::syntax_error_or_eof()
+{
+    if (*input.next == EOF_SYMBOL)
+        add_diagnostic(diagnostic_op::error_S0003);
+    else
+        add_diagnostic(diagnostic_op::error_S0002);
+}
+
+void parser2::add_hl_symbol(const range& r, hl_scopes s) { holder->collector.add_hl_symbol(token_info(r, s)); }
+
+context::id_index parser2::parse_identifier(std::string value, range id_range)
+{
+    if (value.size() > 63 && holder->diagnostic_collector)
+        holder->diagnostic_collector->add_diagnostic(diagnostic_op::error_S100(value, id_range));
+
+    return holder->hlasm_ctx->ids().add(std::move(value));
+}
+
+// TODO: This should be changed, so the id_index is always valid ordinary symbol
+context::id_index parser2::add_id(std::string value) { return holder->hlasm_ctx->ids().add(std::move(value)); }
+context::id_index parser2::add_id(std::string_view value) { return holder->hlasm_ctx->ids().add(value); }
 
 class [[nodiscard]] parser2::literal_controller
 {
