@@ -11,6 +11,9 @@
 - The language server crashes due to incorrect handling of dependency cycles
 - The language server crashes while processing data constant with cyclic dependency
 
+#### Changed
+- New parser implementation
+
 ## [1.15.1](https://github.com/eclipse-che4z/che-che4z-lsp-for-hlasm/compare/1.15.0...1.15.1) (2024-11-22)
 
 #### Fixed
