@@ -3474,7 +3474,7 @@ result_t<semantics::concat_chain> parser2::lex_instr()
                 if (input.next[1] == U'&')
                 {
                     consume_into(cb.last_text_value());
-                    consume_into(cb.last_text_value());
+                    consume();
                 }
                 else
                 {
