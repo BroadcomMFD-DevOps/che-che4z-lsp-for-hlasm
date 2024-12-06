@@ -250,7 +250,8 @@ struct [[nodiscard]] result_t
     T value = T {};
 
     template<typename... Args>
-    constexpr result_t(Args&&... args) requires(sizeof...(Args) > 0 && std::constructible_from<T, Args...>)
+    constexpr explicit(false) result_t(Args&&... args)
+        requires(sizeof...(Args) > 0 && std::constructible_from<T, Args...>)
         : value(std::forward<Args>(args)...)
     {}
     constexpr explicit(false) result_t(decltype(failure))
@@ -430,29 +431,28 @@ struct parser2
     void consume_into(std::string& s);
     void consume_into(std::string& s, hl_scopes scope);
 
-    [[nodiscard]] parser_position cur_pos() noexcept;
+    [[nodiscard]] parser_position cur_pos() const noexcept;
     [[nodiscard]] parser_position cur_pos_adjusted() noexcept;
-    [[nodiscard]] range cur_pos_range() noexcept;
-    [[nodiscard]] range range_from(parser_position start) noexcept;
-    [[nodiscard]] range empty_range(parser_position start) noexcept;
+    [[nodiscard]] range cur_pos_range() const noexcept;
+    [[nodiscard]] range range_from(parser_position start) const noexcept;
+    [[nodiscard]] range empty_range(parser_position start) const noexcept;
 
     void consume_rest();
 
     [[nodiscard]] range remap_range(parser_position s, parser_position e) const noexcept;
-    [[nodiscard]] range remap_range(parser_range r) const noexcept;
 
-    void add_diagnostic(diagnostic_op d);
-    void add_diagnostic(diagnostic_op (&d)(const range&));
+    void add_diagnostic(diagnostic_op d) const;
+    void add_diagnostic(diagnostic_op (&d)(const range&)) const;
 
-    void syntax_error_or_eof();
+    void syntax_error_or_eof() const;
 
     void add_hl_symbol(const range& r, hl_scopes s);
 
-    context::id_index parse_identifier(std::string value, range id_range);
+    context::id_index parse_identifier(std::string value, range id_range) const;
 
     // TODO: This should be changed, so the id_index is always valid ordinary symbol
-    context::id_index add_id(std::string value);
-    context::id_index add_id(std::string_view value);
+    context::id_index add_id(std::string value) const;
+    context::id_index add_id(std::string_view value) const;
 
     void lex_last_remark();
 
@@ -530,7 +530,7 @@ struct parser2
 
     result_t<expressions::ca_expr_ptr> lex_attribute_reference();
 
-    bool follows_function();
+    bool follows_function() const;
 
     result_t<expressions::ca_expr_ptr> lex_term();
 
@@ -639,8 +639,17 @@ struct parser2
 
     std::optional<int> maybe_loctr_len();
 
+    result_t<void> lex_deferred_string(std::vector<semantics::vs_ptr>& vs);
     void op_rem_body_deferred();
     void op_rem_body_noop();
+
+    struct before_model
+    {
+        bool variable_follows;
+        bool next_char_special;
+        std::optional<parser_position> in_string;
+    };
+    result_t<before_model> model_before_variable();
 
     template<result_t<semantics::operand_ptr> (parser2::*first)(),
         result_t<semantics::operand_ptr> (parser2::*rest)() = first>
@@ -665,7 +674,7 @@ struct parser2
     void lookahead_operands_and_remarks_dat();
     void lookahead_operands_and_remarks_asm();
 
-    parser2(parser_holder* h)
+    explicit parser2(parser_holder* h)
         : holder(h)
         , input(holder->input_state)
         , data(holder->input.data())
@@ -811,7 +820,7 @@ void parser2::consume_into(std::string& s, hl_scopes scope)
 }
 
 
-[[nodiscard]] parser_position parser2::cur_pos() noexcept
+[[nodiscard]] parser_position parser2::cur_pos() const noexcept
 {
     return { position(input.line, input.char_position_in_line_utf16) };
 }
@@ -822,15 +831,15 @@ void parser2::consume_into(std::string& s, hl_scopes scope)
     return cur_pos();
 }
 
-[[nodiscard]] range parser2::cur_pos_range() noexcept { return empty_range(cur_pos()); }
+[[nodiscard]] range parser2::cur_pos_range() const noexcept { return empty_range(cur_pos()); }
 
-[[nodiscard]] range parser2::range_from(parser_position start) noexcept
+[[nodiscard]] range parser2::range_from(parser_position start) const noexcept
 {
     const auto end = cur_pos();
     return remap_range(start, end);
 }
 
-[[nodiscard]] range parser2::empty_range(parser_position start) noexcept { return remap_range(start, start); }
+[[nodiscard]] range parser2::empty_range(parser_position start) const noexcept { return remap_range(start, start); }
 
 void parser2::consume_rest()
 {
@@ -846,17 +855,15 @@ void parser2::consume_rest()
     return holder->range_prov.adjust_range({ s.pos, e.pos });
 }
 
-[[nodiscard]] range parser2::remap_range(parser_range r) const noexcept { return holder->range_prov.adjust_range(r.r); }
-
-void parser2::add_diagnostic(diagnostic_op d)
+void parser2::add_diagnostic(diagnostic_op d) const
 {
     if (holder->diagnostic_collector)
         holder->diagnostic_collector->add_diagnostic(std::move(d));
 }
 
-void parser2::add_diagnostic(diagnostic_op (&d)(const range&)) { add_diagnostic(d(cur_pos_range())); }
+void parser2::add_diagnostic(diagnostic_op (&d)(const range&)) const { add_diagnostic(d(cur_pos_range())); }
 
-void parser2::syntax_error_or_eof()
+void parser2::syntax_error_or_eof() const
 {
     if (*input.next == EOF_SYMBOL)
         add_diagnostic(diagnostic_op::error_S0003);
@@ -866,7 +873,7 @@ void parser2::syntax_error_or_eof()
 
 void parser2::add_hl_symbol(const range& r, hl_scopes s) { holder->collector.add_hl_symbol(token_info(r, s)); }
 
-context::id_index parser2::parse_identifier(std::string value, range id_range)
+context::id_index parser2::parse_identifier(std::string value, range id_range) const
 {
     if (value.size() > 63 && holder->diagnostic_collector)
         holder->diagnostic_collector->add_diagnostic(diagnostic_op::error_S100(value, id_range));
@@ -875,8 +882,8 @@ context::id_index parser2::parse_identifier(std::string value, range id_range)
 }
 
 // TODO: This should be changed, so the id_index is always valid ordinary symbol
-context::id_index parser2::add_id(std::string value) { return holder->hlasm_ctx->ids().add(std::move(value)); }
-context::id_index parser2::add_id(std::string_view value) { return holder->hlasm_ctx->ids().add(value); }
+context::id_index parser2::add_id(std::string value) const { return holder->hlasm_ctx->ids().add(std::move(value)); }
+context::id_index parser2::add_id(std::string_view value) const { return holder->hlasm_ctx->ids().add(value); }
 
 class [[nodiscard]] parser2::literal_controller
 {
@@ -969,9 +976,9 @@ void parser2::lex_line_remark()
 
 void parser2::resolve_expression(expressions::ca_expr_ptr& expr) const
 {
-    diagnostic_consumer_transform diags([diags = holder->diagnostic_collector](diagnostic_op d) {
-        if (diags)
-            diags->add_diagnostic(std::move(d));
+    diagnostic_consumer_transform diags([collector = holder->diagnostic_collector](diagnostic_op d) {
+        if (collector)
+            collector->add_diagnostic(std::move(d));
     });
     using enum context::SET_t_enum;
     auto [_, opcode] = *holder->proc_status;
@@ -1010,9 +1017,9 @@ void parser2::resolve_expression(expressions::ca_expr_ptr& expr) const
 
 void parser2::resolve_concat_chain(const semantics::concat_chain& chain) const
 {
-    diagnostic_consumer_transform diags([diags = holder->diagnostic_collector](diagnostic_op d) {
-        if (diags)
-            diags->add_diagnostic(std::move(d));
+    diagnostic_consumer_transform diags([collector = holder->diagnostic_collector](diagnostic_op d) {
+        if (collector)
+            collector->add_diagnostic(std::move(d));
     });
     for (const auto& e : chain)
         e.resolve(diags);
@@ -1629,7 +1636,7 @@ result_t<expressions::ca_expr_ptr> parser2::lex_attribute_reference()
     }
 }
 
-bool parser2::follows_function()
+bool parser2::follows_function() const
 {
     if (!is_ord_first())
         return false;
@@ -1967,7 +1974,6 @@ result_t<expressions::mach_expr_ptr> parser2::lex_mach_term()
                 add_hl_symbol(r, hl_scopes::ordinary_symbol);
                 return std::make_unique<expressions::mach_expr_symbol>(qual_id.id, qual_id.qual, r);
             }
-            break;
     }
 }
 
@@ -1982,7 +1988,7 @@ result_t<std::string> parser2::lex_simple_string()
 
     while (!eof())
     {
-        if (follows<group<U'\''>, group<U'\''>>())
+        if (follows<group<U'\''>, group<U'\''>>() || follows<group<U'&'>, group<U'&'>>())
         {
             consume_into(s);
             consume();
@@ -1992,11 +1998,6 @@ result_t<std::string> parser2::lex_simple_string()
             consume();
             add_hl_symbol(range_from(start), hl_scopes::string);
             return s;
-        }
-        else if (follows<group<U'&'>, group<U'&'>>())
-        {
-            consume_into(s);
-            consume();
         }
         else if (follows<U'&'>())
         {
@@ -2184,7 +2185,7 @@ result_t<expressions::data_definition> parser2::lex_data_def_base()
     const auto goff = holder->hlasm_ctx->goff();
 
     expressions::data_definition result;
-    // case state::duplicating_factor:
+    // duplicating_factor
     if (follows<U'('>() || is_num())
     {
         if (auto [error, e] = lex_literal_unsigned_num(); error)
@@ -2193,7 +2194,7 @@ result_t<expressions::data_definition> parser2::lex_data_def_base()
             result.dupl_factor = std::move(e);
     }
 
-    // case state::read_type:
+    // read_type
     if (!is_ord_first())
     {
         syntax_error_or_eof();
@@ -2214,8 +2215,7 @@ result_t<expressions::data_definition> parser2::lex_data_def_base()
     }
     add_hl_symbol(range_from(type_start), hl_scopes::data_def_type);
 
-    // case state::try_reading_program:
-    // case state::read_program:
+    // read_program
     if (try_consume<U'P', U'p'>(hl_scopes::data_def_modifier))
     {
         auto [error, e] = lex_literal_signed_num();
@@ -2223,9 +2223,8 @@ result_t<expressions::data_definition> parser2::lex_data_def_base()
             return failure;
         result.program_type = std::move(e);
     }
-    // case state::try_reading_length:
-    // case state::try_reading_bitfield:
-    // case state::read_length:
+
+    // read_length
     if (try_consume<U'L', U'l'>(hl_scopes::data_def_modifier))
     {
         if (try_consume<U'.'>())
@@ -2238,8 +2237,7 @@ result_t<expressions::data_definition> parser2::lex_data_def_base()
         result.length = std::move(e);
     }
 
-    // case state::try_reading_scale:
-    // case state::read_scale:
+    // read_scale
     if (try_consume<U'S', U's'>(hl_scopes::data_def_modifier))
     {
         auto [error, e] = lex_literal_signed_num();
@@ -2248,8 +2246,7 @@ result_t<expressions::data_definition> parser2::lex_data_def_base()
         result.scale = std::move(e);
     }
 
-    // case state::try_reading_exponent:
-    // case state::read_exponent:
+    // read_exponent
     static constexpr auto can_have_exponent = group_from_string<{ U"DEFHLdefhl" }>();
     if (can_have_exponent.matches(result.type) && try_consume<U'E', U'e'>(hl_scopes::data_def_modifier))
     {
@@ -3749,6 +3746,54 @@ parser_holder::op_data parser_holder::look_lab_instr()
     return p.look_lab_instr();
 }
 
+result_t<void> parser2::lex_deferred_string(std::vector<semantics::vs_ptr>& vs)
+{
+    disable_ca_string();
+    utils::scope_exit e([this]() noexcept { enable_ca_string(); });
+
+    const auto string_start = cur_pos_adjusted();
+    consume();
+
+    while (true)
+    {
+        switch (*input.next)
+        {
+            case EOF_SYMBOL:
+                syntax_error_or_eof();
+                add_hl_symbol(range_from(string_start), hl_scopes::string);
+                return failure;
+
+            case U'\'':
+                if (input.next[1] != U'\'')
+                {
+                    consume();
+
+                    add_hl_symbol(range_from(string_start), hl_scopes::string);
+                    return {};
+                }
+                consume();
+                consume();
+                break;
+
+            case U'&':
+                if (input.next[1] == U'&')
+                {
+                    consume();
+                    consume();
+                }
+                else if (auto [error, v] = lex_variable(); error)
+                    return failure;
+                else
+                    vs.push_back(std::move(v));
+                break;
+
+            default:
+                consume();
+                break;
+        }
+    }
+}
+
 void parser2::op_rem_body_deferred()
 {
     const auto start = cur_pos_adjusted();
@@ -3796,53 +3841,10 @@ void parser2::op_rem_body_deferred()
                 consume(hl_scopes::operator_symbol);
                 break;
 
-            case U'\'': {
-                disable_ca_string();
-                utils::scope_exit e([this]() noexcept { enable_ca_string(); });
-
-                const auto string_start = cur_pos_adjusted();
-                consume();
-
-                while (true)
-                {
-                    switch (*input.next)
-                    {
-                        case EOF_SYMBOL:
-                            syntax_error_or_eof();
-                            add_hl_symbol(range_from(string_start), hl_scopes::string);
-                            return;
-
-                        case U'\'':
-                            if (input.next[1] != U'\'')
-                                goto done;
-                            consume();
-                            consume();
-                            break;
-
-                        case U'&':
-                            if (input.next[1] == U'&')
-                            {
-                                consume();
-                                consume();
-                            }
-                            else if (auto [error, v] = lex_variable(); error)
-                                return;
-                            else
-                                vs.push_back(std::move(v));
-                            break;
-
-                        default:
-                            consume();
-                            break;
-                    }
-                }
-
-            done:
-                consume();
-
-                add_hl_symbol(range_from(string_start), hl_scopes::string);
+            case U'\'':
+                if (auto [error] = lex_deferred_string(vs); error)
+                    return;
                 break;
-            }
 
             case U'&': {
                 const auto amp = cur_pos_adjusted();
@@ -3983,13 +3985,8 @@ result_t<void> parser2::lex_rest_of_model_string(concat_chain_builder& ccb)
     }
 }
 
-result_t<std::optional<semantics::op_rem>> parser2::try_model_ops(parser_position line_start)
+result_t<parser2::before_model> parser2::model_before_variable()
 {
-    const auto start = cur_pos_adjusted();
-    const auto initial = input.next;
-
-    semantics::concat_chain cc;
-    concat_chain_builder ccb(*this, cc);
     bool next_char_special = true;
     std::optional<parser_position> in_string;
     while (true)
@@ -3999,7 +3996,7 @@ result_t<std::optional<semantics::op_rem>> parser2::try_model_ops(parser_positio
         {
             case EOF_SYMBOL:
             case U' ':
-                return std::nullopt;
+                return { false, next_char_special, in_string };
 
             case U'&':
                 if (input.next[1] == U'&')
@@ -4009,7 +4006,7 @@ result_t<std::optional<semantics::op_rem>> parser2::try_model_ops(parser_positio
                     break;
                 }
                 else
-                    goto done;
+                    return { true, next_char_special, in_string };
 
             case U'\'': {
                 in_string = cur_pos_adjusted();
@@ -4019,7 +4016,7 @@ result_t<std::optional<semantics::op_rem>> parser2::try_model_ops(parser_positio
                     if (follows<group<U'&'>, group<U'&'>>())
                         consume();
                     else if (follows<U'&'>())
-                        goto done;
+                        return { true, next_char_special, in_string };
                     consume();
                 }
                 if (!match<U'\''>(diagnostic_op::error_S0005))
@@ -4062,7 +4059,23 @@ result_t<std::optional<semantics::op_rem>> parser2::try_model_ops(parser_positio
                 break;
         }
     }
-done:;
+}
+
+result_t<std::optional<semantics::op_rem>> parser2::try_model_ops(parser_position line_start)
+{
+    const auto start = cur_pos_adjusted();
+    const auto initial = input.next;
+
+    semantics::concat_chain cc;
+    concat_chain_builder ccb(*this, cc);
+
+    auto [before_error, before_res] = model_before_variable();
+    if (before_error)
+        return failure;
+    auto& [variable_follows, next_char_special, in_string] = before_res;
+    if (!variable_follows)
+        return std::nullopt;
+
     assert(follows<U'&'>());
 
     if (initial != input.next)
