@@ -53,13 +53,13 @@ public:
         std::vector<std::pair<std::pair<size_t, bool>, range>> model_substitutions, std::vector<size_t> line_limits);
     explicit range_provider();
 
-    range adjust_range(range r) const;
+    [[nodiscard]] range adjust_range(range r) const noexcept;
 
 private:
-    position adjust_position(position pos, bool end) const;
-    position adjust_model_position(position pos, bool end) const;
+    [[nodiscard]] position adjust_position(position pos, bool end) const noexcept;
+    [[nodiscard]] position adjust_model_position(position pos, bool end) const noexcept;
 
-    size_t get_line_limit(size_t relative_line) const;
+    [[nodiscard]] size_t get_line_limit(size_t relative_line) const noexcept;
 };
 
 template<typename It>
