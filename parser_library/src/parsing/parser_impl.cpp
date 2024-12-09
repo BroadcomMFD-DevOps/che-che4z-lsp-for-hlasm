@@ -732,7 +732,7 @@ public:
     template<bool hl = false>
     void push_dot()
     {
-        if constexpr (hl)
+        if (highlighting && hl)
             single_char_push<semantics::dot_conc, hl_scopes::operator_symbol>();
         else
             single_char_push<semantics::dot_conc>();
@@ -741,7 +741,7 @@ public:
     template<bool hl = false>
     void push_equals()
     {
-        if constexpr (hl)
+        if (highlighting && hl)
             single_char_push<semantics::equals_conc, hl_scopes::operator_symbol>();
         else
             single_char_push<semantics::equals_conc>();
@@ -1117,22 +1117,6 @@ result_t<semantics::concat_chain> parser2::lex_compound_variable()
                 break;
             }
 
-                // TODO: does not seem right to include these
-                // case U'"':
-                // case U'*':
-                // case U'.':
-                // case U'-':
-                // case U'+':
-                // case U'=':
-                // case U'<':
-                // case U'>':
-                // case U',':
-                // case U'(':
-                // case U'\'':
-                // case U'/':
-                // case U'|':
-                // case U' ':
-                //     return failure;
             case U'.': {
                 const auto start = cur_pos_adjusted();
                 consume(hl_scopes::operator_symbol);
@@ -1206,17 +1190,8 @@ result_t<semantics::concat_chain> parser2::lex_ca_string_value()
 {
     assert(follows<U'\''>());
 
-    auto start = cur_pos_adjusted();
-
     semantics::concat_chain cc;
-
-    std::string s;
-    const auto dump_s = [&]() {
-        if (s.empty())
-            return;
-        cc.emplace_back(std::in_place_type<semantics::char_str_conc>, std::move(s), range_from(start));
-        s.clear();
-    };
+    concat_chain_builder ccb(*this, cc, false);
 
     consume();
     while (true)
@@ -1228,35 +1203,26 @@ result_t<semantics::concat_chain> parser2::lex_ca_string_value()
                 return failure;
 
             case U'.':
-                dump_s();
-                start = cur_pos_adjusted();
-                consume();
-                cc.emplace_back(std::in_place_type<semantics::dot_conc>, range_from(start));
-                start = cur_pos_adjusted();
+                ccb.push_dot();
                 break;
 
             case U'=':
-                dump_s();
-                start = cur_pos_adjusted();
-                consume();
-                cc.emplace_back(std::in_place_type<semantics::equals_conc>, range_from(start));
-                start = cur_pos_adjusted();
+                ccb.push_equals();
                 break;
 
             case U'&':
                 if (input.next[1] == U'&')
                 {
-                    consume_into(s);
-                    consume_into(s);
+                    consume_into(ccb.last_text_value());
+                    consume_into(ccb.last_text_value());
                 }
                 else
                 {
-                    dump_s();
+                    ccb.push_last_text();
                     auto [error, vs] = lex_variable();
                     if (error)
                         return failure;
-                    cc.emplace_back(std::in_place_type<semantics::var_sym_conc>, std::move(vs));
-                    start = cur_pos_adjusted();
+                    ccb.emplace_back(std::in_place_type<semantics::var_sym_conc>, std::move(vs));
                 }
                 break;
 
@@ -1264,16 +1230,20 @@ result_t<semantics::concat_chain> parser2::lex_ca_string_value()
                 consume();
                 if (!follows<U'\''>())
                 {
-                    dump_s();
+                    ccb.push_last_text();
                     semantics::concatenation_point::clear_concat_chain(cc);
                     return cc;
                 }
-                consume_into(s);
-                break;
+                [[fallthrough]];
 
-            default:
-                consume_into(s);
+            default: {
+                auto& s = ccb.last_text_value();
+                do
+                {
+                    consume_into(s);
+                } while (except<U'.', U'=', U'&', U'\''>());
                 break;
+            }
         }
     }
 }
@@ -2539,15 +2509,6 @@ result_t<void> parser2::lex_macro_operand_string(concat_chain_builder& ccb)
                 ccb.push_last_text();
                 add_diagnostic(diagnostic_op::error_S0005);
                 return failure;
-            case U'\'':
-                consume_into(ccb.last_text_value());
-                if (!follows<U'\''>())
-                {
-                    ccb.push_last_text();
-                    return {};
-                }
-                consume_into(ccb.last_text_value());
-                break;
 
             case U'&':
                 if (auto [error] = lex_macro_operand_amp(ccb); error)
@@ -2562,9 +2523,23 @@ result_t<void> parser2::lex_macro_operand_string(concat_chain_builder& ccb)
                 ccb.push_dot();
                 break;
 
-            default:
+            case U'\'':
                 consume_into(ccb.last_text_value());
+                if (!follows<U'\''>())
+                {
+                    ccb.push_last_text();
+                    return {};
+                }
+                [[fallthrough]];
+
+            default: {
+                auto& s = ccb.last_text_value();
+                do
+                {
+                    consume_into(s);
+                } while (except<U'&', U'=', U'.', U'\''>());
                 break;
+            }
         }
     }
 }
