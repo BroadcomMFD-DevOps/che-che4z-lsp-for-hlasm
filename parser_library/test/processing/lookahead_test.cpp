@@ -59,7 +59,6 @@ TEST(lookahead, forward_jump_to_continued)
     analyzer a(input);
     a.analyze();
     EXPECT_EQ(a.diags().size(), (size_t)0);
-    EXPECT_EQ(get_syntax_errors(a), (size_t)0);
 
     EXPECT_FALSE(a.hlasm_ctx().get_var_sym(id_index("BAD")));
     EXPECT_TRUE(a.hlasm_ctx().get_var_sym(id_index("GOOD")));
@@ -81,7 +80,6 @@ TEST(lookahead, forward_jump_from_continued)
     analyzer a(input);
     a.analyze();
     EXPECT_EQ(a.diags().size(), (size_t)0);
-    EXPECT_EQ(get_syntax_errors(a), (size_t)0);
 
     EXPECT_FALSE(a.hlasm_ctx().get_var_sym(id_index("BAD")));
     EXPECT_TRUE(a.hlasm_ctx().get_var_sym(id_index("GOOD")));
@@ -104,7 +102,6 @@ tr9023-22
     auto id = id_index("NEW");
     auto var = a.hlasm_ctx().get_var_sym(id);
     EXPECT_FALSE(var);
-    EXPECT_EQ(get_syntax_errors(a), (size_t)0);
 }
 
 TEST(lookahead, forward_jump_fail)
@@ -361,6 +358,22 @@ X EQU 1,Y+11,C'T'
 
     EXPECT_EQ(a.diags().size(), (size_t)1);
     EXPECT_EQ(a.diags().front().diag_range.start.line, (size_t)2);
+}
+
+TEST(EQU_attribute_lookahead, empty_operand)
+{
+    std::string input(
+        R"( 
+&A SETC T'X
+X EQU 1,,C'T'
+)");
+
+    analyzer a(input);
+    a.analyze();
+
+    EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "A"), "T");
+
+    EXPECT_TRUE(a.diags().empty());
 }
 
 TEST(EQU_attribute_lookahead, errorous_but_resolable_statement_incorrect_operand)
