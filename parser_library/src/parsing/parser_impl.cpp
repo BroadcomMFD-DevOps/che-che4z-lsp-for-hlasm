@@ -617,10 +617,11 @@ struct parser2
 
     std::pair<semantics::operand_list, range> macro_ops(bool reparse);
 
-    std::optional<std::pair<semantics::operand_list, range>> ca_prolog();
-    std::pair<semantics::operand_list, range> ca_expr_ops();
-    std::pair<semantics::operand_list, range> ca_branch_ops();
-    std::pair<semantics::operand_list, range> ca_var_def_ops();
+    template<std::pair<bool, semantics::operand_ptr> (parser2::*arg)(parser_position)>
+    std::pair<semantics::operand_list, range> ca_args();
+    std::pair<bool, semantics::operand_ptr> ca_expr_ops(parser_position start);
+    std::pair<bool, semantics::operand_ptr> ca_branch_ops(parser_position start);
+    std::pair<bool, semantics::operand_ptr> ca_var_def_ops(parser_position start);
 
     parser_holder::op_data lab_instr();
     void lab_instr_process();
@@ -2957,28 +2958,19 @@ result_t<semantics::vs_ptr> parser2::lex_variable()
     }
 }
 
-std::optional<std::pair<semantics::operand_list, range>> parser2::ca_prolog()
+template<std::pair<bool, semantics::operand_ptr> (parser2::*arg)(parser_position)>
+std::pair<semantics::operand_list, range> parser2::ca_args()
 {
-    std::optional<std::pair<semantics::operand_list, range>> result;
-    const auto input_start = cur_pos_adjusted();
-    if (eof())
-        result.emplace(semantics::operand_list(), empty_range(input_start));
+    if (const auto input_start = cur_pos_adjusted(); eof())
+        return { semantics::operand_list(), empty_range(input_start) };
     else if (!lex_optional_space())
     {
         syntax_error_or_eof();
         consume_rest();
-        result.emplace(semantics::operand_list(), empty_range(input_start));
+        return { semantics::operand_list(), empty_range(input_start) };
     }
     else if (eof())
-        result.emplace(semantics::operand_list(), cur_pos_range());
-
-    return result;
-}
-
-std::pair<semantics::operand_list, range> parser2::ca_expr_ops()
-{
-    if (auto prolog = ca_prolog(); prolog)
-        return std::move(prolog).value();
+        return { semantics::operand_list(), cur_pos_range() };
 
     const auto line_start = cur_pos_adjusted();
 
@@ -3001,71 +2993,15 @@ std::pair<semantics::operand_list, range> parser2::ca_expr_ops()
             syntax_error_or_eof();
             break;
         }
-        auto [error, expr] = lex_expr_general();
-        if (error)
-        {
-            const auto r = range_from(start);
-            // original fallback
-            result.push_back(
-                std::make_unique<semantics::expr_ca_operand>(std::make_unique<expressions::ca_constant>(0, r), r));
-            break;
-        }
-        resolve_expression(expr);
-        result.push_back(std::make_unique<semantics::expr_ca_operand>(std::move(expr), range_from(start)));
-        pending = false;
-    }
-    if (pending)
-        result.push_back(std::make_unique<semantics::empty_operand>(cur_pos_range()));
-
-    consume_rest();
-
-    return { std::move(result), range_from(line_start) };
-}
-
-std::pair<semantics::operand_list, range> parser2::ca_branch_ops()
-{
-    if (auto prolog = ca_prolog(); prolog)
-        return std::move(prolog).value();
-
-    const auto line_start = cur_pos_adjusted();
-
-    semantics::operand_list result;
-
-    bool pending = true;
-    while (except<U' '>())
-    {
-        const auto start = cur_pos_adjusted();
-        if (try_consume<U','>(hl_scopes::operator_symbol))
-        {
-            if (pending)
-                result.push_back(std::make_unique<semantics::empty_operand>(empty_range(start)));
-            process_optional_line_remark();
-            pending = true;
-            continue;
-        }
-        else if (!pending)
-        {
-            syntax_error_or_eof();
-            break;
-        }
-        expressions::ca_expr_ptr first_expr;
-        if (follows<U'('>())
-        {
-            auto [error, e] = lex_expr_list();
-            if (error)
-                break;
-            first_expr = std::move(e);
-            resolve_expression(first_expr);
-        }
-        auto [error, ss] = lex_seq_symbol();
-        if (error)
-            break;
-        const auto r = range_from(start);
-        if (first_expr)
-            result.push_back(std::make_unique<semantics::branch_ca_operand>(std::move(ss), std::move(first_expr), r));
+        auto [continue_loop, op] = (this->*arg)(start);
+        if (op)
+            result.push_back(std::move(op));
         else
-            result.push_back(std::make_unique<semantics::seq_ca_operand>(std::move(ss), r));
+            result.push_back(std::make_unique<semantics::empty_operand>(empty_range(start)));
         pending = false;
+
+        if (!continue_loop)
+            break;
     }
     if (pending)
         result.push_back(std::make_unique<semantics::empty_operand>(cur_pos_range()));
@@ -3075,73 +3011,78 @@ std::pair<semantics::operand_list, range> parser2::ca_branch_ops()
     return { std::move(result), range_from(line_start) };
 }
 
-std::pair<semantics::operand_list, range> parser2::ca_var_def_ops()
+std::pair<bool, semantics::operand_ptr> parser2::ca_expr_ops(parser_position start)
 {
-    if (auto prolog = ca_prolog(); prolog)
-        return std::move(prolog).value();
-
-    const auto line_start = cur_pos_adjusted();
-
-    semantics::operand_list result;
-
-    bool pending = true;
-    while (except<U' '>())
+    auto [error, expr] = lex_expr_general();
+    if (error)
     {
-        const auto start = cur_pos_adjusted();
-        if (try_consume<U','>(hl_scopes::operator_symbol))
-        {
-            if (pending)
-                result.push_back(std::make_unique<semantics::empty_operand>(empty_range(start)));
-            process_optional_line_remark();
-            pending = true;
-            continue;
-        }
-        else if (!pending)
+        const auto r = range_from(start);
+        // original fallback
+        return {
+            false,
+            std::make_unique<semantics::expr_ca_operand>(std::make_unique<expressions::ca_constant>(0, r), r),
+        };
+    }
+    resolve_expression(expr);
+    return { true, std::make_unique<semantics::expr_ca_operand>(std::move(expr), range_from(start)) };
+}
+
+std::pair<bool, semantics::operand_ptr> parser2::ca_branch_ops(parser_position start)
+{
+    expressions::ca_expr_ptr first_expr;
+    if (follows<U'('>())
+    {
+        auto [error, e] = lex_expr_list();
+        if (error)
+            return {};
+        first_expr = std::move(e);
+        resolve_expression(first_expr);
+    }
+    auto [error, ss] = lex_seq_symbol();
+    if (error)
+        return {};
+    const auto r = range_from(start);
+    if (first_expr)
+        return { true, std::make_unique<semantics::branch_ca_operand>(std::move(ss), std::move(first_expr), r) };
+    else
+        return { true, std::make_unique<semantics::seq_ca_operand>(std::move(ss), r) };
+}
+
+std::pair<bool, semantics::operand_ptr> parser2::ca_var_def_ops(parser_position start)
+{
+    (void)try_consume<U'&'>();
+    auto [error, var_name] = lex_variable_name(start);
+    if (error)
+        return {};
+    std::vector<expressions::ca_expr_ptr> num;
+    if (try_consume<U'('>(hl_scopes::operator_symbol))
+    {
+        if (!is_num())
         {
             syntax_error_or_eof();
-            break;
+            return {};
         }
-        (void)try_consume<U'&'>();
-        auto [error, var_name] = lex_variable_name(start);
-        if (error)
-            break;
-        std::vector<expressions::ca_expr_ptr> num;
-        if (try_consume<U'('>(hl_scopes::operator_symbol))
-        {
-            if (!is_num())
-            {
-                syntax_error_or_eof();
-                break;
-            }
-            auto [error_num, num_] = lex_num();
-            if (error_num)
-                break;
-            num.push_back(std::move(num_));
-            if (!match<U')'>(hl_scopes::operator_symbol, diagnostic_op::error_S0011))
-                break;
-        }
-        const auto r = range_from(start);
-        add_hl_symbol(r, hl_scopes::var_symbol);
-        semantics::vs_ptr var;
-        if (std::holds_alternative<context::id_index>(var_name))
-        {
-            var = std::make_unique<semantics::basic_variable_symbol>(
-                std::get<context::id_index>(var_name), std::move(num), r);
-        }
-        else
-        {
-            auto& cc = std::get<semantics::concat_chain>(var_name);
-            var = std::make_unique<semantics::created_variable_symbol>(std::move(cc), std::move(num), r);
-        }
-        result.push_back(std::make_unique<semantics::var_ca_operand>(std::move(var), r));
-        pending = false;
+        auto [error_num, num_] = lex_num();
+        if (error_num)
+            return {};
+        num.push_back(std::move(num_));
+        if (!match<U')'>(hl_scopes::operator_symbol, diagnostic_op::error_S0011))
+            return {};
     }
-    if (pending)
-        result.push_back(std::make_unique<semantics::empty_operand>(cur_pos_range()));
-
-    consume_rest();
-
-    return { std::move(result), range_from(line_start) };
+    const auto r = range_from(start);
+    add_hl_symbol(r, hl_scopes::var_symbol);
+    semantics::vs_ptr var;
+    if (std::holds_alternative<context::id_index>(var_name))
+    {
+        var = std::make_unique<semantics::basic_variable_symbol>(
+            std::get<context::id_index>(var_name), std::move(num), r);
+    }
+    else
+    {
+        auto& cc = std::get<semantics::concat_chain>(var_name);
+        var = std::make_unique<semantics::created_variable_symbol>(std::move(cc), std::move(num), r);
+    }
+    return { true, std::make_unique<semantics::var_ca_operand>(std::move(var), r) };
 }
 
 semantics::operand_list parser_holder::macro_ops(bool reparse)
@@ -3162,7 +3103,7 @@ void parser_holder::op_rem_body_ca_expr()
 {
     parser2 p(this);
 
-    auto [ops, line_range] = p.ca_expr_ops();
+    auto [ops, line_range] = p.ca_args<&parser2::ca_expr_ops>();
     collector.set_operand_remark_field(std::move(ops), std::move(p.remarks), line_range);
 }
 
@@ -3170,7 +3111,7 @@ void parser_holder::op_rem_body_ca_branch()
 {
     parser2 p(this);
 
-    auto [ops, line_range] = p.ca_branch_ops();
+    auto [ops, line_range] = p.ca_args<&parser2::ca_branch_ops>();
     collector.set_operand_remark_field(std::move(ops), std::move(p.remarks), line_range);
 }
 
@@ -3178,7 +3119,7 @@ void parser_holder::op_rem_body_ca_var_def()
 {
     parser2 p(this);
 
-    auto [ops, line_range] = p.ca_var_def_ops();
+    auto [ops, line_range] = p.ca_args<&parser2::ca_var_def_ops>();
     collector.set_operand_remark_field(std::move(ops), std::move(p.remarks), line_range);
 }
 
