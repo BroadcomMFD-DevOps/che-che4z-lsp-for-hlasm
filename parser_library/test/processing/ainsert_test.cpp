@@ -370,15 +370,10 @@ TEST(ainsert, grammar_invalid_string)
             "A011",
             "S0002",
 
-            "CE004",
             "S0002",
 
-            "CE017",
-            "E010",
             "S0002",
 
-            "CE004",
-            "CE012",
             "S0002",
         }));
 }
