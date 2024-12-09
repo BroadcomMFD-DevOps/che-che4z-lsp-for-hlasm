@@ -2248,8 +2248,8 @@ result_t<expressions::data_definition> parser2::lex_data_def_base()
     }
 
     // read_exponent
-    static constexpr auto can_have_exponent = group_from_string<{ U"DEFHLdefhl" }>();
-    if (can_have_exponent.matches(result.type) && try_consume<U'E', U'e'>(hl_scopes::data_def_modifier))
+    using can_have_exponent = decltype(group_from_string<{ U"DEFHLdefhl" }>());
+    if (can_have_exponent::matches(result.type) && try_consume<U'E', U'e'>(hl_scopes::data_def_modifier))
     {
         auto [error, e] = lex_literal_signed_num();
         if (error)
