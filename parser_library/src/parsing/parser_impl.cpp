@@ -617,6 +617,7 @@ struct parser2
 
     std::pair<semantics::operand_list, range> macro_ops(bool reparse);
 
+    std::optional<std::pair<semantics::operand_list, range>> ca_prolog();
     std::pair<semantics::operand_list, range> ca_expr_ops();
     std::pair<semantics::operand_list, range> ca_branch_ops();
     std::pair<semantics::operand_list, range> ca_var_def_ops();
@@ -2981,21 +2982,28 @@ result_t<semantics::vs_ptr> parser2::lex_variable()
     }
 }
 
-std::pair<semantics::operand_list, range> parser2::ca_expr_ops()
+std::optional<std::pair<semantics::operand_list, range>> parser2::ca_prolog()
 {
+    std::optional<std::pair<semantics::operand_list, range>> result;
     const auto input_start = cur_pos_adjusted();
     if (eof())
-        return { semantics::operand_list(), empty_range(input_start) };
-
-    if (!lex_optional_space())
+        result.emplace(semantics::operand_list(), empty_range(input_start));
+    else if (!lex_optional_space())
     {
         syntax_error_or_eof();
         consume_rest();
-        return { semantics::operand_list(), range_from(input_start) };
+        result.emplace(semantics::operand_list(), empty_range(input_start));
     }
+    else if (eof())
+        result.emplace(semantics::operand_list(), cur_pos_range());
 
-    if (eof())
-        return { semantics::operand_list(), cur_pos_range() };
+    return result;
+}
+
+std::pair<semantics::operand_list, range> parser2::ca_expr_ops()
+{
+    if (auto prolog = ca_prolog(); prolog)
+        return std::move(prolog).value();
 
     const auto line_start = cur_pos_adjusted();
 
@@ -3038,19 +3046,8 @@ std::pair<semantics::operand_list, range> parser2::ca_expr_ops()
 
 std::pair<semantics::operand_list, range> parser2::ca_branch_ops()
 {
-    const auto input_start = cur_pos_adjusted();
-    if (eof())
-        return { semantics::operand_list(), empty_range(input_start) };
-
-    if (!lex_optional_space())
-    {
-        syntax_error_or_eof();
-        consume_rest();
-        return { semantics::operand_list(), range_from(input_start) };
-    }
-
-    if (eof())
-        return { semantics::operand_list(), cur_pos_range() };
+    if (auto prolog = ca_prolog(); prolog)
+        return std::move(prolog).value();
 
     const auto line_start = cur_pos_adjusted();
 
@@ -3102,19 +3099,8 @@ std::pair<semantics::operand_list, range> parser2::ca_branch_ops()
 
 std::pair<semantics::operand_list, range> parser2::ca_var_def_ops()
 {
-    const auto input_start = cur_pos_adjusted();
-    if (eof())
-        return { semantics::operand_list(), empty_range(input_start) };
-
-    if (!lex_optional_space())
-    {
-        syntax_error_or_eof();
-        consume_rest();
-        return { semantics::operand_list(), range_from(input_start) };
-    }
-
-    if (eof())
-        return { semantics::operand_list(), cur_pos_range() };
+    if (auto prolog = ca_prolog(); prolog)
+        return std::move(prolog).value();
 
     const auto line_start = cur_pos_adjusted();
 
