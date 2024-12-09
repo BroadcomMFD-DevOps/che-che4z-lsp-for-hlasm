@@ -102,7 +102,7 @@ TEST(arithmetic_expressions, invalid_self_defining_term)
     a.analyze();
 
     EXPECT_TRUE(matches_message_codes(
-        a.diags(), { "S0002", "CE012", "CE004", "CE007", "CE007", "CE007", "CE007", "CE007", "CE007" }));
+        a.diags(), { "S0002", "CE012", "S0002", "CE007", "CE007", "CE007", "CE007", "CE007", "CE007" }));
 }
 
 TEST(arithmetic_expressions, substitution_to_character_expression)

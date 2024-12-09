@@ -3019,22 +3019,25 @@ std::pair<semantics::operand_list, range> parser2::ca_expr_ops()
                 result.push_back(std::make_unique<semantics::empty_operand>(empty_range(start)));
             process_optional_line_remark();
             pending = true;
+            continue;
         }
-        else
+        else if (!pending)
         {
-            auto [error, expr] = lex_expr_general();
-            if (error)
-            {
-                const auto r = range_from(start);
-                // original fallback
-                result.push_back(
-                    std::make_unique<semantics::expr_ca_operand>(std::make_unique<expressions::ca_constant>(0, r), r));
-                break;
-            }
-            resolve_expression(expr);
-            result.push_back(std::make_unique<semantics::expr_ca_operand>(std::move(expr), range_from(start)));
-            pending = false;
+            syntax_error_or_eof();
+            break;
         }
+        auto [error, expr] = lex_expr_general();
+        if (error)
+        {
+            const auto r = range_from(start);
+            // original fallback
+            result.push_back(
+                std::make_unique<semantics::expr_ca_operand>(std::make_unique<expressions::ca_constant>(0, r), r));
+            break;
+        }
+        resolve_expression(expr);
+        result.push_back(std::make_unique<semantics::expr_ca_operand>(std::move(expr), range_from(start)));
+        pending = false;
     }
     if (pending)
         result.push_back(std::make_unique<semantics::empty_operand>(cur_pos_range()));
