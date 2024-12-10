@@ -25,12 +25,6 @@ constexpr auto occurrence_end_line(const hlasm_plugin::parser_library::lsp::symb
 
 namespace hlasm_plugin::parser_library::lsp {
 
-bool operator==(const line_range& lhs, const line_range& rhs) { return lhs.begin == rhs.begin && lhs.end == rhs.end; }
-bool operator<(const line_range& lhs, const line_range& rhs)
-{
-    return std::tie(lhs.begin, lhs.end) < std::tie(rhs.begin, rhs.end);
-}
-
 file_info::file_info(utils::resource::resource_location location, text_data_view text_data)
     : location(std::move(location))
     , type(file_type::OPENCODE)
@@ -208,36 +202,41 @@ void file_info::update_slices(const std::vector<file_slice_t>& slices_upd)
     }
 }
 
-file_slice_t file_slice_t::transform_slice(const macro_slice_t& slice, macro_info_ptr macro_i)
+file_slice_t file_slice_t::transform_slice(
+    const macro_slice_t& slice, const macro_info_ptr& macro_i, const utils::resource::resource_location& f)
 {
     file_slice_t fslice;
 
     fslice.macro_lines.begin = slice.begin_statement;
     fslice.macro_lines.end = slice.end_statement;
 
+    auto& mdef = *macro_i->macro_definition;
+    const auto resloc = [](const context::copy_nest_item& cni) -> decltype(auto) { return cni.loc.resource_loc; };
+
     if (slice.begin_statement.value == 0)
         fslice.file_lines.begin = macro_i->definition_location.pos.line;
     else
-        fslice.file_lines.begin =
-            macro_i->macro_definition->get_copy_nest(fslice.macro_lines.begin).back().loc.pos.line;
+        fslice.file_lines.begin = std::ranges::find(mdef.get_copy_nest(slice.begin_statement), f, resloc)->loc.pos.line;
 
-    if (slice.end_statement.value == macro_i->macro_definition->copy_nests.size())
-        fslice.file_lines.end = macro_i->macro_definition->copy_nests.back().back().loc.pos.line + 1;
+    if (slice.begin_statement == slice.end_statement)
+        fslice.file_lines.end = fslice.file_lines.begin;
     else
-        fslice.file_lines.end = macro_i->macro_definition->get_copy_nest(fslice.macro_lines.end).back().loc.pos.line;
+        fslice.file_lines.end =
+            std::ranges::find(mdef.get_copy_nest({ slice.end_statement.value - 1 }), f, resloc)->loc.pos.line + 1;
 
     fslice.type = slice.inner_macro ? scope_type::INNER_MACRO : scope_type::MACRO;
-    fslice.macro_context = std::move(macro_i);
+    fslice.macro_context = macro_i;
 
     return fslice;
 }
 
-std::vector<file_slice_t> file_slice_t::transform_slices(
-    const std::vector<macro_slice_t>& slices, macro_info_ptr macro_i)
+std::vector<file_slice_t> file_slice_t::transform_slices(const std::vector<macro_slice_t>& slices,
+    const macro_info_ptr& macro_i,
+    const utils::resource::resource_location& f)
 {
     std::vector<file_slice_t> ret;
     for (const auto& s : slices)
-        ret.push_back(transform_slice(s, macro_i));
+        ret.push_back(transform_slice(s, macro_i, f));
     return ret;
 }
 
