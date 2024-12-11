@@ -38,7 +38,7 @@ TEST(ca_constant, undefined_attributes)
 
 class collectable_mock : public diagnosable_op_impl
 {
-    void collect_diags() const override {}
+    void collect_diags() override {}
 
 public:
     void operator()(diagnostic_op d) { add_diagnostic(d); }

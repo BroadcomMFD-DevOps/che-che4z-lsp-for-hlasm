@@ -28,7 +28,7 @@ class file_manager_mock : public hlasm_plugin::parser_library::workspaces::file_
     using value_task = hlasm_plugin::utils::value_task<T>;
 
 public:
-    void collect_diags() const override
+    void collect_diags() override
     {
         // nothing to do
     }

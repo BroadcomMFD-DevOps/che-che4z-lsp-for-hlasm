@@ -35,8 +35,6 @@ public:
     diag_collector()
         : diagnosable_ctx(ctx)
     {}
-    // Inherited via diagnosable_ctx
-    void collect_diags() const override {};
 
     context::hlasm_context ctx;
 };

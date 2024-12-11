@@ -107,7 +107,7 @@ std::unique_ptr<processing::preprocessor> analyzer_options::get_preprocessor(pro
     return std::make_unique<combined_preprocessor>(std::move(tmp));
 }
 
-struct analyzer::impl : public diagnosable_ctx
+struct analyzer::impl final : public diagnosable_ctx
 {
     impl(std::string_view text, analyzer_options&& opts)
         : diagnosable_ctx(opts.get_hlasm_context())
@@ -135,7 +135,8 @@ struct analyzer::impl : public diagnosable_ctx
               opts.get_lib_provider(),
               field_parser,
               std::move(opts.fade_messages),
-              opts.output)
+              opts.output,
+              *this)
     {}
 
     analyzing_context ctx;
@@ -147,12 +148,6 @@ struct analyzer::impl : public diagnosable_ctx
     std::vector<std::pair<virtual_file_handle, utils::resource::resource_location>> vf_handles;
 
     processing::processing_manager mngr;
-
-    void collect_diags() const override
-    {
-        collect_diags_from_child(mngr);
-        collect_diags_from_child(field_parser);
-    }
 };
 
 analyzer::analyzer(std::string_view text, analyzer_options opts)
@@ -181,8 +176,6 @@ hlasm_plugin::utils::task analyzer::co_analyze() &
     co_await m_impl->mngr.co_step();
 
     m_impl->src_proc.finish();
-
-    m_impl->collect_diags();
 }
 
 const performance_metrics& analyzer::get_metrics() const { return m_impl->ctx.hlasm_ctx->metrics; }

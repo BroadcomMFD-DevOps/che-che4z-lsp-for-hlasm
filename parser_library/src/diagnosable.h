@@ -41,8 +41,8 @@ class collectable : public diagnostic_consumer_t<T>
 public:
     using diagnostic_container = std::vector<T>;
 
-    virtual void collect_diags() const = 0;
-    virtual diagnostic_container& diags() const = 0;
+    virtual void collect_diags() = 0;
+    virtual diagnostic_container& diags() = 0;
     // Specifies whether objects(diagnostics) should be moved
     // when collecting from this object.
     virtual bool is_once_only() const = 0;
