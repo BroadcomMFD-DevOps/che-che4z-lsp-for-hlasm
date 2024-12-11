@@ -149,7 +149,12 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
 
     fuzzer_lib_provider lib;
     auto source = get_content(data + 2, size - 2, lib);
-    analyzer a(source, analyzer_options(&lib, get_preprocessor_options(std::bitset<3>(data[0]))));
+    analyzer a(source,
+        analyzer_options {
+            &lib,
+            get_preprocessor_options(std::bitset<3>(data[0])),
+            diagnostic_limit { 1000 },
+        });
     a.analyze();
 
     auto num1 = data[1] >> 4;
