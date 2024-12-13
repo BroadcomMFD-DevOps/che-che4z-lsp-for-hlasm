@@ -25,7 +25,7 @@ class hlasm_context;
 
 // abstract diagnosable class that enhances collected diagnostics
 // adds a stack of nested file positions that indicate where the diagnostic occured
-class diagnosable_ctx : public diagnostic_consumer, public diagnostic_op_consumer
+class diagnosable_ctx final : public diagnostic_consumer, public diagnostic_op_consumer
 {
     std::vector<diagnostic> collected_diags;
     context::hlasm_context& ctx_;
@@ -38,12 +38,9 @@ public:
 
     std::vector<diagnostic>& diags() { return collected_diags; }
 
-protected:
     diagnosable_ctx(context::hlasm_context& ctx)
         : ctx_(ctx)
     {}
-
-    virtual ~diagnosable_ctx() = default;
 
     friend class diagnostic_collector;
 };

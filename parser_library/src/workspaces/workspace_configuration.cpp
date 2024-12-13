@@ -30,6 +30,7 @@
 #include <unordered_set>
 
 #include "compiler_options.h"
+#include "diagnostic_op.h"
 #include "external_configuration_requests.h"
 #include "file_manager.h"
 #include "library_local.h"

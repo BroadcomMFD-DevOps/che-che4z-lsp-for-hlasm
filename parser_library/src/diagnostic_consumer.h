@@ -32,8 +32,6 @@ struct diagnostic_op;
 template<typename T>
 class diagnostic_consumer_t
 {
-    // TODO The reason why this function is const is that all current implementations have mutable containers where
-    // the diagnostics are stored and large parts of the project depend on that constness of the function
 public:
     virtual void add_diagnostic(T diagnostic) = 0;
 

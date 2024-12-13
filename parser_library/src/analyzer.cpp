@@ -107,10 +107,10 @@ std::unique_ptr<processing::preprocessor> analyzer_options::get_preprocessor(pro
     return std::make_unique<combined_preprocessor>(std::move(tmp));
 }
 
-struct analyzer::impl final : public diagnosable_ctx
+struct analyzer::impl final
 {
     impl(std::string_view text, analyzer_options&& opts)
-        : diagnosable_ctx(opts.get_hlasm_context())
+        : diag_ctx(opts.get_hlasm_context())
         , ctx(std::move(opts.get_context()))
         , src_proc(opts.collect_hl_info == collect_highlighting_info::yes)
         , field_parser(ctx.hlasm_ctx.get())
@@ -120,9 +120,9 @@ struct analyzer::impl final : public diagnosable_ctx
                    mngr,
                    mngr,
                    src_proc,
-                   *this,
+                   diag_ctx,
                    opts.get_preprocessor(
-                       std::bind_front(&parse_lib_provider::get_library, &opts.get_lib_provider()), *this, src_proc),
+                       std::bind_front(&parse_lib_provider::get_library, &opts.get_lib_provider()), diag_ctx, src_proc),
                    opts.parsing_opencode == file_is_opencode::yes ? processing::opencode_provider_options { true, 10 }
                                                                   : processing::opencode_provider_options {},
                    opts.vf_monitor,
@@ -136,8 +136,10 @@ struct analyzer::impl final : public diagnosable_ctx
               field_parser,
               std::move(opts.fade_messages),
               opts.output,
-              *this)
+              diag_ctx)
     {}
+
+    diagnosable_ctx diag_ctx;
 
     analyzing_context ctx;
 
@@ -148,6 +150,8 @@ struct analyzer::impl final : public diagnosable_ctx
     std::vector<std::pair<virtual_file_handle, utils::resource::resource_location>> vf_handles;
 
     processing::processing_manager mngr;
+
+    auto& diags() noexcept { return diag_ctx.diags(); }
 };
 
 analyzer::analyzer(std::string_view text, analyzer_options opts)
