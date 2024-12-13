@@ -19,6 +19,7 @@
 #include <span>
 
 #include "processing/op_code.h"
+#include "protocol.h"
 #include "statement.h"
 
 namespace hlasm_plugin::parser_library::expressions {
