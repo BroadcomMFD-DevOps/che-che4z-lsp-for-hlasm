@@ -154,6 +154,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
             &lib,
             get_preprocessor_options(std::bitset<3>(data[0])),
             diagnostic_limit { 1000 },
+            asm_option { .statement_count_limit = 10000 },
         });
     a.analyze();
 
