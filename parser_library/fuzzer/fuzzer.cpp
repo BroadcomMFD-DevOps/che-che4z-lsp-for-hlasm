@@ -12,6 +12,7 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
+#include <algorithm>
 #include <array>
 #include <bitset>
 #include <cassert>
@@ -163,7 +164,9 @@ extern "C" int LLVMFuzzerInitialize(int* argc_, char*** argv_)
         if (it == std::end(args))
             continue;
 
-        std::swap(argv[i--], argv[--argc]);
+        std::rotate(argv + i, argv + i + 1, argv + argc);
+        --i;
+        --argc;
 
         arg.remove_prefix(it->first.size());
 
