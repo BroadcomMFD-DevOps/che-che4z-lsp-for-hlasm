@@ -241,7 +241,7 @@ struct parser_range
 
 struct
 {
-} static constexpr const failure = {};
+} constexpr const failure = {};
 
 template<typename T = void>
 struct [[nodiscard]] result_t
@@ -450,7 +450,6 @@ struct parser2
 
     context::id_index parse_identifier(std::string value, range id_range) const;
 
-    // TODO: This should be changed, so the id_index is always valid ordinary symbol
     context::id_index add_id(std::string value) const;
     context::id_index add_id(std::string_view value) const;
 
@@ -1403,7 +1402,7 @@ result_t<std::vector<expressions::ca_expr_ptr>> parser2::lex_subscript_ne()
                 if (value.empty())
                     return 0;
 
-                auto it = std::ranges::find_if(value, [](auto c) { return c != '-' && c != '+'; });
+                const auto it = std::ranges::find_if(value, [](auto c) { return c != '-' && c != '+'; });
 
                 if (it - value.begin() > 1 || (value.front() == '-' && value.size() > 11))
                 {
@@ -3187,7 +3186,7 @@ parser_holder::op_data parser2::lab_instr_rest()
         input.char_position_in_line_utf16 += 1 + (ch > 0xffffu);
     }
 
-    for (; *input.nl != (size_t)-1;)
+    while (*input.nl != (size_t)-1)
     {
         result.op_text->text.push_back(lexing::u8string_view_with_newlines::EOLc);
         ++input.line;
@@ -3448,7 +3447,7 @@ constexpr bool is_ord_like(std::span<const semantics::concatenation_point> cc)
     if (std::ranges::any_of(
             cc, [](const auto& c) { return !std::holds_alternative<semantics::char_str_conc>(c.value); }))
         return false;
-    auto it = std::ranges::find_if(
+    const auto it = std::ranges::find_if(
         cc, [](const auto& c) { return !std::get<semantics::char_str_conc>(c.value).value.empty(); });
     if (it == cc.end())
         return false;

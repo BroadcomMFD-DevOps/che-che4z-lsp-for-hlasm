@@ -100,6 +100,8 @@ tr9023-22
     analyzer a(input);
     a.analyze();
 
+    EXPECT_TRUE(a.diags().empty());
+
     auto id = id_index("NEW");
     auto var = a.hlasm_ctx().get_var_sym(id);
     EXPECT_FALSE(var);
