@@ -15,8 +15,13 @@
 #ifndef HLASMPLUGIN_PARSERLIBRARY_PARSER_IMPL_H
 #define HLASMPLUGIN_PARSERLIBRARY_PARSER_IMPL_H
 
-#include <type_traits>
+#include <cstdint>
+#include <optional>
+#include <string>
+#include <vector>
 
+#include "diagnostic_consumer.h"
+#include "lexing/logical_line.h"
 #include "semantics/collector.h"
 #include "semantics/range_provider.h"
 
@@ -25,7 +30,6 @@ class hlasm_context;
 } // namespace hlasm_plugin::parser_library::context
 
 namespace hlasm_plugin::parser_library::lexing {
-class lexer;
 struct u8string_view_with_newlines;
 } // namespace hlasm_plugin::parser_library::lexing
 
