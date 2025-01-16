@@ -84,13 +84,7 @@
       "name": "(Windows) Attach",
       "type": "cppvsdbg",
       "request": "attach",
-      "processId": "${command:pickProcess}",
-      "args": [],
-      "stopAtEntry": false,
-      "cwd": "${workspaceFolder}/build/x64-Debug/bin/",
-      "environment": [],
-      "externalConsole": true,
-      "preLaunchTask": "build"
+      "processId": "${command:pickProcess}"
     }
   ],
   "inputs": [
