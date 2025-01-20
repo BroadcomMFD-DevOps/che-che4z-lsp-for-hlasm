@@ -418,7 +418,7 @@ struct parser2
     void enable_ca_string() noexcept { ca_string_enabled = true; }
     void disable_ca_string() noexcept { ca_string_enabled = false; }
 
-    bool allow_literals() const noexcept { return literals_allowed; }
+    bool are_literals_allowed() const noexcept { return literals_allowed; }
     literal_controller enable_literals() noexcept;
     literal_controller disable_literals() noexcept;
 
@@ -430,6 +430,12 @@ struct parser2
     void consume(hl_scopes s) noexcept;
     void consume_into(std::string& s);
     void consume_into(std::string& s, hl_scopes scope);
+
+    void consume_spaces() noexcept
+    {
+        while (follows<U' '>())
+            consume();
+    }
 
     [[nodiscard]] parser_position cur_pos() const noexcept;
     [[nodiscard]] parser_position cur_pos_adjusted() noexcept;
@@ -944,9 +950,7 @@ parser2::literal_controller parser2::disable_literals() noexcept
 
 void parser2::lex_last_remark()
 {
-    // skip spaces
-    while (follows<U' '>())
-        consume();
+    consume_spaces();
 
     const auto last_remark_start = cur_pos_adjusted();
     while (!eof())
@@ -1790,7 +1794,7 @@ result_t<std::pair<std::string, range>> parser2::lex_number_as_string()
     const auto r = range_from(start);
     add_hl_symbol(r, hl_scopes::number);
 
-    return { result, r };
+    return { std::move(result), r };
 }
 
 result_t<std::pair<int32_t, range>> parser2::lex_number_as_int()
@@ -2080,10 +2084,8 @@ result_t<std::pair<int32_t, range>> parser2::parse_number()
     }();
 
     bool parsed_one = false;
-    while (!eof())
+    while (is_num())
     {
-        if (!is_num())
-            break;
         const auto c = *input.next;
         parsed_one = true;
 
@@ -2116,9 +2118,10 @@ result_t<expressions::mach_expr_ptr> parser2::lex_literal_signed_num()
 {
     if (try_consume<U'('>(hl_scopes::operator_symbol))
     {
-        if (auto [error, e] = lex_mach_expr(); error)
+        auto [error, e] = lex_mach_expr();
+        if (error)
             return failure;
-        else if (!match<U')'>(hl_scopes::operator_symbol, diagnostic_op::error_S0011))
+        if (!match<U')'>(hl_scopes::operator_symbol, diagnostic_op::error_S0011))
             return failure;
         else
             return std::move(e);
@@ -2153,8 +2156,6 @@ result_t<expressions::mach_expr_ptr> parser2::lex_literal_unsigned_num()
 
 result_t<expressions::data_definition> parser2::lex_data_def_base()
 {
-    const auto goff = holder->hlasm_ctx->goff();
-
     expressions::data_definition result;
     // duplicating_factor
     if (follows<U'('>() || is_num())
@@ -2175,7 +2176,7 @@ result_t<expressions::data_definition> parser2::lex_data_def_base()
     const auto type_start = cur_pos_adjusted();
     consume();
 
-    result.type = type == 'R' && !goff ? 'r' : type;
+    result.type = type == 'R' && !holder->hlasm_ctx->goff() ? 'r' : type;
     result.type_range = range_from(type_start);
     if (is_ord_first() && is_type_extension(type, utils::upper_cased[*input.next]))
     {
@@ -2340,7 +2341,7 @@ std::string parser2::capture_text(const parser_holder::char_t* start) const { re
 
 result_t<semantics::literal_si> parser2::lex_literal()
 {
-    const auto allowed = allow_literals();
+    const auto allowed = are_literals_allowed();
     const auto disabled = disable_literals();
     const auto start = cur_pos_adjusted();
     const auto initial = input.next;
@@ -2712,9 +2713,7 @@ result_t<void> parser2::handle_initial_space(bool reparse)
         return failure;
     }
 
-    // skip spaces
-    while (follows<U' '>())
-        consume();
+    consume_spaces();
     adjust_lines();
 
     return {};
@@ -3711,8 +3710,7 @@ void parser2::op_rem_body_deferred()
         syntax_error_or_eof();
         return;
     }
-    while (follows<U' '>())
-        consume();
+    consume_spaces();
 
     auto rest = parser2(*this).lab_instr_rest();
 
