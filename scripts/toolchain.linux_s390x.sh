@@ -29,24 +29,7 @@ echo "0e008260a958bbd10182ee3384672ae0a310eece *binutils-2.41.tar.xz" > hashes/b
 
 mkdir patches/gcc-14.2.0
 cp /aports/main/gcc/*.patch patches/gcc-14.2.0/
-
-cat << EOF > patches/gcc-14.2.0/0017-Alpine-musl-package-provides-libssp_nonshared.a.-We-.patch
-diff --git a/gcc/gcc.cc b/gcc/gcc.cc
-index b5a6f200635..6cbb726599b 100644
---- a/gcc/gcc.cc
-+++ b/gcc/gcc.cc
-@@ -991,7 +991,8 @@ proper position among the other output files.  */
-
- #ifndef LINK_SSP_SPEC
- #ifdef TARGET_LIBC_PROVIDES_SSP
- #define LINK_SSP_SPEC "%{fstack-protector|fstack-protector-all" \\
--                      "|fstack-protector-strong|fstack-protector-explicit:}"
-+                      "|fstack-protector-strong|fstack-protector-explicit" \\
-+                      ":-lssp_nonshared}"
- #else
- #define LINK_SSP_SPEC "%{fstack-protector|fstack-protector-all" \\
-                       "|fstack-protector-strong|fstack-protector-explicit" \\
-EOF
+cp ../scripts/gcc-0017.patch patches/gcc-14.2.0/0017-Alpine-musl-package-provides-libssp_nonshared.a.-We-.patch
 
 make -j 8
 make install
