@@ -35,5 +35,4 @@ target_include_directories(library_fuzzer
 )
 target_link_libraries(library_fuzzer PRIVATE parser_library)
 target_link_libraries(library_fuzzer PRIVATE Threads::Threads)
-target_link_libraries(library_fuzzer PRIVATE std::filesystem)
 target_link_libraries(library_fuzzer PRIVATE nlohmann_json::nlohmann_json)

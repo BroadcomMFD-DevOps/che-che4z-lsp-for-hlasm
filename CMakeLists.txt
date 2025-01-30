@@ -10,11 +10,11 @@
 # Contributors:
 #   Broadcom, Inc. - initial API and implementation
 
-cmake_minimum_required(VERSION 3.23)
+cmake_minimum_required(VERSION 3.28)
 set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
 set(CMAKE_POLICY_DEFAULT_CMP0135 NEW)
 
-PROJECT(HlasmServer)
+PROJECT(HlasmLanguageServer LANGUAGES CXX)
 
 SET (CMAKE_CXX_STANDARD 20)
 SET (CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -92,8 +92,6 @@ endif()
 set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
 set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
-
-find_package(Filesystem REQUIRED)
 
 include(CTest)
 

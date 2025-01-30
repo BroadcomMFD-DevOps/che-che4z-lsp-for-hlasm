@@ -19,19 +19,6 @@ FetchContent_Declare(googletest
     GIT_TAG             v1.14.0
     LOG_DOWNLOAD        ON
     GIT_PROGRESS        1
-    )
-
-FetchContent_GetProperties(googletest)
-
-function(add_googletest)
-    set(CMAKE_SUPPRESS_DEVELOPER_WARNINGS 1 CACHE BOOL "")
-    set(gtest_force_shared_crt ${WITH_STATIC_CRT} CACHE BOOL "" FORCE)
-    add_subdirectory(${googletest_SOURCE_DIR} ${googletest_BINARY_DIR} EXCLUDE_FROM_ALL)
-    unset(CMAKE_SUPPRESS_DEVELOPER_WARNINGS)
-endfunction()
-
-if(NOT googletest_POPULATED)
-    message("Populating GTest")
-    FetchContent_Populate(googletest)
-    add_googletest()
-endif()
+    EXCLUDE_FROM_ALL
+)
+FetchContent_MakeAvailable(googletest)

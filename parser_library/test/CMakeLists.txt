@@ -61,7 +61,6 @@ target_link_libraries(library_test PRIVATE gmock_main)
 if (BUILD_SHARED_LIBS)
     set_target_properties(library_test PROPERTIES COMPILE_DEFINITIONS "GTEST_LINKED_AS_SHARED_LIBRARY=1")
 endif()
-target_link_libraries(library_test PRIVATE std::filesystem)
 target_link_libraries(library_test PRIVATE nlohmann_json::nlohmann_json)
 
 add_dependencies(library_test library_tests_copy)
