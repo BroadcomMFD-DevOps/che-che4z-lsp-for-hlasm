@@ -138,7 +138,7 @@ jobs:
   aarch64-linux-musl:
     name: Build Linux ARM64 toolchain
     runs-on: ubuntu-24.04
-    container: alpine:3.19
+    container: alpine:3.21
     steps:
       - uses: actions/checkout@v4
       - name: Install TAR
@@ -156,7 +156,7 @@ jobs:
   s390x-linux-musl:
     name: Build Linux S390X toolchain
     runs-on: ubuntu-24.04
-    container: alpine:3.19
+    container: alpine:3.21
     steps:
       - uses: actions/checkout@v4
       - name: Install TAR
@@ -180,17 +180,17 @@ jobs:
         include:
           - os: ubuntu-24.04
             native: linux_x64
-            container: alpine:3.19
+            container: alpine:3.21
             dbg-strip: objcopy --only-keep-debug hlasm_language_server hlasm_language_server.dbg && objcopy --strip-unneeded hlasm_language_server && objcopy --add-gnu-debuglink=hlasm_language_server.dbg hlasm_language_server
             dbg-pattern: build/bin/hlasm_language_server.dbg
           - os: ubuntu-24.04
             native: linux_arm64
-            container: alpine:3.19
+            container: alpine:3.21
             dbg-strip: aarch64-linux-musl-objcopy --only-keep-debug hlasm_language_server hlasm_language_server.dbg && aarch64-linux-musl-objcopy --strip-unneeded hlasm_language_server && aarch64-linux-musl-objcopy --add-gnu-debuglink=hlasm_language_server.dbg hlasm_language_server
             dbg-pattern: build/bin/hlasm_language_server.dbg
           - os: ubuntu-24.04
             native: linux_s390x
-            container: alpine:3.19
+            container: alpine:3.21
             dbg-strip: s390x-linux-musl-objcopy --only-keep-debug hlasm_language_server hlasm_language_server.dbg && s390x-linux-musl-objcopy --strip-unneeded hlasm_language_server && s390x-linux-musl-objcopy --add-gnu-debuglink=hlasm_language_server.dbg hlasm_language_server
             dbg-pattern: build/bin/hlasm_language_server.dbg
           - os: ubuntu-24.04
