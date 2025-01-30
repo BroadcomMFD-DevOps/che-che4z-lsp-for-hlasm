@@ -1,0 +1,16 @@
+261c261
+<   operator=(__conditional_t<!__has_defaulted_members::value && is_copy_assignable<first_type>::value &&
+---
+>   operator=(__conditional_t<is_copy_assignable<first_type>::value &&
+265c265
+<                                                         is_nothrow_copy_assignable<second_type>::value) {
+---
+>                                                         is_nothrow_copy_assignable<second_type>::value) requires(!__has_defaulted_members::value) {
+272c272
+<   operator=(__conditional_t<!__has_defaulted_members::value && is_move_assignable<first_type>::value &&
+---
+>   operator=(__conditional_t<is_move_assignable<first_type>::value &&
+276c276
+<                                                    is_nothrow_move_assignable<second_type>::value) {
+---
+>                                                    is_nothrow_move_assignable<second_type>::value) requires(!__has_defaulted_members::value) {
