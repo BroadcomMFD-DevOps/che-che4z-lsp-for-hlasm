@@ -5,8 +5,8 @@ set -e
 apk update
 apk add git curl g++ bison make patch tar xz gawk
 
-git clone -n --filter=tree:0 https://gitlab.alpinelinux.org/alpine/aports.git
-(cd aports; git sparse-checkout set --no-cone main/gcc ; git checkout 1a03a2a9c9e77f1a07d48b6f6805e72c8c63c03f)
+git clone -n --filter=tree:0 https://gitlab.alpinelinux.org/alpine/aports.git /aports
+(cd /aports; git sparse-checkout set --no-cone main/gcc ; git checkout 1a03a2a9c9e77f1a07d48b6f6805e72c8c63c03f)
 
 mkdir /toolchain
 
