@@ -135,8 +135,15 @@ jobs:
           xvfb-run -a npm run test
         working-directory: ${{ env.CLIENT_DIR }}
 
-  aarch64-linux-musl:
-    name: Build Linux ARM64 toolchain
+  toolchain:
+    name: Build GCC toolchain
+    strategy:
+      matrix:
+        include:
+          - native: linux_arm64
+            target: aarch64-linux-musl
+          - native: linux_s390x
+            target: s390x-linux-musl
     runs-on: ubuntu-24.04
     container: alpine:3.21
     steps:
@@ -147,34 +154,16 @@ jobs:
         id: cache
         with:
           path: toolchain.tar.gz
-          key: ${{ hashFiles('scripts/toolchain.linux_arm64.sh') }}
+          key: ${{ matrix.native }}-${{ hashFiles('scripts/toolchain.sh') }}
           lookup-only: true
       - name: Build image
         if: steps.cache.outputs.cache-hit != 'true'
-        run: ./scripts/toolchain.linux_arm64.sh
-
-  s390x-linux-musl:
-    name: Build Linux S390X toolchain
-    runs-on: ubuntu-24.04
-    container: alpine:3.21
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install TAR
-        run: apk add tar
-      - uses: actions/cache@v4
-        id: cache
-        with:
-          path: toolchain.tar.gz
-          key: ${{ hashFiles('scripts/toolchain.linux_s390x.sh') }}
-          lookup-only: true
-      - name: Build image
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: ./scripts/toolchain.linux_s390x.sh
+        run: ./scripts/toolchain.sh ${{ matrix.target }}
 
   build-matrix:
     name: Build
     runs-on: ${{ matrix.os }}
-    needs: [aarch64-linux-musl, s390x-linux-musl]
+    needs: [toolchain]
     strategy:
       matrix:
         include:
@@ -188,11 +177,13 @@ jobs:
             container: alpine:3.21
             dbg-strip: aarch64-linux-musl-objcopy --only-keep-debug hlasm_language_server hlasm_language_server.dbg && aarch64-linux-musl-objcopy --strip-unneeded hlasm_language_server && aarch64-linux-musl-objcopy --add-gnu-debuglink=hlasm_language_server.dbg hlasm_language_server
             dbg-pattern: build/bin/hlasm_language_server.dbg
+            toolchain: true
           - os: ubuntu-24.04
             native: linux_s390x
             container: alpine:3.21
             dbg-strip: s390x-linux-musl-objcopy --only-keep-debug hlasm_language_server hlasm_language_server.dbg && s390x-linux-musl-objcopy --strip-unneeded hlasm_language_server && s390x-linux-musl-objcopy --add-gnu-debuglink=hlasm_language_server.dbg hlasm_language_server
             dbg-pattern: build/bin/hlasm_language_server.dbg
+            toolchain: true
           - os: ubuntu-24.04
             native: wasm
             container: emscripten/emsdk:4.0.1
@@ -216,11 +207,11 @@ jobs:
       - name: Make build directory
         run: mkdir build
       - name: Download toolchain
-        if: ${{ hashFiles(format('scripts/toolchain.{0}.sh', matrix.native)) != '' }}
+        if: ${{ matrix.toolchain }}
         uses: actions/cache/restore@v4
         with:
           path: toolchain.tar.gz
-          key: ${{ hashFiles(format('scripts/toolchain.{0}.sh', matrix.native)) }}
+          key: ${{ matrix.native }}-${{ hashFiles('scripts/toolchain.sh') }}
           fail-on-cache-miss: true
       - name: Extract toolchain
         if: ${{ hashFiles(format('scripts/toolchain.{0}.sh', matrix.native)) != '' }}

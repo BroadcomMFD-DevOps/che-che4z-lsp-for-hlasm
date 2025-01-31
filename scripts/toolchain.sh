@@ -16,7 +16,7 @@ cd musl-cross-make
 
 git checkout -f e149c31c48b4f4a4c9349ddf7bc0027b90245afc
 
-echo "TARGET = s390x-linux-musl" >> config.mak
+echo "TARGET = $1" >> config.mak
 echo "OUTPUT = /toolchain/" >> config.mak
 echo "BINUTILS_VER = 2.41" >> config.mak
 echo "GCC_VER = 14.2.0" >> config.mak
