@@ -15,6 +15,8 @@ project(googletest-download NONE)
 include(FetchContent)
 
 set(INSTALL_GTEST Off)
+
+message("Populating googletest")
 FetchContent_Declare(googletest
     GIT_REPOSITORY      https://github.com/google/googletest.git
     GIT_TAG             v1.15.2
