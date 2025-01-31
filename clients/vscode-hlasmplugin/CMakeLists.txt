@@ -12,8 +12,8 @@
 
 PROJECT(vscode-hlasmplugin)
 
-set(CHECK_CI "${GLOBAL_OUTPUT_PATH}/npm_ci.stamp")
-set(CHECK_BUILD "${GLOBAL_OUTPUT_PATH}/npm_build.stamp")
+set(CHECK_CI "${CMAKE_CURRENT_BINARY_DIR}/npm_ci.stamp")
+set(CHECK_BUILD "${CMAKE_CURRENT_BINARY_DIR}/npm_build.stamp")
 
 if (WIN32)
     set(CALL "call")
@@ -79,7 +79,7 @@ add_custom_command(
         COMMAND
             ${CMAKE_COMMAND} -E copy  $<TARGET_FILE:hlasm_language_server> ${BIN_EXTRAS} ${BIN_FOLDER}
         COMMAND
-            npx vsce package --no-dependencies -o ${GLOBAL_OUTPUT_PATH}/vscode-hlasmplugin.vsix
+            npx vsce package --no-dependencies -o ${CMAKE_CURRENT_BINARY_DIR}/vscode-hlasmplugin.vsix
         COMMAND
             ${CMAKE_COMMAND} -E touch ${CHECK_BUILD}
         DEPENDS

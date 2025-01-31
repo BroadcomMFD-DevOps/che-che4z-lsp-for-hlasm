@@ -16,8 +16,6 @@ FIND_PACKAGE(Git REQUIRED)
 
 include(FetchContent)
 
-set(Uri_DISABLE_LIBCXX On)
-
 message("Populating netlib uri")
 # download runtime environment
 FetchContent_Declare(
@@ -29,7 +27,7 @@ FetchContent_Declare(
   GIT_PROGRESS   1
   PATCH_COMMAND  ${CMAKE_COMMAND} -DGIT_EXECUTABLE=${GIT_EXECUTABLE} -DPROJECT_SOURCE_DIR=${PROJECT_SOURCE_DIR} -DCMAKE_BINARY_DIR=${CMAKE_BINARY_DIR} -P ${PROJECT_SOURCE_DIR}/cmake/apply_uri_patch.cmake
   EXCLUDE_FROM_ALL
-  SOURCE_SUBDIR dummy
+  SOURCE_SUBDIR  dummy
 )
 FetchContent_MakeAvailable(uri_ext)
 add_subdirectory(${uri_ext_SOURCE_DIR}/src ${uri_ext_BINARY_DIR} EXCLUDE_FROM_ALL)
