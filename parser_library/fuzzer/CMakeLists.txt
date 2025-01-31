@@ -28,10 +28,20 @@ target_sources(library_fuzzer PRIVATE
     fuzzer.cpp
 )
 
-configure_file(
-            fuzzer.dict
-            ${CMAKE_BINARY_DIR}/bin/fuzzer.dict
-            COPYONLY)
+add_custom_command(
+        OUTPUT
+            ${CMAKE_CURRENT_BINARY_DIR}/fuzzer.dict
+        COMMAND
+            ${CMAKE_COMMAND} -E copy fuzzer.dict "${CMAKE_CURRENT_BINARY_DIR}/fuzzer.dict"
+        WORKING_DIRECTORY
+            ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+add_custom_target(copy_fuzzer_dict
+        ALL
+        DEPENDS fuzzer.dict
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+)
 
 target_include_directories(library_fuzzer
     PRIVATE
@@ -42,3 +52,5 @@ target_link_libraries(library_fuzzer PRIVATE Threads::Threads)
 target_link_libraries(library_fuzzer PRIVATE nlohmann_json::nlohmann_json)
 
 target_link_options(library_fuzzer PRIVATE ${HLASM_EXTRA_LINKER_FLAGS})
+
+add_dependencies(library_fuzzer copy_fuzzer_dict)
