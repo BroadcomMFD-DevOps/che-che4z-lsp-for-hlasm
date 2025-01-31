@@ -1,0 +1,33 @@
+{
+  "version": 8,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 28,
+    "patch": 0
+  },
+  "configurePresets": [
+      {
+          "name": "ci",
+          "generator": "Ninja",
+          "binaryDir": "${sourceDir}/build",
+          "cacheVariables": {
+              "CMAKE_BUILD_TYPE": "Release",
+              "CMAKE_VERIFY_HEADER_SETS": {
+                  "type": "BOOL",
+                  "value": "ON"
+              },
+              "DISCOVER_TESTS": {
+                  "type": "BOOL",
+                  "value": "OFF"
+              },
+              "BUILD_VSIX": {
+                  "type": "BOOL",
+                  "value": "OFF"
+              },
+              "CMAKE_RUNTIME_OUTPUT_DIRECTORY": "${sourceDir}/build/bin"
+          },
+          "environment": {
+          }
+      }
+  ]
+}
