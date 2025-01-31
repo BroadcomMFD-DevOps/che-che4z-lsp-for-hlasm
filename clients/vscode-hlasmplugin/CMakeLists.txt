@@ -47,6 +47,11 @@ if(NPM_RETURN MATCHES "NPM_RETURN-NOTFOUND")
     message(FATAL_ERROR "Cannot find npm. Are you sure npm is installed and in the path?" )
 endif()
 
+set(NPM_COMPILE_COMMAND "compile")
+if(BUILD_VSIX_WEB)
+    set(NPM_COMPILE_COMMAND "compile:web")
+endif()
+
 add_custom_command(
         OUTPUT
             ${CHECK_CI}
@@ -65,7 +70,7 @@ add_custom_command(
         OUTPUT
             ${CHECK_BUILD}
         COMMAND
-            ${CALL} ${NPM_RETURN} --unsafe-perm run compile
+            ${CALL} ${NPM_RETURN} --unsafe-perm run ${NPM_COMPILE_COMMAND}
             #the --unsafe-perm is needed when user with root rights runs the build on linux
         COMMAND
             ${CMAKE_COMMAND} -E make_directory ${BIN_FOLDER}

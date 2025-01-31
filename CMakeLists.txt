@@ -54,6 +54,7 @@ option(WITH_STATIC_CRT "(Visual C++) Enable to statically link CRT, which avoids
  To disable with: -DWITH_STATIC_CRT=Off" On)
 option(DISCOVER_TESTS "Enables CTest by executing tests and discovering test cases. To disable with: -DDISCOVER_TESTS=Off" On)
 option(BUILD_VSIX "When disabled, the VS Code client is not built and it is not packaged into vsix." On)
+option(BUILD_VSIX_WEB "Packages Web version of the extension" Off)
 option(BUILD_FUZZER "Enable building of the fuzzer. Tested with clang and libstdc++ (enable with -DWITH_LIBCXX=Off)" Off)
 
 set(LANGUAGE_SERVER_BIN_SUBDIR "" CACHE STRING "Subdirectory for the language server binary in the client project")
