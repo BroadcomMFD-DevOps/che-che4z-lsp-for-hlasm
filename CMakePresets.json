@@ -145,6 +145,7 @@
       {
           "name": "ci-windows",
           "configuration": "Release",
+          "hidden": true,
           "condition": {
               "type": "equals",
               "lhs": "${hostSystemName}",
