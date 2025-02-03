@@ -143,21 +143,44 @@
   ],
   "buildPresets": [
       {
-          "name": "ci-windows",
-          "configuration": "Release",
-          "hidden": true,
-          "condition": {
-              "type": "equals",
-              "lhs": "${hostSystemName}",
-              "rhs": "Windows"
-          }
+          "name": "ci",
+          "jobs": 0,
+          "verbose": true,
+          "hidden": true
       },
       {
-          "name": "ci",
-          "inherits": "ci-windows",
-          "configurePreset": "ci",
-          "jobs": 0,
-          "verbose": true
+          "name": "ci-linux_x64",
+          "inherits": "ci-linux_x64"
+      },
+      {
+          "name": "ci-linux_arm64",
+          "inherits": "ci-linux_arm64"
+      },
+      {
+          "name": "ci-linux_s390x",
+          "inherits": "ci-linux_s390x"
+      },
+      {
+          "name": "ci-wasm",
+          "inherits": "ci-wasm"
+      },
+      {
+          "name": "ci-win32_x64",
+          "inherits": "ci-win32_x64",
+          "configuration": "Release"
+      },
+      {
+          "name": "ci-win32_arm64",
+          "inherits": "ci-win32_arm64",
+          "configuration": "Release"
+      },
+      {
+          "name": "ci-darwin_x64",
+          "inherits": "ci-darwin_x64"
+      },
+      {
+          "name": "ci-darwin_arm64",
+          "inherits": "ci-darwin_arm64"
       }
   ]
 }
