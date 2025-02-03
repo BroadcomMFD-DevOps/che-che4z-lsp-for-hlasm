@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-winget install Ninja-build.Ninja
+choco install Ninja-build.Ninja
