@@ -219,14 +219,11 @@ jobs:
           tar xzf toolchain.tar.gz
           echo "$PWD/toolchain/bin" >> $GITHUB_PATH
       - name: Configure
-        run: ../scripts/config.${{ matrix.native }}.sh
-        working-directory: build
+        run: cmake --preset ci-${{ matrix.native }}
       - name: Build
-        run: cmake --build . $([ -f ../scripts/build-extra.${{ matrix.native }}.conf ] && cat ../scripts/build-extra.${{ matrix.native }}.conf || true)
-        working-directory: build
+        run: cmake --build build
       - name: Verify headers
-        run: cmake --build . --target parser_library_verify_interface_header_sets hlasm_utils_verify_interface_header_sets
-        working-directory: build
+        run: cmake --build build --target parser_library_verify_interface_header_sets hlasm_utils_verify_interface_header_sets
       - name: Server Test
         if: ${{ !matrix.skip-test }}
         run: |
