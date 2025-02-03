@@ -96,7 +96,10 @@
       {
           "name": "ci-win32_x64",
           "inherits": "ci",
-          "generator": "Visual Studio 17 2022"
+          "generator": "Visual Studio 17 2022",
+          "cacheVariables": {
+              "CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE": "${sourceDir}/build/bin"
+          }
       },
       {
           "name": "ci-win32_arm64",
@@ -105,7 +108,8 @@
           "architecture": "ARM64",
           "cacheVariables": {
               "CMAKE_SYSTEM_NAME": "Windows",
-              "CMAKE_SYSTEM_VERSION": "10"
+              "CMAKE_SYSTEM_VERSION": "10",
+              "CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE": "${sourceDir}/build/bin"
           }
       },
       {
