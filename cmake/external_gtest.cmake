@@ -31,6 +31,6 @@ target_compile_features(gtest PUBLIC cxx_std_20)
 target_compile_features(gtest_main PUBLIC cxx_std_20)
 
 set_target_properties(gmock PROPERTIES CXX_EXTENSIONS OFF)
-set_target_properties(gmock_main ROPERTIES CXX_EXTENSIONS OFF)
+set_target_properties(gmock_main PROPERTIES CXX_EXTENSIONS OFF)
 set_target_properties(gtest PROPERTIES CXX_EXTENSIONS OFF)
 set_target_properties(gtest_main PROPERTIES CXX_EXTENSIONS OFF)
