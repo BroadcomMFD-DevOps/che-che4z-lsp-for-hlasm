@@ -217,7 +217,7 @@ jobs:
         run: cmake --preset ci-${{ matrix.native }}
       - name: Build
         if: ${{ startsWith(matrix.native, 'win32') }}
-        run: cmake --build build -- -v:d --config Release
+        run: cmake --build build --config Release -- -v:d
       - name: Build
         if: ${{ !startsWith(matrix.native, 'win32') }}
         run: cmake --build build -- --verbose
