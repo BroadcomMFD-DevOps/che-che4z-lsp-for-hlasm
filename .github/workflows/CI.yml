@@ -216,6 +216,10 @@ jobs:
       - name: Configure
         run: cmake --preset ci-${{ matrix.native }}
       - name: Build
+        if: ${{ startsWith(matrix.native, 'win32') }}
+        run: cmake --build build
+      - name: Build
+        if: ${{ !startsWith(matrix.native, 'win32') }}
         run: cmake --build build -- --verbose
       - name: Verify headers
         run: cmake --build build --target parser_library_verify_interface_header_sets hlasm_utils_verify_interface_header_sets

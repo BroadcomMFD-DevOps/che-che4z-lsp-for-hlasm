@@ -102,10 +102,10 @@
           "name": "ci-win32_arm64",
           "inherits": "ci",
           "generator": "Visual Studio 17 2022",
+          "architecture": "ARM64",
           "cacheVariables": {
               "CMAKE_SYSTEM_NAME": "Windows",
-              "CMAKE_SYSTEM_VERSION": "10",
-              "CMAKE_GENERATOR_PLATFOR": "ARM64"
+              "CMAKE_SYSTEM_VERSION": "10"
           }
       },
       {
@@ -115,6 +115,7 @@
               "LLVM_PATH": "$env{LLVM_PATH}",
               "CMAKE_C_COMPILER": "$env{LLVM_PATH}/bin/clang",
               "CMAKE_CXX_COMPILER": "$env{LLVM_PATH}/bin/clang++",
+              "CMAKE_CXX_FLAGS": "-stdlib=libc++",
               "APPLE_STATIC_CRT": {
                   "type": "BOOL",
                   "value": "ON"
@@ -128,6 +129,7 @@
               "LLVM_PATH": "$env{LLVM_PATH}",
               "CMAKE_C_COMPILER": "$env{LLVM_PATH}/bin/clang",
               "CMAKE_CXX_COMPILER": "$env{LLVM_PATH}/bin/clang++",
+              "CMAKE_CXX_FLAGS": "-stdlib=libc++",
               "APPLE_STATIC_CRT": {
                   "type": "BOOL",
                   "value": "ON"
