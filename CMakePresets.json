@@ -145,7 +145,18 @@
       {
           "name": "ci",
           "jobs": 0,
-          "verbose": true
+          "verbose": true,
+          "hidden": true
+      },
+      {
+          "name": "ci-sanitizer-asan",
+          "inherits": "ci",
+          "configurePreset": "ci-sanitizer-asan"
+      },
+      {
+          "name": "ci-sanitizer-tsan",
+          "inherits": "ci",
+          "configurePreset": "ci-sanitizer-tsan"
       },
       {
           "name": "ci-linux_x64",
