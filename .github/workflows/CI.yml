@@ -103,7 +103,7 @@ jobs:
       matrix:
         include:
           - type: asan
-          - type: thsan
+          - type: tsan
 
     steps:
       - uses: actions/checkout@v4
