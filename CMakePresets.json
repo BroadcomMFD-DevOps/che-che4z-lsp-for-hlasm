@@ -141,7 +141,7 @@
           }
       }
   ],
-  "configurePresets": [
+  "buildPresets": [
       {
           "name": "ci-windows",
           "configuration": "Release",
