@@ -151,44 +151,44 @@
       {
           "name": "ci-linux_x64",
           "inherits": "ci",
-          "configurationPreset": "ci-linux_x64"
+          "configurePreset": "ci-linux_x64"
       },
       {
           "name": "ci-linux_arm64",
           "inherits": "ci",
-          "configurationPreset": "ci-linux_arm64"
+          "configurePreset": "ci-linux_arm64"
       },
       {
           "name": "ci-linux_s390x",
           "inherits": "ci",
-          "configurationPreset": "ci-linux_s390x"
+          "configurePreset": "ci-linux_s390x"
       },
       {
           "name": "ci-wasm",
           "inherits": "ci",
-          "configurationPreset": "ci-wasm"
+          "configurePreset": "ci-wasm"
       },
       {
           "name": "ci-win32_x64",
           "inherits": "ci",
-          "configurationPreset": "ci-win32_x64",
+          "configurePreset": "ci-win32_x64",
           "configuration": "Release"
       },
       {
           "name": "ci-win32_arm64",
           "inherits": "ci",
-          "configurationPreset": "ci-win32_arm64",
+          "configurePreset": "ci-win32_arm64",
           "configuration": "Release"
       },
       {
           "name": "ci-darwin_x64",
           "inherits": "ci",
-          "configurationPreset": "ci-darwin_x64"
+          "configurePreset": "ci-darwin_x64"
       },
       {
           "name": "ci-darwin_arm64",
           "inherits": "ci",
-          "configurationPreset": "ci-darwin_arm64"
+          "configurePreset": "ci-darwin_arm64"
       }
   ]
 }
