@@ -154,6 +154,7 @@
       {
           "name": "ci",
           "inherits": "ci-windows",
+          "configurePreset": "ci",
           "jobs": 0,
           "verbose": true
       }
