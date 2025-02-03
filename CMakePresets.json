@@ -140,5 +140,22 @@
               }
           }
       }
+  ],
+  "configurePresets": [
+      {
+          "name": "ci-windows",
+          "configuration": "Release",
+          "condition": {
+              "type": "equals",
+              "lhs": "${hostSystemName}",
+              "rhs": "Windows"
+          }
+      },
+      {
+          "name": "ci",
+          "inherits": "ci-windows",
+          "jobs": 0,
+          "verbose": true
+      }
   ]
 }

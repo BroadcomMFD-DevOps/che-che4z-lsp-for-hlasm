@@ -114,7 +114,7 @@ jobs:
       - name: Configure
         run: cmake --preset ci-sanitizer-${{ matrix.type }}
       - name: Build
-        run: cmake --build build -- --verbose
+        run: cmake --build build --preset ci
       - name: Test
         run: |
           ./server_test
@@ -216,11 +216,8 @@ jobs:
       - name: Configure
         run: cmake --preset ci-${{ matrix.native }}
       - name: Build
-        if: ${{ startsWith(matrix.native, 'win32') }}
-        run: cmake --build build --config Release -- -v:d
-      - name: Build
         if: ${{ !startsWith(matrix.native, 'win32') }}
-        run: cmake --build build -- --verbose
+        run: cmake --build build --preset ci
       - name: Verify headers
         run: cmake --build build --target parser_library_verify_interface_header_sets hlasm_utils_verify_interface_header_sets
       - name: Server Test
