@@ -145,8 +145,7 @@
       {
           "name": "ci",
           "jobs": 0,
-          "verbose": true,
-          "hidden": true
+          "verbose": true
       },
       {
           "name": "ci-linux_x64",
