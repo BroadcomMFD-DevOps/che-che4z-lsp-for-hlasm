@@ -33,3 +33,6 @@ FetchContent_MakeAvailable(uri_ext)
 add_subdirectory(${uri_ext_SOURCE_DIR}/src ${uri_ext_BINARY_DIR} EXCLUDE_FROM_ALL)
 target_include_directories(network-uri PRIVATE ${uri_ext_SOURCE_DIR}/src)
 target_include_directories(network-uri PUBLIC ${uri_ext_SOURCE_DIR}/include)
+
+target_compile_features(network-uri PUBLIC cxx_std_20)
+set_target_properties(network-uri PROPERTIES CXX_EXTENSIONS OFF)

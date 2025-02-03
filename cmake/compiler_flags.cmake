@@ -27,5 +27,5 @@ if(APPLE_STATIC_CRT)
   file(COPY_FILE "${libcpp_file}" "${CMAKE_CURRENT_BINARY_DIR}/libcxx/libc++.a")
   file(COPY_FILE "${libcppabi_file}" "${CMAKE_CURRENT_BINARY_DIR}/libcxx/libc++abi.a")
 
-  list(APPEND HLASM_EXTRA_LINKER_FLAGS -nostdlib++ '-L${CMAKE_CURRENT_BINARY_DIR}/libcxx' -Wl,-hidden-lc++ -Wl,-hidden-lc++abi)
+  list(APPEND HLASM_EXTRA_LINKER_FLAGS -nostdlib++ "-L${CMAKE_CURRENT_BINARY_DIR}/libcxx" -Wl,-hidden-lc++ -Wl,-hidden-lc++abi)
 endif()
