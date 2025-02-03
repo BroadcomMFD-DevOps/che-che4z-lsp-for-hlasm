@@ -214,6 +214,9 @@ jobs:
         run: |
           tar xzf toolchain.tar.gz
           echo "$PWD/toolchain/bin" >> $GITHUB_PATH
+      - name: Add msbuild to PATH
+        if: ${{ startsWith(matrix.native, 'win32') }}
+        uses: microsoft/setup-msbuild@v2
       - name: Configure
         run: cmake --preset ci-${{ matrix.native }}
       - name: Build

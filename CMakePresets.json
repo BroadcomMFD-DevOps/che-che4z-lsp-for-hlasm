@@ -84,7 +84,7 @@
           "inherits": "ci",
           "cacheVariables": {
               "CMAKE_TOOLCHAIN_FILE": "/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake",
-              "CMAKE_CXX_FLAGS": "-s USE_PTHREADS=1 -fwasm-exceptions",
+              "CMAKE_CXX_FLAGS": "-s USE_PTHREADS=1 -fwasm-exceptions -std=c++20",
               "CMAKE_EXE_LINKER_FLAGS": "-s PTHREAD_POOL_SIZE=8 -s MAXIMUM_MEMORY=2147418112 -s INITIAL_MEMORY=268435456 -s ALLOW_MEMORY_GROWTH=1 -s PROXY_TO_PTHREAD=1 -s MODULARIZE=1 -s EXIT_RUNTIME=1 --bind -s STACK_SIZE=4MB -fwasm-exceptions --extern-post-js ${sourceDir}/cmake/wasm_post.js",
               "CMAKE_CROSSCOMPILING_EMULATOR": "node",
               "gtest_disable_pthreads": {
@@ -95,12 +95,18 @@
       },
       {
           "name": "ci-win32_x64",
-          "inherits": "ci"
+          "inherits": "ci",
+          "cacheVariables": {
+              "CMAKE_C_COMPILER": "cl",
+              "CMAKE_CXX_COMPILER": "cl"
+          }
       },
       {
           "name": "ci-win32_arm64",
           "inherits": "ci",
           "cacheVariables": {
+              "CMAKE_C_COMPILER": "cl",
+              "CMAKE_CXX_COMPILER": "cl",
               "CMAKE_SYSTEM_NAME": "Windows",
               "CMAKE_SYSTEM_VERSION": "10",
               "CMAKE_GENERATOR_PLATFOR": "ARM64"
