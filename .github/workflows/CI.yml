@@ -114,7 +114,7 @@ jobs:
       - name: Configure
         run: cmake --preset ci-sanitizer-${{ matrix.type }}
       - name: Build
-        run: cmake --build build --preset ci
+        run: cmake --build build --preset ci-sanitizer-${{ matrix.type }}
       - name: Test
         run: |
           ./server_test
