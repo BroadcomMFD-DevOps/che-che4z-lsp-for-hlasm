@@ -96,17 +96,13 @@
       {
           "name": "ci-win32_x64",
           "inherits": "ci",
-          "cacheVariables": {
-              "CMAKE_C_COMPILER": "cl",
-              "CMAKE_CXX_COMPILER": "cl"
-          }
+          "generator": "Visual Studio 17 2022"
       },
       {
           "name": "ci-win32_arm64",
           "inherits": "ci",
+          "generator": "Visual Studio 17 2022",
           "cacheVariables": {
-              "CMAKE_C_COMPILER": "cl",
-              "CMAKE_CXX_COMPILER": "cl",
               "CMAKE_SYSTEM_NAME": "Windows",
               "CMAKE_SYSTEM_VERSION": "10",
               "CMAKE_GENERATOR_PLATFOR": "ARM64"
