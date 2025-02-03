@@ -102,8 +102,8 @@ jobs:
     strategy:
       matrix:
         include:
-          - flags: address,undefined
-          - flags: thread
+          - type: asan
+          - type: thsan
 
     steps:
       - uses: actions/checkout@v4
@@ -111,14 +111,10 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install ninja-build xvfb
-      - name: Make build directory
-        run: mkdir build
       - name: Configure
-        run: cmake -G Ninja -DBUILD_VSIX=Off -DCMAKE_C_COMPILER=clang-18 -DCMAKE_CXX_COMPILER=clang++-18 -DCMAKE_CXX_FLAGS="-fsanitize=${{ matrix.flags }}" -DWITH_LIBCXX=Off ../
-        working-directory: build
+        run: cmake --preset ci-sanitizer-${{ matrix.type }}
       - name: Build
-        run: cmake --build .
-        working-directory: build
+        run: cmake --build build -- --verbose
       - name: Test
         run: |
           ./server_test
@@ -214,14 +210,14 @@ jobs:
           key: ${{ matrix.native }}-${{ hashFiles('scripts/toolchain.sh') }}
           fail-on-cache-miss: true
       - name: Extract toolchain
-        if: ${{ hashFiles(format('scripts/toolchain.{0}.sh', matrix.native)) != '' }}
+        if: ${{ matrix.toolchain }}
         run: |
           tar xzf toolchain.tar.gz
           echo "$PWD/toolchain/bin" >> $GITHUB_PATH
       - name: Configure
         run: cmake --preset ci-${{ matrix.native }}
       - name: Build
-        run: cmake --build build
+        run: cmake --build build -- --verbose
       - name: Verify headers
         run: cmake --build build --target parser_library_verify_interface_header_sets hlasm_utils_verify_interface_header_sets
       - name: Server Test

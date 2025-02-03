@@ -30,6 +30,29 @@
           }
       },
       {
+          "name": "ci-sanitizer",
+          "inherits": "ci",
+          "cacheVariables": {
+              "CMAKE_C_COMPILER": "clang-18",
+              "CMAKE_CXX_COMPILER": "clang++-18"
+          },
+          "hidden": true
+      },
+      {
+          "name": "ci-sanitizer-asan",
+          "inherits": "ci-sanitizer",
+          "cacheVariables": {
+              "CMAKE_CXX_FLAGS": "-fsanitize=address,undefined"
+          }
+      },
+      {
+          "name": "ci-sanitizer-tsan",
+          "inherits": "ci-sanitizer",
+          "cacheVariables": {
+              "CMAKE_CXX_FLAGS": "-fsanitize=thread"
+          }
+      },
+      {
           "name": "ci-linux_x64",
           "inherits": "ci",
           "cacheVariables": {
