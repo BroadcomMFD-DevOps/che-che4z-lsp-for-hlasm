@@ -25,8 +25,6 @@ option(BUILD_FUZZER "Enable building of the fuzzer. Tested with clang and libstd
 
 set(LANGUAGE_SERVER_BIN_SUBDIR "" CACHE STRING "Subdirectory for the language server binary in the client project")
 
-set(HLASM_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
-
 if(BUILD_SHARED_LIBS AND WITH_STATIC_CRT AND MSVC)
   message(WARNING "Building shared libraries with static CRT!")
 endif()
