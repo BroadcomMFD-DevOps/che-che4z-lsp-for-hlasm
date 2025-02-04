@@ -11,9 +11,6 @@
 #   Broadcom, Inc. - initial API and implementation
 
 cmake_minimum_required(VERSION 3.28)
-set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
-set(CMAKE_POLICY_DEFAULT_CMP0091 NEW)
-set(CMAKE_POLICY_DEFAULT_CMP0135 NEW)
 
 PROJECT(HlasmLanguageServer LANGUAGES CXX)
 
@@ -24,6 +21,7 @@ option(BUILD_VSIX_WEB "Packages Web version of the extension." Off)
 option(BUILD_FUZZER "Enable building of the fuzzer. Tested with clang and libstdc++." Off)
 
 set(LANGUAGE_SERVER_BIN_SUBDIR "" CACHE STRING "Subdirectory for the language server binary in the client project")
+option(HLASM_DEV_GUESS_BIN_SUBDIR "Try to guess the LANGUAGE_SERVER_BIN_SUBDIR value" Off)
 
 if(BUILD_SHARED_LIBS AND WITH_STATIC_CRT AND MSVC)
   message(WARNING "Building shared libraries with static CRT!")

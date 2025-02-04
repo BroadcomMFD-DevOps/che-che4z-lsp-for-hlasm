@@ -25,8 +25,6 @@
                   "value": "OFF"
               },
               "CMAKE_RUNTIME_OUTPUT_DIRECTORY": "${sourceDir}/build/bin"
-          },
-          "environment": {
           }
       },
       {
@@ -41,22 +39,22 @@
       {
           "name": "ci-sanitizer-asan",
           "inherits": "ci-sanitizer",
-          "cacheVariables": {
-              "CMAKE_CXX_FLAGS": "-fsanitize=address,undefined"
+          "environment": {
+              "CXXFLAGS": "-fsanitize=address,undefined"
           }
       },
       {
           "name": "ci-sanitizer-tsan",
           "inherits": "ci-sanitizer",
-          "cacheVariables": {
-              "CMAKE_CXX_FLAGS": "-fsanitize=thread"
+          "environment": {
+              "CXXFLAGS": "-fsanitize=thread"
           }
       },
       {
           "name": "ci-linux_x64",
           "inherits": "ci",
-          "cacheVariables": {
-              "CMAKE_EXE_LINKER_FLAGS": "-static"
+          "environment": {
+              "LINK_FLAGS": "-static"
           }
       },
       {
@@ -119,11 +117,13 @@
               "LLVM_PATH": "$env{LLVM_PATH}",
               "CMAKE_C_COMPILER": "$env{LLVM_PATH}/bin/clang",
               "CMAKE_CXX_COMPILER": "$env{LLVM_PATH}/bin/clang++",
-              "CMAKE_CXX_FLAGS": "-stdlib=libc++",
               "APPLE_STATIC_CRT": {
                   "type": "BOOL",
                   "value": "ON"
               }
+          },
+          "environment": {
+              "CXXFLAGS": "-stdlib=libc++"
           }
       },
       {
@@ -133,11 +133,95 @@
               "LLVM_PATH": "$env{LLVM_PATH}",
               "CMAKE_C_COMPILER": "$env{LLVM_PATH}/bin/clang",
               "CMAKE_CXX_COMPILER": "$env{LLVM_PATH}/bin/clang++",
-              "CMAKE_CXX_FLAGS": "-stdlib=libc++",
               "APPLE_STATIC_CRT": {
                   "type": "BOOL",
                   "value": "ON"
               }
+          },
+          "environment": {
+              "CXXFLAGS": "-stdlib=libc++"
+          }
+      },
+      {
+          "name": "dev",
+          "generator": "Ninja",
+          "cacheVariables": {
+              "CMAKE_VERIFY_HEADER_SETS": {
+                  "type": "BOOL",
+                  "value": "ON"
+              },
+              "HLASM_DEV_GUESS_BIN_SUBDIR": {
+                  "type": "BOOL",
+                  "value": "ON"
+              }
+          },
+          "hidden": true
+      },
+      {
+          "name": "dev.debug",
+          "inherits": "dev",
+          "binaryDir": "${sourceDir}/build/debug",
+          "cacheVariables": {
+              "CMAKE_BUILD_TYPE": "Debug",
+              "CMAKE_RUNTIME_OUTPUT_DIRECTORY": "${sourceDir}/build/debug/bin",
+              "CMAKE_VS_JUST_MY_CODE_DEBUGGING": {
+                  "type": "BOOL",
+                  "value": "ON"
+              }
+          }
+      },
+      {
+          "name": "dev.release",
+          "inherits": "dev",
+          "binaryDir": "${sourceDir}/build/debug",
+          "cacheVariables": {
+              "CMAKE_BUILD_TYPE": "Release",
+              "CMAKE_RUNTIME_OUTPUT_DIRECTORY": "${sourceDir}/build/release/bin"
+          }
+      },
+      {
+          "name": "dev.profile.msvc",
+          "inherits": "dev",
+          "binaryDir": "${sourceDir}/build/profile",
+          "cacheVariables": {
+              "CMAKE_BUILD_TYPE": "ReleaseWithDebInfo",
+              "CMAKE_RUNTIME_OUTPUT_DIRECTORY": "${sourceDir}/build/profile/bin",
+              "CMAKE_EXE_LINKER_FLAGS": "/PROFILE"
+          }
+      },
+      {
+          "name": "dev.asan",
+          "inherits": "dev",
+          "binaryDir": "${sourceDir}/build/asan",
+          "cacheVariables": {
+              "CMAKE_BUILD_TYPE": "Debug",
+              "CMAKE_RUNTIME_OUTPUT_DIRECTORY": "${sourceDir}/build/asan/bin",
+              "CMAKE_VS_JUST_MY_CODE_DEBUGGING": {
+                  "type": "BOOL",
+                  "value": "ON"
+              }
+          },
+          "environment": {
+              "CFLAGS": "-fsanitize=asan",
+              "CXXFLAGS": "-fsanitize=asan",
+              "LINK_FLAGS": "-fsanitize=asan"
+          }
+      },
+      {
+          "name": "dev.asan.msvc",
+          "inherits": "dev",
+          "binaryDir": "${sourceDir}/build/asan",
+          "cacheVariables": {
+              "CMAKE_BUILD_TYPE": "Debug",
+              "CMAKE_RUNTIME_OUTPUT_DIRECTORY": "${sourceDir}/build/asan/bin",
+              "CMAKE_VS_JUST_MY_CODE_DEBUGGING": {
+                  "type": "BOOL",
+                  "value": "ON"
+              }
+          },
+          "environment": {
+              "CFLAGS": "/fsanitize=asan",
+              "CXXFLAGS": "/fsanitize=asan"
           }
       }
   ],
@@ -145,7 +229,6 @@
       {
           "name": "ci",
           "jobs": 0,
-          "verbose": true,
           "hidden": true
       },
       {
