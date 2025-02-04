@@ -44,7 +44,7 @@ jobs:
           -DCMAKE_C_COMPILER=clang-18
           -DCMAKE_CXX_COMPILER=clang++-18
           -DCMAKE_CXX_FLAGS="-fprofile-instr-generate -fcoverage-mapping -mllvm -runtime-counter-relocation"
-          -DWITH_LIBCXX=Off
+          -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=`pwd`
           -DLANGUAGE_SERVER_BIN_SUBDIR=linux_x64
           ../
       - name: Sonar build wrapper download
