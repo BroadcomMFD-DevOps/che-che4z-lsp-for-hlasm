@@ -40,5 +40,5 @@ endif()
 target_link_options(hlasm_utils_test PRIVATE ${HLASM_EXTRA_LINKER_FLAGS})
 
 if(DISCOVER_TESTS)
-    gtest_discover_tests(hlasm_utils_test WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin DISCOVERY_TIMEOUT 120)
+    gtest_discover_tests(hlasm_utils_test WORKING_DIRECTORY $<TARGET_FILE_DIR:hlasm_utils_test> DISCOVERY_TIMEOUT 120)
 endif()

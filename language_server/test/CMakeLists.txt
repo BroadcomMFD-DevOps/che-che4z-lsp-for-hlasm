@@ -53,5 +53,5 @@ target_link_libraries(server_test PRIVATE parser_library)
 target_link_options(server_test PRIVATE ${HLASM_EXTRA_LINKER_FLAGS})
 
 if(DISCOVER_TESTS)
-    gtest_discover_tests(server_test WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin DISCOVERY_TIMEOUT 120)
+    gtest_discover_tests(server_test WORKING_DIRECTORY $<TARGET_FILE_DIR:server_test> DISCOVERY_TIMEOUT 120)
 endif()

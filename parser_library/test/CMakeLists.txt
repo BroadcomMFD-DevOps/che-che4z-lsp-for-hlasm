@@ -72,5 +72,5 @@ target_link_options(library_test PRIVATE ${HLASM_EXTRA_LINKER_FLAGS})
 add_dependencies(library_test library_tests_copy)
 
 if(DISCOVER_TESTS)
-    gtest_discover_tests(library_test WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin DISCOVERY_TIMEOUT 120)
+    gtest_discover_tests(library_test WORKING_DIRECTORY $<TARGET_FILE_DIR:library_test> DISCOVERY_TIMEOUT 120)
 endif()
