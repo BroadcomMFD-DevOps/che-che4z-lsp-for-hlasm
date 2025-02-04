@@ -65,8 +65,8 @@
       {
           "name": "ci-linux_x64",
           "inherits": "ci",
-          "environment": {
-              "LINK_FLAGS": "-static"
+          "cacheVariables": {
+              "CMAKE_EXE_LINKER_FLAGS": "-static"
           }
       },
       {
@@ -108,7 +108,8 @@
           "inherits": "ci",
           "generator": "Visual Studio 17 2022",
           "cacheVariables": {
-              "CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE": "${sourceDir}/build/bin"
+              "CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE": "${sourceDir}/build/bin",
+              "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreaded"
           }
       },
       {
@@ -119,7 +120,8 @@
           "cacheVariables": {
               "CMAKE_SYSTEM_NAME": "Windows",
               "CMAKE_SYSTEM_VERSION": "10",
-              "CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE": "${sourceDir}/build/bin"
+              "CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE": "${sourceDir}/build/bin",
+              "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreaded"
           }
       },
       {
