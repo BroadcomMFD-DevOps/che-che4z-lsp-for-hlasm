@@ -202,26 +202,9 @@
               }
           },
           "environment": {
-              "CFLAGS": "-fsanitize=asan",
-              "CXXFLAGS": "-fsanitize=asan",
-              "LINK_FLAGS": "-fsanitize=asan"
-          }
-      },
-      {
-          "name": "dev.asan.msvc",
-          "inherits": "dev",
-          "binaryDir": "${sourceDir}/build/asan",
-          "cacheVariables": {
-              "CMAKE_BUILD_TYPE": "Debug",
-              "CMAKE_RUNTIME_OUTPUT_DIRECTORY": "${sourceDir}/build/asan/bin",
-              "CMAKE_VS_JUST_MY_CODE_DEBUGGING": {
-                  "type": "BOOL",
-                  "value": "ON"
-              }
-          },
-          "environment": {
-              "CFLAGS": "/fsanitize=asan",
-              "CXXFLAGS": "/fsanitize=asan"
+              "CFLAGS": "-fsanitize=address",
+              "CXXFLAGS": "-fsanitize=address",
+              "LINK_FLAGS": "-fsanitize=address"
           }
       }
   ],
