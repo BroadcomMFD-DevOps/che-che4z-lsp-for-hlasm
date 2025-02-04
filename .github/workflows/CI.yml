@@ -49,7 +49,7 @@ jobs:
             exit 1
           fi
       - name: Check license headers
-        run: cmake/check_license.sh
+        run: scripts/check_license.sh
       - name: PR to master is allowed only from a release branch
         if: github.event_name == 'pull_request' && github.base_ref == 'master' && github.head_ref != 'release-next'
         run: exit 1
