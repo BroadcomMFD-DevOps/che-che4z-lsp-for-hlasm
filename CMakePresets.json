@@ -28,6 +28,18 @@
           }
       },
       {
+          "name": "ci-sonar",
+          "binaryDir": "${sourceDir}/build",
+          "cacheVariables": {
+              "CMAKE_BUILD_TYPE": "Debug",
+              "CMAKE_C_COMPILER": "clang-18",
+              "CMAKE_CXX_COMPILER": "clang++-18",
+              "CMAKE_CXX_FLAGS": "-fprofile-instr-generate -fcoverage-mapping -mllvm -runtime-counter-relocation",
+              "LANGUAGE_SERVER_BIN_SUBDIR": "linux_x64",
+              "CMAKE_RUNTIME_OUTPUT_DIRECTORY": "${sourceDir}/build/bin"
+          }
+      },
+      {
           "name": "ci-sanitizer",
           "inherits": "ci",
           "cacheVariables": {
