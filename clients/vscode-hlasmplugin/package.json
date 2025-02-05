@@ -32,7 +32,7 @@
   "main": "./dist/extension.js",
   "typings": "./typings/extension.d.ts",
   "engines": {
-    "vscode": "^1.75.0"
+    "vscode": "^1.82.0"
   },
   "repository": {
     "type": "git",
@@ -47,7 +47,7 @@
     "@types/glob": "^5.0.35",
     "@types/mocha": "^7.0.2",
     "@types/node": "^16.4.13",
-    "@types/vscode": "^1.75.0",
+    "@types/vscode": "~1.82.0",
     "@vscode/test-electron": "^2.3.8",
     "@vscode/test-web": "^0.0.59",
     "@vscode/vsce": "^3.2.2",
@@ -55,7 +55,7 @@
     "conventional-changelog-conventionalcommits": "^8.0.0",
     "dts-bundle-generator": "^9.5.1",
     "esbuild": "^0.24.2",
-    "glob": "^7.1.6",
+    "glob": "^11.0.1",
     "mocha": "^10.1.0",
     "puppeteer": "^24.2.0",
     "semantic-release": "^24.2.1",
@@ -65,7 +65,7 @@
   "dependencies": {
     "basic-ftp": "^5.0.0",
     "terse.js": "file:./terse/terse.js-1.0.0.tgz",
-    "vscode-languageclient": "^8.1.0"
+    "vscode-languageclient": "^9.0.1"
   },
   "scripts": {
     "postinstall": "node ./build/bin/postinstall.js",
