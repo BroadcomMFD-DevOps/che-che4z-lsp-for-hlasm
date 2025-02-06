@@ -533,18 +533,19 @@ jobs:
       options: --user root
 
     steps:
-      - name: Workaround for git safe.directory feature
-        run: chown root:root .
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
       - name: Install Chromium
-        run: apt-get update && apt-get install -y chromium
+        run: apt-get update && apt-get install -y chromium unzip
       - name: Download VSIX
         uses: actions/download-artifact@v4
         with:
           name: hlasm-language-support.vsix
-          path: ${{ env.CLIENT_DIR }}/plugin/
+          path: /tmp
+      - name: Extract VSIX
+        run: unzip /tmp/hlasm-language-support.vsix extension/* -d ./plugin
+        working-directory: ${{ env.CLIENT_DIR }}
       - name: npm ci
         run: npm ci
         working-directory: ${{ env.CLIENT_DIR }}
