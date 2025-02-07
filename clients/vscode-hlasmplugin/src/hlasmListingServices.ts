@@ -48,7 +48,7 @@ const withoutPrefix = {
     ordinaryRefAltSecondLine: /^( {9,})(\d+) ([0-9A-F]{8}) ([0-9A-F]{8}) (.) ..(.). ...  ....... +(\d+) +(\d.+|)/,
     ordinaryRefRest: /^ {60,}(\d.+)/,
 
-    externalRefFirstLine: /^([a-zA-Z$#@_][a-zA-Z$#@0-9_]{0,8}) +([A-Z]+) +([0-9A-F]+) (?: {9}|[0-9A-F]{8} )(?: {9}|[0-9A-F]{8} ) ( {8}|[0-9A-F]{8}) |^([a-zA-Z$#@_][a-zA-Z$#@0-9_]{10,} +)/,
+    externalRefFirstLine: /^([a-zA-Z$#@_][a-zA-Z$#@0-9_]{0,8}) +([A-Z]+) +([0-9A-F]+) (?: {8}|[0-9A-F]{8}) (?: {8}|[0-9A-F]{8})  ( {8}|[0-9A-F]{8}) |^([a-zA-Z$#@_][a-zA-Z$#@0-9_]{10,} +)/,
     externalRefSecondLine: /^( +)([A-Z]+) +([0-9A-F]+) (?: {9}|[0-9A-F]{8} )(?: {9}|[0-9A-F]{8} ) ( {8}|[0-9A-F]{8})/,
 };
 
@@ -62,7 +62,7 @@ const withPrefix = {
     ordinaryRefAltSecondLine: /^.( {9,})(\d+) ([0-9A-F]{8}) ([0-9A-F]{8}) (.) ..(.). ...  ....... +(\d+) +(\d.+|)/,
     ordinaryRefRest: /^. {60,}(\d.+)/,
 
-    externalRefFirstLine: /^.([a-zA-Z$#@_][a-zA-Z$#@0-9_]{0,8}) +([A-Z]+) +([0-9A-F]+) (?: {9}|[0-9A-F]{8} )(?: {9}|[0-9A-F]{8} ) ( {8}|[0-9A-F]{8}) |^([a-zA-Z$#@_][a-zA-Z$#@0-9_]{10,} +)/,
+    externalRefFirstLine: /^.([a-zA-Z$#@_][a-zA-Z$#@0-9_]{0,8}) +([A-Z]+) +([0-9A-F]+) (?: {8}|[0-9A-F]{8}) (?: {8}|[0-9A-F]{8})  ( {8}|[0-9A-F]{8}) |^([a-zA-Z$#@_][a-zA-Z$#@0-9_]{10,} +)/,
     externalRefSecondLine: /^.( +)([A-Z]+) +([0-9A-F]+) (?: {9}|[0-9A-F]{8} )(?: {9}|[0-9A-F]{8} ) ( {8}|[0-9A-F]{8})/,
 };
 
@@ -156,7 +156,7 @@ type Symbol = {
     name: string,
     defined: number[],
     references: number[],
-    value: String,
+    value: number,
     sectionId: String,
     reloc: boolean,
     address: boolean,
@@ -299,7 +299,7 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
                     name: ref[1] ? ref[1] : ref[9],
                     defined: ref[1] ? [+ref[7]] : [],
                     references: [],
-                    value: ref[3],
+                    value: parseInt(ref[3], 16),
                     sectionId: ref[4],
                     reloc: ref[5] === ' ',
                     address: ref[6] === 'A' || ref[6] === 'J',
