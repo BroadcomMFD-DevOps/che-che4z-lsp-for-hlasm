@@ -122,6 +122,7 @@ type Listing = {
     diagnostics: vscode.Diagnostic[],
     statementLines: Map<number, number>,
     symbols: Map<string, Symbol>,
+    sections: Map<String, String>,
     codeSections: (Section & { title: string, codeStart: number })[],
 
     options?: Section,
@@ -170,6 +171,7 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
         diagnostics: [],
         statementLines: new Map<number, number>(),
         symbols: new Map<string, Symbol>(),
+        sections: new Map<String, String>(),
         codeSections: [],
     };
     type ListingSections = Exclude<{ [key in keyof Listing]: Listing[key] extends (Section | undefined) ? key : never }[keyof Listing], undefined>;
@@ -188,9 +190,10 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
     };
 
     let symbol: Symbol | undefined;
-    let lastSection: { end: number } | undefined = undefined;
+    let lastCodeSection: { end: number } | undefined = undefined;
     let lastTitle = '';
     let lastTitleLine = start;
+    let lastSection: string | undefined = undefined;
 
     let state = States.Options;
     let i = start;
@@ -198,9 +201,9 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
         const line = doc.lineAt(i);
         const l = testLine(line.text, r);
         if (l) {
-            if (lastSection) {
-                lastSection.end = i;
-                lastSection = undefined;
+            if (lastCodeSection) {
+                lastCodeSection.end = i;
+                lastCodeSection = undefined;
             }
             switch (l.type) {
                 case BoudnaryType.ReturnStatement:
@@ -217,7 +220,7 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
                     break;
                 }
                 case BoudnaryType.OptionsRef:
-                    lastSection = updateCommonSection('options', i);
+                    lastCodeSection = updateCommonSection('options', i);
                     break;
                 case BoudnaryType.ObjectCodeHeader: {
                     if (l.capture.length < 45)
@@ -230,41 +233,41 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
                         title: lastTitle,
                         codeStart: i + 1,
                     };
-                    lastSection = codeSection;
+                    lastCodeSection = codeSection;
                     result.codeSections.push(codeSection);
                     break;
                 }
                 case BoudnaryType.ExternalRef:
-                    lastSection = updateCommonSection('externals', i);
+                    lastCodeSection = updateCommonSection('externals', i);
                     state = States.ExternalRefs;
                     break;
                 case BoudnaryType.OrdinaryRef:
-                    lastSection = updateCommonSection('ordinary', i);
+                    lastCodeSection = updateCommonSection('ordinary', i);
                     state = States.OrdinaryRefs;
                     ++i; // skip header
                     break;
                 case BoudnaryType.MacroRef:
-                    lastSection = updateCommonSection('macro', i);
+                    lastCodeSection = updateCommonSection('macro', i);
                     state = States.Refs;
                     break;
                 case BoudnaryType.DsectRef:
-                    lastSection = updateCommonSection('dsects', i);
+                    lastCodeSection = updateCommonSection('dsects', i);
                     state = States.Refs;
                     break;
                 case BoudnaryType.RegistersRef:
-                    lastSection = updateCommonSection('registers', i);
+                    lastCodeSection = updateCommonSection('registers', i);
                     state = States.Refs;
                     break;
                 case BoudnaryType.DiagnosticRef:
-                    lastSection = updateCommonSection('summary', i);
+                    lastCodeSection = updateCommonSection('summary', i);
                     state = States.Refs;
                     break;
                 case BoudnaryType.RelocationDict:
-                    lastSection = updateCommonSection('relocations', i);
+                    lastCodeSection = updateCommonSection('relocations', i);
                     state = States.Refs;
                     break;
                 case BoudnaryType.UsingsRef:
-                    lastSection = updateCommonSection('usings', i);
+                    lastCodeSection = updateCommonSection('usings', i);
                     state = States.Refs;
                     break;
                 case BoudnaryType.OtherBoundary:
@@ -317,12 +320,34 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
                     symbol.references.push(+m[1]);
                 }
             }
+        } else if (state === States.ExternalRefs) {
+            const ref = r.externalRefFirstLine.exec(line.text);
+            let data;
+            if (ref) {
+                lastSection = ref[1];
+                if (ref[2]) {
+                    lastSection = ref[1];
+                    data = ref;
+                }
+            } else if (lastSection) {
+                const rest = r.externalRefSecondLine.exec(line.text);
+                if (rest) {
+                    data = ref;
+                }
+            }
+            if (lastSection && data && (data[2] === "SD" || data[2] === "ED")) {
+                const ID = data[3];
+                if (data[4].startsWith(' '))
+                    result.sections.set(ID, lastSection);
+                else
+                    result.sections.set(ID, result.sections.get(data[4]) || lastSection);
+            }
         }
     }
     if (symbol)
         updateSymbols(result.symbols, symbol);
-    if (lastSection) {
-        lastSection.end = i;
+    if (lastCodeSection) {
+        lastCodeSection.end = i;
     }
 
     for (const s of result.symbols.values())
