@@ -33,6 +33,9 @@ type RegexSet = {
     ordinaryRefFirstLine: RegExp,
     ordinaryRefAltSecondLine: RegExp,
     ordinaryRefRest: RegExp,
+
+    externalRefFirstLine: RegExp,
+    externalRefSecondLine: RegExp,
 };
 
 const withoutPrefix = {
@@ -44,6 +47,9 @@ const withoutPrefix = {
     ordinaryRefFirstLine: /^(?:([a-zA-Z$#@_][a-zA-Z$#@0-9_]{0,7}) +(\d+) ([0-9A-F]{8}) [0-9A-F]{8} . .... ...  ....... +(\d+) +(\d.+|)|([a-zA-Z$#@_][a-zA-Z$#@0-9_]{8,}))/,
     ordinaryRefAltSecondLine: /^( {9,})(\d+) ([0-9A-F]{8}) [0-9A-F]{8} . .... ...  ....... +(\d+) +(\d.+|)/,
     ordinaryRefRest: /^ {60,}(\d.+)/,
+
+    externalRefFirstLine: /^([a-zA-Z$#@_][a-zA-Z$#@0-9_]{0,8}) +([A-Z]+) +([0-9A-F]+) (?: {9}|[0-9A-F]{8} )(?: {9}|[0-9A-F]{8} ) ( {8}|[0-9A-F]{8}) |^([a-zA-Z$#@_][a-zA-Z$#@0-9_]{10,} +)/,
+    externalRefSecondLine: /^( +)([A-Z]+) +([0-9A-F]+) (?: {9}|[0-9A-F]{8} )(?: {9}|[0-9A-F]{8} ) ( {8}|[0-9A-F]{8})/,
 };
 
 const withPrefix = {
@@ -55,6 +61,9 @@ const withPrefix = {
     ordinaryRefFirstLine: /^.(?:([a-zA-Z$#@_][a-zA-Z$#@0-9_]{0,7}) +(\d+) ([0-9A-F]{8}) [0-9A-F]{8} . .... ...  ....... +(\d+) +(\d.+|)|([a-zA-Z$#@_][a-zA-Z$#@0-9_]{8,}))/,
     ordinaryRefAltSecondLine: /^.( {9,})(\d+) ([0-9A-F]{8}) [0-9A-F]{8} . .... ...  ....... +(\d+) +(\d.+|)/,
     ordinaryRefRest: /^. {60,}(\d.+)/,
+
+    externalRefFirstLine: /^.([a-zA-Z$#@_][a-zA-Z$#@0-9_]{0,8}) +([A-Z]+) +([0-9A-F]+) (?: {9}|[0-9A-F]{8} )(?: {9}|[0-9A-F]{8} ) ( {8}|[0-9A-F]{8}) |^([a-zA-Z$#@_][a-zA-Z$#@0-9_]{10,} +)/,
+    externalRefSecondLine: /^.( +)([A-Z]+) +([0-9A-F]+) (?: {9}|[0-9A-F]{8} )(?: {9}|[0-9A-F]{8} ) ( {8}|[0-9A-F]{8})/,
 };
 
 const enum BoudnaryType {
@@ -172,6 +181,7 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
     };
     const enum States {
         Options,
+        ExternalRefs,
         Code,
         OrdinaryRefs,
         Refs,
@@ -226,6 +236,7 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
                 }
                 case BoudnaryType.ExternalRef:
                     lastSection = updateCommonSection('externals', i);
+                    state = States.ExternalRefs;
                     break;
                 case BoudnaryType.OrdinaryRef:
                     lastSection = updateCommonSection('ordinary', i);
@@ -257,7 +268,7 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
                     state = States.Refs;
                     break;
                 case BoudnaryType.OtherBoundary:
-                    if (state === States.Options)
+                    if (state === States.Options || state === States.ExternalRefs)
                         state = States.Code;
                     lastTitle = l.capture.substring(9).trim();
                     lastTitleLine = i;
