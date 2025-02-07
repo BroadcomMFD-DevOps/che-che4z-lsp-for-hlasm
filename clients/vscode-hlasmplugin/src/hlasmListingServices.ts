@@ -152,14 +152,18 @@ function updateSymbols(symbols: Map<string, Symbol>, symbol: Symbol) {
     }
 }
 
-class Symbol {
-    name: string = '';
-    defined: number[] = [];
-    references: number[] = [];
+type Symbol = {
+    name: string,
+    defined: number[],
+    references: number[],
+    value: String,
+    sectionId: String,
+    reloc: boolean,
+    address: boolean,
+}
 
-    computeReferences(includeDefinition: boolean) {
-        return includeDefinition ? [...new Set([...this.references, ...this.defined])] : this.references;
-    }
+function computeReferences(symbol: Symbol, includeDefinition: boolean) {
+    return includeDefinition ? [...new Set([...symbol.references, ...symbol.defined])] : symbol.references;
 }
 
 function processListing(doc: vscode.TextDocument, start: number, hasPrefix: boolean): { nexti: number, result: Listing } {
@@ -291,15 +295,15 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
                 if (symbol)
                     updateSymbols(result.symbols, symbol);
 
-                symbol = new Symbol();
-                if (ref[1]) {
-                    symbol.name = ref[1];
-                    symbol.defined.push(+ref[7]);
-                    refs = ref[8];
-                }
-                else {
-                    symbol.name = ref[9];
-                }
+                symbol = {
+                    name: ref[1] ? ref[1] : ref[9],
+                    defined: ref[1] ? [+ref[7]] : [],
+                    references: [],
+                    value: ref[3],
+                    sectionId: ref[4],
+                    reloc: ref[5] === ' ',
+                    address: ref[6] === 'A' || ref[6] === 'J',
+                };
             }
             else if (symbol) {
                 const alt = r.ordinaryRefAltSecondLine.exec(line.text);
@@ -610,7 +614,7 @@ export function createListingServices(diagCollection?: vscode.DiagnosticCollecti
             .sort(compareNumbers)
             .map(x => new vscode.Location(document.uri, getCodeRange(l, x))))
         ,
-        provideReferences: symbolFunction((symbol, l, document, context: vscode.ReferenceContext) => symbol.computeReferences(context.includeDeclaration)
+        provideReferences: symbolFunction((symbol, l, document, context: vscode.ReferenceContext) => computeReferences(symbol, context.includeDeclaration)
             .map(x => l.statementLines.get(x))
             .filter((x): x is number => typeof x === 'number')
             .sort(compareNumbers)
