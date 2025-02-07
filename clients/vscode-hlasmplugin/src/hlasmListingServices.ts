@@ -44,8 +44,8 @@ const withoutPrefix = {
     lineText: /^(?:(Return Code )|\*\* (ASMA\d\d\d[NIWES] .+)|((?:  |[CDR]-)Loc  Object Code    Addr1 Addr2  Stmt |(?:  |[CDR]-)Loc    Object Code      Addr1    Addr2    Stmt )|(.{111})Page +\d+)/,
     pageBoundary: /^.+(?:(High Level Assembler Option Summary)|(External Symbol Dictionary)|(Relocation Dictionary)|(Ordinary Symbol and Literal Cross Reference)|(Macro and Copy Code Source Summary)|(Dsect Cross Reference)|(Using Map)|(General Purpose Register Cross Reference)|(Diagnostic Cross Reference and Assembler Summary))/,
 
-    ordinaryRefFirstLine: /^(?:([a-zA-Z$#@_][a-zA-Z$#@0-9_]{0,7}) +(\d+) ([0-9A-F]{8}) [0-9A-F]{8} . .... ...  ....... +(\d+) +(\d.+|)|([a-zA-Z$#@_][a-zA-Z$#@0-9_]{8,}))/,
-    ordinaryRefAltSecondLine: /^( {9,})(\d+) ([0-9A-F]{8}) [0-9A-F]{8} . .... ...  ....... +(\d+) +(\d.+|)/,
+    ordinaryRefFirstLine: /^(?:([a-zA-Z$#@_][a-zA-Z$#@0-9_]{0,7}) +(\d+) ([0-9A-F]{8}) ([0-9A-F]{8}) (.) ..(.). ...  ....... +(\d+) +(\d.+|)|([a-zA-Z$#@_][a-zA-Z$#@0-9_]{8,}))/,
+    ordinaryRefAltSecondLine: /^( {9,})(\d+) ([0-9A-F]{8}) ([0-9A-F]{8}) (.) ..(.). ...  ....... +(\d+) +(\d.+|)/,
     ordinaryRefRest: /^ {60,}(\d.+)/,
 
     externalRefFirstLine: /^([a-zA-Z$#@_][a-zA-Z$#@0-9_]{0,8}) +([A-Z]+) +([0-9A-F]+) (?: {9}|[0-9A-F]{8} )(?: {9}|[0-9A-F]{8} ) ( {8}|[0-9A-F]{8}) |^([a-zA-Z$#@_][a-zA-Z$#@0-9_]{10,} +)/,
@@ -58,8 +58,8 @@ const withPrefix = {
     lineText: /^.(?:(Return Code )|\*\* (ASMA\d\d\d[NIWES] .+)|((?:  |[CDR]-)Loc  Object Code    Addr1 Addr2  Stmt |(?:  |[CDR]-)Loc    Object Code      Addr1    Addr2    Stmt )|(.{111})Page +\d+)/,
     pageBoundary: /^.+(?:(High Level Assembler Option Summary)|(External Symbol Dictionary)|(Relocation Dictionary)|(Ordinary Symbol and Literal Cross Reference)|(Macro and Copy Code Source Summary)|(Dsect Cross Reference)|(Using Map)|(General Purpose Register Cross Reference)|(Diagnostic Cross Reference and Assembler Summary))/,
 
-    ordinaryRefFirstLine: /^.(?:([a-zA-Z$#@_][a-zA-Z$#@0-9_]{0,7}) +(\d+) ([0-9A-F]{8}) [0-9A-F]{8} . .... ...  ....... +(\d+) +(\d.+|)|([a-zA-Z$#@_][a-zA-Z$#@0-9_]{8,}))/,
-    ordinaryRefAltSecondLine: /^.( {9,})(\d+) ([0-9A-F]{8}) [0-9A-F]{8} . .... ...  ....... +(\d+) +(\d.+|)/,
+    ordinaryRefFirstLine: /^.(?:([a-zA-Z$#@_][a-zA-Z$#@0-9_]{0,7}) +(\d+) ([0-9A-F]{8}) ([0-9A-F]{8}) (.) ..(.). ...  ....... +(\d+) +(\d.+|)|([a-zA-Z$#@_][a-zA-Z$#@0-9_]{8,}))/,
+    ordinaryRefAltSecondLine: /^.( {9,})(\d+) ([0-9A-F]{8}) ([0-9A-F]{8}) (.) ..(.). ...  ....... +(\d+) +(\d.+|)/,
     ordinaryRefRest: /^. {60,}(\d.+)/,
 
     externalRefFirstLine: /^.([a-zA-Z$#@_][a-zA-Z$#@0-9_]{0,8}) +([A-Z]+) +([0-9A-F]+) (?: {9}|[0-9A-F]{8} )(?: {9}|[0-9A-F]{8} ) ( {8}|[0-9A-F]{8}) |^([a-zA-Z$#@_][a-zA-Z$#@0-9_]{10,} +)/,
@@ -294,18 +294,18 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
                 symbol = new Symbol();
                 if (ref[1]) {
                     symbol.name = ref[1];
-                    symbol.defined.push(+ref[4]);
-                    refs = ref[5];
+                    symbol.defined.push(+ref[7]);
+                    refs = ref[8];
                 }
                 else {
-                    symbol.name = ref[6];
+                    symbol.name = ref[9];
                 }
             }
             else if (symbol) {
                 const alt = r.ordinaryRefAltSecondLine.exec(line.text);
                 if (alt) {
-                    symbol.defined.push(+alt[4]);
-                    refs = alt[5];
+                    symbol.defined.push(+alt[7]);
+                    refs = alt[8];
                 }
                 else {
                     const cont = r.ordinaryRefRest.exec(line.text);
