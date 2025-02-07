@@ -314,6 +314,9 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
         lastSection.end = i;
     }
 
+    for (const s of result.symbols.values())
+        s.defined.sort((l, r) => l - r);
+
     result.end = i;
     return { nexti: i, result };
 }
@@ -421,6 +424,11 @@ function codeSectionAsSymbol(s: Section & { title: string }) {
     return new vscode.DocumentSymbol(s.title ? s.title : '(untitled)', '', vscode.SymbolKind.Package, r, r);
 }
 
+function labelAsSymbol(s: Symbol, pos: number) {
+    const r = new vscode.Range(pos, 0, pos, 0);
+    return new vscode.DocumentSymbol(s.name, '', vscode.SymbolKind.Object, r, r);
+}
+
 function listingAsSymbol(l: Listing, id: number | undefined) {
     const result = new vscode.DocumentSymbol(
         id ? `Listing ${id}` : 'Listing',
@@ -450,6 +458,37 @@ function listingAsSymbol(l: Listing, id: number | undefined) {
             }
             return acc;
         }, []).map(x => codeSectionAsSymbol(x));
+
+        const visibleSymbols = [];
+        for (const s of l.symbols.values()) {
+            if (s.name.startsWith('=')) continue; // skip literals
+            for (const ll of s.defined) {
+                const fileLine = l.statementLines.get(ll);
+                if (fileLine !== undefined) {
+                    visibleSymbols.push({ symbol: s, line: fileLine });
+                    break;
+                }
+            }
+        }
+        visibleSymbols.sort((l, r) => l.line - r.line);
+
+        let titleId = -1;
+        let parent = code.children;
+        let titleIdLimit = code.children.length === 0 ? Number.MAX_SAFE_INTEGER : code.children[0].range.start.line;
+
+        for (const { symbol, line } of visibleSymbols) {
+
+            while (line >= titleIdLimit) {
+                ++titleId
+                parent = code.children[titleId].children;
+                if (titleId >= code.children.length - 1) {
+                    titleIdLimit = Number.MAX_SAFE_INTEGER;
+                    break;
+                }
+                titleIdLimit = code.children[titleId + 1].range.start.line;
+            }
+            parent.push(labelAsSymbol(symbol, line));
+        }
     }
     if (l.relocations) {
         result.children.push(sectionAsSymbol(l.relocations, 'Relocation Dictionary'));
