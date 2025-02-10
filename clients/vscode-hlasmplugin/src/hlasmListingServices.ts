@@ -39,8 +39,8 @@ type RegexSet = {
 };
 
 const withoutPrefix = {
-    objShortCode: /^.{33}( *\d+)\D/,
-    objLongCode: /^.{41}( *\d+)\D/,
+    objShortCode: /^(?:([0-9ABCDEF]{6})| {6}).{27}( *\d+)\D/,
+    objLongCode: /^(?:([0-9ABCDEF]{6})| {6}).{35}( *\d+)\D/,
     lineText: /^(?:(Return Code )|\*\* (ASMA\d\d\d[NIWES] .+)|((?:  |[CDR]-)Loc  Object Code    Addr1 Addr2  Stmt |(?:  |[CDR]-)Loc    Object Code      Addr1    Addr2    Stmt )|(.{111})Page +\d+)/,
     pageBoundary: /^.+(?:(High Level Assembler Option Summary)|(External Symbol Dictionary)|(Relocation Dictionary)|(Ordinary Symbol and Literal Cross Reference)|(Macro and Copy Code Source Summary)|(Dsect Cross Reference)|(Using Map)|(General Purpose Register Cross Reference)|(Diagnostic Cross Reference and Assembler Summary))/,
 
@@ -53,8 +53,8 @@ const withoutPrefix = {
 };
 
 const withPrefix = {
-    objShortCode: /^..{33}( *\d+)\D/,
-    objLongCode: /^..{41}( *\d+)\D/,
+    objShortCode: /^.(?:([0-9ABCDEF]{6})| {6}).{27}( *\d+)\D/,
+    objLongCode: /^.(?:([0-9ABCDEF]{6})| {6}).{35}( *\d+)\D/,
     lineText: /^.(?:(Return Code )|\*\* (ASMA\d\d\d[NIWES] .+)|((?:  |[CDR]-)Loc  Object Code    Addr1 Addr2  Stmt |(?:  |[CDR]-)Loc    Object Code      Addr1    Addr2    Stmt )|(.{111})Page +\d+)/,
     pageBoundary: /^.+(?:(High Level Assembler Option Summary)|(External Symbol Dictionary)|(Relocation Dictionary)|(Ordinary Symbol and Literal Cross Reference)|(Macro and Copy Code Source Summary)|(Dsect Cross Reference)|(Using Map)|(General Purpose Register Cross Reference)|(Diagnostic Cross Reference and Assembler Summary))/,
 
@@ -114,16 +114,22 @@ type Section = {
     end: number,
 };
 
+type ListingLine = {
+    stmtNumber: number,
+    address: number | undefined,
+};
+
 type Listing = {
     start: number,
     end: number,
     hasPrefix: boolean,
     type?: 'long' | 'short';
     diagnostics: vscode.Diagnostic[],
-    statementLines: Map<number, number>,
+    statementLines: Map<number, ListingLine>,
     symbols: Map<string, Symbol>,
     sections: Map<String, String>,
     codeSections: (Section & { title: string, codeStart: number })[],
+    maxStmtNum: number,
 
     options?: Section,
     externals?: Section,
@@ -149,6 +155,7 @@ function updateSymbols(symbols: Map<string, Symbol>, symbol: Symbol) {
     else {
         s.defined = [...new Set([...s.defined, ...symbol.defined])];
         s.references = [...new Set([...s.references, ...symbol.references])];
+        s.referencesPure = [...new Set([...s.referencesPure, ...symbol.referencesPure])];
     }
 }
 
@@ -156,14 +163,20 @@ type Symbol = {
     name: string,
     defined: number[],
     references: number[],
+    referencesPure: number[],
     value: number,
     sectionId: String,
     reloc: boolean,
     address: boolean,
+    loctr: boolean,
 }
 
 function computeReferences(symbol: Symbol, includeDefinition: boolean) {
     return includeDefinition ? [...new Set([...symbol.references, ...symbol.defined])] : symbol.references;
+}
+
+function isCsectLike(s: string) {
+    return s == "SD" || s == "ED" || s == "PC" || s == "CM";
 }
 
 function processListing(doc: vscode.TextDocument, start: number, hasPrefix: boolean): { nexti: number, result: Listing } {
@@ -173,10 +186,11 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
         end: start,
         hasPrefix,
         diagnostics: [],
-        statementLines: new Map<number, number>(),
+        statementLines: new Map<number, ListingLine>(),
         symbols: new Map<string, Symbol>(),
         sections: new Map<String, String>(),
         codeSections: [],
+        maxStmtNum: 0,
     };
     type ListingSections = Exclude<{ [key in keyof Listing]: Listing[key] extends (Section | undefined) ? key : never }[keyof Listing], undefined>;
     const updateCommonSection = <Name extends ListingSections>(name: Name, lineno: number): Listing[Name] => {
@@ -285,7 +299,11 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
         else if (state === States.Code) {
             const obj = (result.type === 'short' ? r.objShortCode : r.objLongCode).exec(line.text);
             if (obj) {
-                result.statementLines.set(parseInt(obj[1]), i);
+                const address = obj[1] !== undefined ? parseInt(obj[1], 16) : undefined;
+                const stmtNumber = parseInt(obj[2]);
+                result.statementLines.set(stmtNumber, { stmtNumber, address });
+                if (stmtNumber > result.maxStmtNum)
+                    result.maxStmtNum = stmtNumber;
             }
         }
         else if (state === States.OrdinaryRefs) {
@@ -299,10 +317,12 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
                     name: ref[1] ? ref[1] : ref[9],
                     defined: ref[1] ? [+ref[7]] : [],
                     references: [],
+                    referencesPure: [],
                     value: parseInt(ref[3], 16),
                     sectionId: ref[4],
                     reloc: ref[5] === ' ',
                     address: ref[6] === 'A' || ref[6] === 'J',
+                    loctr: ref[6] === 'J',
                 };
             }
             else if (symbol) {
@@ -320,8 +340,11 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
             }
 
             if (refs && symbol) {
-                for (const m of refs.matchAll(/(\d+)[BDMUX]?/g)) {
-                    symbol.references.push(+m[1]);
+                for (const m of refs.matchAll(/(\d+)([BDMUX])?/g)) {
+                    const line = +m[1];
+                    symbol.references.push(line);
+                    if (!m[2])
+                        symbol.referencesPure.push(line);
                 }
             }
         } else if (state === States.ExternalRefs) {
@@ -339,7 +362,7 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
                     data = ref;
                 }
             }
-            if (lastSection && data && (data[2] === "SD" || data[2] === "ED")) {
+            if (lastSection && data && isCsectLike(data[2])) {
                 const ID = data[3];
                 if (data[4].startsWith(' '))
                     result.sections.set(ID, lastSection);
@@ -469,6 +492,55 @@ function labelAsSymbol(s: Symbol, pos: number) {
     return new vscode.DocumentSymbol(s.name, '', vscode.SymbolKind.Object, r, r);
 }
 
+function provideObjectCodeDetails(l: Listing, code: vscode.DocumentSymbol) {
+    code.children = l.codeSections.reduce<typeof l.codeSections>((acc, c) => {
+        const last = acc[acc.length - 1];
+        if (last?.title === c.title) {
+            last.start = Math.min(last.start, c.start);
+            last.end = Math.max(last.end, c.end);
+        }
+        else {
+            acc.push(c);
+        }
+        return acc;
+    }, []).map(x => codeSectionAsSymbol(x));
+
+    const visibleSymbols = [];
+    for (const s of l.symbols.values()) {
+        if (s.name.startsWith('=')) continue; // skip literals
+        for (const ll of s.defined) {
+            const fileLine = l.statementLines.get(ll)?.stmtNumber;
+            if (fileLine !== undefined) {
+                visibleSymbols.push({ symbol: s, line: fileLine });
+                break;
+            }
+        }
+    }
+
+    visibleSymbols.sort((l, r) => l.line - r.line);
+
+    const csectSymbols = visibleSymbols.filter(x => x.symbol.address && x.symbol.reloc && x.symbol.sectionId.startsWith('0'));
+    const offBoundary = csectSymbols.map(x => { symbol: x.symbol; line: x.line; offset: x.symbol.value << 24 >> 24; });
+
+    let titleId = -1;
+    let parent = code.children;
+    let titleIdLimit = code.children.length === 0 ? Number.MAX_SAFE_INTEGER : code.children[0].range.start.line;
+
+    for (const { symbol, line } of visibleSymbols) {
+
+        while (line >= titleIdLimit) {
+            ++titleId
+            parent = code.children[titleId].children;
+            if (titleId >= code.children.length - 1) {
+                titleIdLimit = Number.MAX_SAFE_INTEGER;
+                break;
+            }
+            titleIdLimit = code.children[titleId + 1].range.start.line;
+        }
+        parent.push(labelAsSymbol(symbol, line));
+    }
+}
+
 function listingAsSymbol(l: Listing, id: number | undefined) {
     const result = new vscode.DocumentSymbol(
         id ? `Listing ${id}` : 'Listing',
@@ -487,48 +559,7 @@ function listingAsSymbol(l: Listing, id: number | undefined) {
     if (l.codeSections.length > 0) {
         const code = sectionAsSymbol({ start: l.codeSections[0].start, end: l.codeSections[l.codeSections.length - 1].end }, 'Object Code');
         result.children.push(code);
-        code.children = l.codeSections.reduce<typeof l.codeSections>((acc, c) => {
-            const last = acc[acc.length - 1];
-            if (last?.title === c.title) {
-                last.start = Math.min(last.start, c.start);
-                last.end = Math.max(last.end, c.end);
-            }
-            else {
-                acc.push(c);
-            }
-            return acc;
-        }, []).map(x => codeSectionAsSymbol(x));
-
-        const visibleSymbols = [];
-        for (const s of l.symbols.values()) {
-            if (s.name.startsWith('=')) continue; // skip literals
-            for (const ll of s.defined) {
-                const fileLine = l.statementLines.get(ll);
-                if (fileLine !== undefined) {
-                    visibleSymbols.push({ symbol: s, line: fileLine });
-                    break;
-                }
-            }
-        }
-        visibleSymbols.sort((l, r) => l.line - r.line);
-
-        let titleId = -1;
-        let parent = code.children;
-        let titleIdLimit = code.children.length === 0 ? Number.MAX_SAFE_INTEGER : code.children[0].range.start.line;
-
-        for (const { symbol, line } of visibleSymbols) {
-
-            while (line >= titleIdLimit) {
-                ++titleId
-                parent = code.children[titleId].children;
-                if (titleId >= code.children.length - 1) {
-                    titleIdLimit = Number.MAX_SAFE_INTEGER;
-                    break;
-                }
-                titleIdLimit = code.children[titleId + 1].range.start.line;
-            }
-            parent.push(labelAsSymbol(symbol, line));
-        }
+        provideObjectCodeDetails(l, code);
     }
     if (l.relocations) {
         result.children.push(sectionAsSymbol(l.relocations, 'Relocation Dictionary'));
@@ -555,7 +586,7 @@ function listingAsSymbol(l: Listing, id: number | undefined) {
     return result;
 }
 
-function findBestFitLine(m: Map<number, number>, s: number): number | undefined {
+function findBestFitLine(m: Map<number, ListingLine>, s: number): number | undefined {
     let result;
 
     for (const k of m.keys()) {
@@ -564,7 +595,7 @@ function findBestFitLine(m: Map<number, number>, s: number): number | undefined 
     }
 
     if (result)
-        return m.get(result);
+        return m.get(result)?.stmtNumber;
     else
         return undefined;
 }
@@ -609,19 +640,19 @@ export function createListingServices(diagCollection?: vscode.DiagnosticCollecti
         handleListingContent,
         releaseListingContent,
         provideDefinition: symbolFunction((symbol, l, document) => symbol.defined
-            .map(x => l.statementLines.get(x) || findBestFitLine(l.statementLines, x))
+            .map(x => l.statementLines.get(x)?.stmtNumber || findBestFitLine(l.statementLines, x))
             .filter((x): x is number => typeof x === 'number')
             .sort(compareNumbers)
             .map(x => new vscode.Location(document.uri, getCodeRange(l, x))))
         ,
         provideReferences: symbolFunction((symbol, l, document, context: vscode.ReferenceContext) => computeReferences(symbol, context.includeDeclaration)
-            .map(x => l.statementLines.get(x))
+            .map(x => l.statementLines.get(x)?.stmtNumber)
             .filter((x): x is number => typeof x === 'number')
             .sort(compareNumbers)
             .map(x => new vscode.Location(document.uri, getCodeRange(l, x)))
         ),
         provideHover: symbolFunction((symbol, l, document) => asHover(symbol.defined
-            .map(x => l.statementLines.get(x))
+            .map(x => l.statementLines.get(x)?.stmtNumber)
             .filter((x): x is number => typeof x === 'number')
             .sort(compareNumbers)
             .map(x => document.lineAt(x).text)
