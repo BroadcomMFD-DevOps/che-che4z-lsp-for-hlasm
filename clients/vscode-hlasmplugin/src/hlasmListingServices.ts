@@ -492,6 +492,22 @@ function labelAsSymbol(s: Symbol, pos: number) {
     return new vscode.DocumentSymbol(s.name, '', vscode.SymbolKind.Object, r, r);
 }
 
+function listVisibleSymbolsOrdered(l: Listing) {
+    const visibleSymbols = [];
+    for (const s of l.symbols.values()) {
+        if (s.name.startsWith('=')) continue; // skip literals
+        for (const ll of s.defined) {
+            const fileLine = l.statementLines.get(ll)?.stmtNumber;
+            if (fileLine !== undefined) {
+                visibleSymbols.push({ symbol: s, line: fileLine });
+                break;
+            }
+        }
+    }
+    visibleSymbols.sort((l, r) => l.line - r.line);
+    return visibleSymbols;
+}
+
 function provideObjectCodeDetails(l: Listing, code: vscode.DocumentSymbol) {
     code.children = l.codeSections.reduce<typeof l.codeSections>((acc, c) => {
         const last = acc[acc.length - 1];
@@ -505,19 +521,7 @@ function provideObjectCodeDetails(l: Listing, code: vscode.DocumentSymbol) {
         return acc;
     }, []).map(x => codeSectionAsSymbol(x));
 
-    const visibleSymbols = [];
-    for (const s of l.symbols.values()) {
-        if (s.name.startsWith('=')) continue; // skip literals
-        for (const ll of s.defined) {
-            const fileLine = l.statementLines.get(ll)?.stmtNumber;
-            if (fileLine !== undefined) {
-                visibleSymbols.push({ symbol: s, line: fileLine });
-                break;
-            }
-        }
-    }
-
-    visibleSymbols.sort((l, r) => l.line - r.line);
+    const visibleSymbols = listVisibleSymbolsOrdered(l);
 
     const csectSymbols = visibleSymbols.filter(x => x.symbol.address && x.symbol.reloc && x.symbol.sectionId.startsWith('0'));
     const offBoundary = csectSymbols.map(x => { symbol: x.symbol; line: x.line; offset: x.symbol.value << 24 >> 24; });
