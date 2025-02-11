@@ -572,22 +572,21 @@ function listVisibleSymbolsOrdered(l: Listing) {
 function createSectionMap(l: Listing) {
     const limit = l.maxStmtNum;
     const result: (boolean | undefined)[] = new Array(limit).fill(undefined);
-    const loctrPureReferences = new Array(limit).fill(false);
     const dsectRef = 1;
     const csectRef = 2;
-    const refCount = 4;
+    const loctrPureRef = 4;
+    const refCount = 8;
     const hints = new Array(l.maxStmtNum).fill(0);
 
     for (const s of l.symbols.values()) {
         if (s.loctr) {
             for (const r of s.referencesPure) {
                 if (r >= limit) continue;
-                loctrPureReferences[r] = true;
                 hints[r] += refCount;
-                hints[r] |= s.sectionId < 0 ? dsectRef : csectRef;
+                hints[r] |= s.sectionId < 0 ? dsectRef : csectRef | loctrPureRef;
             }
         }
-        if (s.undefined) continue;
+        if (s.undefined || !s.reloc) continue;
         for (const d of s.defined) {
             if (d >= result.length) continue;
             result[d] = s.sectionId >= 0;
@@ -606,7 +605,7 @@ function createSectionMap(l: Listing) {
     if (lastValid >= 0) {
         for (let i = lastValid + 1; i < result.length; ++i) {
             if (result[i] !== undefined) continue;
-            result[i] = result[i - 1] || loctrPureReferences[i];
+            result[i] = result[i - 1] || (hints[i] & loctrPureRef) != 0;
         }
     }
 
@@ -703,12 +702,10 @@ function listingAsOffset(l: Listing, id: number | undefined) {
         new vscode.Range(l.start, 0, l.end, 0)
     );
     const offsets = result.children;
-    const inserted = new Set<number>();
 
     for (const [stmtNo, ll] of l.statementLines.entries()) {
         const address = ll.address;
-        if (!sectionMap[stmtNo] || address === undefined || inserted.has(address)) continue;
-        inserted.add(address);
+        if (!sectionMap[stmtNo] || address === undefined) continue;
 
         const csect = l.csects.find(x => x.address <= address && address < x.address + x.length);
 

@@ -247,9 +247,10 @@ suite('Language services for listings', () => {
         assert.strictEqual(offsetsParent?.length, 1);
         const offsets = offsetsParent[0].children;
 
-        assert.strictEqual(offsets.length, 2)
+        assert.strictEqual(offsets.length, 3)
         assert.deepStrictEqual(offsets.map(x => ({ name: x.name, line: x.range.start.line })), [
             { name: 'Offset 00000000 (C+00000000)', line: 76 },
+            { name: 'Offset 00000000 (C+00000000)', line: 78 },
             { name: 'Offset 00000004 (C+00000004)', line: 79 },
         ]);
 
