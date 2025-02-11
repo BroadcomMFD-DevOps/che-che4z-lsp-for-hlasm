@@ -711,7 +711,10 @@ function listingAsOffset(l: Listing, id: number | undefined) {
         inserted.add(address);
 
         const csect = l.csects.find(x => x.address <= address && address < x.address + x.length);
-        const suffix = csect ? ` (${csect.name}+${(address - csect.address).toString(16).toUpperCase()})` : '';
+
+        let suffix = ''
+        if (csect)
+            suffix = ` (${csect.name}+${(address - csect.address).toString(16).toUpperCase().padStart(8, '0')})`;
 
         const rng = new vscode.Range(ll.listingLine, 0, ll.listingLine, 0);
         offsets.push(new vscode.DocumentSymbol(
