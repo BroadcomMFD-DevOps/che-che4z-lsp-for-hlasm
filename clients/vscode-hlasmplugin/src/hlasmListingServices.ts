@@ -348,6 +348,8 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
                     undefined: ref[6] === 'U', // EQU mostly
                     loctr: ref[6] === 'J',
                 };
+
+                refs = ref[8];
             }
             else if (symbol) {
                 const alt = r.ordinaryRefAltSecondLine.exec(line.text);
