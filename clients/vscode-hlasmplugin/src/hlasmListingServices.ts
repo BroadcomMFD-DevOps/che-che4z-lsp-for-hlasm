@@ -176,16 +176,20 @@ function updateSymbols(symbols: Map<string, Symbol>, symbol: Symbol) {
     }
 }
 
-type Symbol = {
-    name: string,
-    defined: number[],
-    references: number[],
-    referencesPure: number[],
+type SymbolDetails = {
     value: number,
     sectionId: number,
     reloc: boolean,
     undefined: boolean,
     loctr: boolean,
+}
+
+type Symbol = {
+    name: string,
+    defined: number[],
+    references: number[],
+    referencesPure: number[],
+    details: SymbolDetails | undefined,
 }
 
 function computeReferences(symbol: Symbol, includeDefinition: boolean) {
@@ -342,11 +346,13 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
                     defined: ref[1] ? [+ref[7]] : [],
                     references: [],
                     referencesPure: [],
-                    value: ref[1] ? parseInt(ref[3], 16) : 0,
-                    sectionId: ref[1] ? parseInt(ref[4], 16) | 0 : 0,
-                    reloc: ref[5] === ' ',
-                    undefined: ref[6] === 'U', // EQU mostly
-                    loctr: ref[6] === 'J',
+                    details: ref[1] ? {
+                        value: parseInt(ref[3], 16),
+                        sectionId: parseInt(ref[4], 16) | 0,
+                        reloc: ref[5] === ' ',
+                        undefined: ref[6] === 'U', // EQU mostly
+                        loctr: ref[6] === 'J',
+                    } : undefined,
                 };
 
                 refs = ref[8];
@@ -354,11 +360,13 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
             else if (symbol) {
                 const alt = r.ordinaryRefAltSecondLine.exec(line.text);
                 if (alt) {
-                    symbol.value = parseInt(alt[3], 16);
-                    symbol.sectionId = parseInt(alt[4], 16) | 0;
-                    symbol.reloc = alt[5] === ' ';
-                    symbol.undefined = alt[6] === 'U'; // EQU mostly
-                    symbol.loctr = alt[6] === 'J';
+                    symbol.details = {
+                        value: parseInt(alt[3], 16),
+                        sectionId: parseInt(alt[4], 16) | 0,
+                        reloc: alt[5] === ' ',
+                        undefined: alt[6] === 'U', // EQU mostly
+                        loctr: alt[6] === 'J',
+                    };
                     symbol.defined.push(+alt[7]);
                     refs = alt[8];
                 }
@@ -422,11 +430,13 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
                     defined: [+data[4]],
                     references: [],
                     referencesPure: [],
-                    value: 0,
-                    sectionId: parseInt(data[3], 16) | 0,
-                    reloc: true,
-                    undefined: false,
-                    loctr: true,
+                    details: {
+                        value: 0,
+                        sectionId: parseInt(data[3], 16) | 0,
+                        reloc: true,
+                        undefined: false,
+                        loctr: true,
+                    },
                 };
                 result.symbols.set(lastDsect, symbol);
             }
@@ -579,19 +589,21 @@ function createSectionMap(l: Listing) {
     const hints = new Array(l.maxStmtNum).fill(0);
 
     for (const s of l.symbols.values()) {
-        if (s.loctr) {
+        const details = s.details;
+        if (!details) continue;
+        if (details.loctr) {
             for (const r of s.referencesPure) {
                 if (r >= limit) continue;
                 hints[r] += refCount;
-                hints[r] |= s.sectionId < 0 ? dsectRef : csectRef | loctrPureRef;
+                hints[r] |= details.sectionId < 0 ? dsectRef : csectRef | loctrPureRef;
             }
         }
-        if (s.undefined || !s.reloc) continue;
+        if (details.undefined || !details.reloc) continue;
         for (const d of s.defined) {
             if (d >= result.length) continue;
-            result[d] = s.sectionId >= 0;
+            result[d] = details.sectionId >= 0;
             hints[d] += refCount;
-            hints[d] |= s.sectionId < 0 ? dsectRef : csectRef;
+            hints[d] |= details.sectionId < 0 ? dsectRef : csectRef;
         }
     }
 
