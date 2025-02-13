@@ -822,10 +822,11 @@ export function registerListingServices(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.languages.registerDefinitionProvider(languageIdHlasmListing, services));
     context.subscriptions.push(vscode.languages.registerReferenceProvider(languageIdHlasmListing, services));
     context.subscriptions.push(vscode.languages.registerHoverProvider(languageIdHlasmListing, services));
-    context.subscriptions.push(vscode.languages.registerDocumentSymbolProvider(languageIdHlasmListing, services));
+    // VSCode ordering - last one at the top
     context.subscriptions.push(vscode.languages.registerDocumentSymbolProvider(
         languageIdHlasmListing,
         { provideDocumentSymbols: (document) => services.provideOffsets(document) },
         { label: "Offsets" })
     );
+    context.subscriptions.push(vscode.languages.registerDocumentSymbolProvider(languageIdHlasmListing, services));
 }
