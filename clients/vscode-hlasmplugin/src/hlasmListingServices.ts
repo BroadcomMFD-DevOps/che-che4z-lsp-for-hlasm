@@ -39,6 +39,8 @@ type RegexSet = {
 
     dsectRefFirstLine: RegExp,
     dsectRefSecondLine: RegExp,
+
+    usingMapLine: RegExp,
 };
 
 const withoutPrefix = {
@@ -56,6 +58,8 @@ const withoutPrefix = {
 
     dsectRefFirstLine: /^(?:([a-zA-Z$#@_][a-zA-Z$#@0-9_]{0,7}) +([0-9A-F]{8}) +([0-9A-F]{8}) +(\d+)|([a-zA-Z$#@_][a-zA-Z$#@0-9_]{8,}))/,
     dsectRefSecondLine: /^( +)([0-9A-F]{8}) +([0-9A-F]{8}) +(\d+)/,
+
+    usingMapLine: /^ *(\d+)  ([0-9A-F]{8})  ([0-9A-F]{8}) (?:USING|DROP|PUSH|POP) +/,
 };
 
 const withPrefix = {
@@ -73,6 +77,8 @@ const withPrefix = {
 
     dsectRefFirstLine: /^.(?:([a-zA-Z$#@_][a-zA-Z$#@0-9_]{0,7}) +([0-9A-F]{8}) +([0-9A-F]{8}) +(\d+)|([a-zA-Z$#@_][a-zA-Z$#@0-9_]{8,}))/,
     dsectRefSecondLine: /^.( +)([0-9A-F]{8}) +([0-9A-F]{8}) +(\d+)/,
+
+    usingMapLine: /^. *(\d+)  ([0-9A-F]{8})  ([0-9A-F]{8}) (?:USING|DROP|PUSH|POP) +/,
 };
 
 const enum BoudnaryType {
@@ -147,6 +153,7 @@ type Listing = {
     csects: { name: string, address: number, length: number }[],
     codeSections: CodeSection[],
     maxStmtNum: number,
+    sectionMap: (boolean | undefined)[],
 
     options?: Section,
     externals?: Section,
@@ -213,6 +220,7 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
         csects: [],
         codeSections: [],
         maxStmtNum: 0,
+        sectionMap: [],
     };
     type ListingSections = Exclude<{ [key in keyof Listing]: Listing[key] extends (Section | undefined) ? key : never }[keyof Listing], undefined>;
     const updateCommonSection = <Name extends ListingSections>(name: Name, lineno: number): Listing[Name] => {
@@ -227,6 +235,7 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
         Code,
         OrdinaryRefs,
         DsectRefs,
+        UsingRef,
         Refs,
     };
 
@@ -238,6 +247,7 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
     let lastDsect: string | undefined = undefined;
 
     const candatateSymbols: { name: string, stmtNumber: number }[] = [];
+    const knownCsectStmtNumbers: number[] = [];
 
     let state = States.Options;
     let i = start;
@@ -314,7 +324,7 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
                     break;
                 case BoudnaryType.UsingsRef:
                     lastCodeSection = updateCommonSection('usings', i);
-                    state = States.Refs;
+                    state = States.UsingRef;
                     break;
                 case BoudnaryType.OtherBoundary:
                     if (state === States.Options || state === States.ExternalRefs)
@@ -446,6 +456,14 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
                 };
                 result.symbols.set(lastDsect, symbol);
             }
+        } else if (state === States.UsingRef) {
+            const ref = r.usingMapLine.exec(line.text);
+            if (ref) {
+                const stmtNo = +ref[1];
+                const sectionId = parseInt(ref[3], 16) | 0;
+                if (sectionId >= 0)
+                    knownCsectStmtNumbers.push(stmtNo);
+            }
         }
     }
     if (symbol)
@@ -464,6 +482,8 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
             details: undefined,
         });
     }
+
+    result.sectionMap = createSectionMap(result, knownCsectStmtNumbers);
 
     for (const s of result.symbols.values())
         s.defined.sort((l, r) => l - r);
@@ -596,7 +616,7 @@ function listVisibleSymbolsOrdered(l: Listing) {
     return visibleSymbols;
 }
 
-function createSectionMap(l: Listing) {
+function createSectionMap(l: Listing, knownCsectStmtNumbers: number[]) {
     const limit = l.maxStmtNum;
     const result: (boolean | undefined)[] = new Array(limit).fill(undefined);
     const dsectRef = 1;
@@ -628,6 +648,11 @@ function createSectionMap(l: Listing) {
         const stmtNo = s.firstStmtNo;
         if (stmtNo === undefined || stmtNo >= result.length) continue;
         result[stmtNo] = s.dsect == false;
+    }
+
+    for (const stmtNo of knownCsectStmtNumbers) {
+        if (stmtNo >= result.length) continue;
+        result[stmtNo] = true;
     }
 
     const lastValid = result.findIndex(e => e !== undefined);
@@ -721,8 +746,6 @@ function listingAsSymbol(l: Listing, id: number | undefined) {
 }
 
 function listingAsOffset(l: Listing, id: number | undefined) {
-    const sectionMap = createSectionMap(l);
-
     const result = new vscode.DocumentSymbol(
         id ? `Listing ${id}` : 'Listing',
         '',
@@ -734,7 +757,7 @@ function listingAsOffset(l: Listing, id: number | undefined) {
 
     for (const [stmtNo, ll] of l.statementLines.entries()) {
         const address = ll.address;
-        if (!sectionMap[stmtNo] || address === undefined) continue;
+        if (!l.sectionMap[stmtNo] || address === undefined) continue;
 
         const csect = l.csects.find(x => x.address <= address && address < x.address + x.length);
 
