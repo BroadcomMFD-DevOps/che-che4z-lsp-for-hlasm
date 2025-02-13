@@ -42,8 +42,8 @@ type RegexSet = {
 };
 
 const withoutPrefix = {
-    objShortCode: /^(?:([0-9ABCDEF]{6})| {6}).{27}( *\d+)\D/,
-    objLongCode: /^(?:([0-9ABCDEF]{8})| {8}).{33}( *\d+)\D/,
+    objShortCode: /^(?:([0-9ABCDEF]{6})| {6}).{27}( *\d+)\D(?:([a-zA-Z$#@_][a-zA-Z$#@0-9_]*) )?/,
+    objLongCode: /^(?:([0-9ABCDEF]{8})| {8}).{33}( *\d+)\D(?:([a-zA-Z$#@_][a-zA-Z$#@0-9_]*) )?/,
     lineText: /^(?:(Return Code )|\*\* (ASMA\d\d\d[NIWES] .+)|((?:  |[CDR]-)Loc  Object Code    Addr1 Addr2  Stmt |(?:  |[CDR]-)Loc    Object Code      Addr1    Addr2    Stmt )|(.{111})Page +\d+)/,
     pageBoundary: /^.+(?:(High Level Assembler Option Summary)|(External Symbol Dictionary)|(Relocation Dictionary)|(Ordinary Symbol and Literal Cross Reference)|(Macro and Copy Code Source Summary)|(Dsect Cross Reference)|(Using Map)|(General Purpose Register Cross Reference)|(Diagnostic Cross Reference and Assembler Summary))/,
 
@@ -59,8 +59,8 @@ const withoutPrefix = {
 };
 
 const withPrefix = {
-    objShortCode: /^.(?:([0-9ABCDEF]{6})| {6}).{27}( *\d+)\D/,
-    objLongCode: /^.(?:([0-9ABCDEF]{8})| {8}).{33}( *\d+)\D/,
+    objShortCode: /^.(?:([0-9ABCDEF]{6})| {6}).{27}( *\d+)\D(?:([a-zA-Z$#@_][a-zA-Z$#@0-9_]*) )?/,
+    objLongCode: /^.(?:([0-9ABCDEF]{8})| {8}).{33}( *\d+)\D(?:([a-zA-Z$#@_][a-zA-Z$#@0-9_]*) )?/,
     lineText: /^.(?:(Return Code )|\*\* (ASMA\d\d\d[NIWES] .+)|((?:  |[CDR]-)Loc  Object Code    Addr1 Addr2  Stmt |(?:  |[CDR]-)Loc    Object Code      Addr1    Addr2    Stmt )|(.{111})Page +\d+)/,
     pageBoundary: /^.+(?:(High Level Assembler Option Summary)|(External Symbol Dictionary)|(Relocation Dictionary)|(Ordinary Symbol and Literal Cross Reference)|(Macro and Copy Code Source Summary)|(Dsect Cross Reference)|(Using Map)|(General Purpose Register Cross Reference)|(Diagnostic Cross Reference and Assembler Summary))/,
 
@@ -237,6 +237,8 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
     let lastSection: string | undefined = undefined;
     let lastDsect: string | undefined = undefined;
 
+    const candatateSymbols: { name: string, stmtNumber: number }[] = [];
+
     let state = States.Options;
     let i = start;
     main: for (; i < doc.lineCount; ++i) {
@@ -327,6 +329,10 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
             if (obj) {
                 const address = obj[1] !== undefined ? parseInt(obj[1], 16) : undefined;
                 const stmtNumber = parseInt(obj[2]);
+                const candidateSymbol = obj[3];
+                if (candidateSymbol) {
+                    candatateSymbols.push({ name: candidateSymbol, stmtNumber });
+                }
                 result.statementLines.set(stmtNumber, { listingLine: i, address });
                 if (stmtNumber > result.maxStmtNum)
                     result.maxStmtNum = stmtNumber;
@@ -446,6 +452,17 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
         updateSymbols(result.symbols, symbol);
     if (lastCodeSection) {
         lastCodeSection.end = i;
+    }
+
+    for (const c of candatateSymbols) {
+        if (result.symbols.has(c.name)) continue;
+        result.symbols.set(c.name, {
+            name: c.name,
+            defined: [c.stmtNumber],
+            references: [],
+            referencesPure: [],
+            details: undefined,
+        });
     }
 
     for (const s of result.symbols.values())
