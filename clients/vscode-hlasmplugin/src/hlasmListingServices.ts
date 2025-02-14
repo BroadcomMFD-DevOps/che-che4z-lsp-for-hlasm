@@ -101,7 +101,7 @@ const enum BoudnaryType {
     OtherBoundary,
 };
 
-function testLine(s: string, r: RegexSet): { type: BoudnaryType, capture: string } | undefined {
+function identifyBoundary(s: string, r: RegexSet): { type: BoudnaryType, capture: string } | undefined {
     const l = r.lineText.exec(s);
     if (!l) return undefined;
 
@@ -244,13 +244,13 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
     };
 
     let symbol: Symbol | undefined;
-    let lastCodeSection: { end: number } | CodeSection | undefined = undefined;
+    let lastListingSection: { end: number } | CodeSection | undefined = undefined;
     let lastTitle = '';
     let lastTitleLine = start;
-    let lastSection: string | undefined = undefined;
+    let lastCsect: string | undefined = undefined;
     let lastDsect: string | undefined = undefined;
 
-    const candatateSymbols: { name: string, stmtNumber: number }[] = [];
+    const symbolCandidates: { name: string, stmtNumber: number }[] = [];
     const knownCsectStmtNumbers: number[] = [];
     const addrTransionsStmtNumbers: number[] = [];
 
@@ -258,31 +258,31 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
     let i = start;
     main: for (; i < doc.lineCount; ++i) {
         const line = doc.lineAt(i);
-        const l = testLine(line.text, r);
-        if (l) {
-            if (lastCodeSection) {
-                lastCodeSection.end = i;
-                lastCodeSection = undefined;
+        const b = identifyBoundary(line.text, r);
+        if (b) {
+            if (lastListingSection) {
+                lastListingSection.end = i;
+                lastListingSection = undefined;
             }
-            switch (l.type) {
+            switch (b.type) {
                 case BoudnaryType.ReturnStatement:
                     ++i
                     if (result.summary)
                         result.summary.end = i;
                     break main;
                 case BoudnaryType.Diagnostic: {
-                    const code = l.capture.substring(0, 8);
-                    const text = l.capture.substring(9).trim();
+                    const code = b.capture.substring(0, 8);
+                    const text = b.capture.substring(9).trim();
                     const d = new vscode.Diagnostic(line.range, text, asLevel(code));
                     d.code = code;
                     result.diagnostics.push(d);
                     break;
                 }
                 case BoudnaryType.OptionsRef:
-                    lastCodeSection = updateCommonSection('options', i);
+                    lastListingSection = updateCommonSection('options', i);
                     break;
                 case BoudnaryType.ObjectCodeHeader: {
-                    if (l.capture.length < 45)
+                    if (b.capture.length < 45)
                         result.type = 'short';
                     else
                         result.type = 'long';
@@ -291,50 +291,50 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
                         end: i + 1,
                         title: lastTitle,
                         codeStart: i + 1,
-                        dsect: l.capture.startsWith('D'),
+                        dsect: b.capture.startsWith('D'),
                         firstStmtNo: undefined,
                     };
-                    lastCodeSection = codeSection;
+                    lastListingSection = codeSection;
                     result.codeSections.push(codeSection);
                     break;
                 }
                 case BoudnaryType.ExternalRef:
-                    lastCodeSection = updateCommonSection('externals', i);
+                    lastListingSection = updateCommonSection('externals', i);
                     state = States.ExternalRefs;
                     break;
                 case BoudnaryType.OrdinaryRef:
-                    lastCodeSection = updateCommonSection('ordinary', i);
+                    lastListingSection = updateCommonSection('ordinary', i);
                     state = States.OrdinaryRefs;
                     ++i; // skip header
                     break;
                 case BoudnaryType.MacroRef:
-                    lastCodeSection = updateCommonSection('macro', i);
+                    lastListingSection = updateCommonSection('macro', i);
                     state = States.Refs;
                     break;
                 case BoudnaryType.DsectRef:
-                    lastCodeSection = updateCommonSection('dsects', i);
+                    lastListingSection = updateCommonSection('dsects', i);
                     state = States.DsectRefs;
                     break;
                 case BoudnaryType.RegistersRef:
-                    lastCodeSection = updateCommonSection('registers', i);
+                    lastListingSection = updateCommonSection('registers', i);
                     state = States.Refs;
                     break;
                 case BoudnaryType.DiagnosticRef:
-                    lastCodeSection = updateCommonSection('summary', i);
+                    lastListingSection = updateCommonSection('summary', i);
                     state = States.Refs;
                     break;
                 case BoudnaryType.RelocationDict:
-                    lastCodeSection = updateCommonSection('relocations', i);
+                    lastListingSection = updateCommonSection('relocations', i);
                     state = States.Refs;
                     break;
                 case BoudnaryType.UsingsRef:
-                    lastCodeSection = updateCommonSection('usings', i);
+                    lastListingSection = updateCommonSection('usings', i);
                     state = States.UsingRef;
                     break;
                 case BoudnaryType.OtherBoundary:
                     if (state === States.Options || state === States.ExternalRefs)
                         state = States.Code;
-                    lastTitle = l.capture.substring(9).trim();
+                    lastTitle = b.capture.substring(9).trim();
                     lastTitleLine = i;
                     break;
             }
@@ -344,15 +344,15 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
             if (obj) {
                 const address = obj[1] !== undefined ? parseInt(obj[1], 16) : undefined;
                 const stmtNumber = parseInt(obj[3]);
-                const candidateSymbol = obj[4];
-                if (candidateSymbol) {
-                    candatateSymbols.push({ name: candidateSymbol.toUpperCase(), stmtNumber });
+                const symbolCandidate = obj[4];
+                if (symbolCandidate) {
+                    symbolCandidates.push({ name: symbolCandidate.toUpperCase(), stmtNumber });
                 }
                 result.statementLines.set(stmtNumber, { listingLine: i, address });
                 if (stmtNumber > result.maxStmtNum)
                     result.maxStmtNum = stmtNumber;
-                if (lastCodeSection && 'codeStart' in lastCodeSection && lastCodeSection.codeStart === i)
-                    lastCodeSection.firstStmtNo = stmtNumber;
+                if (lastListingSection && 'codeStart' in lastListingSection && lastListingSection.codeStart === i)
+                    lastListingSection.firstStmtNo = stmtNumber;
 
                 if (address !== undefined && (result.type === 'short' ? r.sectionAddrShort : r.sectionAddrLong).test(obj[2])) {
                     addrTransionsStmtNumbers.push(stmtNumber);
@@ -411,23 +411,24 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
                         symbol.referencesPure.push(line);
                 }
             }
-        } else if (state === States.ExternalRefs) {
+        }
+        else if (state === States.ExternalRefs) {
             const ref = r.externalRefFirstLine.exec(line.text);
             let data;
             if (ref) {
-                lastSection = ref[1];
+                lastCsect = ref[1];
                 if (ref[2]) {
                     data = ref;
                 }
-            } else if (lastSection) {
+            } else if (lastCsect) {
                 const rest = r.externalRefSecondLine.exec(line.text);
                 if (rest) {
                     data = rest;
                 }
             }
-            if (lastSection && data && isCsectLike(data[2])) {
+            if (lastCsect && data && isCsectLike(data[2])) {
                 const ID = data[3];
-                const ownerName = data[6].startsWith(' ') ? lastSection : (result.sections.get(data[6]) || lastSection);
+                const ownerName = data[6].startsWith(' ') ? lastCsect : (result.sections.get(data[6]) || lastCsect);
                 result.sections.set(ID, ownerName);
                 if (!data[4].startsWith(' ') && !data[5].startsWith(' ')) {
                     const address = parseInt(data[4], 16);
@@ -435,7 +436,8 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
                     result.csects.push({ name: ownerName, address, length });
                 }
             }
-        } else if (state === States.DsectRefs) {
+        }
+        else if (state === States.DsectRefs) {
             const ref = r.dsectRefFirstLine.exec(line.text);
             let data;
             if (ref) {
@@ -466,7 +468,8 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
                 };
                 result.symbols.set(lastDsect, symbol);
             }
-        } else if (state === States.UsingRef) {
+        }
+        else if (state === States.UsingRef) {
             const ref = r.usingMapLine.exec(line.text);
             if (ref) {
                 const stmtNo = +ref[1];
@@ -478,11 +481,11 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
     }
     if (symbol)
         updateSymbols(result.symbols, symbol);
-    if (lastCodeSection) {
-        lastCodeSection.end = i;
+    if (lastListingSection) {
+        lastListingSection.end = i;
     }
 
-    for (const c of candatateSymbols) {
+    for (const c of symbolCandidates) {
         if (result.symbols.has(c.name)) continue;
         result.symbols.set(c.name, {
             name: c.name,
