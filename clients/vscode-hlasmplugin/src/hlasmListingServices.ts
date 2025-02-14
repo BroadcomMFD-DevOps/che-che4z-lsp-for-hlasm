@@ -17,11 +17,6 @@ import { EXTENSION_ID, initialBlanks, languageIdHlasmListing } from './constants
 
 const ordchar = /[A-Za-z0-9$#@_]/;
 
-// Symbol   Length   Value     Id    R Type Asm  Program   Defn References                     
-// A             4 00000000 00000001     A  A                 1   44    45    46    47    48    49    50    51    52    53 
-//                                                                54    55    56    57    58    59    60    61    62    63 
-//                                                                64    65    66    67    68    69    70    71    72    73 
-
 const listingStart = /^(.?)                                         High Level Assembler Option Summary                   .............   Page    1/;
 
 type RegexSet = {
@@ -41,11 +36,14 @@ type RegexSet = {
     dsectRefSecondLine: RegExp,
 
     usingMapLine: RegExp,
+
+    sectionAddrShort: RegExp,
+    sectionAddrLong: RegExp,
 };
 
 const withoutPrefix = {
-    objShortCode: /^(?:([0-9ABCDEF]{6})| {6}).{27}( *\d+)\D(?:([a-zA-Z$#@_][a-zA-Z$#@0-9_]*) )?/,
-    objLongCode: /^(?:([0-9ABCDEF]{8})| {8}).{33}( *\d+)\D(?:([a-zA-Z$#@_][a-zA-Z$#@0-9_]*) )?/,
+    objShortCode: /^(?:([0-9ABCDEF]{6})| {6}) (.{26})( *\d+)\D(?:([a-zA-Z$#@_][a-zA-Z$#@0-9_]*) )?/,
+    objLongCode: /^(?:([0-9ABCDEF]{8})| {8}) (.{32})( *\d+)\D(?:([a-zA-Z$#@_][a-zA-Z$#@0-9_]*) )?/,
     lineText: /^(?:(Return Code )|\*\* (ASMA\d\d\d[NIWES] .+)|((?:  |[CDR]-)Loc  Object Code    Addr1 Addr2  Stmt |(?:  |[CDR]-)Loc    Object Code      Addr1    Addr2    Stmt )|(.{111})Page +\d+)/,
     pageBoundary: /^.+(?:(High Level Assembler Option Summary)|(External Symbol Dictionary)|(Relocation Dictionary)|(Ordinary Symbol and Literal Cross Reference)|(Macro and Copy Code Source Summary)|(Dsect Cross Reference)|(Using Map)|(General Purpose Register Cross Reference)|(Diagnostic Cross Reference and Assembler Summary))/,
 
@@ -60,11 +58,14 @@ const withoutPrefix = {
     dsectRefSecondLine: /^( +)([0-9A-F]{8}) +([0-9A-F]{8}) +(\d+)/,
 
     usingMapLine: /^ *(\d+)  ([0-9A-F]{8})  ([0-9A-F]{8}) (?:USING|DROP|PUSH|POP) +/,
+
+    sectionAddrShort: /^ {15}[0-9A-F]{6} [0-9A-F]{6}$/,
+    sectionAddrLong: /^ {15}[0-9A-F]{8} [0-9A-F]{8}$/,
 };
 
 const withPrefix = {
-    objShortCode: /^.(?:([0-9ABCDEF]{6})| {6}).{27}( *\d+)\D(?:([a-zA-Z$#@_][a-zA-Z$#@0-9_]*) )?/,
-    objLongCode: /^.(?:([0-9ABCDEF]{8})| {8}).{33}( *\d+)\D(?:([a-zA-Z$#@_][a-zA-Z$#@0-9_]*) )?/,
+    objShortCode: /^.(?:([0-9ABCDEF]{6})| {6}) (.{26})( *\d+)\D(?:([a-zA-Z$#@_][a-zA-Z$#@0-9_]*) )?/,
+    objLongCode: /^.(?:([0-9ABCDEF]{8})| {8}) (.{32})( *\d+)\D(?:([a-zA-Z$#@_][a-zA-Z$#@0-9_]*) )?/,
     lineText: /^.(?:(Return Code )|\*\* (ASMA\d\d\d[NIWES] .+)|((?:  |[CDR]-)Loc  Object Code    Addr1 Addr2  Stmt |(?:  |[CDR]-)Loc    Object Code      Addr1    Addr2    Stmt )|(.{111})Page +\d+)/,
     pageBoundary: /^.+(?:(High Level Assembler Option Summary)|(External Symbol Dictionary)|(Relocation Dictionary)|(Ordinary Symbol and Literal Cross Reference)|(Macro and Copy Code Source Summary)|(Dsect Cross Reference)|(Using Map)|(General Purpose Register Cross Reference)|(Diagnostic Cross Reference and Assembler Summary))/,
 
@@ -79,6 +80,9 @@ const withPrefix = {
     dsectRefSecondLine: /^.( +)([0-9A-F]{8}) +([0-9A-F]{8}) +(\d+)/,
 
     usingMapLine: /^. *(\d+)  ([0-9A-F]{8})  ([0-9A-F]{8}) (?:USING|DROP|PUSH|POP) +/,
+
+    sectionAddrShort: /^ {15}[0-9A-F]{6} [0-9A-F]{6}$/,
+    sectionAddrLong: /^ {15}[0-9A-F]{8} [0-9A-F]{8}$/,
 };
 
 const enum BoudnaryType {
@@ -248,6 +252,7 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
 
     const candatateSymbols: { name: string, stmtNumber: number }[] = [];
     const knownCsectStmtNumbers: number[] = [];
+    const addrTransionsStmtNumbers: number[] = [];
 
     let state = States.Options;
     let i = start;
@@ -338,16 +343,20 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
             const obj = (result.type === 'short' ? r.objShortCode : r.objLongCode).exec(line.text);
             if (obj) {
                 const address = obj[1] !== undefined ? parseInt(obj[1], 16) : undefined;
-                const stmtNumber = parseInt(obj[2]);
-                const candidateSymbol = obj[3];
+                const stmtNumber = parseInt(obj[3]);
+                const candidateSymbol = obj[4];
                 if (candidateSymbol) {
-                    candatateSymbols.push({ name: candidateSymbol, stmtNumber });
+                    candatateSymbols.push({ name: candidateSymbol.toUpperCase(), stmtNumber });
                 }
                 result.statementLines.set(stmtNumber, { listingLine: i, address });
                 if (stmtNumber > result.maxStmtNum)
                     result.maxStmtNum = stmtNumber;
                 if (lastCodeSection && 'codeStart' in lastCodeSection && lastCodeSection.codeStart === i)
                     lastCodeSection.firstStmtNo = stmtNumber;
+
+                if (address !== undefined && (result.type === 'short' ? r.sectionAddrShort : r.sectionAddrLong).test(obj[2])) {
+                    addrTransionsStmtNumbers.push(stmtNumber);
+                }
             }
         }
         else if (state === States.OrdinaryRefs) {
@@ -413,7 +422,7 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
             } else if (lastSection) {
                 const rest = r.externalRefSecondLine.exec(line.text);
                 if (rest) {
-                    data = ref;
+                    data = rest;
                 }
             }
             if (lastSection && data && isCsectLike(data[2])) {
@@ -430,14 +439,15 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
             const ref = r.dsectRefFirstLine.exec(line.text);
             let data;
             if (ref) {
-                lastDsect = ref[1];
+                lastDsect = ref[1] ? ref[1] : ref[5];
+                lastDsect = lastDsect.toUpperCase();
                 if (ref[2]) {
                     data = ref;
                 }
             } else if (lastDsect) {
                 const rest = r.dsectRefSecondLine.exec(line.text);
                 if (rest) {
-                    data = ref;
+                    data = rest;
                 }
             }
             if (lastDsect && data && result.symbols.get(lastDsect) === undefined) {
@@ -483,7 +493,7 @@ function processListing(doc: vscode.TextDocument, start: number, hasPrefix: bool
         });
     }
 
-    result.sectionMap = createSectionMap(result, knownCsectStmtNumbers);
+    result.sectionMap = createSectionMap(result, knownCsectStmtNumbers, addrTransionsStmtNumbers);
 
     for (const s of result.symbols.values())
         s.defined.sort((l, r) => l - r);
@@ -616,14 +626,14 @@ function listVisibleSymbolsOrdered(l: Listing) {
     return visibleSymbols;
 }
 
-function createSectionMap(l: Listing, knownCsectStmtNumbers: number[]) {
+function createSectionMap(l: Listing, knownCsectStmtNumbers: number[], addrTransitions: number[]) {
     const limit = l.maxStmtNum;
     const result: (boolean | undefined)[] = new Array(limit).fill(undefined);
     const dsectRef = 1;
     const csectRef = 2;
     const loctrPureRef = 4;
     const refCount = 8;
-    const hints = new Array(l.maxStmtNum).fill(0);
+    const hints = new Array(limit).fill(0);
 
     for (const s of l.symbols.values()) {
         const details = s.details;
@@ -637,7 +647,7 @@ function createSectionMap(l: Listing, knownCsectStmtNumbers: number[]) {
         }
         if (details.undefined || !details.reloc) continue;
         for (const d of s.defined) {
-            if (d >= result.length) continue;
+            if (d >= limit) continue;
             result[d] = details.sectionId >= 0;
             hints[d] += refCount;
             hints[d] |= details.sectionId < 0 ? dsectRef : csectRef;
@@ -646,13 +656,24 @@ function createSectionMap(l: Listing, knownCsectStmtNumbers: number[]) {
 
     for (const s of l.codeSections) {
         const stmtNo = s.firstStmtNo;
-        if (stmtNo === undefined || stmtNo >= result.length) continue;
+        if (stmtNo === undefined || stmtNo >= limit) continue;
         result[stmtNo] = s.dsect == false;
     }
 
     for (const stmtNo of knownCsectStmtNumbers) {
-        if (stmtNo >= result.length) continue;
+        if (stmtNo >= limit) continue;
         result[stmtNo] = true;
+    }
+
+    const csectTransition = refCount | csectRef;
+    const dsectTransition = refCount | csectRef;
+    for (const stmtNo of addrTransitions) {
+        if (stmtNo >= limit) continue;
+        const ignoreLoctr = hints[stmtNo] & ~loctrPureRef;
+        if (ignoreLoctr == csectTransition)
+            result[stmtNo] = true;
+        else if (ignoreLoctr == dsectTransition)
+            result[stmtNo] = false;
     }
 
     const lastValid = result.findIndex(e => e !== undefined);
