@@ -669,7 +669,7 @@ function createSectionMap(l: Listing, knownCsectStmtNumbers: number[], addrTrans
     }
 
     const csectTransition = refCount | csectRef;
-    const dsectTransition = refCount | csectRef;
+    const dsectTransition = refCount | dsectRef;
     for (const stmtNo of addrTransitions) {
         if (stmtNo >= limit) continue;
         const ignoreLoctr = hints[stmtNo] & ~loctrPureRef;
