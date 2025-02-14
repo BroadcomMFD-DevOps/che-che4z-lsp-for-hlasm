@@ -769,7 +769,7 @@ function listingAsSymbol(l: Listing, id: number | undefined) {
     return result;
 }
 
-function listingAsOffset(l: Listing, id: number | undefined) {
+function listingAsOffsets(l: Listing, id: number | undefined) {
     const result = new vscode.DocumentSymbol(
         id ? `Listing ${id}` : 'Listing',
         '',
@@ -878,7 +878,7 @@ export function createListingServices(diagCollection?: vscode.DiagnosticCollecti
             (listings.get(document.uri.toString()) ?? handleListingContent(document))?.map((l, id, ar) => listingAsSymbol(l, ar.length > 1 ? id + 1 : undefined))
         ,
         provideOffsets: (document: vscode.TextDocument) =>
-            (listings.get(document.uri.toString()) ?? handleListingContent(document))?.map((l, id, ar) => listingAsOffset(l, ar.length > 1 ? id + 1 : undefined))
+            (listings.get(document.uri.toString()) ?? handleListingContent(document))?.map((l, id, ar) => listingAsOffsets(l, ar.length > 1 ? id + 1 : undefined))
         ,
     };
 }
