@@ -724,14 +724,18 @@ function provideObjectCodeDetails(l: Listing, code: vscode.DocumentSymbol) {
     }
 }
 
-function listingAsSymbol(l: Listing, id: number | undefined) {
-    const result = new vscode.DocumentSymbol(
+function makeListingRoot(l: Listing, id: number | undefined) {
+    return new vscode.DocumentSymbol(
         id ? `Listing ${id}` : 'Listing',
         '',
         vscode.SymbolKind.Module,
         new vscode.Range(l.start, 0, l.end, 0),
         new vscode.Range(l.start, 0, l.end, 0)
     );
+}
+
+function listingAsSymbol(l: Listing, id: number | undefined) {
+    const result = makeListingRoot(l, id);
 
     if (l.options) {
         result.children.push(sectionAsSymbol(l.options, 'High Level Assembler Option Summary'));
@@ -770,13 +774,7 @@ function listingAsSymbol(l: Listing, id: number | undefined) {
 }
 
 function listingAsOffsets(l: Listing, id: number | undefined) {
-    const result = new vscode.DocumentSymbol(
-        id ? `Listing ${id}` : 'Listing',
-        '',
-        vscode.SymbolKind.Module,
-        new vscode.Range(l.start, 0, l.end, 0),
-        new vscode.Range(l.start, 0, l.end, 0)
-    );
+    const result = makeListingRoot(l, id);
     const offsets = result.children;
 
     for (const [stmtNo, ll] of l.statementLines.entries()) {
