@@ -29,7 +29,7 @@ constexpr auto create_truth_table(const Input& true_values, T true_value = (T)1)
 {
     std::array<T, std::numeric_limits<unsigned char>::max() + 1> result {};
 
-    for (auto c : true_values)
+    for (auto c : std::basic_string_view(true_values))
         result[(unsigned char)c] = true_value;
 
     return result;
