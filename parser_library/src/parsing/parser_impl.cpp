@@ -813,6 +813,8 @@ constexpr auto utf8_length_extras = []() {
     return v;
 }();
 
+constexpr char8_t first_long_utf16 = 0xF0;
+
 void parser2::consume() noexcept
 {
     assert(!eof());
@@ -824,7 +826,7 @@ void parser2::consume() noexcept
     input.next += 1 + (utf8_length_extras >> (ch >> 4 << 1) & 0b11);
 
     ++input.char_position_in_line;
-    input.char_position_in_line_utf16 += 1 + (ch >= 0xF0);
+    input.char_position_in_line_utf16 += 1 + (ch >= first_long_utf16);
 }
 
 void parser2::consume(hl_scopes s) noexcept
@@ -852,7 +854,7 @@ void parser2::consume_into(std::string& s)
     } while ((*input.next & 0xC0) == 0x80);
 
     ++input.char_position_in_line;
-    input.char_position_in_line_utf16 += 1 + (ch >= 0xF0);
+    input.char_position_in_line_utf16 += 1 + (ch >= first_long_utf16);
 }
 
 void parser2::consume_into(std::string& s, hl_scopes scope)
@@ -3197,6 +3199,7 @@ parser_holder::op_data parser2::lab_instr_rest()
         .op_logical_column = input.char_position_in_line,
     };
 
+    result.op_text->text.reserve((input.last - input.next) + (&holder->newlines.back() - input.nl));
     while (!eof())
     {
         while (!before_nl())
@@ -3217,7 +3220,7 @@ parser_holder::op_data parser2::lab_instr_rest()
         } while ((*input.next & 0xC0) == 0x80);
 
         ++input.char_position_in_line;
-        input.char_position_in_line_utf16 += 1 + (ch >= 0xF0);
+        input.char_position_in_line_utf16 += 1 + (ch >= first_long_utf16);
     }
 
     while (*input.nl != (size_t)-1)
