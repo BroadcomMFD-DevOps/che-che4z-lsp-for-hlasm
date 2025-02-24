@@ -109,7 +109,7 @@ constexpr const auto numbers = utils::create_truth_table(u8"0123456789");
 [[nodiscard]] constexpr bool char_is_num(char8_t c) noexcept { return c < numbers.size() && numbers[c]; }
 
 namespace {
-std::pair<char_substitution, size_t> append_utf8_with_newlines_to_utf32(
+std::pair<char_substitution, size_t> append_utf8_with_newlines(
     std::vector<char8_t>& t, std::vector<size_t>& nl, std::vector<size_t>& ll, std::string_view s)
 {
     char_substitution subs {};
@@ -190,7 +190,7 @@ char_substitution parser_holder::reset(
     input.clear();
     newlines.clear();
     line_limits.clear();
-    auto [subs, _] = append_utf8_with_newlines_to_utf32(input, newlines, line_limits, str.text);
+    auto [subs, _] = append_utf8_with_newlines(input, newlines, line_limits, str.text);
 
     reset(file_offset, logical_column, process);
 
@@ -213,7 +213,7 @@ char_substitution parser_holder::reset(
     {
         const auto& s = l.segments[i];
 
-        auto [subs_update, utf16_rem] = append_utf8_with_newlines_to_utf32(
+        auto [subs_update, utf16_rem] = append_utf8_with_newlines(
             input, newlines, line_limits, std::string_view(s.code_begin().base(), s.code_end().base()));
 
         subs |= subs_update;
