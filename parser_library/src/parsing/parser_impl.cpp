@@ -98,10 +98,11 @@ constexpr auto mach_attrs = group_from_string<{ u8"OSILTosilt" }>();
 constexpr auto all_attrs = group_from_string<{ u8"NKDOSILTnkdosilt" }>();
 constexpr auto attr_argument = group_from_string<{ u8"$_#@abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ&=*" }>();
 
-constexpr const auto ord_first = utils::create_truth_table("$_#@abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ");
+constexpr const auto ord_first =
+    utils::create_truth_table(u8"$_#@abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ");
 constexpr const auto ord =
-    utils::create_truth_table("$_#@abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789");
-constexpr const auto numbers = utils::create_truth_table("0123456789");
+    utils::create_truth_table(u8"$_#@abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789");
+constexpr const auto numbers = utils::create_truth_table(u8"0123456789");
 
 [[nodiscard]] constexpr bool char_is_ord_first(char8_t c) noexcept { return c < ord_first.size() && ord_first[c]; }
 [[nodiscard]] constexpr bool char_is_ord(char8_t c) noexcept { return c < ord.size() && ord[c]; }
