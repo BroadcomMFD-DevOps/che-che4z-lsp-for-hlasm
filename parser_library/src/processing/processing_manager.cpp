@@ -17,6 +17,7 @@
 #include <cassert>
 #include <memory>
 
+#include "context/hlasm_context.h"
 #include "diagnostic_tools.h"
 #include "lsp/lsp_context.h"
 #include "lsp/text_data_view.h"
@@ -432,7 +433,7 @@ void processing_manager::register_sequence_symbol(context::id_index target, rang
         if (!lookahead_active())
             diag_ctx.add_diagnostic(diagnostic_op::error_E045(target.to_string_view(), symbol_range));
         else if (auto it = m_lookahead_seq_redifinitions.find(target); it == m_lookahead_seq_redifinitions.end()
-                 || it->second.first != pending_seq_redifinition_state::lookahead_pending)
+            || it->second.first != pending_seq_redifinition_state::lookahead_pending)
         {
             // already defined either in normal processing or previous lookahead, so silently ignore
         }

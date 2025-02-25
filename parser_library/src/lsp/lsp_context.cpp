@@ -24,7 +24,9 @@
 
 #include "completion_item.h"
 #include "completion_trigger_kind.h"
+#include "context/hlasm_context.h"
 #include "context/macro.h"
+#include "context/ordinary_assembly/section.h"
 #include "context/using.h"
 #include "item_convertors.h"
 #include "lsp/instruction_completions.h"
