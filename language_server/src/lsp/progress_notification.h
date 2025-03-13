@@ -44,6 +44,7 @@ class progress_notification final : public parser_library::progress_notification
         end,
     };
 
+    void notify_end();
     void notify(progress_kind kind, std::string_view uri = {}) const;
     static nlohmann::json make_progress_notification(long token, progress_kind kind, std::string_view uri = {});
 

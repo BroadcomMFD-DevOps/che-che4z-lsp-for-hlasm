@@ -73,6 +73,13 @@ void progress_notification::notify(progress_kind kind, std::string_view uri) con
     channel->notify("$/progress", make_progress_notification(token, kind, uri));
 }
 
+void progress_notification::notify_end()
+{
+    notify(progress_kind::end);
+    ++token;
+    token_state = token_state_t::invalid;
+}
+
 void progress_notification::parsing_started(std::string_view uri)
 {
     pending_uri = uri;
@@ -83,11 +90,7 @@ void progress_notification::parsing_started(std::string_view uri)
     if (uri.empty())
     {
         if (token_state == token_state_t::valid)
-        {
-            notify(progress_kind::end);
-            ++token;
-            token_state = token_state_t::invalid;
-        }
+            notify_end();
         return;
     }
 
@@ -103,6 +106,8 @@ void progress_notification::parsing_started(std::string_view uri)
         [this](const nlohmann::json&) {
             token_state = token_state_t::valid;
             notify(progress_kind::begin, pending_uri);
+            if (pending_uri.empty()) // It is not clear to me if sending just end is legal
+                notify_end();
         },
         [this](int, const char*) { token_state = token_state_t::invalid; });
     token_state = token_state_t::requested;

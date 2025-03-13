@@ -74,11 +74,11 @@ TEST(progress_notification, multiple_parsing)
 
     std::function<void(const nlohmann::json&)> callback;
 
-    static const auto token_0 = R"({"token": 0})"_json;
+    static const auto token_0 = R"({"token":0})"_json;
     static const auto token_0_a = R"({"token":0,"value":{"kind":"begin","title":"Parsing","message":"a"}})"_json;
     static const auto token_0_b = R"({"token":0,"value":{"kind":"report","message":"b"}})"_json;
     static const auto token_0_end = R"({"token":0,"value":{"kind":"end"}})"_json;
-    static const auto token_1 = R"({"token": 1})"_json;
+    static const auto token_1 = R"({"token":1})"_json;
     static const auto token_1_a = R"({"token":1,"value":{"kind":"begin","title":"Parsing","message":"a"}})"_json;
     static const auto token_1_end = R"({"token":1,"value":{"kind":"end"}})"_json;
 
@@ -100,4 +100,25 @@ TEST(progress_notification, multiple_parsing)
     p.parsing_started("a");
     callback({});
     p.parsing_started({});
+}
+
+TEST(progress_notification, done_before_token)
+{
+    StrictMock<response_provider_mock> mock;
+
+    std::function<void(const nlohmann::json&)> callback;
+
+    static const auto token_0 = R"({"token":0})"_json;
+    static const auto token_0_a = R"({"token":0,"value":{"kind":"begin","title":"Parsing"}})"_json;
+    static const auto token_0_end = R"({"token":0,"value":{"kind":"end"}})"_json;
+
+    EXPECT_CALL(mock, request(progress_create, token_0, _, _)).WillOnce(SaveArg<2>(&callback));
+    EXPECT_CALL(mock, notify(progress_event, token_0_a)).Times(1);
+    EXPECT_CALL(mock, notify(progress_event, token_0_end)).Times(1);
+
+    progress_notification p(mock);
+
+    p.parsing_started("a");
+    p.parsing_started({});
+    callback({});
 }
