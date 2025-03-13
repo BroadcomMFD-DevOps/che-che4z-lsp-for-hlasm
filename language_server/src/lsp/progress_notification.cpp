@@ -14,6 +14,7 @@
 
 #include "progress_notification.h"
 
+#include <array>
 #include <string_view>
 
 #include "nlohmann/json.hpp"
@@ -22,7 +23,7 @@
 
 namespace hlasm_plugin::language_server::lsp {
 
-bool progress_notification::client_supports_workprogress(const nlohmann::json& params)
+bool progress_notification::client_supports_work_done_progress(const nlohmann::json& params)
 {
     static const auto workDoneProgress = "/capabilities/window/workDoneProgress"_json_pointer;
     try
@@ -35,11 +36,11 @@ bool progress_notification::client_supports_workprogress(const nlohmann::json& p
     }
 }
 
-constexpr std::string_view progress_kind_text[] = {
+constexpr auto progress_kind_text = std::to_array<std::string_view>({
     "begin",
     "report",
     "end",
-};
+});
 
 nlohmann::json progress_notification::make_progress_notification(long token, progress_kind kind, std::string_view uri)
 {

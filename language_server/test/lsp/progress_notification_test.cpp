@@ -31,7 +31,7 @@ TEST(progress_notification, supported)
         }
     }
 })"_json;
-    EXPECT_TRUE(progress_notification::client_supports_workprogress(init_params));
+    EXPECT_TRUE(progress_notification::client_supports_work_done_progress(init_params));
 }
 
 TEST(progress_notification, not_supported)
@@ -43,7 +43,7 @@ TEST(progress_notification, not_supported)
         }
     }
 })"_json;
-    EXPECT_FALSE(progress_notification::client_supports_workprogress(init_params));
+    EXPECT_FALSE(progress_notification::client_supports_work_done_progress(init_params));
 }
 
 TEST(progress_notification, missing)
@@ -54,7 +54,7 @@ TEST(progress_notification, missing)
         }
     }
 })"_json;
-    EXPECT_FALSE(progress_notification::client_supports_workprogress(init_params));
+    EXPECT_FALSE(progress_notification::client_supports_work_done_progress(init_params));
 }
 
 constexpr std::string_view progress_event = "$/progress";

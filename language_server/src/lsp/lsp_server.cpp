@@ -308,7 +308,7 @@ void server::on_initialize(const request_id& id, const nlohmann::json& param)
         f->initialize_feature(param);
     }
 
-    if (progress_notification::client_supports_workprogress(param))
+    if (progress_notification::client_supports_work_done_progress(param))
         ws_mngr.set_progress_notification_consumer(&progress);
 }
 

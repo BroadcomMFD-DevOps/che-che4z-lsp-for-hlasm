@@ -48,7 +48,7 @@ class progress_notification final : public parser_library::progress_notification
     static nlohmann::json make_progress_notification(long token, progress_kind kind, std::string_view uri = {});
 
 public:
-    static bool client_supports_workprogress(const nlohmann::json& initialization_parameters);
+    static bool client_supports_work_done_progress(const nlohmann::json& initialization_parameters);
     void parsing_started(std::string_view uri) override;
 
     explicit constexpr progress_notification(response_provider& channel) noexcept
