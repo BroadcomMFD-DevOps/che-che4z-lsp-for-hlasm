@@ -105,9 +105,10 @@ void progress_notification::parsing_started(std::string_view uri)
         nlohmann::json { { "token", token } },
         [this](const nlohmann::json&) {
             token_state = token_state_t::valid;
-            notify(progress_kind::begin, pending_uri);
-            if (pending_uri.empty()) // It is not clear to me if sending just end is legal
+            if (pending_uri.empty())
                 notify_end();
+            else
+                notify(progress_kind::begin, pending_uri);
         },
         [this](int, const char*) { token_state = token_state_t::invalid; });
     token_state = token_state_t::requested;

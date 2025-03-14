@@ -109,11 +109,9 @@ TEST(progress_notification, done_before_token)
     std::function<void(const nlohmann::json&)> callback;
 
     static const auto token_0 = R"({"token":0})"_json;
-    static const auto token_0_a = R"({"token":0,"value":{"kind":"begin","title":"Parsing"}})"_json;
     static const auto token_0_end = R"({"token":0,"value":{"kind":"end"}})"_json;
 
     EXPECT_CALL(mock, request(progress_create, token_0, _, _)).WillOnce(SaveArg<2>(&callback));
-    EXPECT_CALL(mock, notify(progress_event, token_0_a)).Times(1);
     EXPECT_CALL(mock, notify(progress_event, token_0_end)).Times(1);
 
     progress_notification p(mock);
