@@ -238,10 +238,7 @@ file_slice_t file_slice_t::transform_slice(
     else
         fslice.file_lines.begin = source_line(mdef, slice.begin_statement, f);
 
-    if (slice.begin_statement == slice.end_statement)
-        fslice.file_lines.end = fslice.file_lines.begin;
-    else
-        fslice.file_lines.end = source_line(mdef, { slice.end_statement.value - 1 }, f) + 1;
+    fslice.file_lines.end = source_line(mdef, { slice.end_statement.value }, f) + 1;
 
     fslice.type = slice.inner_macro ? scope_type::INNER_MACRO : scope_type::MACRO;
     fslice.macro_context = &macro_i;

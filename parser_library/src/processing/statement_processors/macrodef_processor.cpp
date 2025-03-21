@@ -107,10 +107,6 @@ void macrodef_processor::end_processing()
 
     hlasm_ctx.pop_statement_processing();
 
-    // cleanup empty file scopes
-    for (auto& scope : result_.file_scopes)
-        std::erase_if(scope.second, [](const auto& slice) { return slice.begin_statement == slice.end_statement; });
-
     listener_.finish_macro_definition(std::move(result_));
 
     finished_flag_ = true;
@@ -562,15 +558,10 @@ void macrodef_processor::add_correct_copy_nest()
     const auto& current_file = result_.nests.back().back().loc.resource_loc;
     bool in_inner_macro = macro_nest_ > 1 + bumped_macro_nest;
 
-
-    context::statement_id current_statement_id = { result_.definition.size() };
+    const context::statement_id current_statement_id = { result_.definition.size() - 1 };
     if (result_.file_scopes[current_file].empty())
     {
-        if (current_statement_id.value == 1)
-            result_.file_scopes[current_file].emplace_back(
-                context::statement_id { 0 }, current_statement_id, in_inner_macro);
-        else
-            result_.file_scopes[current_file].emplace_back(current_statement_id, in_inner_macro);
+        result_.file_scopes[current_file].emplace_back(current_statement_id, in_inner_macro);
     }
     else
     {

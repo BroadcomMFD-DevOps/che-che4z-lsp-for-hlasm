@@ -91,7 +91,7 @@ using vardef_storage = std::vector<variable_symbol_definition>;
 
 struct macro_slice_t
 {
-    context::statement_id begin_statement, end_statement;
+    context::statement_id begin_statement, end_statement; // inclusive
     bool inner_macro;
 
     macro_slice_t(context::statement_id begin_statement, bool inner_macro)
