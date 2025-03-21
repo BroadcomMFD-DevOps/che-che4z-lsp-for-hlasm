@@ -107,7 +107,8 @@ struct macro_slice_t
     {}
 };
 
-using file_scopes_t = std::unordered_map<utils::resource::resource_location, std::vector<lsp::macro_slice_t>>;
+using file_scopes_t =
+    std::unordered_map<utils::resource::resource_location, std::pair<std::vector<lsp::macro_slice_t>, bool>>;
 
 struct line_occurence_details
 {

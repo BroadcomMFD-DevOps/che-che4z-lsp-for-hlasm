@@ -556,7 +556,7 @@ void macrodef_processor::add_correct_copy_nest()
     }
 
     const bool in_inner_macro = macro_nest_ > 1 + bumped_macro_nest;
-    auto& scope = result_.file_scopes[result_.nests.back().back().loc.resource_loc];
+    auto& [scope, start_new_slice] = result_.file_scopes[result_.nests.back().back().loc.resource_loc];
 
     const context::statement_id current_statement_id = { result_.definition.size() - 1 };
     if (scope.empty() || start_new_slice)

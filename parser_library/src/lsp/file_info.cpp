@@ -196,7 +196,7 @@ void file_info::distribute_macro_slices(
     {
         for (const auto& [file, s_upd] : m->file_scopes)
         {
-            std::ranges::transform(s_upd, std::back_inserter(files.at(file).slices), [&m, &file](const auto& s) {
+            std::ranges::transform(s_upd.first, std::back_inserter(files.at(file).slices), [&m, &file](const auto& s) {
                 return file_slice_t::transform_slice(s, *m, file);
             });
         }
