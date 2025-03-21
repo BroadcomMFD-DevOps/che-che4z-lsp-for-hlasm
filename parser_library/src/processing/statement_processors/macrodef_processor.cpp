@@ -555,27 +555,24 @@ void macrodef_processor::add_correct_copy_nest()
             &context::copy_nest_item::member_name);
     }
 
-    const auto& current_file = result_.nests.back().back().loc.resource_loc;
-    bool in_inner_macro = macro_nest_ > 1 + bumped_macro_nest;
+    const bool in_inner_macro = macro_nest_ > 1 + bumped_macro_nest;
+    auto& scope = result_.file_scopes[result_.nests.back().back().loc.resource_loc];
 
     const context::statement_id current_statement_id = { result_.definition.size() - 1 };
-    if (result_.file_scopes[current_file].empty())
+    if (scope.empty() || start_new_slice)
     {
-        result_.file_scopes[current_file].emplace_back(current_statement_id, in_inner_macro);
+        scope.emplace_back(current_statement_id, in_inner_macro);
+        start_new_slice = false;
+    }
+    else if (!last_in_inner_macro_ && in_inner_macro) // add new scope when inner macro started
+    {
+        scope.emplace_back(current_statement_id, in_inner_macro);
     }
     else
     {
-        bool inner_macro_ended = last_in_inner_macro_ && !in_inner_macro;
-        bool inner_macro_started = !last_in_inner_macro_ && in_inner_macro;
-        if (inner_macro_ended) // add new scope when inner macro ended
-            result_.file_scopes[current_file].emplace_back(current_statement_id, in_inner_macro);
-        else if (!in_inner_macro
-            || inner_macro_started) // if we are not in inner macro, update the end of old scope. Update also when inner
-                                    // macro just started, since we use half-open intervals.
-        {
-            auto& last_scope = result_.file_scopes[current_file].back();
-            last_scope.end_statement = current_statement_id;
-        }
+        scope.back().end_statement = current_statement_id;
+        // remmember to start a new scope when inner macro ended
+        start_new_slice = last_in_inner_macro_ && !in_inner_macro;
     }
 
     last_in_inner_macro_ = in_inner_macro;

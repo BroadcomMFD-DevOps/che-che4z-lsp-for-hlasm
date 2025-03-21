@@ -202,10 +202,13 @@ void file_info::distribute_macro_slices(
         }
     }
 
+    static constexpr auto prefer_macros = [](const file_slice_t& e) {
+        return std::make_tuple(std::cref(e.file_lines), -(int)e.type);
+    };
     for (auto& [_, file] : files)
     {
         auto& slices = file.slices;
-        std::ranges::stable_sort(slices, {}, &file_slice_t::file_lines);
+        std::ranges::stable_sort(slices, {}, prefer_macros);
         auto [new_begin, __] = std::ranges::unique(std::views::reverse(slices), {}, &file_slice_t::file_lines);
         slices.erase(slices.begin(), new_begin.base());
     }
