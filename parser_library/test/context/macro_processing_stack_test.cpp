@@ -42,7 +42,7 @@ TEST(macro_processing_stack, no_macro)
     a.analyze();
 
     ASSERT_TRUE(matches_message_codes(a.diags(), { "MNOTE" }));
-    ASSERT_TRUE(matches_diagnostic_stack(a.diags().front(), { "opencode" }));
+    EXPECT_TRUE(matches_diagnostic_stack(a.diags().front(), { "opencode" }));
 }
 
 TEST(macro_processing_stack, plain_inline)
@@ -59,7 +59,7 @@ TEST(macro_processing_stack, plain_inline)
     a.analyze();
 
     ASSERT_TRUE(matches_message_codes(a.diags(), { "MNOTE" }));
-    ASSERT_TRUE(matches_diagnostic_stack(a.diags().front(), { "opencode", "opencode" }));
+    EXPECT_TRUE(matches_diagnostic_stack(a.diags().front(), { "opencode", "opencode" }));
 }
 
 TEST(macro_processing_stack, plain_external)
@@ -80,7 +80,7 @@ TEST(macro_processing_stack, plain_external)
     a.analyze();
 
     ASSERT_TRUE(matches_message_codes(a.diags(), { "MNOTE" }));
-    ASSERT_TRUE(matches_diagnostic_stack(a.diags().front(), { "MAC", "opencode" }));
+    EXPECT_TRUE(matches_diagnostic_stack(a.diags().front(), { "MAC", "opencode" }));
 }
 
 TEST(macro_processing_stack, copy_in_macro)
@@ -102,7 +102,7 @@ TEST(macro_processing_stack, copy_in_macro)
     a.analyze();
 
     ASSERT_TRUE(matches_message_codes(a.diags(), { "MNOTE" }));
-    ASSERT_TRUE(matches_diagnostic_stack(a.diags().front(), { "COPYBOOK", "MAC", "opencode" }));
+    EXPECT_TRUE(matches_diagnostic_stack(a.diags().front(), { "COPYBOOK", "MAC", "opencode" }));
 }
 
 TEST(macro_processing_stack, macro_copy_copy)
@@ -124,5 +124,30 @@ TEST(macro_processing_stack, macro_copy_copy)
     a.analyze();
 
     ASSERT_TRUE(matches_message_codes(a.diags(), { "MNOTE" }));
-    ASSERT_TRUE(matches_diagnostic_stack(a.diags().front(), { "MAC", "COPYBOOK", "opencode" }));
+    EXPECT_TRUE(matches_diagnostic_stack(a.diags().front(), { "MAC", "COPYBOOK", "opencode" }));
+}
+
+TEST(macro_processing_stack, nested_macro)
+{
+    mock_parse_lib_provider lib({
+        { "MAC",
+            R"(.*
+    MACRO
+    MAC
+    MACRO
+    NESTED
+    MNOTE 'Hello'
+    MEND
+    MEND
+)" },
+    });
+    std::string input = R"(
+    MAC
+    NESTED
+)";
+    analyzer a(input, analyzer_options { opencode, &lib });
+    a.analyze();
+
+    ASSERT_TRUE(matches_message_codes(a.diags(), { "MNOTE" }));
+    EXPECT_TRUE(matches_diagnostic_stack(a.diags().front(), { "MAC", "opencode" }));
 }
