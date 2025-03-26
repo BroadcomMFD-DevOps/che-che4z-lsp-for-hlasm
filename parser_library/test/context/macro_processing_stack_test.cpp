@@ -83,4 +83,46 @@ TEST(macro_processing_stack, plain_external)
     ASSERT_TRUE(matches_diagnostic_stack(a.diags().front(), { "MAC", "opencode" }));
 }
 
-TEST(macro_processing_stack, copy) {}
+TEST(macro_processing_stack, copy_in_macro)
+{
+    mock_parse_lib_provider lib({
+        { "MAC",
+            R"(.*
+    MACRO
+    MAC
+    COPY COPYBOOK
+    MEND
+)" },
+        { "COPYBOOK", " MNOTE 'Hello'" },
+    });
+    std::string input = R"(
+    MAC
+)";
+    analyzer a(input, analyzer_options { opencode, &lib });
+    a.analyze();
+
+    ASSERT_TRUE(matches_message_codes(a.diags(), { "MNOTE" }));
+    ASSERT_TRUE(matches_diagnostic_stack(a.diags().front(), { "COPYBOOK", "MAC", "opencode" }));
+}
+
+TEST(macro_processing_stack, macro_copy_copy)
+{
+    mock_parse_lib_provider lib({
+        { "MAC",
+            R"(.*
+    MACRO
+    MAC
+    MNOTE 'Hello'
+    MEND
+)" },
+        { "COPYBOOK", " MAC" },
+    });
+    std::string input = R"(
+    COPY COPYBOOK
+)";
+    analyzer a(input, analyzer_options { opencode, &lib });
+    a.analyze();
+
+    ASSERT_TRUE(matches_message_codes(a.diags(), { "MNOTE" }));
+    ASSERT_TRUE(matches_diagnostic_stack(a.diags().front(), { "MAC", "COPYBOOK", "opencode" }));
+}
