@@ -297,3 +297,32 @@ TEST(macro_processing_stack, copy_whole_macro_with_nested_macro_in_copybook)
     ASSERT_TRUE(matches_message_codes(a.diags(), { "MNOTE" }));
     EXPECT_TRUE(matches_diagnostic_stack(a.diags().front(), { "NESTCPY", "opencode" }));
 }
+
+TEST(macro_processing_stack, copy_whole_macro_with_nested_macro_in_copybook_with_copybook)
+{
+    mock_parse_lib_provider lib({
+        { "ACTION", " MNOTE 'Hello'" },
+        { "NESTCPY", R"(
+    MACRO
+    NESTED
+    COPY ACTION
+    MEND
+)" },
+        { "COPYBOOK", R"(
+    MACRO
+    MAC
+    COPY NESTCPY
+    MEND
+)" },
+    });
+    std::string input = R"(
+    COPY COPYBOOK
+    MAC
+    NESTED
+)";
+    analyzer a(input, analyzer_options { opencode, &lib });
+    a.analyze();
+
+    ASSERT_TRUE(matches_message_codes(a.diags(), { "MNOTE" }));
+    EXPECT_TRUE(matches_diagnostic_stack(a.diags().front(), { "ACTION", "NESTCPY", "opencode" }));
+}
