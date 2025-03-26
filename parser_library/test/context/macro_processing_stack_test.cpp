@@ -177,3 +177,27 @@ TEST(macro_processing_stack, nested_macro_with_copy)
     ASSERT_TRUE(matches_message_codes(a.diags(), { "MNOTE" }));
     EXPECT_TRUE(matches_diagnostic_stack(a.diags().front(), { "COPYBOOK", "MAC", "opencode" }));
 }
+
+TEST(macro_processing_stack, inline_nested_macro_with_copy)
+{
+    mock_parse_lib_provider lib({
+        { "COPYBOOK", " MNOTE 'Hello'" },
+    });
+    std::string input = R"(
+    MACRO
+    MAC
+    MACRO
+    NESTED
+    COPY COPYBOOK
+    MEND
+    MEND
+
+    MAC
+    NESTED
+)";
+    analyzer a(input, analyzer_options { opencode, &lib });
+    a.analyze();
+
+    ASSERT_TRUE(matches_message_codes(a.diags(), { "MNOTE" }));
+    EXPECT_TRUE(matches_diagnostic_stack(a.diags().front(), { "COPYBOOK", "opencode", "opencode" }));
+}
