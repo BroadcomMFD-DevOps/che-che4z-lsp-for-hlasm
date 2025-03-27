@@ -15,7 +15,6 @@
 #include "macrodef_processor.h"
 
 #include <functional>
-#include <iterator>
 #include <ranges>
 
 #include "context/instruction.h"
@@ -37,20 +36,16 @@ macrodef_processor::macrodef_processor(const analyzing_context& ctx,
     , branching_provider_(branching_provider_)
     , start_(std::move(start))
     , initial_copy_nest_(hlasm_ctx.current_copy_stack().size())
-    , macro_nest_(1)
-    , expecting_prototype_(true)
     , expecting_MACRO_(start_.is_external)
-    , finished_flag_(false)
+    , result_({
+          // clang format really does not like it without the parenthesis
+          .prototype = macrodef_prototype(start_.is_external ? start_.external_name : context::id_index()),
+          .definition_location = hlasm_ctx.current_statement_location(),
+          .external = start_.is_external,
+          .invalid = true, // result starts invalid until mandatory statements are encountered
+      })
     , table_(create_table())
-{
-    result_.definition_location = hlasm_ctx.current_statement_location();
-    result_.external = start_.is_external;
-    if (start_.is_external)
-        result_.prototype.macro_name = start_.external_name;
-
-    result_.invalid = true; // result starts invalid until mandatory statements are encountered
-}
-
+{}
 
 std::optional<context::id_index> macrodef_processor::resolve_concatenation(
     const semantics::concat_chain& concat, const range&) const
