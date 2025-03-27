@@ -326,3 +326,129 @@ TEST(macro_processing_stack, copy_whole_macro_with_nested_macro_in_copybook_with
     ASSERT_TRUE(matches_message_codes(a.diags(), { "MNOTE" }));
     EXPECT_TRUE(matches_diagnostic_stack(a.diags().front(), { "ACTION", "NESTCPY", "opencode" }));
 }
+
+TEST(macro_processing_stack, double_copy_with_nested_0)
+{
+    mock_parse_lib_provider lib({
+        { "COPY1", " COPY COPY2" },
+        { "COPY2", R"(
+    MACRO
+    MAC
+    MACRO
+    NESTED
+    MACRO
+    INNER
+    MNOTE 'Hello'
+    MEND
+    MEND
+    MEND
+)" },
+    });
+    std::string input = R"(
+    COPY COPY1
+    MAC
+    NESTED
+    INNER
+)";
+    analyzer a(input, analyzer_options { opencode, &lib });
+    a.analyze();
+
+    ASSERT_TRUE(matches_message_codes(a.diags(), { "MNOTE" }));
+    EXPECT_TRUE(matches_diagnostic_stack(a.diags().front(), { "COPY2", "opencode" }));
+}
+
+TEST(macro_processing_stack, double_copy_with_nested_1)
+{
+    mock_parse_lib_provider lib({
+        { "COPY1", " COPY COPY2" },
+        { "COPY2", R"(
+    MACRO
+    NESTED
+    MACRO
+    INNER
+    MNOTE 'Hello'
+    MEND
+    MEND
+)" },
+        { "MAC", R"(.*
+    MACRO
+    MAC
+    COPY COPY1
+    MEND
+)" },
+    });
+    std::string input = R"(
+    MAC
+    NESTED
+    INNER
+)";
+    analyzer a(input, analyzer_options { opencode, &lib });
+    a.analyze();
+
+    ASSERT_TRUE(matches_message_codes(a.diags(), { "MNOTE" }));
+    EXPECT_TRUE(matches_diagnostic_stack(a.diags().front(), { "COPY2", "opencode" }));
+}
+
+TEST(macro_processing_stack, double_copy_with_nested_2)
+{
+    mock_parse_lib_provider lib({
+        { "COPY1", " COPY COPY2" },
+        { "COPY2", R"(
+    MACRO
+    INNER
+    MNOTE 'Hello'
+    MEND
+)" },
+        { "MAC", R"(.*
+    MACRO
+    MAC
+    MACRO
+    NESTED
+    COPY COPY1
+    MEND
+    MEND
+)" },
+    });
+    std::string input = R"(
+    MAC
+    NESTED
+    INNER
+)";
+    analyzer a(input, analyzer_options { opencode, &lib });
+    a.analyze();
+
+    ASSERT_TRUE(matches_message_codes(a.diags(), { "MNOTE" }));
+    EXPECT_TRUE(matches_diagnostic_stack(a.diags().front(), { "COPY2", "opencode" }));
+}
+
+TEST(macro_processing_stack, double_copy_with_nested_3)
+{
+    mock_parse_lib_provider lib({
+        { "COPY1", " COPY COPY2" },
+        { "COPY2", R"(
+    MNOTE 'Hello'
+)" },
+        { "MAC", R"(.*
+    MACRO
+    MAC
+    MACRO
+    NESTED
+    MACRO
+    INNER
+    COPY COPY1
+    MEND
+    MEND
+    MEND
+)" },
+    });
+    std::string input = R"(
+    MAC
+    NESTED
+    INNER
+)";
+    analyzer a(input, analyzer_options { opencode, &lib });
+    a.analyze();
+
+    ASSERT_TRUE(matches_message_codes(a.diags(), { "MNOTE" }));
+    EXPECT_TRUE(matches_diagnostic_stack(a.diags().front(), { "COPY2", "COPY1", "opencode" }));
+}
