@@ -45,7 +45,12 @@ macrodef_processor::macrodef_processor(const analyzing_context& ctx,
           .invalid = true, // result starts invalid until mandatory statements are encountered
       })
     , table_(create_table())
-{}
+{
+    if (const auto* mac = hlasm_ctx.current_macro())
+    {
+        drop_copy_nest = mac->get_current_copy_nest().size();
+    }
+}
 
 std::optional<context::id_index> macrodef_processor::resolve_concatenation(
     const semantics::concat_chain& concat, const range&) const
@@ -539,6 +544,15 @@ void macrodef_processor::add_correct_copy_nest()
 
     if (initial_copy_nest_ < hlasm_ctx.current_copy_stack().size())
         result_.used_copy_members.insert(hlasm_ctx.current_copy_stack().back().copy_member_definition);
+
+    if (drop_copy_nest != skip_copy_nest)
+    {
+        for (const auto& nest : hlasm_ctx.current_macro()->get_current_copy_nest() | std::views::drop(drop_copy_nest))
+        {
+            result_.used_copy_members.insert(hlasm_ctx.get_copy_member(nest.member_name));
+            result_.nests.back().push_back(nest);
+        }
+    }
 
     const bool in_inner_macro = macro_nest_ > 1 + bumped_macro_nest;
     auto& [scope, start_new_slice] = result_.file_scopes[result_.nests.back().back().loc.resource_loc];

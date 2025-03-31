@@ -33,6 +33,8 @@ class macrodef_processor final : public statement_processor
     position curr_outer_position_;
     size_t initial_copy_nest_;
     size_t macro_nest_ = 1;
+    static constexpr size_t skip_copy_nest = (size_t)-1;
+    size_t drop_copy_nest = skip_copy_nest;
     bool bumped_macro_nest = false;
     bool expecting_prototype_ = true;
     bool expecting_MACRO_;

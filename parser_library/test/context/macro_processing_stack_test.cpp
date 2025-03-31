@@ -450,5 +450,5 @@ TEST(macro_processing_stack, double_copy_with_nested_3)
     a.analyze();
 
     ASSERT_TRUE(matches_message_codes(a.diags(), { "MNOTE" }));
-    EXPECT_TRUE(matches_diagnostic_stack(a.diags().front(), { "COPY2", "COPY1", "opencode" }));
+    EXPECT_TRUE(matches_diagnostic_stack(a.diags().front(), { "COPY2", "COPY1", "MAC", "opencode" }));
 }
