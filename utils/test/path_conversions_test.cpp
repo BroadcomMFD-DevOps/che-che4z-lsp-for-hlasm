@@ -105,7 +105,7 @@ TEST(path_conversions, reconstruct_uri_full)
 TEST(path_conversions, dissect_invalid_uri)
 {
     EXPECT_FALSE(dissect_uri("x:///"));
-    EXPECT_FALSE(dissect_uri("3:///"));
+    EXPECT_FALSE(dissect_uri("333:///"));
     EXPECT_FALSE(dissect_uri("a%3b://"));
     EXPECT_FALSE(dissect_uri("scheme://[]:{}@host"));
     EXPECT_FALSE(dissect_uri("scheme://host:port"));
