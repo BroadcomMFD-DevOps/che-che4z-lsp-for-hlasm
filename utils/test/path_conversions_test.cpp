@@ -101,3 +101,28 @@ TEST(path_conversions, reconstruct_uri_full)
 
     EXPECT_EQ(reconstruct_uri(dis_uri), "aaa://user:pass@canteen.com:1234/table/1?meal=dinner#lasagne");
 }
+
+TEST(path_conversions, dissect_invalid_uri)
+{
+    EXPECT_FALSE(dissect_uri("x:///"));
+    EXPECT_FALSE(dissect_uri("3:///"));
+    EXPECT_FALSE(dissect_uri("a%3b://"));
+    EXPECT_FALSE(dissect_uri("scheme://[]:{}@host"));
+    EXPECT_FALSE(dissect_uri("scheme://host:port"));
+    EXPECT_FALSE(dissect_uri("scheme://host:%3b"));
+    EXPECT_FALSE(dissect_uri("scheme://[2000::1"));
+    EXPECT_FALSE(dissect_uri("scheme://{}"));
+    EXPECT_FALSE(dissect_uri("scheme://host/{}"));
+    EXPECT_FALSE(dissect_uri("scheme://host?query={}"));
+    EXPECT_FALSE(dissect_uri("scheme://host#fragment{}"));
+}
+
+TEST(path_conversions, dissect_uri_valid_host)
+{
+    EXPECT_TRUE(dissect_uri("scheme://hostname"));
+    EXPECT_TRUE(dissect_uri("scheme://[2000::1]"));
+    EXPECT_TRUE(dissect_uri("scheme://192.168.0.1"));
+    EXPECT_TRUE(dissect_uri("scheme://hostname:30"));
+    EXPECT_TRUE(dissect_uri("scheme://[2000::1]:30"));
+    EXPECT_TRUE(dissect_uri("scheme://192.168.0.1:30"));
+}

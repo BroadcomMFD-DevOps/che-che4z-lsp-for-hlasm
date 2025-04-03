@@ -311,13 +311,36 @@ std::optional<dissected_uri_view> dissect_uri(std::string_view uri)
         uri.remove_prefix(userinfo + 1);
     }
 
-    if (const auto port = uri.rfind(':'); port != std::string_view::npos)
+    if (uri.starts_with("["))
     {
-        dis_uri.auth->port = uri.substr(port + 1);
-        uri = uri.substr(0, port);
+        const auto end_rb = uri.find(']');
+        if (end_rb == std::string_view::npos)
+        {
+            result.reset();
+            return result;
+        }
+        dis_uri.auth->host = uri.substr(0, end_rb + 1);
+        uri.remove_prefix(end_rb + 1);
+        if (!uri.empty())
+        {
+            if (uri.front() != ':')
+            {
+                result.reset();
+                return result;
+            }
+            dis_uri.auth->port = uri.substr(1);
+        }
     }
+    else
+    {
+        if (const auto port = uri.rfind(':'); port != std::string_view::npos)
+        {
+            dis_uri.auth->port = uri.substr(port + 1);
+            uri = uri.substr(0, port);
+        }
 
-    dis_uri.auth->host = uri;
+        dis_uri.auth->host = uri;
+    }
 
     validate_or_reset(result);
     return result;
