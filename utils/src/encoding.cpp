@@ -14,9 +14,9 @@
 
 #include "utils/encoding.h"
 
+#include <algorithm>
 #include <functional>
 #include <iterator>
-#include <algorithm>
 #include <limits>
 #include <optional>
 
