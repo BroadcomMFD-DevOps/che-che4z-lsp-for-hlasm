@@ -155,8 +155,10 @@ std::pair<std::unique_ptr<context::macro_param_data_single>, bool> find_single_m
     if (comma_encountered)
         ++start;
 
-    return { std::make_unique<context::macro_param_data_single>(std::string(data.substr(begin, tmp_start - begin))),
-        comma_encountered };
+    return {
+        std::make_unique<context::macro_param_data_single>(std::string(data.substr(begin, tmp_start - begin))),
+        comma_encountered,
+    };
 }
 
 context::macro_data_ptr macro_processor::string_to_macrodata(std::string data, diagnostic_adder& add_diagnostic)
@@ -305,7 +307,9 @@ bool has_keyword_operand(const std::unordered_map<context::id_index, const conte
     return named != named_params.end() && named->second->param_type == context::macro_param_type::KEY_PAR_TYPE;
 }
 
-template<std::invocable<semantics::concat_chain::const_iterator, semantics::concat_chain::const_iterator> T>
+template<
+    std::invocable<semantics::concat_chain::const_iterator, semantics::concat_chain::const_iterator, diagnostic_adder&>
+        T>
 context::macro_data_ptr create_macro_data_inner(semantics::concat_chain::const_iterator begin,
     semantics::concat_chain::const_iterator end,
     T&& to_string,
@@ -316,10 +320,10 @@ context::macro_data_ptr create_macro_data_inner(semantics::concat_chain::const_i
     if (size == 0)
         return std::make_unique<context::macro_param_data_dummy>();
     else if (size == 1 && !semantics::concat_chain_matches<semantics::sublist_conc>(begin, end))
-        return macro_processor::string_to_macrodata(to_string(begin, end), add_diagnostic);
+        return macro_processor::string_to_macrodata(to_string(begin, end, add_diagnostic), add_diagnostic);
     else if (size > 1)
     {
-        if (auto s = to_string(begin, end); s.empty())
+        if (auto s = to_string(begin, end, add_diagnostic); s.empty())
             return std::make_unique<context::macro_param_data_dummy>();
         else if (s.front() != '(' && (!nested || semantics::concatenation_point::find_var_sym(begin, end) == nullptr))
             return macro_processor::string_to_macrodata(std::move(s), add_diagnostic);
@@ -335,6 +339,7 @@ context::macro_data_ptr create_macro_data_inner(semantics::concat_chain::const_i
     const auto& inner_chains = std::get<semantics::sublist_conc>(begin->value).list;
 
     std::vector<context::macro_data_ptr> sublist;
+    sublist.reserve(inner_chains.size());
 
     for (auto& inner_chain : inner_chains)
     {
@@ -372,10 +377,11 @@ constexpr size_t macro_argument_length_limit = 4064;
 
 } // namespace
 
-auto macro_processor::make_evaluator(diagnostic_adder& diags) const
+auto macro_processor::make_evaluator() const
 {
-    return [this, &diags, limit_diag_issued = false](
-               semantics::concat_chain::const_iterator b, semantics::concat_chain::const_iterator e) mutable {
+    return [this, limit_diag_issued = false](semantics::concat_chain::const_iterator b,
+               semantics::concat_chain::const_iterator e,
+               diagnostic_adder& diags) mutable {
         auto s = semantics::concatenation_point::evaluate(b, e, eval_ctx);
         if (s.size() < macro_argument_length_limit)
             return s;
@@ -437,7 +443,7 @@ std::vector<context::macro_arg> macro_processor::get_operand_args(const resolved
             else
                 keyword_params.push_back(arg_name);
         }
-        args.emplace_back(create_macro_data_inner(chain_b, chain_e, make_evaluator(add_diags), add_diags), arg_name);
+        args.emplace_back(create_macro_data_inner(chain_b, chain_e, make_evaluator(), add_diags), arg_name);
     }
 
     return args;
@@ -454,9 +460,9 @@ context::macro_data_ptr macro_processor::create_macro_data(semantics::concat_cha
         return std::make_unique<context::macro_param_data_dummy>();
     }
 
-    const auto f = [](semantics::concat_chain::const_iterator b, semantics::concat_chain::const_iterator e) {
-        return semantics::concatenation_point::to_string(b, e);
-    };
+    static constexpr auto f = [](semantics::concat_chain::const_iterator b,
+                                  semantics::concat_chain::const_iterator e,
+                                  diagnostic_adder&) { return semantics::concatenation_point::to_string(b, e); };
     return create_macro_data_inner(begin, end, f, add_diagnostic);
 }
 

@@ -44,7 +44,7 @@ public:
         semantics::concat_chain::const_iterator end,
         diagnostic_adder& add_diagnostic);
 
-    auto make_evaluator(diagnostic_adder& diags) const;
+    auto make_evaluator() const;
 
 private:
     macro_arguments get_args(const resolved_statement& statement) const;
