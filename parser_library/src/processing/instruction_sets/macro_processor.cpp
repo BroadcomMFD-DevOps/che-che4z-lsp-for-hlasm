@@ -61,7 +61,7 @@ void macro_processor::process(std::shared_ptr<const processing::resolved_stateme
     auto [_, truncated] = hlasm_ctx.enter_macro(stmt->opcode_ref().value, std::move(named), std::move(symbolic));
 
     if (truncated) // this should never happen in a real code
-        eval_ctx.diags.add_diagnostic(diagnostic_op::error_E081(stmt->operands_ref().field_range));
+        add_diagnostic(diagnostic_op::error_E081(stmt->operands_ref().field_range));
 }
 namespace {
 bool is_attribute_consuming(char c)
@@ -161,7 +161,7 @@ std::pair<std::unique_ptr<context::macro_param_data_single>, bool> find_single_m
     };
 }
 
-context::macro_data_ptr macro_processor::string_to_macrodata(std::string data, diagnostic_adder& add_diagnostic)
+context::macro_data_ptr macro_processor::string_to_macrodata(std::string data, diagnostic_adder& add_diags)
 {
     if (data.empty())
         return std::make_unique<context::macro_param_data_dummy>();
@@ -180,7 +180,7 @@ context::macro_data_ptr macro_processor::string_to_macrodata(std::string data, d
     if (data.size() > std::numeric_limits<context::A_t>::max())
     {
         // This should not really happen in practice
-        add_diagnostic(diagnostic_op::error_E079);
+        add_diags(diagnostic_op::error_E079);
         data.erase(std::numeric_limits<context::A_t>::max());
     }
 
@@ -313,25 +313,25 @@ template<
 context::macro_data_ptr create_macro_data_inner(semantics::concat_chain::const_iterator begin,
     semantics::concat_chain::const_iterator end,
     T&& to_string,
-    diagnostic_adder& add_diagnostic,
+    diagnostic_adder& add_diags,
     bool nested = false)
 {
     auto size = end - begin;
     if (size == 0)
         return std::make_unique<context::macro_param_data_dummy>();
     else if (size == 1 && !semantics::concat_chain_matches<semantics::sublist_conc>(begin, end))
-        return macro_processor::string_to_macrodata(to_string(begin, end, add_diagnostic), add_diagnostic);
+        return macro_processor::string_to_macrodata(to_string(begin, end, add_diags), add_diags);
     else if (size > 1)
     {
-        if (auto s = to_string(begin, end, add_diagnostic); s.empty())
+        if (auto s = to_string(begin, end, add_diags); s.empty())
             return std::make_unique<context::macro_param_data_dummy>();
         else if (s.front() != '(' && (!nested || semantics::concatenation_point::find_var_sym(begin, end) == nullptr))
-            return macro_processor::string_to_macrodata(std::move(s), add_diagnostic);
+            return macro_processor::string_to_macrodata(std::move(s), add_diags);
         else if (is_valid_string(s))
-            return macro_processor::string_to_macrodata(std::move(s), add_diagnostic);
+            return macro_processor::string_to_macrodata(std::move(s), add_diags);
         else
         {
-            add_diagnostic(diagnostic_op::error_S0005);
+            add_diags(diagnostic_op::error_S0005);
             return std::make_unique<context::macro_param_data_dummy>();
         }
     }
@@ -344,7 +344,7 @@ context::macro_data_ptr create_macro_data_inner(semantics::concat_chain::const_i
     for (auto& inner_chain : inner_chains)
     {
         sublist.push_back(create_macro_data_inner(
-            inner_chain.begin(), inner_chain.end(), static_cast<T&&>(to_string), add_diagnostic, true));
+            inner_chain.begin(), inner_chain.end(), static_cast<T&&>(to_string), add_diags, true));
     }
     return std::make_unique<context::macro_param_data_composite>(std::move(sublist));
 }
@@ -418,7 +418,7 @@ std::vector<context::macro_arg> macro_processor::get_operand_args(const resolved
             continue;
         }
 
-        auto tmp = op->access_mac();
+        const auto tmp = op->access_mac();
         assert(tmp);
 
         const auto [valid_keyword, arg_name] = is_keyword(tmp->chain, hlasm_ctx);
@@ -431,15 +431,16 @@ std::vector<context::macro_arg> macro_processor::get_operand_args(const resolved
         {
             if (!has_keyword_operand(named_params, arg_name))
             {
-                add_diagnostic(diagnostic_op::warning_W014(tmp->operand_range));
+                add_diags(diagnostic_op::warning_W014);
 
                 args.emplace_back(std::make_unique<context::macro_param_data_single>(
                     semantics::concatenation_point::to_string(tmp->chain)));
 
                 continue;
             }
-            else if (std::ranges::find(keyword_params, arg_name) != keyword_params.end())
-                add_diagnostic(diagnostic_op::error_E011("Keyword", tmp->operand_range));
+
+            if (std::ranges::find(keyword_params, arg_name) != keyword_params.end())
+                add_diags(diagnostic_op::error_E011, "Keyword");
             else
                 keyword_params.push_back(arg_name);
         }
@@ -451,19 +452,19 @@ std::vector<context::macro_arg> macro_processor::get_operand_args(const resolved
 
 context::macro_data_ptr macro_processor::create_macro_data(semantics::concat_chain::const_iterator begin,
     semantics::concat_chain::const_iterator end,
-    diagnostic_adder& add_diagnostic)
+    diagnostic_adder& add_diags)
 {
     auto tmp = semantics::concatenation_point::find_var_sym(begin, end);
     if (tmp)
     {
-        add_diagnostic(diagnostic_op::error_E064);
+        add_diags(diagnostic_op::error_E064);
         return std::make_unique<context::macro_param_data_dummy>();
     }
 
     static constexpr auto f = [](semantics::concat_chain::const_iterator b,
                                   semantics::concat_chain::const_iterator e,
                                   diagnostic_adder&) { return semantics::concatenation_point::to_string(b, e); };
-    return create_macro_data_inner(begin, end, f, add_diagnostic);
+    return create_macro_data_inner(begin, end, f, add_diags);
 }
 
 } // namespace hlasm_plugin::parser_library::processing
