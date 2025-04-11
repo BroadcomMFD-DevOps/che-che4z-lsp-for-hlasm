@@ -25,49 +25,6 @@
 
 namespace hlasm_plugin::parser_library::processing {
 
-namespace {
-size_t find_erase_point(std::string_view s, const size_t limit)
-{
-    size_t i = 0;
-    while (true)
-    {
-        auto l = limit;
-        auto j = i;
-        for (; j < s.size(); ++j)
-        {
-            l -= (s[j] & 0xc0) != 0x80;
-            if (l == (size_t)-1)
-                break;
-        }
-        if (l == (size_t)-1)
-            i = j;
-        else if (l == 0 && j == s.size())
-            i = j;
-        else
-            break;
-    }
-
-    return i;
-}
-
-std::string trim_concat_string(std::string s, size_t limit, diagnostic_adder& d)
-{
-    if (s.size() >= limit)
-    {
-        if (const auto erase_to = find_erase_point(s, limit))
-        {
-            d(diagnostic_op::error_CE011);
-            s.erase(0, erase_to);
-        }
-    }
-
-    return s;
-}
-
-constexpr size_t macro_argument_length_limit = 4064;
-
-} // namespace
-
 macro_processor::macro_processor(const analyzing_context& ctx,
     branching_provider& branch_provider,
     parse_lib_provider& lib_provider,
@@ -351,7 +308,7 @@ bool has_keyword_operand(const std::unordered_map<context::id_index, const conte
 template<std::invocable<semantics::concat_chain::const_iterator, semantics::concat_chain::const_iterator> T>
 context::macro_data_ptr create_macro_data_inner(semantics::concat_chain::const_iterator begin,
     semantics::concat_chain::const_iterator end,
-    const T& to_string,
+    T& to_string,
     diagnostic_adder& add_diagnostic,
     bool nested = false)
 {
@@ -386,6 +343,33 @@ context::macro_data_ptr create_macro_data_inner(semantics::concat_chain::const_i
     }
     return std::make_unique<context::macro_param_data_composite>(std::move(sublist));
 }
+
+size_t find_erase_point(std::string_view s, const size_t limit)
+{
+    size_t i = 0;
+    while (true)
+    {
+        auto l = limit;
+        auto j = i;
+        for (; j < s.size(); ++j)
+        {
+            l -= (s[j] & 0xc0) != 0x80;
+            if (l == (size_t)-1)
+                break;
+        }
+        if (l == (size_t)-1)
+            i = j;
+        else if (l == 0 && j == s.size())
+            i = j;
+        else
+            break;
+    }
+
+    return i;
+}
+
+constexpr size_t macro_argument_length_limit = 4064;
+
 } // namespace
 
 std::vector<context::macro_arg> macro_processor::get_operand_args(const resolved_statement& statement) const
@@ -433,10 +417,21 @@ std::vector<context::macro_arg> macro_processor::get_operand_args(const resolved
             else
                 keyword_params.push_back(arg_name);
         }
-        const auto evaluate = [this, &add_diags](semantics::concat_chain::const_iterator b,
-                                  semantics::concat_chain::const_iterator e) {
-            return trim_concat_string(
-                semantics::concatenation_point::evaluate(b, e, eval_ctx), macro_argument_length_limit, add_diags);
+        auto evaluate = [this, &add_diags, limit_diag_issued = false](semantics::concat_chain::const_iterator b,
+                            semantics::concat_chain::const_iterator e) mutable {
+            auto s = semantics::concatenation_point::evaluate(b, e, eval_ctx);
+            if (s.size() < macro_argument_length_limit)
+                return s;
+            const auto erase_to = find_erase_point(s, macro_argument_length_limit);
+            if (erase_to == 0)
+                return s;
+            s.erase(0, erase_to);
+            if (!limit_diag_issued)
+            {
+                limit_diag_issued = true;
+                add_diags(diagnostic_op::error_CE011);
+            }
+            return s;
         };
         args.emplace_back(create_macro_data_inner(chain_b, chain_e, evaluate, add_diags), arg_name);
     }
