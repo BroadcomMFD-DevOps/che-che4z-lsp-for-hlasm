@@ -308,7 +308,7 @@ bool has_keyword_operand(const std::unordered_map<context::id_index, const conte
 template<std::invocable<semantics::concat_chain::const_iterator, semantics::concat_chain::const_iterator> T>
 context::macro_data_ptr create_macro_data_inner(semantics::concat_chain::const_iterator begin,
     semantics::concat_chain::const_iterator end,
-    T& to_string,
+    T&& to_string,
     diagnostic_adder& add_diagnostic,
     bool nested = false)
 {
@@ -338,8 +338,8 @@ context::macro_data_ptr create_macro_data_inner(semantics::concat_chain::const_i
 
     for (auto& inner_chain : inner_chains)
     {
-        sublist.push_back(
-            create_macro_data_inner(inner_chain.begin(), inner_chain.end(), to_string, add_diagnostic, true));
+        sublist.push_back(create_macro_data_inner(
+            inner_chain.begin(), inner_chain.end(), static_cast<T&&>(to_string), add_diagnostic, true));
     }
     return std::make_unique<context::macro_param_data_composite>(std::move(sublist));
 }
@@ -371,6 +371,26 @@ size_t find_erase_point(std::string_view s, const size_t limit)
 constexpr size_t macro_argument_length_limit = 4064;
 
 } // namespace
+
+auto macro_processor::make_evaluator(diagnostic_adder& diags) const
+{
+    return [this, &diags, limit_diag_issued = false](
+               semantics::concat_chain::const_iterator b, semantics::concat_chain::const_iterator e) mutable {
+        auto s = semantics::concatenation_point::evaluate(b, e, eval_ctx);
+        if (s.size() < macro_argument_length_limit)
+            return s;
+        const auto erase_to = find_erase_point(s, macro_argument_length_limit);
+        if (erase_to == 0)
+            return s;
+        s.erase(0, erase_to);
+        if (!limit_diag_issued)
+        {
+            limit_diag_issued = true;
+            diags(diagnostic_op::error_CE011);
+        }
+        return s;
+    };
+}
 
 std::vector<context::macro_arg> macro_processor::get_operand_args(const resolved_statement& statement) const
 {
@@ -417,23 +437,7 @@ std::vector<context::macro_arg> macro_processor::get_operand_args(const resolved
             else
                 keyword_params.push_back(arg_name);
         }
-        auto evaluate = [this, &add_diags, limit_diag_issued = false](semantics::concat_chain::const_iterator b,
-                            semantics::concat_chain::const_iterator e) mutable {
-            auto s = semantics::concatenation_point::evaluate(b, e, eval_ctx);
-            if (s.size() < macro_argument_length_limit)
-                return s;
-            const auto erase_to = find_erase_point(s, macro_argument_length_limit);
-            if (erase_to == 0)
-                return s;
-            s.erase(0, erase_to);
-            if (!limit_diag_issued)
-            {
-                limit_diag_issued = true;
-                add_diags(diagnostic_op::error_CE011);
-            }
-            return s;
-        };
-        args.emplace_back(create_macro_data_inner(chain_b, chain_e, evaluate, add_diags), arg_name);
+        args.emplace_back(create_macro_data_inner(chain_b, chain_e, make_evaluator(add_diags), add_diags), arg_name);
     }
 
     return args;
