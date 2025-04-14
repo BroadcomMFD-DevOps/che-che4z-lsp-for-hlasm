@@ -312,7 +312,7 @@ template<
         T>
 context::macro_data_ptr create_macro_data_inner(semantics::concat_chain::const_iterator begin,
     semantics::concat_chain::const_iterator end,
-    T&& to_string,
+    T& to_string,
     diagnostic_adder& add_diags,
     bool nested = false)
 {
@@ -343,8 +343,7 @@ context::macro_data_ptr create_macro_data_inner(semantics::concat_chain::const_i
 
     for (auto& inner_chain : inner_chains)
     {
-        sublist.push_back(create_macro_data_inner(
-            inner_chain.begin(), inner_chain.end(), static_cast<T&&>(to_string), add_diags, true));
+        sublist.push_back(create_macro_data_inner(inner_chain.begin(), inner_chain.end(), to_string, add_diags, true));
     }
     return std::make_unique<context::macro_param_data_composite>(std::move(sublist));
 }
@@ -444,7 +443,8 @@ std::vector<context::macro_arg> macro_processor::get_operand_args(const resolved
             else
                 keyword_params.push_back(arg_name);
         }
-        args.emplace_back(create_macro_data_inner(chain_b, chain_e, make_evaluator(), add_diags), arg_name);
+        auto evaluator = make_evaluator();
+        args.emplace_back(create_macro_data_inner(chain_b, chain_e, evaluator, add_diags), arg_name);
     }
 
     return args;

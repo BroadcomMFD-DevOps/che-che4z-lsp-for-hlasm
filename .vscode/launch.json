@@ -81,6 +81,19 @@
       "preLaunchTask": "build"
     },
     {
+      "name": "(Windows) Launch fuzzer",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/debug/fuzzer.exe",
+      "args": [
+      ],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}/build/debug/bin/",
+      "environment": [],
+      //"externalConsole": true,
+      "preLaunchTask": "build"
+    },
+    {
       "name": "(Windows) Attach",
       "type": "cppvsdbg",
       "request": "attach",
