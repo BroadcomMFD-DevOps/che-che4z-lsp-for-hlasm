@@ -131,7 +131,7 @@ context::SET_t ca_string::evaluate(const evaluation_context& eval_ctx) const
 }
 
 namespace {
-std::optional<size_t> string_too_long(std::string_view s, uint64_t dupl)
+std::optional<size_t> get_utf32_length_if_too_long(std::string_view s, uint64_t dupl)
 {
     if (s.size() > ca_string::MAX_STR_SIZE || s.size() * dupl > ca_string::MAX_STR_SIZE)
     {
@@ -158,7 +158,7 @@ std::string ca_string::duplicate(
     if (dupl <= 0 || value.empty())
         return {};
 
-    const auto len = string_too_long(value, dupl);
+    const auto len = get_utf32_length_if_too_long(value, dupl);
     if (!len)
     {
         repeat_string(value, dupl);
@@ -174,10 +174,10 @@ std::string ca_string::duplicate(
     }
 
     const auto repeat = MAX_STR_SIZE / *len;
-    const auto remainer = MAX_STR_SIZE % *len;
+    const auto remainder = MAX_STR_SIZE % *len;
 
     repeat_string(value, repeat);
-    value.append(utils::utf8_substr(value, 0, remainer).str);
+    value.append(utils::utf8_substr(value, 0, remainder).str);
 
     return value;
 }
