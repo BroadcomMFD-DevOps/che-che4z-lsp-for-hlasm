@@ -23,8 +23,48 @@
 #include "processing/instruction_sets/macro_processor.h"
 #include "processing/processing_state_listener.h"
 #include "semantics/operand_impls.h"
+#include "utils/projectors.h"
 
 namespace hlasm_plugin::parser_library::processing {
+
+template<auto ptr, auto... others>
+constexpr auto fn()
+{
+    if constexpr (sizeof...(others) == 0 && requires(macrodef_processor* self) { (self->*ptr)(); })
+        return [](macrodef_processor* self, const resolved_statement&) { return (self->*ptr)(); };
+    else
+        return [](macrodef_processor* self, const resolved_statement& stmt) { return (self->*ptr)(stmt, others...); };
+}
+
+constexpr auto macrodef_processor::create_table()
+{
+    using wk = context::id_storage::well_known;
+    using context::id_index;
+    using callback = bool (*)(macrodef_processor* self, const resolved_statement&);
+    constexpr auto ar = std::to_array<std::pair<id_index, callback>>({
+        { wk::SETA, fn<&macrodef_processor::process_SET, context::SET_t_enum::A_TYPE>() },
+        { wk::SETB, fn<&macrodef_processor::process_SET, context::SET_t_enum::B_TYPE>() },
+        { wk::SETC, fn<&macrodef_processor::process_SET, context::SET_t_enum::C_TYPE>() },
+        { wk::LCLA, fn<&macrodef_processor::process_LCL_GBL, context::SET_t_enum::A_TYPE, false>() },
+        { wk::LCLB, fn<&macrodef_processor::process_LCL_GBL, context::SET_t_enum::B_TYPE, false>() },
+        { wk::LCLC, fn<&macrodef_processor::process_LCL_GBL, context::SET_t_enum::C_TYPE, false>() },
+        { wk::GBLA, fn<&macrodef_processor::process_LCL_GBL, context::SET_t_enum::A_TYPE, true>() },
+        { wk::GBLB, fn<&macrodef_processor::process_LCL_GBL, context::SET_t_enum::B_TYPE, true>() },
+        { wk::GBLC, fn<&macrodef_processor::process_LCL_GBL, context::SET_t_enum::C_TYPE, true>() },
+        { wk::MACRO, fn<&macrodef_processor::process_MACRO>() },
+        { wk::MEND, fn<&macrodef_processor::process_MEND>() },
+        { wk::COPY, fn<&macrodef_processor::process_COPY>() },
+    });
+
+    std::pair<std::array<id_index, ar.size()>, std::array<callback, ar.size()>> result;
+
+    std::ranges::transform(ar, result.first.begin(), utils::first_element);
+    std::ranges::transform(ar, result.second.begin(), utils::second_element);
+
+    return result;
+}
+
+constexpr auto g_macrodef_process_table = macrodef_processor::create_table();
 
 macrodef_processor::macrodef_processor(const analyzing_context& ctx,
     processing_state_listener& listener,
@@ -203,10 +243,10 @@ bool macrodef_processor::process_statement(const context::hlasm_statement& state
         {
             process_sequence_symbol(res_stmt->label_ref());
 
-            if (auto found = table_.find(res_stmt->opcode_ref().value); found != table_.end())
+            const auto found = std::ranges::find(g_macrodef_process_table.first, res_stmt->opcode_ref().value);
+            if (found != g_macrodef_process_table.first.end())
             {
-                auto& [key, func] = *found;
-                return func(this, *res_stmt);
+                return g_macrodef_process_table.second[found - g_macrodef_process_table.first.begin()](this, *res_stmt);
             }
         }
         else if (auto def_stmt = statement.access_deferred())
@@ -356,36 +396,6 @@ bool macrodef_processor::test_varsym_validity(const semantics::variable_symbol* 
         return false;
     }
     return true;
-}
-
-const macrodef_processor::process_table_t macrodef_processor::table_ = macrodef_processor::create_table();
-
-template<auto ptr, auto... others>
-constexpr auto fn()
-{
-    if constexpr (sizeof...(others) == 0 && requires(macrodef_processor* self) { (self->*ptr)(); })
-        return [](macrodef_processor* self, const resolved_statement&) { return (self->*ptr)(); };
-    else
-        return [](macrodef_processor* self, const resolved_statement& stmt) { return (self->*ptr)(stmt, others...); };
-}
-
-macrodef_processor::process_table_t macrodef_processor::create_table()
-{
-    using wk = context::id_storage::well_known;
-    process_table_t table;
-    table.emplace(wk::SETA, fn<&macrodef_processor::process_SET, context::SET_t_enum::A_TYPE>());
-    table.emplace(wk::SETB, fn<&macrodef_processor::process_SET, context::SET_t_enum::B_TYPE>());
-    table.emplace(wk::SETC, fn<&macrodef_processor::process_SET, context::SET_t_enum::C_TYPE>());
-    table.emplace(wk::LCLA, fn<&macrodef_processor::process_LCL_GBL, context::SET_t_enum::A_TYPE, false>());
-    table.emplace(wk::LCLB, fn<&macrodef_processor::process_LCL_GBL, context::SET_t_enum::B_TYPE, false>());
-    table.emplace(wk::LCLC, fn<&macrodef_processor::process_LCL_GBL, context::SET_t_enum::C_TYPE, false>());
-    table.emplace(wk::GBLA, fn<&macrodef_processor::process_LCL_GBL, context::SET_t_enum::A_TYPE, true>());
-    table.emplace(wk::GBLB, fn<&macrodef_processor::process_LCL_GBL, context::SET_t_enum::B_TYPE, true>());
-    table.emplace(wk::GBLC, fn<&macrodef_processor::process_LCL_GBL, context::SET_t_enum::C_TYPE, true>());
-    table.emplace(wk::MACRO, fn<&macrodef_processor::process_MACRO>());
-    table.emplace(wk::MEND, fn<&macrodef_processor::process_MEND>());
-    table.emplace(wk::COPY, fn<&macrodef_processor::process_COPY>());
-    return table;
 }
 
 bool macrodef_processor::process_MACRO()

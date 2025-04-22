@@ -39,12 +39,9 @@ class macrodef_processor final : public statement_processor
 
     macrodef_processing_result result_;
 
-    using process_table_t =
-        std::unordered_map<context::id_index, bool (*)(macrodef_processor*, const resolved_statement&)>;
-    static const process_table_t table_;
-    static process_table_t create_table();
-
 public:
+    static constexpr auto create_table();
+
     macrodef_processor(const analyzing_context& ctx,
         processing_state_listener& listener,
         branching_provider& branching_provider_,

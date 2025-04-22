@@ -49,12 +49,8 @@ namespace hlasm_plugin::parser_library::processing {
 // processor of assembler instructions
 class asm_processor final : public low_language_processor
 {
-    using process_table_t = std::unordered_map<context::id_index, void (*)(asm_processor*, rebuilt_statement&&)>;
-
-    static const process_table_t table_;
-    static process_table_t create_table();
-
 public:
+    static constexpr auto create_table();
     asm_processor(const analyzing_context& ctx,
         branching_provider& branch_provider,
         parse_lib_provider& lib_provider,

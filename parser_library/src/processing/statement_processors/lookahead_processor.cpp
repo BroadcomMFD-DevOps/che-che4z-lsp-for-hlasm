@@ -14,6 +14,8 @@
 
 #include "lookahead_processor.h"
 
+#include <array>
+
 #include "context/hlasm_context.h"
 #include "context/instruction.h"
 #include "context/ordinary_assembly/ordinary_assembly_dependency_solver.h"
@@ -24,6 +26,7 @@
 #include "processing/instruction_sets/asm_processor.h"
 #include "processing/statement.h"
 #include "semantics/operand_impls.h"
+#include "utils/projectors.h"
 
 namespace hlasm_plugin::parser_library::processing {
 
@@ -142,33 +145,40 @@ void lookahead_processor::process_COPY(const resolved_statement& statement)
     }
 }
 
-const lookahead_processor::process_table_t lookahead_processor::asm_proc_table_ = lookahead_processor::create_table();
 
 template<void (lookahead_processor::*ptr)(context::id_index, const resolved_statement&)>
-constexpr auto fn()
+constexpr auto fn() noexcept
 {
     return [](lookahead_processor* self, context::id_index name, const resolved_statement& stmt) {
         (self->*ptr)(name, std::move(stmt));
     };
 }
 
-lookahead_processor::process_table_t lookahead_processor::create_table()
+constexpr auto lookahead_processor::create_table()
 {
-    process_table_t table;
     using context::id_index;
-    table.try_emplace(id_index("CSECT"), fn<&lookahead_processor::assign_section_attributes>());
-    table.try_emplace(id_index("DSECT"), fn<&lookahead_processor::assign_section_attributes>());
-    table.try_emplace(id_index("RSECT"), fn<&lookahead_processor::assign_section_attributes>());
-    table.try_emplace(id_index("COM"), fn<&lookahead_processor::assign_section_attributes>());
-    table.try_emplace(id_index("DXD"), fn<&lookahead_processor::assign_section_attributes>());
-    table.try_emplace(id_index("LOCTR"), fn<&lookahead_processor::assign_section_attributes>());
-    table.try_emplace(id_index("EQU"), fn<&lookahead_processor::assign_EQU_attributes>());
-    table.try_emplace(id_index("DC"), fn<&lookahead_processor::assign_data_def_attributes>());
-    table.try_emplace(id_index("DS"), fn<&lookahead_processor::assign_data_def_attributes>());
-    table.try_emplace(id_index("CXD"), fn<&lookahead_processor::assign_cxd_attributes>());
+    using callback = void (*)(lookahead_processor*, context::id_index, const resolved_statement&);
+    constexpr auto ar = std::to_array<std::pair<context::id_index, callback>>({
+        { id_index("CSECT"), fn<&lookahead_processor::assign_section_attributes>() },
+        { id_index("DSECT"), fn<&lookahead_processor::assign_section_attributes>() },
+        { id_index("RSECT"), fn<&lookahead_processor::assign_section_attributes>() },
+        { id_index("COM"), fn<&lookahead_processor::assign_section_attributes>() },
+        { id_index("DXD"), fn<&lookahead_processor::assign_section_attributes>() },
+        { id_index("LOCTR"), fn<&lookahead_processor::assign_section_attributes>() },
+        { id_index("EQU"), fn<&lookahead_processor::assign_EQU_attributes>() },
+        { id_index("DC"), fn<&lookahead_processor::assign_data_def_attributes>() },
+        { id_index("DS"), fn<&lookahead_processor::assign_data_def_attributes>() },
+        { id_index("CXD"), fn<&lookahead_processor::assign_cxd_attributes>() },
+    });
+    std::pair<std::array<id_index, ar.size()>, std::array<callback, ar.size()>> result;
 
-    return table;
+    std::ranges::transform(ar, result.first.begin(), utils::first_element);
+    std::ranges::transform(ar, result.second.begin(), utils::second_element);
+
+    return result;
 }
+
+constexpr auto g_asm_proc_table = lookahead_processor::create_table();
 
 void lookahead_processor::assign_EQU_attributes(context::id_index symbol_name, const resolved_statement& statement)
 {
@@ -284,12 +294,9 @@ void lookahead_processor::assign_machine_attributes(context::id_index symbol_nam
 void lookahead_processor::assign_assembler_attributes(
     context::id_index symbol_name, const resolved_statement& statement)
 {
-    auto it = asm_proc_table_.find(statement.opcode_ref().value);
-    if (it != asm_proc_table_.end())
-    {
-        auto& [key, func] = *it;
-        func(this, symbol_name, statement);
-    }
+    const auto it = std::ranges::find(g_asm_proc_table.first, statement.opcode_ref().value);
+    if (it != g_asm_proc_table.first.end())
+        g_asm_proc_table.second[it - g_asm_proc_table.first.begin()](this, symbol_name, statement);
     else
         register_attr_ref(symbol_name, context::symbol_attributes(context::symbol_origin::MACH, 'M'_ebcdic));
 }

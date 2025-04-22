@@ -28,15 +28,11 @@ class opencode_provider;
 // processor of conditional assembly instructions
 class ca_processor final : public instruction_processor
 {
-    using process_table_t =
-        std::unordered_map<context::id_index, void (*)(ca_processor*, const processing::resolved_statement&)>;
-
-    static const process_table_t table_;
-    static process_table_t create_table();
-
     processing_state_listener& listener_;
 
 public:
+    static constexpr auto create_table();
+
     ca_processor(const analyzing_context& ctx,
         branching_provider& branch_provider,
         parse_lib_provider& lib_provider,

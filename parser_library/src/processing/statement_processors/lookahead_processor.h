@@ -29,11 +29,6 @@ class processing_state_listener;
 // processor used for lookahead, hence finding desired symbol
 class lookahead_processor final : public statement_processor
 {
-    using process_table_t = std::unordered_map<context::id_index,
-        void (*)(lookahead_processor*, context::id_index, const resolved_statement&)>;
-    static const process_table_t asm_proc_table_;
-    static process_table_t create_table();
-
     bool finished_flag_;
     lookahead_processing_result result_;
     size_t macro_nest_;
@@ -45,6 +40,8 @@ class lookahead_processor final : public statement_processor
     context::id_index target_;
 
 public:
+    static constexpr auto create_table();
+
     const lookahead_action action;
 
     lookahead_processor(const analyzing_context& ctx,
