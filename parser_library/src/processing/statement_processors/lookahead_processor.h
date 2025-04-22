@@ -29,8 +29,10 @@ class processing_state_listener;
 // processor used for lookahead, hence finding desired symbol
 class lookahead_processor final : public statement_processor
 {
-    using process_table_t =
-        std::unordered_map<context::id_index, std::function<void(context::id_index, const resolved_statement&)>>;
+    using process_table_t = std::unordered_map<context::id_index,
+        void (*)(lookahead_processor*, context::id_index, const resolved_statement&)>;
+    static const process_table_t asm_proc_table_;
+    static process_table_t create_table();
 
     bool finished_flag_;
     lookahead_processing_result result_;
@@ -63,9 +65,6 @@ private:
     void process_MACRO();
     void process_MEND();
     void process_COPY(const resolved_statement& statement);
-
-    process_table_t asm_proc_table_;
-    process_table_t create_table();
 
     void assign_EQU_attributes(context::id_index symbol_name, const resolved_statement& statement);
     void assign_data_def_attributes(context::id_index symbol_name, const resolved_statement& statement);

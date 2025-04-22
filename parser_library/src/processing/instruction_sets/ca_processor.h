@@ -29,9 +29,11 @@ class opencode_provider;
 class ca_processor final : public instruction_processor
 {
     using process_table_t =
-        std::unordered_map<context::id_index, std::function<void(const processing::resolved_statement&)>>;
+        std::unordered_map<context::id_index, void (*)(ca_processor*, const processing::resolved_statement&)>;
 
-    const process_table_t table_;
+    static const process_table_t table_;
+    static process_table_t create_table();
+
     processing_state_listener& listener_;
 
 public:
@@ -46,8 +48,6 @@ public:
 
 private:
     opencode_provider* open_code_;
-
-    process_table_t create_table();
 
     void register_seq_sym(const processing::resolved_statement& stmt);
 

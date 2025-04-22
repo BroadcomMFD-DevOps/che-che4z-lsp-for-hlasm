@@ -81,7 +81,7 @@ std::optional<int> try_get_number(std::string_view s)
 
 } // namespace
 
-void asm_processor::process_sect(const context::section_kind kind, rebuilt_statement&& stmt)
+void asm_processor::process_sect(rebuilt_statement&& stmt, const context::section_kind kind)
 {
     auto sect_name = find_label_symbol(stmt);
 
@@ -708,6 +708,8 @@ void asm_processor::process_OPSYN(rebuilt_statement&& stmt)
         std::move(dep_solver).derive_current_dependency_evaluation_context());
 }
 
+const asm_processor::process_table_t asm_processor::table_ = asm_processor::create_table();
+
 asm_processor::asm_processor(const analyzing_context& ctx,
     branching_provider& branch_provider,
     parse_lib_provider& lib_provider,
@@ -717,7 +719,6 @@ asm_processor::asm_processor(const analyzing_context& ctx,
     output_handler* output,
     diagnosable_ctx& diag_ctx)
     : low_language_processor(ctx, branch_provider, lib_provider, parser, proc_mgr, diag_ctx)
-    , table_(create_table())
     , open_code_(&open_code)
     , output(output)
 {}
@@ -732,7 +733,7 @@ void asm_processor::process(std::shared_ptr<const processing::resolved_statement
     if (it != table_.end())
     {
         auto& [key, func] = *it;
-        func(std::move(rebuilt_stmt));
+        func(this, std::move(rebuilt_stmt));
     }
     else
     {
@@ -793,46 +794,47 @@ bool asm_processor::common_copy_postprocess(
     return true;
 }
 
+template<auto ptr, auto... others>
+constexpr auto fn()
+{
+    return [](asm_processor* self, rebuilt_statement&& stmt) { (self->*ptr)(std::move(stmt), others...); };
+}
+
 asm_processor::process_table_t asm_processor::create_table()
 {
     process_table_t table;
-    table.emplace(context::id_index("CSECT"),
-        [this](rebuilt_statement&& stmt) { process_sect(context::section_kind::EXECUTABLE, std::move(stmt)); });
-    table.emplace(context::id_index("DSECT"),
-        [this](rebuilt_statement&& stmt) { process_sect(context::section_kind::DUMMY, std::move(stmt)); });
-    table.emplace(context::id_index("RSECT"),
-        [this](rebuilt_statement&& stmt) { process_sect(context::section_kind::READONLY, std::move(stmt)); });
-    table.emplace(context::id_index("COM"),
-        [this](rebuilt_statement&& stmt) { process_sect(context::section_kind::COMMON, std::move(stmt)); });
-    table.emplace(context::id_index("LOCTR"), [this](rebuilt_statement&& stmt) { process_LOCTR(std::move(stmt)); });
-    table.emplace(context::id_index("EQU"), [this](rebuilt_statement&& stmt) { process_EQU(std::move(stmt)); });
-    table.emplace(context::id_index("DC"), [this](rebuilt_statement&& stmt) { process_DC(std::move(stmt)); });
-    table.emplace(context::id_index("DS"), [this](rebuilt_statement&& stmt) { process_DS(std::move(stmt)); });
-    table.emplace(
-        context::id_storage::well_known::COPY, [this](rebuilt_statement&& stmt) { process_COPY(std::move(stmt)); });
-    table.emplace(context::id_index("EXTRN"), [this](rebuilt_statement&& stmt) { process_EXTRN(std::move(stmt)); });
-    table.emplace(context::id_index("WXTRN"), [this](rebuilt_statement&& stmt) { process_WXTRN(std::move(stmt)); });
-    table.emplace(context::id_index("ORG"), [this](rebuilt_statement&& stmt) { process_ORG(std::move(stmt)); });
-    table.emplace(context::id_index("OPSYN"), [this](rebuilt_statement&& stmt) { process_OPSYN(std::move(stmt)); });
-    table.emplace(context::id_index("AINSERT"), [this](rebuilt_statement&& stmt) { process_AINSERT(std::move(stmt)); });
-    table.emplace(context::id_index("CCW"), [this](rebuilt_statement&& stmt) { process_CCW(std::move(stmt)); });
-    table.emplace(context::id_index("CCW0"), [this](rebuilt_statement&& stmt) { process_CCW(std::move(stmt)); });
-    table.emplace(context::id_index("CCW1"), [this](rebuilt_statement&& stmt) { process_CCW(std::move(stmt)); });
-    table.emplace(context::id_index("CNOP"), [this](rebuilt_statement&& stmt) { process_CNOP(std::move(stmt)); });
-    table.emplace(context::id_index("START"), [this](rebuilt_statement&& stmt) { process_START(std::move(stmt)); });
-    table.emplace(context::id_index("ALIAS"), [this](rebuilt_statement&& stmt) { process_ALIAS(std::move(stmt)); });
-    table.emplace(context::id_index("END"), [this](rebuilt_statement&& stmt) { process_END(std::move(stmt)); });
-    table.emplace(context::id_index("LTORG"), [this](rebuilt_statement&& stmt) { process_LTORG(std::move(stmt)); });
-    table.emplace(context::id_index("USING"), [this](rebuilt_statement&& stmt) { process_USING(std::move(stmt)); });
-    table.emplace(context::id_index("DROP"), [this](rebuilt_statement&& stmt) { process_DROP(std::move(stmt)); });
-    table.emplace(context::id_index("PUSH"), [this](rebuilt_statement&& stmt) { process_PUSH(std::move(stmt)); });
-    table.emplace(context::id_index("POP"), [this](rebuilt_statement&& stmt) { process_POP(std::move(stmt)); });
-    table.emplace(context::id_index("MNOTE"), [this](rebuilt_statement&& stmt) { process_MNOTE(std::move(stmt)); });
-    table.emplace(context::id_index("CXD"), [this](rebuilt_statement&& stmt) { process_CXD(std::move(stmt)); });
-    table.emplace(context::id_index("TITLE"), [this](rebuilt_statement&& stmt) { process_TITLE(std::move(stmt)); });
-    table.emplace(context::id_index("PUNCH"), [this](rebuilt_statement&& stmt) { process_PUNCH(std::move(stmt)); });
-    table.emplace(context::id_index("CATTR"), [this](rebuilt_statement&& stmt) { process_CATTR(std::move(stmt)); });
-    table.emplace(context::id_index("XATTR"), [this](rebuilt_statement&& stmt) { process_XATTR(std::move(stmt)); });
+    table.emplace(context::id_index("CSECT"), fn<&asm_processor::process_sect, context::section_kind::EXECUTABLE>());
+    table.emplace(context::id_index("DSECT"), fn<&asm_processor::process_sect, context::section_kind::DUMMY>());
+    table.emplace(context::id_index("RSECT"), fn<&asm_processor::process_sect, context::section_kind::READONLY>());
+    table.emplace(context::id_index("COM"), fn<&asm_processor::process_sect, context::section_kind::COMMON>());
+    table.emplace(context::id_index("LOCTR"), fn<&asm_processor::process_LOCTR>());
+    table.emplace(context::id_index("EQU"), fn<&asm_processor::process_EQU>());
+    table.emplace(context::id_index("DC"), fn<&asm_processor::process_DC>());
+    table.emplace(context::id_index("DS"), fn<&asm_processor::process_DS>());
+    table.emplace(context::id_storage::well_known::COPY, fn<&asm_processor::process_COPY>());
+    table.emplace(context::id_index("EXTRN"), fn<&asm_processor::process_EXTRN>());
+    table.emplace(context::id_index("WXTRN"), fn<&asm_processor::process_WXTRN>());
+    table.emplace(context::id_index("ORG"), fn<&asm_processor::process_ORG>());
+    table.emplace(context::id_index("OPSYN"), fn<&asm_processor::process_OPSYN>());
+    table.emplace(context::id_index("AINSERT"), fn<&asm_processor::process_AINSERT>());
+    table.emplace(context::id_index("CCW"), fn<&asm_processor::process_CCW>());
+    table.emplace(context::id_index("CCW0"), fn<&asm_processor::process_CCW>());
+    table.emplace(context::id_index("CCW1"), fn<&asm_processor::process_CCW>());
+    table.emplace(context::id_index("CNOP"), fn<&asm_processor::process_CNOP>());
+    table.emplace(context::id_index("START"), fn<&asm_processor::process_START>());
+    table.emplace(context::id_index("ALIAS"), fn<&asm_processor::process_ALIAS>());
+    table.emplace(context::id_index("END"), fn<&asm_processor::process_END>());
+    table.emplace(context::id_index("LTORG"), fn<&asm_processor::process_LTORG>());
+    table.emplace(context::id_index("USING"), fn<&asm_processor::process_USING>());
+    table.emplace(context::id_index("DROP"), fn<&asm_processor::process_DROP>());
+    table.emplace(context::id_index("PUSH"), fn<&asm_processor::process_PUSH>());
+    table.emplace(context::id_index("POP"), fn<&asm_processor::process_POP>());
+    table.emplace(context::id_index("MNOTE"), fn<&asm_processor::process_MNOTE>());
+    table.emplace(context::id_index("CXD"), fn<&asm_processor::process_CXD>());
+    table.emplace(context::id_index("TITLE"), fn<&asm_processor::process_TITLE>());
+    table.emplace(context::id_index("PUNCH"), fn<&asm_processor::process_PUNCH>());
+    table.emplace(context::id_index("CATTR"), fn<&asm_processor::process_CATTR>());
+    table.emplace(context::id_index("XATTR"), fn<&asm_processor::process_XATTR>());
 
     return table;
 }
