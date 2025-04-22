@@ -536,17 +536,33 @@ void macrodef_processor::process_sequence_symbol(const semantics::label_si& labe
     }
 }
 
+namespace {
+constexpr auto first_nest_level = [](const context::copy_nest_item& cni) { return cni.macro_nest_level <= 1; };
+size_t estimate_copy_nest_size(
+    size_t initial_nest, const std::vector<context::copy_member_invocation>& nest, const context::macro_invocation* mac)
+{
+    size_t result = 1;
+    if (initial_nest < nest.size())
+        result += nest.size() - initial_nest;
+
+    if (mac)
+        result += std::ranges::size(mac->get_current_copy_nest() | std::views::drop_while(first_nest_level));
+
+    return result;
+}
+} // namespace
+
 void macrodef_processor::add_correct_copy_nest()
 {
-    auto& current_nest = result_.nests.emplace_back(std::vector {
-        context::copy_nest_item {
-            { curr_outer_position_, result_.definition_location.resource_loc },
-            result_.prototype.macro_name,
-            1,
-        },
-    });
-
     const auto& current_copy_stack = hlasm_ctx.current_copy_stack();
+    const auto* mac = hlasm_ctx.current_macro();
+
+    auto& current_nest = result_.nests.emplace_back();
+    current_nest.reserve(estimate_copy_nest_size(copy_nest_limit.front(), current_copy_stack, mac));
+
+    current_nest.emplace_back(
+        location { curr_outer_position_, result_.definition_location.resource_loc }, result_.prototype.macro_name, 1);
+
     for (size_t i = copy_nest_limit.front(), nest_id = 1; i < current_copy_stack.size(); ++i)
     {
         const auto& nest = current_copy_stack[i];
@@ -558,10 +574,9 @@ void macrodef_processor::add_correct_copy_nest()
             nest_id);
     }
 
-    if (const auto* mac = hlasm_ctx.current_macro(); mac)
+    if (mac)
     {
-        static constexpr auto skip_nest = [](const context::copy_nest_item& cni) { return cni.macro_nest_level <= 1; };
-        for (const auto& nest : mac->get_current_copy_nest() | std::views::drop_while(skip_nest))
+        for (const auto& nest : mac->get_current_copy_nest() | std::views::drop_while(first_nest_level))
         {
             result_.used_copy_members.insert(hlasm_ctx.get_copy_member(nest.member_name));
             current_nest.emplace_back(nest.loc, nest.member_name, nest.macro_nest_level - 1);
