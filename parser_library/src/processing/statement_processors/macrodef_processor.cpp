@@ -27,18 +27,19 @@
 
 namespace hlasm_plugin::parser_library::processing {
 
+namespace {
+template<auto ptr, auto... others>
+constexpr auto fn()
+{
+    if constexpr (sizeof...(others) == 0 && requires(macrodef_processor* self) { (self->*ptr)(); })
+        return [](macrodef_processor* self, const resolved_statement&) { return (self->*ptr)(); };
+    else
+        return [](macrodef_processor* self, const resolved_statement& stmt) { return (self->*ptr)(stmt, others...); };
+}
+} // namespace
+
 struct macrodef_processor::handler_table
 {
-    template<auto ptr, auto... others>
-    static constexpr auto fn()
-    {
-        if constexpr (sizeof...(others) == 0 && requires(macrodef_processor* self) { (self->*ptr)(); })
-            return [](macrodef_processor* self, const resolved_statement&) { return (self->*ptr)(); };
-        else
-            return
-                [](macrodef_processor* self, const resolved_statement& stmt) { return (self->*ptr)(stmt, others...); };
-    }
-
     using wk = context::id_storage::well_known;
     using callback = bool(macrodef_processor* self, const resolved_statement&);
     using enum context::SET_t_enum;

@@ -144,16 +144,18 @@ void lookahead_processor::process_COPY(const resolved_statement& statement)
     }
 }
 
+namespace {
+template<void (lookahead_processor::*ptr)(context::id_index, const resolved_statement&)>
+constexpr auto fn() noexcept
+{
+    return [](lookahead_processor* self, context::id_index name, const resolved_statement& stmt) {
+        (self->*ptr)(name, stmt);
+    };
+}
+} // namespace
+
 struct lookahead_processor::handler_table
 {
-    template<void (lookahead_processor::*ptr)(context::id_index, const resolved_statement&)>
-    static constexpr auto fn() noexcept
-    {
-        return [](lookahead_processor* self, context::id_index name, const resolved_statement& stmt) {
-            (self->*ptr)(name, stmt);
-        };
-    }
-
     using id_index = context::id_index;
     using callback = void(lookahead_processor*, context::id_index, const resolved_statement&);
     static constexpr auto value = make_handler_map<callback>({

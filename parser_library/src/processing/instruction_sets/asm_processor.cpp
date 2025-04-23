@@ -80,16 +80,15 @@ std::optional<int> try_get_number(std::string_view s)
     return std::nullopt;
 }
 
+template<auto ptr, auto... others>
+constexpr auto fn()
+{
+    return [](asm_processor* self, rebuilt_statement&& stmt) { (self->*ptr)(std::move(stmt), others...); };
+}
 } // namespace
 
 struct asm_processor::handler_table
 {
-    template<auto ptr, auto... others>
-    static constexpr auto fn()
-    {
-        return [](asm_processor* self, rebuilt_statement&& stmt) { (self->*ptr)(std::move(stmt), others...); };
-    }
-
     using wk = context::id_storage::well_known;
     using id_index = context::id_index;
     using callback = void(asm_processor* self, rebuilt_statement&& stmt);

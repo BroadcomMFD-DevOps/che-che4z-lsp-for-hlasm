@@ -34,14 +34,16 @@
 using namespace hlasm_plugin::parser_library;
 using namespace processing;
 
+namespace {
+template<void (ca_processor::*ptr)(const resolved_statement&)>
+constexpr auto fn()
+{
+    return [](ca_processor* self, const resolved_statement& stmt) { (self->*ptr)(stmt); };
+}
+} // namespace
+
 struct ca_processor::handler_table
 {
-    template<void (ca_processor::*ptr)(const resolved_statement&)>
-    static constexpr auto fn()
-    {
-        return [](ca_processor* self, const resolved_statement& stmt) { (self->*ptr)(stmt); };
-    }
-
     using wk = context::id_storage::well_known;
     using callback = void(ca_processor*, const processing::resolved_statement&);
     static constexpr auto value = make_handler_map<callback>({
