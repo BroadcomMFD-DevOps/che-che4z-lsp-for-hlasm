@@ -29,13 +29,12 @@ namespace hlasm_plugin::parser_library::processing {
 
 namespace {
 template<auto ptr, auto... others>
-constexpr auto fn()
-{
+constexpr auto fn = []() {
     if constexpr (sizeof...(others) == 0 && requires(macrodef_processor* self) { (self->*ptr)(); })
-        return [](macrodef_processor* self, const resolved_statement&) { return (self->*ptr)(); };
+        return +[](macrodef_processor* self, const resolved_statement&) { return (self->*ptr)(); };
     else
-        return [](macrodef_processor* self, const resolved_statement& stmt) { return (self->*ptr)(stmt, others...); };
-}
+        return +[](macrodef_processor* self, const resolved_statement& stmt) { return (self->*ptr)(stmt, others...); };
+}();
 } // namespace
 
 struct macrodef_processor::handler_table
@@ -44,18 +43,18 @@ struct macrodef_processor::handler_table
     using callback = bool(macrodef_processor* self, const resolved_statement&);
     using enum context::SET_t_enum;
     static constexpr auto value = make_handler_map<callback>({
-        { wk::SETA, fn<&macrodef_processor::process_SET, A_TYPE>() },
-        { wk::SETB, fn<&macrodef_processor::process_SET, B_TYPE>() },
-        { wk::SETC, fn<&macrodef_processor::process_SET, C_TYPE>() },
-        { wk::LCLA, fn<&macrodef_processor::process_LCL_GBL, A_TYPE, false>() },
-        { wk::LCLB, fn<&macrodef_processor::process_LCL_GBL, B_TYPE, false>() },
-        { wk::LCLC, fn<&macrodef_processor::process_LCL_GBL, C_TYPE, false>() },
-        { wk::GBLA, fn<&macrodef_processor::process_LCL_GBL, A_TYPE, true>() },
-        { wk::GBLB, fn<&macrodef_processor::process_LCL_GBL, B_TYPE, true>() },
-        { wk::GBLC, fn<&macrodef_processor::process_LCL_GBL, C_TYPE, true>() },
-        { wk::MACRO, fn<&macrodef_processor::process_MACRO>() },
-        { wk::MEND, fn<&macrodef_processor::process_MEND>() },
-        { wk::COPY, fn<&macrodef_processor::process_COPY>() },
+        { wk::SETA, fn<&macrodef_processor::process_SET, A_TYPE> },
+        { wk::SETB, fn<&macrodef_processor::process_SET, B_TYPE> },
+        { wk::SETC, fn<&macrodef_processor::process_SET, C_TYPE> },
+        { wk::LCLA, fn<&macrodef_processor::process_LCL_GBL, A_TYPE, false> },
+        { wk::LCLB, fn<&macrodef_processor::process_LCL_GBL, B_TYPE, false> },
+        { wk::LCLC, fn<&macrodef_processor::process_LCL_GBL, C_TYPE, false> },
+        { wk::GBLA, fn<&macrodef_processor::process_LCL_GBL, A_TYPE, true> },
+        { wk::GBLB, fn<&macrodef_processor::process_LCL_GBL, B_TYPE, true> },
+        { wk::GBLC, fn<&macrodef_processor::process_LCL_GBL, C_TYPE, true> },
+        { wk::MACRO, fn<&macrodef_processor::process_MACRO> },
+        { wk::MEND, fn<&macrodef_processor::process_MEND> },
+        { wk::COPY, fn<&macrodef_processor::process_COPY> },
     });
 
     static constexpr auto find(context::id_index id) noexcept { return value.find(id); }

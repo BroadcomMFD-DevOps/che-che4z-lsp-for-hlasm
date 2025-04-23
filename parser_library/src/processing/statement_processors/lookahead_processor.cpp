@@ -146,12 +146,9 @@ void lookahead_processor::process_COPY(const resolved_statement& statement)
 
 namespace {
 template<void (lookahead_processor::*ptr)(context::id_index, const resolved_statement&)>
-constexpr auto fn() noexcept
-{
-    return [](lookahead_processor* self, context::id_index name, const resolved_statement& stmt) {
-        (self->*ptr)(name, stmt);
-    };
-}
+constexpr auto fn = +[](lookahead_processor* self, context::id_index name, const resolved_statement& stmt) {
+    (self->*ptr)(name, stmt);
+};
 } // namespace
 
 struct lookahead_processor::handler_table
@@ -159,16 +156,16 @@ struct lookahead_processor::handler_table
     using id_index = context::id_index;
     using callback = void(lookahead_processor*, context::id_index, const resolved_statement&);
     static constexpr auto value = make_handler_map<callback>({
-        { id_index("CSECT"), fn<&lookahead_processor::assign_section_attributes>() },
-        { id_index("DSECT"), fn<&lookahead_processor::assign_section_attributes>() },
-        { id_index("RSECT"), fn<&lookahead_processor::assign_section_attributes>() },
-        { id_index("COM"), fn<&lookahead_processor::assign_section_attributes>() },
-        { id_index("DXD"), fn<&lookahead_processor::assign_section_attributes>() },
-        { id_index("LOCTR"), fn<&lookahead_processor::assign_section_attributes>() },
-        { id_index("EQU"), fn<&lookahead_processor::assign_EQU_attributes>() },
-        { id_index("DC"), fn<&lookahead_processor::assign_data_def_attributes>() },
-        { id_index("DS"), fn<&lookahead_processor::assign_data_def_attributes>() },
-        { id_index("CXD"), fn<&lookahead_processor::assign_cxd_attributes>() },
+        { id_index("CSECT"), fn<&lookahead_processor::assign_section_attributes> },
+        { id_index("DSECT"), fn<&lookahead_processor::assign_section_attributes> },
+        { id_index("RSECT"), fn<&lookahead_processor::assign_section_attributes> },
+        { id_index("COM"), fn<&lookahead_processor::assign_section_attributes> },
+        { id_index("DXD"), fn<&lookahead_processor::assign_section_attributes> },
+        { id_index("LOCTR"), fn<&lookahead_processor::assign_section_attributes> },
+        { id_index("EQU"), fn<&lookahead_processor::assign_EQU_attributes> },
+        { id_index("DC"), fn<&lookahead_processor::assign_data_def_attributes> },
+        { id_index("DS"), fn<&lookahead_processor::assign_data_def_attributes> },
+        { id_index("CXD"), fn<&lookahead_processor::assign_cxd_attributes> },
     });
 
     static constexpr auto find(id_index id) noexcept { return value.find(id); }

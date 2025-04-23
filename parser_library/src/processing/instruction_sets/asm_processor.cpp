@@ -81,10 +81,7 @@ std::optional<int> try_get_number(std::string_view s)
 }
 
 template<auto ptr, auto... others>
-constexpr auto fn()
-{
-    return [](asm_processor* self, rebuilt_statement&& stmt) { (self->*ptr)(std::move(stmt), others...); };
-}
+constexpr auto fn = +[](asm_processor* self, rebuilt_statement&& stmt) { (self->*ptr)(std::move(stmt), others...); };
 } // namespace
 
 struct asm_processor::handler_table
@@ -93,38 +90,38 @@ struct asm_processor::handler_table
     using id_index = context::id_index;
     using callback = void(asm_processor* self, rebuilt_statement&& stmt);
     static constexpr auto value = make_handler_map<callback>({
-        { id_index("CSECT"), fn<&asm_processor::process_sect, context::section_kind::EXECUTABLE>() },
-        { id_index("DSECT"), fn<&asm_processor::process_sect, context::section_kind::DUMMY>() },
-        { id_index("RSECT"), fn<&asm_processor::process_sect, context::section_kind::READONLY>() },
-        { id_index("COM"), fn<&asm_processor::process_sect, context::section_kind::COMMON>() },
-        { id_index("LOCTR"), fn<&asm_processor::process_LOCTR>() },
-        { id_index("EQU"), fn<&asm_processor::process_EQU>() },
-        { id_index("DC"), fn<&asm_processor::process_DC>() },
-        { id_index("DS"), fn<&asm_processor::process_DS>() },
-        { wk::COPY, fn<&asm_processor::process_COPY>() },
-        { id_index("EXTRN"), fn<&asm_processor::process_EXTRN>() },
-        { id_index("WXTRN"), fn<&asm_processor::process_WXTRN>() },
-        { id_index("ORG"), fn<&asm_processor::process_ORG>() },
-        { id_index("OPSYN"), fn<&asm_processor::process_OPSYN>() },
-        { id_index("AINSERT"), fn<&asm_processor::process_AINSERT>() },
-        { id_index("CCW"), fn<&asm_processor::process_CCW>() },
-        { id_index("CCW0"), fn<&asm_processor::process_CCW>() },
-        { id_index("CCW1"), fn<&asm_processor::process_CCW>() },
-        { id_index("CNOP"), fn<&asm_processor::process_CNOP>() },
-        { id_index("START"), fn<&asm_processor::process_START>() },
-        { id_index("ALIAS"), fn<&asm_processor::process_ALIAS>() },
-        { id_index("END"), fn<&asm_processor::process_END>() },
-        { id_index("LTORG"), fn<&asm_processor::process_LTORG>() },
-        { id_index("USING"), fn<&asm_processor::process_USING>() },
-        { id_index("DROP"), fn<&asm_processor::process_DROP>() },
-        { id_index("PUSH"), fn<&asm_processor::process_PUSH>() },
-        { id_index("POP"), fn<&asm_processor::process_POP>() },
-        { id_index("MNOTE"), fn<&asm_processor::process_MNOTE>() },
-        { id_index("CXD"), fn<&asm_processor::process_CXD>() },
-        { id_index("TITLE"), fn<&asm_processor::process_TITLE>() },
-        { id_index("PUNCH"), fn<&asm_processor::process_PUNCH>() },
-        { id_index("CATTR"), fn<&asm_processor::process_CATTR>() },
-        { id_index("XATTR"), fn<&asm_processor::process_XATTR>() },
+        { id_index("CSECT"), fn<&asm_processor::process_sect, context::section_kind::EXECUTABLE> },
+        { id_index("DSECT"), fn<&asm_processor::process_sect, context::section_kind::DUMMY> },
+        { id_index("RSECT"), fn<&asm_processor::process_sect, context::section_kind::READONLY> },
+        { id_index("COM"), fn<&asm_processor::process_sect, context::section_kind::COMMON> },
+        { id_index("LOCTR"), fn<&asm_processor::process_LOCTR> },
+        { id_index("EQU"), fn<&asm_processor::process_EQU> },
+        { id_index("DC"), fn<&asm_processor::process_DC> },
+        { id_index("DS"), fn<&asm_processor::process_DS> },
+        { wk::COPY, fn<&asm_processor::process_COPY> },
+        { id_index("EXTRN"), fn<&asm_processor::process_EXTRN> },
+        { id_index("WXTRN"), fn<&asm_processor::process_WXTRN> },
+        { id_index("ORG"), fn<&asm_processor::process_ORG> },
+        { id_index("OPSYN"), fn<&asm_processor::process_OPSYN> },
+        { id_index("AINSERT"), fn<&asm_processor::process_AINSERT> },
+        { id_index("CCW"), fn<&asm_processor::process_CCW> },
+        { id_index("CCW0"), fn<&asm_processor::process_CCW> },
+        { id_index("CCW1"), fn<&asm_processor::process_CCW> },
+        { id_index("CNOP"), fn<&asm_processor::process_CNOP> },
+        { id_index("START"), fn<&asm_processor::process_START> },
+        { id_index("ALIAS"), fn<&asm_processor::process_ALIAS> },
+        { id_index("END"), fn<&asm_processor::process_END> },
+        { id_index("LTORG"), fn<&asm_processor::process_LTORG> },
+        { id_index("USING"), fn<&asm_processor::process_USING> },
+        { id_index("DROP"), fn<&asm_processor::process_DROP> },
+        { id_index("PUSH"), fn<&asm_processor::process_PUSH> },
+        { id_index("POP"), fn<&asm_processor::process_POP> },
+        { id_index("MNOTE"), fn<&asm_processor::process_MNOTE> },
+        { id_index("CXD"), fn<&asm_processor::process_CXD> },
+        { id_index("TITLE"), fn<&asm_processor::process_TITLE> },
+        { id_index("PUNCH"), fn<&asm_processor::process_PUNCH> },
+        { id_index("CATTR"), fn<&asm_processor::process_CATTR> },
+        { id_index("XATTR"), fn<&asm_processor::process_XATTR> },
     });
 
     static constexpr auto find(id_index id) noexcept { return value.find(id); }

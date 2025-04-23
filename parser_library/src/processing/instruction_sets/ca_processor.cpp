@@ -36,10 +36,7 @@ using namespace processing;
 
 namespace {
 template<void (ca_processor::*ptr)(const resolved_statement&)>
-constexpr auto fn()
-{
-    return [](ca_processor* self, const resolved_statement& stmt) { (self->*ptr)(stmt); };
-}
+constexpr auto fn = +[](ca_processor* self, const resolved_statement& stmt) { (self->*ptr)(stmt); };
 } // namespace
 
 struct ca_processor::handler_table
@@ -47,27 +44,27 @@ struct ca_processor::handler_table
     using wk = context::id_storage::well_known;
     using callback = void(ca_processor*, const processing::resolved_statement&);
     static constexpr auto value = make_handler_map<callback>({
-        { wk::SETA, fn<&ca_processor::process_SET<context::A_t>>() },
-        { wk::SETB, fn<&ca_processor::process_SET<context::B_t>>() },
-        { wk::SETC, fn<&ca_processor::process_SET<context::C_t>>() },
-        { wk::LCLA, fn<&ca_processor::process_GBL_LCL<context::A_t, false>>() },
-        { wk::LCLB, fn<&ca_processor::process_GBL_LCL<context::B_t, false>>() },
-        { wk::LCLC, fn<&ca_processor::process_GBL_LCL<context::C_t, false>>() },
-        { wk::GBLA, fn<&ca_processor::process_GBL_LCL<context::A_t, true>>() },
-        { wk::GBLB, fn<&ca_processor::process_GBL_LCL<context::B_t, true>>() },
-        { wk::GBLC, fn<&ca_processor::process_GBL_LCL<context::C_t, true>>() },
-        { wk::ANOP, fn<&ca_processor::process_ANOP>() },
-        { wk::ACTR, fn<&ca_processor::process_ACTR>() },
-        { wk::AGO, fn<&ca_processor::process_AGO>() },
-        { wk::AIF, fn<&ca_processor::process_AIF>() },
-        { context::id_index(), fn<&ca_processor::process_empty>() },
-        { wk::MACRO, fn<&ca_processor::process_MACRO>() },
-        { wk::MEND, fn<&ca_processor::process_MEND>() },
-        { wk::MEXIT, fn<&ca_processor::process_MEXIT>() },
-        { wk::AREAD, fn<&ca_processor::process_AREAD>() },
-        { wk::ASPACE, fn<&ca_processor::process_ASPACE>() },
-        { wk::AEJECT, fn<&ca_processor::process_AEJECT>() },
-        { wk::MHELP, fn<&ca_processor::process_MHELP>() },
+        { wk::SETA, fn<&ca_processor::process_SET<context::A_t>> },
+        { wk::SETB, fn<&ca_processor::process_SET<context::B_t>> },
+        { wk::SETC, fn<&ca_processor::process_SET<context::C_t>> },
+        { wk::LCLA, fn<&ca_processor::process_GBL_LCL<context::A_t, false>> },
+        { wk::LCLB, fn<&ca_processor::process_GBL_LCL<context::B_t, false>> },
+        { wk::LCLC, fn<&ca_processor::process_GBL_LCL<context::C_t, false>> },
+        { wk::GBLA, fn<&ca_processor::process_GBL_LCL<context::A_t, true>> },
+        { wk::GBLB, fn<&ca_processor::process_GBL_LCL<context::B_t, true>> },
+        { wk::GBLC, fn<&ca_processor::process_GBL_LCL<context::C_t, true>> },
+        { wk::ANOP, fn<&ca_processor::process_ANOP> },
+        { wk::ACTR, fn<&ca_processor::process_ACTR> },
+        { wk::AGO, fn<&ca_processor::process_AGO> },
+        { wk::AIF, fn<&ca_processor::process_AIF> },
+        { context::id_index(), fn<&ca_processor::process_empty> },
+        { wk::MACRO, fn<&ca_processor::process_MACRO> },
+        { wk::MEND, fn<&ca_processor::process_MEND> },
+        { wk::MEXIT, fn<&ca_processor::process_MEXIT> },
+        { wk::AREAD, fn<&ca_processor::process_AREAD> },
+        { wk::ASPACE, fn<&ca_processor::process_ASPACE> },
+        { wk::AEJECT, fn<&ca_processor::process_AEJECT> },
+        { wk::MHELP, fn<&ca_processor::process_MHELP> },
     });
 
     static constexpr auto find(context::id_index id) noexcept { return value.find(id); }
