@@ -39,9 +39,9 @@ class macrodef_processor final : public statement_processor
 
     macrodef_processing_result result_;
 
-public:
-    static constexpr auto create_table();
+    struct handler_table;
 
+public:
     macrodef_processor(const analyzing_context& ctx,
         processing_state_listener& listener,
         branching_provider& branching_provider_,

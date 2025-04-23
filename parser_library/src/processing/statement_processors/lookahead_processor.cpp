@@ -144,20 +144,19 @@ void lookahead_processor::process_COPY(const resolved_statement& statement)
     }
 }
 
-
-template<void (lookahead_processor::*ptr)(context::id_index, const resolved_statement&)>
-constexpr auto fn() noexcept
+struct lookahead_processor::handler_table
 {
-    return [](lookahead_processor* self, context::id_index name, const resolved_statement& stmt) {
-        (self->*ptr)(name, stmt);
-    };
-}
+    template<void (lookahead_processor::*ptr)(context::id_index, const resolved_statement&)>
+    static constexpr auto fn() noexcept
+    {
+        return [](lookahead_processor* self, context::id_index name, const resolved_statement& stmt) {
+            (self->*ptr)(name, stmt);
+        };
+    }
 
-constexpr auto lookahead_processor::create_table()
-{
-    using context::id_index;
+    using id_index = context::id_index;
     using callback = void(lookahead_processor*, context::id_index, const resolved_statement&);
-    return make_handler_map<callback>({
+    static constexpr auto value = make_handler_map<callback>({
         { id_index("CSECT"), fn<&lookahead_processor::assign_section_attributes>() },
         { id_index("DSECT"), fn<&lookahead_processor::assign_section_attributes>() },
         { id_index("RSECT"), fn<&lookahead_processor::assign_section_attributes>() },
@@ -169,9 +168,9 @@ constexpr auto lookahead_processor::create_table()
         { id_index("DS"), fn<&lookahead_processor::assign_data_def_attributes>() },
         { id_index("CXD"), fn<&lookahead_processor::assign_cxd_attributes>() },
     });
-}
 
-constexpr auto g_asm_proc_table = lookahead_processor::create_table();
+    static constexpr auto find(id_index id) noexcept { return value.find(id); }
+};
 
 void lookahead_processor::assign_EQU_attributes(context::id_index symbol_name, const resolved_statement& statement)
 {
@@ -287,7 +286,7 @@ void lookahead_processor::assign_machine_attributes(context::id_index symbol_nam
 void lookahead_processor::assign_assembler_attributes(
     context::id_index symbol_name, const resolved_statement& statement)
 {
-    if (const auto handler = g_asm_proc_table.find(statement.opcode_ref().value))
+    if (const auto handler = handler_table::find(statement.opcode_ref().value))
         handler(this, symbol_name, statement);
     else
         register_attr_ref(symbol_name, context::symbol_attributes(context::symbol_origin::MACH, 'M'_ebcdic));

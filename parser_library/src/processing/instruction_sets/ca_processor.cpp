@@ -34,17 +34,17 @@
 using namespace hlasm_plugin::parser_library;
 using namespace processing;
 
-template<void (ca_processor::*ptr)(const resolved_statement&)>
-constexpr auto fn()
+struct ca_processor::handler_table
 {
-    return [](ca_processor* self, const resolved_statement& stmt) { (self->*ptr)(stmt); };
-}
+    template<void (ca_processor::*ptr)(const resolved_statement&)>
+    static constexpr auto fn()
+    {
+        return [](ca_processor* self, const resolved_statement& stmt) { (self->*ptr)(stmt); };
+    }
 
-constexpr auto ca_processor::create_table()
-{
     using wk = context::id_storage::well_known;
     using callback = void(ca_processor*, const processing::resolved_statement&);
-    return make_handler_map<callback>({
+    static constexpr auto value = make_handler_map<callback>({
         { wk::SETA, fn<&ca_processor::process_SET<context::A_t>>() },
         { wk::SETB, fn<&ca_processor::process_SET<context::B_t>>() },
         { wk::SETC, fn<&ca_processor::process_SET<context::C_t>>() },
@@ -67,9 +67,9 @@ constexpr auto ca_processor::create_table()
         { wk::AEJECT, fn<&ca_processor::process_AEJECT>() },
         { wk::MHELP, fn<&ca_processor::process_MHELP>() },
     });
-}
 
-constexpr auto g_ca_processor_table = ca_processor::create_table();
+    static constexpr auto find(context::id_index id) noexcept { return value.find(id); }
+};
 
 ca_processor::ca_processor(const analyzing_context& ctx,
     branching_provider& branch_provider,
@@ -86,7 +86,7 @@ void ca_processor::process(std::shared_ptr<const processing::resolved_statement>
 {
     register_literals(*stmt, context::no_align, hlasm_ctx.ord_ctx.next_unique_id());
 
-    if (const auto handler = g_ca_processor_table.find(stmt->opcode_ref().value))
+    if (const auto handler = handler_table::find(stmt->opcode_ref().value))
         handler(this, *stmt);
     else
         throw std::out_of_range("g_ca_processor_table");

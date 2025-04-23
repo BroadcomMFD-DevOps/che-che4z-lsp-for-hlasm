@@ -39,9 +39,9 @@ class lookahead_processor final : public statement_processor
     std::vector<context::id_index> to_find_;
     context::id_index target_;
 
-public:
-    static constexpr auto create_table();
+    struct handler_table;
 
+public:
     const lookahead_action action;
 
     lookahead_processor(const analyzing_context& ctx,

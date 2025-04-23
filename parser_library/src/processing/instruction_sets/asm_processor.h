@@ -49,8 +49,9 @@ namespace hlasm_plugin::parser_library::processing {
 // processor of assembler instructions
 class asm_processor final : public low_language_processor
 {
+    struct handler_table;
+
 public:
-    static constexpr auto create_table();
     asm_processor(const analyzing_context& ctx,
         branching_provider& branch_provider,
         parse_lib_provider& lib_provider,

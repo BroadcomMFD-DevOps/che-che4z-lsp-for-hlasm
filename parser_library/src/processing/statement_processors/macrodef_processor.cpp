@@ -27,21 +27,22 @@
 
 namespace hlasm_plugin::parser_library::processing {
 
-template<auto ptr, auto... others>
-constexpr auto fn()
+struct macrodef_processor::handler_table
 {
-    if constexpr (sizeof...(others) == 0 && requires(macrodef_processor* self) { (self->*ptr)(); })
-        return [](macrodef_processor* self, const resolved_statement&) { return (self->*ptr)(); };
-    else
-        return [](macrodef_processor* self, const resolved_statement& stmt) { return (self->*ptr)(stmt, others...); };
-}
+    template<auto ptr, auto... others>
+    static constexpr auto fn()
+    {
+        if constexpr (sizeof...(others) == 0 && requires(macrodef_processor* self) { (self->*ptr)(); })
+            return [](macrodef_processor* self, const resolved_statement&) { return (self->*ptr)(); };
+        else
+            return
+                [](macrodef_processor* self, const resolved_statement& stmt) { return (self->*ptr)(stmt, others...); };
+    }
 
-constexpr auto macrodef_processor::create_table()
-{
     using wk = context::id_storage::well_known;
-    using callback = bool(macrodef_processor * self, const resolved_statement&);
+    using callback = bool(macrodef_processor* self, const resolved_statement&);
     using enum context::SET_t_enum;
-    return make_handler_map<callback>({
+    static constexpr auto value = make_handler_map<callback>({
         { wk::SETA, fn<&macrodef_processor::process_SET, A_TYPE>() },
         { wk::SETB, fn<&macrodef_processor::process_SET, B_TYPE>() },
         { wk::SETC, fn<&macrodef_processor::process_SET, C_TYPE>() },
@@ -55,9 +56,9 @@ constexpr auto macrodef_processor::create_table()
         { wk::MEND, fn<&macrodef_processor::process_MEND>() },
         { wk::COPY, fn<&macrodef_processor::process_COPY>() },
     });
-}
 
-constexpr auto g_macrodef_process_table = macrodef_processor::create_table();
+    static constexpr auto find(context::id_index id) noexcept { return value.find(id); }
+};
 
 macrodef_processor::macrodef_processor(const analyzing_context& ctx,
     processing_state_listener& listener,
@@ -236,7 +237,7 @@ bool macrodef_processor::process_statement(const context::hlasm_statement& state
         {
             process_sequence_symbol(res_stmt->label_ref());
 
-            if (const auto handler = g_macrodef_process_table.find(res_stmt->opcode_ref().value))
+            if (const auto handler = handler_table::find(res_stmt->opcode_ref().value))
                 return handler(this, *res_stmt);
         }
         else if (auto def_stmt = statement.access_deferred())

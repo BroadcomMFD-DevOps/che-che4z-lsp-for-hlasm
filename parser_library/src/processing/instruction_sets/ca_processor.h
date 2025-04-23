@@ -30,9 +30,9 @@ class ca_processor final : public instruction_processor
 {
     processing_state_listener& listener_;
 
-public:
-    static constexpr auto create_table();
+    struct handler_table;
 
+public:
     ca_processor(const analyzing_context& ctx,
         branching_provider& branch_provider,
         parse_lib_provider& lib_provider,

@@ -82,18 +82,18 @@ std::optional<int> try_get_number(std::string_view s)
 
 } // namespace
 
-template<auto ptr, auto... others>
-constexpr auto fn()
+struct asm_processor::handler_table
 {
-    return [](asm_processor* self, rebuilt_statement&& stmt) { (self->*ptr)(std::move(stmt), others...); };
-}
+    template<auto ptr, auto... others>
+    static constexpr auto fn()
+    {
+        return [](asm_processor* self, rebuilt_statement&& stmt) { (self->*ptr)(std::move(stmt), others...); };
+    }
 
-constexpr auto asm_processor::create_table()
-{
     using wk = context::id_storage::well_known;
-    using context::id_index;
-    using callback = void(asm_processor * self, rebuilt_statement && stmt);
-    return make_handler_map<callback>({
+    using id_index = context::id_index;
+    using callback = void(asm_processor* self, rebuilt_statement&& stmt);
+    static constexpr auto value = make_handler_map<callback>({
         { id_index("CSECT"), fn<&asm_processor::process_sect, context::section_kind::EXECUTABLE>() },
         { id_index("DSECT"), fn<&asm_processor::process_sect, context::section_kind::DUMMY>() },
         { id_index("RSECT"), fn<&asm_processor::process_sect, context::section_kind::READONLY>() },
@@ -127,9 +127,9 @@ constexpr auto asm_processor::create_table()
         { id_index("CATTR"), fn<&asm_processor::process_CATTR>() },
         { id_index("XATTR"), fn<&asm_processor::process_XATTR>() },
     });
-}
 
-constexpr auto g_asm_processor_table = asm_processor::create_table();
+    static constexpr auto find(id_index id) noexcept { return value.find(id); }
+};
 
 void asm_processor::process_sect(rebuilt_statement&& stmt, const context::section_kind kind)
 {
@@ -777,7 +777,7 @@ void asm_processor::process(std::shared_ptr<const processing::resolved_statement
 
     register_literals(rebuilt_stmt, context::no_align, hlasm_ctx.ord_ctx.next_unique_id());
 
-    if (const auto handler = g_asm_processor_table.find(rebuilt_stmt.opcode_ref().value))
+    if (const auto handler = handler_table::find(rebuilt_stmt.opcode_ref().value))
     {
         handler(this, std::move(rebuilt_stmt));
     }
