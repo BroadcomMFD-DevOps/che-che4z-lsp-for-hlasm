@@ -88,7 +88,7 @@ void ca_processor::process(std::shared_ptr<const processing::resolved_statement>
     if (const auto handler = handler_table::find(stmt->opcode_ref().value))
         handler(this, *stmt);
     else
-        throw std::out_of_range("g_ca_processor_table");
+        throw std::out_of_range("ca_processor::handler_table");
 }
 
 void ca_processor::register_seq_sym(const processing::resolved_statement& stmt)

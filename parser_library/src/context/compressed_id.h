@@ -40,7 +40,7 @@ public:
     {
         assert(can_compress(id));
 
-        unsigned char buffer[sizeof(value)];
+        unsigned char buffer[sizeof(value)]; // C++26 [[indeterminate]];
 
         std::copy(id.m_buffer, id.m_buffer + sizeof(buffer), buffer);
         buffer[sizeof(buffer) - 1] = id.m_buffer[sizeof(id.m_buffer) - 1];

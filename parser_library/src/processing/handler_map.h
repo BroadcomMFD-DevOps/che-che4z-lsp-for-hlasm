@@ -52,6 +52,7 @@ public:
 };
 
 template<typename Callback, std::size_t n>
+requires(std::is_function_v<Callback> && n > 0)
 constexpr auto make_handler_map(const std::pair<context::id_index, Callback*> (&ar)[n]) noexcept
 {
     return handler_map<Callback, n>(ar);
