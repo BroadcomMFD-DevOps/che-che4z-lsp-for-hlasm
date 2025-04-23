@@ -22,6 +22,7 @@
 #include "context/variables/set_symbol.h"
 #include "expressions/conditional_assembly/terms/ca_symbol.h"
 #include "processing/branching_provider.h"
+#include "processing/handler_map.h"
 #include "processing/opencode_provider.h"
 #include "processing/processing_state_listener.h"
 #include "semantics/operand_impls.h"
@@ -42,9 +43,8 @@ constexpr auto fn()
 constexpr auto ca_processor::create_table()
 {
     using wk = context::id_storage::well_known;
-    using context::id_index;
-    using callback = void (*)(ca_processor*, const processing::resolved_statement&);
-    constexpr auto ar = std::to_array<std::pair<context::id_index, callback>>({
+    using callback = void(ca_processor*, const processing::resolved_statement&);
+    return make_handler_map<callback>({
         { wk::SETA, fn<&ca_processor::process_SET<context::A_t>>() },
         { wk::SETB, fn<&ca_processor::process_SET<context::B_t>>() },
         { wk::SETC, fn<&ca_processor::process_SET<context::C_t>>() },
@@ -58,7 +58,7 @@ constexpr auto ca_processor::create_table()
         { wk::ACTR, fn<&ca_processor::process_ACTR>() },
         { wk::AGO, fn<&ca_processor::process_AGO>() },
         { wk::AIF, fn<&ca_processor::process_AIF>() },
-        { id_index(), fn<&ca_processor::process_empty>() },
+        { context::id_index(), fn<&ca_processor::process_empty>() },
         { wk::MACRO, fn<&ca_processor::process_MACRO>() },
         { wk::MEND, fn<&ca_processor::process_MEND>() },
         { wk::MEXIT, fn<&ca_processor::process_MEXIT>() },
@@ -67,13 +67,6 @@ constexpr auto ca_processor::create_table()
         { wk::AEJECT, fn<&ca_processor::process_AEJECT>() },
         { wk::MHELP, fn<&ca_processor::process_MHELP>() },
     });
-
-    std::pair<std::array<id_index, ar.size()>, std::array<callback, ar.size()>> result;
-
-    std::ranges::transform(ar, result.first.begin(), utils::first_element);
-    std::ranges::transform(ar, result.second.begin(), utils::second_element);
-
-    return result;
 }
 
 constexpr auto g_ca_processor_table = ca_processor::create_table();
@@ -93,10 +86,10 @@ void ca_processor::process(std::shared_ptr<const processing::resolved_statement>
 {
     register_literals(*stmt, context::no_align, hlasm_ctx.ord_ctx.next_unique_id());
 
-    const auto f = std::ranges::find(g_ca_processor_table.first, stmt->opcode_ref().value);
-    if (f == g_ca_processor_table.first.end())
+    if (const auto handler = g_ca_processor_table.find(stmt->opcode_ref().value))
+        handler(this, *stmt);
+    else
         throw std::out_of_range("g_ca_processor_table");
-    g_ca_processor_table.second[f - g_ca_processor_table.first.begin()](this, *stmt);
 }
 
 void ca_processor::register_seq_sym(const processing::resolved_statement& stmt)

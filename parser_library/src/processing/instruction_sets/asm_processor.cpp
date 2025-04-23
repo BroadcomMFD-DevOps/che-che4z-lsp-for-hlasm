@@ -36,13 +36,13 @@
 #include "parse_lib_provider.h"
 #include "postponed_statement_impl.h"
 #include "processing/branching_provider.h"
+#include "processing/handler_map.h"
 #include "processing/opencode_provider.h"
 #include "processing/processing_manager.h"
 #include "processing/statement.h"
 #include "processing/statement_fields_parser.h"
 #include "range.h"
 #include "semantics/operand_impls.h"
-#include "utils/projectors.h"
 #include "utils/string_operations.h"
 #include "utils/unicode_text.h"
 
@@ -92,8 +92,8 @@ constexpr auto asm_processor::create_table()
 {
     using wk = context::id_storage::well_known;
     using context::id_index;
-    using callback = void (*)(asm_processor* self, rebuilt_statement&& stmt);
-    constexpr auto ar = std::to_array<std::pair<id_index, callback>>({
+    using callback = void(asm_processor * self, rebuilt_statement && stmt);
+    return make_handler_map<callback>({
         { id_index("CSECT"), fn<&asm_processor::process_sect, context::section_kind::EXECUTABLE>() },
         { id_index("DSECT"), fn<&asm_processor::process_sect, context::section_kind::DUMMY>() },
         { id_index("RSECT"), fn<&asm_processor::process_sect, context::section_kind::READONLY>() },
@@ -127,13 +127,6 @@ constexpr auto asm_processor::create_table()
         { id_index("CATTR"), fn<&asm_processor::process_CATTR>() },
         { id_index("XATTR"), fn<&asm_processor::process_XATTR>() },
     });
-
-    std::pair<std::array<id_index, ar.size()>, std::array<callback, ar.size()>> result;
-
-    std::ranges::transform(ar, result.first.begin(), utils::first_element);
-    std::ranges::transform(ar, result.second.begin(), utils::second_element);
-
-    return result;
 }
 
 constexpr auto g_asm_processor_table = asm_processor::create_table();
@@ -784,10 +777,9 @@ void asm_processor::process(std::shared_ptr<const processing::resolved_statement
 
     register_literals(rebuilt_stmt, context::no_align, hlasm_ctx.ord_ctx.next_unique_id());
 
-    const auto it = std::ranges::find(g_asm_processor_table.first, rebuilt_stmt.opcode_ref().value);
-    if (it != g_asm_processor_table.first.end())
+    if (const auto handler = g_asm_processor_table.find(rebuilt_stmt.opcode_ref().value))
     {
-        g_asm_processor_table.second[it - g_asm_processor_table.first.begin()](this, std::move(rebuilt_stmt));
+        handler(this, std::move(rebuilt_stmt));
     }
     else
     {
@@ -797,6 +789,7 @@ void asm_processor::process(std::shared_ptr<const processing::resolved_statement
             std::move(dep_solver).derive_current_dependency_evaluation_context());
     }
 }
+
 std::optional<asm_processor::extract_copy_id_result> asm_processor::extract_copy_id(
     const processing::resolved_statement& stmt, diagnosable_ctx* diagnoser)
 {

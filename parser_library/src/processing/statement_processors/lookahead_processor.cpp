@@ -14,8 +14,6 @@
 
 #include "lookahead_processor.h"
 
-#include <array>
-
 #include "context/hlasm_context.h"
 #include "context/instruction.h"
 #include "context/ordinary_assembly/ordinary_assembly_dependency_solver.h"
@@ -23,10 +21,11 @@
 #include "expressions/mach_expr_term.h"
 #include "ordinary_processor.h"
 #include "processing/branching_provider.h"
+#include "processing/handler_map.h"
 #include "processing/instruction_sets/asm_processor.h"
+#include "processing/instruction_sets/instruction_processor.h"
 #include "processing/statement.h"
 #include "semantics/operand_impls.h"
-#include "utils/projectors.h"
 
 namespace hlasm_plugin::parser_library::processing {
 
@@ -157,8 +156,8 @@ constexpr auto fn() noexcept
 constexpr auto lookahead_processor::create_table()
 {
     using context::id_index;
-    using callback = void (*)(lookahead_processor*, context::id_index, const resolved_statement&);
-    constexpr auto ar = std::to_array<std::pair<context::id_index, callback>>({
+    using callback = void(lookahead_processor*, context::id_index, const resolved_statement&);
+    return make_handler_map<callback>({
         { id_index("CSECT"), fn<&lookahead_processor::assign_section_attributes>() },
         { id_index("DSECT"), fn<&lookahead_processor::assign_section_attributes>() },
         { id_index("RSECT"), fn<&lookahead_processor::assign_section_attributes>() },
@@ -170,12 +169,6 @@ constexpr auto lookahead_processor::create_table()
         { id_index("DS"), fn<&lookahead_processor::assign_data_def_attributes>() },
         { id_index("CXD"), fn<&lookahead_processor::assign_cxd_attributes>() },
     });
-    std::pair<std::array<id_index, ar.size()>, std::array<callback, ar.size()>> result;
-
-    std::ranges::transform(ar, result.first.begin(), utils::first_element);
-    std::ranges::transform(ar, result.second.begin(), utils::second_element);
-
-    return result;
 }
 
 constexpr auto g_asm_proc_table = lookahead_processor::create_table();
@@ -294,9 +287,8 @@ void lookahead_processor::assign_machine_attributes(context::id_index symbol_nam
 void lookahead_processor::assign_assembler_attributes(
     context::id_index symbol_name, const resolved_statement& statement)
 {
-    const auto it = std::ranges::find(g_asm_proc_table.first, statement.opcode_ref().value);
-    if (it != g_asm_proc_table.first.end())
-        g_asm_proc_table.second[it - g_asm_proc_table.first.begin()](this, symbol_name, statement);
+    if (const auto handler = g_asm_proc_table.find(statement.opcode_ref().value))
+        handler(this, symbol_name, statement);
     else
         register_attr_ref(symbol_name, context::symbol_attributes(context::symbol_origin::MACH, 'M'_ebcdic));
 }

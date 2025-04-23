@@ -19,11 +19,11 @@
 
 #include "context/instruction.h"
 #include "processing/branching_provider.h"
+#include "processing/handler_map.h"
 #include "processing/instruction_sets/asm_processor.h"
 #include "processing/instruction_sets/macro_processor.h"
 #include "processing/processing_state_listener.h"
 #include "semantics/operand_impls.h"
-#include "utils/projectors.h"
 
 namespace hlasm_plugin::parser_library::processing {
 
@@ -39,9 +39,8 @@ constexpr auto fn()
 constexpr auto macrodef_processor::create_table()
 {
     using wk = context::id_storage::well_known;
-    using context::id_index;
-    using callback = bool (*)(macrodef_processor* self, const resolved_statement&);
-    constexpr auto ar = std::to_array<std::pair<id_index, callback>>({
+    using callback = bool(macrodef_processor * self, const resolved_statement&);
+    return make_handler_map<callback>({
         { wk::SETA, fn<&macrodef_processor::process_SET, context::SET_t_enum::A_TYPE>() },
         { wk::SETB, fn<&macrodef_processor::process_SET, context::SET_t_enum::B_TYPE>() },
         { wk::SETC, fn<&macrodef_processor::process_SET, context::SET_t_enum::C_TYPE>() },
@@ -55,13 +54,6 @@ constexpr auto macrodef_processor::create_table()
         { wk::MEND, fn<&macrodef_processor::process_MEND>() },
         { wk::COPY, fn<&macrodef_processor::process_COPY>() },
     });
-
-    std::pair<std::array<id_index, ar.size()>, std::array<callback, ar.size()>> result;
-
-    std::ranges::transform(ar, result.first.begin(), utils::first_element);
-    std::ranges::transform(ar, result.second.begin(), utils::second_element);
-
-    return result;
 }
 
 constexpr auto g_macrodef_process_table = macrodef_processor::create_table();
@@ -243,11 +235,8 @@ bool macrodef_processor::process_statement(const context::hlasm_statement& state
         {
             process_sequence_symbol(res_stmt->label_ref());
 
-            const auto found = std::ranges::find(g_macrodef_process_table.first, res_stmt->opcode_ref().value);
-            if (found != g_macrodef_process_table.first.end())
-            {
-                return g_macrodef_process_table.second[found - g_macrodef_process_table.first.begin()](this, *res_stmt);
-            }
+            if (const auto handler = g_macrodef_process_table.find(res_stmt->opcode_ref().value))
+                return handler(this, *res_stmt);
         }
         else if (auto def_stmt = statement.access_deferred())
         {
