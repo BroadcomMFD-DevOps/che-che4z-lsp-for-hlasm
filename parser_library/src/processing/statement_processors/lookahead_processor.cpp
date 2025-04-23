@@ -149,7 +149,7 @@ template<void (lookahead_processor::*ptr)(context::id_index, const resolved_stat
 constexpr auto fn() noexcept
 {
     return [](lookahead_processor* self, context::id_index name, const resolved_statement& stmt) {
-        (self->*ptr)(name, std::move(stmt));
+        (self->*ptr)(name, stmt);
     };
 }
 

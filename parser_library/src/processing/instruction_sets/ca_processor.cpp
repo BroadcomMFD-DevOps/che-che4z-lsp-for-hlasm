@@ -37,7 +37,7 @@ using namespace processing;
 template<void (ca_processor::*ptr)(const resolved_statement&)>
 constexpr auto fn()
 {
-    return [](ca_processor* self, const resolved_statement& stmt) { (self->*ptr)(std::move(stmt)); };
+    return [](ca_processor* self, const resolved_statement& stmt) { (self->*ptr)(stmt); };
 }
 
 constexpr auto ca_processor::create_table()
