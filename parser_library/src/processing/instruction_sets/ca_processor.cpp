@@ -58,7 +58,7 @@ constexpr auto ca_processor::create_table()
         { wk::ACTR, fn<&ca_processor::process_ACTR>() },
         { wk::AGO, fn<&ca_processor::process_AGO>() },
         { wk::AIF, fn<&ca_processor::process_AIF>() },
-        { context::id_index(), fn<&ca_processor::process_empty>() },
+        { id_index(), fn<&ca_processor::process_empty>() },
         { wk::MACRO, fn<&ca_processor::process_MACRO>() },
         { wk::MEND, fn<&ca_processor::process_MEND>() },
         { wk::MEXIT, fn<&ca_processor::process_MEXIT>() },
