@@ -40,16 +40,17 @@ constexpr auto macrodef_processor::create_table()
 {
     using wk = context::id_storage::well_known;
     using callback = bool(macrodef_processor * self, const resolved_statement&);
+    using enum context::SET_t_enum;
     return make_handler_map<callback>({
-        { wk::SETA, fn<&macrodef_processor::process_SET, context::SET_t_enum::A_TYPE>() },
-        { wk::SETB, fn<&macrodef_processor::process_SET, context::SET_t_enum::B_TYPE>() },
-        { wk::SETC, fn<&macrodef_processor::process_SET, context::SET_t_enum::C_TYPE>() },
-        { wk::LCLA, fn<&macrodef_processor::process_LCL_GBL, context::SET_t_enum::A_TYPE, false>() },
-        { wk::LCLB, fn<&macrodef_processor::process_LCL_GBL, context::SET_t_enum::B_TYPE, false>() },
-        { wk::LCLC, fn<&macrodef_processor::process_LCL_GBL, context::SET_t_enum::C_TYPE, false>() },
-        { wk::GBLA, fn<&macrodef_processor::process_LCL_GBL, context::SET_t_enum::A_TYPE, true>() },
-        { wk::GBLB, fn<&macrodef_processor::process_LCL_GBL, context::SET_t_enum::B_TYPE, true>() },
-        { wk::GBLC, fn<&macrodef_processor::process_LCL_GBL, context::SET_t_enum::C_TYPE, true>() },
+        { wk::SETA, fn<&macrodef_processor::process_SET, A_TYPE>() },
+        { wk::SETB, fn<&macrodef_processor::process_SET, B_TYPE>() },
+        { wk::SETC, fn<&macrodef_processor::process_SET, C_TYPE>() },
+        { wk::LCLA, fn<&macrodef_processor::process_LCL_GBL, A_TYPE, false>() },
+        { wk::LCLB, fn<&macrodef_processor::process_LCL_GBL, B_TYPE, false>() },
+        { wk::LCLC, fn<&macrodef_processor::process_LCL_GBL, C_TYPE, false>() },
+        { wk::GBLA, fn<&macrodef_processor::process_LCL_GBL, A_TYPE, true>() },
+        { wk::GBLB, fn<&macrodef_processor::process_LCL_GBL, B_TYPE, true>() },
+        { wk::GBLC, fn<&macrodef_processor::process_LCL_GBL, C_TYPE, true>() },
         { wk::MACRO, fn<&macrodef_processor::process_MACRO>() },
         { wk::MEND, fn<&macrodef_processor::process_MEND>() },
         { wk::COPY, fn<&macrodef_processor::process_COPY>() },

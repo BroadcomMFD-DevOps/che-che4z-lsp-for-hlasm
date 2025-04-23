@@ -43,7 +43,7 @@ public:
         return handlers[it - ids.begin()];
     }
 
-    constexpr handler_map(const std::pair<context::id_index, Callback*> (&ar)[n]) noexcept
+    explicit constexpr handler_map(const std::pair<context::id_index, Callback*> (&ar)[n]) noexcept
     {
         assert(std::ranges::all_of(ar, context::compressed_id::can_compress, utils::first_element));
         std::ranges::transform(ar, ids.begin(), [](const auto& p) { return context::compressed_id(p.first); });

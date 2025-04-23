@@ -26,7 +26,7 @@ class compressed_id
 {
     unsigned long long value = 0;
 
-    constexpr compressed_id(unsigned long long v) noexcept
+    explicit constexpr compressed_id(unsigned long long v) noexcept
         : value(v)
     {}
 
