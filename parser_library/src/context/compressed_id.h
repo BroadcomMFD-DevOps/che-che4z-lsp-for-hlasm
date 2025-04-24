@@ -30,6 +30,8 @@ class compressed_id
         : value(v)
     {}
 
+    static_assert(sizeof(value) <= sizeof(id_index::m_buffer));
+
 public:
     static constexpr bool can_compress(const id_index& id) noexcept
     {
