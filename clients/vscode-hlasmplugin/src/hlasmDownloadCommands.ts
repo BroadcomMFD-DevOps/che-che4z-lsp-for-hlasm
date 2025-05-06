@@ -21,7 +21,7 @@ import { promises as fsp } from "fs";
 import { hlasmplugin_folder, proc_grps_file } from './constants';
 import { Telemetry } from './telemetry';
 import { askUser } from './uiUtils';
-import { connectionSecurityLevel, gatherConnectionInfo, getLastRunConfig, translateConnectionInfo, updateLastRunConfig, ZoweConnectionInfo } from './mfCreds';
+import { connectionSecurityLevel, ensureValidMfZoweClient, gatherConnectionInfo, getLastRunConfig, translateConnectionInfo, updateLastRunConfig, ZoweConnectionInfo } from './mfCreds';
 import { isCancellationError } from './helpers';
 import { unterseFile } from "terse.js";
 import { FBStreamingConvertor } from './FBStreamingConvertor';
@@ -69,7 +69,7 @@ function zoweJobMapper(spoolObj: string, jobs: {
 }
 
 async function zoweJobClient(stepDD: string, ci: ZoweConnectionInfo): Promise<JobClient> {
-    const jes = ci.zoweExplorerApi.getJesApi(ci.loadedProfile);
+    const jes = await ensureValidMfZoweClient<any>(ci, ci.zoweExplorerApi.getJesApi);
     let prefix = '';
 
     return {

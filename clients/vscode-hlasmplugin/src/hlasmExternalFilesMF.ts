@@ -15,7 +15,7 @@
 import * as vscode from 'vscode';
 import * as ftp from 'basic-ftp';
 import { ClientInterface, ClientUriDetails, ExternalRequestType, SuspendError } from './hlasmExternalFiles';
-import { FtpConnectionInfo, ZoweConnectionInfo, gatherConnectionInfo, getLastRunConfig, translateConnectionInfo, updateLastRunConfig } from './mfCreds';
+import { FtpConnectionInfo, ZoweConnectionInfo, ensureValidMfZoweClient, gatherConnectionInfo, getLastRunConfig, translateConnectionInfo, updateLastRunConfig } from './mfCreds';
 import { FBWritable } from './FBWritable';
 import { ConnectionPool } from './connectionPool';
 import { AsyncMutex } from './asyncMutex';
@@ -72,6 +72,7 @@ const enum ErrorType {
     Unknown,
     ProfileProblem,
     NotFound,
+    Cancel,
 }
 
 const ProfileErrorMessages = Object.freeze({
@@ -81,6 +82,7 @@ const ProfileErrorMessages = Object.freeze({
 
 function analyzeError(e: any): ErrorType {
     if (!(e instanceof Error)) return ErrorType.Unknown;
+    if (isCancellationError(e)) return ErrorType.Cancel;
     if (e.message in ProfileErrorMessages) // no comment
         return ErrorType.ProfileProblem;
     switch (getZoweErrorCode(e)) {
@@ -93,16 +95,15 @@ function analyzeError(e: any): ErrorType {
     }
 }
 
+
 async function ZoweAsMFClient(info: ZoweConnectionInfo): Promise<MFClient> {
-    const mvs = info.zoweExplorerApi.getMvsApi(info.loadedProfile);
-    const common = info.zoweExplorerApi.getCommonApi(info.loadedProfile);
     let valid = true;
 
     function translateZoweError(e: any) {
         switch (analyzeError(e)) {
             case ErrorType.ProfileProblem:
                 valid = false;
-                throw new SuspendError(e);
+                throw e;
             case ErrorType.NotFound:
                 return null;
             default:
@@ -110,18 +111,7 @@ async function ZoweAsMFClient(info: ZoweConnectionInfo): Promise<MFClient> {
         }
     }
 
-    while (true) {
-        try {
-            await common.login?.(mvs.getSession()); // no better idea how to establish viability of the profile
-        } catch (e) {
-            switch (analyzeError(e)) {
-                case ErrorType.ProfileProblem:
-                    await info.profileCache.ssoLogin(undefined, info.loadedProfile.name);
-                    continue;
-            }
-        }
-        break;
-    }
+    const mvs = await ensureValidMfZoweClient<any>(info, info.zoweExplorerApi.getMvsApi).catch(translateZoweError);
 
     return {
         list: async (dataset: string): Promise<string[] | null> => {
@@ -251,6 +241,10 @@ export function HLASMExternalFilesMF(context: vscode.ExtensionContext): ClientIn
     const pool = new ConnectionPool<MFClient>({
         create: async () => {
             return mutex.locked(async () => {
+                if (mirrorCredQuery !== allowCredQuery)
+                    throw new vscode.CancellationError();
+                //throw new SuspendError(Error('Service suspended'));
+
                 const info = activeConnectionInfo ?? (pool.closeClients(), await getConnInfo());
                 activeConnectionInfo = undefined;
                 const client: MFClient = 'zoweExplorerApi' in info ? await ZoweAsMFClient(info) : await FTPAsMFClient(info);

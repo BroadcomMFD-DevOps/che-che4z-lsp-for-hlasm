@@ -16,6 +16,7 @@ import * as vscode from 'vscode';
 import { askUser, pickUser } from './uiUtils';
 import { AccessOptions } from 'basic-ftp';
 import { MementoKey } from './mementoKeys';
+import { isCancellationError } from './helpers';
 
 export enum connectionSecurityLevel {
     "rejectUnauthorized",
@@ -70,6 +71,7 @@ async function gatherConnectionInfoFromZowe(zowe: vscode.Extension<any>, profile
         profileName = profileCache.getDefaultProfile(profileType);
     }
     const loadedProfile = profileCache.loadNamedProfile(profileName);
+
     return { loadedProfile, profileCache, zoweExplorerApi, user: loadedProfile.user, hostInput: '@' + profileName };
 }
 
@@ -118,3 +120,14 @@ interface DownloadDependenciesInputMemento {
 };
 
 export const updateLastRunConfig = (context: vscode.ExtensionContext, lastInput: DownloadDependenciesInputMemento) => context.globalState.update(MementoKey.DownloadDependencies, lastInput);
+
+export async function ensureValidMfZoweClient<R extends { getSession(): unknown; }>(info: ZoweConnectionInfo, apiGetter: (profile: unknown) => R): Promise<R> {
+    const api = apiGetter.call(info.zoweExplorerApi, info.loadedProfile);
+
+    const { status } = await info.profileCache.checkCurrentProfile(info.loadedProfile);
+
+    if (status !== 'active')
+        throw Error('Zowe profile is not active');
+
+    return api;
+}
