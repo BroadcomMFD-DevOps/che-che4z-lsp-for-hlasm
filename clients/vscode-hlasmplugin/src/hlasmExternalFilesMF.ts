@@ -103,7 +103,7 @@ async function ZoweAsMFClient(info: ZoweConnectionInfo): Promise<MFClient> {
         switch (analyzeError(e)) {
             case ErrorType.ProfileProblem:
                 valid = false;
-                throw e;
+                throw new SuspendError(e);
             case ErrorType.NotFound:
                 return null;
             default:
@@ -111,7 +111,7 @@ async function ZoweAsMFClient(info: ZoweConnectionInfo): Promise<MFClient> {
         }
     }
 
-    const mvs = await ensureValidMfZoweClient<any>(info, info.zoweExplorerApi.getMvsApi).catch(translateZoweError);
+    const mvs = await ensureValidMfZoweClient<any>(info, info.zoweExplorerApi.getMvsApi).catch(e => { throw new SuspendError(e); });
 
     return {
         list: async (dataset: string): Promise<string[] | null> => {
@@ -243,7 +243,6 @@ export function HLASMExternalFilesMF(context: vscode.ExtensionContext): ClientIn
             return mutex.locked(async () => {
                 if (mirrorCredQuery !== allowCredQuery)
                     throw new vscode.CancellationError();
-                //throw new SuspendError(Error('Service suspended'));
 
                 const info = activeConnectionInfo ?? (pool.closeClients(), await getConnInfo());
                 activeConnectionInfo = undefined;
