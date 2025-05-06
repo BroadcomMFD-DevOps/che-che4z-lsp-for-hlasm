@@ -17,6 +17,7 @@ import { askUser, pickUser } from './uiUtils';
 import { AccessOptions } from 'basic-ftp';
 import { MementoKey } from './mementoKeys';
 import { isCancellationError } from './helpers';
+import { AsyncMutex } from './asyncMutex';
 
 export enum connectionSecurityLevel {
     "rejectUnauthorized",
@@ -121,13 +122,16 @@ interface DownloadDependenciesInputMemento {
 
 export const updateLastRunConfig = (context: vscode.ExtensionContext, lastInput: DownloadDependenciesInputMemento) => context.globalState.update(MementoKey.DownloadDependencies, lastInput);
 
+const zoweClientLock = new AsyncMutex();
+
 export async function ensureValidMfZoweClient<R extends { getSession(): unknown; }>(info: ZoweConnectionInfo, apiGetter: (profile: unknown) => R): Promise<R> {
-    const api = apiGetter.call(info.zoweExplorerApi, info.loadedProfile);
+    // it looks like there is a race in checkCurrentProfile...
+    return zoweClientLock.locked(async () => {
+        const { status } = await info.profileCache.checkCurrentProfile(info.loadedProfile);
 
-    const { status } = await info.profileCache.checkCurrentProfile(info.loadedProfile);
+        if (status !== 'active')
+            throw Error('Zowe profile is not active');
 
-    if (status !== 'active')
-        throw Error('Zowe profile is not active');
-
-    return api;
+        return apiGetter.call(info.zoweExplorerApi, info.loadedProfile);
+    });
 }
