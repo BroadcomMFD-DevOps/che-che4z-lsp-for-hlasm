@@ -347,6 +347,60 @@ D   DXD  F
     EXPECT_TRUE(matches_message_codes(a.diags(), { "D030" }));
 }
 
+TEST(asm_instr_processing, check_all_external)
+{
+    std::string input = R"(
+D   DXD  F
+    LARL 0,=Q(D+1)
+)";
+
+    analyzer a(input);
+    a.analyze();
+
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "D030" }));
+}
+
+TEST(asm_instr_processing, goff_valid_q_nominals)
+{
+    std::string input = R"(
+         CSECT
+C        CATTR PART(P)
+D        DSECT
+         EXTRN E
+X        DXD   X
+         WXTRN W
+         LARL  0,=Q(D,E,P,X,W)
+         DC    Q(D)
+         DC    Q(E)
+         DC    Q(P)
+         DC    Q(X)
+         DC    Q(W)
+)";
+
+    analyzer a(input, analyzer_options(asm_option { .sysopt_xobject = true }));
+    a.analyze();
+
+    EXPECT_TRUE(a.diags().empty());
+}
+
+TEST(asm_instr_processing, invalid_q_nominals)
+{
+    std::string input = R"(
+         EXTRN E
+X        DS    X
+         WXTRN W
+         LARL  0,=Q(E,X,W)
+         DC    Q(E)
+         DC    Q(X)
+         DC    Q(W)
+)";
+
+    analyzer a(input);
+    a.analyze();
+
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "D035", "D035", "D035", "D035", "D035", "D035" }));
+}
+
 TEST(asm_instr_processing, TITLE_text_label)
 {
     std::string input = R"(
