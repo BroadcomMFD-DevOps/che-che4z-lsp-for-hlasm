@@ -1507,6 +1507,24 @@ asm_processor::cattr_ops_result asm_processor::cattr_ops(const semantics::operan
     return { ops.value.size(), {}, {} };
 }
 
+namespace {
+constexpr bool can_switch_into_section(context::section_kind s) noexcept
+{
+    switch (s)
+    {
+        case context::section_kind::DUMMY:
+        case context::section_kind::COMMON:
+        case context::section_kind::EXECUTABLE:
+        case context::section_kind::READONLY:
+            return true;
+        case context::section_kind::EXTERNAL:
+        case context::section_kind::WEAK_EXTERNAL:
+        case context::section_kind::EXTERNAL_DSECT:
+            return false;
+    }
+}
+} // namespace
+
 void asm_processor::handle_cattr_ops(context::id_index class_name,
     context::id_index part_name,
     const range& part_rng,
@@ -1522,7 +1540,8 @@ void asm_processor::handle_cattr_ops(context::id_index class_name,
             add_diagnostic(diagnostic_op::error_A170_section_type_mismatch(part_rng));
         else if (op_count != 1)
             add_diagnostic(diagnostic_op::warn_A171_operands_ignored(stmt.operands_ref().field_range));
-        hlasm_ctx.ord_ctx.set_section(*part_name_sect);
+        if (can_switch_into_section(part_name_sect->kind))
+            hlasm_ctx.ord_ctx.set_section(*part_name_sect);
         return;
     }
 
@@ -1534,7 +1553,8 @@ void asm_processor::handle_cattr_ops(context::id_index class_name,
 
     if (class_name_sect)
     {
-        hlasm_ctx.ord_ctx.set_section(*class_name_sect);
+        if (can_switch_into_section(class_name_sect->kind))
+            hlasm_ctx.ord_ctx.set_section(*class_name_sect);
 
         if (!class_name_sect->goff || part_name.empty() && class_name_sect->goff->partitioned)
         {
