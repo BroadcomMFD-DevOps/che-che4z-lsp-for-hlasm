@@ -258,6 +258,95 @@ C   CXD
     EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "I"), 0);
 }
 
+TEST(asm_instr_processing, DXD_lookahead)
+{
+    std::string input = R"(
+&T  SETC T'D
+&O  SETC O'D
+&L  SETA L'D
+&S  SETA S'D
+&I  SETA I'D
+D   DXD  F
+)";
+
+    analyzer a(input);
+    a.analyze();
+
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "E066", "E066" })); // S, I attributes
+
+    EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "T"), "J");
+    EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "O"), "O");
+    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "L"), 1);
+    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "S"), 0);
+    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "I"), 0);
+}
+
+TEST(asm_instr_processing, DXD_name_conflict_1)
+{
+    std::string input = R"(
+D   DXD  F
+D   DSECT
+)";
+
+    analyzer a(input);
+    a.analyze();
+
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "E031" }));
+}
+
+TEST(asm_instr_processing, DXD_name_conflict_2)
+{
+    std::string input = R"(
+D   DSECT
+D   DXD  F
+)";
+
+    analyzer a(input);
+    a.analyze();
+
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "E031" }));
+}
+
+TEST(asm_instr_processing, valid_q_ref)
+{
+    std::string input = R"(
+D   DXD  F
+    DC   Q(D)
+    LARL 0,=Q(D)
+)";
+
+    analyzer a(input);
+    a.analyze();
+
+    EXPECT_TRUE(a.diags().empty());
+}
+
+TEST(asm_instr_processing, invalid_q_ref)
+{
+    std::string input = R"(
+D   DXD  F
+    DC   Q(D+1)
+)";
+
+    analyzer a(input);
+    a.analyze();
+
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "D030" }));
+}
+
+TEST(asm_instr_processing, invalid_q_ref_literal)
+{
+    std::string input = R"(
+D   DXD  F
+    LARL 0,=Q(D+1)
+)";
+
+    analyzer a(input);
+    a.analyze();
+
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "D030" }));
+}
+
 TEST(asm_instr_processing, TITLE_text_label)
 {
     std::string input = R"(
