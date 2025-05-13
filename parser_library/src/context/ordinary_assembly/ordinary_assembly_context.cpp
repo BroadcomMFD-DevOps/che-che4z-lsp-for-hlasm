@@ -206,6 +206,8 @@ void ordinary_assembly_context::create_external_section(id_index name, section_k
                 return symbol_attributes::make_extrn_attrs();
             case section_kind::WEAK_EXTERNAL:
                 return symbol_attributes::make_wxtrn_attrs();
+            case section_kind::EXTERNAL_DSECT:
+                return symbol_attributes::make_section_attrs();
         }
         assert(false);
     }();

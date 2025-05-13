@@ -99,6 +99,7 @@ struct asm_processor::handler_table
         { id_index("DC"), fn<&asm_processor::process_DC> },
         { id_index("DS"), fn<&asm_processor::process_DS> },
         { wk::COPY, fn<&asm_processor::process_COPY> },
+        { id_index("DXD"), fn<&asm_processor::process_DXD> },
         { id_index("EXTRN"), fn<&asm_processor::process_EXTRN> },
         { id_index("WXTRN"), fn<&asm_processor::process_WXTRN> },
         { id_index("ORG"), fn<&asm_processor::process_ORG> },
@@ -515,6 +516,26 @@ void asm_processor::process_COPY(rebuilt_statement&& stmt)
             std::make_unique<postponed_statement_impl>(std::move(stmt), hlasm_ctx.processing_stack()),
             std::move(dep_solver).derive_current_dependency_evaluation_context());
     }
+}
+
+void asm_processor::process_DXD(rebuilt_statement&& stmt)
+{
+    const auto name = find_label_symbol(stmt);
+
+    if (name.empty())
+        add_diagnostic(diagnostic_op::error_E053(stmt.label_ref().field_range));
+    else
+    {
+        if (hlasm_ctx.ord_ctx.symbol_defined(name))
+            add_diagnostic(diagnostic_op::error_E031("external symbol", stmt.label_ref().field_range));
+        else
+            hlasm_ctx.ord_ctx.create_external_section(name, context::section_kind::EXTERNAL_DSECT);
+    }
+
+    context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, lib_info);
+    hlasm_ctx.ord_ctx.symbol_dependencies().add_postponed_statement(
+        std::make_unique<postponed_statement_impl>(std::move(stmt), hlasm_ctx.processing_stack()),
+        std::move(dep_solver).derive_current_dependency_evaluation_context());
 }
 
 void asm_processor::process_EXTRN(rebuilt_statement&& stmt)
