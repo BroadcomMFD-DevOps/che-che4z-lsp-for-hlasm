@@ -369,6 +369,7 @@ D        DSECT
          EXTRN E
 X        DXD   X
          WXTRN W
+S        CSECT
          LARL  0,=Q(D,E,P,X,W,S)
          DC    Q(D)
          DC    Q(E)
