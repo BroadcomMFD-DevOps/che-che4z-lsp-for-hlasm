@@ -187,11 +187,12 @@ bool data_definition::check_single_symbol_ok(const diagnostic_collector& add_dia
 {
     if (!expects_single_symbol() || !nominal_value)
         return true;
-    if (!nominal_value->access_exprs())
+    const auto* exprs = nominal_value->access_exprs();
+    if (!exprs)
         return true;
 
     bool ret = true;
-    for (const auto& expr_or_addr : nominal_value->access_exprs()->exprs)
+    for (const auto& expr_or_addr : exprs->exprs)
     {
         if (!std::holds_alternative<mach_expr_ptr>(expr_or_addr))
         {
@@ -218,9 +219,11 @@ std::vector<context::id_index> data_definition::get_single_symbol_names() const
     // expects that check_single_symbol_ok returned true
     assert(check_single_symbol_ok(diagnostic_collector()));
 
+    const auto* exprs = nominal_value->access_exprs();
+
     std::vector<context::id_index> symbols;
-    symbols.reserve(nominal_value->access_exprs()->exprs.size());
-    for (const auto& expr_or_addr : nominal_value->access_exprs()->exprs)
+    symbols.reserve(exprs->exprs.size());
+    for (const auto& expr_or_addr : exprs->exprs)
     {
         const mach_expression* expr = std::get<mach_expr_ptr>(expr_or_addr).get();
         const auto& symbol = dynamic_cast<const mach_expr_symbol&>(*expr);
@@ -389,14 +392,14 @@ checking::nominal_value_t data_definition::evaluate_nominal_value(
 
     checking::nominal_value_t nom;
     nom.present = true;
-    if (nominal_value->access_string())
+    if (const auto* str = nominal_value->access_string())
     {
-        nom.value = nominal_value->access_string()->value;
-        nom.rng = nominal_value->access_string()->value_range;
+        nom.value = str->value;
+        nom.rng = str->value_range;
     }
-    else if (nominal_value->access_exprs())
+    else if (const auto* exprs = nominal_value->access_exprs())
     {
-        nom.value = extract_nominal_value_expressions(nominal_value->access_exprs()->exprs,
+        nom.value = extract_nominal_value_expressions(exprs->exprs,
             info,
             diags,
             type != 'S' ? nominal_eval_subtype::none
@@ -415,14 +418,14 @@ checking::reduced_nominal_value_t data_definition::evaluate_reduced_nominal_valu
 
     checking::reduced_nominal_value_t nom;
     nom.present = true;
-    if (nominal_value->access_string())
+    if (const auto* str = nominal_value->access_string())
     {
-        nom.value = nominal_value->access_string()->value;
-        nom.rng = nominal_value->access_string()->value_range;
+        nom.value = str->value;
+        nom.rng = str->value_range;
     }
-    else if (nominal_value->access_exprs())
+    else if (const auto* exprs = nominal_value->access_exprs())
     {
-        nom.value = nominal_value->access_exprs()->exprs.size();
+        nom.value = exprs->exprs.size();
     }
     else
         assert(false);
@@ -474,9 +477,9 @@ void data_definition::apply(mach_expr_visitor& visitor) const
     if (exponent)
         exponent->apply(visitor);
 
-    if (nominal_value && nominal_value->access_exprs())
+    if (const auto* exprs = nominal_value ? nominal_value->access_exprs() : nullptr)
     {
-        for (const auto& val : nominal_value->access_exprs()->exprs)
+        for (const auto& val : exprs->exprs)
         {
             if (std::holds_alternative<expressions::mach_expr_ptr>(val))
                 std::get<expressions::mach_expr_ptr>(val)->apply(visitor);
