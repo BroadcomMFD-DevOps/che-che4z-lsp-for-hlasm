@@ -438,9 +438,6 @@ void asm_processor::process_data_instruction(rebuilt_statement&& stmt)
             current_alignment = op_align;
 
             has_length_dependencies |= data_op->get_length_dependencies(op_solver).contains_dependencies();
-
-            // some types require operands that consist only of one symbol
-            (void)data_op->value->check_single_symbol_ok(diagnostic_collector(&diag_ctx));
         }
 
         const auto* const b = std::to_address(start);

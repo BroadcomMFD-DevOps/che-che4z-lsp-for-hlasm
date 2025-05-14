@@ -50,6 +50,7 @@ public:
     virtual std::variant<const symbol*, symbol_candidate> get_symbol_candidate(id_index name) const = 0;
     virtual std::string get_opcode_attr(id_index symbol) const = 0;
     virtual const asm_option& get_options() const noexcept = 0;
+    virtual const section* get_section(id_index name) const noexcept = 0;
 
 protected:
     ~dependency_solver() = default;

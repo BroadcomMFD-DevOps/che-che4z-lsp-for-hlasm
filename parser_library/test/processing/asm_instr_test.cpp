@@ -363,18 +363,19 @@ D   DXD  F
 TEST(asm_instr_processing, goff_valid_q_nominals)
 {
     std::string input = R"(
-         CSECT
+S        CSECT
 C        CATTR PART(P)
 D        DSECT
          EXTRN E
 X        DXD   X
          WXTRN W
-         LARL  0,=Q(D,E,P,X,W)
+         LARL  0,=Q(D,E,P,X,W,S)
          DC    Q(D)
          DC    Q(E)
          DC    Q(P)
          DC    Q(X)
          DC    Q(W)
+         DC    Q(S)
 )";
 
     analyzer a(input, analyzer_options(asm_option { .sysopt_xobject = true }));
@@ -386,19 +387,21 @@ X        DXD   X
 TEST(asm_instr_processing, invalid_q_nominals)
 {
     std::string input = R"(
+S        CSECT
          EXTRN E
 X        DS    X
          WXTRN W
-         LARL  0,=Q(E,X,W)
+         LARL  0,=Q(E,X,W,S)
          DC    Q(E)
          DC    Q(X)
          DC    Q(W)
+         DC    Q(S)
 )";
 
     analyzer a(input);
     a.analyze();
 
-    EXPECT_TRUE(matches_message_codes(a.diags(), { "D035", "D035", "D035", "D035", "D035", "D035" }));
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "D035", "D035", "D035", "D035", "D035", "D035", "D035", "D035" }));
 }
 
 TEST(asm_instr_processing, TITLE_text_label)

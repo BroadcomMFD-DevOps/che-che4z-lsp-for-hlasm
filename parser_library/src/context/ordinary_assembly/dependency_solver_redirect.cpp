@@ -50,4 +50,9 @@ std::string dependency_solver_redirect::get_opcode_attr(id_index symbol) const
 
 const asm_option& dependency_solver_redirect::get_options() const noexcept { return m_base->get_options(); }
 
+const section* dependency_solver_redirect::get_section(id_index name) const noexcept
+{
+    return m_base->get_section(name);
+}
+
 } // namespace hlasm_plugin::parser_library::context

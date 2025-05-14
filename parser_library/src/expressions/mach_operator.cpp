@@ -132,7 +132,7 @@ mach_expression::value_t mach_expr_binary<rel_addr>::evaluate(
             auto offset = reloc.offset();
             if (offset % 2 != 0)
                 diags.add_diagnostic(diagnostic_op::error_ME003(get_range()));
-            else if (!info.get_options().sysopt_xobject)
+            else if (!info.get_options().sysopt_xobject && !reloc.bases().empty())
                 diags.add_diagnostic(diagnostic_op::warn_M136(get_range()));
             result = mach_expression::value_t(offset / 2);
         }

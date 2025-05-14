@@ -110,13 +110,13 @@ const symbol* ordinary_assembly_context::get_symbol(id_index name) const
     return tmp == symbols_.end() ? nullptr : std::get_if<symbol>(&tmp->second);
 }
 
-section* ordinary_assembly_context::get_section(id_index name)
+section* ordinary_assembly_context::get_section(id_index name) const noexcept
 {
     for (auto& tmp : sections_)
     {
         if (tmp->name == name)
         {
-            return &(*tmp);
+            return std::to_address(tmp);
         }
     }
     return nullptr;
