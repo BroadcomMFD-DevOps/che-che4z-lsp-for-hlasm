@@ -32,6 +32,7 @@ public:
         id_index label, const section* owner, int32_t offset, bool long_offset) const override;
     std::variant<const symbol*, symbol_candidate> get_symbol_candidate(id_index name) const override;
     std::string get_opcode_attr(id_index symbol) const override;
+    const asm_option& get_options() const noexcept override;
 
 protected:
     explicit dependency_solver_redirect(dependency_solver& base)

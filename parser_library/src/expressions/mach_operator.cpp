@@ -16,6 +16,7 @@
 
 #include <cassert>
 
+#include "compiler_options.h"
 #include "context/ordinary_assembly/symbol_value.h"
 #include "utils/general_hashers.h"
 #include "utils/similar.h"
@@ -126,13 +127,12 @@ mach_expression::value_t mach_expr_binary<rel_addr>::evaluate(
     else if (result.value_kind() == context::symbol_value_kind::RELOC)
     {
         const auto& reloc = result.get_reloc();
-        constexpr bool GOFF = false; // TODO: fix when GOFF assembler option is available
         if (target.value_kind() == context::symbol_value_kind::RELOC && target.get_reloc().is_simple())
         {
             auto offset = reloc.offset();
             if (offset % 2 != 0)
                 diags.add_diagnostic(diagnostic_op::error_ME003(get_range()));
-            else if (!GOFF)
+            else if (!info.get_options().sysopt_xobject)
                 diags.add_diagnostic(diagnostic_op::warn_M136(get_range()));
             result = mach_expression::value_t(offset / 2);
         }
