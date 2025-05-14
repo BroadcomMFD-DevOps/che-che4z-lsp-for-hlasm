@@ -200,13 +200,14 @@ section* ordinary_assembly_context::set_section(section& s)
 void ordinary_assembly_context::create_external_section(id_index name, section_kind kind)
 {
     const auto attrs = [kind]() {
+        using enum section_kind;
         switch (kind)
         {
-            case section_kind::EXTERNAL:
+            case EXTERNAL:
                 return symbol_attributes::make_extrn_attrs();
-            case section_kind::WEAK_EXTERNAL:
+            case WEAK_EXTERNAL:
                 return symbol_attributes::make_wxtrn_attrs();
-            case section_kind::EXTERNAL_DSECT:
+            case EXTERNAL_DSECT:
                 return symbol_attributes::make_section_attrs();
         }
         assert(false);

@@ -517,17 +517,12 @@ void asm_processor::process_COPY(rebuilt_statement&& stmt)
 
 void asm_processor::process_DXD(rebuilt_statement&& stmt)
 {
-    const auto name = find_label_symbol(stmt);
-
-    if (name.empty())
+    if (const auto name = find_label_symbol(stmt); name.empty())
         add_diagnostic(diagnostic_op::error_E053(stmt.label_ref().field_range));
+    else if (hlasm_ctx.ord_ctx.symbol_defined(name))
+        add_diagnostic(diagnostic_op::error_E031("external symbol", stmt.label_ref().field_range));
     else
-    {
-        if (hlasm_ctx.ord_ctx.symbol_defined(name))
-            add_diagnostic(diagnostic_op::error_E031("external symbol", stmt.label_ref().field_range));
-        else
-            hlasm_ctx.ord_ctx.create_external_section(name, context::section_kind::EXTERNAL_DSECT);
-    }
+        hlasm_ctx.ord_ctx.create_external_section(name, context::section_kind::EXTERNAL_DSECT);
 
     context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, lib_info);
     hlasm_ctx.ord_ctx.symbol_dependencies().add_postponed_statement(
@@ -1507,16 +1502,17 @@ asm_processor::cattr_ops_result asm_processor::cattr_ops(const semantics::operan
 namespace {
 constexpr bool can_switch_into_section(context::section_kind s) noexcept
 {
+    using enum context::section_kind;
     switch (s)
     {
-        case context::section_kind::DUMMY:
-        case context::section_kind::COMMON:
-        case context::section_kind::EXECUTABLE:
-        case context::section_kind::READONLY:
+        case DUMMY:
+        case COMMON:
+        case EXECUTABLE:
+        case READONLY:
             return true;
-        case context::section_kind::EXTERNAL:
-        case context::section_kind::WEAK_EXTERNAL:
-        case context::section_kind::EXTERNAL_DSECT:
+        case EXTERNAL:
+        case WEAK_EXTERNAL:
+        case EXTERNAL_DSECT:
             return false;
     }
 }

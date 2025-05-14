@@ -404,6 +404,18 @@ X        DS    X
     EXPECT_TRUE(matches_message_codes(a.diags(), { "D035", "D035", "D035", "D035", "D035", "D035", "D035", "D035" }));
 }
 
+TEST(asm_instr_processing, dxd_without_name)
+{
+    std::string input = R"(
+    DXD F
+)";
+
+    analyzer a(input);
+    a.analyze();
+
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "E053" }));
+}
+
 TEST(asm_instr_processing, TITLE_text_label)
 {
     std::string input = R"(
