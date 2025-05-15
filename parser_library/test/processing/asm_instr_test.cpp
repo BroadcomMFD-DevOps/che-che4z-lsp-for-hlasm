@@ -347,17 +347,21 @@ D   DXD  F
     EXPECT_TRUE(matches_message_codes(a.diags(), { "D030" }));
 }
 
-TEST(asm_instr_processing, check_all_external)
+TEST(asm_instr_processing, nogoff_valid_q_nominals)
 {
     std::string input = R"(
-D   DXD  F
-    LARL 0,=Q(D+1)
+S        CSECT
+         LARL  0,=Q(D,X)
+         DC    Q(D)
+         DC    Q(X)
+D        DSECT
+X        DXD   X
 )";
 
     analyzer a(input);
     a.analyze();
 
-    EXPECT_TRUE(matches_message_codes(a.diags(), { "D030" }));
+    EXPECT_TRUE(a.diags().empty());
 }
 
 TEST(asm_instr_processing, goff_valid_q_nominals)

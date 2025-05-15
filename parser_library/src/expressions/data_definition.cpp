@@ -369,15 +369,8 @@ checking::nominal_value_expressions extract_nominal_value_expressions(const expr
 
 constexpr bool is_valid_external_symbol(const context::section& s) noexcept
 {
-    switch (s.kind)
-    {
-        case context::section_kind::DUMMY:
-        case context::section_kind::EXTERNAL_DSECT:
-            return true;
-
-        default:
-            return false;
-    }
+    using enum context::section_kind;
+    return s.kind == DUMMY || s.kind == EXTERNAL_DSECT;
 }
 
 checking::nominal_value_expressions process_q_nominal(
