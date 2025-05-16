@@ -812,9 +812,6 @@ public:
     static const mnemonic_code* find_mnemonic_codes(std::string_view name) noexcept;
     static std::span<const mnemonic_code> all_mnemonic_codes() noexcept;
 
-    static std::pair<const machine_instruction*, const mnemonic_code*> find_machine_instruction_or_mnemonic(
-        std::string_view name) noexcept;
-
     static std::string_view mach_format_to_string(mach_format) noexcept;
 };
 

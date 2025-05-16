@@ -33,16 +33,13 @@ mach_processor::mach_processor(const analyzing_context& ctx,
 
 void mach_processor::process(std::shared_ptr<const processing::resolved_statement> stmt)
 {
-    const auto opcode = stmt->opcode_ref().value;
+    const auto opcode_size = stmt->opcode_ref().mach_size_in_bits() / 8;
 
     auto rebuilt_stmt = preprocess(std::move(stmt));
 
     register_literals(rebuilt_stmt, context::halfword, hlasm_ctx.ord_ctx.next_unique_id());
 
     auto loctr = hlasm_ctx.ord_ctx.align(context::halfword, lib_info);
-
-    const auto [mach_instr, _] = context::instruction::find_machine_instruction_or_mnemonic(opcode.to_string_view());
-    assert(mach_instr);
 
     auto label_name = find_label_symbol(rebuilt_stmt);
 
@@ -57,8 +54,7 @@ void mach_processor::process(std::shared_ptr<const processing::resolved_statemen
             create_symbol(rebuilt_stmt.stmt_range_ref(),
                 label_name,
                 loctr,
-                context::symbol_attributes::make_machine_attrs(
-                    (context::symbol_attributes::len_attr)mach_instr->size_in_bits() / 8));
+                context::symbol_attributes::make_machine_attrs((context::symbol_attributes::len_attr)opcode_size));
         }
     }
 
@@ -68,7 +64,7 @@ void mach_processor::process(std::shared_ptr<const processing::resolved_statemen
         std::make_unique<postponed_statement_impl>(std::move(rebuilt_stmt), hlasm_ctx.processing_stack()),
         std::move(dep_solver).derive_current_dependency_evaluation_context());
 
-    (void)hlasm_ctx.ord_ctx.reserve_storage_area(mach_instr->size_in_bits() / 8, context::halfword, lib_info);
+    (void)hlasm_ctx.ord_ctx.reserve_storage_area(opcode_size, context::halfword, lib_info);
 }
 
 } // namespace hlasm_plugin::parser_library::processing

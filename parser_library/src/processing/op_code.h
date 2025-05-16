@@ -22,6 +22,8 @@
 #include "processing_format.h"
 
 namespace hlasm_plugin::parser_library::context {
+class mnemonic_code;
+class machine_instruction;
 class macro_definition;
 } // namespace hlasm_plugin::parser_library::context
 
@@ -33,16 +35,42 @@ struct op_code
     constexpr op_code() noexcept
         : type(context::instruction_type::UNDEF)
     {}
-    constexpr op_code(
-        context::id_index value, context::instruction_type type, context::macro_definition* mac_def) noexcept
+    constexpr op_code(context::id_index value, context::instruction_type type) noexcept
+        : value(value)
+        , type(type)
+    {
+        assert(type != context::instruction_type::MAC && type != context::instruction_type::MACH
+            && type != context::instruction_type::MNEMO);
+    }
+    constexpr op_code(context::id_index value, context::macro_definition* mac_def) noexcept
         : value(value)
         , mac_def(mac_def)
-        , type(type)
+        , type(context::instruction_type::MAC)
+    {}
+    constexpr op_code(context::id_index value, const context::machine_instruction* mach_instr) noexcept
+        : value(value)
+        , mach_instr(mach_instr)
+        , type(context::instruction_type::MACH)
+    {}
+    constexpr op_code(context::id_index value, const context::mnemonic_code* mach_mnemo) noexcept
+        : value(value)
+        , mach_mnemo(mach_mnemo)
+        , type(context::instruction_type::MNEMO)
     {}
 
     context::id_index value;
-    context::macro_definition* mac_def = nullptr;
+    union
+    {
+        const void* _empty = nullptr;
+        context::macro_definition* mac_def;
+        const context::machine_instruction* mach_instr;
+        const context::mnemonic_code* mach_mnemo;
+    };
     context::instruction_type type;
+
+    // helpers
+
+    size_t mach_size_in_bits() const noexcept;
 };
 
 using processing_status = std::pair<processing_format, op_code>;
@@ -62,7 +90,7 @@ public:
 
     explicit processing_status_cache_key(const processing_status& s) noexcept;
 
-    static unsigned char generate_loctr_len(std::string_view id) noexcept;
+    static unsigned char generate_loctr_len(const op_code& op) noexcept;
 };
 
 } // namespace hlasm_plugin::parser_library::processing

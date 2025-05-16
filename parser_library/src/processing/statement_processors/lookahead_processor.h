@@ -68,7 +68,7 @@ private:
     void assign_section_attributes(context::id_index symbol_name, const resolved_statement& statement);
     void assign_cxd_attributes(context::id_index symbol_name, const resolved_statement& statement);
 
-    void assign_machine_attributes(context::id_index symbol_name, const resolved_statement& statement);
+    void assign_machine_attributes(context::id_index symbol_name, context::symbol_attributes::len_attr len);
     void assign_assembler_attributes(context::id_index symbol_name, const resolved_statement& statement);
 
     void find_seq(const semantics::label_si& label);

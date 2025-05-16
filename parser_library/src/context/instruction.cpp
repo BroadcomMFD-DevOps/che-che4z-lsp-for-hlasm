@@ -2012,31 +2012,6 @@ constexpr auto combined_machine_instruction_table = []() {
     return std::pair(names, offsets);
 }();
 
-std::pair<const machine_instruction*, const mnemonic_code*> instruction::find_machine_instruction_or_mnemonic(
-    std::string_view name) noexcept
-{
-    if (name.size() > combined_machine_instruction_name_limit)
-        return {};
-
-    const auto& [mach_instr_names, mach_instr_offsets] = combined_machine_instruction_table;
-
-    std::array<char, combined_machine_instruction_name_limit> padded_name {};
-    std::ranges::copy(name, padded_name.begin());
-
-    auto it = std::ranges::lower_bound(mach_instr_names, padded_name);
-    if (it == std::end(mach_instr_names) || *it != padded_name)
-        return {};
-
-    const auto idx = mach_instr_offsets[it - std::begin(mach_instr_names)];
-
-    if (idx >= 0)
-        return { &machine_instructions[idx], nullptr };
-
-    const auto& mn = mnemonic_codes[-idx - 1];
-
-    return { mn.instruction(), &mn };
-}
-
 constexpr instruction_set_size compute_instruction_set_size(instruction_set_version v)
 {
     instruction_set_size result = {
