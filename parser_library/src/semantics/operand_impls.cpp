@@ -113,6 +113,12 @@ address_machine_operand* machine_operand::access_address()
     return kind == mach_kind::ADDR ? static_cast<address_machine_operand*>(this) : nullptr;
 }
 
+constexpr bool is_dipl_like(checking::machine_operand_type type)
+{
+    using enum checking::machine_operand_type;
+    return type == DISP || type == DISP_IDX;
+}
+
 std::unique_ptr<checking::operand> make_check_operand(context::dependency_solver& info,
     const expressions::mach_expression& expr,
     const checking::machine_operand_format& mach_op_type,
@@ -123,8 +129,7 @@ std::unique_ptr<checking::operand> make_check_operand(context::dependency_solver
     {
         return std::make_unique<checking::one_operand>(res.get_abs());
     }
-    else if (res.value_kind() == context::symbol_value_kind::RELOC
-        && mach_op_type.identifier.type == checking::machine_operand_type::DISPLC)
+    else if (res.value_kind() == context::symbol_value_kind::RELOC && is_dipl_like(mach_op_type.identifier.type))
     {
         const auto& reloc = res.get_reloc();
         if (reloc.is_simple())
@@ -293,7 +298,7 @@ std::unique_ptr<checking::operand> address_machine_operand::get_operand_value(co
         displ_v = displ.get_abs();
     else if (displ.value_kind() == context::symbol_value_kind::RELOC)
     {
-        if (mach_op_format.identifier.type != checking::machine_operand_type::DISPLC)
+        if (!is_dipl_like(mach_op_format.identifier.type))
         {
             // only translate when memory-like operand indicated
             displ_v = 0;

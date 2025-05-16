@@ -50,6 +50,7 @@ enum class z_arch_affiliation : uint16_t
     SINCE_Z14,
     SINCE_Z15,
     SINCE_Z16,
+    SINCE_Z17,
 };
 
 struct instruction_set_affiliation
@@ -92,6 +93,7 @@ constexpr bool instruction_available(
         case instruction_set_version::Z14:
         case instruction_set_version::Z15:
         case instruction_set_version::Z16:
+        case instruction_set_version::Z17:
             return instr_set_affiliation.z_arch == z_arch_affiliation::NO_AFFILIATION
                 ? false
                 : instr_set_affiliation.z_arch <= active_instr_set;
@@ -165,6 +167,7 @@ enum class mach_format : unsigned char
     RXF,
     RXY_a,
     RXY_b,
+    RXY_c,
     SIL,
     SIY,
     SMI,
@@ -196,6 +199,9 @@ enum class mach_format : unsigned char
     VRI_g,
     VRI_h,
     VRI_i,
+    VRI_j,
+    VRI_k,
+    VRI_l,
     VRR_g,
     VRR_h,
     VRR_i,
@@ -222,11 +228,12 @@ constexpr checking::parameter reg_even = {
 constexpr checking::parameter reg_even_nz = {
     false, 4, checking::machine_operand_type::REG, checking::even_odd_register::EVEN, 2
 };
-constexpr checking::parameter dis_reg = { false, 4, checking::machine_operand_type::DIS_REG };
-constexpr checking::parameter dis_reg_r = { false, 4, checking::machine_operand_type::REG };
+constexpr checking::parameter idx_reg = { false, 4, checking::machine_operand_type::IDX_REG };
+constexpr checking::parameter idx_reg_r = { false, 4, checking::machine_operand_type::REG };
 constexpr checking::parameter mask = { false, 4, checking::machine_operand_type::MASK };
-constexpr checking::parameter dis_12u = { false, 12, checking::machine_operand_type::DISPLC };
-constexpr checking::parameter dis_20s = { true, 20, checking::machine_operand_type::DISPLC };
+constexpr checking::parameter dis_12u = { false, 12, checking::machine_operand_type::DISP };
+constexpr checking::parameter dis_20s = { true, 20, checking::machine_operand_type::DISP };
+constexpr checking::parameter dis_idx_20s = { true, 20, checking::machine_operand_type::DISP_IDX };
 constexpr checking::parameter base_ = { false, 4, checking::machine_operand_type::BASE };
 constexpr checking::parameter length_8 = { false, 8, checking::machine_operand_type::LENGTH };
 constexpr checking::parameter length_4 = { false, 4, checking::machine_operand_type::LENGTH };
@@ -257,9 +264,10 @@ With DXB Formats
 */
 constexpr checking::machine_operand_format db_12_4_U(dis_12u, empty, base_);
 constexpr checking::machine_operand_format db_20_4_S(dis_20s, empty, base_);
-constexpr checking::machine_operand_format drb_12_4x4_U(dis_12u, dis_reg_r, base_);
-constexpr checking::machine_operand_format dxb_12_4x4_U(dis_12u, dis_reg, base_);
-constexpr checking::machine_operand_format dxb_20_4x4_S(dis_20s, dis_reg, base_);
+constexpr checking::machine_operand_format drb_12_4x4_U(dis_12u, idx_reg_r, base_);
+constexpr checking::machine_operand_format dxb_12_4x4_U(dis_12u, idx_reg, base_);
+constexpr checking::machine_operand_format dxb_20_4x4_S(dis_20s, idx_reg, base_);
+constexpr checking::machine_operand_format dxxb_20_4x4_S(dis_idx_20s, idx_reg, base_);
 constexpr checking::machine_operand_format dvb_12_5x4_U(dis_12u, vec_reg, base_);
 constexpr checking::machine_operand_format reg_4_U(reg, empty, empty);
 constexpr checking::machine_operand_format reg_4_U_nz(reg_nz, empty, empty);
@@ -288,9 +296,9 @@ constexpr checking::machine_operand_format rel_addr_imm_32_S(reladdr_imm_32s, em
 // optional variants
 constexpr checking::machine_operand_format db_12_4_U_opt(dis_12u, empty, base_, true);
 constexpr checking::machine_operand_format db_20_4_S_opt(dis_20s, empty, base_, true);
-constexpr checking::machine_operand_format drb_12_4x4_U_opt(dis_12u, dis_reg_r, base_, true);
-constexpr checking::machine_operand_format dxb_12_4x4_U_opt(dis_12u, dis_reg, base_, true);
-constexpr checking::machine_operand_format dxb_20_4x4_S_opt(dis_20s, dis_reg, base_, true);
+constexpr checking::machine_operand_format drb_12_4x4_U_opt(dis_12u, idx_reg_r, base_, true);
+constexpr checking::machine_operand_format dxb_12_4x4_U_opt(dis_12u, idx_reg, base_, true);
+constexpr checking::machine_operand_format dxb_20_4x4_S_opt(dis_20s, idx_reg, base_, true);
 constexpr checking::machine_operand_format dvb_12_5x4_U_opt(dis_12u, vec_reg, base_, true);
 constexpr checking::machine_operand_format reg_4_U_opt(reg, empty, empty, true);
 constexpr checking::machine_operand_format mask_4_U_opt(mask, empty, empty, true);

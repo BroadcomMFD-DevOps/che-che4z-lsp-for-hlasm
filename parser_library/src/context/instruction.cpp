@@ -85,6 +85,7 @@ constexpr auto UNI_SINCE_Z13                = UNI | z_arch_affiliation::SINCE_Z1
 constexpr auto UNI_SINCE_Z14                = UNI | z_arch_affiliation::SINCE_Z14;
 constexpr auto UNI_SINCE_Z15                = UNI | z_arch_affiliation::SINCE_Z15;
 constexpr auto UNI_SINCE_Z16                = UNI | z_arch_affiliation::SINCE_Z16;
+constexpr auto UNI_SINCE_Z17                = UNI | z_arch_affiliation::SINCE_Z17;
 constexpr auto UNI_SINCE_Z9                 = UNI | z_arch_affiliation::SINCE_Z9;
 constexpr auto UNI_SINCE_ZOP                = UNI | z_arch_affiliation::SINCE_ZOP;
 // clang-format on
@@ -174,6 +175,8 @@ std::string_view instruction::mach_format_to_string(mach_format f) noexcept
             return "RXY-a";
         case mach_format::RXY_b:
             return "RXY-b";
+        case mach_format::RXY_c:
+            return "RXY-c";
         case mach_format::S:
             return "S";
         case mach_format::SI:
@@ -220,6 +223,12 @@ std::string_view instruction::mach_format_to_string(mach_format f) noexcept
             return "VRI-h";
         case mach_format::VRI_i:
             return "VRI-i";
+        case mach_format::VRI_j:
+            return "VRI-j";
+        case mach_format::VRI_k:
+            return "VRI-k";
+        case mach_format::VRI_l:
+            return "VRI-l";
         case mach_format::VRR_a:
             return "VRR-a";
         case mach_format::VRR_b:
@@ -256,10 +265,9 @@ std::string_view instruction::mach_format_to_string(mach_format f) noexcept
             return "VRV";
         case mach_format::VRX:
             return "VRX";
-        default:
-            assert(false);
-            return "";
     }
+    assert(false);
+    return "";
 }
 
 constexpr ca_instruction ca_instructions[] = {
@@ -2000,6 +2008,7 @@ constexpr instruction_set_size instruction_set_sizes[] = {
     compute_instruction_set_size(instruction_set_version::Z14),
     compute_instruction_set_size(instruction_set_version::Z15),
     compute_instruction_set_size(instruction_set_version::Z16),
+    compute_instruction_set_size(instruction_set_version::Z17),
     compute_instruction_set_size(instruction_set_version::ESA),
     compute_instruction_set_size(instruction_set_version::XA),
     compute_instruction_set_size(instruction_set_version::_370),

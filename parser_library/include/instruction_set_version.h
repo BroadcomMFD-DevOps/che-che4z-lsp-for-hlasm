@@ -29,6 +29,7 @@ enum class instruction_set_version
     Z14,
     Z15,
     Z16,
+    Z17,
     ESA,
     XA,
     _370,
