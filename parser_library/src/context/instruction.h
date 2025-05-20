@@ -18,17 +18,12 @@
 #include <algorithm>
 #include <array>
 #include <compare>
-#include <functional>
 #include <limits>
-#include <map>
 #include <numeric>
-#include <set>
 #include <span>
-#include <string>
+#include <string_view>
 
 #include "checking/instr_operand.h"
-#include "diagnostic.h"
-#include "id_storage.h"
 #include "instruction_set_version.h"
 
 namespace hlasm_plugin::parser_library {
@@ -36,6 +31,8 @@ class diagnostic_collector;
 } // namespace hlasm_plugin::parser_library
 
 namespace hlasm_plugin::parser_library::context {
+
+constexpr size_t arch_bitfield_width = 5;
 
 enum class z_arch_affiliation : uint16_t
 {
@@ -52,13 +49,13 @@ enum class z_arch_affiliation : uint16_t
     Z16,
     Z17,
 
-    LAST = 0b11111u,
+    LAST = (1 << arch_bitfield_width) - 1,
 };
 
 struct instruction_set_affiliation
 {
-    z_arch_affiliation z_arch : 5;
-    z_arch_affiliation z_arch_removed : 5;
+    z_arch_affiliation z_arch : arch_bitfield_width;
+    z_arch_affiliation z_arch_removed : arch_bitfield_width;
     uint16_t esa : 1;
     uint16_t xa : 1;
     uint16_t _370 : 1;

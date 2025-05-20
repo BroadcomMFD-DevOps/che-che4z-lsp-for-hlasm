@@ -17,7 +17,6 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
-#include <limits>
 #include <memory>
 #include <utility>
 
@@ -539,6 +538,47 @@ constexpr machine_instruction machine_instructions[] = {
 };
 
 static_assert(std::ranges::is_sorted(machine_instructions, {}, &machine_instruction::name));
+
+namespace {
+consteval bool check_machine_instruction_overlap(std::span<const machine_instruction> instrs)
+{
+    for (size_t i = 0; i < instrs.size() - 1; ++i)
+    {
+        const auto initial_name = instrs[i].name();
+        if (initial_name != instrs[i + 1].name())
+            continue;
+        bool archs[1 << arch_bitfield_width] = {};
+        bool esa = false;
+        bool xa = false;
+        bool s370 = false;
+        bool dos = false;
+        bool uni = false;
+        for (; i < instrs.size() && instrs[i].name() == initial_name; ++i)
+        {
+            const auto af = instrs[i].instr_set_affiliation();
+            if (af.esa && std::exchange(esa, true))
+                return false;
+            if (af.xa && std::exchange(xa, true))
+                return false;
+            if (af._370 && std::exchange(s370, true))
+                return false;
+            if (af.dos && std::exchange(dos, true))
+                return false;
+            if (af.uni && std::exchange(uni, true))
+                return false;
+
+            for (auto j = (int)af.z_arch; j < (int)af.z_arch_removed; ++j)
+                if (std::exchange(archs[j], true))
+                    return false;
+        }
+        --i;
+    }
+
+    return true;
+}
+} // namespace
+
+static_assert(check_machine_instruction_overlap(machine_instructions), "Overlap detected in machine instruction list");
 
 const machine_instruction* instruction::find_machine_instructions(std::string_view name) noexcept
 {
