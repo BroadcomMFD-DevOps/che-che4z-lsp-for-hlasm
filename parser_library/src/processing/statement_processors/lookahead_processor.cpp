@@ -273,10 +273,10 @@ void lookahead_processor::assign_section_attributes(context::id_index symbol_nam
     register_attr_ref(symbol_name, context::symbol_attributes::make_section_attrs());
 }
 
-void lookahead_processor::assign_machine_attributes(
-    context::id_index symbol_name, context::symbol_attributes::len_attr len)
+void lookahead_processor::assign_machine_attributes(context::id_index symbol_name, size_t len)
 {
-    register_attr_ref(symbol_name, context::symbol_attributes::make_machine_attrs(len));
+    using context::symbol_attributes;
+    register_attr_ref(symbol_name, symbol_attributes::make_machine_attrs((symbol_attributes::len_attr)len));
 }
 
 void lookahead_processor::assign_assembler_attributes(
