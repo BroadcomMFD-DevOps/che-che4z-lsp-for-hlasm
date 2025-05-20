@@ -29,8 +29,8 @@ std::pair<unsigned char, unsigned char> get_processing_status_cache_key_details(
             return std::pair(
                 static_cast<unsigned char>(op.instr_mach->size_in_bits() / 8), op.instr_mach->reladdr_mask().mask());
         case context::instruction_type::MNEMO:
-            return std::pair(static_cast<unsigned char>(op.instr_mnemo->instruction()->size_in_bits() / 8),
-                op.instr_mnemo->reladdr_mask().mask());
+            return std::pair(
+                static_cast<unsigned char>(op.instr_mnemo->size_in_bits() / 8), op.instr_mnemo->reladdr_mask().mask());
         default:
             return common_processing_status_cache_key_details;
     }
@@ -44,7 +44,7 @@ unsigned char processing_status_cache_key::generate_loctr_len(const op_code& op)
         case context::instruction_type::MACH:
             return static_cast<unsigned char>(op.instr_mach->size_in_bits() / 8);
         case context::instruction_type::MNEMO:
-            return static_cast<unsigned char>(op.instr_mnemo->instruction()->size_in_bits() / 8);
+            return static_cast<unsigned char>(op.instr_mnemo->size_in_bits() / 8);
         default:
             return 1;
     }

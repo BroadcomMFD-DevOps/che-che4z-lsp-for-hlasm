@@ -342,7 +342,7 @@ void lookahead_processor::find_ord(const resolved_statement& statement)
             assign_machine_attributes(id, opcode.instr_mach->size_in_bits() / 8);
             break;
         case context::instruction_type::MNEMO:
-            assign_machine_attributes(id, opcode.instr_mnemo->instruction()->size_in_bits() / 8);
+            assign_machine_attributes(id, opcode.instr_mnemo->size_in_bits() / 8);
             break;
         case context::instruction_type::ASM:
             assign_assembler_attributes(id, statement);
