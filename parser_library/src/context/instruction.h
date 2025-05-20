@@ -63,11 +63,6 @@ struct instruction_set_affiliation
     uint16_t uni : 1;
 };
 
-constexpr auto operator<=>(z_arch_affiliation z_affil, instruction_set_version instr_set) noexcept
-{
-    return static_cast<uint16_t>(z_affil) <=> static_cast<uint16_t>(instr_set);
-}
-
 constexpr bool instruction_available(
     instruction_set_affiliation instr_set_affiliation, instruction_set_version active_instr_set) noexcept
 {
@@ -93,9 +88,12 @@ constexpr bool instruction_available(
         case instruction_set_version::Z14:
         case instruction_set_version::Z15:
         case instruction_set_version::Z16:
-        case instruction_set_version::Z17:
-            return instr_set_affiliation.z_arch <= active_instr_set
-                && active_instr_set < instr_set_affiliation.z_arch_removed;
+        case instruction_set_version::Z17: {
+            const auto from = (uint16_t)instr_set_affiliation.z_arch;
+            const auto to = (uint16_t)instr_set_affiliation.z_arch_removed;
+            const auto level = (int)active_instr_set;
+            return from <= level && level < to;
+        }
         default:
             return false;
     }
