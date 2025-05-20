@@ -23,13 +23,8 @@ class diagnostic_collector;
 struct range;
 } // namespace hlasm_plugin::parser_library
 
-namespace hlasm_plugin::parser_library ::context {
-class machine_instruction;
-} // namespace hlasm_plugin::parser_library::context
-
 namespace hlasm_plugin::parser_library::checking {
 class asm_operand;
-class machine_operand;
 
 bool check_asm_ops(std::string_view instruction_name,
     std::span<const asm_operand* const> operand_vector,
