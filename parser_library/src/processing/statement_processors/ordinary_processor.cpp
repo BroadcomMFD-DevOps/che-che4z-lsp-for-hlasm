@@ -482,21 +482,21 @@ void ordinary_processor::check_postponed_statements(
         switch (opcode.type)
         {
             case hlasm_plugin::parser_library::context::instruction_type::MACH:
-                if (!transform_default(operand_vector, *rs, dep_solver, collector, opcode.mach_instr))
+                if (!transform_default(operand_vector, *rs, dep_solver, collector, opcode.instr_mach))
                     continue;
                 operand_mach_vector.clear();
                 for (const auto& op : operand_vector)
                     operand_mach_vector.push_back(dynamic_cast<const checking::machine_operand*>(op.get()));
-                opcode.mach_instr->check(instruction_name, operand_mach_vector, rs->stmt_range_ref(), collector);
+                opcode.instr_mach->check(instruction_name, operand_mach_vector, rs->stmt_range_ref(), collector);
                 break;
 
             case hlasm_plugin::parser_library::context::instruction_type::MNEMO:
-                if (!transform_mnemonic(operand_vector, *rs, dep_solver, *opcode.mach_mnemo, collector))
+                if (!transform_mnemonic(operand_vector, *rs, dep_solver, *opcode.instr_mnemo, collector))
                     continue;
                 operand_mach_vector.clear();
                 for (const auto& op : operand_vector)
                     operand_mach_vector.push_back(dynamic_cast<const checking::machine_operand*>(op.get()));
-                opcode.mach_mnemo->instruction()->check(
+                opcode.instr_mnemo->instruction()->check(
                     instruction_name, operand_mach_vector, rs->stmt_range_ref(), collector);
 
                 break;

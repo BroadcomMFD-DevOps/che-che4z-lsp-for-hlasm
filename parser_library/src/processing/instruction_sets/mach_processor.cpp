@@ -31,9 +31,25 @@ mach_processor::mach_processor(const analyzing_context& ctx,
     : low_language_processor(ctx, branch_provider, lib_provider, parser, proc_mgr, diag_ctx)
 {}
 
+namespace {
+unsigned op_size(const processing::op_code& op) noexcept
+{
+    switch (op.type)
+    {
+        case context::instruction_type::MACH:
+            return static_cast<unsigned char>(op.instr_mach->size_in_bits() / 8);
+        case context::instruction_type::MNEMO:
+            return static_cast<unsigned char>(op.instr_mnemo->instruction()->size_in_bits() / 8);
+        default:
+            assert(false);
+            return 0;
+    }
+}
+} // namespace
+
 void mach_processor::process(std::shared_ptr<const processing::resolved_statement> stmt)
 {
-    const auto opcode_size = stmt->opcode_ref().mach_size_in_bits() / 8;
+    const auto opcode_size = op_size(stmt->opcode_ref());
 
     auto rebuilt_stmt = preprocess(std::move(stmt));
 

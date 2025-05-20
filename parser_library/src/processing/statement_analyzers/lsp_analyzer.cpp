@@ -548,9 +548,9 @@ std::optional<std::pair<int, int>> get_branch_operand(const op_code& op) noexcep
     switch (op.type)
     {
         case context::instruction_type::MACH:
-            return get_branch_operand(op.mach_instr);
+            return get_branch_operand(op.instr_mach);
         case context::instruction_type::MNEMO:
-            return get_branch_operand(op.mach_mnemo);
+            return get_branch_operand(op.instr_mnemo);
         default:
             return std::nullopt;
     }

@@ -49,12 +49,12 @@ struct op_code
     {}
     constexpr op_code(context::id_index value, const context::machine_instruction* mach_instr) noexcept
         : value(value)
-        , mach_instr(mach_instr)
+        , instr_mach(mach_instr)
         , type(context::instruction_type::MACH)
     {}
     constexpr op_code(context::id_index value, const context::mnemonic_code* mach_mnemo) noexcept
         : value(value)
-        , mach_mnemo(mach_mnemo)
+        , instr_mnemo(mach_mnemo)
         , type(context::instruction_type::MNEMO)
     {}
 
@@ -63,14 +63,10 @@ struct op_code
     {
         const void* _empty = nullptr;
         context::macro_definition* mac_def;
-        const context::machine_instruction* mach_instr;
-        const context::mnemonic_code* mach_mnemo;
+        const context::machine_instruction* instr_mach;
+        const context::mnemonic_code* instr_mnemo;
     };
     context::instruction_type type;
-
-    // helpers
-
-    size_t mach_size_in_bits() const noexcept;
 };
 
 using processing_status = std::pair<processing_format, op_code>;

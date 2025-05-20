@@ -27,10 +27,10 @@ std::pair<unsigned char, unsigned char> get_processing_status_cache_key_details(
     {
         case context::instruction_type::MACH:
             return std::pair(
-                static_cast<unsigned char>(op.mach_instr->size_in_bits() / 8), op.mach_instr->reladdr_mask().mask());
+                static_cast<unsigned char>(op.instr_mach->size_in_bits() / 8), op.instr_mach->reladdr_mask().mask());
         case context::instruction_type::MNEMO:
-            return std::pair(static_cast<unsigned char>(op.mach_mnemo->instruction()->size_in_bits() / 8),
-                op.mach_mnemo->reladdr_mask().mask());
+            return std::pair(static_cast<unsigned char>(op.instr_mnemo->instruction()->size_in_bits() / 8),
+                op.instr_mnemo->reladdr_mask().mask());
         default:
             return common_processing_status_cache_key_details;
     }
@@ -42,9 +42,9 @@ unsigned char processing_status_cache_key::generate_loctr_len(const op_code& op)
     switch (op.type)
     {
         case context::instruction_type::MACH:
-            return static_cast<unsigned char>(op.mach_instr->size_in_bits() / 8);
+            return static_cast<unsigned char>(op.instr_mach->size_in_bits() / 8);
         case context::instruction_type::MNEMO:
-            return static_cast<unsigned char>(op.mach_mnemo->instruction()->size_in_bits() / 8);
+            return static_cast<unsigned char>(op.instr_mnemo->instruction()->size_in_bits() / 8);
         default:
             return 1;
     }
@@ -63,17 +63,4 @@ processing_status_cache_key::processing_status_cache_key(const processing_status
     : processing_status_cache_key(s, get_processing_status_cache_key_details(s.second))
 {}
 
-size_t op_code::mach_size_in_bits() const noexcept
-{
-    switch (type)
-    {
-        case context::instruction_type::MACH:
-            return mach_instr->size_in_bits();
-        case context::instruction_type::MNEMO:
-            return mach_mnemo->instruction()->size_in_bits();
-        default:
-            assert(false);
-            return 0;
-    }
-}
 } // namespace hlasm_plugin::parser_library::processing

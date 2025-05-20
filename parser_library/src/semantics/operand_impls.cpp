@@ -791,10 +791,10 @@ void transform_reloc_imm_operands(semantics::operand_list& op_list, const proces
     switch (op.type)
     {
         case context::instruction_type::MACH:
-            mask = op.mach_instr->reladdr_mask().mask();
+            mask = op.instr_mach->reladdr_mask().mask();
             break;
         case context::instruction_type::MNEMO:
-            mask = op.mach_mnemo->reladdr_mask().mask();
+            mask = op.instr_mnemo->reladdr_mask().mask();
             break;
         default:
             return;
