@@ -515,11 +515,20 @@ class machine_instruction
 
     mach_format m_format;
     reladdr_transform_mask m_reladdr_mask;
+
     unsigned char m_optional_op_count;
     unsigned char m_operand_len;
-
     const checking::machine_operand_format* m_operands;
-    machine_instruction_details m_details;
+
+    const char* m_fullname;
+    unsigned char m_fullname_length;
+
+    unsigned char m_cc_explanation;
+    bool m_privileged : 1;
+    bool m_privileged_conditionally : 1;
+    bool m_has_parameter_list : 1;
+    branch_info_argument m_branch_argument;
+    unsigned char _unused[4] = {};
 
 public:
     constexpr machine_instruction(std::string_view name,
@@ -538,7 +547,13 @@ public:
               (unsigned char)std::ranges::count_if(operands, &checking::machine_operand_format::optional))
         , m_operand_len((unsigned char)operands.size())
         , m_operands(operands.data())
-        , m_details(d)
+        , m_fullname(d.fullname)
+        , m_fullname_length(d.fullname_length)
+        , m_cc_explanation(d.cc_explanation)
+        , m_privileged(d.privileged)
+        , m_privileged_conditionally(d.privileged_conditionally)
+        , m_has_parameter_list(d.has_parameter_list)
+        , m_branch_argument(d.branch_argument)
     {
         assert(operands.size() <= max_operand_count);
     }
@@ -584,25 +599,19 @@ public:
 
     static constexpr size_t max_operand_count = 16;
 
-    constexpr std::string_view fullname() const noexcept
-    {
-        return std::string_view(m_details.fullname, m_details.fullname_length);
-    }
+    constexpr std::string_view fullname() const noexcept { return std::string_view(m_fullname, m_fullname_length); }
 
-    constexpr const auto& cc_explanation() const noexcept
-    {
-        return condition_code_explanations[m_details.cc_explanation];
-    }
+    constexpr const auto& cc_explanation() const noexcept { return condition_code_explanations[m_cc_explanation]; }
 
     constexpr size_t page_in_pop() const noexcept { return m_page_no; }
 
-    constexpr bool has_parameter_list() const noexcept { return m_details.has_parameter_list; }
+    constexpr bool has_parameter_list() const noexcept { return m_has_parameter_list; }
     constexpr privilege_status privileged() const noexcept
     {
-        return static_cast<privilege_status>(m_details.privileged + m_details.privileged_conditionally * 2);
+        return static_cast<privilege_status>(m_privileged + m_privileged_conditionally * 2);
     }
 
-    constexpr branch_info_argument branch_argument() const noexcept { return m_details.branch_argument; }
+    constexpr branch_info_argument branch_argument() const noexcept { return m_branch_argument; }
 };
 
 class ca_instruction
