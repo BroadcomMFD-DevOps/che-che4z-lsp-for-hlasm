@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cassert>
 #include <limits>
 #include <memory>
 #include <utility>
@@ -27,30 +28,26 @@ using namespace hlasm_plugin::parser_library::checking;
 using namespace hlasm_plugin::parser_library;
 
 namespace {
-constexpr z_arch_affiliation operator|(z_arch_affiliation a, z_arch_affiliation b)
-{
-    if (a != z_arch_affiliation::NO_AFFILIATION && b != z_arch_affiliation::NO_AFFILIATION)
-    {
-        return std::min(a, b);
-    }
-    else
-    {
-        return std::max(a, b);
-    }
-}
 
 constexpr instruction_set_affiliation operator|(instruction_set_affiliation a, z_arch_affiliation z_affil)
 {
-    a.z_arch = a.z_arch | z_affil;
+    using enum z_arch_affiliation;
+    assert(a.z_arch == NO_AFFILIATION && a.z_arch_removed == NO_AFFILIATION);
+
+    a.z_arch = z_affil;
+    a.z_arch_removed = LAST;
 
     return a;
 }
 
 constexpr instruction_set_affiliation operator|(instruction_set_affiliation a, instruction_set_affiliation b)
 {
+    assert(a.z_arch == z_arch_affiliation::NO_AFFILIATION);
+    assert(b.z_arch == z_arch_affiliation::NO_AFFILIATION);
+
     instruction_set_affiliation result {};
 
-    result.z_arch = a.z_arch | b.z_arch;
+    result.z_arch = z_arch_affiliation::NO_AFFILIATION;
     result.esa = a.esa | b.esa;
     result.xa = a.xa | b.xa;
     result._370 = a._370 | b._370;
@@ -61,33 +58,34 @@ constexpr instruction_set_affiliation operator|(instruction_set_affiliation a, i
 }
 
 // clang-format off
-constexpr auto ESA       = instruction_set_affiliation{z_arch_affiliation::NO_AFFILIATION, 1, 0, 0, 0, 0};
-constexpr auto XA        = instruction_set_affiliation{z_arch_affiliation::NO_AFFILIATION, 0, 1, 0, 0, 0};
-constexpr auto _370      = instruction_set_affiliation{z_arch_affiliation::NO_AFFILIATION, 0, 0, 1, 0, 0};
-constexpr auto DOS       = instruction_set_affiliation{z_arch_affiliation::NO_AFFILIATION, 0, 0, 0, 1, 0};
-constexpr auto UNI       = instruction_set_affiliation{z_arch_affiliation::NO_AFFILIATION, 0, 0, 0, 0, 1};
+constexpr auto ESA       = instruction_set_affiliation{z_arch_affiliation::NO_AFFILIATION, z_arch_affiliation::NO_AFFILIATION, 1, 0, 0, 0, 0};
+constexpr auto XA        = instruction_set_affiliation{z_arch_affiliation::NO_AFFILIATION, z_arch_affiliation::NO_AFFILIATION, 0, 1, 0, 0, 0};
+constexpr auto _370      = instruction_set_affiliation{z_arch_affiliation::NO_AFFILIATION, z_arch_affiliation::NO_AFFILIATION, 0, 0, 1, 0, 0};
+constexpr auto DOS       = instruction_set_affiliation{z_arch_affiliation::NO_AFFILIATION, z_arch_affiliation::NO_AFFILIATION, 0, 0, 0, 1, 0};
+constexpr auto UNI       = instruction_set_affiliation{z_arch_affiliation::NO_AFFILIATION, z_arch_affiliation::NO_AFFILIATION, 0, 0, 0, 0, 1};
 
 constexpr auto ESA_XA                       = ESA | XA;
 constexpr auto ESA_XA_370                   = ESA | XA | _370;
 constexpr auto UNI_370                      = UNI | _370;
 constexpr auto UNI_370_DOS                  = UNI | _370 | DOS;
-constexpr auto UNI_ESA_SINCE_ZOP            = UNI | ESA | z_arch_affiliation::SINCE_ZOP;
-constexpr auto UNI_ESA_XA_370_DOS_SINCE_ZOP = UNI | ESA | XA | _370 | DOS | z_arch_affiliation::SINCE_ZOP;
-constexpr auto UNI_ESA_XA_370_SINCE_Z13     = UNI | ESA | XA | _370 | z_arch_affiliation::SINCE_Z13;
-constexpr auto UNI_ESA_XA_370_SINCE_Z15     = UNI | ESA | XA | _370 | z_arch_affiliation::SINCE_Z15;
-constexpr auto UNI_ESA_XA_370_SINCE_ZOP     = UNI | ESA | XA | _370 | z_arch_affiliation::SINCE_ZOP;
-constexpr auto UNI_ESA_XA_SINCE_ZOP         = UNI | ESA | XA | z_arch_affiliation::SINCE_ZOP;
-constexpr auto UNI_SINCE_YOP                = UNI | z_arch_affiliation::SINCE_YOP;
-constexpr auto UNI_SINCE_Z10                = UNI | z_arch_affiliation::SINCE_Z10;
-constexpr auto UNI_SINCE_Z11                = UNI | z_arch_affiliation::SINCE_Z11;
-constexpr auto UNI_SINCE_Z12                = UNI | z_arch_affiliation::SINCE_Z12;
-constexpr auto UNI_SINCE_Z13                = UNI | z_arch_affiliation::SINCE_Z13;
-constexpr auto UNI_SINCE_Z14                = UNI | z_arch_affiliation::SINCE_Z14;
-constexpr auto UNI_SINCE_Z15                = UNI | z_arch_affiliation::SINCE_Z15;
-constexpr auto UNI_SINCE_Z16                = UNI | z_arch_affiliation::SINCE_Z16;
-constexpr auto UNI_SINCE_Z17                = UNI | z_arch_affiliation::SINCE_Z17;
-constexpr auto UNI_SINCE_Z9                 = UNI | z_arch_affiliation::SINCE_Z9;
-constexpr auto UNI_SINCE_ZOP                = UNI | z_arch_affiliation::SINCE_ZOP;
+constexpr auto UNI_ESA_SINCE_ZOP            = UNI | ESA | z_arch_affiliation::ZOP;
+constexpr auto UNI_ESA_XA_370_DOS_SINCE_ZOP = UNI | ESA | XA | _370 | DOS | z_arch_affiliation::ZOP;
+constexpr auto UNI_ESA_XA_370_SINCE_Z13     = UNI | ESA | XA | _370 | z_arch_affiliation::Z13;
+constexpr auto UNI_ESA_XA_370_SINCE_Z15     = UNI | ESA | XA | _370 | z_arch_affiliation::Z15;
+constexpr auto UNI_ESA_XA_370_SINCE_ZOP     = UNI | ESA | XA | _370 | z_arch_affiliation::ZOP;
+constexpr auto UNI_ESA_XA_SINCE_ZOP         = UNI | ESA | XA | z_arch_affiliation::ZOP;
+constexpr auto UNI_SINCE_YOP                = UNI | z_arch_affiliation::YOP;
+constexpr auto UNI_SINCE_Z10                = UNI | z_arch_affiliation::Z10;
+constexpr auto UNI_SINCE_Z11                = UNI | z_arch_affiliation::Z11;
+constexpr auto UNI_SINCE_Z12                = UNI | z_arch_affiliation::Z12;
+constexpr auto UNI_SINCE_Z13                = UNI | z_arch_affiliation::Z13;
+constexpr auto UNI_SINCE_Z14                = UNI | z_arch_affiliation::Z14;
+constexpr auto UNI_SINCE_Z15                = UNI | z_arch_affiliation::Z15;
+constexpr auto UNI_SINCE_Z16                = UNI | z_arch_affiliation::Z16;
+constexpr auto UNI_SINCE_Z17                = UNI | z_arch_affiliation::Z17;
+constexpr auto UNI_SINCE_Z9                 = UNI | z_arch_affiliation::Z9;
+constexpr auto UNI_SINCE_ZOP                = UNI | z_arch_affiliation::ZOP;
+constexpr auto SINCE_YOP_TILL_Z17           = instruction_set_affiliation{z_arch_affiliation::YOP, z_arch_affiliation::Z17, 0, 0, 0, 0, 0};
 // clang-format on
 } // namespace
 

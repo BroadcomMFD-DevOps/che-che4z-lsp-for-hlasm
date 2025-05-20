@@ -40,22 +40,25 @@ namespace hlasm_plugin::parser_library::context {
 enum class z_arch_affiliation : uint16_t
 {
     NO_AFFILIATION = 0,
-    SINCE_ZOP,
-    SINCE_YOP,
-    SINCE_Z9,
-    SINCE_Z10,
-    SINCE_Z11,
-    SINCE_Z12,
-    SINCE_Z13,
-    SINCE_Z14,
-    SINCE_Z15,
-    SINCE_Z16,
-    SINCE_Z17,
+    ZOP,
+    YOP,
+    Z9,
+    Z10,
+    Z11,
+    Z12,
+    Z13,
+    Z14,
+    Z15,
+    Z16,
+    Z17,
+
+    LAST = 0b11111u,
 };
 
 struct instruction_set_affiliation
 {
-    z_arch_affiliation z_arch : 4;
+    z_arch_affiliation z_arch : 5;
+    z_arch_affiliation z_arch_removed : 5;
     uint16_t esa : 1;
     uint16_t xa : 1;
     uint16_t _370 : 1;
@@ -63,9 +66,9 @@ struct instruction_set_affiliation
     uint16_t uni : 1;
 };
 
-constexpr bool operator<=(z_arch_affiliation z_affil, instruction_set_version instr_set) noexcept
+constexpr auto operator<=>(z_arch_affiliation z_affil, instruction_set_version instr_set) noexcept
 {
-    return static_cast<uint16_t>(z_affil) <= static_cast<uint16_t>(instr_set);
+    return static_cast<uint16_t>(z_affil) <=> static_cast<uint16_t>(instr_set);
 }
 
 constexpr bool instruction_available(
@@ -94,9 +97,8 @@ constexpr bool instruction_available(
         case instruction_set_version::Z15:
         case instruction_set_version::Z16:
         case instruction_set_version::Z17:
-            return instr_set_affiliation.z_arch == z_arch_affiliation::NO_AFFILIATION
-                ? false
-                : instr_set_affiliation.z_arch <= active_instr_set;
+            return instr_set_affiliation.z_arch <= active_instr_set
+                && active_instr_set < instr_set_affiliation.z_arch_removed;
         default:
             return false;
     }
