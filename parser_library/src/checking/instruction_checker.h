@@ -36,12 +36,6 @@ bool check_asm_ops(std::string_view instruction_name,
     const range& stmt_range,
     const diagnostic_collector& add_diagnostic);
 
-bool check_mach_ops(std::string_view instruction_name,
-    context::machine_instruction& mi,
-    std::span<const machine_operand* const> operand_vector,
-    const range& stmt_range,
-    const diagnostic_collector& add_diagnostic);
-
 } // namespace hlasm_plugin::parser_library::checking
 
 #endif
