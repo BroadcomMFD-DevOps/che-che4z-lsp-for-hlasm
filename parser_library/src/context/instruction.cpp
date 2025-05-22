@@ -501,16 +501,6 @@ struct
     consteval unsigned char operator()(const auto&) const noexcept { return 0; }
 } constexpr cc_visitor;
 
-template<size_t n, typename... Args>
-consteval machine_instruction_details make_machine_instruction_details(const char (&name)[n], Args&&... args) noexcept
-    requires(n > 1 && n < 256 && make_machine_instruction_details_args_validator<std::decay_t<Args>...>::value)
-{
-    using A = make_machine_instruction_details_args_validator<std::decay_t<Args>...>;
-    return machine_instruction_details {
-        name, n - 1, static_cast<unsigned char>((0 + ... + cc_visitor(args))), A::p > 0, A::p_c > 0, A::pl > 0, A::ba
-    };
-}
-
 enum class condition_code_explanation_id : unsigned char
 {
 #define DEFINE_CC_SET(name, ...) name,
@@ -528,12 +518,55 @@ constinit const condition_code_explanation hlasm_plugin::parser_library::context
 #include "instruction_details.h"
 };
 
+enum class instruction_fullname
+{
+#define DEFINE_INSTRUCTION(name, format, page, iset, description, ...) name##_##format,
+#include "instruction_details.h"
+};
+
+constinit const char machine_instruction::fullnames[] =
+#define DEFINE_INSTRUCTION(name, format, page, iset, description, ...) description
+#include "instruction_details.h"
+    ;
+
+constexpr size_t fullname_sizes[] = {
+#define DEFINE_INSTRUCTION(name, format, page, iset, description, ...) sizeof(description) - 1,
+#include "instruction_details.h"
+};
+
+constexpr auto fullname_map = []() {
+    size_t sum = 0;
+    std::array<unsigned short, std::size(fullname_sizes) + 1> result {};
+    for (auto* p = result.data(); auto s : fullname_sizes)
+    {
+        assert(s <= (unsigned char)-1);
+        *p++ = sum;
+        sum += s;
+    }
+    result.back() = sum;
+    assert(sum <= (unsigned short)-1);
+
+    return result;
+}();
+
+template<instruction_fullname fn, typename... Args>
+consteval machine_instruction_details make_machine_instruction_details(Args&&... args) noexcept
+    requires(make_machine_instruction_details_args_validator<std::decay_t<Args>...>::value)
+{
+    constexpr auto name = fullname_map[(int)fn];
+    constexpr auto len = fullname_map[(int)fn + 1] - name;
+    using A = make_machine_instruction_details_args_validator<std::decay_t<Args>...>;
+    return machine_instruction_details {
+        name, len, static_cast<unsigned char>((0 + ... + cc_visitor(args))), A::p > 0, A::p_c > 0, A::pl > 0, A::ba
+    };
+}
+
 #define DEFINE_INSTRUCTION_FORMAT(name, format, ...)                                                                   \
     constexpr auto name = instruction_format_definition_factory<format __VA_OPT__(, ) __VA_ARGS__>::def();
 #include "instruction_details.h"
 
 #define DEFINE_INSTRUCTION(name, format, page, iset, description, ...)                                                 \
-    { #name, format, page, iset, make_machine_instruction_details(description __VA_OPT__(, ) __VA_ARGS__) },
+    { #name, format, page, iset, make_machine_instruction_details<instruction_fullname::name##_##format>(__VA_ARGS__) },
 constexpr machine_instruction machine_instructions[] = {
 #include "instruction_details.h"
 };

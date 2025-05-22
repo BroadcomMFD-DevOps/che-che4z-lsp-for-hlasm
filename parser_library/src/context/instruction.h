@@ -440,7 +440,7 @@ struct branch_info_argument
 
 struct machine_instruction_details
 {
-    const char* fullname;
+    unsigned short fullname_offset;
     unsigned char fullname_length;
     unsigned char cc_explanation;
     bool privileged : 1;
@@ -520,7 +520,7 @@ class machine_instruction
     unsigned char m_operand_len;
     const checking::machine_operand_format* m_operands;
 
-    const char* m_fullname;
+    unsigned short m_fullname_offset;
     unsigned char m_fullname_length;
 
     unsigned char m_cc_explanation;
@@ -528,7 +528,9 @@ class machine_instruction
     bool m_privileged_conditionally : 1;
     bool m_has_parameter_list : 1;
     branch_info_argument m_branch_argument;
-    unsigned char _unused[4] = {};
+    unsigned char _unused[2] = {};
+
+    static constinit const char fullnames[];
 
 public:
     constexpr machine_instruction(std::string_view name,
@@ -547,7 +549,7 @@ public:
               (unsigned char)std::ranges::count_if(operands, &checking::machine_operand_format::optional))
         , m_operand_len((unsigned char)operands.size())
         , m_operands(operands.data())
-        , m_fullname(d.fullname)
+        , m_fullname_offset(d.fullname_offset)
         , m_fullname_length(d.fullname_length)
         , m_cc_explanation(d.cc_explanation)
         , m_privileged(d.privileged)
@@ -599,7 +601,10 @@ public:
 
     static constexpr size_t max_operand_count = 16;
 
-    constexpr std::string_view fullname() const noexcept { return std::string_view(m_fullname, m_fullname_length); }
+    constexpr std::string_view fullname() const noexcept
+    {
+        return std::string_view(fullnames + m_fullname_offset, m_fullname_length);
+    }
 
     constexpr const auto& cc_explanation() const noexcept { return condition_code_explanations[m_cc_explanation]; }
 
