@@ -18,6 +18,7 @@
 #include <array>
 #include <cassert>
 #include <memory>
+#include <numeric>
 #include <utility>
 
 #include "checking/diagnostic_collector.h"
@@ -402,7 +403,7 @@ bool hlasm_plugin::parser_library::context::machine_instruction::check(std::stri
         return false;
     }
     bool error = false;
-    for (const auto* fmt = m_operands; const auto* op : to_check)
+    for (const auto* fmt = s_operands + m_operands_offset; const auto* op : to_check)
     {
         assert(op != nullptr);
         if (auto diag = op->check(*fmt++, name_of_instruction, stmt_range); diag.has_value())
@@ -413,21 +414,6 @@ bool hlasm_plugin::parser_library::context::machine_instruction::check(std::stri
     };
     return !error;
 }
-
-template<mach_format F, const machine_operand_format&... Ops>
-class instruction_format_definition_factory
-{
-    static constexpr std::array<machine_operand_format, sizeof...(Ops)> format = { Ops... };
-
-public:
-    static constexpr instruction_format_definition def() { return { { format.data(), sizeof...(Ops) }, F }; }
-};
-template<mach_format F>
-class instruction_format_definition_factory<F>
-{
-public:
-    static constexpr instruction_format_definition def() { return { {}, F }; }
-};
 
 namespace {
 struct
@@ -524,7 +510,44 @@ enum class instruction_fullname
 #include "instruction_details.h"
 };
 
-constinit const char machine_instruction::fullnames[] =
+enum class operand_formats
+{
+#define DEFINE_INSTRUCTION_FORMAT(name, format, ...) name,
+#include "instruction_details.h"
+};
+
+constexpr const checking::machine_operand_format _s_operands[] = {
+#define DEFINE_INSTRUCTION_FORMAT(name, format, ...) __VA_ARGS__ __VA_OPT__(, )
+#include "instruction_details.h"
+};
+
+constinit const checking::machine_operand_format machine_instruction::s_operands[] = {
+#define DEFINE_INSTRUCTION_FORMAT(name, format, ...) __VA_ARGS__ __VA_OPT__(, )
+#include "instruction_details.h"
+};
+
+constexpr size_t operand_sizes[] = {
+#define DEFINE_INSTRUCTION_FORMAT(name, format, ...)                                                                   \
+    std::initializer_list<checking::machine_operand_format> { __VA_ARGS__ }.size(),
+#include "instruction_details.h"
+};
+
+constexpr auto operand_map = []() {
+    size_t sum = 0;
+    std::array<unsigned short, std::size(operand_sizes) + 1> result {};
+    for (auto* p = result.data(); auto s : operand_sizes)
+    {
+        assert(s <= (unsigned char)-1);
+        *p++ = (unsigned short)sum;
+        sum += s;
+    }
+    assert(sum <= (unsigned short)-1);
+    result.back() = (unsigned short)sum;
+
+    return result;
+}();
+
+constinit const char machine_instruction::s_fullnames[] =
 #define DEFINE_INSTRUCTION(name, format, page, iset, description, ...) description
 #include "instruction_details.h"
     ;
@@ -540,11 +563,11 @@ constexpr auto fullname_map = []() {
     for (auto* p = result.data(); auto s : fullname_sizes)
     {
         assert(s <= (unsigned char)-1);
-        *p++ = sum;
+        *p++ = (unsigned short)sum;
         sum += s;
     }
-    result.back() = sum;
     assert(sum <= (unsigned short)-1);
+    result.back() = (unsigned short)sum;
 
     return result;
 }();
@@ -561,9 +584,150 @@ consteval machine_instruction_details make_machine_instruction_details(Args&&...
     };
 }
 
+template<mach_format F, operand_formats op_format>
+class instruction_format_definition_factory
+{
+public:
+    static constexpr instruction_format_definition def() noexcept
+    {
+        constexpr auto offset = operand_map[(int)op_format];
+        constexpr auto len = operand_map[(int)op_format + 1] - offset;
+
+        return { offset, len, F };
+    }
+};
+
 #define DEFINE_INSTRUCTION_FORMAT(name, format, ...)                                                                   \
-    constexpr auto name = instruction_format_definition_factory<format __VA_OPT__(, ) __VA_ARGS__>::def();
+    constexpr auto name = instruction_format_definition_factory<format, operand_formats::name>::def();
 #include "instruction_details.h"
+
+constexpr unsigned char hlasm_plugin::parser_library::context::machine_instruction::generate_reladdr_bitmask(
+    std::span<const checking::machine_operand_format> operands) noexcept
+{
+    unsigned char result = 0;
+
+    assert(operands.size() <= std::numeric_limits<decltype(result)>::digits);
+
+    decltype(result) top_bit = 1 << (std::numeric_limits<decltype(result)>::digits - 1);
+
+    for (const auto& op : operands)
+    {
+        if (op.identifier.type == checking::machine_operand_type::RELOC_IMM)
+            result |= top_bit;
+        top_bit >>= 1;
+    }
+
+    return result;
+}
+
+constexpr char hlasm_plugin::parser_library::context::machine_instruction::get_length_by_format(
+    mach_format instruction_format) noexcept
+{
+    auto interval = static_cast<int>(instruction_format);
+    if (interval >= static_cast<int>(mach_format::length_48))
+        return static_cast<char>(size_identifier::LENGTH_48);
+    if (interval >= static_cast<int>(mach_format::length_32))
+        return static_cast<char>(size_identifier::LENGTH_32);
+    if (interval >= static_cast<int>(mach_format::length_16))
+        return static_cast<char>(size_identifier::LENGTH_16);
+    return static_cast<char>(size_identifier::LENGTH_0);
+}
+
+constexpr unsigned char hlasm_plugin::parser_library::context::mnemonic_code::generate_reladdr_bitmask(
+    const machine_instruction* instruction, std::span<const mnemonic_transformation> transforms) noexcept
+{
+    unsigned char result = 0;
+
+    decltype(result) top_bit = 1 << (std::numeric_limits<decltype(result)>::digits - 1);
+
+    auto transforms_b = transforms.begin();
+    auto const transforms_e = transforms.end();
+
+    for (size_t processed = 0;
+         const auto& op : std::span(_s_operands + instruction->m_operands_offset, instruction->m_operand_len))
+    {
+        if (transforms_b != transforms_e && processed == transforms_b->skip)
+        {
+            assert(op.identifier.type == checking::machine_operand_type::IMM
+                || op.identifier.type == checking::machine_operand_type::MASK
+                || op.identifier.type == checking::machine_operand_type::REG
+                || op.identifier.type == checking::machine_operand_type::VEC_REG);
+            top_bit >>= +!transforms_b++->insert;
+            processed = 0;
+            continue;
+        }
+
+        if (op.identifier.type == checking::machine_operand_type::RELOC_IMM)
+            result |= top_bit;
+
+        top_bit >>= 1;
+        ++processed;
+    }
+    return result;
+}
+
+consteval hlasm_plugin::parser_library::context::machine_instruction::machine_instruction(std::string_view name,
+    mach_format format,
+    unsigned short operand_offset,
+    unsigned char operand_len,
+    unsigned short page_no,
+    instruction_set_affiliation instr_set_affiliation,
+    machine_instruction_details d) noexcept
+    : m_name(name)
+    , m_size_identifier(get_length_by_format(format))
+    , m_page_no(page_no)
+    , m_instr_set_affiliation(instr_set_affiliation)
+    , m_format(format)
+    , m_reladdr_mask(generate_reladdr_bitmask(std::span(_s_operands + operand_offset, operand_len)))
+    , m_optional_op_count((unsigned char)std::ranges::count_if(
+          std::span(_s_operands + operand_offset, operand_len), &checking::machine_operand_format::optional))
+    , m_operand_len(operand_len)
+    , m_operands_offset(operand_offset)
+    , m_fullname_offset(d.fullname_offset)
+    , m_fullname_length(d.fullname_length)
+    , m_cc_explanation(d.cc_explanation)
+    , m_privileged(d.privileged)
+    , m_privileged_conditionally(d.privileged_conditionally)
+    , m_has_parameter_list(d.has_parameter_list)
+    , m_branch_argument(d.branch_argument)
+{
+    // assert(operand_len <= max_operand_count);
+}
+
+consteval hlasm_plugin::parser_library::context::machine_instruction::machine_instruction(std::string_view name,
+    instruction_format_definition ifd,
+    unsigned short page_no,
+    instruction_set_affiliation instr_set_affiliation,
+    machine_instruction_details d) noexcept
+    : machine_instruction(name, ifd.format, ifd.op_format_offset, ifd.op_format_len, page_no, instr_set_affiliation, d)
+{}
+
+consteval hlasm_plugin::parser_library::context::mnemonic_code::mnemonic_code(std::string_view name,
+    const machine_instruction* instr,
+    std::initializer_list<const mnemonic_transformation> transform,
+    instruction_set_affiliation instr_set_affiliation) noexcept
+    : m_instruction(instr)
+    , m_transform {}
+    , m_transform_count((unsigned char)transform.size())
+    , m_reladdr_mask(generate_reladdr_bitmask(instr, transform))
+    , m_instr_set_affiliation(instr_set_affiliation)
+    , m_name(name)
+{
+    assert(transform.size() <= m_transform.size());
+    std::ranges::copy(transform, m_transform.begin());
+    const auto insert_count = std::ranges::count_if(transform, [](auto t) { return t.insert; });
+    [[maybe_unused]] const auto total = std::accumulate(
+        transform.begin(), transform.end(), (size_t)0, [](size_t res, auto t) { return res + t.skip + t.insert; });
+    assert(total <= instr->m_operand_len);
+
+    m_op_max = instr->m_operand_len - insert_count;
+    m_op_min = instr->m_operand_len - instr->optional_operand_count() - insert_count;
+    assert(m_op_max <= instr->m_operand_len);
+    assert(m_op_min <= m_op_max);
+
+    for ([[maybe_unused]] const auto& r : transform)
+        assert(!r.has_source() || r.source < m_op_max);
+}
 
 #define DEFINE_INSTRUCTION(name, format, page, iset, description, ...)                                                 \
     { #name, format, page, iset, make_machine_instruction_details<instruction_fullname::name##_##format>(__VA_ARGS__) },

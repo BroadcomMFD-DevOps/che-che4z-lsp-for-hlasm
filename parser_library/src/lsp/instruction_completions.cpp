@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <bitset>
+#include <numeric>
 #include <tuple>
 
 #include "context/instruction.h"

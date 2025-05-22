@@ -18,8 +18,6 @@
 #include <algorithm>
 #include <array>
 #include <compare>
-#include <limits>
-#include <numeric>
 #include <span>
 #include <string_view>
 
@@ -451,7 +449,8 @@ struct machine_instruction_details
 
 struct instruction_format_definition
 {
-    std::span<const checking::machine_operand_format> op_format;
+    unsigned short op_format_offset;
+    unsigned char op_format_len;
 
     mach_format format;
 };
@@ -466,6 +465,8 @@ enum class privilege_status
 // machine instruction representation for checking
 class machine_instruction
 {
+    friend class mnemonic_code;
+
     enum class size_identifier : unsigned char
     {
         LENGTH_0 = 0,
@@ -476,35 +477,10 @@ class machine_instruction
 
     // Generates a bitmask for an arbitrary machine instruction indicating which operands
     // are of the RI type (and therefore are modified by transform_reloc_imm_operands)
-    static constexpr unsigned char generate_reladdr_bitmask(std::span<const checking::machine_operand_format> operands)
-    {
-        unsigned char result = 0;
+    static constexpr unsigned char generate_reladdr_bitmask(
+        std::span<const checking::machine_operand_format> operands) noexcept;
 
-        assert(operands.size() <= std::numeric_limits<decltype(result)>::digits);
-
-        decltype(result) top_bit = 1 << (std::numeric_limits<decltype(result)>::digits - 1);
-
-        for (const auto& op : operands)
-        {
-            if (op.identifier.type == checking::machine_operand_type::RELOC_IMM)
-                result |= top_bit;
-            top_bit >>= 1;
-        }
-
-        return result;
-    }
-
-    static constexpr char get_length_by_format(mach_format instruction_format)
-    {
-        auto interval = static_cast<int>(instruction_format);
-        if (interval >= static_cast<int>(mach_format::length_48))
-            return static_cast<char>(size_identifier::LENGTH_48);
-        if (interval >= static_cast<int>(mach_format::length_32))
-            return static_cast<char>(size_identifier::LENGTH_32);
-        if (interval >= static_cast<int>(mach_format::length_16))
-            return static_cast<char>(size_identifier::LENGTH_16);
-        return static_cast<char>(size_identifier::LENGTH_0);
-    }
+    static constexpr char get_length_by_format(mach_format instruction_format) noexcept;
 
     inline_string<7> m_name;
 
@@ -518,7 +494,7 @@ class machine_instruction
 
     unsigned char m_optional_op_count;
     unsigned char m_operand_len;
-    const checking::machine_operand_format* m_operands;
+    unsigned short m_operands_offset;
 
     unsigned short m_fullname_offset;
     unsigned char m_fullname_length;
@@ -528,44 +504,23 @@ class machine_instruction
     bool m_privileged_conditionally : 1;
     bool m_has_parameter_list : 1;
     branch_info_argument m_branch_argument;
-    unsigned char _unused[2] = {};
 
-    static constinit const char fullnames[];
+    static constinit const char s_fullnames[];
+    static constinit const checking::machine_operand_format s_operands[];
 
 public:
-    constexpr machine_instruction(std::string_view name,
+    consteval machine_instruction(std::string_view name,
         mach_format format,
-        std::span<const checking::machine_operand_format> operands,
+        unsigned short operand_offset,
+        unsigned char operand_len,
         unsigned short page_no,
         instruction_set_affiliation instr_set_affiliation,
-        machine_instruction_details d)
-        : m_name(name)
-        , m_size_identifier(get_length_by_format(format))
-        , m_page_no(page_no)
-        , m_instr_set_affiliation(instr_set_affiliation)
-        , m_format(format)
-        , m_reladdr_mask(generate_reladdr_bitmask(operands))
-        , m_optional_op_count(
-              (unsigned char)std::ranges::count_if(operands, &checking::machine_operand_format::optional))
-        , m_operand_len((unsigned char)operands.size())
-        , m_operands(operands.data())
-        , m_fullname_offset(d.fullname_offset)
-        , m_fullname_length(d.fullname_length)
-        , m_cc_explanation(d.cc_explanation)
-        , m_privileged(d.privileged)
-        , m_privileged_conditionally(d.privileged_conditionally)
-        , m_has_parameter_list(d.has_parameter_list)
-        , m_branch_argument(d.branch_argument)
-    {
-        assert(operands.size() <= max_operand_count);
-    }
-    constexpr machine_instruction(std::string_view name,
+        machine_instruction_details d) noexcept;
+    consteval machine_instruction(std::string_view name,
         instruction_format_definition ifd,
         unsigned short page_no,
         instruction_set_affiliation instr_set_affiliation,
-        machine_instruction_details d)
-        : machine_instruction(name, ifd.format, ifd.op_format, page_no, instr_set_affiliation, d)
-    {}
+        machine_instruction_details d) noexcept;
 
     constexpr std::string_view name() const noexcept { return m_name.to_string_view(); }
     mach_format format() const noexcept { return m_format; }
@@ -584,9 +539,9 @@ public:
         }
     }
     constexpr reladdr_transform_mask reladdr_mask() const noexcept { return m_reladdr_mask; }
-    constexpr std::span<const checking::machine_operand_format> operands() const noexcept
+    std::span<const checking::machine_operand_format> operands() const noexcept
     {
-        return std::span<const checking::machine_operand_format>(m_operands, m_operand_len);
+        return std::span<const checking::machine_operand_format>(s_operands + m_operands_offset, m_operand_len);
     }
     constexpr size_t optional_operand_count() const noexcept { return m_optional_op_count; }
     constexpr const instruction_set_affiliation& instr_set_affiliation() const noexcept
@@ -603,7 +558,7 @@ public:
 
     constexpr std::string_view fullname() const noexcept
     {
-        return std::string_view(fullnames + m_fullname_offset, m_fullname_length);
+        return std::string_view(s_fullnames + m_fullname_offset, m_fullname_length);
     }
 
     constexpr const auto& cc_explanation() const noexcept { return condition_code_explanations[m_cc_explanation]; }
@@ -709,64 +664,13 @@ class mnemonic_code
     //  Generates a bitmask for an arbitrary mnemonic indicating which operands
     //  are of the RI type (and therefore are modified by transform_reloc_imm_operands)
     static constexpr unsigned char generate_reladdr_bitmask(
-        const machine_instruction* instruction, std::span<const mnemonic_transformation> transforms)
-    {
-        unsigned char result = 0;
-
-        decltype(result) top_bit = 1 << (std::numeric_limits<decltype(result)>::digits - 1);
-
-        auto transforms_b = transforms.begin();
-        auto const transforms_e = transforms.end();
-
-        for (size_t processed = 0; const auto& op : instruction->operands())
-        {
-            if (transforms_b != transforms_e && processed == transforms_b->skip)
-            {
-                assert(op.identifier.type == checking::machine_operand_type::IMM
-                    || op.identifier.type == checking::machine_operand_type::MASK
-                    || op.identifier.type == checking::machine_operand_type::REG
-                    || op.identifier.type == checking::machine_operand_type::VEC_REG);
-                top_bit >>= +!transforms_b++->insert;
-                processed = 0;
-                continue;
-            }
-
-            if (op.identifier.type == checking::machine_operand_type::RELOC_IMM)
-                result |= top_bit;
-
-            top_bit >>= 1;
-            ++processed;
-        }
-        return result;
-    }
+        const machine_instruction* instruction, std::span<const mnemonic_transformation> transforms) noexcept;
 
 public:
-    constexpr mnemonic_code(std::string_view name,
+    consteval mnemonic_code(std::string_view name,
         const machine_instruction* instr,
         std::initializer_list<const mnemonic_transformation> transform,
-        instruction_set_affiliation instr_set_affiliation)
-        : m_instruction(instr)
-        , m_transform {}
-        , m_transform_count((unsigned char)transform.size())
-        , m_reladdr_mask(generate_reladdr_bitmask(instr, transform))
-        , m_instr_set_affiliation(instr_set_affiliation)
-        , m_name(name)
-    {
-        assert(transform.size() <= m_transform.size());
-        std::ranges::copy(transform, m_transform.begin());
-        const auto insert_count = std::ranges::count_if(transform, [](auto t) { return t.insert; });
-        [[maybe_unused]] const auto total = std::accumulate(
-            transform.begin(), transform.end(), (size_t)0, [](size_t res, auto t) { return res + t.skip + t.insert; });
-        assert(total <= instr->operands().size());
-
-        m_op_max = instr->operands().size() - insert_count;
-        m_op_min = instr->operands().size() - instr->optional_operand_count() - insert_count;
-        assert(m_op_max <= instr->operands().size());
-        assert(m_op_min <= m_op_max);
-
-        for ([[maybe_unused]] const auto& r : transform)
-            assert(!r.has_source() || r.source < m_op_max);
-    }
+        instruction_set_affiliation instr_set_affiliation) noexcept;
 
     constexpr const machine_instruction* instruction() const noexcept { return m_instruction; }
     constexpr size_t size_in_bits() const noexcept { return instruction()->size_in_bits(); }
