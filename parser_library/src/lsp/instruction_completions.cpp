@@ -151,6 +151,67 @@ std::string_view get_implicit_parameters_text(bool has_some)
         return "";
 }
 
+std::string to_string(checking::parameter p)
+{
+    using enum checking::machine_operand_type;
+    std::string ret_val = "";
+    switch (p.type)
+    {
+        case MASK:
+            return "M";
+        case REG:
+            return "R";
+        case IMM: {
+            ret_val = "I";
+            break;
+        }
+        case NONE:
+            return "";
+        case DISP: {
+            ret_val = "D";
+            break;
+        }
+        case DISP_IDX: {
+            ret_val = "DX";
+            break;
+        }
+        case BASE:
+            return "B";
+        case LENGTH: {
+            ret_val = "L";
+            break;
+        }
+        case RELOC_IMM: {
+            ret_val = "RI";
+            break;
+        }
+        case VEC_REG:
+            return "V";
+        case IDX_REG:
+            return "X";
+    }
+    ret_val += std::to_string(p.size);
+    if (p.is_signed)
+        ret_val += "S";
+    else
+        ret_val += "U";
+    return ret_val;
+}
+
+std::string to_string(checking::machine_operand_format f, size_t i)
+{
+    const auto index = std::to_string(i);
+    std::string ret_val = to_string(f.identifier) + index;
+    if (!f.first.is_empty() || !f.second.is_empty())
+    {
+        ret_val.append("(");
+        if (!f.first.is_empty()) // only second cannot be empty
+            ret_val.append(to_string(f.first)).append(index).append(",");
+        ret_val.append(to_string(f.second)).append(index).append(")");
+    }
+    return ret_val;
+}
+
 void process_machine_instruction(const context::machine_instruction& machine_instr,
     std::vector<std::pair<completion_item, context::instruction_set_affiliation>>& items)
 {
@@ -177,7 +238,7 @@ void process_machine_instruction(const context::machine_instruction& machine_ins
         if (!op.optional)
             autocomplete.append("${").append(snippet_id++).append(":");
 
-        const auto formatted_op = op.to_string(++i);
+        const auto formatted_op = to_string(op, ++i);
         detail.append(formatted_op);
         autocomplete.append(formatted_op);
 
@@ -301,7 +362,7 @@ void process_mnemonic_code(const context::mnemonic_code& mnemonic_instr,
                 }
                 if (replacement.has_source())
                 {
-                    const auto op_string = mach_operands[replacement.source].to_string(1 + ids[replacement.source]);
+                    const auto op_string = to_string(mach_operands[replacement.source], 1 + ids[replacement.source]);
                     subs_ops_mnems.append(op_string);
                     if (ops_used_by_replacement.test(replacement.source))
                     {
@@ -335,7 +396,7 @@ void process_mnemonic_code(const context::mnemonic_code& mnemonic_instr,
         subs_ops_nomnems.start_operand();
         subs_ops_nomnems_no_snippets.start_operand();
 
-        const auto op_string = mach_operands[i].to_string(i + 1);
+        const auto op_string = to_string(mach_operands[i], i + 1);
         if (!is_optional)
         {
             subs_ops_mnems.append(op_string);

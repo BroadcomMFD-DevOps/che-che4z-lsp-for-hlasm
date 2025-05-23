@@ -94,8 +94,6 @@ struct parameter
     bool operator==(const parameter&) const = default;
 
     constexpr bool is_empty() const { return *this == parameter {}; }
-
-    std::string to_string() const;
 };
 
 // Representation of machine operand formats and serves as a template for the checker.
@@ -117,8 +115,10 @@ struct machine_operand_format
         assert(!second.is_empty() || first.is_empty());
     };
 
-    std::string to_string(std::optional<size_t> i = std::nullopt) const;
+    static constinit const checking::machine_operand_format empty;
 };
+
+inline constinit const checking::machine_operand_format checking::machine_operand_format::empty { {}, {}, {}, false };
 
 // Abstract class that represents a machine operand suitable for checking.
 class machine_operand : public virtual operand

@@ -195,7 +195,7 @@ expr_machine_operand::expr_machine_operand(expressions::mach_expr_ptr expression
 std::unique_ptr<checking::operand> expr_machine_operand::get_operand_value(
     context::dependency_solver& info, diagnostic_op_consumer& diags) const
 {
-    return make_check_operand(info, *expression, { context::empty, context::empty, context::empty, false }, diags);
+    return make_check_operand(info, *expression, checking::machine_operand_format::empty, diags);
 }
 
 std::unique_ptr<checking::operand> expr_machine_operand::get_operand_value(context::dependency_solver& info,
@@ -271,7 +271,7 @@ bool address_machine_operand::has_error(context::dependency_solver& info) const
 std::unique_ptr<checking::operand> address_machine_operand::get_operand_value(
     context::dependency_solver& info, diagnostic_op_consumer& diags) const
 {
-    return get_operand_value(info, { context::empty, context::empty, context::empty, false }, diags);
+    return get_operand_value(info, checking::machine_operand_format::empty, diags);
 }
 
 namespace {
