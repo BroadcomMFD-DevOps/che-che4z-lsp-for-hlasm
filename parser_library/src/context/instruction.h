@@ -409,11 +409,6 @@ class machine_instruction
         LENGTH_48,
     };
 
-    // Generates a bitmask for an arbitrary machine instruction indicating which operands
-    // are of the RI type (and therefore are modified by transform_reloc_imm_operands)
-    static consteval reladdr_transform_mask generate_reladdr_bitmask(
-        std::span<const machine_operand_format> operands) noexcept;
-
     static consteval char get_length_by_format(mach_format instruction_format) noexcept;
 
     inline_string<7> m_name;
@@ -568,11 +563,6 @@ class mnemonic_code
     unsigned char m_op_min : 4 = 0;
     unsigned char m_op_max : 4 = 0;
     // unsigned char available = 0;
-
-    //  Generates a bitmask for an arbitrary mnemonic indicating which operands
-    //  are of the RI type (and therefore are modified by transform_reloc_imm_operands)
-    static consteval reladdr_transform_mask generate_reladdr_bitmask(
-        const machine_instruction* instruction, std::span<const mnemonic_transformation> transforms) noexcept;
 
 public:
     consteval mnemonic_code(std::string_view name,

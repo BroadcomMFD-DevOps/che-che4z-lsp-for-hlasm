@@ -676,6 +676,37 @@ consteval unsigned char _count_optional_ops(unsigned off, unsigned char len) noe
 {
     return (unsigned char)std::ranges::count_if(_ops(off, len), &machine_operand_format::optional);
 }
+
+consteval reladdr_transform_mask generate_reladdr_bitmask(
+    unsigned offset, unsigned char len, std::span<const mnemonic_transformation> transforms) noexcept
+{
+    unsigned char result = 0;
+
+    decltype(result) top_bit = 1 << (std::numeric_limits<decltype(result)>::digits - 1);
+
+    auto transforms_b = transforms.begin();
+    auto const transforms_e = transforms.end();
+
+    for (size_t processed = 0; const auto& op : _ops(offset, len))
+    {
+        if (transforms_b != transforms_e && processed == transforms_b->skip)
+        {
+            assert(op.identifier.type == machine_operand_type::IMM || op.identifier.type == machine_operand_type::MASK
+                || op.identifier.type == machine_operand_type::REG
+                || op.identifier.type == machine_operand_type::VEC_REG);
+            top_bit >>= +!transforms_b++->insert;
+            processed = 0;
+            continue;
+        }
+
+        if (op.identifier.type == machine_operand_type::RELOC_IMM)
+            result |= top_bit;
+
+        top_bit >>= 1;
+        ++processed;
+    }
+    return (reladdr_transform_mask)result;
+}
 } // namespace
 
 constinit const machine_operand_format machine_instruction::s_operands[] = {
@@ -754,25 +785,6 @@ public:
     }
 };
 
-consteval reladdr_transform_mask machine_instruction::generate_reladdr_bitmask(
-    std::span<const machine_operand_format> operands) noexcept
-{
-    unsigned char result = 0;
-
-    assert(operands.size() <= std::numeric_limits<decltype(result)>::digits);
-
-    decltype(result) top_bit = 1 << (std::numeric_limits<decltype(result)>::digits - 1);
-
-    for (const auto& op : operands)
-    {
-        if (op.identifier.type == machine_operand_type::RELOC_IMM)
-            result |= top_bit;
-        top_bit >>= 1;
-    }
-
-    return (reladdr_transform_mask)result;
-}
-
 consteval char machine_instruction::get_length_by_format(mach_format instruction_format) noexcept
 {
     auto interval = static_cast<int>(instruction_format);
@@ -783,37 +795,6 @@ consteval char machine_instruction::get_length_by_format(mach_format instruction
     if (interval >= static_cast<int>(mach_format::length_16))
         return static_cast<char>(size_identifier::LENGTH_16);
     return static_cast<char>(size_identifier::LENGTH_0);
-}
-
-consteval reladdr_transform_mask mnemonic_code::generate_reladdr_bitmask(
-    const machine_instruction* instruction, std::span<const mnemonic_transformation> transforms) noexcept
-{
-    unsigned char result = 0;
-
-    decltype(result) top_bit = 1 << (std::numeric_limits<decltype(result)>::digits - 1);
-
-    auto transforms_b = transforms.begin();
-    auto const transforms_e = transforms.end();
-
-    for (size_t processed = 0; const auto& op : _ops(instruction->m_operands_offset, instruction->m_operand_len))
-    {
-        if (transforms_b != transforms_e && processed == transforms_b->skip)
-        {
-            assert(op.identifier.type == machine_operand_type::IMM || op.identifier.type == machine_operand_type::MASK
-                || op.identifier.type == machine_operand_type::REG
-                || op.identifier.type == machine_operand_type::VEC_REG);
-            top_bit >>= +!transforms_b++->insert;
-            processed = 0;
-            continue;
-        }
-
-        if (op.identifier.type == machine_operand_type::RELOC_IMM)
-            result |= top_bit;
-
-        top_bit >>= 1;
-        ++processed;
-    }
-    return (reladdr_transform_mask)result;
 }
 
 consteval machine_instruction::machine_instruction(std::string_view name,
@@ -828,7 +809,7 @@ consteval machine_instruction::machine_instruction(std::string_view name,
     , m_page_no(page_no)
     , m_instr_set_affiliation(instr_set_affiliation)
     , m_format(format)
-    , m_reladdr_mask(generate_reladdr_bitmask(_ops(operand_offset, operand_len)))
+    , m_reladdr_mask(generate_reladdr_bitmask(operand_offset, operand_len, {}))
     , m_optional_op_count(_count_optional_ops(operand_offset, operand_len))
     , m_operand_len(operand_len)
     , m_operands_offset(operand_offset)
@@ -1157,7 +1138,7 @@ consteval mnemonic_code::mnemonic_code(std::string_view name,
     : m_instruction(instr)
     , m_transform {}
     , m_transform_count((unsigned char)transform.size())
-    , m_reladdr_mask(generate_reladdr_bitmask(instr, transform))
+    , m_reladdr_mask(generate_reladdr_bitmask(instr->m_operands_offset, instr->m_operand_len, transform))
     , m_instr_set_affiliation(instr_set_affiliation)
     , m_name(name)
 {
