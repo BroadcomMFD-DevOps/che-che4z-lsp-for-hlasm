@@ -23,8 +23,6 @@
 
 #include "checking/diagnostic_collector.h"
 
-using namespace hlasm_plugin::parser_library::checking;
-
 namespace hlasm_plugin::parser_library::context {
 
 namespace {
@@ -586,10 +584,12 @@ enum class operand_formats
 #include "instruction_details.h"
 };
 
+namespace {
 constexpr const checking::machine_operand_format _s_operands[] = {
 #define DEFINE_INSTRUCTION_FORMAT(name, format, ...) __VA_ARGS__ __VA_OPT__(, )
 #include "instruction_details.h"
 };
+} // namespace
 
 constinit const checking::machine_operand_format machine_instruction::s_operands[] = {
 #define DEFINE_INSTRUCTION_FORMAT(name, format, ...) __VA_ARGS__ __VA_OPT__(, )
@@ -667,10 +667,6 @@ public:
     }
 };
 
-#define DEFINE_INSTRUCTION_FORMAT(name, format, ...)                                                                   \
-    constexpr auto name = instruction_format_definition_factory<format, operand_formats::name>::def();
-#include "instruction_details.h"
-
 consteval reladdr_transform_mask machine_instruction::generate_reladdr_bitmask(
     std::span<const checking::machine_operand_format> operands) noexcept
 {
@@ -712,8 +708,8 @@ consteval reladdr_transform_mask mnemonic_code::generate_reladdr_bitmask(
     auto transforms_b = transforms.begin();
     auto const transforms_e = transforms.end();
 
-    for (size_t processed = 0;
-         const auto& op : std::span(_s_operands + instruction->m_operands_offset, instruction->m_operand_len))
+    const std::span ops(_s_operands + instruction->m_operands_offset, instruction->m_operand_len);
+    for (size_t processed = 0; const auto& op : ops)
     {
         if (transforms_b != transforms_e && processed == transforms_b->skip)
         {
@@ -760,7 +756,7 @@ consteval machine_instruction::machine_instruction(std::string_view name,
     , m_has_parameter_list(d.has_parameter_list)
     , m_branch_argument(d.branch_argument)
 {
-    // assert(operand_len <= max_operand_count);
+    assert(operand_len <= max_operand_count);
 }
 
 consteval machine_instruction::machine_instruction(std::string_view name,
@@ -771,68 +767,9 @@ consteval machine_instruction::machine_instruction(std::string_view name,
     : machine_instruction(name, ifd.format, ifd.op_format_offset, ifd.op_format_len, page_no, instr_set_affiliation, d)
 {}
 
-consteval mnemonic_transformation::mnemonic_transformation(unsigned short v) noexcept
-    : value(v)
-{}
-
-consteval mnemonic_transformation::mnemonic_transformation(unsigned char skip, unsigned short v, bool insert) noexcept
-    : skip(skip)
-    , insert(insert)
-    , value(v)
-{
-    assert(skip < machine_instruction::max_operand_count);
-}
-
-consteval mnemonic_transformation::mnemonic_transformation(
-    unsigned char skip, mnemonic_transformation_kind t, unsigned char src) noexcept
-    : skip(skip)
-    , source(src)
-    , type(t)
-{
-    assert(t == mnemonic_transformation_kind::copy);
-    assert(skip < machine_instruction::max_operand_count);
-    assert(src < machine_instruction::max_operand_count);
-}
-
-consteval mnemonic_transformation::mnemonic_transformation(
-    unsigned char skip, unsigned short v, mnemonic_transformation_kind t, unsigned char src, bool insert) noexcept
-    : skip(skip)
-    , source(src)
-    , type(t)
-    , insert(insert)
-    , value(v)
-{
-    assert(t != mnemonic_transformation_kind::copy && t != mnemonic_transformation_kind::value);
-    assert(skip < machine_instruction::max_operand_count);
-    assert(src < machine_instruction::max_operand_count);
-}
-
-consteval mnemonic_code::mnemonic_code(std::string_view name,
-    const machine_instruction* instr,
-    std::initializer_list<const mnemonic_transformation> transform,
-    instruction_set_affiliation instr_set_affiliation) noexcept
-    : m_instruction(instr)
-    , m_transform {}
-    , m_transform_count((unsigned char)transform.size())
-    , m_reladdr_mask(generate_reladdr_bitmask(instr, transform))
-    , m_instr_set_affiliation(instr_set_affiliation)
-    , m_name(name)
-{
-    assert(transform.size() <= m_transform.size());
-    std::ranges::copy(transform, m_transform.begin());
-    const auto insert_count = std::ranges::count_if(transform, [](auto t) { return t.insert; });
-    [[maybe_unused]] const auto total = std::accumulate(
-        transform.begin(), transform.end(), (size_t)0, [](size_t res, auto t) { return res + t.skip + t.insert; });
-    assert(total <= instr->m_operand_len);
-
-    m_op_max = instr->m_operand_len - insert_count;
-    m_op_min = instr->m_operand_len - instr->optional_operand_count() - insert_count;
-    assert(m_op_max <= instr->m_operand_len);
-    assert(m_op_min <= m_op_max);
-
-    for ([[maybe_unused]] const auto& r : transform)
-        assert(!r.has_source() || r.source < m_op_max);
-}
+#define DEFINE_INSTRUCTION_FORMAT(name, format, ...)                                                                   \
+    constexpr auto name = instruction_format_definition_factory<format, operand_formats::name>::def();
+#include "instruction_details.h"
 
 #define DEFINE_INSTRUCTION(name, format, page, iset, description, ...)                                                 \
     { #name, format, page, iset, make_machine_instruction_details<instruction_fullname::name##_##format>(__VA_ARGS__) },
@@ -1092,6 +1029,69 @@ constexpr auto mi_VUPLH = find_mi("VUPLH");
 constexpr auto mi_VUPLL = find_mi("VUPLL");
 constexpr auto mi_WFC = find_mi("WFC");
 constexpr auto mi_WFK = find_mi("WFK");
+
+consteval mnemonic_transformation::mnemonic_transformation(unsigned short v) noexcept
+    : value(v)
+{}
+
+consteval mnemonic_transformation::mnemonic_transformation(unsigned char skip, unsigned short v, bool insert) noexcept
+    : skip(skip)
+    , insert(insert)
+    , value(v)
+{
+    assert(skip < machine_instruction::max_operand_count);
+}
+
+consteval mnemonic_transformation::mnemonic_transformation(
+    unsigned char skip, mnemonic_transformation_kind t, unsigned char src) noexcept
+    : skip(skip)
+    , source(src)
+    , type(t)
+{
+    assert(t == mnemonic_transformation_kind::copy);
+    assert(skip < machine_instruction::max_operand_count);
+    assert(src < machine_instruction::max_operand_count);
+}
+
+consteval mnemonic_transformation::mnemonic_transformation(
+    unsigned char skip, unsigned short v, mnemonic_transformation_kind t, unsigned char src, bool insert) noexcept
+    : skip(skip)
+    , source(src)
+    , type(t)
+    , insert(insert)
+    , value(v)
+{
+    assert(t != mnemonic_transformation_kind::copy && t != mnemonic_transformation_kind::value);
+    assert(skip < machine_instruction::max_operand_count);
+    assert(src < machine_instruction::max_operand_count);
+}
+
+consteval mnemonic_code::mnemonic_code(std::string_view name,
+    const machine_instruction* instr,
+    std::initializer_list<const mnemonic_transformation> transform,
+    instruction_set_affiliation instr_set_affiliation) noexcept
+    : m_instruction(instr)
+    , m_transform {}
+    , m_transform_count((unsigned char)transform.size())
+    , m_reladdr_mask(generate_reladdr_bitmask(instr, transform))
+    , m_instr_set_affiliation(instr_set_affiliation)
+    , m_name(name)
+{
+    assert(transform.size() <= m_transform.size());
+    std::ranges::copy(transform, m_transform.begin());
+    const auto insert_count = std::ranges::count_if(transform, [](auto t) { return t.insert; });
+    [[maybe_unused]] const auto total = std::accumulate(
+        transform.begin(), transform.end(), (size_t)0, [](size_t res, auto t) { return res + t.skip + t.insert; });
+    assert(total <= instr->m_operand_len);
+
+    m_op_max = instr->m_operand_len - insert_count;
+    m_op_min = instr->m_operand_len - instr->optional_operand_count() - insert_count;
+    assert(m_op_max <= instr->m_operand_len);
+    assert(m_op_min <= m_op_max);
+
+    for ([[maybe_unused]] const auto& r : transform)
+        assert(!r.has_source() || r.source < m_op_max);
+}
 
 constexpr mnemonic_code mnemonic_codes[] = {
     { "B", mi_BC, { { 15 } }, UNI_ESA_XA_370_DOS_SINCE_ZOP },
@@ -2391,6 +2391,7 @@ const mnemonic_code& instruction::get_mnemonic_codes(std::string_view name) noex
 
 std::span<const mnemonic_code> instruction::all_mnemonic_codes() noexcept { return mnemonic_codes; }
 
+namespace {
 consteval instruction_set_size compute_instruction_set_size(instruction_set_version v)
 {
     instruction_set_size result = {
@@ -2434,6 +2435,7 @@ constexpr instruction_set_size instruction_set_sizes[] = {
     instruction_set_size_generator<instruction_set_version::DOS>::value,
     instruction_set_size_generator<instruction_set_version::UNI>::value,
 };
+} // namespace
 
 const instruction_set_size& get_instruction_sizes(instruction_set_version v) noexcept
 {
