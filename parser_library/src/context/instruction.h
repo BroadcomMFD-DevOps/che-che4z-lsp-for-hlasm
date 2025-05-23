@@ -15,7 +15,6 @@
 #ifndef HLASMPLUGIN_PARSERLIBRARY_CONTEXT_INSTRUCTION_H
 #define HLASMPLUGIN_PARSERLIBRARY_CONTEXT_INSTRUCTION_H
 
-#include <algorithm>
 #include <array>
 #include <compare>
 #include <span>
@@ -93,7 +92,6 @@ constexpr bool instruction_available(
             return from <= level && level < to;
         }
     }
-    assert(false);
     return false;
 }
 
@@ -104,7 +102,7 @@ struct instruction_set_size
     size_t ca;
     size_t assembler;
 
-    constexpr size_t total() const { return mnemonic + machine + ca + assembler; }
+    constexpr size_t total() const noexcept { return mnemonic + machine + ca + assembler; }
 };
 
 const instruction_set_size& get_instruction_sizes(instruction_set_version v) noexcept;
@@ -325,15 +323,7 @@ class inline_string
     std::array<char, n> data;
 
 public:
-    explicit consteval inline_string(std::string_view s)
-        : len((unsigned char)s.size())
-        , data {}
-    {
-        assert(s.size() <= n);
-        size_t i = 0;
-        for (char c : s)
-            data[i++] = c;
-    }
+    explicit consteval inline_string(std::string_view s) noexcept;
 
     constexpr std::string_view to_string_view() const noexcept { return std::string_view(data.data(), len); }
 
@@ -357,43 +347,22 @@ class condition_code_explanation
     std::array<unsigned char, 5> lengths;
     bool single_explanation;
 
-    static consteval bool identical(const char* t0, const char* t1, const char* t2, const char* t3, size_t n)
-    {
-        return std::equal(t0, t0 + n, t1, t1 + n) && std::equal(t0, t0 + n, t2, t2 + n)
-            && std::equal(t0, t0 + n, t3, t3 + n);
-    }
+    static consteval bool identical(const char* t0, const char* t1, const char* t2, const char* t3, size_t n);
 
 public:
     template<size_t L0>
-    explicit consteval condition_code_explanation(const char (&t0)[L0]) noexcept requires(L0 > 1 && L0 < 256)
-        : text { t0, t0, t0, t0 }
-        , lengths { L0 - 1, L0 - 1, L0 - 1, L0 - 1 }
-        , single_explanation(true)
-    {}
+    explicit consteval condition_code_explanation(const char (&t0)[L0]) noexcept requires(L0 > 1 && L0 < 256);
     template<size_t L0, size_t L1, size_t L2, size_t L3>
     explicit consteval condition_code_explanation(
         const char (&t0)[L0], const char (&t1)[L1], const char (&t2)[L2], const char (&t3)[L3]) noexcept
-        requires(L0 > 0 && L1 > 0 && L2 > 0 && L3 > 0 && L0 < 256 && L1 < 256 && L2 < 256 && L3 < 256)
-        : text { L0 == 1 ? nullptr : t0, L1 == 1 ? nullptr : t1, L2 == 1 ? nullptr : t2, L3 == 1 ? nullptr : t3 }
-        , lengths { L0 - 1, L1 - 1, L2 - 1, L3 - 1 }
-        , single_explanation(L0 == L1 && L0 == L2 && L0 == L3 && identical(t0, t1, t2, t3, L0))
-    {}
+        requires(L0 > 0 && L1 > 0 && L2 > 0 && L3 > 0 && L0 < 256 && L1 < 256 && L2 < 256 && L3 < 256);
     template<size_t L0, size_t L1, size_t L2, size_t L3, size_t Qual>
     explicit consteval condition_code_explanation(const char (&t0)[L0],
         const char (&t1)[L1],
         const char (&t2)[L2],
         const char (&t3)[L3],
-        const char (&qualification)[Qual]) noexcept
-        requires(L0 > 0 && L1 > 0 && L2 > 0 && L3 > 0 && Qual > 1 && L0 < 256 && L1 < 256 && L2 < 256 && L3 < 256
-                    && Qual < 256)
-        : text { L0 == 1 ? nullptr : t0,
-            L1 == 1 ? nullptr : t1,
-            L2 == 1 ? nullptr : t2,
-            L3 == 1 ? nullptr : t3,
-            qualification }
-        , lengths { L0 - 1, L1 - 1, L2 - 1, L3 - 1, Qual - 1 }
-        , single_explanation(L0 == L1 && L0 == L2 && L0 == L3 && identical(t0, t1, t2, t3, L0))
-    {}
+        const char (&qualification)[Qual]) noexcept requires(L0 > 0 && L1 > 0 && L2 > 0 && L3 > 0 && Qual > 1
+        && L0 < 256 && L1 < 256 && L2 < 256 && L3 < 256 && Qual < 256);
 
     constexpr std::string_view tranlate_cc(condition_code cc) const noexcept
     {
@@ -564,13 +533,10 @@ class ca_instruction
     bool m_operandless;
 
 public:
-    consteval ca_instruction(std::string_view n, bool opless)
-        : m_name(n)
-        , m_operandless(opless)
-    {}
+    consteval ca_instruction(std::string_view n, bool opless) noexcept;
 
-    constexpr auto name() const { return m_name.to_string_view(); }
-    constexpr auto operandless() const { return m_operandless; }
+    constexpr auto name() const noexcept { return m_name.to_string_view(); }
+    constexpr auto operandless() const noexcept { return m_operandless; }
 };
 
 enum class mnemonic_transformation_kind : unsigned char
@@ -593,39 +559,16 @@ struct mnemonic_transformation
     unsigned short value = 0;
 
     consteval mnemonic_transformation() = default;
-    consteval mnemonic_transformation(unsigned short v)
-        : value(v)
-    {}
-    consteval mnemonic_transformation(unsigned char skip, unsigned short v, bool insert = true)
-        : skip(skip)
-        , insert(insert)
-        , value(v)
-    {
-        assert(skip < machine_instruction::max_operand_count);
-    }
-    consteval mnemonic_transformation(unsigned char skip, mnemonic_transformation_kind t, unsigned char src)
-        : skip(skip)
-        , source(src)
-        , type(t)
-    {
-        assert(t == mnemonic_transformation_kind::copy);
-        assert(skip < machine_instruction::max_operand_count);
-        assert(src < machine_instruction::max_operand_count);
-    }
-    consteval mnemonic_transformation(
-        unsigned char skip, unsigned short v, mnemonic_transformation_kind t, unsigned char src, bool insert = true)
-        : skip(skip)
-        , source(src)
-        , type(t)
-        , insert(insert)
-        , value(v)
-    {
-        assert(t != mnemonic_transformation_kind::copy && t != mnemonic_transformation_kind::value);
-        assert(skip < machine_instruction::max_operand_count);
-        assert(src < machine_instruction::max_operand_count);
-    }
+    consteval mnemonic_transformation(unsigned short v) noexcept;
+    consteval mnemonic_transformation(unsigned char skip, unsigned short v, bool insert = true) noexcept;
+    consteval mnemonic_transformation(unsigned char skip, mnemonic_transformation_kind t, unsigned char src) noexcept;
+    consteval mnemonic_transformation(unsigned char skip,
+        unsigned short v,
+        mnemonic_transformation_kind t,
+        unsigned char src,
+        bool insert = true) noexcept;
 
-    constexpr bool has_source() const { return type != mnemonic_transformation_kind::value; }
+    constexpr bool has_source() const noexcept { return type != mnemonic_transformation_kind::value; }
 };
 
 // representation of mnemonic codes for machine instructions
@@ -686,20 +629,14 @@ public:
         int max_operands,
         bool has_ord_symbols,
         std::string_view description,
-        bool postpone_dependencies = false)
-        : m_name(name)
-        , m_has_ord_symbols(has_ord_symbols)
-        , m_postpone_dependencies(postpone_dependencies)
-        , m_min_operands(min_operands)
-        , m_max_operands(max_operands)
-        , m_description(std::move(description)) {};
+        bool postpone_dependencies = false) noexcept;
 
-    constexpr auto name() const { return m_name.to_string_view(); }
-    constexpr auto has_ord_symbols() const { return m_has_ord_symbols; }
-    constexpr auto postpone_dependencies() const { return m_postpone_dependencies; }
-    constexpr auto min_operands() const { return m_min_operands; }
-    constexpr auto max_operands() const { return m_max_operands; }
-    constexpr auto description() const { return m_description; }
+    constexpr auto name() const noexcept { return m_name.to_string_view(); }
+    constexpr auto has_ord_symbols() const noexcept { return m_has_ord_symbols; }
+    constexpr auto postpone_dependencies() const noexcept { return m_postpone_dependencies; }
+    constexpr auto min_operands() const noexcept { return m_min_operands; }
+    constexpr auto max_operands() const noexcept { return m_max_operands; }
+    constexpr auto description() const noexcept { return m_description; }
 };
 
 // static class holding string names of instructions with theirs additional info

@@ -23,9 +23,9 @@
 
 #include "checking/diagnostic_collector.h"
 
-using namespace hlasm_plugin::parser_library::context;
 using namespace hlasm_plugin::parser_library::checking;
-using namespace hlasm_plugin::parser_library;
+
+namespace hlasm_plugin::parser_library::context {
 
 namespace {
 
@@ -269,6 +269,22 @@ std::string_view instruction::mach_format_to_string(mach_format f) noexcept
     return "";
 }
 
+template<unsigned char n>
+consteval inline_string<n>::inline_string(std::string_view s) noexcept
+    : len((unsigned char)s.size())
+    , data {}
+{
+    assert(s.size() <= n);
+    size_t i = 0;
+    for (char c : s)
+        data[i++] = c;
+}
+
+consteval ca_instruction::ca_instruction(std::string_view n, bool opless) noexcept
+    : m_name(n)
+    , m_operandless(opless)
+{}
+
 constexpr ca_instruction ca_instructions[] = {
     { "ACTR", false },
     { "AEJECT", true },
@@ -311,6 +327,20 @@ const ca_instruction& instruction::get_ca_instructions(std::string_view name) no
 }
 
 std::span<const ca_instruction> instruction::all_ca_instructions() noexcept { return ca_instructions; }
+
+consteval assembler_instruction::assembler_instruction(std::string_view name,
+    int min_operands,
+    int max_operands,
+    bool has_ord_symbols,
+    std::string_view description,
+    bool postpone_dependencies) noexcept
+    : m_name(name)
+    , m_has_ord_symbols(has_ord_symbols)
+    , m_postpone_dependencies(postpone_dependencies)
+    , m_min_operands(min_operands)
+    , m_max_operands(max_operands)
+    , m_description(std::move(description))
+{}
 
 constexpr assembler_instruction assembler_instructions[] = {
     { "*PROCESS", 1, -1, false, "" }, // TO DO
@@ -389,7 +419,7 @@ std::span<const assembler_instruction> instruction::all_assembler_instructions()
     return assembler_instructions;
 }
 
-bool hlasm_plugin::parser_library::context::machine_instruction::check(std::string_view name_of_instruction,
+bool machine_instruction::check(std::string_view name_of_instruction,
     std::span<const checking::machine_operand* const> to_check,
     const range& stmt_range,
     const diagnostic_collector& add_diagnostic) const
@@ -499,7 +529,47 @@ enum class condition_code_explanation_id : unsigned char
 #include "instruction_details.h"
 } // namespace
 
-constinit const condition_code_explanation hlasm_plugin::parser_library::context::condition_code_explanations[] = {
+consteval bool condition_code_explanation::identical(
+    const char* t0, const char* t1, const char* t2, const char* t3, size_t n)
+{
+    return std::equal(t0, t0 + n, t1, t1 + n) && std::equal(t0, t0 + n, t2, t2 + n)
+        && std::equal(t0, t0 + n, t3, t3 + n);
+}
+
+template<size_t L0, size_t L1, size_t L2, size_t L3, size_t Qual>
+consteval condition_code_explanation::condition_code_explanation(const char (&t0)[L0],
+    const char (&t1)[L1],
+    const char (&t2)[L2],
+    const char (&t3)[L3],
+    const char (&qualification)[Qual]) noexcept requires(L0 > 0 && L1 > 0 && L2 > 0 && L3 > 0 && Qual > 1 && L0 < 256
+                                                            && L1 < 256 && L2 < 256 && L3 < 256 && Qual < 256)
+    : text { L0 == 1 ? nullptr : t0,
+        L1 == 1 ? nullptr : t1,
+        L2 == 1 ? nullptr : t2,
+        L3 == 1 ? nullptr : t3,
+        qualification }
+    , lengths { L0 - 1, L1 - 1, L2 - 1, L3 - 1, Qual - 1 }
+    , single_explanation(L0 == L1 && L0 == L2 && L0 == L3 && identical(t0, t1, t2, t3, L0))
+{}
+
+template<size_t L0, size_t L1, size_t L2, size_t L3>
+consteval condition_code_explanation::condition_code_explanation(
+    const char (&t0)[L0], const char (&t1)[L1], const char (&t2)[L2], const char (&t3)[L3]) noexcept
+    requires(L0 > 0 && L1 > 0 && L2 > 0 && L3 > 0 && L0 < 256 && L1 < 256 && L2 < 256 && L3 < 256)
+    : text { L0 == 1 ? nullptr : t0, L1 == 1 ? nullptr : t1, L2 == 1 ? nullptr : t2, L3 == 1 ? nullptr : t3 }
+    , lengths { L0 - 1, L1 - 1, L2 - 1, L3 - 1 }
+    , single_explanation(L0 == L1 && L0 == L2 && L0 == L3 && identical(t0, t1, t2, t3, L0))
+{}
+
+template<size_t L0>
+consteval condition_code_explanation::condition_code_explanation(const char (&t0)[L0]) noexcept
+    requires(L0 > 1 && L0 < 256)
+    : text { t0, t0, t0, t0 }
+    , lengths { L0 - 1, L0 - 1, L0 - 1, L0 - 1 }
+    , single_explanation(true)
+{}
+
+constinit const condition_code_explanation condition_code_explanations[] = {
 #define DEFINE_CC_SET(name, ...) condition_code_explanation(__VA_ARGS__),
 #include "instruction_details.h"
 };
@@ -601,7 +671,7 @@ public:
     constexpr auto name = instruction_format_definition_factory<format, operand_formats::name>::def();
 #include "instruction_details.h"
 
-consteval reladdr_transform_mask hlasm_plugin::parser_library::context::machine_instruction::generate_reladdr_bitmask(
+consteval reladdr_transform_mask machine_instruction::generate_reladdr_bitmask(
     std::span<const checking::machine_operand_format> operands) noexcept
 {
     unsigned char result = 0;
@@ -620,8 +690,7 @@ consteval reladdr_transform_mask hlasm_plugin::parser_library::context::machine_
     return (reladdr_transform_mask)result;
 }
 
-consteval char hlasm_plugin::parser_library::context::machine_instruction::get_length_by_format(
-    mach_format instruction_format) noexcept
+consteval char machine_instruction::get_length_by_format(mach_format instruction_format) noexcept
 {
     auto interval = static_cast<int>(instruction_format);
     if (interval >= static_cast<int>(mach_format::length_48))
@@ -633,7 +702,7 @@ consteval char hlasm_plugin::parser_library::context::machine_instruction::get_l
     return static_cast<char>(size_identifier::LENGTH_0);
 }
 
-consteval reladdr_transform_mask hlasm_plugin::parser_library::context::mnemonic_code::generate_reladdr_bitmask(
+consteval reladdr_transform_mask mnemonic_code::generate_reladdr_bitmask(
     const machine_instruction* instruction, std::span<const mnemonic_transformation> transforms) noexcept
 {
     unsigned char result = 0;
@@ -666,7 +735,7 @@ consteval reladdr_transform_mask hlasm_plugin::parser_library::context::mnemonic
     return (reladdr_transform_mask)result;
 }
 
-consteval hlasm_plugin::parser_library::context::machine_instruction::machine_instruction(std::string_view name,
+consteval machine_instruction::machine_instruction(std::string_view name,
     mach_format format,
     unsigned short operand_offset,
     unsigned char operand_len,
@@ -694,7 +763,7 @@ consteval hlasm_plugin::parser_library::context::machine_instruction::machine_in
     // assert(operand_len <= max_operand_count);
 }
 
-consteval hlasm_plugin::parser_library::context::machine_instruction::machine_instruction(std::string_view name,
+consteval machine_instruction::machine_instruction(std::string_view name,
     instruction_format_definition ifd,
     unsigned short page_no,
     instruction_set_affiliation instr_set_affiliation,
@@ -702,7 +771,43 @@ consteval hlasm_plugin::parser_library::context::machine_instruction::machine_in
     : machine_instruction(name, ifd.format, ifd.op_format_offset, ifd.op_format_len, page_no, instr_set_affiliation, d)
 {}
 
-consteval hlasm_plugin::parser_library::context::mnemonic_code::mnemonic_code(std::string_view name,
+consteval mnemonic_transformation::mnemonic_transformation(unsigned short v) noexcept
+    : value(v)
+{}
+
+consteval mnemonic_transformation::mnemonic_transformation(unsigned char skip, unsigned short v, bool insert) noexcept
+    : skip(skip)
+    , insert(insert)
+    , value(v)
+{
+    assert(skip < machine_instruction::max_operand_count);
+}
+
+consteval mnemonic_transformation::mnemonic_transformation(
+    unsigned char skip, mnemonic_transformation_kind t, unsigned char src) noexcept
+    : skip(skip)
+    , source(src)
+    , type(t)
+{
+    assert(t == mnemonic_transformation_kind::copy);
+    assert(skip < machine_instruction::max_operand_count);
+    assert(src < machine_instruction::max_operand_count);
+}
+
+consteval mnemonic_transformation::mnemonic_transformation(
+    unsigned char skip, unsigned short v, mnemonic_transformation_kind t, unsigned char src, bool insert) noexcept
+    : skip(skip)
+    , source(src)
+    , type(t)
+    , insert(insert)
+    , value(v)
+{
+    assert(t != mnemonic_transformation_kind::copy && t != mnemonic_transformation_kind::value);
+    assert(skip < machine_instruction::max_operand_count);
+    assert(src < machine_instruction::max_operand_count);
+}
+
+consteval mnemonic_code::mnemonic_code(std::string_view name,
     const machine_instruction* instr,
     std::initializer_list<const mnemonic_transformation> transform,
     instruction_set_affiliation instr_set_affiliation) noexcept
@@ -2330,15 +2435,14 @@ constexpr instruction_set_size instruction_set_sizes[] = {
     instruction_set_size_generator<instruction_set_version::UNI>::value,
 };
 
-const instruction_set_size& hlasm_plugin::parser_library::context::get_instruction_sizes(
-    instruction_set_version v) noexcept
+const instruction_set_size& get_instruction_sizes(instruction_set_version v) noexcept
 {
     const auto idx = static_cast<unsigned char>(v);
     assert(0 < idx && idx < std::size(instruction_set_sizes));
     return instruction_set_sizes[idx];
 }
 
-const instruction_set_size& hlasm_plugin::parser_library::context::get_instruction_sizes() noexcept
+const instruction_set_size& get_instruction_sizes() noexcept
 {
     static constexpr instruction_set_size result = {
         std::size(mnemonic_codes),
@@ -2348,3 +2452,4 @@ const instruction_set_size& hlasm_plugin::parser_library::context::get_instructi
     };
     return result;
 }
+} // namespace hlasm_plugin::parser_library::context
