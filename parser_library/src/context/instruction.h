@@ -91,7 +91,7 @@ constexpr bool instruction_available(
         case instruction_set_version::Z17: {
             const auto from = (uint16_t)instr_set_affiliation.z_arch;
             const auto to = (uint16_t)instr_set_affiliation.z_arch_removed;
-            const auto level = (int)active_instr_set;
+            const auto level = (unsigned char)active_instr_set;
             return from <= level && level < to;
         }
         default:
