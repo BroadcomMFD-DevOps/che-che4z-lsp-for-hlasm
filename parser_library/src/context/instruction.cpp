@@ -28,7 +28,7 @@ using namespace hlasm_plugin::parser_library;
 
 namespace {
 
-constexpr instruction_set_affiliation operator|(instruction_set_affiliation a, z_arch_affiliation z_affil)
+consteval instruction_set_affiliation operator|(instruction_set_affiliation a, z_arch_affiliation z_affil) noexcept
 {
     using enum z_arch_affiliation;
     assert(a.z_arch == NO_AFFILIATION && a.z_arch_removed == NO_AFFILIATION);
@@ -39,7 +39,7 @@ constexpr instruction_set_affiliation operator|(instruction_set_affiliation a, z
     return a;
 }
 
-constexpr instruction_set_affiliation operator|(instruction_set_affiliation a, instruction_set_affiliation b)
+consteval instruction_set_affiliation operator|(instruction_set_affiliation a, instruction_set_affiliation b) noexcept
 {
     assert(a.z_arch == z_arch_affiliation::NO_AFFILIATION);
     assert(b.z_arch == z_arch_affiliation::NO_AFFILIATION);
@@ -455,7 +455,7 @@ struct is_branch_argument_t<branch_argument_t<arg, nonzero>> : std::true_type
 };
 
 template<int... arg, int... nonzero>
-constexpr branch_info_argument select_branch_argument(branch_argument_t<arg, nonzero>...)
+consteval branch_info_argument select_branch_argument(branch_argument_t<arg, nonzero>...)
 {
     constexpr auto res = []() {
         const int args[] = { arg..., 0 };
@@ -496,12 +496,12 @@ struct make_machine_instruction_details_args_validator
 
 struct
 {
-    constexpr unsigned char operator()(const cc_index& val) const noexcept { return val.value; }
-    constexpr unsigned char operator()(const auto&) const noexcept { return 0; }
+    consteval unsigned char operator()(const cc_index& val) const noexcept { return val.value; }
+    consteval unsigned char operator()(const auto&) const noexcept { return 0; }
 } constexpr cc_visitor;
 
 template<size_t n, typename... Args>
-constexpr machine_instruction_details make_machine_instruction_details(const char (&name)[n], Args&&... args) noexcept
+consteval machine_instruction_details make_machine_instruction_details(const char (&name)[n], Args&&... args) noexcept
     requires(n > 1 && n < 256 && make_machine_instruction_details_args_validator<std::decay_t<Args>...>::value)
 {
     using A = make_machine_instruction_details_args_validator<std::decay_t<Args>...>;
@@ -588,7 +588,7 @@ const machine_instruction* instruction::find_machine_instructions(std::string_vi
     return std::to_address(it);
 }
 
-constexpr const machine_instruction* find_mi(std::string_view name)
+consteval const machine_instruction* find_mi(std::string_view name) noexcept
 {
     auto it = std::ranges::lower_bound(machine_instructions, name, {}, &machine_instruction::name);
     assert(it != std::ranges::end(machine_instructions) && it->name() == name);
@@ -2016,7 +2016,7 @@ const mnemonic_code& instruction::get_mnemonic_codes(std::string_view name) noex
 
 std::span<const mnemonic_code> instruction::all_mnemonic_codes() noexcept { return mnemonic_codes; }
 
-constexpr instruction_set_size compute_instruction_set_size(instruction_set_version v)
+consteval instruction_set_size compute_instruction_set_size(instruction_set_version v)
 {
     instruction_set_size result = {
         0,
