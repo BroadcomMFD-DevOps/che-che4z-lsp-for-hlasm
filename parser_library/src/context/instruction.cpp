@@ -589,6 +589,16 @@ constexpr const checking::machine_operand_format _s_operands[] = {
 #define DEFINE_INSTRUCTION_FORMAT(name, format, ...) __VA_ARGS__ __VA_OPT__(, )
 #include "instruction_details.h"
 };
+
+consteval std::span<const checking::machine_operand_format> _ops(unsigned off, unsigned char len) noexcept
+{
+    return std::span(_s_operands + off, len);
+}
+
+consteval unsigned char _count_optional_ops(unsigned off, unsigned char len) noexcept
+{
+    return (unsigned char)std::ranges::count_if(_ops(off, len), &checking::machine_operand_format::optional);
+}
 } // namespace
 
 constinit const checking::machine_operand_format machine_instruction::s_operands[] = {
@@ -708,8 +718,7 @@ consteval reladdr_transform_mask mnemonic_code::generate_reladdr_bitmask(
     auto transforms_b = transforms.begin();
     auto const transforms_e = transforms.end();
 
-    const std::span ops(_s_operands + instruction->m_operands_offset, instruction->m_operand_len);
-    for (size_t processed = 0; const auto& op : ops)
+    for (size_t processed = 0; const auto& op : _ops(instruction->m_operands_offset, instruction->m_operand_len))
     {
         if (transforms_b != transforms_e && processed == transforms_b->skip)
         {
@@ -743,9 +752,8 @@ consteval machine_instruction::machine_instruction(std::string_view name,
     , m_page_no(page_no)
     , m_instr_set_affiliation(instr_set_affiliation)
     , m_format(format)
-    , m_reladdr_mask(generate_reladdr_bitmask(std::span(_s_operands + operand_offset, operand_len)))
-    , m_optional_op_count((unsigned char)std::ranges::count_if(
-          std::span(_s_operands + operand_offset, operand_len), &checking::machine_operand_format::optional))
+    , m_reladdr_mask(generate_reladdr_bitmask(_ops(operand_offset, operand_len)))
+    , m_optional_op_count(_count_optional_ops(operand_offset, operand_len))
     , m_operand_len(operand_len)
     , m_operands_offset(operand_offset)
     , m_fullname_offset(d.fullname_offset)
@@ -1085,7 +1093,7 @@ consteval mnemonic_code::mnemonic_code(std::string_view name,
     assert(total <= instr->m_operand_len);
 
     m_op_max = instr->m_operand_len - insert_count;
-    m_op_min = instr->m_operand_len - instr->optional_operand_count() - insert_count;
+    m_op_min = instr->m_operand_len - instr->m_optional_op_count - insert_count;
     assert(m_op_max <= instr->m_operand_len);
     assert(m_op_min <= m_op_max);
 
