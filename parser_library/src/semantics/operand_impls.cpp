@@ -119,6 +119,11 @@ constexpr bool is_dipl_like(checking::machine_operand_type type)
     return type == DISP || type == DISP_IDX;
 }
 
+constexpr bool is_long_disp(checking::machine_operand_format f)
+{
+    return f.identifier == context::dis_20s || f.identifier == context::dis_idx_20s;
+}
+
 std::unique_ptr<checking::operand> make_check_operand(context::dependency_solver& info,
     const expressions::mach_expression& expr,
     const checking::machine_operand_format& mach_op_type,
@@ -135,8 +140,8 @@ std::unique_ptr<checking::operand> make_check_operand(context::dependency_solver
         if (reloc.is_simple())
         {
             const auto& base = reloc.bases().front().first;
-            auto translated_addr = info.using_evaluate(
-                base.qualifier, base.owner, reloc.offset(), mach_op_type.identifier == context::dis_20s);
+            const bool long_displacement = is_long_disp(mach_op_type);
+            auto translated_addr = info.using_evaluate(base.qualifier, base.owner, reloc.offset(), long_displacement);
             if (translated_addr.reg != context::using_collection::invalid_register)
             {
                 // TODO: this does not work correctly for d(L,r) type of operand,
@@ -318,7 +323,7 @@ std::unique_ptr<checking::operand> address_machine_operand::get_operand_value(co
                 std::swap(first_v, second_v); // <reloc>(,X) -> <reloc>(X,?)
 
             const auto& base = reloc.bases().front().first;
-            const bool long_displacement = mach_op_format.identifier == context::dis_20s;
+            const bool long_displacement = is_long_disp(mach_op_format);
             auto translated_addr = info.using_evaluate(base.qualifier, base.owner, reloc.offset(), long_displacement);
             if (translated_addr.reg != context::using_collection::invalid_register)
             {
