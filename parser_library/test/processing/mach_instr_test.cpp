@@ -212,23 +212,23 @@ SYM  DS   CL1
 
 TEST(mach_instr_processing, rel_addr_bitmask)
 {
-    for (const auto& [instr, expected] : std::initializer_list<std::pair<std::string, int>> {
-             { "LARL", 0x40 },
-             { "LA", 0x00 },
-             { "CLIJ", 0x10 },
-             { "BPRP", 0x60 },
+    for (const auto& [instr, expected] : std::initializer_list<std::pair<std::string, reladdr_transform_mask>> {
+             { "LARL", (reladdr_transform_mask)0x40 },
+             { "LA", (reladdr_transform_mask)0x00 },
+             { "CLIJ", (reladdr_transform_mask)0x10 },
+             { "BPRP", (reladdr_transform_mask)0x60 },
          })
     {
-        EXPECT_EQ(context::instruction::get_machine_instructions(instr).reladdr_mask().mask(), expected) << instr;
+        EXPECT_EQ(context::instruction::get_machine_instructions(instr).reladdr_mask(), expected) << instr;
     }
 
-    for (const auto& [instr, expected] : std::initializer_list<std::pair<std::string, int>> {
-             { "CLIJE", 0x20 },
-             { "BNE", 0x00 },
-             { "JNE", 0x80 },
+    for (const auto& [instr, expected] : std::initializer_list<std::pair<std::string, reladdr_transform_mask>> {
+             { "CLIJE", (reladdr_transform_mask)0x20 },
+             { "BNE", (reladdr_transform_mask)0x00 },
+             { "JNE", (reladdr_transform_mask)0x80 },
          })
     {
-        EXPECT_EQ(context::instruction::get_mnemonic_codes(instr).reladdr_mask().mask(), expected) << instr;
+        EXPECT_EQ(context::instruction::get_mnemonic_codes(instr).reladdr_mask(), expected) << instr;
     }
 }
 

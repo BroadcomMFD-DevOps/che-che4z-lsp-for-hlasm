@@ -92,9 +92,9 @@ constexpr bool instruction_available(
             const auto level = (unsigned char)active_instr_set;
             return from <= level && level < to;
         }
-        default:
-            return false;
     }
+    assert(false);
+    return false;
 }
 
 struct instruction_set_size
@@ -314,24 +314,8 @@ constexpr checking::machine_operand_format rel_addr_imm_16_S_opt(reladdr_imm_16s
 constexpr checking::machine_operand_format rel_addr_imm_24_S_opt(reladdr_imm_24s, empty, empty, true);
 constexpr checking::machine_operand_format rel_addr_imm_32_S_opt(reladdr_imm_32s, empty, empty, true);
 
-class reladdr_transform_mask
+enum class reladdr_transform_mask : unsigned char
 {
-    unsigned char m_mask;
-
-public:
-    explicit constexpr reladdr_transform_mask(unsigned char m)
-        : m_mask(m)
-    {}
-    constexpr unsigned char mask() const { return m_mask; }
-
-    constexpr friend bool operator==(const reladdr_transform_mask& l, const reladdr_transform_mask& r) noexcept
-    {
-        return l.m_mask == r.m_mask;
-    }
-    constexpr friend bool operator!=(const reladdr_transform_mask& l, const reladdr_transform_mask& r) noexcept
-    {
-        return !(l == r);
-    }
 };
 
 template<unsigned char n>
@@ -341,7 +325,7 @@ class inline_string
     std::array<char, n> data;
 
 public:
-    explicit constexpr inline_string(std::string_view s)
+    explicit consteval inline_string(std::string_view s)
         : len((unsigned char)s.size())
         , data {}
     {
@@ -373,7 +357,7 @@ class condition_code_explanation
     std::array<unsigned char, 5> lengths;
     bool single_explanation;
 
-    static constexpr bool identical(const char* t0, const char* t1, const char* t2, const char* t3, size_t n)
+    static consteval bool identical(const char* t0, const char* t1, const char* t2, const char* t3, size_t n)
     {
         return std::equal(t0, t0 + n, t1, t1 + n) && std::equal(t0, t0 + n, t2, t2 + n)
             && std::equal(t0, t0 + n, t3, t3 + n);
@@ -477,10 +461,10 @@ class machine_instruction
 
     // Generates a bitmask for an arbitrary machine instruction indicating which operands
     // are of the RI type (and therefore are modified by transform_reloc_imm_operands)
-    static constexpr unsigned char generate_reladdr_bitmask(
+    static consteval reladdr_transform_mask generate_reladdr_bitmask(
         std::span<const checking::machine_operand_format> operands) noexcept;
 
-    static constexpr char get_length_by_format(mach_format instruction_format) noexcept;
+    static consteval char get_length_by_format(mach_format instruction_format) noexcept;
 
     inline_string<7> m_name;
 
@@ -580,7 +564,7 @@ class ca_instruction
     bool m_operandless;
 
 public:
-    constexpr ca_instruction(std::string_view n, bool opless)
+    consteval ca_instruction(std::string_view n, bool opless)
         : m_name(n)
         , m_operandless(opless)
     {}
@@ -608,18 +592,18 @@ struct mnemonic_transformation
     bool reserved : 3 = 0;
     unsigned short value = 0;
 
-    constexpr mnemonic_transformation() = default;
-    constexpr mnemonic_transformation(unsigned short v)
+    consteval mnemonic_transformation() = default;
+    consteval mnemonic_transformation(unsigned short v)
         : value(v)
     {}
-    constexpr mnemonic_transformation(unsigned char skip, unsigned short v, bool insert = true)
+    consteval mnemonic_transformation(unsigned char skip, unsigned short v, bool insert = true)
         : skip(skip)
         , insert(insert)
         , value(v)
     {
         assert(skip < machine_instruction::max_operand_count);
     }
-    constexpr mnemonic_transformation(unsigned char skip, mnemonic_transformation_kind t, unsigned char src)
+    consteval mnemonic_transformation(unsigned char skip, mnemonic_transformation_kind t, unsigned char src)
         : skip(skip)
         , source(src)
         , type(t)
@@ -628,7 +612,7 @@ struct mnemonic_transformation
         assert(skip < machine_instruction::max_operand_count);
         assert(src < machine_instruction::max_operand_count);
     }
-    constexpr mnemonic_transformation(
+    consteval mnemonic_transformation(
         unsigned char skip, unsigned short v, mnemonic_transformation_kind t, unsigned char src, bool insert = true)
         : skip(skip)
         , source(src)
@@ -663,7 +647,7 @@ class mnemonic_code
 
     //  Generates a bitmask for an arbitrary mnemonic indicating which operands
     //  are of the RI type (and therefore are modified by transform_reloc_imm_operands)
-    static constexpr unsigned char generate_reladdr_bitmask(
+    static consteval reladdr_transform_mask generate_reladdr_bitmask(
         const machine_instruction* instruction, std::span<const mnemonic_transformation> transforms) noexcept;
 
 public:
@@ -697,7 +681,7 @@ class assembler_instruction
     std::string_view m_description; // used only for hover and completion
 
 public:
-    constexpr assembler_instruction(std::string_view name,
+    consteval assembler_instruction(std::string_view name,
         int min_operands,
         int max_operands,
         bool has_ord_symbols,

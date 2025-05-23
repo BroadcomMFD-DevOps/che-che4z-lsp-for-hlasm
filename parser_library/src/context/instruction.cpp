@@ -601,7 +601,7 @@ public:
     constexpr auto name = instruction_format_definition_factory<format, operand_formats::name>::def();
 #include "instruction_details.h"
 
-constexpr unsigned char hlasm_plugin::parser_library::context::machine_instruction::generate_reladdr_bitmask(
+consteval reladdr_transform_mask hlasm_plugin::parser_library::context::machine_instruction::generate_reladdr_bitmask(
     std::span<const checking::machine_operand_format> operands) noexcept
 {
     unsigned char result = 0;
@@ -617,10 +617,10 @@ constexpr unsigned char hlasm_plugin::parser_library::context::machine_instructi
         top_bit >>= 1;
     }
 
-    return result;
+    return (reladdr_transform_mask)result;
 }
 
-constexpr char hlasm_plugin::parser_library::context::machine_instruction::get_length_by_format(
+consteval char hlasm_plugin::parser_library::context::machine_instruction::get_length_by_format(
     mach_format instruction_format) noexcept
 {
     auto interval = static_cast<int>(instruction_format);
@@ -633,7 +633,7 @@ constexpr char hlasm_plugin::parser_library::context::machine_instruction::get_l
     return static_cast<char>(size_identifier::LENGTH_0);
 }
 
-constexpr unsigned char hlasm_plugin::parser_library::context::mnemonic_code::generate_reladdr_bitmask(
+consteval reladdr_transform_mask hlasm_plugin::parser_library::context::mnemonic_code::generate_reladdr_bitmask(
     const machine_instruction* instruction, std::span<const mnemonic_transformation> transforms) noexcept
 {
     unsigned char result = 0;
@@ -663,7 +663,7 @@ constexpr unsigned char hlasm_plugin::parser_library::context::mnemonic_code::ge
         top_bit >>= 1;
         ++processed;
     }
-    return result;
+    return (reladdr_transform_mask)result;
 }
 
 consteval hlasm_plugin::parser_library::context::machine_instruction::machine_instruction(std::string_view name,
