@@ -424,11 +424,10 @@ bool machine_instruction::check(std::string_view name_of_instruction,
     const diagnostic_collector& add_diagnostic) const
 {
     // check size of operands
-    int diff = (int)m_operand_len - (int)to_check.size();
-    if (diff > m_optional_op_count || diff < 0)
+    if (const auto s = to_check.size(); s > m_operand_len || s < m_operand_len - m_optional_op_count)
     {
         add_diagnostic(diagnostic_op::error_optional_number_of_operands(
-            name_of_instruction, m_optional_op_count, (int)m_operand_len, stmt_range));
+            name_of_instruction, m_optional_op_count, m_operand_len, stmt_range));
         return false;
     }
     bool error = false;
