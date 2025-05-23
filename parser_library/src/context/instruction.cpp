@@ -22,6 +22,7 @@
 #include <utility>
 
 #include "checking/diagnostic_collector.h"
+#include "checking/instr_operand.h"
 
 namespace hlasm_plugin::parser_library::context {
 
@@ -578,6 +579,83 @@ enum class instruction_fullname
 #include "instruction_details.h"
 };
 
+consteval machine_operand_format::machine_operand_format(
+    parameter id, parameter first, parameter second, bool optional) noexcept
+    : identifier(id)
+    , first(first)
+    , second(second)
+    , optional(optional)
+{
+    assert(!second.is_empty() || first.is_empty());
+}
+
+/*
+Rules for displacement operands:
+With DB formats
+        - must be in format D(B), otherwise throw an error
+        - parser returns this in (displacement, 0, base, true) format
+With DXB Formats
+        - can be either D(X,B) or D(,B) - in this case, the X is replaced with 0
+        - parser returns this in (displacement, x, base, false) format
+*/
+constexpr machine_operand_format db_12_4_U(dis_12u, empty, base_);
+constexpr machine_operand_format db_20_4_S(dis_20s, empty, base_);
+constexpr machine_operand_format drb_12_4x4_U(dis_12u, idx_reg_r, base_);
+constexpr machine_operand_format dxb_12_4x4_U(dis_12u, idx_reg, base_);
+constexpr machine_operand_format dxb_20_4x4_S(dis_20s, idx_reg, base_);
+constexpr machine_operand_format dxxb_20_4x4_S(dis_idx_20s, idx_reg, base_);
+constexpr machine_operand_format dvb_12_5x4_U(dis_12u, vec_reg, base_);
+constexpr machine_operand_format reg_4_U(reg, empty, empty);
+constexpr machine_operand_format reg_4_U_nz(reg_nz, empty, empty);
+constexpr machine_operand_format reg_4_U_2(reg_2, empty, empty);
+constexpr machine_operand_format reg_4_U_odd(reg_odd, empty, empty);
+constexpr machine_operand_format reg_4_U_even(reg_even, empty, empty);
+constexpr machine_operand_format reg_4_U_even_nz(reg_even_nz, empty, empty);
+constexpr machine_operand_format mask_4_U(mask, empty, empty);
+constexpr machine_operand_format imm_4_U(imm_4u, empty, empty);
+constexpr machine_operand_format imm_8_S(imm_8s, empty, empty);
+constexpr machine_operand_format imm_8_U(imm_8u, empty, empty);
+constexpr machine_operand_format imm_12_S(imm_12s, empty, empty);
+constexpr machine_operand_format imm_12_U(imm_12u, empty, empty);
+constexpr machine_operand_format imm_16_S(imm_16s, empty, empty);
+constexpr machine_operand_format imm_16_U(imm_16u, empty, empty);
+constexpr machine_operand_format imm_32_S(imm_32s, empty, empty);
+constexpr machine_operand_format imm_32_U(imm_32u, empty, empty);
+constexpr machine_operand_format vec_reg_5_U(vec_reg, empty, empty);
+constexpr machine_operand_format db_12_8x4L_U(dis_12u, length_8, base_);
+constexpr machine_operand_format db_12_4x4L_U(dis_12u, length_4, base_);
+constexpr machine_operand_format rel_addr_imm_12_S(reladdr_imm_12s, empty, empty);
+constexpr machine_operand_format rel_addr_imm_16_S(reladdr_imm_16s, empty, empty);
+constexpr machine_operand_format rel_addr_imm_24_S(reladdr_imm_24s, empty, empty);
+constexpr machine_operand_format rel_addr_imm_32_S(reladdr_imm_32s, empty, empty);
+
+// optional variants
+constexpr machine_operand_format db_12_4_U_opt(dis_12u, empty, base_, true);
+constexpr machine_operand_format db_20_4_S_opt(dis_20s, empty, base_, true);
+constexpr machine_operand_format drb_12_4x4_U_opt(dis_12u, idx_reg_r, base_, true);
+constexpr machine_operand_format dxb_12_4x4_U_opt(dis_12u, idx_reg, base_, true);
+constexpr machine_operand_format dxb_20_4x4_S_opt(dis_20s, idx_reg, base_, true);
+constexpr machine_operand_format dvb_12_5x4_U_opt(dis_12u, vec_reg, base_, true);
+constexpr machine_operand_format reg_4_U_opt(reg, empty, empty, true);
+constexpr machine_operand_format mask_4_U_opt(mask, empty, empty, true);
+constexpr machine_operand_format imm_4_U_opt(imm_4u, empty, empty, true);
+constexpr machine_operand_format imm_8_S_opt(imm_8s, empty, empty, true);
+constexpr machine_operand_format imm_8_U_opt(imm_8u, empty, empty, true);
+constexpr machine_operand_format imm_16_U_opt(imm_16u, empty, empty, true);
+constexpr machine_operand_format imm_12_S_opt(imm_12s, empty, empty, true);
+constexpr machine_operand_format imm_16_S_opt(imm_16s, empty, empty, true);
+constexpr machine_operand_format imm_32_S_opt(imm_32s, empty, empty, true);
+constexpr machine_operand_format imm_32_U_opt(imm_32u, empty, empty, true);
+constexpr machine_operand_format vec_reg_5_U_opt(vec_reg, empty, empty, true);
+constexpr machine_operand_format db_12_8x4L_U_opt(dis_12u, length_8, base_, true);
+constexpr machine_operand_format db_12_4x4L_U_opt(dis_12u, length_4, base_, true);
+constexpr machine_operand_format rel_addr_imm_12_S_opt(reladdr_imm_12s, empty, empty, true);
+constexpr machine_operand_format rel_addr_imm_16_S_opt(reladdr_imm_16s, empty, empty, true);
+constexpr machine_operand_format rel_addr_imm_24_S_opt(reladdr_imm_24s, empty, empty, true);
+constexpr machine_operand_format rel_addr_imm_32_S_opt(reladdr_imm_32s, empty, empty, true);
+
+constinit const machine_operand_format machine_operand_format::empty { {}, {}, {}, false };
+
 enum class operand_formats
 {
 #define DEFINE_INSTRUCTION_FORMAT(name, format, ...) name,
@@ -585,30 +663,30 @@ enum class operand_formats
 };
 
 namespace {
-constexpr const checking::machine_operand_format _s_operands[] = {
+constexpr const machine_operand_format _s_operands[] = {
 #define DEFINE_INSTRUCTION_FORMAT(name, format, ...) __VA_ARGS__ __VA_OPT__(, )
 #include "instruction_details.h"
 };
 
-consteval std::span<const checking::machine_operand_format> _ops(unsigned off, unsigned char len) noexcept
+consteval std::span<const machine_operand_format> _ops(unsigned off, unsigned char len) noexcept
 {
     return std::span(_s_operands + off, len);
 }
 
 consteval unsigned char _count_optional_ops(unsigned off, unsigned char len) noexcept
 {
-    return (unsigned char)std::ranges::count_if(_ops(off, len), &checking::machine_operand_format::optional);
+    return (unsigned char)std::ranges::count_if(_ops(off, len), &machine_operand_format::optional);
 }
 } // namespace
 
-constinit const checking::machine_operand_format machine_instruction::s_operands[] = {
+constinit const machine_operand_format machine_instruction::s_operands[] = {
 #define DEFINE_INSTRUCTION_FORMAT(name, format, ...) __VA_ARGS__ __VA_OPT__(, )
 #include "instruction_details.h"
 };
 
 constexpr size_t operand_sizes[] = {
 #define DEFINE_INSTRUCTION_FORMAT(name, format, ...)                                                                   \
-    std::initializer_list<checking::machine_operand_format> { __VA_ARGS__ }.size(),
+    std::initializer_list<machine_operand_format> { __VA_ARGS__ }.size(),
 #include "instruction_details.h"
 };
 
@@ -678,7 +756,7 @@ public:
 };
 
 consteval reladdr_transform_mask machine_instruction::generate_reladdr_bitmask(
-    std::span<const checking::machine_operand_format> operands) noexcept
+    std::span<const machine_operand_format> operands) noexcept
 {
     unsigned char result = 0;
 
@@ -688,7 +766,7 @@ consteval reladdr_transform_mask machine_instruction::generate_reladdr_bitmask(
 
     for (const auto& op : operands)
     {
-        if (op.identifier.type == checking::machine_operand_type::RELOC_IMM)
+        if (op.identifier.type == machine_operand_type::RELOC_IMM)
             result |= top_bit;
         top_bit >>= 1;
     }
@@ -722,16 +800,15 @@ consteval reladdr_transform_mask mnemonic_code::generate_reladdr_bitmask(
     {
         if (transforms_b != transforms_e && processed == transforms_b->skip)
         {
-            assert(op.identifier.type == checking::machine_operand_type::IMM
-                || op.identifier.type == checking::machine_operand_type::MASK
-                || op.identifier.type == checking::machine_operand_type::REG
-                || op.identifier.type == checking::machine_operand_type::VEC_REG);
+            assert(op.identifier.type == machine_operand_type::IMM || op.identifier.type == machine_operand_type::MASK
+                || op.identifier.type == machine_operand_type::REG
+                || op.identifier.type == machine_operand_type::VEC_REG);
             top_bit >>= +!transforms_b++->insert;
             processed = 0;
             continue;
         }
 
-        if (op.identifier.type == checking::machine_operand_type::RELOC_IMM)
+        if (op.identifier.type == machine_operand_type::RELOC_IMM)
             result |= top_bit;
 
         top_bit >>= 1;

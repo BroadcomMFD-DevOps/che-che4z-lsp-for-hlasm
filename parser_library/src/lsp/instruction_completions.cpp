@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <bitset>
+#include <cassert>
 #include <numeric>
 #include <tuple>
 
@@ -151,9 +152,9 @@ std::string_view get_implicit_parameters_text(bool has_some)
         return "";
 }
 
-std::string to_string(checking::parameter p)
+std::string to_string(context::parameter p)
 {
-    using enum checking::machine_operand_type;
+    using enum context::machine_operand_type;
     std::string ret_val = "";
     switch (p.type)
     {
@@ -198,7 +199,7 @@ std::string to_string(checking::parameter p)
     return ret_val;
 }
 
-std::string to_string(checking::machine_operand_format f, size_t i)
+std::string to_string(context::machine_operand_format f, size_t i)
 {
     const auto index = std::to_string(i);
     std::string ret_val = to_string(f.identifier) + index;

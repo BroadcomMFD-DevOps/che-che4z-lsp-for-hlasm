@@ -20,11 +20,16 @@
 #include <span>
 #include <string_view>
 
-#include "checking/instr_operand.h"
 #include "instruction_set_version.h"
 
 namespace hlasm_plugin::parser_library {
+struct range;
 class diagnostic_collector;
+
+namespace checking {
+class machine_operand;
+} // namespace checking
+
 } // namespace hlasm_plugin::parser_library
 
 namespace hlasm_plugin::parser_library::context {
@@ -205,112 +210,88 @@ enum class mach_format : unsigned char
     VSI,
 };
 
-constexpr checking::parameter empty = { false, 0, checking::machine_operand_type::NONE };
-constexpr checking::parameter reg = { false, 4, checking::machine_operand_type::REG };
-constexpr checking::parameter reg_nz = {
-    false, 4, checking::machine_operand_type::REG, checking::even_odd_register::NONE, 1
+enum class machine_operand_type : uint8_t
+{
+    NONE,
+    MASK,
+    REG,
+    IMM,
+    DISP,
+    DISP_IDX,
+    BASE,
+    LENGTH,
+    VEC_REG,
+    IDX_REG,
+    RELOC_IMM,
 };
-constexpr checking::parameter reg_2 = {
-    false, 4, checking::machine_operand_type::REG, checking::even_odd_register::NONE, 2
-};
-constexpr checking::parameter reg_odd = {
-    false, 4, checking::machine_operand_type::REG, checking::even_odd_register::ODD
-};
-constexpr checking::parameter reg_even = {
-    false, 4, checking::machine_operand_type::REG, checking::even_odd_register::EVEN
-};
-constexpr checking::parameter reg_even_nz = {
-    false, 4, checking::machine_operand_type::REG, checking::even_odd_register::EVEN, 2
-};
-constexpr checking::parameter idx_reg = { false, 4, checking::machine_operand_type::IDX_REG };
-constexpr checking::parameter idx_reg_r = { false, 4, checking::machine_operand_type::REG };
-constexpr checking::parameter mask = { false, 4, checking::machine_operand_type::MASK };
-constexpr checking::parameter dis_12u = { false, 12, checking::machine_operand_type::DISP };
-constexpr checking::parameter dis_20s = { true, 20, checking::machine_operand_type::DISP };
-constexpr checking::parameter dis_idx_20s = { true, 20, checking::machine_operand_type::DISP_IDX };
-constexpr checking::parameter base_ = { false, 4, checking::machine_operand_type::BASE };
-constexpr checking::parameter length_8 = { false, 8, checking::machine_operand_type::LENGTH };
-constexpr checking::parameter length_4 = { false, 4, checking::machine_operand_type::LENGTH };
-constexpr checking::parameter imm_4u = { false, 4, checking::machine_operand_type::IMM };
-constexpr checking::parameter imm_8s = { true, 8, checking::machine_operand_type::IMM };
-constexpr checking::parameter imm_8u = { false, 8, checking::machine_operand_type::IMM };
-constexpr checking::parameter imm_12s = { true, 12, checking::machine_operand_type::IMM };
-constexpr checking::parameter imm_12u = { false, 12, checking::machine_operand_type::IMM };
-constexpr checking::parameter imm_16s = { true, 16, checking::machine_operand_type::IMM };
-constexpr checking::parameter imm_16u = { false, 16, checking::machine_operand_type::IMM };
-constexpr checking::parameter imm_24s = { true, 24, checking::machine_operand_type::IMM };
-constexpr checking::parameter imm_32s = { true, 32, checking::machine_operand_type::IMM };
-constexpr checking::parameter imm_32u = { false, 32, checking::machine_operand_type::IMM };
-constexpr checking::parameter vec_reg = { false, 5, checking::machine_operand_type::VEC_REG };
-constexpr checking::parameter reladdr_imm_12s = { true, 12, checking::machine_operand_type::RELOC_IMM };
-constexpr checking::parameter reladdr_imm_16s = { true, 16, checking::machine_operand_type::RELOC_IMM };
-constexpr checking::parameter reladdr_imm_24s = { true, 24, checking::machine_operand_type::RELOC_IMM };
-constexpr checking::parameter reladdr_imm_32s = { true, 32, checking::machine_operand_type::RELOC_IMM };
 
-/*
-Rules for displacement operands:
-With DB formats
-        - must be in format D(B), otherwise throw an error
-        - parser returns this in (displacement, 0, base, true) format
-With DXB Formats
-        - can be either D(X,B) or D(,B) - in this case, the X is replaced with 0
-        - parser returns this in (displacement, x, base, false) format
-*/
-constexpr checking::machine_operand_format db_12_4_U(dis_12u, empty, base_);
-constexpr checking::machine_operand_format db_20_4_S(dis_20s, empty, base_);
-constexpr checking::machine_operand_format drb_12_4x4_U(dis_12u, idx_reg_r, base_);
-constexpr checking::machine_operand_format dxb_12_4x4_U(dis_12u, idx_reg, base_);
-constexpr checking::machine_operand_format dxb_20_4x4_S(dis_20s, idx_reg, base_);
-constexpr checking::machine_operand_format dxxb_20_4x4_S(dis_idx_20s, idx_reg, base_);
-constexpr checking::machine_operand_format dvb_12_5x4_U(dis_12u, vec_reg, base_);
-constexpr checking::machine_operand_format reg_4_U(reg, empty, empty);
-constexpr checking::machine_operand_format reg_4_U_nz(reg_nz, empty, empty);
-constexpr checking::machine_operand_format reg_4_U_2(reg_2, empty, empty);
-constexpr checking::machine_operand_format reg_4_U_odd(reg_odd, empty, empty);
-constexpr checking::machine_operand_format reg_4_U_even(reg_even, empty, empty);
-constexpr checking::machine_operand_format reg_4_U_even_nz(reg_even_nz, empty, empty);
-constexpr checking::machine_operand_format mask_4_U(mask, empty, empty);
-constexpr checking::machine_operand_format imm_4_U(imm_4u, empty, empty);
-constexpr checking::machine_operand_format imm_8_S(imm_8s, empty, empty);
-constexpr checking::machine_operand_format imm_8_U(imm_8u, empty, empty);
-constexpr checking::machine_operand_format imm_12_S(imm_12s, empty, empty);
-constexpr checking::machine_operand_format imm_12_U(imm_12u, empty, empty);
-constexpr checking::machine_operand_format imm_16_S(imm_16s, empty, empty);
-constexpr checking::machine_operand_format imm_16_U(imm_16u, empty, empty);
-constexpr checking::machine_operand_format imm_32_S(imm_32s, empty, empty);
-constexpr checking::machine_operand_format imm_32_U(imm_32u, empty, empty);
-constexpr checking::machine_operand_format vec_reg_5_U(vec_reg, empty, empty);
-constexpr checking::machine_operand_format db_12_8x4L_U(dis_12u, length_8, base_);
-constexpr checking::machine_operand_format db_12_4x4L_U(dis_12u, length_4, base_);
-constexpr checking::machine_operand_format rel_addr_imm_12_S(reladdr_imm_12s, empty, empty);
-constexpr checking::machine_operand_format rel_addr_imm_16_S(reladdr_imm_16s, empty, empty);
-constexpr checking::machine_operand_format rel_addr_imm_24_S(reladdr_imm_24s, empty, empty);
-constexpr checking::machine_operand_format rel_addr_imm_32_S(reladdr_imm_32s, empty, empty);
+enum class even_odd_register : uint8_t
+{
+    NONE,
+    ODD,
+    EVEN,
+};
 
-// optional variants
-constexpr checking::machine_operand_format db_12_4_U_opt(dis_12u, empty, base_, true);
-constexpr checking::machine_operand_format db_20_4_S_opt(dis_20s, empty, base_, true);
-constexpr checking::machine_operand_format drb_12_4x4_U_opt(dis_12u, idx_reg_r, base_, true);
-constexpr checking::machine_operand_format dxb_12_4x4_U_opt(dis_12u, idx_reg, base_, true);
-constexpr checking::machine_operand_format dxb_20_4x4_S_opt(dis_20s, idx_reg, base_, true);
-constexpr checking::machine_operand_format dvb_12_5x4_U_opt(dis_12u, vec_reg, base_, true);
-constexpr checking::machine_operand_format reg_4_U_opt(reg, empty, empty, true);
-constexpr checking::machine_operand_format mask_4_U_opt(mask, empty, empty, true);
-constexpr checking::machine_operand_format imm_4_U_opt(imm_4u, empty, empty, true);
-constexpr checking::machine_operand_format imm_8_S_opt(imm_8s, empty, empty, true);
-constexpr checking::machine_operand_format imm_8_U_opt(imm_8u, empty, empty, true);
-constexpr checking::machine_operand_format imm_16_U_opt(imm_16u, empty, empty, true);
-constexpr checking::machine_operand_format imm_12_S_opt(imm_12s, empty, empty, true);
-constexpr checking::machine_operand_format imm_16_S_opt(imm_16s, empty, empty, true);
-constexpr checking::machine_operand_format imm_32_S_opt(imm_32s, empty, empty, true);
-constexpr checking::machine_operand_format imm_32_U_opt(imm_32u, empty, empty, true);
-constexpr checking::machine_operand_format vec_reg_5_U_opt(vec_reg, empty, empty, true);
-constexpr checking::machine_operand_format db_12_8x4L_U_opt(dis_12u, length_8, base_, true);
-constexpr checking::machine_operand_format db_12_4x4L_U_opt(dis_12u, length_4, base_, true);
-constexpr checking::machine_operand_format rel_addr_imm_12_S_opt(reladdr_imm_12s, empty, empty, true);
-constexpr checking::machine_operand_format rel_addr_imm_16_S_opt(reladdr_imm_16s, empty, empty, true);
-constexpr checking::machine_operand_format rel_addr_imm_24_S_opt(reladdr_imm_24s, empty, empty, true);
-constexpr checking::machine_operand_format rel_addr_imm_32_S_opt(reladdr_imm_32s, empty, empty, true);
+// Describes a component of machine operand format. Specifies allowed values.
+struct parameter
+{
+    bool is_signed : 1;
+    uint8_t size : 7;
+    machine_operand_type type : 4;
+    even_odd_register evenodd : 2 = even_odd_register::NONE;
+    uint8_t min_register : 2 = 0;
+
+    bool operator==(const parameter&) const = default;
+
+    constexpr bool is_empty() const { return *this == parameter {}; }
+};
+
+// Representation of machine operand formats and serves as a template for the checker.
+// Consists of 1 parameter when only simple operand is allowed and of 3 parameters when address operand is allowed
+// D(F,S)
+struct machine_operand_format
+{
+    parameter identifier; // used as displacement operand in address operand
+    parameter first; // empty when simple operand
+    parameter second; // empty when simple operand
+    bool optional = false;
+
+    consteval machine_operand_format(parameter id, parameter first, parameter second, bool optional = false) noexcept;
+
+    static constinit const machine_operand_format empty;
+};
+
+constexpr parameter empty = { false, 0, machine_operand_type::NONE };
+constexpr parameter reg = { false, 4, machine_operand_type::REG };
+constexpr parameter reg_nz = { false, 4, machine_operand_type::REG, even_odd_register::NONE, 1 };
+constexpr parameter reg_2 = { false, 4, machine_operand_type::REG, even_odd_register::NONE, 2 };
+constexpr parameter reg_odd = { false, 4, machine_operand_type::REG, even_odd_register::ODD };
+constexpr parameter reg_even = { false, 4, machine_operand_type::REG, even_odd_register::EVEN };
+constexpr parameter reg_even_nz = { false, 4, machine_operand_type::REG, even_odd_register::EVEN, 2 };
+constexpr parameter idx_reg = { false, 4, machine_operand_type::IDX_REG };
+constexpr parameter idx_reg_r = { false, 4, machine_operand_type::REG };
+constexpr parameter mask = { false, 4, machine_operand_type::MASK };
+constexpr parameter dis_12u = { false, 12, machine_operand_type::DISP };
+constexpr parameter dis_20s = { true, 20, machine_operand_type::DISP };
+constexpr parameter dis_idx_20s = { true, 20, machine_operand_type::DISP_IDX };
+constexpr parameter base_ = { false, 4, machine_operand_type::BASE };
+constexpr parameter length_8 = { false, 8, machine_operand_type::LENGTH };
+constexpr parameter length_4 = { false, 4, machine_operand_type::LENGTH };
+constexpr parameter imm_4u = { false, 4, machine_operand_type::IMM };
+constexpr parameter imm_8s = { true, 8, machine_operand_type::IMM };
+constexpr parameter imm_8u = { false, 8, machine_operand_type::IMM };
+constexpr parameter imm_12s = { true, 12, machine_operand_type::IMM };
+constexpr parameter imm_12u = { false, 12, machine_operand_type::IMM };
+constexpr parameter imm_16s = { true, 16, machine_operand_type::IMM };
+constexpr parameter imm_16u = { false, 16, machine_operand_type::IMM };
+constexpr parameter imm_24s = { true, 24, machine_operand_type::IMM };
+constexpr parameter imm_32s = { true, 32, machine_operand_type::IMM };
+constexpr parameter imm_32u = { false, 32, machine_operand_type::IMM };
+constexpr parameter vec_reg = { false, 5, machine_operand_type::VEC_REG };
+constexpr parameter reladdr_imm_12s = { true, 12, machine_operand_type::RELOC_IMM };
+constexpr parameter reladdr_imm_16s = { true, 16, machine_operand_type::RELOC_IMM };
+constexpr parameter reladdr_imm_24s = { true, 24, machine_operand_type::RELOC_IMM };
+constexpr parameter reladdr_imm_32s = { true, 32, machine_operand_type::RELOC_IMM };
 
 enum class reladdr_transform_mask : unsigned char
 {
@@ -431,7 +412,7 @@ class machine_instruction
     // Generates a bitmask for an arbitrary machine instruction indicating which operands
     // are of the RI type (and therefore are modified by transform_reloc_imm_operands)
     static consteval reladdr_transform_mask generate_reladdr_bitmask(
-        std::span<const checking::machine_operand_format> operands) noexcept;
+        std::span<const machine_operand_format> operands) noexcept;
 
     static consteval char get_length_by_format(mach_format instruction_format) noexcept;
 
@@ -459,7 +440,7 @@ class machine_instruction
     branch_info_argument m_branch_argument;
 
     static constinit const char s_fullnames[];
-    static constinit const checking::machine_operand_format s_operands[];
+    static constinit const machine_operand_format s_operands[];
 
 public:
     consteval machine_instruction(std::string_view name,
@@ -492,9 +473,9 @@ public:
         }
     }
     constexpr reladdr_transform_mask reladdr_mask() const noexcept { return m_reladdr_mask; }
-    std::span<const checking::machine_operand_format> operands() const noexcept
+    std::span<const machine_operand_format> operands() const noexcept
     {
-        return std::span<const checking::machine_operand_format>(s_operands + m_operands_offset, m_operand_len);
+        return std::span<const machine_operand_format>(s_operands + m_operands_offset, m_operand_len);
     }
     constexpr size_t optional_operand_count() const noexcept { return m_optional_op_count; }
     constexpr const instruction_set_affiliation& instr_set_affiliation() const noexcept
