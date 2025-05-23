@@ -17,7 +17,7 @@
 
 // Available instruction sets versions
 namespace hlasm_plugin::parser_library {
-enum class instruction_set_version
+enum class instruction_set_version : unsigned char
 {
     ZOP = 1,
     YOP,

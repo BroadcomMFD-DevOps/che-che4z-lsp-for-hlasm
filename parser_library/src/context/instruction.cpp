@@ -2034,30 +2034,36 @@ constexpr instruction_set_size compute_instruction_set_size(instruction_set_vers
     return result;
 }
 
+template<instruction_set_version v>
+struct instruction_set_size_generator
+{
+    static constexpr auto value = compute_instruction_set_size(v);
+};
+
 constexpr instruction_set_size instruction_set_sizes[] = {
     {},
-    compute_instruction_set_size(instruction_set_version::ZOP),
-    compute_instruction_set_size(instruction_set_version::YOP),
-    compute_instruction_set_size(instruction_set_version::Z9),
-    compute_instruction_set_size(instruction_set_version::Z10),
-    compute_instruction_set_size(instruction_set_version::Z11),
-    compute_instruction_set_size(instruction_set_version::Z12),
-    compute_instruction_set_size(instruction_set_version::Z13),
-    compute_instruction_set_size(instruction_set_version::Z14),
-    compute_instruction_set_size(instruction_set_version::Z15),
-    compute_instruction_set_size(instruction_set_version::Z16),
-    compute_instruction_set_size(instruction_set_version::Z17),
-    compute_instruction_set_size(instruction_set_version::ESA),
-    compute_instruction_set_size(instruction_set_version::XA),
-    compute_instruction_set_size(instruction_set_version::_370),
-    compute_instruction_set_size(instruction_set_version::DOS),
-    compute_instruction_set_size(instruction_set_version::UNI),
+    instruction_set_size_generator<instruction_set_version::ZOP>::value,
+    instruction_set_size_generator<instruction_set_version::YOP>::value,
+    instruction_set_size_generator<instruction_set_version::Z9>::value,
+    instruction_set_size_generator<instruction_set_version::Z10>::value,
+    instruction_set_size_generator<instruction_set_version::Z11>::value,
+    instruction_set_size_generator<instruction_set_version::Z12>::value,
+    instruction_set_size_generator<instruction_set_version::Z13>::value,
+    instruction_set_size_generator<instruction_set_version::Z14>::value,
+    instruction_set_size_generator<instruction_set_version::Z15>::value,
+    instruction_set_size_generator<instruction_set_version::Z16>::value,
+    instruction_set_size_generator<instruction_set_version::Z17>::value,
+    instruction_set_size_generator<instruction_set_version::ESA>::value,
+    instruction_set_size_generator<instruction_set_version::XA>::value,
+    instruction_set_size_generator<instruction_set_version::_370>::value,
+    instruction_set_size_generator<instruction_set_version::DOS>::value,
+    instruction_set_size_generator<instruction_set_version::UNI>::value,
 };
 
 const instruction_set_size& hlasm_plugin::parser_library::context::get_instruction_sizes(
     instruction_set_version v) noexcept
 {
-    auto idx = static_cast<int>(v);
+    const auto idx = static_cast<unsigned char>(v);
     assert(0 < idx && idx < std::size(instruction_set_sizes));
     return instruction_set_sizes[idx];
 }
