@@ -1904,6 +1904,7 @@ constexpr mnemonic_code mnemonic_codes[] = {
     { "VUPHH", mi_VUPH, { { 2, 1 } }, UNI_SINCE_Z13 },
     { "VUPLB", mi_VUPL, { { 2, 0 } }, UNI_SINCE_Z13 },
     { "VUPLF", mi_VUPL, { { 2, 2 } }, UNI_SINCE_Z13 },
+    { "VUPLG", mi_VUPL, { { 2, 3 } }, UNI_SINCE_Z17 },
     { "VUPLHB", mi_VUPLH, { { 2, 0 } }, UNI_SINCE_Z13 },
     { "VUPLHF", mi_VUPLH, { { 2, 2 } }, UNI_SINCE_Z13 },
     { "VUPLHG", mi_VUPLH, { { 2, 3 } }, UNI_SINCE_Z17 },
