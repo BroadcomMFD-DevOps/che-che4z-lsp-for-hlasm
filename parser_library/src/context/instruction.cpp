@@ -964,6 +964,28 @@ constexpr mnemonic_code mnemonic_codes[] = {
 
 static_assert(std::ranges::is_sorted(mnemonic_codes, {}, &mnemonic_code::name));
 
+namespace {
+consteval bool instr_and_mnemo_is_distinct()
+{
+    auto i = std::begin(machine_instructions);
+    const auto ie = std::end(machine_instructions);
+    auto m = std::begin(mnemonic_codes);
+    const auto me = std::end(mnemonic_codes);
+
+    while (i != ie && m != me)
+    {
+        if (const auto c = i->name() <=> m->name(); c < 0)
+            ++i;
+        else if (c > 0)
+            ++m;
+        else
+            return false;
+    }
+    return true;
+}
+static_assert(instr_and_mnemo_is_distinct(), "Collision between instructions and mnemonics");
+} // namespace
+
 const mnemonic_code* instruction::find_mnemonic_codes(std::string_view name) noexcept
 {
     auto it = std::ranges::lower_bound(mnemonic_codes, name, {}, &mnemonic_code::name);
