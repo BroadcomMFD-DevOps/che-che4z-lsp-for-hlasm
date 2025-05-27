@@ -655,13 +655,13 @@ constexpr machine_operand_format rel_addr_imm_32_S_opt(reladdr_imm_32s, empty, e
 
 constinit const machine_operand_format machine_operand_format::empty { {}, {}, {}, false };
 
+namespace {
 enum class operand_formats
 {
 #define DEFINE_INSTRUCTION_FORMAT(name, format, ...) name,
 #include "instruction_details.h"
 };
 
-namespace {
 constexpr const machine_operand_format _s_operands[] = {
 #define DEFINE_INSTRUCTION_FORMAT(name, format, ...) __VA_ARGS__ __VA_OPT__(, )
 #include "instruction_details.h"
