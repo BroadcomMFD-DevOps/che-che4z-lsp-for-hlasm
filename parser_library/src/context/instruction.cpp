@@ -714,13 +714,13 @@ constinit const machine_operand_format machine_instruction::s_operands[] = {
 #include "instruction_details.h"
 };
 
-constexpr size_t operand_sizes[] = {
+constexpr auto operand_map = []() {
+    constexpr size_t operand_sizes[] = {
 #define DEFINE_INSTRUCTION_FORMAT(name, format, ...)                                                                   \
     std::initializer_list<machine_operand_format> { __VA_ARGS__ }.size(),
 #include "instruction_details.h"
-};
+    };
 
-constexpr auto operand_map = []() {
     size_t sum = 0;
     std::array<unsigned short, std::size(operand_sizes) + 1> result {};
     for (auto* p = result.data(); auto s : operand_sizes)
@@ -740,12 +740,12 @@ constinit const char machine_instruction::s_fullnames[] =
 #include "instruction_details.h"
     ;
 
-constexpr size_t fullname_sizes[] = {
+constexpr auto fullname_map = []() {
+    constexpr size_t fullname_sizes[] = {
 #define DEFINE_INSTRUCTION(name, format, page, iset, description, ...) sizeof(description) - 1,
 #include "instruction_details.h"
-};
+    };
 
-constexpr auto fullname_map = []() {
     size_t sum = 0;
     std::array<unsigned short, std::size(fullname_sizes) + 1> result {};
     for (auto* p = result.data(); auto s : fullname_sizes)
