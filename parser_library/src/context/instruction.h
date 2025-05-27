@@ -478,11 +478,6 @@ public:
         return m_instr_set_affiliation;
     };
 
-    bool check(std::string_view name_of_instruction,
-        std::span<const checking::machine_operand* const> operands,
-        const range& stmt_range,
-        const diagnostic_collector& add_diagnostic) const; // input vector is the vector of the actual incoming values
-
     static constexpr size_t max_operand_count = 16;
 
     constexpr std::string_view fullname() const noexcept

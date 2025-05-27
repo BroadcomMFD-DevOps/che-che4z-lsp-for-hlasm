@@ -418,31 +418,6 @@ std::span<const assembler_instruction> instruction::all_assembler_instructions()
     return assembler_instructions;
 }
 
-bool machine_instruction::check(std::string_view name_of_instruction,
-    std::span<const checking::machine_operand* const> to_check,
-    const range& stmt_range,
-    const diagnostic_collector& add_diagnostic) const
-{
-    // check size of operands
-    if (const auto s = to_check.size(); s > m_operand_len || s < m_operand_len - m_optional_op_count)
-    {
-        add_diagnostic(diagnostic_op::error_optional_number_of_operands(
-            name_of_instruction, m_optional_op_count, m_operand_len, stmt_range));
-        return false;
-    }
-    bool error = false;
-    for (const auto* fmt = s_operands + m_operands_offset; const auto* op : to_check)
-    {
-        assert(op != nullptr);
-        if (auto diag = op->check(*fmt++, name_of_instruction, stmt_range); diag.has_value())
-        {
-            add_diagnostic(std::move(diag).value());
-            error = true;
-        }
-    };
-    return !error;
-}
-
 namespace {
 struct
 {

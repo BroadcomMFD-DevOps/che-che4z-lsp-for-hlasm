@@ -457,6 +457,34 @@ bool transform_default(std::vector<checking::check_op_ptr>& result,
 
 } // namespace
 
+bool check(const context::machine_instruction& mi,
+    std::string_view name_of_instruction,
+    std::span<const checking::machine_operand* const> to_check,
+    const range& stmt_range,
+    const diagnostic_collector& add_diagnostic)
+{
+    const auto ops = mi.operands();
+    // check size of operands
+    if (const auto s = to_check.size(); s > ops.size() || s < ops.size() - mi.optional_operand_count())
+    {
+        add_diagnostic(diagnostic_op::error_optional_number_of_operands(
+            name_of_instruction, mi.optional_operand_count(), ops.size(), stmt_range));
+        return false;
+    }
+    bool error = false;
+    for (const auto* fmt = ops.data(); const auto* op : to_check)
+    {
+        assert(op != nullptr);
+        if (auto diag = op->check(*fmt++, name_of_instruction, stmt_range); diag.has_value())
+        {
+            add_diagnostic(std::move(diag).value());
+            error = true;
+        }
+    };
+    return !error;
+}
+
+
 void ordinary_processor::check_postponed_statements(
     const std::vector<std::pair<context::post_stmt_ptr, context::dependency_evaluation_context>>& stmts)
 {
@@ -487,7 +515,7 @@ void ordinary_processor::check_postponed_statements(
                 operand_mach_vector.clear();
                 for (const auto& op : operand_vector)
                     operand_mach_vector.push_back(dynamic_cast<const checking::machine_operand*>(op.get()));
-                opcode.instr_mach->check(instruction_name, operand_mach_vector, rs->stmt_range_ref(), collector);
+                check(*opcode.instr_mach, instruction_name, operand_mach_vector, rs->stmt_range_ref(), collector);
                 break;
 
             case hlasm_plugin::parser_library::context::instruction_type::MNEMO:
@@ -496,8 +524,11 @@ void ordinary_processor::check_postponed_statements(
                 operand_mach_vector.clear();
                 for (const auto& op : operand_vector)
                     operand_mach_vector.push_back(dynamic_cast<const checking::machine_operand*>(op.get()));
-                opcode.instr_mnemo->instruction()->check(
-                    instruction_name, operand_mach_vector, rs->stmt_range_ref(), collector);
+                check(*opcode.instr_mnemo->instruction(),
+                    instruction_name,
+                    operand_mach_vector,
+                    rs->stmt_range_ref(),
+                    collector);
 
                 break;
 
