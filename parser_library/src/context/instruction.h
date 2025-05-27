@@ -567,8 +567,8 @@ class mnemonic_code
 public:
     consteval mnemonic_code(std::string_view name,
         const machine_instruction* instr,
-        std::initializer_list<const mnemonic_transformation> transform,
-        instruction_set_affiliation instr_set_affiliation) noexcept;
+        instruction_set_affiliation instr_set_affiliation,
+        std::initializer_list<const mnemonic_transformation> transform) noexcept;
 
     constexpr const machine_instruction* instruction() const noexcept { return m_instruction; }
     constexpr size_t size_in_bits() const noexcept { return instruction()->size_in_bits(); }

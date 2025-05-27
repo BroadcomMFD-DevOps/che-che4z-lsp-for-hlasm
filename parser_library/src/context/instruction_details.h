@@ -21,7 +21,11 @@
 #ifndef DEFINE_INSTRUCTION
 #    define DEFINE_INSTRUCTION(...)
 #endif
+#ifndef DEFINE_MNEMONIC
+#    define DEFINE_MNEMONIC(...)
+#endif
 #include "instruction_details.thh"
 #undef DEFINE_INSTRUCTION_FORMAT
 #undef DEFINE_CC_SET
 #undef DEFINE_INSTRUCTION
+#undef DEFINE_MNEMONIC
