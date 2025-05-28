@@ -15,9 +15,9 @@
 #include "mach_processor.h"
 
 #include "context/hlasm_context.h"
-#include "context/instruction.h"
 #include "context/ordinary_assembly/ordinary_assembly_dependency_solver.h"
 #include "context/ordinary_assembly/symbol_dependency_tables.h"
+#include "instructions/instruction.h"
 #include "postponed_statement_impl.h"
 
 namespace hlasm_plugin::parser_library::processing {
@@ -36,9 +36,9 @@ size_t op_size(const processing::op_code& op) noexcept
 {
     switch (op.type)
     {
-        case context::instruction_type::MACH:
+        case instructions::instruction_type::MACH:
             return op.instr_mach->size_in_bits() / 8;
-        case context::instruction_type::MNEMO:
+        case instructions::instruction_type::MNEMO:
             return op.instr_mnemo->size_in_bits() / 8;
         default:
             assert(false);

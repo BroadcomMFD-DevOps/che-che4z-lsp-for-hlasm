@@ -24,11 +24,11 @@
 #include "diagnostic_op.h"
 #include "operand.h"
 
-namespace hlasm_plugin::parser_library::context {
+namespace hlasm_plugin::parser_library::instructions {
 struct parameter;
 struct machine_operand_format;
 enum class machine_operand_type : uint8_t;
-} // namespace hlasm_plugin::parser_library::context
+} // namespace hlasm_plugin::parser_library::instructions
 
 namespace hlasm_plugin::parser_library::checking {
 class data_def_type;
@@ -74,15 +74,16 @@ public:
 
     // check whether the operand satisfies its format
     virtual std::optional<diagnostic_op> check(
-        context::machine_operand_format to_check, std::string_view instr_name, const range& stmt_range) const = 0;
+        instructions::machine_operand_format to_check, std::string_view instr_name, const range& stmt_range) const = 0;
 
-    diagnostic_op get_simple_operand_expected(
-        const context::machine_operand_format& op_format, std::string_view instr_name, const range& stmt_range) const;
+    diagnostic_op get_simple_operand_expected(const instructions::machine_operand_format& op_format,
+        std::string_view instr_name,
+        const range& stmt_range) const;
 
     static bool is_size_corresponding_signed(int operand, int size);
     static bool is_size_corresponding_unsigned(int operand, int size);
-    static bool is_operand_corresponding(int operand, context::parameter param);
-    static bool is_simple_operand(const context::machine_operand_format& operand);
+    static bool is_operand_corresponding(int operand, instructions::parameter param);
+    static bool is_simple_operand(const instructions::machine_operand_format& operand);
 };
 
 // Represents address operand D(B) or D(F,B)
@@ -98,14 +99,14 @@ public:
     address_operand(address_state state, int displacement, int first, int second);
     address_operand(address_state state, int displacement, int first, int second, operand_state op_state);
 
-    diagnostic_op get_first_parameter_error(context::machine_operand_type op_type,
+    diagnostic_op get_first_parameter_error(instructions::machine_operand_type op_type,
         std::string_view instr_name,
         long long from,
         long long to,
         const range& stmt_range) const;
 
     std::optional<diagnostic_op> check(
-        context::machine_operand_format to_check, std::string_view instr_name, const range& range) const override;
+        instructions::machine_operand_format to_check, std::string_view instr_name, const range& range) const override;
 
     bool is_length_corresponding(int param_value, int length_size) const;
 };
@@ -133,8 +134,9 @@ public:
 
     one_operand(const one_operand& op);
 
-    std::optional<diagnostic_op> check(
-        context::machine_operand_format to_check, std::string_view instr_name, const range& stmt_range) const override;
+    std::optional<diagnostic_op> check(instructions::machine_operand_format to_check,
+        std::string_view instr_name,
+        const range& stmt_range) const override;
 };
 
 class empty_operand final : public machine_operand, public asm_operand
@@ -143,8 +145,9 @@ public:
     empty_operand();
     explicit empty_operand(range r);
 
-    std::optional<diagnostic_op> check(
-        context::machine_operand_format to_check, std::string_view instr_name, const range& stmt_range) const override;
+    std::optional<diagnostic_op> check(instructions::machine_operand_format to_check,
+        std::string_view instr_name,
+        const range& stmt_range) const override;
 };
 
 } // namespace hlasm_plugin::parser_library::checking

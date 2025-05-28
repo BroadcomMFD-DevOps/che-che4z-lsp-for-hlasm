@@ -19,7 +19,7 @@
 #include "checking/diagnostic_collector.h"
 #include "checking/instr_operand.h"
 #include "checking/instruction_checker.h"
-#include "context/instruction.h"
+#include "instructions/instruction.h"
 
 using namespace hlasm_plugin::parser_library;
 using namespace hlasm_plugin::parser_library::checking;
@@ -27,7 +27,7 @@ using namespace hlasm_plugin::parser_library::checking;
 namespace {
 const auto& get_mi(std::string_view arg)
 {
-    return hlasm_plugin::parser_library::context::instruction::get_machine_instructions(arg);
+    return hlasm_plugin::parser_library::instructions::get_machine_instructions(arg);
 }
 one_operand op_val_0 { 0 };
 one_operand op_val_1 { 1 };
@@ -42,7 +42,7 @@ one_operand op_val_15 { 15 };
 } // namespace
 
 namespace hlasm_plugin::parser_library::processing {
-bool check(const context::machine_instruction& mi,
+bool check(const instructions::machine_instruction& mi,
     std::string_view name_of_instruction,
     std::span<const checking::machine_operand* const> to_check,
     const range& stmt_range,

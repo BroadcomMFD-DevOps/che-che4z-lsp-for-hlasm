@@ -22,7 +22,7 @@
 
 #include "instruction_set_version.h"
 
-namespace hlasm_plugin::parser_library::context {
+namespace hlasm_plugin::parser_library::instructions {
 
 constexpr size_t arch_bitfield_width = 5;
 
@@ -595,34 +595,24 @@ public:
     constexpr auto description() const noexcept { return m_description; }
 };
 
-// static class holding string names of instructions with theirs additional info
-class instruction
-{
-public:
-    /*
-    min_operands - minimal number of operands, non-negative integer, always defined
-    max_operands - if not defined (can be infinite), value is -1, otherwise a non-negative integer
-    */
+const ca_instruction& get_ca_instructions(std::string_view name) noexcept;
+const ca_instruction* find_ca_instructions(std::string_view name) noexcept;
+std::span<const ca_instruction> all_ca_instructions() noexcept;
 
-    static const ca_instruction& get_ca_instructions(std::string_view name) noexcept;
-    static const ca_instruction* find_ca_instructions(std::string_view name) noexcept;
-    static std::span<const ca_instruction> all_ca_instructions() noexcept;
+const assembler_instruction& get_assembler_instructions(std::string_view name) noexcept;
+const assembler_instruction* find_assembler_instructions(std::string_view name) noexcept;
+std::span<const assembler_instruction> all_assembler_instructions() noexcept;
 
-    static const assembler_instruction& get_assembler_instructions(std::string_view name) noexcept;
-    static const assembler_instruction* find_assembler_instructions(std::string_view name) noexcept;
-    static std::span<const assembler_instruction> all_assembler_instructions() noexcept;
+const machine_instruction& get_machine_instructions(std::string_view name) noexcept;
+const machine_instruction* find_machine_instructions(std::string_view name) noexcept;
+std::span<const machine_instruction> all_machine_instructions() noexcept;
 
-    static const machine_instruction& get_machine_instructions(std::string_view name) noexcept;
-    static const machine_instruction* find_machine_instructions(std::string_view name) noexcept;
-    static std::span<const machine_instruction> all_machine_instructions() noexcept;
+const mnemonic_code& get_mnemonic_codes(std::string_view name) noexcept;
+const mnemonic_code* find_mnemonic_codes(std::string_view name) noexcept;
+std::span<const mnemonic_code> all_mnemonic_codes() noexcept;
 
-    static const mnemonic_code& get_mnemonic_codes(std::string_view name) noexcept;
-    static const mnemonic_code* find_mnemonic_codes(std::string_view name) noexcept;
-    static std::span<const mnemonic_code> all_mnemonic_codes() noexcept;
+std::string_view mach_format_to_string(mach_format) noexcept;
 
-    static std::string_view mach_format_to_string(mach_format) noexcept;
-};
-
-} // namespace hlasm_plugin::parser_library::context
+} // namespace hlasm_plugin::parser_library::instructions
 
 #endif

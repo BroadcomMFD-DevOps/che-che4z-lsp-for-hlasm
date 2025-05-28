@@ -14,7 +14,7 @@
 
 #include "op_code.h"
 
-#include "context/instruction.h"
+#include "instructions/instruction.h"
 
 namespace hlasm_plugin::parser_library::processing {
 
@@ -25,9 +25,9 @@ std::pair<unsigned char, unsigned char> get_processing_status_cache_key_details(
 {
     switch (op.type)
     {
-        case context::instruction_type::MACH:
+        case instructions::instruction_type::MACH:
             return { (unsigned char)(op.instr_mach->size_in_bits() / 8), (unsigned char)op.instr_mach->reladdr_mask() };
-        case context::instruction_type::MNEMO:
+        case instructions::instruction_type::MNEMO:
             return { (unsigned char)(op.instr_mnemo->size_in_bits() / 8),
                 (unsigned char)op.instr_mnemo->reladdr_mask() };
         default:
@@ -40,9 +40,9 @@ unsigned char processing_status_cache_key::generate_loctr_len(const op_code& op)
 {
     switch (op.type)
     {
-        case context::instruction_type::MACH:
+        case instructions::instruction_type::MACH:
             return static_cast<unsigned char>(op.instr_mach->size_in_bits() / 8);
-        case context::instruction_type::MNEMO:
+        case instructions::instruction_type::MNEMO:
             return static_cast<unsigned char>(op.instr_mnemo->size_in_bits() / 8);
         default:
             return 1;
@@ -53,7 +53,7 @@ processing_status_cache_key::processing_status_cache_key(
     const processing_status& s, std::pair<unsigned char, unsigned char> details) noexcept
     : form(s.first.form)
     , occurrence(s.first.occurrence)
-    , is_alias(s.second.type == context::instruction_type::ASM && s.second.value.to_string_view() == "ALIAS")
+    , is_alias(s.second.type == instructions::instruction_type::ASM && s.second.value.to_string_view() == "ALIAS")
     , loctr_len(details.first)
     , rel_addr(details.second)
 {}

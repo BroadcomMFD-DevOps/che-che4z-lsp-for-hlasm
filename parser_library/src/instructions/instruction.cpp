@@ -21,10 +21,7 @@
 #include <numeric>
 #include <utility>
 
-#include "checking/diagnostic_collector.h"
-#include "checking/instr_operand.h"
-
-namespace hlasm_plugin::parser_library::context {
+namespace hlasm_plugin::parser_library::instructions {
 
 namespace {
 
@@ -89,7 +86,7 @@ constexpr auto SINCE_Z14_TILL_Z17           = instruction_set_affiliation{z_arch
 // clang-format on
 } // namespace
 
-std::string_view instruction::mach_format_to_string(mach_format f) noexcept
+std::string_view mach_format_to_string(mach_format f) noexcept
 {
     switch (f)
     {
@@ -309,7 +306,7 @@ constexpr ca_instruction ca_instructions[] = {
 
 static_assert(std::ranges::is_sorted(ca_instructions, {}, &ca_instruction::name));
 
-const ca_instruction* instruction::find_ca_instructions(std::string_view name) noexcept
+const ca_instruction* find_ca_instructions(std::string_view name) noexcept
 {
     auto it = std::ranges::lower_bound(ca_instructions, name, {}, &ca_instruction::name);
 
@@ -318,14 +315,14 @@ const ca_instruction* instruction::find_ca_instructions(std::string_view name) n
     return std::to_address(it);
 }
 
-const ca_instruction& instruction::get_ca_instructions(std::string_view name) noexcept
+const ca_instruction& get_ca_instructions(std::string_view name) noexcept
 {
     auto result = find_ca_instructions(name);
     assert(result);
     return *result;
 }
 
-std::span<const ca_instruction> instruction::all_ca_instructions() noexcept { return ca_instructions; }
+std::span<const ca_instruction> all_ca_instructions() noexcept { return ca_instructions; }
 
 consteval assembler_instruction::assembler_instruction(std::string_view name,
     int min_operands,
@@ -398,7 +395,7 @@ constexpr assembler_instruction assembler_instructions[] = {
 
 static_assert(std::ranges::is_sorted(assembler_instructions, {}, &assembler_instruction::name));
 
-const assembler_instruction* instruction::find_assembler_instructions(std::string_view instr) noexcept
+const assembler_instruction* find_assembler_instructions(std::string_view instr) noexcept
 {
     auto it = std::ranges::lower_bound(assembler_instructions, instr, {}, &assembler_instruction::name);
     if (it == std::ranges::end(assembler_instructions) || it->name() != instr)
@@ -406,17 +403,14 @@ const assembler_instruction* instruction::find_assembler_instructions(std::strin
     return std::to_address(it);
 }
 
-const assembler_instruction& instruction::get_assembler_instructions(std::string_view instr) noexcept
+const assembler_instruction& get_assembler_instructions(std::string_view instr) noexcept
 {
     auto result = find_assembler_instructions(instr);
     assert(result);
     return *result;
 }
 
-std::span<const assembler_instruction> instruction::all_assembler_instructions() noexcept
-{
-    return assembler_instructions;
-}
+std::span<const assembler_instruction> all_assembler_instructions() noexcept { return assembler_instructions; }
 
 namespace {
 struct
@@ -860,7 +854,7 @@ consteval bool check_machine_instruction_overlap(std::span<const machine_instruc
 
 static_assert(check_machine_instruction_overlap(machine_instructions), "Overlap detected in machine instruction list");
 
-const machine_instruction* instruction::find_machine_instructions(std::string_view name) noexcept
+const machine_instruction* find_machine_instructions(std::string_view name) noexcept
 {
     auto it = std::ranges::lower_bound(machine_instructions, name, {}, &machine_instruction::name);
     if (it == std::ranges::end(machine_instructions) || it->name() != name)
@@ -868,14 +862,14 @@ const machine_instruction* instruction::find_machine_instructions(std::string_vi
     return std::to_address(it);
 }
 
-const machine_instruction& instruction::get_machine_instructions(std::string_view name) noexcept
+const machine_instruction& get_machine_instructions(std::string_view name) noexcept
 {
     auto mi = find_machine_instructions(name);
     assert(mi);
     return *mi;
 }
 
-std::span<const machine_instruction> instruction::all_machine_instructions() noexcept { return machine_instructions; }
+std::span<const machine_instruction> all_machine_instructions() noexcept { return machine_instructions; }
 
 
 consteval mnemonic_transformation::mnemonic_transformation(unsigned short v) noexcept
@@ -986,7 +980,7 @@ consteval bool instr_and_mnemo_is_distinct()
 static_assert(instr_and_mnemo_is_distinct(), "Collision between instructions and mnemonics");
 } // namespace
 
-const mnemonic_code* instruction::find_mnemonic_codes(std::string_view name) noexcept
+const mnemonic_code* find_mnemonic_codes(std::string_view name) noexcept
 {
     auto it = std::ranges::lower_bound(mnemonic_codes, name, {}, &mnemonic_code::name);
     if (it == std::ranges::end(mnemonic_codes) || it->name() != name)
@@ -994,14 +988,14 @@ const mnemonic_code* instruction::find_mnemonic_codes(std::string_view name) noe
     return std::to_address(it);
 }
 
-const mnemonic_code& instruction::get_mnemonic_codes(std::string_view name) noexcept
+const mnemonic_code& get_mnemonic_codes(std::string_view name) noexcept
 {
     auto result = find_mnemonic_codes(name);
     assert(result);
     return *result;
 }
 
-std::span<const mnemonic_code> instruction::all_mnemonic_codes() noexcept { return mnemonic_codes; }
+std::span<const mnemonic_code> all_mnemonic_codes() noexcept { return mnemonic_codes; }
 
 namespace {
 consteval instruction_set_size compute_instruction_set_size(instruction_set_version v)
@@ -1066,4 +1060,4 @@ const instruction_set_size& get_instruction_sizes() noexcept
     };
     return result;
 }
-} // namespace hlasm_plugin::parser_library::context
+} // namespace hlasm_plugin::parser_library::instructions
