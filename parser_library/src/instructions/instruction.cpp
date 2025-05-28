@@ -814,9 +814,10 @@ constexpr machine_instruction machine_instructions[] = {
 static_assert(std::ranges::is_sorted(machine_instructions, {}, &machine_instruction::name));
 
 namespace {
-consteval bool check_machine_instruction_overlap(std::span<const machine_instruction> instrs)
+template<typename T, size_t n>
+consteval bool check_instruction_overlap(const T (&instrs)[n])
 {
-    for (size_t i = 0; i < instrs.size() - 1; ++i)
+    for (size_t i = 0; i < n - 1; ++i)
     {
         const auto initial_name = instrs[i].name();
         if (initial_name != instrs[i + 1].name())
@@ -827,7 +828,7 @@ consteval bool check_machine_instruction_overlap(std::span<const machine_instruc
         bool s370 = false;
         bool dos = false;
         bool uni = false;
-        for (; i < instrs.size() && instrs[i].name() == initial_name; ++i)
+        for (; i < n && instrs[i].name() == initial_name; ++i)
         {
             const auto af = instrs[i].instr_set_affiliation();
             if (af.esa && std::exchange(esa, true))
@@ -852,7 +853,7 @@ consteval bool check_machine_instruction_overlap(std::span<const machine_instruc
 }
 } // namespace
 
-static_assert(check_machine_instruction_overlap(machine_instructions), "Overlap detected in machine instruction list");
+static_assert(check_instruction_overlap(machine_instructions), "Overlap detected in machine instruction list");
 
 const machine_instruction* find_machine_instructions(std::string_view name) noexcept
 {
@@ -977,8 +978,10 @@ consteval bool instr_and_mnemo_is_distinct()
     }
     return true;
 }
-static_assert(instr_and_mnemo_is_distinct(), "Collision between instructions and mnemonics");
 } // namespace
+
+static_assert(instr_and_mnemo_is_distinct(), "Collision between instructions and mnemonics");
+static_assert(check_instruction_overlap(mnemonic_codes), "Overlap detected in mnemonic list");
 
 const mnemonic_code* find_mnemonic_codes(std::string_view name) noexcept
 {
