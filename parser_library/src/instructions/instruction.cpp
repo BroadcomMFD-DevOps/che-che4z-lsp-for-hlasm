@@ -948,7 +948,7 @@ template<std::array<char, 8> name>
 struct mi_locator
 {
     static constexpr const machine_instruction* value = find_mi(std::string_view(name.data()));
-    static_assert(value != nullptr, "Unable to find the parent instruciton");
+    static_assert(value != nullptr, "Unable to find the parent instruction");
 };
 } // namespace
 
