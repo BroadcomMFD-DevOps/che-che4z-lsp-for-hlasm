@@ -77,7 +77,7 @@ std::optional<processing_status> ordinary_processor::get_processing_status(
 
     if (suggestion.empty())
         return std::make_pair(processing_format(processing_kind::ORDINARY, processing_form::UNKNOWN),
-            op_code(id, instructions::instruction_type::UNDEF));
+            op_code(id, context::instruction_type::UNDEF));
 
     auto found = branch_provider_.request_external_processing(suggestion, processing_kind::MACRO, {});
     if (!found.has_value())
@@ -85,14 +85,14 @@ std::optional<processing_status> ordinary_processor::get_processing_status(
 
     if (!found.value())
         return std::make_pair(processing_format(processing_kind::ORDINARY, processing_form::UNKNOWN),
-            op_code(suggestion, instructions::instruction_type::UNDEF));
+            op_code(suggestion, context::instruction_type::UNDEF));
 
     if (const auto mp = hlasm_ctx.find_macro(suggestion))
         return std::make_pair(
             processing_format(processing_kind::ORDINARY, processing_form::MAC), op_code(suggestion, mp->get()));
     else
         return std::make_pair(processing_format(processing_kind::ORDINARY, processing_form::MAC),
-            op_code(suggestion, instructions::instruction_type::UNDEF));
+            op_code(suggestion, context::instruction_type::UNDEF));
 }
 
 void ordinary_processor::process_statement(context::shared_stmt_ptr s)
@@ -120,7 +120,7 @@ void ordinary_processor::process_statement(context::shared_stmt_ptr s)
         return;
     }
 
-    using enum instructions::instruction_type;
+    using enum context::instruction_type;
     switch (statement->opcode_ref().type)
     {
         case UNDEF:
@@ -215,7 +215,7 @@ struct processing_status_visitor
         const auto f = id == context::id_index("DC") || id == context::id_index("DS") || id == context::id_index("DXD")
             ? processing_form::DAT
             : processing_form::ASM;
-        return return_value(f, i->max_operands() == 0, instructions::instruction_type::ASM);
+        return return_value(f, i->max_operands() == 0, context::instruction_type::ASM);
     }
     std::optional<processing_status> operator()(const instructions::machine_instruction* i) const noexcept
     {
@@ -223,7 +223,7 @@ struct processing_status_visitor
     }
     std::optional<processing_status> operator()(const instructions::ca_instruction* i) const noexcept
     {
-        return return_value(processing_form::CA, i->operandless(), instructions::instruction_type::CA);
+        return return_value(processing_form::CA, i->operandless(), context::instruction_type::CA);
     }
     std::optional<processing_status> operator()(const instructions::mnemonic_code* i) const noexcept
     {
@@ -242,7 +242,7 @@ std::optional<processing_status> ordinary_processor::get_instruction_processing_
     if (instruction.empty())
         return std::make_pair(
             processing_format(processing_kind::ORDINARY, processing_form::CA, operand_occurrence::ABSENT),
-            op_code(context::id_index(), instructions::instruction_type::CA));
+            op_code(context::id_index(), context::instruction_type::CA));
 
     const auto code = hlasm_ctx.get_operation_code(instruction, ext_suggestion);
 
@@ -509,7 +509,7 @@ void ordinary_processor::check_postponed_statements(
         const auto& opcode = rs->opcode_ref();
         const auto instruction_name = opcode.value.to_string_view();
 
-        using enum instructions::instruction_type;
+        using enum context::instruction_type;
         switch (opcode.type)
         {
             case MACH:

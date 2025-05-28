@@ -23,6 +23,7 @@ target_sources(parser_library PRIVATE
     id_index.h
     id_storage.cpp
     id_storage.h
+    instruction_type.h
     literal_pool.cpp
     literal_pool.h
     macro.cpp

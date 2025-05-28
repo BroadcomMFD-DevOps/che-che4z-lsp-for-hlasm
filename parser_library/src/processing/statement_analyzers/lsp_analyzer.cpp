@@ -351,9 +351,9 @@ void lsp_analyzer::collect_occurrence(
             if (!opcode.opcode.empty() || opcode.is_macro())
                 collector.occurrences.emplace_back(opcode.opcode, opcode.get_macro_details(), instruction.field_range);
         }
-        else if (!op->value.empty() && op->type != instructions::instruction_type::MAC)
+        else if (!op->value.empty() && op->type != context::instruction_type::MAC)
             collector.occurrences.emplace_back(op->value, nullptr, instruction.field_range);
-        else if (op->type == instructions::instruction_type::MAC && op->mac_def)
+        else if (op->type == context::instruction_type::MAC && op->mac_def)
             collector.occurrences.emplace_back(op->value, op->mac_def, instruction.field_range);
     }
     else if (instruction.type == semantics::instruction_si_type::ORD
@@ -547,9 +547,9 @@ std::optional<std::pair<int, int>> get_branch_operand(const op_code& op) noexcep
 {
     switch (op.type)
     {
-        case instructions::instruction_type::MACH:
+        case context::instruction_type::MACH:
             return get_branch_operand(op.instr_mach);
-        case instructions::instruction_type::MNEMO:
+        case context::instruction_type::MNEMO:
             return get_branch_operand(op.instr_mnemo);
         default:
             return std::nullopt;

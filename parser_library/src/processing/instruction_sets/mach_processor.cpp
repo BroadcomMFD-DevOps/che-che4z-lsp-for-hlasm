@@ -36,9 +36,9 @@ size_t op_size(const processing::op_code& op) noexcept
 {
     switch (op.type)
     {
-        case instructions::instruction_type::MACH:
+        case context::instruction_type::MACH:
             return op.instr_mach->size_in_bits() / 8;
-        case instructions::instruction_type::MNEMO:
+        case context::instruction_type::MNEMO:
             return op.instr_mnemo->size_in_bits() / 8;
         default:
             assert(false);

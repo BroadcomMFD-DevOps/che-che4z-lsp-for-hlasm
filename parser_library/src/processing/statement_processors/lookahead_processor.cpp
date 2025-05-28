@@ -48,8 +48,8 @@ std::optional<processing_status> lookahead_processor::get_processing_status(
         {
             status->first.kind = processing_kind::LOOKAHEAD;
 
-            if (status->second.type == instructions::instruction_type::CA
-                || status->second.type == instructions::instruction_type::MAC)
+            if (status->second.type == context::instruction_type::CA
+                || status->second.type == context::instruction_type::MAC)
                 status->first.form = processing_form::IGNORED;
 
             return *status;
@@ -329,7 +329,7 @@ void lookahead_processor::find_ord(const resolved_statement& statement)
     // find attributes
     // if found ord symbol on CA, macro or undefined instruction, only type attribute is assigned
     // 'U' for CA and 'M' for undefined and macro
-    using enum instructions::instruction_type;
+    using enum context::instruction_type;
     switch (const auto& opcode = statement.opcode_ref(); opcode.type)
     {
         case CA:

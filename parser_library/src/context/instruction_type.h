@@ -12,10 +12,10 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
-#ifndef HLASMPLUGIN_PARSERLIBRARY_INSTRUCTIONS_INSTRUCTION_TYPE_H
-#define HLASMPLUGIN_PARSERLIBRARY_INSTRUCTIONS_INSTRUCTION_TYPE_H
+#ifndef HLASMPLUGIN_PARSERLIBRARY_INSTRUCTIONS_CONTEXT_TYPE_H
+#define HLASMPLUGIN_PARSERLIBRARY_INSTRUCTIONS_CONTEXT_TYPE_H
 
-namespace hlasm_plugin::parser_library::instructions {
+namespace hlasm_plugin::parser_library::context {
 
 // enum class for all instruction types
 enum class instruction_type

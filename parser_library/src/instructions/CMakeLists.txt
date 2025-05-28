@@ -15,5 +15,4 @@ target_sources(parser_library PRIVATE
     instruction.h
     instruction_details.h
     instruction_details.thh
-    instruction_type.h
 )

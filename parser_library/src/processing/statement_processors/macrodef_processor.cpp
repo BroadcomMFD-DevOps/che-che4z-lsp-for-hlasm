@@ -163,13 +163,13 @@ processing_status macrodef_processor::get_macro_processing_status(
                 processing_form::CA,
                 (*ca_instr)->operandless() ? operand_occurrence::ABSENT : operand_occurrence::PRESENT);
 
-            return std::make_pair(format, op_code(code.opcode, instructions::instruction_type::CA));
+            return std::make_pair(format, op_code(code.opcode, context::instruction_type::CA));
         }
         else if (code.opcode == context::id_storage::well_known::COPY)
         {
             processing_format format(processing_kind::MACRO, processing_form::ASM, operand_occurrence::PRESENT);
 
-            return std::make_pair(format, op_code(code.opcode, instructions::instruction_type::ASM));
+            return std::make_pair(format, op_code(code.opcode, context::instruction_type::ASM));
         }
     }
 
@@ -177,7 +177,7 @@ processing_status macrodef_processor::get_macro_processing_status(
     {
         processing_format format(processing_kind::MACRO, processing_form::CA, operand_occurrence::ABSENT);
 
-        return std::make_pair(format, op_code(context::id_index(), instructions::instruction_type::CA));
+        return std::make_pair(format, op_code(context::id_index(), context::instruction_type::CA));
     }
 
     processing_format format(processing_kind::MACRO, processing_form::DEFERRED);
@@ -437,7 +437,7 @@ struct empty_statement_t final : public resolved_statement
 
 const processing_status empty_statement_t::status(
     processing_format(processing_kind::ORDINARY, processing_form::CA, operand_occurrence::ABSENT),
-    op_code(context::id_storage::well_known::ANOP, instructions::instruction_type::CA));
+    op_code(context::id_storage::well_known::ANOP, context::instruction_type::CA));
 
 bool macrodef_processor::process_COPY(const resolved_statement& statement)
 {

@@ -18,7 +18,7 @@
 #include <utility>
 
 #include "context/id_index.h"
-#include "instructions/instruction_type.h"
+#include "context/instruction_type.h"
 #include "processing_format.h"
 
 namespace hlasm_plugin::parser_library::instructions {
@@ -36,29 +36,29 @@ namespace hlasm_plugin::parser_library::processing {
 struct op_code
 {
     constexpr op_code() noexcept
-        : type(instructions::instruction_type::UNDEF)
+        : type(context::instruction_type::UNDEF)
     {}
-    constexpr op_code(context::id_index value, instructions::instruction_type type) noexcept
+    constexpr op_code(context::id_index value, context::instruction_type type) noexcept
         : value(value)
         , type(type)
     {
-        assert(type != instructions::instruction_type::MAC && type != instructions::instruction_type::MACH
-            && type != instructions::instruction_type::MNEMO);
+        assert(type != context::instruction_type::MAC && type != context::instruction_type::MACH
+            && type != context::instruction_type::MNEMO);
     }
     constexpr op_code(context::id_index value, context::macro_definition* mac_def) noexcept
         : value(value)
         , mac_def(mac_def)
-        , type(instructions::instruction_type::MAC)
+        , type(context::instruction_type::MAC)
     {}
     constexpr op_code(context::id_index value, const instructions::machine_instruction* mach_instr) noexcept
         : value(value)
         , instr_mach(mach_instr)
-        , type(instructions::instruction_type::MACH)
+        , type(context::instruction_type::MACH)
     {}
     constexpr op_code(context::id_index value, const instructions::mnemonic_code* mach_mnemo) noexcept
         : value(value)
         , instr_mnemo(mach_mnemo)
-        , type(instructions::instruction_type::MNEMO)
+        , type(context::instruction_type::MNEMO)
     {}
 
     context::id_index value;
@@ -69,7 +69,7 @@ struct op_code
         const instructions::machine_instruction* instr_mach;
         const instructions::mnemonic_code* instr_mnemo;
     };
-    instructions::instruction_type type;
+    context::instruction_type type;
 };
 
 using processing_status = std::pair<processing_format, op_code>;
