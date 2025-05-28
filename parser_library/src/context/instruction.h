@@ -22,16 +22,6 @@
 
 #include "instruction_set_version.h"
 
-namespace hlasm_plugin::parser_library {
-struct range;
-class diagnostic_collector;
-
-namespace checking {
-class machine_operand;
-} // namespace checking
-
-} // namespace hlasm_plugin::parser_library
-
 namespace hlasm_plugin::parser_library::context {
 
 constexpr size_t arch_bitfield_width = 5;
