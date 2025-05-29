@@ -443,7 +443,7 @@ struct is_branch_argument_t<branch_argument_t<arg, nonzero>> : std::true_type
 template<int... arg, int... nonzero>
 consteval branch_info_argument select_branch_argument(branch_argument_t<arg, nonzero>...)
 {
-    constexpr auto res = []() {
+    constexpr auto res = []() consteval {
         const int args[] = { arg..., 0 };
         const int nonzeros[] = { nonzero..., 0 };
         for (size_t i = 0; i < std::size(args); ++i)
@@ -715,7 +715,7 @@ constinit const machine_operand_format machine_instruction::s_operands[] = {
 #include "instruction_details.h"
 };
 
-constexpr auto operand_map = []() {
+constexpr auto operand_map = []() consteval {
     constexpr size_t operand_sizes[] = {
 #define DEFINE_INSTRUCTION_FORMAT(name, format, ...)                                                                   \
     std::initializer_list<machine_operand_format> { __VA_ARGS__ }.size(),
@@ -741,7 +741,7 @@ constinit const char machine_instruction::s_fullnames[] =
 #include "instruction_details.h"
     ;
 
-constexpr auto fullname_map = []() {
+constexpr auto fullname_map = []() consteval {
     constexpr size_t fullname_sizes[] = {
 #define DEFINE_INSTRUCTION(name, format, page, iset, description, ...) sizeof(description) - 1,
 #include "instruction_details.h"
