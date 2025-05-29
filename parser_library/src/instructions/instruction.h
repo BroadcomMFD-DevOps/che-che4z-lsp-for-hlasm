@@ -17,6 +17,7 @@
 
 #include <array>
 #include <compare>
+#include <cstdint>
 #include <span>
 #include <string_view>
 
