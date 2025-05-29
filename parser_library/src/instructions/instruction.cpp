@@ -21,6 +21,8 @@
 #include <numeric>
 #include <utility>
 
+#include "utils/projectors.h"
+
 namespace hlasm_plugin::parser_library::instructions {
 
 namespace {
@@ -494,50 +496,80 @@ enum class condition_code_explanation_id : unsigned char
 #define DEFINE_CC_SET(name, ...)                                                                                       \
     constexpr auto name = cc_index { static_cast<unsigned char>(condition_code_explanation_id::name) };
 #include "instruction_details.h"
+
+constexpr char _cc_texts[] =
+#define PRINT5(_1, _2, _3, _4, _5, ...) _1 _2 _3 _4 _5
+#define DEFINE_CC_SET(name, ...) PRINT5(__VA_ARGS__ __VA_OPT__(, ) "", "", "", "", "")
+#include "instruction_details.h"
+#undef PRINT5
+    ;
+
+constexpr unsigned char _cc_lengths[] = {
+#define PRINT5(_1, _2, _3, _4, _5, ...)                                                                                \
+    (unsigned char)(sizeof(_1) - 1), (unsigned char)(sizeof(_2) - 1), (unsigned char)(sizeof(_3) - 1),                 \
+        (unsigned char)(sizeof(_4) - 1), (unsigned char)(sizeof(_5) - 1),
+#define DEFINE_CC_SET(name, ...) PRINT5(__VA_ARGS__ __VA_OPT__(, ) "", "", "", "", "")
+#include "instruction_details.h"
+#undef PRINT5
+};
+
+constexpr unsigned char _cc_arg_count[] = {
+#define DEFINE_CC_SET(name, ...) (unsigned char)std::initializer_list<const char*> { __VA_ARGS__ }.size(),
+#include "instruction_details.h"
+};
+
+constexpr auto _cc_offsets = []() consteval {
+    std::array<unsigned short, std::size(_cc_lengths)> offsets {};
+    unsigned long sum = 0;
+    auto* out = offsets.data();
+    for (long l : _cc_lengths)
+    {
+        *out++ = (unsigned short)sum;
+        sum += l;
+    }
+    assert(sum <= (unsigned short)-1);
+    return offsets;
+}();
+
+consteval bool _cc_identical(const unsigned short* t, const unsigned char* l)
+{
+    const auto* t0 = _cc_texts + t[0];
+    const auto* t1 = _cc_texts + t[1];
+    const auto* t2 = _cc_texts + t[2];
+    const auto* t3 = _cc_texts + t[3];
+    const auto n = l[0];
+    return n == l[1] && n == l[2] && n == l[3] && std::equal(t0, t0 + n, t1, t1 + n)
+        && std::equal(t0, t0 + n, t2, t2 + n) && std::equal(t0, t0 + n, t3, t3 + n);
+}
 } // namespace
 
-consteval bool condition_code_explanation::identical(
-    const char* t0, const char* t1, const char* t2, const char* t3, size_t n)
+consteval condition_code_explanation::condition_code_explanation(
+    const unsigned short* t, const unsigned char* l, bool single) noexcept
+    : text {}
+    , lengths {}
+    , single_explanation(single)
 {
-    return std::equal(t0, t0 + n, t1, t1 + n) && std::equal(t0, t0 + n, t2, t2 + n)
-        && std::equal(t0, t0 + n, t3, t3 + n);
+    std::ranges::copy_n(t, text.size(), text.begin());
+    std::ranges::copy_n(l, lengths.size(), lengths.begin());
+    if (single || _cc_identical(t, l))
+    {
+        std::ranges::fill_n(text.begin(), 4, t[0]);
+        std::ranges::fill_n(lengths.begin(), 4, l[0]);
+    }
 }
 
-template<size_t L0, size_t L1, size_t L2, size_t L3, size_t Qual>
-consteval condition_code_explanation::condition_code_explanation(const char (&t0)[L0],
-    const char (&t1)[L1],
-    const char (&t2)[L2],
-    const char (&t3)[L3],
-    const char (&qualification)[Qual]) noexcept requires(L0 > 0 && L1 > 0 && L2 > 0 && L3 > 0 && Qual > 1 && L0 < 256
-                                                            && L1 < 256 && L2 < 256 && L3 < 256 && Qual < 256)
-    : text { L0 == 1 ? nullptr : t0,
-        L1 == 1 ? nullptr : t1,
-        L2 == 1 ? nullptr : t2,
-        L3 == 1 ? nullptr : t3,
-        qualification }
-    , lengths { L0 - 1, L1 - 1, L2 - 1, L3 - 1, Qual - 1 }
-    , single_explanation(L0 == L1 && L0 == L2 && L0 == L3 && identical(t0, t1, t2, t3, L0))
-{}
-
-template<size_t L0, size_t L1, size_t L2, size_t L3>
-consteval condition_code_explanation::condition_code_explanation(
-    const char (&t0)[L0], const char (&t1)[L1], const char (&t2)[L2], const char (&t3)[L3]) noexcept
-    requires(L0 > 0 && L1 > 0 && L2 > 0 && L3 > 0 && L0 < 256 && L1 < 256 && L2 < 256 && L3 < 256)
-    : text { L0 == 1 ? nullptr : t0, L1 == 1 ? nullptr : t1, L2 == 1 ? nullptr : t2, L3 == 1 ? nullptr : t3 }
-    , lengths { L0 - 1, L1 - 1, L2 - 1, L3 - 1 }
-    , single_explanation(L0 == L1 && L0 == L2 && L0 == L3 && identical(t0, t1, t2, t3, L0))
-{}
-
-template<size_t L0>
-consteval condition_code_explanation::condition_code_explanation(const char (&t0)[L0]) noexcept
-    requires(L0 > 1 && L0 < 256)
-    : text { t0, t0, t0, t0 }
-    , lengths { L0 - 1, L0 - 1, L0 - 1, L0 - 1 }
-    , single_explanation(true)
-{}
+constinit const char condition_code_explanation::s_texts[] =
+#define PRINT5(_1, _2, _3, _4, _5, ...) _1 _2 _3 _4 _5
+#define DEFINE_CC_SET(name, ...) PRINT5(__VA_ARGS__ __VA_OPT__(, ) "", "", "", "", "")
+#include "instruction_details.h"
+#undef PRINT5
+    ;
 
 constinit const condition_code_explanation condition_code_explanations[] = {
-#define DEFINE_CC_SET(name, ...) condition_code_explanation(__VA_ARGS__),
+#define DEFINE_CC_SET(name, ...)                                                                                       \
+    condition_code_explanation(_cc_offsets.data() + 5 * (unsigned char)condition_code_explanation_id::name,            \
+        _cc_lengths + 5 * (unsigned char)condition_code_explanation_id::name,                                          \
+        _cc_arg_count[(unsigned char)condition_code_explanation_id::name] == 1),
 #include "instruction_details.h"
 };
 

@@ -315,34 +315,26 @@ enum class condition_code
 
 class condition_code_explanation
 {
-    std::array<const char*, 5> text;
+    std::array<unsigned short, 5> text;
     std::array<unsigned char, 5> lengths;
     bool single_explanation;
 
-    static consteval bool identical(const char* t0, const char* t1, const char* t2, const char* t3, size_t n);
+    static constinit const char s_texts[];
 
 public:
-    template<size_t L0>
-    explicit consteval condition_code_explanation(const char (&t0)[L0]) noexcept requires(L0 > 1 && L0 < 256);
-    template<size_t L0, size_t L1, size_t L2, size_t L3>
     explicit consteval condition_code_explanation(
-        const char (&t0)[L0], const char (&t1)[L1], const char (&t2)[L2], const char (&t3)[L3]) noexcept
-        requires(L0 > 0 && L1 > 0 && L2 > 0 && L3 > 0 && L0 < 256 && L1 < 256 && L2 < 256 && L3 < 256);
-    template<size_t L0, size_t L1, size_t L2, size_t L3, size_t Qual>
-    explicit consteval condition_code_explanation(const char (&t0)[L0],
-        const char (&t1)[L1],
-        const char (&t2)[L2],
-        const char (&t3)[L3],
-        const char (&qualification)[Qual]) noexcept requires(L0 > 0 && L1 > 0 && L2 > 0 && L3 > 0 && Qual > 1
-        && L0 < 256 && L1 < 256 && L2 < 256 && L3 < 256 && Qual < 256);
+        const unsigned short* t, const unsigned char* l, bool single) noexcept;
 
     constexpr std::string_view tranlate_cc(condition_code cc) const noexcept
     {
         auto cc_val = static_cast<int>(cc);
-        return std::string_view(text[cc_val], lengths[cc_val]);
+        return std::string_view(s_texts + text[cc_val], lengths[cc_val]);
     }
 
-    constexpr std::string_view cc_qualification() const noexcept { return std::string_view(text[4], lengths[4]); }
+    constexpr std::string_view cc_qualification() const noexcept
+    {
+        return std::string_view(s_texts + text[4], lengths[4]);
+    }
 
     constexpr bool has_single_explanation() const noexcept { return single_explanation; }
 };
