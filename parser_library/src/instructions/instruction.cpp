@@ -21,8 +21,6 @@
 #include <numeric>
 #include <utility>
 
-#include "utils/projectors.h"
-
 namespace hlasm_plugin::parser_library::instructions {
 
 namespace {
@@ -326,73 +324,73 @@ const ca_instruction& get_ca_instructions(std::string_view name) noexcept
 
 std::span<const ca_instruction> all_ca_instructions() noexcept { return ca_instructions; }
 
+constinit const char assembler_instruction::s_texts[] =
+#define DEFINE_ASM_INSTRUCTION(name, op_min, op_max, has_ord, desc, ...) desc
+#include "instruction_details.h"
+    ;
+
+namespace {
+constexpr unsigned char _asm_lengths[] = {
+#define DEFINE_ASM_INSTRUCTION(name, op_min, op_max, has_ord, desc, ...) sizeof(desc) - 1,
+#include "instruction_details.h"
+};
+
+constexpr auto _asm_map = []() consteval {
+    std::array<unsigned short, std::size(_asm_lengths)> result {};
+
+    size_t sum = 0;
+    auto* out = result.data();
+    for (auto l : _asm_lengths)
+    {
+        *out++ = (unsigned short)sum;
+        sum += l;
+    }
+
+    assert(sum <= (unsigned short)-1);
+
+    return result;
+}();
+
+// MSVC has trouble with direct std::array comparisons
+constexpr std::array<char, 10> _asm_names[] = {
+#define DEFINE_ASM_INSTRUCTION(name, ...) { name },
+#include "instruction_details.h"
+};
+
+consteval size_t _asm_find(std::string_view name) noexcept
+{
+    return std::ranges::find(_asm_names, name, [](const auto& x) { return std::string_view(x.data()); }) - _asm_names;
+}
+
+template<std::array<char, 10> name>
+struct asm_locator
+{
+    static constexpr auto index = _asm_find(std::string_view(name.data()));
+    static constexpr unsigned short offset = _asm_map[index];
+    static constexpr unsigned char length = _asm_lengths[index];
+};
+} // namespace
+
 consteval assembler_instruction::assembler_instruction(std::string_view name,
-    int min_operands,
-    int max_operands,
+    signed char min_operands,
+    signed char max_operands,
     bool has_ord_symbols,
-    std::string_view description,
+    unsigned short desc_off,
+    unsigned char desc_len,
     bool postpone_dependencies) noexcept
     : m_name(name)
     , m_has_ord_symbols(has_ord_symbols)
     , m_postpone_dependencies(postpone_dependencies)
     , m_min_operands(min_operands)
     , m_max_operands(max_operands)
-    , m_description(std::move(description))
+    , m_desc_len(desc_len)
+    , m_desc_offset(desc_off)
 {}
 
 constexpr assembler_instruction assembler_instructions[] = {
-    { "*PROCESS", 1, -1, false, "" }, // TO DO
-    { "ACONTROL", 1, -1, false, "<selection>+" },
-    { "ADATA", 5, 5, false, "value1,value2,value3,value4,character_string" },
-    { "AINSERT", 2, 2, false, "'record',BACK|FRONT" },
-    { "ALIAS", 1, 1, false, "alias_string" },
-    { "AMODE", 1, 1, false, "amode_option" },
-    { "CATTR", 1, -1, false, "attribute+" },
-    { "CCW", 4, 4, true, "command_code,data_address,flags,data_count" },
-    { "CCW0", 4, 4, true, "command_code,data_address,flags,data_count" },
-    { "CCW1", 4, 4, true, "command_code,data_address,flags,data_count" },
-    { "CEJECT", 0, 1, true, "?number_of_lines" },
-    { "CNOP", 2, 2, true, "byte,boundary" },
-    { "COM", 0, 0, false, "" },
-    { "COPY", 1, 1, false, "member" },
-    { "CSECT", 0, 0, false, "" },
-    { "CXD", 0, 0, false, "" },
-    { "DC", 1, -1, true, "<operand>+" },
-    { "DROP", 0, -1, true, "?<<base_register|label>+>", true },
-    { "DS", 1, -1, true, "<operand>+" },
-    { "DSECT", 0, 0, false, "" },
-    { "DXD", 1, -1, true, "<operand>+" },
-    { "EJECT", 0, 0, false, "" },
-    { "END", 0, 2, true, "?expression,?language" },
-    { "ENTRY", 1, -1, true, "entry_point+" },
-    { "EQU",
-        1,
-        5,
-        true,
-        "value,?<length_attribute_value>,?<type_attribute_value>,?<program_type_value>,?<assembler_type_value>" },
-    { "EXITCTL", 2, 5, false, "exit_type,control_value+" },
-    { "EXTRN", 1, -1, false, "<external_symbol>+|PART(<external_symbol>+" },
-    { "ICTL", 1, 3, false, "begin,?<end>,?<continue>" },
-    { "ISEQ", 0, 2, false, "?<left,right>" },
-    { "LOCTR", 0, 0, false, "" },
-    { "LTORG", 0, 0, false, "" },
-    { "MNOTE", 1, 2, false, "?<<severity|*|>,>message" },
-    { "OPSYN", 0, 1, false, "?operation_code_2" },
-    { "ORG", 0, 3, true, "expression?<,boundary?<,offset>>" },
-    { "POP", 1, 4, false, "<PRINT|USING|ACONTROL>+,?NOPRINT" },
-    { "PRINT", 1, -1, false, "operand+" },
-    { "PUNCH", 1, 1, false, "string" },
-    { "PUSH", 1, 4, false, "<PRINT|USING|ACONTROL>+,?NOPRINT" },
-    { "REPRO", 0, 0, false, "" },
-    { "RMODE", 1, 1, false, "rmode_option" },
-    { "RSECT", 0, 0, false, "" },
-    { "SPACE", 0, 1, true, "?number_of_lines" },
-    { "START", 0, 1, true, "?expression" },
-    { "TITLE", 1, 1, false, "title_string" },
-    { "USING", 2, 17, true, "operand+", true },
-    { "WXTRN", 1, -1, false, "<external_symbol>+|PART(<external_symbol>+" },
-    { "XATTR", 1, -1, false, "attribute+" },
-
+#define DEFINE_ASM_INSTRUCTION(name, op_min, op_max, has_ord, desc, ...)                                               \
+    { name, op_min, op_max, has_ord, asm_locator<{ name }>::offset, asm_locator<{ name }>::length, __VA_ARGS__ },
+#include "instruction_details.h"
 };
 
 static_assert(std::ranges::is_sorted(assembler_instructions, {}, &assembler_instruction::name));

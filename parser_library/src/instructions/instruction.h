@@ -566,18 +566,22 @@ public:
 // machine instruction common representation
 class assembler_instruction
 {
-    inline_string<11> m_name;
+    inline_string<9> m_name;
     bool m_has_ord_symbols : 1, m_postpone_dependencies : 1;
-    int m_min_operands;
-    int m_max_operands; // -1 in case there is no max value
-    std::string_view m_description; // used only for hover and completion
+    signed char m_min_operands;
+    signed char m_max_operands; // -1 in case there is no max value
+    unsigned char m_desc_len;
+    unsigned short m_desc_offset;
+
+    static constinit const char s_texts[];
 
 public:
     consteval assembler_instruction(std::string_view name,
-        int min_operands,
-        int max_operands,
+        signed char min_operands,
+        signed char max_operands,
         bool has_ord_symbols,
-        std::string_view description,
+        unsigned short desc_off,
+        unsigned char desc_len,
         bool postpone_dependencies = false) noexcept;
 
     constexpr auto name() const noexcept { return m_name.to_string_view(); }
@@ -585,7 +589,7 @@ public:
     constexpr auto postpone_dependencies() const noexcept { return m_postpone_dependencies; }
     constexpr auto min_operands() const noexcept { return m_min_operands; }
     constexpr auto max_operands() const noexcept { return m_max_operands; }
-    constexpr auto description() const noexcept { return m_description; }
+    constexpr auto description() const noexcept { return std::string_view(s_texts + m_desc_offset, m_desc_len); }
 };
 
 const ca_instruction& get_ca_instructions(std::string_view name) noexcept;
