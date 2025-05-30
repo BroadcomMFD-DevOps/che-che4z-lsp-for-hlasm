@@ -123,6 +123,7 @@ consteval ca_instruction::ca_instruction(std::string_view n, bool opless) noexce
     , m_operandless(opless)
 {}
 
+namespace {
 constexpr ca_instruction ca_instructions[] = {
     { "ACTR", false },
     { "AEJECT", true },
@@ -147,6 +148,7 @@ constexpr ca_instruction ca_instructions[] = {
 };
 
 static_assert(std::ranges::is_sorted(ca_instructions, {}, &ca_instruction::name));
+} // namespace
 
 constinit const char assembler_instruction::s_descriptions[] =
 #define DEFINE_ASM_INSTRUCTION(name, op_min, op_max, has_ord, desc, ...) desc
@@ -212,6 +214,7 @@ consteval assembler_instruction::assembler_instruction(std::string_view name,
     , m_desc_offset(desc_off)
 {}
 
+namespace {
 constexpr assembler_instruction assembler_instructions[] = {
 #define DEFINE_ASM_INSTRUCTION(name, op_min, op_max, has_ord, desc, ...)                                               \
     { name, op_min, op_max, has_ord, asm_locator<{ name }>::offset, asm_locator<{ name }>::length, __VA_ARGS__ },
@@ -220,7 +223,6 @@ constexpr assembler_instruction assembler_instructions[] = {
 
 static_assert(std::ranges::is_sorted(assembler_instructions, {}, &assembler_instruction::name));
 
-namespace {
 struct
 {
 } constexpr privileged;
@@ -379,12 +381,6 @@ constinit const condition_code_explanation condition_code_explanations[] = {
 #include "instruction_details.h"
 };
 
-enum class instruction_fullname
-{
-#define DEFINE_INSTRUCTION(name, format, page, iset, description, ...) name##_##format,
-#include "instruction_details.h"
-};
-
 consteval machine_operand_format::machine_operand_format(
     parameter id, parameter first, parameter second, bool optional) noexcept
     : identifier(id)
@@ -395,6 +391,7 @@ consteval machine_operand_format::machine_operand_format(
     assert(!second.is_empty() || first.is_empty());
 }
 
+namespace {
 /*
 Rules for displacement operands:
 With DB formats
@@ -459,10 +456,16 @@ constexpr machine_operand_format rel_addr_imm_12_S_opt(reladdr_imm_12s, empty, e
 constexpr machine_operand_format rel_addr_imm_16_S_opt(reladdr_imm_16s, empty, empty, true);
 constexpr machine_operand_format rel_addr_imm_24_S_opt(reladdr_imm_24s, empty, empty, true);
 constexpr machine_operand_format rel_addr_imm_32_S_opt(reladdr_imm_32s, empty, empty, true);
+} // namespace
 
 constinit const machine_operand_format machine_operand_format::empty {
     parameter {}, parameter {}, parameter {}, false
 };
+
+constinit const char machine_instruction::s_fullnames[] =
+#define DEFINE_INSTRUCTION(name, format, page, iset, description, ...) description
+#include "instruction_details.h"
+    ;
 
 constinit const machine_operand_format machine_instruction::s_operands[] = {
 #define DEFINE_INSTRUCTION_FORMAT(name, format, ...) __VA_ARGS__ __VA_OPT__(, )
@@ -563,6 +566,12 @@ constexpr auto fullname_map = []() consteval {
     return result;
 }();
 
+enum class instruction_fullname
+{
+#define DEFINE_INSTRUCTION(name, format, page, iset, description, ...) name##_##format,
+#include "instruction_details.h"
+};
+
 template<instruction_fullname fn, typename... Args>
 consteval machine_instruction_details make_machine_instruction_details(Args&&... args) noexcept
     requires(make_machine_instruction_details_args_validator<std::decay_t<Args>...>::value)
@@ -588,11 +597,6 @@ public:
     }
 };
 } // namespace
-
-constinit const char machine_instruction::s_fullnames[] =
-#define DEFINE_INSTRUCTION(name, format, page, iset, description, ...) description
-#include "instruction_details.h"
-    ;
 
 consteval char machine_instruction::get_length_by_format(mach_format instruction_format) noexcept
 {
@@ -651,6 +655,8 @@ constexpr machine_instruction _machine_instructions[] = {
     { #name, format, page, iset, make_machine_instruction_details<instruction_fullname::name##_##format>(__VA_ARGS__) },
 #include "instruction_details.h"
 };
+
+static_assert(std::ranges::is_sorted(_machine_instructions, {}, &machine_instruction::name));
 } // namespace
 
 constinit const machine_instruction g_machine_instructions[] = {
@@ -658,8 +664,6 @@ constinit const machine_instruction g_machine_instructions[] = {
     { #name, format, page, iset, make_machine_instruction_details<instruction_fullname::name##_##format>(__VA_ARGS__) },
 #include "instruction_details.h"
 };
-
-static_assert(std::ranges::is_sorted(_machine_instructions, {}, &machine_instruction::name));
 
 namespace {
 template<typename T, size_t n>
@@ -699,10 +703,9 @@ consteval bool check_instruction_overlap(const T (&instrs)[n])
 
     return true;
 }
-} // namespace
 
 static_assert(check_instruction_overlap(_machine_instructions), "Overlap detected in machine instruction list");
-
+} // namespace
 
 consteval mnemonic_transformation::mnemonic_transformation(unsigned short v) noexcept
     : value(v)
@@ -761,8 +764,9 @@ consteval mnemonic_code::mnemonic_code(std::string_view name,
         transform.begin(), transform.end(), (size_t)0, [](size_t res, auto t) { return res + t.skip + t.insert; });
     assert(total <= instr->m_operand_len);
 
-    m_op_max = instr->m_operand_len - insert_count;
-    m_op_min = instr->m_operand_len - instr->m_optional_op_count - insert_count;
+    assert(instr->m_operand_len - instr->m_optional_op_count >= insert_count);
+    m_op_max = static_cast<unsigned char>(instr->m_operand_len - insert_count);
+    m_op_min = static_cast<unsigned char>(instr->m_operand_len - instr->m_optional_op_count - insert_count);
     assert(m_op_max <= instr->m_operand_len);
     assert(m_op_min <= m_op_max);
 
@@ -783,7 +787,6 @@ struct mi_locator
 {
     static constexpr unsigned short value = find_mi(std::string_view(name.data()));
 };
-} // namespace
 
 constexpr mnemonic_code mnemonic_codes[] = {
 #define DEFINE_MNEMONIC(name, parent, version, ...) { #name, mi_locator<{ #parent }>::value, version, __VA_ARGS__ },
@@ -792,7 +795,6 @@ constexpr mnemonic_code mnemonic_codes[] = {
 
 static_assert(std::ranges::is_sorted(mnemonic_codes, {}, &mnemonic_code::name));
 
-namespace {
 consteval bool instr_and_mnemo_is_distinct()
 {
     auto i = std::begin(_machine_instructions);
@@ -811,12 +813,10 @@ consteval bool instr_and_mnemo_is_distinct()
     }
     return true;
 }
-} // namespace
 
 static_assert(instr_and_mnemo_is_distinct(), "Collision between instructions and mnemonics");
 static_assert(check_instruction_overlap(mnemonic_codes), "Overlap detected in mnemonic list");
 
-namespace {
 consteval instruction_set_size compute_instruction_set_size(instruction_set_version v)
 {
     instruction_set_size result = {
