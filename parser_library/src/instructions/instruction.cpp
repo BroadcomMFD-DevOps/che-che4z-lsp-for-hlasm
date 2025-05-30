@@ -506,6 +506,11 @@ constinit const machine_operand_format machine_operand_format::empty {
     parameter {}, parameter {}, parameter {}, false
 };
 
+constinit const machine_operand_format machine_instruction::s_operands[] = {
+#define DEFINE_INSTRUCTION_FORMAT(name, format, ...) __VA_ARGS__ __VA_OPT__(, )
+#include "instruction_details.h"
+};
+
 namespace {
 enum class operand_formats
 {
@@ -558,12 +563,6 @@ consteval reladdr_transform_mask generate_reladdr_bitmask(
     }
     return (reladdr_transform_mask)result;
 }
-} // namespace
-
-constinit const machine_operand_format machine_instruction::s_operands[] = {
-#define DEFINE_INSTRUCTION_FORMAT(name, format, ...) __VA_ARGS__ __VA_OPT__(, )
-#include "instruction_details.h"
-};
 
 constexpr auto operand_map = []() consteval {
     constexpr size_t operand_sizes[] = {
@@ -585,11 +584,6 @@ constexpr auto operand_map = []() consteval {
 
     return result;
 }();
-
-constinit const char machine_instruction::s_fullnames[] =
-#define DEFINE_INSTRUCTION(name, format, page, iset, description, ...) description
-#include "instruction_details.h"
-    ;
 
 constexpr auto fullname_map = []() consteval {
     constexpr size_t fullname_sizes[] = {
@@ -635,6 +629,12 @@ public:
         return { offset, len, F };
     }
 };
+} // namespace
+
+constinit const char machine_instruction::s_fullnames[] =
+#define DEFINE_INSTRUCTION(name, format, page, iset, description, ...) description
+#include "instruction_details.h"
+    ;
 
 consteval char machine_instruction::get_length_by_format(mach_format instruction_format) noexcept
 {
