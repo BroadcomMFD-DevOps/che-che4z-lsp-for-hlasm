@@ -830,8 +830,8 @@ consteval mnemonic_code::mnemonic_code(std::string_view name,
 namespace {
 consteval unsigned short find_mi(std::string_view name) noexcept
 {
-    const auto it = std::ranges::find(_machine_instructions, name, &machine_instruction::name);
-    assert(it != std::ranges::end(_machine_instructions));
+    const auto it = std::ranges::lower_bound(_machine_instructions, name, {}, &machine_instruction::name);
+    assert(it != std::ranges::end(_machine_instructions) && it->name() == name);
     return (unsigned short)(it - std::begin(_machine_instructions));
 }
 
