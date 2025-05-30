@@ -478,7 +478,7 @@ class assembler_instruction
     unsigned char m_desc_len;
     unsigned short m_desc_offset;
 
-    static constinit const char s_texts[];
+    static constinit const char s_descriptions[];
 
 public:
     consteval assembler_instruction(std::string_view name,
@@ -494,7 +494,7 @@ public:
     constexpr auto postpone_dependencies() const noexcept { return m_postpone_dependencies; }
     constexpr auto min_operands() const noexcept { return m_min_operands; }
     constexpr auto max_operands() const noexcept { return m_max_operands; }
-    constexpr auto description() const noexcept { return std::string_view(s_texts + m_desc_offset, m_desc_len); }
+    constexpr auto description() const noexcept { return std::string_view(s_descriptions + m_desc_offset, m_desc_len); }
 };
 
 const ca_instruction& get_ca_instructions(std::string_view name) noexcept;

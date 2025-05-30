@@ -172,7 +172,7 @@ const ca_instruction& get_ca_instructions(std::string_view name) noexcept
 
 std::span<const ca_instruction> all_ca_instructions() noexcept { return ca_instructions; }
 
-constinit const char assembler_instruction::s_texts[] =
+constinit const char assembler_instruction::s_descriptions[] =
 #define DEFINE_ASM_INSTRUCTION(name, op_min, op_max, has_ord, desc, ...) desc
 #include "instruction_details.h"
     ;
