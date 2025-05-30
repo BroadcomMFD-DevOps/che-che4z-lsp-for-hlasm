@@ -12,6 +12,9 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
+#ifndef DEFINE_MACH_FORMAT
+#    define DEFINE_MACH_FORMAT(...)
+#endif
 #ifndef DEFINE_INSTRUCTION_FORMAT
 #    define DEFINE_INSTRUCTION_FORMAT(...)
 #endif
@@ -28,6 +31,7 @@
 #    define DEFINE_ASM_INSTRUCTION(...)
 #endif
 #include "instruction_details.thh"
+#undef DEFINE_MACH_FORMAT
 #undef DEFINE_INSTRUCTION_FORMAT
 #undef DEFINE_CC_SET
 #undef DEFINE_INSTRUCTION

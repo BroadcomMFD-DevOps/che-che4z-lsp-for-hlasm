@@ -86,185 +86,6 @@ constexpr auto SINCE_Z14_TILL_Z17           = instruction_set_affiliation{z_arch
 // clang-format on
 } // namespace
 
-std::string_view mach_format_to_string(mach_format f) noexcept
-{
-    switch (f)
-    {
-        case mach_format::E:
-            return "E";
-        case mach_format::I:
-            return "I";
-        case mach_format::IE:
-            return "IE";
-        case mach_format::MII:
-            return "MII";
-        case mach_format::RI_a:
-            return "RI-a";
-        case mach_format::RI_b:
-            return "RI-b";
-        case mach_format::RI_c:
-            return "RI-c";
-        case mach_format::RIE_a:
-            return "RIE-a";
-        case mach_format::RIE_b:
-            return "RIE-b";
-        case mach_format::RIE_c:
-            return "RIE-c";
-        case mach_format::RIE_d:
-            return "RIE-d";
-        case mach_format::RIE_e:
-            return "RIE-e";
-        case mach_format::RIE_f:
-            return "RIE-f";
-        case mach_format::RIE_g:
-            return "RIE-g";
-        case mach_format::RIL_a:
-            return "RIL-a";
-        case mach_format::RIL_b:
-            return "RIL-b";
-        case mach_format::RIL_c:
-            return "RIL-c";
-        case mach_format::RIS:
-            return "RIS";
-        case mach_format::RR:
-            return "RR";
-        case mach_format::RRD:
-            return "RRD";
-        case mach_format::RRE:
-            return "RRE";
-        case mach_format::RRF_a:
-            return "RRF-a";
-        case mach_format::RRF_b:
-            return "RRF-b";
-        case mach_format::RRF_c:
-            return "RRF-c";
-        case mach_format::RRF_d:
-            return "RRF-d";
-        case mach_format::RRF_e:
-            return "RRF-e";
-        case mach_format::RRS:
-            return "RRS";
-        case mach_format::RS_a:
-            return "RS-a";
-        case mach_format::RS_b:
-            return "RS-b";
-        case mach_format::RSI:
-            return "RSI";
-        case mach_format::RSL_a:
-            return "RSL-a";
-        case mach_format::RSL_b:
-            return "RSL-b";
-        case mach_format::RSY_a:
-            return "RSY-a";
-        case mach_format::RSY_b:
-            return "RSY-b";
-        case mach_format::RX_a:
-            return "RX-a";
-        case mach_format::RX_b:
-            return "RX-b";
-        case mach_format::RXE:
-            return "RXE";
-        case mach_format::RXF:
-            return "RXF";
-        case mach_format::RXY_a:
-            return "RXY-a";
-        case mach_format::RXY_b:
-            return "RXY-b";
-        case mach_format::RXY_c:
-            return "RXY-c";
-        case mach_format::S:
-            return "S";
-        case mach_format::SI:
-            return "SI";
-        case mach_format::DIAGNOSE:
-            return "DIAGNOSE";
-        case mach_format::SIL:
-            return "SIL";
-        case mach_format::SIY:
-            return "SIY";
-        case mach_format::SMI:
-            return "SMI";
-        case mach_format::SS_a:
-            return "SS-a";
-        case mach_format::SS_b:
-            return "SS-b";
-        case mach_format::SS_c:
-            return "SS-c";
-        case mach_format::SS_d:
-            return "SS-d";
-        case mach_format::SS_e:
-            return "SS-e";
-        case mach_format::SS_f:
-            return "SS-f";
-        case mach_format::SSE:
-            return "SSE";
-        case mach_format::SSF:
-            return "SSF";
-        case mach_format::VRI_a:
-            return "VRI-a";
-        case mach_format::VRI_b:
-            return "VRI-b";
-        case mach_format::VRI_c:
-            return "VRI-c";
-        case mach_format::VRI_d:
-            return "VRI-d";
-        case mach_format::VRI_e:
-            return "VRI-e";
-        case mach_format::VRI_f:
-            return "VRI-f";
-        case mach_format::VRI_g:
-            return "VRI-g";
-        case mach_format::VRI_h:
-            return "VRI-h";
-        case mach_format::VRI_i:
-            return "VRI-i";
-        case mach_format::VRI_j:
-            return "VRI-j";
-        case mach_format::VRI_k:
-            return "VRI-k";
-        case mach_format::VRI_l:
-            return "VRI-l";
-        case mach_format::VRR_a:
-            return "VRR-a";
-        case mach_format::VRR_b:
-            return "VRR-b";
-        case mach_format::VRR_c:
-            return "VRR-c";
-        case mach_format::VRR_d:
-            return "VRR-d";
-        case mach_format::VRR_e:
-            return "VRR-e";
-        case mach_format::VRR_f:
-            return "VRR-f";
-        case mach_format::VRR_g:
-            return "VRR-g";
-        case mach_format::VRR_h:
-            return "VRR-h";
-        case mach_format::VRR_i:
-            return "VRR-i";
-        case mach_format::VRR_j:
-            return "VRR-j";
-        case mach_format::VRR_k:
-            return "VRR-k";
-        case mach_format::VRS_a:
-            return "VRS-a";
-        case mach_format::VRS_b:
-            return "VRS-b";
-        case mach_format::VRS_c:
-            return "VRS-c";
-        case mach_format::VRS_d:
-            return "VRS-d";
-        case mach_format::VSI:
-            return "VSI";
-        case mach_format::VRV:
-            return "VRV";
-        case mach_format::VRX:
-            return "VRX";
-    }
-    assert(false);
-    return "";
-}
-
 template<unsigned char n>
 consteval inline_string<n>::inline_string(std::string_view s) noexcept
     : len((unsigned char)s.size())
@@ -274,6 +95,33 @@ consteval inline_string<n>::inline_string(std::string_view s) noexcept
     size_t i = 0;
     for (char c : s)
         data[i++] = c;
+}
+
+enum class mach_format : unsigned char
+{
+#define DEFINE_MACH_FORMAT(name, ...) __VA_ARGS__ __VA_OPT__(, ) name __VA_OPT__(=) __VA_ARGS__,
+#include "instruction_details.h"
+};
+
+namespace {
+consteval inline_string<9> as_mach_format_name(std::string_view s)
+{
+    std::array<char, 16> buffer = {};
+    std::ranges::copy(s, buffer.begin());
+    std::ranges::replace(buffer, '_', '-');
+    return inline_string<9>(std::string_view(buffer.data(), s.size()));
+}
+constexpr inline_string<9> mach_format_text[] = {
+#define DEFINE_MACH_FORMAT(name, ...) as_mach_format_name(#name),
+#include "instruction_details.h"
+};
+} // namespace
+
+std::string_view mach_format_to_string(mach_format format) noexcept
+{
+    const auto f = (unsigned char)format;
+    assert(f < std::size(mach_format_text));
+    return mach_format_text[f].to_string_view();
 }
 
 consteval ca_instruction::ca_instruction(std::string_view n, bool opless) noexcept
