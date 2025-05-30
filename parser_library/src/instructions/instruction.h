@@ -101,9 +101,6 @@ struct instruction_set_size
     constexpr size_t total() const noexcept { return mnemonic + machine + ca + assembler; }
 };
 
-const instruction_set_size& get_instruction_sizes(instruction_set_version v) noexcept;
-const instruction_set_size& get_instruction_sizes() noexcept;
-
 enum class mach_format : unsigned char;
 
 enum class machine_operand_type : uint8_t
@@ -506,6 +503,9 @@ public:
 
     static constexpr auto max_name_len = decltype(m_name)::max_len;
 };
+
+const instruction_set_size& get_instruction_sizes(instruction_set_version v) noexcept;
+const instruction_set_size& get_instruction_sizes() noexcept;
 
 const ca_instruction& get_ca_instructions(std::string_view name) noexcept;
 const ca_instruction* find_ca_instructions(std::string_view name) noexcept;

@@ -28,6 +28,6 @@ enum class instruction_type
     UNDEF
 };
 
-} // namespace hlasm_plugin::parser_library::instructions
+} // namespace hlasm_plugin::parser_library::context
 
 #endif

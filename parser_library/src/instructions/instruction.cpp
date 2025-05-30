@@ -118,13 +118,6 @@ constexpr decltype(as_mach_format_name("")) mach_format_text[] = {
 };
 } // namespace
 
-std::string_view mach_format_to_string(mach_format format) noexcept
-{
-    const auto f = (unsigned char)format;
-    assert(f < std::size(mach_format_text));
-    return mach_format_text[f].to_string_view();
-}
-
 consteval ca_instruction::ca_instruction(std::string_view n, bool opless) noexcept
     : m_name(n)
     , m_operandless(opless)
@@ -154,24 +147,6 @@ constexpr ca_instruction ca_instructions[] = {
 };
 
 static_assert(std::ranges::is_sorted(ca_instructions, {}, &ca_instruction::name));
-
-const ca_instruction* find_ca_instructions(std::string_view name) noexcept
-{
-    auto it = std::ranges::lower_bound(ca_instructions, name, {}, &ca_instruction::name);
-
-    if (it == std::ranges::end(ca_instructions) || it->name() != name)
-        return nullptr;
-    return std::to_address(it);
-}
-
-const ca_instruction& get_ca_instructions(std::string_view name) noexcept
-{
-    auto result = find_ca_instructions(name);
-    assert(result);
-    return *result;
-}
-
-std::span<const ca_instruction> all_ca_instructions() noexcept { return ca_instructions; }
 
 constinit const char assembler_instruction::s_descriptions[] =
 #define DEFINE_ASM_INSTRUCTION(name, op_min, op_max, has_ord, desc, ...) desc
@@ -244,23 +219,6 @@ constexpr assembler_instruction assembler_instructions[] = {
 };
 
 static_assert(std::ranges::is_sorted(assembler_instructions, {}, &assembler_instruction::name));
-
-const assembler_instruction* find_assembler_instructions(std::string_view instr) noexcept
-{
-    auto it = std::ranges::lower_bound(assembler_instructions, instr, {}, &assembler_instruction::name);
-    if (it == std::ranges::end(assembler_instructions) || it->name() != instr)
-        return nullptr;
-    return std::to_address(it);
-}
-
-const assembler_instruction& get_assembler_instructions(std::string_view instr) noexcept
-{
-    auto result = find_assembler_instructions(instr);
-    assert(result);
-    return *result;
-}
-
-std::span<const assembler_instruction> all_assembler_instructions() noexcept { return assembler_instructions; }
 
 namespace {
 struct
@@ -745,23 +703,6 @@ consteval bool check_instruction_overlap(const T (&instrs)[n])
 
 static_assert(check_instruction_overlap(_machine_instructions), "Overlap detected in machine instruction list");
 
-const machine_instruction* find_machine_instructions(std::string_view name) noexcept
-{
-    auto it = std::ranges::lower_bound(g_machine_instructions, name, {}, &machine_instruction::name);
-    if (it == std::ranges::end(g_machine_instructions) || it->name() != name)
-        return nullptr;
-    return std::to_address(it);
-}
-
-const machine_instruction& get_machine_instructions(std::string_view name) noexcept
-{
-    auto mi = find_machine_instructions(name);
-    assert(mi);
-    return *mi;
-}
-
-std::span<const machine_instruction> all_machine_instructions() noexcept { return g_machine_instructions; }
-
 
 consteval mnemonic_transformation::mnemonic_transformation(unsigned short v) noexcept
     : value(v)
@@ -875,23 +816,6 @@ consteval bool instr_and_mnemo_is_distinct()
 static_assert(instr_and_mnemo_is_distinct(), "Collision between instructions and mnemonics");
 static_assert(check_instruction_overlap(mnemonic_codes), "Overlap detected in mnemonic list");
 
-const mnemonic_code* find_mnemonic_codes(std::string_view name) noexcept
-{
-    auto it = std::ranges::lower_bound(mnemonic_codes, name, {}, &mnemonic_code::name);
-    if (it == std::ranges::end(mnemonic_codes) || it->name() != name)
-        return nullptr;
-    return std::to_address(it);
-}
-
-const mnemonic_code& get_mnemonic_codes(std::string_view name) noexcept
-{
-    auto result = find_mnemonic_codes(name);
-    assert(result);
-    return *result;
-}
-
-std::span<const mnemonic_code> all_mnemonic_codes() noexcept { return mnemonic_codes; }
-
 namespace {
 consteval instruction_set_size compute_instruction_set_size(instruction_set_version v)
 {
@@ -949,10 +873,87 @@ const instruction_set_size& get_instruction_sizes() noexcept
 {
     static constexpr instruction_set_size result = {
         std::size(mnemonic_codes),
-        std::size(machine_instructions),
+        std::size(_machine_instructions),
         std::size(ca_instructions),
         std::size(assembler_instructions),
     };
     return result;
 }
+
+const ca_instruction* find_ca_instructions(std::string_view name) noexcept
+{
+    auto it = std::ranges::lower_bound(ca_instructions, name, {}, &ca_instruction::name);
+
+    if (it == std::ranges::end(ca_instructions) || it->name() != name)
+        return nullptr;
+    return std::to_address(it);
+}
+
+const ca_instruction& get_ca_instructions(std::string_view name) noexcept
+{
+    auto result = find_ca_instructions(name);
+    assert(result);
+    return *result;
+}
+
+std::span<const ca_instruction> all_ca_instructions() noexcept { return ca_instructions; }
+
+const assembler_instruction* find_assembler_instructions(std::string_view instr) noexcept
+{
+    auto it = std::ranges::lower_bound(assembler_instructions, instr, {}, &assembler_instruction::name);
+    if (it == std::ranges::end(assembler_instructions) || it->name() != instr)
+        return nullptr;
+    return std::to_address(it);
+}
+
+const assembler_instruction& get_assembler_instructions(std::string_view instr) noexcept
+{
+    auto result = find_assembler_instructions(instr);
+    assert(result);
+    return *result;
+}
+
+std::span<const assembler_instruction> all_assembler_instructions() noexcept { return assembler_instructions; }
+
+const machine_instruction* find_machine_instructions(std::string_view name) noexcept
+{
+    auto it = std::ranges::lower_bound(g_machine_instructions, name, {}, &machine_instruction::name);
+    if (it == std::ranges::end(g_machine_instructions) || it->name() != name)
+        return nullptr;
+    return std::to_address(it);
+}
+
+const machine_instruction& get_machine_instructions(std::string_view name) noexcept
+{
+    auto mi = find_machine_instructions(name);
+    assert(mi);
+    return *mi;
+}
+
+std::span<const machine_instruction> all_machine_instructions() noexcept { return g_machine_instructions; }
+
+const mnemonic_code* find_mnemonic_codes(std::string_view name) noexcept
+{
+    auto it = std::ranges::lower_bound(mnemonic_codes, name, {}, &mnemonic_code::name);
+    if (it == std::ranges::end(mnemonic_codes) || it->name() != name)
+        return nullptr;
+    return std::to_address(it);
+}
+
+const mnemonic_code& get_mnemonic_codes(std::string_view name) noexcept
+{
+    auto result = find_mnemonic_codes(name);
+    assert(result);
+    return *result;
+}
+
+std::span<const mnemonic_code> all_mnemonic_codes() noexcept { return mnemonic_codes; }
+
+std::string_view mach_format_to_string(mach_format format) noexcept
+{
+    const auto f = (unsigned char)format;
+    assert(f < std::size(mach_format_text));
+    return mach_format_text[f].to_string_view();
+}
+
 } // namespace hlasm_plugin::parser_library::instructions
