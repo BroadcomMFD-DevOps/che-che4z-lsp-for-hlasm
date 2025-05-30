@@ -314,9 +314,9 @@ bool transform_mnemonic(std::vector<checking::check_op_ptr>& result,
     // operands obtained from the user
     const auto& operands = stmt.operands_ref().value;
     // the name of the instruction (mnemonic) obtained from the user
-    auto instr_name = stmt.opcode_ref().value.to_string_view();
+    const auto instr_name = stmt.opcode_ref().value.to_string_view();
     // the machine instruction structure associated with the given instruction name
-    auto curr_instr = mnemonic.instruction();
+    const auto curr_instr = mnemonic.instruction();
 
     auto transforms = mnemonic.operand_transformations();
 
@@ -355,7 +355,7 @@ bool transform_mnemonic(std::vector<checking::check_op_ptr>& result,
         }
         else // if operand is not empty
         {
-            t = get_check_op(operand.get(), dep_solver, add_diagnostic, stmt, op_id, mnemonic.instruction());
+            t = get_check_op(operand.get(), dep_solver, add_diagnostic, stmt, op_id, curr_instr);
             if (!t)
                 return false; // contains dependencies
             t->operand_range = operand->operand_range;
