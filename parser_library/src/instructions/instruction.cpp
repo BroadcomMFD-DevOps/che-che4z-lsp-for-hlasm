@@ -588,7 +588,7 @@ template<mach_format F, operand_formats op_format>
 class instruction_format_definition_factory
 {
 public:
-    static constexpr instruction_format_definition def() noexcept
+    static consteval instruction_format_definition def() noexcept
     {
         constexpr auto offset = operand_map[(int)op_format];
         constexpr auto len = operand_map[(int)op_format + 1] - offset;
