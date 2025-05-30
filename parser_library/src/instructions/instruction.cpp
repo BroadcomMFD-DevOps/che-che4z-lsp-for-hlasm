@@ -679,17 +679,25 @@ consteval machine_instruction::machine_instruction(std::string_view name,
     : machine_instruction(name, ifd.format, ifd.op_format_offset, ifd.op_format_len, page_no, instr_set_affiliation, d)
 {}
 
+namespace {
 #define DEFINE_INSTRUCTION_FORMAT(name, format, ...)                                                                   \
     constexpr auto name = instruction_format_definition_factory<format, operand_formats::name>::def();
 #include "instruction_details.h"
 
+constexpr machine_instruction _machine_instructions[] = {
 #define DEFINE_INSTRUCTION(name, format, page, iset, description, ...)                                                 \
     { #name, format, page, iset, make_machine_instruction_details<instruction_fullname::name##_##format>(__VA_ARGS__) },
-constexpr machine_instruction machine_instructions[] = {
+#include "instruction_details.h"
+};
+} // namespace
+
+constinit const machine_instruction g_machine_instructions[] = {
+#define DEFINE_INSTRUCTION(name, format, page, iset, description, ...)                                                 \
+    { #name, format, page, iset, make_machine_instruction_details<instruction_fullname::name##_##format>(__VA_ARGS__) },
 #include "instruction_details.h"
 };
 
-static_assert(std::ranges::is_sorted(machine_instructions, {}, &machine_instruction::name));
+static_assert(std::ranges::is_sorted(_machine_instructions, {}, &machine_instruction::name));
 
 namespace {
 template<typename T, size_t n>
@@ -731,12 +739,12 @@ consteval bool check_instruction_overlap(const T (&instrs)[n])
 }
 } // namespace
 
-static_assert(check_instruction_overlap(machine_instructions), "Overlap detected in machine instruction list");
+static_assert(check_instruction_overlap(_machine_instructions), "Overlap detected in machine instruction list");
 
 const machine_instruction* find_machine_instructions(std::string_view name) noexcept
 {
-    auto it = std::ranges::lower_bound(machine_instructions, name, {}, &machine_instruction::name);
-    if (it == std::ranges::end(machine_instructions) || it->name() != name)
+    auto it = std::ranges::lower_bound(g_machine_instructions, name, {}, &machine_instruction::name);
+    if (it == std::ranges::end(g_machine_instructions) || it->name() != name)
         return nullptr;
     return std::to_address(it);
 }
@@ -748,7 +756,7 @@ const machine_instruction& get_machine_instructions(std::string_view name) noexc
     return *mi;
 }
 
-std::span<const machine_instruction> all_machine_instructions() noexcept { return machine_instructions; }
+std::span<const machine_instruction> all_machine_instructions() noexcept { return g_machine_instructions; }
 
 
 consteval mnemonic_transformation::mnemonic_transformation(unsigned short v) noexcept
@@ -788,16 +796,19 @@ consteval mnemonic_transformation::mnemonic_transformation(
 }
 
 consteval mnemonic_code::mnemonic_code(std::string_view name,
-    const machine_instruction* instr,
+    unsigned short instr_idx,
     instruction_set_affiliation instr_set_affiliation,
     std::initializer_list<const mnemonic_transformation> transform) noexcept
-    : m_instruction(instr)
+    : m_instruction(instr_idx)
     , m_transform {}
     , m_transform_count((unsigned char)transform.size())
-    , m_reladdr_mask(generate_reladdr_bitmask(instr->m_operands_offset, instr->m_operand_len, transform))
+    , m_reladdr_mask(generate_reladdr_bitmask((_machine_instructions + instr_idx)->m_operands_offset,
+          (_machine_instructions + instr_idx)->m_operand_len,
+          transform))
     , m_instr_set_affiliation(instr_set_affiliation)
     , m_name(name)
 {
+    const auto* instr = _machine_instructions + instr_idx;
     assert(transform.size() <= m_transform.size());
     std::ranges::copy(transform, m_transform.begin());
     const auto insert_count = std::ranges::count_if(transform, [](auto t) { return t.insert; });
@@ -815,18 +826,17 @@ consteval mnemonic_code::mnemonic_code(std::string_view name,
 }
 
 namespace {
-consteval const machine_instruction* find_mi(std::string_view name) noexcept
+consteval unsigned short find_mi(std::string_view name) noexcept
 {
-    auto it = std::ranges::lower_bound(machine_instructions, name, {}, &machine_instruction::name);
-    assert(it != std::ranges::end(machine_instructions) && it->name() == name);
-    return std::to_address(it);
+    const auto it = std::ranges::find(_machine_instructions, name, &machine_instruction::name);
+    assert(it != std::ranges::end(_machine_instructions));
+    return (unsigned short)(it - std::begin(_machine_instructions));
 }
 
 template<std::array<char, 8> name>
 struct mi_locator
 {
-    static constexpr const machine_instruction* value = find_mi(std::string_view(name.data()));
-    static_assert(value != nullptr, "Unable to find the parent instruction");
+    static constexpr unsigned short value = find_mi(std::string_view(name.data()));
 };
 } // namespace
 
@@ -840,8 +850,8 @@ static_assert(std::ranges::is_sorted(mnemonic_codes, {}, &mnemonic_code::name));
 namespace {
 consteval bool instr_and_mnemo_is_distinct()
 {
-    auto i = std::begin(machine_instructions);
-    const auto ie = std::end(machine_instructions);
+    auto i = std::begin(_machine_instructions);
+    const auto ie = std::end(_machine_instructions);
     auto m = std::begin(mnemonic_codes);
     const auto me = std::end(mnemonic_codes);
 
@@ -887,7 +897,7 @@ consteval instruction_set_size compute_instruction_set_size(instruction_set_vers
         std::size(ca_instructions),
         std::size(assembler_instructions),
     };
-    for (const auto& i : machine_instructions)
+    for (const auto& i : _machine_instructions)
         if (instruction_available(i.instr_set_affiliation(), v))
             ++result.machine;
     for (const auto& i : mnemonic_codes)

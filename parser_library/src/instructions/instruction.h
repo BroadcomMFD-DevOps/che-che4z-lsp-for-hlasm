@@ -385,6 +385,7 @@ public:
 
     constexpr branch_info_argument branch_argument() const noexcept { return m_branch_argument; }
 };
+extern constinit const machine_instruction g_machine_instructions[];
 
 class ca_instruction
 {
@@ -433,7 +434,7 @@ struct mnemonic_transformation
 // representation of mnemonic codes for machine instructions
 class mnemonic_code
 {
-    const machine_instruction* m_instruction;
+    unsigned short m_instruction;
 
     std::array<mnemonic_transformation, 3> m_transform;
     unsigned char m_transform_count;
@@ -443,17 +444,16 @@ class mnemonic_code
     instruction_set_affiliation m_instr_set_affiliation;
 
     inline_string<9> m_name;
-    unsigned char m_op_min : 4 = 0;
-    unsigned char m_op_max : 4 = 0;
-    // unsigned char available = 0;
+    unsigned char m_op_min = 0;
+    unsigned char m_op_max = 0;
 
 public:
     consteval mnemonic_code(std::string_view name,
-        const machine_instruction* instr,
+        unsigned short instr,
         instruction_set_affiliation instr_set_affiliation,
         std::initializer_list<const mnemonic_transformation> transform) noexcept;
 
-    constexpr const machine_instruction* instruction() const noexcept { return m_instruction; }
+    constexpr const machine_instruction* instruction() const noexcept { return g_machine_instructions + m_instruction; }
     constexpr size_t size_in_bits() const noexcept { return instruction()->size_in_bits(); }
     constexpr std::span<const mnemonic_transformation> operand_transformations() const noexcept
     {
@@ -514,7 +514,6 @@ const mnemonic_code* find_mnemonic_codes(std::string_view name) noexcept;
 std::span<const mnemonic_code> all_mnemonic_codes() noexcept;
 
 std::string_view mach_format_to_string(mach_format) noexcept;
-
 } // namespace hlasm_plugin::parser_library::instructions
 
 #endif
