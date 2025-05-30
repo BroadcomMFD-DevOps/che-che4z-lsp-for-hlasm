@@ -502,7 +502,9 @@ constexpr machine_operand_format rel_addr_imm_16_S_opt(reladdr_imm_16s, empty, e
 constexpr machine_operand_format rel_addr_imm_24_S_opt(reladdr_imm_24s, empty, empty, true);
 constexpr machine_operand_format rel_addr_imm_32_S_opt(reladdr_imm_32s, empty, empty, true);
 
-constinit const machine_operand_format machine_operand_format::empty { {}, {}, {}, false };
+constinit const machine_operand_format machine_operand_format::empty {
+    parameter {}, parameter {}, parameter {}, false
+};
 
 namespace {
 enum class operand_formats
