@@ -208,6 +208,8 @@ public:
     {
         return l.to_string_view() <=> r.to_string_view();
     }
+
+    static constexpr auto max_len = n;
 };
 
 enum class condition_code
@@ -384,6 +386,8 @@ public:
     }
 
     constexpr branch_info_argument branch_argument() const noexcept { return m_branch_argument; }
+
+    static constexpr auto max_name_len = decltype(m_name)::max_len;
 };
 extern constinit const machine_instruction g_machine_instructions[];
 
@@ -397,6 +401,8 @@ public:
 
     constexpr auto name() const noexcept { return m_name.to_string_view(); }
     constexpr auto operandless() const noexcept { return m_operandless; }
+
+    static constexpr auto max_name_len = decltype(m_name)::max_len;
 };
 
 enum class mnemonic_transformation_kind : unsigned char
@@ -466,6 +472,8 @@ public:
     {
         return m_instr_set_affiliation;
     };
+
+    static constexpr auto max_name_len = decltype(m_name)::max_len;
 };
 
 // machine instruction common representation
@@ -495,6 +503,8 @@ public:
     constexpr auto min_operands() const noexcept { return m_min_operands; }
     constexpr auto max_operands() const noexcept { return m_max_operands; }
     constexpr auto description() const noexcept { return std::string_view(s_descriptions + m_desc_offset, m_desc_len); }
+
+    static constexpr auto max_name_len = decltype(m_name)::max_len;
 };
 
 const ca_instruction& get_ca_instructions(std::string_view name) noexcept;

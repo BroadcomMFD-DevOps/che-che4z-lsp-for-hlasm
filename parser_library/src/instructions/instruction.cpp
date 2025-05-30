@@ -104,14 +104,15 @@ enum class mach_format : unsigned char
 };
 
 namespace {
-consteval inline_string<9> as_mach_format_name(std::string_view s)
+consteval auto as_mach_format_name(std::string_view s)
 {
-    std::array<char, 16> buffer = {};
+    using return_type = inline_string<9>;
+    std::array<char, return_type::max_len> buffer = {};
     std::ranges::copy(s, buffer.begin());
     std::ranges::replace(buffer, '_', '-');
-    return inline_string<9>(std::string_view(buffer.data(), s.size()));
+    return return_type(std::string_view(buffer.data(), s.size()));
 }
-constexpr inline_string<9> mach_format_text[] = {
+constexpr decltype(as_mach_format_name("")) mach_format_text[] = {
 #define DEFINE_MACH_FORMAT(name, ...) as_mach_format_name(#name),
 #include "instruction_details.h"
 };
@@ -200,7 +201,8 @@ constexpr auto _asm_map = []() consteval {
 }();
 
 // MSVC has trouble with direct std::array comparisons
-constexpr std::array<char, 10> _asm_names[] = {
+using asm_name_t = std::array<char, assembler_instruction::max_name_len + 1>;
+constexpr asm_name_t _asm_names[] = {
 #define DEFINE_ASM_INSTRUCTION(name, ...) { name },
 #include "instruction_details.h"
 };
@@ -210,7 +212,7 @@ consteval size_t _asm_find(std::string_view name) noexcept
     return std::ranges::find(_asm_names, name, [](const auto& x) { return std::string_view(x.data()); }) - _asm_names;
 }
 
-template<std::array<char, 10> name>
+template<asm_name_t name>
 struct asm_locator
 {
     static constexpr auto index = _asm_find(std::string_view(name.data()));
@@ -833,7 +835,7 @@ consteval unsigned short find_mi(std::string_view name) noexcept
     return (unsigned short)(it - std::begin(_machine_instructions));
 }
 
-template<std::array<char, 8> name>
+template<std::array<char, machine_instruction::max_name_len + 1> name>
 struct mi_locator
 {
     static constexpr unsigned short value = find_mi(std::string_view(name.data()));
