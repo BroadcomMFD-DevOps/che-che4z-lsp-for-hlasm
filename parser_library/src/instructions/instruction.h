@@ -339,7 +339,7 @@ public:
         machine_instruction_details d) noexcept;
 
     constexpr std::string_view name() const noexcept { return m_name.to_string_view(); }
-    mach_format format() const noexcept { return m_format; }
+    constexpr mach_format format() const noexcept { return m_format; }
     constexpr size_t size_in_bits() const noexcept
     {
         switch (static_cast<size_identifier>(m_size_identifier))
@@ -355,7 +355,7 @@ public:
         }
     }
     constexpr reladdr_transform_mask reladdr_mask() const noexcept { return m_reladdr_mask; }
-    std::span<const machine_operand_format> operands() const noexcept
+    constexpr std::span<const machine_operand_format> operands() const noexcept
     {
         return std::span<const machine_operand_format>(s_operands + m_operands_offset, m_operand_len);
     }
