@@ -757,6 +757,8 @@ consteval mnemonic_code::mnemonic_code(std::string_view name,
     , m_name(name)
 {
     const auto* instr = _machine_instructions + instr_idx;
+    assert(instr_idx + 1 == std::size(_machine_instructions)
+        || instr->name() != _machine_instructions[instr_idx + 1].name()); // detect version collisions
     assert(transform.size() <= m_transform.size());
     std::ranges::copy(transform, m_transform.begin());
     const auto insert_count = std::ranges::count_if(transform, [](auto t) { return t.insert; });
