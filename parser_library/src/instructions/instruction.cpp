@@ -752,8 +752,8 @@ consteval mnemonic_code::mnemonic_code(std::string_view name,
     : m_instruction(instr_idx)
     , m_transform {}
     , m_transform_count((unsigned char)transform.size())
-    , m_reladdr_mask(generate_reladdr_bitmask((_machine_instructions + instr_idx)->m_operands_offset,
-          (_machine_instructions + instr_idx)->m_operand_len,
+    , m_reladdr_mask(generate_reladdr_bitmask(_machine_instructions[instr_idx].m_operands_offset,
+          _machine_instructions[instr_idx].m_operand_len,
           transform))
     , m_instr_set_affiliation(instr_set_affiliation)
     , m_name(name)
