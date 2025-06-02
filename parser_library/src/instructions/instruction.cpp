@@ -759,8 +759,6 @@ consteval mnemonic_code::mnemonic_code(std::string_view name,
     , m_name(name)
 {
     const auto* instr = _machine_instructions + instr_idx;
-    utils::insist(instr_idx + 1 == std::size(_machine_instructions)
-        || instr->name() != _machine_instructions[instr_idx + 1].name()); // detect version collisions
     utils::insist(transform.size() <= m_transform.size());
     std::ranges::copy(transform, m_transform.begin());
     const auto insert_count = std::ranges::count_if(transform, [](auto t) { return t.insert; });
@@ -783,6 +781,9 @@ consteval unsigned short find_mi(std::string_view name) noexcept
 {
     const auto it = std::ranges::lower_bound(_machine_instructions, name, {}, &machine_instruction::name);
     utils::insist(it != std::ranges::end(_machine_instructions) && it->name() == name);
+    const auto next = std::next(it);
+    utils::insist(
+        next == std::ranges::end(_machine_instructions) || it->name() != next->name(), "Version collision detected");
     return (unsigned short)(it - std::begin(_machine_instructions));
 }
 
