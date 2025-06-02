@@ -21,6 +21,8 @@
 #include <numeric>
 #include <utility>
 
+#include "utils/insist.h"
+
 namespace hlasm_plugin::parser_library::instructions {
 
 namespace {
@@ -28,7 +30,7 @@ namespace {
 consteval instruction_set_affiliation operator|(instruction_set_affiliation a, z_arch_affiliation z_affil) noexcept
 {
     using enum z_arch_affiliation;
-    assert(a.z_arch == NO_AFFILIATION && a.z_arch_removed == NO_AFFILIATION);
+    utils::insist(a.z_arch == NO_AFFILIATION && a.z_arch_removed == NO_AFFILIATION);
 
     a.z_arch = z_affil;
     a.z_arch_removed = LAST;
@@ -38,8 +40,8 @@ consteval instruction_set_affiliation operator|(instruction_set_affiliation a, z
 
 consteval instruction_set_affiliation operator|(instruction_set_affiliation a, instruction_set_affiliation b) noexcept
 {
-    assert(a.z_arch == z_arch_affiliation::NO_AFFILIATION);
-    assert(b.z_arch == z_arch_affiliation::NO_AFFILIATION);
+    utils::insist(a.z_arch == z_arch_affiliation::NO_AFFILIATION);
+    utils::insist(b.z_arch == z_arch_affiliation::NO_AFFILIATION);
 
     instruction_set_affiliation result {};
 
@@ -91,7 +93,7 @@ consteval inline_string<n>::inline_string(std::string_view s) noexcept
     : len((unsigned char)s.size())
     , data {}
 {
-    assert(s.size() <= n);
+    utils::insist(s.size() <= n);
     size_t i = 0;
     for (char c : s)
         data[i++] = c;
@@ -172,7 +174,7 @@ constexpr auto _asm_map = []() consteval {
         sum += l;
     }
 
-    assert(sum <= (unsigned short)-1);
+    utils::insist(sum <= (unsigned short)-1);
 
     return result;
 }();
@@ -335,7 +337,7 @@ constexpr auto _cc_offsets = []() consteval {
         *out++ = (unsigned short)sum;
         sum += l;
     }
-    assert(sum <= (unsigned short)-1);
+    utils::insist(sum <= (unsigned short)-1);
     return offsets;
 }();
 
@@ -388,7 +390,7 @@ consteval machine_operand_format::machine_operand_format(
     , second(second)
     , optional(optional)
 {
-    assert(!second.is_empty() || first.is_empty());
+    utils::insist(!second.is_empty() || first.is_empty());
 }
 
 namespace {
@@ -508,8 +510,8 @@ consteval reladdr_transform_mask generate_reladdr_bitmask(
     {
         if (transforms_b != transforms_e && processed == transforms_b->skip)
         {
-            assert(op.identifier.type == machine_operand_type::IMM || op.identifier.type == machine_operand_type::MASK
-                || op.identifier.type == machine_operand_type::REG
+            utils::insist(op.identifier.type == machine_operand_type::IMM
+                || op.identifier.type == machine_operand_type::MASK || op.identifier.type == machine_operand_type::REG
                 || op.identifier.type == machine_operand_type::VEC_REG);
             top_bit >>= +!transforms_b++->insert;
             processed = 0;
@@ -536,11 +538,11 @@ constexpr auto operand_map = []() consteval {
     std::array<unsigned short, std::size(operand_sizes) + 1> result {};
     for (auto* p = result.data(); auto s : operand_sizes)
     {
-        assert(s <= (unsigned char)-1);
+        utils::insist(s <= (unsigned char)-1);
         *p++ = (unsigned short)sum;
         sum += s;
     }
-    assert(sum <= (unsigned short)-1);
+    utils::insist(sum <= (unsigned short)-1);
     result.back() = (unsigned short)sum;
 
     return result;
@@ -556,11 +558,11 @@ constexpr auto fullname_map = []() consteval {
     std::array<unsigned short, std::size(fullname_sizes) + 1> result {};
     for (auto* p = result.data(); auto s : fullname_sizes)
     {
-        assert(s <= (unsigned char)-1);
+        utils::insist(s <= (unsigned char)-1);
         *p++ = (unsigned short)sum;
         sum += s;
     }
-    assert(sum <= (unsigned short)-1);
+    utils::insist(sum <= (unsigned short)-1);
     result.back() = (unsigned short)sum;
 
     return result;
@@ -634,7 +636,7 @@ consteval machine_instruction::machine_instruction(std::string_view name,
     , m_has_parameter_list(d.has_parameter_list)
     , m_branch_argument(d.branch_argument)
 {
-    assert(operand_len <= max_operand_count);
+    utils::insist(operand_len <= max_operand_count);
 }
 
 consteval machine_instruction::machine_instruction(std::string_view name,
@@ -716,7 +718,7 @@ consteval mnemonic_transformation::mnemonic_transformation(unsigned char skip, u
     , insert(insert)
     , value(v)
 {
-    assert(skip < machine_instruction::max_operand_count);
+    utils::insist(skip < machine_instruction::max_operand_count);
 }
 
 consteval mnemonic_transformation::mnemonic_transformation(
@@ -725,9 +727,9 @@ consteval mnemonic_transformation::mnemonic_transformation(
     , source(src)
     , type(t)
 {
-    assert(t == mnemonic_transformation_kind::copy);
-    assert(skip < machine_instruction::max_operand_count);
-    assert(src < machine_instruction::max_operand_count);
+    utils::insist(t == mnemonic_transformation_kind::copy);
+    utils::insist(skip < machine_instruction::max_operand_count);
+    utils::insist(src < machine_instruction::max_operand_count);
 }
 
 consteval mnemonic_transformation::mnemonic_transformation(
@@ -738,9 +740,9 @@ consteval mnemonic_transformation::mnemonic_transformation(
     , insert(insert)
     , value(v)
 {
-    assert(t != mnemonic_transformation_kind::copy && t != mnemonic_transformation_kind::value);
-    assert(skip < machine_instruction::max_operand_count);
-    assert(src < machine_instruction::max_operand_count);
+    utils::insist(t != mnemonic_transformation_kind::copy && t != mnemonic_transformation_kind::value);
+    utils::insist(skip < machine_instruction::max_operand_count);
+    utils::insist(src < machine_instruction::max_operand_count);
 }
 
 consteval mnemonic_code::mnemonic_code(std::string_view name,
@@ -757,30 +759,30 @@ consteval mnemonic_code::mnemonic_code(std::string_view name,
     , m_name(name)
 {
     const auto* instr = _machine_instructions + instr_idx;
-    assert(instr_idx + 1 == std::size(_machine_instructions)
+    utils::insist(instr_idx + 1 == std::size(_machine_instructions)
         || instr->name() != _machine_instructions[instr_idx + 1].name()); // detect version collisions
-    assert(transform.size() <= m_transform.size());
+    utils::insist(transform.size() <= m_transform.size());
     std::ranges::copy(transform, m_transform.begin());
     const auto insert_count = std::ranges::count_if(transform, [](auto t) { return t.insert; });
     [[maybe_unused]] const auto total = std::accumulate(
         transform.begin(), transform.end(), (size_t)0, [](size_t res, auto t) { return res + t.skip + t.insert; });
-    assert(total <= instr->m_operand_len);
+    utils::insist(total <= instr->m_operand_len);
 
-    assert(instr->m_operand_len - instr->m_optional_op_count >= insert_count);
+    utils::insist(instr->m_operand_len - instr->m_optional_op_count >= insert_count);
     m_op_max = static_cast<unsigned char>(instr->m_operand_len - insert_count);
     m_op_min = static_cast<unsigned char>(instr->m_operand_len - instr->m_optional_op_count - insert_count);
-    assert(m_op_max <= instr->m_operand_len);
-    assert(m_op_min <= m_op_max);
+    utils::insist(m_op_max <= instr->m_operand_len);
+    utils::insist(m_op_min <= m_op_max);
 
     for ([[maybe_unused]] const auto& r : transform)
-        assert(!r.has_source() || r.source < m_op_max);
+        utils::insist(!r.has_source() || r.source < m_op_max);
 }
 
 namespace {
 consteval unsigned short find_mi(std::string_view name) noexcept
 {
     const auto it = std::ranges::lower_bound(_machine_instructions, name, {}, &machine_instruction::name);
-    assert(it != std::ranges::end(_machine_instructions) && it->name() == name);
+    utils::insist(it != std::ranges::end(_machine_instructions) && it->name() == name);
     return (unsigned short)(it - std::begin(_machine_instructions));
 }
 
