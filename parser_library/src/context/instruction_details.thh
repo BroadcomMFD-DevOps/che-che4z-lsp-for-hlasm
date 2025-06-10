@@ -1097,7 +1097,7 @@ DEFINE_INSTRUCTION(PALB, RRE_0, 1209, UNI_ESA_SINCE_ZOP, "Purge ALB", privileged
 DEFINE_INSTRUCTION(PC, S_1_u, 1183, UNI_ESA_XA_370_SINCE_ZOP, "Program Call", privileged_conditionally, branch_argument_unknown)
 DEFINE_INSTRUCTION(PCC, RRE_0, 872, UNI_SINCE_Z11, "Perform Cryptographic Computation", pcc_special)
 DEFINE_INSTRUCTION(PCKMO, RRE_0, 1162, UNI_SINCE_Z10, "Perform Crypto. Key Mgmt. Operations", privileged, has_parameter_list)
-DEFINE_INSTRUCTION(PFCR, RSY_a_3, 0, UNI_SINCE_Z17, "Perform functions with concurrent results")
+// DEFINE_INSTRUCTION(PFCR, RSY_a_3, 0, UNI_SINCE_Z17, "Perform functions with concurrent results") // removed before GA
 DEFINE_INSTRUCTION(PFD, RXY_b_2, 938, UNI_SINCE_Z10, "Prefetch Data")
 DEFINE_INSTRUCTION(PFDRL, RIL_c_2, 939, UNI_SINCE_Z10, "Prefetch Data Relative Long")
 DEFINE_INSTRUCTION(PFMF, RRE_2, 1170, UNI_SINCE_Z10, "Perform Frame Management Function", privileged)
@@ -1656,7 +1656,7 @@ DEFINE_INSTRUCTION(VSUMQ, VRR_c_4, 1720, UNI_SINCE_Z13, "Vector Sum Across Quadw
 DEFINE_INSTRUCTION(VSVMM, RRE_2, 0, ESA_XA_370, "Set Vector Mask Mode", old_vector)
 DEFINE_INSTRUCTION(VTM, VRR_a_2, 1721, UNI_SINCE_Z13, "Vector Test Under Mask", tm_old_special)
 DEFINE_INSTRUCTION(VTP, VRR_g_2_opt, 1813, UNI_SINCE_Z17, "Vector Test Decimal", test_decimal_special)
-DEFINE_INSTRUCTION(VTP, VRR_g_1, 0, SINCE_Z14_TILL_Z17, "Vector Test Decimal", test_decimal_special)
+DEFINE_INSTRUCTION(VTP, VRR_g_1, 1813, SINCE_Z14_TILL_Z17, "Vector Test Decimal", test_decimal_special)
 DEFINE_INSTRUCTION(VTVM, RRE_2, 0, ESA_XA_370, "Test VMR", old_vector)
 DEFINE_INSTRUCTION(VTZ, VRI_l_3, 1814, UNI_SINCE_Z17, "Vector Test Zoned", test_decimal_special)
 DEFINE_INSTRUCTION(VUPH, VRR_a_3, 1681, UNI_SINCE_Z13, "Vector Unpack High")
