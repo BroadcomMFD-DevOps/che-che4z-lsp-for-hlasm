@@ -365,6 +365,7 @@ consteval condition_code_explanation::condition_code_explanation(
     {
         std::ranges::fill_n(text.begin(), 4, t[0]);
         std::ranges::fill_n(lengths.begin(), 4, l[0]);
+        single_explanation = true;
     }
 }
 
