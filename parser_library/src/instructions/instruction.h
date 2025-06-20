@@ -473,7 +473,6 @@ public:
     static constexpr auto max_name_len = decltype(m_name)::max_len;
 };
 
-// machine instruction common representation
 class assembler_instruction
 {
     inline_string<9> m_name;
