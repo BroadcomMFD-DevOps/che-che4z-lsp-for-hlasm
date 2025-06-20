@@ -482,7 +482,7 @@ bool check(const instructions::machine_instruction& mi,
             add_diagnostic(std::move(diag).value());
             error = true;
         }
-    };
+    }
     return !error;
 }
 
