@@ -773,7 +773,7 @@ consteval mnemonic_code::mnemonic_code(std::string_view name,
     utils::insist(m_op_max <= instr->m_operand_len);
     utils::insist(m_op_min <= m_op_max);
 
-    for ([[maybe_unused]] const auto& r : transform)
+    for (const auto& r : transform)
         utils::insist(!r.has_source() || r.source < m_op_max);
 }
 
