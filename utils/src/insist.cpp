@@ -22,7 +22,7 @@ namespace hlasm_plugin::utils {
 
 [[noreturn]] void insist_fail(const char* explanation) noexcept
 {
-    platform::log("Assert failure: {}", explanation ? explanation : "unknown");
+    platform::log("Assert failure: ", explanation ? explanation : "unknown");
     std::abort();
 }
 
