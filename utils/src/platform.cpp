@@ -60,9 +60,9 @@ void log(std::span<const std::string_view> list)
     for (auto e : list)
         s.append(e);
     MAIN_THREAD_EM_ASM(
-        { console.error(new TextDecoder('utf8', { fatal : false }).decode(HEAPU8.slice($0, $1))); },
+        { console.error(new TextDecoder('utf8', { fatal : false }).decode(HEAPU8.slice($0, $0 + $1))); },
         s.data(),
-        s.data() + s.size());
+        s.size());
 #else
     for (auto e : list)
         std::clog << e;
