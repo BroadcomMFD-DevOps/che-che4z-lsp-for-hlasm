@@ -75,7 +75,7 @@ void log(std::span<const std::string_view> list)
     }
     else
     {
-        MAIN_THREAD_EM_ASM({ platform.stderr.write(HEAPU8.slice($0, $0 + $1)); }, s.data(), s.size());
+        MAIN_THREAD_EM_ASM({ process.stderr.write(HEAPU8.slice($0, $0 + $1)); }, s.data(), s.size());
     }
 #else
     for (auto e : list)
