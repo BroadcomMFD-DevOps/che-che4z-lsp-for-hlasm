@@ -16,7 +16,6 @@
 #define HLASMPLUGIN_HLASMLANGUAGESERVER_LSP_SERVER_H
 
 #include <atomic>
-#include <mutex>
 #include <string>
 #include <unordered_set>
 
@@ -82,8 +81,8 @@ private:
         parser_library::watcher_registration_id id;
         unsigned long long reference_count = 1;
     };
+
     parser_library::watcher_registration_id m_next_watcher_id = parser_library::watcher_registration_id::INVALID;
-    std::mutex m_watcher_registrations_mutex;
     std::vector<watcher_registration> m_watcher_registrations;
 
     bool m_supports_dynamic_file_change_notification : 1 = false;

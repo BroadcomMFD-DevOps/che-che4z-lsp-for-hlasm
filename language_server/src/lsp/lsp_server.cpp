@@ -15,6 +15,7 @@
 
 #include "lsp_server.h"
 
+#include <algorithm>
 #include <exception>
 #include <functional>
 #include <memory>
@@ -40,6 +41,48 @@ namespace {
 std::string as_id_string(parser_library::watcher_registration_id id)
 {
     return "watcher_" + std::to_string(static_cast<std::underlying_type_t<decltype(id)>>(id));
+}
+
+nlohmann::json watcher_id_registeration(std::string_view uri, bool r)
+{
+    nlohmann::json::array_t watchers;
+    utils::resource::resource_location loc(uri);
+    loc.join("");
+    watchers.push_back({
+        {
+            "globPattern",
+            {
+                { "baseUri", loc.get_uri() },
+                { "pattern", r ? "**/*" : "*" },
+            },
+        },
+    });
+    if (auto parent = utils::resource::resource_location::join(loc, "..").lexically_normal(); parent != loc)
+    {
+        const auto rel = loc.lexically_relative(parent);
+        const auto rel_uri = rel.get_uri();
+
+        watchers.push_back({
+            {
+                "globPattern",
+                {
+                    { "baseUri", parent.get_uri() },
+                    { "pattern", rel_uri.substr(0, rel_uri.size() - 1) },
+                    { "kind", 1 | 4 },
+                },
+            },
+        });
+    }
+
+    return watchers;
+}
+
+nlohmann::json watcher_id_unregisteration(parser_library::watcher_registration_id id)
+{
+    return {
+        { "id", as_id_string(id) },
+        { "method", "workspace/didChangeWatchedFiles" },
+    };
 }
 } // namespace
 
@@ -533,10 +576,8 @@ void server::set_log_level(const nlohmann::json& data) { logger::instance.level(
 
 parser_library::watcher_registration_id server::add_watcher(std::string_view uri, bool r)
 {
-    if (!m_supports_file_change_notification_relative_pattern)
-        return {};
-
-    std::unique_lock lock(m_watcher_registrations_mutex);
+    if (!m_supports_file_change_notification_relative_pattern || shutdown_request_received_)
+        return parser_library::watcher_registration_id::INVALID;
 
     const auto matching_registration = [uri, r](const auto& w) { return w.base_uri == uri && w.recursive == r; };
     if (const auto it = std::ranges::find_if(m_watcher_registrations, matching_registration);
@@ -550,47 +591,11 @@ parser_library::watcher_registration_id server::add_watcher(std::string_view uri
 
     m_watcher_registrations.emplace_back(std::string(uri), r, id);
 
-    lock.unlock();
-
     bool done = false;
     utils::scope_exit remove_on_failure([this, id, &done]() noexcept {
         if (!done)
-        {
-            std::lock_guard g(m_watcher_registrations_mutex);
-            const auto it = std::ranges::find(m_watcher_registrations, id, &watcher_registration::id);
-            std::swap(*it, m_watcher_registrations.back());
-            m_watcher_registrations.pop_back();
-        }
+            std::erase_if(m_watcher_registrations, [id](const watcher_registration& r) { return r.id == id; });
     });
-
-    nlohmann::json::array_t watchers;
-    utils::resource::resource_location loc(uri);
-    loc.join("");
-    watchers.push_back({
-        {
-            "globPattern",
-            {
-                { "baseUri", loc.get_uri() },
-                { "pattern", r ? "**/*" : "*" },
-            },
-        },
-    });
-    if (auto parent = utils::resource::resource_location::join(loc, "..").lexically_normal(); parent != loc)
-    {
-        const auto rel = loc.lexically_relative(parent);
-        const auto rel_uri = rel.get_uri();
-
-        watchers.push_back({
-            {
-                "globPattern",
-                {
-                    { "baseUri", parent.get_uri() },
-                    { "pattern", rel_uri.substr(0, rel_uri.size() - 1) },
-                    { "kind", 1 | 4 },
-                },
-            },
-        });
-    }
 
     const nlohmann::json watcher_registration_request {
         {
@@ -602,7 +607,7 @@ parser_library::watcher_registration_id server::add_watcher(std::string_view uri
                     {
                         "registerOptions",
                         {
-                            { "watchers", std::move(watchers) },
+                            { "watchers", watcher_id_registeration(uri, r) },
                         },
                     },
                 },
@@ -614,8 +619,7 @@ parser_library::watcher_registration_id server::add_watcher(std::string_view uri
         "client/registerCapability",
         watcher_registration_request,
         [](const nlohmann::json&) {},
-        [this, id](int, [[maybe_unused]] const char* msg) {
-            std::lock_guard g(m_watcher_registrations_mutex);
+        [this, id](int, const char* msg) {
             std::erase_if(m_watcher_registrations, [id](const watcher_registration& r) { return r.id == id; });
             LOG_WARNING("Error occurred while registering a file watcher: ", msg);
         });
@@ -627,23 +631,20 @@ parser_library::watcher_registration_id server::add_watcher(std::string_view uri
 
 void server::remove_watcher(parser_library::watcher_registration_id id)
 {
-    std::unique_lock lock(m_watcher_registrations_mutex);
     const auto it = std::ranges::find(m_watcher_registrations, id, &watcher_registration::id);
     if (it == std::ranges::end(m_watcher_registrations) || --it->reference_count > 0)
         return;
 
-    m_watcher_registrations.erase(it);
-    lock.unlock();
+    std::swap(*it, m_watcher_registrations.back());
+    m_watcher_registrations.pop_back();
+
+    if (shutdown_request_received_)
+        return;
 
     const nlohmann::json unregisterations_request {
         {
             "unregisterations",
-            nlohmann::json::array_t {
-                {
-                    { "id", as_id_string(id) },
-                    { "method", "workspace/didChangeWatchedFiles" },
-                },
-            },
+            nlohmann::json::array_t { watcher_id_unregisteration(id) },
         },
     };
 
@@ -651,14 +652,12 @@ void server::remove_watcher(parser_library::watcher_registration_id id)
         "client/unregisterCapability",
         unregisterations_request,
         [](const nlohmann::json&) {},
-        [](int, [[maybe_unused]] const char* msg) {
-            LOG_WARNING("Error occurred while unregistering file watcher: ", msg);
-        });
+        [](int, const char* msg) { LOG_WARNING("Error occurred while unregistering file watcher: ", msg); });
 }
 
 void server::register_file_change_notifications()
 {
-    static const nlohmann::json global_patterns {
+    const nlohmann::json global_patterns {
         {
             "registrations",
             nlohmann::json::array_t {
@@ -686,9 +685,7 @@ void server::register_file_change_notifications()
         "client/registerCapability",
         global_patterns,
         [](const nlohmann::json&) {},
-        [](int, [[maybe_unused]] const char* msg) {
-            LOG_WARNING("Error occurred while registering file watcher: ", msg);
-        });
+        [](int, const char* msg) { LOG_WARNING("Error occurred while registering global file watcher: ", msg); });
 }
 
 parser_library::watcher_registration_id server::next_watcher_id() noexcept
