@@ -197,16 +197,36 @@ class workspace_configuration : public configuration_provider
 
     std::vector<diagnostic> m_config_diags;
 
+    struct watcher_registration_handle
+    {
+        watcher_registration_provider* provider = nullptr;
+        watcher_registration_id id = watcher_registration_id::INVALID;
+
+        constexpr watcher_registration_handle() noexcept = default;
+        constexpr watcher_registration_handle(
+            watcher_registration_provider* provider, watcher_registration_id id) noexcept
+            : provider(provider)
+            , id(id)
+        {}
+
+        watcher_registration_handle(const watcher_registration_handle&) = delete;
+        constexpr watcher_registration_handle(watcher_registration_handle&& o) noexcept;
+        watcher_registration_handle& operator=(const watcher_registration_handle&) = delete;
+        watcher_registration_handle& operator=(watcher_registration_handle&&) noexcept;
+        ~watcher_registration_handle() noexcept(false);
+    };
+
     struct library_entry
     {
         std::shared_ptr<library> lib;
+        watcher_registration_handle handle;
         bool used; // transient
     };
 
     struct library_prefix_entry
     {
         watcher_registration_handle handle;
-        bool used;
+        bool used; // transient
     };
 
     std::map<std::pair<utils::resource::resource_location, library_options>, library_entry, std::less<>> m_libraries;

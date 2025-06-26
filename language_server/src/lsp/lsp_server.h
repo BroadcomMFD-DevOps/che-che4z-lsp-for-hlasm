@@ -16,14 +16,12 @@
 #define HLASMPLUGIN_HLASMLANGUAGESERVER_LSP_SERVER_H
 
 #include <atomic>
+#include <mutex>
 #include <string>
 #include <unordered_set>
 
 #include "../server.h"
 #include "../telemetry_sink.h"
-#include "feature_language_features.h"
-#include "feature_text_synchronization.h"
-#include "feature_workspace_folders.h"
 #include "nlohmann/json_fwd.hpp"
 #include "progress_notification.h"
 #include "watcher_registration_provider.h"
@@ -77,15 +75,25 @@ private:
     parser_library::workspace_manager& ws_mngr;
     progress_notification progress;
 
-    feature_workspace_folders m_feature_workspace_folders;
-    feature_text_synchronization m_feature_text_synchronization;
-    feature_language_features m_feature_language_features;
+    struct watcher_registration
+    {
+        std::string base_uri;
+        bool recursive;
+        parser_library::watcher_registration_id id;
+        unsigned long long reference_count = 1;
+    };
+    parser_library::watcher_registration_id m_next_watcher_id = parser_library::watcher_registration_id::INVALID;
+    std::mutex m_watcher_registrations_mutex;
+    std::vector<watcher_registration> m_watcher_registrations;
+
+    bool m_supports_dynamic_file_change_notification : 1 = false;
+    bool m_supports_file_change_notification_relative_pattern : 1 = false;
 
     // requests
     // Implements initialize request.
     void on_initialize(const request_id& id, const nlohmann::json& param);
     // Implements initialized notification.
-    void on_initialized(const nlohmann::json&) const;
+    void on_initialized(const nlohmann::json&);
     // Implements the LSP shutdown request.
     void on_shutdown(const request_id& id, const nlohmann::json& param);
 
@@ -130,7 +138,12 @@ private:
 
     void set_log_level(const nlohmann::json&);
 
-    parser_library::watcher_registration_handle add_watcher(std::string_view uri, bool recursive) override;
+    parser_library::watcher_registration_id add_watcher(std::string_view uri, bool recursive) override;
+    void remove_watcher(parser_library::watcher_registration_id id) override;
+
+    parser_library::watcher_registration_id next_watcher_id() noexcept;
+    void register_file_change_notifications();
+    void fill_change_notification_support_flags(const nlohmann::json& json);
 };
 
 } // namespace hlasm_plugin::language_server::lsp

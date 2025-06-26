@@ -33,7 +33,7 @@ std::string current_time()
         return t->to_string();
 }
 
-void logger::log_impl(unsigned level, std::span<std::string_view> args) noexcept
+void logger::log_impl(unsigned level, std::span<std::string_view> args)
 {
     static constexpr std::string_view levels[] = {
         "ERROR",
@@ -43,23 +43,16 @@ void logger::log_impl(unsigned level, std::span<std::string_view> args) noexcept
     if (level >= std::size(levels))
         level = std::size(levels) - 1;
 
+    std::lock_guard g(m_mutex);
 
-    try
-    {
-        std::lock_guard g(m_mutex);
-        auto t = current_time();
+    auto t = current_time();
 
-        args[0] = t;
-        args[1] = ":";
-        args[2] = levels[level];
-        args[3] = ":";
+    args[0] = t;
+    args[1] = ":";
+    args[2] = levels[level];
+    args[3] = ":";
 
-        utils::platform::log(args);
-    }
-    catch (...)
-    {
-        // There is not much we can do here
-    }
+    utils::platform::log(args);
 }
 
 } // namespace hlasm_plugin::language_server

@@ -23,20 +23,11 @@
 
 namespace hlasm_plugin::language_server::lsp {
 
-struct feature_workspace_folders::watcher_registration
-{
-    std::string base_uri;
-    bool recursive;
-    watcher_id id;
-    std::weak_ptr<const void> registration;
-};
-
 feature_workspace_folders::feature_workspace_folders(
     parser_library::workspace_manager& ws_mngr, response_provider& response_provider)
     : feature(response_provider)
     , ws_mngr_(ws_mngr)
 {}
-feature_workspace_folders::~feature_workspace_folders() = default;
 
 void feature_workspace_folders::register_methods(std::map<std::string, method>& methods)
 {
@@ -76,12 +67,6 @@ void feature_workspace_folders::initialize_feature(const nlohmann::json& initial
     {
         if (auto ws_folders = ws->find("workspaceFolders"); ws_folders != ws->end())
             ws_folders_support = ws_folders->get<bool>();
-
-        if (auto watcher = ws->find("didChangeWatchedFiles"); watcher != ws->end() && watcher->is_object())
-        {
-            m_supports_dynamic_file_change_notification = watcher->value("dynamicRegistration", false);
-            m_supports_file_change_notification_relative_pattern = watcher->value("relativePatternSupport", false);
-        }
     }
 
     if (auto root_uri = initialize_params.find("rootUri"); root_uri != initialize_params.end() && root_uri->is_string())
@@ -89,7 +74,7 @@ void feature_workspace_folders::initialize_feature(const nlohmann::json& initial
         m_root_uri = root_uri->get<std::string>();
     }
     else if (auto root_path = initialize_params.find("rootPath");
-        root_path != initialize_params.end() && root_path->is_string())
+             root_path != initialize_params.end() && root_path->is_string())
     {
         m_root_uri = utils::path::path_to_uri(utils::path::lexically_normal(root_path->get<std::string>()).string());
     }
@@ -109,8 +94,6 @@ void feature_workspace_folders::initialized()
 {
     ws_mngr_.change_implicit_group_base(m_root_uri);
     send_configuration_request();
-    if (m_supports_dynamic_file_change_notification)
-        register_file_change_notifictions();
     for (const auto& [name, uri] : std::exchange(m_initial_workspaces, {}))
         ws_mngr_.add_workspace(name, uri);
 }
@@ -181,41 +164,6 @@ void feature_workspace_folders::send_configuration_request()
         });
 }
 
-void feature_workspace_folders::register_file_change_notifictions()
-{
-    static const nlohmann::json global_patterns {
-        {
-            "registrations",
-            nlohmann::json::array_t {
-                {
-                    { "id", "global_watchers" },
-                    { "method", "workspace/didChangeWatchedFiles" },
-                    {
-                        "registerOptions",
-                        {
-                            {
-                                "watchers",
-                                nlohmann::json::array_t {
-                                    { { "globPattern", "**/*" } },
-                                    { { "globPattern", ".hlasmplugin/*.json" } },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-        },
-    };
-
-    response_->request(
-        "client/registerCapability",
-        global_patterns,
-        [](const nlohmann::json&) {},
-        [](int, [[maybe_unused]] const char* msg) {
-            LOG_WARNING("Error occurred while registering file watcher: ", msg);
-        });
-}
-
 void feature_workspace_folders::configuration(const nlohmann::json& params) const
 {
     if (params.size() != 2)
@@ -238,140 +186,5 @@ void feature_workspace_folders::configuration(const nlohmann::json& params) cons
 }
 
 void feature_workspace_folders::did_change_configuration(const nlohmann::json&) { send_configuration_request(); }
-
-std::string as_id_string(feature_workspace_folders::watcher_id id)
-{
-    return "watcher_" + std::to_string(static_cast<std::underlying_type_t<feature_workspace_folders::watcher_id>>(id));
-}
-
-std::shared_ptr<const void> feature_workspace_folders::add_watcher(std::string_view uri, bool r)
-{
-    if (!m_supports_file_change_notification_relative_pattern)
-        return {};
-
-    std::unique_lock lock(m_watcher_registrations_mutex);
-
-    const auto matching_registration = [uri, r](const auto& w) { return w.base_uri == uri && w.recursive == r; };
-    if (const auto it = std::ranges::find_if(m_watcher_registrations, matching_registration);
-        it != std::ranges::end(m_watcher_registrations))
-    {
-        auto l = it->registration.lock();
-        if (l)
-            return l;
-    }
-
-    const auto id = next_watcher_id();
-
-    auto cleaner = [this, id]() noexcept { remove_watcher(id); };
-    auto new_reg = std::make_shared<utils::scope_exit<decltype(cleaner)>>(std::move(cleaner));
-
-    m_watcher_registrations.emplace_back(std::string(uri), r, id, new_reg);
-
-    lock.unlock();
-
-    nlohmann::json::array_t watchers;
-    utils::resource::resource_location loc(uri);
-    loc.join("");
-    watchers.push_back({
-        {
-            "globPattern",
-            {
-                { "baseUri", loc.get_uri() },
-                { "pattern", r ? "**/*" : "*" },
-            },
-        },
-    });
-    if (auto parent = utils::resource::resource_location::join(loc, "..").lexically_normal(); parent != loc)
-    {
-        const auto rel = loc.lexically_relative(parent);
-        const auto rel_uri = rel.get_uri();
-
-        watchers.push_back({
-            {
-                "globPattern",
-                {
-                    { "baseUri", parent.get_uri() },
-                    { "pattern", rel_uri.substr(0, rel_uri.size() - 1) },
-                    { "kind", 1 | 4 },
-                },
-            },
-        });
-    }
-
-    const nlohmann::json watcher_registration_request {
-        {
-            "registrations",
-            nlohmann::json::array_t {
-                {
-                    { "id", as_id_string(id) },
-                    { "method", "workspace/didChangeWatchedFiles" },
-                    {
-                        "registerOptions",
-                        {
-                            { "watchers", std::move(watchers) },
-                        },
-                    },
-                },
-            },
-        },
-    };
-
-    response_->request(
-        "client/registerCapability",
-        watcher_registration_request,
-        [](const nlohmann::json&) {},
-        [this, w = std::weak_ptr(new_reg)](int, [[maybe_unused]] const char* msg) {
-            std::lock_guard g(m_watcher_registrations_mutex);
-            std::erase_if(m_watcher_registrations, [&w](const watcher_registration& r) {
-                // TODO: C++26 owner_equal
-                return !r.registration.owner_before(w) && !w.owner_before(r.registration);
-            });
-            LOG_WARNING("Error occurred while registering a file watcher: ", msg);
-        });
-
-    return new_reg;
-}
-
-void feature_workspace_folders::remove_watcher(watcher_id id) noexcept
-{
-    std::unique_lock lock(m_watcher_registrations_mutex);
-    std::erase_if(m_watcher_registrations, [id](const auto& r) { return r.id == id; });
-    lock.unlock();
-
-    try
-    {
-        const nlohmann::json unregistration_request {
-            {
-                "unregistrations",
-                nlohmann::json::array_t {
-                    {
-                        { "id", as_id_string(id) },
-                        { "method", "workspace/didChangeWatchedFiles" },
-                    },
-                },
-            },
-        };
-
-        response_->request(
-            "client/unregisterCapability",
-            unregistration_request,
-            [](const nlohmann::json&) {},
-            [](int, [[maybe_unused]] const char* msg) {
-                LOG_WARNING("Error occurred while unregistering file watcher: ", msg);
-            });
-    }
-    catch (...)
-    {
-        LOG_WARNING("Unable to unregister file watcher");
-    }
-}
-
-constexpr feature_workspace_folders::watcher_id feature_workspace_folders::next_watcher_id() noexcept
-{
-    const auto n = static_cast<std::underlying_type_t<watcher_id>>(m_next_watcher_id) + 1;
-    const auto w = static_cast<watcher_id>(n);
-    m_next_watcher_id = w;
-    return w;
-}
 
 } // namespace hlasm_plugin::language_server::lsp

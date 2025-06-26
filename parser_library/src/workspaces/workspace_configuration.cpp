@@ -346,25 +346,10 @@ std::shared_ptr<library> workspace_configuration::get_local_library(
         return it->second.lib;
     }
 
-    struct lib
-    {
-        library_local value;
-        watcher_registration_handle watcher;
-        lib(file_manager& file_manager,
-            const utils::resource::resource_location& lib_loc,
-            const library_local_options& options,
-            const utils::resource::resource_location& err_loc,
-            watcher_registration_handle watcher)
-            : value(file_manager, lib_loc, options, err_loc)
-            , watcher(std::move(watcher))
-        {}
-    };
+    auto watcher = add_watcher(url.get_uri(), false);
+    auto result = std::make_shared<library_local>(m_file_manager, url, opts, m_proc_grps_current_loc);
 
-    auto tmp =
-        std::make_shared<lib>(m_file_manager, url, opts, m_proc_grps_current_loc, add_watcher(url.get_uri(), false));
-    std::shared_ptr<library> result(std::move(tmp), &tmp->value);
-
-    m_libraries.try_emplace(std::make_pair(url, library_options(opts)), result, true);
+    m_libraries.try_emplace(std::make_pair(url, library_options(opts)), result, std::move(watcher), true);
 
     return result;
 }
@@ -905,10 +890,11 @@ utils::task workspace_configuration::find_and_add_libs(utils::resource::resource
     }
 }
 
-watcher_registration_handle workspace_configuration::add_watcher(std::string_view uri, bool recursive)
+workspace_configuration::watcher_registration_handle workspace_configuration::add_watcher(
+    std::string_view uri, bool recursive)
 {
     if (m_watch_provider)
-        return m_watch_provider->add_watcher(uri, recursive);
+        return watcher_registration_handle(m_watch_provider, m_watch_provider->add_watcher(uri, recursive));
     else
         return watcher_registration_handle();
 }
@@ -928,7 +914,7 @@ void workspace_configuration::add_missing_diags(std::vector<diagnostic>& target,
 
     for (const auto& categorized_missing_pgroups =
              m_pgm_conf_store->get_categorized_missing_pgroups(config_file_rl, opened_files);
-        const auto& [missing_pgroup_name, used] : categorized_missing_pgroups)
+         const auto& [missing_pgroup_name, used] : categorized_missing_pgroups)
     {
         if (!include_advisory_cfg_diags && !used)
             continue;
@@ -1284,6 +1270,27 @@ utils::value_task<utils::resource::resource_location> workspace_configuration::l
 void workspace_configuration::change_processor_group_base(utils::resource::resource_location url)
 {
     m_proc_base = std::move(url);
+}
+
+workspace_configuration::watcher_registration_handle::~watcher_registration_handle() noexcept(false)
+{
+    if (provider)
+        provider->remove_watcher(id);
+}
+
+constexpr workspace_configuration::watcher_registration_handle::watcher_registration_handle(
+    watcher_registration_handle&& o) noexcept
+    : provider(std::exchange(o.provider, nullptr))
+    , id(std::exchange(o.id, watcher_registration_id::INVALID))
+{}
+
+workspace_configuration::watcher_registration_handle& workspace_configuration::watcher_registration_handle::operator=(
+    watcher_registration_handle&& o) noexcept
+{
+    watcher_registration_handle tmp(std::move(o));
+    std::swap(provider, tmp.provider);
+    std::swap(id, tmp.id);
+    return *this;
 }
 
 } // namespace hlasm_plugin::parser_library::workspaces

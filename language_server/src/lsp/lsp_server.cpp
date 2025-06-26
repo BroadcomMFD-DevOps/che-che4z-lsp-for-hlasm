@@ -25,6 +25,9 @@
 #include "../logger.h"
 #include "diagnostic.h"
 #include "fade_messages.h"
+#include "feature_language_features.h"
+#include "feature_text_synchronization.h"
+#include "feature_workspace_folders.h"
 #include "nlohmann/json.hpp"
 #include "parsing_metadata_serialization.h"
 #include "utils/error_codes.h"
@@ -32,17 +35,21 @@
 
 namespace hlasm_plugin::language_server::lsp {
 
+namespace {
+std::string as_id_string(parser_library::watcher_registration_id id)
+{
+    return "watcher_" + std::to_string(static_cast<std::underlying_type_t<decltype(id)>>(id));
+}
+} // namespace
+
 server::server(parser_library::workspace_manager& ws_mngr)
     : language_server::server(this)
     , ws_mngr(ws_mngr)
     , progress(*this)
-    , m_feature_workspace_folders(ws_mngr, *this)
-    , m_feature_text_synchronization(ws_mngr, *this)
-    , m_feature_language_features(ws_mngr, *this)
 {
-    features_.push_back(&m_feature_workspace_folders);
-    features_.push_back(&m_feature_text_synchronization);
-    features_.push_back(&m_feature_language_features);
+    features_.push_back(std::make_unique<feature_workspace_folders>(ws_mngr, *this));
+    features_.push_back(std::make_unique<feature_text_synchronization>(ws_mngr, *this));
+    features_.push_back(std::make_unique<feature_language_features>(ws_mngr, *this));
     register_feature_methods();
     register_methods();
 
@@ -311,12 +318,30 @@ void server::on_initialize(const request_id& id, const nlohmann::json& param)
 
     if (progress_notification::client_supports_work_done_progress(param))
         ws_mngr.set_progress_notification_consumer(&progress);
+
+    fill_change_notification_support_flags(param);
 }
 
-void server::on_initialized(const nlohmann::json&) const
+void server::fill_change_notification_support_flags(const nlohmann::json& initialize_params)
+{
+    const auto& capabs = initialize_params.at("capabilities");
+
+    if (auto ws = capabs.find("workspace"); ws != capabs.end())
+    {
+        if (auto watcher = ws->find("didChangeWatchedFiles"); watcher != ws->end() && watcher->is_object())
+        {
+            m_supports_dynamic_file_change_notification = watcher->value("dynamicRegistration", false);
+            m_supports_file_change_notification_relative_pattern = watcher->value("relativePatternSupport", false);
+        }
+    }
+}
+
+void server::on_initialized(const nlohmann::json&)
 {
     for (const auto& f : features_)
         f->initialized();
+    if (m_supports_dynamic_file_change_notification)
+        register_file_change_notifications();
 }
 
 void server::on_shutdown(const request_id& id, const nlohmann::json&)
@@ -505,9 +530,159 @@ void server::toggle_advisory_configuration_diagnostics(const nlohmann::json&)
 
 void server::set_log_level(const nlohmann::json& data) { logger::instance.level(data.at("log-level").get<unsigned>()); }
 
-parser_library::watcher_registration_handle server::add_watcher(std::string_view uri, bool recursive)
+parser_library::watcher_registration_id server::add_watcher(std::string_view uri, bool r)
 {
-    return parser_library::watcher_registration_handle(m_feature_workspace_folders.add_watcher(uri, recursive));
+    if (!m_supports_file_change_notification_relative_pattern)
+        return {};
+
+    std::unique_lock lock(m_watcher_registrations_mutex);
+
+    const auto matching_registration = [uri, r](const auto& w) { return w.base_uri == uri && w.recursive == r; };
+    if (const auto it = std::ranges::find_if(m_watcher_registrations, matching_registration);
+        it != std::ranges::end(m_watcher_registrations))
+    {
+        it->reference_count++;
+        return it->id;
+    }
+
+    const auto id = next_watcher_id();
+
+    m_watcher_registrations.emplace_back(std::string(uri), r, id);
+
+    lock.unlock();
+
+    nlohmann::json::array_t watchers;
+    utils::resource::resource_location loc(uri);
+    loc.join("");
+    watchers.push_back({
+        {
+            "globPattern",
+            {
+                { "baseUri", loc.get_uri() },
+                { "pattern", r ? "**/*" : "*" },
+            },
+        },
+    });
+    if (auto parent = utils::resource::resource_location::join(loc, "..").lexically_normal(); parent != loc)
+    {
+        const auto rel = loc.lexically_relative(parent);
+        const auto rel_uri = rel.get_uri();
+
+        watchers.push_back({
+            {
+                "globPattern",
+                {
+                    { "baseUri", parent.get_uri() },
+                    { "pattern", rel_uri.substr(0, rel_uri.size() - 1) },
+                    { "kind", 1 | 4 },
+                },
+            },
+        });
+    }
+
+    const nlohmann::json watcher_registration_request {
+        {
+            "registrations",
+            nlohmann::json::array_t {
+                {
+                    { "id", as_id_string(id) },
+                    { "method", "workspace/didChangeWatchedFiles" },
+                    {
+                        "registerOptions",
+                        {
+                            { "watchers", std::move(watchers) },
+                        },
+                    },
+                },
+            },
+        },
+    };
+
+    request(
+        "client/registerCapability",
+        watcher_registration_request,
+        [](const nlohmann::json&) {},
+        [this, id](int, [[maybe_unused]] const char* msg) {
+            std::lock_guard g(m_watcher_registrations_mutex);
+            std::erase_if(m_watcher_registrations, [id](const watcher_registration& r) { return r.id == id; });
+            LOG_WARNING("Error occurred while registering a file watcher: ", msg);
+        });
+
+    return id;
+}
+
+void server::remove_watcher(parser_library::watcher_registration_id id)
+{
+    std::unique_lock lock(m_watcher_registrations_mutex);
+    const auto it = std::ranges::find(m_watcher_registrations, id, &watcher_registration::id);
+    if (it == std::ranges::end(m_watcher_registrations) || --it->reference_count > 0)
+        return;
+
+    m_watcher_registrations.erase(it);
+    lock.unlock();
+
+    const nlohmann::json unregistration_request {
+        {
+            "unregistrations",
+            nlohmann::json::array_t {
+                {
+                    { "id", as_id_string(id) },
+                    { "method", "workspace/didChangeWatchedFiles" },
+                },
+            },
+        },
+    };
+
+    request(
+        "client/unregisterCapability",
+        unregistration_request,
+        [](const nlohmann::json&) {},
+        [](int, [[maybe_unused]] const char* msg) {
+            LOG_WARNING("Error occurred while unregistering file watcher: ", msg);
+        });
+}
+
+void server::register_file_change_notifications()
+{
+    static const nlohmann::json global_patterns {
+        {
+            "registrations",
+            nlohmann::json::array_t {
+                {
+                    { "id", "global_watchers" },
+                    { "method", "workspace/didChangeWatchedFiles" },
+                    {
+                        "registerOptions",
+                        {
+                            {
+                                "watchers",
+                                nlohmann::json::array_t {
+                                    { { "globPattern", "**/*" } },
+                                    { { "globPattern", ".hlasmplugin/*.json" } },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+    };
+
+    request(
+        "client/registerCapability",
+        global_patterns,
+        [](const nlohmann::json&) {},
+        [](int, [[maybe_unused]] const char* msg) {
+            LOG_WARNING("Error occurred while registering file watcher: ", msg);
+        });
+}
+
+parser_library::watcher_registration_id server::next_watcher_id() noexcept
+{
+    const auto n = static_cast<std::underlying_type_t<parser_library::watcher_registration_id>>(m_next_watcher_id) + 1;
+    const auto w = static_cast<parser_library::watcher_registration_id>(n);
+    m_next_watcher_id = w;
+    return w;
 }
 
 } // namespace hlasm_plugin::language_server::lsp

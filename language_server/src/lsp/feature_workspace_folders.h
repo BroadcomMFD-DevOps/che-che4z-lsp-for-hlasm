@@ -15,8 +15,6 @@
 #ifndef HLASMPLUGIN_LANGUAGESERVER_FEATURE_WORKSPACEFOLDERS_H
 #define HLASMPLUGIN_LANGUAGESERVER_FEATURE_WORKSPACEFOLDERS_H
 
-#include <memory>
-#include <mutex>
 #include <vector>
 
 #include "../feature.h"
@@ -27,21 +25,11 @@ namespace hlasm_plugin::language_server::lsp {
 
 // Groups workspace methods, which decode incomming notifications and call methods of
 // provided workspace_manager.
-class feature_workspace_folders final : public feature
+class feature_workspace_folders : public feature
 {
-    struct watcher_registration;
-    enum class watcher_id : unsigned long long;
-
-    friend std::string as_id_string(watcher_id);
-
 public:
     explicit feature_workspace_folders(
         parser_library::workspace_manager& ws_mngr, response_provider& response_provider);
-    feature_workspace_folders(const feature_workspace_folders&) = delete;
-    feature_workspace_folders(feature_workspace_folders&&) noexcept = delete;
-    feature_workspace_folders& operator=(const feature_workspace_folders&) = delete;
-    feature_workspace_folders& operator=(feature_workspace_folders&&) noexcept = delete;
-    ~feature_workspace_folders();
 
     // Adds workspace/* methods to the map.
     void register_methods(std::map<std::string, method>&) override;
@@ -50,8 +38,6 @@ public:
     // Opens workspace specified in the initialize request.
     void initialize_feature(const nlohmann::json& initialise_params) override;
     void initialized() override;
-
-    std::shared_ptr<const void> add_watcher(std::string_view uri, bool recursive);
 
 private:
     // Handles workspace/didChangeWorkspaceFolders notification.
@@ -70,22 +56,9 @@ private:
 
     void send_configuration_request();
 
-    void register_file_change_notifictions();
-
-    void remove_watcher(watcher_id id) noexcept;
-
     parser_library::workspace_manager& ws_mngr_;
     std::vector<std::pair<std::string, std::string>> m_initial_workspaces;
     std::string m_root_uri;
-
-    bool m_supports_dynamic_file_change_notification : 1 = false;
-    bool m_supports_file_change_notification_relative_pattern : 1 = false;
-
-    watcher_id m_next_watcher_id = {};
-    std::mutex m_watcher_registrations_mutex;
-    std::vector<watcher_registration> m_watcher_registrations;
-
-    [[nodiscard]] constexpr watcher_id next_watcher_id() noexcept;
 };
 
 } // namespace hlasm_plugin::language_server::lsp

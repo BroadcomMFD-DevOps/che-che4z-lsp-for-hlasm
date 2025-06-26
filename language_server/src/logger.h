@@ -47,7 +47,7 @@ class logger
     std::atomic<unsigned> m_level = default_log_level;
     std::mutex m_mutex;
 
-    void log_impl(unsigned level, std::span<std::string_view> args) noexcept;
+    void log_impl(unsigned level, std::span<std::string_view> args);
 
 public:
     static logger instance;
@@ -57,7 +57,7 @@ public:
     void level(unsigned l) noexcept { m_level.store(l > max_log_level ? max_log_level : l, std::memory_order_relaxed); }
 
     template<std::convertible_to<std::string_view>... Args>
-    void log(unsigned level, Args&&... args) noexcept
+    void log(unsigned level, Args&&... args)
     {
         std::string_view args_sv[] { {}, {}, {}, {}, std::string_view(args)... };
         log_impl(level, args_sv);

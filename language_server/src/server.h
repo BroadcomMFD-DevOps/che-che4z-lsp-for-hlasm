@@ -50,7 +50,7 @@ public:
 protected:
     send_message_provider* send_message_ = nullptr;
 
-    std::vector<feature*> features_;
+    std::vector<std::unique_ptr<feature>> features_;
 
     std::map<std::string, method> methods_;
     std::unordered_map<request_id,

@@ -15,20 +15,13 @@
 #ifndef HLASMPLUGIN_PARSERLIBRARY_WATCHER_REGISTRATION_PROVIDER_H
 #define HLASMPLUGIN_PARSERLIBRARY_WATCHER_REGISTRATION_PROVIDER_H
 
-#include <memory>
 #include <string_view>
 
 namespace hlasm_plugin::parser_library {
 
-class watcher_registration_handle
+enum class watcher_registration_id : unsigned long long
 {
-    std::shared_ptr<const void> value;
-
-public:
-    explicit watcher_registration_handle() = default;
-    explicit watcher_registration_handle(std::shared_ptr<const void> value) noexcept
-        : value(std::move(value))
-    {}
+    INVALID = 0,
 };
 
 class watcher_registration_provider
@@ -37,7 +30,8 @@ protected:
     ~watcher_registration_provider() = default;
 
 public:
-    virtual watcher_registration_handle add_watcher(std::string_view uri, bool recursive) = 0;
+    virtual watcher_registration_id add_watcher(std::string_view uri, bool recursive) = 0;
+    virtual void remove_watcher(watcher_registration_id id) = 0;
 };
 
 } // namespace hlasm_plugin::parser_library

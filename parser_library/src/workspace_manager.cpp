@@ -1160,12 +1160,18 @@ class workspace_manager_impl final : public workspace_manager,
         return ows->config.get_opcode_suggestion_data(url);
     }
 
-    watcher_registration_handle add_watcher(std::string_view uri, bool recursive) override
+    watcher_registration_id add_watcher(std::string_view uri, bool recursive) override
     {
         if (m_watcher_provider)
             return m_watcher_provider->add_watcher(uri, recursive);
         else
-            return watcher_registration_handle();
+            return watcher_registration_id::INVALID;
+    }
+
+    void remove_watcher(watcher_registration_id id) override
+    {
+        if (m_watcher_provider)
+            return m_watcher_provider->remove_watcher(id);
     }
 
 public:

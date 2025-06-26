@@ -57,7 +57,8 @@ void log(std::span<const std::string_view> list)
 #ifdef __EMSCRIPTEN__
     const auto web = utils::platform::is_web();
     std::string s;
-    s.reserve(std::transform_reduce(list.begin(), list.end(), (size_t)!web, std::plus(), [](auto e) { return e.size(); }));
+    s.reserve(
+        std::transform_reduce(list.begin(), list.end(), (size_t)!web, std::plus(), [](auto e) { return e.size(); }));
     for (auto e : list)
         s.append(e);
 
