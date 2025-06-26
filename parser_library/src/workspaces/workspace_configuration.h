@@ -213,7 +213,7 @@ class workspace_configuration : public configuration_provider
         constexpr watcher_registration_handle(watcher_registration_handle&& o) noexcept;
         watcher_registration_handle& operator=(const watcher_registration_handle&) = delete;
         watcher_registration_handle& operator=(watcher_registration_handle&&) noexcept;
-        ~watcher_registration_handle() noexcept(false);
+        ~watcher_registration_handle();
     };
 
     struct library_entry

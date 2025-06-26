@@ -32,6 +32,7 @@
 #include "parsing_metadata_serialization.h"
 #include "utils/error_codes.h"
 #include "utils/general_hashers.h"
+#include "utils/scope_exit.h"
 
 namespace hlasm_plugin::language_server::lsp {
 
@@ -551,6 +552,17 @@ parser_library::watcher_registration_id server::add_watcher(std::string_view uri
 
     lock.unlock();
 
+    bool done = false;
+    utils::scope_exit remove_on_failure([this, id, &done]() noexcept {
+        if (!done)
+        {
+            std::lock_guard g(m_watcher_registrations_mutex);
+            const auto it = std::ranges::find(m_watcher_registrations, id, &watcher_registration::id);
+            std::swap(*it, m_watcher_registrations.back());
+            m_watcher_registrations.pop_back();
+        }
+    });
+
     nlohmann::json::array_t watchers;
     utils::resource::resource_location loc(uri);
     loc.join("");
@@ -607,6 +619,8 @@ parser_library::watcher_registration_id server::add_watcher(std::string_view uri
             std::erase_if(m_watcher_registrations, [id](const watcher_registration& r) { return r.id == id; });
             LOG_WARNING("Error occurred while registering a file watcher: ", msg);
         });
+
+    done = true;
 
     return id;
 }

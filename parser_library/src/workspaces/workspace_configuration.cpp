@@ -1272,7 +1272,7 @@ void workspace_configuration::change_processor_group_base(utils::resource::resou
     m_proc_base = std::move(url);
 }
 
-workspace_configuration::watcher_registration_handle::~watcher_registration_handle() noexcept(false)
+workspace_configuration::watcher_registration_handle::~watcher_registration_handle()
 {
     if (provider)
         provider->remove_watcher(id);
