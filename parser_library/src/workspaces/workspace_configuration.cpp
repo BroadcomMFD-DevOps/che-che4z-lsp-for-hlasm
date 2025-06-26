@@ -1274,6 +1274,7 @@ void workspace_configuration::change_processor_group_base(utils::resource::resou
 
 workspace_configuration::watcher_registration_handle::~watcher_registration_handle()
 {
+    // TODO: This can throw - there is nothing we can do about it, just catch silently?
     if (provider)
         provider->remove_watcher(id);
 }
