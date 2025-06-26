@@ -25,9 +25,6 @@
 #include "../logger.h"
 #include "diagnostic.h"
 #include "fade_messages.h"
-#include "feature_language_features.h"
-#include "feature_text_synchronization.h"
-#include "feature_workspace_folders.h"
 #include "nlohmann/json.hpp"
 #include "parsing_metadata_serialization.h"
 #include "utils/error_codes.h"
@@ -39,16 +36,20 @@ server::server(parser_library::workspace_manager& ws_mngr)
     : language_server::server(this)
     , ws_mngr(ws_mngr)
     , progress(*this)
+    , m_feature_workspace_folders(ws_mngr, *this)
+    , m_feature_text_synchronization(ws_mngr, *this)
+    , m_feature_language_features(ws_mngr, *this)
 {
-    features_.push_back(std::make_unique<feature_workspace_folders>(ws_mngr, *this));
-    features_.push_back(std::make_unique<feature_text_synchronization>(ws_mngr, *this));
-    features_.push_back(std::make_unique<feature_language_features>(ws_mngr, *this));
+    features_.push_back(&m_feature_workspace_folders);
+    features_.push_back(&m_feature_text_synchronization);
+    features_.push_back(&m_feature_language_features);
     register_feature_methods();
     register_methods();
 
     ws_mngr.register_diagnostics_consumer(this);
     ws_mngr.set_message_consumer(this);
     ws_mngr.set_request_interface(this);
+    ws_mngr.set_watcher_registration_provider(this);
 
     ws_mngr.register_parsing_metadata_consumer(this);
 }
@@ -503,5 +504,10 @@ void server::toggle_advisory_configuration_diagnostics(const nlohmann::json&)
 }
 
 void server::set_log_level(const nlohmann::json& data) { logger::instance.level(data.at("log-level").get<unsigned>()); }
+
+parser_library::watcher_registration_handle server::add_watcher(std::string_view uri, bool recursive)
+{
+    return parser_library::watcher_registration_handle(m_feature_workspace_folders.add_watcher(uri, recursive));
+}
 
 } // namespace hlasm_plugin::language_server::lsp

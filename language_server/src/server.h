@@ -26,7 +26,6 @@
 #include "feature.h"
 #include "send_message_provider.h"
 #include "telemetry_sink.h"
-#include "workspace_manager.h"
 
 namespace hlasm_plugin::language_server {
 
@@ -51,7 +50,7 @@ public:
 protected:
     send_message_provider* send_message_ = nullptr;
 
-    std::vector<std::unique_ptr<feature>> features_;
+    std::vector<feature*> features_;
 
     std::map<std::string, method> methods_;
     std::unordered_map<request_id,

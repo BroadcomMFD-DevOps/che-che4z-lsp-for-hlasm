@@ -21,8 +21,12 @@
 
 #include "../server.h"
 #include "../telemetry_sink.h"
+#include "feature_language_features.h"
+#include "feature_text_synchronization.h"
+#include "feature_workspace_folders.h"
 #include "nlohmann/json_fwd.hpp"
 #include "progress_notification.h"
+#include "watcher_registration_provider.h"
 #include "workspace_manager.h"
 #include "workspace_manager_requests.h"
 
@@ -36,7 +40,8 @@ class server final : public hlasm_plugin::language_server::server,
                      parser_library::message_consumer,
                      public telemetry_sink,
                      parser_library::parsing_metadata_consumer,
-                     parser_library::workspace_manager_requests
+                     parser_library::workspace_manager_requests,
+                     parser_library::watcher_registration_provider
 {
 public:
     // Creates the server with workspace_manager as entry point to parser library.
@@ -71,6 +76,10 @@ private:
     std::atomic<long> request_id_counter = 0;
     parser_library::workspace_manager& ws_mngr;
     progress_notification progress;
+
+    feature_workspace_folders m_feature_workspace_folders;
+    feature_text_synchronization m_feature_text_synchronization;
+    feature_language_features m_feature_language_features;
 
     // requests
     // Implements initialize request.
@@ -120,6 +129,8 @@ private:
     void toggle_advisory_configuration_diagnostics(const nlohmann::json&);
 
     void set_log_level(const nlohmann::json&);
+
+    parser_library::watcher_registration_handle add_watcher(std::string_view uri, bool recursive) override;
 };
 
 } // namespace hlasm_plugin::language_server::lsp

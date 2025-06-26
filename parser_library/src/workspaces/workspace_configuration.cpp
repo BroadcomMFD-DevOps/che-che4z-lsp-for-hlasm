@@ -38,10 +38,12 @@
 #include "utils/async_busy_wait.h"
 #include "utils/content_loader.h"
 #include "utils/encoding.h"
+#include "utils/factory.h"
 #include "utils/path.h"
 #include "utils/path_conversions.h"
 #include "utils/platform.h"
 #include "utils/string_operations.h"
+#include "watcher_registration_provider.h"
 #include "workspaces/configuration_provider.h"
 #include "workspaces/program_configuration_storage.h"
 #include "workspaces/wildcard.h"
@@ -264,13 +266,15 @@ workspace_configuration::workspace_configuration(file_manager& fm,
     utils::resource::resource_location location,
     const shared_json& global_settings,
     const lib_config& global_config,
-    external_configuration_requests* ecr)
+    external_configuration_requests* ecr,
+    watcher_registration_provider* watch_provider)
     : m_file_manager(fm)
     , m_location(location)
     , m_proc_base(std::move(location))
     , m_global_settings(global_settings)
     , m_global_config(global_config)
     , m_external_configuration_requests(ecr)
+    , m_watch_provider(watch_provider)
     , m_pgm_conf_store(std::make_unique<program_configuration_storage>(m_proc_grps))
 {
     if (!m_location.empty())
@@ -336,14 +340,32 @@ unsigned long long make_unique_id()
 std::shared_ptr<library> workspace_configuration::get_local_library(
     const utils::resource::resource_location& url, const library_local_options& opts)
 {
-    if (auto it = m_libraries.find(std::tie(url, opts)); it != m_libraries.end())
+    if (const auto it = m_libraries.find(std::tie(url, opts)); it != m_libraries.end())
     {
-        it->second.second = true;
-        return it->second.first;
+        it->second.used = true;
+        return it->second.lib;
     }
 
-    auto result = std::make_shared<library_local>(m_file_manager, url, opts, m_proc_grps_current_loc);
+    struct lib
+    {
+        library_local value;
+        watcher_registration_handle watcher;
+        lib(file_manager& file_manager,
+            const utils::resource::resource_location& lib_loc,
+            const library_local_options& options,
+            const utils::resource::resource_location& err_loc,
+            watcher_registration_handle watcher)
+            : value(file_manager, lib_loc, options, err_loc)
+            , watcher(std::move(watcher))
+        {}
+    };
+
+    auto tmp =
+        std::make_shared<lib>(m_file_manager, url, opts, m_proc_grps_current_loc, add_watcher(url.get_uri(), false));
+    std::shared_ptr<library> result(std::move(tmp), &tmp->value);
+
     m_libraries.try_emplace(std::make_pair(url, library_options(opts)), result, true);
+
     return result;
 }
 
@@ -472,6 +494,11 @@ utils::task workspace_configuration::process_processor_group_library(const confi
         search_root.join("");
         pattern.insert(0, search_root.get_uri());
 
+        const auto [it, _] = m_library_prefixes.try_emplace(search_root, utils::factory([this, &search_root]() {
+            return library_prefix_entry { add_watcher(search_root.get_uri(), true), true };
+        }));
+        it->second.used = true;
+
         return find_and_add_libs(std::move(search_root), std::move(pattern), prc_grp, std::move(lib_local_opts), diags);
     }
 }
@@ -483,12 +510,15 @@ utils::task workspace_configuration::process_processor_group_and_cleanup_librari
     std::vector<diagnostic>& diags)
 {
     for (auto& [_, l] : m_libraries)
-        l.second = false; // mark
+        l.used = false; // mark
+    for (auto& [_, l] : m_library_prefixes)
+        l.used = false; // mark
 
     for (const auto& pg : pgs)
         co_await process_processor_group(pg, fallback_macro_extensions, alternative_root, diags);
 
-    std::erase_if(m_libraries, [](const auto& kv) { return !kv.second.second; }); // sweep
+    std::erase_if(m_libraries, [](const auto& kv) { return !kv.second.used; }); // sweep
+    std::erase_if(m_library_prefixes, [](const auto& kv) { return !kv.second.used; }); // sweep
 }
 
 void workspace_configuration::process_program(const config::program_mapping& pgm, std::vector<diagnostic>& diags)
@@ -875,6 +905,14 @@ utils::task workspace_configuration::find_and_add_libs(utils::resource::resource
     }
 }
 
+watcher_registration_handle workspace_configuration::add_watcher(std::string_view uri, bool recursive)
+{
+    if (m_watch_provider)
+        return m_watch_provider->add_watcher(uri, recursive);
+    else
+        return watcher_registration_handle();
+}
+
 void workspace_configuration::add_missing_diags(std::vector<diagnostic>& target,
     const utils::resource::resource_location& config_file_rl,
     const std::vector<utils::resource::resource_location>& opened_files,
@@ -890,7 +928,7 @@ void workspace_configuration::add_missing_diags(std::vector<diagnostic>& target,
 
     for (const auto& categorized_missing_pgroups =
              m_pgm_conf_store->get_categorized_missing_pgroups(config_file_rl, opened_files);
-         const auto& [missing_pgroup_name, used] : categorized_missing_pgroups)
+        const auto& [missing_pgroup_name, used] : categorized_missing_pgroups)
     {
         if (!include_advisory_cfg_diags && !used)
             continue;
