@@ -635,9 +635,9 @@ void server::remove_watcher(parser_library::watcher_registration_id id)
     m_watcher_registrations.erase(it);
     lock.unlock();
 
-    const nlohmann::json unregistration_request {
+    const nlohmann::json unregisterations_request {
         {
-            "unregistrations",
+            "unregisterations",
             nlohmann::json::array_t {
                 {
                     { "id", as_id_string(id) },
@@ -649,7 +649,7 @@ void server::remove_watcher(parser_library::watcher_registration_id id)
 
     request(
         "client/unregisterCapability",
-        unregistration_request,
+        unregisterations_request,
         [](const nlohmann::json&) {},
         [](int, [[maybe_unused]] const char* msg) {
             LOG_WARNING("Error occurred while unregistering file watcher: ", msg);
