@@ -645,10 +645,10 @@ TEST(workspace_configuration, watcher_registrations)
 
     ws_cfg.parse_configuration_file().run();
 
-    global_settings = std::make_shared<nlohmann::json>(R"({
+    global_settings.store(std::make_shared<nlohmann::json>(R"({
     "hlasm": {
     "pgm_conf": {"pgms":[]},
-    "proc_grps": { "pgroups": [ ] }}})"_json);
+    "proc_grps": { "pgroups": [ ] }}})"_json));
 
     EXPECT_CALL(wrp, remove_watcher(watcher_registration_id(1)));
     EXPECT_CALL(wrp, remove_watcher(watcher_registration_id(2)));
