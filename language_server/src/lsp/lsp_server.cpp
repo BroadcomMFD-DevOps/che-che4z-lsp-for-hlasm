@@ -547,15 +547,14 @@ parser_library::watcher_registration_id server::add_watcher(std::string_view uri
     bool done = false;
     utils::scope_exit remove_on_failure([this, id, &done]() noexcept {
         if (!done)
-            std::erase_if(m_watcher_registrations, [id](const watcher_registration& r) { return r.id == id; });
+            std::erase_if(m_watcher_registrations, [id](const watcher_registration& wr) { return wr.id == id; });
     });
 
-    request(
-        "client/registerCapability",
+    request("client/registerCapability",
         { { "registrations", nlohmann::json::array_t { watcher_registeration(id, uri, r) } } },
-        [](const nlohmann::json&) {},
+        &empty_handler,
         [this, id](int, const char* msg) {
-            std::erase_if(m_watcher_registrations, [id](const watcher_registration& r) { return r.id == id; });
+            std::erase_if(m_watcher_registrations, [id](const watcher_registration& wr) { return wr.id == id; });
             LOG_WARNING("Error occurred while registering a file watcher: ", msg);
         });
 
@@ -576,19 +575,17 @@ void server::remove_watcher(parser_library::watcher_registration_id id)
     if (shutdown_request_received_)
         return;
 
-    request(
-        "client/unregisterCapability",
+    request("client/unregisterCapability",
         { { "unregisterations", nlohmann::json::array_t { watcher_unregisteration(id) } } },
-        [](const nlohmann::json&) {},
+        &empty_handler,
         [](int, const char* msg) { LOG_WARNING("Error occurred while unregistering file watcher: ", msg); });
 }
 
 void server::register_default_watcher()
 {
-    request(
-        "client/registerCapability",
+    request("client/registerCapability",
         { { "registrations", nlohmann::json::array_t { default_watcher_registration() } } },
-        [](const nlohmann::json&) {},
+        &empty_handler,
         [](int, const char* msg) { LOG_WARNING("Error occurred while registering global file watcher: ", msg); });
 }
 
