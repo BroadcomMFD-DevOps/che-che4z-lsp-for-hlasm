@@ -34,57 +34,9 @@
 #include "utils/error_codes.h"
 #include "utils/general_hashers.h"
 #include "utils/scope_exit.h"
+#include "watchers.h"
 
 namespace hlasm_plugin::language_server::lsp {
-
-namespace {
-std::string as_id_string(parser_library::watcher_registration_id id)
-{
-    return "watcher_" + std::to_string(static_cast<std::underlying_type_t<decltype(id)>>(id));
-}
-
-nlohmann::json watcher_id_registeration(std::string_view uri, bool r)
-{
-    nlohmann::json::array_t watchers;
-    utils::resource::resource_location loc(uri);
-    loc.join("");
-    watchers.push_back({
-        {
-            "globPattern",
-            {
-                { "baseUri", loc.get_uri() },
-                { "pattern", r ? "**/*" : "*" },
-            },
-        },
-    });
-    if (auto parent = utils::resource::resource_location::join(loc, "..").lexically_normal(); parent != loc)
-    {
-        const auto rel = loc.lexically_relative(parent);
-        const auto rel_uri = rel.get_uri();
-
-        watchers.push_back({
-            {
-                "globPattern",
-                {
-                    { "baseUri", parent.get_uri() },
-                    { "pattern", rel_uri.substr(0, rel_uri.size() - 1) },
-                    { "kind", 1 | 4 },
-                },
-            },
-        });
-    }
-
-    return watchers;
-}
-
-nlohmann::json watcher_id_unregisteration(parser_library::watcher_registration_id id)
-{
-    return {
-        { "id", as_id_string(id) },
-        { "method", "workspace/didChangeWatchedFiles" },
-    };
-}
-} // namespace
 
 server::server(parser_library::workspace_manager& ws_mngr)
     : language_server::server(this)
@@ -385,7 +337,7 @@ void server::on_initialized(const nlohmann::json&)
     for (const auto& f : features_)
         f->initialized();
     if (m_supports_dynamic_file_change_notification)
-        register_file_change_notifications();
+        register_default_watcher();
 }
 
 void server::on_shutdown(const request_id& id, const nlohmann::json&)
@@ -597,27 +549,9 @@ parser_library::watcher_registration_id server::add_watcher(std::string_view uri
             std::erase_if(m_watcher_registrations, [id](const watcher_registration& r) { return r.id == id; });
     });
 
-    const nlohmann::json watcher_registration_request {
-        {
-            "registrations",
-            nlohmann::json::array_t {
-                {
-                    { "id", as_id_string(id) },
-                    { "method", "workspace/didChangeWatchedFiles" },
-                    {
-                        "registerOptions",
-                        {
-                            { "watchers", watcher_id_registeration(uri, r) },
-                        },
-                    },
-                },
-            },
-        },
-    };
-
     request(
         "client/registerCapability",
-        watcher_registration_request,
+        { { "registrations", nlohmann::json::array_t { watcher_registeration(id, uri, r) } } },
         [](const nlohmann::json&) {},
         [this, id](int, const char* msg) {
             std::erase_if(m_watcher_registrations, [id](const watcher_registration& r) { return r.id == id; });
@@ -641,49 +575,18 @@ void server::remove_watcher(parser_library::watcher_registration_id id)
     if (shutdown_request_received_)
         return;
 
-    const nlohmann::json unregisterations_request {
-        {
-            "unregisterations",
-            nlohmann::json::array_t { watcher_id_unregisteration(id) },
-        },
-    };
-
     request(
         "client/unregisterCapability",
-        unregisterations_request,
+        { { "unregisterations", nlohmann::json::array_t { watcher_unregisteration(id) } } },
         [](const nlohmann::json&) {},
         [](int, const char* msg) { LOG_WARNING("Error occurred while unregistering file watcher: ", msg); });
 }
 
-void server::register_file_change_notifications()
+void server::register_default_watcher()
 {
-    const nlohmann::json global_patterns {
-        {
-            "registrations",
-            nlohmann::json::array_t {
-                {
-                    { "id", "global_watchers" },
-                    { "method", "workspace/didChangeWatchedFiles" },
-                    {
-                        "registerOptions",
-                        {
-                            {
-                                "watchers",
-                                nlohmann::json::array_t {
-                                    { { "globPattern", "**/*" } },
-                                    { { "globPattern", ".hlasmplugin/*.json" } },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-        },
-    };
-
     request(
         "client/registerCapability",
-        global_patterns,
+        { { "registrations", nlohmann::json::array_t { default_watcher_registration() } } },
         [](const nlohmann::json&) {},
         [](int, const char* msg) { LOG_WARNING("Error occurred while registering global file watcher: ", msg); });
 }

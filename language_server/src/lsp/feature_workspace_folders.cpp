@@ -19,7 +19,6 @@
 #include "nlohmann/json.hpp"
 #include "utils/path.h"
 #include "utils/path_conversions.h"
-#include "utils/scope_exit.h"
 
 namespace hlasm_plugin::language_server::lsp {
 

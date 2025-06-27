@@ -141,7 +141,7 @@ private:
     void remove_watcher(parser_library::watcher_registration_id id) override;
 
     parser_library::watcher_registration_id next_watcher_id() noexcept;
-    void register_file_change_notifications();
+    void register_default_watcher();
     void fill_change_notification_support_flags(const nlohmann::json& json);
 };
 
