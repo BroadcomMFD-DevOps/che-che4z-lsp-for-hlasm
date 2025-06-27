@@ -603,6 +603,60 @@ TEST(workspace_configuration, asm_options_goff_xobject_redefinition)
     EXPECT_TRUE(contains_message_codes(diags, { "W0002" }));
 }
 
+TEST(workspace_configuration, watcher_registrations)
+{
+    NiceMock<file_manager_mock> file_manager;
+    EXPECT_CALL(file_manager, get_file_content(_)).WillRepeatedly(Invoke([]() {
+        return hlasm_plugin::utils::value_task<std::optional<std::string>>::from_value(std::nullopt);
+    }));
+    EXPECT_CALL(file_manager, list_directory_subdirs_and_symlinks(_))
+        .WillOnce(Return(hlasm_plugin::utils::value_task<
+            hlasm_plugin::parser_library::workspaces::list_directory_result>::from_value({
+            {},
+            hlasm_plugin::utils::path::list_directory_rc::not_a_directory,
+        })));
+
+    shared_json global_settings(std::make_shared<nlohmann::json>(R"({
+    "hlasm": {
+    "pgm_conf": {"pgms":[]},
+    "proc_grps": {
+      "pgroups": [
+        {
+          "name": "test",
+          "libs": [
+            "scheme:/test/library",
+            "scheme:/test/pattern/*/"
+          ]
+        }
+      ]
+    }}})"_json));
+    lib_config global_config;
+
+    struct watcher_registration_provider_mock : watcher_registration_provider
+    {
+        MOCK_METHOD(watcher_registration_id, add_watcher, (std::string_view uri, bool recursive), (override));
+        MOCK_METHOD(void, remove_watcher, (watcher_registration_id id), (override));
+    } wrp;
+
+    workspace_configuration ws_cfg(file_manager, ws_loc, global_settings, global_config, nullptr, &wrp);
+
+    EXPECT_CALL(wrp, add_watcher("scheme:/test/library/", false)).WillOnce(Return(watcher_registration_id(1)));
+    EXPECT_CALL(wrp, add_watcher("scheme:/test/pattern/", true)).WillOnce(Return(watcher_registration_id(2)));
+
+    ws_cfg.parse_configuration_file().run();
+
+    global_settings = std::make_shared<nlohmann::json>(R"({
+    "hlasm": {
+    "pgm_conf": {"pgms":[]},
+    "proc_grps": { "pgroups": [ ] }}})"_json);
+
+    EXPECT_CALL(wrp, remove_watcher(watcher_registration_id(1)));
+    EXPECT_CALL(wrp, remove_watcher(watcher_registration_id(2)));
+
+    EXPECT_TRUE(ws_cfg.settings_updated());
+
+    ws_cfg.parse_configuration_file().run();
+}
 
 namespace {
 class file_manager_refresh_needed_test : public file_manager_impl
