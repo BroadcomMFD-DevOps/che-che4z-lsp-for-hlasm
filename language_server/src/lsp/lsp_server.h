@@ -143,6 +143,9 @@ private:
     parser_library::watcher_registration_id next_watcher_id() noexcept;
     void register_default_watcher();
     void fill_change_notification_support_flags(const nlohmann::json& json);
+
+public: // testing only
+    void testing_enable_capabilities();
 };
 
 } // namespace hlasm_plugin::language_server::lsp

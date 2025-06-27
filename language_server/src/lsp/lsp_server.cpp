@@ -528,7 +528,8 @@ void server::set_log_level(const nlohmann::json& data) { logger::instance.level(
 
 parser_library::watcher_registration_id server::add_watcher(std::string_view uri, bool r)
 {
-    if (!m_supports_file_change_notification_relative_pattern || shutdown_request_received_)
+    if (!m_supports_file_change_notification_relative_pattern || !m_supports_dynamic_file_change_notification
+        || shutdown_request_received_)
         return parser_library::watcher_registration_id::INVALID;
 
     const auto matching_registration = [uri, r](const auto& w) { return w.base_uri == uri && w.recursive == r; };
@@ -599,4 +600,9 @@ parser_library::watcher_registration_id server::next_watcher_id() noexcept
     return w;
 }
 
+void server::testing_enable_capabilities()
+{
+    m_supports_dynamic_file_change_notification = true;
+    m_supports_file_change_notification_relative_pattern = true;
+}
 } // namespace hlasm_plugin::language_server::lsp
