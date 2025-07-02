@@ -33,7 +33,7 @@ namespace hlasm_plugin::parser_library::semantics {
 // structure for empty operands
 struct empty_operand final : operand
 {
-    empty_operand(const range operand_range);
+    empty_operand(const range& operand_range);
 
     void apply(operand_visitor& visitor) const override;
 };
@@ -43,7 +43,7 @@ struct empty_operand final : operand
 // operand that contains variable symbol thus is 'model operand'
 struct model_operand final : operand
 {
-    model_operand(concat_chain chain, std::vector<size_t> line_limits, const range operand_range);
+    model_operand(concat_chain chain, std::vector<size_t> line_limits, const range& operand_range);
 
     concat_chain chain;
     std::vector<size_t> line_limits;
@@ -56,7 +56,7 @@ struct model_operand final : operand
 // operands that can return value and have dependencies
 struct evaluable_operand : operand
 {
-    evaluable_operand(const operand_type type, const range operand_range);
+    evaluable_operand(const operand_type type, const range& operand_range);
 
     virtual bool has_dependencies(
         context::dependency_solver& info, std::vector<context::id_index>* missing_symbols) const = 0;
@@ -80,7 +80,7 @@ struct address_machine_operand;
 // machine instruction operand
 struct machine_operand : evaluable_operand
 {
-    machine_operand(const mach_kind kind, const range r);
+    machine_operand(const mach_kind kind, const range& r);
 
     expr_machine_operand* access_expr();
     address_machine_operand* access_address();
@@ -100,7 +100,7 @@ struct expr_machine_operand final : machine_operand
 {
     expressions::mach_expr_ptr expression;
 
-    expr_machine_operand(expressions::mach_expr_ptr expression, const range operand_range);
+    expr_machine_operand(expressions::mach_expr_ptr expression, const range& operand_range);
 
     std::unique_ptr<checking::operand> get_operand_value(
         context::dependency_solver& info, diagnostic_op_consumer& diags) const override;
@@ -124,7 +124,7 @@ struct address_machine_operand final : machine_operand
     address_machine_operand(expressions::mach_expr_ptr displacement,
         expressions::mach_expr_ptr first_par,
         expressions::mach_expr_ptr second_par,
-        const range operand_range,
+        const range& operand_range,
         checking::operand_state state);
 
     expressions::mach_expr_ptr displacement;
@@ -164,7 +164,7 @@ struct string_assembler_operand;
 // assembler instruction operand
 struct assembler_operand : evaluable_operand
 {
-    assembler_operand(const asm_kind kind, const range r);
+    assembler_operand(const asm_kind kind, const range& r);
 
     expr_assembler_operand* access_expr();
     using_instr_assembler_operand* access_base_end();
@@ -189,7 +189,7 @@ private:
     std::string value_;
 
 public:
-    expr_assembler_operand(expressions::mach_expr_ptr expression, std::string string_value, const range operand_range);
+    expr_assembler_operand(expressions::mach_expr_ptr expression, std::string string_value, const range& operand_range);
 
     std::unique_ptr<checking::operand> get_operand_value(
         context::dependency_solver& info, diagnostic_op_consumer& diags) const override;
@@ -221,7 +221,7 @@ struct using_instr_assembler_operand final : assembler_operand
         expressions::mach_expr_ptr end,
         std::string base_text,
         std::string end_text,
-        const range operand_range);
+        const range& operand_range);
 
     bool has_dependencies(
         context::dependency_solver& info, std::vector<context::id_index>* missing_symbols) const override;
@@ -306,7 +306,7 @@ struct complex_assembler_operand final : assembler_operand
     };
 
     complex_assembler_operand(
-        std::string identifier, std::vector<std::unique_ptr<component_value_t>> values, const range operand_range);
+        std::string identifier, std::vector<std::unique_ptr<component_value_t>> values, const range& operand_range);
 
     bool has_dependencies(
         context::dependency_solver& info, std::vector<context::id_index>* missing_symbols) const override;
@@ -328,7 +328,7 @@ struct complex_assembler_operand final : assembler_operand
 // assembler string operand
 struct string_assembler_operand final : assembler_operand
 {
-    string_assembler_operand(std::string value, const range operand_range);
+    string_assembler_operand(std::string value, const range& operand_range);
 
     bool has_dependencies(
         context::dependency_solver& info, std::vector<context::id_index>* missing_symbols) const override;
@@ -373,19 +373,19 @@ struct data_def_operand : evaluable_operand
         diagnostic_op_consumer& diags) const;
 
 protected:
-    data_def_operand(std::shared_ptr<const expressions::data_definition> dd_ptr, const range operand_range);
+    data_def_operand(std::shared_ptr<const expressions::data_definition> dd_ptr, const range& operand_range);
 };
 
 struct data_def_operand_shared final : data_def_operand
 {
-    data_def_operand_shared(std::shared_ptr<const expressions::data_definition> dd_ptr, const range operand_range);
+    data_def_operand_shared(std::shared_ptr<const expressions::data_definition> dd_ptr, const range& operand_range);
 };
 
 struct data_def_operand_inline final : data_def_operand
 {
     expressions::data_definition data_def;
 
-    data_def_operand_inline(expressions::data_definition data_def, const range operand_range);
+    data_def_operand_inline(expressions::data_definition data_def, const range& operand_range);
 };
 
 enum class ca_kind
@@ -403,7 +403,7 @@ struct branch_ca_operand;
 // coditional assembly instruction operand
 struct ca_operand : operand
 {
-    ca_operand(const ca_kind kind, const range operand_range);
+    ca_operand(const ca_kind kind, const range& operand_range);
 
     var_ca_operand* access_var();
     const var_ca_operand* access_var() const;
@@ -423,7 +423,7 @@ struct ca_operand : operand
 // CA variable symbol operand
 struct var_ca_operand final : ca_operand
 {
-    var_ca_operand(vs_ptr variable_symbol, const range operand_range);
+    var_ca_operand(vs_ptr variable_symbol, const range& operand_range);
 
     bool get_undefined_attributed_symbols(
         std::vector<context::id_index>& symbols, const expressions::evaluation_context& eval_ctx) override;
@@ -436,7 +436,7 @@ struct var_ca_operand final : ca_operand
 // CA expression operand
 struct expr_ca_operand final : ca_operand
 {
-    expr_ca_operand(expressions::ca_expr_ptr expression, const range operand_range);
+    expr_ca_operand(expressions::ca_expr_ptr expression, const range& operand_range);
 
 
     bool get_undefined_attributed_symbols(
@@ -450,7 +450,7 @@ struct expr_ca_operand final : ca_operand
 // CA sequence symbol operand
 struct seq_ca_operand final : ca_operand
 {
-    seq_ca_operand(seq_sym sequence_symbol, const range operand_range);
+    seq_ca_operand(seq_sym sequence_symbol, const range& operand_range);
 
 
     bool get_undefined_attributed_symbols(
@@ -464,7 +464,7 @@ struct seq_ca_operand final : ca_operand
 // CA branching operand (i.e. (5).here)
 struct branch_ca_operand final : ca_operand
 {
-    branch_ca_operand(seq_sym sequence_symbol, expressions::ca_expr_ptr expression, const range operand_range);
+    branch_ca_operand(seq_sym sequence_symbol, expressions::ca_expr_ptr expression, const range& operand_range);
 
 
     bool get_undefined_attributed_symbols(

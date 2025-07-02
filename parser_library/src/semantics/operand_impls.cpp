@@ -85,13 +85,13 @@ const assembler_operand* operand::access_asm() const { return static_cast<const 
 
 //***************** empty, model, evaluable operand *********************
 
-empty_operand::empty_operand(range operand_range)
+empty_operand::empty_operand(const range& operand_range)
     : operand(operand_type::EMPTY, std::move(operand_range))
 {}
 
 void empty_operand::apply(operand_visitor& visitor) const { visitor.visit(*this); }
 
-model_operand::model_operand(concat_chain chain, std::vector<size_t> line_limits, range operand_range)
+model_operand::model_operand(concat_chain chain, std::vector<size_t> line_limits, const range& operand_range)
     : operand(operand_type::MODEL, std::move(operand_range))
     , chain(std::move(chain))
     , line_limits(std::move(line_limits))
@@ -99,13 +99,13 @@ model_operand::model_operand(concat_chain chain, std::vector<size_t> line_limits
 
 void model_operand::apply(operand_visitor& visitor) const { visitor.visit(*this); }
 
-evaluable_operand::evaluable_operand(const operand_type type, range operand_range)
+evaluable_operand::evaluable_operand(const operand_type type, const range& operand_range)
     : operand(type, std::move(operand_range))
 {}
 
 //***************** machine_operand *********************
 
-machine_operand::machine_operand(const mach_kind kind, const range r)
+machine_operand::machine_operand(const mach_kind kind, const range& r)
     : evaluable_operand(operand_type::MACH, r)
     , kind(kind)
 {}
@@ -193,7 +193,7 @@ std::unique_ptr<checking::operand> make_rel_imm_operand(
 }
 //***************** expr_machine_operand *********************
 
-expr_machine_operand::expr_machine_operand(expressions::mach_expr_ptr expression, range operand_range)
+expr_machine_operand::expr_machine_operand(expressions::mach_expr_ptr expression, const range& operand_range)
     : machine_operand(mach_kind::EXPR, operand_range)
     , expression(std::move(expression))
 {}
@@ -241,7 +241,7 @@ void expr_machine_operand::apply_mach_visitor(expressions::mach_expr_visitor& v)
 address_machine_operand::address_machine_operand(expressions::mach_expr_ptr displacement,
     expressions::mach_expr_ptr first_par,
     expressions::mach_expr_ptr second_par,
-    range operand_range,
+    const range& operand_range,
     checking::operand_state state)
     : machine_operand(mach_kind::ADDR, operand_range)
     , displacement(std::move(displacement))
@@ -371,7 +371,7 @@ void address_machine_operand::apply_mach_visitor(expressions::mach_expr_visitor&
         second_par->apply(v);
 }
 
-assembler_operand::assembler_operand(const asm_kind kind, const range r)
+assembler_operand::assembler_operand(const asm_kind kind, const range& r)
     : evaluable_operand(operand_type::ASM, r)
     , kind(kind)
 {}
@@ -419,7 +419,7 @@ const string_assembler_operand* assembler_operand::access_string() const
 //***************** expr_assembler_operand *********************
 
 expr_assembler_operand::expr_assembler_operand(
-    expressions::mach_expr_ptr expression, std::string string_value, range operand_range)
+    expressions::mach_expr_ptr expression, std::string string_value, const range& operand_range)
     : assembler_operand(asm_kind::EXPR, operand_range)
     , expression(std::move(expression))
     , value_(std::move(string_value))
@@ -485,7 +485,7 @@ using_instr_assembler_operand::using_instr_assembler_operand(expressions::mach_e
     expressions::mach_expr_ptr end,
     std::string base_text,
     std::string end_text,
-    range operand_range)
+    const range& operand_range)
     : assembler_operand(asm_kind::BASE_END, operand_range)
     , base(std::move(base))
     , end(std::move(end))
@@ -526,7 +526,7 @@ void using_instr_assembler_operand::apply_mach_visitor(expressions::mach_expr_vi
 
 //***************** complex_assempler_operand *********************
 complex_assembler_operand::complex_assembler_operand(
-    std::string identifier, std::vector<std::unique_ptr<component_value_t>> values, range operand_range)
+    std::string identifier, std::vector<std::unique_ptr<component_value_t>> values, const range& operand_range)
     : assembler_operand(asm_kind::COMPLEX, operand_range)
     , value(std::move(identifier), std::move(values), std::move(operand_range))
 {}
@@ -549,7 +549,7 @@ void complex_assembler_operand::apply(operand_visitor& visitor) const { visitor.
 void complex_assembler_operand::apply_mach_visitor(expressions::mach_expr_visitor&) const {}
 
 //***************** ca_operand *********************
-ca_operand::ca_operand(const ca_kind kind, range operand_range)
+ca_operand::ca_operand(const ca_kind kind, const range& operand_range)
     : operand(operand_type::CA, std::move(operand_range))
     , kind(kind)
 {}
@@ -594,7 +594,7 @@ ca_operand::ca_operand(const ca_kind kind, range operand_range)
     return kind == ca_kind::BRANCH ? static_cast<const branch_ca_operand*>(this) : nullptr;
 }
 
-var_ca_operand::var_ca_operand(vs_ptr variable_symbol, range operand_range)
+var_ca_operand::var_ca_operand(vs_ptr variable_symbol, const range& operand_range)
     : ca_operand(ca_kind::VAR, std::move(operand_range))
     , variable_symbol(std::move(variable_symbol))
 {}
@@ -607,7 +607,7 @@ bool var_ca_operand::get_undefined_attributed_symbols(
 
 void var_ca_operand::apply(operand_visitor& visitor) const { visitor.visit(*this); }
 
-expr_ca_operand::expr_ca_operand(expressions::ca_expr_ptr expression, range operand_range)
+expr_ca_operand::expr_ca_operand(expressions::ca_expr_ptr expression, const range& operand_range)
     : ca_operand(ca_kind::EXPR, std::move(operand_range))
     , expression(std::move(expression))
 {}
@@ -620,7 +620,7 @@ bool expr_ca_operand::get_undefined_attributed_symbols(
 
 void expr_ca_operand::apply(operand_visitor& visitor) const { visitor.visit(*this); }
 
-seq_ca_operand::seq_ca_operand(seq_sym sequence_symbol, range operand_range)
+seq_ca_operand::seq_ca_operand(seq_sym sequence_symbol, const range& operand_range)
     : ca_operand(ca_kind::SEQ, std::move(operand_range))
     , sequence_symbol(std::move(sequence_symbol))
 {}
@@ -633,7 +633,8 @@ bool seq_ca_operand::get_undefined_attributed_symbols(
 
 void seq_ca_operand::apply(operand_visitor& visitor) const { visitor.visit(*this); }
 
-branch_ca_operand::branch_ca_operand(seq_sym sequence_symbol, expressions::ca_expr_ptr expression, range operand_range)
+branch_ca_operand::branch_ca_operand(
+    seq_sym sequence_symbol, expressions::ca_expr_ptr expression, const range& operand_range)
     : ca_operand(ca_kind::BRANCH, std::move(operand_range))
     , sequence_symbol(std::move(sequence_symbol))
     , expression(std::move(expression))
@@ -654,19 +655,20 @@ macro_operand::macro_operand(concat_chain chain, range operand_range)
 
 void macro_operand::apply(operand_visitor& visitor) const { visitor.visit(*this); }
 
-data_def_operand::data_def_operand(std::shared_ptr<const expressions::data_definition> dd_ptr, range operand_range)
+data_def_operand::data_def_operand(
+    std::shared_ptr<const expressions::data_definition> dd_ptr, const range& operand_range)
     : evaluable_operand(operand_type::DAT, std::move(operand_range))
     , value(std::move(dd_ptr))
 {}
 
-data_def_operand_inline::data_def_operand_inline(expressions::data_definition val, range operand_range)
+data_def_operand_inline::data_def_operand_inline(expressions::data_definition val, const range& operand_range)
     : data_def_operand(
           std::shared_ptr<const expressions::data_definition>(std::shared_ptr<const void>(), &data_def), operand_range)
     , data_def(std::move(val))
 {}
 
 data_def_operand_shared::data_def_operand_shared(
-    std::shared_ptr<const expressions::data_definition> dd_ptr, range operand_range)
+    std::shared_ptr<const expressions::data_definition> dd_ptr, const range& operand_range)
     : data_def_operand(std::move(dd_ptr), operand_range)
 {}
 
@@ -747,7 +749,7 @@ long long data_def_operand::evaluate_total_length(
     return value->evaluate_total_length(info, checking_rules, diags);
 }
 
-string_assembler_operand::string_assembler_operand(std::string value, range operand_range)
+string_assembler_operand::string_assembler_operand(std::string value, const range& operand_range)
     : assembler_operand(asm_kind::STRING, operand_range)
     , value(std::move(value))
 {}
