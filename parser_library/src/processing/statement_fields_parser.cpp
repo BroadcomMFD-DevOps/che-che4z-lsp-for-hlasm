@@ -86,11 +86,7 @@ statement_fields_parser::parse_result statement_fields_parser::parse_operand_fie
         }
     }
 
-    for (auto& op : line.operands)
-    {
-        if (!op)
-            op = std::make_unique<semantics::empty_operand>(original_range);
-    }
+    assert(std::ranges::all_of(line.operands, [](const auto& p) { return !!p; }));
 
     if (line.operands.size() == 1 && line.operands.front()->type == semantics::operand_type::EMPTY)
         line.operands.clear();

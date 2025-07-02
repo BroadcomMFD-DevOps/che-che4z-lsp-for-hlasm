@@ -661,7 +661,8 @@ struct parser2
     };
     result_t<before_model> model_before_variable();
 
-    template<result_t<semantics::operand_ptr> (parser2::*first)(),
+    template<typename EmptyOperand,
+        result_t<semantics::operand_ptr> (parser2::*first)(),
         result_t<semantics::operand_ptr> (parser2::*rest)() = first>
     std::optional<semantics::op_rem> with_model(bool reparse, bool model_allowed) requires(first != nullptr);
 
@@ -4176,7 +4177,10 @@ result_t<semantics::operand_ptr> parser2::dat_op()
         return failure;
     return std::make_unique<semantics::data_def_operand_inline>(std::move(d), range_from(start));
 }
-template<result_t<semantics::operand_ptr> (parser2::*first)(), result_t<semantics::operand_ptr> (parser2::*rest)()>
+
+template<typename EmptyOperand,
+    result_t<semantics::operand_ptr> (parser2::*first)(),
+    result_t<semantics::operand_ptr> (parser2::*rest)()>
 std::optional<semantics::op_rem> parser2::with_model(bool reparse, bool model_allowed) requires(first != nullptr)
 {
     const auto start = cur_pos(); // capture true beginning
@@ -4203,9 +4207,9 @@ std::optional<semantics::op_rem> parser2::with_model(bool reparse, bool model_al
 
     bool has_error = false;
     if (follows<u8','>())
-        operands.push_back(std::make_unique<semantics::empty_operand>(cur_pos_range()));
+        operands.push_back(std::make_unique<EmptyOperand>(cur_pos_range()));
     else if (auto [error, op] = (this->*first)(); (has_error = error))
-        operands.push_back(std::make_unique<semantics::empty_operand>(cur_pos_range()));
+        operands.push_back(std::make_unique<EmptyOperand>(cur_pos_range()));
     else
         operands.push_back(std::move(op));
 
@@ -4219,15 +4223,15 @@ std::optional<semantics::op_rem> parser2::with_model(bool reparse, bool model_al
     {
         consume(hl_scopes::operator_symbol);
         if (follows<u8','>())
-            operands.push_back(std::make_unique<semantics::empty_operand>(cur_pos_range()));
+            operands.push_back(std::make_unique<EmptyOperand>(cur_pos_range()));
         else if (eof() || follows<u8' '>())
         {
-            operands.push_back(std::make_unique<semantics::empty_operand>(cur_pos_range()));
+            operands.push_back(std::make_unique<EmptyOperand>(cur_pos_range()));
             break;
         }
         else if (auto [error_inner, op_inner] = (this->*rest)(); error_inner)
         {
-            operands.push_back(std::make_unique<semantics::empty_operand>(cur_pos_range()));
+            operands.push_back(std::make_unique<EmptyOperand>(cur_pos_range()));
             break;
         }
         else
@@ -4253,14 +4257,14 @@ std::optional<semantics::op_rem> parser_holder::op_rem_body_mach(bool reparse, b
 {
     parser2 p(this);
 
-    return p.with_model<&parser2::mach_op>(reparse, model_allowed);
+    return p.with_model<semantics::empty_operand, &parser2::mach_op>(reparse, model_allowed);
 }
 
 std::optional<semantics::op_rem> parser_holder::op_rem_body_dat(bool reparse, bool model_allowed)
 {
     parser2 p(this);
 
-    return p.with_model<&parser2::dat_op>(reparse, model_allowed);
+    return p.with_model<semantics::empty_operand, &parser2::dat_op>(reparse, model_allowed);
 }
 
 result_t<semantics::operand_ptr> parser2::alias_op()
@@ -4505,14 +4509,16 @@ std::optional<semantics::op_rem> parser_holder::op_rem_body_asm(
     static constexpr context::id_index USING("USING");
     static constexpr context::id_index END("END");
 
+    using semantics::empty_operand;
+
     if (opcode == ALIAS)
-        return p.with_model<&parser2::alias_op, nullptr>(reparse, model_allowed);
+        return p.with_model<empty_operand, &parser2::alias_op, nullptr>(reparse, model_allowed);
     else if (opcode == USING)
-        return p.with_model<&parser2::using_op1, &parser2::asm_mach_expr>(reparse, model_allowed);
+        return p.with_model<empty_operand, &parser2::using_op1, &parser2::asm_mach_expr>(reparse, model_allowed);
     else if (opcode == END)
-        return p.with_model<&parser2::asm_op, &parser2::end_op>(reparse, model_allowed);
+        return p.with_model<empty_operand, &parser2::asm_op, &parser2::end_op>(reparse, model_allowed);
     else
-        return p.with_model<&parser2::asm_op>(reparse, model_allowed);
+        return p.with_model<empty_operand, &parser2::asm_op>(reparse, model_allowed);
 }
 
 semantics::operand_ptr parser_holder::operand_mach()
