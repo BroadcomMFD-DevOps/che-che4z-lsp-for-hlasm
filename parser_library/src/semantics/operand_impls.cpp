@@ -259,17 +259,9 @@ bool address_machine_operand::has_dependencies(
 
 bool address_machine_operand::has_error(context::dependency_solver& info) const
 {
-    if (first_par)
-    {
-        if (second_par)
-            return displacement->get_dependencies(info).has_error || first_par->get_dependencies(info).has_error
-                || second_par->get_dependencies(info).has_error; // D(B1,B2)
-        else
-            return displacement->get_dependencies(info).has_error
-                || first_par->get_dependencies(info).has_error; // D(B)
-    }
-    else
-        return displacement->get_dependencies(info).has_error || second_par->get_dependencies(info).has_error; // D(,B)
+    return displacement && displacement->get_dependencies(info).has_error
+        || first_par && first_par->get_dependencies(info).has_error
+        || second_par && second_par->get_dependencies(info).has_error;
 }
 
 std::unique_ptr<checking::operand> address_machine_operand::get_operand_value(
