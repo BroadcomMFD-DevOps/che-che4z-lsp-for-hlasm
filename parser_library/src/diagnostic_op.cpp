@@ -1863,12 +1863,9 @@ diagnostic_op diagnostic_op::error_M003(std::string_view instr_name, const range
         range);
 }
 
-diagnostic_op diagnostic_op::error_M004(std::string_view instr_name, const range& range)
+diagnostic_op diagnostic_op::error_M004(const range& range)
 {
-    return diagnostic_op(diagnostic_severity::error,
-        "M004",
-        concat("Error at ", instr_name, " instruction: operand format D(X,) not allowed"),
-        range);
+    return diagnostic_op(diagnostic_severity::error, "M004", concat("Operand format D(X,) not allowed"), range);
 }
 
 diagnostic_op diagnostic_op::warning_M041(std::string_view instr_name, const range& range)

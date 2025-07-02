@@ -42,14 +42,12 @@ enum class address_state
 
 /*
 FIRST_OMITTED = D(,B)
-SECOND_OMMITED = D(X,)
 PRESENT - D(X,B)
 ONE_OP - D(B)
 */
 enum class operand_state
 {
     FIRST_OMITTED,
-    SECOND_OMITTED,
     PRESENT,
     ONE_OP
 };

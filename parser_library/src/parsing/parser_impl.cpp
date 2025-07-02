@@ -451,6 +451,7 @@ struct parser2
 
     void add_diagnostic(diagnostic_op d) const;
     void add_diagnostic(diagnostic_op (&d)(const range&)) const;
+    void add_diagnostic(diagnostic_op (&d)(const range&), parser_position start) const;
 
     void syntax_error_or_eof() const;
 
@@ -906,6 +907,11 @@ void parser2::add_diagnostic(diagnostic_op d) const
 }
 
 void parser2::add_diagnostic(diagnostic_op (&d)(const range&)) const { add_diagnostic(d(cur_pos_range())); }
+
+void parser2::add_diagnostic(diagnostic_op (&d)(const range&), parser_position start) const
+{
+    add_diagnostic(d(range_from(start)));
+}
 
 void parser2::syntax_error_or_eof() const
 {
@@ -4127,7 +4133,7 @@ result_t<semantics::operand_ptr> parser2::mach_op()
         return failure;
 
     if (!try_consume<u8'('>(hl_scopes::operator_symbol))
-        return std::make_unique<semantics::expr_machine_operand>(std::move(disp), range_from(start));
+        return std::make_unique<semantics::machine_operand>(std::move(disp), nullptr, nullptr, range_from(start));
 
     expressions::mach_expr_ptr e1, e2;
     if (eof())
@@ -4143,10 +4149,11 @@ result_t<semantics::operand_ptr> parser2::mach_op()
         else
             e1 = std::move(e);
     }
-    bool parsed_comma = false;
-    if ((parsed_comma = try_consume<u8','>(hl_scopes::operator_symbol)) && !follows<u8')'>())
+    if (try_consume<u8','>(hl_scopes::operator_symbol))
     {
-        if (auto [error, e] = lex_mach_expr(); error)
+        if (follows<u8')'>())
+            add_diagnostic(diagnostic_op::error_M004, start);
+        else if (auto [error, e] = lex_mach_expr(); error)
             return failure;
         else
             e2 = std::move(e);
@@ -4155,19 +4162,8 @@ result_t<semantics::operand_ptr> parser2::mach_op()
     if (!match<u8')'>(hl_scopes::operator_symbol, diagnostic_op::error_S0011))
         return failure;
 
-    if (e1 && e2)
-        return std::make_unique<semantics::address_machine_operand>(
-            std::move(disp), std::move(e1), std::move(e2), range_from(start), checking::operand_state::PRESENT);
-    if (e2)
-        return std::make_unique<semantics::address_machine_operand>(
-            std::move(disp), nullptr, std::move(e2), range_from(start), checking::operand_state::FIRST_OMITTED);
-
-    if (e1 && !parsed_comma)
-        return std::make_unique<semantics::address_machine_operand>(
-            std::move(disp), nullptr, std::move(e1), range_from(start), checking::operand_state::ONE_OP);
-
-    return std::make_unique<semantics::address_machine_operand>(
-        std::move(disp), std::move(e1), nullptr, range_from(start), checking::operand_state::SECOND_OMITTED);
+    return std::make_unique<semantics::machine_operand>(
+        std::move(disp), std::move(e1), std::move(e2), range_from(start));
 }
 
 result_t<semantics::operand_ptr> parser2::dat_op()

@@ -69,85 +69,37 @@ struct evaluable_operand : operand
     virtual void apply_mach_visitor(expressions::mach_expr_visitor&) const = 0;
 };
 
-enum class mach_kind
-{
-    EXPR,
-    ADDR
-};
-struct expr_machine_operand;
-struct address_machine_operand;
-
 // machine instruction operand
-struct machine_operand : evaluable_operand
+struct machine_operand final : evaluable_operand
 {
-    machine_operand(const mach_kind kind, const range& r);
-
-    expr_machine_operand* access_expr();
-    address_machine_operand* access_address();
-
-    using evaluable_operand::get_operand_value;
-    virtual std::unique_ptr<checking::operand> get_operand_value(context::dependency_solver& info,
-        const instructions::machine_operand_format& mach_op_format,
-        diagnostic_op_consumer& diags) const = 0;
-
-    const mach_kind kind;
-};
-
-
-
-// machine expression operand
-struct expr_machine_operand final : machine_operand
-{
-    expressions::mach_expr_ptr expression;
-
-    expr_machine_operand(expressions::mach_expr_ptr expression, const range& operand_range);
+    machine_operand(expressions::mach_expr_ptr displacement,
+        expressions::mach_expr_ptr first_par,
+        expressions::mach_expr_ptr second_par,
+        const range& r);
 
     std::unique_ptr<checking::operand> get_operand_value(
         context::dependency_solver& info, diagnostic_op_consumer& diags) const override;
     std::unique_ptr<checking::operand> get_operand_value(context::dependency_solver& info,
         const instructions::machine_operand_format& mach_op_format,
-        diagnostic_op_consumer& diags) const override;
-
-    bool has_dependencies(
-        context::dependency_solver& info, std::vector<context::id_index>* missing_symbols) const override;
-    bool has_error(context::dependency_solver& info) const override;
-
-    void apply(operand_visitor& visitor) const override;
-
-    void apply_mach_visitor(expressions::mach_expr_visitor&) const override;
-};
-
-
-// machine address operand
-struct address_machine_operand final : machine_operand
-{
-    address_machine_operand(expressions::mach_expr_ptr displacement,
-        expressions::mach_expr_ptr first_par,
-        expressions::mach_expr_ptr second_par,
-        const range& operand_range,
-        checking::operand_state state);
+        diagnostic_op_consumer& diags) const;
 
     expressions::mach_expr_ptr displacement;
     expressions::mach_expr_ptr first_par;
     expressions::mach_expr_ptr second_par;
-    checking::operand_state state;
+
+    [[nodiscard]] checking::operand_state compute_state() const noexcept;
 
     bool has_dependencies(
         context::dependency_solver& info, std::vector<context::id_index>* missing_symbols) const override;
 
     bool has_error(context::dependency_solver& info) const override;
 
-    std::unique_ptr<checking::operand> get_operand_value(
-        context::dependency_solver& info, diagnostic_op_consumer& diags) const override;
-    std::unique_ptr<checking::operand> get_operand_value(context::dependency_solver& info,
-        const instructions::machine_operand_format& mach_op_format,
-        diagnostic_op_consumer& diags) const override;
-
     void apply(operand_visitor& visitor) const override;
 
     void apply_mach_visitor(expressions::mach_expr_visitor&) const override;
-};
 
+    [[nodiscard]] bool is_single_expression() const noexcept { return !first_par && !second_par; }
+};
 
 enum class asm_kind
 {

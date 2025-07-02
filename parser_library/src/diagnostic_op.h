@@ -462,7 +462,7 @@ struct diagnostic_op
 
     static diagnostic_op error_M003(std::string_view instr_name, const range& range);
 
-    static diagnostic_op error_M004(std::string_view instr_name, const range& range);
+    static diagnostic_op error_M004(const range& range);
 
     static diagnostic_op error_M100(std::string_view instr_name, const range& range);
 

@@ -711,8 +711,8 @@ public:
             return nullptr;
         };
         static constexpr auto mach_expr = [](const semantics::operand_ptr& o) -> const expressions::mach_expression* {
-            if (auto* mach_op = o->access_mach())
-                return mach_op->access_expr()->expression.get();
+            if (auto* mach_op = o->access_mach(); mach_op && mach_op->is_single_expression())
+                return mach_op->displacement.get();
             return nullptr;
         };
 

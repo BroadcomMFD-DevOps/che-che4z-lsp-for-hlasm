@@ -114,86 +114,71 @@ std::optional<diagnostic_op> address_operand::check(
     instructions::machine_operand_format to_check, std::string_view instr_name, const range& stmt_range) const
 {
     if (is_simple_operand(to_check))
-    {
-        // operand must be simple
-        return get_simple_operand_expected(to_check, instr_name, stmt_range);
-    }
-    if (op_state == operand_state::SECOND_OMITTED)
-    {
-        return diagnostic_op::error_M004(instr_name, stmt_range);
-    }
+        return get_simple_operand_expected(to_check, instr_name, stmt_range); // operand must be simple
+
     if (state == address_state::RES_VALID)
         return std::nullopt;
     else if (state == address_state::RES_INVALID)
-    {
         return diagnostic_op::error_M010(instr_name, stmt_range);
-    }
-    else
+
+    // check displacement
+    if (!is_operand_corresponding(displacement, to_check.identifier))
     {
-        // check displacement
-        if (!is_operand_corresponding(displacement, to_check.identifier))
+        if (to_check.identifier.is_signed)
         {
-            if (to_check.identifier.is_signed)
-            {
-                auto boundary = 1ll << (to_check.identifier.size - 1);
-                return diagnostic_op::error_M130(instr_name, -boundary, boundary - 1, operand_range);
-            }
-            else
-                return diagnostic_op::error_M130(instr_name, 0, (1ll << to_check.identifier.size) - 1, operand_range);
-        }
-        // check the D(B) operand format
-        if (to_check.first.is_empty())
-        {
-            if (op_state != operand_state::ONE_OP)
-            {
-                // error, cannot be present
-                return diagnostic_op::error_M104(instr_name, operand_range);
-            }
-            // check second parameter, in all cases this is the base parameter
-            if (!is_operand_corresponding(second_op, to_check.second))
-            {
-                return diagnostic_op::error_M131(instr_name, operand_range);
-            }
+            auto boundary = 1ll << (to_check.identifier.size - 1);
+            return diagnostic_op::error_M130(instr_name, -boundary, boundary - 1, operand_range);
         }
         else
+            return diagnostic_op::error_M130(instr_name, 0, (1ll << to_check.identifier.size) - 1, operand_range);
+    }
+
+    // check the D(B) operand format
+    if (to_check.first.is_empty())
+    {
+        if (op_state != operand_state::ONE_OP)
         {
-            // therefore a D(X,B) format expected, can be specified either by D(X,B), D(X) or D(,B)
-
-            // first check the base register in case it is specified
-            if (op_state == operand_state::FIRST_OMITTED || op_state == operand_state::PRESENT)
-            {
-                if (!is_operand_corresponding(second_op, to_check.second))
-                {
-                    return diagnostic_op::error_M131(instr_name, operand_range);
-                }
-            }
-            // base is now checked, now check the first parameter, which is specified either in D(X,B) or D(X)
-            if (op_state != operand_state::FIRST_OMITTED)
-            {
-                int actual_val = 0;
-                if (op_state == operand_state::PRESENT)
-                    actual_val = first_op;
-                else
-                    actual_val = second_op;
-                // check whether value is corresponding
-
-                using enum instructions::machine_operand_type;
-                // length parameters can have +1 values specified
-                if (to_check.first.type == LENGTH && !is_length_corresponding(first_op, to_check.first.size))
-                {
-                    return get_first_parameter_error(
-                        to_check.first.type, instr_name, 0, 1ll << to_check.first.size, stmt_range);
-                }
-                if (to_check.first.type != LENGTH && !is_operand_corresponding(first_op, to_check.first))
-                {
-                    assert(!to_check.first.is_signed);
-                    return get_first_parameter_error(
-                        to_check.first.type, instr_name, 0, (1ll << to_check.first.size) - 1, stmt_range);
-                }
-            }
+            // error, cannot be present
+            return diagnostic_op::error_M104(instr_name, operand_range);
+        }
+        // check the only parameter, in all cases this is the base parameter
+        if (!is_operand_corresponding(first_op, to_check.second))
+        {
+            return diagnostic_op::error_M131(instr_name, operand_range);
         }
         return std::nullopt;
     }
+
+    // therefore a D(X,B) format expected, can be specified either by D(X,B), D(X) or D(,B)
+
+    // first check the base register in case it is specified
+    if (op_state == operand_state::FIRST_OMITTED || op_state == operand_state::PRESENT)
+    {
+        if (!is_operand_corresponding(second_op, to_check.second))
+        {
+            return diagnostic_op::error_M131(instr_name, operand_range);
+        }
+    }
+
+    // base is now checked, now check the first parameter, which is specified either in D(X,B) or D(X)
+    if (op_state != operand_state::FIRST_OMITTED)
+    {
+        // check whether value is corresponding
+        using enum instructions::machine_operand_type;
+        // length parameters can have +1 values specified
+        if (to_check.first.type == LENGTH && !is_length_corresponding(first_op, to_check.first.size))
+        {
+            return get_first_parameter_error(
+                to_check.first.type, instr_name, 0, 1ll << to_check.first.size, stmt_range);
+        }
+        if (to_check.first.type != LENGTH && !is_operand_corresponding(first_op, to_check.first))
+        {
+            assert(!to_check.first.is_signed);
+            return get_first_parameter_error(
+                to_check.first.type, instr_name, 0, (1ll << to_check.first.size) - 1, stmt_range);
+        }
+    }
+    return std::nullopt;
 }
 
 bool hlasm_plugin::parser_library::checking::address_operand::is_length_corresponding(
