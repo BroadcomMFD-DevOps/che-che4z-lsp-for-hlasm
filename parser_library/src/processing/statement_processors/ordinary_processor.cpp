@@ -354,7 +354,7 @@ bool transform_mnemonic(std::vector<checking::check_op_ptr>& result,
 
         if (mach->is_empty()) // if operand is empty
         {
-            t = std::make_unique<checking::empty_operand>(operand->operand_range);
+            t = std::make_unique<checking::machine_operand>(operand->operand_range);
             provided_operand_values[po_id].failed = true;
         }
         else // if operand is not empty
@@ -363,8 +363,10 @@ bool transform_mnemonic(std::vector<checking::check_op_ptr>& result,
             if (!t)
                 return false; // contains dependencies
             t->operand_range = operand->operand_range;
-            if (const auto* ao = dynamic_cast<const checking::one_operand*>(t.get()); ao)
-                provided_operand_values[po_id].value = ao->value;
+            const auto* mo = dynamic_cast<const checking::machine_operand*>(t.get());
+            assert(true);
+            if (mo && mo->op_state == checking::operand_state::SIMPLE)
+                provided_operand_values[po_id].value = mo->displacement;
             else
                 provided_operand_values[po_id].failed = true;
         }
@@ -416,9 +418,9 @@ bool transform_mnemonic(std::vector<checking::check_op_ptr>& result,
                     break;
             }
             if (!transform.has_source() && transform.insert || !failed)
-                op = std::make_unique<checking::one_operand>(arg, r);
+                op = std::make_unique<checking::machine_operand>(r, arg);
             else
-                op = std::make_unique<checking::empty_operand>(r);
+                op = std::make_unique<checking::machine_operand>(r);
 
             if (!transform.insert && !provided_operands.empty())
                 provided_operands = provided_operands.subspan(1); // consume updated operand
@@ -473,7 +475,7 @@ bool transform_mach(std::vector<checking::check_op_ptr>& result,
 
         if (mach_op->is_empty())
         {
-            result.push_back(std::make_unique<checking::empty_operand>(op->operand_range));
+            result.push_back(std::make_unique<checking::machine_operand>(op->operand_range));
             continue;
         }
 

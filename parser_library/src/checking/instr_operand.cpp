@@ -22,34 +22,16 @@
 
 namespace hlasm_plugin::parser_library::checking {
 
+asm_operand::asm_operand(const range& r) noexcept
+    : operand(r)
+{}
+
 complex_operand::complex_operand() = default;
 
 complex_operand::complex_operand(
     std::string operand_identifier, std::vector<std::unique_ptr<asm_operand>> operand_params)
     : operand_identifier(std::move(operand_identifier))
     , operand_parameters(std::move(operand_params)) {};
-
-machine_operand::machine_operand() = default;
-
-bool machine_operand::is_operand_corresponding(int operand, instructions::parameter param)
-{
-    if (param.is_signed && is_size_corresponding_signed(operand, param.size))
-        return true;
-    else if (!param.is_signed && is_size_corresponding_unsigned(operand, param.size))
-        return true;
-    return false;
-}
-
-bool machine_operand::is_size_corresponding_signed(int operand, int size)
-{
-    auto boundary = 1ll << (size - 1);
-    return operand < boundary && operand >= -boundary;
-}
-
-bool machine_operand::is_size_corresponding_unsigned(int operand, int size)
-{
-    return operand >= 0 && operand <= (1ll << size) - 1;
-}
 
 namespace {
 bool check_value_parity(int operand, instructions::even_odd_register reg)
@@ -67,6 +49,16 @@ bool check_value_parity(int operand, instructions::even_odd_register reg)
 }
 } // namespace
 
+
+bool machine_operand::is_operand_corresponding(int operand, instructions::parameter param)
+{
+    if (param.is_signed && is_size_corresponding_signed(operand, param.size))
+        return true;
+    else if (!param.is_signed && is_size_corresponding_unsigned(operand, param.size))
+        return true;
+    return false;
+}
+
 bool machine_operand::is_simple_operand(const instructions::machine_operand_format& operand)
 {
     using enum instructions::machine_operand_type;
@@ -74,21 +66,37 @@ bool machine_operand::is_simple_operand(const instructions::machine_operand_form
         && operand.second.size == 0 && operand.first.type == NONE && operand.second.type == NONE);
 }
 
-address_operand::address_operand(address_state state, int displacement, int first, int second)
-    : state(state)
+machine_operand::machine_operand(const range& r)
+    : operand(r)
+    , state(address_state::EMPTY)
+    , displacement(0)
+    , first_op(0)
+    , second_op(0)
+    , op_state(operand_state::SIMPLE)
+{}
+
+machine_operand::machine_operand(const range& r, int displacement)
+    : machine_operand(r, address_state::UNRES, displacement, 0, 0, operand_state::SIMPLE)
+{}
+
+machine_operand::machine_operand(const range& r, address_state state, int displacement, int first, int second)
+    : operand(r)
+    , state(state)
     , displacement(displacement)
     , first_op(first)
     , second_op(second)
     , op_state(operand_state::PRESENT) {};
 
-address_operand::address_operand(address_state state, int displacement, int first, int second, operand_state op_state)
-    : state(state)
+machine_operand::machine_operand(
+    const range& r, address_state state, int displacement, int first, int second, operand_state op_state)
+    : operand(r)
+    , state(state)
     , displacement(displacement)
     , first_op(first)
     , second_op(second)
     , op_state(op_state) {};
 
-diagnostic_op address_operand::get_first_parameter_error(instructions::machine_operand_type op_type,
+diagnostic_op machine_operand::get_first_parameter_error(instructions::machine_operand_type op_type,
     std::string_view instr_name,
     long long from,
     long long to,
@@ -110,9 +118,15 @@ diagnostic_op address_operand::get_first_parameter_error(instructions::machine_o
     return diagnostic_op::error_I999(instr_name, stmt_range);
 }
 
-std::optional<diagnostic_op> address_operand::check(
+std::optional<diagnostic_op> machine_operand::check(
     instructions::machine_operand_format to_check, std::string_view instr_name, const range& stmt_range) const
 {
+    if (state == address_state::EMPTY)
+        return diagnostic_op::error_M003(instr_name, operand_range);
+
+    if (op_state == operand_state::SIMPLE)
+        return check_simple(to_check, instr_name, stmt_range);
+
     if (is_simple_operand(to_check))
         return get_simple_operand_expected(to_check, instr_name, stmt_range); // operand must be simple
 
@@ -181,7 +195,7 @@ std::optional<diagnostic_op> address_operand::check(
     return std::nullopt;
 }
 
-bool hlasm_plugin::parser_library::checking::address_operand::is_length_corresponding(
+bool hlasm_plugin::parser_library::checking::machine_operand::is_length_corresponding(
     int param_value, int length_size) const
 {
     auto boundary = 1ll << length_size;
@@ -236,26 +250,26 @@ one_operand::one_operand(int value)
 {}
 
 one_operand::one_operand(std::string operand_identifier, range range)
-    : operand(range)
+    : asm_operand(range)
     , operand_identifier(std::move(operand_identifier))
     , value(0)
     , is_default(true)
 {}
 
 one_operand::one_operand(int value, range range)
-    : operand(range)
+    : asm_operand(range)
     , operand_identifier(std::to_string(value))
     , value(value)
     , is_default(false)
 {}
 
 one_operand::one_operand(const one_operand& op)
-    : operand(operand_range)
+    : asm_operand(operand_range)
     , operand_identifier(op.operand_identifier)
     , value(op.value)
     , is_default(op.is_default) {};
 
-std::optional<diagnostic_op> one_operand::check(
+std::optional<diagnostic_op> machine_operand::check_simple(
     instructions::machine_operand_format to_check, std::string_view instr_name, const range&) const
 {
     if (!is_simple_operand(to_check))
@@ -263,7 +277,7 @@ std::optional<diagnostic_op> one_operand::check(
         // therefore it is an address operand, but represented only by a single value
 
         // check only the displacement
-        if (is_operand_corresponding(value, to_check.identifier))
+        if (is_operand_corresponding(displacement, to_check.identifier))
             return std::nullopt;
 
         if (to_check.identifier.is_signed)
@@ -277,7 +291,7 @@ std::optional<diagnostic_op> one_operand::check(
 
     using enum instructions::machine_operand_type;
     // it is a simple operand
-    if (to_check.identifier.is_signed && !is_size_corresponding_signed(value, to_check.identifier.size))
+    if (to_check.identifier.is_signed && !is_size_corresponding_signed(displacement, to_check.identifier.size))
     {
         const auto boundary = 1ll << (to_check.identifier.size - 1);
         switch (to_check.identifier.type)
@@ -291,8 +305,9 @@ std::optional<diagnostic_op> one_operand::check(
         }
     }
     if (!to_check.identifier.is_signed
-        && (!is_size_corresponding_unsigned(value, to_check.identifier.size)
-            || !check_value_parity(value, to_check.identifier.evenodd) || value < to_check.identifier.min_register))
+        && (!is_size_corresponding_unsigned(displacement, to_check.identifier.size)
+            || !check_value_parity(displacement, to_check.identifier.evenodd)
+            || displacement < to_check.identifier.min_register))
     {
         const auto boundary = (1ll << to_check.identifier.size) - 1;
         static constexpr std::string_view reg_qual[] = { "", "odd", "even" };
@@ -316,14 +331,7 @@ std::optional<diagnostic_op> one_operand::check(
     return std::nullopt;
 }
 
-empty_operand::empty_operand() = default;
 empty_operand::empty_operand(range r)
-    : operand(r)
+    : asm_operand(r)
 {}
-
-std::optional<diagnostic_op> empty_operand::check(
-    instructions::machine_operand_format, std::string_view instr_name, const range&) const
-{
-    return diagnostic_op::error_M003(instr_name, operand_range);
-}
 } // namespace hlasm_plugin::parser_library::checking

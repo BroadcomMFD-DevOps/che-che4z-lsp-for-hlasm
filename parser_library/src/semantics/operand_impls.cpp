@@ -131,15 +131,16 @@ constexpr bool is_long_disp(instructions::machine_operand_format f)
     return f.identifier == instructions::dis_20s || f.identifier == instructions::dis_idx_20s;
 }
 
-std::unique_ptr<checking::operand> make_check_operand(context::dependency_solver& info,
+std::unique_ptr<checking::machine_operand> make_check_operand(context::dependency_solver& info,
     const expressions::mach_expression& expr,
     const instructions::machine_operand_format& mach_op_type,
-    diagnostic_op_consumer& diags)
+    diagnostic_op_consumer& diags,
+    const range& r)
 {
     auto res = expr.evaluate(info, diags);
     if (res.value_kind() == context::symbol_value_kind::ABS)
     {
-        return std::make_unique<checking::one_operand>(res.get_abs());
+        return std::make_unique<checking::machine_operand>(r, res.get_abs());
     }
     else if (res.value_kind() == context::symbol_value_kind::RELOC && is_dipl_like(mach_op_type.identifier.type))
     {
@@ -154,7 +155,8 @@ std::unique_ptr<checking::operand> make_check_operand(context::dependency_solver
                 // TODO: this does not work correctly for d(L,r) type of operand,
                 // we really need the operand type here, to do the right thing.
                 // NOTE: length of the leftmost operand determines the value
-                return std::make_unique<checking::address_operand>(checking::address_state::UNRES,
+                return std::make_unique<checking::machine_operand>(r,
+                    checking::address_state::UNRES,
                     translated_addr.reg_offset,
                     0,
                     translated_addr.reg,
@@ -173,22 +175,24 @@ std::unique_ptr<checking::operand> make_check_operand(context::dependency_solver
     }
 
     // everything was already diagnosed
-    return std::make_unique<checking::address_operand>(
-        checking::address_state::RES_VALID, 0, 0, 0, checking::operand_state::ONE_OP);
+    return std::make_unique<checking::machine_operand>(
+        r, checking::address_state::RES_VALID, 0, 0, 0, checking::operand_state::ONE_OP);
 }
 
-std::unique_ptr<checking::operand> make_rel_imm_operand(
-    context::dependency_solver& info, const expressions::mach_expression& expr, diagnostic_op_consumer& diags)
+std::unique_ptr<checking::machine_operand> make_rel_imm_operand(context::dependency_solver& info,
+    const expressions::mach_expression& expr,
+    diagnostic_op_consumer& diags,
+    const range& r)
 {
     auto res = expr.evaluate(info, diags);
     if (res.value_kind() == context::symbol_value_kind::ABS)
     {
-        return std::make_unique<checking::one_operand>(std::to_string(res.get_abs()), res.get_abs());
+        return std::make_unique<checking::machine_operand>(r, res.get_abs());
     }
     else
     {
-        return std::make_unique<checking::address_operand>(
-            checking::address_state::UNRES, 0, 0, 0, checking::operand_state::ONE_OP);
+        return std::make_unique<checking::machine_operand>(
+            r, checking::address_state::UNRES, 0, 0, 0, checking::operand_state::ONE_OP);
     }
 }
 
@@ -698,15 +702,15 @@ std::unique_ptr<checking::operand> machine_operand::get_operand_value(context::d
     diagnostic_op_consumer& diags) const
 {
     if (!displacement)
-        return std::make_unique<checking::empty_operand>(operand_range);
+        return std::make_unique<checking::machine_operand>(operand_range);
 
     if (!first_par && !second_par)
     {
         if (mach_op_format.identifier.type == instructions::machine_operand_type::RELOC_IMM)
         {
-            return make_rel_imm_operand(info, *displacement, diags);
+            return make_rel_imm_operand(info, *displacement, diags, operand_range);
         }
-        return make_check_operand(info, *displacement, mach_op_format, diags);
+        return make_check_operand(info, *displacement, mach_op_format, diags, operand_range);
     }
 
     std::optional<context::symbol_value::abs_value_t> displ_v;
@@ -757,11 +761,15 @@ std::unique_ptr<checking::operand> machine_operand::get_operand_value(context::d
     }
 
     if (!displ_v.has_value() || first_err || second_err)
-        return std::make_unique<checking::address_operand>(
-            checking::address_state::RES_INVALID, 0, 0, 0, compute_state());
+        return std::make_unique<checking::machine_operand>(
+            operand_range, checking::address_state::RES_INVALID, 0, 0, 0, compute_state());
 
-    return std::make_unique<checking::address_operand>(
-        checking::address_state::UNRES, *displ_v, first_v.value_or(0), second_v.value_or(0), compute_state());
+    return std::make_unique<checking::machine_operand>(operand_range,
+        checking::address_state::UNRES,
+        *displ_v,
+        first_v.value_or(0),
+        second_v.value_or(0),
+        compute_state());
 }
 checking::operand_state machine_operand::compute_state() const noexcept
 {

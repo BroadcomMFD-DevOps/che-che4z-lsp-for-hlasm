@@ -35,20 +35,21 @@ class data_def_type;
 
 enum class address_state
 {
+    EMPTY,
     RES_VALID,
     RES_INVALID,
     UNRES
 };
 
-/*
-FIRST_OMITTED = D(,B)
-PRESENT - D(X,B)
-ONE_OP - D(B)
-*/
 enum class operand_state
 {
+    // D
+    SIMPLE,
+    // D(,B)
     FIRST_OMITTED,
+    // D(X,B)
     PRESENT,
+    // D(B)
     ONE_OP
 };
 
@@ -64,38 +65,40 @@ public:
     complex_operand(std::string operand_identifier, std::vector<std::unique_ptr<asm_operand>> operand_params);
 };
 
+constexpr bool is_size_corresponding_signed(int operand, int size)
+{
+    auto boundary = 1ll << (size - 1);
+    return operand < boundary && operand >= -boundary;
+}
+
+constexpr bool is_size_corresponding_unsigned(int operand, int size)
+{
+    return operand >= 0 && operand <= (1ll << size) - 1;
+}
+
+
 // Abstract class that represents a machine operand suitable for checking.
-class machine_operand : public virtual operand
+class machine_operand final : public operand
 {
 public:
-    machine_operand();
+    machine_operand(const range& r);
+    machine_operand(const range& r, int displacement);
+    machine_operand(const range& r, address_state state, int displacement, int first, int second);
+    machine_operand(
+        const range& r, address_state state, int displacement, int first, int second, operand_state op_state);
 
-    // check whether the operand satisfies its format
-    virtual std::optional<diagnostic_op> check(
-        instructions::machine_operand_format to_check, std::string_view instr_name, const range& stmt_range) const = 0;
-
-    diagnostic_op get_simple_operand_expected(const instructions::machine_operand_format& op_format,
-        std::string_view instr_name,
-        const range& stmt_range) const;
-
-    static bool is_size_corresponding_signed(int operand, int size);
-    static bool is_size_corresponding_unsigned(int operand, int size);
-    static bool is_operand_corresponding(int operand, instructions::parameter param);
-    static bool is_simple_operand(const instructions::machine_operand_format& operand);
-};
-
-// Represents address operand D(B) or D(F,B)
-class address_operand final : public machine_operand
-{
-public:
     address_state state;
     int displacement;
     int first_op;
     int second_op;
     operand_state op_state;
 
-    address_operand(address_state state, int displacement, int first, int second);
-    address_operand(address_state state, int displacement, int first, int second, operand_state op_state);
+    diagnostic_op get_simple_operand_expected(const instructions::machine_operand_format& op_format,
+        std::string_view instr_name,
+        const range& stmt_range) const;
+
+    static bool is_operand_corresponding(int operand, instructions::parameter param);
+    static bool is_simple_operand(const instructions::machine_operand_format& operand);
 
     diagnostic_op get_first_parameter_error(instructions::machine_operand_type op_type,
         std::string_view instr_name,
@@ -104,13 +107,16 @@ public:
         const range& stmt_range) const;
 
     std::optional<diagnostic_op> check(
-        instructions::machine_operand_format to_check, std::string_view instr_name, const range& range) const override;
+        instructions::machine_operand_format to_check, std::string_view instr_name, const range& range) const;
+
+    std::optional<diagnostic_op> check_simple(
+        instructions::machine_operand_format to_check, std::string_view instr_name, const range& stmt_range) const;
 
     bool is_length_corresponding(int param_value, int length_size) const;
 };
 
 // class that represents both a simple operand both in assembler and machine instructions
-class one_operand final : public asm_operand, public machine_operand
+class one_operand final : public asm_operand
 {
 public:
     // the string value of the operand
@@ -131,21 +137,13 @@ public:
     one_operand(int value, range range);
 
     one_operand(const one_operand& op);
-
-    std::optional<diagnostic_op> check(instructions::machine_operand_format to_check,
-        std::string_view instr_name,
-        const range& stmt_range) const override;
 };
 
-class empty_operand final : public machine_operand, public asm_operand
+class empty_operand final : public asm_operand
 {
 public:
-    empty_operand();
+    empty_operand() = default;
     explicit empty_operand(range r);
-
-    std::optional<diagnostic_op> check(instructions::machine_operand_format to_check,
-        std::string_view instr_name,
-        const range& stmt_range) const override;
 };
 
 } // namespace hlasm_plugin::parser_library::checking

@@ -29,16 +29,16 @@ const auto& get_mi(std::string_view arg)
 {
     return hlasm_plugin::parser_library::instructions::get_machine_instructions(arg);
 }
-one_operand op_val_0 { 0 };
-one_operand op_val_1 { 1 };
-one_operand op_val_2 { 2 };
-one_operand op_val_3 { 3 };
-one_operand op_val_4 { 4 };
-one_operand op_val_11 { 11 };
-one_operand op_val_12 { 12 };
-one_operand op_val_13 { 13 };
-one_operand op_val_14 { 14 };
-one_operand op_val_15 { 15 };
+machine_operand op_val_0 { range(), 0 };
+machine_operand op_val_1 { range(), 1 };
+machine_operand op_val_2 { range(), 2 };
+machine_operand op_val_3 { range(), 3 };
+machine_operand op_val_4 { range(), 4 };
+machine_operand op_val_11 { range(), 11 };
+machine_operand op_val_12 { range(), 12 };
+machine_operand op_val_13 { range(), 13 };
+machine_operand op_val_14 { range(), 14 };
+machine_operand op_val_15 { range(), 15 };
 } // namespace
 
 namespace hlasm_plugin::parser_library::processing {
@@ -61,7 +61,7 @@ TEST(machine_instr_check_test, BAL_test)
 {
     diagnostic_collector collector;
     std::string bal_name = "BAL";
-    address_operand valid_op = address_operand(address_state::RES_VALID, 1, 1, 111);
+    machine_operand valid_op(range(), address_state::RES_VALID, 1, 1, 111);
     std::vector<const checking::machine_operand*> operands { &op_val_2, &valid_op };
     EXPECT_TRUE(check(get_mi(bal_name), bal_name, operands, range(), collector));
 }
@@ -93,7 +93,7 @@ TEST(machine_instr_check_test, CLC_test)
 {
     diagnostic_collector collector;
     std::string clc_name = "CLC";
-    address_operand length_one = address_operand(address_state::UNRES, 1, 2, 4);
+    machine_operand length_one(range(), address_state::UNRES, 1, 2, 4);
     std::vector<const checking::machine_operand*> operands { &length_one, &op_val_2 };
     EXPECT_TRUE(check(get_mi(clc_name), clc_name, operands, range(), collector));
 }
@@ -102,7 +102,7 @@ TEST(machine_instr_check_test, a_test_invalid)
     diagnostic_collector collector;
     std::string a_name = "A";
 
-    address_operand invalid_op = address_operand(address_state::RES_INVALID, 1, 1, 1);
+    machine_operand invalid_op(range(), address_state::RES_INVALID, 1, 1, 1);
     std::vector<const checking::machine_operand*> operands { &op_val_4, &invalid_op };
     EXPECT_FALSE(check(get_mi(a_name), a_name, operands, range(), collector));
 }
