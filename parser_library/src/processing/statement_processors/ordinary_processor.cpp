@@ -250,13 +250,40 @@ std::optional<processing_status> ordinary_processor::get_instruction_processing_
 }
 
 namespace {
+std::optional<checking::machine_operand> get_check_op(const semantics::machine_operand& op,
+    context::dependency_solver& dep_solver,
+    const diagnostic_collector& add_diagnostic,
+    size_t op_position,
+    const instructions::machine_instruction* mi)
+{
+    diagnostic_consumer_transform diags([&add_diagnostic](diagnostic_op d) { add_diagnostic(std::move(d)); });
+
+    std::vector<context::id_index> missing_symbols;
+    if (op.has_dependencies(dep_solver, &missing_symbols))
+    {
+        for (const auto& symbol : missing_symbols)
+            add_diagnostic(diagnostic_op::error_E010("ordinary symbol", symbol.to_string_view(), op.operand_range));
+        if (missing_symbols.empty()) // this is a fallback message if somehow non-symbolic deps are not resolved
+            add_diagnostic(diagnostic_op::error_E016(op.operand_range));
+        return std::nullopt;
+    }
+
+    checking::using_label_checker lc(dep_solver, diags);
+    op.apply_mach_visitor(lc);
+
+    // TODO: this is less than ideal, we should probably create operand structures
+    // with the correct "type" while parsing and reject incompatible arguments
+    // early when the syntax is incompatible
+    if (op_position < mi->operands().size())
+        return op.get_operand_value(dep_solver, mi->operands()[op_position], diags);
+    else
+        return op.get_operand_value(dep_solver, instructions::machine_operand_format::empty, diags);
+}
 
 checking::check_op_ptr get_check_op(const semantics::operand* op,
     context::dependency_solver& dep_solver,
     const diagnostic_collector& add_diagnostic,
-    const resolved_statement& stmt,
-    size_t op_position,
-    const instructions::machine_instruction* mi)
+    const resolved_statement& stmt)
 {
     diagnostic_consumer_transform diags([&add_diagnostic](diagnostic_op d) { add_diagnostic(std::move(d)); });
 
@@ -281,19 +308,7 @@ checking::check_op_ptr get_check_op(const semantics::operand* op,
     checking::using_label_checker lc(dep_solver, diags);
     ev_op.apply_mach_visitor(lc);
 
-    if (auto mach_op = dynamic_cast<const semantics::machine_operand*>(&ev_op))
-    {
-        // TODO: this is less than ideal, we should probably create operand structures
-        // with the correct "type" while parsing and reject incompatible arguments
-        // early when the syntax is incompatible
-        if (op_position < mi->operands().size())
-        {
-            uniq = mach_op->get_operand_value(dep_solver, mi->operands()[op_position], diags);
-        }
-        else
-            uniq = ev_op.get_operand_value(dep_solver, diags);
-    }
-    else if (auto expr_op = dynamic_cast<const semantics::expr_assembler_operand*>(&ev_op))
+    if (auto expr_op = dynamic_cast<const semantics::expr_assembler_operand*>(&ev_op))
     {
         uniq = expr_op->get_operand_value(dep_solver, can_have_ord_syms, diags);
     }
@@ -305,7 +320,7 @@ checking::check_op_ptr get_check_op(const semantics::operand* op,
     return uniq;
 }
 
-bool transform_mnemonic(std::vector<checking::check_op_ptr>& result,
+bool transform_mnemonic(std::vector<checking::machine_operand>& result,
     const resolved_statement& stmt,
     context::dependency_solver& dep_solver,
     const instructions::mnemonic_code& mnemonic,
@@ -336,37 +351,37 @@ bool transform_mnemonic(std::vector<checking::check_op_ptr>& result,
         range r;
     };
 
-    std::array<checking::check_op_ptr, instructions::machine_instruction::max_operand_count> po;
+    size_t po_id = 0;
     std::array<operand_info, instructions::machine_instruction::max_operand_count> provided_operand_values {};
-    for (size_t op_id = 0, po_id = 0, repl_id = 0, processed = 0; const auto& operand : operands)
+    for (size_t op_id = 0, repl_id = 0, processed = 0; const auto& tmp_op : operands)
     {
+        const auto* mach_op = tmp_op->access_mach();
+        assert(mach_op);
+
         while (repl_id < transforms.size() && processed == transforms[repl_id].skip && transforms[repl_id].insert)
         {
             ++repl_id;
             ++op_id;
             processed = 0;
+            result.emplace_back(mach_op->operand_range);
         }
-        auto& t = po[po_id];
-        provided_operand_values[po_id].r = operand->operand_range;
+        provided_operand_values[po_id].r = mach_op->operand_range;
 
-        const auto* mach = operand->access_mach();
-        assert(mach);
-
-        if (mach->is_empty()) // if operand is empty
+        if (mach_op->is_empty()) // if operand is empty
         {
-            t = std::make_unique<checking::machine_operand>(operand->operand_range);
+            result.emplace_back(mach_op->operand_range);
             provided_operand_values[po_id].failed = true;
         }
         else // if operand is not empty
         {
-            t = get_check_op(operand.get(), dep_solver, add_diagnostic, stmt, op_id, curr_instr);
-            if (!t)
+            auto check_op = get_check_op(*mach_op, dep_solver, add_diagnostic, op_id, curr_instr);
+            if (!check_op)
+                return false;
+            auto& last = result.emplace_back(std::move(check_op).value());
+            if (last.state == checking::address_state::EMPTY)
                 return false; // contains dependencies
-            t->operand_range = operand->operand_range;
-            const auto* mo = dynamic_cast<const checking::machine_operand*>(t.get());
-            assert(true);
-            if (mo && mo->op_state == checking::operand_state::SIMPLE)
-                provided_operand_values[po_id].value = mo->displacement;
+            if (last.op_state == checking::operand_state::SIMPLE)
+                provided_operand_values[po_id].value = last.displacement;
             else
                 provided_operand_values[po_id].failed = true;
         }
@@ -380,14 +395,14 @@ bool transform_mnemonic(std::vector<checking::check_op_ptr>& result,
         ++op_id;
         ++po_id;
     }
-    std::span<checking::check_op_ptr> provided_operands(po.data(), operands.size());
 
     // create vector of empty operands
-    result.resize(curr_instr->operands().size());
+    result.resize(curr_instr->operands().size(), checking::machine_operand(stmt.stmt_range_ref()));
 
     // add other
-    for (size_t processed = 0; auto& op : result)
+    for (size_t processed = 0, count = 0; auto& op : result)
     {
+        ++count;
         if (!transforms.empty() && transforms.front().skip == processed)
         {
             const auto transform = transforms.front();
@@ -418,22 +433,22 @@ bool transform_mnemonic(std::vector<checking::check_op_ptr>& result,
                     break;
             }
             if (!transform.has_source() && transform.insert || !failed)
-                op = std::make_unique<checking::machine_operand>(r, arg);
+                op = checking::machine_operand(r, arg);
             else
-                op = std::make_unique<checking::machine_operand>(r);
+                op = checking::machine_operand(r);
 
-            if (!transform.insert && !provided_operands.empty())
-                provided_operands = provided_operands.subspan(1); // consume updated operand
+            if (!transform.insert && po_id > 0)
+                --po_id; // consume updated operand
             continue;
         }
-        if (provided_operands.empty())
+        if (po_id == 0)
+        {
+            result.erase(result.begin() + count, result.end());
             break;
-
-        op = std::move(provided_operands.front());
-        provided_operands = provided_operands.subspan(1);
+        }
+        --po_id;
         ++processed;
     }
-    std::erase_if(result, [](const auto& x) { return !x; });
     return true;
 }
 
@@ -451,7 +466,7 @@ bool transform_default(std::vector<checking::check_op_ptr>& result,
             continue;
         }
 
-        auto uniq = get_check_op(op.get(), dep_solver, add_diagnostic, stmt, result.size(), nullptr);
+        auto uniq = get_check_op(op.get(), dep_solver, add_diagnostic, stmt);
 
         if (!uniq)
             return false; // contains dependencies
@@ -462,7 +477,7 @@ bool transform_default(std::vector<checking::check_op_ptr>& result,
     return true;
 }
 
-bool transform_mach(std::vector<checking::check_op_ptr>& result,
+bool transform_mach(std::vector<checking::machine_operand>& result,
     const resolved_statement& stmt,
     context::dependency_solver& dep_solver,
     const diagnostic_collector& add_diagnostic,
@@ -475,17 +490,14 @@ bool transform_mach(std::vector<checking::check_op_ptr>& result,
 
         if (mach_op->is_empty())
         {
-            result.push_back(std::make_unique<checking::machine_operand>(op->operand_range));
+            result.emplace_back(op->operand_range);
             continue;
         }
 
-        auto uniq = get_check_op(mach_op, dep_solver, add_diagnostic, stmt, result.size(), &mi);
-
-        if (!uniq)
-            return false; // contains dependencies
-
-        uniq->operand_range = mach_op->operand_range;
-        result.push_back(std::move(uniq));
+        auto check_op = get_check_op(*mach_op, dep_solver, add_diagnostic, result.size(), &mi);
+        if (!check_op)
+            return false;
+        result.emplace_back(std::move(check_op).value());
     }
     return true;
 }
@@ -494,7 +506,7 @@ bool transform_mach(std::vector<checking::check_op_ptr>& result,
 
 bool check(const instructions::machine_instruction& mi,
     std::string_view name_of_instruction,
-    std::span<const checking::machine_operand* const> to_check,
+    std::span<const checking::machine_operand> to_check,
     const range& stmt_range,
     const diagnostic_collector& add_diagnostic)
 {
@@ -507,10 +519,9 @@ bool check(const instructions::machine_instruction& mi,
         return false;
     }
     bool error = false;
-    for (const auto* fmt = ops.data(); const auto* op : to_check)
+    for (const auto* fmt = ops.data(); const auto& op : to_check)
     {
-        assert(op != nullptr);
-        if (auto diag = op->check(*fmt++, name_of_instruction); diag.has_value())
+        if (auto diag = op.check(*fmt++, name_of_instruction); diag.has_value())
         {
             add_diagnostic(std::move(diag).value());
             error = true;
@@ -526,6 +537,7 @@ void ordinary_processor::check_postponed_statements(
     std::vector<const checking::asm_operand*> operand_asm_vector;
     std::vector<const checking::machine_operand*> operand_mach_vector;
     std::vector<checking::check_op_ptr> operand_vector;
+    std::vector<checking::machine_operand> mach_operand_vector;
 
     for (const auto& [stmt, dep_ctx] : stmts)
     {
@@ -546,23 +558,19 @@ void ordinary_processor::check_postponed_statements(
         switch (opcode.type)
         {
             case MACH:
-                if (!transform_mach(operand_vector, *rs, dep_solver, collector, *opcode.instr_mach))
+                mach_operand_vector.clear();
+                if (!transform_mach(mach_operand_vector, *rs, dep_solver, collector, *opcode.instr_mach))
                     continue;
-                operand_mach_vector.clear();
-                for (const auto& op : operand_vector)
-                    operand_mach_vector.push_back(dynamic_cast<const checking::machine_operand*>(op.get()));
-                check(*opcode.instr_mach, instruction_name, operand_mach_vector, rs->stmt_range_ref(), collector);
+                check(*opcode.instr_mach, instruction_name, mach_operand_vector, rs->stmt_range_ref(), collector);
                 break;
 
             case MNEMO:
-                if (!transform_mnemonic(operand_vector, *rs, dep_solver, *opcode.instr_mnemo, collector))
+                mach_operand_vector.clear();
+                if (!transform_mnemonic(mach_operand_vector, *rs, dep_solver, *opcode.instr_mnemo, collector))
                     continue;
-                operand_mach_vector.clear();
-                for (const auto& op : operand_vector)
-                    operand_mach_vector.push_back(dynamic_cast<const checking::machine_operand*>(op.get()));
                 check(*opcode.instr_mnemo->instruction(),
                     instruction_name,
-                    operand_mach_vector,
+                    mach_operand_vector,
                     rs->stmt_range_ref(),
                     collector);
 

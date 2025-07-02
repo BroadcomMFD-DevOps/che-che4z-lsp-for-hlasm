@@ -105,14 +105,14 @@ evaluable_operand::evaluable_operand(const operand_type type, const range& opera
 //***************** machine_operand *********************
 
 machine_operand::machine_operand(const range& r)
-    : evaluable_operand(operand_type::MACH, r)
+    : operand(operand_type::MACH, r)
 {}
 
 machine_operand::machine_operand(expressions::mach_expr_ptr displacement,
     expressions::mach_expr_ptr first_par,
     expressions::mach_expr_ptr second_par,
     const range& r)
-    : evaluable_operand(operand_type::MACH, r)
+    : operand(operand_type::MACH, r)
     , displacement(std::move(displacement))
     , first_par(std::move(first_par))
     , second_par(std::move(second_par))
@@ -131,7 +131,7 @@ constexpr bool is_long_disp(instructions::machine_operand_format f)
     return f.identifier == instructions::dis_20s || f.identifier == instructions::dis_idx_20s;
 }
 
-std::unique_ptr<checking::machine_operand> make_check_operand(context::dependency_solver& info,
+checking::machine_operand make_check_operand(context::dependency_solver& info,
     const expressions::mach_expression& expr,
     const instructions::machine_operand_format& mach_op_type,
     diagnostic_op_consumer& diags,
@@ -140,7 +140,7 @@ std::unique_ptr<checking::machine_operand> make_check_operand(context::dependenc
     auto res = expr.evaluate(info, diags);
     if (res.value_kind() == context::symbol_value_kind::ABS)
     {
-        return std::make_unique<checking::machine_operand>(r, res.get_abs());
+        return checking::machine_operand(r, res.get_abs());
     }
     else if (res.value_kind() == context::symbol_value_kind::RELOC && is_dipl_like(mach_op_type.identifier.type))
     {
@@ -155,7 +155,7 @@ std::unique_ptr<checking::machine_operand> make_check_operand(context::dependenc
                 // TODO: this does not work correctly for d(L,r) type of operand,
                 // we really need the operand type here, to do the right thing.
                 // NOTE: length of the leftmost operand determines the value
-                return std::make_unique<checking::machine_operand>(r,
+                return checking::machine_operand(r,
                     checking::address_state::UNRES,
                     translated_addr.reg_offset,
                     0,
@@ -175,25 +175,19 @@ std::unique_ptr<checking::machine_operand> make_check_operand(context::dependenc
     }
 
     // everything was already diagnosed
-    return std::make_unique<checking::machine_operand>(
-        r, checking::address_state::RES_VALID, 0, 0, 0, checking::operand_state::ONE_OP);
+    return checking::machine_operand(r, checking::address_state::RES_VALID, 0, 0, 0, checking::operand_state::ONE_OP);
 }
 
-std::unique_ptr<checking::machine_operand> make_rel_imm_operand(context::dependency_solver& info,
+checking::machine_operand make_rel_imm_operand(context::dependency_solver& info,
     const expressions::mach_expression& expr,
     diagnostic_op_consumer& diags,
     const range& r)
 {
     auto res = expr.evaluate(info, diags);
     if (res.value_kind() == context::symbol_value_kind::ABS)
-    {
-        return std::make_unique<checking::machine_operand>(r, res.get_abs());
-    }
+        return checking::machine_operand(r, res.get_abs());
     else
-    {
-        return std::make_unique<checking::machine_operand>(
-            r, checking::address_state::UNRES, 0, 0, 0, checking::operand_state::ONE_OP);
-    }
+        return checking::machine_operand(r, checking::address_state::UNRES, 0, 0, 0, checking::operand_state::ONE_OP);
 }
 
 bool machine_operand::has_dependencies(
@@ -209,12 +203,6 @@ bool machine_operand::has_error(context::dependency_solver& info) const
     return displacement && displacement->get_dependencies(info).has_error
         || first_par && first_par->get_dependencies(info).has_error
         || second_par && second_par->get_dependencies(info).has_error;
-}
-
-std::unique_ptr<checking::operand> machine_operand::get_operand_value(
-    context::dependency_solver& info, diagnostic_op_consumer& diags) const
-{
-    return get_operand_value(info, instructions::machine_operand_format::empty, diags);
 }
 
 namespace {
@@ -697,12 +685,12 @@ void transform_reloc_imm_operands(semantics::operand_list& op_list, const proces
     }
 }
 
-std::unique_ptr<checking::operand> machine_operand::get_operand_value(context::dependency_solver& info,
+checking::machine_operand machine_operand::get_operand_value(context::dependency_solver& info,
     const instructions::machine_operand_format& mach_op_format,
     diagnostic_op_consumer& diags) const
 {
     if (!displacement)
-        return std::make_unique<checking::machine_operand>(operand_range);
+        return checking::machine_operand(operand_range);
 
     if (!first_par && !second_par)
     {
@@ -761,10 +749,9 @@ std::unique_ptr<checking::operand> machine_operand::get_operand_value(context::d
     }
 
     if (!displ_v.has_value() || first_err || second_err)
-        return std::make_unique<checking::machine_operand>(
-            operand_range, checking::address_state::RES_INVALID, 0, 0, 0, compute_state());
+        return checking::machine_operand(operand_range, checking::address_state::RES_INVALID, 0, 0, 0, compute_state());
 
-    return std::make_unique<checking::machine_operand>(operand_range,
+    return checking::machine_operand(operand_range,
         checking::address_state::UNRES,
         *displ_v,
         first_v.value_or(0),

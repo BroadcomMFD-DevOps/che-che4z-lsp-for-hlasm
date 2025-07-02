@@ -28,6 +28,10 @@
 
 // the file contains structures representing operands in the operand field of statement
 
+namespace hlasm_plugin::parser_library::checking {
+class machine_operand;
+}
+
 namespace hlasm_plugin::parser_library::semantics {
 
 // structure for empty operands
@@ -70,7 +74,7 @@ struct evaluable_operand : operand
 };
 
 // machine instruction operand
-struct machine_operand final : evaluable_operand
+struct machine_operand final : operand
 {
     machine_operand(const range&);
     machine_operand(expressions::mach_expr_ptr displacement,
@@ -78,9 +82,7 @@ struct machine_operand final : evaluable_operand
         expressions::mach_expr_ptr second_par,
         const range& r);
 
-    std::unique_ptr<checking::operand> get_operand_value(
-        context::dependency_solver& info, diagnostic_op_consumer& diags) const override;
-    std::unique_ptr<checking::operand> get_operand_value(context::dependency_solver& info,
+    checking::machine_operand get_operand_value(context::dependency_solver& info,
         const instructions::machine_operand_format& mach_op_format,
         diagnostic_op_consumer& diags) const;
 
@@ -90,14 +92,13 @@ struct machine_operand final : evaluable_operand
 
     [[nodiscard]] checking::operand_state compute_state() const noexcept;
 
-    bool has_dependencies(
-        context::dependency_solver& info, std::vector<context::id_index>* missing_symbols) const override;
+    bool has_dependencies(context::dependency_solver& info, std::vector<context::id_index>* missing_symbols) const;
 
-    bool has_error(context::dependency_solver& info) const override;
+    bool has_error(context::dependency_solver& info) const;
 
     void apply(operand_visitor& visitor) const override;
 
-    void apply_mach_visitor(expressions::mach_expr_visitor&) const override;
+    void apply_mach_visitor(expressions::mach_expr_visitor&) const;
 
     [[nodiscard]] bool is_single_expression() const noexcept { return displacement && !first_par && !second_par; }
     [[nodiscard]] bool is_empty() const noexcept { return !displacement; }

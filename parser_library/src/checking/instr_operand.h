@@ -33,7 +33,7 @@ enum class machine_operand_type : uint8_t;
 namespace hlasm_plugin::parser_library::checking {
 class data_def_type;
 
-enum class address_state
+enum class address_state : unsigned char
 {
     EMPTY,
     RES_VALID,
@@ -41,7 +41,7 @@ enum class address_state
     UNRES
 };
 
-enum class operand_state
+enum class operand_state : unsigned char
 {
     // D
     SIMPLE,
@@ -78,7 +78,7 @@ constexpr bool is_size_corresponding_unsigned(int operand, int size)
 
 
 // Abstract class that represents a machine operand suitable for checking.
-class machine_operand final : public operand
+class machine_operand final
 {
 public:
     machine_operand(const range& r);
@@ -87,10 +87,11 @@ public:
     machine_operand(
         const range& r, address_state state, int displacement, int first, int second, operand_state op_state);
 
-    address_state state;
+    range operand_range;
     int displacement;
     int first_op;
     int second_op;
+    address_state state;
     operand_state op_state;
 
     diagnostic_op get_simple_operand_expected(

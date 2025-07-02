@@ -67,11 +67,11 @@ bool machine_operand::is_simple_operand(const instructions::machine_operand_form
 }
 
 machine_operand::machine_operand(const range& r)
-    : operand(r)
-    , state(address_state::EMPTY)
+    : operand_range(r)
     , displacement(0)
     , first_op(0)
     , second_op(0)
+    , state(address_state::EMPTY)
     , op_state(operand_state::SIMPLE)
 {}
 
@@ -80,20 +80,20 @@ machine_operand::machine_operand(const range& r, int displacement)
 {}
 
 machine_operand::machine_operand(const range& r, address_state state, int displacement, int first, int second)
-    : operand(r)
-    , state(state)
+    : operand_range(r)
     , displacement(displacement)
     , first_op(first)
     , second_op(second)
+    , state(state)
     , op_state(operand_state::PRESENT) {};
 
 machine_operand::machine_operand(
     const range& r, address_state state, int displacement, int first, int second, operand_state op_state)
-    : operand(r)
-    , state(state)
+    : operand_range(r)
     , displacement(displacement)
     , first_op(first)
     , second_op(second)
+    , state(state)
     , op_state(op_state) {};
 
 diagnostic_op machine_operand::get_first_parameter_error(
