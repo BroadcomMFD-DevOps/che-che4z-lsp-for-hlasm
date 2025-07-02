@@ -323,20 +323,18 @@ checking::check_op_ptr get_check_op(const semantics::operand* op,
 bool transform_mnemonic(std::vector<checking::machine_operand>& result,
     const resolved_statement& stmt,
     context::dependency_solver& dep_solver,
-    const instructions::mnemonic_code& mnemonic,
+    std::pair<size_t, size_t> op_count,
+    const instructions::machine_instruction& curr_instr,
+    std::span<const instructions::mnemonic_transformation> transforms,
     const diagnostic_collector& add_diagnostic)
 {
     // operands obtained from the user
     const auto& operands = stmt.operands_ref().value;
     // the name of the instruction (mnemonic) obtained from the user
     const auto instr_name = stmt.opcode_ref().value.to_string_view();
-    // the machine instruction structure associated with the given instruction name
-    const auto curr_instr = mnemonic.instruction();
-
-    auto transforms = mnemonic.operand_transformations();
 
     // check size of mnemonic operands
-    if (auto [low, high] = mnemonic.operand_count(); operands.size() < low || operands.size() > high)
+    if (auto [low, high] = op_count; operands.size() < low || operands.size() > high)
     {
         add_diagnostic(
             diagnostic_op::error_optional_number_of_operands(instr_name, high - low, high, stmt.stmt_range_ref()));
@@ -374,12 +372,10 @@ bool transform_mnemonic(std::vector<checking::machine_operand>& result,
         }
         else // if operand is not empty
         {
-            auto check_op = get_check_op(*mach_op, dep_solver, add_diagnostic, op_id, curr_instr);
-            if (!check_op)
+            auto check_op = get_check_op(*mach_op, dep_solver, add_diagnostic, op_id, &curr_instr);
+            if (!check_op) // contains dependencies
                 return false;
             auto& last = result.emplace_back(std::move(check_op).value());
-            if (last.state == checking::address_state::EMPTY)
-                return false; // contains dependencies
             if (last.op_state == checking::operand_state::SIMPLE)
                 provided_operand_values[po_id].value = last.displacement;
             else
@@ -396,8 +392,11 @@ bool transform_mnemonic(std::vector<checking::machine_operand>& result,
         ++po_id;
     }
 
+    if (transforms.empty())
+        return true;
+
     // create vector of empty operands
-    result.resize(curr_instr->operands().size(), checking::machine_operand(stmt.stmt_range_ref()));
+    result.resize(curr_instr.operands().size(), checking::machine_operand(stmt.stmt_range_ref()));
 
     // add other
     for (size_t processed = 0, count = 0; auto& op : result)
@@ -477,31 +476,6 @@ bool transform_default(std::vector<checking::check_op_ptr>& result,
     return true;
 }
 
-bool transform_mach(std::vector<checking::machine_operand>& result,
-    const resolved_statement& stmt,
-    context::dependency_solver& dep_solver,
-    const diagnostic_collector& add_diagnostic,
-    const instructions::machine_instruction& mi)
-{
-    for (const auto& op : stmt.operands_ref().value)
-    {
-        const auto* mach_op = op->access_mach();
-        assert(mach_op);
-
-        if (mach_op->is_empty())
-        {
-            result.emplace_back(op->operand_range);
-            continue;
-        }
-
-        auto check_op = get_check_op(*mach_op, dep_solver, add_diagnostic, result.size(), &mi);
-        if (!check_op)
-            return false;
-        result.emplace_back(std::move(check_op).value());
-    }
-    return true;
-}
-
 } // namespace
 
 bool check(const instructions::machine_instruction& mi,
@@ -559,16 +533,28 @@ void ordinary_processor::check_postponed_statements(
         {
             case MACH:
                 mach_operand_vector.clear();
-                if (!transform_mach(mach_operand_vector, *rs, dep_solver, collector, *opcode.instr_mach))
+                if (!transform_mnemonic(mach_operand_vector,
+                        *rs,
+                        dep_solver,
+                        opcode.instr_mach->operand_count(),
+                        *opcode.instr_mach,
+                        {},
+                        collector))
                     continue;
                 check(*opcode.instr_mach, instruction_name, mach_operand_vector, rs->stmt_range_ref(), collector);
                 break;
 
             case MNEMO:
                 mach_operand_vector.clear();
-                if (!transform_mnemonic(mach_operand_vector, *rs, dep_solver, *opcode.instr_mnemo, collector))
+                if (!transform_mnemonic(mach_operand_vector,
+                        *rs,
+                        dep_solver,
+                        opcode.instr_mnemo->operand_count(),
+                        opcode.instr_mnemo->instruction(),
+                        opcode.instr_mnemo->operand_transformations(),
+                        collector))
                     continue;
-                check(*opcode.instr_mnemo->instruction(),
+                check(opcode.instr_mnemo->instruction(),
                     instruction_name,
                     mach_operand_vector,
                     rs->stmt_range_ref(),
