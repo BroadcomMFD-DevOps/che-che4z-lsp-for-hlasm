@@ -93,24 +93,20 @@ public:
     int second_op;
     operand_state op_state;
 
-    diagnostic_op get_simple_operand_expected(const instructions::machine_operand_format& op_format,
-        std::string_view instr_name,
-        const range& stmt_range) const;
+    diagnostic_op get_simple_operand_expected(
+        const instructions::machine_operand_format& op_format, std::string_view instr_name) const;
 
     static bool is_operand_corresponding(int operand, instructions::parameter param);
     static bool is_simple_operand(const instructions::machine_operand_format& operand);
 
-    diagnostic_op get_first_parameter_error(instructions::machine_operand_type op_type,
-        std::string_view instr_name,
-        long long from,
-        long long to,
-        const range& stmt_range) const;
+    diagnostic_op get_first_parameter_error(
+        instructions::machine_operand_type op_type, std::string_view instr_name, long long from, long long to) const;
 
     std::optional<diagnostic_op> check(
-        instructions::machine_operand_format to_check, std::string_view instr_name, const range& range) const;
+        instructions::machine_operand_format to_check, std::string_view instr_name) const;
 
     std::optional<diagnostic_op> check_simple(
-        instructions::machine_operand_format to_check, std::string_view instr_name, const range& stmt_range) const;
+        instructions::machine_operand_format to_check, std::string_view instr_name) const;
 
     bool is_length_corresponding(int param_value, int length_size) const;
 };

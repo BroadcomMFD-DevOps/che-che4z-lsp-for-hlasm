@@ -96,11 +96,8 @@ machine_operand::machine_operand(
     , second_op(second)
     , op_state(op_state) {};
 
-diagnostic_op machine_operand::get_first_parameter_error(instructions::machine_operand_type op_type,
-    std::string_view instr_name,
-    long long from,
-    long long to,
-    const range& stmt_range) const
+diagnostic_op machine_operand::get_first_parameter_error(
+    instructions::machine_operand_type op_type, std::string_view instr_name, long long from, long long to) const
 {
     using enum instructions::machine_operand_type;
     switch (op_type)
@@ -115,25 +112,25 @@ diagnostic_op machine_operand::get_first_parameter_error(instructions::machine_o
             return diagnostic_op::error_M134(instr_name, from, to, operand_range);
     }
     assert(false);
-    return diagnostic_op::error_I999(instr_name, stmt_range);
+    return diagnostic_op::error_I999(instr_name, operand_range);
 }
 
 std::optional<diagnostic_op> machine_operand::check(
-    instructions::machine_operand_format to_check, std::string_view instr_name, const range& stmt_range) const
+    instructions::machine_operand_format to_check, std::string_view instr_name) const
 {
     if (state == address_state::EMPTY)
         return diagnostic_op::error_M003(instr_name, operand_range);
 
     if (op_state == operand_state::SIMPLE)
-        return check_simple(to_check, instr_name, stmt_range);
+        return check_simple(to_check, instr_name);
 
     if (is_simple_operand(to_check))
-        return get_simple_operand_expected(to_check, instr_name, stmt_range); // operand must be simple
+        return get_simple_operand_expected(to_check, instr_name); // operand must be simple
 
     if (state == address_state::RES_VALID)
         return std::nullopt;
     else if (state == address_state::RES_INVALID)
-        return diagnostic_op::error_M010(instr_name, stmt_range);
+        return diagnostic_op::error_M010(instr_name, operand_range);
 
     // check displacement
     if (!is_operand_corresponding(displacement, to_check.identifier))
@@ -182,14 +179,12 @@ std::optional<diagnostic_op> machine_operand::check(
         // length parameters can have +1 values specified
         if (to_check.first.type == LENGTH && !is_length_corresponding(first_op, to_check.first.size))
         {
-            return get_first_parameter_error(
-                to_check.first.type, instr_name, 0, 1ll << to_check.first.size, stmt_range);
+            return get_first_parameter_error(to_check.first.type, instr_name, 0, 1ll << to_check.first.size);
         }
         if (to_check.first.type != LENGTH && !is_operand_corresponding(first_op, to_check.first))
         {
             assert(!to_check.first.is_signed);
-            return get_first_parameter_error(
-                to_check.first.type, instr_name, 0, (1ll << to_check.first.size) - 1, stmt_range);
+            return get_first_parameter_error(to_check.first.type, instr_name, 0, (1ll << to_check.first.size) - 1);
         }
     }
     return std::nullopt;
@@ -205,7 +200,7 @@ bool hlasm_plugin::parser_library::checking::machine_operand::is_length_correspo
 };
 
 diagnostic_op machine_operand::get_simple_operand_expected(
-    const instructions::machine_operand_format& op_format, std::string_view instr_name, const range& stmt_range) const
+    const instructions::machine_operand_format& op_format, std::string_view instr_name) const
 {
     using enum instructions::machine_operand_type;
     switch (op_format.identifier.type)
@@ -222,7 +217,7 @@ diagnostic_op machine_operand::get_simple_operand_expected(
             return diagnostic_op::error_M113(instr_name, operand_range);
     }
     assert(false);
-    return diagnostic_op::error_I999(instr_name, stmt_range);
+    return diagnostic_op::error_I999(instr_name, operand_range);
 }
 
 one_operand::one_operand()
@@ -270,7 +265,7 @@ one_operand::one_operand(const one_operand& op)
     , is_default(op.is_default) {};
 
 std::optional<diagnostic_op> machine_operand::check_simple(
-    instructions::machine_operand_format to_check, std::string_view instr_name, const range&) const
+    instructions::machine_operand_format to_check, std::string_view instr_name) const
 {
     if (!is_simple_operand(to_check))
     {

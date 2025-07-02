@@ -510,7 +510,7 @@ bool check(const instructions::machine_instruction& mi,
     for (const auto* fmt = ops.data(); const auto* op : to_check)
     {
         assert(op != nullptr);
-        if (auto diag = op->check(*fmt++, name_of_instruction, stmt_range); diag.has_value())
+        if (auto diag = op->check(*fmt++, name_of_instruction); diag.has_value())
         {
             add_diagnostic(std::move(diag).value());
             error = true;
