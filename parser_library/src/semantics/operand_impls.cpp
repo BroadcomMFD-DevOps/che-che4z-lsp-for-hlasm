@@ -49,9 +49,15 @@ data_def_operand* operand::access_data_def()
     return type == operand_type::DAT ? static_cast<data_def_operand*>(this) : nullptr;
 }
 
-machine_operand* operand::access_mach() { return dynamic_cast<machine_operand*>(this); }
+machine_operand* operand::access_mach()
+{
+    return type == operand_type::MACH ? static_cast<machine_operand*>(this) : nullptr;
+}
 
-assembler_operand* operand::access_asm() { return dynamic_cast<assembler_operand*>(this); }
+assembler_operand* operand::access_asm()
+{
+    return type == operand_type::ASM ? static_cast<assembler_operand*>(this) : nullptr;
+}
 
 const model_operand* operand::access_model() const
 {
@@ -73,9 +79,9 @@ const data_def_operand* operand::access_data_def() const
     return type == operand_type::DAT ? static_cast<const data_def_operand*>(this) : nullptr;
 }
 
-const machine_operand* operand::access_mach() const { return dynamic_cast<const machine_operand*>(this); }
+const machine_operand* operand::access_mach() const { return static_cast<const machine_operand*>(this); }
 
-const assembler_operand* operand::access_asm() const { return dynamic_cast<const assembler_operand*>(this); }
+const assembler_operand* operand::access_asm() const { return static_cast<const assembler_operand*>(this); }
 
 //***************** empty, model, evaluable operand *********************
 
@@ -99,8 +105,9 @@ evaluable_operand::evaluable_operand(const operand_type type, range operand_rang
 
 //***************** machine_operand *********************
 
-machine_operand::machine_operand(const mach_kind kind)
-    : kind(kind)
+machine_operand::machine_operand(const mach_kind kind, const range r)
+    : evaluable_operand(operand_type::MACH, r)
+    , kind(kind)
 {}
 
 expr_machine_operand* machine_operand::access_expr()
@@ -187,9 +194,8 @@ std::unique_ptr<checking::operand> make_rel_imm_operand(
 //***************** expr_machine_operand *********************
 
 expr_machine_operand::expr_machine_operand(expressions::mach_expr_ptr expression, range operand_range)
-    : evaluable_operand(operand_type::MACH, std::move(operand_range))
-    , machine_operand(mach_kind::EXPR)
-    , simple_expr_operand(std::move(expression))
+    : machine_operand(mach_kind::EXPR, operand_range)
+    , expression(std::move(expression))
 {}
 
 std::unique_ptr<checking::operand> expr_machine_operand::get_operand_value(
@@ -213,13 +219,13 @@ std::unique_ptr<checking::operand> expr_machine_operand::get_operand_value(conte
 bool expr_machine_operand::has_dependencies(
     context::dependency_solver& info, std::vector<context::id_index>* missing_symbols) const
 {
-    return simple_expr_operand::has_dependencies(info, missing_symbols);
+    return expression->has_dependencies(info, missing_symbols);
 }
 
 // suppress MSVC warning 'inherits via dominance'
 bool expr_machine_operand::has_error(context::dependency_solver& info) const
 {
-    return simple_expr_operand::has_error(info);
+    return expression->get_dependencies(info).has_error;
 }
 
 void expr_machine_operand::apply(operand_visitor& visitor) const { visitor.visit(*this); }
@@ -237,8 +243,7 @@ address_machine_operand::address_machine_operand(expressions::mach_expr_ptr disp
     expressions::mach_expr_ptr second_par,
     range operand_range,
     checking::operand_state state)
-    : evaluable_operand(operand_type::MACH, std::move(operand_range))
-    , machine_operand(mach_kind::ADDR)
+    : machine_operand(mach_kind::ADDR, operand_range)
     , displacement(std::move(displacement))
     , first_par(std::move(first_par))
     , second_par(std::move(second_par))
@@ -366,8 +371,9 @@ void address_machine_operand::apply_mach_visitor(expressions::mach_expr_visitor&
         second_par->apply(v);
 }
 
-assembler_operand::assembler_operand(const asm_kind kind)
-    : kind(kind)
+assembler_operand::assembler_operand(const asm_kind kind, const range r)
+    : evaluable_operand(operand_type::ASM, r)
+    , kind(kind)
 {}
 
 expr_assembler_operand* assembler_operand::access_expr()
@@ -414,9 +420,8 @@ const string_assembler_operand* assembler_operand::access_string() const
 
 expr_assembler_operand::expr_assembler_operand(
     expressions::mach_expr_ptr expression, std::string string_value, range operand_range)
-    : evaluable_operand(operand_type::ASM, std::move(operand_range))
-    , assembler_operand(asm_kind::EXPR)
-    , simple_expr_operand(std::move(expression))
+    : assembler_operand(asm_kind::EXPR, operand_range)
+    , expression(std::move(expression))
     , value_(std::move(string_value))
 {}
 
@@ -457,13 +462,13 @@ std::unique_ptr<checking::operand> expr_assembler_operand::get_operand_value_inn
 bool expr_assembler_operand::has_dependencies(
     context::dependency_solver& info, std::vector<context::id_index>* missing_symbols) const
 {
-    return simple_expr_operand::has_dependencies(info, missing_symbols);
+    return expression->has_dependencies(info, missing_symbols);
 }
 
 // suppress MSVC warning 'inherits via dominance'
 bool expr_assembler_operand::has_error(context::dependency_solver& info) const
 {
-    return simple_expr_operand::has_error(info);
+    return expression->get_dependencies(info).has_error;
 }
 
 void expr_assembler_operand::apply(operand_visitor& visitor) const { visitor.visit(*this); }
@@ -481,8 +486,7 @@ using_instr_assembler_operand::using_instr_assembler_operand(expressions::mach_e
     std::string base_text,
     std::string end_text,
     range operand_range)
-    : evaluable_operand(operand_type::ASM, std::move(operand_range))
-    , assembler_operand(asm_kind::BASE_END)
+    : assembler_operand(asm_kind::BASE_END, operand_range)
     , base(std::move(base))
     , end(std::move(end))
     , base_text(std::move(base_text))
@@ -523,8 +527,7 @@ void using_instr_assembler_operand::apply_mach_visitor(expressions::mach_expr_vi
 //***************** complex_assempler_operand *********************
 complex_assembler_operand::complex_assembler_operand(
     std::string identifier, std::vector<std::unique_ptr<component_value_t>> values, range operand_range)
-    : evaluable_operand(operand_type::ASM, operand_range)
-    , assembler_operand(asm_kind::COMPLEX)
+    : assembler_operand(asm_kind::COMPLEX, operand_range)
     , value(std::move(identifier), std::move(values), std::move(operand_range))
 {}
 
@@ -589,22 +592,6 @@ ca_operand::ca_operand(const ca_kind kind, range operand_range)
 [[nodiscard]] const branch_ca_operand* ca_operand::access_branch() const
 {
     return kind == ca_kind::BRANCH ? static_cast<const branch_ca_operand*>(this) : nullptr;
-}
-
-simple_expr_operand::simple_expr_operand(expressions::mach_expr_ptr expression)
-    : expression(std::move(expression))
-{}
-
-
-[[nodiscard]] bool simple_expr_operand::has_dependencies(
-    context::dependency_solver& info, std::vector<context::id_index>* missing_symbols) const
-{
-    return expression->has_dependencies(info, missing_symbols);
-}
-
-[[nodiscard]] bool simple_expr_operand::has_error(context::dependency_solver& info) const
-{
-    return expression->get_dependencies(info).has_error;
 }
 
 var_ca_operand::var_ca_operand(vs_ptr variable_symbol, range operand_range)
@@ -761,8 +748,7 @@ long long data_def_operand::evaluate_total_length(
 }
 
 string_assembler_operand::string_assembler_operand(std::string value, range operand_range)
-    : evaluable_operand(operand_type::ASM, std::move(operand_range))
-    , assembler_operand(asm_kind::STRING)
+    : assembler_operand(asm_kind::STRING, operand_range)
     , value(std::move(value))
 {}
 

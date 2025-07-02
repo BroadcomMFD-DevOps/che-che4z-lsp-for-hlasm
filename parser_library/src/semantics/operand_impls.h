@@ -69,22 +69,6 @@ struct evaluable_operand : operand
     virtual void apply_mach_visitor(expressions::mach_expr_visitor&) const = 0;
 };
 
-
-
-// operand representing simple expression
-struct simple_expr_operand : virtual evaluable_operand
-{
-    simple_expr_operand(expressions::mach_expr_ptr expression);
-
-    bool has_dependencies(
-        context::dependency_solver& info, std::vector<context::id_index>* missing_symbols) const override;
-
-    bool has_error(context::dependency_solver& info) const override;
-
-    expressions::mach_expr_ptr expression;
-};
-
-
 enum class mach_kind
 {
     EXPR,
@@ -94,9 +78,9 @@ struct expr_machine_operand;
 struct address_machine_operand;
 
 // machine instruction operand
-struct machine_operand : virtual evaluable_operand
+struct machine_operand : evaluable_operand
 {
-    machine_operand(const mach_kind kind);
+    machine_operand(const mach_kind kind, const range r);
 
     expr_machine_operand* access_expr();
     address_machine_operand* access_address();
@@ -112,8 +96,10 @@ struct machine_operand : virtual evaluable_operand
 
 
 // machine expression operand
-struct expr_machine_operand final : machine_operand, simple_expr_operand
+struct expr_machine_operand final : machine_operand
 {
+    expressions::mach_expr_ptr expression;
+
     expr_machine_operand(expressions::mach_expr_ptr expression, const range operand_range);
 
     std::unique_ptr<checking::operand> get_operand_value(
@@ -176,9 +162,9 @@ struct complex_assembler_operand;
 struct string_assembler_operand;
 
 // assembler instruction operand
-struct assembler_operand : virtual evaluable_operand
+struct assembler_operand : evaluable_operand
 {
-    assembler_operand(const asm_kind kind);
+    assembler_operand(const asm_kind kind, const range r);
 
     expr_assembler_operand* access_expr();
     using_instr_assembler_operand* access_base_end();
@@ -195,8 +181,10 @@ struct assembler_operand : virtual evaluable_operand
 
 
 // assembler expression operand
-struct expr_assembler_operand final : assembler_operand, simple_expr_operand
+struct expr_assembler_operand final : assembler_operand
 {
+    expressions::mach_expr_ptr expression;
+
 private:
     std::string value_;
 
