@@ -16,7 +16,6 @@
 
 #include <limits>
 
-#include "context/ordinary_assembly/section.h"
 #include "context/using.h"
 #include "expressions/conditional_assembly/terms/ca_var_sym.h"
 #include "expressions/mach_expr_term.h"
