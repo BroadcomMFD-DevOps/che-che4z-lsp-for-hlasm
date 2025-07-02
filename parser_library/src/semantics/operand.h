@@ -72,7 +72,7 @@ class operand_visitor;
 // struct representing operand of instruction
 struct operand
 {
-    operand(const operand_type type, const range operand_range);
+    operand(const operand_type type, const range& operand_range);
 
     virtual void apply(operand_visitor& visitor) const = 0;
 

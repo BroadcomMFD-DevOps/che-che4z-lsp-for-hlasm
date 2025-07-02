@@ -29,9 +29,9 @@ namespace hlasm_plugin::parser_library::semantics {
 
 //***************** operand *********************
 
-operand::operand(const operand_type type, range operand_range)
+operand::operand(const operand_type type, const range& operand_range)
     : type(type)
-    , operand_range(std::move(operand_range))
+    , operand_range(operand_range)
 {}
 
 model_operand* operand::access_model()
@@ -85,13 +85,13 @@ const assembler_operand* operand::access_asm() const { return static_cast<const 
 //***************** empty, model, evaluable operand *********************
 
 empty_operand::empty_operand(const range& operand_range)
-    : operand(operand_type::EMPTY, std::move(operand_range))
+    : operand(operand_type::EMPTY, operand_range)
 {}
 
 void empty_operand::apply(operand_visitor& visitor) const { visitor.visit(*this); }
 
 model_operand::model_operand(concat_chain chain, std::vector<size_t> line_limits, const range& operand_range)
-    : operand(operand_type::MODEL, std::move(operand_range))
+    : operand(operand_type::MODEL, operand_range)
     , chain(std::move(chain))
     , line_limits(std::move(line_limits))
 {}
@@ -99,7 +99,7 @@ model_operand::model_operand(concat_chain chain, std::vector<size_t> line_limits
 void model_operand::apply(operand_visitor& visitor) const { visitor.visit(*this); }
 
 evaluable_operand::evaluable_operand(const operand_type type, const range& operand_range)
-    : operand(type, std::move(operand_range))
+    : operand(type, operand_range)
 {}
 
 //***************** machine_operand *********************
@@ -395,7 +395,7 @@ void using_instr_assembler_operand::apply_mach_visitor(expressions::mach_expr_vi
 complex_assembler_operand::complex_assembler_operand(
     std::string identifier, std::vector<std::unique_ptr<component_value_t>> values, const range& operand_range)
     : assembler_operand(asm_kind::COMPLEX, operand_range)
-    , value(std::move(identifier), std::move(values), std::move(operand_range))
+    , value(std::move(identifier), std::move(values), operand_range)
 {}
 
 bool complex_assembler_operand::has_dependencies(context::dependency_solver&, std::vector<context::id_index>*) const
@@ -417,7 +417,7 @@ void complex_assembler_operand::apply_mach_visitor(expressions::mach_expr_visito
 
 //***************** ca_operand *********************
 ca_operand::ca_operand(const ca_kind kind, const range& operand_range)
-    : operand(operand_type::CA, std::move(operand_range))
+    : operand(operand_type::CA, operand_range)
     , kind(kind)
 {}
 
@@ -462,7 +462,7 @@ ca_operand::ca_operand(const ca_kind kind, const range& operand_range)
 }
 
 var_ca_operand::var_ca_operand(vs_ptr variable_symbol, const range& operand_range)
-    : ca_operand(ca_kind::VAR, std::move(operand_range))
+    : ca_operand(ca_kind::VAR, operand_range)
     , variable_symbol(std::move(variable_symbol))
 {}
 
@@ -475,7 +475,7 @@ bool var_ca_operand::get_undefined_attributed_symbols(
 void var_ca_operand::apply(operand_visitor& visitor) const { visitor.visit(*this); }
 
 expr_ca_operand::expr_ca_operand(expressions::ca_expr_ptr expression, const range& operand_range)
-    : ca_operand(ca_kind::EXPR, std::move(operand_range))
+    : ca_operand(ca_kind::EXPR, operand_range)
     , expression(std::move(expression))
 {}
 
@@ -488,7 +488,7 @@ bool expr_ca_operand::get_undefined_attributed_symbols(
 void expr_ca_operand::apply(operand_visitor& visitor) const { visitor.visit(*this); }
 
 seq_ca_operand::seq_ca_operand(seq_sym sequence_symbol, const range& operand_range)
-    : ca_operand(ca_kind::SEQ, std::move(operand_range))
+    : ca_operand(ca_kind::SEQ, operand_range)
     , sequence_symbol(std::move(sequence_symbol))
 {}
 
@@ -502,7 +502,7 @@ void seq_ca_operand::apply(operand_visitor& visitor) const { visitor.visit(*this
 
 branch_ca_operand::branch_ca_operand(
     seq_sym sequence_symbol, expressions::ca_expr_ptr expression, const range& operand_range)
-    : ca_operand(ca_kind::BRANCH, std::move(operand_range))
+    : ca_operand(ca_kind::BRANCH, operand_range)
     , sequence_symbol(std::move(sequence_symbol))
     , expression(std::move(expression))
 {}
@@ -516,7 +516,7 @@ bool branch_ca_operand::get_undefined_attributed_symbols(
 void branch_ca_operand::apply(operand_visitor& visitor) const { visitor.visit(*this); }
 
 macro_operand::macro_operand(concat_chain chain, range operand_range)
-    : operand(operand_type::MAC, std::move(operand_range))
+    : operand(operand_type::MAC, operand_range)
     , chain(std::move(chain))
 {}
 
@@ -524,7 +524,7 @@ void macro_operand::apply(operand_visitor& visitor) const { visitor.visit(*this)
 
 data_def_operand::data_def_operand(
     std::shared_ptr<const expressions::data_definition> dd_ptr, const range& operand_range)
-    : evaluable_operand(operand_type::DAT, std::move(operand_range))
+    : evaluable_operand(operand_type::DAT, operand_range)
     , value(std::move(dd_ptr))
 {}
 
