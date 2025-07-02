@@ -348,7 +348,11 @@ bool transform_mnemonic(std::vector<checking::check_op_ptr>& result,
         }
         auto& t = po[po_id];
         provided_operand_values[po_id].r = operand->operand_range;
-        if (operand->type == semantics::operand_type::EMPTY) // if operand is empty
+
+        const auto* mach = operand->access_mach();
+        assert(mach);
+
+        if (mach->is_empty()) // if operand is empty
         {
             t = std::make_unique<checking::empty_operand>(operand->operand_range);
             provided_operand_values[po_id].failed = true;
@@ -434,8 +438,7 @@ bool transform_mnemonic(std::vector<checking::check_op_ptr>& result,
 bool transform_default(std::vector<checking::check_op_ptr>& result,
     const resolved_statement& stmt,
     context::dependency_solver& dep_solver,
-    const diagnostic_collector& add_diagnostic,
-    const instructions::machine_instruction* mi)
+    const diagnostic_collector& add_diagnostic)
 {
     for (const auto& op : stmt.operands_ref().value)
     {
@@ -446,12 +449,40 @@ bool transform_default(std::vector<checking::check_op_ptr>& result,
             continue;
         }
 
-        auto uniq = get_check_op(op.get(), dep_solver, add_diagnostic, stmt, result.size(), mi);
+        auto uniq = get_check_op(op.get(), dep_solver, add_diagnostic, stmt, result.size(), nullptr);
 
         if (!uniq)
             return false; // contains dependencies
 
         uniq->operand_range = op.get()->operand_range;
+        result.push_back(std::move(uniq));
+    }
+    return true;
+}
+
+bool transform_mach(std::vector<checking::check_op_ptr>& result,
+    const resolved_statement& stmt,
+    context::dependency_solver& dep_solver,
+    const diagnostic_collector& add_diagnostic,
+    const instructions::machine_instruction& mi)
+{
+    for (const auto& op : stmt.operands_ref().value)
+    {
+        const auto* mach_op = op->access_mach();
+        assert(mach_op);
+
+        if (mach_op->is_empty())
+        {
+            result.push_back(std::make_unique<checking::empty_operand>(op->operand_range));
+            continue;
+        }
+
+        auto uniq = get_check_op(mach_op, dep_solver, add_diagnostic, stmt, result.size(), &mi);
+
+        if (!uniq)
+            return false; // contains dependencies
+
+        uniq->operand_range = mach_op->operand_range;
         result.push_back(std::move(uniq));
     }
     return true;
@@ -513,7 +544,7 @@ void ordinary_processor::check_postponed_statements(
         switch (opcode.type)
         {
             case MACH:
-                if (!transform_default(operand_vector, *rs, dep_solver, collector, opcode.instr_mach))
+                if (!transform_mach(operand_vector, *rs, dep_solver, collector, *opcode.instr_mach))
                     continue;
                 operand_mach_vector.clear();
                 for (const auto& op : operand_vector)
@@ -536,7 +567,7 @@ void ordinary_processor::check_postponed_statements(
                 break;
 
             case ASM:
-                if (!transform_default(operand_vector, *rs, dep_solver, collector, nullptr))
+                if (!transform_default(operand_vector, *rs, dep_solver, collector))
                     continue;
                 operand_asm_vector.clear();
                 for (const auto& op : operand_vector)

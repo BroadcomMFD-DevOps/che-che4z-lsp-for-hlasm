@@ -4208,9 +4208,7 @@ std::optional<semantics::op_rem> parser2::with_model(bool reparse, bool model_al
     bool has_error = false;
     if (follows<u8','>())
         operands.push_back(std::make_unique<EmptyOperand>(cur_pos_range()));
-    else if (auto [error, op] = (this->*first)(); (has_error = error))
-        operands.push_back(std::make_unique<EmptyOperand>(cur_pos_range()));
-    else
+    else if (auto [error, op] = (this->*first)(); !(has_error = error))
         operands.push_back(std::move(op));
 
     if (!has_error && ((rest == nullptr && except<u8' '>()) || except<u8',', u8' '>()))
@@ -4257,7 +4255,7 @@ std::optional<semantics::op_rem> parser_holder::op_rem_body_mach(bool reparse, b
 {
     parser2 p(this);
 
-    return p.with_model<semantics::empty_operand, &parser2::mach_op>(reparse, model_allowed);
+    return p.with_model<semantics::machine_operand, &parser2::mach_op>(reparse, model_allowed);
 }
 
 std::optional<semantics::op_rem> parser_holder::op_rem_body_dat(bool reparse, bool model_allowed)

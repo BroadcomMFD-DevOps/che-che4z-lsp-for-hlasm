@@ -87,9 +87,7 @@ statement_fields_parser::parse_result statement_fields_parser::parse_operand_fie
     }
 
     assert(std::ranges::all_of(line.operands, [](const auto& p) { return !!p; }));
-
-    if (line.operands.size() == 1 && line.operands.front()->type == semantics::operand_type::EMPTY)
-        line.operands.clear();
+    assert(line.operands.size() != 1 || line.operands.front()->type != semantics::operand_type::EMPTY);
 
     if (after_substitution && line.operands.size() && line.operands.front()->type == semantics::operand_type::MODEL)
         line.operands.clear();

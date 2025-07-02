@@ -104,6 +104,10 @@ evaluable_operand::evaluable_operand(const operand_type type, const range& opera
 
 //***************** machine_operand *********************
 
+machine_operand::machine_operand(const range& r)
+    : evaluable_operand(operand_type::MACH, r)
+{}
+
 machine_operand::machine_operand(expressions::mach_expr_ptr displacement,
     expressions::mach_expr_ptr first_par,
     expressions::mach_expr_ptr second_par,
@@ -693,6 +697,9 @@ std::unique_ptr<checking::operand> machine_operand::get_operand_value(context::d
     const instructions::machine_operand_format& mach_op_format,
     diagnostic_op_consumer& diags) const
 {
+    if (!displacement)
+        return std::make_unique<checking::empty_operand>(operand_range);
+
     if (!first_par && !second_par)
     {
         if (mach_op_format.identifier.type == instructions::machine_operand_type::RELOC_IMM)
