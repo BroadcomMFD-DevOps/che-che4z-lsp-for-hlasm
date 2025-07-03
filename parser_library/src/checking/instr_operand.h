@@ -17,11 +17,9 @@
 
 #include <assert.h>
 #include <memory>
-#include <optional>
 #include <string>
 #include <vector>
 
-#include "diagnostic_op.h"
 #include "operand.h"
 
 namespace hlasm_plugin::parser_library::instructions {
@@ -32,26 +30,6 @@ enum class machine_operand_type : uint8_t;
 
 namespace hlasm_plugin::parser_library::checking {
 class data_def_type;
-
-enum class address_state : unsigned char
-{
-    EMPTY,
-    RES_VALID,
-    RES_INVALID,
-    UNRES
-};
-
-enum class operand_state : unsigned char
-{
-    // D
-    SIMPLE,
-    // D(,B)
-    FIRST_OMITTED,
-    // D(X,B)
-    PRESENT,
-    // D(B)
-    ONE_OP
-};
 
 // extended class representing complex operands
 // contains vector of all parameters of operand - for example FLAG, COMPAT, OPTABLE...
@@ -75,42 +53,6 @@ constexpr bool is_size_corresponding_unsigned(int operand, int size)
 {
     return operand >= 0 && operand <= (1ll << size) - 1;
 }
-
-
-// Abstract class that represents a machine operand suitable for checking.
-class machine_operand final
-{
-public:
-    machine_operand(const range& r);
-    machine_operand(const range& r, int displacement);
-    machine_operand(const range& r, address_state state, int displacement, int first, int second);
-    machine_operand(
-        const range& r, address_state state, int displacement, int first, int second, operand_state op_state);
-
-    range operand_range;
-    int displacement;
-    int first_op;
-    int second_op;
-    address_state state;
-    operand_state op_state;
-
-    diagnostic_op get_simple_operand_expected(
-        const instructions::machine_operand_format& op_format, std::string_view instr_name) const;
-
-    static bool is_operand_corresponding(int operand, instructions::parameter param);
-    static bool is_simple_operand(const instructions::machine_operand_format& operand);
-
-    diagnostic_op get_first_parameter_error(
-        instructions::machine_operand_type op_type, std::string_view instr_name, long long from, long long to) const;
-
-    std::optional<diagnostic_op> check(
-        instructions::machine_operand_format to_check, std::string_view instr_name) const;
-
-    std::optional<diagnostic_op> check_simple(
-        instructions::machine_operand_format to_check, std::string_view instr_name) const;
-
-    bool is_length_corresponding(int param_value, int length_size) const;
-};
 
 // class that represents both a simple operand both in assembler and machine instructions
 class one_operand final : public asm_operand

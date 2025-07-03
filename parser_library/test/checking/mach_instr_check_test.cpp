@@ -17,8 +17,8 @@
 #include "../common_testing.h"
 #include "analyzer.h"
 #include "checking/diagnostic_collector.h"
-#include "checking/instr_operand.h"
 #include "checking/instruction_checker.h"
+#include "checking/machine_check.h"
 #include "instructions/instruction.h"
 
 using namespace hlasm_plugin::parser_library;

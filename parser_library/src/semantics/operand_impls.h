@@ -20,6 +20,7 @@
 
 #include "checking/data_definition/data_definition_operand.h"
 #include "checking/instr_operand.h"
+#include "checking/machine_check.h"
 #include "concatenation.h"
 #include "expressions/conditional_assembly/ca_expression.h"
 #include "expressions/data_definition.h"

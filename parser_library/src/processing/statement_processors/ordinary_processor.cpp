@@ -18,6 +18,7 @@
 
 #include "checking/diagnostic_collector.h"
 #include "checking/instruction_checker.h"
+#include "checking/machine_check.h"
 #include "checking/using_label_checker.h"
 #include "context/hlasm_context.h"
 #include "context/literal_pool.h"
