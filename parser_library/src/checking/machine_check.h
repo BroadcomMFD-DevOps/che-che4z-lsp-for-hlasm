@@ -15,65 +15,43 @@
 #ifndef HLASMPLUGIN_PARSERLIBRARY_CHECKING_MACHINE_CHECK_H
 #define HLASMPLUGIN_PARSERLIBRARY_CHECKING_MACHINE_CHECK_H
 
-#include <optional>
+#include <memory>
 
-#include "diagnostic_op.h"
 #include "instructions/instruction.h"
 #include "range.h"
 
+namespace hlasm_plugin::parser_library {
+class diagnostic_collector;
+namespace context {
+class dependency_solver;
+}
+namespace semantics {
+struct operand;
+}
+} // namespace hlasm_plugin::parser_library
+
 namespace hlasm_plugin::parser_library::checking {
-enum class address_state : unsigned char
-{
-    EMPTY,
-    RES_VALID,
-    RES_INVALID,
-    UNRES
-};
+void check_machine_instruction_operands(const instructions::machine_instruction& mi,
+    std::string_view mi_name,
+    std::span<const std::unique_ptr<semantics::operand>> ops,
+    const range& stmt_range,
+    context::dependency_solver& dep_solver,
+    diagnostic_collector& diags);
+void check_mnemonic_code_operands(const instructions::mnemonic_code& mn,
+    std::string_view mi_name,
+    std::span<const std::unique_ptr<semantics::operand>> ops,
+    const range& stmt_range,
+    context::dependency_solver& dep_solver,
+    diagnostic_collector& diags);
 
-enum class operand_state : unsigned char
+struct machine_operand final
 {
-    // D
-    SIMPLE,
-    // D(,B)
-    FIRST_OMITTED,
-    // D(X,B)
-    PRESENT,
-    // D(B)
-    ONE_OP
-};
-
-class machine_operand final
-{
-public:
-    machine_operand(const range& r);
-    machine_operand(const range& r, int displacement);
-    machine_operand(const range& r, address_state state, int displacement, int first, int second);
-    machine_operand(
-        const range& r, address_state state, int displacement, int first, int second, operand_state op_state);
-
-    range operand_range;
     int displacement;
     int first_op;
     int second_op;
-    address_state state;
-    operand_state op_state;
-
-    diagnostic_op get_simple_operand_expected(
-        const instructions::machine_operand_format& op_format, std::string_view instr_name) const;
-
-    static bool is_operand_corresponding(int operand, instructions::parameter param);
-    static bool is_simple_operand(const instructions::machine_operand_format& operand);
-
-    diagnostic_op get_first_parameter_error(
-        instructions::machine_operand_type op_type, std::string_view instr_name, long long from, long long to) const;
-
-    std::optional<diagnostic_op> check(
-        instructions::machine_operand_format to_check, std::string_view instr_name) const;
-
-    std::optional<diagnostic_op> check_simple(
-        instructions::machine_operand_format to_check, std::string_view instr_name) const;
-
-    bool is_length_corresponding(int param_value, int length_size) const;
+    bool valid;
+    [[maybe_unused]] bool first_op_derived;
+    unsigned char source;
 };
 
 } // namespace hlasm_plugin::parser_library::checking

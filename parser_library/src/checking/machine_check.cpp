@@ -14,12 +14,18 @@
 
 #include "machine_check.h"
 
+#include "checking/diagnostic_collector.h"
+#include "checking/using_label_checker.h"
+#include "context/ordinary_assembly/symbol_value.h"
+#include "context/using.h"
+#include "diagnostic_consumer.h"
 #include "instr_operand.h"
+#include "semantics/operand_impls.h"
 
 namespace hlasm_plugin::parser_library::checking {
 
 namespace {
-bool check_value_parity(int operand, instructions::even_odd_register reg)
+constexpr bool check_value_parity(int operand, instructions::even_odd_register reg)
 {
     using enum instructions::even_odd_register;
     switch (reg)
@@ -32,159 +38,49 @@ bool check_value_parity(int operand, instructions::even_odd_register reg)
             return !(operand & 1);
     }
 }
-} // namespace
 
-bool machine_operand::is_operand_corresponding(int operand, instructions::parameter param)
+constexpr std::pair<int, int> compute_boundaries(instructions::parameter p)
 {
-    if (param.is_signed && is_size_corresponding_signed(operand, param.size))
-        return true;
-    else if (!param.is_signed && is_size_corresponding_unsigned(operand, param.size))
-        return true;
-    return false;
+    if (p.is_signed)
+    {
+        const auto boundary = 1ll << (p.size - 1);
+        return { -boundary, boundary - 1 };
+    }
+    else
+    {
+        const auto boundary = 1ll << p.size;
+        return { (int)p.min_register, boundary - 1 };
+    }
 }
 
-bool machine_operand::is_simple_operand(const instructions::machine_operand_format& operand)
+std::pair<std::optional<context::symbol_value::abs_value_t>, bool> evaluate_abs_expression(
+    const expressions::mach_expr_ptr& expr, context::dependency_solver& info, diagnostic_op_consumer& diags)
 {
-    using enum instructions::machine_operand_type;
-    return (operand.first.is_signed == false && operand.first.size == 0 && operand.second.is_signed == false
-        && operand.second.size == 0 && operand.first.type == NONE && operand.second.type == NONE);
+    if (!expr)
+        return { std::nullopt, false };
+
+    auto value = expr->evaluate(info, diags);
+    if (value.value_kind() == context::symbol_value_kind::ABS)
+        return { value.get_abs(), false };
+
+    diags.add_diagnostic(diagnostic_op::error_ME010(expr->get_range()));
+    return { std::nullopt, true };
 }
 
-machine_operand::machine_operand(const range& r)
-    : operand_range(r)
-    , displacement(0)
-    , first_op(0)
-    , second_op(0)
-    , state(address_state::EMPTY)
-    , op_state(operand_state::SIMPLE)
-{}
-
-machine_operand::machine_operand(const range& r, int displacement)
-    : machine_operand(r, address_state::UNRES, displacement, 0, 0, operand_state::SIMPLE)
-{}
-
-machine_operand::machine_operand(const range& r, address_state state, int displacement, int first, int second)
-    : operand_range(r)
-    , displacement(displacement)
-    , first_op(first)
-    , second_op(second)
-    , state(state)
-    , op_state(operand_state::PRESENT) {};
-
-machine_operand::machine_operand(
-    const range& r, address_state state, int displacement, int first, int second, operand_state op_state)
-    : operand_range(r)
-    , displacement(displacement)
-    , first_op(first)
-    , second_op(second)
-    , state(state)
-    , op_state(op_state) {};
-
-diagnostic_op machine_operand::get_first_parameter_error(
-    instructions::machine_operand_type op_type, std::string_view instr_name, long long from, long long to) const
+std::optional<context::symbol_value::abs_value_t> derive_expression_length(const expressions::mach_expr_ptr& expr,
+    const instructions::machine_instruction& mi,
+    context::dependency_solver& info)
 {
-    using enum instructions::machine_operand_type;
-    switch (op_type)
-    {
-        case LENGTH: // D(L,B)
-            return diagnostic_op::error_M132(instr_name, from, to, operand_range);
-        case IDX_REG: // D(X,B)
-            return diagnostic_op::error_M135(instr_name, from, to, operand_range);
-        case REG: // D(R,B)
-            return diagnostic_op::error_M133(instr_name, from, to, operand_range);
-        case VEC_REG: // D(V,B)
-            return diagnostic_op::error_M134(instr_name, from, to, operand_range);
-    }
-    assert(false);
-    return diagnostic_op::error_I999(instr_name, operand_range);
-}
-
-std::optional<diagnostic_op> machine_operand::check(
-    instructions::machine_operand_format to_check, std::string_view instr_name) const
-{
-    if (state == address_state::EMPTY)
-        return diagnostic_op::error_M003(instr_name, operand_range);
-
-    if (op_state == operand_state::SIMPLE)
-        return check_simple(to_check, instr_name);
-
-    if (is_simple_operand(to_check))
-        return get_simple_operand_expected(to_check, instr_name); // operand must be simple
-
-    if (state == address_state::RES_VALID)
-        return std::nullopt;
-    else if (state == address_state::RES_INVALID)
-        return diagnostic_op::error_M010(instr_name, operand_range);
-
-    // check displacement
-    if (!is_operand_corresponding(displacement, to_check.identifier))
-    {
-        if (to_check.identifier.is_signed)
-        {
-            auto boundary = 1ll << (to_check.identifier.size - 1);
-            return diagnostic_op::error_M130(instr_name, -boundary, boundary - 1, operand_range);
-        }
-        else
-            return diagnostic_op::error_M130(instr_name, 0, (1ll << to_check.identifier.size) - 1, operand_range);
-    }
-
-    // check the D(B) operand format
-    if (to_check.first.is_empty())
-    {
-        if (op_state != operand_state::ONE_OP)
-        {
-            // error, cannot be present
-            return diagnostic_op::error_M104(instr_name, operand_range);
-        }
-        // check the only parameter, in all cases this is the base parameter
-        if (!is_operand_corresponding(first_op, to_check.second))
-        {
-            return diagnostic_op::error_M131(instr_name, operand_range);
-        }
-        return std::nullopt;
-    }
-
-    // therefore a D(X,B) format expected, can be specified either by D(X,B), D(X) or D(,B)
-
-    // first check the base register in case it is specified
-    if (op_state == operand_state::FIRST_OMITTED || op_state == operand_state::PRESENT)
-    {
-        if (!is_operand_corresponding(second_op, to_check.second))
-        {
-            return diagnostic_op::error_M131(instr_name, operand_range);
-        }
-    }
-
-    // base is now checked, now check the first parameter, which is specified either in D(X,B) or D(X)
-    if (op_state != operand_state::FIRST_OMITTED)
-    {
-        // check whether value is corresponding
-        using enum instructions::machine_operand_type;
-        // length parameters can have +1 values specified
-        if (to_check.first.type == LENGTH && !is_length_corresponding(first_op, to_check.first.size))
-        {
-            return get_first_parameter_error(to_check.first.type, instr_name, 0, 1ll << to_check.first.size);
-        }
-        if (to_check.first.type != LENGTH && !is_operand_corresponding(first_op, to_check.first))
-        {
-            assert(!to_check.first.is_signed);
-            return get_first_parameter_error(to_check.first.type, instr_name, 0, (1ll << to_check.first.size) - 1);
-        }
-    }
+    (void)expr;
+    (void)mi;
+    (void)info;
+    // TODO: To be implemented in the future
+    // Pick leftmost operand and determine its length (inluding * or literals)
     return std::nullopt;
 }
 
-bool hlasm_plugin::parser_library::checking::machine_operand::is_length_corresponding(
-    int param_value, int length_size) const
-{
-    auto boundary = 1ll << length_size;
-    if (param_value > boundary || param_value < 0)
-        return false;
-    return true;
-};
-
-diagnostic_op machine_operand::get_simple_operand_expected(
-    const instructions::machine_operand_format& op_format, std::string_view instr_name) const
+diagnostic_op get_simple_operand_expected(
+    const instructions::machine_operand_format& op_format, std::string_view instr_name, const auto& operand_range)
 {
     using enum instructions::machine_operand_type;
     switch (op_format.identifier.type)
@@ -204,67 +100,426 @@ diagnostic_op machine_operand::get_simple_operand_expected(
     return diagnostic_op::error_I999(instr_name, operand_range);
 }
 
-std::optional<diagnostic_op> machine_operand::check_simple(
-    instructions::machine_operand_format to_check, std::string_view instr_name) const
+} // namespace
+
+bool is_simple_operand(const instructions::machine_operand_format& operand)
 {
-    if (!is_simple_operand(to_check))
-    {
-        // therefore it is an address operand, but represented only by a single value
-
-        // check only the displacement
-        if (is_operand_corresponding(displacement, to_check.identifier))
-            return std::nullopt;
-
-        if (to_check.identifier.is_signed)
-        {
-            auto boundary = 1ll << (to_check.identifier.size - 1);
-            return diagnostic_op::error_M130(instr_name, -boundary, boundary - 1, operand_range);
-        }
-        else
-            return diagnostic_op::error_M130(instr_name, 0, (1ll << to_check.identifier.size) - 1, operand_range);
-    }
-
     using enum instructions::machine_operand_type;
-    // it is a simple operand
-    if (to_check.identifier.is_signed && !is_size_corresponding_signed(displacement, to_check.identifier.size))
-    {
-        const auto boundary = 1ll << (to_check.identifier.size - 1);
-        switch (to_check.identifier.type)
-        {
-            case IMM:
-                return diagnostic_op::warn_M137(instr_name, -boundary, boundary - 1, operand_range);
-            case RELOC_IMM:
-                return diagnostic_op::error_M123(instr_name, -boundary, boundary - 1, operand_range);
-            default:
-                assert(false);
-        }
-    }
-    if (!to_check.identifier.is_signed
-        && (!is_size_corresponding_unsigned(displacement, to_check.identifier.size)
-            || !check_value_parity(displacement, to_check.identifier.evenodd)
-            || displacement < to_check.identifier.min_register))
-    {
-        const auto boundary = (1ll << to_check.identifier.size) - 1;
-        static constexpr std::string_view reg_qual[] = { "", "odd", "even" };
-        switch (to_check.identifier.type)
-        {
-            case REG:
-                return diagnostic_op::error_M120(instr_name,
-                    operand_range,
-                    reg_qual[(int)to_check.identifier.evenodd],
-                    to_check.identifier.min_register);
-            case MASK:
-                return diagnostic_op::error_M121(instr_name, operand_range);
-            case IMM:
-                return diagnostic_op::warn_M137(instr_name, 0, boundary, operand_range);
-            case VEC_REG:
-                return diagnostic_op::error_M124(instr_name, operand_range);
-            default:
-                assert(false);
-        }
-    }
-    return std::nullopt;
+    return (operand.first.is_signed == false && operand.first.size == 0 && operand.second.is_signed == false
+        && operand.second.size == 0 && operand.first.type == NONE && operand.second.type == NONE);
 }
 
+constexpr bool is_dipl_like(instructions::machine_operand_type type)
+{
+    using enum instructions::machine_operand_type;
+    return type == DISP || type == DISP_IDX;
+}
+
+constexpr bool is_long_disp(instructions::machine_operand_format f)
+{
+    return f.identifier == instructions::dis_20s || f.identifier == instructions::dis_idx_20s;
+}
+
+bool check_op_count(std::pair<size_t, size_t> op_count,
+    std::string_view name,
+    std::span<const std::unique_ptr<semantics::operand>> ops,
+    const range& stmt_range,
+    const diagnostic_collector& add_diagnostic)
+{
+    const auto [low, high] = op_count;
+    if (const auto s = ops.size(); s < low || s > high)
+    {
+        add_diagnostic(diagnostic_op::error_optional_number_of_operands(name, high - low, high, stmt_range));
+        return false;
+    }
+    assert(ops.size() <= instructions::machine_instruction::max_operand_count);
+    return true;
+}
+
+bool check_structural(std::span<const instructions::machine_operand_format> mops,
+    std::span<const instructions::mnemonic_transformation> transforms,
+    std::string_view name,
+    std::span<const std::unique_ptr<semantics::operand>> ops,
+    const diagnostic_collector& add_diagnostic)
+{
+    const auto* fmt = mops.data();
+    for (size_t processed = 0; const auto& op : ops)
+    {
+        while (!transforms.empty() && transforms.front().insert && transforms.front().skip == processed)
+        {
+            ++fmt;
+            transforms = transforms.subspan(1);
+            processed = 0;
+        }
+
+        const auto* mop = op->access_mach();
+        assert(mop);
+
+        if (!mop->displacement)
+        {
+            add_diagnostic(diagnostic_op::error_M003(name, mop->operand_range));
+            return false;
+        }
+
+        if ((mop->first_par || mop->second_par) && is_simple_operand(*fmt))
+        {
+            add_diagnostic(get_simple_operand_expected(*fmt, name, mop->operand_range));
+            return false;
+        }
+
+        if (mop->second_par && fmt->first.is_empty()) // invalid D(,B)
+        {
+            add_diagnostic(diagnostic_op::error_M104(name, mop->operand_range));
+            return false;
+        }
+
+        ++processed;
+        ++fmt;
+    }
+    return true;
+}
+
+bool check_dependencies(std::span<const std::unique_ptr<semantics::operand>> ops,
+    context::dependency_solver& dep_solver,
+    diagnostic_collector& add_diagnostic)
+{
+    diagnostic_consumer_transform diags([&add_diagnostic](diagnostic_op d) { add_diagnostic(std::move(d)); });
+    checking::using_label_checker lc(dep_solver, diags);
+    std::vector<context::id_index> missing_symbols;
+
+    for (const auto& op_p : ops)
+    {
+        const auto* op = op_p->access_mach();
+        assert(op);
+        if (op->has_dependencies(dep_solver, &missing_symbols))
+        {
+            for (const auto& sym : missing_symbols)
+                add_diagnostic(diagnostic_op::error_E010("ordinary symbol", sym.to_string_view(), op->operand_range));
+            if (missing_symbols.empty()) // this is a fallback message if somehow non-symbolic deps are not resolved
+                add_diagnostic(diagnostic_op::error_E016(op->operand_range));
+            return false;
+        }
+
+        op->apply_mach_visitor(lc);
+    }
+
+    return true;
+}
+
+machine_operand* evaluate_operands(machine_operand* out,
+    const instructions::machine_instruction& mi,
+    std::string_view mi_name,
+    std::span<const std::unique_ptr<semantics::operand>> ops,
+    std::span<const instructions::machine_operand_format> formats,
+    std::span<const instructions::mnemonic_transformation> transforms,
+    context::dependency_solver& solver,
+    diagnostic_collector& add_diagnostic)
+{
+    diagnostic_consumer_transform diags([&add_diagnostic](diagnostic_op d) { add_diagnostic(std::move(d)); });
+
+    const auto* fmt = formats.data();
+    unsigned char op_id = 0;
+    for (size_t processed = 0; const auto& op : ops)
+    {
+        while (!transforms.empty() && transforms.front().insert && transforms.front().skip == processed)
+        {
+            ++fmt;
+            transforms = transforms.subspan(1);
+            processed = 0;
+        }
+
+        const auto* mop = op->access_mach();
+        assert(mop);
+
+        const auto d = mop->displacement->evaluate(solver, diags);
+
+        if (d.value_kind() == context::symbol_value_kind::UNDEF)
+            return nullptr;
+
+        auto [first_v, first_err] = evaluate_abs_expression(mop->first_par, solver, diags);
+        if (first_err)
+            return nullptr;
+
+        auto [second_v, second_err] = evaluate_abs_expression(mop->second_par, solver, diags);
+        if (second_err)
+            return nullptr;
+
+        if (fmt->first.is_empty()) // transform "D(F)" into "D(B)"
+            std::swap(first_v, second_v);
+
+        bool first_op_derived = false;
+        if (!first_v.has_value() && mop->first_par && fmt->first.type == instructions::machine_operand_type::LENGTH)
+        {
+            first_op_derived = true;
+            first_v = derive_expression_length(mop->first_par, mi, solver);
+        }
+
+        if (d.value_kind() == context::symbol_value_kind::ABS)
+        {
+            *out = machine_operand {
+                .displacement = d.get_abs(),
+                .first_op = first_v.value_or(0),
+                .second_op = second_v.value_or(0),
+                .valid = true,
+                .first_op_derived = first_op_derived,
+                .source = op_id,
+            };
+        }
+        else if (is_dipl_like(fmt->identifier.type))
+        {
+            if (second_v.has_value())
+            {
+                add_diagnostic(diagnostic_op::error_ME011(mop->operand_range));
+                return nullptr;
+            }
+            const auto& reloc = d.get_reloc();
+            if (!reloc.is_simple())
+            {
+                add_diagnostic(diagnostic_op::error_ME009(mop->operand_range));
+                return nullptr;
+            }
+            const auto& base = reloc.bases().front().first;
+            const bool long_displacement = is_long_disp(*fmt);
+            auto translated_addr = solver.using_evaluate(base.qualifier, base.owner, reloc.offset(), long_displacement);
+            if (translated_addr.reg == context::using_collection::invalid_register)
+            {
+                if (translated_addr.reg_offset)
+                    diags.add_diagnostic(diagnostic_op::error_ME008(translated_addr.reg_offset, mop->operand_range));
+                else
+                    diags.add_diagnostic(diagnostic_op::error_ME007(mop->operand_range));
+                return nullptr;
+            }
+            *out = machine_operand {
+                .displacement = translated_addr.reg_offset,
+                .first_op = first_v.value_or(0),
+                .second_op = translated_addr.reg,
+                .valid = true,
+                .first_op_derived = first_op_derived,
+                .source = op_id,
+            };
+        }
+        else
+        {
+            add_diagnostic(get_simple_operand_expected(*fmt, mi_name, mop->operand_range));
+            return nullptr;
+        }
+
+        ++fmt;
+        ++out;
+        ++op_id;
+    }
+
+    return out;
+}
+
+machine_operand* apply_transforms(machine_operand* out,
+    std::span<const machine_operand> ops,
+    std::span<const instructions::machine_operand_format> formats,
+    std::span<const instructions::mnemonic_transformation> transforms)
+{
+    // add other
+    for (size_t processed = 0, ops_cur = 0; const auto& f : formats)
+    {
+        if (!transforms.empty() && transforms.front().skip == processed)
+        {
+            const auto transform = transforms.front();
+            transforms = transforms.subspan(1);
+            processed = 0;
+
+            static constexpr machine_operand def {};
+
+            const auto& op = transform.source < ops.size() ? ops[transform.source] : def;
+            int arg = transform.value;
+            using enum instructions::mnemonic_transformation_kind;
+            switch (transform.type)
+            {
+                case value:
+                    break;
+                case copy:
+                    arg = op.displacement;
+                    break;
+                case or_with:
+                    arg |= op.displacement;
+                    break;
+                case add_to:
+                    arg += op.displacement;
+                    break;
+                case subtract_from:
+                    arg -= op.displacement;
+                    break;
+                case complement:
+                    arg = 1 + ~(unsigned)op.displacement & (1u << arg) - 1;
+                    break;
+            }
+            *out++ = {
+                .displacement = arg,
+                .first_op = 0,
+                .second_op = 0,
+                .valid = op.valid || !transform.has_source() && transform.insert,
+                .first_op_derived = false,
+                .source = transform.source,
+            };
+            if (!transform.insert && ops_cur < ops.size())
+                ++ops_cur;
+            continue;
+        }
+        if (ops_cur >= ops.size())
+            break;
+        *out++ = ops[ops_cur++];
+        ++processed;
+    }
+
+    return out;
+}
+
+void check_operands(std::span<const machine_operand> ops,
+    std::span<const instructions::machine_operand_format> formats,
+    std::string_view mi_name,
+    std::span<const std::unique_ptr<semantics::operand>> orig_ops,
+    diagnostic_collector& add_diagnostics)
+{
+    assert(ops.size() <= formats.size());
+    const auto get_range = [&orig_ops](unsigned char source) { return orig_ops[source]->operand_range; };
+    static constexpr std::string_view reg_qual[] = { "", "odd", "even" };
+
+    for (const auto* fmt = formats.data(); const auto& op : ops)
+    {
+        using enum instructions::machine_operand_type;
+        if (const auto [low, high] = compute_boundaries(fmt->identifier); op.displacement < low
+            || op.displacement > high || !check_value_parity(op.displacement, fmt->identifier.evenodd))
+        {
+            switch (fmt->identifier.type)
+            {
+                case MASK:
+                    add_diagnostics(diagnostic_op::error_M121(mi_name, low, high, get_range(op.source)));
+                    break;
+                case REG:
+                    add_diagnostics(diagnostic_op::error_M120(
+                        mi_name, get_range(op.source), low, high, reg_qual[(int)fmt->identifier.evenodd]));
+                    break;
+                case IMM:
+                    add_diagnostics(diagnostic_op::warn_M137(mi_name, low, high, get_range(op.source)));
+                    break;
+                case DISP:
+                    add_diagnostics(diagnostic_op::error_M130(mi_name, low, high, get_range(op.source)));
+                    break;
+                case DISP_IDX:
+                    add_diagnostics(diagnostic_op::error_M130(mi_name, low, high, get_range(op.source)));
+                    break;
+                case VEC_REG:
+                    add_diagnostics(diagnostic_op::error_M124(mi_name, low, high, get_range(op.source)));
+                    break;
+                case IDX_REG:
+                    add_diagnostics(diagnostic_op::error_M135(mi_name, low, high, get_range(op.source)));
+                    break;
+                case RELOC_IMM:
+                    add_diagnostics(diagnostic_op::error_M123(mi_name, low, high, get_range(op.source)));
+                    break;
+
+                default:
+                    assert(false);
+                    break;
+            }
+        }
+        if (const auto [low, high] = compute_boundaries(fmt->first);
+            op.first_op < low || op.first_op > high || !check_value_parity(op.first_op, fmt->first.evenodd))
+        {
+            switch (fmt->first.type)
+            {
+                case LENGTH: // D(L,B)
+                    add_diagnostics(diagnostic_op::error_M132(mi_name, low, high, get_range(op.source)));
+                    break;
+                case IDX_REG: // D(X,B)
+                    add_diagnostics(diagnostic_op::error_M135(mi_name, low, high, get_range(op.source)));
+                    break;
+                case REG: // D(R,B)
+                    add_diagnostics(diagnostic_op::error_M133(mi_name, low, high, get_range(op.source)));
+                    break;
+                case VEC_REG: // D(V,B)
+                    add_diagnostics(diagnostic_op::error_M134(mi_name, low, high, get_range(op.source)));
+                    break;
+
+                default:
+                    assert(false);
+                    break;
+            }
+        }
+        if (const auto [low, high] = compute_boundaries(fmt->second);
+            op.second_op < low || op.second_op > high || !check_value_parity(op.second_op, fmt->second.evenodd))
+        {
+            assert(fmt->second.type == BASE);
+            add_diagnostics(diagnostic_op::error_M131(mi_name, get_range(op.source)));
+        }
+
+        ++fmt;
+    }
+}
+
+void check_machine_instruction_operands(const instructions::machine_instruction& mi,
+    std::string_view mi_name,
+    std::span<const std::unique_ptr<semantics::operand>> ops,
+    const range& stmt_range,
+    context::dependency_solver& dep_solver,
+    diagnostic_collector& diags)
+{
+    if (!check_op_count(mi.operand_count(), mi_name, ops, stmt_range, diags))
+        return;
+
+    const auto formats = mi.operands();
+
+    if (!check_structural(formats, {}, mi_name, ops, diags))
+        return;
+
+    if (!check_dependencies(ops, dep_solver, diags))
+        return;
+
+    std::array<machine_operand, instructions::machine_instruction::max_operand_count> mach_operands;
+
+    auto op_end = evaluate_operands(mach_operands.data(), mi, mi_name, ops, formats, {}, dep_solver, diags);
+    if (!op_end)
+        return;
+
+    const std::span evaluated_operands(mach_operands.data(), op_end - mach_operands.data());
+
+    check_operands(evaluated_operands, formats, mi_name, ops, diags);
+}
+
+void check_mnemonic_code_operands(const instructions::mnemonic_code& mn,
+    std::string_view mi_name,
+    std::span<const std::unique_ptr<semantics::operand>> ops,
+    const range& stmt_range,
+    context::dependency_solver& dep_solver,
+    diagnostic_collector& diags)
+{
+    if (!check_op_count(mn.operand_count(), mi_name, ops, stmt_range, diags))
+        return;
+
+    const auto& mi = mn.instruction();
+    const auto formats = mi.operands();
+    const auto transforms = mn.operand_transformations();
+
+    if (!check_structural(formats, transforms, mi_name, ops, diags))
+        return;
+
+    if (!check_dependencies(ops, dep_solver, diags))
+        return;
+
+    std::array<machine_operand, instructions::machine_instruction::max_operand_count> mach_operands;
+
+    const auto* op_end =
+        evaluate_operands(mach_operands.data(), mi, mi_name, ops, formats, transforms, dep_solver, diags);
+    if (!op_end)
+        return;
+
+    const std::span evaluated_operands(mach_operands.data(), op_end - mach_operands.data());
+
+    std::array<machine_operand, instructions::machine_instruction::max_operand_count> transformed_operands_ar;
+
+    const auto* t_end = apply_transforms(transformed_operands_ar.data(), evaluated_operands, formats, transforms);
+
+    const std::span transformed_operands(transformed_operands_ar.data(), t_end - transformed_operands_ar.data());
+
+    check_operands(transformed_operands, formats, mi_name, ops, diags);
+}
 
 } // namespace hlasm_plugin::parser_library::checking

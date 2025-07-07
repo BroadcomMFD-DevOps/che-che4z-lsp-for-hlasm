@@ -16,95 +16,70 @@
 
 #include "../common_testing.h"
 #include "analyzer.h"
-#include "checking/diagnostic_collector.h"
-#include "checking/instruction_checker.h"
-#include "checking/machine_check.h"
-#include "instructions/instruction.h"
 
 using namespace hlasm_plugin::parser_library;
-using namespace hlasm_plugin::parser_library::checking;
-
-namespace {
-const auto& get_mi(std::string_view arg)
-{
-    return hlasm_plugin::parser_library::instructions::get_machine_instructions(arg);
-}
-machine_operand op_val_0 { range(), 0 };
-machine_operand op_val_1 { range(), 1 };
-machine_operand op_val_2 { range(), 2 };
-machine_operand op_val_3 { range(), 3 };
-machine_operand op_val_4 { range(), 4 };
-machine_operand op_val_11 { range(), 11 };
-machine_operand op_val_12 { range(), 12 };
-machine_operand op_val_13 { range(), 13 };
-machine_operand op_val_14 { range(), 14 };
-machine_operand op_val_15 { range(), 15 };
-} // namespace
-
-namespace hlasm_plugin::parser_library::processing {
-bool check(const instructions::machine_instruction& mi,
-    std::string_view name_of_instruction,
-    std::span<const checking::machine_operand> to_check,
-    const range& stmt_range,
-    const diagnostic_collector& add_diagnostic);
-}
 
 TEST(machine_instr_check_test, BALR_test)
 {
-    diagnostic_collector collector;
-    std::string balr_name = "BALR";
-    std::vector<checking::machine_operand> operands { op_val_14, op_val_15 };
-    EXPECT_TRUE(check(get_mi(balr_name), balr_name, operands, range(), collector));
+    analyzer a(" BALR 14,15");
+    a.analyze();
+
+    EXPECT_TRUE(a.diags().empty());
 }
 
 TEST(machine_instr_check_test, BAL_test)
 {
-    diagnostic_collector collector;
-    std::string bal_name = "BAL";
-    machine_operand valid_op(range(), address_state::RES_VALID, 1, 1, 111);
-    std::vector<checking::machine_operand> operands { op_val_2, valid_op };
-    EXPECT_TRUE(check(get_mi(bal_name), bal_name, operands, range(), collector));
+    analyzer a(" BAL 2,1(1,111)");
+    a.analyze();
+
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "M131" }));
 }
 
 TEST(machine_instr_check_test, LR_test)
 {
-    diagnostic_collector collector;
-    std::string lr_name = "LR";
-    std::vector<checking::machine_operand> operands { op_val_0, op_val_2 };
-    EXPECT_TRUE(check(get_mi(lr_name), lr_name, operands, range(), collector));
+    analyzer a(" LR 0,2");
+    a.analyze();
+
+    EXPECT_TRUE(a.diags().empty());
 }
 
 TEST(machine_instr_check_test, MVCL_test)
 {
-    diagnostic_collector collector;
-    std::string mvcl_name = "MVCL";
-    std::vector<checking::machine_operand> operands { op_val_4, op_val_0 };
-    EXPECT_TRUE(check(get_mi(mvcl_name), mvcl_name, operands, range(), collector));
+    analyzer a(" MVCL 4,0");
+    a.analyze();
+
+    EXPECT_TRUE(a.diags().empty());
 }
 
 TEST(machine_instr_check_test, XR_test)
 {
-    diagnostic_collector collector;
-    std::string xr_name = "XR";
-    std::vector<checking::machine_operand> operands { op_val_15, op_val_15 };
-    EXPECT_TRUE(check(get_mi(xr_name), xr_name, operands, range(), collector));
+    analyzer a(" XR 15,15");
+    a.analyze();
+
+    EXPECT_TRUE(a.diags().empty());
 }
+
 TEST(machine_instr_check_test, CLC_test)
 {
-    diagnostic_collector collector;
-    std::string clc_name = "CLC";
-    machine_operand length_one(range(), address_state::UNRES, 1, 2, 4);
-    std::vector<checking::machine_operand> operands { length_one, op_val_2 };
-    EXPECT_TRUE(check(get_mi(clc_name), clc_name, operands, range(), collector));
+    analyzer a(R"(
+A   DS  XL2
+    USING A-1,4
+    CLC A,2
+)");
+    a.analyze();
+
+    EXPECT_TRUE(a.diags().empty());
 }
+
 TEST(machine_instr_check_test, a_test_invalid)
 {
-    diagnostic_collector collector;
-    std::string a_name = "A";
+    analyzer a(R"(
+    A   4,1(1,B)
+B   DS  F
+)");
+    a.analyze();
 
-    machine_operand invalid_op(range(), address_state::RES_INVALID, 1, 1, 1);
-    std::vector<checking::machine_operand> operands { op_val_4, invalid_op };
-    EXPECT_FALSE(check(get_mi(a_name), a_name, operands, range(), collector));
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "ME010" }));
 }
 
 TEST(machine_instr_check_test, second_par_omitted)

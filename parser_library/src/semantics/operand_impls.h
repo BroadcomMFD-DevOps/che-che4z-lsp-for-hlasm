@@ -20,7 +20,6 @@
 
 #include "checking/data_definition/data_definition_operand.h"
 #include "checking/instr_operand.h"
-#include "checking/machine_check.h"
 #include "concatenation.h"
 #include "expressions/conditional_assembly/ca_expression.h"
 #include "expressions/data_definition.h"
@@ -28,10 +27,6 @@
 #include "operand.h"
 
 // the file contains structures representing operands in the operand field of statement
-
-namespace hlasm_plugin::parser_library::checking {
-class machine_operand;
-}
 
 namespace hlasm_plugin::parser_library::semantics {
 
@@ -43,8 +38,6 @@ struct empty_operand final : operand
     void apply(operand_visitor& visitor) const override;
 };
 
-
-
 // operand that contains variable symbol thus is 'model operand'
 struct model_operand final : operand
 {
@@ -55,8 +48,6 @@ struct model_operand final : operand
 
     void apply(operand_visitor& visitor) const override;
 };
-
-
 
 // operands that can return value and have dependencies
 struct evaluable_operand : operand
@@ -83,15 +74,9 @@ struct machine_operand final : operand
         expressions::mach_expr_ptr second_par,
         const range& r);
 
-    checking::machine_operand get_operand_value(context::dependency_solver& info,
-        const instructions::machine_operand_format& mach_op_format,
-        diagnostic_op_consumer& diags) const;
-
     expressions::mach_expr_ptr displacement;
     expressions::mach_expr_ptr first_par;
     expressions::mach_expr_ptr second_par;
-
-    [[nodiscard]] checking::operand_state compute_state() const noexcept;
 
     bool has_dependencies(context::dependency_solver& info, std::vector<context::id_index>* missing_symbols) const;
 
