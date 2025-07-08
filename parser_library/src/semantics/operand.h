@@ -73,6 +73,7 @@ class operand_visitor;
 // struct representing operand of instruction
 struct operand
 {
+private:
     template<typename T>
     [[nodiscard]] constexpr T* cast() noexcept
     {
