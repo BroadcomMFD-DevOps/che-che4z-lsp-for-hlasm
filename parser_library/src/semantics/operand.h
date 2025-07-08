@@ -15,6 +15,7 @@
 #ifndef SEMANTICS_OPERAND_H
 #define SEMANTICS_OPERAND_H
 
+#include <concepts>
 #include <memory>
 #include <vector>
 
