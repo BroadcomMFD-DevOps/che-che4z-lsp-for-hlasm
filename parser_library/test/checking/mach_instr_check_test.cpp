@@ -82,6 +82,18 @@ B   DS  F
     EXPECT_TRUE(matches_message_codes(a.diags(), { "ME010" }));
 }
 
+TEST(machine_instr_check_test, duplicate_base_specified)
+{
+    analyzer a(R"(
+    USING *,1
+    A     0,B(,1)
+B   DS    F
+)");
+    a.analyze();
+
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "ME011" }));
+}
+
 TEST(machine_instr_check_test, second_par_omitted)
 {
     std::string input(

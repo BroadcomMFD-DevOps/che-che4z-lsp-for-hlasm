@@ -568,7 +568,7 @@ std::optional<position> extract_symbol_position(semantics::operand& op, context:
 {
     if (op.type != semantics::operand_type::MACH)
         return std::nullopt;
-    auto* mach = op.access_mach();
+    const auto* mach = op.access_mach();
     if (!mach || !mach->is_single_expression())
         return std::nullopt;
     const auto* rel_symbol =
@@ -600,7 +600,7 @@ bool symbol_value_zerolike(semantics::operand& op,
 {
     if (op.type != semantics::operand_type::MACH)
         return false;
-    auto* mach = op.access_mach();
+    const auto* mach = op.access_mach();
     if (!mach || !mach->is_single_expression())
         return false;
     context::ordinary_assembly_dependency_solver solver(ord_ctx, dep_ctx, li);

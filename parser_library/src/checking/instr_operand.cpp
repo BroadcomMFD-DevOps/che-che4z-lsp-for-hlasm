@@ -71,12 +71,6 @@ one_operand::one_operand(int value, range range)
     , is_default(false)
 {}
 
-one_operand::one_operand(const one_operand& op)
-    : asm_operand(operand_range)
-    , operand_identifier(op.operand_identifier)
-    , value(op.value)
-    , is_default(op.is_default) {};
-
 empty_operand::empty_operand(range r)
     : asm_operand(r)
 {}

@@ -45,13 +45,13 @@ public:
 
 constexpr bool is_size_corresponding_signed(int operand, int size)
 {
-    auto boundary = 1ll << (size - 1);
+    auto boundary = 1LL << (size - 1);
     return operand < boundary && operand >= -boundary;
 }
 
 constexpr bool is_size_corresponding_unsigned(int operand, int size)
 {
-    return operand >= 0 && operand <= (1ll << size) - 1;
+    return operand >= 0 && operand <= (1LL << size) - 1;
 }
 
 // class that represents both a simple operand both in assembler and machine instructions
@@ -74,8 +74,6 @@ public:
     one_operand(std::string operand_identifier, range range);
 
     one_operand(int value, range range);
-
-    one_operand(const one_operand& op);
 };
 
 class empty_operand final : public asm_operand

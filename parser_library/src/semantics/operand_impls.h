@@ -68,7 +68,7 @@ struct evaluable_operand : operand
 // machine instruction operand
 struct machine_operand final : operand
 {
-    machine_operand(const range&);
+    explicit machine_operand(const range&);
     machine_operand(expressions::mach_expr_ptr displacement,
         expressions::mach_expr_ptr first_par,
         expressions::mach_expr_ptr second_par,
@@ -87,7 +87,6 @@ struct machine_operand final : operand
     void apply_mach_visitor(expressions::mach_expr_visitor&) const;
 
     [[nodiscard]] bool is_single_expression() const noexcept { return displacement && !first_par && !second_par; }
-    [[nodiscard]] bool is_empty() const noexcept { return !displacement; }
 };
 
 enum class asm_kind

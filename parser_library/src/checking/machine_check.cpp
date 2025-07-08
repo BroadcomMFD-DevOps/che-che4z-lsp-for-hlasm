@@ -43,12 +43,12 @@ constexpr std::pair<long long, long long> compute_boundaries(instructions::param
 {
     if (p.is_signed)
     {
-        const auto boundary = 1ll << (p.size - 1);
+        const auto boundary = 1LL << (p.size - 1);
         return { -boundary, boundary - 1 };
     }
     else
     {
-        const auto boundary = 1ll << p.size;
+        const auto boundary = 1LL << p.size;
         return { (long long)p.min_register, boundary - 1 };
     }
 }
@@ -73,8 +73,7 @@ std::pair<std::optional<context::symbol_value::abs_value_t>, bool> evaluate_abs_
     if (!expr)
         return { std::nullopt, false };
 
-    auto value = expr->evaluate(info, diags);
-    if (value.value_kind() == context::symbol_value_kind::ABS)
+    if (auto value = expr->evaluate(info, diags); value.value_kind() == context::symbol_value_kind::ABS)
         return { value.get_abs(), false };
 
     diags.add_diagnostic(diagnostic_op::error_ME010(expr->get_range()));

@@ -26,7 +26,7 @@ class operand
 {
 public:
     operand() = default;
-    operand(const range& operand_range)
+    explicit operand(const range& operand_range)
         : operand_range(operand_range)
     {}
     range operand_range;
@@ -41,7 +41,7 @@ class asm_operand : public operand
 {
 public:
     asm_operand() = default;
-    asm_operand(const range& r) noexcept;
+    explicit asm_operand(const range& r) noexcept;
 };
 
 
