@@ -25,7 +25,7 @@
 namespace hlasm_plugin::parser_library::checking {
 
 namespace {
-constexpr bool check_value_parity(int operand, instructions::even_odd_register reg)
+constexpr bool check_value_parity(std::int32_t value, instructions::even_odd_register reg)
 {
     using enum instructions::even_odd_register;
     switch (reg)
@@ -33,13 +33,13 @@ constexpr bool check_value_parity(int operand, instructions::even_odd_register r
         case NONE:
             return true;
         case ODD:
-            return !!(operand & 1);
+            return !!(value & 1);
         case EVEN:
-            return !(operand & 1);
+            return !(value & 1);
     }
 }
 
-constexpr std::pair<int, int> compute_boundaries(instructions::parameter p)
+constexpr std::pair<long long, long long> compute_boundaries(instructions::parameter p)
 {
     if (p.is_signed)
     {
@@ -49,8 +49,22 @@ constexpr std::pair<int, int> compute_boundaries(instructions::parameter p)
     else
     {
         const auto boundary = 1ll << p.size;
-        return { (int)p.min_register, boundary - 1 };
+        return { (long long)p.min_register, boundary - 1 };
     }
+}
+
+struct op_bound_results
+{
+    long long low;
+    long long high;
+    bool passed;
+};
+
+constexpr op_bound_results check_op_value(std::int32_t value, instructions::parameter p)
+{
+    const auto [low, high] = compute_boundaries(p);
+    const bool passed_parity = check_value_parity(value, p.evenodd);
+    return { low, high, low <= value && value <= high && passed_parity };
 }
 
 std::pair<std::optional<context::symbol_value::abs_value_t>, bool> evaluate_abs_expression(
@@ -361,8 +375,7 @@ void check_operands(std::span<const machine_operand> ops,
     for (const auto* fmt = formats.data(); const auto& op : ops)
     {
         using enum instructions::machine_operand_type;
-        if (const auto [low, high] = compute_boundaries(fmt->identifier); op.displacement < low
-            || op.displacement > high || !check_value_parity(op.displacement, fmt->identifier.evenodd))
+        if (const auto [low, high, passed] = check_op_value(op.displacement, fmt->identifier); !passed)
         {
             switch (fmt->identifier.type)
             {
@@ -397,8 +410,7 @@ void check_operands(std::span<const machine_operand> ops,
                     break;
             }
         }
-        if (const auto [low, high] = compute_boundaries(fmt->first);
-            op.first_op < low || op.first_op > high || !check_value_parity(op.first_op, fmt->first.evenodd))
+        if (const auto [low, high, passed] = check_op_value(op.first_op, fmt->first); !passed)
         {
             switch (fmt->first.type)
             {
@@ -420,8 +432,7 @@ void check_operands(std::span<const machine_operand> ops,
                     break;
             }
         }
-        if (const auto [low, high] = compute_boundaries(fmt->second);
-            op.second_op < low || op.second_op > high || !check_value_parity(op.second_op, fmt->second.evenodd))
+        if (const auto [low, high, passed] = check_op_value(op.second_op, fmt->second); !passed)
         {
             assert(fmt->second.type == BASE);
             add_diagnostics(diagnostic_op::error_M131(mi_name, get_range(op.source)));
