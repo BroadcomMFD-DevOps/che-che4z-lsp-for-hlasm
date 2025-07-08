@@ -78,9 +78,15 @@ const data_def_operand* operand::access_data_def() const
     return type == operand_type::DAT ? static_cast<const data_def_operand*>(this) : nullptr;
 }
 
-const machine_operand* operand::access_mach() const { return static_cast<const machine_operand*>(this); }
+const machine_operand* operand::access_mach() const
+{
+    return type == operand_type::MACH ? static_cast<const machine_operand*>(this) : nullptr;
+}
 
-const assembler_operand* operand::access_asm() const { return static_cast<const assembler_operand*>(this); }
+const assembler_operand* operand::access_asm() const
+{
+    return type == operand_type::ASM ? static_cast<const assembler_operand*>(this) : nullptr;
+}
 
 //***************** empty, model, evaluable operand *********************
 
