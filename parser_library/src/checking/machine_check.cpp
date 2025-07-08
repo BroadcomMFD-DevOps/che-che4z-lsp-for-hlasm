@@ -136,49 +136,6 @@ bool check_op_count(std::pair<size_t, size_t> op_count,
     return true;
 }
 
-bool check_structural(std::span<const instructions::machine_operand_format> mops,
-    std::span<const instructions::mnemonic_transformation> transforms,
-    std::string_view name,
-    std::span<const std::unique_ptr<semantics::operand>> ops,
-    const diagnostic_collector& add_diagnostic)
-{
-    const auto* fmt = mops.data();
-    for (size_t processed = 0; const auto& op : ops)
-    {
-        while (!transforms.empty() && transforms.front().insert && transforms.front().skip == processed)
-        {
-            ++fmt;
-            transforms = transforms.subspan(1);
-            processed = 0;
-        }
-
-        const auto* mop = op->access_mach();
-        assert(mop);
-
-        if (!mop->displacement)
-        {
-            add_diagnostic(diagnostic_op::error_M003(name, mop->operand_range));
-            return false;
-        }
-
-        if ((mop->first_par || mop->second_par) && is_simple_operand(*fmt))
-        {
-            add_diagnostic(get_simple_operand_expected(*fmt, name, mop->operand_range));
-            return false;
-        }
-
-        if (mop->second_par && fmt->first.is_empty()) // invalid D(,B)
-        {
-            add_diagnostic(diagnostic_op::error_M104(name, mop->operand_range));
-            return false;
-        }
-
-        ++processed;
-        ++fmt;
-    }
-    return true;
-}
-
 bool check_dependencies(std::span<const std::unique_ptr<semantics::operand>> ops,
     context::dependency_solver& dep_solver,
     diagnostic_collector& add_diagnostic)
@@ -230,6 +187,24 @@ machine_operand* evaluate_operands(machine_operand* out,
 
         const auto* mop = op->access_mach();
         assert(mop);
+
+        if (!mop->displacement)
+        {
+            add_diagnostic(diagnostic_op::error_M003(mi_name, mop->operand_range));
+            return nullptr;
+        }
+
+        if ((mop->first_par || mop->second_par) && is_simple_operand(*fmt))
+        {
+            add_diagnostic(get_simple_operand_expected(*fmt, mi_name, mop->operand_range));
+            return nullptr;
+        }
+
+        if (mop->second_par && fmt->first.is_empty()) // invalid D(,B)
+        {
+            add_diagnostic(diagnostic_op::error_M104(mi_name, mop->operand_range));
+            return nullptr;
+        }
 
         const auto d = mop->displacement->evaluate(solver, diags);
 
@@ -314,11 +289,11 @@ machine_operand* evaluate_operands(machine_operand* out,
 
 machine_operand* apply_transforms(machine_operand* out,
     std::span<const machine_operand> ops,
-    std::span<const instructions::machine_operand_format> formats,
+    size_t max_op_count,
     std::span<const instructions::mnemonic_transformation> transforms)
 {
     // add other
-    for (size_t processed = 0, ops_cur = 0; const auto& f : formats)
+    for (size_t processed = 0, ops_cur = 0; ops_cur < max_op_count;)
     {
         if (!transforms.empty() && transforms.front().skip == processed)
         {
@@ -365,7 +340,8 @@ machine_operand* apply_transforms(machine_operand* out,
         }
         if (ops_cur >= ops.size())
             break;
-        *out++ = ops[ops_cur++];
+        *out++ = ops[ops_cur];
+        ++ops_cur;
         ++processed;
     }
 
@@ -465,16 +441,12 @@ void check_machine_instruction_operands(const instructions::machine_instruction&
     if (!check_op_count(mi.operand_count(), mi_name, ops, stmt_range, diags))
         return;
 
-    const auto formats = mi.operands();
-
-    if (!check_structural(formats, {}, mi_name, ops, diags))
-        return;
-
     if (!check_dependencies(ops, dep_solver, diags))
         return;
 
     std::array<machine_operand, instructions::machine_instruction::max_operand_count> mach_operands;
 
+    const auto formats = mi.operands();
     auto op_end = evaluate_operands(mach_operands.data(), mi, mi_name, ops, formats, {}, dep_solver, diags);
     if (!op_end)
         return;
@@ -494,17 +466,14 @@ void check_mnemonic_code_operands(const instructions::mnemonic_code& mn,
     if (!check_op_count(mn.operand_count(), mi_name, ops, stmt_range, diags))
         return;
 
-    const auto& mi = mn.instruction();
-    const auto formats = mi.operands();
-    const auto transforms = mn.operand_transformations();
-
-    if (!check_structural(formats, transforms, mi_name, ops, diags))
-        return;
-
     if (!check_dependencies(ops, dep_solver, diags))
         return;
 
     std::array<machine_operand, instructions::machine_instruction::max_operand_count> mach_operands;
+
+    const auto& mi = mn.instruction();
+    const auto formats = mi.operands();
+    const auto transforms = mn.operand_transformations();
 
     const auto* op_end =
         evaluate_operands(mach_operands.data(), mi, mi_name, ops, formats, transforms, dep_solver, diags);
@@ -513,11 +482,10 @@ void check_mnemonic_code_operands(const instructions::mnemonic_code& mn,
 
     const std::span evaluated_operands(mach_operands.data(), op_end - mach_operands.data());
 
-    std::array<machine_operand, instructions::machine_instruction::max_operand_count> transformed_operands_ar;
+    std::array<machine_operand, instructions::machine_instruction::max_operand_count> final_operands;
 
-    const auto* t_end = apply_transforms(transformed_operands_ar.data(), evaluated_operands, formats, transforms);
-
-    const std::span transformed_operands(transformed_operands_ar.data(), t_end - transformed_operands_ar.data());
+    const auto* t_end = apply_transforms(final_operands.data(), evaluated_operands, formats.size(), transforms);
+    const std::span transformed_operands(final_operands.data(), t_end - final_operands.data());
 
     check_operands(transformed_operands, formats, mi_name, ops, diags);
 }

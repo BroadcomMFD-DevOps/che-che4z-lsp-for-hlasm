@@ -291,9 +291,9 @@ checking::check_op_ptr get_check_op(const semantics::operand* op,
 }
 
 bool transform_default(std::vector<checking::check_op_ptr>& result,
-        const resolved_statement& stmt,
-        context::dependency_solver& dep_solver,
-        const diagnostic_collector& add_diagnostic)
+    const resolved_statement& stmt,
+    context::dependency_solver& dep_solver,
+    const diagnostic_collector& add_diagnostic)
 {
     for (const auto& op : stmt.operands_ref().value)
     {
