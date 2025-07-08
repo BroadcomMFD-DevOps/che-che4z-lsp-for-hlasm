@@ -41,6 +41,7 @@ struct empty_operand final : operand
 // operand that contains variable symbol thus is 'model operand'
 struct model_operand final : operand
 {
+    static constexpr operand_type type_id = operand_type::MODEL;
     model_operand(concat_chain chain, std::vector<size_t> line_limits, const range& operand_range);
 
     concat_chain chain;
@@ -68,6 +69,7 @@ struct evaluable_operand : operand
 // machine instruction operand
 struct machine_operand final : operand
 {
+    static constexpr operand_type type_id = operand_type::MACH;
     explicit machine_operand(const range&);
     machine_operand(expressions::mach_expr_ptr displacement,
         expressions::mach_expr_ptr first_par,
@@ -104,6 +106,7 @@ struct string_assembler_operand;
 // assembler instruction operand
 struct assembler_operand : evaluable_operand
 {
+    static constexpr operand_type type_id = operand_type::ASM;
     assembler_operand(const asm_kind kind, const range& r);
 
     expr_assembler_operand* access_expr();
@@ -288,6 +291,7 @@ struct string_assembler_operand final : assembler_operand
 // data definition operand
 struct data_def_operand : evaluable_operand
 {
+    static constexpr operand_type type_id = operand_type::DAT;
     std::shared_ptr<const expressions::data_definition> value;
 
     context::dependency_collector get_length_dependencies(context::dependency_solver& info) const;
@@ -343,6 +347,7 @@ struct branch_ca_operand;
 // coditional assembly instruction operand
 struct ca_operand : operand
 {
+    static constexpr operand_type type_id = operand_type::CA;
     ca_operand(const ca_kind kind, const range& operand_range);
 
     var_ca_operand* access_var();
@@ -418,6 +423,7 @@ struct branch_ca_operand final : ca_operand
 
 struct macro_operand final : operand
 {
+    static constexpr operand_type type_id = operand_type::MAC;
     macro_operand(concat_chain chain, range operand_range);
 
     concat_chain chain;

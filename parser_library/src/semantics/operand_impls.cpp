@@ -34,62 +34,6 @@ operand::operand(const operand_type type, const range& operand_range)
     , operand_range(operand_range)
 {}
 
-model_operand* operand::access_model()
-{
-    return type == operand_type::MODEL ? static_cast<model_operand*>(this) : nullptr;
-}
-
-ca_operand* operand::access_ca() { return type == operand_type::CA ? static_cast<ca_operand*>(this) : nullptr; }
-
-macro_operand* operand::access_mac() { return type == operand_type::MAC ? static_cast<macro_operand*>(this) : nullptr; }
-
-data_def_operand* operand::access_data_def()
-{
-    return type == operand_type::DAT ? static_cast<data_def_operand*>(this) : nullptr;
-}
-
-machine_operand* operand::access_mach()
-{
-    return type == operand_type::MACH ? static_cast<machine_operand*>(this) : nullptr;
-}
-
-assembler_operand* operand::access_asm()
-{
-    return type == operand_type::ASM ? static_cast<assembler_operand*>(this) : nullptr;
-}
-
-const model_operand* operand::access_model() const
-{
-    return type == operand_type::MODEL ? static_cast<const model_operand*>(this) : nullptr;
-}
-
-const ca_operand* operand::access_ca() const
-{
-    return type == operand_type::CA ? static_cast<const ca_operand*>(this) : nullptr;
-}
-
-const macro_operand* operand::access_mac() const
-{
-    return type == operand_type::MAC ? static_cast<const macro_operand*>(this) : nullptr;
-}
-
-const data_def_operand* operand::access_data_def() const
-{
-    return type == operand_type::DAT ? static_cast<const data_def_operand*>(this) : nullptr;
-}
-
-const machine_operand* operand::access_mach() const
-{
-    return type == operand_type::MACH ? static_cast<const machine_operand*>(this) : nullptr;
-}
-
-const assembler_operand* operand::access_asm() const
-{
-    return type == operand_type::ASM ? static_cast<const assembler_operand*>(this) : nullptr;
-}
-
-//***************** empty, model, evaluable operand *********************
-
 empty_operand::empty_operand(const range& operand_range)
     : operand(operand_type::EMPTY, operand_range)
 {}
