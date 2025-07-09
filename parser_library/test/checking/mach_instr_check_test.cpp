@@ -364,3 +364,16 @@ TEST(machine_instr_check_test, mnemonics_with_optional_args)
     a.analyze();
     EXPECT_TRUE(matches_message_codes(a.diags(), { "M001", "M001" }));
 }
+
+TEST(machine_instr_check_test, length_limits)
+{
+    std::string input(
+        R"(
+        CLC 0(256,1),0(2)
+        CLC 0(1,1),0(2)
+        CLC 0(0,1),0(2)
+)");
+    analyzer a(input);
+    a.analyze();
+    EXPECT_TRUE(a.diags().empty());
+}

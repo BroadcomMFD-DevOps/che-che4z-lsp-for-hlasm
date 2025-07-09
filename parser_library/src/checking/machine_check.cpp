@@ -41,16 +41,14 @@ constexpr bool check_value_parity(std::int32_t value, instructions::even_odd_reg
 
 constexpr std::pair<long long, long long> compute_boundaries(instructions::parameter p)
 {
-    if (p.is_signed)
-    {
-        const auto boundary = 1LL << (p.size - 1);
-        return { -boundary, boundary - 1 };
-    }
-    else
-    {
-        const auto boundary = 1LL << p.size;
-        return { (long long)p.min_register, boundary - 1 };
-    }
+    using enum instructions::machine_operand_type;
+
+    const auto boundary = 1LL << (p.size - p.is_signed);
+
+    const auto low = p.is_signed ? -boundary : (long long)p.min_register;
+    const auto high = boundary - (p.type != LENGTH); // LENGTH operands are encoded as L-1 in the instructions;
+                                                     // also 0 is tolerated, overall we get full 0-2^n range
+    return { low, high };
 }
 
 struct op_bound_results
