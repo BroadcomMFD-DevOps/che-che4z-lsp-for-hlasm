@@ -377,3 +377,14 @@ TEST(machine_instr_check_test, length_limits)
     a.analyze();
     EXPECT_TRUE(a.diags().empty());
 }
+
+TEST(machine_instr_check_test, mnemonic_insert_middle)
+{
+    std::string input(
+        R"(
+        CIBE 0,0,0(0)
+)");
+    analyzer a(input);
+    a.analyze();
+    EXPECT_TRUE(a.diags().empty());
+}

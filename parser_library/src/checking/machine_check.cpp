@@ -189,9 +189,10 @@ machine_operand* evaluate_operands(machine_operand* out,
     unsigned char op_id = 0;
     for (size_t processed = 0; const auto& op : ops)
     {
-        while (!transforms.empty() && transforms.front().insert && transforms.front().skip == processed)
+        while (!transforms.empty() && transforms.front().skip == processed)
         {
-            ++fmt;
+            if (transforms.front().insert)
+                ++fmt;
             transforms = transforms.subspan(1);
             processed = 0;
         }
@@ -293,6 +294,7 @@ machine_operand* evaluate_operands(machine_operand* out,
         ++fmt;
         ++out;
         ++op_id;
+        ++processed;
     }
 
     return out;
