@@ -235,10 +235,10 @@ machine_operand* evaluate_operands(machine_operand* out,
             std::swap(first_v, second_v);
 
         bool first_op_derived = false;
-        if (!first_v.has_value() && mop->first_par && fmt->first.type == instructions::machine_operand_type::LENGTH)
+        if (!first_v.has_value() && fmt->first.type == instructions::machine_operand_type::LENGTH)
         {
             first_op_derived = true;
-            first_v = derive_expression_length(mop->first_par, mi, solver);
+            first_v = derive_expression_length(mop->displacement, mi, solver);
         }
 
         if (d.value_kind() == context::symbol_value_kind::ABS)
