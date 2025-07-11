@@ -72,7 +72,7 @@ export interface JobClient {
 export function zoweJobMapper(spoolObj: string, jobs: {
     jobid: string;
     jobname: string;
-    retcode: string;
+    retcode?: string;
 }[]): JobDescription[] {
     return jobs.map(x => ({
         jobname: x.jobname,

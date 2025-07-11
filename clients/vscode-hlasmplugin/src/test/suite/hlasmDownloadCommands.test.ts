@@ -320,11 +320,16 @@ suite('HLASM Download data sets', () => {
             jobname: "JOB2",
             jobid: "JOB321",
             retcode: "CC 0004",
+        }, {
+            jobname: "JOB3",
+            jobid: "JOB789",
+            retcode: undefined,
         }]);
 
         assert.deepStrictEqual(jobs, [
             { jobname: "JOB1", id: "JOB123", rc: undefined, spoolFiles: undefined, },
             { jobname: "JOB2", id: "JOB321", rc: 4, spoolFiles: "DDNAME", },
+            { jobname: "JOB3", id: "JOB789", rc: undefined, spoolFiles: undefined, },
         ]);
     });
 
@@ -341,5 +346,18 @@ suite('HLASM Download data sets', () => {
 
     test('Ftp jobid extractor', () => {
         assert.deepStrictEqual(extractJobId("It is known to JES as JOB12345"), "JOB12345");
+    });
+
+    test('Job tools invalid', () => {
+        try {
+            ftpJobMapper({ name: "Err", } as unknown as FileInfo);
+            assert.ok(false);
+        } catch (_) {
+        }
+        try {
+            extractJobId("Err");
+            assert.ok(false);
+        } catch (_) {
+        }
     });
 });
