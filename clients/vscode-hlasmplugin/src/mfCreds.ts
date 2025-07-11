@@ -16,7 +16,6 @@ import * as vscode from 'vscode';
 import { askUser, pickUser } from './uiUtils';
 import { AccessOptions } from 'basic-ftp';
 import { MementoKey } from './mementoKeys';
-import { isCancellationError } from './helpers';
 import { AsyncMutex } from './asyncMutex';
 
 export enum connectionSecurityLevel {

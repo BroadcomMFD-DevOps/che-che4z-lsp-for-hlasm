@@ -46,6 +46,21 @@ function getJobDetailInfo(jobDetailString: string): { rc: number; spoolFiles: st
     else
         return { rc: +parsed[1], spoolFiles: parsed[2] };
 }
+
+export function ftpJobMapper(fi: FileInfo): JobDescription {
+    const parsedLine = /(\S+)\s+(\S+)\s+(.*)/.exec(fi.name);
+    if (!parsedLine)
+        throw Error("Unable to parse the job list");
+    return { jobname: parsedLine[1], id: parsedLine[2], ...getJobDetailInfo(parsedLine[3]) }
+}
+
+export function extractJobId(s: string) {
+    const jobid = /^.*as ([Jj](?:[Oo][Bb])?\d+)/.exec(s);
+    if (!jobid)
+        throw Error("Unable to extract the job id");
+    return jobid[1];
+}
+
 export interface JobClient {
     submitJcl(jcl: string): Promise<JobId>;
     setListMask(mask: string): Promise<void>;
@@ -54,7 +69,7 @@ export interface JobClient {
     dispose(): void;
 }
 
-function zoweJobMapper(spoolObj: string, jobs: {
+export function zoweJobMapper(spoolObj: string, jobs: {
     jobid: string;
     jobname: string;
     retcode: string;
@@ -62,7 +77,7 @@ function zoweJobMapper(spoolObj: string, jobs: {
     return jobs.map(x => ({
         jobname: x.jobname,
         id: x.jobid,
-        ...x.retcode && x.retcode.startsWith("CC ")
+        ...x.retcode?.startsWith("CC ")
             ? { rc: +x.retcode.substring(3), spoolFiles: spoolObj }
             : { rc: undefined, spoolFiles: undefined }
     }));
@@ -125,10 +140,7 @@ async function basicFtpJobClient(connection: {
             await switchText();
             const jobUpload = await client.uploadFrom(Readable.from(jcl), "JOB");
             checkResponse(jobUpload);
-            const jobid = /^.*as ([Jj](?:[Oo][Bb])?\d+)/.exec(jobUpload.message);
-            if (!jobid)
-                throw Error("Unable to extract the job id");
-            return jobid[1];
+            return extractJobId(jobUpload.message);
         },
         async setListMask(mask: string): Promise<void> {
             await checkedCommand("SITE JESJOBNAME=" + mask);
@@ -137,12 +149,7 @@ async function basicFtpJobClient(connection: {
         async list(): Promise<JobDescription[]> {
             try {
                 await switchText();
-                return (await client.list()).map((x: FileInfo): JobDescription => {
-                    const parsedLine = /(\S+)\s+(\S+)\s+(.*)/.exec(x.name);
-                    if (!parsedLine)
-                        throw Error("Unable to parse the job list");
-                    return { jobname: parsedLine[1], id: parsedLine[2], ...getJobDetailInfo(parsedLine[3]) }
-                });
+                return (await client.list()).map(ftpJobMapper);
             }
             catch (e) {
                 if (e instanceof FTPError && e.code == 550)
@@ -480,11 +487,7 @@ async function downloadJobAndProcess(
                 })()
         };
     }
-    catch (e) {
-        return {
-            unpacker: Promise.reject(e)
-        };
-    }
+    catch (e) { return { unpacker: Promise.reject(e) }; }
 }
 
 export async function downloadDependenciesWithClient(client: JobClient,

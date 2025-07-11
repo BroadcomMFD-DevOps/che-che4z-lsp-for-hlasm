@@ -18,9 +18,10 @@ import * as fsp from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
 
-import { downloadDependenciesWithClient, extractDsn, gatherDownloadList, JobDescription, replaceVariables, adjustJobHeader, unterse, JobClient } from '../../hlasmDownloadCommands';
+import { downloadDependenciesWithClient, extractDsn, gatherDownloadList, JobDescription, replaceVariables, adjustJobHeader, unterse, zoweJobMapper, ftpJobMapper, extractJobId } from '../../hlasmDownloadCommands';
 import { isCancellationError } from '../../helpers';
 import { arrayFromHex } from '../../tools';
+import type { FileInfo } from 'basic-ftp';
 
 suite('HLASM Download data sets', () => {
     const getClient = (listResponses: JobDescription[][]) => {
@@ -309,4 +310,36 @@ suite('HLASM Download data sets', () => {
 
         assert.match(data, / {80}\r?\n/);
     }).timeout(2000);
+
+    test('Zowe job mapper', () => {
+        const jobs = zoweJobMapper("DDNAME", [{
+            jobname: "JOB1",
+            jobid: "JOB123",
+            retcode: "U0001",
+        }, {
+            jobname: "JOB2",
+            jobid: "JOB321",
+            retcode: "CC 0004",
+        }]);
+
+        assert.deepStrictEqual(jobs, [
+            { jobname: "JOB1", id: "JOB123", rc: undefined, spoolFiles: undefined, },
+            { jobname: "JOB2", id: "JOB321", rc: 4, spoolFiles: "DDNAME", },
+        ]);
+    });
+
+    test('Ftp job mapper', () => {
+        assert.deepStrictEqual(
+            ftpJobMapper({ name: "JOB1 JOB123 ABEND=222 4 spool files", } as unknown as FileInfo),
+            { jobname: "JOB1", id: "JOB123", rc: undefined, spoolFiles: undefined, }
+        );
+        assert.deepStrictEqual(
+            ftpJobMapper({ name: "JOB2 JOB321 RC=0004 2 spool files", } as unknown as FileInfo),
+            { jobname: "JOB2", id: "JOB321", rc: 4, spoolFiles: "2", },
+        );
+    });
+
+    test('Ftp jobid extractor', () => {
+        assert.deepStrictEqual(extractJobId("It is known to JES as JOB12345"), "JOB12345");
+    });
 });

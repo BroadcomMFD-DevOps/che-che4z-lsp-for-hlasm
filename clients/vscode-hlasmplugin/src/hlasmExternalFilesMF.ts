@@ -125,7 +125,7 @@ async function ZoweAsMFClient(info: ZoweConnectionInfo): Promise<MFClient> {
         read: async (dataset: string, member: string): Promise<string | null> => {
             try {
                 class StringWritable extends Writable {
-                    private chunks: Uint8Array[] = [];
+                    private readonly chunks: Uint8Array[] = [];
                     _write(chunk: Buffer, encoding: BufferEncoding, callback: (error?: Error | null) => void) {
                         this.chunks.push(chunk);
                         callback();
@@ -207,7 +207,7 @@ async function FTPAsMFClient(info: FtpConnectionInfo): Promise<MFClient> {
                 buffer.on('error', err => { throw err });
 
                 await checkedCommand(client, 'TYPE I');
-                checkResponse(await client.downloadTo(buffer, `'${dataset}(${member!})'`));
+                checkResponse(await client.downloadTo(buffer, `'${dataset}(${member})'`));
 
                 return buffer.getResult();
             }
