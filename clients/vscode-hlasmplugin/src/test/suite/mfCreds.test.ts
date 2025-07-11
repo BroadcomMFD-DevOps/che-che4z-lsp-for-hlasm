@@ -13,7 +13,7 @@
  */
 
 import * as assert from 'assert';
-import { getLastRunConfig } from "../../mfCreds";
+import { ensureValidMfZoweClient, getLastRunConfig, ZoweConnectionInfo } from "../../mfCreds";
 import type { ExtensionContext } from 'vscode';
 
 suite('MF Credentials', () => {
@@ -36,5 +36,34 @@ suite('MF Credentials', () => {
         } as unknown as ExtensionContext);
 
         assert.deepStrictEqual(last, { host: '', user: '', jobcard: '' });
+    });
+
+    test('Check valid zowe profile', async () => {
+        const toReturn = {
+            getSession: () => { },
+        };
+        const returned = await ensureValidMfZoweClient(
+            {
+                loadedProfile: {},
+                profileCache: { checkCurrentProfile: () => ({ status: 'active' }) },
+                zoweExplorerApi: {},
+            } as unknown as ZoweConnectionInfo, () => toReturn);
+        assert.strictEqual(returned, toReturn);
+
+    });
+
+    test('Check invalid zowe profile', async () => {
+        try {
+            await ensureValidMfZoweClient(
+                {
+                    loadedProfile: {},
+                    profileCache: { checkCurrentProfile: () => ({ status: 'invalid' }) },
+                    zoweExplorerApi: {},
+                } as unknown as ZoweConnectionInfo, () => ({
+                    getSession: () => { },
+                }));
+            assert.ok(false);
+        } catch (_) { }
+
     });
 });
