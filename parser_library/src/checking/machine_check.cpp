@@ -86,7 +86,7 @@ std::optional<context::symbol_value::abs_value_t> derive_expression_length(const
     (void)mi;
     (void)info;
     // TODO: To be implemented in the future
-    // Pick leftmost operand and determine its length (inluding * or literals)
+    // Pick leftmost operand and determine its length (including * or literals)
     return std::nullopt;
 }
 
