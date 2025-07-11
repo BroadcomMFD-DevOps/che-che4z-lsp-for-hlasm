@@ -109,13 +109,15 @@ async function zoweJobClient(stepDD: string, ci: ZoweConnectionInfo): Promise<Jo
     };
 }
 
-async function basicFtpJobClient(connection: {
+type FtpConnectionDescription = {
     host: string;
     port?: number;
     user: string;
     password: string;
     securityLevel: connectionSecurityLevel
-}): Promise<JobClient> {
+}
+
+async function basicFtpJobClient(connection: FtpConnectionDescription): Promise<JobClient> {
     const client = new Client();
     client.parseList = (rawList: string): FileInfo[] => {
         return rawList.split(/\r?\n/).slice(1).filter(x => !/^\s*$/.test(x)).map((value) => new FileInfo(value));
@@ -161,9 +163,7 @@ async function basicFtpJobClient(connection: {
             await switchBinary();
             checkResponse(await client.downloadTo(target, job.id + "." + job.spoolFiles));
         },
-        dispose(): void {
-            client.close();
-        }
+        dispose(): void { client.close(); }
     };
 }
 
@@ -437,14 +437,12 @@ async function copyDirectory(source: string, target: string) {
     await fsp.mkdir(target, { recursive: true });
     const files = await fsp.readdir(source, { withFileTypes: true });
     for (const file of files) {
-        if (!file.isFile() || file.isSymbolicLink())
-            continue;
-        await fsp.copyFile(path.join(source, file.name), path.join(target, file.name));
+        if (file.isFile() && !file.isSymbolicLink())
+            await fsp.copyFile(path.join(source, file.name), path.join(target, file.name));
     }
     for (const file of files) {
-        if (!file.isSymbolicLink())
-            continue;
-        await fsp.symlink(await fsp.readlink(path.join(source, file.name)), path.join(target, file.name));
+        if (file.isSymbolicLink())
+            await fsp.symlink(await fsp.readlink(path.join(source, file.name)), path.join(target, file.name));
     }
 }
 
@@ -564,23 +562,14 @@ export function replaceVariables(obj: any, resolver: (configKey: string) => (str
 
 async function getWorkspaceProcGrps(w: vscode.WorkspaceFolder): Promise<{ workspace: vscode.WorkspaceFolder, config: any } | null> {
     let config;
-    try {
-        config = await vscode.workspace.openTextDocument(vscode.Uri.joinPath(w.uri, hlasmplugin_folder, proc_grps_file)).then(doc => JSON.parse(stripJsonComments(doc.getText())));
-    }
-    catch (_) {
-        config = vscode.workspace.getConfiguration('hlasm', w).get<object>('proc_grps');
-    }
-    if (!config) return null;
-    return { workspace: w, config };
-}
-
-function notNull<T>(t: T | null): t is T {
-    return !!t;
+    try { config = await vscode.workspace.openTextDocument(vscode.Uri.joinPath(w.uri, hlasmplugin_folder, proc_grps_file)).then(doc => JSON.parse(stripJsonComments(doc.getText()))); }
+    catch (_) { config = vscode.workspace.getConfiguration('hlasm', w).get<object>('proc_grps'); }
+    return config ? { workspace: w, config } : null;
 }
 
 async function gatherAvailableConfigs() {
     if (vscode.workspace.workspaceFolders === undefined) return [];
-    const availableConfigs = (await Promise.all(vscode.workspace.workspaceFolders.map(getWorkspaceProcGrps))).filter(notNull);
+    const availableConfigs = (await Promise.all(vscode.workspace.workspaceFolders.map(getWorkspaceProcGrps))).filter(<T>(t: T | null): t is T => { return !!t; });
 
     const varResolver = (workspace: vscode.WorkspaceFolder) => {
         const config = vscode.workspace.getConfiguration(undefined, workspace);

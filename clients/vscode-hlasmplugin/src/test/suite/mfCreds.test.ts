@@ -27,4 +27,14 @@ suite('MF Credentials', () => {
 
         assert.deepStrictEqual(last, { host: 'h', user: 'u', jobcard: 'j' });
     });
+
+    test('No last run', async () => {
+        const last = getLastRunConfig({
+            globalState: {
+                get(_: unknown, def: unknown) { return def; }
+            }
+        } as unknown as ExtensionContext);
+
+        assert.deepStrictEqual(last, { host: '', user: '', jobcard: '' });
+    });
 });
