@@ -65,7 +65,7 @@ export interface JobClient {
     submitJcl(jcl: string): Promise<JobId>;
     setListMask(mask: string): Promise<void>;
     list(): Promise<JobDescription[]>;
-    download(target: Writable | string, job: JobDescription): Promise<void>;
+    download(target: Writable, job: JobDescription): Promise<void>;
     dispose(): void;
 }
 
@@ -91,8 +91,7 @@ async function zoweJobClient(stepDD: string, ci: ZoweConnectionInfo): Promise<Jo
         async submitJcl(jcl: string): Promise<JobId> { return jes.submitJcl(jcl).then((x: { jobid: string }) => x.jobid); },
         async setListMask(mask: string): Promise<void> { prefix = mask; },
         async list(): Promise<JobDescription[]> { return jes.getJobsByParameters({ prefix, status: 'OUTPUT' }).then(zoweJobMapper.bind(undefined, stepDD)); },
-        async download(target: Writable | string, job: JobDescription): Promise<void> {
-            if (typeof target === 'string') throw Error('Unexpected target');
+        async download(target: Writable, job: JobDescription): Promise<void> {
             if (typeof job.spoolFiles !== 'string') throw Error('Invalid job');
             const [stepname, ddname] = job.spoolFiles.split('.');
             const files: { stepname: string, ddname: string }[] = await jes.getSpoolFiles(job.jobname, job.id);
@@ -159,7 +158,7 @@ async function basicFtpJobClient(connection: FtpConnectionDescription): Promise<
                 throw e;
             }
         },
-        async download(target: string | Writable, job: JobDescription): Promise<void> {
+        async download(target: Writable, job: JobDescription): Promise<void> {
             await switchBinary();
             checkResponse(await client.downloadTo(target, job.id + "." + job.spoolFiles));
         },

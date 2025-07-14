@@ -29,14 +29,14 @@ suite('HLASM Download data sets', () => {
             setListMaskCalls: new Array<string>(),
             listCalls: 0,
             jcls: new Array<string>(),
-            downloadRequests: new Array<{ id: string, spoolFile: string }>(),
+            downloadRequests: new Array<{ id: string, spoolFiles: string }>(),
             disposeCalls: 0,
             nextJobId: 0,
 
             dispose() { ++this.disposeCalls },
             async download(target: Writable, job: JobDescription) {
                 if (target instanceof Writable && job.spoolFiles) {
-                    this.downloadRequests.push({ id: job.id, spoolFile: job.spoolFiles });
+                    this.downloadRequests.push({ id: job.id, spoolFiles: job.spoolFiles });
                 }
                 else
                     assert.fail("Writable stream expected");
@@ -104,7 +104,7 @@ suite('HLASM Download data sets', () => {
         );
 
         assert.strictEqual(client.disposeCalls, 1);
-        assert.deepStrictEqual(client.downloadRequests, [{ id: "JOBID0", spoolFile: "3" }]);
+        assert.deepStrictEqual(client.downloadRequests, [{ id: "JOBID0", spoolFiles: "3" }]);
         assert.strictEqual(client.jcls.length, 1);
         assert.ok(client.jcls[0].startsWith("//JOBNAME JOB 1"));
         assert.notEqual(client.jcls[0].indexOf("DSN=A.B"), -1);
@@ -133,7 +133,7 @@ suite('HLASM Download data sets', () => {
         );
 
         assert.strictEqual(client.disposeCalls, 1);
-        assert.deepStrictEqual(client.downloadRequests, [{ id: "JOBID0", spoolFile: "3" }]);
+        assert.deepStrictEqual(client.downloadRequests, [{ id: "JOBID0", spoolFiles: "3" }]);
         assert.strictEqual(client.jcls.length, 1);
         assert.ok(client.jcls[0].startsWith("//JOBNAME0 JOB 1"));
         assert.notEqual(client.jcls[0].indexOf("DSN=A.B"), -1);
@@ -201,7 +201,7 @@ suite('HLASM Download data sets', () => {
         );
 
         assert.strictEqual(client.disposeCalls, 1);
-        assert.deepStrictEqual(client.downloadRequests, [{ id: "JOBID0", spoolFile: "3" }, { id: "JOBID1", spoolFile: "6" }]);
+        assert.deepStrictEqual(client.downloadRequests, [{ id: "JOBID0", spoolFiles: "3" }, { id: "JOBID1", spoolFiles: "6" }]);
         assert.strictEqual(client.jcls.length, 2);
         assert.ok(client.jcls[0].startsWith("//JOBNAME0 JOB 1"));
         assert.notEqual(client.jcls[0].indexOf("DSN=A.B"), -1);
