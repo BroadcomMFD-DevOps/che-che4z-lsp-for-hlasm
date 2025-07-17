@@ -136,7 +136,7 @@ struct symbol_attributes
         , asm_type_(asm_type)
     {}
 
-    constexpr symbol_attributes(symbol_origin origin) noexcept
+    explicit constexpr symbol_attributes(symbol_origin origin) noexcept
         : length_(undef_length)
         , integer_(undef_length)
         , type_(undef_type)

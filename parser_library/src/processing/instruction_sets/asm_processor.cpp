@@ -254,11 +254,11 @@ void asm_processor::process_EQU(rebuilt_statement&& stmt)
     symbol_attributes::assembler_type a_attr = symbol_attributes::assembler_type::NONE;
     if (asm_type)
     {
-        std::string_view value;
+        std::string_view a_value;
         if (const auto* expr = asm_type->access_expr())
-            value = expr->get_value();
+            a_value = expr->get_value();
         // relies on to_upper_case in the parser
-        a_attr = context::assembler_type_from_string(value);
+        a_attr = context::assembler_type_from_string(a_value);
         if (a_attr == symbol_attributes::assembler_type::NONE)
             add_diagnostic(diagnostic_op::error_A135_EQU_asm_type_val_format(asm_type->operand_range));
     }
