@@ -195,7 +195,9 @@ void literal_pool::generate_pool(diagnosable_ctx& diags, index_t<using_collectio
             ord_ctx.align(lit_val.align_on_halfword ? halfword : no_align, li),
             symbol_attributes(symbol_origin::DAT,
                 ebcdic_encoding::to_ebcdic((unsigned char)lit->get_type_attribute()),
-                lit->get_length_attribute(solver, diags)),
+                lit->get_length_attribute(solver, diags),
+                lit->get_scale_attribute(solver, diags),
+                lit->get_integer_attribute()),
             li);
 
         if (size == 0)

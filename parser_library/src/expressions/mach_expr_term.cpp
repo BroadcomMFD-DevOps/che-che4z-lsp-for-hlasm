@@ -242,10 +242,24 @@ context::dependency_collector mach_expr_data_attr::get_dependencies(context::dep
     else
         symbol = std::get<const context::symbol*>(symbol_ext);
 
-    if (symbol == nullptr || !symbol->attributes().is_defined(attribute))
-        return context::dependency_collector({ attribute, value });
-    else
+    if (symbol && symbol->attributes().is_defined(attribute))
         return context::dependency_collector();
+    else if (attribute == context::data_attr_kind::I)
+    {
+        context::symbolic_reference sym;
+        sym.name = value;
+
+        if (!symbol || !symbol->attributes().is_defined(context::data_attr_kind::L))
+            sym.set(context::data_attr_kind::L);
+        if (!symbol || !symbol->attributes().is_defined(context::data_attr_kind::S))
+            sym.set(context::data_attr_kind::S);
+
+        context::dependency_collector result;
+        result.undefined_symbolics.emplace_back(std::move(sym));
+        return result;
+    }
+    else
+        return context::dependency_collector({ attribute, value });
 }
 
 mach_expression::value_t mach_expr_data_attr::evaluate(

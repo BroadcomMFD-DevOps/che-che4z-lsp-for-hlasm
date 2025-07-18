@@ -148,7 +148,7 @@ int32_t data_definition::get_scale_attribute(context::dependency_solver& info, d
         return 0;
 }
 
-uint32_t data_definition::get_length_attribute(context::dependency_solver& info, diagnostic_op_consumer& diags) const
+int32_t data_definition::get_length_attribute(context::dependency_solver& info, diagnostic_op_consumer& diags) const
 {
     auto def_type = access_data_def_type();
     if (def_type)
@@ -157,14 +157,13 @@ uint32_t data_definition::get_length_attribute(context::dependency_solver& info,
         return 0;
 }
 
-int32_t data_definition::get_integer_attribute(context::dependency_solver& info, diagnostic_op_consumer& diags) const
+context::integer_type data_definition::get_integer_attribute() const noexcept
 {
     auto def_type = access_data_def_type();
     if (def_type)
-        return def_type->get_integer_attribute(
-            evaluate_length(info, diags), evaluate_scale(info, diags), evaluate_reduced_nominal_value());
+        return def_type->get_int_type();
     else
-        return 0;
+        return context::integer_type::undefined;
 }
 
 context::symbol_attributes::program_type data_definition::get_program_attribute(
@@ -185,7 +184,7 @@ context::symbol_attributes data_definition::get_symbol_attributes(
         ebcdic_encoding::to_ebcdic((unsigned char)get_type_attribute()),
         get_length_attribute(solver, diags),
         get_scale_attribute(solver, diags),
-        get_integer_attribute(solver, diags),
+        get_integer_attribute(),
         get_program_attribute(solver, diags));
 }
 
@@ -513,7 +512,7 @@ long long data_definition::evaluate_total_length(
         assert(false);
 
     auto result = dd_type->get_length(dupl, len, evaluate_reduced_nominal_value());
-    return result >= ((1ll << 31) - 1) * 8 ? -1 : (long long)result;
+    return result >= ((1LL << 31) - 1) * 8 ? -1LL : result;
 }
 
 void data_definition::apply(mach_expr_visitor& visitor) const

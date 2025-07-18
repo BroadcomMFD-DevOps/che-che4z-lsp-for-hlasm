@@ -327,7 +327,7 @@ void asm_processor::process_EQU(rebuilt_statement&& stmt)
     }
 
     const auto s_attr = symbol_attributes::undef_scale;
-    const auto i_attr = symbol_attributes::undef_length;
+    const auto i_attr = context::integer_type::undefined;
 
     symbol_attributes attrs(context::symbol_origin::EQU, t_attr, l_attr, s_attr, i_attr, p_attr, a_attr);
 
@@ -406,8 +406,8 @@ void asm_processor::process_data_instruction(rebuilt_statement&& stmt)
                 l_dep = nullptr;
             }
 
-            if (data_op->value->scale
-                && !has_deps(data_op->value->scale->get_dependencies(dep_solver), scale_has_self_reference))
+            if (!data_op->value->scale
+                || !has_deps(data_op->value->scale->get_dependencies(dep_solver), scale_has_self_reference))
             {
                 scale = data_op->value->get_scale_attribute(dep_solver, drop_diagnostic_op);
                 s_dep = nullptr;
@@ -421,12 +421,8 @@ void asm_processor::process_data_instruction(rebuilt_statement&& stmt)
             create_symbol(stmt.stmt_range_ref(),
                 label,
                 std::move(loctr),
-                context::symbol_attributes(context::symbol_origin::DAT,
-                    type,
-                    len,
-                    scale,
-                    data_op->value->get_integer_attribute(dep_solver, drop_diagnostic_op),
-                    prog_type));
+                context::symbol_attributes(
+                    context::symbol_origin::DAT, type, len, scale, data_op->value->get_integer_attribute(), prog_type));
 
             if (length_has_self_reference
                 && !data_op->value->length->get_dependencies(dep_solver).contains_dependencies())

@@ -41,7 +41,8 @@ data_def_type::data_def_type(char type,
     modifier_spec exponent_spec,
     nominal_value_type nominal_type,
     context::alignment implicit_alignment,
-    implicit_length_t implicit_length)
+    implicit_length_t implicit_length,
+    context::integer_type int_type)
     : type(type)
     , extension(extension)
     , nominal_type(nominal_type)
@@ -53,6 +54,7 @@ data_def_type::data_def_type(char type,
     , exponent_spec_(exponent_spec)
     , alignment_(implicit_alignment)
     , implicit_length_(implicit_length)
+    , int_type_(int_type)
 {
     type_str = init_type_str(type, extension);
 }
@@ -67,7 +69,8 @@ data_def_type::data_def_type(char type,
     modifier_spec exponent_spec,
     nominal_value_type nominal_type,
     context::alignment implicit_alignment,
-    implicit_length_t implicit_length)
+    implicit_length_t implicit_length,
+    context::integer_type int_type)
     : type(type)
     , extension(extension)
     , nominal_type(nominal_type)
@@ -79,6 +82,7 @@ data_def_type::data_def_type(char type,
     , exponent_spec_(exponent_spec)
     , alignment_(implicit_alignment)
     , implicit_length_(implicit_length)
+    , int_type_(int_type)
 {
     type_str = init_type_str(type, extension);
 }
@@ -170,12 +174,6 @@ uint32_t data_def_type::get_nominal_length_attribute(const reduced_nominal_value
 int16_t data_def_type::get_implicit_scale(const reduced_nominal_value_t&) const
 {
     // All types except P and Z have implicit scale 0.
-    return 0;
-}
-
-int32_t data_def_type::get_integer_attribute_impl(uint32_t, int32_t) const
-{
-    // Types that do not have integer specifier return 0.
     return 0;
 }
 
@@ -383,11 +381,11 @@ size_t data_def_type::get_number_of_values_in_nominal(const reduced_nominal_valu
 }
 
 // this function assumes, that the operand is already checked and was OK
-uint64_t data_def_type::get_length(const data_definition_operand& op) const
+int64_t data_def_type::get_length(const data_definition_operand& op) const
 {
     return get_length(op.dupl_factor, op.length, reduce_nominal_value(op.nominal_value));
 }
-uint64_t data_def_type::get_length(const data_def_field<int32_t>& dupl_factor,
+int64_t data_def_type::get_length(const data_def_field<int32_t>& dupl_factor,
     const data_def_length_t& length,
     const reduced_nominal_value_t& rnv) const
 {
@@ -414,7 +412,7 @@ uint64_t data_def_type::get_length(const data_def_field<int32_t>& dupl_factor,
     return len_in_bits;
 }
 
-uint32_t data_def_type::get_length_attribute(
+int32_t data_def_type::get_length_attribute(
     const data_def_length_t& length, const reduced_nominal_value_t& nominal) const
 {
     if (length.present)
@@ -440,16 +438,6 @@ int16_t data_def_type::get_scale_attribute(const scale_modifier_t& scale, const 
         return scale.value;
     else
         return get_implicit_scale(nominal);
-}
-
-int32_t data_def_type::get_integer_attribute(
-    const data_def_length_t& length, const scale_modifier_t& scale, const reduced_nominal_value_t& nominal) const
-{
-    uint32_t L = get_length_attribute(length, nominal);
-    int32_t S = get_scale_attribute(scale, nominal);
-
-    // Types, that do not have integer specified return 0;
-    return get_integer_attribute_impl(L, S);
 }
 
 const std::map<std::pair<char, char>, std::unique_ptr<const data_def_type>> data_def_type::types_and_extensions = []() {
