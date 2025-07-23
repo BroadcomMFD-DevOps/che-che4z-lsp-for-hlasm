@@ -137,8 +137,12 @@ bool check_modifier(const data_def_field<field_val_T>& modifier,
         return true;
     if (std::holds_alternative<ignored>(bound))
     {
-        add_diagnostic(diagnostic_op::warn_D025(modifier.rng, type_str, modifier_name));
-        return true;
+        const bool tolerate = modifier.value == 0;
+        if (tolerate)
+            add_diagnostic(diagnostic_op::warn_D025(modifier.rng, type_str, modifier_name));
+        else
+            add_diagnostic(diagnostic_op::error_D009(modifier.rng, type_str, modifier_name));
+        return tolerate;
     }
     if (std::holds_alternative<n_a>(bound))
     {
@@ -146,14 +150,10 @@ bool check_modifier(const data_def_field<field_val_T>& modifier,
         add_diagnostic(diagnostic_op::error_D009(modifier.rng, type_str, modifier_name));
         return false;
     }
-    if (modifier.value < std::get<modifier_bound>(bound).min || modifier.value > std::get<modifier_bound>(bound).max)
+    if (const auto [min, max] = std::get<modifier_bound>(bound); modifier.value < min || modifier.value > max)
     {
         // modifier out of bounds
-        add_diagnostic(diagnostic_op::error_D008(modifier.rng,
-            type_str,
-            modifier_name,
-            std::get<modifier_bound>(bound).min,
-            std::get<modifier_bound>(bound).max));
+        add_diagnostic(diagnostic_op::error_D008(modifier.rng, type_str, modifier_name, min, max));
         return false;
     }
     return true;
