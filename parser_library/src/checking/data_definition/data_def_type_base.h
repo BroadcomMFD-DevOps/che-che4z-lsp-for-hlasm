@@ -90,7 +90,8 @@ public:
         nominal_value_type nominal_type,
         context::alignment implicit_alignment,
         implicit_length_t implicit_length,
-        context::integer_type int_type_);
+        context::integer_type int_type_,
+        bool ignores_scale = false);
 
     // constructor for types with different allowed lengths with DS instruction
     data_def_type(char type,
@@ -141,6 +142,7 @@ public:
     bool check_length(const data_def_length_t& op, const diagnostic_collector& add_diagnostic) const;
 
     [[nodiscard]] constexpr context::integer_type get_int_type() const noexcept { return int_type_; }
+    [[nodiscard]] constexpr bool ignores_scale() const noexcept { return ignores_scale_; }
 
 protected:
     char type;
@@ -201,6 +203,7 @@ private:
     implicit_length_t implicit_length_;
 
     context::integer_type int_type_;
+    bool ignores_scale_ = false;
 };
 
 } // namespace hlasm_plugin::parser_library::checking

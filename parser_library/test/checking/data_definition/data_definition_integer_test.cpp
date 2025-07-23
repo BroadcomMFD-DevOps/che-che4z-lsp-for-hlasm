@@ -123,7 +123,7 @@ TEST(data_def_integer_attribute, LD)
 
     diag_collector col;
     EXPECT_TRUE(t.check_DC(op, ADD_DIAG(col)));
-    EXPECT_EQ(compute_integer(t, op.length, op.scale, reduce_nominal_value(op.nominal_value)), 0);
+    EXPECT_EQ(compute_integer(t, op.length, op.scale, reduce_nominal_value(op.nominal_value)), 28);
 }
 
 TEST(data_def_integer_attribute, LB)
@@ -134,5 +134,5 @@ TEST(data_def_integer_attribute, LB)
 
     diag_collector col;
     EXPECT_TRUE(t.check_DC(op, ADD_DIAG(col)));
-    EXPECT_EQ(compute_integer(t, op.length, op.scale, reduce_nominal_value(op.nominal_value)), 0);
+    EXPECT_EQ(compute_integer(t, op.length, op.scale, reduce_nominal_value(op.nominal_value)), 28);
 }

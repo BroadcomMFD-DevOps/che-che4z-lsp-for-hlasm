@@ -42,7 +42,8 @@ data_def_type::data_def_type(char type,
     nominal_value_type nominal_type,
     context::alignment implicit_alignment,
     implicit_length_t implicit_length,
-    context::integer_type int_type)
+    context::integer_type int_type,
+    bool ignores_scale)
     : type(type)
     , extension(extension)
     , nominal_type(nominal_type)
@@ -55,6 +56,7 @@ data_def_type::data_def_type(char type,
     , alignment_(implicit_alignment)
     , implicit_length_(implicit_length)
     , int_type_(int_type)
+    , ignores_scale_(ignores_scale)
 {
     type_str = init_type_str(type, extension);
 }
@@ -434,7 +436,9 @@ int32_t data_def_type::get_length_attribute(
 
 int16_t data_def_type::get_scale_attribute(const scale_modifier_t& scale, const reduced_nominal_value_t& nominal) const
 {
-    if (scale.present)
+    if (ignores_scale())
+        return 0;
+    else if (scale.present)
         return scale.value;
     else
         return get_implicit_scale(nominal);

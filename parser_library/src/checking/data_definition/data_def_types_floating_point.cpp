@@ -41,7 +41,8 @@ data_def_type_E_D_L::data_def_type_E_D_L(char type,
           nominal_value_type::STRING,
           align,
           implicit_length,
-          extension == 'D' || extension == 'B' ? context::integer_type::undefined : context::integer_type::hexfloat)
+          context::integer_type::hexfloat,
+          extension == 'D' || extension == 'B')
 {}
 
 namespace {

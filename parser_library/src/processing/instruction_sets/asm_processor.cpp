@@ -404,7 +404,10 @@ void asm_processor::process_data_instruction(rebuilt_statement&& stmt)
             else
                 l_dep = data_op->value->length.get();
 
-            if (!data_op->value->scale || !data_op->value->scale->get_dependencies(dep_solver).contains_dependencies())
+            if (const auto* type = data_op->value->access_data_def_type(); type && type->ignores_scale())
+                symbol.set_scale(0);
+            else if (!data_op->value->scale
+                || !data_op->value->scale->get_dependencies(dep_solver).contains_dependencies())
                 symbol.set_scale(data_op->value->get_scale_attribute(dep_solver, drop_diagnostic_op));
             else // TODO: HLASM does not seem to be tracking the attribute dependency correctly
                 s_dep = data_op->value->scale.get();
