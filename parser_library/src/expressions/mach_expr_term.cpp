@@ -244,11 +244,14 @@ context::dependency_collector mach_expr_data_attr::get_dependencies(context::dep
 
     if (symbol && symbol->attributes().is_defined(attribute))
         return context::dependency_collector();
-    else if (attribute == context::data_attr_kind::I)
+
+    if (attribute == context::data_attr_kind::I)
     {
+        if (symbol && !symbol->attributes().can_have_SI_attr())
+            return context::dependency_collector();
+
         context::symbolic_reference sym;
         sym.name = value;
-
         if (!symbol || !symbol->attributes().is_defined(context::data_attr_kind::L))
             sym.set(context::data_attr_kind::L);
         if (!symbol || !symbol->attributes().is_defined(context::data_attr_kind::S))
@@ -258,8 +261,11 @@ context::dependency_collector mach_expr_data_attr::get_dependencies(context::dep
         result.undefined_symbolics.emplace_back(std::move(sym));
         return result;
     }
-    else
-        return context::dependency_collector({ attribute, value });
+
+    if (attribute == context::data_attr_kind::S && symbol && !symbol->attributes().can_have_SI_attr())
+        return context::dependency_collector();
+
+    return context::dependency_collector({ attribute, value });
 }
 
 mach_expression::value_t mach_expr_data_attr::evaluate(
