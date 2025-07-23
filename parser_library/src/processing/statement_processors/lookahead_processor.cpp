@@ -295,7 +295,11 @@ void lookahead_processor::assign_data_def_attributes(context::id_index symbol_na
     {
         len = data_op->value->get_length_attribute(dep_solver, drop_diagnostic_op);
     }
-    if (data_op->value->scale && !data_op->value->scale->get_dependencies(dep_solver).contains_dependencies())
+    if (const auto* type = data_op->value->access_data_def_type(); type && type->ignores_scale())
+    {
+        scale = 0;
+    }
+    else if (!data_op->value->scale || !data_op->value->scale->get_dependencies(dep_solver).contains_dependencies())
     {
         scale = data_op->value->get_scale_attribute(dep_solver, drop_diagnostic_op);
     }

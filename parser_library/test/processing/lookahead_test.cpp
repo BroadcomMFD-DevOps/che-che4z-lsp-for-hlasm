@@ -1492,3 +1492,33 @@ CCW     CCW  0,0,0,0
     EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "T"), "W");
     EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "L"), 8);
 }
+
+TEST(lookahead, I_attr)
+{
+    std::string input = R"(
+&RES    SETA I'L
+L       DS   FS8
+)";
+
+    analyzer a(input);
+    a.analyze();
+
+    EXPECT_TRUE(a.diags().empty());
+
+    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "RES"), 23);
+}
+
+TEST(lookahead, ignores_scale)
+{
+    std::string input = R"(
+&RES    SETA I'LD
+LD      DS   LD
+)";
+
+    analyzer a(input);
+    a.analyze();
+
+    EXPECT_TRUE(a.diags().empty());
+
+    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "RES"), 28);
+}
