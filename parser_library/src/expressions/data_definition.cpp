@@ -512,7 +512,7 @@ long long data_definition::evaluate_total_length(
         assert(false);
 
     auto result = dd_type->get_length(dupl, len, evaluate_reduced_nominal_value());
-    return result >= ((1LL << 31) - 1) * 8 ? -1LL : result;
+    return result >= ((1ll << 31) - 1) * 8 ? -1 : (long long)result;
 }
 
 void data_definition::apply(mach_expr_visitor& visitor) const
