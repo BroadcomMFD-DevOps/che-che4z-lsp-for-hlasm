@@ -383,11 +383,11 @@ size_t data_def_type::get_number_of_values_in_nominal(const reduced_nominal_valu
 }
 
 // this function assumes, that the operand is already checked and was OK
-int64_t data_def_type::get_length(const data_definition_operand& op) const
+uint64_t data_def_type::get_length(const data_definition_operand& op) const
 {
     return get_length(op.dupl_factor, op.length, reduce_nominal_value(op.nominal_value));
 }
-int64_t data_def_type::get_length(const data_def_field<int32_t>& dupl_factor,
+uint64_t data_def_type::get_length(const data_def_field<int32_t>& dupl_factor,
     const data_def_length_t& length,
     const reduced_nominal_value_t& rnv) const
 {
@@ -414,7 +414,7 @@ int64_t data_def_type::get_length(const data_def_field<int32_t>& dupl_factor,
     return len_in_bits;
 }
 
-int32_t data_def_type::get_length_attribute(
+uint32_t data_def_type::get_length_attribute(
     const data_def_length_t& length, const reduced_nominal_value_t& nominal) const
 {
     if (length.present)
