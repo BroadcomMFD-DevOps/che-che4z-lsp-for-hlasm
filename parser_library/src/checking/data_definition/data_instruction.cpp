@@ -18,7 +18,6 @@
 
 #include "checking/asm_instr_check.h"
 #include "checking/diagnostic_collector.h"
-#include "data_def_fields.h"
 #include "data_definition_operand.h"
 
 namespace hlasm_plugin::parser_library::checking {
