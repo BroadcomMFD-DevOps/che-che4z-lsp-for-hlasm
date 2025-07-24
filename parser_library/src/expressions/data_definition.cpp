@@ -148,7 +148,7 @@ int32_t data_definition::get_scale_attribute(context::dependency_solver& info, d
         return 0;
 }
 
-int32_t data_definition::get_length_attribute(context::dependency_solver& info, diagnostic_op_consumer& diags) const
+uint32_t data_definition::get_length_attribute(context::dependency_solver& info, diagnostic_op_consumer& diags) const
 {
     auto def_type = access_data_def_type();
     if (def_type)
