@@ -52,8 +52,8 @@ private:
     id_index name_;
     symbol_value value_;
     symbol_attributes attributes_;
-    processing_stack_t stack_;
     position pos_;
+    processing_stack_t stack_;
 };
 
 } // namespace hlasm_plugin::parser_library::context

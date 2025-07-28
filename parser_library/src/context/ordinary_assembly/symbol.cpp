@@ -36,8 +36,8 @@ symbol::symbol(id_index name,
     : name_(name)
     , value_(std::move(value))
     , attributes_(attributes)
-    , stack_(std::move(stack))
     , pos_(std::move(pos).value_or(from_stack(stack)))
+    , stack_(std::move(stack))
 {}
 
 void symbol::set_value(symbol_value value)
