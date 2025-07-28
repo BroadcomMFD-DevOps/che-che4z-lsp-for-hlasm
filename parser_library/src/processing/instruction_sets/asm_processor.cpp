@@ -404,7 +404,7 @@ void asm_processor::process_data_instruction(rebuilt_statement&& stmt)
             else
                 l_dep = data_op->value->length.get();
 
-            if (const auto* type = data_op->value->access_data_def_type(); type && type->ignores_scale())
+            if (const auto* data_type = data_op->value->access_data_def_type(); data_type && data_type->ignores_scale())
                 symbol.set_scale(0);
             else if (!data_op->value->scale
                 || !data_op->value->scale->get_dependencies(dep_solver).contains_dependencies())

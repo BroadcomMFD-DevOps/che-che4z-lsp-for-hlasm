@@ -250,15 +250,15 @@ context::dependency_collector mach_expr_data_attr::get_dependencies(context::dep
         if (symbol && !symbol->attributes().can_have_SI_attr())
             return context::dependency_collector();
 
-        context::symbolic_reference sym;
+        context::dependency_collector result;
+
+        auto& sym = result.undefined_symbolics.emplace_back();
         sym.name = value;
         if (!symbol || !symbol->attributes().is_defined(context::data_attr_kind::L))
             sym.set(context::data_attr_kind::L);
         if (!symbol || !symbol->attributes().is_defined(context::data_attr_kind::S))
             sym.set(context::data_attr_kind::S);
 
-        context::dependency_collector result;
-        result.undefined_symbolics.emplace_back(std::move(sym));
         return result;
     }
 
@@ -451,7 +451,7 @@ std::int32_t mach_expr_symbol::derive_length(std::int32_t, context::dependency_s
     const auto* symbol = solver.get_symbol(value);
     if (!symbol)
         return 1;
-    return (std::int32_t)symbol->attributes().length();
+    return symbol->attributes().length();
 }
 std::int32_t mach_expr_location_counter::derive_length(std::int32_t mi_length, context::dependency_solver&) const
 {
