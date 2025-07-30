@@ -4505,16 +4505,17 @@ std::optional<semantics::op_rem> parser_holder::op_rem_body_asm(
     parser2 p(this);
 
     using semantics::empty_operand;
+    using enum processing::processing_form;
 
     switch (form)
     {
-        case processing::processing_form::ASM_GENERIC:
+        case ASM_GENERIC:
             return p.with_model<empty_operand, &parser2::asm_op>(reparse, model_allowed);
-        case processing::processing_form::ASM_ALIAS:
+        case ASM_ALIAS:
             return p.with_model<empty_operand, &parser2::alias_op, nullptr>(reparse, model_allowed);
-        case processing::processing_form::ASM_END:
+        case ASM_END:
             return p.with_model<empty_operand, &parser2::asm_op, &parser2::end_op>(reparse, model_allowed);
-        case processing::processing_form::ASM_USING:
+        case ASM_USING:
             return p.with_model<empty_operand, &parser2::using_op1, &parser2::asm_mach_expr>(reparse, model_allowed);
         default:
             // std::unreachable(); C++23

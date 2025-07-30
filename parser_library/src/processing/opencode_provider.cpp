@@ -317,10 +317,7 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_looka
 
         switch (proc_status.first.form)
         {
-            case processing_form::ASM_GENERIC:
-            case processing_form::ASM_ALIAS:
-            case processing_form::ASM_END:
-            case processing_form::ASM_USING:
+            case processing_form::ASM_GENERIC: // other ASM forms are excluded
                 h.lookahead_operands_and_remarks_asm();
                 break;
             case processing_form::DAT:
