@@ -27,6 +27,28 @@
 namespace hlasm_plugin::parser_library::checking {
 
 namespace {
+std::pair<const data_def_type*, bool> check_type_and_extension(
+    const expressions::data_definition& dd, const diagnostic_collector& add_diagnostic)
+{
+    auto found = data_def_type::types_and_extensions.find({ dd.type, dd.extension });
+
+    if (found != data_def_type::types_and_extensions.end())
+        return { found->second.get(), true };
+
+    if (dd.extension)
+    {
+        found = data_def_type::types_and_extensions.find({ dd.type, '\0' });
+        if (found != data_def_type::types_and_extensions.end())
+        {
+            add_diagnostic(diagnostic_op::error_D013(dd.extension_range, std::string_view(&dd.type, 1)));
+            return { found->second.get(), false };
+        }
+    }
+
+    add_diagnostic(diagnostic_op::error_D012(dd.type_range));
+    return { nullptr, false };
+}
+
 data_instr_type translate(instructions::data_def_instruction t) noexcept
 {
     switch (t)
@@ -86,11 +108,11 @@ void check_data_instruction_operands(const instructions::assembler_instruction& 
 
         op->apply_mach_visitor(lc);
 
-        const auto check_op = op->get_operand_value(*op->value, dep_solver, diags);
-
-        const auto [def_type, exact_match] = check_op.check_type_and_extension(add_diagnostic);
+        const auto [def_type, exact_match] = check_type_and_extension(*op->value, add_diagnostic);
         if (!exact_match)
             continue;
+
+        const auto check_op = op->get_operand_value(*op->value, dep_solver, diags);
 
         if (!def_type->check(check_op, subtype, add_diagnostic))
             continue;
