@@ -404,7 +404,7 @@
       "name": "keyword.control.hlasm"
     },
     "noNameFieldInstruction": {
-      "match": "(?<=^${listingDetails}$)\\s+(\\S+)(?<=^${listingDetails}$.{0,71})",
+      "match": "(?<=^${listingDetails}$)\\s+([^ \\t\\v\\r\\n\\f=]\\S*)(?<=^${listingDetails}$.{0,71})",
       "captures": {
         "1": {
           "name": "entity.name.function.hlasm"
