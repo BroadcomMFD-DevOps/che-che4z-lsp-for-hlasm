@@ -113,7 +113,7 @@ void check_data_instruction_operands(const instructions::assembler_instruction& 
         if (!exact_match)
             continue;
 
-        const auto check_op = op->get_operand_value(*op->value, dep_solver, diags);
+        const auto check_op = op->get_operand_value(dep_solver, diags);
 
         if (!def_type->check(check_op, subtype, add_diagnostic))
             continue;
