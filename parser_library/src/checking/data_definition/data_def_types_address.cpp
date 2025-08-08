@@ -20,9 +20,7 @@
 #include "context/ordinary_assembly/symbol_attributes.h"
 #include "data_def_types.h"
 
-using namespace hlasm_plugin::parser_library::checking;
-using namespace hlasm_plugin::parser_library::context;
-using namespace hlasm_plugin::parser_library;
+namespace hlasm_plugin::parser_library::checking {
 
 //***************************   types A, Y   *****************************//
 
@@ -37,7 +35,7 @@ data_def_type_A_AD_Y::data_def_type_A_AD_Y(
           nominal_value_type::EXPRESSIONS,
           align,
           implicit_length,
-          integer_type::undefined)
+          context::integer_type::undefined)
 {}
 
 data_def_type_A::data_def_type_A()
@@ -52,7 +50,7 @@ bool all_values_are_absolute(const nominal_value_t& nominal) noexcept
 }
 
 template<int min_byte_abs, int max_byte_abs, int min_byte_sym, int max_byte_sym, int min_bit, int max_bit>
-nominal_diag_func check_A_AD_Y_length(const data_definition_common& common, bool all_absolute)
+nominal_diag_func check_A_AD_Y_length(const data_definition_common& common, bool all_absolute) noexcept
 {
     // For absolute expressions, it is possible to specify bit or byte length modifier with bounds specified in
     // parameters.
@@ -90,17 +88,17 @@ nominal_diag_func check_A_AD_Y_length(const data_definition_common& common, bool
     return nullptr;
 }
 
-nominal_diag_func check_A_length(const data_definition_common& common, bool all_absolute)
+nominal_diag_func check_A_length(const data_definition_common& common, bool all_absolute) noexcept
 {
     return check_A_AD_Y_length<1, 8, 2, 4, 1, 128>(common, all_absolute);
 }
 
-nominal_diag_func check_AD_length(const data_definition_common& common, bool all_absolute)
+nominal_diag_func check_AD_length(const data_definition_common& common, bool all_absolute) noexcept
 {
     return check_A_AD_Y_length<1, 8, 2, 8, 1, 128>(common, all_absolute);
 }
 
-nominal_diag_func check_Y_length(const data_definition_common& common, bool all_absolute)
+nominal_diag_func check_Y_length(const data_definition_common& common, bool all_absolute) noexcept
 {
     return check_A_AD_Y_length<1, 2, 2, 2, 1, 16>(common, all_absolute);
 }
@@ -171,9 +169,9 @@ data_def_type_S_SY::data_def_type_S_SY(char extension, int size)
           n_a(),
           n_a(),
           nominal_value_type::ADDRESS_OR_EXPRESSION,
-          halfword,
+          context::halfword,
           (unsigned long long)size,
-          integer_type::undefined)
+          context::integer_type::undefined)
 {}
 
 data_def_type_S::data_def_type_S()
@@ -181,37 +179,42 @@ data_def_type_S::data_def_type_S()
 {}
 // Checks S and SY operand, size specifies size of displacement in bits,
 // is_signed specifies whether first bit is sign bit
-bool check_S_SY_operand(const nominal_value_t& nominal, const diagnostic_collector& add_diagnostic, bool extended)
+bool check_S_SY_operand(const data_def_address& addr, const diagnostic_collector& add_diagnostic, bool extended)
+{
+    if (addr.ignored)
+        return true;
+    if (extended)
+    {
+        if (!is_size_corresponding_signed(addr.displacement.value, 20))
+        {
+            add_diagnostic(diagnostic_op::error_D022(addr.displacement.rng));
+            return false;
+        }
+    }
+    else
+    {
+        if (!is_size_corresponding_unsigned(addr.displacement.value, 12))
+        {
+            add_diagnostic(diagnostic_op::error_D022(addr.displacement.rng));
+            return false;
+        }
+    }
+    if (addr.base.present)
+    {
+        if (!is_size_corresponding_unsigned(addr.base.value, 4))
+        {
+            add_diagnostic(diagnostic_op::error_D023(addr.base.rng));
+            return false;
+        }
+    }
+    return true;
+}
+bool check_S_SY_operands(const nominal_value_t& nominal, const diagnostic_collector& add_diagnostic, bool extended)
 {
     bool ret = true;
     for (auto& addr : std::get<nominal_value_expressions>(nominal.value))
     {
-        if (addr.ignored)
-            continue;
-        if (extended)
-        {
-            if (!is_size_corresponding_signed(addr.displacement.value, 20))
-            {
-                add_diagnostic(diagnostic_op::error_D022(addr.displacement.rng));
-                ret = false;
-            }
-        }
-        else
-        {
-            if (!is_size_corresponding_unsigned(addr.displacement.value, 12))
-            {
-                add_diagnostic(diagnostic_op::error_D022(addr.displacement.rng));
-                ret = false;
-            }
-        }
-        if (addr.base.present)
-        {
-            if (!is_size_corresponding_unsigned(addr.base.value, 4))
-            {
-                add_diagnostic(diagnostic_op::error_D023(addr.base.rng));
-                ret = false;
-            }
-        }
+        ret &= check_S_SY_operand(addr, add_diagnostic, extended);
     }
     return ret;
 }
@@ -223,7 +226,7 @@ bool data_def_type_S::check_impl(const data_definition_common&,
 {
     if (!check_nominal)
         return true;
-    return check_S_SY_operand(nominal, add_diagnostic, false);
+    return check_S_SY_operands(nominal, add_diagnostic, false);
 }
 
 data_def_type_SY::data_def_type_SY()
@@ -237,7 +240,7 @@ bool data_def_type_SY::check_impl(const data_definition_common&,
 {
     if (!check_nominal)
         return true;
-    return check_S_SY_operand(nominal, add_diagnostic, true);
+    return check_S_SY_operands(nominal, add_diagnostic, true);
 }
 
 //***************************   types R, RD   *****************************//
@@ -256,7 +259,7 @@ data_def_type_single_symbol::data_def_type_single_symbol(data_definition_type ty
           nominal_value_type::EXPRESSIONS,
           align,
           implicit_length,
-          integer_type::undefined,
+          context::integer_type::undefined,
           expects_single_symbol_t::yes)
 {}
 
@@ -302,3 +305,4 @@ data_def_type_J::data_def_type_J()
 data_def_type_JD::data_def_type_JD()
     : data_def_type_single_symbol(data_definition_type::J, 'D', bound_list { 2, 3, 4, 8 }, context::doubleword, 8)
 {}
+} // namespace hlasm_plugin::parser_library::checking

@@ -20,9 +20,7 @@
 #include "context/ordinary_assembly/symbol_attributes.h"
 #include "data_def_types.h"
 
-using namespace hlasm_plugin::parser_library::checking;
-using namespace hlasm_plugin::parser_library::context;
-using namespace hlasm_plugin::parser_library;
+namespace hlasm_plugin::parser_library::checking {
 
 //***************************   types H, F, FD   *****************************//
 
@@ -36,7 +34,7 @@ data_def_type_H_F_FD::data_def_type_H_F_FD(data_definition_type type, char exten
           nominal_value_type::STRING,
           { 0, word_length },
           word_length,
-          integer_type::fixed)
+          context::integer_type::fixed)
 {}
 
 class H_F_FD_number_spec
@@ -125,7 +123,7 @@ data_def_type_P_Z::data_def_type_P_Z(data_definition_type type, context::integer
           n_a(),
           n_a(),
           nominal_value_type::STRING,
-          no_align,
+          context::no_align,
           as_needed(),
           int_type)
 {}
@@ -266,3 +264,4 @@ uint32_t data_def_type_Z::get_nominal_length_attribute(const reduced_nominal_val
 
     return first_value_len;
 }
+} // namespace hlasm_plugin::parser_library::checking
