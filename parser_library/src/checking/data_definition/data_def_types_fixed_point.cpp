@@ -76,23 +76,6 @@ nominal_diag_func check_nominal_H_F_FD(std::string_view nom) noexcept
     // TODO truncation is also an error
 }
 
-bool data_def_type_H_F_FD::check_impl(const data_definition_common&,
-    const nominal_value_t& nominal,
-    const diagnostic_collector& add_diagnostic,
-    bool check_nominal) const
-{
-    if (!check_nominal)
-        return true;
-
-    if (const auto f = check_nominal_H_F_FD(std::get<std::string>(nominal.value)))
-    {
-        add_diagnostic(f(nominal.rng, type_str()));
-        return false;
-    }
-
-    return true;
-}
-
 data_def_type_H::data_def_type_H()
     : data_def_type_H_F_FD(data_definition_type::H, '\0', 2)
 {}
@@ -145,23 +128,6 @@ nominal_diag_func check_nominal_P_Z(std::string_view nom) noexcept
         return diagnostic_op::error_D010;
 
     return nullptr;
-}
-
-bool data_def_type_P_Z::check_impl(const data_definition_common&,
-    const nominal_value_t& nominal,
-    const diagnostic_collector& add_diagnostic,
-    bool check_nominal) const
-{
-    if (!check_nominal)
-        return true;
-
-    if (const auto f = check_nominal_P_Z(std::get<std::string>(nominal.value)))
-    {
-        add_diagnostic(f(nominal.rng, type_str()));
-        return false;
-    }
-
-    return true;
 }
 
 int16_t data_def_type_P_Z::get_implicit_scale(const reduced_nominal_value_t& op) const

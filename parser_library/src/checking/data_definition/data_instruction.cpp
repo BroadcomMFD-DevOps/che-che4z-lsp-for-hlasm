@@ -18,6 +18,7 @@
 
 #include "../data_check.h"
 #include "checking/asm_instr_check.h"
+#include "checking/checker_helper.h"
 #include "checking/diagnostic_collector.h"
 #include "checking/using_label_checker.h"
 #include "context/ordinary_assembly/symbol_value.h"
@@ -230,6 +231,106 @@ bool check_base(const data_def_type& type,
     return ret;
 }
 
+bool all_values_are_absolute(const nominal_value_t& nominal) noexcept
+{
+    return std::ranges::all_of(std::get<nominal_value_expressions>(nominal.value), [](const data_def_address& addr) { //
+        return addr.ignored || addr.displacement_kind == expr_type::ABS;
+    });
+}
+
+template<std::predicate<char> F>
+bool check_comma_separated(std::string_view nom, F is_valid_digit)
+{
+    bool last_valid = false;
+    for (char c : nom)
+    {
+        if (c == ' ')
+            continue;
+        if (c == ',')
+        {
+            if (!last_valid)
+                return false;
+            last_valid = false;
+        }
+        else if (is_valid_digit(c))
+            last_valid = true;
+        else
+            return false;
+    }
+    if (!last_valid)
+        return false;
+    return true;
+}
+
+bool check_nominal(const data_def_type& dd,
+    const data_definition_common& common,
+    const nominal_value_t& nominal,
+    const diagnostic_collector& add_diagnostic)
+{
+    nominal_diag_func diag_func = nullptr;
+    switch (dd.type())
+    {
+        case 'A':
+            if (!common.has_length())
+                return true;
+
+            if (dd.extension() == 'D')
+                diag_func = check_AD_length(common, all_values_are_absolute(nominal));
+            else
+                diag_func = check_A_length(common, all_values_are_absolute(nominal));
+            break;
+
+        case 'Y':
+            if (!common.has_length())
+                return true;
+
+            diag_func = check_Y_length(common, all_values_are_absolute(nominal));
+            break;
+
+        case 'S': { // special case for now
+            bool ret = true;
+            for (auto& addr : std::get<nominal_value_expressions>(nominal.value))
+            {
+                ret &= check_S_SY_operand(addr, add_diagnostic, dd.extension() == 'Y');
+            }
+            return ret;
+        }
+
+        case 'H':
+        case 'F':
+            diag_func = check_nominal_H_F_FD(std::get<std::string>(nominal.value));
+            break;
+
+        case 'P':
+        case 'Z':
+            diag_func = check_nominal_P_Z(std::get<std::string>(nominal.value));
+            break;
+
+        case 'E':
+        case 'D':
+        case 'L':
+            diag_func = check_nominal_E_D_L(std::get<std::string>(nominal.value), dd.extension());
+            break;
+
+        case 'B':
+            if (!check_comma_separated(
+                    std::get<std::string>(nominal.value), [](char c) { return c == '0' || c == '1'; }))
+                diag_func = diagnostic_op::error_D010;
+            break;
+
+        case 'X':
+            if (!check_comma_separated(std::get<std::string>(nominal.value), &is_hexadecimal_digit))
+                diag_func = diagnostic_op::error_D010;
+            break;
+    }
+    if (diag_func)
+    {
+        add_diagnostic(diag_func(nominal.rng, dd.type_str()));
+        return false;
+    }
+    return true;
+}
+
 } // namespace
 
 void check_data_instruction_operands(const instructions::assembler_instruction& ai,
@@ -297,7 +398,7 @@ void check_data_instruction_operands(const instructions::assembler_instruction& 
 
         const auto nom_ok = !check_nom || def_type->check_nominal_type(nominal, add_diagnostic, op->operand_range);
 
-        const auto detail_pass = def_type->check_impl(common, nominal, add_diagnostic, check_nom && nom_ok);
+        const auto detail_pass = !(check_nom && nom_ok) || check_nominal(*def_type, common, nominal, add_diagnostic);
 
         if (!base_passed || !nom_ok || !detail_pass)
         {

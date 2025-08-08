@@ -188,13 +188,6 @@ public:
     // Gets the value of scale attribute when there is no scale modifier defined by user.
     virtual int16_t get_implicit_scale(const reduced_nominal_value_t& op) const;
 
-    // Data def types override this function to implement type-specific check. check_nominal specifies whether it is
-    // safe to access nominal value of operand(has correct type, etc..).
-    virtual bool check_impl(const data_definition_common& common,
-        const nominal_value_t& nominal,
-        const diagnostic_collector& add_diagnostic,
-        bool check_nominal) const;
-
     // Checks if nominal value has the right type and is safe to access. Expects that nominal type is present.
     bool check_nominal_type(
         const nominal_value_t& op, const diagnostic_collector& add_diagnostic, const range& r) const;

@@ -180,12 +180,6 @@ bool data_def_type::check_nominal_type(
     return ret;
 }
 
-bool data_def_type::check_impl(
-    const data_definition_common&, const nominal_value_t&, const diagnostic_collector&, bool) const
-{
-    return true;
-}
-
 size_t data_def_type::get_number_of_values_in_nominal(const reduced_nominal_value_t& nom) const
 {
     if (type() == data_definition_type::C || type() == data_definition_type::G)

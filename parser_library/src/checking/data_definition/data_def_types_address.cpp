@@ -103,61 +103,13 @@ nominal_diag_func check_Y_length(const data_definition_common& common, bool all_
     return check_A_AD_Y_length<1, 2, 2, 2, 1, 16>(common, all_absolute);
 }
 
-bool data_def_type_A::check_impl(const data_definition_common& common,
-    const nominal_value_t& nominal,
-    const diagnostic_collector& add_diagnostic,
-    bool check_nominal) const
-{
-    if (!check_nominal || !common.has_length())
-        return true;
-
-    if (const auto f = check_A_length(common, all_values_are_absolute(nominal)))
-    {
-        add_diagnostic(f(*common.rng_length, type_str()));
-        return false;
-    }
-    return true;
-}
-
 data_def_type_AD::data_def_type_AD()
     : data_def_type_A_AD_Y(data_definition_type::A, 'D', context::doubleword, 8)
 {}
 
-bool data_def_type_AD::check_impl(const data_definition_common& common,
-    const nominal_value_t& nominal,
-    const diagnostic_collector& add_diagnostic,
-    bool check_nominal) const
-{
-    if (!check_nominal || !common.has_length())
-        return true;
-
-    if (const auto f = check_AD_length(common, all_values_are_absolute(nominal)))
-    {
-        add_diagnostic(f(*common.rng_length, type_str()));
-        return false;
-    }
-    return true;
-}
-
 data_def_type_Y::data_def_type_Y()
     : data_def_type_A_AD_Y(data_definition_type::Y, '\0', context::halfword, 2)
 {}
-
-bool data_def_type_Y::check_impl(const data_definition_common& common,
-    const nominal_value_t& nominal,
-    const diagnostic_collector& add_diagnostic,
-    bool check_nominal) const
-{
-    if (!check_nominal || !common.has_length())
-        return true;
-
-    if (const auto f = check_Y_length(common, all_values_are_absolute(nominal)))
-    {
-        add_diagnostic(f(*common.rng_length, type_str()));
-        return false;
-    }
-    return true;
-}
 
 //***************************   types S, SY   *****************************//
 
@@ -219,29 +171,9 @@ bool check_S_SY_operands(const nominal_value_t& nominal, const diagnostic_collec
     return ret;
 }
 
-bool data_def_type_S::check_impl(const data_definition_common&,
-    const nominal_value_t& nominal,
-    const diagnostic_collector& add_diagnostic,
-    bool check_nominal) const
-{
-    if (!check_nominal)
-        return true;
-    return check_S_SY_operands(nominal, add_diagnostic, false);
-}
-
 data_def_type_SY::data_def_type_SY()
     : data_def_type_S_SY('Y', 3)
 {}
-
-bool data_def_type_SY::check_impl(const data_definition_common&,
-    const nominal_value_t& nominal,
-    const diagnostic_collector& add_diagnostic,
-    bool check_nominal) const
-{
-    if (!check_nominal)
-        return true;
-    return check_S_SY_operands(nominal, add_diagnostic, true);
-}
 
 //***************************   types R, RD   *****************************//
 
