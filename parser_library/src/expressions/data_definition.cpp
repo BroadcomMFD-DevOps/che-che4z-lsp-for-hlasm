@@ -289,7 +289,7 @@ struct extract_nominal_value_visitor
     diagnostic_op_consumer& diags;
     nominal_eval_subtype type;
 
-    checking::expr_or_address handle_simple_reloc_with_using_map(const context::address& addr, range r) const
+    checking::data_def_address handle_simple_reloc_with_using_map(const context::address& addr, range r) const
     {
         checking::data_def_address ch_adr;
         ch_adr.total = r;
@@ -315,7 +315,7 @@ struct extract_nominal_value_visitor
         return ch_adr;
     }
 
-    checking::expr_or_address operator()(const expressions::mach_expr_ptr& e) const
+    checking::data_def_address operator()(const expressions::mach_expr_ptr& e) const
     {
         auto deps = e->get_dependencies(info);
         bool ignored = deps.has_error || deps.contains_dependencies(); // ignore values with dependencies
@@ -323,34 +323,45 @@ struct extract_nominal_value_visitor
         switch (ev.value_kind())
         {
             case context::symbol_value_kind::UNDEF:
-                return checking::data_def_expr { 0, checking::expr_type::ABS, e->get_range(), true };
+                return checking::data_def_address {
+                    .base = {},
+                    .displacement = { true, 0, e->get_range() },
+                    .displacement_kind = checking::expr_type::ABS,
+                    .ignored = true,
+                    .total = e->get_range(),
+                };
 
             case context::symbol_value_kind::ABS:
-                return checking::data_def_expr {
-                    ev.get_abs(),
-                    checking::expr_type::ABS,
-                    e->get_range(),
-                    ignored,
+                return checking::data_def_address {
+                    .base = {},
+                    .displacement = { true, ev.get_abs(), e->get_range() },
+                    .displacement_kind = checking::expr_type::ABS,
+                    .ignored = ignored,
+                    .total = e->get_range(),
                 };
 
             case context::symbol_value_kind::RELOC:
                 if (const auto& addr = ev.get_reloc(); type != nominal_eval_subtype::none && addr.is_simple())
                     return handle_simple_reloc_with_using_map(addr, e->get_range());
                 else
-                    return checking::data_def_expr {
-                        0,
-                        addr.is_complex() ? checking::expr_type::COMPLEX : checking::expr_type::RELOC,
-                        e->get_range(),
-                        ignored,
+                {
+                    return checking::data_def_address {
+                        .base = {},
+                        .displacement = {},
+                        .displacement_kind =
+                            addr.is_complex() ? checking::expr_type::COMPLEX : checking::expr_type::RELOC,
+                        .ignored = ignored,
+                        .total = e->get_range(),
                     };
+                }
 
             default:
                 assert(false);
-                return checking::data_def_expr {};
+                return checking::data_def_address {};
         }
     }
 
-    checking::expr_or_address operator()(const expressions::address_nominal& a) const
+    checking::data_def_address operator()(const expressions::address_nominal& a) const
     {
         checking::data_def_address ch_adr;
 
@@ -396,7 +407,7 @@ checking::nominal_value_expressions process_q_nominal(
 
     for (const auto& addr : exprs)
     {
-        result.emplace_back(checking::data_def_expr { .ignored = true }); // everything is solved here
+        result.emplace_back(checking::data_def_address { .ignored = true }); // everything is solved here
 
         if (addr.base)
         {

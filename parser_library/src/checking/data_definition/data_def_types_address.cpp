@@ -59,10 +59,9 @@ bool check_A_AD_Y_length(std::string_view type,
     if (!common.has_length())
         return true;
 
-    for (auto e : std::get<nominal_value_expressions>(nominal.value))
+    for (auto addr : std::get<nominal_value_expressions>(nominal.value))
     {
-        const data_def_expr& expr = std::get<data_def_expr>(e);
-        if (!expr.ignored && expr.ex_kind != expr_type::ABS)
+        if (!addr.ignored && addr.displacement_kind != expr_type::ABS)
         {
             all_absolute = false;
             break;
@@ -162,56 +161,32 @@ template<size_t size, bool is_signed>
 bool check_S_SY_operand(const nominal_value_t& nominal, const diagnostic_collector& add_diagnostic)
 {
     bool ret = true;
-    for (auto& e : std::get<nominal_value_expressions>(nominal.value))
+    for (auto& addr : std::get<nominal_value_expressions>(nominal.value))
     {
-        if (std::holds_alternative<data_def_address>(e))
+        if (addr.ignored)
+            continue;
+        if (is_signed)
         {
-            const auto& adr = std::get<data_def_address>(e);
-            if (adr.ignored)
-                continue;
-            if (is_signed)
+            if (!is_size_corresponding_signed(addr.displacement.value, size))
             {
-                if (!is_size_corresponding_signed(adr.displacement.value, size))
-                {
-                    add_diagnostic(diagnostic_op::error_D022(adr.displacement.rng));
-                    ret = false;
-                }
-            }
-            else
-            {
-                if (!is_size_corresponding_unsigned(adr.displacement.value, size))
-                {
-                    add_diagnostic(diagnostic_op::error_D022(adr.displacement.rng));
-                    ret = false;
-                }
-            }
-            if (!is_size_corresponding_unsigned(adr.base.value, 4))
-            {
-                add_diagnostic(diagnostic_op::error_D023(adr.base.rng));
+                add_diagnostic(diagnostic_op::error_D022(addr.displacement.rng));
                 ret = false;
             }
         }
-        else if (std::holds_alternative<data_def_expr>(e))
+        else
         {
-            // The expression specifies address displacement, base is implicit.
-            const auto& expr = std::get<data_def_expr>(e);
-            if (expr.ignored)
-                continue;
-            if (is_signed)
+            if (!is_size_corresponding_unsigned(addr.displacement.value, size))
             {
-                if (!is_size_corresponding_signed(expr.value, size))
-                {
-                    add_diagnostic(diagnostic_op::error_D022(expr.rng));
-                    ret = false;
-                }
+                add_diagnostic(diagnostic_op::error_D022(addr.displacement.rng));
+                ret = false;
             }
-            else
+        }
+        if (addr.base.present)
+        {
+            if (!is_size_corresponding_unsigned(addr.base.value, 4))
             {
-                if (!is_size_corresponding_unsigned(expr.value, size))
-                {
-                    add_diagnostic(diagnostic_op::error_D022(expr.rng));
-                    ret = false;
-                }
+                add_diagnostic(diagnostic_op::error_D023(addr.base.rng));
+                ret = false;
             }
         }
     }
