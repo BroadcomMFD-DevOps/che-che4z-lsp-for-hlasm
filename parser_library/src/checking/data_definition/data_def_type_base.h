@@ -26,6 +26,7 @@
 
 namespace hlasm_plugin::parser_library {
 class diagnostic_collector;
+struct diagnostic_op;
 namespace context {
 enum class integer_type : unsigned char;
 }
@@ -89,6 +90,7 @@ enum class nominal_value_type : unsigned char
     EXPRESSIONS,
     ADDRESS_OR_EXPRESSION
 };
+using nominal_diag_func = diagnostic_op (*)(const range&, std::string_view);
 
 // To check in context of this file means to report diagnostics using specified diagnostic_collector
 // and return false if there was an error found (if a warning was found, true is returned).
