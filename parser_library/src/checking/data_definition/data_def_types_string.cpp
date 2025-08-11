@@ -15,10 +15,9 @@
 // This file contains implementation of the data_def_type for
 // these types: B, C, G, X
 
+#include <algorithm>
 #include <concepts>
 
-#include "checking/checker_helper.h"
-#include "checking/diagnostic_collector.h"
 #include "context/ordinary_assembly/symbol_attributes.h"
 #include "data_def_types.h"
 #include "utils/unicode_text.h"

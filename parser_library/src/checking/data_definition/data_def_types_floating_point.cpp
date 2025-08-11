@@ -19,9 +19,10 @@
 #include <string_view>
 
 #include "checking/checker_helper.h"
-#include "checking/diagnostic_collector.h"
 #include "context/ordinary_assembly/symbol_attributes.h"
 #include "data_def_types.h"
+#include "diagnostic_op.h"
+#include "utils/insist.h"
 
 namespace hlasm_plugin::parser_library::checking {
 

@@ -15,10 +15,9 @@
 // This file contains implementation of the data_def_type for
 // these types: A, Y, S, R, V, Q, J
 
-#include "checking/checker_helper.h"
-#include "checking/diagnostic_collector.h"
 #include "context/ordinary_assembly/symbol_attributes.h"
 #include "data_def_types.h"
+#include "diagnostic_op.h"
 
 namespace hlasm_plugin::parser_library::checking {
 
@@ -41,13 +40,6 @@ data_def_type_A_AD_Y::data_def_type_A_AD_Y(
 data_def_type_A::data_def_type_A()
     : data_def_type_A_AD_Y(data_definition_type::A, '\0', context::fullword, 4)
 {}
-
-bool all_values_are_absolute(const nominal_value_t& nominal) noexcept
-{
-    return std::ranges::all_of(std::get<nominal_value_expressions>(nominal.value), [](const data_def_address& addr) { //
-        return addr.ignored || addr.displacement_kind == expr_type::ABS;
-    });
-}
 
 template<int min_byte_abs, int max_byte_abs, int min_byte_sym, int max_byte_sym, int min_bit, int max_bit>
 nominal_diag_func check_A_AD_Y_length(const data_definition_common& common, bool all_absolute) noexcept
@@ -131,45 +123,6 @@ data_def_type_S::data_def_type_S()
 {}
 // Checks S and SY operand, size specifies size of displacement in bits,
 // is_signed specifies whether first bit is sign bit
-bool check_S_SY_operand(const data_def_address& addr, const diagnostic_collector& add_diagnostic, bool extended)
-{
-    if (addr.ignored)
-        return true;
-    if (extended)
-    {
-        if (!is_size_corresponding_signed(addr.displacement.value, 20))
-        {
-            add_diagnostic(diagnostic_op::error_D022(addr.displacement.rng));
-            return false;
-        }
-    }
-    else
-    {
-        if (!is_size_corresponding_unsigned(addr.displacement.value, 12))
-        {
-            add_diagnostic(diagnostic_op::error_D022(addr.displacement.rng));
-            return false;
-        }
-    }
-    if (addr.base.present)
-    {
-        if (!is_size_corresponding_unsigned(addr.base.value, 4))
-        {
-            add_diagnostic(diagnostic_op::error_D023(addr.base.rng));
-            return false;
-        }
-    }
-    return true;
-}
-bool check_S_SY_operands(const nominal_value_t& nominal, const diagnostic_collector& add_diagnostic, bool extended)
-{
-    bool ret = true;
-    for (auto& addr : std::get<nominal_value_expressions>(nominal.value))
-    {
-        ret &= check_S_SY_operand(addr, add_diagnostic, extended);
-    }
-    return ret;
-}
 
 data_def_type_SY::data_def_type_SY()
     : data_def_type_S_SY('Y', 3)

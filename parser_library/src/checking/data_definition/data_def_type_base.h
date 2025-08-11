@@ -95,8 +95,6 @@ using nominal_diag_func = diagnostic_op (*)(const range&, std::string_view);
 nominal_diag_func check_A_length(const data_definition_common& common, bool all_absolute) noexcept;
 nominal_diag_func check_AD_length(const data_definition_common& common, bool all_absolute) noexcept;
 nominal_diag_func check_Y_length(const data_definition_common& common, bool all_absolute) noexcept;
-bool check_S_SY_operand(const data_def_address& addr, const diagnostic_collector& add_diagnostic, bool extended);
-bool check_S_SY_operands(const nominal_value_t& nominal, const diagnostic_collector& add_diagnostic, bool extended);
 nominal_diag_func check_nominal_H_F_FD(std::string_view nom) noexcept;
 nominal_diag_func check_nominal_P_Z(std::string_view nom) noexcept;
 nominal_diag_func check_nominal_E_D_L(std::string_view nom, char extension) noexcept;
@@ -187,10 +185,6 @@ public:
     virtual uint32_t get_nominal_length_attribute(const reduced_nominal_value_t& op) const;
     // Gets the value of scale attribute when there is no scale modifier defined by user.
     virtual int16_t get_implicit_scale(const reduced_nominal_value_t& op) const;
-
-    // Checks if nominal value has the right type and is safe to access. Expects that nominal type is present.
-    bool check_nominal_type(
-        const nominal_value_t& op, const diagnostic_collector& add_diagnostic, const range& r) const;
 
     size_t get_number_of_values_in_nominal(const reduced_nominal_value_t& nom) const;
 
