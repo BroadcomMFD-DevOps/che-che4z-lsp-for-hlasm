@@ -168,35 +168,6 @@ struct check_modifier
     }
 };
 
-std::pair<bool, bool> check_nominal_present(const data_definition_common& common,
-    bool has_nominal,
-    const range& rng,
-    data_instr_type instr_type,
-    const diagnostic_collector& add_diagnostic)
-{
-    // DS does not require nominal value
-    // however if nominal value present, it must be valid
-    if (instr_type == data_instr_type::DS)
-        return { true, has_nominal };
-
-    // nominal value can be omitted with DC when duplication factor is 0.
-    bool ret = true;
-    bool check_nom = true;
-    if (common.dupl_factor == 0 && common.has_dupl_factor())
-        check_nom = false;
-
-    if (!has_nominal && check_nom)
-    {
-        add_diagnostic(diagnostic_op::error_D016(rng));
-        ret = false;
-        check_nom = false;
-    }
-    else if (has_nominal) // however if nominal value present, it must be valid
-        check_nom = true;
-
-    return { ret, check_nom };
-}
-
 bool check_base(const data_def_type& type,
     const data_definition_common& op,
     bool bits,
@@ -274,20 +245,24 @@ bool check_comma_separated(std::string_view nom, F is_valid_digit)
     return true;
 }
 
-bool has_only_simple_expressions(const data_def_type& dd,
-    const std::vector<expressions::address_nominal>& nominals,
-    const diagnostic_collector& add_diagnostic)
+const expressions::nominal_value_exprs* has_only_simple_expressions(
+    const data_def_type& dd, const expressions::nominal_value_t& nominal, const diagnostic_collector& add_diagnostic)
 {
-    bool ret = true;
-    for (auto& p : nominals)
+    const auto* exprs = nominal.access_exprs();
+    if (!exprs)
+    {
+        add_diagnostic(diagnostic_op::error_D017(nominal.value_range, dd.type_str()));
+        return nullptr;
+    }
+    for (auto& p : exprs->exprs)
     {
         if (p.base)
         {
             add_diagnostic(diagnostic_op::error_D020(p.total, dd.type_str()));
-            ret = false;
+            exprs = nullptr;
         }
     }
-    return ret;
+    return exprs;
 }
 
 constexpr bool is_valid_external_symbol(const context::section& s) noexcept
@@ -385,8 +360,8 @@ bool check_S_SY_operand(const expressions::address_nominal& addr,
     diagnostic_op_consumer& diags,
     bool extended)
 {
-    int32_t d;
-    int32_t b;
+    int32_t d = 0;
+    int32_t b = 0;
     if (addr.base)
     {
         const auto d_value = addr.displacement->evaluate(dep_solver, diags);
@@ -457,10 +432,32 @@ bool check_S_SY_operand(const expressions::address_nominal& addr,
 
 bool check_nominal(const data_def_type& dd,
     const data_definition_common& common,
-    const expressions::nominal_value_t& nominal,
+    const semantics::data_def_operand& op,
+    data_instr_type subtype,
     context::dependency_solver& dep_solver,
     const diagnostic_collector& add_diagnostic)
 {
+    switch (subtype)
+    {
+        case data_instr_type::DS:
+            if (!op.value->nominal_value)
+                return true;
+            break;
+
+        case data_instr_type::DC:
+            // nominal value can be omitted with DC when duplication factor is 0.
+            if (common.dupl_factor == 0 && common.has_dupl_factor() && !op.value->nominal_value)
+                return true;
+            if (!op.value->nominal_value)
+            {
+                add_diagnostic(diagnostic_op::error_D016(op.operand_range));
+                return false;
+            }
+            break;
+    }
+
+    const auto& nominal = *op.value->nominal_value;
+
     nominal_diag_func diag_func = nullptr;
     diagnostic_consumer_transform diags([&add_diagnostic](diagnostic_op d) { add_diagnostic(std::move(d)); });
 
@@ -468,14 +465,8 @@ bool check_nominal(const data_def_type& dd,
     switch (dd.type())
     {
         case data_definition_type::A: {
-            const auto* exprs = nominal.access_exprs();
+            const auto* exprs = has_only_simple_expressions(dd, nominal, add_diagnostic);
             if (!exprs)
-            {
-                diag_func = diagnostic_op::error_D017;
-                break;
-            }
-
-            if (!has_only_simple_expressions(dd, exprs->exprs, add_diagnostic))
                 return false;
             if (!common.has_length())
                 return true;
@@ -489,14 +480,8 @@ bool check_nominal(const data_def_type& dd,
         }
 
         case data_definition_type::Y: {
-            const auto* exprs = nominal.access_exprs();
+            const auto* exprs = has_only_simple_expressions(dd, nominal, add_diagnostic);
             if (!exprs)
-            {
-                diag_func = diagnostic_op::error_D017;
-                break;
-            }
-
-            if (!has_only_simple_expressions(dd, exprs->exprs, add_diagnostic))
                 return false;
             if (!common.has_length())
                 return true;
@@ -506,23 +491,21 @@ bool check_nominal(const data_def_type& dd,
         }
 
         case data_definition_type::Q:
-            if (const auto* exprs = nominal.access_exprs(); !exprs)
-                diag_func = diagnostic_op::error_D017;
-            else
+            if (const auto* exprs = nominal.access_exprs(); exprs)
                 return check_q_nominal(exprs->exprs, dep_solver, diags);
+            diag_func = diagnostic_op::error_D017;
+            break;
 
         case data_definition_type::J:
         case data_definition_type::R:
         case data_definition_type::V:
-            if (const auto* exprs = nominal.access_exprs(); !exprs)
-                diag_func = diagnostic_op::error_D017;
-            else
+            if (const auto* exprs = nominal.access_exprs(); exprs)
                 return has_single_symbol_only(dd, exprs->exprs, diags);
+            diag_func = diagnostic_op::error_D017;
+            break;
 
         case data_definition_type::S: { // special case for now
-            if (const auto* exprs = nominal.access_exprs(); !exprs)
-                diag_func = diagnostic_op::error_D017;
-            else
+            if (const auto* exprs = nominal.access_exprs(); exprs)
             {
                 bool ret = true;
                 const auto ext = dd.extension() == 'Y';
@@ -532,6 +515,8 @@ bool check_nominal(const data_def_type& dd,
                 }
                 return ret;
             }
+            diag_func = diagnostic_op::error_D017;
+            break;
         }
 
         case data_definition_type::H:
@@ -660,13 +645,9 @@ void check_data_instruction_operands(const instructions::assembler_instruction& 
 
         const auto base_passed = check_base(*def_type, common, bits, subtype, add_diagnostic);
 
-        const auto [nom_present_ok, check_nom] =
-            check_nominal_present(common, !!op->value->nominal_value, op->operand_range, subtype, add_diagnostic);
+        const auto nom_passed = check_nominal(*def_type, common, *op, subtype, dep_solver, add_diagnostic);
 
-        const auto detail_pass =
-            !check_nom || check_nominal(*def_type, common, *op->value->nominal_value, dep_solver, add_diagnostic);
-
-        if (!base_passed || !detail_pass)
+        if (!base_passed || !nom_passed)
         {
             continue;
         }
