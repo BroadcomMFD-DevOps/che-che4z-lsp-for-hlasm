@@ -262,15 +262,61 @@ bool check_comma_separated(std::string_view nom, F is_valid_digit)
     return true;
 }
 
+bool has_only_simple_expressions(
+    const data_def_type& dd, const nominal_value_t& nominal, const diagnostic_collector& add_diagnostic)
+{
+    if (!std::holds_alternative<nominal_value_expressions>(nominal.value))
+    {
+        add_diagnostic(diagnostic_op::error_D017(nominal.rng, dd.type_str()));
+        return false;
+    }
+    bool ret = true;
+    for (auto& p : std::get<nominal_value_expressions>(nominal.value))
+    {
+        if (p.base.present)
+        {
+            add_diagnostic(diagnostic_op::error_D020(p.total, dd.type_str()));
+            ret = false;
+        }
+    }
+    return ret;
+}
+
+bool has_valid_expressions_with_optional_base(
+    const data_def_type& dd, const nominal_value_t& nominal, const diagnostic_collector& add_diagnostic)
+{
+    if (!std::holds_alternative<nominal_value_expressions>(nominal.value))
+    {
+        add_diagnostic(diagnostic_op::error_D017(nominal.rng, dd.type_str()));
+        return false;
+    }
+    bool ret = true;
+    for (auto& p : std::get<nominal_value_expressions>(nominal.value))
+    {
+        if (p.ignored)
+            continue;
+        if ((p.base.present && !p.displacement.present) || (!p.base.present && p.displacement_kind != expr_type::ABS))
+        {
+            add_diagnostic(diagnostic_op::error_D033(p.total));
+            ret = false;
+        }
+    }
+    return ret;
+}
+
 bool check_nominal(const data_def_type& dd,
     const data_definition_common& common,
     const nominal_value_t& nominal,
     const diagnostic_collector& add_diagnostic)
 {
     nominal_diag_func diag_func = nullptr;
+
+    // TODO: we are still missing length checks on nominal length for C, G, or X
     switch (dd.type())
     {
-        case 'A':
+        case data_definition_type::A:
+            if (!has_only_simple_expressions(dd, nominal, add_diagnostic))
+                return false;
             if (!common.has_length())
                 return true;
 
@@ -280,14 +326,26 @@ bool check_nominal(const data_def_type& dd,
                 diag_func = check_A_length(common, all_values_are_absolute(nominal));
             break;
 
-        case 'Y':
+        case data_definition_type::Y:
+            if (!has_only_simple_expressions(dd, nominal, add_diagnostic))
+                return false;
             if (!common.has_length())
                 return true;
 
             diag_func = check_Y_length(common, all_values_are_absolute(nominal));
             break;
 
-        case 'S': { // special case for now
+        case data_definition_type::Q:
+            return dd.check_nominal_type(nominal, add_diagnostic, nominal.rng);
+
+        case data_definition_type::J:
+        case data_definition_type::R:
+        case data_definition_type::V:
+            return dd.check_nominal_type(nominal, add_diagnostic, nominal.rng);
+
+        case data_definition_type::S: { // special case for now
+            if (!has_valid_expressions_with_optional_base(dd, nominal, add_diagnostic))
+                return false;
             bool ret = true;
             for (auto& addr : std::get<nominal_value_expressions>(nominal.value))
             {
@@ -296,31 +354,55 @@ bool check_nominal(const data_def_type& dd,
             return ret;
         }
 
-        case 'H':
-        case 'F':
-            diag_func = check_nominal_H_F_FD(std::get<std::string>(nominal.value));
+        case data_definition_type::H:
+        case data_definition_type::F:
+            if (const auto* str = std::get_if<std::string>(&nominal.value))
+                diag_func = check_nominal_H_F_FD(*str);
+            else
+                diag_func = diagnostic_op::error_D018;
             break;
 
-        case 'P':
-        case 'Z':
-            diag_func = check_nominal_P_Z(std::get<std::string>(nominal.value));
+        case data_definition_type::P:
+        case data_definition_type::Z:
+            if (const auto* str = std::get_if<std::string>(&nominal.value))
+                diag_func = check_nominal_P_Z(*str);
+            else
+                diag_func = diagnostic_op::error_D018;
             break;
 
-        case 'E':
-        case 'D':
-        case 'L':
-            diag_func = check_nominal_E_D_L(std::get<std::string>(nominal.value), dd.extension());
+        case data_definition_type::E:
+        case data_definition_type::D:
+        case data_definition_type::L:
+            if (const auto* str = std::get_if<std::string>(&nominal.value))
+                diag_func = check_nominal_E_D_L(*str, dd.extension());
+            else
+                diag_func = diagnostic_op::error_D018;
             break;
 
-        case 'B':
-            if (!check_comma_separated(
-                    std::get<std::string>(nominal.value), [](char c) { return c == '0' || c == '1'; }))
-                diag_func = diagnostic_op::error_D010;
+        case data_definition_type::B:
+            if (const auto* str = std::get_if<std::string>(&nominal.value))
+            {
+                if (!check_comma_separated(*str, [](char c) { return c == '0' || c == '1'; }))
+                    diag_func = diagnostic_op::error_D010;
+            }
+            else
+                diag_func = diagnostic_op::error_D018;
             break;
 
-        case 'X':
-            if (!check_comma_separated(std::get<std::string>(nominal.value), &is_hexadecimal_digit))
-                diag_func = diagnostic_op::error_D010;
+        case data_definition_type::X:
+            if (const auto* str = std::get_if<std::string>(&nominal.value))
+            {
+                if (!check_comma_separated(*str, &is_hexadecimal_digit))
+                    diag_func = diagnostic_op::error_D010;
+            }
+            else
+                diag_func = diagnostic_op::error_D018;
+            break;
+
+        case data_definition_type::C:
+        case data_definition_type::G:
+            if (!std::holds_alternative<std::string>(nominal.value))
+                diag_func = diagnostic_op::error_D018;
             break;
     }
     if (diag_func)
@@ -409,11 +491,9 @@ void check_data_instruction_operands(const instructions::assembler_instruction& 
 
         const auto nominal = op->value->evaluate_nominal_value(dep_solver, diags);
 
-        const auto nom_ok = !check_nom || def_type->check_nominal_type(nominal, add_diagnostic, op->operand_range);
+        const auto detail_pass = !check_nom || check_nominal(*def_type, common, nominal, add_diagnostic);
 
-        const auto detail_pass = !(check_nom && nom_ok) || check_nominal(*def_type, common, nominal, add_diagnostic);
-
-        if (!base_passed || !nom_ok || !detail_pass)
+        if (!base_passed || !detail_pass)
         {
             continue;
         }
