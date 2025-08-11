@@ -331,6 +331,19 @@ bool check_nominal(const data_def_type& dd,
     return true;
 }
 
+reduced_nominal_value_t reduce_nominal_value(const expressions::nominal_value_t* n)
+{
+    if (!n)
+        return std::monostate();
+    else if (const auto* str = n->access_string())
+        return str->value;
+    else if (const auto* expr = n->access_exprs())
+        return expr->exprs.size();
+
+    assert(false);
+    return {};
+}
+
 } // namespace
 
 void check_data_instruction_operands(const instructions::assembler_instruction& ai,
@@ -408,7 +421,7 @@ void check_data_instruction_operands(const instructions::assembler_instruction& 
         const auto bit_length = def_type->get_length(common.has_dupl_factor() ? common.dupl_factor : -1,
             common.has_length() ? common.length : -1,
             bits,
-            reduce_nominal_value(nominal));
+            reduce_nominal_value(op->value->nominal_value.get()));
 
         if (bit_length >= ((1ll << 31) - 1) * 8)
         {
