@@ -31,14 +31,11 @@ data_def_type::data_def_type(data_definition_type type,
     modifier_spec length_spec,
     modifier_spec scale_spec,
     modifier_spec exponent_spec,
-    nominal_value_type nominal_type,
     context::alignment implicit_alignment,
     implicit_length_t implicit_length,
     context::integer_type int_type,
-    expects_single_symbol_t single_symbol,
     bool ignores_scale)
     : type_ext { (char)type, extension }
-    , nominal_type(nominal_type)
     , bit_length_spec_(bit_length_spec)
     , length_spec_(length_spec)
     , ds_length_spec_(length_spec)
@@ -49,7 +46,6 @@ data_def_type::data_def_type(data_definition_type type,
     , implicit_length_(implicit_length)
     , int_type_(int_type)
     , ignores_scale_(ignores_scale)
-    , single_symbol(single_symbol)
 {
     assert(!std::holds_alternative<ignored>(bit_length_spec));
     assert(!std::holds_alternative<ignored>(length_spec));
@@ -63,12 +59,10 @@ data_def_type::data_def_type(data_definition_type type,
     int max_ds_length_spec,
     modifier_spec scale_spec,
     modifier_spec exponent_spec,
-    nominal_value_type nominal_type,
     context::alignment implicit_alignment,
     implicit_length_t implicit_length,
     context::integer_type int_type)
     : type_ext { (char)type, extension }
-    , nominal_type(nominal_type)
     , bit_length_spec_(bit_length_spec)
     , length_spec_(length_spec)
     , ds_length_spec_(modifier_bound { 1, max_ds_length_spec })

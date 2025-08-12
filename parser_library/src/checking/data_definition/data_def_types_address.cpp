@@ -31,7 +31,6 @@ data_def_type_A_AD_Y::data_def_type_A_AD_Y(
           no_check(),
           n_a(),
           n_a(),
-          nominal_value_type::EXPRESSIONS,
           align,
           implicit_length,
           context::integer_type::undefined)
@@ -112,7 +111,6 @@ data_def_type_S_SY::data_def_type_S_SY(char extension, int size)
           modifier_bound { size, size },
           n_a(),
           n_a(),
-          nominal_value_type::ADDRESS_OR_EXPRESSION,
           context::halfword,
           (unsigned long long)size,
           context::integer_type::undefined)
@@ -135,17 +133,8 @@ data_def_type_single_symbol::data_def_type_single_symbol(data_definition_type ty
     modifier_spec length_bound,
     context::alignment align,
     uint64_t implicit_length)
-    : data_def_type(type,
-          extension,
-          n_a(),
-          length_bound,
-          n_a(),
-          n_a(),
-          nominal_value_type::EXPRESSIONS,
-          align,
-          implicit_length,
-          context::integer_type::undefined,
-          expects_single_symbol_t::yes)
+    : data_def_type(
+          type, extension, n_a(), length_bound, n_a(), n_a(), align, implicit_length, context::integer_type::undefined)
 {}
 
 data_def_type_R::data_def_type_R()

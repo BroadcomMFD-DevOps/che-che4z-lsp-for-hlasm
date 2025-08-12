@@ -31,7 +31,6 @@ data_def_type_H_F_FD::data_def_type_H_F_FD(data_definition_type type, char exten
           modifier_bound { 1, 8 },
           modifier_bound { -187, 346 },
           modifier_bound { -85, 75 },
-          nominal_value_type::STRING,
           { 0, word_length },
           word_length,
           context::integer_type::fixed)
@@ -105,7 +104,6 @@ data_def_type_P_Z::data_def_type_P_Z(data_definition_type type, context::integer
           modifier_bound { 1, 16 },
           n_a(),
           n_a(),
-          nominal_value_type::STRING,
           context::no_align,
           as_needed(),
           int_type)

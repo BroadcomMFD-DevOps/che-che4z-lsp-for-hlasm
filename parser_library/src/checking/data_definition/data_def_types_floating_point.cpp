@@ -39,11 +39,9 @@ data_def_type_E_D_L::data_def_type_E_D_L(data_definition_type type,
           length_spec,
           scale_spec,
           modifier_bound { -85, 75 },
-          nominal_value_type::STRING,
           align,
           implicit_length,
           context::integer_type::hexfloat,
-          expects_single_symbol_t::no,
           extension == 'D' || extension == 'B')
 {}
 

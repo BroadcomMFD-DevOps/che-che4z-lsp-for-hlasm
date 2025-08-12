@@ -87,7 +87,6 @@ data_def_type_B::data_def_type_B()
           modifier_bound { 1, 256 },
           n_a(),
           n_a(),
-          nominal_value_type::STRING,
           no_align,
           as_needed(),
           integer_type::undefined)
@@ -122,7 +121,6 @@ data_def_type_CA_CE::data_def_type_CA_CE(char extension)
           65535,
           n_a(),
           n_a(),
-          nominal_value_type::STRING,
           no_align,
           as_needed(),
           integer_type::undefined)
@@ -167,7 +165,6 @@ data_def_type_CU::data_def_type_CU()
           modifier_bound { 1, 256, true },
           n_a(),
           n_a(),
-          nominal_value_type::STRING,
           no_align,
           as_needed(),
           integer_type::undefined)
@@ -203,7 +200,6 @@ data_def_type_G::data_def_type_G()
           65534,
           n_a(),
           n_a(),
-          nominal_value_type::STRING,
           no_align,
           as_needed(),
           integer_type::undefined)
@@ -248,7 +244,6 @@ data_def_type_X::data_def_type_X()
           65535,
           n_a(),
           n_a(),
-          nominal_value_type::STRING,
           no_align,
           as_needed(),
           integer_type::undefined)

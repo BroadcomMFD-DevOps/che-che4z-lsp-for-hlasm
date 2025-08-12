@@ -83,14 +83,6 @@ struct as_needed
 {};
 using implicit_length_t = std::variant<uint64_t, as_needed>;
 
-// Type of nominal value that various types of data definition expect.
-enum class nominal_value_type : unsigned char
-{
-    STRING,
-    EXPRESSIONS,
-    ADDRESS_OR_EXPRESSION
-};
-
 using nominal_diag_func = diagnostic_op (*)(const range&, std::string_view);
 nominal_diag_func check_A_length(const data_definition_common& common, bool all_absolute) noexcept;
 nominal_diag_func check_AD_length(const data_definition_common& common, bool all_absolute) noexcept;
@@ -129,11 +121,6 @@ enum class data_definition_type : char
 class data_def_type
 {
 public:
-    enum class expects_single_symbol_t : bool
-    {
-        no,
-        yes,
-    };
     // constructor for types with  the same lengths in DC and DS instruction
     data_def_type(data_definition_type type,
         char extension,
@@ -141,11 +128,9 @@ public:
         modifier_spec length_spec,
         modifier_spec scale_spec,
         modifier_spec exponent_spec,
-        nominal_value_type nominal_type,
         context::alignment implicit_alignment,
         implicit_length_t implicit_length,
         context::integer_type int_type_,
-        expects_single_symbol_t single_symbol = expects_single_symbol_t::no,
         bool ignores_scale = false);
 
     // constructor for types with different allowed lengths with DS instruction
@@ -156,12 +141,9 @@ public:
         int max_ds_length_spec,
         modifier_spec scale_spec,
         modifier_spec exponent_spec,
-        nominal_value_type nominal_type,
         context::alignment implicit_alignment,
         implicit_length_t implicit_length,
         context::integer_type int_type_);
-
-    bool expects_single_symbol() const noexcept { return single_symbol == expects_single_symbol_t::yes; }
 
     // returns length of the operand in bits
     uint64_t get_length(
@@ -198,8 +180,6 @@ public:
 
     char type_ext[2];
 
-    nominal_value_type nominal_type;
-
     modifier_spec bit_length_spec_;
     modifier_spec length_spec_;
     modifier_spec ds_length_spec_;
@@ -213,7 +193,6 @@ public:
 
     context::integer_type int_type_;
     bool ignores_scale_ = false;
-    expects_single_symbol_t single_symbol = expects_single_symbol_t::no;
 };
 
 } // namespace hlasm_plugin::parser_library::checking
