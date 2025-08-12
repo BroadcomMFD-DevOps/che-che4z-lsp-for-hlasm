@@ -86,6 +86,8 @@ public:
     bool allowed(int32_t i) const noexcept { return i >= 0 && (uint32_t)i < m_allowed.size() && m_allowed.test(i); }
 
     std::string to_diag_list() const;
+
+    bool operator==(const bound_list&) const = default;
 };
 using modifier_spec = std::variant<modifier_bound, n_a, no_check, ignored, bound_list>;
 
