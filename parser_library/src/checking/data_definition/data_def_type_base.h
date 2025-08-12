@@ -46,8 +46,8 @@ enum class data_instr_type
 // Modifier spec specifies allowed values for modifiers.
 // modifier_bound: specifies inclusive range of allowed values.
 // n_a: the modifier cannot be specified, a diagnostic is registered otherwise.
-// no_check: the modifier is not checked at all, typically derived data_def_type checks it in other way.
 // ignored: the modifier is ignored during assembly, a warning is registered if present.
+// bound_list: a list of allowed lengths
 struct modifier_bound
 {
     int min;
@@ -55,8 +55,6 @@ struct modifier_bound
     bool even = false;
 };
 struct n_a
-{};
-struct no_check
 {};
 struct ignored
 {};
@@ -89,7 +87,7 @@ public:
 
     bool operator==(const bound_list&) const = default;
 };
-using modifier_spec = std::variant<modifier_bound, n_a, no_check, ignored, bound_list>;
+using modifier_spec = std::variant<modifier_bound, n_a, ignored, bound_list>;
 
 // Implicit length is either fixed number or is derived from (string) nominal value.
 struct as_needed

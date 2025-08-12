@@ -125,7 +125,6 @@ struct check_modifier
     std::string_view modifier_name;
     const diagnostic_collector& add_diagnostic;
 
-    bool operator()(const no_check&) const { return true; }
     bool operator()(const ignored&) const
     {
         const bool tolerate = value == 0;
