@@ -326,12 +326,12 @@ constexpr data_def_type data_def_type_Z()
 }
 
 constexpr data_def_type data_def_type_A_AD_Y(
-    data_definition_type type, char extension, context::alignment align, uint64_t implicit_length)
+    data_definition_type type, char extension, context::alignment align, unsigned char implicit_length)
 {
     return data_def_type(type,
         extension,
-        no_check(),
-        no_check(),
+        modifier_bound { 1, implicit_length * 8 },
+        modifier_bound { 1, implicit_length },
         n_a(),
         n_a(),
         align,

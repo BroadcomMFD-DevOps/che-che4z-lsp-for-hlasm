@@ -117,9 +117,6 @@ private:
 using implicit_length_t = std::variant<uint64_t, as_needed>;
 
 using nominal_diag_func = diagnostic_op (*)(const range&, std::string_view);
-nominal_diag_func check_A_length(const data_definition_common& common, bool all_absolute) noexcept;
-nominal_diag_func check_AD_length(const data_definition_common& common, bool all_absolute) noexcept;
-nominal_diag_func check_Y_length(const data_definition_common& common, bool all_absolute) noexcept;
 nominal_diag_func check_nominal_H_F_FD(std::string_view nom) noexcept;
 nominal_diag_func check_nominal_P_Z(std::string_view nom) noexcept;
 nominal_diag_func check_nominal_E_D_L(std::string_view nom, char extension) noexcept;
