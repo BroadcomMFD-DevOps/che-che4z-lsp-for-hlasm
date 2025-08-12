@@ -15,10 +15,9 @@
 #ifndef HLASMPLUGIN_PARSERLIBRARY_CHECKING_DATA_DEF_TYPE_BASE_H
 #define HLASMPLUGIN_PARSERLIBRARY_CHECKING_DATA_DEF_TYPE_BASE_H
 
+#include <array>
 #include <bitset>
 #include <cstdint>
-#include <map>
-#include <memory>
 #include <variant>
 
 #include "context/ordinary_assembly/alignment.h"
@@ -66,10 +65,22 @@ class bound_list
     std::bitset<32> m_allowed;
 
 public:
-    bound_list(std::initializer_list<unsigned> l) noexcept
+    constexpr bound_list(std::initializer_list<unsigned> l) noexcept
     {
-        for (unsigned i : l)
-            m_allowed.set(i);
+        if (std::is_constant_evaluated()) // C++23
+        {
+            unsigned long long init = 0;
+            for (unsigned i : l)
+            {
+                init |= 1ULL << i;
+            }
+            m_allowed = decltype(m_allowed)(init);
+        }
+        else
+        {
+            for (unsigned i : l)
+                m_allowed.set(i);
+        }
     }
 
     bool allowed(int32_t i) const noexcept { return i >= 0 && (uint32_t)i < m_allowed.size() && m_allowed.test(i); }
@@ -142,7 +153,7 @@ class data_def_type
 {
 public:
     // constructor for types with  the same lengths in DC and DS instruction
-    data_def_type(data_definition_type type,
+    constexpr data_def_type(data_definition_type type,
         char extension,
         modifier_spec bit_length_spec,
         modifier_spec length_spec,
@@ -151,10 +162,10 @@ public:
         context::alignment implicit_alignment,
         implicit_length_t implicit_length,
         context::integer_type int_type_,
-        bool ignores_scale = false);
+        bool ignores_scale = false) noexcept;
 
     // constructor for types with different allowed lengths with DS instruction
-    data_def_type(data_definition_type type,
+    constexpr data_def_type(data_definition_type type,
         char extension,
         modifier_spec bit_length_spec,
         modifier_spec length_spec,
@@ -163,7 +174,7 @@ public:
         modifier_spec exponent_spec,
         context::alignment implicit_alignment,
         implicit_length_t implicit_length,
-        context::integer_type int_type_);
+        context::integer_type int_type_) noexcept;
 
     // returns length of the operand in bits
     uint64_t get_length(
@@ -174,8 +185,6 @@ public:
     int16_t get_scale_attribute(const scale_modifier_t& scale, const reduced_nominal_value_t& nominal) const;
     // Returns type corresponding to specified type and extension.
     static const data_def_type* access_data_def_type(char type, char extension);
-
-    virtual ~data_def_type() = 0;
 
     [[nodiscard]] constexpr context::integer_type get_int_type() const noexcept { return int_type_; }
     [[nodiscard]] constexpr bool ignores_scale() const noexcept { return ignores_scale_; }
@@ -191,9 +200,9 @@ public:
 
     data_definition_type type() const noexcept { return (data_definition_type)type_ext[0]; }
     char extension() const noexcept { return type_ext[1]; }
-    std::string_view type_str() const noexcept { return std::string_view(type_ext, 1 + !!type_ext[1]); }
+    std::string_view type_str() const noexcept { return std::string_view(type_ext.data(), 1 + !!type_ext[1]); }
 
-    char type_ext[2];
+    std::array<char, 2> type_ext;
 
     modifier_spec bit_length_spec_;
     modifier_spec length_spec_;
