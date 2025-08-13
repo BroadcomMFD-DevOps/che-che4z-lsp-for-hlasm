@@ -206,8 +206,9 @@ bool check_base(const data_def_type& type,
 
 bool all_values_are_absolute(const std::vector<expressions::address_nominal>& exprs,
     context::dependency_solver& dep_solver,
-    diagnostic_op_consumer& diags) noexcept
+    const diagnostic_collector& add_diagnostic) noexcept
 {
+    diagnostic_consumer_transform diags([&add_diagnostic](diagnostic_op d) { add_diagnostic(std::move(d)); });
     bool result = true;
     for (const auto& addr : exprs)
     {
@@ -268,15 +269,16 @@ constexpr bool is_valid_external_symbol(const context::section& s) noexcept
     return s.kind == DUMMY || s.kind == EXTERNAL_DSECT;
 }
 
-bool has_single_symbol_only(
-    const data_def_type& dd, const std::vector<expressions::address_nominal>& exprs, diagnostic_op_consumer& diags)
+bool has_single_symbol_only(const data_def_type& dd,
+    const std::vector<expressions::address_nominal>& exprs,
+    const diagnostic_collector& add_diagnostic)
 {
     bool result = true;
     for (const auto& addr : exprs)
     {
         if (addr.base)
         {
-            diags.add_diagnostic(diagnostic_op::error_D030(addr.base->get_range(), dd.type_str()));
+            add_diagnostic(diagnostic_op::error_D030(addr.base->get_range(), dd.type_str()));
             result = false;
             continue;
         }
@@ -284,7 +286,7 @@ bool has_single_symbol_only(
         const auto* symbol = dynamic_cast<const expressions::mach_expr_symbol*>(expr);
         if (!symbol)
         {
-            diags.add_diagnostic(diagnostic_op::error_D030(expr->get_range(), dd.type_str()));
+            add_diagnostic(diagnostic_op::error_D030(expr->get_range(), dd.type_str()));
             result = false;
         }
     }
@@ -293,7 +295,7 @@ bool has_single_symbol_only(
 
 bool check_q_nominal(const std::vector<expressions::address_nominal>& exprs,
     context::dependency_solver& info,
-    diagnostic_op_consumer& diags)
+    const diagnostic_collector& add_diagnostic)
 {
     static constexpr std::string_view type = "Q";
 
@@ -304,7 +306,7 @@ bool check_q_nominal(const std::vector<expressions::address_nominal>& exprs,
     {
         if (addr.base)
         {
-            diags.add_diagnostic(diagnostic_op::error_D030(addr.base->get_range(), type));
+            add_diagnostic(diagnostic_op::error_D030(addr.base->get_range(), type));
             result = false;
             continue;
         }
@@ -312,7 +314,7 @@ bool check_q_nominal(const std::vector<expressions::address_nominal>& exprs,
         const auto* symbol_expr = dynamic_cast<const expressions::mach_expr_symbol*>(expr);
         if (!symbol_expr)
         {
-            diags.add_diagnostic(diagnostic_op::error_D030(expr->get_range(), type));
+            add_diagnostic(diagnostic_op::error_D030(expr->get_range(), type));
             result = false;
             continue;
         }
@@ -325,7 +327,7 @@ bool check_q_nominal(const std::vector<expressions::address_nominal>& exprs,
         else if (const auto* s = info.get_section(symbol_expr->value); s && is_valid_external_symbol(*s))
             continue;
 
-        diags.add_diagnostic(diagnostic_op::error_D035(symbol_expr->get_range(), goff));
+        add_diagnostic(diagnostic_op::error_D035(symbol_expr->get_range(), goff));
         result = false;
     }
 
@@ -354,9 +356,11 @@ std::pair<int32_t, int32_t> transate_address_via_using(const context::address& a
 
 bool check_S_SY_operand(const expressions::address_nominal& addr,
     context::dependency_solver& dep_solver,
-    diagnostic_op_consumer& diags,
+    const diagnostic_collector& add_diagnostic,
     bool extended)
 {
+    diagnostic_consumer_transform diags([&add_diagnostic](diagnostic_op d) { add_diagnostic(std::move(d)); });
+
     int32_t d = 0;
     int32_t b = 0;
     if (addr.base)
@@ -366,9 +370,9 @@ bool check_S_SY_operand(const expressions::address_nominal& addr,
         const auto d_abs = d_value.value_kind() == context::symbol_value_kind::ABS;
         const auto b_abs = b_value.value_kind() == context::symbol_value_kind::ABS;
         if (!d_abs)
-            diags.add_diagnostic(diagnostic_op::error_D034(addr.displacement->get_range()));
+            add_diagnostic(diagnostic_op::error_D034(addr.displacement->get_range()));
         if (!b_abs)
-            diags.add_diagnostic(diagnostic_op::error_D034(addr.base->get_range()));
+            add_diagnostic(diagnostic_op::error_D034(addr.base->get_range()));
         if (!d_abs || !b_abs)
             return false;
         d = d_value.get_abs();
@@ -379,7 +383,7 @@ bool check_S_SY_operand(const expressions::address_nominal& addr,
         switch (const auto d_value = addr.displacement->evaluate(dep_solver, diags); d_value.value_kind())
         {
             case context::symbol_value_kind::UNDEF:
-                diags.add_diagnostic(diagnostic_op::error_D034(addr.displacement->get_range()));
+                add_diagnostic(diagnostic_op::error_D034(addr.displacement->get_range()));
                 return false;
 
             case context::symbol_value_kind::ABS:
@@ -392,7 +396,7 @@ bool check_S_SY_operand(const expressions::address_nominal& addr,
                     std::tie(d, b) = transate_address_via_using(a, dep_solver, diags, addr.total, extended);
                 else
                 {
-                    diags.add_diagnostic(diagnostic_op::error_D033(addr.total));
+                    add_diagnostic(diagnostic_op::error_D033(addr.total));
                     return false;
                 }
                 break;
@@ -404,7 +408,7 @@ bool check_S_SY_operand(const expressions::address_nominal& addr,
     {
         if (!is_size_corresponding_signed(d, 20))
         {
-            diags.add_diagnostic(diagnostic_op::error_D022(addr.displacement->get_range()));
+            add_diagnostic(diagnostic_op::error_D022(addr.displacement->get_range()));
             result = false;
         }
     }
@@ -412,7 +416,7 @@ bool check_S_SY_operand(const expressions::address_nominal& addr,
     {
         if (!is_size_corresponding_unsigned(d, 12))
         {
-            diags.add_diagnostic(diagnostic_op::error_D022(addr.displacement->get_range()));
+            add_diagnostic(diagnostic_op::error_D022(addr.displacement->get_range()));
             result = false;
         }
     }
@@ -420,7 +424,7 @@ bool check_S_SY_operand(const expressions::address_nominal& addr,
     {
         if (!is_size_corresponding_unsigned(b, 4))
         {
-            diags.add_diagnostic(diagnostic_op::error_D023(addr.base->get_range()));
+            add_diagnostic(diagnostic_op::error_D023(addr.base->get_range()));
             result = true;
         }
     }
@@ -456,7 +460,6 @@ bool check_nominal(const data_def_type& dd,
     const auto& nominal = *op.value->nominal_value;
 
     nominal_diag_func diag_func = nullptr;
-    diagnostic_consumer_transform diags([&add_diagnostic](diagnostic_op d) { add_diagnostic(std::move(d)); });
 
     // TODO: we are still missing length checks on nominal length for C, G, or X
     switch (dd.type())
@@ -467,7 +470,8 @@ bool check_nominal(const data_def_type& dd,
             if (!exprs)
                 return false;
 
-            if (!all_values_are_absolute(exprs->exprs, dep_solver, diags) && common.length_in_bits)
+            // TODO: overflow checks are missing
+            if (!all_values_are_absolute(exprs->exprs, dep_solver, add_diagnostic) && common.length_in_bits)
             {
                 static constexpr std::string_view reloc_suffix = " with relocatable symbols";
                 add_diagnostic(diagnostic_op::error_D007(nominal.value_range, dd.type_str(), reloc_suffix));
@@ -478,7 +482,7 @@ bool check_nominal(const data_def_type& dd,
 
         case data_definition_type::Q:
             if (const auto* exprs = nominal.access_exprs(); exprs)
-                return check_q_nominal(exprs->exprs, dep_solver, diags);
+                return check_q_nominal(exprs->exprs, dep_solver, add_diagnostic);
             diag_func = diagnostic_op::error_D017;
             break;
 
@@ -486,7 +490,7 @@ bool check_nominal(const data_def_type& dd,
         case data_definition_type::R:
         case data_definition_type::V:
             if (const auto* exprs = nominal.access_exprs(); exprs)
-                return has_single_symbol_only(dd, exprs->exprs, diags);
+                return has_single_symbol_only(dd, exprs->exprs, add_diagnostic);
             diag_func = diagnostic_op::error_D017;
             break;
 
@@ -497,7 +501,7 @@ bool check_nominal(const data_def_type& dd,
                 const auto ext = dd.extension() == 'Y';
                 for (const auto& addr : exprs->exprs)
                 {
-                    ret &= check_S_SY_operand(addr, dep_solver, diags, ext);
+                    ret &= check_S_SY_operand(addr, dep_solver, add_diagnostic, ext);
                 }
                 return ret;
             }
