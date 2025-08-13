@@ -69,8 +69,7 @@ data_instr_type translate(instructions::data_def_instruction t) noexcept
 std::optional<int32_t> evaluate_abs_expression(
     const expressions::mach_expression* e, context::dependency_solver& info, diagnostic_op_consumer& diags)
 {
-    // if the expression cannot be evaluated, we return field as if it was not there
-    if (!e || e->get_dependencies(info).contains_dependencies())
+    if (!e)
         return std::nullopt;
 
     if (const auto ret = e->evaluate(info, diags); ret.value_kind() == context::symbol_value_kind::ABS)

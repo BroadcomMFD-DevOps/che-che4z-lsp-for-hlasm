@@ -18,13 +18,8 @@
 
 #include "checking/data_definition/data_def_fields.h"
 #include "checking/data_definition/data_def_type_base.h"
-#include "checking/diagnostic_collector.h"
-#include "compiler_options.h"
-#include "context/ordinary_assembly/section.h"
-#include "context/ordinary_assembly/symbol.h"
 #include "context/using.h"
 #include "ebcdic_encoding.h"
-#include "mach_expr_term.h"
 #include "mach_expr_visitor.h"
 #include "semantics/collector.h"
 #include "utils/general_hashers.h"
@@ -56,9 +51,18 @@ context::dependency_collector data_definition::get_dependencies(context::depende
 
 context::dependency_collector data_definition::get_length_dependencies(context::dependency_solver& solver) const
 {
-    auto result = dupl_factor ? dupl_factor->get_dependencies(solver) : context::dependency_collector();
-    result *= length ? length->get_dependencies(solver) : context::dependency_collector();
-    return result;
+    if (dupl_factor && length)
+    {
+        auto result = dupl_factor->get_dependencies(solver);
+        result *= length->get_dependencies(solver);
+        return result;
+    }
+    else if (length)
+        return length->get_dependencies(solver);
+    else if (dupl_factor)
+        return dupl_factor->get_dependencies(solver);
+    else
+        return context::dependency_collector();
 }
 
 const checking::data_def_type* data_definition::access_data_def_type() const
