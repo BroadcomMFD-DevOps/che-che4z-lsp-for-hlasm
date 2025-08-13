@@ -168,7 +168,6 @@ struct check_modifier
 
 bool check_base(const data_def_type& type,
     const data_definition_common& op,
-    bool bits,
     data_instr_type instr_type,
     const diagnostic_collector& add_diagnostic)
 {
@@ -182,13 +181,13 @@ bool check_base(const data_def_type& type,
 
     if (op.has_length())
     {
-        if (std::holds_alternative<n_a>(type.bit_length_spec_) && bits)
+        if (std::holds_alternative<n_a>(type.bit_length_spec_) && op.length_in_bits)
         {
             // bit length not allowed with this type
             add_diagnostic(diagnostic_op::error_D007(*op.rng_length, type.type_str()));
             ret = false;
         }
-        else if (bits)
+        else if (op.length_in_bits)
             ret &= std::visit(check_modifier { op.length, *op.rng_length, type, "bit length", add_diagnostic },
                 type.get_bit_length_spec(instr_type));
         else
@@ -626,11 +625,9 @@ void check_data_instruction_operands(const instructions::assembler_instruction& 
             continue;
         }
 
-        const auto bits = op->value->length_type == expressions::data_definition::length_type::BIT;
-
         const auto common = evaluate_common(*op->value, dep_solver, diags);
 
-        const auto base_passed = check_base(*def_type, common, bits, subtype, add_diagnostic);
+        const auto base_passed = check_base(*def_type, common, subtype, add_diagnostic);
 
         const auto nom_passed = check_nominal(*def_type, common, *op, subtype, dep_solver, add_diagnostic);
 
@@ -641,7 +638,7 @@ void check_data_instruction_operands(const instructions::assembler_instruction& 
 
         const auto bit_length = def_type->get_length(common.has_dupl_factor() ? common.dupl_factor : -1,
             common.has_length() ? common.length : -1,
-            bits,
+            common.length_in_bits,
             reduce_nominal_value(op->value->nominal_value.get()));
 
         if (bit_length >= ((1ll << 31) - 1) * 8)
@@ -650,7 +647,7 @@ void check_data_instruction_operands(const instructions::assembler_instruction& 
             continue;
         }
 
-        if (!bits)
+        if (!common.length_in_bits)
         {
             // align to whole byte
             operands_bit_length = round_up(operands_bit_length, 8ULL);
