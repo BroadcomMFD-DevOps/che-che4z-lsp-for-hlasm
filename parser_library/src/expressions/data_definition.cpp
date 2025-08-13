@@ -26,7 +26,6 @@
 #include "utils/similar.h"
 
 namespace hlasm_plugin::parser_library::expressions {
-using utils::hashers::hash_combine;
 
 constexpr char V_type = 'V';
 constexpr char R_type = 'R';
@@ -315,6 +314,8 @@ void data_definition::apply(mach_expr_visitor& visitor) const
 
 size_t data_definition::hash() const
 {
+    using utils::hashers::hash_combine;
+
     auto ret = (size_t)0x65b40f329f97f6c9;
     ret = hash_combine(ret, type);
     ret = hash_combine(ret, extension);
