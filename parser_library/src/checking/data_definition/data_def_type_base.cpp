@@ -201,14 +201,6 @@ int16_t data_def_type::get_scale_attribute(const scale_modifier_t& scale, const 
         return get_implicit_scale(nominal);
 }
 
-extern constinit as_needed::impl_t B_nominal_extras;
-extern constinit as_needed::impl_t CA_CE_nominal_extras;
-extern constinit as_needed::impl_t CU_nominal_extras;
-extern constinit as_needed::impl_t G_nominal_extras;
-extern constinit as_needed::impl_t X_nominal_extras;
-extern constinit as_needed::impl_t P_nominal_extras;
-extern constinit as_needed::impl_t Z_nominal_extras;
-
 consteval data_def_type data_def_type_B()
 {
     return data_def_type(data_definition_type::B,

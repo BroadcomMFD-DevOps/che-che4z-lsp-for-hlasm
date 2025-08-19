@@ -134,7 +134,7 @@ uint32_t get_P_nominal_length_attribute(const reduced_nominal_value_t& op)
     // each digit is assembled as 4 bits, 4 more sign bits are assembled per each number
 }
 
-constinit as_needed::impl_t P_nominal_extras { get_P_nominal_length, get_P_nominal_length_attribute };
+constinit const as_needed::impl_t P_nominal_extras { get_P_nominal_length, get_P_nominal_length_attribute };
 
 uint64_t get_Z_nominal_length(const reduced_nominal_value_t& op)
 {
@@ -164,6 +164,6 @@ uint32_t get_Z_nominal_length_attribute(const reduced_nominal_value_t& op)
     return first_value_len;
 }
 
-constinit as_needed::impl_t Z_nominal_extras { get_Z_nominal_length, get_Z_nominal_length_attribute };
+constinit const as_needed::impl_t Z_nominal_extras { get_Z_nominal_length, get_Z_nominal_length_attribute };
 
 } // namespace hlasm_plugin::parser_library::checking

@@ -103,6 +103,14 @@ private:
 };
 using implicit_length_t = std::variant<uint64_t, as_needed>;
 
+extern constinit const as_needed::impl_t B_nominal_extras;
+extern constinit const as_needed::impl_t CA_CE_nominal_extras;
+extern constinit const as_needed::impl_t CU_nominal_extras;
+extern constinit const as_needed::impl_t G_nominal_extras;
+extern constinit const as_needed::impl_t X_nominal_extras;
+extern constinit const as_needed::impl_t P_nominal_extras;
+extern constinit const as_needed::impl_t Z_nominal_extras;
+
 using nominal_diag_func = diagnostic_op (*)(const range&, std::string_view);
 nominal_diag_func check_nominal_H_F_FD(std::string_view nom) noexcept;
 nominal_diag_func check_nominal_P_Z(std::string_view nom) noexcept;
