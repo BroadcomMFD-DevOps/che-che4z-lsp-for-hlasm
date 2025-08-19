@@ -18,6 +18,7 @@
 #include <array>
 #include <bitset>
 #include <cstdint>
+#include <numeric>
 #include <variant>
 
 #include "context/ordinary_assembly/alignment.h"
@@ -64,21 +65,9 @@ class bound_list
 
 public:
     constexpr bound_list(std::initializer_list<unsigned> l) noexcept
+        : m_allowed(std::accumulate(l.begin(), l.end(), 0ULL, [](auto acc, auto v) { return acc | 1ULL << v; }))
     {
-        if (std::is_constant_evaluated()) // C++23
-        {
-            unsigned long long init = 0;
-            for (unsigned i : l)
-            {
-                init |= 1ULL << i;
-            }
-            m_allowed = decltype(m_allowed)(init);
-        }
-        else
-        {
-            for (unsigned i : l)
-                m_allowed.set(i);
-        }
+        // C++23: for (unsigned i : l) m_allowed.set(i);
     }
 
     bool allowed(int32_t i) const noexcept { return i >= 0 && (uint32_t)i < m_allowed.size() && m_allowed.test(i); }
