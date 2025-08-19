@@ -150,7 +150,7 @@ class data_def_type
 {
 public:
     // constructor for types with  the same lengths in DC and DS instruction
-    constexpr data_def_type(data_definition_type type,
+    consteval data_def_type(data_definition_type type,
         char extension,
         modifier_spec bit_length_spec,
         modifier_spec length_spec,
@@ -162,7 +162,7 @@ public:
         bool ignores_scale = false) noexcept;
 
     // constructor for types with different allowed lengths with DS instruction
-    constexpr data_def_type(data_definition_type type,
+    consteval data_def_type(data_definition_type type,
         char extension,
         modifier_spec bit_length_spec,
         modifier_spec length_spec,

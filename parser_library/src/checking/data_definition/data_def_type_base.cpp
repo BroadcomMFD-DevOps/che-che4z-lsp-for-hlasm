@@ -26,7 +26,7 @@
 namespace hlasm_plugin::parser_library::checking {
 
 // constructor for types that have same checking for DS and DC
-constexpr data_def_type::data_def_type(data_definition_type type,
+consteval data_def_type::data_def_type(data_definition_type type,
     char extension,
     modifier_spec bit_length_spec,
     modifier_spec length_spec,
@@ -53,7 +53,7 @@ constexpr data_def_type::data_def_type(data_definition_type type,
 }
 
 // constructor for types that have different lengths with DS than DC
-constexpr data_def_type::data_def_type(data_definition_type type,
+consteval data_def_type::data_def_type(data_definition_type type,
     char extension,
     modifier_spec bit_length_spec,
     modifier_spec length_spec,
@@ -209,7 +209,7 @@ extern constinit as_needed::impl_t X_nominal_extras;
 extern constinit as_needed::impl_t P_nominal_extras;
 extern constinit as_needed::impl_t Z_nominal_extras;
 
-constexpr data_def_type data_def_type_B()
+consteval data_def_type data_def_type_B()
 {
     return data_def_type(data_definition_type::B,
         '\0',
@@ -222,7 +222,7 @@ constexpr data_def_type data_def_type_B()
         context::integer_type::undefined);
 }
 
-constexpr data_def_type data_def_type_CA_CE(char extension)
+consteval data_def_type data_def_type_CA_CE(char extension)
 {
     return data_def_type(data_definition_type::C,
         extension,
@@ -236,13 +236,13 @@ constexpr data_def_type data_def_type_CA_CE(char extension)
         context::integer_type::undefined);
 }
 
-constexpr data_def_type data_def_type_C() { return data_def_type_CA_CE('\0'); }
+consteval data_def_type data_def_type_C() { return data_def_type_CA_CE('\0'); }
 
-constexpr data_def_type data_def_type_CA() { return data_def_type_CA_CE('A'); }
+consteval data_def_type data_def_type_CA() { return data_def_type_CA_CE('A'); }
 
-constexpr data_def_type data_def_type_CE() { return data_def_type_CA_CE('E'); }
+consteval data_def_type data_def_type_CE() { return data_def_type_CA_CE('E'); }
 
-constexpr data_def_type data_def_type_CU()
+consteval data_def_type data_def_type_CU()
 {
     return data_def_type(data_definition_type::C,
         'U',
@@ -255,7 +255,7 @@ constexpr data_def_type data_def_type_CU()
         context::integer_type::undefined);
 }
 
-constexpr data_def_type data_def_type_G()
+consteval data_def_type data_def_type_G()
 {
     return data_def_type(data_definition_type::G,
         '\0',
@@ -269,7 +269,7 @@ constexpr data_def_type data_def_type_G()
         context::integer_type::undefined);
 }
 
-constexpr data_def_type data_def_type_X()
+consteval data_def_type data_def_type_X()
 {
     return data_def_type(data_definition_type::X,
         '\0',
@@ -283,7 +283,7 @@ constexpr data_def_type data_def_type_X()
         context::integer_type::undefined);
 }
 
-constexpr data_def_type data_def_type_H_F_FD(data_definition_type type, char extension, uint8_t word_length)
+consteval data_def_type data_def_type_H_F_FD(data_definition_type type, char extension, uint8_t word_length)
 {
     return data_def_type(type,
         extension,
@@ -296,13 +296,13 @@ constexpr data_def_type data_def_type_H_F_FD(data_definition_type type, char ext
         context::integer_type::fixed);
 }
 
-constexpr data_def_type data_def_type_H() { return data_def_type_H_F_FD(data_definition_type::H, '\0', 2); }
+consteval data_def_type data_def_type_H() { return data_def_type_H_F_FD(data_definition_type::H, '\0', 2); }
 
-constexpr data_def_type data_def_type_F() { return data_def_type_H_F_FD(data_definition_type::F, '\0', 4); }
+consteval data_def_type data_def_type_F() { return data_def_type_H_F_FD(data_definition_type::F, '\0', 4); }
 
-constexpr data_def_type data_def_type_FD() { return data_def_type_H_F_FD(data_definition_type::F, 'D', 8); }
+consteval data_def_type data_def_type_FD() { return data_def_type_H_F_FD(data_definition_type::F, 'D', 8); }
 
-constexpr data_def_type data_def_type_P_Z(data_definition_type type, context::integer_type int_type, as_needed extras)
+consteval data_def_type data_def_type_P_Z(data_definition_type type, context::integer_type int_type, as_needed extras)
 {
     return data_def_type(type,
         '\0',
@@ -315,17 +315,17 @@ constexpr data_def_type data_def_type_P_Z(data_definition_type type, context::in
         int_type);
 }
 
-constexpr data_def_type data_def_type_P()
+consteval data_def_type data_def_type_P()
 {
     return data_def_type_P_Z(data_definition_type::P, context::integer_type::packed, as_needed(P_nominal_extras));
 }
 
-constexpr data_def_type data_def_type_Z()
+consteval data_def_type data_def_type_Z()
 {
     return data_def_type_P_Z(data_definition_type::Z, context::integer_type::zoned, as_needed(Z_nominal_extras));
 }
 
-constexpr data_def_type data_def_type_A_AD_Y(
+consteval data_def_type data_def_type_A_AD_Y(
     data_definition_type type, char extension, context::alignment align, unsigned char implicit_length)
 {
     return data_def_type(type,
@@ -339,22 +339,22 @@ constexpr data_def_type data_def_type_A_AD_Y(
         context::integer_type::undefined);
 }
 
-constexpr data_def_type data_def_type_A()
+consteval data_def_type data_def_type_A()
 {
     return data_def_type_A_AD_Y(data_definition_type::A, '\0', context::fullword, 4);
 }
 
-constexpr data_def_type data_def_type_AD()
+consteval data_def_type data_def_type_AD()
 {
     return data_def_type_A_AD_Y(data_definition_type::A, 'D', context::doubleword, 8);
 }
 
-constexpr data_def_type data_def_type_Y()
+consteval data_def_type data_def_type_Y()
 {
     return data_def_type_A_AD_Y(data_definition_type::Y, '\0', context::halfword, 2);
 }
 
-constexpr data_def_type data_def_type_S_SY(char extension, int size)
+consteval data_def_type data_def_type_S_SY(char extension, int size)
 {
     return data_def_type(data_definition_type::S,
         extension,
@@ -367,11 +367,11 @@ constexpr data_def_type data_def_type_S_SY(char extension, int size)
         context::integer_type::undefined);
 }
 
-constexpr data_def_type data_def_type_S() { return data_def_type_S_SY('\0', 2); }
+consteval data_def_type data_def_type_S() { return data_def_type_S_SY('\0', 2); }
 
-constexpr data_def_type data_def_type_SY() { return data_def_type_S_SY('Y', 3); }
+consteval data_def_type data_def_type_SY() { return data_def_type_S_SY('Y', 3); }
 
-constexpr data_def_type data_def_type_single_symbol(data_definition_type type,
+consteval data_def_type data_def_type_single_symbol(data_definition_type type,
     char extension,
     modifier_spec length_bound,
     context::alignment align,
@@ -381,52 +381,52 @@ constexpr data_def_type data_def_type_single_symbol(data_definition_type type,
         type, extension, n_a(), length_bound, n_a(), n_a(), align, implicit_length, context::integer_type::undefined);
 }
 
-constexpr data_def_type data_def_type_R()
+consteval data_def_type data_def_type_R()
 {
     return data_def_type_single_symbol(data_definition_type::R, '\0', modifier_bound { 3, 4 }, context::fullword, 4);
 }
 
-constexpr data_def_type data_def_type_RD()
+consteval data_def_type data_def_type_RD()
 {
     return data_def_type_single_symbol(data_definition_type::R, 'D', bound_list { 3, 4, 8 }, context::doubleword, 8);
 }
 
-constexpr data_def_type data_def_type_V()
+consteval data_def_type data_def_type_V()
 {
     return data_def_type_single_symbol(data_definition_type::V, '\0', modifier_bound { 3, 4 }, context::fullword, 4);
 }
 
-constexpr data_def_type data_def_type_VD()
+consteval data_def_type data_def_type_VD()
 {
     return data_def_type_single_symbol(data_definition_type::V, 'D', bound_list { 3, 4, 8 }, context::doubleword, 8);
 }
 
-constexpr data_def_type data_def_type_Q()
+consteval data_def_type data_def_type_Q()
 {
     return data_def_type_single_symbol(data_definition_type::Q, '\0', modifier_bound { 1, 4 }, context::fullword, 4);
 }
 
-constexpr data_def_type data_def_type_QD()
+consteval data_def_type data_def_type_QD()
 {
     return data_def_type_single_symbol(data_definition_type::Q, 'D', modifier_bound { 1, 8 }, context::quadword, 8);
 }
 
-constexpr data_def_type data_def_type_QY()
+consteval data_def_type data_def_type_QY()
 {
     return data_def_type_single_symbol(data_definition_type::Q, 'Y', modifier_bound { 3, 3 }, context::halfword, 3);
 }
 
-constexpr data_def_type data_def_type_J()
+consteval data_def_type data_def_type_J()
 {
     return data_def_type_single_symbol(data_definition_type::J, '\0', bound_list { 2, 3, 4 }, context::fullword, 4);
 }
 
-constexpr data_def_type data_def_type_JD()
+consteval data_def_type data_def_type_JD()
 {
     return data_def_type_single_symbol(data_definition_type::J, 'D', bound_list { 2, 3, 4, 8 }, context::doubleword, 8);
 }
 
-constexpr data_def_type data_def_type_E_D_L(data_definition_type type,
+consteval data_def_type data_def_type_E_D_L(data_definition_type type,
     char extension,
     modifier_spec bit_length_spec,
     modifier_spec length_spec,
@@ -446,7 +446,7 @@ constexpr data_def_type data_def_type_E_D_L(data_definition_type type,
         extension == 'D' || extension == 'B');
 }
 
-constexpr data_def_type data_def_type_E()
+consteval data_def_type data_def_type_E()
 {
     return data_def_type_E_D_L(data_definition_type::E,
         '\0',
@@ -457,7 +457,7 @@ constexpr data_def_type data_def_type_E()
         4);
 }
 
-constexpr data_def_type data_def_type_EH()
+consteval data_def_type data_def_type_EH()
 {
     return data_def_type_E_D_L(data_definition_type::E,
         'H',
@@ -468,7 +468,7 @@ constexpr data_def_type data_def_type_EH()
         4);
 }
 
-constexpr data_def_type data_def_type_ED()
+consteval data_def_type data_def_type_ED()
 {
     return data_def_type_E_D_L(data_definition_type::E,
         'D',
@@ -479,7 +479,7 @@ constexpr data_def_type data_def_type_ED()
         4);
 }
 
-constexpr data_def_type data_def_type_EB()
+consteval data_def_type data_def_type_EB()
 {
     return data_def_type_E_D_L(data_definition_type::E,
         'B',
@@ -490,7 +490,7 @@ constexpr data_def_type data_def_type_EB()
         4);
 }
 
-constexpr data_def_type data_def_type_D()
+consteval data_def_type data_def_type_D()
 {
     return data_def_type_E_D_L(data_definition_type::D,
         '\0',
@@ -501,7 +501,7 @@ constexpr data_def_type data_def_type_D()
         8);
 }
 
-constexpr data_def_type data_def_type_DH()
+consteval data_def_type data_def_type_DH()
 {
     return data_def_type_E_D_L(data_definition_type::D,
         'H',
@@ -512,7 +512,7 @@ constexpr data_def_type data_def_type_DH()
         8);
 }
 
-constexpr data_def_type data_def_type_DB()
+consteval data_def_type data_def_type_DB()
 {
     return data_def_type_E_D_L(data_definition_type::D,
         'B',
@@ -523,7 +523,7 @@ constexpr data_def_type data_def_type_DB()
         8);
 }
 
-constexpr data_def_type data_def_type_DD()
+consteval data_def_type data_def_type_DD()
 {
     return data_def_type_E_D_L(data_definition_type::D,
         'D',
@@ -534,7 +534,7 @@ constexpr data_def_type data_def_type_DD()
         8);
 }
 
-constexpr data_def_type data_def_type_L()
+consteval data_def_type data_def_type_L()
 {
     return data_def_type_E_D_L(data_definition_type::L,
         '\0',
@@ -545,7 +545,7 @@ constexpr data_def_type data_def_type_L()
         16);
 }
 
-constexpr data_def_type data_def_type_LH()
+consteval data_def_type data_def_type_LH()
 {
     return data_def_type_E_D_L(data_definition_type::L,
         'H',
@@ -556,7 +556,7 @@ constexpr data_def_type data_def_type_LH()
         16);
 }
 
-constexpr data_def_type data_def_type_LQ()
+consteval data_def_type data_def_type_LQ()
 {
     return data_def_type_E_D_L(data_definition_type::L,
         'Q',
@@ -567,7 +567,7 @@ constexpr data_def_type data_def_type_LQ()
         16);
 }
 
-constexpr data_def_type data_def_type_LD()
+consteval data_def_type data_def_type_LD()
 {
     return data_def_type_E_D_L(data_definition_type::L,
         'D',
@@ -578,7 +578,7 @@ constexpr data_def_type data_def_type_LD()
         16);
 }
 
-constexpr data_def_type data_def_type_LB()
+consteval data_def_type data_def_type_LB()
 {
     return data_def_type_E_D_L(data_definition_type::L,
         'B',
