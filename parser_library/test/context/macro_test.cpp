@@ -1574,3 +1574,18 @@ J OPSYN MACRO
 
     EXPECT_TRUE(matches_message_codes(a.diags(), { "E046" }));
 }
+
+TEST(macro, expressions_in_macro_ops)
+{
+    std::string input = R"(
+      MACRO
+      MAC
+      MEND
+&A(1) SETA  1
+      MAC   &A((1 OR 1))
+)";
+    analyzer a(input);
+    a.analyze();
+
+    EXPECT_TRUE(a.diags().empty());
+}
