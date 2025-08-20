@@ -1017,8 +1017,6 @@ void hlasm_context::apply_source_snapshot(source_snapshot snapshot)
     for (const auto& frame : snapshot.copy_frames)
     {
         const auto& copy = copy_members_.at(frame.copy_member);
-        if (frame.statement_offset.value == copy->cached_definition.size())
-            return;
         last_copy_stack.emplace_back(copy).current_statement = frame.statement_offset;
     }
 }
