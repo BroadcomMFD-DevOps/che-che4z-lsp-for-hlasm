@@ -18,13 +18,13 @@
 #include <algorithm>
 #include <concepts>
 
-#include "context/ordinary_assembly/symbol_attributes.h"
-#include "data_def_types.h"
+#include "checking/data_definition/data_def_fields.h"
+#include "checking/data_definition/data_def_type_base.h"
 #include "utils/unicode_text.h"
 
 namespace hlasm_plugin::parser_library::checking {
 
-uint64_t get_X_B_length(std::string_view s, uint64_t frac)
+uint64_t get_X_B_length(std::string_view s, uint64_t frac) noexcept
 {
     uint64_t length = 0;
     uint64_t one_length = 0;
@@ -43,7 +43,7 @@ uint64_t get_X_B_length(std::string_view s, uint64_t frac)
     return length;
 }
 
-uint32_t get_X_B_length_attr(std::string_view s, uint64_t frac)
+uint32_t get_X_B_length_attr(std::string_view s, uint64_t frac) noexcept
 {
     size_t first_value_len = s.find(',');
     if (first_value_len == std::string::npos)
@@ -78,195 +78,48 @@ bool check_comma_separated(std::string_view nom, F is_valid_digit)
 }
 
 //******************************   type B   ********************************//
-uint64_t get_B_nominal_length(const reduced_nominal_value_t& op)
-{
-    if (std::holds_alternative<std::monostate>(op))
-        return 1;
-    else if (!std::holds_alternative<std::string_view>(op))
-        return 0;
-    else
-        return get_X_B_length(std::get<std::string_view>(op), 8);
-}
-uint32_t get_B_nominal_length_attribute(const reduced_nominal_value_t& nom)
-{
-    if (std::holds_alternative<std::monostate>(nom))
-        return 1;
-    else if (!std::holds_alternative<std::string_view>(nom))
-        return 0;
-    else
-        return get_X_B_length_attr(std::get<std::string_view>(nom), 8);
-}
-constexpr as_needed::impl_t B_nominal_extras { get_B_nominal_length, get_B_nominal_length_attribute };
-
-data_def_type_B::data_def_type_B()
-    : data_def_type(data_definition_type::B,
-          '\0',
-          modifier_bound { 1, 2048 },
-          modifier_bound { 1, 256 },
-          n_a(),
-          n_a(),
-          context::no_align,
-          as_needed(B_nominal_extras),
-          context::integer_type::undefined)
-{}
+uint64_t get_B_nominal_length(std::string_view op) noexcept { return get_X_B_length(op, 8); }
+uint32_t get_B_nominal_length_attribute(std::string_view op) noexcept { return get_X_B_length_attr(op, 8); }
+constinit const as_needed::impl_t B_nominal_extras { get_B_nominal_length, get_B_nominal_length_attribute, 1 };
 
 //******************************   type C   ********************************//
-uint64_t get_CA_CE_nominal_length(const reduced_nominal_value_t& op)
+uint64_t get_CA_CE_nominal_length(std::string_view op) noexcept { return utils::length_utf32_no_validation(op); }
+uint32_t get_CA_CE_nominal_length_attribute(std::string_view op) noexcept
 {
-    if (std::holds_alternative<std::monostate>(op))
-        return 1;
-    else if (!std::holds_alternative<std::string_view>(op))
-        return 0;
-    else
-        return utils::length_utf32_no_validation(std::get<std::string_view>(op));
+    return (uint32_t)utils::length_utf32_no_validation(op);
 }
+constinit const as_needed::impl_t CA_CE_nominal_extras {
+    get_CA_CE_nominal_length, get_CA_CE_nominal_length_attribute, 1
+};
 
-uint32_t get_CA_CE_nominal_length_attribute(const reduced_nominal_value_t& nom)
+uint64_t get_CU_nominal_length(std::string_view op) noexcept
 {
-    if (std::holds_alternative<std::monostate>(nom))
-        return 1;
-    else if (!std::holds_alternative<std::string_view>(nom))
-        return 0;
-    else
-        return (uint32_t)utils::length_utf32_no_validation(std::get<std::string_view>(nom));
+    return 2 * (uint64_t)utils::length_utf16_no_validation(op);
 }
-
-constexpr as_needed::impl_t CA_CE_nominal_extras { get_CA_CE_nominal_length, get_CA_CE_nominal_length_attribute };
-
-data_def_type_CA_CE::data_def_type_CA_CE(char extension)
-    : data_def_type(data_definition_type::C,
-          extension,
-          modifier_bound { 1, 2048 },
-          modifier_bound { 1, 256 },
-          65535,
-          n_a(),
-          n_a(),
-          context::no_align,
-          as_needed(CA_CE_nominal_extras),
-          context::integer_type::undefined)
-{}
-
-data_def_type_C::data_def_type_C()
-    : data_def_type_CA_CE('\0')
-{}
-
-data_def_type_CA::data_def_type_CA()
-    : data_def_type_CA_CE('A')
-{}
-
-data_def_type_CE::data_def_type_CE()
-    : data_def_type_CA_CE('E')
-{}
-
-uint64_t get_CU_nominal_length(const reduced_nominal_value_t& op)
+uint32_t get_CU_nominal_length_attribute(std::string_view op) noexcept
 {
-    if (std::holds_alternative<std::monostate>(op))
-        return 2;
-    else if (!std::holds_alternative<std::string_view>(op))
-        return 0;
-    else
-        return 2 * (uint64_t)utils::length_utf16_no_validation(std::get<std::string_view>(op));
+    return 2 * (uint32_t)utils::length_utf16_no_validation(op);
 }
-
-uint32_t get_CU_nominal_length_attribute(const reduced_nominal_value_t& nom)
-{
-    if (std::holds_alternative<std::monostate>(nom))
-        return 2;
-    else if (!std::holds_alternative<std::string_view>(nom))
-        return 0;
-    else
-        return 2 * (uint32_t)utils::length_utf16_no_validation(std::get<std::string_view>(nom));
-}
-
-constexpr as_needed::impl_t CU_nominal_extras = { get_CU_nominal_length, get_CU_nominal_length_attribute };
-
-data_def_type_CU::data_def_type_CU()
-    : data_def_type(data_definition_type::C,
-          'U',
-          n_a(),
-          modifier_bound { 1, 256, true },
-          n_a(),
-          n_a(),
-          context::no_align,
-          as_needed(CU_nominal_extras),
-          context::integer_type::undefined)
-{}
+constinit const as_needed::impl_t CU_nominal_extras { get_CU_nominal_length, get_CU_nominal_length_attribute, 2 };
 
 //******************************   type G   ********************************//
-uint64_t get_G_nominal_length(const reduced_nominal_value_t& op)
+uint64_t get_G_nominal_length(std::string_view op) noexcept
 {
-    if (std::holds_alternative<std::monostate>(op))
-        return 2;
-    else if (!std::holds_alternative<std::string_view>(op))
-        return 0;
-    else
-    {
-        const auto s = std::get<std::string_view>(op);
-        return utils::length_utf32_no_validation(s)
-            - std::ranges::count_if(s, [](char c) { return c == '<' || c == '>'; });
-    }
+    return utils::length_utf32_no_validation(op)
+        - std::ranges::count_if(op, [](char c) { return c == '<' || c == '>'; });
 }
 
-uint32_t get_G_nominal_length_attribute(const reduced_nominal_value_t& nom)
+uint32_t get_G_nominal_length_attribute(std::string_view op) noexcept
 {
-    if (std::holds_alternative<std::monostate>(nom))
-        return 2;
-    else if (!std::holds_alternative<std::string_view>(nom))
-        return 0;
-    else
-    {
-        const auto s = std::get<std::string_view>(nom);
-        return (uint32_t)(utils::length_utf32_no_validation(s)
-            - std::ranges::count_if(s, [](char c) { return c == '<' || c == '>'; }));
-    }
+    return (uint32_t)(utils::length_utf32_no_validation(op)
+        - std::ranges::count_if(op, [](char c) { return c == '<' || c == '>'; }));
 }
 
-constexpr as_needed::impl_t G_nominal_extras = { get_G_nominal_length, get_G_nominal_length_attribute };
-
-data_def_type_G::data_def_type_G()
-    : data_def_type(data_definition_type::G,
-          '\0',
-          n_a(),
-          modifier_bound { 1, 256, true },
-          65534,
-          n_a(),
-          n_a(),
-          context::no_align,
-          as_needed(G_nominal_extras),
-          context::integer_type::undefined)
-{}
+constinit const as_needed::impl_t G_nominal_extras { get_G_nominal_length, get_G_nominal_length_attribute, 2 };
 
 //******************************   type X   ********************************//
-uint64_t get_X_nominal_length(const reduced_nominal_value_t& op)
-{
-    if (std::holds_alternative<std::monostate>(op))
-        return 1;
-    else if (!std::holds_alternative<std::string_view>(op))
-        return 0;
-    else
-        return get_X_B_length(std::get<std::string_view>(op), 2);
-}
-uint32_t get_X_nominal_length_attribute(const reduced_nominal_value_t& nom)
-{
-    if (std::holds_alternative<std::monostate>(nom))
-        return 1;
-    else if (!std::holds_alternative<std::string_view>(nom))
-        return 0;
-    else
-        return get_X_B_length_attr(std::get<std::string_view>(nom), 2);
-}
-constexpr as_needed::impl_t X_nominal_extras { get_X_nominal_length, get_X_nominal_length_attribute };
+uint64_t get_X_nominal_length(std::string_view op) noexcept { return get_X_B_length(op, 2); }
+uint32_t get_X_nominal_length_attribute(std::string_view op) noexcept { return get_X_B_length_attr(op, 2); }
+constinit const as_needed::impl_t X_nominal_extras { get_X_nominal_length, get_X_nominal_length_attribute, 1 };
 
-data_def_type_X::data_def_type_X()
-    : data_def_type(data_definition_type::X,
-          '\0',
-          modifier_bound { 1, 2048 },
-          modifier_bound { 1, 256 },
-          65535,
-          n_a(),
-          n_a(),
-          context::no_align,
-          as_needed(X_nominal_extras),
-          context::integer_type::undefined)
-{}
 } // namespace hlasm_plugin::parser_library::checking
