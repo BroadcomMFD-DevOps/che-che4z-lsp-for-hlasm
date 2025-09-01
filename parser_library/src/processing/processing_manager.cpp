@@ -371,9 +371,7 @@ void processing_manager::start_macro_definition(
 
 void processing_manager::jump_in_statements(context::id_index target, range symbol_range)
 {
-    const auto& scope = hlasm_ctx_.current_scope();
-
-    if (scope.is_in_macro())
+    if (const auto& scope = hlasm_ctx_.current_scope(); scope.is_in_macro())
     {
         auto& mac = *scope.this_macro;
         const auto& labels = mac.labels;

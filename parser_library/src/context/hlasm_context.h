@@ -223,7 +223,8 @@ public:
         compatible,
         conflict,
     };
-    opencode_sequence_symbol_result create_opencode_sequence_symbol(context::id_index target, range symbol_range);
+    opencode_sequence_symbol_result create_opencode_sequence_symbol(
+        context::id_index target, const range& symbol_range);
 
     size_t set_branch_counter(A_t value);
     A_t get_branch_counter() const;

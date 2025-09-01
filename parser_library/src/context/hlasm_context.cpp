@@ -574,7 +574,7 @@ variable_symbol* hlasm_context::get_var_sym(id_index name) const
 }
 
 hlasm_context::opencode_sequence_symbol_result hlasm_context::create_opencode_sequence_symbol(
-    context::id_index target, range symbol_range)
+    context::id_index target, const range& symbol_range)
 {
     auto loc = current_statement_location(false);
     loc.pos = symbol_range.start;
