@@ -248,8 +248,8 @@ address::base_list merge_bases(const address::base_list& l, const address::base_
     utils::merge_unsorted(
         *result,
         l.bases,
-        [](const auto& l, const auto& r) { return without_cardinality(l) <=> without_cardinality(r); },
-        [](auto& r, const auto& e) { r.cardinality += e.cardinality; });
+        [](const auto& le, const auto& re) { return without_cardinality(le) <=> without_cardinality(re); },
+        [](auto& re, const auto& e) { re.cardinality += e.cardinality; });
 
     std::erase_if(*result, [](const auto& e) { return e.cardinality == 0; });
 
