@@ -1579,13 +1579,14 @@ TEST(macro, expressions_in_macro_ops)
 {
     std::string input = R"(
       MACRO
-      MAC
+      MAC   &P
+      MNOTE 0,'&P'
       MEND
-&A(1) SETA  1
-      MAC   &A((1 OR 1))
+&A(1) SETC  'A','B','C'
+      MAC   &A((1 OR 2))
 )";
     analyzer a(input);
     a.analyze();
 
-    EXPECT_TRUE(a.diags().empty());
+    EXPECT_TRUE(matches_message_text(a.diags(), { "C" }));
 }
