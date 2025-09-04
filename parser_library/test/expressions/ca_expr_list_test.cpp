@@ -207,3 +207,9 @@ TEST(ca_expr_list, different_return_type)
 
     EXPECT_TRUE(matches_message_codes(diags.diags, { "CE004" }));
 }
+
+TEST(ca_expr_list, resolve_unconditionally)
+{
+    analyzer a(R"( AIF (X2C((X(N)))).a)");
+    EXPECT_NO_THROW(a.analyze());
+}
