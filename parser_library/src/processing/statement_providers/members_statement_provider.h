@@ -45,6 +45,7 @@ enum class members_statement_provider_kind : bool
 // common class for copy and macro statement providers (provider of copy and macro members)
 class members_statement_provider final : public statement_provider
 {
+    struct deferred_statement_adapter;
     std::vector<context::id_index> lookahead_references;
 
 public:
@@ -64,20 +65,20 @@ protected:
     std::optional<std::optional<context::id_index>> m_resolved_instruction;
 
 private:
-    const semantics::instruction_si* retrieve_instruction(const context::statement_cache& cache) const;
+    const semantics::instruction_si* retrieve_instruction(const statement_cache& cache) const;
 
-    const context::statement_cache::cached_statement_t& fill_cache(context::statement_cache& cache,
+    const statement_cache::cached_statement_t& fill_cache(statement_cache& cache,
         std::shared_ptr<const semantics::deferred_statement> def_stmt,
         const processing_status& status);
 
     context::shared_stmt_ptr preprocess_deferred(const statement_processor& processor,
-        context::statement_cache& cache,
+        statement_cache& cache,
         processing_status status,
         context::shared_stmt_ptr base_stmt);
 
-    context::statement_cache* get_next_macro();
-    context::statement_cache* get_next_copy();
-    context::statement_cache* get_next();
+    statement_cache* get_next_macro();
+    statement_cache* get_next_copy();
+    statement_cache* get_next();
 
     context::shared_stmt_ptr get_next(const statement_processor& processor) override;
     bool finished() const override;

@@ -23,6 +23,7 @@
 #include "expressions/mach_operator.h"
 #include "instructions/instruction.h"
 #include "operand_visitor.h"
+#include "processing/op_code.h"
 
 namespace hlasm_plugin::parser_library::semantics {
 

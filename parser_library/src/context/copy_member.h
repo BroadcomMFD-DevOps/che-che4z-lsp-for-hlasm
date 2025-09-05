@@ -17,7 +17,7 @@
 
 #include "id_index.h"
 #include "location.h"
-#include "statement_cache.h"
+#include "processing/statement_cache.h"
 #include "statement_id.h"
 
 namespace hlasm_plugin::parser_library::context {
@@ -30,7 +30,7 @@ struct copy_member
     // member identifier
     const id_index name;
     // block of statements defining the member
-    std::vector<statement_cache> cached_definition;
+    std::vector<processing::statement_cache> cached_definition;
     // location of the definition
     const location definition_location;
 
@@ -57,7 +57,10 @@ struct copy_member_invocation
     {}
 
     id_index name() const { return copy_member_definition->name; }
-    std::vector<statement_cache>* cached_definition() const { return &copy_member_definition->cached_definition; }
+    std::vector<processing::statement_cache>* cached_definition() const
+    {
+        return &copy_member_definition->cached_definition;
+    }
     const location* definition_location() const { return &copy_member_definition->definition_location; }
 
     position current_statement_position() const

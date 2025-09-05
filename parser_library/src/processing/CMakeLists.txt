@@ -25,6 +25,7 @@ target_sources(parser_library PRIVATE
     processing_manager.h
     processing_state_listener.h
     statement.h
+    statement_cache.h
     statement_fields_parser.cpp
     statement_fields_parser.h
 )

@@ -36,6 +36,7 @@
 
 #include "completion_item.h"
 #include "debugging/debugger_configuration.h"
+#include "diagnostic_op.h"
 #include "document_symbol_item.h"
 #include "external_configuration_requests.h"
 #include "fade_messages.h"
