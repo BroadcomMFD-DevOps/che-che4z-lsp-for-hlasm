@@ -123,6 +123,7 @@ public:
     bool analyze(const context::hlasm_statement& statement,
         statement_provider_kind prov_kind,
         processing_kind proc_kind,
+        const processing_status& status,
         bool) override;
 
     void analyze_aread_line(const utils::resource::resource_location& rl, size_t lineno, std::string_view) override;

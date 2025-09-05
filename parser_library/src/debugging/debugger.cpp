@@ -227,6 +227,7 @@ public:
     bool analyze(const context::hlasm_statement& statement,
         processing::statement_provider_kind,
         processing::processing_kind proc_kind,
+        const processing::processing_status& status,
         bool evaluated_model) override
     {
         if (disconnected_)
@@ -244,7 +245,7 @@ public:
         if (!resolved_stmt)
             return false;
 
-        const auto& op_code = resolved_stmt->opcode_ref().value;
+        const auto& op_code = status.second.value;
         // Continue only for non-empty statements
         if (op_code.empty())
             return false;

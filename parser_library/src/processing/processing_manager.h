@@ -63,10 +63,12 @@ public:
 
     void register_stmt_analyzer(statement_analyzer* stmt_analyzer);
 
-    void run_analyzers(const context::hlasm_statement& statement, bool evaluated_model) const;
+    void run_analyzers(
+        const context::hlasm_statement& statement, const processing_status& status, bool evaluated_model) const;
     void run_analyzers(const context::hlasm_statement& statement,
         statement_provider_kind prov_kind,
         processing_kind proc_kind,
+        const processing_status& status,
         bool evaluated_model) const;
 
     void aread_cb(size_t line, std::string_view text) const;

@@ -30,7 +30,7 @@ public:
         const processing_manager& proc_mgr,
         diagnosable_ctx& diag_ctx);
 
-    void process(std::shared_ptr<const processing::resolved_statement> stmt) override;
+    void process(std::shared_ptr<const processing::resolved_statement> stmt, const processing_status& status) override;
 };
 
 } // namespace hlasm_plugin::parser_library::processing

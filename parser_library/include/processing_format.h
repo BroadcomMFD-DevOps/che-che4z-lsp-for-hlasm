@@ -51,6 +51,12 @@ enum class operand_occurrence : uint8_t
 // structure respresenting in which fashion should be statement processed
 struct processing_format
 {
+    constexpr processing_format() noexcept
+        : kind {}
+        , form {}
+        , occurrence {}
+    {}
+
     constexpr processing_format(processing_kind kind,
         processing_form form,
         operand_occurrence occurrence = operand_occurrence::PRESENT) noexcept

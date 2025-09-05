@@ -40,6 +40,7 @@ struct operand_occurrence_analyzer_mock : public processing::statement_analyzer
     bool analyze(const context::hlasm_statement& statement,
         processing::statement_provider_kind,
         processing::processing_kind,
+        const processing::processing_status&,
         bool evaluated_model) override
     {
         const auto* res_stmt = statement.access_resolved();

@@ -79,6 +79,7 @@ lsp_analyzer::lsp_analyzer(context::hlasm_context& hlasm_ctx, lsp::lsp_context& 
 bool lsp_analyzer::analyze(const context::hlasm_statement& statement,
     statement_provider_kind prov_kind,
     processing_kind proc_kind,
+    const processing_status& status,
     bool evaluated_model)
 {
     using enum lsp::occurrence_kind;
@@ -95,26 +96,26 @@ bool lsp_analyzer::analyze(const context::hlasm_statement& statement,
                     kind = kind | INSTR;
                 else if (const auto& instr = resolved_stmt->instruction_ref();
                          instr.type == semantics::instruction_si_type::ORD
-                         && !context::instruction_resolved_during_macro_parsing(resolved_stmt->opcode_ref().value))
+                         && !context::instruction_resolved_during_macro_parsing(status.second.value))
                     kind = kind | INSTR;
             }
             else
                 kind = kind | INSTR | VAR | SEQ;
 
-            collect_occurrences(kind, statement, collection_info);
+            collect_occurrences(kind, statement, status, collection_info);
             if (prov_kind != statement_provider_kind::MACRO && resolved_stmt)
             { // macros already processed during macro def processing
-                collect_var_definition(*resolved_stmt);
-                collect_copy_operands(*resolved_stmt, collection_info);
+                collect_var_definition(*resolved_stmt, status);
+                collect_copy_operands(*resolved_stmt, status, collection_info);
             }
 
-            if (resolved_stmt && resolved_stmt->opcode_ref().value == context::id_index("TITLE"))
+            if (resolved_stmt && status.second.value == context::id_index("TITLE"))
                 collect_title(*resolved_stmt);
             break;
         }
         case processing_kind::MACRO: {
             if (resolved_stmt)
-                update_macro_nest(*resolved_stmt);
+                update_macro_nest(status);
             if (macro_nest_ > 1)
                 break; // Do not collect occurrences in nested macros to avoid collecting occurrences multiple times
             lsp::occurrence_kind kind {};
@@ -124,12 +125,12 @@ bool lsp_analyzer::analyze(const context::hlasm_statement& statement,
             {
                 if (const auto& instr = resolved_stmt->instruction_ref();
                     instr.type == semantics::instruction_si_type::ORD
-                    && context::instruction_resolved_during_macro_parsing(resolved_stmt->opcode_ref().value))
+                    && context::instruction_resolved_during_macro_parsing(status.second.value))
                     kind = INSTR;
             }
-            collect_occurrences(kind | VAR | SEQ, statement, collection_info);
+            collect_occurrences(kind | VAR | SEQ, statement, status, collection_info);
             if (resolved_stmt)
-                collect_copy_operands(*resolved_stmt, collection_info);
+                collect_copy_operands(*resolved_stmt, status, collection_info);
             break;
         }
         default:
@@ -261,8 +262,10 @@ void lsp_analyzer::opencode_finished(parse_lib_provider& libs)
         libs);
 }
 
-void lsp_analyzer::collect_occurrences(
-    lsp::occurrence_kind kind, const context::hlasm_statement& statement, const collection_info_t& ci)
+void lsp_analyzer::collect_occurrences(lsp::occurrence_kind kind,
+    const context::hlasm_statement& statement,
+    const processing_status& status,
+    const collection_info_t& ci)
 {
     occurrence_collector collector(kind, hlasm_ctx_, *ci.stmt_occurrences, ci.evaluated_model);
 
@@ -291,7 +294,7 @@ void lsp_analyzer::collect_occurrences(
         }
 
         collect_occurrence(res_stmt->label_ref(), collector);
-        collect_occurrence(res_stmt->instruction_ref(), collector, &res_stmt->opcode_ref());
+        collect_occurrence(res_stmt->instruction_ref(), collector, &status.second);
         collect_occurrence(res_stmt->operands_ref(), collector);
     }
 }
@@ -373,12 +376,9 @@ void lsp_analyzer::collect_occurrence(const semantics::deferred_operands_si& ope
     std::ranges::for_each(operands.vars, [&collector](const auto& v) { collector.get_occurrence(*v); });
 }
 
-bool lsp_analyzer::is_LCL_GBL(
-    const processing::resolved_statement& statement, context::SET_t_enum& set_type, bool& global) const
+bool lsp_analyzer::is_LCL_GBL(const processing_status& status, context::SET_t_enum& set_type, bool& global) const
 {
-    const auto& code = statement.opcode_ref();
-
-    const auto instr = std::ranges::find(LCL_GBL_instructions_, code.value, &LCL_GBL_instr::name);
+    const auto instr = std::ranges::find(LCL_GBL_instructions_, status.second.value, &LCL_GBL_instr::name);
 
     if (instr == LCL_GBL_instructions_.end())
         return false;
@@ -388,13 +388,11 @@ bool lsp_analyzer::is_LCL_GBL(
     return true;
 }
 
-bool lsp_analyzer::is_SET(const processing::resolved_statement& statement, context::SET_t_enum& set_type) const
+bool lsp_analyzer::is_SET(const processing_status& status, context::SET_t_enum& set_type) const
 {
-    const auto& code = statement.opcode_ref();
-
     for (const auto& [name, type] : SET_instructions_)
     {
-        if (code.value == name)
+        if (status.second.value == name)
         {
             set_type = type;
             return true;
@@ -403,20 +401,22 @@ bool lsp_analyzer::is_SET(const processing::resolved_statement& statement, conte
     return false;
 }
 
-void lsp_analyzer::collect_var_definition(const processing::resolved_statement& statement)
+void lsp_analyzer::collect_var_definition(
+    const processing::resolved_statement& statement, const processing_status& status)
 {
     bool global;
     context::SET_t_enum type;
-    if (is_SET(statement, type))
+    if (is_SET(status, type))
         collect_SET_defs(statement, type);
-    else if (is_LCL_GBL(statement, type, global))
+    else if (is_LCL_GBL(status, type, global))
         collect_LCL_GBL_defs(statement, type, global);
 }
 
-void lsp_analyzer::collect_copy_operands(
-    const processing::resolved_statement& statement, const collection_info_t& collection_info)
+void lsp_analyzer::collect_copy_operands(const processing::resolved_statement& statement,
+    const processing_status& status,
+    const collection_info_t& collection_info)
 {
-    if (statement.opcode_ref().value != context::well_known::COPY)
+    if (status.second.value != context::well_known::COPY)
         return;
     if (auto sym_expr = get_single_mach_symbol(statement.operands_ref().value))
         add_copy_operand(sym_expr->value, sym_expr->get_range(), collection_info);
@@ -477,9 +477,9 @@ void lsp_analyzer::add_copy_operand(context::id_index name, const range& operand
         ci.stmt_occurrences->emplace_back(lsp::occurrence_kind::COPY_OP, name, operand_range, ci.evaluated_model);
 }
 
-void lsp_analyzer::update_macro_nest(const processing::resolved_statement& statement)
+void lsp_analyzer::update_macro_nest(const processing_status& status)
 {
-    const auto& opcode = statement.opcode_ref().value;
+    const auto& opcode = status.second.value;
     if (opcode == context::well_known::MACRO)
         macro_nest_++;
     else if (opcode == context::well_known::MEND)
@@ -628,7 +628,7 @@ void lsp_analyzer::collect_branch_info(
 
         const auto* rs = stmt->resolved_stmt;
 
-        const auto transfer = get_branch_operand(rs->opcode_ref());
+        const auto transfer = get_branch_operand(stmt->status.second);
 
         if (!transfer.has_value())
             continue;

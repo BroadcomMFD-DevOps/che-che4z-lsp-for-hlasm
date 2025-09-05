@@ -40,7 +40,7 @@ public:
         opencode_provider& open_code,
         diagnosable_ctx& diag_ctx);
 
-    void process(std::shared_ptr<const processing::resolved_statement> stmt) override;
+    void process(std::shared_ptr<const processing::resolved_statement> stmt, const processing_status& status) override;
 
 private:
     opencode_provider* open_code_;

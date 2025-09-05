@@ -29,7 +29,8 @@ class parser_library;
 // processing is divided into classes for assembler, conditional assembly, machine, macro instruction processing
 class instruction_processor
 {
-    virtual void process(std::shared_ptr<const processing::resolved_statement> stmt) = 0;
+    virtual void process(
+        std::shared_ptr<const processing::resolved_statement> stmt, const processing_status& status) = 0;
 
 protected:
     analyzing_context ctx;

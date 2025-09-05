@@ -32,7 +32,8 @@ macro_processor::macro_processor(const analyzing_context& ctx,
     : instruction_processor(ctx, branch_provider, lib_provider, diag_ctx)
 {}
 
-void macro_processor::process(std::shared_ptr<const processing::resolved_statement> stmt)
+void macro_processor::process(
+    std::shared_ptr<const processing::resolved_statement> stmt, const processing_status& status)
 {
     const auto next_sysndx = hlasm_ctx.next_sysndx();
     const auto sysndx_limit = hlasm_ctx.sysndx_limit();
@@ -52,8 +53,8 @@ void macro_processor::process(std::shared_ptr<const processing::resolved_stateme
         }
     }
 
-    auto [named, symbolic] = get_args(*stmt);
-    auto [_, truncated] = hlasm_ctx.enter_macro(stmt->opcode_ref().mac_def, std::move(named), std::move(symbolic));
+    auto [_, truncated] =
+        hlasm_ctx.enter_macro(status.second.mac_def, get_label_args(*stmt), get_operand_args(*stmt, status));
 
     if (truncated) // this should never happen in a real code
         add_diagnostic(diagnostic_op::error_E081(stmt->operands_ref().field_range));
@@ -245,14 +246,6 @@ context::macro_data_ptr macro_processor::string_to_macrodata(std::string data, d
     return std::move(macro_data.top().front());
 }
 
-macro_arguments macro_processor::get_args(const resolved_statement& statement) const
-{
-    return {
-        .name_param = get_label_args(statement),
-        .symbolic_params = get_operand_args(statement),
-    };
-}
-
 context::macro_data_ptr macro_processor::get_label_args(const resolved_statement& statement) const
 {
     const auto& label = statement.label_ref();
@@ -392,7 +385,8 @@ auto macro_processor::make_evaluator() const
     };
 }
 
-std::vector<context::macro_arg> macro_processor::get_operand_args(const resolved_statement& statement) const
+std::vector<context::macro_arg> macro_processor::get_operand_args(
+    const resolved_statement& statement, const processing_status& status) const
 {
     std::vector<context::macro_arg> args;
     std::vector<context::id_index> keyword_params;
@@ -401,7 +395,7 @@ std::vector<context::macro_arg> macro_processor::get_operand_args(const resolved
     if (ops.empty())
         return args;
 
-    const auto& named_params = hlasm_ctx.get_macro_definition(statement.opcode_ref().value)->named_params();
+    const auto& named_params = hlasm_ctx.get_macro_definition(status.second.value)->named_params();
     args.reserve(ops.size());
 
     for (const auto& op : ops)

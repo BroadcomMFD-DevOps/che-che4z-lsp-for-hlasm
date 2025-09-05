@@ -27,14 +27,17 @@ namespace hlasm_plugin::parser_library::context {
 // contains stack of file positions from where was it postponed
 struct postponed_statement
 {
-    postponed_statement(processing_stack_t location_stack, const processing::resolved_statement* resolved_stmt)
+    postponed_statement(processing_stack_t location_stack,
+        const processing::resolved_statement* resolved_stmt,
+        const processing::processing_status& status) noexcept
         : location_stack(location_stack)
         , resolved_stmt(resolved_stmt)
+        , status(status)
     {}
 
     processing_stack_t location_stack;
-
     const processing::resolved_statement* resolved_stmt;
+    processing::processing_status status;
 
     virtual ~postponed_statement() = default;
 };

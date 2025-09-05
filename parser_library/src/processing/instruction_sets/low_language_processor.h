@@ -40,7 +40,8 @@ protected:
         diagnosable_ctx& diag_ctx);
     ~low_language_processor() = default;
 
-    rebuilt_statement preprocess(std::shared_ptr<const processing::resolved_statement> stmt);
+    rebuilt_statement preprocess(
+        std::shared_ptr<const processing::resolved_statement> stmt, const processing_status& status);
 
     // finds symbol in the label field
     context::id_index find_label_symbol(const rebuilt_statement& stmt) const;
@@ -59,7 +60,7 @@ private:
         std::optional<std::vector<semantics::literal_si>> literals;
         bool was_model = false;
     };
-    preprocessed_part preprocess_inner(const resolved_statement& stmt);
+    preprocessed_part preprocess_inner(const resolved_statement& stmt, const processing_status& status);
 };
 
 enum class check_org_result

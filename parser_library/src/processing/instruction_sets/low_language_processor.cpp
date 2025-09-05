@@ -39,12 +39,13 @@ low_language_processor::low_language_processor(const analyzing_context& ctx,
     , proc_mgr(proc_mgr)
 {}
 
-rebuilt_statement low_language_processor::preprocess(std::shared_ptr<const processing::resolved_statement> stmt)
+rebuilt_statement low_language_processor::preprocess(
+    std::shared_ptr<const processing::resolved_statement> stmt, const processing_status& status)
 {
-    auto [label, ops, literals, was_model] = preprocess_inner(*stmt);
+    auto [label, ops, literals, was_model] = preprocess_inner(*stmt, status);
     rebuilt_statement result(std::move(stmt), std::move(label), std::move(ops), std::move(literals));
     if (was_model)
-        proc_mgr.run_analyzers(result, true);
+        proc_mgr.run_analyzers(result, status, true);
     return result;
 }
 
@@ -89,7 +90,8 @@ context::symbol& low_language_processor::create_symbol(
     return symbol;
 }
 
-low_language_processor::preprocessed_part low_language_processor::preprocess_inner(const resolved_statement& stmt)
+low_language_processor::preprocessed_part low_language_processor::preprocess_inner(
+    const resolved_statement& stmt, const processing_status& status)
 {
     using namespace semantics;
     preprocessed_part result;
@@ -119,7 +121,7 @@ low_language_processor::preprocessed_part low_language_processor::preprocess_inn
             result.was_model = true;
             break;
         case label_si_type::MAC:
-            if (stmt.opcode_ref().value.to_string_view() != "TITLE")
+            if (status.second.value.to_string_view() != "TITLE")
                 add_diagnostic(diagnostic_op::error_E057(label_ref.field_range));
             break;
         case label_si_type::SEQ:
@@ -141,7 +143,7 @@ low_language_processor::preprocessed_part low_language_processor::preprocess_inn
             true,
             range_provider(std::move(map), model->line_limits),
             0,
-            processing_status(stmt.format_ref(), stmt.opcode_ref()),
+            status,
             diag_ctx);
         result.operands.emplace(std::move(operands));
         result.literals.emplace(std::move(literals));

@@ -46,7 +46,7 @@ std::optional<processing_status> copy_processor::get_processing_status(
     return status;
 }
 
-void copy_processor::process_statement(context::shared_stmt_ptr statement)
+void copy_processor::process_statement(context::shared_stmt_ptr statement, const processing_status& status)
 {
     if (first_statement_)
     {
@@ -54,15 +54,15 @@ void copy_processor::process_statement(context::shared_stmt_ptr statement)
         first_statement_ = false;
     }
 
-    if (auto res_stmt = statement->access_resolved())
+    if (statement->kind == context::statement_kind::RESOLVED)
     {
-        if (res_stmt->opcode_ref().value == context::well_known::MACRO)
+        if (status.second.value == context::well_known::MACRO)
             process_MACRO();
-        else if (res_stmt->opcode_ref().value == context::well_known::MEND)
+        else if (status.second.value == context::well_known::MEND)
             process_MEND();
     }
 
-    result_.definition.push_back(std::move(statement));
+    result_.definition.emplace_back(std::move(statement), status);
 }
 
 void copy_processor::end_processing()

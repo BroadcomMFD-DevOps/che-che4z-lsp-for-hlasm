@@ -63,16 +63,16 @@ std::optional<processing_status> lookahead_processor::get_processing_status(
     return std::make_pair(processing_format(processing_kind::LOOKAHEAD, processing_form::IGNORED), op_code());
 }
 
-void lookahead_processor::process_statement(context::shared_stmt_ptr statement)
+void lookahead_processor::process_statement(context::shared_stmt_ptr statement, const processing_status& status)
 {
     if (auto resolved = statement->access_resolved())
     {
-        auto opcode = resolved->opcode_ref().value;
+        const auto& opcode = status.second.value;
 
         if (macro_nest_ == 0)
         {
             find_seq(resolved->label_ref());
-            find_ord(*resolved);
+            find_ord(*resolved, status);
         }
         if (opcode == context::well_known::MACRO)
         {
@@ -324,9 +324,9 @@ void lookahead_processor::assign_machine_attributes(context::id_index symbol_nam
 }
 
 void lookahead_processor::assign_assembler_attributes(
-    context::id_index symbol_name, const resolved_statement& statement)
+    context::id_index symbol_name, const resolved_statement& statement, const processing_status& status)
 {
-    if (const auto handler = handler_table::find(statement.opcode_ref().value))
+    if (const auto handler = handler_table::find(status.second.value))
         handler(this, symbol_name, statement);
     else
         register_attr_ref(symbol_name, context::symbol_attributes(context::symbol_origin::ASM, 'U'_ebcdic));
@@ -358,7 +358,7 @@ void lookahead_processor::find_seq(const semantics::label_si& label)
     }
 }
 
-void lookahead_processor::find_ord(const resolved_statement& statement)
+void lookahead_processor::find_ord(const resolved_statement& statement, const processing_status& status)
 {
     // checks
     if (statement.label_ref().type != semantics::label_si_type::ORD)
@@ -379,7 +379,7 @@ void lookahead_processor::find_ord(const resolved_statement& statement)
     // if found ord symbol on CA, macro or undefined instruction, only type attribute is assigned
     // 'U' for CA and 'M' for undefined and macro
     using enum context::instruction_type;
-    switch (const auto& opcode = statement.opcode_ref(); opcode.type)
+    switch (const auto& opcode = status.second; opcode.type)
     {
         case CA:
             register_attr_ref(id, context::symbol_attributes(context::symbol_origin::MACH, 'U'_ebcdic));
@@ -395,7 +395,7 @@ void lookahead_processor::find_ord(const resolved_statement& statement)
             assign_machine_attributes(id, opcode.instr_mnemo->size_in_bits() / 8);
             break;
         case ASM:
-            assign_assembler_attributes(id, statement);
+            assign_assembler_attributes(id, statement, status);
             break;
         default:
             assert(false);

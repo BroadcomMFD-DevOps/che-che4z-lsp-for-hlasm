@@ -82,11 +82,11 @@ ca_processor::ca_processor(const analyzing_context& ctx,
     , open_code_(&open_code)
 {}
 
-void ca_processor::process(std::shared_ptr<const processing::resolved_statement> stmt)
+void ca_processor::process(std::shared_ptr<const processing::resolved_statement> stmt, const processing_status& status)
 {
     register_literals(*stmt, context::no_align, hlasm_ctx.ord_ctx.next_unique_id());
 
-    if (const auto handler = handler_table::find(stmt->opcode_ref().value))
+    if (const auto handler = handler_table::find(status.second.value))
         handler(this, *stmt);
     else
         throw std::out_of_range("ca_processor::handler_table");

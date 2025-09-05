@@ -98,6 +98,7 @@ public:
     bool analyze(const context::hlasm_statement& statement,
         statement_provider_kind prov_kind,
         processing_kind proc_kind,
+        const processing_status& status,
         bool evaluated_model) override;
 
     void analyze_aread_line(const utils::resource::resource_location&, size_t, std::string_view) override {}
@@ -117,8 +118,10 @@ public:
         const library_info& li);
 
 private:
-    void collect_occurrences(
-        lsp::occurrence_kind kind, const context::hlasm_statement& statement, const collection_info_t& collection_info);
+    void collect_occurrences(lsp::occurrence_kind kind,
+        const context::hlasm_statement& statement,
+        const processing_status& status,
+        const collection_info_t& collection_info);
     void collect_occurrences(lsp::occurrence_kind kind,
         const semantics::preprocessor_statement_si& statement,
         const collection_info_t& collection_info);
@@ -132,9 +135,10 @@ private:
     void collect_occurrence(const semantics::operands_si& operands, occurrence_collector& collector);
     void collect_occurrence(const semantics::deferred_operands_si& operands, occurrence_collector& collector);
 
-    void collect_var_definition(const processing::resolved_statement& statement);
-    void collect_copy_operands(
-        const processing::resolved_statement& statement, const collection_info_t& collection_info);
+    void collect_var_definition(const processing::resolved_statement& statement, const processing_status& status);
+    void collect_copy_operands(const processing::resolved_statement& statement,
+        const processing_status& status,
+        const collection_info_t& collection_info);
 
     void collect_SET_defs(const processing::resolved_statement& statement, context::SET_t_enum type);
     void collect_LCL_GBL_defs(const processing::resolved_statement& statement, context::SET_t_enum type, bool global);
@@ -142,10 +146,10 @@ private:
 
     void add_copy_operand(context::id_index name, const range& operand_range, const collection_info_t& collection_info);
 
-    void update_macro_nest(const processing::resolved_statement& statement);
+    void update_macro_nest(const processing_status& status);
 
-    bool is_LCL_GBL(const processing::resolved_statement& statement, context::SET_t_enum& set_type, bool& global) const;
-    bool is_SET(const processing::resolved_statement& statement, context::SET_t_enum& set_type) const;
+    bool is_LCL_GBL(const processing_status& status, context::SET_t_enum& set_type, bool& global) const;
+    bool is_SET(const processing_status& status, context::SET_t_enum& set_type) const;
 
     collection_info_t get_active_collection(const utils::resource::resource_location& loc, bool evaluated_model);
 

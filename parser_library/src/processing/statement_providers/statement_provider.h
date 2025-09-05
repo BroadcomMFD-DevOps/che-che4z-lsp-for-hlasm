@@ -36,7 +36,7 @@ public:
 
     // returns the next statement in the providers stream
     // if return is nullptr, statement is ignored and should not be produced
-    virtual context::shared_stmt_ptr get_next(const statement_processor& processor) = 0;
+    virtual std::pair<context::shared_stmt_ptr, processing_status> get_next(const statement_processor& processor) = 0;
 
     // checks whether provider has finished
     virtual bool finished() const = 0;

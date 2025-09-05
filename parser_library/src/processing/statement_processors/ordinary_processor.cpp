@@ -98,7 +98,7 @@ std::optional<processing_status> ordinary_processor::get_processing_status(
             op_code(suggestion, context::instruction_type::UNDEF));
 }
 
-void ordinary_processor::process_statement(context::shared_stmt_ptr s)
+void ordinary_processor::process_statement(context::shared_stmt_ptr s, const processing_status& status)
 {
     for (const auto& d : s->diagnostics())
         add_diagnostic(d);
@@ -124,24 +124,24 @@ void ordinary_processor::process_statement(context::shared_stmt_ptr s)
     }
 
     using enum context::instruction_type;
-    switch (statement->opcode_ref().type)
+    switch (status.second.type)
     {
         case UNDEF:
             add_diagnostic(diagnostic_op::error_E049(
-                statement->opcode_ref().value.to_string_view(), statement->instruction_ref().field_range));
+                status.second.value.to_string_view(), statement->instruction_ref().field_range));
             return;
         case CA:
-            ca_proc_.process(std::move(statement));
+            ca_proc_.process(std::move(statement), status);
             return;
         case MAC:
-            mac_proc_.process(std::move(statement));
+            mac_proc_.process(std::move(statement), status);
             return;
         case ASM:
-            asm_proc_.process(std::move(statement));
+            asm_proc_.process(std::move(statement), status);
             return;
         case MACH:
         case MNEMO:
-            mach_proc_.process(std::move(statement));
+            mach_proc_.process(std::move(statement), status);
             return;
         default:
             assert(false);
@@ -343,7 +343,7 @@ void ordinary_processor::check_postponed_statements(
 
         operand_vector.clear();
 
-        const auto& opcode = rs->opcode_ref();
+        const auto& opcode = stmt->status.second;
         const auto instruction_name = opcode.value.to_string_view();
         const auto& ops = rs->operands_ref().value;
         const auto& stmt_range = rs->stmt_range_ref();

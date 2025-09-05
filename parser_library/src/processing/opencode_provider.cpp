@@ -295,7 +295,7 @@ bool operands_relevant_in_lookahead(bool has_label, const processing_status& sta
 }
 } // namespace
 
-std::shared_ptr<const context::hlasm_statement> opencode_provider::process_lookahead(
+std::pair<context::shared_stmt_ptr, processing_status> opencode_provider::process_lookahead(
     const statement_processor& proc, semantics::collector& collector, op_data operands)
 {
     const auto& current_instr = collector.current_instruction();
@@ -336,10 +336,11 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_looka
     else
         m_ctx.hlasm_ctx->metrics.non_continued_statements++;
 
-    return result;
+    return { result, proc_status };
 }
 
-std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordinary(const statement_processor& proc,
+std::pair<context::shared_stmt_ptr, processing_status> opencode_provider::process_ordinary(
+    const statement_processor& proc,
     semantics::collector& collector,
     op_data operands,
     diagnostic_op_consumer* diags,
@@ -353,7 +354,7 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordin
     {
         m_restart_process_ordinary.emplace(
             process_ordinary_restart_data { proc, collector, std::move(operands), diags, std::move(resolved_instr) });
-        return nullptr;
+        return {};
     }
     const auto& proc_status = proc_status_o.value();
 
@@ -453,7 +454,7 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordin
             { *m_ctx.hlasm_ctx, library_info_transitional(*m_lib_provider), drop_diagnostic_op },
             *m_state_listener,
             std::move(lookahead_references)))
-        return nullptr;
+        return {};
 
     if (m_current_logical_line.segments.size() > 1)
         m_ctx.hlasm_ctx->metrics.continued_statements++;
@@ -462,7 +463,7 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_ordin
 
     m_src_proc->process_hl_symbols(collector.extract_hl_symbols());
 
-    return result;
+    return { result, proc_status };
 }
 
 utils::resource::resource_location generate_virtual_file_name(virtual_file_id id, std::string_view name)
@@ -621,7 +622,7 @@ utils::task opencode_provider::convert_ainsert_buffer_to_copybook()
         virtual_copy_name);
 }
 
-context::shared_stmt_ptr opencode_provider::get_next(const statement_processor& proc)
+std::pair<context::shared_stmt_ptr, processing_status> opencode_provider::get_next(const statement_processor& proc)
 {
     if (m_restart_process_ordinary) [[unlikely]]
     {
@@ -633,7 +634,7 @@ context::shared_stmt_ptr opencode_provider::get_next(const statement_processor& 
     }
     auto ll_res = extract_next_logical_line();
     if (ll_res == extract_next_logical_line_result::failed)
-        return nullptr;
+        return {};
     const bool is_process = ll_res == extract_next_logical_line_result::process;
 
     const bool lookahead = proc.kind == processing_kind::LOOKAHEAD;
@@ -658,7 +659,7 @@ context::shared_stmt_ptr opencode_provider::get_next(const statement_processor& 
     {
         if (!lookahead)
             process_comment();
-        return nullptr;
+        return {};
     }
 
     if (!lookahead)
@@ -678,14 +679,20 @@ context::shared_stmt_ptr opencode_provider::get_next(const statement_processor& 
             for (auto& diag : ph.collector.diag_container().diags)
                 m_diagnoser->add_diagnostic(std::move(diag));
             // indicate errors were produced, but do not report them again
-            return std::make_shared<error_statement>(
-                range(position(m_current_logical_line_source.begin_line, 0)), std::vector<diagnostic_op>());
+            return {
+                std::make_shared<error_statement>(
+                    range(position(m_current_logical_line_source.begin_line, 0)), std::vector<diagnostic_op>()),
+                {},
+            };
         }
         else if (lookahead)
-            return nullptr;
+            return {};
         else
-            return std::make_shared<error_statement>(range(position(m_current_logical_line_source.begin_line, 0)),
-                std::move(ph.collector.diag_container().diags));
+            return {
+                std::make_shared<error_statement>(range(position(m_current_logical_line_source.begin_line, 0)),
+                    std::move(ph.collector.diag_container().diags)),
+                {},
+            };
     }
 
     m_ctx.hlasm_ctx->set_source_indices(
@@ -699,7 +706,7 @@ context::shared_stmt_ptr opencode_provider::get_next(const statement_processor& 
             { *m_ctx.hlasm_ctx, library_info_transitional(*m_lib_provider), drop_diagnostic_op },
             *m_state_listener,
             std::move(lookahead_references)))
-        return nullptr;
+        return {};
 
     const auto& current_instr = ph.collector.current_instruction();
     m_ctx.hlasm_ctx->set_source_position(current_instr.field_range.start);

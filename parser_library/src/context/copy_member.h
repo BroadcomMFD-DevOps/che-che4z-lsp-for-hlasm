@@ -34,11 +34,7 @@ struct copy_member
     // location of the definition
     const location definition_location;
 
-    copy_member(id_index name, statement_block definition, location definition_location)
-        : name(name)
-        , cached_definition(std::make_move_iterator(definition.begin()), std::make_move_iterator(definition.end()))
-        , definition_location(std::move(definition_location))
-    {}
+    copy_member(id_index name, statement_block definition, location definition_location);
 };
 
 using copy_member_ptr = std::shared_ptr<copy_member>;

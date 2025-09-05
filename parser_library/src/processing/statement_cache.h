@@ -42,13 +42,16 @@ class statement_cache
 
     std::vector<cache_t> cache_;
     context::shared_stmt_ptr base_stmt_;
+    processing_status base_status;
 
 public:
-    statement_cache(context::shared_stmt_ptr base) noexcept
+    statement_cache(context::shared_stmt_ptr base, const processing_status& status) noexcept
         : base_stmt_(std::move(base))
+        , base_status(status)
     {}
 
     const auto& get_base() const noexcept { return base_stmt_; }
+    const auto& get_base_status() const noexcept { return base_status; }
 };
 
 } // namespace hlasm_plugin::parser_library::processing

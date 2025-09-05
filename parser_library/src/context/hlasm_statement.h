@@ -20,6 +20,7 @@
 #include <utility>
 #include <vector>
 
+#include "processing/op_code.h"
 #include "range.h"
 
 namespace hlasm_plugin::parser_library {
@@ -67,7 +68,7 @@ protected:
 
 using shared_stmt_ptr = std::shared_ptr<const hlasm_statement>;
 
-using statement_block = std::vector<shared_stmt_ptr>;
+using statement_block = std::vector<std::pair<shared_stmt_ptr, processing::processing_status>>;
 
 
 } // namespace hlasm_plugin::parser_library::context

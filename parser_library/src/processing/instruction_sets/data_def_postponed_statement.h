@@ -56,6 +56,7 @@ class data_def_postponed_statement final : public postponed_statement_impl
 public:
     data_def_postponed_statement(rebuilt_statement&& stmt,
         context::processing_stack_t stmt_location_stack,
+        const processing_status& status,
         std::vector<data_def_dependency<instr_type>> dependencies);
 
     const std::vector<data_def_dependency<instr_type>>& get_dependencies() const { return m_dependencies; }

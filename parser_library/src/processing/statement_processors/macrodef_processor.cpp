@@ -115,16 +115,16 @@ std::optional<processing_status> macrodef_processor::get_processing_status(
     }
 }
 
-void macrodef_processor::process_statement(context::shared_stmt_ptr statement)
+void macrodef_processor::process_statement(context::shared_stmt_ptr statement, const processing_status& status)
 {
     bool expecting_tmp = expecting_prototype_ || copy_nest_limit.empty();
 
     bumped_macro_nest = false;
-    bool handled = process_statement(*statement);
+    bool handled = process_statement(*statement, status);
 
     if (!expecting_tmp && !handled)
     {
-        result_.definition.push_back(statement);
+        result_.definition.emplace_back(statement, status);
         add_correct_copy_nest();
     }
 }
@@ -195,7 +195,7 @@ void macrodef_processor::update_outer_position(const context::hlasm_statement& s
     curr_outer_position_ = stmt.statement_position();
 }
 
-bool macrodef_processor::process_statement(const context::hlasm_statement& statement)
+bool macrodef_processor::process_statement(const context::hlasm_statement& statement, const processing_status& status)
 {
     assert(!finished_flag_);
 
@@ -205,7 +205,7 @@ bool macrodef_processor::process_statement(const context::hlasm_statement& state
     {
         result_.definition_location = hlasm_ctx.current_statement_location();
 
-        if (!res_stmt || res_stmt->opcode_ref().value != context::well_known::MACRO)
+        if (!res_stmt || status.second.value != context::well_known::MACRO)
         {
             add_diagnostic(
                 diagnostic_op::error_E059(start_.external_name.to_string_view(), statement.stmt_range_ref()));
@@ -227,7 +227,7 @@ bool macrodef_processor::process_statement(const context::hlasm_statement& state
             return false;
         }
         result_.invalid = false;
-        process_prototype(*res_stmt);
+        process_prototype(*res_stmt, status);
         expecting_prototype_ = false;
     }
     else
@@ -238,7 +238,7 @@ bool macrodef_processor::process_statement(const context::hlasm_statement& state
         {
             process_sequence_symbol(res_stmt->label_ref());
 
-            if (const auto handler = handler_table::find(res_stmt->opcode_ref().value))
+            if (const auto handler = handler_table::find(status.second.value))
                 return handler(this, *res_stmt);
         }
         else if (auto def_stmt = statement.access_deferred())
@@ -249,13 +249,13 @@ bool macrodef_processor::process_statement(const context::hlasm_statement& state
     return false;
 }
 
-void macrodef_processor::process_prototype(const resolved_statement& statement)
+void macrodef_processor::process_prototype(const resolved_statement& statement, const processing_status& status)
 {
     std::vector<context::id_index> param_names;
 
     process_prototype_label(statement, param_names);
 
-    process_prototype_instruction(statement);
+    process_prototype_instruction(statement, status);
 
     process_prototype_operand(statement, param_names);
 }
@@ -281,10 +281,11 @@ void macrodef_processor::process_prototype_label(
         add_diagnostic(diagnostic_op::error_E044(statement.label_ref().field_range));
 }
 
-void macrodef_processor::process_prototype_instruction(const resolved_statement& statement)
+void macrodef_processor::process_prototype_instruction(
+    const resolved_statement& statement, const processing_status& status)
 {
     const auto instr_range = statement.instruction_ref().field_range;
-    auto macro_name = statement.opcode_ref().value;
+    auto macro_name = status.second.value;
     if (start_.is_external && macro_name != start_.external_name)
     {
         add_diagnostic(diagnostic_op::error_E060(start_.external_name.to_string_view(), instr_range));
@@ -418,8 +419,6 @@ struct empty_statement_t final : public resolved_statement
         , remarks({})
     {}
 
-    static const processing_status status;
-
     semantics::label_si label;
     semantics::instruction_si instruction;
     semantics::operands_si operands;
@@ -431,19 +430,17 @@ struct empty_statement_t final : public resolved_statement
     const semantics::operands_si& operands_ref() const override { return operands; }
     const semantics::remarks_si& remarks_ref() const override { return remarks; }
     std::span<const semantics::literal_si> literals() const override { return {}; }
-    const op_code& opcode_ref() const override { return status.second; }
-    processing_format format_ref() const override { return status.first; }
     std::span<const diagnostic_op> diagnostics() const override { return {}; }
 };
 
-const processing_status empty_statement_t::status(
+constexpr processing_status empty_status(
     processing_format(processing_kind::ORDINARY, processing_form::CA, operand_occurrence::ABSENT),
     op_code(context::well_known::ANOP, context::instruction_type::CA));
 
 bool macrodef_processor::process_COPY(const resolved_statement& statement)
 {
     // substitute copy for anop to not be processed again
-    result_.definition.push_back(std::make_shared<empty_statement_t>(statement.stmt_range_ref()));
+    result_.definition.emplace_back(std::make_shared<empty_statement_t>(statement.stmt_range_ref()), empty_status);
     add_correct_copy_nest();
 
     if (auto extract = asm_processor::extract_copy_id(statement, nullptr); extract.has_value())

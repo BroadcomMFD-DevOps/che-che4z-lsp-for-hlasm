@@ -125,14 +125,14 @@ utils::task processing_manager::co_step()
             continue;
         }
 
-        if (auto stmt = prov.get_next(proc))
+        if (auto [stmt, status] = prov.get_next(proc); stmt)
         {
             update_metrics(proc.kind, prov.kind, hlasm_ctx_.metrics);
             for (auto& a : stms_analyzers_)
-                if (a->analyze(*stmt, prov.kind, proc.kind, false))
+                if (a->analyze(*stmt, prov.kind, proc.kind, status, false))
                     co_await utils::task::suspend();
 
-            proc.process_statement(std::move(stmt));
+            proc.process_statement(std::move(stmt), status);
         }
 
         co_await utils::task::yield();
@@ -150,18 +150,20 @@ void processing_manager::aread_cb(size_t line, std::string_view text) const
         a->analyze_aread_line(file_loc_, line, text);
 }
 
-void processing_manager::run_analyzers(const context::hlasm_statement& statement, bool evaluated_model) const
+void processing_manager::run_analyzers(
+    const context::hlasm_statement& statement, const processing_status& status, bool evaluated_model) const
 {
-    run_analyzers(statement, find_provider().kind, procs_.back()->kind, evaluated_model);
+    run_analyzers(statement, find_provider().kind, procs_.back()->kind, status, evaluated_model);
 }
 
 void processing_manager::run_analyzers(const context::hlasm_statement& statement,
     statement_provider_kind prov_kind,
     processing_kind proc_kind,
+    const processing_status& status,
     bool evaluated_model) const
 {
     for (auto& a : stms_analyzers_)
-        a->analyze(statement, prov_kind, proc_kind, evaluated_model);
+        a->analyze(statement, prov_kind, proc_kind, status, evaluated_model);
 }
 
 bool processing_manager::attr_lookahead_active() const
