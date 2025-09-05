@@ -24,8 +24,9 @@ namespace hlasm_plugin::parser_library::processing {
 template<checking::data_instr_type instr_type>
 data_def_postponed_statement<instr_type>::data_def_postponed_statement(rebuilt_statement&& stmt,
     context::processing_stack_t stmt_location_stack,
+    const processing_status& status,
     std::vector<data_def_dependency<instr_type>> dependencies)
-    : postponed_statement_impl(std::move(stmt), std::move(stmt_location_stack))
+    : postponed_statement_impl(std::move(stmt), std::move(stmt_location_stack), status)
     , m_dependencies(std::move(dependencies))
 {}
 

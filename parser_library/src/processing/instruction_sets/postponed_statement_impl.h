@@ -15,8 +15,6 @@
 #ifndef PROCESSING_POSTPONED_STATEMENT_IMPL_H
 #define PROCESSING_POSTPONED_STATEMENT_IMPL_H
 
-#include <variant>
-
 #include "context/ordinary_assembly/postponed_statement.h"
 #include "processing/statement.h"
 
@@ -25,8 +23,9 @@ namespace hlasm_plugin::parser_library::processing {
 // implementation of postponed_statement interface
 struct postponed_statement_impl : public context::postponed_statement
 {
-    postponed_statement_impl(rebuilt_statement&& s, context::processing_stack_t stmt_location_stack)
-        : context::postponed_statement(stmt_location_stack, &stmt)
+    postponed_statement_impl(
+        rebuilt_statement&& s, context::processing_stack_t stmt_location_stack, const processing_status& status)
+        : context::postponed_statement(stmt_location_stack, &stmt, status)
         , stmt(std::move(s))
     {}
 

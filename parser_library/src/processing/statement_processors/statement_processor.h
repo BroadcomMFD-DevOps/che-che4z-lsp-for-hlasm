@@ -47,7 +47,7 @@ public:
     // used for statement providers to correctly provide statement
     virtual std::optional<processing_status> get_processing_status(
         const std::optional<context::id_index>& instruction, const range& r) const = 0;
-    virtual void process_statement(context::shared_stmt_ptr statement) = 0;
+    virtual void process_statement(context::shared_stmt_ptr statement, const processing_status& status) = 0;
     virtual void end_processing() = 0;
     virtual bool terminal_condition(const statement_provider_kind kind) const = 0;
     virtual bool finished() = 0;

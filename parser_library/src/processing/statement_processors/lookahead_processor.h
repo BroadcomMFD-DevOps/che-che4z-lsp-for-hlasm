@@ -53,7 +53,7 @@ public:
 
     std::optional<processing_status> get_processing_status(
         const std::optional<context::id_index>& instruction, const range& r) const override;
-    void process_statement(context::shared_stmt_ptr statement) override;
+    void process_statement(context::shared_stmt_ptr statement, const processing_status& status) override;
     void end_processing() override;
     bool terminal_condition(const statement_provider_kind kind) const override;
     bool finished() override;
@@ -70,10 +70,11 @@ private:
     void assign_ccw_attributes(context::id_index symbol_name, const resolved_statement& statement);
 
     void assign_machine_attributes(context::id_index symbol_name, size_t len);
-    void assign_assembler_attributes(context::id_index symbol_name, const resolved_statement& statement);
+    void assign_assembler_attributes(
+        context::id_index symbol_name, const resolved_statement& statement, const processing_status& status);
 
     void find_seq(const semantics::label_si& label);
-    void find_ord(const resolved_statement& statement);
+    void find_ord(const resolved_statement& statement, const processing_status& status);
 
     void register_attr_ref(context::id_index name, context::symbol_attributes attributes);
 

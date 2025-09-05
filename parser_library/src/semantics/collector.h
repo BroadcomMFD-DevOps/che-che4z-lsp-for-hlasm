@@ -65,7 +65,7 @@ public:
 
     void append_operand_field(collector&& c);
 
-    context::shared_stmt_ptr extract_statement(processing::processing_status status, range& statement_range);
+    context::shared_stmt_ptr extract_statement(const processing::processing_status& status, range& statement_range);
     std::span<const token_info> extract_hl_symbols();
     void set_hl_symbols(std::span<const token_info>);
     void prepare_for_next_statement();

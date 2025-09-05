@@ -33,7 +33,7 @@ statement_fields_parser::parse_result statement_fields_parser::parse_operand_fie
     bool after_substitution,
     semantics::range_provider field_range,
     size_t logical_column,
-    processing::processing_status status,
+    const processing::processing_status& status,
     diagnostic_op_consumer& add_diag)
 {
     m_hlasm_ctx->metrics.reparsed_statements++;

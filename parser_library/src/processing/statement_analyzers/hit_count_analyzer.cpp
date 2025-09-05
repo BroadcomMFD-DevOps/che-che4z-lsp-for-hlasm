@@ -32,12 +32,12 @@ hit_count_analyzer::hit_count_analyzer(context::hlasm_context& ctx)
 
 namespace {
 std::optional<std::tuple<const range&, const semantics::instruction_si&, const op_code*>> get_core_info(
-    const context::hlasm_statement& stmt)
+    const context::hlasm_statement& stmt, const processing_status& status)
 {
     if (stmt.kind == context::statement_kind::RESOLVED)
     {
         const auto* res = stmt.access_resolved();
-        return std::make_tuple(std::cref(res->stmt_range_ref()), std::cref(res->instruction_ref()), &res->opcode_ref());
+        return std::make_tuple(std::cref(res->stmt_range_ref()), std::cref(res->instruction_ref()), &status.second);
     }
     else if (stmt.kind == context::statement_kind::DEFERRED)
     {
@@ -125,11 +125,14 @@ hit_count_analyzer::statement_type hit_count_analyzer::get_stmt_type(
     return cur_stmt_type;
 }
 
-bool hit_count_analyzer::analyze(
-    const context::hlasm_statement& statement, statement_provider_kind prov_kind, processing_kind proc_kind, bool)
+bool hit_count_analyzer::analyze(const context::hlasm_statement& statement,
+    statement_provider_kind prov_kind,
+    processing_kind proc_kind,
+    const processing_status& status,
+    bool)
 {
     using enum statement_type;
-    const auto core_stmt_info = get_core_info(statement);
+    const auto core_stmt_info = get_core_info(statement, status);
     if (!core_stmt_info)
         return false;
 

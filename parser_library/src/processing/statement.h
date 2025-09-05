@@ -34,9 +34,6 @@ struct resolved_statement : public context::hlasm_statement
     virtual const semantics::remarks_si& remarks_ref() const = 0;
     virtual std::span<const semantics::literal_si> literals() const = 0;
 
-    virtual const op_code& opcode_ref() const = 0;
-    virtual processing_format format_ref() const = 0;
-
     resolved_statement()
         : context::hlasm_statement(context::statement_kind::RESOLVED)
     {}
@@ -79,9 +76,6 @@ struct rebuilt_statement final : public resolved_statement
         return rebuilt_literals ? *rebuilt_literals : base_stmt->literals();
     }
     const semantics::remarks_si& remarks_ref() const override { return base_stmt->remarks_ref(); }
-    const op_code& opcode_ref() const override { return base_stmt->opcode_ref(); }
-    processing_format format_ref() const override { return base_stmt->format_ref(); }
-
 
     std::span<const diagnostic_op> diagnostics() const override { return base_stmt->diagnostics(); }
 };

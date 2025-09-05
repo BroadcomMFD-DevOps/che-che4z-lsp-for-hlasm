@@ -21,12 +21,6 @@
 
 namespace hlasm_plugin::parser_library::processing {
 
-struct macro_arguments
-{
-    context::macro_data_ptr name_param;
-    std::vector<context::macro_arg> symbolic_params;
-};
-
 // processor of macro instructions
 class macro_processor final : public instruction_processor
 {
@@ -36,7 +30,7 @@ public:
         parse_lib_provider& lib_provider,
         diagnosable_ctx& diag_ctx);
 
-    void process(std::shared_ptr<const processing::resolved_statement> stmt) override;
+    void process(std::shared_ptr<const processing::resolved_statement> stmt, const processing_status& status) override;
 
     static context::macro_data_ptr string_to_macrodata(std::string data, diagnostic_adder& add_diagnostic);
 
@@ -47,9 +41,9 @@ public:
     auto make_evaluator() const;
 
 private:
-    macro_arguments get_args(const resolved_statement& statement) const;
     context::macro_data_ptr get_label_args(const resolved_statement& statement) const;
-    std::vector<context::macro_arg> get_operand_args(const resolved_statement& statement) const;
+    std::vector<context::macro_arg> get_operand_args(
+        const resolved_statement& statement, const processing_status& status) const;
 };
 
 } // namespace hlasm_plugin::parser_library::processing

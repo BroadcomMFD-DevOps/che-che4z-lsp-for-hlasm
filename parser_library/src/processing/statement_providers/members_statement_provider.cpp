@@ -104,7 +104,8 @@ statement_cache* members_statement_provider::get_next()
     }
 }
 
-context::shared_stmt_ptr members_statement_provider::get_next(const statement_processor& processor)
+std::pair<context::shared_stmt_ptr, processing_status> members_statement_provider::get_next(
+    const statement_processor& processor)
 {
     if (finished())
         throw std::runtime_error("provider already finished");
@@ -112,7 +113,7 @@ context::shared_stmt_ptr members_statement_provider::get_next(const statement_pr
     auto* const cache = get_next();
 
     if (!cache)
-        return nullptr;
+        return {};
 
     auto resolved_instruction = std::exchange(m_resolved_instruction, {});
 
@@ -124,48 +125,51 @@ context::shared_stmt_ptr members_statement_provider::get_next(const statement_pr
                     { *m_ctx.hlasm_ctx, library_info_transitional(m_lib_provider), drop_diagnostic_op },
                     m_listener,
                     std::move(lookahead_references)))
-                return nullptr;
+                return {};
         }
     }
 
-    context::shared_stmt_ptr stmt;
+    std::pair<context::shared_stmt_ptr, processing_status> result;
 
     const auto& stmt_candiate = cache->get_base();
     switch (stmt_candiate->kind)
     {
         case context::statement_kind::RESOLVED:
-            stmt = stmt_candiate;
+            result.first = stmt_candiate;
+            result.second = cache->get_base_status();
             break;
         case context::statement_kind::DEFERRED: {
-            stmt = stmt_candiate;
-            const auto& current_instr = stmt->access_deferred()->instruction;
+            const auto& current_instr = stmt_candiate->access_deferred()->instruction;
             if (!resolved_instruction.has_value())
                 resolved_instruction.emplace(processor.resolve_instruction(current_instr));
             auto proc_status_o = processor.get_processing_status(*resolved_instruction, current_instr.field_range);
             if (!proc_status_o.has_value())
             {
                 m_resolved_instruction.emplace(std::move(*resolved_instruction));
-                return nullptr;
+                return {};
             }
             if (proc_status_o->first.form != processing_form::DEFERRED)
-                stmt = preprocess_deferred(processor, *cache, *proc_status_o, std::move(stmt));
+                result.first = preprocess_deferred(processor, *cache, *proc_status_o, stmt_candiate);
+            else
+                result.first = stmt_candiate;
+            result.second = *proc_status_o;
             break;
         }
         case context::statement_kind::ERROR:
-            stmt = stmt_candiate;
+            result.first = stmt_candiate;
             break;
         default:
             break;
     }
 
     if (processor.kind == processing_kind::ORDINARY
-        && try_trigger_attribute_lookahead(*stmt,
+        && try_trigger_attribute_lookahead(*result.first,
             { *m_ctx.hlasm_ctx, library_info_transitional(m_lib_provider), drop_diagnostic_op },
             m_listener,
             std::move(lookahead_references)))
-        return nullptr;
+        return {};
 
-    return stmt;
+    return result;
 }
 
 bool members_statement_provider::finished() const
@@ -261,13 +265,11 @@ const statement_cache::cached_statement_t& members_statement_provider::fill_cach
 
 struct members_statement_provider::deferred_statement_adapter final : public resolved_statement
 {
-    deferred_statement_adapter(std::shared_ptr<const statement_si_defer_done> base_stmt, processing_status status)
+    deferred_statement_adapter(std::shared_ptr<const statement_si_defer_done> base_stmt)
         : base_stmt(std::move(base_stmt))
-        , status(std::move(status))
     {}
 
     std::shared_ptr<const statement_si_defer_done> base_stmt;
-    processing_status status;
 
     const range& stmt_range_ref() const override { return base_stmt->deferred_stmt->stmt_range; }
     const semantics::label_si& label_ref() const override { return base_stmt->deferred_stmt->label; }
@@ -275,14 +277,12 @@ struct members_statement_provider::deferred_statement_adapter final : public res
     const semantics::operands_si& operands_ref() const override { return base_stmt->operands; }
     const semantics::remarks_si& remarks_ref() const override { return base_stmt->remarks; }
     std::span<const semantics::literal_si> literals() const override { return base_stmt->collected_literals; }
-    const op_code& opcode_ref() const override { return status.second; }
-    processing_format format_ref() const override { return status.first; }
     std::span<const diagnostic_op> diagnostics() const override { return {}; }
 };
 
 context::shared_stmt_ptr members_statement_provider::preprocess_deferred(const statement_processor& processor,
     statement_cache& cache,
-    processing_status status,
+    const processing_status& status,
     context::shared_stmt_ptr base_stmt)
 {
     const auto& def_stmt = *base_stmt->access_deferred();
@@ -300,7 +300,7 @@ context::shared_stmt_ptr members_statement_provider::preprocess_deferred(const s
             m_diagnoser.add_diagnostic(diag);
     }
 
-    return std::make_shared<deferred_statement_adapter>(cache_item.stmt, status);
+    return std::make_shared<deferred_statement_adapter>(cache_item.stmt);
 }
 
 } // namespace hlasm_plugin::parser_library::processing

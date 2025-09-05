@@ -40,7 +40,7 @@ public:
 
     std::optional<processing_status> get_processing_status(
         const std::optional<context::id_index>& instruction, const range& r) const override;
-    void process_statement(context::shared_stmt_ptr statement) override;
+    void process_statement(context::shared_stmt_ptr statement, const processing_status& status) override;
     void end_processing() override;
     bool terminal_condition(const statement_provider_kind kind) const override;
     bool finished() override;

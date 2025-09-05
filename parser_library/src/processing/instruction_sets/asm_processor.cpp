@@ -110,14 +110,16 @@ bool has_single_comma(std::span<const semantics::operand_ptr> ops)
 }
 
 template<auto ptr, auto... others>
-constexpr auto fn = +[](asm_processor* self, rebuilt_statement&& stmt) { (self->*ptr)(std::move(stmt), others...); };
+constexpr auto fn = +[](asm_processor* self, rebuilt_statement&& stmt, const processing_status& status) {
+    (self->*ptr)(std::move(stmt), status, others...);
+};
 } // namespace
 
 struct asm_processor::handler_table
 {
     using wk = context::well_known;
     using id_index = context::id_index;
-    using callback = void(asm_processor* self, rebuilt_statement&& stmt);
+    using callback = void(asm_processor* self, rebuilt_statement&& stmt, const processing_status& status);
     static constexpr auto value = make_handler_map<callback>({
         { id_index("CSECT"), fn<&asm_processor::process_sect, context::section_kind::EXECUTABLE> },
         { id_index("DSECT"), fn<&asm_processor::process_sect, context::section_kind::DUMMY> },
@@ -159,7 +161,8 @@ struct asm_processor::handler_table
     static constexpr auto find(id_index id) noexcept { return value.find(id); }
 };
 
-void asm_processor::process_sect(rebuilt_statement&& stmt, const context::section_kind kind)
+void asm_processor::process_sect(
+    rebuilt_statement&& stmt, const processing_status& status, const context::section_kind kind)
 {
     auto sect_name = find_label_symbol(stmt);
 
@@ -184,10 +187,10 @@ void asm_processor::process_sect(rebuilt_statement&& stmt, const context::sectio
     else
         hlasm_ctx.ord_ctx.set_section(sect_name, kind, lib_info);
 
-    add_postponed(std::move(stmt));
+    add_postponed(std::move(stmt), status);
 }
 
-void asm_processor::process_LOCTR(rebuilt_statement&& stmt)
+void asm_processor::process_LOCTR(rebuilt_statement&& stmt, const processing_status& status)
 {
     auto loctr_name = find_label_symbol(stmt);
 
@@ -199,7 +202,7 @@ void asm_processor::process_LOCTR(rebuilt_statement&& stmt)
     else
         hlasm_ctx.ord_ctx.set_location_counter(loctr_name, lib_info);
 
-    add_postponed(std::move(stmt));
+    add_postponed(std::move(stmt), status);
 }
 
 namespace {
@@ -231,7 +234,7 @@ auto extract_asm_operands(std::span<const semantics::operand_ptr> ops)
 }
 } // namespace
 
-void asm_processor::process_EQU(rebuilt_statement&& stmt)
+void asm_processor::process_EQU(rebuilt_statement&& stmt, const processing_status& status)
 {
     using context::symbol_attributes;
 
@@ -344,7 +347,7 @@ void asm_processor::process_EQU(rebuilt_statement&& stmt)
         const auto stmt_range = stmt.stmt_range_ref();
         create_symbol(symbol_name, context::symbol_value(), attrs);
         const auto adder = hlasm_ctx.ord_ctx.symbol_dependencies().add_dependencies(
-            std::make_unique<postponed_statement_impl>(std::move(stmt), hlasm_ctx.processing_stack()),
+            std::make_unique<postponed_statement_impl>(std::move(stmt), hlasm_ctx.processing_stack(), status),
             std::move(dep_solver).derive_current_dependency_evaluation_context(),
             lib_info);
         if (!adder.add_dependency(symbol_name, expr_op->expression.get()))
@@ -353,12 +356,12 @@ void asm_processor::process_EQU(rebuilt_statement&& stmt)
 }
 
 template<checking::data_instr_type instr_type>
-void asm_processor::process_data_instruction(rebuilt_statement&& stmt)
+void asm_processor::process_data_instruction(rebuilt_statement&& stmt, const processing_status& status)
 {
     const auto& ops = stmt.operands_ref().value;
     if (ops.empty() || std::ranges::find(ops, semantics::operand_type::EMPTY, &semantics::operand::type) != ops.end())
     {
-        add_postponed(std::move(stmt));
+        add_postponed(std::move(stmt), status);
         return;
     }
 
@@ -484,7 +487,7 @@ void asm_processor::process_data_instruction(rebuilt_statement&& stmt)
     }
 
     auto dep_stmt = std::make_unique<data_def_postponed_statement<instr_type>>(
-        std::move(stmt), hlasm_ctx.processing_stack(), std::move(dependencies));
+        std::move(stmt), hlasm_ctx.processing_stack(), status, std::move(dependencies));
     const auto& deps = dep_stmt->get_dependencies();
 
     const auto adder = hlasm_ctx.ord_ctx.symbol_dependencies().add_dependencies(
@@ -504,17 +507,17 @@ void asm_processor::process_data_instruction(rebuilt_statement&& stmt)
         adder.add_dependency(std::move(*sp++), &d);
 }
 
-void asm_processor::process_DC(rebuilt_statement&& stmt)
+void asm_processor::process_DC(rebuilt_statement&& stmt, const processing_status& status)
 {
-    process_data_instruction<checking::data_instr_type::DC>(std::move(stmt));
+    process_data_instruction<checking::data_instr_type::DC>(std::move(stmt), status);
 }
 
-void asm_processor::process_DS(rebuilt_statement&& stmt)
+void asm_processor::process_DS(rebuilt_statement&& stmt, const processing_status& status)
 {
-    process_data_instruction<checking::data_instr_type::DS>(std::move(stmt));
+    process_data_instruction<checking::data_instr_type::DS>(std::move(stmt), status);
 }
 
-void asm_processor::process_COPY(rebuilt_statement&& stmt)
+void asm_processor::process_COPY(rebuilt_statement&& stmt, const processing_status& status)
 {
     find_sequence_symbol(stmt);
 
@@ -531,11 +534,11 @@ void asm_processor::process_COPY(rebuilt_statement&& stmt)
     }
     else
     {
-        add_postponed(std::move(stmt));
+        add_postponed(std::move(stmt), status);
     }
 }
 
-void asm_processor::process_DXD(rebuilt_statement&& stmt)
+void asm_processor::process_DXD(rebuilt_statement&& stmt, const processing_status& status)
 {
     if (const auto name = find_label_symbol(stmt); name.empty())
         add_diagnostic(diagnostic_op::error_E053(stmt.label_ref().field_range));
@@ -546,17 +549,20 @@ void asm_processor::process_DXD(rebuilt_statement&& stmt)
 
     // TODO: S' and I' attributes do not currently work with DXD in HLASM, revisit when fixed
 
-    add_postponed(std::move(stmt));
+    add_postponed(std::move(stmt), status);
 }
 
-void asm_processor::process_EXTRN(rebuilt_statement&& stmt)
+void asm_processor::process_EXTRN(rebuilt_statement&& stmt, const processing_status& status)
 {
-    process_external(std::move(stmt), external_type::strong);
+    process_external(std::move(stmt), status, external_type::strong);
 }
 
-void asm_processor::process_WXTRN(rebuilt_statement&& stmt) { process_external(std::move(stmt), external_type::weak); }
+void asm_processor::process_WXTRN(rebuilt_statement&& stmt, const processing_status& status)
+{
+    process_external(std::move(stmt), status, external_type::weak);
+}
 
-void asm_processor::process_external(rebuilt_statement&& stmt, external_type t)
+void asm_processor::process_external(rebuilt_statement&& stmt, const processing_status& status, external_type t)
 {
     if (auto label_type = stmt.label_ref().type; label_type != semantics::label_si_type::EMPTY)
     {
@@ -598,10 +604,10 @@ void asm_processor::process_external(rebuilt_statement&& stmt, external_type t)
             }
         }
     }
-    add_postponed(std::move(stmt));
+    add_postponed(std::move(stmt), status);
 }
 
-void asm_processor::process_ORG(rebuilt_statement&& stmt)
+void asm_processor::process_ORG(rebuilt_statement&& stmt, const processing_status& status)
 {
     find_sequence_symbol(stmt);
 
@@ -720,7 +726,7 @@ void asm_processor::process_ORG(rebuilt_statement&& stmt)
         hlasm_ctx.ord_ctx.set_location_counter_value(boundary,
             offset,
             *reloc_expr->expression,
-            std::make_unique<postponed_statement_impl>(std::move(stmt), hlasm_ctx.processing_stack()),
+            std::make_unique<postponed_statement_impl>(std::move(stmt), hlasm_ctx.processing_stack(), status),
             std::move(dep_solver).derive_current_dependency_evaluation_context());
     else
         hlasm_ctx.ord_ctx.set_location_counter_value(reloc_val, boundary, offset);
@@ -731,7 +737,7 @@ void asm_processor::process_ORG(rebuilt_statement&& stmt)
     }
 }
 
-void asm_processor::process_OPSYN(rebuilt_statement&& stmt)
+void asm_processor::process_OPSYN(rebuilt_statement&& stmt, const processing_status& status)
 {
     const auto& operands = stmt.operands_ref();
     const auto& ops = operands.value;
@@ -762,7 +768,7 @@ void asm_processor::process_OPSYN(rebuilt_statement&& stmt)
             add_diagnostic(diagnostic_op::error_A246_OPSYN(ops.front()->operand_range));
     }
 
-    add_postponed(std::move(stmt));
+    add_postponed(std::move(stmt), status);
 }
 
 asm_processor::asm_processor(const analyzing_context& ctx,
@@ -778,19 +784,19 @@ asm_processor::asm_processor(const analyzing_context& ctx,
     , output(output)
 {}
 
-void asm_processor::process(std::shared_ptr<const processing::resolved_statement> stmt)
+void asm_processor::process(std::shared_ptr<const processing::resolved_statement> stmt, const processing_status& status)
 {
-    auto rebuilt_stmt = preprocess(std::move(stmt));
+    auto rebuilt_stmt = preprocess(std::move(stmt), status);
 
     register_literals(rebuilt_stmt, context::no_align, hlasm_ctx.ord_ctx.next_unique_id());
 
-    if (const auto handler = handler_table::find(rebuilt_stmt.opcode_ref().value))
+    if (const auto handler = handler_table::find(status.second.value))
     {
-        handler(this, std::move(rebuilt_stmt));
+        handler(this, std::move(rebuilt_stmt), status);
     }
     else
     {
-        add_postponed(std::move(rebuilt_stmt));
+        add_postponed(std::move(rebuilt_stmt), status);
     }
 }
 
@@ -858,7 +864,7 @@ context::id_index asm_processor::find_sequence_symbol(const rebuilt_statement& s
     }
 }
 
-void asm_processor::process_AINSERT(rebuilt_statement&& stmt)
+void asm_processor::process_AINSERT(rebuilt_statement&& stmt, const processing_status&)
 {
     static constexpr std::string_view AINSERT = "AINSERT";
     const auto& ops = stmt.operands_ref();
@@ -911,7 +917,7 @@ void asm_processor::process_AINSERT(rebuilt_statement&& stmt)
     }
 }
 
-void asm_processor::process_CCW(rebuilt_statement&& stmt)
+void asm_processor::process_CCW(rebuilt_statement&& stmt, const processing_status& status)
 {
     constexpr context::alignment ccw_align = context::doubleword;
     constexpr size_t ccw_length = 8U;
@@ -931,10 +937,10 @@ void asm_processor::process_CCW(rebuilt_statement&& stmt)
 
     hlasm_ctx.ord_ctx.reserve_storage_area(ccw_length, ccw_align);
 
-    low_language_processor::add_postponed(std::move(stmt), std::move(dep_solver));
+    low_language_processor::add_postponed(std::move(stmt), status, std::move(dep_solver));
 }
 
-void asm_processor::process_CNOP(rebuilt_statement&& stmt)
+void asm_processor::process_CNOP(rebuilt_statement&& stmt, const processing_status& status)
 {
     auto loctr = hlasm_ctx.ord_ctx.align(context::halfword);
     find_sequence_symbol(stmt);
@@ -962,10 +968,10 @@ void asm_processor::process_CNOP(rebuilt_statement&& stmt)
                 0, context::alignment { (size_t)*byte_value, (size_t)*boundary_value });
     }
 
-    low_language_processor::add_postponed(std::move(stmt), std::move(dep_solver));
+    low_language_processor::add_postponed(std::move(stmt), status, std::move(dep_solver));
 }
 
-void asm_processor::process_START(rebuilt_statement&& stmt)
+void asm_processor::process_START(rebuilt_statement&& stmt, const processing_status& status)
 {
     using enum context::section_kind;
     auto sect_name = find_label_symbol(stmt);
@@ -988,7 +994,7 @@ void asm_processor::process_START(rebuilt_statement&& stmt)
     const auto& ops = stmt.operands_ref().value;
     if (ops.size() != 1)
     {
-        add_postponed(std::move(stmt));
+        add_postponed(std::move(stmt), status);
         return;
     }
 
@@ -1017,7 +1023,7 @@ void asm_processor::process_START(rebuilt_statement&& stmt)
     section->current_location_counter().reserve_storage_area(offset, context::no_align);
 }
 
-void asm_processor::process_END(rebuilt_statement&& stmt)
+void asm_processor::process_END(rebuilt_statement&& stmt, const processing_status& status)
 {
     const auto& label = stmt.label_ref();
     context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, lib_info);
@@ -1040,12 +1046,12 @@ void asm_processor::process_END(rebuilt_statement&& stmt)
         }
     }
 
-    low_language_processor::add_postponed(std::move(stmt), std::move(dep_solver));
+    low_language_processor::add_postponed(std::move(stmt), status, std::move(dep_solver));
 
     hlasm_ctx.end_reached();
 }
 
-void asm_processor::process_ALIAS(rebuilt_statement&& stmt)
+void asm_processor::process_ALIAS(rebuilt_statement&& stmt, const processing_status& status)
 {
     auto symbol_name = find_label_symbol(stmt);
     if (symbol_name.empty())
@@ -1054,10 +1060,10 @@ void asm_processor::process_ALIAS(rebuilt_statement&& stmt)
         return;
     }
 
-    add_postponed(std::move(stmt));
+    add_postponed(std::move(stmt), status);
 }
 
-void asm_processor::process_LTORG(rebuilt_statement&& stmt)
+void asm_processor::process_LTORG(rebuilt_statement&& stmt, const processing_status& status)
 {
     constexpr size_t sectalgn = 8;
     auto loctr = hlasm_ctx.ord_ctx.align(context::alignment { 0, sectalgn });
@@ -1076,10 +1082,10 @@ void asm_processor::process_LTORG(rebuilt_statement&& stmt)
 
     hlasm_ctx.ord_ctx.generate_pool(diag_ctx, hlasm_ctx.using_current(), lib_info);
 
-    add_postponed(std::move(stmt));
+    add_postponed(std::move(stmt), status);
 }
 
-void asm_processor::process_USING(rebuilt_statement&& stmt)
+void asm_processor::process_USING(rebuilt_statement&& stmt, const processing_status&)
 {
     using namespace expressions;
 
@@ -1160,7 +1166,7 @@ void asm_processor::process_USING(rebuilt_statement&& stmt)
         hlasm_ctx.processing_stack());
 }
 
-void asm_processor::process_DROP(rebuilt_statement&& stmt)
+void asm_processor::process_DROP(rebuilt_statement&& stmt, const processing_status&)
 {
     using namespace expressions;
 
@@ -1214,24 +1220,24 @@ bool asm_text_quals(const semantics::operand_ptr& op, std::string_view value)
 }
 } // namespace
 
-void asm_processor::process_PUSH(rebuilt_statement&& stmt)
+void asm_processor::process_PUSH(rebuilt_statement&& stmt, const processing_status& status)
 {
     if (std::ranges::any_of(stmt.operands_ref().value, [](const auto& op) { return asm_text_quals(op, "USING"); }))
         hlasm_ctx.using_push();
 
-    add_postponed(std::move(stmt));
+    add_postponed(std::move(stmt), status);
 }
 
-void asm_processor::process_POP(rebuilt_statement&& stmt)
+void asm_processor::process_POP(rebuilt_statement&& stmt, const processing_status& status)
 {
     if (std::ranges::any_of(stmt.operands_ref().value, [](const auto& op) { return asm_text_quals(op, "USING"); })
         && !hlasm_ctx.using_pop())
         add_diagnostic(diagnostic_op::error_A165_POP_USING(stmt.stmt_range_ref()));
 
-    add_postponed(std::move(stmt));
+    add_postponed(std::move(stmt), status);
 }
 
-void asm_processor::process_MNOTE(rebuilt_statement&& stmt)
+void asm_processor::process_MNOTE(rebuilt_statement&& stmt, const processing_status&)
 {
     static constexpr std::string_view MNOTE = "MNOTE";
     const auto& ops = stmt.operands_ref().value;
@@ -1322,7 +1328,7 @@ void asm_processor::process_MNOTE(rebuilt_statement&& stmt)
     hlasm_ctx.update_mnote_max(level_val);
 }
 
-void asm_processor::process_CXD(rebuilt_statement&& stmt)
+void asm_processor::process_CXD(rebuilt_statement&& stmt, const processing_status&)
 {
     context::address loctr = hlasm_ctx.ord_ctx.align(context::fullword);
     constexpr uint32_t cxd_length = 4;
@@ -1352,7 +1358,7 @@ struct title_label_visitor
     std::string operator()(const semantics::vs_ptr&) const { return {}; }
 };
 
-void asm_processor::process_TITLE(rebuilt_statement&& stmt)
+void asm_processor::process_TITLE(rebuilt_statement&& stmt, const processing_status& status)
 {
     const auto& label = stmt.label_ref();
 
@@ -1364,10 +1370,10 @@ void asm_processor::process_TITLE(rebuilt_statement&& stmt)
             add_diagnostic(diagnostic_op::warning_W016(label.field_range));
     }
 
-    add_postponed(std::move(stmt));
+    add_postponed(std::move(stmt), status);
 }
 
-void asm_processor::process_PUNCH(rebuilt_statement&& stmt)
+void asm_processor::process_PUNCH(rebuilt_statement&& stmt, const processing_status&)
 {
     static constexpr std::string_view PUNCH = "PUNCH";
     find_sequence_symbol(stmt);
@@ -1521,7 +1527,7 @@ void asm_processor::handle_cattr_ops(context::id_index class_name,
     hlasm_ctx.ord_ctx.create_and_set_class(part_name, lib_info, class_name_sect, false);
 }
 
-void asm_processor::process_CATTR(rebuilt_statement&& stmt)
+void asm_processor::process_CATTR(rebuilt_statement&& stmt, const processing_status& status)
 {
     static constexpr size_t max_class_name_length = 16;
     context::id_index class_name = find_label_symbol(stmt);
@@ -1536,10 +1542,10 @@ void asm_processor::process_CATTR(rebuilt_statement&& stmt)
     else
         handle_cattr_ops(class_name, part, part_rng, op_count, stmt);
 
-    add_postponed(std::move(stmt));
+    add_postponed(std::move(stmt), status);
 }
 
-void asm_processor::process_XATTR(rebuilt_statement&& stmt)
+void asm_processor::process_XATTR(rebuilt_statement&& stmt, const processing_status& status)
 {
     context::id_index class_name = find_label_symbol(stmt);
 
@@ -1575,10 +1581,10 @@ void asm_processor::process_XATTR(rebuilt_statement&& stmt)
         }
     }
 
-    add_postponed(std::move(stmt));
+    add_postponed(std::move(stmt), status);
 }
 
-void asm_processor::process_ENTRY(rebuilt_statement&& stmt)
+void asm_processor::process_ENTRY(rebuilt_statement&& stmt, const processing_status& status)
 {
     for (const auto& op : stmt.operands_ref().value)
     {
@@ -1590,10 +1596,10 @@ void asm_processor::process_ENTRY(rebuilt_statement&& stmt)
         add_diagnostic(diagnostic_op::error_A136_ENTRY_op_format(op->operand_range));
     }
 
-    add_postponed(std::move(stmt));
+    add_postponed(std::move(stmt), status);
 }
 
-void asm_processor::process_ADATA(rebuilt_statement&& stmt)
+void asm_processor::process_ADATA(rebuilt_statement&& stmt, const processing_status& status)
 {
     if (const auto& ops = stmt.operands_ref().value; ops.size() >= 5)
     {
@@ -1601,13 +1607,13 @@ void asm_processor::process_ADATA(rebuilt_statement&& stmt)
             add_diagnostic(diagnostic_op::error_A239_ADATA_char_string_format(asm_op->operand_range));
     }
 
-    add_postponed(std::move(stmt));
+    add_postponed(std::move(stmt), status);
 }
 
-void asm_processor::add_postponed(rebuilt_statement&& stmt) const
+void asm_processor::add_postponed(rebuilt_statement&& stmt, const processing_status& status) const
 {
     low_language_processor::add_postponed(
-        std::move(stmt), context::ordinary_assembly_dependency_solver(hlasm_ctx.ord_ctx, lib_info));
+        std::move(stmt), status, context::ordinary_assembly_dependency_solver(hlasm_ctx.ord_ctx, lib_info));
 }
 
 } // namespace hlasm_plugin::parser_library::processing

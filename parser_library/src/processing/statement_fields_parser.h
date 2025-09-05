@@ -56,7 +56,7 @@ public:
         bool after_substitution,
         semantics::range_provider field_range,
         size_t logical_column,
-        processing::processing_status status,
+        const processing::processing_status& status,
         diagnostic_op_consumer& add_diag);
 
     explicit statement_fields_parser(context::hlasm_context& hlasm_ctx);

@@ -47,11 +47,12 @@ size_t op_size(const processing::op_code& op) noexcept
 }
 } // namespace
 
-void mach_processor::process(std::shared_ptr<const processing::resolved_statement> stmt)
+void mach_processor::process(
+    std::shared_ptr<const processing::resolved_statement> stmt, const processing_status& status)
 {
-    const auto opcode_size = op_size(stmt->opcode_ref());
+    const auto opcode_size = op_size(status.second);
 
-    auto rebuilt_stmt = preprocess(std::move(stmt));
+    auto rebuilt_stmt = preprocess(std::move(stmt), status);
 
     register_literals(rebuilt_stmt, context::halfword, hlasm_ctx.ord_ctx.next_unique_id());
 
@@ -74,6 +75,7 @@ void mach_processor::process(std::shared_ptr<const processing::resolved_statemen
     }
 
     add_postponed(std::move(rebuilt_stmt),
+        status,
         context::ordinary_assembly_dependency_solver(hlasm_ctx.ord_ctx, std::move(loctr), lib_info));
 
     (void)hlasm_ctx.ord_ctx.reserve_storage_area(opcode_size, context::halfword);

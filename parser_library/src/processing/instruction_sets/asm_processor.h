@@ -60,7 +60,7 @@ public:
         output_handler* output,
         diagnosable_ctx& diag_ctx);
 
-    void process(std::shared_ptr<const processing::resolved_statement> stmt) override;
+    void process(std::shared_ptr<const processing::resolved_statement> stmt, const processing_status& status) override;
     struct extract_copy_id_result
     {
         context::id_index name;
@@ -80,35 +80,36 @@ private:
 
     context::id_index find_sequence_symbol(const rebuilt_statement& stmt);
 
-    void process_sect(rebuilt_statement&& stmt, const context::section_kind kind);
-    void process_LOCTR(rebuilt_statement&& stmt);
-    void process_EQU(rebuilt_statement&& stmt);
-    void process_DC(rebuilt_statement&& stmt);
-    void process_DS(rebuilt_statement&& stmt);
-    void process_COPY(rebuilt_statement&& stmt);
-    void process_DXD(rebuilt_statement&& stmt);
-    void process_EXTRN(rebuilt_statement&& stmt);
-    void process_WXTRN(rebuilt_statement&& stmt);
-    void process_ORG(rebuilt_statement&& stmt);
-    void process_OPSYN(rebuilt_statement&& stmt);
-    void process_AINSERT(rebuilt_statement&& stmt);
-    void process_CCW(rebuilt_statement&& stmt);
-    void process_CNOP(rebuilt_statement&& stmt);
-    void process_START(rebuilt_statement&& stmt);
-    void process_ALIAS(rebuilt_statement&& stmt);
-    void process_END(rebuilt_statement&& stmt);
-    void process_LTORG(rebuilt_statement&& stmt);
-    void process_USING(rebuilt_statement&& stmt);
-    void process_DROP(rebuilt_statement&& stmt);
-    void process_PUSH(rebuilt_statement&& stmt);
-    void process_POP(rebuilt_statement&& stmt);
-    void process_MNOTE(rebuilt_statement&& stmt);
-    void process_CXD(rebuilt_statement&& stmt);
-    void process_TITLE(rebuilt_statement&& stmt);
-    void process_PUNCH(rebuilt_statement&& stmt);
-    void process_CATTR(rebuilt_statement&& stmt);
-    void process_ENTRY(rebuilt_statement&& stmt);
-    void process_ADATA(rebuilt_statement&& stmt);
+    void process_sect(rebuilt_statement&& stmt, const processing_status& status, const context::section_kind kind);
+    void process_LOCTR(rebuilt_statement&& stmt, const processing_status& status);
+    void process_EQU(rebuilt_statement&& stmt, const processing_status& status);
+    void process_DC(rebuilt_statement&& stmt, const processing_status& status);
+    void process_DS(rebuilt_statement&& stmt, const processing_status& status);
+    void process_COPY(rebuilt_statement&& stmt, const processing_status& status);
+    void process_DXD(rebuilt_statement&& stmt, const processing_status& status);
+    void process_EXTRN(rebuilt_statement&& stmt, const processing_status& status);
+    void process_WXTRN(rebuilt_statement&& stmt, const processing_status& status);
+    void process_ORG(rebuilt_statement&& stmt, const processing_status& status);
+    void process_OPSYN(rebuilt_statement&& stmt, const processing_status& status);
+    void process_AINSERT(rebuilt_statement&& stmt, const processing_status& status);
+    void process_CCW(rebuilt_statement&& stmt, const processing_status& status);
+    void process_CNOP(rebuilt_statement&& stmt, const processing_status& status);
+    void process_START(rebuilt_statement&& stmt, const processing_status& status);
+    void process_ALIAS(rebuilt_statement&& stmt, const processing_status& status);
+    void process_END(rebuilt_statement&& stmt, const processing_status& status);
+    void process_LTORG(rebuilt_statement&& stmt, const processing_status& status);
+    void process_USING(rebuilt_statement&& stmt, const processing_status& status);
+    void process_DROP(rebuilt_statement&& stmt, const processing_status& status);
+    void process_PUSH(rebuilt_statement&& stmt, const processing_status& status);
+    void process_POP(rebuilt_statement&& stmt, const processing_status& status);
+    void process_MNOTE(rebuilt_statement&& stmt, const processing_status& status);
+    void process_CXD(rebuilt_statement&& stmt, const processing_status& status);
+    void process_TITLE(rebuilt_statement&& stmt, const processing_status& status);
+    void process_PUNCH(rebuilt_statement&& stmt, const processing_status& status);
+    void process_CATTR(rebuilt_statement&& stmt, const processing_status& status);
+    void process_ENTRY(rebuilt_statement&& stmt, const processing_status& status);
+    void process_ADATA(rebuilt_statement&& stmt, const processing_status& status);
+
     struct cattr_ops_result
     {
         size_t op_count;
@@ -121,10 +122,10 @@ private:
         const range& part_rng,
         size_t op_count,
         const rebuilt_statement& stmt);
-    void process_XATTR(rebuilt_statement&& stmt);
+    void process_XATTR(rebuilt_statement&& stmt, const processing_status& status);
 
     template<checking::data_instr_type instr_type>
-    void process_data_instruction(rebuilt_statement&& stmt);
+    void process_data_instruction(rebuilt_statement&& stmt, const processing_status& status);
 
     enum class external_type
     {
@@ -132,9 +133,9 @@ private:
         weak,
     };
 
-    void process_external(rebuilt_statement&& stmt, external_type t);
+    void process_external(rebuilt_statement&& stmt, const processing_status& status, external_type t);
 
-    void add_postponed(rebuilt_statement&& stmt) const;
+    void add_postponed(rebuilt_statement&& stmt, const processing_status& status) const;
 };
 
 } // namespace hlasm_plugin::parser_library::processing

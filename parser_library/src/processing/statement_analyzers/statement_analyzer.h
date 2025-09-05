@@ -16,10 +16,10 @@
 #define PROCESSING_STATEMENT_ANALYZER_H
 
 #include "context/hlasm_statement.h"
-#include "processing/statement_processors/copy_processing_info.h"
-#include "processing/statement_processors/macrodef_processing_info.h"
+#include "processing/op_code.h"
 #include "processing/statement_providers/statement_provider_kind.h"
 #include "processing_format.h"
+#include "utils/resource_location.h"
 
 namespace hlasm_plugin::parser_library::processing {
 
@@ -33,6 +33,7 @@ public:
     virtual bool analyze(const context::hlasm_statement& statement,
         statement_provider_kind prov_kind,
         processing_kind proc_kind,
+        const processing_status& status,
         bool evaluated_model) = 0;
 
     virtual void analyze_aread_line(

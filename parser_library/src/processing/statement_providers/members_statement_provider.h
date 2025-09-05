@@ -73,14 +73,14 @@ private:
 
     context::shared_stmt_ptr preprocess_deferred(const statement_processor& processor,
         statement_cache& cache,
-        processing_status status,
+        const processing_status& status,
         context::shared_stmt_ptr base_stmt);
 
     statement_cache* get_next_macro();
     statement_cache* get_next_copy();
     statement_cache* get_next();
 
-    context::shared_stmt_ptr get_next(const statement_processor& processor) override;
+    std::pair<context::shared_stmt_ptr, processing_status> get_next(const statement_processor& processor) override;
     bool finished() const override;
 
     members_statement_provider_kind kind() const noexcept;

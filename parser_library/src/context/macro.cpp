@@ -15,6 +15,7 @@
 #include "macro.h"
 
 #include <cassert>
+#include <iterator>
 #include <numeric>
 #include <stdexcept>
 
@@ -44,8 +45,9 @@ macro_definition::macro_definition(id_index name,
     , used_copy_members(std::move(used_copy_members))
 {
     cached_definition.reserve(definition.size());
-    for (auto&& stmt : definition)
-        cached_definition.emplace_back(std::move(stmt));
+    std::ranges::transform(definition, std::back_inserter(cached_definition), [](auto& d) {
+        return processing::statement_cache(std::move(d.first), std::move(d.second));
+    });
 
     auto r = std::accumulate(params.begin(), params.end(), std::pair<size_t, size_t>(1, 0), [](auto a, const auto& e) {
         if (e.data)
