@@ -53,7 +53,5 @@ public:
     const shared_stmt_ptr& get_base() const noexcept { return base_stmt_; }
 };
 
-using cached_block = std::vector<statement_cache>;
-
 } // namespace hlasm_plugin::parser_library::context
 #endif

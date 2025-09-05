@@ -114,7 +114,7 @@ public:
     // params of macro
     std::unordered_map<id_index, std::unique_ptr<macro_param_base>> named_params;
     // vector of statements representing macro definition
-    cached_block& cached_definition;
+    std::vector<statement_cache>& cached_definition;
     // vector assigning each statement its copy nest
     const copy_nest_storage& copy_nests;
     // storage of sequence symbols in the macro
@@ -125,7 +125,7 @@ public:
     statement_id current_statement;
 
     macro_invocation(id_index name,
-        cached_block& cached_definition,
+        std::vector<statement_cache>& cached_definition,
         const copy_nest_storage& copy_nests,
         const macro_label_storage& labels,
         std::unordered_map<id_index, std::unique_ptr<macro_param_base>> named_params,
