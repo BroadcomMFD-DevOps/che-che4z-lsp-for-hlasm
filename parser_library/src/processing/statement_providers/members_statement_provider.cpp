@@ -59,8 +59,7 @@ members_statement_provider::members_statement_provider(members_statement_provide
     , m_diagnoser(diag_consumer)
 {}
 
-std::pair<context::statement_cache*, std::optional<std::optional<context::id_index>>>
-members_statement_provider::get_next_macro()
+context::statement_cache* members_statement_provider::get_next_macro()
 {
     auto& invo = m_ctx.hlasm_ctx->scope_stack().back().this_macro;
     assert(invo);
@@ -70,14 +69,13 @@ members_statement_provider::get_next_macro()
     {
         m_resolved_instruction.reset();
         m_ctx.hlasm_ctx->leave_macro();
-        return {};
+        return nullptr;
     }
 
-    return { &invo->cached_definition.at(invo->current_statement.value), std::exchange(m_resolved_instruction, {}) };
+    return &invo->cached_definition.at(invo->current_statement.value);
 }
 
-std::pair<context::statement_cache*, std::optional<std::optional<context::id_index>>>
-members_statement_provider::get_next_copy()
+context::statement_cache* members_statement_provider::get_next_copy()
 {
     // LIFETIME: copy stack should not move even if source stack changes
     // due to std::vector iterator invalidation rules for move
@@ -88,14 +86,13 @@ members_statement_provider::get_next_copy()
     {
         m_resolved_instruction.reset();
         m_ctx.hlasm_ctx->leave_copy_member();
-        return {};
+        return nullptr;
     }
 
-    return { &invo.cached_definition()->at(invo.current_statement.value), std::exchange(m_resolved_instruction, {}) };
+    return &invo.cached_definition()->at(invo.current_statement.value);
 }
 
-std::pair<context::statement_cache*, std::optional<std::optional<context::id_index>>>
-members_statement_provider::get_next()
+context::statement_cache* members_statement_provider::get_next()
 {
     switch (kind())
     {
@@ -111,10 +108,12 @@ context::shared_stmt_ptr members_statement_provider::get_next(const statement_pr
     if (finished())
         throw std::runtime_error("provider already finished");
 
-    auto [cache, resolved_instruction] = get_next();
+    auto* const cache = get_next();
 
     if (!cache)
         return nullptr;
+
+    auto resolved_instruction = std::exchange(m_resolved_instruction, {});
 
     if (processor.kind == processing_kind::ORDINARY)
     {
@@ -144,7 +143,7 @@ context::shared_stmt_ptr members_statement_provider::get_next(const statement_pr
             auto proc_status_o = processor.get_processing_status(*resolved_instruction, current_instr.field_range);
             if (!proc_status_o.has_value())
             {
-                go_back(std::move(*resolved_instruction));
+                m_resolved_instruction.emplace(std::move(*resolved_instruction));
                 return nullptr;
             }
             if (proc_status_o->first.form != processing_form::DEFERRED)

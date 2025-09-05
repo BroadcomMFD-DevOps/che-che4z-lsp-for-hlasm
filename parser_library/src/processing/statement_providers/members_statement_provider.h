@@ -63,8 +63,6 @@ protected:
     diagnostic_op_consumer& m_diagnoser;
     std::optional<std::optional<context::id_index>> m_resolved_instruction;
 
-    void go_back(std::optional<context::id_index> ri) { m_resolved_instruction.emplace(std::move(ri)); }
-
 private:
     const semantics::instruction_si* retrieve_instruction(const context::statement_cache& cache) const;
 
@@ -77,9 +75,9 @@ private:
         processing_status status,
         context::shared_stmt_ptr base_stmt);
 
-    std::pair<context::statement_cache*, std::optional<std::optional<context::id_index>>> get_next_macro();
-    std::pair<context::statement_cache*, std::optional<std::optional<context::id_index>>> get_next_copy();
-    std::pair<context::statement_cache*, std::optional<std::optional<context::id_index>>> get_next();
+    context::statement_cache* get_next_macro();
+    context::statement_cache* get_next_copy();
+    context::statement_cache* get_next();
 
     context::shared_stmt_ptr get_next(const statement_processor& processor) override;
     bool finished() const override;
