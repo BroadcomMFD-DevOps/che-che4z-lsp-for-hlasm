@@ -14,23 +14,97 @@
 
 #include "members_statement_provider.h"
 
+#include "context/hlasm_context.h"
 #include "library_info_transitional.h"
 
 namespace hlasm_plugin::parser_library::processing {
 
-members_statement_provider::members_statement_provider(const statement_provider_kind kind,
+namespace {
+statement_provider_kind translate_to_statement_provider_kind(members_statement_provider_kind kind)
+{
+    switch (kind)
+    {
+        case members_statement_provider_kind::MACRO:
+            return statement_provider_kind::MACRO;
+        case members_statement_provider_kind::COPY:
+            return statement_provider_kind::COPY;
+    }
+}
+} // namespace
+
+members_statement_provider_kind members_statement_provider::kind() const noexcept
+{
+    switch (statement_provider::kind)
+    {
+        case statement_provider_kind::MACRO:
+            return members_statement_provider_kind::MACRO;
+        case statement_provider_kind::COPY:
+            return members_statement_provider_kind::COPY;
+        default:
+            utils::insist_fail("members_statement_provider::kind()"); // c++23 std::unreachable();
+    }
+}
+
+members_statement_provider::members_statement_provider(members_statement_provider_kind kind,
     const analyzing_context& ctx,
     statement_fields_parser& parser,
     parse_lib_provider& lib_provider,
     processing::processing_state_listener& listener,
     diagnostic_op_consumer& diag_consumer)
-    : statement_provider(kind)
+    : statement_provider(translate_to_statement_provider_kind(kind))
     , m_ctx(ctx)
     , m_parser(parser)
     , m_lib_provider(lib_provider)
     , m_listener(listener)
     , m_diagnoser(diag_consumer)
 {}
+
+std::pair<context::statement_cache*, std::optional<std::optional<context::id_index>>>
+members_statement_provider::get_next_macro()
+{
+    auto& invo = m_ctx.hlasm_ctx->scope_stack().back().this_macro;
+    assert(invo);
+
+    invo->current_statement.value += !m_resolved_instruction.has_value();
+    if (invo->current_statement.value == invo->cached_definition.size())
+    {
+        m_resolved_instruction.reset();
+        m_ctx.hlasm_ctx->leave_macro();
+        return {};
+    }
+
+    return { &invo->cached_definition.at(invo->current_statement.value), std::exchange(m_resolved_instruction, {}) };
+}
+
+std::pair<context::statement_cache*, std::optional<std::optional<context::id_index>>>
+members_statement_provider::get_next_copy()
+{
+    // LIFETIME: copy stack should not move even if source stack changes
+    // due to std::vector iterator invalidation rules for move
+    auto& invo = m_ctx.hlasm_ctx->current_copy_stack().back();
+
+    invo.current_statement.value += !m_resolved_instruction.has_value();
+    if (invo.current_statement.value == invo.cached_definition()->size())
+    {
+        m_resolved_instruction.reset();
+        m_ctx.hlasm_ctx->leave_copy_member();
+        return {};
+    }
+
+    return { &invo.cached_definition()->at(invo.current_statement.value), std::exchange(m_resolved_instruction, {}) };
+}
+
+std::pair<context::statement_cache*, std::optional<std::optional<context::id_index>>>
+members_statement_provider::get_next()
+{
+    switch (kind())
+    {
+        case members_statement_provider_kind::MACRO:
+            return get_next_macro();
+        case members_statement_provider_kind::COPY:
+            return get_next_copy();
+    }
+}
 
 context::shared_stmt_ptr members_statement_provider::get_next(const statement_processor& processor)
 {
@@ -94,6 +168,20 @@ context::shared_stmt_ptr members_statement_provider::get_next(const statement_pr
     return stmt;
 }
 
+bool members_statement_provider::finished() const
+{
+    switch (kind())
+    {
+        case members_statement_provider_kind::MACRO:
+            return m_ctx.hlasm_ctx->scope_stack().size() == 1;
+
+        case members_statement_provider_kind::COPY: {
+            const auto& current_stack = m_ctx.hlasm_ctx->current_copy_stack();
+            return current_stack.empty() || (m_ctx.hlasm_ctx->in_opencode() && current_stack.back().suspended());
+        }
+    }
+}
+
 const semantics::instruction_si* members_statement_provider::retrieve_instruction(
     const context::statement_cache& cache) const
 {
@@ -139,9 +227,12 @@ const context::statement_cache::cached_statement_t& members_statement_provider::
     const bool no_operands = status.first.occurrence == operand_occurrence::ABSENT
         || status.first.form == processing_form::UNKNOWN || status.first.form == processing_form::IGNORED;
 
+    const auto diags = kind() == members_statement_provider_kind::COPY || no_operands
+        ? def_stmt->diagnostics_without_operands()
+        : def_stmt->diagnostics();
     context::statement_cache::cached_statement_t reparsed_stmt {
         {},
-        filter_cached_diagnostics(*def_stmt, no_operands),
+        { diags.begin(), diags.end() },
     };
     const auto& def_ops = def_stmt->deferred_operands;
 
