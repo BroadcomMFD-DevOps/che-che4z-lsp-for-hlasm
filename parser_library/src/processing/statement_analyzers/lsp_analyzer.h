@@ -50,6 +50,7 @@ struct copy_processing_result;
 struct macrodef_processing_result;
 struct macrodef_start_data;
 struct resolved_statement;
+struct op_code;
 
 class occurrence_collector;
 } // namespace hlasm_plugin::parser_library::processing

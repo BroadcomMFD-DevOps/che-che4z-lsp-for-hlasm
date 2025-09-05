@@ -24,6 +24,7 @@
 #include "context/copy_member.h"
 #include "context/id_index.h"
 #include "lsp/macro_info.h"
+#include "processing_format.h"
 #include "protocol.h"
 #include "utils/general_hashers.h"
 

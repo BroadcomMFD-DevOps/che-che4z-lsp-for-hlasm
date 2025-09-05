@@ -21,10 +21,7 @@
 #include "copy_member.h"
 #include "variables/system_variable.h"
 
-using namespace hlasm_plugin::parser_library;
-using namespace hlasm_plugin::parser_library::context;
-
-
+namespace hlasm_plugin::parser_library::context {
 
 const std::unordered_map<id_index, const macro_param_base*>& macro_definition::named_params() const
 {
@@ -177,7 +174,7 @@ const std::vector<std::unique_ptr<keyword_param>>& macro_definition::get_keyword
 const id_index& macro_definition::get_label_param_name() const { return label_param_name_; }
 
 macro_invocation::macro_invocation(id_index name,
-    std::vector<statement_cache>& cached_definition,
+    std::vector<processing::statement_cache>& cached_definition,
     const copy_nest_storage& copy_nests,
     const macro_label_storage& labels,
     std::unordered_map<id_index, std::unique_ptr<macro_param_base>> named_params,
@@ -189,3 +186,4 @@ macro_invocation::macro_invocation(id_index name,
     , labels(labels)
     , definition_location(definition_location)
 {}
+} // namespace hlasm_plugin::parser_library::context

@@ -16,6 +16,7 @@
 
 #include "context/hlasm_context.h"
 #include "library_info_transitional.h"
+#include "utils/projectors.h"
 
 namespace hlasm_plugin::parser_library::processing {
 
@@ -59,7 +60,7 @@ members_statement_provider::members_statement_provider(members_statement_provide
     , m_diagnoser(diag_consumer)
 {}
 
-context::statement_cache* members_statement_provider::get_next_macro()
+statement_cache* members_statement_provider::get_next_macro()
 {
     auto& invo = m_ctx.hlasm_ctx->scope_stack().back().this_macro;
     assert(invo);
@@ -75,7 +76,7 @@ context::statement_cache* members_statement_provider::get_next_macro()
     return &invo->cached_definition.at(invo->current_statement.value);
 }
 
-context::statement_cache* members_statement_provider::get_next_copy()
+statement_cache* members_statement_provider::get_next_copy()
 {
     // LIFETIME: copy stack should not move even if source stack changes
     // due to std::vector iterator invalidation rules for move
@@ -92,7 +93,7 @@ context::statement_cache* members_statement_provider::get_next_copy()
     return &invo.cached_definition()->at(invo.current_statement.value);
 }
 
-context::statement_cache* members_statement_provider::get_next()
+statement_cache* members_statement_provider::get_next()
 {
     switch (kind())
     {
@@ -181,8 +182,7 @@ bool members_statement_provider::finished() const
     }
 }
 
-const semantics::instruction_si* members_statement_provider::retrieve_instruction(
-    const context::statement_cache& cache) const
+const semantics::instruction_si* members_statement_provider::retrieve_instruction(const statement_cache& cache) const
 {
     const auto& stmt = cache.get_base();
     switch (stmt->kind)
@@ -218,8 +218,7 @@ struct statement_si_defer_done final
     std::vector<semantics::literal_si> collected_literals;
 };
 
-const context::statement_cache::cached_statement_t& members_statement_provider::fill_cache(
-    context::statement_cache& cache,
+const statement_cache::cached_statement_t& members_statement_provider::fill_cache(statement_cache& cache,
     std::shared_ptr<const semantics::deferred_statement> def_stmt,
     const processing_status& status)
 {
@@ -229,7 +228,7 @@ const context::statement_cache::cached_statement_t& members_statement_provider::
     const auto diags = kind() == members_statement_provider_kind::COPY || no_operands
         ? def_stmt->diagnostics_without_operands()
         : def_stmt->diagnostics();
-    context::statement_cache::cached_statement_t reparsed_stmt {
+    statement_cache::cached_statement_t reparsed_stmt {
         {},
         { diags.begin(), diags.end() },
     };
@@ -257,10 +256,10 @@ const context::statement_cache::cached_statement_t& members_statement_provider::
         reparsed_stmt.stmt = std::make_shared<statement_si_defer_done>(
             std::move(def_stmt), std::move(op), std::move(rem), std::move(lits));
     }
-    return cache.insert(processing_status_cache_key(status), std::move(reparsed_stmt));
+    return cache.cache_.emplace_back(processing_status_cache_key(status), std::move(reparsed_stmt)).second;
 }
 
-struct deferred_statement_adapter final : public resolved_statement
+struct members_statement_provider::deferred_statement_adapter final : public resolved_statement
 {
     deferred_statement_adapter(std::shared_ptr<const statement_si_defer_done> base_stmt, processing_status status)
         : base_stmt(std::move(base_stmt))
@@ -281,9 +280,8 @@ struct deferred_statement_adapter final : public resolved_statement
     std::span<const diagnostic_op> diagnostics() const override { return {}; }
 };
 
-
 context::shared_stmt_ptr members_statement_provider::preprocess_deferred(const statement_processor& processor,
-    context::statement_cache& cache,
+    statement_cache& cache,
     processing_status status,
     context::shared_stmt_ptr base_stmt)
 {
@@ -291,17 +289,18 @@ context::shared_stmt_ptr members_statement_provider::preprocess_deferred(const s
 
     processing_status_cache_key key(status);
 
-    const auto* cache_item = cache.get(key);
-    if (!cache_item)
-        cache_item = &fill_cache(cache, { std::move(base_stmt), &def_stmt }, status);
+    const auto item = std::ranges::find(cache.cache_, key, utils::first_element);
+    const auto item_end = std::ranges::end(cache.cache_);
+    const auto& cache_item =
+        item == item_end ? fill_cache(cache, { std::move(base_stmt), &def_stmt }, status) : item->second;
 
     if (processor.kind != processing_kind::LOOKAHEAD)
     {
-        for (const diagnostic_op& diag : cache_item->diags)
+        for (const diagnostic_op& diag : cache_item.diags)
             m_diagnoser.add_diagnostic(diag);
     }
 
-    return std::make_shared<deferred_statement_adapter>(cache_item->stmt, status);
+    return std::make_shared<deferred_statement_adapter>(cache_item.stmt, status);
 }
 
 } // namespace hlasm_plugin::parser_library::processing

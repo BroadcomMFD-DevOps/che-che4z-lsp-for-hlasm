@@ -20,8 +20,8 @@
 #include <unordered_set>
 #include <vector>
 
+#include "processing/statement_cache.h"
 #include "sequence_symbol.h"
-#include "statement_cache.h"
 #include "statement_id.h"
 #include "variables/macro_param.h"
 
@@ -71,7 +71,7 @@ public:
     // params of macro
     const std::unordered_map<id_index, const macro_param_base*>& named_params() const;
     // vector of statements representing macro definition
-    std::vector<statement_cache> cached_definition;
+    std::vector<processing::statement_cache> cached_definition;
     // vector assigning each statement its copy nest
     const copy_nest_storage copy_nests;
     // storage of sequence symbols in the macro
@@ -114,7 +114,7 @@ public:
     // params of macro
     std::unordered_map<id_index, std::unique_ptr<macro_param_base>> named_params;
     // vector of statements representing macro definition
-    std::vector<statement_cache>& cached_definition;
+    std::vector<processing::statement_cache>& cached_definition;
     // vector assigning each statement its copy nest
     const copy_nest_storage& copy_nests;
     // storage of sequence symbols in the macro
@@ -125,7 +125,7 @@ public:
     statement_id current_statement;
 
     macro_invocation(id_index name,
-        std::vector<statement_cache>& cached_definition,
+        std::vector<processing::statement_cache>& cached_definition,
         const copy_nest_storage& copy_nests,
         const macro_label_storage& labels,
         std::unordered_map<id_index, std::unique_ptr<macro_param_base>> named_params,

@@ -38,8 +38,6 @@ target_sources(parser_library PRIVATE
     source_snapshot.h
     special_instructions.cpp
     special_instructions.h
-    statement_cache.cpp
-    statement_cache.h
     using.cpp
     using.h
     well_known.h

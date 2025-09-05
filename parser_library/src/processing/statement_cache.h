@@ -12,24 +12,25 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
-#ifndef CONTEXT_PROCESSING_STATEMENT_CACHE_H
-#define CONTEXT_PROCESSING_STATEMENT_CACHE_H
+#ifndef PROCESSING_STATEMENT_CACHE_H
+#define PROCESSING_STATEMENT_CACHE_H
 
+#include "context/hlasm_statement.h"
 #include "diagnostic_op.h"
-#include "hlasm_statement.h"
 #include "processing/op_code.h"
 
 namespace hlasm_plugin::parser_library::processing {
 struct statement_si_defer_done;
 }
 
-namespace hlasm_plugin::parser_library::context {
+namespace hlasm_plugin::parser_library::processing {
+class members_statement_provider;
 
 // storage used to store one deferred statement in many parsed formats
 // used by macro and copy definition to avoid multiple re-parsing of a deferred statements
 class statement_cache
 {
-public:
+    friend class members_statement_provider;
     struct cached_statement_t
     {
         std::shared_ptr<processing::statement_si_defer_done> stmt;
@@ -39,19 +40,16 @@ public:
     // processing format serves as an identifier of reparsing kind
     using cache_t = std::pair<processing::processing_status_cache_key, cached_statement_t>;
 
-private:
     std::vector<cache_t> cache_;
-    shared_stmt_ptr base_stmt_;
+    context::shared_stmt_ptr base_stmt_;
 
 public:
-    statement_cache(shared_stmt_ptr base) noexcept;
+    statement_cache(context::shared_stmt_ptr base) noexcept
+        : base_stmt_(std::move(base))
+    {}
 
-    const cached_statement_t& insert(processing::processing_status_cache_key key, cached_statement_t statement);
-
-    const cached_statement_t* get(processing::processing_status_cache_key key) const noexcept;
-
-    const shared_stmt_ptr& get_base() const noexcept { return base_stmt_; }
+    const auto& get_base() const noexcept { return base_stmt_; }
 };
 
-} // namespace hlasm_plugin::parser_library::context
+} // namespace hlasm_plugin::parser_library::processing
 #endif
