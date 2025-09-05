@@ -177,7 +177,7 @@ const std::vector<std::unique_ptr<keyword_param>>& macro_definition::get_keyword
 const id_index& macro_definition::get_label_param_name() const { return label_param_name_; }
 
 macro_invocation::macro_invocation(id_index name,
-    cached_block& cached_definition,
+    std::vector<statement_cache>& cached_definition,
     const copy_nest_storage& copy_nests,
     const macro_label_storage& labels,
     std::unordered_map<id_index, std::unique_ptr<macro_param_base>> named_params,

@@ -30,7 +30,7 @@ struct copy_member
     // member identifier
     const id_index name;
     // block of statements defining the member
-    cached_block cached_definition;
+    std::vector<statement_cache> cached_definition;
     // location of the definition
     const location definition_location;
 
@@ -57,7 +57,7 @@ struct copy_member_invocation
     {}
 
     id_index name() const { return copy_member_definition->name; }
-    cached_block* cached_definition() const { return &copy_member_definition->cached_definition; }
+    std::vector<statement_cache>* cached_definition() const { return &copy_member_definition->cached_definition; }
     const location* definition_location() const { return &copy_member_definition->definition_location; }
 
     position current_statement_position() const
