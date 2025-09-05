@@ -27,8 +27,7 @@
 #include "statement_processors/lookahead_processor.h"
 #include "statement_processors/macrodef_processor.h"
 #include "statement_processors/ordinary_processor.h"
-#include "statement_providers/copy_statement_provider.h"
-#include "statement_providers/macro_statement_provider.h"
+#include "statement_providers/members_statement_provider.h"
 #include "utils/task.h"
 
 namespace hlasm_plugin::parser_library::processing {
@@ -57,8 +56,8 @@ processing_manager::processing_manager(std::unique_ptr<opencode_provider> base_p
     switch (proc_kind)
     {
         case processing_kind::ORDINARY:
-            provs_.emplace_back(
-                std::make_unique<macro_statement_provider>(ctx_, parser, lib_provider, *this, diag_ctx));
+            provs_.emplace_back(std::make_unique<members_statement_provider>(
+                members_statement_provider_kind::MACRO, ctx_, parser, lib_provider, *this, diag_ctx));
             procs_.emplace_back(std::make_unique<ordinary_processor>(
                 ctx_, *this, lib_provider, *this, parser, opencode_prov_, *this, output, diag_ctx));
             break;
@@ -73,7 +72,8 @@ processing_manager::processing_manager(std::unique_ptr<opencode_provider> base_p
             break;
     }
 
-    provs_.emplace_back(std::make_unique<copy_statement_provider>(ctx_, parser, lib_provider, *this, diag_ctx));
+    provs_.emplace_back(std::make_unique<members_statement_provider>(
+        members_statement_provider_kind::COPY, ctx_, parser, lib_provider, *this, diag_ctx));
     provs_.emplace_back(std::move(base_provider));
 
     opencode_prov_.onetime_action();
