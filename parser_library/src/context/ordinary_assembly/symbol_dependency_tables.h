@@ -164,6 +164,8 @@ public:
     // method for creating more than one dependency assigned to one statement
     dependency_adder add_dependencies(
         post_stmt_ptr dependency_source_stmt, const dependency_evaluation_context& dep_ctx, const library_info& li);
+    dependency_adder add_dependencies(
+        post_stmt_ptr dependency_source_stmt, const dependency_evaluation_context& dep_ctx, library_info&& li) = delete;
 
     // registers that some symbol has been defined
     // if resolver is present, location counter dependencies are checked as well (not just symbol deps)
