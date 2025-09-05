@@ -197,10 +197,10 @@ class dependency_adder
         , m_li(li)
     {}
 
-    const dependency_evaluation_context& get_context() const noexcept;
+    [[nodiscard]] const dependency_evaluation_context& get_context() const noexcept;
 
     template<typename T>
-    bool add_dependency_with_cycle_check(T target, const resolvable* dependency_source) const;
+    [[nodiscard]] bool add_dependency_with_cycle_check(T target, const resolvable* dependency_source) const;
 
 public:
     // add symbol dependency on statement
@@ -209,7 +209,7 @@ public:
     // add symbol attribute dependency on statement
     [[nodiscard]] bool add_dependency(id_index target, data_attr_kind attr, const resolvable* dependency_source) const;
 
-    // add symbol attribute dependency on statement
+    // add space dependency
     void add_dependency(space_ptr target, const resolvable* dependency_source) const;
 };
 
