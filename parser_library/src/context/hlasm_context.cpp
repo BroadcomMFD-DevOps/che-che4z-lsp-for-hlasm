@@ -399,42 +399,51 @@ id_index hlasm_context::add_id(std::string&& s) { return ids_->add(std::move(s))
 id_index hlasm_context::add_id(std::string_view s) { return ids_->add(s); }
 std::optional<id_index> hlasm_context::find_id(std::string_view s) const { return ids_->find(s); }
 
+processing_stack_t hlasm_context::processing_stack(processing_stack_t cur, const source_context& source)
+{
+    cur = m_stack_tree.step(cur,
+        source.current_instruction.pos,
+        source.current_instruction.resource_loc,
+        id_index(),
+        file_processing_type::OPENCODE);
+    for (const auto& member : source.copy_stack)
+    {
+        cur = m_stack_tree.step(cur,
+            member.current_statement_position(),
+            member.definition_location()->resource_loc,
+            member.name(),
+            file_processing_type::COPY);
+    }
+    return cur;
+}
+
+processing_stack_t hlasm_context::processing_stack(processing_stack_t cur, const code_scope& scope)
+{
+    for (auto type = file_processing_type::MACRO; const auto& nest : scope.this_macro->get_current_copy_nest())
+    {
+        cur = m_stack_tree.step(cur, nest.loc.pos, nest.loc.resource_loc, nest.member_name, type);
+        type = file_processing_type::COPY;
+    }
+    return cur;
+}
+
 processing_stack_t hlasm_context::processing_stack()
 {
-    auto result = m_stack_tree.root();
-
-    for (bool first = true; const auto& source : source_stack_)
+    if (scope_stack_.size() <= 1)
     {
-        result = m_stack_tree.step(result,
-            source.current_instruction.pos,
-            source.current_instruction.resource_loc,
-            id_index(),
-            file_processing_type::OPENCODE);
-        for (const auto& member : source.copy_stack)
-        {
-            result = m_stack_tree.step(result,
-                member.current_statement_position(),
-                member.definition_location()->resource_loc,
-                member.name(),
-                file_processing_type::COPY);
-        }
-
-        if (first) // append macros immediately after ordinary processing
-        {
-            first = false;
-            for (size_t j = 1; j < scope_stack_.size(); ++j)
-            {
-                for (auto type = file_processing_type::MACRO;
-                     const auto& nest : scope_stack_[j].this_macro->get_current_copy_nest())
-                {
-                    result = m_stack_tree.step(result, nest.loc.pos, nest.loc.resource_loc, nest.member_name, type);
-                    type = file_processing_type::COPY;
-                }
-            }
-        }
+        auto result = m_stack_tree.root();
+        for (const auto& scope : source_stack_)
+            result = processing_stack(result, scope);
+        return result;
     }
-
-    return result;
+    else
+    {
+        auto result = scope_stack_.back().stack;
+        result = processing_stack(result, scope_stack_.back());
+        for (const auto& scope : source_stack_ | std::views::drop(1))
+            result = processing_stack(result, scope);
+        return result;
+    }
 }
 
 processing_stack_details_t hlasm_context::processing_stack_details()
@@ -880,6 +889,9 @@ std::pair<const macro_invocation*, bool> hlasm_context::enter_macro(
             ord_ctx.symbol_mentioned_on_macro(add_id(std::move(label)));
     }
 
+    const auto stack = scope_stack_.size() <= 1 ? processing_stack(m_stack_tree.root(), source_stack_.front())
+                                                : processing_stack(scope_stack_.back().stack, scope_stack_.back());
+
     auto [invo, truncated] = macro_def->call(std::move(label_param_data), std::move(params), well_known::SYSLIST);
     auto* const result = invo.get();
 
@@ -888,6 +900,7 @@ std::pair<const macro_invocation*, bool> hlasm_context::enter_macro(
     new_scope.sysndx = SYSNDX_;
     if (auto sect = ord_ctx.current_section(); sect)
         new_scope.loctr = &sect->current_location_counter();
+    new_scope.stack = stack;
 
     ++SYSNDX_;
 
