@@ -67,7 +67,7 @@ TEST(macro, macro_def)
 
     EXPECT_EQ(m->named_params().find(k2)->second->access_keyword_param()->get_value(), "(1,2,3)");
 
-    EXPECT_EQ(m->cached_definition.size(), (size_t)4);
+    EXPECT_EQ(m->size(), (size_t)4);
 }
 
 TEST(macro, macro_def_count)

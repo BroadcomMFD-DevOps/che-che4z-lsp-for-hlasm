@@ -16,6 +16,7 @@
 #define CONTEXT_MACRO_H
 
 #include <cassert>
+#include <memory>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -58,7 +59,7 @@ using copy_nest_storage = std::vector<std::vector<copy_nest_item>>;
 // contains info about keyword, positional parameters of HLASM macro as well as list of statements
 // has the 'call' method to represent macro instruction call
 // serves as prototype for creating macro_invocation objects
-class macro_definition
+class macro_definition : public processing::statement_cache
 {
     std::vector<std::unique_ptr<positional_param>> positional_params_;
     std::vector<std::unique_ptr<keyword_param>> keyword_params_;
@@ -70,8 +71,6 @@ public:
     const id_index id;
     // params of macro
     const std::unordered_map<id_index, const macro_param_base*>& named_params() const;
-    // vector of statements representing macro definition
-    std::vector<processing::statement_cache> cached_definition;
     // vector assigning each statement its copy nest
     const copy_nest_storage copy_nests;
     // storage of sequence symbols in the macro
@@ -114,7 +113,7 @@ public:
     // params of macro
     std::unordered_map<id_index, std::unique_ptr<macro_param_base>> named_params;
     // vector of statements representing macro definition
-    std::vector<processing::statement_cache>& cached_definition;
+    macro_definition& macro_def;
     // vector assigning each statement its copy nest
     const copy_nest_storage& copy_nests;
     // storage of sequence symbols in the macro
@@ -125,7 +124,7 @@ public:
     statement_id current_statement;
 
     macro_invocation(id_index name,
-        std::vector<processing::statement_cache>& cached_definition,
+        macro_definition& macro_def,
         const copy_nest_storage& copy_nests,
         const macro_label_storage& labels,
         std::unordered_map<id_index, std::unique_ptr<macro_param_base>> named_params,

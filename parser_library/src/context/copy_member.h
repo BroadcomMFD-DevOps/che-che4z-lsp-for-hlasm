@@ -25,12 +25,10 @@ namespace hlasm_plugin::parser_library::context {
 struct copy_member;
 
 // structure represents COPY member in HLASM macro library
-struct copy_member
+struct copy_member : processing::statement_cache
 {
     // member identifier
     const id_index name;
-    // block of statements defining the member
-    std::vector<processing::statement_cache> cached_definition;
     // location of the definition
     const location definition_location;
 
@@ -53,16 +51,13 @@ struct copy_member_invocation
     {}
 
     id_index name() const { return copy_member_definition->name; }
-    std::vector<processing::statement_cache>* cached_definition() const
-    {
-        return &copy_member_definition->cached_definition;
-    }
+    processing::statement_cache* cached_definition() const { return copy_member_definition.get(); }
     const location* definition_location() const { return &copy_member_definition->definition_location; }
 
     position current_statement_position() const
     {
         if (current_statement != statement_id())
-            return cached_definition()->at(current_statement.value).get_base()->statement_position();
+            return cached_definition()->get_base(current_statement.value)->statement_position();
         else
             return {};
     }

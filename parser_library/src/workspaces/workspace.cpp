@@ -458,12 +458,11 @@ void filter_and_emplace_mac_cpy_definitions(
             if (def_location.resource_loc != rl)
                 return nullptr;
 
-            const auto& lines = definition->cached_definition;
-            if (lines.empty())
+            if (definition->empty())
                 return nullptr;
 
-            const auto& first_line = lines.front().get_base();
-            const auto& last_line = lines.back().get_base();
+            const auto& first_line = definition->front().get_base();
+            const auto& last_line = definition->back().get_base();
             if (!first_line || !last_line)
                 return nullptr;
 

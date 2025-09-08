@@ -33,6 +33,51 @@ statement_provider_kind translate_to_statement_provider_kind(members_statement_p
 }
 } // namespace
 
+struct statement_cache_entry::cached_statement_t final : public resolved_statement
+{
+    cached_statement_t(processing::processing_status_cache_key key,
+        std::vector<diagnostic_op> diags,
+        const semantics::deferred_statement* deferred_stmt,
+        semantics::operands_si operands,
+        semantics::remarks_si remarks,
+        std::vector<semantics::literal_si> collected_literals) noexcept
+        : key(key)
+        , diags(std::move(diags))
+        , deferred_stmt(deferred_stmt)
+        , operands(std::move(operands))
+        , remarks(std::move(remarks))
+        , collected_literals(std::move(collected_literals))
+    {}
+
+    processing::processing_status_cache_key key;
+    const cached_statement_t* next = nullptr;
+    std::vector<diagnostic_op> diags;
+
+    const semantics::deferred_statement* deferred_stmt;
+
+    semantics::operands_si operands;
+    semantics::remarks_si remarks;
+    std::vector<semantics::literal_si> collected_literals;
+
+    const range& stmt_range_ref() const override { return deferred_stmt->stmt_range; }
+    const semantics::label_si& label_ref() const override { return deferred_stmt->label; }
+    const semantics::instruction_si& instruction_ref() const override { return deferred_stmt->instruction; }
+    const semantics::operands_si& operands_ref() const override { return operands; }
+    const semantics::remarks_si& remarks_ref() const override { return remarks; }
+    std::span<const semantics::literal_si> literals() const override { return collected_literals; }
+    std::span<const diagnostic_op> diagnostics() const override { return {}; }
+};
+
+statement_cache::statement_cache(std::vector<std::pair<context::shared_stmt_ptr, processing_status>> stmts)
+    : cached_statements(&mem_resource)
+{
+    entries.reserve(stmts.size());
+    std::ranges::transform(stmts, std::back_inserter(entries), [](auto& stmt) {
+        return statement_cache_entry(std::move(stmt.first), std::move(stmt.second));
+    });
+}
+statement_cache::~statement_cache() = default;
+
 members_statement_provider_kind members_statement_provider::kind() const noexcept
 {
     switch (statement_provider::kind)
@@ -60,23 +105,26 @@ members_statement_provider::members_statement_provider(members_statement_provide
     , m_diagnoser(diag_consumer)
 {}
 
-statement_cache* members_statement_provider::get_next_macro()
+std::pair<statement_cache_entry*, statement_cache*> members_statement_provider::get_next_macro()
 {
     auto& invo = m_ctx.hlasm_ctx->scope_stack().back().this_macro;
     assert(invo);
 
     invo->current_statement.value += !m_resolved_instruction.has_value();
-    if (invo->current_statement.value == invo->cached_definition.size())
+    if (invo->current_statement.value == invo->macro_def.size())
     {
         m_resolved_instruction.reset();
         m_ctx.hlasm_ctx->leave_macro();
-        return nullptr;
+        return {};
     }
 
-    return &invo->cached_definition.at(invo->current_statement.value);
+    return {
+        &invo->macro_def.entries.at(invo->current_statement.value),
+        &invo->macro_def,
+    };
 }
 
-statement_cache* members_statement_provider::get_next_copy()
+std::pair<statement_cache_entry*, statement_cache*> members_statement_provider::get_next_copy()
 {
     // LIFETIME: copy stack should not move even if source stack changes
     // due to std::vector iterator invalidation rules for move
@@ -87,13 +135,16 @@ statement_cache* members_statement_provider::get_next_copy()
     {
         m_resolved_instruction.reset();
         m_ctx.hlasm_ctx->leave_copy_member();
-        return nullptr;
+        return {};
     }
 
-    return &invo.cached_definition()->at(invo.current_statement.value);
+    return {
+        &invo.cached_definition()->entries.at(invo.current_statement.value),
+        invo.cached_definition(),
+    };
 }
 
-statement_cache* members_statement_provider::get_next()
+std::pair<statement_cache_entry*, statement_cache*> members_statement_provider::get_next()
 {
     switch (kind())
     {
@@ -110,16 +161,16 @@ std::pair<context::shared_stmt_ptr, processing_status> members_statement_provide
     if (finished())
         throw std::runtime_error("provider already finished");
 
-    auto* const cache = get_next();
+    const auto [cache_entry, cache] = get_next();
 
-    if (!cache)
+    if (!cache_entry)
         return {};
 
     auto resolved_instruction = std::exchange(m_resolved_instruction, {});
 
     if (processor.kind == processing_kind::ORDINARY)
     {
-        if (const auto* instr = retrieve_instruction(*cache))
+        if (const auto* instr = retrieve_instruction(*cache_entry))
         {
             if (try_trigger_attribute_lookahead(*instr,
                     { *m_ctx.hlasm_ctx, library_info_transitional(m_lib_provider), drop_diagnostic_op },
@@ -131,12 +182,12 @@ std::pair<context::shared_stmt_ptr, processing_status> members_statement_provide
 
     std::pair<context::shared_stmt_ptr, processing_status> result;
 
-    const auto& stmt_candiate = cache->get_base();
+    const auto& stmt_candiate = cache_entry->get_base();
     switch (stmt_candiate->kind)
     {
         case context::statement_kind::RESOLVED:
             result.first = stmt_candiate;
-            result.second = cache->get_base_status();
+            result.second = cache_entry->get_base_status();
             break;
         case context::statement_kind::DEFERRED: {
             const auto& current_instr = stmt_candiate->access_deferred()->instruction;
@@ -149,7 +200,7 @@ std::pair<context::shared_stmt_ptr, processing_status> members_statement_provide
                 return {};
             }
             if (proc_status_o->first.form != processing_form::DEFERRED)
-                result.first = preprocess_deferred(processor, *cache, *proc_status_o, stmt_candiate);
+                result.first = preprocess_deferred(processor, *cache_entry, *cache, *proc_status_o, stmt_candiate);
             else
                 result.first = stmt_candiate;
             result.second = *proc_status_o;
@@ -186,7 +237,8 @@ bool members_statement_provider::finished() const
     }
 }
 
-const semantics::instruction_si* members_statement_provider::retrieve_instruction(const statement_cache& cache) const
+const semantics::instruction_si* members_statement_provider::retrieve_instruction(
+    const statement_cache_entry& cache) const
 {
     const auto& stmt = cache.get_base();
     switch (stmt->kind)
@@ -202,29 +254,8 @@ const semantics::instruction_si* members_statement_provider::retrieve_instructio
     }
 }
 
-// structure holding deferred statement that is now complete
-struct statement_si_defer_done final
-{
-    statement_si_defer_done(std::shared_ptr<const semantics::deferred_statement> deferred_stmt,
-        semantics::operands_si operands,
-        semantics::remarks_si remarks,
-        std::vector<semantics::literal_si> collected_literals)
-        : deferred_stmt(std::move(deferred_stmt))
-        , operands(std::move(operands))
-        , remarks(std::move(remarks))
-        , collected_literals(std::move(collected_literals))
-    {}
-
-    std::shared_ptr<const semantics::deferred_statement> deferred_stmt;
-
-    semantics::operands_si operands;
-    semantics::remarks_si remarks;
-    std::vector<semantics::literal_si> collected_literals;
-};
-
-const statement_cache::cached_statement_t& members_statement_provider::fill_cache(statement_cache& cache,
-    std::shared_ptr<const semantics::deferred_statement> def_stmt,
-    const processing_status& status)
+statement_cache_entry::cached_statement_t& members_statement_provider::fill_cache(
+    statement_cache& cache, const semantics::deferred_statement* def_stmt, const processing_status& status)
 {
     const bool no_operands = status.first.occurrence == operand_occurrence::ABSENT
         || status.first.form == processing_form::UNKNOWN || status.first.form == processing_form::IGNORED;
@@ -232,24 +263,22 @@ const statement_cache::cached_statement_t& members_statement_provider::fill_cach
     const auto diags = kind() == members_statement_provider_kind::COPY || no_operands
         ? def_stmt->diagnostics_without_operands()
         : def_stmt->diagnostics();
-    statement_cache::cached_statement_t reparsed_stmt {
-        {},
-        { diags.begin(), diags.end() },
-    };
     const auto& def_ops = def_stmt->deferred_operands;
 
     if (no_operands)
     {
-        semantics::operands_si op(def_ops.field_range, semantics::operand_list());
-        semantics::remarks_si rem({});
-
-        reparsed_stmt.stmt = std::make_shared<statement_si_defer_done>(
-            std::move(def_stmt), std::move(op), std::move(rem), std::vector<semantics::literal_si>());
+        return cache.cached_statements.emplace_front(processing_status_cache_key(status),
+            std::vector(diags.begin(), diags.end()),
+            def_stmt,
+            semantics::operands_si(def_ops.field_range, semantics::operand_list()),
+            semantics::remarks_si({}),
+            std::vector<semantics::literal_si>());
     }
     else
     {
+        std::vector<diagnostic_op> new_diags(diags.begin(), diags.end());
         diagnostic_consumer_transform diag_consumer(
-            [&reparsed_stmt](diagnostic_op diag) { reparsed_stmt.diags.push_back(std::move(diag)); });
+            [&new_diags](diagnostic_op diag) { new_diags.push_back(std::move(diag)); });
         auto [op, rem, lits] = m_parser.parse_operand_field(def_ops.value,
             false,
             semantics::range_provider(def_ops.field_range, semantics::adjusting_state::NONE),
@@ -257,30 +286,17 @@ const statement_cache::cached_statement_t& members_statement_provider::fill_cach
             status,
             diag_consumer);
 
-        reparsed_stmt.stmt = std::make_shared<statement_si_defer_done>(
-            std::move(def_stmt), std::move(op), std::move(rem), std::move(lits));
+        return cache.cached_statements.emplace_front(processing_status_cache_key(status),
+            std::move(new_diags),
+            def_stmt,
+            std::move(op),
+            std::move(rem),
+            std::move(lits));
     }
-    return cache.cache_.emplace_back(processing_status_cache_key(status), std::move(reparsed_stmt)).second;
 }
 
-struct members_statement_provider::deferred_statement_adapter final : public resolved_statement
-{
-    deferred_statement_adapter(std::shared_ptr<const statement_si_defer_done> base_stmt)
-        : base_stmt(std::move(base_stmt))
-    {}
-
-    std::shared_ptr<const statement_si_defer_done> base_stmt;
-
-    const range& stmt_range_ref() const override { return base_stmt->deferred_stmt->stmt_range; }
-    const semantics::label_si& label_ref() const override { return base_stmt->deferred_stmt->label; }
-    const semantics::instruction_si& instruction_ref() const override { return base_stmt->deferred_stmt->instruction; }
-    const semantics::operands_si& operands_ref() const override { return base_stmt->operands; }
-    const semantics::remarks_si& remarks_ref() const override { return base_stmt->remarks; }
-    std::span<const semantics::literal_si> literals() const override { return base_stmt->collected_literals; }
-    std::span<const diagnostic_op> diagnostics() const override { return {}; }
-};
-
 context::shared_stmt_ptr members_statement_provider::preprocess_deferred(const statement_processor& processor,
+    statement_cache_entry& cache_entry,
     statement_cache& cache,
     const processing_status& status,
     context::shared_stmt_ptr base_stmt)
@@ -289,18 +305,24 @@ context::shared_stmt_ptr members_statement_provider::preprocess_deferred(const s
 
     processing_status_cache_key key(status);
 
-    const auto item = std::ranges::find(cache.cache_, key, utils::first_element);
-    const auto item_end = std::ranges::end(cache.cache_);
-    const auto& cache_item =
-        item == item_end ? fill_cache(cache, { std::move(base_stmt), &def_stmt }, status) : item->second;
+    const statement_cache_entry::cached_statement_t* cache_item = cache_entry.cache_head;
+    while (cache_item && cache_item->key != key)
+        cache_item = cache_item->next;
+    if (!cache_item)
+    {
+        auto* new_entry = &fill_cache(cache, &def_stmt, status);
+        new_entry->next = cache_entry.cache_head;
+        cache_entry.cache_head = new_entry;
+        cache_item = new_entry;
+    }
 
     if (processor.kind != processing_kind::LOOKAHEAD)
     {
-        for (const diagnostic_op& diag : cache_item.diags)
+        for (const diagnostic_op& diag : cache_item->diags)
             m_diagnoser.add_diagnostic(diag);
     }
 
-    return std::make_shared<deferred_statement_adapter>(cache_item.stmt);
+    return context::shared_stmt_ptr(cache.shared_from_this(), cache_item);
 }
 
 } // namespace hlasm_plugin::parser_library::processing
