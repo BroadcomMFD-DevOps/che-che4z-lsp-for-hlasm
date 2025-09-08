@@ -14,19 +14,12 @@
 
 #include "copy_member.h"
 
-#include <algorithm>
-#include <iterator>
-
 namespace hlasm_plugin::parser_library::context {
 
 copy_member::copy_member(id_index name, statement_block definition, location definition_location)
-    : name(name)
+    : processing::statement_cache(std::move(definition))
+    , name(name)
     , definition_location(std::move(definition_location))
-{
-    cached_definition.reserve(definition.size());
-    std::ranges::transform(definition, std::back_inserter(cached_definition), [](auto& d) {
-        return processing::statement_cache(std::move(d.first), std::move(d.second));
-    });
-}
+{}
 
 } // namespace hlasm_plugin::parser_library::context

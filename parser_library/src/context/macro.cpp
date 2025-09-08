@@ -15,7 +15,6 @@
 #include "macro.h"
 
 #include <cassert>
-#include <iterator>
 #include <numeric>
 #include <stdexcept>
 
@@ -37,18 +36,14 @@ macro_definition::macro_definition(id_index name,
     macro_label_storage labels,
     location definition_location,
     std::unordered_set<copy_member_ptr> used_copy_members)
-    : label_param_name_(label_param_name)
+    : processing::statement_cache(std::move(definition))
+    , label_param_name_(label_param_name)
     , id(name)
     , copy_nests(std::move(copy_nests))
     , labels(std::move(labels))
     , definition_location(std::move(definition_location))
     , used_copy_members(std::move(used_copy_members))
 {
-    cached_definition.reserve(definition.size());
-    std::ranges::transform(definition, std::back_inserter(cached_definition), [](auto& d) {
-        return processing::statement_cache(std::move(d.first), std::move(d.second));
-    });
-
     auto r = std::accumulate(params.begin(), params.end(), std::pair<size_t, size_t>(1, 0), [](auto a, const auto& e) {
         if (e.data)
             ++a.second;
@@ -158,9 +153,10 @@ std::pair<std::unique_ptr<macro_invocation>, bool> macro_definition::call(
         std::make_unique<system_variable_syslist>(
             syslist_name, std::make_unique<macro_param_data_zero_based>(std::move(syslist))));
 
-    return { std::make_unique<macro_invocation>(
-                 id, cached_definition, copy_nests, labels, std::move(named_cpy), definition_location),
-        truncated_syslist };
+    return {
+        std::make_unique<macro_invocation>(id, *this, copy_nests, labels, std::move(named_cpy), definition_location),
+        truncated_syslist,
+    };
 }
 
 const std::vector<std::unique_ptr<positional_param>>& macro_definition::get_positional_params() const
@@ -176,14 +172,14 @@ const std::vector<std::unique_ptr<keyword_param>>& macro_definition::get_keyword
 const id_index& macro_definition::get_label_param_name() const { return label_param_name_; }
 
 macro_invocation::macro_invocation(id_index name,
-    std::vector<processing::statement_cache>& cached_definition,
+    macro_definition& macro_def,
     const copy_nest_storage& copy_nests,
     const macro_label_storage& labels,
     std::unordered_map<id_index, std::unique_ptr<macro_param_base>> named_params,
     const location& definition_location)
     : id(name)
     , named_params(std::move(named_params))
-    , cached_definition(cached_definition)
+    , macro_def(macro_def)
     , copy_nests(copy_nests)
     , labels(labels)
     , definition_location(definition_location)
