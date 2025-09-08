@@ -122,6 +122,7 @@ class symbol_dependency_tables
     void delete_postponed(index_t<postponed_statements_t>);
 
     bool has_cycle(dependant target, std::vector<dependant> dependencies, const library_info& li);
+    bool has_cycle(space_ptr target, const library_info& li);
 
     void resolve_dependant(dependant target,
         const resolvable* dep_src,
@@ -147,8 +148,6 @@ class symbol_dependency_tables
         const library_info& li);
 
     void establish_statement_dependency(dependency_value& val, index_t<postponed_statements_t> id);
-
-    bool has_cycle(space_ptr target, const library_info& li);
 
 public:
     symbol_dependency_tables(ordinary_assembly_context& sym_ctx);

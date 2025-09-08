@@ -84,6 +84,21 @@ bool symbol_dependency_tables::has_cycle(dependant target, std::vector<dependant
     return false;
 }
 
+bool symbol_dependency_tables::has_cycle(space_ptr target, const library_info& li)
+{
+    auto dep_src = find_dependency_value(target);
+    if (!dep_src)
+        return false;
+
+    if (has_cycle(target, extract_dependencies(dep_src->m_resolvable, dep_src->m_dec, li), li))
+    {
+        resolve_dependant_default(std::move(target));
+        return true;
+    }
+
+    return false;
+}
+
 struct resolve_dependant_visitor
 {
     symbol_value val;
@@ -673,21 +688,6 @@ void symbol_dependency_tables::establish_statement_dependency(dependency_value& 
 {
     val.related_statement_id = id;
     ++m_postponed_stmts_references[id.value()];
-}
-
-bool symbol_dependency_tables::has_cycle(space_ptr target, const library_info& li)
-{
-    auto dep_src = find_dependency_value(target);
-    if (!dep_src)
-        return false;
-
-    if (has_cycle(target, extract_dependencies(dep_src->m_resolvable, dep_src->m_dec, li), li))
-    {
-        resolve_dependant_default(std::move(target));
-        return true;
-    }
-
-    return false;
 }
 
 void symbol_dependency_tables::add_postponed_statement(post_stmt_ptr target, dependency_evaluation_context dep_ctx)
