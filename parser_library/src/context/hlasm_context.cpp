@@ -448,38 +448,25 @@ processing_stack_t hlasm_context::processing_stack()
 
 processing_stack_details_t hlasm_context::processing_stack_details()
 {
+    const auto stack = processing_stack();
+    size_t depth = 0;
+    for (auto it = stack; !it.empty(); it = it.parent())
+        ++depth;
+
     std::vector<processing_frame_details> res;
+    res.reserve(depth);
 
-    for (bool first = true; const auto& source : source_stack_)
+    auto scope = scope_stack_.rbegin();
+
+    for (auto it = stack; !it.empty(); it = it.parent())
     {
-        res.emplace_back(source.current_instruction.pos,
-            source.current_instruction.resource_loc,
-            scope_stack_.front(),
-            file_processing_type::OPENCODE,
-            id_index());
-        for (const auto& member : source.copy_stack)
-        {
-            res.emplace_back(member.current_statement_position(),
-                member.definition_location()->resource_loc,
-                scope_stack_.front(),
-                file_processing_type::COPY,
-                member.name());
-        }
-
-        if (first) // append macros immediately after ordinary processing
-        {
-            first = false;
-            for (size_t j = 1; j < scope_stack_.size(); ++j)
-            {
-                for (auto type = file_processing_type::MACRO;
-                     const auto& nest : scope_stack_[j].this_macro->get_current_copy_nest())
-                {
-                    res.emplace_back(nest.loc.pos, nest.loc.resource_loc, scope_stack_[j], type, nest.member_name);
-                    type = file_processing_type::COPY;
-                }
-            }
-        }
+        assert(scope != scope_stack_.rend());
+        res.emplace_back(it.frame(), *scope);
+        if (it.frame().proc_type == file_processing_type::MACRO)
+            ++scope;
     }
+
+    std::ranges::reverse(res);
 
     return res;
 }
