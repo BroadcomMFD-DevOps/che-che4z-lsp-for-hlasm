@@ -40,7 +40,7 @@ processing_frame_details::processing_frame_details(const processing_frame& frame
     , resource_loc(frame.resource_loc)
     , scope_ptr(&scope)
     , member_name(frame.member_name)
-    , proc_type(std::move(frame.proc_type))
+    , proc_type(frame.proc_type)
 {}
 
 processing_frame_tree::processing_frame_tree()
