@@ -59,7 +59,7 @@ using copy_nest_storage = std::vector<std::vector<copy_nest_item>>;
 // contains info about keyword, positional parameters of HLASM macro as well as list of statements
 // has the 'call' method to represent macro instruction call
 // serves as prototype for creating macro_invocation objects
-class macro_definition : public processing::statement_cache
+class macro_definition final : public processing::statement_cache
 {
     std::vector<std::unique_ptr<positional_param>> positional_params_;
     std::vector<std::unique_ptr<keyword_param>> keyword_params_;
