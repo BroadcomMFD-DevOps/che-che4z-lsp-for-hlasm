@@ -185,8 +185,7 @@ public:
 
     parsing::parser_holder& parser(); // for testing only
 
-    std::pair<context::shared_stmt_ptr, processing_status> get_next(
-        const processing::statement_processor& processor) override;
+    statement_with_status get_next(const processing::statement_processor& processor) override;
 
     bool finished() const override;
 
@@ -213,10 +212,10 @@ private:
         size_t logical_column,
         const processing_status& proc_status);
 
-    std::pair<context::shared_stmt_ptr, processing_status> process_lookahead(
+    statement_with_status process_lookahead(
         const statement_processor& proc, semantics::collector& collector, op_data operands);
 
-    std::pair<context::shared_stmt_ptr, processing_status> process_ordinary(const statement_processor& proc,
+    statement_with_status process_ordinary(const statement_processor& proc,
         semantics::collector& collector,
         op_data operands,
         diagnostic_op_consumer* diags,

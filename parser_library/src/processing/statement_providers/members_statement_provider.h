@@ -79,10 +79,11 @@ private:
     std::pair<statement_cache_entry*, statement_cache*> get_next_copy();
     std::pair<statement_cache_entry*, statement_cache*> get_next();
 
-    std::pair<context::shared_stmt_ptr, processing_status> get_next(const statement_processor& processor) override;
+    statement_with_status get_next(const statement_processor& processor) override;
     bool finished() const override;
 
-    members_statement_provider_kind kind() const noexcept;
+    bool trigger_attribute_lookahead(const statement_processor& processor, const statement_cache_entry& cache_entry);
+    bool trigger_attribute_lookahead(const statement_processor& processor, const context::hlasm_statement& statement);
 };
 
 } // namespace hlasm_plugin::parser_library::processing
