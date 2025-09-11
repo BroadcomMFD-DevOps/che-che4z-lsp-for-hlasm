@@ -444,5 +444,40 @@ ca_expr_funcs ca_common_expr_policy::get_function(std::string_view op)
     return ca_expr_funcs::UNKNOWN;
 }
 
+#define F2S(X)                                                                                                         \
+    case X:                                                                                                            \
+        return #X
+
+[[nodiscard]] std::string_view to_string(ca_expr_ops op) noexcept
+{
+    using enum ca_expr_ops;
+    switch (op)
+    {
+        F2S(SLA);
+        F2S(SLL);
+        F2S(SRA);
+        F2S(SRL);
+        F2S(FIND);
+        F2S(INDEX);
+        F2S(EQ);
+        F2S(NE);
+        F2S(LE);
+        F2S(LT);
+        F2S(GE);
+        F2S(GT);
+        F2S(AND);
+        F2S(OR);
+        F2S(XOR);
+        F2S(NOT);
+        F2S(BYTE);
+        F2S(DOUBLE);
+        F2S(LOWER);
+        F2S(SIGNED);
+        F2S(UPPER);
+        default:
+            return {};
+    }
+}
+
 
 } // namespace hlasm_plugin::parser_library::expressions
