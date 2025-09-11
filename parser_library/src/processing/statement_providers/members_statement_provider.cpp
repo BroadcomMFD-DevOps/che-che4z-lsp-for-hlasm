@@ -16,12 +16,11 @@
 
 #include "context/hlasm_context.h"
 #include "library_info_transitional.h"
-#include "utils/projectors.h"
 
 namespace hlasm_plugin::parser_library::processing {
 
 namespace {
-statement_provider_kind translate_to_statement_provider_kind(members_statement_provider_kind kind)
+constexpr statement_provider_kind translate_to_statement_provider_kind(members_statement_provider_kind kind)
 {
     switch (kind)
     {
@@ -78,19 +77,6 @@ statement_cache::statement_cache(std::vector<std::pair<context::shared_stmt_ptr,
 }
 statement_cache::~statement_cache() = default;
 
-members_statement_provider_kind members_statement_provider::kind() const noexcept
-{
-    switch (statement_provider::kind)
-    {
-        case statement_provider_kind::MACRO:
-            return members_statement_provider_kind::MACRO;
-        case statement_provider_kind::COPY:
-            return members_statement_provider_kind::COPY;
-        default:
-            utils::insist_fail("members_statement_provider::kind()"); // c++23 std::unreachable();
-    }
-}
-
 members_statement_provider::members_statement_provider(members_statement_provider_kind kind,
     const analyzing_context& ctx,
     statement_fields_parser& parser,
@@ -103,7 +89,10 @@ members_statement_provider::members_statement_provider(members_statement_provide
     , m_lib_provider(lib_provider)
     , m_listener(listener)
     , m_diagnoser(diag_consumer)
-{}
+{
+    assert(statement_provider::kind == statement_provider_kind::MACRO
+        || statement_provider::kind == statement_provider_kind::COPY);
+}
 
 std::pair<statement_cache_entry*, statement_cache*> members_statement_provider::get_next_macro()
 {
@@ -146,17 +135,43 @@ std::pair<statement_cache_entry*, statement_cache*> members_statement_provider::
 
 std::pair<statement_cache_entry*, statement_cache*> members_statement_provider::get_next()
 {
-    switch (kind())
+    switch (kind)
     {
-        case members_statement_provider_kind::MACRO:
+        case statement_provider_kind::MACRO:
             return get_next_macro();
-        case members_statement_provider_kind::COPY:
+        case statement_provider_kind::COPY:
             return get_next_copy();
+        default:
+            assert(false);
+            return {};
     }
 }
 
-std::pair<context::shared_stmt_ptr, processing_status> members_statement_provider::get_next(
-    const statement_processor& processor)
+bool members_statement_provider::trigger_attribute_lookahead(
+    const statement_processor& processor, const statement_cache_entry& cache_entry)
+{
+    if (processor.kind != processing_kind::ORDINARY)
+        return false;
+    const auto* instr = retrieve_instruction(cache_entry);
+    if (!instr)
+        return false;
+    return try_trigger_attribute_lookahead(*instr,
+        { *m_ctx.hlasm_ctx, library_info_transitional(m_lib_provider), drop_diagnostic_op },
+        m_listener,
+        std::move(lookahead_references));
+}
+
+bool members_statement_provider::trigger_attribute_lookahead(
+    const statement_processor& processor, const context::hlasm_statement& statement)
+{
+    return processor.kind == processing_kind::ORDINARY
+        && try_trigger_attribute_lookahead(statement,
+            { *m_ctx.hlasm_ctx, library_info_transitional(m_lib_provider), drop_diagnostic_op },
+            m_listener,
+            std::move(lookahead_references));
+}
+
+statement_with_status members_statement_provider::get_next(const statement_processor& processor)
 {
     if (finished())
         throw std::runtime_error("provider already finished");
@@ -164,76 +179,58 @@ std::pair<context::shared_stmt_ptr, processing_status> members_statement_provide
     const auto [cache_entry, cache] = get_next();
 
     if (!cache_entry)
-        return {};
+        return statement_with_status();
 
     auto resolved_instruction = std::exchange(m_resolved_instruction, {});
 
-    if (processor.kind == processing_kind::ORDINARY)
-    {
-        if (const auto* instr = retrieve_instruction(*cache_entry))
-        {
-            if (try_trigger_attribute_lookahead(*instr,
-                    { *m_ctx.hlasm_ctx, library_info_transitional(m_lib_provider), drop_diagnostic_op },
-                    m_listener,
-                    std::move(lookahead_references)))
-                return {};
-        }
-    }
-
-    std::pair<context::shared_stmt_ptr, processing_status> result;
+    if (trigger_attribute_lookahead(processor, *cache_entry))
+        return statement_with_status();
 
     const auto& stmt_candiate = cache_entry->get_base();
-    switch (stmt_candiate->kind)
+
+    if (stmt_candiate->kind != context::statement_kind::DEFERRED)
     {
-        case context::statement_kind::RESOLVED:
-            result.first = stmt_candiate;
-            result.second = cache_entry->get_base_status();
-            break;
-        case context::statement_kind::DEFERRED: {
-            const auto& current_instr = stmt_candiate->access_deferred()->instruction;
-            if (!resolved_instruction.has_value())
-                resolved_instruction.emplace(processor.resolve_instruction(current_instr));
-            auto proc_status_o = processor.get_processing_status(*resolved_instruction, current_instr.field_range);
-            if (!proc_status_o.has_value())
-            {
-                m_resolved_instruction.emplace(std::move(*resolved_instruction));
-                return {};
-            }
-            if (proc_status_o->first.form != processing_form::DEFERRED)
-                result.first = preprocess_deferred(processor, *cache_entry, *cache, *proc_status_o, stmt_candiate);
-            else
-                result.first = stmt_candiate;
-            result.second = *proc_status_o;
-            break;
-        }
-        case context::statement_kind::ERROR:
-            result.first = stmt_candiate;
-            break;
-        default:
-            break;
+        if (trigger_attribute_lookahead(processor, *stmt_candiate))
+            return statement_with_status();
+        return { stmt_candiate, cache_entry->get_base_status() };
     }
 
-    if (processor.kind == processing_kind::ORDINARY
-        && try_trigger_attribute_lookahead(*result.first,
-            { *m_ctx.hlasm_ctx, library_info_transitional(m_lib_provider), drop_diagnostic_op },
-            m_listener,
-            std::move(lookahead_references)))
-        return {};
+    const auto& current_instr = stmt_candiate->access_deferred()->instruction;
+    if (!resolved_instruction.has_value())
+        resolved_instruction.emplace(processor.resolve_instruction(current_instr));
 
-    return result;
+    auto proc_status_o = processor.get_processing_status(*resolved_instruction, current_instr.field_range);
+    if (!proc_status_o.has_value())
+    {
+        m_resolved_instruction.emplace(std::move(*resolved_instruction));
+        return statement_with_status();
+    }
+
+    auto stmt = proc_status_o->first.form != processing_form::DEFERRED
+        ? preprocess_deferred(processor, *cache_entry, *cache, *proc_status_o, stmt_candiate)
+        : stmt_candiate;
+
+    if (trigger_attribute_lookahead(processor, *stmt))
+        return statement_with_status();
+
+    return { std::move(stmt), *proc_status_o };
 }
 
 bool members_statement_provider::finished() const
 {
-    switch (kind())
+    switch (kind)
     {
-        case members_statement_provider_kind::MACRO:
+        case statement_provider_kind::MACRO:
             return m_ctx.hlasm_ctx->scope_stack().size() == 1;
 
-        case members_statement_provider_kind::COPY: {
+        case statement_provider_kind::COPY: {
             const auto& current_stack = m_ctx.hlasm_ctx->current_copy_stack();
             return current_stack.empty() || (m_ctx.hlasm_ctx->in_opencode() && current_stack.back().suspended());
         }
+
+        default:
+            assert(false);
+            return true;
     }
 }
 
@@ -260,9 +257,8 @@ statement_cache_entry::cached_statement_t& members_statement_provider::fill_cach
     const bool no_operands = status.first.occurrence == operand_occurrence::ABSENT
         || status.first.form == processing_form::UNKNOWN || status.first.form == processing_form::IGNORED;
 
-    const auto diags = kind() == members_statement_provider_kind::COPY || no_operands
-        ? def_stmt->diagnostics_without_operands()
-        : def_stmt->diagnostics();
+    const auto diags = kind == statement_provider_kind::COPY || no_operands ? def_stmt->diagnostics_without_operands()
+                                                                            : def_stmt->diagnostics();
     const auto& def_ops = def_stmt->deferred_operands;
 
     if (no_operands)

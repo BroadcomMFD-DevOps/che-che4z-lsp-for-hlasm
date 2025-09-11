@@ -87,7 +87,7 @@ struct processing_frame_details
     id_index member_name;
     file_processing_type proc_type;
 
-    const auto& scope() const noexcept { return *scope_ptr; }
+    const code_scope& scope() const noexcept { return *scope_ptr; }
 };
 
 using processing_stack_details_t = std::vector<processing_frame_details>;

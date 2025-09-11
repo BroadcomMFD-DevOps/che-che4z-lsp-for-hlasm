@@ -295,7 +295,7 @@ bool operands_relevant_in_lookahead(bool has_label, const processing_status& sta
 }
 } // namespace
 
-std::pair<context::shared_stmt_ptr, processing_status> opencode_provider::process_lookahead(
+statement_with_status opencode_provider::process_lookahead(
     const statement_processor& proc, semantics::collector& collector, op_data operands)
 {
     const auto& current_instr = collector.current_instruction();
@@ -339,8 +339,7 @@ std::pair<context::shared_stmt_ptr, processing_status> opencode_provider::proces
     return { result, proc_status };
 }
 
-std::pair<context::shared_stmt_ptr, processing_status> opencode_provider::process_ordinary(
-    const statement_processor& proc,
+statement_with_status opencode_provider::process_ordinary(const statement_processor& proc,
     semantics::collector& collector,
     op_data operands,
     diagnostic_op_consumer* diags,
@@ -354,7 +353,7 @@ std::pair<context::shared_stmt_ptr, processing_status> opencode_provider::proces
     {
         m_restart_process_ordinary.emplace(
             process_ordinary_restart_data { proc, collector, std::move(operands), diags, std::move(resolved_instr) });
-        return {};
+        return statement_with_status();
     }
     const auto& proc_status = proc_status_o.value();
 
@@ -454,7 +453,7 @@ std::pair<context::shared_stmt_ptr, processing_status> opencode_provider::proces
             { *m_ctx.hlasm_ctx, library_info_transitional(*m_lib_provider), drop_diagnostic_op },
             *m_state_listener,
             std::move(lookahead_references)))
-        return {};
+        return statement_with_status();
 
     if (m_current_logical_line.segments.size() > 1)
         m_ctx.hlasm_ctx->metrics.continued_statements++;
@@ -622,7 +621,7 @@ utils::task opencode_provider::convert_ainsert_buffer_to_copybook()
         virtual_copy_name);
 }
 
-std::pair<context::shared_stmt_ptr, processing_status> opencode_provider::get_next(const statement_processor& proc)
+statement_with_status opencode_provider::get_next(const statement_processor& proc)
 {
     if (m_restart_process_ordinary) [[unlikely]]
     {
@@ -634,7 +633,7 @@ std::pair<context::shared_stmt_ptr, processing_status> opencode_provider::get_ne
     }
     auto ll_res = extract_next_logical_line();
     if (ll_res == extract_next_logical_line_result::failed)
-        return {};
+        return statement_with_status();
     const bool is_process = ll_res == extract_next_logical_line_result::process;
 
     const bool lookahead = proc.kind == processing_kind::LOOKAHEAD;
@@ -659,7 +658,7 @@ std::pair<context::shared_stmt_ptr, processing_status> opencode_provider::get_ne
     {
         if (!lookahead)
             process_comment();
-        return {};
+        return statement_with_status();
     }
 
     if (!lookahead)
@@ -682,16 +681,16 @@ std::pair<context::shared_stmt_ptr, processing_status> opencode_provider::get_ne
             return {
                 std::make_shared<error_statement>(
                     range(position(m_current_logical_line_source.begin_line, 0)), std::vector<diagnostic_op>()),
-                {},
+                processing_status(),
             };
         }
         else if (lookahead)
-            return {};
+            return statement_with_status();
         else
             return {
                 std::make_shared<error_statement>(range(position(m_current_logical_line_source.begin_line, 0)),
                     std::move(ph.collector.diag_container().diags)),
-                {},
+                processing_status(),
             };
     }
 
@@ -706,7 +705,7 @@ std::pair<context::shared_stmt_ptr, processing_status> opencode_provider::get_ne
             { *m_ctx.hlasm_ctx, library_info_transitional(*m_lib_provider), drop_diagnostic_op },
             *m_state_listener,
             std::move(lookahead_references)))
-        return {};
+        return statement_with_status();
 
     const auto& current_instr = ph.collector.current_instruction();
     m_ctx.hlasm_ctx->set_source_position(current_instr.field_range.start);

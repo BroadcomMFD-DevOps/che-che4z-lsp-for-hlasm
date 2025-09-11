@@ -25,6 +25,12 @@ namespace hlasm_plugin::parser_library::processing {
 class statement_provider;
 using provider_ptr = std::unique_ptr<statement_provider>;
 
+struct statement_with_status
+{
+    context::shared_stmt_ptr statement;
+    processing_status status;
+};
+
 // interface for statement providers
 // till they are finished they provide statements to statement processors
 class statement_provider
@@ -36,7 +42,7 @@ public:
 
     // returns the next statement in the providers stream
     // if return is nullptr, statement is ignored and should not be produced
-    virtual std::pair<context::shared_stmt_ptr, processing_status> get_next(const statement_processor& processor) = 0;
+    virtual statement_with_status get_next(const statement_processor& processor) = 0;
 
     // checks whether provider has finished
     virtual bool finished() const = 0;

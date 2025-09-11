@@ -51,11 +51,7 @@ enum class operand_occurrence : uint8_t
 // structure respresenting in which fashion should be statement processed
 struct processing_format
 {
-    constexpr processing_format() noexcept
-        : kind {}
-        , form {}
-        , occurrence {}
-    {}
+    explicit constexpr processing_format() noexcept = default;
 
     constexpr processing_format(processing_kind kind,
         processing_form form,
@@ -67,9 +63,9 @@ struct processing_format
 
     bool operator==(const processing_format& oth) const noexcept = default;
 
-    processing_kind kind;
-    processing_form form;
-    operand_occurrence occurrence;
+    processing_kind kind = {};
+    processing_form form = {};
+    operand_occurrence occurrence = {};
 };
 
 } // namespace hlasm_plugin::parser_library::processing
