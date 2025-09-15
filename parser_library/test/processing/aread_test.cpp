@@ -646,3 +646,28 @@ TEST(aread, continued_statement_aread_recovery)
 
     EXPECT_TRUE(matches_message_text(a.diags(), { "EXT" }));
 }
+
+TEST(aread, continued_statement_aread_multiple_passes)
+{
+    std::string input = R"(
+    MACRO
+    MAC
+&C  AREAD
+    MEND
+&A  SETA  L'LOOKAHEAD
+    MAC
+    CONSUMED CONTINUED LINE                                            X
+-INC     COPYBOOK
+LOOKAHEAD DS C
+)";
+    mock_parse_lib_provider lib_provider {
+        { "COPYBOOK", R"(                MNOTE 0,'HERE'
+         SAM31
+)" },
+    };
+
+    analyzer a(input, analyzer_options { &lib_provider, endevor_preprocessor_options() });
+    a.analyze();
+
+    EXPECT_TRUE(matches_message_text(a.diags(), { "HERE" }));
+}
