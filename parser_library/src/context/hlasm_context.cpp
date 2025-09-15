@@ -940,14 +940,14 @@ copy_member_ptr hlasm_context::get_copy_member(id_index member) const
     return nullptr;
 }
 
-void hlasm_context::enter_copy_member(id_index member_name)
+copy_member_invocation& hlasm_context::enter_copy_member(id_index member_name)
 {
     auto tmp = copy_members_.find(member_name);
     assert(tmp != copy_members_.end());
 
     const auto& [name, member] = *tmp;
 
-    source_stack_.back().copy_stack.emplace_back(copy_member_invocation(member));
+    return source_stack_.back().copy_stack.emplace_back(copy_member_invocation(member));
 }
 
 const hlasm_context::copy_member_storage& hlasm_context::copy_members() { return copy_members_; }
