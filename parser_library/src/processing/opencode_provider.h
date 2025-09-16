@@ -105,6 +105,8 @@ class opencode_provider final : public statement_provider, virtual_file_monitor
             ainsert,
         } source;
     } m_current_logical_line_source;
+    static constexpr std::size_t no_suspend_resume = (std::size_t)-1;
+    std::size_t suspend_resume = no_suspend_resume;
 
     std::deque<std::string> m_ainsert_buffer;
 
@@ -235,7 +237,7 @@ private:
     [[nodiscard]] utils::task start_nested_parser(
         std::string_view text, analyzer_options opts, context::id_index vf_name, size_t skipped) const;
 
-    std::string aread_from_copybook() const;
+    std::string aread_from_copybook();
     std::string try_aread_from_document();
 
     [[nodiscard]] utils::value_task<std::string> deferred_aread(utils::task prep_task);

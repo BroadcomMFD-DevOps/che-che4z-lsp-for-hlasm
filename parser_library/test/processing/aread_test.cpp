@@ -671,3 +671,46 @@ LOOKAHEAD DS C
 
     EXPECT_TRUE(matches_message_text(a.diags(), { "HERE" }));
 }
+
+TEST(aread, opencode_symbols)
+{
+    std::string input = R"(
+         MACRO
+         MAC
+&C       AREAD
+         MEND
+
+         MACRO
+         LOG
+         MNOTE 0,'LOG'
+         MEND
+
+         MACRO
+         AFTER
+         MNOTE 0,'AFTER'
+         MEND
+
+         MACRO
+         WRONG
+         MNOTE 8,'WRONG'
+         MEND
+
+         COPY  COPYBOOK
+
+&A       SETA  &A+1
+         AIF   (&A LT 2).X
+)";
+    mock_parse_lib_provider lib_provider {
+        { "COPYBOOK", R"(
+         MAC
+         WRONG                                                         X
+.X       LOG
+         AFTER
+)" },
+    };
+
+    analyzer a(input, analyzer_options { &lib_provider, endevor_preprocessor_options() });
+    a.analyze();
+
+    EXPECT_TRUE(matches_message_text(a.diags(), { "LOG", "AFTER", "LOG", "AFTER" }));
+}

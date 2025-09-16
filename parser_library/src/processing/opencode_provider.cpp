@@ -134,7 +134,7 @@ utils::value_task<std::string> opencode_provider::deferred_aread(utils::task pre
     co_return try_aread_from_document();
 }
 
-std::string opencode_provider::aread_from_copybook() const
+std::string opencode_provider::aread_from_copybook()
 {
     auto& opencode_stack = m_ctx.hlasm_ctx->opencode_copy_stack();
     auto& copy = opencode_stack.back();
@@ -146,6 +146,7 @@ std::string opencode_provider::aread_from_copybook() const
         copy.resume();
     else
         copy.suspend(line + 1);
+    suspend_resume = no_suspend_resume;
 
     while (!opencode_stack.empty() && !opencode_stack.back().suspended())
         opencode_stack.pop_back();
@@ -790,6 +791,13 @@ extract_next_logical_line_result opencode_provider::extract_next_logical_line_fr
     assert(m_ctx.hlasm_ctx->in_opencode());
 
     auto& opencode_copy_stack = m_ctx.hlasm_ctx->opencode_copy_stack();
+
+    if (const auto sr = std::exchange(suspend_resume, no_suspend_resume); sr != no_suspend_resume)
+    {
+        assert(!opencode_copy_stack.empty());
+        opencode_copy_stack.back().suspend(sr);
+    }
+
     while (!opencode_copy_stack.empty())
     {
         auto& copy_file = opencode_copy_stack.back();
@@ -831,7 +839,7 @@ extract_next_logical_line_result opencode_provider::extract_next_logical_line_fr
 
         // The copybook needs to be re-suspended to allow for two-phase ordinary processing
         // On the second run the stmt_line == line will be true and copybook will resume
-        copy_file.suspend(line + m_current_logical_line.segments.size());
+        suspend_resume = line + m_current_logical_line.segments.size();
 
         return extract_next_logical_line_result::normal; // unaligned statement extracted
     }
