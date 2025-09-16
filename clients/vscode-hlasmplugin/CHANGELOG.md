@@ -2,6 +2,9 @@
 
 ## ****Unreleased****
 
+#### Added
+- Macro call can now define sequence symbol in the opencode
+
 #### Fixed
 - The language server produces diagnostics in an invalid format
 
