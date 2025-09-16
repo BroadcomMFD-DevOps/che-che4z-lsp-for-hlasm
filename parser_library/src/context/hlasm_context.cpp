@@ -580,7 +580,7 @@ hlasm_context::opencode_sequence_symbol_result hlasm_context::create_opencode_se
     const bool has_copybooks = !snapshot.copy_frames.empty();
     const auto opencode_line = has_copybooks ? snapshot.end_index : snapshot.begin_index;
     if (has_copybooks)
-        snapshot.copy_frames.back().statement_offset.value -= 1;
+        snapshot.copy_frames.back().statement_offset.value -= snapshot.copy_frames.back().suspended_at == (size_t)-1;
 
     const auto [it, inserted] = opencode_sequence_symbols.try_emplace(
         target, std::move(loc), context::source_position(opencode_line), std::move(snapshot));
@@ -1009,7 +1009,9 @@ void hlasm_context::apply_source_snapshot(source_snapshot snapshot)
     for (const auto& frame : snapshot.copy_frames)
     {
         const auto& copy = copy_members_.at(frame.copy_member);
-        last_copy_stack.emplace_back(copy).current_statement = frame.statement_offset;
+        auto& invo = last_copy_stack.emplace_back(copy);
+        invo.current_statement = frame.statement_offset;
+        invo.suspended_at = frame.suspended_at;
     }
 }
 

@@ -42,16 +42,15 @@ struct copy_frame
 {
     id_index copy_member;
     statement_id statement_offset;
+    size_t suspended_at;
 
-    copy_frame(id_index copy_member, statement_id statement_offset)
+    copy_frame(id_index copy_member, statement_id statement_offset, size_t suspended_at)
         : copy_member(copy_member)
         , statement_offset(statement_offset)
+        , suspended_at(suspended_at)
     {}
 
-    bool operator==(const copy_frame& oth) const
-    {
-        return copy_member == oth.copy_member && statement_offset == oth.statement_offset;
-    }
+    bool operator==(const copy_frame& oth) const noexcept = default;
 };
 
 // snapshot of a source_context structure
