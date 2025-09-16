@@ -795,6 +795,7 @@ extract_next_logical_line_result opencode_provider::extract_next_logical_line_fr
     if (const auto sr = std::exchange(suspend_resume, no_suspend_resume); sr != no_suspend_resume)
     {
         assert(!opencode_copy_stack.empty());
+        assert(opencode_copy_stack.back().suspended());
         opencode_copy_stack.back().suspend(sr);
     }
 
@@ -869,6 +870,8 @@ extract_next_logical_line_result opencode_provider::extract_next_logical_line()
         if (!m_ctx.hlasm_ctx->opencode_copy_stack().empty())
             return extract_next_logical_line_from_copy_buffer();
     }
+
+    assert(suspend_resume == no_suspend_resume);
 
     if (m_next_line_index >= m_input_document.size())
         return extract_next_logical_line_result::failed;
