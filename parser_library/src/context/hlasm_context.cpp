@@ -580,7 +580,7 @@ hlasm_context::opencode_sequence_symbol_result hlasm_context::create_opencode_se
     const bool has_copybooks = !snapshot.copy_frames.empty();
     const auto opencode_line = has_copybooks ? snapshot.end_index : snapshot.begin_index;
     if (has_copybooks)
-        snapshot.copy_frames.back().statement_offset.value -= snapshot.copy_frames.back().suspended_at == (size_t)-1;
+        snapshot.copy_frames.back().adjust_to_beginning();
 
     const auto [it, inserted] = opencode_sequence_symbols.try_emplace(
         target, std::move(loc), context::source_position(opencode_line), std::move(snapshot));

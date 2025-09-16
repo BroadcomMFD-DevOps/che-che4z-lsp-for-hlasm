@@ -51,6 +51,8 @@ struct copy_frame
     {}
 
     bool operator==(const copy_frame& oth) const noexcept = default;
+
+    void adjust_to_beginning() noexcept { statement_offset.value -= suspended_at == (size_t)-1; }
 };
 
 // snapshot of a source_context structure
