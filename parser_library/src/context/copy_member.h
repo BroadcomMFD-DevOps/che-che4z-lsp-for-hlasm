@@ -62,7 +62,9 @@ struct copy_member_invocation
 
     position current_statement_position() const
     {
-        if (current_statement != statement_id())
+        if (suspended())
+            return { suspended_at, 0 };
+        else if (current_statement != statement_id())
             return cached_definition()->at(current_statement.value).get_base()->statement_position();
         else
             return {};
