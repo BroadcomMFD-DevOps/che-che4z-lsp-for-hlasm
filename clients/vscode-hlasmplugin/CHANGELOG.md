@@ -3,7 +3,7 @@
 ## ****Unreleased****
 
 #### Added
-- Macro call can now define sequence symbol in the opencode
+- Macro call can now define a sequence symbol in the opencode
 
 #### Fixed
 - Variable index expression is not evaluated correctly on macro calls
