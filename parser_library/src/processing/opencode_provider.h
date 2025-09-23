@@ -105,8 +105,6 @@ class opencode_provider final : public statement_provider, virtual_file_monitor
             ainsert,
         } source;
     } m_current_logical_line_source;
-    static constexpr std::size_t no_suspend_resume = (std::size_t)-1;
-    std::size_t suspend_resume = no_suspend_resume;
 
     std::deque<std::string> m_ainsert_buffer;
 

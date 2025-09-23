@@ -142,11 +142,11 @@ std::string opencode_provider::aread_from_copybook()
     std::string_view remaining_text = m_ctx.lsp_ctx->get_file_info(copy.definition_location()->resource_loc)
                                           ->data.get_lines_beginning_at({ line, 0 });
     std::string result(lexing::extract_line(remaining_text).first);
+    copy.pending_resume = context::copy_member_invocation::no_pending_resume;
     if (remaining_text.empty())
         copy.resume();
     else
         copy.suspend(line + 1);
-    suspend_resume = no_suspend_resume;
 
     while (!opencode_stack.empty() && !opencode_stack.back().suspended())
         opencode_stack.pop_back();
@@ -792,18 +792,14 @@ extract_next_logical_line_result opencode_provider::extract_next_logical_line_fr
 
     auto& opencode_copy_stack = m_ctx.hlasm_ctx->opencode_copy_stack();
 
-    if (const auto sr = std::exchange(suspend_resume, no_suspend_resume); sr != no_suspend_resume)
-    {
-        assert(!opencode_copy_stack.empty());
-        assert(opencode_copy_stack.back().suspended());
-        opencode_copy_stack.back().suspend(sr);
-    }
-
     while (!opencode_copy_stack.empty())
     {
         auto& copy_file = opencode_copy_stack.back();
         if (!copy_file.suspended())
             return extract_next_logical_line_result::failed; // copy processing resumed
+        if (const auto sr = std::exchange(copy_file.pending_resume, context::copy_member_invocation::no_pending_resume);
+            sr != context::copy_member_invocation::no_pending_resume)
+            opencode_copy_stack.back().suspend(sr);
         const auto line = copy_file.suspended_at;
 
         context::statement_id resync;
@@ -840,7 +836,7 @@ extract_next_logical_line_result opencode_provider::extract_next_logical_line_fr
 
         // The copybook needs to be re-suspended to allow for two-phase ordinary processing
         // On the second run the stmt_line == line will be true and copybook will resume
-        suspend_resume = line + m_current_logical_line.segments.size();
+        copy_file.pending_resume = line + m_current_logical_line.segments.size();
 
         return extract_next_logical_line_result::normal; // unaligned statement extracted
     }
@@ -870,8 +866,6 @@ extract_next_logical_line_result opencode_provider::extract_next_logical_line()
         if (!m_ctx.hlasm_ctx->opencode_copy_stack().empty())
             return extract_next_logical_line_from_copy_buffer();
     }
-
-    assert(suspend_resume == no_suspend_resume);
 
     if (m_next_line_index >= m_input_document.size())
         return extract_next_logical_line_result::failed;

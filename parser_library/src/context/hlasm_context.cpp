@@ -1012,6 +1012,7 @@ void hlasm_context::apply_source_snapshot(source_snapshot snapshot)
         auto& invo = last_copy_stack.emplace_back(copy);
         invo.current_statement = frame.statement_offset;
         invo.suspended_at = frame.suspended_at;
+        invo.pending_resume = frame.pending_resume;
     }
 }
 

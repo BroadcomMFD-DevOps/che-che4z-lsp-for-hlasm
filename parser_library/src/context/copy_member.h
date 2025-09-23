@@ -52,6 +52,9 @@ struct copy_member_invocation
     static constexpr size_t not_suspended = (size_t)-1;
     size_t suspended_at = not_suspended;
 
+    static constexpr std::size_t no_pending_resume = (std::size_t)-1;
+    std::size_t pending_resume = no_pending_resume;
+
     explicit copy_member_invocation(copy_member_ptr copy_member)
         : copy_member_definition(std::move(copy_member))
     {}
