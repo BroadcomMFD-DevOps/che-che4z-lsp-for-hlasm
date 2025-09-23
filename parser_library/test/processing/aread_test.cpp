@@ -714,3 +714,27 @@ TEST(aread, opencode_symbols)
 
     EXPECT_TRUE(matches_message_text(a.diags(), { "LOG", "AFTER", "LOG", "AFTER" }));
 }
+
+TEST(aread, continued_statement_includes_copybook)
+{
+    std::string input = R"(
+    MACRO
+    MAC
+&C  AREAD
+    MEND
+-INC COPYBOOK
+)";
+    mock_parse_lib_provider lib_provider {
+        { "COPYBOOK", R"(
+    COPY COPYBOOK
+    ANOP CONSUMED CONTINUED LINE                                       X
+               AGO .X
+    MAC
+)" },
+    };
+
+    analyzer a(input, analyzer_options { &lib_provider, endevor_preprocessor_options() });
+    a.analyze();
+
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "E062", "E047" }));
+}
