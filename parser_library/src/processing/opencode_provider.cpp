@@ -138,7 +138,7 @@ std::string opencode_provider::aread_from_copybook()
 {
     auto& opencode_stack = m_ctx.hlasm_ctx->opencode_copy_stack();
     auto& copy = opencode_stack.back();
-    const auto line = copy.suspended_at;
+    const auto line = copy.pending_resume != (size_t)-1 ? copy.pending_resume : copy.suspended_at;
     std::string_view remaining_text = m_ctx.lsp_ctx->get_file_info(copy.definition_location()->resource_loc)
                                           ->data.get_lines_beginning_at({ line, 0 });
     std::string result(lexing::extract_line(remaining_text).first);
