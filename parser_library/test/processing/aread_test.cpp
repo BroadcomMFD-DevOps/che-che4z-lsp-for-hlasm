@@ -738,3 +738,33 @@ TEST(aread, continued_statement_includes_copybook)
 
     EXPECT_TRUE(matches_message_codes(a.diags(), { "E062", "E047" }));
 }
+
+TEST(aread, macro_call_line_remainder)
+{
+    std::string input = R"(
+     MACRO
+     MAC
+&C   AREAD
+     MNOTE  0,'&C'
+     MEND
+*
+     COPY COPYBOOK
+)";
+    mock_parse_lib_provider lib_provider {
+        { "COPYBOOK", R"(
+     MAC
+     LINE1                                                             X
+     MAC
+     LINE2
+)" },
+    };
+
+    analyzer a(input, analyzer_options { &lib_provider, endevor_preprocessor_options() });
+    a.analyze();
+
+    EXPECT_TRUE(matches_message_text(a.diags(),
+        {
+            "     LINE1                                                             X        ",
+            "     LINE2                                                                      ",
+        }));
+}
