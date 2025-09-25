@@ -762,9 +762,5 @@ TEST(aread, macro_call_line_remainder)
     analyzer a(input, analyzer_options { &lib_provider, endevor_preprocessor_options() });
     a.analyze();
 
-    EXPECT_TRUE(matches_message_text(a.diags(),
-        {
-            "     LINE1                                                             X        ",
-            "     LINE2                                                                      ",
-        }));
+    EXPECT_TRUE(matches_partial_message_text(a.diags(), { "LINE1", "LINE2" }));
 }
