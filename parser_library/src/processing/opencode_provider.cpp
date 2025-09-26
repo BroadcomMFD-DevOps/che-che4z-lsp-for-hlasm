@@ -134,7 +134,7 @@ utils::value_task<std::string> opencode_provider::deferred_aread(utils::task pre
     co_return try_aread_from_document();
 }
 
-std::string opencode_provider::aread_from_copybook()
+std::string opencode_provider::aread_from_copybook() const
 {
     auto& opencode_stack = m_ctx.hlasm_ctx->opencode_copy_stack();
     auto& copy = opencode_stack.back();

@@ -235,7 +235,7 @@ private:
     [[nodiscard]] utils::task start_nested_parser(
         std::string_view text, analyzer_options opts, context::id_index vf_name, size_t skipped) const;
 
-    std::string aread_from_copybook();
+    std::string aread_from_copybook() const;
     std::string try_aread_from_document();
 
     [[nodiscard]] utils::value_task<std::string> deferred_aread(utils::task prep_task);
