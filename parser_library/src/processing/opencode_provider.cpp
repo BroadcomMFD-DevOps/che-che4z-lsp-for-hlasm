@@ -677,7 +677,7 @@ context::shared_stmt_ptr opencode_provider::get_next(const statement_processor& 
     auto operands = [](auto op) {
         auto&& [p1, p2, p3] = op;
         return op_data { std::move(p1), std::move(p2), std::move(p3) };
-    }(lookahead ? ph.look_lab_instr() : ph.lab_instr());
+    }(ph.lab_instr());
     ph.collector.resolve_first_part();
 
     if (!ph.collector.has_instruction())
