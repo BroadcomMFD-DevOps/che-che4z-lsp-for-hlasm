@@ -326,3 +326,21 @@ P   EQU 0,,,,X
 
     EXPECT_TRUE(matches_message_codes(a.diags(), { "A135" }));
 }
+
+TEST(EQU, deferred)
+{
+    std::string input = R"(
+D   DSECT
+    DS  XL(X)
+A   DC  CL32' '
+B   EQU A+8
+X   EQU 8
+)";
+
+    analyzer a(input);
+    a.analyze();
+
+    EXPECT_TRUE(a.diags().empty());
+
+    EXPECT_EQ(get_symbol_address(a.hlasm_ctx(), "B"), std::pair(16, "D"));
+}
