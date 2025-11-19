@@ -167,7 +167,7 @@ processing_status macrodef_processor::get_macro_processing_status(
             };
             assert(static_cast<uint8_t>((*ca_instr)->subtype()) < std::size(forms));
             processing_format format(processing_kind::MACRO,
-                forms[(*ca_instr)->subtype()],
+                forms[static_cast<uint8_t>((*ca_instr)->subtype())],
                 (*ca_instr)->operandless() ? operand_occurrence::ABSENT : operand_occurrence::PRESENT);
 
             return std::make_pair(format, op_code(code.opcode, context::instruction_type::CA));
