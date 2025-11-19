@@ -393,7 +393,7 @@ public:
 };
 extern constinit const machine_instruction g_machine_instructions[];
 
-enum ca_instruction_subtype : uint8_t
+enum class ca_instruction_subtype : uint8_t
 {
     GENERIC,
     VARDEF,
