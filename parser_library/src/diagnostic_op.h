@@ -675,6 +675,10 @@ struct diagnostic_op
 
     static diagnostic_op error_E081(const range& range);
 
+    static diagnostic_op error_E082(const range& range);
+
+    static diagnostic_op error_E083(const range& range, std::string_view func);
+
     static diagnostic_op warning_W010(std::string_view message, const range& range);
 
     static diagnostic_op warning_W011(const range& range);
@@ -802,6 +806,9 @@ struct diagnostic_op
     static diagnostic_op error_U006_duplicate_base_specified(const range& range);
 
     static diagnostic_op mnote_diagnostic(unsigned level, std::string_view message, const range& range);
+
+    static diagnostic_op ext_diagnostic(
+        unsigned level, std::string_view func_name, std::string_view message, const range& range);
 
     static diagnostic_op error_S0001(const range& range);
 

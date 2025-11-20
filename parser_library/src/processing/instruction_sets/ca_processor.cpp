@@ -19,13 +19,11 @@
 #include <utility>
 
 #include "aread_time.h"
-#include "checking/asm_instr_check.h"
 #include "context/hlasm_context.h"
 #include "context/variables/set_symbol.h"
 #include "context/well_known.h"
 #include "expressions/conditional_assembly/terms/ca_symbol.h"
 #include "external_functions.h"
-#include "output_handler.h"
 #include "processing/branching_provider.h"
 #include "processing/handler_map.h"
 #include "processing/opencode_provider.h"
@@ -700,48 +698,43 @@ void ca_processor::process_MHELP(const processing::resolved_statement& stmt)
         hlasm_ctx.sysndx_limit(std::min((unsigned long)value, context::hlasm_context::sysndx_limit_max()));
 }
 
-const external_function* ca_processor::find_external_function(const semantics::operand& op) const noexcept
+const std::pair<const external_function*, std::string> ca_processor::find_external_function(
+    const semantics::operand& op) const noexcept
 {
     const auto* func_name_op = op.access_ca();
     if (!func_name_op || func_name_op->kind != semantics::ca_kind::EXPR)
     {
-        // TODO: message
-        return nullptr;
+        add_diagnostic(diagnostic_op::error_E082(op.operand_range));
+        return {};
     }
     auto func_name = func_name_op->access_expr()->expression->evaluate(eval_ctx);
 
     using enum context::SET_t_enum;
     if (func_name.type() != C_TYPE)
     {
-        // TODO: message
-        return nullptr;
+        add_diagnostic(diagnostic_op::error_E082(op.operand_range));
+        return {};
     }
     const auto* func = ctx.hlasm_ctx->get_external_function(utils::to_upper(func_name.access_c()));
     if (!func)
     {
-        // TODO: message
-        return nullptr;
+        add_diagnostic(diagnostic_op::error_E083(op.operand_range, func_name.access_c()));
+        return {};
     }
 
-    return func;
+    return { func, std::move(func_name.access_c()) };
 }
 
-void ca_processor::process_external_message(const std::pair<uint8_t, std::string>& message, const range& r) const
+void ca_processor::process_external_message(
+    const std::pair<uint8_t, std::string>& message, std::string_view func_name, const range& r) const
 {
-    const auto& [level, text_string] = message;
-    std::string_view text = text_string;
-
-    if (text.size() > checking::MNOTE_max_operands_length)
-    {
-        add_diagnostic(diagnostic_op::error_A117_MNOTE_message_size(r));
-        text = text.substr(0, checking::MNOTE_max_operands_length);
-    }
+    const auto& [level, text] = message;
 
     std::string sanitized;
     sanitized.reserve(text.size());
     utils::append_utf8_sanitized(sanitized, text);
 
-    add_diagnostic(diagnostic_op::mnote_diagnostic(level, sanitized, r));
+    add_diagnostic(diagnostic_op::ext_diagnostic(level, func_name, sanitized, r));
 
     hlasm_ctx.update_mnote_max(level);
 }
@@ -760,7 +753,7 @@ void ca_processor::process_SETAF(const resolved_statement& stmt)
         return;
     }
 
-    const auto* func = find_external_function(*ops.front());
+    const auto [func, func_name] = find_external_function(*ops.front());
     if (!func)
         return;
 
@@ -799,8 +792,8 @@ void ca_processor::process_SETAF(const resolved_statement& stmt)
 
     (*func)(func_args);
 
-    if (func_args.message)
-        process_external_message(*func_args.message, stmt.instruction_ref().field_range);
+    if (auto& message = func_args.message(); message)
+        process_external_message(*message, func_name, stmt.instruction_ref().field_range);
 
     auto& val = set_symbol->template access_set_symbol<context::A_t>()->reserve_value(index);
     val = typed_arg.result;
@@ -820,7 +813,7 @@ void ca_processor::process_SETCF(const resolved_statement& stmt)
         return;
     }
 
-    const auto* func = find_external_function(*ops.front());
+    const auto [func, func_name] = find_external_function(*ops.front());
     if (!func)
         return;
 
@@ -859,14 +852,18 @@ void ca_processor::process_SETCF(const resolved_statement& stmt)
 
     (*func)(func_args);
 
-    if (func_args.message)
-        process_external_message(*func_args.message, stmt.instruction_ref().field_range);
+    if (auto& message = func_args.message(); message)
+        process_external_message(*message, func_name, stmt.instruction_ref().field_range);
 
     auto& val = set_symbol->template access_set_symbol<context::C_t>()->reserve_value(index);
 
-    // TODO: length check and sanitization
+    static constexpr size_t external_string_limit = 1024;
 
-    val = std::move(typed_arg.result);
+    auto res = utils::replace_non_utf8_chars(std::string_view(typed_arg.result).substr(0, 4 * external_string_limit));
+    const auto [truncated, _, __, ___] = utils::utf8_substr(res, 0, external_string_limit);
+    res.erase(truncated.size());
+
+    val = std::move(res);
 }
 
 } // namespace hlasm_plugin::parser_library::processing

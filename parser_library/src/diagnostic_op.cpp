@@ -2207,6 +2207,16 @@ diagnostic_op diagnostic_op::error_E081(const range& range)
     return diagnostic_op(diagnostic_severity::error, "E081", "SYSLIST limit (2G) reached", range);
 }
 
+diagnostic_op diagnostic_op::error_E082(const range& range)
+{
+    return diagnostic_op(diagnostic_severity::error, "E082", "External function name expected", range);
+}
+
+diagnostic_op diagnostic_op::error_E083(const range& range, std::string_view func)
+{
+    return diagnostic_op(diagnostic_severity::error, "E083", concat("External function not defined: ", func), range);
+}
+
 diagnostic_op diagnostic_op::warning_W010(std::string_view message, const range& range)
 {
     return diagnostic_op(diagnostic_severity::warning, "W010", concat(message, " not expected"), range);
@@ -2585,6 +2595,16 @@ diagnostic_op diagnostic_op::mnote_diagnostic(unsigned level, std::string_view m
                                 : diagnostic_severity::hint;
     const auto tag = level >= 2 ? diagnostic_tag::none : diagnostic_tag::unnecessary;
     return diagnostic_op(lvl, "MNOTE", std::string(message), range, tag);
+}
+
+diagnostic_op diagnostic_op::ext_diagnostic(
+    unsigned level, std::string_view func_name, std::string_view message, const range& range)
+{
+    const auto lvl = level >= 8 ? diagnostic_severity::error
+        : level >= 4            ? diagnostic_severity::warning
+        : level >= 2            ? diagnostic_severity::info
+                                : diagnostic_severity::hint;
+    return diagnostic_op(lvl, "EXT", concat("External function ", func_name, ": ", message), range);
 }
 
 diagnostic_op diagnostic_op::error_S0001(const range& range)

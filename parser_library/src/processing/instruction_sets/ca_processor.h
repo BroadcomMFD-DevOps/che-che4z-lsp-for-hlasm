@@ -110,8 +110,10 @@ private:
     void process_SETAF(const processing::resolved_statement& stmt);
     void process_SETCF(const processing::resolved_statement& stmt);
 
-    const external_function* find_external_function(const semantics::operand& op) const noexcept;
-    void process_external_message(const std::pair<uint8_t, std::string>& message, const range& r) const;
+    const std::pair<const external_function*, std::string> find_external_function(
+        const semantics::operand& op) const noexcept;
+    void process_external_message(
+        const std::pair<uint8_t, std::string>& message, std::string_view func_name, const range& r) const;
 };
 
 } // namespace hlasm_plugin::parser_library::processing

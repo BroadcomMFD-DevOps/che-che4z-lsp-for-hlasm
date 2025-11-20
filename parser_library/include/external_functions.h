@@ -31,7 +31,7 @@ enum class external_function_type
     character,
 };
 
-struct external_function_args
+class external_function_args
 {
     struct arithmetic_t
     {
@@ -44,21 +44,24 @@ struct external_function_args
         std::string result;
     };
 
-    std::variant<arithmetic_t, character_t> data;
-    std::optional<std::pair<uint8_t, std::string>> message;
+    std::variant<arithmetic_t, character_t> m_data;
+    std::optional<std::pair<uint8_t, std::string>> m_message;
 
+public:
     explicit constexpr external_function_args(std::span<const int32_t> args) noexcept
-        : data(std::in_place_type<arithmetic_t>, args)
+        : m_data(std::in_place_type<arithmetic_t>, args)
     {}
 
     explicit constexpr external_function_args(std::span<const std::string_view> args) noexcept
-        : data(std::in_place_type<character_t>, args)
+        : m_data(std::in_place_type<character_t>, args)
     {}
 
-    auto type() const noexcept { return static_cast<external_function_type>(data.index()); }
+    auto type() const noexcept { return static_cast<external_function_type>(m_data.index()); }
 
-    auto* arithmetic() noexcept { return std::get_if<arithmetic_t>(&data); }
-    auto* character() noexcept { return std::get_if<character_t>(&data); }
+    auto* arithmetic() noexcept { return std::get_if<arithmetic_t>(&m_data); }
+    auto* character() noexcept { return std::get_if<character_t>(&m_data); }
+
+    auto& message() noexcept { return m_message; }
 };
 
 class external_function
@@ -68,7 +71,7 @@ class external_function
 public:
     template<std::convertible_to<std::function<void(external_function_args&)>> T>
     explicit(false) external_function(T&& func) noexcept
-        : m_func(std::move(func))
+        : m_func(std::forward<T>(func))
     {}
 
     void operator()(external_function_args& arg) const { m_func(arg); }
