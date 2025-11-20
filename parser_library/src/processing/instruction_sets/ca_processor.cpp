@@ -698,7 +698,7 @@ void ca_processor::process_MHELP(const processing::resolved_statement& stmt)
         hlasm_ctx.sysndx_limit(std::min((unsigned long)value, context::hlasm_context::sysndx_limit_max()));
 }
 
-const std::pair<const external_function*, std::string> ca_processor::find_external_function(
+std::pair<const external_function*, std::string> ca_processor::find_external_function(
     const semantics::operand& op) const noexcept
 {
     const auto* func_name_op = op.access_ca();
@@ -791,7 +791,7 @@ void ca_processor::process_SETAF(const resolved_statement& stmt)
         args.pop_back();
 
     external_function_args func_args(args);
-    auto& typed_arg = *func_args.arithmetic();
+    const auto& typed_arg = *func_args.arithmetic();
 
     (*func)(func_args);
 
@@ -854,7 +854,7 @@ void ca_processor::process_SETCF(const resolved_statement& stmt)
 
     const std::vector<std::string_view> views(args.begin(), args.end());
     external_function_args func_args(views);
-    auto& typed_arg = *func_args.character();
+    const auto& typed_arg = *func_args.character();
 
     (*func)(func_args);
 

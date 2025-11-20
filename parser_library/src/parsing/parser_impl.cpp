@@ -3106,7 +3106,7 @@ std::pair<bool, semantics::operand_ptr> parser2::ca_branch_ops(parser_position s
         return { true, std::make_unique<semantics::seq_ca_operand>(std::move(ss), r) };
 }
 
-std::pair<bool, semantics::operand_ptr> parser2::ca_var_def_ops(parser_position start, size_t i)
+std::pair<bool, semantics::operand_ptr> parser2::ca_var_def_ops(parser_position start, size_t)
 {
     (void)try_consume<u8'&'>();
     auto [error, var_name] = lex_variable_name(start);
