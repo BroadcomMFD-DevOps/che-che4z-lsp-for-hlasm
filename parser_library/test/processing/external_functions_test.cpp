@@ -47,6 +47,21 @@ auto test_character_external_adder()
         },
     };
 }
+
+auto test_counter_external()
+{
+    return external_functions_list {
+        {
+            "ADD",
+            [](external_function_args& args) {
+                if (auto* aarg = args.arithmetic())
+                    aarg->result = static_cast<A_t>(aarg->args.size());
+                if (auto* carg = args.character())
+                    carg->result = std::string(carg->args.size(), 'X');
+            },
+        },
+    };
+}
 } // namespace
 
 TEST(external_functions, arithmetic)
@@ -279,4 +294,122 @@ TEST(external_functions, arithmetic_boolean)
     EXPECT_TRUE(a.diags().empty());
 
     EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "A"), 2);
+}
+
+TEST(external_functions, arithmetic_empty_args_1)
+{
+    std::string input(R"(
+&A  SETAF 'ADD',
+)");
+    analyzer a(input, analyzer_options(test_counter_external()));
+    a.analyze();
+
+    EXPECT_TRUE(a.diags().empty());
+
+    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "A"), 0);
+}
+
+TEST(external_functions, arithmetic_empty_args_2)
+{
+    std::string input(R"(
+&A  SETAF 'ADD',,
+)");
+    analyzer a(input, analyzer_options(test_counter_external()));
+    a.analyze();
+
+    EXPECT_TRUE(a.diags().empty());
+
+    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "A"), 1);
+}
+
+TEST(external_functions, character_wrong_args)
+{
+    std::string input(R"(
+&A  SETA  5
+&C  SETCF 'ADD',&A
+)");
+    analyzer a(input, analyzer_options(test_character_external_adder()));
+    a.analyze();
+
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "E013", "CE017" }));
+}
+
+TEST(external_functions, character_expr_1)
+{
+    std::string input(R"(
+&C  SETC  'x'
+&R  SETCF 'ADD',UPPER('&C')
+)");
+    analyzer a(input, analyzer_options(test_character_external_adder()));
+    a.analyze();
+
+    EXPECT_TRUE(a.diags().empty());
+
+    EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "R"), "X");
+}
+
+TEST(external_functions, character_expr_2)
+{
+    std::string input(R"(
+&C  SETC  'X'
+&R  SETCF 'ADD','&C'.'&C'
+)");
+    analyzer a(input, analyzer_options(test_character_external_adder()));
+    a.analyze();
+
+    EXPECT_TRUE(a.diags().empty());
+
+    EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "R"), "XX");
+}
+
+TEST(external_functions, character_self_reference)
+{
+    std::string input(R"(
+&C  SETCF 'ADD','&C','&C'
+)");
+    analyzer a(input, analyzer_options(test_character_external_adder()));
+    a.analyze();
+
+    EXPECT_TRUE(a.diags().empty());
+
+    EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "C"), "");
+}
+
+TEST(external_functions, character_array)
+{
+    std::string input(R"(
+&C(1) SETCF 'ADD','A','B'
+)");
+    analyzer a(input, analyzer_options(test_character_external_adder()));
+    a.analyze();
+
+    EXPECT_TRUE(a.diags().empty());
+
+    EXPECT_EQ(get_var_vector<C_t>(a.hlasm_ctx(), "C"), std::vector(1, std::string("AB")));
+}
+
+TEST(external_functions, character_empty_args_1)
+{
+    std::string input(R"(
+&C  SETCF 'ADD',
+)");
+    analyzer a(input, analyzer_options(test_counter_external()));
+    a.analyze();
+
+    EXPECT_TRUE(a.diags().empty());
+
+    EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "C"), "");
+}
+
+TEST(external_functions, character_empty_args_2)
+{
+    std::string input(R"(
+&C  SETCF 'ADD',,
+)");
+    analyzer a(input, analyzer_options(test_counter_external()));
+    a.analyze();
+
+    EXPECT_TRUE(a.diags().empty());
+
+    EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "C"), "X");
 }
