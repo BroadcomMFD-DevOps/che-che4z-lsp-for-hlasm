@@ -763,7 +763,7 @@ void ca_processor::process_SETAF(const resolved_statement& stmt)
     {
         if (op->type == semantics::operand_type::EMPTY)
         {
-            args.emplace_back();
+            args.push_back(0);
             continue;
         }
 
@@ -798,7 +798,7 @@ void ca_processor::process_SETAF(const resolved_statement& stmt)
     if (auto& message = func_args.message(); message)
         process_external_message(*message, func_name, stmt.instruction_ref().field_range);
 
-    auto& val = set_symbol->template access_set_symbol<context::A_t>()->reserve_value(index);
+    auto& val = set_symbol->access_set_symbol<context::A_t>()->reserve_value(index);
     val = typed_arg.result;
 }
 
@@ -861,7 +861,7 @@ void ca_processor::process_SETCF(const resolved_statement& stmt)
     if (auto& message = func_args.message(); message)
         process_external_message(*message, func_name, stmt.instruction_ref().field_range);
 
-    auto& val = set_symbol->template access_set_symbol<context::C_t>()->reserve_value(index);
+    auto& val = set_symbol->access_set_symbol<context::C_t>()->reserve_value(index);
 
     static constexpr size_t external_string_limit = 1024;
 
