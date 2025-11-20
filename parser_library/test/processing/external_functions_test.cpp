@@ -12,9 +12,12 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
+#include <array>
+
 #include "gtest/gtest.h"
 
 #include "../common_testing.h"
+#include "diagnostic.h"
 
 TEST(external_functions, arithmetic)
 {
@@ -26,11 +29,9 @@ TEST(external_functions, arithmetic)
             {
                 "ADD",
                 [](external_function_args& args) {
-                    auto* aarg = args.arithmetic();
-                    if (!aarg)
-                        return;
-                    for (auto x : aarg->args)
-                        aarg->result += x;
+                    if (auto* aarg = args.arithmetic())
+                        for (auto x : aarg->args)
+                            aarg->result += x;
                 },
             },
         }));
@@ -53,11 +54,9 @@ TEST(external_functions, character)
             {
                 "ADD",
                 [](external_function_args& arg) {
-                    auto* carg = arg.character();
-                    if (!carg)
-                        return;
-                    for (auto x : carg->args)
-                        carg->result += x;
+                    if (auto* carg = arg.character())
+                        for (auto x : carg->args)
+                            carg->result += x;
                 },
             },
         }));
@@ -68,4 +67,99 @@ TEST(external_functions, character)
     auto& ctx = a.hlasm_ctx();
 
     EXPECT_EQ(get_var_value<C_t>(ctx, "A"), "AB");
+}
+
+TEST(external_functions, message)
+{
+    std::string input(R"(
+&A  SETAF 'MSG',1,2
+)");
+    analyzer a(input,
+        analyzer_options(external_functions_list {
+            { "MSG", [](external_function_args& args) { args.message().emplace(3, "EXTERNAL"); } },
+        }));
+    a.analyze();
+
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "EXT" }));
+    EXPECT_TRUE(matches_message_text(a.diags(), { "External function MSG: EXTERNAL" }));
+    EXPECT_TRUE(matches_message_properties(a.diags(), { range({ 1, 4 }, { 1, 9 }) }, &diagnostic::diag_range));
+    EXPECT_TRUE(matches_message_properties(a.diags(), { diagnostic_severity::info }, &diagnostic::severity));
+}
+
+TEST(external_functions, indirect)
+{
+    std::string input(R"(
+&F  SETC  'MSG'
+&A  SETAF '&F'
+)");
+    analyzer a(input,
+        analyzer_options(external_functions_list {
+            { "MSG", [](external_function_args& args) { args.message().emplace(3, "EXTERNAL"); } },
+        }));
+    a.analyze();
+
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "EXT" }));
+}
+
+TEST(external_functions, missing_function_name)
+{
+    std::string input(R"(
+&A  SETAF
+&C  SETCF
+)");
+    analyzer a(input);
+    a.analyze();
+
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "E022", "E022" }));
+}
+
+TEST(external_functions, missing_function)
+{
+    std::string input(R"(
+&A  SETAF 'EXT'
+&C  SETCF 'EXT'
+)");
+    analyzer a(input);
+    a.analyze();
+
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "E083", "E083" }));
+}
+
+TEST(external_functions, function_not_a_string_1)
+{
+    std::string input(R"(
+EXT EQU   0
+&A  SETAF EXT
+&C  SETCF EXT
+)");
+    analyzer a(input);
+    a.analyze();
+
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "E082", "E082", "CE004", "CE004" }));
+}
+
+TEST(external_functions, function_not_a_string_2)
+{
+    std::string input(R"(
+&A  SETA  0
+&A  SETAF &A
+&C  SETCF &A
+)");
+    analyzer a(input);
+    a.analyze();
+
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "E082", "E082", "CE017", "CE017" }));
+}
+
+TEST(external_functions, function_not_a_string_3)
+{
+    std::string input(R"(
+&F  SETC  'F'
+&A  SETAF &F
+&C  SETCF &F
+)");
+    analyzer a(input, analyzer_options(external_functions_list { { "F", [](auto&) {} } }));
+    a.analyze();
+
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "CE017", "CE017" }));
 }
