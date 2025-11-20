@@ -70,12 +70,13 @@ class external_function
     std::function<void(external_function_args&)> m_func;
 
 public:
-#if defined(_LIBCPP_VERSION) && _LIBCPP_VERSION < 21000
+#if defined(_LIBCPP_VERSION) && _LIBCPP_VERSION < 210000
     template<typename T>
 #else
     template<std::convertible_to<std::function<void(external_function_args&)>> T>
 #endif
     explicit(false) external_function(T&& func) noexcept
+        requires(!std::same_as<external_function, std::remove_cvref_t<T>>)
         : m_func(std::forward<T>(func))
     {}
 
