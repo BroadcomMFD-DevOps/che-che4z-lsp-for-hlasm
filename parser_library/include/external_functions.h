@@ -15,6 +15,7 @@
 #ifndef HLASMPARSER_PARSERLIBRARY_EXTERNAL_FUNCTIONS_H
 #define HLASMPARSER_PARSERLIBRARY_EXTERNAL_FUNCTIONS_H
 
+#include <concepts>
 #include <cstdint>
 #include <functional>
 #include <optional>
