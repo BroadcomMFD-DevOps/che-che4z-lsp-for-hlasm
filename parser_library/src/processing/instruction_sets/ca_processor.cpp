@@ -787,7 +787,7 @@ void ca_processor::process_SETAF(const resolved_statement& stmt)
         args.push_back(evaluated.access_a());
     }
 
-    if (!ops.empty() && ops.back()->type == semantics::operand_type::EMPTY) // last empty operand ignored
+    if (ops.back()->type == semantics::operand_type::EMPTY) // last empty operand ignored
         args.pop_back();
 
     external_function_args func_args(args);
@@ -849,7 +849,7 @@ void ca_processor::process_SETCF(const resolved_statement& stmt)
         args.push_back(std::move(evaluated.access_c()));
     }
 
-    if (!ops.empty() && ops.back()->type == semantics::operand_type::EMPTY) // last empty operand ignored
+    if (ops.back()->type == semantics::operand_type::EMPTY) // last empty operand ignored
         args.pop_back();
 
     const std::vector<std::string_view> views(args.begin(), args.end());
