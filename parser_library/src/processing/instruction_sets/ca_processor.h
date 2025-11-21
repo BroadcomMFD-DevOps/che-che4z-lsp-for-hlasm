@@ -19,7 +19,6 @@
 
 namespace hlasm_plugin::parser_library {
 class external_function;
-class output_handler;
 } // namespace hlasm_plugin::parser_library
 namespace hlasm_plugin::parser_library::context {
 class set_symbol_base;

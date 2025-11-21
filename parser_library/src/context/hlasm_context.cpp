@@ -1225,10 +1225,10 @@ bool hlasm_context::add_external_function(std::string_view name, external_functi
     return inserted;
 }
 
-const external_function* hlasm_context::get_external_function(std::string_view name) const noexcept
+const external_function* hlasm_context::find_external_function(std::string_view name) const noexcept
 {
     const auto it = m_external_functions.find(name);
-    if (it == m_external_functions.cend())
+    if (it == m_external_functions.end())
         return nullptr;
     return &it->second;
 }

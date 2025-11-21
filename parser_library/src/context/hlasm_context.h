@@ -359,7 +359,7 @@ public:
     void validate_psect_registrations(diagnostic_consumer& diags);
 
     bool add_external_function(std::string_view name, external_function func);
-    const external_function* get_external_function(std::string_view) const noexcept;
+    const external_function* find_external_function(std::string_view) const noexcept;
 };
 
 bool test_symbol_for_read(const variable_symbol* var,

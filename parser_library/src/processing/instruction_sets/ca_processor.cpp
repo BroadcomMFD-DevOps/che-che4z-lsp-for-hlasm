@@ -715,7 +715,7 @@ std::pair<const external_function*, std::string> ca_processor::find_external_fun
         add_diagnostic(diagnostic_op::error_E082(op.operand_range));
         return {};
     }
-    const auto* func = ctx.hlasm_ctx->get_external_function(utils::to_upper(func_name.access_c()));
+    const auto* func = ctx.hlasm_ctx->find_external_function(utils::to_upper(func_name.access_c()));
     if (!func)
     {
         add_diagnostic(diagnostic_op::error_E083(op.operand_range, func_name.access_c()));
