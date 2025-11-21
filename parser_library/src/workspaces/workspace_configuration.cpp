@@ -260,6 +260,15 @@ struct json_settings_replacer
 };
 
 const std::regex json_settings_replacer::config_reference(R"(\$\{([^}]+)\})");
+
+bool external_function_names_are_unique(const std::vector<config::external_function>& l)
+{
+    std::vector<std::string> names;
+    names.reserve(l.size());
+    std::ranges::transform(l, std::back_inserter(names), utils::to_upper_copy, &config::external_function::name);
+    std::ranges::sort(names);
+    return std::ranges::unique(names).begin() == names.end();
+}
 } // namespace
 
 workspace_configuration::workspace_configuration(file_manager& fm,
@@ -670,10 +679,16 @@ workspace_configuration::load_proc_config(
         co_return { parse_config_file_result::error, config_source };
     }
 
+    if (proc_groups.external_functions && !external_function_names_are_unique(*proc_groups.external_functions))
+    {
+        diags.push_back(error_W0009(config_source, ""));
+        proc_groups.external_functions.reset();
+    }
+
     for (const auto& var : json_visitor.unavailable)
         diags.push_back(warn_W0007(config_source, var));
 
-    for (const auto& pg : proc_groups.pgroups)
+    for (auto& pg : proc_groups.pgroups)
     {
         if (!pg.asm_options.valid())
             diags.push_back(error_W0005(config_source, pg.name, "processor group"));
@@ -681,6 +696,11 @@ workspace_configuration::load_proc_config(
         {
             if (!p.valid())
                 diags.push_back(error_W0006(config_source, pg.name, p.type()));
+        }
+        if (pg.external_functions && !external_function_names_are_unique(*pg.external_functions))
+        {
+            diags.push_back(error_W0009(config_source, pg.name));
+            pg.external_functions.reset();
         }
     }
 
