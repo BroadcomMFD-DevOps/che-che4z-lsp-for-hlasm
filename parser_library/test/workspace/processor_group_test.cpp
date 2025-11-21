@@ -12,10 +12,13 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
+#include <ranges>
+
 #include "gtest/gtest.h"
 
 #include "../common_testing.h"
 #include "config/proc_grps.h"
+#include "external_functions.h"
 #include "library_mock.h"
 #include "workspaces/library.h"
 #include "workspaces/processor_group.h"
@@ -298,4 +301,38 @@ TEST(processor_group, refresh_needed)
     EXPECT_FALSE(should_be_refreshed(grp, resource_location("test://workspace/externals/library3")));
     // not used
     EXPECT_FALSE(should_be_refreshed(grp, resource_location("test://workspace/externals/library4")));
+}
+
+TEST(processor_group, external_functions)
+{
+    const config::external_function functions[] = {
+        { .name = "A", .value = 1 },
+        { .name = "C", .value = "X" },
+    };
+    processor_group p("", {}, {}, functions);
+
+    const auto& A = std::views::filter(p.external_functions(), [](const auto& x) { return x.first == "A"; }).front();
+    const auto& C = std::views::filter(p.external_functions(), [](const auto& x) { return x.first == "C"; }).front();
+
+    {
+        external_function_args aargs((std::span<const int32_t>()));
+
+        A.second(aargs);
+        EXPECT_EQ(aargs.arithmetic()->result, 1);
+        EXPECT_FALSE(aargs.message());
+
+        C.second(aargs);
+        EXPECT_EQ(aargs.message(), std::pair(8, std::string("SETCF call expected")));
+    }
+
+    {
+        external_function_args cargs((std::span<const std::string_view>()));
+
+        C.second(cargs);
+        EXPECT_EQ(cargs.character()->result, "X");
+        EXPECT_FALSE(cargs.message());
+
+        A.second(cargs);
+        EXPECT_EQ(cargs.message(), std::pair(8, std::string("SETAF call expected")));
+    }
 }
