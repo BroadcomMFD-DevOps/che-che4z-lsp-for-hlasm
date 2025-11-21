@@ -261,7 +261,7 @@ struct json_settings_replacer
 
 const std::regex json_settings_replacer::config_reference(R"(\$\{([^}]+)\})");
 
-bool external_function_names_are_unique(const std::vector<config::external_function>& l)
+bool external_function_names_are_unique(std::span<const config::external_function> l)
 {
     std::vector<std::string> names;
     names.reserve(l.size());
@@ -688,7 +688,7 @@ workspace_configuration::load_proc_config(
         co_return { parse_config_file_result::error, config_source };
     }
 
-    if (proc_groups.external_functions && !external_function_names_are_unique(*proc_groups.external_functions))
+    if (!external_function_names_are_unique(as_span(proc_groups.external_functions)))
     {
         diags.push_back(error_W0009(config_source, ""));
         proc_groups.external_functions.reset();
@@ -708,7 +708,7 @@ workspace_configuration::load_proc_config(
         }
         if (!pg.external_functions && proc_groups.external_functions)
             pg.external_functions = proc_groups.external_functions;
-        else if (pg.external_functions && !external_function_names_are_unique(*pg.external_functions))
+        else if (!external_function_names_are_unique(as_span(pg.external_functions)))
         {
             diags.push_back(error_W0009(config_source, pg.name));
             pg.external_functions.reset();
