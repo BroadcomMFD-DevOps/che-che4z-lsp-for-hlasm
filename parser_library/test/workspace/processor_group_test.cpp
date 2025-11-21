@@ -29,7 +29,7 @@ using hlasm_plugin::utils::resource::resource_location;
 auto asm_options(config::assembler_options o)
 {
     asm_option result;
-    processor_group("", std::move(o), {}).apply_options_to(result);
+    processor_group("", std::move(o), {}, {}).apply_options_to(result);
     return result;
 }
 
@@ -39,7 +39,8 @@ auto pp_options(Opts... o)
     return processor_group("",
         {},
         { config::preprocessor_options {
-            .options = decltype(config::preprocessor_options::options)(std::move(o)) }... })
+            .options = decltype(config::preprocessor_options::options)(std::move(o)) }... },
+        {})
         .preprocessors();
 }
 
@@ -245,7 +246,7 @@ TEST(processor_group, opcode_suggestions)
         });
     EXPECT_CALL(*lib, get_location).WillOnce(ReturnRef(lib_loc));
 
-    processor_group grp("", {}, {});
+    processor_group grp("", {}, {}, {});
     grp.add_library(lib);
 
     auto mac_false = grp.suggest("MAC", false);
@@ -278,7 +279,7 @@ TEST(processor_group, refresh_needed)
     resource_location lib3_res_loc("test://workspace/externals/library3/");
     auto lib3 = make_expectations(lib3_res_loc, false);
 
-    processor_group grp("", {}, {});
+    processor_group grp("", {}, {}, {});
     grp.add_library(lib1);
     grp.add_library(lib2);
     grp.add_library(lib3);
