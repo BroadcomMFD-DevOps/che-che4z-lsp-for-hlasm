@@ -397,7 +397,7 @@ void external_functions_from_json(const nlohmann::json& j, std::optional<std::ve
         if (!it->is_object())
             throw nlohmann::json::other_error::create(501, "External functions object expected", &j);
 
-        target.emplace(static_cast<std::vector<external_function>>(it.value()));
+        target.emplace(it.value().get<std::vector<external_function>>());
     }
 }
 

@@ -144,6 +144,8 @@ struct external_function
 {
     std::string name;
     std::variant<int32_t, std::string> value;
+
+    friend bool operator==(const external_function&, const external_function&) = default;
 };
 void to_json(nlohmann::json& j, const std::vector<external_function>& p);
 void from_json(const nlohmann::json& j, std::vector<external_function>& p);
