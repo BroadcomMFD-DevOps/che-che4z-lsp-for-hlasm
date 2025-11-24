@@ -86,8 +86,6 @@ struct diagnostic_limit
     size_t limit = static_cast<size_t>(-1);
 };
 
-using external_functions_list = std::vector<std::pair<std::string, external_function>>;
-
 class analyzer_options
 {
     class dependency_data

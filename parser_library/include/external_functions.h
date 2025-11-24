@@ -82,6 +82,9 @@ public:
 
     void operator()(external_function_args& arg) const { m_func(arg); }
 };
+
+using external_functions_list = std::vector<std::pair<std::string, external_function>>;
+
 } // namespace hlasm_plugin::parser_library
 
 #endif
