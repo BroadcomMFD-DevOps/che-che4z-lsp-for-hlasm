@@ -413,3 +413,32 @@ TEST(external_functions, character_empty_args_2)
 
     EXPECT_EQ(get_var_value<C_t>(a.hlasm_ctx(), "C"), "X");
 }
+
+TEST(external_functions, unique_names)
+{
+    EXPECT_THROW(
+        {
+            analyzer a("",
+                analyzer_options(external_functions_list {
+                    { "a", [](auto&) {} },
+                    { "A", [](auto&) {} },
+                }));
+        },
+        std::logic_error);
+}
+
+TEST(external_functions, truncated_output)
+{
+    analyzer a("&C SETCF 'A'",
+        analyzer_options(external_functions_list {
+            { "A",
+                [](external_function_args& args) {
+                    if (auto* cargs = args.character())
+                        cargs->result = std::string(4096, 'X');
+                } },
+        }));
+
+    a.analyze();
+
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "W019" }));
+}

@@ -869,6 +869,9 @@ void ca_processor::process_SETCF(const resolved_statement& stmt)
     const auto [truncated, _, __, ___] = utils::utf8_substr(res, 0, external_string_limit);
     res.erase(truncated.size());
 
+    if (res != typed_arg.result)
+        add_diagnostic(diagnostic_op::warning_W019(stmt.instruction_ref().field_range, func_name));
+
     val = std::move(res);
 }
 

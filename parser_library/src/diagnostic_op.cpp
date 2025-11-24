@@ -2273,6 +2273,12 @@ diagnostic_op diagnostic_op::warning_W018(const range& range)
         diagnostic_severity::warning, "W018", "Non-UTF-8 characters detected and replaced [client]", range);
 }
 
+diagnostic_op diagnostic_op::warning_W019(const range& range, std::string_view func)
+{
+    return diagnostic_op(
+        diagnostic_severity::warning, "W019", concat("External function output truncated: ", func), range);
+}
+
 diagnostic_op diagnostic_op::error_EQU1(const range& range)
 {
     return diagnostic_op(diagnostic_severity::error, "EQU1", "Constant redefinition", range);

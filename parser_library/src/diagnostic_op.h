@@ -697,6 +697,8 @@ struct diagnostic_op
 
     static diagnostic_op warning_W018(const range& range);
 
+    static diagnostic_op warning_W019(const range& range, std::string_view func);
+
     static diagnostic_op error_EQU1(const range& range);
 
     static diagnostic_op error_EQU2(const range& range);
