@@ -370,6 +370,7 @@ TEST(data_attributes, T_macro_direct)
 &R  SETC T'&P
     MEND
 
+&X  SETC '(1)'
     GBLC R
     MAC  )";
 
@@ -381,6 +382,7 @@ TEST(data_attributes, T_macro_direct)
              std::pair { "(1,A)", "N" },
              std::pair { "(A,1)", "U" },
              std::pair { "((1),A)", "N" },
+             // FIXME: std::pair { "(&X,A)", "U" },
          })
     {
         const auto input = base + param;
