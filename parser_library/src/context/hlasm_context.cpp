@@ -990,7 +990,7 @@ template set_symbol_base* hlasm_context::create_local_variable<A_t>(id_index id,
 template set_symbol_base* hlasm_context::create_local_variable<B_t>(id_index id, bool is_scalar);
 template set_symbol_base* hlasm_context::create_local_variable<C_t>(id_index id, bool is_scalar);
 
-void hlasm_context::apply_source_snapshot(source_snapshot snapshot)
+void hlasm_context::apply_source_snapshot(const source_snapshot& snapshot)
 {
     assert(std::transform_reduce(source_stack_.begin(),
                source_stack_.end(),
@@ -1001,7 +1001,7 @@ void hlasm_context::apply_source_snapshot(source_snapshot snapshot)
 
     auto& last_source = source_stack_.back();
 
-    last_source.current_instruction = std::move(snapshot.instruction);
+    last_source.current_instruction = snapshot.instruction;
     last_source.begin_index = snapshot.begin_index;
     last_source.end_index = snapshot.end_index;
 

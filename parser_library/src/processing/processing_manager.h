@@ -125,7 +125,7 @@ private:
     void jump_in_statements(context::id_index target, range symbol_range) override;
     void register_sequence_symbol(context::id_index target, range symbol_range) override;
 
-    void perform_opencode_jump(context::source_position statement_position, context::source_snapshot snapshot);
+    void perform_opencode_jump(context::source_position statement_position, const context::source_snapshot& snapshot);
 };
 
 } // namespace hlasm_plugin::parser_library::processing

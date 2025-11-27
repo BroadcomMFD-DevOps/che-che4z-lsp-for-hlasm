@@ -279,7 +279,7 @@ void processing_manager::finish_lookahead(lookahead_processing_result result)
             jump_in_statements(result.symbol_name, result.symbol_range);
         else
         {
-            perform_opencode_jump(result.statement_position, std::move(result.snapshot));
+            perform_opencode_jump(result.statement_position, result.snapshot);
 
             diag_ctx.add_diagnostic(
                 diagnostic_op::error_E047(result.symbol_name.to_string_view(), result.symbol_range));
@@ -290,7 +290,7 @@ void processing_manager::finish_lookahead(lookahead_processing_result result)
         if (hlasm_ctx_.current_scope().this_macro)
             --hlasm_ctx_.current_scope().this_macro->current_statement.value;
 
-        perform_opencode_jump(result.statement_position, std::move(result.snapshot));
+        perform_opencode_jump(result.statement_position, result.snapshot);
     }
 }
 
@@ -414,11 +414,11 @@ void processing_manager::register_sequence_symbol(context::id_index target, rang
 }
 
 void processing_manager::perform_opencode_jump(
-    context::source_position statement_position, context::source_snapshot snapshot)
+    context::source_position statement_position, const context::source_snapshot& snapshot)
 {
     opencode_prov_.rewind_input(statement_position);
 
-    hlasm_ctx_.apply_source_snapshot(std::move(snapshot));
+    hlasm_ctx_.apply_source_snapshot(snapshot);
 }
 
 parsing::parser_holder& processing_manager::opencode_parser() // for testing only

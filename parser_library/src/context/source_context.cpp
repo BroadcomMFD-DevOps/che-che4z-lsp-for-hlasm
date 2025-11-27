@@ -29,6 +29,7 @@ source_snapshot source_context::create_snapshot() const
 {
     std::vector<copy_frame> copy_frames;
 
+    copy_frames.reserve(copy_stack.size());
     for (auto& member : copy_stack)
         copy_frames.emplace_back(member.name(), member.current_statement, member.suspended_at, member.pending_resume);
 

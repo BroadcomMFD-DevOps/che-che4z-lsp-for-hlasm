@@ -172,7 +172,7 @@ public:
     // gets current source
     const source_context& current_source() const;
     // sets current scope according to the snapshot
-    void apply_source_snapshot(source_snapshot snapshot);
+    void apply_source_snapshot(const source_snapshot& snapshot);
     // sets current source position
     void set_source_position(position pos);
     // sets current source file indices
