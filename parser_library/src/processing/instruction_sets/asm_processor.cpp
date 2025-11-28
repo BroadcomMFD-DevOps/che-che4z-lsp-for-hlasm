@@ -489,9 +489,9 @@ void asm_processor::process_data_instruction(rebuilt_statement&& stmt)
     bool cycle_ok = true;
 
     if (l_dep)
-        cycle_ok &= adder.add_dependency(label, context::data_attr_kind::L, l_dep);
+        cycle_ok &= adder.add_dependency(label, context::data_attr_kind::L, l_dep, context::delay_eval_t::yes);
     if (s_dep)
-        cycle_ok &= adder.add_dependency(label, context::data_attr_kind::S, s_dep);
+        cycle_ok &= adder.add_dependency(label, context::data_attr_kind::S, s_dep, context::delay_eval_t::no);
 
     if (!cycle_ok)
         add_diagnostic(diagnostic_op::error_E033(first_op->operand_range));
