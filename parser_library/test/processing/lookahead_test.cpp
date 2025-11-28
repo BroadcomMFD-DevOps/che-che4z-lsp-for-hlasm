@@ -240,9 +240,8 @@ TEST(attribute_lookahead, nested_lookup_triggered)
     EXPECT_EQ(references.size(), (size_t)1);
     EXPECT_EQ(std::ranges::count(references, id_index("B")), 1);
 
-    a.hlasm_ctx().ord_ctx.add_symbol_reference(id_index("B"),
-        context::symbol_attributes(context::symbol_origin::EQU, 'U'_ebcdic, 1),
-        library_info_transitional::empty);
+    a.hlasm_ctx().ord_ctx.add_symbol_reference(
+        id_index("B"), context::symbol_attributes(context::symbol_origin::EQU, 'U'_ebcdic, 1));
 
     references.clear();
     EXPECT_TRUE(expr->get_undefined_attributed_symbols(references, eval_ctx));

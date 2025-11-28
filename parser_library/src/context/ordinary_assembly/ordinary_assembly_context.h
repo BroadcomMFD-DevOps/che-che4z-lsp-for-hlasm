@@ -99,7 +99,7 @@ public:
 
     [[nodiscard]] symbol& create_symbol(id_index name, symbol_value value, symbol_attributes attributes);
 
-    void add_symbol_reference(id_index name, symbol_attributes attributes, const library_info& li);
+    void add_symbol_reference(id_index name, symbol_attributes attributes);
     const symbol* get_symbol_reference(context::id_index name) const;
 
     symbol* get_symbol(id_index name);
@@ -112,15 +112,15 @@ public:
     const section* current_section() const;
 
     // sets current section
-    section* set_section(id_index name, section_kind kind, const library_info& li);
-    section* create_and_set_class(id_index name, const library_info& li, section* base, bool partitioned);
+    section* set_section(id_index name, section_kind kind);
+    section* create_and_set_class(id_index name, section* base, bool partitioned);
     section* set_section(section& s);
 
     // creates an external section
     void create_external_section(id_index name, section_kind kind, std::optional<position> pos = std::nullopt);
 
     // sets current location counter of current section
-    void set_location_counter(id_index name, const library_info& li);
+    void set_location_counter(id_index name);
     void set_location_counter(location_counter& l);
 
     // sets value of the current location counter

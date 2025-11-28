@@ -702,12 +702,14 @@ dependency_adder symbol_dependency_tables::add_dependencies(
     return dependency_adder(*this, id, li);
 }
 
-void symbol_dependency_tables::add_defined(
-    id_index what_changed, diagnostic_consumer* diag_consumer, const library_info& li)
+void symbol_dependency_tables::all_defined(diagnostic_consumer* diag_consumer, const library_info& li)
+{
+    resolve_loop(diag_consumer, li);
+}
+
+void symbol_dependency_tables::add_defined(id_index what_changed)
 {
     m_dependencies_filters.reset_global(dependant_hasher(what_changed));
-
-    resolve_loop(diag_consumer, li);
 }
 
 void symbol_dependency_tables::add_defined(
