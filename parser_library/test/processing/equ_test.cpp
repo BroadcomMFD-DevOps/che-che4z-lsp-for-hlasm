@@ -356,12 +356,14 @@ X        DS    CL(XL)
 &E3      SETA  E
 XL       EQU   5
 &E4      SETA  E
-         MNOTE '&E1 &E2 &E3 &E4'
+Y        EQU   E
+&E5      SETA  Y
+         MNOTE '&E1 &E2 &E3 &E4 &E5'
          END
 )";
 
     analyzer a(input);
     a.analyze();
 
-    EXPECT_TRUE(contains_message_text(a.diags(), { "0 0 0 0" }));
+    EXPECT_TRUE(contains_message_text(a.diags(), { "0 0 0 0 0" }));
 }

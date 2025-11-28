@@ -45,6 +45,8 @@ public:
 
     virtual value_t evaluate(context::dependency_solver& info, diagnostic_op_consumer& diags) const = 0;
 
+    virtual value_t equ_evaluate(context::dependency_solver& info) const = 0;
+
     virtual const mach_expression* leftmost_term() const = 0;
 
     virtual void apply(mach_expr_visitor& visitor) const = 0;

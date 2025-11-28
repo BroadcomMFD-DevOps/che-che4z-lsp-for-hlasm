@@ -178,6 +178,8 @@ void ordinary_processor::end_processing()
 
     hlasm_ctx.ord_ctx.symbol_dependencies().resolve_all_as_default();
 
+    hlasm_ctx.ord_ctx.regenerate_addresses();
+
     // do not replace stack trace in the messages - it is already provided
     diagnostic_consumer_transform raw_diags([this](diagnostic d) { diag_ctx.add_raw_diagnostic(std::move(d)); });
 

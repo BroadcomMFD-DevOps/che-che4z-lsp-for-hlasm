@@ -66,11 +66,22 @@ symbol& ordinary_assembly_context::create_symbol(id_index name, symbol_value val
 {
     assert(symbol_can_be_assigned(symbols_, name));
 
+    const auto unresolved = value.value_kind() == symbol_value_kind::RELOC && value.get_reloc().has_unresolved_space();
+
     const auto [it, _] =
         symbols_.insert_or_assign(name, symbol(name, std::move(value), attributes, hlasm_ctx_.processing_stack()));
 
+    if (unresolved)
+        regenerate_symbols.emplace_back(&std::get<symbol>(it->second));
+
     return std::get<symbol>(it->second);
 }
+
+void ordinary_assembly_context::regenerate_addresses()
+{
+    std::ranges::for_each(regenerate_symbols, &symbol::regenerate_reloc);
+}
+
 
 void ordinary_assembly_context::add_symbol_reference(
     id_index name, symbol_attributes attributes, const library_info& li)
