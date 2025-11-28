@@ -94,19 +94,14 @@ class symbol_dependency_tables
         {}
     };
 
-    struct dependency_attributes
-    {
-        bool has_t_attr : 1;
-        bool space_ptr_type : 1;
-        bool delay_eval : 1;
-    };
-
     // actual dependecies of symbol or space
     std::unordered_map<dependant, dependency_value> m_dependencies;
 
     std::vector<std::unordered_map<dependant, dependency_value>::iterator> m_dependencies_iterators;
     utils::filter_vector<uint32_t> m_dependencies_filters;
-    std::vector<dependency_attributes> m_dependencies_attributes;
+    std::vector<bool> m_dependencies_has_t_attr;
+    std::vector<bool> m_dependencies_space_ptr_type;
+    std::vector<bool> m_dependencies_delay_eval;
 
     dependency_value& insert_depenency(dependant target,
         const resolvable* dependency_source,

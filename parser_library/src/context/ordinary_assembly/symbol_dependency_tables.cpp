@@ -307,7 +307,9 @@ class symbol_dependency_tables::dep_reference
         swap(self.m_dependencies_iterators[l.idx]->second.m_last_dependencies,
             self.m_dependencies_iterators[r.idx]->second.m_last_dependencies);
         swap(self.m_dependencies_iterators[l.idx], self.m_dependencies_iterators[r.idx]);
-        swap(self.m_dependencies_attributes[l.idx], self.m_dependencies_attributes[r.idx]);
+        swap(self.m_dependencies_has_t_attr[l.idx], self.m_dependencies_has_t_attr[r.idx]);
+        swap(self.m_dependencies_space_ptr_type[l.idx], self.m_dependencies_space_ptr_type[r.idx]);
+        swap(self.m_dependencies_delay_eval[l.idx], self.m_dependencies_delay_eval[r.idx]);
         self.m_dependencies_filters.swap(l.idx, r.idx);
     }
 
@@ -318,9 +320,9 @@ public:
     {}
 
     auto iterator() const noexcept { return self.m_dependencies_iterators[idx]; }
-    bool is_space_ptr() const noexcept { return self.m_dependencies_attributes[idx].space_ptr_type; }
-    bool has_t_attr() const noexcept { return self.m_dependencies_attributes[idx].has_t_attr; }
-    bool delay_eval() const noexcept { return self.m_dependencies_attributes[idx].delay_eval; }
+    bool is_space_ptr() const noexcept { return self.m_dependencies_space_ptr_type[idx]; }
+    bool has_t_attr() const noexcept { return self.m_dependencies_has_t_attr[idx]; }
+    bool delay_eval() const noexcept { return self.m_dependencies_delay_eval[idx]; }
     bool any() const noexcept { return self.m_dependencies_filters.any(idx); }
 
     dep_reference(const dep_reference&) noexcept = default;
@@ -529,12 +531,12 @@ bool symbol_dependency_tables::update_dependencies(const dependency_value& d, co
     auto deps = d.m_resolvable->get_dependencies(dep_solver);
 
     m_dependencies_filters.reset(d.m_last_dependencies);
-    m_dependencies_attributes[d.m_last_dependencies].has_t_attr = false;
+    m_dependencies_has_t_attr[d.m_last_dependencies] = false;
 
     for (const auto& ref : deps.undefined_symbolics)
     {
         if (ref.get(context::data_attr_kind::T))
-            m_dependencies_attributes[d.m_last_dependencies].has_t_attr = true;
+            m_dependencies_has_t_attr[d.m_last_dependencies] = true;
 
         if (ref.has_only(context::data_attr_kind::T))
             continue;
@@ -542,8 +544,7 @@ bool symbol_dependency_tables::update_dependencies(const dependency_value& d, co
         m_dependencies_filters.set(dependant_hasher(ref.name), d.m_last_dependencies);
     }
 
-    if (m_dependencies_filters.any(d.m_last_dependencies)
-        || m_dependencies_attributes[d.m_last_dependencies].has_t_attr)
+    if (m_dependencies_filters.any(d.m_last_dependencies) || m_dependencies_has_t_attr[d.m_last_dependencies])
         return true;
 
     auto addr_spaces = deps.unresolved_address ? std::move(deps.unresolved_address)->normalized_spaces().first
@@ -652,11 +653,9 @@ symbol_dependency_tables::dependency_value& symbol_dependency_tables::insert_dep
         m_dependencies.try_emplace(std::move(target), dependency_source, dep_ctx, m_dependencies_iterators.size());
     m_dependencies_iterators.emplace_back(it);
     m_dependencies_filters.emplace_back();
-    m_dependencies_attributes.push_back({
-        .has_t_attr = false,
-        .space_ptr_type = is_space_ptr,
-        .delay_eval = delay_eval == delay_eval_t::yes,
-    });
+    m_dependencies_has_t_attr.emplace_back(false);
+    m_dependencies_space_ptr_type.emplace_back(is_space_ptr);
+    m_dependencies_delay_eval.emplace_back(delay_eval == delay_eval_t::yes);
 
     assert(inserted);
 
@@ -672,7 +671,9 @@ void symbol_dependency_tables::delete_dependency(std::unordered_map<dependant, d
     swap(dep_reference { me_idx, *this }, dep_reference { m_dependencies_iterators.size() - 1, *this });
 
     m_dependencies_iterators.pop_back();
-    m_dependencies_attributes.pop_back();
+    m_dependencies_has_t_attr.pop_back();
+    m_dependencies_space_ptr_type.pop_back();
+    m_dependencies_delay_eval.pop_back();
     m_dependencies_filters.pop_back();
 
     m_dependencies.erase(it);
@@ -822,7 +823,9 @@ postponed_statements_t symbol_dependency_tables::collect_postponed()
     m_dependencies.clear();
     m_dependencies_iterators.clear();
     m_dependencies_filters.clear();
-    m_dependencies_attributes.clear();
+    m_dependencies_has_t_attr.clear();
+    m_dependencies_space_ptr_type.clear();
+    m_dependencies_delay_eval.clear();
 
     return result;
 }
