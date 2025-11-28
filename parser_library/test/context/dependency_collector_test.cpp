@@ -31,7 +31,7 @@ TEST(dependency_collector, uresolved_addresses)
     id_index name1("SYM1");
     id_index name2("SYM2");
 
-    ctx.ord_ctx.set_section(id_index("TEST"), section_kind::COMMON);
+    ctx.ord_ctx.set_section(id_index("TEST"), section_kind::COMMON, library_info_transitional::empty);
     auto addr1 = ctx.ord_ctx.current_section()->current_location_counter().current_address();
 
     (void)ctx.ord_ctx.create_symbol(name1, symbol_value(std::move(addr1)), symbol_attributes(symbol_origin::UNKNOWN));

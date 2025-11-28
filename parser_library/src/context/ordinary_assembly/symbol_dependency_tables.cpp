@@ -707,9 +707,11 @@ void symbol_dependency_tables::all_defined(diagnostic_consumer* diag_consumer, c
     resolve_loop(diag_consumer, li);
 }
 
-void symbol_dependency_tables::add_defined(id_index what_changed)
+void symbol_dependency_tables::add_defined(id_index what_changed, const library_info& li)
 {
     m_dependencies_filters.reset_global(dependant_hasher(what_changed));
+
+    resolve_loop(nullptr, li);
 }
 
 void symbol_dependency_tables::add_defined(

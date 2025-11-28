@@ -162,7 +162,7 @@ void asm_processor::process_sect(rebuilt_statement&& stmt, const context::sectio
         add_diagnostic(diagnostic_op::error_E031("symbol", stmt.label_ref().field_range));
     }
     else
-        hlasm_ctx.ord_ctx.set_section(sect_name, kind);
+        hlasm_ctx.ord_ctx.set_section(sect_name, kind, lib_info);
 
     context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, lib_info);
     hlasm_ctx.ord_ctx.symbol_dependencies().add_postponed_statement(
@@ -180,7 +180,7 @@ void asm_processor::process_LOCTR(rebuilt_statement&& stmt)
     if (hlasm_ctx.ord_ctx.symbol_defined(loctr_name) && !hlasm_ctx.ord_ctx.counter_defined(loctr_name))
         add_diagnostic(diagnostic_op::error_E031("symbol", stmt.label_ref().field_range));
     else
-        hlasm_ctx.ord_ctx.set_location_counter(loctr_name);
+        hlasm_ctx.ord_ctx.set_location_counter(loctr_name, lib_info);
 
     context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, lib_info);
     hlasm_ctx.ord_ctx.symbol_dependencies().add_postponed_statement(
@@ -330,10 +330,6 @@ void asm_processor::process_EQU(rebuilt_statement&& stmt)
 
     const symbol_attributes attrs(context::symbol_origin::EQU, t_attr, l_attr, s_attr, i_attr, p_attr, a_attr);
 
-    // if (auto holder = expr_op->expression->get_dependencies(dep_solver); !holder.contains_dependencies())
-    //     create_symbol(symbol_name, expr_op->expression->evaluate(dep_solver, diag_ctx), attrs);
-    // else if (holder.is_address() && holder.unresolved_spaces.empty())
-    //     create_symbol(symbol_name, std::move(*holder.unresolved_address), attrs);
     if (auto result = expr_op->expression->equ_evaluate(dep_solver);
         result.value_kind() != context::symbol_value_kind::UNDEF)
         create_symbol(symbol_name, std::move(result), attrs);
@@ -415,7 +411,7 @@ void asm_processor::process_data_instruction(rebuilt_statement&& stmt)
             else // TODO: HLASM does not seem to be tracking the attribute dependency correctly
                 s_dep = data_op->value->scale.get();
 
-            hlasm_ctx.ord_ctx.symbol_dependencies().add_defined(label);
+            hlasm_ctx.ord_ctx.symbol_dependencies().add_defined(label, lib_info);
         }
         else
             add_diagnostic(diagnostic_op::error_E031("symbol", stmt.label_ref().field_range));
@@ -1039,7 +1035,7 @@ void asm_processor::process_START(rebuilt_statement&& stmt)
         return;
     }
 
-    const auto* section = hlasm_ctx.ord_ctx.set_section(sect_name, EXECUTABLE);
+    const auto* section = hlasm_ctx.ord_ctx.set_section(sect_name, EXECUTABLE, lib_info);
 
     const auto& ops = stmt.operands_ref().value;
     if (ops.size() != 1)
@@ -1592,7 +1588,7 @@ void asm_processor::handle_cattr_ops(context::id_index class_name,
     }
     else
     {
-        class_name_sect = hlasm_ctx.ord_ctx.create_and_set_class(class_name, nullptr, !part_name.empty());
+        class_name_sect = hlasm_ctx.ord_ctx.create_and_set_class(class_name, nullptr, !part_name.empty(), lib_info);
 
         // TODO: sectalign? part
     }
@@ -1600,7 +1596,7 @@ void asm_processor::handle_cattr_ops(context::id_index class_name,
     if (part_name.empty())
         return;
 
-    hlasm_ctx.ord_ctx.create_and_set_class(part_name, class_name_sect, false);
+    hlasm_ctx.ord_ctx.create_and_set_class(part_name, class_name_sect, false, lib_info);
 }
 
 void asm_processor::process_CATTR(rebuilt_statement&& stmt)

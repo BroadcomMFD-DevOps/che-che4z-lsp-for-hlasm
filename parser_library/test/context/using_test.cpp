@@ -47,7 +47,10 @@ struct test_context : public dependency_solver
         asm_ctx.register_using_label(label);
         return label;
     }
-    const section* create_section(const std::string& s) { return asm_ctx.set_section(id(s), section_kind::COMMON); }
+    const section* create_section(const std::string& s)
+    {
+        return asm_ctx.set_section(id(s), section_kind::COMMON, library_info_transitional::empty);
+    }
 
     address addr(const std::string& name, const std::string& sect, int offset)
     {

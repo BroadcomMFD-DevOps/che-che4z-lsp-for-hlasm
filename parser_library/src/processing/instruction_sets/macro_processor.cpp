@@ -49,7 +49,7 @@ void macro_processor::process(std::shared_ptr<const processing::resolved_stateme
         if (valid && !hlasm_ctx.ord_ctx.get_symbol(id))
         {
             hlasm_ctx.ord_ctx.add_symbol_reference(
-                id, context::symbol_attributes(context::symbol_origin::MACH, 'M'_ebcdic));
+                id, context::symbol_attributes(context::symbol_origin::MACH, 'M'_ebcdic), lib_info);
         }
     }
     else if (label.type == semantics::label_si_type::SEQ && stmt->format_ref().kind != processing_kind::MACRO)
