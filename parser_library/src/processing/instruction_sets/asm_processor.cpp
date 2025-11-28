@@ -1588,7 +1588,7 @@ void asm_processor::handle_cattr_ops(context::id_index class_name,
     }
     else
     {
-        class_name_sect = hlasm_ctx.ord_ctx.create_and_set_class(class_name, nullptr, !part_name.empty(), lib_info);
+        class_name_sect = hlasm_ctx.ord_ctx.create_and_set_class(class_name, lib_info, nullptr, !part_name.empty());
 
         // TODO: sectalign? part
     }
@@ -1596,7 +1596,7 @@ void asm_processor::handle_cattr_ops(context::id_index class_name,
     if (part_name.empty())
         return;
 
-    hlasm_ctx.ord_ctx.create_and_set_class(part_name, class_name_sect, false, lib_info);
+    hlasm_ctx.ord_ctx.create_and_set_class(part_name, lib_info, class_name_sect, false);
 }
 
 void asm_processor::process_CATTR(rebuilt_statement&& stmt)

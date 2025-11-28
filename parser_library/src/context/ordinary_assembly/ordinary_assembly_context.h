@@ -113,7 +113,7 @@ public:
 
     // sets current section
     section* set_section(id_index name, section_kind kind, const library_info& li);
-    section* create_and_set_class(id_index name, section* base, bool partitioned, const library_info& li);
+    section* create_and_set_class(id_index name, const library_info& li, section* base, bool partitioned);
     section* set_section(section& s);
 
     // creates an external section

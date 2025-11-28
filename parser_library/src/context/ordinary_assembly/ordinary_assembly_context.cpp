@@ -154,7 +154,7 @@ section* ordinary_assembly_context::set_section(id_index name, section_kind kind
 }
 
 section* ordinary_assembly_context::create_and_set_class(
-    id_index name, section* base, bool partitioned, const library_info& li)
+    id_index name, const library_info& li, section* base, bool partitioned)
 {
     assert(std::ranges::find(sections_, name, &section::name) == sections_.end());
     assert(symbol_can_be_assigned(symbols_, name));
