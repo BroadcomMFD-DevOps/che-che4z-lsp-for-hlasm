@@ -18,8 +18,7 @@
 
 #include "symbol.h"
 
-using namespace hlasm_plugin::parser_library;
-using namespace hlasm_plugin::parser_library::context;
+namespace hlasm_plugin::parser_library::context {
 
 symbol_value::symbol_value(abs_value_t value)
     : value_(value)
@@ -206,3 +205,4 @@ symbol_value symbol_value::normalized() const
     else
         return result;
 }
+} // namespace hlasm_plugin::parser_library::context
