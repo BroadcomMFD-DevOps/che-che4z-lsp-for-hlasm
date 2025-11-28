@@ -345,7 +345,7 @@ X   EQU 8
     EXPECT_EQ(get_symbol_address(a.hlasm_ctx(), "B"), std::pair(16, "D"));
 }
 
-TEST(EQU, evaluation_time)
+TEST(EQU, evaluation_time_1)
 {
     std::string input = R"(
 E        EQU   A+L'X
@@ -366,4 +366,25 @@ Y        EQU   E
     a.analyze();
 
     EXPECT_TRUE(contains_message_text(a.diags(), { "0 0 0 0 0" }));
+}
+
+TEST(EQU, evaluation_time_2)
+{
+    std::string input = R"(
+D1       DSECT
+         DS    XL8
+L        EQU   *-DX
+DX       EQU   D1,*-D1
+&A       SETA  L
+         MNOTE '&A'
+*
+D2       DSECT
+X        DS    XL(L)
+DL       EQU   D2,*-D2
+)";
+
+    analyzer a(input);
+    a.analyze();
+
+    EXPECT_TRUE(matches_message_text(a.diags(), { "8" }));
 }
