@@ -321,6 +321,11 @@ public:
     bool is_space_ptr() const noexcept { return self.m_dependencies_attributes[idx].space_ptr_type; }
     bool has_t_attr() const noexcept { return self.m_dependencies_attributes[idx].has_t_attr; }
     bool delay_eval() const noexcept { return self.m_dependencies_attributes[idx].delay_eval; }
+    bool any_attr() const noexcept
+    {
+        const auto v = self.m_dependencies_attributes[idx];
+        return v.has_t_attr | v.space_ptr_type | v.delay_eval;
+    }
     bool any() const noexcept { return self.m_dependencies_filters.any(idx); }
 
     dep_reference(const dep_reference&) noexcept = default;
@@ -433,9 +438,9 @@ void symbol_dependency_tables::resolve_loop(diagnostic_consumer* diags, const li
 
     const auto db = dep_begin();
     auto e = dep_end();
-    const auto b = diags ? db : std::partition(dependency_iterator(m_dependencies_skip_index), e, [](auto dref) {
-        return dref.is_space_ptr() || dref.has_t_attr() || dref.delay_eval();
-    });
+    const auto b = diags
+        ? db
+        : std::partition(dependency_iterator(m_dependencies_skip_index), e, [](auto dref) { return dref.any_attr(); });
     m_dependencies_skip_index = b - db;
 
     while (true)
