@@ -318,9 +318,6 @@ public:
     {}
 
     auto iterator() const noexcept { return self.m_dependencies_iterators[idx]; }
-    bool is_space_ptr() const noexcept { return self.m_dependencies_attributes[idx].space_ptr_type; }
-    bool has_t_attr() const noexcept { return self.m_dependencies_attributes[idx].has_t_attr; }
-    bool delay_eval() const noexcept { return self.m_dependencies_attributes[idx].delay_eval; }
     bool any_attr() const noexcept
     {
         const auto v = self.m_dependencies_attributes[idx];
@@ -717,6 +714,11 @@ dependency_adder symbol_dependency_tables::add_dependencies(
 void symbol_dependency_tables::all_defined(diagnostic_consumer* diag_consumer, const library_info& li)
 {
     resolve_loop(diag_consumer, li);
+}
+
+void symbol_dependency_tables::add_defined(id_index what_changed)
+{
+    m_dependencies_filters.reset_global(dependant_hasher(what_changed));
 }
 
 void symbol_dependency_tables::add_defined(id_index what_changed, const library_info& li)

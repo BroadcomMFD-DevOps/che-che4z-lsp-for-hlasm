@@ -336,7 +336,8 @@ mach_expression::value_t mach_expr_data_attr::evaluate(
 
 mach_expression::value_t mach_expr_data_attr::equ_evaluate(context::dependency_solver& solver) const
 {
-    if (attribute == context::data_attr_kind::O)
+    using enum context::data_attr_kind;
+    if (attribute == O)
     {
         auto result = solver.get_opcode_attr(value);
         assert(result.size() == 1);
@@ -347,7 +348,7 @@ mach_expression::value_t mach_expr_data_attr::equ_evaluate(context::dependency_s
     if (auto symbol_ext = solver.get_symbol_candidate(value);
         std::holds_alternative<context::symbol_candidate>(symbol_ext))
     {
-        if (attribute == context::data_attr_kind::T)
+        if (attribute == T)
             return std::get<context::symbol_candidate>(symbol_ext).mentioned ? 'M'_ebcdic : 'U'_ebcdic;
     }
     else
@@ -356,15 +357,14 @@ mach_expression::value_t mach_expr_data_attr::equ_evaluate(context::dependency_s
     if (symbol == nullptr)
         return context::symbol_value();
 
-    if ((attribute == context::data_attr_kind::S || attribute == context::data_attr_kind::I)
-        && !symbol->attributes().can_have_SI_attr())
+    if ((attribute == S || attribute == I) && !symbol->attributes().can_have_SI_attr())
         return context::symbol_value();
 
-    if (attribute == context::data_attr_kind::I)
+    if (attribute == I)
     {
-        if (!symbol->attributes().is_defined(context::data_attr_kind::L))
+        if (!symbol->attributes().is_defined(L))
             return context::symbol_value();
-        if (!symbol->attributes().is_defined(context::data_attr_kind::S))
+        if (!symbol->attributes().is_defined(S))
             return context::symbol_value();
     }
 

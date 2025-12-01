@@ -185,6 +185,7 @@ public:
     // registers that some symbol has been defined
     // if resolver is present, location counter dependencies are checked as well (not just symbol deps)
     void all_defined(diagnostic_consumer* diag_consumer, const library_info& li);
+    void add_defined(id_index what_changed);
     void add_defined(id_index what_changed, const library_info& li);
     void add_defined(space_ptr what_changed, diagnostic_consumer* diag_consumer, const library_info& li);
 

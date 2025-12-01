@@ -406,3 +406,40 @@ X   EQU   U.Y-C
     EXPECT_TRUE(matches_message_codes(a.diags(), { "CE012" })); // TODO: EQU should reject the expression
     EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "X"), 0);
 }
+
+TEST(EQU, test_evaluation)
+{
+    std::string input = R"(
+A        EQU   1
+B        EQU   2
+C        EQU   4
+R        EQU   (+A+(-B)-(-C))*8/4
+         END
+)";
+
+    analyzer a(input);
+    a.analyze();
+
+    EXPECT_TRUE(a.diags().empty());
+
+    EXPECT_EQ(get_symbol_abs(a.hlasm_ctx(), "R"), 6);
+}
+
+TEST(EQU, literal)
+{
+    std::string input = R"(
+C        CSECT
+         DS     X
+L        EQU    =F'0'
+LL       EQU    L'=F'0'
+         END
+)";
+
+    analyzer a(input);
+    a.analyze();
+
+    EXPECT_TRUE(a.diags().empty());
+
+    EXPECT_EQ(get_symbol_address(a.hlasm_ctx(), "L"), std::pair(8, "C"));
+    EXPECT_EQ(get_symbol_abs(a.hlasm_ctx(), "LL"), 4);
+}
