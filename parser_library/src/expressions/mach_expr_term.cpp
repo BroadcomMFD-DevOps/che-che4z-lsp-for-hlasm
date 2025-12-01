@@ -117,11 +117,11 @@ mach_expr_constant::value_t mach_expr_symbol::evaluate(
         case RELOC:
             if (!qualifier.empty())
             {
-                if (auto& reloc_value = result.get_reloc(); reloc_value.is_simple())
+                if (const auto& reloc_value = result.get_reloc(); reloc_value.is_simple())
                 {
                     auto bp = std::make_shared<context::address::base_entry>(reloc_value.bases().front());
                     bp->qualifier = qualifier;
-                    return std::move(reloc_value).with_base_list(context::address::base_list(std::move(bp)));
+                    return std::move(result).get_reloc().with_base_list(context::address::base_list(std::move(bp)));
                 }
                 diags.add_diagnostic(diagnostic_op::error_ME006(get_range()));
             }
