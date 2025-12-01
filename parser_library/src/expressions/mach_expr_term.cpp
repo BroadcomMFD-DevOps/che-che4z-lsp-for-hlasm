@@ -103,17 +103,18 @@ mach_expr_constant::value_t mach_expr_symbol::evaluate(
         return context::symbol_value();
 
     auto result = symbol->value().normalized();
+    using enum context::symbol_value_kind;
     switch (result.value_kind())
     {
-        case context::symbol_value_kind::UNDEF:
+        case UNDEF:
             break;
 
-        case context::symbol_value_kind::ABS:
+        case ABS:
             if (!qualifier.empty())
                 diags.add_diagnostic(diagnostic_op::error_ME004(get_range()));
             break;
 
-        case context::symbol_value_kind::RELOC:
+        case RELOC:
             if (!qualifier.empty())
             {
                 if (auto& reloc_value = result.get_reloc(); reloc_value.is_simple())
@@ -135,35 +136,15 @@ mach_expr_constant::value_t mach_expr_symbol::evaluate(
 
 mach_expr_constant::value_t mach_expr_symbol::equ_evaluate(context::dependency_solver& solver) const
 {
+    if (!qualifier.empty())
+        return context::symbol_value();
+
     const auto* symbol = solver.get_symbol(value);
 
     if (!symbol)
         return context::symbol_value();
 
-    using enum context::symbol_value_kind;
-    switch (symbol->kind())
-    {
-        case context::symbol_value_kind::UNDEF:
-            return context::symbol_value();
-        case context::symbol_value_kind::ABS:
-            if (!qualifier.empty())
-                return context::symbol_value();
-            return symbol->value();
-        case context::symbol_value_kind::RELOC:
-            if (qualifier.empty())
-                return symbol->value();
-
-            auto reloc_value = symbol->value().get_reloc();
-            if (!reloc_value.is_simple())
-                return context::symbol_value();
-
-            auto bp = std::make_shared<context::address::base_entry>(reloc_value.bases().front());
-            bp->qualifier = qualifier;
-            return std::move(reloc_value).with_base_list(context::address::base_list(std::move(bp)));
-    }
-
-    assert(false);
-    return context::symbol_value();
+    return symbol->value().normalized();
 }
 
 const mach_expression* mach_expr_symbol::leftmost_term() const { return this; }

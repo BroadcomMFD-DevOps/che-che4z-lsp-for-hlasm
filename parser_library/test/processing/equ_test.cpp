@@ -388,3 +388,21 @@ DL       EQU   D2,*-D2
 
     EXPECT_TRUE(matches_message_text(a.diags(), { "8" }));
 }
+
+TEST(EQU, evaluation_time_3)
+{
+    std::string input = R"(
+C   CSECT
+    DS    F
+Y   DS    F
+U   USING C,1
+X   EQU   U.Y-C
+&X  SETA  X
+)";
+
+    analyzer a(input);
+    a.analyze();
+
+    EXPECT_TRUE(matches_message_codes(a.diags(), { "CE012" })); // TODO: EQU should reject the expression
+    EXPECT_EQ(get_var_value<A_t>(a.hlasm_ctx(), "X"), 0);
+}
