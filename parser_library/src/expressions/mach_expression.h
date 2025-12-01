@@ -43,6 +43,7 @@ public:
 
     context::symbol_value resolve(context::dependency_solver& solver) const override;
 
+    // TODO: find a way to merge evaluate, equ_evaluate and get_dependencies
     virtual value_t evaluate(context::dependency_solver& info, diagnostic_op_consumer& diags) const = 0;
 
     virtual value_t equ_evaluate(context::dependency_solver& info) const = 0;
