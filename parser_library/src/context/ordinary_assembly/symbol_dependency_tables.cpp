@@ -624,7 +624,7 @@ symbol_dependency_tables::dependency_value* symbol_dependency_tables::add_depend
         return nullptr;
     }
 
-    return &insert_depenency(std::move(target), dependency_source, dep_ctx, delay_eval);
+    return &insert_dependency(std::move(target), dependency_source, dep_ctx, delay_eval);
 }
 
 symbol_dependency_tables::dependency_value* symbol_dependency_tables::add_dependency_with_cycle_check(attr_ref target,
@@ -641,10 +641,10 @@ symbol_dependency_tables::dependency_value* symbol_dependency_tables::add_depend
         return nullptr;
     }
 
-    return &insert_depenency(std::move(target), dependency_source, dep_ctx, delay_eval);
+    return &insert_dependency(std::move(target), dependency_source, dep_ctx, delay_eval);
 }
 
-symbol_dependency_tables::dependency_value& symbol_dependency_tables::insert_depenency(dependant target,
+symbol_dependency_tables::dependency_value& symbol_dependency_tables::insert_dependency(dependant target,
     const resolvable* dependency_source,
     const dependency_evaluation_context& dep_ctx,
     delay_eval_t delay_eval)
@@ -685,7 +685,7 @@ void symbol_dependency_tables::add_dependency(space_ptr target,
     const dependency_evaluation_context& dep_ctx,
     post_stmt_ptr dependency_source_stmt)
 {
-    auto& dep = insert_depenency(std::move(target), dependency_source.get(), dep_ctx, delay_eval_t::no);
+    auto& dep = insert_dependency(std::move(target), dependency_source.get(), dep_ctx, delay_eval_t::no);
 
     dep.related_source_addr = std::move(dependency_source);
 
@@ -874,7 +874,7 @@ bool dependency_adder::add_dependency(
 
 void dependency_adder::add_dependency(space_ptr target, const resolvable* dependency_source) const
 {
-    auto& dep = m_owner.insert_depenency(std::move(target), dependency_source, get_context(), delay_eval_t::no);
+    auto& dep = m_owner.insert_dependency(std::move(target), dependency_source, get_context(), delay_eval_t::no);
     m_owner.establish_statement_dependency(dep, m_id);
 }
 

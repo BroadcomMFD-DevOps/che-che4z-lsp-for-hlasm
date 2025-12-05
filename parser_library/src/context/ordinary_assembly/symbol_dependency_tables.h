@@ -108,7 +108,7 @@ class symbol_dependency_tables
     utils::filter_vector<uint32_t> m_dependencies_filters;
     std::vector<dependency_attributes> m_dependencies_attributes;
 
-    dependency_value& insert_depenency(dependant target,
+    dependency_value& insert_dependency(dependant target,
         const resolvable* dependency_source,
         const dependency_evaluation_context& dep_ctx,
         delay_eval_t delay_eval);
