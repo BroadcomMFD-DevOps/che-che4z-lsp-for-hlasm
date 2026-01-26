@@ -122,7 +122,7 @@ struct parsing_results
     } outputs;
 
     auto fms = std::make_shared<std::vector<fade_message>>();
-    analyzer a(file->get_text(),
+    analyzer a(file->get_converted_text(),
         analyzer_options {
             file->get_location(),
             &lib_provider,
@@ -264,7 +264,7 @@ struct workspace_parse_lib_provider final : public parse_lib_provider
 
         const bool collect_hl = file->get_lsp_editing() || macro_pfc.m_last_opencode_analyzer_with_lsp
             || macro_pfc.m_last_macro_analyzer_with_lsp || ctx.hlasm_ctx->processing_stack().parent().empty();
-        analyzer a(file->get_text(),
+        analyzer a(file->get_converted_text(),
             analyzer_options {
                 std::move(url),
                 this,
@@ -307,7 +307,7 @@ struct workspace_parse_lib_provider final : public parse_lib_provider
         if (auto url = get_url(library); url.empty())
             co_return std::nullopt;
         else
-            co_return std::make_pair((co_await get_file(url))->get_text(), std::move(url));
+            co_return std::make_pair((co_await get_file(url))->get_converted_text(), std::move(url));
     }
 
     [[nodiscard]] utils::task prefetch_libraries() const
@@ -922,7 +922,7 @@ std::vector<folding_range> workspace::folding(const resource_location& document_
     if (!comp)
         return {};
 
-    auto lines = lsp::generate_indentation_map(comp->m_file->get_text());
+    auto lines = lsp::generate_indentation_map(comp->m_file->get_converted_text());
 
     lsp::mark_suspicious(lines);
 

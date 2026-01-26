@@ -1176,7 +1176,7 @@ class workspace_manager_impl final : public workspace_manager,
 public:
     explicit workspace_manager_impl(const workspace_manager_args& args)
         : m_args(args)
-        , m_file_manager(*this)
+        , m_file_manager(*this, args.text_conversion)
         , m_implicit_workspace(m_file_manager, m_global_config, this, this)
         , m_ws(m_file_manager, *this, args.text_conversion)
     {

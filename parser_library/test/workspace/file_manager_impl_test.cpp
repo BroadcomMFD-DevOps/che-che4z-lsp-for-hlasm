@@ -50,7 +50,7 @@ TEST(file_manager, update_file)
     const std::string text2 = "bbb";
 
     NiceMock<external_file_reader_mock> reader_mock;
-    file_manager_impl fm(reader_mock);
+    file_manager_impl fm(reader_mock, nullptr);
 
     // nobody is working with the file, so assume it has not changed
     EXPECT_EQ(run_or_default(fm.update_file(file), file_content_state::identical), file_content_state::identical);
@@ -60,15 +60,18 @@ TEST(file_manager, update_file)
     auto f = fm.add_file(file).run().value();
 
     EXPECT_EQ(f->get_text(), text1);
+    EXPECT_EQ(f->get_converted_text(), text1);
 
     EXPECT_CALL(reader_mock, load_text(file)).WillRepeatedly(Invoke(load_text_coroutine(text2)));
 
     EXPECT_EQ(run_or_default(fm.update_file(file), file_content_state::identical), file_content_state::changed_content);
     EXPECT_EQ(f->get_text(), text1); // old file version
+    EXPECT_EQ(f->get_converted_text(), text1); // old file version
     EXPECT_EQ(run_or_default(fm.update_file(file), file_content_state::identical), file_content_state::identical);
 
     f = fm.add_file(file).run().value();
     EXPECT_EQ(f->get_text(), text2);
+    EXPECT_EQ(f->get_converted_text(), text2);
 
     EXPECT_EQ(run_or_default(fm.update_file(file), file_content_state::identical), file_content_state::identical);
 }
@@ -79,7 +82,7 @@ TEST(file_manger, keep_content_on_close)
     const std::string text = "aaa";
 
     NiceMock<external_file_reader_mock> reader_mock;
-    file_manager_impl fm(reader_mock);
+    file_manager_impl fm(reader_mock, nullptr);
 
     fm.did_open_file(file, 1, text);
 

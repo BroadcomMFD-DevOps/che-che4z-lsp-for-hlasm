@@ -20,7 +20,7 @@
 
 namespace hlasm_plugin::language_server {
 
-constexpr std::string_view supported_pseudo_charsets[] = { "IBM1148", "IBM278" };
+constexpr std::string_view supported_pseudo_charsets[] = { "IBM1148", "IBM1143" };
 std::string_view to_string(pseudo_charsets pc) { return supported_pseudo_charsets[static_cast<size_t>(pc)]; }
 
 std::optional<server_options> parse_options(std::span<const char* const> args)
@@ -54,7 +54,7 @@ std::optional<server_options> parse_options(std::span<const char* const> args)
         {
             arg.remove_prefix(pseudo_charset.size());
 
-            const auto pc = std::ranges::find(supported_pseudo_charsets, pseudo_charset);
+            const auto pc = std::ranges::find(supported_pseudo_charsets, arg);
             if (pc == std::ranges::end(supported_pseudo_charsets))
                 return std::nullopt;
 

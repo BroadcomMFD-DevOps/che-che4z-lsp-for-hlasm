@@ -24,6 +24,31 @@
 namespace hlasm_plugin::language_server {
 
 namespace {
+
+struct utf8seq
+{
+    unsigned char len;
+    char data[3];
+};
+
+consteval utf8seq from_char(unsigned short c)
+{
+    static_assert((decltype(c))-1 < 0x10000);
+    if (c < 0x80)
+        return { 1, { static_cast<char>(c), 0, 0 } };
+    else if (c < 0x800)
+        return { 2, { static_cast<char>(0xc0 | c >> 6), static_cast<char>(0x80 | (c & 0b111111)), 0 } };
+    else
+        return {
+            3,
+            {
+                static_cast<char>(0xe0 | c >> 12),
+                static_cast<char>(0x80 | ((c >> 6) & 0b111111)),
+                static_cast<char>(0x80 | (c & 0b111111)),
+            },
+        };
+}
+
 // clang-format off
 constexpr unsigned short ibm1148[] = {
     0x00, 0x01, 0x02, 0x03, 0x9C, 0x09, 0x86, 0x7F, 0x97, 0x8D, 0x8E, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
@@ -73,10 +98,7 @@ consteval auto unique_utf8_prefixes(const auto& f, const auto& t)
     {
         if (*b == *d)
             continue;
-        if (*b < 0x80)
-            indicators[*b] = 1;
-        else
-            indicators[0x80 | (*b >> 6)] = 1;
+        indicators[static_cast<unsigned char>(from_char(*b).data[0])] = 1;
     }
 
     return indicators;
@@ -94,34 +116,10 @@ consteval auto enumerate_unique_prefixes()
     {
         if (!indicators[i])
             continue;
-        *o++ = i < 0x80 ? static_cast<char>(i) : static_cast<char>(0x80 | i >> 6);
+        *o++ = static_cast<char>(i);
     }
 
     return result;
-}
-
-struct utf8seq
-{
-    unsigned char len;
-    char data[3];
-};
-
-consteval utf8seq from_char(unsigned short c)
-{
-    static_assert((decltype(c))-1 < 0x10000);
-    if (c < 0x80)
-        return { 1, { static_cast<char>(c), 0, 0 } };
-    else if (c < 0x800)
-        return { 2, { static_cast<char>(0xc0 | c >> 6), static_cast<char>(0x80 | (c & 0b111111)), 0 } };
-    else
-        return {
-            3,
-            {
-                static_cast<char>(0xe0 | c >> 12),
-                static_cast<char>(0x80 | ((c >> 6) & 0b111111)),
-                static_cast<char>(0x80 | (c & 0b111111)),
-            },
-        };
 }
 
 template<const auto& f, const auto& t>
@@ -198,7 +196,7 @@ requires(sizeof(f) == sizeof(t)) struct convertor_t final : hlasm_plugin::parser
         convert(dst, src, utils::second_element, utils::first_element);
     }
 };
-constexpr convertor_t<ibm1148, ibm1143> ibm1143_convertor;
+constexpr convertor_t<ibm1143, ibm1148> ibm1143_convertor;
 } // namespace
 
 const parser_library::text_convertor* get_text_convertor(pseudo_charsets pc) noexcept
