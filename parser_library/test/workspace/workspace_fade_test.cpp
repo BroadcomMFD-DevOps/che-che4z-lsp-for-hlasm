@@ -82,7 +82,7 @@ public:
 
     fade_fixture_base()
         : ws_cfg(file_manager, fade_loc, global_settings, config, nullptr, nullptr)
-        , ws(file_manager, ws_cfg)
+        , ws(file_manager, ws_cfg, nullptr)
     {}
 
     void SetUp() override
@@ -1179,7 +1179,7 @@ private:
     resource_location m_loc = resource_location("fade:/");
     workspace_configuration ws_cfg =
         workspace_configuration(m_fm, m_loc, m_global_settings, m_empty_config, nullptr, nullptr);
-    workspace ws = workspace(m_fm, ws_cfg);
+    workspace ws = workspace(m_fm, ws_cfg, nullptr);
     std::vector<fade_message> m_fmsgs;
 };
 } // namespace

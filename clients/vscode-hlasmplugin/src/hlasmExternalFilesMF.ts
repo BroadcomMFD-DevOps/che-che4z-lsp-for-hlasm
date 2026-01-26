@@ -22,6 +22,9 @@ import { AsyncMutex } from './asyncMutex';
 import { Writable } from 'stream';
 import { concat, isCancellationError } from './helpers';
 import { textDecode } from './tools.common';
+import { convertTable } from './conversions';
+import { getConfig } from './eventsHandler';
+import { SupportedPseudoCharset } from './serverFactory.common';
 
 const checkResponse = (resp: ftp.FTPResponse) => {
     if (resp.code < 200 || resp.code > 299) throw Error("FTP Error: " + resp.message);
@@ -203,7 +206,7 @@ async function FTPAsMFClient(info: FtpConnectionInfo): Promise<MFClient> {
         },
         read: async (dataset: string, member: string): Promise<string | null> => {
             try {
-                const buffer = new FBWritable();
+                const buffer = new FBWritable(80, getConfig<SupportedPseudoCharset>('pseudoCharset', 'IBM1148'));
                 buffer.on('error', err => { throw err });
 
                 await checkedCommand(client, 'TYPE I');

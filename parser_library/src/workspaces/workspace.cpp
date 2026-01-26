@@ -324,10 +324,11 @@ struct workspace_parse_lib_provider final : public parse_lib_provider
     }
 };
 
-workspace::workspace(file_manager& file_manager, configuration_provider& configuration)
+workspace::workspace(file_manager& file_manager, configuration_provider& configuration, const text_convertor* tc)
     : file_manager_(file_manager)
     , fm_vfm_(file_manager_)
     , m_configuration(configuration)
+    , m_text_convertor(tc)
 {}
 
 workspace::~workspace() = default;

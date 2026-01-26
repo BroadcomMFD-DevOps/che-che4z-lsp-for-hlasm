@@ -196,7 +196,7 @@ struct workspace_test
 {
     workspace_test(file_manager& fm)
         : ws_cfg(fm, ws_rl, global_settings, config, nullptr, nullptr)
-        , ws(fm, ws_cfg)
+        , ws(fm, ws_cfg, nullptr)
     {
         ws_cfg.parse_configuration_file().run();
     }
@@ -262,7 +262,7 @@ public:
     lib_config config;
     shared_json global_settings = make_empty_shared_json();
     workspace_configuration ws_cfg = workspace_configuration(fm, ws_rl, global_settings, config, nullptr, nullptr);
-    workspace ws = workspace(fm, ws_cfg);
+    workspace ws = workspace(fm, ws_cfg, nullptr);
 
     pgm_conf_preference_helper()
     {

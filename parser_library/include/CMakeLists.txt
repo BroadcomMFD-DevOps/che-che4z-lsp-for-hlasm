@@ -37,6 +37,7 @@ target_sources(parser_library PUBLIC
     processing_format.h
     protocol.h
     range.h
+    text_convertor.h
     watcher_registration_provider.h
     workspace_manager.h
     workspace_manager_external_file_requests.h

@@ -171,7 +171,7 @@ TEST(workspace_instruction_sets_test, changed_instr_set_370_Z10)
     lib_config config;
     shared_json global_settings = make_empty_shared_json();
     workspace_configuration ws_cfg(file_manager, ws_loc, global_settings, config, nullptr, nullptr);
-    workspace ws(file_manager, ws_cfg);
+    workspace ws(file_manager, ws_cfg, nullptr);
     ws_cfg.parse_configuration_file().run();
 
     run_if_valid(ws.did_open_file(source_loc));
@@ -190,7 +190,7 @@ TEST(workspace_instruction_sets_test, changed_instr_set_Z10_370)
     lib_config config;
     shared_json global_settings = make_empty_shared_json();
     workspace_configuration ws_cfg(file_manager, ws_loc, global_settings, config, nullptr, nullptr);
-    workspace ws(file_manager, ws_cfg);
+    workspace ws(file_manager, ws_cfg, nullptr);
     ws_cfg.parse_configuration_file().run();
 
     run_if_valid(ws.did_open_file(source_loc));

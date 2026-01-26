@@ -866,7 +866,7 @@ class workspace_manager_impl final : public workspace_manager,
             void error(int, const char*) noexcept { result.reset(); }
         };
         auto [channel, data] = make_workspace_manager_response(std::in_place_type<content_t>);
-        m_external_file_requests->read_external_file(document_loc.get_uri(), channel);
+        m_args.external_requests->read_external_file(document_loc.get_uri(), channel);
 
         return utils::async_busy_wait(std::move(channel), &data->result);
     }
@@ -877,7 +877,7 @@ class workspace_manager_impl final : public workspace_manager,
         if (document_loc.is_local() && !utils::platform::is_web())
             return utils::value_task<std::optional<std::string>>::from_value(utils::resource::load_text(document_loc));
 
-        if (!m_external_file_requests || !m_vscode_extensions || !allowed_scheme(document_loc))
+        if (!m_args.external_requests || !m_args.vscode_extensions || !allowed_scheme(document_loc))
             return utils::value_task<std::optional<std::string>>::from_value(std::nullopt);
 
         return load_text_external(document_loc);
@@ -935,7 +935,7 @@ class workspace_manager_impl final : public workspace_manager,
             }
         };
         auto [channel, data] = make_workspace_manager_response(std::in_place_type<content_t>, directory, subdir);
-        m_external_file_requests->read_external_directory(data->dir.get_uri(), channel, subdir);
+        m_args.external_requests->read_external_directory(data->dir.get_uri(), channel, subdir);
 
         return utils::async_busy_wait(std::move(channel), &data->result);
     }
@@ -948,7 +948,7 @@ class workspace_manager_impl final : public workspace_manager,
             return utils::value_task<std::pair<std::vector<std::pair<std::string, utils::resource::resource_location>>,
                 utils::path::list_directory_rc>>::from_value(utils::resource::list_directory_files(directory));
 
-        if (!m_external_file_requests || !m_vscode_extensions || !allowed_scheme(directory))
+        if (!m_args.external_requests || !m_args.vscode_extensions || !allowed_scheme(directory))
             return utils::value_task<std::pair<std::vector<std::pair<std::string, utils::resource::resource_location>>,
                 utils::path::list_directory_rc>>::from_value({ {}, utils::path::list_directory_rc::not_exists });
 
@@ -964,7 +964,7 @@ class workspace_manager_impl final : public workspace_manager,
                 utils::path::list_directory_rc>>::
                 from_value(utils::resource::list_directory_subdirs_and_symlinks(directory));
 
-        if (!m_external_file_requests || !m_vscode_extensions || !allowed_scheme(directory))
+        if (!m_args.external_requests || !m_args.vscode_extensions || !allowed_scheme(directory))
             return utils::value_task<std::pair<std::vector<std::pair<std::string, utils::resource::resource_location>>,
                 utils::path::list_directory_rc>>::from_value({ {}, utils::path::list_directory_rc::not_exists });
 
@@ -983,14 +983,14 @@ class workspace_manager_impl final : public workspace_manager,
 
     lib_config m_global_config;
 
-    workspace_manager_external_file_requests* m_external_file_requests = nullptr;
+    workspace_manager_args m_args;
+
     watcher_registration_provider* m_watcher_provider = nullptr;
     workspaces::file_manager_impl m_file_manager;
 
     std::unordered_map<resource_location, opened_workspace> m_workspaces;
     opened_workspace m_implicit_workspace;
     workspaces::workspace m_ws;
-    bool m_vscode_extensions;
 
     std::vector<diagnostics_consumer*> m_diag_consumers;
     std::vector<parsing_metadata_consumer*> m_parsing_metadata_consumers;
@@ -1107,7 +1107,7 @@ class workspace_manager_impl final : public workspace_manager,
     void read_external_configuration(
         std::string_view uri, workspace_manager_response<std::string_view> content) override
     {
-        if (!m_requests || !m_vscode_extensions)
+        if (!m_requests || !m_args.vscode_extensions)
         {
             content.error(utils::error::not_found);
             return;
@@ -1174,13 +1174,11 @@ class workspace_manager_impl final : public workspace_manager,
     }
 
 public:
-    explicit workspace_manager_impl(
-        workspace_manager_external_file_requests* external_file_requests, bool vscode_extensions)
-        : m_external_file_requests(external_file_requests)
+    explicit workspace_manager_impl(const workspace_manager_args& args)
+        : m_args(args)
         , m_file_manager(*this)
         , m_implicit_workspace(m_file_manager, m_global_config, this, this)
-        , m_ws(m_file_manager, *this)
-        , m_vscode_extensions(vscode_extensions)
+        , m_ws(m_file_manager, *this, args.text_conversion)
     {
         m_work_queue.emplace_back(work_item {
             next_unique_id(),
@@ -1199,10 +1197,9 @@ public:
     workspace_manager_impl& operator=(workspace_manager_impl&&) = delete;
 };
 
-workspace_manager* create_workspace_manager_impl(
-    workspace_manager_external_file_requests* external_requests, bool vscode_extensions)
+workspace_manager* create_workspace_manager_impl(const workspace_manager_args& args)
 {
-    return new workspace_manager_impl(external_requests, vscode_extensions);
+    return new workspace_manager_impl(args);
 }
 
 } // namespace hlasm_plugin::parser_library

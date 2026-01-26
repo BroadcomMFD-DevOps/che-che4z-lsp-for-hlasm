@@ -31,6 +31,7 @@
 #include "location.h"
 #include "message_consumer.h"
 #include "protocol.h"
+#include "text_convertor.h"
 #include "workspace_manager_requests.h"
 
 namespace hlasm_plugin::parser_library {
@@ -182,12 +183,17 @@ public:
     virtual void change_implicit_group_base(std::string_view uri) = 0;
 };
 
-workspace_manager* create_workspace_manager_impl(
-    workspace_manager_external_file_requests* external_requests, bool vscode_extensions);
-inline std::unique_ptr<workspace_manager> create_workspace_manager(
-    workspace_manager_external_file_requests* external_requests = nullptr, bool vscode_extensions = false)
+struct workspace_manager_args
 {
-    return std::unique_ptr<workspace_manager>(create_workspace_manager_impl(external_requests, vscode_extensions));
+    workspace_manager_external_file_requests* external_requests = nullptr;
+    const text_convertor* text_conversion = nullptr;
+    bool vscode_extensions = false;
+};
+
+workspace_manager* create_workspace_manager_impl(const workspace_manager_args& args);
+inline std::unique_ptr<workspace_manager> create_workspace_manager(const workspace_manager_args& args = {})
+{
+    return std::unique_ptr<workspace_manager>(create_workspace_manager_impl(args));
 }
 
 } // namespace hlasm_plugin::parser_library

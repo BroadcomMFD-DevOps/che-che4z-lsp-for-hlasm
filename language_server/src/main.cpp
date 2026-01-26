@@ -16,6 +16,7 @@
 #include <span>
 #include <thread>
 
+#include "pseudo_convertors.h"
 #include "server_options.h"
 #ifdef WIN32
 #    include <locale.h>
@@ -75,9 +76,13 @@ class main_program final : public json_sink,
     }
 
 public:
-    main_program(json_sink& json_output, int& ret, bool use_vscode_extensions)
+    main_program(json_sink& json_output, int& ret, bool use_vscode_extensions, pseudo_charsets pc)
         : external_files(json_output)
-        , ws_mngr(hlasm_plugin::parser_library::create_workspace_manager(&external_files, use_vscode_extensions))
+        , ws_mngr(hlasm_plugin::parser_library::create_workspace_manager({
+              .external_requests = &external_files,
+              .text_conversion = get_text_convertor(pc),
+              .vscode_extensions = use_vscode_extensions,
+          }))
         , dc_provider(ws_mngr->get_debugger_configuration_provider())
         , json_output(json_output)
         , router(&lsp_queue)
@@ -182,7 +187,9 @@ void log_options(server_options opts)
         ", log-level=",
         std::to_string(opts.log_level),
         ", lsp-port=",
-        std::to_string(opts.port));
+        std::to_string(opts.port),
+        ", pseudo-charset=",
+        to_string(opts.pseudo_charset));
 }
 
 } // namespace
@@ -213,7 +220,7 @@ int main(int argc, char** argv)
     {
         int ret = 0;
 
-        main_program pgm(io_setup->get_response_stream(), ret, opts->enable_vscode_extension);
+        main_program pgm(io_setup->get_response_stream(), ret, opts->enable_vscode_extension, opts->pseudo_charset);
 
         for (auto& source = io_setup->get_request_stream();;)
         {
