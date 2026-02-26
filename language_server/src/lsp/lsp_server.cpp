@@ -38,14 +38,14 @@
 
 namespace hlasm_plugin::language_server::lsp {
 
-server::server(parser_library::workspace_manager& ws_mngr)
+server::server(parser_library::workspace_manager& ws_mngr, const parser_library::text_convertor* tc)
     : language_server::server(this)
     , ws_mngr(ws_mngr)
     , progress(*this)
 {
     features_.push_back(std::make_unique<feature_workspace_folders>(ws_mngr, *this));
     features_.push_back(std::make_unique<feature_text_synchronization>(ws_mngr, *this));
-    features_.push_back(std::make_unique<feature_language_features>(ws_mngr, *this));
+    features_.push_back(std::make_unique<feature_language_features>(ws_mngr, *this, tc));
     register_feature_methods();
     register_methods();
 

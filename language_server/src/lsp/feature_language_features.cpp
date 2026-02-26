@@ -148,11 +148,11 @@ const std::unordered_map<completion_item_kind, lsp_completion_item_kind> complet
     { completion_item_kind::ord_sym, lsp_completion_item_kind::field },
 };
 
-nlohmann::json get_markup_content(std::string_view content)
+nlohmann::json get_markup_content(std::string content)
 {
     return nlohmann::json {
         { "kind", "markdown" },
-        { "value", content },
+        { "value", std::move(content) },
     };
 }
 
@@ -160,7 +160,7 @@ std::string decorate_suggestion(std::string_view s)
 {
     std::string result;
 
-    for (char c : s)
+    for (unsigned char c : s)
     {
         if (c < 0x80)
             result.append(2, '#');
@@ -223,10 +223,12 @@ auto make_response(const request_id& id, response_provider* response, U handler)
 
 } // namespace
 
-feature_language_features::feature_language_features(
-    parser_library::workspace_manager& ws_mngr, response_provider& response_provider)
+feature_language_features::feature_language_features(parser_library::workspace_manager& ws_mngr,
+    response_provider& response_provider,
+    const parser_library::text_convertor* tc)
     : feature(response_provider)
     , ws_mngr_(ws_mngr)
+    , m_text_convertor(tc)
 {}
 
 void feature_language_features::register_methods(std::map<std::string, method>& methods)
@@ -263,7 +265,16 @@ nlohmann::json feature_language_features::register_capabilities()
             "completionProvider",
             {
                 { "resolveProvider", true },
-                { "triggerCharacters", { "&", ".", "_", "$", "#", "@", "*" } },
+                { "triggerCharacters",
+                    {
+                        convert_to("&"),
+                        convert_to("."),
+                        convert_to("_"),
+                        convert_to("$"),
+                        convert_to("#"),
+                        convert_to("@"),
+                        convert_to("*"),
+                    } },
             },
         },
         { "foldingRangeProvider", true },
@@ -344,15 +355,15 @@ void feature_language_features::references(const request_id& id, const nlohmann:
 
     response_->register_cancellable_request(id, std::move(resp));
 }
+
 void feature_language_features::hover(const request_id& id, const nlohmann::json& params)
 {
     auto document_uri = extract_document_uri(params);
     auto pos = extract_position(params);
 
-    auto resp = make_response(id, response_, [](std::string_view hover_list_result) {
-        std::string_view hover_list(hover_list_result);
+    auto resp = make_response(id, response_, [this](std::string_view hover_list) {
         return nlohmann::json {
-            { "contents", hover_list.empty() ? "" : get_markup_content(hover_list) },
+            { "contents", hover_list.empty() ? "" : get_markup_content(convert_to(hover_list)) },
         };
     });
     ws_mngr_.hover(document_uri, pos, resp);
@@ -383,17 +394,17 @@ nlohmann::json feature_language_features::translate_completion_list_and_save_doc
     for (const auto& item : list)
     {
         auto& json_item = completion_item_array.emplace_back(nlohmann::json {
-            { "label", item.label },
+            { "label", convert_to(item.label) },
             { "kind", completion_item_kind_mapping.at(item.kind) },
-            { "detail", item.detail },
-            { "insertText", item.insert_text },
+            { "detail", convert_to(item.detail) },
+            { "insertText", convert_to(item.insert_text) },
             { "insertTextFormat", 1 + (int)item.snippet },
         });
-        saved_completion_list_doc.emplace(item.label, item.documentation);
+        saved_completion_list_doc.emplace(convert_to(item.label), convert_to(item.documentation));
         if (const auto& suggestion = item.suggestion_for; !suggestion.empty())
         {
-            json_item["filterText"] = std::string("~~~") + decorate_suggestion(suggestion);
-            json_item["sortText"] = std::string("~~~") + std::string(item.label);
+            json_item["filterText"] = std::string("~~~") + decorate_suggestion(convert_to(suggestion));
+            json_item["sortText"] = std::string("~~~") + convert_to(item.label);
         }
     }
     // needs to be incomplete, otherwise we are unable to include new suggestions
@@ -590,7 +601,7 @@ nlohmann::json feature_language_features::document_symbol_item_json(
     const hlasm_plugin::parser_library::document_symbol_item& symbol)
 {
     return {
-        { "name", symbol.name },
+        { "name", convert_to(symbol.name) },
         { "kind", document_symbol_item_kind_mapping.at(symbol.kind) },
         { "range", range_to_json(symbol.symbol_range) },
         { "selectionRange", range_to_json(symbol.symbol_selection_range) },
@@ -700,12 +711,13 @@ void feature_language_features::opcode_suggestion(const request_id& id, const nl
 
         using subrequest_t =
             workspace_manager_response<std::span<const hlasm_plugin::parser_library::opcode_suggestion>>;
-        subrequest_t start_request(std::string opcode)
+        subrequest_t start_request(std::string opcode, const text_convertor* tc)
         {
             struct subrequest_t
             {
                 std::shared_ptr<composite_response_t> m_self;
                 std::string m_opcode;
+                const text_convertor* m_tc;
 
                 void error(int ec, const char* error) const noexcept { m_self->error(ec, error); }
 
@@ -720,15 +732,25 @@ void feature_language_features::opcode_suggestion(const request_id& id, const nl
                     for (const auto& s : opcode_suggestions)
                     {
                         result.push_back(nlohmann::json {
-                            { "opcode", s.opcode },
+                            { "opcode", convert_to(s.opcode) },
                             { "distance", s.distance },
                         });
                     }
-                    m_self->provide(std::make_pair(std::move(m_opcode), std::move(result)));
+                    m_self->provide(std::make_pair(convert_to(m_opcode), std::move(result)));
+                }
+
+                std::string convert_to(std::string_view s)
+                {
+                    if (!m_tc)
+                        return std::string(s);
+                    std::string result;
+                    m_tc->to(result, s);
+                    return result;
                 }
             };
 
-            auto [result, _] = make_workspace_manager_response(subrequest_t { shared_from_this(), std::move(opcode) });
+            auto [result, _] =
+                make_workspace_manager_response(subrequest_t { shared_from_this(), std::move(opcode), tc });
 
             ++m_pending_responses;
 
@@ -762,10 +784,11 @@ void feature_language_features::opcode_suggestion(const request_id& id, const nl
         {
             if (!opcode.is_string())
                 continue;
-            auto op = opcode.get<std::string>();
+
+            const auto op = convert_from(opcode.get<std::string_view>());
 
             ws_mngr_.make_opcode_suggestion(
-                document_uri, op, extended, subrequests.emplace_back(composite->start_request(op)));
+                document_uri, op, extended, subrequests.emplace_back(composite->start_request(op, m_text_convertor)));
         }
 
         response_->register_cancellable_request(id, composite->get_invalidator(std::move(subrequests)));
@@ -821,11 +844,51 @@ void feature_language_features::retrieve_outputs(const request_id& id, const nlo
 {
     auto document_uri = extract_document_uri(params);
 
-    auto resp =
-        make_response(id, response_, [](std::span<const output_line> outputs) { return nlohmann::json(outputs); });
+    auto resp = make_response(id, response_, [this](std::span<const output_line> outputs) {
+        if (!m_text_convertor)
+            return nlohmann::json(outputs);
+        std::vector<output_line> lines;
+        lines.reserve(outputs.size());
+        std::ranges::transform(outputs, std::back_inserter(lines), [this](const output_line& l) {
+            return output_line { l.level, convert_to(l.text) };
+        });
+        return nlohmann::json(std::move(lines));
+    });
 
     ws_mngr_.retrieve_output(document_uri, resp);
 
     response_->register_cancellable_request(id, std::move(resp));
+}
+
+std::string feature_language_features::convert_from(std::string_view s)
+{
+    if (!m_text_convertor)
+        return std::string(s);
+    std::string result;
+    m_text_convertor->from(result, s);
+    return result;
+}
+
+std::string feature_language_features::convert_to(std::string_view s)
+{
+    if (!m_text_convertor)
+        return std::string(s);
+    std::string tmp(s);
+    tmp.reserve(s.size());
+    for (auto& c : tmp)
+    {
+        if (c == '`')
+            c = 0xff;
+    }
+    std::string result;
+
+    m_text_convertor->to(result, tmp);
+
+    for (auto& c : result)
+    {
+        if (c == (char)0xff)
+            c = '`';
+    }
+    return result;
 }
 } // namespace hlasm_plugin::language_server::lsp

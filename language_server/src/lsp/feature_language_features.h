@@ -31,7 +31,9 @@ namespace hlasm_plugin::language_server::lsp {
 class feature_language_features : public feature
 {
 public:
-    feature_language_features(parser_library::workspace_manager& ws_mngr, response_provider& response_provider);
+    feature_language_features(parser_library::workspace_manager& ws_mngr,
+        response_provider& response_provider,
+        const parser_library::text_convertor* tc);
 
     void register_methods(std::map<std::string, method>& methods) override;
     nlohmann::json register_capabilities() override;
@@ -57,10 +59,14 @@ private:
         std::span<const hlasm_plugin::parser_library::document_symbol_item> symbol_list);
 
     parser_library::workspace_manager& ws_mngr_;
+    const parser_library::text_convertor* m_text_convertor;
 
     nlohmann::json translate_completion_list_and_save_doc(
         std::span<const hlasm_plugin::parser_library::completion_item> list);
     std::unordered_map<std::string, std::string> saved_completion_list_doc;
+
+    std::string convert_from(std::string_view s);
+    std::string convert_to(std::string_view s);
 };
 
 } // namespace hlasm_plugin::language_server::lsp

@@ -52,7 +52,7 @@ auto get_telemetry_method_matcher(std::string method)
 TEST(telemetry, lsp_server_did_open)
 {
     auto ws_mngr = parser_library::create_workspace_manager();
-    lsp::server lsp_server(*ws_mngr);
+    lsp::server lsp_server(*ws_mngr, nullptr);
     send_message_provider_mock lsp_smpm;
     lsp_server.set_send_message_provider(&lsp_smpm);
 
@@ -99,7 +99,7 @@ TEST(telemetry, lsp_server_did_open)
 TEST(telemetry, telemetry_broker)
 {
     auto ws_mngr = parser_library::create_workspace_manager();
-    lsp::server lsp_server(*ws_mngr);
+    lsp::server lsp_server(*ws_mngr, nullptr);
     send_message_provider_mock lsp_smpm;
     lsp_server.set_send_message_provider(&lsp_smpm);
 

@@ -93,7 +93,7 @@ public:
         router.register_route(virtual_files.get_filtering_predicate(), virtual_files);
         router.register_route(external_files.get_filtering_predicate(), external_files);
 
-        lsp_thread = std::thread([&ret, this]() {
+        lsp_thread = std::thread([&ret, this, pc]() {
             try
             {
                 auto ext_reg = external_files.register_thread([this]() noexcept {
@@ -101,7 +101,7 @@ public:
                     lsp_queue.write(nlohmann::json::value_t::discarded);
                 });
 
-                lsp::server server(*ws_mngr);
+                lsp::server server(*ws_mngr, get_text_convertor(pc));
                 server.set_send_message_provider(this);
 
                 hlasm_plugin::utils::scope_exit disconnect_telemetry(
