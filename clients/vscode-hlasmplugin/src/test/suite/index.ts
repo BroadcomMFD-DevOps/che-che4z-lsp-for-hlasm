@@ -14,7 +14,7 @@
 
 import * as path from 'path';
 import * as Mocha from 'mocha';
-import { glob } from 'glob';
+import { promises as fsPromises } from 'fs';
 import * as vscode from 'vscode';
 import * as process from 'process';
 import { popWaitRequestResolver } from './testHelper';
@@ -103,10 +103,8 @@ export async function run(): Promise<void> {
     const mocha = new Mocha({ ui: 'tdd', color: true });
     const testsPath = path.join(__dirname, '..');
 
-    const files = await glob((!is_theia) ? '**/**.test.js' : '**/integration.test.js', { cwd: testsPath });
-
-    // Add files to the test suite
-    files.forEach(file => mocha.addFile(path.resolve(testsPath, file)));
+    for await (const file of fsPromises.glob((!is_theia) ? '**/**.test.js' : '**/integration.test.js', { cwd: testsPath }))
+      mocha.addFile(path.resolve(testsPath, file));
 
     await new Promise((resolve, reject) => {
         // Run the mocha test
