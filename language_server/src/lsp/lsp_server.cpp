@@ -38,7 +38,7 @@
 
 namespace hlasm_plugin::language_server::lsp {
 
-server::server(parser_library::workspace_manager& ws_mngr, const parser_library::text_convertor* tc)
+server::server(parser_library::workspace_manager& ws_mngr, const utils::text_convertor* tc)
     : language_server::server(this)
     , ws_mngr(ws_mngr)
     , progress(*this)

@@ -31,9 +31,11 @@
 #include "location.h"
 #include "message_consumer.h"
 #include "protocol.h"
-#include "text_convertor.h"
 #include "workspace_manager_requests.h"
 
+namespace hlasm_plugin::utils {
+struct text_convertor;
+} // namespace hlasm_plugin::utils
 namespace hlasm_plugin::parser_library {
 struct completion_item;
 struct diagnostic;
@@ -186,7 +188,7 @@ public:
 struct workspace_manager_args
 {
     workspace_manager_external_file_requests* external_requests = nullptr;
-    const text_convertor* text_conversion = nullptr;
+    const utils::text_convertor* text_conversion = nullptr;
     bool vscode_extensions = false;
 };
 

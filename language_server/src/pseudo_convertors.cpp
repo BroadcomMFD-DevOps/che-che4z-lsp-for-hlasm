@@ -148,7 +148,7 @@ consteval auto generate_conversions()
 }
 
 template<const auto& f, const auto& t>
-requires(sizeof(f) == sizeof(t)) struct convertor_t final : hlasm_plugin::parser_library::text_convertor
+requires(sizeof(f) == sizeof(t)) struct convertor_t final : hlasm_plugin::utils::text_convertor
 {
     static constexpr std::pair unique_utf8_prefixes = {
         enumerate_unique_prefixes<f, t>(),
@@ -199,7 +199,7 @@ requires(sizeof(f) == sizeof(t)) struct convertor_t final : hlasm_plugin::parser
 constexpr convertor_t<ibm1143, ibm1148> ibm1143_convertor;
 } // namespace
 
-const parser_library::text_convertor* get_text_convertor(pseudo_charsets pc) noexcept
+const utils::text_convertor* get_text_convertor(pseudo_charsets pc) noexcept
 {
     switch (pc)
     {

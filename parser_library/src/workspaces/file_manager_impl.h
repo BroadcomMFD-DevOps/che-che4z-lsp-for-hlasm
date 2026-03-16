@@ -25,9 +25,9 @@
 #include "file_manager.h"
 #include "utils/resource_location.h"
 
-namespace hlasm_plugin::parser_library {
+namespace hlasm_plugin::utils {
 struct text_convertor;
-} // namespace hlasm_plugin::parser_library
+} // namespace hlasm_plugin::utils
 
 namespace hlasm_plugin::parser_library::workspaces {
 
@@ -53,7 +53,7 @@ class file_manager_impl : public file_manager
 
 public:
     file_manager_impl();
-    explicit file_manager_impl(const external_file_reader& file_reader, const text_convertor* tc);
+    explicit file_manager_impl(const external_file_reader& file_reader, const utils::text_convertor* tc);
     file_manager_impl(const file_manager_impl&) = delete;
     file_manager_impl& operator=(const file_manager_impl&) = delete;
 
@@ -94,7 +94,7 @@ public:
 
 private:
     const external_file_reader* m_file_reader;
-    const text_convertor* m_text_convertor;
+    const utils::text_convertor* m_text_convertor;
     struct virtual_file_entry
     {
         std::string text;

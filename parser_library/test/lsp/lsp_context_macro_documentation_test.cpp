@@ -76,7 +76,7 @@ TEST_F(lsp_context_macro_documentation, references)
 
 TEST_F(lsp_context_macro_documentation, hover)
 {
-    auto res = a.context().lsp_ctx->hover(opencode_loc, { 10, 8 });
+    auto res = a.context().lsp_ctx->hover(opencode_loc, { 10, 8 }, nullptr);
 
     EXPECT_EQ(res, macro_documentation);
 }

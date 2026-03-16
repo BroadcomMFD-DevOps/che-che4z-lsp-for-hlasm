@@ -38,17 +38,18 @@
 #include "message_consumer.h"
 #include "processor_group.h"
 #include "semantics/highlighting_info.h"
-#include "text_convertor.h"
 #include "utils/resource_location.h"
 #include "utils/task.h"
 
+namespace hlasm_plugin::utils {
+struct text_convertor;
+} // namespace hlasm_plugin::utils
 namespace hlasm_plugin::parser_library {
 struct completion_item;
 enum class completion_trigger_kind;
 struct document_symbol_item;
 struct fade_message;
 class external_configuration_requests;
-struct text_convertor;
 } // namespace hlasm_plugin::parser_library
 namespace hlasm_plugin::parser_library::workspaces {
 class file_manager;
@@ -75,7 +76,7 @@ class workspace
 public:
     using resource_location = utils::resource::resource_location;
 
-    workspace(file_manager& file_manager, configuration_provider& configuration, const text_convertor* tc);
+    workspace(file_manager& file_manager, configuration_provider& configuration, const utils::text_convertor* tc);
 
     workspace(const workspace& ws) = delete;
     workspace& operator=(const workspace&) = delete;
@@ -141,7 +142,7 @@ private:
     lib_config get_config() const;
 
     configuration_provider& m_configuration;
-    const text_convertor* m_text_convertor;
+    const utils::text_convertor* m_text_convertor;
 
     struct dependency_cache;
     struct processor_file_compoments;

@@ -21,10 +21,10 @@
 #include <variant>
 
 #include "file.h"
-#include "text_convertor.h"
 #include "utils/content_loader.h"
 #include "utils/path_conversions.h"
 #include "utils/platform.h"
+#include "utils/text_convertor.h"
 
 namespace {
 auto next_global_version()
@@ -63,7 +63,7 @@ struct file_manager_impl::mapped_file final : file
     mapped_file(const utils::resource::resource_location& file_name,
         file_manager_impl& fm,
         std::string text,
-        const text_convertor* tc)
+        const utils::text_convertor* tc)
         : m_location(file_name)
         , m_text(std::move(text))
         , m_lines(create_line_indices(m_text))
@@ -124,7 +124,7 @@ struct file_manager_impl::mapped_file final : file
             return m_text;
     }
 
-    void apply_conversion(const text_convertor* tc)
+    void apply_conversion(const utils::text_convertor* tc)
     {
         if (!tc)
             return;
@@ -171,7 +171,7 @@ file_manager_impl::file_manager_impl()
     : file_manager_impl(default_reader, nullptr)
 {}
 
-file_manager_impl::file_manager_impl(const external_file_reader& file_reader, const text_convertor* tc)
+file_manager_impl::file_manager_impl(const external_file_reader& file_reader, const utils::text_convertor* tc)
     : m_file_reader(&file_reader)
     , m_text_convertor(tc)
 {}

@@ -26,6 +26,7 @@
 #include "nlohmann/json.hpp"
 #include "utils/error_codes.h"
 #include "utils/resource_location.h"
+#include "utils/text_convertor.h"
 #include "workspace_manager_response.h"
 
 namespace hlasm_plugin::parser_library {
@@ -223,9 +224,8 @@ auto make_response(const request_id& id, response_provider* response, U handler)
 
 } // namespace
 
-feature_language_features::feature_language_features(parser_library::workspace_manager& ws_mngr,
-    response_provider& response_provider,
-    const parser_library::text_convertor* tc)
+feature_language_features::feature_language_features(
+    parser_library::workspace_manager& ws_mngr, response_provider& response_provider, const utils::text_convertor* tc)
     : feature(response_provider)
     , ws_mngr_(ws_mngr)
     , m_text_convertor(tc)
@@ -711,13 +711,13 @@ void feature_language_features::opcode_suggestion(const request_id& id, const nl
 
         using subrequest_t =
             workspace_manager_response<std::span<const hlasm_plugin::parser_library::opcode_suggestion>>;
-        subrequest_t start_request(std::string opcode, const text_convertor* tc)
+        subrequest_t start_request(std::string opcode, const utils::text_convertor* tc)
         {
             struct subrequest_t
             {
                 std::shared_ptr<composite_response_t> m_self;
                 std::string m_opcode;
-                const text_convertor* m_tc;
+                const utils::text_convertor* m_tc;
 
                 void error(int ec, const char* error) const noexcept { m_self->error(ec, error); }
 

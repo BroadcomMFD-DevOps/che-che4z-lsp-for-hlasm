@@ -324,7 +324,7 @@ struct workspace_parse_lib_provider final : public parse_lib_provider
     }
 };
 
-workspace::workspace(file_manager& file_manager, configuration_provider& configuration, const text_convertor* tc)
+workspace::workspace(file_manager& file_manager, configuration_provider& configuration, const utils::text_convertor* tc)
     : file_manager_(file_manager)
     , fm_vfm_(file_manager_)
     , m_configuration(configuration)
@@ -856,7 +856,7 @@ std::string workspace::hover(const resource_location& document_loc, position pos
         return {};
     // for now take last opencode
     if (const auto* lsp_context = opencodes.back()->m_last_results->lsp_context.get())
-        return lsp_context->hover(document_loc, pos);
+        return lsp_context->hover(document_loc, pos, m_text_convertor);
     else
         return {};
 }
@@ -880,7 +880,7 @@ std::vector<completion_item> workspace::completion(
         for (auto&& [suggestion, rank] : raw_suggestions)
             cli->additional_instructions.emplace_back(std::move(suggestion));
     }
-    return lsp::generate_completion(comp);
+    return lsp::generate_completion(comp, m_text_convertor);
 }
 
 std::vector<document_symbol_item> workspace::document_symbol(const resource_location& document_loc) const

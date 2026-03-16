@@ -16,10 +16,10 @@
 #define HLASMPLUGIN_LANGUAGESERVER_PSEUDO_CONVERTORS_H
 
 #include "server_options.h"
-#include "text_convertor.h"
+#include "utils/text_convertor.h"
 
 namespace hlasm_plugin::language_server {
-const parser_library::text_convertor* get_text_convertor(pseudo_charsets pc) noexcept;
+const utils::text_convertor* get_text_convertor(pseudo_charsets pc) noexcept;
 }
 
 #endif

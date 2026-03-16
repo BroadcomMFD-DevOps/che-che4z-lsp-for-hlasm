@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Broadcom.
+ * Copyright (c) 2026 Broadcom.
  * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program and the accompanying materials are made
@@ -12,13 +12,13 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
-#ifndef HLASMPARSER_PARSERLIBRARY_TEXT_CONVERTOR_H
-#define HLASMPARSER_PARSERLIBRARY_TEXT_CONVERTOR_H
+#ifndef HLASMPARSER_UTILS_TEXT_CONVERTOR_H
+#define HLASMPARSER_UTILS_TEXT_CONVERTOR_H
 
 #include <string>
 #include <string_view>
 
-namespace hlasm_plugin::parser_library {
+namespace hlasm_plugin::utils {
 
 struct text_convertor
 {
@@ -29,6 +29,6 @@ protected:
     ~text_convertor() = default;
 };
 
-} // namespace hlasm_plugin::parser_library
+} // namespace hlasm_plugin::utils
 
 #endif

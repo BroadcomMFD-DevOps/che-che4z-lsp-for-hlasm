@@ -53,7 +53,7 @@ TEST_F(lsp_context_var_symbol_SET, references)
 
 TEST_F(lsp_context_var_symbol_SET, hover)
 {
-    auto res = a.context().lsp_ctx->hover(opencode_loc, { 2, 7 });
+    auto res = a.context().lsp_ctx->hover(opencode_loc, { 2, 7 }, nullptr);
 
 
     EXPECT_EQ(res, "SETA variable");
@@ -105,7 +105,7 @@ TEST_F(lsp_context_var_symbol_GBL, references)
 
 TEST_F(lsp_context_var_symbol_GBL, hover)
 {
-    auto res = a.context().lsp_ctx->hover(opencode_loc, { 2, 7 });
+    auto res = a.context().lsp_ctx->hover(opencode_loc, { 2, 7 }, nullptr);
 
     EXPECT_EQ(res, "SETC variable");
 }
@@ -155,7 +155,7 @@ TEST_F(lsp_context_var_symbol_LCL, references)
 
 TEST_F(lsp_context_var_symbol_LCL, hover)
 {
-    auto res = a.context().lsp_ctx->hover(opencode_loc, { 2, 7 });
+    auto res = a.context().lsp_ctx->hover(opencode_loc, { 2, 7 }, nullptr);
 
     EXPECT_EQ(res, "SETB variable");
 }
@@ -198,7 +198,7 @@ TEST_F(lsp_context_var_symbol_no_definition, references)
 
 TEST_F(lsp_context_var_symbol_no_definition, hover)
 {
-    auto res = a.context().lsp_ctx->hover(opencode_loc, { 0, 6 });
+    auto res = a.context().lsp_ctx->hover(opencode_loc, { 0, 6 }, nullptr);
 
     EXPECT_EQ(res, "");
 }
@@ -217,7 +217,7 @@ TEST_F(lsp_context_var_symbol_no_definition, references_no_occurrence)
 
 TEST_F(lsp_context_var_symbol_no_definition, hover_no_occurrence)
 {
-    auto res = a.context().lsp_ctx->hover(opencode_loc, { 0, 9 });
+    auto res = a.context().lsp_ctx->hover(opencode_loc, { 0, 9 }, nullptr);
 
     EXPECT_EQ(res, "");
 }

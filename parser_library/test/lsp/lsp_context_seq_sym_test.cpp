@@ -84,7 +84,7 @@ TEST_F(lsp_context_seq_sym, references_out_of_macro)
 
 TEST_F(lsp_context_seq_sym, hover)
 {
-    auto res = a.context().lsp_ctx->hover(opencode_loc, { 4, 12 });
+    auto res = a.context().lsp_ctx->hover(opencode_loc, { 4, 12 }, nullptr);
 
     EXPECT_EQ(res, "Sequence symbol");
 }
