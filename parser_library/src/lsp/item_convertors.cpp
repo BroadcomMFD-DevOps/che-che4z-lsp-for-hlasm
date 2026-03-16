@@ -60,55 +60,14 @@ std::string& append_hex_and_dec(std::string& t, T value)
     return t;
 }
 
-struct string_convertor
-{
-    const utils::text_convertor* tc;
-
-    std::string convert(std::string_view s) const
-    {
-        if (!tc)
-            return std::string(s);
-
-        std::string result;
-        result.reserve(s.size());
-        tc->to(result, s);
-        return result;
-    }
-
-    std::string convert(std::string&& s) const
-    {
-        if (!tc)
-            return std::move(s);
-
-        std::string result;
-        result.reserve(s.size());
-        tc->to(result, s);
-        return result;
-    }
-
-    void inplace(std::string& s) const
-    {
-        if (!tc)
-            return;
-
-        std::string converted;
-        converted.reserve(s.size());
-        tc->to(converted, s);
-        swap(converted, s);
-    }
-};
-
 struct string_appender
 {
-    const utils::text_convertor* tc;
+    utils::conversion_helper convert;
     std::string& target;
 
     const string_appender& append(std::string_view s) const
     {
-        if (!tc)
-            target.append(s);
-        else
-            tc->to(target, s);
+        convert.append_to(target, s);
         return *this;
     }
 };
@@ -121,7 +80,7 @@ std::string hover_text(const context::symbol& sym, const utils::text_convertor* 
     if (sym.value().value_kind() == context::symbol_value_kind::UNDEF)
         return "";
     std::string markdown = "";
-    const string_convertor convertor { tc };
+    const utils::conversion_helper convertor { tc };
     const string_appender md_appender { tc, markdown };
 
     if (sym.value().value_kind() == context::symbol_value_kind::ABS)
@@ -181,7 +140,7 @@ std::string hover_text(const context::symbol& sym, const utils::text_convertor* 
         std::string_view val(p.ebcdic_value, sizeof(p.ebcdic_value));
         std::string valstr;
         const auto replaced =
-            utils::append_utf8_sanitized(valstr, convertor.convert(ebcdic_encoding::to_ascii(std::string(val))));
+            utils::append_utf8_sanitized(valstr, convertor.convert_to(ebcdic_encoding::to_ascii(std::string(val))));
         markdown.append("P: '");
         for (auto c : valstr)
         {
@@ -381,7 +340,7 @@ std::string get_logical_line(const text_data_view& text, size_t definition_line,
 
 completion_item generate_completion_item_seq(context::id_index name, const utils::text_convertor* tc)
 {
-    std::string label = "." + string_convertor { tc }.convert(name.to_string_view());
+    std::string label = "." + utils::conversion_helper { tc }.convert_to(name.to_string_view());
     return completion_item(label, "Sequence symbol", label, "", completion_item_kind::seq_sym);
 }
 completion_item generate_completion_item(
@@ -397,14 +356,14 @@ completion_item generate_completion_item(
 
 completion_item generate_completion_item(const variable_symbol_definition& vardef, const utils::text_convertor* tc)
 {
-    const auto varname = string_convertor { tc }.convert(vardef.name.to_string_view());
+    const auto varname = utils::conversion_helper { tc }.convert_to(vardef.name.to_string_view());
     return completion_item("&" + varname, hover_text(vardef), "&" + varname, "", completion_item_kind::var_sym);
 }
 
 completion_item generate_completion_item(const macro_info& sym, const file_info* info, const utils::text_convertor* tc)
 {
     const context::macro_definition& m = *sym.macro_definition;
-    const auto id = string_convertor { tc }.convert(m.id.to_string_view());
+    const auto id = utils::conversion_helper { tc }.convert_to(m.id.to_string_view());
 
     return completion_item(id,
         get_macro_signature(m, tc),
@@ -465,7 +424,7 @@ std::vector<completion_item> generate_completion(
 {
     assert(cli.lsp_ctx);
 
-    const string_convertor convertor { tc };
+    const utils::conversion_helper convertor { tc };
 
     const auto& hlasm_ctx = cli.lsp_ctx->get_related_hlasm_context();
     const auto instruction_set = hlasm_ctx.options().instr_set;
@@ -473,7 +432,7 @@ std::vector<completion_item> generate_completion(
     std::vector<std::pair<std::string, bool>> suggestions;
     suggestions.reserve(cli.additional_instructions.size());
     for (const auto& s : cli.additional_instructions)
-        suggestions.emplace_back(convertor.convert(s), false);
+        suggestions.emplace_back(convertor.convert_to(s), false);
 
     const auto locate_suggestion = [&s = suggestions](std::string_view text) {
         auto it = std::ranges::find(s, text, utils::first_element);
@@ -481,7 +440,7 @@ std::vector<completion_item> generate_completion(
     };
 
     std::vector<completion_item> result;
-    const auto completed_text = convertor.convert(cli.completed_text);
+    const auto completed_text = convertor.convert_to(cli.completed_text);
 
     // Store only instructions from the currently active instruction set
     for (const auto& [instr, aff] : instruction_completion_items)
@@ -519,7 +478,7 @@ std::vector<completion_item> generate_completion(
     {
         if (used)
             continue;
-        const auto cs = convertor.convert(suggestion);
+        const auto cs = convertor.convert_to(suggestion);
         result.emplace_back(cs, "", cs, "", completion_item_kind::macro, false, completed_text);
     }
 
@@ -535,14 +494,14 @@ std::string_view ordinal_suffix(size_t i)
 std::vector<completion_item> generate_completion(
     std::vector<completion_item>& result, const context::macro_definition* md, const utils::text_convertor* tc)
 {
-    const string_convertor convertor { tc };
+    const utils::conversion_helper convertor { tc };
 
     for (const auto& positional : md->get_positional_params())
     {
         if (!positional || positional->position == 0 || positional->id.empty()) // label parameter or invalid
             continue;
 
-        const auto id = convertor.convert(positional->id.to_string_view());
+        const auto id = convertor.convert_to(positional->id.to_string_view());
         result.emplace_back("&" + id,
             std::format(
                 "&{} ({}{} positional argument)", id, positional->position, ordinal_suffix(positional->position)),
@@ -556,14 +515,14 @@ std::vector<completion_item> generate_completion(
         if (keyword->id.empty()) // invalid
             continue;
 
-        const auto id = convertor.convert(keyword->id.to_string_view());
+        const auto id = convertor.convert_to(keyword->id.to_string_view());
         result.emplace_back("&" + id,
             std::format("&{} (keyword argument)", id),
             id + "=",
             std::format("```hlasm\n {} &{}={}\n```\n",
-                convertor.convert(md->id.to_string_view()),
+                convertor.convert_to(md->id.to_string_view()),
                 id,
-                convertor.convert(keyword->default_data->get_value())),
+                convertor.convert_to(keyword->default_data->get_value())),
             completion_item_kind::var_sym);
     }
     return result;

@@ -29,6 +29,28 @@ protected:
     ~text_convertor() = default;
 };
 
+class conversion_helper
+{
+    const text_convertor* tc;
+
+public:
+    constexpr conversion_helper(const text_convertor* tc) noexcept
+        : tc(tc)
+    {}
+
+    const conversion_helper& append_to(std::string& t, std::string_view s) const;
+    const conversion_helper& append_from(std::string& t, std::string_view s) const;
+
+    std::string convert_to(std::string&& s) const;
+    std::string convert_from(std::string&& s) const;
+    std::string convert_to(std::string_view s) const;
+    std::string convert_from(std::string_view s) const;
+
+    void inplace_to(std::string& s) const;
+    void inplace_from(std::string& s) const;
+};
+
+
 } // namespace hlasm_plugin::utils
 
 #endif

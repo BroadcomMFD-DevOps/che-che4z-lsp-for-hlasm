@@ -148,7 +148,7 @@ TEST(telemetry, telemetry_broker)
 
 
     std::thread dap_thread([&]() {
-        dap::server dap_server(ws_mngr->get_debugger_configuration_provider(), &broker);
+        dap::server dap_server(ws_mngr->get_debugger_configuration_provider(), &broker, nullptr);
         ::testing::NiceMock<send_message_provider_mock> dap_smpm;
         dap_server.set_send_message_provider(&dap_smpm);
 

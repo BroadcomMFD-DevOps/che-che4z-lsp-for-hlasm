@@ -86,7 +86,7 @@ public:
         , dc_provider(ws_mngr->get_debugger_configuration_provider())
         , json_output(json_output)
         , router(&lsp_queue)
-        , dap_sessions(*this, json_output, &dap_telemetry_broker)
+        , dap_sessions(*this, json_output, &dap_telemetry_broker, nullptr, get_text_convertor(pc))
         , virtual_files(*ws_mngr, json_output)
     {
         router.register_route(dap_sessions.get_filtering_predicate(), dap_sessions);

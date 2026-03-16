@@ -717,7 +717,7 @@ void feature_language_features::opcode_suggestion(const request_id& id, const nl
             {
                 std::shared_ptr<composite_response_t> m_self;
                 std::string m_opcode;
-                const utils::text_convertor* m_tc;
+                utils::conversion_helper m_convert;
 
                 void error(int ec, const char* error) const noexcept { m_self->error(ec, error); }
 
@@ -732,20 +732,11 @@ void feature_language_features::opcode_suggestion(const request_id& id, const nl
                     for (const auto& s : opcode_suggestions)
                     {
                         result.push_back(nlohmann::json {
-                            { "opcode", convert_to(s.opcode) },
+                            { "opcode", m_convert.convert_to(s.opcode) },
                             { "distance", s.distance },
                         });
                     }
-                    m_self->provide(std::make_pair(convert_to(m_opcode), std::move(result)));
-                }
-
-                std::string convert_to(std::string_view s)
-                {
-                    if (!m_tc)
-                        return std::string(s);
-                    std::string result;
-                    m_tc->to(result, s);
-                    return result;
+                    m_self->provide(std::make_pair(m_convert.convert_to(m_opcode), std::move(result)));
                 }
             };
 

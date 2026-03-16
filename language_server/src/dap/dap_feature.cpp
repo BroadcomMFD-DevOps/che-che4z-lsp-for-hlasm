@@ -72,10 +72,12 @@ void dap_feature::initialize_feature(const nlohmann::json&) { /* nothing to do *
 
 dap_feature::dap_feature(parser_library::debugger_configuration_provider& dc_provider,
     response_provider& response_provider,
-    dap_disconnect_listener* disconnect_listener)
+    dap_disconnect_listener* disconnect_listener,
+    const utils::text_convertor* tc)
     : feature(response_provider)
     , dc_provider(dc_provider)
     , disconnect_listener_(disconnect_listener)
+    , m_text_convertor(tc)
 {}
 
 
