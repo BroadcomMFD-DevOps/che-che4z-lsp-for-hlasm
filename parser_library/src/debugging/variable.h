@@ -16,8 +16,11 @@
 #define HLASMPLUGIN_PARSERLIBRARY_DEBUGGING_VARIABLE_H
 
 #include <cstdint>
-#include <string>
 #include <vector>
+
+namespace hlasm_plugin::utils {
+struct text_convertor;
+} // namespace hlasm_plugin::utils
 
 namespace hlasm_plugin::parser_library::context {
 class macro_param_base;
@@ -29,7 +32,6 @@ namespace hlasm_plugin::parser_library::debugging {
 
 struct variable;
 
-variable generate_attribute_variable(std::string name, std::string value);
 variable generate_macro_param_variable(const context::macro_param_base& param, std::vector<int32_t> index);
 variable generate_ordinary_symbol_variable(const context::symbol& symbol);
 variable generate_set_symbol_variable(const context::set_symbol_base& set_sym, int32_t index);

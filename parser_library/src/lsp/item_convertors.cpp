@@ -543,7 +543,7 @@ std::vector<completion_item> generate_completion(
     for (const auto& [symbol, label] : symbols)
     {
         std::string name;
-        string_appender appender { tc, name };
+        const string_appender appender { tc, name };
         appender.append(label.to_string_view());
         if (!name.empty())
             appender.append(".");

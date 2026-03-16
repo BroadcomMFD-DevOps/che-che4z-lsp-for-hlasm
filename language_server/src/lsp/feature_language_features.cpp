@@ -149,11 +149,11 @@ const std::unordered_map<completion_item_kind, lsp_completion_item_kind> complet
     { completion_item_kind::ord_sym, lsp_completion_item_kind::field },
 };
 
-nlohmann::json get_markup_content(std::string content)
+nlohmann::json get_markup_content(std::string_view content)
 {
     return nlohmann::json {
         { "kind", "markdown" },
-        { "value", std::move(content) },
+        { "value", content },
     };
 }
 
@@ -255,6 +255,7 @@ void feature_language_features::register_methods(std::map<std::string, method>& 
 
 nlohmann::json feature_language_features::register_capabilities()
 {
+    const utils::conversion_helper tc(m_text_convertor);
     // in case any changes are done to tokenTypes, the hl_scopes field in protocol.h
     // needs to be adjusted accordingly, as they are implicitly but directly mapped to each other
     return nlohmann::json {
@@ -267,13 +268,13 @@ nlohmann::json feature_language_features::register_capabilities()
                 { "resolveProvider", true },
                 { "triggerCharacters",
                     {
-                        convert_to("&"),
-                        convert_to("."),
-                        convert_to("_"),
-                        convert_to("$"),
-                        convert_to("#"),
-                        convert_to("@"),
-                        convert_to("*"),
+                        tc.convert_to(std::string_view("&")),
+                        tc.convert_to(std::string_view(".")),
+                        tc.convert_to(std::string_view("_")),
+                        tc.convert_to(std::string_view("$")),
+                        tc.convert_to(std::string_view("#")),
+                        tc.convert_to(std::string_view("@")),
+                        tc.convert_to(std::string_view("*")),
                     } },
             },
         },
@@ -363,7 +364,7 @@ void feature_language_features::hover(const request_id& id, const nlohmann::json
 
     auto resp = make_response(id, response_, [this](std::string_view hover_list) {
         return nlohmann::json {
-            { "contents", hover_list.empty() ? "" : get_markup_content(convert_to(hover_list)) },
+            { "contents", hover_list.empty() ? "" : get_markup_content(hover_list) },
         };
     });
     ws_mngr_.hover(document_uri, pos, resp);
@@ -394,17 +395,17 @@ nlohmann::json feature_language_features::translate_completion_list_and_save_doc
     for (const auto& item : list)
     {
         auto& json_item = completion_item_array.emplace_back(nlohmann::json {
-            { "label", convert_to(item.label) },
+            { "label", item.label },
             { "kind", completion_item_kind_mapping.at(item.kind) },
-            { "detail", convert_to(item.detail) },
-            { "insertText", convert_to(item.insert_text) },
+            { "detail", item.detail },
+            { "insertText", item.insert_text },
             { "insertTextFormat", 1 + (int)item.snippet },
         });
-        saved_completion_list_doc.emplace(convert_to(item.label), convert_to(item.documentation));
+        saved_completion_list_doc.emplace(item.label, item.documentation);
         if (const auto& suggestion = item.suggestion_for; !suggestion.empty())
         {
-            json_item["filterText"] = std::string("~~~") + decorate_suggestion(convert_to(suggestion));
-            json_item["sortText"] = std::string("~~~") + convert_to(item.label);
+            json_item["filterText"] = std::string("~~~") + decorate_suggestion(suggestion);
+            json_item["sortText"] = std::string("~~~") + item.label;
         }
     }
     // needs to be incomplete, otherwise we are unable to include new suggestions
@@ -600,8 +601,9 @@ const std::unordered_map<parser_library::document_symbol_kind, lsp_document_symb
 nlohmann::json feature_language_features::document_symbol_item_json(
     const hlasm_plugin::parser_library::document_symbol_item& symbol)
 {
+    const utils::conversion_helper tc(m_text_convertor);
     return {
-        { "name", convert_to(symbol.name) },
+        { "name", tc.convert_to(symbol.name) },
         { "kind", document_symbol_item_kind_mapping.at(symbol.kind) },
         { "range", range_to_json(symbol.symbol_range) },
         { "selectionRange", range_to_json(symbol.symbol_selection_range) },
@@ -776,7 +778,7 @@ void feature_language_features::opcode_suggestion(const request_id& id, const nl
             if (!opcode.is_string())
                 continue;
 
-            const auto op = convert_from(opcode.get<std::string_view>());
+            const auto op = utils::conversion_helper(m_text_convertor).convert_from(opcode.get<std::string_view>());
 
             ws_mngr_.make_opcode_suggestion(
                 document_uri, op, extended, subrequests.emplace_back(composite->start_request(op, m_text_convertor)));
@@ -841,7 +843,7 @@ void feature_language_features::retrieve_outputs(const request_id& id, const nlo
         std::vector<output_line> lines;
         lines.reserve(outputs.size());
         std::ranges::transform(outputs, std::back_inserter(lines), [this](const output_line& l) {
-            return output_line { l.level, convert_to(l.text) };
+            return output_line { l.level, utils::conversion_helper(m_text_convertor).convert_to(l.text) };
         });
         return nlohmann::json(std::move(lines));
     });
@@ -851,35 +853,4 @@ void feature_language_features::retrieve_outputs(const request_id& id, const nlo
     response_->register_cancellable_request(id, std::move(resp));
 }
 
-std::string feature_language_features::convert_from(std::string_view s)
-{
-    if (!m_text_convertor)
-        return std::string(s);
-    std::string result;
-    m_text_convertor->from(result, s);
-    return result;
-}
-
-std::string feature_language_features::convert_to(std::string_view s)
-{
-    if (!m_text_convertor)
-        return std::string(s);
-    std::string tmp(s);
-    tmp.reserve(s.size());
-    for (auto& c : tmp)
-    {
-        if (c == '`')
-            c = 0xff;
-    }
-    std::string result;
-
-    m_text_convertor->to(result, tmp);
-
-    for (auto& c : result)
-    {
-        if (c == (char)0xff)
-            c = '`';
-    }
-    return result;
-}
 } // namespace hlasm_plugin::language_server::lsp

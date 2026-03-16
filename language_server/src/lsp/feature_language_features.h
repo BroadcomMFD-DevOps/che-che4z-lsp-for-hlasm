@@ -64,9 +64,6 @@ private:
     nlohmann::json translate_completion_list_and_save_doc(
         std::span<const hlasm_plugin::parser_library::completion_item> list);
     std::unordered_map<std::string, std::string> saved_completion_list_doc;
-
-    std::string convert_from(std::string_view s);
-    std::string convert_to(std::string_view s);
 };
 
 } // namespace hlasm_plugin::language_server::lsp

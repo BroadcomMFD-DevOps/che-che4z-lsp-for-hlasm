@@ -85,6 +85,8 @@ private:
     parser_library::watcher_registration_id m_next_watcher_id = parser_library::watcher_registration_id::INVALID;
     std::vector<watcher_registration> m_watcher_registrations;
 
+    const utils::text_convertor* m_text_convertor;
+
     bool m_supports_dynamic_file_change_notification : 1 = false;
     bool m_supports_file_change_notification_relative_pattern : 1 = false;
 
