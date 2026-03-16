@@ -46,6 +46,21 @@ public:
     std::string convert_to(std::string_view s) const;
     std::string convert_from(std::string_view s) const;
 
+    template<typename... S>
+    std::string convert_to(S&&... s) const
+    {
+        std::string result;
+        (append_to(result, static_cast<std::string_view>(s)), ...);
+        return result;
+    }
+    template<typename... S>
+    std::string convert_from(S&&... s) const
+    {
+        std::string result;
+        (append_from(result, static_cast<std::string_view>(s)), ...);
+        return result;
+    }
+
     void inplace_to(std::string& s) const;
     void inplace_from(std::string& s) const;
 };

@@ -223,8 +223,7 @@ std::string get_macro_signature(const context::macro_definition& m, const utils:
     const string_appender appender { tc, result };
     if (!m.get_label_param_name().empty())
     {
-        result.append("&");
-        appender.append(m.get_label_param_name().to_string_view());
+        appender.append("&").append(m.get_label_param_name().to_string_view());
         result.append(" ");
     }
     appender.append(m.id.to_string_view());
@@ -242,8 +241,7 @@ std::string get_macro_signature(const context::macro_definition& m, const utils:
         else
             first = false;
 
-        result.append("&");
-        appender.append(pos_params[i]->id.to_string_view());
+        appender.append("&").append(pos_params[i]->id.to_string_view());
     }
     for (const auto& param : m.get_keyword_params())
     {
@@ -251,10 +249,7 @@ std::string get_macro_signature(const context::macro_definition& m, const utils:
             result.append(",");
         else
             first = false;
-        result.append("&");
-        appender.append(param->id.to_string_view());
-        result.append("=");
-        appender.append(param->default_data->get_value());
+        appender.append("&").append(param->id.to_string_view()).append("=").append(param->default_data->get_value());
     }
     return result;
 }
@@ -340,7 +335,7 @@ std::string get_logical_line(const text_data_view& text, size_t definition_line,
 
 completion_item generate_completion_item_seq(context::id_index name, const utils::text_convertor* tc)
 {
-    std::string label = "." + utils::conversion_helper { tc }.convert_to(name.to_string_view());
+    std::string label = utils::conversion_helper { tc }.convert_to(".", name.to_string_view());
     return completion_item(label, "Sequence symbol", label, "", completion_item_kind::seq_sym);
 }
 completion_item generate_completion_item(
@@ -356,8 +351,8 @@ completion_item generate_completion_item(
 
 completion_item generate_completion_item(const variable_symbol_definition& vardef, const utils::text_convertor* tc)
 {
-    const auto varname = utils::conversion_helper { tc }.convert_to(vardef.name.to_string_view());
-    return completion_item("&" + varname, hover_text(vardef), "&" + varname, "", completion_item_kind::var_sym);
+    const auto varname = utils::conversion_helper { tc }.convert_to("&", vardef.name.to_string_view());
+    return completion_item(varname, hover_text(vardef), varname, "", completion_item_kind::var_sym);
 }
 
 completion_item generate_completion_item(const macro_info& sym, const file_info* info, const utils::text_convertor* tc)
@@ -501,10 +496,10 @@ std::vector<completion_item> generate_completion(
         if (!positional || positional->position == 0 || positional->id.empty()) // label parameter or invalid
             continue;
 
-        const auto id = convertor.convert_to(positional->id.to_string_view());
-        result.emplace_back("&" + id,
+        const auto var = convertor.convert_to("&", positional->id.to_string_view());
+        result.emplace_back(var,
             std::format(
-                "&{} ({}{} positional argument)", id, positional->position, ordinal_suffix(positional->position)),
+                "{} ({}{} positional argument)", var, positional->position, ordinal_suffix(positional->position)),
             "$0", // workaround - vscode does not support empty insertText
             "",
             completion_item_kind::var_sym,
@@ -516,12 +511,13 @@ std::vector<completion_item> generate_completion(
             continue;
 
         const auto id = convertor.convert_to(keyword->id.to_string_view());
-        result.emplace_back("&" + id,
-            std::format("&{} (keyword argument)", id),
+        const auto var = convertor.convert_to("&", keyword->id.to_string_view());
+        result.emplace_back(var,
+            std::format("{} (keyword argument)", var),
             id + "=",
-            std::format("```hlasm\n {} &{}={}\n```\n",
+            std::format("```hlasm\n {} {}={}\n```\n",
                 convertor.convert_to(md->id.to_string_view()),
-                id,
+                var,
                 convertor.convert_to(keyword->default_data->get_value())),
             completion_item_kind::var_sym);
     }
