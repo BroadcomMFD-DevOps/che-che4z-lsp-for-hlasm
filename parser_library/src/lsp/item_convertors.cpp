@@ -70,7 +70,28 @@ struct string_appender
         convert.append_to(target, s);
         return *this;
     }
+
+    const string_appender& append(context::id_index id) const
+    {
+        convert.append_to(target, id.to_string_view());
+        return *this;
+    }
 };
+
+std::string as_id(context::id_index id, const utils::text_convertor* tc)
+{
+    return utils::conversion_helper(tc).convert_to(id.to_string_view());
+}
+
+std::string as_var(context::id_index id, const utils::text_convertor* tc)
+{
+    return utils::conversion_helper(tc).convert_to("&", id.to_string_view());
+}
+
+std::string as_seq_sym(context::id_index id, const utils::text_convertor* tc)
+{
+    return utils::conversion_helper(tc).convert_to(".", id.to_string_view());
+}
 
 
 } // namespace
@@ -109,8 +130,8 @@ std::string hover_text(const context::symbol& sym, const utils::text_convertor* 
                 markdown.append(std::to_string(d < 0 ? -(unsigned)d : (unsigned)d)).append("*");
 
             if (!qualifier.empty())
-                md_appender.append(qualifier.to_string_view()).append(".");
-            md_appender.append(owner->name.to_string_view());
+                md_appender.append(qualifier).append(".");
+            md_appender.append(owner->name);
         }
         if (!first)
             markdown.append(" + ");
@@ -223,10 +244,10 @@ std::string get_macro_signature(const context::macro_definition& m, const utils:
     const string_appender appender { tc, result };
     if (!m.get_label_param_name().empty())
     {
-        appender.append("&").append(m.get_label_param_name().to_string_view());
+        appender.append("&").append(m.get_label_param_name());
         result.append(" ");
     }
-    appender.append(m.id.to_string_view());
+    appender.append(m.id);
     result.append(" ");
 
     bool first = true;
@@ -241,7 +262,7 @@ std::string get_macro_signature(const context::macro_definition& m, const utils:
         else
             first = false;
 
-        appender.append("&").append(pos_params[i]->id.to_string_view());
+        appender.append("&").append(pos_params[i]->id);
     }
     for (const auto& param : m.get_keyword_params())
     {
@@ -249,7 +270,7 @@ std::string get_macro_signature(const context::macro_definition& m, const utils:
             result.append(",");
         else
             first = false;
-        appender.append("&").append(param->id.to_string_view()).append("=").append(param->default_data->get_value());
+        appender.append("&").append(param->id).append("=").append(param->default_data->get_value());
     }
     return result;
 }
@@ -335,7 +356,7 @@ std::string get_logical_line(const text_data_view& text, size_t definition_line,
 
 completion_item generate_completion_item_seq(context::id_index name, const utils::text_convertor* tc)
 {
-    std::string label = utils::conversion_helper { tc }.convert_to(".", name.to_string_view());
+    std::string label = as_seq_sym(name, tc);
     return completion_item(label, "Sequence symbol", label, "", completion_item_kind::seq_sym);
 }
 completion_item generate_completion_item(
@@ -351,14 +372,14 @@ completion_item generate_completion_item(
 
 completion_item generate_completion_item(const variable_symbol_definition& vardef, const utils::text_convertor* tc)
 {
-    const auto varname = utils::conversion_helper { tc }.convert_to("&", vardef.name.to_string_view());
+    const auto varname = as_var(vardef.name, tc);
     return completion_item(varname, hover_text(vardef), varname, "", completion_item_kind::var_sym);
 }
 
 completion_item generate_completion_item(const macro_info& sym, const file_info* info, const utils::text_convertor* tc)
 {
     const context::macro_definition& m = *sym.macro_definition;
-    const auto id = utils::conversion_helper { tc }.convert_to(m.id.to_string_view());
+    const auto id = as_id(m.id, tc);
 
     return completion_item(id,
         get_macro_signature(m, tc),
@@ -496,7 +517,7 @@ std::vector<completion_item> generate_completion(
         if (!positional || positional->position == 0 || positional->id.empty()) // label parameter or invalid
             continue;
 
-        const auto var = convertor.convert_to("&", positional->id.to_string_view());
+        const auto var = as_var(positional->id, tc);
         result.emplace_back(var,
             std::format(
                 "{} ({}{} positional argument)", var, positional->position, ordinal_suffix(positional->position)),
@@ -510,14 +531,14 @@ std::vector<completion_item> generate_completion(
         if (keyword->id.empty()) // invalid
             continue;
 
-        const auto id = convertor.convert_to(keyword->id.to_string_view());
-        const auto var = convertor.convert_to("&", keyword->id.to_string_view());
+        const auto param_template = convertor.convert_to(keyword->id.to_string_view(), "=");
+        const auto var = as_var(keyword->id, tc);
         result.emplace_back(var,
             std::format("{} (keyword argument)", var),
-            id + "=",
-            std::format("```hlasm\n {} {}={}\n```\n",
-                convertor.convert_to(md->id.to_string_view()),
-                var,
+            param_template,
+            std::format("```hlasm\n {} {}{}\n```\n",
+                as_id(md->id, tc),
+                param_template,
                 convertor.convert_to(keyword->default_data->get_value())),
             completion_item_kind::var_sym);
     }
@@ -540,10 +561,10 @@ std::vector<completion_item> generate_completion(
     {
         std::string name;
         const string_appender appender { tc, name };
-        appender.append(label.to_string_view());
+        appender.append(label);
         if (!name.empty())
             appender.append(".");
-        appender.append(symbol->name().to_string_view());
+        appender.append(symbol->name());
 
         result.emplace_back(name,
             name
@@ -584,10 +605,10 @@ void append_hover_text(std::string& text, const context::using_context_descripti
         text.append("**");
 
         if (!u.label.empty())
-            appender.append(u.label.to_string_view()).append(".");
+            appender.append(u.label).append(".");
 
         if (u.section.has_value() && !u.section->empty())
-            appender.append(u.section->to_string_view());
+            appender.append(*u.section);
         else if (u.section.has_value() && u.section->empty())
             appender.append(private_csect);
 
