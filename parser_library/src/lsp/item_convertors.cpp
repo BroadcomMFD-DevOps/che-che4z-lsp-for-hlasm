@@ -531,14 +531,13 @@ std::vector<completion_item> generate_completion(
         if (keyword->id.empty()) // invalid
             continue;
 
-        const auto param_template = convertor.convert_to(keyword->id.to_string_view(), "=");
         const auto var = as_var(keyword->id, tc);
         result.emplace_back(var,
             std::format("{} (keyword argument)", var),
-            param_template,
+            convertor.convert_to(keyword->id.to_string_view(), "="),
             std::format("```hlasm\n {} {}{}\n```\n",
                 as_id(md->id, tc),
-                param_template,
+                convertor.convert_to("&", keyword->id.to_string_view(), "="),
                 convertor.convert_to(keyword->default_data->get_value())),
             completion_item_kind::var_sym);
     }
