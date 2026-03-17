@@ -30,6 +30,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -61,6 +62,24 @@
 #include "workspaces/workspace_configuration.h"
 
 namespace hlasm_plugin::parser_library {
+
+template<typename C, typename R>
+concept request_handler_without_conversion = requires(const C& c,
+    const workspace_manager_response<R>& resp,
+    workspaces::workspace& ws,
+    const utils::resource::resource_location& uri) {
+    { std::invoke(c, resp, ws, uri) } -> std::same_as<void>;
+};
+template<typename C, typename R>
+concept request_handler_with_conversion = requires(const C& c,
+    const workspace_manager_response<R>& resp,
+    workspaces::workspace& ws,
+    const utils::resource::resource_location& uri,
+    const utils::text_convertor* tc) {
+    { std::invoke(c, resp, ws, uri, tc) } -> std::same_as<void>;
+};
+template<typename C, typename R>
+concept request_handler = request_handler_with_conversion<C, R> || request_handler_without_conversion<C, R>;
 
 // Implementation of workspace manager (Implementation part of the pimpl idiom)
 // Holds workspaces, file manager and macro tracer and handles LSP and DAP
@@ -638,15 +657,19 @@ class workspace_manager_impl final : public workspace_manager,
         };
     }
 
-    template<typename R,
-        std::invocable<workspace_manager_response<R>, workspaces::workspace&, const resource_location&> A>
+    template<typename R, request_handler<R> A>
     void handle_request(std::string_view document_uri, workspace_manager_response<R> r, A a)
     {
         m_work_queue.emplace_back(work_item {
             next_unique_id(),
             response_handle(r,
                 [this, doc_loc = normalized_uri(document_uri), a = std::move(a)](
-                    const workspace_manager_response<R>& resp) { std::invoke(a, resp, m_ws, doc_loc); }),
+                    const workspace_manager_response<R>& resp) {
+                    if constexpr (requires { std::invoke(a, resp, m_ws, doc_loc); })
+                        std::invoke(a, resp, m_ws, doc_loc);
+                    else
+                        std::invoke(a, resp, m_ws, doc_loc, m_args.text_conversion);
+                }),
             [r]() { return r.valid(); },
             work_item_type::query,
         });
@@ -669,8 +692,8 @@ class workspace_manager_impl final : public workspace_manager,
 
     void hover(std::string_view document_uri, position pos, workspace_manager_response<std::string_view> r) override
     {
-        handle_request(document_uri, std::move(r), [pos](const auto& resp, auto& ws, const auto& doc_loc) {
-            resp.provide(ws.hover(doc_loc, pos));
+        handle_request(document_uri, std::move(r), [pos](const auto& resp, auto& ws, const auto& doc_loc, auto tc) {
+            resp.provide(ws.hover(doc_loc, pos, tc));
         });
     }
 
@@ -683,8 +706,8 @@ class workspace_manager_impl final : public workspace_manager,
     {
         handle_request(document_uri,
             std::move(r),
-            [pos, trigger_char, trigger_kind](const auto& resp, auto& ws, const auto& doc_loc) {
-                resp.provide(ws.completion(doc_loc, pos, trigger_char, trigger_kind));
+            [pos, trigger_char, trigger_kind](const auto& resp, auto& ws, const auto& doc_loc, auto tc) {
+                resp.provide(ws.completion(doc_loc, pos, trigger_char, trigger_kind, tc));
             });
     }
 
@@ -1178,7 +1201,7 @@ public:
         : m_args(args)
         , m_file_manager(*this, args.text_conversion)
         , m_implicit_workspace(m_file_manager, m_global_config, this, this)
-        , m_ws(m_file_manager, *this, args.text_conversion)
+        , m_ws(m_file_manager, *this)
     {
         m_work_queue.emplace_back(work_item {
             next_unique_id(),

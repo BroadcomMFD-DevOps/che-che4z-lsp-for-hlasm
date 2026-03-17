@@ -76,7 +76,7 @@ class workspace
 public:
     using resource_location = utils::resource::resource_location;
 
-    workspace(file_manager& file_manager, configuration_provider& configuration, const utils::text_convertor* tc);
+    workspace(file_manager& file_manager, configuration_provider& configuration);
 
     workspace(const workspace& ws) = delete;
     workspace& operator=(const workspace&) = delete;
@@ -102,9 +102,12 @@ public:
 
     location definition(const resource_location& document_loc, position pos) const;
     std::vector<location> references(const resource_location& document_loc, position pos) const;
-    std::string hover(const resource_location& document_loc, position pos) const;
-    std::vector<completion_item> completion(
-        const resource_location& document_loc, position pos, char trigger_char, completion_trigger_kind trigger_kind);
+    std::string hover(const resource_location& document_loc, position pos, const utils::text_convertor* tc) const;
+    std::vector<completion_item> completion(const resource_location& document_loc,
+        position pos,
+        char trigger_char,
+        completion_trigger_kind trigger_kind,
+        const utils::text_convertor* tc);
     std::vector<document_symbol_item> document_symbol(const resource_location& document_loc) const;
 
     std::vector<token_info> semantic_tokens(const resource_location& document_loc) const;
@@ -142,7 +145,6 @@ private:
     lib_config get_config() const;
 
     configuration_provider& m_configuration;
-    const utils::text_convertor* m_text_convertor;
 
     struct dependency_cache;
     struct processor_file_compoments;

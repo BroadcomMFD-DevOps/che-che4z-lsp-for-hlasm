@@ -52,7 +52,7 @@ TEST(processor_file, parse_macro)
     EXPECT_CALL(*library, get_location).WillOnce(ReturnRef(lib_loc));
 
     workspace_configuration ws_cfg(mngr, global_settings, config, library);
-    workspace ws(mngr, ws_cfg, nullptr);
+    workspace ws(mngr, ws_cfg);
 
     EXPECT_CALL(*library, has_file(std::string_view("MAC"), _))
         .WillRepeatedly(DoAll(SetArgPointee<1>(macro_loc), Return(true)));
@@ -72,8 +72,8 @@ TEST(processor_file, parse_macro)
         "Operands: \n\nCondition Code: The code remains unchanged\n\nDetails on "
         "[page 950](https://www.ibm.com/docs/en/module_1678991624569/pdf/SA22-7832-14.pdf#page=950 "
         "\"Principles of Operations (SA22-7832-14)\")";
-    EXPECT_EQ(ws.hover(opencode_loc, { 0, 2 }), sam31_hover_message);
-    EXPECT_EQ(ws.hover(macro_loc, { 2, 2 }), sam31_hover_message);
+    EXPECT_EQ(ws.hover(opencode_loc, { 0, 2 }, nullptr), sam31_hover_message);
+    EXPECT_EQ(ws.hover(macro_loc, { 2, 2 }, nullptr), sam31_hover_message);
 
     semantics::lines_info open_expected_hl {
         { 0, 1, 0, 6, hl_scopes::instruction },

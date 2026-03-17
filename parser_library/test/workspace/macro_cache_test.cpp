@@ -349,7 +349,7 @@ TEST(macro_cache_test, overwrite_by_inline)
     EXPECT_CALL(*library, get_location).WillOnce(ReturnRef(lib_loc));
 
     workspace_configuration ws_cfg(file_mngr, global_settings, config, library);
-    workspace ws(file_mngr, ws_cfg, nullptr);
+    workspace ws(file_mngr, ws_cfg);
 
     EXPECT_CALL(*library, has_file(std::string_view("MAC"), _))
         .WillRepeatedly(DoAll(SetArgPointee<1>(macro_file_loc), Return(true)));
