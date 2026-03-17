@@ -136,7 +136,10 @@ async function ZoweAsMFClient(info: ZoweConnectionInfo): Promise<MFClient> {
                     getResult() { return textDecode(concat(...this.chunks)); }
                 }
                 const stream = new StringWritable();
-                const content = await mvs.getContents(`${dataset}(${member})`, { stream });
+                const content = await mvs.getContents(`${dataset}(${member})`, {
+                    stream,
+                    encoding: info.loadedProfile.profile?.encoding,
+                });
                 if (content.success)
                     return stream.getResult();
                 else
