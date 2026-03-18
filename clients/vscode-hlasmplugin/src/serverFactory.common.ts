@@ -14,7 +14,7 @@
 
 export type ServerVariant = "tcp" | "native" | "wasm";
 
-export type SupportedPseudoCharset = 'IBM1148' | 'IBM1143';
+export type SupportedPseudoCharset = 'IBM1148' | 'IBM1143' | 'IBM278';
 
 export type ServerArgs = {
     serverVariant: ServerVariant;

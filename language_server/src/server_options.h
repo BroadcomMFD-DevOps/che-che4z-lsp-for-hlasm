@@ -25,6 +25,7 @@ enum class pseudo_charsets
 {
     ibm1148,
     ibm1143,
+    ibm278,
 };
 std::string_view to_string(pseudo_charsets pc);
 

@@ -501,7 +501,8 @@
           "description": "Performs character conversion (change requires restart)",
           "enum": [
             "IBM1148",
-            "IBM1143"
+            "IBM1143",
+            "IBM278"
           ]
         },
         "hlasm.useAutodetection": {

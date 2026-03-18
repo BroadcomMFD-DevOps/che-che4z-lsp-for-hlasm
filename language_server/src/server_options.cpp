@@ -20,7 +20,7 @@
 
 namespace hlasm_plugin::language_server {
 
-constexpr std::string_view supported_pseudo_charsets[] = { "IBM1148", "IBM1143" };
+constexpr std::string_view supported_pseudo_charsets[] = { "IBM1148", "IBM1143", "IBM278" };
 std::string_view to_string(pseudo_charsets pc) { return supported_pseudo_charsets[static_cast<size_t>(pc)]; }
 
 std::optional<server_options> parse_options(std::span<const char* const> args)
