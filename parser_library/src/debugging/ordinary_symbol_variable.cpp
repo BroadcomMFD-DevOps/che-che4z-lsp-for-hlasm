@@ -15,7 +15,6 @@
 #include "context/ordinary_assembly/symbol.h"
 #include "debug_types.h"
 #include "ebcdic_encoding.h"
-#include "utils/text_convertor.h"
 #include "variable.h"
 
 namespace hlasm_plugin::parser_library::debugging {

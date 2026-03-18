@@ -18,10 +18,6 @@
 #include <cstdint>
 #include <vector>
 
-namespace hlasm_plugin::utils {
-struct text_convertor;
-} // namespace hlasm_plugin::utils
-
 namespace hlasm_plugin::parser_library::context {
 class macro_param_base;
 class symbol;

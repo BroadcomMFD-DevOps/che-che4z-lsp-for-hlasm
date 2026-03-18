@@ -144,7 +144,7 @@ TEST_F(lsp_context_macro_in_opencode, references_local_var_same_name)
 
 TEST_F(lsp_context_macro_in_opencode, completion_var_in_macro)
 {
-    auto res_v = a.context().lsp_ctx->completion(opencode_loc, { 4, 1 }, '\0', completion_trigger_kind::invoked);
+    auto res_v = a.context().lsp_ctx->completion(opencode_loc, { 4, 1 }, U'\0', completion_trigger_kind::invoked);
 
     ASSERT_TRUE(std::holds_alternative<const vardef_storage*>(res_v));
 
@@ -160,7 +160,7 @@ TEST_F(lsp_context_macro_in_opencode, completion_var_in_macro)
 
 TEST_F(lsp_context_macro_in_opencode, completion_var_outside_macro)
 {
-    auto res_v = a.context().lsp_ctx->completion(opencode_loc, { 11, 1 }, '\0', completion_trigger_kind::invoked);
+    auto res_v = a.context().lsp_ctx->completion(opencode_loc, { 11, 1 }, U'\0', completion_trigger_kind::invoked);
 
     ASSERT_TRUE(std::holds_alternative<const vardef_storage*>(res_v));
 

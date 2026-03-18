@@ -22,9 +22,6 @@
 #include "protocol.h"
 #include "utils/resource_location.h"
 
-namespace hlasm_plugin::parser_library {
-struct text_convertor;
-}
 namespace hlasm_plugin::parser_library::workspaces {
 
 // Interface that represents both file opened in LSP

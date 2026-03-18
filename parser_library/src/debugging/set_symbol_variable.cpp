@@ -16,7 +16,6 @@
 
 #include "context/variables/set_symbol.h"
 #include "debug_types.h"
-#include "utils/text_convertor.h"
 #include "variable.h"
 
 namespace hlasm_plugin::parser_library::debugging {
