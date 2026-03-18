@@ -96,7 +96,7 @@ public:
         const utils::resource::resource_location& document_loc, position pos, const utils::text_convertor* tc) const;
     completion_list_source completion(const utils::resource::resource_location& document_uri,
         position pos,
-        char trigger_char,
+        char32_t trigger_char,
         completion_trigger_kind trigger_kind) const;
     std::vector<document_symbol_item> document_symbol(const utils::resource::resource_location& document_loc) const;
 

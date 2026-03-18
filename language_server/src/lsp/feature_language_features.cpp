@@ -27,6 +27,7 @@
 #include "utils/error_codes.h"
 #include "utils/resource_location.h"
 #include "utils/text_convertor.h"
+#include "utils/unicode_text.h"
 #include "workspace_manager_response.h"
 
 namespace hlasm_plugin::parser_library {
@@ -79,9 +80,9 @@ position extract_position(const nlohmann::json& j)
     return position(line->get<int>(), character->get<int>());
 }
 
-auto extract_trigger(const nlohmann::json& j)
+auto extract_trigger(const nlohmann::json& j, const utils::text_convertor* tc)
 {
-    std::pair<completion_trigger_kind, char> result(completion_trigger_kind::invoked, '\0');
+    std::pair<completion_trigger_kind, char32_t> result(completion_trigger_kind::invoked, U'\0');
 
     auto context = j.find("context");
     if (context == j.end() || !context->is_object())
@@ -96,12 +97,10 @@ auto extract_trigger(const nlohmann::json& j)
 
     if (result.first == completion_trigger_kind::trigger_character)
     {
-        auto triggerCharacter = context->find("triggerCharacter");
-        if (triggerCharacter != context->end() && triggerCharacter->is_string())
+        if (const auto t = context->find("triggerCharacter"); t != context->end() && t->is_string())
         {
-            auto sv = triggerCharacter->get<std::string_view>();
-            if (!sv.empty())
-                result.second = sv.front();
+            const auto char_str = t->get<std::string_view>();
+            result.second = utils::extract_utf32_from_utf8(utils::conversion_helper(tc).convert_from(char_str));
         }
     }
 
@@ -377,7 +376,7 @@ void feature_language_features::completion(const request_id& id, const nlohmann:
     auto document_uri = extract_document_uri(params);
     auto pos = extract_position(params);
 
-    auto [trigger_kind, trigger_char] = extract_trigger(params);
+    auto [trigger_kind, trigger_char] = extract_trigger(params, m_text_convertor);
 
     auto resp = make_response(id, response_, [this](std::span<const completion_item> cl) {
         return translate_completion_list_and_save_doc(std::move(cl));

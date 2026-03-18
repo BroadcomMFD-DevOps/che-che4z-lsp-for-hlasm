@@ -862,7 +862,7 @@ std::string workspace::hover(const resource_location& document_loc, position pos
 
 std::vector<completion_item> workspace::completion(const resource_location& document_loc,
     position pos,
-    const char trigger_char,
+    const char32_t trigger_char,
     completion_trigger_kind trigger_kind,
     const utils::text_convertor* tc)
 {

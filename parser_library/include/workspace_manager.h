@@ -137,7 +137,7 @@ public:
         std::string_view document_uri, position pos, workspace_manager_response<std::string_view> resp) = 0;
     virtual void completion(std::string_view document_uri,
         position pos,
-        char trigger_char,
+        char32_t trigger_char,
         completion_trigger_kind trigger_kind,
         workspace_manager_response<std::span<const completion_item>> resp) = 0;
 

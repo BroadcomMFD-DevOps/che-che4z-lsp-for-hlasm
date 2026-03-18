@@ -105,7 +105,7 @@ public:
     std::string hover(const resource_location& document_loc, position pos, const utils::text_convertor* tc) const;
     std::vector<completion_item> completion(const resource_location& document_loc,
         position pos,
-        char trigger_char,
+        char32_t trigger_char,
         completion_trigger_kind trigger_kind,
         const utils::text_convertor* tc);
     std::vector<document_symbol_item> document_symbol(const resource_location& document_loc) const;

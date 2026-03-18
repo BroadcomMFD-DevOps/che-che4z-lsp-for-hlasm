@@ -700,7 +700,7 @@ class workspace_manager_impl final : public workspace_manager,
 
     void completion(std::string_view document_uri,
         position pos,
-        const char trigger_char,
+        const char32_t trigger_char,
         completion_trigger_kind trigger_kind,
         workspace_manager_response<std::span<const completion_item>> r) override
     {

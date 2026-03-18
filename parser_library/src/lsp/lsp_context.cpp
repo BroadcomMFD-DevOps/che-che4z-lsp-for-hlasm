@@ -481,7 +481,7 @@ std::vector<std::pair<const context::symbol*, context::id_index>> compute_reacha
 
 completion_list_source lsp_context::completion(const utils::resource::resource_location& document_uri,
     position pos,
-    const char trigger_char,
+    const char32_t trigger_char,
     completion_trigger_kind trigger_kind) const
 {
     const auto* file_info = get_file_info(document_uri);
@@ -489,12 +489,12 @@ completion_list_source lsp_context::completion(const utils::resource::resource_l
         return {};
     const text_data_view& text = file_info->data;
 
-    char last_char =
+    char32_t last_char =
         (trigger_kind == completion_trigger_kind::trigger_character) ? trigger_char : text.get_character_before(pos);
 
-    if (last_char == '&')
+    if (last_char == U'&')
         return complete_var(*file_info, pos);
-    else if (last_char == '.')
+    else if (last_char == U'.')
         return complete_seq(*file_info, pos);
     else if (should_complete_instr(text, pos))
         return complete_instr(*file_info, pos);
