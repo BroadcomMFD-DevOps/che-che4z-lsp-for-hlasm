@@ -361,7 +361,7 @@ void feature_language_features::hover(const request_id& id, const nlohmann::json
     auto document_uri = extract_document_uri(params);
     auto pos = extract_position(params);
 
-    auto resp = make_response(id, response_, [this](std::string_view hover_list) {
+    auto resp = make_response(id, response_, [](std::string_view hover_list) {
         return nlohmann::json {
             { "contents", hover_list.empty() ? "" : get_markup_content(hover_list) },
         };
