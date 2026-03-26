@@ -34,7 +34,7 @@ class conversion_helper
     const text_convertor* tc;
 
 public:
-    constexpr conversion_helper(const text_convertor* tc) noexcept
+    explicit constexpr conversion_helper(const text_convertor* tc) noexcept
         : tc(tc)
     {}
 

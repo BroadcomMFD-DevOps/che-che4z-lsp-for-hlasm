@@ -81,7 +81,7 @@ struct file_manager_impl::mapped_file final : file
     mapped_file(const mapped_file& that)
         : m_location(that.m_location)
         , m_text(that.m_text)
-        // , m_text_converted(<convert later>)
+        // m_text_converted is set later via explicit apply_conversion call
         , m_error(that.m_error)
         , m_lines(that.m_lines)
         , m_fm(that.m_fm)

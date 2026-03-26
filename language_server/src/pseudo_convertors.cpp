@@ -220,13 +220,14 @@ constexpr convertor_t<ibm278, ibm1148> ibm278_convertor;
 
 const utils::text_convertor* get_text_convertor(pseudo_charsets pc) noexcept
 {
+    using enum pseudo_charsets;
     switch (pc)
     {
-        case pseudo_charsets::ibm1148:
+        case ibm1148:
             return nullptr;
-        case pseudo_charsets::ibm1143:
+        case ibm1143:
             return &ibm1143_convertor;
-        case pseudo_charsets::ibm278:
+        case ibm278:
             return &ibm278_convertor;
     }
     utils::insist_fail("Unknown pseudo charset"); // C++23 unreachable
