@@ -229,5 +229,6 @@ const utils::text_convertor* get_text_convertor(pseudo_charsets pc) noexcept
         case pseudo_charsets::ibm278:
             return &ibm278_convertor;
     }
+    utils::insist_fail("Unknown pseudo charset"); // C++23 unreachable
 }
 } // namespace hlasm_plugin::language_server
