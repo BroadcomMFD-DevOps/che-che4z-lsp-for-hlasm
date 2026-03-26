@@ -741,8 +741,8 @@ void feature_language_features::opcode_suggestion(const request_id& id, const nl
                 }
             };
 
-            auto [result, _] =
-                make_workspace_manager_response(subrequest_t { shared_from_this(), std::move(opcode), tc });
+            auto [result, _] = make_workspace_manager_response(
+                subrequest_t { shared_from_this(), std::move(opcode), utils::conversion_helper(tc) });
 
             ++m_pending_responses;
 

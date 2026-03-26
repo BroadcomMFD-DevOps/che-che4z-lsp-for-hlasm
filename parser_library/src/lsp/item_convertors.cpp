@@ -102,7 +102,7 @@ std::string hover_text(const context::symbol& sym, const utils::text_convertor* 
         return "";
     std::string markdown = "";
     const utils::conversion_helper convertor { tc };
-    const string_appender md_appender { tc, markdown };
+    const string_appender md_appender { utils::conversion_helper(tc), markdown };
 
     if (sym.value().value_kind() == context::symbol_value_kind::ABS)
     {
@@ -233,7 +233,7 @@ void add_line(std::string& str, std::string_view line, const utils::text_convert
     auto append = utils::utf8_substr(line, 0, 72).str;
     str.push_back('\n');
     size_t trim_pos = append.find_last_not_of(" \n\r") + 1;
-    string_appender { tc, str }.append(append.substr(0, trim_pos - (trim_pos == 0)));
+    string_appender { utils::conversion_helper(tc), str }.append(append.substr(0, trim_pos - (trim_pos == 0)));
 }
 } // namespace
 
@@ -241,7 +241,7 @@ void add_line(std::string& str, std::string_view line, const utils::text_convert
 std::string get_macro_signature(const context::macro_definition& m, const utils::text_convertor* tc)
 {
     std::string result;
-    const string_appender appender { tc, result };
+    const string_appender appender { utils::conversion_helper(tc), result };
     if (!m.get_label_param_name().empty())
     {
         appender.append("&").append(m.get_label_param_name());
@@ -559,7 +559,7 @@ std::vector<completion_item> generate_completion(
     for (const auto& [symbol, label] : symbols)
     {
         std::string name;
-        const string_appender appender { tc, name };
+        const string_appender appender { utils::conversion_helper(tc), name };
         appender.append(label);
         if (!name.empty())
             appender.append(".");
@@ -597,7 +597,7 @@ void append_hover_text(std::string& text, const context::using_context_descripti
 
     bool named = !u.label.empty() || u.section.has_value();
 
-    const string_appender appender { tc, text };
+    const string_appender appender { utils::conversion_helper(tc), text };
 
     if (named)
     {
