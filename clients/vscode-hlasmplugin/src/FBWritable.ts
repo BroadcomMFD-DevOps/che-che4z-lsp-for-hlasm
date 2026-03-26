@@ -21,9 +21,9 @@ import { SupportedPseudoCharset } from "./serverFactory.common";
 export class FBWritable extends Writable {
     private chunks: Uint8Array[] = [];
     private result?: string;
-    private conversionTable: Uint8Array[];
+    private readonly conversionTable: Uint8Array[];
 
-    constructor(private lrecl: number, convert: SupportedPseudoCharset) {
+    constructor(private readonly lrecl: number, convert: SupportedPseudoCharset) {
         super();
         this.conversionTable = convertTable(convert);
     }

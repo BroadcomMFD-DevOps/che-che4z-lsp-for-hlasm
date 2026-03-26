@@ -20,9 +20,9 @@ import { textDecode } from "./tools.common";
 export class FBStreamingConvertor {
     private pending: Uint8Array = new Uint8Array();
     private resultChunks: string[] = [];
-    private conversionTable: Uint8Array[];
+    private readonly conversionTable: Uint8Array[];
 
-    constructor(private lrecl: number, convert: SupportedPseudoCharset) {
+    constructor(private readonly lrecl: number, convert: SupportedPseudoCharset) {
         this.conversionTable = convertTable(convert);
     }
 

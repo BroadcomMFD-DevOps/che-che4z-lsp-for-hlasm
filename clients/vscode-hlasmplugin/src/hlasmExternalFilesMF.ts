@@ -22,7 +22,6 @@ import { AsyncMutex } from './asyncMutex';
 import { Writable } from 'stream';
 import { concat, isCancellationError } from './helpers';
 import { textDecode } from './tools.common';
-import { convertTable } from './conversions';
 import { getConfig } from './eventsHandler';
 import { SupportedPseudoCharset } from './serverFactory.common';
 
