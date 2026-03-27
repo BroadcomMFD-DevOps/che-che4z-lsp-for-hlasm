@@ -129,6 +129,7 @@ struct file_manager_impl::mapped_file final : file
         if (!tc)
             return;
         m_text_converted.reserve(m_text.size() + m_text.size() / 1024);
+        m_text_converted.clear();
         tc->from(m_text_converted, m_text);
     }
 };
