@@ -42,10 +42,10 @@ TEST(conversion_helper, null)
 
     conversion_helper helper(nullptr);
 
-    EXPECT_EQ(helper.convert_from("A"sv, "A"sv), "AA");
-    EXPECT_EQ(helper.convert_to("B"sv, "B"sv), "BB");
-    EXPECT_EQ(helper.convert_from("A"s), "A");
-    EXPECT_EQ(helper.convert_to("B"s), "B");
+    EXPECT_EQ(helper.convert_from("A"sv, "A"sv, "C"sv), "AAC");
+    EXPECT_EQ(helper.convert_to("B"sv, "B"sv, "C"sv), "BBC");
+    EXPECT_EQ(helper.convert_from("A"s, "C"sv), "AC");
+    EXPECT_EQ(helper.convert_to("B"s, "C"sv), "BC");
 
     std::string output;
 
@@ -70,10 +70,10 @@ TEST(conversion_helper, nonnull)
 
     conversion_helper helper(&test_convertor);
 
-    EXPECT_EQ(helper.convert_from("A"sv, "A"sv), "BB");
-    EXPECT_EQ(helper.convert_to("B"sv, "B"sv), "AA");
-    EXPECT_EQ(helper.convert_from("A"s), "B");
-    EXPECT_EQ(helper.convert_to("B"s), "A");
+    EXPECT_EQ(helper.convert_from("A"sv, "A"sv, "C"sv), "BBC");
+    EXPECT_EQ(helper.convert_to("B"sv, "B"sv, "C"sv), "AAC");
+    EXPECT_EQ(helper.convert_from("A"s, "C"sv), "BC");
+    EXPECT_EQ(helper.convert_to("B"s, "C"sv), "AC");
 
     std::string output;
 
