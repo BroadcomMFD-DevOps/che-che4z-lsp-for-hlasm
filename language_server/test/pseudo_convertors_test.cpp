@@ -49,3 +49,14 @@ TEST(pseudo_convertors, ibm1143)
     convertor->to(back, output);
     EXPECT_EQ(back, input);
 }
+
+TEST(pseudo_convertors, ibm1143_prefix_match_without_conversion)
+{
+    const auto* convertor = get_text_convertor(pseudo_charsets::ibm1143);
+    ASSERT_TRUE(convertor);
+
+    const std::string input = reinterpret_cast<const char*>(u8"\U000020AB");
+    std::string output;
+    convertor->from(output, input);
+    EXPECT_EQ(output, input);
+}
