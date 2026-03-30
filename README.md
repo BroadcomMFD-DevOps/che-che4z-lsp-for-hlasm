@@ -324,7 +324,7 @@ For files that use macros extensively but do not have the definitions available,
 ```
 In the `pgm_conf.json` example above, the `source_code` file has a configuration, so all discovered diagnostics are always shown. However, if you open another file and do not assign a processor group to it, its diagnostics are not shown if there are more than 15 of them.
 
-### Configure Character Reencoding
+### Configure Character Re-encoding
 
 If you experience encoding errors when you load your source code from the mainframe, you can configure HLASM Language Support to reencode the source in your native charset. To do this, open the HLASM Language Support extension settings and edit the setting **Hlasm > Pseudo Charset**. The following options are supported:
 
