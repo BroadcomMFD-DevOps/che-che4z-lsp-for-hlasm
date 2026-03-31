@@ -326,7 +326,7 @@ In the `pgm_conf.json` example above, the `source_code` file has a configuration
 
 ### Configure Character Re-encoding
 
-If you experience encoding errors when you load your source code from the mainframe, you can configure HLASM Language Support to reencode the source in your native charset. To do this, open the HLASM Language Support extension settings and edit the setting **Hlasm > Pseudo Charset**. The following options are supported:
+If you experience encoding errors when you load your source code from the mainframe, you can configure HLASM Language Support to re-encode the source in your native charset. To do this, open the HLASM Language Support extension settings and edit the setting **Hlasm > Pseudo Charset**. The following options are supported:
 
 * **IBM1148** (default)
 * **IBM1143**
@@ -334,7 +334,7 @@ If you experience encoding errors when you load your source code from the mainfr
 
 After you change this setting, restart the extension to apply the change.
 
-**Note**: This feature does not reencode filenames of macros and other dependencies when you retrieve them from the mainframe.
+**Note**: This feature does not re-encode filenames of macros and other dependencies when you retrieve them from the mainframe.
 
 ## Download Mainframe Dependencies
 
