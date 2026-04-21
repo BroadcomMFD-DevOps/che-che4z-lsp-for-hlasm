@@ -107,6 +107,9 @@ function sessionStoppedEvent(session: vscode.DebugSession | undefined = vscode.d
 }
 
 export async function debugStartSession(waitForStopped = true): Promise<vscode.DebugSession> {
+    try { await vscode.commands.executeCommand('workbench.view.debug'); }
+    catch (_e) { /* theia */ }
+
     const session_started_event = new Promise<vscode.DebugSession>((resolve) => {
         // when the debug session starts
         const disposable = vscode.debug.onDidStartDebugSession((session) => {
