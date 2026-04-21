@@ -2,6 +2,9 @@
 
 ## ****Unreleased****
 
+#### Changed
+- HLASM Listing grammar ID was changed to `hlasm-listing`
+
 ## [1.22.0](https://github.com/eclipse-che4z/che-che4z-lsp-for-hlasm/compare/1.21.0...1.22.0) (2026-04-01)
 
 #### Added

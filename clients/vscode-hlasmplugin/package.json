@@ -220,13 +220,13 @@
         "firstLine": "^(\\*[Pp][Rr][Oo][Cc][Ee][Ss][Ss] |[A-Za-z0-9#$@_]* +([Cc][Ss][Ee][Cc][Tt]|[Aa][Mm][Oo][Dd][Ee]|[Rr][Mm][Oo][Dd][Ee]|[Dd][Ss][Ee][Cc][Tt]|[Rr][Ss][Ee][Cc][Tt]|[Tt][Ii][Tt][Ll][Ee]|[Ss][Yy][Ss][Ss][Tt][Aa][Tt][Ee]|[Ss][Pp][Ll][Ee][Vv][Ee][Ll])\\b|\\.\\*+|\\*[\\]\\[*+-<>?=_ ]{4,}| +[Mm][Aa][Cc][Rr][Oo]\\b)"
       },
       {
-        "id": "hlasmListing",
+        "id": "hlasm-listing",
         "extensions": [
           ".listing",
           ".lst"
         ],
         "aliases": [
-          "HLASMListing"
+          "HLASM Listing"
         ],
         "configuration": "./language-configuration.json",
         "filenames": []
@@ -243,7 +243,7 @@
         "path": "./syntaxes/hlasmGeneral.tmLanguage.json"
       },
       {
-        "language": "hlasmListing",
+        "language": "hlasm-listing",
         "scopeName": "source.hlasmListing",
         "path": "./syntaxes/hlasmListing.tmLanguage.json"
       },
@@ -298,7 +298,7 @@
         "editor.detectIndentation": false,
         "editor.guides.indentation": false
       },
-      "[hlasmListing]": {
+      "[hlasm-listing]": {
         "editor.guides.indentation": false
       },
       "files.associations": {

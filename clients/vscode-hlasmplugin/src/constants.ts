@@ -29,7 +29,7 @@ export const continuationColumn = 71;
 export const initialBlanks = 15;
 
 export const languageIdHlasm = 'hlasm';
-export const languageIdHlasmListing = 'hlasmListing';
+export const languageIdHlasmListing = 'hlasm-listing';
 
 export const debugTypeHlasm = 'hlasm';
 

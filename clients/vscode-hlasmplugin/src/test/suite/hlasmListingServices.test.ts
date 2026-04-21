@@ -167,7 +167,7 @@ suite('Language services for listings', () => {
 
     suiteSetup(async () => {
         services = createListingServices();
-        document = await vscode.workspace.openTextDocument({ language: 'hlasmListing', content: sampleListing });
+        document = await vscode.workspace.openTextDocument({ language: 'hlasm-listing', content: sampleListing });
         listings = services.handleListingContent(document);
         assert.ok(listings);
     })
