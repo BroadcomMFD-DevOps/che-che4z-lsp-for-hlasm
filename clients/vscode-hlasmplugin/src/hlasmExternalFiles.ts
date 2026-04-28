@@ -19,7 +19,7 @@ import { deflate, inflate, sha256 } from './tools';
 import { textDecode } from './tools.common';
 import { getConfig } from './eventsHandler';
 import { SupportedPseudoCharset } from './serverFactory.common';
-import { makeUriPath, makeUriPathWithSuffix } from './uriUtils';
+import { makeUriPath } from './uriUtils';
 
 function getEncodingExtras() {
     const ibm1148 = 'IBM1148';
