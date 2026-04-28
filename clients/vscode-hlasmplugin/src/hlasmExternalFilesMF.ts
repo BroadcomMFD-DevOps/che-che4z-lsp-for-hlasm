@@ -47,7 +47,7 @@ class DatasetUriDetails implements ClientUriDetails {
     }
 
     normalizedPath() {
-        return `/${this.dataset}/${this.member ?? ''}`;
+        return `/${encodeURIComponent(this.dataset)}/${encodeURIComponent(this.member ?? '')}`;
     }
 };
 
@@ -281,7 +281,7 @@ export function HLASMExternalFilesMF(context: vscode.ExtensionContext): ClientIn
             try {
                 const list = await client.list(args.dataset);
                 if (!list) return null;
-                return list.map(x => `/${args.dataset}/${x}.hlasm`);
+                return list.map(x => `/${encodeURIComponent(args.dataset)}/${encodeURIComponent(x)}.hlasm`);
             } catch (e) {
                 if (e instanceof SuspendError)
                     activeConnectionInfo = undefined;

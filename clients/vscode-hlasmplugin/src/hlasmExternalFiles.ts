@@ -286,7 +286,7 @@ export class HLASMExternalFiles {
         if (details_server && instance) {
             const { details, server } = details_server;
             return {
-                cacheKey: `/${service}${details.normalizedPath()}`,
+                cacheKey: `/${encodeURIComponent(service)}${details.normalizedPath()}`,
                 service: service,
                 instance: instance,
                 details: details,
@@ -567,8 +567,7 @@ export class HLASMExternalFiles {
         }
         content.references.add(msg.url);
 
-        const base = vscode.Uri.parse(`${this.magicScheme}:/${service}`);
-        const { response, cache } = await this.transformResult(msg.id, content, x => responseTransform(x, x => vscode.Uri.joinPath(base, x).toString()));
+        const { response, cache } = await this.transformResult(msg.id, content, x => responseTransform(x, x => `${this.magicScheme}:/${service}${x}`));
 
         if (cache && instance && !content.cached)
             content.cached = await this.storeCachedResult(await serverId(details, instance), service, details.normalizedPath(), content.result);

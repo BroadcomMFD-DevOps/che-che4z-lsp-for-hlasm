@@ -32,7 +32,7 @@ async function registerTestImplementations(): Promise<vscode.Disposable[]> {
                     path: path || '',
                     file: (file || '').split('.')[0],
                     toDisplayString() { return `${path}/${file}`; },
-                    normalizedPath() { return `/${path}/${file}`; },
+                    normalizedPath() { return `/${encodeURIComponent(path)}/${encodeURIComponent(file)}`; },
                 },
                 server: undefined,
             }
@@ -40,7 +40,7 @@ async function registerTestImplementations(): Promise<vscode.Disposable[]> {
 
         listMembers: (arg) => {
             const { path } = arg;
-            return Promise.resolve(['MACA', 'MACB', 'MACC'].map(x => `/${path}/${x}`));
+            return Promise.resolve(['MACA', 'MACB', 'MACC'].map(x => `/${encodeURIComponent(path)}/${encodeURIComponent(x)}`));
         },
 
         readMember: (args) => {
