@@ -230,10 +230,10 @@ suite('Integration Test Suite', () => {
 
         assert.ok(diags);
 
-        const mentionedMacros = diags.map(x => [...x.message.matchAll(/\b(MAC.)\b/g)]).flat(1).map(x => x[1]);
+        const mentionedMacros = diags.map(x => [...x.message.matchAll(/ (MAC.|\$#@A)\b/g)]).flat(1).map(x => x[1]);
         const uniqueMacros = [...new Set(mentionedMacros)].sort();
 
-        assert.deepStrictEqual(uniqueMacros, ['MACA', 'MACB', 'MACC']);
+        assert.deepStrictEqual(uniqueMacros, ['$#@A', 'MACA', 'MACB', 'MACC']);
 
         const diags2 = await helper.waitForDiagnosticsChange('remote2.hlasm', async () => vscode.commands.executeCommand('extension.hlasm-plugin.resumeRemoteActivity'));
 

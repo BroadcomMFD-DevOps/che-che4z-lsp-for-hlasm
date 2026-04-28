@@ -19,6 +19,7 @@ import { deflate, inflate, sha256 } from './tools';
 import { textDecode } from './tools.common';
 import { getConfig } from './eventsHandler';
 import { SupportedPseudoCharset } from './serverFactory.common';
+import { makeUriPath, makeUriPathWithSuffix } from './uriUtils';
 
 function getEncodingExtras() {
     const ibm1148 = 'IBM1148';
@@ -286,7 +287,7 @@ export class HLASMExternalFiles {
         if (details_server && instance) {
             const { details, server } = details_server;
             return {
-                cacheKey: `/${encodeURIComponent(service)}${details.normalizedPath()}`,
+                cacheKey: makeUriPath(service) + details.normalizedPath(),
                 service: service,
                 instance: instance,
                 details: details,

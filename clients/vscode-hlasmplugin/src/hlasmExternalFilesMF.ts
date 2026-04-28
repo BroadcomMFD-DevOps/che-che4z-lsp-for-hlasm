@@ -24,6 +24,7 @@ import { concat, isCancellationError } from './helpers';
 import { textDecode } from './tools.common';
 import { getConfig } from './eventsHandler';
 import { SupportedPseudoCharset } from './serverFactory.common';
+import { makeUriPath, makeUriPathWithSuffix } from './uriUtils';
 
 const checkResponse = (resp: ftp.FTPResponse) => {
     if (resp.code < 200 || resp.code > 299) throw Error("FTP Error: " + resp.message);
@@ -47,7 +48,7 @@ class DatasetUriDetails implements ClientUriDetails {
     }
 
     normalizedPath() {
-        return `/${encodeURIComponent(this.dataset)}/${encodeURIComponent(this.member ?? '')}`;
+        return makeUriPath(this.dataset, this.member ?? '');
     }
 };
 
@@ -281,7 +282,7 @@ export function HLASMExternalFilesMF(context: vscode.ExtensionContext): ClientIn
             try {
                 const list = await client.list(args.dataset);
                 if (!list) return null;
-                return list.map(x => `/${encodeURIComponent(args.dataset)}/${encodeURIComponent(x)}.hlasm`);
+                return list.map(x => makeUriPathWithSuffix('.hlasm', args.dataset, x));
             } catch (e) {
                 if (e instanceof SuspendError)
                     activeConnectionInfo = undefined;
