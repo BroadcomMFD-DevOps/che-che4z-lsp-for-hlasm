@@ -20,6 +20,7 @@ import * as process from 'process';
 import { popWaitRequestResolver } from './testHelper';
 import { activate } from '../../extension';
 import { EXTENSION_ID, debugTypeHlasm } from '../../constants';
+import { makeUriPath } from '../../uriUtils';
 
 async function registerTestImplementations(): Promise<vscode.Disposable[]> {
     const ext = await vscode.extensions.getExtension<ReturnType<typeof activate>>(EXTENSION_ID)!.activate();
@@ -32,7 +33,7 @@ async function registerTestImplementations(): Promise<vscode.Disposable[]> {
                     path: path || '',
                     file: (file || '').split('.')[0],
                     toDisplayString() { return `${path}/${file}`; },
-                    normalizedPath() { return `/${path}/${file}`; },
+                    normalizedPath() { return makeUriPath(path, file); },
                 },
                 server: undefined,
             }
@@ -40,11 +41,11 @@ async function registerTestImplementations(): Promise<vscode.Disposable[]> {
 
         listMembers: (arg) => {
             const { path } = arg;
-            return Promise.resolve(['MACA', 'MACB', 'MACC'].map(x => `/${path}/${x}`));
+            return Promise.resolve(['MACA', 'MACB', 'MACC', '$#@A'].map(x => makeUriPath(path, x)));
         },
 
         readMember: (args) => {
-            if (/^MAC[A-C]$/.test(args.file))
+            if (/^MAC[A-C]|\$#@A$/.test(args.file))
                 return Promise.resolve(`.*
           MACRO
           ${args.file}
@@ -104,7 +105,7 @@ export async function run(): Promise<void> {
     const testsPath = path.join(__dirname, '..');
 
     for await (const file of glob((!is_theia) ? '**/**.test.js' : '**/integration.test.js', { cwd: testsPath }))
-      mocha.addFile(path.resolve(testsPath, file));
+        mocha.addFile(path.resolve(testsPath, file));
 
     await new Promise((resolve, reject) => {
         // Run the mocha test

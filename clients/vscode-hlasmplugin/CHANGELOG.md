@@ -2,6 +2,9 @@
 
 ## ****Unreleased****
 
+#### Fixed
+- Dependency retrieval via Explorer for Endevor does not work
+
 #### Changed
 - HLASM Listing grammar ID was changed to `hlasm-listing`
 

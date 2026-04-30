@@ -16,6 +16,7 @@ import * as vscode from 'vscode';
 import { ExternalRequestType, HlasmExtension, ExternalFilesInvalidationdata } from './extension.interface';
 import { AsmOptions, ConfigurationProviderRegistration, Preprocessor } from './hlasmExternalConfigurationProvider';
 import { SuspendError } from './hlasmExternalFiles';
+import { makeUriPath, makeUriPathWithSuffix } from './uriUtils';
 
 interface EndevorType {
     use_map: string,
@@ -293,7 +294,7 @@ function translateLibs(x: string | object, profile: string) {
 
 function parseEndevorType(server: ResolvedProfile, args: string[/*6*/]) {
     const [use_map, environment, stage, system, subsystem, type] = args;
-    const path = `/${encodeURIComponent(use_map)}/${encodeURIComponent(environment)}/${encodeURIComponent(stage)}/${encodeURIComponent(system)}/${encodeURIComponent(subsystem)}/${encodeURIComponent(type)}`;
+    const path = makeUriPath(use_map, environment, stage, system, subsystem, type);
     return {
         details: {
             use_map,
@@ -316,7 +317,7 @@ function parserEndevorElement(server: ResolvedProfile, args: string[/*7*/], quer
     if (element.length === 0) return null;
     const fingerprint = query?.match(/^([a-zA-Z0-9]+)$/)?.[1];
     const q = fingerprint ? '?' + query : '';
-    const path = `/${encodeURIComponent(use_map)}/${encodeURIComponent(environment)}/${encodeURIComponent(stage)}/${encodeURIComponent(system)}/${encodeURIComponent(subsystem)}/${encodeURIComponent(type)}/${encodeURIComponent(element)}.hlasm${q}`;
+    const path = makeUriPathWithSuffix(`.hlasm${q}`, use_map, environment, stage, system, subsystem, type, element);
     return {
         details: {
             use_map,
@@ -340,7 +341,7 @@ function parseDataset(server: ResolvedProfile, args: string[/*1*/]) {
     return {
         details: {
             dataset,
-            normalizedPath: () => `/${encodeURIComponent(dataset)}`,
+            normalizedPath: () => makeUriPath(dataset),
             toDisplayString: () => `${dataset}`,
         },
         server,
@@ -356,7 +357,7 @@ function parseMember(server: ResolvedProfile, args: string[/*2*/]) {
         details: {
             dataset,
             member,
-            normalizedPath: () => `/${encodeURIComponent(dataset)}/${encodeURIComponent(member)}.hlasm`,
+            normalizedPath: () => makeUriPathWithSuffix('.hlasm', dataset, member),
             toDisplayString: () => `${dataset}(${member})`,
             serverId: () => server.instance,
         },
@@ -386,7 +387,7 @@ function listEndevorElements(e4e: E4E, type_spec: EndevorType, profile: Resolved
         subsystem: type_spec.subsystem,
         type: type_spec.type
     }).then(
-        r => r instanceof Error ? translateError(r) : r?.map(([file, fingerprint]) => `/${encodeURIComponent(profileAsString(profile))}${type_spec.normalizedPath()}/${encodeURIComponent(file)}.hlasm?${fingerprint.toString()}`) ?? null
+        r => r instanceof Error ? translateError(r) : r?.map(([file, fingerprint]) => makeUriPath(profileAsString(profile)) + type_spec.normalizedPath() + makeUriPathWithSuffix(`.hlasm?${fingerprint.toString()}`, file)) ?? null
     );
 }
 
@@ -411,7 +412,7 @@ function listEndevorMembers(e4e: E4E, type_spec: EndevorDataset, profile: Resolv
     return e4e.listMembers(profile, {
         dataset: type_spec.dataset
     }).then(
-        r => r instanceof Error ? endevorDatasetNotFound(r) ? null : translateError(r) : r?.map((member) => `/${encodeURIComponent(profileAsString(profile))}${type_spec.normalizedPath()}/${encodeURIComponent(member)}.hlasm`) ?? null
+        r => r instanceof Error ? endevorDatasetNotFound(r) ? null : translateError(r) : r?.map((member) => makeUriPath(profileAsString(profile)) + type_spec.normalizedPath() + makeUriPathWithSuffix('.hlasm', member)) ?? null
     );
 }
 

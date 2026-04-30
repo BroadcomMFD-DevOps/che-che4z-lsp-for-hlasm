@@ -18,6 +18,7 @@ import { uriFriendlyBase16Decode, uriFriendlyBase16Encode } from './conversions'
 import { isCancellationError } from './helpers';
 import { pickUser } from './uiUtils';
 import { languageIdHlasm, schemeOutput } from './constants';
+import { makeUriPathWithSuffix } from './uriUtils';
 
 type OutputLine = {
     level: number;
@@ -46,7 +47,7 @@ function extractOptions(uri: vscode.Uri): Options {
 
 function createOutputUri(uri: vscode.Uri, options: Options) {
     const query = uriFriendlyBase16Encode(uri.toString());
-    const path = `/${translateOptions(options)}/${uri.path.substring(uri.path.lastIndexOf('/') + 1)}.output`;
+    const path = makeUriPathWithSuffix('.output', translateOptions(options), uri.path.substring(uri.path.lastIndexOf('/') + 1));
 
     return vscode.Uri.from({ scheme: schemeOutput, path, query });
 }
