@@ -80,7 +80,9 @@ function whenString(x: any): string | undefined {
         return undefined;
 }
 
-declare var telemetryProvider: undefined | (() => Telemetry);
+export const plugins: {
+    telemetryProvider?: () => Telemetry,
+} = { };
 
 /**
  * ACTIVATION
@@ -93,7 +95,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<HlasmE
     const pseudoCharset = getConfig<SupportedPseudoCharset | undefined>('pseudoCharset', undefined);
     const version = whenString(context.extension.packageJSON?.version);
 
-    const telemetry = typeof telemetryProvider !== 'undefined' ? telemetryProvider() : createDummyTelemetry();
+    const telemetry = plugins.telemetryProvider ? plugins.telemetryProvider() : createDummyTelemetry();
     context.subscriptions.push(telemetry);
 
     telemetry.reportEvent('hlasm.activated', {
