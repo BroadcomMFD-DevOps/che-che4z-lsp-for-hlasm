@@ -23,11 +23,11 @@ import { Telemetry } from './telemetry';
 import { askUser } from './uiUtils';
 import { connectionSecurityLevel, ensureValidMfZoweClient, gatherConnectionInfo, getLastRunConfig, translateConnectionInfo, updateLastRunConfig, ZoweConnectionInfo } from './mfCreds';
 import { isCancellationError } from './helpers';
-import { unterseFile } from "terse.js";
 import { FBStreamingConvertor } from './FBStreamingConvertor';
 import { stripJsonComments } from './tools.common';
 import { SupportedPseudoCharset } from './serverFactory.common';
 import { getConfig } from './eventsHandler';
+import { plugins } from './extension';
 
 export type JobId = string;
 export type JobDescription = {
@@ -379,7 +379,7 @@ export async function unterse(outDir: string, pseudoCharset: SupportedPseudoChar
         return { resolve: _resolve!, error: _error!, process };
     })();
 
-    unterseFile({
+    plugins.unterseFile?.({
         async take(n: number): Promise<number[]> {
             while (pendingTake.length < n)
                 pendingTake = pendingTake.concat(...await input.fetchChunk());
@@ -398,7 +398,7 @@ export async function unterse(outDir: string, pseudoCharset: SupportedPseudoChar
             }
             await pendingAction;
         },
-    }, (header) => {
+    }, (header: any) => {
         if (!header.pds) throw Error("PDS(E) expected");
         if (header.lrecl !== 80 || !header.recfm.startsWith('F')) throw Error("Expected FB80 data set");
 
@@ -706,6 +706,9 @@ class ProgressReporter implements StageProgressReporter {
 
 export async function downloadDependencies(context: vscode.ExtensionContext, telemetry: Telemetry, channel: vscode.OutputChannel, ...args: any[]) {
     try {
+        if (!plugins.unterseFile)
+            throw Error("Untersing is not supported");
+
         telemetry.reportEvent("downloadDependencies/started");
 
         const newOnly = args.length === 1 && args[0] === "newOnly";

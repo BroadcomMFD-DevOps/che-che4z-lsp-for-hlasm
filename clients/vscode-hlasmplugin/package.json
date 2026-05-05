@@ -62,7 +62,6 @@
   },
   "dependencies": {
     "basic-ftp": "^5.2.0",
-    "terse.js": "file:./terse/terse.js-1.0.0.tgz",
     "vscode-languageclient": "^9.0.1"
   },
   "overrides": {

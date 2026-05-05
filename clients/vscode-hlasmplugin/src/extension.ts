@@ -82,6 +82,7 @@ function whenString(x: any): string | undefined {
 
 export const plugins: {
     telemetryProvider?: () => Telemetry,
+    unterseFile?: (...args: unknown[]) => Promise<void>,
 } = { };
 
 /**
