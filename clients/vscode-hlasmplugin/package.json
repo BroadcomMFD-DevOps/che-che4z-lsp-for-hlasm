@@ -65,7 +65,8 @@
     "vscode-languageclient": "^9.0.1"
   },
   "overrides": {
-    "@semantic-release/npm": "file:./empty-pkg"
+    "@semantic-release/npm": "file:./empty-pkg",
+    "serialize-javascript": "^7.0.5"
   },
   "scripts": {
     "postinstall": "node ./build/bin/postinstall.js",
