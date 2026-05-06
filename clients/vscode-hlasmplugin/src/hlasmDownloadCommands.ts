@@ -402,7 +402,7 @@ export async function unterse(
             }
             await pendingAction;
         },
-    }, (header: any) => {
+    }, (header: { pds: boolean, lrecl: number, recfm: string }) => {
         if (!header.pds) throw Error("PDS(E) expected");
         if (header.lrecl !== 80 || !header.recfm.startsWith('F')) throw Error("Expected FB80 data set");
 
