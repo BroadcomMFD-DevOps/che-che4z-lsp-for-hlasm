@@ -46,6 +46,7 @@ import { MementoKey } from './mementoKeys';
 import { registerOutputDocumentContentProvider, showOutputCommand } from './hlasmOutputContentProvider';
 import { setServerLogLevel } from './hlasmLogLevel';
 import { registerConfigurationFileSystemProvider } from './configurationSchemaFileSystem';
+import { plugins } from './plugins';
 
 const sleep = (ms: number) => {
     return new Promise((resolve) => { setTimeout(resolve, ms) });
@@ -80,9 +81,7 @@ function whenString(x: any): string | undefined {
         return undefined;
 }
 
-export const plugins: {
-    telemetryProvider?: () => Telemetry,
-} = { };
+export { plugins };
 
 /**
  * ACTIVATION

@@ -23,11 +23,11 @@ import { Telemetry } from './telemetry';
 import { askUser } from './uiUtils';
 import { connectionSecurityLevel, ensureValidMfZoweClient, gatherConnectionInfo, getLastRunConfig, translateConnectionInfo, updateLastRunConfig, ZoweConnectionInfo } from './mfCreds';
 import { isCancellationError } from './helpers';
-import { unterseFile } from "terse.js";
 import { FBStreamingConvertor } from './FBStreamingConvertor';
 import { stripJsonComments } from './tools.common';
 import { SupportedPseudoCharset } from './serverFactory.common';
 import { getConfig } from './eventsHandler';
+import { plugins } from './extension';
 
 export type JobId = string;
 export type JobDescription = {
@@ -305,7 +305,7 @@ function fixPath(p: string): string {
     return p;
 }
 
-export async function unterse(outDir: string, pseudoCharset: SupportedPseudoCharset): Promise<{ process: Promise<void>, input: Writable }> {
+export async function unterse(outDir: string, pseudoCharset: SupportedPseudoCharset, unterseFile: (arg0: unknown, arg1: unknown) => Promise<void>): Promise<{ process: Promise<void>, input: Writable }> {
     await fsp.mkdir(outDir, { recursive: true });
 
     class DownloadStream extends Writable {
@@ -398,7 +398,7 @@ export async function unterse(outDir: string, pseudoCharset: SupportedPseudoChar
             }
             await pendingAction;
         },
-    }, (header) => {
+    }, (header: { pds: boolean, lrecl: number, recfm: string }) => {
         if (!header.pds) throw Error("PDS(E) expected");
         if (header.lrecl !== 80 || !header.recfm.startsWith('F')) throw Error("Expected FB80 data set");
 
@@ -706,6 +706,9 @@ class ProgressReporter implements StageProgressReporter {
 
 export async function downloadDependencies(context: vscode.ExtensionContext, telemetry: Telemetry, channel: vscode.OutputChannel, ...args: any[]) {
     try {
+        const unterseFile = plugins.unterseFile;
+        if (!unterseFile) throw new Error("Untersing is not supported");
+
         telemetry.reportEvent("downloadDependencies/started");
 
         const newOnly = args.length === 1 && args[0] === "newOnly";
@@ -740,7 +743,7 @@ export async function downloadDependencies(context: vscode.ExtensionContext, tel
                 thingsToDownload,
                 jobcardPattern,
                 new ProgressReporter(p, thingsToDownload.reduce((prev, cur) => { return prev + cur.dirs.length + 2 }, 0)),
-                { unterse: (d) => unterse(d, pseudoCharset), copyDirectory },
+                { unterse: (d) => unterse(d, pseudoCharset, unterseFile), copyDirectory },
                 () => t.isCancellationRequested);
         });
 

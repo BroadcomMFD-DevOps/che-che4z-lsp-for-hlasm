@@ -22,6 +22,7 @@ import { downloadDependenciesWithClient, extractDsn, gatherDownloadList, JobDesc
 import { isCancellationError } from '../../helpers';
 import { arrayFromHex } from '../../tools';
 import type { FileInfo } from 'basic-ftp';
+import { plugins } from '../../extension';
 
 suite('HLASM Download data sets', () => {
     const getClient = (listResponses: JobDescription[][]) => {
@@ -298,10 +299,12 @@ suite('HLASM Download data sets', () => {
         ]);
     });
 
-    test('Test unterse', async () => {
+    test('Test unterse', async function () {
+        if (!plugins.unterseFile) this.skip();
+
         const folder = await fsp.mkdtemp(path.join(os.tmpdir(), 'terse-test-'));
 
-        const { process, input } = await unterse(folder, 'IBM1148');
+        const { process, input } = await unterse(folder, 'IBM1148', plugins.unterseFile);
         await new Promise((resolve) => input.write(arrayFromHex('070000500C00005000000000001001002FFFFFCFFB00501BFFC0F10510270010300E60A3FFCFFD001003FFC0700410030020A1075081FFB02D025FFF07C0610FD0130E40420510010CC00900900BFFFFEE001051031002031031FFF0700B10020E307B059081FC7059FFCFD90E3072089FFB101FFFFEC0C2FB8FB7FB8FFF004FFBFB2FB1FB0FAFFAEFADFACFB2108FBB001005004150101100FA21000000'), resolve));
         await new Promise((resolve) => input.end(resolve));
         await process;
