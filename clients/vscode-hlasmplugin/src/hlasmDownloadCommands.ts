@@ -305,7 +305,11 @@ function fixPath(p: string): string {
     return p;
 }
 
-export async function unterse(outDir: string, pseudoCharset: SupportedPseudoCharset): Promise<{ process: Promise<void>, input: Writable }> {
+export async function unterse(
+    outDir: string,
+    pseudoCharset: SupportedPseudoCharset,
+    unterseFile: (arg0: unknown, arg1: unknown) => Promise<void>,
+): Promise<{ process: Promise<void>, input: Writable }> {
     await fsp.mkdir(outDir, { recursive: true });
 
     class DownloadStream extends Writable {
@@ -379,7 +383,7 @@ export async function unterse(outDir: string, pseudoCharset: SupportedPseudoChar
         return { resolve: _resolve!, error: _error!, process };
     })();
 
-    plugins.unterseFile?.({
+    unterseFile({
         async take(n: number): Promise<number[]> {
             while (pendingTake.length < n)
                 pendingTake = pendingTake.concat(...await input.fetchChunk());
@@ -706,7 +710,8 @@ class ProgressReporter implements StageProgressReporter {
 
 export async function downloadDependencies(context: vscode.ExtensionContext, telemetry: Telemetry, channel: vscode.OutputChannel, ...args: any[]) {
     try {
-        if (!plugins.unterseFile)
+        const unterseFile = plugins.unterseFile;
+        if (!unterseFile)
             throw Error("Untersing is not supported");
 
         telemetry.reportEvent("downloadDependencies/started");
@@ -743,7 +748,7 @@ export async function downloadDependencies(context: vscode.ExtensionContext, tel
                 thingsToDownload,
                 jobcardPattern,
                 new ProgressReporter(p, thingsToDownload.reduce((prev, cur) => { return prev + cur.dirs.length + 2 }, 0)),
-                { unterse: (d) => unterse(d, pseudoCharset), copyDirectory },
+                { unterse: (d) => unterse(d, pseudoCharset, unterseFile), copyDirectory },
                 () => t.isCancellationRequested);
         });
 
