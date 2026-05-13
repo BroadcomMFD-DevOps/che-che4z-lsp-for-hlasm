@@ -366,7 +366,7 @@ export async function unterse(outDir: string, pseudoCharset: SupportedPseudoChar
         const _currentMember = currentMember;
         const _fb = fb;
 
-        scheduleAction(() => fsp.writeFile(path.join(outDir, _currentMember), _fb.getResult()));
+        scheduleAction(() => fsp.writeFile(path.join(outDir, _currentMember), _fb.getResult(), { flag: "wx" }));
 
         fb = undefined;
         currentMember = '';
