@@ -795,7 +795,7 @@ std::string lsp_context::find_hover(const symbol_occurrence& occ,
             else if (const auto f = m_files.find(c->definition_location.resource_loc); f == m_files.end())
                 return "";
             else
-                return get_copy_preview(f->second.data, tc);
+                return prefix_using(get_copy_preview(f->second.data, tc));
 
         default:
             break;
