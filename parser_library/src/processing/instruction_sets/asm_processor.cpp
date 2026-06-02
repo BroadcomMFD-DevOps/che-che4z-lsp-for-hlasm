@@ -167,7 +167,7 @@ void asm_processor::process_sect(rebuilt_statement&& stmt, const context::sectio
     context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, lib_info);
     hlasm_ctx.ord_ctx.symbol_dependencies().add_postponed_statement(
         std::make_unique<postponed_statement_impl>(std::move(stmt), hlasm_ctx.processing_stack()),
-        std::move(dep_solver).derive_current_dependency_evaluation_context());
+        dep_solver.derive_current_dependency_evaluation_context());
 }
 
 void asm_processor::process_LOCTR(rebuilt_statement&& stmt)
@@ -185,7 +185,7 @@ void asm_processor::process_LOCTR(rebuilt_statement&& stmt)
     context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, lib_info);
     hlasm_ctx.ord_ctx.symbol_dependencies().add_postponed_statement(
         std::make_unique<postponed_statement_impl>(std::move(stmt), hlasm_ctx.processing_stack()),
-        std::move(dep_solver).derive_current_dependency_evaluation_context());
+        dep_solver.derive_current_dependency_evaluation_context());
 }
 
 namespace {
@@ -222,7 +222,7 @@ void asm_processor::process_EQU(rebuilt_statement&& stmt)
     using context::symbol_attributes;
 
     auto loctr = hlasm_ctx.ord_ctx.align(context::no_align);
-    context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, std::move(loctr), lib_info);
+    context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, loctr, lib_info);
 
     auto symbol_name = find_label_symbol(stmt);
 
@@ -339,7 +339,7 @@ void asm_processor::process_EQU(rebuilt_statement&& stmt)
         create_symbol(symbol_name, context::symbol_value(), attrs);
         const auto adder = hlasm_ctx.ord_ctx.symbol_dependencies().add_dependencies(
             std::make_unique<postponed_statement_impl>(std::move(stmt), hlasm_ctx.processing_stack()),
-            std::move(dep_solver).derive_current_dependency_evaluation_context(),
+            dep_solver.derive_current_dependency_evaluation_context(std::move(loctr)),
             lib_info);
         if (!adder.add_dependency(symbol_name, expr_op->expression.get()))
             add_diagnostic(diagnostic_op::error_E033(stmt_range));
@@ -355,7 +355,7 @@ void asm_processor::process_data_instruction(rebuilt_statement&& stmt)
         context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, lib_info);
         hlasm_ctx.ord_ctx.symbol_dependencies().add_postponed_statement(
             std::make_unique<postponed_statement_impl>(std::move(stmt), hlasm_ctx.processing_stack()),
-            std::move(dep_solver).derive_current_dependency_evaluation_context());
+            dep_solver.derive_current_dependency_evaluation_context());
         return;
     }
 
@@ -389,7 +389,7 @@ void asm_processor::process_data_instruction(rebuilt_statement&& stmt)
             }
 
             auto& symbol = hlasm_ctx.ord_ctx.create_symbol(label,
-                std::move(loctr),
+                loctr,
                 context::symbol_attributes(context::symbol_origin::DAT,
                     type,
                     context::symbol_attributes::undef_length,
@@ -420,7 +420,8 @@ void asm_processor::process_data_instruction(rebuilt_statement&& stmt)
     // TODO issue warning when alignment is bigger than section's alignment
     // hlasm_ctx.ord_ctx.current_section()->current_location_counter().
 
-    std::vector<data_def_dependency<instr_type>> dependencies;
+    using data_def_dependency_t = data_def_dependency<instr_type>;
+    std::vector<data_def_dependency_t> dependencies;
     std::vector<context::space_ptr> dependencies_spaces;
 
     // Why is this so complicated?
@@ -433,8 +434,7 @@ void asm_processor::process_data_instruction(rebuilt_statement&& stmt)
         const auto start = it;
 
         const auto initial_alignment = (*it)->access_data_def()->value->get_alignment();
-        context::address op_loctr = hlasm_ctx.ord_ctx.align(initial_alignment);
-        data_def_dependency_solver op_solver(dep_solver, &op_loctr);
+        const context::address op_loctr = hlasm_ctx.ord_ctx.align(initial_alignment);
 
         auto current_alignment = initial_alignment;
 
@@ -454,6 +454,7 @@ void asm_processor::process_data_instruction(rebuilt_statement&& stmt)
                 break;
             current_alignment = op_align;
 
+            replace_loctr_dependency_solver op_solver(dep_solver, &op_loctr);
             has_length_dependencies |= data_op->get_length_dependencies(op_solver).contains_dependencies();
 
             if (const auto* pt = data_op->value->program_type.get())
@@ -474,7 +475,7 @@ void asm_processor::process_data_instruction(rebuilt_statement&& stmt)
         }
         else
         {
-            auto length = data_def_dependency<instr_type>::get_operands_length(b, e, op_solver, drop_diagnostic_op);
+            auto length = data_def_dependency_t::get_operands_length(b, e, dep_solver, drop_diagnostic_op, op_loctr);
             hlasm_ctx.ord_ctx.reserve_storage_area(length, context::no_align);
         }
     }
@@ -484,7 +485,7 @@ void asm_processor::process_data_instruction(rebuilt_statement&& stmt)
     const auto& deps = dep_stmt->get_dependencies();
 
     const auto adder = hlasm_ctx.ord_ctx.symbol_dependencies().add_dependencies(
-        std::move(dep_stmt), std::move(dep_solver).derive_current_dependency_evaluation_context(), lib_info);
+        std::move(dep_stmt), dep_solver.derive_current_dependency_evaluation_context(std::move(loctr)), lib_info);
 
     bool cycle_ok = true;
 
@@ -535,7 +536,7 @@ void asm_processor::process_COPY(rebuilt_statement&& stmt)
         context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, lib_info);
         hlasm_ctx.ord_ctx.symbol_dependencies().add_postponed_statement(
             std::make_unique<postponed_statement_impl>(std::move(stmt), hlasm_ctx.processing_stack()),
-            std::move(dep_solver).derive_current_dependency_evaluation_context());
+            dep_solver.derive_current_dependency_evaluation_context());
     }
 }
 
@@ -553,7 +554,7 @@ void asm_processor::process_DXD(rebuilt_statement&& stmt)
     context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, lib_info);
     hlasm_ctx.ord_ctx.symbol_dependencies().add_postponed_statement(
         std::make_unique<postponed_statement_impl>(std::move(stmt), hlasm_ctx.processing_stack()),
-        std::move(dep_solver).derive_current_dependency_evaluation_context());
+        dep_solver.derive_current_dependency_evaluation_context());
 }
 
 void asm_processor::process_EXTRN(rebuilt_statement&& stmt)
@@ -608,7 +609,7 @@ void asm_processor::process_external(rebuilt_statement&& stmt, external_type t)
     context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, lib_info);
     hlasm_ctx.ord_ctx.symbol_dependencies().add_postponed_statement(
         std::make_unique<postponed_statement_impl>(std::move(stmt), hlasm_ctx.processing_stack()),
-        std::move(dep_solver).derive_current_dependency_evaluation_context());
+        dep_solver.derive_current_dependency_evaluation_context());
 }
 
 void asm_processor::process_ORG(rebuilt_statement&& stmt)
@@ -733,7 +734,7 @@ void asm_processor::process_ORG(rebuilt_statement&& stmt)
             offset,
             *reloc_expr->expression,
             std::make_unique<postponed_statement_impl>(std::move(stmt), hlasm_ctx.processing_stack()),
-            std::move(dep_solver).derive_current_dependency_evaluation_context());
+            dep_solver.derive_current_dependency_evaluation_context(std::move(loctr)));
     else
         hlasm_ctx.ord_ctx.set_location_counter_value(reloc_val, boundary, offset);
 
@@ -784,7 +785,7 @@ void asm_processor::process_OPSYN(rebuilt_statement&& stmt)
     context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, lib_info);
     hlasm_ctx.ord_ctx.symbol_dependencies().add_postponed_statement(
         std::make_unique<postponed_statement_impl>(std::move(stmt), hlasm_ctx.processing_stack()),
-        std::move(dep_solver).derive_current_dependency_evaluation_context());
+        dep_solver.derive_current_dependency_evaluation_context());
 }
 
 asm_processor::asm_processor(const analyzing_context& ctx,
@@ -815,7 +816,7 @@ void asm_processor::process(std::shared_ptr<const processing::resolved_statement
         context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, lib_info);
         hlasm_ctx.ord_ctx.symbol_dependencies().add_postponed_statement(
             std::make_unique<postponed_statement_impl>(std::move(rebuilt_stmt), hlasm_ctx.processing_stack()),
-            std::move(dep_solver).derive_current_dependency_evaluation_context());
+            dep_solver.derive_current_dependency_evaluation_context());
     }
 }
 
@@ -974,13 +975,13 @@ void asm_processor::process_CCW(rebuilt_statement&& stmt)
             create_symbol(label, loctr, context::symbol_attributes::make_ccw_attrs());
     }
 
-    context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, std::move(loctr), lib_info);
+    context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, loctr, lib_info);
 
     hlasm_ctx.ord_ctx.reserve_storage_area(ccw_length, ccw_align);
 
     hlasm_ctx.ord_ctx.symbol_dependencies().add_postponed_statement(
         std::make_unique<postponed_statement_impl>(std::move(stmt), hlasm_ctx.processing_stack()),
-        std::move(dep_solver).derive_current_dependency_evaluation_context());
+        dep_solver.derive_current_dependency_evaluation_context(std::move(loctr)));
 }
 
 void asm_processor::process_CNOP(rebuilt_statement&& stmt)
@@ -996,7 +997,7 @@ void asm_processor::process_CNOP(rebuilt_statement&& stmt)
             create_symbol(label, loctr, context::symbol_attributes::make_cnop_attrs());
     }
 
-    context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, std::move(loctr), lib_info);
+    context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, loctr, lib_info);
 
     if (stmt.operands_ref().value.size() == 2)
     {
@@ -1013,7 +1014,7 @@ void asm_processor::process_CNOP(rebuilt_statement&& stmt)
 
     hlasm_ctx.ord_ctx.symbol_dependencies().add_postponed_statement(
         std::make_unique<postponed_statement_impl>(std::move(stmt), hlasm_ctx.processing_stack()),
-        std::move(dep_solver).derive_current_dependency_evaluation_context());
+        dep_solver.derive_current_dependency_evaluation_context(std::move(loctr)));
 }
 
 
@@ -1043,7 +1044,7 @@ void asm_processor::process_START(rebuilt_statement&& stmt)
         context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, lib_info);
         hlasm_ctx.ord_ctx.symbol_dependencies().add_postponed_statement(
             std::make_unique<postponed_statement_impl>(std::move(stmt), hlasm_ctx.processing_stack()),
-            std::move(dep_solver).derive_current_dependency_evaluation_context());
+            dep_solver.derive_current_dependency_evaluation_context());
         return;
     }
 
@@ -1095,7 +1096,7 @@ void asm_processor::process_END(rebuilt_statement&& stmt)
 
     hlasm_ctx.ord_ctx.symbol_dependencies().add_postponed_statement(
         std::make_unique<postponed_statement_impl>(std::move(stmt), hlasm_ctx.processing_stack()),
-        std::move(dep_solver).derive_current_dependency_evaluation_context());
+        dep_solver.derive_current_dependency_evaluation_context());
 
     hlasm_ctx.end_reached();
 }
@@ -1111,7 +1112,7 @@ void asm_processor::process_ALIAS(rebuilt_statement&& stmt)
     context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, lib_info);
     hlasm_ctx.ord_ctx.symbol_dependencies().add_postponed_statement(
         std::make_unique<postponed_statement_impl>(std::move(stmt), hlasm_ctx.processing_stack()),
-        std::move(dep_solver).derive_current_dependency_evaluation_context());
+        dep_solver.derive_current_dependency_evaluation_context());
 }
 void asm_processor::process_LTORG(rebuilt_statement&& stmt)
 {
@@ -1135,7 +1136,7 @@ void asm_processor::process_LTORG(rebuilt_statement&& stmt)
     context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, lib_info);
     hlasm_ctx.ord_ctx.symbol_dependencies().add_postponed_statement(
         std::make_unique<postponed_statement_impl>(std::move(stmt), hlasm_ctx.processing_stack()),
-        std::move(dep_solver).derive_current_dependency_evaluation_context());
+        dep_solver.derive_current_dependency_evaluation_context());
 }
 
 void asm_processor::process_USING(rebuilt_statement&& stmt)
@@ -1143,7 +1144,7 @@ void asm_processor::process_USING(rebuilt_statement&& stmt)
     using namespace expressions;
 
     auto loctr = hlasm_ctx.ord_ctx.align(context::no_align);
-    context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, std::move(loctr), lib_info);
+    context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, loctr, lib_info);
 
     auto label = find_using_label(stmt);
 
@@ -1215,7 +1216,7 @@ void asm_processor::process_USING(rebuilt_statement&& stmt)
         std::move(b),
         std::move(e),
         std::move(bases),
-        std::move(dep_solver).derive_current_dependency_evaluation_context(),
+        dep_solver.derive_current_dependency_evaluation_context(std::move(loctr)),
         hlasm_ctx.processing_stack());
 }
 
@@ -1238,7 +1239,7 @@ void asm_processor::process_DROP(rebuilt_statement&& stmt)
         }
     }
 
-    context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, std::move(loctr), lib_info);
+    context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, loctr, lib_info);
 
     const auto& ops = stmt.operands_ref().value;
 
@@ -1260,7 +1261,7 @@ void asm_processor::process_DROP(rebuilt_statement&& stmt)
     }
 
     hlasm_ctx.using_remove(std::move(bases),
-        std::move(dep_solver).derive_current_dependency_evaluation_context(),
+        dep_solver.derive_current_dependency_evaluation_context(std::move(loctr)),
         hlasm_ctx.processing_stack());
 }
 
@@ -1283,7 +1284,7 @@ void asm_processor::process_PUSH(rebuilt_statement&& stmt)
     context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, lib_info);
     hlasm_ctx.ord_ctx.symbol_dependencies().add_postponed_statement(
         std::make_unique<postponed_statement_impl>(std::move(stmt), hlasm_ctx.processing_stack()),
-        std::move(dep_solver).derive_current_dependency_evaluation_context());
+        dep_solver.derive_current_dependency_evaluation_context());
 }
 
 void asm_processor::process_POP(rebuilt_statement&& stmt)
@@ -1295,7 +1296,7 @@ void asm_processor::process_POP(rebuilt_statement&& stmt)
     context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, lib_info);
     hlasm_ctx.ord_ctx.symbol_dependencies().add_postponed_statement(
         std::make_unique<postponed_statement_impl>(std::move(stmt), hlasm_ctx.processing_stack()),
-        std::move(dep_solver).derive_current_dependency_evaluation_context());
+        dep_solver.derive_current_dependency_evaluation_context());
 }
 
 void asm_processor::process_MNOTE(rebuilt_statement&& stmt)
@@ -1439,10 +1440,10 @@ void asm_processor::process_TITLE(rebuilt_statement&& stmt)
             add_diagnostic(diagnostic_op::warning_W016(label.field_range));
     }
 
+    context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, lib_info);
     hlasm_ctx.ord_ctx.symbol_dependencies().add_postponed_statement(
         std::make_unique<postponed_statement_impl>(std::move(stmt), hlasm_ctx.processing_stack()),
-        context::ordinary_assembly_dependency_solver(hlasm_ctx.ord_ctx, lib_info)
-            .derive_current_dependency_evaluation_context());
+        dep_solver.derive_current_dependency_evaluation_context());
 }
 
 void asm_processor::process_PUNCH(rebuilt_statement&& stmt)
@@ -1617,7 +1618,7 @@ void asm_processor::process_CATTR(rebuilt_statement&& stmt)
     context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, lib_info);
     hlasm_ctx.ord_ctx.symbol_dependencies().add_postponed_statement(
         std::make_unique<postponed_statement_impl>(std::move(stmt), hlasm_ctx.processing_stack()),
-        std::move(dep_solver).derive_current_dependency_evaluation_context());
+        dep_solver.derive_current_dependency_evaluation_context());
 }
 
 void asm_processor::process_XATTR(rebuilt_statement&& stmt)
@@ -1659,7 +1660,7 @@ void asm_processor::process_XATTR(rebuilt_statement&& stmt)
     context::ordinary_assembly_dependency_solver dep_solver(hlasm_ctx.ord_ctx, lib_info);
     hlasm_ctx.ord_ctx.symbol_dependencies().add_postponed_statement(
         std::make_unique<postponed_statement_impl>(std::move(stmt), hlasm_ctx.processing_stack()),
-        std::move(dep_solver).derive_current_dependency_evaluation_context());
+        dep_solver.derive_current_dependency_evaluation_context());
 }
 
 } // namespace hlasm_plugin::parser_library::processing

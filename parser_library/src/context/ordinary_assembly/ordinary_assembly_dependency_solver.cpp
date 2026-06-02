@@ -34,9 +34,9 @@ ordinary_assembly_dependency_solver::ordinary_assembly_dependency_solver(
 {}
 
 ordinary_assembly_dependency_solver::ordinary_assembly_dependency_solver(
-    ordinary_assembly_context& ord_context, context::address loctr_addr, const library_info& li)
+    ordinary_assembly_context& ord_context, const context::address& loctr_addr, const library_info& li)
     : ord_context(ord_context)
-    , loctr_addr(std::move(loctr_addr))
+    , loctr_addr_ptr(&loctr_addr)
     , literal_pool_generation(ord_context.current_literal_pool_generation())
     , unique_id(ord_context.current_unique_id())
     , active_using(ord_context.current_using())
@@ -47,7 +47,7 @@ ordinary_assembly_dependency_solver::ordinary_assembly_dependency_solver(
 ordinary_assembly_dependency_solver::ordinary_assembly_dependency_solver(
     ordinary_assembly_context& ord_context, const dependency_evaluation_context& dep_ctx, const library_info& li)
     : ord_context(ord_context)
-    , loctr_addr(dep_ctx.loctr_address)
+    , loctr_addr_ptr(dep_ctx.loctr_address ? &dep_ctx.loctr_address.value() : nullptr)
     , literal_pool_generation(dep_ctx.literal_pool_generation)
     , unique_id(dep_ctx.unique_id)
     , active_using(dep_ctx.active_using)
@@ -62,7 +62,7 @@ const symbol* ordinary_assembly_dependency_solver::get_symbol(id_index name) con
     return tmp == ord_context.symbols_.end() ? nullptr : std::get_if<symbol>(&tmp->second);
 }
 
-std::optional<address> ordinary_assembly_dependency_solver::get_loctr() const { return loctr_addr; }
+const address* ordinary_assembly_dependency_solver::get_loctr() const { return loctr_addr_ptr; }
 
 id_index ordinary_assembly_dependency_solver::get_literal_id(
     const std::shared_ptr<const expressions::data_definition>& lit)
@@ -74,7 +74,7 @@ id_index ordinary_assembly_dependency_solver::get_literal_id(
 dependency_evaluation_context ordinary_assembly_dependency_solver::derive_current_dependency_evaluation_context() const&
 {
     return dependency_evaluation_context {
-        loctr_addr,
+        loctr_addr_ptr ? std::optional(*loctr_addr_ptr) : std::nullopt,
         literal_pool_generation,
         unique_id,
         active_using,
@@ -82,10 +82,11 @@ dependency_evaluation_context ordinary_assembly_dependency_solver::derive_curren
     };
 }
 
-dependency_evaluation_context ordinary_assembly_dependency_solver::derive_current_dependency_evaluation_context() &&
+dependency_evaluation_context ordinary_assembly_dependency_solver::derive_current_dependency_evaluation_context(
+    context::address&& loctr) const&
 {
     return dependency_evaluation_context {
-        std::move(loctr_addr),
+        std::move(loctr),
         literal_pool_generation,
         unique_id,
         active_using,

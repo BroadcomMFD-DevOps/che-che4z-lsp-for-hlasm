@@ -147,15 +147,14 @@ void literal_pool::generate_pool(diagnosable_ctx& diags, index_t<using_collectio
         if (!lit->access_data_def_type()) // unknown type
             continue;
 
-        ordinary_assembly_dependency_solver solver(ord_ctx,
-            dependency_evaluation_context {
-                it->second.loctr,
-                it->first.generation,
-                it->first.unique_id,
-                active_using,
-                ord_ctx.current_opcode_generation(),
-            },
-            li);
+        const dependency_evaluation_context dec {
+            it->second.loctr,
+            it->first.generation,
+            it->first.unique_id,
+            active_using,
+            ord_ctx.current_opcode_generation(),
+        };
+        ordinary_assembly_dependency_solver solver(ord_ctx, dec, li);
         auto bit_length = lit->evaluate_total_length(solver, checking::data_instr_type::DC, diags);
         if (bit_length < 0)
             continue;
@@ -178,15 +177,14 @@ void literal_pool::generate_pool(diagnosable_ctx& diags, index_t<using_collectio
         const auto& lit = lit_key.lit;
         const auto& lit_val = it->second;
 
-        ordinary_assembly_dependency_solver solver(ord_ctx,
-            dependency_evaluation_context {
-                lit_val.loctr,
-                lit_key.generation,
-                lit_key.unique_id,
-                active_using,
-                ord_ctx.current_opcode_generation(),
-            },
-            li);
+        const dependency_evaluation_context dec {
+            lit_val.loctr,
+            lit_key.generation,
+            lit_key.unique_id,
+            active_using,
+            ord_ctx.current_opcode_generation(),
+        };
+        ordinary_assembly_dependency_solver solver(ord_ctx, dec, li);
 
         if (!lit->access_data_def_type()) // unknown type
             continue;

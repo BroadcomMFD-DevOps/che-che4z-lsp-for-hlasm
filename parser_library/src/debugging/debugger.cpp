@@ -569,11 +569,12 @@ public:
         std::string error_msg;
         error_collector diags(error_msg);
         library_info_transitional lib_info(*lib_provider_);
+        const auto addr = ctx_->ord_ctx.current_section() ? ctx_->ord_ctx.align(context::no_align) : context::address();
         context::ordinary_assembly_dependency_solver dep_solver(ctx_->ord_ctx,
             // do not introduce a private section by accident
             // TODO: the alignment will be wrong
             //       - it is instruction and argument dependent which is not available yet
-            ctx_->ord_ctx.current_section() ? ctx_->ord_ctx.align(context::no_align) : context::address(),
+            addr,
             lib_info);
 
         if (auto d = expr.get_dependencies(dep_solver); d.has_error)

@@ -20,7 +20,7 @@ namespace hlasm_plugin::parser_library::context {
 
 const symbol* dependency_solver_redirect::get_symbol(id_index name) const { return m_base->get_symbol(name); }
 
-std::optional<address> dependency_solver_redirect::get_loctr() const { return m_base->get_loctr(); }
+const address* dependency_solver_redirect::get_loctr() const { return m_base->get_loctr(); }
 
 id_index dependency_solver_redirect::get_literal_id(const std::shared_ptr<const expressions::data_definition>& lit)
 {

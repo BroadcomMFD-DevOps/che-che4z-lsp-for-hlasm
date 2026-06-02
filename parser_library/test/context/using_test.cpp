@@ -38,7 +38,6 @@ struct test_context : public dependency_solver
 
     std::map<std::string, section> m_sect;
     std::map<id_index, symbol> m_symbols;
-    std::optional<address> m_loctr;
 
     id_index id(const std::string& s) { return hlasm_ctx.add_id(s); }
     id_index label(const std::string& s)
@@ -70,7 +69,7 @@ struct test_context : public dependency_solver
 
     // Inherited via dependency_solver
     const context::symbol* get_symbol(id_index name) const override { return &m_symbols.at(name); }
-    std::optional<address> get_loctr() const override { return m_loctr; }
+    const address* get_loctr() const override { return nullptr; }
     id_index get_literal_id(const std::shared_ptr<const expressions::data_definition>&) override
     {
         assert(false);

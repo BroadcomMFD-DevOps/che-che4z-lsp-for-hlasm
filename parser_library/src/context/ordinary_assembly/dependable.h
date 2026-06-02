@@ -15,7 +15,6 @@
 #ifndef CONTEXT_DEPENDABLE_H
 #define CONTEXT_DEPENDABLE_H
 
-#include <optional>
 #include <variant>
 
 #include "dependency_collector.h"
@@ -42,7 +41,7 @@ class dependency_solver
 {
 public:
     virtual const symbol* get_symbol(id_index name) const = 0;
-    virtual std::optional<address> get_loctr() const = 0;
+    virtual const address* get_loctr() const = 0;
     virtual id_index get_literal_id(const std::shared_ptr<const expressions::data_definition>&) = 0;
     virtual bool using_active(id_index label, const section* sect) const = 0;
     virtual using_evaluate_result using_evaluate(

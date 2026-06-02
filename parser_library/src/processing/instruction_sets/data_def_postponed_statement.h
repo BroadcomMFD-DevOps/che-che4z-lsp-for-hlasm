@@ -40,7 +40,7 @@ public:
         const semantics::operand_ptr* e,
         context::dependency_solver& _solver,
         diagnostic_op_consumer& diags,
-        const context::address* loctr = nullptr);
+        const context::address& loctr);
 
     // Inherited via resolvable
     context::dependency_collector get_dependencies(context::dependency_solver& solver) const override;
@@ -61,16 +61,15 @@ public:
     const std::vector<data_def_dependency<instr_type>>& get_dependencies() const { return m_dependencies; }
 };
 
-struct data_def_dependency_solver final : public context::dependency_solver_redirect
+struct replace_loctr_dependency_solver final : public context::dependency_solver_redirect
 {
-    data_def_dependency_solver(context::dependency_solver& base, const context::address* loctr)
+    replace_loctr_dependency_solver(context::dependency_solver& base, const context::address* loctr)
         : dependency_solver_redirect(base)
         , loctr(loctr)
     {}
 
     const context::address* loctr;
-    uint64_t operands_bit_length = 0;
-    std::optional<context::address> get_loctr() const override;
+    const context::address* get_loctr() const override;
 };
 
 } // namespace hlasm_plugin::parser_library::processing

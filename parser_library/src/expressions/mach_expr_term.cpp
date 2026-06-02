@@ -174,30 +174,30 @@ mach_expr_location_counter::mach_expr_location_counter(range rng)
 
 context::dependency_collector mach_expr_location_counter::get_dependencies(context::dependency_solver& mi) const
 {
-    auto location_counter = mi.get_loctr();
-    if (!location_counter.has_value())
+    const auto* location_counter = mi.get_loctr();
+    if (!location_counter)
         return context::dependency_collector::error();
     else
-        return context::dependency_collector(std::move(*location_counter));
+        return context::dependency_collector(*location_counter);
 }
 
 mach_expression::value_t mach_expr_location_counter::evaluate(
     context::dependency_solver& mi, diagnostic_op_consumer&) const
 {
-    auto location_counter = mi.get_loctr();
-    if (!location_counter.has_value())
+    const auto* location_counter = mi.get_loctr();
+    if (!location_counter)
         return context::address();
     else
-        return std::move(*location_counter).normalized();
+        return location_counter->normalized();
 }
 
 mach_expression::value_t mach_expr_location_counter::equ_evaluate(context::dependency_solver& mi) const
 {
-    auto location_counter = mi.get_loctr();
-    if (!location_counter.has_value())
+    const auto* location_counter = mi.get_loctr();
+    if (!location_counter)
         return context::symbol_value();
     else
-        return std::move(*location_counter);
+        return *location_counter;
 }
 
 const mach_expression* mach_expr_location_counter::leftmost_term() const { return this; }

@@ -115,6 +115,11 @@ public:
 
     address operator+(const address& addr) const;
     address operator+(int offs) const;
+    address& operator+=(int off)
+    {
+        offset_ += off;
+        return *this;
+    }
     address operator-(const address& addr) const;
     address operator-(int offs) const;
     address operator-() const;
