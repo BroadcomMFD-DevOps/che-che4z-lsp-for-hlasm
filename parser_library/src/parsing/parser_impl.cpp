@@ -4574,14 +4574,18 @@ void parser2::lookahead_operands_and_remarks_asm()
     holder->collector.set_operand_remark_field(std::move(operands), std::vector<range>(), r);
 }
 
-void parser_holder::lookahead_operands_and_remarks_asm(bool ord)
+void parser_holder::lookahead_operands_and_remarks_asm_ord()
 {
     parser2 p(this);
 
-    if (ord)
-        p.lookahead_operands_and_remarks_asm<&parser2::asm_op_ord>();
-    else
-        p.lookahead_operands_and_remarks_asm<&parser2::asm_op_text>();
+    p.lookahead_operands_and_remarks_asm<&parser2::asm_op_ord>();
+}
+
+void parser_holder::lookahead_operands_and_remarks_asm_text()
+{
+    parser2 p(this);
+
+    p.lookahead_operands_and_remarks_asm<&parser2::asm_op_text>();
 }
 
 semantics::literal_si parser_holder::literal_reparse()

@@ -94,7 +94,7 @@ TEST(parser_edge_cases, lookahead_invalid_arg_ord)
 {
     auto [_, h] = prepare_edge_case(" (");
 
-    h.lookahead_operands_and_remarks_asm(true);
+    h.lookahead_operands_and_remarks_asm_ord();
 
     EXPECT_TRUE(h.collector.current_operands().value.empty());
 }
