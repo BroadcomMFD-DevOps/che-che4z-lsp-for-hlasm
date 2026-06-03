@@ -445,11 +445,7 @@ bool opsyn::check(std::span<const asm_operand* const> to_check,
     const range& stmt_range,
     const diagnostic_collector& add_diagnostic) const
 {
-    if (!operands_size_corresponding(to_check, stmt_range, add_diagnostic))
-        return false;
-    if (has_one_comma(to_check))
-        return true;
-    return true;
+    return operands_size_corresponding(to_check, stmt_range, add_diagnostic);
 }
 
 mnote::mnote(const std::vector<label_types>& allowed_types, std::string_view name_of_instruction)

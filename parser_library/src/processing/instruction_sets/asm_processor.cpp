@@ -91,20 +91,6 @@ std::optional<int> try_get_number(std::string_view s)
     return std::nullopt;
 }
 
-context::assembler_type assembler_type_from_op(const semantics::operand* op)
-{
-    const auto* asm_op = op->access_asm();
-    if (!asm_op)
-        return {};
-    const auto* expr = asm_op->access_expr();
-    if (!expr)
-        return {};
-    const auto* sym = dynamic_cast<const expressions::mach_expr_symbol*>(expr->expression.get());
-    if (!sym)
-        return {};
-    return context::assembler_type_from_string(sym->value.to_string_view());
-}
-
 const semantics::text_assembler_operand* extract_single_text_op(const semantics::operands_si& ops) noexcept
 {
     if (ops.value.size() != 1)
@@ -277,13 +263,9 @@ void asm_processor::process_EQU(rebuilt_statement&& stmt)
     const auto [value, length, type, prog_type, asm_type] = extract_asm_operands<5>(ops);
 
     // assembler type attribute
-    symbol_attributes::assembler_type a_attr = symbol_attributes::assembler_type::NONE;
-    if (asm_type)
-    {
-        a_attr = assembler_type_from_op(asm_type);
-        if (a_attr == symbol_attributes::assembler_type::NONE)
-            add_diagnostic(diagnostic_op::error_A135_EQU_asm_type_val_format(asm_type->operand_range));
-    }
+    const symbol_attributes::assembler_type a_attr = assembler_type_from_op(asm_type);
+    if (asm_type && a_attr == symbol_attributes::assembler_type::NONE)
+        add_diagnostic(diagnostic_op::error_A135_EQU_asm_type_val_format(asm_type->operand_range));
 
     // program type attribute
     symbol_attributes::program_type p_attr {};

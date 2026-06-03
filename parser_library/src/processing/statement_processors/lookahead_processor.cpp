@@ -203,20 +203,6 @@ std::optional<context::A_t> try_get_abs_value(
     return value.get_abs();
 }
 
-context::assembler_type assembler_type_from_op(const semantics::operand* op)
-{
-    const auto* asm_op = op->access_asm();
-    if (!asm_op)
-        return {};
-    const auto* expr = asm_op->access_expr();
-    if (!expr)
-        return {};
-    const auto* sym = dynamic_cast<const expressions::mach_expr_symbol*>(expr->expression.get());
-    if (!sym)
-        return {};
-    return context::assembler_type_from_string(sym->value.to_string_view());
-}
-
 } // namespace
 
 void lookahead_processor::assign_EQU_attributes(context::id_index symbol_name, const resolved_statement& statement)
@@ -230,11 +216,7 @@ void lookahead_processor::assign_EQU_attributes(context::id_index symbol_name, c
     const auto [value, length, type, program, assembler] = extract_asm_operands<5>(statement.operands_ref().value);
 
     // assembler type attribute
-    symbol_attributes::assembler_type a_attr = symbol_attributes::assembler_type::NONE;
-    if (assembler)
-    {
-        a_attr = assembler_type_from_op(assembler);
-    }
+    const symbol_attributes::assembler_type a_attr = assembler_type_from_op(assembler);
 
     // program type attribute
     symbol_attributes::program_type p_attr {};

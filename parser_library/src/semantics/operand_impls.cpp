@@ -532,4 +532,21 @@ void transform_reloc_imm_operands(semantics::operand_list& op_list, const proces
         }
     }
 }
+
+context::assembler_type assembler_type_from_op(const semantics::operand* op)
+{
+    if (!op)
+        return {};
+    const auto* asm_op = op->access_asm();
+    if (!asm_op)
+        return {};
+    const auto* expr = asm_op->access_expr();
+    if (!expr)
+        return {};
+    const auto* sym = dynamic_cast<const expressions::mach_expr_symbol*>(expr->expression.get());
+    if (!sym)
+        return {};
+    return context::assembler_type_from_string(sym->value.to_string_view());
+}
+
 } // namespace hlasm_plugin::parser_library::semantics
