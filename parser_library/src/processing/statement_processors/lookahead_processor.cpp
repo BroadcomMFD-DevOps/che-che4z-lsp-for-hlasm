@@ -202,7 +202,6 @@ std::optional<context::A_t> try_get_abs_value(
 
     return value.get_abs();
 }
-
 } // namespace
 
 void lookahead_processor::assign_EQU_attributes(context::id_index symbol_name, const resolved_statement& statement)

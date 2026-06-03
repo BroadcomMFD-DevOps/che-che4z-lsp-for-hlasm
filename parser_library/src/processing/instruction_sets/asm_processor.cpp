@@ -101,6 +101,14 @@ const semantics::text_assembler_operand* extract_single_text_op(const semantics:
     return asm_op->access_text();
 }
 
+bool has_single_comma(std::span<const semantics::operand_ptr> ops)
+{
+    if (ops.size() != 2)
+        return false;
+
+    return std::ranges::all_of(ops, [](const auto& op) { return op->type == semantics::operand_type::EMPTY; });
+}
+
 template<auto ptr, auto... others>
 constexpr auto fn = +[](asm_processor* self, rebuilt_statement&& stmt) { (self->*ptr)(std::move(stmt), others...); };
 } // namespace
@@ -627,9 +635,7 @@ void asm_processor::process_ORG(rebuilt_statement&& stmt)
 
     const auto& ops = stmt.operands_ref().value;
 
-    if (ops.empty()
-        || (ops.size() == 2 && ops[0]->type == semantics::operand_type::EMPTY
-            && ops[1]->type == semantics::operand_type::EMPTY))
+    if (ops.empty() || has_single_comma(ops))
     {
         hlasm_ctx.ord_ctx.set_available_location_counter_value();
         return;
@@ -755,7 +761,7 @@ void asm_processor::process_OPSYN(rebuilt_statement&& stmt)
         return;
     }
 
-    if (const auto op_count = ops.size(); op_count == 0)
+    if (const auto op_count = ops.size(); op_count == 0 || has_single_comma(ops))
     {
         if (!hlasm_ctx.remove_mnemonic(label))
             add_diagnostic(diagnostic_op::error_E049(label.to_string_view(), stmt.label_ref().field_range));
@@ -1211,9 +1217,7 @@ void asm_processor::process_DROP(rebuilt_statement&& stmt)
     const auto& ops = stmt.operands_ref().value;
 
     std::vector<mach_expr_ptr> bases;
-    if (!ops.empty()
-        && !(ops.size() == 2 && ops[0]->type == semantics::operand_type::EMPTY
-            && ops[1]->type == semantics::operand_type::EMPTY))
+    if (!ops.empty() && !has_single_comma(ops))
     {
         bases.reserve(ops.size());
         for (const auto& op : ops)
