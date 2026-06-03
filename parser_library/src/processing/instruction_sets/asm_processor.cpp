@@ -526,7 +526,7 @@ void asm_processor::process_COPY(rebuilt_statement&& stmt)
 {
     find_sequence_symbol(stmt);
 
-    if (auto extract = extract_copy_id(stmt, &diag_ctx); extract.has_value())
+    if (const auto extract = extract_copy_id(stmt, &diag_ctx); extract.has_value())
     {
         if (ctx.hlasm_ctx->copy_members().contains(extract->name))
             common_copy_postprocess(true, *extract, *ctx.hlasm_ctx, &diag_ctx);
@@ -594,12 +594,12 @@ void asm_processor::process_external(rebuilt_statement&& stmt, external_type t)
         if (!op_asm)
             continue;
 
-        if (auto text = op_asm->access_text())
+        if (const auto text = op_asm->access_text())
         {
             if (!text->get_ord_like().empty())
                 add_external(text->get_ord_like(), text->operand_range);
         }
-        else if (auto complex = op_asm->access_complex())
+        else if (const auto complex = op_asm->access_complex())
         {
             if (utils::to_upper_copy(complex->value.identifier) != "PART")
                 continue;
@@ -892,7 +892,7 @@ void asm_processor::process_AINSERT(rebuilt_statement&& stmt)
         return;
     }
 
-    auto second_op = dynamic_cast<const semantics::text_assembler_operand*>(ops.value[1].get());
+    const auto second_op = dynamic_cast<const semantics::text_assembler_operand*>(ops.value[1].get());
     if (!second_op)
     {
         add_diagnostic(diagnostic_op::error_A156_AINSERT_second_op_format(ops.value[1]->operand_range));
@@ -1285,7 +1285,6 @@ void asm_processor::process_MNOTE(rebuilt_statement&& stmt)
         case 1:
             level = 0;
             break;
-
         case 2:
             if (const auto& op = ops.front(); op->type == semantics::operand_type::EMPTY)
             {
@@ -1308,7 +1307,6 @@ void asm_processor::process_MNOTE(rebuilt_statement&& stmt)
                 }
             }
             break;
-
         default:
             add_diagnostic(diagnostic_op::error_A012_from_to(MNOTE, 1, 2, stmt.operands_ref().field_range));
             return;
@@ -1647,8 +1645,7 @@ void asm_processor::process_ENTRY(rebuilt_statement&& stmt)
 
 void asm_processor::process_ADATA(rebuilt_statement&& stmt)
 {
-    const auto& ops = stmt.operands_ref().value;
-    if (ops.size() >= 5)
+    if (const auto& ops = stmt.operands_ref().value; ops.size() >= 5)
     {
         if (const auto* asm_op = ops[4]->access_asm(); asm_op && !asm_op->access_string())
             add_diagnostic(diagnostic_op::error_A239_ADATA_char_string_format(asm_op->operand_range));

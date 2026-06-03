@@ -420,7 +420,7 @@ void lsp_analyzer::collect_copy_operands(
 {
     if (statement.opcode_ref().value != context::well_known::COPY)
         return;
-    if (auto copybook_name = get_copybook_name(statement.operands_ref().value))
+    if (const auto copybook_name = get_copybook_name(statement.operands_ref().value))
         add_copy_operand(copybook_name->get_ord_like(), copybook_name->operand_range, collection_info);
 }
 
