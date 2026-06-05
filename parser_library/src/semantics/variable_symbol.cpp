@@ -14,8 +14,8 @@
 
 #include "variable_symbol.h"
 
+#include "concatenation.h"
 #include "context/hlasm_context.h"
-#include "expressions/conditional_assembly/terms/ca_constant.h"
 #include "expressions/evaluation_context.h"
 
 namespace hlasm_plugin::parser_library::semantics {
