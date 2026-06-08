@@ -3029,7 +3029,7 @@ std::pair<bool, semantics::operand_ptr> parser2::ca_var_def_ops(parser_position 
         resolve_concat_chain(*created);
 
     const auto r = range_from(start);
-    semantics::vs_ptr var = std::make_unique<semantics::variable_symbol>(std::move(var_name), std::move(num), r);
+    auto var = std::make_unique<semantics::variable_symbol>(std::move(var_name), std::move(num), r);
 
     return { true, std::make_unique<semantics::var_ca_operand>(std::move(var), r) };
 }
