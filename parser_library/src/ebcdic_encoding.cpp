@@ -41,7 +41,7 @@ std::pair<unsigned char, const char*> ebcdic_encoding::to_ebcdic_multibyte(const
         && (second_byte & 0b11111100) == (0x80 | (ebcdic_encoding::unicode_private & 0xF) << 2)
         && (third_byte & 0xC0) == 0x80) // our private plane
     {
-        const unsigned char ebcdic_value = (second_byte & 3) << 6 | (third_byte & 0x3f);
+        const unsigned char ebcdic_value = static_cast<unsigned char>((second_byte & 3) << 6 | (third_byte & 0x3f));
         return { ebcdic_value, c + 3 };
     }
 
@@ -67,8 +67,8 @@ std::string ebcdic_encoding::to_ascii(const std::string& s)
 {
     std::string a;
     a.reserve(s.length());
-    for (unsigned char c : s)
-        a.append(to_ascii(c));
+    for (char c : s)
+        a.append(to_ascii(static_cast<unsigned char>(c)));
     return a;
 }
 
@@ -80,7 +80,7 @@ std::string ebcdic_encoding::to_ebcdic(const std::string& s)
     for (const char* i = s.data(); i != end;)
     {
         const auto [ch, newi] = to_ebcdic(i, end);
-        a.push_back(ch);
+        a.push_back(static_cast<char>(ch));
         i = newi;
     }
     return a;
