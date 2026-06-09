@@ -63,8 +63,8 @@ void merge_sorted(
         else
             return m;
     }();
-    const auto init_size = std::distance(sorted_vec.begin(), sorted_vec.end());
-    for (std::remove_const_t<decltype(init_size)> i = 0; i < init_size && it != ite;)
+    const auto init_size = sorted_vec.size();
+    for (std::size_t i = 0; i < init_size && it != ite;)
     {
         auto&& el = sorted_vec[i];
         if (auto c = std::invoke(cmp, el, *it); c == 0)
@@ -85,8 +85,7 @@ void merge_sorted(
         std::ranges::transform(it, ite, std::back_inserter(sorted_vec), std::ref(p));
 
     const auto less = [&cmp](const auto& l, const auto& r) { return std::invoke(cmp, l, r) < 0; };
-    const auto mid = std::next(sorted_vec.begin(), init_size);
-    std::inplace_merge(sorted_vec.begin(), mid, sorted_vec.end(), less);
+    std::inplace_merge(sorted_vec.begin(), sorted_vec.begin() + (std::ptrdiff_t)init_size, sorted_vec.end(), less);
 }
 
 template<typename T,
