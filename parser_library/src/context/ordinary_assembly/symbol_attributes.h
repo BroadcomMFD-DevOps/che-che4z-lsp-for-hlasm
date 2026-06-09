@@ -62,7 +62,7 @@ struct program_type
     {
         for (int i = 3; i != -1; --i)
         {
-            ebcdic_value[i] = v & 0b1111'1111U;
+            ebcdic_value[i] = static_cast<char>(v & 0b1111'1111U);
             v >>= 8;
         }
     }
