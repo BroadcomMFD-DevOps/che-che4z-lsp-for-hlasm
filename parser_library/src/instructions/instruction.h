@@ -231,7 +231,7 @@ public:
 
     constexpr std::string_view tranlate_cc(condition_code cc) const noexcept
     {
-        auto cc_val = static_cast<int>(cc);
+        const auto cc_val = static_cast<unsigned>(cc);
         return std::string_view(s_texts + text[cc_val], lengths[cc_val]);
     }
 

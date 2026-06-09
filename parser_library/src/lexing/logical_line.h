@@ -196,7 +196,7 @@ struct logical_line_const_iterator
          * | XXXXXX<
          */
 
-        size_t result = std::ranges::distance(b.m_col_it, b.m_segment_it->continuation);
+        auto result = std::ranges::distance(b.m_col_it, b.m_segment_it->continuation);
 
         for (auto it = std::next(b.m_segment_it); it != e.m_segment_it; ++it)
             result += std::ranges::distance(it->code, it->continuation);
