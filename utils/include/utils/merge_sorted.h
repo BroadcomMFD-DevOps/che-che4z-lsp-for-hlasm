@@ -64,7 +64,7 @@ void merge_sorted(
             return m;
     }();
     const auto init_size = std::distance(sorted_vec.begin(), sorted_vec.end());
-    for (decltype(init_size) i = 0; i < init_size && it != ite;)
+    for (std::remove_const_t<decltype(init_size)> i = 0; i < init_size && it != ite;)
     {
         auto&& el = sorted_vec[i];
         if (auto c = std::invoke(cmp, el, *it); c == 0)
