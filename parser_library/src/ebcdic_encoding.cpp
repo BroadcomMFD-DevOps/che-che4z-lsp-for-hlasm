@@ -18,12 +18,12 @@ namespace hlasm_plugin::parser_library {
 
 std::pair<unsigned char, const char*> ebcdic_encoding::to_ebcdic_multibyte(const char* c, const char* const ce) noexcept
 {
-    const unsigned char first_byte = *(c + 0);
+    const auto first_byte = static_cast<unsigned char>(*(c + 0));
     if (c + 1 == ce)
     {
         return { EBCDIC_SUB, c + 1 };
     }
-    const unsigned char second_byte = *(c + 1);
+    const auto second_byte = static_cast<unsigned char>(*(c + 1));
 
     if ((first_byte & 0xE0) == 0xC0) // 110xxxxx 10xxxxxx
     {
@@ -35,7 +35,7 @@ std::pair<unsigned char, const char*> ebcdic_encoding::to_ebcdic_multibyte(const
     {
         return { EBCDIC_SUB, c + 2 };
     }
-    const unsigned char third_byte = *(c + 2);
+    const auto third_byte = static_cast<unsigned char>(*(c + 2));
 
     if (first_byte == (0b11100000 | ebcdic_encoding::unicode_private >> 4)
         && (second_byte & 0b11111100) == (0x80 | (ebcdic_encoding::unicode_private & 0xF) << 2)

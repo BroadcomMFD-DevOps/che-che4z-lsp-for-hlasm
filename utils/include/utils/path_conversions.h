@@ -24,16 +24,16 @@ struct dissected_uri_view
 {
     struct authority
     {
-        std::optional<std::string_view> user_info;
+        std::optional<std::string_view> user_info = {};
         std::string_view host;
-        std::optional<std::string_view> port;
+        std::optional<std::string_view> port = {};
     };
 
     std::string_view scheme;
-    std::optional<authority> auth;
+    std::optional<authority> auth = {};
     std::string_view path;
-    std::optional<std::string_view> query;
-    std::optional<std::string_view> fragment;
+    std::optional<std::string_view> query = {};
+    std::optional<std::string_view> fragment = {};
 
     bool contains_host() const { return auth.has_value() && !auth->host.empty(); }
 };

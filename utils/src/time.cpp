@@ -109,12 +109,12 @@ std::optional<timestamp> timestamp::now()
 
     const auto subsecond = now - floor<seconds>(now);
 
-    return timestamp(tm_buf.tm_year + 1900,
-        tm_buf.tm_mon + 1,
-        tm_buf.tm_mday,
-        tm_buf.tm_hour,
-        tm_buf.tm_min,
-        tm_buf.tm_sec,
+    return timestamp(static_cast<unsigned>(tm_buf.tm_year + 1900),
+        static_cast<unsigned>(tm_buf.tm_mon + 1),
+        static_cast<unsigned>(tm_buf.tm_mday),
+        static_cast<unsigned>(tm_buf.tm_hour),
+        static_cast<unsigned>(tm_buf.tm_min),
+        static_cast<unsigned>(tm_buf.tm_sec),
         static_cast<unsigned>(std::chrono::nanoseconds(subsecond).count() / 1000));
 #endif
 }
