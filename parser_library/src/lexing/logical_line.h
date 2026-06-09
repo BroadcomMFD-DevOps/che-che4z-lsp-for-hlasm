@@ -26,6 +26,7 @@
 #include <utility>
 #include <vector>
 
+#include "utils/intconv.h"
 #include "utils/unicode_text.h"
 
 namespace hlasm_plugin::parser_library::lexing {
@@ -78,7 +79,7 @@ struct logical_line_segment
 template<typename It>
 size_t logical_distance(It b, It e)
 {
-    return std::ranges::distance(b, e);
+    return utils::to_unsigned(std::ranges::distance(b, e));
 }
 
 template<utils::HasCounter It>
