@@ -213,7 +213,7 @@ struct json_settings_replacer
         do
         {
             r.append(s.begin(), matches[0].first);
-            s.remove_prefix(matches[0].second - s.begin());
+            s = std::string_view(matches[0].second , s.end());
 
             static constexpr std::string_view config_section = "config:";
 

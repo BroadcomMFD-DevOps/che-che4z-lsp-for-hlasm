@@ -129,10 +129,11 @@ std::string get_content(const uint8_t* data, size_t size, fuzzer_lib_provider& l
 
     while (auto next = (const uint8_t*)memchr(data, 0xff, size))
     {
-        *target = hlasm_plugin::utils::replace_non_utf8_chars(std::string_view((const char*)data, next - data));
+        const auto len = static_cast<std::size_t>(next - data);
+        *target = hlasm_plugin::utils::replace_non_utf8_chars(std::string_view((const char*)data, len));
 
         target = &lib.files.emplace_back();
-        size -= next + 1 - data;
+        size -= len + 1;
         data = next + 1;
     }
     *target = hlasm_plugin::utils::replace_non_utf8_chars(std::string_view((const char*)data, size));
@@ -201,8 +202,8 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
         });
     a.analyze();
 
-    auto num1 = data[1] >> 4;
-    auto num2 = data[1] & 15;
+    auto num1 = static_cast<unsigned char>(data[1] >> 4);
+    auto num2 = static_cast<unsigned char>(data[1] & 15);
 
     switch (data[0] >> 3)
     {

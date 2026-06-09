@@ -40,6 +40,7 @@
 #include "semantics/highlighting_info.h"
 #include "utils/bk_tree.h"
 #include "utils/factory.h"
+#include "utils/intconv.h"
 #include "utils/levenshtein_distance.h"
 #include "utils/path_conversions.h"
 #include "utils/projectors.h"
@@ -423,8 +424,8 @@ void generate_merged_fade_messages(const resource_location& rl,
         auto active_line = std::find_if_not(std::next(faded_line_it), line_details_it_e, faded_line_predicate);
         fms.emplace_back(fade_message::inactive_statement(rl.get_uri(),
             range {
-                position(std::ranges::distance(line_details_it_b, faded_line_it), 0),
-                position(std::ranges::distance(line_details_it_b, std::prev(active_line)), 80),
+                position(utils::to_unsigned(std::ranges::distance(line_details_it_b, faded_line_it)), 0),
+                position(utils::to_unsigned(std::ranges::distance(line_details_it_b, std::prev(active_line))), 80),
             }));
 
         faded_line_it = std::find_if(active_line, line_details_it_e, faded_line_predicate);

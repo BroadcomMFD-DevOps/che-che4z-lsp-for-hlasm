@@ -142,8 +142,9 @@ constexpr auto invert_hex = []() {
 
     return result;
 }();
-void push_uri_char(std::string& uri, unsigned char c, const keep_table_t& keep)
+void push_uri_char(std::string& uri, char c_, const keep_table_t& keep)
 {
+    const auto c = static_cast<unsigned char>(c_);
     if (keep[c])
     {
         uri.push_back(c);
@@ -162,7 +163,7 @@ std::string percent_encode_path(std::string_view s)
     std::string uri;
     uri.reserve(s.size());
 
-    for (unsigned char c : s)
+    for (char c : s)
     {
         if (c == (unsigned char)'\\')
             c = '/';
@@ -178,7 +179,7 @@ std::string percent_encode_component(std::string_view s)
     std::string uri;
     uri.reserve(s.size());
 
-    for (unsigned char c : s)
+    for (char c : s)
     {
         push_uri_char(uri, c, unreserved);
     }

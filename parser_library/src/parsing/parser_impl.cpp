@@ -4099,13 +4099,13 @@ std::optional<semantics::op_rem> parser2::with_model(bool reparse, bool model_al
 {
     const auto start = cur_pos(); // capture true beginning
     if (eof())
-        return semantics::op_rem { .line_range = empty_range(start) };
+        return semantics::op_rem { .operands = {}, .remarks = {}, .line_range = empty_range(start) };
 
     if (auto [error] = handle_initial_space(reparse); error)
         return std::nullopt;
 
     if (eof())
-        return semantics::op_rem { .line_range = empty_range(start) };
+        return semantics::op_rem { .operands = {}, .remarks = {}, .line_range = empty_range(start) };
 
     if (model_allowed && std::find(input.next, input.last, u8'&') != input.last)
     {

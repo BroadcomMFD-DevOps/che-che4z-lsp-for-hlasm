@@ -39,7 +39,7 @@ class file_manager;
 
 struct library_local_options
 {
-    std::vector<std::string> extensions;
+    std::vector<std::string> extensions = {};
     bool optional_library = false;
 
     auto operator<=>(const library_local_options&) const = default;

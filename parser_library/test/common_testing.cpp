@@ -187,9 +187,9 @@ std::optional<std::vector<T>> get_var_vector(hlasm_context& ctx, std::string nam
 
     std::vector<T> result;
     result.reserve(keys.size());
-    for (context::A_t i = 1; i <= keys.size(); ++i)
+    for (size_t i = 1; i <= keys.size(); ++i)
     {
-        if (i != keys[i - 1])
+        if (std::cmp_not_equal(i, keys[i - 1]))
             return std::nullopt;
         result.push_back(symbol->get_value(i));
     }
