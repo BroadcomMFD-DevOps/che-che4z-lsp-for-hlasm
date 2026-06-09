@@ -41,7 +41,7 @@ std::pair<unsigned char, const char*> ebcdic_encoding::to_ebcdic_multibyte(const
         && (second_byte & 0b11111100) == (0x80 | (ebcdic_encoding::unicode_private & 0xF) << 2)
         && (third_byte & 0xC0) == 0x80) // our private plane
     {
-        const unsigned char ebcdic_value = (second_byte & 3) << 6 | third_byte & 0x3f;
+        const unsigned char ebcdic_value = (second_byte & 3) << 6 | (third_byte & 0x3f);
         return { ebcdic_value, c + 3 };
     }
 
