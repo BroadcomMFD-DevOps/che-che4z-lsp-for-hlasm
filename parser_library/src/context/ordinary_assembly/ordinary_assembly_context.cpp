@@ -202,8 +202,9 @@ void ordinary_assembly_context::create_external_section(id_index name, section_k
                 return symbol_attributes::make_wxtrn_attrs();
             case EXTERNAL_DSECT:
                 return symbol_attributes::make_section_attrs();
+            default:
+                assert(false);
         }
-        assert(false);
     }();
 
 

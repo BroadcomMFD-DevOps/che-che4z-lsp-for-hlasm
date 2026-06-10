@@ -573,7 +573,7 @@ void workspace::delete_diags(processor_file_compoments& pfc)
 
     for (const auto& [dep, _] : pfc.m_dependencies)
     {
-        if (auto dep_file = find_processor_file_impl(dep))
+        if (find_processor_file_impl(dep))
         {
             pfc.m_last_results->macro_diagnostics.clear();
         }

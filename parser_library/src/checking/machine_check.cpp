@@ -96,9 +96,10 @@ diagnostic_op get_simple_operand_expected(
             return diagnostic_op::error_M114(instr_name, operand_range);
         case RELOC_IMM: // RI
             return diagnostic_op::error_M113(instr_name, operand_range);
+        default:
+            assert(false);
+            return diagnostic_op::error_I999(instr_name, operand_range);
     }
-    assert(false);
-    return diagnostic_op::error_I999(instr_name, operand_range);
 }
 
 } // namespace

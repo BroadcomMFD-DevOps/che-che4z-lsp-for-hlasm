@@ -327,6 +327,8 @@ std::shared_ptr<const context::hlasm_statement> opencode_provider::process_looka
             case processing_form::DAT:
                 h.lookahead_operands_and_remarks_dat();
                 break;
+            default:
+                break;
         }
 
         h.collector.clear_hl_symbols();
@@ -514,7 +516,7 @@ utils::task opencode_provider::run_preprocessor()
             preprocessor_text.push_back('\n');
     }
     const size_t stop_line = it != m_input_document.end() ? it->lineno().value() : current_line;
-    const auto last_index = it - m_input_document.begin();
+    const auto last_index = utils::to_unsigned(it - m_input_document.begin());
 
     auto virtual_file_name = m_ctx.hlasm_ctx->add_id(std::format("PREPROCESSOR_{}", current_line));
 
