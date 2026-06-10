@@ -379,28 +379,28 @@ public:
     }
 
     dep_reference operator*() const noexcept { return { idx, *self }; }
-    dep_reference operator[](difference_type offset) const noexcept { return { idx + offset, *self }; }
+    dep_reference operator[](difference_type offset) const noexcept { return { idx + (size_t)offset, *self }; }
 
     friend dep_iterator operator+(difference_type offset, dep_iterator it) noexcept { return it + offset; }
 
-    dep_iterator operator+(difference_type offset) const noexcept { return { idx + offset, self }; }
-    dep_iterator operator-(difference_type offset) const noexcept { return { idx - offset, self }; }
+    dep_iterator operator+(difference_type offset) const noexcept { return { idx + (size_t)offset, self }; }
+    dep_iterator operator-(difference_type offset) const noexcept { return { idx - (size_t)offset, self }; }
 
     dep_iterator& operator+=(difference_type offset) noexcept
     {
-        idx += offset;
+        idx += (size_t)offset;
         return *this;
     }
     dep_iterator& operator-=(difference_type offset) noexcept
     {
-        idx -= offset;
+        idx -= (size_t)offset;
         return *this;
     }
 
     difference_type operator-(const dep_iterator& o) const noexcept
     {
         assert(self == o.self);
-        return idx - o.idx;
+        return utils::to_signed(idx - o.idx);
     }
 
     bool operator==(const dep_iterator& o) const noexcept
@@ -438,7 +438,7 @@ void symbol_dependency_tables::resolve_loop(diagnostic_consumer* diags, const li
     const auto b = diags
         ? db
         : std::partition(dependency_iterator(m_dependencies_skip_index), e, [](auto dref) { return dref.any_attr(); });
-    m_dependencies_skip_index = b - db;
+    m_dependencies_skip_index = utils::to_unsigned(b - db);
 
     while (true)
     {
