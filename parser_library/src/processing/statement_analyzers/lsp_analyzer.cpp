@@ -491,7 +491,7 @@ lsp_analyzer::collection_info_t lsp_analyzer::get_active_collection(
     const utils::resource::resource_location& loc, bool evaluated_model)
 {
     auto& [stmt_occurrences, stmt_ranges] = in_macro_ ? macro_occurrences_[loc] : opencode_occurrences_[loc];
-    return { &stmt_occurrences, stmt_occurrences.size(), &stmt_ranges, evaluated_model };
+    return { &stmt_occurrences, std::ssize(stmt_occurrences), &stmt_ranges, evaluated_model };
 }
 
 namespace {
@@ -620,7 +620,7 @@ void lsp_analyzer::collect_branch_info(
 {
     const auto& opencode_loc = hlasm_ctx_.opencode_location();
     auto& [stmt_occurrences, stmt_ranges] = opencode_occurrences_[opencode_loc];
-    const collection_info_t ci { &stmt_occurrences, stmt_occurrences.size(), &stmt_ranges, true };
+    const collection_info_t ci { &stmt_occurrences, std::ssize(stmt_occurrences), &stmt_ranges, true };
 
     for (const auto& [stmt, dep_ctx] : stmts)
     {
