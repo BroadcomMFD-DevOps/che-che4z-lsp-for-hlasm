@@ -200,7 +200,7 @@ checking::data_def_field<int32_t> set_data_def_field(
     {
         field.rng = e->get_range();
 
-        if (field.present = !e->get_dependencies(info).contains_dependencies())
+        if ((field.present = !e->get_dependencies(info).contains_dependencies()))
         {
             auto ret = e->evaluate(info, diags);
 
@@ -317,8 +317,8 @@ size_t data_definition::hash() const
     using utils::hashers::hash_combine;
 
     auto ret = (size_t)0x65b40f329f97f6c9;
-    ret = hash_combine(ret, type);
-    ret = hash_combine(ret, extension);
+    ret = hash_combine(ret, utils::to_unsigned(type));
+    ret = hash_combine(ret, utils::to_unsigned(extension));
     if (length)
         ret = hash_combine(ret, length->hash());
 

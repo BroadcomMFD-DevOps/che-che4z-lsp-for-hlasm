@@ -98,7 +98,7 @@ TEST(debugger, stopped_on_entry)
     file_manager_impl file_manager;
     NiceMock<debugger_configuration_provider_mock> dc_provider;
     EXPECT_CALL(dc_provider, provide_debugger_configuration).WillRepeatedly(Invoke([&file_manager](auto, auto r) {
-        r.provide({ .fm = &file_manager });
+        r.provide({ .fm = &file_manager, .libraries = {}, .opts = {}, .pp_opts = {} });
     }));
 
     debugger d;
@@ -140,7 +140,7 @@ TEST(debugger, disconnect)
     file_manager_impl file_manager;
     NiceMock<debugger_configuration_provider_mock> dc_provider;
     EXPECT_CALL(dc_provider, provide_debugger_configuration).WillRepeatedly(Invoke([&file_manager](auto, auto r) {
-        r.provide({ .fm = &file_manager });
+        r.provide({ .fm = &file_manager, .libraries = {}, .opts = {}, .pp_opts = {} });
     }));
 
     debugger d;
@@ -1089,8 +1089,6 @@ B EQU A
 
 TEST(debugger, ainsert)
 {
-    using list = std::unordered_map<std::string, std::shared_ptr<test_var_value>>;
-
     std::string open_code = R"(
     MACRO
     MAC
@@ -1250,7 +1248,7 @@ TEST(debugger, function_breakpoints)
     file_manager_impl file_manager;
     NiceMock<debugger_configuration_provider_mock> dc_provider;
     EXPECT_CALL(dc_provider, provide_debugger_configuration).WillRepeatedly(Invoke([&file_manager](auto, auto r) {
-        r.provide({ .fm = &file_manager });
+        r.provide({ .fm = &file_manager, .libraries = {}, .opts = {}, .pp_opts = {} });
     }));
     debugger d;
     debug_event_consumer_s_mock m(d);
@@ -1278,7 +1276,7 @@ TEST(debugger, invalid_file)
     file_manager_impl file_manager;
     NiceMock<debugger_configuration_provider_mock> dc_provider;
     EXPECT_CALL(dc_provider, provide_debugger_configuration).WillRepeatedly(Invoke([&file_manager](auto, auto r) {
-        r.provide({ .fm = &file_manager });
+        r.provide({ .fm = &file_manager, .libraries = {}, .opts = {}, .pp_opts = {} });
     }));
 
     debugger d;
@@ -1322,7 +1320,7 @@ L   DS    F
     file_manager_impl file_manager;
     NiceMock<debugger_configuration_provider_mock> dc_provider;
     EXPECT_CALL(dc_provider, provide_debugger_configuration).WillRepeatedly(Invoke([&file_manager](auto, auto r) {
-        r.provide({ .fm = &file_manager });
+        r.provide({ .fm = &file_manager, .libraries = {}, .opts = {}, .pp_opts = {} });
     }));
     debugger d;
     debug_event_consumer_s_mock m(d);
@@ -1398,7 +1396,7 @@ TEST(debugger, outputs)
     file_manager_impl file_manager;
     NiceMock<debugger_configuration_provider_mock> dc_provider;
     EXPECT_CALL(dc_provider, provide_debugger_configuration).WillRepeatedly(Invoke([&file_manager](auto, auto r) {
-        r.provide({ .fm = &file_manager });
+        r.provide({ .fm = &file_manager, .libraries = {}, .opts = {}, .pp_opts = {} });
     }));
     debugger d;
     debug_event_consumer_s_mock m(d);
@@ -1431,7 +1429,7 @@ TEST(debugger, actr_limit_break)
     file_manager_impl file_manager;
     NiceMock<debugger_configuration_provider_mock> dc_provider;
     EXPECT_CALL(dc_provider, provide_debugger_configuration).WillRepeatedly(Invoke([&file_manager](auto, auto r) {
-        r.provide({ .fm = &file_manager });
+        r.provide({ .fm = &file_manager, .libraries = {}, .opts = {}, .pp_opts = {} });
     }));
     debugger d;
     debug_event_consumer_s_mock m(d);

@@ -1171,7 +1171,8 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
             ++i, ++lineno, std::exchange(line_start_column, continue_column))
         {
             const auto& segment = m_ll_helper.m_db2_ll.segments[i];
-            auto comment_start_column = line_start_column + std::ranges::distance(segment.code, segment.continuation);
+            auto comment_start_column =
+                line_start_column + utils::to_unsigned(std::ranges::distance(segment.code, segment.continuation));
 
             if (const auto& comment = m_ll_helper.m_comments[i]; comment.has_value())
             {

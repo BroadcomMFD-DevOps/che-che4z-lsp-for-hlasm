@@ -381,11 +381,11 @@ context::SET_t ca_function::X2A(std::string_view param, diagnostic_adder& add_di
     return *reinterpret_cast<int*>(&res);
 }
 
-context::SET_t ca_function::A2B(context::A_t param) { return std::bitset<32>(param).to_string(); }
+context::SET_t ca_function::A2B(context::A_t param) { return std::bitset<32>(utils::to_unsigned(param)).to_string(); }
 
 context::SET_t ca_function::A2C(context::A_t param)
 {
-    std::uint32_t uparam = param;
+    const auto uparam = utils::to_unsigned(param);
 
     return ebcdic_encoding::to_ascii(std::string {
         static_cast<char>(uparam >> 24 & 0xff),
@@ -406,7 +406,7 @@ context::SET_t ca_function::A2D(context::A_t param)
 
 context::SET_t ca_function::A2X(context::A_t param)
 {
-    unsigned long uparam = param;
+    const auto uparam = utils::to_unsigned(param);
     std::string result;
 
     for (int shift = 28; shift >= 0; shift -= 4)
@@ -436,15 +436,15 @@ context::SET_t ca_function::B2C(const context::C_t& param, diagnostic_adder& add
 
     for (size_t i = 0; i < new_str.size() / 8; ++i)
     {
-        unsigned char c = 0;
+        auto c = 0u;
         for (size_t j = 0; j < 8; ++j)
         {
-            unsigned char bit = new_str[i * 8 + j] - '0';
+            const auto bit = new_str[i * 8 + j] - '0';
             if (bit != 0 && bit != 1)
                 RET_ERRPARM;
-            c = (c << 1) + bit;
+            c = (c << 1) | bit;
         }
-        ret.append(ebcdic_encoding::to_ascii(c));
+        ret.append(ebcdic_encoding::to_ascii(static_cast<char>(c)));
     }
 
     return ret;
@@ -479,13 +479,13 @@ context::SET_t ca_function::B2X(const context::C_t& param, diagnostic_adder& add
 
     for (size_t i = 0; i < new_str.size() / 4; ++i)
     {
-        unsigned char c = 0;
+        auto c = 0u;
         for (size_t j = 0; j < 4; ++j)
         {
-            unsigned char bit = new_str[i * 4 + j] - '0';
+            const auto bit = new_str[i * 4 + j] - '0';
             if (bit != 0 && bit != 1)
                 RET_ERRPARM;
-            c = (c << 1) + bit;
+            c = (c << 1) | bit;
         }
         ret[i] = "0123456789ABCDEF"[c];
     }

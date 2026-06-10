@@ -389,10 +389,10 @@ bool address::is_simple() const { return bases_.bases.size() == 1 && bases_.base
 
 bool address::has_dependant_space() const
 {
-    if (!has_spaces() || spaces_.spaces.size() == 1 && spaces_.spaces.front().first->kind == space_kind::LOCTR_BEGIN)
+    if (!has_spaces() || (spaces_.spaces.size() == 1 && spaces_.spaces.front().first->kind == space_kind::LOCTR_BEGIN))
         return false;
     auto [spaces, _] = normalized_spaces();
-    if (spaces.empty() || spaces.size() == 1 && spaces.front().first->kind == space_kind::LOCTR_BEGIN)
+    if (spaces.empty() || (spaces.size() == 1 && spaces.front().first->kind == space_kind::LOCTR_BEGIN))
         return false;
     return true;
 }

@@ -638,14 +638,17 @@ int main(int argc, char** argv)
 {
     bench_configuration bench_config;
     if (!bench_config.load(argc, argv))
-        return false;
+        return 1;
 
     if (bench_config.pgm_names.empty())
     {
         log_w("Didn't manage to load any programs to benchmark");
-        return false;
+        return 1;
     }
 
     bench benchmark;
-    return !benchmark.start(bench_config);
+    if (!benchmark.start(bench_config))
+        return 1;
+
+    return 0;
 }

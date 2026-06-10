@@ -550,8 +550,8 @@ public:
             text.append(" + ");
 
         text.append("X'");
-        uint32_t offset = reloc.offset();
-        size_t len = text.size();
+        auto offset = utils::to_unsigned(reloc.offset());
+        const auto len = std::ssize(text);
         do
         {
             text.push_back("0123456789ABCDEF"[offset & 0xf]);

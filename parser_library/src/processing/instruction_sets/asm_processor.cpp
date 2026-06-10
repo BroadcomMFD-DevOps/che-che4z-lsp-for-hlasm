@@ -175,9 +175,9 @@ void asm_processor::process_sect(rebuilt_statement&& stmt, const context::sectio
         return false;
     };
 
-    if (!sect_name.empty() && hlasm_ctx.ord_ctx.symbol_defined(sect_name)
-            && !hlasm_ctx.ord_ctx.section_defined(sect_name, kind)
-        || sect_name.empty() && kind != section_kind::DUMMY && do_other_private_sections_exist(sect_name, kind))
+    if ((!sect_name.empty() && hlasm_ctx.ord_ctx.symbol_defined(sect_name)
+            && !hlasm_ctx.ord_ctx.section_defined(sect_name, kind))
+        || (sect_name.empty() && kind != section_kind::DUMMY && do_other_private_sections_exist(sect_name, kind)))
     {
         add_diagnostic(diagnostic_op::error_E031("symbol", stmt.label_ref().field_range));
     }
@@ -1309,12 +1309,13 @@ void asm_processor::process_MNOTE(rebuilt_statement&& stmt)
     sanitized.reserve(text.size());
     utils::append_utf8_sanitized(sanitized, text);
 
+    const auto level_val = static_cast<unsigned char>(level.value());
     if (output)
-        output->mnote(level.value(), sanitized);
+        output->mnote(level_val, sanitized);
 
-    add_diagnostic(diagnostic_op::mnote_diagnostic(level.value(), sanitized, r));
+    add_diagnostic(diagnostic_op::mnote_diagnostic(level_val, sanitized, r));
 
-    hlasm_ctx.update_mnote_max((unsigned)level.value());
+    hlasm_ctx.update_mnote_max(level_val);
 }
 
 void asm_processor::process_CXD(rebuilt_statement&& stmt)
@@ -1487,12 +1488,12 @@ void asm_processor::handle_cattr_ops(context::id_index class_name,
         if (can_switch_into_section(class_name_sect->kind))
             hlasm_ctx.ord_ctx.set_section(*class_name_sect);
 
-        if (!class_name_sect->goff || part_name.empty() && class_name_sect->goff->partitioned)
+        if (!class_name_sect->goff || (part_name.empty() && class_name_sect->goff->partitioned))
         {
             add_diagnostic(diagnostic_op::error_A170_section_type_mismatch(stmt.label_ref().field_range));
             return;
         }
-        else if (!part_name.empty() && !class_name_sect->goff->partitioned || op_count > !part_name.empty())
+        else if ((!part_name.empty() && !class_name_sect->goff->partitioned) || op_count > !part_name.empty())
         {
             add_diagnostic(diagnostic_op::warn_A171_operands_ignored(stmt.operands_ref().field_range));
             return;

@@ -147,7 +147,7 @@ void push_uri_char(std::string& uri, char c_, const keep_table_t& keep)
     const auto c = static_cast<unsigned char>(c_);
     if (keep[c])
     {
-        uri.push_back(c);
+        uri.push_back(c_);
     }
     else
     {
@@ -210,7 +210,7 @@ std::string percent_decode(std::string_view s)
         s.remove_prefix(3);
         if (hi < 0 || lo < 0)
             return {};
-        result.push_back(hi << 4 | lo);
+        result.push_back(static_cast<char>(hi << 4 | lo));
     }
 
     return result;

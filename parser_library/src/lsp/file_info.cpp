@@ -62,7 +62,7 @@ occurrence_scope_t file_info::find_occurrence_with_scope(position pos) const
         const auto& occ = *it;
         if (is_in_range(pos, occ.occurrence_range))
         {
-            auto occ_priority = 1 * occ.evaluated_model + 2 * (occ.kind == occurrence_kind::INSTR_LIKE);
+            auto occ_priority = 1u * occ.evaluated_model + 2u * (occ.kind == occurrence_kind::INSTR_LIKE);
             if (!found || occ_priority < priority)
                 found_pair = { &occ, occ_priority };
             if (priority == 0)

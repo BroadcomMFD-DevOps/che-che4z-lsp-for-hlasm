@@ -587,6 +587,9 @@ void ca_processor::process_AREAD(const processing::resolved_statement& stmt)
         case aread_variant::clockd:
             value_to_set = time_to_clockd(since_midnight());
             break;
+        case aread_variant::invalid:
+            // unreachable
+            break;
     }
     set_symbol->access_set_symbol<context::C_t>()->set_value(std::move(value_to_set), index);
 }

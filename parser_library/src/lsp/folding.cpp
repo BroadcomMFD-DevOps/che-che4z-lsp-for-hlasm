@@ -27,7 +27,7 @@ using text_iterator =
     hlasm_plugin::utils::utf8_iterator<std::string_view::const_iterator, hlasm_plugin::utils::utf8_utf32_counter>;
 using logical_line = hlasm_plugin::parser_library::lexing::logical_line<text_iterator>;
 
-signed char get_comment_offset(const logical_line& r)
+unsigned char get_comment_offset(const logical_line& r)
 {
     auto b = r.segments.front().code_begin();
     const auto e = r.segments.front().code_end();
