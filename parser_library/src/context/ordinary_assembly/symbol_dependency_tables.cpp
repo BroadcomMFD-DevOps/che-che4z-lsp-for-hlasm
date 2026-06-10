@@ -123,7 +123,7 @@ struct resolve_dependant_visitor
         if (ref.attribute == data_attr_kind::L)
             tmp_sym->set_length(value);
         if (ref.attribute == data_attr_kind::S)
-            tmp_sym->set_scale(value);
+            tmp_sym->set_scale(value); // TODO: It is not obvious to me that the result is within expected bounds
     }
     void operator()(id_index symbol) const { sym_ctx.get_symbol(symbol)->set_value(val); }
     void operator()(const space_ptr& sp) const
