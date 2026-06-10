@@ -544,7 +544,7 @@ TEST(workspace_configuration, load_config_synthetic)
     ASSERT_TRUE(pg4);
     check_process_group(*pg4, expected2);
 
-    auto [analyzer_opts, _] = ws_cfg.get_analyzer_configuration(pgm1_loc).run().value();
+    auto [analyzer_opts, __] = ws_cfg.get_analyzer_configuration(pgm1_loc).run().value();
 
     // test of asm_options
     EXPECT_EQ("SEVEN", analyzer_opts.opts.sysparm);
@@ -554,7 +554,7 @@ TEST(workspace_configuration, load_config_synthetic)
     EXPECT_TRUE(pp_options.size() == 1 && std::holds_alternative<db2_preprocessor_options>(pp_options.front()));
 
     // test of asm_options override
-    auto [analyzer_opts_override, __] = ws_cfg.get_analyzer_configuration(pgm_override_loc).run().value();
+    auto [analyzer_opts_override, ___] = ws_cfg.get_analyzer_configuration(pgm_override_loc).run().value();
     EXPECT_EQ("SEVEN", analyzer_opts_override.opts.sysparm);
     EXPECT_EQ("PROFILE OVERRIDE", analyzer_opts_override.opts.profile);
 

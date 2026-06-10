@@ -1006,7 +1006,7 @@ void asm_processor::process_START(rebuilt_statement&& stmt)
     // TODO: This actually seems to be GOFF dependent,
     // limit of 16M or 2G seems to be imposed in addition to the alignment
     // sometimes with error diagnostic
-    auto offset = utils::to_unsigned(initial_offset.value());
+    size_t offset = utils::to_unsigned(initial_offset.value());
     if (offset & start_section_alignment_mask)
     {
         // TODO: generate informational message?

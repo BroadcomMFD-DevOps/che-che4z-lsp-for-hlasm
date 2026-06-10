@@ -360,8 +360,8 @@ void lsp_analyzer::collect_occurrence(
     else if (instruction.type == semantics::instruction_si_type::ORD
         && any(collector.collector_kind & lsp::occurrence_kind::INSTR_LIKE))
     {
-        if (const auto& op = std::get<context::id_index>(instruction.value); !op.empty())
-            collector.occurrences.emplace_back(lsp::occurrence_kind::INSTR_LIKE, op, instruction.field_range, false);
+        if (const auto& opval = std::get<context::id_index>(instruction.value); !opval.empty())
+            collector.occurrences.emplace_back(lsp::occurrence_kind::INSTR_LIKE, opval, instruction.field_range, false);
     }
 }
 

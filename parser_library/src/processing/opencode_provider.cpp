@@ -507,7 +507,7 @@ utils::task opencode_provider::run_preprocessor()
     m_next_line_index -= skipped;
 
     std::string preprocessor_text;
-    auto it = m_input_document.begin() + utils::to_signed(m_next_line_index); // < size()
+    auto it = m_input_document.begin() + utils::to_signed(m_next_line_index);
     for (; it != m_input_document.end() && !it->is_original(); ++it)
     {
         const auto text = it->text();

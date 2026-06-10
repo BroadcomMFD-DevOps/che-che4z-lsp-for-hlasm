@@ -112,7 +112,7 @@ const std::string& home()
             result = std::move(home.value());
 
         if (!result.empty())
-            result.front() = std::tolower((unsigned char)result.front());
+            result.front() = (char)std::tolower((unsigned char)result.front());
 
         return result;
     }();
@@ -143,7 +143,7 @@ const std::string& home()
         // clang-format on
 
         if (!s.empty() && is_windows())
-            s.front() = std::tolower((unsigned char)s.front());
+            s.front() = (char)std::tolower((unsigned char)s.front());
 
         return s;
     }();

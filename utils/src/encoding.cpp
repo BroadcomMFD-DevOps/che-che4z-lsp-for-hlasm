@@ -115,7 +115,7 @@ using keep_table_t = decltype(unreserved);
 constexpr auto invert_hex = []() {
     std::array<signed char, std::numeric_limits<char8_t>::max() + 1> result {};
 
-    std::ranges::fill(result, -1);
+    std::ranges::fill(result, (signed char)-1);
 
     result[u8'0'] = 0x0;
     result[u8'1'] = 0x1;
